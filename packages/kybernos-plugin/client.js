@@ -6238,7 +6238,7 @@ const KB_NC_TEMPLATES = [
   { id: 'plugin', group: 'auto', needs: null },
 ]
 // What each template looks like: a small model of the result, drawn as inline SVG (viewBox 0 0 64 44) from rect / circle /
-// path only (the last five, cards to all, are not templates: the Creations page draws them on its type tiles, see KB_ART_DRAW): no image, video or font in git (AGENTS rule 4), nothing fetched. The classes (paper, ink, acc, ...) are styled
+// path only (the last eight, cards to file, are not templates: the Creations page draws them on its type tiles and on its file icons, see KB_ART_DRAW): no image, video or font in git (AGENTS rule 4), nothing fetched. The classes (paper, ink, acc, ...) are styled
 // by the page's CSS from the theme's tokens, so the drawings follow the theme; the others (gr, blk, pop, dr ...) are the
 // little motion played when the card is hovered, focused or lit by what the person types.
 const KB_NC_ART = {
@@ -6260,6 +6260,9 @@ const KB_NC_ART = {
   code: '<rect class="paper" x="6" y="5" width="52" height="34" rx="3.5"/><rect class="scr" x="9" y="8" width="46" height="28" rx="2.5"/><path class="acc pop" d="M11.4 17.4L13 15.5L19.5 20L13 24.5L11.4 22.6L15.8 20Z"/><rect class="oa" style="opacity:.9" x="23" y="18.8" width="12" height="2.4" rx="1.2"/><rect class="oa" style="opacity:.5" x="14" y="27.5" width="20" height="2.2" rx="1.1"/><rect class="oa" style="opacity:.5" x="37" y="27.5" width="12" height="2.2" rx="1.1"/>',
   diagram: '<path class="ln dr" pathLength="1" d="M20 22H25"/><path class="ln dr" pathLength="1" d="M39 22H44"/><rect class="paper" x="4" y="15" width="16" height="14" rx="4"/><circle class="tint ring" cx="12" cy="22" r="3.2"/><rect class="acc node" x="25" y="13" width="14" height="18" rx="4"/><rect class="oa" style="opacity:.9" x="28" y="19" width="8" height="2.2" rx="1.1"/><rect class="oa" style="opacity:.6" x="28" y="23.5" width="5.5" height="2.2" rx="1.1"/><rect class="paper" x="44" y="15" width="16" height="14" rx="4"/><path class="ln" d="M48 22.4L50.4 24.8L55.2 19.8"/>',
   all: '<rect class="paper tint bk" style="--r:-8deg" x="8" y="8" width="30" height="26" rx="3"/><rect class="paper bk" style="--r:7deg" x="26" y="6" width="30" height="26" rx="3"/><rect class="paper" x="17" y="13" width="30" height="26" rx="3"/><rect class="ink" x="22" y="19" width="12" height="3" rx="1.5"/><rect class="ink2" x="22" y="25" width="19" height="2" rx="1"/><rect class="acc2" x="22" y="29.5" width="12" height="2" rx="1"/>',
+  pdf: '<rect class="paper" x="16" y="3" width="32" height="38" rx="3"/><rect class="ink" x="21" y="9" width="12" height="3" rx="1.5"/><rect class="ink2" x="21" y="15" width="22" height="2" rx="1"/><rect class="ink2" x="21" y="19" width="16" height="2" rx="1"/><rect class="acc pop" x="21" y="26" width="22" height="9" rx="2.5"/><rect class="oa" style="opacity:.9" x="25" y="29.4" width="14" height="2.2" rx="1.1"/>',
+  folder: '<path class="tint" d="M8 11a3 3 0 0 1 3-3h13l4 4h25a3 3 0 0 1 3 3v22a3 3 0 0 1-3 3H11a3 3 0 0 1-3-3z"/><rect class="paper bk" style="--r:-2deg" x="8" y="17" width="48" height="24" rx="3"/><rect class="ink2" x="14" y="24" width="18" height="2.2" rx="1.1"/><rect class="ink3" x="14" y="29" width="26" height="2.2" rx="1.1"/><rect class="acc2" x="14" y="34" width="12" height="2.2" rx="1.1"/>',
+  file: '<rect class="paper tint bk" style="--r:7deg" x="22" y="3" width="26" height="36" rx="3"/><rect class="paper" x="15" y="5" width="28" height="36" rx="3"/><rect class="ink2" x="20" y="12" width="14" height="2.2" rx="1.1"/><rect class="ink3" x="20" y="17" width="18" height="2.2" rx="1.1"/><rect class="ink3" x="20" y="22" width="18" height="2.2" rx="1.1"/><circle class="acc pop" cx="25" cy="32" r="2.4"/><circle class="acc2 pop" style="--d:.1s" cx="32" cy="32" r="2.4"/><circle class="ink3 pop" style="--d:.2s" cx="39" cy="32" r="2.4"/>',
 }
 // The headline of the new-chat page: a different line each time a new chat page appears (KB_NC_HERO_COUNT lines per
 // language, the dictionary keys `kbnc.hero.<n>`). `last` is the index shown the previous time: never the same twice in a row.
@@ -6929,7 +6932,8 @@ body{--kb-u:var(--dsh-content-font-size,13px)}
 .kb6-mfill{position:absolute;left:0;top:0;bottom:0;width:34%;border-radius:2px;background:currentColor;opacity:.85}
 .kb6-mtime{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:9px;color:var(--dsw-alias-label-secondary);flex:none}
 .kb6-arc{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;background:var(--dsw-alias-bg-layer-2)}
-.kb6-arc-ico{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:1.5px solid var(--dsw-alias-border-l2)}
+.kb6-arc-ico{width:56px;height:38px;border-radius:10px;overflow:hidden;border:1px solid var(--dsw-alias-border-l1)}
+.kb6-arc-ico.kb8-sl-stage svg{width:46px;height:32px}
 .kb6-prev-mini{padding:0}
 /* Les aperçus VIVANTS (iframe html/md, visuel miniapp) occupent le média
    PLEIN CADRE : le padding du conteneur faisait une margine autour du contenu
@@ -17386,17 +17390,6 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
     // <kb-type-icons:begin> (généré par harmonisation/build-type-icons.mjs — ne pas éditer)
     const KB_TI = {"ids":["cards","chart","code","deck","doc","folder","image","media","miniapp","other","pdf","quiz","sheet","site"],"icons":{"cards":[["rect",{"x":20,"y":8,"width":38,"height":30,"rx":6},"N",null,1],["rect",{"x":6,"y":22,"width":40,"height":32,"rx":6},null,"P",1],["rect",{"x":6,"y":22,"width":40,"height":32,"rx":6},"A","A",0.12],["line",{"x1":14,"y1":32,"x2":26,"y2":32},"B",null,1],["line",{"x1":14,"y1":41,"x2":36,"y2":41},"N",null,1]],"chart":[["path",{"d":"M9 8 V54 H57"},"N",null,1],["rect",{"x":17,"y":34,"width":9,"height":20,"rx":2},"A","A",0.9],["rect",{"x":30,"y":22,"width":9,"height":32,"rx":2},"B","B",0.9],["rect",{"x":43,"y":12,"width":9,"height":42,"rx":2},"A","A",0.45]],"code":[["rect",{"x":6,"y":10,"width":52,"height":44,"rx":6},"A","A",0.12],["path",{"d":"M24 24 L15 32 L24 40"},"B",null,1],["path",{"d":"M40 24 L49 32 L40 40"},"B",null,1],["line",{"x1":35,"y1":21,"x2":29,"y2":43},"N",null,1]],"deck":[["rect",{"x":16,"y":8,"width":42,"height":30,"rx":6},"N",null,1],["rect",{"x":6,"y":18,"width":44,"height":34,"rx":6},null,"P",1],["rect",{"x":6,"y":18,"width":44,"height":34,"rx":6},"A","A",0.12],["line",{"x1":14,"y1":28,"x2":28,"y2":28},"B",null,1],["line",{"x1":14,"y1":36,"x2":40,"y2":36},"N",null,1],["line",{"x1":14,"y1":43,"x2":32,"y2":43},"N",null,1]],"doc":[["rect",{"x":14,"y":8,"width":36,"height":48,"rx":6},"A","A",0.12],["line",{"x1":22,"y1":20,"x2":34,"y2":20},"B",null,1],["line",{"x1":22,"y1":30,"x2":42,"y2":30},"N",null,1],["line",{"x1":22,"y1":38,"x2":42,"y2":38},"N",null,1],["line",{"x1":22,"y1":46,"x2":32,"y2":46},"N",null,1]],"folder":[["path",{"d":"M8 20 A6 6 0 0 1 14 14 H26 L32 22 H50 A6 6 0 0 1 56 28 V46 A6 6 0 0 1 50 52 H14 A6 6 0 0 1 8 46 Z"},"A","A",0.12],["line",{"x1":8,"y1":31,"x2":56,"y2":31},"A",null,1],["line",{"x1":18,"y1":41,"x2":34,"y2":41},"N",null,1],["circle",{"cx":45,"cy":41,"r":2.5},"B","B",1]],"image":[["rect",{"x":6,"y":10,"width":52,"height":44,"rx":6},"A","A",0.12],["circle",{"cx":21,"cy":24,"r":5},"B","B",1],["path",{"d":"M7 46 L22 32 L33 42 L41 35 L57 48"},"A",null,1]],"media":[["rect",{"x":6,"y":10,"width":52,"height":44,"rx":8},"A","A",0.12],["path",{"d":"M27 18 L41 26 L27 34 Z"},"B","B",1],["line",{"x1":14,"y1":44,"x2":50,"y2":44},"N",null,1],["line",{"x1":14,"y1":44,"x2":30,"y2":44},"B",null,1]],"miniapp":[["rect",{"x":14,"y":6,"width":36,"height":52,"rx":10},"A","A",0.12],["rect",{"x":21,"y":15,"width":9,"height":9,"rx":2.5},"B","B",1],["rect",{"x":34,"y":15,"width":9,"height":9,"rx":2.5},"A",null,1],["rect",{"x":21,"y":28,"width":9,"height":9,"rx":2.5},"A",null,1],["rect",{"x":34,"y":28,"width":9,"height":9,"rx":2.5},"B","B",1],["line",{"x1":26,"y1":48,"x2":38,"y2":48},"N",null,1]],"other":[["path",{"d":"M20 8 H38 L50 20 V50 A6 6 0 0 1 44 56 H20 A6 6 0 0 1 14 50 V14 A6 6 0 0 1 20 8 Z"},"A","A",0.12],["path",{"d":"M38 8 V20 H50"},"A",null,1],["circle",{"cx":23,"cy":38,"r":2.5},"B","B",1],["circle",{"cx":32,"cy":38,"r":2.5},"B","B",1],["circle",{"cx":41,"cy":38,"r":2.5},"B","B",1]],"pdf":[["path",{"d":"M20 8 H38 L50 20 V50 A6 6 0 0 1 44 56 H20 A6 6 0 0 1 14 50 V14 A6 6 0 0 1 20 8 Z"},"A","A",0.12],["path",{"d":"M38 8 V20 H50"},"A",null,1],["line",{"x1":22,"y1":28,"x2":32,"y2":28},"N",null,1],["rect",{"x":20,"y":36,"width":24,"height":12,"rx":3},"B","B",0.9]],"quiz":[["rect",{"x":10,"y":10,"width":44,"height":44,"rx":8},"A","A",0.12],["circle",{"cx":22,"cy":23,"r":4},"B","B",1],["line",{"x1":31,"y1":23,"x2":45,"y2":23},"N",null,1],["circle",{"cx":22,"cy":34,"r":4},"A",null,1],["line",{"x1":31,"y1":34,"x2":43,"y2":34},"N",null,1],["circle",{"cx":22,"cy":45,"r":4},"A",null,1],["line",{"x1":31,"y1":45,"x2":41,"y2":45},"N",null,1]],"sheet":[["rect",{"x":8,"y":10,"width":48,"height":44,"rx":6},"A","A",0.12],["rect",{"x":25,"y":35,"width":14,"height":9,"rx":1.5},null,"B",0.45],["line",{"x1":8,"y1":23,"x2":56,"y2":23},"A",null,1],["line",{"x1":8,"y1":34,"x2":56,"y2":34},"N",null,1],["line",{"x1":8,"y1":45,"x2":56,"y2":45},"N",null,1],["line",{"x1":24,"y1":23,"x2":24,"y2":54},"N",null,1],["line",{"x1":40,"y1":23,"x2":40,"y2":54},"N",null,1]],"site":[["rect",{"x":6,"y":10,"width":52,"height":44,"rx":6},"A","A",0.12],["line",{"x1":6,"y1":23,"x2":58,"y2":23},"A",null,1],["circle",{"cx":13,"cy":16.5,"r":1.5},"N","N",1],["circle",{"cx":19,"cy":16.5,"r":1.5},"N","N",1],["rect",{"x":14,"y":31,"width":16,"height":14,"rx":3},"B","B",0.3],["line",{"x1":37,"y1":33,"x2":50,"y2":33},"N",null,1],["line",{"x1":37,"y1":42,"x2":46,"y2":42},"N",null,1]]},"type":{"miniapp":"miniapp","html":"site","js":"code","quiz":"quiz","doc":"doc","deck":"deck","cards":"cards","resume":"doc","fiche":"doc","engine":"chart","data":"sheet","image":"image","other":"other"},"family":{"slides":"deck","websites":"site","documents":"doc","spreadsheets":"sheet","images":"image","av":"media"},"ext":{"html":"site","htm":"site","css":"code","js":"code","mjs":"code","cjs":"code","ts":"code","jsx":"code","tsx":"code","sh":"code","bash":"code","zsh":"code","py":"code","sql":"code","xml":"code","md":"doc","markdown":"doc","txt":"doc","rst":"doc","docx":"doc","doc":"doc","rtf":"doc","pages":"doc","log":"doc","resume":"doc","fiche":"doc","pdf":"pdf","deck":"deck","pptx":"deck","ppt":"deck","key":"deck","odp":"deck","csv":"sheet","tsv":"sheet","xlsx":"sheet","xls":"sheet","ods":"sheet","json":"sheet","yaml":"sheet","yml":"sheet","toml":"sheet","lock":"sheet","sha256":"sheet","png":"image","jpg":"image","jpeg":"image","webp":"image","gif":"image","svg":"image","avif":"image","bmp":"image","ico":"image","heic":"image","tif":"image","tiff":"image","sketch":"image","mp3":"media","wav":"media","m4a":"media","ogg":"media","oga":"media","flac":"media","aac":"media","opus":"media","mp4":"media","m4v":"media","mov":"media","webm":"media","mkv":"media","avi":"media","mpg":"media","mpeg":"media","engine":"chart","quiz":"quiz","exam":"quiz","cards":"cards","flashcards":"cards","zip":"folder","tar":"folder","gz":"folder","tgz":"folder","7z":"folder","rar":"folder"},"kind":{"note":"doc","plan":"chart","page":"site","pdf":"pdf","deck":"deck","quiz":"quiz","exam":"quiz","flashcards":"cards","game":"miniapp","sketchnote":"image","miniapp":"miniapp"}}
     // <kb-type-icons:end>
-    // ── jeu d'icônes de type UNIQUE (partagé avec Kybernos Cloud) ───────────
-    // 64×64, trait 3, arrondi rond, 2 teintes + neutre : A = business (bleu), B = warn (ambre),
-    // N = étiquette tertiaire, P = papier. Tout passe par les jetons --dsw-alias-*
-    // (clair et sombre). Source : harmonisation/type-icons/*.svg.
-    const KB_TI_COLOR = { A: 'var(--dsw-alias-state-business-primary)', B: 'var(--dsw-alias-state-warn-primary)', N: 'var(--dsw-alias-label-tertiary)', P: 'var(--dsw-alias-bg-layer-1)' }
-    const kbTiSvg = (id, size) => {
-      const els = (KB_TI.icons !== undefined && KB_TI.icons[id] !== undefined) ? KB_TI.icons[id] : (KB_TI.icons || {}).other
-      if (els === undefined) return null
-      return h('svg', { className: 'kb-ti', 'data-kb-ti': id, viewBox: '0 0 64 64', width: size, height: size, 'aria-hidden': 'true', focusable: 'false', fill: 'none', strokeWidth: 3, strokeLinecap: 'round', strokeLinejoin: 'round' },
-        els.map((e, i) => h(e[0], Object.assign({ key: i }, e[1], { stroke: e[2] === null ? 'none' : KB_TI_COLOR[e[2]], fill: e[3] === null ? 'none' : KB_TI_COLOR[e[3]], fillOpacity: e[4] }))))
-    }
     const kbTypeById = (id) => KB_ART_TYPES.filter((t) => t.id === id)[0] || null
     // The Creations tiles draw what the new chat page draws on its cards (KB_NC_ART: a small model of the result, ink and the
     // theme's tint), so the two pages read as one. A family or a type with no drawing of its own borrows the nearest one.
@@ -17404,7 +17397,10 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       fam: { slides: 'slides', websites: 'website', documents: 'doc', spreadsheets: 'sheet', images: 'image', av: 'video' },
       type: { miniapp: 'miniapp', html: 'website', js: 'code', quiz: 'quiz', deck: 'slides', cards: 'cards', resume: 'doc', fiche: 'doc', engine: 'diagram', data: 'sheet', image: 'image' },
     }
-    const kbArtDraw = (id) => h('svg', { viewBox: '0 0 64 44', 'aria-hidden': 'true', focusable: 'false', dangerouslySetInnerHTML: { __html: KB_NC_ART[id] === undefined ? KB_NC_ART.doc : KB_NC_ART[id] } })
+    const kbArtDraw = (id) => h('svg', { viewBox: '0 0 64 44', 'aria-hidden': 'true', focusable: 'false', dangerouslySetInnerHTML: { __html: KB_NC_ART[id] === undefined ? KB_NC_ART.file : KB_NC_ART[id] } })
+    // What a file wears in a row, a preview or the viewer's header: the icon id of kbTiOfName, drawn as the tiles are.
+    const KB_TI_DRAW = { cards: 'cards', chart: 'diagram', code: 'code', deck: 'slides', doc: 'doc', folder: 'folder', image: 'image', media: 'video', miniapp: 'miniapp', other: 'file', pdf: 'pdf', quiz: 'quiz', sheet: 'sheet', site: 'website' }
+    const kbTiArt = (id) => kbArtDraw(KB_TI_DRAW[id])
     const kbArtType = (name) => {
       const n = String(name || '').toLowerCase()
       // MiniApp universel : *.miniapp.json → type 'miniapp'
@@ -17423,7 +17419,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       if (KB_FAM_EXTS.av.indexOf(ext) >= 0) return KB_ART_TYPE_MEDIA
       return KB_ART_TYPES[KB_ART_TYPES.length - 1]
     }
-    // Nom de fichier → id d'icône du jeu (miniapp, genre dans un .json, extension, type DSH).
+    // File name → the icon id (miniapp, kind inside a .json, extension, DSH type); KB_TI_DRAW says what is drawn for it.
     const kbTiOfName = (name) => {
       const n = String(name || '').toLowerCase()
       if (n.endsWith('.miniapp.json')) return 'miniapp'
@@ -17579,7 +17575,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
     }
     const kbArcNode = (t, size) => [
       h('div', { className: 'kb6-arc', key: 'arc' },
-        h('span', { className: 'kb6-arc-ico', style: { background: 'var(--dsw-alias-interactive-bg-hover)' } }, kbTiSvg('folder', 26)),
+        h('span', { className: 'kb6-arc-ico kb8-sl-stage' }, kbTiArt('folder')),
         h('span', { className: 'kb6-line2' }, 'Archive' + (kbFmtSize(size) !== '' ? ' · ' + kbFmtSize(size) : ''))),
     ]
     // ── Data creations: shown as DATA, never as the code of the file ────────────────────────────────────
@@ -17784,7 +17780,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       if (extB === 'zip' || extB === 'tar' || extB === 'gz' || extB === 'tgz' || extB === '7z' || extB === 'rar') return kbArcNode(t, size)
       if (kind === 'binary') {
         return [
-          h('div', { className: 'kb6-prevkind', key: 'bk' }, kbTiSvg(kbTiOfName(name), 30)),
+          h('div', { className: 'kb6-prevkind kb8-sl-stage', key: 'bk' }, kbTiArt(kbTiOfName(name))),
           h('div', { className: 'kb6-line2', key: 'bt' }, kbe('Binary content — no text preview')),
           h('div', { className: 'kb6-line2', key: 'bs' }, kbFmtSize(typeof preview.size === 'number' ? preview.size : null) + (typeof preview.ext === 'string' && preview.ext.length > 0 ? ' · .' + preview.ext : '')),
         ]
@@ -17797,7 +17793,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       // avait rendu aucun. Au-dessus du plafond, on le dit.
       if (lines === null && typeof size === 'number' && size > 1200000) {
         return [
-          h('div', { className: 'kb6-prevkind', key: 'ov' }, kbTiSvg(kbTiOfName(name), 30)),
+          h('div', { className: 'kb6-prevkind kb8-sl-stage', key: 'ov' }, kbTiArt(kbTiOfName(name))),
           h('div', { className: 'kb6-line2', key: 'o1' }, kbt('kbui.apercu.unavailable') + kbFmtSize(size)),
           h('div', { className: 'kb6-line2', key: 'o2' }, kbe('Above the 1.2 MB limit')),
         ]
@@ -17847,7 +17843,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         const comps = (p !== null && Array.isArray(p.components)) ? p.components.length
           : ((p !== null && Array.isArray(p.parts)) ? p.parts.length : null)
         return [
-          h('div', { className: 'kb6-prevkind', key: 'pk' }, kbTiSvg('miniapp', 30)),
+          h('div', { className: 'kb6-prevkind kb8-sl-stage', key: 'pk' }, kbTiArt('miniapp')),
           h('div', { className: 'kb6-prevtitle', key: 'tt' }, titre),
           h('div', { className: 'kb6-line2', key: 'ln' }, 'Mini-app ' + rendu
             + (lots !== null ? ' · ' + lots + (lots > 1 ? ' lots' : ' lot') : ' · ' + kbe('preview truncated'))
@@ -17942,7 +17938,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
           : previewContent(t, a.name, preview, a.path, a.size)
       return h('div', { className: 'kb6-card' + (typeof appear === 'string' ? appear : ''), title: a.path },
         h('div', { className: 'kb6-cardrow' },
-          h('div', { className: 'kb6-ico kb6-ico-ti', style: { background: 'var(--dsw-alias-interactive-bg-hover)' } }, kbTiSvg(kbTiOfName(a.name), 16)),
+          h('div', { className: 'kb6-ico kb6-ico-ti kb8-sl-stage' }, kbTiArt(kbTiOfName(a.name))),
           h('div', { className: 'kb6-cname' },
             h('div', { className: 'kbg-name' }, a.name || '—')),
           h('span', { className: 'kb6-type', style: { background: t.tint, '--kb6-ink': t.color } }, t.label),
@@ -19833,7 +19829,7 @@ function renderFit(canvas, model, cam, opts){
       return h('div', { className: 'kbg-root' },
         h('button', { type: 'button', className: 'kbg-back', onClick: onBack }, '← ' + kbt('deliverables.back')),
         h('div', { className: 'kb4-pagehead kb6-vhead' },
-          h('span', { className: 'kb6-vico', 'data-kb': 'artview-ico' }, kbTiSvg(kbTiOfName(name), 30)),
+          h('span', { className: 'kb6-vico kb8-sl-stage', 'data-kb': 'artview-ico' }, kbTiArt(kbTiOfName(name))),
           name,
           (typeof onPopup === 'function' ? h('button', { type: 'button', className: 'kbq-btn', 'data-kb': 'artview-popup', title: kbe('Open in a popup without leaving the page'), onClick: () => onPopup(path, name) }, Icon('maximize2', 13), ' Popup') : null),
           // Une miniapp peut se poser dans la barre latérale droite sans passer
@@ -19916,7 +19912,7 @@ function renderFit(canvas, model, cam, opts){
         h('div', { className: 'kb6-pop', role: 'dialog', 'aria-label': name, 'aria-modal': 'true', style: (popWidth !== null) ? { width: popWidth + 'px' } : null },
           h('div', { className: 'kb6-popresize', 'data-kb': 'art-popup-resize', title: kbe('Resize (drag the left edge)'), onMouseDown: startPopResize }),
           h('div', { className: 'kb6-pophead' },
-            h('span', { className: 'kb6-vico', 'data-kb': 'artpop-ico' }, kbTiSvg(kbTiOfName(name), 30)),
+            h('span', { className: 'kb6-vico kb8-sl-stage', 'data-kb': 'artpop-ico' }, kbTiArt(kbTiOfName(name))),
             h('div', { className: 'kb6-poptitle' },
               h('div', { className: 'kb6-popname' }, name),
               h('div', { className: 'kb6-popsub' }, kind.label + ' · ' + path)),
@@ -20406,10 +20402,10 @@ function renderFit(canvas, model, cam, opts){
           const snippet = hasText === false ? '' : (a.type.id === 'data' ? kbDataSummary(kbDataInfo(pv.text, a.name, 3)) : kbArtFirstLine(pv))
           const pinned = pins[a.path] === true
           return h('div', { className: 'kb6-lrow' + kbIn(i), key: 'la' + a.path, title: a.path, role: 'button', tabIndex: 0, 'data-kb': 'art-row', onClick: () => openArtifact(a), onKeyDown: (e2) => { if (e2.target === e2.currentTarget && (e2.key === 'Enter' || e2.key === ' ')) { e2.preventDefault(); openArtifact(a) } } },
-          // Vignette de rangée : vraie miniature pour les images, micro-scène du
-          // type sinon — le nom seul ne disait rien du contenu.
-          h('span', { className: 'kb6-lthumb', style: { background: 'var(--dsw-alias-interactive-bg-hover)' } },
-            a.type.id === 'image' ? h('img', { src: kbArtRawUrl(a.path), alt: '', loading: 'lazy' }) : kbTiSvg(kbTiOfName(a.name), 34)),
+          // Row thumbnail: the real picture for images, the type's drawing otherwise
+          // (the name alone said nothing of the content).
+          h('span', { className: 'kb6-lthumb' + (a.type.id === 'image' ? '' : ' kb8-sl-stage') },
+            a.type.id === 'image' ? h('img', { src: kbArtRawUrl(a.path), alt: '', loading: 'lazy' }) : kbTiArt(kbTiOfName(a.name))),
           h('div', { className: 'kb6-lmain' },
             h('div', { className: 'kb6-ltop' },
               h('div', { className: 'kb6-lrowname' }, a.name),
@@ -25273,7 +25269,7 @@ function renderFit(canvas, model, cam, opts){
 .kb8-sl-card:hover,.kb8-sl-card:focus-visible{color:var(--dsw-alias-label-primary);transform:translateY(-3px);box-shadow:0 0 0 1px var(--dsw-alias-border-l2),0 12px 28px -14px rgba(0,0,0,.35)}
 .kb8-sl-card:focus-visible{outline:2px solid var(--kb8-acc);outline-offset:2px}
 .kb8-sl-card.is-match{color:var(--dsw-alias-label-primary);box-shadow:0 0 0 1.5px color-mix(in srgb,var(--kb8-acc) 70%,var(--dsw-alias-border-l2)),0 0 0 6px color-mix(in srgb,var(--kb8-acc) 10%,transparent)}
-.kb8-sl-stage{position:relative;height:100px;display:grid;place-items:center;background:color-mix(in srgb,var(--kb8-acc) 5%,var(--dsw-alias-bg-module-platform))}
+.kb8-sl-stage{--kb8-acc:var(--dsw-alias-brand-primary);position:relative;height:100px;display:grid;place-items:center;background:color-mix(in srgb,var(--kb8-acc) 5%,var(--dsw-alias-bg-module-platform))}
 .kb8-sl-stage::before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 88% -8%,color-mix(in srgb,var(--kb8-acc) 12%,transparent),transparent 62%)}
 .kb8-sl-stage svg{position:relative;width:92px;height:63px;overflow:visible;filter:drop-shadow(0 3px 4px color-mix(in srgb,var(--dsw-alias-label-primary) 14%,transparent));transition:transform .45s cubic-bezier(.16,1,.3,1)}
 .kb8-sl-stage svg *{transform-box:fill-box}
@@ -29453,7 +29449,7 @@ body[data-ds-dark-theme] .kb8-iconbtn.on.col{border-color:var(--kb8-pgd);color:v
 .kb-type{min-width:0;display:flex;flex-direction:column;align-items:stretch;gap:0;padding:0;border:0;border-radius:var(--dsw-radius-lg,16px);background:var(--dsw-alias-bg-layer-1);box-shadow:0 0 0 1px var(--dsw-alias-border-l1);cursor:pointer;text-align:left;overflow:hidden;transition:box-shadow .25s,transform .25s cubic-bezier(.16,1,.3,1);color:var(--dsw-alias-label-primary);position:relative}
 .kb-type:hover{transform:translateY(-2px);box-shadow:0 0 0 1px var(--dsw-alias-border-l2),0 12px 28px -14px rgba(0,0,0,.35)}
 .kb-type-sel,.kb-type-sel:hover{box-shadow:0 0 0 1.5px var(--dsw-alias-brand-primary,#5563d6)}
-.kb-type .kb-type-view{--kb8-acc:var(--dsw-alias-brand-primary);width:100%;height:64px;flex:none}
+.kb-type .kb-type-view{width:100%;height:64px;flex:none}
 .kb-type .kb-type-view svg{width:68px;height:47px}
 .kb-type:hover .kb-type-view svg,.kb-type-sel .kb-type-view svg{transform:translateY(-2px) scale(1.06)}
 .kb-type-line{box-sizing:border-box;padding:8px 10px}
@@ -29491,15 +29487,15 @@ body[data-ds-dark-theme] .kb8-iconbtn.on.col{border-color:var(--kb8-pgd);color:v
 .kb-typepanel-grouplab{font-family:ui-monospace,monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--dsw-alias-label-secondary);padding:10px 6px 4px}
 .kb-typepanel-row{display:flex;align-items:center;gap:10px;min-height:40px;padding:0 6px;border-radius:8px;cursor:pointer}
 .kb-typepanel-row:hover{background:var(--dsw-alias-bg-layer-2)}
-.kb-typepanel-thumb{--kb8-acc:var(--dsw-alias-brand-primary);width:44px;height:30px;border-radius:7px;flex:none;overflow:hidden}
+.kb-typepanel-thumb{width:44px;height:30px;border-radius:7px;flex:none;overflow:hidden}
 .kb-typepanel-thumb.kb8-sl-stage{height:30px}
 .kb-typepanel-thumb.kb8-sl-stage svg{width:40px;height:28px}
-/* Jeu d'icônes de type unique (Livrables) : vignettes de liste, en-tête de carte,
-   visionneuse. Couleurs = jetons (rôles A/B/N/P). */
-.kb-ti{display:block;flex:none}
-.kb6-ico.kb6-ico-ti{width:24px;height:24px}
-.kb6-vico{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:10px;background:var(--dsw-alias-interactive-bg-hover);flex:none}
-.kb6-prevkind .kb-ti{opacity:1}
+.kb6-ico.kb6-ico-ti{width:34px;height:24px;border-radius:7px;overflow:hidden}
+.kb6-ico.kb6-ico-ti.kb8-sl-stage{height:24px}
+.kb6-ico.kb6-ico-ti.kb8-sl-stage svg{width:30px;height:21px}
+.kb6-vico{display:inline-flex;align-items:center;justify-content:center;width:56px;height:38px;border-radius:10px;overflow:hidden;flex:none}
+.kb6-vico.kb8-sl-stage{height:38px}
+.kb6-vico.kb8-sl-stage svg{width:46px;height:32px}
 .kb-typepanel-lab{font-size:13px;color:var(--dsw-alias-label-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .kb-typepanel-cnt{font-size:11px;font-family:ui-monospace,monospace;color:var(--dsw-alias-label-secondary);margin-inline-start:auto;flex:none}
 .kb-typepanel-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 16px;border-top:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-2)}
@@ -29954,9 +29950,14 @@ button.kb8-docdl{background:transparent;font-family:inherit;cursor:pointer}
    l'en-tête cliquable et le corps, pour que toute la largeur soit cliquable. */
 .kb6-pinbtn.on{color:var(--dsw-alias-state-warn-label, var(--dsw-alias-state-warn-primary, #f5b301));border-color:var(--dsw-alias-state-warn-primary, #f5b301)}
 .kb6-previmg{width:100%;height:100%;object-fit:cover;display:block}
-.kb6-prevkind{display:flex;align-items:center;justify-content:center;opacity:.5;padding:6px 0}
+.kb6-prevkind{display:flex;align-items:center;justify-content:center;padding:6px 0}
+.kb6-prevkind.kb8-sl-stage{height:auto;background:none;padding:2px 0}
+.kb6-prevkind.kb8-sl-stage::before{display:none}
+.kb6-prevkind.kb8-sl-stage svg{width:48px;height:33px}
 /* Vignette + extrait enrichis des rangées Deliverables */
 .kb6-lthumb{width:46px;height:46px;border-radius:10px;flex:none;display:flex;align-items:center;justify-content:center;overflow:hidden;border:1px solid var(--dsw-alias-border-l1)}
+.kb6-lthumb.kb8-sl-stage{height:46px}
+.kb6-lthumb.kb8-sl-stage svg{width:40px;height:27px}
 .kb6-lthumb>img{width:100%;height:100%;object-fit:cover;display:block}
 .kb6-snip{font-family:ui-monospace,Menlo,monospace;font-size:10.5px;line-height:1.55;color:var(--dsw-alias-label-secondary);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-top:2px;white-space:pre-line}
 /* ── Artefacts rejouables : quiz, flashcards, popup ─────────────────────── */
