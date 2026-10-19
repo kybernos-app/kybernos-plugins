@@ -11,7 +11,7 @@
 // session in the sandbox (no credential of the user's there: the turn ends at once), and nothing leaves the machine.
 //
 // What it proves, and what it does not:
-//   - the three views and their switch, the persisted choice, the old `cards` value read as `list`;
+//   - the four views and their switch, the persisted choice;
 //   - the columns hold RUNS, the webhook automation is a chip, the paused one is counted not drawn;
 //   - the calendar (week and month), the folding of one automation's runs of a day, the dashed planned runs, the
 //     detail strip and its actions, previous / today / next;
