@@ -197,7 +197,7 @@ eq('a paused webhook test is explained', mod.kbTaskError('automation paused', en
   eq('regenerating and revoking a webhook ask first', page.indexOf('tasks.hook.regen.title') >= 0 && page.indexOf('tasks.hook.revoke.title') >= 0 && page.indexOf('onClick: genHook }, kbt(\'tasks.hook.regen\')') < 0 && page.indexOf('onClick: revokeHook }') < 0, true)
   eq('the list has a loading state and an error state with a retry', page.indexOf('kbaSkeleton()') >= 0 && page.indexOf('kbaLoadError()') >= 0 && page.indexOf('tasks-retry') >= 0, true)
   eq('the form offers a webhook-only choice and opens the webhook tab after saving it', page.indexOf('pr.id === \'webhook\'') >= 0 && page.indexOf('openWebhookOf') >= 0, true)
-  eq('a failed run shows its reason', page.indexOf('className: \'kba-reason\'') >= 0, true)
+  eq('a failed run shows its reason, in the run pane', page.indexOf('className: \'kbrn-xerr\'') >= 0 && page.indexOf('KbRunsPane, {') >= 0, true)
   eq('the confirmation closes on Escape without closing what is behind it', /KbConfirm = [\s\S]{0,700}e\.key === \'Escape\'\) \{ e\.stopPropagation\(\)/.test(page), true)
   eq('the on/off switches are reachable with the keyboard', (page.match(/className: 'kba-toggle'[^\n]*tabIndex: 0/g) || []).length, 2)
   // A5-10: no date of the page is written by a hard-coded locale; they all go through kbWhenOf (the board's formatter) or the helpers above.

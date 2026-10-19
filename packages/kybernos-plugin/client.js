@@ -331,12 +331,46 @@ let kbLocaleRead = () => 'en'
       'tasks.interpret': { kybernos: 'Interpréter', en: 'Interpret' },
       'tasks.interpreted': { kybernos: 'Interprété — flow et code régénérés.', en: 'Interpreted — flow and code regenerated.' },
       'tasks.sessions.empty': { kybernos: 'Aucune session encore. Le prochain déclencheur {trigger} en ouvrira une — ou utilise « Lancer maintenant ».', en: 'No sessions yet. The next {trigger} event opens one — or use “Run now”.' },
-      'tasks.session.run': { kybernos: 'Exécution', en: 'Run' },
-      'tasks.status.fired': { kybernos: 'lancée', en: 'fired' },
       'tasks.status.queued': { kybernos: 'en file', en: 'queued' },
-      'tasks.status.error': { kybernos: 'échec', en: 'failed' },
       'tasks.sessions.openchat': { kybernos: 'Ouvrir le chat', en: 'Open chat' },
-      'tasks.sessions.hint': { kybernos: 'Chaque session est un chat réel avec l’Agent Team. Ouvres-en une pour lire ce que les agents ont fait.', en: 'Each session is a real chat with the Agent Team. Open one to follow what the agents did.' },
+      'tasks.tab.journal': { kybernos: 'Journal', en: 'Journal' },
+      'tasks.runs.title': { kybernos: 'Exécutions', en: 'Executions' },
+      'tasks.runs.all': { kybernos: 'Toutes ({n})', en: 'All {n}' },
+      'tasks.runs.count': { kybernos: '{n} exécutions', en: '{n} runs' },
+      'tasks.runs.stat.runs': { kybernos: 'Exécutions', en: 'Runs' },
+      'tasks.runs.stat.failed': { kybernos: 'En échec', en: 'Failed' },
+      'tasks.runs.stat.median': { kybernos: 'Durée médiane', en: 'Median duration' },
+      'tasks.runs.stat.slowest': { kybernos: 'Plus lente', en: 'Slowest' },
+      'tasks.runs.completedin': { kybernos: 'Terminée en {d}', en: 'Completed in {d}' },
+      'tasks.runs.failedin': { kybernos: 'Échec en {d}', en: 'Failed in {d}' },
+      'tasks.runs.failed': { kybernos: 'Échec', en: 'Failed' },
+      'tasks.runs.running': { kybernos: 'En cours', en: 'Running' },
+      'tasks.runs.unread': { kybernos: 'Non lue', en: 'Not read' },
+      'tasks.runs.noread': { kybernos: 'Le journal de cette exécution n’a pas pu être lu : seuls l’heure et l’état enregistrés sont affichés.', en: 'The journal of this run could not be read: only the recorded time and status are shown.' },
+      'tasks.runs.started': { kybernos: 'Exécution lancée', en: 'Run started' },
+      'tasks.runs.final': { kybernos: 'Réponse finale', en: 'Final answer' },
+      'tasks.runs.more': { kybernos: '+{n} autres étapes', en: '+{n} more steps' },
+      'tasks.runs.moresub': { kybernos: 'dans la session', en: 'in the session' },
+      'tasks.runs.logs': { kybernos: 'Détails', en: 'Logs' },
+      'tasks.runs.input': { kybernos: 'Entrée', en: 'Input' },
+      'tasks.runs.output': { kybernos: 'Sortie', en: 'Output' },
+      'tasks.runs.think': { kybernos: 'réflexion', en: 'think' },
+      'tasks.runs.run': { kybernos: 'exécution', en: 'run' },
+      'tasks.runs.reading': { kybernos: 'Lecture de l’étape…', en: 'Reading the step…' },
+      'tasks.runs.noio': { kybernos: 'L’entrée et la sortie de cette étape ne sont pas disponibles. « Ouvrir le chat » les montre.', en: 'The input and output of this step are not available. “Open chat” shows them.' },
+      'tasks.runs.model': { kybernos: 'Modèle', en: 'Model' },
+      'tasks.runs.duration': { kybernos: 'Durée', en: 'Duration' },
+      'tasks.runs.steps': { kybernos: '{n} étapes', en: '{n} steps' },
+      'tasks.runs.tools': { kybernos: '{n} appels d’outil', en: '{n} tool calls' },
+      'tasks.runs.hint': { kybernos: 'Chaque exécution est un vrai chat avec l’Agent Team. La ligne « échec » qu’une exécution a écrite sur elle-même est rattachée à cette exécution. Les liens montrent ce que chaque étape a transmis à la suivante.', en: 'Each run is a real chat with the Agent Team. The “failed” line a run wrote about itself sits on that run. The links show how much each step handed on to the next.' },
+      'tasks.journal.who': { kybernos: 'QUI A TOURNÉ', en: 'WHO RAN' },
+      'tasks.journal.why': { kybernos: 'Pourquoi ce modèle', en: 'Why this model' },
+      'tasks.journal.why.default': { kybernos: 'Modèle par défaut du profil : aucun modèle n’a été choisi pour cette exécution.', en: 'Profile default: no model was chosen for this run.' },
+      'tasks.journal.why.set': { kybernos: 'Choisi pour cette exécution.', en: 'Chosen for this run.' },
+      'tasks.journal.what': { kybernos: 'CE QUI S’EST PASSÉ', en: 'WHAT HAPPENED' },
+      'tasks.journal.approvals': { kybernos: 'APPROBATIONS', en: 'APPROVALS' },
+      'tasks.journal.approval': { kybernos: 'approbation', en: 'approval' },
+      'tasks.journal.approvals.none': { kybernos: 'Aucune demande pendant cette exécution · mode :', en: 'No request during this run · mode:' },
       'tasks.everyday8': { kybernos: 'Chaque jour, 8:00', en: 'Every day, 8:00' },
       'tasks.weekdays8': { kybernos: 'Jours ouvrés, 8:00', en: 'Weekdays, 8:00' },
       // The readable schedules (kbCronHuman): a sentence per common shape, `{day}` a weekday name, `{time}` HH:MM.
@@ -6213,6 +6247,176 @@ const kbBoardReason = (pending, lang) => {
   return typeof pending.toolName === 'string' ? pending.toolName : ''
 }
 // KB-AUTOBOARD-END
+
+// KB-AUTORUNS-BEGIN
+// The runs of one automation, as the Sessions and Journal views show them. Pure: the page hands over the stored history and the
+// summaries the host read from the engine's journals (GET /kybernos/tasks/runs), and gets back what to draw. It claims nothing the
+// journal does not say: a run whose journal could not be read is « not read », never « completed ».
+//
+// `tasks.json` keeps one history line per firing (it carries the session id) AND, when a run failed, a line the run wrote about
+// itself after the fact (no session id). A run is the session; the failure line is a note on it, so it joins the run it follows.
+const KB_RUNS_NOTE_WINDOW_MS = 10 * 60 * 1000
+const KB_RUNS_GRAPH_TOOLS = 6
+
+/** The history of an automation → its runs, newest first. */
+const kbRunsOf = (history) => {
+  const list = Array.isArray(history) === true ? history : []
+  const entries = []
+  for (const e of list) {
+    if (e === null || typeof e !== 'object') continue
+    const ms = new Date(e.at).getTime()
+    entries.push({
+      at: typeof e.at === 'string' ? e.at : '',
+      ms: Number.isFinite(ms) === true ? ms : null,
+      sessionId: typeof e.sessionId === 'string' && e.sessionId.length > 0 ? e.sessionId : null,
+      status: typeof e.status === 'string' ? e.status : 'fired',
+      via: typeof e.via === 'string' ? e.via : '',
+      error: typeof e.error === 'string' && e.error.length > 0 ? e.error : null,
+    })
+  }
+  entries.sort((a, b) => (a.ms === null ? Infinity : a.ms) - (b.ms === null ? Infinity : b.ms))
+  const runs = []
+  for (const e of entries) {
+    if (e.sessionId !== null) { runs.push({ at: e.at, ms: e.ms, sessionId: e.sessionId, via: e.via, status: e.status, error: e.error, noted: false }); continue }
+    if (e.status === 'error' && e.ms !== null) {
+      let host = null
+      for (let i = runs.length - 1; i >= 0; i -= 1) {
+        const r = runs[i]
+        if (r.ms !== null && e.ms - r.ms > KB_RUNS_NOTE_WINDOW_MS) break
+        if (r.sessionId !== null && r.ms !== null && r.ms <= e.ms && r.noted === false) { host = r; break }
+      }
+      if (host !== null) { host.status = 'error'; host.error = e.error; host.noted = true; continue }
+    }
+    runs.push({ at: e.at, ms: e.ms, sessionId: null, via: e.via, status: e.status, error: e.error, noted: false })
+  }
+  return runs.reverse()
+}
+
+/** A duration for a person: « 6.5 s », « 35 s », « 7 min », « 1.2 h ». */
+const kbRunFmtDur = (ms) => {
+  if (typeof ms !== 'number' || Number.isFinite(ms) !== true || ms < 0) return '—'
+  const s = ms / 1000
+  if (s < 10) return (Math.round(s * 10) / 10) + ' s'
+  if (s < 90) return Math.round(s) + ' s'
+  const m = s / 60
+  if (m < 90) return Math.round(m) + ' min'
+  return (Math.round(m / 6) / 10) + ' h'
+}
+
+/** A size for a person: « 12 B », « 1.8 KB », « 2.4 MB ». */
+const kbRunFmtBytes = (n) => {
+  if (typeof n !== 'number' || Number.isFinite(n) !== true || n < 0) return ''
+  if (n < 1000) return Math.round(n) + ' B'
+  if (n < 1e6) return (Math.round(n / 100) / 10) + ' KB'
+  return (Math.round(n / 1e5) / 10) + ' MB'
+}
+
+/** « Oct 19, 16:19 » (short) or « Mon, Oct 19, 2026, 16:19:08 » (long), in the browser's zone and the page's language. */
+const kbRunFmtDT = (iso, locale, long) => {
+  const ms = new Date(iso).getTime()
+  if (Number.isFinite(ms) !== true) return '—'
+  try {
+    return new Intl.DateTimeFormat(locale || 'en', long === true
+      ? { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }
+      : { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(ms))
+  } catch (e) { return new Date(ms).toISOString() }
+}
+
+/** « 16:19 » in the browser's zone and the page's language. */
+const kbRunFmtHm = (iso, locale) => {
+  const ms = new Date(iso).getTime()
+  if (Number.isFinite(ms) !== true) return ''
+  try { return new Intl.DateTimeFormat(locale || 'en', { hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(ms)) } catch (e) { return '' }
+}
+
+/** How a run stands: 'failed' | 'completed' | 'running' | 'unread'. The history's own « error » or the engine's error verdict makes it failed. */
+const kbRunState = (run, sum) => {
+  if (run !== null && run !== undefined && run.status === 'error') return 'failed'
+  const st = sum !== null && sum !== undefined && sum.outcome !== null && typeof sum.outcome === 'object' ? sum.outcome.state : ''
+  if (st === 'failed') return 'failed'
+  if (st === 'completed') return 'completed'
+  if (st === 'open') return 'running'
+  return 'unread'
+}
+
+const kbRunMedian = (values) => {
+  const s = values.slice().sort((a, b) => a - b)
+  return s.length === 0 ? null : s[Math.floor(s.length / 2)]
+}
+
+/** The four figures above the list: runs, failed, median duration, slowest. Durations come only from journals that were read. */
+const kbRunStats = (runs, sums) => {
+  const durations = []
+  let failed = 0
+  for (const r of runs) {
+    const sum = r.sessionId !== null && sums !== null && typeof sums === 'object' ? sums[r.sessionId] : undefined
+    if (kbRunState(r, sum) === 'failed') failed += 1
+    if (sum !== undefined && sum !== null && typeof sum.durationMs === 'number' && Number.isFinite(sum.durationMs) === true) durations.push(sum.durationMs)
+  }
+  return { runs: runs.length, failed, median: kbRunMedian(durations), slowest: durations.length === 0 ? null : Math.max(...durations), read: durations.length }
+}
+
+/**
+ * The nodes of the execution graph of one run and the labels of its links.
+ *   { type: 'start' } , { type: 'tool', kind, label, thinkMs, runMs, outBytes, ok, approval } , { type: 'more', n } , { type: 'final', thinkMs, ok }
+ * A run with more than 7 tool calls shows the first 6 and one « more » node; the label of a link is what the step before it handed on.
+ * A run whose journal was not read is its start alone: the page says so, it does not draw steps it does not know.
+ */
+const kbRunGraph = (sum, failed) => {
+  const nodes = [{ type: 'start' }]
+  const labels = []
+  if (sum === null || sum === undefined || Array.isArray(sum.nodes) !== true) return { nodes, labels, read: false }
+  const total = typeof sum.nodeCount === 'number' ? sum.nodeCount : sum.nodes.length
+  const shown = total > KB_RUNS_GRAPH_TOOLS + 1 ? sum.nodes.slice(0, KB_RUNS_GRAPH_TOOLS) : sum.nodes.slice(0, KB_RUNS_GRAPH_TOOLS + 1)
+  labels.push(null)
+  for (const n of shown) {
+    nodes.push({ type: 'tool', kind: String(n.kind), label: String(n.label), thinkMs: n.thinkMs, runMs: n.runMs, outBytes: n.outBytes, ok: n.ok !== false, approval: typeof n.approval === 'string' ? n.approval : null })
+    labels.push(typeof n.outBytes === 'number' ? n.outBytes : null)
+  }
+  if (total > shown.length) { nodes.push({ type: 'more', n: total - shown.length }); labels.push(null) }
+  nodes.push({ type: 'final', thinkMs: sum.final !== null && sum.final !== undefined && typeof sum.final.thinkMs === 'number' ? sum.final.thinkMs : null, ok: failed !== true })
+  return { nodes, labels: labels.slice(0, nodes.length - 1), read: true }
+}
+
+/**
+ * Where each node of a graph goes, and the straight links between them: rows of `cols` nodes that snake (the second row runs
+ * right to left), so a link between two rows is a vertical segment and no link ever crosses a node.
+ */
+const kbGraphLayout = (count, opt) => {
+  const o = opt !== null && typeof opt === 'object' ? opt : {}
+  const cols = o.cols || 4
+  const nw = o.nw || 172
+  const nh = o.nh || 70
+  const hg = o.hg || 34
+  const vg = o.vg || 36
+  const n = Math.max(0, count | 0)
+  const rows = Math.ceil(n / cols)
+  const pos = []
+  for (let i = 0; i < n; i += 1) {
+    const row = Math.floor(i / cols)
+    let col = i % cols
+    if (row % 2 === 1) col = cols - 1 - col
+    pos.push({ x: col * (nw + hg), y: row * (nh + vg), row })
+  }
+  const edges = []
+  for (let i = 0; i < n - 1; i += 1) {
+    const a = pos[i]
+    const b = pos[i + 1]
+    if (a.row === b.row) {
+      const fwd = a.x < b.x
+      const x1 = fwd ? a.x + nw : a.x
+      const x2 = fwd ? b.x : b.x + nw
+      const y = a.y + nh / 2
+      edges.push({ x1, y1: y, x2, y2: y, lx: (x1 + x2) / 2, ly: y, vertical: false })
+    } else {
+      const x = a.x + nw / 2
+      edges.push({ x1: x, y1: a.y + nh, x2: x, y2: b.y, lx: x, ly: (a.y + nh + b.y) / 2, vertical: true })
+    }
+  }
+  const used = Math.min(n, cols)
+  return { width: n === 0 ? 0 : used * nw + (used - 1) * hg, height: n === 0 ? 0 : rows * nh + (rows - 1) * vg, pos, edges }
+}
+// KB-AUTORUNS-END
 // KB-NEWCHAT-BEGIN
 // The new-chat page: the slider of what the product makes, the Cloud Computer's state, and the rule that hides DSH's own
 // « Automation tasks » menu entry. Pure: no React, no DOM, no host call, no translation. Tested by test-newchat.mjs,
@@ -20794,6 +20998,174 @@ function renderFit(canvas, model, cam, opts){
         return json !== null && typeof json === 'object' && json.ok === true && json.outcomes !== null && typeof json.outcomes === 'object' ? json.outcomes : {}
       } catch (e) { return {} }
     }
+    // ── The runs of one automation: Sessions (executions, graph, logs) and Journal (the story of one run) ──────────────────
+    // Read-only. The history comes from tasks.json; what each run did comes from the engine's journals through
+    // GET /kybernos/tasks/runs (the pure part is the KB-AUTORUNS block at the top of this file). Own fetch, not host.call: a host that
+    // predates the route answers 404, and host.call reads a 404 as « this host has no routes at all » and switches every other route
+    // of the page off until it is reloaded. Without the route the list still shows every run, with what tasks.json knows (time,
+    // status, failure) and says the rest is not read.
+    const kbRunsCache = new Map()
+    const kbRunsFetch = async (ids, detail) => {
+      try {
+        const res = await fetch(kbApiBase() + '/tasks/runs?ids=' + encodeURIComponent(ids.join(',')) + (detail === true ? '&detail=1' : ''), { method: 'GET' })
+        if (res.ok !== true) return {}
+        const json = await res.json()
+        return json !== null && typeof json === 'object' && json.ok === true && json.runs !== null && typeof json.runs === 'object' ? json.runs : {}
+      } catch (e) { return {} }
+    }
+    const kbRunKey = (r, i) => (r.sessionId !== null ? r.sessionId : 'x:' + r.at + ':' + String(i))
+    const KB_RUN_ICONS = { bash: '>_', skill: '✦', read: '▤', write: '✎', edit: '✎', job_output: '⧗', lesson_write: '✎' }
+    const kbRunIcon = (kind) => (KB_RUN_ICONS[kind] !== undefined ? KB_RUN_ICONS[kind] : String(kind).slice(0, 1).toUpperCase())
+    const kbRunStateText = (state, dur, run) => {
+      if (state === 'failed') return dur === '—' ? kbt('tasks.runs.failed') : kbt('tasks.runs.failedin').replace('{d}', dur)
+      if (state === 'completed') return kbt('tasks.runs.completedin').replace('{d}', dur)
+      if (state === 'running') return kbt('tasks.runs.running')
+      return run.status === 'queued' ? kbt('tasks.status.queued') : kbt('tasks.runs.unread')
+    }
+    const KbRunsPane = (props) => {
+      const runs = props.runs
+      const locale = kbBoardLocale()
+      const sumPair = React.useState(() => { const o = {}; kbRunsCache.forEach((v, k) => { o[k] = v }); return o })
+      const sums = sumPair[0]
+      const setSums = sumPair[1]
+      const detPair = React.useState({})
+      const det = detPair[0]
+      const setDet = detPair[1]
+      const nodePair = React.useState(1)
+      const nodeIdx = nodePair[0]
+      const setNodeIdx = nodePair[1]
+      const ioPair = React.useState('in')
+      const io = ioPair[0]
+      const setIo = ioPair[1]
+      const keys = runs.map(kbRunKey)
+      const selKey = props.sel !== null && keys.indexOf(props.sel) >= 0 ? props.sel : (keys.length > 0 ? keys[0] : null)
+      const selRun = selKey !== null ? runs[keys.indexOf(selKey)] : null
+      const selId = selRun !== null ? selRun.sessionId : null
+      const ids = runs.filter((r) => r.sessionId !== null).slice(0, 20).map((r) => r.sessionId)
+      const idsKey = ids.join(',')
+      // What each run did: five journals per call, so the list fills in as they are read. A run still open is read again next time.
+      React.useEffect(() => {
+        let alive = true
+        const need = ids.filter((id) => kbRunsCache.has(id) === false)
+        ;(async () => {
+          for (let i = 0; i < need.length; i += 5) {
+            const got = await kbRunsFetch(need.slice(i, i + 5), false)
+            if (alive !== true) return
+            const add = {}
+            for (const id of Object.keys(got)) {
+              add[id] = got[id]
+              if (got[id] !== null && typeof got[id] === 'object' && got[id].outcome !== null && typeof got[id].outcome === 'object' && got[id].outcome.state !== 'open') kbRunsCache.set(id, got[id])
+            }
+            if (Object.keys(add).length > 0) setSums((prev) => Object.assign({}, prev, add))
+          }
+        })()
+        return () => { alive = false }
+      }, [idsKey])
+      // The input and output of the steps of the run that is open, asked for that one run only.
+      React.useEffect(() => {
+        if (props.mode !== 'sessions' || selId === null || det[selId] !== undefined) return undefined
+        let alive = true
+        setDet((prev) => Object.assign({}, prev, { [selId]: 'loading' }))
+        kbRunsFetch([selId], true).then((got) => { if (alive === true) setDet((prev) => Object.assign({}, prev, { [selId]: got[selId] !== undefined ? got[selId] : 'none' })) })
+        return () => { alive = false }
+      }, [selId, props.mode])
+      if (runs.length === 0) return h('div', { className: 'kba-sesscroll' }, h('div', { className: 'kba-empty' }, props.emptyText))
+      const sumOf = (r) => (r.sessionId !== null && sums[r.sessionId] !== undefined && sums[r.sessionId] !== null ? sums[r.sessionId] : null)
+      const sel = sumOf(selRun)
+      const state = kbRunState(selRun, sel)
+      const stats = kbRunStats(runs, sums)
+      const model = sel !== null && Array.isArray(sel.models) === true && sel.models.length > 0 ? sel.models[0] : null
+      const durOf = (s) => kbRunFmtDur(s !== null ? s.durationMs : null)
+      const tile = (label, value, bad) => h('div', { key: label, className: 'kbrn-stat' + (bad === true ? ' bad' : '') }, h('span', { className: 'kbrn-stk' }, label), h('span', { className: 'kbrn-stv' }, value))
+      const stateLine = h('span', { className: state === 'failed' ? 'kbrn-badtxt' : (state === 'completed' ? 'kbrn-oktxt' : 'dim') }, kbRunStateText(state, durOf(sel), selRun))
+      const failNote = selRun.status === 'error' && selRun.error !== null ? h('div', { className: 'kbrn-xerr' }, selRun.error) : null
+      const openChat = selId !== null ? h('button', { type: 'button', className: 'kba-btn', onClick: () => props.onOpenChat(selId) }, kbt('tasks.sessions.openchat') + ' ›') : null
+      const readNote = sel === null && selId !== null ? h('div', { className: 'kba-hint' }, kbt('tasks.runs.noread')) : null
+
+      if (props.mode === 'journal') {
+        // The six newest runs, and the chosen one when it is older; the rest are one press away, in Sessions: no run is cut without a word.
+        const shownIdx = runs.map((r, i) => i).filter((i) => i < 6 || keys[i] === selKey)
+        const chips = shownIdx.map((i) => h('button', { key: keys[i], type: 'button', className: 'kba-tab' + (keys[i] === selKey ? ' on' : ''), onClick: () => props.onSelect(keys[i]) }, kbRunFmtDT(runs[i].at, locale)))
+        if (shownIdx.length < runs.length) chips.push(h('button', { key: 'all', type: 'button', className: 'kba-tab', 'data-kb': 'runs-all', onClick: () => props.onSessions() }, kbt('tasks.runs.all').replace('{n}', String(runs.length))))
+        const row = (k, v) => h('div', { key: k, className: 'kbrn-kv' }, h('span', { className: 'kbrn-k' }, k), h('span', { className: 'kbrn-v' }, v))
+        const nodes = sel !== null && Array.isArray(sel.nodes) === true ? sel.nodes : []
+        return h('div', { className: 'kba-sesscroll', 'data-kb': 'runs-journal' },
+          h('div', { className: 'kba-tabs' }, chips),
+          h('div', { className: 'kbrn-jhead' }, h('b', null, kbRunFmtDT(selRun.at, locale, true)), stateLine, h('span', { style: { flex: 1 } }), openChat),
+          failNote,
+          readNote,
+          sel === null ? null : h('div', { className: 'kba-card kbrn-card' },
+            h('span', { className: 'kba-tabver mono' }, kbt('tasks.journal.who')),
+            row(kbt('tasks.runs.model'), model !== null ? h('span', null, h('b', { className: 'kbrn-mono' }, model.model), model.provider !== '' ? ' · ' + model.provider : '') : '—'),
+            row(kbt('tasks.journal.why'), sel.selected === true ? kbt('tasks.journal.why.set') : kbt('tasks.journal.why.default')),
+            row(kbt('tasks.runs.duration'), durOf(sel) + ' · ' + kbt('tasks.runs.steps').replace('{n}', String(sel.steps)) + ' · ' + kbt('tasks.runs.tools').replace('{n}', String(sel.toolCalls)))),
+          sel === null ? null : h('div', { className: 'kba-card kbrn-card' },
+            h('span', { className: 'kba-tabver mono' }, kbt('tasks.journal.what')),
+            nodes.map((n, i) => h('div', { key: i, className: 'kbrn-step' },
+              h('span', { className: 'kba-kdot ' + (n.ok === false ? 'fail' : 'ok') }),
+              h('span', { className: 'kbrn-sl' }, h('b', null, String(i + 1) + ' · ' + n.label), h('span', { className: 'dim' }, ' · ' + n.kind + (typeof n.approval === 'string' ? ' · ' + kbt('tasks.journal.approval') + ': ' + n.approval : ''))),
+              h('span', { className: 'dim' }, kbRunFmtDur((n.thinkMs || 0) + (n.runMs || 0))))),
+            sel.nodeCount > nodes.length ? h('div', { className: 'kba-hint' }, kbt('tasks.runs.more').replace('{n}', String(sel.nodeCount - nodes.length)) + ' · ' + kbt('tasks.runs.moresub')) : null,
+            sel.final !== null && sel.final !== undefined ? h('div', { className: 'kbrn-step' }, h('span', { className: 'kba-kdot ' + (state === 'failed' ? 'fail' : 'ok') }), h('span', { className: 'kbrn-sl' }, h('b', null, kbt('tasks.runs.final'))), h('span', { className: 'dim' }, kbRunFmtDur(sel.final.thinkMs))) : null),
+          sel === null ? null : h('div', { className: 'kba-card kbrn-card' },
+            h('span', { className: 'kba-tabver mono' }, kbt('tasks.journal.approvals')),
+            (Array.isArray(sel.approvals) === true && sel.approvals.length > 0
+              ? sel.approvals.map((a, i) => h('div', { key: i, className: 'kbrn-step' }, h('span', { className: 'kba-kdot ' + (a.outcome === 'asked' ? 'wait' : 'ok') }), h('span', { className: 'kbrn-sl' }, h('b', null, a.toolName), h('span', { className: 'dim' }, ' · ' + a.outcome))))
+              : h('div', null, kbt('tasks.journal.approvals.none') + ' ' + props.approvalLabel)))
+        )
+      }
+
+      // Sessions: the executions on the left, the one that is open on the right (its graph, then its logs).
+      const g = kbRunGraph(sel, state === 'failed')
+      const lay = kbGraphLayout(g.nodes.length, { nw: 160, hg: 56 })
+      const ix = Math.min(nodeIdx, g.nodes.length - 1)
+      const tools = sel !== null && Array.isArray(sel.nodes) === true ? sel.nodes : []
+      const nodeView = g.nodes.map((n) => {
+        if (n.type === 'start') return { kind: 'trg', icon: '▶', title: kbt('tasks.runs.started'), sub: kbRunFmtHm(selRun.at, locale), st: null }
+        if (n.type === 'more') return { kind: 'gry', icon: '…', title: kbt('tasks.runs.more').replace('{n}', String(n.n)), sub: kbt('tasks.runs.moresub'), st: null }
+        if (n.type === 'final') return { kind: 'gry', icon: '≡', title: kbt('tasks.runs.final'), sub: kbRunFmtDur(n.thinkMs), st: n.ok === false ? 'bad' : 'ok' }
+        return { kind: n.kind === 'skill' ? 'ai' : 'act', icon: kbRunIcon(n.kind), title: n.label, sub: kbRunFmtDur((n.thinkMs || 0) + (n.runMs || 0)) + ' · ' + n.kind, st: n.ok === false ? 'bad' : 'ok' }
+      })
+      const graph = h('div', { className: 'kbrn-gs' }, h('div', { className: 'kbrn-g', style: { width: lay.width, height: lay.height } },
+        h('svg', { className: 'kbrn-eg', width: lay.width, height: lay.height, viewBox: '0 0 ' + lay.width + ' ' + lay.height, 'aria-hidden': 'true' },
+          h('defs', null, h('marker', { id: 'kbrn-ar', viewBox: '0 0 8 8', refX: 7, refY: 4, markerWidth: 7, markerHeight: 7, orient: 'auto' }, h('path', { d: 'M0 0 8 4 0 8z', fill: 'currentColor' }))),
+          lay.edges.map((e, i) => h('path', { key: i, d: 'M' + e.x1 + ' ' + e.y1 + ' L' + e.x2 + ' ' + e.y2, stroke: 'currentColor', strokeWidth: 1.6, fill: 'none', markerEnd: 'url(#kbrn-ar)' }))),
+        lay.edges.map((e, i) => (g.labels[i] !== null && g.labels[i] !== undefined ? h('span', { key: 'l' + i, className: 'kbrn-el', style: { left: e.lx, top: e.ly } }, kbRunFmtBytes(g.labels[i])) : null)),
+        nodeView.map((n, i) => h('button', { key: i, type: 'button', 'data-kb': 'run-node', className: 'kbrn-nd ' + n.kind + (n.st !== null ? ' ' + n.st : '') + (i === ix ? ' sel' : ''), style: { left: lay.pos[i].x, top: lay.pos[i].y, width: 160 }, title: n.title, onClick: () => setNodeIdx(i) },
+          h('span', { className: 'kbrn-nb ' + n.kind }, n.icon),
+          h('span', { className: 'kbrn-nt' }, h('span', { className: 'kbrn-nh' }, n.title), h('span', { className: 'kbrn-ns' }, n.sub)),
+          n.st === 'ok' ? h('span', { className: 'kbrn-nok' }, Icon('check', 12)) : (n.st === 'bad' ? h('span', { className: 'kbrn-nbad' }, '✕') : null)))))
+      const detail = selId !== null && det[selId] !== undefined && det[selId] !== 'loading' && det[selId] !== 'none' ? det[selId] : null
+      const toolNode = g.nodes[ix] !== undefined && g.nodes[ix].type === 'tool' ? g.nodes[ix] : null
+      const exact = detail !== null && Array.isArray(detail.nodes) === true && toolNode !== null ? detail.nodes[ix - 1] : null
+      let logBody
+      if (toolNode === null) logBody = h('div', { className: 'kba-hint', style: { padding: 14 } }, nodeView[ix] !== undefined ? nodeView[ix].title : '')
+      else if (selId !== null && det[selId] === 'loading') logBody = h('div', { className: 'kba-hint', style: { padding: 14 } }, kbt('tasks.runs.reading'))
+      else if (exact === null || exact === undefined || typeof exact.in !== 'string') logBody = h('div', { className: 'kba-hint', style: { padding: 14 } }, kbt('tasks.runs.noio'))
+      else logBody = h('div', { style: { display: 'flex', flexDirection: 'column' } },
+        h('div', { className: 'kbrn-iot' },
+          ['in', 'out'].map((k) => h('button', { key: k, type: 'button', className: 'kbrn-tb' + (io === k ? ' on' : ''), onClick: () => setIo(k) }, kbt(k === 'in' ? 'tasks.runs.input' : 'tasks.runs.output'))),
+          h('span', { className: 'dim', style: { marginLeft: 'auto' } }, kbt('tasks.runs.think') + ' ' + kbRunFmtDur(exact.thinkMs) + ' · ' + kbt('tasks.runs.run') + ' ' + kbRunFmtDur(exact.runMs))),
+        h('pre', { className: 'kbrn-pre' }, io === 'in' ? exact.in : (typeof exact.out === 'string' && exact.out.length > 0 ? exact.out : '—')))
+      const logs = h('div', { className: 'kbrn-logs' }, h('div', { className: 'kbrn-lgh' }, kbt('tasks.runs.logs')),
+        h('div', { className: 'kbrn-lgb' },
+          h('div', { className: 'kbrn-lgl' }, nodeView.map((n, i) => h('button', { key: i, type: 'button', className: 'kbrn-lg' + (i === ix ? ' on' : ''), onClick: () => setNodeIdx(i) }, h('span', { className: 'kbrn-lgn ' + (n.st || n.kind) }, n.icon), h('span', { className: 'kbrn-lgt' }, n.title), h('span', { className: 'dim' }, String(n.sub).split(' · ')[0])))),
+          h('div', { className: 'kbrn-lgd' }, logBody)))
+      const listCol = h('div', { className: 'kbrn-xl' },
+        h('div', { className: 'kbrn-xlh' }, h('b', null, kbt('tasks.runs.title')), h('span', { className: 'dim' }, kbt('tasks.runs.count').replace('{n}', String(runs.length)))),
+        runs.map((r, i) => { const s = sumOf(r); const st = kbRunState(r, s); return h('button', { key: keys[i], type: 'button', 'data-kb': 'run-row', className: 'kbrn-xr' + (keys[i] === selKey ? ' on' : ''), onClick: () => { props.onSelect(keys[i]); setNodeIdx(1) } },
+          h('span', { className: 'kbrn-xbar ' + (st === 'failed' ? 'bad' : (st === 'completed' ? 'ok' : 'idle')) }),
+          h('span', { className: 'kbrn-xt' }, h('b', null, kbRunFmtDT(r.at, locale)), h('span', { className: st === 'failed' ? 'kbrn-badtxt' : 'dim' }, kbRunStateText(st, durOf(s), r)))) }))
+      return h('div', { className: 'kba-sesscroll', 'data-kb': 'runs-sessions' },
+        h('div', { className: 'kbrn-stats' }, tile(kbt('tasks.runs.stat.runs'), String(stats.runs)), tile(kbt('tasks.runs.stat.failed'), String(stats.failed), stats.failed > 0), tile(kbt('tasks.runs.stat.median'), kbRunFmtDur(stats.median)), tile(kbt('tasks.runs.stat.slowest'), kbRunFmtDur(stats.slowest))),
+        h('div', { className: 'kbrn-xwrap' }, listCol,
+          h('div', { className: 'kbrn-xp' },
+            h('div', { className: 'kbrn-xph' }, h('div', null, h('div', { className: 'kbrn-xpd' }, kbRunFmtDT(selRun.at, locale, true)), h('div', null, stateLine, selId !== null ? h('span', { className: 'dim' }, ' | ' + selId.slice(0, 14) + (model !== null ? ' | ' + model.model : '')) : null)), h('span', { style: { flex: 1 } }), openChat, selId !== null ? h('button', { type: 'button', className: 'kba-btn', onClick: () => props.onJournal() }, kbt('tasks.tab.journal') + ' ›') : null),
+            failNote, readNote,
+            h('div', { className: 'kba-card kbrn-canvas' }, graph),
+            logs)),
+        h('div', { className: 'kba-hint' }, kbt('tasks.runs.hint')))
+    }
     const kbBoardBones = (rows) => h('div', { className: 'kbbd-cols' }, [0, 1, 2, 3].map((c) => h('div', { key: c, className: 'kbbd-col' },
       h('div', { className: 'kbbd-colhead' }, kbBone('46%', 13)),
       h('div', { className: 'kbbd-cards' }, [0, 1].slice(0, rows === undefined ? 2 : rows).map((i) => h('div', { key: i, className: 'kbbd-card' },
@@ -21163,6 +21535,9 @@ function renderFit(canvas, model, cam, opts){
       const nodeSelPair = React.useState(null)
       const nodeSel = nodeSelPair[0]
       const setNodeSel = nodeSelPair[1]
+      const runSelPair = React.useState({})
+      const runSel = runSelPair[0]
+      const setRunSel = runSelPair[1]
       // positions de flow déplacées par drag (persistées par automation)
       const flowPosPair = React.useState(null)
       const flowPos = flowPosPair[0]
@@ -21383,7 +21758,6 @@ function renderFit(canvas, model, cam, opts){
       const t = (detail !== null) ? list.filter((x) => x === detail || x.id === detail)[0] || null : null
       if (t !== null) {
         // ── écran détail : sessions réelles + workflow Text·Flow·Code ──────
-        const hist = (Array.isArray(t.history) === true ? t.history : []).slice().reverse()
         const textVal = draft[t.id] !== undefined ? draft[t.id] : (typeof t.prompt === 'string' ? t.prompt : '')
         const dirty = draft[t.id] !== undefined && draft[t.id] !== t.prompt
         const gr = kbTaskNodes(t)
@@ -21410,9 +21784,10 @@ function renderFit(canvas, model, cam, opts){
             h('button', { type: 'button', className: 'kba-btn', onClick: () => setModal(t) }, Icon('calendar-clock', 13), ' ', kbt('tasks.editsched')),
             h('button', { type: 'button', className: 'kba-btn kba-trash', 'data-kb': 'detail-delete', onClick: () => askDelete(t.id, t.name || t.id) }, Icon('trash', 13), ' ', kbt('tasks.delete'))),
           h('div', { className: 'kba-tabs' },
-            h('button', { type: 'button', className: 'kba-tab' + (tab === 'sessions' ? ' on' : ''), onClick: () => setTab('sessions') }, kbt('tasks.tab.sessions').replace('{n}', String(hist.length))),
+            h('button', { type: 'button', className: 'kba-tab' + (tab === 'sessions' ? ' on' : ''), onClick: () => setTab('sessions') }, kbt('tasks.tab.sessions').replace('{n}', String(kbRunsOf(t.history).length))),
             h('button', { type: 'button', className: 'kba-tab' + (tab === 'flow' ? ' on' : ''), onClick: () => setTab('flow') }, kbt('tasks.tab.workflow')),
             h('button', { type: 'button', className: 'kba-tab' + (tab === 'hook' ? ' on' : ''), onClick: () => setTab('hook') }, kbt('tasks.tab.hook')),
+            h('button', { type: 'button', className: 'kba-tab' + (tab === 'journal' ? ' on' : ''), 'data-kb': 'tab-journal', onClick: () => setTab('journal') }, kbt('tasks.tab.journal')),
             h('span', { className: 'kba-tabver mono', hidden: true, style: { display: 'none' } }, 'Text')),
           h('div', { className: 'kba-body' },
             (tab === 'hook'
@@ -21466,25 +21841,19 @@ function renderFit(canvas, model, cam, opts){
                             h('button', { type: 'button', className: 'kba-btn', 'data-kb': 'hook-revoke', onClick: () => setConfirm({ title: kbt('tasks.hook.revoke.title'), body: kbt('tasks.hook.revoke.body'), confirmLabel: kbt('tasks.hook.revokeBtn'), onConfirm: async () => { revokeHook() } }) }, kbt('tasks.hook.revokeBtn'))))))
                 )
               })()
-              : tab === 'sessions'
-              ? (() => {
-                const sessionRows = hist.map((e, idx) => h('div', {
-                  key: String(e.at) + idx, className: 'kba-srow',
-                  onClick: () => { if (typeof e.sessionId === 'string' && e.sessionId.length > 0) { try { uiWorkspaceSvc.openSession(e.sessionId) } catch (er) { /* navigation indisponible */ } } },
-                },
-                  h('span', { className: 'kba-kdot ' + (e.status === 'error' ? 'fail' : e.status === 'queued' ? 'wait' : 'ok') }),
-                  h('span', { className: 'kba-ell', style: { fontWeight: 600 } }, kbt('tasks.session.run') + ' \u00b7 ' + kbWhenOf(e.at), e.status === 'error' && typeof e.error === 'string' && e.error.length > 0 ? h('span', { className: 'kba-reason' }, e.error) : null),
-                  h('span', { className: 'kba-ell dim kba-moboff' }, (typeof e.sessionId === 'string' && e.sessionId.length > 0) ? e.sessionId.slice(0, 14) : '\u2014'),
-                  h('span', { className: 'dim', title: e.status === 'error' && typeof e.error === 'string' ? e.error : undefined }, e.status === 'error' ? kbt('tasks.status.error') : e.status === 'queued' ? kbt('tasks.status.queued') : kbt('tasks.status.fired')),
-                  h('span', null, (typeof e.sessionId === 'string' && e.sessionId.length > 0)
-                    ? h('span', { style: { color: 'var(--dsw-alias-brand-primary)' } }, kbt('tasks.sessions.openchat') + ' \u203a')
-                    : h('span', { className: 'dim' }, '\u2014'))))
-                return h('div', { className: 'kba-sesscroll' },
-                  (hist.length === 0
-                    ? h('div', { className: 'kba-empty' }, kbt('tasks.sessions.empty').replace('{trigger}', kbScheduleLabel(t)))
-                    : h('div', { className: 'kba-card' }, sessionRows)),
-                  (hist.length > 0 ? h('div', { className: 'kba-hint' }, kbt('tasks.sessions.hint')) : null))
-              })()
+              : (tab === 'sessions' || tab === 'journal')
+              ? h(KbRunsPane, {
+                key: t.id + ':' + tab,
+                mode: tab,
+                runs: kbRunsOf(t.history),
+                sel: typeof runSel[t.id] === 'string' ? runSel[t.id] : null,
+                onSelect: (key) => setRunSel(Object.assign({}, runSel, { [t.id]: key })),
+                onOpenChat: (id) => { try { uiWorkspaceSvc.openSession(id) } catch (er) { /* navigation unavailable */ } },
+                onJournal: () => setTab('journal'),
+                onSessions: () => setTab('sessions'),
+                approvalLabel: t.approvals === 'auto' ? kbt('tasks.auto') : kbt('tasks.ask'),
+                emptyText: kbt('tasks.sessions.empty').replace('{trigger}', kbScheduleLabel(t)),
+              })
               : h('div', { className: 'kba-flowwrap' },
                 h('div', { className: 'kba-flowbar' },
                   h('span', { style: { display: 'inline-flex', flexWrap: 'wrap', gap: 8 } },
@@ -29721,7 +30090,6 @@ body[data-ds-dark-theme] .kb8-iconbtn.on.col{border-color:var(--kb8-pgd);color:v
 .kba-name{display:block;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .kba-team{display:block;font-size:11px;color:var(--dsw-alias-label-secondary);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .kba-trg-stack{display:flex;flex-direction:column;min-width:0}
-.kba-reason{display:block;margin-top:3px;font-size:12px;font-weight:400;color:var(--dsw-alias-state-error-primary);white-space:normal}
 .kba-trash:hover{color:var(--dsw-alias-state-error-primary)}
 .kba-banner{display:flex;gap:14px;align-items:center;padding:16px 18px;margin:14px;border:1px solid var(--dsw-alias-state-error-primary);border-radius:12px}
 .kba-banner b{display:block;margin-bottom:2px}
@@ -29892,9 +30260,73 @@ button.kbbd-chip:hover{background:var(--dsw-alias-interactive-bg-hover,#f0f0f0)}
 .kba-tabs .kba-tabver{margin-left:auto;padding-right:4px}
 .kba-body{flex:1;min-height:0;display:flex;flex-direction:column}
 .kba-sesscroll{flex:1;min-height:0;overflow-y:auto;padding-bottom:16px}
-.kba-srow{display:grid;grid-template-columns:18px minmax(0,1fr) 118px 100px 130px;gap:12px;align-items:center;width:100%;padding:11px 16px;border:0;border-top:1px solid var(--dsw-alias-border-l1);background:transparent;text-align:left;font:inherit;font-size:13px;color:var(--dsw-alias-label-primary);cursor:pointer}
-.kba-srow:hover{background:var(--dsw-alias-interactive-bg-hover)}
-.kba-srow .dim{color:var(--dsw-alias-label-secondary)}
+.kbrn-stats{display:flex;gap:12px;flex-wrap:wrap;margin:0 0 12px}
+.kbrn-stat{display:flex;flex-direction:column;gap:2px;padding:10px 14px;border:1px solid var(--dsw-alias-border-l2);border-radius:12px;min-width:110px}
+.kbrn-stk{font-size:11px;color:var(--dsw-alias-label-tertiary);text-transform:uppercase;letter-spacing:.4px}
+.kbrn-stv{font-size:18px;font-weight:600}
+.kbrn-stat.bad .kbrn-stv{color:var(--dsw-alias-state-error-primary)}
+.kbrn-xwrap{display:grid;grid-template-columns:260px minmax(0,1fr);gap:14px;align-items:start}
+@media (max-width:1000px){.kbrn-xwrap{grid-template-columns:1fr}}
+.kbrn-xl{border:1px solid var(--dsw-alias-border-l2);border-radius:14px;background:var(--dsw-alias-bg-layer-2);overflow:hidden auto;max-height:780px}
+.kbrn-xlh{display:flex;align-items:baseline;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--dsw-alias-border-l1);position:sticky;top:0;background:var(--dsw-alias-bg-layer-2);z-index:1}
+.kbrn-xr{display:flex;align-items:center;gap:10px;width:100%;border:0;border-bottom:1px solid var(--dsw-alias-border-l1);background:transparent;text-align:left;padding:0 12px 0 0;cursor:pointer;font:inherit;color:inherit;min-height:56px}
+.kbrn-xr:hover{background:var(--dsw-alias-interactive-bg-hover)}
+.kbrn-xr.on{background:var(--dsw-alias-interactive-bg-active,rgba(0,0,0,.06))}
+.kbrn-xbar{align-self:stretch;width:4px;flex:none;background:var(--dsw-alias-state-idle-primary)}
+.kbrn-xbar.ok{background:var(--dsw-alias-state-success-primary)}
+.kbrn-xbar.bad{background:var(--dsw-alias-state-error-primary)}
+.kbrn-xt{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;padding:8px 0;font-size:13px}
+.kbrn-xt b{font-weight:600}
+.kbrn-badtxt{color:var(--dsw-alias-state-error-primary);font-size:12px}
+.kbrn-oktxt{color:var(--dsw-alias-state-success-primary);font-size:13px}
+.kbrn-xp{display:flex;flex-direction:column;gap:12px;min-width:0}
+.kbrn-xph{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.kbrn-xpd{font-size:18px;font-weight:600}
+.kbrn-xerr{color:color-mix(in srgb,var(--dsw-alias-state-error-primary) 72%,var(--dsw-alias-label-primary));font-size:13px;border:1px solid var(--dsw-alias-state-error-primary);border-radius:10px;padding:8px 12px}
+.kbrn-canvas{padding:16px;overflow:auto}
+.kbrn-gs{overflow:auto;padding:6px 2px}
+.kbrn-g{position:relative;margin:0 auto}
+.kbrn-eg{position:absolute;inset:0;color:var(--dsw-alias-border-l3);pointer-events:none}
+.kbrn-el{position:absolute;transform:translate(-50%,-50%);font-size:11px;color:var(--dsw-alias-label-tertiary);background:var(--dsw-alias-bg-layer-2);padding:1px 6px;border-radius:8px;border:1px solid var(--dsw-alias-border-l1);white-space:nowrap}
+.kbrn-nd{position:absolute;height:70px;box-sizing:border-box;display:flex;align-items:center;gap:10px;padding:0 10px;border:1px solid var(--dsw-alias-border-l2);border-radius:14px;background:var(--dsw-alias-bg-layer-2);text-align:left;cursor:pointer;font:inherit;color:inherit}
+.kbrn-nd:hover{border-color:var(--dsw-alias-border-l3)}
+.kbrn-nd.sel{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:1px}
+.kbrn-nd.ok{border-color:color-mix(in srgb,var(--dsw-alias-state-success-primary) 60%,transparent)}
+.kbrn-nd.bad{border-color:var(--dsw-alias-state-error-primary)}
+.kbrn-nb{flex:none;width:28px;height:28px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:#fff;background:var(--dsw-alias-label-tertiary)}
+.kbrn-nb.ai{background:var(--dsw-alias-state-business-primary,#3b6fd6)}
+.kbrn-nb.act{background:var(--dsw-alias-state-success-primary,#1fa355)}
+.kbrn-nb.trg{background:var(--dsw-alias-state-warn-primary,#e8890c)}
+.kbrn-nt{min-width:0;flex:1;display:flex;flex-direction:column;gap:2px}
+.kbrn-nh{font-size:13px;font-weight:600;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+.kbrn-ns{font-size:11px;color:var(--dsw-alias-label-tertiary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kbrn-nok{position:absolute;right:8px;bottom:6px;color:var(--dsw-alias-state-success-primary);display:inline-flex}
+.kbrn-nbad{position:absolute;right:8px;bottom:5px;color:var(--dsw-alias-state-error-primary);font-weight:700;font-size:12px}
+.kbrn-logs{border:1px solid var(--dsw-alias-border-l2);border-radius:14px;background:var(--dsw-alias-bg-layer-2);overflow:hidden}
+.kbrn-lgh{padding:10px 14px;font-weight:600;font-size:13px;border-bottom:1px solid var(--dsw-alias-border-l1)}
+.kbrn-lgb{display:grid;grid-template-columns:240px minmax(0,1fr)}
+@media (max-width:800px){.kbrn-lgb{grid-template-columns:1fr}}
+.kbrn-lgl{border-right:1px solid var(--dsw-alias-border-l1);display:flex;flex-direction:column;max-height:260px;overflow:auto}
+.kbrn-lg{display:flex;align-items:center;gap:8px;border:0;background:transparent;padding:8px 12px;cursor:pointer;font:inherit;color:inherit;text-align:left;font-size:13px}
+.kbrn-lg.on{background:var(--dsw-alias-interactive-bg-active,rgba(0,0,0,.06))}
+.kbrn-lgn{flex:none;width:22px;height:22px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;font-size:11px;color:#fff;background:var(--dsw-alias-label-tertiary)}
+.kbrn-lgn.ok{background:var(--dsw-alias-state-success-primary)}
+.kbrn-lgn.bad{background:var(--dsw-alias-state-error-primary)}
+.kbrn-lgn.trg{background:var(--dsw-alias-state-warn-primary)}
+.kbrn-lgt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kbrn-lgd{min-width:0;display:flex;flex-direction:column}
+.kbrn-iot{display:flex;align-items:center;gap:6px;padding:8px 12px;border-bottom:1px solid var(--dsw-alias-border-l1)}
+.kbrn-tb{border:1px solid var(--dsw-alias-border-l2);background:transparent;border-radius:8px;padding:2px 10px;font:inherit;font-size:12px;cursor:pointer;color:inherit}
+.kbrn-tb.on{background:var(--dsw-alias-label-primary);color:var(--dsw-alias-label-primary-inverted,#fff);border-color:transparent}
+.kbrn-pre{margin:0;padding:12px 14px;font-family:var(--ds-font-family-code,ui-monospace,monospace);font-size:12px;white-space:pre-wrap;overflow-wrap:anywhere;max-height:220px;overflow:auto;color:var(--dsw-alias-label-secondary)}
+.kbrn-jhead{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:12px 0}
+.kbrn-card{padding:14px 16px;display:flex;flex-direction:column;gap:10px;margin:0 0 12px}
+.kbrn-kv{display:flex;gap:12px;flex-wrap:wrap;font-size:13px}
+.kbrn-k{min-width:120px;color:var(--dsw-alias-label-tertiary);font-size:12px;padding-top:1px}
+.kbrn-v{flex:1 1 260px;min-width:0}
+.kbrn-mono{font-family:var(--ds-font-family-code,ui-monospace,monospace)}
+.kbrn-step{display:flex;align-items:center;gap:10px;font-size:13px;padding:6px 0;border-top:1px solid var(--dsw-alias-border-l1)}
+.kbrn-sl{flex:1;min-width:0;overflow-wrap:anywhere}
 .kba-hint{font-size:12.5px;color:var(--dsw-alias-label-tertiary);margin-top:10px}
 /* workflow : Text / Flow / Code */
 .kba-flowwrap{flex:1;min-height:0;display:flex;flex-direction:column;gap:10px}
@@ -29922,10 +30354,6 @@ button.kbbd-chip:hover{background:var(--dsw-alias-interactive-bg-hover,#f0f0f0)}
 .kba-ln{display:flex}
 .kba-ln i{font-style:normal;width:38px;text-align:right;padding-right:13px;color:var(--dsw-alias-label-tertiary);flex:none;opacity:.7}
 .kba-ln.cm span{color:var(--dsw-alias-label-tertiary)}
-@media (max-width:900px){
-  .kba-srow{grid-template-columns:14px minmax(0,1fr) 110px;row-gap:4px}
-  .kba-srow .kba-moboff{display:none}
-}
 .kb8-search input{flex:1;min-width:0;border:0;background:none;font-size:14px;color:var(--dsw-alias-label-primary);outline:none}
 /* .kb8-primary : défini avec .kba-new-btn plus haut (bouton primaire unifié) */
 .kb8-newmenu-wrap{position:relative;display:inline-flex}
