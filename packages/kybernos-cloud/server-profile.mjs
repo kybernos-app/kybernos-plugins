@@ -1,10 +1,9 @@
 // Which Kybernos server this DSH talks to: the profile, the registry, and the rules that turn them into addresses.
 //
-// This file is the open half of "Select server". It knows how to READ the registry and answer « which server is active, and
-// where are its api, web, console and LLM »; it has no screen, no licence and no way to add a server. A paid module (a
-// separate plugin, in the private repo) owns that: its screen writes the registry file, then asks the cloud plugin to apply
-// it (POST /kybernos-cloud/server/apply). Anyone can edit the file by hand: what the module sells is the management of
-// servers (discovery, sign-in, the licence), not the ability to read a file.
+// This file READS the registry and answers « which server is active, and where are its api, web, console and LLM »; it has no
+// screen and does not add a server. The Servers page (packages/kybernos-servers) owns that: it writes the registry file, then asks
+// the cloud plugin to apply it (POST /kybernos-cloud/server/apply). Anyone can edit the file by hand. There is no licence: a
+// server is an address and your account on it.
 //
 // Registry: <DSH home>/kybernos/servers.json  (KYBERNOS_SERVERS_FILE overrides)
 //   { "active": "acme", "servers": [ { "id": "acme", "name": "Acme", "api": "https://kb.acme.example",
@@ -110,7 +109,11 @@ export const normalizeProfile = (raw) => {
   return { ok: true, profile: Object.freeze({ id, name, api, web, console: consoleUrl, services: Object.freeze({ llm, gateway, connections }) }) }
 }
 
-/** Never throws: a missing, unreadable or malformed file is « no registry ». Invalid entries are dropped and listed. */
+/** Never throws: a missing, unreadable or malformed file is « no registry ». Invalid entries are dropped and listed.
+ *
+ *  An entry whose `api` is the BUILT-IN server's (a hand-written « production » entry, typed before the page could add a server) is the same
+ *  server twice: it would get a connection file of its own and the person would sign in twice. It is dropped at read time and listed as
+ *  `duplicate_builtin`; an `active` that named it means the built-in server. Nothing on disk is touched: its connection file stays where it is. */
 export const readRegistry = (file) => {
   const empty = { active: null, servers: [], rejected: [] }
   let parsed = null
@@ -119,15 +122,18 @@ export const readRegistry = (file) => {
   const servers = []
   const rejected = []
   const seen = new Set()
+  const builtinCopies = new Set()
   for (const raw of Array.isArray(parsed.servers) ? parsed.servers : []) {
     const out = normalizeProfile(raw)
     const id = raw !== null && typeof raw === 'object' && typeof raw.id === 'string' ? raw.id : null
     if (out.ok !== true) { rejected.push({ id, error: out.error }); continue }
     if (seen.has(out.profile.id)) { rejected.push({ id: out.profile.id, error: 'duplicate_id' }); continue }
+    if (out.profile.api === DEFAULT_PROFILE.api) { rejected.push({ id: out.profile.id, error: 'duplicate_builtin' }); builtinCopies.add(out.profile.id); continue }
     seen.add(out.profile.id)
     servers.push(out.profile)
   }
-  return { active: typeof parsed.active === 'string' ? parsed.active.trim() : null, servers, rejected }
+  const active = typeof parsed.active === 'string' ? parsed.active.trim() : null
+  return { active: active !== null && builtinCopies.has(active) ? DEFAULT_SERVER_ID : active, servers, rejected }
 }
 
 /** The active server. Precedence: the environment override (KYBERNOS_CLOUD_API: tests and developers), then the registry's

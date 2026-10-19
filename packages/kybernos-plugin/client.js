@@ -2816,7 +2816,7 @@ const KB_SS_INDEX = [
   ['voice', '', 'Voice engines', '', 'apple say piper supertonic edge tts', 'moteur voix synthese local hors ligne vitesse debit', '', 'Apple « say »'],
   ['calls', '', 'Calls', 'Talk live to your assistant, or to a team member, out loud, from any session.', 'check everything', 'appel telephone vocal visio conversation orale llamada'],
 
-  ['servers', '', 'Add a server', '', '', 'serveur equipe team entreprise self hosted licence reseau'],
+  ['servers', '', 'Add a server', '', '', 'serveur servidor equipe team entreprise self hosted reseau adresse address ajouter connecter'],
   ['cloud computers', '', 'API key', 'Stored on this machine, never shown again. Code and files the agent sends to a cloud computer go to E2B.', 'save', 'cle api api key e2b bac a sable sandbox execution cloud clave'],
   ['remote control', '', 'Link a phone', 'Drive this computer from your phone: scan the code, that is all.', 'show the qr allow', 'telephone mobile qr code telecommande smartphone movil', '', 'Link a phone in three steps'],
 

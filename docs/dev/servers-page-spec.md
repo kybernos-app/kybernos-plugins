@@ -202,7 +202,7 @@ Work from `dev`, one worktree per PR, in the **open repo** unless said. The chec
 | PR | Content | Rules |
 |---|---|---|
 | 1. open: `kybernos-servers` | the satellite: client, host routes, pure `discovery.mjs` (keeps `connections`), dedupe, rename, no licence; the five registrations (`lifecycle-packages.json`, `satellites.json`, `build-catalog.mjs` FICHE / TITRES / GLYPHES, `garde.mjs`, README); `help.json`; tests SRV-01…14; `check-servers-live.mjs` | zero engine patch; `apply()` guarded; the package is **not** in anybody's profile yet |
-| 2. open: `kybernos-cloud` | drop `duplicate_builtin` entries in `readRegistry`; the Settings search keywords (`docs/dev/servers.md` was already rewritten in PR 1) | extends `test-server-profile` and `test-server-switch` |
+| 2. open: `kybernos-cloud` (**built**, branch `feat/servers-cloud-duplicate`) | drop `duplicate_builtin` entries in `readRegistry`; the Settings search keywords (`docs/dev/servers.md` was already rewritten in PR 1) | extends `test-server-profile` and `test-server-switch` |
 | 3. private: retire the module | delete the package and the licence tooling (§ 7); `AGENTS.md` line | **dead-code rider**: the whole licence stack goes |
 | Owner, not me | in the real profile: remove the private link of `@local/kybernos-servers`, activate the open satellite, restart `dsh web` (host routes) | never done while the Teams end-to-end run is open; same package name, so the old link must go first |
 
@@ -229,3 +229,15 @@ Rollback: PR 1 and 2 change nothing in a running DSH until the owner activates; 
   (`checkedFor`); a 100 % wide input stuck out of its dialog (`box-sizing`). Both have a source assertion in `test-client.mjs`.
 - **Still red on `dev`, not touched** (five tests fail without this change): `kybernos-memory/test-client`, `kybernos-sessions/test-prefix`,
   `test-consistency-guards`, `test-display-rules`, and the French-literals check on `kybernos-plugin/client.js`.
+
+## 12. PR 2 as built (2026-10-19, branch `feat/servers-cloud-duplicate`, on top of PR 1, nothing committed)
+
+- `kybernos-cloud/server-profile.mjs` `readRegistry`: an entry whose `api` equals the built-in server's is dropped and listed as
+  `duplicate_builtin` (after the validity checks, so an invalid entry keeps its more useful reason); an `active` that named it becomes the built-in
+  server. No file is read, moved or deleted by this. A different path, port or host is another server and is kept.
+- `test-server-profile.mjs`: 12 new checks (the « production » entry, three spellings, near misses, invalid first, `active` untouched when it names a
+  kept entry). `test-server-switch.mjs`: the route answers the built-in server as active with no error, the copy is not listed, and both sign-ins on
+  disk are byte for byte what they were. Three mutations of the rule are caught by the two tests.
+- Settings search: the « Servers » row no longer carries « licence » and gains « adresse / address / ajouter / connecter » (`kybernos-plugin/client.js`).
+- Not done: the tokens of the copy are not merged into the built-in server's file (a person signed in only through the copy signs in once on the
+  built-in server); that is deliberate, a token is never moved.

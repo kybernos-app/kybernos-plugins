@@ -141,6 +141,29 @@ console.log('the registry')
   check('invalid, duplicate and reserved entries are dropped and listed', r.rejected.length === 4 && r.rejected.some((x) => x.error === 'duplicate_id') && r.rejected.some((x) => x.error === 'bad_api') && r.rejected.some((x) => x.error === 'reserved_id'), JSON.stringify(r.rejected))
 }
 
+console.log('the built-in server written down again under another id (the hand-written « production » entry)')
+{
+  write({ active: 'kybernos-prod', servers: [{ id: 'kybernos-prod', name: 'Kybernos (production)', api: BUILTIN_API }, { id: 'kybernos-local', name: 'Kybernos (local)', api: 'http://localhost:8791' }] })
+  const r = readRegistry(file)
+  check('an entry with the built-in server\'s address is dropped, the others are kept', r.servers.map((s) => s.id).join() === 'kybernos-local', JSON.stringify(r.servers.map((s) => s.id)))
+  check('it is listed as a duplicate of the built-in server, not as an invalid entry', r.rejected.length === 1 && r.rejected[0].id === 'kybernos-prod' && r.rejected[0].error === 'duplicate_builtin', JSON.stringify(r.rejected))
+  check('an « active » that named it now means the built-in server', r.active === DEFAULT_SERVER_ID, r.active)
+  const a = activeServer({ env: {}, registryFile: file })
+  check('the active server is the built-in one, from the default, with no « active_unknown » error', a.profile.id === DEFAULT_SERVER_ID && a.source === 'default' && a.error === undefined, JSON.stringify([a.profile.id, a.source, a.error]))
+  check('the list holds the built-in server once, then the other entries; the copy is not in it', a.servers.map((s) => s.id).join() === 'kybernos-cloud,kybernos-local' && a.rejected.some((x) => x.error === 'duplicate_builtin'), JSON.stringify(a.servers.map((s) => s.id)))
+  check('so the copy gets no connection file name of its own to read', a.servers.every((s) => s.id !== 'kybernos-prod'))
+  for (const same of [BUILTIN_API + '/', BUILTIN_API.toUpperCase(), BUILTIN_API + '//']) {
+    write({ servers: [{ id: 'spelled', api: same }] })
+    check('another spelling of that address is the same server: ' + same, readRegistry(file).servers.length === 0 && readRegistry(file).rejected[0].error === 'duplicate_builtin', JSON.stringify(readRegistry(file)))
+  }
+  write({ servers: [{ id: 'other-path', api: BUILTIN_API + '/v1' }, { id: 'other-port', api: BUILTIN_API + ':8443' }, { id: 'other-host', api: 'https://api.kybernos.example' }] })
+  check('a different path, port or host is another server and is kept', readRegistry(file).servers.map((s) => s.id).join() === 'other-path,other-port,other-host', JSON.stringify(readRegistry(file)))
+  write({ servers: [{ id: 'broken', api: BUILTIN_API, services: { llm: 'oops' } }] })
+  check('an invalid entry is still reported as invalid first (its reason is the more useful one)', readRegistry(file).rejected[0].error === 'bad_llm', JSON.stringify(readRegistry(file).rejected))
+  write({ active: 'two', servers: [{ id: 'one', api: BUILTIN_API }, { id: 'two', api: 'https://two.example' }] })
+  check('an « active » that names another, kept entry is not touched by any of this', readRegistry(file).active === 'two' && activeServer({ env: {}, registryFile: file }).profile.id === 'two')
+}
+
 console.log('which server is active')
 {
   write({ active: 'acme', servers: [{ id: 'acme', name: 'Acme', api: 'https://kb.acme.example' }, { id: 'other', api: 'https://o.example' }] })

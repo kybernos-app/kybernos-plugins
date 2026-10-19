@@ -97,6 +97,12 @@ Invalid, duplicate and reserved entries are dropped and listed in `rejected`; a 
 Precedence for the active server: `KYBERNOS_CLOUD_API` (tests, developers) → the registry's `active` → built-in Kybernos Cloud.
 An `active` that names no valid server falls back to the built-in one **and says so** (`error: "active_unknown"`).
 
+An entry whose `api` is the **built-in server's** (any spelling of the same address) is the same server written twice: typically a hand-written
+« production » entry, typed before the Servers page existed. It would get a connection file of its own and the person would sign in twice, so it
+is dropped at read time and listed in `rejected` as `duplicate_builtin`; an `active` that named it means the built-in server, with no
+`active_unknown`. **Nothing on disk is touched**: its connection file (`kybernos-cloud-<id>.json`) stays where it is, unread and unused, and the
+built-in server's own sign-in (`kybernos-cloud.json`) is the one DSH uses. The Servers page refuses to add such a server too (`already_listed`).
+
 Anyone can edit the file by hand; the Servers page does it for you: discovery through `/.well-known/kybernos-server.json`, a check that this
 package accepts the profile (the write is undone if it does not), then one switch.
 
