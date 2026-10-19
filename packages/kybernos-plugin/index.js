@@ -13,6 +13,7 @@ import { createWorkspaceInstructions } from './workspace-instructions.mjs'
 import { selectAfterConnect } from './default-model.mjs'
 import { normalize as autoSettingsNormalize, publicView as autoSettingsView, apply as autoSettingsApply, isPaused as autoSettingsPaused } from './automation-settings.mjs'
 import { stableStreak as autoSkillStreak, skillSlug as autoSkillSlug, buildSkill as autoSkillBuild, normalizeRecords as autoSkillsNormalize, dueTasks as autoSkillsDue, lessonOf as autoSkillLesson } from './automation-skills.mjs'
+import { chooseWorkspace as autoWsChoose, idOf as autoWsIdOf, DEDICATED_TITLE as AUTO_WS_TITLE, DEDICATED_DIR as AUTO_WS_DIR } from './automation-workspace.mjs'
 import { recordFeedback, exportFeedback, relayReportOf } from './feedback-box.mjs'
 import { writeGuard } from './session-guard.mjs'
 import { defaultState as onboardingDefault, publicView as onboardingView, complete as onboardingComplete, replay as onboardingReplay } from './onboarding-state.mjs'
@@ -388,6 +389,13 @@ const kbSanitizeTaskInput = (raw) => {
     approvals: r.approvals === 'auto' ? 'auto' : 'ask',
   }
   if (Array.isArray(r.notify) === true) out.notify = Array.from(new Set(r.notify.filter((x) => x === 'push' || x === 'email')))
+  // The workspace the runs land in (the id of one): sent only when the person chooses, `null` or '' goes back to « none » (the dedicated
+  // workspace). Left out, an edit keeps what the automation already has. The rule is the same as automation-workspace.mjs (this block takes no import).
+  if (r.workspaceHint !== undefined) {
+    if (r.workspaceHint === null || r.workspaceHint === '') out.workspaceHint = null
+    else if (typeof r.workspaceHint === 'string' && /^[A-Za-z0-9_.:@-]{1,160}$/.test(r.workspaceHint) === true) out.workspaceHint = r.workspaceHint
+    else return { ok: false, error: 'invalid workspace' }
+  }
   return { ok: true, task: out }
 }
 // ── Task store + trigger: pure, every side effect is injected, so the tests drive the code
@@ -2554,17 +2562,34 @@ function boot(ctx) {
     // Le tir : session neuve + prompt via le service sessionController quand il
     // est monté (create + prompt sideaux). Repli honnête : pendingFire consommé
     // par le client (startSession + prefill draft) à son prochain poll.
+    // Where a run lands (automation-workspace.mjs): the workspace the automation names, else ONE dedicated workspace, « Automations »,
+    // which adopts <dsh home>/kybernos/automations (created on first use; `create` returns the existing workspace for a folder it
+    // already owns, so asking every time is safe). Only when the engine cannot create one (an older registry, an unwritable folder)
+    // does it keep what it always did: the first workspace of the list.
+    const kbDedicatedWorkspaceId = async (w) => {
+      if (typeof w.create !== 'function') return null
+      try {
+        const home = await dshHome()
+        if (home === null || home.length === 0) return null
+        const dir = joinPath(home, 'kybernos/' + AUTO_WS_DIR)
+        mkdirSync(dir, { recursive: true })
+        return autoWsIdOf(await w.create(dir, AUTO_WS_TITLE))
+      } catch (e) {
+        try { console.error('[kybers] automations: the dedicated workspace could not be made (' + errText(e) + ')') } catch (e2) { /* console unavailable */ }
+        return null
+      }
+    }
     const kbTaskWorkspaceId = async (task) => {
       const w = workspacesAt()
       if (w === undefined || typeof w.list !== 'function') return null
       try {
         const list = w.list()
+        const pick = autoWsChoose(task.workspaceHint, list)
+        if (pick.id !== null) return pick.id
+        const dedicated = await kbDedicatedWorkspaceId(w)
+        if (dedicated !== null) return dedicated
         if (Array.isArray(list) === false || list.length === 0) return null
-        for (const ws of list) {
-          if (ws !== null && typeof ws === 'object' && str(task.workspaceHint) !== null && String((ws.id || ws.workspaceId || '')) === String(task.workspaceHint)) return str(ws.id) || str(ws.workspaceId)
-        }
-        const first = list[0]
-        return first !== null && typeof first === 'object' ? (str(first.id) || str(first.workspaceId)) : null
+        return autoWsIdOf(list[0])
       } catch (e) { return null }
     }
     // The sessions this plugin started for an automation set to `ask`: the MCP gate below applies to them

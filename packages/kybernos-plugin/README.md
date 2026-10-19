@@ -125,6 +125,25 @@ the **whole instruction** (the title is cut at 84 characters), **how it runs** (
 same rule as the Code view), a « Guard » mark when the step starts with PREFLIGHT, Previous / Next to walk the steps, and « Edit in Text ».
 Nothing in the panel is written: the text stays the source.
 
+## Where the runs of an automation land (its workspace)
+
+A DSH workspace is a folder the engine adopted (the page calls it a project), and a session lives in one: it is where the run's agents
+work and where the files they write stay. Each automation has **one workspace choice** (the **Workspace** field of its form, the id kept
+as `workspaceHint` in `tasks.json`; the detail page says « Workspace: X »):
+
+- **A workspace of the person's own**: every run lands in it.
+- **No choice** (the default, and what the automation-creator skill and the templates produce): the runs land in ONE dedicated workspace,
+  **« Automations »**. The host makes it on first use: it creates `<dsh home>/kybernos/automations` and asks the engine's registry to adopt it
+  (`workspaceRegistry.create(path, 'Automations')` returns the workspace it already has for a folder it owns, so asking at every run is safe).
+  Before this, a run with no choice landed in whichever workspace was first in the list, which was the assistant's own.
+- **A workspace that was deleted** after the choice: the runs go to the dedicated one (never to a guess), and the page says so.
+- **The engine cannot make a workspace** (an older registry, an unwritable folder): the first workspace of the list, as before. A run is
+  never lost for this.
+
+The rule is `automation-workspace.mjs` (pure) and `kbTaskWorkspaceId` in `index.js`; the route refuses an id that is not a plain id
+(`invalid workspace`), keeps the choice when an edit does not send one, and clears it with `null` or an empty string. A copy keeps the
+choice; an export does not (an id means nothing on another machine).
+
 ## Discover: templates
 
 The **Discover** tab of the Automations page (next to **Yours**) lists ready-made starting points: ten templates in three families
@@ -490,11 +509,12 @@ node packages/kybernos-plugin/test-automation-runs.mjs   # the run summary: cloc
 node packages/kybernos-plugin/test-automation-runs-client.mjs  # the KB-AUTORUNS block: history lines → runs, figures, graph, layout; the pane stays read-only
 node packages/kybernos-plugin/test-automation-settings.mjs  # the three switches and the choice, the guard of the route, the held tick
 node packages/kybernos-plugin/test-automation-skills.mjs  # the stable-run rule, the skill text, the route, and the tick writing a skill by itself (real apply() on a throw-away DSH home)
+node packages/kybernos-plugin/test-automation-workspace.mjs  # where a run lands: the rule, the real host with a fake registry (chosen, none, deleted, no create), the route, the form and the detail line
 node packages/kybernos-plugin/test-automation-templates.mjs  # Discover: the ten templates in both languages, what they never promise, the filter, the chat text
 node packages/kybernos-plugin/test-newchat.mjs         # the cards, the Cloud Computer state, the hidden native entry, the starters pinned
 node scripts/test-tasks-route.mjs                      # the tasks route, the tick, webhooks, and tasks/occurrences (guards, bounds, corrupt store)
 node scripts/check-automations-board-live.mjs [--stub-model]  # live GUI, on a sandbox only: the four views, Run now, banner, French, 375 px; with a stub model: running, waiting, Approve / Refuse
-node scripts/check-automations-discover-live.mjs [--shots <dir>]  # live GUI, on a sandbox only (restart it first: host routes): Discover and the chat it opens, Cards, the Flow panel, the Journal lessons and the skill file, the settings, 390 px
+node scripts/check-automations-discover-live.mjs [--shots <dir>]  # live GUI, on a sandbox only (restart it first: host routes): Discover and the chat it opens, Cards, the Flow panel, the Journal lessons and the skill file, the workspace of the runs (a real Run now), the settings, 390 px
 node packages/kybernos-plugin/test-seed-skills.mjs     # 27: skill seeding (a user's own skill is never overwritten)
 node scripts/test-shipped-skills-wiring.mjs            # the real index.js seeds under DSH_HOME, not under the other HOME
 node scripts/test-automation-creator-parity.mjs        # the skill validates crons and zones exactly like the scheduler

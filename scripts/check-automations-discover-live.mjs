@@ -17,6 +17,9 @@
 //   - Flow: a node's title stays inside it, a click opens the panel with the whole instruction, the guard mark and Previous / Next;
 //   - Journal lessons: how far an automation is, and for a stable one the button that writes the skill (the file is on disk, readable by
 //     the person only, with the steps and none of the automation's secrets); the same click twice writes nothing more;
+//   - Workspace of the runs: the form offers the dedicated « Automations » workspace and the person's own, the choice is saved as an id and
+//     named on the page, and a real « Run now » lands the session in the chosen workspace, else in the dedicated one (a folder the host
+//     made under the DSH home);
 //   - Settings › Automations: the switch and the choice are saved in the file the host reads;
 //   - a phone width (390 px): no horizontal scroll on Discover, a template, the Cards.
 // Exit code 0 / 1 / 3 (3 = inconclusive: no sandbox).
@@ -168,6 +171,42 @@ try {
   await click('[data-kb="tab-journal"]')
   check('an automation that failed says how far it is from stable (none in a row)', (await poll(() => q('[data-kb="journal-lesson"]'), 6000)) === 1 && /0 times in a row without a failure\. At 5 it can become/.test(await text('[data-kb="journal-lesson"]')) && (await q('[data-kb="lesson-create"]')) === 0)
   check('...and the Sessions tab says the journals were not read rather than inventing a duration', await (async () => { await tab(/^Sessions/); await sleep(800); return /not be read/.test(await text('[data-kb="runs-sessions"]')) || /Not read/.test(await text('[data-kb="runs-sessions"]')) })())
+  await backToList()
+
+  console.log('\n── Workspace of the runs ──')
+  const sessionDirOf = (sid) => { const root = join(home, 'sessions'); try { for (const d of readdirSync(root)) if (existsSync(join(root, d, sid))) return d } catch (e) { /* no sessions yet */ } return null }
+  const lastSession = () => { try { const t = JSON.parse(readFileSync(files.tasks, 'utf8')).find((x) => x.id === 'chk-young'); const h = t.history.filter((x) => typeof x.sessionId === 'string' && !x.sessionId.startsWith('seed-')); return { task: t, sid: h.length > 0 ? h[h.length - 1].sessionId : null, n: h.length } } catch (e) { return { task: null, sid: null, n: 0 } } }
+  const setSelect = (v) => val(`(() => { const e = document.querySelector('[data-kb="task-workspace"]'); if (!e) return false; Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(e, ${JSON.stringify(v)}); e.dispatchEvent(new Event('change', { bubbles: true })); return true })()`)
+  const pressInHead = (label) => val(`(() => { const b = Array.from(document.querySelectorAll('.kba-dhead .kba-btn')).find((x) => x.innerText.trim() === ${JSON.stringify(label)}); if (!b) return false; b.click(); return true })()`)
+  const waitRun = async (before) => { await pressInHead('Run now'); return poll(() => { const l = lastSession(); return l.n > before ? l : null }, 20000) }
+  await openAutomations()
+  await poll(() => q('.kba-lcard, [data-kb="auto-card"]'), 10000)
+  await openTask('Check young report')
+  check('the detail says where the runs land: the dedicated workspace when nothing is chosen', (await poll(async () => /Workspace: Automations/.test(await text('.kba-dmeta')), 5000)) === true, await text('.kba-dmeta'))
+  await pressInHead('Schedule')
+  check('the form has a Workspace field: the dedicated workspace first, then the person\'s own', (await poll(() => q('[data-kb="task-workspace"]'), 4000)) === 1 && /^Automations \(dedicated workspace\)/.test((await val(`Array.from(document.querySelectorAll('[data-kb="task-workspace"] option')).map((o) => o.textContent).join('|')`)) || '') && (await q('[data-kb="task-workspace"] option')) >= 2)
+  const mine = await val(`(() => { const o = Array.from(document.querySelectorAll('[data-kb="task-workspace"] option')).filter((x) => x.value !== ''); return o.length > 0 ? JSON.stringify({ id: o[0].value, name: o[0].textContent }) : null })()`)
+  const pickedWs = mine === null ? null : JSON.parse(mine)
+  check('...with at least one workspace of the person to choose', pickedWs !== null, mine)
+  if (pickedWs !== null) {
+    await setSelect(pickedWs.id)
+    await click('[data-kb="task-save"]')
+    check('saving stores the id of the workspace and nothing else of it', (await poll(() => { try { return JSON.parse(readFileSync(files.tasks, 'utf8')).find((x) => x.id === 'chk-young').workspaceHint === pickedWs.id } catch (e) { return false } }, 6000)) === true)
+    check('the detail names the workspace', (await poll(async () => (await text('.kba-dmeta')).indexOf('Workspace: ' + pickedWs.name) >= 0, 5000)) === true, await text('.kba-dmeta'))
+    const r1 = await waitRun(lastSession().n)
+    const dir1 = r1 ? sessionDirOf(r1.sid) : null
+    check('« Run now » starts a real session in the chosen workspace (not in the dedicated folder)', r1 !== null && dir1 !== null && dir1.indexOf('kybernos-automations') < 0, { dir1 })
+    await pressInHead('Schedule')
+    await poll(() => q('[data-kb="task-workspace"]'), 4000)
+    await setSelect('')
+    await click('[data-kb="task-save"]')
+    check('choosing the dedicated workspace again clears the choice', (await poll(() => { try { return JSON.parse(readFileSync(files.tasks, 'utf8')).find((x) => x.id === 'chk-young').workspaceHint === null } catch (e) { return false } }, 6000)) === true)
+  }
+  const n0 = lastSession().n
+  const r2 = await waitRun(n0)
+  const dir2 = r2 ? sessionDirOf(r2.sid) : null
+  check('with no choice a real run lands in the dedicated « Automations » workspace', r2 !== null && dir2 !== null && /kybernos-automations--$/.test(dir2), { dir2 })
+  check('...a folder the host made under the DSH home, which the engine adopted as a workspace', existsSync(join(home, 'kybernos', 'automations')) && statSync(join(home, 'kybernos', 'automations')).isDirectory())
   await backToList()
 
   console.log('\n── Settings › Automations ──')
