@@ -659,35 +659,31 @@ const SCENARIOS = [
         if (await c.click({ css: '[data-kb="menu-switch"]' }, { patience: 3000 })) await c.audit('switcher', { shot: true })
       }
       await reload(c.page)
-      // The phone panel, in each state the host can answer.
+      // The « Phone and channels » window, in each state the host can answer.
       for (const [name, remote] of [['idle', REMOTE.idle], ['qr', REMOTE.qr], ['verify', REMOTE.verify], ['devices', REMOTE.devices], ['paywall', REMOTE.paywall]]) {
         fake.remote = remote
         await reload(c.page)
         await c.drawer(CARD)
-        // The phone link is the « Remote control » entry of the profile menu (the footer's own phone button is gone). The entry is there only for a plan that
-        // includes the link (kybernos-cloud): for the plan that does not, its absence is what is expected and the paywall is measured in Settings instead.
+        // The phone link and Kaby's messaging apps are the « Phone and channels » entry of the profile menu (the footer's own phone button is gone). The entry is there
+        // whatever the plan says: the window itself says « Not included in your plan » in its left column.
         const opened = await c.click({ css: CARD }, { patience: 8000 })
-        if (name === 'paywall') {
-          const entry = opened && (await c.page.evalJs(`document.querySelector('[data-kb="menu-remote"]') !== null`)).val === true
-          if (entry) missing.push({ size: c.size, scheme: c.scheme, scenario: 'account:phone-paywall', why: 'the profile menu offers Remote control to a plan that does not include it' })
-          continue
-        }
-        if (opened && await c.click({ css: '[data-kb="menu-remote"]' }, { patience: 3000 })) await c.audit('phone-' + name, { shot: true, wait: 1500 })
+        if (opened && await c.click({ css: '[data-kb="menu-phone"]' }, { patience: 3000 })) await c.audit('phone-' + name, { shot: true, wait: 1500 })
+        else missing.push({ size: c.size, scheme: c.scheme, scenario: 'account:phone-' + name, why: 'the profile menu has no Phone and channels entry' })
       }
-      // The paywall of the phone link is where a plan without it meets it: Settings › Remote Control.
+      // The same screen as a Settings page: Settings › Phone and channels.
       fake.remote = REMOTE.paywall
       await reload(c.page)
       await c.drawer() // at 390 px the Settings trigger is in the drawer
       if (await openSettings(c.page, { tries: 3 })) {
         await c.drawer()
-        if (await c.click({ css: 'button[class*="navCell"]', text: 'Remote Control' })) await c.audit('settings-mobile-paywall', { shot: true, wait: 1500 })
+        if (await c.click({ css: 'button[class*="navCell"]', text: 'Phone and channels' })) await c.audit('settings-mobile-paywall', { shot: true, wait: 1500 })
       } else missing.push({ size: c.size, scheme: c.scheme, scenario: 'account:settings-mobile-paywall', why: 'settings did not open' })
       fake.remote = REMOTE.devices
       await reload(c.page)
       await c.drawer()
       if (await openSettings(c.page, { tries: 3 })) {
         await c.drawer()
-        if (await c.click({ css: 'button[class*="navCell"]', text: 'Remote Control' })) await c.audit('settings-mobile', { shot: true, wait: 1500 })
+        if (await c.click({ css: 'button[class*="navCell"]', text: 'Phone and channels' })) await c.audit('settings-mobile', { shot: true, wait: 1500 })
       } else missing.push({ size: c.size, scheme: c.scheme, scenario: 'account:settings-mobile', why: 'settings did not open' })
       fake.cloud = null
       fake.remote = null

@@ -1,4 +1,4 @@
-// kybernos-mobile, the « ? How it works » help of the phone link: what the card says (help.json) and where the button is.
+// kybernos-mobile, the « ? How it works » help of the « Phone and channels » screen: what the card says (help.json) and where the button is.
 // The card must tell a person who is not a developer three things: the phone opens a web app that talks to the computer through a
 // relay that reads nothing (end-to-end encryption), the computer must be switched on and online, and nothing about plans (the link is
 // open to every account, and it is not « direct »). The shape (limits, both languages) is checked by scripts/build-catalog.mjs.
@@ -37,7 +37,7 @@ console.log('where the button is')
   const guarded = "typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-mobile' }) : null"
   check('the help button is always asked behind a guard, for the bundle’s own help', SOURCE.includes(guarded))
 
-  // The panel the sidebar's phone button opens (« Connect a phone »), rendered on a fake React that only builds a tree.
+  // The window the account menu opens (« Phone and channels »), rendered on a fake React that only builds a tree.
   const Help = function Help () { return null }
   const run = ({ withHelp }) => {
     const fakeReact = {
@@ -48,7 +48,7 @@ console.log('where the button is')
       useCallback: (f) => f,
     }
     let def = null
-    const win = { __ModuleLoader__: { load: (d) => { def = d } }, matchMedia: () => ({ matches: false }), __KB_LANG_RESOLVE__: () => 'en' }
+    const win = { __ModuleLoader__: { load: (d) => { def = d } }, matchMedia: () => ({ matches: false }), __KB_LANG_RESOLVE__: () => 'en', addEventListener () {}, removeEventListener () {} }
     if (withHelp) win.__KB_HELP__ = { version: 1, Help }
     const doc = {
       body: {}, head: { appendChild: (c) => c }, baseURI: 'http://127.0.0.1:3080/',
@@ -59,12 +59,12 @@ console.log('where the button is')
     new Function('window', 'document', SOURCE)(win, doc)
     const plugin = def.factory((name) => (name === 'react' ? fakeReact : undefined))
     // Only the phone link's own effects run: the layout is not what is tested here.
-    plugin.apply({ effect: (fn, label) => (/phone panel|styles|settings section/.test(String(label)) ? fn() : () => {}), inject: (names, cb) => cb({ slots: null }) })
-    const Panel = win.__KB_MOBILE__ !== undefined ? win.__KB_MOBILE__.Panel : undefined
-    return { tree: typeof Panel === 'function' ? Panel({ web: '', onManage: () => {} }) : null, Panel }
+    plugin.apply({ effect: (fn, label) => (/phone and channels|styles|settings section/.test(String(label)) ? fn() : () => {}), inject: (names, cb) => cb({ slots: null }) })
+    const Dialog = win.__KB_MOBILE__ !== undefined ? win.__KB_MOBILE__.Dialog : undefined
+    return { tree: typeof Dialog === 'function' ? Dialog({ web: '', onClose: () => {} }) : null, Panel: Dialog }
   }
-  // Walks the tree the fake React built, running the small function components on the way (the title row's button is one);
-  // the body of the panel (network, timers) is left as an element.
+  // Walks the tree the fake React built, running the small function components on the way (the two cards are some);
+  // the body of the left column (network, timers) is left as an element.
   const find = (node, test, out = []) => {
     if (node === null || typeof node !== 'object') return out
     if (test(node)) out.push(node)
@@ -74,14 +74,14 @@ console.log('where the button is')
     return out
   }
   const withHelp = run({ withHelp: true })
-  const title = withHelp.tree === null ? [] : find(withHelp.tree, (n) => n.props && n.props.className === 'kbf-poptitle')
+  const title = withHelp.tree === null ? [] : find(withHelp.tree, (n) => n.props && n.props.className === 'kbpc-title')
   const buttons = withHelp.tree === null ? [] : find(withHelp.tree, (n) => n.type === Help)
-  check('the « Connect a phone » panel is published', typeof withHelp.Panel === 'function')
-  check('the panel keeps its title', title.length === 1 && /Connect a phone/.test(JSON.stringify(title[0])), title.length)
-  check('the panel carries one « ? How it works » button, for this bundle’s help', buttons.length === 1 && buttons[0].props.id === 'kybernos-mobile', buttons.map((b) => b.props))
+  check('the « Phone and channels » window is published', typeof withHelp.Panel === 'function')
+  check('the window is titled « Phone and channels »', title.length === 1 && /Phone and channels/.test(JSON.stringify(title[0])), title.length)
+  check('the window carries one « ? How it works » button, for this bundle’s help', buttons.length === 1 && buttons[0].props.id === 'kybernos-mobile', buttons.map((b) => b.props))
   const without = run({ withHelp: false })
   const none = without.tree === null ? [] : find(without.tree, (n) => n.type === Help)
-  check('without the Suite there is no button and the panel still draws', without.tree !== null && none.length === 0 && find(without.tree, (n) => n.props && n.props.className === 'kbf-poptitle').length === 1)
+  check('without the Suite there is no button and the window still draws', without.tree !== null && none.length === 0 && find(without.tree, (n) => n.props && n.props.className === 'kbpc-title').length === 1)
 }
 
 console.log('the animated help of the Settings page (V-05, V-36)')
@@ -111,7 +111,9 @@ console.log('the animated help of the Settings page (V-05, V-36)')
   const find = (node, test, out = []) => {
     if (node === null || typeof node !== 'object') return out
     if (test(node)) out.push(node)
-    for (const c of node.children || []) find(c, test, out)
+    let kids = node.children || []
+    if (typeof node.type === 'function' && node.type !== Help && node.type !== Intro && node.type.name !== 'Body') kids = [node.type(node.props)]
+    for (const c of kids) find(c, test, out)
     return out
   }
   const text = (n) => (n === null || typeof n !== 'object' ? String(n) : (n.children || []).map(text).join(' '))
@@ -122,8 +124,8 @@ console.log('the animated help of the Settings page (V-05, V-36)')
   check('it asks the Suite for the animation, keyed by its own bundle', p !== null && p.id === 'kybernos-mobile', intros.length)
   check('three steps that say show the code, scan it, allow', p !== null && p.steps.length === 3 && /code/i.test(p.steps[0].t) && /scan/i.test(p.steps[1].t) && /allow/i.test(p.steps[2].t), p && p.steps.map((s) => s.t))
   check('every step has a sentence', p !== null && p.steps.every((s) => s.b.length > 20))
-  check('the mock names the page, the phone, its three states and three labels', p !== null && p.mock.bar === 'Remote Control' && p.mock.hot.length > 2 && p.mock.states.length === 3 && p.mock.actions.length === 3 && p.mock.actions[2] === 'Allow', p && p.mock)
-  check('it sits after the title row and before the body', (() => { const order = find(tree, (n) => n.type === Intro || (n.props && (n.props.className === 'kbmr-head' || n.type !== 'div' && typeof n.type === 'function' && n.type.name === 'Body'))).map((n) => (n.type === Intro ? 'intro' : n.props.className === 'kbmr-head' ? 'head' : 'body')); return order.join() === 'head,intro,body' })())
+  check('the mock names the page, the phone, its three states and three labels', p !== null && p.mock.bar === 'Phone and channels' && p.mock.hot.length > 2 && p.mock.states.length === 3 && p.mock.actions.length === 3 && p.mock.actions[2] === 'Allow', p && p.mock)
+  check('it sits after the title row and before the body', (() => { const order = find(tree, (n) => n.type === Intro || (n.props && (/\bkbpc-head\b/.test(String(n.props.className)) || n.type !== 'div' && typeof n.type === 'function' && n.type.name === 'Body'))).map((n) => (n.type === Intro ? 'intro' : /\bkbpc-head\b/.test(String(n.props.className)) ? 'head' : 'body')); return order.join() === 'head,intro,body' })())
   check('the title row still carries one « ? How it works » button, for this bundle', find(tree, (n) => n.type === Help).length === 1 && find(tree, (n) => n.type === Help)[0].props.id === 'kybernos-mobile')
   const fr = draw({ lang: 'kybernos', hub: { version: 1, Help, Intro } })
   const q = fr === null ? null : find(fr, (n) => n.type === Intro)[0]
