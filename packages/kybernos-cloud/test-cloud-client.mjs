@@ -196,6 +196,8 @@ assert.ok(/const spaceRowOf = [\s\S]{0,400}const view = espaceVue\(w, t\)/.test(
 sok('selecteur d equipe : l espace personnel s y appelle Personal / Personnel, comme la pastille')
 // The footer chip re-reads the host's /status by itself: after the host signs the device out (a token revoked from the account page) it said
 // « Rita Rich · Solo Studio » until the card was opened.
+for (const key of ['spaceBusy', 'spaceBusyAny', 'followMismatch', 'wsNewBusy']) assert.equal((clientSource.match(new RegExp('^\\s+' + key + ':', 'gm')) || []).length, 2, key + ' exists in both locale blocks (fr, en)')
+assert.ok(/callLocal\('\/space\/busy', 'GET'\)/.test(clientSource), 'la page demande a l\'hote si une reponse tourne (space/busy) pour ne changer d\'equipe qu\'a la fin')
 assert.ok(/window\.setInterval\(again, 30000\)[\s\S]{0,200}visibilitychange[\s\S]{0,200}'focus'/.test(clientSource), 'le pied relit /status tout seul (toutes les 30 s, au retour de la fenetre)')
 sok('pied de sidebar : la pastille relit /status toute seule (30 s, retour de fenetre), elle ne reste plus connectee apres une revocation')
 console.log('  ' + staticPass + ' verifications statiques OK')
@@ -1142,11 +1144,13 @@ ok('selecteur d equipe : route du choix, evenement d ouverture, message d equipe
     if (path === '/status') json = world.status
     else if (path === '/quota') json = world.quota !== null ? world.quota : { ok: false }
     else if (path === '/spaces/summary') json = world.summary !== null ? world.summary : { ok: false }
+    else if (path === '/space/active' && world.activeRefusal !== undefined && world.activeRefusal !== null) json = world.activeRefusal
     else if (path === '/space/active') {
       json = world.activeOk ? { ok: true, route: world.route, state: world.activeState !== null ? world.activeState(JSON.parse(init.body).workspace_id) : {} } : { ok: false, error: 'espace_inconnu' }
       if (world.activeOk) world.status = { ...world.status, state: { ...world.status.state, active_workspace_id: JSON.parse(init.body).workspace_id } }
     } else if (path === '/space/applied') json = { ok: true, applied: world.applied.length > 0 ? world.applied.shift() : true }
     else if (path === '/space/folder') json = world.folderAnswer
+    else if (path === '/space/for-folder') json = typeof world.forFolder === 'function' ? world.forFolder(JSON.parse(init.body)) : { ok: false }
     else if (path === '/space/create') json = world.createAnswer
     else if (path === '/invitation/preview') json = world.invitePreview
     else if (path === '/invitation/accept') {
@@ -1300,6 +1304,27 @@ ok('selecteur d equipe : route du choix, evenement d ouverture, message d equipe
     await settle(80)
     assert.ok(htmlDe(el).includes('Unknown team'), 'an id the host refuses: « Unknown team — nothing was changed. »')
     world.activeOk = true
+    // A reply is running: the host refuses the switch. The person is told WHICH reply (in which team), nothing is waiting, and the card stays where it was.
+    world.activeRefusal = { ok: false, error: 'turn_running', running: { count: 1, space_id: 'p', space_name: 'My workspace', since: 1 } }
+    world.status = stateOf(3, 'admin', 'p')
+    world.calls.length = 0
+    await settle(80)
+    await open(el)
+    await press(findAll(find(el, byClass('kbfp-menu')), byKb('space-row')).filter((r) => r.attributes['data-space'] === 't1')[0])
+    await settle(80)
+    const busy = htmlDe(el)
+    assert.ok(busy.includes('data-kb="foot-flash"') && busy.includes('A reply is still running in Personal. Switching waits for it or stop it first.'), 'a refused switch says which reply is running and where: ' + busy.slice(0, 400))
+    assert.equal(busy.includes('workspace-card-switching'), false, 'and nothing waits')
+    assert.equal(busy.includes('Unknown team'), false, 'it is not an unknown team')
+    assert.equal(world.calls.includes('POST /space/applied'), false, 'no wait for a route that did not change')
+    // A reply the host only found in the engine\'s registry has no team: the sentence names none.
+    world.activeRefusal = { ok: false, error: 'turn_running', running: { count: 1, space_id: null, space_name: null, since: 1 } }
+    await settle(80)
+    await open(el)
+    await press(findAll(find(el, byClass('kbfp-menu')), byKb('space-row')).filter((r) => r.attributes['data-space'] === 't2')[0])
+    await settle(80)
+    assert.ok(htmlDe(el).includes('A reply is still running. Switching waits for it or stop it first.'), 'a reply with no known team: the sentence has no team')
+    world.activeRefusal = null
     await act(async () => { root.unmount() })
     ok('changement d\'equipe : la carte dit « Switching… » (equipe choisie, sans compteur) jusqu\'a ce que l\'hote dise que la route tourne ; une route non reecrite est dite tout de suite ; un refus est dit')
   }
@@ -1634,6 +1659,40 @@ ok('selecteur d equipe : route du choix, evenement d ouverture, message d equipe
     await settle(100)
     assert.equal(world.calls.filter((c) => c === 'POST /space/folder').length, 0, 'Personal has no folder and asks nothing')
     await act(async () => { foot.root.unmount() })
+
+    // A team chosen by hand is not undone by the chat that was on screen (found by scripts/check-team-folder-live.mjs, which failed a different few checks on every run). The chat a
+    // switch back to Personal opens is listed by DSH about half a second later; a click on a team inside that half second was answered by the follower's first look at that chat, which
+    // found it in another space than the team just chosen and switched BACK. The follower looks at the chat while the switch waits for the route and again when DSH lists the new chat.
+    {
+      reset('p')
+      const listeners = new Set()
+      const rows = [{ workspaceId: 'w-work', path: '/work', sessionIds: ['s-work'] }]
+      const started = []
+      dshFake.workspaces = {
+        list: { getSnapshot: () => ({ items: rows }), subscribe: (f) => { listeners.add(f); return () => listeners.delete(f) } },
+        create: async ({ path }) => { let row = rows.find((r) => r.path === path); if (row === undefined) { row = { workspaceId: 'w-acme', path, sessionIds: [] }; rows.push(row) } return row },
+      }
+      dshFake.uiWorkspace = { get mainReference() { return { sessionId: 's-fresh' } }, startSession: (id) => { started.push(id) } }
+      world.applied = [false, false, true]
+      world.forFolder = () => {
+        const active = world.status.state.active_workspace_id
+        return { ok: true, kind: 'personal', space_id: 'p', space_name: 'My workspace', active_id: active, follow: active !== 'p' }
+      }
+      const foot = await draw()
+      await settle(200)
+      await pick(foot.el, 't1')
+      rows[0].sessionIds.push('s-fresh')
+      listeners.forEach((f) => f())
+      await settle(500)
+      listeners.forEach((f) => f())
+      await settle(400)
+      assert.ok(world.calls.includes('POST /space/for-folder'), 'the follower did look at the chat that DSH listed meanwhile, and told the host')
+      assert.deepEqual(world.bodies.filter((b) => b.path === '/space/active').map((b) => b.body.workspace_id), ['t1'], 'the team the person chose is not switched back by the chat they were looking at')
+      assert.equal(world.status.state.active_workspace_id, 't1', 'and it is still the active one')
+      assert.deepEqual(started, ['w-acme'], 'the new chat opened in the team\'s folder')
+      await act(async () => { foot.root.unmount() })
+      world.forFolder = undefined
+    }
     dshFake.workspaces = undefined
     dshFake.uiWorkspace = undefined
     delete globalThis.window.localStorage

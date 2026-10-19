@@ -81,39 +81,47 @@ export const run = async (ctx) => {
     check('team chat: nothing was written to the personal memory on the server (tool, capture)', memAfter.length === memBefore && !memAfter.some((m) => String(m.content).includes('ZEBRA-9904')), { before: memBefore, after: memAfter.length })
 
     // 4. the switch in the middle of a session, both ways. A person does it by switching (a new chat opens) and then going back to the old chat in the sidebar.
-    console.log('\n4. a chat that began in one space is continued after a switch (the old chat is opened again from the sidebar)')
+    console.log('\n4. a chat that began in one space is opened again from the sidebar while the OTHER space is active (the active team follows the chat)')
+    const sectionStart = Date.now()
     const goTo = (id, label) => g.goTo(id, label)
+    // the sidebar folds the folders that are not the active team's: the personal workspace's group is named after the checkout the sandbox serves
+    const personalGroup = String(process.env.KB_WORKTREE || '').split('/').filter(Boolean).pop() || ''
     const reopen = async (title, group) => {
       if ((await g.leaf(title)) === null) { await g.pressText(group); await sleep(800) }
       const ok = await g.until(() => g.pressText(title), 8000, 300)
-      await sleep(1200)
+      await sleep(1500)
+      await g.until(async () => { const c = await g.card(); return c && !c.switching }, 15000, 100)
       return ok === true
     }
-    // personal → team
+    // a personal chat, opened again while a team is active: it follows to Personal, it is billed to Personal and it is the person's own chat, so the canary may reach the model
     await ctx.engine({ text: 'PERSONALBORN' + tag, prompt: 50, completion: 5 })
     await goTo(P, /Personal/)
     const m1 = await turn('J2 mid-session one (personal): my lucky code word?')
-    check('personal → team: the first message (personal) carries the canary', has(m1.mains, CANARY) >= 1)
+    check('personal chat: the first message carries the canary', has(m1.mains, CANARY) >= 1)
     await goTo(t1, /E2E Alpha/)
-    const opened1 = await reopen('PERSONALBORN' + tag, 'teams-e2e-4bb76f')
-    check('personal → team: the old chat could be opened again from the sidebar', opened1 === true)
-    const m2 = await turn('J2 mid-session two (now in the team): my lucky code word?')
-    const leak = has(m2.chats, CANARY)
-    check('personal → team: the next request carries T1', m2.chats.length > 0 && m2.chats.every((c) => c.workspace === t1))
-    check('personal → team: the canary of the earlier personal turn does NOT travel to the team request', leak === 0, { requestsWithCanary: leak, of: m2.chats.length, where: m2.mains.map((m) => (bodyOf(m)?.messages || []).map((x, k) => (typeof x.content === 'string' ? x.content : JSON.stringify(x.content)).includes(CANARY) ? k + ':' + x.role : null).filter(Boolean)) })
-    // team → personal
+    const opened1 = await reopen('PERSONALBORN' + tag, personalGroup)
+    check('personal chat: it could be opened again from the sidebar while T1 is active', opened1 === true)
+    check('the card says Personal: the active team followed the chat', /Personal/.test(((await g.card()) || {}).text || ''), await g.card())
+    const m2 = await turn('J2 mid-session two (the same personal chat): my lucky code word?')
+    check('personal chat, continued while T1 was active: every request is billed to Personal (the chat\'s folder is no team\'s)', m2.chats.length > 0 && m2.chats.every((c) => c.workspace === P), m2.chats.map((c) => c.workspace))
+    check('personal chat: the canary reaches the model (it is the person\'s own chat)', has(m2.mains, CANARY) >= 1)
+    // a team chat, opened again while Personal is active: it follows to the team, billed to the team, never a canary
     await ctx.engine({ text: 'TEAMBORN' + tag, prompt: 50, completion: 5 })
     await goTo(P, /Personal/) // leave the team first: choosing the team already on screen would keep the old chat
     await goTo(t1, /E2E Alpha/)
     const n1 = await turn('J2 born in the team: my lucky code word?')
-    check('born in the team: no canary', has(n1.chats, CANARY) === 0)
+    check('born in the team: no canary, billed to T1', has(n1.chats, CANARY) === 0 && n1.chats.every((c) => c.workspace === t1))
     await goTo(P, /Personal/)
     const opened2 = await reopen('TEAMBORN' + tag, 'E2E Alpha')
-    check('team → personal: the old chat could be opened again from the sidebar', opened2 === true)
-    const n2 = await turn('J2 born in the team, now personal: my lucky code word?')
-    check('team → personal: the canary reaches the model again', has(n2.mains, CANARY) >= 1)
-    check('team → personal: the header is personal', n2.chats.length > 0 && n2.chats.every((c) => c.workspace === P))
-    note('team → personal: the chat\'s folder is ' + (cwdOf(n2.mains[0]) || '?') + ' and the request was billed to the ' + (n2.chats[0] && n2.chats[0].workspace === P ? 'personal' : 'other') + ' workspace')
+    check('team chat: it could be opened again from the sidebar while Personal is active', opened2 === true)
+    check('the card says E2E Alpha: the active team followed the chat', /E2E Alpha/.test(((await g.card()) || {}).text || ''), await g.card())
+    const n2 = await turn('J2 born in the team, continued while Personal was active: my lucky code word?')
+    check('team chat, continued while Personal was active: every request is billed to T1', n2.chats.length > 0 && n2.chats.every((c) => c.workspace === t1), n2.chats.map((c) => c.workspace))
+    check('team chat: the canary does not reach the model', has(n2.chats, CANARY) === 0, { calls: n2.chats.length })
+    note('the continued team chat\'s folder is ' + (cwdOf(n2.mains[0]) || '?'))
+    // the invariant of the whole section: nothing billed to a team carries the personal memory
+    const teamRows = ctx.rows(sectionStart).filter((r) => r.method === 'POST' && r.path === '/v1/chat/completions' && r.workspace !== P)
+    check('across this whole section, no request billed to a team carries the canary (' + teamRows.length + ' requests)', teamRows.length > 0 && has(teamRows, CANARY) === 0, { teamRows: teamRows.length, withCanary: has(teamRows, CANARY) })
     // 5. the one door left: a lesson the team approved reaches the team's chats (B's here) and never a personal chat
     console.log('\n5. a team lesson, written by A in T1, in B\'s chats')
     const B = await ctx.sessionOf('b')

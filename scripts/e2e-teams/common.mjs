@@ -35,6 +35,14 @@ export const makeContext = async () => {
       return who === 'a' ? ctx.hostA : ctx.hostB
     },
   }
+  /** Which space owns a chat that works in `cwd`, by the rule the plugin applies (« a chat in a team's folder bills that team, every other chat bills Personal »): 't1', 't2', 'P', or null when
+   *  there is no folder to read. The teams' folders are `<Documents>/Kybernos/<Team name>` (with « (<id>) » after the name when the name was taken). */
+  ctx.ownerOfCwd = (cwd) => {
+    if (typeof cwd !== 'string' || cwd === '') return null
+    if (/\/Kybernos\/E2E Alpha( \([0-9a-f]{8}\))?(\/|$)/.test(cwd)) return 't1'
+    if (/\/Kybernos\/E2E Beta( \([0-9a-f]{8}\))?(\/|$)/.test(cwd)) return 't2'
+    return 'P'
+  }
   ctx.sessionOf = async (who) => server.signIn(acc[who].email, acc[who].password)
   ctx.personalId = async (who) => {
     const s = await ctx.sessionOf(who)

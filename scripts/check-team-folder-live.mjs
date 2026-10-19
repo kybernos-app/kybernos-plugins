@@ -120,6 +120,7 @@ try {
   // What DSH shows: the title of the workspace of the new chat (the first line of the hero), and the workspaces of the sidebar.
   const heroTitle = () => val(`(() => { const h = document.querySelector('[class*="hero"]'); return h ? (h.innerText || '').split('\\n')[0].trim() : null })()`)
   const pageLines = async () => (await val(`document.body.innerText.split('\\n').map((x) => x.trim())`)) || []
+  // true once the hero names the workspace, false after 10 s: a check compares it with `=== true` (a wait that returns the last answer and is compared with null never fails).
   const heroIs = (name) => until(async () => (await heroTitle()) === name, 10000)
   const openProfileMenu = async () => { if (await exists('.kbfp-menu')) return; await press('[data-kb="workspace-card"] .kbfp-cardmain'); await until(() => exists('.kbfp-menu'), 4000) }
   // The list: in the menu for up to 3 spaces, in the « Switch team » panel from 4.
@@ -150,7 +151,7 @@ try {
   let st = await status()
   check('switching to Acme: the host made <Documents>/Kybernos/Acme and recorded it as the team\'s folder', st.active_workspace_id === ACME.id && st.space_folder === folderOf('Acme') && isDir(folderOf('Acme')) && st.team_folders.includes(folderOf('Acme')), { sf: st.space_folder })
   const before0 = registeredCount()
-  check('DSH registered it as a workspace (once) and opened a NEW chat in it: the new chat\'s workspace is « Acme », it holds that chat, and the first workspace is still there', (await heroIs('Acme')) !== null && (await until(() => registered(folderOf('Acme')).length === 1 && registered(folderOf('Acme'))[0].sessions >= 1, 8000)) && (await pageLines()).includes(W0), { hero: await heroTitle(), acme: registered(folderOf('Acme')), count: registeredCount() })
+  check('DSH registered it as a workspace (once) and opened a NEW chat in it: the new chat\'s workspace is « Acme », it holds that chat, and the first workspace is still there', (await heroIs('Acme')) === true && (await until(() => registered(folderOf('Acme')).length === 1 && registered(folderOf('Acme'))[0].sessions >= 1, 8000)) && (await pageLines()).includes(W0), { hero: await heroTitle(), acme: registered(folderOf('Acme')), count: registeredCount() })
   const pill = (await cues()).filter((c) => c.kind === 'cue-folder')[0]
   check('the composer\'s folder pill appears by itself, with the path as its title', pill !== undefined && pill.text === 'Acme folder' && pill.title === folderOf('Acme'), await cues())
   await shot('f-acme')
@@ -162,23 +163,23 @@ try {
   // 2. Back to Personal: a new chat opens in the workspace the person had before, never in the team's folder.
   await switchTo(P)
   st = await status()
-  check('back to Personal: no folder pill, the host names no folder, and the NEW chat is in the first workspace « ' + W0 + ' », not in Acme\'s', st.active_workspace_id === P.id && st.space_folder === undefined && (await heroIs(W0)) !== null && (await cues()).filter((c) => c.kind === 'cue-folder').length === 0, { hero: await heroTitle(), sf: st.space_folder })
+  check('back to Personal: no folder pill, the host names no folder, and the NEW chat is in the first workspace « ' + W0 + ' », not in Acme\'s', st.active_workspace_id === P.id && st.space_folder === undefined && (await heroIs(W0)) === true && (await cues()).filter((c) => c.kind === 'cue-folder').length === 0, { hero: await heroTitle(), sf: st.space_folder })
   check('the team\'s workspace is still in DSH, with its one chat, untouched by the switch back (a chat already started keeps its folder)', registered(folderOf('Acme')).length === 1 && registered(folderOf('Acme'))[0].sessions === 1 && (await pageLines()).includes('Acme'), { acme: registered(folderOf('Acme')) })
   await shot('f-personal-back')
 
   // 3. A second team: its own folder, its own workspace, its own chat.
   await switchTo(STUDIO)
   st = await status()
-  check('Studio B has a folder of its own and a chat in it, apart from Acme\'s', st.space_folder === folderOf('Studio B') && isDir(folderOf('Studio B')) && st.space_folder !== folderOf('Acme') && (await heroIs('Studio B')) !== null && registered(folderOf('Studio B')).length === 1 && registered(folderOf('Acme')).length === 1 && registered(folderOf('Studio B'))[0].id !== registered(folderOf('Acme'))[0].id && registeredCount() === before0 + 1, { sf: st.space_folder, hero: await heroTitle(), count: registeredCount(), before0 })
+  check('Studio B has a folder of its own and a chat in it, apart from Acme\'s', st.space_folder === folderOf('Studio B') && isDir(folderOf('Studio B')) && st.space_folder !== folderOf('Acme') && (await heroIs('Studio B')) === true && registered(folderOf('Studio B')).length === 1 && registered(folderOf('Acme')).length === 1 && registered(folderOf('Studio B'))[0].id !== registered(folderOf('Acme'))[0].id && registeredCount() === before0 + 1, { sf: st.space_folder, hero: await heroTitle(), count: registeredCount(), before0 })
   await switchTo(ACME)
-  check('Studio B to Acme: the chat opens in Acme\'s folder again (the workspace is found, not made twice)', (await heroIs('Acme')) !== null && registered(folderOf('Acme')).length === 1 && registeredCount() === before0 + 1 && (await status()).space_folder === folderOf('Acme'), { count: registeredCount(), before0 })
+  check('Studio B to Acme: the chat opens in Acme\'s folder again (the workspace is found, not made twice)', (await heroIs('Acme')) === true && registered(folderOf('Acme')).length === 1 && registeredCount() === before0 + 1 && (await status()).space_folder === folderOf('Acme'), { count: registeredCount(), before0 })
 
   // 4. A folder the person removed is made again at the same place.
   await switchTo(P)
   rmSync(folderOf('Acme'), { recursive: true, force: true })
   check('(the person removes Acme\'s folder from the disk)', !isDir(folderOf('Acme')))
   await switchTo(ACME)
-  check('back in Acme: the host makes the folder again at the same path and the chat opens', isDir(folderOf('Acme')) && (await status()).space_folder === folderOf('Acme') && (await heroIs('Acme')) !== null, { hero: await heroTitle() })
+  check('back in Acme: the host makes the folder again at the same path and the chat opens', isDir(folderOf('Acme')) && (await status()).space_folder === folderOf('Acme') && (await heroIs('Acme')) === true, { hero: await heroTitle() })
 
   // 5. A hostile team name and two teams of the same name.
   fake.spaces = fake.spaces.concat([HOSTILE, TWIN])
@@ -187,10 +188,10 @@ try {
   await switchTo(HOSTILE)
   st = await status()
   check('a team called « ../../etc/passwd » gets ONE safe folder under the root (« etc passwd »), nothing outside the root', st.space_folder === folderOf('etc passwd') && isDir(folderOf('etc passwd')) && !existsSync(join(HOME_DIR, 'Documents', 'etc')) && !existsSync(join(HOME_DIR, 'etc')) && readdirSync(join(HOME_DIR, 'Documents')).join() === 'Kybernos', { sf: st.space_folder, docs: readdirSync(join(HOME_DIR, 'Documents')) })
-  check('and DSH opened its chat there (a workspace titled « etc passwd »)', (await heroIs('etc passwd')) !== null, await heroTitle())
+  check('and DSH opened its chat there (a workspace titled « etc passwd »)', (await heroIs('etc passwd')) === true, await heroTitle())
   await switchTo(TWIN)
   st = await status()
-  check('a second team called « Acme » is not given the first one\'s folder: its name carries the team\'s id', st.space_folder === folderOf('Acme (abcdef12)') && st.space_folder !== folderOf('Acme') && isDir(folderOf('Acme (abcdef12)')) && (await heroIs('Acme (abcdef12)')) !== null, { sf: st.space_folder, hero: await heroTitle() })
+  check('a second team called « Acme » is not given the first one\'s folder: its name carries the team\'s id', st.space_folder === folderOf('Acme (abcdef12)') && st.space_folder !== folderOf('Acme') && isDir(folderOf('Acme (abcdef12)')) && (await heroIs('Acme (abcdef12)')) === true, { sf: st.space_folder, hero: await heroTitle() })
 
   // 6. A team that is created: its folder is made even without a plan (and nothing opens: the person stays where they are); one with a plan takes over and its chat opens.
   const create = async (name) => {
@@ -235,7 +236,9 @@ try {
   writeFileSync(foldersFile, JSON.stringify(records, null, 2), { mode: 0o600 })
   await reload()
   await until(async () => (await status()).space_folder === folderOf('Joined Co'), 8000)
-  check('an active team with no recorded folder gets one at the next page load (the page asks the host, once), and no chat is opened by it', (await status()).space_folder === folderOf('Joined Co') && isDir(folderOf('Joined Co')) && (await folderAsks()) === 1 && (await heroTitle()) === 'Joined Co', { sf: (await status()).space_folder, asks: await folderAsks() })
+  // The page shows the chat DSH reopens (Joined Co's): waited for, not read the moment the host has recorded the folder (the hero is drawn a moment after the shell).
+  const joinedShown = await heroIs('Joined Co')
+  check('an active team with no recorded folder gets one at the next page load (the page asks the host, once), and no chat is opened by it', (await status()).space_folder === folderOf('Joined Co') && isDir(folderOf('Joined Co')) && (await folderAsks()) === 1 && joinedShown === true, { sf: (await status()).space_folder, asks: await folderAsks(), hero: await heroTitle() })
 
   // 9. A disk that refuses: the switch still works, there is no folder pill and nothing is opened; once the disk allows it the next page load makes the folder.
   chmodSync(ROOT, 0o555)
@@ -246,8 +249,11 @@ try {
   check('a disk that refuses the folder: the team is created and active, the host names no folder, no pill, no error', st.space_folder === undefined && st.workspaces.some((w) => w.name === 'Locked Co') && (await cues()).filter((c) => c.kind === 'cue-folder').length === 0 && !isDir(folderOf('Locked Co')), { sf: st.space_folder })
   chmodSync(ROOT, 0o755)
   await reload()
-  await until(async () => (await status()).space_folder === folderOf('Locked Co'), 8000)
-  check('the disk allows it again: the next page load makes the team\'s folder', (await status()).space_folder === folderOf('Locked Co') && isDir(folderOf('Locked Co')))
+  // The fact is the folder: made on disk and recorded as the team's. NOT « the host names it as the active folder »: the page loads on the chat DSH reopens (Joined Co's, in its own
+  // folder), and the active team follows the chat on screen (option 2, scripts/check-follow-chat-live.mjs), so a moment after the page asked for Locked Co's folder the active team is Joined Co.
+  const lockedMade = async () => isDir(folderOf('Locked Co')) && (await status()).team_folders.includes(folderOf('Locked Co'))
+  await until(lockedMade, 8000)
+  check('the disk allows it again: the next page load makes the team\'s folder', await lockedMade(), { folders: (await status()).team_folders })
   fake.createdHavePlan = false
 
   // 10. Nothing but the teams' folders was made, and each team has a different one.

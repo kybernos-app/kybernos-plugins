@@ -1,0 +1,462 @@
+// The active team follows the chat on screen: the page half (teams plan, option 2).
+//   node packages/kybernos-cloud/test-follow-chat.mjs
+//
+// The blocks `team-folder` and `follow-chat` are cut out of client.js and run on their own, against FAKE DSH services (the workspaces list, the sessions list, the selection of the
+// main view), a fake host (`space/for-folder`) and a manual clock, so what is proven is the shipped code: a chat opened (or the page loaded on one) is reported to the host with its
+// own folder and the switch the host asks for is made without a new chat; the same chat is not asked about again for every list update; a chat change while the host is still
+// answering drops the old answer; a switch that failed is tried again at the next report; a switch the host refuses because a reply is running is announced and made by itself when the reply ends (and dropped when the person opens another chat); the periodic report reaches the host but never switches by itself; a service that
+// is missing or throws changes nothing. The rendered footer that mounts this is pinned in test-cloud-client.mjs; the real DSH is scripts/check-follow-chat-live.mjs.
+import { readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+let failed = 0
+const check = (name, ok, detail) => {
+  console.log((ok ? '  ✓ ' : '  ✗ ') + name + (ok || detail === undefined ? '' : '  — ' + JSON.stringify(detail)))
+  if (!ok) failed += 1
+}
+
+const here = dirname(fileURLToPath(import.meta.url))
+const source = readFileSync(join(here, 'client.js'), 'utf8')
+const cut = (name) => {
+  const from = source.indexOf('// <' + name + ':begin>')
+  const to = source.indexOf('// <' + name + ':end>', from)
+  check('the block ' + name + ' is where the test expects it', from > 0 && to > from)
+  return source.slice(from, to)
+}
+const lib = new Function(cut('team-folder') + '\n' + cut('follow-chat') + '\nreturn { chatOnScreen, createFollower, switchIsMoot, FOLLOW_LOOK_DELAY_MS, FOLLOW_REPORT_MS, FOLLOW_WAIT_POLL_MS }')()
+const { chatOnScreen, createFollower, switchIsMoot, FOLLOW_LOOK_DELAY_MS, FOLLOW_REPORT_MS, FOLLOW_WAIT_POLL_MS } = lib
+
+const ACME = '/home/u/Documents/Kybernos/Acme'
+const WORK = '/home/u/work/app'
+
+/** A manual clock: timers fire when time is advanced; `advance` also lets the promises that the fired callbacks started settle. */
+const clock = () => {
+  let now = 0
+  let next = 1
+  const timers = new Map()
+  const api = {
+    set: (fn, ms) => { const id = next++; timers.set(id, { at: now + ms, fn, every: null }); return id },
+    clear: (id) => { timers.delete(id) },
+    every: (fn, ms) => { const id = next++; timers.set(id, { at: now + ms, fn, every: ms }); return id },
+    stop: (id) => { timers.delete(id) },
+    pending: () => timers.size,
+    advance: async (ms) => {
+      const end = now + ms
+      for (;;) {
+        const due = Array.from(timers.entries()).filter(([, t]) => t.at <= end).sort((a, b) => a[1].at - b[1].at)[0]
+        if (due === undefined) break
+        const [id, t] = due
+        now = t.at
+        if (t.every !== null) t.at = now + t.every; else timers.delete(id)
+        t.fn()
+        await settle()
+      }
+      now = end
+      await settle()
+    },
+  }
+  return api
+}
+const settle = async () => { for (let i = 0; i < 8; i += 1) await new Promise((resolve) => setImmediate(resolve)) }
+
+/** Fake DSH: sessions with their own folder, workspaces that list them, the main view's selection. Every store can be listened to. */
+const world = (opts = {}) => {
+  const state = { sid: opts.sid === undefined ? 's-work' : opts.sid, cwd: { 's-work': WORK, 's-acme': ACME, ...(opts.cwd || {}) }, rows: [{ workspaceId: 'w-work', path: WORK, sessionIds: ['s-work'] }, { workspaceId: 'w-acme', path: ACME, sessionIds: ['s-acme'] }] }
+  const listeners = { workspaces: new Set(), sessions: new Set(), selection: new Set() }
+  const store = (name, snapshot) => ({ getSnapshot: snapshot, subscribe: (f) => { if (opts.noSubscribe === name) throw new Error('no store'); listeners[name].add(f); return () => listeners[name].delete(f) } })
+  const services = {
+    workspaces: { list: store('workspaces', () => ({ items: state.rows.map((r) => ({ ...r })) })) },
+    sessions: opts.noSessions === true ? null : { list: store('sessions', () => ({ byId: Object.fromEntries(Object.keys(state.cwd).map((id) => [id, { id, cwd: state.cwd[id] }])) })) },
+    uiWorkspace: {
+      get mainReference() { return state.sid === null || opts.noMain === true ? undefined : { sessionId: state.sid } },
+      selection: store('selection', () => (state.sid === null ? {} : { sessionId: state.sid })),
+    },
+  }
+  return {
+    state,
+    services,
+    open: (sid) => { state.sid = sid; listeners.selection.forEach((f) => f()) },
+    touchLists: () => { listeners.workspaces.forEach((f) => f()); listeners.sessions.forEach((f) => f()) },
+    subscribers: () => listeners.workspaces.size + listeners.sessions.size + listeners.selection.size,
+  }
+}
+
+/** A fake host that answers like `space/for-folder`: a chat in ACME belongs to the team 'acme', anything else to Personal. `active` is the id of the active space. */
+const host = (active = 'me') => {
+  const h = { active, asked: [], delay: 0, down: false, bad: false, release: null }
+  h.ask = async (chat) => {
+    h.asked.push({ path: chat.path, sid: chat.sid })
+    if (h.down) throw new Error('offline')
+    if (h.delay > 0) await new Promise((resolve) => { h.release = resolve })
+    if (h.bad) return { ok: false, error: 'non_connecte' }
+    const team = chat.path === ACME || chat.path.startsWith(ACME + '/')
+    const id = team ? 'acme' : 'me'
+    return { ok: true, kind: team ? 'team' : 'personal', space_id: id, space_name: team ? 'Acme' : 'My workspace', active_id: h.active, follow: id !== h.active }
+  }
+  return h
+}
+
+const rig = (opts = {}) => {
+  const w = world(opts.world)
+  const h = host(opts.active)
+  const c = clock()
+  const picks = []
+  const heard = []
+  const notes = []
+  const wait = { busy: true, fails: false, asked: 0 }
+  const script = (opts.pickScript || []).slice()
+  const follower = createFollower({
+    busy: opts.noBusy === true ? undefined : async () => { wait.asked += 1; if (wait.fails) throw new Error('offline'); return { ok: true, busy: wait.busy } },
+    defer: opts.deferThrows === true ? () => { throw new Error('notice gone') } : (note) => { notes.push(note) },
+    seen: opts.seenThrows === true ? () => { throw new Error('footer gone') } : (answer) => { heard.push(answer.active_id) },
+    services: () => (opts.noServices === true ? null : w.services),
+    ask: opts.ask || h.ask,
+    pick: opts.pick || (async (id, name) => {
+      picks.push({ id, name })
+      if (script.length > 0) { const next = script.shift(); if (next.ok === true) h.active = id; return next }
+      if (opts.pickFails === true) return { ok: false, error: 'busy_switching' }
+      h.active = id
+      return { ok: true }
+    }),
+    timers: c,
+  })
+  return { w, h, c, picks, heard, notes, wait, follower, stop: follower.mount() }
+}
+
+// ── the chat on screen ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+{
+  const w = world()
+  const here = chatOnScreen(w.services)
+  check('the chat on screen, with the folder it works in', here !== null && here.sid === 's-work' && here.path === WORK, here)
+  w.state.cwd['s-work'] = '/home/u/elsewhere'
+  check('the session\'s OWN folder wins over its workspace\'s', chatOnScreen(w.services).path === '/home/u/elsewhere')
+  check('without the sessions service the workspace that lists the chat tells', chatOnScreen(world({ noSessions: true }).services).path === WORK)
+  check('no chat open: null', chatOnScreen(world({ sid: null }).services) === null)
+  check('a chat DSH has not listed yet: null', chatOnScreen(world({ sid: 's-unknown', noSessions: true }).services) === null)
+  check('the selection store tells when the main reference is not there', chatOnScreen(world({ noMain: true }).services).sid === 's-work')
+  check('services missing: null, no throw', chatOnScreen(null) === null && chatOnScreen({}) === null && chatOnScreen({ uiWorkspace: { get mainReference() { throw new Error('boom') } } }) === null)
+}
+
+// ── the footer's idea of the active team is not the host's ─────────────────────────────────────────────────────────────────────────────────────
+check('a click on the team the footer says is active has nothing to do', switchIsMoot('acme', 'acme', undefined) === true && switchIsMoot('acme', 'acme', false) === true)
+check('a click on another team does', switchIsMoot('acme', 'me', undefined) === false && switchIsMoot('acme', null, undefined) === false)
+check('a switch that follows a chat is never moot, whatever the footer says (the host may have switched behind the page, at claim time: the footer is stale)', switchIsMoot('acme', 'acme', true) === false)
+check('no usable id is never moot', switchIsMoot(undefined, undefined, undefined) === false && switchIsMoot(null, null, false) === false)
+
+// ── the page loads on a chat in a team's folder ─────────────────────────────────────────────────────────────────────────────────────────────
+{
+  const r = rig({ world: { sid: 's-acme' } })
+  await r.c.advance(FOLLOW_LOOK_DELAY_MS + 1)
+  check('it asks the host about the chat on screen, with its folder and its id', JSON.stringify(r.h.asked) === JSON.stringify([{ path: ACME, sid: 's-acme' }]), r.h.asked)
+  check('and switches to the team the host names, once', JSON.stringify(r.picks) === JSON.stringify([{ id: 'acme', name: 'Acme' }]), r.picks)
+  r.w.touchLists(); r.w.touchLists()
+  await r.c.advance(FOLLOW_LOOK_DELAY_MS + 1)
+  check('list updates of the same chat do not ask again', r.h.asked.length === 1, r.h.asked)
+  r.stop()
+}
+
+// ── a chat is opened ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+{
+  const r = rig({ world: { sid: 's-work' }, active: 'me' })
+  await r.c.advance(FOLLOW_LOOK_DELAY_MS + 1)
+  check('a personal chat while Personal is active: asked, nothing to switch', r.h.asked.length === 1 && r.picks.length === 0, { asked: r.h.asked.length, picks: r.picks })
+  r.w.open('s-acme')
+  await r.c.advance(FOLLOW_LOOK_DELAY_MS + 1)
+  check('a team chat opened: switched to the team', JSON.stringify(r.picks) === JSON.stringify([{ id: 'acme', name: 'Acme' }]), r.picks)
+  r.w.open('s-work')
+  await r.c.advance(FOLLOW_LOOK_DELAY_MS + 1)
+  check('a personal chat opened again: back to Personal', r.picks.length === 2 && r.picks[1].id === 'me', r.picks)
+  r.w.open('s-work')
+  r.w.touchLists()
+  await r.c.advance(FOLLOW_LOOK_DELAY_MS + 1)
+  check('opening the chat that is already on screen asks nothing', r.h.asked.length === 3, r.h.asked.length)
+  r.stop()
+}
+{
+  // Five events inside the delay are one look.
+  const r = rig({ world: { sid: 's-acme' } })
+  for (let i = 0; i < 5; i += 1) r.w.touchLists()
+  r.w.open('s-acme')
+  await r.c.advance(FOLLOW_LOOK_DELAY_MS + 1)
+  check('events inside the delay make one look', r.h.asked.length === 1, r.h.asked.length)
+  r.stop()
+}
+
+// ── the answer comes after the person moved on ──────────────────────────────────────────────────────────────────────────────────────────────
+{
+  const r = rig({ world: { sid: 's-acme' } })
+  r.h.delay = 1
+  await r.c.advance(FOLLOW_LOOK_DELAY_MS + 1)
+  check('the host has not answered yet', r.h.asked.length === 1 && r.picks.length === 0)
+  const firstRelease = r.h.release
+  r.h.delay = 0
+  r.w.open('s-work')
+  await r.c.advance(FOLLOW_LOOK_DELAY_MS + 1)
+  check('the person moved to a personal chat: nothing to switch for it', r.picks.length === 0, r.picks)
+  firstRelease()
+  await settle()
+  check('the late answer about the chat they left is dropped', r.picks.length === 0, r.picks)
+  r.stop()
+}
+
+// ── a switch that fails is tried again; the report never switches by itself ──────────────────────────────────────────────────────────────────
+{
+  const r = rig({ world: { sid: 's-acme' }, pickFails: true })
+  await r.c.advance(FOLLOW_LOOK_DELAY_MS + 1)
+  check('the switch was tried', r.picks.length === 1)
+  await r.c.advance(FOLLOW_REPORT_MS + 1)
+  check('and tried again at the next report (it did not succeed)', r.picks.length === 2, r.picks)
+  r.stop()
+}
+{
+  const r = rig({ world: { sid: 's-acme' } })
+  await r.c.advance(FOLLOW_LOOK_DELAY_MS + 1)
+  check('first look switched', r.picks.length === 1)
+  r.h.active = 'me' // something else moved the active team (the person, by hand)
+  await r.c.advance(FOLLOW_REPORT_MS + 1)
+  check('the periodic report reaches the host (it repeats the sighting)', r.h.asked.length === 2, r.h.asked.length)
+  check('but it does not undo what the person chose by hand: the chat did not change', r.picks.length === 1, r.picks)
+  r.stop()
+}
+
+// ── the footer is told what the host says ───────────────────────────────────────────────────────────────────────────────────────────────────
+{
+  const r = rig({ world: { sid: 's-work' } })
+  await r.c.advance(FOLLOW_LOOK_DELAY_MS + 1)
+  check('every answer of the host is handed to the footer (it can read the state when the host switched behind the page)', JSON.stringify(r.heard) === JSON.stringify(['me']), r.heard)
+  r.h.active = 'acme'
+  await r.c.advance(FOLLOW_REPORT_MS + 1)
+  check('and the next report says the team changed', r.heard.length === 2 && r.heard[1] === 'acme', r.heard)
+  r.stop()
+  const quiet = rig({ world: { sid: 's-acme' }, seenThrows: true })
+  await quiet.c.advance(FOLLOW_LOOK_DELAY_MS + 1)
+  check('a footer that throws does not stop the switch', quiet.picks.length === 1, quiet.picks)
+  quiet.stop()
+}
+
+// ── a switch the host refuses because a reply is running: deferred, announced, made by itself ───────────────────────────────────────────────────
+const RUNNING = { count: 1, space_id: 'me', space_name: 'My workspace', since: 1 }
+const REFUSED = { ok: false, error: 'turn_running', running: RUNNING }
+{
+  const r = rig({ world: { sid: 's-acme' }, pickScript: [REFUSED, { ok: true }] })
+  await r.c.advance(FOLLOW_LOOK_DELAY_MS + 1)
+  check('refused: the chat stays, and the notice is handed to the page with the team the chat belongs to and what is running', r.picks.length === 1 && r.notes.length === 1 && r.notes[0].target.id === 'acme' && r.notes[0].target.name === 'Acme' && r.notes[0].running.space_id === 'me', { picks: r.picks.length, notes: r.notes })
+  await r.c.advance(FOLLOW_WAIT_POLL_MS * 3 + 10)
+  check('it asks the host every ~1.5 s whether a reply still runs, and does not try the switch meanwhile', r.wait.asked >= 3 && r.picks.length === 1, { asked: r.wait.asked, picks: r.picks.length })
+  await r.c.advance(FOLLOW_REPORT_MS)
+  check('the periodic report keeps reporting the chat but does not try the switch again while it waits', r.h.asked.length >= 2 && r.picks.length === 1, { asked: r.h.asked.length, picks: r.picks.length })
+  r.wait.busy = false
+  await r.c.advance(FOLLOW_WAIT_POLL_MS + 10)
+  check('the last reply ends: the switch is made by itself, once', r.picks.length === 2 && r.picks[1].id === 'acme', r.picks)
+  check('and the notice is withdrawn', r.notes[r.notes.length - 1] === null, r.notes)
+  const asked = r.wait.asked
+  await r.c.advance(FOLLOW_WAIT_POLL_MS * 4)
+  check('it stops asking once it is done', r.wait.asked === asked, { asked: r.wait.asked, before: asked })
+  r.stop()
+}
+{
+  // Another reply starts between « no reply runs » and the switch: it waits again.
+  const r = rig({ world: { sid: 's-acme' }, pickScript: [REFUSED, REFUSED, { ok: true }] })
+  await r.c.advance(FOLLOW_LOOK_DELAY_MS + 1)
+  r.wait.busy = false
+  await r.c.advance(FOLLOW_WAIT_POLL_MS + 10)
+  check('refused again by a reply that started in between: it waits again, with a notice again', r.picks.length === 2 && r.notes.filter((n) => n !== null).length === 2, { picks: r.picks.length, notes: r.notes })
+  r.wait.busy = false
+  await r.c.advance(FOLLOW_WAIT_POLL_MS + 10)
+  check('and goes through when the way is free', r.picks.length === 3 && r.h.active === 'acme', { picks: r.picks.length, active: r.h.active })
+  r.stop()
+}
+{
+  // The person moves to another chat while it waits: that chat decides.
+  const r = rig({ world: { sid: 's-acme' }, pickScript: [REFUSED] })
+  await r.c.advance(FOLLOW_LOOK_DELAY_MS + 1)
+  check('(waiting for the Acme chat)', r.notes.length === 1 && r.notes[0] !== null)
+  r.w.open('s-work')
+  await r.c.advance(FOLLOW_LOOK_DELAY_MS + 1)
+  check('they open a personal chat, Personal is active: the notice is withdrawn and nothing is switched', r.notes[r.notes.length - 1] === null && r.picks.length === 1, { notes: r.notes, picks: r.picks.length })
+  const asked = r.wait.asked
+  r.wait.busy = false
+  await r.c.advance(FOLLOW_WAIT_POLL_MS * 3)
+  check('and it no longer waits for the reply of the chat they left', r.wait.asked === asked && r.picks.length === 1, { asked: r.wait.asked, before: asked })
+  r.stop()
+}
+{
+  // The switch is no longer needed when the reply ends (the person went to that team by hand meanwhile).
+  const r = rig({ world: { sid: 's-acme' }, pickScript: [REFUSED] })
+  await r.c.advance(FOLLOW_LOOK_DELAY_MS + 1)
+  r.h.active = 'acme'
+  r.wait.busy = false
+  await r.c.advance(FOLLOW_WAIT_POLL_MS + 10)
+  check('when the reply ends and the team is already the chat\'s, nothing is switched and the notice goes', r.picks.length === 1 && r.notes[r.notes.length - 1] === null, { picks: r.picks.length, notes: r.notes })
+  r.stop()
+}
+{
+  // The host cannot be asked, or says nothing useful: it keeps waiting, it never gives up on its own.
+  const r = rig({ world: { sid: 's-acme' }, pickScript: [REFUSED, { ok: true }] })
+  await r.c.advance(FOLLOW_LOOK_DELAY_MS + 1)
+  r.wait.fails = true
+  r.wait.busy = false
+  await r.c.advance(FOLLOW_WAIT_POLL_MS * 3)
+  check('a busy read that fails is not an answer: it keeps waiting', r.picks.length === 1)
+  r.wait.fails = false
+  await r.c.advance(FOLLOW_WAIT_POLL_MS + 10)
+  check('and goes through at the first answer that says no reply runs', r.picks.length === 2)
+  r.stop()
+  const stopped = rig({ world: { sid: 's-acme' }, pickScript: [REFUSED] })
+  await stopped.c.advance(FOLLOW_LOOK_DELAY_MS + 1)
+  stopped.stop()
+  check('stopped while waiting: the notice is withdrawn and every timer is gone', stopped.notes[stopped.notes.length - 1] === null && stopped.c.pending() === 0, { notes: stopped.notes, timers: stopped.c.pending() })
+  stopped.wait.busy = false
+  await stopped.c.advance(FOLLOW_WAIT_POLL_MS * 4)
+  check('and nothing is switched afterwards', stopped.picks.length === 1)
+}
+{
+  const throwing = rig({ world: { sid: 's-acme' }, pickScript: [REFUSED, { ok: true }], deferThrows: true })
+  await throwing.c.advance(FOLLOW_LOOK_DELAY_MS + 1)
+  throwing.wait.busy = false
+  await throwing.c.advance(FOLLOW_WAIT_POLL_MS + 10)
+  check('a page that cannot show the notice still switches when the reply ends', throwing.picks.length === 2)
+  throwing.stop()
+  const noBusy = rig({ world: { sid: 's-acme' }, pickScript: [REFUSED], noBusy: true })
+  await noBusy.c.advance(FOLLOW_LOOK_DELAY_MS + 1)
+  await noBusy.c.advance(FOLLOW_WAIT_POLL_MS * 3)
+  check('a wiring with no busy read waits without crashing (and never switches by itself)', noBusy.picks.length === 1)
+  noBusy.stop()
+}
+// A refusal that is not « a reply is running » is not waited for.
+{
+  const r = rig({ world: { sid: 's-acme' }, pickScript: [{ ok: false, error: 'espace_inconnu' }] })
+  await r.c.advance(FOLLOW_LOOK_DELAY_MS + 1)
+  check('another refusal is no reason to wait: no notice', r.notes.length === 0 && r.wait.asked === 0, { notes: r.notes })
+  r.stop()
+}
+
+// ── a team the person chose by hand is never undone by a chat they were already looking at ───────────────────────────────────────────────────
+// Found by scripts/check-team-folder-live.mjs (it failed 2 or 3 checks, a different few on every run): a switch back to Personal opens a new chat, and DSH lists it about half a second
+// later (until then the follower cannot tell where it works). A click on a team inside that half second was answered by the follower's first look at the new chat, which found it in
+// another space than the team just chosen and switched BACK: the person's choice undone, a few seconds after they made it. The page now tells the follower when the person chooses
+// (`chose`): every chat on screen while the choice is made, and until it is through, is the person's to leave, not the follower's to correct; a chat they open afterwards is followed as before.
+{
+  const r = rig({ world: { sid: 's-fresh' }, active: 'acme' })
+  const end = r.follower.chose()
+  await r.c.advance(FOLLOW_LOOK_DELAY_MS + 1)
+  check('(a chat is on screen that DSH has not listed yet: nothing to report)', r.h.asked.length === 0 && r.picks.length === 0)
+  r.w.state.cwd['s-fresh'] = WORK
+  r.w.state.rows[0].sessionIds.push('s-fresh')
+  r.w.touchLists()
+  await r.c.advance(FOLLOW_LOOK_DELAY_MS + 1)
+  check('the chat that shows up while the person is choosing is reported to the host, but the choice is not undone for it', r.h.asked.length === 1 && r.picks.length === 0, { asked: r.h.asked.length, picks: r.picks })
+  end(true)
+  await r.c.advance(FOLLOW_REPORT_MS * 2 + 1)
+  check('and the choice is still not undone once it is through, however often the chat is reported', r.h.asked.length >= 3 && r.picks.length === 0, { asked: r.h.asked.length, picks: r.picks })
+  r.w.open('s-acme')
+  await r.c.advance(FOLLOW_LOOK_DELAY_MS + 1)
+  check('the chat the choice opens (in the team\'s folder) matches: nothing to switch', r.picks.length === 0, r.picks)
+  r.w.open('s-fresh')
+  await r.c.advance(FOLLOW_LOOK_DELAY_MS + 1)
+  check('going back to the chat they left is a chat change: followed as before', r.picks.length === 1 && r.picks[0].id === 'me', r.picks)
+  r.stop()
+}
+{
+  // The chat was listed before the click: the click covers it as well (the first look had not happened yet, 120 ms is not nothing).
+  const r = rig({ world: { sid: 's-work' }, active: 'acme' })
+  const end = r.follower.chose()
+  end(true)
+  await r.c.advance(FOLLOW_LOOK_DELAY_MS + 1)
+  check('a chat on screen when the person chose is theirs to leave, even if the follower had not looked at it yet', r.h.asked.length === 1 && r.picks.length === 0, { asked: r.h.asked.length, picks: r.picks })
+  r.stop()
+}
+{
+  // A choice that failed (the host refused: a reply is running, an unknown team) changed nothing: the chat on screen is followed as if the person had not clicked.
+  const r = rig({ world: { sid: 's-work' }, active: 'acme' })
+  const end = r.follower.chose()
+  await r.c.advance(FOLLOW_LOOK_DELAY_MS + 1)
+  check('(in flight: the chat is not followed)', r.picks.length === 0)
+  end(false)
+  await r.c.advance(FOLLOW_REPORT_MS + 1)
+  check('a choice that failed hands the chat back to the follower at its next look', r.picks.length === 1 && r.picks[0].id === 'me', r.picks)
+  r.stop()
+}
+{
+  // A choice that went through withdraws a switch that was waiting for a reply to end: the person's word is the later one.
+  const r = rig({ world: { sid: 's-acme' }, pickScript: [REFUSED] })
+  await r.c.advance(FOLLOW_LOOK_DELAY_MS + 1)
+  check('(a switch waits for a reply to end)', r.notes.length === 1 && r.notes[0] !== null)
+  const end = r.follower.chose()
+  end(true)
+  check('the person chooses a team and it goes through: the waiting switch and its notice are gone', r.notes[r.notes.length - 1] === null)
+  r.wait.busy = false
+  const picks = r.picks.length
+  await r.c.advance(FOLLOW_WAIT_POLL_MS * 3)
+  check('and it does not come back when the reply ends', r.picks.length === picks, { picks: r.picks.length, before: picks })
+  r.stop()
+}
+{
+  const none = rig({ noServices: true })
+  let end = null
+  try { end = none.follower.chose(); end(true); end(false) } catch (e) { end = e }
+  check('with no DSH services the choice is registered without a throw, and ending it twice is harmless', typeof end === 'function')
+  none.stop()
+}
+
+// ── nothing breaks it ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+{
+  const down = rig({ world: { sid: 's-acme' } })
+  down.h.down = true
+  await down.c.advance(FOLLOW_LOOK_DELAY_MS + 1)
+  check('a host that does not answer: nothing switched, nothing thrown', down.picks.length === 0 && down.h.asked.length === 1)
+  down.h.down = false
+  await down.c.advance(FOLLOW_REPORT_MS + 1)
+  check('and it is asked again at the next report', down.picks.length === 1, down.picks)
+  down.stop()
+
+  const refused = rig({ world: { sid: 's-acme' } })
+  refused.h.bad = true
+  await refused.c.advance(FOLLOW_LOOK_DELAY_MS + 1)
+  check('a host that says not ok: nothing switched', refused.picks.length === 0)
+  refused.stop()
+
+  const noServices = rig({ noServices: true })
+  await noServices.c.advance(FOLLOW_LOOK_DELAY_MS + 1)
+  check('no DSH services: nothing asked', noServices.h.asked.length === 0)
+  noServices.stop()
+
+  const noStore = rig({ world: { sid: 's-acme', noSubscribe: 'sessions' } })
+  await noStore.c.advance(FOLLOW_LOOK_DELAY_MS + 1)
+  check('a store that cannot be listened to: the others still tell', noStore.picks.length === 1, noStore.picks)
+  noStore.stop()
+
+  const pickThrows = rig({ world: { sid: 's-acme' }, pick: async () => { throw new Error('boom') } })
+  await pickThrows.c.advance(FOLLOW_LOOK_DELAY_MS + 1)
+  check('a switch that throws is swallowed', pickThrows.h.asked.length === 1)
+  pickThrows.stop()
+
+  const askThrows = rig({ world: { sid: 's-acme' }, ask: () => { throw new Error('sync boom') } })
+  await askThrows.c.advance(FOLLOW_LOOK_DELAY_MS + 1)
+  check('an ask that throws at once is swallowed', askThrows.picks.length === 0)
+  askThrows.stop()
+}
+
+// ── stopping ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+{
+  const r = rig({ world: { sid: 's-acme' } })
+  check('mounted: it listens to the three stores and keeps its report timer', r.w.subscribers() === 3 && r.c.pending() >= 1, { subscribers: r.w.subscribers(), timers: r.c.pending() })
+  r.stop()
+  check('stopped: every listener and timer is gone', r.w.subscribers() === 0 && r.c.pending() === 0, { subscribers: r.w.subscribers(), timers: r.c.pending() })
+  r.w.open('s-work')
+  await r.c.advance(FOLLOW_REPORT_MS * 2)
+  check('and nothing is asked afterwards', r.h.asked.length === 0)
+
+  const late = rig({ world: { sid: 's-acme' } })
+  late.h.delay = 1
+  await late.c.advance(FOLLOW_LOOK_DELAY_MS + 1)
+  const release = late.h.release
+  late.stop()
+  release()
+  await settle()
+  check('an answer that comes after the follower was stopped switches nothing', late.picks.length === 0)
+}
+
+console.log(failed === 0 ? '\nall checks passed' : '\n' + failed + ' failure(s)')
+process.exit(failed === 0 ? 0 : 1)
