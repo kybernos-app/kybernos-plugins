@@ -229,6 +229,14 @@ let kbLocaleRead = () => 'en'
       'tasks.failed.at': { kybernos: 'Échec · {when}', en: 'Failed · {when}' },
       'tasks.notify.on': { kybernos: 'notifications activées', en: 'notifications on' },
       'tasks.runson.local': { kybernos: 'cet ordinateur', en: 'this computer' },
+      'tasks.ws.label': { kybernos: 'Workspace', en: 'Workspace' },
+      'tasks.ws.dedicated': { kybernos: 'Automations (workspace dédié)', en: 'Automations (dedicated workspace)' },
+      'tasks.ws.gone': { kybernos: 'Workspace supprimé : les exécutions iront dans « Automations »', en: 'Removed workspace: runs go to “Automations”' },
+      'tasks.ws.hint': { kybernos: 'Là où les exécutions travaillent : les fichiers qu’elles écrivent y restent. Sans choix, elles vont dans le workspace dédié « Automations », créé au besoin.', en: 'Where the runs work: the files they write stay there. With no choice they go to the dedicated “Automations” workspace, made when needed.' },
+      'tasks.ws.meta': { kybernos: 'Workspace : {name}', en: 'Workspace: {name}' },
+      'tasks.ws.meta.dedicated': { kybernos: 'Workspace : Automations', en: 'Workspace: Automations' },
+      'tasks.ws.meta.gone': { kybernos: 'Workspace supprimé → Automations', en: 'Workspace removed → Automations' },
+      'tasks.err.workspace': { kybernos: 'Ce workspace n’est pas valide.', en: 'That workspace is not valid.' },
       'tasks.next': { kybernos: 'prochaine : {when}', en: 'next: {when}' },
       'tasks.toggle.aria': { kybernos: 'Activer l\u2019automation', en: 'Enable automation' },
       'tasks.runnow': { kybernos: 'Lancer maintenant', en: 'Run now' },
@@ -323,6 +331,20 @@ let kbLocaleRead = () => 'en'
       'tasks.flow.drag': { kybernos: 'glisse les n\u0153uds pour réorganiser', en: 'drag nodes to rearrange' },
       'tasks.flow.reset': { kybernos: 'Réinitialiser la disposition', en: 'Reset layout' },
       'tasks.flow.nodes': { kybernos: 'n\u0153uds', en: 'nodes' },
+      'tasks.flow.kind.trg': { kybernos: 'Déclencheur', en: 'Trigger' },
+      'tasks.flow.kind.ai': { kybernos: 'IA', en: 'AI' },
+      'tasks.flow.kind.act': { kybernos: 'Action', en: 'Action' },
+      'tasks.flow.kind.gry': { kybernos: 'Flow', en: 'Flow' },
+      'tasks.flow.guard': { kybernos: 'Garde', en: 'Guard' },
+      'tasks.flow.what': { kybernos: 'Instruction', en: 'Instruction' },
+      'tasks.flow.how': { kybernos: 'Comment elle tourne', en: 'How it runs' },
+      'tasks.flow.how.trg': { kybernos: 'Lance l’automatisation.', en: 'Starts the automation.' },
+      'tasks.flow.how.ai': { kybernos: 'Un modèle exécute cette étape.', en: 'A model runs this step.' },
+      'tasks.flow.how.act': { kybernos: 'Les outils de l’agent exécutent cette étape.', en: 'The agent’s tools run this step.' },
+      'tasks.flow.how.log': { kybernos: 'Écrit l’exécution dans l’historique.', en: 'Writes the run to the history.' },
+      'tasks.flow.prev': { kybernos: 'Précédent', en: 'Previous' },
+      'tasks.flow.next': { kybernos: 'Suivant', en: 'Next' },
+      'tasks.flow.close': { kybernos: 'Fermer', en: 'Close' },
       'tasks.flow.step': { kybernos: 'étape', en: 'step' },
       'tasks.edittext': { kybernos: 'Éditer le texte', en: 'Edit in Text' },
       'tasks.code.readonly': { kybernos: 'Généré du texte · lecture seule · ce que le runtime exécute.', en: 'Generated from Text · read-only · this is what the runtime executes.' },
@@ -333,6 +355,45 @@ let kbLocaleRead = () => 'en'
       'tasks.sessions.empty': { kybernos: 'Aucune session encore. Le prochain déclencheur {trigger} en ouvrira une — ou utilise « Lancer maintenant ».', en: 'No sessions yet. The next {trigger} event opens one — or use “Run now”.' },
       'tasks.status.queued': { kybernos: 'en file', en: 'queued' },
       'tasks.sessions.openchat': { kybernos: 'Ouvrir le chat', en: 'Open chat' },
+      'tasks.tab.yours': { kybernos: 'Tes automatisations', en: 'Yours' },
+      'tasks.tab.discover': { kybernos: 'Découvrir', en: 'Discover' },
+      'tasks.tpl.how.title': { kybernos: 'Une automatisation en trois étapes', en: 'Automations in three steps' },
+      'tasks.tpl.how.1': { kybernos: 'Choisis un modèle', en: 'Pick a template' },
+      'tasks.tpl.how.2': { kybernos: 'Réponds à quelques questions dans le chat', en: 'Answer a few questions in the chat' },
+      'tasks.tpl.how.3': { kybernos: 'Relis-la, connecte ce qu’il faut, active-la', en: 'Check it, connect what it needs, switch it on' },
+      'tasks.tpl.search': { kybernos: 'Chercher un modèle', en: 'Search templates' },
+      'tasks.tpl.empty': { kybernos: 'Aucun modèle ne correspond.', en: 'No template matches.' },
+      'tasks.tpl.import': { kybernos: 'Importer', en: 'Import' },
+      'tasks.tpl.use': { kybernos: 'Utiliser ce modèle', en: 'Use this template' },
+      'tasks.tpl.sec.steps': { kybernos: 'CE QU’ELLE FAIT', en: 'WHAT IT DOES' },
+      'tasks.tpl.sec.ask': { kybernos: 'LES QUESTIONS DU CHAT', en: 'THE CHAT’S QUESTIONS' },
+      'tasks.tpl.sec.needs': { kybernos: 'CE QU’IL TE FAUT', en: 'WHAT YOU WILL NEED' },
+      'tasks.tpl.sec.guard': { kybernos: 'RÈGLES ÉCRITES DANS LES ÉTAPES', en: 'RULES WRITTEN INTO THE STEPS' },
+      'tasks.tpl.kind.ai': { kybernos: 'IA', en: 'AI' },
+      'tasks.tpl.kind.act': { kybernos: 'Action', en: 'Action' },
+      'tasks.tpl.note': { kybernos: 'Un modèle est un point de départ : il dépend de tes comptes, de ta cible et de tes limites. « Utiliser ce modèle » ouvre un chat qui te pose ses questions, puis enregistre une vraie automatisation désactivée, le temps que tu connectes ce qu’il faut.', en: 'A template is a starting point: it depends on your accounts, your target and your limits. “Use this template” opens a chat that asks its questions, then saves a real automation that stays off until you have connected what it needs.' },
+      'tasks.tpl.nochat': { kybernos: 'Impossible d’ouvrir un chat d’ici.', en: 'A chat cannot be opened from here.' },
+      'tasks.tpl.chat.lang': { kybernos: 'Follow this conversation in my language: {lang}', en: 'Follow this conversation in my language: {lang}' },
+      'tasks.tpl.sec.apps': { kybernos: 'INTÉGRATIONS', en: 'INTEGRATIONS' },
+      'tasks.tpl.chat.head': { kybernos: 'Skill automation-creator — crée une automation à partir du modèle « {title} ».', en: 'Skill automation-creator — create an automation from the template “{title}”.' },
+      'tasks.tpl.chat.rule': { kybernos: 'Pars de ce brouillon et adapte-le à moi : n’invente rien sur mes comptes, ma cible ni mes limites, demande-le-moi.', en: 'Start from this draft and adapt it to me: invent nothing about my accounts, my target or my limits, ask me.' },
+      'tasks.tpl.chat.when': { kybernos: 'Ce qui la lance (proposé) :', en: 'What starts it (suggested):' },
+      'tasks.tpl.chat.steps': { kybernos: 'Étapes du brouillon :', en: 'Draft steps:' },
+      'tasks.tpl.chat.ask': { kybernos: 'Ce que tu dois savoir de moi : pose ces questions une par une, avec les options comme choix, et attends ma réponse avant la suivante :', en: 'What you need to know from me: ask these questions one at a time, offering the options as choices, and wait for my answer before the next:' },
+      'tasks.tpl.chat.options': { kybernos: 'Options :', en: 'Options:' },
+      'tasks.tpl.chat.multi': { kybernos: '(plusieurs possibles)', en: '(several allowed)' },
+      'tasks.tpl.chat.needs': { kybernos: 'À connecter de mon côté :', en: 'What I will need to connect:' },
+      'tasks.tpl.chat.guard': { kybernos: 'Règles à garder dans les étapes :', en: 'Rules to keep in the steps:' },
+      'tasks.tpl.chat.save': { kybernos: 'Montre-moi le brouillon final et attends mon accord. Enregistre-le avec le script, puis désactive-le (mode modification, active: false) pour qu’il ne tourne pas avant que j’aie tout connecté, et dis-moi ce qu’il reste à connecter et comment l’activer. Mode d’approbation : demande-moi d’abord.', en: 'Show me the final draft and wait for my yes. Save it with the script, then switch it off (edit mode, active: false) so it does not run before I have connected everything, and tell me what is left to connect and how to switch it on. Approval mode: ask me first.' },
+      'tasks.cards.last': { kybernos: 'Dernière exécution', en: 'Last run' },
+      'tasks.cards.success': { kybernos: 'Réussite', en: 'Success' },
+      'tasks.cards.runs': { kybernos: 'Exécutions', en: 'Runs' },
+      'tasks.cards.duration': { kybernos: 'Durée', en: 'Duration' },
+      'tasks.cards.tools': { kybernos: 'Outils', en: 'Tools' },
+      'tasks.cards.never': { kybernos: 'Jamais', en: 'Never' },
+      'tasks.cards.toreview': { kybernos: 'À revoir', en: 'To review' },
+      'tasks.cards.paused': { kybernos: 'En pause', en: 'Paused' },
+      'tasks.cards.hint': { kybernos: 'Réussite : part des 20 dernières exécutions qui ne sont pas notées en échec. Durée et outils viennent du journal de la dernière exécution ; il n’y a ni jetons ni budget ici.', en: 'Success: the share of the last 20 runs that are not recorded as failed. Duration and tools come from the journal of the last run; there are no tokens or budget here.' },
       'tasks.tab.journal': { kybernos: 'Journal', en: 'Journal' },
       'tasks.runs.title': { kybernos: 'Exécutions', en: 'Executions' },
       'tasks.runs.all': { kybernos: 'Toutes ({n})', en: 'All {n}' },
@@ -1539,11 +1600,24 @@ let kbLocaleRead = () => 'en'
       'kbnc.cc.sub.none': { kybernos: 'Créé à ton premier message Telegram qui demande d’agir.', en: 'Made at your first Telegram message that asks it to act.' },
       'kbnc.cc.last': { kybernos: 'Dernière activité : ', en: 'Last active: ' },
       // Settings > Automations
-      'kbauto.set.sub': { kybernos: 'Où vivent tes automatisations, et deux réglages.', en: 'Where your automations live, and two settings.' },
+      'kbauto.set.sub': { kybernos: 'Où vivent tes automatisations, et leurs réglages.', en: 'Where your automations live, and their settings.' },
       'kbauto.set.paused': { kybernos: 'Mettre toutes les automatisations en pause', en: 'Pause all automations' },
       'kbauto.set.paused.d': { kybernos: 'Rien ne se déclenche tant que c’est activé. Ce qui est arrivé à échéance pendant la pause se déclenche une fois au premier passage après la reprise.', en: 'Nothing fires while this is on. What came due during the pause fires once at the first check after you resume.' },
       'kbauto.set.native': { kybernos: 'Afficher la liste « Automation tasks » de DSH', en: 'Show DSH’s own “Automation tasks” list' },
       'kbauto.set.native.d': { kybernos: 'La page Automations de Kybernos est le lieu de tes automatisations : la liste native de DSH, qui la double, est masquée du menu. Active pour la retrouver.', en: 'The Kybernos Automations page is where your automations live: DSH’s own list, which overlaps it, is hidden from the menu. Turn on to get it back.' },
+      'kbauto.set.skill': { kybernos: 'Créer des skills automatiquement', en: 'Create skills automatically' },
+      'kbauto.set.skill.d': { kybernos: 'Quand une automatisation a tourné sans échec le nombre de fois choisi ci-dessous, son texte est écrit comme skill réutilisable. Règle fixe : aucun modèle ne décide. Désactivé par défaut ; le fichier est à toi, modifie-le ou supprime-le.', en: 'When an automation has run the number of times chosen below without a failure, its text is written down as a reusable skill. A fixed rule: no model decides. Off by default; the file is yours to edit or delete.' },
+      'kbauto.set.stable': { kybernos: 'Stable après', en: 'Stable after' },
+      'kbauto.set.stable.d': { kybernos: 'Nombre d’exécutions d’affilée sans échec. L’historique garde les 20 dernières exécutions : 20 est le maximum.', en: 'Runs in a row without a failure. The history keeps the last 20 runs: 20 is the most.' },
+      'tasks.lesson.title': { kybernos: 'LEÇONS', en: 'LESSONS' },
+      'tasks.lesson.progress': { kybernos: 'Cette automatisation a tourné {k} fois d’affilée sans échec. À {n}, elle peut devenir un skill réutilisable.', en: 'This automation has run {k} times in a row without a failure. At {n} it can become a reusable skill.' },
+      'tasks.lesson.stable': { kybernos: 'Cette automatisation a tourné {n} fois d’affilée sans échec : assez stable pour devenir un skill réutilisable.', en: 'This automation ran {n} times in a row without a failure: stable enough to become a reusable skill.' },
+      'tasks.lesson.create': { kybernos: 'Créer le skill', en: 'Create skill' },
+      'tasks.lesson.hint': { kybernos: 'Pour que ce soit fait tout seul, active « Créer des skills automatiquement » dans Réglages › Automatisations.', en: 'To have it done for you, switch on “Create skills automatically” in Settings › Automations.' },
+      'tasks.lesson.soon': { kybernos: 'Elle sera créée automatiquement dans quelques minutes.', en: 'It will be created automatically within a few minutes.' },
+      'tasks.lesson.made.auto': { kybernos: 'Skill « {skill} » créé automatiquement après {n} exécutions sans échec. Il est dans tes Skills : modifie-le ou supprime-le comme les autres.', en: 'Skill “{skill}” created automatically after {n} runs without a failure. It is in your Skills: edit or delete it like any other.' },
+      'tasks.lesson.made.manual': { kybernos: 'Skill « {skill} » créé depuis cette page après {n} exécutions sans échec. Il est dans tes Skills : modifie-le ou supprime-le comme les autres.', en: 'Skill “{skill}” created from this page after {n} runs without a failure. It is in your Skills: edit or delete it like any other.' },
+      'tasks.lesson.err': { kybernos: 'Le skill n’a pas pu être créé : {why}', en: 'The skill could not be created: {why}' },
       'kbauto.set.where': { kybernos: 'Les automatisations tournent sur cet ordinateur, tant que DSH est ouvert.', en: 'Automations run on this computer, while DSH is open.' },
       'kbauto.set.error': { kybernos: 'Réglage non enregistré. Réessaie.', en: 'Setting not saved. Try again.' },
       'kbauto.set.unavailable': { kybernos: 'Ces réglages ne sont pas encore disponibles : DSH doit être redémarré pour les charger.', en: 'These settings are not available yet: DSH needs a restart to load them.' },
@@ -4330,6 +4404,7 @@ const LUCIDE = {
   panelRight: ['M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2z', 'M15 3v18'],
   // Dashboards menu row (lucide layout-dashboard, rects written as paths).
   layoutDashboard: ['M4 3h5a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z', 'M15 3h5a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z', 'M15 12h5a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1h-5a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1z', 'M4 16h5a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1z'],
+  phone: ['M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z'],
   mic: ['M12 19v3', 'M19 10v2a7 7 0 0 1-14 0v-2', 'M9 5a3 3 0 0 1 6 0v7a3 3 0 0 1-6 0z'],
   volume: ['M11 5 6 9H2v6h4l5 4V5z', 'M15.54 8.46a5 5 0 0 1 0 7.07', 'M19.07 4.93a10 10 0 0 1 0 14.14'],
   play: ['M6 3 20 12 6 21V3z'],
@@ -5956,6 +6031,7 @@ const kbCloneDefinition = (t, name) => ({
   active: false,
   approvals: t.approvals === 'auto' ? 'auto' : 'ask',
   notify: Array.isArray(t.notify) ? t.notify : [],
+  workspaceHint: typeof t.workspaceHint === 'string' && t.workspaceHint.length > 0 ? t.workspaceHint : null,
 })
 // The trigger line of the read-only code view: the automation's own zone and kind (it said Europe/Paris and cron: "" for everything).
 const kbTaskTriggerCode = (sc) => {
@@ -6013,7 +6089,7 @@ const KB_TASK_ERRORS = {
   'invalid one-off date': 'tasks.err.date', 'unknown time zone': 'tasks.err.tz', 'that date is in the past': 'tasks.err.past',
   'this schedule never fires': 'tasks.err.never', 'sign-in required': 'tasks.err.signin', 'request body too large': 'tasks.err.large',
   'task not found': 'tasks.err.notfound', 'active must be true or false': 'tasks.err.active', 'automation paused': 'tasks.err.paused',
-  'frequent schedule': 'tasks.err.frequent',
+  'frequent schedule': 'tasks.err.frequent', 'invalid workspace': 'tasks.err.workspace',
 }
 const kbTaskError = (message, tr) => (Object.prototype.hasOwnProperty.call(KB_TASK_ERRORS, message) === true ? tr(KB_TASK_ERRORS[message]) : String(message))
 // KB-TASKS-CLIENT-END
@@ -6035,7 +6111,7 @@ const KB_BOARD_OVERDUE_MS = 180000
 const KB_BOARD_DAY_MS = 86400000
 const kbBoardPad = (n) => (n < 10 ? '0' + String(n) : String(n))
 // `cards` is what the shared toolbar stored before this page had three views: it reads as `list`, the old screen.
-const kbBoardView = (mode) => (mode === 'columns' || mode === 'calendar' ? mode : 'list')
+const kbBoardView = (mode) => (mode === 'columns' || mode === 'calendar' || mode === 'cards' ? mode : 'list')
 const kbBoardFmts = new Map()
 const kbBoardFmt = (zone) => {
   const key = typeof zone === 'string' ? zone : ''
@@ -6461,7 +6537,309 @@ const kbGraphLayout = (count, opt) => {
   const used = Math.min(n, cols)
   return { width: n === 0 ? 0 : used * nw + (used - 1) * hg, height: n === 0 ? 0 : rows * nh + (rows - 1) * vg, pos, edges }
 }
+/** « 3 hours ago », « yesterday », « now »: in the page's language; nothing for a date in the future or unknown. */
+const kbRunAgo = (ms, now, locale) => {
+  if (typeof ms !== 'number' || Number.isFinite(ms) !== true || typeof now !== 'number' || Number.isFinite(now) !== true) return ''
+  const s = Math.round((now - ms) / 1000)
+  if (s < 0) return ''
+  try {
+    const f = new Intl.RelativeTimeFormat(locale || 'en', { numeric: 'auto' })
+    if (s < 60) return f.format(0, 'second')
+    for (const [unit, size] of [['day', 86400], ['hour', 3600], ['minute', 60]]) { if (s >= size) return f.format(-Math.floor(s / size), unit) }
+  } catch (e) { /* unknown locale: nothing */ }
+  return ''
+}
+
+/**
+ * The figures of the card of one automation (the Cards view), from its history and from the journals that were read.
+ *   runs      the runs the history holds (the host keeps the last 20)
+ *   success   the share of the last 20 runs that are not failed, in percent; null when there is no run. A run counts as failed when
+ *             the history says so or when its journal, if it was read, says so: a run whose journal was not read is not counted failed
+ *   lastAt / lastMs / lastState   the newest run: its time and how it stands (see kbRunState)
+ *   lastDurationMs / tools        what the journal of the newest run says, null and empty when it was not read
+ */
+const kbRunCardFigures = (history, sums) => {
+  const runs = kbRunsOf(history)
+  const recent = runs.slice(0, 20)
+  const sumOf = (r) => (r !== null && r !== undefined && r.sessionId !== null && sums !== null && typeof sums === 'object' && sums[r.sessionId] !== undefined && sums[r.sessionId] !== null ? sums[r.sessionId] : undefined)
+  const failed = recent.filter((r) => kbRunState(r, sumOf(r)) === 'failed').length
+  const last = runs.length > 0 ? runs[0] : null
+  const lastSum = sumOf(last)
+  const tools = []
+  if (lastSum !== undefined && Array.isArray(lastSum.nodes) === true) for (const n of lastSum.nodes) { if (tools.indexOf(String(n.kind)) < 0) tools.push(String(n.kind)) }
+  return {
+    runs: runs.length,
+    failed,
+    success: recent.length === 0 ? null : Math.round(((recent.length - failed) / recent.length) * 100),
+    lastAt: last !== null ? last.at : null,
+    lastMs: last !== null ? last.ms : null,
+    lastState: last !== null ? kbRunState(last, lastSum) : null,
+    lastDurationMs: lastSum !== undefined && typeof lastSum.durationMs === 'number' && Number.isFinite(lastSum.durationMs) === true ? lastSum.durationMs : null,
+    tools,
+  }
+}
 // KB-AUTORUNS-END
+
+// KB-AUTOTPL-BEGIN
+// Discover: ready-made starting points for an automation, and the text that turns one into a chat. Pure: no React, no DOM, no host
+// call. Tested by test-automation-templates.mjs, which extracts this block.
+//
+// A template is a STARTING POINT, not an automation: what it does depends on the person's accounts, target and limits, so choosing
+// one opens a chat where the automation-creator skill asks the questions of the template, drafts the steps, and saves a real task
+// that stays OFF until the person has connected what it needs. Nothing here runs by itself and nothing here is a feature the host
+// lacks: a cap or a hand-over below is an instruction written into the steps, not a mechanism of the engine.
+// Every text is a pair [English, French]; `pick(pair)` chooses (the page passes its own language rule).
+const KB_TPL_CATS = [
+  { id: 'social', title: ['Social media', 'Réseaux sociaux'], color: 'var(--dsw-alias-state-warn-primary)' },
+  { id: 'prospecting', title: ['Prospecting', 'Prospection'], color: 'var(--dsw-alias-state-business-primary)' },
+  { id: 'support', title: ['Customer service', 'Service client'], color: 'var(--dsw-alias-state-success-primary)' },
+]
+const KB_TPLS = [
+  { id: 'social-daily', cat: 'social', icon: 'image', title: ['Daily post pack', 'Pack de posts quotidien'],
+    cadence: ['Every day, 09:00', 'Tous les jours, 09:00'], cron: '0 9 * * *',
+    desc: ['Writes today’s post, then generates an image, a short video and a voice track, and queues them for your review.', 'Rédige le post du jour, puis génère une image, une courte vidéo et une voix off, et les met en file pour ta relecture.'],
+    tags: [['Content', 'Contenu'], ['Generation', 'Génération'], ['Memory check', 'Contrôle mémoire']], apps: ['Instagram', 'TikTok', 'Google Drive'],
+    steps: [
+      ['ai', ['PREFLIGHT (required): check that free memory is above 20 % and free disk above 10 GB before any generation; stop with a clear reason if not.', 'PREFLIGHT (obligatoire) : vérifier que la mémoire libre dépasse 20 % et le disque libre 10 Go avant toute génération ; sinon s’arrêter avec une raison claire.']],
+      ['ai', ['Pick today’s topic from the content calendar and write the post.', 'Choisir le sujet du jour dans le calendrier de contenu et rédiger le post.']],
+      ['act', ['Generate the image for the post.', 'Générer l’image du post.']],
+      ['act', ['Generate a 20-second vertical video from the post and the image.', 'Générer une vidéo verticale de 20 secondes à partir du post et de l’image.']],
+      ['act', ['Record the voice track with the chosen voice.', 'Enregistrer la voix off avec la voix choisie.']],
+      ['act', ['Queue image, video, voice track and copy for review. Publish nothing without approval.', 'Mettre image, vidéo, voix off et texte en file pour relecture. Ne rien publier sans accord.']]],
+    needs: [['An image model and a video model', 'Un modèle d’image et un modèle de vidéo'], ['A voice (text to speech)', 'Une voix (synthèse vocale)'], ['A calendar of topics: a file or a sheet', 'Un calendrier de sujets : un fichier ou une feuille']],
+    guard: [['Free memory and disk are measured before each heavy step: the run stops instead of freezing the machine.', 'La mémoire et le disque libres sont mesurés avant chaque étape lourde : l’exécution s’arrête au lieu de figer la machine.'], ['Nothing is published without your approval.', 'Rien n’est publié sans ton accord.']],
+    ask: [
+      { q: ['Where should the posts go?', 'Où les posts doivent-ils aller ?'], o: [['Instagram', 'Instagram'], ['TikTok', 'TikTok'], ['YouTube Shorts', 'YouTube Shorts'], ['X', 'X'], ['LinkedIn', 'LinkedIn']], multi: true },
+      { q: ['Which providers for image, video and voice?', 'Quels fournisseurs pour l’image, la vidéo et la voix ?'], o: [['I will paste my keys', 'Je colle mes clés'], ['Use my local models', 'Utiliser mes modèles locaux'], ['Help me choose', 'Aide-moi à choisir']] },
+      { q: ['Where do the topics come from?', 'D’où viennent les sujets ?'], o: [['A file I give you', 'Un fichier que je te donne'], ['I describe them in chat', 'Je les décris dans le chat'], ['Learn from my past posts', 'Apprendre de mes anciens posts']] },
+      { q: ['How much memory should stay free before a generation?', 'Quelle part de mémoire doit rester libre avant une génération ?'], o: [['20 % (default)', '20 % (par défaut)'], ['30 %', '30 %'], ['40 %', '40 %']] }] },
+  { id: 'social-video', cat: 'social', icon: 'play', title: ['Video from an article', 'Vidéo à partir d’un article'],
+    cadence: ['When a webhook calls it', 'Quand un webhook l’appelle'], cron: null,
+    desc: ['Turns a new article into a vertical video with captions and a voice track. The heavy step waits for enough free memory.', 'Transforme un nouvel article en vidéo verticale sous-titrée avec une voix off. L’étape lourde attend assez de mémoire libre.'],
+    tags: [['Video', 'Vidéo'], ['Voice', 'Voix'], ['Memory check', 'Contrôle mémoire']], apps: ['YouTube', 'Google Drive', 'Slack'],
+    steps: [
+      ['ai', ['PREFLIGHT (required): check that free memory is above 20 %; wait up to 10 minutes, then stop.', 'PREFLIGHT (obligatoire) : vérifier que la mémoire libre dépasse 20 % ; attendre jusqu’à 10 minutes, puis s’arrêter.']],
+      ['ai', ['Read the article and write a 30-second script.', 'Lire l’article et écrire un script de 30 secondes.']],
+      ['act', ['Record the voice track from the script.', 'Enregistrer la voix off à partir du script.']],
+      ['act', ['Render the vertical video with captions.', 'Produire la vidéo verticale avec sous-titres.']],
+      ['act', ['Queue the video for review.', 'Mettre la vidéo en file pour relecture.']]],
+    needs: [['A video model or renderer', 'Un modèle ou un moteur de rendu vidéo'], ['A voice (text to speech)', 'Une voix (synthèse vocale)'], ['A webhook from your site or feed', 'Un webhook de ton site ou de ton flux']],
+    guard: [['Memory is measured before the render step and the run waits for it.', 'La mémoire est mesurée avant le rendu et l’exécution l’attend.'], ['Nothing is published without your approval.', 'Rien n’est publié sans ton accord.']],
+    ask: [
+      { q: ['Where does the article come from?', 'D’où vient l’article ?'], o: [['An RSS feed', 'Un flux RSS'], ['A webhook from my site', 'Un webhook de mon site'], ['A folder', 'Un dossier']] },
+      { q: ['Which voice?', 'Quelle voix ?'], o: [['My cloned voice', 'Ma voix clonée'], ['A stock voice', 'Une voix standard'], ['No voice track', 'Pas de voix off']] },
+      { q: ['Where should the video be queued?', 'Où mettre la vidéo en file ?'], o: [['A review folder', 'Un dossier de relecture'], ['My drive', 'Mon drive'], ['A chat message', 'Un message dans le chat']] }] },
+  { id: 'social-calendar', cat: 'social', icon: 'calendar', title: ['Weekly content calendar', 'Calendrier de contenu hebdomadaire'],
+    cadence: ['Every Monday, 08:00', 'Chaque lundi, 08:00'], cron: '0 8 * * 1',
+    desc: ['Plans next week’s posts from what performed best and drafts the copy for each one.', 'Planifie les posts de la semaine à partir de ce qui a le mieux marché et rédige le texte de chacun.'],
+    tags: [['Planning', 'Planification'], ['Analysis', 'Analyse'], ['Draft only', 'Brouillons seulement']], apps: ['Google Sheets', 'Notion', 'Slack'],
+    steps: [
+      ['act', ['Read last week’s results from the analytics file.', 'Lire les résultats de la semaine dernière dans le fichier d’analyse.']],
+      ['ai', ['Analyse what performed and propose next week’s themes.', 'Analyser ce qui a marché et proposer les thèmes de la semaine.']],
+      ['ai', ['Write a draft for each planned post.', 'Rédiger un brouillon pour chaque post prévu.']],
+      ['act', ['Save the calendar and the drafts for review. Post nothing.', 'Enregistrer le calendrier et les brouillons pour relecture. Ne rien publier.']]],
+    needs: [['A file or a sheet with last week’s results', 'Un fichier ou une feuille avec les résultats de la semaine dernière']],
+    guard: [['Draft only: nothing is posted.', 'Brouillons seulement : rien n’est publié.']],
+    ask: [
+      { q: ['Where are your results?', 'Où sont tes résultats ?'], o: [['A sheet', 'Une feuille de calcul'], ['A CSV file', 'Un fichier CSV'], ['An analytics export', 'Un export d’analytics']] },
+      { q: ['Which channels should it plan for?', 'Pour quels canaux planifier ?'], o: [['Instagram', 'Instagram'], ['TikTok', 'TikTok'], ['X', 'X'], ['LinkedIn', 'LinkedIn']], multi: true }] },
+  { id: 'prosp-calls', cat: 'prospecting', icon: 'phone', title: ['Outbound call list', 'Liste d’appels sortants'],
+    cadence: ['Weekdays, 10:00', 'En semaine, 10:00'], cron: '0 10 * * 1-5',
+    desc: ['Finds contacts that match your target, checks them, and prepares a call list with a short script for each.', 'Trouve les contacts qui correspondent à ta cible, les vérifie et prépare une liste d’appels avec un court script pour chacun.'],
+    tags: [['Outbound calls', 'Appels sortants'], ['Cap per run', 'Plafond par exécution'], ['Asks first', 'Demande d’abord']], apps: ['HubSpot', 'Google Sheets', 'Twilio'],
+    steps: [
+      ['act', ['Fetch contacts that match the target from the chosen sources, never more than the cap for one run.', 'Récupérer les contacts qui correspondent à la cible dans les sources choisies, jamais plus que le plafond d’une exécution.']],
+      ['ai', ['Verify each contact and drop duplicates and bad numbers.', 'Vérifier chaque contact et écarter les doublons et les mauvais numéros.']],
+      ['ai', ['Write a short call script for each contact.', 'Rédiger un court script d’appel pour chaque contact.']],
+      ['act', ['Show the list and wait for approval.', 'Montrer la liste et attendre l’accord.']],
+      ['act', ['Place the approved calls only.', 'Passer uniquement les appels approuvés.']]],
+    needs: [['A contact source: your CRM, a sheet, or a data provider', 'Une source de contacts : ton CRM, une feuille ou un fournisseur de données'], ['A calling line (a telephony connection)', 'Une ligne d’appel (une connexion de téléphonie)']],
+    guard: [['A cap on contacts per run is written into the steps.', 'Un plafond de contacts par exécution est écrit dans les étapes.'], ['Calls are placed only after you approve the list.', 'Les appels ne partent qu’après ton accord sur la liste.']],
+    ask: [
+      { q: ['Who is your target?', 'Quelle est ta cible ?'], o: [['By industry', 'Par secteur'], ['By city or region', 'Par ville ou région'], ['By company size', 'Par taille d’entreprise']], multi: true },
+      { q: ['Where do the contacts come from?', 'D’où viennent les contacts ?'], o: [['My CRM', 'Mon CRM'], ['A sheet', 'Une feuille de calcul'], ['A data provider', 'Un fournisseur de données']] },
+      { q: ['Which calling line?', 'Quelle ligne d’appel ?'], o: [['A number I own', 'Un numéro que je possède'], ['Help me set one up', 'Aide-moi à en mettre une en place']] },
+      { q: ['Cap on contacts per run?', 'Plafond de contacts par exécution ?'], o: [['20', '20'], ['50', '50'], ['100', '100']] }] },
+  { id: 'prosp-leads', cat: 'prospecting', icon: 'search', title: ['Lead finder', 'Chercheur de prospects'],
+    cadence: ['Every day, 07:00', 'Tous les jours, 07:00'], cron: '0 7 * * *',
+    desc: ['Fetches contacts and company pages (LinkedIn among the sources, within its terms), scores them and adds the good ones to a sheet.', 'Récupère contacts et pages d’entreprise (LinkedIn parmi les sources, dans le respect de ses conditions), les note et ajoute les bons à une feuille.'],
+    tags: [['Lead search', 'Recherche de prospects'], ['Cap per run', 'Plafond par exécution']], apps: ['LinkedIn', 'Google Sheets', 'HubSpot'],
+    steps: [
+      ['act', ['Fetch new company pages and profiles from the chosen sources, never more than the cap for one run.', 'Récupérer les nouvelles pages d’entreprise et profils des sources choisies, jamais plus que le plafond d’une exécution.']],
+      ['ai', ['Analyse each one against the target and score it.', 'Analyser chacun par rapport à la cible et le noter.']],
+      ['act', ['Add the best ones to the sheet with the score and the reason.', 'Ajouter les meilleurs à la feuille avec la note et la raison.']]],
+    needs: [['A scraping or data key', 'Une clé de collecte ou de données'], ['A sheet to write to', 'Une feuille où écrire']],
+    guard: [['A cap on pages per run is written into the steps; sources are used within their terms.', 'Un plafond de pages par exécution est écrit dans les étapes ; les sources sont utilisées dans le respect de leurs conditions.']],
+    ask: [
+      { q: ['Which sources?', 'Quelles sources ?'], o: [['Company websites', 'Sites d’entreprises'], ['LinkedIn (within its terms)', 'LinkedIn (dans le respect de ses conditions)'], ['Job boards', 'Sites d’emploi']], multi: true },
+      { q: ['Who is your target?', 'Quelle est ta cible ?'], o: [['By industry', 'Par secteur'], ['By city or region', 'Par ville ou région'], ['By company size', 'Par taille d’entreprise']], multi: true },
+      { q: ['Where should good leads go?', 'Où envoyer les bons prospects ?'], o: [['A sheet', 'Une feuille de calcul'], ['My CRM', 'Mon CRM'], ['An email to me', 'Un e-mail pour moi']] }] },
+  { id: 'prosp-enrich', cat: 'prospecting', icon: 'users', title: ['Contact enrichment', 'Enrichissement de contacts'],
+    cadence: ['Every 6 hours', 'Toutes les 6 heures'], cron: '0 */6 * * *',
+    desc: ['Completes each new contact with role, company size and a verified email, and removes duplicates.', 'Complète chaque nouveau contact avec son poste, la taille de l’entreprise et un e-mail vérifié, et supprime les doublons.'],
+    tags: [['Enrichment', 'Enrichissement'], ['Cap per run', 'Plafond par exécution']], apps: ['HubSpot', 'Airtable', 'Google Sheets'],
+    steps: [
+      ['act', ['Read the new contacts since the last run, never more than the cap for one run.', 'Lire les nouveaux contacts depuis la dernière exécution, jamais plus que le plafond d’une exécution.']],
+      ['ai', ['Verify and complete each contact: role, company size, email.', 'Vérifier et compléter chaque contact : poste, taille de l’entreprise, e-mail.']],
+      ['act', ['Write the completed contacts back and drop duplicates.', 'Réécrire les contacts complétés et écarter les doublons.']]],
+    needs: [['A contact sheet or CRM', 'Une feuille de contacts ou un CRM'], ['A data provider key', 'Une clé de fournisseur de données']],
+    guard: [['A cap per run is written into the steps, so a large import cannot run away.', 'Un plafond par exécution est écrit dans les étapes : un gros import ne peut pas déraper.']],
+    ask: [
+      { q: ['Where are your contacts?', 'Où sont tes contacts ?'], o: [['A sheet', 'Une feuille de calcul'], ['My CRM', 'Mon CRM'], ['A CSV file', 'Un fichier CSV']] },
+      { q: ['Which data provider?', 'Quel fournisseur de données ?'], o: [['I have a key', 'J’ai une clé'], ['Help me choose', 'Aide-moi à choisir']] },
+      { q: ['Cap per run?', 'Plafond par exécution ?'], o: [['50 contacts', '50 contacts'], ['200 contacts', '200 contacts'], ['500 contacts', '500 contacts']] }] },
+  { id: 'cs-whatsapp', cat: 'support', icon: 'messageSquare', title: ['WhatsApp front desk', 'Accueil WhatsApp'],
+    cadence: ['When a webhook calls it', 'Quand un webhook l’appelle'], cron: null,
+    desc: ['Answers customers on WhatsApp (pair your number with a QR code) and hands over to you when it is not sure.', 'Répond aux clients sur WhatsApp (associe ton numéro avec un QR code) et te passe la main quand il n’est pas sûr.'],
+    tags: [['Support', 'Support'], ['Hands over to you', 'Te passe la main'], ['QR pairing', 'Association par QR code']], apps: ['WhatsApp', 'Gmail', 'Slack'],
+    steps: [
+      ['act', ['Receive the customer’s message.', 'Recevoir le message du client.']],
+      ['ai', ['Classify the request: question, order, complaint, other.', 'Classer la demande : question, commande, réclamation, autre.']],
+      ['ai', ['Answer from the documents and policies provided.', 'Répondre à partir des documents et des règles fournis.']],
+      ['act', ['If unsure, hand over with a summary and stay silent.', 'En cas de doute, passer la main avec un résumé et se taire.']]],
+    needs: [['Your WhatsApp number, paired with a QR code', 'Ton numéro WhatsApp, associé avec un QR code'], ['Your documents or FAQ', 'Tes documents ou ta FAQ']],
+    guard: [['It never promises refunds or prices: those are handed over.', 'Il ne promet jamais de remboursement ni de prix : cela te revient.'], ['Mode: ask first for anything that changes an order.', 'Mode : demander d’abord pour tout ce qui modifie une commande.']],
+    ask: [
+      { q: ['Which number should it answer on?', 'Sur quel numéro doit-il répondre ?'], o: [['Pair my number now (QR code)', 'Associer mon numéro maintenant (QR code)'], ['Pair later', 'Associer plus tard']] },
+      { q: ['Where are the answers?', 'Où sont les réponses ?'], o: [['My documents', 'Mes documents'], ['A website', 'Un site web'], ['An FAQ I paste', 'Une FAQ que je colle']] },
+      { q: ['When should it hand over to you?', 'Quand doit-il te passer la main ?'], o: [['Refunds and prices', 'Remboursements et prix'], ['Complaints', 'Réclamations'], ['Whenever unsure', 'Dès qu’il hésite']], multi: true }] },
+  { id: 'cs-widget', cat: 'support', icon: 'layoutDashboard', title: ['Website chat widget', 'Widget de chat pour ton site'],
+    cadence: ['When a webhook calls it', 'Quand un webhook l’appelle'], cron: null,
+    desc: ['Answers visitors from a chat widget on your site, using your own documents, and collects their email when you should follow up.', 'Répond aux visiteurs depuis un widget de chat sur ton site, avec tes propres documents, et recueille leur e-mail quand tu dois les recontacter.'],
+    tags: [['Support', 'Support'], ['Public widget', 'Widget public'], ['Hands over to you', 'Te passe la main']], apps: ['Slack', 'Gmail', 'Notion'],
+    steps: [
+      ['act', ['Receive the visitor’s message from the widget.', 'Recevoir le message du visiteur depuis le widget.']],
+      ['ai', ['Answer from the documents provided.', 'Répondre à partir des documents fournis.']],
+      ['act', ['Collect the visitor’s email when a follow-up is needed.', 'Recueillir l’e-mail du visiteur quand un suivi est nécessaire.']]],
+    needs: [['A site where you can paste the widget', 'Un site où coller le widget'], ['Your documents or FAQ', 'Tes documents ou ta FAQ']],
+    guard: [['The widget is public: it answers only from your documents and opens no other tool.', 'Le widget est public : il répond uniquement à partir de tes documents et n’ouvre aucun autre outil.']],
+    ask: [
+      { q: ['Which site?', 'Quel site ?'], o: [['I will paste the widget myself', 'Je colle le widget moi-même'], ['Show me the snippet', 'Montre-moi le code à coller']] },
+      { q: ['Where are the answers?', 'Où sont les réponses ?'], o: [['My documents', 'Mes documents'], ['A website', 'Un site web'], ['An FAQ I paste', 'Une FAQ que je colle']] },
+      { q: ['What should it collect?', 'Que doit-il recueillir ?'], o: [['An email', 'Un e-mail'], ['A phone number', 'Un numéro de téléphone'], ['Nothing', 'Rien']] }] },
+  { id: 'cs-calls', cat: 'support', icon: 'mic', title: ['Call reception', 'Accueil téléphonique'],
+    cadence: ['When a webhook calls it', 'Quand un webhook l’appelle'], cron: null,
+    desc: ['Takes incoming calls, answers the common questions and sends you a summary of each call.', 'Prend les appels entrants, répond aux questions courantes et t’envoie un résumé de chaque appel.'],
+    tags: [['Voice', 'Voix'], ['Support', 'Support'], ['Needs a phone line', 'Demande une ligne']], apps: ['Twilio', 'Gmail', 'Slack'],
+    steps: [
+      ['act', ['Pick up the incoming call.', 'Décrocher l’appel entrant.']],
+      ['ai', ['Answer the common questions from the documents provided.', 'Répondre aux questions courantes à partir des documents fournis.']],
+      ['ai', ['Summarise the call and its outcome.', 'Résumer l’appel et son issue.']],
+      ['act', ['Send the summary and any callback request.', 'Envoyer le résumé et toute demande de rappel.']]],
+    needs: [['A phone number that forwards to your automation', 'Un numéro de téléphone qui renvoie vers ton automatisation'], ['A voice', 'Une voix']],
+    guard: [['A call length limit is written into the steps.', 'Une durée maximale d’appel est écrite dans les étapes.']],
+    ask: [
+      { q: ['Which phone number?', 'Quel numéro de téléphone ?'], o: [['Forward my number', 'Renvoyer mon numéro'], ['Help me get one', 'Aide-moi à en obtenir un']] },
+      { q: ['Which voice and language?', 'Quelle voix et quelle langue ?'], o: [['French voice', 'Voix française'], ['English voice', 'Voix anglaise']] },
+      { q: ['Where do summaries go?', 'Où vont les résumés ?'], o: [['Email', 'E-mail'], ['A chat message', 'Un message dans le chat'], ['A sheet', 'Une feuille de calcul']] },
+      { q: ['Longest call?', 'Appel le plus long ?'], o: [['3 minutes', '3 minutes'], ['5 minutes', '5 minutes'], ['10 minutes', '10 minutes']] }] },
+  { id: 'cs-shopify', cat: 'support', icon: 'store', title: ['Order questions (Shopify)', 'Questions sur les commandes (Shopify)'],
+    cadence: ['When a webhook calls it', 'Quand un webhook l’appelle'], cron: null,
+    desc: ['Answers “where is my order?” from your shop data.', 'Répond à « où est ma commande ? » à partir des données de ta boutique.'],
+    tags: [['Orders', 'Commandes'], ['Read-only', 'Lecture seule'], ['To confirm', 'À confirmer']], apps: ['Shopify', 'WhatsApp', 'Gmail'],
+    steps: [
+      ['act', ['Look the order up in the shop.', 'Rechercher la commande dans la boutique.']],
+      ['ai', ['Answer with its status and the delivery date.', 'Répondre avec son statut et la date de livraison.']]],
+    needs: [['Read access to your Shopify shop (to confirm)', 'Un accès en lecture à ta boutique Shopify (à confirmer)']],
+    guard: [['Read-only: it can look orders up and never change them.', 'Lecture seule : il peut consulter les commandes, jamais les modifier.']],
+    ask: [
+      { q: ['Which shop?', 'Quelle boutique ?'], o: [['I will connect it now', 'Je la connecte maintenant'], ['To confirm: read-only access', 'À confirmer : accès en lecture seule']] },
+      { q: ['Which channel answers?', 'Quel canal répond ?'], o: [['WhatsApp', 'WhatsApp'], ['Website widget', 'Widget du site'], ['Email', 'E-mail']] }] },
+]
+
+/** The pair `[en, fr]` read in the page's language: `pick` is the page's rule, English when none is given. */
+const kbTplText = (pair, pick) => {
+  if (Array.isArray(pair) !== true) return ''
+  return typeof pick === 'function' ? String(pick(pair)) : String(pair[0])
+}
+/** The templates of one category (all when `cat` is empty), then those that contain the words of `query` in their title, text, tags or apps. */
+const kbTplFilter = (list, cat, query, pick) => {
+  const words = String(query === undefined || query === null ? '' : query).toLowerCase().split(/\s+/).filter((w) => w.length > 0)
+  return (Array.isArray(list) === true ? list : []).filter((t) => {
+    if (typeof cat === 'string' && cat.length > 0 && cat !== 'all' && t.cat !== cat) return false
+    if (words.length === 0) return true
+    const hay = [kbTplText(t.title, pick), kbTplText(t.desc, pick), t.tags.map((x) => kbTplText(x, pick)).join(' '), t.apps.join(' '), kbTplText(t.cadence, pick)].join(' ').toLowerCase()
+    return words.every((w) => hay.indexOf(w) >= 0)
+  })
+}
+/** The kind of a step of a template, read the way the Flow reads a step: 'ai' (a model works) or 'act' (a tool acts). */
+const kbTplStepKind = (step) => (Array.isArray(step) === true && step[0] === 'ai' ? 'ai' : 'act')
+/** « Google Drive » → « googledrive »: the slug the connectors catalogue uses for an app. */
+const kbTplSlug = (name) => String(name === undefined || name === null ? '' : name).toLowerCase().replace(/[^a-z0-9]/g, '')
+/** An SVG that may be put in the page: a plain <svg>, bounded, with no script, no handler and nothing that loads from elsewhere. */
+const kbTplSvgOk = (svg) => typeof svg === 'string' && svg.length <= 20000 && /^\s*<svg[\s>]/.test(svg) === true
+  && /<script|<foreignObject|<iframe|<image|\son\w+\s*=|javascript:|(?:xlink:)?href\s*=\s*["']https?:|url\(\s*["']?https?:|@import/i.test(svg) === false
+/** The logos of the connectors catalogue ([{ s: slug, l: svg }]) as { slug: svg }, only those that are safe. */
+const kbTplLogos = (list) => {
+  const out = {}
+  for (const c of Array.isArray(list) === true ? list : []) { if (c !== null && typeof c === 'object' && typeof c.s === 'string' && kbTplSvgOk(c.l) === true) out[c.s] = c.l }
+  return out
+}
+/** The name of the page's language, in English and with its code, for the model: « French (fr) ». `kybernos` is the French of the page. */
+const kbTplLangName = (code) => {
+  const c = code === 'kybernos' ? 'fr' : String(code === undefined || code === null ? '' : code).trim()
+  if (c === '') return ''
+  try {
+    const n = new Intl.DisplayNames(['en'], { type: 'language' }).of(c)
+    return typeof n === 'string' && n !== '' && n !== c ? n + ' (' + c + ')' : c
+  } catch (e) { return c }
+}
+/**
+ * What is put in the composer of a NEW chat when a template is chosen. It names the automation-creator skill the way « Create » and
+ * « Edit in chat » do, carries the template (what starts it, the draft steps, the questions, what to connect, the rules), and asks for
+ * a real task that stays OFF until the person has connected everything. `tr(key)` gives the fixed words, `pick(pair)` the template's, and
+ * `language` (kbTplLangName of the page's language, read when the person clicks) puts « Follow this conversation in my language » first.
+ */
+const kbTplChatText = (tpl, tr, pick, language) => {
+  const T = (p) => kbTplText(p, pick)
+  const lang = typeof language === 'string' ? language.trim() : ''
+  const lines = (lang !== '' ? [tr('tasks.tpl.chat.lang').replace(/\{lang\}/g, () => lang), ''] : []).concat([tr('tasks.tpl.chat.head').replace(/\{title\}/g, () => T(tpl.title)), T(tpl.desc), '', tr('tasks.tpl.chat.rule'), ''])
+  const when = tpl.cron === null || tpl.cron === undefined ? T(tpl.cadence) : T(tpl.cadence) + ' (cron ' + tpl.cron + ')'
+  lines.push(tr('tasks.tpl.chat.when') + ' ' + when, '', tr('tasks.tpl.chat.steps'))
+  tpl.steps.forEach((s, i) => { lines.push(String(i + 1) + '. ' + T(s[1])) })
+  lines.push('', tr('tasks.tpl.chat.ask'))
+  tpl.ask.forEach((q, i) => {
+    lines.push(String(i + 1) + '. ' + T(q.q) + ' ' + tr('tasks.tpl.chat.options') + ' ' + q.o.map((o) => T(o)).join(' / ') + (q.multi === true ? ' ' + tr('tasks.tpl.chat.multi') : ''))
+  })
+  lines.push('', tr('tasks.tpl.chat.needs') + ' ' + tpl.needs.map((n) => T(n)).join(' ; '))
+  lines.push(tr('tasks.tpl.chat.guard') + ' ' + tpl.guard.map((g) => T(g)).join(' '))
+  lines.push('', tr('tasks.tpl.chat.save'))
+  return lines.join('\n')
+}
+// KB-AUTOTPL-END
+
+// KB-AUTOWS-BEGIN
+// Where the runs of an automation land. A workspace is a folder DSH adopted (the page calls it a project); an automation may name one
+// by its id (`workspaceHint`), and with none the runs go to the dedicated « Automations » workspace the host makes (automation-workspace.mjs).
+// Pure: the list of workspaces as the page's store holds it, and the id the automation names, in; what to show, out.
+/** The name of a workspace record of the page's store. */
+const kbWsName = (ws) => {
+  if (ws === null || typeof ws !== 'object') return ''
+  const t = typeof ws.displayTitle === 'string' && ws.displayTitle.trim() !== '' ? ws.displayTitle : (typeof ws.title === 'string' && ws.title.trim() !== '' ? ws.title : '')
+  return t.trim() !== '' ? t.trim() : (typeof ws.workspaceId === 'string' ? ws.workspaceId : '')
+}
+/** Is this the dedicated workspace itself (the one that adopted <dsh home>/kybernos/automations)? It is « no choice », not one of the person's. */
+const kbWsIsDedicated = (ws) => ws !== null && typeof ws === 'object' && typeof ws.path === 'string' && /[\\/]kybernos[\\/]automations[\\/]?$/.test(ws.path) === true
+/**
+ * What the choice shows: { kind: 'dedicated' } when none is named (or when it names the dedicated workspace itself), { kind: 'ws', id, name } for one
+ * that exists, { kind: 'gone', id } for one that was deleted (its runs go to the dedicated workspace, and the page says so).
+ */
+const kbWsChoice = (hint, items) => {
+  if (typeof hint !== 'string' || hint === '') return { kind: 'dedicated' }
+  const found = (Array.isArray(items) === true ? items : []).find((w) => w !== null && typeof w === 'object' && w.workspaceId === hint)
+  if (found === undefined) return { kind: 'gone', id: hint }
+  return kbWsIsDedicated(found) === true ? { kind: 'dedicated' } : { kind: 'ws', id: hint, name: kbWsName(found) }
+}
+/** The options of the choice: the dedicated workspace first (value ''; the workspace itself is not listed a second time), then the person's workspaces by name, then the deleted one when the automation still names it. */
+const kbWsOptions = (items, hint) => {
+  const list = (Array.isArray(items) === true ? items : []).filter((w) => w !== null && typeof w === 'object' && typeof w.workspaceId === 'string' && w.workspaceId !== '' && kbWsIsDedicated(w) !== true)
+    .map((w) => ({ id: w.workspaceId, name: kbWsName(w) })).sort((a, b) => a.name.localeCompare(b.name))
+  const out = [{ id: '', kind: 'dedicated' }].concat(list.map((w) => ({ id: w.id, kind: 'ws', name: w.name })))
+  const dedicatedIds = (Array.isArray(items) === true ? items : []).filter((w) => kbWsIsDedicated(w) === true).map((w) => w.workspaceId)
+  if (typeof hint === 'string' && hint !== '' && list.every((w) => w.id !== hint) && dedicatedIds.indexOf(hint) < 0) out.push({ id: hint, kind: 'gone' })
+  return out
+}
+// KB-AUTOWS-END
 // KB-NEWCHAT-BEGIN
 // The new-chat page: the slider of what the product makes, the Cloud Computer's state, and the rule that hides DSH's own
 // « Automation tasks » menu entry. Pure: no React, no DOM, no host call, no translation. Tested by test-newchat.mjs,
@@ -20759,6 +21137,9 @@ function renderFit(canvas, model, cam, opts){
       const approvalsPair = React.useState(t0.approvals === 'auto' ? 'auto' : 'ask')
       const approvals = approvalsPair[0]; const setApprovals = approvalsPair[1]
       const notifyPair = React.useState(Array.isArray(t0.notify) === true ? t0.notify : [])
+      // Where the runs land: '' is the dedicated workspace (the host makes it), else the id of one of the person's workspaces.
+      const wsPair = React.useState(() => { const c = kbWsChoice(t0.workspaceHint, kbPinsSnapshots().items); return c.kind === 'dedicated' ? '' : (typeof t0.workspaceHint === 'string' ? t0.workspaceHint : '') })
+      const wsHint = wsPair[0]; const setWsHint = wsPair[1]
       const notify = notifyPair[0]; const setNotify = notifyPair[1]
       const errPair = React.useState(null)
       const err = errPair[0]; const setErr = errPair[1]
@@ -20795,6 +21176,7 @@ function renderFit(canvas, model, cam, opts){
           active: active === true,
           approvals,
           notify,
+          workspaceHint: wsHint === '' ? null : wsHint,
           runsOn: 'local',
           schedule: mode === 'webhook' ? { mode: 'webhook', tz: tz0 } : (mode === 'once' ? { mode: 'once', at: (atTouched === true || typeof sc0.at !== 'string') ? at : sc0.at, tz: tz0 } : { mode: 'cron', cron: cron.trim(), tz: tz0 }),
         }
@@ -20851,6 +21233,11 @@ function renderFit(canvas, model, cam, opts){
             h('div', { className: 'kb-task-row' },
               h('span', { className: 'kb-task-chip on' }, Icon('monitor', 12), ' ', kbt('tasks.local')),
               h('span', { className: 'kb-task-chip kb-task-disabled', title: kbt('tasks.cloud.soon') }, Icon('cloud', 12), ' ', kbt('tasks.cloud')))),
+          h('div', { className: 'kb-task-f' },
+            h('label', null, kbt('tasks.ws.label')),
+            h('select', { className: 'kb-task-select', 'data-kb': 'task-workspace', value: wsHint, onChange: (e) => setWsHint(e.target.value) },
+              kbWsOptions(kbPinsSnapshots().items, wsHint).map((o) => h('option', { key: o.id === '' ? '__dedicated' : o.id, value: o.id }, o.kind === 'dedicated' ? kbt('tasks.ws.dedicated') : (o.kind === 'gone' ? kbt('tasks.ws.gone') : o.name)))),
+            h('span', { className: 'kb-task-muted' }, kbt('tasks.ws.hint'))),
           h('div', { className: 'kb-task-row' },
             h('span', { className: 'kb-task-f', style: { flex: '1' } },
               h('label', null, kbt('tasks.active')),
@@ -20898,9 +21285,10 @@ function renderFit(canvas, model, cam, opts){
     const kbTaskStepShort = (txt) => { const t = String(txt).replace(/[.]$/, ''); return t.length > 84 ? t.slice(0, 83) + '…' : t }
     const kbTaskNodes = (t) => {
       const steps = kbTaskSteps(t)
-      const nodes = [{ l: 'Schedule', s: kbScheduleLabel(t), c: 'trg', ic: '\u25f7' }]
-      for (const st of steps) nodes.push({ l: kbTaskStepShort(st.text), s: kbt('tasks.flow.step') + ' ' + st.n, c: kbTaskStepIsAi(st.text) ? 'ai' : 'act', ic: String(st.n) })
-      if (nodes.length > 1) nodes.push({ l: 'Log run', s: 'audit trail', c: 'gry', ic: '\u2261' })
+      const nodes = [{ l: 'Schedule', s: kbScheduleLabel(t), c: 'trg', ic: '\u25f7', full: kbScheduleLabel(t), how: 'trg', guard: false }]
+      // `full` is the whole instruction (the title is cut), `how` is what the Code view calls for it, `guard` marks a check that must pass first.
+      for (const st of steps) nodes.push({ l: kbTaskStepShort(st.text), s: kbt('tasks.flow.step') + ' ' + st.n, c: kbTaskStepIsAi(st.text) ? 'ai' : 'act', ic: String(st.n), full: st.text, how: kbTaskStepIsAi(st.text) ? 'ai' : 'act', guard: /^(preflight|pre-flight|garde|guard)\b/i.test(st.text) })
+      if (nodes.length > 1) nodes.push({ l: 'Log run', s: 'audit trail', c: 'gry', ic: '\u2261', full: '', how: 'log', guard: false })
       // Disposition lisible par défaut : serpent en zigzag (≤ 4 par rangée).
       // Une ligne droite devient illisible dès 5+ nœuds — le zigzag replie
       // le parcours sur lui-même et garde le canvas compact.
@@ -21004,6 +21392,25 @@ function renderFit(canvas, model, cam, opts){
         return json !== null && typeof json === 'object' && json.ok === true && json.runs !== null && typeof json.runs === 'object' ? json.runs : {}
       } catch (e) { return {} }
     }
+    // Reads the journals of `ids` that are not cached yet, five per call, and hands each batch to `onGot`; returns what stops it. A run still
+    // open is not kept: it is read again next time.
+    const kbRunsRead = (ids, onGot) => {
+      let alive = true
+      const need = ids.filter((id) => kbRunsCache.has(id) === false)
+      ;(async () => {
+        for (let i = 0; i < need.length; i += 5) {
+          const got = await kbRunsFetch(need.slice(i, i + 5), false)
+          if (alive !== true) return
+          const add = {}
+          for (const id of Object.keys(got)) {
+            add[id] = got[id]
+            if (got[id] !== null && typeof got[id] === 'object' && got[id].outcome !== null && typeof got[id].outcome === 'object' && got[id].outcome.state !== 'open') kbRunsCache.set(id, got[id])
+          }
+          if (Object.keys(add).length > 0) onGot(add)
+        }
+      })()
+      return () => { alive = false }
+    }
     const kbRunKey = (r, i) => (r.sessionId !== null ? r.sessionId : 'x:' + r.at + ':' + String(i))
     const KB_RUN_ICONS = { bash: '>_', skill: '✦', read: '▤', write: '✎', edit: '✎', job_output: '⧗', lesson_write: '✎' }
     const kbRunIcon = (kind) => (KB_RUN_ICONS[kind] !== undefined ? KB_RUN_ICONS[kind] : String(kind).slice(0, 1).toUpperCase())
@@ -21028,6 +21435,25 @@ function renderFit(canvas, model, cam, opts){
       const ioPair = React.useState('in')
       const io = ioPair[0]
       const setIo = ioPair[1]
+      // Lessons: how far the automation is from becoming a skill, and the skill if it was written (GET /kybernos/automation-skills).
+      const lessonPair = React.useState(undefined)
+      const lessonErrPair = React.useState('')
+      React.useEffect(() => {
+        if (props.mode !== 'journal' || typeof props.taskId !== 'string') return undefined
+        let alive = true
+        fetch(kbApiBase() + '/automation-skills?id=' + encodeURIComponent(props.taskId), { method: 'GET', cache: 'no-store' })
+          .then((r) => (r.ok === true ? r.json() : null)).then((j) => { if (alive === true) lessonPair[1](j !== null && typeof j === 'object' && j.ok === true ? j.lesson : null) })
+          .catch(() => { if (alive === true) lessonPair[1](null) })
+        return () => { alive = false }
+      }, [props.mode, props.taskId, runs.length])
+      const createSkill = () => {
+        lessonErrPair[1]('')
+        fetch(kbApiBase() + '/automation-skills', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id: props.taskId }) })
+          .then((r) => r.json().catch(() => null)).then((j) => {
+            if (j !== null && typeof j === 'object' && j.ok === true) lessonPair[1](j.lesson)
+            else lessonErrPair[1](kbt('tasks.lesson.err').replace('{why}', () => (j !== null && typeof j === 'object' && typeof j.error === 'string' ? j.error : '?')))
+          }).catch(() => lessonErrPair[1](kbt('tasks.lesson.err').replace('{why}', () => '?')))
+      }
       const keys = runs.map(kbRunKey)
       const selKey = props.sel !== null && keys.indexOf(props.sel) >= 0 ? props.sel : (keys.length > 0 ? keys[0] : null)
       const selRun = selKey !== null ? runs[keys.indexOf(selKey)] : null
@@ -21035,23 +21461,7 @@ function renderFit(canvas, model, cam, opts){
       const ids = runs.filter((r) => r.sessionId !== null).slice(0, 20).map((r) => r.sessionId)
       const idsKey = ids.join(',')
       // What each run did: five journals per call, so the list fills in as they are read. A run still open is read again next time.
-      React.useEffect(() => {
-        let alive = true
-        const need = ids.filter((id) => kbRunsCache.has(id) === false)
-        ;(async () => {
-          for (let i = 0; i < need.length; i += 5) {
-            const got = await kbRunsFetch(need.slice(i, i + 5), false)
-            if (alive !== true) return
-            const add = {}
-            for (const id of Object.keys(got)) {
-              add[id] = got[id]
-              if (got[id] !== null && typeof got[id] === 'object' && got[id].outcome !== null && typeof got[id].outcome === 'object' && got[id].outcome.state !== 'open') kbRunsCache.set(id, got[id])
-            }
-            if (Object.keys(add).length > 0) setSums((prev) => Object.assign({}, prev, add))
-          }
-        })()
-        return () => { alive = false }
-      }, [idsKey])
+      React.useEffect(() => kbRunsRead(ids, (add) => setSums((prev) => Object.assign({}, prev, add))), [idsKey])
       // The input and output of the steps of the run that is open, asked for that one run only.
       React.useEffect(() => {
         if (props.mode !== 'sessions' || selId === null || det[selId] !== undefined) return undefined
@@ -21102,7 +21512,23 @@ function renderFit(canvas, model, cam, opts){
             h('span', { className: 'kba-tabver mono' }, kbt('tasks.journal.approvals')),
             (Array.isArray(sel.approvals) === true && sel.approvals.length > 0
               ? sel.approvals.map((a, i) => h('div', { key: i, className: 'kbrn-step' }, h('span', { className: 'kba-kdot ' + (a.outcome === 'asked' ? 'wait' : 'ok') }), h('span', { className: 'kbrn-sl' }, h('b', null, a.toolName), h('span', { className: 'dim' }, ' · ' + a.outcome))))
-              : h('div', null, kbt('tasks.journal.approvals.none') + ' ' + props.approvalLabel)))
+              : h('div', null, kbt('tasks.journal.approvals.none') + ' ' + props.approvalLabel))),
+          (() => {
+            const lesson = lessonPair[0]
+            if (lesson === undefined || lesson === null || typeof lesson !== 'object') return null
+            const made = lesson.skill !== null && lesson.skill !== undefined ? lesson.skill : null
+            return h('div', { className: 'kba-card kbrn-card', 'data-kb': 'journal-lesson' },
+              h('span', { className: 'kba-tabver mono' }, kbt('tasks.lesson.title')),
+              (made !== null
+                ? h('div', null, kbt(made.how === 'manual' ? 'tasks.lesson.made.manual' : 'tasks.lesson.made.auto').replace('{skill}', () => made.skill).replace('{n}', String(made.runs)))
+                : (lesson.streak >= lesson.stableAfter
+                  ? h('div', { className: 'kbrn-lesson' },
+                    h('span', null, kbt('tasks.lesson.stable').replace('{n}', String(lesson.streak))),
+                    h('button', { type: 'button', className: 'kba-btn pri', 'data-kb': 'lesson-create', onClick: createSkill }, kbt('tasks.lesson.create')),
+                    h('span', { className: 'dim' }, kbt(lesson.autoSkill === true ? 'tasks.lesson.soon' : 'tasks.lesson.hint')))
+                  : h('div', null, kbt('tasks.lesson.progress').replace('{k}', String(lesson.streak)).replace('{n}', String(lesson.stableAfter))))),
+              (lessonErrPair[0] !== '' ? h('div', { className: 'kbrn-badtxt' }, lessonErrPair[0]) : null))
+          })()
         )
       }
 
@@ -21156,6 +21582,164 @@ function renderFit(canvas, model, cam, opts){
             h('div', { className: 'kba-card kbrn-canvas' }, graph),
             logs)),
         h('div', { className: 'kba-hint' }, kbt('tasks.runs.hint')))
+    }
+    // ── Discover: ready-made starting points (the pure part is the KB-AUTOTPL block at the top of this file) ────────────────────────────
+    // Compact cards in the grid; the cover is drawn only on the page of one template. Nothing here runs an automation: « Import » opens a
+    // NEW chat where the automation-creator skill asks the questions of the template (kbTplChatText), the way « Create » does.
+    const kbTplPick = (p) => kbe(p[0], p[1])
+    const kbTplCat = (id) => KB_TPL_CATS.filter((c) => c.id === id)[0] || KB_TPL_CATS[0]
+    const kbTplIconTile = (tpl) => h('span', { className: 'kbtd-ico', style: { '--kbtd-c': kbTplCat(tpl.cat).color } }, Icon(tpl.icon, 20))
+    // The logos are the connectors catalogue's own (the Connections page's): one GET of what the host already serves, kept for the session. Without it
+    // (the connectors plugin is off, the host answers nothing) every app keeps its initial in a round tile.
+    let kbTplLogoCache = null
+    let kbTplLogoPending = null
+    const kbTplLogosLoad = () => {
+      if (kbTplLogoCache !== null) return Promise.resolve(kbTplLogoCache)
+      if (kbTplLogoPending === null) {
+        kbTplLogoPending = fetch(kbApiBase() + '/composio/catalog', { method: 'GET' })
+          .then((r) => (r.ok === true ? r.json() : []))
+          .then((list) => { kbTplLogoCache = kbTplLogos(list); return kbTplLogoCache })
+          .catch(() => { kbTplLogoPending = null; return {} })
+      }
+      return kbTplLogoPending
+    }
+    const kbTplApp = (name, logos) => {
+      const svg = logos !== null && logos !== undefined && typeof logos === 'object' ? logos[kbTplSlug(name)] : undefined
+      return typeof svg === 'string'
+        ? h('span', { key: name, className: 'kbtd-app logo', title: name, dangerouslySetInnerHTML: { __html: svg } })
+        : h('span', { key: name, className: 'kbtd-app', title: name }, String(name).charAt(0))
+    }
+    // The cover of a template, drawn in code (two inks on paper, halftone dots, a misregistered glyph): the repository holds no images.
+    const kbTplCover = (tpl) => {
+      const cat = kbTplCat(tpl.cat)
+      const inkB = { social: '#e0457b', prospecting: '#f2c230', support: '#2a6fdb' }[tpl.cat] || '#2a6fdb'
+      const n = tpl.id.split('').reduce((a, c) => (a * 31 + c.charCodeAt(0)) % 997, 7)
+      const x1 = 470 + (n % 90)
+      const r1 = 118 + (n % 26)
+      const rot = -12 + (n % 24)
+      const pid = 'kbtd-dots-' + tpl.id
+      return h('svg', { viewBox: '0 0 800 230', preserveAspectRatio: 'xMidYMid slice', className: 'kbtd-cover-svg', 'aria-hidden': 'true', focusable: 'false' },
+        h('defs', null, h('pattern', { id: pid, width: 11, height: 11, patternUnits: 'userSpaceOnUse' }, h('circle', { cx: 5.5, cy: 5.5, r: 2.4, fill: '#241f1a' }))),
+        h('rect', { width: 800, height: 230, fill: '#f3ecdd' }),
+        h('rect', { x: 0, y: 0, width: 800, height: 230, fill: 'url(#' + pid + ')', opacity: 0.08 }),
+        h('circle', { cx: x1, cy: 118, r: r1, fill: cat.color, style: { mixBlendMode: 'multiply' } }),
+        h('rect', { x: x1 - 150, y: 42, width: 250, height: 150, rx: 26, fill: inkB, transform: 'rotate(' + rot + ' ' + x1 + ' 118)', style: { mixBlendMode: 'multiply' } }),
+        h('circle', { cx: x1 + 70, cy: 150, r: 70, fill: 'url(#' + pid + ')', opacity: 0.55 }),
+        h('g', { transform: 'translate(' + (x1 - 52) + ' 66) scale(4.4)', color: '#241f1a', opacity: 0.9 }, tpl.icon !== undefined && LUCIDE[tpl.icon] !== undefined ? LUCIDE[tpl.icon].map((d, i) => h('path', { key: i, d: d, fill: 'none', stroke: '#241f1a', strokeWidth: 1.6, strokeLinecap: 'round', strokeLinejoin: 'round' })) : null))
+    }
+    const KbDiscover = (props) => {
+      const catPair = React.useState('all')
+      const selPair = React.useState(null)
+      const qPair = React.useState('')
+      const cat = catPair[0]
+      const sel = selPair[0]
+      const q = qPair[0]
+      const T = kbTplPick
+      const logoPair = React.useState(kbTplLogoCache)
+      const logos = logoPair[0]
+      React.useEffect(() => {
+        let alive = true
+        if (kbTplLogoCache === null) kbTplLogosLoad().then((m) => { if (alive === true) logoPair[1](m) })
+        return () => { alive = false }
+      }, [])
+      const tpl = sel !== null ? KB_TPLS.filter((x) => x.id === sel)[0] || null : null
+      if (tpl !== null) {
+        const c = kbTplCat(tpl.cat)
+        return h('div', { className: 'kbtd kbtd-detail', 'data-kb': 'tpl-detail' },
+          h('div', { className: 'kba-subhead' },
+            h('button', { type: 'button', className: 'kba-crumb', 'data-kb': 'tpl-back', onClick: () => selPair[1](null) }, kbt('tasks.tab.discover')),
+            h('span', null, '/'),
+            h('span', { style: { color: 'var(--dsw-alias-label-primary)' } }, T(tpl.title))),
+          h('div', { className: 'kbtd-cover' }, kbTplCover(tpl), h('span', { className: 'kbtd-ctag' }, T(c.title))),
+          h('div', { className: 'kbtd-dhead' },
+            kbTplIconTile(tpl),
+            h('div', { className: 'kbtd-dtitle' }, h('h1', null, T(tpl.title)), h('p', null, T(tpl.desc))),
+            h('button', { type: 'button', className: 'kb8-primary kba-new-btn', 'data-kb': 'tpl-use', onClick: () => props.onUse(tpl) }, kbt('tasks.tpl.use'))),
+          h('div', { className: 'kbtd-meta' },
+            h('span', { className: 'kbtd-cm' }, Icon('clock', 12), h('span', null, T(tpl.cadence))),
+            h('span', { className: 'kbtd-tgs' }, tpl.tags.map((x, i) => h('span', { key: i, className: 'kbtd-tg' }, T(x))))),
+          h('section', { className: 'kba-card kbtd-sec kbtd-integ', 'data-kb': 'tpl-apps' },
+            h('span', { className: 'kba-tabver mono' }, kbt('tasks.tpl.sec.apps')),
+            h('div', { className: 'kbtd-appchips' }, tpl.apps.map((a) => h('span', { key: a, className: 'kbtd-appchip' }, kbTplApp(a, logos), h('span', null, a))))),
+          h('div', { className: 'kbtd-grid' },
+            h('section', { className: 'kba-card kbtd-sec' },
+              h('span', { className: 'kba-tabver mono' }, kbt('tasks.tpl.sec.steps')),
+              tpl.steps.map((s, i) => h('div', { key: i, className: 'kbtd-step' },
+                h('span', { className: 'kba-cc cc-' + kbTplStepKind(s) }, String(i + 1)),
+                h('span', { className: 'kbtd-st' }, T(s[1])),
+                h('span', { className: 'kbtd-sk' }, kbt('tasks.tpl.kind.' + kbTplStepKind(s)))))),
+            h('section', { className: 'kba-card kbtd-sec' },
+              h('span', { className: 'kba-tabver mono' }, kbt('tasks.tpl.sec.ask')),
+              tpl.ask.map((x, i) => h('div', { key: i, className: 'kbtd-q' }, h('b', null, String(i + 1) + '. ' + T(x.q)), h('span', { className: 'kbtd-qo' }, x.o.map((o) => T(o)).join(' · '))))),
+            h('section', { className: 'kba-card kbtd-sec' },
+              h('span', { className: 'kba-tabver mono' }, kbt('tasks.tpl.sec.needs')),
+              h('ul', { className: 'kbtd-ul' }, tpl.needs.map((n, i) => h('li', { key: i }, T(n))))),
+            h('section', { className: 'kba-card kbtd-sec' },
+              h('span', { className: 'kba-tabver mono' }, kbt('tasks.tpl.sec.guard')),
+              h('ul', { className: 'kbtd-ul' }, tpl.guard.map((g, i) => h('li', { key: i }, T(g)))))),
+          h('div', { className: 'kba-hint' }, kbt('tasks.tpl.note')))
+      }
+      const shown = kbTplFilter(KB_TPLS, cat, q, T)
+      return h('div', { className: 'kbtd', 'data-kb': 'tpl-discover' },
+        h('section', { className: 'kbtd-how', 'aria-label': kbt('tasks.tpl.how.title') },
+          h('b', null, kbt('tasks.tpl.how.title')),
+          [1, 2, 3].map((i) => h('span', { key: i, className: 'kbtd-hs' }, h('span', { className: 'kbtd-hn' }, String(i)), kbt('tasks.tpl.how.' + i)))),
+        h('div', { className: 'kbtd-bar' },
+          h('span', { className: 'kbtd-chips' },
+            [{ id: 'all', title: [kbt('tasks.filter.all'), kbt('tasks.filter.all')] }].concat(KB_TPL_CATS).map((c) => h('button', { key: c.id, type: 'button', className: 'kbtd-chip' + (cat === c.id ? ' on' : ''), 'data-kb': 'tpl-cat-' + c.id, 'aria-pressed': cat === c.id ? 'true' : 'false', onClick: () => catPair[1](c.id) }, c.id === 'all' ? c.title[0] : T(c.title)))),
+          h('input', { className: 'kbtd-search', type: 'search', 'aria-label': kbt('tasks.tpl.search'), placeholder: kbt('tasks.tpl.search'), value: q, onChange: (e) => qPair[1](e.target === null || e.target === undefined ? '' : e.target.value) })),
+        (shown.length === 0
+          ? h('div', { className: 'kba-card' }, h('div', { className: 'kba-empty' }, kbt('tasks.tpl.empty')))
+          : h('div', { className: 'kbtd-gridcards' }, shown.map((t) => h('article', {
+            key: t.id, className: 'kbtd-card', tabIndex: 0, role: 'button', 'data-kb': 'tpl-card', 'data-tpl': t.id, 'aria-label': T(t.title),
+            onClick: () => selPair[1](t.id),
+            onKeyDown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selPair[1](t.id) } },
+          },
+            h('div', { className: 'kbtd-ch' }, kbTplIconTile(t), h('h3', null, T(t.title)),
+              h('button', { type: 'button', className: 'kba-btn kbtd-imp', 'data-kb': 'tpl-import', onClick: (e) => { e.stopPropagation(); props.onUse(t) } }, kbt('tasks.tpl.import'))),
+            h('p', { className: 'kbtd-cd' }, T(t.desc)),
+            h('div', { className: 'kbtd-cm' }, Icon('clock', 12), h('span', null, T(t.cadence))),
+            h('div', { className: 'kbtd-cf' },
+              h('span', { className: 'kbtd-tgs' }, h('span', { className: 'kbtd-tg' }, T(t.tags[0])), (t.tags.length > 1 ? h('span', { className: 'kbtd-tg' }, '+' + (t.tags.length - 1)) : null)),
+              h('span', { className: 'kbtd-apps' }, t.apps.map((a) => kbTplApp(a, logos)))))))))
+    }
+    // ── Cards: one card per automation, with what its runs say (the pure part is in the KB-AUTORUNS block) ────────────────────────────────
+    // Last run, success, runs, duration and tools are read from the history and from the journal of the NEWEST run of each automation (one
+    // journal per card). There is no token or budget figure: the journals hold no token count and nothing here spends money.
+    const KbAutoCards = (props) => {
+      const locale = kbBoardLocale()
+      const sumPair = React.useState(() => { const o = {}; kbRunsCache.forEach((v, k) => { o[k] = v }); return o })
+      const sums = sumPair[0]
+      const tasks = props.tasks
+      const lastIds = tasks.map((t) => { const r = kbRunsOf(t.history)[0]; return r !== undefined ? r.sessionId : null }).filter((x) => x !== null)
+      const idsKey = lastIds.join(',')
+      React.useEffect(() => kbRunsRead(lastIds, (add) => sumPair[1]((prev) => Object.assign({}, prev, add))), [idsKey])
+      const now = Date.now()
+      return h('div', { className: 'kbcc', 'data-kb': 'cards-view' },
+        h('div', { className: 'kbcc-grid' }, tasks.map((t) => {
+          const f = kbRunCardFigures(t.history, sums)
+          const attn = f.lastState === 'failed'
+          const fig = (k, v, bad) => h('div', { key: k, className: 'kbcc-fig' + (bad === true ? ' bad' : '') }, h('span', { className: 'kbcc-fk' }, kbt('tasks.cards.' + k)), h('span', { className: 'kbcc-fv' }, v))
+          return h('article', { key: t.id, className: 'kbcc-card' + (attn ? ' attn' : '') + (t.active === false ? ' off' : ''), tabIndex: 0, role: 'button', 'data-kb': 'auto-card', 'data-id': t.id, 'aria-label': t.name || t.id,
+            onClick: () => props.onOpen(t.id), onKeyDown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); props.onOpen(t.id) } } },
+            h('div', { className: 'kbcc-head' },
+              h('span', { className: 'kba-trigger-icon' }, Icon('zap', 14)),
+              h('div', { className: 'kbcc-title' }, h('b', null, t.name || t.id), h('span', null, kbScheduleLabel(t, true) + ' · ' + (t.approvals === 'auto' ? kbt('tasks.auto') : kbt('tasks.ask')))),
+              h('span', { role: 'switch', 'aria-checked': t.active !== false ? 'true' : 'false', 'aria-label': kbt('tasks.toggle.aria'), 'data-kb': 'card-toggle', className: 'kba-toggle' + (t.active !== false ? ' on' : ''), tabIndex: 0,
+                onKeyDown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); props.onToggle(t) } },
+                onClick: (e) => { e.stopPropagation(); props.onToggle(t) } }, h('span', { className: 'kba-toggle-knob' }))),
+            (attn || t.active === false ? h('div', { className: 'kbcc-badges' }, attn ? h('span', { className: 'kbcc-badge warn' }, kbt('tasks.cards.toreview')) : null, t.active === false ? h('span', { className: 'kbcc-badge' }, kbt('tasks.cards.paused')) : null) : null),
+            h('div', { className: 'kbcc-figs' },
+              fig('last', f.lastMs !== null ? (kbRunAgo(f.lastMs, now, locale) || kbWhenOf(f.lastAt)) : kbt('tasks.cards.never')),
+              fig('success', f.success === null ? '—' : f.success + ' %', f.success !== null && f.success < 70),
+              fig('runs', String(f.runs)),
+              fig('duration', kbRunFmtDur(f.lastDurationMs))),
+            h('div', { className: 'kbcc-tools' }, h('span', { className: 'kbcc-fk' }, kbt('tasks.cards.tools')),
+              (f.tools.length === 0
+                ? h('span', { className: 'dim' }, '—')
+                : h('span', { className: 'kbcc-tl' }, f.tools.slice(0, 4).map((k) => h('span', { key: k, className: 'kbcc-tool', title: k }, h('i', null, kbRunIcon(k)), k)), f.tools.length > 4 ? h('span', { className: 'kbcc-tool' }, '+' + (f.tools.length - 4)) : null))))
+        })),
+        h('div', { className: 'kba-hint' }, kbt('tasks.cards.hint')))
     }
     const kbBoardBones = (rows) => h('div', { className: 'kbbd-cols' }, [0, 1, 2, 3].map((c) => h('div', { key: c, className: 'kbbd-col' },
       h('div', { className: 'kbbd-colhead' }, kbBone('46%', 13)),
@@ -21492,10 +22076,8 @@ function renderFit(canvas, model, cam, opts){
       // vide la sélection au lieu d'empiler un pseudo-type inerte) et tout choix
       // de sens marque `dirTouched`, même contrat que Kybers et Projets.
       const tbAuto = useToolbarState('automations', { sort: 'name', viewMode: 'list' })
-      // Three views: Columns, Calendar, List (the old screen, still the default). The shared toolbar stored `cards`
-      // for this page before it had three: it reads as `list` and is rewritten once, silently.
+      // Four views: Columns, Calendar, Cards and List (the old screen, still the default).
       const boardView = kbBoardView(tbAuto[0].viewMode)
-      React.useEffect(() => { if (tbAuto[0].viewMode === 'cards') tbAuto[1]({ viewMode: 'list' }) }, [tbAuto[0].viewMode])
       const onAutoUpdate = (patch) => {
         let next = patch
         if (next !== null && typeof next === 'object' && Array.isArray(next.types) === true && next.types.indexOf('all') >= 0) next = Object.assign({}, next, { types: [] })
@@ -21529,6 +22111,10 @@ function renderFit(canvas, model, cam, opts){
       const runSelPair = React.useState({})
       const runSel = runSelPair[0]
       const setRunSel = runSelPair[1]
+      // Yours (the automations) or Discover (templates)
+      const sectionPair = React.useState('yours')
+      const section = sectionPair[0]
+      const setSection = sectionPair[1]
       // positions de flow déplacées par drag (persistées par automation)
       const flowPosPair = React.useState(null)
       const flowPos = flowPosPair[0]
@@ -21645,6 +22231,11 @@ function renderFit(canvas, model, cam, opts){
       // what opens when no chat can be started from here.
       const editInChat = (t) => {
         try { kbStartChatText(kbEditChatText(t, kbt, kbBoardLocale())) } catch (e) { setModal(t) }
+      }
+
+      // Discover: a template opens a NEW chat where the automation-creator skill asks the questions of the template.
+      const useTemplate = (tpl) => {
+        try { kbStartChatText(kbTplChatText(tpl, kbt, kbTplPick, kbTplLangName(kbLangResolve()))) } catch (e) { toast(kbt('tasks.tpl.nochat')) }
       }
 
       const list = kbTasksList(tasks)
@@ -21766,6 +22357,7 @@ function renderFit(canvas, model, cam, opts){
               h('h1', null, t.name || t.id),
               h('div', { className: 'kba-dmeta' }, kbScheduleLabel(t, true)
                 + ' \u00b7 ' + kbt('tasks.runson.local')
+                + ' \u00b7 ' + (() => { const c = kbWsChoice(t.workspaceHint, kbPinsSnapshots().items); return c.kind === 'ws' ? kbt('tasks.ws.meta').replace('{name}', () => c.name) : kbt(c.kind === 'gone' ? 'tasks.ws.meta.gone' : 'tasks.ws.meta.dedicated') })()
                 + ' \u00b7 ' + (t.approvals === 'auto' ? kbt('tasks.auto') : kbt('tasks.ask'))
                 + (t.nextRun ? ' \u00b7 ' + kbt('tasks.next').replace('{when}', kbWhenOf(t.nextRun)) : ''))),
             h('span', { role: 'switch', 'aria-checked': (t.active !== false) ? 'true' : 'false', 'aria-label': kbt('tasks.toggle.aria'), className: 'kba-toggle' + (t.active !== false ? ' on' : ''), tabIndex: 0, onKeyDown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); act('toggle', t.id, { active: t.active === false }) } }, onClick: () => act('toggle', t.id, { active: t.active === false }) },
@@ -21843,6 +22435,7 @@ function renderFit(canvas, model, cam, opts){
                 onJournal: () => setTab('journal'),
                 onSessions: () => setTab('sessions'),
                 approvalLabel: t.approvals === 'auto' ? kbt('tasks.auto') : kbt('tasks.ask'),
+                taskId: t.id,
                 emptyText: kbt('tasks.sessions.empty').replace('{trigger}', kbScheduleLabel(t)),
               })
               : h('div', { className: 'kba-flowwrap' },
@@ -21895,7 +22488,7 @@ function renderFit(canvas, model, cam, opts){
                     }
                     const wires = gr.edges.map((e) => {
                       const a = effective[e[0]]; const b = effective[e[1]]
-                      const x1 = a.x + NW2; const y1 = a.y + 25; const x2 = b.x; const y2 = b.y + 25
+                      const x1 = a.x + NW2; const y1 = a.y + 28; const x2 = b.x; const y2 = b.y + 28
                       // si le nœud cible est à gauche (zigzag retour), courbe par le bas
                       if (x2 < x1) {
                         const mx = (x1 + x2) / 2
@@ -21903,12 +22496,29 @@ function renderFit(canvas, model, cam, opts){
                       }
                       return 'M' + x1 + ' ' + y1 + ' C' + (x1 + 40) + ' ' + y1 + ',' + (x2 - 40) + ' ' + y2 + ',' + x2 + ' ' + y2
                     }).join(' ')
+                    const panelEl = node !== null ? h('div', { className: 'kba-nodecard', 'data-kb': 'flow-node-panel' },
+                            h('div', { className: 'kba-nc-head' },
+                              h('span', { className: 'kba-cc cc-' + node.c }, node.ic),
+                              h('span', { className: 'kba-tabver mono' }, kbt('tasks.flow.kind.' + node.c)),
+                              (node.guard === true ? h('span', { className: 'kba-nc-guard' }, kbt('tasks.flow.guard')) : null),
+                              h('span', { style: { flex: 1 } }),
+                              h('button', { type: 'button', className: 'kba-nc-x', 'aria-label': kbt('tasks.flow.close'), onClick: () => setNodeSel(null) }, '\u2715')),
+                            h('span', { className: 't' }, node.l),
+                            h('span', { className: 's' }, node.s),
+                            (node.full !== '' && node.how !== 'trg' ? h('div', { className: 'kba-nc-sec' }, h('span', { className: 'k' }, kbt('tasks.flow.what')), h('span', { className: 'v' }, node.full)) : null),
+                            h('div', { className: 'kba-nc-sec' }, h('span', { className: 'k' }, kbt('tasks.flow.how')), h('span', { className: 'v' }, kbt('tasks.flow.how.' + node.how)),
+                              (node.how === 'ai' || node.how === 'act' ? h('code', { className: 'kba-nc-code' }, (node.how === 'ai' ? 'ai.run' : 'tools.call') + '(step ' + node.ic + ')') : null)),
+                            h('div', { className: 'kba-nc-foot' },
+                              h('button', { type: 'button', className: 'kba-btn', 'data-kb': 'flow-prev', disabled: nodeSel === 0, onClick: () => setNodeSel(Math.max(0, nodeSel - 1)) }, '\u2039 ' + kbt('tasks.flow.prev')),
+                              h('button', { type: 'button', className: 'kba-btn', 'data-kb': 'flow-next', disabled: nodeSel >= gr.nodes.length - 1, onClick: () => setNodeSel(Math.min(gr.nodes.length - 1, nodeSel + 1)) }, kbt('tasks.flow.next') + ' \u203a')),
+                            h('button', { type: 'button', className: 'kba-btn', style: { alignSelf: 'flex-start' }, onClick: () => { setView('text'); setNodeSel(null) } }, kbt('tasks.edittext'))) : null
                     return h('div', { className: 'kba-canvaswrap' },
                       h('div', { className: 'kba-derived' },
                         h('span', { className: 'kba-kdot ok' }),
                         h('span', { style: { flex: 1 } }, kbt('tasks.flow.readonly') + ' · ' + kbt('tasks.flow.drag')),
                         h('span', { className: 'mono', style: { fontSize: 11.5 } }, effective.length + ' ' + kbt('tasks.flow.nodes')),
                         h('button', { type: 'button', className: 'kba-btn', 'data-kb': 'flow-reset', onClick: resetLayout, style: { height: 26, padding: '0 10px', fontSize: 11.5 } }, kbt('tasks.flow.reset'))),
+                      h('div', { className: 'kba-flowrow' },
                       h('div', { className: 'kba-canvas' },
                         h('div', { className: 'kba-zoom', style: { width: canvasW, height: canvasH } },
                           h('svg', { width: canvasW, height: canvasH, style: { position: 'absolute', left: 0, top: 0 }, fill: 'none' },
@@ -21926,12 +22536,8 @@ function renderFit(canvas, model, cam, opts){
                             'aria-label': n.l
                           },
                             h('span', { className: 'kba-cc cc-' + n.c }, n.ic),
-                            h('span', { className: 'kba-ndn' }, h('span', { style: { fontWeight: 600, display: 'block' } }, n.l), h('small', null, n.s)))),
-                          (node !== null ? h('div', { className: 'kba-nodecard' },
-                            h('span', { className: 'kba-tabver mono' }, node.c === 'trg' ? 'Trigger' : node.c === 'ai' ? 'AI' : node.c === 'gry' ? 'Flow' : 'Action'),
-                            h('span', { className: 't' }, node.l),
-                            h('span', { className: 's' }, node.s),
-                            h('button', { type: 'button', className: 'kba-btn', style: { alignSelf: 'flex-start', marginTop: 4 }, onClick: () => { setView('text'); setNodeSel(null) } }, kbt('tasks.edittext'))) : null))))
+                            h('span', { className: 'kba-ndn' }, h('span', { style: { fontWeight: 600 } }, n.l), h('small', null, n.s)))),
+                          )), panelEl))
                   })()
                     : h('div', { style: { display: 'flex', flexDirection: 'column', gap: 10, flex: 1, minHeight: 0 } },
                       h('div', { className: 'kba-derived' },
@@ -22072,7 +22678,9 @@ function renderFit(canvas, model, cam, opts){
       // Action primaire du gabarit : `trailing` de la barre quand elle est là,
       // `.kb6-headacts` sinon (liste vide → pas de barre) — même position.
       const boardEl = boardView === 'list' ? null : h(KbBoardBoundary, { key: boardView, onList: () => tbAuto[1]({ viewMode: 'list' }) },
-        h(KbAutoBoard, {
+        boardView === 'cards'
+          ? h(KbAutoCards, { tasks: filtered.map((a) => a._t), onOpen: (id) => { setDetail(id); setTab('sessions'); setNodeSel(null) }, onToggle: (t) => act('toggle', t.id, { active: t.active === false }) })
+          : h(KbAutoBoard, {
           view: boardView, tasks: filtered.map((a) => a._t), rawTasks: tasks, loadErr: loadErr,
           onRetry: () => { setLoadErr(null); refresh() },
           act: act, toast: toast,
@@ -22091,13 +22699,13 @@ function renderFit(canvas, model, cam, opts){
               h('h1', { className: 'kb6-title' }, kbt('tasks.title')),
               h(KbHelpButton, { open: guide === true, dataKb: 'automation-help', title: kbt('tasks.help'), onClick: () => setGuide(guide === false) })),
             h('p', { className: 'kba-subtitle' }, kbt('tasks.subtitle'))),
-          (list.length > 0
+          (list.length > 0 && section === 'yours'
             ? h(KbToolbar, {
               state: tbAutoView,
               onUpdate: onAutoUpdate,
-              views: ['columns', 'calendar', 'list'],
+              views: ['columns', 'calendar', 'cards', 'list'],
               viewLabels: true,
-              hideSort: boardView !== 'list',
+              hideSort: boardView === 'columns' || boardView === 'calendar',
               searchPlaceholder: kbt('kbui.search.task'),
               sortOptions: [{ id: 'name', label: kbt('kbui.sort.az') }, { id: 'sessions', label: kbt('tasks.sort.mostsessions') }, { id: 'recent', label: kbt('tasks.sort.recent') }],
               facets: { type: { options: [
@@ -22112,13 +22720,15 @@ function renderFit(canvas, model, cam, opts){
         // Aide ( ? ) : l'accueil onboarding rouvre AU-DESSUS de la liste quand
         // des automations existent déjà (quand la liste est vide, il est déjà
         // à l'écran).
-        (guide === true && list.length > 0 ? kbaOnboard(true) : null),
+        (guide === true && list.length > 0 && section === 'yours' ? kbaOnboard(true) : null),
+        h('div', { className: 'kba-sub', role: 'tablist', 'data-kb': 'automations-sections' },
+          ['yours', 'discover'].map((id) => h('button', { key: id, type: 'button', role: 'tab', 'aria-selected': section === id ? 'true' : 'false', className: section === id ? 'on' : '', 'data-kb': 'section-' + id, onClick: () => setSection(id) }, kbt('tasks.tab.' + id)))),
         // Barre unifiée (comme Projets et Kybers) : les anciens chips
         // Toutes / Actives / Attention requise deviennent la facette `type`
         // (compteurs sur la liste complète), Favoris devient l'étoile de la
         // barre. Trois vues (Colonnes, Calendrier, Liste) : la Liste est l'écran d'origine, inchangé ; les deux autres
         // sont le tableau (KbAutoBoard) et partagent la recherche, les facettes et les favoris de la barre.
-        (kbListState(tasks, loadErr) === 'loading' ? (boardView === 'list' ? kbaSkeleton() : kbBoardSkeleton(boardView)) : kbListState(tasks, loadErr) === 'error' ? kbaLoadError() : (list.length === 0 || filtered.length === 0)
+        (section === 'discover' ? h(KbDiscover, { onUse: useTemplate }) : kbListState(tasks, loadErr) === 'loading' ? (boardView === 'list' ? kbaSkeleton() : kbBoardSkeleton(boardView)) : kbListState(tasks, loadErr) === 'error' ? kbaLoadError() : (list.length === 0 || filtered.length === 0)
           ? (list.length === 0
             ? kbaOnboard(false)
             : h('div', { className: 'kba-card' }, h('div', { className: 'kba-empty' }, kbt('tb.empty.title'))))
@@ -30069,7 +30679,7 @@ body[data-ds-dark-theme] .kb8-iconbtn.on.col{border-color:var(--kb8-pgd);color:v
 .kb-task-modal h3{margin:0;font-size:16px;color:var(--dsw-alias-label-primary);display:flex;align-items:center;gap:9px}
 .kb-task-f{display:flex;flex-direction:column;gap:6px}
 .kb-task-f>label{font-family:ui-monospace,monospace;font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--dsw-alias-label-secondary)}
-.kb-task-f input[type=text],.kb-task-f textarea,.kb-task-f input[type=datetime-local],.kb-task-f input[type=time]{border:1px solid var(--dsw-alias-border-l1);border-radius:10px;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);font:inherit;font-size:13px;padding:9px 11px;outline:none;width:100%;box-sizing:border-box}
+.kb-task-f input[type=text],.kb-task-f textarea,.kb-task-f select,.kb-task-f input[type=datetime-local],.kb-task-f input[type=time]{border:1px solid var(--dsw-alias-border-l1);border-radius:10px;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);font:inherit;font-size:13px;padding:9px 11px;outline:none;width:100%;box-sizing:border-box}
 .kb-task-f textarea{min-height:84px;resize:vertical}
 .kb-task-f input[type=time]{width:132px}
 .kb-task-f input:focus,.kb-task-f textarea:focus{border-color:var(--dsw-alias-brand-primary)}
@@ -30335,6 +30945,83 @@ button.kbbd-chip:hover{background:var(--dsw-alias-interactive-bg-hover,#f0f0f0)}
 .kba-tabs .kba-tabver{margin-left:auto;padding-right:4px}
 .kba-body{flex:1;min-height:0;display:flex;flex-direction:column}
 .kba-sesscroll{flex:1;min-height:0;overflow-y:auto;padding-bottom:16px}
+.kba-sub{align-self:flex-start;display:inline-flex;align-items:center;gap:2px;padding:4px;margin:0 0 14px;border-radius:999px;background:var(--dsw-alias-bg-layer-2);border:1px solid var(--dsw-alias-border-l1)}
+.kba-sub button{display:inline-flex;align-items:center;gap:8px;height:34px;border:0;border-radius:999px;padding:0 16px;background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.kba-sub button:hover{color:var(--dsw-alias-label-primary)}
+.kba-sub button.on{background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);box-shadow:0 1px 3px rgba(20,20,19,.14)}
+.kbtd{display:flex;flex-direction:column;gap:14px;min-width:0}
+.kbtd-how{display:flex;align-items:center;gap:18px;flex-wrap:wrap;padding:12px 16px;border:1px solid var(--dsw-alias-border-l1);border-radius:14px;background:var(--dsw-alias-bg-layer-2);font-size:13px}
+.kbtd-hs{display:inline-flex;align-items:center;gap:8px;color:var(--dsw-alias-label-secondary)}
+.kbtd-hn{width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;background:var(--dsw-alias-label-primary);color:var(--dsw-alias-label-primary-inverted,#fff)}
+.kbtd-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:space-between}
+.kbtd-chips{display:inline-flex;gap:8px;flex-wrap:wrap}
+.kbtd-chip{border:1px solid var(--dsw-alias-border-l2);background:transparent;color:var(--dsw-alias-label-secondary);border-radius:999px;padding:6px 14px;font:inherit;font-size:13px;cursor:pointer}
+.kbtd-chip.on{background:var(--dsw-alias-label-primary);color:var(--dsw-alias-label-primary-inverted,#fff);border-color:transparent}
+.kbtd-search{border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);border-radius:10px;padding:7px 12px;font:inherit;font-size:13px;min-width:200px}
+.kbtd-gridcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.kbtd-card{display:flex;flex-direction:column;gap:10px;padding:16px;border:1px solid var(--dsw-alias-border-l2);border-radius:16px;background:var(--dsw-alias-bg-layer-2);cursor:pointer;min-width:0}
+.kbtd-card:hover,.kbtd-card:focus-visible{border-color:var(--dsw-alias-border-l3);outline:none}
+.kbtd-ch{display:flex;align-items:center;gap:10px}
+.kbtd-ch h3{margin:0;flex:1;min-width:0;font-size:15px;font-weight:600;line-height:1.25;overflow-wrap:anywhere}
+.kbtd-ico{flex:none;width:38px;height:38px;border-radius:11px;display:inline-flex;align-items:center;justify-content:center;color:var(--kbtd-c);background:color-mix(in srgb,var(--kbtd-c) 16%,transparent)}
+.kbtd-imp{opacity:0;transition:opacity .12s;height:28px;padding:0 12px;font-size:12px}
+.kbtd-card:hover .kbtd-imp,.kbtd-card:focus-within .kbtd-imp{opacity:1}
+@media (hover:none){.kbtd-imp{opacity:1}}
+.kbtd-cd{margin:0;font-size:13px;line-height:1.45;color:var(--dsw-alias-label-secondary);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.kbtd-cm{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--dsw-alias-label-tertiary)}
+.kbtd-cf{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:auto}
+.kbtd-tgs{display:inline-flex;gap:6px;flex-wrap:wrap}
+.kbtd-tg{font-size:11.5px;padding:2px 9px;border-radius:999px;border:1px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-label-secondary)}
+.kbtd-apps{display:inline-flex}
+.kbtd-app{width:26px;height:26px;margin-left:-6px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:var(--dsw-alias-label-secondary);background:var(--dsw-alias-bg-layer-1);border:2px solid var(--dsw-alias-bg-layer-2);box-shadow:0 0 0 1px var(--dsw-alias-border-l2)}
+.kbtd-apps .kbtd-app:first-child{margin-left:0}
+.kbtd-app.logo{background:#fff}
+.kbtd-app svg{width:66%;height:66%;display:block}
+.kbtd-integ{padding:12px 16px}
+.kbtd-appchips{display:flex;flex-wrap:wrap;gap:8px}
+.kbtd-appchip{display:inline-flex;align-items:center;gap:8px;padding:4px 12px 4px 4px;border:1px solid var(--dsw-alias-border-l2);border-radius:999px;font-size:13px}
+.kbtd-appchip .kbtd-app{margin-left:0;width:28px;height:28px;box-shadow:none;border:1px solid var(--dsw-alias-border-l1)}
+.kbtd-detail{max-width:980px}
+.kbtd-cover{position:relative;border-radius:18px;overflow:hidden;height:190px;background:#f3ecdd;border:1px solid var(--dsw-alias-border-l1)}
+.kbtd-cover-svg{display:block;width:100%;height:100%}
+.kbtd-ctag{position:absolute;left:14px;top:12px;font-size:11.5px;font-weight:600;padding:3px 10px;border-radius:999px;background:#fff9;color:#241f1a;backdrop-filter:blur(4px)}
+.kbtd-dhead{display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap}
+.kbtd-dtitle{flex:1;min-width:240px}
+.kbtd-dtitle h1{margin:0;font-size:22px;line-height:1.2}
+.kbtd-dtitle p{margin:6px 0 0;color:var(--dsw-alias-label-secondary);font-size:14px;line-height:1.5}
+.kbtd-meta{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.kbtd-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:start}
+@media (max-width:900px){.kbtd-grid{grid-template-columns:1fr}}
+.kbtd-sec{padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.kbtd-step{display:flex;align-items:flex-start;gap:10px;font-size:13px;line-height:1.45;border-top:1px solid var(--dsw-alias-border-l1);padding-top:8px}
+.kbtd-st{flex:1;min-width:0;overflow-wrap:anywhere}
+.kbtd-sk{font-size:11px;color:var(--dsw-alias-label-tertiary)}
+.kbtd-q{display:flex;flex-direction:column;gap:2px;font-size:13px;border-top:1px solid var(--dsw-alias-border-l1);padding-top:8px}
+.kbtd-qo{color:var(--dsw-alias-label-secondary);font-size:12.5px;line-height:1.45}
+.kbtd-ul{margin:0;padding-left:18px;font-size:13px;line-height:1.5;display:flex;flex-direction:column;gap:4px}
+.kbcc{display:flex;flex-direction:column;gap:12px;min-width:0}
+.kbcc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}
+.kbcc-card{display:flex;flex-direction:column;gap:12px;padding:16px;border:1px solid var(--dsw-alias-border-l2);border-radius:16px;background:var(--dsw-alias-bg-layer-2);cursor:pointer;min-width:0}
+.kbcc-card:hover,.kbcc-card:focus-visible{border-color:var(--dsw-alias-border-l3);outline:none}
+.kbcc-card.attn{border-color:var(--dsw-alias-state-warn-primary)}
+.kbcc-card.off .kbcc-title b{color:var(--dsw-alias-label-secondary)}
+.kbcc-head{display:flex;align-items:center;gap:10px}
+.kbcc-title{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.kbcc-title b{font-size:15px;font-weight:600;line-height:1.25;overflow-wrap:anywhere}
+.kbcc-title span{font-size:12px;color:var(--dsw-alias-label-tertiary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kbcc-badges{display:flex;gap:6px;flex-wrap:wrap}
+.kbcc-badge{font-size:11.5px;font-weight:600;padding:2px 9px;border-radius:999px;border:1px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-label-secondary)}
+.kbcc-badge.warn{border-color:var(--dsw-alias-state-warn-primary);color:var(--dsw-alias-state-warn-primary)}
+.kbcc-figs{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr) minmax(0,.8fr) minmax(0,1fr);gap:8px}
+.kbcc-fig{display:flex;flex-direction:column;gap:2px;min-width:0}
+.kbcc-fk{font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--dsw-alias-label-tertiary)}
+.kbcc-fv{font-size:14px;font-weight:600;overflow-wrap:anywhere}
+.kbcc-fig.bad .kbcc-fv{color:var(--dsw-alias-state-error-primary)}
+.kbcc-tools{display:flex;align-items:center;gap:10px;border-top:1px solid var(--dsw-alias-border-l1);padding-top:10px;min-width:0}
+.kbcc-tl{display:inline-flex;gap:6px;flex-wrap:wrap}
+.kbcc-tool{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;padding:2px 8px;border-radius:8px;border:1px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-label-secondary)}
+.kbcc-tool i{font-style:normal;font-family:ui-monospace,Menlo,monospace;font-size:10.5px;color:var(--dsw-alias-label-tertiary)}
+@media (max-width:600px){.kbcc-figs{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .kbrn-stats{display:flex;gap:12px;flex-wrap:wrap;margin:0 0 12px}
 .kbrn-stat{display:flex;flex-direction:column;gap:2px;padding:10px 14px;border:1px solid var(--dsw-alias-border-l2);border-radius:12px;min-width:110px}
 .kbrn-stk{font-size:11px;color:var(--dsw-alias-label-tertiary);text-transform:uppercase;letter-spacing:.4px}
@@ -30402,6 +31089,7 @@ button.kbbd-chip:hover{background:var(--dsw-alias-interactive-bg-hover,#f0f0f0)}
 .kbrn-mono{font-family:var(--ds-font-family-code,ui-monospace,monospace)}
 .kbrn-step{display:flex;align-items:center;gap:10px;font-size:13px;padding:6px 0;border-top:1px solid var(--dsw-alias-border-l1)}
 .kbrn-sl{flex:1;min-width:0;overflow-wrap:anywhere}
+.kbrn-lesson{display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:13px}
 .kba-hint{font-size:12.5px;color:var(--dsw-alias-label-tertiary);margin-top:10px}
 /* workflow : Text / Flow / Code */
 .kba-flowwrap{flex:1;min-height:0;display:flex;flex-direction:column;gap:10px}
@@ -30414,16 +31102,29 @@ button.kbbd-chip:hover{background:var(--dsw-alias-interactive-bg-hover,#f0f0f0)}
 .kba-canvaswrap{flex:1;min-height:220px;display:flex;flex-direction:column}
 .kba-canvas{flex:1;min-height:200px;position:relative;overflow:auto;border-radius:12px;border:1px solid var(--dsw-alias-border-l1);background-color:var(--dsw-alias-bg-base);background-image:radial-gradient(color-mix(in srgb,var(--dsw-alias-label-primary) 13%,transparent) 1px,transparent 1px);background-size:20px 20px}
 .kba-zoom{position:relative;margin:12px 0 24px 12px}
-.kba-node{position:absolute;width:208px;height:50px;touch-action:none;user-select:none;border-radius:10px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);display:flex;align-items:center;gap:8px;padding:0 9px;text-align:left;font:inherit;font-size:12px;color:var(--dsw-alias-label-primary);cursor:pointer}
+.kba-node{position:absolute;width:208px;height:56px;overflow:hidden;touch-action:none;user-select:none;border-radius:10px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);display:flex;align-items:center;gap:8px;padding:0 9px;text-align:left;font:inherit;font-size:12px;color:var(--dsw-alias-label-primary);cursor:pointer}
 .kba-node:hover{border-color:var(--dsw-alias-label-secondary)}
 .kba-node.sel{border-color:var(--dsw-alias-brand-primary);background:color-mix(in srgb,var(--dsw-alias-brand-primary) 12%,var(--dsw-alias-bg-layer-2))}
 .kba-cc{width:24px;height:24px;border-radius:7px;display:flex;align-items:center;justify-content:center;flex:none;font-family:ui-monospace,Menlo,monospace;font-size:10.5px;font-weight:600;color:var(--dsw-alias-label-primary-inverted,var(--dsw-alias-label-primary))}
 .cc-trg{background:var(--dsw-alias-state-warn-primary)}.cc-log{background:var(--dsw-alias-label-primary-bluish,var(--dsw-alias-state-business-primary))}.cc-ai{background:var(--dsw-alias-state-business-primary)}.cc-act{background:var(--dsw-alias-state-success-primary)}.cc-hum{background:var(--dsw-alias-state-error-primary)}.cc-gry{background:var(--dsw-alias-state-idle-primary)}
 .kba-ndn{line-height:1.2;min-width:0;flex:1}
-.kba-ndn small{display:block;font-size:10.5px;color:var(--dsw-alias-label-secondary);font-weight:400}
-.kba-nodecard{position:sticky;right:12px;bottom:12px;margin:0 12px 12px auto;width:270px;padding:12px;border-radius:12px;background:var(--dsw-alias-bg-layer-2);border:1px solid var(--dsw-alias-border-l2);box-shadow:var(--dsw-elevation-prominent,0 10px 28px rgba(0,0,0,.18));display:flex;flex-direction:column;gap:5px}
+.kba-ndn>span{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+.kba-ndn small{display:block;font-size:10.5px;color:var(--dsw-alias-label-secondary);font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kba-nodecard{flex:none;align-self:flex-start;width:320px;padding:12px;border-radius:12px;background:var(--dsw-alias-bg-layer-2);border:1px solid var(--dsw-alias-border-l2);box-shadow:var(--dsw-elevation-prominent,0 10px 28px rgba(0,0,0,.18));display:flex;flex-direction:column;gap:5px}
 .kba-nodecard .t{font-size:13.5px;font-weight:600;color:var(--dsw-alias-label-primary)}
 .kba-nodecard .s{font-size:12px;color:var(--dsw-alias-label-secondary);line-height:1.45}
+.kba-flowrow{display:flex;gap:12px;flex:1;min-height:0;align-items:stretch}
+.kba-flowrow .kba-canvas{flex:1;min-width:0}
+.kba-nodecard{gap:8px}
+@media (max-width:900px){.kba-flowrow{flex-direction:column}.kba-nodecard{width:auto;align-self:stretch}}
+.kba-nc-head{display:flex;align-items:center;gap:8px}
+.kba-nc-guard{font-size:10.5px;font-weight:600;padding:1px 7px;border-radius:8px;border:1px solid var(--dsw-alias-state-warn-primary);color:var(--dsw-alias-state-warn-primary)}
+.kba-nc-x{border:0;background:transparent;cursor:pointer;color:var(--dsw-alias-label-secondary);font:inherit;padding:2px 4px}
+.kba-nc-sec{display:flex;flex-direction:column;gap:3px;font-size:12px;border-top:1px solid var(--dsw-alias-border-l1);padding-top:8px}
+.kba-nc-sec .k{font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--dsw-alias-label-tertiary)}
+.kba-nc-sec .v{color:var(--dsw-alias-label-primary);line-height:1.45;overflow-wrap:anywhere;white-space:pre-wrap}
+.kba-nc-code{font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:var(--dsw-alias-label-secondary)}
+.kba-nc-foot{display:flex;gap:8px}
 .kba-code{flex:1;min-height:0;overflow:auto;padding:13px 0;border-radius:12px;background:var(--dsw-alias-bg-base);border:1px solid var(--dsw-alias-border-l1)}
 .kba-codein{font-family:ui-monospace,Menlo,monospace;font-size:12.5px;line-height:19px;white-space:pre;padding-right:18px}
 .kba-ln{display:flex}
@@ -32022,27 +32723,32 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
           h('button', { type: 'button', className: 'kbac-link-btn', onClick: () => { kbOpenSettingsSection(['theme']) } }, kbt('kbac.appearance.openTheme'))))
     }
     // Settings > Automations: where automations live, and two switches (the rules are in automation-settings.mjs).
+    // How many runs in a row without a failure make an automation stable (the same choices as automation-settings.mjs).
+    const KB_STABLE_CHOICES = [3, 5, 10, 20]
+    const kbStableChoice = (n) => (KB_STABLE_CHOICES.indexOf(n) >= 0 ? n : 5)
     const KbAutomationsSettings = () => {
-      const pair = React.useState({ loaded: false, showNativeTasks: false, paused: false, error: false, unavailable: false })
+      const pair = React.useState({ loaded: false, showNativeTasks: false, paused: false, autoSkill: false, stableAfter: 5, error: false, unavailable: false })
       const st = pair[0]
       React.useEffect(() => {
         let alive = true
         // A host that predates the route answers 404: the page says so instead of offering switches that cannot save.
         fetch('/kybernos/automation-settings', { cache: 'no-store', credentials: 'same-origin' }).then((r) => (r.ok ? r.json() : null)).then((j) => {
           if (alive !== true) return
-          if (j !== null && typeof j === 'object' && j.ok === true) pair[1]({ loaded: true, showNativeTasks: j.showNativeTasks === true, paused: j.paused === true, error: false, unavailable: false })
+          if (j !== null && typeof j === 'object' && j.ok === true) pair[1]({ loaded: true, showNativeTasks: j.showNativeTasks === true, paused: j.paused === true, autoSkill: j.autoSkill === true, stableAfter: kbStableChoice(j.stableAfter), error: false, unavailable: false })
           else pair[1]((x) => Object.assign({}, x, { loaded: true, unavailable: true }))
         }).catch(() => { if (alive === true) pair[1]((x) => Object.assign({}, x, { loaded: true, unavailable: true })) })
         return () => { alive = false }
       }, [])
       const change = (key, value) => {
+        const before = st[key]
         pair[1]((x) => Object.assign({}, x, { [key]: value, error: false }))
         fetch('/kybernos/automation-settings', { method: 'POST', headers: { 'content-type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ [key]: value }) })
           .then((r) => r.json().catch(() => null)).then((j) => {
-            if (j === null || j.ok !== true) { pair[1]((x) => Object.assign({}, x, { [key]: !value, error: true })); return }
-            pair[1]({ loaded: true, showNativeTasks: j.showNativeTasks === true, paused: j.paused === true, error: false })
-            try { window.dispatchEvent(new CustomEvent('kybernos:automation-settings', { detail: { showNativeTasks: j.showNativeTasks === true, paused: j.paused === true } })) } catch (e) { /* no window events here */ }
-          }).catch(() => { pair[1]((x) => Object.assign({}, x, { [key]: !value, error: true })) })
+            if (j === null || j.ok !== true) { pair[1]((x) => Object.assign({}, x, { [key]: before, error: true })); return }
+            const next = { showNativeTasks: j.showNativeTasks === true, paused: j.paused === true, autoSkill: j.autoSkill === true, stableAfter: kbStableChoice(j.stableAfter) }
+            pair[1](Object.assign({ loaded: true, error: false }, next))
+            try { window.dispatchEvent(new CustomEvent('kybernos:automation-settings', { detail: next })) } catch (e) { /* no window events here */ }
+          }).catch(() => { pair[1]((x) => Object.assign({}, x, { [key]: before, error: true })) })
       }
       const sw = (key, labelKey, descKey) => h('div', { className: 'kbac-row', key, 'data-kb': 'automation-setting-' + key },
         h('div', { className: 'kbac-row-txt' }, h('span', { className: 'kbac-row-l' }, kbt(labelKey)), h('span', { className: 'kbac-row-d' }, kbt(descKey))),
@@ -32058,6 +32764,11 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
         h('div', { className: 'kbac-list' },
           sw('paused', 'kbauto.set.paused', 'kbauto.set.paused.d'),
           sw('showNativeTasks', 'kbauto.set.native', 'kbauto.set.native.d'),
+          sw('autoSkill', 'kbauto.set.skill', 'kbauto.set.skill.d'),
+          h('div', { className: 'kbac-row', key: 'stableAfter', 'data-kb': 'automation-setting-stableAfter' },
+            h('div', { className: 'kbac-row-txt' }, h('span', { className: 'kbac-row-l' }, kbt('kbauto.set.stable')), h('span', { className: 'kbac-row-d' }, kbt('kbauto.set.stable.d'))),
+            h('span', { className: 'kbac-seg', role: 'group', 'aria-label': kbt('kbauto.set.stable') }, KB_STABLE_CHOICES.map((n) => h('button', { key: n, type: 'button', className: 'kbac-segb' + (st.stableAfter === n ? ' on' : ''), 'aria-pressed': st.stableAfter === n ? 'true' : 'false', 'data-kb': 'stable-' + n,
+              onClick: () => { if (st.unavailable !== true && st.stableAfter !== n) change('stableAfter', n) } }, String(n))))),
           h('div', { className: 'kbac-row', key: 'where' }, h('div', { className: 'kbac-row-txt' }, h('span', { className: 'kbac-row-d' }, kbt('kbauto.set.where'))))),
         st.unavailable === true ? h('p', { className: 'kb8-sub', role: 'status' }, kbt('kbauto.set.unavailable')) : null,
         st.error === true ? h('p', { className: 'kb8-sub', role: 'alert' }, kbt('kbauto.set.error')) : null)
@@ -32078,6 +32789,9 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
 .kbac-row-d{font-size:13px;line-height:1.45;color:var(--dsw-alias-label-secondary)}
 .kbac-btn{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:32px;padding:0 12px;border-radius:10px;border:1px solid var(--dsw-alias-border-l2);background:transparent;color:var(--dsw-alias-label-primary);font:inherit;font-size:13px;text-decoration:none;cursor:pointer;white-space:nowrap}
 .kbac-btn:hover{background:var(--dsw-alias-interactive-bg-hover)}
+.kbac-seg{display:inline-flex;gap:2px;padding:3px;border-radius:999px;background:var(--dsw-alias-bg-layer-2);border:1px solid var(--dsw-alias-border-l1);flex:none}
+.kbac-segb{border:0;background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:13px;font-weight:600;min-width:34px;height:28px;border-radius:999px;cursor:pointer}
+.kbac-segb.on{background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);box-shadow:0 1px 3px rgba(20,20,19,.14)}
 .kbac-hint{margin:0;font-size:13px;line-height:1.5;color:var(--dsw-alias-label-secondary)}
 .kbac-themes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
 .kbac-theme{display:flex;flex-direction:column;gap:12px;padding:12px;border-radius:14px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);font:inherit;text-align:start;cursor:pointer}
