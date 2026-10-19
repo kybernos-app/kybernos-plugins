@@ -462,6 +462,8 @@ process.env.KYBERNOS_DOCUMENTS_DIR = join(stateDir, 'Documents')
 const statePath = join(stateDir, 'kybernos-cloud.json')
 process.env.KYBERNOS_CLOUD_API = 'http://127.0.0.1:' + port
 process.env.KYBERNOS_CLOUD_STATE = statePath
+// The active server is the test's own, never the registry of the machine that runs the test (a person's DSH on another server would send this run's calls there).
+process.env.KYBERNOS_SERVERS_FILE = join(stateDir, 'servers.json')
 // Kybers locaux de synthèse : la poussée des leçons doit être reproductible et
 // ne jamais lire le vrai ~/.dsh/kybers de la machine qui lance le test.
 const kybersFixture = mkdtempSync(join(tmpdir(), 'kybernos-cloud-kybers-'))
@@ -1514,6 +1516,7 @@ try {
           // What cannot change anything, and a session this route did not make, pass without a question.
           assert.deepEqual(await run('read', { file_path: '/x' }), { kind: 'allow' })
           assert.deepEqual(await run('memory_search', { q: 'garage' }), { kind: 'allow' })
+          for (const listing of ['job_list', 'schedule_list', 'connections_list']) assert.deepEqual(await run(listing, {}), { kind: 'allow' }, listing)
           assert.deepEqual(await run('bash', { command: 'ls' }, 'someone-elses-session'), { kind: 'allow' })
           assert.equal(seen.length, 0, 'aucune question pour une lecture ni pour une autre session')
           // A command waits for the answer, and goes when it is yes. The question carries the real command line, the turn and the computer's own token.
