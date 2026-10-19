@@ -34,11 +34,9 @@ const makeRenderer = () => {
     useEffect: (f, deps) => { const s = slot(); if (s.deps === undefined || !same(s.deps, deps)) { s.deps = deps; current.effects.push(() => { if (typeof s.cleanup === 'function') s.cleanup(); s.cleanup = f() }) } },
   }
   const seen = new Set()
-  let portalTo = null
   const expand = (node, path) => {
     if (node === null || node === undefined || typeof node === 'boolean') return null
     if (typeof node === 'string' || typeof node === 'number') return String(node)
-    if (node.portal === true) { portalTo = node.node; return expand(node.tree, path) }
     if (typeof node.type === 'function') {
       const key = path + '/' + node.type.name + (node.props.key !== undefined ? '#' + node.props.key : '')
       seen.add(key)
@@ -62,7 +60,6 @@ const makeRenderer = () => {
     pass()
     // everything that was scheduled (state changes, fetches) has landed
     view.settle = async () => { for (let n = 0; n < 12; n += 1) { await new Promise((r) => setImmediate(r)); if (dirty) { dirty = false; pass() } } }
-    view.portalTo = () => portalTo
     view.text = () => textOf(view.tree)
     view.find = (pred) => find(view.tree, pred)
     return view
@@ -97,8 +94,7 @@ const load = (renderer, opts = {}) => {
     removeEventListener: (t, f) => { const i = listeners.findIndex((l) => l[0] === t && l[1] === f); if (i >= 0) listeners.splice(i, 1) },
   }
   new Function('window', 'document', SOURCE)(globalThis.window, globalThis.document)
-  const reactDom = opts.portal === true ? { createPortal: (tree, node) => ({ portal: true, tree, node }) } : undefined
-  const plugin = def.factory((name) => (name === 'react' ? renderer.React : (name === 'react-dom' ? reactDom : undefined)))
+  const plugin = def.factory((name) => (name === 'react' ? renderer.React : undefined))
   let page = null
   const slots = { inject: (n, fn) => fn(), register: (spec, comp) => { page = comp; return () => {} } }
   plugin.apply({ effect: (fn) => fn(), inject: (names, cb) => cb({ slots }) })
@@ -317,12 +313,14 @@ console.log('the window: closing, and what closing leaves behind')
   dim.props.onMouseDown({ target: dim, currentTarget: dim })
   check('a press on the dim does', closed === 2)
   check('the cross closes it', (kb(view, 'phone-channels-close').props.onClick(), closed === 3))
+  const servers = listeners.find((l) => l[0] === 'kybernos-cloud:servers')
+  check('a request for Settings › Servers (from this screen or from Telegram\'s row) closes it, so it does not sit over the page that opens', servers !== undefined && (servers[1](), closed === 4))
   const dlg = kb(view, 'phone-channels')
   check('it is a modal dialog, named by its title, and can take the focus', dlg.props.role === 'dialog' && dlg.props['aria-modal'] === 'true' && dlg.props['aria-labelledby'] === 'kbpc-title' && dlg.props.tabIndex === -1)
   check('the cross has a name', kb(view, 'phone-channels-close').props['aria-label'] === 'Close')
   // unmounting (the menu's owner closed it): a code nobody scanned is withdrawn
   r.mount(r.React.createElement('div', null))
-  check('closing withdraws a code nobody scanned', calls.filter((u) => /\/remote\/pair\/cancel$/.test(u)).length === 1 && !listeners.some((l) => l[0] === 'keydown'), [calls, listeners.length])
+  check('closing withdraws a code nobody scanned, and the window stops listening', calls.filter((u) => /\/remote\/pair\/cancel$/.test(u)).length === 1 && !listeners.some((l) => l[0] === 'keydown' || l[0] === 'kybernos-cloud:servers'), [calls, listeners.length])
 
   const r2 = makeRenderer()
   timers.length = 0
@@ -345,22 +343,46 @@ console.log('the window: closing, and what closing leaves behind')
   check('and with no code at all nothing is sent', calls.filter((u) => /\/remote\/pair\/cancel$/.test(u)).length === 0, calls)
 }
 
-console.log('the window: drawn on <body> when react-dom is there, in place when it is not')
+console.log('the window opens itself, in a root of its own on <body>, one at a time')
 {
-  const r = makeRenderer()
-  timers.length = 0
-  const { dialog } = load(r, { portal: true })
-  globalThis.document.body = { tag: 'body' }
-  answer = GOOD
-  const view = r.mount(r.React.createElement(dialog, { onClose () {} }))
-  await view.settle()
-  check('with react-dom the window goes through a portal to the document body (a fixed box in the phone layout\'s sliding drawer sits off-screen)', view.portalTo() !== null && view.portalTo().tag === 'body' && kb(view, 'phone-channels') !== null)
+  // A document that records what is appended to the body, and a React root that records what it is asked to render and to unmount.
+  const appended = []
+  const roots = []
+  globalThis.document.body = { appendChild: (n) => { appended.push(n) } }
+  globalThis.document.createElement = () => ({ attrs: {}, setAttribute (k, v) { this.attrs[k] = v }, removed: false, remove () { this.removed = true }, dataset: {} })
+  const timeouts = []
+  const realTimeout = globalThis.setTimeout
+  globalThis.setTimeout = (f) => { timeouts.push(f); return timeouts.length }
+  const withRoots = (r, offered) => {
+    let def = null
+    listeners.length = 0
+    globalThis.window = { __ModuleLoader__: { load: (d) => { def = d } }, matchMedia: () => ({ matches: false }), __KB_LANG_RESOLVE__: () => 'en', dispatchEvent: () => true, addEventListener () {}, removeEventListener () {} }
+    new Function('window', 'document', SOURCE)(globalThis.window, globalThis.document)
+    const client = { createRoot: (node) => { const root = { node, rendered: null, unmounted: false, render (el) { this.rendered = el }, unmount () { this.unmounted = true } }; roots.push(root); return root } }
+    const plugin = def.factory((name) => (name === 'react' ? r.React : (offered && name === 'react-dom/client' ? client : undefined)))
+    // only the phone link's own effects run: the layout is not what is tested here
+    plugin.apply({ effect: (fn, label) => (/phone and channels|styles|settings section/.test(String(label)) ? fn() : () => {}), inject: (names, cb) => cb({ slots: { inject: (n, fn) => fn(), register: () => () => {} } }) })
+    return globalThis.window.__KB_MOBILE__
+  }
+  const seam = withRoots(makeRenderer(), true)
+  check('the seam offers `open`', typeof seam.open === 'function')
+  check('open() draws the window in a root made on a node appended to <body>, and says so', seam.open() === true && appended.length === 1 && appended[0].attrs['data-kb'] === 'phone-channels-root' && roots.length === 1 && roots[0].node === appended[0] && roots[0].rendered !== null && roots[0].rendered.type === seam.Dialog)
+  check('asked again while it is open, it does not make a second one', seam.open() === true && appended.length === 1 && roots.length === 1)
+  roots[0].rendered.props.onClose()
+  check('closing takes the root down on the next turn, not inside the render that asked for it', roots[0].unmounted === false && timeouts.length === 1)
+  timeouts.shift()()
+  check('then the root is unmounted and the node is gone from the page', roots[0].unmounted === true && appended[0].removed === true)
+  check('and it can be opened again, with a new one', seam.open() === true && roots.length === 2 && appended.length === 2)
+  roots[1].rendered.props.onClose(); roots[1].rendered.props.onClose()
+  check('closing twice is harmless', timeouts.length === 2)
+  globalThis.setTimeout = realTimeout
+  // a DSH with no React root to offer (no react-dom/client, no createRoot on react-dom): it says false instead of throwing
+  const bare = withRoots(makeRenderer(), false)
+  check('without a React root to draw in, open() is false and nothing throws', bare.open() === false)
   globalThis.document.body = null
-  const r2 = makeRenderer()
-  const { dialog: d2 } = load(r2)
-  const v2 = r2.mount(r2.React.createElement(d2, { onClose () {} }))
-  await v2.settle()
-  check('without react-dom it is drawn where it is mounted, and still works', v2.portalTo() === null && kb(v2, 'phone-channels') !== null)
+  const noBody = withRoots(makeRenderer(), true)
+  check('without a body it is false too', noBody.open() === false)
+  globalThis.document.body = null
 }
 
 console.log('the Settings page is the same screen, under its own title')

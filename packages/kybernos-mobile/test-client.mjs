@@ -206,7 +206,7 @@ console.log('the phone link, mounted apart from the layout')
   }
   const full = run()
   check('it needs no DSH service up front (the layout must always mount)', full.plugin.inject === undefined)
-  check('the « Phone and channels » window is published for the account menu', typeof globalThis.window.__KB_MOBILE__ === 'object' && typeof globalThis.window.__KB_MOBILE__.Dialog === 'function' && globalThis.window.__KB_MOBILE__.version === 2 && globalThis.window.__KB_MOBILE__.Panel === undefined)
+  check('the « Phone and channels » window is published: it opens itself (`open`), for the account menu and Kaby\'s strip', typeof globalThis.window.__KB_MOBILE__ === 'object' && typeof globalThis.window.__KB_MOBILE__.open === 'function' && typeof globalThis.window.__KB_MOBILE__.Dialog === 'function' && globalThis.window.__KB_MOBILE__.version === 3 && globalThis.window.__KB_MOBILE__.Panel === undefined)
   check('the Settings section is « Phone and channels »', full.registered.length === 1 && full.registered[0].name === 'settings.section' && full.registered[0].id === 'kybernos-mobile' && full.registered[0].label === 'Phone and channels', full.registered)
   check('its styles are its own, under a prefix nobody else uses', full.styles.length === 1 && /\.kbmr-/.test(full.styles[0].textContent) && !/\.kbmob-/.test(full.styles[0].textContent))
   check('every effect is labelled', full.effects.every((l) => /^kybernos-mobile: /.test(l)) && full.effects.length === 4, full.effects)

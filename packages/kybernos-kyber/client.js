@@ -44,7 +44,9 @@ window.__ModuleLoader__.load({
         // What {NAME} is, in one picture (the owner's): a phone with a remote control, working on the desktop. Said on the page, above the tiles of the strip, and by the help card.
         intro: ['{NAME}, c’est comme un téléphone avec télécommande : tu lui parles d’ici ou depuis Telegram, et il travaille sur ton ordinateur. Un ordinateur dans le cloud peut prendre le relais quand le tien est éteint. Avant de modifier quoi que ce soit, il te demande.', '{NAME} is like a phone with a remote control: you talk to it from here or from Telegram, and it works on your desktop. A cloud computer can take over when yours is off. Before it changes anything, it asks you.'],
         // One help line under each tile's title.
-        channelsHelp: ['Relie Telegram, WhatsApp et WeChat pour que {NAME} puisse te joindre là. « Bientôt » : pas encore disponible.', 'Link Telegram, WhatsApp and WeChat so {NAME} can reach you there. “Soon” means it is not available yet.'],
+        channelsHelp: ['Là où {NAME} te répond en plus d’ici. Ça se règle dans « Téléphone et canaux ».', 'Where {NAME} answers you besides here. You set it up in “Phone and channels”.'],
+        // The one button of the strip: it opens the screen that holds the phone link and the messaging apps (kybernos-mobile draws it).
+        phoneChannels: ['Téléphone et canaux', 'Phone and channels'],
         computerHelp: ['La machine sur laquelle {NAME} travaille : cet ordinateur, ou un ordinateur dans le cloud qui continue quand le tien est éteint. « À la demande » : il est créé la première fois que tu demandes quelque chose qui en a besoin.', 'The machine {NAME} works on: this computer (your desktop), or a cloud computer that keeps going when yours is off. “On request” means it is made the first time you ask for something that needs it.'],
         b1h: ['Demande de n’importe où', 'Ask from anywhere'], b1p: ['Ici, ou depuis ton téléphone sur Telegram. C’est la même conversation.', 'Here, or from your phone on Telegram. It is the same conversation.'],
         b2h: ['Il travaille pendant ton absence', 'It keeps working while you are away'], b2p: ['Il a son propre ordinateur, qui se réveille quand il a du travail.', 'It has its own computer, which wakes up when it has work to do.'],
@@ -342,15 +344,21 @@ window.__ModuleLoader__.load({
         try { if (window.__KB_UPGRADE__ && typeof window.__KB_UPGRADE__.open === 'function') { window.__KB_UPGRADE__.open(); return } } catch (e) { /* the dialog is not there */ }
         void openAccount('plan')
       }
-      /** The strip is open only while there is something to DO in it (a code to scan, or another server to switch to when this one has no bot or is too old for Telegram);
-       *  folded when connected or when there is nothing to do. The person's choice wins. */
-      const stripIsOpen = (pref, telegramState, canSwitch) => (pref === true || pref === false ? pref : telegramState === 'unlinked' || ((telegramState === 'off' || telegramState === 'old') && canSwitch === true))
+      /** The strip is open only while there is something to DO about Telegram (it is not connected yet: the way to connect it is the button of the open strip); folded when it is
+       *  connected or cannot be. The person's choice wins. */
+      const stripIsOpen = (pref, telegramState) => (pref === true || pref === false ? pref : telegramState === 'unlinked')
       const telegramStateOf = () => (state.view !== null && state.view.kind === 'ok' ? state.view.telegram.state : null)
-      const canSwitchOf = () => state.view !== null && state.view.kind === 'ok' && state.view.server.canSwitch === true
+      /** Opens the « Phone and channels » screen's window, or null when the bundle that draws it (kybernos-mobile, `window.__KB_MOBILE__.open`) is not there. Read when used. */
+      const phoneOpener = () => {
+        try {
+          const m = window.__KB_MOBILE__
+          return m !== undefined && m !== null && typeof m.open === 'function' ? () => { try { m.open() } catch (e) { /* no window */ } } : null
+        } catch (e) { return null }
+      }
       /** Settings › Servers, the way the footer and the phone link ask for it: a window event the Kybernos Cloud bundle answers. */
       const openServers = () => { try { window.dispatchEvent(new Event('kybernos-cloud:servers')) } catch (e) { /* no window events: nothing opens */ } }
       const toggleStrip = () => {
-        state.stripPref = !stripIsOpen(state.stripPref, telegramStateOf(), canSwitchOf())
+        state.stripPref = !stripIsOpen(state.stripPref, telegramStateOf())
         try { window.localStorage.setItem('kybernos-kyber.strip', state.stripPref ? '1' : '0') } catch (e) { /* no storage */ }
         emit()
       }
@@ -446,7 +454,7 @@ window.__ModuleLoader__.load({
         const tg = v.telegram
         if (tg.state === 'off') return { sub: L('offWhy'), key: 'off' }
         if (tg.state === 'old') return { sub: L('oldWhy'), key: 'old' }
-        if (tg.state === 'linked') return { sub: tg.paused ? L('paused') : tg.blocked ? L('blocked') : tg.name, warn: tg.paused || tg.blocked, key: 'linked' }
+        if (tg.state === 'linked') return { sub: tg.paused ? L('paused') : tg.blocked ? L('blocked') : L('linked', { name: tg.name }), warn: tg.paused || tg.blocked, key: 'linked' }
         if (state.starting) return { sub: L('preparing'), key: 'starting' }
         const face = pairingFace(state.pairing, Date.now())
         if (face.kind === 'waiting') return { sub: L('tgCode'), key: 'waiting' }
@@ -457,7 +465,12 @@ window.__ModuleLoader__.load({
         return { sub: L('tgNone'), key: 'idle' }
       }
 
-      /** Telegram's row, the same in the strip's tile and in the « Phone and channels » screen: its mark, where it stands, and the one switch. */
+      /** Telegram as a state: its mark, its name and where it stands. The strip shows this; the « Phone and channels » screen adds the switch to it (`telegramChanRow`). */
+      const telegramStateRow = (v) => {
+        const row = telegramRow(v)
+        return h(ChanRow, { kb: 'kybernos-kyber-tg-row', stateKey: row.key, mark: BRAND.telegram(20), name: L('telegram'), sub: row.sub, warn: row.warn === true })
+      }
+      /** Telegram's row on the « Phone and channels » screen: the state, the one switch, the way out of a server that has no bot, the link to the bot. */
       const telegramChanRow = (v) => {
         const tg = v.telegram
         const row = telegramRow(v)
@@ -470,16 +483,16 @@ window.__ModuleLoader__.load({
           right: h(React.Fragment, null, bot, h(Switch, { on, disabled: tg.state === 'off' || tg.state === 'old', label: L('telegram'), kb: 'kybernos-kyber-tg-switch', onClick: telegramSwitch })) })
       }
 
-      /** The first tile: the channels {NAME} answers from. Telegram can be turned on; WhatsApp and WeChat are marked « soon » and offer nothing. */
+      /** The first tile: where {NAME} answers besides the chat, as a STATE. Telegram says where it stands (the same sentences as its row on the « Phone and channels » screen),
+       *  and the one button opens that screen, where the person links, switches or disconnects (it is offered only while the bundle that draws it is there). */
       const ChannelsTile = (props) => {
         const v = props.view
-        const soon = (id, name) => h(ChanRow, { key: id, kb: 'kybernos-kyber-chan-' + id, stateKey: 'soon', mark: BRAND[id](20), name, sub: L('notYet'), right: h('span', { className: 'kbky-chip' }, L('soon')) })
+        const open = phoneOpener()
         return h('div', { className: 'kbky-tile', 'data-kb': 'kybernos-kyber-tile-channels' },
           h('div', { className: 'kbky-th' }, h(Mark, null, Ic('link', 18)), h('b', null, L('channels'))),
           h('p', { className: 'kbky-help', 'data-kb': 'kybernos-kyber-channels-help' }, L('channelsHelp')),
-          h('div', { className: 'kbky-chlist' },
-            telegramChanRow(v),
-            soon('whatsapp', 'WhatsApp'), soon('wechat', 'WeChat')))
+          h('div', { className: 'kbky-chlist' }, telegramStateRow(v)),
+          open === null ? null : h('div', { className: 'kbky-tf' }, h(Btn, { kb: 'kybernos-kyber-open-phone', onClick: open }, Ic('phone', 14), L('phoneChannels'))))
       }
 
       /** The computer's state as a chip: awake, asleep, being set up, on request. */
@@ -537,7 +550,7 @@ window.__ModuleLoader__.load({
             : null)
       }
 
-      /** Under the two tiles, only while there is something to do about Telegram: the code to scan, what happened to it, or the question before disconnecting. */
+      /** Under Telegram's row on the « Phone and channels » screen, only while there is something to do about it: the code to scan, what happened to it, or the question before disconnecting. */
       const TelegramPanel = (props) => {
         useTick(1000)
         const v = props.view
@@ -601,8 +614,8 @@ window.__ModuleLoader__.load({
                 : null)))
       }
 
-      /** Two equal tiles, the channels and the computer, and under them the one thing Telegram may need. With no account or no readable server only the computer
-       *  is offered, and only « this computer »: that choice needs neither. */
+      /** Two equal tiles, the channels (a state, and the one button to the « Phone and channels » screen) and the computer. With no account or no readable server only the
+       *  computer is offered, and only « this computer »: that choice needs neither. */
       const Channels = (props) => {
         const v = state.view
         if (v === null) return h('p', { className: 'kbky-note' }, L('loading'))
@@ -611,7 +624,6 @@ window.__ModuleLoader__.load({
         return h('div', { className: 'kbky-calm', 'data-kb': 'kybernos-kyber-channels' },
           intro,
           h('div', { className: 'kbky-tiles' }, h(ChannelsTile, { view: v }), h(ComputerTile, { view: v })),
-          h(TelegramPanel, { view: v }),
           props.manage === true && v.accountUrl !== '' ? h('div', { className: 'kbky-actions' }, h('button', { type: 'button', className: 'kbky-link', 'data-kb': 'kybernos-kyber-account', onClick: () => { void openAccount('account') } }, L('manage'))) : null)
       }
 
@@ -767,7 +779,7 @@ window.__ModuleLoader__.load({
       const Strip = () => {
         const v = state.view
         // On the phone's Kaby app the conversation is what the person came for: the strip stays folded until the person opens it.
-        const open = stripIsOpen(state.stripPref, telegramStateOf(), canSwitchOf()) && !(state.stripPref === null && inKabyApp())
+        const open = stripIsOpen(state.stripPref, telegramStateOf()) && !(state.stripPref === null && inKabyApp())
         const chip = statusOf(v)
         const hm = v !== null && v.kind === 'ok' ? v.home : null
         const local = whereOf(state.where, v) === 'local'
@@ -871,8 +883,8 @@ window.__ModuleLoader__.load({
         '.kbky-three>div{padding:12px 14px;border-radius:12px;background:var(--dsw-alias-bg-layer-1,rgba(127,127,127,.08));display:flex;flex-direction:column;gap:6px}',
         '.kbky-three span{color:var(--dsw-alias-label-secondary,#666);font-size:13px}',
         '.kbky-chip{display:inline-flex;align-items:center;gap:6px;padding:2px 10px;border-radius:99px;font-size:12px;white-space:nowrap;border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.3));color:var(--dsw-alias-label-secondary,#666)}',
-        '.kbky-chip.ok{border-color:transparent;background:var(--dsw-alias-state-success-bg,rgba(34,197,94,.16));color:var(--dsw-alias-state-success-primary,#15803d)}',
-        '.kbky-chip.warn{border-color:transparent;background:var(--dsw-alias-state-warn-bg,rgba(245,158,11,.18));color:var(--dsw-alias-state-warn-label,#a8530a)}',
+        '.kbky-chip.ok{border-color:transparent;background:var(--dsw-alias-state-success-bg,rgba(34,197,94,.16));color:color-mix(in srgb,var(--dsw-alias-state-success-primary,#15803d) 55%,var(--dsw-alias-label-primary,#222))}',
+        '.kbky-chip.warn{border-color:transparent;background:var(--dsw-alias-state-warn-bg,rgba(245,158,11,.18));color:color-mix(in srgb,var(--dsw-alias-state-warn-label,#a8530a) 55%,var(--dsw-alias-label-primary,#222))}',
         // the strip also sits in the chat's dock, which has no `.kbky` ancestor: it sets its own size and colour, like the page and the pane do
         '.kbky-strip{border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.25));border-radius:28px;background:var(--dsw-alias-bg-layer-1,rgba(127,127,127,.06));color:var(--dsw-alias-label-primary,#222);font-size:var(--dsh-content-font-size-secondary,13.5px);line-height:1.5}',
         '.kbky-striphr{display:flex;align-items:center;gap:8px;padding-block:3px;padding-inline-end:10px}',
@@ -913,7 +925,7 @@ window.__ModuleLoader__.load({
         // the tiles inside have the radius that nests in it (28 minus the 12 px of padding).
         '.kbky-dock{margin:0 0 8px;padding:0 16px}',
         '.kbky-calm{display:flex;flex-direction:column;gap:12px}',
-        '.kbky-chip.err{border-color:transparent;background:var(--dsw-alias-state-error-bg,rgba(236,19,19,.12));color:var(--dsw-alias-state-error-primary,#b91c1c)}',
+        '.kbky-chip.err{border-color:transparent;background:var(--dsw-alias-state-error-bg,rgba(236,19,19,.12));color:color-mix(in srgb,var(--dsw-alias-state-error-primary,#b91c1c) 55%,var(--dsw-alias-label-primary,#222))}',
         // the two tiles: one grid, one padding, one radius, one anatomy (mark and name on top, the body, one action at the bottom)
         '.kbky-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px}',
         '.kbky-tile{display:flex;flex-direction:column;gap:10px;min-width:0;padding:14px;border-radius:16px;background:var(--dsw-alias-bg-layer-2,rgba(127,127,127,.1));border:1px solid var(--dsw-alias-border-l1,rgba(127,127,127,.2))}',
@@ -938,7 +950,7 @@ window.__ModuleLoader__.load({
         '.kbky-field{display:grid;grid-template-columns:32px minmax(0,1fr) auto;gap:10px;align-items:center;min-height:56px;padding:8px 12px;border-radius:10px;border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.3));background:var(--dsw-alias-bg-base,transparent)}',
         '.kbky-fsel{font:inherit;font-size:14px;font-weight:600;color:inherit;background:transparent;border:0;min-width:0;width:100%;padding:0;cursor:pointer;text-overflow:ellipsis}',
         '.kbky-cap{margin:0;font-size:12.5px;color:var(--dsw-alias-label-secondary,#666)}',
-        // the panel under the tiles: the code to scan, what happened to it, or the question before disconnecting
+        // the code panel (on the « Phone and channels » screen, under Telegram's row): the code to scan, what happened to it, or the question before disconnecting
         '.kbky-panel{padding:14px;border-radius:16px;background:var(--dsw-alias-bg-layer-2,rgba(127,127,127,.1));border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.3))}',
         '.kbky-pbody{display:flex;gap:16px;align-items:flex-start}',
         '.kbky-pqr .kbky-qr{width:132px;height:132px}',

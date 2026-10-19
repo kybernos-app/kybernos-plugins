@@ -2261,12 +2261,13 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
         // set this to true and it is always there; whatever a plugin publishes (window.__KB_NOTIFY__, kybernos-plugin: a translation that
         // finished, say) brings it back by itself while there is something to read.
         const SHOW_BELL = false
-        /** The « Phone and channels » window, when the bundle that draws it is there (kybernos-mobile publishes it): the phone link on the left, Kaby's messaging apps on the
-         *  right. This bundle only offers the menu entry and mounts the window, and offers nothing when there is no window to mount. Read at the time of use, never kept. */
-        const phoneDialog = () => {
+        /** Opens the « Phone and channels » window (phone link on the left, Kaby's messaging apps on the right), or null when the bundle that draws it is not there
+         *  (kybernos-mobile publishes `window.__KB_MOBILE__.open`). This bundle only offers the menu entry; the window draws itself in a root of its own, so it does not live
+         *  in this footer (which is not mounted while a phone's drawer is closed). Read at the time of use, never kept. */
+        const phoneOpener = () => {
           try {
             const seam = window.__KB_MOBILE__
-            return seam !== undefined && seam !== null && typeof seam.Dialog === 'function' ? seam.Dialog : null
+            return seam !== undefined && seam !== null && typeof seam.open === 'function' ? () => seam.open() : null
           } catch (e) { return null }
         }
         const HELP_LANGUAGES = ['en', 'fr', 'zh-cn', 'ar']
@@ -3016,7 +3017,6 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
           }, [])
           const [newOpen, setNewOpen] = React.useState(false)
           const [joinOpen, setJoinOpen] = React.useState(false)
-          const [phoneOpen, setPhoneOpen] = React.useState(false)
           // Update available: an amber dot on the card tile, the discreet
           // reminder that stays visible with the menu closed (kybernos-maintenance signal).
           const [majInfo, setMajInfo] = React.useState(() => lireMaj())
@@ -3347,7 +3347,7 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
 
           // The phone link (kybernos-mobile) asks for Settings › Servers when its server does not answer: a window event, like the other bundles' requests.
           React.useEffect(() => {
-            const ouvrirServeurs = () => { setMenuOpen(false); setNotifOpen(false); setPhoneOpen(false); openServersPage() }
+            const ouvrirServeurs = () => { setMenuOpen(false); setNotifOpen(false); openServersPage() }
             window.addEventListener('kybernos-cloud:servers', ouvrirServeurs)
             return () => window.removeEventListener('kybernos-cloud:servers', ouvrirServeurs)
           }, [])
@@ -3362,7 +3362,7 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
           // The core plugin sends a real click on DSH's own account launcher here (it should not be reachable: its area is hidden, but
           // a shell that renamed its classes would show it): the person lands in OUR menu, connected or not.
           React.useEffect(() => {
-            const ouvrirMenu = () => { setNotifOpen(false); setPhoneOpen(false); setMenuOpen(true) }
+            const ouvrirMenu = () => { setNotifOpen(false); setMenuOpen(true) }
             window.addEventListener('kybernos-cloud:menu', ouvrirMenu)
             return () => window.removeEventListener('kybernos-cloud:menu', ouvrirMenu)
           }, [])
@@ -3563,7 +3563,6 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
                   title: t('notifTitle') + (notes.some((n) => n.read !== true) ? ' (' + notes.filter((n) => n.read !== true).length + ')' : ''), 'aria-label': t('notifTitle'),
                   'aria-expanded': notifOpen === true ? 'true' : 'false',
                   onClick: () => {
-                    setPhoneOpen(false)
                     const next = notifOpen !== true
                     setNotifOpen(next)
                     if (next) { try { window.__KB_NOTIFY__.markRead() } catch (e) { /* no store */ } }
@@ -3605,20 +3604,14 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
                   onAccount: ouvrirAppli('overview'),
                   // The Referral page of the app (a server that does not know it yet lands the person on Overview, where its card used to be: the host asks again).
                   onReferral: ouvrirAppli('referral'),
-                  phone: phoneDialog() !== null,
-                  onPhone: () => { setMenuOpen(false); setNotifOpen(false); setPhoneOpen(true) },
+                  phone: phoneOpener() !== null,
+                  onPhone: () => { setMenuOpen(false); setNotifOpen(false); const open = phoneOpener(); if (open !== null) open() },
                   onUpgrade: () => { setMenuOpen(false); setUpgradeOpen(true) },
                   onSpace: ouvrirAppli('plan'),
                   onUpgradePage: ouvrirAppli('plan'),
                   onLogout: () => { void seDeconnecter() },
                 })
-                : null),
-            phoneOpen === true && phoneDialog() !== null
-              ? h(phoneDialog(), {
-                onClose: () => setPhoneOpen(false),
-                web: typeof state.web_url === 'string' ? state.web_url : '',
-              })
-              : null)
+                : null))
           } else {
             // Signed out, or a pairing waiting for its confirmation: ONE button, in the place and at the size of the profile row, with
             // the same chevron. It opens OUR menu (sign in = the device-code card, create an account, appearance, DSH's Settings,
