@@ -718,6 +718,43 @@ window.__ModuleLoader__.load({
         }
       }
 
+      // ═══ The phone's « Kaby » app: DSH has no address for a conversation, so this page opens Kaby's by the shell's own call ═══
+      // kybernos-mobile's phone page serves the same DSH twice: at /__kb/ (the whole computer) and at /__kb/kaby/ (the Kaby app). DSH runs in a frame of that page, on
+      // the same origin, so it can read which one it is in. Once DSH lists its sessions and workspaces its own startup restoration has run, so the call below is the
+      // later navigation and wins: Kaby's conversation opens, by the same openChat() as the sidebar row (which makes the chat the first time). Never throws.
+      const KABY_APP_PATH = '/__kb/kaby/'
+      const inKabyApp = () => { try { return window.parent !== window && window.parent.location.pathname === KABY_APP_PATH } catch (e) { return false } }
+      const shellReady = () => {
+        try {
+          const snap = svc('sessions').list.getSnapshot()
+          const ws = svc('uiWorkspace').workspaces.list.getSnapshot()
+          return snap !== null && snap !== undefined && typeof snap.byId === 'object' && ws !== null && ws !== undefined && Array.isArray(ws.items)
+        } catch (e) { return false }
+      }
+      let kabyAppOpened = false
+      const openKabyApp = () => {
+        if (kabyAppOpened || !inKabyApp()) return undefined
+        let timer = null
+        let tries = 0
+        let stopped = false
+        const pause = (ms) => new Promise((resolve) => { timer = setTimeout(resolve, ms) })
+        const tick = async () => {
+          if (stopped || kabyAppOpened) return
+          tries += 1
+          if (shellReady()) {
+            kabyAppOpened = true
+            await pause(600)
+            if (stopped) { kabyAppOpened = false; return }
+            // one more try when the first fails: a chat made while DSH is still loading its workspaces
+            if (!(await openChat())) { await pause(3000); if (!stopped) await openChat() }
+            return
+          }
+          if (tries < 120) timer = setTimeout(tick, 500)
+        }
+        void tick()
+        return () => { stopped = true; clearTimeout(timer) }
+      }
+
       const useStore = () => {
         const [, setTick] = React.useState(0)
         React.useEffect(() => {
@@ -741,7 +778,8 @@ window.__ModuleLoader__.load({
       /** The collapsible strip: {NAME}'s name, and under it the two tiles. Open only when there is something to turn on; folded, two chips say how things stand. */
       const Strip = () => {
         const v = state.view
-        const open = stripIsOpen(state.stripPref, telegramStateOf())
+        // On the phone's Kaby app the conversation is what the person came for: the strip stays folded until the person opens it.
+        const open = stripIsOpen(state.stripPref, telegramStateOf()) && !(state.stripPref === null && inKabyApp())
         const chip = statusOf(v)
         const hm = v !== null && v.kind === 'ok' ? v.home : null
         const local = whereOf(state.where, v) === 'local'
@@ -945,7 +983,7 @@ window.__ModuleLoader__.load({
         name: 'kybernos-kyber',
         // `sidebarRightTabs` must be declared: ui-sidebar-right provides it, and without this `apply` could run before.
         inject: ['slots', 'sidebarRightTabs', 'sessions', 'workspaces', 'uiWorkspace'],
-        __test: { askFirst, ASK_PRESET, S, L, kt, derive, pairingFace, clock, stripIsOpen, whereOf, CSS, TYPE_ID, KIND, state, BRAND, NAME, views: { Strip, Channels, ChannelsTile, ChannelsColumn, ComputerTile, TelegramPanel, KybyDock, Page }, actions: { load, pairStart, pairCancel, unlink, setComputer, setWhere, computerAction, telegramSwitch, toggleStrip, telegramRow, settle, readSessionPointer }, listeners },
+        __test: { inKabyApp, KABY_APP_PATH, askFirst, ASK_PRESET, S, L, kt, derive, pairingFace, clock, stripIsOpen, whereOf, CSS, TYPE_ID, KIND, state, BRAND, NAME, views: { Strip, Channels, ChannelsTile, ChannelsColumn, ComputerTile, TelegramPanel, KybyDock, Page }, actions: { load, pairStart, pairCancel, unlink, setComputer, setWhere, computerAction, telegramSwitch, toggleStrip, telegramRow, settle, readSessionPointer }, listeners },
         apply (ctx) {
           CTX = ctx
           // The plugin is applied again when a service it asks for comes back: the new scope replaces the sheet, and the old scope's
@@ -960,6 +998,9 @@ window.__ModuleLoader__.load({
             document.head.appendChild(el)
             return () => { el.remove() }
           }, 'kybernos-kyber: styles')
+
+          // The phone's Kaby app (a frame of kybernos-mobile's /__kb/kaby/ page) opens on Kaby's conversation.
+          ctx.effect(() => openKabyApp(), 'kybernos-kyber: Kaby app on the phone')
 
           // the tab type: it shows in the sidebar's « + » guide, and opens like any other tab
           // The icon of this tab in the « Start » picker of the right sidebar: the engine draws a grey cube for a type that gives none, and nine tabs of the suite looked the same (V-25).
