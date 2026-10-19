@@ -267,10 +267,12 @@ When the account is connected, this half does three things:
    words, using the tidy-up's own comparison; a negation, or a number the other text does not have, makes it a different fact). The exact-text check of (2) did not see
    a reworded copy, and an automation's turns wrote ten of them each: replaying the 86 memories of the dev account in order, 27 are repeats (15 of the 31 written since the capture
    began). It is a guard, not a cleaner: what is already stored stays for the Memory tidy-up.
+   (6) A refusal is a refusal: when the person refused a `memory_write` or a `lesson_write` in the turn (the gate of Kaby's own chat, or a cloud computer's), the capture of that
+   turn does not run (`refusee`). Measured on the real DSH: the card was refused and the same fact appeared in the account a second later, written by the capture.
 
    The capture is *fail-open* by construction, hence **observable**: each
    exit writes a state (`hors_connexion`, `desactivee`, `sans_session`,
-   `tour_trop_court`, `llm_indisponible`, `rien_a_retenir`, `deja_connu`, `ecrit`, `erreur`) that the route and the card display. Without
+   `tour_trop_court`, `llm_indisponible`, `rien_a_retenir`, `deja_connu`, `refusee`, `ecrit`, `erreur`) that the route and the card display. Without
    that, “nothing to remember” and “the LLM service is missing” would look
    exactly alike — it is the same blind spot as “the panel is selected” without
    “the panel is visible”.
