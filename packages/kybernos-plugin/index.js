@@ -50,6 +50,7 @@ import { createProbe } from './audio-probe.mjs'
 import { createModelsAudio } from './models-audio.mjs'
 import { expandOccurrences, parseOccurrenceRange } from './automation-occurrences.mjs'
 import { lastTurnOutcome } from './session-outcome.mjs'
+import { summarizeRun } from './automation-runs.mjs'
 // Hosted instance: also accept the authorities declared to DSH with --trusted-host. The core bundle publishes the predicate
 // (kybernos-plugin/trusted-authority.mjs); absent or failing, it answers false and the guard stays loopback-only.
 const kbTrusted = (host) => { try { const f = globalThis[Symbol.for('kybernos.trustedAuthority')]; return typeof f === 'function' && f(host) === true } catch (e) { return false } }
@@ -10449,6 +10450,44 @@ function boot(ctx) {
           sendJson(res, 500, { ok: false, error: 'internal error' })
         }
       } }), 'kybernos: route tasks/outcomes')
+      // ── What some automation runs did: GET /kybernos/tasks/runs?ids=a,b[&detail=1] ────────────────────────
+      // Read-only, for the Sessions and Journal views of an automation's detail page: how long a run took, which model
+      // answered, which tools it called and for how long, what asked for an approval, how its first turn ended. All of it
+      // is the engine's own journal (automation-runs.mjs); nothing is guessed. Same guard as the routes above. At most 20
+      // sessions per call, one journal read each. `detail=1`, for ONE session, adds the input and output of each step,
+      // scrubbed and bounded. A session that cannot be read is simply absent from the answer.
+      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/tasks/runs', handler: async (req, res) => {
+        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        if (await kbTasksAuthorized(req) !== true) return sendJson(res, 401, { ok: false, error: 'sign-in required' })
+        try {
+          const q = queryOf(req)
+          const ids = []
+          for (const raw of String(q.get('ids') || '').split(',')) {
+            const id = raw.trim()
+            if (/^[A-Za-z0-9_.-]{1,80}$/.test(id) === true && ids.indexOf(id) < 0 && ids.length < 20) ids.push(id)
+          }
+          const detail = q.get('detail') === '1' && ids.length === 1
+          const runs = {}
+          if (persistence !== undefined && persistence !== null && typeof persistence.open === 'function') {
+            for (const id of ids) {
+              let handle = null
+              try {
+                handle = await persistence.open(id, 'read')
+                const read = await handle.read()
+                const summary = summarizeRun(read !== null && read !== undefined ? read.events : null, { detail })
+                if (summary !== null) runs[id] = summary
+              } catch (e) { /* unreadable or gone: nothing is claimed */ } finally {
+                try { if (handle !== null && handle !== undefined && typeof handle.close === 'function') await handle.close() } catch (e) { /* already closed */ }
+              }
+            }
+          }
+          sendJson(res, 200, { ok: true, runs })
+        } catch (e) {
+          try { console.error('[kybers] tasks/runs route:', errText(e)) } catch (e2) { /* console unavailable */ }
+          sendJson(res, 500, { ok: false, error: 'internal error' })
+        }
+      } }), 'kybernos: route tasks/runs')
       // ══════════════════════════════════════════════════════════════════════
       // OUTILS (onglet « Outils ») — etat reel et activation cadree.
       //
