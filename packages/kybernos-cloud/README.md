@@ -123,6 +123,17 @@ full ids stay in the detail route.
   screen at the moment of the switch, kept in this browser; else the first workspace that is no team's), never by inheritance: `startSession()` with no id would land in the workspace on
   screen, which is the team's. A team created with a plan, or joined, does the same; one created without a plan opens nothing. A DSH that is missing, or refuses, changes nothing.
   A chat already started keeps its folder (DSH's rule).
+- **The active team follows the chat** (plan « Équipes », option 2; `chat-space.mjs`, the `follow-chat` block of `client.js`, tests `test-chat-space.mjs`, `test-chat-space-host.mjs`,
+  `test-follow-chat.mjs`, live `scripts/check-follow-chat-live.mjs`). DSH has ONE model route per instance and its `x-kybernos-workspace` header names the ACTIVE team, so a chat is billed
+  to whoever is active. The rule: **a chat in a team's folder bills that team, every other chat bills Personal** (Kaby's folder included); the team folders are the ones the host recorded
+  (step 6). So the active team follows the chat the person is looking at, and personal memory follows the active team as before. **The page** reports the chat on screen (the main view's
+  selection of `uiWorkspace`, the session's own `cwd` from `sessions`, else its workspace's path) with `POST /space/for-folder { path, session_id }` when it opens, when the page loads on
+  it and every ten seconds; the host answers which space owns that folder (the team folder or anything under it, not a sibling such as `Acme-2`; symbolic links followed; a deleted folder
+  placed by its deepest existing ancestor; case folded on macOS and Windows) and whether it is the active one, and the page switches through the ordinary path (`pickSpace`: « Switching… »,
+  the route-applied wait) WITHOUT opening a chat. It acts when the chat on screen changes, never against a switch the person just made by hand. **The host is the safety net**: a turn of a
+  chat the page reported in the last two minutes, claimed while the active space is not the chat's, writes the right space at once (the system prompt of that step is assembled right
+  after the claim and reads it: the personal-memory cut) and the `agent/pre-step` listener holds the first model request until the switch (plan, folder, model route) is through, at most
+  10 s. A chat the page never reported (an automation, Kaby's chat, a Telegram turn, a subagent) changes nothing and is billed to whichever team is active.
 - **The failure row of a turn** (`conversation.chat.node`, key `turn-error`): the engine documents that a later entry for a key shadows the shipped one, so the plugin wraps the
   SHIPPED row (found in the slot's entries, registered at the lowest priority with the shipped entry's own locale). `no adapter registered for provider "kybernos"` (the cloud models
   are gone: the connection ended or was never made) and `QUOTA` on a team with no plan are drawn by the shipped row with a sentence and an action beside it (« Sign in again »,

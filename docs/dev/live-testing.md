@@ -947,6 +947,24 @@ team with no recorded folder gets one at the next page load and no chat opens; a
 the next page load makes the folder once the disk allows it. Not proven here: a chat that was already started keeping its folder (no model answers in the sandbox, so no message is
 sent: a session's folder is DSH's own rule). Exit 0 / 1 / 3.
 
+## The active team follows the chat: `scripts/check-follow-chat-live.mjs`
+
+```bash
+source scripts/sandbox/env.sh && node scripts/check-follow-chat-live.mjs [--shots <dir>]
+```
+
+The real DSH, the real host routes of `kybernos-cloud` and the fake Kybernos of the other team checks, which here ALSO plays the model (`POST /v1/chat/completions` on `scripts/fake-kybernos.mjs`: it
+records, for every model request, the team it was billed to (`x-kybernos-workspace`) and when it arrived and left, and `fake.model.delayMs` holds the agent's own request, not the title call).
+Real messages are sent, so each chat is a real one in the sidebar (its row carries the title DSH made from the model's REPLY: each chat gets a reply of its own; the model is `Kybernos Glm` in the
+picker). A page request is counted through a CDP `Fetch` interception of `space/for-folder` that stays on for the whole run; `blind.on` rewrites the host's answer to « nothing to follow », which is
+how the host's own safety net is tried alone. It proves: a chat opened from the sidebar switches the active team to the one that owns its folder (the card says « Switching… », ~0.4-1.1 s,
+the chat stays on screen and no new chat is created), a team to another team with no stop at Personal, a personal chat back to Personal, the page loaded on a team chat does the same, and
+opening the chat that is already on screen asks the host nothing; **the host alone** (the page told there is nothing to follow): a message typed in a team chat while Personal is active has its
+first model request billed to the team (the switch is made at claim time and the request waits for it), a message in a personal chat while a team is active is billed to Personal, and the first
+message of a NEW chat in a team's folder is billed to the team; the footer card catches up within the page's report interval (10 s). The blank Personal chat DSH keeps for a workspace vanishes from
+the sidebar when it is left, so « no new chat » is checked on the set of sessions, never their count. Not proven here: the memory cut of that first request (the end-to-end journeys carry the
+canary word), the real server's usage read (the e2e journeys). Exit 0 / 1 / 3.
+
 ## The Automations board: `scripts/check-automations-board-live.mjs`
 
 ```bash

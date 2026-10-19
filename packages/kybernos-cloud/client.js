@@ -1532,6 +1532,100 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
       return openTeamChat(services, to.folder, timers)
     }
     // <team-folder:end>
+    // <follow-chat:begin> the active team follows the chat on screen (plan « Équipes », option 2; test-follow-chat.mjs plays this block with fake DSH services and a fake host)
+    // DSH has ONE model route per instance and its `x-kybernos-workspace` header names the ACTIVE team, so a chat is billed to whoever is active. The rule: a chat in a team's folder
+    // bills that team, every other chat bills Personal. The host knows which folders are teams' (it recorded them), so the page only reports the chat it shows and does what the host
+    // says through the ordinary switch (`pickSpace`: the footer's « Switching… », the route-applied wait), without opening a new chat: the person already chose where to be.
+    // It acts when the chat on screen CHANGES (a chat opened, the page loaded on one), not on every list update and not against a switch the person just made by hand: the new chat that
+    // switch opens is a change too, and it matches. The host is the safety net for a message sent before the switch is through (index.js, `holdForClaimSwitch`).
+    const FOLLOW_LOOK_DELAY_MS = 120
+    // How often the chat on screen is reported again while the page is open: it keeps the host's sighting fresh (a minute or two), and it is how the footer learns, within seconds, that the host
+    // switched the team at claim time (a message sent before the page's own switch was through): the answer names the active team.
+    const FOLLOW_REPORT_MS = 10000
+    /** The chat on screen as DSH's services say it: `{ sid, path }`, `path` being the folder the chat works in (its own, else its workspace's), or null when no chat is open or DSH
+     *  has not listed it yet. `services`: `{ workspaces, uiWorkspace, sessions? }`. Never throws. */
+    const chatOnScreen = (services) => {
+      try {
+        const ui = services.uiWorkspace
+        const main = ui.mainReference
+        let sid = main !== null && main !== undefined ? main.sessionId : undefined
+        if (typeof sid !== 'string' || sid === '') {
+          const sel = ui.selection !== null && ui.selection !== undefined && typeof ui.selection.getSnapshot === 'function' ? ui.selection.getSnapshot() : undefined
+          sid = sel !== null && sel !== undefined ? sel.sessionId : undefined
+        }
+        if (typeof sid !== 'string' || sid === '') return null
+        let path = null
+        try {
+          const snap = services.sessions.list.getSnapshot()
+          const summary = snap !== null && snap !== undefined && snap.byId !== null && typeof snap.byId === 'object' ? snap.byId[sid] : undefined
+          if (summary !== null && summary !== undefined && typeof summary.cwd === 'string' && summary.cwd !== '') path = summary.cwd
+        } catch (e) { path = null }
+        if (path === null) {
+          const row = workspaceRows(services).filter((w) => Array.isArray(w.sessionIds) && w.sessionIds.includes(sid))[0]
+          if (row !== undefined) path = row.path
+        }
+        return path === null ? null : { sid, path }
+      } catch (e) { return null }
+    }
+    /** Is a switch to `id` a no-op because the footer says that team is already active? Only for the person's own click. A switch that follows a chat (`keepChat`) never trusts the footer's
+     *  idea of the active team: the host may have switched it behind the page (at claim time) and the footer not have read the state yet, and then the chat's team would never be made
+     *  active; the host is the one that knows (it answers a switch to the team that is already active with « nothing to do »). */
+    const switchIsMoot = (id, activeId, keepChat) => keepChat !== true && typeof id === 'string' && id === activeId
+    /** The follower. `deps`: `services()` (DSH's, or null), `ask(chat)` (the host's `space/for-folder` answer), `pick(id, name)` (the ordinary switch without a new chat: a promise of
+     *  `{ ok }`), `seen(answer)` (optional: told every answer of the host, so the footer can read the state again when the host changed the team behind it), `timers` (`set`, `clear`,
+     *  `every`, `stop`). `mount()` starts it and answers how to stop it. Nothing here throws. */
+    const createFollower = (deps) => {
+      let acted = null
+      let seq = 0
+      let stopped = false
+      let lookTimer = null
+      const keyOf = (chat) => chat.sid + '\n' + chat.path
+      /** One look at the chat on screen. `force`: ask the host even when it is the chat the last look acted on (the host needs the sighting repeated; nothing is switched for it). */
+      const look = async (force) => {
+        if (stopped === true) return
+        const services = deps.services()
+        const chat = services === null ? null : chatOnScreen(services)
+        if (chat === null) return
+        const fresh = acted !== keyOf(chat)
+        if (fresh !== true && force !== true) return
+        const mine = ++seq
+        let answer = null
+        try { answer = await deps.ask(chat) } catch (e) { answer = null }
+        if (stopped === true || mine !== seq || answer === null || answer === undefined || answer.ok !== true) return
+        if (typeof deps.seen === 'function') { try { deps.seen(answer) } catch (e) { /* the footer will read the state at its own tick */ } }
+        if (fresh !== true) return
+        if (answer.follow !== true || typeof answer.space_id !== 'string') { acted = keyOf(chat); return }
+        let done = null
+        try { done = await deps.pick(answer.space_id, answer.space_name) } catch (e) { done = null }
+        if (stopped === true || mine !== seq) return
+        if (done !== null && done !== undefined && done.ok === true) acted = keyOf(chat)
+      }
+      const later = () => {
+        if (stopped === true || lookTimer !== null) return
+        lookTimer = deps.timers.set(() => { lookTimer = null; void look(false) }, FOLLOW_LOOK_DELAY_MS)
+      }
+      return {
+        look,
+        mount () {
+          const stops = []
+          const services = deps.services()
+          const stores = services === null ? [] : [services.workspaces && services.workspaces.list, services.sessions && services.sessions.list, services.uiWorkspace && services.uiWorkspace.selection]
+          for (const store of stores) {
+            try { if (store !== null && store !== undefined && typeof store.subscribe === 'function') stops.push(store.subscribe(later)) } catch (e) { /* that store is not there: the others still tell */ }
+          }
+          const every = deps.timers.every(() => { void look(true) }, FOLLOW_REPORT_MS)
+          later()
+          return () => {
+            stopped = true
+            seq += 1
+            if (lookTimer !== null) deps.timers.clear(lookTimer)
+            deps.timers.stop(every)
+            for (const stop of stops) { try { if (typeof stop === 'function') stop() } catch (e) { /* gone */ } }
+          }
+        },
+      }
+    }
+    // <follow-chat:end>
     // DSH's own services, read when a switch happens (`apply` hands the context over); the folder Personal goes back to is kept in this browser (a convenience per viewer: the page
     // works without it, and a reload only forgets it).
     let ctxRef = null
@@ -1540,7 +1634,10 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
         if (ctxRef === null || typeof ctxRef.get !== 'function') return null
         const workspaces = ctxRef.get('workspaces')
         const uiWorkspace = ctxRef.get('uiWorkspace')
-        return workspaces !== undefined && workspaces !== null && uiWorkspace !== undefined && uiWorkspace !== null ? { workspaces, uiWorkspace } : null
+        // `sessions` is optional: it only tells a chat's own folder, the workspace that lists the chat is the fallback.
+        let sessions = null
+        try { const got = ctxRef.get('sessions'); sessions = got !== undefined ? got : null } catch (e) { sessions = null }
+        return workspaces !== undefined && workspaces !== null && uiWorkspace !== undefined && uiWorkspace !== null ? { workspaces, uiWorkspace, sessions } : null
       } catch (e) { return null }
     }
     const PERSONAL_FOLDER_KEY = 'kybernos-cloud.personal-folder'
@@ -1549,6 +1646,7 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
       set: (path) => { try { window.localStorage.setItem(PERSONAL_FOLDER_KEY, path) } catch (e) { /* kept for this page only */ } },
     }
     const folderTimers = { set: (fn, ms) => window.setTimeout(fn, ms), clear: (id) => window.clearTimeout(id) }
+    const followTimers = { set: folderTimers.set, clear: folderTimers.clear, every: (fn, ms) => window.setInterval(fn, ms), stop: (id) => window.clearInterval(id) }
 
     // How often the card's meter reads the allowance again while it is on screen (it also reads on focus and after a refusal).
     const QUOTA_METER_REFRESH_MS = 120000
@@ -3070,12 +3168,15 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
           // Choosing a team. The host writes the new model route and DSH applies it by itself a moment later; a message sent before then still carries the PREVIOUS team's header and is
           // billed to it. So the card says « switching » until the host reports the running route names the new team (`space/applied`), for a fixed minimum when it cannot tell, and
           // at most SWITCH_WAIT_MAX_MS (then the person is told to wait). A route the host could not rewrite is said at once: the choice is kept, the billing is not.
-          const pickSpace = async (id, nameHint) => {
-            if (switchingRef.current !== null || typeof id !== 'string') return
+          // `opts.keepChat`: the switch follows the chat on screen (the host says the chat's folder belongs to that team), so no new chat opens: the person already chose where to be.
+          // Answers `{ ok: true }` once the person is in the team, else `{ ok: false, error }` (the follower keeps trying; every other caller ignores the answer).
+          const pickSpace = async (id, nameHint, opts) => {
+            const keepChat = opts !== undefined && opts !== null && opts.keepChat === true
+            if (switchingRef.current !== null || typeof id !== 'string') return { ok: false, error: 'busy_switching' }
             const known = (Array.isArray(state.workspaces) ? state.workspaces : []).filter((w) => w !== null && w.id === id)[0]
             // `nameHint`: a team the person has just joined is not in this render's list yet (the list is read again in the same breath).
             const name = known !== undefined ? espaceVue(known, t).name : (typeof nameHint === 'string' ? nameHint : '')
-            if (id === state.active_workspace_id) return
+            if (switchIsMoot(id, state.active_workspace_id, keepChat) === true) return { ok: true, same: true }
             switchingRef.current = { id: id, name: name }
             setSwitching({ id: id, name: name })
             // Where Personal goes back to: the folder of the chat on screen, read before the switch moves anything (never a team's folder).
@@ -3088,18 +3189,19 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
               // A workspace that is not visible does not become active — and we SAY so.
               setFlashSwitch(false)
               setFlash(t('spaceUnknown'))
-              return
+              return { ok: false, error: res !== null && typeof res.error === 'string' ? res.error : 'failed' }
             }
             void load()
             const plan = switchPlan(res.route)
-            if (plan === 'stale') { end(); setFlashSwitch(false); setFlash(quotaFill(t('spaceRouteStale'), { name: name })); enterChat(res.state, id); return }
+            if (plan === 'stale') { end(); setFlashSwitch(false); setFlash(quotaFill(t('spaceRouteStale'), { name: name })); if (keepChat !== true) enterChat(res.state, id); return { ok: true, stale: true } }
             if (plan === 'wait') {
               const verdict = await awaitRoute(id)
               if (verdict === 'slow') { setFlashSwitch(false); setFlash(quotaFill(t('spaceSwitchSlow'), { name: name })) }
             }
             end()
             // The new chat opens only now: a message typed in it can no longer carry the previous team's header.
-            enterChat(res.state, id)
+            if (keepChat !== true) enterChat(res.state, id)
+            return { ok: true }
           }
           // Waits until DSH runs the model route of the team just chosen (`space/applied`), for a fixed minimum when the host cannot tell and at most SWITCH_WAIT_MAX_MS: 'done', 'slow', or
           // 'wait' when a later switch took over.
@@ -3265,6 +3367,29 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
             folderAsked.current.add(id)
             callLocal('/space/folder', 'POST', { workspace_id: id }).then((r) => { if (r !== null && r !== undefined && r.ok === true) void load() }).catch(() => null)
           }, [phase, state])
+
+          // The active team follows the chat on screen (block `follow-chat`): it reports the chat to the host and switches, without opening a chat, when the chat's folder belongs to
+          // another space. `pickSpace` is read through a ref so that the follower always uses the render's current state.
+          const pickRef = React.useRef(pickSpace)
+          pickRef.current = pickSpace
+          const activeRef = React.useRef(null)
+          activeRef.current = typeof state.active_workspace_id === 'string' ? state.active_workspace_id : null
+          React.useEffect(() => {
+            if (phase !== 'connected') return undefined
+            let stop = null
+            try {
+              const follower = createFollower({
+                services: dshServices,
+                ask: (chat) => callLocal('/space/for-folder', 'POST', { path: chat.path, session_id: chat.sid }),
+                pick: (id, name) => pickRef.current(id, name, { keepChat: true }),
+                // The host changed the team behind the page (a message sent before the page's switch was through): the footer reads the state now instead of at its next tick.
+                seen: (answer) => { if (typeof answer.active_id === 'string' && answer.active_id !== activeRef.current && switchingRef.current === null) void load() },
+                timers: followTimers,
+              })
+              stop = follower.mount()
+            } catch (e) { stop = null }
+            return () => { if (typeof stop === 'function') stop() }
+          }, [phase])
 
           const openAndConnect = () => { setPairNote(null); setAutoStart(true); setOpen(true) }
           const openCard = () => { setAutoStart(false); setOpen(true) }

@@ -1,12 +1,16 @@
 // A FAKE Kybernos server for the sandbox live checks of the teams features (scripts/check-join-live.mjs, scripts/check-team-folder-live.mjs).
 //
 //   const fake = await startFakeKybernos({ spaces: [P, ACME], invites: { [token]: {...} } })
-//   fake.url  fake.calls  fake.spaces  fake.consumed  fake.down  fake.close()
+//   fake.url  fake.calls  fake.spaces  fake.consumed  fake.down  fake.model  fake.chats  fake.close()
 //
 // It answers the routes the host of kybernos-cloud reads when a person is connected (the account, the list of teams, a team's plan and budget, the model catalogue, creating a
 // team, the two invitation routes) the way the real server's contract does, and records every request (method, address, device token, `x-kybernos-workspace`, body), so a check can say where
 // a token went. A team is on the Team plan unless its id is in `fake.noPlan`; a team created through `POST /v1/workspaces` has no plan unless `fake.createdHavePlan` is true (the
 // server's own words: « it starts without a plan »). `fake.down = true` hangs up on the invitation routes (a server that does not answer).
+//
+// It also plays the MODEL: `POST /v1/chat/completions` answers a streamed reply after `fake.model.delayMs` (a turn that stays running while a check does something else) and records,
+// in `fake.chats`, every such request with the team it was billed to (`x-kybernos-workspace`), when it arrived and when it was answered. A request that carries no tools (the title
+// and classification calls DSH makes beside a turn) is answered at once, so only the agent's own call is held.
 import { createServer } from 'node:http'
 
 export const DEVICE_TOKEN = 'kys_fake_join_token'
@@ -21,7 +25,7 @@ const win = (kind, seconds, percent) => ({ kind, window_seconds: seconds, scope:
 /** @param {{ spaces?: object[], invites?: Record<string, { workspace: object, inviter: string | null, email: string, role: string, full?: boolean }>, busy?: string[], boom?: string[] }} options
  *  `busy` and `boom`: invitation tokens the server answers 429 and 500 to. */
 export async function startFakeKybernos(options = {}) {
-  const fake = { calls: [], spaces: (options.spaces || [PERSONAL, ACME]).slice(), consumed: new Set(), noPlan: new Set(), createdHavePlan: false, down: false, url: '', close: null }
+  const fake = { calls: [], chats: [], model: { delayMs: 0, reply: 'Answer from the fake model.' }, spaces: (options.spaces || [PERSONAL, ACME]).slice(), consumed: new Set(), noPlan: new Set(), createdHavePlan: false, down: false, url: '', close: null }
   const invites = options.invites || {}
   let serial = 0
   const planOf = (space) => {
@@ -60,6 +64,24 @@ export async function startFakeKybernos(options = {}) {
         if (fake.createdHavePlan !== true) fake.noPlan.add(made.id)
         fake.spaces = fake.spaces.concat([made])
         return json(res, 201, made)
+      }
+      if (req.method === 'POST' && url === '/v1/chat/completions') {
+        const row = { t0: Date.now(), t1: null, ws: call.ws, tools: Array.isArray(sent.tools) && sent.tools.length > 0, text: '' }
+        fake.chats.push(row)
+        const answer = () => {
+          row.t1 = Date.now()
+          const base = { id: 'chatcmpl-fake', object: 'chat.completion.chunk', created: Math.floor(Date.now() / 1000), model: 'kybernos/glm' }
+          const frames = [
+            { ...base, choices: [{ index: 0, delta: { role: 'assistant', content: fake.model.reply }, finish_reason: null }] },
+            { ...base, choices: [{ index: 0, delta: {}, finish_reason: 'stop' }] },
+            { ...base, choices: [], usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 } },
+          ]
+          res.writeHead(200, { 'content-type': 'text/event-stream' })
+          res.end([...frames.map((f) => 'data: ' + JSON.stringify(f) + '\n\n'), 'data: [DONE]\n\n'].join(''))
+        }
+        const wait = row.tools ? Math.max(0, Number(fake.model.delayMs) || 0) : 0
+        if (wait > 0) setTimeout(answer, wait); else answer()
+        return
       }
       if (url === '/v1/workspaces') return json(res, 200, { workspaces: fake.spaces })
       if (url === '/v1/me') return json(res, 200, ME)
