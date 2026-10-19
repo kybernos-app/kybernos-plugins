@@ -18,24 +18,21 @@ works on.
 - **Nothing else sits above Kaby's composer.** The new-chat cards and the templates row (Build / Create / Cloud Computer, Slides… Dashboard) are
   not drawn in that chat: the Kaby bundle tells the window (`kb-kyby-session`) the moment the chat that is Kaby's becomes known, because on a page
   load the cards are drawn before it has read the pointer.
-- **The strip** (collapsible, in the dock above that chat's composer and above no other's) is **two equal tiles** and, under them, one
-  panel that exists only while Telegram needs something. It is open while Telegram is not connected; once it is, or when the server has
-  no Telegram bot, it is folded to its header (the name, and two chips: Telegram and the computer). The person's choice wins, and is
-  remembered. Nothing above the tiles files the computer under « Channels ». In the dock it lines up with the composer's card (same left and right edge, same 28 px radius; the tiles and the panel have the radius that nests in it, 16 px).
+- **The strip** (collapsible, in the dock above that chat's composer and above no other's) holds **states and one button**: **two equal tiles**, the channels
+  as a *state* and the computer. It is open while Telegram is not connected (that is the thing to do); once it is, or when the server cannot link Telegram, it is folded to
+  its header (the name, and two chips: Telegram and the computer). The person's choice wins, and is remembered. Nothing above the tiles files the computer under
+  « Channels ». In the dock it lines up with the composer's card (same left and right edge, same 28 px radius; the tiles have the radius that nests in it, 16 px).
+  Setting Telegram up is not done here any more: it lives on the **« Phone and channels »** screen (see below), which the strip's one button opens.
   - **What Kaby is** (open card only): one short paragraph above the tiles, the owner's picture (« like a phone with a remote control:
     it works on your desktop »), and the Suite's **« ? How it works »** pill (`window.__KB_HELP__`, this bundle's `help.json`) beside the
-    fold button. Each tile has **one help line under its title**: the channels' says what « Soon » means, the computer's what « On
+    fold button. Each tile has **one help line under its title**: the channels' says where it is set up, the computer's what « On
     request » means. The pill's card opens on the side that has room (a sheet at the foot of the screen on a phone).
-  - **Channels tile**: Telegram, WhatsApp and WeChat, one row each, with their marks. Telegram has a **switch**: turning it on asks for a
-    code (never when the strip opens), turning it off cancels a code in flight or, for a connected chat, asks before disconnecting.
-    WhatsApp and WeChat say « Soon » and offer nothing. The person may turn on several, as they come.
-    **Three states of Telegram's door**, told by the host (`GET /kybernos-cloud/kyber`: `telegram`, `pairing`, `server`): a **bot there** (the switch works); **no bot on this
-    server** (`configured` or `enabled` false); a **server too old** for the pairing routes (`pairing: 'unsupported'`: a 404 on `/v1/me/telegram` or `/v1/me/kyby`, the routes of
-    kybernos-server#230). Each of the last two keeps the switch greyed and says on the row, in one sentence, what is so and what to do (« This server has no Telegram bot. Switch to
-    a server that has one, such as Kybernos Cloud. » / « This server does not support linking Telegram yet. »), with a **Switch server** button when the registry names another
-    server (`server.can_switch`, the footer's helper): it sends the `kybernos-cloud:servers` window event the footer answers by opening Settings › Servers. No bot AND too old reads
-    « no bot » (the answer that tells where to go). With such a way out the strip opens by itself; the person's fold still wins. A host that says nothing claims nothing. A pairing
-    the server answers 404 to with none of our codes is `unsupported` (a panel, never a silent failure).
+  - **Channels tile**: where Kaby answers besides the chat, as a state: **one Telegram row** (its mark, its name and where it stands: « Not connected », « Connected: Amina »,
+    « Code to scan », the sentence for a server with no bot or too old for the pairing routes), with no switch, no code and no bot link, and **one button, « Phone and channels »**,
+    that calls `window.__KB_MOBILE__.open()` (kybernos-mobile draws the window). The button is there only while that bundle publishes `open`: never a dead one. **Three states of
+    Telegram's door**, told by the host (`GET /kybernos-cloud/kyber`: `telegram`, `pairing`, `server`): a **bot there**; **no bot on this server** (`configured` or `enabled`
+    false); a **server too old** for the pairing routes (`pairing: 'unsupported'`: a 404 on `/v1/me/telegram` or `/v1/me/kyby`, the routes of kybernos-server#230). No bot AND too old
+    reads « no bot » (the answer that tells where to go). A host that says nothing claims nothing. A pairing the server answers 404 to with none of our codes is `unsupported`.
   - **Computer tile**: where Kaby works, always a real `<select>`. **This computer** (the machine that runs Kybernos) is the first entry:
     it needs no account and no server, so it is offered signed out and when the server cannot be read, choosing it calls nobody, and the
     choice is remembered by the browser (`kybernos-kyber.where`). Next to it, the cloud computers of the account (the chosen one is kept
@@ -47,18 +44,20 @@ works on.
     upgrade button (the footer's Upgrade dialog through `window.__KB_UPGRADE__`, else the plan page). The server has no way to name this
     computer yet (`PUT /v1/me/kyby/computer` takes a cloud computer's id): the local choice is Kaby's chat here, which already works on this
     machine; Telegram keeps using the cloud computer.
-  - **The panel under the tiles**: the code (QR, three steps, « Open Telegram », the time left, « Cancel », and « no camera or no app? »: the same token as a
-    command to write to the bot by hand, `/start pair_<token>`, with a copy button; it never leaves DSH for the console), then who Telegram says it is
-    while the person confirms there; expired, refused, « already another account's », « made by the bot » and « too many tries » are
-    its own cards; and the question before disconnecting. The tiles keep their height while it is open.
-- The same panel is a tab of the right-hand panel, and the page the new-chat card opens (what Kaby is, the way into the chat).
+- The same states are a tab of the right-hand panel (the computer tile and the channels state, with « Manage in my account »), and the page the new-chat card opens (what Kaby is,
+  the way into the chat, the strip).
 - **The right-hand column of « Phone and channels »** (`window.__KB_KYBER__.ChannelsColumn`, a component; `window.__KB_KYBER__.name` is the assistant's name). `kybernos-mobile`
-  draws that screen (the account menu's window and Settings › Phone and channels) and asks this bundle for the column: **« Talk to Kaby on a messaging app »**, a sentence that says
-  only Kaby answers, even with the computer off, and that a messaging app never gives control of the computer, then one row each: **Telegram** (the same row, switch and code
-  panel as the strip's, drawn right under the row: one pairing is one pairing wherever it is looked at), **WhatsApp** (a *Beta* chip and « Not available on this server yet »:
-  no server has the door; a host that forwards a `whatsapp` object like `telegram` — `configured` and `enabled` — changes the line to « This server offers it », and the row stays
-  inert because linking is not built here), **WeChat** and **iMessage** (« Soon »; iMessage « Mac only »). The three later rows keep an off, greyed switch. The strip above the composer
-  is untouched: reducing it to the states is a follow-up.
+  draws that screen (a window it opens itself, from the account menu's entry or from the strip's button, and Settings › Phone and channels) and asks this bundle for the column:
+  **« Talk to Kaby on a messaging app »**, a sentence that says only Kaby answers, even with the computer off, and that a messaging app never gives control of the computer, then
+  one row each: **Telegram** (its **switch** — turning it on asks for a code, never when the window opens, turning it off cancels a code in flight or, for a connected chat, asks before
+  disconnecting — the **Switch server** button when the server has no bot or is too old and the registry names another server (`server.can_switch`: it sends the
+  `kybernos-cloud:servers` window event the footer answers by opening Settings › Servers), and the **code panel** drawn right under the row: the code (QR, three steps,
+  « Open Telegram », the time left, « Cancel », and « no camera or no app? »: the same token as a command to write to the bot by hand, `/start pair_<token>`, with a copy
+  button; it never leaves DSH for the console), then who Telegram says it is while the person confirms there; expired, refused, « already another account's », « made by the bot »
+  and « too many tries » are its own cards; and the question before disconnecting), **WhatsApp** (a *Beta* chip and « Not available on this server yet »: no server has the door; a host
+  that forwards a `whatsapp` object like `telegram` — `configured` and `enabled` — changes the line to « This server offers it », and the row stays inert because linking is not built
+  here), **WeChat** and **iMessage** (« Soon »; iMessage « Mac only »). The three later rows keep an off, greyed switch. The strip shows the same pairing as a state (one store: a code
+  started in the window reads « Code to scan » on the strip's row).
 
 The bundle talks only to `kybernos-cloud`'s routes (`/kybernos-cloud/kyber`, `/telegram/pairing[...]`,
 `/telegram/unlink`, `/kyby/computer`, `/kyby/native[/set]`, `/computer/*`, `/console/link`), which add the account's token; the QR is computed there.
