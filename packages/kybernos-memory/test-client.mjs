@@ -160,17 +160,20 @@ check('no other bundle uses the kbmem- prefix', others.length === 0, others)
 check('the page never calls a cloud URL directly: only same-origin local routes', !/https?:\/\//.test(SOURCE.replace(/\/\/.*$/gm, '').replace(/<path[^>]*>/g, '')) )
 
 // ── nav placement: DSH's Settings nav is grouped by label (kybernos-plugin); a label it does not know falls to the
-// bottom, under the last header (seen on the real GUI). Ours is one of the essentials, the first section, after AI Provider & Models.
+// bottom, under the last header (seen on the real GUI). The menu is General + eight folds (GROUPES): ours is the first row of the « Memory & context »
+// fold. The order of the folds and of the rows after it is test-settings-nav.mjs's; this one only keeps the page out of the tail and in the fold it leads.
 console.log('settings nav')
 {
   // The nav label is the page's own title, said in the language in use (English at the base).
   const label = /id: 'kybernos-memory', order: 3, label: pageTitle\(\) \}/.test(SOURCE) && /const PAGE_TITLE = 'Memory & Lessons'/.test(SOURCE) ? 'Memory & Lessons' : undefined
   const nav = readFileSync(join(HERE, '..', 'kybernos-plugin', 'client.js'), 'utf8')
-  const row = /const GROUPES = \[\s*\{ titre: null, mots: \[([^\]]*)\]/.exec(nav)
-  const words = row === null ? [] : row[1].split(',').map((w) => w.trim().replace(/^'|'$/g, '')).filter((w) => w !== '')
-  const at = words.indexOf((label || '').toLowerCase())
+  const at0 = nav.indexOf('const GROUPES = [')
+  const groups = [...nav.slice(at0, at0 + 4000).matchAll(/\{ id: '([a-z]+)', titre: (?:null|kbt\('[^']+'\))[^\n]*?mots: \[([^\]]*)\]/g)]
+    .map((m) => ({ id: m[1], words: m[2].split(',').map((w) => w.trim().replace(/^'|'$/g, '')).filter((w) => w !== '') }))
+  const mine = groups.find((g) => g.words.indexOf((label || '').toLowerCase()) >= 0)
   check('the nav label is the one the page registers', label === 'Memory & Lessons')
-  check('the essentials list it right after AI Provider & Models', at > 0 && /^ai providers? & models$/.test(words[at - 1]), words)
+  check('a fold of the Settings menu holds it (else it falls to the tail, under the last header)', mine !== undefined, groups.map((g) => g.id))
+  check('it is the Memory & context fold, and the page leads it', mine !== undefined && mine.id === 'memory' && mine.words[0] === 'memory & lessons', mine)
   check('it has its own icon (else it wears the generic gear)', nav.indexOf("'memory & lessons': '<path") >= 0)
 }
 

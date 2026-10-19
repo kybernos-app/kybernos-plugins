@@ -1,5 +1,5 @@
 {
-  "_doc": "Language policy gate (scripts/test-no-french-literals.mjs, WP-07 decision D1). \"pending\" = not cleaned yet (the test only reports it); [] = strict: no French literal outside a dictionary, English README and description, a pair helper that falls back to English. A strict list may name exact literals allowed to stay. Clean a bundle, then change its line to [].",
+  "_doc": "Language policy gate (scripts/test-no-french-literals.mjs, WP-07 decision D1). \"pending\" = not cleaned yet (the test only reports it); [] = strict: no French literal outside a dictionary, English README and description, a pair helper that falls back to English. A strict list may name exact literals allowed to stay (kybernos-plugin keeps the unaccented French/Spanish search keywords of the Settings search, KB_SS_PAGE_KW: people search in their own language). Clean a bundle, then change its line to [].",
   "unaccented": [
     "dsh-db-viewer",
     "dsh-mermaid",
@@ -64,6 +64,13 @@
       "fermé",
       "[^a-zà-ÿ]",
       "fournisseur ia & modeles",
+      "modeles fournisseurs cle api openai",
+      "routage routeur choix modele secours",
+      "planification taches cron",
+      "outils mcp",
+      "carte graphe",
+      "langue idioma traduction",
+      "serveurs equipe reseau",
       "  - id: equipe",
       "?category=equipes&after=",
       "cordis.patch.yml.bak-outils-"
