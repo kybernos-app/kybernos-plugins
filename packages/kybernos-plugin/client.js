@@ -6348,22 +6348,34 @@ const kbNcDetect = (text, ids) => {
   for (const rule of KB_NC_WORDS) { if (ids.indexOf(rule[0]) >= 0 && rule[1].test(s)) return rule[0] }
   return null
 }
-/** What the composer holds once a template is picked: the template's own sentence when the box is empty or still holds a
- *  template sentence (`known`: all of them); otherwise the person's words are kept, after the sentence. Never loses text. */
-const kbNcFill = (draft, tpl, known) => {
+/** What the composer holds once a template is picked. Never loses the person's words, never stacks the page's own sentences:
+ *  - empty, or a template sentence alone (`known`: all of them), or exactly what the page wrote last (`own`, untouched): the new sentence
+ *    replaces it (a sentence with its suggestions belonged to the type left behind);
+ *  - the person's words after another template's sentence: that sentence is swapped, their words stay;
+ *  - the person's words alone: the sentence goes in front of them (unless it is already there). */
+const kbNcFill = (draft, tpl, known, own) => {
   const d = typeof draft === 'string' ? draft : ''
   const t = typeof tpl === 'string' ? tpl : ''
-  if (d.trim() === '') return t
-  if (Array.isArray(known) === true && known.some((k) => String(k).trim() === d.trim())) return t
-  return d.indexOf(t) === 0 ? d : t + d
+  const dt = d.trim()
+  if (dt === '') return t
+  const list = Array.isArray(known) === true ? known.map((k) => String(k)) : []
+  if (list.some((k) => k.trim() === dt)) return t
+  if (typeof own === 'string' && own.trim() !== '' && own.trim() === dt) return t
+  if (d.indexOf(t) === 0) return d
+  const lead = list.find((k) => k.trim() !== '' && k.trim() !== t.trim() && dt.indexOf(k.trim()) === 0)
+  if (lead !== undefined) return t + dt.slice(lead.trim().length).trim()
+  return t + d
 }
-/** What a suggestion puts in the composer: after the template's sentence while the box is empty or still holds a template sentence
- *  (`known`: all of them), otherwise after what the person wrote. Never loses text. */
-const kbNcSuggest = (draft, tpl, known, sug) => {
+/** What a suggestion puts in the composer: the template's sentence and the suggestion when the box is empty, holds a template sentence alone,
+ *  or holds the sentence and another of the type's suggestions (`sugs`: the type's own: a second click replaces, it does not pile up);
+ *  otherwise the suggestion goes after what the person wrote. Never loses text. */
+const kbNcSuggest = (draft, tpl, known, sug, sugs) => {
   const d = typeof draft === 'string' ? draft : ''
   const t = typeof tpl === 'string' ? tpl : ''
   const s = typeof sug === 'string' ? sug : ''
-  if (d.trim() === '' || (Array.isArray(known) === true && known.some((k) => String(k).trim() === d.trim()))) return t + s
+  const dt = d.trim()
+  if (dt === '' || (Array.isArray(known) === true && known.some((k) => String(k).trim() === dt))) return t + s
+  if (Array.isArray(sugs) === true && t.trim() !== '' && dt.indexOf(t.trim()) === 0 && sugs.some((x) => String(x) === dt.slice(t.trim().length).trim())) return t + s
   return d.replace(/\s*$/, ' ') + s
 }
 /** Where the page's one accent comes from. A colour the theme gave its brand token wins. The engine's own brand colour IS its text colour
@@ -25264,6 +25276,8 @@ function renderFit(canvas, model, cam, opts){
       const chosen = choPair[0]
       const setChosen = choPair[1]
       const choArmed = React.useRef(false)
+      // The last text the page itself put in the composer, when it holds no word of the person's: switching type replaces it (see kbNcFill).
+      const ownRef = React.useRef('')
       // Kaby's chat becomes known after this renders on a page load (its bundle reads the pointer then): it says so with an event, and the cards go.
       const kabyPair = React.useState(0)
       React.useEffect(() => {
@@ -25285,19 +25299,32 @@ function renderFit(canvas, model, cam, opts){
         if (draft.trim() !== '') choArmed.current = true
         else if (choArmed.current === true) { choArmed.current = false; setChosen(null) }
       }, [draft])
+      // A new blank chat starts clean: no chip, nothing the page wrote.
+      React.useEffect(() => { setChosen(null); ownRef.current = ''; choArmed.current = false }, [sid])
       const knownTpl = KB_NC_TEMPLATES.map((t) => kbt('kbnc.p.' + t.id))
       // A template fills the composer and never sends. The person's own words stay (see kbNcFill).
       const prefill = (id) => {
         setChosen(id)
         try {
           const ia = (p.inputActions !== null && p.inputActions !== undefined) ? p.inputActions : null
-          if (ia !== null && typeof ia.setDraft === 'function') ia.setDraft(kbNcFill(draft, kbt('kbnc.p.' + id), KB_NC_TEMPLATES.map((t) => kbt('kbnc.p.' + t.id))))
+          if (ia !== null && typeof ia.setDraft === 'function') {
+            const tpl = kbt('kbnc.p.' + id)
+            const next = kbNcFill(draft, tpl, knownTpl, ownRef.current)
+            ownRef.current = next === tpl ? next : ''
+            ia.setDraft(next)
+          }
         } catch (e) { /* the composer stays the person's */ }
       }
       const suggest = (id, i) => {
         try {
           const ia = (p.inputActions !== null && p.inputActions !== undefined) ? p.inputActions : null
-          if (ia !== null && typeof ia.setDraft === 'function') ia.setDraft(kbNcSuggest(draft, kbt('kbnc.p.' + id), knownTpl, kbt('kbnc.s.' + id + '.' + i)))
+          if (ia !== null && typeof ia.setDraft === 'function') {
+            const tpl = kbt('kbnc.p.' + id)
+            const sug = kbt('kbnc.s.' + id + '.' + i)
+            const next = kbNcSuggest(draft, tpl, knownTpl, sug, [0, 1, 2].map((n) => kbt('kbnc.s.' + id + '.' + n)))
+            ownRef.current = next === tpl + sug ? next : ''
+            ia.setDraft(next)
+          }
         } catch (e) { /* the composer stays the person's */ }
       }
       const openKyber = () => { try { if (typeof window.__KB_OPEN__ === 'function') window.__KB_OPEN__({ view: 'kyber' }) } catch (e) { /* no page to open */ } }
