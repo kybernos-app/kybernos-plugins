@@ -31,10 +31,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends nftables \
 # The gate of THIS checkout: it knows the platform's link (the base's own copy was cloned at a release tag that does not).
 COPY packages/kybernos-gate/ /opt/kybernos-plugins/packages/kybernos-gate/
 
-# The cloud plugin of THIS checkout too: it fills a computer's account (e-mail) from the server and tells the page it is on a computer (the
-# release's copy differs from it by a dozen lines, all of them this). The page bundle is patched, not replaced (it differs by hundreds of
-# lines): see patch-console.mjs, which fails the build when its anchors are not found.
-COPY packages/kybernos-cloud/index.js /opt/kybernos-plugins/packages/kybernos-cloud/index.js
+# The cloud plugin of THIS checkout too, the whole folder: its index.js imports sibling files that the release the base was cloned at does not have
+# (kyby.mjs, kyby-native.mjs, chat-space.mjs...), so the index alone cannot load ("kybernos-cloud: failed to import", every turn answered "dsh_failed";
+# measured on dev with image p13). It fills a computer's account (e-mail) from the server and tells the page it is on a computer. The page bundle
+# of kybernos-plugin is patched, not replaced (it differs by hundreds of lines): see patch-console.mjs, which fails the build when its anchors are not found.
+COPY packages/kybernos-cloud/ /opt/kybernos-plugins/packages/kybernos-cloud/
 COPY services/computer-image/patch-console.mjs /tmp/patch-console.mjs
 RUN node /tmp/patch-console.mjs /opt/kybernos-plugins/packages/kybernos-plugin/client.js && rm /tmp/patch-console.mjs
 

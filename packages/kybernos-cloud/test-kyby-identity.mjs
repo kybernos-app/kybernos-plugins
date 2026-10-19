@@ -92,6 +92,12 @@ ok('the emoji counter counts pictographs and not punctuation', countEmoji('ok �
   ok('the cloud image\'s copy is byte for byte the same', a === b, { a: a.length, b: b.length })
   const docker = readFileSync(join(here, '..', '..', 'services', 'computer-image', 'Dockerfile'), 'utf8')
   ok('the image copies the identity file next to the runner', /services\/computer-image\/kyby-identity\.mjs/.test(docker))
+  // index.js imports its sibling files and the base image's plugin folder is an older release's: the image must ship the whole folder, or the plugin does not load
+  // on a computer (« failed to import », every turn « dsh_failed »: measured on dev with image p13, which copied index.js alone).
+  const dockerignore = readFileSync(join(here, '..', '..', 'services', 'computer-image', 'Dockerfile.dockerignore'), 'utf8')
+  const siblings = [...readFileSync(join(here, 'index.js'), 'utf8').matchAll(/from '\.\/([A-Za-z0-9_.-]+)'/g)].map((m) => m[1])
+  ok('the image copies the whole kybernos-cloud folder, not index.js alone', siblings.length > 5 && /^COPY packages\/kybernos-cloud\/ \/opt\/kybernos-plugins\/packages\/kybernos-cloud\/$/m.test(docker) && /^!packages\/kybernos-cloud$/m.test(dockerignore), siblings.length)
+  ok('the ignore list drops no file index.js imports', siblings.every((f) => !/^test-/.test(f) && !/^lib-.*-test\.mjs$/.test(f) && f !== 'README.md'), siblings.join(' '))
 }
 
 console.log(fail === 0 ? '\nall good' : `\n${fail} failed`)
