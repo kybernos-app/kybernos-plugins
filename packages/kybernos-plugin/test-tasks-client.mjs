@@ -199,7 +199,7 @@ eq('a paused webhook test is explained', mod.kbTaskError('automation paused', en
   eq('the form offers a webhook-only choice and opens the webhook tab after saving it', page.indexOf('pr.id === \'webhook\'') >= 0 && page.indexOf('openWebhookOf') >= 0, true)
   eq('a failed run shows its reason, in the run pane', page.indexOf('className: \'kbrn-xerr\'') >= 0 && page.indexOf('KbRunsPane, {') >= 0, true)
   eq('the confirmation closes on Escape without closing what is behind it', /KbConfirm = [\s\S]{0,700}e\.key === \'Escape\'\) \{ e\.stopPropagation\(\)/.test(page), true)
-  eq('the on/off switches are reachable with the keyboard', (page.match(/className: 'kba-toggle'[^\n]*tabIndex: 0/g) || []).length, 2)
+  eq('the on/off switches (list, detail, cards) are reachable with the keyboard', (src.match(/className: 'kba-toggle'[^\n]*tabIndex: 0/g) || []).length, 3)
   // A5-10: no date of the page is written by a hard-coded locale; they all go through kbWhenOf (the board's formatter) or the helpers above.
   const tasksPage = src.slice(src.indexOf('const kbScheduleLabel = '), src.indexOf('const KB_MOCK_SKILLS = '))
   eq('no hard-coded en-GB in the page of the Automations', tasksPage.indexOf('en-GB') < 0 && tasksPage.indexOf('const kbWhenOf = (iso) =>') >= 0 && tasksPage.indexOf('kbBoardWhen(ms, Date.now(), kbMachineTz(), kbBoardLocale())') >= 0, true)

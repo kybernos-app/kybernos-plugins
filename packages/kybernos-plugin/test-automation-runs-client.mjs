@@ -5,12 +5,13 @@
 // Usage: node packages/kybernos-plugin/test-automation-runs-client.mjs   (exit 0 = everything passes)
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
+import { STABLE_CHOICES } from './automation-settings.mjs'
 
 const src = readFileSync(fileURLToPath(new URL('./client.js', import.meta.url)), 'utf8')
 const parts = src.split('// KB-AUTORUNS-BEGIN')
 if (parts.length !== 2) { console.error('exactly one KB-AUTORUNS block expected in client.js'); process.exit(1) }
 const block = parts[1].split('// KB-AUTORUNS-END')[0]
-const names = ['kbRunsOf', 'kbRunFmtDur', 'kbRunFmtBytes', 'kbRunFmtDT', 'kbRunFmtHm', 'kbRunState', 'kbRunStats', 'kbRunGraph', 'kbGraphLayout']
+const names = ['kbRunsOf', 'kbRunFmtDur', 'kbRunFmtBytes', 'kbRunFmtDT', 'kbRunFmtHm', 'kbRunState', 'kbRunStats', 'kbRunGraph', 'kbGraphLayout', 'kbRunAgo', 'kbRunCardFigures']
 const m = await import('data:text/javascript,' + encodeURIComponent('const KB_RUNS_NOTE_WINDOW_MS = 600000\n' + block.replace(/^const KB_RUNS_NOTE_WINDOW_MS[^\n]*\n/m, '') + '\nexport { ' + names.join(', ') + ' }'))
 
 let fails = 0
@@ -133,10 +134,39 @@ eq('a run whose journal was not read is its start alone', [m.kbRunGraph(null, fa
   eq('no two nodes share a place', new Set(all.pos.map((p) => p.x + ',' + p.y)).size, 9)
 }
 
+/* ── Relative time and the figures of a card ─────────────────────────────── */
+{
+  const NOW = Date.UTC(2026, 9, 19, 12, 0, 0)
+  eq('a time reads relative to now, in the page language', [30, 3 * 60, 5400, 3 * 3600, 86400, 2 * 86400].map((s) => m.kbRunAgo(NOW - s * 1000, NOW, 'en')), ['now', '3 minutes ago', '1 hour ago', '3 hours ago', 'yesterday', '2 days ago'])
+  eq('the same in French', [m.kbRunAgo(NOW - 3 * 3600 * 1000, NOW, 'fr'), m.kbRunAgo(NOW - 86400 * 1000, NOW, 'fr')], ['il y a 3 heures', 'hier'])
+  eq('no claim for a time in the future or unknown, an unknown language does not throw', [m.kbRunAgo(NOW + 5000, NOW, 'en'), m.kbRunAgo(null, NOW, 'en'), m.kbRunAgo(NOW, NaN, 'en'), typeof m.kbRunAgo(NOW - 7200000, NOW, 'zz-bad-locale-xx')], ['', '', '', 'string'])
+}
+{
+  const history = [
+    { at: Z(10, 8, 0), sessionId: 'session-a', status: 'fired' },
+    { at: Z(11, 8, 0), sessionId: 'session-b', status: 'fired' },
+    { at: Z(11, 8, 3), status: 'error', error: 'no event received' },
+    { at: Z(12, 8, 0), sessionId: 'session-c', status: 'fired' },
+  ]
+  const sums = { 'session-c': { outcome: { state: 'completed' }, durationMs: 35000, nodes: [{ kind: 'bash' }, { kind: 'web_search' }, { kind: 'bash' }] } }
+  const f = m.kbRunCardFigures(history, sums)
+  eq('runs, failed and success: a failure note joins its run', [f.runs, f.failed, f.success], [3, 1, 67])
+  eq('the newest run: its time, how it stands, how long it took', [f.lastAt, f.lastState, f.lastDurationMs], [Z(12, 8, 0), 'completed', 35000])
+  eq('tools are those of the newest run, once each, in order', f.tools, ['bash', 'web_search'])
+  const none = m.kbRunCardFigures(history, {})
+  eq('without any journal read: no duration, no tools, the newest run is « unread », never « completed »', [none.lastDurationMs, none.tools, none.lastState], [null, [], 'unread'])
+  eq('a journal that says failed makes the run failed even if the history says fired', m.kbRunCardFigures(history, { 'session-c': { outcome: { state: 'failed' }, durationMs: 5, nodes: [] } }).failed, 2)
+  const empty = m.kbRunCardFigures([], {})
+  eq('no run at all: nothing is claimed', [empty.runs, empty.success, empty.lastAt, empty.lastState, empty.tools], [0, null, null, null, []])
+  eq('sums that are not an object do not throw', m.kbRunCardFigures(history, null).runs, 3)
+  const many = Array.from({ length: 30 }, (_, i) => ({ at: Z(1 + (i % 28), 8, i), sessionId: 's' + i, status: i < 25 ? 'fired' : 'error' }))
+  eq('success counts the last 20 runs only', m.kbRunCardFigures(many, {}).success <= 100 && m.kbRunCardFigures(many, {}).runs === 30, true)
+}
+
 /* ── What the pane that draws it is allowed to do ────────────────────────── */
 const pane = src.slice(src.indexOf('const kbRunsCache = new Map()'), src.indexOf('const kbBoardBones = '))
 eq('the pane is found', pane.length > 1000, true)
-eq('read-only: the pane never calls the host, never acts on a task, never writes', pane.indexOf('host.call') < 0 && pane.indexOf('act(') < 0 && pane.indexOf("method: 'POST'") < 0 && pane.indexOf('method: \'PUT\'') < 0 && pane.indexOf('DELETE') < 0, true)
+eq('read-only but for one button: the pane never calls the host, never acts on a task; its only write is « Create skill »', pane.indexOf('host.call') < 0 && pane.indexOf('act(') < 0 && (pane.match(/method: 'POST'/g) || []).length === 1 && pane.indexOf("fetch(kbApiBase() + '/automation-skills', { method: 'POST'") >= 0 && pane.indexOf('method: \'PUT\'') < 0 && pane.indexOf('DELETE') < 0, true)
 eq('it reads the runs with its own fetch on the API base, GET only', pane.indexOf("fetch(kbApiBase() + '/tasks/runs?ids='") >= 0 && pane.indexOf("method: 'GET'") >= 0, true)
 eq('a host without the route (404, network error) gives an empty answer, never an exception', /if \(res\.ok !== true\) return \{\}/.test(pane) && /catch \(e\) \{ return \{\} \}/.test(pane), true)
 eq('journals are asked for five at a time, at most 20 runs, and detail for one run only', pane.indexOf('need.slice(i, i + 5)') >= 0 && pane.indexOf('.slice(0, 20)') >= 0 && /kbRunsFetch\(\[[^\]]+\], true\)/.test(pane), true)
@@ -145,6 +175,11 @@ eq('the page has a Journal tab, next to Sessions and Webhook', src.indexOf("'dat
 eq('the Sessions and Journal tabs are one pane, keyed by the automation and the tab', src.indexOf("key: t.id + ':' + tab") >= 0 && src.indexOf('KbRunsPane, {') >= 0, true)
 eq('the Journal shows six run chips, the chosen run when older, and a way to the rest: no run is cut without a word', src.indexOf('i < 6 || keys[i] === selKey') >= 0 && src.indexOf("'data-kb': 'runs-all'") >= 0 && src.indexOf('onSessions: () => setTab(\'sessions\')') >= 0, true)
 eq('the tab counts runs, not history lines', src.indexOf("kbt('tasks.tab.sessions').replace('{n}', String(kbRunsOf(t.history).length))") >= 0, true)
+eq('the Cards view reads one journal per card (the newest run), through the same reader as the runs pane', src.indexOf("const r = kbRunsOf(t.history)[0]; return r !== undefined ? r.sessionId : null") >= 0 && src.indexOf('React.useEffect(() => kbRunsRead(lastIds,') >= 0 && src.indexOf('React.useEffect(() => kbRunsRead(ids,') >= 0, true)
+eq('the Cards view switches an automation through the page, never by itself', src.indexOf("onToggle: (t) => act('toggle', t.id, { active: t.active === false })") >= 0, true)
+eq('the lessons are read with an own GET and a skill is asked for with the id alone: the page never sends text to be written', src.indexOf("fetch(kbApiBase() + '/automation-skills?id=' + encodeURIComponent(props.taskId)") >= 0 && src.indexOf("body: JSON.stringify({ id: props.taskId })") >= 0, true)
+eq('the lessons card has the three states: written, stable, on its way', ['tasks.lesson.made.auto', 'tasks.lesson.made.manual', 'tasks.lesson.stable', 'tasks.lesson.progress', 'tasks.lesson.soon', 'tasks.lesson.hint'].every((k) => src.indexOf("'" + k + "'") >= 0), true)
+eq('the page offers the same choices as the host', (() => { const m2 = /const KB_STABLE_CHOICES = (\[[0-9, ]+\])/.exec(src); return m2 !== null && JSON.stringify(JSON.parse(m2[1])) === JSON.stringify(STABLE_CHOICES) })(), true)
 eq('the old rows of the Sessions tab are gone', src.indexOf('kba-srow') < 0 && src.indexOf('sessionRows') < 0, true)
 eq('the pure block holds no DOM, no network, no React', !/\b(document|window|fetch|React|localStorage)\b/.test(block.replace(/\/\/[^\n]*/g, '')), true)
 
