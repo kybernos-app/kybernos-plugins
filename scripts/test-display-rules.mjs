@@ -493,9 +493,24 @@ ok('the Slash palette (and the pages that read it, Memory among them) has its mu
     atLeast(v + ' on white', contrast(colour(lastDecl(r.body, v), 'light'), colour('var(--dsw-alias-bg-layer-1)', 'light')), 4.5)
   }
 })
-ok('the Settings nav group headers (ours: the core plugin writes them into DSH\'s nav) are 4.5:1 in the light schemes (A1-05, A1-12)', () => {
-  const r = rule('kybernos-plugin/client.js', 'body:not([data-ds-dark-theme]) [class*="navList"] [data-kb="settings-group"]')
-  atLeast('group header', contrast(colour(lastDecl(r.body, 'color'), 'light'), colour('var(--dsw-alias-bg-layer-1)', 'light')), 4.5)
+ok('the Settings nav group headers (ours: the core plugin writes them into DSH\'s nav) are 4.5:1 in the light schemes, at rest, hovered, open and on the current page (A1-05, A1-12)', () => {
+  // The grouped menu writes the header in label-secondary for every scheme (5.8:1 on white), so no light-only rule is needed any more; a
+  // light rule that comes back (the old tertiary-then-lift pair) wins in the light schemes, and is the one measured here.
+  const file = 'kybernos-plugin/client.js'
+  const head = '[class*="navList"] [data-kb="settings-group"]'
+  const page = colour('var(--dsw-alias-bg-layer-1)', 'light')
+  const inkOf = (state) => {
+    for (const sel of ['body:not([data-ds-dark-theme]) ' + head + state, head + state]) {
+      if (hasRule(file, sel) && lastDecl(rule(file, sel).body, 'color') !== null) return lastDecl(rule(file, sel).body, 'color')
+    }
+    return null
+  }
+  const rest = inkOf('')
+  assert.notEqual(rest, null, 'the header has a colour at rest')
+  for (const state of ['', ':hover', '[aria-expanded="true"]', '[data-kb-here]']) {
+    const bg = state === ':hover' ? colour('var(--dsw-alias-interactive-bg-hover)', 'light') : page
+    atLeast('group header' + (state === '' ? '' : ' ' + state), contrast(colour(inkOf(state) || rest, 'light'), bg, page), 4.5)
+  }
 })
 ok('placeholders are not the label-dimmed token (1.3:1) or the browser default (3:1 on the dark inputs): tertiary, and secondary in the light schemes (A1-05)', () => {
   const none = (file, sel) => assert.ok(!multiRules(file).some((x) => x.selector === sel && /label-dimmed/.test(x.body)), file + ' ' + sel + ' still uses label-dimmed')

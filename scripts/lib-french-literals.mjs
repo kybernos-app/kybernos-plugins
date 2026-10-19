@@ -346,7 +346,7 @@ export const isFrenchProse = (line) => {
 
 // ── where French is allowed ─────────────────────────────────────────────────
 
-const FR_LABEL = /^(?:fr|FR|kybernos|fr[-_]FR|FRENCH|French|[A-Za-z0-9]*_FR|FR_[A-Za-z0-9_]*|[a-z][A-Za-z0-9]*Fr|fr[A-Z][A-Za-z0-9_]*|[A-Z_]*FR_EN|[A-Za-z]*FrEn|[a-z]+FR)$/
+const FR_LABEL = /^(?:fr|FR|kybernos|fr[-_]FR|FRENCH|French|[A-Za-z0-9_]*_FR|FR_[A-Za-z0-9_]*|[a-z][A-Za-z0-9]*Fr|fr[A-Z][A-Za-z0-9_]*|[A-Z_]*FR_EN|[A-Za-z]*FrEn|[a-z]+FR)$/
 // Prose of a given language table of another language is outside this scanner's question (es/ar/zh strings are not French).
 
 /**

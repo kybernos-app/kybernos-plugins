@@ -230,8 +230,13 @@
     ]
   },
   "fontSizes": [
+    ".85em",
+    ".95em",
+    ".9em",
     "0",
     "0.875em",
+    "1.05em",
+    "1.15em",
     "10.5px",
     "10px",
     "11.5px",
@@ -268,14 +273,20 @@
     "8px",
     "9.5px",
     "9px",
+    "calc(var(--dsh-content-font-size,13px)*.92)",
+    "calc(var(--dsh-content-font-size,13px)*.95)",
+    "calc(var(--kb-u)*.92)",
+    "calc(var(--kb-u)*.95)",
     "clamp(26px,3.2vw,34px)",
     "inherit",
+    "var(--dsh-content-font-size,13px)",
     "var(--dsh-content-font-size-secondary, 13px)",
     "var(--dsh-content-font-size-secondary,13.5px)",
     "var(--dsh-content-font-size-secondary,13px)",
     "var(--kb-fs-11,11px)",
     "var(--kb-fs-12,12px)",
     "var(--kb-fs-13,13px)",
-    "var(--kb-fs-14,14px)"
+    "var(--kb-fs-14,14px)",
+    "var(--kb-u)"
   ]
 }

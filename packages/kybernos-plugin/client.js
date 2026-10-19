@@ -26917,7 +26917,7 @@ ${kbNcHot} .play{transform-origin:50% 50%;animation:kb8-pulse .9s cubic-bezier(.
           : h(React.Fragment, null,
             h('p', { className: 'kbs-rh' }, kbSsFill(list.length === 1 ? 'settings.search.found1' : 'settings.search.foundN', { n: list.length, q: query }), ' · ', kbt('settings.search.scope')),
             h('ul', { className: 'kbs-rl', role: 'listbox', 'aria-label': kbt('settings.search') }, rows),
-            h('div', { className: 'kbs-hint' }, kbt('settings.search.hint')))
+            h('div', { className: 'kbs-res-hint' }, kbt('settings.search.hint')))
         panel = kbPortal(h('div', { className: 'kbs-res', style: { left: geo.left, top: geo.top } }, h('div', { className: 'kbs-res-in' }, body)), dlg)
       }
       const onKeyDown = (ev) => {
@@ -26994,7 +26994,7 @@ html[data-kb-settings-full="on"] [role="dialog"]:has([data-slot="settings.sectio
 .kbs-rv{flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:6px;max-width:200px}
 .kbs-why{font-size:11.5px;color:var(--dsw-alias-brand-primary);opacity:.85;text-align:end}
 .kbs-res mark{background:color-mix(in srgb,var(--dsw-alias-brand-primary) 22%,transparent);color:inherit;border-radius:3px;padding:0 1px}
-.kbs-hint{margin-top:14px;font-size:11.5px;color:var(--dsw-alias-label-tertiary)}
+.kbs-res-hint{margin-top:14px;font-size:11.5px;color:var(--dsw-alias-label-tertiary)}
 .kbs-none{padding:36px 8px;max-width:56ch}
 .kbs-none h2{margin:0 0 6px;font-size:16px;font-weight:600}
 .kbs-none p{margin:0 0 14px;font-size:13.5px;color:var(--dsw-alias-label-secondary)}
