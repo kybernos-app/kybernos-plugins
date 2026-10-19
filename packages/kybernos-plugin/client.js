@@ -7034,7 +7034,7 @@ const host = {
       'kybers/load': 'load', 'kybers/yaml': 'yaml', 'kybers/save': 'save', 'kybers/create': 'create',
       'kybers/ui-save': 'ui-save', 'kybers/art-read': 'art-read', 'kybers/avatar-save': 'avatar-save',
       'kybers/art-previews': 'art-previews', 'kybers/art-reveal': 'art-reveal', 'kybers/art-action': 'art-action',
-      'kybers/workspace-ui-save': 'workspace-ui-save', 'kybers/active-set': 'active-set', 'kybers/menu-save': 'menu-save',
+      'kybers/workspace-ui-save': 'workspace-ui-save', 'kybers/workspace-delete': 'workspace-delete', 'kybers/active-set': 'active-set', 'kybers/menu-save': 'menu-save',
       // Sélection de skills rattachées à un projet (onglet Skills) : GET lit,
       // POST écrit — même magasin `.kyber-workspaces.json` que les détails.
       'kybers/workspace-skills': 'workspace-skills',
@@ -7078,7 +7078,7 @@ const host = {
     }
     const route = routeMap[name]
     if (route !== undefined && kbRemoteOk === true) {
-      const post = name === 'kybers/save' || name === 'kybers/create' || name === 'kybers/ui-save' || name === 'kybers/avatar-save' || name === 'kybers/team-portraits' || name === 'kybers/art-previews' || name === 'kybers/art-reveal' || name === 'kybers/art-action' || name === 'kybers/workspace-ui-save' || name === 'kybers/workspace-skills' || name === 'kybers/active-set' || name === 'kybers/menu-save' || name === 'kybers/project-data' || name === 'kybers/art-load' || name === 'kybers/art-progress' || name === 'kybers/tasks' || name === 'kybers/insight-save' || name === 'kybers/quality-feedback' || name === 'kybers/quality-rating' || name === 'kybers/salary-detect' || name === 'kybers/starters-suggest' || name === 'kybers/yml-proposer' || name === 'kybers/yml-appliquer'
+      const post = name === 'kybers/save' || name === 'kybers/create' || name === 'kybers/ui-save' || name === 'kybers/avatar-save' || name === 'kybers/team-portraits' || name === 'kybers/art-previews' || name === 'kybers/art-reveal' || name === 'kybers/art-action' || name === 'kybers/workspace-ui-save' || name === 'kybers/workspace-skills' || name === 'kybers/workspace-delete' || name === 'kybers/active-set' || name === 'kybers/menu-save' || name === 'kybers/project-data' || name === 'kybers/art-load' || name === 'kybers/art-progress' || name === 'kybers/tasks' || name === 'kybers/insight-save' || name === 'kybers/quality-feedback' || name === 'kybers/quality-rating' || name === 'kybers/salary-detect' || name === 'kybers/starters-suggest' || name === 'kybers/yml-proposer' || name === 'kybers/yml-appliquer'
       let reply = null
       let failure = null
       try {
@@ -17539,6 +17539,26 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       const setConnArm = connArmPair[1]
       const connAgir = async (c) => kbConnActionOf(c, connArm, setConnArm, setConnAction)
       const connsVp = usePagedView(connRows.length, 9)
+      // Suppression du workspace (onglet Details, écart E1 de la recette
+      // 20/10) : deux clics — le premier ARME le bouton, le second confirme.
+      // Le registre conserve le dossier et les journaux : rien n'est détruit
+      // sur le disque, l'espace quitte juste la liste.
+      const wsDelArmPair = React.useState(false)
+      const wsDelArm = wsDelArmPair[0]
+      const setWsDelArm = wsDelArmPair[1]
+      const wsDelBusyPair = React.useState(false)
+      const wsDelBusy = wsDelBusyPair[0]
+      const setWsDelBusy = wsDelBusyPair[1]
+      const wsDelete = async () => {
+        if (wsDelBusy === true) return
+        setWsDelBusy(true)
+        try {
+          const res = await host.call('kybers/workspace-delete', { workspaceId: ws.workspaceId })
+          if (res !== null && res !== undefined && res.ok === true) { set({ view: 'projects' }); try { load() } catch (e) { /* rechargement */ } return }
+          setWsDelArm(false)
+        } catch (e) { setWsDelArm(false) }
+        setWsDelBusy(false)
+      }
       // Livrables : le host en sert jusqu'a 24, et l'onglet les affichait tous
       // d'un bloc — seul onglet sans pagination. `mine` est donc calcule AVANT
       // les hooks (qui sont inconditionnels, y compris quand la fiche annonce
@@ -17641,7 +17661,15 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
               kbLookColor(colorDraft, (c) => updateDetails({ color: c }))),
             // The folded "Advanced" preview of the multi-device satellite (nothing when it is off).
             kbMdExtras('advanced', ws),
-            h('span', { className: 'kb8-sub' }, 'Changing the name, icon or colour updates the project everywhere in DSH.'))
+            h('span', { className: 'kb8-sub' }, 'Changing the name, icon or colour updates the project everywhere in DSH.'),
+            // Zone de danger : suppression du workspace, deux clics. Le disque
+            // et les journaux sont conservés — voir wsDelete plus haut.
+            h('div', { style: { background: 'var(--dsw-alias-bg-layer-1)', border: '1px solid var(--dsw-alias-state-error-primary)', borderRadius: '16px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px', 'data-kb': 'ws-danger-zone' } },
+              h('span', { className: 'kb8-parent', style: { color: 'var(--dsh-alias-state-error-primary, var(--dsw-alias-state-error-primary))' } }, 'DELETE WORKSPACE'),
+              h('span', { className: 'kb8-sub' }, 'Removes this workspace from the list. The folder on disk and the session logs are kept; nothing is destroyed.'),
+              h('div', { style: { display: 'flex', gap: '10px', alignItems: 'center' } },
+                h('button', { type: 'button', className: 'kb8-chip', disabled: wsDelBusy === true, style: (wsDelArm === true ? { borderColor: 'var(--dsw-alias-state-error-primary)', color: 'var(--dsw-alias-state-error-primary)' } : null), onClick: () => (wsDelArm === true ? wsDelete() : setWsDelArm(true)) }, wsDelBusy === true ? 'Deleting…' : (wsDelArm === true ? 'Confirm deletion' : 'Delete workspace…')),
+                (wsDelArm === true && wsDelBusy !== true ? h('button', { type: 'button', className: 'kb8-chip', onClick: () => setWsDelArm(false) }, 'Cancel') : null))))
         }
         if (tab === 'Threads') {
           // Plus de maquette : soit de vrais threads, soit un etat vide explicite.

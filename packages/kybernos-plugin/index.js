@@ -6300,6 +6300,35 @@ function boot(ctx) {
       } catch (e) { return { ok: false, error: errText(e) } }
     }
 
+    // ── Suppression d'un workspace (recette 20/10/2026 : écart E1) ─────────
+    // Le registre DSH (`workspaceRegistry.delete`) retire l'enregistrement en
+    // CONSERVANT le dossier sur disque et les journaux de sessions — aucun
+    // fichier n'est détruit. On purge aussi l'entrée UI (nom/icône/couleur/
+    // desc/skills) du magasin `.kyber-workspaces.json`.
+    const deleteWorkspace = async (args) => {
+      try {
+        const req = args !== null && args !== undefined && typeof args === 'object' ? args : {}
+        const workspaceId = str(req.workspaceId)
+        if (workspaceId === null || workspaceId.length === 0 || workspaceId.length > 120) return { ok: false, error: 'workspaceId required' }
+        if (/^[A-Za-z0-9][A-Za-z0-9 ._:-]*$/.test(workspaceId) === false) return { ok: false, error: 'invalid workspaceId' }
+        const wsSvc = workspacesAt()
+        if (wsSvc === undefined || wsSvc === null || typeof wsSvc.delete !== 'function') return { ok: false, error: 'workspace registry unavailable' }
+        const removed = await wsSvc.delete(workspaceId)
+        try {
+          const home = await dshHome()
+          if (home !== null) {
+            const path = joinPath(home, '.kyber-workspaces.json')
+            const data = await readWorkspaceUi()
+            if (data[workspaceId] !== undefined) {
+              delete data[workspaceId]
+              await writeTextScoped(home, path, JSON.stringify(data, null, 2) + String.fromCharCode(10))
+            }
+          }
+        } catch (e) { /* purge UI best-effort : l'entrée orpheline est inerte */ }
+        return { ok: true, removed }
+      } catch (e) { return { ok: false, error: errText(e) } }
+    }
+
     // ── Skills rattachées à un projet (onglet Skills de la fiche projet) ────
     // Même magasin que le nom/l'icône/la couleur (`.kyber-workspaces.json`),
     // sous la clé `skills` de l'entrée du workspace : la sélection d'un projet
@@ -9762,6 +9791,13 @@ function boot(ctx) {
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
         sendJson(res, 200, await saveWorkspaceUiQueuee(await readJsonBody(req)))
       } }), 'kybernos: route workspace-ui-save')
+      // Suppression d'un workspace : POST { workspaceId } — le registre retire
+      // l'enregistrement (dossier et journaux conservés), le magasin UI est purgé.
+      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/workspace-delete', handler: async (req, res) => {
+        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        sendJson(res, 200, await deleteWorkspace(await readJsonBody(req)))
+      } }), 'kybernos: route workspace-delete')
       // ── Skills rattachées à un projet : GET lit, POST écrit la sélection ──
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/workspace-skills', handler: async (req, res) => {
         if (req.method === 'GET') {
