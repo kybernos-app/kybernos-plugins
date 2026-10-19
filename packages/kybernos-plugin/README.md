@@ -66,7 +66,7 @@ All under `/kybernos/` (plus `/kybernos-technique/{renderer,vendor/three}.js`). 
 | Teams, projects | `load` `yaml` `save` `create` `ui-save` `menu-save` `active-set` `project-data` `workspace-ui-save` `workspace-skills` `pins` `share` `avatar*` `member-*` `team-portraits` `team-cap` `yml-proposer` `yml-appliquer` |
 | Runs, insight | `runs` `runs-index` `calls` `calls-index` `search-content` `insight` `insight-save` `quality*` `aa` `starters-suggest` `salary-detect` (purpose not verified) |
 | Deliverables | `art-origin\|read\|previews\|reveal\|raw\|action\|progress\|load` `doc-raw` |
-| Automations | `tasks` (POST; scheduler ticks every 30 s), `tasks/occurrences` (GET `?from=&to=`, read-only: when the active scheduled automations will run, see "The Automations board"), `tasks/runs` (GET `?ids=&detail=1`, read-only: what each run did, read from the engine's session journals, see "The runs of an automation"), `hooks` (public webhook: secret + 60/h default limit) |
+| Automations | `tasks` (POST; scheduler ticks every 30 s), `tasks/occurrences` (GET `?from=&to=`, read-only: when the active scheduled automations will run, see "The Automations board"), `tasks/runs` (GET `?ids=&detail=1`, read-only: what each run did, read from the engine's session journals, see "The runs of an automation"), `automation-skills` (GET `?id=`: how far an automation is from becoming a skill; POST `{id}`: write it, see "Stable automations become skills"), `hooks` (public webhook: secret + 60/h default limit) |
 | Tools catalog | `tools/state`, `tools/apply` (dry run, dated backup of the profile patch, restore) |
 | Voice, TTS | `voice/{config,transcribe,save}` `voice-sample*` `tts/{config,voices,speak,cache,cache-trim}` (engines: `say`, `piper`, `supertonic`, `edge`, and `models`, the speaking models of the user's own providers) `models/audio` `models/audio/{probe,speak,listen}` (the audio models of the providers set up in Models, how each is asked, and using it) `image-models` (live calls moved to `@local/kybernos-call`, which speaks through `tts/speak`) |
 | Widget, gateway | `widget.js` `widget/api/{config,conversations,message,account,history-delete,reply}` `gateway/{status,approvals,approvals/decision}` |
@@ -75,9 +75,16 @@ All under `/kybernos/` (plus `/kybernos-technique/{renderer,vendor/three}.js`). 
 
 ## The Automations board
 
-The Automations page has three views behind one switch in the shared toolbar: **Columns**, **Calendar** and **List**. The List is the
-screen that was there before and is still the default; the choice is kept per browser (`kybernos.toolbar.automations`), and an older
-stored `cards` reads as `list`. Search, facets and favourites of the toolbar apply to all three.
+The Automations page has four views behind one switch in the shared toolbar: **Columns**, **Calendar**, **Cards** and **List**. The List is the
+screen that was there before and is still the default; the choice is kept per browser (`kybernos.toolbar.automations`). Search, facets
+and favourites of the toolbar apply to all four; the sort applies to the List and to the Cards.
+
+- **Cards**: one card per automation with its name, what starts it, its mode, an on/off switch and four figures: **Last run** (relative
+  time), **Success** (the share of the last 20 runs that are not recorded as failed), **Runs**, **Duration** of the last run; and the
+  **Tools** the last run used. The first three come from `tasks.json`; duration and tools come from the journal of the NEWEST run of each
+  automation only (one journal per card, through `GET /kybernos/tasks/runs`). A failed last run puts an orange outline and « To review »
+  on the card. There is no token and no budget figure: the journals hold no token count and nothing here spends money (the Usage plugin
+  owns tokens, and only for what a browser watched).
 
 - **Columns** are states of RUNS, not a ranking (nothing is draggable): *Upcoming* (the stored next run of each active scheduled
   automation), *Running*, *To approve* (a run the engine holds for a person, then the last run of an automation when it failed, 7
@@ -110,6 +117,33 @@ reported as truncated with the instant the list stops. It reads `tasks.json` and
 (same origin, signed browser session) and the Host fence of every route of the bundle. Pure logic: `automation-occurrences.mjs`
 (host) and the `KB-AUTOBOARD` block of `client.js` (browser).
 
+## The Flow of an automation, and what a node says
+
+The Flow view of the Workflow tab is the text read as steps (numbered lines), drawn as nodes you can drag. A node shows its title on two
+lines (never overflowing) and its step number; a click opens a panel beside the canvas: the type (Trigger, AI, Action, Flow), the title,
+the **whole instruction** (the title is cut at 84 characters), **how it runs** (a model step is `ai.run`, an action is `tools.call`, the
+same rule as the Code view), a « Guard » mark when the step starts with PREFLIGHT, Previous / Next to walk the steps, and « Edit in Text ».
+Nothing in the panel is written: the text stays the source.
+
+## Discover: templates
+
+The **Discover** tab of the Automations page (next to **Yours**) lists ready-made starting points: ten templates in three families
+(Social media, Prospecting, Customer service), as compact cards (icon, title, two lines, cadence, a tag and « +N », the apps involved,
+« Import » on hover). A card opens the page of its template: a cover, what it does (the steps, model step or action), the questions the
+chat will ask, what you will need, and the rules written into the steps. The data and the text of the chat are the pure `KB-AUTOTPL`
+block of `client.js` (every text is an English / French pair; the other languages read the French as a key like the rest of the page).
+
+- **A template is a starting point, not an automation.** « Import » and « Use this template » open a NEW chat (the same call as
+  « Create » and « Edit in chat ») whose draft names the `automation-creator` skill, carries the template (what starts it, the draft
+  steps, the questions with their options, what to connect, the rules) and asks for a real task that stays **OFF** until everything is
+  connected. Nothing is created by clicking the card.
+- **Nothing the engine cannot do is promised.** A cap, a hand-over or a memory check in a template is an instruction written into the
+  steps, not a mechanism of the engine; the scheduler has schedules, one date and webhooks, so a template that « starts on a message »
+  says a webhook calls it. No template speaks of a budget or a payment: there is no runtime for them (test-automation-templates.mjs fails
+  on those words).
+- **No image is shipped.** The repository holds no media (`garde-depot.mjs`), so the cover of a template page is drawn in code (two inks on
+  paper, halftone dots, a misregistered glyph), and the compact cards carry no cover at all.
+
 ## The runs of an automation (Sessions and Journal)
 
 The page of one automation has two read-only tabs on its runs. Nothing is written, nothing is guessed from what a model said.
@@ -119,11 +153,13 @@ The page of one automation has two read-only tabs on its runs. Nothing is writte
   (title, duration split into thinking and running, status, and on each link the size of what the step handed on), and a **Logs**
   panel with the Input and Output of one step. More than seven tool calls show the first six and a "+N more steps" node.
 - **Journal** tells the story of the chosen run: which model answered and why (the profile's default, or one chosen for this run),
-  what happened step by step, and the approvals asked during the run (or the automation's mode when there were none).
+  what happened step by step, and the approvals asked during the run (or the automation's mode when there were none). Under it,
+  **Lessons**: how many runs in a row the automation has had since its last failure, and, once that reaches the number chosen in
+  Settings › Automations, a **Create skill** button (see « Stable automations become skills » below).
 - A **run** is one session. `tasks.json` also keeps, for a failed run, a line the run wrote about itself afterwards (it has no session
   id): that line is a note on the run it follows (within 10 minutes, one note per run), not a run of its own. The tab counts runs.
 
-Where it comes from: `GET /kybernos/tasks/runs?ids=a,b` (at most 20 plain session ids) opens each session with the engine's own
+Both tabs only read, but for that one button. Where the runs come from: `GET /kybernos/tasks/runs?ids=a,b` (at most 20 plain session ids) opens each session with the engine's own
 `sessionPersistence` (`open(id, 'read')`) and summarises its **first turn** with `automation-runs.mjs`: the turn's clock, the engine's
 `turn/end` reason (read as `session-outcome.mjs` does), the models the requests were routed to, whether a model was chosen on purpose,
 each tool call with its think time, run time and output size, and the approvals asked and decided. `detail=1` (one id only) adds the
@@ -164,16 +200,36 @@ never "Completed", and the list still shows its time and the status `tasks.json`
 
 ## Automations settings, and DSH's own « Automation tasks »
 
-Settings › Automations has two switches, kept in `$DSH_HOME/kybernos/automation-settings.json` (rules in `automation-settings.mjs`):
+Settings › Automations has three switches and one choice, kept in `$DSH_HOME/kybernos/automation-settings.json` (rules in `automation-settings.mjs`):
 
 - **Pause all automations**: the scheduler's tick does nothing while it is on. What came due fires once at the first tick after it is
   turned off (the scheduler's own catch-up); nothing is lost or skipped.
 - **Show DSH's own « Automation tasks » list**: off by default. DSH's own scheduled-tasks entry overlaps the Automations page, so the
   menu hides it (the row is found by the React key `schedules`, the same in every language). It is a separate store: the tasks it
   lists are not the ones of this page, and they are one switch away.
+- **Create skills automatically** (off by default) and **Stable after** (3, 5, 10 or 20 runs in a row without a failure, default 5; the
+  history keeps the last 20 runs, so 20 is the most it can see): see the next section.
+
+### Stable automations become skills
+
+An automation that has run N times in a row without a failure is a procedure that works; it can be written down as a skill to use by
+hand in any chat. **A fixed rule, no model**: `automation-skills.mjs` counts the runs of `tasks.json` since the newest failure (a history
+line with a session id is a run; a line with the status `error`, the history's own or the note a run writes about itself, is a failure).
+The skill is the text of the automation in the skill format (`name`, `description`, `whenToUse`, then the steps), written to
+`$DSH_HOME/skills/<name>/SKILL.md` with the permissions of the person only, **never over an existing skill** (the file is opened with
+`wx`, a taken name gets `-2`, `-3`…), without the webhook, the history or any secret. It is the person's own file afterwards: edit it,
+delete it. What was written is kept in `$DSH_HOME/kybernos/automation-skills.json`.
+
+- With the switch on, the scheduler's tick writes the stable ones by itself: at most every 5 minutes, at most three per pass, never in
+  the way of a tick (a failure is logged and the tick goes on), and not at all while « Pause all automations » is on.
+- With it off, the Journal offers the button; it works only for a stable automation (the host checks the rule, the page sends the id and
+  nothing else, never the text to be written).
+- `GET /kybernos/automation-skills?id=` (same origin) says how far an automation is and which skill was written; `POST {id}` (same
+  origin and a signed session) writes it now. Host code: it needs a DSH restart.
 
 `GET/POST /kybernos/automation-settings` has the guards of `tasks` (same origin, and a signed session to change). The route is host
-code: it needs a DSH restart; until then the page says so and the native entry stays hidden.
+code: it needs a DSH restart; until then the page says so and the native entry stays hidden. It takes one key at a time
+(`paused`, `showNativeTasks`, `autoSkill`: booleans; `stableAfter`: one of the choices) and refuses anything else whole.
 
 ## The new-chat page
 
@@ -432,10 +488,13 @@ node packages/kybernos-plugin/test-automation-occurrences.mjs  # the future runs
 node packages/kybernos-plugin/test-automation-board.mjs  # the KB-AUTOBOARD block: columns, week and month grids, what the page refuses to claim, texts in both languages
 node packages/kybernos-plugin/test-automation-runs.mjs   # the run summary: clock, outcome, models, tool calls, approvals, scrubbing, the guards and bounds of tasks/runs
 node packages/kybernos-plugin/test-automation-runs-client.mjs  # the KB-AUTORUNS block: history lines → runs, figures, graph, layout; the pane stays read-only
-node packages/kybernos-plugin/test-automation-settings.mjs  # the two switches, the guard of the route, the held tick
+node packages/kybernos-plugin/test-automation-settings.mjs  # the three switches and the choice, the guard of the route, the held tick
+node packages/kybernos-plugin/test-automation-skills.mjs  # the stable-run rule, the skill text, the route, and the tick writing a skill by itself (real apply() on a throw-away DSH home)
+node packages/kybernos-plugin/test-automation-templates.mjs  # Discover: the ten templates in both languages, what they never promise, the filter, the chat text
 node packages/kybernos-plugin/test-newchat.mjs         # the cards, the Cloud Computer state, the hidden native entry, the starters pinned
 node scripts/test-tasks-route.mjs                      # the tasks route, the tick, webhooks, and tasks/occurrences (guards, bounds, corrupt store)
-node scripts/check-automations-board-live.mjs [--stub-model]  # live GUI, on a sandbox only: the three views, Run now, banner, French, 375 px; with a stub model: running, waiting, Approve / Refuse
+node scripts/check-automations-board-live.mjs [--stub-model]  # live GUI, on a sandbox only: the four views, Run now, banner, French, 375 px; with a stub model: running, waiting, Approve / Refuse
+node scripts/check-automations-discover-live.mjs [--shots <dir>]  # live GUI, on a sandbox only (restart it first: host routes): Discover and the chat it opens, Cards, the Flow panel, the Journal lessons and the skill file, the settings, 390 px
 node packages/kybernos-plugin/test-seed-skills.mjs     # 27: skill seeding (a user's own skill is never overwritten)
 node scripts/test-shipped-skills-wiring.mjs            # the real index.js seeds under DSH_HOME, not under the other HOME
 node scripts/test-automation-creator-parity.mjs        # the skill validates crons and zones exactly like the scheduler
