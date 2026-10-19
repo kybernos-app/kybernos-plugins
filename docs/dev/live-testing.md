@@ -1228,6 +1228,6 @@ source scripts/sandbox/env.sh && node scripts/check-phone-channels-live.mjs [--s
 The page's `fetch` is replaced for `/kybernos-cloud/*` and `/kybernos-mobile/remote/*` before any script runs (the account, what the phone link and Telegram say, the pairing
 gestures); nothing is paired and nothing leaves the machine. It plays the entry (between Appearance and Settings), both columns in every state (nothing linked, a code, a phone
 asking for the check, a code that ran out, a phone connected, a plan without the link, a server without it; Telegram not linked, a code, scanned, linked, no bot; WhatsApp not
-available on this server, WeChat and iMessage soon), light, dark and a 390 px phone (the account menu is in the drawer there and the window opens over it, on `<body>`), Escape / the
+available on this server, WeChat and iMessage soon), light, dark and a 390 px phone (the account menu is in the drawer there; the window opens itself in a root of its own on `<body>`, also with the drawer closed, which is how Kaby's strip opens it), Escape / the
 dim / the cross, the code withdrawn when the window closes, and the Settings page. Traps met writing it: the window theme must be set explicitly (the sandbox starts dark), a window
-mounted inside the drawer would sit 354 px off-screen (it is portalled to `<body>`), and the sandbox's « Get started » dialog covers the page after every load (Escape).
+drawn inside the drawer would sit 354 px off-screen (it draws itself in a root of its own on `<body>`), and the sandbox's « Get started » dialog covers the page after every load (Escape).

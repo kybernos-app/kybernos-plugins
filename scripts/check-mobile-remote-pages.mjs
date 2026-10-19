@@ -162,7 +162,7 @@ try {
   const pageUp = await until(D, `!!document.querySelector('[data-kb="mobile-page"]')`, 15000)
   check('Settings › Phone and channels opens', pageUp === true)
   check('the page has both columns and asks for no code by itself', await exists(D, '[data-kb="mobile-page"] [data-kb="phone-remote"]') && (await exists(D, '[data-kb="mobile-page"] [data-kb="phone-channels-card"]') || await exists(D, '[data-kb="mobile-page"] [data-kb="phone-channels-off"]')) && !(await exists(D, '[data-kb="mobile-page"] [data-kb="mobile-qr"]')))
-  // The page draws its two columns at once and « Loading… » in the left one until the first status answers: the button is there a moment later.
+  // The page draws « Loading… » until the first status poll answers: the button is awaited, not assumed.
   await until(D, `!!document.querySelector('[data-kb="mobile-page"] [data-kb="mobile-pair"]')`, 15000)
   await click(D, '[data-kb="mobile-page"] [data-kb="mobile-pair"]')
   check('« Add a phone » on the page shows a QR code', await until(D, `!!document.querySelector('[data-kb="mobile-page"] [data-kb="mobile-qr"] svg')`, 20000))

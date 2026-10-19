@@ -68,10 +68,11 @@ time changes); a change to the host half (`index.js`) still needs a restart.
 
 One screen, two columns, shown in two places (decision of 2026-10-19; the old « Remote control » entry, its popover and the duplicated panel are gone):
 
-- **A window**, from the account menu's **« Phone and channels »** entry (just before « Settings »; `kybernos-cloud` offers the entry and mounts the window
-  that `window.__KB_MOBILE__.Dialog` publishes). It is drawn on `<body>` (a fixed box inside the phone layout's sliding drawer would sit off-screen).
-  Escape, the dim and the cross close it; closing withdraws a code nobody scanned (never one a phone is waiting on). It asks for no code by itself:
-  « Add a phone » does.
+- **A window**, from the account menu's **« Phone and channels »** entry (just before « Settings ») or from the button of Kaby's strip. It opens itself:
+  `window.__KB_MOBILE__.open()` draws it in a React root of its own on `<body>` (`react-dom/client`, else `react-dom` when it still has `createRoot`; one window at a time;
+  `false` when there is no root to draw in), so it depends on neither the account menu nor the footer nor the phone layout's sliding drawer (a fixed box inside that drawer sits
+  off-screen). `kybernos-cloud` only offers the entry while `open` is published. Escape, the dim, the cross and any request for Settings › Servers close it; closing withdraws a
+  code nobody scanned (never one a phone is waiting on). It asks for no code by itself: « Add a phone » does.
 - **Settings › Phone and channels** (section id `kybernos-mobile`), the same two columns with the animated help and the plan chip above them.
 - **Left, « Open my computer on my phone »** (this bundle): a sentence that says it gives **full control of this computer**, then the phone link in its states
   (nothing linked, a code to scan, a phone asking for the 4-digit check, a code that ran out, a phone connected, a plan without the link, a server without it)
