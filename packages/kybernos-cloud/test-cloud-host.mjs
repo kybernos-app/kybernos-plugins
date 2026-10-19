@@ -14,7 +14,7 @@
 //   node kybernos-cloud/test-cloud-host.mjs
 import assert from 'node:assert/strict'
 import { createServer } from 'node:http'
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -569,6 +569,8 @@ const fakeTools = {
 // The session seams of DSH, for the turns a cloud computer is handed (ADR 0053 § 13.4): off until a step needs them.
 let fakeSessionController
 let fakeSessionPersistence
+// The approval service of DSH (`approval.request`): off until a step needs it.
+let fakeApproval
 const ctx = {
   get: (name) => {
     if (name === 'webServer') return webServer
@@ -579,6 +581,7 @@ const ctx = {
     if (name === 'llm' && llmEnabled === true) return fakeLlm
     if (name === 'sessionController') return fakeSessionController
     if (name === 'sessionPersistence') return fakeSessionPersistence
+    if (name === 'approval') return fakeApproval
     return undefined
   },
   inject: (_list, cb) => cb(ctx),
@@ -1470,7 +1473,7 @@ try {
         create: async () => ({ ok: true, value: { sessionId: nextSession } }),
         prompt: async (request) => { prompts.push(request); return { ok: true } },
       }
-      const started = await turnHit('/kybernos-cloud/turn', { prompt: '  Post this to my webhook ' }, 'Bearer kyd_computer')
+      const started = await turnHit('/kybernos-cloud/turn', { prompt: '  Post this to my webhook ', channel: 'telegram' }, 'Bearer kyd_computer')
       assert.deepEqual([started.body.ok, started.body.sessionId], [true, 's-9'])
       assert.equal(prompts[0].sessionId, 's-9')
       assert.equal(prompts[0].content[0].text, 'Post this to my webhook')
@@ -1491,6 +1494,25 @@ try {
       const read = await turnHit('/kybernos-cloud/turn/answer', { sessionId: 's-9' }, 'Bearer kyd_computer')
       assert.deepEqual([read.body.ok, read.body.text, read.body.tools], [true, 'Done: HTTP 200.', 1])
       assert.equal((await turnHit('/kybernos-cloud/turn/answer', { sessionId: '../x' }, 'Bearer kyd_computer')).body.ok, false, 'un id de session invalide')
+
+      // The journal (Kaby's own lines): the end of this turn is written with the channel the runner gave and the body it ran on.
+      {
+        const homeSaved = process.env.DSH_HOME
+        const home = mkdtempSync(join(tmpdir(), 'kaby-cloud-home-'))
+        process.env.DSH_HOME = home
+        try {
+          const stopping = agentHooks.get('agent/turn-stopping')
+          const turn = [{ role: 'user', content: [{ type: 'text', text: 'Post this to my webhook' }] }, { role: 'assistant', content: [{ type: 'tool_use', name: 'bash' }, { type: 'text', text: 'Done: HTTP 200.' }] }]
+          stopping({ agent: { session: { id: 's-9', deriveMessages: () => turn }, options: {} }, signal: undefined })
+          stopping({ agent: { session: { id: 's-not-kabys', deriveMessages: () => turn }, options: {} }, signal: undefined })
+          const dir = join(home, 'kybernos', 'kaby-journal')
+          const lines = readdirSync(dir).flatMap((f) => readFileSync(join(dir, f), 'utf8').trim().split('\n')).map((l) => JSON.parse(l))
+          assert.equal(lines.length, 1, 'only the session this route made is journaled')
+          assert.deepEqual([lines[0].channel, lines[0].body, lines[0].asked, lines[0].tools], ['telegram', 'cloud', 'Post this to my webhook', { bash: 1 }])
+        } finally {
+          if (homeSaved === undefined) delete process.env.DSH_HOME; else process.env.DSH_HOME = homeSaved
+        }
+      }
 
       // The gate (ADR 0053 § 14): the person is asked, through the platform, before a tool that can change something runs in a session this route made.
       {
@@ -1943,6 +1965,68 @@ try {
   captureFacts = null
   ok('capture : un quasi-doublon (autres mots, meme fait) n est pas reecrit ; negation, autre nombre et fait neuf passent')
   llmEnabled = false
+
+  // 10n-sexies. Kaby's own chat on the person's computer (step 3 of the plan): the tools of our plugins that change something outside the chat ask the person, through DSH's own
+  // approval card, as the cloud computer's turns ask through the platform. What only reads passes; another chat is none of its business; with no way to ask, the answer is no.
+  // Its turns are written in the journal, with the actions the person refused.
+  {
+    const homeSaved = process.env.DSH_HOME
+    const idSaved = process.env.KYBERNOS_COMPUTER_ID
+    const home = mkdtempSync(join(tmpdir(), 'kaby-native-home-'))
+    process.env.DSH_HOME = home
+    delete process.env.KYBERNOS_COMPUTER_ID
+    const { writePointer } = await import('./kyby-native.mjs')
+    const KABY = 'session-kaby-native-0001'
+    assert.equal(writePointer(join(home, 'kybernos-kyby.json'), KABY).ok, true)
+    try {
+      const gate = agentHooks.get('tools/pre-execute')
+      const stopping = agentHooks.get('agent/turn-stopping')
+      const allowed = async () => ({ kind: 'allow' })
+      const asked = []
+      let outcome = 'allowed-once'
+      fakeApproval = { request: async (req) => { asked.push(req); return outcome } }
+      const run = (name, args, session = KABY) => gate({ name, arguments: args, agent: { id: session }, signal: new AbortController().signal }, allowed)
+      assert.deepEqual(await run('memory_write', { content: 'x', kind: 'fact' }), { kind: 'allow' }, 'the person said yes')
+      assert.equal(asked.length, 1)
+      assert.equal(asked[0].toolName, 'memory_write')
+      assert.ok(/memory_write/.test(asked[0].reason), 'the card says what is asked: ' + asked[0].reason)
+      outcome = 'denied'
+      const refused = await run('connections_execute', { tool: 'GMAIL_SEND_EMAIL' })
+      assert.equal(refused.kind, 'deny', 'the person said no')
+      assert.ok(/did not allow/.test(refused.reason) && /Do not try it again/.test(refused.reason))
+      for (const t of ['computer_exec', 'computer_write', 'lesson_write', 'relancer_dsh']) assert.equal((await run(t, {})).kind, 'deny', t + ' asks too')
+      const count = asked.length
+      for (const safe of ['memory_search', 'kaby_journal', 'connections_list', 'lesson_search', 'computer_list', 'bash', 'read']) assert.deepEqual(await run(safe, {}), { kind: 'allow' }, safe)
+      assert.equal(asked.length, count, 'what only reads, and what DSH gates itself, is not asked here')
+      assert.deepEqual(await run('memory_write', { content: 'x' }, 'session-someone-else'), { kind: 'allow' }, 'another chat is not Kaby\'s')
+      assert.equal(asked.length, count)
+      fakeApproval = undefined
+      assert.equal((await run('memory_write', { content: 'x' })).kind, 'deny', 'no way to ask is a no')
+      fakeApproval = { request: async () => { throw new Error('no open turn') } }
+      assert.equal((await run('memory_write', { content: 'x' })).kind, 'deny', 'a failed ask is a no')
+      // The journal: one line for Kaby\'s turn with the refusals of the turn, none for another chat.
+      const turn = [{ role: 'user', content: [{ type: 'text', text: 'Qu\'as-tu fait aujourd\'hui ?' }] }, { role: 'assistant', content: [{ type: 'tool_use', name: 'kaby_journal' }, { type: 'text', text: 'Rien.' }] }]
+      stopping({ agent: { session: { id: KABY, deriveMessages: () => turn }, options: {} }, signal: undefined })
+      stopping({ agent: { session: { id: 'session-someone-else', deriveMessages: () => turn }, options: {} }, signal: undefined })
+      const dir = join(home, 'kybernos', 'kaby-journal')
+      const lines = readdirSync(dir).flatMap((f) => readFileSync(join(dir, f), 'utf8').trim().split('\n')).map((l) => JSON.parse(l))
+      assert.equal(lines.length, 1)
+      assert.deepEqual([lines[0].channel, lines[0].body, lines[0].asked, lines[0].tools], ['chat', 'computer', 'Qu\'as-tu fait aujourd\'hui ?', { kaby_journal: 1 }])
+      assert.equal(lines[0].refused, 7, 'the refusals of the turn are counted: 1 + 4 + 2')
+      // The tool is mounted and reads that journal.
+      const tool = registeredTools.get('kaby_journal')
+      assert.ok(tool !== undefined, 'kaby_journal is registered')
+      const read = await tool.execute({ hours: 24 })
+      assert.equal(read.ok, true)
+      assert.equal(read.count, 1)
+      assert.ok(/Qu'as-tu fait aujourd'hui/.test(read.text) && /refused 7/.test(read.text))
+    } finally {
+      fakeApproval = undefined
+      if (homeSaved === undefined) delete process.env.DSH_HOME; else process.env.DSH_HOME = homeSaved
+      if (idSaved === undefined) delete process.env.KYBERNOS_COMPUTER_ID; else process.env.KYBERNOS_COMPUTER_ID = idSaved
+    }
+    ok('Kaby natif : les outils qui changent quelque chose demandent l accord par la carte de DSH, la lecture passe, un autre chat n est pas concerne, sans moyen de demander c est non ; le tour est ecrit au journal')
+  }
 
   // 10o. Un contenu trop long est refusé avant le réseau (plafond serveur 2000).
   const tooLong = mod.validateMemory({ content: 'x'.repeat(mod.MEMORY_MAX_CONTENT + 1), kind: 'fact' })

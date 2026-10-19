@@ -32,6 +32,11 @@ const clip = (s) => String(s ?? '').slice(0, MESSAGE_CHARS)
  * The prompt of a turn, from what the platform says of it (the person and the thread's recent messages). The last message of the person is what to do; the ones before are background, given
  * as data. Who Kaby is comes from kyby-identity.mjs, never from the platform: the name a kyber carries on the server is not the assistant's.
  */
+/** Where a message came from, as a closed word: the channel line of the prompt and the journal both say it. Anything that is not a known channel is a phone. */
+export function channelOf (context) {
+  return context && context.source === 'telegram' ? 'telegram' : 'phone'
+}
+
 export function buildPrompt (context) {
   const messages = Array.isArray(context && context.messages) ? context.messages.filter((m) => m && typeof m.content === 'string') : []
   let at = -1
@@ -40,10 +45,9 @@ export function buildPrompt (context) {
   const earlier = messages.slice(Math.max(0, at - EARLIER_MESSAGES), at)
   const history = earlier.map((m) => `${m.role === 'user' ? 'Person' : 'Kaby'}: ${clip(m.content)}`)
   const person = clip(context && context.person && context.person.name).trim().slice(0, 60)
-  const telegram = context && context.source === 'telegram'
   const now = new Date()
   const head = identityBlock({
-    channel: telegram ? 'telegram' : 'phone',
+    channel: channelOf(context),
     body: 'cloud',
     personName: person,
     nowText: 'Time: ' + now.toISOString().slice(0, 16) + 'Z (UTC). The person\'s own timezone is not known here: if it matters, ask once and remember the answer.',
@@ -164,7 +168,7 @@ export async function runOne (job, options = {}) {
       return 'no_message'
     }
     await emit('started')
-    const started = await dsh('/kybernos-cloud/turn', { prompt, jobId: job.id })
+    const started = await dsh('/kybernos-cloud/turn', { prompt, jobId: job.id, channel: channelOf(ctx.json) })
     const sessionId = started.json && started.json.ok === true ? started.json.sessionId : null
     if (started.status !== 200 || typeof sessionId !== 'string') {
       await ack(job.id, { status: 'failed', error: 'dsh_failed' })
