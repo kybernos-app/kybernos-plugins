@@ -82,6 +82,7 @@ One screen, two columns, shown in two places (decision of 2026-10-19; the old «
 - On the phone: scan, open the link, a 4-digit code appears; on the computer the same code and an **Allow** button.
   Nothing is served to the phone before that. From then on the phone reconnects by itself.
 - Everything the person does is a gesture on the computer: a phone can never add, approve or remove a phone.
+- **Two apps from the phone page** (2026-10-19, `docs/etudes/2026-10-19-deux-pwa-telecommande-et-kaby.md`): once a phone is paired, the page offers to put Kybernos on the home screen as **two apps**, « Kybernos à distance » (`/__kb/`: the whole DSH of the computer, as before) and « Kaby » (`/__kb/kaby/`: the same DSH, opened on Kaby's own conversation by `kybernos-kyber`, whose strip stays folded there). Two pages, two manifests (own `id`, `start_url` and `scope`), **one service worker** (it lets the whole `/__kb` shell through). Android: the browser's own install prompt behind a button, and its menu when the prompt has not fired; the other app is another page that makes its own offer. iPhone: **an app keeps its own storage, so a pairing made in Safari is lost on installing**: opened from a pairing link, the page offers to install first (« Copy the pairing link »), and the app, which the camera cannot reach, links itself by **pasting** that link (a paste field when the clipboard is refused). The offer is not made inside an app, off a touch device, or for 7 days after « Later »; an app shows up in the computer's list as « iPhone · app » or « iPhone · Kaby ». Two icons are not two rights: whichever icon opens it, a linked phone has the power of the keyboard.
 - The remote only concerns the **local** DSH: a hosted session lives in the web app and a cloud computer opens from the console.
 
 ## How it works
@@ -96,7 +97,7 @@ One screen, two columns, shown in two places (decision of 2026-10-19; the old «
 | `remote-local.mjs` | host | the DSH home, DSH's own port, and the session cookie the replay needs |
 | `remote-e2e.mjs` | both | the end-to-end channel (WebCrypto only; the computer and the phone page run the same file) |
 | `qr.mjs` | host | QR encoder (no dependency), checked against Chrome's decoder |
-| `phone/` | phone | the page the relay's web origin serves: `index.html`, `phone.mjs`, `sw.js` (service worker), `manifest.webmanifest`, `icon.svg` |
+| `phone/` | phone | the page the relay's web origin serves: `index.html` and `kaby.html` (the two apps' pages), `phone.mjs`, `sw.js` (service worker), `manifest.webmanifest` and `kaby.webmanifest`, `icon.svg` and `kaby-icon.svg` (the apps' PNG icons are drawn by the server) |
 | `remote-fake-relay.mjs` | tests | a stand-in for the relay and the server's `/v1/remote/*` routes (tests and live checks only) |
 
 The full protocol, the server's contract and the security model are in [`docs/dev/mobile-remote.md`](../../docs/dev/mobile-remote.md).
@@ -120,7 +121,7 @@ The full protocol, the server's contract and the security model are in [`docs/de
 
 ## Tests
 
-`test-host.mjs` (the row, the routes and their fences, the stylesheet's promises), `test-client.mjs` (the contract, the
+`test-phone-apps.mjs` (the two manifests, the two pages, the strings, the service worker both apps share), `test-host.mjs` (the row, the routes and their fences, the stylesheet's promises), `test-client.mjs` (the contract, the
 tap and swipe decisions, the sheet, the page measures, Settings), `test-remote-ui.mjs` (the screen's states, the window, a failed poll), `test-help.mjs`, `test-remote-e2e.mjs` (the handshake and its attacks), `test-remote-host.mjs` (a real pairing,
 replay and revocation through a stand-in relay and a stand-in DSH), `test-qr.mjs`, `test-dsh-home.mjs`; and on the real
 GUI `scripts/check-mobile-live.mjs` (the layout, a 390 px phone emulated in a sandbox DSH), `scripts/check-mobile-visual.mjs`
@@ -134,4 +135,4 @@ and
 `scripts/check-mobile-remote-live.mjs` (the QR code decoded by Chrome, a second browser as the phone, approval,
 revocation, a plan without the feature).
 
-On the real GUI, `scripts/check-phone-channels-live.mjs` plays the screen in a sandbox DSH (the account and the doors faked): the menu entry, both columns in every state, light and dark, a 390 px phone, closing, and the Settings page.
+On the real GUI, `scripts/check-phone-apps-live.mjs` plays the two apps in a sandbox DSH (an Android phone: the offer, the browser's prompt, Kaby's page resuming the same pairing and opening Kaby's chat; an iPhone: install first, an app pasting the link, revoked), and `scripts/check-phone-channels-live.mjs` plays the screen in a sandbox DSH (the account and the doors faked): the menu entry, both columns in every state, light and dark, a 390 px phone, closing, and the Settings page.

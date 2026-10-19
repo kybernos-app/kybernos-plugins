@@ -9,6 +9,11 @@ works on.
   Kaby's identity to the system prompt (`kyby-native.mjs` in kybernos-cloud). Each finished turn is also written on the person's thread on
   the server, and the last words said there (Telegram's) are told back in the prompt: one assistant, one memory, one conversation, two
   bodies (this machine here, its cloud computer on Telegram). A server with no Kaby thread is simply left alone.
+- **The phone's Kaby app opens on it.** DSH has no address for a conversation (the URL stays `/`), so the phone page's second app (`/__kb/kaby/`,
+  `kybernos-mobile`) is found from inside: DSH runs in a frame of that page, on its origin, and `window.parent.location.pathname` says which
+  app it is in. In `/__kb/kaby/`, once DSH lists its sessions and workspaces (its own startup restoration has gone first, so this is the later
+  navigation), the bundle calls the menu row's `openChat()`: the chat is made the first time, then opened. The strip above the composer stays
+  folded there until the person opens it. Anywhere else the bridge does nothing. It is one effect of `apply` and never throws.
 - **It asks before it acts.** The chat is made in DSH's own `workspace-write` mode (`/permission workspace-write`, applied once, right after it is made): DSH asks in its own approval card before a command that leaves its folder or a tool that changes something. The profile's default is full access, so without this the chat asked nothing. What the person picks later in the composer stays theirs, and a Kaby chat that already exists is not changed. Measured in a sandbox DSH: the new chat opens on « Workspace Write », the ordinary new chat on « Full access ».
 - **Nothing else sits above Kaby's composer.** The new-chat cards and the templates row (Build / Create / Cloud Computer, Slides… Dashboard) are
   not drawn in that chat: the Kaby bundle tells the window (`kb-kyby-session`) the moment the chat that is Kaby's becomes known, because on a page

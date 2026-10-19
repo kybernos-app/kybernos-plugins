@@ -1,0 +1,18 @@
+{
+  "name": "Kaby",
+  "short_name": "Kaby",
+  "description": "Kaby, on your computer, from your phone.",
+  "lang": "fr",
+  "id": "/__kb/kaby/",
+  "start_url": "/__kb/kaby/",
+  "scope": "/__kb/kaby/",
+  "display": "standalone",
+  "background_color": "#141416",
+  "theme_color": "#141416",
+  "icons": [
+    { "src": "/__kb/kaby-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/__kb/kaby-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/__kb/kaby-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/__kb/kaby-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
