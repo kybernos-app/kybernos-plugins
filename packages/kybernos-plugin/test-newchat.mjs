@@ -189,8 +189,8 @@ const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_GROUPS, KB_NC_TEMP
   assert.ok(css.length > 4000, 'the slider CSS was found')
   const hexes = css.match(/#[0-9a-f]{3,8}\b/gi) || []
   assert.deepEqual(hexes.filter((x) => x.toLowerCase() !== '#000'), [], 'the slider CSS holds no colour of its own (only tokens, and black for shadows and masks)')
-  // the 13 templates' drawings and the five the Creations page's tiles add (cards, quiz, code, diagram, all)
-  assert.deepEqual(Object.keys(api.KB_NC_ART).filter((id) => !api.KB_NC_TEMPLATES.some((t) => t.id === id)), ['cards', 'quiz', 'code', 'diagram', 'all'], 'the extra drawings are exactly the Creations tiles\'')
+  // the 13 templates' drawings and the eight the Creations page adds (cards, quiz, code, diagram, all, pdf, folder, file)
+  assert.deepEqual(Object.keys(api.KB_NC_ART).filter((id) => !api.KB_NC_TEMPLATES.some((t) => t.id === id)), ['cards', 'quiz', 'code', 'diagram', 'all', 'pdf', 'folder', 'file'], 'the extra drawings are exactly the ones the Creations page adds (tiles and file icons)')
   for (const t of Object.keys(api.KB_NC_ART).map((id) => ({ id }))) {
     const art = api.KB_NC_ART[t.id]
     // inline shapes only: nothing fetched, nothing executable, no colour (no media in git, AGENTS rule 4)
@@ -199,7 +199,7 @@ const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_GROUPS, KB_NC_TEMP
     const classes = new Set([...art.matchAll(/class="([^"]+)"/g)].flatMap((m) => m[1].split(' ')))
     for (const c of classes) assert.ok(new RegExp('\\.kb8-sl-stage \\.' + c + '[{,]|' + '\\.kb8-sl-stage \\.' + c + ' ').test(css) || new RegExp('(?:^|[ ,])\\$\\{kbNcHot\\} \\.' + c + '[{,]').test(css) || ['gr', 'blk', 'pop', 'dr', 'play', 'sun', 'node'].indexOf(c) >= 0 && css.includes('} .' + c + '{') || css.includes('.' + c + '{') || css.includes('.' + c + ','), t.id + ': class « ' + c + ' » is styled')
   }
-  ok('one colour on the page (the theme\'s accent); the 18 drawings are classes on inline shapes, styled from tokens')
+  ok('one colour on the page (the theme\'s accent); the 21 drawings are classes on inline shapes, styled from tokens')
 }
 
 // 6e. the Creations page's type tiles wear the same drawings as the new chat cards (they used to be blue and amber line icons)
@@ -215,8 +215,14 @@ const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_GROUPS, KB_NC_TEMP
   assert.deepEqual(typeIds.filter((id) => type[id] === undefined), [], 'every type tile has a drawing')
   assert.ok(/className: 'kb-type-view kb8-sl-stage' \}, d\.art\)/.test(src) && /kbArtDraw\('all'\)/.test(src), 'a tile, and its « All » sibling, hold the drawing in a band the new chat\'s CSS styles')
   assert.ok(/className: 'kb-typepanel-thumb kb8-sl-stage' \}, d\.art\)/.test(src), 'the « Customize » panel rows show the same drawing')
-  assert.ok(!/kbTiSvg\(KB_TI\.(family|type)\[/.test(src) && !/kbTypeMini|kbFamMini|kbBandBg|\.kbm-(ln|box|mdot|ring|txt)\{/.test(src), 'the old tile icons and the old scenes (dead code) are gone')
-  ok('the Creations tiles draw what the new chat cards draw (every family and type has its drawing; the old icons and scenes are gone)')
+  const tiMap = /const KB_TI_DRAW = (\{[^}]*\})/.exec(src)
+  assert.ok(tiMap !== null, 'the map from a file icon id to a drawing exists')
+  const tiDraw = vm.runInNewContext('(' + tiMap[1] + ')')
+  const tiIds = JSON.parse(/const KB_TI = \{"ids":(\[[^\]]*\])/.exec(src)[1])
+  assert.deepEqual(tiIds.filter((id) => typeof api.KB_NC_ART[tiDraw[id]] !== 'string'), [], 'every file icon id has a drawing that exists')
+  for (const cls of ['kb6-ico kb6-ico-ti', 'kb6-vico', 'kb6-lthumb', 'kb6-prevkind', 'kb6-arc-ico']) assert.ok(src.includes(cls) && new RegExp(cls.split(' ').pop().replace(/-/g, '\\-') + '[^\\n]{0,40}kb8-sl-stage').test(src), cls + ' wears the drawing\'s band')
+  assert.ok(!/kbTiSvg|KB_TI_COLOR|kbTypeMini|kbFamMini|kbBandBg|\.kbm-(ln|box|mdot|ring|txt)\{|\.kb-ti\{/.test(src), 'the old line icons and the old scenes (dead code) are gone')
+  ok('the Creations tiles draw what the new chat cards draw (every family, type and file icon has its drawing; the old icons and scenes are gone)')
 }
 
 // 6e-pre. the slider: wiring pinned at source level
