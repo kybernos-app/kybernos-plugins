@@ -48,19 +48,21 @@ const standIn = (options = {}) => {
   return { calls, restore: () => { globalThis.fetch = real } }
 }
 
-test('the prompt is the person\'s last message, with the conversation before it as background', () => {
-  const p = buildPrompt(CONTEXT)
-  assert.match(p, /personal assistant of a person, working on their own cloud computer/)
+test('the prompt is Kaby, from the shared text and never from the name a kyber carries; the earlier messages are data, the last one ends it', () => {
+  const p = buildPrompt({ ...CONTEXT, kyber: { name: 'Second You', agents: [{ name: 'Echo' }, { name: 'Mira' }] } })
+  assert.match(p, /You are Kaby, the person's own assistant/)
+  assert.doesNotMatch(p, /Second You|Echo|Mira|Atlas/)
+  assert.match(p, /Voice: calm, direct, warm/)
+  assert.match(p, /you are talking with the person on a chat on the person's phone/)
   const named = buildPrompt({ ...CONTEXT, source: 'telegram', person: { name: 'Amina' } })
-  assert.match(named, /personal assistant of Amina, working on their own cloud computer\. They wrote to you from a Telegram chat on their phone/)
-  assert.match(p, /\[person\]\nhello/)
-  assert.match(p, /\[assistant\]\nHi, what can I do\?/)
+  assert.match(named, /you are talking with Amina on Telegram, a chat on the person's phone/)
+  assert.match(p, /<data>\nPerson: hello\nKaby: Hi, what can I do\?\n<\/data>/)
   assert.match(p, /Their message:\n\nPOST \{"a":1\} to https:\/\/hooks\.example\.test\/x$/)
   assert.equal(buildPrompt({ kyber: { name: 'K' }, messages: [{ role: 'assistant', content: 'x' }] }), null)
   assert.equal(buildPrompt(null), null)
   // A very long message is clipped, never sent whole.
   const long = buildPrompt({ kyber: { name: 'K' }, messages: [{ role: 'user', content: 'x'.repeat(50_000) }] })
-  assert.ok(long.length < 6000)
+  assert.ok(long.length < 8000)
 })
 
 test('a turn: context, the session in DSH, its closed turn, the answer, and the acknowledgement with only the answer', async () => {
