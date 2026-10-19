@@ -229,6 +229,14 @@ let kbLocaleRead = () => 'en'
       'tasks.failed.at': { kybernos: 'Échec · {when}', en: 'Failed · {when}' },
       'tasks.notify.on': { kybernos: 'notifications activées', en: 'notifications on' },
       'tasks.runson.local': { kybernos: 'cet ordinateur', en: 'this computer' },
+      'tasks.ws.label': { kybernos: 'Workspace', en: 'Workspace' },
+      'tasks.ws.dedicated': { kybernos: 'Automations (workspace dédié)', en: 'Automations (dedicated workspace)' },
+      'tasks.ws.gone': { kybernos: 'Workspace supprimé : les exécutions iront dans « Automations »', en: 'Removed workspace: runs go to “Automations”' },
+      'tasks.ws.hint': { kybernos: 'Là où les exécutions travaillent : les fichiers qu’elles écrivent y restent. Sans choix, elles vont dans le workspace dédié « Automations », créé au besoin.', en: 'Where the runs work: the files they write stay there. With no choice they go to the dedicated “Automations” workspace, made when needed.' },
+      'tasks.ws.meta': { kybernos: 'Workspace : {name}', en: 'Workspace: {name}' },
+      'tasks.ws.meta.dedicated': { kybernos: 'Workspace : Automations', en: 'Workspace: Automations' },
+      'tasks.ws.meta.gone': { kybernos: 'Workspace supprimé → Automations', en: 'Workspace removed → Automations' },
+      'tasks.err.workspace': { kybernos: 'Ce workspace n’est pas valide.', en: 'That workspace is not valid.' },
       'tasks.next': { kybernos: 'prochaine : {when}', en: 'next: {when}' },
       'tasks.toggle.aria': { kybernos: 'Activer l\u2019automation', en: 'Enable automation' },
       'tasks.runnow': { kybernos: 'Lancer maintenant', en: 'Run now' },
@@ -6021,6 +6029,7 @@ const kbCloneDefinition = (t, name) => ({
   active: false,
   approvals: t.approvals === 'auto' ? 'auto' : 'ask',
   notify: Array.isArray(t.notify) ? t.notify : [],
+  workspaceHint: typeof t.workspaceHint === 'string' && t.workspaceHint.length > 0 ? t.workspaceHint : null,
 })
 // The trigger line of the read-only code view: the automation's own zone and kind (it said Europe/Paris and cron: "" for everything).
 const kbTaskTriggerCode = (sc) => {
@@ -6078,7 +6087,7 @@ const KB_TASK_ERRORS = {
   'invalid one-off date': 'tasks.err.date', 'unknown time zone': 'tasks.err.tz', 'that date is in the past': 'tasks.err.past',
   'this schedule never fires': 'tasks.err.never', 'sign-in required': 'tasks.err.signin', 'request body too large': 'tasks.err.large',
   'task not found': 'tasks.err.notfound', 'active must be true or false': 'tasks.err.active', 'automation paused': 'tasks.err.paused',
-  'frequent schedule': 'tasks.err.frequent',
+  'frequent schedule': 'tasks.err.frequent', 'invalid workspace': 'tasks.err.workspace',
 }
 const kbTaskError = (message, tr) => (Object.prototype.hasOwnProperty.call(KB_TASK_ERRORS, message) === true ? tr(KB_TASK_ERRORS[message]) : String(message))
 // KB-TASKS-CLIENT-END
@@ -6774,6 +6783,35 @@ const kbTplChatText = (tpl, tr, pick) => {
   return lines.join('\n')
 }
 // KB-AUTOTPL-END
+
+// KB-AUTOWS-BEGIN
+// Where the runs of an automation land. A workspace is a folder DSH adopted (the page calls it a project); an automation may name one
+// by its id (`workspaceHint`), and with none the runs go to the dedicated « Automations » workspace the host makes (automation-workspace.mjs).
+// Pure: the list of workspaces as the page's store holds it, and the id the automation names, in; what to show, out.
+/** The name of a workspace record of the page's store. */
+const kbWsName = (ws) => {
+  if (ws === null || typeof ws !== 'object') return ''
+  const t = typeof ws.displayTitle === 'string' && ws.displayTitle.trim() !== '' ? ws.displayTitle : (typeof ws.title === 'string' && ws.title.trim() !== '' ? ws.title : '')
+  return t.trim() !== '' ? t.trim() : (typeof ws.workspaceId === 'string' ? ws.workspaceId : '')
+}
+/**
+ * What the choice shows: { kind: 'dedicated' } when none is named, { kind: 'ws', id, name } for one that exists, { kind: 'gone', id } for one
+ * that was deleted (its runs go to the dedicated workspace, and the page says so).
+ */
+const kbWsChoice = (hint, items) => {
+  if (typeof hint !== 'string' || hint === '') return { kind: 'dedicated' }
+  const found = (Array.isArray(items) === true ? items : []).find((w) => w !== null && typeof w === 'object' && w.workspaceId === hint)
+  return found !== undefined ? { kind: 'ws', id: hint, name: kbWsName(found) } : { kind: 'gone', id: hint }
+}
+/** The options of the choice: the dedicated workspace first (value ''), then the person's workspaces by name, then the deleted one when the automation still names it. */
+const kbWsOptions = (items, hint) => {
+  const list = (Array.isArray(items) === true ? items : []).filter((w) => w !== null && typeof w === 'object' && typeof w.workspaceId === 'string' && w.workspaceId !== '')
+    .map((w) => ({ id: w.workspaceId, name: kbWsName(w) })).sort((a, b) => a.name.localeCompare(b.name))
+  const out = [{ id: '', kind: 'dedicated' }].concat(list.map((w) => ({ id: w.id, kind: 'ws', name: w.name })))
+  if (typeof hint === 'string' && hint !== '' && list.every((w) => w.id !== hint)) out.push({ id: hint, kind: 'gone' })
+  return out
+}
+// KB-AUTOWS-END
 // KB-NEWCHAT-BEGIN
 // The new-chat page: the slider of what the product makes, the Cloud Computer's state, and the rule that hides DSH's own
 // « Automation tasks » menu entry. Pure: no React, no DOM, no host call, no translation. Tested by test-newchat.mjs,
@@ -21071,6 +21109,9 @@ function renderFit(canvas, model, cam, opts){
       const approvalsPair = React.useState(t0.approvals === 'auto' ? 'auto' : 'ask')
       const approvals = approvalsPair[0]; const setApprovals = approvalsPair[1]
       const notifyPair = React.useState(Array.isArray(t0.notify) === true ? t0.notify : [])
+      // Where the runs land: '' is the dedicated workspace (the host makes it), else the id of one of the person's workspaces.
+      const wsPair = React.useState(typeof t0.workspaceHint === 'string' ? t0.workspaceHint : '')
+      const wsHint = wsPair[0]; const setWsHint = wsPair[1]
       const notify = notifyPair[0]; const setNotify = notifyPair[1]
       const errPair = React.useState(null)
       const err = errPair[0]; const setErr = errPair[1]
@@ -21107,6 +21148,7 @@ function renderFit(canvas, model, cam, opts){
           active: active === true,
           approvals,
           notify,
+          workspaceHint: wsHint === '' ? null : wsHint,
           runsOn: 'local',
           schedule: mode === 'webhook' ? { mode: 'webhook', tz: tz0 } : (mode === 'once' ? { mode: 'once', at: (atTouched === true || typeof sc0.at !== 'string') ? at : sc0.at, tz: tz0 } : { mode: 'cron', cron: cron.trim(), tz: tz0 }),
         }
@@ -21163,6 +21205,11 @@ function renderFit(canvas, model, cam, opts){
             h('div', { className: 'kb-task-row' },
               h('span', { className: 'kb-task-chip on' }, Icon('monitor', 12), ' ', kbt('tasks.local')),
               h('span', { className: 'kb-task-chip kb-task-disabled', title: kbt('tasks.cloud.soon') }, Icon('cloud', 12), ' ', kbt('tasks.cloud')))),
+          h('div', { className: 'kb-task-f' },
+            h('label', null, kbt('tasks.ws.label')),
+            h('select', { className: 'kb-task-select', 'data-kb': 'task-workspace', value: wsHint, onChange: (e) => setWsHint(e.target.value) },
+              kbWsOptions(kbPinsSnapshots().items, wsHint).map((o) => h('option', { key: o.id === '' ? '__dedicated' : o.id, value: o.id }, o.kind === 'dedicated' ? kbt('tasks.ws.dedicated') : (o.kind === 'gone' ? kbt('tasks.ws.gone') : o.name)))),
+            h('span', { className: 'kb-task-muted' }, kbt('tasks.ws.hint'))),
           h('div', { className: 'kb-task-row' },
             h('span', { className: 'kb-task-f', style: { flex: '1' } },
               h('label', null, kbt('tasks.active')),
@@ -22254,6 +22301,7 @@ function renderFit(canvas, model, cam, opts){
               h('h1', null, t.name || t.id),
               h('div', { className: 'kba-dmeta' }, kbScheduleLabel(t, true)
                 + ' \u00b7 ' + kbt('tasks.runson.local')
+                + ' \u00b7 ' + (() => { const c = kbWsChoice(t.workspaceHint, kbPinsSnapshots().items); return c.kind === 'ws' ? kbt('tasks.ws.meta').replace('{name}', () => c.name) : kbt(c.kind === 'gone' ? 'tasks.ws.meta.gone' : 'tasks.ws.meta.dedicated') })()
                 + ' \u00b7 ' + (t.approvals === 'auto' ? kbt('tasks.auto') : kbt('tasks.ask'))
                 + (t.nextRun ? ' \u00b7 ' + kbt('tasks.next').replace('{when}', kbWhenOf(t.nextRun)) : ''))),
             h('span', { role: 'switch', 'aria-checked': (t.active !== false) ? 'true' : 'false', 'aria-label': kbt('tasks.toggle.aria'), className: 'kba-toggle' + (t.active !== false ? ' on' : ''), tabIndex: 0, onKeyDown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); act('toggle', t.id, { active: t.active === false }) } }, onClick: () => act('toggle', t.id, { active: t.active === false }) },
@@ -30575,7 +30623,7 @@ body[data-ds-dark-theme] .kb8-iconbtn.on.col{border-color:var(--kb8-pgd);color:v
 .kb-task-modal h3{margin:0;font-size:16px;color:var(--dsw-alias-label-primary);display:flex;align-items:center;gap:9px}
 .kb-task-f{display:flex;flex-direction:column;gap:6px}
 .kb-task-f>label{font-family:ui-monospace,monospace;font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--dsw-alias-label-secondary)}
-.kb-task-f input[type=text],.kb-task-f textarea,.kb-task-f input[type=datetime-local],.kb-task-f input[type=time]{border:1px solid var(--dsw-alias-border-l1);border-radius:10px;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);font:inherit;font-size:13px;padding:9px 11px;outline:none;width:100%;box-sizing:border-box}
+.kb-task-f input[type=text],.kb-task-f textarea,.kb-task-f select,.kb-task-f input[type=datetime-local],.kb-task-f input[type=time]{border:1px solid var(--dsw-alias-border-l1);border-radius:10px;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);font:inherit;font-size:13px;padding:9px 11px;outline:none;width:100%;box-sizing:border-box}
 .kb-task-f textarea{min-height:84px;resize:vertical}
 .kb-task-f input[type=time]{width:132px}
 .kb-task-f input:focus,.kb-task-f textarea:focus{border-color:var(--dsw-alias-brand-primary)}
