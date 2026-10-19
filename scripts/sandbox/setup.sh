@@ -51,7 +51,6 @@ node "$HERE/rewrite.mjs" "$SB_PROFILE" "$KB_WORKTREE" "$SB_DSH" "$KB_REAL_HOME"
 printf '{"version":1,"completed":true,"installedAt":"2026-01-01T00:00:00.000Z","completedAt":"2026-01-01T00:00:00.000Z","profil":"produit","uiMode":null}\n' > "$SB_DSH/kybernos/onboarding.json"
 
 # 5. Checks: nothing may still point at the shared tree; every @local link must land in the worktree
-#    (except the paid kybernos-servers module, which has no copy in the worktree).
 bad=0
 if grep -rIl "$KB_REAL_HOME/kybernos-plugins/packages" "$SB_PROFILE/package.json" "$SB_PROFILE/pnpm-lock.yaml" "$SB_PROFILE/node_modules/.pnpm/lock.yaml" 2>/dev/null; then
   echo "FAIL: shared-tree links remain (above)"; bad=1
@@ -60,7 +59,6 @@ for l in "$SB_PROFILE"/node_modules/@local/*; do
   t="$(readlink "$l")"
   case "$t" in
     "$KB_WORKTREE"/packages/*) ;;
-    *kybernos-servers) echo "note: $(basename "$l") -> $t (paid module, not in the worktree)" ;;
     *) echo "FAIL: $(basename "$l") -> $t"; bad=1 ;;
   esac
   [ -d "$l" ] || { echo "FAIL: dangling link $(basename "$l")"; bad=1; }

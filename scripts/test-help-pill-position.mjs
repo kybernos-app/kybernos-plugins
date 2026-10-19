@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 // A5-19: one help affordance, in one place. The « ? How it works » pill is at the top of the page, on the title's row, and every page that
 // has a card carries it. Left over after round 2: Settings › Calls and Workers drew it on a row of its own under the tabs / the intro, and
-// Creations, Workspaces, Dashboards, Tools, Auto Routing and Settings › Automations drew none. (Servers is the paid module's page: it lives in
-// the private repository, so it is not covered here.)
+// Creations, Workspaces, Dashboards, Tools, Auto Routing and Settings › Automations drew none. (Servers draws it in its page header:
+// scripts/check-servers-live.mjs looks for it.)
 //
 //   node scripts/test-help-pill-position.mjs
 // Static checks on the browser halves (read as text, as the neighbours do) and on the cards the catalogue ships.

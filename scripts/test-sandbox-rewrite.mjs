@@ -22,19 +22,19 @@ const profile = join(sb, '.dsh', 'profiles', 'web')
 const dshHome = join(sb, '.dsh')
 const pkg = (dir, name, extra) => { mkdirSync(join(work, 'packages', dir), { recursive: true }); writeFileSync(join(work, 'packages', dir, 'package.json'), JSON.stringify({ name, version: '0.1.0', ...extra })) }
 try {
-  // the worktree: two bundles the profile knows, one NEW bundle, the relaunch tool, the paid-module-less case, a standalone daemon
+  // the worktree: two bundles the profile knows, one NEW bundle, the relaunch tool, a package with no copy in the worktree, a standalone daemon
   pkg('kybernos-plugin', '@local/kybernos', { dsh: {} })
   pkg('kybernos-sessions', '@local/kybernos-sessions', { dsh: {} })
   pkg('kybernos-changes', '@local/kybernos-changes', { dsh: {} })
   pkg('kybernos-relance', '@local/kybernos-relance', { dsh: {} })
   pkg('messaging', 'messaging-daemon', {})
-  // the cloned profile: links to the shared tree (and one to a private repo), relance in the bundles, an mcp path under the real home
+  // the cloned profile: links to the shared tree (and one to a package that is not in the worktree), relance in the bundles, an mcp path under the real home
   mkdirSync(join(profile, 'node_modules', '@local'), { recursive: true })
   mkdirSync(join(real, '.dsh', 'mcp'), { recursive: true })
   const SHARED = join(real, 'kybernos-plugins', 'packages')
   writeFileSync(join(profile, 'package.json'), JSON.stringify({
     name: 'dsh-profile-web',
-    dependencies: { '@local/kybernos': 'link:' + SHARED + '/kybernos-plugin', '@local/kybernos-sessions': 'link:' + SHARED + '/kybernos-sessions', '@local/kybernos-servers': 'link:/private/paid/packages/kybernos-servers' },
+    dependencies: { '@local/kybernos': 'link:' + SHARED + '/kybernos-plugin', '@local/kybernos-sessions': 'link:' + SHARED + '/kybernos-sessions', '@local/kybernos-private-example': 'link:/private/elsewhere/packages/kybernos-private-example' },
     dsh: { profile: { bundles: ['@local/kybernos', '@local/kybernos-relance', '@local/kybernos-sessions'] } }
   }, null, 2))
   writeFileSync(join(profile, 'pnpm-lock.yaml'), "  '@local/kybernos':\n    specifier: link:" + SHARED + '/kybernos-plugin\n    version: link:../../../../real/kybernos-plugins/packages/kybernos-plugin\n')
@@ -46,7 +46,7 @@ try {
   check('it succeeds and says what it did', r1.status === 0 && /"bundlesAdded":\["@local\/kybernos-changes"\]/.test(r1.stdout), r1.stderr || r1.stdout)
   const p1 = JSON.parse(readFileSync(join(profile, 'package.json'), 'utf8'))
   check('a link whose package exists in the worktree goes there', p1.dependencies['@local/kybernos'] === 'link:' + join(work, 'packages', 'kybernos-plugin') && p1.dependencies['@local/kybernos-sessions'] === 'link:' + join(work, 'packages', 'kybernos-sessions'), p1.dependencies)
-  check('the paid module, which has no copy in the worktree, keeps its own target', p1.dependencies['@local/kybernos-servers'] === 'link:/private/paid/packages/kybernos-servers')
+  check('a package that has no copy in the worktree keeps its own target', p1.dependencies['@local/kybernos-private-example'] === 'link:/private/elsewhere/packages/kybernos-private-example')
   check('a NEW bundle of the worktree is added, as a dependency and as a bundle', p1.dependencies['@local/kybernos-changes'] === 'link:' + join(work, 'packages', 'kybernos-changes') && p1.dsh.profile.bundles.includes('@local/kybernos-changes'), p1.dsh.profile.bundles)
   check('the relaunch tool is dropped from the bundles and never added (it targets port 3080)', !p1.dsh.profile.bundles.includes('@local/kybernos-relance') && p1.dependencies['@local/kybernos-relance'] === undefined)
   check('a package that is not a DSH bundle (the standalone daemon) is not added', Object.keys(p1.dependencies).every((k) => !/messaging/.test(k)))

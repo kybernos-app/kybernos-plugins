@@ -6,8 +6,8 @@
 //
 // What it does:
 //   1. package.json: every `link:` dependency whose package folder exists in <worktree>/packages
-//      is re-pointed there (absolute path). Others (the paid kybernos-servers module, which lives
-//      in a private repo) keep their current absolute target. @local/kybernos-relance is taken out
+//      is re-pointed there (absolute path). Others (a package that has no copy in the worktree) keep
+//      their current absolute target. @local/kybernos-relance is taken out
 //      of dsh.profile.bundles (it restarts DSH on port 3080 by default).
 //   2. pnpm-lock.yaml and node_modules/.pnpm/lock.yaml: the `specifier:`/`version:` link pairs.
 //   3. node_modules/@local/*: symlinks recreated (absolute) from the resulting package.json.
@@ -60,8 +60,8 @@ if (Array.isArray(bundles)) {
   relanceDropped = kept.length !== bundles.length
   pkg.dsh.profile.bundles = kept
 }
-// 1b. New bundles of the worktree (never the paid module nor the relaunch tool, which does not belong in a sandbox).
-const SKIP = new Set(['@local/kybernos-relance', '@local/kybernos-servers'])
+// 1b. New bundles of the worktree (never the relaunch tool, which does not belong in a sandbox).
+const SKIP = new Set(['@local/kybernos-relance'])
 const bundlesAdded = []
 for (const dir of readdirSync(pkgsDir)) {
   let meta = null

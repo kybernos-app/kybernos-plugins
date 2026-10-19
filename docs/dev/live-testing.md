@@ -750,8 +750,7 @@ scripts/sandbox/stop.sh                  # kills only the pid it recorded, after
 - `sandbox.log` holds DSH's token URL: never print it; sign in with the cookie like every script here.
 - A fresh instance used to cover the page with DSH's « Get started » dialog (it swallows mouse events). The core now replaces that
   step; `live-page.mjs` presses the dialog's Close cross if an engine shows it anyway (pass `keepKeyDialog: true` to see it, as
-  `check-onboarding-live.mjs` does). The paid module `@local/kybernos-servers` is read
-  from its private checkout when there is one.
+  `check-onboarding-live.mjs` does).
 - With DSH_HOME alone the sandbox would write the real profile: several bundles hard-code `homedir()`, so HOME is
   isolated too.
 

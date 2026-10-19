@@ -12,7 +12,7 @@ node scripts/check-server-real.mjs                                 # live, READ-
 node scripts/check-team-live.mjs --console-file <workspace-console.html>   # the console page you are editing (needs its address given)
 ```
 
-The paid module has its own cases: `docs/test-cases.md` in the private paid-modules repo.
+The Servers page has its own cases, SRV-01 to SRV-21, in `docs/dev/servers-page-spec.md` (§ 8).
 
 ## A. The Team relay (host route, broker, console): retired
 

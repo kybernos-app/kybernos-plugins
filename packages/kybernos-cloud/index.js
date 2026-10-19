@@ -77,7 +77,7 @@ const serversFile = () => {
   return raw === '' ? join(dshHome(), 'kybernos', 'servers.json') : raw
 }
 /** The server this DSH talks to (server-profile.mjs): read at each use, like the state, so a registry written by the
- *  Select server module is seen without a restart. */
+ *  Servers page is seen without a restart. */
 const server = () => activeServer({ env: process.env, registryFile: serversFile() })
 const defaultStateFile = (profile = server().profile) => join(dshHome(), stateFileName(profile))
 const appliedFile = () => join(dshHome(), 'kybernos', 'server-applied.json')
@@ -1291,7 +1291,7 @@ const serverRoute = async () => {
     computer: typeof process.env.KYBERNOS_COMPUTER_ID === 'string' && process.env.KYBERNOS_COMPUTER_ID !== '' }
 }
 
-/** POST /kybernos-cloud/server/apply: the registry changed (the Select server module wrote it): make DSH follow. What the
+/** POST /kybernos-cloud/server/apply: the registry changed (the Servers page wrote it): make DSH follow. What the
  *  previous server left (the « kybernos » model route and its credential) is removed FIRST, so chat never keeps talking to a
  *  server the user left; then the new server's catalogue is imported if this DSH is connected to it. Idempotent. */
 const serverApply = async () => {
