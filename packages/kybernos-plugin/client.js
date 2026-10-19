@@ -1433,6 +1433,47 @@ let kbLocaleRead = () => 'en'
       'kbnc.p.sheet': { kybernos: 'Crée un tableur pour ', en: 'Build a spreadsheet to ' },
       'kbnc.p.image': { kybernos: 'Crée une image de ', en: 'Create an image of ' },
       'kbnc.p.video': { kybernos: 'Fais une courte vidéo sur ', en: 'Make a short video about ' },
+      'kbnc.s.slides.0': { kybernos: 'notre levée de fonds', en: 'our seed round' },
+      'kbnc.s.slides.1': { kybernos: 'le climat en 2030', en: 'climate in 2030' },
+      'kbnc.s.slides.2': { kybernos: 'l’année de mon équipe', en: 'my team’s year' },
+      'kbnc.s.doc.0': { kybernos: 'un cahier des charges', en: 'a project brief' },
+      'kbnc.s.doc.1': { kybernos: 'une proposition en une page', en: 'a one-page proposal' },
+      'kbnc.s.doc.2': { kybernos: 'un compte rendu de réunion', en: 'meeting notes' },
+      'kbnc.s.sheet.0': { kybernos: 'suivre mes dépenses du mois', en: 'track monthly expenses' },
+      'kbnc.s.sheet.1': { kybernos: 'suivre mon pipeline de ventes', en: 'follow my sales pipeline' },
+      'kbnc.s.sheet.2': { kybernos: 'planifier mes séances de sport', en: 'plan my workouts' },
+      'kbnc.s.dashboard.0': { kybernos: 'mes dépenses du mois', en: 'my monthly spend' },
+      'kbnc.s.dashboard.1': { kybernos: 'les ventes par région', en: 'sales by region' },
+      'kbnc.s.dashboard.2': { kybernos: 'l’avancement du projet', en: 'project status' },
+      'kbnc.s.image.0': { kybernos: 'un renard dans une forêt enneigée', en: 'a fox in a snowy forest' },
+      'kbnc.s.image.1': { kybernos: 'un logo plat', en: 'a flat logo mark' },
+      'kbnc.s.image.2': { kybernos: 'une affiche de soirée jazz', en: 'a jazz night poster' },
+      'kbnc.s.video.0': { kybernos: 'mon produit en 30 secondes', en: 'my product in 30 seconds' },
+      'kbnc.s.video.1': { kybernos: 'une recette en format vertical', en: 'a vertical recipe' },
+      'kbnc.s.video.2': { kybernos: 'notre séminaire d’équipe', en: 'our team offsite' },
+      'kbnc.s.website.0': { kybernos: 'ma boulangerie', en: 'my bakery' },
+      'kbnc.s.website.1': { kybernos: 'mon portfolio', en: 'my portfolio' },
+      'kbnc.s.website.2': { kybernos: 'un lancement de produit', en: 'a product launch' },
+      'kbnc.s.miniapp.0': { kybernos: 'suit mes habitudes', en: 'tracks my habits' },
+      'kbnc.s.miniapp.1': { kybernos: 'convertit des unités', en: 'converts units' },
+      'kbnc.s.miniapp.2': { kybernos: 'partage une addition', en: 'splits a bill' },
+      'kbnc.s.model3d.0': { kybernos: 'un support de téléphone', en: 'a phone stand' },
+      'kbnc.s.model3d.1': { kybernos: 'un range-bureau', en: 'a desk organiser' },
+      'kbnc.s.model3d.2': { kybernos: 'un pion d’échecs', en: 'a chess pawn' },
+      'kbnc.s.automation.0': { kybernos: 'résume ma boîte mail chaque lundi', en: 'summarises my inbox every Monday' },
+      'kbnc.s.automation.1': { kybernos: 'range mes factures dans un dossier', en: 'saves invoices to a folder' },
+      'kbnc.s.automation.2': { kybernos: 'publie un digest chaque jour', en: 'posts a daily digest' },
+      'kbnc.s.team.0': { kybernos: 'étudier un marché', en: 'researching a market' },
+      'kbnc.s.team.1': { kybernos: 'livrer une fonctionnalité', en: 'shipping a feature' },
+      'kbnc.s.team.2': { kybernos: 'gérer ma newsletter', en: 'running my newsletter' },
+      'kbnc.s.skill.0': { kybernos: 'rédige des notes de version', en: 'writes release notes' },
+      'kbnc.s.skill.1': { kybernos: 'relit mes pull requests', en: 'reviews my pull requests' },
+      'kbnc.s.skill.2': { kybernos: 'prépare mon compte rendu hebdo', en: 'drafts my weekly report' },
+      'kbnc.s.plugin.0': { kybernos: 'ajoute une barre d’état', en: 'adds a status bar' },
+      'kbnc.s.plugin.1': { kybernos: 'exporte les chats en Markdown', en: 'exports chats to Markdown' },
+      'kbnc.s.plugin.2': { kybernos: 'affiche ma consommation de tokens', en: 'shows my token usage' },
+      'kbnc.try': { kybernos: 'Essaie', en: 'Try' },
+      'kbnc.chip.remove': { kybernos: 'Retirer', en: 'Remove' },
       'kbnc.cc.awake': { kybernos: 'Éveillé', en: 'Awake' },
       'kbnc.cc.asleep': { kybernos: 'En veille', en: 'Asleep' },
       'kbnc.cc.starting': { kybernos: 'En création…', en: 'Being made…' },
@@ -6311,6 +6352,33 @@ const kbNcFill = (draft, tpl, known) => {
   if (d.trim() === '') return t
   if (Array.isArray(known) === true && known.some((k) => String(k).trim() === d.trim())) return t
   return d.indexOf(t) === 0 ? d : t + d
+}
+/** What a suggestion puts in the composer: after the template's sentence while the box is empty or still holds a template sentence
+ *  (`known`: all of them), otherwise after what the person wrote. Never loses text. */
+const kbNcSuggest = (draft, tpl, known, sug) => {
+  const d = typeof draft === 'string' ? draft : ''
+  const t = typeof tpl === 'string' ? tpl : ''
+  const s = typeof sug === 'string' ? sug : ''
+  if (d.trim() === '' || (Array.isArray(known) === true && known.some((k) => String(k).trim() === d.trim()))) return t + s
+  return d.replace(/\s*$/, ' ') + s
+}
+/** Where the page's one accent comes from. A colour the theme gave its brand token wins. The engine's own brand colour IS its text colour
+ *  (white in dark, near black in light), which would leave every drawing grey: then the engine's blue (the one on its send button) is used.
+ *  `brand`, `label`: the values of --dsw-alias-brand-primary and --dsw-alias-label-primary; unreadable → 'brand' (the theme's own is kept). */
+const kbNcRgb = (c) => {
+  const v = String(c === undefined || c === null ? '' : c).trim().toLowerCase()
+  let m = /^#([0-9a-f]{3}|[0-9a-f]{6})(?:[0-9a-f]{2})?$/.exec(v)
+  if (m !== null) {
+    const h6 = m[1].length === 3 ? m[1].split('').map((x) => x + x).join('') : m[1]
+    return [parseInt(h6.slice(0, 2), 16), parseInt(h6.slice(2, 4), 16), parseInt(h6.slice(4, 6), 16)]
+  }
+  m = /^rgba?\(\s*(\d+(?:\.\d+)?)[ ,]+(\d+(?:\.\d+)?)[ ,]+(\d+(?:\.\d+)?)/.exec(v)
+  return m === null ? null : [Math.round(Number(m[1])), Math.round(Number(m[2])), Math.round(Number(m[3]))]
+}
+const kbNcAccentSource = (brand, label) => {
+  const a = kbNcRgb(brand)
+  const b = kbNcRgb(label)
+  return a !== null && b !== null && a[0] === b[0] && a[1] === b[1] && a[2] === b[2] ? 'engine' : 'brand'
 }
 const kbNcObj = (v) => (v !== null && typeof v === 'object' && !Array.isArray(v) ? v : null)
 // What the server calls the states of a computer, and what the card says.
@@ -25167,7 +25235,7 @@ function renderFit(canvas, model, cam, opts){
           groups.map((g) => h('div', { key: g.id, className: 'kb8-sl-group', 'data-group': g.id },
             h('button', { type: 'button', className: 'kb8-sl-gh', onClick: () => goTo(g.id) }, kbt('kbnc.g.' + g.id), h('small', null, String(g.templates.length))),
             h('div', { className: 'kb8-sl-cards' }, g.templates.map((t) =>
-              h('button', { type: 'button', key: t.id, className: 'kb8-sl-card' + (sp.match === t.id ? ' is-match' : ''), 'data-kb': 'newchat-visual', 'data-id': t.id, onClick: () => { if (quietRef.current !== true) sp.onPick(t.id) } },
+              h('button', { type: 'button', key: t.id, className: 'kb8-sl-card' + (sp.match === t.id ? ' is-match' : '') + (sp.chosen === t.id ? ' is-on' : ''), 'data-kb': 'newchat-visual', 'data-id': t.id, onClick: () => { if (quietRef.current !== true) sp.onPick(t.id) } },
                 h('span', { className: 'kb8-sl-stage', 'aria-hidden': 'true', dangerouslySetInnerHTML: { __html: '<svg viewBox="0 0 64 44" aria-hidden="true">' + KB_NC_ART[t.id] + '</svg>' } }),
                 h('span', { className: 'kb8-sl-label' }, kbt('kbnc.t.' + t.id)))))))),
         h('button', { type: 'button', className: 'kb8-sl-nav next' + (st.next ? '' : ' off'), 'aria-label': kbt('kbnc.sl.next'), tabIndex: st.next ? 0 : -1, onClick: () => page(1) }, Icon('chevronRight', 16)),
@@ -25187,6 +25255,11 @@ function renderFit(canvas, model, cam, opts){
       const act = actPair[0]
       const setAct = actPair[1]
       const cloud = useNcCloud()
+      // The type the person picked: it stays lit and its chip and suggestions show under the composer, until the chip is removed or the box is emptied.
+      const choPair = React.useState(null)
+      const chosen = choPair[0]
+      const setChosen = choPair[1]
+      const choArmed = React.useRef(false)
       // Kaby's chat becomes known after this renders on a page load (its bundle reads the pointer then): it says so with an event, and the cards go.
       const kabyPair = React.useState(0)
       React.useEffect(() => {
@@ -25203,11 +25276,24 @@ function renderFit(canvas, model, cam, opts){
       // The text in the composer, as the dock entry receives it: the template it sounds like is lit (never sent, never changed).
       const draft = (p.input !== null && p.input !== undefined && typeof p.input.draft === 'string') ? p.input.draft : ''
       const match = kbNcDetect(draft, offered)
+      // The chip goes when the box, once filled, is emptied (the text is the thing the chip stands for).
+      React.useEffect(() => {
+        if (draft.trim() !== '') choArmed.current = true
+        else if (choArmed.current === true) { choArmed.current = false; setChosen(null) }
+      }, [draft])
+      const knownTpl = KB_NC_TEMPLATES.map((t) => kbt('kbnc.p.' + t.id))
       // A template fills the composer and never sends. The person's own words stay (see kbNcFill).
       const prefill = (id) => {
+        setChosen(id)
         try {
           const ia = (p.inputActions !== null && p.inputActions !== undefined) ? p.inputActions : null
           if (ia !== null && typeof ia.setDraft === 'function') ia.setDraft(kbNcFill(draft, kbt('kbnc.p.' + id), KB_NC_TEMPLATES.map((t) => kbt('kbnc.p.' + t.id))))
+        } catch (e) { /* the composer stays the person's */ }
+      }
+      const suggest = (id, i) => {
+        try {
+          const ia = (p.inputActions !== null && p.inputActions !== undefined) ? p.inputActions : null
+          if (ia !== null && typeof ia.setDraft === 'function') ia.setDraft(kbNcSuggest(draft, kbt('kbnc.p.' + id), knownTpl, kbt('kbnc.s.' + id + '.' + i)))
         } catch (e) { /* the composer stays the person's */ }
       }
       const openKyber = () => { try { if (typeof window.__KB_OPEN__ === 'function') window.__KB_OPEN__({ view: 'kyber' }) } catch (e) { /* no page to open */ } }
@@ -25236,8 +25322,16 @@ function renderFit(canvas, model, cam, opts){
         ? (cloud.kind === 'awake' ? kbt('kbnc.cc.sub.awake') : (cloud.lastActive !== '' ? kbt('kbnc.cc.last') + kbFmtWhen(cloud.lastActive) : kbt('kbnc.cc.' + cloud.kind)))
         : cloud.kind === 'none' ? kbt('kbnc.cc.sub.none') : kbt('kbnc.cc.' + cloud.kind)
       const ccText = act.note !== null ? act.note : (act.verb !== null ? kbt('kbnc.cc.act.busy') : (cloud.pausedReason === 'hours' && ccActions.length === 0 ? kbt('kbnc.cc.hours') : ccSub))
+      const picked = (chosen !== null && offered.indexOf(chosen) >= 0) ? chosen : null
       return h('div', { className: 'kb8-nc', 'data-kb': 'newchat' },
-        groups.length === 0 ? null : h(KbNcSlider, { groups, match, onPick: prefill }),
+        picked === null ? null : h('div', { className: 'kb8-nc-sel', 'data-kb': 'newchat-chosen' },
+          h('span', { className: 'kb8-nc-chip' },
+            h('span', { className: 'kb8-sl-stage kb8-nc-chip-art', 'aria-hidden': 'true', dangerouslySetInnerHTML: { __html: '<svg viewBox="0 0 64 44" aria-hidden="true">' + KB_NC_ART[picked] + '</svg>' } }),
+            kbt('kbnc.t.' + picked),
+            h('button', { type: 'button', className: 'kb8-nc-chip-x', 'data-kb': 'newchat-chip-x', 'aria-label': kbt('kbnc.chip.remove') + ' ' + kbt('kbnc.t.' + picked), onClick: () => setChosen(null) }, Icon('x', 11))),
+          h('span', { className: 'kb8-nc-try' }, kbt('kbnc.try')),
+          [0, 1, 2].map((i) => h('button', { type: 'button', key: i, className: 'kb8-nc-sug', 'data-kb': 'newchat-suggestion', onClick: () => suggest(picked, i) }, kbt('kbnc.s.' + picked + '.' + i)))),
+        groups.length === 0 ? null : h(KbNcSlider, { groups, match, chosen: picked, onPick: prefill }),
         (cloud.kind === 'unknown' ? null
           : h('div', { className: 'kb8-nc-cloud', 'data-kb': 'newchat-cloud' },
             h('button', { type: 'button', className: 'kb8-nc-main', 'data-kb': 'newchat-cloud-open', onClick: openKyber },
@@ -25251,10 +25345,12 @@ function renderFit(canvas, model, cam, opts){
       { name: 'conversation.input.dock', id: 'kybernos-newchat', order: 25 }, KbNewChatCards)), 'kybers: new chat cards');
     // The little motion of a drawing plays when its card is hovered, focused, or lit by what the person types. The Creations page's type
     // tiles (and the rows of its « Customize » panel) wear the same drawings, so they play it too (hovered, or selected).
-    const kbNcHot = ':is(.kb8-sl-card,.kb-type,.kb-typepanel-row):is(:hover,:focus-visible,.is-match,.kb-type-sel)'
+    const kbNcHot = ':is(.kb8-sl-card,.kb-type,.kb-typepanel-row):is(:hover,:focus-visible,.is-match,.is-on,.kb-type-sel)'
     ctx.effect(() => styles.insert(`
 /* The new chat: a slider of what can be made, under the composer, and the Cloud Computer line. Tokens only: the one accent is the theme's. */
-.kb8-nc{--kb8-acc:var(--dsw-alias-brand-primary);order:2;display:flex;flex-direction:column;align-items:stretch;gap:12px;padding:18px 16px 10px;container-type:inline-size;container-name:kbnc}
+body{--kb8-acc:var(--dsw-alias-brand-primary)}
+html[data-kb-acc="engine"] body{--kb8-acc:var(--dsw-alias-state-business-primary)}
+.kb8-nc{order:2;display:flex;flex-direction:column;align-items:stretch;gap:12px;padding:18px 16px 10px;container-type:inline-size;container-name:kbnc}
 .kb8-sl{position:relative}
 .kb8-sl-track{position:relative;display:flex;align-items:flex-start;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x proximity;scroll-padding-inline:4px;scrollbar-width:none;padding:6px 4px 18px;margin:-6px -4px -18px;-webkit-mask-image:linear-gradient(to right,transparent 0,#000 var(--kb8-ml,0px),#000 calc(100% - var(--kb8-mr,0px)),transparent 100%);mask-image:linear-gradient(to right,transparent 0,#000 var(--kb8-ml,0px),#000 calc(100% - var(--kb8-mr,0px)),transparent 100%)}
 .kb8-sl-track::-webkit-scrollbar{display:none}
@@ -25269,11 +25365,25 @@ function renderFit(canvas, model, cam, opts){
 .kb8-sl-card:hover,.kb8-sl-card:focus-visible{color:var(--dsw-alias-label-primary);transform:translateY(-3px);box-shadow:0 0 0 1px var(--dsw-alias-border-l2),0 12px 28px -14px rgba(0,0,0,.35)}
 .kb8-sl-card:focus-visible{outline:2px solid var(--kb8-acc);outline-offset:2px}
 .kb8-sl-card.is-match{color:var(--dsw-alias-label-primary);box-shadow:0 0 0 1.5px color-mix(in srgb,var(--kb8-acc) 70%,var(--dsw-alias-border-l2)),0 0 0 6px color-mix(in srgb,var(--kb8-acc) 10%,transparent)}
-.kb8-sl-stage{--kb8-acc:var(--dsw-alias-brand-primary);position:relative;height:100px;display:grid;place-items:center;background:color-mix(in srgb,var(--kb8-acc) 5%,var(--dsw-alias-bg-module-platform))}
+.kb8-sl-card.is-on{color:var(--dsw-alias-label-primary);transform:translateY(-3px);box-shadow:0 0 0 1.5px var(--dsw-alias-label-primary),0 12px 28px -14px rgba(0,0,0,.35)}
+/* What the person picked: its chip and a few ways to go on, in one line under the composer. */
+.kb8-nc-sel{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;padding:0 2px;font-size:12.5px;color:var(--dsw-alias-label-tertiary);animation:kb8-chip-in .3s cubic-bezier(.16,1,.3,1)}
+.kb8-nc-chip{display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 6px 0 5px;border-radius:var(--dsw-radius-md,12px);background:color-mix(in srgb,var(--kb8-acc) 12%,transparent);border:1px solid color-mix(in srgb,var(--kb8-acc) 28%,transparent);font-size:12.5px;font-weight:550;color:var(--dsw-alias-label-primary)}
+.kb8-nc-chip .kb8-nc-chip-art{width:30px;height:21px;display:block;background:none}
+.kb8-nc-chip .kb8-nc-chip-art::before{display:none}
+.kb8-nc-chip .kb8-nc-chip-art svg{width:30px;height:21px;filter:none}
+.kb8-nc-chip-x{display:grid;place-items:center;width:18px;height:18px;padding:0;border:0;border-radius:50%;background:transparent;color:var(--dsw-alias-label-secondary);cursor:pointer}
+.kb8-nc-chip-x:hover{background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-primary)}
+.kb8-nc-try{margin-inline:2px 0}
+.kb8-nc-sug{height:26px;padding:0 10px;border-radius:var(--dsw-radius-md,12px);border:1px solid var(--dsw-alias-border-l2);background:transparent;font:inherit;font-size:12.5px;color:var(--dsw-alias-label-secondary);cursor:pointer}
+.kb8-nc-sug:hover{background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-primary)}
+.kb8-nc-chip-x:focus-visible,.kb8-nc-sug:focus-visible{outline:2px solid var(--kb8-acc);outline-offset:1px}
+@keyframes kb8-chip-in{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.kb8-sl-stage{position:relative;height:100px;display:grid;place-items:center;background:color-mix(in srgb,var(--kb8-acc) 5%,var(--dsw-alias-bg-module-platform))}
 .kb8-sl-stage::before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 88% -8%,color-mix(in srgb,var(--kb8-acc) 12%,transparent),transparent 62%)}
 .kb8-sl-stage svg{position:relative;width:92px;height:63px;overflow:visible;filter:drop-shadow(0 3px 4px color-mix(in srgb,var(--dsw-alias-label-primary) 14%,transparent));transition:transform .45s cubic-bezier(.16,1,.3,1)}
 .kb8-sl-stage svg *{transform-box:fill-box}
-.kb8-sl-card:hover .kb8-sl-stage svg,.kb8-sl-card:focus-visible .kb8-sl-stage svg,.kb8-sl-card.is-match .kb8-sl-stage svg{transform:translateY(-3px) scale(1.07)}
+.kb8-sl-card:hover .kb8-sl-stage svg,.kb8-sl-card:focus-visible .kb8-sl-stage svg,.kb8-sl-card.is-match .kb8-sl-stage svg,.kb8-sl-card.is-on .kb8-sl-stage svg{transform:translateY(-3px) scale(1.07)}
 .kb8-sl-label{flex:1;display:grid;place-items:center;padding:0 8px;line-height:1.15;overflow-wrap:anywhere}
 /* The drawings: the page's own tokens, so they follow the theme (ink, greys, ONE tint). */
 .kb8-sl-stage .paper{fill:var(--dsw-alias-bg-layer-1);stroke:var(--dsw-alias-border-l2);stroke-width:.7}
@@ -25335,10 +25445,47 @@ ${kbNcHot} .play{transform-origin:50% 50%;animation:kb8-pulse .9s cubic-bezier(.
 .kb8-nc-act{height:26px;padding:0 10px;border-radius:8px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-foreground);font:inherit;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap}
 .kb8-nc-act.ghost{background:transparent;color:var(--dsw-alias-label-secondary);font-weight:500}
 .kb8-nc-act:disabled{opacity:.5;cursor:default}
-@media (prefers-reduced-motion:reduce){.kb8-sl-card,.kb8-sl-stage svg,.kb8-sl-stage *,.kb8-sl-nav,.kb8-sl-thumb{transition:none!important;animation:none!important}}
+/* The page behind: a grid of dots and two soft glows of the accent, behind the headline and behind the composer (the dots fade out toward the edges),
+   and a halo, with one lap of light, on the composer when it has the focus. Only on the new chat page (the block is there), only CSS. */
+[data-phase="hero"]:has([data-kb="newchat"]){background-image:radial-gradient(560px circle at 50% 22%,color-mix(in srgb,var(--kb8-acc) 9%,transparent),transparent 66%),radial-gradient(380px circle at 50% 44%,color-mix(in srgb,var(--kb8-acc) 5%,transparent),transparent 68%)}
+body[data-ds-dark-theme] [data-phase="hero"]:has([data-kb="newchat"]){background-image:radial-gradient(560px circle at 50% 22%,color-mix(in srgb,var(--kb8-acc) 13%,transparent),transparent 66%),radial-gradient(380px circle at 50% 44%,color-mix(in srgb,var(--kb8-acc) 8%,transparent),transparent 68%)}
+[data-phase="hero"]:has([data-kb="newchat"])::before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;background-image:radial-gradient(color-mix(in srgb,var(--dsw-alias-label-primary) 13%,transparent) 1px,transparent 1.3px);background-size:22px 22px;-webkit-mask-image:radial-gradient(ellipse 58% 52% at 50% 36%,#000 0%,transparent 78%);mask-image:radial-gradient(ellipse 58% 52% at 50% 36%,#000 0%,transparent 78%)}
+[data-phase="hero"]:has([data-kb="newchat"]) [class*="titleGroup"][data-kb-hero]>:first-child{font-size:28px;font-weight:600;letter-spacing:-.028em;line-height:1.12}
+@media (min-width:900px){[data-phase="hero"]:has([data-kb="newchat"]) [class*="titleGroup"][data-kb-hero]>:first-child{font-size:32px}}
+@media (min-width:1280px){[data-phase="hero"]:has([data-kb="newchat"]) [class*="titleGroup"][data-kb-hero]>:first-child{font-size:40px}}
+[data-phase="hero"]:has([data-kb="newchat"]) [data-composer-card="true"]{transition:box-shadow .3s}
+[data-phase="hero"]:has([data-kb="newchat"]) [data-composer-card="true"]:focus-within{box-shadow:0 12px 28px -14px rgba(0,0,0,.35),0 0 0 1px color-mix(in srgb,var(--dsw-alias-label-primary) 26%,transparent),0 0 0 5px color-mix(in srgb,var(--kb8-acc) 9%,transparent)}
+[data-phase="hero"]:has([data-kb="newchat"]) [data-composer-card="true"]::before{content:"";position:absolute;inset:-1px;border-radius:inherit;padding:1.5px;pointer-events:none;opacity:0;background:conic-gradient(from var(--kb8-a),transparent 0deg,transparent 215deg,color-mix(in srgb,var(--kb8-acc) 95%,transparent) 300deg,transparent 360deg);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0);mask-composite:exclude}
+[data-phase="hero"]:has([data-kb="newchat"]) [data-composer-card="true"]:focus-within::before{animation:kb8-sweep 1.7s cubic-bezier(.16,1,.3,1) 1}
+@property --kb8-a{syntax:"<angle>";initial-value:0deg;inherits:false}
+@keyframes kb8-sweep{0%{--kb8-a:0deg;opacity:0}12%{opacity:1}100%{--kb8-a:360deg;opacity:0}}
+@media (prefers-reduced-motion:reduce){.kb8-sl-card,.kb8-sl-stage svg,.kb8-sl-stage *,.kb8-sl-nav,.kb8-sl-thumb,.kb8-nc-sel{transition:none!important;animation:none!important}[data-composer-card="true"]::before{animation:none!important}}
 /* What matters is the width the dock really has, not the window: arrows need a pointer, and a narrow dock is swiped. */
 @container kbnc (max-width:480px){.kb8-sl-nav{display:none}}
 `), 'kybers: styles of the new chat cards');
+
+    // The page's one accent (see kbNcAccentSource): read again when the theme changes (its style tag, the attributes of html and body).
+    ctx.effect(() => {
+      let stopped = false
+      let timer = null
+      const apply = () => {
+        try {
+          const cs = window.getComputedStyle(document.body)
+          const src = kbNcAccentSource(cs.getPropertyValue('--dsw-alias-brand-primary'), cs.getPropertyValue('--dsw-alias-label-primary'))
+          if (document.documentElement.getAttribute('data-kb-acc') !== src) document.documentElement.setAttribute('data-kb-acc', src)
+        } catch (e) { /* no document: the brand colour stays */ }
+      }
+      const later = () => { if (timer !== null) return; timer = setTimeout(() => { timer = null; if (stopped !== true) apply() }, 120) }
+      let obs = null
+      try {
+        obs = new MutationObserver(later)
+        obs.observe(document.documentElement, { attributes: true, attributeFilter: ['style', 'class', 'data-ds-theme-source'] })
+        obs.observe(document.body, { attributes: true })
+        obs.observe(document.head, { childList: true, subtree: true, characterData: true })
+      } catch (e) { obs = null }
+      apply()
+      return () => { stopped = true; if (obs !== null) obs.disconnect(); if (timer !== null) clearTimeout(timer) }
+    }, 'kybers: new chat accent source')
 
     // ── The headline of the new-chat page: a different line each time, and « Beta », small ────────────────────────
     // DSH draws « Into the Unknown » and a « Preview » badge itself (HeroShell: two locale keys; only the mark has a slot).
@@ -25385,8 +25532,8 @@ ${kbNcHot} .play{transform-origin:50% 50%;animation:kb8-pulse .9s cubic-bezier(.
       return () => { stopped = true; if (obs !== null) obs.disconnect(); window.removeEventListener('kybernos:space-cue', later); if (timer !== null) clearTimeout(timer) }
     }, 'kybers: new chat title and Beta badge')
     ctx.effect(() => styles.insert(`
-/* The badge DSH calls « Preview » says « Beta » and is small: its own look (colour, shape) is kept, its code font is not. */
-[class*="previewBadge"][data-kb-beta]{font-family:inherit;font-size:10px;font-weight:600;line-height:1;letter-spacing:.04em;padding:3px 7px}
+/* The badge DSH calls « Preview » says « Beta », small, an outline and not a fill (its code font goes). */
+[class*="previewBadge"][data-kb-beta]{font-family:inherit;font-size:10.5px;font-weight:600;line-height:1;letter-spacing:.07em;text-transform:uppercase;padding:3px 8px;background:transparent;border:1px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-label-tertiary)}
 `), 'kybers: styles badge Beta')
 
     // ── DSH's own « Automation tasks » menu entry overlaps the Automations page: hidden, unless asked back ──────
