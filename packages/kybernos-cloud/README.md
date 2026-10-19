@@ -257,6 +257,13 @@ When the account is connected, this half does three things:
    (2) a fact already present in the account is **not rewritten** (normalised
    comparison). Without the second, the same fact is written on every turn that carries it.
 
+   Two more, measured on dev on 2026-10-19 (a test conversation wrote seven memories): the agent's words are no source
+   of memory, and one request is not a preference. (3) After a **question**, or a message long enough to stand alone (over 80
+   characters), only the person's words are submitted: « what do you know about me? » had made the capture write three
+   memories it had just read back. The agent's question is kept as context only for a short reply (« yes, Paris »). (4) A
+   `preference` or a `policy` is kept only when the person says it lasts (`always`, `from now on`, `by default`, `I prefer`,
+   `toujours`, `désormais`, `je préfère`, `siempre`…, `isLasting`): « answer in Spanish » is about one answer. The extraction prompt says both too.
+
    The capture is *fail-open* by construction, hence **observable**: each
    exit writes a state (`hors_connexion`, `desactivee`, `sans_session`,
    `tour_trop_court`, `llm_indisponible`, `rien_a_retenir`, `deja_connu`, `ecrit`, `erreur`) that the route and the card display. Without
