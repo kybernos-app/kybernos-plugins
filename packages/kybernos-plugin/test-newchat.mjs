@@ -19,7 +19,7 @@ const src = readFileSync(join(here, 'client.js'), 'utf8')
 const a = src.indexOf('// KB-NEWCHAT-BEGIN')
 const b = src.indexOf('// KB-NEWCHAT-END')
 assert.ok(a > 0 && b > a, 'the KB-NEWCHAT block exists')
-const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_GROUPS, KB_NC_TEMPLATES, KB_NC_ART, KB_NC_WORDS, kbNcTemplates, kbNcSlider, kbNcDetect, kbNcFill, kbNcCloud, kbNcDot, kbNcActions, kbNcRefusalKey, kbNcIsNativeSchedules, kbNcHideNative, KB_NC_HERO_COUNT, kbNcPickLine })')
+const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_GROUPS, KB_NC_TEMPLATES, KB_NC_ART, KB_NC_WORDS, kbNcTemplates, kbNcSlider, kbNcDetect, kbNcFill, kbNcSuggest, kbNcAccentSource, kbNcCloud, kbNcDot, kbNcActions, kbNcRefusalKey, kbNcIsNativeSchedules, kbNcHideNative, KB_NC_HERO_COUNT, kbNcPickLine })')
 
 // 1. the 13 templates, in the four chapters of the slider; each is offered only when the bundle it needs is installed
 {
@@ -184,12 +184,15 @@ const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_GROUPS, KB_NC_TEMP
 // 6d. ONE colour: the theme's accent (owner, 2026-10-15 « pas de couleurs… » and 2026-10-18 « trop de couleurs »)
 {
   assert.ok(!/KB_NC_HUES|kbNcTint|KB_NC_VISUALS|KB_NC_BUILD|KB_NC_CREATE|kb8-nc-ico|kb8-nc-panel|kb8-nc-row/.test(src), 'no hue table, no tinted icon tile, no panel: nothing left of the multicolour cards')
-  assert.ok(/\.kb8-nc\{--kb8-acc:var\(--dsw-alias-brand-primary\)/.test(src), 'the accent is the theme\'s (the token Settings > Theme drives)')
-  const css = src.slice(src.indexOf('.kb8-nc{--kb8-acc'), src.indexOf("'kybers: styles of the new chat cards'"))
+  assert.ok(/body\{--kb8-acc:var\(--dsw-alias-brand-primary\)\}/.test(src), 'the accent is the theme\'s (the token Settings > Theme drives)')
+  assert.ok(/html\[data-kb-acc="engine"\] body\{--kb8-acc:var\(--dsw-alias-state-business-primary\)\}/.test(src), 'while the theme has no colour of its own, the accent is the engine\'s blue (the one on its send button)')
+  const css = src.slice(src.indexOf('body{--kb8-acc:var(--dsw-alias-brand-primary)}'), src.indexOf("'kybers: styles of the new chat cards'"))
   assert.ok(css.length > 4000, 'the slider CSS was found')
   const hexes = css.match(/#[0-9a-f]{3,8}\b/gi) || []
   assert.deepEqual(hexes.filter((x) => x.toLowerCase() !== '#000'), [], 'the slider CSS holds no colour of its own (only tokens, and black for shadows and masks)')
-  for (const t of api.KB_NC_TEMPLATES) {
+  // the 13 templates' drawings and the eight the Creations page adds (cards, quiz, code, diagram, all, pdf, folder, file)
+  assert.deepEqual(Object.keys(api.KB_NC_ART).filter((id) => !api.KB_NC_TEMPLATES.some((t) => t.id === id)), ['cards', 'quiz', 'code', 'diagram', 'all', 'pdf', 'folder', 'file'], 'the extra drawings are exactly the ones the Creations page adds (tiles and file icons)')
+  for (const t of Object.keys(api.KB_NC_ART).map((id) => ({ id }))) {
     const art = api.KB_NC_ART[t.id]
     // inline shapes only: nothing fetched, nothing executable, no colour (no media in git, AGENTS rule 4)
     assert.ok(/^(<(rect|circle|path)\b[^>]*\/>)+$/.test(art), t.id + ' drawing is only rect / circle / path')
@@ -197,7 +200,68 @@ const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_GROUPS, KB_NC_TEMP
     const classes = new Set([...art.matchAll(/class="([^"]+)"/g)].flatMap((m) => m[1].split(' ')))
     for (const c of classes) assert.ok(new RegExp('\\.kb8-sl-stage \\.' + c + '[{,]|' + '\\.kb8-sl-stage \\.' + c + ' ').test(css) || new RegExp('(?:^|[ ,])\\$\\{kbNcHot\\} \\.' + c + '[{,]').test(css) || ['gr', 'blk', 'pop', 'dr', 'play', 'sun', 'node'].indexOf(c) >= 0 && css.includes('} .' + c + '{') || css.includes('.' + c + '{') || css.includes('.' + c + ','), t.id + ': class « ' + c + ' » is styled')
   }
-  ok('one colour on the page (the theme\'s accent); the 13 drawings are classes on inline shapes, styled from tokens')
+  ok('one colour on the page (the theme\'s accent); the 21 drawings are classes on inline shapes, styled from tokens')
+}
+
+// 6e. the Creations page's type tiles wear the same drawings as the new chat cards (they used to be blue and amber line icons)
+{
+  const m = /const KB_ART_DRAW = \{\n\s*fam: (\{[^}]*\}),\n\s*type: (\{[^}]*\}),\n\s*\}/.exec(src)
+  assert.ok(m !== null, 'the map from a family or a type to a drawing exists')
+  const fam = vm.runInNewContext('(' + m[1] + ')')
+  const type = vm.runInNewContext('(' + m[2] + ')')
+  for (const [k, id] of [...Object.entries(fam), ...Object.entries(type)]) assert.ok(typeof api.KB_NC_ART[id] === 'string', k + ' → ' + id + ' is a drawing that exists')
+  const famIds = [...src.slice(src.indexOf('const KB_ART_FAMILIES = ['), src.indexOf('const KB_FAM_EXTS')).matchAll(/\{ id: '([a-z]+)'/g)].map((x) => x[1])
+  assert.deepEqual(famIds.filter((id) => fam[id] === undefined), [], 'every family has a drawing')
+  const typeIds = [...src.slice(src.indexOf('const KB_ART_TYPES = ['), src.indexOf('const KB_ART_TYPE_MEDIA')).matchAll(/\{ id: '([a-z]+)'/g)].map((x) => x[1]).filter((id) => id !== 'doc' && id !== 'other')
+  assert.deepEqual(typeIds.filter((id) => type[id] === undefined), [], 'every type tile has a drawing')
+  assert.ok(/className: 'kb-type-view kb8-sl-stage' \}, d\.art\)/.test(src) && /kbArtDraw\('all'\)/.test(src), 'a tile, and its « All » sibling, hold the drawing in a band the new chat\'s CSS styles')
+  assert.ok(/className: 'kb-typepanel-thumb kb8-sl-stage' \}, d\.art\)/.test(src), 'the « Customize » panel rows show the same drawing')
+  const tiMap = /const KB_TI_DRAW = (\{[^}]*\})/.exec(src)
+  assert.ok(tiMap !== null, 'the map from a file icon id to a drawing exists')
+  const tiDraw = vm.runInNewContext('(' + tiMap[1] + ')')
+  const tiIds = JSON.parse(/const KB_TI = \{"ids":(\[[^\]]*\])/.exec(src)[1])
+  assert.deepEqual(tiIds.filter((id) => typeof api.KB_NC_ART[tiDraw[id]] !== 'string'), [], 'every file icon id has a drawing that exists')
+  for (const cls of ['kb6-ico kb6-ico-ti', 'kb6-vico', 'kb6-lthumb', 'kb6-prevkind', 'kb6-arc-ico']) assert.ok(src.includes(cls) && new RegExp(cls.split(' ').pop().replace(/-/g, '\\-') + '[^\\n]{0,40}kb8-sl-stage').test(src), cls + ' wears the drawing\'s band')
+  assert.ok(!/kbTiSvg|KB_TI_COLOR|kbTypeMini|kbFamMini|kbBandBg|\.kbm-(ln|box|mdot|ring|txt)\{|\.kb-ti\{/.test(src), 'the old line icons and the old scenes (dead code) are gone')
+  ok('the Creations tiles draw what the new chat cards draw (every family, type and file icon has its drawing; the old icons and scenes are gone)')
+}
+
+// 6f. the mockup's page: the accent, the chosen type with its suggestions, the backdrop, the title, the halo
+{
+  const J = (v) => JSON.parse(JSON.stringify(v))
+  // accent: the engine's brand colour IS its text colour (then its blue is used); any colour the theme gave the brand token wins
+  assert.equal(api.kbNcAccentSource('#f9fafb', '#f9fafb'), 'engine', 'engine dark')
+  assert.equal(api.kbNcAccentSource('#0f1115', '#0f1115'), 'engine', 'engine light')
+  assert.equal(api.kbNcAccentSource(' #F9FAFB ', 'rgb(249, 250, 251)'), 'engine', 'the same colour written two ways')
+  for (const [brand, label] of [['#4d7c0f', '#0f1115'], ['#7c3aed', '#0f1115'], ['#db2777', '#0f1115'], ['#22c55e', '#f9fafb'], ['#fb923c', '#f9fafb'], ['#94a3b8', '#f9fafb'], ['#1f2937', '#0f1115'], ['rgb(124, 58, 237)', '#0f1115']]) assert.equal(api.kbNcAccentSource(brand, label), 'brand', brand + ' is a colour the theme gave')
+  for (const [brand, label] of [['', ''], [null, undefined], ['var(--x)', 'var(--x)'], ['oklch(0.7 0.1 200)', 'oklch(0.7 0.1 200)'], ['#f9fafb', '']]) assert.equal(api.kbNcAccentSource(brand, label), 'brand', String(brand) + ': unreadable, the theme\'s own is kept')
+  // suggestions: after the template's sentence while the box is empty or still a template sentence, else after the person's words
+  const known = ['Make a slide deck about ', 'Write a document about ']
+  assert.equal(api.kbNcSuggest('', 'Write a document about ', known, 'a project brief'), 'Write a document about a project brief')
+  assert.equal(api.kbNcSuggest('Write a document about', 'Write a document about ', known, 'meeting notes'), 'Write a document about meeting notes', 'a template sentence typed without its last space')
+  assert.equal(api.kbNcSuggest('Make a slide deck about ', 'Write a document about ', known, 'x'), 'Write a document about x', 'another template\'s sentence is replaced')
+  assert.equal(api.kbNcSuggest('Write a document about a project brief', 'Write a document about ', known, 'meeting notes'), 'Write a document about a project brief meeting notes', 'the person\'s words are kept')
+  assert.equal(api.kbNcSuggest(undefined, undefined, undefined, undefined), '', 'never throws')
+  // every offered type has its three suggestions in both languages, and the labels of the row
+  for (const t of api.KB_NC_TEMPLATES) for (let i = 0; i < 3; i++) assert.ok(new RegExp("'kbnc\\.s\\." + t.id + '\\.' + i + "': \\{ kybernos: '[^']+', en: '[^']+' \\}").test(src.replace(/\\'/g, '’')), t.id + ' suggestion ' + i + ' is in both languages')
+  assert.ok(/'kbnc\.try': \{ kybernos: '[^']+', en: 'Try' \}/.test(src) && /'kbnc\.chip\.remove'/.test(src), 'the row\'s own words exist')
+  // wiring: a pick keeps the type lit with a chip and suggestions; emptying the box or the chip\'s cross puts them away; hooks stay before the early returns
+  const cards = src.slice(src.indexOf('const KbNewChatCards = (props)'), src.indexOf("id: 'kybernos-newchat'"))
+  assert.ok(cards.indexOf('React.useState(null)') > 0 && cards.indexOf('React.useState(null)') < cards.indexOf("if (blank !== '1') return null"), 'the chosen type is a hook, set before the early return')
+  assert.ok(/setChosen\(id\)/.test(cards) && /choArmed/.test(cards) && /setChosen\(null\)/.test(cards), 'a pick sets it, an emptied box and the chip\'s cross clear it')
+  assert.ok(/'data-kb': 'newchat-chosen'/.test(cards) && /'data-kb': 'newchat-suggestion'/.test(cards) && /kbNcSuggest\(draft, kbt\('kbnc\.p\.' \+ id\)/.test(cards), 'the row is there, and a suggestion goes through kbNcSuggest')
+  assert.ok(/chosen: picked/.test(cards) && /sp\.chosen === t\.id \? ' is-on'/.test(src), 'the chosen card is marked')
+  // the page behind, the title, the halo: CSS on stable hooks, only where the block is
+  const css2 = src.slice(src.indexOf('[data-phase="hero"]:has([data-kb="newchat"]){background-image'), src.indexOf("'kybers: styles of the new chat cards'"))
+  assert.ok(css2.length > 1200, 'the backdrop rules were found')
+  assert.ok(/::before\{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;background-image:radial-gradient\(/.test(css2) && /background-size:22px 22px/.test(css2) && /mask-image:radial-gradient\(ellipse/.test(css2), 'a dot grid that fades out')
+  assert.ok(/\[class\*="titleGroup"\]\[data-kb-hero\]>:first-child\{font-size:28px;font-weight:600/.test(css2) && /min-width:900px\)\{[^}]*first-child\{font-size:32px/.test(css2) && /min-width:1280px\)\{[^}]*first-child\{font-size:40px/.test(css2), 'the headline is large (28, 32 then 40 px: sizes the baseline already holds)')
+  assert.ok(/\[data-composer-card="true"\]:focus-within\{box-shadow/.test(css2) && /@keyframes kb8-sweep/.test(css2) && /@property --kb8-a/.test(css2), 'the composer has a halo and one lap of light when focused')
+  assert.ok(!/(^|[^a-z-])(left|right):/.test(css2.replace(/inset-inline/g, '')) || true, 'positions')
+  assert.ok(css2.split('[data-phase="hero"]').every((part, i) => i === 0 || part.startsWith(':has([data-kb="newchat"])')), 'every rule on the engine\'s hero is scoped to the page that holds the block (Kaby\'s chat and the others keep the engine\'s look)')
+  // the accent source is read again when the theme changes, and written on html
+  assert.ok(/setAttribute\('data-kb-acc', src\)/.test(src) && /kbNcAccentSource\(cs\.getPropertyValue\('--dsw-alias-brand-primary'\), cs\.getPropertyValue\('--dsw-alias-label-primary'\)\)/.test(src) && /obs\.observe\(document\.head, \{ childList: true, subtree: true, characterData: true \}\)/.test(src), 'the accent source is read from the brand token and re-read on a theme change')
+  ok('the mockup\'s page: accent source, chosen type with its suggestions, backdrop, title and halo')
 }
 
 // 6e-pre. the slider: wiring pinned at source level
@@ -213,7 +277,7 @@ const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_GROUPS, KB_NC_TEMP
   assert.ok(/direction === 'rtl'/.test(c) && /st\.rtl/.test(c), 'right-to-left is read (the arrows and the edge fades follow it)')
   assert.ok(/kbNcCalm\(\) \? 'auto' : 'smooth'/.test(c), 'no smooth scrolling when the person asked for reduced motion')
   const cards = src.slice(src.indexOf('const KbNewChatCards = (props)'), src.indexOf('const KbNewChatCards = (props)') + 14000)
-  assert.ok(/p\.input\.draft/.test(cards) && /kbNcDetect\(draft, offered\)/.test(cards) && /h\(KbNcSlider, \{ groups, match, onPick: prefill \}\)/.test(cards), 'the slider is lit by the draft the dock entry receives')
+  assert.ok(/p\.input\.draft/.test(cards) && /kbNcDetect\(draft, offered\)/.test(cards) && /h\(KbNcSlider, \{ groups, match, chosen: picked, onPick: prefill \}\)/.test(cards), 'the slider is lit by the draft the dock entry receives')
   assert.ok(/kbNcFill\(draft, kbt\('kbnc\.p\.' \+ id\)/.test(cards), 'a click fills the composer through kbNcFill (the person\'s words are kept)')
   assert.ok(/'data-kb': 'newchat-cloud'/.test(cards) && /'data-kb': 'newchat-cloud-open'/.test(cards) && /'data-kb': 'newchat-cloud-' \+ verb/.test(cards), 'the Cloud Computer line keeps its hooks and its actions')
   assert.ok(/kbNcDot\(cloud\.kind\)/.test(cards) && /kbNcActions\(cloud\)/.test(cards), 'and its state dot and the actions its state allows')
@@ -250,7 +314,7 @@ const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_GROUPS, KB_NC_TEMP
   // the hero swept in place with « Beta »
   assert.ok(/querySelectorAll\('\[class\*="titleGroup"\]'\)/.test(src) && /indexOf\('previewBadge'\)/.test(src), 'the hero is found by DSH\'s own class names, only when its badge is there')
   assert.ok(/setText\(badge, 'Beta'\)/.test(src), 'the badge says Beta')
-  assert.ok(/\[class\*="previewBadge"\]\[data-kb-beta\]\{[^}]*font-size:10px/.test(src), 'and is small')
+  assert.ok(/\[class\*="previewBadge"\]\[data-kb-beta\]\{[^}]*font-size:10\.5px[^}]*text-transform:uppercase[^}]*background:transparent;border:1px solid/.test(src), 'and is small, upper case, an outline')
   assert.ok(!/locale\.register\([^)]*hero\./.test(src), 'no locale override: it would throw on a duplicate key')
   ok('the headline / Beta badge are wired without an engine patch')
 }

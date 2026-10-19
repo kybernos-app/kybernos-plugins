@@ -11,8 +11,8 @@
 // nothing is sent to any server.
 //
 // It plays: the row opens a native chat, once (a second click opens the same one); the strip sits above ITS composer and no other chat's;
-// a person with no Telegram on the Free plan (two equal tiles, no code asked for on open, the switch turning it on: QR and steps under the
-// tiles, the same switch cancelling), the pairing going waiting -> scanned -> connected by itself (the strip folds), the choice of the
+// a person with no Telegram on the Free plan (two equal tiles: Telegram as a state and one button, no code asked for on open; the button opens the
+// « Phone and channels » window, where the switch turns it on: QR and steps under Telegram's row, the same switch cancelling), the pairing going waiting -> scanned -> connected by itself (the strip folds), the choice of the
 // computer linked to Kaby, a paid plan (wake and sleep), a computer being set up that turns into an asleep one by itself, the strip folding
 // and remembered, disconnecting (asked first), a server with no Telegram bot (folded, a disabled switch), a phone width,
 // and the page (what Kaby is, the way into the chat). Exit code 0 / 1 / 3 (not run).
@@ -140,6 +140,9 @@ try {
   await sleep(1500)
   check('a second click opens the same chat, no new one', (await pointer()) === first && (await has('kybernos-kyber-dock')) === true)
 
+  // The « Phone and channels » window (kybernos-mobile draws it, in a root of its own on <body>): Telegram is set up there, not in the strip.
+  const openWin = async () => { if ((await has('phone-channels')) === true) return true; await click('kybernos-kyber-open-phone'); return (await poll(() => has('phone-channels'), 8000)) === true }
+  const closeWin = async () => { if ((await has('phone-channels')) !== true) return true; await click('phone-channels-close'); return (await poll(async () => (await has('phone-channels')) === false, 5000)) === true }
   const attr = (kb, name) => val(`(() => { const e = document.querySelector('[data-kb="${kb}"]'); return e ? e.getAttribute(${JSON.stringify(name)}) : null })()`)
   const box = (kb) => val(`(() => { const e = document.querySelector('[data-kb="${kb}"]'); if (!e) return null; const r = e.getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height, b: r.bottom } })()`)
 
@@ -191,7 +194,7 @@ try {
   check('it sits inside the card, above the two tiles', gi !== null && tb1 !== null && gi.y < tb1.y && gi.b <= tb1.y, { gi, tb1 })
   const chHelp = (await text('kybernos-kyber-channels-help')) || ''
   const coHelp = (await text('kybernos-kyber-computer-help')) || ''
-  check('Channels has one help line: Telegram, WhatsApp and WeChat, and what « Soon » means', /Telegram/.test(chHelp) && /WhatsApp/.test(chHelp) && /WeChat/.test(chHelp) && /Bientôt|Soon/.test(chHelp), chHelp)
+  check('Channels has one help line: where Kaby answers besides the chat, set up in « Phone and channels »', /Téléphone et canaux|Phone and channels/.test(chHelp), chHelp)
   check('Computer has one help line: the machine Kaby works on, and what « On request » means', /ordinateur|computer/.test(coHelp) && /À la demande|On request/.test(coHelp), coHelp)
   const hb = [await box('kybernos-kyber-channels-help'), await box('kybernos-kyber-computer-help')]
   check('each line sits right under its tile\'s title, above the first row', hb.every((b) => b !== null && b.h > 10) && hb[0].y > tb1.y && hb[0].y < tb1.y + 70 && hb[1].y > tb2.y && hb[1].y < tb2.y + 70, { hb, tb1, tb2 })
@@ -202,22 +205,25 @@ try {
   await shot('2c-help-card')
   await val(`document.querySelector('[data-kb="kybernos-kyber-strip"] [data-kb="help-button"]').click()`)
   check('opening the strip asked for no code: no pairing, no QR', (await calls('/kybernos-cloud/telegram/pairing')).length === 0 && (await has('kybernos-kyber-qr')) === false && (await has('kybernos-kyber-telegram')) === false)
-  check('Telegram is a row with a switch, off, and says it is not connected', (await attr('kybernos-kyber-tg-switch', 'aria-checked')) === 'false' && /Pas connecté|Not connected/.test((await text('kybernos-kyber-tg-row')) || ''))
-  check('WhatsApp and WeChat are rows of the same list, with their mark and « Soon », and nothing to press', (await val(`['whatsapp', 'wechat'].every((c) => { const e = document.querySelector('[data-kb="kybernos-kyber-chan-' + c + '"]'); return !!e && !!e.querySelector('svg path') && /Bientôt|Soon/.test(e.innerText) && e.querySelectorAll('button, a, input').length === 0 })`)) === true)
+  check('Telegram is ONE row that says where it stands (not connected): no switch, no code, no WhatsApp or WeChat row in the strip', /Pas connecté|Not connected/.test((await text('kybernos-kyber-tg-row')) || '') && (await has('kybernos-kyber-tg-switch')) === false && (await has('kybernos-kyber-chan-whatsapp')) === false && (await has('kybernos-kyber-chan-wechat')) === false)
+  check('the channels tile has exactly one button: « Phone and channels »', (await val(`(() => { const t = document.querySelector('[data-kb="kybernos-kyber-tile-channels"]'); const b = t ? t.querySelectorAll('button, a') : []; return b.length === 1 && b[0].getAttribute('data-kb') === 'kybernos-kyber-open-phone' && /Téléphone et canaux|Phone and channels/.test(b[0].innerText) })()`)) === true)
   check('there is no « Other channels » group', (await val(`!/Autres canaux|Other channels/.test(document.querySelector('[data-kb="kybernos-kyber-strip"]').innerText)`)) === true)
   const comp = (await text('kybernos-kyber-computer')) || ''
   check('the computer: its name, asleep, the Free plan says it cannot be woken by hand, an upgrade button and no wake button', /Home/.test(comp) && /En veille|Asleep/.test(comp) && (await has('kybernos-kyber-upsell')) === true && (await has('kybernos-kyber-upgrade')) === true && (await has('kybernos-kyber-wake')) === false, comp.slice(0, 200))
   check('calm: no radio, no settings, no « where it runs »', (await val(`document.querySelectorAll('[data-kb="kybernos-kyber-strip"] input[type="radio"]').length === 0 && !document.querySelector('[data-kb="kybernos-kyber-settings"]')`)) === true)
   await shot('2-strip-two-tiles')
 
-  console.log('── 3b. turning Telegram on: the code, under the two tiles ──')
+  console.log('── 3b. the button opens the Phone and channels window; Telegram is turned on there: the code ──')
+  check('the strip\'s button opens the window (kybernos-mobile draws it, in a root of its own)', (await openWin()) === true)
+  check('the window holds Kaby\'s column: Telegram with its switch, off, then WhatsApp, WeChat, iMessage', (await attr('kybernos-kyber-tg-switch', 'aria-checked')) === 'false' && (await val(`['whatsapp', 'wechat', 'imessage'].every((c) => !!document.querySelector('[data-kb="phone-channels"] [data-kb="kybernos-kyber-chan-' + c + '"]'))`)) === true)
+  check('opening the window asked for no code either', (await calls('/kybernos-cloud/telegram/pairing')).length === 0 && (await has('kybernos-kyber-qr')) === false)
+  await shot('2a-window-idle')
   await click('kybernos-kyber-tg-switch')
   check('the switch asked for exactly one pairing', (await poll(async () => (await calls('/kybernos-cloud/telegram/pairing')).length === 1, 6000)) === true, await calls('/kybernos-cloud/telegram/pairing'))
   check('a QR code is drawn from the pairing', (await poll(() => val(`!!document.querySelector('[data-kb="kybernos-kyber-qr"] svg path')`))) === true)
   check('the switch is on and the row says there is a code to scan', (await attr('kybernos-kyber-tg-switch', 'aria-checked')) === 'true' && /Code à scanner|Code to scan/.test((await text('kybernos-kyber-tg-row')) || ''))
-  const pb = await box('kybernos-kyber-telegram')
-  const tbAfter = await box('kybernos-kyber-computer')
-  check('the panel is under the two tiles, as wide as both together', pb !== null && tbAfter !== null && pb.y >= tbAfter.b - 1 && pb.w > tbAfter.w * 1.5, { pb, tbAfter })
+  check('the panel sits under Telegram\'s row and above WhatsApp, inside the window', (await val(`(() => { const w = document.querySelector('[data-kb="phone-channels"]'); const p = w.querySelector('[data-kb="kybernos-kyber-telegram"]'); const t = w.querySelector('[data-kb="kybernos-kyber-tg-row"]'); const x = w.querySelector('[data-kb="kybernos-kyber-chan-whatsapp"]'); return !!p && !!t && !!x && (t.compareDocumentPosition(p) & 4) !== 0 && (p.compareDocumentPosition(x) & 4) !== 0 })()`)) === true)
+  check('the strip draws none of the code, and its Telegram row reads the same state', (await val(`!document.querySelector('[data-kb="kybernos-kyber-strip"] [data-kb="kybernos-kyber-telegram"]') && !document.querySelector('[data-kb="kybernos-kyber-strip"] [data-kb="kybernos-kyber-qr"]')`)) === true && /Code à scanner|Code to scan/.test(await val(`document.querySelector('[data-kb="kybernos-kyber-strip"] [data-kb="kybernos-kyber-tg-row"]').innerText`)))
   check('« Open Telegram » goes to the bot\'s link, in a new tab', (await val(`(() => { const a = document.querySelector('[data-kb="kybernos-kyber-open"]'); return !!a && a.getAttribute('href') === ${JSON.stringify(LINK)} && a.target === '_blank' && /noopener/.test(a.rel) })()`)) === true)
   check('the three steps are listed, with the time left', (await val(`document.querySelectorAll('[data-kb="kybernos-kyber-telegram"] ol li').length`)) === 3 && /\d:\d\d/.test((await text('kybernos-kyber-left')) || ''))
   await click('kybernos-kyber-code')
@@ -226,8 +232,8 @@ try {
   await click('kybernos-kyber-code')
   const tcA = await box('kybernos-kyber-tile-channels')
   const tcB = await box('kybernos-kyber-computer')
-  check('both tiles are still as tall as each other while the code is shown', tcA !== null && tcB !== null && Math.abs(tcA.h - tcB.h) <= 1, { tcA, tcB })
-  await shot('2b-code-under-tiles')
+  check('the strip\'s two tiles are still as tall as each other while the code is shown in the window', tcA !== null && tcB !== null && Math.abs(tcA.h - tcB.h) <= 1, { tcA, tcB })
+  await shot('2b-code-in-window')
   await click('kybernos-kyber-tg-switch')
   check('the same switch cancels: the host is told and the panel goes', (await poll(async () => (await calls('/kybernos-cloud/telegram/pairing/cancel')).length === 1 && (await has('kybernos-kyber-telegram')) === false, 6000)) === true)
   check('and the switch is off again', (await attr('kybernos-kyber-tg-switch', 'aria-checked')) === 'false')
@@ -312,39 +318,43 @@ try {
   check('confirmed: it is sent once and the row goes back to « not connected », the switch off', (await poll(async () => (await calls('/kybernos-cloud/telegram/unlink')).length === 1 && (await attr('kybernos-kyber-tg-switch', 'aria-checked')) === 'false' && /Pas connecté|Not connected/.test((await text('kybernos-kyber-tg-row')) || ''), 9000)) === true)
   check('and no new code is asked for by itself', (await calls('/kybernos-cloud/telegram/pairing')).length === 2)
 
-  console.log('── 8b. the three states of the Telegram door: a bot, no bot on this server, a server too old (the active server is a stand-in that answers each) ──')
+  console.log('── 8b. the three states of the Telegram door, said in the window: a bot, no bot on this server, a server too old (the active server is a stand-in that answers each) ──')
   // The stand-in is the page's own answer to /kybernos-cloud/kyber (what the host would say for such a server): nothing here reaches a real server.
   const door = (telegram, pairing, can) => setMock(`window.__kbMock.kyber.telegram = ${telegram}; window.__kbMock.kyber.pairing = ${JSON.stringify(pairing)}; window.__kbMock.kyber.server = { name: 'Kybernos (local)', host: 'localhost:8791', can_switch: ${can} }`)
   const NOBOT = '{ configured: false, enabled: false, bot: null, linked: null }'
-  const rowFacts = () => val(`(() => { const r = document.querySelector('[data-kb="kybernos-kyber-tg-row"]'); const sw = document.querySelector('[data-kb="kybernos-kyber-tg-switch"]'); const b = document.querySelector('[data-kb="kybernos-kyber-tg-switch-server"]'); return r ? { text: r.innerText.replace(/\\s+/g, ' '), state: r.getAttribute('data-state'), disabled: !!sw && sw.disabled, button: b ? b.innerText.trim() : null, strip: !!document.querySelector('[data-kb="kybernos-kyber-channels"]') } : null })()`)
+  // Telegram's row IN THE WINDOW (the strip has a row of its own, which only says where Telegram stands), and the strip's row apart.
+  const rowFacts = () => val(`(() => { const w = document.querySelector('[data-kb="phone-channels"]'); const r = w && w.querySelector('[data-kb="kybernos-kyber-tg-row"]'); const sw = w && w.querySelector('[data-kb="kybernos-kyber-tg-switch"]'); const b = w && w.querySelector('[data-kb="kybernos-kyber-tg-switch-server"]'); return r ? { text: r.innerText.replace(/\\s+/g, ' '), state: r.getAttribute('data-state'), disabled: !!sw && sw.disabled, button: b ? b.innerText.trim() : null, strip: !!document.querySelector('[data-kb="kybernos-kyber-channels"]') } : null })()`)
+  const stripRow = () => val(`(() => { const t = document.querySelector('[data-kb="kybernos-kyber-tile-channels"] [data-kb="kybernos-kyber-tg-row"]'); return t ? t.innerText.replace(/\\s+/g, ' ') : null })()`)
   const settingsOnServers = () => val(`(() => { const sel = document.querySelector('nav button[aria-current], nav button[aria-selected="true"], nav button[class*="active"], nav button[class*="selected"]'); return sel ? sel.textContent.trim() : null })()`)
 
-  // 1. no bot, and another server is registered: the way out is on the row, and the strip opens by itself to show it
+  // 1. no bot, and another server is registered: the way out is on the window's row; the strip stays folded (nothing there to do)
   await val(`window.__KB_KYBER__.resetStrip()`)
   await door(NOBOT, 'supported', true)
   await val(`window.__KB_KYBER__.refresh()`)
   check('the chip says Telegram is unavailable', (await poll(() => val(`/indisponible|unavailable/i.test(document.querySelector('[data-kb="kybernos-kyber-status"]') ? document.querySelector('[data-kb="kybernos-kyber-status"]').innerText : '') || !!document.querySelector('[data-kb="kybernos-kyber-channels"]')`), 6000)) === true)
-  const nb = await poll(async () => { const r = await rowFacts(); return r !== null && r.strip === true && r.state === 'off' ? r : null }, 8000)
-  check('no bot, a server to go to: the strip opens by itself', nb !== null && nb !== false, nb)
-  check('the row says in one sentence why and what to do', nb && /no Telegram bot/i.test(nb.text) && /Switch to a server that has one, such as Kybernos Cloud/i.test(nb.text) || (nb && /pas de bot Telegram/.test(nb.text)), nb && nb.text)
+  const nb = await poll(async () => { const r = await rowFacts(); return r !== null && r.state === 'off' ? r : null }, 8000)
+  check('no bot, a server to go to: the strip stays folded (the way out is one button away, in the window)', nb !== null && nb !== false && nb.strip === false, nb)
+  check('the window\'s row says in one sentence why and what to do', nb && ((/no Telegram bot/i.test(nb.text) && /Switch to a server that has one, such as Kybernos Cloud/i.test(nb.text)) || /pas de bot Telegram/.test(nb.text)), nb && nb.text)
   check('the switch stays greyed, and « Switch server » is offered', nb && nb.disabled === true && /Switch server|Changer de serveur/.test(nb.button || ''), nb)
   await shot('4b-no-bot')
   await click('kybernos-kyber-tg-switch')
   check('pressing the greyed switch asks for no code', (await calls('/kybernos-cloud/telegram/pairing')).length === 2 && (await has('kybernos-kyber-telegram')) === false)
   await click('kybernos-kyber-tg-switch-server')
-  check('« Switch server » opens Settings on the Servers page', (await poll(async () => (await settingsOnServers()) === 'Servers', 10000)) === true, await settingsOnServers())
+  check('« Switch server » opens Settings on the Servers page, and the window gets out of the way', (await poll(async () => (await settingsOnServers()) === 'Servers', 10000)) === true && (await has('phone-channels')) === false, await settingsOnServers())
   await shot('4b-switch-server-opens-settings')
   await closeDialog()
   await sleep(500)
 
-  // 2. no bot and nowhere to go: folded, and no button
+  // 2. no bot and nowhere to go: the strip is folded, the window says the sentence and offers no button
   await val(`window.__KB_KYBER__.resetStrip()`)
   await door(NOBOT, 'supported', false)
   await val(`window.__KB_KYBER__.refresh()`)
   check('no bot and no other server: the strip stays folded', (await poll(() => val(`!document.querySelector('[data-kb="kybernos-kyber-channels"]')`), 6000)) === true)
   await click('kybernos-kyber-strip-toggle')
+  check('opened by hand: its Telegram row says there is no bot here', /no Telegram bot|pas de bot Telegram/i.test((await stripRow()) || ''))
+  await openWin()
   const alone = await rowFacts()
-  check('opened by hand: the sentence is there, no button, the switch greyed', alone !== null && /no Telegram bot|pas de bot Telegram/i.test(alone.text) && alone.button === null && alone.disabled === true, alone)
+  check('the window: the sentence is there, no button, the switch greyed', alone !== null && /no Telegram bot|pas de bot Telegram/i.test(alone.text) && alone.button === null && alone.disabled === true, alone)
 
   // 3. a server too old for the pairing routes (404 on them): said, not failed silently
   await val(`window.__KB_KYBER__.resetStrip()`)
@@ -356,11 +366,12 @@ try {
   check('the chip says unavailable here too', (await val(`(() => { const c = document.querySelector('[data-kb="kybernos-kyber-status"]'); return !c || /indisponible|unavailable/i.test(c.innerText) })()`)) === true)
   await shot('4c-server-too-old')
 
-  // 4. at a phone's width: the sentence and the button fit, nothing scrolls sideways
+  // 4. at a phone's width: the sentence and the button fit the window, nothing scrolls sideways
   await page.send('Emulation.setDeviceMetricsOverride', { width: 390, height: 900, deviceScaleFactor: 1, mobile: false })
   await sleep(800)
-  const fits = await val(`(() => { const b = document.querySelector('[data-kb="kybernos-kyber-tg-switch-server"]'); const t = document.querySelector('[data-kb="kybernos-kyber-tile-channels"]'); if (!b || !t) return null; const r = b.getBoundingClientRect(); const q = t.getBoundingClientRect(); return { inside: r.left >= q.left && r.right <= q.right, sideways: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1 } })()`)
-  check('390 px: the button is inside the tile and nothing scrolls sideways', fits !== null && fits.inside === true && fits.sideways === false, fits)
+  await openWin()
+  const fits = await val(`(() => { const b = document.querySelector('[data-kb="phone-channels"] [data-kb="kybernos-kyber-tg-switch-server"]'); const t = document.querySelector('[data-kb="phone-channels-card"]'); if (!b || !t) return null; const r = b.getBoundingClientRect(); const q = t.getBoundingClientRect(); return { inside: r.left >= q.left && r.right <= q.right, sideways: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1 } })()`)
+  check('390 px: the button is inside the card and nothing scrolls sideways', fits !== null && fits.inside === true && fits.sideways === false, fits)
   await shot('4c-server-too-old-390')
   await door(NOBOT, 'supported', true)
   await val(`window.__KB_KYBER__.refresh()`)
@@ -372,17 +383,20 @@ try {
   await val(`window.__KB_KYBER__.resetStrip()`)
   await door("{ configured: true, enabled: true, bot: 'kybernos_bot', linked: null }", 'supported', true)
   await val(`window.__KB_KYBER__.refresh()`)
-  const bot = await poll(async () => { const r = await rowFacts(); return r !== null && r.state !== 'off' && r.state !== 'old' && r.strip === true ? r : null }, 8000)
+  await openWin()
+  const bot = await poll(async () => { const r = await rowFacts(); return r !== null && r.state !== 'off' && r.state !== 'old' ? r : null }, 8000)
   check('a bot there: the switch is on offer, with no sentence and no server button in the way', bot && bot.disabled === false && bot.button === null && !/does not support|no Telegram bot|pas de bot/i.test(bot.text), bot)
   await sleep(300)
 
   console.log('── 9. a phone ──')
   await page.send('Emulation.setDeviceMetricsOverride', { width: 390, height: 900, deviceScaleFactor: 1, mobile: false })
   await sleep(800)
+  await openWin()
   await click('kybernos-kyber-tg-switch')
   await poll(() => has('kybernos-kyber-open'), 6000)
   check('no sideways scroll', (await val(`document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1`)) === true)
   check('the two tiles are one under the other', await (async () => { const x = await box('kybernos-kyber-tile-channels'); const y = await box('kybernos-kyber-computer'); return x !== null && y !== null && y.y >= x.b - 1 && Math.abs(x.w - y.w) <= 1 })())
+  check('the window\'s cards are one under the other', await (async () => { const x = await box('phone-remote'); const y = await box('phone-channels-card'); return x !== null && y !== null && y.y >= x.b - 1 })())
   check('the QR is hidden (nobody scans their own screen), the Telegram button stays', (await val(`(() => { const q = document.querySelector('[data-kb="kybernos-kyber-qr"]'); const o = document.querySelector('[data-kb="kybernos-kyber-open"]'); return (!q || q.getClientRects().length === 0) && !!o && o.getClientRects().length > 0 })()`)) === true)
   await shot('5-phone')
   await page.send('Emulation.clearDeviceMetricsOverride', {})

@@ -1433,6 +1433,47 @@ let kbLocaleRead = () => 'en'
       'kbnc.p.sheet': { kybernos: 'Crée un tableur pour ', en: 'Build a spreadsheet to ' },
       'kbnc.p.image': { kybernos: 'Crée une image de ', en: 'Create an image of ' },
       'kbnc.p.video': { kybernos: 'Fais une courte vidéo sur ', en: 'Make a short video about ' },
+      'kbnc.s.slides.0': { kybernos: 'notre levée de fonds', en: 'our seed round' },
+      'kbnc.s.slides.1': { kybernos: 'le climat en 2030', en: 'climate in 2030' },
+      'kbnc.s.slides.2': { kybernos: 'l’année de mon équipe', en: 'my team’s year' },
+      'kbnc.s.doc.0': { kybernos: 'un cahier des charges', en: 'a project brief' },
+      'kbnc.s.doc.1': { kybernos: 'une proposition en une page', en: 'a one-page proposal' },
+      'kbnc.s.doc.2': { kybernos: 'un compte rendu de réunion', en: 'meeting notes' },
+      'kbnc.s.sheet.0': { kybernos: 'suivre mes dépenses du mois', en: 'track monthly expenses' },
+      'kbnc.s.sheet.1': { kybernos: 'suivre mon pipeline de ventes', en: 'follow my sales pipeline' },
+      'kbnc.s.sheet.2': { kybernos: 'planifier mes séances de sport', en: 'plan my workouts' },
+      'kbnc.s.dashboard.0': { kybernos: 'mes dépenses du mois', en: 'my monthly spend' },
+      'kbnc.s.dashboard.1': { kybernos: 'les ventes par région', en: 'sales by region' },
+      'kbnc.s.dashboard.2': { kybernos: 'l’avancement du projet', en: 'project status' },
+      'kbnc.s.image.0': { kybernos: 'un renard dans une forêt enneigée', en: 'a fox in a snowy forest' },
+      'kbnc.s.image.1': { kybernos: 'un logo plat', en: 'a flat logo mark' },
+      'kbnc.s.image.2': { kybernos: 'une affiche de soirée jazz', en: 'a jazz night poster' },
+      'kbnc.s.video.0': { kybernos: 'mon produit en 30 secondes', en: 'my product in 30 seconds' },
+      'kbnc.s.video.1': { kybernos: 'une recette en format vertical', en: 'a vertical recipe' },
+      'kbnc.s.video.2': { kybernos: 'notre séminaire d’équipe', en: 'our team offsite' },
+      'kbnc.s.website.0': { kybernos: 'ma boulangerie', en: 'my bakery' },
+      'kbnc.s.website.1': { kybernos: 'mon portfolio', en: 'my portfolio' },
+      'kbnc.s.website.2': { kybernos: 'un lancement de produit', en: 'a product launch' },
+      'kbnc.s.miniapp.0': { kybernos: 'suit mes habitudes', en: 'tracks my habits' },
+      'kbnc.s.miniapp.1': { kybernos: 'convertit des unités', en: 'converts units' },
+      'kbnc.s.miniapp.2': { kybernos: 'partage une addition', en: 'splits a bill' },
+      'kbnc.s.model3d.0': { kybernos: 'un support de téléphone', en: 'a phone stand' },
+      'kbnc.s.model3d.1': { kybernos: 'un range-bureau', en: 'a desk organiser' },
+      'kbnc.s.model3d.2': { kybernos: 'un pion d’échecs', en: 'a chess pawn' },
+      'kbnc.s.automation.0': { kybernos: 'résume ma boîte mail chaque lundi', en: 'summarises my inbox every Monday' },
+      'kbnc.s.automation.1': { kybernos: 'range mes factures dans un dossier', en: 'saves invoices to a folder' },
+      'kbnc.s.automation.2': { kybernos: 'publie un digest chaque jour', en: 'posts a daily digest' },
+      'kbnc.s.team.0': { kybernos: 'étudier un marché', en: 'researching a market' },
+      'kbnc.s.team.1': { kybernos: 'livrer une fonctionnalité', en: 'shipping a feature' },
+      'kbnc.s.team.2': { kybernos: 'gérer ma newsletter', en: 'running my newsletter' },
+      'kbnc.s.skill.0': { kybernos: 'rédige des notes de version', en: 'writes release notes' },
+      'kbnc.s.skill.1': { kybernos: 'relit mes pull requests', en: 'reviews my pull requests' },
+      'kbnc.s.skill.2': { kybernos: 'prépare mon compte rendu hebdo', en: 'drafts my weekly report' },
+      'kbnc.s.plugin.0': { kybernos: 'ajoute une barre d’état', en: 'adds a status bar' },
+      'kbnc.s.plugin.1': { kybernos: 'exporte les chats en Markdown', en: 'exports chats to Markdown' },
+      'kbnc.s.plugin.2': { kybernos: 'affiche ma consommation de tokens', en: 'shows my token usage' },
+      'kbnc.try': { kybernos: 'Essaie', en: 'Try' },
+      'kbnc.chip.remove': { kybernos: 'Retirer', en: 'Remove' },
       'kbnc.cc.awake': { kybernos: 'Éveillé', en: 'Awake' },
       'kbnc.cc.asleep': { kybernos: 'En veille', en: 'Asleep' },
       'kbnc.cc.starting': { kybernos: 'En création…', en: 'Being made…' },
@@ -6242,7 +6283,7 @@ const KB_NC_TEMPLATES = [
   { id: 'plugin', group: 'auto', needs: null },
 ]
 // What each template looks like: a small model of the result, drawn as inline SVG (viewBox 0 0 64 44) from rect / circle /
-// path only: no image, video or font in git (AGENTS rule 4), nothing fetched. The classes (paper, ink, acc, ...) are styled
+// path only (the last eight, cards to file, are not templates: the Creations page draws them on its type tiles and on its file icons, see KB_ART_DRAW): no image, video or font in git (AGENTS rule 4), nothing fetched. The classes (paper, ink, acc, ...) are styled
 // by the page's CSS from the theme's tokens, so the drawings follow the theme; the others (gr, blk, pop, dr ...) are the
 // little motion played when the card is hovered, focused or lit by what the person types.
 const KB_NC_ART = {
@@ -6259,6 +6300,14 @@ const KB_NC_ART = {
   team: '<path class="ln dr" pathLength="1" d="M32 15V21H15V26"/><path class="ln dr" pathLength="1" d="M32 21H49V26"/><rect class="paper" x="22" y="3" width="20" height="12" rx="4"/><circle class="acc" cx="28.5" cy="9" r="3"/><rect class="ink2" x="33.5" y="7.2" width="6" height="1.8" rx=".9"/><rect class="ink2" x="33.5" y="10.8" width="4" height="1.8" rx=".9"/><rect class="paper" x="4" y="26" width="22" height="13" rx="4"/><circle class="tint ring" cx="10.5" cy="32.5" r="3"/><rect class="ink2" x="15.5" y="30.7" width="6" height="1.8" rx=".9"/><rect class="ink2" x="15.5" y="34.3" width="4" height="1.8" rx=".9"/><rect class="paper" x="38" y="26" width="22" height="13" rx="4"/><circle class="tint ring" cx="44.5" cy="32.5" r="3"/><rect class="ink2" x="49.5" y="30.7" width="6" height="1.8" rx=".9"/><rect class="ink2" x="49.5" y="34.3" width="4" height="1.8" rx=".9"/>',
   skill: '<rect class="paper" x="14" y="5" width="36" height="34" rx="3"/><path class="acc pop" style="--d:0s" d="M30 9L32.6 14.4L38 17L32.6 19.6L30 25L27.4 19.6L22 17L27.4 14.4Z"/><path class="acc2 pop" style="--d:.15s" d="M43 9L44.3 11.7L47 13L44.3 14.3L43 17L41.7 14.3L39 13L41.7 11.7Z"/><rect class="ink2 blk" style="--d:.1s" x="19" y="29" width="26" height="2" rx="1"/><rect class="ink2 blk" style="--d:.2s" x="19" y="33" width="16" height="2" rx="1"/>',
   plugin: '<path class="ln dr" pathLength="1" d="M32 35V39C32 41.5 35 42 39 42"/><rect class="ink" x="24" y="6" width="4" height="10" rx="1.5"/><rect class="ink" x="36" y="6" width="4" height="10" rx="1.5"/><rect class="paper" x="18" y="15" width="28" height="20" rx="5"/><circle class="acc node" cx="32" cy="25" r="4.5"/><rect class="oa" style="opacity:.9" x="30.2" y="23.2" width="3.6" height="3.6" rx="1"/>',
+  cards: '<rect class="paper tint bk" style="--r:7deg" x="22" y="4" width="34" height="27" rx="3"/><rect class="paper" x="8" y="10" width="38" height="29" rx="3"/><rect class="ink" x="13" y="16" width="14" height="3.2" rx="1.6"/><rect class="ink2" x="13" y="22" width="24" height="2" rx="1"/><path class="grid" d="M13 28h28"/><rect class="acc blk" style="--d:.1s" x="13" y="31.5" width="16" height="2.6" rx="1.3"/>',
+  quiz: '<rect class="paper" x="10" y="3" width="44" height="38" rx="3.5"/><circle class="acc pop" style="--d:0s" cx="19" cy="13" r="3.4"/><circle class="oa" cx="19" cy="13" r="1.2"/><rect class="ink2" x="26" y="11.8" width="20" height="2.4" rx="1.2"/><circle class="tint ring" cx="19" cy="22" r="3.4"/><rect class="ink2" x="26" y="20.8" width="15" height="2.4" rx="1.2"/><circle class="tint ring" cx="19" cy="31" r="3.4"/><rect class="ink2" x="26" y="29.8" width="18" height="2.4" rx="1.2"/>',
+  code: '<rect class="paper" x="6" y="5" width="52" height="34" rx="3.5"/><rect class="scr" x="9" y="8" width="46" height="28" rx="2.5"/><path class="acc pop" d="M11.4 17.4L13 15.5L19.5 20L13 24.5L11.4 22.6L15.8 20Z"/><rect class="oa" style="opacity:.9" x="23" y="18.8" width="12" height="2.4" rx="1.2"/><rect class="oa" style="opacity:.5" x="14" y="27.5" width="20" height="2.2" rx="1.1"/><rect class="oa" style="opacity:.5" x="37" y="27.5" width="12" height="2.2" rx="1.1"/>',
+  diagram: '<path class="ln dr" pathLength="1" d="M20 22H25"/><path class="ln dr" pathLength="1" d="M39 22H44"/><rect class="paper" x="4" y="15" width="16" height="14" rx="4"/><circle class="tint ring" cx="12" cy="22" r="3.2"/><rect class="acc node" x="25" y="13" width="14" height="18" rx="4"/><rect class="oa" style="opacity:.9" x="28" y="19" width="8" height="2.2" rx="1.1"/><rect class="oa" style="opacity:.6" x="28" y="23.5" width="5.5" height="2.2" rx="1.1"/><rect class="paper" x="44" y="15" width="16" height="14" rx="4"/><path class="ln" d="M48 22.4L50.4 24.8L55.2 19.8"/>',
+  all: '<rect class="paper tint bk" style="--r:-8deg" x="8" y="8" width="30" height="26" rx="3"/><rect class="paper bk" style="--r:7deg" x="26" y="6" width="30" height="26" rx="3"/><rect class="paper" x="17" y="13" width="30" height="26" rx="3"/><rect class="ink" x="22" y="19" width="12" height="3" rx="1.5"/><rect class="ink2" x="22" y="25" width="19" height="2" rx="1"/><rect class="acc2" x="22" y="29.5" width="12" height="2" rx="1"/>',
+  pdf: '<rect class="paper" x="16" y="3" width="32" height="38" rx="3"/><rect class="ink" x="21" y="9" width="12" height="3" rx="1.5"/><rect class="ink2" x="21" y="15" width="22" height="2" rx="1"/><rect class="ink2" x="21" y="19" width="16" height="2" rx="1"/><rect class="acc pop" x="21" y="26" width="22" height="9" rx="2.5"/><rect class="oa" style="opacity:.9" x="25" y="29.4" width="14" height="2.2" rx="1.1"/>',
+  folder: '<path class="tint" d="M8 11a3 3 0 0 1 3-3h13l4 4h25a3 3 0 0 1 3 3v22a3 3 0 0 1-3 3H11a3 3 0 0 1-3-3z"/><rect class="paper bk" style="--r:-2deg" x="8" y="17" width="48" height="24" rx="3"/><rect class="ink2" x="14" y="24" width="18" height="2.2" rx="1.1"/><rect class="ink3" x="14" y="29" width="26" height="2.2" rx="1.1"/><rect class="acc2" x="14" y="34" width="12" height="2.2" rx="1.1"/>',
+  file: '<rect class="paper tint bk" style="--r:7deg" x="22" y="3" width="26" height="36" rx="3"/><rect class="paper" x="15" y="5" width="28" height="36" rx="3"/><rect class="ink2" x="20" y="12" width="14" height="2.2" rx="1.1"/><rect class="ink3" x="20" y="17" width="18" height="2.2" rx="1.1"/><rect class="ink3" x="20" y="22" width="18" height="2.2" rx="1.1"/><circle class="acc pop" cx="25" cy="32" r="2.4"/><circle class="acc2 pop" style="--d:.1s" cx="32" cy="32" r="2.4"/><circle class="ink3 pop" style="--d:.2s" cx="39" cy="32" r="2.4"/>',
 }
 // The headline of the new-chat page: a different line each time a new chat page appears (KB_NC_HERO_COUNT lines per
 // language, the dictionary keys `kbnc.hero.<n>`). `last` is the index shown the previous time: never the same twice in a row.
@@ -6307,6 +6356,33 @@ const kbNcFill = (draft, tpl, known) => {
   if (d.trim() === '') return t
   if (Array.isArray(known) === true && known.some((k) => String(k).trim() === d.trim())) return t
   return d.indexOf(t) === 0 ? d : t + d
+}
+/** What a suggestion puts in the composer: after the template's sentence while the box is empty or still holds a template sentence
+ *  (`known`: all of them), otherwise after what the person wrote. Never loses text. */
+const kbNcSuggest = (draft, tpl, known, sug) => {
+  const d = typeof draft === 'string' ? draft : ''
+  const t = typeof tpl === 'string' ? tpl : ''
+  const s = typeof sug === 'string' ? sug : ''
+  if (d.trim() === '' || (Array.isArray(known) === true && known.some((k) => String(k).trim() === d.trim()))) return t + s
+  return d.replace(/\s*$/, ' ') + s
+}
+/** Where the page's one accent comes from. A colour the theme gave its brand token wins. The engine's own brand colour IS its text colour
+ *  (white in dark, near black in light), which would leave every drawing grey: then the engine's blue (the one on its send button) is used.
+ *  `brand`, `label`: the values of --dsw-alias-brand-primary and --dsw-alias-label-primary; unreadable → 'brand' (the theme's own is kept). */
+const kbNcRgb = (c) => {
+  const v = String(c === undefined || c === null ? '' : c).trim().toLowerCase()
+  let m = /^#([0-9a-f]{3}|[0-9a-f]{6})(?:[0-9a-f]{2})?$/.exec(v)
+  if (m !== null) {
+    const h6 = m[1].length === 3 ? m[1].split('').map((x) => x + x).join('') : m[1]
+    return [parseInt(h6.slice(0, 2), 16), parseInt(h6.slice(2, 4), 16), parseInt(h6.slice(4, 6), 16)]
+  }
+  m = /^rgba?\(\s*(\d+(?:\.\d+)?)[ ,]+(\d+(?:\.\d+)?)[ ,]+(\d+(?:\.\d+)?)/.exec(v)
+  return m === null ? null : [Math.round(Number(m[1])), Math.round(Number(m[2])), Math.round(Number(m[3]))]
+}
+const kbNcAccentSource = (brand, label) => {
+  const a = kbNcRgb(brand)
+  const b = kbNcRgb(label)
+  return a !== null && b !== null && a[0] === b[0] && a[1] === b[1] && a[2] === b[2] ? 'engine' : 'brand'
 }
 const kbNcObj = (v) => (v !== null && typeof v === 'object' && !Array.isArray(v) ? v : null)
 // What the server calls the states of a computer, and what the card says.
@@ -6928,7 +7004,8 @@ body{--kb-u:var(--dsh-content-font-size,13px)}
 .kb6-mfill{position:absolute;left:0;top:0;bottom:0;width:34%;border-radius:2px;background:currentColor;opacity:.85}
 .kb6-mtime{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:9px;color:var(--dsw-alias-label-secondary);flex:none}
 .kb6-arc{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;background:var(--dsw-alias-bg-layer-2)}
-.kb6-arc-ico{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:1.5px solid var(--dsw-alias-border-l2)}
+.kb6-arc-ico{width:56px;height:38px;border-radius:10px;overflow:hidden;border:1px solid var(--dsw-alias-border-l1)}
+.kb6-arc-ico.kb8-sl-stage svg{width:46px;height:32px}
 .kb6-prev-mini{padding:0}
 /* Les aperçus VIVANTS (iframe html/md, visuel miniapp) occupent le média
    PLEIN CADRE : le padding du conteneur faisait une margine autour du contenu
@@ -17361,7 +17438,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       const onClose = typeof props.onClose === 'function' ? props.onClose : (() => {})
       const row = (d) => h('label', { key: d.id, className: 'kb-typepanel-row' },
         h('input', { type: 'checkbox', checked: visible(d.id) === true, onChange: (e) => onToggle(d.id, e.target.checked === true), 'aria-label': d.label, style: { width: 16, height: 16, margin: 0, accentColor: 'var(--dsw-alias-brand-primary,#5563d6)', flex: 'none' } }),
-        h('span', { className: 'kb-typepanel-thumb', style: { background: d.bg, color: d.color } }, d.glyph),
+        h('span', { className: 'kb-typepanel-thumb kb8-sl-stage' }, d.art),
         h('span', { className: 'kb-typepanel-lab' }, d.label),
         h('span', { className: 'kb-typepanel-cnt' }, String(d.count)))
       return h('div', { className: 'kb-typepanel', 'data-kb': 'type-panel', role: 'dialog', 'aria-label': kbt('deliv.customize.title') },
@@ -17385,92 +17462,17 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
     // <kb-type-icons:begin> (généré par harmonisation/build-type-icons.mjs — ne pas éditer)
     const KB_TI = {"ids":["cards","chart","code","deck","doc","folder","image","media","miniapp","other","pdf","quiz","sheet","site"],"icons":{"cards":[["rect",{"x":20,"y":8,"width":38,"height":30,"rx":6},"N",null,1],["rect",{"x":6,"y":22,"width":40,"height":32,"rx":6},null,"P",1],["rect",{"x":6,"y":22,"width":40,"height":32,"rx":6},"A","A",0.12],["line",{"x1":14,"y1":32,"x2":26,"y2":32},"B",null,1],["line",{"x1":14,"y1":41,"x2":36,"y2":41},"N",null,1]],"chart":[["path",{"d":"M9 8 V54 H57"},"N",null,1],["rect",{"x":17,"y":34,"width":9,"height":20,"rx":2},"A","A",0.9],["rect",{"x":30,"y":22,"width":9,"height":32,"rx":2},"B","B",0.9],["rect",{"x":43,"y":12,"width":9,"height":42,"rx":2},"A","A",0.45]],"code":[["rect",{"x":6,"y":10,"width":52,"height":44,"rx":6},"A","A",0.12],["path",{"d":"M24 24 L15 32 L24 40"},"B",null,1],["path",{"d":"M40 24 L49 32 L40 40"},"B",null,1],["line",{"x1":35,"y1":21,"x2":29,"y2":43},"N",null,1]],"deck":[["rect",{"x":16,"y":8,"width":42,"height":30,"rx":6},"N",null,1],["rect",{"x":6,"y":18,"width":44,"height":34,"rx":6},null,"P",1],["rect",{"x":6,"y":18,"width":44,"height":34,"rx":6},"A","A",0.12],["line",{"x1":14,"y1":28,"x2":28,"y2":28},"B",null,1],["line",{"x1":14,"y1":36,"x2":40,"y2":36},"N",null,1],["line",{"x1":14,"y1":43,"x2":32,"y2":43},"N",null,1]],"doc":[["rect",{"x":14,"y":8,"width":36,"height":48,"rx":6},"A","A",0.12],["line",{"x1":22,"y1":20,"x2":34,"y2":20},"B",null,1],["line",{"x1":22,"y1":30,"x2":42,"y2":30},"N",null,1],["line",{"x1":22,"y1":38,"x2":42,"y2":38},"N",null,1],["line",{"x1":22,"y1":46,"x2":32,"y2":46},"N",null,1]],"folder":[["path",{"d":"M8 20 A6 6 0 0 1 14 14 H26 L32 22 H50 A6 6 0 0 1 56 28 V46 A6 6 0 0 1 50 52 H14 A6 6 0 0 1 8 46 Z"},"A","A",0.12],["line",{"x1":8,"y1":31,"x2":56,"y2":31},"A",null,1],["line",{"x1":18,"y1":41,"x2":34,"y2":41},"N",null,1],["circle",{"cx":45,"cy":41,"r":2.5},"B","B",1]],"image":[["rect",{"x":6,"y":10,"width":52,"height":44,"rx":6},"A","A",0.12],["circle",{"cx":21,"cy":24,"r":5},"B","B",1],["path",{"d":"M7 46 L22 32 L33 42 L41 35 L57 48"},"A",null,1]],"media":[["rect",{"x":6,"y":10,"width":52,"height":44,"rx":8},"A","A",0.12],["path",{"d":"M27 18 L41 26 L27 34 Z"},"B","B",1],["line",{"x1":14,"y1":44,"x2":50,"y2":44},"N",null,1],["line",{"x1":14,"y1":44,"x2":30,"y2":44},"B",null,1]],"miniapp":[["rect",{"x":14,"y":6,"width":36,"height":52,"rx":10},"A","A",0.12],["rect",{"x":21,"y":15,"width":9,"height":9,"rx":2.5},"B","B",1],["rect",{"x":34,"y":15,"width":9,"height":9,"rx":2.5},"A",null,1],["rect",{"x":21,"y":28,"width":9,"height":9,"rx":2.5},"A",null,1],["rect",{"x":34,"y":28,"width":9,"height":9,"rx":2.5},"B","B",1],["line",{"x1":26,"y1":48,"x2":38,"y2":48},"N",null,1]],"other":[["path",{"d":"M20 8 H38 L50 20 V50 A6 6 0 0 1 44 56 H20 A6 6 0 0 1 14 50 V14 A6 6 0 0 1 20 8 Z"},"A","A",0.12],["path",{"d":"M38 8 V20 H50"},"A",null,1],["circle",{"cx":23,"cy":38,"r":2.5},"B","B",1],["circle",{"cx":32,"cy":38,"r":2.5},"B","B",1],["circle",{"cx":41,"cy":38,"r":2.5},"B","B",1]],"pdf":[["path",{"d":"M20 8 H38 L50 20 V50 A6 6 0 0 1 44 56 H20 A6 6 0 0 1 14 50 V14 A6 6 0 0 1 20 8 Z"},"A","A",0.12],["path",{"d":"M38 8 V20 H50"},"A",null,1],["line",{"x1":22,"y1":28,"x2":32,"y2":28},"N",null,1],["rect",{"x":20,"y":36,"width":24,"height":12,"rx":3},"B","B",0.9]],"quiz":[["rect",{"x":10,"y":10,"width":44,"height":44,"rx":8},"A","A",0.12],["circle",{"cx":22,"cy":23,"r":4},"B","B",1],["line",{"x1":31,"y1":23,"x2":45,"y2":23},"N",null,1],["circle",{"cx":22,"cy":34,"r":4},"A",null,1],["line",{"x1":31,"y1":34,"x2":43,"y2":34},"N",null,1],["circle",{"cx":22,"cy":45,"r":4},"A",null,1],["line",{"x1":31,"y1":45,"x2":41,"y2":45},"N",null,1]],"sheet":[["rect",{"x":8,"y":10,"width":48,"height":44,"rx":6},"A","A",0.12],["rect",{"x":25,"y":35,"width":14,"height":9,"rx":1.5},null,"B",0.45],["line",{"x1":8,"y1":23,"x2":56,"y2":23},"A",null,1],["line",{"x1":8,"y1":34,"x2":56,"y2":34},"N",null,1],["line",{"x1":8,"y1":45,"x2":56,"y2":45},"N",null,1],["line",{"x1":24,"y1":23,"x2":24,"y2":54},"N",null,1],["line",{"x1":40,"y1":23,"x2":40,"y2":54},"N",null,1]],"site":[["rect",{"x":6,"y":10,"width":52,"height":44,"rx":6},"A","A",0.12],["line",{"x1":6,"y1":23,"x2":58,"y2":23},"A",null,1],["circle",{"cx":13,"cy":16.5,"r":1.5},"N","N",1],["circle",{"cx":19,"cy":16.5,"r":1.5},"N","N",1],["rect",{"x":14,"y":31,"width":16,"height":14,"rx":3},"B","B",0.3],["line",{"x1":37,"y1":33,"x2":50,"y2":33},"N",null,1],["line",{"x1":37,"y1":42,"x2":46,"y2":42},"N",null,1]]},"type":{"miniapp":"miniapp","html":"site","js":"code","quiz":"quiz","doc":"doc","deck":"deck","cards":"cards","resume":"doc","fiche":"doc","engine":"chart","data":"sheet","image":"image","other":"other"},"family":{"slides":"deck","websites":"site","documents":"doc","spreadsheets":"sheet","images":"image","av":"media"},"ext":{"html":"site","htm":"site","css":"code","js":"code","mjs":"code","cjs":"code","ts":"code","jsx":"code","tsx":"code","sh":"code","bash":"code","zsh":"code","py":"code","sql":"code","xml":"code","md":"doc","markdown":"doc","txt":"doc","rst":"doc","docx":"doc","doc":"doc","rtf":"doc","pages":"doc","log":"doc","resume":"doc","fiche":"doc","pdf":"pdf","deck":"deck","pptx":"deck","ppt":"deck","key":"deck","odp":"deck","csv":"sheet","tsv":"sheet","xlsx":"sheet","xls":"sheet","ods":"sheet","json":"sheet","yaml":"sheet","yml":"sheet","toml":"sheet","lock":"sheet","sha256":"sheet","png":"image","jpg":"image","jpeg":"image","webp":"image","gif":"image","svg":"image","avif":"image","bmp":"image","ico":"image","heic":"image","tif":"image","tiff":"image","sketch":"image","mp3":"media","wav":"media","m4a":"media","ogg":"media","oga":"media","flac":"media","aac":"media","opus":"media","mp4":"media","m4v":"media","mov":"media","webm":"media","mkv":"media","avi":"media","mpg":"media","mpeg":"media","engine":"chart","quiz":"quiz","exam":"quiz","cards":"cards","flashcards":"cards","zip":"folder","tar":"folder","gz":"folder","tgz":"folder","7z":"folder","rar":"folder"},"kind":{"note":"doc","plan":"chart","page":"site","pdf":"pdf","deck":"deck","quiz":"quiz","exam":"quiz","flashcards":"cards","game":"miniapp","sketchnote":"image","miniapp":"miniapp"}}
     // <kb-type-icons:end>
-    // ── jeu d'icônes de type UNIQUE (partagé avec Kybernos Cloud) ───────────
-    // 64×64, trait 3, arrondi rond, 2 teintes + neutre : A = business (bleu), B = warn (ambre),
-    // N = étiquette tertiaire, P = papier. Tout passe par les jetons --dsw-alias-*
-    // (clair et sombre). Source : harmonisation/type-icons/*.svg.
-    const KB_TI_COLOR = { A: 'var(--dsw-alias-state-business-primary)', B: 'var(--dsw-alias-state-warn-primary)', N: 'var(--dsw-alias-label-tertiary)', P: 'var(--dsw-alias-bg-layer-1)' }
-    const kbTiSvg = (id, size) => {
-      const els = (KB_TI.icons !== undefined && KB_TI.icons[id] !== undefined) ? KB_TI.icons[id] : (KB_TI.icons || {}).other
-      if (els === undefined) return null
-      return h('svg', { className: 'kb-ti', 'data-kb-ti': id, viewBox: '0 0 64 64', width: size, height: size, 'aria-hidden': 'true', focusable: 'false', fill: 'none', strokeWidth: 3, strokeLinecap: 'round', strokeLinejoin: 'round' },
-        els.map((e, i) => h(e[0], Object.assign({ key: i }, e[1], { stroke: e[2] === null ? 'none' : KB_TI_COLOR[e[2]], fill: e[3] === null ? 'none' : KB_TI_COLOR[e[3]], fillOpacity: e[4] }))))
-    }
     const kbTypeById = (id) => KB_ART_TYPES.filter((t) => t.id === id)[0] || null
-    // ── scènes des tuiles de type (Deliverables), fidèles à la maquette ─────
-    // demos/deliverables/index.html : chaque tuile illustre le CONTENU du type
-    // (slides empilées à barres, cartes Q/A, quiz coché, page de doc…), pas une
-    // icône. Tailles en px dans la bande .kb-type-view, traits en currentColor
-    // (= teinte du type), remplissage translucide — lisible clair et sombre.
-    // Renvoie null pour un type sans scène → l'appelant retombe sur l'icône.
-    const kbBandBg = (t) => {
-      const m = /^#([0-9a-f]{6})$/i.exec(String((t !== null && t !== undefined && t.color) || ''))
-      if (m === null) return (t !== null && t !== undefined) ? t.tint : 'transparent'
-      const n = parseInt(m[1], 16)
-      return 'rgba(' + ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',0.18)'
+    // The Creations tiles draw what the new chat page draws on its cards (KB_NC_ART: a small model of the result, ink and the
+    // theme's tint), so the two pages read as one. A family or a type with no drawing of its own borrows the nearest one.
+    const KB_ART_DRAW = {
+      fam: { slides: 'slides', websites: 'website', documents: 'doc', spreadsheets: 'sheet', images: 'image', av: 'video' },
+      type: { miniapp: 'miniapp', html: 'website', js: 'code', quiz: 'quiz', deck: 'slides', cards: 'cards', resume: 'doc', fiche: 'doc', engine: 'diagram', data: 'sheet', image: 'image' },
     }
-    const kbTypeMini = (t) => {
-      const id = (t !== null && t !== undefined && typeof t.id === 'string') ? t.id : ''
-      const ln = (w, k, o, hh) => h('i', { key: 'l' + k, className: 'kbm-ln', style: { width: w, opacity: (o === undefined ? 0.6 : o), height: (hh === undefined ? 3 : hh) } })
-      const box = (key, st) => h('i', { key: key, className: 'kbm-box', style: st })
-      const dot = (key, s, st) => h('i', { key: key, className: 'kbm-mdot', style: Object.assign({ width: s, height: s }, st) })
-      const page = (k, children) => h('span', { key: k, style: { position: 'relative', width: 46, height: 54, borderRadius: 4, border: '1.5px solid currentColor', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 4, padding: '0 7px', boxSizing: 'border-box' } }, [
-        h('i', { key: 'f', style: { position: 'absolute', inset: 0, background: 'currentColor', opacity: 0.08 } })].concat(children))
-      if (id === 'doc') return h('span', { className: 'kbm' }, page('p', [
-        ln('82%', 1), ln('62%', 2), ln('74%', 3),
-        ln('34%', 4)]))
-      if (id === 'resume') return h('span', { className: 'kbm' }, page('p', [0, 1, 2, 3].map((i) =>
-        h('span', { key: 'r' + i, style: { display: 'flex', alignItems: 'center', gap: 3 } }, dot('d' + i, 4, { opacity: 0.8, flex: 'none' }), ln(['70%', '55%', '76%', '44%'][i], i, 0.55)))))
-      if (id === 'fiche') return h('span', { className: 'kbm', style: { flexDirection: 'column', alignItems: 'center' } }, [
-        h('span', { key: 'tabs', style: { display: 'flex', gap: 3, width: 46, paddingLeft: 2 } }, [0, 1].map((i) => h('i', { key: i, style: { width: 15, height: 5, borderRadius: '3px 3px 0 0', background: 'currentColor', opacity: i === 0 ? 0.8 : 0.4 } }))),
-        page('p', [ln('80%', 1), ln('58%', 2), ln('70%', 3), ln('40%', 4)])])
-      if (id === 'html') return h('span', { className: 'kbm' }, h('span', { key: 'w', style: { position: 'relative', width: 70, height: 48, borderRadius: 4, border: '1.5px solid currentColor', overflow: 'hidden', display: 'flex', flexDirection: 'column' } }, [
-        h('i', { key: 'f', style: { position: 'absolute', inset: 0, background: 'currentColor', opacity: 0.08 } }),
-        h('span', { key: 'tb', style: { position: 'relative', display: 'flex', gap: 3, alignItems: 'center', padding: '4px 6px', borderBottom: '1px solid currentColor', opacity: 0.85 } }, [0, 1, 2].map((i) => dot('d' + i, 4))),
-        h('span', { key: 'bd', style: { position: 'relative', display: 'flex', flexDirection: 'column', gap: 4, justifyContent: 'center', padding: '0 8px' } }, [ln('55%', 1, 0.9), ln('80%', 2, 0.5), ln('42%', 3, 0.9)])]))
-      if (id === 'js') return h('span', { className: 'kbm' }, h('span', { key: 'w', style: { position: 'relative', width: 70, height: 48, borderRadius: 4, border: '1.5px solid currentColor', overflow: 'hidden', display: 'flex', flexDirection: 'column' } }, [
-        h('i', { key: 'f', style: { position: 'absolute', inset: 0, background: 'currentColor', opacity: 0.08 } }),
-        h('span', { key: 'bd', style: { position: 'relative', display: 'flex', flexDirection: 'column', gap: 4, justifyContent: 'center', padding: '0 8px' } }, [
-          h('span', { key: 't', className: 'kbm-txt', style: { fontSize: 11 } }, '>_'),
-          ln('70%', 1, 0.5), ln('48%', 2, 0.9)])]))
-      if (id === 'quiz') return h('span', { className: 'kbm', style: { flexDirection: 'column', gap: 6, alignItems: 'stretch', width: 74 } }, [0, 1, 2].map((i) =>
-        h('span', { key: 'o' + i, style: { display: 'flex', alignItems: 'center', gap: 5 } },
-          i === 0
-            ? h('span', { key: 'c', style: { position: 'relative', flex: 'none' } }, dot('o', 11), h('i', { key: 'in', style: { position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' } }, h('i', { style: { width: 4, height: 4, borderRadius: '50%', background: 'var(--dsw-alias-bg-layer-1,#fff)' } })))
-            : h('i', { key: 'r', className: 'kbm-ring', style: { width: 11, height: 11, opacity: 0.5, flex: 'none' } }),
-          ln(['48%', '62%', '40%'][i], i, i === 0 ? 0.85 : 0.4))))
-      if (id === 'deck') return h('span', { className: 'kbm', style: { width: 74, height: 50 } }, [
-        box('b2', { left: 12, top: 0, width: 60, height: 40, opacity: 0.3, transform: 'rotate(-6deg)' }),
-        box('b1', { left: 6, top: 3, width: 60, height: 40, opacity: 0.5, transform: 'rotate(-3deg)' }),
-        h('span', { key: 'f', style: { position: 'absolute', left: 0, top: 6, width: 60, height: 40, borderRadius: 4, border: '1.5px solid currentColor', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', gap: 4, padding: 6, boxSizing: 'border-box' } }, [
-          h('i', { key: 'bg', style: { position: 'absolute', inset: 0, borderRadius: 3, background: 'var(--dsw-alias-bg-layer-1,#fff)', opacity: 0.55 } }),
-          h('span', { key: 'ti', className: 'kbm-ln', style: { position: 'relative', width: '58%', height: 3, opacity: 0.9 } }),
-          h('span', { key: 'bars', style: { position: 'relative', display: 'flex', alignItems: 'flex-end', gap: 3 } }, [10, 16, 22].map((bh, i) => h('i', { key: i, style: { width: 7, height: bh, borderRadius: '1.5px 1.5px 0 0', background: 'currentColor', opacity: 0.85 - i * 0.2 } })))])])
-      if (id === 'cards') return h('span', { className: 'kbm', style: { width: 74, height: 48 } }, [
-        box('b', { left: 28, top: 6, width: 42, height: 34, transform: 'rotate(6deg)', opacity: 0.4 }),
-        h('span', { key: 'f', style: { position: 'absolute', left: 0, top: 4, width: 46, height: 38, borderRadius: 4, border: '1.5px solid currentColor', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 3, padding: '0 6px', boxSizing: 'border-box' } }, [
-          h('i', { key: 'bg', style: { position: 'absolute', inset: 0, borderRadius: 3, background: 'currentColor', opacity: 0.1 } }),
-          h('span', { key: 'q', style: { position: 'relative', display: 'flex', alignItems: 'center', gap: 4 } }, h('span', { key: 't', className: 'kbm-txt', style: { fontSize: 9 } }, 'Q'), ln('52%', 0, 0.6, 2)),
-          h('i', { key: 'dv', style: { height: 1, background: 'currentColor', opacity: 0.25 } }),
-          h('span', { key: 'a', style: { position: 'relative', display: 'flex', alignItems: 'center', gap: 4 } }, h('span', { key: 't2', className: 'kbm-txt', style: { fontSize: 9 } }, 'A'), ln('64%', 1, 0.85, 2))])])
-      if (id === 'data') return h('span', { className: 'kbm' }, h('span', { key: 'tb', style: { display: 'grid', gridTemplateColumns: 'repeat(3, 22px)', gap: 3 } }, [0, 1, 2, 3, 4, 5, 6, 7, 8].map((i) =>
-        h('i', { key: i, style: i < 3
-          ? { height: 11, borderRadius: 2, background: 'currentColor', opacity: 0.75 }
-          : { height: 11, borderRadius: 2, border: '1px solid currentColor', opacity: 0.45 } }))))
-      if (id === 'image') return h('span', { className: 'kbm' }, h('span', { key: 'fr', style: { position: 'relative', width: 70, height: 48, borderRadius: 4, border: '1.5px solid currentColor', overflow: 'hidden' } }, [
-        dot('sun', 9, { position: 'absolute', right: 8, top: 7, opacity: 0.9 }),
-        h('i', { key: 'm2', style: { position: 'absolute', right: -8, bottom: -6, width: 0, height: 0, borderLeft: '18px solid transparent', borderRight: '18px solid transparent', borderBottom: '22px solid currentColor', opacity: 0.45 } }),
-        h('i', { key: 'm1', style: { position: 'absolute', left: -6, bottom: -6, width: 0, height: 0, borderLeft: '22px solid transparent', borderRight: '22px solid transparent', borderBottom: '28px solid currentColor', opacity: 0.8 } })]))
-      if (id === 'engine') return h('span', { className: 'kbm', style: { gap: 0 } }, ['a', 'l1', 'b', 'l2', 'c'].map((k) =>
-        k.charAt(0) === 'l'
-          ? h('i', { key: k, style: { width: 16, height: 2, background: 'currentColor', opacity: 0.5 } })
-          : h('i', { key: k, style: { width: 13, height: 13, borderRadius: 3, border: '1.5px solid currentColor', background: 'currentColor', opacity: k === 'b' ? 0.95 : 0.45 } })))
-      if (id === 'miniapp') return h('span', { className: 'kbm' }, h('span', { key: 'w', style: { position: 'relative', width: 58, height: 48, borderRadius: 4, border: '1.5px solid currentColor', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' } }, [
-        h('i', { key: 'f', style: { position: 'absolute', inset: 0, background: 'currentColor', opacity: 0.08 } }),
-        h('span', { key: 'tb', style: { position: 'absolute', top: 0, left: 0, right: 0, display: 'flex', gap: 3, alignItems: 'center', padding: '4px 6px', borderBottom: '1px solid currentColor', opacity: 0.85 } }, [0, 1].map((i) => dot('d' + i, 4))),
-        h('i', { key: 'p', style: { position: 'relative', width: 0, height: 0, borderLeft: '10px solid currentColor', borderTop: '6px solid transparent', borderBottom: '6px solid transparent' } })]))
-      return null
-    }
+    const kbArtDraw = (id) => h('svg', { viewBox: '0 0 64 44', 'aria-hidden': 'true', focusable: 'false', dangerouslySetInnerHTML: { __html: KB_NC_ART[id] === undefined ? KB_NC_ART.file : KB_NC_ART[id] } })
+    // What a file wears in a row, a preview or the viewer's header: the icon id of kbTiOfName, drawn as the tiles are.
+    const KB_TI_DRAW = { cards: 'cards', chart: 'diagram', code: 'code', deck: 'slides', doc: 'doc', folder: 'folder', image: 'image', media: 'video', miniapp: 'miniapp', other: 'file', pdf: 'pdf', quiz: 'quiz', sheet: 'sheet', site: 'website' }
+    const kbTiArt = (id) => kbArtDraw(KB_TI_DRAW[id])
     const kbArtType = (name) => {
       const n = String(name || '').toLowerCase()
       // MiniApp universel : *.miniapp.json → type 'miniapp'
@@ -17489,7 +17491,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       if (KB_FAM_EXTS.av.indexOf(ext) >= 0) return KB_ART_TYPE_MEDIA
       return KB_ART_TYPES[KB_ART_TYPES.length - 1]
     }
-    // Nom de fichier → id d'icône du jeu (miniapp, genre dans un .json, extension, type DSH).
+    // File name → the icon id (miniapp, kind inside a .json, extension, DSH type); KB_TI_DRAW says what is drawn for it.
     const kbTiOfName = (name) => {
       const n = String(name || '').toLowerCase()
       if (n.endsWith('.miniapp.json')) return 'miniapp'
@@ -17546,33 +17548,6 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       const e = d >= 0 ? n.slice(d + 1) : ''
       for (const f of KB_ART_FAMILIES) { if (KB_FAM_EXTS[f.id].indexOf(e) >= 0) return f.id }
       return null
-    }
-    // Scène de tuile par famille : on réutilise les micro-scènes des types
-    // (deck → slides, html → sites, doc → documents, data → tableurs,
-    // image → images) et on dessine celle d'Audio & vidéo (lecture + onde).
-    const kbFamMini = (f) => {
-      if (f.id === 'slides') return kbTypeMini(kbTypeById('deck'))
-      if (f.id === 'websites') return kbTypeMini(kbTypeById('html'))
-      // Documents : scène PROPRE à la famille (la tuile fine « Doc » est
-      // masquée depuis le 26/09 — doublon) : deux pages décalées, coin plié,
-      // lignes de texte. Statique, aucun trait animé.
-      if (f.id === 'documents') return h('span', { className: 'kbm', style: { width: 60, height: 48 } }, [
-        h('i', { key: 'b', style: { position: 'absolute', left: 15, top: 0, width: 41, height: 39, border: '1.5px solid currentColor', borderRadius: 4, opacity: 0.35 } }),
-        h('span', { key: 'p', style: { position: 'absolute', left: 3, top: 7, width: 41, height: 39, border: '1.5px solid currentColor', borderRadius: 4, background: 'var(--dsw-alias-bg-layer-1,#1c2030)', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 3.5, padding: '0 7px', boxSizing: 'border-box' } }, [
-          h('i', { key: 'tt', style: { width: '62%', height: 3, borderRadius: 2, background: 'currentColor', opacity: 0.95 } }),
-          h('i', { key: 'l1', style: { width: '100%', height: 2.5, borderRadius: 2, background: 'currentColor', opacity: 0.45 } }),
-          h('i', { key: 'l2', style: { width: '74%', height: 2.5, borderRadius: 2, background: 'currentColor', opacity: 0.45 } }),
-          h('i', { key: 'fold', style: { position: 'absolute', right: 0, top: 0, width: 9, height: 9, background: 'var(--dsw-alias-bg-layer-1,#1c2030)', borderLeft: '1.5px solid currentColor', borderBottom: '1.5px solid currentColor', borderBottomLeftRadius: 3 } }),
-        ]),
-      ])
-      if (f.id === 'spreadsheets') return kbTypeMini(kbTypeById('data'))
-      if (f.id === 'images') return kbTypeMini(kbTypeById('image'))
-      return h('span', { className: 'kbm', style: { flexDirection: 'column', gap: 5, width: 66 } }, [
-        h('span', { key: 'c', style: { position: 'relative', width: 16, height: 16, borderRadius: '50%', border: '1.5px solid currentColor', display: 'flex', alignItems: 'center', justifyContent: 'center' } },
-          h('i', { key: 't', style: { width: 0, height: 0, borderLeft: '5px solid currentColor', borderTop: '3.5px solid transparent', borderBottom: '3.5px solid transparent', marginLeft: 1.5 } })),
-        h('i', { key: 'b1', className: 'kbm-ln', style: { width: '100%', height: 3, opacity: 0.45 } }),
-        h('i', { key: 'b2', className: 'kbm-ln', style: { width: '58%', height: 3, opacity: 0.9 } }),
-      ])
     }
     // Plafond d'affichage initial (« x more files ») : 6 cartes visibles au
     // premier rendu, puis +12 par clic — l'affichage reste léger sur les
@@ -17672,7 +17647,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
     }
     const kbArcNode = (t, size) => [
       h('div', { className: 'kb6-arc', key: 'arc' },
-        h('span', { className: 'kb6-arc-ico', style: { background: 'var(--dsw-alias-interactive-bg-hover)' } }, kbTiSvg('folder', 26)),
+        h('span', { className: 'kb6-arc-ico kb8-sl-stage' }, kbTiArt('folder')),
         h('span', { className: 'kb6-line2' }, 'Archive' + (kbFmtSize(size) !== '' ? ' · ' + kbFmtSize(size) : ''))),
     ]
     // ── Data creations: shown as DATA, never as the code of the file ────────────────────────────────────
@@ -17877,7 +17852,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       if (extB === 'zip' || extB === 'tar' || extB === 'gz' || extB === 'tgz' || extB === '7z' || extB === 'rar') return kbArcNode(t, size)
       if (kind === 'binary') {
         return [
-          h('div', { className: 'kb6-prevkind', key: 'bk' }, kbTiSvg(kbTiOfName(name), 30)),
+          h('div', { className: 'kb6-prevkind kb8-sl-stage', key: 'bk' }, kbTiArt(kbTiOfName(name))),
           h('div', { className: 'kb6-line2', key: 'bt' }, kbe('Binary content — no text preview')),
           h('div', { className: 'kb6-line2', key: 'bs' }, kbFmtSize(typeof preview.size === 'number' ? preview.size : null) + (typeof preview.ext === 'string' && preview.ext.length > 0 ? ' · .' + preview.ext : '')),
         ]
@@ -17890,7 +17865,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       // avait rendu aucun. Au-dessus du plafond, on le dit.
       if (lines === null && typeof size === 'number' && size > 1200000) {
         return [
-          h('div', { className: 'kb6-prevkind', key: 'ov' }, kbTiSvg(kbTiOfName(name), 30)),
+          h('div', { className: 'kb6-prevkind kb8-sl-stage', key: 'ov' }, kbTiArt(kbTiOfName(name))),
           h('div', { className: 'kb6-line2', key: 'o1' }, kbt('kbui.apercu.unavailable') + kbFmtSize(size)),
           h('div', { className: 'kb6-line2', key: 'o2' }, kbe('Above the 1.2 MB limit')),
         ]
@@ -17940,7 +17915,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         const comps = (p !== null && Array.isArray(p.components)) ? p.components.length
           : ((p !== null && Array.isArray(p.parts)) ? p.parts.length : null)
         return [
-          h('div', { className: 'kb6-prevkind', key: 'pk' }, kbTiSvg('miniapp', 30)),
+          h('div', { className: 'kb6-prevkind kb8-sl-stage', key: 'pk' }, kbTiArt('miniapp')),
           h('div', { className: 'kb6-prevtitle', key: 'tt' }, titre),
           h('div', { className: 'kb6-line2', key: 'ln' }, 'Mini-app ' + rendu
             + (lots !== null ? ' · ' + lots + (lots > 1 ? ' lots' : ' lot') : ' · ' + kbe('preview truncated'))
@@ -18035,7 +18010,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
           : previewContent(t, a.name, preview, a.path, a.size)
       return h('div', { className: 'kb6-card' + (typeof appear === 'string' ? appear : ''), title: a.path },
         h('div', { className: 'kb6-cardrow' },
-          h('div', { className: 'kb6-ico kb6-ico-ti', style: { background: 'var(--dsw-alias-interactive-bg-hover)' } }, kbTiSvg(kbTiOfName(a.name), 16)),
+          h('div', { className: 'kb6-ico kb6-ico-ti kb8-sl-stage' }, kbTiArt(kbTiOfName(a.name))),
           h('div', { className: 'kb6-cname' },
             h('div', { className: 'kbg-name' }, a.name || '—')),
           h('span', { className: 'kb6-type', style: { background: t.tint, '--kb6-ink': t.color } }, t.label),
@@ -19926,7 +19901,7 @@ function renderFit(canvas, model, cam, opts){
       return h('div', { className: 'kbg-root' },
         h('button', { type: 'button', className: 'kbg-back', onClick: onBack }, '← ' + kbt('deliverables.back')),
         h('div', { className: 'kb4-pagehead kb6-vhead' },
-          h('span', { className: 'kb6-vico', 'data-kb': 'artview-ico' }, kbTiSvg(kbTiOfName(name), 30)),
+          h('span', { className: 'kb6-vico kb8-sl-stage', 'data-kb': 'artview-ico' }, kbTiArt(kbTiOfName(name))),
           name,
           (typeof onPopup === 'function' ? h('button', { type: 'button', className: 'kbq-btn', 'data-kb': 'artview-popup', title: kbe('Open in a popup without leaving the page'), onClick: () => onPopup(path, name) }, Icon('maximize2', 13), ' Popup') : null),
           // Une miniapp peut se poser dans la barre latérale droite sans passer
@@ -20009,7 +19984,7 @@ function renderFit(canvas, model, cam, opts){
         h('div', { className: 'kb6-pop', role: 'dialog', 'aria-label': name, 'aria-modal': 'true', style: (popWidth !== null) ? { width: popWidth + 'px' } : null },
           h('div', { className: 'kb6-popresize', 'data-kb': 'art-popup-resize', title: kbe('Resize (drag the left edge)'), onMouseDown: startPopResize }),
           h('div', { className: 'kb6-pophead' },
-            h('span', { className: 'kb6-vico', 'data-kb': 'artpop-ico' }, kbTiSvg(kbTiOfName(name), 30)),
+            h('span', { className: 'kb6-vico kb8-sl-stage', 'data-kb': 'artpop-ico' }, kbTiArt(kbTiOfName(name))),
             h('div', { className: 'kb6-poptitle' },
               h('div', { className: 'kb6-popname' }, name),
               h('div', { className: 'kb6-popsub' }, kind.label + ' · ' + path)),
@@ -20183,8 +20158,8 @@ function renderFit(canvas, model, cam, opts){
       const fineTiles = present.filter((t) => !KB_ART_FAMILIES.some((f) => typed.every((a) => a.type.id !== t.id || kbArtFamille(a.name) === f.id)))
       const visSaved = (Array.isArray(tbArts[0].vis) === true) ? tbArts[0].vis : null
       const isRenderedMiniApp = (a) => (/\.miniapp\.json$/i).test(String(a.name || ''))
-      const tileDefs = KB_ART_FAMILIES.map((f) => ({ kind: 'fam', id: f.id, label: kbt('deliv.fam.' + f.id), desc: kbt('deliv.fam.' + f.id + '.desc'), count: typed.filter((a) => kbArtFamille(a.name) === f.id).length, color: 'var(--dsw-alias-brand-primary)', bg: 'var(--dsw-alias-interactive-bg-hover)', glyph: kbTiSvg(KB_TI.family[f.id], 34) }))
-        .concat(KB_ART_TYPES.filter((t) => t.id !== 'other' && t.id !== 'doc').map((t) => ({ kind: 'type', id: t.id, label: t.label, desc: kbt('deliv.type.' + t.id + '.desc'), count: typed.filter((a) => a.type.id === t.id && (t.id !== 'miniapp' || isRenderedMiniApp(a) === true)).length, color: 'var(--dsw-alias-brand-primary)', bg: 'var(--dsw-alias-interactive-bg-hover)', glyph: kbTiSvg(KB_TI.type[t.id] || 'other', 34) })))
+      const tileDefs = KB_ART_FAMILIES.map((f) => ({ kind: 'fam', id: f.id, label: kbt('deliv.fam.' + f.id), desc: kbt('deliv.fam.' + f.id + '.desc'), count: typed.filter((a) => kbArtFamille(a.name) === f.id).length, art: kbArtDraw(KB_ART_DRAW.fam[f.id]) }))
+        .concat(KB_ART_TYPES.filter((t) => t.id !== 'other' && t.id !== 'doc').map((t) => ({ kind: 'type', id: t.id, label: t.label, desc: kbt('deliv.type.' + t.id + '.desc'), count: typed.filter((a) => a.type.id === t.id && (t.id !== 'miniapp' || isRenderedMiniApp(a) === true)).length, art: kbArtDraw(KB_ART_DRAW.type[t.id]) })))
       // (02/10) `vis` devient une liste de types MASQUÉS : mémoriser les
       // affichés figeait la rangée à l'instant de la sauvegarde — un type
       // devenu présent plus tard (ex. miniapp) n'apparaissait jamais (constaté
@@ -20439,8 +20414,8 @@ function renderFit(canvas, model, cam, opts){
           // « Tous » et dans la recherche, il disparaît seulement des filtres.
           const tuile = (d) => {
             const on = selTypes.indexOf(d.id) >= 0
-            return h('button', { type: 'button', key: d.id, 'aria-pressed': on === true ? 'true' : 'false', className: 'kb-type' + (on === true ? ' kb-type-sel' : ''), style: on === true ? { borderColor: d.color } : {}, title: d.desc, onClick: () => toggleSel(d.id) },
-              h('span', { className: 'kb-type-view', style: { background: d.bg, color: d.color } }, d.glyph),
+            return h('button', { type: 'button', key: d.id, 'aria-pressed': on === true ? 'true' : 'false', className: 'kb-type' + (on === true ? ' kb-type-sel' : ''), title: d.desc, onClick: () => toggleSel(d.id) },
+              h('span', { className: 'kb-type-view kb8-sl-stage' }, d.art),
               h('span', { className: 'kb-type-check' + (on === true ? ' on' : ''), 'aria-hidden': 'true' }, on === true ? Icon('check', 10) : null),
               h('span', { className: 'kb-type-line' },
                 h('span', { className: 'kb-type-lab' }, d.label),
@@ -20473,7 +20448,7 @@ function renderFit(canvas, model, cam, opts){
             h('div', { className: 'kb-typerow-host' },
               h('div', { className: 'kb-typerow', 'data-kb': 'type-tiles' },
                 h('button', { type: 'button', className: 'kb-type' + (allOn === true ? ' kb-type-sel' : ''), 'aria-pressed': allOn === true ? 'true' : 'false', onClick: () => tbArts[1]({ types: [] }) },
-                  h('span', { className: 'kb-type-view', style: { background: 'var(--dsw-alias-interactive-bg-hover)', color: 'var(--dsw-alias-label-tertiary)' } }, Icon('layers', 22)),
+                  h('span', { className: 'kb-type-view kb8-sl-stage' }, kbArtDraw('all')),
                   h('span', { className: 'kb-type-check' + (allOn === true ? ' on' : ''), 'aria-hidden': 'true' }, allOn === true ? Icon('check', 10) : null),
                   h('span', { className: 'kb-type-line' },
                     h('span', { className: 'kb-type-lab' }, kbt('deliverables.all')),
@@ -20499,10 +20474,10 @@ function renderFit(canvas, model, cam, opts){
           const snippet = hasText === false ? '' : (a.type.id === 'data' ? kbDataSummary(kbDataInfo(pv.text, a.name, 3)) : kbArtFirstLine(pv))
           const pinned = pins[a.path] === true
           return h('div', { className: 'kb6-lrow' + kbIn(i), key: 'la' + a.path, title: a.path, role: 'button', tabIndex: 0, 'data-kb': 'art-row', onClick: () => openArtifact(a), onKeyDown: (e2) => { if (e2.target === e2.currentTarget && (e2.key === 'Enter' || e2.key === ' ')) { e2.preventDefault(); openArtifact(a) } } },
-          // Vignette de rangée : vraie miniature pour les images, micro-scène du
-          // type sinon — le nom seul ne disait rien du contenu.
-          h('span', { className: 'kb6-lthumb', style: { background: 'var(--dsw-alias-interactive-bg-hover)' } },
-            a.type.id === 'image' ? h('img', { src: kbArtRawUrl(a.path), alt: '', loading: 'lazy' }) : kbTiSvg(kbTiOfName(a.name), 34)),
+          // Row thumbnail: the real picture for images, the type's drawing otherwise
+          // (the name alone said nothing of the content).
+          h('span', { className: 'kb6-lthumb' + (a.type.id === 'image' ? '' : ' kb8-sl-stage') },
+            a.type.id === 'image' ? h('img', { src: kbArtRawUrl(a.path), alt: '', loading: 'lazy' }) : kbTiArt(kbTiOfName(a.name))),
           h('div', { className: 'kb6-lmain' },
             h('div', { className: 'kb6-ltop' },
               h('div', { className: 'kb6-lrowname' }, a.name),
@@ -25264,7 +25239,7 @@ function renderFit(canvas, model, cam, opts){
           groups.map((g) => h('div', { key: g.id, className: 'kb8-sl-group', 'data-group': g.id },
             h('button', { type: 'button', className: 'kb8-sl-gh', onClick: () => goTo(g.id) }, kbt('kbnc.g.' + g.id), h('small', null, String(g.templates.length))),
             h('div', { className: 'kb8-sl-cards' }, g.templates.map((t) =>
-              h('button', { type: 'button', key: t.id, className: 'kb8-sl-card' + (sp.match === t.id ? ' is-match' : ''), 'data-kb': 'newchat-visual', 'data-id': t.id, onClick: () => { if (quietRef.current !== true) sp.onPick(t.id) } },
+              h('button', { type: 'button', key: t.id, className: 'kb8-sl-card' + (sp.match === t.id ? ' is-match' : '') + (sp.chosen === t.id ? ' is-on' : ''), 'data-kb': 'newchat-visual', 'data-id': t.id, onClick: () => { if (quietRef.current !== true) sp.onPick(t.id) } },
                 h('span', { className: 'kb8-sl-stage', 'aria-hidden': 'true', dangerouslySetInnerHTML: { __html: '<svg viewBox="0 0 64 44" aria-hidden="true">' + KB_NC_ART[t.id] + '</svg>' } }),
                 h('span', { className: 'kb8-sl-label' }, kbt('kbnc.t.' + t.id)))))))),
         h('button', { type: 'button', className: 'kb8-sl-nav next' + (st.next ? '' : ' off'), 'aria-label': kbt('kbnc.sl.next'), tabIndex: st.next ? 0 : -1, onClick: () => page(1) }, Icon('chevronRight', 16)),
@@ -25284,6 +25259,11 @@ function renderFit(canvas, model, cam, opts){
       const act = actPair[0]
       const setAct = actPair[1]
       const cloud = useNcCloud()
+      // The type the person picked: it stays lit and its chip and suggestions show under the composer, until the chip is removed or the box is emptied.
+      const choPair = React.useState(null)
+      const chosen = choPair[0]
+      const setChosen = choPair[1]
+      const choArmed = React.useRef(false)
       // Kaby's chat becomes known after this renders on a page load (its bundle reads the pointer then): it says so with an event, and the cards go.
       const kabyPair = React.useState(0)
       React.useEffect(() => {
@@ -25300,11 +25280,24 @@ function renderFit(canvas, model, cam, opts){
       // The text in the composer, as the dock entry receives it: the template it sounds like is lit (never sent, never changed).
       const draft = (p.input !== null && p.input !== undefined && typeof p.input.draft === 'string') ? p.input.draft : ''
       const match = kbNcDetect(draft, offered)
+      // The chip goes when the box, once filled, is emptied (the text is the thing the chip stands for).
+      React.useEffect(() => {
+        if (draft.trim() !== '') choArmed.current = true
+        else if (choArmed.current === true) { choArmed.current = false; setChosen(null) }
+      }, [draft])
+      const knownTpl = KB_NC_TEMPLATES.map((t) => kbt('kbnc.p.' + t.id))
       // A template fills the composer and never sends. The person's own words stay (see kbNcFill).
       const prefill = (id) => {
+        setChosen(id)
         try {
           const ia = (p.inputActions !== null && p.inputActions !== undefined) ? p.inputActions : null
           if (ia !== null && typeof ia.setDraft === 'function') ia.setDraft(kbNcFill(draft, kbt('kbnc.p.' + id), KB_NC_TEMPLATES.map((t) => kbt('kbnc.p.' + t.id))))
+        } catch (e) { /* the composer stays the person's */ }
+      }
+      const suggest = (id, i) => {
+        try {
+          const ia = (p.inputActions !== null && p.inputActions !== undefined) ? p.inputActions : null
+          if (ia !== null && typeof ia.setDraft === 'function') ia.setDraft(kbNcSuggest(draft, kbt('kbnc.p.' + id), knownTpl, kbt('kbnc.s.' + id + '.' + i)))
         } catch (e) { /* the composer stays the person's */ }
       }
       const openKyber = () => { try { if (typeof window.__KB_OPEN__ === 'function') window.__KB_OPEN__({ view: 'kyber' }) } catch (e) { /* no page to open */ } }
@@ -25333,8 +25326,16 @@ function renderFit(canvas, model, cam, opts){
         ? (cloud.kind === 'awake' ? kbt('kbnc.cc.sub.awake') : (cloud.lastActive !== '' ? kbt('kbnc.cc.last') + kbFmtWhen(cloud.lastActive) : kbt('kbnc.cc.' + cloud.kind)))
         : cloud.kind === 'none' ? kbt('kbnc.cc.sub.none') : kbt('kbnc.cc.' + cloud.kind)
       const ccText = act.note !== null ? act.note : (act.verb !== null ? kbt('kbnc.cc.act.busy') : (cloud.pausedReason === 'hours' && ccActions.length === 0 ? kbt('kbnc.cc.hours') : ccSub))
+      const picked = (chosen !== null && offered.indexOf(chosen) >= 0) ? chosen : null
       return h('div', { className: 'kb8-nc', 'data-kb': 'newchat' },
-        groups.length === 0 ? null : h(KbNcSlider, { groups, match, onPick: prefill }),
+        picked === null ? null : h('div', { className: 'kb8-nc-sel', 'data-kb': 'newchat-chosen' },
+          h('span', { className: 'kb8-nc-chip' },
+            h('span', { className: 'kb8-sl-stage kb8-nc-chip-art', 'aria-hidden': 'true', dangerouslySetInnerHTML: { __html: '<svg viewBox="0 0 64 44" aria-hidden="true">' + KB_NC_ART[picked] + '</svg>' } }),
+            kbt('kbnc.t.' + picked),
+            h('button', { type: 'button', className: 'kb8-nc-chip-x', 'data-kb': 'newchat-chip-x', 'aria-label': kbt('kbnc.chip.remove') + ' ' + kbt('kbnc.t.' + picked), onClick: () => setChosen(null) }, Icon('x', 11))),
+          h('span', { className: 'kb8-nc-try' }, kbt('kbnc.try')),
+          [0, 1, 2].map((i) => h('button', { type: 'button', key: i, className: 'kb8-nc-sug', 'data-kb': 'newchat-suggestion', onClick: () => suggest(picked, i) }, kbt('kbnc.s.' + picked + '.' + i)))),
+        groups.length === 0 ? null : h(KbNcSlider, { groups, match, chosen: picked, onPick: prefill }),
         (cloud.kind === 'unknown' ? null
           : h('div', { className: 'kb8-nc-cloud', 'data-kb': 'newchat-cloud' },
             h('button', { type: 'button', className: 'kb8-nc-main', 'data-kb': 'newchat-cloud-open', onClick: openKyber },
@@ -25346,11 +25347,14 @@ function renderFit(canvas, model, cam, opts){
     }
     ctx.effect(() => slots.inject('conversation.input.dock', () => slots.register(
       { name: 'conversation.input.dock', id: 'kybernos-newchat', order: 25 }, KbNewChatCards)), 'kybers: new chat cards');
-    // The little motion of a drawing plays when its card is hovered, focused, or lit by what the person types.
-    const kbNcHot = '.kb8-sl-card:is(:hover,:focus-visible,.is-match)'
+    // The little motion of a drawing plays when its card is hovered, focused, or lit by what the person types. The Creations page's type
+    // tiles (and the rows of its « Customize » panel) wear the same drawings, so they play it too (hovered, or selected).
+    const kbNcHot = ':is(.kb8-sl-card,.kb-type,.kb-typepanel-row):is(:hover,:focus-visible,.is-match,.is-on,.kb-type-sel)'
     ctx.effect(() => styles.insert(`
 /* The new chat: a slider of what can be made, under the composer, and the Cloud Computer line. Tokens only: the one accent is the theme's. */
-.kb8-nc{--kb8-acc:var(--dsw-alias-brand-primary);order:2;display:flex;flex-direction:column;align-items:stretch;gap:12px;padding:18px 16px 10px;container-type:inline-size;container-name:kbnc}
+body{--kb8-acc:var(--dsw-alias-brand-primary)}
+html[data-kb-acc="engine"] body{--kb8-acc:var(--dsw-alias-state-business-primary)}
+.kb8-nc{order:2;display:flex;flex-direction:column;align-items:stretch;gap:12px;padding:18px 16px 10px;container-type:inline-size;container-name:kbnc}
 .kb8-sl{position:relative}
 .kb8-sl-track{position:relative;display:flex;align-items:flex-start;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x proximity;scroll-padding-inline:4px;scrollbar-width:none;padding:6px 4px 18px;margin:-6px -4px -18px;-webkit-mask-image:linear-gradient(to right,transparent 0,#000 var(--kb8-ml,0px),#000 calc(100% - var(--kb8-mr,0px)),transparent 100%);mask-image:linear-gradient(to right,transparent 0,#000 var(--kb8-ml,0px),#000 calc(100% - var(--kb8-mr,0px)),transparent 100%)}
 .kb8-sl-track::-webkit-scrollbar{display:none}
@@ -25365,11 +25369,25 @@ function renderFit(canvas, model, cam, opts){
 .kb8-sl-card:hover,.kb8-sl-card:focus-visible{color:var(--dsw-alias-label-primary);transform:translateY(-3px);box-shadow:0 0 0 1px var(--dsw-alias-border-l2),0 12px 28px -14px rgba(0,0,0,.35)}
 .kb8-sl-card:focus-visible{outline:2px solid var(--kb8-acc);outline-offset:2px}
 .kb8-sl-card.is-match{color:var(--dsw-alias-label-primary);box-shadow:0 0 0 1.5px color-mix(in srgb,var(--kb8-acc) 70%,var(--dsw-alias-border-l2)),0 0 0 6px color-mix(in srgb,var(--kb8-acc) 10%,transparent)}
+.kb8-sl-card.is-on{color:var(--dsw-alias-label-primary);transform:translateY(-3px);box-shadow:0 0 0 1.5px var(--dsw-alias-label-primary),0 12px 28px -14px rgba(0,0,0,.35)}
+/* What the person picked: its chip and a few ways to go on, in one line under the composer. */
+.kb8-nc-sel{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;padding:0 2px;font-size:12.5px;color:var(--dsw-alias-label-tertiary);animation:kb8-chip-in .3s cubic-bezier(.16,1,.3,1)}
+.kb8-nc-chip{display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 6px 0 5px;border-radius:var(--dsw-radius-md,12px);background:color-mix(in srgb,var(--kb8-acc) 12%,transparent);border:1px solid color-mix(in srgb,var(--kb8-acc) 28%,transparent);font-size:12.5px;font-weight:550;color:var(--dsw-alias-label-primary)}
+.kb8-nc-chip .kb8-nc-chip-art{width:30px;height:21px;display:block;background:none}
+.kb8-nc-chip .kb8-nc-chip-art::before{display:none}
+.kb8-nc-chip .kb8-nc-chip-art svg{width:30px;height:21px;filter:none}
+.kb8-nc-chip-x{display:grid;place-items:center;width:18px;height:18px;padding:0;border:0;border-radius:50%;background:transparent;color:var(--dsw-alias-label-secondary);cursor:pointer}
+.kb8-nc-chip-x:hover{background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-primary)}
+.kb8-nc-try{margin-inline:2px 0}
+.kb8-nc-sug{height:26px;padding:0 10px;border-radius:var(--dsw-radius-md,12px);border:1px solid var(--dsw-alias-border-l2);background:transparent;font:inherit;font-size:12.5px;color:var(--dsw-alias-label-secondary);cursor:pointer}
+.kb8-nc-sug:hover{background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-primary)}
+.kb8-nc-chip-x:focus-visible,.kb8-nc-sug:focus-visible{outline:2px solid var(--kb8-acc);outline-offset:1px}
+@keyframes kb8-chip-in{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
 .kb8-sl-stage{position:relative;height:100px;display:grid;place-items:center;background:color-mix(in srgb,var(--kb8-acc) 5%,var(--dsw-alias-bg-module-platform))}
 .kb8-sl-stage::before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 88% -8%,color-mix(in srgb,var(--kb8-acc) 12%,transparent),transparent 62%)}
 .kb8-sl-stage svg{position:relative;width:92px;height:63px;overflow:visible;filter:drop-shadow(0 3px 4px color-mix(in srgb,var(--dsw-alias-label-primary) 14%,transparent));transition:transform .45s cubic-bezier(.16,1,.3,1)}
 .kb8-sl-stage svg *{transform-box:fill-box}
-.kb8-sl-card:hover .kb8-sl-stage svg,.kb8-sl-card:focus-visible .kb8-sl-stage svg,.kb8-sl-card.is-match .kb8-sl-stage svg{transform:translateY(-3px) scale(1.07)}
+.kb8-sl-card:hover .kb8-sl-stage svg,.kb8-sl-card:focus-visible .kb8-sl-stage svg,.kb8-sl-card.is-match .kb8-sl-stage svg,.kb8-sl-card.is-on .kb8-sl-stage svg{transform:translateY(-3px) scale(1.07)}
 .kb8-sl-label{flex:1;display:grid;place-items:center;padding:0 8px;line-height:1.15;overflow-wrap:anywhere}
 /* The drawings: the page's own tokens, so they follow the theme (ink, greys, ONE tint). */
 .kb8-sl-stage .paper{fill:var(--dsw-alias-bg-layer-1);stroke:var(--dsw-alias-border-l2);stroke-width:.7}
@@ -25431,10 +25449,47 @@ ${kbNcHot} .play{transform-origin:50% 50%;animation:kb8-pulse .9s cubic-bezier(.
 .kb8-nc-act{height:26px;padding:0 10px;border-radius:8px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-foreground);font:inherit;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap}
 .kb8-nc-act.ghost{background:transparent;color:var(--dsw-alias-label-secondary);font-weight:500}
 .kb8-nc-act:disabled{opacity:.5;cursor:default}
-@media (prefers-reduced-motion:reduce){.kb8-sl-card,.kb8-sl-stage svg,.kb8-sl-stage *,.kb8-sl-nav,.kb8-sl-thumb{transition:none!important;animation:none!important}}
+/* The page behind: a grid of dots and two soft glows of the accent, behind the headline and behind the composer (the dots fade out toward the edges),
+   and a halo, with one lap of light, on the composer when it has the focus. Only on the new chat page (the block is there), only CSS. */
+[data-phase="hero"]:has([data-kb="newchat"]){background-image:radial-gradient(560px circle at 50% 22%,color-mix(in srgb,var(--kb8-acc) 9%,transparent),transparent 66%),radial-gradient(380px circle at 50% 44%,color-mix(in srgb,var(--kb8-acc) 5%,transparent),transparent 68%)}
+body[data-ds-dark-theme] [data-phase="hero"]:has([data-kb="newchat"]){background-image:radial-gradient(560px circle at 50% 22%,color-mix(in srgb,var(--kb8-acc) 13%,transparent),transparent 66%),radial-gradient(380px circle at 50% 44%,color-mix(in srgb,var(--kb8-acc) 8%,transparent),transparent 68%)}
+[data-phase="hero"]:has([data-kb="newchat"])::before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;background-image:radial-gradient(color-mix(in srgb,var(--dsw-alias-label-primary) 13%,transparent) 1px,transparent 1.3px);background-size:22px 22px;-webkit-mask-image:radial-gradient(ellipse 58% 52% at 50% 36%,#000 0%,transparent 78%);mask-image:radial-gradient(ellipse 58% 52% at 50% 36%,#000 0%,transparent 78%)}
+[data-phase="hero"]:has([data-kb="newchat"]) [class*="titleGroup"][data-kb-hero]>:first-child{font-size:28px;font-weight:600;letter-spacing:-.028em;line-height:1.12}
+@media (min-width:900px){[data-phase="hero"]:has([data-kb="newchat"]) [class*="titleGroup"][data-kb-hero]>:first-child{font-size:32px}}
+@media (min-width:1280px){[data-phase="hero"]:has([data-kb="newchat"]) [class*="titleGroup"][data-kb-hero]>:first-child{font-size:40px}}
+[data-phase="hero"]:has([data-kb="newchat"]) [data-composer-card="true"]{transition:box-shadow .3s}
+[data-phase="hero"]:has([data-kb="newchat"]) [data-composer-card="true"]:focus-within{box-shadow:0 12px 28px -14px rgba(0,0,0,.35),0 0 0 1px color-mix(in srgb,var(--dsw-alias-label-primary) 26%,transparent),0 0 0 5px color-mix(in srgb,var(--kb8-acc) 9%,transparent)}
+[data-phase="hero"]:has([data-kb="newchat"]) [data-composer-card="true"]::before{content:"";position:absolute;inset:-1px;border-radius:inherit;padding:1.5px;pointer-events:none;opacity:0;background:conic-gradient(from var(--kb8-a),transparent 0deg,transparent 215deg,color-mix(in srgb,var(--kb8-acc) 95%,transparent) 300deg,transparent 360deg);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0);mask-composite:exclude}
+[data-phase="hero"]:has([data-kb="newchat"]) [data-composer-card="true"]:focus-within::before{animation:kb8-sweep 1.7s cubic-bezier(.16,1,.3,1) 1}
+@property --kb8-a{syntax:"<angle>";initial-value:0deg;inherits:false}
+@keyframes kb8-sweep{0%{--kb8-a:0deg;opacity:0}12%{opacity:1}100%{--kb8-a:360deg;opacity:0}}
+@media (prefers-reduced-motion:reduce){.kb8-sl-card,.kb8-sl-stage svg,.kb8-sl-stage *,.kb8-sl-nav,.kb8-sl-thumb,.kb8-nc-sel{transition:none!important;animation:none!important}[data-composer-card="true"]::before{animation:none!important}}
 /* What matters is the width the dock really has, not the window: arrows need a pointer, and a narrow dock is swiped. */
 @container kbnc (max-width:480px){.kb8-sl-nav{display:none}}
 `), 'kybers: styles of the new chat cards');
+
+    // The page's one accent (see kbNcAccentSource): read again when the theme changes (its style tag, the attributes of html and body).
+    ctx.effect(() => {
+      let stopped = false
+      let timer = null
+      const apply = () => {
+        try {
+          const cs = window.getComputedStyle(document.body)
+          const src = kbNcAccentSource(cs.getPropertyValue('--dsw-alias-brand-primary'), cs.getPropertyValue('--dsw-alias-label-primary'))
+          if (document.documentElement.getAttribute('data-kb-acc') !== src) document.documentElement.setAttribute('data-kb-acc', src)
+        } catch (e) { /* no document: the brand colour stays */ }
+      }
+      const later = () => { if (timer !== null) return; timer = setTimeout(() => { timer = null; if (stopped !== true) apply() }, 120) }
+      let obs = null
+      try {
+        obs = new MutationObserver(later)
+        obs.observe(document.documentElement, { attributes: true, attributeFilter: ['style', 'class', 'data-ds-theme-source'] })
+        obs.observe(document.body, { attributes: true })
+        obs.observe(document.head, { childList: true, subtree: true, characterData: true })
+      } catch (e) { obs = null }
+      apply()
+      return () => { stopped = true; if (obs !== null) obs.disconnect(); if (timer !== null) clearTimeout(timer) }
+    }, 'kybers: new chat accent source')
 
     // ── The headline of the new-chat page: a different line each time, and « Beta », small ────────────────────────
     // DSH draws « Into the Unknown » and a « Preview » badge itself (HeroShell: two locale keys; only the mark has a slot).
@@ -25481,8 +25536,8 @@ ${kbNcHot} .play{transform-origin:50% 50%;animation:kb8-pulse .9s cubic-bezier(.
       return () => { stopped = true; if (obs !== null) obs.disconnect(); window.removeEventListener('kybernos:space-cue', later); if (timer !== null) clearTimeout(timer) }
     }, 'kybers: new chat title and Beta badge')
     ctx.effect(() => styles.insert(`
-/* The badge DSH calls « Preview » says « Beta » and is small: its own look (colour, shape) is kept, its code font is not. */
-[class*="previewBadge"][data-kb-beta]{font-family:inherit;font-size:10px;font-weight:600;line-height:1;letter-spacing:.04em;padding:3px 7px}
+/* The badge DSH calls « Preview » says « Beta », small, an outline and not a fill (its code font goes). */
+[class*="previewBadge"][data-kb-beta]{font-family:inherit;font-size:10.5px;font-weight:600;line-height:1;letter-spacing:.07em;text-transform:uppercase;padding:3px 8px;background:transparent;border:1px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-label-tertiary)}
 `), 'kybers: styles badge Beta')
 
     // ── DSH's own « Automation tasks » menu entry overlaps the Automations page: hidden, unless asked back ──────
@@ -29539,25 +29594,16 @@ body[data-ds-dark-theme] .kb8-iconbtn.on.col{border-color:var(--kb8-pgd);color:v
    noir. On passe aux jetons réels, qui basculent avec le thème.
    Les accents (--dsw-alias-brand-primary,#5563d6 / #5686fe / #b0578f) restent : ce
    sont des tons moyens, lisibles dans les deux thèmes. */
-/* Tuiles RESPONSIVE sur UNE ligne (demande 26/09) : flex:1 partage la largeur
-   de la rangée — jamais de débord ni de retour à la ligne ; les libellés longs
-   éllipsent. compactes : scène 44px, padding 8/10. */
-.kb-type{min-width:0;display:flex;flex-direction:column;align-items:stretch;gap:6px;padding:8px 10px;border:1px solid var(--dsw-alias-border-l1);border-radius:12px;background:var(--dsw-alias-bg-layer-1);cursor:pointer;text-align:left;transition:border-color .15s,box-shadow .15s;color:var(--dsw-alias-label-primary);position:relative}
-.kb-type:hover{border-color:var(--dsw-alias-border-l2)}
-.kb-type-sel{border-color:var(--dsw-alias-brand-primary,#5563d6);box-shadow:0 0 0 1px var(--dsw-alias-brand-primary,#5563d6)}
-/* Bande d'aperçu des tuiles de type (fidèle à la maquette demos/deliverables) :
-   une pastille pleine largeur qui illustre le CONTENU du type, pas une icône. */
-.kb-type-view{width:100%;height:44px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex:none;position:relative;overflow:hidden}
-.kbm{position:relative;display:flex;align-items:center;justify-content:center}
-.kbm i{display:block}
-.kbm-ln{height:3px;border-radius:2px;background:currentColor}
-.kbm-box{position:absolute;border:1.5px solid currentColor;border-radius:4px}
-.kbm-mdot{border-radius:50%;background:currentColor}
-.kbm-ring{border:1.5px solid currentColor;border-radius:50%}
-.kbm-txt{font-family:ui-monospace,Menlo,monospace;font-weight:700;line-height:1;color:currentColor}
-/* Pas d'ANIMATION dans les tuiles (demande 26/09 : « pas de trait qui
-   clignotte ») : l'ancien caret .kbm-caret pulsait en step-end infinite —
-   supprimé, scènes statiques. */
+/* Type tiles on ONE row (26/09 request): the row's width is shared, no overflow, no wrap; long labels ellipsize. A tile is a card of the
+   new chat page's family (ring, rounded, a tinted band that holds a drawing, the label under it): the band wears the class kb8-sl-stage, so
+   the drawings are styled by the new chat page's rules, from the theme's tokens. */
+.kb-type{min-width:0;display:flex;flex-direction:column;align-items:stretch;gap:0;padding:0;border:0;border-radius:var(--dsw-radius-lg,16px);background:var(--dsw-alias-bg-layer-1);box-shadow:0 0 0 1px var(--dsw-alias-border-l1);cursor:pointer;text-align:left;overflow:hidden;transition:box-shadow .25s,transform .25s cubic-bezier(.16,1,.3,1);color:var(--dsw-alias-label-primary);position:relative}
+.kb-type:hover{transform:translateY(-2px);box-shadow:0 0 0 1px var(--dsw-alias-border-l2),0 12px 28px -14px rgba(0,0,0,.35)}
+.kb-type-sel,.kb-type-sel:hover{box-shadow:0 0 0 1.5px var(--dsw-alias-brand-primary,#5563d6)}
+.kb-type .kb-type-view{width:100%;height:64px;flex:none}
+.kb-type .kb-type-view svg{width:68px;height:47px}
+.kb-type:hover .kb-type-view svg,.kb-type-sel .kb-type-view svg{transform:translateY(-2px) scale(1.06)}
+.kb-type-line{box-sizing:border-box;padding:8px 10px}
 
 .kb-type-lab{font-size:11.5px;font-weight:600;color:var(--dsw-alias-label-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .kb-type-cnt{font-size:10.5px;color:var(--dsw-alias-label-secondary);margin-left:auto;flex:none}
@@ -29566,7 +29612,7 @@ body[data-ds-dark-theme] .kb8-iconbtn.on.col{border-color:var(--kb8-pgd);color:v
 /* Sélection multi-types + panneau « Personnaliser » (maquette 29/09) : coche
    de tuile, rangée d'indice, panneau flottant — positions logiques (inline),
    sans left/right dur, pour rester bidi-sûres. */
-.kb-type-check{position:absolute;top:12px;inset-inline-end:10px;width:16px;height:16px;border-radius:5px;border:1.5px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);display:flex;align-items:center;justify-content:center;color:var(--dsw-alias-label-primary-foreground,#fff);flex:none;box-sizing:border-box}
+.kb-type-check{position:absolute;top:8px;inset-inline-end:8px;width:16px;height:16px;border-radius:5px;border:1.5px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);display:flex;align-items:center;justify-content:center;color:var(--dsw-alias-label-primary-foreground,#fff);flex:none;box-sizing:border-box}
 .kb-type-check.on{background:var(--dsw-alias-brand-primary,#5563d6);border-color:var(--dsw-alias-brand-primary,#5563d6)}
 .kb-typehint{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:0 2px 4px;font-size:12px;color:var(--dsw-alias-label-secondary)}
 .kb-typehint-end{display:flex;align-items:center;gap:10px;min-width:0;flex-wrap:wrap;margin-inline-start:auto}
@@ -29592,17 +29638,15 @@ body[data-ds-dark-theme] .kb8-iconbtn.on.col{border-color:var(--kb8-pgd);color:v
 .kb-typepanel-grouplab{font-family:ui-monospace,monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--dsw-alias-label-secondary);padding:10px 6px 4px}
 .kb-typepanel-row{display:flex;align-items:center;gap:10px;min-height:40px;padding:0 6px;border-radius:8px;cursor:pointer}
 .kb-typepanel-row:hover{background:var(--dsw-alias-bg-layer-2)}
-.kb-typepanel-thumb{width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;flex:none;overflow:hidden}
-.kb-typepanel-thumb .kbm{transform:scale(.6)}
-/* Jeu d'icônes de type unique (Livrables) : bande des tuiles, panneau Personnaliser,
-   vignettes de liste, en-tête de carte, visionneuse. Couleurs = jetons (rôles A/B/N/P). */
-.kb-ti{display:block;flex:none}
-.kb-type-view .kb-ti{width:34px;height:34px}
-.kb-typepanel-thumb{background:var(--dsw-alias-interactive-bg-hover)}
-.kb-typepanel-thumb .kb-ti{width:22px;height:22px}
-.kb6-ico.kb6-ico-ti{width:24px;height:24px}
-.kb6-vico{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:10px;background:var(--dsw-alias-interactive-bg-hover);flex:none}
-.kb6-prevkind .kb-ti{opacity:1}
+.kb-typepanel-thumb{width:44px;height:30px;border-radius:7px;flex:none;overflow:hidden}
+.kb-typepanel-thumb.kb8-sl-stage{height:30px}
+.kb-typepanel-thumb.kb8-sl-stage svg{width:40px;height:28px}
+.kb6-ico.kb6-ico-ti{width:34px;height:24px;border-radius:7px;overflow:hidden}
+.kb6-ico.kb6-ico-ti.kb8-sl-stage{height:24px}
+.kb6-ico.kb6-ico-ti.kb8-sl-stage svg{width:30px;height:21px}
+.kb6-vico{display:inline-flex;align-items:center;justify-content:center;width:56px;height:38px;border-radius:10px;overflow:hidden;flex:none}
+.kb6-vico.kb8-sl-stage{height:38px}
+.kb6-vico.kb8-sl-stage svg{width:46px;height:32px}
 .kb-typepanel-lab{font-size:13px;color:var(--dsw-alias-label-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .kb-typepanel-cnt{font-size:11px;font-family:ui-monospace,monospace;color:var(--dsw-alias-label-secondary);margin-inline-start:auto;flex:none}
 .kb-typepanel-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 16px;border-top:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-2)}
@@ -30057,9 +30101,14 @@ button.kb8-docdl{background:transparent;font-family:inherit;cursor:pointer}
    l'en-tête cliquable et le corps, pour que toute la largeur soit cliquable. */
 .kb6-pinbtn.on{color:var(--dsw-alias-state-warn-label, var(--dsw-alias-state-warn-primary, #f5b301));border-color:var(--dsw-alias-state-warn-primary, #f5b301)}
 .kb6-previmg{width:100%;height:100%;object-fit:cover;display:block}
-.kb6-prevkind{display:flex;align-items:center;justify-content:center;opacity:.5;padding:6px 0}
+.kb6-prevkind{display:flex;align-items:center;justify-content:center;padding:6px 0}
+.kb6-prevkind.kb8-sl-stage{height:auto;background:none;padding:2px 0}
+.kb6-prevkind.kb8-sl-stage::before{display:none}
+.kb6-prevkind.kb8-sl-stage svg{width:48px;height:33px}
 /* Vignette + extrait enrichis des rangées Deliverables */
 .kb6-lthumb{width:46px;height:46px;border-radius:10px;flex:none;display:flex;align-items:center;justify-content:center;overflow:hidden;border:1px solid var(--dsw-alias-border-l1)}
+.kb6-lthumb.kb8-sl-stage{height:46px}
+.kb6-lthumb.kb8-sl-stage svg{width:40px;height:27px}
 .kb6-lthumb>img{width:100%;height:100%;object-fit:cover;display:block}
 .kb6-snip{font-family:ui-monospace,Menlo,monospace;font-size:10.5px;line-height:1.55;color:var(--dsw-alias-label-secondary);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-top:2px;white-space:pre-line}
 /* ── Artefacts rejouables : quiz, flashcards, popup ─────────────────────── */
