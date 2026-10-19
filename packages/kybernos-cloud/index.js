@@ -162,6 +162,14 @@ const keepingLatestChoice = (next) => {
   return Object.assign({}, next, { active_workspace_id: latest.active_workspace_id, space_plan: latest.space_plan === undefined ? null : latest.space_plan })
 }
 
+/** The state a writer that waited should write its own fields onto: the file as it is NOW (a refresh, a switch, a team created or joined meanwhile have written theirs), else the copy it
+ *  holds (signed out meanwhile: there is no file to be fresher than). A catalogue import holds the state across the server's answer and the rewrite of DSH's model route (about two
+ *  seconds), and used to write the whole copy back: a profile refresh that finished inside that window lost the list of teams it had written. */
+const latestOr = (held) => {
+  const latest = readState()
+  return latest !== null && typeof latest === 'object' && isConnected(latest) ? latest : held
+}
+
 /** Beside the state file: « this connection was ended by the server » (a device revoked from the account page, a server on a new database). Only the time and the
  *  reason, never the token: it is what lets the footer say « Sign in again » (and why) instead of the plain signed-out words, across a reload and a restart. */
 const endedFile = () => stateFile() + '.ended'
@@ -1230,7 +1238,7 @@ const importCatalog = async (cause, options = {}) => {
   if (isConnected(state) !== true) return { ok: true, connected: false, status: 'none' }
   if (server().profile.services.llm === false) {
     const gone = await removeImportedCatalog(state)
-    if (gone.removed === true) { const next = Object.assign({}, state); delete next.models; writeState(keepingLatestChoice(next)) }
+    if (gone.removed === true) { const next = Object.assign({}, latestOr(state)); delete next.models; writeState(keepingLatestChoice(next)) }
     return { ok: true, connected: true, no_llm: true, summary: null }
   }
   const cat = await fetchCatalog(state)
@@ -1270,7 +1278,7 @@ const importCatalog = async (cause, options = {}) => {
     credential: credentialStored,
     reason: settingsOut.wrote === true ? null : (settingsOut.reason || 'settings_absent'),
   }
-  writeState(keepingLatestChoice(Object.assign({}, state, { models })))
+  writeState(keepingLatestChoice(Object.assign({}, latestOr(state), { models })))
   if (settingsOut.wrote === true) markApplied()
   return {
     ok: true,

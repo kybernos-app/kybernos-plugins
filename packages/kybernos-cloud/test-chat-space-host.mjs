@@ -21,7 +21,7 @@ const ACME = { id: '22222222-2222-4222-8222-222222222222', name: 'Acme', persona
 const STUDIO = { id: '33333333-3333-4333-8333-333333333333', name: 'Studio B', personal: false, role: 'member' }
 const SPACES = [PERSONAL, ACME, STUDIO]
 
-const api = { calls: [], planDelayMs: 0, listDelayMs: 0 }
+const api = { calls: [], planDelayMs: 0, listDelayMs: 0, modelsDelayMs: 0 }
 const apiServer = http.createServer((req, res) => {
   const path = new URL(req.url, 'http://x').pathname
   api.calls.push(req.method + ' ' + path)
@@ -30,6 +30,13 @@ const apiServer = http.createServer((req, res) => {
   if (req.method === 'GET' && /^\/v1\/workspaces\/[^/]+\/plan$/.test(path)) {
     const answer = () => reply(200, { plan: { key: 'team', name: 'Team', kind: 'team' }, level: '1-5 seats', status: 'active' })
     return api.planDelayMs > 0 ? setTimeout(answer, api.planDelayMs) : answer()
+  }
+  if (req.method === 'GET' && path === '/v1/models') {
+    const answer = () => reply(200, { object: 'list', data: [{ id: 'kys-test-model', object: 'model' }] })
+    // `modelsOnce`: only the first read is slow (the import of the switch), the next ones (the refresh's own) are not.
+    const delay = api.modelsDelayMs
+    if (api.modelsOnce === true) api.modelsDelayMs = 0
+    return delay > 0 ? setTimeout(answer, delay) : answer()
   }
   return reply(404, { error: 'not_found' })
 })
@@ -254,6 +261,26 @@ try {
   assert.equal(active(), ACME.id, 'the refresh that finished AFTER the switch did not put the previous team back')
   assert.equal(readState().space_plan.workspace_id, ACME.id, 'nor its plan')
   ok('a profile refresh in flight does not undo a switch made while it waited (it used to write back the active team it had read before)')
+
+  // 7c. A catalogue import in flight (the server is slow; a switch ends with one) must not put back the list of teams it read before: a refresh that finished meanwhile wrote a longer one.
+  // Found with scripts/check-team-folder-live.mjs: the team the check had just added vanished from the menu (the row to click was not there) when a refresh fell inside a switch.
+  writeState({ active_workspace_id: PERSONAL.id })
+  const NOVA = { id: '44444444-4444-4444-8444-444444444444', name: 'Nova Labs', personal: false, role: 'member' }
+  api.modelsDelayMs = 400
+  api.modelsOnce = true
+  const switching = post('space/active', { workspace_id: ACME.id })
+  await new Promise((resolve) => setTimeout(resolve, 150))
+  SPACES.push(NOVA)
+  assert.equal((await post('refresh', {})).json.ok, true)
+  assert.equal(readState().workspaces.length, 4, 'the refresh wrote the new team')
+  assert.equal((await switching).json.ok, true)
+  api.modelsDelayMs = 0
+  api.modelsOnce = false
+  assert.equal(readState().workspaces.some((w) => w.id === NOVA.id), true, 'the import that finished AFTER the refresh did not write back the list of teams it had read before')
+  assert.equal(active(), ACME.id)
+  SPACES.pop()
+  writeState({ active_workspace_id: PERSONAL.id })
+  ok('a catalogue import in flight does not put back the list of teams a refresh wrote while it waited')
 
   // 8. What is not what the engine sends breaks nothing.
   for (const junk of [{}, { agent: null }, { agent: {} }, { agent: { session: null } }, { agent: { session: { id: 'session-x-123' } }, turn: 1 }]) {
