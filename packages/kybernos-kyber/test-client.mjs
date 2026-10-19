@@ -40,6 +40,23 @@ const T = plugin.__test
   })())
 }
 
+// ── the phone's Kaby app: only a frame of /__kb/kaby/ opens Kaby's chat ──────────────────────────────
+{
+  const realParent = globalThis.window.parent
+  ok('outside any frame it is not the Kaby app', T.inKabyApp() === false)
+  globalThis.window.parent = { location: { pathname: T.KABY_APP_PATH } }
+  ok('a frame of /__kb/kaby/ is the Kaby app', T.inKabyApp() === true)
+  globalThis.window.parent = { location: { pathname: '/__kb/' } }
+  ok('a frame of the remote page is not', T.inKabyApp() === false)
+  globalThis.window.parent = { get location () { throw new Error('cross-origin') } }
+  ok('a frame that may not be read is not (and does not throw)', T.inKabyApp() === false)
+  globalThis.window.parent = globalThis.window
+  ok('a page that is its own parent is not', T.inKabyApp() === false)
+  if (realParent === undefined) delete globalThis.window.parent; else globalThis.window.parent = realParent
+  ok('the bridge is one effect of apply, and opens the chat with the sidebar row\'s own call', /ctx\.effect\(\(\) => openKabyApp\(\)/.test(src) && /if \(!\(await openChat\(\)\)\)/.test(src))
+  ok('the bridge waits for the shell, then lets DSH\'s restoration go first', /shellReady\(\)/.test(src) && /await pause\(600\)/.test(src))
+}
+
 // ── strings: both languages, same placeholders ───────────────────────────────
 {
   const keys = Object.keys(T.S)
