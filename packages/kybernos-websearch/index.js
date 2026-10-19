@@ -10,7 +10,7 @@
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
-import { createWebSearch, mountRoutes, PROVIDER_ID } from './host.mjs'
+import { createWebSearch, mountRoutes, pinnedProvider, PROVIDER_ID } from './host.mjs'
 import { makeHttp } from './net.mjs'
 
 export const name = 'kybernos-websearch'
@@ -69,8 +69,7 @@ export function ioOf (ctx, state = { registered: false }) {
     seam: () => {
       let pinned = null
       try {
-        const web = ctx.get('web')
-        if (web !== undefined && web !== null && typeof web.searchProviderId === 'string') pinned = web.searchProviderId
+        pinned = pinnedProvider(ctx.get('web'))
       } catch (e) { /* no web seam */ }
       return { registered: state.registered, pinned }
     }

@@ -308,8 +308,10 @@ window.__ModuleLoader__.load({
             : kt('Moteur par défaut : ', 'Default engine: ') + nameOf(defaultId) + kt(' — les agents l’essaient en premier.', ' — agents try it first.')),
           wrongPin
             ? h('p', { className: 'kwse-banner', 'data-kb': 'websearch-banner' }, kt(
-              'DSH est réglé sur un autre fournisseur (« ' + state.pinned + ' ») : cette liste n’est pas utilisée tant que la ligne « web » du profil n’est pas revenue à « ' + state.provider + ' ».',
-              'DSH is set to another provider (“' + state.pinned + '”): this list is not used until the profile’s “web” row is back to “' + state.provider + '”.'))
+              'DSH est réglé sur un autre fournisseur (« ' + state.pinned + ' ») : cette liste n’est pas utilisée tant que la ligne « web » du profil n’est pas revenue à « ' + state.provider + ' ».' +
+                (/^deepseek/.test(state.pinned) ? ' Le réglage « Use the new Web Search API » de DSH (page DeepSeek) écrit ce choix, même quand on le remet sur off.' : ''),
+              'DSH is set to another provider (“' + state.pinned + '”): this list is not used until the profile’s “web” row is back to “' + state.provider + '”.' +
+                (/^deepseek/.test(state.pinned) ? ' DSH’s “Use the new Web Search API” switch (DeepSeek page) writes this choice, even when it is put back off.' : '')))
             : null,
           state.registered !== true
             ? h('p', { className: 'kwse-banner', 'data-kb': 'websearch-banner' }, kt('Le fournisseur n’est pas enregistré auprès de DSH : redémarre DSH pour l’activer.', 'The provider is not registered with DSH: restart DSH to activate it.'))
