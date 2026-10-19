@@ -236,7 +236,9 @@ try {
   writeFileSync(foldersFile, JSON.stringify(records, null, 2), { mode: 0o600 })
   await reload()
   await until(async () => (await status()).space_folder === folderOf('Joined Co'), 8000)
-  check('an active team with no recorded folder gets one at the next page load (the page asks the host, once), and no chat is opened by it', (await status()).space_folder === folderOf('Joined Co') && isDir(folderOf('Joined Co')) && (await folderAsks()) === 1 && (await heroTitle()) === 'Joined Co', { sf: (await status()).space_folder, asks: await folderAsks() })
+  // The page shows the chat DSH reopens (Joined Co's): waited for, not read the moment the host has recorded the folder (the hero is drawn a moment after the shell).
+  const joinedShown = await heroIs('Joined Co')
+  check('an active team with no recorded folder gets one at the next page load (the page asks the host, once), and no chat is opened by it', (await status()).space_folder === folderOf('Joined Co') && isDir(folderOf('Joined Co')) && (await folderAsks()) === 1 && joinedShown === true, { sf: (await status()).space_folder, asks: await folderAsks(), hero: await heroTitle() })
 
   // 9. A disk that refuses: the switch still works, there is no folder pill and nothing is opened; once the disk allows it the next page load makes the folder.
   chmodSync(ROOT, 0o555)

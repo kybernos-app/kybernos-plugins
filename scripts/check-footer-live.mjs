@@ -816,7 +816,13 @@ try {
     check('and the host wrote the marked section of AGENTS.md (what every agent reads)', written.includes('<!-- kybernos:custom-instructions v1 -->') && written.includes(INSTR), written.slice(0, 200))
     await reload()
     await openDshSettings()
-    await openCell('kybernos-local')
+    // After a reload the dialog and its cell are drawn a moment after the page: a press lost to a redraw (or a dialog that closed again), seen twice in twelve runs on a busy machine with the
+    // section never drawn, is made again (the dialog opened first when it is not there), up to three times.
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      if (attempt > 0 && !(await settingsOpen())) await openDshSettings()
+      await openCell('kybernos-local')
+      if ((await waitFor(page, `document.querySelector('[data-kb="ky-section"]') !== null`, 8000)) !== null) break
+    }
     await kySectionLoaded()
     // The field is filled from the file once the host has answered: awaited until it holds the text (20 s), not read at the moment the section is drawn.
     await waitFor(page, `document.querySelector('[data-kb="ky-instr-field"]') !== null && document.querySelector('[data-kb="ky-instr-field"]').value === ${JSON.stringify(INSTR)}`, 20000)
@@ -1078,8 +1084,11 @@ try {
         }
       } else {
         check(count + ': the menu itself holds no list, the row says « Switch team »', (await rowsOf('.kbfp-menu')).length === 0 && /Switch team/.test((await text('.kbfp-menu [data-kb="menu-switch"]')) || ''))
-        await press('.kbfp-menu [data-kb="menu-switch"]')
-        await until(() => exists('.kbfp-sub [data-kb="space-row"]'), 4000)
+        // The list opens on the press; a press lost to a redraw (a busy machine) is pressed again, but only while the list is not there (a second press on an open list would close it).
+        for (let attempt = 0; attempt < 3 && !(await exists('.kbfp-sub [data-kb="space-row"]')); attempt += 1) {
+          await press('.kbfp-menu [data-kb="menu-switch"]')
+          await until(() => exists('.kbfp-sub [data-kb="space-row"]'), 5000)
+        }
         await sleep(300)
         const rows = await rowsOf('.kbfp-sub')
         check(count + ': it opens the full list next to the menu, with every space, « Create a team » and « Join with an invitation link »', rows.length === count && (await exists('.kbfp-sub [data-kb="space-create"]')) && (await exists('.kbfp-sub [data-kb="space-join"]')), rows.length)
