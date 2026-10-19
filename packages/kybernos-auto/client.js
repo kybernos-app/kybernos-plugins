@@ -100,9 +100,18 @@ window.__ModuleLoader__.load({
       }
     }
 
+    // Lift the menu only as far as it still covers the model picker. Until DSH 0.2.1-alpha.4 the menu kept its top edge when the panel made it
+    // taller, so it was lifted by the panel's height; from 0.2.1-rc.2 the engine re-places it when its size changes, and lifting it again left a
+    // gap of the panel's height above the picker (measured on the real GUI). The offset is measured, not assumed.
     const decaler = (menu) => {
       if (panneau === null || panneau.parentElement !== menu) return
-      menu.style.transform = 'translateY(' + (-Math.round(panneau.offsetHeight)) + 'px)'
+      const bouton = document.querySelector('button[aria-label^="Select model"]')
+      menu.style.transform = ''
+      if (bouton === null) { menu.style.transform = 'translateY(' + (-Math.round(panneau.offsetHeight)) + 'px)'; return }
+      const m = menu.getBoundingClientRect()
+      const b = bouton.getBoundingClientRect()
+      const recouvre = m.top < b.top ? m.bottom - b.top + 8 : 0
+      if (recouvre > 0) menu.style.transform = 'translateY(' + (-Math.round(recouvre)) + 'px)'
     }
 
     const construirePanneau = () => {
