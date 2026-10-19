@@ -106,34 +106,35 @@ try {
   await ev(D, `(() => { const d = Array.from(document.querySelectorAll('[role="dialog"]')).find((x) => /Get started/i.test(x.textContent)); if (!d) return false; const b = Array.from(d.querySelectorAll('button')).find((x) => x.textContent.trim() === '' || /close/i.test(x.getAttribute('aria-label') || '')); if (b) b.click(); return !!b })()`)
   await sleep(500)
 
-  // 1. the profile menu's « Remote control » entry (the footer's own phone button is gone)
-  console.log('the sidebar\'s phone panel')
+  // 1. the profile menu's « Phone and channels » entry (the footer's own phone button is gone)
+  console.log('the account menu\'s Phone and channels window')
   const profileRow = await ev(D, `(() => { const b = document.querySelector('[data-kb="workspace-card"] .kbfp-cardmain'); if (!b) return false; b.click(); return true })()`)
   await sleep(600)
-  const opened = profileRow === true && await ev(D, `(() => { const e = document.querySelector('[data-kb="menu-remote"]'); if (!e) return false; e.click(); return true })()`)
-  check('the profile menu has the « Remote control » entry (the account card is there: the stand-in server signed this DSH in)', opened === true)
-  const panelUp = await until(D, `!!document.querySelector('[data-kb="mobile-panel"] [data-kb="mobile-qr"] svg')`, 20000)
-  check('opening it shows a real QR code, not the preview', panelUp === true)
-  check('the preview note is gone', (await text(D, '.kbf-qrnote')) === null)
-  await shot(D, '1-panel')
+  const opened = profileRow === true && await ev(D, `(() => { const e = document.querySelector('[data-kb="menu-phone"]'); if (!e) return false; e.click(); return true })()`)
+  check('the profile menu has the « Phone and channels » entry (the account card is there: the stand-in server signed this DSH in)', opened === true)
+  check('the window opens with « Add a phone » and has asked for no code by itself', await until(D, `!!document.querySelector('[data-kb="phone-channels"] [data-kb="mobile-pair"]')`, 20000) && !(await exists(D, '[data-kb="phone-channels"] [data-kb="mobile-qr"]')))
+  await click(D, '[data-kb="phone-channels"] [data-kb="mobile-pair"]')
+  const panelUp = await until(D, `!!document.querySelector('[data-kb="phone-channels"] [data-kb="mobile-qr"] svg')`, 20000)
+  check('« Add a phone » shows a real QR code', panelUp === true)
+  await shot(D, '1-window')
 
-  // the « ? How it works » button on the panel's title row opens the card of help.json, wholly inside the window, and closing it leaves the panel
-  console.log('the panel\'s « ? How it works » card')
-  const helpButton = '[data-kb="mobile-panel"] [data-kb="help-button"][data-id="kybernos-mobile"]'
+  // the « ? How it works » button on the window's title row opens the card of help.json, wholly inside the window, and closing it leaves the QR code
+  console.log('the window\'s « ? How it works » card')
+  const helpButton = '[data-kb="phone-channels"] [data-kb="help-button"][data-id="kybernos-mobile"]'
   check('the title row carries the button', await until(D, `!!document.querySelector(${q(helpButton)})`, 15000))
   await click(D, helpButton)
-  check('it opens the card', await until(D, `!!document.querySelector('[data-kb="mobile-panel"] [data-kb="help-panel"]')`, 5000))
+  check('it opens the card', await until(D, `!!document.querySelector('[data-kb="phone-channels"] [data-kb="help-panel"]')`, 5000))
   // The words come from the catalogue the Suite shows (the signed online one wins over the shipped help.json): what they say is packages/kybernos-mobile/test-help.mjs's, here it is that the card has a body.
-  const card = await text(D, '[data-kb="mobile-panel"] [data-kb="help-panel"]')
-  check('the card has its text (what it is, the steps, where to find it)', typeof card === 'string' && card.length > 120 && (await ev(D, `document.querySelectorAll('[data-kb="mobile-panel"] [data-kb="help-panel"] ol li').length`)) >= 2, card)
-  const box = await ev(D, `(() => { const e = document.querySelector('[data-kb="mobile-panel"] [data-kb="help-panel"]'); if (!e) return null; const r = e.getBoundingClientRect(); return { left: r.left, top: r.top, right: r.right, bottom: r.bottom, w: innerWidth, h: innerHeight, scrolls: e.scrollHeight > e.clientHeight + 1 } })()`)
+  const card = await text(D, '[data-kb="phone-channels"] [data-kb="help-panel"]')
+  check('the card has its text (what it is, the steps, where to find it)', typeof card === 'string' && card.length > 120 && (await ev(D, `document.querySelectorAll('[data-kb="phone-channels"] [data-kb="help-panel"] ol li').length`)) >= 2, card)
+  const box = await ev(D, `(() => { const e = document.querySelector('[data-kb="phone-channels"] [data-kb="help-panel"]'); if (!e) return null; const r = e.getBoundingClientRect(); return { left: r.left, top: r.top, right: r.right, bottom: r.bottom, w: innerWidth, h: innerHeight, scrolls: e.scrollHeight > e.clientHeight + 1 } })()`)
   check('the card is wholly inside the window', box !== null && box.left >= 0 && box.top >= 0 && box.right <= box.w && box.bottom <= box.h, box)
-  // Inside the window is not visible: the sidebar clips what leaves it (the first version of the card was cut at the sidebar's edge, and its box was « on screen »). Three points of the card must hit the card.
-  const seen = await ev(D, `(() => { const e = document.querySelector('[data-kb="mobile-panel"] [data-kb="help-panel"]'); if (!e) return null; const r = e.getBoundingClientRect(); const at = (x, y) => { const t = document.elementFromPoint(x, y); return !!t && e.contains(t) }; return { topLeft: at(r.left + 8, r.top + 8), right: at(r.right - 8, r.top + r.height / 2), bottomRight: at(r.right - 8, r.bottom - 8) } })()`)
-  check('and none of it is cut by the sidebar (its top-left, right edge and bottom-right corner answer to it)', seen !== null && seen.topLeft === true && seen.right === true && seen.bottomRight === true, seen)
-  await shot(D, '1b-panel-help')
-  await click(D, '[data-kb="mobile-panel"] .kbhp-x')
-  check('its ✕ closes the card and the QR code stays', (await exists(D, '[data-kb="mobile-panel"] [data-kb="mobile-qr"] svg')) && !(await exists(D, '[data-kb="help-panel"]')))
+  // Inside the window is not visible: three points of the card must hit the card (nothing clips or covers it).
+  const seen = await ev(D, `(() => { const e = document.querySelector('[data-kb="phone-channels"] [data-kb="help-panel"]'); if (!e) return null; const r = e.getBoundingClientRect(); const at = (x, y) => { const t = document.elementFromPoint(x, y); return !!t && e.contains(t) }; return { topLeft: at(r.left + 8, r.top + 8), right: at(r.right - 8, r.top + r.height / 2), bottomRight: at(r.right - 8, r.bottom - 8) } })()`)
+  check('and none of it is cut or covered (its top-left, right edge and bottom-right corner answer to it)', seen !== null && seen.topLeft === true && seen.right === true && seen.bottomRight === true, seen)
+  await shot(D, '1b-window-help')
+  await click(D, '[data-kb="phone-channels"] .kbhp-x')
+  check('its ✕ closes the card and the QR code stays', (await exists(D, '[data-kb="phone-channels"] [data-kb="mobile-qr"] svg')) && !(await exists(D, '[data-kb="help-panel"]')))
 
   const decode = `(async () => {
     const svg = document.querySelector('[data-kb="mobile-qr"] svg')
@@ -149,23 +150,31 @@ try {
   check('Chrome decodes the QR code into the pairing link', typeof link === 'string' && new RegExp('^' + ORIGIN.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '/__kb/#[A-Za-z0-9_-]{16,}\\.[A-Za-z0-9_-]{16,}\\.[A-Za-z0-9_-]{80,}$').test(link), typeof link === 'string' ? link.slice(0, 80) : link)
   if (backend.pairingsAsked() !== null) check('the server was asked for exactly one pairing', backend.pairingsAsked() === 1, backend.pairingsAsked())
 
-  // 2. the settings page, reached from the panel
-  console.log('Settings › Remote Control')
-  check('the panel offers « Manage phones »', await exists(D, '[data-kb="mobile-manage"]'))
-  await click(D, '[data-kb="mobile-manage"]')
+  // 2. the window is closed (that withdraws the code nobody scanned: the server is told), and the Settings page makes the pairing the rest of this check
+  //    plays; it is the same screen, so it gives the same QR code, from « Add a phone ».
+  console.log('Settings › Phone and channels')
+  const before = backend.pairingsAsked()
+  await click(D, '[data-kb="phone-channels-close"]')
+  check('the cross closes the window', await until(D, `!document.querySelector('[data-kb="phone-channels"]')`, 8000))
+  await ev(D, `window.__kbOpenDshSettings && window.__kbOpenDshSettings()`)
+  await until(D, `document.querySelectorAll('[class*="navCell"]').length > 3`, 15000)
+  await ev(D, `(() => { const b = Array.from(document.querySelectorAll('button[class*="navCell"]')).find((e) => { const n = Object.keys(e).find((k) => k.indexOf('__reactFiber$') === 0); return n && e[n].key === 'kybernos-mobile' }); if (b) b.click(); return !!b })()`)
   const pageUp = await until(D, `!!document.querySelector('[data-kb="mobile-page"]')`, 15000)
-  check('it opens Settings › Remote Control', pageUp === true)
-  check('the page shows the pairing in progress (same QR, the person did not start another)', await exists(D, '[data-kb="mobile-page"] [data-kb="mobile-qr"] svg'))
+  check('Settings › Phone and channels opens', pageUp === true)
+  check('the page has both columns and asks for no code by itself', await exists(D, '[data-kb="mobile-page"] [data-kb="phone-remote"]') && (await exists(D, '[data-kb="mobile-page"] [data-kb="phone-channels-card"]') || await exists(D, '[data-kb="mobile-page"] [data-kb="phone-channels-off"]')) && !(await exists(D, '[data-kb="mobile-page"] [data-kb="mobile-qr"]')))
+  await click(D, '[data-kb="mobile-page"] [data-kb="mobile-pair"]')
+  check('« Add a phone » on the page shows a QR code', await until(D, `!!document.querySelector('[data-kb="mobile-page"] [data-kb="mobile-qr"] svg')`, 20000))
   await sleep(600)
   await shot(D, '2-settings')
   const link2 = await ev(D, decode, 15000)
-  check('and it is the same code (one pairing at a time)', link2 === link)
+  check('and it is a pairing link of its own, which Chrome decodes', typeof link2 === 'string' && link2.startsWith(ORIGIN + '/__kb/#') && link2 !== link)
+  if (before !== null) check('the server was asked for a second pairing, not more', backend.pairingsAsked() === before + 1, backend.pairingsAsked())
 
   // 3. the phone scans it
   console.log('the phone')
   phone = await openPhone()
   const P = phone.page
-  await P.send('Page.navigate', { url: link })
+  await P.send('Page.navigate', { url: link2 })
   const verifying = await until(P, `window.__kb && window.__kb.state === 'verify'`, 20000)
   check('the phone page reaches the 4-digit check', verifying === true, await ev(P, `JSON.stringify(window.__kb || null)`))
   const phoneSas = await ev(P, `window.__kb && window.__kb.sas`)

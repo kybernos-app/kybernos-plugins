@@ -1579,7 +1579,7 @@
     {
       "id": "kybernos-mobile",
       "nom": "@local/kybernos-mobile",
-      "titre": "Remote Control",
+      "titre": "Phone and channels",
       "glyphe": "mobile",
       "famille": "base",
       "palier": "core",
@@ -1593,13 +1593,13 @@
       },
       "aide": {
         "what": {
-          "fr": "Ton téléphone ouvre une application web qui parle à ton ordinateur par un relais qui ne lit rien : tout est chiffré de bout en bout.",
-          "en": "Your phone opens a web app that talks to your computer through a relay that reads nothing: everything is end-to-end encrypted."
+          "fr": "Ton téléphone ouvre une application web qui parle à ton ordinateur par un relais qui ne lit rien : tout est chiffré de bout en bout. Le même écran relie Telegram, pour parler à Kaby.",
+          "en": "Your phone opens a web app that talks to your computer through a relay that reads nothing: everything is end-to-end encrypted. The same screen links Telegram, to talk to Kaby."
         },
         "steps": [
           {
-            "fr": "Sur l’ordinateur, ouvre le menu du compte (en bas de la barre latérale) › « Contrôle à distance » : un code QR s’affiche.",
-            "en": "On the computer, open the account menu (bottom of the sidebar) › “Remote control”: a QR code appears."
+            "fr": "Sur l’ordinateur, menu du compte (bas de la barre latérale) › « Téléphone et canaux », puis « Ajouter un téléphone » : un code QR s’affiche.",
+            "en": "On the computer, account menu (bottom of the sidebar) › “Phone and channels”, then “Add a phone”: a QR code appears."
           },
           {
             "fr": "Sur le téléphone, scanne le code avec l’appareil photo et ouvre le lien. Un code à 4 chiffres s’affiche.",
@@ -1611,8 +1611,8 @@
           }
         ],
         "where": {
-          "fr": "Menu du compte (bas de la barre latérale) › Contrôle à distance ; Réglages › Remote Control pour retirer un téléphone",
-          "en": "Account menu (bottom of the sidebar) › Remote control; Settings › Remote Control to remove a phone",
+          "fr": "Menu du compte (bas de la barre latérale) › Téléphone et canaux ; la même page dans Réglages › Téléphone et canaux",
+          "en": "Account menu (bottom of the sidebar) › Phone and channels; the same page in Settings › Phone and channels",
           "page": true
         },
         "good": {
