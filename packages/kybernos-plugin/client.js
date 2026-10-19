@@ -17561,6 +17561,9 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       const pagerTop = (vp) => (vp.pages > 1 ? h('div', { style: { display: 'flex', justifyContent: 'flex-end' } }, pagerOf(vp)) : null)
       if (ws === null) return h('div', { className: 'kb9-empty' }, kbt('kbui.project.notfound'))
       const saveDetails = async (patch) => {
+        // « Save now » calls saveDetails() with no argument: without a guard,
+        // patch.name throws a TypeError on undefined (recette 2026-10-20).
+        if (patch === null || patch === undefined) patch = {}
         const n = patch.name !== undefined ? patch.name : nameDraft
         const ic = patch.icon !== undefined ? patch.icon : iconDraft
         const co = patch.color !== undefined ? patch.color : colorDraft
@@ -17638,7 +17641,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
               kbLookColor(colorDraft, (c) => updateDetails({ color: c }))),
             // The folded "Advanced" preview of the multi-device satellite (nothing when it is off).
             kbMdExtras('advanced', ws),
-            h('span', { className: 'kb8-sub' }, 'Changing the name, icon or colour updates the project everywhere in DHS.'))
+            h('span', { className: 'kb8-sub' }, 'Changing the name, icon or colour updates the project everywhere in DSH.'))
         }
         if (tab === 'Threads') {
           // Plus de maquette : soit de vrais threads, soit un etat vide explicite.
