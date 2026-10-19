@@ -128,7 +128,7 @@ Nothing in the panel is written: the text stays the source.
 ## Where the runs of an automation land (its workspace)
 
 A DSH workspace is a folder the engine adopted (the page calls it a project), and a session lives in one: it is where the run's agents
-work and where the files they write stay. Each automation has **one workspace choice** (the **Workspace** field of its form, the id kept
+work and where the files they write stay. Each automation has **one workspace choice** (the **Workspace** field of its form, where the dedicated workspace is the first option and is not listed a second time; the id is kept
 as `workspaceHint` in `tasks.json`; the detail page says « Workspace: X »):
 
 - **A workspace of the person's own**: every run lands in it.
@@ -155,13 +155,20 @@ block of `client.js` (every text is an English / French pair; the other language
 - **A template is a starting point, not an automation.** « Import » and « Use this template » open a NEW chat (the same call as
   « Create » and « Edit in chat ») whose draft names the `automation-creator` skill, carries the template (what starts it, the draft
   steps, the questions with their options, what to connect, the rules) and asks for a real task that stays **OFF** until everything is
-  connected. Nothing is created by clicking the card.
+  connected. Nothing is created by clicking the card. The first line of the draft is « Follow this conversation in my language: French
+  (fr) »: the page's language, read at the click (so it follows a change of language in DSH), named in English with its code for the model
+  (`kybernos` is the French of the page); no language, no line.
 - **Nothing the engine cannot do is promised.** A cap, a hand-over or a memory check in a template is an instruction written into the
   steps, not a mechanism of the engine; the scheduler has schedules, one date and webhooks, so a template that « starts on a message »
   says a webhook calls it. No template speaks of a budget or a payment: there is no runtime for them (test-automation-templates.mjs fails
   on those words).
-- **No image is shipped.** The repository holds no media (`garde-depot.mjs`), so the cover of a template page is drawn in code (two inks on
-  paper, halftone dots, a misregistered glyph), and the compact cards carry no cover at all.
+- **The integrations show their real logos.** The apps of a template (the round tiles of a card, the **Integrations** list of its page) use the
+  logos of the connectors catalogue, the one the Connections page draws: one GET of `/kybernos/composio/catalog` (the connectors plugin's
+  host route), kept for the session, each SVG filtered when it is read (a plain `<svg>`, no script, handler, foreign object or external
+  link) and put on a white tile. An app the catalogue does not know (Twilio) keeps its initial in a round tile, and so does every app when
+  the connectors plugin is off or the host does not answer.
+- **No image file is shipped.** The repository holds no media (`garde-depot.mjs`), so the cover of a template page is drawn in code (two inks on
+  paper, halftone dots, a misregistered glyph), the compact cards carry no cover at all, and the logos come from the catalogue at run time.
 
 ## The runs of an automation (Sessions and Journal)
 
@@ -514,7 +521,7 @@ node packages/kybernos-plugin/test-automation-templates.mjs  # Discover: the ten
 node packages/kybernos-plugin/test-newchat.mjs         # the cards, the Cloud Computer state, the hidden native entry, the starters pinned
 node scripts/test-tasks-route.mjs                      # the tasks route, the tick, webhooks, and tasks/occurrences (guards, bounds, corrupt store)
 node scripts/check-automations-board-live.mjs [--stub-model]  # live GUI, on a sandbox only: the four views, Run now, banner, French, 375 px; with a stub model: running, waiting, Approve / Refuse
-node scripts/check-automations-discover-live.mjs [--shots <dir>]  # live GUI, on a sandbox only (restart it first: host routes): Discover and the chat it opens, Cards, the Flow panel, the Journal lessons and the skill file, the workspace of the runs (a real Run now), the settings, 390 px
+node scripts/check-automations-discover-live.mjs [--shots <dir>]  # live GUI, on a sandbox only (restart it first: host routes): Discover with its logos and the chat it opens (language line first), Cards, the Flow panel, the Journal lessons and the skill file, the workspace of the runs (a real Run now), the settings, 390 px
 node packages/kybernos-plugin/test-seed-skills.mjs     # 27: skill seeding (a user's own skill is never overwritten)
 node scripts/test-shipped-skills-wiring.mjs            # the real index.js seeds under DSH_HOME, not under the other HOME
 node scripts/test-automation-creator-parity.mjs        # the skill validates crons and zones exactly like the scheduler
