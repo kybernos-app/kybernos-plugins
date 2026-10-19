@@ -4308,14 +4308,37 @@ const lastTurnText = (messages) => {
   // tell what the user taught from what the agent asserted —
   // and the instruction « extract only what the user taught » becomes
   // inapplicable (observed risk: the agent quotes itself).
-  const both = (left === '' ? '' : 'USER:\n' + left + '\n\n') + (right === '' ? '' : 'AGENT:\n' + right)
+  // The agent's words come with the turn only as the context of a SHORT reply (« yes, Paris » answers the agent's question). After a question, or a message long enough to
+  // stand alone, they are an answer or a recap (often of the person's own memory read back): measured live, « what do you know about me? » made the capture write three
+  // memories it had just read, so they are not submitted.
+  const withAgent = left === '' || (left.length <= CAPTURE_REPLY_MAX && /\?\s*$/u.test(left) === false)
+  const both = (left === '' ? '' : 'USER:\n' + left + '\n\n') + (right === '' || withAgent === false ? '' : 'AGENT:\n' + right)
   return both.trim() === '' ? null : both.trim().slice(0, 6000)
 }
+
+/** The person's own words of the last turn, with the same filters as the turn text (what `isLasting` reads). */
+const lastUserWords = (messages) => {
+  const user = messages.filter((m) => m.role === 'user' && !(m.source !== null && typeof m.source === 'object' && typeof m.source.kind === 'string' && m.source.kind !== 'user')).slice(-1)[0]
+  if (user === undefined || Array.isArray(user.content) === false) return ''
+  return stripMemoryBlock(user.content.filter((b) => b !== null && typeof b === 'object' && b.type === 'text' && typeof b.text === 'string').map((b) => b.text).join('\n'))
+}
+
+/** A message this short, and not a question, is a reply: the agent's question before it is its context. */
+const CAPTURE_REPLY_MAX = 80
+const foldWords = (value) => String(value).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[’']/g, ' ')
+const LASTING_MARKER = /\b(always|never|from now on|going forward|by default|in future|prefer|preference|toujours|jamais|desormais|dorenavant|par defaut|a l avenir|prefere|preferes|preference|siempre|nunca|por defecto|prefiero)\b/
+/** Does the person say this lasts? « Answer in Spanish » is about one answer; « I prefer Spanish », « always » and « from now on » are about the future. */
+const isLasting = (userWords) => LASTING_MARKER.test(foldWords(userWords))
+/** A preference or a rule is kept only when the person said it lasts; a fact or an event is what it is. */
+const keepCaptured = (facts, userWords) => facts.filter((f) => (f.kind !== 'preference' && f.kind !== 'policy') || isLasting(userWords))
 
 const CAPTURE_PROMPT = 'You read the end of a conversation turn between a user and their coding agent. '
   + 'Extract ONLY what the user taught about themselves, their environment or their lasting preferences '
   + '(for example “I live in Paris”, “I prefer answers in French”, “this project deploys on Fly.io”). '
   + 'Extract nothing that is a detail of the current task, a temporary file path or a guess. '
+  + 'The AGENT part, when there is one, is context only: never extract something that only the AGENT said, or that it read back from the user\'s memory. '
+  + 'A request about this answer only (its language, length or format, “answer in Spanish”, “translate this”) is not a preference: '
+  + 'keep a preference only if the user says it lasts (“always”, “from now on”, “by default”, “I prefer”). '
   + 'Answer in strict JSON: {"memories":[{"content":"…","kind":"fact|preference|event|policy"},…]} '
   + 'or {"memories":[]} if there is nothing. No text around the JSON.'
 
@@ -4392,7 +4415,7 @@ const captureTurn = async (ctx, agent, signal) => {
     const text = lastTurnText(messages)
     if (text === null || text.length < CAPTURE_MIN_CHARS) return noteCapture('tour_trop_court', 0)
     if (ctx.get('llm') === undefined) return noteCapture('llm_indisponible', 0)
-    const facts = await extractFacts(ctx, agent, text, signal)
+    const facts = keepCaptured(await extractFacts(ctx, agent, text, signal), lastUserWords(messages))
     if (facts.length === 0) return noteCapture('rien_a_retenir', 0)
     // Idempotence: a fact already present in the account is not rewritten. Without
     // this guard, the same fact is written on every turn that carries it — the account
@@ -5241,7 +5264,7 @@ export {
   tidyScan, tidyRun, tidyApply, tidyUndo, tidyDismiss, tidySettings, tidyTick, tidyView, tidyFlags, TIDY_TUNING, TIDY_MAX_REMOVALS, studyModel,
   refreshMemoryCache, memoryCache,
   emptyMemoryCache, bumpMemoryCache, pushLessons, localLessons, localKybers, stateKyberMap,
-  listMemories, lastTurnText, memoryWriteTool, memorySearchTool, MEMORY_KINDS, MEMORY_SOURCES,
+  listMemories, lastTurnText, isLasting, keepCaptured, CAPTURE_PROMPT, memoryWriteTool, memorySearchTool, MEMORY_KINDS, MEMORY_SOURCES,
   captureTurn, lastCapture, extractFacts, stripMemoryBlock, normalizeMemory,
   MEMORY_MAX_CONTENT, MEMORY_MAX_INJECT_CHARS, MEMORY_TUNING,
   selectForPrompt, planInjection, readMemorySettings, noteOrigins, originOf, scheduleMemoryRefresh, parseWhen,
