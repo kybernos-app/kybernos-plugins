@@ -1841,6 +1841,41 @@ try {
   assert.equal(mod.lastTurnText([dsh('time-context', 'Time sampled while preparing turn 1'), { role: 'assistant', content: [{ type: 'text', text: 'x' }] }]).includes('USER:'), false, 'un tour sans mots de la personne n a pas de section utilisateur')
   ok('capture : seuls les mots de la personne (source.kind user) sont soumis, pas les messages de DSH au role user')
 
+  // 10n-bis-ter. Le tour d'une QUESTION n'a que les mots de la personne comme source : la reponse de l'agent est un rappel de la memoire (constate en live : « qu'est-ce que
+  // tu sais de moi ? » a reecrit trois souvenirs deja connus). Une reponse courte a une question de l'agent garde le contexte de l'agent.
+  const question = mod.lastTurnText([
+    { role: 'user', content: [{ type: 'text', text: 'Qu\'est-ce que tu sais de moi ?' }] },
+    { role: 'assistant', content: [{ type: 'text', text: 'Tu exploites un pipeline de prospection local.' }] },
+  ])
+  assert.ok(question.includes('USER:') && question.includes('sais de moi'), 'les mots de la personne restent')
+  assert.equal(question.includes('AGENT:'), false, 'la reponse a une question n est pas une source')
+  assert.equal(question.includes('pipeline'), false)
+  const longMessage = mod.lastTurnText([
+    { role: 'user', content: [{ type: 'text', text: 'Je travaille a Lyon dans une agence de design et je veux que tu gardes cela en tete pour la suite, merci beaucoup.' }] },
+    { role: 'assistant', content: [{ type: 'text', text: 'Entendu, je retiens Lyon et le design.' }] },
+  ])
+  assert.equal(longMessage.includes('AGENT:'), false, 'un long message de la personne se suffit')
+  const reply = mod.lastTurnText([
+    { role: 'user', content: [{ type: 'text', text: 'oui, Paris' }] },
+    { role: 'assistant', content: [{ type: 'text', text: 'Tu habites a Paris ?' }] },
+  ])
+  assert.ok(reply.includes('AGENT:'), 'une reponse courte garde la question de l agent comme contexte')
+  ok('capture : la reponse a une question (et a un long message) n est pas une source de souvenirs')
+
+  // 10n-bis-quater. Une demande ponctuelle n'est pas une preference : « reponds en espagnol » vaut pour CETTE reponse (constate en live : « prefere les reponses en espagnol »).
+  // Une preference ou une regle n'est retenue que si la personne dit que cela dure ; un fait ou un evenement n'a pas besoin de ce signal.
+  assert.equal(mod.isLasting('Réponds-moi en espagnol : comment t\'appelles-tu et que fais-tu ?'), false)
+  assert.equal(mod.isLasting('Traduis ceci en anglais, plus court'), false)
+  for (const lasting of ['Je préfère les réponses en espagnol', 'Réponds toujours en espagnol', 'Désormais, écris-moi en espagnol', 'From now on answer in Spanish', 'I prefer short answers', 'Por defecto, responde en español', 'Never reply with emojis']) {
+    assert.equal(mod.isLasting(lasting), true, lasting)
+  }
+  const proposed = [{ kind: 'preference', content: 'L\'utilisateur préfère les réponses en espagnol' }, { kind: 'policy', content: 'Tout reste local' }, { kind: 'fact', content: 'L\'utilisateur habite à Lyon' }, { kind: 'event', content: 'Rendez-vous garage le 3 novembre' }]
+  assert.deepEqual(mod.keepCaptured(proposed, 'Réponds-moi en espagnol : comment t\'appelles-tu ?').map((f) => f.kind), ['fact', 'event'], 'sans signal de duree, ni preference ni regle')
+  assert.deepEqual(mod.keepCaptured(proposed, 'Je préfère les réponses en espagnol').map((f) => f.kind), ['preference', 'policy', 'fact', 'event'])
+  assert.ok(/context only/.test(mod.CAPTURE_PROMPT) && /never extract something that only the AGENT said/.test(mod.CAPTURE_PROMPT), 'la consigne dit que la part de l agent est un contexte')
+  assert.ok(/this answer only/.test(mod.CAPTURE_PROMPT) && /from now on/.test(mod.CAPTURE_PROMPT), 'la consigne exclut une demande ponctuelle')
+  ok('capture : une demande ponctuelle n est pas une preference ; preference et regle demandent un signal de duree ; la consigne le dit')
+
   // 10n-ter. Le bloc injecte est retire avant extraction. Sans ce retrait, la
   // capture relit sa propre injection et reecrit le meme souvenir : boucle de
   // retroaction constatee EN LIVE (souvenir #53, duplicata exact de #51).
@@ -1865,7 +1900,10 @@ try {
   // attend la CONDITION, pas un delai fixe (60 ms ne suffisaient pas).
   llmEnabled = true
   const avant = memories.length
-  hook({ agent: { session: { deriveMessages: () => tour, id: 's-1' }, options: { provider: 'p', model: 'm' } }, signal: undefined })
+  // La personne dit que cela dure (« toujours ») : une preference ponctuelle serait ecartee avant meme la garde d'idempotence (voir 10n-bis-quater).
+  const tourDurable = [{ role: 'user', content: [{ type: 'text', text: 'je prefere toujours les reponses en francais ' + 'x'.repeat(160) }] },
+    { role: 'assistant', content: [{ type: 'text', text: 'voila, termine' }] }]
+  hook({ agent: { session: { deriveMessages: () => tourDurable, id: 's-1' }, options: { provider: 'p', model: 'm' } }, signal: undefined })
   const limite = Date.now() + 5000
   while (mod.lastCapture.status !== 'deja_connu' && Date.now() < limite) await new Promise((r) => setTimeout(r, 25))
   assert.equal(mod.lastCapture.status, 'deja_connu', 'un fait deja connu doit etre ignore, pas reecrit')
