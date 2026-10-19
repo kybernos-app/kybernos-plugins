@@ -4,6 +4,8 @@ Statut : **étude et maquette. Rien n'est construit, aucun fichier épinglé n'e
 
 Décision du propriétaire (19 octobre 2026) : l'application web Expo reste uniquement le site commercial et n'est pas touchée. Les deux applications se proposent depuis la **page téléphone** de la télécommande (`packages/kybernos-mobile/phone/`).
 
+**Suite, 19 octobre 2026 :** le propriétaire a retenu **D1** (deux pages et deux manifestes, option A) et **D2** (rattrapage d'abord). Le rattrapage est préparé, pas poussé ni fusionné, sur la branche `feature/phone-page-catch-up` du dépôt serveur (copie de `phone.mjs`, empreinte `670b372a…`, ligne dans l'ADR 0047 § 6 ; `test/remote-phone.test.ts` 4 sur 4, `pnpm ci:fast` passé, boucle complète non lancée). **Reste à lire par le propriétaire : les 8 lignes de reprise après trois trames perdues.** Prochaine étape : l'étape 0 sur appareils (§ 5).
+
 Ce que « vérifié » veut dire ici : mesuré sur la machine (avec le détail), ou lu dans le code ou dans une page officielle citée au § 10. Tout le reste est dans le § 7, « non vérifié », avec le test qui le lèverait.
 
 ## 1. Réponses courtes
