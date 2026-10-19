@@ -4508,6 +4508,38 @@ const Icon = (name, size) => {
   return h('svg', { width: size === undefined ? 16 : size, height: size === undefined ? 16 : size, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true', style: { flex: 'none' } },
     d.map((p, i) => h('path', { d: p, key: i })))
 }
+
+// ── Catégories de sessions, pour l'onglet Threads d'un workspace ─────────
+// Le registre vit chez kybernos-sessions (GET /kybernos-sessions/categories,
+// sessionId → { cat: slug }). On le lit une fois par page et on le cache : la
+// vignette de chaque rangée reprend la sémantique du sidebar (icône de
+// catégorie + accent de couleur), au lieu d'un « sparkles » identique pour
+// tous. Maquette validée du 20/10/2026 (~/recettes/workspaces-2026-10-20).
+let kbWsCatPromise = null
+const kbWsCats = () => {
+  if (kbWsCatPromise === null) {
+    kbWsCatPromise = fetch('/kybernos-sessions/categories').then((r) => r.json())
+      .then((j) => (j !== null && j !== undefined && j.categories !== null && typeof j.categories === 'object') ? j.categories : {})
+      .catch(() => ({}))
+  }
+  return kbWsCatPromise
+}
+// slug (registre) → [icône LUCIDE, accent, libellé]. Les slugs anglais sont
+// acceptés en repli ; sans catégorie, une bulle neutre garde la rangée lisible.
+const KB_WS_CAT = {
+  fonctionnalite: ['wrench', '#8b5cf6', 'Feature'], feature: ['wrench', '#8b5cf6', 'Feature'],
+  correctif: ['pencil', '#ef4444', 'Fix'], fix: ['pencil', '#ef4444', 'Fix'],
+  ui: ['palette', '#ec4899', 'UI/design'], design: ['palette', '#ec4899', 'UI/design'],
+  integration: ['plug', '#06b6d4', 'Integration'],
+  documentation: ['fileText', '#3b82f6', 'Documentation'], doc: ['fileText', '#3b82f6', 'Documentation'],
+  donnees: ['chart', '#f59e0b', 'Data'], data: ['chart', '#f59e0b', 'Data'],
+  nettoyage: ['refresh', '#14b8a6', 'Cleanup'], cleanup: ['refresh', '#14b8a6', 'Cleanup'],
+  question: ['circleHelp', '#84cc16', 'Question'],
+}
+const kbWsCatOf = (slug) => {
+  const e = (typeof slug === 'string') ? KB_WS_CAT[slug.toLowerCase()] : undefined
+  return e !== undefined ? { icon: e[0], color: e[1], label: e[2], known: true } : { icon: 'messageCircle', color: 'var(--dsw-alias-label-secondary)', label: null, known: false }
+}
 // L'icône par défaut d'un Kyber vit ici, en UN seul endroit : le menu
 // « AI Teams », la fiche d'un Kyber sans icône, la nouvelle équipe et la
 // vignette de l'éditeur la lisent tous. Changer cette ligne suffit à changer
@@ -17549,6 +17581,16 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       const wsDelBusyPair = React.useState(false)
       const wsDelBusy = wsDelBusyPair[0]
       const setWsDelBusy = wsDelBusyPair[1]
+      // Catégories des sessions du projet (vignettes de l'onglet Threads) :
+      // une lecture, un cache — revalider quand le workspace change.
+      const wsCatsPair = React.useState({})
+      const wsCats = wsCatsPair[0]
+      const setWsCats = wsCatsPair[1]
+      React.useEffect(() => {
+        let dead = false
+        kbWsCats().then((cats) => { if (dead === false) setWsCats(cats) })
+        return () => { dead = true }
+      }, [])
       const wsDelete = async () => {
         if (wsDelBusy === true) return
         setWsDelBusy(true)
@@ -17678,12 +17720,21 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
           }
           return h(React.Fragment, null,
             pagerTop(threadsVp),
-            h('div', { className: 'kb8-rows' }, pageOf(threadsRows, threadsVp).map((sn) => h('div', { className: 'kb8-row', key: sn.id, onClick: () => { try { uiWorkspaceSvc.openSession(sn.id) } catch (e) { } } },
-              h('span', { className: 'kb8-tile' }, Icon('sparkles', 16)),
-              h('span', { style: { display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 } },
-                h('span', { className: 'kb8-name' }, sn.displayTitle || sn.id),
-                h('span', { className: 'kb8-parent' }, (sn.running === true ? kbt('kbui.frag.running') : '') + fmtAge(sn.updatedAt, Date.now()))),
-              (currentSid === sn.id ? h('span', { style: pillStyle }, 'CURRENT') : null)))),
+            h('div', { className: 'kb8-rows' }, pageOf(threadsRows, threadsVp).map((sn) => {
+              // Vignette de catégorie (maquette 20/10) : le sidebar classe déjà
+              // chaque session — l'onglet Threads reprend la même sémantique.
+              const cat = kbWsCatOf(wsCats !== null && wsCats[sn.id] !== undefined ? wsCats[sn.id].cat : null)
+              const catBg = cat.known === true ? ('color-mix(in srgb, ' + cat.color + ' 16%, transparent)') : 'var(--dsw-alias-bg-layer-2)'
+              return h('div', { className: 'kb8-row', key: sn.id, style: { minHeight: '52px' }, onClick: () => { try { uiWorkspaceSvc.openSession(sn.id) } catch (e) { } } },
+                h('span', { className: 'kb8-tile', style: { width: '36px', height: '36px', borderRadius: '10px', background: catBg, color: cat.color, display: 'grid', placeItems: 'center', flex: 'none' } }, Icon(cat.icon, 17)),
+                h('span', { style: { display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1, gap: '3px' } },
+                  h('span', { className: 'kb8-name' }, sn.displayTitle || sn.id),
+                  h('span', { style: { display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 } },
+                    (cat.known === true ? h('span', { style: { fontSize: '11px', lineHeight: '16px', fontWeight: 500, letterSpacing: '.01em', color: cat.color, background: catBg, border: '1px solid color-mix(in srgb, ' + cat.color + ' 30%, transparent)', borderRadius: '999px', padding: '0 8px', whiteSpace: 'nowrap' } }, cat.label) : null),
+                    (sn.running === true ? h('span', { style: { fontSize: '11px', lineHeight: '16px', fontWeight: 500, color: 'var(--dsw-alias-state-success-primary)', display: 'inline-flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' } }, h('span', { style: { width: '6px', height: '6px', borderRadius: '50%', background: 'currentColor', flex: 'none' } }), kbt('kbui.frag.running').trim()) : null),
+                    h('span', { className: 'kb8-parent', style: { whiteSpace: 'nowrap' } }, fmtAge(sn.updatedAt, Date.now())))),
+                (currentSid === sn.id ? h('span', { style: pillStyle }, 'CURRENT') : null))
+            })),
             pagerOf(threadsVp))
         }
         if (tab === kbt('kbui.documents')) {
