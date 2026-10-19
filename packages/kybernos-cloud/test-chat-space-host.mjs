@@ -234,6 +234,29 @@ try {
   api.planDelayMs = 0
   ok('a slow switch holds the first request, which then goes ahead')
 
+  // 6b. A switch that lands between the claim and the first request (a click or a script already on its way; J1 3b of the end-to-end journeys, Enter 2 ms after the switch started): the claim
+  // saw the chat's team active and decided nothing, the switch then made another team active, and the request went out billed to it. The team is decided again just before the request.
+  writeState({ active_workspace_id: ACME.id })
+  const S6 = 'session-acme-landing'
+  await post('space/for-folder', { path: acme, session_id: S6 })
+  fire('agent/inbox/claimed', { agent: agentIn(S6, acme), turn: 1, message: {} })
+  assert.equal(active(), ACME.id, 'at the claim the chat\'s team is the active one: nothing to do')
+  writeState({ active_workspace_id: STUDIO.id })
+  const landTrace = []
+  await preStep(agentIn(S6, acme), 1, 1, landTrace)
+  assert.equal(active(), ACME.id, 'the switch that landed after the claim is put right before the first request')
+  assert.deepEqual(landTrace, ['next'])
+  assert.equal(readState().space_plan.workspace_id, ACME.id)
+  // And only once per turn, and only for a chat the page reported: a later switch by hand is not undone.
+  writeState({ active_workspace_id: STUDIO.id })
+  await preStep(agentIn(S6, acme), 1, 2, [])
+  assert.equal(active(), STUDIO.id, 'a second step of the turn changes nothing')
+  fire('agent/inbox/claimed', { agent: agentIn('session-acme-unseen', acme), turn: 1, message: {} })
+  writeState({ active_workspace_id: STUDIO.id })
+  await preStep(agentIn('session-acme-unseen', acme), 1, 1, [])
+  assert.equal(active(), STUDIO.id, 'a chat the page never reported is left alone')
+  ok('a switch that lands between the claim and the first request is put right before the request (once per turn, reported chats only)')
+
   // 7. Two switches at once (the page\'s own and the claim-time one) end in one place.
   writeState({ active_workspace_id: PERSONAL.id })
   api.planDelayMs = 150

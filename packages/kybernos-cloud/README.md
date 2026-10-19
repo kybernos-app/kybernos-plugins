@@ -135,7 +135,8 @@ full ids stay in the detail route.
   a second later), is the person's to leave; a chat they open afterwards is followed, and a choice that failed hands the chats back. **The host is the safety net**: a turn of a
   chat the page reported in the last two minutes, claimed while the active space is not the chat's, writes the right space at once (the system prompt of that step is assembled right
   after the claim and reads it: the personal-memory cut) and the `agent/pre-step` listener holds the first model request until the switch (plan, folder, model route) is through, at most
-  10 s. A chat the page never reported (an automation, Kaby's chat, a Telegram turn, a subagent) changes nothing and is billed to whichever team is active.
+  10 s. A switch can land between the claim and that request (a click or a script already on its way), so when the claim found the chat's team already active the team is decided again just before
+  the first request. A chat the page never reported (an automation, Kaby's chat, a Telegram turn, a subagent) changes nothing and is billed to whichever team is active.
   **No switch under a running reply** (part B; `createTurnWatch` in `chat-space.mjs`, test `test-turn-guard-host.mjs`): a reply sends several requests and the model route is one per
   instance, so a switch while a reply runs bills it to two teams. The host REFUSES a switch while any reply is running (`space/active` answers `{ ok: false, error: 'turn_running',
   running: { count, since, space_id, space_name } }`, writes nothing and asks the server nothing), whoever asks: a click, the page following a chat, a script, a second window. A reply is

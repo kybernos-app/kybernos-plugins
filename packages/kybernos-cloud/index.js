@@ -512,6 +512,20 @@ const spaceForFolder = async (req, body) => {
  *  applying; the page's footer says so). Shorter than the page's own wait (15 s): a request that waits that long looks hung. */
 const CLAIM_SWITCH_WAIT_MS = 10000
 const claimIntents = new Map()
+/** The team a turn of this chat must be billed to when that is not the active one, else null. Only for a chat the page reported lately (the person is looking at it), whose folder is a
+ *  team's or no team's (Personal), and only while no OTHER reply runs: switching under it would bill it to two teams. Read at the claim and again just before the first request. */
+const claimTarget = (agent) => {
+  const id = agent.session.id
+  if (sightings.isFresh(id) !== true) return null
+  const state = readState()
+  if (!isConnected(state)) return null
+  const header = agent.session.header
+  const owner = spaceOwningFolder(state, header !== null && typeof header === 'object' ? header.cwd : undefined)
+  if (owner.id === null || owner.id === espaceActif(state)) return null
+  // Another reply is running: switching now would bill it to two teams. This turn goes ahead billed to the active team (the exposure above); the page, which follows the chat, defers its switch.
+  if (turnWatch.running({ except: id }).length > 0) return null
+  return owner.id
+}
 /** The first claim of a turn of a chat the person looks at: if its folder belongs to another space, say so NOW, synchronously. The system prompt of the step is assembled right after the claim
  *  (and its context blocks are evaluated again after the `agent/pre-step` hold, measured on the sandbox), so the early write is defence in depth for the personal-memory cut: a negative control
  *  without it (scripts/e2e-teams/j9-follow.mjs, case 2b) kept the personal memory out of the team chat's first request too, so it is NOT proven necessary. The model route is rewritten in
@@ -522,26 +536,29 @@ const noteClaimSpace = (agent, turn) => {
   if (previous !== undefined && previous.turn === turn) return
   claimIntents.delete(id)
   if (sightings.isFresh(id) !== true) return
+  const target = claimTarget(agent)
+  claimIntents.set(id, { turn, target })
+  if (target === null) return
   const state = readState()
-  if (!isConnected(state)) return
-  const header = agent.session.header
-  const owner = spaceOwningFolder(state, header !== null && typeof header === 'object' ? header.cwd : undefined)
-  if (owner.id === null || owner.id === espaceActif(state)) { claimIntents.set(id, { turn, target: null }); return }
-  // Another reply is running: switching now would bill it to two teams. This turn goes ahead billed to the active team (the exposure above); the page, which follows the chat, defers its switch.
-  if (turnWatch.running({ except: id }).length > 0) { claimIntents.set(id, { turn, target: null }); return }
-  claimIntents.set(id, { turn, target: owner.id })
-  writeState(Object.assign({}, state, { active_workspace_id: owner.id, space_plan: null }))
+  writeState(Object.assign({}, state, { active_workspace_id: target, space_plan: null }))
   // The reply was counted as started under the team that was active BEFORE this claim: it is billed to the chat's team.
-  turnWatch.setSpace(id, owner.id)
+  turnWatch.setSpace(id, target)
 }
-/** Before the first request of a turn: finish the switch `noteClaimSpace` began (plan, folder, model route) and wait for it, so the request carries the chat's team. Never throws. */
+/** Before the first request of a turn: finish the switch `noteClaimSpace` began (plan, folder, model route) and wait for it, so the request carries the chat's team. A switch can also LAND
+ *  between the claim and this request (a click or a script that was already on its way: J1 3b of the end-to-end journeys, Enter 2 ms after the switch started): the claim then found the
+ *  chat's team active and decided nothing, and the request would go out billed to the team the switch made active. So when the claim decided nothing, the team is decided again here, from
+ *  the state as it is now. Once per turn. Never throws. */
 const holdForClaimSwitch = async (payload) => {
-  const intent = claimIntents.get(payload.agent.session.id)
-  if (intent === undefined || intent.target === null || intent.turn !== payload.turn || intent.done === true) return
+  const id = payload.agent.session.id
+  const intent = claimIntents.get(id)
+  if (intent === undefined || intent.turn !== payload.turn || intent.done === true) return
   intent.done = true
+  const target = intent.target !== null ? intent.target : claimTarget(payload.agent)
+  if (target === null) return
+  if (intent.target === null) turnWatch.setSpace(id, target)
   let timer = null
   try {
-    await Promise.race([switchSpace(intent.target, payload.agent.session.id), new Promise((resolve) => { timer = setTimeout(resolve, CLAIM_SWITCH_WAIT_MS) })])
+    await Promise.race([switchSpace(target, id), new Promise((resolve) => { timer = setTimeout(resolve, CLAIM_SWITCH_WAIT_MS) })])
   } finally { if (timer !== null) clearTimeout(timer) }
 }
 const mountChatSpace = (ctx) => {
