@@ -47,6 +47,13 @@ works on.
     while the person confirms there; expired, refused, « already another account's », « made by the bot » and « too many tries » are
     its own cards; and the question before disconnecting. The tiles keep their height while it is open.
 - The same panel is a tab of the right-hand panel, and the page the new-chat card opens (what Kaby is, the way into the chat).
+- **The right-hand column of « Phone and channels »** (`window.__KB_KYBER__.ChannelsColumn`, a component; `window.__KB_KYBER__.name` is the assistant's name). `kybernos-mobile`
+  draws that screen (the account menu's window and Settings › Phone and channels) and asks this bundle for the column: **« Talk to Kaby on a messaging app »**, a sentence that says
+  only Kaby answers, even with the computer off, and that a messaging app never gives control of the computer, then one row each: **Telegram** (the same row, switch and code
+  panel as the strip's, drawn right under the row: one pairing is one pairing wherever it is looked at), **WhatsApp** (a *Beta* chip and « Not available on this server yet »:
+  no server has the door; a host that forwards a `whatsapp` object like `telegram` — `configured` and `enabled` — changes the line to « This server offers it », and the row stays
+  inert because linking is not built here), **WeChat** and **iMessage** (« Soon »; iMessage « Mac only »). The three later rows keep an off, greyed switch. The strip above the composer
+  is untouched: reducing it to the states is a follow-up.
 
 The bundle talks only to `kybernos-cloud`'s routes (`/kybernos-cloud/kyber`, `/telegram/pairing[...]`,
 `/telegram/unlink`, `/kyby/computer`, `/kyby/native[/set]`, `/computer/*`, `/console/link`), which add the account's token; the QR is computed there.

@@ -29,7 +29,7 @@ const NAV = {
   plugins: 'Built-in plugins', 'kybernos-atlas': 'Atlas', 'kybernos-models': 'AI Provider & Models', 'agent-presets': 'Agent presets', voice: 'Voice',
   'kybernos-slash': 'Commands', 'kybernos-ollama': 'Ollama Local Models', 'kybernos-suite': 'Kybernos Suite', 'kybernos-tools': 'Tools',
   'kybernos-workers': 'Workers', 'kybernos-call': 'Calls', 'kybernos-usage': 'Usage', 'kybernos-automations': 'Automations', 'kybernos-skills': 'Skills',
-  'kybernos-composio': 'Connectors', 'kybernos-free-llms': 'Free LLMs', 'kybernos-mobile': 'Remote Control', 'kybernos-computers': 'Cloud computers',
+  'kybernos-composio': 'Connectors', 'kybernos-free-llms': 'Free LLMs', 'kybernos-mobile': 'Phone and channels', 'kybernos-computers': 'Cloud computers',
   'kybernos-local': 'Kybernos',
 }
 

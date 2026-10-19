@@ -2696,7 +2696,7 @@ const KB_NAV_KEYS = {
   'agent-presets': 'agent presets', voice: 'voice', 'kybernos-slash': 'commands', 'kybernos-ollama': 'ollama local models',
   'kybernos-suite': 'kybernos suite', 'kybernos-tools': 'tools', 'kybernos-workers': 'workers', 'kybernos-call': 'calls',
   // The pages the Suite's bundles add (their section id is the cell's key in every language).
-  'kybernos-usage': 'usage', 'kybernos-automations': 'automations', 'kybernos-skills': 'skills', 'kybernos-composio': 'connectors', 'kybernos-free-llms': 'free llms', 'kybernos-mobile': 'remote control',
+  'kybernos-usage': 'usage', 'kybernos-automations': 'automations', 'kybernos-skills': 'skills', 'kybernos-composio': 'connectors', 'kybernos-free-llms': 'free llms', 'kybernos-mobile': 'phone and channels',
   'kybernos-computers': 'cloud computers',
   // What stays on this computer (custom instructions, models re-import, DSH chats): kybernos-cloud's section.
   'kybernos-local': 'kybernos',
@@ -2818,7 +2818,9 @@ const KB_SS_INDEX = [
 
   ['servers', '', 'Add a server', '', '', 'serveur servidor equipe team entreprise self hosted reseau adresse address ajouter connecter'],
   ['cloud computers', '', 'API key', 'Stored on this machine, never shown again. Code and files the agent sends to a cloud computer go to E2B.', 'save', 'cle api api key e2b bac a sable sandbox execution cloud clave'],
-  ['remote control', '', 'Link a phone', 'Drive this computer from your phone: scan the code, that is all.', 'show the qr allow', 'telephone mobile qr code telecommande smartphone movil', '', 'Link a phone in three steps'],
+  ['phone and channels', '', 'Open my computer on my phone', '', 'add a phone show the qr allow', 'telephone mobile qr code telecommande smartphone movil remote control controle a distance'],
+  ['phone and channels', '', 'Talk to Kaby on a messaging app', '', 'telegram whatsapp wechat imessage', 'messagerie canal bot kaby mensajeria'],
+  ['phone and channels', '', 'Link a phone', '', '', 'appairer relier telephone scanner code qr smartphone movil', '', 'Link a phone in three steps'],
 
   ['atlas', '', 'Update', 'The Atlas reads your files and plugins only when you ask.', '', 'carte graphe relations projets cartographie mapa'],
   ['kybernos suite', '', 'Check for updates', '', '', 'plugins modules extensions installer catalogue'],
@@ -2834,7 +2836,7 @@ const KB_SS_PAGE_KW = {
   connectors: 'integrations applications gmail slack', 'web search': 'recherche internet moteur navigateur', 'memory & lessons': 'memoire memoria souvenirs lecons',
   kybernos: 'instructions consignes', atlas: 'carte graphe', voice: 'voix voz micro dictee audio', calls: 'appels telephone visio',
   appearance: 'apparence aspecto mode sombre clair', theme: 'couleurs palette fond police', language: 'langue idioma traduction', servers: 'serveurs equipe reseau',
-  'cloud computers': 'sandbox bac a sable e2b', 'remote control': 'telephone mobile qr telecommande', 'kybernos suite': 'plugins modules extensions',
+  'cloud computers': 'sandbox bac a sable e2b', 'phone and channels': 'telephone mobile qr telecommande messagerie telegram whatsapp', 'kybernos suite': 'plugins modules extensions',
   'built-in plugins': 'plugins integres', about: 'a propos version licence mise a jour'
 }
 // What the page draws in French: page|label of a row -> [label, description, text to go to when it is not the label]. A row the French menu draws in
@@ -2900,7 +2902,9 @@ const KB_SS_FR = {
   'calls|Calls': ['Appels', 'Parler en direct à ton assistant ou à un membre de ton équipe, à voix haute, depuis n’importe quelle session.'],
   'servers|Add a server': ['Ajouter un serveur', ''],
   'cloud computers|API key': ['Clé API', 'Stockée sur cette machine, jamais affichée de nouveau. Le code et les fichiers que l’agent envoie à un ordinateur cloud partent chez E2B.'],
-  'remote control|Link a phone': ['Relier un téléphone', 'Pilote cet ordinateur depuis ton téléphone : scanne le code, c’est tout.', 'Relier un téléphone en trois étapes'],
+  'phone and channels|Open my computer on my phone': ['Ouvrir mon ordinateur sur mon téléphone', ''],
+  'phone and channels|Talk to Kaby on a messaging app': ['Parler à Kaby sur une messagerie', ''],
+  'phone and channels|Link a phone': ['Relier un téléphone', '', 'Relier un téléphone en trois étapes'],
   'atlas|Update': ['Mettre à jour', 'L’Atlas ne lit tes fichiers et tes plugins que lorsque tu le demandes.'],
   'kybernos suite|Check for updates': ['Rechercher des mises à jour', ''],
   'about|Check for updates automatically': ['Vérifier les mises à jour automatiquement', ''],
@@ -31617,7 +31621,7 @@ body:not([data-ds-dark-theme]) .kbac-theme-cur{color:color-mix(in srgb,var(--dsw
         { id: 'memory', titre: kbt('settings.group.memory'), pliable: true, icone: 'memory & lessons', mots: ['memory & lessons', 'kybernos', 'atlas'] },
         { id: 'voice', titre: kbt('settings.group.voice'), pliable: true, icone: 'voice', mots: ['voix', 'voice', 'calls', 'appels'] },
         { id: 'look', titre: kbt('settings.group.look'), pliable: true, icone: 'appearance', mots: ['apparence', 'appearance', 'theme', 'langue', 'language'] },
-        { id: 'devices', titre: kbt('settings.group.devices'), pliable: true, icone: 'servers', mots: ['serveurs', 'servers', 'cloud computers', 'remote control'] },
+        { id: 'devices', titre: kbt('settings.group.devices'), pliable: true, icone: 'servers', mots: ['serveurs', 'servers', 'cloud computers', 'phone and channels'] },
         { id: 'system', titre: kbt('settings.group.system'), pliable: true, icone: 'kybernos suite', mots: ['kybernos suite', 'plugins', 'listing', 'built-in plugins', 'models', 'plugins kybernos', 'kybernos plugins', 'about', 'a propos'] }
       ]
       // The open group is remembered under one key of its own (the shared fold store keeps booleans, an accordion needs a name).
@@ -31682,7 +31686,7 @@ body:not([data-ds-dark-theme]) .kbac-theme-cur{color:color-mix(in srgb,var(--dsw
         'connectors': '<path d="M12 22v-5M9 8V2M15 8V2" ' + trait + '/><path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8z" ' + trait + '/>',
         'cloud computers': '<path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z" ' + trait + '/>',
         'free llms': '<path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2z" ' + trait + '/><path d="M13 5v2M13 11v2M13 17v2" ' + trait + '/>',
-        'remote control': '<rect x="5" y="2" width="14" height="20" rx="2" ry="2" ' + trait + '/><path d="M12 18h.01" ' + trait + '/>',
+        'phone and channels': '<rect x="5" y="2" width="14" height="20" rx="2" ry="2" ' + trait + '/><path d="M12 18h.01" ' + trait + '/>',
         'calls': '<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z" ' + trait + '/>',
       }
       // LANGUAGE variants of the titles: under a translated language the title drawn on a cell is no longer French or English and the match

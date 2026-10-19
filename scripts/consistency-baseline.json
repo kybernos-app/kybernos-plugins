@@ -28,7 +28,6 @@
     ],
     "kbf": [
       "kybernos-cloud",
-      "kybernos-mobile",
       "kybernos-plugin"
     ],
     "kbfp": [
@@ -142,7 +141,8 @@
     ],
     "kybernos-kyber": [
       "#07c160",
-      "#25d366"
+      "#25d366",
+      "#34c759"
     ],
     "kybernos-maintenance": [
       "#2fae52",

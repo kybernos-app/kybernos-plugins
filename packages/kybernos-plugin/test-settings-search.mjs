@@ -106,7 +106,7 @@ console.log('French: the results read as the French pages do')
   check('a typo is forgiven in French too: « apparance »', frRun('apparance').some((x) => x.kind === 'page' && x.key === 'appearance') || frLabels(frRun('apparance')).length > 0)
   const ap = FR.find((e) => e.key === 'appearance|Mode')
   check('the row whose page does not draw its label goes to the description the French page draws', ap.at === 'Choisis le thème de l’interface.' && ap.label === 'Mode', ap.at)
-  check('a row with its own target keeps it in French (the plan of the phone link, the engine of the version)', FR.find((e) => e.key === 'remote control|Link a phone').at === 'Relier un téléphone en trois étapes' && FR.find((e) => e.key === 'about|Version').at === 'Moteur DSH')
+  check('a row with its own target keeps it in French (the plan of the phone link, the engine of the version)', FR.find((e) => e.key === 'phone and channels|Link a phone').at === 'Relier un téléphone en trois étapes' && FR.find((e) => e.key === 'about|Version').at === 'Moteur DSH')
   check('English stays as it was: no French in the English index', kbSsBuild(KB_SS_INDEX).every((e) => e.label === KB_SS_INDEX.find((r) => key(r) === e.key)[2]))
   check('« fr » and « fr-CA » take the French too (the shell may say either)', kbSsLocalise(KB_SS_INDEX[0], 'fr', null).label === 'Premiers pas' && kbSsLocalise(KB_SS_INDEX[0], 'fr-CA', null).label === 'Premiers pas')
 }
@@ -117,7 +117,7 @@ console.log('other languages: served from the translation pack, English when it 
   check('the pack has a key per label, in the shape the Language page reads ({ fr, en }, both non-empty)', Object.keys(keys).length > KB_SS_INDEX.length && Object.values(keys).every((v) => typeof v.fr === 'string' && v.fr !== '' && typeof v.en === 'string' && v.en !== ''))
   check('the keys are stable and unique: from the page and the label, not from the position', new Set(KB_SS_INDEX.map((r) => kbSsSlug(r[0], r[2]))).size === KB_SS_INDEX.length && kbSsSlug('general', 'Font size') === 'general-font-size')
   check('the French half of the pack is the French twin, the English half the English row', keys['general-onboarding.l'].fr === 'Premiers pas' && keys['general-onboarding.l'].en === 'Onboarding' && keys['sec.behaviour'].fr === 'Comportement')
-  check('a row with a text to go to publishes it too', keys['remote-control-link-a-phone.a'].fr === 'Relier un téléphone en trois étapes' && keys['remote-control-link-a-phone.a'].en === 'Link a phone in three steps')
+  check('a row with a text to go to publishes it too', keys['phone-and-channels-link-a-phone.a'].fr === 'Relier un téléphone en trois étapes' && keys['phone-and-channels-link-a-phone.a'].en === 'Link a phone in three steps')
   const es = { 'settingsidx.general-font-size.l': 'Tamaño de fuente', 'settingsidx.general-font-size.d': 'Solo afecta al contenido de la conversación', 'settingsidx.sec.behaviour': 'Comportamiento' }
   const row = KB_SS_INDEX.find((r) => r[2] === 'Font size')
   const L = kbSsLocalise(row, 'es', es)
