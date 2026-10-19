@@ -524,6 +524,8 @@ let settingsEnabled = true
 let llmEnabled = false
 // When `llmScript` is set it answers the tidy-up's questions (purpose « kybernos-tidy ») and records them.
 let llmScript = null
+// When set, what the capture's extraction answers (instead of the one fixed preference).
+let captureFacts = null
 const llmCalls = []
 const fakeLlm = {
   stream: (o) => (async function* () {
@@ -533,7 +535,7 @@ const fakeLlm = {
       yield { type: 'finish', reason: { kind: 'stop' } }
       return
     }
-    yield { type: 'text-delta', text: JSON.stringify({ memories: [{ content: 'prefere le francais', kind: 'preference' }] }) }
+    yield { type: 'text-delta', text: JSON.stringify({ memories: captureFacts !== null ? captureFacts : [{ content: 'prefere le francais', kind: 'preference' }] }) }
   })(),
 }
 let credentialsEnabled = true
@@ -1909,6 +1911,37 @@ try {
   assert.equal(mod.lastCapture.status, 'deja_connu', 'un fait deja connu doit etre ignore, pas reecrit')
   assert.equal(memories.length, avant, 'aucun appel d ecriture ne doit partir pour un doublon')
   ok('capture : un fait deja present dans le compte n est pas reecrit (idempotence)')
+
+  // 10n-quinquies. Quasi-doublons : les tours d'une automatisation reecrivaient dix fois les memes faits du pipeline avec d'autres mots (constate sur dev :
+  // 31 souvenirs d'une meme matiere en une soiree ; l'egalite exacte du texte ne les voit pas). Un fait proche d'un souvenir du compte n'est pas reecrit.
+  const FIRECRAWL = 'La pile Firecrawl locale tourne dans ~/dyad-apps/temp/firecrawl via docker compose'
+  assert.equal(mod.nearKnown('L\'utilisateur fait tourner une pile Firecrawl locale via Docker Compose dans ~/dyad-apps/temp/firecrawl', [FIRECRAWL]), true, 'meme fait, autres mots')
+  assert.equal(mod.nearKnown('Le pipeline tourne toutes les 30 minutes (cron */30 * * * *) sur le fuseau Europe/Paris', ['Le pipeline tourne en cron toutes les 30 minutes avec fuseau Europe/Paris']), true, 'une expression cron ajoute le meme nombre')
+  assert.equal(mod.nearKnown('L\'utilisateur habite à Lyon et travaille dans une agence de design graphique', [FIRECRAWL]), false, 'un autre fait')
+  assert.equal(mod.nearKnown('La pile Firecrawl locale ne tourne pas dans ~/dyad-apps/temp/firecrawl via docker compose', [FIRECRAWL]), false, 'une negation retourne le fait')
+  assert.equal(mod.nearKnown('Le serveur de collecte écoute sur le port 3080 pour le pipeline de contacts des PME françaises', ['Le serveur de collecte écoute sur le port 3000 pour le pipeline de contacts des PME françaises']), false, 'un autre nombre est une autre valeur')
+  assert.equal(mod.nearKnown('Habite à Lyon', ['Habite à Lyon']), false, 'trop court pour juger : l egalite exacte s en charge')
+  assert.equal(mod.nearKnown(FIRECRAWL, []), false)
+  // Par le crochet de fin de tour : un fait reformule n'est pas ecrit, un fait neuf l'est.
+  const rowsAvant = memories.length
+  memories.push({ id: 900, user_id: 'u-1', scope: 'account', kyber_id: null, kind: 'fact', content: FIRECRAWL, source: 'conversation', pinned: false, retention_days: 180, expires_at: null, created_at: '2026-10-19 21:00:00+00:00' })
+  const attendre = async (status) => { const fin = Date.now() + 5000; while (mod.lastCapture.status !== status && Date.now() < fin) await new Promise((r) => setTimeout(r, 25)) }
+  const unTour = [{ role: 'user', content: [{ type: 'text', text: 'Voici ou en est le pipeline : ' + 'x'.repeat(160) }] }, { role: 'assistant', content: [{ type: 'text', text: 'Compris.' }] }]
+  captureFacts = [{ content: 'L\'utilisateur fait tourner une pile Firecrawl locale via Docker Compose dans ~/dyad-apps/temp/firecrawl', kind: 'fact' }]
+  mod.lastCapture.status = 'avant'
+  hook({ agent: { session: { deriveMessages: () => unTour, id: 's-1' }, options: { provider: 'p', model: 'm' } }, signal: undefined })
+  await attendre('deja_connu')
+  assert.equal(mod.lastCapture.status, 'deja_connu', 'un fait reformule est deja connu')
+  assert.equal(memories.length, rowsAvant + 1, 'rien n est ecrit pour un quasi-doublon')
+  captureFacts = [{ content: 'L\'utilisateur travaille dans une agence de design graphique à Lyon', kind: 'fact' }]
+  mod.lastCapture.status = 'avant'
+  hook({ agent: { session: { deriveMessages: () => unTour, id: 's-1' }, options: { provider: 'p', model: 'm' } }, signal: undefined })
+  await attendre('ecrit')
+  assert.equal(mod.lastCapture.status, 'ecrit', 'un fait neuf est ecrit')
+  assert.equal(memories.length, rowsAvant + 2)
+  memories.length = rowsAvant
+  captureFacts = null
+  ok('capture : un quasi-doublon (autres mots, meme fait) n est pas reecrit ; negation, autre nombre et fait neuf passent')
   llmEnabled = false
 
   // 10o. Un contenu trop long est refusé avant le réseau (plafond serveur 2000).
