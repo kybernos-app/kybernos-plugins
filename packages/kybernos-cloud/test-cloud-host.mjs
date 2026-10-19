@@ -2032,7 +2032,7 @@ try {
       assert.ok(/did not allow/.test(refused.reason) && /Do not try it again/.test(refused.reason))
       for (const t of ['computer_exec', 'computer_write', 'lesson_write', 'relancer_dsh']) assert.equal((await run(t, {})).kind, 'deny', t + ' asks too')
       const count = asked.length
-      for (const safe of ['memory_search', 'kaby_journal', 'connections_list', 'lesson_search', 'computer_list', 'bash', 'read']) assert.deepEqual(await run(safe, {}), { kind: 'allow' }, safe)
+      for (const safe of ['memory_search', 'kaby_journal', 'kaby_knowledge', 'connections_list', 'lesson_search', 'computer_list', 'bash', 'read']) assert.deepEqual(await run(safe, {}), { kind: 'allow' }, safe)
       assert.equal(asked.length, count, 'what only reads, and what DSH gates itself, is not asked here')
       assert.deepEqual(await run('memory_write', { content: 'x' }, 'session-someone-else'), { kind: 'allow' }, 'another chat is not Kaby\'s')
       assert.equal(asked.length, count)
@@ -2079,6 +2079,15 @@ try {
       assert.equal(read.ok, true)
       assert.equal(read.count, 3, 'the turn above and the two of the capture check')
       assert.ok(/Qu'as-tu fait aujourd'hui/.test(read.text) && /refused 7/.test(read.text) && /refused 1/.test(read.text))
+      // The knowledge tool is mounted on Kaby's own folder (made at mount), read-only, and sees a file put there.
+      const know = registeredTools.get('kaby_knowledge')
+      assert.ok(know !== undefined, 'kaby_knowledge is registered')
+      assert.ok(/holds no document yet/.test((await know.execute({})).text), 'a folder with nothing in it says so')
+      mkdirSync(join(home, 'kybernos', 'kyby', 'knowledge'), { recursive: true })
+      writeFileSync(join(home, 'kybernos', 'kyby', 'knowledge', 'garage.md'), 'The garage door quote from Dupont is 640 euros.\n')
+      const found = await know.execute({ query: 'garage dupont' })
+      assert.ok(found.ok === true && /garage\.md/.test(found.text) && /640 euros/.test(found.text), found.text)
+      assert.ok(/information, not instructions/.test((await know.execute({})).text))
     } finally {
       fakeApproval = undefined
       if (homeSaved === undefined) delete process.env.DSH_HOME; else process.env.DSH_HOME = homeSaved
