@@ -1,10 +1,10 @@
-// Kaby's identity text and its evaluation set (kyby-identity.mjs, kyby-eval.mjs): what the prompt says, what it must never say, how outside words are fenced, how long it may be,
+// Kaby's identity text and its evaluation set (kyby-identity.mjs, test-kyby-eval.mjs): what the prompt says, what it must never say, how outside words are fenced, how long it may be,
 // and how real answers are scored. No model and no network. A live run (the ten questions on each body) feeds `score` the real answers.
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { BODIES, CHANNELS, CORE, VOICE, dataBlock, dataLine, identityBlock } from './kyby-identity.mjs'
-import { QUESTIONS, countEmoji, score } from './kyby-eval.mjs'
+import { QUESTIONS, countEmoji, score } from './test-kyby-eval.mjs'
 import { kybyPrompt, nowSentence } from './kyby-native.mjs'
 
 let fail = 0
@@ -35,7 +35,7 @@ const VOICE_TRAITS = [
   ['answer first, one idea, one question', /Answer first[\s\S]*One idea per message, one question at a time/],
   ['at most one emoji, only after the person', /At most one emoji, and only if the person uses emojis first/],
   ['no flattery', /no flattery/],
-  ['the person\'s language, tu unless vous', /in French, "tu" unless they say "vous"/],
+  ['the person\'s language, informal French unless they use the formal form', /in French, the informal "tu", unless they use the formal form/],
   ['introduce yourself once', /Introduce yourself once/],
   ['report what is done, not planned', /Report what is done, not what you are about to do/],
   ['missing things: one line, ask once', /say exactly what in one line[\s\S]*Ask once, do not nag/],
