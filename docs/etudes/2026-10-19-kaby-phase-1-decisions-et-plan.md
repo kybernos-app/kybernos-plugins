@@ -28,7 +28,7 @@ Statut : décisions du propriétaire prises en conversation le 19 octobre 2026, 
 
 | Étape | Quoi | Terminé quand |
 |---|---|---|
-| 0 | Mesurer : dix mêmes questions à Kaby sur Telegram (serveur dev) et dans le chat natif | Les réponses sont gardées comme référence |
+| 0 | **Fait le 19 octobre** : dix mêmes questions à Kaby sur Telegram (serveur dev) et dans le chat natif ; résultats dans `2026-10-19-kaby-etape-0-mesure-de-reference.md` | Les réponses sont gardées comme référence |
 | 1 | **Gain immédiat : un seul Kaby.** Une identité courte, la même sur les deux corps ; retirer « Second You » et l'équipe Echo/Mira/Atlas du serveur (`kybers/service.ts`, `kybers/validate.ts`, `hosted/service.ts`) ; renommer les kybers existants (migration) | Les dix questions donnent la même voix des deux côtés |
 | 2 | Petit jeu d'essais (10 à 20 cas) livré avec l'étape 1 | Il passe, et une règle d'injection ne perd jamais un cas |
 | 3 | Élargir la porte d'approbation (`tools/pre-execute`) au chat natif de Kaby et aux sessions pilotées de l'extérieur | Une action lancée depuis le chat natif demande l'accord |
