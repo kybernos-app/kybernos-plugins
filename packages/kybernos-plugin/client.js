@@ -6238,7 +6238,7 @@ const KB_NC_TEMPLATES = [
   { id: 'plugin', group: 'auto', needs: null },
 ]
 // What each template looks like: a small model of the result, drawn as inline SVG (viewBox 0 0 64 44) from rect / circle /
-// path only: no image, video or font in git (AGENTS rule 4), nothing fetched. The classes (paper, ink, acc, ...) are styled
+// path only (the last five, cards to all, are not templates: the Creations page draws them on its type tiles, see KB_ART_DRAW): no image, video or font in git (AGENTS rule 4), nothing fetched. The classes (paper, ink, acc, ...) are styled
 // by the page's CSS from the theme's tokens, so the drawings follow the theme; the others (gr, blk, pop, dr ...) are the
 // little motion played when the card is hovered, focused or lit by what the person types.
 const KB_NC_ART = {
@@ -6255,6 +6255,11 @@ const KB_NC_ART = {
   team: '<path class="ln dr" pathLength="1" d="M32 15V21H15V26"/><path class="ln dr" pathLength="1" d="M32 21H49V26"/><rect class="paper" x="22" y="3" width="20" height="12" rx="4"/><circle class="acc" cx="28.5" cy="9" r="3"/><rect class="ink2" x="33.5" y="7.2" width="6" height="1.8" rx=".9"/><rect class="ink2" x="33.5" y="10.8" width="4" height="1.8" rx=".9"/><rect class="paper" x="4" y="26" width="22" height="13" rx="4"/><circle class="tint ring" cx="10.5" cy="32.5" r="3"/><rect class="ink2" x="15.5" y="30.7" width="6" height="1.8" rx=".9"/><rect class="ink2" x="15.5" y="34.3" width="4" height="1.8" rx=".9"/><rect class="paper" x="38" y="26" width="22" height="13" rx="4"/><circle class="tint ring" cx="44.5" cy="32.5" r="3"/><rect class="ink2" x="49.5" y="30.7" width="6" height="1.8" rx=".9"/><rect class="ink2" x="49.5" y="34.3" width="4" height="1.8" rx=".9"/>',
   skill: '<rect class="paper" x="14" y="5" width="36" height="34" rx="3"/><path class="acc pop" style="--d:0s" d="M30 9L32.6 14.4L38 17L32.6 19.6L30 25L27.4 19.6L22 17L27.4 14.4Z"/><path class="acc2 pop" style="--d:.15s" d="M43 9L44.3 11.7L47 13L44.3 14.3L43 17L41.7 14.3L39 13L41.7 11.7Z"/><rect class="ink2 blk" style="--d:.1s" x="19" y="29" width="26" height="2" rx="1"/><rect class="ink2 blk" style="--d:.2s" x="19" y="33" width="16" height="2" rx="1"/>',
   plugin: '<path class="ln dr" pathLength="1" d="M32 35V39C32 41.5 35 42 39 42"/><rect class="ink" x="24" y="6" width="4" height="10" rx="1.5"/><rect class="ink" x="36" y="6" width="4" height="10" rx="1.5"/><rect class="paper" x="18" y="15" width="28" height="20" rx="5"/><circle class="acc node" cx="32" cy="25" r="4.5"/><rect class="oa" style="opacity:.9" x="30.2" y="23.2" width="3.6" height="3.6" rx="1"/>',
+  cards: '<rect class="paper tint bk" style="--r:7deg" x="22" y="4" width="34" height="27" rx="3"/><rect class="paper" x="8" y="10" width="38" height="29" rx="3"/><rect class="ink" x="13" y="16" width="14" height="3.2" rx="1.6"/><rect class="ink2" x="13" y="22" width="24" height="2" rx="1"/><path class="grid" d="M13 28h28"/><rect class="acc blk" style="--d:.1s" x="13" y="31.5" width="16" height="2.6" rx="1.3"/>',
+  quiz: '<rect class="paper" x="10" y="3" width="44" height="38" rx="3.5"/><circle class="acc pop" style="--d:0s" cx="19" cy="13" r="3.4"/><circle class="oa" cx="19" cy="13" r="1.2"/><rect class="ink2" x="26" y="11.8" width="20" height="2.4" rx="1.2"/><circle class="tint ring" cx="19" cy="22" r="3.4"/><rect class="ink2" x="26" y="20.8" width="15" height="2.4" rx="1.2"/><circle class="tint ring" cx="19" cy="31" r="3.4"/><rect class="ink2" x="26" y="29.8" width="18" height="2.4" rx="1.2"/>',
+  code: '<rect class="paper" x="6" y="5" width="52" height="34" rx="3.5"/><rect class="scr" x="9" y="8" width="46" height="28" rx="2.5"/><path class="acc pop" d="M11.4 17.4L13 15.5L19.5 20L13 24.5L11.4 22.6L15.8 20Z"/><rect class="oa" style="opacity:.9" x="23" y="18.8" width="12" height="2.4" rx="1.2"/><rect class="oa" style="opacity:.5" x="14" y="27.5" width="20" height="2.2" rx="1.1"/><rect class="oa" style="opacity:.5" x="37" y="27.5" width="12" height="2.2" rx="1.1"/>',
+  diagram: '<path class="ln dr" pathLength="1" d="M20 22H25"/><path class="ln dr" pathLength="1" d="M39 22H44"/><rect class="paper" x="4" y="15" width="16" height="14" rx="4"/><circle class="tint ring" cx="12" cy="22" r="3.2"/><rect class="acc node" x="25" y="13" width="14" height="18" rx="4"/><rect class="oa" style="opacity:.9" x="28" y="19" width="8" height="2.2" rx="1.1"/><rect class="oa" style="opacity:.6" x="28" y="23.5" width="5.5" height="2.2" rx="1.1"/><rect class="paper" x="44" y="15" width="16" height="14" rx="4"/><path class="ln" d="M48 22.4L50.4 24.8L55.2 19.8"/>',
+  all: '<rect class="paper tint bk" style="--r:-8deg" x="8" y="8" width="30" height="26" rx="3"/><rect class="paper bk" style="--r:7deg" x="26" y="6" width="30" height="26" rx="3"/><rect class="paper" x="17" y="13" width="30" height="26" rx="3"/><rect class="ink" x="22" y="19" width="12" height="3" rx="1.5"/><rect class="ink2" x="22" y="25" width="19" height="2" rx="1"/><rect class="acc2" x="22" y="29.5" width="12" height="2" rx="1"/>',
 }
 // The headline of the new-chat page: a different line each time a new chat page appears (KB_NC_HERO_COUNT lines per
 // language, the dictionary keys `kbnc.hero.<n>`). `last` is the index shown the previous time: never the same twice in a row.
@@ -17357,7 +17362,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       const onClose = typeof props.onClose === 'function' ? props.onClose : (() => {})
       const row = (d) => h('label', { key: d.id, className: 'kb-typepanel-row' },
         h('input', { type: 'checkbox', checked: visible(d.id) === true, onChange: (e) => onToggle(d.id, e.target.checked === true), 'aria-label': d.label, style: { width: 16, height: 16, margin: 0, accentColor: 'var(--dsw-alias-brand-primary,#5563d6)', flex: 'none' } }),
-        h('span', { className: 'kb-typepanel-thumb', style: { background: d.bg, color: d.color } }, d.glyph),
+        h('span', { className: 'kb-typepanel-thumb kb8-sl-stage' }, d.art),
         h('span', { className: 'kb-typepanel-lab' }, d.label),
         h('span', { className: 'kb-typepanel-cnt' }, String(d.count)))
       return h('div', { className: 'kb-typepanel', 'data-kb': 'type-panel', role: 'dialog', 'aria-label': kbt('deliv.customize.title') },
@@ -17393,80 +17398,13 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         els.map((e, i) => h(e[0], Object.assign({ key: i }, e[1], { stroke: e[2] === null ? 'none' : KB_TI_COLOR[e[2]], fill: e[3] === null ? 'none' : KB_TI_COLOR[e[3]], fillOpacity: e[4] }))))
     }
     const kbTypeById = (id) => KB_ART_TYPES.filter((t) => t.id === id)[0] || null
-    // ── scènes des tuiles de type (Deliverables), fidèles à la maquette ─────
-    // demos/deliverables/index.html : chaque tuile illustre le CONTENU du type
-    // (slides empilées à barres, cartes Q/A, quiz coché, page de doc…), pas une
-    // icône. Tailles en px dans la bande .kb-type-view, traits en currentColor
-    // (= teinte du type), remplissage translucide — lisible clair et sombre.
-    // Renvoie null pour un type sans scène → l'appelant retombe sur l'icône.
-    const kbBandBg = (t) => {
-      const m = /^#([0-9a-f]{6})$/i.exec(String((t !== null && t !== undefined && t.color) || ''))
-      if (m === null) return (t !== null && t !== undefined) ? t.tint : 'transparent'
-      const n = parseInt(m[1], 16)
-      return 'rgba(' + ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',0.18)'
+    // The Creations tiles draw what the new chat page draws on its cards (KB_NC_ART: a small model of the result, ink and the
+    // theme's tint), so the two pages read as one. A family or a type with no drawing of its own borrows the nearest one.
+    const KB_ART_DRAW = {
+      fam: { slides: 'slides', websites: 'website', documents: 'doc', spreadsheets: 'sheet', images: 'image', av: 'video' },
+      type: { miniapp: 'miniapp', html: 'website', js: 'code', quiz: 'quiz', deck: 'slides', cards: 'cards', resume: 'doc', fiche: 'doc', engine: 'diagram', data: 'sheet', image: 'image' },
     }
-    const kbTypeMini = (t) => {
-      const id = (t !== null && t !== undefined && typeof t.id === 'string') ? t.id : ''
-      const ln = (w, k, o, hh) => h('i', { key: 'l' + k, className: 'kbm-ln', style: { width: w, opacity: (o === undefined ? 0.6 : o), height: (hh === undefined ? 3 : hh) } })
-      const box = (key, st) => h('i', { key: key, className: 'kbm-box', style: st })
-      const dot = (key, s, st) => h('i', { key: key, className: 'kbm-mdot', style: Object.assign({ width: s, height: s }, st) })
-      const page = (k, children) => h('span', { key: k, style: { position: 'relative', width: 46, height: 54, borderRadius: 4, border: '1.5px solid currentColor', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 4, padding: '0 7px', boxSizing: 'border-box' } }, [
-        h('i', { key: 'f', style: { position: 'absolute', inset: 0, background: 'currentColor', opacity: 0.08 } })].concat(children))
-      if (id === 'doc') return h('span', { className: 'kbm' }, page('p', [
-        ln('82%', 1), ln('62%', 2), ln('74%', 3),
-        ln('34%', 4)]))
-      if (id === 'resume') return h('span', { className: 'kbm' }, page('p', [0, 1, 2, 3].map((i) =>
-        h('span', { key: 'r' + i, style: { display: 'flex', alignItems: 'center', gap: 3 } }, dot('d' + i, 4, { opacity: 0.8, flex: 'none' }), ln(['70%', '55%', '76%', '44%'][i], i, 0.55)))))
-      if (id === 'fiche') return h('span', { className: 'kbm', style: { flexDirection: 'column', alignItems: 'center' } }, [
-        h('span', { key: 'tabs', style: { display: 'flex', gap: 3, width: 46, paddingLeft: 2 } }, [0, 1].map((i) => h('i', { key: i, style: { width: 15, height: 5, borderRadius: '3px 3px 0 0', background: 'currentColor', opacity: i === 0 ? 0.8 : 0.4 } }))),
-        page('p', [ln('80%', 1), ln('58%', 2), ln('70%', 3), ln('40%', 4)])])
-      if (id === 'html') return h('span', { className: 'kbm' }, h('span', { key: 'w', style: { position: 'relative', width: 70, height: 48, borderRadius: 4, border: '1.5px solid currentColor', overflow: 'hidden', display: 'flex', flexDirection: 'column' } }, [
-        h('i', { key: 'f', style: { position: 'absolute', inset: 0, background: 'currentColor', opacity: 0.08 } }),
-        h('span', { key: 'tb', style: { position: 'relative', display: 'flex', gap: 3, alignItems: 'center', padding: '4px 6px', borderBottom: '1px solid currentColor', opacity: 0.85 } }, [0, 1, 2].map((i) => dot('d' + i, 4))),
-        h('span', { key: 'bd', style: { position: 'relative', display: 'flex', flexDirection: 'column', gap: 4, justifyContent: 'center', padding: '0 8px' } }, [ln('55%', 1, 0.9), ln('80%', 2, 0.5), ln('42%', 3, 0.9)])]))
-      if (id === 'js') return h('span', { className: 'kbm' }, h('span', { key: 'w', style: { position: 'relative', width: 70, height: 48, borderRadius: 4, border: '1.5px solid currentColor', overflow: 'hidden', display: 'flex', flexDirection: 'column' } }, [
-        h('i', { key: 'f', style: { position: 'absolute', inset: 0, background: 'currentColor', opacity: 0.08 } }),
-        h('span', { key: 'bd', style: { position: 'relative', display: 'flex', flexDirection: 'column', gap: 4, justifyContent: 'center', padding: '0 8px' } }, [
-          h('span', { key: 't', className: 'kbm-txt', style: { fontSize: 11 } }, '>_'),
-          ln('70%', 1, 0.5), ln('48%', 2, 0.9)])]))
-      if (id === 'quiz') return h('span', { className: 'kbm', style: { flexDirection: 'column', gap: 6, alignItems: 'stretch', width: 74 } }, [0, 1, 2].map((i) =>
-        h('span', { key: 'o' + i, style: { display: 'flex', alignItems: 'center', gap: 5 } },
-          i === 0
-            ? h('span', { key: 'c', style: { position: 'relative', flex: 'none' } }, dot('o', 11), h('i', { key: 'in', style: { position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' } }, h('i', { style: { width: 4, height: 4, borderRadius: '50%', background: 'var(--dsw-alias-bg-layer-1,#fff)' } })))
-            : h('i', { key: 'r', className: 'kbm-ring', style: { width: 11, height: 11, opacity: 0.5, flex: 'none' } }),
-          ln(['48%', '62%', '40%'][i], i, i === 0 ? 0.85 : 0.4))))
-      if (id === 'deck') return h('span', { className: 'kbm', style: { width: 74, height: 50 } }, [
-        box('b2', { left: 12, top: 0, width: 60, height: 40, opacity: 0.3, transform: 'rotate(-6deg)' }),
-        box('b1', { left: 6, top: 3, width: 60, height: 40, opacity: 0.5, transform: 'rotate(-3deg)' }),
-        h('span', { key: 'f', style: { position: 'absolute', left: 0, top: 6, width: 60, height: 40, borderRadius: 4, border: '1.5px solid currentColor', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', gap: 4, padding: 6, boxSizing: 'border-box' } }, [
-          h('i', { key: 'bg', style: { position: 'absolute', inset: 0, borderRadius: 3, background: 'var(--dsw-alias-bg-layer-1,#fff)', opacity: 0.55 } }),
-          h('span', { key: 'ti', className: 'kbm-ln', style: { position: 'relative', width: '58%', height: 3, opacity: 0.9 } }),
-          h('span', { key: 'bars', style: { position: 'relative', display: 'flex', alignItems: 'flex-end', gap: 3 } }, [10, 16, 22].map((bh, i) => h('i', { key: i, style: { width: 7, height: bh, borderRadius: '1.5px 1.5px 0 0', background: 'currentColor', opacity: 0.85 - i * 0.2 } })))])])
-      if (id === 'cards') return h('span', { className: 'kbm', style: { width: 74, height: 48 } }, [
-        box('b', { left: 28, top: 6, width: 42, height: 34, transform: 'rotate(6deg)', opacity: 0.4 }),
-        h('span', { key: 'f', style: { position: 'absolute', left: 0, top: 4, width: 46, height: 38, borderRadius: 4, border: '1.5px solid currentColor', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 3, padding: '0 6px', boxSizing: 'border-box' } }, [
-          h('i', { key: 'bg', style: { position: 'absolute', inset: 0, borderRadius: 3, background: 'currentColor', opacity: 0.1 } }),
-          h('span', { key: 'q', style: { position: 'relative', display: 'flex', alignItems: 'center', gap: 4 } }, h('span', { key: 't', className: 'kbm-txt', style: { fontSize: 9 } }, 'Q'), ln('52%', 0, 0.6, 2)),
-          h('i', { key: 'dv', style: { height: 1, background: 'currentColor', opacity: 0.25 } }),
-          h('span', { key: 'a', style: { position: 'relative', display: 'flex', alignItems: 'center', gap: 4 } }, h('span', { key: 't2', className: 'kbm-txt', style: { fontSize: 9 } }, 'A'), ln('64%', 1, 0.85, 2))])])
-      if (id === 'data') return h('span', { className: 'kbm' }, h('span', { key: 'tb', style: { display: 'grid', gridTemplateColumns: 'repeat(3, 22px)', gap: 3 } }, [0, 1, 2, 3, 4, 5, 6, 7, 8].map((i) =>
-        h('i', { key: i, style: i < 3
-          ? { height: 11, borderRadius: 2, background: 'currentColor', opacity: 0.75 }
-          : { height: 11, borderRadius: 2, border: '1px solid currentColor', opacity: 0.45 } }))))
-      if (id === 'image') return h('span', { className: 'kbm' }, h('span', { key: 'fr', style: { position: 'relative', width: 70, height: 48, borderRadius: 4, border: '1.5px solid currentColor', overflow: 'hidden' } }, [
-        dot('sun', 9, { position: 'absolute', right: 8, top: 7, opacity: 0.9 }),
-        h('i', { key: 'm2', style: { position: 'absolute', right: -8, bottom: -6, width: 0, height: 0, borderLeft: '18px solid transparent', borderRight: '18px solid transparent', borderBottom: '22px solid currentColor', opacity: 0.45 } }),
-        h('i', { key: 'm1', style: { position: 'absolute', left: -6, bottom: -6, width: 0, height: 0, borderLeft: '22px solid transparent', borderRight: '22px solid transparent', borderBottom: '28px solid currentColor', opacity: 0.8 } })]))
-      if (id === 'engine') return h('span', { className: 'kbm', style: { gap: 0 } }, ['a', 'l1', 'b', 'l2', 'c'].map((k) =>
-        k.charAt(0) === 'l'
-          ? h('i', { key: k, style: { width: 16, height: 2, background: 'currentColor', opacity: 0.5 } })
-          : h('i', { key: k, style: { width: 13, height: 13, borderRadius: 3, border: '1.5px solid currentColor', background: 'currentColor', opacity: k === 'b' ? 0.95 : 0.45 } })))
-      if (id === 'miniapp') return h('span', { className: 'kbm' }, h('span', { key: 'w', style: { position: 'relative', width: 58, height: 48, borderRadius: 4, border: '1.5px solid currentColor', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' } }, [
-        h('i', { key: 'f', style: { position: 'absolute', inset: 0, background: 'currentColor', opacity: 0.08 } }),
-        h('span', { key: 'tb', style: { position: 'absolute', top: 0, left: 0, right: 0, display: 'flex', gap: 3, alignItems: 'center', padding: '4px 6px', borderBottom: '1px solid currentColor', opacity: 0.85 } }, [0, 1].map((i) => dot('d' + i, 4))),
-        h('i', { key: 'p', style: { position: 'relative', width: 0, height: 0, borderLeft: '10px solid currentColor', borderTop: '6px solid transparent', borderBottom: '6px solid transparent' } })]))
-      return null
-    }
+    const kbArtDraw = (id) => h('svg', { viewBox: '0 0 64 44', 'aria-hidden': 'true', focusable: 'false', dangerouslySetInnerHTML: { __html: KB_NC_ART[id] === undefined ? KB_NC_ART.doc : KB_NC_ART[id] } })
     const kbArtType = (name) => {
       const n = String(name || '').toLowerCase()
       // MiniApp universel : *.miniapp.json → type 'miniapp'
@@ -17542,33 +17480,6 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       const e = d >= 0 ? n.slice(d + 1) : ''
       for (const f of KB_ART_FAMILIES) { if (KB_FAM_EXTS[f.id].indexOf(e) >= 0) return f.id }
       return null
-    }
-    // Scène de tuile par famille : on réutilise les micro-scènes des types
-    // (deck → slides, html → sites, doc → documents, data → tableurs,
-    // image → images) et on dessine celle d'Audio & vidéo (lecture + onde).
-    const kbFamMini = (f) => {
-      if (f.id === 'slides') return kbTypeMini(kbTypeById('deck'))
-      if (f.id === 'websites') return kbTypeMini(kbTypeById('html'))
-      // Documents : scène PROPRE à la famille (la tuile fine « Doc » est
-      // masquée depuis le 26/09 — doublon) : deux pages décalées, coin plié,
-      // lignes de texte. Statique, aucun trait animé.
-      if (f.id === 'documents') return h('span', { className: 'kbm', style: { width: 60, height: 48 } }, [
-        h('i', { key: 'b', style: { position: 'absolute', left: 15, top: 0, width: 41, height: 39, border: '1.5px solid currentColor', borderRadius: 4, opacity: 0.35 } }),
-        h('span', { key: 'p', style: { position: 'absolute', left: 3, top: 7, width: 41, height: 39, border: '1.5px solid currentColor', borderRadius: 4, background: 'var(--dsw-alias-bg-layer-1,#1c2030)', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 3.5, padding: '0 7px', boxSizing: 'border-box' } }, [
-          h('i', { key: 'tt', style: { width: '62%', height: 3, borderRadius: 2, background: 'currentColor', opacity: 0.95 } }),
-          h('i', { key: 'l1', style: { width: '100%', height: 2.5, borderRadius: 2, background: 'currentColor', opacity: 0.45 } }),
-          h('i', { key: 'l2', style: { width: '74%', height: 2.5, borderRadius: 2, background: 'currentColor', opacity: 0.45 } }),
-          h('i', { key: 'fold', style: { position: 'absolute', right: 0, top: 0, width: 9, height: 9, background: 'var(--dsw-alias-bg-layer-1,#1c2030)', borderLeft: '1.5px solid currentColor', borderBottom: '1.5px solid currentColor', borderBottomLeftRadius: 3 } }),
-        ]),
-      ])
-      if (f.id === 'spreadsheets') return kbTypeMini(kbTypeById('data'))
-      if (f.id === 'images') return kbTypeMini(kbTypeById('image'))
-      return h('span', { className: 'kbm', style: { flexDirection: 'column', gap: 5, width: 66 } }, [
-        h('span', { key: 'c', style: { position: 'relative', width: 16, height: 16, borderRadius: '50%', border: '1.5px solid currentColor', display: 'flex', alignItems: 'center', justifyContent: 'center' } },
-          h('i', { key: 't', style: { width: 0, height: 0, borderLeft: '5px solid currentColor', borderTop: '3.5px solid transparent', borderBottom: '3.5px solid transparent', marginLeft: 1.5 } })),
-        h('i', { key: 'b1', className: 'kbm-ln', style: { width: '100%', height: 3, opacity: 0.45 } }),
-        h('i', { key: 'b2', className: 'kbm-ln', style: { width: '58%', height: 3, opacity: 0.9 } }),
-      ])
     }
     // Plafond d'affichage initial (« x more files ») : 6 cartes visibles au
     // premier rendu, puis +12 par clic — l'affichage reste léger sur les
@@ -20179,8 +20090,8 @@ function renderFit(canvas, model, cam, opts){
       const fineTiles = present.filter((t) => !KB_ART_FAMILIES.some((f) => typed.every((a) => a.type.id !== t.id || kbArtFamille(a.name) === f.id)))
       const visSaved = (Array.isArray(tbArts[0].vis) === true) ? tbArts[0].vis : null
       const isRenderedMiniApp = (a) => (/\.miniapp\.json$/i).test(String(a.name || ''))
-      const tileDefs = KB_ART_FAMILIES.map((f) => ({ kind: 'fam', id: f.id, label: kbt('deliv.fam.' + f.id), desc: kbt('deliv.fam.' + f.id + '.desc'), count: typed.filter((a) => kbArtFamille(a.name) === f.id).length, color: 'var(--dsw-alias-brand-primary)', bg: 'var(--dsw-alias-interactive-bg-hover)', glyph: kbTiSvg(KB_TI.family[f.id], 34) }))
-        .concat(KB_ART_TYPES.filter((t) => t.id !== 'other' && t.id !== 'doc').map((t) => ({ kind: 'type', id: t.id, label: t.label, desc: kbt('deliv.type.' + t.id + '.desc'), count: typed.filter((a) => a.type.id === t.id && (t.id !== 'miniapp' || isRenderedMiniApp(a) === true)).length, color: 'var(--dsw-alias-brand-primary)', bg: 'var(--dsw-alias-interactive-bg-hover)', glyph: kbTiSvg(KB_TI.type[t.id] || 'other', 34) })))
+      const tileDefs = KB_ART_FAMILIES.map((f) => ({ kind: 'fam', id: f.id, label: kbt('deliv.fam.' + f.id), desc: kbt('deliv.fam.' + f.id + '.desc'), count: typed.filter((a) => kbArtFamille(a.name) === f.id).length, art: kbArtDraw(KB_ART_DRAW.fam[f.id]) }))
+        .concat(KB_ART_TYPES.filter((t) => t.id !== 'other' && t.id !== 'doc').map((t) => ({ kind: 'type', id: t.id, label: t.label, desc: kbt('deliv.type.' + t.id + '.desc'), count: typed.filter((a) => a.type.id === t.id && (t.id !== 'miniapp' || isRenderedMiniApp(a) === true)).length, art: kbArtDraw(KB_ART_DRAW.type[t.id]) })))
       // (02/10) `vis` devient une liste de types MASQUÉS : mémoriser les
       // affichés figeait la rangée à l'instant de la sauvegarde — un type
       // devenu présent plus tard (ex. miniapp) n'apparaissait jamais (constaté
@@ -20435,8 +20346,8 @@ function renderFit(canvas, model, cam, opts){
           // « Tous » et dans la recherche, il disparaît seulement des filtres.
           const tuile = (d) => {
             const on = selTypes.indexOf(d.id) >= 0
-            return h('button', { type: 'button', key: d.id, 'aria-pressed': on === true ? 'true' : 'false', className: 'kb-type' + (on === true ? ' kb-type-sel' : ''), style: on === true ? { borderColor: d.color } : {}, title: d.desc, onClick: () => toggleSel(d.id) },
-              h('span', { className: 'kb-type-view', style: { background: d.bg, color: d.color } }, d.glyph),
+            return h('button', { type: 'button', key: d.id, 'aria-pressed': on === true ? 'true' : 'false', className: 'kb-type' + (on === true ? ' kb-type-sel' : ''), title: d.desc, onClick: () => toggleSel(d.id) },
+              h('span', { className: 'kb-type-view kb8-sl-stage' }, d.art),
               h('span', { className: 'kb-type-check' + (on === true ? ' on' : ''), 'aria-hidden': 'true' }, on === true ? Icon('check', 10) : null),
               h('span', { className: 'kb-type-line' },
                 h('span', { className: 'kb-type-lab' }, d.label),
@@ -20469,7 +20380,7 @@ function renderFit(canvas, model, cam, opts){
             h('div', { className: 'kb-typerow-host' },
               h('div', { className: 'kb-typerow', 'data-kb': 'type-tiles' },
                 h('button', { type: 'button', className: 'kb-type' + (allOn === true ? ' kb-type-sel' : ''), 'aria-pressed': allOn === true ? 'true' : 'false', onClick: () => tbArts[1]({ types: [] }) },
-                  h('span', { className: 'kb-type-view', style: { background: 'var(--dsw-alias-interactive-bg-hover)', color: 'var(--dsw-alias-label-tertiary)' } }, Icon('layers', 22)),
+                  h('span', { className: 'kb-type-view kb8-sl-stage' }, kbArtDraw('all')),
                   h('span', { className: 'kb-type-check' + (allOn === true ? ' on' : ''), 'aria-hidden': 'true' }, allOn === true ? Icon('check', 10) : null),
                   h('span', { className: 'kb-type-line' },
                     h('span', { className: 'kb-type-lab' }, kbt('deliverables.all')),
@@ -25342,8 +25253,9 @@ function renderFit(canvas, model, cam, opts){
     }
     ctx.effect(() => slots.inject('conversation.input.dock', () => slots.register(
       { name: 'conversation.input.dock', id: 'kybernos-newchat', order: 25 }, KbNewChatCards)), 'kybers: new chat cards');
-    // The little motion of a drawing plays when its card is hovered, focused, or lit by what the person types.
-    const kbNcHot = '.kb8-sl-card:is(:hover,:focus-visible,.is-match)'
+    // The little motion of a drawing plays when its card is hovered, focused, or lit by what the person types. The Creations page's type
+    // tiles (and the rows of its « Customize » panel) wear the same drawings, so they play it too (hovered, or selected).
+    const kbNcHot = ':is(.kb8-sl-card,.kb-type,.kb-typepanel-row):is(:hover,:focus-visible,.is-match,.kb-type-sel)'
     ctx.effect(() => styles.insert(`
 /* The new chat: a slider of what can be made, under the composer, and the Cloud Computer line. Tokens only: the one accent is the theme's. */
 .kb8-nc{--kb8-acc:var(--dsw-alias-brand-primary);order:2;display:flex;flex-direction:column;align-items:stretch;gap:12px;padding:18px 16px 10px;container-type:inline-size;container-name:kbnc}
@@ -29535,25 +29447,16 @@ body[data-ds-dark-theme] .kb8-iconbtn.on.col{border-color:var(--kb8-pgd);color:v
    noir. On passe aux jetons réels, qui basculent avec le thème.
    Les accents (--dsw-alias-brand-primary,#5563d6 / #5686fe / #b0578f) restent : ce
    sont des tons moyens, lisibles dans les deux thèmes. */
-/* Tuiles RESPONSIVE sur UNE ligne (demande 26/09) : flex:1 partage la largeur
-   de la rangée — jamais de débord ni de retour à la ligne ; les libellés longs
-   éllipsent. compactes : scène 44px, padding 8/10. */
-.kb-type{min-width:0;display:flex;flex-direction:column;align-items:stretch;gap:6px;padding:8px 10px;border:1px solid var(--dsw-alias-border-l1);border-radius:12px;background:var(--dsw-alias-bg-layer-1);cursor:pointer;text-align:left;transition:border-color .15s,box-shadow .15s;color:var(--dsw-alias-label-primary);position:relative}
-.kb-type:hover{border-color:var(--dsw-alias-border-l2)}
-.kb-type-sel{border-color:var(--dsw-alias-brand-primary,#5563d6);box-shadow:0 0 0 1px var(--dsw-alias-brand-primary,#5563d6)}
-/* Bande d'aperçu des tuiles de type (fidèle à la maquette demos/deliverables) :
-   une pastille pleine largeur qui illustre le CONTENU du type, pas une icône. */
-.kb-type-view{width:100%;height:44px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex:none;position:relative;overflow:hidden}
-.kbm{position:relative;display:flex;align-items:center;justify-content:center}
-.kbm i{display:block}
-.kbm-ln{height:3px;border-radius:2px;background:currentColor}
-.kbm-box{position:absolute;border:1.5px solid currentColor;border-radius:4px}
-.kbm-mdot{border-radius:50%;background:currentColor}
-.kbm-ring{border:1.5px solid currentColor;border-radius:50%}
-.kbm-txt{font-family:ui-monospace,Menlo,monospace;font-weight:700;line-height:1;color:currentColor}
-/* Pas d'ANIMATION dans les tuiles (demande 26/09 : « pas de trait qui
-   clignotte ») : l'ancien caret .kbm-caret pulsait en step-end infinite —
-   supprimé, scènes statiques. */
+/* Type tiles on ONE row (26/09 request): the row's width is shared, no overflow, no wrap; long labels ellipsize. A tile is a card of the
+   new chat page's family (ring, rounded, a tinted band that holds a drawing, the label under it): the band wears the class kb8-sl-stage, so
+   the drawings are styled by the new chat page's rules, from the theme's tokens. */
+.kb-type{min-width:0;display:flex;flex-direction:column;align-items:stretch;gap:0;padding:0;border:0;border-radius:var(--dsw-radius-lg,16px);background:var(--dsw-alias-bg-layer-1);box-shadow:0 0 0 1px var(--dsw-alias-border-l1);cursor:pointer;text-align:left;overflow:hidden;transition:box-shadow .25s,transform .25s cubic-bezier(.16,1,.3,1);color:var(--dsw-alias-label-primary);position:relative}
+.kb-type:hover{transform:translateY(-2px);box-shadow:0 0 0 1px var(--dsw-alias-border-l2),0 12px 28px -14px rgba(0,0,0,.35)}
+.kb-type-sel,.kb-type-sel:hover{box-shadow:0 0 0 1.5px var(--dsw-alias-brand-primary,#5563d6)}
+.kb-type .kb-type-view{--kb8-acc:var(--dsw-alias-brand-primary);width:100%;height:64px;flex:none}
+.kb-type .kb-type-view svg{width:68px;height:47px}
+.kb-type:hover .kb-type-view svg,.kb-type-sel .kb-type-view svg{transform:translateY(-2px) scale(1.06)}
+.kb-type-line{box-sizing:border-box;padding:8px 10px}
 
 .kb-type-lab{font-size:11.5px;font-weight:600;color:var(--dsw-alias-label-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .kb-type-cnt{font-size:10.5px;color:var(--dsw-alias-label-secondary);margin-left:auto;flex:none}
@@ -29562,7 +29465,7 @@ body[data-ds-dark-theme] .kb8-iconbtn.on.col{border-color:var(--kb8-pgd);color:v
 /* Sélection multi-types + panneau « Personnaliser » (maquette 29/09) : coche
    de tuile, rangée d'indice, panneau flottant — positions logiques (inline),
    sans left/right dur, pour rester bidi-sûres. */
-.kb-type-check{position:absolute;top:12px;inset-inline-end:10px;width:16px;height:16px;border-radius:5px;border:1.5px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);display:flex;align-items:center;justify-content:center;color:var(--dsw-alias-label-primary-foreground,#fff);flex:none;box-sizing:border-box}
+.kb-type-check{position:absolute;top:8px;inset-inline-end:8px;width:16px;height:16px;border-radius:5px;border:1.5px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);display:flex;align-items:center;justify-content:center;color:var(--dsw-alias-label-primary-foreground,#fff);flex:none;box-sizing:border-box}
 .kb-type-check.on{background:var(--dsw-alias-brand-primary,#5563d6);border-color:var(--dsw-alias-brand-primary,#5563d6)}
 .kb-typehint{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:0 2px 4px;font-size:12px;color:var(--dsw-alias-label-secondary)}
 .kb-typehint-end{display:flex;align-items:center;gap:10px;min-width:0;flex-wrap:wrap;margin-inline-start:auto}
@@ -29588,14 +29491,12 @@ body[data-ds-dark-theme] .kb8-iconbtn.on.col{border-color:var(--kb8-pgd);color:v
 .kb-typepanel-grouplab{font-family:ui-monospace,monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--dsw-alias-label-secondary);padding:10px 6px 4px}
 .kb-typepanel-row{display:flex;align-items:center;gap:10px;min-height:40px;padding:0 6px;border-radius:8px;cursor:pointer}
 .kb-typepanel-row:hover{background:var(--dsw-alias-bg-layer-2)}
-.kb-typepanel-thumb{width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;flex:none;overflow:hidden}
-.kb-typepanel-thumb .kbm{transform:scale(.6)}
-/* Jeu d'icônes de type unique (Livrables) : bande des tuiles, panneau Personnaliser,
-   vignettes de liste, en-tête de carte, visionneuse. Couleurs = jetons (rôles A/B/N/P). */
+.kb-typepanel-thumb{--kb8-acc:var(--dsw-alias-brand-primary);width:44px;height:30px;border-radius:7px;flex:none;overflow:hidden}
+.kb-typepanel-thumb.kb8-sl-stage{height:30px}
+.kb-typepanel-thumb.kb8-sl-stage svg{width:40px;height:28px}
+/* Jeu d'icônes de type unique (Livrables) : vignettes de liste, en-tête de carte,
+   visionneuse. Couleurs = jetons (rôles A/B/N/P). */
 .kb-ti{display:block;flex:none}
-.kb-type-view .kb-ti{width:34px;height:34px}
-.kb-typepanel-thumb{background:var(--dsw-alias-interactive-bg-hover)}
-.kb-typepanel-thumb .kb-ti{width:22px;height:22px}
 .kb6-ico.kb6-ico-ti{width:24px;height:24px}
 .kb6-vico{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:10px;background:var(--dsw-alias-interactive-bg-hover);flex:none}
 .kb6-prevkind .kb-ti{opacity:1}
