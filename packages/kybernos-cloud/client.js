@@ -181,6 +181,8 @@ window.__ModuleLoader__.load({
         spaceMembers1: '1 membre',
         spaceKindPersonal: 'Personnel',
         spaceKindTeam: 'Équipe',
+        spacePrivate: 'privé',
+        spaceShared: 'partagé',
         spaceSwitching: 'Changement en cours…',
         spaceSwitchSlow: 'Le passage à {name} prend plus de temps que d\'habitude. Attends un instant avant d\'envoyer un message : il pourrait encore être facturé à l\'équipe précédente.',
         spaceRouteStale: 'Tu es dans {name}, mais la route des modèles n\'a pas pu être mise à jour : tes messages pourraient encore être facturés à l\'équipe précédente. Réessaie.',
@@ -457,6 +459,8 @@ window.__ModuleLoader__.load({
         spaceMembers1: '1 member',
         spaceKindPersonal: 'Personal',
         spaceKindTeam: 'Team',
+        spacePrivate: 'private',
+        spaceShared: 'shared',
         spaceSwitching: 'Switching…',
         spaceSwitchSlow: 'The switch to {name} is taking longer than usual. Wait a moment before sending a message: it may still be billed to the previous team.',
         spaceRouteStale: 'You are in {name}, but the model route could not be updated: your messages may still be billed to the previous team. Try again.',
@@ -3556,7 +3560,7 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
                 h('span', { className: 'kbfp-cardname' }, nomEspace),
                 switching !== null
                   ? h('span', { className: 'kbfp-cardsub', 'data-kb': 'workspace-card-switching' }, t('spaceSwitching'))
-                  : h('span', { className: 'kbfp-cardsub', title: mfaNote !== null ? mfaNote.long : undefined, 'data-kb': mfaNote !== null ? 'workspace-card-mfa' : undefined }, qui + ' · ' + planEspace + (mfaNote !== null ? ' · ⚠ ' + mfaNote.short : '')),
+                  : h('span', { className: 'kbfp-cardsub', title: mfaNote !== null ? mfaNote.long : undefined, 'data-kb': mfaNote !== null ? 'workspace-card-mfa' : undefined }, qui + ' · ' + planEspace + ' · ' + (spaceIsPersonal(shownEntry) ? t('spacePrivate') : t('spaceShared')) + (mfaNote !== null ? ' · ⚠ ' + mfaNote.short : '')),
                 meter !== null
                   ? h('span', { className: 'kbfp-use', 'data-kb': 'workspace-card-usage', 'data-level': meter.level, 'data-percent': String(meter.percent), title: meter.title },
                     h('span', { className: 'kbfp-usebar', 'aria-hidden': 'true' }, h('span', { className: 'kbfp-usefill', style: { width: meter.percent + '%' } })),
