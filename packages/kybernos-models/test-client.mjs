@@ -369,7 +369,8 @@ ok('row actions show on hover and focus, and stay visible on touch screens', has
 ok('the provider column and the matrix appear from 860 px, the compact layout below', has('@container (min-width: 860px)') && has('@container (min-width: 620px)'))
 ok('the capability chips are hidden by default from 860 px (the header filters), always shown below, and one menu item turns them on', has("const KB_CHIPS_PREF = 'kb.models.capChips'") && has('kbmp-capsbar-on') && has('.kbmp-capsbar:not(.kbmp-capsbar-on){display:none}') && has("'data-kbm': 'chips-toggle'"))
 ok('Restore, Sync all, the chips and DSH’s native page live in one ⋯ menu on the tab bar', has("'data-kbm': 'models-more'") && has("'data-kbm': 'models-menu'") && has("'data-kbm': 'restore'") && has("'data-kbm': 'fetch'"))
-ok('the Cloud card is the first cell of the provider grid (so it shows on the Providers tab only and the tab bar never moves), and the old header block (intro, Live data pill, two buttons) is gone from Models', has("h(KybernosHero, { key: 'kb-hero' })") && !has("UI.tab === 'providers' ? h(KybernosHero, null) : null") && has('.kbpv-cards>.kbmh-hero{grid-column:1/-1}') && !has("className: 'kbm-head'"))
+ok('the Cloud card is the first cell of the provider grid, a card of its own size (so it shows on the Providers tab only and the tab bar never moves), and the old header block (intro, Live data pill, two buttons) is gone from Models', has("h(KybernosHero, { key: 'kb-hero' })") && !has("UI.tab === 'providers' ? h(KybernosHero, null) : null") && has("className: 'kbpv-card kbmh-hero'") && !has('grid-column:1/-1') && !has("className: 'kbm-head'"))
+ok('the Cloud card IS the « kybernos » provider while the account is connected: its plain card is not drawn beside it (it is when the account is disconnected, and in a search result where the provider has to be findable)', has("cloud: route === 'kybernos'") && has('const listed = cards.filter((x) => !(x.cloud === true && KBM.cloud !== false))') && has('KBM.cloud = res !== null && typeof res === \'object\' && res.connected === true; kbmNotify()') && has('.catch(() => { if (mort !== true) { KBM.cloud = false; kbmNotify() } })') && has('const hits = searching ? kbPvSearch(cards, UI.pq) : listed') && has('(searching ? hits : (fold.fold && !ui.waitOpen ? ready : listed))'))
 ok('the tab bar is the first thing the panel draws: nothing sits above it on either tab (it jumped 85 px between Providers and Models)', (() => { const a = src.indexOf("'data-slot': 'kybernos-models-header' }"); const b = src.indexOf("className: 'kbmp-tabs'", a); return a > 0 && b > a && b - a < 3000 && !src.slice(a, b).includes('KybernosHero') })())
 ok('the page uses the room it has (1120 px, against the core plugin’s 720 cap, with more specificity)', has('>.kbm-page:has(.kbm-root.kbmp){max-width:1120px}'))
 ok('no colour hard-coded in the new Providers styles', !/kbpv-[a-z-]+\{[^}']*#[0-9a-fA-F]{3,8}\b/.test(src))
@@ -497,7 +498,7 @@ console.log('\n── Fetch available models (the engine lists what a provider s
 {
   const bl = (name) => { const i = src.indexOf('// ' + name + '-BEGIN'); const j = src.indexOf('// ' + name + '-END'); return src.slice(i, j) }
   ok('the fetch blocks are delimited', bl('KB-FETCH-PURE').length > 100 && bl('KB-FETCH-ACTIONS').length > 100)
-  const fx = new Function(bl('KB-CAP-PURE') + bl('KB-FETCH-PURE') + '\nreturn { kbFetchProbe, kbFetchAskable, kbFetchCandidates, kbFetchOutcome, kbFetchAdopt, kbFetchPreselect, kbFetchFilter, kbFetchApply, kbFetchSize, kbFetchLiveOutcome, kbFetchMerge, kbFetchWhy, kbFetchHost }')()
+  const fx = new Function(bl('KB-CAP-PURE') + bl('KB-FETCH-PURE') + '\nreturn { kbFetchProbe, kbFetchAskable, kbFetchCandidates, kbFetchOutcome, kbFetchAdopt, kbFetchPreselect, kbFetchFilter, kbFetchApply, kbFetchSize, kbFetchLiveOutcome, kbFetchMerge, kbFetchWhy, kbFetchHost, kbFetchTagUndescribed }')()
   const pv = new Function(bl('KB-PV-PURE') + '\nreturn { kbPvRows, kbPvMergeModels, kbPvEditProfile, kbPvNewProfile }')()
 
   console.log('  — the request')
@@ -563,8 +564,8 @@ console.log('\n── Fetch available models (the engine lists what a provider s
 
     calls = answer({ ok: true, source: 'live', url: 'https://openrouter.ai/api/v1/models', models: [{ id: 'x', name: 'X', contextWindow: 1000 }] })
     let asked = 0
-    const r2 = await live({ llm: { discoverModels: async () => { asked += 1; return { ok: true, value: [] } } } }, { provider: 'openrouter' }, { live: true })
-    ok('a listing that discloses capacities is not enriched: the engine is not asked a second time', r2.live === true && asked === 0 && r2.models[0].contextWindow === 1000)
+    const r2 = await live({ llm: { discoverModels: async () => { asked += 1; return { ok: true, value: [{ id: 'x', name: 'Catalog X', contextWindow: 9 }, { id: 'y' }] } } } }, { provider: 'openrouter' }, { live: true })
+    ok('the engine is asked for its catalog on the live path too (its ids say which models the route may refuse); what the endpoint disclosed still wins over the catalog', r2.live === true && asked === 1 && r2.models[0].contextWindow === 1000 && r2.models[0].name === 'X' && JSON.stringify(r2.described) === JSON.stringify(['x', 'y']), r2)
 
     calls = answer({ ok: false, error: 'refused', status: 401, detail: '' })
     const r3 = await live(catalog, { provider: 'opencode-go' }, { live: true })
@@ -593,13 +594,24 @@ console.log('\n── Fetch available models (the engine lists what a provider s
   const merged = fx.kbFetchMerge([{ id: 'a', name: 'a' }, { id: 'b', name: 'Mine', contextWindow: 5 }], [{ id: 'a', name: 'Model A', contextWindow: 9, maxTokens: 3 }, { id: 'b', name: 'Other', contextWindow: 7, maxTokens: 4 }])
   ok('merging never overrides what the endpoint disclosed', merged[0].name === 'Model A' && merged[0].contextWindow === 9 && merged[1].name === 'Mine' && merged[1].contextWindow === 5 && merged[1].maxTokens === 4)
 
+  console.log('  — models the route may refuse (the engine takes one protocol per route)')
+  const { kbPvNeedsApi } = new Function(bl('KB-PV-PURE') + '\nreturn { kbPvNeedsApi }')()
+  ok('the engine\'s refusal is recognised and names the model; any other message is not', kbPvNeedsApi('llm-pi-ai: provider "opencode-go" model "minimax-m3.1-flash-free" needs an api; the installed catalog does not describe it, so set the route\'s api to the wire protocol its endpoint speaks') === 'minimax-m3.1-flash-free' && kbPvNeedsApi('model "x" needs a baseURL') === null && kbPvNeedsApi(undefined) === null && kbPvNeedsApi('') === null)
+  const live3 = [{ id: 'a' }, { id: 'new-1' }, { id: 'new-2' }]
+  const tagged = fx.kbFetchTagUndescribed(live3, ['a', 'old'], false, false)
+  ok('on a route its catalog describes and whose profile declares no api, a model outside the catalog is tagged (and only that)', tagged[0].undescribed === undefined && tagged[1].undescribed === true && tagged[1].locked === false && tagged[2].undescribed === true)
+  ok('a route that already refused one locks them', fx.kbFetchTagUndescribed(live3, ['a'], false, true).filter((c) => c.locked === true).length === 2)
+  ok('nothing is tagged when the profile declares an api, when the catalog is empty, or when the engine could not say', fx.kbFetchTagUndescribed(live3, ['a'], true, false) === live3 && fx.kbFetchTagUndescribed(live3, [], false, false) === live3 && fx.kbFetchTagUndescribed(live3, null, false, false) === live3)
+  ok('the models outside the catalog are not ticked on opening (the default choice always applies), the others are', Object.keys(fx.kbFetchPreselect(tagged, [])).join() === 'a')
+  ok('an apply refused for want of a protocol says so in words a person can act on, keeps the draft, and remembers the route; the other errors keep their wording', src.includes("const model = errKey === 'kb.pv.save.err' ? kbPvNeedsApi(raison) : null") && src.includes("if (model !== null && slug) KBM.needsApi[slug] = true") && src.includes("m('kb.pv.err.needsapi', { slug: slug || '', model })") && src.includes("kbFetchTagUndescribed(out.models, out.described, hasApi, KBM.needsApi[slug] === true)"))
+
   console.log('  — wiring')
   const w = (frag) => src.includes(frag)
   ok('the button sits in the models header of both panels, disabled with a reason until there is something to ask', w("'data-kbm': 'fetch-open'") && w("title: blocked !== null ? blocked : (!askable ? m('kb.fetch.needsurl') : undefined)") && w('probe: kbFetchProbe(route, dr)') && w('probe: kbFetchProbe(null, dr)'))
   ok('the picker asks the provider\'s own endpoint for a catalog route, and tells where the list came from (live, or the catalog and why not)', w('kbFetchRun(kbMApi(), probe, { live: custom !== true })') && w("'data-kbm': 'fetch-source'") && w("m('kb.fetch.src.catalog', { raison: m(fp.src.why.key, fp.src.why.vars) })"))
   ok('Add provider from the catalogue still adopts the engine\'s answer (a live list of hundreds is not adopted unasked)', w('const found = await kbFetchRun(api, kbFetchProbe(slug, d))'))
   ok('the picker is the native one: search, Select all / Deselect all, Add selected, Cancel', w("'data-kbm': 'fetch-search'") && w("'data-kbm': 'fetch-all'") && w("'data-kbm': 'fetch-adopt'") && w("'data-kbm': 'fetch-cancel'"))
-  ok('models already in the list are shown, ticked and disabled — never overwritten', w("checked: known || fp.picked[c.id] === true, disabled: known"))
+  ok('models already in the list are shown, ticked and disabled — never overwritten; so are the ones a route that refused them locked', w("checked: known || (fp.picked[c.id] === true && c.locked !== true), disabled: known || c.locked === true"))
   ok('Escape closes the picker only: window capture runs before the drawer’s document capture', w("window.addEventListener('keydown', key, true)") && w('Escape closes the picker and nothing else'))
   ok('a catalog route warns that the kept list replaces the built-in one, and can restore it', w("'data-kbm': 'fetch-replaces'") && w("'data-kbm': 'fetch-restore'") && w('d.restoreModels === true) delete next.models'))
   ok('editing the rows afterwards cancels a pending "restore"', w('set({ models: next, touched: true, restoreModels: false })'))
@@ -759,10 +771,14 @@ console.log('\n── why a model is not answering, and the first view (V-29, V-
 
   ok('the tab row is 30 px on both tabs, so the tabs do not move by a pixel when the Models tab adds its icon buttons', has('.kbmp-tabs{position:relative;display:flex;flex-wrap:wrap;gap:8px;align-items:center;min-height:30px}'))
 
+  ok('a provider card is 70 px tall at least, padding included (border-box): as a content box the 76 px minimum plus 28 px of padding made every card 106 px', has('.kbpv-card{box-sizing:border-box;position:relative;display:flex;align-items:center;gap:14px;padding:12px 14px;min-height:70px;'))
+
   const { kbHeroPlan, kbHeroShowKey } = new Function(bl('KB-HERO-PURE') + '\nreturn { kbHeroPlan, kbHeroShowKey }')()
   ok('the plan comes from the active space, else from the account, lower case; nothing known is null', kbHeroPlan({ space_plan: { key: 'Free' }, user: { plan: 'team' } }) === 'free' && kbHeroPlan({ user: { plan: 'PLUS' } }) === 'plus' && kbHeroPlan({ space_plan: { key: '' }, user: { plan: 'pro' } }) === 'pro' && kbHeroPlan(null) === null && kbHeroPlan({}) === null && kbHeroPlan({ space_plan: 5, user: 7 }) === null)
   ok('V-28: « Add your API key » is offered while not connected and on a Free account, not on a connected paid one', kbHeroShowKey(false, null) === true && kbHeroShowKey(null, null) === true && kbHeroShowKey(true, 'free') === true && kbHeroShowKey(true, 'plus') === false && kbHeroShowKey(true, null) === false)
-  ok('the hero hides the key button, its « or » and the « Recommended » pill once connected, and says it in one line (« N models included »)', has('kbHeroShowKey(connecte, plan) ? h(\'div\', { className: \'kbmh-hero-or\'') && has("connecte === true ? null : h('span', { className: 'kbmh-hero-pill', 'data-kbmh': 'badge' }") && has("m(n === 1 ? 'kb.hero.title.in.one' : 'kb.hero.title.in', { n })") && /'kb\.hero\.title\.in': \{ kybernos: '\{n\} modèles inclus', en: '\{n\} models included' \}/.test(src))
+  ok('the hero hides the key link and the « Recommended » tag once connected (on a Free account the link stays), and says it in one line (« N models included », with « Connected » for a screen reader)', has("kbHeroShowKey(connecte, plan) ? h('button', {") && has("'data-kbmh': 'badge' }, m('kb.hero.badge')") && has("m(n === 1 ? 'kb.hero.title.in.one' : 'kb.hero.title.in', { n })") && has("className: 'kbmh-hero-sr'") && /'kb\.hero\.title\.in': \{ kybernos: '\{n\} modèles inclus', en: '\{n\} models included' \}/.test(src))
+  ok('the card is a provider card in a night blue: short labels on the buttons (Connect / Manage / or add a key), the full sentence in the tooltip and the accessible name, and the name opens the Models view once connected', has("kb.hero.connect.short") && has("'kb.hero.manage.short': { kybernos: 'Gérer', en: 'Manage' }") && has("'aria-label': connecte === true ? m('kb.hero.manage') : m('kb.hero.connect')") && has("const voirModeles = () => { uiSet('prov', 'kybernos'); uiSet('tab', 'models') }") && has("'data-kbmh': 'models'"))
+  ok('the dead banner is gone: no pitch, no feature list, no « or » divider, no 520 px column rule', !has('kbmh-hero-pitch') && !has('kbmh-hero-feats') && !has('kbmh-hero-or') && !has('kbmh-hero-cta') && !has("'kb.hero.pitch") && !has("'kb.hero.f.") && !has("'kb.hero.or'"))
 
   const { kbPvFold } = new Function(bl('KB-PV-PURE') + '\nreturn { kbPvFold }')()
   ok('N-06: once one provider works, the ones with no key or switched off fold away and are counted', JSON.stringify(kbPvFold([false, true, true, true])) === JSON.stringify({ fold: true, waiting: 3 }))
