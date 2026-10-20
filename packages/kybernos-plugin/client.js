@@ -107,11 +107,9 @@ let kbLocaleRead = () => 'en'
       'tasks.filter.attention': { kybernos: 'Attention requise', en: 'Needs attention' },
       'tasks.col.name': { kybernos: 'Nom', en: 'Name' },
       'tasks.col.trigger': { kybernos: 'Déclencheur', en: 'Trigger' },
-      'tasks.col.origin': { kybernos: 'Origine', en: 'Origin' },
       'tasks.col.lastsession': { kybernos: 'Dernière session', en: 'Last session' },
       'tasks.col.sessions': { kybernos: 'Sessions', en: 'Sessions' },
       'tasks.col.on': { kybernos: 'Actif', en: 'On' },
-      'tasks.origin.manual': { kybernos: 'Manuel', en: 'Manual' },
       'tasks.status.awaiting': { kybernos: 'En attente d\'approbation', en: 'Awaiting approval' },
       'tasks.status.ok': { kybernos: 'ok', en: 'ok' },
       'tasks.status.failed': { kybernos: 'Échoué', en: 'Failed' },
@@ -14161,7 +14159,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
               h('span', { style: { display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 } },
                 h('span', { className: 'kb8-name' }, c.name),
                 h('span', { className: 'kb8-parent' }, c.meta)),
-              h('span', { style: Object.assign({}, pillT, c.state === 'ACTIVE' || c.state === 'READY' ? { color: 'var(--dsw-alias-state-success-primary)', borderColor: 'var(--dsw-alias-state-success-primary)' } : (c.state === 'FAILED' ? { color: 'var(--dsw-alias-state-error-primary)', borderColor: 'var(--dsw-alias-state-error-primary)' } : null)) }, String(c.state).charAt(0) + String(c.state).slice(1).toLowerCase()),
+              ((c.state === 'ACTIVE' || c.state === 'READY') ? null : h('span', { style: Object.assign({}, pillT, c.state === 'ACTIVE' || c.state === 'READY' ? { color: 'var(--dsw-alias-state-success-primary)', borderColor: 'var(--dsw-alias-state-success-primary)' } : (c.state === 'FAILED' ? { color: 'var(--dsw-alias-state-error-primary)', borderColor: 'var(--dsw-alias-state-error-primary)' } : null)) }, String(c.state).charAt(0) + String(c.state).slice(1).toLowerCase())),
               h('button', {
                 type: 'button', className: 'kb8-iconbtn', 'data-kb': 'team-conn-toggle',
                 title: (c.real === true && c.account !== null && c.account !== undefined && c.account !== '') ? (connTeamArm === c.key ? kbt('kbui.conn.confirm') : kbt('kbui.conn.disable')) : kbt('kbui.conn.enable'),
@@ -14389,7 +14387,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
           h('span', { style: { display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 } },
             h('span', { className: 'kb8-name' }, k.name),
             h('span', { className: 'kb8-parent' }, k.ghost === true ? kbt('kbui.skills.ghostteam') : (k.kyber + ' · ' + k.where))),
-          h('span', { style: k.attached === true ? pillTOn : pillT, 'data-kb': 'team-skill-pill' }, k.attached === true ? 'Attached' : 'Available')))))
+          (k.attached === true ? h('span', { style: pillTOn, 'data-kb': 'team-skill-pill' }, 'Attached') : null)))))
     }
     // ── vue Runs : lanes SVG (déclaré / observé / réel) ───────────────────
     const KB_RUN_COLORS = { completed: '#22c55e', failed: '#ef4444', cancelled: '#f59e0b' }
@@ -17874,7 +17872,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
               pagerOf(goalsVp))
         }
         if (tab === 'Deliverables') {
-          if (mine.length === 0) return emptyX({ kb: 'project-deliv-empty', title: kbe('No creation yet', 'Aucune création'), text: kbe('Pages, files and decks your Agent Teams make in this project show up here.', 'Les pages, fichiers et présentations créés par vos Agent Teams dans ce projet apparaissent ici.'), action: chatAction(kbe('Open a chat in this project', 'Ouvrir un chat dans ce projet')) })
+          if (mine.length === 0) return emptyX({ kb: 'project-deliv-empty', title: kbe('No creation yet', 'Aucune création'), text: kbe('Pages, files and decks your Agent Teams make in this project show up here.', 'Les pages, fichiers et présentations créés par tes Agent Teams dans ce projet apparaissent ici.'), action: chatAction(kbe('Open a chat in this project', 'Ouvrir un chat dans ce projet')) })
           // Le nom d'un livrable ne dit ni son type ni son age : les deux sont
           // affiches, et la fiche dit ou il vit sur le disque (avec de quoi
           // l'ouvrir ou le telecharger). `docField` appartient a l'onglet
@@ -17979,7 +17977,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
               h('span', { style: { display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 } },
                 h('span', { className: 'kb8-name' }, k.name),
                 h('span', { className: 'kb8-parent' }, k.ghost === true ? kbt('kbui.skills.ghost') : (k.kyber + ' · ' + k.where))),
-              h('span', { style: k.attached === true ? pillAttached : pillStyle, 'data-kb': 'project-skill-pill' }, k.attached === true ? 'Attached' : 'Available'),
+              (k.attached === true ? h('span', { style: pillAttached, 'data-kb': 'project-skill-pill' }, 'Attached') : null),
               h('button', {
                 type: 'button', className: 'kb8-iconbtn', 'data-kb': 'project-skill-info',
                 title: kbt('kbui.skill.info'), 'aria-label': kbt('kbui.skill.info') + kbfSep() + k.name,
@@ -18038,7 +18036,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
               h('span', { style: { display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 } },
                 h('span', { className: 'kb8-name' }, c.name),
                 h('span', { className: 'kb8-parent' }, c.meta)),
-              h('span', { style: Object.assign({}, pillStyle, c.state === 'ACTIVE' || c.state === 'READY' ? { color: 'var(--dsw-alias-state-success-primary)', borderColor: 'var(--dsw-alias-state-success-primary)' } : (c.state === 'FAILED' ? { color: 'var(--dsw-alias-state-error-primary)', borderColor: 'var(--dsw-alias-state-error-primary)' } : null)) }, String(c.state).charAt(0) + String(c.state).slice(1).toLowerCase()),
+              ((c.state === 'ACTIVE' || c.state === 'READY') ? null : h('span', { style: Object.assign({}, pillStyle, c.state === 'ACTIVE' || c.state === 'READY' ? { color: 'var(--dsw-alias-state-success-primary)', borderColor: 'var(--dsw-alias-state-success-primary)' } : (c.state === 'FAILED' ? { color: 'var(--dsw-alias-state-error-primary)', borderColor: 'var(--dsw-alias-state-error-primary)' } : null)) }, String(c.state).charAt(0) + String(c.state).slice(1).toLowerCase())),
               h('button', {
                 type: 'button', className: 'kb8-iconbtn', 'data-kb': 'project-conn-toggle',
                 title: (c.real === true && c.account !== null && c.account !== undefined && c.account !== '') ? (connArm === c.key ? kbt('kbui.conn.confirm') : kbt('kbui.conn.disable')) : kbt('kbui.conn.enable'),
@@ -22385,7 +22383,6 @@ function renderFit(canvas, model, cam, opts){
         h('div', { className: 'kba-rowhead' },
           h('span', { className: 'kba-tabver' }, kbt('tasks.col.name')),
           h('span', { className: 'kba-tabver' }, kbt('tasks.col.trigger')),
-          h('span', { className: 'kba-tabver' }, kbt('tasks.col.origin')),
           h('span', { className: 'kba-tabver' }, kbt('tasks.col.lastsession')),
           h('span', { className: 'kba-tabver' }, kbt('tasks.col.sessions'))),
         h('span', null),
@@ -22395,7 +22392,7 @@ function renderFit(canvas, model, cam, opts){
         [0, 1, 2, 3].map((i) => h('div', { key: 'r' + i, className: 'kba-rowline kb-sk-row' },
           h('div', { className: 'kba-rowbtn', style: { cursor: 'default' } },
             h('span', { style: { display: 'flex', flexDirection: 'column', gap: '3px' } }, kbBone(i % 2 === 0 ? '62%' : '48%', 13), kbBone('36%', 10)),
-            kbBone('72%', 12), kbBone(72, 20, 'pill'), kbBone('70%', 12), kbBone(20, 12)),
+            kbBone('72%', 12), kbBone('70%', 12), kbBone(20, 12)),
           h('span', null),
           h('span', { className: 'kba-oncol' }, kbBone(34, 20, 'pill'))))])
       const kbaLoadError = () => h('div', { className: 'kba-card' },
@@ -22872,7 +22869,6 @@ function renderFit(canvas, model, cam, opts){
               h('button', { type: 'button', className: 'kba-rowbtn', onClick: () => { setDetail(a.id); setTab('sessions'); setNodeSel(null) } },
                 h('span', { className: 'kba-namecell' }, h('span', { className: 'kba-name', title: a.name }, a.name), h('span', { className: 'kba-team', title: a.team }, a.team)),
                 h('span', { className: 'kba-trgcell' }, h('span', { className: 'kba-trigger-icon' }, Icon('zap', 12)), h('span', { className: 'kba-trg-stack' }, h('span', { className: 'kba-ell', title: a.tip !== '' ? a.trigger + ' · ' + a.tip : a.trigger }, a.trigger), a.hooked === true ? h('span', { className: 'kba-team' }, kbt('tasks.trigger.plushook')) : null)),
-                h('span', null, h('span', { className: 'kba-origin-badge' }, kbt('tasks.origin.manual'))),
                 h('span', { className: 'kba-last' + (a.lastCls !== '' ? ' ' + a.lastCls : '') }, h('span', { className: 'kba-kdot ' + a.lastCls }), h('span', { className: 'kba-ell', title: a.lastLabel }, a.lastLabel)),
                 h('span', { className: 'kba-td-num' }, String(a.sessions))),
               // The row's actions sit at the right, shown on hover and on focus (always on a touch screen): they used to stand to the
@@ -30856,7 +30852,7 @@ body[data-ds-dark-theme] .kb8-iconbtn.on.col{border-color:var(--kb8-pgd);color:v
 .kba-rowline:hover,.kba-rowline:focus-within{background:var(--dsw-alias-interactive-bg-hover)}
 .kba-rowline-head{cursor:default;border-top:0;padding-top:11px;padding-bottom:11px}
 .kba-rowline-head:hover{background:transparent}
-.kba-rowbtn,.kba-rowhead{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1.4fr) 88px 150px 64px;column-gap:14px;align-items:center;min-width:0}
+.kba-rowbtn,.kba-rowhead{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1.4fr) 150px 64px;column-gap:14px;align-items:center;min-width:0}
 .kba-oncol{display:flex;align-items:center;justify-content:center}
 .kba-namecell{display:flex;flex-direction:column;min-width:0}
 /* The row's actions: at the right, on hover and on focus; always on a touch screen. A starred row keeps its star. */
@@ -30869,7 +30865,7 @@ body[data-ds-dark-theme] .kb8-iconbtn.on.col{border-color:var(--kb8-pgd);color:v
 .kba-lcard .kba-toggle.on .kba-toggle-knob{left:16px}
 @container (max-width:939px){
   .kba-rowbtn,.kba-rowhead{grid-template-columns:minmax(0,1.3fr) minmax(0,1.4fr) 150px}
-  .kba-rowbtn>:nth-child(3),.kba-rowhead>:nth-child(3),.kba-rowbtn>:nth-child(5),.kba-rowhead>:nth-child(5){display:none}
+  .kba-rowbtn>:nth-child(4),.kba-rowhead>:nth-child(4){display:none}
 }
 @container (max-width:699px){
   .kba-rowline-head{display:none}
@@ -30919,7 +30915,6 @@ body[data-ds-dark-theme] .kb8-iconbtn.on.col{border-color:var(--kb8-pgd);color:v
 .kba-trgcell{display:flex;align-items:center;gap:10px;color:var(--dsw-alias-label-secondary);min-width:0}
 .kba-trigger-icon{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:7px;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-state-warn-primary);font-size:11px;flex:none}
 .kba-ell{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.kba-origin-badge{display:inline-block;padding:2px 8px;border-radius:5px;border:1px solid var(--dsw-alias-border-l1);font-family:ui-monospace,Menlo,monospace;font-size:10px;color:var(--dsw-alias-label-secondary);background:var(--dsw-alias-bg-layer-2)}
 .kba-last{display:flex;align-items:center;gap:8px;min-width:0;font-size:13px}
 .kba-kdot{width:8px;height:8px;border-radius:50%;flex:none;background:var(--dsw-alias-state-idle-primary)}
 .kba-kdot.ok{background:var(--dsw-alias-state-success-primary)}
