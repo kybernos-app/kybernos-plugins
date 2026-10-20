@@ -56,6 +56,7 @@ import { writeGuard } from './session-guard.mjs'
 import { createKybyNative, isSessionId, readPointer, writePointer } from './kyby-native.mjs'
 import { appendEntry as journalAppend, journalTool, toolsOfTurn, turnEntry as journalEntry } from './kyby-journal.mjs'
 import { knowledgeTool } from './kyby-knowledge.mjs'
+import { accountTool } from './kyby-account.mjs'
 import { UNREADABLE, spaceKind, publishSpaceSeam } from './team-space.mjs'
 import { documentsDir, ensureTeamFolder, isChildOf, rootOf } from './team-folder.mjs'
 import { createSightings, createTurnWatch, spaceOfFolder } from './chat-space.mjs'
@@ -4697,17 +4698,24 @@ const turnAuthorized = (req) => {
 const turnSessions = new Set()
 /** The platform's turn (a runner job) each of those sessions belongs to: what a question to the person is asked ABOUT. */
 const turnJobs = new Map()
+/** When each turn session started and how long the runner lets it last: a question is never waited for past that. */
+const turnBudgets = new Map()
+/** How many questions each turn session has put to the person. */
+const turnAsks = new Map()
 /** Sessions whose person said « for the rest of this task »: the gate does not ask again in them. */
 const turnAllowAll = new Set()
 const TURN_JOB_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
-const rememberTurnSession = (id, jobId) => {
+const rememberTurnSession = (id, jobId, budgetMs) => {
   turnSessions.add(id)
   if (typeof jobId === 'string' && TURN_JOB_RE.test(jobId)) turnJobs.set(id, jobId)
+  if (Number.isFinite(budgetMs) && budgetMs > 0 && budgetMs <= 3_600_000) turnBudgets.set(id, { at: Date.now(), ms: budgetMs })
   if (turnSessions.size > 200) {
     const old = turnSessions.values().next().value
     turnSessions.delete(old)
     turnJobs.delete(old)
     turnAllowAll.delete(old)
+    turnBudgets.delete(old)
+    turnAsks.delete(old)
   }
 }
 
@@ -4717,8 +4725,19 @@ const rememberTurnSession = (id, jobId) => {
 // is never raised. Whatever goes wrong (no job, the platform unreachable, no answer in time) is a refusal, never a pass.
 // What reads and changes nothing passes without a question. `memory_search` is the person's own memory read back to them: asking before it made every « what do you know about me » a question
 // and, when it was refused, a turn with no answer (measured on dev, step 0 of the Kaby baseline). `memory_write` changes something and still asks.
-const TURN_GATE_SAFE_TOOLS = new Set(['read', 'read_image', 'web_search', 'web_fetch', 'memory_search', 'job_list', 'schedule_list', 'connections_list', 'kaby_journal', 'kaby_knowledge'])
-const TURN_GATE_WAIT_MS = 10 * 60_000 + 15_000
+// Audit of 2026-10-20, every tool a computer can have, by what it does. READS (listed here): the engine's `read`, `read_image`, `web_search`, `web_fetch`, `job_list`, `schedule_list` and
+// `todo_write` (the plan the model keeps for itself: one session event, nothing outside the chat); the plugins' `memory_search`, `connections_list`, `connections_search_tools` (the catalogue
+// of a connected app's actions), `kaby_journal`, `kaby_knowledge`, `kaby_account`, `computer_list` (the sandboxes this machine tracks: a file on its own disk, no call out; it is NOT the
+// person's list of cloud computers, which is what the model took it for) and `computer_read` (a file of a sandbox the person already allowed to start). ASKED (not listed): the engine's
+// `bash`, `write`, `edit`; `memory_write`, `lesson_write` and `lesson_search` (which counts the lessons it returns as used: a write), `connections_execute`, `computer_start/exec/write/stop/pause/
+// resume/task`, `relancer_dsh`, `kybernos_report_feedback` (it sends), `creer_slides`, `animer_briques`, `modeliser` and the motion and dashboards tools (they write files), and every `mcp__` tool.
+export const TURN_GATE_SAFE_TOOLS = new Set(['read', 'read_image', 'web_search', 'web_fetch', 'memory_search', 'job_list', 'schedule_list', 'connections_list', 'connections_search_tools', 'todo_write', 'kaby_journal', 'kaby_knowledge', 'kaby_account', 'computer_list', 'computer_read'])
+// How long one unanswered question is waited for. The person is on a chat, not at a desk: five minutes, and never past the end of the turn (the runner says how long the turn may last), so that
+// the model still has time to answer with what it knows (measured on WhatsApp: a question put at minute 4 outlived the 10-minute turn, which ended with no words at all).
+const turnGateWaitMs = () => { const v = Number(process.env.KYBERNOS_TURN_GATE_WAIT_MS); return Number.isFinite(v) && v > 0 ? v : 5 * 60_000 }
+const turnGateGraceMs = () => { const v = Number(process.env.KYBERNOS_TURN_GATE_GRACE_MS); return Number.isFinite(v) && v >= 0 ? v : 90_000 }
+/** The most questions one turn puts to the person. From the next one it is told to answer with what it has and to say what it would need (« Allow for this task » is one tap). */
+const TURN_GATE_MAX_ASKS = 3
 const turnRootOf = (ctx, id) => {
   // A sub-agent's call is its root session's.
   let current = id
@@ -4737,8 +4756,9 @@ const turnChannels = new Map()
 const turnRefusals = new Map()
 /** The tools whose call the person refused, per session, until the end of the turn: a refused write of memory is not done by the capture either. */
 const refusedTools = new Map()
-const noteRefusal = (sessionId, toolName) => {
-  turnRefusals.set(sessionId, (turnRefusals.get(sessionId) || 0) + 1)
+const noteRefusal = (sessionId, toolName, byPerson = true) => {
+  // The journal counts what the PERSON refused; an action the gate itself turned away (too many questions, no time left) was not done either, but was not their no.
+  if (byPerson) turnRefusals.set(sessionId, (turnRefusals.get(sessionId) || 0) + 1)
   if (turnRefusals.size > 200) turnRefusals.delete(turnRefusals.keys().next().value)
   if (typeof toolName === 'string') {
     const set = refusedTools.get(sessionId) || new Set()
@@ -4791,6 +4811,47 @@ const mountKabyKnowledge = (ctx) => {
   })
 }
 
+// ── Kaby's account tool: the person's workspaces, the plan of the active one and their cloud computers, read-only (kyby-account.mjs) ──────────────────
+// A question such as « what is the list of my workspaces? » has an answer here, so Kaby does not go looking for it with the shell (which asks the person, each time). On a cloud computer the
+// server shows the computer's token its own workspace only (ADR 0052 § 10) and refuses the list of computers (counted there as a possible leak): so no call is made for it, and the answer says so.
+const accountRead = async () => {
+  const state = readState()
+  if (state === null || state === UNREADABLE || isConnected(state) !== true) return { connected: false }
+  const onComputer = String(process.env.KYBERNOS_COMPUTER_ID || '') !== ''
+  const get = (p) => apiCall(p, { method: 'GET', token: state.token, timeoutMs: 12000 })
+  const ws = await get('/v1/workspaces')
+  const rows = ws.status === 200 && ws.body !== null && Array.isArray(ws.body.workspaces) ? ws.body.workspaces : (Array.isArray(state.workspaces) ? state.workspaces : [])
+  const workspaces = rows.filter((w) => w !== null && typeof w === 'object' && typeof w.id === 'string').map((w) => ({ id: w.id, name: String(w.name || ''), personal: w.personal === true, role: String(w.role || '') }))
+  const activeId = espaceActif(Object.assign({}, state, { workspaces }))
+  const active = workspaces.find((w) => w.id === activeId)
+  const plan = activeId === null ? null : await readSpacePlan(state, activeId)
+  let computers
+  let computersIn
+  if (onComputer) computers = null
+  else if (active !== undefined) {
+    const c = await get('/v1/workspaces/' + encodeURIComponent(active.id) + '/computers')
+    if (c.status === 200 && c.body !== null && Array.isArray(c.body.computers)) {
+      computersIn = active.name
+      computers = c.body.computers.filter((r) => r !== null && typeof r === 'object' && (r.kind === undefined || r.kind === 'cloud')).map((r) => ({ name: String(r.name || ''), state: String(r.state || ''), mode: r.mode === 'always' ? 'always' : 'sleep' }))
+    }
+  }
+  return {
+    connected: true,
+    onComputer,
+    person: state.user !== null && typeof state.user === 'object' && typeof state.user.name === 'string' ? state.user.name : '',
+    workspaces,
+    activeId,
+    plan: plan !== null && active !== undefined ? { workspace: active.name, label: plan.label || '', status: plan.status || '' } : null,
+    computers,
+    computersIn,
+  }
+}
+const mountKabyAccount = (ctx) => {
+  ctx.inject(['tools'], (scope) => {
+    scope.tools.register(accountTool({ read: accountRead }))
+  })
+}
+
 const turnApprovalSubject = (exec) => {
   const name = String((exec && exec.name) || '')
   const args = exec && exec.arguments !== null && typeof exec.arguments === 'object' ? exec.arguments : {}
@@ -4824,15 +4885,28 @@ const turnGate = (ctx) => async (exec, next) => {
   const root = turnRootOf(ctx, exec && exec.agent ? exec.agent.id : undefined)
   if (root === null) return next()
   const name = String((exec && exec.name) || '')
+  // DSH's own question card has nobody in front of it on a computer: waiting for it would hold the turn until it times out. The question goes in the reply instead.
+  if (name === 'ask_user_question') return { kind: 'deny', reason: 'Nobody can answer here: ask the question in your reply to the person, in one short message, and stop.' }
   if (TURN_GATE_SAFE_TOOLS.has(name) || turnAllowAll.has(root)) return next()
-  const refuse = (why) => { noteRefusal(root, name); return { kind: 'deny', reason: 'The person did not allow this action (' + why + '). Do not try it again: say so in your answer.' } }
+  const refuse = (why, byPerson = true) => { noteRefusal(root, name, byPerson); return { kind: 'deny', reason: 'The person did not allow this action (' + why + '). Do not try it again: say so in your answer.' } }
   const jobId = turnJobs.get(root)
   if (jobId === undefined) return refuse('it could not be asked')
+  const asked = turnAsks.get(root) || 0
+  if (asked >= TURN_GATE_MAX_ASKS) {
+    noteRefusal(root, name, false)
+    return { kind: 'deny', reason: `You have already asked the person ${TURN_GATE_MAX_ASKS} times in this task. Do not ask again: say what you could not do and what you would need them to allow (they can tap "Allow for this task").` }
+  }
+  // Never wait past the turn's own end: the model needs the time after a refusal to answer.
+  const budget = turnBudgets.get(root)
+  const stop = Math.min(Date.now() + turnGateWaitMs(), budget === undefined ? Infinity : budget.at + budget.ms - turnGateGraceMs())
+  if (stop <= Date.now()) return refuse('there was no time left to ask', false)
   const subject = turnApprovalSubject(exec)
-  const made = await turnPlatform('POST', '/v1/computer/approvals', { job_id: jobId, kind: subject.kind, summary: subject.summary.slice(0, 2000) })
+  const summary = (asked === 0 ? '' : `Question ${asked + 1} in this task: `) + subject.summary
+  const made = await turnPlatform('POST', '/v1/computer/approvals', { job_id: jobId, kind: subject.kind, summary: summary.slice(0, 2000) })
   if (made.status !== 200 || made.json === null || typeof made.json.id !== 'string') return refuse('it could not be asked')
+  turnAsks.set(root, asked + 1)
+  if (turnAsks.size > 200) turnAsks.delete(turnAsks.keys().next().value)
   const id = made.json.id
-  const stop = Date.now() + TURN_GATE_WAIT_MS
   while (Date.now() < stop) {
     if (exec && exec.signal && exec.signal.aborted === true) return refuse('the task was stopped')
     await new Promise((resolve) => setTimeout(resolve, Number(process.env.KYBERNOS_TURN_GATE_POLL_MS || 2000)))
@@ -4841,9 +4915,9 @@ const turnGate = (ctx) => async (exec, next) => {
     if (state === 'allowed') return next()
     if (state === 'allowed_turn') { turnAllowAll.add(root); return next() }
     if (state === 'denied') return refuse('they refused it')
-    if (state === 'expired') return refuse('they did not answer in time')
+    if (state === 'expired') return refuse('they did not answer in time', false)
   }
-  return refuse('they did not answer in time')
+  return refuse('they did not answer in time', false)
 }
 // ── Kaby's own chat on the person's computer (step 3 of the plan) ───────────────────────────────────────────────
 // The tools of our plugins that change something outside the chat (a memory or a lesson, a connected app, a cloud sandbox, DSH itself) ask the person through DSH's own approval card
@@ -4898,7 +4972,7 @@ const turnStart = async (req, body) => {
   const sessionId = unwrap(await sc.create({}))
   if (sessionId === null) return { ok: false, error: 'no_session' }
   // Known to the gate BEFORE the prompt is queued: the first tool call must already find it gated.
-  rememberTurnSession(sessionId, body.jobId)
+  rememberTurnSession(sessionId, body.jobId, Number(body.budgetMs))
   // Where the message came from, as the runner knows it (a closed word, for the journal); anything else is a phone.
   turnChannels.set(sessionId, typeof body.channel === 'string' && /^[a-z]{2,20}$/u.test(body.channel) ? body.channel : 'phone')
   // Lets the session settle before the turn is assembled, as an automation's fire does.
@@ -4951,10 +5025,19 @@ const turnAnswer = async (req, body) => {
   // person's words or a provider's): the runner passes this to the platform as the reason of a failed turn, where an owner can read it.
   let failure = ''
   let lastBlocks = ''
+  // A model that could not be reached: the engine logs each retry as `llm/retry` with the failure's code (RATE_LIMIT, SERVER, TIMEOUT, TRANSPORT, EMPTY_RESPONSE). The last cause, when the model
+  // never answered after it, is the reason of the turn. `model_429` is the code the platform's door already reads as « busy ».
+  let modelFailure = ''
+  const MODEL_FAILURES = { rate_limit: 'model_429', server: 'model_server', timeout: 'model_timeout', transport: 'model_transport', empty_response: 'model_empty' }
   const codeOf = (v) => (typeof v === 'string' && /^[A-Za-z0-9_.:-]{1,60}$/.test(v) ? v.toLowerCase() : '')
   for (const ev of events) {
     if (ev === null || ev === undefined) continue
     if (typeof ev.type === 'string' && ev.type.startsWith('tool/')) tools += 1
+    if (ev.type === 'llm/retry') {
+      const f = ev.data !== null && ev.data !== undefined && typeof ev.data === 'object' ? ev.data.failure : null
+      modelFailure = MODEL_FAILURES[codeOf(f !== null && f !== undefined && typeof f === 'object' ? f.code : '')] || 'model_error'
+      continue
+    }
     if (typeof ev.type === 'string' && /error|fail|refus/i.test(ev.type)) {
       const data = ev.data !== null && ev.data !== undefined && typeof ev.data === 'object' ? ev.data : {}
       failure = [codeOf(ev.type.replace(/[\/]/g, '_')), codeOf(data.code)].filter((x) => x !== '').join('.').slice(0, 80)
@@ -4962,6 +5045,7 @@ const turnAnswer = async (req, body) => {
     if (ev.type !== 'assistant/message') continue
     const message = ev.data !== null && ev.data !== undefined && typeof ev.data === 'object' ? ev.data.message : null
     if (message === null || message === undefined || Array.isArray(message.content) !== true) continue
+    modelFailure = ''
     const parts = []
     const kinds = []
     for (const block of message.content) {
@@ -4972,6 +5056,7 @@ const turnAnswer = async (req, body) => {
     // The last message that has words is the answer: a message that only called a tool has none.
     if (parts.join('').trim() !== '') text = parts.join('\n')
   }
+  if (text === '' && modelFailure !== '') return { ok: true, text, tools, failure: modelFailure }
   // No error event: how the session ended, by the type of its last event (`ended_turn_end`), so that « no words » is never a mystery.
   if (text === '' && failure === '' && events.length > 0) {
     const last = events[events.length - 1]
@@ -5387,6 +5472,7 @@ export function apply(ctx) {
   try { mountKybyNative(ctx) } catch (e) { console.error('[kybernos-cloud] native Kaby: ' + String((e && e.message) || e)) }
   try { mountKabyJournal(ctx) } catch (e) { console.error('[kybernos-cloud] Kaby journal: ' + String((e && e.message) || e)) }
   try { mountKabyKnowledge(ctx) } catch (e) { console.error('[kybernos-cloud] Kaby knowledge: ' + String((e && e.message) || e)) }
+  try { mountKabyAccount(ctx) } catch (e) { console.error('[kybernos-cloud] Kaby account: ' + String((e && e.message) || e)) }
   try { mountMemoryTools(ctx) } catch (e) { console.error('[kybernos-cloud] memory tools: ' + String((e && e.message) || e)) }
   try { connections.mount(ctx) } catch (e) { console.error('[kybernos-cloud] connections: ' + String((e && e.message) || e)) }
   try { mountMemoryCapture(ctx) } catch (e) { console.error('[kybernos-cloud] memory capture: ' + String((e && e.message) || e)) }
