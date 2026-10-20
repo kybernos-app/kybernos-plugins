@@ -235,10 +235,15 @@ window.__ModuleLoader__.load({
         'kb.fetch.why.big': { kybernos: 'sa réponse est trop volumineuse', en: 'its answer is too large' },
         'kb.fetch.why.host': { kybernos: 'ce DSH n’a pas encore la route de liste en direct (relance-le)', en: 'this DSH has no live-list route yet (restart it)' },
         'kb.fetch.why.noaddr': { kybernos: 'aucune adresse connue pour ce fournisseur', en: 'no address is known for this provider' },
-        'kb.pv.err.needsapi': { kybernos: 'DSH ne sait pas parler à « {model} » : ce modèle n’est pas dans son catalogue pour {slug}, et {slug} sert des modèles de plusieurs protocoles, donc DSH ne peut pas savoir lequel il utilise. Choisis le « Protocole API » dans « Paramètres personnalisés » (il s’applique à tous les modèles de {slug}), ou retire le modèle de la liste.', en: 'DSH cannot talk to “{model}”: it is not in its catalog for {slug}, and {slug} serves models over several protocols, so DSH cannot tell which one it speaks. Choose the “API protocol” under Customized settings (it applies to every model of {slug}), or remove the model from the list.' },
+        'kb.pv.err.nobase': { kybernos: 'L’adresse de ce fournisseur est inconnue : renseigne l’« URL de base » dans « Paramètres personnalisés », puis réessaie.', en: 'This provider’s address is unknown: set the Base URL under Customized settings, then try again.' },
+        'kb.pv.saved.custom': { kybernos: 'Appliqué. {n} modèle(s) personnalisé(s) ajouté(s) à {slug}.', en: 'Applied. {n} custom model(s) added to {slug}.' },
+        'kb.pv.saved.custom.guess': { kybernos: ' Le protocole n’a pas pu être confirmé auprès du fournisseur : OpenAI Chat par défaut.', en: ' DSH could not confirm the protocol with the provider: OpenAI Chat by default.' },
+        'kb.pv.custom.title': { kybernos: 'Modèles personnalisés', en: 'Custom models' },
+        'kb.pv.custom.hint': { kybernos: 'Hors du catalogue de DSH : ils vivent dans une route à part de ce fournisseur, avec leur propre protocole, et se comptent avec lui.', en: 'Outside DSH’s catalog: they live in a route of their own for this provider, with their own protocol, and count with it.' },
+        'kb.pv.custom.remove': { kybernos: 'Retirer {id}', en: 'Remove {id}' },
+        'kb.models.custom.tag': { kybernos: 'perso', en: 'custom' },
         'kb.fetch.undescribed': { kybernos: 'Hors du catalogue de DSH', en: 'Not in DSH’s catalog' },
-        'kb.fetch.undescribed.note': { kybernos: '{n} modèle(s) ne sont pas dans le catalogue de DSH. Pour les ajouter, choisis d’abord le « Protocole API » de ce fournisseur dans « Paramètres personnalisés » (il s’applique à tous ses modèles).', en: '{n} model(s) are not in DSH’s catalog. To add them, first choose this provider’s “API protocol” under Customized settings (it applies to all its models).' },
-        'kb.fetch.undescribed.tip': { kybernos: 'DSH peut le refuser : il doit connaître le protocole de ce modèle, et ce fournisseur en sert plusieurs.', en: 'DSH may refuse it: it has to know which protocol this model speaks, and this provider serves several.' },
+        'kb.fetch.undescribed.note': { kybernos: '{n} modèle(s) ne sont pas dans le catalogue de DSH : ils sont ajoutés comme modèles personnalisés de ce fournisseur, et DSH cherche le protocole qu’ils parlent.', en: '{n} model(s) are not in DSH’s catalog: they are added as custom models of this provider, and DSH finds the protocol they speak.' },
         'kb.fetch.title': { kybernos: 'Choisir les modèles à ajouter', en: 'Choose models to add' },
         'kb.fetch.desc': { kybernos: 'Voici les modèles que ce fournisseur propose. Coche ceux à ajouter.', en: 'These are the models this provider has available. Choose the ones to add.' },
         'kb.fetch.replaces': { kybernos: 'La liste que tu gardes remplace celle de {slug} : les modèles non cochés ne seront plus proposés. « Rétablir les modèles par défaut » ramène la liste d’origine.', en: 'The list you keep replaces {slug}’s built-in one: models you leave unchecked will no longer be offered. “Restore default models” brings the built-in list back.' },
@@ -336,9 +341,6 @@ window.__ModuleLoader__.load({
         'kb.pv.url': { kybernos: 'URL de base', en: 'Base URL' },
         'kb.pv.url.default': { kybernos: 'Défaut du fournisseur', en: 'Provider default' },
         'kb.pv.proto': { kybernos: 'Protocole API', en: 'API protocol' },
-        'kb.pv.err.needsurl': { kybernos: 'DSH ne sait pas où joindre « {model} » : ce modèle n’est pas dans son catalogue pour {slug}. Renseigne aussi l’« URL de base » dans « Paramètres personnalisés » (comme le protocole, elle s’applique à tous les modèles de {slug}).', en: 'DSH does not know where to reach “{model}”: it is not in its catalog for {slug}. Also set the “Base URL” under Customized settings (like the protocol, it applies to every model of {slug}).' },
-        'kb.pv.proto.auto': { kybernos: 'Automatique (catalogue de DSH)', en: 'Automatic (DSH’s catalog)' },
-        'kb.pv.proto.auto.hint': { kybernos: 'S’applique, avec l’URL de base, à TOUS les modèles de ce fournisseur. Laisse « Automatique » sauf pour ajouter un modèle que le catalogue de DSH ne décrit pas : si ce fournisseur sert ses modèles avec plusieurs protocoles, ceux qui en parlent un autre cesseront de répondre (remets « Automatique » pour les rétablir).', en: 'Applies, with the Base URL, to EVERY model of this provider. Leave it on Automatic unless you add a model DSH’s catalog does not describe: if this provider serves its models over several protocols, the ones that speak another will stop answering (set it back to Automatic to restore them).' },
         'kb.pv.proto.chat': { kybernos: 'OpenAI Chat Completions', en: 'OpenAI Chat Completions' },
         'kb.pv.proto.resp': { kybernos: 'OpenAI Responses', en: 'OpenAI Responses' },
         'kb.pv.proto.msgs': { kybernos: 'Anthropic Messages', en: 'Anthropic Messages' },
@@ -709,8 +711,6 @@ window.__ModuleLoader__.load({
         scoreLoaded: false,
         scoresRunning: false,
         scoresAskedAt: null,
-        // Routes the engine refused a model on for want of a protocol (this session): their models outside the catalog are locked in the picker.
-        needsApi: {},
         // The Kybernos Cloud account, as the Cloud card read it: null = not read yet · false = disconnected · true = connected.
         cloud: null,
         listeners: new Set(),
@@ -1303,9 +1303,13 @@ window.__ModuleLoader__.load({
       // a page that no longer exists would show an empty list.
       const uiSet = (k, v) => { UI[k] = v; if (k !== 'page') UI.page = 1; kbmNotify() }
       const uiCap = (k) => { UI.caps[k] = UI.caps[k] !== true; UI.page = 1; kbmNotify() }
+      /** The provider a model is shown under: its route, or the provider a companion route (its custom models) belongs to. */
+      const kbProvOf = (route) => { const parent = kbCompanionOf(route, KBM.routes.concat(KBM.parked.map((x) => x.slug))); return parent === null ? route : parent }
+      /** The routes that are providers: all but the companion routes (a provider's custom models). */
+      const kbProvRoutes = () => { const known = KBM.routes.concat(KBM.parked.map((x) => x.slug)); return KBM.routes.filter((r) => kbCompanionOf(r, known) === null) }
       const uiProvs = () => {
         const out = []
-        for (const mo of KBM.models) if (mo.route !== '' && out.indexOf(mo.route) < 0) out.push(mo.route)
+        for (const mo of KBM.models) { const r = kbProvOf(mo.route); if (r !== '' && out.indexOf(r) < 0) out.push(r) }
         return out
       }
       const uiReset = () => {
@@ -1339,7 +1343,7 @@ window.__ModuleLoader__.load({
         const hidden = UI.statut !== 'down' && UI.showDown !== true && UI.prov === 'all' ? kbHealthDown(kbHealthGet()) : null
         const rows = KBM.models.filter((mo) => {
           if (hidden !== null && hidden[mo.route + '/' + mo.id] === true) return false
-          if (UI.prov !== 'all' && mo.route !== UI.prov) return false
+          if (UI.prov !== 'all' && kbProvOf(mo.route) !== UI.prov) return false
           if (UI.type !== 'all' && String(kbmVal(mo, 'type')) !== UI.type) return false
           if (UI.statut === 'ov' && kbmCountOv(mo) === 0) return false
           if (UI.statut === 'sync' && mo.synced !== true) return false
@@ -1478,7 +1482,8 @@ window.__ModuleLoader__.load({
         const prix = uiPrix(mo)
         const ctx = String(kbmVal(mo, 'context') === null || kbmVal(mo, 'context') === undefined ? '' : kbmVal(mo, 'context'))
         const colonnes = []
-        const label = mo.route === '' ? '—' : (KBM.live === true ? pvLabel(mo.route) : mo.route)
+        const label = mo.route === '' ? '—' : (KBM.live === true ? pvLabel(kbProvOf(mo.route)) : mo.route)
+        const custom = mo.route !== '' && kbProvOf(mo.route) !== mo.route
         const mx = kbMxSlots(caps.map((c) => c.k))
         const capIcon = (c, size) => h(Tip, { key: c.k, text: kbmCapTip(c) }, h('span', { className: 'kbmp-capi', style: { color: c.tint } }, Ic(c.icon, size)))
         // ── MODEL : name, then "id · type · price". Narrow containers also show the provider and the capability
@@ -1503,12 +1508,12 @@ window.__ModuleLoader__.load({
             props.down !== undefined ? h('span', { className: 'kbmp-why', 'data-kbm': 'row-why', title: props.down.code }, m('kb.health.rowwhy', { why: m(kbHealthWhy(props.down, kbHealthFree(props.down.route, mo.id, Object.keys(FREE_LINKS)))) })) : null,
             h('span', { className: 'kbmp-nar', key: 'nar' },
               KBM.live === true ? h('span', { className: 'kbmp-msep' }, '·') : null,
-              KBM.live === true ? h('span', { className: 'kbmp-mcellroute' }, mo.route === '' ? null : h(LogoProv, { route: mo.route, taille: 14 }), h('span', { className: 'kbmp-mroute', title: m('kb.models.route') + ' ' + mo.route }, label)) : null,
+              KBM.live === true ? h('span', { className: 'kbmp-mcellroute' }, mo.route === '' ? null : h(LogoProv, { route: kbProvOf(mo.route), taille: 14 }), h('span', { className: 'kbmp-mroute', title: m('kb.models.route') + ' ' + mo.route }, label)) : null,
               caps.length === 0 ? null : h('span', { className: 'kbmp-caprow' }, visibles.map((c) => capIcon(c, 16)), reste > 0 ? h('span', { className: 'kbmp-plus' }, m('kb.models.more', { n: reste })) : null)))))
         // ── PROVIDER: its icon and its whole name (no more "ant…").
         colonnes.push(h('div', { className: 'kbmp-c kbmp-cprov', key: 'p' },
           mo.route === '' ? h('span', { className: 'kbmp-dim' }, '—')
-            : [h(LogoProv, { route: mo.route, taille: 16, key: 'l' }), h('span', { className: 'kbmp-provname', key: 'n', 'data-kbm': 'row-route', title: m('kb.models.route') + ' ' + mo.route }, label)]))
+            : [h(LogoProv, { route: kbProvOf(mo.route), taille: 16, key: 'l' }), h('span', { className: 'kbmp-provname', key: 'n', 'data-kbm': 'row-route', title: m('kb.models.route') + ' ' + mo.route }, label), custom ? h('span', { className: 'kbpv-tag', key: 't', 'data-kbm': 'row-custom' }, m('kb.models.custom.tag')) : null]))
         // ── CAPABILITIES: the compact list (narrow) and the fixed-slot matrix (wide); CSS shows one.
         colonnes.push(h('div', { className: 'kbmp-c kbmp-ccaps', key: 'c' },
           caps.length === 0
@@ -1769,9 +1774,7 @@ window.__ModuleLoader__.load({
         const prof = kbPvIsObj(kbMOBJ(KBM.userProviders)[route]) ? KBM.userProviders[route] : {}
         const rows = Array.isArray(prof.models) ? prof.models.filter((x) => kbPvIsObj(x)).map((x) => ({ id: String(x.id || ''), name: typeof x.name === 'string' ? x.name : '' })) : []
         return { key: '', voir: false, adv: false, name: typeof prof.displayName === 'string' ? prof.displayName : '', url: typeof prof.baseURL === 'string' ? prof.baseURL : '',
-          proto: typeof prof.api === 'string' ? prof.api : 'openai-completions', models: rows, hadModels: Array.isArray(prof.models), touched: false, custom: pvIsCustom(route),
-          // A catalog route's protocol: '' = Automatic (the catalog's, per model); a protocol binds EVERY model of the route.
-          apiSel: typeof prof.api === 'string' ? prof.api : '' }
+          proto: typeof prof.api === 'string' ? prof.api : 'openai-completions', models: rows, hadModels: Array.isArray(prof.models), touched: false, custom: pvIsCustom(route) }
       }
       const pvAddDraft = () => ({ tab: 'catalog', prov: null, id: '', name: '', url: '', proto: 'openai-completions', key: '', voir: false, models: [], adv: false, liste: true, q: '', act: 0 })
 
@@ -1808,17 +1811,16 @@ window.__ModuleLoader__.load({
             return
           }
           if (out.models.length === 0) { setFp((st) => ({ ...st, busy: false, err: m('kb.fetch.empty') })); return }
-          // The route may refuse a model outside the engine's catalog (see kbPvNeedsApi): tag those; a route that already refused one locks them.
-          const hasApi = typeof (kbMOBJ(KBM.userProviders)[slug] || {}).api === 'string' || (typeof d.apiSel === 'string' && d.apiSel !== '')
-          const cands = out.live === true ? kbFetchTagUndescribed(out.models, out.described, hasApi, KBM.needsApi[slug] === true) : out.models
+          // A model outside the engine's catalog is tagged (and not ticked on opening): it is added as a custom model of this provider.
+          const cands = out.live === true ? kbFetchTagUndescribed(out.models, out.described) : out.models
           setFp({ busy: false, err: null, cands, picked: kbFetchPreselect(cands, rows), q: '', src: out.live === true ? { live: true, url: out.url } : (out.live === false ? { live: false, why: out.why } : null) })
         }
         const renderPicker = () => {
           const shown = kbFetchFilter(fp.cands, fp.q)
           const have = new Set(rows.map((r) => String(r.id).trim()))
-          const free = shown.filter((c) => !have.has(c.id) && c.locked !== true)
+          const free = shown.filter((c) => !have.has(c.id))
           const allOn = free.length > 0 && free.every((c) => fp.picked[c.id] === true)
-          const n = fp.cands.filter((c) => fp.picked[c.id] === true && !have.has(c.id) && c.locked !== true).length
+          const n = fp.cands.filter((c) => fp.picked[c.id] === true && !have.has(c.id)).length
           const tick = (ids, on) => setFp((st) => { const picked = { ...st.picked }; for (const id of ids) { if (on) picked[id] = true; else delete picked[id] } return { ...st, picked } })
           return h('div', { className: 'kbm-mdl-root', 'data-kbm': 'fetch-dialog', onMouseDown: (ev) => { if (ev.target === ev.currentTarget) close() } },
             h('div', { className: 'kbm-mdl-mask' }),
@@ -1842,10 +1844,10 @@ window.__ModuleLoader__.load({
                     const meta = known ? m('kb.fetch.known') : c.undescribed === true ? m('kb.fetch.undescribed') : [c.contextWindow !== undefined ? kbFetchSize(c.contextWindow) : null, c.input !== undefined && !(c.input.length === 1 && c.input[0] === 'text') ? c.input.join(' · ') : null].filter(Boolean).join(' · ')
                     return h('li', { key: c.id, 'data-kbm': 'fetch-row', 'data-kbm-id': c.id },
                       h('label', { className: 'kbpv-fetch-lab' + (known ? ' kbpv-fetch-known' : '') },
-                        h('input', { type: 'checkbox', checked: known || (fp.picked[c.id] === true && c.locked !== true), disabled: known || c.locked === true, onChange: () => tick([c.id], fp.picked[c.id] !== true) }),
+                        h('input', { type: 'checkbox', checked: known || fp.picked[c.id] === true, disabled: known, onChange: () => tick([c.id], fp.picked[c.id] !== true) }),
                         h('span', { className: 'kbpv-fetch-id', title: c.name !== undefined ? c.name : c.id }, c.id),
                         c.name !== undefined && c.name !== c.id ? h('span', { className: 'kbpv-fetch-nm' }, c.name) : null,
-                        meta !== '' ? h('span', { className: 'kbpv-fetch-meta', title: c.undescribed === true && !known ? m('kb.fetch.undescribed.tip') : undefined }, meta) : null))
+                        meta !== '' ? h('span', { className: 'kbpv-fetch-meta' }, meta) : null))
                   })),
                 h('div', { className: 'kbpv-fetch-foot' },
                   h('span', { className: 'kbpv-hint', 'data-kbm': 'fetch-count' }, m('kb.fetch.count', { n, total: fp.cands.length })),
@@ -1998,11 +2000,13 @@ window.__ModuleLoader__.load({
           document.addEventListener('mousedown', away)
           return () => document.removeEventListener('mousedown', away)
         }, [listOpen])
-        const routes = KBM.routes.slice()
-        const parkedShown = kbMParkedShown(KBM.parked, routes)
+        // The companion routes (a provider's custom models) are not providers of their own: the grid draws the provider, whose count includes them.
+        const knownRoutes = KBM.routes.concat(KBM.parked.map((x) => x.slug))
+        const routes = kbProvRoutes()
+        const parkedShown = kbMParkedShown(KBM.parked, routes).filter((x) => kbCompanionOf(x.slug, knownRoutes) === null)
         const taken = routes.concat(parkedShown.map((p) => p.slug))
         const ro = KBM.writable !== true
-        const countOf = (route) => KBM.models.filter((mo) => mo.route === route).length
+        const countOf = (route) => KBM.models.filter((mo) => kbProvOf(mo.route) === route).length
         const keyOf = (route) => {
           const entry = catDe(route)
           return kbPvKeyState(kbMOBJ(KBM.userProviders)[route], entry !== null ? entry.env : null, KBM.keys)
@@ -2043,18 +2047,15 @@ window.__ModuleLoader__.load({
           patch({ busy: true, err: null })
           try { const out = await fn(); return out }
           catch (e) {
-            const raison = String(e && e.message ? e.message : e)
-            const model = errKey === 'kb.pv.save.err' ? kbPvNeedsApi(raison) : null
-            const modelUrl = errKey === 'kb.pv.save.err' && model === null ? kbPvNeedsUrl(raison) : null
-            if (model !== null && slug) KBM.needsApi[slug] = true
-            patch({ busy: false, err: model !== null ? m('kb.pv.err.needsapi', { slug: slug || '', model }) : (modelUrl !== null ? m('kb.pv.err.needsurl', { slug: slug || '', model: modelUrl }) : m(errKey, { slug: slug || '', raison })) })
+            patch({ busy: false, err: m(errKey, { slug: slug || '', raison: String(e && e.message ? e.message : e) }) })
             return undefined
           }
         }
         const doSave = async (route) => {
-          const out = await run(() => kbPvSave(route, { ...dr, models: dr.touched === true ? dr.models : undefined }), 'kb.pv.save.err', route)
+          const out = await run(() => kbPvSaveSmart(route, { ...dr, models: dr.touched === true ? dr.models : undefined }), 'kb.pv.save.err', route)
           if (out === undefined) return
-          setDr(null); patch({ drawer: null, busy: false, note: m(out.keyOk === false ? 'kb.pv.saved.key.ko' : 'kb.pv.saved') })
+          const said = out.custom !== null && out.custom !== undefined ? m('kb.pv.saved.custom', { n: out.customN, slug: route }) + (out.custom.guessed > 0 ? m('kb.pv.saved.custom.guess') : '') : m(out.keyOk === false ? 'kb.pv.saved.key.ko' : 'kb.pv.saved')
+          setDr(null); patch({ drawer: null, busy: false, note: said })
         }
         const doCreate = async () => {
           const d = { ...dr }
@@ -2124,6 +2125,25 @@ window.__ModuleLoader__.load({
               h('button', { type: 'button', role: 'menuitem', className: 'kbpv-danger', disabled: ro || bloc !== null, 'data-kbm': 'prov-delete', onClick: () => patch({ dlg: { type: 'del', id: route }, menu: null, typed: '' }) }, Ic('trash', 14), m('kb.pv.menu.delete'))) : null)
         }
 
+        // ── the custom models of a provider (its companion routes), under its own list of models ──
+        const renderCustomModels = (route) => {
+          const items = []
+          for (const slug of kbCompanionsOf(route, KBM.routes)) {
+            const prof = kbMOBJ(KBM.userProviders)[slug]
+            const proto = kbPvIsObj(prof) && typeof prof.api === 'string' ? prof.api : ''
+            const known = PV_PROTOS.filter((x) => x[0] === proto)[0]
+            for (const mo of (kbPvIsObj(prof) && Array.isArray(prof.models) ? prof.models : [])) if (kbPvIsObj(mo) && typeof mo.id === 'string') items.push({ id: mo.id, name: typeof mo.name === 'string' ? mo.name : '', proto: known !== undefined ? m(known[1]) : proto })
+          }
+          if (items.length === 0) return null
+          return h('div', { className: 'kbpv-fld', 'data-kbm': 'pv-custom' },
+            h('span', { className: 'kbpv-fl' }, m('kb.pv.custom.title')),
+            h('div', { className: 'kbpv-mrows' }, items.map((x) => h('div', { className: 'kbpv-mrow', key: x.id, 'data-kbm': 'pv-custom-row', 'data-kbm-id': x.id },
+              h('span', { className: 'kbm-in-input kbpv-in kbpv-mono kbpv-static', title: x.name !== '' ? x.name : x.id }, x.id),
+              h('span', { className: 'kbpv-hint' }, x.proto),
+              h('button', { type: 'button', className: 'kbpv-ib kbpv-ib-danger', 'data-kbm': 'pv-custom-del', disabled: ro || ui.busy === true, 'aria-label': m('kb.pv.custom.remove', { id: x.id }), title: m('kb.pv.custom.remove', { id: x.id }),
+                onClick: async () => { const out = await run(() => kbCompanionRemove(route, x.id).then(() => true), 'kb.pv.save.err', route); if (out === true) patch({ busy: false }) } }, Ic('trash', 15))))),
+            h('p', { className: 'kbpv-hint' }, m('kb.pv.custom.hint')))
+        }
         // ── Edit panel ──
         const renderEdit = () => {
           const route = ui.drawer.id
@@ -2148,8 +2168,8 @@ window.__ModuleLoader__.load({
             dr.custom === true ? h(PvField, { id: 'pv-name', label: m('kb.pv.name') }, h('input', { id: 'pv-name', className: 'kbm-in-input kbpv-in', placeholder: route, value: dr.name, onChange: (ev) => setD({ name: ev.target.value }) })) : null,
             h(PvField, { id: 'pv-url', label: m('kb.pv.url'), err: urlBad ? m('kb.pv.err.url') : null }, h('input', { id: 'pv-url', className: 'kbm-in-input kbpv-in kbpv-mono', placeholder: m('kb.pv.url.default'), value: dr.url, onChange: (ev) => setD({ url: ev.target.value }) })),
             dr.custom === true ? h(PvField, { id: 'pv-proto', label: m('kb.pv.proto') }, h('select', { id: 'pv-proto', className: 'kbm-in-input kbpv-in', value: dr.proto, onChange: (ev) => setD({ proto: ev.target.value }) }, PV_PROTOS.map((x) => h('option', { key: x[0], value: x[0] }, m(x[1]))))) : null,
-            dr.custom !== true && bloc === null ? h(PvField, { id: 'pv-apisel', label: m('kb.pv.proto'), hint: m('kb.pv.proto.auto.hint') }, h('select', { id: 'pv-apisel', className: 'kbm-in-input kbpv-in', 'data-kbm': 'pv-apisel', value: dr.apiSel, onChange: (ev) => setD({ apiSel: ev.target.value }) }, [h('option', { key: 'auto', value: '' }, m('kb.pv.proto.auto'))].concat(PV_PROTOS.map((x) => h('option', { key: x[0], value: x[0] }, m(x[1])))))) : null,
-            h(PvModels, { d: dr, set: setD, custom: dr.custom === true, probe: kbFetchProbe(route, dr), blocked: urlBad ? m('kb.pv.err.url') : null, slug: route })) : null,
+            h(PvModels, { d: dr, set: setD, custom: dr.custom === true, probe: kbFetchProbe(route, dr), blocked: urlBad ? m('kb.pv.err.url') : null, slug: route }),
+            dr.custom === true ? null : renderCustomModels(route)) : null,
           h('div', { className: 'kbpv-zone' },
             h('div', { className: 'kbpv-z' }, h('div', null, h('b', null, m('kb.pv.zone.off')), h('span', null, m('kb.pv.zone.off.d'))),
               renderSwitch({ route, on: true, locked: ro || KBM.parkHost !== true || bloc !== null, why: KBM.parkHost !== true ? m('kb.pv.hostnote') : bloc === 'managed' ? m('kb.prov.off.managed') : (bloc === 'profile' ? m('kb.prov.off.locked') : m('kb.prov.off.disable', { slug: route })) })),
@@ -2661,7 +2681,7 @@ window.__ModuleLoader__.load({
               'aria-selected': UI.tab === 'providers',
               className: 'kbm-pill' + (UI.tab === 'providers' ? ' kbm-pill-active' : ' kbm-pill-interactive'),
               onClick: () => uiSet('tab', 'providers'),
-            }, m('kb.models.tab.providers', { n: KBM.routes.length + kbDsCardsOf(KBM.ds, KBM.dsDir).length })),
+            }, m('kb.models.tab.providers', { n: kbProvRoutes().length + kbDsCardsOf(KBM.ds, KBM.dsDir).length })),
             h('button', {
               type: 'button', role: 'tab', 'data-kbm': 'tab-models',
               'aria-selected': UI.tab !== 'providers',
@@ -3738,6 +3758,8 @@ window.__ModuleLoader__.load({
           try { await kbMParkCall('forget', { slug: route }) } catch (e) { /* the copy stays hidden while the route is active */ }
           throw new Error(kbMErrText(resp))
         }
+        // The provider's companions (its custom models) are switched off with it.
+        for (const c of kbCompanionsOf(route, KBM.routes)) { try { await kbMDisable(c) } catch (e) { /* it stays on: the provider is off */ } }
         await kbMLoad()
       }
       /** Enable = write the saved profile back, THEN forget the copy (never the other way round). */
@@ -3752,6 +3774,8 @@ window.__ModuleLoader__.load({
         }
         await kbMParkCall('forget', { slug })
         await kbMLoad()
+        // ...and so are the companions that were switched off with it.
+        for (const pk of KBM.parked.filter((x) => kbCompanionOf(x.slug, [slug]) !== null)) { try { await kbMEnable(pk.slug) } catch (e) { /* stays off */ } }
       }
       // KB-PARK-ACTIONS-END
 
@@ -4013,11 +4037,36 @@ window.__ModuleLoader__.load({
         if (words.length === 0) return items
         return items.filter((x) => { const hay = flat(x.hay); return words.every((w) => hay.indexOf(w) >= 0) })
       }
-      /** The model the engine refuses for want of a protocol (« model "x" needs an api; the installed catalog does not describe it… »), or null when
-       *  the message is anything else. The engine takes ONE `api` per route, which would bind every model of a route that serves several protocols,
-       *  so a model its catalog does not describe cannot be added to such a route. Pure. */
-      const kbPvNeedsUrl = (message) => { const mm = /model "([^"]+)" needs a baseURL/.exec(String(message === undefined || message === null ? '' : message)); return mm === null ? null : mm[1] }
-      const kbPvNeedsApi = (message) => { const mm = /model "([^"]+)" needs an api/.exec(String(message === undefined || message === null ? '' : message)); return mm === null ? null : mm[1] }
+      // ── Custom models of a catalog provider: a route of their own ──
+      // The engine takes ONE `api` and ONE `baseURL` per route and none per model, and a model its installed catalog does not describe has
+      // neither: on a route whose catalog serves several protocols it is refused (« model "x" needs an api… », then « …needs a baseURL… »).
+      // Setting them on the route would bind every other model to them. So such a model lives in a COMPANION route of the provider
+      // (`<route>-custom-<chat|resp|msgs>`, one per protocol, declared with its own api and address, the provider's key reference): the page
+      // draws it as part of the provider (its card counts it, the Models tab lists it under the provider, the Edit panel removes it).
+      /** The model the engine refuses for want of a protocol or an address, or null for any other message. Pure. */
+      const kbPvRefusedModel = (message) => { const mm = /model "([^"]+)" needs (?:an api|a baseURL)/.exec(String(message === undefined || message === null ? '' : message)); return mm === null ? null : mm[1] }
+      const KB_COMP_SUFFIX = { 'openai-completions': 'chat', 'openai-responses': 'resp', 'anthropic-messages': 'msgs' }
+      const KB_COMP_RE = /^(.+)-custom-(chat|resp|msgs)$/
+      /** The route that holds a provider's custom models for one protocol. Pure. */
+      const kbCompanionSlug = (route, api) => route + '-custom-' + (KB_COMP_SUFFIX[api] !== undefined ? KB_COMP_SUFFIX[api] : 'chat')
+      /** The provider a companion slug belongs to when that provider is among `known`, else null (a route that merely looks like one is not). Pure. */
+      const kbCompanionOf = (slug, known) => { const mm = KB_COMP_RE.exec(String(slug)); return mm !== null && Array.isArray(known) && known.indexOf(mm[1]) >= 0 ? mm[1] : null }
+      /** The companions of a provider among `slugs`. Pure. */
+      const kbCompanionsOf = (route, slugs) => (Array.isArray(slugs) ? slugs : []).filter((s) => { const mm = KB_COMP_RE.exec(String(s)); return mm !== null && mm[1] === route })
+      /** The profile of a companion: the provider's key reference, the protocol and address its models speak, and their entries (an entry that already exists
+       *  keeps its tuned fields). `before` is the saved companion, if any. Pure. */
+      const kbCompanionProfile = (parent, parentRoute, keyRef, api, baseURL, rows, before) => {
+        const next = kbPvIsObj(before) ? { ...before } : {}
+        const label = kbPvIsObj(parent) && typeof parent.displayName === 'string' && parent.displayName.trim() !== '' ? parent.displayName.trim() : parentRoute
+        next.displayName = label + ' (custom)'
+        next.api = api
+        next.baseURL = baseURL
+        if (typeof keyRef === 'string' && keyRef !== '') next.apiKeyEnv = keyRef
+        const existing = Array.isArray(next.models) ? next.models : []
+        const merged = kbPvMergeModels(existing, existing.map((e) => ({ id: e.id, name: typeof e.name === 'string' ? e.name : '' })).concat(rows))
+        next.models = merged
+        return next
+      }
       /** Model rows (id + optional name) from a draft: drops blank ids, keeps the first of a duplicate. Pure. */
       const kbPvRows = (rows) => {
         const seen = new Set()
@@ -4073,10 +4122,6 @@ window.__ModuleLoader__.load({
           if (name === '') delete next.displayName
           else next.displayName = name
           if (typeof d.proto === 'string' && d.proto !== '') next.api = d.proto
-        } else if (typeof d.apiSel === 'string') {
-          // A catalog route: Automatic removes the route's `api` (each model speaks the catalog's protocol), a protocol sets it for every model.
-          if (d.apiSel === '') delete next.api
-          else next.api = d.apiSel
         }
         if (d.restoreModels === true) delete next.models // back to the adapter's built-in list
         else if (d.models !== undefined) {
@@ -4179,11 +4224,94 @@ window.__ModuleLoader__.load({
           try { r = await kbMTimeout(api.credentials.unset(prof.apiKeyEnv), 8000) } catch (e) { r = { ok: false, error: { message: String(e && e.message ? e.message : e) } } }
           if (r !== null && r !== undefined && r.ok === false) throw new Error(String(r.error && r.error.message ? r.error.message : 'credential'))
         }
-        const resp = await kbMMutateRetry(api, [{ op: 'unset', path: ['providers', slug] }])
+        const gone = [slug].concat(kbCompanionsOf(slug, KBM.routes))
+        const resp = await kbMMutateRetry(api, gone.map((s) => ({ op: 'unset', path: ['providers', s] })))
         await kbMJournal({ niveau: 'settings', route: slug, champ: 'provider', op: 'delete', chemin: ['providers', slug], ok: resp.ok === true })
         if (resp.ok !== true) throw new Error(kbMErrText(resp))
         if (KBM.parked.some((p) => p.slug === slug)) { try { await kbMParkCall('forget', { slug }) } catch (e) { /* the copy stays hidden */ } }
         await kbMLoad()
+      }
+      /** Ask the host which protocol a model speaks (it asks the provider, with the stored key). When it cannot say, OpenAI chat at the provider's
+       *  address. Never throws. */
+      const kbCompanionProbe = async (route, id, base) => {
+        try {
+          const res = await kbMTimeout(fetch('/kybernos-models/models/probe', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ route, model: id }) }), 45000)
+          let out = null
+          if (res !== null && res !== undefined && typeof res.json === 'function') { try { out = await res.json() } catch (e) { out = null } }
+          if (kbPvIsObj(out) && out.ok === true && typeof out.api === 'string' && typeof out.baseURL === 'string') return { api: out.api, baseURL: out.baseURL, found: true }
+        } catch (e) { /* the default below */ }
+        return { api: 'openai-completions', baseURL: base, found: false }
+      }
+      /** Add custom models to a provider: one companion route per protocol, created or completed. `guessed` counts the models whose protocol could not be
+       *  confirmed (the default was taken). */
+      const kbCompanionAdd = async (api, route, rows) => {
+        const parent = kbMOBJ(KBM.userProviders)[route]
+        const entry = catDe(route)
+        const keyRef = kbPvKeyRefOf(parent, entry !== null ? entry.env : null)
+        const base = kbPvIsObj(parent) && typeof parent.baseURL === 'string' && parent.baseURL !== '' ? parent.baseURL : (entry !== null && typeof entry.url === 'string' ? entry.url : '')
+        if (base === '') throw new Error(m('kb.pv.err.nobase'))
+        const groups = new Map()
+        let guessed = 0
+        for (const row of rows) {
+          const pr = await kbCompanionProbe(route, String(row.id).trim(), base)
+          if (pr.found !== true) guessed += 1
+          const slug = kbCompanionSlug(route, pr.api)
+          if (!groups.has(slug)) groups.set(slug, { api: pr.api, baseURL: pr.baseURL, rows: [] })
+          groups.get(slug).rows.push(row)
+        }
+        for (const [slug, g] of groups) {
+          const before = kbMOBJ(KBM.userProviders)[slug]
+          const after = kbCompanionProfile(parent, route, keyRef, g.api, g.baseURL, g.rows, before)
+          const ops = kbPvIsObj(before) ? kbPvDiffOps(['providers', slug], before, after) : [{ op: 'set', path: ['providers', slug], value: after }]
+          const resp = await kbMMutateRetry(api, ops)
+          await kbMJournal({ niveau: 'settings', route: slug, champ: 'provider', op: 'set', chemin: ['providers', slug], ok: resp.ok === true })
+          if (resp.ok !== true) throw new Error(kbMErrText(resp))
+        }
+        return { routes: Array.from(groups.keys()), guessed }
+      }
+      /** Remove one custom model from the provider's companions; a companion left with no model goes with it. */
+      const kbCompanionRemove = async (route, id) => {
+        const api = kbMApi()
+        if (api === null || api.settings === null) throw new Error(m('kb.models.error.remote'))
+        if (KBM.writable !== true) throw new Error(m('kb.models.error.readonly'))
+        const ops = []
+        for (const slug of kbCompanionsOf(route, KBM.routes)) {
+          const prof = kbMOBJ(KBM.userProviders)[slug]
+          const list = kbPvIsObj(prof) && Array.isArray(prof.models) ? prof.models : []
+          if (!list.some((x) => kbPvIsObj(x) && x.id === id)) continue
+          const rest = list.filter((x) => !(kbPvIsObj(x) && x.id === id))
+          if (rest.length === 0) ops.push({ op: 'unset', path: ['providers', slug] })
+          else ops.push({ op: 'set', path: ['providers', slug, 'models'], value: rest })
+        }
+        if (ops.length === 0) return false
+        const resp = await kbMMutateRetry(api, ops)
+        await kbMJournal({ niveau: 'settings', route, champ: 'provider', op: 'edit', chemin: ['providers', route + '-custom'], ok: resp.ok === true })
+        if (resp.ok !== true) throw new Error(kbMErrText(resp))
+        await kbMLoad()
+        return true
+      }
+      /** Save an edit. A model the engine refuses for want of a protocol or an address (outside its catalog, on a provider whose catalog serves several)
+       *  is not an error: it becomes a custom model of the provider (kbCompanionAdd) and the rest is saved as usual. */
+      const kbPvSaveSmart = async (slug, d) => {
+        const api = kbMApi()
+        const extra = []
+        let draft = d
+        let out = null
+        for (let guard = 0; guard < 80 && out === null; guard += 1) {
+          try { out = await kbPvSave(slug, draft) } catch (e) {
+            const bad = kbPvRefusedModel(e && e.message)
+            const rows = Array.isArray(draft.models) ? draft.models : []
+            if (bad === null || !rows.some((r) => String(r.id).trim() === bad)) throw e
+            // The refused row and every row flagged as outside the catalog (the same cause): they move to the companion.
+            const moving = rows.filter((r) => String(r.id).trim() === bad || r.outside === true)
+            for (const r of moving) if (!extra.some((x) => String(x.id).trim() === String(r.id).trim())) extra.push(r)
+            draft = { ...draft, models: rows.filter((r) => moving.indexOf(r) < 0), touched: true }
+          }
+        }
+        if (out === null) throw new Error(m('kb.pv.save.err', { slug, raison: 'too many refused models' }))
+        let custom = null
+        if (extra.length > 0) { custom = await kbCompanionAdd(api, slug, extra); await kbMLoad() }
+        return { ...out, custom, customN: extra.length }
       }
       // KB-PV-ACTIONS-END
       // KB-QK-BEGIN
@@ -4294,6 +4422,7 @@ window.__ModuleLoader__.load({
         if (c.contextWindow !== undefined) row.contextWindow = c.contextWindow
         if (c.maxTokens !== undefined) row.maxTokens = c.maxTokens
         if (c.input !== undefined) row.input = c.input.slice()
+        if (c.undescribed === true) row.outside = true // outside the engine's catalog: a custom model of the provider (see kbCompanionAdd)
         return row
       }
       /** The ids ticked on opening: those not already in the draft (a model already there has nothing to adopt). Pure. */
@@ -4347,13 +4476,12 @@ window.__ModuleLoader__.load({
         const keys = { unreachable: 'kb.fetch.why.unreachable', 'bad-reply': 'kb.fetch.why.bad', 'too-big': 'kb.fetch.why.big', host: 'kb.fetch.why.host' }
         return { key: keys[none.why] !== undefined ? keys[none.why] : 'kb.fetch.why.noaddr', vars: {} }
       }
-      /** Tag the candidates a route may refuse: when the engine's catalog describes the route (`described` is its ids) and the profile declares no
-       *  `api` of its own, a model outside that catalog has no protocol to be talked to with. A locked route (the engine already refused one) locks
-       *  them in the picker; otherwise they are only unticked by default and tagged. `described` null = the engine could not say: nothing is tagged. Pure. */
-      const kbFetchTagUndescribed = (cands, described, hasApi, locked) => {
-        if (!Array.isArray(described) || described.length === 0 || hasApi === true) return cands
+      /** Tag the candidates the engine's catalog does not describe (`described` is its ids): they are added as custom models of the provider, so
+       *  they are not ticked on opening. `described` null or empty = the engine could not say: nothing is tagged. Pure. */
+      const kbFetchTagUndescribed = (cands, described) => {
+        if (!Array.isArray(described) || described.length === 0) return cands
         const known = new Set(described)
-        return cands.map((c) => (known.has(c.id) ? c : { ...c, undescribed: true, locked: locked === true }))
+        return cands.map((c) => (known.has(c.id) ? c : { ...c, undescribed: true }))
       }
       /** The host name of an address, for « Live list from opencode.ai ». Pure. */
       const kbFetchHost = (url) => { try { return new URL(String(url)).hostname } catch (e) { return String(url) } }
