@@ -562,6 +562,13 @@ console.log('\n── Fetch available models (the engine lists what a provider s
     ok('a bare-id listing gets the name and capacities the catalog knows, and only those', r1.models[0].name === 'Model A' && r1.models[0].contextWindow === 256000 && r1.models[0].maxTokens === 32000 && r1.models[0].input.join() === 'text,image' && r1.models[1].contextWindow === undefined, r1.models)
     ok('the source is told: live, and from which address', r1.url === 'https://opencode.ai/zen/go/v1/models' && fx.kbFetchHost(r1.url) === 'opencode.ai')
 
+    calls = answer({ ok: true, source: 'live', url: 'https://x/v1/models', models: [{ id: 'a' }] })
+    await live(catalog, { provider: 'opencode-go', baseURL: 'https://typed.example/v1' }, { live: true })
+    await live(catalog, { provider: 'opencode-go', baseURL: 'https://typed.example/v1', apiKey: 'sk-typed' }, { live: true })
+    const sent1 = JSON.parse(calls[0].init.body)
+    const sent2 = JSON.parse(calls[1].init.body)
+    ok('an address being typed (not saved) is not sent alone, so the live list is the provider\'s own; beside a typed key it goes along', sent1.baseURL === undefined && sent1.key === undefined && sent2.baseURL === 'https://typed.example/v1' && sent2.key === 'sk-typed', [sent1, sent2])
+
     calls = answer({ ok: true, source: 'live', url: 'https://openrouter.ai/api/v1/models', models: [{ id: 'x', name: 'X', contextWindow: 1000 }] })
     let asked = 0
     const r2 = await live({ llm: { discoverModels: async () => { asked += 1; return { ok: true, value: [{ id: 'x', name: 'Catalog X', contextWindow: 9 }, { id: 'y' }] } } } }, { provider: 'openrouter' }, { live: true })
@@ -597,13 +604,22 @@ console.log('\n── Fetch available models (the engine lists what a provider s
   console.log('  — models the route may refuse (the engine takes one protocol per route)')
   const { kbPvNeedsApi } = new Function(bl('KB-PV-PURE') + '\nreturn { kbPvNeedsApi }')()
   ok('the engine\'s refusal is recognised and names the model; any other message is not', kbPvNeedsApi('llm-pi-ai: provider "opencode-go" model "minimax-m3.1-flash-free" needs an api; the installed catalog does not describe it, so set the route\'s api to the wire protocol its endpoint speaks') === 'minimax-m3.1-flash-free' && kbPvNeedsApi('model "x" needs a baseURL') === null && kbPvNeedsApi(undefined) === null && kbPvNeedsApi('') === null)
+  const { kbPvNeedsUrl } = new Function(bl('KB-PV-PURE') + '\nreturn { kbPvNeedsUrl }')()
+  ok('the engine\'s second refusal (a model outside the catalog needs the route\'s baseURL too) is recognised and names the model', kbPvNeedsUrl('llm-pi-ai: provider "opencode-go" model "glm-5.1" needs a baseURL; the installed catalog does not describe this route') === 'glm-5.1' && kbPvNeedsUrl('model "x" needs an api') === null && kbPvNeedsUrl(null) === null)
   const live3 = [{ id: 'a' }, { id: 'new-1' }, { id: 'new-2' }]
   const tagged = fx.kbFetchTagUndescribed(live3, ['a', 'old'], false, false)
   ok('on a route its catalog describes and whose profile declares no api, a model outside the catalog is tagged (and only that)', tagged[0].undescribed === undefined && tagged[1].undescribed === true && tagged[1].locked === false && tagged[2].undescribed === true)
   ok('a route that already refused one locks them', fx.kbFetchTagUndescribed(live3, ['a'], false, true).filter((c) => c.locked === true).length === 2)
   ok('nothing is tagged when the profile declares an api, when the catalog is empty, or when the engine could not say', fx.kbFetchTagUndescribed(live3, ['a'], true, false) === live3 && fx.kbFetchTagUndescribed(live3, [], false, false) === live3 && fx.kbFetchTagUndescribed(live3, null, false, false) === live3)
   ok('the models outside the catalog are not ticked on opening (the default choice always applies), the others are', Object.keys(fx.kbFetchPreselect(tagged, [])).join() === 'a')
-  ok('an apply refused for want of a protocol says so in words a person can act on, keeps the draft, and remembers the route; the other errors keep their wording', src.includes("const model = errKey === 'kb.pv.save.err' ? kbPvNeedsApi(raison) : null") && src.includes("if (model !== null && slug) KBM.needsApi[slug] = true") && src.includes("m('kb.pv.err.needsapi', { slug: slug || '', model })") && src.includes("kbFetchTagUndescribed(out.models, out.described, hasApi, KBM.needsApi[slug] === true)"))
+  ok('catalog routes get an « API protocol » select (Automatic first, with the warning that it binds every model), the picker explains the models outside the catalog, and a protocol chosen in the draft counts before it is saved', src.includes("'data-kbm': 'pv-apisel'") && src.includes("m('kb.pv.proto.auto.hint')") && src.includes("'data-kbm': 'fetch-undescribed'") && src.includes("(typeof d.apiSel === 'string' && d.apiSel !== '')"))
+  ok('an apply refused for want of a protocol says so in words a person can act on, keeps the draft, and remembers the route; the other errors keep their wording', src.includes("const model = errKey === 'kb.pv.save.err' ? kbPvNeedsApi(raison) : null") && src.includes("if (model !== null && slug) KBM.needsApi[slug] = true") && src.includes("m('kb.pv.err.needsapi', { slug: slug || '', model })") && src.includes("m('kb.pv.err.needsurl', { slug: slug || '', model: modelUrl })") && src.includes("kbFetchTagUndescribed(out.models, out.described, hasApi, KBM.needsApi[slug] === true)"))
+
+  const pvp = new Function(bl('KB-PV-PURE') + '\nreturn { kbPvEditProfile }')()
+  const catProf = { apiKeyEnv: 'OPENCODE_GO_API_KEY', models: [{ id: 'hy3' }] }
+  ok('a catalog route\'s protocol: Automatic leaves the profile without an api, a protocol sets it for the route, going back to Automatic removes it, and a draft that says nothing changes nothing', pvp.kbPvEditProfile('opencode-go', catProf, { url: '', key: '', apiSel: '' }, false).api === undefined && pvp.kbPvEditProfile('opencode-go', catProf, { url: '', key: '', apiSel: 'openai-completions' }, false).api === 'openai-completions' && pvp.kbPvEditProfile('opencode-go', { ...catProf, api: 'openai-completions' }, { url: '', key: '', apiSel: '' }, false).api === undefined && pvp.kbPvEditProfile('opencode-go', { ...catProf, api: 'anthropic-messages' }, { url: '', key: '' }, false).api === 'anthropic-messages')
+  ok('the models and the protocol are written in the same save (the engine checks the whole profile: a model outside the catalog needs the route\'s api)', (() => { const out = pvp.kbPvEditProfile('opencode-go', catProf, { url: '', key: '', apiSel: 'openai-completions', models: [{ id: 'hy3' }, { id: 'minimax-m3.1-flash-free', name: '' }] }, false); return out.api === 'openai-completions' && out.models.map((x) => x.id).join() === 'hy3,minimax-m3.1-flash-free' })())
+  ok('a custom route still takes its protocol from the form, not from the catalog field', pvp.kbPvEditProfile('mine', { baseURL: 'https://g/v1', api: 'openai-completions' }, { url: 'https://g/v1', key: '', name: '', proto: 'anthropic-messages', apiSel: '' }, true).api === 'anthropic-messages')
 
   console.log('  — wiring')
   const w = (frag) => src.includes(frag)
