@@ -2932,8 +2932,8 @@ const KB_SS_INDEX = [
   ['kybernos', '', 'Custom instructions', 'Kept on this computer: every agent reads them, in new chats.', '', 'instructions personnalisees consignes regles prompt systeme agents md preferences style'],
   ['kybernos', '', 'Models', 'The list updates by itself when your plan or your server changes.', '', 'modeles liste plan'],
 
-  ['ai provider & models', '', 'Add provider', '', '', 'cle api api key fournisseur openai anthropic deepseek jeton token ajouter proveedor erreur panne hors service sante health indisponible'],
-  ['ai provider & models', '', 'Kybernos Cloud', '', 'manage kybernos cloud', 'compte cloud abonnement forfait'],
+  ['ai provider and models', '', 'Add provider', '', '', 'cle api api key fournisseur openai anthropic deepseek jeton token ajouter proveedor erreur panne hors service sante health indisponible'],
+  ['ai provider and models', '', 'Kybernos Cloud', '', 'manage kybernos cloud', 'compte cloud abonnement forfait'],
   ['auto routing', '', 'Automatic routing', 'On: Auto is used in every session. Off: you turn it on per session, from the model menu in the composer.', '', 'routage automatique choix modele bascule routeur'],
   ['auto routing', '', 'Models Auto may use', 'Only the models you pick below. The list order is the fallback order.', 'all models free models my list', 'secours fallback liste modeles autorises'],
   ['free llms', '', 'Available free models', 'Free models, no account or API key.', 're-check', 'gratuit sans cle opencode gratis'],
@@ -2976,7 +2976,7 @@ const KB_SS_INDEX = [
 ]
 // What people call a page, by its key: found by « voix » when the page is called Voice.
 const KB_SS_PAGE_KW = {
-  'ai provider & models': 'modeles fournisseurs cle api openai', 'auto routing': 'routage routeur choix modele secours', 'free llms': 'gratuit gratis',
+  'ai provider and models': 'modeles fournisseurs cle api openai', 'auto routing': 'routage routeur choix modele secours', 'free llms': 'gratuit gratis',
   'ollama local models': 'local hors ligne offline gpu', usage: 'consommation quota forfait cout', 'agent presets': 'agent mode persona', workers: 'assistants code delegation cli',
   automations: 'planification taches cron', commands: 'slash raccourcis prompts', skills: 'competences habilidades', tools: 'outils mcp',
   connectors: 'integrations applications gmail slack', 'web search': 'recherche internet moteur navigateur', 'memory & lessons': 'memoire memoria souvenirs lecons',
@@ -3021,8 +3021,8 @@ const KB_SS_FR = {
   'memory & lessons|Lessons learned': ['Leçons apprises', ''],
   'kybernos|Custom instructions': ['Instructions personnalisées', 'Gardées sur cet ordinateur : tous les agents les lisent, dans les nouvelles conversations.'],
   'kybernos|Models': ['Modèles', 'La liste se met à jour toute seule quand ta formule ou ton serveur change.'],
-  'ai provider & models|Add provider': ['Ajouter un fournisseur', ''],
-  'ai provider & models|Kybernos Cloud': ['Kybernos Cloud', ''],
+  'ai provider and models|Add provider': ['Ajouter un fournisseur', ''],
+  'ai provider and models|Kybernos Cloud': ['Kybernos Cloud', ''],
   'auto routing|Automatic routing': ['Routage automatique', 'Activé : Auto sert dans toutes les sessions. Désactivé : tu l’actives session par session, depuis le menu du modèle dans le composer.'],
   'auto routing|Models Auto may use': ['Modèles qu’Auto peut utiliser', 'Seulement les modèles que tu choisis ci-dessous. L’ordre de la liste est l’ordre de repli.'],
   'free llms|Available free models': ['Modèles gratuits disponibles', 'Des modèles gratuits, sans compte ni clé API.'],
@@ -33075,8 +33075,8 @@ body:not([data-ds-dark-theme]) .kbac-theme-cur{color:color-mix(in srgb,var(--dsw
       // to the tail, after the groups and before About.
       const GROUPES = [
         { id: 'general', titre: null, mots: ['general', 'mon espace', 'my workspace'] },
-        { id: 'models', titre: kbt('settings.group.models'), pliable: true, icone: 'ai provider & models', mots: [
-          'fournisseur ia & modeles', 'ai provider & models', 'ai providers & models',
+        { id: 'models', titre: kbt('settings.group.models'), pliable: true, icone: 'models & routing', mots: [
+          'fournisseur ia et modeles', 'ai provider and models',
           'auto routing',
           'free llms',
           'ollama local models',
@@ -33122,9 +33122,10 @@ body:not([data-ds-dark-theme]) .kbac-theme-cur{color:color-mix(in srgb,var(--dsw
         'mon espace': '<path d="M4 21V5a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v16M14 10h5a1 1 0 0 1 1 1v10M2 21h20M8 8h2M8 12h2M8 16h2" ' + trait + '/>',
         'atlas': '<polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21" ' + trait + '/><line x1="9" y1="3" x2="9" y2="18" ' + trait + '/><line x1="15" y1="6" x2="15" y2="21" ' + trait + '/>',
         'usage': '<path d="m12 14 4-4" ' + trait + '/><path d="M3.34 19a10 10 0 1 1 17.32 0" ' + trait + '/>',
-        'fournisseur ia & modeles': '<path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4" ' + trait + '/>' + '<path d="m21 2-9.6 9.6" ' + trait + '/>' + '<circle cx="7.5" cy="15.5" r="5.5" ' + trait + '/>',
-        'ai provider & models': '<path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4" ' + trait + '/>' + '<path d="m21 2-9.6 9.6" ' + trait + '/>' + '<circle cx="7.5" cy="15.5" r="5.5" ' + trait + '/>',
-        'ai providers & models': '<path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4" ' + trait + '/>' + '<path d="m21 2-9.6 9.6" ' + trait + '/>' + '<circle cx="7.5" cy="15.5" r="5.5" ' + trait + '/>',
+        'fournisseur ia et modeles': '<rect x="16" y="16" width="6" height="6" rx="1" ' + trait + '/>' + '<rect x="2" y="16" width="6" height="6" rx="1" ' + trait + '/>' + '<rect x="9" y="2" width="6" height="6" rx="1" ' + trait + '/>' + '<path d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3" ' + trait + '/>' + '<path d="M12 12V8" ' + trait + '/>',
+        'ai provider and models': '<rect x="16" y="16" width="6" height="6" rx="1" ' + trait + '/>' + '<rect x="2" y="16" width="6" height="6" rx="1" ' + trait + '/>' + '<rect x="9" y="2" width="6" height="6" rx="1" ' + trait + '/>' + '<path d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3" ' + trait + '/>' + '<path d="M12 12V8" ' + trait + '/>',
+        // The « Models & routing » group keeps the key it always wore: the page inside it has its own drawing now (no two entries share one).
+        'models & routing': '<path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4" ' + trait + '/>' + '<path d="m21 2-9.6 9.6" ' + trait + '/>' + '<circle cx="7.5" cy="15.5" r="5.5" ' + trait + '/>',
         'models': '<path d="M12 2 2 7l10 5 10-5-10-5z" ' + trait + '/><path d="M2 12l10 5 10-5" ' + trait + '/><path d="M2 17l10 5 10-5" ' + trait + '/>',
         'voix': '<path d="M2 10v3" ' + trait + '/>' + '<path d="M6 6v11" ' + trait + '/>' + '<path d="M10 3v18" ' + trait + '/>' + '<path d="M14 8v7" ' + trait + '/>' + '<path d="M18 5v13" ' + trait + '/>' + '<path d="M22 10v3" ' + trait + '/>',
         'voice': '<path d="M2 10v3" ' + trait + '/>' + '<path d="M6 6v11" ' + trait + '/>' + '<path d="M10 3v18" ' + trait + '/>' + '<path d="M14 8v7" ' + trait + '/>' + '<path d="M18 5v13" ' + trait + '/>' + '<path d="M22 10v3" ' + trait + '/>',
