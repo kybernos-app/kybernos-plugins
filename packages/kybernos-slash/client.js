@@ -753,7 +753,7 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
    ecraser par le repli flex des que la liste est longue. */
 .kbsl-pop>*{flex:none}
 .kbsl-rows{flex:1 1 auto;display:flex;flex-direction:column;gap:2px;min-height:0;overflow:auto;overscroll-behavior:contain}
-.kbsl-pop-h{font-size:var(--kb-fs-11,11px);font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--kb-caption)}
+.kbsl-pop-h{font-size:var(--kb-fs-11,11px);font-weight:600;color:var(--kb-caption)}
 .kbsl-pop-f{margin-top:2px;padding:5px 10px 3px;border-top:1px solid var(--kb-sep);font-size:var(--kb-fs-11,11px);color:var(--kb-caption)}
 .kbsl-pwrap{position:relative;display:flex;align-items:center;gap:4px;padding-right:6px;border-radius:10px}
 .kbsl-pwrap:hover,.kbsl-pwrap.on{background:var(--kb-hover)}

@@ -317,8 +317,8 @@ window.__ModuleLoader__.load({
         'set.active': { fr: 'actifs', en: 'active' },
         'set.disabled': { fr: 'désactivés', en: 'disabled' },
         'set.featured': { fr: 'mis en avant', en: 'featured' },
-        'th.result': { fr: 'RÉSULTAT', en: 'RESULT' },
-        'th.state': { fr: 'ÉTAT', en: 'STATE' },
+        'th.result': { fr: 'Résultat', en: 'Result' },
+        'th.state': { fr: 'État', en: 'State' },
         'd.empty.search': { fr: 'Essaie un autre terme (au moins 2 caractères).', en: 'Try another term (at least 2 characters).' },
         'd.empty.page': { fr: 'Cette page est vide.', en: 'This page is empty.' },
         'btn.install': { fr: 'Installer', en: 'Install' },
@@ -414,9 +414,9 @@ window.__ModuleLoader__.load({
         'tm.search': { fr: 'Chercher dans les skills de l’équipe', en: 'Search team skills' },
         'tm.propose': { fr: 'Proposer un skill', en: 'Propose a skill' },
         'tm.add': { fr: 'Ajouter un skill', en: 'Add a skill' },
-        'tm.th.skill': { fr: 'SKILL', en: 'SKILL' },
-        'tm.th.by': { fr: 'AJOUTÉ PAR', en: 'ADDED BY' },
-        'tm.th.version': { fr: 'VERSION', en: 'VERSION' },
+        'tm.th.skill': { fr: 'Skill', en: 'Skill' },
+        'tm.th.by': { fr: 'Ajouté par', en: 'Added by' },
+        'tm.th.version': { fr: 'Version', en: 'Version' },
         'tm.install': { fr: 'Installer', en: 'Install' },
         'tm.update': { fr: 'Mettre à jour', en: 'Update' },
         'tm.installed': { fr: 'Installé', en: 'Installed' },
@@ -641,8 +641,8 @@ window.__ModuleLoader__.load({
         }
         return k.wrap(t('d.query'), 'kbs-table', [
           h('div', { key: 'hd', className: 'kbs-head' },
-            h('span', { className: 'rank' }, '#'), h('span', { className: 'who' }, 'SKILL'), h('span', { className: 'src' }, 'SOURCE'),
-            h('span', { className: 'badges' }, t('th.state')), h('span', { className: 'inst' }, 'INSTALLATIONS')),
+            h('span', { className: 'rank' }, '#'), h('span', { className: 'who' }, 'Skill'), h('span', { className: 'src' }, 'Source'),
+            h('span', { className: 'badges' }, t('th.state')), h('span', { className: 'inst' }, 'Installations')),
           idx.map((i) => h('div', { key: 'r' + i, className: 'kbs-row kb-sk-row' },
             h('span', { className: 'rank' }, bone(18, 10)),
             h('span', { className: 'who' }, bone(30, 30, null, 10), bone(i % 3 === 0 ? '55%' : (i % 3 === 1 ? '40%' : '48%'), 13)),
@@ -731,7 +731,7 @@ window.__ModuleLoader__.load({
    keeping the mockup's three rows (View, Rows, Source / State, Root). */
 .kbs-root .kb-filters{position:absolute;right:0;top:calc(100% + 6px);z-index:60;display:flex;flex-direction:column;gap:10px;width:min(560px,calc(100vw - 56px));box-sizing:border-box;padding:10px 12px 12px;border:1px solid var(--dsw-alias-border-l1);border-radius:13px;background:var(--dsw-alias-bg-layer-1);box-shadow:0 14px 34px rgba(0,0,0,.3)}
 .kbs-root .kb-filters .head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0 4px}
-.kbs-root .kb-filters .head .t{font-family:ui-monospace,monospace;font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--dsw-alias-label-secondary)}
+.kbs-root .kb-filters .head .t{font-family:ui-monospace,monospace;font-size:10px;color:var(--dsw-alias-label-secondary)}
 .kbs-root .kb-filters .head .raz{border:none;background:transparent;color:var(--dsw-alias-brand-primary);font:inherit;font-size:12px;cursor:pointer;padding:3px 6px;border-radius:7px}
 .kbs-root .kb-filters .head .raz:hover{background:var(--dsw-alias-bg-layer-2)}
 .kbs-root .kb-filter-row{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
@@ -744,7 +744,7 @@ window.__ModuleLoader__.load({
    read like the other tabs, not like a raw table dropped next to them. */
 .kbs-root .kbs-table{border:1px solid var(--dsw-alias-border-l1);border-radius:16px;overflow:hidden;background:var(--dsw-alias-bg-layer-1)}
 .kbs-root .kbs-head,.kbs-root .kbs-row{display:grid;grid-template-columns:44px minmax(200px,1.6fr) minmax(130px,1fr) 150px 100px;align-items:center;gap:14px;padding:8px 18px}
-.kbs-root .kbs-head{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--dsw-alias-label-caption);border-bottom:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-2)}
+.kbs-root .kbs-head{font-size:11px;font-weight:600;color:var(--dsw-alias-label-caption);border-bottom:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-2)}
 .kbs-root .kbs-row{border-bottom:1px solid var(--dsw-alias-border-l1);cursor:pointer;transition:background .12s}
 .kbs-root .kbs-row:last-child{border-bottom:none}
 .kbs-root .kbs-row:hover{background:var(--dsw-alias-interactive-bg-hover)}
@@ -804,7 +804,7 @@ window.__ModuleLoader__.load({
 .kbs-root .kb-panel{background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l1);border-radius:16px;padding:16px 18px;display:flex;flex-direction:column;gap:12px}
 .kbs-root .kb-panel .row{display:flex;align-items:center;gap:12px;font-size:13.5px;color:var(--dsw-alias-label-secondary)}
 .kbs-root .kb-panel .row .ic{width:30px;height:30px;border-radius:10px;background:var(--dsw-alias-bg-layer-2);display:flex;align-items:center;justify-content:center;color:var(--dsw-alias-label-tertiary);flex:0 0 auto}
-.kbs-root .kb-section-label{font-size:12px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--dsw-alias-label-caption)}
+.kbs-root .kb-section-label{font-size:12px;font-weight:600;color:var(--dsw-alias-label-caption)}
 .kbs-root .kb8-tab:hover{color:var(--dsw-alias-label-primary)}
 .kbs-root .kb8-tab .n{font-family:ui-monospace,monospace;font-size:11px;color:var(--dsw-alias-label-caption)}
 /* Local skill sheet (a Yours card opens it): its own head and rows, reusing the pivot's tokens. */
@@ -847,7 +847,7 @@ window.__ModuleLoader__.load({
 .kbs-root .kb-callout{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border:1px solid var(--dsw-alias-border-l1);border-left:3px solid var(--kybernos-accent,var(--dsw-alias-brand-primary,#4d7cfe));border-radius:12px;background:var(--dsw-alias-bg-layer-1)}
 /* — additions outside the mockup: only what the real flow requires (forms, notices) — */
 .kbs-root .kbs-fields{display:flex;flex-direction:column;gap:13px}
-.kbs-root .kbs-label{font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--dsw-alias-label-caption)}
+.kbs-root .kbs-label{font-size:12px;font-weight:600;color:var(--dsw-alias-label-caption)}
 .kbs-root .kbs-input,.kbs-root .kbs-area,.kbs-root .kbs-select{width:100%;box-sizing:border-box;background:var(--dsw-alias-bg-base);border:1px solid var(--dsw-alias-border-l2);border-radius:10px;color:var(--dsw-alias-label-primary);font:inherit;font-size:13.5px;padding:10px 12px}
 .kbs-root .kbs-area{min-height:104px;resize:vertical;font-family:ui-monospace,monospace;font-size:12.5px;line-height:1.6}
 .kbs-root .kbs-input:focus,.kbs-root .kbs-area:focus,.kbs-root .kbs-select:focus{outline:none;border-color:var(--kybernos-accent,var(--dsw-alias-brand-primary,#4d7cfe))}
@@ -902,7 +902,7 @@ window.__ModuleLoader__.load({
 /* — Where the index is read from — */
 .kbs-root .kbs-srcline{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 14px;font-size:12.5px;color:var(--dsw-alias-label-secondary)}
 .kbs-root .kbs-srcline svg{flex:0 0 auto;color:var(--dsw-alias-label-secondary)}
-.kbs-root .kbs-srcline .k{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--dsw-alias-label-secondary)}
+.kbs-root .kbs-srcline .k{font-size:11px;font-weight:600;color:var(--dsw-alias-label-secondary)}
 .kbs-root .kbs-srcline .v{font-family:ui-monospace,monospace;color:var(--dsw-alias-label-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
 .kbs-root .kbs-srcline .w::before{content:'·';margin-right:8px}
 @media (max-width:520px){.kbs-root .kbs-srcline .w::before{display:none}}
@@ -910,7 +910,7 @@ window.__ModuleLoader__.load({
 .kbs-root .kbs-link:hover{background:var(--dsw-alias-bg-layer-2)}
 /* — Team skills: the table reuses the one from Discover (same tokens), only the columns change — */
 .kbs-root .kbt .kbt-head,.kbs-root .kbt .kbs-row{display:grid;grid-template-columns:44px minmax(200px,1.7fr) minmax(120px,1fr) 210px 150px;align-items:center;gap:14px;padding:8px 18px}
-.kbs-root .kbt .kbt-head{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--dsw-alias-label-caption);border-bottom:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-2)}
+.kbs-root .kbt .kbt-head{font-size:11px;font-weight:600;color:var(--dsw-alias-label-caption);border-bottom:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-2)}
 .kbs-root .kbt .kbs-row{min-height:56px}
 .kbs-root .kbt .badges{display:flex;gap:6px;flex-wrap:wrap}
 .kbs-root .kbt-name{display:flex;flex-direction:column;gap:2px;min-width:0}
@@ -994,7 +994,7 @@ body[data-ds-dark-theme] .kbs-root .kbsf-t[data-cat=Build]{--cv-bg:#272a43;--cv-
 .kbs-root .kbsf-plain .kbsf-pic{background:var(--dsw-alias-bg-layer-2)}
 .kbs-root .kbsf-pic .kbsf-cut{position:absolute;inset:6%;width:88%;height:88%;object-fit:contain;filter:drop-shadow(0 7px 9px rgba(30,18,6,.30))}
 .kbs-root .kbsf-pic .kb8-tile{position:absolute;inset-inline-start:50%;top:50%;transform:translate(-50%,-50%);width:64px;height:64px}
-.kbs-root .kbsf-tag{position:absolute;inset-block-start:10px;inset-inline-start:10px;font-family:ui-monospace,monospace;font-size:10px;letter-spacing:.06em;text-transform:uppercase;padding:4px 9px;border-radius:999px;background:rgba(255,253,248,.88);color:#26221e}
+.kbs-root .kbsf-tag{position:absolute;inset-block-start:10px;inset-inline-start:10px;font-family:ui-monospace,monospace;font-size:10px;padding:4px 9px;border-radius:999px;background:rgba(255,253,248,.88);color:#26221e}
 .kbs-root .kbsf-star{position:absolute;inset-block-start:6px;inset-inline-end:6px;background:rgba(255,253,248,.88);color:#6b625a;border-color:transparent}
 .kbs-root .kbsf-star:disabled{opacity:.55;cursor:default}
 .kbs-root .kbsf-star.on{color:#c98a00}
@@ -1110,7 +1110,7 @@ body:not([data-ds-dark-theme]) .kbs-root .kb8-pill.warn{color:color-mix(in srgb,
 .kbss-page .kbss-sub{margin:0;font-size:12.5px;line-height:1.5;color:var(--dsw-alias-label-secondary)}
 .kbss-page .kbss-srcline{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12.5px;color:var(--dsw-alias-label-secondary)}
 .kbss-page .kbss-srcline svg{flex:0 0 auto;color:var(--dsw-alias-label-secondary)}
-.kbss-page .kbss-srcline .k{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--dsw-alias-label-secondary)}
+.kbss-page .kbss-srcline .k{font-size:11px;font-weight:600;color:var(--dsw-alias-label-secondary)}
 .kbss-page .kbss-srcline .v{font-family:ui-monospace,monospace;color:var(--dsw-alias-label-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
 .kbss-page .kbss-srcline .w::before{content:'·';margin-right:8px}
 @media (max-width:520px){.kbss-page .kbss-srcline .w::before{display:none}}
@@ -2241,7 +2241,7 @@ body:not([data-ds-dark-theme]) .kbs-root .kb8-pill.warn{color:color-mix(in srgb,
               h('div', { className: 'kbs-head' },
                 h('span', { className: 'rank' }, '#'),
                 sortHead(discKind === 'search' ? t('th.result') : 'SKILL', 'name', 'who'),
-                h('span', { className: 'src' }, 'SOURCE'),
+                h('span', { className: 'src' }, 'Source'),
                 h('span', { className: 'badges' }, t('th.state')),
                 sortHead('INSTALLATIONS', 'installs', 'inst')),
               discShown.length === 0
