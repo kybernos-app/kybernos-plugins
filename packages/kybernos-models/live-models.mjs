@@ -222,3 +222,68 @@ export const liveModels = async (req, ctx = {}) => {
   const key = target.typedKey !== null ? target.typedKey : await keyFor(ctx.credentials, target.keyRef)
   return fetchLive({ baseURL: target.baseURL, api: target.api, key, headers: target.headers, fetch: ctx.fetch, timeoutMs: ctx.timeoutMs })
 }
+
+
+// ── Which protocol does a model speak? ─────────────────────────────────────────────────────────────────────────────────────────
+// The engine takes ONE `api` and ONE `baseURL` per route and none per model, and a model its catalog does not describe has neither:
+// such a model lives in a route of its own (a « companion » of the provider). Its protocol is asked of the provider, with the key the
+// provider's profile names: one request of a single token per protocol, until one answers. The key never leaves the host and nothing
+// of the answers comes back but a word and the protocol that worked.
+const MODEL_RE = /^[A-Za-z0-9][A-Za-z0-9._:/@+-]{0,150}$/
+const stripV1 = (base) => String(base).replace(/\/+$/, '').replace(/\/v1$/, '')
+
+/** The protocols tried, in this order: OpenAI chat (what most models speak), Anthropic messages, OpenAI responses. Pure. */
+export const PROBES = [
+  { api: 'openai-completions', url: (base) => String(base).replace(/\/+$/, '') + '/chat/completions', body: (model) => ({ model, messages: [{ role: 'user', content: 'hi' }], max_tokens: 1 }) },
+  { api: 'anthropic-messages', url: (base) => stripV1(base) + '/v1/messages', body: (model) => ({ model, max_tokens: 1, messages: [{ role: 'user', content: 'hi' }] }) },
+  { api: 'openai-responses', url: (base) => String(base).replace(/\/+$/, '') + '/responses', body: (model) => ({ model, input: 'hi', max_output_tokens: 16 }) },
+]
+
+/** The address a route of this protocol is declared with: Anthropic's is the root (the SDK appends /v1/messages), the others keep their /v1. Pure. */
+export const baseFor = (api, base) => (api === 'anthropic-messages' ? stripV1(base) : String(base).replace(/\/+$/, ''))
+
+/**
+ * Ask the provider, one protocol after the other, which one the model answers on. A 2xx is the answer; 401/403/429 and a network failure
+ * stop the search (they say nothing about the protocol); any other refusal (the endpoint or the model is not for this protocol) goes on.
+ * Never throws.
+ * @returns {Promise<{ok:true,api:string,baseURL:string}|{ok:false,error:'refused'|'rate-limited'|'unreachable'|'unknown-protocol',status?:number}>}
+ */
+export const probeProtocol = async ({ baseURL, model, key, headers, fetch: doFetch, timeoutMs }) => {
+  if (typeof model !== 'string' || MODEL_RE.test(model) !== true) return { ok: false, error: 'bad-model' }
+  const f = typeof doFetch === 'function' ? doFetch : globalThis.fetch
+  let last = 0
+  for (const probe of PROBES) {
+    let res
+    try {
+      res = await f(probe.url(baseURL), {
+        method: 'POST',
+        headers: { ...requestHeaders(probe.api, key, headers), 'content-type': 'application/json' },
+        body: JSON.stringify(probe.body(model)),
+        redirect: 'error',
+        signal: AbortSignal.timeout(Number.isFinite(timeoutMs) ? timeoutMs : TIMEOUT_MS),
+      })
+    } catch (e) { return { ok: false, error: 'unreachable' } }
+    try { if (res.body !== null && res.body !== undefined && typeof res.body.cancel === 'function') await res.body.cancel() } catch (e) { /* closed */ }
+    last = res.status
+    if (res.status >= 200 && res.status < 300) return { ok: true, api: probe.api, baseURL: baseFor(probe.api, baseURL) }
+    if (res.status === 401 || res.status === 403) return { ok: false, error: 'refused', status: res.status }
+    if (res.status === 429) return { ok: false, error: 'rate-limited', status: 429 }
+  }
+  return { ok: false, error: 'unknown-protocol', status: last }
+}
+
+/**
+ * The whole answer of the probe route: resolve the provider's address and key (the saved profile, else the catalogue), then probe.
+ * @param {{route:string,model:string}} req
+ * @param {{settings?:object,credentials?:object,entry?:object|null,fetch?:Function,timeoutMs?:number}} ctx
+ */
+export const probeModel = async (req, ctx = {}) => {
+  const route = typeof req.route === 'string' ? req.route : ''
+  if (/^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/.test(route) !== true) return { ok: false, error: 'bad-route' }
+  if (typeof req.model !== 'string' || MODEL_RE.test(req.model) !== true) return { ok: false, error: 'bad-model' }
+  const profile = await profileOf(ctx.settings, route)
+  const target = resolveTarget({ route }, profile, ctx.entry === undefined ? null : ctx.entry)
+  if (target.ok !== true) return target
+  const key = await keyFor(ctx.credentials, target.keyRef)
+  return probeProtocol({ baseURL: target.baseURL, model: req.model, key, headers: target.headers, fetch: ctx.fetch, timeoutMs: ctx.timeoutMs })
+}

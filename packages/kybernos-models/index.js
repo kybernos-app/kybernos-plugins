@@ -29,7 +29,7 @@ import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { checkKey } from './key-check.mjs'
-import { liveModels } from './live-models.mjs'
+import { liveModels, probeModel } from './live-models.mjs'
 import { origineOK, writeGuard } from './session-guard.mjs'
 // Hosted instance: also accept the authorities declared to DSH with --trusted-host. The core bundle publishes the predicate
 // (kybernos-plugin/trusted-authority.mjs); absent or failing, it answers false and the guard stays loopback-only.
@@ -336,7 +336,7 @@ const kbCatalogEntry = (route) => {
   } catch (e) { return null }
 }
 
-/** Mount the live model list on a webServer-like `{ register }`: « Fetch available models » asks the provider's own endpoint, from here, with the
+/** Mount the live model list (and the protocol probe of a model outside the catalog) on a webServer-like `{ register }`: « Fetch available models » asks the provider's own endpoint, from here, with the
  *  key its profile names (live-models.mjs). A POST of the signed-in page only (it spends a call to the provider). Answers the list, or one word
  *  that says why there is none (the page then falls back to the engine's answer and says so); never the key or the provider's raw body.
  *  `services()` gives the host's `{ settings, credentials }`, read at the time of the request: either may be missing. */
@@ -351,6 +351,16 @@ export const kbLiveMount = (register, services = () => ({}), options = {}) => {
     const out = await liveModels(body, { settings: svc.settings, credentials: svc.credentials, entry: kbCatalogEntry(typeof body.route === 'string' ? body.route : ''), ...options })
     if (out.ok !== true) { sendJson(res, ['bad-route', 'bad-key', 'bad-endpoint'].indexOf(out.error) >= 0 ? 400 : 200, out); return }
     sendJson(res, 200, { ok: true, source: 'live', url: out.url, models: out.models })
+  } })
+  register({ kind: 'exact', path: '/kybernos-models/models/probe', handler: async (req, res) => {
+    if (req.method !== 'POST') { sendJson(res, 405, { ok: false, error: 'method' }); return }
+    if (kbRefused(req, res)) return
+    const body = await readBody(req)
+    if (!isPlainObject(body)) { sendJson(res, 400, { ok: false, error: 'bad-json' }); return }
+    let svc = {}
+    try { svc = services() || {} } catch (e) { svc = {} }
+    const out = await probeModel(body, { settings: svc.settings, credentials: svc.credentials, entry: kbCatalogEntry(typeof body.route === 'string' ? body.route : ''), ...options })
+    sendJson(res, ['bad-route', 'bad-model', 'bad-key', 'bad-endpoint'].indexOf(out.error) >= 0 ? 400 : 200, out)
   } })
 }
 
