@@ -78,6 +78,6 @@ export function identityBlock (opts = {}) {
   const body = BODIES[opts.body] ?? BODIES.cloud
   const who = clip(opts.personName, 60)
   const situation = `Now: you are talking with ${who === '' ? 'the person' : who} on ${channel}. You are running on ${body}. ${clip(opts.nowText, 200)}`.trim()
-  const thread = dataBlock('Lately on the shared conversation (Telegram and the person\'s computer)', opts.thread)
+  const thread = dataBlock('Lately in this conversation (background: use it only if the message needs it)', opts.thread)
   return [CORE.join('\n'), VOICE.join('\n'), situation, thread].filter((part) => part !== '').join('\n\n')
 }
