@@ -44,7 +44,7 @@ check('the folds are, in order: Models & routing, Agents, Skills & tools, Memory
   GROUPES.slice(1).map((g) => g.id).join(',') === 'models,agents,tools,memory,voice,look,devices,system', GROUPES.map((g) => g.id))
 const inGroup = (id) => (GROUPES.find((g) => g.id === id) || { mots: [] }).mots
 const inOrder = (list, want) => want.every((w) => list.indexOf(w) >= 0) && want.every((w, i) => i === 0 || list.indexOf(want[i - 1]) < list.indexOf(w))
-check('Models & routing holds the models, the routing that picks one, the free ones, the local ones and the usage, in that order', inOrder(inGroup('models'), ['ai provider & models', 'auto routing', 'free llms', 'ollama local models', 'usage']))
+check('Models & routing holds the models, the routing that picks one, the free ones, the local ones and the usage, in that order', inOrder(inGroup('models'), ['ai provider and models', 'auto routing', 'free llms', 'ollama local models', 'usage']))
 check('Agents holds the presets, the workers, the automations and the commands', inOrder(inGroup('agents'), ['agent presets', 'workers', 'automations', 'commands']))
 check('Skills & tools holds the skills, the tools, the connectors and the web search', inOrder(inGroup('tools'), ['skills', 'tools', 'connectors', 'web search']))
 check('Memory & context holds Memory & Lessons first, then what stays on this computer (Kybernos), then the Atlas', inOrder(inGroup('memory'), ['memory & lessons', 'kybernos', 'atlas']))
