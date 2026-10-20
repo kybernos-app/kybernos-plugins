@@ -370,10 +370,12 @@ window.__ModuleLoader__.load({
         '.kwse-row.off .kwse-name b{color:var(--dsw-alias-label-tertiary,#888)}',
         '.kwse-row-main{display:flex;align-items:center;gap:10px;padding:10px 12px}',
         '.kwse-move{display:flex;flex-direction:column;gap:1px;flex:none}',
-        '.kwse-move button{border:0;background:none;padding:0 4px;font-size:9px;line-height:11px;cursor:pointer;color:var(--dsw-alias-label-tertiary,#888)}',
+        '.kwse-move button{border:0;background:none;padding:0 4px;font-size:9px;line-height:13px;min-height:13px;cursor:pointer;color:var(--dsw-alias-label-tertiary,#888)}',
         '.kwse-move button{position:relative}',
-        '.kwse-move button:first-child::before{content:"";position:absolute;inset:-6px -5px 0}',
-        '.kwse-move button:last-child::before{content:"";position:absolute;inset:0 -5px -6px}',
+        /* Hit area, not icon size: both arrows reach 24 px without growing the glyphs — the up arrow extends
+           upwards, the down one downwards, so the two NEVER overlap (measured 15x11 before, 24x25 after). */
+        '.kwse-move button:first-child::before{content:"";position:absolute;inset:-11px -5px 0}',
+        '.kwse-move button:last-child::before{content:"";position:absolute;inset:0 -5px -11px}',
         '.kwse-move button:hover:not(:disabled){color:var(--dsw-alias-label-primary,inherit)}',
         '.kwse-move button:disabled{opacity:.3;cursor:default}',
         '.kwse-name{flex:1;min-width:0;display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;text-align:start;border:0;background:none;padding:0;cursor:pointer;font:inherit;color:inherit}',
