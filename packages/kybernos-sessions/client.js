@@ -89,8 +89,7 @@ window.__ModuleLoader__.load({
    replaces the two old ones, the content is intact. */
 .kbs-memwrap{display:flex;flex-direction:column;gap:12px}
 .kbs-note-sec{display:flex;flex-direction:column;gap:6px}
-.kbs-note-t{margin:0;font-size:11px;font-weight:600;letter-spacing:.3px;text-transform:uppercase;
-  color:var(--dsw-alias-label-tertiary,#8a9096)}
+.kbs-note-t{margin:0;font-size:11px;font-weight:600;color:var(--dsw-alias-label-tertiary,#8a9096)}
 /* The CARD of the last two pills follows the same rule (same cause, two
    surfaces): centred, it left the window at 900 px — 902 px for
    memory, 960 px for lessons. */
@@ -248,8 +247,7 @@ window.__ModuleLoader__.load({
 .kbs-recap-row{display:flex;gap:10px;align-items:baseline;padding:7px 0;
   border-top:1px solid var(--dsw-alias-border-l1,rgba(255,255,255,.07))}
 .kbs-recap-row:first-child{border-top:0}
-.kbs-recap-k{flex:none;width:74px;font-size:11px;font-weight:600;letter-spacing:.3px;
-  text-transform:uppercase;color:var(--dsw-alias-label-tertiary,#8a9096)}
+.kbs-recap-k{flex:none;width:74px;font-size:11px;font-weight:600;color:var(--dsw-alias-label-tertiary,#8a9096)}
 .kbs-recap-v{flex:1;min-width:0;font-size:13px;line-height:1.45;color:var(--dsw-alias-label-primary,#e8eaec)}
 .kbs-recap-v b{font-weight:600}
 .kbs-recap-att{color:var(--dsw-alias-label-tertiary,#8a9096);font-size:12px}
@@ -2365,7 +2363,7 @@ window.__ModuleLoader__.load({
       if (document.getElementById(RG_STYLE_ID) !== null) return
       const el = document.createElement('style')
       el.id = RG_STYLE_ID
-      el.textContent = '.kb-rg-groupe{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;opacity:.55;padding-block:14px 4px;padding-inline:12px;text-align:start;user-select:none;pointer-events:none}[dir="rtl"] .kb-rg-groupe{letter-spacing:0}'
+      el.textContent = '.kb-rg-groupe{font-size:11px;font-weight:600;opacity:.55;padding-block:14px 4px;padding-inline:12px;text-align:start;user-select:none;pointer-events:none}[dir="rtl"] .kb-rg-groupe{letter-spacing:0}'
       document.head.appendChild(el)
     }
 

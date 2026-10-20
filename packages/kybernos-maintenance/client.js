@@ -142,7 +142,7 @@ body:not([data-ds-dark-theme]) .kbmz-page{--dsw-alias-label-tertiary:var(--dsw-a
 .kbmz-status{display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap;padding:12px 16px;border-radius:12px;border:1px solid var(--kbmz-tone);background:linear-gradient(0deg,var(--kbmz-tbg,transparent),var(--kbmz-tbg,transparent)),var(--dsw-alias-bg-layer-1)}
 .kbmz-dot{width:10px;height:10px;border-radius:5px;flex:none;margin-top:5px;background:var(--kbmz-tdot)}
 .kbmz-status-txt{display:flex;flex-direction:column;gap:3px;flex:1;min-width:200px}
-.kbmz-kicker{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--kbmz-tc)}
+.kbmz-kicker{font-size:12px;font-weight:700;color:var(--kbmz-tc)}
 /* Light scheme: the tone colours are fills-grade (amber 2.6:1, green 2.6:1 on the pale tint); mixed toward the text colour. */
 body:not([data-ds-dark-theme]) .kbmz-kicker{color:color-mix(in srgb,var(--kbmz-tc) 55%,var(--dsw-alias-label-primary))}
 .kbmz-verdict{font-size:14px;line-height:1.45;color:var(--dsw-alias-label-primary)}
@@ -219,7 +219,7 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
 .kbmz-cmd button:hover{color:var(--dsw-alias-label-primary);background:var(--dsw-alias-interactive-bg-hover)}
 /* Compatibility matrix */
 .kbmz-mat-tete,.kbmz-mat-ligne{display:grid;grid-template-columns:150px 120px minmax(0,1fr) 150px;gap:12px;align-items:center}
-.kbmz-mat-tete{padding:0 12px 6px;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--dsw-alias-label-tertiary)}
+.kbmz-mat-tete{padding:0 12px 6px;font-size:11px;font-weight:700;color:var(--dsw-alias-label-tertiary)}
 .kbmz-mat-ligne{padding:11px 12px;border-radius:10px;border:1px solid var(--dsw-alias-border-l1);margin-top:6px;font-size:13px;background:var(--dsw-alias-bg-layer-1)}
 .kbmz-mat-ligne[data-here="true"]{border-color:var(--dsw-alias-brand-primary);box-shadow:0 0 0 1px var(--dsw-alias-brand-primary)}
 .kbmz-mat-v{font-family:ui-monospace,Menlo,monospace;font-size:14px;font-weight:600;color:var(--dsw-alias-label-primary)}

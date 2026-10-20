@@ -9,7 +9,8 @@
 //  - A1-04  two bundles do not declare the same class selector differently (the stylesheet is global: the later bundle restyles the other's
 //           page), and no class prefix is shared by a bundle that did not share it yesterday;
 //  - A1-13  no bundle adds a literal status colour (a green, amber or red hex in a colour declaration, outside var(--x, #fallback));
-//  - A1-14  no bundle adds a font-size value that is not already in use somewhere.
+//  - A1-14  no bundle adds a font-size value that is not already in use somewhere;
+//  - A1-16  no bundle shouts a label with text-transform: uppercase (a short list of design exceptions).
 // The last three compare with scripts/consistency-baseline.json, the numbers of the day it was written. A value that goes away is fine (the test
 // says so; --update lowers the ceiling). A value that appears fails, and the way out is a token, or a value already in the baseline, or a baseline
 // update that the reviewer sees in the diff. Nothing here is a style guide: the day the owner picks the recipe, these become the ratchet of it.
@@ -229,6 +230,20 @@ ok('A1-13: no bundle adds a literal green, amber or red hex in a colour declarat
 ok('A1-14: no bundle introduces a font-size value that is not already in use (the scale is 11 / 12 / 13 / 14 / 16 / 20; half pixels are the sprawl)', () => {
   const fresh = fontSizes().filter((v) => !base.fontSizes.includes(v))
   assert.deepEqual(fresh, [])
+})
+// A1-16 (UX audit 2026-10-20): titles, labels, column headers and badges are written in sentence case, so no stylesheet shouts them with
+// text-transform: uppercase. The few that stay are design, not labels: the Beta pill (pinned by test-newchat), the initials of an avatar,
+// the kicker and footer of a slide, the tiny labels drawn inside a dashboard thumbnail. A new one is a label: write it in sentence case.
+const SHOUTING_ALLOWED = { 'kybernos-plugin': 1, 'kybernos-refs': 1, 'kybernos-slides': 2, 'kybernos-dashboards': 2 }
+ok('A1-16: no bundle shouts a label with text-transform: uppercase (the Beta pill, avatar initials, slide kicker and dashboard thumbnails are the only ones)', () => {
+  const over = []
+  for (const b of bundles) {
+    const src = clientOf(b)
+    if (src === null) continue
+    const n = (src.match(/text-transform:\s*uppercase|textTransform:\s*'uppercase'/g) || []).length
+    if (n > (SHOUTING_ALLOWED[b] || 0)) over.push(b + ' ' + n + ' (allowed ' + (SHOUTING_ALLOWED[b] || 0) + ')')
+  }
+  assert.deepEqual(over, [])
 })
 {
   // not a check: what the baseline could shed today, said once so that the ceiling gets lowered

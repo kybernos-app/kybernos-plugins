@@ -2759,7 +2759,7 @@ window.__ModuleLoader__.load({
         .kbmt-ph{position:absolute;top:0;bottom:0;width:2px;margin-left:-1px;background:var(--k-t1);pointer-events:none}
         .kbmt-ph::before{content:"";position:absolute;top:0;left:-4px;width:10px;height:7px;background:var(--k-t1);clip-path:polygon(0 0,100% 0,50% 100%)}
         .kbmt-params{flex:1;min-height:0;overflow:auto;padding:14px 12px;display:grid;gap:13px;align-content:start}
-        .kbmt-params h3,.kbmt-pop h3{margin:0 0 -4px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--k-t3)}
+        .kbmt-params h3,.kbmt-pop h3{margin:0 0 -4px;font-size:11px;font-weight:600;color:var(--k-t3)}
         .kbmt-fld{display:grid;gap:5px;min-width:0}
         .kbmt-fld label,.kbmt-lbl{font-size:12px;color:var(--k-t2)}
         .kbmt-fld input[type="text"],.kbmt-fld input[type="number"]{height:30px;border:1px solid var(--k-line2);border-radius:7px;background:var(--k-l1);color:var(--k-t1);padding:0 9px;width:100%;font:inherit}

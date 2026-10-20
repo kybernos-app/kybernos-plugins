@@ -168,9 +168,9 @@
 
       const lines = []
       for (const q of rects) { const line = lines.find((l) => Math.abs(l.top - q.top) < 4); if (line) line.n += 1; else lines.push({ top: q.top, n: 1 }) }
-      if (lines.length >= 2 && lines[0].n >= 3 && lines[lines.length - 1].n === 1) {
-        const more = pager !== null && pager.cur < pager.total
-        add('orphan', 'ux', rows[rows.length - 1], name(info[info.length - 1]), 'alone on the last row of a ' + lines[0].n + '-column grid' + (more ? ', while page ' + pager.cur + ' of ' + pager.total + ' is not the last: the page size is not a multiple of the columns' : ''))
+      // A card alone on the last row of the LAST page is only a remainder; alone while another page follows, the page size is wrong.
+      if (pager !== null && pager.cur < pager.total && lines.length >= 2 && lines[0].n >= 2 && lines[lines.length - 1].n === 1) {
+        add('orphan', 'ux', rows[rows.length - 1], name(info[info.length - 1]), 'alone on the last row of a ' + lines[0].n + '-column grid while page ' + pager.cur + ' of ' + pager.total + ' is not the last: the page size is not a multiple of the columns')
       }
       const titles = info.map((x) => name(x).toLowerCase()).filter(Boolean)
       if (titles.length >= 6) {
@@ -222,7 +222,7 @@
       const rr = row.getBoundingClientRect()
       const gl = box.left - rr.left
       const gr = rr.right - box.right
-      if (gl > 40 && gr > 40 && Math.abs(gl - gr) > 24) add('stray-button', 'ux', b, label(b), 'floats ' + Math.round(gl) + ' px from the left and ' + Math.round(gr) + ' px from the right of its row: put it at an edge or under what it belongs to')
+      if (gl > 60 && gr > 60 && Math.abs(gl - gr) > 24 && b.closest('p') === null) add('stray-button', 'ux', b, label(b), 'floats ' + Math.round(gl) + ' px from the left and ' + Math.round(gr) + ' px from the right of its row: put it at an edge or under what it belongs to')
     }
 
     // Empty states that only say so: no picture, no way to add the first item.
@@ -273,7 +273,7 @@
     // Text that does not fit, text that is too small, emoji used as chrome.
     for (const { el, t } of leaves) {
       const cs = getComputedStyle(el)
-      if (el.scrollWidth - el.clientWidth > 2 && /hidden|clip/.test(cs.overflowX)) {
+      if (el.clientWidth > 4 && el.scrollWidth - el.clientWidth > 2 && /hidden|clip/.test(cs.overflowX)) {
         if (cs.textOverflow !== 'ellipsis') add('clipped', 'bug', el, t, 'text cut at ' + el.clientWidth + ' px with no ellipsis')
         else if (!el.title && el.closest('[title]') === null && !el.getAttribute('aria-label')) add('truncated-no-hint', 'check', el, t, 'cut with an ellipsis and no title: the full text cannot be read')
       }
@@ -311,17 +311,16 @@
     }
   }
   function diffFrames (frames) {
-    const base = frames[0]
     const only = { heading: ['x', 'y'] }
     const out = []
-    for (const f of frames.slice(1)) {
-      if (f.frame.scrollbar !== base.frame.scrollbar) out.push({ landmark: 'scrollbar', from: base.label, to: f.label, deltas: 'gutter ' + base.frame.scrollbar + ' -> ' + f.frame.scrollbar + ' px: content shifts when it appears' })
-      for (const [k, a] of Object.entries(base.frame.landmarks)) {
-        const b = f.frame.landmarks[k]
-        if (a === null && b === null) continue
-        if (a === null || b === null) { out.push({ landmark: k, from: base.label, to: f.label, deltas: a === null ? 'appears' : 'disappears' }); continue }
-        const moved = (only[k] || ['x', 'y', 'w', 'h']).filter((q) => Math.abs(a[q] - b[q]) > 1)
-        if (moved.length > 0) out.push({ landmark: k, from: base.label, to: f.label, deltas: moved.map((q) => q + ' ' + a[q] + ' -> ' + b[q]).join(', ') })
+    const base = {}
+    for (const f of frames) for (const [k, b] of Object.entries(f.frame.landmarks)) if (b !== null && base[k] === undefined) base[k] = { label: f.label, box: b }
+    for (const f of frames) {
+      if (f.frame.scrollbar !== frames[0].frame.scrollbar && f !== frames[0]) out.push({ landmark: 'scrollbar', from: frames[0].label, to: f.label, deltas: 'gutter ' + frames[0].frame.scrollbar + ' -> ' + f.frame.scrollbar + ' px: content shifts when it appears' })
+      for (const [k, b] of Object.entries(f.frame.landmarks)) {
+        if (b === null || base[k] === undefined || base[k].label === f.label) continue
+        const moved = (only[k] || ['x', 'y', 'w', 'h']).filter((q) => Math.abs(base[k].box[q] - b[q]) > 1)
+        if (moved.length > 0) out.push({ landmark: k, from: base[k].label, to: f.label, deltas: moved.map((q) => q + ' ' + base[k].box[q] + ' -> ' + b[q]).join(', ') })
       }
     }
     return out

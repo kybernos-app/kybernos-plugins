@@ -104,8 +104,8 @@ window.__ModuleLoader__.load({
         return e === undefined ? null : e
       }
       const accessBadge = (e) => (e.access === 'free'
-        ? { cls: 'free', txt: kt('SANS CLÉ', 'NO KEY') }
-        : (e.access === 'key' ? { cls: 'key', txt: kt('CLÉ', 'KEY') } : { cls: 'url', txt: kt('ADRESSE', 'ADDRESS') }))
+        ? { cls: 'free', txt: kt('Sans clé', 'No key') }
+        : (e.access === 'key' ? { cls: 'key', txt: kt('Clé', 'Key') } : { cls: 'url', txt: kt('Adresse', 'Address') }))
 
       const statusOf = (e) => {
         const hl = e.health || {}
@@ -207,7 +207,7 @@ window.__ModuleLoader__.load({
             h('button', { type: 'button', className: 'kwse-name', 'data-act': 'open', 'aria-expanded': String(open), onClick: () => props.onToggle(e.id) },
               h('b', null, nameOf(e.id)),
               h('span', { className: 'kwse-badge ' + badge.cls }, badge.txt),
-              props.isDefault === true ? h('span', { className: 'kwse-badge def', 'data-kb': 'websearch-default', title: kt('Agents cherchent d’abord avec ce moteur ; le suivant prend le relais s’il échoue.', 'Agents search with this engine first; the next one takes over if it fails.') }, kt('PAR DÉFAUT', 'DEFAULT')) : null,
+              props.isDefault === true ? h('span', { className: 'kwse-badge def', 'data-kb': 'websearch-default', title: kt('Agents cherchent d’abord avec ce moteur ; le suivant prend le relais s’il échoue.', 'Agents search with this engine first; the next one takes over if it fails.') }, kt('Par défaut', 'Default')) : null,
               h('small', { className: 'kwse-status ' + st.cls }, h('i', { className: 'kwse-dot ' + st.cls }), st.txt)),
             h('button', {
               type: 'button', className: 'kwse-switch' + (e.enabled ? ' on' : ''), 'data-kb': 'websearch-switch', role: 'switch',
