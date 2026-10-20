@@ -314,7 +314,7 @@ window.__ModuleLoader__.load({
       const brut = j !== null && typeof j === 'object' && Array.isArray(j.cles) && j.cles.length > 0 ? String(j.cles[0]) : ''
       const x = brut.length > 60 ? brut.slice(0, 57) + '…' : brut
       if (code === 'liste-forme') return kt('« ' + x + ' » n’est pas de la forme fournisseur/modèle (par exemple openrouter/anthropic/claude-sonnet-4.5).', '“' + x + '” is not a provider/model name (for example openrouter/anthropic/claude-sonnet-4.5).')
-      if (code === 'liste-inconnu') return kt('« ' + x + ' » n’est pas un modèle que tu as configuré. Choisis-en un dans la liste, ou ajoute-le d’abord dans Fournisseur IA & modèles.', '“' + x + '” is not a model you have configured. Pick one from the list, or add it first in AI Provider & Models.')
+      if (code === 'liste-inconnu') return kt('« ' + x + ' » n’est pas un modèle que tu as configuré. Choisis-en un dans la liste, ou ajoute-le d’abord dans Fournisseur IA et modèles.', '“' + x + '” is not a model you have configured. Pick one from the list, or add it first in AI provider and models.')
       if (code === 'liste') return kt('La liste est trop longue (64 au plus) ou contient un doublon.', 'The list is too long (64 at most) or has a duplicate.')
       return j !== null && typeof j === 'object' && j.erreur ? String(j.erreur) : 'Rejected.'
     }
@@ -440,7 +440,7 @@ window.__ModuleLoader__.load({
         custom: kt('Seulement les modèles que tu choisis ci-dessous. L’ordre de la liste est l’ordre de repli.', 'Only the models you pick below. The list order is the fallback order.')
       }
       const etatCourt = scope !== 'custom' && total === 0
-        ? kt('Aucun modèle connecté pour l’instant : connecte Kybernos Cloud ou ajoute un fournisseur (Fournisseur IA & modèles), Auto s’en servira.', 'No model is connected yet: connect Kybernos Cloud or add a provider (AI Provider & Models) and Auto will use it.')
+        ? kt('Aucun modèle connecté pour l’instant : connecte Kybernos Cloud ou ajoute un fournisseur (Fournisseur IA et modèles), Auto s’en servira.', 'No model is connected yet: connect Kybernos Cloud or add a provider (AI provider and models) and Auto will use it.')
         : (total === 0
           ? kt('Ta liste est vide : le modèle de la session sera utilisé.', 'Your list is empty: the session model will be used.')
           : total + (total > 1 ? kt(' modèles autorisés', ' models allowed') : kt(' modèle autorisé', ' model allowed')) + ' · ' + disponibles + kt(' répondent', ' answering'))

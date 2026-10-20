@@ -60,7 +60,7 @@ window.__ModuleLoader__.load({
     const PANNEAUX = [
       { racine: '.kbb-root', id: 'briques', tete: '.kbb-head', get defaut () { return kt('Briques', 'Bricks') }, l: 260, h: 380 },
       // The Modeleur has its own prefix: `.kbm-root` is the root of kybernos-models' Settings page (`.kbm-root.kbmp`) and of the core's Models page, and
-      // the button once landed twice on AI Provider & Models.
+      // the button once landed twice on AI provider and models.
       { racine: '.kbmo-root', id: 'modeleur', tete: '.kbmo-head', get defaut () { return kt('Modeleur', '3D modeller') }, l: 320, h: 420 },
       // Slides renders `.kbsd-root` / `.kbsd-head`. This entry used to say `.kbs-root`, which is the root of the SKILLS page (and `.kbs-` is also
       // the prefix of the sessions and cloud bundles): the button landed on Skills, and Slides, whose classes had been renamed, got none.

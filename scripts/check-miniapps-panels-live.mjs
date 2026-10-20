@@ -78,7 +78,7 @@ try {
     check('the Modeleur: its panel (.kbmo-root) gets one button, in its head', (await inHead('kb-t-modeleur', 'kbmo-head')) === 1, await anywhere('kb-t-modeleur'))
   }
   check('Bricks: its panel still gets one button, in its head', (await inHead('kb-t-briques', 'kbb-head')) === 1, await anywhere('kb-t-briques'))
-  check('AI Provider & Models (.kbm-root.kbmp) gets none', (await anywhere('kb-t-models-settings')) === 0, await anywhere('kb-t-models-settings'))
+  check('AI provider and models (.kbm-root.kbmp) gets none', (await anywhere('kb-t-models-settings')) === 0, await anywhere('kb-t-models-settings'))
   check('the core\'s own Models page (a bare .kbm-root) gets none', (await anywhere('kb-t-core-models')) === 0, await anywhere('kb-t-core-models'))
   check('a page that only looks like Skills (.kbs-root with a .kbs-head) gets none', (await anywhere('kb-t-skills-like')) === 0, await anywhere('kb-t-skills-like'))
   check('no script error was thrown during the run', errors.length === 0, errors)

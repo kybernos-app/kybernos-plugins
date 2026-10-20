@@ -4,10 +4,10 @@
 //
 //   node scripts/test-settings-names.mjs
 //
-// Born from the audit of 2026-10-16: the nav said « Ollama Local Models », « Skills », « Commands » and « Memory & Lessons » while the
+// Born from the audit of 2026-10-16: the nav said « Ollama local models », « Skills », « Commands » and « Memory & Lessons » while the
 // pages said « Local models », « Skills — catalogue », « Commands & actions » and « Memory & Lessons learned », and the Suite had a
-// fifth spelling (« Slash commands », « About & Maintenance », « Web search »). The capitalisation of the nav is the one the menu
-// already had (Title Case for the pages of ours, sentence case for DSH's own: « Agent presets »): it is kept, the titles follow it.
+// fifth spelling (« Slash commands », « About & Maintenance », « Web search »). Sentence case everywhere (UX audit 2): the pages of
+// ours follow the menu's own house style, so « AI provider and models » and « Ollama local models » read like « Agent presets ».
 import { readFileSync, readdirSync, existsSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -26,8 +26,8 @@ const read = (...p) => readFileSync(join(REPO, ...p), 'utf8')
 const NAV = {
   general: 'General', models: 'Models', 'kybernos-theme': 'Theme', 'kybernos-language': 'Language', 'kybernos-memory': 'Memory & Lessons', 'kbac-appearance': 'Appearance',
   'kybernos-maintenance': 'About', 'kybernos-servers': 'Servers', 'kybernos-auto-page': 'Auto Routing', 'kybernos-websearch-page': 'Web Search',
-  plugins: 'Built-in plugins', 'kybernos-atlas': 'Atlas', 'kybernos-models': 'AI Provider & Models', 'agent-presets': 'Agent presets', voice: 'Voice',
-  'kybernos-slash': 'Commands', 'kybernos-ollama': 'Ollama Local Models', 'kybernos-suite': 'Kybernos Suite', 'kybernos-tools': 'Tools',
+  plugins: 'Built-in plugins', 'kybernos-atlas': 'Atlas', 'kybernos-models': 'AI provider and models', 'agent-presets': 'Agent presets', voice: 'Voice',
+  'kybernos-slash': 'Commands', 'kybernos-ollama': 'Ollama local models', 'kybernos-suite': 'Kybernos Suite', 'kybernos-tools': 'Tools',
   'kybernos-workers': 'Workers', 'kybernos-call': 'Calls', 'kybernos-usage': 'Usage', 'kybernos-automations': 'Automations', 'kybernos-skills': 'Skills',
   'kybernos-composio': 'Connectors', 'kybernos-free-llms': 'Free LLMs', 'kybernos-mobile': 'Phone and channels', 'kybernos-computers': 'Cloud computers',
   'kybernos-local': 'Kybernos',
@@ -57,7 +57,7 @@ const slNav = /label: kbslLabel\('([^']+)', '([^']+)'\)/.exec(slash)
 check('Commands: the title of its page is the nav entry, in both languages (not « Commands & actions »)', slTitle !== null && slNav !== null && slTitle[1] === slNav[1] && slTitle[2] === slNav[2] && slTitle[2] === NAV['kybernos-slash'], [slTitle && slTitle[0], slNav && slNav[0]])
 
 const ollama = read('packages', 'kybernos-modeles-locaux', 'client.js')
-check('Ollama Local Models: the page draws its heading from the key the nav label comes from (not from « Local models »)', /h\('h2', \{ className: 'kml-titre' \}, m\('kml\.page\.titre'\)\)/.test(ollama) && /label: m\('kml\.page\.titre'\)/.test(ollama) && !/'kml\.titre'/.test(ollama))
+check('Ollama local models: the page draws its heading from the key the nav label comes from (not from « Local models »)', /h\('h2', \{ className: 'kml-titre' \}, m\('kml\.page\.titre'\)\)/.test(ollama) && /label: m\('kml\.page\.titre'\)/.test(ollama) && !/'kml\.titre'/.test(ollama))
 const ollamaEn = /'kml\.page\.titre': \{ fr: '[^']+', en: '([^']+)' \}/.exec(ollama)
 check('and that string is the nav entry', ollamaEn !== null && ollamaEn[1] === NAV['kybernos-ollama'], ollamaEn && ollamaEn[1])
 

@@ -385,7 +385,7 @@ KB_HELP_SITE=<kybernos-help>/dist-site node scripts/test-help.mjs   # ...and eac
 source scripts/sandbox/env.sh && node scripts/check-help-live.mjs --shots /tmp/shots
 ```
 
-The live check opens each page that carries the button (Theme, AI Provider & Models, Commands, Workers, About, Ollama Local Models,
+The live check opens each page that carries the button (Theme, AI provider and models, Commands, Workers, About, Ollama local models,
 Memory & Lessons, General, Kybernos Suite, Skills), opens the card, checks it holds the text **read from the file**, that Escape closes
 the card and not the Settings dialog behind it, then French, a module's page in the Suite, and that Atlas, Language and Auto Routing
 (which already had a help) do not get a second button. Two traps: the Settings dialog closes on Escape with a capture listener, so

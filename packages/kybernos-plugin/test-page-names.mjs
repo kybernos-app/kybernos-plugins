@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// One name for the models page everywhere a message sends people to it (A2-06): the label of its Settings entry — « AI Provider & Models »
-// (« Fournisseur IA & modèles » in French). The first-run wizard said « Settings → Models » in four places and « → AI Provider & Models » in a fifth.
+// One name for the models page everywhere a message sends people to it (A2-06): the label of its Settings entry — « AI provider and models »
+// (« Fournisseur IA et modèles » in French). The first-run wizard said « Settings → Models » in four places and « → AI provider and models » in a fifth.
 //
 //   node packages/kybernos-plugin/test-page-names.mjs
 import assert from 'node:assert/strict'
@@ -19,9 +19,9 @@ const rows = table.split('\n').filter((l) => /(?:→|←) (?:Models|AI Provider|
 assert.ok(rows.length >= 5, 'the wizard has at least five lines that point at the models page (' + rows.length + ')')
 for (const r of rows) {
   assert.ok(!/(?:→|←) Models\b/.test(r), 'a line says « Settings → Models »: ' + r.slice(0, 80))
-  assert.ok(/Réglages → Fournisseur IA & modèles/.test(r) || !/Réglages → /.test(r), 'the French line must name « Fournisseur IA & modèles »: ' + r.slice(0, 80))
+  assert.ok(/Réglages → Fournisseur IA et modèles/.test(r) || !/Réglages → /.test(r), 'the French line must name « Fournisseur IA et modèles »: ' + r.slice(0, 80))
 }
-ok('the wizard names the models page « AI Provider & Models » (« Fournisseur IA & modèles ») in all ' + rows.length + ' lines')
+ok('the wizard names the models page « AI provider and models » (« Fournisseur IA et modèles ») in all ' + rows.length + ' lines')
 assert.ok(!/Réglages → Models/.test(table) && !/Réglages → AI Provider/.test(table), 'no French line keeps an English page name')
 ok('no French line of the wizard keeps the English page name')
 
