@@ -2790,6 +2790,31 @@ try {
 } catch (e) { /* no document: tests */ }
 // </kb-html-lang>
 
+// <kb-session-row-tip>
+// A session's name is cut by CSS (the engine scrolls it on hover but sets no native tooltip): copy the full name into
+// the row's `title`, plugin side, so the name is readable without patching the engine.
+try {
+  if (typeof document !== 'undefined' && typeof MutationObserver === 'function') {
+    let kbRowTipTimer = null
+    const kbRowTips = () => {
+      try {
+        for (const row of document.querySelectorAll('[data-row-key^="session:"]')) {
+          if (row.getAttribute('title')) continue
+          const span = row.querySelector('[class*="title"]')
+          const txt = span !== null && span.textContent !== null ? String(span.textContent).trim() : ''
+          if (txt !== '') row.setAttribute('title', txt)
+        }
+      } catch (e) { /* the list moved on */ }
+    }
+    kbRowTips()
+    new MutationObserver(() => {
+      if (kbRowTipTimer !== null) return
+      kbRowTipTimer = setTimeout(() => { kbRowTipTimer = null; kbRowTips() }, 250)
+    }).observe(document.body, { childList: true, subtree: true })
+  }
+} catch (e) { /* no document: tests */ }
+// </kb-session-row-tip>
+
 // <kb-rtl-bidi>
 // A text the page has no translation for (a skill's description from its repository, an English label of a plugin page) stays English inside a mirrored
 // right-to-left page (A2-26): in the RTL paragraph its final full stop jumped to the start of the line (« .and forms included »). `unicode-bidi:
@@ -17982,6 +18007,9 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
           const delivType = (a) => { const e = delivExt(a); return e.length > 0 ? e.toUpperCase() : kbt('kbui.doc.file') }
           const delivMeta = (a) => [kbArtType(a.name).label, (typeof a.size === 'number' ? kbFmtSize(a.size) : null), (typeof a.mtimeMs === 'number' ? fmtAge(a.mtimeMs) : null)].filter((x) => typeof x === 'string' && x.length > 0).join(' · ')
           const delivUrl = (a) => '/kybernos/art-raw?path=' + encodeURIComponent(String(a.path === undefined || a.path === null ? '' : a.path))
+          // Opened in a tab, not downloaded: art-raw serves those types inline (no content-disposition), an image, a PDF
+          // or a text renders. A zip, a docx or a binary keeps the download; the label follows the real gesture.
+          const delivPreviewable = (a) => /\.(png|jpe?g|gif|webp|avif|bmp|ico|pdf|txt|md|html?|json|csv)$/i.test(String(a.name === undefined || a.name === null ? '' : a.name))
           const delivField = (lab, val, k) => (val === null || val === undefined || String(val).length === 0
             ? null
             : h('div', { className: 'kb8-docfield', key: k }, h('span', { className: 'kb8-parent' }, lab), h('span', { className: 'kb8-docval', title: String(val) }, String(val))))
@@ -18000,7 +18028,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
               delivField(kbt('kbui.deliv.date'), (typeof a.mtimeMs === 'number' ? fmtAge(a.mtimeMs) : null), 'd'),
               delivField(kbt('kbui.deliv.path'), a.path, 'p'),
             ].filter((x) => x !== null)),
-            h('a', { className: 'kb8-docdl', 'data-kb': 'project-deliv-open', href: delivUrl(a), download: String(a.name) }, kbt('kbui.deliv.open')))
+            h('a', { className: 'kb8-docdl', 'data-kb': 'project-deliv-open', href: delivUrl(a), target: delivPreviewable(a) ? '_blank' : undefined, rel: delivPreviewable(a) ? 'noopener' : undefined, download: delivPreviewable(a) ? undefined : String(a.name) }, kbt(delivPreviewable(a) ? 'kbui.deliv.open' : 'kbui.doc.download')))
           const delivRow = (a) => h('div', {
             className: 'kb8-row', 'data-kb': 'project-deliv-row', 'data-open': delivOpen === a.path ? '1' : '0', key: a.path,
             onClick: () => setDelivOpen(delivOpen === a.path ? null : a.path),
