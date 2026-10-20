@@ -108,13 +108,17 @@ The picker of the provider panel (`Fetch available models`) asks, in this order:
 Where the endpoint lists bare ids (`opencode-go`), the name and capacities the engine's catalog knows for the same id are filled
 in; the live list alone decides which models exist.
 
-**Models the engine cannot take.** The engine accepts ONE `api` per route and no `api` on a model: a model its installed catalog does
-not describe is refused (« model "x" needs an api… ») on a route whose catalog serves several protocols, and setting the route's `api`
-would bind every model of that route. The live list shows such models (the engine's catalog is behind the provider), so the picker
-tags them « Not in DSH's catalog » and does not tick them on opening, so the default choice always applies. If one is ticked anyway and
-the engine refuses it, the panel says so in words (remove it from the list, or add it under Add provider › Custom API with the protocol
-chosen), keeps the draft, and the route is remembered: its models outside the catalog are locked in the picker from then on. A route
-whose profile declares an `api`, or whose catalog is empty, is never tagged.
+**Models outside the engine's catalog.** The engine takes ONE `api` and ONE `baseURL` per route and none per model, and a model its
+installed catalog does not describe has neither: « model "x" needs an api », then « needs a baseURL » (measured on rc.2 for
+`opencode-go`, whose catalog serves 4 protocols over 2 addresses: 18 models OpenAI chat and 5 OpenAI responses and 1 Google at
+`…/inference/go/v1`, 5 Anthropic at `…/inference/go`). The live list shows such models, so the picker tags them « Not in DSH's catalog »
+and does not tick them on opening. To add one to the EXISTING provider, the Edit panel has an **API protocol** select under Customized
+settings (Automatic by default = the catalog's, per model): choosing a protocol (and setting the Base URL) is written on the route and
+**binds every model of the provider to it** — for a provider that serves several protocols, the models that speak another one stop
+answering until the select goes back to Automatic. The panel says so under the select. A refusal by the engine is said in words (choose
+the protocol, or set the Base URL, or remove the model), keeps the draft, and the route is remembered: its models outside the catalog
+are locked in the picker until a protocol is chosen. A route whose profile (or draft) declares an `api`, or whose catalog is empty, is
+never tagged. A typed Base URL is not sent to the live list unless a key is typed with it: the list is the provider's own.
 
 The provider's card counts the models declared in its profile; its Models view shows all of them, whatever their health (the
 « not answering » fold applies to the unscoped list only), so « 3 models » is 3 on screen.
