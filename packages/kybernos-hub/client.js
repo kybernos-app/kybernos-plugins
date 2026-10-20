@@ -507,6 +507,9 @@ window.__ModuleLoader__.load({
       '.kbsu-good{padding-inline-start:12px;border-inline-start:2px solid var(--dsw-alias-border-l3)}',
       // The « ? How it works » button of any plugin page, and the card it opens (window.__KB_HELP__.Help).
       '.kbhp-wrap{position:relative;display:inline-block;max-width:100%}',
+      // The button's own row, put first in a page: it takes no height, so the page's title starts where it does on a page that holds the button in its title row (x 272, y 54). Narrow: back in the flow, above the title.
+      '.kbhp-row{display:flex;justify-content:flex-end;width:100%;height:0;overflow:visible;position:relative;z-index:1;margin-bottom:calc(-1 * var(--kbhp-gap,0px))}',
+      '@media (max-width:760px){.kbhp-row{height:auto;margin-bottom:6px}}',
       '.kbhp-wrap .kbhp-btn{appearance:none;display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 12px 0 6px;border-radius:16px;border:1px solid var(--dsw-alias-border-l3);background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12.5px;cursor:pointer;white-space:nowrap}',
       '.kbhp-wrap .kbhp-btn:hover,.kbhp-wrap .kbhp-btn[aria-expanded="true"]{border-color:var(--dsw-alias-label-tertiary);color:var(--dsw-alias-label-primary)}',
       '.kbhp-wrap .kbhp-btn:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px}',

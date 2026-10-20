@@ -131,7 +131,7 @@ window.__ModuleLoader__.load({
         ".kbm-dot[data-state='idle'] { color: var(--dsw-alias-state-idle-primary); }\n"
 
       const KFL_CSS = "/* kfl-* : the Free LLMs panel layout (this bundle only — DSH tokens) */\n" +
-        ".kfl-root { border: 1px solid var(--dsw-alias-border-l2); border-radius: 14px; background: var(--dsw-alias-bg-layer-2); padding: 16px; max-width: 720px; margin-bottom: 16px; }\n" +
+        ".kfl-root { max-width: 720px; margin-bottom: 16px; }\n" +
         "/* Light schemes: label-tertiary is 3.7:1 on white. Inside this page it reads as label-secondary, 5.8:1 (audit A1-05); the dark scheme keeps its hierarchy. */\n" +
         "body:not([data-ds-dark-theme]) .kfl-root{--dsw-alias-label-tertiary:var(--dsw-alias-label-secondary)}\n" +
         ".kfl-titre { margin: 0; font-size: 18px; line-height: 1.3; font-weight: 600; letter-spacing: -.01em; color: var(--dsw-alias-label-primary); }\n" +
@@ -256,7 +256,7 @@ window.__ModuleLoader__.load({
         const checkedTime = tier !== null && typeof tier.checkedAt === 'string' ? timeOf(tier.checkedAt) : null
 
         return h('div', { className: 'kfl-root', 'data-kfl': 'panneau' },
-          h('div', { style: { display: 'flex', justifyContent: 'flex-end', width: '100%', marginBottom: 6 } },
+          h('div', { className: 'kbhp-row' },
             (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-free-llms' }) : null)),
           h('h2', { className: 'kfl-titre' }, m('kfl.titre')),
           h('p', { className: 'kfl-soustitre' }, m('kfl.soustitre')),
