@@ -226,6 +226,15 @@ window.__ModuleLoader__.load({
         'kb.fetch.unavailable': { kybernos: 'Cette version de DSH ne sait pas interroger un fournisseur.', en: 'This DSH version cannot ask a provider for its models.' },
         'kb.fetch.timeout': { kybernos: 'Le fournisseur n’a pas répondu à temps.', en: 'The provider did not answer in time.' },
         'kb.fetch.err': { kybernos: 'Récupération impossible : {raison}', en: 'Could not fetch: {raison}' },
+        'kb.fetch.src.live': { kybernos: 'Liste en direct de {host}.', en: 'Live list from {host}.' },
+        'kb.fetch.src.catalog': { kybernos: 'Liste en direct indisponible ({raison}). Voici les modèles livrés avec DSH pour ce fournisseur, peut-être périmés.', en: 'Live list unavailable ({raison}). These are the models DSH ships for this provider, possibly out of date.' },
+        'kb.fetch.why.key': { kybernos: 'le fournisseur refuse la clé (HTTP {status})', en: 'the provider refused the key (HTTP {status})' },
+        'kb.fetch.why.refused': { kybernos: 'le fournisseur a répondu HTTP {status}{detail}', en: 'the provider answered HTTP {status}{detail}' },
+        'kb.fetch.why.unreachable': { kybernos: 'le fournisseur est injoignable', en: 'the provider could not be reached' },
+        'kb.fetch.why.bad': { kybernos: 'sa réponse n’est pas une liste de modèles', en: 'its answer is not a model list' },
+        'kb.fetch.why.big': { kybernos: 'sa réponse est trop volumineuse', en: 'its answer is too large' },
+        'kb.fetch.why.host': { kybernos: 'ce DSH n’a pas encore la route de liste en direct (relance-le)', en: 'this DSH has no live-list route yet (restart it)' },
+        'kb.fetch.why.noaddr': { kybernos: 'aucune adresse connue pour ce fournisseur', en: 'no address is known for this provider' },
         'kb.fetch.title': { kybernos: 'Choisir les modèles à ajouter', en: 'Choose models to add' },
         'kb.fetch.desc': { kybernos: 'Voici les modèles que ce fournisseur propose. Coche ceux à ajouter.', en: 'These are the models this provider has available. Choose the ones to add.' },
         'kb.fetch.replaces': { kybernos: 'La liste que tu gardes remplace celle de {slug} : les modèles non cochés ne seront plus proposés. « Rétablir les modèles par défaut » ramène la liste d’origine.', en: 'The list you keep replaces {slug}’s built-in one: models you leave unchecked will no longer be offered. “Restore default models” brings the built-in list back.' },
@@ -695,7 +704,6 @@ window.__ModuleLoader__.load({
         scoresRunning: false,
         scoresAskedAt: null,
         listeners: new Set(),
-        seq: 0,
       }
       const kbmNotify = () => { for (const fn of Array.from(KBM.listeners)) { try { fn() } catch (e) { /* abonne parti */ } } }
       const kbmUse = () => {
@@ -842,13 +850,6 @@ window.__ModuleLoader__.load({
         if (mo.live === true || KBM.live === true) kbmSet(mo, 'name', value)
         kbmNotify()
       }
-      const kbmAdd = () => {
-        KBM.seq += 1
-        const key = 'nouveau-' + String(KBM.seq)
-        const route = KBM.routes.length > 0 ? KBM.routes[0] : ''
-        KBM.models.push(kbmMakeModel({ route, kind: 'local', index: -1, id: '', name: '', open: true, synced: false, remote: {}, ov: {} }, key))
-        kbmNotify()
-      }
       const kbmRemove = (key) => {
         const mo = kbmModel(key)
         if (mo === null) return
@@ -897,8 +898,6 @@ window.__ModuleLoader__.load({
         kbMScoresRefresh(false)
         Promise.resolve(kbMSyncLive(mo)).then(() => kbMScoresLoad(mo, false)).catch(() => { /* notes best-effort */ })
       }
-      const kbmSyncAll = () => { kbMSyncAll() }
-
       const kbmMakeModel = (src, key) => ({
         key: key,
         route: src.route, id: src.id, name: src.name,
@@ -1326,7 +1325,8 @@ window.__ModuleLoader__.load({
         const caps = CAPS.filter((c) => UI.caps[c.k] === true)
         const down = UI.statut === 'down' ? kbHealthDown(kbHealthGet()) : null
         // The models that do not answer are folded away until asked for: a list of 126 where 74 fail first shows the 52 that work.
-        const hidden = UI.statut !== 'down' && UI.showDown !== true ? kbHealthDown(kbHealthGet()) : null
+        // A provider picked by name (its card, or the filter) is asked about as a whole: its models are all there, each with its reason on the row.
+        const hidden = UI.statut !== 'down' && UI.showDown !== true && UI.prov === 'all' ? kbHealthDown(kbHealthGet()) : null
         const rows = KBM.models.filter((mo) => {
           if (hidden !== null && hidden[mo.route + '/' + mo.id] === true) return false
           if (UI.prov !== 'all' && mo.route !== UI.prov) return false
@@ -1774,7 +1774,7 @@ window.__ModuleLoader__.load({
       // the empty state then says so, in place of the « no models will be shown » of an edit.
       const PvModels = ({ d, set, custom, probe, blocked, slug, required }) => {
         const rows = d.models
-        const [fp, setFp] = React.useState({ busy: false, err: null, cands: null, picked: {}, q: '' })
+        const [fp, setFp] = React.useState({ busy: false, err: null, cands: null, picked: {}, q: '', src: null })
         const setRows = (next) => set({ models: next, touched: true, restoreModels: false })
         const upd = (i, k, v) => setRows(rows.map((r, j) => (j === i ? { ...r, [k]: v } : r)))
         const askable = kbFetchAskable(probe)
@@ -1789,13 +1789,14 @@ window.__ModuleLoader__.load({
         }, [open])
         const ask = async () => {
           setFp((st) => ({ ...st, busy: true, err: null }))
-          const out = await kbFetchRun(kbMApi(), probe)
+          // A catalog route is answered by the provider's own endpoint first (a custom one is already asked over the wire by the engine).
+          const out = await kbFetchRun(kbMApi(), probe, { live: custom !== true })
           if (out.kind === 'refused') {
             setFp((st) => ({ ...st, busy: false, err: out.unavailable === true ? m('kb.fetch.unavailable') : (out.timeout === true ? m('kb.fetch.timeout') : m('kb.fetch.err', { raison: out.message !== '' ? out.message : '—' })) }))
             return
           }
           if (out.models.length === 0) { setFp((st) => ({ ...st, busy: false, err: m('kb.fetch.empty') })); return }
-          setFp({ busy: false, err: null, cands: out.models, picked: kbFetchPreselect(out.models, rows), q: '' })
+          setFp({ busy: false, err: null, cands: out.models, picked: kbFetchPreselect(out.models, rows), q: '', src: out.live === true ? { live: true, url: out.url } : (out.live === false ? { live: false, why: out.why } : null) })
         }
         const renderPicker = () => {
           const shown = kbFetchFilter(fp.cands, fp.q)
@@ -1810,6 +1811,10 @@ window.__ModuleLoader__.load({
               h('div', { className: 'kbm-mdl-header' }, h('div', { className: 'kbm-mdl-title' }, m('kb.fetch.title'))),
               h('div', { className: 'kbm-mdl-body kbpv-fetch-body' },
                 h('p', { className: 'kbpv-fetch-desc' }, m('kb.fetch.desc')),
+                fp.src !== null && fp.src !== undefined
+                  ? h('p', { className: fp.src.live === true ? 'kbpv-fetch-desc' : 'kbpv-fetch-note', role: 'status', 'data-kbm': 'fetch-source', 'data-kbm-live': fp.src.live === true ? '1' : '0' },
+                    fp.src.live === true ? m('kb.fetch.src.live', { host: kbFetchHost(fp.src.url) }) : m('kb.fetch.src.catalog', { raison: m(fp.src.why.key, fp.src.why.vars) }))
+                  : null,
                 custom === true ? null : h('p', { className: 'kbpv-fetch-note', 'data-kbm': 'fetch-replaces' }, m('kb.fetch.replaces', { slug: slug || '' })),
                 h('div', { className: 'kbpv-fetch-bar' },
                   h('input', { type: 'search', className: 'kbm-in-input kbpv-in', 'data-kbm': 'fetch-search', autoFocus: true, placeholder: m('kb.fetch.search'), 'aria-label': m('kb.fetch.search'), value: fp.q, onChange: (ev) => { const q = ev.target.value; setFp((st) => ({ ...st, q })) } }),
@@ -2359,8 +2364,10 @@ window.__ModuleLoader__.load({
         const debut = (page - 1) * ROWS_PAR_PAGE
         const pageRows = rows.slice(debut, debut + ROWS_PAR_PAGE)
         const toutes = KBM.models
+        // « N of N » is the provider's own count (its card says the same number); the unavailable fold, and its count, belong to the unscoped list.
+        const scope = UI.prov === 'all' ? toutes : toutes.filter((mo) => mo.route === UI.prov)
         const downIdx = kbHealthIndex(kbHealthGet())
-        const downN = toutes.filter((mo) => downIdx[mo.route + '/' + mo.id] !== undefined).length
+        const downN = scope.filter((mo) => downIdx[mo.route + '/' + mo.id] !== undefined).length
         const capFiltres = ['vision', 'audioIn', 'imageGen', 'video', 'search', 'tools', 's2s', 'reasoning']
         const optsProv = [{ v: 'all', t: m('kb.models.allprov'), c: m('kb.models.opt.allprov') }].concat(uiProvs().map((r) => ({ v: r, t: r })))
         const optsType = [{ v: 'all', t: m('kb.models.alltypes'), c: m('kb.models.opt.alltypes') }].concat(TYPES.map((t) => ({ v: t.id, t: m(t.t) })))
@@ -2383,12 +2390,12 @@ window.__ModuleLoader__.load({
             .filter((c) => c !== undefined)
             .map((c) => h(CapFiltre, { def: c, key: c.k })))),
           h('div', { className: 'kbmp-resbar' },
-            h('span', { 'data-kbm': 'count' }, m('kb.models.count', { a: rows.length, b: toutes.length })),
+            h('span', { 'data-kbm': 'count' }, m('kb.models.count', { a: rows.length, b: scope.length })),
             uiFiltre() === true
               ? h('button', { type: 'button', className: 'kbmp-link', 'data-kbm': 'reset', onClick: uiReset }, m('kb.models.reset'))
               : null,
             // The failing ones are folded away; this brings them back, each with its reason on the row.
-            downN > 0 && UI.statut !== 'down'
+            downN > 0 && UI.statut !== 'down' && UI.prov === 'all'
               ? h('button', { type: 'button', className: 'kbmp-link', 'data-kbm': 'toggle-down', 'aria-pressed': UI.showDown === true ? 'true' : 'false', onClick: () => uiSet('showDown', UI.showDown !== true) },
                 UI.showDown === true ? m('kb.health.hidedown') : m('kb.health.showdown', { n: downN }))
               : null,
@@ -4295,14 +4302,77 @@ window.__ModuleLoader__.load({
       }
       /** The size of a fetched model, in the same words as the Context column (kbCapLabel): 256000 is "256K", 262144 "262.1K". Pure. */
       const kbFetchSize = (n) => kbCapLabel(n)
+      /** The host's live answer (`POST /kybernos-models/models/live`) as found, or the reason there is none. Never a throw. Pure. */
+      const kbFetchLiveOutcome = (r) => {
+        if (r !== null && typeof r === 'object' && r.ok === true && Array.isArray(r.models)) return { kind: 'found', models: kbFetchCandidates(r.models), url: typeof r.url === 'string' ? r.url : '' }
+        const o = r !== null && typeof r === 'object' ? r : {}
+        return { kind: 'none', why: typeof o.error === 'string' ? o.error : 'host', status: Number.isInteger(o.status) ? o.status : 0, detail: typeof o.detail === 'string' ? o.detail : '' }
+      }
+      /** The live ids, each with the name and capacities the engine's catalog gives it where the endpoint disclosed none. The live list
+       *  decides which models exist; the catalog only fills in what a bare `{id}` listing leaves out. Pure. */
+      const kbFetchMerge = (live, catalog) => {
+        const by = new Map((Array.isArray(catalog) ? catalog : []).map((c) => [c.id, c]))
+        return live.map((c) => {
+          const k = by.get(c.id)
+          if (k === undefined) return c
+          const one = { ...c }
+          if ((one.name === undefined || one.name === one.id) && k.name !== undefined && k.name !== k.id) one.name = k.name
+          if (one.contextWindow === undefined && k.contextWindow !== undefined) one.contextWindow = k.contextWindow
+          if (one.maxTokens === undefined && k.maxTokens !== undefined) one.maxTokens = k.maxTokens
+          if (one.input === undefined && k.input !== undefined) one.input = k.input
+          return one
+        })
+      }
+      /** Why there is no live list, as a string key and its values (the page words it). 401 and 403 say « the key »; any other refusal says what the provider said. Pure. */
+      const kbFetchWhy = (none) => {
+        const s = none.status
+        if (none.why === 'refused') return s === 401 || s === 403 ? { key: 'kb.fetch.why.key', vars: { status: s } } : { key: 'kb.fetch.why.refused', vars: { status: s, detail: none.detail !== '' ? ': ' + none.detail : '' } }
+        const keys = { unreachable: 'kb.fetch.why.unreachable', 'bad-reply': 'kb.fetch.why.bad', 'too-big': 'kb.fetch.why.big', host: 'kb.fetch.why.host' }
+        return { key: keys[none.why] !== undefined ? keys[none.why] : 'kb.fetch.why.noaddr', vars: {} }
+      }
+      /** The host name of an address, for « Live list from opencode.ai ». Pure. */
+      const kbFetchHost = (url) => { try { return new URL(String(url)).hostname } catch (e) { return String(url) } }
       // KB-FETCH-PURE-END
       // KB-FETCH-ACTIONS-BEGIN
       /** Ask the engine. Never throws: a service this DSH lacks, a refusal and a timeout all come back as `refused`. */
-      const kbFetchRun = async (api, probe) => {
+      const kbFetchEngine = async (api, probe) => {
         const llm = api === null ? null : api.llm
         if (llm === null || llm === undefined || typeof llm.discoverModels !== 'function') return { kind: 'refused', timeout: false, message: '', unavailable: true }
         try { return kbFetchOutcome(await kbMTimeout(llm.discoverModels(KB_NS, probe), 30000)) }
         catch (e) { return { kind: 'refused', timeout: false, message: String(e && e.message ? e.message : e) } }
+      }
+      /** Ask the host for the provider's own list, right now (live-models.mjs). Never throws: a host without the route (not restarted yet),
+       *  a timeout and a refusal all come back as `none` with their reason. */
+      const kbFetchLive = async (probe) => {
+        try {
+          const body = { route: probe.provider }
+          if (typeof probe.baseURL === 'string') body.baseURL = probe.baseURL
+          if (typeof probe.api === 'string') body.api = probe.api
+          if (typeof probe.apiKey === 'string') body.key = probe.apiKey
+          const res = await kbMTimeout(fetch('/kybernos-models/models/live', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }), 25000)
+          if (res === null || res === undefined || typeof res.json !== 'function') return kbFetchLiveOutcome(null)
+          let out = null
+          try { out = await res.json() } catch (e) { out = null }
+          return kbFetchLiveOutcome(out)
+        } catch (e) { return kbFetchLiveOutcome(null) }
+      }
+      /** Fetch available models. By default the engine answers (a route its adapter ships a catalog of is answered from that catalog,
+       *  with no network call). `opts.live` asks the provider's own endpoint first, through the host, so a model added yesterday shows
+       *  up; the engine's answer is the fallback (and says why the live one is missing), and where the endpoint lists bare ids only it
+       *  fills in the capacities its catalog knows. Never throws. */
+      const kbFetchRun = async (api, probe, opts) => {
+        if (opts === undefined || opts === null || opts.live !== true || typeof probe.provider !== 'string') return kbFetchEngine(api, probe)
+        const live = await kbFetchLive(probe)
+        if (live.kind === 'found') {
+          let models = live.models
+          if (models.length > 0 && models.every((c) => c.contextWindow === undefined)) {
+            const eng = await kbFetchEngine(api, probe)
+            if (eng.kind === 'found') models = kbFetchMerge(models, eng.models)
+          }
+          return { kind: 'found', models, live: true, url: live.url }
+        }
+        const eng = await kbFetchEngine(api, probe)
+        return eng.kind === 'found' ? { ...eng, live: false, why: kbFetchWhy(live) } : eng
       }
       // KB-FETCH-ACTIONS-END
       // KB-DS-PURE-BEGIN
@@ -4579,8 +4649,6 @@ window.__ModuleLoader__.load({
           return false
         }
       }
-      const kbMSyncAll = () => { for (const mo of KBM.models) kbMSyncLive(mo) }
-
       // ── OUR surface: a NEW menu in Settings ───────────────────────
       // Decision P3b (23/09/2026): the catalogue stops being a tenant of
       // the harness's « Settings → Models » page.
