@@ -50,7 +50,7 @@ console.log('\n── the actions, run against the REAL host routes and a fake s
   const aBegin = src.indexOf('// KB-PARK-ACTIONS-BEGIN')
   const aEnd = src.indexOf('// KB-PARK-ACTIONS-END')
   ok('the actions block is delimited', aBegin > 0 && aEnd > aBegin)
-  const body = src.slice(begin, end) + '\n' + src.slice(aBegin, aEnd) + '\nreturn { kbMDisable, kbMEnable, kbMMutateRetry, kbMParkCall }'
+  const body = src.slice(begin, end) + '\n' + src.slice(src.indexOf('// KB-PV-PURE-BEGIN'), src.indexOf('// KB-PV-PURE-END')) + '\n' + src.slice(aBegin, aEnd) + '\nreturn { kbMDisable, kbMEnable, kbMMutateRetry, kbMParkCall }'
 
   /** A fresh world: a host store file, a fake settings service, the client's globals. */
   const world = (opts = {}) => {
@@ -601,33 +601,138 @@ console.log('\n── Fetch available models (the engine lists what a provider s
   const merged = fx.kbFetchMerge([{ id: 'a', name: 'a' }, { id: 'b', name: 'Mine', contextWindow: 5 }], [{ id: 'a', name: 'Model A', contextWindow: 9, maxTokens: 3 }, { id: 'b', name: 'Other', contextWindow: 7, maxTokens: 4 }])
   ok('merging never overrides what the endpoint disclosed', merged[0].name === 'Model A' && merged[0].contextWindow === 9 && merged[1].name === 'Mine' && merged[1].contextWindow === 5 && merged[1].maxTokens === 4)
 
-  console.log('  — models the route may refuse (the engine takes one protocol per route)')
-  const { kbPvNeedsApi } = new Function(bl('KB-PV-PURE') + '\nreturn { kbPvNeedsApi }')()
-  ok('the engine\'s refusal is recognised and names the model; any other message is not', kbPvNeedsApi('llm-pi-ai: provider "opencode-go" model "minimax-m3.1-flash-free" needs an api; the installed catalog does not describe it, so set the route\'s api to the wire protocol its endpoint speaks') === 'minimax-m3.1-flash-free' && kbPvNeedsApi('model "x" needs a baseURL') === null && kbPvNeedsApi(undefined) === null && kbPvNeedsApi('') === null)
-  const { kbPvNeedsUrl } = new Function(bl('KB-PV-PURE') + '\nreturn { kbPvNeedsUrl }')()
-  ok('the engine\'s second refusal (a model outside the catalog needs the route\'s baseURL too) is recognised and names the model', kbPvNeedsUrl('llm-pi-ai: provider "opencode-go" model "glm-5.1" needs a baseURL; the installed catalog does not describe this route') === 'glm-5.1' && kbPvNeedsUrl('model "x" needs an api') === null && kbPvNeedsUrl(null) === null)
+  console.log('  — models outside the engine\'s catalog: custom models of the provider')
+  const cp = new Function(bl('KB-PV-PURE') + '\nreturn { kbPvRefusedModel, kbCompanionSlug, kbCompanionOf, kbCompanionsOf, kbCompanionProfile }')()
+  ok('the engine\'s two refusals (no protocol, then no address) name the model; any other message is not one', cp.kbPvRefusedModel('llm-pi-ai: provider "opencode-go" model "minimax-m3.1-flash-free" needs an api; the installed catalog does not describe it, so set the route\'s api to the wire protocol its endpoint speaks') === 'minimax-m3.1-flash-free' && cp.kbPvRefusedModel('llm-pi-ai: provider "opencode-go" model "glm-5.1" needs a baseURL; the installed catalog does not describe this route') === 'glm-5.1' && cp.kbPvRefusedModel('model "x" contextWindow must be a positive integer') === null && cp.kbPvRefusedModel(undefined) === null && cp.kbPvRefusedModel('') === null)
+  ok('a companion is named after its provider and its protocol, and only a provider that exists owns one', cp.kbCompanionSlug('opencode-go', 'openai-completions') === 'opencode-go-custom-chat' && cp.kbCompanionSlug('opencode-go', 'anthropic-messages') === 'opencode-go-custom-msgs' && cp.kbCompanionSlug('opencode-go', 'openai-responses') === 'opencode-go-custom-resp' && cp.kbCompanionSlug('x', 'nope') === 'x-custom-chat' && cp.kbCompanionOf('opencode-go-custom-msgs', ['opencode-go', 'other']) === 'opencode-go' && cp.kbCompanionOf('opencode-go-custom-msgs', ['other']) === null && cp.kbCompanionOf('opencode-go', ['opencode-go']) === null && cp.kbCompanionOf('my-custom-gw', ['my']) === null && JSON.stringify(cp.kbCompanionsOf('a', ['a', 'a-custom-chat', 'b-custom-chat', 'a-custom-msgs', 'a-custom'])) === JSON.stringify(['a-custom-chat', 'a-custom-msgs']))
+  const comp = cp.kbCompanionProfile({ displayName: 'OpenCode Go' }, 'opencode-go', 'OPENCODE_GO_API_KEY', 'openai-completions', 'https://opencode.ai/inference/go/v1', [{ id: 'm-new', name: 'M new', outside: true }], undefined)
+  ok('a companion\'s profile: the provider\'s name and key reference, its own protocol and address, the models', comp.displayName === 'OpenCode Go (custom)' && comp.api === 'openai-completions' && comp.baseURL === 'https://opencode.ai/inference/go/v1' && comp.apiKeyEnv === 'OPENCODE_GO_API_KEY' && comp.models.length === 1 && comp.models[0].id === 'm-new' && comp.models[0].name === 'M new' && !('outside' in comp.models[0]))
+  const comp2 = cp.kbCompanionProfile({}, 'opencode-go', null, 'openai-completions', 'https://x/v1', [{ id: 'm2', name: '' }], { ...comp, models: [{ id: 'm-new', name: 'M new', contextWindow: 7777 }] })
+  ok('completing a companion keeps the entries it has, tuned fields included, and adds the new ones', comp2.models.map((x) => x.id).join() === 'm-new,m2' && comp2.models[0].contextWindow === 7777 && comp2.apiKeyEnv === 'OPENCODE_GO_API_KEY' && comp2.displayName === 'opencode-go (custom)')
   const live3 = [{ id: 'a' }, { id: 'new-1' }, { id: 'new-2' }]
-  const tagged = fx.kbFetchTagUndescribed(live3, ['a', 'old'], false, false)
-  ok('on a route its catalog describes and whose profile declares no api, a model outside the catalog is tagged (and only that)', tagged[0].undescribed === undefined && tagged[1].undescribed === true && tagged[1].locked === false && tagged[2].undescribed === true)
-  ok('a route that already refused one locks them', fx.kbFetchTagUndescribed(live3, ['a'], false, true).filter((c) => c.locked === true).length === 2)
-  ok('nothing is tagged when the profile declares an api, when the catalog is empty, or when the engine could not say', fx.kbFetchTagUndescribed(live3, ['a'], true, false) === live3 && fx.kbFetchTagUndescribed(live3, [], false, false) === live3 && fx.kbFetchTagUndescribed(live3, null, false, false) === live3)
-  ok('the models outside the catalog are not ticked on opening (the default choice always applies), the others are', Object.keys(fx.kbFetchPreselect(tagged, [])).join() === 'a')
-  ok('catalog routes get an « API protocol » select (Automatic first, with the warning that it binds every model), the picker explains the models outside the catalog, and a protocol chosen in the draft counts before it is saved', src.includes("'data-kbm': 'pv-apisel'") && src.includes("m('kb.pv.proto.auto.hint')") && src.includes("'data-kbm': 'fetch-undescribed'") && src.includes("(typeof d.apiSel === 'string' && d.apiSel !== '')"))
-  ok('an apply refused for want of a protocol says so in words a person can act on, keeps the draft, and remembers the route; the other errors keep their wording', src.includes("const model = errKey === 'kb.pv.save.err' ? kbPvNeedsApi(raison) : null") && src.includes("if (model !== null && slug) KBM.needsApi[slug] = true") && src.includes("m('kb.pv.err.needsapi', { slug: slug || '', model })") && src.includes("m('kb.pv.err.needsurl', { slug: slug || '', model: modelUrl })") && src.includes("kbFetchTagUndescribed(out.models, out.described, hasApi, KBM.needsApi[slug] === true)"))
+  const tagged = fx.kbFetchTagUndescribed(live3, ['a', 'old'])
+  ok('a model outside the engine\'s catalog is tagged, and only that; with no catalog to compare to nothing is tagged', tagged[0].undescribed === undefined && tagged[1].undescribed === true && tagged[2].undescribed === true && fx.kbFetchTagUndescribed(live3, []) === live3 && fx.kbFetchTagUndescribed(live3, null) === live3)
+  ok('the models outside the catalog are not ticked on opening (each one is asked of the provider), the others are; an adopted one is flagged for the save', Object.keys(fx.kbFetchPreselect(tagged, [])).join() === 'a' && fx.kbFetchAdopt(tagged[1]).outside === true && fx.kbFetchAdopt(tagged[0]).outside === undefined)
 
-  const pvp = new Function(bl('KB-PV-PURE') + '\nreturn { kbPvEditProfile }')()
-  const catProf = { apiKeyEnv: 'OPENCODE_GO_API_KEY', models: [{ id: 'hy3' }] }
-  ok('a catalog route\'s protocol: Automatic leaves the profile without an api, a protocol sets it for the route, going back to Automatic removes it, and a draft that says nothing changes nothing', pvp.kbPvEditProfile('opencode-go', catProf, { url: '', key: '', apiSel: '' }, false).api === undefined && pvp.kbPvEditProfile('opencode-go', catProf, { url: '', key: '', apiSel: 'openai-completions' }, false).api === 'openai-completions' && pvp.kbPvEditProfile('opencode-go', { ...catProf, api: 'openai-completions' }, { url: '', key: '', apiSel: '' }, false).api === undefined && pvp.kbPvEditProfile('opencode-go', { ...catProf, api: 'anthropic-messages' }, { url: '', key: '' }, false).api === 'anthropic-messages')
-  ok('the models and the protocol are written in the same save (the engine checks the whole profile: a model outside the catalog needs the route\'s api)', (() => { const out = pvp.kbPvEditProfile('opencode-go', catProf, { url: '', key: '', apiSel: 'openai-completions', models: [{ id: 'hy3' }, { id: 'minimax-m3.1-flash-free', name: '' }] }, false); return out.api === 'openai-completions' && out.models.map((x) => x.id).join() === 'hy3,minimax-m3.1-flash-free' })())
-  ok('a custom route still takes its protocol from the form, not from the catalog field', pvp.kbPvEditProfile('mine', { baseURL: 'https://g/v1', api: 'openai-completions' }, { url: 'https://g/v1', key: '', name: '', proto: 'anthropic-messages', apiSel: '' }, true).api === 'anthropic-messages')
+  // the save itself, against a settings service that refuses like the engine: a model outside the catalog on a route without api/baseURL
+  {
+    const { mkdtempSync: mk2 } = await import('node:fs')
+    const { tmpdir: td2 } = await import('node:os')
+    process.env.DSH_HOME = mk2(join(td2(), 'kbm-comp-'))
+    const { kbPkMount: pkMount, kbPkRead: pkRead } = await import('./index.js')
+    const cbody = bl('KB-PARK-PURE') + '\n' + bl('KB-PARK-ACTIONS') + '\n' + bl('KB-PV-PURE') + '\n' + bl('KB-PV-ACTIONS') + '\nreturn { kbPvSaveSmart, kbCompanionRemove, kbPvDelete, kbMDisable, kbMEnable }'
+    const cworld = (o = {}) => {
+      const file = join(process.env.DSH_HOME, 'c' + Math.random().toString(36).slice(2) + '.json')
+      const routes = {}
+      pkMount((r) => { routes[r.path] = r.handler }, file)
+      const log = []
+      const settings = { providers: { cat: { apiKeyEnv: 'CAT_KEY', displayName: 'Cat', models: [{ id: 'known', name: 'Known' }] }, other: { baseURL: 'https://o/v1', api: 'openai-completions' } }, revision: 1 }
+      const KBM = { writable: true, revision: 1, routes: Object.keys(settings.providers), models: [], userProviders: settings.providers, baseProviders: {}, parked: [], parkHost: true }
+      const probes = []
+      const api = {
+        settings: { mutate: async (ns, ops) => {
+          log.push(ops.map((x) => x.op + ':' + x.path.join('.')).join(','))
+          // the engine's rule: a route with no api/baseURL of its own refuses the first model its catalog does not describe
+          for (const op of ops) {
+            if (op.op === 'set' && op.path.length === 3 && op.path[0] === 'providers' && op.path[2] === 'models' && op.path[1] === 'cat') {
+              const bad = op.value.find((x) => /^new/.test(x.id))
+              if (bad !== undefined) return { ok: false, error: { code: 'settings/invalid', message: 'llm-pi-ai: provider "cat" model "' + bad.id + '" needs an api; the installed catalog does not describe it, so set the route\'s api to the wire protocol its endpoint speaks' } }
+            }
+            if (o.refuseAll === true) return { ok: false, error: { code: 'settings/invalid', message: 'refused' } }
+          }
+          for (const op of ops) {
+            const p = op.path; let t = settings
+            for (let i = 0; i < p.length - 1; i++) t = t[p[i]]
+            if (op.op === 'set') t[p[p.length - 1]] = op.value
+            else delete t[p[p.length - 1]]
+          }
+          settings.revision += 1
+          return { ok: true, value: { revision: settings.revision } }
+        } },
+        credentials: { set: async () => ({ ok: true }), unset: async (ref) => { log.push('cred.unset:' + ref); return { ok: true } } },
+      }
+      const fakeFetch = async (url, init) => {
+        const u = String(url).split('?')[0]
+        if (u === '/kybernos-models/models/probe') {
+          const body = JSON.parse(init.body)
+          probes.push(body)
+          if (o.probe === undefined) return { status: 200, json: async () => ({ ok: false, error: 'refused', status: 401 }) }
+          return { status: 200, json: async () => o.probe(body) }
+        }
+        const handler = routes[u]
+        if (handler === undefined) return { status: 404, json: async () => { throw new Error('x') } }
+        const text = init && init.body ? init.body : ''
+        const req = { method: (init && init.method) || 'GET', url, socket: { localPort: 3080 }, headers: browserHeaders(), on (ev, cb) { if (ev === 'data' && text !== '') cb(text); if (ev === 'end') cb() } }
+        const r = { status: 0, body: null, writeHead (st) { r.status = st }, end (tx) { r.body = tx } }
+        await handler(req, r)
+        return { status: r.status, json: async () => JSON.parse(r.body) }
+      }
+      const kbMLoad = async () => { KBM.revision = settings.revision; KBM.routes = Object.keys(settings.providers); KBM.userProviders = settings.providers; KBM.parked = Object.keys(pkRead(file).providers).map((slug) => ({ slug, models: [] })) }
+      const kbMOBJ = (v) => (v === null || v === undefined || typeof v !== 'object' || Array.isArray(v)) ? {} : v
+      const catDe = (r) => (r === 'cat' ? { id: 'cat', env: 'CAT_KEY', url: 'https://cat.example/v1' } : null)
+      const fns = new Function('m', 'kbMApi', 'KBM', 'KB_NS', 'kbMLoad', 'kbMJournal', 'kbMTimeout', 'fetch', 'kbMOBJ', 'catDe', cbody)(
+        (k) => k, () => api, KBM, 'llm-pi-ai', kbMLoad, async () => {}, (p) => p, fakeFetch, kbMOBJ, catDe)
+      return { fns, KBM, settings, log, probes, file }
+    }
+    const draft = (models) => ({ url: '', key: '', custom: false, touched: true, models })
+
+    let cw = await cworld({ probe: (b) => (b.model === 'new-2' ? { ok: true, api: 'anthropic-messages', baseURL: 'https://cat.example' } : { ok: true, api: 'openai-completions', baseURL: 'https://cat.example/v1' }) })
+    let cr = await cw.fns.kbPvSaveSmart('cat', draft([{ id: 'known', name: 'Known' }, { id: 'new-1', name: '', outside: true }, { id: 'new-2', name: 'Two', outside: true }]))
+    ok('a model the engine refuses is not an error: it moves to a companion of the provider, found by asking the provider, and the rest is saved', cw.settings.providers.cat.models.map((x) => x.id).join() === 'known' && cr.customN === 2 && cr.custom.guessed === 0, [cw.settings.providers.cat, cr])
+    ok('...one companion per protocol, each with its own protocol and address, the provider\'s key reference and name', cw.settings.providers['cat-custom-chat'].api === 'openai-completions' && cw.settings.providers['cat-custom-chat'].baseURL === 'https://cat.example/v1' && cw.settings.providers['cat-custom-chat'].apiKeyEnv === 'CAT_KEY' && cw.settings.providers['cat-custom-chat'].displayName === 'Cat (custom)' && cw.settings.providers['cat-custom-chat'].models.map((x) => x.id).join() === 'new-1' && cw.settings.providers['cat-custom-msgs'].api === 'anthropic-messages' && cw.settings.providers['cat-custom-msgs'].baseURL === 'https://cat.example' && cw.settings.providers['cat-custom-msgs'].models[0].name === 'Two')
+    ok('the probe is asked about each model, by the provider\'s name (never an address)', JSON.stringify(cw.probes) === JSON.stringify([{ route: 'cat', model: 'new-1' }, { route: 'cat', model: 'new-2' }]))
+    ok('the refusal was met once and the models went together (all the flagged ones): the main route had nothing left to change, so it was not written again', cw.log.filter((l) => l.indexOf('providers.cat.models') >= 0).length === 1, cw.log)
+
+    cw = await cworld({})
+    cr = await cw.fns.kbPvSaveSmart('cat', draft([{ id: 'known', name: 'Known' }, { id: 'new-9', name: '', outside: true }]))
+    ok('when the provider cannot be asked (no key, unreachable) the model is still added, on OpenAI chat at the provider\'s address, and the page is told it was a guess', cw.settings.providers['cat-custom-chat'].api === 'openai-completions' && cw.settings.providers['cat-custom-chat'].baseURL === 'https://cat.example/v1' && cr.custom.guessed === 1)
+
+    cw = await cworld({})
+    cr = await cw.fns.kbPvSaveSmart('cat', draft([{ id: 'known', name: 'Known' }, { id: 'new-5', name: '' }, { id: 'also-ok', name: '' }]))
+    ok('a typed model nobody flagged is moved when the engine refuses it, and only it', cw.settings.providers.cat.models.map((x) => x.id).join() === 'known,also-ok' && cw.settings.providers['cat-custom-chat'].models.map((x) => x.id).join() === 'new-5' && cr.customN === 1)
+
+    cw = await cworld({})
+    cr = await cw.fns.kbPvSaveSmart('cat', draft([{ id: 'known', name: 'Known' }, { id: 'plain', name: '', outside: true }]))
+    ok('a model the engine accepts stays on the provider\'s own route (no companion is made for the sake of a flag)', cw.settings.providers.cat.models.map((x) => x.id).join() === 'known,plain' && cw.settings.providers['cat-custom-chat'] === undefined && cr.custom === null)
+
+    cw = await cworld({ refuseAll: true })
+    const refused = await (async () => { try { await cw.fns.kbPvSaveSmart('cat', draft([{ id: 'known', name: 'Known' }, { id: 'x', name: '' }])); return null } catch (e) { return String(e && e.message ? e.message : e) } })()
+    ok('any other refusal is still an error, said as it is', refused === 'refused', refused)
+
+    // removing, deleting, switching off
+    cw = await cworld({})
+    await cw.fns.kbPvSaveSmart('cat', draft([{ id: 'known', name: 'Known' }, { id: 'new-1', name: '', outside: true }, { id: 'new-2', name: '', outside: true }]))
+    await cw.fns.kbCompanionRemove('cat', 'new-1')
+    ok('removing one custom model keeps the companion and its other models', cw.settings.providers['cat-custom-chat'].models.map((x) => x.id).join() === 'new-2')
+    await cw.fns.kbCompanionRemove('cat', 'new-2')
+    ok('removing the last one removes the companion with it', cw.settings.providers['cat-custom-chat'] === undefined && cw.settings.providers.cat !== undefined)
+
+    cw = await cworld({})
+    await cw.fns.kbPvSaveSmart('cat', draft([{ id: 'known', name: 'Known' }, { id: 'new-1', name: '', outside: true }]))
+    await cw.fns.kbPvDelete('cat')
+    ok('deleting the provider deletes its companions in the same write, and the key reference once', cw.settings.providers.cat === undefined && cw.settings.providers['cat-custom-chat'] === undefined && cw.settings.providers.other !== undefined && cw.log.filter((l) => l === 'cred.unset:CAT_KEY').length === 1 && cw.log.some((l) => l === 'unset:providers.cat,unset:providers.cat-custom-chat'), cw.log)
+
+    cw = await cworld({})
+    await cw.fns.kbPvSaveSmart('cat', draft([{ id: 'known', name: 'Known' }, { id: 'new-1', name: '', outside: true }]))
+    await cw.fns.kbMDisable('cat')
+    ok('switching the provider off switches its companions off with it', cw.settings.providers.cat === undefined && cw.settings.providers['cat-custom-chat'] === undefined && Object.keys(pkRead(cw.file).providers).sort().join() === 'cat,cat-custom-chat', Object.keys(pkRead(cw.file).providers))
+    await cw.fns.kbMEnable('cat')
+    ok('...and back on with it', cw.settings.providers.cat !== undefined && cw.settings.providers['cat-custom-chat'] !== undefined && cw.settings.providers['cat-custom-chat'].models[0].id === 'new-1' && Object.keys(pkRead(cw.file).providers).length === 0, [Object.keys(cw.settings.providers), Object.keys(pkRead(cw.file).providers)])
+  }
+
 
   console.log('  — wiring')
   const w = (frag) => src.includes(frag)
   ok('the button sits in the models header of both panels, disabled with a reason until there is something to ask', w("'data-kbm': 'fetch-open'") && w("title: blocked !== null ? blocked : (!askable ? m('kb.fetch.needsurl') : undefined)") && w('probe: kbFetchProbe(route, dr)') && w('probe: kbFetchProbe(null, dr)'))
   ok('the picker asks the provider\'s own endpoint for a catalog route, and tells where the list came from (live, or the catalog and why not)', w('kbFetchRun(kbMApi(), probe, { live: custom !== true })') && w("'data-kbm': 'fetch-source'") && w("m('kb.fetch.src.catalog', { raison: m(fp.src.why.key, fp.src.why.vars) })"))
   ok('Add provider from the catalogue still adopts the engine\'s answer (a live list of hundreds is not adopted unasked)', w('const found = await kbFetchRun(api, kbFetchProbe(slug, d))'))
+  ok('the picker tags the models outside the engine\'s catalog and says what happens to them', w("kbFetchTagUndescribed(out.models, out.described)") && w("'data-kbm': 'fetch-undescribed'") && w("m('kb.fetch.undescribed')"))
+  ok('Apply saves through the smart save: a refused model becomes a custom model of the provider, and the page says how many (and when the protocol was a guess)', w("kbPvSaveSmart(route, { ...dr, models: dr.touched === true ? dr.models : undefined })") && w("m('kb.pv.saved.custom', { n: out.customN, slug: route })") && w("m('kb.pv.saved.custom.guess')"))
+  ok('the companion routes are not drawn as providers, their models count with the provider, and the Models tab lists them under it (name, logo, filter) with a « custom » tag', w("const routes = kbProvRoutes()") && w("const kbProvRoutes = () =>") && w("n: kbProvRoutes().length + kbDsCardsOf(KBM.ds, KBM.dsDir).length") && w("kbProvOf(mo.route) === route") && w("if (UI.prov !== 'all' && kbProvOf(mo.route) !== UI.prov) return false") && w("pvLabel(kbProvOf(mo.route))") && w("'data-kbm': 'row-custom'"))
+  ok('the Edit panel lists the custom models with a remove each, and a provider\'s companions follow it when it is deleted, switched off or on', w("'data-kbm': 'pv-custom'") && w("'data-kbm': 'pv-custom-del'") && w("kbCompanionRemove(route, x.id)") && w("const gone = [slug].concat(kbCompanionsOf(slug, KBM.routes))") && w("for (const c of kbCompanionsOf(route, KBM.routes)) { try { await kbMDisable(c) }") && w("for (const pk of KBM.parked.filter((x) => kbCompanionOf(x.slug, [slug]) !== null))"))
+  ok('no select of the provider\'s protocol, no lock: the engine\'s one-api-per-route rule is met by a route of its own, not by binding every model', !w('pv-apisel') && !w('apiSel') && !w('needsApi') && !w('kb.pv.proto.auto'))
   ok('the picker is the native one: search, Select all / Deselect all, Add selected, Cancel', w("'data-kbm': 'fetch-search'") && w("'data-kbm': 'fetch-all'") && w("'data-kbm': 'fetch-adopt'") && w("'data-kbm': 'fetch-cancel'"))
-  ok('models already in the list are shown, ticked and disabled — never overwritten; so are the ones a route that refused them locked', w("checked: known || (fp.picked[c.id] === true && c.locked !== true), disabled: known || c.locked === true"))
+  ok('models already in the list are shown, ticked and disabled — never overwritten', w("checked: known || fp.picked[c.id] === true, disabled: known"))
   ok('Escape closes the picker only: window capture runs before the drawer’s document capture', w("window.addEventListener('keydown', key, true)") && w('Escape closes the picker and nothing else'))
   ok('a catalog route warns that the kept list replaces the built-in one, and can restore it', w("'data-kbm': 'fetch-replaces'") && w("'data-kbm': 'fetch-restore'") && w('d.restoreModels === true) delete next.models'))
   ok('editing the rows afterwards cancels a pending "restore"', w('set({ models: next, touched: true, restoreModels: false })'))

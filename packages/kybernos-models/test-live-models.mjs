@@ -2,7 +2,7 @@
 //
 //   node packages/kybernos-models/test-live-models.mjs
 import assert from 'node:assert/strict'
-import { endpointOk, fetchLive, keyFor, liveModels, listingUrl, pickApi, profileOf, readListing, requestHeaders, resolveTarget, MAX_RESPONSE_BYTES } from './live-models.mjs'
+import { endpointOk, fetchLive, keyFor, liveModels, listingUrl, pickApi, probeModel, probeProtocol, baseFor, PROBES, profileOf, readListing, requestHeaders, resolveTarget, MAX_RESPONSE_BYTES } from './live-models.mjs'
 import { kbLiveMount } from './index.js'
 import { sessionSource } from './session-guard.mjs'
 import { SESSION_SECRET, browserHeaders } from './lib-session-test.mjs'
@@ -249,6 +249,95 @@ await ok('a host with no settings or credentials service still answers (the rout
   const r = await call(mount({}, { fetch: fakeFetch(200, { data: [{ id: 'm1' }] }).f }), { body: { route: 'opencode-go' } })
   assert.equal(r.status, 200)
   assert.equal(r.json.ok, true)
+})
+
+
+// ── which protocol does a model speak? ──
+// A provider that answers per protocol: `plan` maps a path suffix to a status.
+const protocolFetch = (plan) => {
+  const seen = []
+  const f = async (url, init) => {
+    seen.push({ url, init })
+    const hit = Object.keys(plan).find((k) => String(url).endsWith(k))
+    if (hit === undefined) return new Response('{}', { status: 404 })
+    if (plan[hit] instanceof Error) throw plan[hit]
+    return new Response(plan[hit] === 200 ? '{"ok":true}' : '{"error":{"message":"no"}}', { status: plan[hit] })
+  }
+  return { f, seen }
+}
+const GO = 'https://opencode.ai/inference/go/v1'
+
+await ok('the probe tries OpenAI chat, then Anthropic messages, then OpenAI responses, and stops at the first that answers 2xx', async () => {
+  const a = protocolFetch({ '/chat/completions': 200 })
+  assert.deepEqual(await probeProtocol({ baseURL: GO, model: 'minimax-m3.1-flash-free', key: KEY, fetch: a.f }), { ok: true, api: 'openai-completions', baseURL: GO })
+  assert.equal(a.seen.length, 1)
+  const b = protocolFetch({ '/chat/completions': 400, '/v1/messages': 200 })
+  assert.deepEqual(await probeProtocol({ baseURL: GO, model: 'm', key: KEY, fetch: b.f }), { ok: true, api: 'anthropic-messages', baseURL: 'https://opencode.ai/inference/go' })
+  assert.deepEqual(b.seen.map((x) => x.url), [GO + '/chat/completions', 'https://opencode.ai/inference/go/v1/messages'])
+  const c = protocolFetch({ '/chat/completions': 404, '/v1/messages': 400, '/responses': 200 })
+  assert.deepEqual(await probeProtocol({ baseURL: GO, model: 'm', key: KEY, fetch: c.f }), { ok: true, api: 'openai-responses', baseURL: GO })
+})
+
+await ok('each protocol is probed with its own auth header and one token, a POST with no redirect', async () => {
+  const a = protocolFetch({ '/responses': 200 })
+  await probeProtocol({ baseURL: GO, model: 'm', key: KEY, fetch: a.f })
+  const [chat, msgs, resp] = a.seen
+  assert.equal(chat.init.headers.authorization, 'Bearer ' + KEY)
+  assert.equal(JSON.parse(chat.init.body).max_tokens, 1)
+  assert.equal(msgs.init.headers['x-api-key'], KEY)
+  assert.equal(msgs.init.headers['anthropic-version'], '2023-06-01')
+  assert.equal(JSON.parse(msgs.init.body).max_tokens, 1)
+  assert.equal(resp.init.headers.authorization, 'Bearer ' + KEY)
+  for (const s of a.seen) { assert.equal(s.init.method, 'POST'); assert.equal(s.init.redirect, 'error'); assert.ok(s.init.signal !== undefined) }
+})
+
+await ok('a refused key, a rate limit or a network failure stop the search (they say nothing about the protocol); no answer anywhere says so', async () => {
+  const a = protocolFetch({ '/chat/completions': 401 })
+  assert.deepEqual(await probeProtocol({ baseURL: GO, model: 'm', key: KEY, fetch: a.f }), { ok: false, error: 'refused', status: 401 })
+  assert.equal(a.seen.length, 1)
+  assert.deepEqual(await probeProtocol({ baseURL: GO, model: 'm', key: KEY, fetch: protocolFetch({ '/chat/completions': 429 }).f }), { ok: false, error: 'rate-limited', status: 429 })
+  assert.deepEqual(await probeProtocol({ baseURL: GO, model: 'm', key: KEY, fetch: protocolFetch({ '/chat/completions': new Error('ECONNREFUSED') }).f }), { ok: false, error: 'unreachable' })
+  assert.deepEqual(await probeProtocol({ baseURL: GO, model: 'm', key: KEY, fetch: protocolFetch({}).f }), { ok: false, error: 'unknown-protocol', status: 404 })
+})
+
+await ok('a model id that could carry anything but a model is refused before any request', async () => {
+  const a = protocolFetch({ '/chat/completions': 200 })
+  for (const bad of ['', ' ', 'a b', '../x', 'x'.repeat(200), 'a"b', 'a\nb', 12, null, undefined]) assert.deepEqual(await probeProtocol({ baseURL: GO, model: bad, key: KEY, fetch: a.f }), { ok: false, error: 'bad-model' }, JSON.stringify(bad))
+  assert.equal(a.seen.length, 0)
+})
+
+await ok('the route\'s address for each protocol: Anthropic\'s is the root, the others keep their /v1', () => {
+  assert.equal(baseFor('anthropic-messages', 'https://opencode.ai/inference/go/v1/'), 'https://opencode.ai/inference/go')
+  assert.equal(baseFor('openai-completions', 'https://opencode.ai/inference/go/v1/'), 'https://opencode.ai/inference/go/v1')
+  assert.deepEqual(PROBES.map((p) => p.api), ['openai-completions', 'anthropic-messages', 'openai-responses'])
+})
+
+await ok('the probe asks the address and the key of the provider\'s profile, never the caller\'s, and never returns the key', async () => {
+  const a = protocolFetch({ '/chat/completions': 200 })
+  const r = await probeModel({ route: 'opencode-go', model: 'minimax-m3.1-flash-free', baseURL: 'https://evil.example/v1', key: 'sk-evil-9999999999' }, { ...services(), entry: OPENCODE_ENTRY, fetch: a.f })
+  assert.deepEqual(r, { ok: true, api: 'openai-completions', baseURL: 'https://opencode.ai/zen/go/v1' })
+  assert.equal(a.seen[0].url, 'https://opencode.ai/zen/go/v1/chat/completions')
+  assert.equal(a.seen[0].init.headers.authorization, 'Bearer ' + KEY)
+  assert.ok(!JSON.stringify(r).includes(KEY))
+  assert.deepEqual(await probeModel({ route: '../x', model: 'm' }, { ...services(), fetch: a.f }), { ok: false, error: 'bad-route' })
+  assert.deepEqual(await probeModel({ route: 'opencode-go', model: 'a b' }, { ...services(), fetch: a.f }), { ok: false, error: 'bad-model' })
+})
+
+await ok('the probe route is a POST of the signed-in page only: foreign origin, no session and other methods are refused with no request leaving', async () => {
+  const { f, seen } = fakeFetch(200, {})
+  const routes = new Map()
+  kbLiveMount((r) => routes.set(r.path, r.handler), () => services(), { fetch: f })
+  const h = routes.get('/kybernos-models/models/probe')
+  assert.ok(h !== undefined)
+  assert.equal((await call(h, { origin: 'https://evil.example', body: { route: 'opencode-go', model: 'm' } })).status, 403)
+  assert.equal((await call(h, { origin: null, body: { route: 'opencode-go', model: 'm' } })).status, 403)
+  assert.equal((await call(h, { headers: { origin: 'http://127.0.0.1:3080' }, body: { route: 'opencode-go', model: 'm' } })).status, 401)
+  assert.equal((await call(h, { method: 'GET' })).status, 405)
+  assert.equal(seen.length, 0)
+  assert.equal((await call(h, { body: { route: 'opencode-go', model: 'a b' } })).status, 400)
+  const ok1 = await call(h, { body: { route: 'opencode-go', model: 'minimax-m3.1-flash-free' } })
+  assert.equal(ok1.status, 200)
+  assert.equal(ok1.json.ok, true)
 })
 
 console.log(n + ' checks passed')
