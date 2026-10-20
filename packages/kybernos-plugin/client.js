@@ -29810,7 +29810,7 @@ body:not([data-ds-dark-theme]) .kbt2-pill.warn{color:color-mix(in srgb,var(--dsw
           h('span', null, kbt('kbui.read.aloud'))),
         pied)
       return h('div', { className: 'kbt-page' },
-        h('div', { style: { display: 'flex', justifyContent: 'flex-end', width: '100%', marginBottom: 6 } }, (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-plugin', page: 'voice' }) : null)),
+        h('div', { className: 'kbhp-row', style: { '--kbhp-gap': '20px' } }, (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-plugin', page: 'voice' }) : null)),
         h('div', { className: 'kbt-tete' },
           // Gabarit Réglages 29/09 : titre 26px comme Outils/Maintenance.
           h('span', { className: 'kb6-title' }, kbt('kbui.voice')),
