@@ -570,7 +570,7 @@ window.__ModuleLoader__.load({
         turnOf (sessionId) { const v = this.max.get(String(sessionId)); return v === undefined ? -1 : v },
       }
       const useLastTail = (sessionId, turn) => {
-        // No turn in the props (an engine build that does not pass it, or a direct mount): show the cards (fail open).
+        // No usable turn number in the props (an engine build that does not pass one, or a direct mount): show the cards (fail open).
         const [last, setLast] = React.useState(() => typeof turn !== 'number' ? true : lastTail.turnOf(sessionId) === turn)
         React.useEffect(() => {
           if (typeof turn !== 'number' || sessionId === '') return undefined
@@ -586,7 +586,10 @@ window.__ModuleLoader__.load({
       // ── the tail: what this chat sent, then the form ──────────────────────────
       const TailCards = (props) => {
         const sessionId = props !== null && props !== undefined && typeof props.sessionId === 'string' ? props.sessionId : ''
-        const turn = props !== null && props !== undefined && typeof props.turn === 'number' ? props.turn : undefined
+        // The seat's owner props are `{ turn: TurnLocation, seq, openFile }` (dsh-client-ui-chat): `turn` is an OBJECT, `seq` is the
+        // turn's closing sequence number, which only grows in a chat — that is what tells the last turn from the others. A build
+        // that passes a plain number as `turn` is read too; with neither, the cards show (fail open).
+        const turn = props !== null && props !== undefined ? (typeof props.seq === 'number' ? props.seq : (typeof props.turn === 'number' ? props.turn : undefined)) : undefined
         const last = useLastTail(sessionId, turn)
         const [form, setForm] = React.useState(() => formStore.get(sessionId))
         const [items, setItems] = React.useState(() => statusStore.get(sessionId))
