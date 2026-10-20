@@ -214,6 +214,8 @@ test('the entrypoint never reads the identity as root and strips the pool token 
   assert.match(entry, /\[ -z "\$\{KYBERNOS_COMPUTER_TOKEN:-\}" \] && \[ -n "\$\{KYBERNOS_POOL_TOKEN:-\}" \][^\n]*\n\s*runuser -u node -- sh "\$LIB\/pool-hold\.sh"/)
   const hold = text('pool-hold.sh')
   assert.match(hold, /env -u KYBERNOS_POOL_TOKEN dsh web/, 'the DSH that is up before the claim never holds the pool token')
+  // The model route is in the profile before DSH starts, so that the claim does not have to reload it.
+  assert.ok(hold.indexOf('render-profile.sh') !== -1 && hold.indexOf('render-profile.sh') < hold.indexOf('dsh web'), 'the route is rendered before DSH starts')
   // A slot claimed before whose identity is gone does not wait for a claim that will not come; a claimer that ends 3 restarts DSH.
   assert.match(hold, /identity\.mjs" claimed-before/)
   assert.match(hold, /\[ "\$rc" -eq 3 \]/)

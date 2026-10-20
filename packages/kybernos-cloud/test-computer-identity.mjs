@@ -85,7 +85,9 @@ assert.equal(shellExports(env({ KYBERNOS_COMPUTER_ID: 'cmp-env', KYBERNOS_COMPUT
 assert.equal(shellExports(env(), mkdtempSync(join(tmpdir(), 'kb-identity-empty-'))), '', 'nor an unclaimed one')
 const lines = shellExports({ KYBERNOS_POOL_SLOT: 's' }, home)
 assert.deepEqual(lines.split('\n').map((l) => l.split('=')[0]), ['export KYBERNOS_COMPUTER_ID', 'export KYBERNOS_COMPUTER_TOKEN', 'export KYBERNOS_COMPUTER_MODEL'], 'never the address')
-assert.equal(shellExports(env({ KYBERNOS_COMPUTER_MODEL: 'already' }), home).includes('KYBERNOS_COMPUTER_MODEL'), false, 'a variable that is set is not overridden')
+const withModel = shellExports(env({ KYBERNOS_COMPUTER_MODEL: 'made-with', KYBERNOS_COMPUTER_ID: '' }), home)
+assert.equal(withModel.includes(`KYBERNOS_COMPUTER_MODEL='${GOOD.model}'`), true, 'the model of the claim wins over the one the slot was made with')
+assert.equal(shellExports(env({ KYBERNOS_COMPUTER_ID: 'kept-id' }), home).includes('KYBERNOS_COMPUTER_ID'), false, 'an id or a token that is set is not overridden')
 const shown = execFileSync('sh', ['-c', `${lines}\nprintf '%s|%s|%s' "$KYBERNOS_COMPUTER_ID" "$KYBERNOS_COMPUTER_TOKEN" "$KYBERNOS_COMPUTER_MODEL"`], { encoding: 'utf8', env: {} })
 assert.equal(shown, [GOOD.computer_id, GOOD.token, GOOD.model].join('|'))
 // A file somebody edited by hand to carry a command is no identity at all, so no line is printed for the shell.

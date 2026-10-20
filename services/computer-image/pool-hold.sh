@@ -22,6 +22,9 @@ fi
 # The suite's cloud plugin follows this address (the same one post-claim.sh gives a machine made the old way).
 if [ -n "${KYBERNOS_API:-}" ]; then export KYBERNOS_CLOUD_API="${KYBERNOS_API%/}"; fi
 
+# The model route is in the profile BEFORE DSH starts (it names the key, not its value): the claim then only has to give DSH the token, not to reload its profile.
+sh "$LIB/render-profile.sh"
+
 WORKSPACE="${KYBERNOS_WORKSPACE:-$HOME/workspace}"
 mkdir -p "$WORKSPACE"
 node "$REPO/packages/kybernos-gate/docker/seed-workspace.mjs" "$DSH_HOME/storages/workspace.json" "$WORKSPACE"
