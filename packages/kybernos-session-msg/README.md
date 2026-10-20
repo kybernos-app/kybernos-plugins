@@ -52,8 +52,9 @@ An instruction gives **no right the target does not already have**: it runs with
 in orange when that target has full access.
 
 `status` is a **heuristic, not a read of the answer**: `received` = the target accepted the prompt; `working` = the target
-is running now; `answered` = the target is idle again and either was seen running since the delivery or was updated more
-than 1.5 s after it. The answer text itself stays in the target chat.
+is running now; `answered` = the target is idle again and either was seen running since the delivery, was updated more
+than 1.5 s after it, or the delivery is older than 5 minutes (a short turn can fall between two polls, and the memory of
+what was seen is lost on a restart). The answer text itself stays in the target chat.
 
 ## What is refused
 
@@ -84,7 +85,7 @@ the host half** (new routes, a new tool, the marker): the client alone (a page r
 ## Tests
 
 ```bash
-node test-host.mjs     # 169 checks: guard on every route (signed cookie, origin, Host, method), kind in marker / framing /
+node test-host.mjs     # 170 checks: guard on every route (signed cookie, origin, Host, method), kind in marker / framing /
                        # parse / journal, the two framings verbatim, bad kind, the "running or recent" filter, dispatch
                        # here / new / other, status states, the proposal store (TTL, one per chat), the tool (never sends,
                        # resolves an id or an exact title, ambiguous → candidates), title repair, journal 0600 + 200-char cap
