@@ -880,7 +880,7 @@ body:not([data-ds-dark-theme]) .kbcl-chip.kbcl-warn{color:color-mix(in srgb,${T.
           ]),
           f.avatars && keys.LIVEAVATAR_API_KEY && keys.LIVEAVATAR_API_KEY.set ? h('div', { key: 'av', className: 'kbcl-row' }, [
             h('button', { key: 'b', type: 'button', className: 'kbcl-btn', 'data-act': 'list-avatars', disabled: c.busy, onClick: async () => { const r = await post('/avatars', {}); if (r !== null && r.ok === true) setAvatars(r.avatars); else c.say(true, (r && r.error) || kt('liste indisponible', 'list unavailable')) } }, kt('Choisir un visage', 'Choose a face')),
-            avatars !== null ? h('select', { key: 's', className: 'kbcl-in kbcl-grow', 'data-field': 'avatar-pick', value: st.value || '', onChange: (e) => { if (e.target.value !== '') c.saveKeys({ LIVEAVATAR_AVATAR_ID: e.target.value }) } }, [h('option', { key: '', value: '' }, kt('Choisir…', 'Choose…'))].concat(avatars.map((a) => h('option', { key: a.id, value: a.id }, a.name + (a.source === 'yours' ? kt(' · à toi', ' · yours') : '') + (a.type === 'IMAGE' ? kt(' · photo', ' · photo') : ''))))) : null
+            avatars !== null ? h('select', { key: 's', className: 'kbcl-in kbcl-grow', 'data-field': 'avatar-pick', value: st.value || '', onChange: (e) => { if (e.target.value !== '') c.saveKeys({ LIVEAVATAR_AVATAR_ID: e.target.value }) } }, [h('option', { key: '', value: '' }, kt('Choisir…', 'Choose…'))].concat(avatars.map((a) => h('option', { key: a.id, value: a.id }, a.name + (a.source === 'yours' ? kt(' · à toi', ' · yours') : '') + (a.type === 'Image' ? kt(' · photo', ' · photo') : ''))))) : null
           ]) : null])
         }
         const clones = Array.isArray(d.clones) ? d.clones : []

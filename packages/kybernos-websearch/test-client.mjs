@@ -59,7 +59,7 @@ ok('status: switched off, key missing, paused, answered, ready', [
   statusOf({ ...base, health: { lastOkAt: Date.now(), lastCount: 5, lastMs: 800 } }).cls === 'ok',
   statusOf(base).txt === 'Ready'
 ].every(Boolean))
-ok('badge: free engines say NO KEY, keyed ones KEY', accessBadge({ access: 'free' }).txt === 'NO KEY' && accessBadge({ access: 'key' }).txt === 'KEY')
+ok('badge: free engines say No key, keyed ones Key (sentence case, not capitals)', accessBadge({ access: 'free' }).txt === 'No key' && accessBadge({ access: 'key' }).txt === 'Key')
 
 // ── an address that cannot be saved says so; a failed test says why (A3-26) ──────────────────────────────
 const { addressProblem, testDetail } = plugin.__test

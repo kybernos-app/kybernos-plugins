@@ -451,7 +451,7 @@ window.__ModuleLoader__.load({
         ".kml-prog { flex: 1; min-width: 90px; height: 6px; border-radius: 3px; background: var(--dsw-alias-bg-layer-3); overflow: hidden; }\n" +
         ".kml-prog-fill { height: 100%; border-radius: 3px; background: var(--dsw-alias-brand-primary); transition: width .4s ease; }\n" +
         ".kml-prog-texte { font-size: 13px; color: var(--dsw-alias-label-secondary); white-space: nowrap; }\n" +
-        ".kml-section { font-size: 12px; font-weight: 600; letter-spacing: .5px; text-transform: uppercase; color: var(--dsw-alias-label-tertiary); margin: 14px 0 8px; }\n" +
+        ".kml-section { font-size: 12px; font-weight: 600; color: var(--dsw-alias-label-tertiary); margin: 14px 0 8px; }\n" +
         ".kml-vide { color: var(--dsw-alias-label-secondary); font-size: 14px; padding: 14px; background: var(--dsw-alias-bg-layer-1); border: 1px dashed var(--dsw-alias-border-l3); border-radius: 10px; margin: 0; }\n" +
         ".kml-rangee { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; min-height: 52px; padding: 8px 12px; border: 1px solid var(--dsw-alias-border-l2); border-radius: 11px; background: var(--dsw-alias-bg-layer-1); margin: 0 0 8px; }\n" +
         ".kml-rangee-init { width: 26px; height: 26px; flex: none; display: flex; align-items: center; justify-content: center; border-radius: 8px; background: var(--dsw-alias-bg-layer-2); font-size: 12px; font-weight: 600; color: var(--dsw-alias-label-secondary); }\n" +

@@ -809,7 +809,7 @@ body:not([data-ds-dark-theme]) :is(.kbf-root,.kbfp-menu,.kbfp-sub,.kbf-pop,.kbf-
 .kbfp-mtail{flex:none;margin-inline-start:auto;white-space:nowrap;font-size:12px;color:var(--dsw-alias-label-tertiary);font-variant-numeric:tabular-nums}
 .kbfp-mplan{margin:3px 0;box-sizing:border-box;padding:0 10px;border-radius:10px;background:var(--dsw-alias-interactive-bg-hover)}
 .kbfp-mplanline{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:36px}
-.kbfp-mplanname{font-size:14px;font-weight:600;letter-spacing:-.01em;text-transform:capitalize}
+.kbfp-mplanname{font-size:14px;font-weight:600;text-transform:capitalize}
 .kbfp-mplanname[data-plan="none"]{text-transform:none}
 .kbfp-mcta{flex:none;height:26px;padding:0 12px;border:none;border-radius:10px;background:var(--dsw-alias-button-primary-fill);color:var(--dsw-alias-label-primary-foreground);font:inherit;font-size:12px;font-weight:600;cursor:pointer}
 .kbfp-mcta:hover{background:var(--dsw-alias-button-primary-hover)}
@@ -835,7 +835,7 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
 .kbfp-seg{display:flex;gap:2px;padding:2px;border-radius:8px;background:var(--dsw-alias-bg-base)}
 .kbfp-seg button{width:28px;height:24px;padding:0;border:none;border-radius:6px;background:transparent;color:var(--dsw-alias-label-tertiary);display:flex;align-items:center;justify-content:center;cursor:pointer}
 .kbfp-seg button.on{background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-primary)}
-.kbfp-msub{padding:8px 10px 6px;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--dsw-alias-label-tertiary)}
+.kbfp-msub{padding:8px 10px 6px;font-size:11px;font-weight:600;color:var(--dsw-alias-label-tertiary)}
 .kbfp-switchbody{display:flex;flex-direction:column}
 /* La sélection d'espace, gabarit maquette : ACTIF = carte surélevée (fond
    interactif, coche à droite), les autres des rangées nues ; « Créer un
@@ -895,7 +895,7 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
 .kbl-page{display:flex;flex-direction:column;gap:14px;max-width:640px}
 .kbl-head{margin:0 0 6px}
 .kbl-card{display:flex;flex-direction:column;gap:10px;padding:18px;border-radius:16px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1)}
-.kbl-sect{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--dsw-alias-label-tertiary,#8a8a93)}
+.kbl-sect{font-size:11px;color:var(--dsw-alias-label-tertiary,#8a8a93)}
 .kbl-area{box-sizing:border-box;width:100%;min-height:120px;padding:10px 12px;border-radius:11px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-base);color:var(--dsw-alias-label-primary);font:inherit;font-size:14px;line-height:1.45;resize:vertical}
 .kbl-area:hover{border-color:var(--dsw-alias-border-l3)}
 .kbl-area:focus-visible{outline:2px solid var(--dsw-alias-brand-primary,#4f7cff);outline-offset:1px}

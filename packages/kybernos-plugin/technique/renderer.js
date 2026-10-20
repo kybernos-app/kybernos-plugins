@@ -29,11 +29,11 @@ const CSS = `
 .kbtq-canvas:active{cursor:grabbing}
 .kbtq-hud{position:absolute;inset:12px 12px auto 12px;display:flex;gap:12px;align-items:flex-start;pointer-events:none}
 .kbtq-caption{pointer-events:auto;max-width:min(52%,420px);background:rgba(10,14,19,.72);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.10);border-radius:10px;padding:10px 12px}
-.kbtq-stepidx{display:block;font-size:10px;letter-spacing:.10em;text-transform:uppercase;color:#8fa3b8}
+.kbtq-stepidx{display:block;font-size:10px;color:#8fa3b8}
 .kbtq-label{margin:3px 0 4px;font-size:14.5px;font-weight:650;color:#fff}
 .kbtq-role{margin:0;font-size:12px;line-height:1.45;color:#c6d2de}
 .kbtq-legend{pointer-events:auto;margin-left:auto;width:min(240px,38%);max-height:calc(100% - 4px);overflow:auto;background:rgba(10,14,19,.72);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.10);border-radius:10px;padding:8px}
-.kbtq-legend-head{font-size:10px;letter-spacing:.10em;text-transform:uppercase;color:#8fa3b8;padding:2px 4px 6px}
+.kbtq-legend-head{font-size:10px;color:#8fa3b8;padding:2px 4px 6px}
 .kbtq-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
 .kbtq-item{display:flex;gap:8px;align-items:baseline;padding:4px 6px;border-radius:7px;cursor:pointer;font-size:11.5px;color:#aebbc8;opacity:.72}
 .kbtq-item:hover{background:rgba(255,255,255,.06);opacity:1}

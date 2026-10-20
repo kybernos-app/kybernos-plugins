@@ -127,7 +127,7 @@ body:not([data-ds-dark-theme]) .kbln-lang-en{color:var(--dsw-alias-label-seconda
 .kbln-chip[disabled]{opacity:.4;cursor:default}
 .kbln-chip-tag{font-size:11px;font-weight:500;color:var(--dsw-alias-state-success-primary);margin-inline-start:2px}
 body:not([data-ds-dark-theme]) .kbln-chip-tag{color:color-mix(in srgb,var(--dsw-alias-state-success-primary) 55%,var(--dsw-alias-label-primary))}
-.kbln-sec-t{font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--dsw-alias-label-tertiary)}
+.kbln-sec-t{font-size:11px;font-weight:600;color:var(--dsw-alias-label-tertiary)}
 .kbln-iso{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:4px;max-height:280px;overflow:auto;padding-inline-end:4px}
 .kbln-iso-i{appearance:none;font:inherit;font-size:13px;display:flex;align-items:baseline;gap:8px;padding:7px 10px;border:0;border-radius:8px;background:transparent;color:var(--dsw-alias-label-primary);cursor:pointer;text-align:start;min-width:0}
 .kbln-iso-i:hover:not([disabled]){background:var(--dsw-alias-interactive-bg-hover, var(--dsw-alias-bg-layer-3))}
