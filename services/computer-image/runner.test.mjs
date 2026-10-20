@@ -86,6 +86,7 @@ test('a turn: context, the session in DSH, its closed turn, the answer, and the 
     assert.match(post.body.prompt, /POST \{"a":1\}/)
     assert.equal(post.body.jobId, 'job-1', 'the turn it belongs to, so that the gate can ask the person about it')
     assert.equal(post.body.channel, 'phone', 'where the message came from, so that the journal says where Kaby was asked')
+    assert.equal(post.body.budgetMs, 600_000, 'how long the turn may last, so that a question to the person is never waited for past its end')
     const events = s.calls.filter((c) => c.path.endsWith('/events')).map((c) => c.body.events[0])
     assert.deepEqual(events.map((e) => [e.seq, e.type]), [[4, 'started'], [5, 'model-call'], [6, 'answered']])
     const ack = s.calls.find((c) => c.path.endsWith('/ack'))
@@ -141,6 +142,18 @@ test('a turn that cannot be run is acknowledged failed with a code, never with w
     assert.equal(await runOne({ id: 'job-4b' }, { pollMs: 5, openMs: 30 }), 'empty_answer.turn_error.model_not_found')
     assert.deepEqual(why.calls.find((c) => c.path.endsWith('/ack')).body, { status: 'failed', error: 'empty_answer.turn_error.model_not_found' })
   } finally { why.restore() }
+
+  // A model that could not be reached (the engine retried and gave up) is not asked for words: a nudge would only wait through the same retries again (measured: ~2 minutes became ~4).
+  // A rate limit is acknowledged as `model_429`, the code the platform's door already reads as « busy »; the other causes keep the « no words » family with the cause after it.
+  for (const [why, error] of [['model_429', 'model_429'], ['model_server', 'empty_answer.model_server'], ['model_timeout', 'empty_answer.model_timeout']]) {
+    closed('s-1')
+    const down = standIn({ answer: { ok: true, text: '', tools: 1, failure: why } })
+    try {
+      assert.equal(await runOne({ id: 'job-' + why }, { pollMs: 5, openMs: 30 }), error)
+      assert.deepEqual(down.calls.find((c) => c.path.endsWith('/ack')).body, { status: 'failed', error })
+      assert.equal(down.calls.some((c) => c.path === '/kybernos-cloud/turn/continue'), false, 'no nudge for ' + why)
+    } finally { down.restore() }
+  }
 
   const slow = standIn({ start: { ok: true, sessionId: 's-open' } })
   try {
