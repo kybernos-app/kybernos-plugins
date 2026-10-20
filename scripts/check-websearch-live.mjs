@@ -70,7 +70,7 @@ try {
   await sleep(400)
   const list = await rows()
   check('15 engines once unfolded, the person\'s own address first among the folded', list.length === 15 && list.find((r) => r.id === 'searxng') !== undefined, list.map((r) => r.id))
-  check('free engines say NO KEY, keyed ones KEY, address ones ADDRESS', list.find((r) => r.id === 'exa-free').badge === 'NO KEY' && list.find((r) => r.id === 'tavily').badge === 'KEY' && list.find((r) => r.id === 'searxng').badge === 'ADDRESS', list.slice(0, 3))
+  check('free engines say No key, keyed ones Key, address ones Address', list.find((r) => r.id === 'exa-free').badge === 'No key' && list.find((r) => r.id === 'tavily').badge === 'Key' && list.find((r) => r.id === 'searxng').badge === 'Address', list.slice(0, 3))
   check('a keyed engine with no key says so', /Key missing/.test(list.find((r) => r.id === 'tavily').status), list.find((r) => r.id === 'tavily'))
   check('the encyclopedia is drawn as off exactly when it is off', list.find((r) => r.id === 'wikipedia').off === !wikiWasOn)
   check('the page has no horizontal overflow', (await ev(`document.documentElement.scrollWidth <= innerWidth`)) === true)
