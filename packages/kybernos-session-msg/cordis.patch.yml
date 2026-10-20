@@ -1,0 +1,10 @@
+# dsh bundle patch — inserts the plugin into the profile's cordis layers.
+# The profile must also list the package in `dsh.profile.bundles`
+# (~/.dsh/profiles/web/package.json).
+#
+# The host owns seven routes (all behind the strict write guard) and one agent
+# tool that only PROPOSES; the client owns the inline form, the sent trail, the
+# received card and the header button. Nothing here plugs into the engine.
+- insert:
+    - id: kybernos-session-msg
+      name: '@local/kybernos-session-msg'

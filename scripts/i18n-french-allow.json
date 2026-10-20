@@ -78,6 +78,7 @@
     "kybernos-refs": [],
     "kybernos-relance": [],
     "kybernos-search": [],
+    "kybernos-session-msg": [],
     "kybernos-servers": [],
     "kybernos-sessions": [
       "cle api",
