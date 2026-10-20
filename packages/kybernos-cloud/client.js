@@ -179,6 +179,8 @@ window.__ModuleLoader__.load({
         roleMember: 'Membre',
         spaceMembers: '{n} membres',
         spaceMembers1: '1 membre',
+        spaceKindPersonal: 'Personnel',
+        spaceKindTeam: 'Équipe',
         spaceSwitching: 'Changement en cours…',
         spaceSwitchSlow: 'Le passage à {name} prend plus de temps que d\'habitude. Attends un instant avant d\'envoyer un message : il pourrait encore être facturé à l\'équipe précédente.',
         spaceRouteStale: 'Tu es dans {name}, mais la route des modèles n\'a pas pu être mise à jour : tes messages pourraient encore être facturés à l\'équipe précédente. Réessaie.',
@@ -453,6 +455,8 @@ window.__ModuleLoader__.load({
         roleMember: 'Member',
         spaceMembers: '{n} members',
         spaceMembers1: '1 member',
+        spaceKindPersonal: 'Personal',
+        spaceKindTeam: 'Team',
         spaceSwitching: 'Switching…',
         spaceSwitchSlow: 'The switch to {name} is taking longer than usual. Wait a moment before sending a message: it may still be billed to the previous team.',
         spaceRouteStale: 'You are in {name}, but the model route could not be updated: your messages may still be billed to the previous team. Try again.',
@@ -1333,9 +1337,12 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
       const personal = spaceIsPersonal(w)
       const role = spaceRoleOf(w)
       const roleWord = role === 'owner' ? t('roleOwner') : (role === 'admin' ? t('roleAdmin') : (role === 'member' ? t('roleMember') : ''))
+      // The space kind leads the subtitle: switching spaces changes what is shared, and the row must say which space
+      // the person is in before it says their role in it (« Personnel · … » vs « Équipe · Propriétaire · 6 membres »).
+      const kindWord = personal ? t('spaceKindPersonal') : t('spaceKindTeam')
       const parts = personal
-        ? [typeof o.userName === 'string' ? o.userName : '', typeof o.planLabel === 'string' ? o.planLabel : '']
-        : [roleWord, facts !== null && Number.isInteger(facts.members) ? quotaCount(t, 'spaceMembers', facts.members) : '']
+        ? [kindWord, typeof o.userName === 'string' ? o.userName : '', typeof o.planLabel === 'string' ? o.planLabel : '']
+        : [kindWord, roleWord, facts !== null && Number.isInteger(facts.members) ? quotaCount(t, 'spaceMembers', facts.members) : '']
       const meter = facts !== null && Array.isArray(facts.usage)
         ? quotaMeterOf({ ok: true, workspace: { id: w.id, name: view.name, role: w.role, personal }, usage: facts.usage, payment_blocked: false, skew_ms: o.skew }, t, o.now)
         : null
