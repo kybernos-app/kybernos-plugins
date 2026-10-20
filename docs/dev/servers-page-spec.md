@@ -1,7 +1,15 @@
 # Servers page: specification (draft 1, 2026-10-19)
 
-Status: **specification only, nothing built.** Why and what was found: `docs/dev/servers-page-study-2026-10-19.md`. The clickable mockup is
+Status: **partially built — see the correction below before reading this as a plan.** Why and what was found: `docs/dev/servers-page-study-2026-10-19.md`. The clickable mockup is
 its visual part. This file is what gets built, in this order, and how it is proved.
+
+> **Correction (2026-10-20, recette).** The line above said « nothing built »; that is no longer true and it misleads anyone preparing a test.
+> The page ships: `packages/kybernos-servers/client.js` renders « Where your account, team and models live », the server list (Kybernos Cloud,
+> local, dev), the Enterprise block and « + Add a server ». Seen live in the isolated sandbox on 2026-10-20 (29 pages Réglages opened, capture in
+> the recette capture `pages-pass/servers.png` (video review dossier, outside the repo)).
+> What is NOT built from this spec must be listed here explicitly before the next reader trusts the sections below; the recette found one concrete
+> gap in the shipped page: « Retirer » is hidden only for cloud servers (`!cloud`), never for the **active** one — `host.mjs:221-227` handles that
+> removal on purpose (switch back to the managed server, roll back on failure), so it is a behaviour to arbitrate, not a missing guard.
 
 ## 0. Decisions taken
 
