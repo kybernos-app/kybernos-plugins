@@ -2838,7 +2838,7 @@ const KB_NAV_KEYS = {
   general: 'general', 'kybernos-theme': 'theme', 'kybernos-language': 'language', 'kybernos-memory': 'memory & lessons', models: 'models',
   'kbac-appearance': 'appearance',
   'kybernos-maintenance': 'about', 'kybernos-servers': 'servers', 'kybernos-auto-page': 'auto routing', 'kybernos-websearch-page': 'web search',
-  plugins: 'built-in plugins', 'kybernos-atlas': 'atlas', 'kybernos-models': 'ai provider & models',
+  plugins: 'built-in plugins', 'kybernos-atlas': 'atlas', 'kybernos-models': 'ai provider and models',
   'agent-presets': 'agent presets', voice: 'voice', 'kybernos-slash': 'commands', 'kybernos-ollama': 'ollama local models',
   'kybernos-suite': 'kybernos suite', 'kybernos-tools': 'tools', 'kybernos-workers': 'workers', 'kybernos-call': 'calls',
   // The pages the Suite's bundles add (their section id is the cell's key in every language).
@@ -3594,11 +3594,11 @@ const KB_FR_EN = {
   'Livrer la recette bêta P7': 'Ship the P7 beta recipe',
   'Publier les trois archives sous /beta/': 'Publish the three archives under /beta/',
   'Projet · sessions de ce chat': 'Project · sessions of this chat',
-  'Le nom du projet vient de la page Projets — aucun nom dans le payload : le slot reste visible dans le pré-message.': 'The project name comes from the Projects page — no name in the payload: the slot stays visible in the pre-message.',
+  'Le nom de l’espace de travail vient de la page Espaces de travail ; quand il n’y en a pas, l’emplacement reste visible mais vide.': 'The workspace name comes from the Workspaces page; when there is none, the slot stays visible but empty.',
   'Documents du projet : ': 'Project documents: ',
   'Synthèse de l\u2019espace : ': 'Workspace overview: ',
   ' — rien de plus n\u2019est inventé.': ' — nothing else is invented.',
-  'les lignes sans tag « ex. » viennent du payload project-data.': 'lines without the “ex.” tag come from the project-data payload.',
+  'les lignes sans tag « ex. » sont des données réelles.': 'the lines without the “ex.” tag are real data.',
   'Aucun budget n’est déclaré pour ce projet : le bloc montre un exemple rempli (tag ex.), jamais un budget inventé. ': 'No budget declared for this project: the block shows a filled example (tag ex.), never an invented budget. ',
   'ligne d’exemple — pas une donnée de production': 'example line — not production data',
   ' affichée': ' shown',
@@ -3617,7 +3617,7 @@ const KB_FR_EN = {
   'racine + session courante': 'root + current session',
   'jeu d\u2019exemple': 'example set',
   'Avertissements': 'Warnings',
-  'Entrées runs-index': 'runs-index entries',
+  'Exécutions enregistrées': 'Recorded runs',
   '200 dernières': 'last 200',
   'Sessions avec runs': 'Sessions with runs',
   'une entrée = une session': 'one entry = one session',
@@ -3625,7 +3625,7 @@ const KB_FR_EN = {
   'Vues cachées': 'Hidden views',
   'Vues cachées — choisir celle à remettre': 'Hidden views — pick one to restore',
   'Rétablir': 'Restore',
-  'project-data et runs-index n\u2019ont pas de filtre de période — les blocs montrent l\u2019état courant.': 'project-data and runs-index have no period filter — blocks show the current state.',
+  'Les deux blocs n\u2019ont pas de filtre de période : ils montrent l\u2019état courant.': 'Neither block has a period filter: both show the current state.',
   'Créer un Dashboard avec l’IA': 'Create a dashboard with AI',
   'Améliorer avec l’IA': 'Improve with AI',
   'Lecture — skill insight-principe': 'Reading — insight-principe skill',
@@ -4131,11 +4131,11 @@ const KB_FR_EN = {
   'Contexte du dashboard': 'Dashboard context',
   'en utilisant le skill \'insight-principe\', créer un dashboard pour ': 'using the skill \'insight-principe\', create a dashboard for ',
   'en utilisant le skill \'insight-principe\', améliorer le dashboard \'Vue ': 'using the skill \'insight-principe\', improve the dashboard \'View ',
-  'Payload project-data sur les sessions de ce chat (racine + session courante). Les lignes marquées « ex. » sont un jeu d’exemple : elles meublent l’écran et servent de test réel de rendu, pas une donnée de production.': 'Payload project-data on the sessions of this chat (root + current session). Lines marked “ex.” are an example set: they fill the screen and serve as a real rendering test, not production data.',
+  'Ce que cette conversation envoie à propos de ses espaces de travail (le dossier et la session en cours). Les lignes marquées « ex. » sont un jeu d’exemple : elles meublent l’écran et ne sont pas des données réelles.': 'What this chat sends about its workspaces (the folder and the current session). Lines marked “ex.” are an example set: they fill the screen and are not real data.',
   'Ce que l\'espace a produit': 'What the workspace produced',
   'première entrée': 'first entry',
   'runs-index muet': 'runs-index silent',
-  'GET /runs-index?limit=200 — entrées réelles du plugin. Les lignes marquées « ex. » sont un jeu d’exemple qui meuble l’écran et sert de test réel de rendu.': 'GET /runs-index?limit=200 — real entries of the plugin. Lines marked “ex.” are an example set that fills the screen and serves as a real rendering test.',
+  'Les exécutions réellement enregistrées par Kybernos. Les lignes marquées « ex. » sont un jeu d’exemple qui meuble l’écran et ne sont pas des données réelles.': 'The runs Kybernos really recorded. Lines marked “ex.” are an example set that fills the screen and is not real data.',
   'en utilisant le skill \'insight-principe\', créer un dashboard pour l’Agent Team \'': 'using the skill \'insight-principe\', create a dashboard for the Agent Team \'',
   '\' pour l’Agent Team \'': '\' for the Agent Team \'',
   'Cacher la vue': 'Hide the view',
@@ -4205,7 +4205,7 @@ const KB_FR_EN = {
   ' pièces': ' pieces',
   'Reste ': 'Remaining ',
   'Tes modèles': 'Your models',
-  'Le texte de la réponse est envoyé au fournisseur du modèle que tu choisis, avec la clé déjà configurée dans Fournisseur IA & modèles.': 'The reply text is sent to the provider of the model you choose, with the key already set up in AI Provider & Models.',
+  'Le texte de la réponse est envoyé au fournisseur du modèle que tu choisis, avec la clé déjà configurée dans Fournisseur IA et modèles.': 'The reply text is sent to the provider of the model you choose, with the key already set up in AI provider and models.',
   'hors tarif': 'unpriced',
   'date inconnue': 'unknown date',
   'sonde OK': 'probe OK',
@@ -12541,7 +12541,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         libelle: kbe('the project'),
         nom: kbe('project name'),
         onglet: kbe('Project · sessions of this chat'),
-        reserve: kbe('The project name comes from the Projects page — no name in the payload: the slot stays visible in the pre-message.'),
+        reserve: kbe('The workspace name comes from the Workspaces page; when there is none, the slot stays visible but empty.'),
         lectures: {
           pbudget: (n) => kbe('No budget declared for this project: the block shows a filled example (tag ex.), never an invented budget. ') + n.sessions + (n.sessions > 1 ? kbe(' sessions covered, ') : kbe(' session covered, ')) + n.docs + (n.docs > 1 ? ' documents.' : ' document.'),
           pdocs: (n) => kbe('Project documents: ') + n.docs + (n.docs > 1 ? kbe(' documents for ') : kbe(' document for ')) + n.sessions + (n.sessions > 1 ? ' sessions — ' : ' session — ') + kbe('lines without the “ex.” tag come from the project-data payload.')
@@ -12783,7 +12783,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
             KbiExLignes(docsM),
             (docsM.exemple === true ? KbiExNote() : null)),
           sec('sources', kbe('Sources and caveats'),
-            h('p', { className: 'kbi-empty-in' }, kbe('Payload project-data on the sessions of this chat (root + current session). Lines marked “ex.” are an example set: they fill the screen and serve as a real rendering test, not production data.')),
+            h('p', { className: 'kbi-empty-in' }, kbe('What this chat sends about its workspaces (the folder and the current session). Lines marked “ex.” are an example set: they fill the screen and are not real data.')),
             h('p', { className: 'kbi-sub' }, conf.reserve))
         ]
         : [
@@ -12800,7 +12800,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
                 h('span', { className: 'kbi-ex-val' }, String(e.sessionId || ''))))
               : [KbiExLignes({ lignes: KBI_EXEMPLES.artefacts, exemple: true }), KbiExNote()])),
           sec('sources', kbe('Sources and caveats'),
-            h('p', { className: 'kbi-empty-in' }, kbe('GET /runs-index?limit=200 — real entries of the plugin. Lines marked “ex.” are an example set that fills the screen and serves as a real rendering test.')),
+            h('p', { className: 'kbi-empty-in' }, kbe('The runs Kybernos really recorded. Lines marked “ex.” are an example set that fills the screen and is not real data.')),
             h('p', { className: 'kbi-sub' }, conf.reserve))
         ]
       return h('div', { className: 'kbi-root', 'data-kb': 'insight-' + props.variante },
@@ -28247,7 +28247,7 @@ html[data-kb-settings-full="on"] [role="dialog"]:has([data-slot="settings.sectio
    colonne, quelle que soit la langue du placeholder. */
 .kbs-search{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border:1px solid var(--dsw-alias-border-l1);border-radius:10px;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-secondary);margin:10px 0 0;width:100%;max-width:100%;min-width:0;box-sizing:border-box}
 .kbs-search input{border:none;background:transparent;color:var(--dsw-alias-label-primary);font:inherit;font-size:13px;width:100%;min-width:0;flex:1 1 auto;outline:none}
-/* (30/09) Libellé de nav tronqué (« Fournisseur IA & modèles » coupé après
+/* (30/09) Libellé de nav tronqué (« Fournisseur IA et modèles » coupé après
    112 px) : la colonne passe de 188 à 248 px, ancrée sur le SUFFIXE de classe
    du shell (stable entre builds, seul le préfixe haché change) — et le
    libellé reprend toute la place restante de sa cellule. */
@@ -29494,7 +29494,7 @@ body:not([data-ds-dark-theme]) .kbt2-pill.warn{color:color-mix(in srgb,var(--dsw
     }
     const kbttsTexte = (lg) => (typeof KBTTS_ESSAI[lg] === 'string' ? KBTTS_ESSAI[lg] : KBTTS_ESSAI.en)
     const kbttsDir = (lg) => (KBTTS_RTL.indexOf(lg) >= 0 ? 'rtl' : 'ltr')
-    const kbttsConfidentialite = (txt) => txt.indexOf('Stays on this Mac') >= 0 ? kbe('Stays on this Mac. Nothing leaves it.') : (txt.indexOf('sent to Microsoft') >= 0 ? kbe('The reply text is sent to Microsoft to be synthesized.') : (txt.indexOf('sent to the provider of the model') >= 0 ? kbe('The reply text is sent to the provider of the model you choose, with the key already set up in AI Provider & Models.') : txt))
+    const kbttsConfidentialite = (txt) => txt.indexOf('Stays on this Mac') >= 0 ? kbe('Stays on this Mac. Nothing leaves it.') : (txt.indexOf('sent to Microsoft') >= 0 ? kbe('The reply text is sent to Microsoft to be synthesized.') : (txt.indexOf('sent to the provider of the model') >= 0 ? kbe('The reply text is sent to the provider of the model you choose, with the key already set up in AI provider and models.') : txt))
     const kbttsOctets = (n) => {
       const v = typeof n === 'number' && n > 0 ? n : 0
       if (v < 1024) return v + ' B'
@@ -34834,9 +34834,9 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       'key.g2': ['Create a key — call it “Kybernos”.', 'Crée une clé — appelle-la « Kybernos ».', 'Crea una clave y llámala «Kybernos».', 'أنشئ مفتاحًا وسمّه «Kybernos».'],
       'key.g3': ['Copy it, then paste it below.', 'Copie-la, puis colle-la ci-dessous.', 'Cópiala y pégala abajo.', 'انسخه ثم الصقه أدناه.'],
       'key.o1': ['In your provider’s console, get the service address and your key.', 'Dans l’espace de ton fournisseur, récupère l’adresse du service et ta clé.', 'En el panel de tu proveedor, obtén la dirección del servicio y tu clave.', 'من لوحة مزوّدك، احصل على عنوان الخدمة ومفتاحك.'],
-      'key.o2': ['You’ll paste them in Settings → AI Provider & Models.', 'Tu les colleras dans Réglages → Fournisseur IA & modèles.', 'Las pegarás en Ajustes → AI Provider & Models.', 'ستلصقهما في الإعدادات ← AI Provider & Models.'],
+      'key.o2': ['You’ll paste them in Settings → AI provider and models.', 'Tu les colleras dans Réglages → Fournisseur IA et modèles.', 'Las pegarás en Ajustes → AI provider and models.', 'ستلصقهما في الإعدادات ← AI provider and models.'],
       'key.note': ['The key stays on this computer and is only sent to your provider. Some providers ask for a payment method before you can create one.', 'La clé reste sur cet ordinateur et n’est envoyée qu’à ton fournisseur. Certains demandent un moyen de paiement avant d’en créer une.', 'La clave se queda en este ordenador y solo se envía a tu proveedor. Algunos piden un método de pago antes de crear una.', 'يبقى المفتاح على هذا الحاسوب ولا يُرسل إلا إلى مزوّدك. بعض المزوّدين يطلبون وسيلة دفع قبل إنشاء مفتاح.'],
-      'key.open': ['Open Settings → AI Provider & Models', 'Ouvrir Réglages → Fournisseur IA & modèles', 'Abrir Ajustes → AI Provider & Models', 'فتح الإعدادات ← AI Provider & Models'],
+      'key.open': ['Open Settings → AI provider and models', 'Ouvrir Réglages → Fournisseur IA et modèles', 'Abrir Ajustes → AI provider and models', 'فتح الإعدادات ← AI provider and models'],
       'key.nokey': ['No key? We’ll handle it — sign in instead', 'Pas de clé ? On s’en occupe — me connecter', '¿Sin clave? Nos encargamos: iniciar sesión', 'لا مفتاح؟ نتولى الأمر — سجّل الدخول'],
       'loc.t': ['A model on this computer', 'Un modèle sur cet ordinateur', 'Un modelo en este ordenador', 'نموذج على هذا الحاسوب'],
       'loc.s': ['Free and private: nothing leaves your machine. In return it’s slower and less capable than an online model on long tasks.', 'Gratuit et privé : rien ne quitte ta machine. En contrepartie, c’est plus lent et moins capable qu’un modèle en ligne sur les longues tâches.', 'Gratis y privado: nada sale de tu equipo. A cambio, es más lento y menos capaz que un modelo en línea en tareas largas.', 'مجاني وخاص: لا شيء يغادر جهازك. في المقابل هو أبطأ وأقل قدرة من نموذج عبر الإنترنت في المهام الطويلة.'],
@@ -34847,7 +34847,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       'loc.engine.no': ['Ollama — to install', 'Ollama — à installer', 'Ollama — por instalar', 'Ollama — يلزم تثبيته'],
       'loc.pulled': ['Models on this machine', 'Modèles sur cette machine', 'Modelos en este equipo', 'النماذج على هذا الجهاز'],
       'loc.pulled.n': ['{n}', '{n}', '{n}', '{n}'],
-      'loc.hint': ['Settings → AI Provider & Models shows what fits your machine and installs it for you.', 'Réglages → Fournisseur IA & modèles te montre ce qui tient sur ta machine et l’installe pour toi.', 'Ajustes → AI Provider & Models te muestra lo que cabe en tu equipo y lo instala por ti.', 'تعرض لك الإعدادات ← AI Provider & Models ما يناسب جهازك وتثبّته لك.'],
+      'loc.hint': ['Settings → AI provider and models shows what fits your machine and installs it for you.', 'Réglages → Fournisseur IA et modèles te montre ce qui tient sur ta machine et l’installe pour toi.', 'Ajustes → AI provider and models te muestra lo que cabe en tu equipo y lo instala por ti.', 'تعرض لك الإعدادات ← AI provider and models ما يناسب جهازك وتثبّته لك.'],
       'loc.go': ['Open local models', 'Ouvrir les modèles locaux', 'Abrir modelos locales', 'فتح النماذج المحلية'],
       'loc.other': ['Choose another way', 'Choisir autrement', 'Elegir otra opción', 'اختيار طريقة أخرى'],
       'fin.t': ['You’re all set', 'C’est prêt', 'Todo listo', 'كل شيء جاهز'],
@@ -34869,7 +34869,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       'key.err.invalid': ['{name} answered “invalid key”. Check that it’s complete, with no spaces, and that it comes from {name}.', '{name} a répondu « clé invalide ». Vérifie qu’elle est complète, sans espace, et qu’elle vient bien de {name}.', '{name} respondió «clave no válida». Comprueba que esté completa, sin espacios, y que sea de {name}.', 'أجاب {name} «مفتاح غير صالح». تأكد من أنه كامل وبلا مسافات وأنه من {name}.'],
       'key.err.denied': ['{name} refused this key. Check its permissions, and that billing is set up on your {name} account.', '{name} a refusé cette clé. Vérifie ses autorisations et que la facturation est activée sur ton compte {name}.', '{name} rechazó esta clave. Comprueba sus permisos y que la facturación esté activada en tu cuenta de {name}.', 'رفض {name} هذا المفتاح. تحقق من صلاحياته ومن تفعيل الفوترة في حسابك لدى {name}.'],
       'key.err.unreach': ['We couldn’t reach {name} to check it. Check your connection, or save it anyway and you’ll see at your first message.', 'On n’a pas pu joindre {name} pour la vérifier. Vérifie ta connexion, ou enregistre-la quand même et tu verras au premier message.', 'No hemos podido contactar con {name} para comprobarla. Comprueba tu conexión o guárdala igualmente y lo verás en tu primer mensaje.', 'تعذّر الوصول إلى {name} للتحقق. تحقق من اتصالك أو احفظه على أي حال وسترى عند أول رسالة.'],
-      'key.err.fail': ['The key could not be saved. You can add it in Settings → AI Provider & Models.', 'La clé n’a pas pu être enregistrée. Tu peux l’ajouter dans Réglages → Fournisseur IA & modèles.', 'No se pudo guardar la clave. Puedes añadirla en Ajustes → AI Provider & Models.', 'تعذّر حفظ المفتاح. يمكنك إضافته من الإعدادات ← AI Provider & Models.'],
+      'key.err.fail': ['The key could not be saved. You can add it in Settings → AI provider and models.', 'La clé n’a pas pu être enregistrée. Tu peux l’ajouter dans Réglages → Fournisseur IA et modèles.', 'No se pudo guardar la clave. Puedes añadirla en Ajustes → AI provider and models.', 'تعذّر حفظ المفتاح. يمكنك إضافته من الإعدادات ← AI provider and models.'],
       'key.again': ['Check again', 'Vérifier à nouveau', 'Comprobar de nuevo', 'تحقق مجددًا'],
       'key.anyway': ['Save anyway', 'Enregistrer quand même', 'Guardar igualmente', 'احفظ على أي حال'],
       'key.done.t': ['Key saved', 'Clé enregistrée', 'Clave guardada', 'تم حفظ المفتاح'],
@@ -34889,7 +34889,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       'loc.err.noengine': ['Ollama isn’t installed, and it can’t be installed from here on this system. Install it from ollama.com/download, then come back.', 'Ollama n’est pas installé, et il ne peut pas l’être d’ici sur ce système. Installe-le depuis ollama.com/download, puis reviens.', 'Ollama no está instalado y no se puede instalar desde aquí en este sistema. Instálalo desde ollama.com/download y vuelve.', 'Ollama غير مثبّت ولا يمكن تثبيته من هنا على هذا النظام. ثبّته من ollama.com/download ثم عد.'],
       'loc.err.busy': ['Another installation is already running. Wait for it to finish, then try again.', 'Une autre installation est déjà en cours. Attends qu’elle se termine, puis réessaie.', 'Ya hay otra instalación en curso. Espera a que termine y vuelve a intentarlo.', 'هناك تثبيت آخر قيد التنفيذ. انتظر حتى ينتهي ثم أعد المحاولة.'],
       'loc.err.failed': ['The download stopped before the end. You can try again.', 'Le téléchargement s’est arrêté avant la fin. Tu peux réessayer.', 'La descarga se detuvo antes del final. Puedes volver a intentarlo.', 'توقف التنزيل قبل اكتماله. يمكنك المحاولة مجددًا.'],
-      'loc.err.connect': ['{id} is downloaded but couldn’t be connected. Open Settings → Ollama Local Models to connect it.', '{id} est téléchargé mais n’a pas pu être branché. Ouvre Réglages → Ollama Local Models pour le brancher.', '{id} se descargó pero no se pudo conectar. Abre Ajustes → Ollama Local Models para conectarlo.', 'تم تنزيل {id} لكن تعذّر ربطه. افتح الإعدادات ← Ollama Local Models لربطه.'],
+      'loc.err.connect': ['{id} is downloaded but couldn’t be connected. Open Settings → Ollama local models to connect it.', '{id} est téléchargé mais n’a pas pu être branché. Ouvre Réglages → Ollama local models pour le brancher.', '{id} se descargó pero no se pudo conectar. Abre Ajustes → Ollama local models para conectarlo.', 'تم تنزيل {id} لكن تعذّر ربطه. افتح الإعدادات ← Ollama local models لربطه.'],
       'fin.key': ['API key · {name}', 'Clé API · {name}', 'Clave API · {name}', 'مفتاح API · {name}'],
       'fin.local.n': ['Local model · {id}', 'Modèle local · {id}', 'Modelo local · {id}', 'نموذج محلي · {id}'],
       'nm.t': ['This chat can’t answer yet', 'Ce chat ne peut pas encore répondre', 'Este chat aún no puede responder', 'لا يمكن لهذه المحادثة أن تجيب بعد'],
@@ -34912,7 +34912,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       'nm.none.signin': ['Sign in to Kybernos', 'Me connecter à Kybernos', 'Iniciar sesión en Kybernos', 'تسجيل الدخول إلى Kybernos'],
       'nm.none.add': ['Add a model', 'Ajouter un modèle', 'Añadir un modelo', 'إضافة نموذج'],
       'fin0.t': ['You can start', 'Tu peux commencer', 'Ya puedes empezar', 'يمكنك البدء'],
-      'fin0.s': ['Your agents will need a model to answer. Connect one whenever you like, in Settings → AI Provider & Models.', 'Pour que tes agents répondent, il faudra un modèle. Branches-en un quand tu veux, dans Réglages → Fournisseur IA & modèles.', 'Tus agentes necesitarán un modelo para responder. Conecta uno cuando quieras, en Ajustes → AI Provider & Models.', 'سيحتاج وكلاؤك إلى نموذج ليجيبوا. اربط واحدًا متى شئت من الإعدادات ← AI Provider & Models.'],
+      'fin0.s': ['Your agents will need a model to answer. Connect one whenever you like, in Settings → AI provider and models.', 'Pour que tes agents répondent, il faudra un modèle. Branches-en un quand tu veux, dans Réglages → Fournisseur IA et modèles.', 'Tus agentes necesitarán un modelo para responder. Conecta uno cuando quieras, en Ajustes → AI provider and models.', 'سيحتاج وكلاؤك إلى نموذج ليجيبوا. اربط واحدًا متى شئت من الإعدادات ← AI provider and models.'],
       // The model question (two answers, the other ways one quiet line below).
       'm.t': ['Which models should Kybernos use?', 'Quels modèles Kybernos doit-il utiliser ?', '¿Qué modelos debe usar Kybernos?', 'أي النماذج يجب أن يستخدمها Kybernos؟'],
       'm.s': ['You can change this any time in Settings.', 'Tu pourras changer cela à tout moment dans Réglages.', 'Podrás cambiarlo en cualquier momento en Ajustes.', 'يمكنك تغيير ذلك في أي وقت من الإعدادات.'],
