@@ -82,6 +82,7 @@ first-run wizard), which carries both by itself. The reads (`GET`) stay open beh
 | `POST /kybernos-models/annotations/save` | `{ok, key, fields, count}` — `{key, fields}`; key `route/id` (≤ 300, non-empty segments); `fields:null` purges the key; a `null`/`''` value removes the field |
 | `POST /kybernos-models/journal` | `{ok, line}` — one line per write attempt; `GET …?limit=N` re-reads the last N |
 | `POST /kybernos-models/key/check` | `{ok, result}` — `{provider, key}`: a read-only GET on the provider's model list (address chosen here from a table of four: anthropic, openai, deepseek, google; redirect refused; global fetch, never `web.fetch`). `result`: `ok`, `invalid`, `denied`, `rate_limited`, `unreachable`, `unexpected`. Neither the key nor the answer comes back. Same origin required. Used by `kybernos-plugin`'s first-run wizard. |
+| `POST /kybernos-models/models/probe` | `{ok, api, baseURL}` or `{ok:false, error}` — `{route, model}`: which protocol a model outside the engine's catalog speaks, asked of the provider (address and key are the route's, never the caller's): one single-token POST per protocol (OpenAI chat, Anthropic messages, OpenAI responses) until one answers 2xx; 401/403/429 and a network failure stop the search. `error`: `refused`, `rate-limited`, `unreachable`, `unknown-protocol`, `bad-route`, `bad-model`, `no-endpoint`. Same origin + session required. |
 | `POST /kybernos-models/models/live` | `{ok, source:'live', url, models:[{id, name, contextWindow?, maxTokens?, inputModalities?}]}` or `{ok:false, error, status?, detail?}` — `{route, baseURL?, api?, key?}`: « Fetch available models » for a catalog route. The host asks the provider's own endpoint (`GET {baseURL}/models`, Anthropic: `{root}/v1/models`) with the key the route's profile names, read through the `credentials` service (a typed `key` wins); the address is the profile's, else the shipped catalogue's. A page-typed `baseURL` is followed only beside a typed `key`. https (or http on this machine), redirect refused, 4 MB ceiling, global fetch, never `web.fetch`. `error`: `refused` (+`status`, `detail` = the provider's own `error.message`), `unreachable`, `bad-reply`, `too-big`, `no-endpoint`, `foreign-endpoint`, `unsupported-protocol`, `bad-endpoint`, `bad-route`, `bad-key`. The key never comes back. Same origin + session required. |
 | `GET /kybernos-models/modelsdev?route=&id=&force=1` | `{ok, at, stale, match:{…}\|null}`; `modelsdev-unavailable` when there is no index |
 | `POST /kybernos-models/scores/list` | `{ok, at, stale, scores:{ 'route/id': 52.3 }}` — `{models:[{key, name?}]}` (800 at most): the headline score (Artificial Analysis' intelligence index) of every model the snapshot knows, by the same matching rules as the sheet; a model it does not know is simply absent |
@@ -108,17 +109,24 @@ The picker of the provider panel (`Fetch available models`) asks, in this order:
 Where the endpoint lists bare ids (`opencode-go`), the name and capacities the engine's catalog knows for the same id are filled
 in; the live list alone decides which models exist.
 
-**Models outside the engine's catalog.** The engine takes ONE `api` and ONE `baseURL` per route and none per model, and a model its
-installed catalog does not describe has neither: « model "x" needs an api », then « needs a baseURL » (measured on rc.2 for
-`opencode-go`, whose catalog serves 4 protocols over 2 addresses: 18 models OpenAI chat and 5 OpenAI responses and 1 Google at
-`…/inference/go/v1`, 5 Anthropic at `…/inference/go`). The live list shows such models, so the picker tags them « Not in DSH's catalog »
-and does not tick them on opening. To add one to the EXISTING provider, the Edit panel has an **API protocol** select under Customized
-settings (Automatic by default = the catalog's, per model): choosing a protocol (and setting the Base URL) is written on the route and
-**binds every model of the provider to it** — for a provider that serves several protocols, the models that speak another one stop
-answering until the select goes back to Automatic. The panel says so under the select. A refusal by the engine is said in words (choose
-the protocol, or set the Base URL, or remove the model), keeps the draft, and the route is remembered: its models outside the catalog
-are locked in the picker until a protocol is chosen. A route whose profile (or draft) declares an `api`, or whose catalog is empty, is
-never tagged. A typed Base URL is not sent to the live list unless a key is typed with it: the list is the provider's own.
+**Custom models of a catalog provider.** The engine takes ONE `api` and ONE `baseURL` per route and none per model, and a model its
+installed catalog does not describe has neither: it is refused (« model "x" needs an api », then « …needs a baseURL ») on a route whose
+catalog serves several protocols (`opencode-go`: 4 protocols over 2 addresses). Setting them on the route would bind every other model
+to them. So a model outside the catalog is added as a **custom model of the provider**, which the engine sees as a route of its own, a
+**companion** (`<route>-custom-chat|resp|msgs`, one per protocol): declared with its own `api` and `baseURL`, the provider's key
+reference (the key is not pasted again) and the name « <provider> (custom) ». Nothing else of the provider changes, and no other model
+is bound to anything. The page draws the provider alone: the companion has no card, its models count with the provider's (« 30 models »),
+the Models tab lists them under the provider with a « custom » tag, and the Edit panel lists them (« Custom models ») with a remove each.
+Deleting the provider deletes its companions, switching it off or on moves them with it.
+
+The picker tags the models outside the catalog (« Not in DSH's catalog ») and does not tick them on opening: each one costs a probe. On
+Apply the save is tried as it is (a provider whose catalog serves one protocol accepts them on its own route and no companion is made);
+when the engine refuses one, it and the models flagged as outside the catalog move to the companion and the rest is saved. The protocol
+of each is asked of the provider (`POST /kybernos-models/models/probe`, host side, with the stored key: one request of a single token per
+protocol, OpenAI chat, then Anthropic messages, then OpenAI responses, until one answers; the key and the answers never come back); when
+it cannot be asked (no key, unreachable) the model is added on OpenAI chat at the provider's address and the page says it was a guess.
+Measured on rc.2 against the sandbox's real engine: `opencode-go` + `minimax-m3.1-flash-free` → « Applied », 30 models, the companion
+accepted with the same key reference. A typed Base URL is not sent to the live list unless a key is typed with it.
 
 The provider's card counts the models declared in its profile; its Models view shows all of them, whatever their health (the
 « not answering » fold applies to the unscoped list only), so « 3 models » is 3 on screen.
