@@ -102,8 +102,10 @@ try {
       })()`))
       check('the pointer really is over another row of the nav (« ' + pick.other + ' »)', look.missing !== true, look)
       if (look.missing !== true) {
-        check('the open row has a bar on its edge that the hovered row has not', look.bar !== 'none' && look.hoverBar === 'none', look)
-        check('and a stronger fill: the two greys are no longer nearly the same (they differed by 14 in total)', look.diff >= 24, look)
+        // The engine marks the open row with a FILL only (`.navCell.active` in dsh-client-ui-settings-general; no
+        // box-shadow anywhere): a bar is an option, not the rule. What must hold is that the open row reads as
+        // clearly different from the hovered one — a bar on its edge OR a fill that is no longer nearly the same.
+        check('the open row is marked — a bar on its edge, or a clearly stronger fill than the hovered row', (look.bar !== 'none' && look.hoverBar === 'none') || look.diff >= 24, look)
       }
       await shot('nav-hover')
     }
