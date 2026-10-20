@@ -843,7 +843,7 @@ let kbLocaleRead = () => 'en'
       'ui.resolution': { kybernos: 'résolution : ', en: 'resolution: ' },
       'ui.realprobe': { kybernos: 'sonde réelle : ', en: 'real probe: ' },
       'ui.targets': { kybernos: ' cibles testées', en: ' targets tested' },
-      'ui.noyaml': { kybernos: 'aucun kyber.yml trouvé', en: 'no kyber.yml found' },
+      'ui.noyaml': { kybernos: 'aucun fichier d’équipe trouvé', en: 'no team file found' },
       'ui.failedmid': { kybernos: ' en échec / ', en: ' failed / ' },
       'ui.unprobedmid': { kybernos: ' non sondés / ', en: ' not probed / ' },
       'ui.filter': { kybernos: 'filtrer : Agent Team, agent, modèle…', en: 'filter: agent team, agent, model…' },
@@ -865,7 +865,7 @@ let kbLocaleRead = () => 'en'
       'ui.nogoal': { kybernos: 'Aucun objectif persistant sur cette session — ceux créés par l\'agent apparaîtront ici.', en: 'No persistent goal in this session — the ones the agent creates will show up here.' },
       'ui.recent': { kybernos: 'récent', en: 'recent' },
       'ui.input': { kybernos: 'entrée', en: 'input' },
-      'ui.notools': { kybernos: 'Aucun outil déclaré dans les rôles (champ tools: du kyber.yml).', en: 'No tool declared in the roles (tools: field of kyber.yml).' },
+      'ui.notools': { kybernos: 'Aucun outil déclaré dans les rôles (section outils du fichier de l’équipe).', en: 'No tool declared in the roles (tools section of the team file).' },
       'ui.unset': { kybernos: 'non fixé', en: 'not set' },
       'ui.emptyunchanged': { kybernos: 'vide = inchangé', en: 'empty = unchanged' },
       'ui.due': { kybernos: 'Échéance', en: 'Due date' },
@@ -881,11 +881,11 @@ let kbLocaleRead = () => 'en'
       'ui.teamnotfound': { kybernos: 'Agent Team introuvable.', en: 'Agent Team not found.' },
       'kbui.team.backall': { kybernos: 'Toutes les Agent Teams', en: 'All Agent Teams' },
       'kbui.team.reading': { kybernos: 'lecture…', en: 'reading…' },
-      'kbui.team.folderonly': { kybernos: 'Le dossier de l’Agent Team ne contient que kyber.yml.', en: 'The Agent Team folder only contains kyber.yml.' },
+      'kbui.team.folderonly': { kybernos: 'Le dossier de l’Agent Team ne contient que le fichier de l’équipe.', en: 'The Agent Team folder only contains the team file.' },
       'kbui.team.due': { kybernos: 'échéance ', en: 'due ' },
-      'kbui.team.budget.none': { kybernos: 'aucun — bloc budget: absent du kyber.yml', en: 'none — no budget: block in kyber.yml' },
+      'kbui.team.budget.none': { kybernos: 'aucun — pas de section budget dans le fichier de l’équipe', en: 'none — no budget section in the team file' },
       'kbui.team.budget.undeclared': { kybernos: 'montant non déclaré', en: 'amount not declared' },
-      'kbui.team.budget.declared': { kybernos: 'déclaré dans le kyber.yml', en: 'declared in kyber.yml' },
+      'kbui.team.budget.declared': { kybernos: 'déclaré dans le fichier de l’équipe', en: 'declared in the team file' },
       'ui.liveteam.head': { kybernos: '🛰 Équipe live (Agent Teams)', en: '🛰 Live team (Agent Teams)' },
       'ui.rosterunavailable': { kybernos: 'Roster indisponible ici — utilise le bouton Agent Teams dans le header de la conversation.', en: 'Roster unavailable here — use the Agent Teams button in the conversation header.' },
       'ui.nosession': { kybernos: 'aucune session connue pour cette Agent Team', en: 'no known session for this agent team' },
@@ -1008,7 +1008,7 @@ let kbLocaleRead = () => 'en'
       'crew.legend': { kybernos: '✓ conforme · ≠ écart de modèle · ○ non tenu · ✕ agent en échec', en: '✓ matches · ≠ model gap · ○ not held · ✕ agent failed' },
       'crew.llmtime': { kybernos: 'temps LLM ', en: 'LLM time ' },
       'crew.matches': { kybernos: 'conforme', en: 'matches' },
-      'crew.matrix.note': { kybernos: 'Le modèle inscrit dans le kyber.yml n\'est pas forcément celui qui s\'exécute : Agent Teams ne lit pas cette table. Les lignes marquées à gauche sont des écarts.', en: 'The model written in kyber.yml is not necessarily the one that runs: Agent Teams does not read this table. Rows flagged on the left are gaps.' },
+      'crew.matrix.note': { kybernos: 'Le modèle inscrit dans le fichier de l’équipe n\'est pas forcément celui qui s\'exécute : Agent Teams ne lit pas cette table. Les lignes marquées à gauche sont des écarts.', en: 'The model written in the team file is not necessarily the one that runs: Agent Teams does not read this table. Rows flagged on the left are gaps.' },
       'crew.member': { kybernos: 'membre', en: 'member' },
       'crew.members': { kybernos: 'membres', en: 'members' },
       'crew.modality': { kybernos: 'modalité ', en: 'modality ' },
@@ -1695,12 +1695,12 @@ let kbLocaleRead = () => 'en'
       'kbui.skill.detach': { kybernos: 'Détacher de ce projet', en: 'Detach from this project' },
       'kbui.skills.one': { kybernos: 'rattachée à ce projet', en: 'attached to this project' },
       'kbui.skills.many': { kybernos: 'rattachées à ce projet', en: 'attached to this project' },
-      'kbui.skills.hintteam': { kybernos: 'Coche les compétences rattachées à cette Agent Team — la sélection est écrite dans son kyber.yml.', en: 'Check the skills attached to this Agent Team — the selection is written to its kyber.yml.' },
+      'kbui.skills.hintteam': { kybernos: 'Coche les compétences rattachées à cette Agent Team — la sélection est écrite dans son fichier d’équipe.', en: 'Check the skills attached to this Agent Team — the selection is written to its team file.' },
       'kbui.skills.oneteam': { kybernos: 'rattachée à cette Agent Team', en: 'attached to this Agent Team' },
       'kbui.skills.manyteam': { kybernos: 'rattachées à cette Agent Team', en: 'attached to this Agent Team' },
       'kbui.skills.ghostteam': { kybernos: 'rattachée à cette Agent Team (plus détectée)', en: 'attached to this Agent Team (no longer detected)' },
       'kbui.kyber.declares': { kybernos: 'Le kyber.yml déclare l’équipe (rôles, ordre, modèle déclaré).', en: 'kyber.yml declares the crew (roles, order, declared model).' },
-      'kbui.model.caveat': { kybernos: 'Le modèle déclaré dans le kyber.yml n’est pas forcément celui qui tourne : Agent Teams ne lit pas encore cette table.', en: 'The model declared in kyber.yml is not necessarily the one that runs: Agent Teams does not read that table yet.' },
+      'kbui.model.caveat': { kybernos: 'Le modèle déclaré dans le fichier de l’équipe n’est pas forcément celui qui tourne : Agent Teams ne lit pas encore cette table.', en: 'The model declared in the team file is not necessarily the one that runs: Agent Teams does not read that table yet.' },
       'kbui.plugin.free': { kybernos: 'Le plugin reste libre et ouvert. Lance-le, forke-le, livre-le — hosted existe pour le travail qui ne peut pas attendre que ta machine se réveille.', en: 'The plugin stays free and open. Run it, fork it, ship it — hosted exists for the work that cannot wait for your laptop to wake up.' },
       'kbui.chat.bound': { kybernos: 'Ce chat est lié à cette Agent Team', en: 'This chat is bound to this Agent Team' },
       'kbui.three.gestures': { kybernos: 'Trois gestes pour tout organiser', en: 'Three gestures to organise everything' },
@@ -1936,7 +1936,7 @@ let kbLocaleRead = () => 'en'
       'kbui.mm.quality': { kybernos: 'Qualité', en: 'Quality' },
       'kbui.mm.budget': { kybernos: 'Budget mensuel', en: 'Monthly budget' },
       'kbui.mm.soon': { kybernos: 'bientôt', en: 'coming soon' },
-      'kbui.mm.caveat': { kybernos: 'Déclaré ici, sans effet encore : le routage automatique (filtrer, noter, choisir un primaire et un secours) n’est pas câblé côté hôte — « Tout auto » et « Par rôle » s’écrivent, mais ne changent pas le modèle exécuté. Le modèle déclaré dans le kyber.yml reste celui qui tourne.', en: 'Declared here, not effective yet: automatic routing (filter, score, pick a primary and a fallback) is not wired on the host — “All auto” and “Per role” are written down, but do not change the model that runs. The model declared in kyber.yml is still the one that runs.' },
+      'kbui.mm.caveat': { kybernos: 'Déclaré ici, sans effet encore : le routage automatique (filtrer, noter, choisir un primaire et un secours) n’est pas câblé côté hôte — « Tout auto » et « Par rôle » s’écrivent, mais ne changent pas le modèle exécuté. Le modèle déclaré dans le fichier de l’équipe reste celui qui tourne.', en: 'Declared here, not effective yet: automatic routing (filter, score, pick a primary and a fallback) is not wired on the host — “All auto” and “Per role” are written down, but do not change the model that runs. The model declared in the team file is still the one that runs.' },
       'kbui.portrait.title': { kybernos: 'Persona — description physique', en: 'Persona — physical description' },
       'kbui.portrait.regen': { kybernos: 'Régénérer ce portrait', en: 'Regenerate this portrait' },
       'kbui.portrait.with': { kybernos: 'avec ', en: 'with ' },
@@ -1947,7 +1947,7 @@ let kbLocaleRead = () => 'en'
       'kbui.crew.members.sub': { kybernos: 'Un persona · un prompt · un modèle par rôle', en: 'One persona · one prompt · one model per role' },
       'kbui.visages.pricehead': { kybernos: ' par équipe quel que soit l’effectif', en: ' per team whatever the headcount' },
       'kbui.visages.model.note': { kybernos: ' — un appel rend la scène et les portraits, la découpe est locale (gratuite, rejouable) ; 9 visages au maximum par planche, au-delà le modèle dérive.', en: ' — one call renders the scene and the portraits, the crop is local (free, repeatable); 9 faces maximum per sheet, beyond that the model drifts.' },
-      'kbui.crew.addrole.soon': { kybernos: 'Créer un rôle demande d’écrire le kyber.yml : pas encore câblé (le reste de la carte est actif).', en: 'Creating a role means writing kyber.yml: not wired yet (the rest of the card is live).' },
+      'kbui.crew.addrole.soon': { kybernos: 'Créer un rôle demande d’écrire le fichier de l’équipe : pas encore câblé (le reste de la carte est actif).', en: 'Creating a role means writing the team file: not wired yet (the rest of the card is live).' },
       'kbui.crew.provider': { kybernos: 'Fournisseur', en: 'Provider' },
       'kbui.crew.model': { kybernos: 'Modèle', en: 'Model' },
       'kbui.crew.prompt': { kybernos: 'Prompt système du rôle', en: 'Role system prompt' },
@@ -2064,7 +2064,7 @@ let kbLocaleRead = () => 'en'
       'kbui.quality.boucle': { kybernos: 'Boucle question → réponse → critique', en: 'Question → answer → critique loop' },
       'kbui.quality.defi': { kybernos: 'Défi : 3 modèles en relais', en: 'Challenge: 3 models in relay' },
       'kbui.quality.sources': { kybernos: 'Sources et réserves', en: 'Sources and caveats' },
-      'kbui.ins.sub': { kybernos: 'Ce que cette Agent Team a réellement fait : exécutions, sessions, tokens, économies. Chaque chiffre vient du ledger de l’Agent Team, des journaux de session ou des sauvegardes de kyber.yml — aucune donnée de démonstration.', en: 'What this Agent Team actually did: executions, sessions, tokens, savings. Every number comes from the Agent Team’s ledger, the session journals or the kyber.yml backups — no demo data.' },
+      'kbui.ins.sub': { kybernos: 'Ce que cette Agent Team a réellement fait : exécutions, sessions, tokens, économies. Chaque chiffre vient du ledger de l’Agent Team, des journaux de session ou des sauvegardes du fichier de l’équipe — aucune donnée de démonstration.', en: 'What this Agent Team actually did: executions, sessions, tokens, savings. Every number comes from the Agent Team’s ledger, the session journals or the team file’s backups — no demo data.' },
       'kbui.ins.period': { kybernos: 'Période', en: 'Period' },
       'kbui.ins.d7': { kybernos: '7 derniers jours', en: 'Last 7 days' },
       'kbui.ins.d30': { kybernos: '30 derniers jours', en: 'Last 30 days' },
@@ -3441,7 +3441,7 @@ const KB_FR_EN = {
   'Accès micro refusé — autorise le micro pour cette page': 'Microphone access denied — allow the mic for this page',
   'Afficher le détail': 'Show the detail',
   'Afficher les points': 'Show the points',
-  'Aucun bloc `budget:` dans les kyber.yml du projet.': 'No `budget:` block in the project kyber.yml files.',
+  'Aucune section budget dans les fichiers d’équipe du projet.': 'No budget section in the project’s team files.',
   'Aucun budget déclaré pour y rapporter cette dépense.': 'No declared budget to report this spend against.',
   'Aucune Agent Team n’a encore tourné dans les threads de ce projet.': 'No agent team has run in this project’s threads yet.',
   'La liste ci-dessous est le catalogue de compétences de l’environnement.': 'The list below is the environment’s skill catalog.',
@@ -3516,7 +3516,7 @@ const KB_FR_EN = {
   'Le navigateur a suspendu l audio : reclique le micro (un clic sur la page suffit à l autoriser)': 'The browser suspended audio: click the mic again (a click on the page is enough to allow it)',
   'Lecture de l’inventaire…': 'Reading the inventory…',
   'Lecture des connexions Composio…': 'Reading the Composio connections…',
-  'Lecture des kyber.yml…': 'Reading the kyber.yml files…',
+  'Lecture des fichiers d’équipe…': 'Reading the team files…',
   'Les Agent Teams de ce projet ne déclarent aucun outil (connector).': 'This project’s agent teams declare no tool (connector).',
   'Lien copié (Hosted only)': 'Link copied (Hosted only)',
   'Micro ': 'Mic ',
@@ -3704,9 +3704,9 @@ const KB_FR_EN = {
   ' réserve de sources': ' source caveat',
   ' réserves ouvertes': ' open caveats',
   ' réserve ouverte': ' open caveat',
-  'aucun bloc budget: pour ce projet': 'no budget: block for this project',
+  'aucune section budget pour ce projet': 'no budget section for this project',
   'aucune deadline déclarée': 'no deadline declared',
-  'Aucun budget déclaré (bloc budget: absent) — ': 'No budget declared (budget: block absent) — ',
+  'Aucun budget déclaré (pas de section budget) — ': 'No budget declared (no budget section) — ',
   'Budget déclaré : ': 'Declared budget: ',
   ' — ': ' — ',
   'Équipe non liée à la session : ': 'Team not linked to the session: ',
@@ -3718,12 +3718,12 @@ const KB_FR_EN = {
   'Étape « ': 'Stage "',
   'fermer': 'close',
   'kyber.yml — texte brut': 'kyber.yml — raw text',
-  'Proposer un kyber.yml': 'Propose a kyber.yml',
+  'Proposer un fichier d’équipe': 'Propose a team file',
   'Décris le workflow en français — la proposition est relue en français (aller-retour) avant toute écriture.': 'Describe the workflow in French — the proposal is read back in French (round-trip) before anything is written.',
   'Ex : une équipe qui cadre une fonctionnalité, la spécifie, la teste, puis la vérifie en boucle jusqu’à convergence.': 'E.g. a team that frames a feature, specifies it, tests it, then checks it in a loop until convergence.',
-  'Proposer un kyber.yml': 'Propose a kyber.yml',
+  'Proposer un fichier d’équipe': 'Propose a team file',
   'Le modèle rédige la proposition…': 'The model is drafting the proposal…',
-  'Écriture du kyber.yml…': 'Writing kyber.yml…',
+  'Écriture du fichier de l’équipe…': 'Writing the team file…',
   'échec': 'failed',
   '✓ Écrit dans ': '✓ Written to ',
   ' — sauvegarde : ': ' — backup: ',
@@ -3736,7 +3736,7 @@ const KB_FR_EN = {
   'par élément': 'per item',
   'converge': 'converge',
   'adversarial': 'adversarial',
-  'Lecture du kyber.yml…': 'Reading kyber.yml…',
+  'Lecture du fichier de l’équipe…': 'Reading the team file…',
   // ── Complétude kbf (audit du 25/09 : 23 chaînes utilisées sans traduction) ─
   'Hôte injoignable': 'Host unreachable',
   'Détection impossible': 'Detection unavailable',
@@ -3761,10 +3761,10 @@ const KB_FR_EN = {
   'Taux USD → EUR': 'USD → EUR rate',
   'Échéance': 'Deadline',
   'budget déclaré par l’Agent Team « ': 'budget declared by agent team "',
-  ' » (bloc budget: du kyber.yml)': '" (budget: block of kyber.yml)',
+  ' » (section budget du fichier de l’équipe)': '" (budget section of the team file)',
   'consommés sur la période (tarifs models.dev)': 'consumed over the period (models.dev pricing)',
   'taux du payload (llm.usdEur)': 'rate from the payload (llm.usdEur)',
-  'Aucun budget déclaré par cette Agent Team (bloc budget: du kyber.yml) — l’affichage reste une absence, jamais un zéro maquillé.': 'No budget declared by this agent team (budget: block of kyber.yml) — the display stays an absence, never a dressed-up zero.',
+  'Aucun budget déclaré par cette Agent Team (section budget du fichier de l’équipe) — l’affichage reste une absence, jamais un zéro maquillé.': 'No budget declared by this agent team (budget section of the team file) — the display stays an absence, never a dressed-up zero.',
   'Bonne réponse (Quality Score)': 'Good answer (Quality Score)',
   'Bonne réponse': 'Good answer',
   'Réponse à améliorer (Quality Score)': 'Answer to improve (Quality Score)',
@@ -4142,7 +4142,7 @@ const KB_FR_EN = {
   'Archiver la vue': 'Archive the view',
   'Cloner la vue': 'Clone the view',
   'Actions de la vue ': 'Actions of the view ',
-  'déclarée dans le kyber.yml': 'declared in the kyber.yml',
+  'déclarée dans le fichier de l’équipe': 'declared in the team file',
   ' jours, le simulateur annonce ': ' days, the simulator reports ',
   ' car.) mais topologie non reconnue': ' char.) but topology not recognised',
   'yml illisible par le lecteur local': 'yml unreadable by the local reader',
@@ -4157,7 +4157,7 @@ const KB_FR_EN = {
   'Consommation de cette session': 'Usage of this session',
   'Le host ne remonte pas encore de consommation pour cette session.': 'The host does not report any usage for this session yet.',
   'Comment ces chiffres sont obtenus': 'How these figures are obtained',
-  'Budget : bloc `budget:` des kyber.yml des Agent Teams qui ont tourné dans les threads de ce projet. Consommation : usage réel remonté par le host pour la session courante. Aucune estimation, aucun graphe inventé.': 'Budget: the `budget:` block of the kyber.yml files of the Agent Teams that ran in the threads of this project. Usage: real usage reported by the host for the current session. No estimate, no invented graph.',
+  'Budget : section budget des fichiers d’équipe des Agent Teams qui ont tourné dans les threads de ce projet. Consommation : usage réel remonté par le host pour la session courante. Aucune estimation, aucun graphe inventé.': 'Budget: the budget section of the team files of the Agent Teams that ran in the threads of this project. Usage: real usage reported by the host for the current session. No estimate, no invented graph.',
   'Contenu binaire — pas d apercu textuel': 'Binary content — no text preview',
   'Au-dessus du plafond de 1,2 Mo': 'Above the 1.2 MB limit',
   'Quiz illisible : aucun item exploitable dans ': 'Unreadable quiz: no usable item in ',
@@ -4182,7 +4182,7 @@ const KB_FR_EN = {
   'Capture micro indisponible dans ce contexte': 'Microphone capture unavailable in this context',
   'Web Audio indisponible dans ce navigateur': 'Web Audio unavailable in this browser',
   'Capture PCM indisponible dans ce navigateur': 'PCM capture unavailable in this browser',
-  'lecture des kyber.yml…': 'reading the kyber.yml files…',
+  'lecture des fichiers d’équipe…': 'reading the team files…',
   'erreur : ': 'error: ',
   'lecture impossible': 'cannot read',
   'host TTS indisponible (': 'TTS host unavailable (',
@@ -4655,6 +4655,100 @@ const kbLookColor = (color, onColor, opts) => {
       h('input', { type: 'color', 'aria-label': kbt('kbui.custom'), value: cur !== '' ? cur : KB_SWATCHES[0], onChange: (e) => onColor(e.target.value), className: 'kb8-colorwheel' }),
       h('input', { value: cur, placeholder: '#635bff', onChange: (e) => onColor(e.target.value), className: 'kb8-colorhex' })))
 }
+// <kb-icon-search>
+// The icon pickers match what the person types against the icon's name, its Lucide search words (icon-tags.json) and a table of French and
+// English concepts (« musculation », « argent ») that stand for those words (icon-concepts.json): both are served by /kybernos/icon-tags and
+// fetched when the person first types. « sport » used to find `sport-shoe` and nothing else (UX audit 2026-10-20). A concept line is
+// « words people type | words the icons carry ».
+let kbConceptsOf = null
+let kbConceptsMap = {}
+const kbConcepts = (lines) => {
+  if (Array.isArray(lines) === false) return {}
+  if (kbConceptsOf === lines) return kbConceptsMap
+  const m = {}
+  for (const line of lines) {
+    const cut = String(line).indexOf('|')
+    if (cut < 0) continue
+    const terms = String(line).slice(cut + 1).split(' ')
+    for (const key of String(line).slice(0, cut).split(' ')) if (key !== '') m[key] = (m[key] || []).concat(terms)
+  }
+  kbConceptsOf = lines
+  kbConceptsMap = m
+  return m
+}
+const kbIconNorm = (s) => String(s === null || s === undefined ? '' : s).toLowerCase().normalize('NFD').replace(/\p{M}/gu, '').trim()
+// The icons that answer `query`, best first. Every typed word must be found (name, search words, or a concept it stands for).
+// Rank: the name itself, its start, one of its words, a word of its search words; a concept counts for less than the word itself.
+const kbIconSearch = (query, names, words) => {
+  const typed = kbIconNorm(query).split(/\s+/).filter((w) => w.length > 0)
+  if (typed.length === 0 || Array.isArray(names) === false) return []
+  const bank = (words !== null && words !== undefined && words.tags !== null && typeof words.tags === 'object') ? words.tags : {}
+  const concepts = kbConcepts(words !== null && words !== undefined ? words.concepts : null)
+  const standFor = (w) => {
+    let extra = concepts[w]
+    if (extra === undefined && w.length > 3) extra = concepts[w.replace(/[sx]$/, '')]
+    if (extra === undefined && w.length >= 4) {
+      const hit = []
+      for (const k of Object.keys(concepts)) if (k.startsWith(w)) hit.push(...concepts[k])
+      if (hit.length > 0) extra = hit
+    }
+    return extra === undefined ? [] : extra
+  }
+  const plans = typed.map((w) => ({ w: w, extra: standFor(w) }))
+  const scored = []
+  for (const n of names) {
+    const parts = n.split('-')
+    const tw = typeof bank[n] === 'string' ? bank[n].split(' ') : []
+    const score = (t, weight) => {
+      let s = 0
+      if (n === t) s = 100
+      else if (n.startsWith(t)) s = 80
+      else if (parts.indexOf(t) >= 0) s = 70
+      else if (parts.some((p) => p.startsWith(t))) s = 60
+      else if (t.length >= 3 && n.indexOf(t) >= 0) s = 50
+      else if (tw.indexOf(t) >= 0) s = 40
+      else if (t.length >= 2 && tw.some((x) => x.startsWith(t))) s = 30
+      return s * weight
+    }
+    let total = 0
+    for (const p of plans) {
+      let best = score(p.w, 1)
+      // the first concept of a line is its heart (the dumbbell of « musculation »), the others its neighbours
+      p.extra.forEach((t, i) => { const v = score(t, i === 0 ? 0.5 : 0.3); if (v > best) best = v })
+      if (best === 0) { total = 0; break }
+      total += best
+    }
+    if (total > 0) scored.push([total, n])
+  }
+  scored.sort((a, b) => b[0] - a[0] || a[1].length - b[1].length || (a[1] < b[1] ? -1 : 1))
+  return scored.map((x) => x[1])
+}
+// </kb-icon-search>
+// The search words arrive when the person first types in a picker (about 150 KB: not sent with the list). Until then, or without the route (an
+// older host), the names are searched, ranked.
+let kbIconTagsData = null
+let kbIconTagsAsked = false
+const kbIconTagsListeners = []
+const kbLoadIconTags = () => {
+  if (kbIconTagsAsked === true) return
+  kbIconTagsAsked = true
+  try {
+    fetch(kbApiBase() + '/icon-tags', { cache: 'force-cache' }).then((r) => (r.ok ? r.json() : null)).then((body) => {
+      if (body === null || body === undefined || body.tags === null || typeof body.tags !== 'object' || Object.keys(body.tags).length === 0) return
+      kbIconTagsData = { tags: body.tags, concepts: Array.isArray(body.concepts) === true ? body.concepts : [] }
+      for (const f of kbIconTagsListeners.slice()) { try { f() } catch (e) { /* subscriber gone */ } }
+    }).catch(() => { /* the names alone */ })
+  } catch (e) { /* no fetch */ }
+}
+const kbUseIconTags = () => {
+  const pair = React.useState(kbIconTagsData)
+  React.useEffect(() => {
+    const f = () => pair[1](kbIconTagsData)
+    kbIconTagsListeners.push(f)
+    return () => { const i = kbIconTagsListeners.indexOf(f); if (i >= 0) kbIconTagsListeners.splice(i, 1) }
+  }, [])
+  return pair[0]
+}
 const kbLookIcon = (opts) => {
   const o = (opts !== null && opts !== undefined) ? opts : {}
   const all = (Array.isArray(o.icons) === true) ? o.icons : []
@@ -4662,10 +4756,10 @@ const kbLookIcon = (opts) => {
   const q2 = q.trim().toLowerCase()
   // Liste vide = on montre la sélection courte du produit (sinon la grille est
   // muette tant que `icons.json` n'est pas arrivé).
-  const shown = (all.length === 0) ? KB_DEFAULT_ICONS : (q2 === '' ? KB_DEFAULT_ICONS.filter((n) => all.indexOf(n) >= 0) : all.filter((n) => n.indexOf(q2) >= 0).slice(0, 300))
+  const shown = (all.length === 0) ? KB_DEFAULT_ICONS : (q2 === '' ? KB_DEFAULT_ICONS.filter((n) => all.indexOf(n) >= 0) : kbIconSearch(q2, all, o.words).slice(0, 300))
   return h('div', { className: 'kb8-look' },
     h('div', { className: 'kb8-search', style: { height: '40px' } }, Icon('search', 14),
-      h('input', { value: q, onChange: (e) => o.onQuery(e.target.value), placeholder: kbt('kbui.search') + all.length + kbt('kbui.icons.suffix') })),
+      h('input', { value: q, onChange: (e) => { if (e.target.value.trim() !== '') kbLoadIconTags(); o.onQuery(e.target.value) }, placeholder: kbt('kbui.search') + all.length + kbt('kbui.icons.suffix') })),
     h('div', { className: 'kb8-iconpick' }, shown.map((n) => h('button', {
       // The chosen icon takes the colour that was picked (the pale ground, the glyph in that colour), as on every other tile.
       type: 'button', key: n, title: n, className: 'kb8-iconbtn' + (o.icon === n ? ' on' + (kbCfVars(o.color) !== null ? ' col' : '') : ''), style: (o.icon === n && kbCfVars(o.color) !== null) ? kbCfVars(o.color) : undefined, onClick: () => o.onPick(n),
@@ -10293,7 +10387,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
             h('div', { className: 'kbg-addplus' }, '+'),
             h('div', { className: 'kbg-addtitle' }, kbt('ui.addkyber')),
             h('div', { className: 'kbg-adddesc' }, kbt('ui.readonly'))) : null),
-        (s.loading === true && data === null ? h('div', { className: 'kbg-note' }, kbe('Reading the kyber.yml files…')) : null),
+        (s.loading === true && data === null ? h('div', { className: 'kbg-note' }, kbe('Reading the team files…')) : null),
         (s.error !== null ? h('div', { className: 'kbg-err' }, kbt('kbui.error') + s.error) : null),
         (data !== null && data !== undefined && data.pricing !== null && data.pricing !== undefined && typeof data.pricing.fetchedAt === 'string' ? h('div', { className: 'kbg-note' }, kbt('ui.ratesrefreshed') + data.pricing.fetchedAt) : null));
     };
@@ -11898,6 +11992,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       // repli à l'aperçu quand la suggestion n'a pas la sienne.
       const teinte = kbHex(safe.color)
       kbUseIconsRev()
+      const iconTags = kbUseIconTags()
       const openPair = React.useState(false)
       const open = openPair[0]
       const setOpen = openPair[1]
@@ -12074,7 +12169,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
           // mêmes contrôles que la fiche AI Team (recherche + grille, pastilles
           // + couleur libre), donc le même geste partout (demande du 23/09).
           (mode !== 'icon' ? null : h('div', { className: 'kb8-f', style: { gridColumn: '1 / -1' } },
-            kbLookIcon({ icons: allIcons, query: q, onQuery: setQ, icon: form.icon, onPick: (n) => set({ icon: n }) }))),
+            kbLookIcon({ icons: allIcons, query: q, words: iconTags, onQuery: setQ, icon: form.icon, onPick: (n) => set({ icon: n }) }))),
           h('div', { className: 'kb8-f', style: { gridColumn: '1 / -1' } },
             h('span', { className: 'kb8-lbl' }, kbt('kbui.starters.fieldColor')),
             kbLookColor(form.color, (c) => set({ color: c })),
@@ -12679,7 +12774,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
             (goalsM.exemple === true || warnsM.exemple === true ? KbiExNote() : null)),
           sec('budget', kbe('Budget'),
             h('div', { className: 'kbi-grid2' },
-              h('div', { className: 'kbi-card' }, h('div', { className: 'kbi-card-l' }, kbe('Declared budget')), h('div', { className: 'kbi-card-v' }, '—'), h('div', { className: 'kbi-card-s' }, kbe('no budget: block for this project'))),
+              h('div', { className: 'kbi-card' }, h('div', { className: 'kbi-card-l' }, kbe('Declared budget')), h('div', { className: 'kbi-card-v' }, '—'), h('div', { className: 'kbi-card-s' }, kbe('no budget section for this project'))),
               h('div', { className: 'kbi-card' }, h('div', { className: 'kbi-card-l' }, kbe('Deadline')), h('div', { className: 'kbi-card-v' }, '—'), h('div', { className: 'kbi-card-s' }, kbe('no deadline declared')))),
             h('h5', { className: 'kbi-card-l', style: { marginTop: '14px' } }, kbe('Filled budget example')),
             KbiExLignes({ lignes: KBI_EXEMPLES.budget, exemple: true }),
@@ -12993,7 +13088,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       const bgConsommeSub = kbiNum(bgAppels) + (bgAppels > 1 ? kbe(' LLM calls over the period') : kbe(' LLM call over the period'))
       const bgFx = (llm !== null && typeof llm.usdEur === 'number') ? kbFmtNum(llm.usdEur, { maximumFractionDigits: 4 }) : '—'
       const bgEcheance = (bgAbsent === false && typeof kbgt.echeance === 'string') ? kbgt.echeance : ((bgAbsent === false && typeof kbgt.deadline === 'string') ? kbgt.deadline : '—')
-      const bgEcheanceSub = bgEcheance === '—' ? kbe('no deadline declared') : kbe('declared in the kyber.yml')
+      const bgEcheanceSub = bgEcheance === '—' ? kbe('no deadline declared') : kbe('declared in the team file')
       // Lectures (skill insight-principe) : une par vue, ancrée aux chiffres
       // affichés. Aucune valeur inventée.
       const kbiLectures = {
@@ -13001,7 +13096,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         prod: () => 'Sur ' + days + ' jours : ' + kbiNum(msgTotal) + kbe(' messages exchanged and ') + kbiNum(usersTotal) + kbe(' users tracked in the series.'),
         qualite: () => kbiNum(roles.length) + kbe(' roles listed, ') + kbiNum(notes.length) + (notes.length > 1 ? kbe(' source caveats') : kbe(' source caveat')) + kbe(' — period of ') + days + kbe(' days.'),
         debug: () => kbiNum(Object.keys(methods).length) + kbe(' documented measurement methods, ') + kbiNum(notes.length) + (notes.length > 1 ? kbe(' open caveats') : kbe(' open caveat')) + kbe(' — period of ') + days + kbe(' days.'),
-        budget: () => (bgAbsent === true ? kbe('No budget declared (budget: block absent) — ') : kbe('Declared budget: ') + bgMontant + kbe(' — ')) + bgAppels + (bgAppels > 1 ? kbe(' LLM calls over ') : kbe(' LLM call over ')) + days + kbe(' days, FX ') + bgFx + '.'
+        budget: () => (bgAbsent === true ? kbe('No budget declared (no budget section) — ') : kbe('Declared budget: ') + bgMontant + kbe(' — ')) + bgAppels + (bgAppels > 1 ? kbe(' LLM calls over ') : kbe(' LLM call over ')) + days + kbe(' days, FX ') + bgFx + '.'
       }
       const lectureCle = (vueCourante !== undefined && typeof vueCourante.lecture === 'string') ? vueCourante.lecture : null
       const kbiLectureTexte = (lectureCle !== null && typeof kbiLectures[lectureCle] === 'function') ? kbiLectures[lectureCle]() : null
@@ -13097,11 +13192,11 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
               h('span', { className: 'kbi-sub kbi-caption' }, caption))),
           section('budget', kbe('Budget'),
             h('div', { className: 'kbi-grid4' },
-              hcard(kbe('Declared budget'), bgMontant, bgMontantSub, kbe('budget declared by agent team "') + kyberId + kbe('" (budget: block of kyber.yml)')),
+              hcard(kbe('Declared budget'), bgMontant, bgMontantSub, kbe('budget declared by agent team "') + kyberId + kbe('" (budget section of the team file)')),
               hcard(kbe('Consumed (models.dev)'), bgConsomme, bgConsommeSub, kbe('consumed over the period (models.dev pricing)')),
               hcard(kbe('USD → EUR rate'), bgFx, kbe('rate from the payload (llm.usdEur)')),
               hcard(kbe('Deadline'), bgEcheance, bgEcheanceSub)),
-            (bgAbsent === true ? h('p', { className: 'kbi-empty-in' }, kbe('No budget declared by this agent team (budget: block of kyber.yml) — the display stays an absence, never a dressed-up zero.')) : null)),
+            (bgAbsent === true ? h('p', { className: 'kbi-empty-in' }, kbe('No budget declared by this agent team (budget section of the team file) — the display stays an absence, never a dressed-up zero.')) : null)),
           section('top', kbt('kbui.ins.top'),
             h('div', { className: 'kbi-grid3' },
               topCard(kbt('kbui.ins.top.skills'), Array.isArray(top.skills) === true ? top.skills : [], kbt('kbui.ins.top.noskills')),
@@ -13729,6 +13824,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         return () => { dead = true }
       }, [])
       kbUseIconsRev()
+      const iconTags = kbUseIconTags()
       React.useEffect(() => () => { if (timerRef.current !== null) { try { clearTimeout(timerRef.current) } catch (e) { /* deja nettoye */ } } }, [])
       React.useEffect(() => { if (draft !== null && draft.icon !== '') kbLoadIconNodes() }, [draft !== null ? draft.icon : ''])
       React.useEffect(() => {
@@ -13892,7 +13988,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
           const graphe = (topo !== null && XY !== null && wfData.etat === 'ok') ? kbWfTraducteur.versGraphe(topo) : null
           const carte = (wfPick !== null && topo !== null) ? kbWfTraducteur.traduireEtape(topo, wfPick) : null
           return h('div', { style: card },
-            (wfData.etat === 'chargement' || wfData.etat === 'init') ? h('span', { className: 'kb8-sub' }, kbe('Reading kyber.yml…')) : null,
+            (wfData.etat === 'chargement' || wfData.etat === 'init') ? h('span', { className: 'kb8-sub' }, kbe('Reading the team file…')) : null,
             (wfData.etat === 'vide') ? h('span', { className: 'kb8-sub' }, kbt('ui.noyaml')) : null,
             (wfData.etat === 'vide' && wfData.err) ? h('div', { className: 'kb8-sub', style: { color: 'var(--dsw-alias-state-error-primary)', fontSize: '12px', wordBreak: 'break-all' } }, String(wfData.err)) : null,
             (wfData.etat === 'ok' && XY === null) ? h('span', { className: 'kb8-sub' }, kbt('reactflow.down')) : null,
@@ -13923,13 +14019,13 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
             // La proposition passe TOUJOURS par le lecteur + contrôleur local,
             // et l'aller-retour en français s'affiche AVANT le bouton Appliquer.
             h('div', { style: { display: 'flex', flexDirection: 'column', gap: '8px', borderTop: '1px solid var(--dsw-alias-border-l1)', paddingTop: '10px', marginTop: '4px' } },
-              h('span', { className: 'kb8-parent' }, kbe('Propose a kyber.yml')),
+              h('span', { className: 'kb8-parent' }, kbe('Propose a team file')),
               h('span', { className: 'kb8-sub' }, kbe('Describe the workflow in French — the proposal is read back in French (round-trip) before anything is written.')),
               h('textarea', { value: wfPhrase, onChange: (e) => setWfPhrase(e.target.value), rows: 3, placeholder: kbe('E.g. a team that frames a feature, specifies it, tests it, then checks it in a loop until convergence.'), style: { resize: 'vertical', borderRadius: '8px', border: '1px solid var(--dsw-alias-border-l2)', background: 'var(--dsw-alias-bg-layer-2)', color: 'var(--dsw-alias-label-primary)', padding: '8px 10px', fontSize: '12.5px', fontFamily: 'inherit' } }),
               h('div', { style: { display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' } },
-                h('button', { type: 'button', className: 'kb8-chip', disabled: wfProp !== null && wfProp.etat === 'occupe', onClick: () => { try { wfProposer() } catch (e) { /* proposition */ } } }, kbe('Propose a kyber.yml')),
+                h('button', { type: 'button', className: 'kb8-chip', disabled: wfProp !== null && wfProp.etat === 'occupe', onClick: () => { try { wfProposer() } catch (e) { /* proposition */ } } }, kbe('Propose a team file')),
                 (wfProp !== null && wfProp.etat === 'occupe') ? h('span', { className: 'kb8-sub' }, kbe('The model is drafting the proposal…')) : null,
-                (wfProp !== null && wfProp.etat === 'ecriture') ? h('span', { className: 'kb8-sub' }, kbe('Writing kyber.yml…')) : null),
+                (wfProp !== null && wfProp.etat === 'ecriture') ? h('span', { className: 'kb8-sub' }, kbe('Writing the team file…')) : null),
               (wfProp !== null && wfProp.etat === 'refus') ? h('div', { style: { color: 'var(--dsw-alias-state-error-primary)', fontSize: '12.5px', wordBreak: 'break-all' } }, '✗ ' + String(wfProp.err || kbe('failed'))) : null,
               (wfProp !== null && wfProp.etat === 'applique') ? h('div', { style: { color: '#7FC98A', fontSize: '12.5px', wordBreak: 'break-all' } }, kbe('✓ Written to ') + String(wfProp.path || '') + (wfProp.backup ? kbe(' — backup: ') + wfProp.backup : '') + kbe('. The graph above was reloaded.')) : null,
               (wfProp !== null && wfProp.etat === 'prete') ? h('div', { style: { display: 'flex', flexDirection: 'column', gap: '8px' } },
@@ -13952,7 +14048,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
             h('span', { style: { display: 'flex', flexDirection: 'column', gap: '8px', flex: 1, minWidth: '180px' } },
               kbLookImage({ hint: 'PNG, JPG, WebP, GIF or SVG · max 3 MB. Clicking an icon below replaces the image.', onFile: onAvatarFile, hasImage: hasAvatar === true, onClear: () => update({ clearAvatar: true }) }))),
           h('span', { className: 'kb8-parent' }, 'Icon'),
-          kbLookIcon({ icons: allIcons, query: iconQ, onQuery: setIconQ, icon: draft.icon, color: draft.color, onPick: (n) => update({ icon: n, clearAvatar: true }) }),
+          kbLookIcon({ icons: allIcons, query: iconQ, words: iconTags, onQuery: setIconQ, icon: draft.icon, color: draft.color, onPick: (n) => update({ icon: n, clearAvatar: true }) }),
           // `TYPE` n'a de sens que si le selecteur Local/Hosted est rendu : dans
           // un build `KB_SHOW_HOSTED === false`, l'etiquette restait seule entre
           // ICON et COLOUR, sans aucun controle (constat de la campagne visuelle).
@@ -14310,8 +14406,8 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         for (const root of (props.roots || [])) {
           for (const k of (Array.isArray(root.kybers) === true ? root.kybers : [])) {
             const label = tNameOf(k)
-            for (const s1 of (Array.isArray(k.skills) === true ? k.skills : [])) pushT(s1, 'skills/', label)
-            for (const s2 of (Array.isArray(k.skillsDeclared) === true ? k.skillsDeclared : [])) pushT(s2, 'kyber.yml', label)
+            for (const s1 of (Array.isArray(k.skills) === true ? k.skills : [])) pushT(s1, kbe('skills folder', 'dossier de compétences'), label)
+            for (const s2 of (Array.isArray(k.skillsDeclared) === true ? k.skillsDeclared : [])) pushT(s2, kbe('team file', 'fichier d’équipe'), label)
           }
         }
         for (const g of teamSel) {
@@ -17360,6 +17456,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       const setSaveState = savePair[1]
       const timerRef = React.useRef(null)
       kbUseIconsRev()
+      const iconTags = kbUseIconTags()
       React.useEffect(() => { kbLoadIconNodes() }, [])
       React.useEffect(() => {
         if (iconList !== null || kbRemoteOk !== true) return undefined
@@ -17455,8 +17552,8 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         for (const root of kbRoots) {
           for (const k of (Array.isArray(root.kybers) === true ? root.kybers : [])) {
             const label = kbNameOf(k)
-            for (const s1 of (Array.isArray(k.skills) === true ? k.skills : [])) pushSkill(s1, 'skills/', label)
-            for (const s2 of (Array.isArray(k.skillsDeclared) === true ? k.skillsDeclared : [])) pushSkill(s2, 'kyber.yml', label)
+            for (const s1 of (Array.isArray(k.skills) === true ? k.skills : [])) pushSkill(s1, kbe('skills folder', 'dossier de compétences'), label)
+            for (const s2 of (Array.isArray(k.skillsDeclared) === true ? k.skillsDeclared : [])) pushSkill(s2, kbe('team file', 'fichier d’équipe'), label)
           }
         }
         for (const g of skillSelList) {
@@ -17740,7 +17837,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
             kbMdExtras('folder', ws),
             h('div', { style: card },
               h('span', { className: 'kb8-parent' }, 'Icon'),
-              kbLookIcon({ icons: allIcons, query: iconQ, onQuery: setIconQ, icon: iconDraft, color: colorDraft, onPick: (n) => updateDetails({ icon: n }) })),
+              kbLookIcon({ icons: allIcons, query: iconQ, words: iconTags, onQuery: setIconQ, icon: iconDraft, color: colorDraft, onPick: (n) => updateDetails({ icon: n }) })),
             h('div', { style: card },
               h('span', { className: 'kb8-parent' }, 'Colour'),
               kbLookColor(colorDraft, (c) => updateDetails({ color: c }))),
@@ -18074,7 +18171,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
               h('span', { className: 'kb8-parent' }, kbe('Budget declared by the project agent teams')),
               h('span', { className: 'kb8-h1' }, budgetRows.length === 0 ? '—' : (kbMoney(budgetTotal, budgetCurrency))),
               usedPct === null ? null : h('div', { className: 'kb9-bar' }, h('span', { style: { width: usedPct + '%' } })),
-              h('span', { className: 'kb8-parent' }, budgetRows.length === 0 ? kbe('No `budget:` block in the project kyber.yml files.') : (budgetRows.length + (budgetRows.length === 1 ? ' agent team' : ' agent teams') + ' · ' + budgetRows.map((r) => r.kyber).join(', '))),
+              h('span', { className: 'kb8-parent' }, budgetRows.length === 0 ? kbe('No budget section in the project’s team files.') : (budgetRows.length + (budgetRows.length === 1 ? ' agent team' : ' agent teams') + ' · ' + budgetRows.map((r) => r.kyber).join(', '))),
               h('span', { className: 'kb8-parent' }, budgetDeadline === null ? kbe('No declared deadline.') : (kbe('Closest deadline: ') + budgetDeadline))),
             h('div', { style: cardBoxB },
               h('span', { className: 'kb8-parent' }, kbe('Usage of this session')),
@@ -18089,7 +18186,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
               h('span', { className: 'kb8-parent' }, kbMoney(r.total, r.currency) + (r.deadline === null ? '' : ' · ' + r.deadline)))))),
           h('div', { style: { background: 'var(--dsw-alias-bg-layer-1)', border: '1px solid var(--dsw-alias-border-l1)', borderRadius: '16px', padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: '10px' } },
             h('span', { className: 'kb8-name' }, kbe('How these figures are obtained')),
-            h('span', { className: 'kb8-parent' }, kbe('Budget: the `budget:` block of the kyber.yml files of the Agent Teams that ran in the threads of this project. Usage: real usage reported by the host for the current session. No estimate, no invented graph.'))))
+            h('span', { className: 'kb8-parent' }, kbe('Budget: the budget section of the team files of the Agent Teams that ran in the threads of this project. Usage: real usage reported by the host for the current session. No estimate, no invented graph.'))))
       })()
       return h('div', { className: 'kb8-page' },
         h('button', { type: 'button', className: 'kb8-primary', style: { alignSelf: 'flex-start', background: 'transparent', border: '1px solid var(--dsw-alias-border-l1)', color: 'var(--dsw-alias-label-primary)' }, onClick: () => set({ view: 'projects' }) }, '‹ Back to projects'),
@@ -26830,7 +26927,7 @@ body[data-ds-dark-theme] [data-phase="hero"]:has([data-kb="newchat"]){background
 .kbv-btn:hover:not(:disabled){color:var(--dsw-alias-label-primary);background:var(--dsw-alias-bg-layer-1)}
 .kbv-btn:disabled{opacity:.4;cursor:not-allowed}
 .kbv-btn.rec{color:var(--dsw-alias-state-error-primary,#ef4444)}
-.kbv-caret{width:18px;border-left:1px solid var(--dsw-alias-border-l1)}
+.kbv-caret{width:24px;border-left:1px solid var(--dsw-alias-border-l1)}
 .kbv-pop{position:absolute;right:0;bottom:calc(100% + 8px);z-index:70;min-width:290px;max-width:min(420px,90vw);padding:10px;border:1px solid var(--dsw-alias-border-l1);border-radius:14px;background:var(--dsw-alias-bg-layer-2);box-shadow:0 14px 36px rgba(0,0,0,.34);display:flex;flex-direction:column;gap:8px}
 .kbv-head{display:flex;align-items:center;gap:9px;color:var(--dsw-alias-label-secondary)}
 .kbv-meter{flex:1;height:6px;border-radius:99px;background:var(--dsw-alias-bg-layer-1);overflow:hidden}
@@ -27840,7 +27937,7 @@ body[data-ds-dark-theme] [data-phase="hero"]:has([data-kb="newchat"]){background
         if (state.data === null && state.loading === false) load();
       }, []);
       const sum = s.data !== null ? s.data.summary : null;
-      let sub = kbe('reading the kyber.yml files…');
+      let sub = kbe('reading the team files…');
       if (s.error !== null) sub = kbe('error: ') + s.error;
       else if (sum !== null && sum !== undefined) {
         sub = sum.kybers + ' agent teams · ' + sum.roles + kbt('kbui.frag.agents2') + sum.ok + kbe(' probed models OK · ') + sum.fail + kbe(' failed · ') + sum.declared + kbe(' not probed · ') + sum.absent + ' absents';
@@ -30922,6 +31019,7 @@ body[data-ds-dark-theme] .kb8-iconbtn.on.col{border-color:var(--kb8-pgd);color:v
 .kba-kdot.fail{background:var(--dsw-alias-state-error-primary)}
 .kba-td-num{font-family:ui-monospace,Menlo,monospace;font-size:13px;color:var(--dsw-alias-label-secondary)}
 .kba-toggle{display:inline-block;width:44px;height:26px;border-radius:13px;background:var(--dsw-alias-bg-layer-3);border:1px solid var(--dsw-alias-border-l2);position:relative;cursor:pointer;flex:none}
+.kba-toggle::before{content:"";position:absolute;inset:-2px 0}
 .kba-toggle-knob{position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:9px;background:var(--dsw-alias-label-secondary);transition:left .12s;box-shadow:var(--dsw-elevation-soft,0 1px 2px rgba(0,0,0,.2))}
 .kba-toggle.on{background:var(--dsw-alias-brand-primary);border-color:var(--dsw-alias-brand-primary)}
 .kba-toggle.on .kba-toggle-knob{left:21px;background:var(--dsw-alias-label-primary-foreground)}

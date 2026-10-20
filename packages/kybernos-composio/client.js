@@ -1117,6 +1117,7 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
 .kb7-seclab span{font-weight:500;text-transform:none;letter-spacing:0;padding:0 7px;border-radius:7px;background:rgba(128,128,128,.18)}
 .kbcp-pv{display:flex;gap:14px;padding:16px;border-radius:14px;border:1px solid var(--dsw-alias-border-l2,rgba(128,128,128,.3));background:var(--dsw-alias-bg-layer-2,transparent);margin:0 0 12px}
 .kbcp-pv.sel{border-color:var(--dsw-alias-brand-primary,#6c8cff);box-shadow:0 0 0 1px var(--dsw-alias-brand-primary,#6c8cff)}
+.kbcp-pv-rad::before{content:"";position:absolute;inset:-5px;border-radius:50%}
 .kbcp-pv-rad{flex:none;width:18px;height:18px;border-radius:50%;border:2px solid var(--dsw-alias-border-l2,rgba(128,128,128,.5));margin-top:2px;position:relative;cursor:pointer;background:transparent;padding:0}
 .kbcp-pv.off .kbcp-pv-rad{cursor:default}
 .kbcp-pv.sel .kbcp-pv-rad{border-color:var(--dsw-alias-brand-primary,#6c8cff)}

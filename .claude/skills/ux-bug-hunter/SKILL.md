@@ -111,7 +111,7 @@ No jargon in text a person reads: no file names, no config keys, no paths (« bl
 acknowledged. A destructive action asks, and can be undone when it can. Errors are readable and never show a stack.
 Text that does not fit is cut with an ellipsis and a title, never silently.
 
-**Controls and keyboard.** Click targets of at least 24 px (32 comfortable, 44 on touch). Tab reaches everything in a
+**Controls and keyboard.** Click targets of at least 24 px (32 comfortable, 44 on touch). A drawing smaller than that keeps its size and gets an invisible `::before` that reaches 24 px (placed from the padding box: a border takes more off); a bare text link keeps its line's height, the standard exempts it. `scripts/check-hit-targets-live.mjs [--worktree]` measures it. Tab reaches everything in a
 sensible order, focus is visible, Escape closes what opened, Enter confirms. The current page is marked in its menu.
 Nothing important lives only in a hover. Nothing covered by another layer (`elementFromPoint`). No dead link or button.
 

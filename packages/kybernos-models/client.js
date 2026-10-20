@@ -2919,7 +2919,7 @@ window.__ModuleLoader__.load({
         'body[data-ds-dark-theme] .kbmp-free{color:var(--dsw-alias-state-success-primary)}',
         // Light scheme: the capability tints are 500-level colours (emerald 2.5:1, amber 2.2:1 on white); darkened as a whole.
         'body:not([data-ds-dark-theme]) .kbmp-capi{filter:brightness(.72)}',
-        '.kbmp-free-lien{color:inherit;text-decoration:none;font-weight:700}',
+        '.kbmp-free-lien{color:inherit;text-decoration:none;font-weight:700;display:inline-block;padding:5px 8px;margin:-5px -8px}',
         '.kbmp-free-lien:hover{text-decoration:underline}',
         '[dir="rtl"] .kbmp-free{direction:ltr}',
         '@keyframes kbmpIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}',

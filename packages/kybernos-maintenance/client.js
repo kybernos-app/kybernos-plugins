@@ -165,6 +165,7 @@ body[data-ds-dark-theme] .kbmz-status[data-tone="warn"]{--kbmz-tc:#f5a524}
 .kbmz-auto-txt{display:flex;flex-direction:column;gap:3px;min-width:0}
 .kbmz-auto-t{font-size:13.5px;font-weight:600;color:var(--dsw-alias-label-primary)}
 .kbmz-auto-d{font-size:12.5px;line-height:1.5;color:var(--dsw-alias-label-secondary)}
+.kbmz-sw::before{content:"";position:absolute;inset:-3px 0}
 .kbmz-sw{position:relative;flex:none;width:36px;height:20px;margin-top:1px;padding:0;border-radius:999px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);cursor:pointer}
 .kbmz-sw i{position:absolute;inset-inline-start:2px;top:2px;width:14px;height:14px;border-radius:999px;background:var(--dsw-alias-label-secondary);transition:inset-inline-start .15s ease}
 .kbmz-sw.on{background:var(--dsw-alias-brand-primary);border-color:var(--dsw-alias-brand-primary)}.kbmz-sw.on i{inset-inline-start:18px;background:var(--dsw-alias-label-primary-foreground)}
