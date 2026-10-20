@@ -2129,7 +2129,7 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
           : null)
         return h('div', { className: 'kbsl-scope kbsl-page' },
           h('div', { className: 'kbsl-head' },
-            h('div', { style: { display: 'flex', justifyContent: 'flex-end', width: '100%', marginBottom: 6 } }, (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-slash' }) : null)),
+            h('div', { className: 'kbhp-row' }, (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-slash' }) : null)),
             h('span', { className: 'kbsl-h1' }, L({ fr: 'Commandes', en: 'Commands' })),
             h('span', { className: 'kbsl-sub' }, L({ fr: 'Un même modèle : du texte inséré, ou un formulaire en ligne. Tape / pour lancer une commande, ou utilise le bouton sous un message.', en: 'One template: inserted text, or an inline form. Type / to run a command, or use the button under a message.' }))),
           introNode,

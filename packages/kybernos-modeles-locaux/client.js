@@ -384,7 +384,7 @@ window.__ModuleLoader__.load({
 
       const KML_CSS = "/* kml-*: layout of the Local models panel (this bundle only — DSH tokens) */\n" +
         ".kbm-resync { cursor: pointer; font: inherit; border: none; background: none; padding: 0; }\n" +
-        ".kml-root { border: 1px solid var(--dsw-alias-border-l2); border-radius: 14px; background: var(--dsw-alias-bg-layer-2); padding: 16px; max-width: 720px; margin-bottom: 16px; }\n" +
+        ".kml-root { max-width: 720px; margin-bottom: 16px; }\n" +
         "/* Light schemes: label-tertiary is 3.7:1 on white. Inside this page it reads as label-secondary, 5.8:1 (audit A1-05); the dark scheme keeps its hierarchy. */\n" +
         "body:not([data-ds-dark-theme]) .kml-root{--dsw-alias-label-tertiary:var(--dsw-alias-label-secondary)}\n" +
         ".kml-titre { margin: 0; font-size: 18px; line-height: 1.3; font-weight: 600; letter-spacing: -.01em; color: var(--dsw-alias-label-primary); }\n" +
@@ -860,7 +860,7 @@ window.__ModuleLoader__.load({
           h('span', { className: 'kml-tuile-valeur' }, contenu))
 
         return h('div', { className: 'kml-root', 'data-kml': 'panneau' },
-          h('div', { style: { display: 'flex', justifyContent: 'flex-end', width: '100%', marginBottom: 6 } }, (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-modeles-locaux' }) : null)),
+          h('div', { className: 'kbhp-row' }, (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-modeles-locaux' }) : null)),
           h('h2', { className: 'kml-titre' }, m('kml.page.titre')),
           h('p', { className: 'kml-soustitre' }, m('kml.soustitre')),
           h('div', { className: 'kml-tuiles' },

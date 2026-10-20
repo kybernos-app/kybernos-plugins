@@ -2585,7 +2585,7 @@ body:not([data-ds-dark-theme]) .kbs-root .kb8-pill.warn{color:color-mix(in srgb,
                 : h('div', { className: 'kb6-headacts' }, headAction))
             : h('div', { className: 'kbs-top' },
               h('div', { className: 'kbs-top-txt' },
-                h('div', { style: { display: 'flex', justifyContent: 'flex-end', width: '100%', marginBottom: 6 } }, helpBtn),
+                h('div', { className: 'kbhp-row' }, helpBtn),
                 h('h2', { className: 'kbs-h1' }, 'Skills'),
                 h('p', { className: 'kbs-sub', title: capTxt }, capTxt)),
               mode !== 'team' ? renderAdd() : null),
