@@ -66,6 +66,8 @@ window.__ModuleLoader__.load({
    profile without this page losing its layout. Same values, same DSH tokens. */
 [data-slot="settings.section"]:has(.kbln-page) { width: 100%; max-width: none; }
 .kbln-page{display:grid;grid-template-columns:1fr;gap:22px;max-width:760px;align-items:start}
+/* Light schemes: the muted sentences of the help steps are label-tertiary (3.7:1 on white); inside the page they read label-secondary (5.8:1). */
+body:not([data-ds-dark-theme]) .kbln-page{--dsw-alias-label-tertiary:var(--dsw-alias-label-secondary)}
 .kbln-main{display:flex;flex-direction:column;gap:22px;min-width:0}
 .kbln-head{display:flex;flex-direction:column;gap:6px}
 .kbln-title{font-size:26px;line-height:32px;font-weight:800;letter-spacing:-.01em;color:var(--dsw-alias-label-primary)}
