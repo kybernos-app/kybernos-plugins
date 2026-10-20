@@ -2941,7 +2941,7 @@ const renderMemoryChunk = (state, info) => {
     // The proxy looks for this exact token to avoid adding its own copy: it must lead every non-empty chunk,
     // including one that only carries kyber memories.
     if (parts[0].indexOf(MEMORY_MARKER) !== 0) parts.unshift(MEMORY_MARKER + ' The user\'s Kybernos account memory:')
-    parts.push('', 'These memories come from the user\'s account. Never make any up: call memory_write to add one (kind fact|preference|event|policy), memory_search to look one up.')
+    parts.push('', 'These memories come from the user\'s account. Use them only when they help with the person\'s message; never bring one up on your own. Never make any up: call memory_write to add one (kind fact|preference|event|policy), memory_search to look one up.')
     return parts.join('\n')
   } catch (e) {
     return ''
