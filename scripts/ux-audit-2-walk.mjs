@@ -9,9 +9,11 @@
 // auditor can LOOK at every one. It never clicks Save, Install, Delete, Send or a
 // language switch: the language is driven separately by ux-audit-2-lang.mjs.
 import { mkdirSync, writeFileSync, readFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { join, dirname, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { openLivePage, openSettings, goToSettingsPage, showAllSettingsPages, clickText, waitFor } from './live-page.mjs'
 
+const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const args = process.argv.slice(2)
 const argOf = (n, d) => { const i = args.indexOf(n); return i >= 0 && args[i + 1] !== undefined ? args[i + 1] : d }
 const OUT = argOf('--out', '/tmp/ux-audit-2/walk')
@@ -27,7 +29,7 @@ if (host === '127.0.0.1:3080') { console.error('○ refusing to run against :308
 mkdirSync(join(OUT, 'shots'), { recursive: true })
 
 // The skill folder lives in the SHARED tree (not copied into every worktree).
-const probesPath = process.env.KB_PROBES || '/Users/miled/kybernos-plugins/.claude/skills/ux-bug-hunter/probes.js'
+const probesPath = process.env.KB_PROBES || join(REPO_ROOT, '.claude', 'skills', 'ux-bug-hunter', 'probes.js')
 const probes = readFileSync(probesPath, 'utf8')
 
 const live = await openLivePage({ width: WIDTH, height: HEIGHT })
