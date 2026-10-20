@@ -1115,6 +1115,8 @@ body:not([data-ds-dark-theme]) .kbs-root .kb8-pill.warn{color:color-mix(in srgb,
 .kbss-page .kbss-srcline .w::before{content:'·';margin-right:8px}
 @media (max-width:520px){.kbss-page .kbss-srcline .w::before{display:none}}
 .kbss-page .kbss-link{background:none;border:none;padding:3px 6px;border-radius:7px;color:var(--dsw-alias-brand-primary);font:inherit;font-size:12.5px;font-weight:600;cursor:pointer}
+.kbss-page .kbss-link{position:relative}
+.kbss-page .kbss-link::before{content:"";position:absolute;inset:-2px 0}
 .kbss-page .kbss-link:hover{background:var(--dsw-alias-bg-layer-2)}
 .kbss-page .kbss-err{font-size:13px;color:var(--dsw-alias-state-error-primary)}
 .kbss-page .kbss-root-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:9px 12px;border:1px solid var(--dsw-alias-border-l1);border-radius:10px;background:var(--dsw-alias-bg-layer-2);font-size:12.5px;color:var(--dsw-alias-label-secondary)}

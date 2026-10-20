@@ -90,6 +90,19 @@ let iconsCatalog = null
 try {
   iconsCatalog = JSON.parse(readFileSync(pluginDir + '/icons.json', 'utf8'))
 } catch (e) { iconsCatalog = null }
+// The search words of the icons (Lucide's tags, see scripts/build-icon-tags.mjs): a string of words per icon name. Absent or unreadable: the
+// pickers search the names only, as before.
+let iconTags = null
+let iconConcepts = []
+try {
+  const parsed = JSON.parse(readFileSync(pluginDir + '/icon-tags.json', 'utf8'))
+  iconTags = (parsed !== null && typeof parsed === 'object' && parsed.tags !== null && typeof parsed.tags === 'object') ? parsed.tags : null
+} catch (e) { iconTags = null }
+// ...and the table of concepts people type (French and English) that stand for those words: `lines`, « words typed | words the icons carry ».
+try {
+  const parsed = JSON.parse(readFileSync(pluginDir + '/icon-concepts.json', 'utf8'))
+  iconConcepts = (parsed !== null && typeof parsed === 'object' && Array.isArray(parsed.lines) === true) ? parsed.lines.filter((l) => typeof l === 'string') : []
+} catch (e) { iconConcepts = [] }
 const joinPath = (dir, name) => {
   const d = String(dir)
   return d.length > 0 && d.charAt(d.length - 1) === '/' ? d + name : d + '/' + name
@@ -9946,6 +9959,11 @@ function boot(ctx) {
         const nodes = name !== null && Object.prototype.hasOwnProperty.call(catalog, name) === true ? catalog[name] : null
         sendJson(res, 200, { ok: nodes !== null, name: name, nodes: nodes === undefined ? null : nodes })
       } }), 'kybernos: route icon')
+      // The search words of the icons and the table of concepts, fetched when the person types in a picker (about 150 KB: not worth sending with the list).
+      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/icon-tags', handler: (req, res) => {
+        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
+        sendJson(res, 200, { ok: iconTags !== null, tags: iconTags === null ? {} : iconTags, concepts: iconConcepts })
+      } }), 'kybernos: route icon-tags')
       // ── librairie React Flow (@xyflow/react 12.11.6, MIT) ──────────────────
       // Ce dépôt n'a ni bundler ni node_modules : on sert le build UMD et sa
       // feuille de style tels quels, et le client les charge à la demande. Le

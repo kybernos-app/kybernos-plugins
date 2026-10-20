@@ -584,7 +584,7 @@ window.__ModuleLoader__.load({
         if (s === '') return KB_ICON_NAMES.slice(0, 56)
         const starts = []
         const holds = []
-        const words = s.split(/s+/)
+        const words = s.split(/\s+/)
         for (let i = 0; i < KB_ICON_NAMES.length; i++) {
           const n = KB_ICON_NAMES[i]
           const hay = n.replace(/-/g, ' ') + ' ' + (KB_ICON_TAGS[n] || '')
