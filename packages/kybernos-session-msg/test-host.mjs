@@ -29,7 +29,7 @@ const {
   marker, framing, compose, parseDelivered, isRelay, summarise, isSubagent, titleOf, kindOf, KINDS,
   deliver, createRateLimiter, appendJournal, journalEntry, readJournal, journalPath,
   monterRoutes, apply, definitionLiteral, toolDefinition, resolveDestination, cleanText, hostOK, TEXT_MAX, pollutedTitle, nameFreshTarget,
-  isRecent, pickable, RECENT_WINDOW_MS, SESSIONS_LIMIT, deriveState, ANSWER_GRACE_MS,
+  isRecent, pickable, RECENT_WINDOW_MS, SESSIONS_LIMIT, deriveState, ANSWER_GRACE_MS, IDLE_ANSWERED_MS,
   createProposalStore, proposals, setProposal, getProposal, clearProposal, PROPOSAL_TTL_MS,
 } = mod
 
@@ -359,7 +359,8 @@ const lastPrompt = () => prompts[prompts.length - 1].content[0].text
   ok('deriveState: running is working and is remembered', deriveState({ row: { running: true }, at: 'x', key: 'k1', seen }) === 'working' && seen.get('k1').ranSinceDelivery === true)
   ok('deriveState: idle after running is answered', deriveState({ row: { running: false, updatedAt: 0 }, at: new Date().toISOString(), key: 'k1', seen }) === 'answered')
   const at = new Date('2026-10-20T10:00:00Z')
-  ok('deriveState: the grace is strict (+1500 ms is not an answer, +1501 ms is)', deriveState({ row: { running: false, updatedAt: at.getTime() + ANSWER_GRACE_MS }, at: at.toISOString(), key: 'k2', seen }) === 'received' && deriveState({ row: { running: false, updatedAt: at.getTime() + ANSWER_GRACE_MS + 1 }, at: at.toISOString(), key: 'k3', seen }) === 'answered')
+  ok('deriveState: an idle target five minutes after the delivery has processed it (a missed poll, a restart)', (() => { const at2 = new Date('2026-10-20T10:00:00Z'); const row = { running: false, updatedAt: at2.getTime() }; return deriveState({ row, at: at2.toISOString(), key: 'k4', seen, nowMs: at2.getTime() + IDLE_ANSWERED_MS }) === 'received' && deriveState({ row, at: at2.toISOString(), key: 'k5', seen, nowMs: at2.getTime() + IDLE_ANSWERED_MS + 1 }) === 'answered' })())
+  ok('deriveState: the grace is strict (+1500 ms is not an answer, +1501 ms is)', deriveState({ row: { running: false, updatedAt: at.getTime() + ANSWER_GRACE_MS }, at: at.toISOString(), key: 'k2', seen, nowMs: at.getTime() + 3000 }) === 'received' && deriveState({ row: { running: false, updatedAt: at.getTime() + ANSWER_GRACE_MS + 1 }, at: at.toISOString(), key: 'k3', seen, nowMs: at.getTime() + 3000 }) === 'answered')
   restoreRows()
 }
 

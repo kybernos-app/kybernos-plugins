@@ -52,6 +52,8 @@ export const PROPOSAL_TTL_MS = 30 * 60_000
 export const STATUS_TAIL_MAX = 50
 /** A target that was updated this long after the delivery, and is idle again, has answered (see deriveState). */
 export const ANSWER_GRACE_MS = 1500
+/** An idle target this long after a delivery has processed it (the poll may have missed a short turn, or DSH restarted since). */
+export const IDLE_ANSWERED_MS = 5 * 60_000
 export const KINDS = ['message', 'instruction']
 
 const OUTIL = 'session_msg_propose'
@@ -343,16 +345,18 @@ export async function deliver ({
  * (the answer lives in the target chat; the page links to it):
  *   · received — the target accepted the prompt and is idle, and nothing has been seen since;
  *   · working  — the target is running now (remembered in `seen`, because a quick turn can end between two polls);
- *   · answered — the target is idle again AND (it ran since the delivery, or it was updated more than 1.5 s after it).
+ *   · answered — the target is idle again AND (it ran since the delivery, or it was updated more than 1.5 s after it, or the
+ *                delivery is older than 5 minutes: a short turn can fall between two polls, and `seen` is lost on a restart).
  * A target that is gone from the list stays `received`.
  */
-export function deriveState ({ row, at, key, seen }) {
+export function deriveState ({ row, at, key, seen, nowMs = Date.now() }) {
   if (row === null || row === undefined) return 'received'
   if (row.running === true) { seen.set(key, { ranSinceDelivery: true }); return 'working' }
   const mark = seen.get(key)
   if (mark !== undefined && mark.ranSinceDelivery === true) return 'answered'
   const deliveredMs = Date.parse(at)
   if (Number.isFinite(deliveredMs) && Number.isFinite(Number(row.updatedAt)) && Number(row.updatedAt) > deliveredMs + ANSWER_GRACE_MS) return 'answered'
+  if (Number.isFinite(deliveredMs) && nowMs - deliveredMs > IDLE_ANSWERED_MS) return 'answered'
   return 'received'
 }
 
@@ -580,7 +584,7 @@ export function monterRoutes (webServerSvc, opts = {}) {
           size: Number(l.size) || 0,
           textPrefix: typeof l.textPrefix === 'string' ? l.textPrefix : '',
           replyTo: l.replyTo === null || l.replyTo === undefined ? '' : String(l.replyTo),
-          state: deriveState({ row, at: l.at, key: l.messageId, seen }),
+          state: deriveState({ row, at: l.at, key: l.messageId, seen, nowMs: now() }),
         }
       })
       json(res, 200, { ok: true, items })
