@@ -25,11 +25,15 @@ rendered just before the rows.
 
 The page opens short, and everything else is one click away:
 
-- **Kybernos Cloud** is one card. Connected, it reads « Connected » and « N models included »
-  with « Manage Kybernos Cloud »; the « Add your API key » button (and its « or ») and the
-  « Recommended » pill are gone, since a connected paid account has nothing to paste. They stay
-  while Kybernos Cloud is not connected, and on a Free account (the plan is read from
-  `GET /kybernos-cloud/status`: `space_plan.key`, else `user.plan`).
+- **Kybernos Cloud** is one card, the first cell of the provider grid (before the first provider), with the anatomy of a
+  provider card on a night blue that does not follow the theme: the logo tile, « Kybernos Cloud » with a green dot when
+  connected, and one line under it (« N models included », or « Recommended » + « Start for free »). The action is on the
+  right: « Manage » when connected, « Connect » when not (the full names, « Manage Kybernos Cloud » and « Connect to
+  Kybernos Cloud », are the tooltip and the accessible name). The small « or add a key » link under it and the « Recommended »
+  tag are gone once connected on a paid account, which has nothing to paste; they stay while Kybernos Cloud is not connected,
+  and on a Free account (the plan is read from `GET /kybernos-cloud/status`: `space_plan.key`, else `user.plan`). The card IS
+  the `kybernos` provider: its plain card is not drawn beside it (it stays in a search result), and the name opens the Models
+  view on its models. It used to be a full-width banner above the tab bar, which pushed the tabs down on this tab only.
 - **The providers that work come first.** A provider with no key (or switched off) answers
   nothing: once at least one provider works, those fold under one line that counts them
   (« Providers with no key or switched off (N) »). With none working nothing folds; the fold
@@ -103,6 +107,14 @@ The picker of the provider panel (`Fetch available models`) asks, in this order:
 
 Where the endpoint lists bare ids (`opencode-go`), the name and capacities the engine's catalog knows for the same id are filled
 in; the live list alone decides which models exist.
+
+**Models the engine cannot take.** The engine accepts ONE `api` per route and no `api` on a model: a model its installed catalog does
+not describe is refused (« model "x" needs an api… ») on a route whose catalog serves several protocols, and setting the route's `api`
+would bind every model of that route. The live list shows such models (the engine's catalog is behind the provider), so the picker
+tags them « Not in DSH's catalog » and does not tick them on opening, so the default choice always applies. If one is ticked anyway and
+the engine refuses it, the panel says so in words (remove it from the list, or add it under Add provider › Custom API with the protocol
+chosen), keeps the draft, and the route is remembered: its models outside the catalog are locked in the picker from then on. A route
+whose profile declares an `api`, or whose catalog is empty, is never tagged.
 
 The provider's card counts the models declared in its profile; its Models view shows all of them, whatever their health (the
 « not answering » fold applies to the unscoped list only), so « 3 models » is 3 on screen.
