@@ -89,7 +89,7 @@ node test-host.mjs     # 170 checks: guard on every route (signed cookie, origin
                        # parse / journal, the two framings verbatim, bad kind, the "running or recent" filter, dispatch
                        # here / new / other, status states, the proposal store (TTL, one per chat), the tool (never sends,
                        # resolves an id or an exact title, ambiguous → candidates), title repair, journal 0600 + 200-char cap
-node test-client.mjs   # 83 checks: the three seams, the marker rule (kind, whole message, no marker = untouched), the
+node test-client.mjs   # 84 checks: the three seams, the marker rule (kind, whole message, no marker = untouched), the
                        # received card (kind explicit, text visible, receipt), the form (kinds, destinations, list,
                        # consequence line, keys, send contract, refusal keeps the text), the sent trail, the tail (last
                        # turn only), the agent's proposal, the header button and Reply, FR+EN pairs, tokens only
@@ -98,28 +98,34 @@ node scripts/test-session-guard.mjs    # the guard copy is identical to the othe
 node scripts/test-no-french-literals.mjs   # French only inside [fr, en] pairs (strict bundle)
 ```
 
-## What was measured, and what was not (2026-10-20)
+## What was measured, and what was not (2026-10-20 / 21)
 
-**Measured on the real DSH page** (a throw-away headless Chrome signed in to `127.0.0.1:3080`; the served client swapped for
-this client through the DevTools protocol; the bundle's routes answered by the real new host code on a *fake*
-`sessionController` fed with the real session list — nothing was prompted in any real session, nothing restarted):
+**Measured on the real DSH, restarted with this build** (real client, real host, the real `sessionController`; read-only —
+nothing was sent to any session):
 
-- the header button opens the form under the last answer; the list shows the real sessions (title, folder, « n min ago ») and
-  the full-access warning appears for a full-access target; typing and Send work; the trail goes Sent → Received → Answer
-  with « See the answer »; an agent proposal posted to the host opens the form prefilled within the poll delay;
-- at 390 px the form and the trail fit (buttons wrap, nothing cut);
-- a real chat that already holds messages forwarded by the **old** build renders them as the new card (« Message from “Recette” »,
-  text, note for the agent, receipt, Reply, Open) — the old marker (no `kind`) reads as a message;
-- no console error.
+- the new routes answer (`200` with DSH's cookie, `401` without), the tool `session_msg_propose` is registered, the list of
+  other sessions comes from the real controller (running or recent, not blank, not the current one), `status` reads the real
+  rows (the eight sends of the first build now read « answered » thanks to the five-minute rule), and a message sent « here »
+  is refused with `400` before anything is prompted;
+- the header button opens the form under the last answer in real chats; the destination list shows the real sessions with their
+  state and age; the consequence line follows the target (« Recette is idle: it will be woken up », « …is running: read at the end
+  of its turn »); closing leaves nothing; no console error;
+- **one form per chat, not one per answer**: the seat `conversation.chat.turnTail` is rendered for every completed turn with
+  `{ turn: TurnLocation, seq, openFile }`, so only the highest `seq` of the chat may render (the first build of this client
+  read `turn` as a number and drew the form 4 times in a 4-turn chat; fixed and re-measured on three real chats: 1 form each);
+- Dark theme, on the live page (the throw-away browser rendered Dark): the form reads correctly.
+
+**Measured earlier on the real page with the bundle's routes answered by the real host code on a fake controller** (the served
+client swapped through the DevTools protocol): typing and Send; the trail going Sent → Received → Answer with « See the answer »;
+an agent proposal posted to the host opening the form prefilled within the poll delay; 390 px; chats that hold messages forwarded
+by the **old** build rendering as the new card (the old marker, with no `kind`, reads as a message).
 
 **Not measured / not done:**
 
-- **The host half on a real `sessionController`** (the real `prompt` / `create` / `rename`, a real target answering): the host
-  is unit-tested against a fake controller and mounted on a real HTTP server with the real guard, but the new routes have not
-  run inside a restarted DSH. `scripts/check-session-msg-live.mjs --target session-… [--kind instruction]` is the proof to run
-  after the restart (it wakes the named target, reads its event log, checks the framing of the kind and the journal line).
-- **Dark theme on the live page** (the page is in Light and switching would persist the person's theme): the form uses DSH
-  tokens only, which a unit test pins; the earlier plate (`maquette-v1`) was checked in both themes.
+- **A real send**: `prompt` to a real target, `create` for a new session, a target answering. It wakes the target and spends
+  tokens there, so it is for the person to name one:
+  `node scripts/check-session-msg-live.mjs --target session-… [--kind instruction]` (reads the target's event log, checks the
+  framing of the kind and the journal line).
 - **The agent choosing well**: the tool and its description are tested; whether a model picks the right destination and kind
   from the person's words has not been measured on real conversations.
 - **Reading the answer**: `status` is a heuristic; the answer text is not read back into the sender's chat (the link opens
@@ -127,6 +133,8 @@ this client through the DevTools protocol; the bundle's routes answered by the r
 - **A per-session « messages only » reception setting**, **`steer` from the form** (the route still accepts it), **an
   automatic return of the answer** (a report back to the sender) and **cross-machine delivery** are not built.
 - **Bubble around the received card**: the engine keeps its user bubble around the card; the slot replaces the text, not the
-  bubble. It reads fine (a white card inside the bubble) but it is not the full-width left-aligned card of the mockup.
-- Whole-bundle boot **without** the bundle on `3080` is covered by construction (every registration is guarded, every host
-  service optional) and by the client test with a context that has no seam, not by a second restart.
+  bubble. It reads fine (a card inside the bubble) but it is not the full-width left-aligned card of the mockup.
+- **Light theme** was seen on the first live pass; the form uses DSH tokens only, which a unit test pins.
+- Boot **without** the bundle is covered by construction (every registration is guarded, every host service optional) and by
+  the client test with a context that has no seam, not by a second restart. At boot two lines say « not mounted … without
+  inject » before the injected retry mounts the routes and the tool: cosmetic, the same as the first build.
