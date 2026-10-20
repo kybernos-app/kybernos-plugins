@@ -54,6 +54,20 @@ window.__ModuleLoader__.load({
       const retentions = () => [[30, kt('30 jours', '30 days')], [90, kt('90 jours', '90 days')], [180, kt('180 jours', '180 days')], [365, kt('1 an', '1 year')]]
       const addedOpts = () => [['any', kt('À tout moment', 'Any time')], ['1m', kt('Dernière minute', 'Last minute')], ['1h', kt('Dernière heure', 'Last hour')], ['today', kt('Aujourd’hui', 'Today')], ['7d', kt('7 derniers jours', 'Last 7 days')]]
 
+      /** A status that every row shares says nothing: `sentMarks` keeps the « Sent » chip only for
+       *  the rows that differ from the majority of the page (the details sheet always shows it). */
+      const sentMarks = (items) => {
+        const flags = (items || []).map((m) => m !== null && m !== undefined && m.sent === true)
+        const yes = flags.filter(Boolean).length
+        const no = flags.length - yes
+        // One truth on the whole page: the chip carries nothing, so no row gets it. Mixed: the
+        // minority is marked (if half the rows are sent, marking the unsent ones is noise too —
+        // nothing is marked then, and the list reads as one state).
+        if (flags.length === 0 || yes === 0 || no === 0 || yes === no) return flags.map(() => false)
+        const mark = yes < no
+        return flags.map((f) => f === mark)
+      }
+
       /** The plan as the page talks about it: Free, Solo or Team (anything paid that is not a team seat is « Solo »). */
       const planOf = (status) => {
         const raw = status !== null && status !== undefined && status.state !== undefined && status.state !== null && status.state.user !== null && status.state.user !== undefined
@@ -942,11 +956,11 @@ window.__ModuleLoader__.load({
           h('span', { className: 'kbmem-mt' }, k.bone(96, 12)))))
       }
 
-      const MemoryRow = ({ m, selected, onOpen, ctxOn, i }) => h('button', { type: 'button', className: 'kbmem-r' + (selected ? ' sel' : '') + appear(i), 'data-id': m.id, onClick: () => onOpen(m) },
+      const MemoryRow = ({ m, selected, onOpen, ctxOn, markSent, i }) => h('button', { type: 'button', className: 'kbmem-r' + (selected ? ' sel' : '') + appear(i), 'data-id': m.id, onClick: () => onOpen(m) },
         h('span', { className: 'kbmem-kd ' + m.kind, title: kindLabels()[m.kind] || m.kind }),
         h('span', { className: 'kbmem-tx' }, m.content),
         h('span', { className: 'kbmem-mt' },
-          m.sent && ctxOn ? h('span', { className: 'kbmem-chip ok' }, kt('Envoyé', 'Sent')) : null,
+          m.sent && ctxOn && markSent === true ? h('span', { className: 'kbmem-chip ok', 'data-chip': 'sent' }, kt('Envoyé', 'Sent')) : null,
           closenessLabel(m.closeness) !== null ? h('span', { className: 'kbmem-chip close', title: kt('À quel point ce souvenir est proche de ta recherche, par le sens', 'How close this memory is to your search, by meaning') }, closenessLabel(m.closeness)) : null,
           wordsLabel(m.matched, m.of) !== null ? h('span', { className: 'kbmem-chip', 'data-chip': 'words', title: kt('Combien des mots que tu as tapés ce souvenir contient', 'How many of the words you typed this memory has') }, wordsLabel(m.matched, m.of)) : null,
           m.pinned ? h('span', { title: kt('Épinglé', 'Pinned') }, Ico('pin')) : null,
@@ -1476,7 +1490,7 @@ window.__ModuleLoader__.load({
               : [h('h3', { key: 'h' }, kt('Aucune leçon pour l’instant', 'No lesson yet')), h('div', { key: 'd' }, kt('Une leçon est écrite quand un agent constate qu’une attente a été contredite. Elles sont stockées par Agent Team, sur cet ordinateur.', 'A lesson is written when an agent finds an expectation was contradicted. They are stored per agent team, on this machine.'))]))
         else body = h('div', null,
           h('div', { className: 'kbmem-list', style: list.loading ? { opacity: .6 } : null }, list.items.map((it, i) => mems
-            ? h(MemoryRow, { key: it.id, i, m: it, ctxOn, selected: sheet !== null && sheet.item !== undefined && sheet.item.id === it.id, onOpen: (m) => setSheet({ kind: 'mem', item: m }) })
+            ? h(MemoryRow, { key: it.id, i, m: it, ctxOn, markSent: sentMarks(list.items)[i] === true, selected: sheet !== null && sheet.item !== undefined && sheet.item.id === it.id, onOpen: (m) => setSheet({ kind: 'mem', item: m }) })
             : h(LessonRow, { key: it.id, i, l: it, selected: sheet !== null && sheet.item !== undefined && sheet.item.id === it.id, onOpen: (l) => setSheet({ kind: 'les', item: l }) }))),
           h(Pager, { total: list.total, page, size, onPage: setPage, onSize: (n) => { setSize(n); setPage(1) } }))
 
@@ -1961,7 +1975,7 @@ window.__ModuleLoader__.load({
       return {
         inject: ['slots'],
         // Pure pieces and the page, exposed for test-client.mjs and the live check.
-        __test: { selfStatus, connectAccount, capNote, LESSONS_CAP, LESSONS_NEAR, PAGE_TITLE, studyWords, mapMatches, mapZoom, mapPan, mapClamp, mapLabelSpots, mapWords, MAP_FIT, teamLockedWords, teamReasonOf, isTeamAdmin, minutesSince, teamStatusChip, teamMatches, teamMeta, tidyRanNotice, TIDY_MODES: tidyModes(), TIDY_SCHEDULES: tidySchedules(), whenAhead, tidySettingsOf, nextWords, tidyNextOf, tidyLast, lastWords, tidyBrain, logWho, TIDY_SHOWN, visibleItems, TIDY_MAX_REMOVALS, TIDY_SOURCES, plural, whenLabel, groupRemovals, tidyChunks, keeperOf, tidyBody, asTidyView, tidySaves, scanKey, logWords, tidyLog, onEscape, meaningWhy, closenessLabel, wordsLabel, readMode, writeMode, planOf, ageLabel, pagerPages, listUrl, activeFilters, defaultFilters, friendlyError, captureWords, api, GROUPS, Page, css, PAGE_SIZES },
+        __test: { sentMarks, selfStatus, connectAccount, capNote, LESSONS_CAP, LESSONS_NEAR, PAGE_TITLE, studyWords, mapMatches, mapZoom, mapPan, mapClamp, mapLabelSpots, mapWords, MAP_FIT, teamLockedWords, teamReasonOf, isTeamAdmin, minutesSince, teamStatusChip, teamMatches, teamMeta, tidyRanNotice, TIDY_MODES: tidyModes(), TIDY_SCHEDULES: tidySchedules(), whenAhead, tidySettingsOf, nextWords, tidyNextOf, tidyLast, lastWords, tidyBrain, logWho, TIDY_SHOWN, visibleItems, TIDY_MAX_REMOVALS, TIDY_SOURCES, plural, whenLabel, groupRemovals, tidyChunks, keeperOf, tidyBody, asTidyView, tidySaves, scanKey, logWords, tidyLog, onEscape, meaningWhy, closenessLabel, wordsLabel, readMode, writeMode, planOf, ageLabel, pagerPages, listUrl, activeFilters, defaultFilters, friendlyError, captureWords, api, GROUPS, Page, css, PAGE_SIZES },
         apply(ctx) {
           if (ctx === null || ctx === undefined || ctx.slots === null || ctx.slots === undefined) return
           ctx.effect(() => styles.insert(css), 'kybernos-memory: styles')
