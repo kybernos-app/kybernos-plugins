@@ -18,9 +18,9 @@ const FR = 'L’assistant de cette page ne répond pas. Si DSH vient d’être m
 const PAGES = [
   ['kybernos-websearch', 'Web Search'],
   ['kybernos-auto', 'Auto routing'],
-  ['kybernos-models', 'AI Provider & Models'],
+  ['kybernos-models', 'AI provider and models'],
   ['kybernos-free-llms', 'Free LLMs'],
-  ['kybernos-modeles-locaux', 'Ollama Local Models'],
+  ['kybernos-modeles-locaux', 'Ollama local models'],
 ]
 
 let n = 0

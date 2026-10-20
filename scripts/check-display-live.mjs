@@ -573,9 +573,9 @@ const SCENARIOS = [
     async run(c) {
       if (!(await openSettings(c.page, { tries: 3 }))) { missing.push({ size: c.size, scheme: c.scheme, scenario: 'settings', why: 'did not open' }); return }
       await c.drawer()
-      // Only the cells a person can see: DSH's own « Models » cell is hidden by the Kybernos « AI Provider & Models » page that replaces it (there is nothing to click).
+      // Only the cells a person can see: DSH's own « Models » cell is hidden by the Kybernos « AI provider and models » page that replaces it (there is nothing to click).
       const readCells = async () => (await c.page.evalJs(`Array.from(document.querySelectorAll('button[class*="navCell"]')).filter((b) => { const r = b.getBoundingClientRect(); return r.width > 4 && r.height > 4 && getComputedStyle(b).visibility === 'visible' }).map((b) => (b.innerText || '').trim())`)).val || []
-      // Plugins retitle some cells a moment after the dialog opens (« Models » becomes « AI Provider & Models »): take the list once it has stopped moving.
+      // Plugins retitle some cells a moment after the dialog opens (« Models » becomes « AI provider and models »): take the list once it has stopped moving.
       let cells = await readCells()
       for (let i = 0; i < 12; i += 1) { await sleep(500); const again = await readCells(); if (JSON.stringify(again) === JSON.stringify(cells)) break; cells = again }
       for (const name of cells) {

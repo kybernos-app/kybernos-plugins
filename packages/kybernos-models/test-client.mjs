@@ -324,14 +324,14 @@ console.log('\n── DSH’s native page: which menu cell to hide ──')
   const bl = (name) => { const i = src.indexOf('// ' + name + '-BEGIN'); const j = src.indexOf('// ' + name + '-END'); return src.slice(i, j) }
   const { kbNatPick, kbNatHidden } = new Function(bl('KB-NATIVE-PURE') + '\nreturn { kbNatPick, kbNatHidden }')()
   ok('the native cell is hidden by default (this page does everything the native one does); a stored choice still wins', /const KB_NAT_DEFAULT_HIDDEN = true/.test(src) && new Function(src.slice(src.indexOf('// KB-NATIVE-PURE-BEGIN'), src.indexOf('// KB-NATIVE-PURE-END')) + '\nreturn kbNatHidden')()(null, true) === true && new Function(src.slice(src.indexOf('// KB-NATIVE-PURE-BEGIN'), src.indexOf('// KB-NATIVE-PURE-END')) + '\nreturn kbNatHidden')()('0', true) === false)
-  const nav = ['Theme', 'AI Provider & Models', 'Models', 'Ollama Local Models', 'Voice']
-  ok('the native cell is found beside ours', JSON.stringify(kbNatPick([nav], 'Models', 'AI Provider & Models')) === JSON.stringify([{ group: 0, index: 2 }]))
-  ok('only the exact label matches, never "Ollama Local Models"', kbNatPick([nav], 'Models', 'AI Provider & Models').length === 1)
-  ok('a list that does not hold our cell is never touched', kbNatPick([['Models', 'Chat', 'Files', 'More']], 'Models', 'AI Provider & Models').length === 0)
-  ok('a list too short to be a menu is ignored', kbNatPick([['Models', 'AI Provider & Models']], 'Models', 'AI Provider & Models').length === 0)
-  ok('with no native label (locale did not answer) nothing is hidden', kbNatPick([nav], null, 'AI Provider & Models').length === 0 && kbNatPick([nav], '', 'AI Provider & Models').length === 0)
-  ok('never hides our own cell if the labels collide', kbNatPick([nav], 'AI Provider & Models', 'AI Provider & Models').length === 0)
-  ok('the translated label is matched as is', kbNatPick([['Thème', 'Fournisseur IA & modèles', 'Modèles', 'Voix']], 'Modèles', 'Fournisseur IA & modèles').length === 1)
+  const nav = ['Theme', 'AI provider and models', 'Models', 'Ollama local models', 'Voice']
+  ok('the native cell is found beside ours', JSON.stringify(kbNatPick([nav], 'Models', 'AI provider and models')) === JSON.stringify([{ group: 0, index: 2 }]))
+  ok('only the exact label matches, never "Ollama local models"', kbNatPick([nav], 'Models', 'AI provider and models').length === 1)
+  ok('a list that does not hold our cell is never touched', kbNatPick([['Models', 'Chat', 'Files', 'More']], 'Models', 'AI provider and models').length === 0)
+  ok('a list too short to be a menu is ignored', kbNatPick([['Models', 'AI provider and models']], 'Models', 'AI provider and models').length === 0)
+  ok('with no native label (locale did not answer) nothing is hidden', kbNatPick([nav], null, 'AI provider and models').length === 0 && kbNatPick([nav], '', 'AI provider and models').length === 0)
+  ok('never hides our own cell if the labels collide', kbNatPick([nav], 'AI provider and models', 'AI provider and models').length === 0)
+  ok('the translated label is matched as is', kbNatPick([['Thème', 'Fournisseur IA et modèles', 'Modèles', 'Voix']], 'Modèles', 'Fournisseur IA et modèles').length === 1)
   ok('the stored choice wins, otherwise the default', kbNatHidden('1', false) === true && kbNatHidden('0', true) === false && kbNatHidden(null, false) === false && kbNatHidden(null, true) === true && kbNatHidden('junk', false) === false)
 }
 

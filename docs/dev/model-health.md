@@ -1,4 +1,4 @@
-# Model health: the chip on the AI Provider & Models tab
+# Model health: the chip on the AI provider and models tab
 
 While a Study model is in force (`brain` in Kybernos Settings: the person's pick, or Automatic, which is the default and
 picks a model by itself), the configured models are probed on the host (one real, tiny call each, cached five hours). A
@@ -8,7 +8,7 @@ answering » would be noise. A person who picked their Study model keeps the old
 With the Study model on **None**, or Automatic with no connected model that qualifies, nobody is watching and nothing is shown.
 
 Until now the verdict was a five-line banner drawn by `kybernos-sessions` above the page. It is now a **chip on the
-tab bar** of AI Provider & Models, drawn by `kybernos-models`:
+tab bar** of AI provider and models, drawn by `kybernos-models`:
 
 - At rest: `⚠ 3 models not answering` (or `No model is answering` when nothing answered at all: a general failure,
   connection or keys, not N guilty models).

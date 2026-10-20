@@ -2733,7 +2733,7 @@ window.__ModuleLoader__.load({
     // probed on the host (one real, tiny call each); a model that no longer answers is reported. Setting empty =
     // nobody is watching: no alert, even when the host is silent — we do not shout about a watch nobody asked for.
     //
-    // This bundle owns the PROBE and the state, and draws nothing. The alert lives in the AI Provider & Models tab
+    // This bundle owns the PROBE and the state, and draws nothing. The alert lives in the AI provider and models tab
     // only (user rule, 26/09/2026): kybernos-models renders it there, as a chip on the tab bar. The two bundles
     // meet on a small public contract, so neither imports the other:
     //   · `window.__kybernosHealth` = { version: 1, get(), recheck(), hide() } — `get()` is the view below, or

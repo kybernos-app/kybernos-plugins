@@ -52,7 +52,7 @@ window.__ModuleLoader__.load({
       // Text separator, locale-aware: French ' : ', English ': '.
       const sep = () => (kbIsFr() ? ' : ' : ': ')
       const KB_M_T = {
-        'kb.models.surface.entry': { kybernos: 'Fournisseur IA & modèles', en: 'AI Provider & Models' },
+        'kb.models.surface.entry': { kybernos: 'Fournisseur IA et modèles', en: 'AI provider and models' },
         'kb.models.surface.hint': { kybernos: 'Tes fournisseurs et leurs modèles, au même endroit.', en: 'Your providers and their models, in one place.' },
         'kb.models.sub': { kybernos: 'Catalogue de modèles personnalisé — prefill models.dev, surcharge par champ.', en: 'Customized model catalog — models.dev prefill, per-field override.' },
         'kb.models.page.info': { kybernos: '{a}–{b} sur {n} modèles', en: '{a}–{b} of {n} models' },
@@ -290,8 +290,8 @@ window.__ModuleLoader__.load({
         'kb.prov.on.err': { kybernos: 'Impossible de réactiver {slug} : {raison}', en: 'Could not enable {slug}: {raison}' },
         'kb.nat.open': { kybernos: 'Ouvrir la page native de DSH', en: 'Open DSH’s native Models page' },
         'kb.nat.note.t': { kybernos: 'Page native de DSH', en: 'DSH’s native page' },
-        'kb.nat.note.b': { kybernos: 'Tout ce qui se fait ici se fait aussi dans « Fournisseur IA & modèles », avec plus de détails. Les deux pages lisent et écrivent les mêmes réglages : elles restent synchronisées.', en: 'Everything done here can also be done in “AI Provider & Models”, with more detail. Both pages read and write the same settings, so they stay in sync.' },
-        'kb.nat.back': { kybernos: 'Ouvrir Fournisseur IA & modèles', en: 'Open AI Provider & Models' },
+        'kb.nat.note.b': { kybernos: 'Tout ce qui se fait ici se fait aussi dans « Fournisseur IA et modèles », avec plus de détails. Les deux pages lisent et écrivent les mêmes réglages : elles restent synchronisées.', en: 'Everything done here can also be done in “AI provider and models”, with more detail. Both pages read and write the same settings, so they stay in sync.' },
+        'kb.nat.back': { kybernos: 'Ouvrir Fournisseur IA et modèles', en: 'Open AI provider and models' },
         'kb.nat.hide': { kybernos: 'Masquer la page native du menu des Réglages', en: 'Hide DSH’s native page from the Settings menu' },
         'kb.nat.show': { kybernos: 'Afficher cette page dans le menu des Réglages', en: 'Show this page in the Settings menu' },
         'kb.nat.crash.t': { kybernos: 'Cette page n’a pas pu s’afficher.', en: 'This page could not be displayed.' },
@@ -430,7 +430,7 @@ window.__ModuleLoader__.load({
         'kb.models.hostdown': { kybernos: 'L’assistant de cette page ne répond pas. Si DSH vient d’être mis à jour, redémarre DSH, puis appuie sur Réessayer.', en: 'This page’s helper is not answering. If DSH was just updated, restart DSH, then press Retry.' },
         'kb.models.empty.live': { kybernos: 'aucun modèle configuré dans llm-pi-ai', en: 'no model configured in llm-pi-ai' },
         'kb.models.route': { kybernos: 'route', en: 'route' },
-        // ── « AI Provider & Models » header block (settings.models.header) ──
+        // ── « AI provider and models » header block (settings.models.header) ──
         // ── Kybernos Cloud card (redesign of 2026-09-21, from the mock-up) ─
         // The English follows the mock-up word for word; the French translates it.
         'kb.hero.badge': { kybernos: 'Recommandé', en: 'Recommended' },
@@ -4605,7 +4605,7 @@ window.__ModuleLoader__.load({
         h('div', { className: 'kbm-sub' }, m('kb.models.surface.hint'))),
       h(KbBoundary, null, h(Panel, null)))
       // (02/10) No more « Local models » mount point here: this panel
-      // only lives in the dedicated « Ollama Local Models » section.
+      // only lives in the dedicated « Ollama local models » section.
 
       return {
         // `remote` carries the two namespaces used: settings (read and

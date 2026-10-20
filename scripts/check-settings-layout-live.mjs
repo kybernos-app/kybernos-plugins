@@ -41,8 +41,8 @@ const openPage = async (width, height, cell) => {
 }
 
 try {
-  console.log('R-A3-02 · Ollama Local Models: the dot of a tile stays beside the first line of its text')
-  if (await openPage(1400, 900, 'Ollama Local Models')) {
+  console.log('R-A3-02 · Ollama local models: the dot of a tile stays beside the first line of its text')
+  if (await openPage(1400, 900, 'Ollama local models')) {
     const ready = await waitFor(page, `document.querySelectorAll('.kml-tuile').length === 3 && document.querySelectorAll('.kml-tuile .kbm-dot[data-state="done"]').length >= 1`, 25000)
     if (ready === null) check('the three tiles are drawn with a measured machine', false, await val(`document.querySelector('.kml-tuiles') ? document.querySelector('.kml-tuiles').innerText : 'no tiles'`))
     else {
