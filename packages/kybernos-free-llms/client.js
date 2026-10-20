@@ -144,7 +144,7 @@ window.__ModuleLoader__.load({
         ".kfl-verifie { font-size: 12px; line-height: 18px; color: var(--dsw-alias-label-tertiary); white-space: nowrap; }\n" +
         "@media (pointer: coarse) { .kfl-tete .kbm-btn-sm { height: 40px; } }\n" +
         "@media (max-width: 520px) { .kfl-tete .kfl-section { flex-basis: 100%; } .kfl-verifie { flex: 1; } }\n" +
-        ".kfl-section { margin: 0 0 8px; font-size: 12px; line-height: 18px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--dsw-alias-label-tertiary); }\n" +
+        ".kfl-section { margin: 0 0 8px; font-size: 12px; line-height: 18px; font-weight: 600; color: var(--dsw-alias-label-tertiary); }\n" +
         ".kfl-liste { display: flex; flex-direction: column; gap: 6px; margin: 0 0 12px; }\n" +
         ".kfl-mod { display: flex; align-items: center; gap: 12px; border: 1px solid var(--dsw-alias-border-l2); border-radius: 10px; background: var(--dsw-alias-bg-layer-1); padding: 10px 12px; }\n" +
         ".kfl-mod-nom { flex: 1; min-width: 0; font-family: var(--ds-font-family-code, monospace); font-size: 13px; color: var(--dsw-alias-label-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }\n" +

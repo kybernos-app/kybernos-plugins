@@ -220,7 +220,7 @@ window.__ModuleLoader__.load({
       } else {
         const entete = document.createElement('div')
         entete.className = 'kaa-sm-head'
-        entete.textContent = kt('MODÈLE', 'MODEL') + '   ' + kt('LATENCE', 'LATENCY') + '   ' + kt('ERREURS', 'ERRORS')
+        entete.textContent = kt('Modèle', 'Model') + '   ' + kt('Latence', 'Latency') + '   ' + kt('Erreurs', 'Errors')
         refs.sante.append(entete)
         for (const v of sante) {
           const ligneS = document.createElement('div')
@@ -570,7 +570,7 @@ window.__ModuleLoader__.load({
       '.kaa-switch-btn:disabled{cursor:default;opacity:.7}',
       '.kaa-switch-btn.on{background:var(--dsw-alias-state-warn-primary)}',
       '.kaa-sante-mini{margin-top:8px;border-top:0.5px solid var(--dsw-alias-border-l2);padding-top:6px;width:100%}',
-      '.kaa-sm-head{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--dsw-alias-label-tertiary);padding:0 0 4px}',
+      '.kaa-sm-head{font-size:10px;color:var(--dsw-alias-label-tertiary);padding:0 0 4px}',
       '.kaa-sm-row{display:grid;grid-template-columns:minmax(0,1fr) 52px 44px;gap:6px;align-items:center;padding:5px 0;font-size:12.5px;color:var(--dsw-alias-label-primary)}',
       '.kaa-sm-row.out{opacity:.55}',
       '.kaa-sm-nom{display:flex;align-items:center;gap:6px;min-width:0;font-weight:500;flex-wrap:wrap}',
@@ -634,7 +634,7 @@ window.__ModuleLoader__.load({
       '.kaa-recheck:disabled{opacity:.6;cursor:default}',
       '.kaa-table small.kaa-why{font-family:ui-monospace,Menlo,monospace;font-size:11px;max-width:420px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
       '.kaa-table{width:100%;border-collapse:collapse;font-size:13px}',
-      '.kaa-table th{text-align:start;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--dsw-alias-label-tertiary);',
+      '.kaa-table th{text-align:start;font-size:11px;color:var(--dsw-alias-label-tertiary);',
       'padding:0 8px 6px 0;border-bottom:0.5px solid var(--dsw-alias-border-l2);font-weight:500}',
       '.kaa-table td{padding:9px 8px 9px 0;border-bottom:0.5px solid var(--dsw-alias-border-l2);font-variant-numeric:tabular-nums}',
       '.kaa-table tr.out td{opacity:.55}',

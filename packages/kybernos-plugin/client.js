@@ -73,10 +73,10 @@ let kbLocaleRead = () => 'en'
       'tb.summary.recent.old': { kybernos: 'Activité la plus ancienne', en: 'Oldest activity first' },
       'tb.summary.recent.new': { kybernos: 'Activité la plus récente', en: 'Most recent activity' },
       // Pastilles des cartes de projet (l'anglais etait en dur : « 1 DELIVERABLES »).
-      'kbui.pill.thread.one': { kybernos: 'FIL', en: 'THREAD' },
-      'kbui.pill.thread.many': { kybernos: 'FILS', en: 'THREADS' },
-      'kbui.pill.deliv.one': { kybernos: 'CRÉATION', en: 'CREATION' },
-      'kbui.pill.deliv.many': { kybernos: 'CRÉATIONS', en: 'CREATIONS' },
+      'kbui.pill.thread.one': { kybernos: 'Fil', en: 'Thread' },
+      'kbui.pill.thread.many': { kybernos: 'Fils', en: 'Threads' },
+      'kbui.pill.deliv.one': { kybernos: 'Création', en: 'Creation' },
+      'kbui.pill.deliv.many': { kybernos: 'Créations', en: 'Creations' },
       'tb.count.of': { kybernos: 'sur', en: 'of' },
       'tb.empty.title': { kybernos: 'Aucun résultat', en: 'No results' },
       'tb.empty.hint': { kybernos: 'Aucun élément ne correspond à cette recherche avec les filtres actuels.', en: 'Nothing matches this search with the current filters.' },
@@ -105,13 +105,13 @@ let kbLocaleRead = () => 'en'
       'tasks.filter.all': { kybernos: 'Toutes', en: 'All' },
       'tasks.filter.active': { kybernos: 'Actives', en: 'Active' },
       'tasks.filter.attention': { kybernos: 'Attention requise', en: 'Needs attention' },
-      'tasks.col.name': { kybernos: 'NOM', en: 'NAME' },
-      'tasks.col.trigger': { kybernos: 'DÉCLENCHEUR', en: 'TRIGGER' },
-      'tasks.col.origin': { kybernos: 'ORIGINE', en: 'ORIGIN' },
-      'tasks.col.lastsession': { kybernos: 'DERNIÈRE SESSION', en: 'LAST SESSION' },
-      'tasks.col.sessions': { kybernos: 'SESSIONS', en: 'SESSIONS' },
-      'tasks.col.on': { kybernos: 'ACTIF', en: 'ON' },
-      'tasks.origin.manual': { kybernos: 'MANUEL', en: 'MANUAL' },
+      'tasks.col.name': { kybernos: 'Nom', en: 'Name' },
+      'tasks.col.trigger': { kybernos: 'Déclencheur', en: 'Trigger' },
+      'tasks.col.origin': { kybernos: 'Origine', en: 'Origin' },
+      'tasks.col.lastsession': { kybernos: 'Dernière session', en: 'Last session' },
+      'tasks.col.sessions': { kybernos: 'Sessions', en: 'Sessions' },
+      'tasks.col.on': { kybernos: 'Actif', en: 'On' },
+      'tasks.origin.manual': { kybernos: 'Manuel', en: 'Manual' },
       'tasks.status.awaiting': { kybernos: 'En attente d\'approbation', en: 'Awaiting approval' },
       'tasks.status.ok': { kybernos: 'ok', en: 'ok' },
       'tasks.status.failed': { kybernos: 'Échoué', en: 'Failed' },
@@ -247,7 +247,7 @@ let kbLocaleRead = () => 'en'
       'tasks.hook.intro': { kybernos: 'Cette automation peut être déclenchée par un service externe (Stripe, GitHub, un formulaire…) qui POSTe sur son URL dédiée.', en: 'This automation can be triggered by an external service (Stripe, GitHub, a form…) POSTing to its dedicated URL.' },
       'tasks.hook.none': { kybernos: 'Aucun webhook pour l\u2019instant. Créer une URL dédiée pour déclencher cette automation depuis l\u2019extérieur.', en: 'No webhook yet. Create a dedicated URL to trigger this automation from outside.' },
       'tasks.hook.create': { kybernos: 'Créer le webhook', en: 'Create webhook' },
-      'tasks.hook.url': { kybernos: 'URL À DONNER AU SERVICE EXTERNE', en: 'URL TO GIVE THE EXTERNAL SERVICE' },
+      'tasks.hook.url': { kybernos: 'URL à donner au service externe', en: 'URL to give the external service' },
       'tasks.hook.copy': { kybernos: 'Copier', en: 'Copy' },
       'tasks.hook.local': { kybernos: 'Fonctionne tant que DSH tourne sur cette machine — pour un accès depuis internet, passer par un tunnel (ngrok, Cloudflare).', en: 'Works while DSH runs on this machine — for internet access, use a tunnel (ngrok, Cloudflare).' },
       'tasks.hook.test': { kybernos: 'Tester (POST interne)', en: 'Test (internal POST)' },
@@ -298,9 +298,9 @@ let kbLocaleRead = () => 'en'
       'tasks.wiz.r.res': { kybernos: 'Résultat', en: 'Result' },
       'tasks.wiz.r.mail': { kybernos: 'Email', en: 'Email' },
       'tasks.wiz.r.team': { kybernos: 'L’Agent Team ferait…', en: 'The Agent Team would…' },
-      'tasks.wiz.r.ok': { kybernos: 'RUN', en: 'RUN' },
-      'tasks.wiz.r.wait': { kybernos: 'ASK', en: 'ASK' },
-      'tasks.wiz.r.skip': { kybernos: 'SKIP', en: 'SKIP' },
+      'tasks.wiz.r.ok': { kybernos: 'Run', en: 'Run' },
+      'tasks.wiz.r.wait': { kybernos: 'Ask', en: 'Ask' },
+      'tasks.wiz.r.skip': { kybernos: 'Skip', en: 'Skip' },
       'tasks.wiz.r.1': { kybernos: '« Remboursement abonnement » · Amel B.', en: '“Refund subscription” · Amel B.' },
       'tasks.wiz.r.1d': { kybernos: 'billing → brouillon de réponse', en: 'billing → draft reply' },
       'tasks.wiz.r.2': { kybernos: '« Impossible de me connecter » · Karim T.', en: '“Cannot log in” · Karim T.' },
@@ -365,16 +365,16 @@ let kbLocaleRead = () => 'en'
       'tasks.tpl.empty': { kybernos: 'Aucun modèle ne correspond.', en: 'No template matches.' },
       'tasks.tpl.import': { kybernos: 'Importer', en: 'Import' },
       'tasks.tpl.use': { kybernos: 'Utiliser ce modèle', en: 'Use this template' },
-      'tasks.tpl.sec.steps': { kybernos: 'CE QU’ELLE FAIT', en: 'WHAT IT DOES' },
-      'tasks.tpl.sec.ask': { kybernos: 'LES QUESTIONS DU CHAT', en: 'THE CHAT’S QUESTIONS' },
-      'tasks.tpl.sec.needs': { kybernos: 'CE QU’IL TE FAUT', en: 'WHAT YOU WILL NEED' },
-      'tasks.tpl.sec.guard': { kybernos: 'RÈGLES ÉCRITES DANS LES ÉTAPES', en: 'RULES WRITTEN INTO THE STEPS' },
+      'tasks.tpl.sec.steps': { kybernos: 'Ce qu’elle fait', en: 'What it does' },
+      'tasks.tpl.sec.ask': { kybernos: 'Les questions du chat', en: 'The chat’s questions' },
+      'tasks.tpl.sec.needs': { kybernos: 'Ce qu’il te faut', en: 'What you will need' },
+      'tasks.tpl.sec.guard': { kybernos: 'Règles écrites dans les étapes', en: 'Rules written into the steps' },
       'tasks.tpl.kind.ai': { kybernos: 'IA', en: 'AI' },
       'tasks.tpl.kind.act': { kybernos: 'Action', en: 'Action' },
       'tasks.tpl.note': { kybernos: 'Un modèle est un point de départ : il dépend de tes comptes, de ta cible et de tes limites. « Utiliser ce modèle » ouvre un chat qui te pose ses questions, puis enregistre une vraie automatisation désactivée, le temps que tu connectes ce qu’il faut.', en: 'A template is a starting point: it depends on your accounts, your target and your limits. “Use this template” opens a chat that asks its questions, then saves a real automation that stays off until you have connected what it needs.' },
       'tasks.tpl.nochat': { kybernos: 'Impossible d’ouvrir un chat d’ici.', en: 'A chat cannot be opened from here.' },
       'tasks.tpl.chat.lang': { kybernos: 'Follow this conversation in my language: {lang}', en: 'Follow this conversation in my language: {lang}' },
-      'tasks.tpl.sec.apps': { kybernos: 'INTÉGRATIONS', en: 'INTEGRATIONS' },
+      'tasks.tpl.sec.apps': { kybernos: 'Intégrations', en: 'Integrations' },
       'tasks.tpl.chat.head': { kybernos: 'Skill automation-creator — crée une automation à partir du modèle « {title} ».', en: 'Skill automation-creator — create an automation from the template “{title}”.' },
       'tasks.tpl.chat.rule': { kybernos: 'Pars de ce brouillon et adapte-le à moi : n’invente rien sur mes comptes, ma cible ni mes limites, demande-le-moi.', en: 'Start from this draft and adapt it to me: invent nothing about my accounts, my target or my limits, ask me.' },
       'tasks.tpl.chat.when': { kybernos: 'Ce qui la lance (proposé) :', en: 'What starts it (suggested):' },
@@ -424,12 +424,12 @@ let kbLocaleRead = () => 'en'
       'tasks.runs.steps': { kybernos: '{n} étapes', en: '{n} steps' },
       'tasks.runs.tools': { kybernos: '{n} appels d’outil', en: '{n} tool calls' },
       'tasks.runs.hint': { kybernos: 'Chaque exécution est un vrai chat avec l’Agent Team. La ligne « échec » qu’une exécution a écrite sur elle-même est rattachée à cette exécution. Les liens montrent ce que chaque étape a transmis à la suivante.', en: 'Each run is a real chat with the Agent Team. The “failed” line a run wrote about itself sits on that run. The links show how much each step handed on to the next.' },
-      'tasks.journal.who': { kybernos: 'QUI A TOURNÉ', en: 'WHO RAN' },
+      'tasks.journal.who': { kybernos: 'Qui a tourné', en: 'Who ran' },
       'tasks.journal.why': { kybernos: 'Pourquoi ce modèle', en: 'Why this model' },
       'tasks.journal.why.default': { kybernos: 'Modèle par défaut du profil : aucun modèle n’a été choisi pour cette exécution.', en: 'Profile default: no model was chosen for this run.' },
       'tasks.journal.why.set': { kybernos: 'Choisi pour cette exécution.', en: 'Chosen for this run.' },
-      'tasks.journal.what': { kybernos: 'CE QUI S’EST PASSÉ', en: 'WHAT HAPPENED' },
-      'tasks.journal.approvals': { kybernos: 'APPROBATIONS', en: 'APPROVALS' },
+      'tasks.journal.what': { kybernos: 'Ce qui s’est passé', en: 'What happened' },
+      'tasks.journal.approvals': { kybernos: 'Approbations', en: 'Approvals' },
       'tasks.journal.approval': { kybernos: 'approbation', en: 'approval' },
       'tasks.journal.approvals.none': { kybernos: 'Aucune demande pendant cette exécution · mode :', en: 'No request during this run · mode:' },
       'tasks.everyday8': { kybernos: 'Chaque jour, 8:00', en: 'Every day, 8:00' },
@@ -693,14 +693,14 @@ let kbLocaleRead = () => 'en'
       'kb2v.tab': { kybernos: 'Workflows', en: 'Workflows' },
       'kb2v.foldside': { kybernos: 'Afficher ou masquer la colonne des appels', en: 'Toggle calls column' },
       'kb2v.foldjour': { kybernos: 'Afficher ou masquer la colonne du journal', en: 'Toggle journal column' },
-      'kb2v.execs': { kybernos: 'EXÉCUTIONS', en: 'EXECUTIONS' },
-      'kb2v.journal': { kybernos: 'JOURNAL D’EXÉCUTION', en: 'EXECUTION LOG' },
-      'kb2v.insp': { kybernos: 'INSPECTEUR', en: 'INSPECTOR' },
+      'kb2v.execs': { kybernos: 'Exécutions', en: 'Executions' },
+      'kb2v.journal': { kybernos: 'Journal d’exécution', en: 'Execution log' },
+      'kb2v.insp': { kybernos: 'Inspecteur', en: 'Inspector' },
       'kb2v.replay': { kybernos: '▶ Rejouer', en: '▶ Replay' },
       'kb2v.pause': { kybernos: '⏸ Pause', en: '⏸ Pause' },
       'kb2v.reset': { kybernos: 'Réinitialiser', en: 'Reset' },
-      'kb2v.in': { kybernos: 'ENTRÉE', en: 'INPUT' },
-      'kb2v.out': { kybernos: 'SORTIE', en: 'OUTPUT' },
+      'kb2v.in': { kybernos: 'Entrée', en: 'Input' },
+      'kb2v.out': { kybernos: 'Sortie', en: 'Output' },
       'kb2v.actor': { kybernos: 'Acteur', en: 'Actor' },
       'kb2v.time': { kybernos: 'Horodatage', en: 'Timestamp' },
       'kb2v.scopes': { kybernos: 'Permissions', en: 'Permissions' },
@@ -760,12 +760,12 @@ let kbLocaleRead = () => 'en'
       'kb2v.journal.calls': { kybernos: ' appels', en: ' calls' },
       'kb2v.journal.crews': { kybernos: ' équipes', en: ' teams' },
       'kb2v.answer': { kybernos: 'Répondre', en: 'Answer' },
-      'kb2v.kpi.execs': { kybernos: 'EXÉCUTIONS', en: 'EXECUTIONS' },
-      'kb2v.kpi.crews': { kybernos: 'ÉQUIPES', en: 'TEAMS' },
-      'kb2v.kpi.time': { kybernos: 'TEMPS ACTIF', en: 'ACTIVE TIME' },
-      'kb2v.kpi.tokens': { kybernos: 'TOKENS', en: 'TOKENS' },
-      'kb2v.kpi.llm': { kybernos: 'APPELS LLM', en: 'LLM CALLS' },
-      'kb2v.kpi.cost': { kybernos: 'COÛT', en: 'COST' },
+      'kb2v.kpi.execs': { kybernos: 'Exécutions', en: 'Executions' },
+      'kb2v.kpi.crews': { kybernos: 'Équipes', en: 'Teams' },
+      'kb2v.kpi.time': { kybernos: 'Temps actif', en: 'Active time' },
+      'kb2v.kpi.tokens': { kybernos: 'Tokens', en: 'Tokens' },
+      'kb2v.kpi.llm': { kybernos: 'Appels LLM', en: 'LLM calls' },
+      'kb2v.kpi.cost': { kybernos: 'Coût', en: 'Cost' },
       'kbtc.crew': { kybernos: 'Équipe', en: 'Team' },
       'kbtc.appel': { kybernos: 'appel', en: 'call' },
       'kbtc.voir': { kybernos: 'Voir l’exécution', en: 'View execution' },
@@ -920,7 +920,7 @@ let kbLocaleRead = () => 'en'
       'runs.neverobserved': { kybernos: ' · non observée', en: ' · never observed' },
       'runs.declared.prefix': { kybernos: 'déclaré: ', en: 'declared: ' },
       'runs.nodeviation': { kybernos: 'Aucune déviation dérivée pour ce run.', en: 'No deviation derived for this run.' },
-      'runs.deviations': { kybernos: 'DÉVIATIONS (', en: 'DEVIATIONS (' },
+      'runs.deviations': { kybernos: 'Déviations (', en: 'Deviations (' },
       'runs.empty': { kybernos: 'Un run apparaît ici dès qu’un workflow est lancé (tool workflow + run-start dans les événements).', en: 'A run shows up here as soon as a workflow starts (the workflow tool + run-start in the events).' },
       'runs.norun': { kybernos: 'Aucun run workflow sur cette session', en: 'No workflow run in this session' },
       'runs.parallelism': { kybernos: 'Parallélisme observé', en: 'Observed parallelism' },
@@ -949,14 +949,14 @@ let kbLocaleRead = () => 'en'
       'crew.roles.pill': { kybernos: 'rôles déclarés ', en: 'declared roles ' },
       'crew.norole.pill': { kybernos: 'sans rôle ', en: 'no role ' },
       'crew.gaps.pill': { kybernos: 'écarts ', en: 'gaps ' },
-      'crew.declared.head': { kybernos: 'DÉCLARÉ — ', en: 'DECLARED — ' },
+      'crew.declared.head': { kybernos: 'Déclaré — ', en: 'Declared — ' },
       'crew.nodef': { kybernos: 'Définition absente de ce poste : rôles inconnus.', en: 'Definition missing on this machine: unknown roles.' },
       'crew.noroles': { kybernos: 'Cette Agent Team ne déclare aucun rôle.', en: 'This agent team declares no role.' },
       'crew.stages.colon': { kybernos: 'étages :', en: 'stages:' },
       'crew.executed.head': { kybernos: 'EXÉCUTÉ — coéquipiers du crew', en: 'EXECUTED — crew teammates' },
       'crew.noprefixed': { kybernos: 'Aucun coéquipier préfixé « ', en: 'No teammate prefixed “' },
       'crew.noprefixed2': { kybernos: '- » dans le roster.', en: '-” on the roster.' },
-      'crew.gap.head': { kybernos: 'ÉCART', en: 'GAP' },
+      'crew.gap.head': { kybernos: 'Écart', en: 'GAP' },
       'crew.origin.declared': { kybernos: 'déclaré', en: 'declared' },
       'crew.executed.mid': { kybernos: 'exécuté ', en: 'executed ' },
       'canvas.loading': { kybernos: 'Chargement du canvas…', en: 'Loading canvas…' },
@@ -994,15 +994,15 @@ let kbLocaleRead = () => 'en'
       'crew.declared.meta': { kybernos: 'ce que chaque Agent Team déclare, ce qui a tourné, où est l’écart', en: 'what each agent team declares, what ran, where the gap is' },
       'crew.declared.n': { kybernos: ' déclarés', en: ' declared' },
       'crew.declared.one': { kybernos: ' déclaré', en: ' declared' },
-      'crew.declared.title': { kybernos: 'CREWS DÉCLARÉS', en: 'DECLARED CREWS' },
-      'crew.detail.title': { kybernos: 'DÉTAIL DU RÔLE', en: 'ROLE DETAIL' },
+      'crew.declared.title': { kybernos: 'Crews déclarés', en: 'Declared crews' },
+      'crew.detail.title': { kybernos: 'Détail du rôle', en: 'Role detail' },
       'crew.duration': { kybernos: 'Durée · passages', en: 'Duration · passes' },
       'crew.duration.col': { kybernos: 'Durée', en: 'Duration' },
       'crew.executed': { kybernos: 'Exécuté', en: 'Executed' },
       'crew.firsttoken': { kybernos: ' · 1er token ', en: ' · 1st token ' },
       'crew.flow.hint': { kybernos: 'Clique un nœud du flux pour voir le détail du rôle.', en: 'Click a flow node to see role details.' },
       'crew.flow.meta': { kybernos: 'un graphe déclaré par crew', en: 'one declared graph per crew' },
-      'crew.flow.title': { kybernos: 'FLUX DES AGENTS', en: 'AGENT FLOW' },
+      'crew.flow.title': { kybernos: 'Flux des agents', en: 'Agent flow' },
       'crew.gap': { kybernos: 'écart de modèle', en: 'model gap' },
       'crew.gaps': { kybernos: 'Écarts de modèle', en: 'Model gaps' },
       'crew.gaps.sub': { kybernos: 'le modèle exécuté diffère du déclaré', en: 'the executed model differs from the declared one' },
@@ -1019,7 +1019,7 @@ let kbLocaleRead = () => 'en'
       'crew.modeldeclared': { kybernos: 'Modèle déclaré', en: 'Declared model' },
       'crew.modelexecuted': { kybernos: 'Modèle exécuté', en: 'Executed model' },
       'crew.modelprojected': { kybernos: 'Modèle projeté', en: 'Projected model' },
-      'crew.models.title': { kybernos: 'MODÈLES — DÉCLARÉ VS EXÉCUTÉ', en: 'MODELS — DECLARED VS EXECUTED' },
+      'crew.models.title': { kybernos: 'Modèles — déclaré vs exécuté', en: 'Models — declared vs executed' },
       'crew.needs': { kybernos: 'Besoins déclarés', en: 'Declared needs' },
       'crew.next': { kybernos: 'Suivant ›', en: 'Next ›' },
       'crew.noactive': { kybernos: ' sans crew actif', en: ' with no active crew' },
@@ -1090,7 +1090,7 @@ let kbLocaleRead = () => 'en'
       'crew.refresh': { kybernos: 'Rafraîchir', en: 'Refresh' },
       'crew.role': { kybernos: 'rôle', en: 'role' },
       'crew.role.noagent': { kybernos: 'Aucun agent Agent Teams rattaché à ce rôle.', en: 'No Agent Teams member attached to this role.' },
-      'crew.role.pill': { kybernos: 'RÔLE', en: 'ROLE' },
+      'crew.role.pill': { kybernos: 'Rôle', en: 'Role' },
       'crew.roles': { kybernos: 'rôles', en: 'roles' },
       'crew.rolesheld': { kybernos: 'Rôles tenus', en: 'Roles held' },
       'crew.rolesheld.sub': { kybernos: 'rapprochement rôle déclaré ↔ nom de coéquipier', en: 'declared role matched against teammate name' },
@@ -1134,8 +1134,8 @@ let kbLocaleRead = () => 'en'
       'kbui.useicon': { kybernos: ' Utiliser une icône', en: ' Use icon' },
       'kbui.guidedchat': { kybernos: 'Un chat guidé — il demande ce que l’Agent Team doit faire', en: 'A guided chat — it asks what the agent team should do' },
       'kbui.project.holds': { kybernos: 'Un projet a ses propres chats, documents, objectifs et créations. Ouvre-le pour voir ce que les Agent Teams y ont produit.', en: 'A project holds its own chats, documents, goals and creations. Open one to see what the Agent Teams produced there.' },
-      'kbui.sort.az': { kybernos: 'A → Z', en: 'A → Z' },
-      'kbui.apps.askfor': { kybernos: 'APPLICATIONS DEMANDÉES', en: 'APPS IT WILL ASK FOR' },
+      'kbui.sort.az': { kybernos: 'A → z', en: 'A → z' },
+      'kbui.apps.askfor': { kybernos: 'Applications demandées', en: 'Apps it will ask for' },
       'kbui.actions': { kybernos: 'Actions', en: 'Actions' },
       'kbui.add.document': { kybernos: 'Ajouter un document', en: 'Add a document' },
       'kbui.add.skill': { kybernos: 'Ajouter une compétence', en: 'Add a skill' },
@@ -1195,7 +1195,7 @@ let kbLocaleRead = () => 'en'
       'kbui.budget': { kybernos: 'Budget', en: 'Budget' },
       'kbui.buildteam': { kybernos: 'Construire l’Agent Team', en: 'Build the Agent Team' },
       'kbui.composio.absent': { kybernos: 'Paquet @local/kybernos-composio absent.', en: 'Bundle @local/kybernos-composio absent.' },
-      'kbui.crew.tag': { kybernos: 'ÉQUIPE ', en: 'CREW ' },
+      'kbui.crew.tag': { kybernos: 'Équipe ', en: 'Crew ' },
       'kbui.cache': { kybernos: 'Cache : ', en: 'Cache: ' },
       'kbui.cancel': { kybernos: 'Annuler', en: 'Cancel' },
       'kbui.category': { kybernos: 'Catégorie', en: 'Category' },
@@ -1257,7 +1257,7 @@ let kbLocaleRead = () => 'en'
       'kbui.keep.audio': { kybernos: 'Garder l’audio (message vocal)', en: 'Keep audio (voice message)' },
       'kbui.greeting': { kybernos: 'Message d’accueil', en: 'Greeting' },
       'kbui.grille': { kybernos: 'Grille', en: 'Grid' },
-      'kbui.outcrew': { kybernos: 'HORS ÉQUIPE', en: 'OUT OF CREW' },
+      'kbui.outcrew': { kybernos: 'Hors équipe', en: 'Out of crew' },
       'kbui.tts.headsup': { kybernos: 'Attention : ce moteur envoie le texte de la réponse à ', en: 'Heads-up: this engine sends the reply text to ' },
       'kbui.healthcheck.all': { kybernos: 'Tout vérifier', en: 'Healthcheck all' },
       'kbui.helpdocs': { kybernos: 'Aide et documentation', en: 'Help & docs' },
@@ -1267,7 +1267,7 @@ let kbLocaleRead = () => 'en'
       'kbui.hosted.vs.plugin': { kybernos: 'Hosted face au plugin open source', en: 'Hosted vs the open-source plugin' },
       'kbui.import.github': { kybernos: 'Importer un « Agent Team Manifest » depuis GitHub', en: 'Import an "Agent Team Manifest" from GitHub' },
       'kbui.import.workspace': { kybernos: 'Importer mon espace de travail', en: 'Import my workspace' },
-      'kbui.kybernos.hosted': { kybernos: 'KYBERNOS HOSTED', en: 'KYBERNOS HOSTED' },
+      'kbui.kybernos.hosted': { kybernos: 'Kybernos hosted', en: 'Kybernos hosted' },
       'kbui.keep.opensource': { kybernos: 'Garder le plugin open source', en: 'Keep the open-source plugin' },
       'kbui.kyber.notfound': { kybernos: 'Agent Team introuvable.', en: 'Agent Team not found.' },
       'kbui.kybernos': { kybernos: 'Kybernos', en: 'Kybernos' },
@@ -1282,7 +1282,7 @@ let kbLocaleRead = () => 'en'
       'kbui.liste': { kybernos: 'Liste', en: 'List' },
       'kbui.localiser': { kybernos: 'Localiser — ', en: 'Locate — ' },
       'kbui.reveal': { kybernos: 'Localiser', en: 'Reveal' },
-      'kbui.members.prompts': { kybernos: 'MEMBRES ET LEURS PROMPTS', en: 'MEMBERS AND THEIR PROMPTS' },
+      'kbui.members.prompts': { kybernos: 'Membres et leurs prompts', en: 'Members and their prompts' },
       'kbui.masquer': { kybernos: 'Masquer', en: 'Hide' },
       'kbui.mission': { kybernos: 'Mission', en: 'Mission' },
       'kbui.sort.mostagents': { kybernos: 'Plus d’agents', en: 'Most agents' },
@@ -1309,7 +1309,7 @@ let kbLocaleRead = () => 'en'
       'kbui.nothing.yet': { kybernos: 'Rien ici pour l’instant', en: 'Nothing here yet' },
       'kbui.notifications': { kybernos: 'Notifications', en: 'Notifications' },
       'kbui.notif.empty': { kybernos: 'Aucune notification pour le moment.', en: 'No notifications yet.' },
-      'kbui.opensource.plugin': { kybernos: 'PLUGIN OPEN SOURCE', en: 'OPEN-SOURCE PLUGIN' },
+      'kbui.opensource.plugin': { kybernos: 'Plugin open source', en: 'Open-source plugin' },
       'kbui.objectifs': { kybernos: 'Objectifs', en: 'Goals' },
       'kbui.open': { kybernos: 'Ouvrir', en: 'Open' },
       'kbui.overview.tabs': { kybernos: 'Vue d’ensemble · Santé · Agent Teams · Édition', en: 'Overview · Health · Agent Teams · Edit' },
@@ -1609,7 +1609,7 @@ let kbLocaleRead = () => 'en'
       'kbauto.set.skill.d': { kybernos: 'Quand une automatisation a tourné sans échec le nombre de fois choisi ci-dessous, son texte est écrit comme skill réutilisable. Règle fixe : aucun modèle ne décide. Désactivé par défaut ; le fichier est à toi, modifie-le ou supprime-le.', en: 'When an automation has run the number of times chosen below without a failure, its text is written down as a reusable skill. A fixed rule: no model decides. Off by default; the file is yours to edit or delete.' },
       'kbauto.set.stable': { kybernos: 'Stable après', en: 'Stable after' },
       'kbauto.set.stable.d': { kybernos: 'Nombre d’exécutions d’affilée sans échec. L’historique garde les 20 dernières exécutions : 20 est le maximum.', en: 'Runs in a row without a failure. The history keeps the last 20 runs: 20 is the most.' },
-      'tasks.lesson.title': { kybernos: 'LEÇONS', en: 'LESSONS' },
+      'tasks.lesson.title': { kybernos: 'Leçons', en: 'Lessons' },
       'tasks.lesson.progress': { kybernos: 'Cette automatisation a tourné {k} fois d’affilée sans échec. À {n}, elle peut devenir un skill réutilisable.', en: 'This automation has run {k} times in a row without a failure. At {n} it can become a reusable skill.' },
       'tasks.lesson.stable': { kybernos: 'Cette automatisation a tourné {n} fois d’affilée sans échec : assez stable pour devenir un skill réutilisable.', en: 'This automation ran {n} times in a row without a failure: stable enough to become a reusable skill.' },
       'tasks.lesson.create': { kybernos: 'Créer le skill', en: 'Create skill' },
@@ -1735,13 +1735,13 @@ let kbLocaleRead = () => 'en'
       'kbui.fallback.from': { kybernos: 'repli depuis ', en: 'fallback from ' },
       'kbui.in.this.chat': { kybernos: 'dans ce chat', en: 'in this chat' },
       // ── Documents / Resources ──────────────────────────────────────────
-      'kbui.knowledge': { kybernos: 'CONNAISSANCES', en: 'KNOWLEDGE' },
-      'kbui.projects.caps': { kybernos: 'PROJETS', en: 'PROJECTS' },
-      'kbui.subprojects': { kybernos: 'SOUS-PROJETS', en: 'SUBPROJECTS' },
-      'kbui.col.name': { kybernos: 'NOM', en: 'NAME' },
-      'kbui.col.modified': { kybernos: 'MODIFIÉ', en: 'MODIFIED' },
-      'kbui.col.size': { kybernos: 'TAILLE', en: 'SIZE' },
-      'kbui.col.sharing': { kybernos: 'PARTAGE', en: 'SHARING' },
+      'kbui.knowledge': { kybernos: 'Connaissances', en: 'Knowledge' },
+      'kbui.projects.caps': { kybernos: 'Projets', en: 'Projects' },
+      'kbui.subprojects': { kybernos: 'Sous-projets', en: 'Subprojects' },
+      'kbui.col.name': { kybernos: 'Nom', en: 'Name' },
+      'kbui.col.modified': { kybernos: 'Modifié', en: 'Modified' },
+      'kbui.col.size': { kybernos: 'Taille', en: 'Size' },
+      'kbui.col.sharing': { kybernos: 'Partage', en: 'Sharing' },
       'kbui.drop.file': { kybernos: 'Dépose un fichier sur un dossier pour le classer', en: 'Drop a file on a folder to file it' },
       'kbui.edit.changes': { kybernos: '« Modifier » change l’icône et la couleur', en: '“Edit” changes icon and colour' },
       'kbui.file': { kybernos: ' fichier', en: ' file' },
@@ -1894,7 +1894,7 @@ let kbLocaleRead = () => 'en'
       'kbui.free': { kybernos: 'Gratuit', en: 'Free' },
       'kbui.paid': { kybernos: 'Payant', en: 'Paid' },
       'kbui.manual': { kybernos: 'Manuel', en: 'Manual' },
-      'kbui.frag.agents': { kybernos: ' AGENTS · ', en: ' AGENTS · ' },
+      'kbui.frag.agents': { kybernos: ' Agents · ', en: ' Agents · ' },
       'kbui.frag.ok': { kybernos: ' OK / ', en: ' OK / ' },
       'kbui.frag.agents2': { kybernos: ' agents · ', en: ' agents · ' },
       'kbui.frag.agents3': { kybernos: ' agents — ', en: ' agents — ' },
@@ -1964,17 +1964,17 @@ let kbLocaleRead = () => 'en'
       'kbui.crew.vision': { kybernos: 'vision', en: 'vision' },
       'kbui.crew.search.ph': { kybernos: 'Chercher un modèle, un fournisseur…', en: 'Search a model, provider or type…' },
       'kbui.crew.nosug': { kybernos: 'Aucun modèle ne correspond.', en: 'No model matches.' },
-      'kbui.crew.available': { kybernos: 'MODÈLES DISPONIBLES — CHOISIR LE PRIMAIRE, ↩ POUR LE FALLBACK', en: 'AVAILABLE MODELS — PICK PRIMARY, ↩ FOR FALLBACK' },
-      'kbui.crew.prompt.title': { kybernos: 'SYSTEM PROMPT — LA DOCTRINE DE CE RÔLE', en: 'SYSTEM PROMPT — THE DOCTRINE OF THIS ROLE' },
+      'kbui.crew.available': { kybernos: 'Modèles disponibles — choisir le primaire, ↩ pour le fallback', en: 'Available models — pick primary, ↩ for fallback' },
+      'kbui.crew.prompt.title': { kybernos: 'System prompt — la doctrine de ce rôle', en: 'System prompt — the doctrine of this role' },
       'kbui.crew.pick.primary': { kybernos: 'Choisir comme modèle principal', en: 'Pick as primary model' },
       'kbui.crew.fb.set': { kybernos: 'Définir comme fallback', en: 'Set as fallback' },
-      'kbui.crew.needs': { kybernos: 'BESOINS — RÉSOLUS À L’EXÉCUTION PAR KYBER-ROUTING', en: 'NEEDS — RESOLVED AT RUNTIME BY KYBER-ROUTING' },
-      'kbui.crew.fbtitle': { kybernos: '↩ MODÈLE DE REPLI (FALLBACK)', en: '↩ FALLBACK MODEL' },
+      'kbui.crew.needs': { kybernos: 'Besoins — résolus à l’exécution par kyber-routing', en: 'Needs — resolved at runtime by kyber-routing' },
+      'kbui.crew.fbtitle': { kybernos: '↩ Modèle de repli (fallback)', en: '↩ Fallback model' },
       'kbui.crew.fbnone': { kybernos: 'aucun fallback défini.', en: 'no fallback available.' },
       'kbui.crew.fbnote': { kybernos: 'Choix manuel — servi si le modèle principal échoue. Définis-le avec ↩ sur une carte modèle.', en: 'Manual choice — served when the primary model fails. Set it with ↩ on a model card.' },
-      'kbui.crew.details': { kybernos: 'MODÈLE SÉLECTIONNÉ — DÉTAILS', en: 'SELECTED MODEL — DETAILS' },
-      'kbui.crew.mods': { kybernos: 'ENTRÉE → SORTIE', en: 'INPUT → OUTPUT' },
-      'kbui.crew.caps': { kybernos: 'CAPACITÉS', en: 'CAPABILITIES' },
+      'kbui.crew.details': { kybernos: 'Modèle sélectionné — détails', en: 'Selected model — details' },
+      'kbui.crew.mods': { kybernos: 'Entrée → sortie', en: 'Input → output' },
+      'kbui.crew.caps': { kybernos: 'Capacités', en: 'Capabilities' },
       'kbui.crew.cap.tool': { kybernos: 'Appel d’outils', en: 'Tool calling' },
       'kbui.crew.cap.reasoning': { kybernos: 'Raisonnement', en: 'Reasoning' },
       'kbui.crew.cap.attach': { kybernos: 'Pièces jointes', en: 'Attachments' },
@@ -2020,26 +2020,26 @@ let kbLocaleRead = () => 'en'
       'kbw.confirm': { kybernos: 'Confirmer', en: 'Confirm' },
       'kbw.enabled': { kybernos: 'Widget activé', en: 'Widget enabled' },
       'kbw.off': { kybernos: 'Widget en pause — l’embed n’affiche rien', en: 'Widget paused — the embed shows nothing' },
-      'kbw.label': { kybernos: 'NOM INTERNE', en: 'INTERNAL NAME' },
-      'kbw.slug': { kybernos: 'SLUG — IDENTITÉ PUBLIQUE', en: 'SLUG — PUBLIC IDENTITY' },
+      'kbw.label': { kybernos: 'Nom interne', en: 'Internal name' },
+      'kbw.slug': { kybernos: 'Slug — identité publique', en: 'Slug — public identity' },
       'kbw.slug.hint': { kybernos: 'Unique dans cette Agent Team : c’est l’identité de la porte, pour le lien et le widget.', en: 'Unique within this agent team: it is the identity of the door, for the link and the widget.' },
       'kbw.slug.dup': { kybernos: 'Ce slug est déjà pris par un autre widget.', en: 'This slug is already taken by another widget.' },
       'kbw.slug.bad': { kybernos: 'Lettres minuscules, chiffres et tirets — 2 à 40 caractères.', en: 'Lowercase letters, digits and dashes — 2 to 40 characters.' },
-      'kbw.appearance': { kybernos: 'APPARENCE', en: 'APPEARANCE' },
-      'kbw.colour': { kybernos: 'COULEUR', en: 'COLOUR' },
-      'kbw.position': { kybernos: 'POSITION', en: 'POSITION' },
+      'kbw.appearance': { kybernos: 'Apparence', en: 'Appearance' },
+      'kbw.colour': { kybernos: 'Couleur', en: 'Colour' },
+      'kbw.position': { kybernos: 'Position', en: 'Position' },
       'kbw.pos.r': { kybernos: 'Bas droite', en: 'Bottom right' },
       'kbw.pos.l': { kybernos: 'Bas gauche', en: 'Bottom left' },
-      'kbw.message': { kybernos: 'MESSAGE', en: 'MESSAGE' },
+      'kbw.message': { kybernos: 'Message', en: 'Message' },
       'kbw.title': { kybernos: 'Titre affiché', en: 'Displayed title' },
       'kbw.greeting': { kybernos: "Message d'accueil", en: 'Greeting' },
-      'kbw.legal': { kybernos: 'LÉGAL & CONFORMITÉ — TES CONDITIONS', en: 'LEGAL & COMPLIANCE — YOUR TERMS' },
+      'kbw.legal': { kybernos: 'Légal & conformité — tes conditions', en: 'Legal & compliance — your terms' },
       'kbw.gate': { kybernos: 'Compte Kybernos requis — le visiteur se connecte et accepte ces conditions avant de discuter.', en: 'Kybernos account required — the visitor signs in and accepts these terms before chatting.' },
       'kbw.terms': { kybernos: 'URL conditions de service', en: 'Terms of service URL' },
       'kbw.privacy': { kybernos: 'URL politique de confidentialité', en: 'Privacy policy URL' },
       'kbw.footer': { kybernos: 'Mention légale — affichée sous le widget', en: 'Legal footer — shown under the widget' },
-      'kbw.preview': { kybernos: 'APERÇU', en: 'PREVIEW' },
-      'kbw.embed': { kybernos: 'EMBED — UNE LIGNE, N’IMPORTE QUEL SITE', en: 'EMBED — ONE LINE, ANY SITE' },
+      'kbw.preview': { kybernos: 'Aperçu', en: 'Preview' },
+      'kbw.embed': { kybernos: 'Embed — une ligne, n’importe quel site', en: 'Embed — one line, any site' },
       'kbw.copy': { kybernos: 'Copier', en: 'Copy' },
       'kbw.copied': { kybernos: 'Copié ✓', en: 'Copied ✓' },
       'kbw.save': { kybernos: 'Enregistrer le widget', en: 'Save widget' },
@@ -2075,13 +2075,13 @@ let kbLocaleRead = () => 'en'
       'kbui.ins.refresh': { kybernos: 'Rafraîchir', en: 'Refresh' },
       'kbui.ins.loading': { kybernos: 'Lecture du ledger et des journaux…', en: 'Reading the ledger and journals…' },
       'kbui.ins.key': { kybernos: 'Indicateurs clés', en: 'Key metrics' },
-      'kbui.ins.runs': { kybernos: 'RUNS TOTAUX', en: 'TOTAL RUNS' },
+      'kbui.ins.runs': { kybernos: 'Runs totaux', en: 'Total runs' },
       'kbui.ins.runs.sub': { kybernos: 'Exécutions d’agents', en: 'Agent executions' },
-      'kbui.ins.users': { kybernos: 'UTILISATEURS UNIQUES', en: 'UNIQUE USERS' },
+      'kbui.ins.users': { kybernos: 'Utilisateurs uniques', en: 'Unique users' },
       'kbui.ins.users.sub': { kybernos: 'Sessions distinctes', en: 'Distinct sessions' },
-      'kbui.ins.last': { kybernos: 'DERNIER RUN', en: 'LAST RUN' },
+      'kbui.ins.last': { kybernos: 'Dernier run', en: 'Last run' },
       'kbui.ins.last.none': { kybernos: 'Aucune activité', en: 'No activity yet' },
-      'kbui.ins.versions': { kybernos: 'VERSIONS PUBLIÉES', en: 'PUBLISHED VERSIONS' },
+      'kbui.ins.versions': { kybernos: 'Versions publiées', en: 'Published versions' },
       'kbui.ins.versions.sub': { kybernos: 'Versions enregistrées', en: 'Versions saved' },
       'kbui.ins.usage': { kybernos: 'Graphiques d’usage', en: 'Usage charts' },
       'kbui.ins.usage.users': { kybernos: 'Utilisateurs', en: 'Users' },
@@ -2103,10 +2103,10 @@ let kbLocaleRead = () => 'en'
       'kbui.ins.llm.cost.sub': { kybernos: 'USD / appel', en: 'USD / call' },
       'kbui.ins.llm.none': { kybernos: 'Aucune mesure', en: 'No data' },
       'kbui.ins.roi': { kybernos: 'Productivité & ROI', en: 'Productivity & ROI' },
-      'kbui.ins.hours.day': { kybernos: 'HEURES / JOUR', en: 'HOURS / DAY' },
+      'kbui.ins.hours.day': { kybernos: 'Heures / jour', en: 'Hours / day' },
       'kbui.ins.hours.day.sub': { kybernos: 'Temps actif estimé', en: 'Estimated active time' },
-      'kbui.ins.hours.week': { kybernos: 'HEURES / SEMAINE', en: 'HOURS / WEEK' },
-      'kbui.ins.hours.month': { kybernos: 'HEURES / MOIS', en: 'HOURS / MONTH' },
+      'kbui.ins.hours.week': { kybernos: 'Heures / semaine', en: 'Hours / week' },
+      'kbui.ins.hours.month': { kybernos: 'Heures / mois', en: 'Hours / month' },
       'kbui.ins.hours.reset': { kybernos: 'Revenir à l’estimation', en: 'Reset to estimate' },
       'kbui.ins.sim': { kybernos: 'Simulateur d’économie', en: 'Economy simulator' },
       'kbui.ins.sim.country': { kybernos: 'Pays', en: 'Country' },
@@ -2957,7 +2957,7 @@ const KB_SS_INDEX = [
   ['tools', '', 'Profile', 'Enable experimental capabilities and connect external tools to a DSH profile.', '', 'mcp outils experimental profil connexions herramientas'],
   ['connectors', '', 'Composio key', 'Your personal Composio key: it drives this tab and the chat agents.', 'save clear', 'cle api api key gmail slack notion applications integrations clave'],
   ['connectors', '', 'Kybernos Cloud', 'Connections are handled by your Kybernos account: no key to manage, and your accounts follow you across your devices.', 'paid plans', 'compte applications integrations abonnement'],
-  ['web search', '', 'Default engine', 'Agents try it first.', 'brave search exa duckduckgo wikipedia', 'moteur de recherche navigateur web internet buscador cle api api key ordre moteurs', '', 'DEFAULT'],
+  ['web search', '', 'Default engine', 'Agents try it first.', 'brave search exa duckduckgo wikipedia', 'moteur de recherche navigateur web internet buscador cle api api key ordre moteurs', '', 'Default'],
   ['web search', '', 'Sites', 'One per line or comma separated. “example.com” keeps only that site.', '', 'domaines sites autorises liste blanche filtre'],
 
   ['voice', '', 'Composer microphone', 'This plugin’s dictation mic takes the place of the native one, just before Send.', 'kybernos native dsh', 'micro dictee saisie vocale microfono'],
@@ -3043,7 +3043,7 @@ const KB_SS_FR = {
   'tools|Profile': ['Profil', 'Active des capacités expérimentales et branche des outils externes sur un profil DSH.'],
   'connectors|Composio key': ['Clé Composio', 'Ta clé personnelle Composio : elle pilote cet onglet ET les agents du chat.'],
   'connectors|Kybernos Cloud': ['Kybernos Cloud', 'Les connexions sont gérées par ton compte Kybernos : pas de clé à gérer, et tes comptes te suivent d’un appareil à l’autre.'],
-  'web search|Default engine': ['Moteur par défaut', 'Les agents l’essaient en premier.', 'PAR DÉFAUT'],
+  'web search|Default engine': ['Moteur par défaut', 'Les agents l’essaient en premier.', 'Par défaut'],
   'web search|Sites': ['Sites', 'Un par ligne ou séparés par des virgules. « exemple.com » ne garde que ce site.'],
   'voice|Composer microphone': ['Micro du composer', 'La dictée de ce plugin prend la place du micro natif, juste avant Envoyer.'],
   'voice|Read replies aloud as they arrive': ['Lire les réponses à voix haute à leur arrivée', ''],
@@ -3483,7 +3483,7 @@ const KB_FR_EN = {
   'Aucune session ne correspond.': 'No session matches.',
   'Aucune échéance déclarée.': 'No declared deadline.',
   'Bonne réponse : ': 'Correct answer: ',
-  'BUDGET DÉCLARÉ PAR LES AGENT TEAMS DU PROJET': 'BUDGET DECLARED BY THE PROJECT AGENT TEAMS',
+  'Budget déclaré par les agent teams du projet': 'Budget declared by the project agent teams',
   'Budget forecast 2026.xlsx': 'Budget forecast 2026.xlsx', // donnée de démo, pas un libellé
   'Budgets you can trust': 'Budgets you can trust', // donnée de démo, pas un libellé
   'Ce que l’Agent Team doit faire à chaque déclenchement…': 'What the Agent Team must do on every trigger…',
@@ -3533,7 +3533,7 @@ const KB_FR_EN = {
   'Modifier les paramètres et régénérer': 'Change the settings and regenerate',
   'modèle': 'model',
   'Média illisible : aucun item dans ': 'Unreadable media: no item in ',
-  'NON CONNECTÉ': 'NOT CONNECTED',
+  'Non connecté': 'Not connected',
   'Note vocale rangée dans le workspace : ': 'Voice note filed in the workspace: ',
   'Nouvelle session introuvable : équipe non liée': 'New session not found: team not linked',
   'Objectifs': 'Goals',
@@ -3553,7 +3553,7 @@ const KB_FR_EN = {
   'réponse inattendue de /kybernos/voice/config': 'unexpected response from /kybernos/voice/config',
   'Résumé': 'Summary',
   'Résumé illisible : aucune section exploitable dans ': 'Unreadable summary: no usable section in ',
-  'SANS CLÉ': 'NO KEY',
+  'Sans clé': 'No key',
   'Goal atteint': 'Goal achieved',
   'Scène ': 'Scene ',
   'Skills, connectors and documents are workspace-level — attach them per project instead of rebuilding them per bot.': 'Skills, connectors and documents are workspace-level — attach them per project instead of rebuilding them per bot.', // donnée de démo, pas un libellé
@@ -3725,7 +3725,7 @@ const KB_FR_EN = {
   'Étape « ': 'Stage "',
   'fermer': 'close',
   'kyber.yml — texte brut': 'kyber.yml — raw text',
-  'PROPOSER UN KYBER.YML': 'PROPOSE A KYBER.YML',
+  'Proposer un kyber.yml': 'Propose a kyber.yml',
   'Décris le workflow en français — la proposition est relue en français (aller-retour) avant toute écriture.': 'Describe the workflow in French — the proposal is read back in French (round-trip) before anything is written.',
   'Ex : une équipe qui cadre une fonctionnalité, la spécifie, la teste, puis la vérifie en boucle jusqu’à convergence.': 'E.g. a team that frames a feature, specifies it, tests it, then checks it in a loop until convergence.',
   'Proposer un kyber.yml': 'Propose a kyber.yml',
@@ -3941,7 +3941,7 @@ const KB_FR_EN = {
   'Lecture du journal…': 'Reading the journal…',
   'Aucun run réel pour cette session. Le journal se remplit quand un workflow tourne ici.': 'No real run for this session. The journal fills in when a workflow runs here.',
   'Sous-tâche courante · réel': 'Current sub-task · real',
-  'SOUS-TÂCHE': 'SUB-TASK',
+  'Sous-tâche': 'Sub-task',
   'Journal de la sous-tâche': 'Sub-task journal',
   // Creations dialog (full page, resize) and small labels that had no English entry
   'Plein écran': 'Full page',
@@ -3971,7 +3971,7 @@ const KB_FR_EN = {
   'Dézoomer': 'Zoom out',
   'bande bleue = période sélectionnée': 'blue band = selected period',
   'Étape · acteur · modèle': 'Step · actor · model',
-  ' · ÉTAPE ': ' · STEP ',
+  ' · Étape ': ' · Step ',
   'Entrée': 'Input',
   'Décision humaine requise': 'Human decision required',
   'Assignée à Sarah M. · échéance 01:14 · 2 approbateurs de secours': 'Assigned to Sarah M. · due 01:14 · 2 backup approvers',
@@ -4161,7 +4161,7 @@ const KB_FR_EN = {
   ' absente du store': ' missing from the store',
   'le membre ne porte pas de sessionId': 'the member carries no sessionId',
   '(objectif sans intitulé)': '(untitled goal)',
-  'CONSOMMATION DE CETTE SESSION': 'USAGE OF THIS SESSION',
+  'Consommation de cette session': 'Usage of this session',
   'Le host ne remonte pas encore de consommation pour cette session.': 'The host does not report any usage for this session yet.',
   'Comment ces chiffres sont obtenus': 'How these figures are obtained',
   'Budget : bloc `budget:` des kyber.yml des Agent Teams qui ont tourné dans les threads de ce projet. Consommation : usage réel remonté par le host pour la session courante. Aucune estimation, aucun graphe inventé.': 'Budget: the `budget:` block of the kyber.yml files of the Agent Teams that ran in the threads of this project. Usage: real usage reported by the host for the current session. No estimate, no invented graph.',
@@ -4281,7 +4281,7 @@ const KB_FR_EN = {
   'Connecteur': 'Connector',
   'Humain': 'Human',
   'Attente humaine': 'Awaiting a human',
-  'HUMAIN': 'HUMAN',
+  'Humain': 'Human',
   'Chronologie': 'Timeline',
   'Graphe': 'Graph',
   'Analyse': 'Analysis',
@@ -4897,7 +4897,7 @@ const kbConnRowsOf = (connsReal, declaredTools, hit) => {
     if (hit(d.name + ' ' + d.kyber) === false) continue
     connRows.push({
       key: 'decl/' + d.key, name: d.name, meta: d.kyber + ' · ' + d.role + kbe(' · declared, not connected'),
-      state: connsReal !== null && connsReal.configured === false ? kbe('NO KEY') : kbe('NOT CONNECTED'),
+      state: connsReal !== null && connsReal.configured === false ? kbe('No key') : kbe('Not connected'),
       real: false, slug: d.slug, account: null,
     })
   }
@@ -5035,7 +5035,7 @@ const kbVisagesCard = (props) => {
   })()
   const appels = mode === 'person' ? Math.max(1, Math.min(9, roles.length)) : 1
   const cout = (prix === null) ? null : (appels * prix)
-  const lab = { fontSize: '11px', letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--dsw-alias-label-secondary)' }
+  const lab = { fontSize: '11px', color: 'var(--dsw-alias-label-secondary)' }
   const segStyle = (actif) => ({ display: 'inline-flex', alignItems: 'center', gap: '7px', height: '30px', padding: '0 12px', borderRadius: '999px', border: '1px solid ' + (actif === true ? 'var(--dsw-alias-state-error-primary)' : 'var(--dsw-alias-border-l1)'), background: actif === true ? 'color-mix(in srgb, var(--dsw-alias-state-error-primary) 10%, transparent)' : 'var(--dsw-alias-bg-layer-1)', color: actif === true ? 'var(--dsw-alias-state-error-primary)' : 'var(--dsw-alias-label-secondary)', fontSize: '12px', fontWeight: actif === true ? 600 : 500, cursor: busy ? 'not-allowed' : 'pointer', font: 'inherit', opacity: busy ? 0.6 : 1 })
   const modeLbl = (m) => kbt(m === 'person' ? 'kbui.visages.mode.person' : 'kbui.visages.mode.group')
   const enfants = []
@@ -7170,11 +7170,11 @@ const SHARED_UI_CSS = "/* ── Button — les actions (capsule h36 r18) ──
 
 const CSS = `
 .kb2-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 14px 4px}
-.kb2-title{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--dsw-alias-label-secondary)}
+.kb2-title{font-size:11px;font-weight:600;color:var(--dsw-alias-label-secondary)}
 .kb2-hbtn{width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center;border:none;background:transparent;color:var(--dsw-alias-label-secondary);border-radius:6px;cursor:pointer;font-size:13px}
 .kb2-hbtn:hover{background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary)}
 .kb2-body{flex:1;min-height:0;overflow-y:auto;padding:0 14px 16px}
-.kb2-sect{margin:14px 0 6px;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--dsw-alias-label-secondary)}
+.kb2-sect{margin:14px 0 6px;font-size:11px;font-weight:600;color:var(--dsw-alias-label-secondary)}
 .kb2-budget{padding:2px 0 4px}
 .kb2-amount{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
 .kb2-big{font-size:30px;font-weight:700;color:var(--dsw-alias-label-primary);letter-spacing:-.01em}
@@ -7229,7 +7229,7 @@ const CSS = `
 .kb2-warnline{font-size:10.5px;line-height:1.35;color:var(--dsw-alias-state-warn-primary);margin-top:2px}
 .kb2-needs{font-size:10.5px;color:var(--dsw-alias-label-secondary);text-align:right;white-space:nowrap}
 .kb2-stages{margin-top:8px;font-size:10.5px;line-height:1.4;color:var(--dsw-alias-label-secondary)}
-.kb2-roothead{display:flex;justify-content:space-between;gap:8px;align-items:baseline;margin:12px 0 2px;font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--dsw-alias-label-secondary)}
+.kb2-roothead{display:flex;justify-content:space-between;gap:8px;align-items:baseline;margin:12px 0 2px;font-size:10.5px;color:var(--dsw-alias-label-secondary)}
 .kb2-path{font-size:10px;opacity:.75;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:60%;text-transform:none;letter-spacing:0}
 .kb2-run{display:flex;align-items:center;gap:10px;padding:8px 10px;margin:6px 0;border:1px solid var(--dsw-alias-border-l1);border-radius:8px;background:var(--dsw-alias-bg-layer-1)}
 .kb2-run-main{flex:1;min-width:0}
@@ -7275,7 +7275,7 @@ const CSS = `
 .kb4-split.open .kb4-chev{transform:rotate(180deg)}
 /* Selecteur « demarrer ce chat avec » : recouvre le contenu, comme la maquette. */
 .kb4-pick{position:absolute;left:0;right:0;top:calc(100% + 6px);z-index:60;display:flex;flex-direction:column;gap:1px;padding:10px;border:1px solid var(--dsw-alias-border-l2);border-radius:14px;background:var(--dsw-alias-bg-layer-1);box-shadow:0 18px 40px var(--dsw-alias-bg-overlay, rgba(0,0,0,.26))}
-.kb4-pick-h{padding:3px 8px 8px;font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--dsw-alias-label-secondary)}
+.kb4-pick-h{padding:3px 8px 8px;font-size:10.5px;font-weight:700;color:var(--dsw-alias-label-secondary)}
 .kb4-team{display:flex;align-items:center;gap:10px;width:100%;padding:8px;border:none;border-radius:11px;background:transparent;color:var(--dsw-alias-label-primary);cursor:pointer;text-align:left;font:inherit}
 .kb4-team:hover{background:var(--dsw-alias-bg-layer-2)}
 .kb4-team.on{background:var(--dsw-alias-bg-layer-2)}
@@ -7422,7 +7422,7 @@ body{--kb-u:var(--dsh-content-font-size,13px)}
 .kbg-cardhead{display:flex;align-items:center;gap:12px}
 .kbg-avatar{width:46px;height:46px;border-radius:13px;display:flex;align-items:center;justify-content:center;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);font-weight:700;font-size:15px;flex:none}
 .kbg-kname{font-size:17px;font-weight:700;color:var(--dsw-alias-label-primary)}
-.kbg-kmeta{margin-top:3px;font-size:10.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--dsw-alias-label-secondary)}
+.kbg-kmeta{margin-top:3px;font-size:10.5px;font-weight:600;color:var(--dsw-alias-label-secondary)}
 .kbg-desc{font-size:13.5px;line-height:1.55;color:var(--dsw-alias-label-secondary)}
 .kbg-stats{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 .kbg-pill{border:1px solid var(--dsw-alias-border-l1);border-radius:999px;padding:3px 10px;font-size:11.5px;color:var(--dsw-alias-label-secondary)}
@@ -7518,7 +7518,7 @@ body{--kb-u:var(--dsh-content-font-size,13px)}
 .kb6-tinfostats{display:flex;gap:8px;flex-wrap:wrap}
 .kb6-tinforoles{display:flex;flex-direction:column;gap:6px;border:1px solid var(--dsw-alias-border-l1);border-radius:12px;padding:12px 14px;background:var(--dsw-alias-bg-layer-1)}
 .kb6-tinfosec{display:flex;flex-direction:column;gap:6px;border:1px solid var(--dsw-alias-border-l1);border-radius:12px;padding:12px 14px;background:var(--dsw-alias-bg-layer-1)}
-.kb6-tinfolabel{font-size:12px;font-weight:700;color:var(--dsw-alias-label-secondary);letter-spacing:.04em;text-transform:uppercase}
+.kb6-tinfolabel{font-size:12px;font-weight:700;color:var(--dsw-alias-label-secondary);}
 .kb6-tinfoactions{display:flex;gap:8px;flex-wrap:wrap}
 .kb6-frame{width:100%;height:520px;border:1px solid var(--dsw-alias-border-l1);border-radius:12px;background:var(--dsw-alias-bg-document-preview, var(--dsw-alias-bg-base))}
 .kb6-cell-key{flex:0 0 38%;font-weight:700;color:var(--dsw-alias-label-primary)}
@@ -7902,7 +7902,7 @@ const kbGoalCardCss = () => {
   style.textContent = [
     '.kbg-gc{display:flex;flex-direction:column;gap:8px;min-width:0;margin:6px 0 2px}',
     '.kbg-gc-objwrap{display:flex;flex-direction:column;gap:2px;min-width:0}',
-    '.kbg-gc-label{color:var(--dsw-alias-label-tertiary);font:var(--dsw-font-xxs-12);text-transform:uppercase;letter-spacing:.04em}',
+    '.kbg-gc-label{color:var(--dsw-alias-label-tertiary);font:var(--dsw-font-xxs-12);}',
     '.kbg-gc-obj{color:var(--dsw-alias-label-primary);font:var(--dsw-font-xs-13);line-height:19px;overflow-wrap:anywhere}',
     '.kbg-gc-meta{display:flex;align-items:center;gap:8px;min-width:0}',
     '.kbg-gc-chip{flex:none;color:var(--dsw-alias-label-secondary);background:var(--dsw-alias-interactive-bg-hover);border-radius:999px;font:var(--dsw-font-xxs-12);line-height:16px;padding:1px 8px}',
@@ -9724,6 +9724,7 @@ html[data-kbth-brand~="dark"] body[data-ds-dark-theme]{--kybernos-accent:color-m
       for (const m of live.members) if (m.status === 'running') return 'LIVE'
       return 'IDLE'
     }
+    // <kb-paged-view>
     const usePagedView = (count, perPage, extMode, extSetMode) => {
       const pair = React.useState(0)
       const page = pair[0]
@@ -9733,11 +9734,28 @@ html[data-kbth-brand~="dark"] body[data-ds-dark-theme]{--kybernos-accent:color-m
       const internalSetMode = pair2[1]
       const mode = (typeof extMode === 'string') ? extMode : internalMode
       const setMode = (typeof extSetMode === 'function') ? extSetMode : internalSetMode
-      const pages = Math.max(1, Math.ceil(count / perPage))
+      // A grid of cards fills its width (auto-fill): 9 cards in 4 columns leave one card alone on the last row while another page
+      // still follows. The grid reports its column count (`gridRef`, put on the first grid of the page) and a page then holds whole
+      // rows, about `perPage` cards. Lists, and a grid that has not been measured yet, keep `perPage`.
+      const colsPair = React.useState(0)
+      const setCols = colsPair[1]
+      const watcher = React.useRef(null)
+      const gridRef = React.useCallback((el) => {
+        if (watcher.current !== null) { watcher.current.disconnect(); watcher.current = null }
+        if (el === null || el === undefined || typeof ResizeObserver === 'undefined') return
+        const read = () => { try { const n = String(getComputedStyle(el).gridTemplateColumns).split(' ').filter((t) => t.length > 0).length; setCols(n >= 1 ? n : 0) } catch (e) { /* keep the base size */ } }
+        read()
+        watcher.current = new ResizeObserver(read)
+        watcher.current.observe(el)
+      }, [])
+      const cols = colsPair[0]
+      const per = (mode === 'cards' && cols > 0) ? cols * Math.max(2, Math.round(perPage / cols)) : perPage
+      const pages = Math.max(1, Math.ceil(count / per))
       const p2 = Math.min(page, pages - 1)
       React.useEffect(() => { if (page !== p2) setPage(p2) }, [p2, page])
-      return { page: p2, setPage: setPage, pages: pages, mode: mode, setMode: setMode }
+      return { page: p2, setPage: setPage, pages: pages, mode: mode, setMode: setMode, per: per, gridRef: gridRef, slice: (rows) => rows.slice(p2 * per, p2 * per + per) }
     }
+    // </kb-paged-view>
     // ── Skeleton screens: ONE helper for every list ──────────────────────────
     // While a list is being read for the first time (no earlier data to show), the page draws bones in the SAME
     // boxes as its real rows (same classes, so the same heights and columns: nothing moves when the data lands),
@@ -10185,7 +10203,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       const pins = (s.ppins !== null && s.ppins !== undefined && typeof s.ppins === 'object') ? s.ppins : {};
       shown.sort((a, b) => ((pins[a.rootId + '/' + a.kyber.id] === true ? 0 : 1) - (pins[b.rootId + '/' + b.kyber.id] === true ? 0 : 1)));
       const vp = usePagedView(shown.length, 9)
-      const pageShown = (vp.mode === 'cards') ? shown.slice(vp.page * 9, vp.page * 9 + 9) : shown
+      const pageShown = (vp.mode === 'cards') ? vp.slice(shown) : shown
       const kids = [];
       for (const it of pageShown) {
         const k = it.kyber;
@@ -11277,7 +11295,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       // Pagination : la grille rendait les 20+ kybers d'un coup. Meme reglage que
       // les projets (9 par page), et la pagination se masque s'il n'y a qu'une page.
       const vp = usePagedView(ordered.length, 9, tbTeams[0].viewMode, (m) => tbTeams[1]({ viewMode: m }))
-      const pageShown = ordered.slice(vp.page * 9, vp.page * 9 + 9)
+      const pageShown = vp.slice(ordered)
       // Carte d'un kyber. Extraite du `map` pour pouvoir grouper la grille par
       // racine (installe / depot) sans dupliquer le balisage.
       const cardOf = (entry, ci) => {
@@ -11694,7 +11712,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
                 let ci = 0
                 for (const entry of pageShown) {
                   if (entry.rootPath !== curRoot) {
-                    if (kids !== null) out.push(h('div', { className: 'kb8-grid kb8-cmp', key: 'grid-' + curRoot }, kids))
+                    if (kids !== null) out.push(h('div', { className: 'kb8-grid kb8-cmp', key: 'grid-' + curRoot, ref: out.length === 0 ? vp.gridRef : undefined }, kids))
                     curRoot = entry.rootPath
                     kids = []
                     // L'en-tete de racine (« Installes · dossier DSH » suivi du chemin
@@ -11705,7 +11723,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
                   kids.push(cardOf(entry, ci))
                 ci += 1
                 }
-                if (kids !== null) out.push(h('div', { className: 'kb8-grid kb8-cmp', key: 'grid-' + curRoot }, kids))
+                if (kids !== null) out.push(h('div', { className: 'kb8-grid kb8-cmp', key: 'grid-' + curRoot, ref: out.length === 0 ? vp.gridRef : undefined }, kids))
                 return out
               })())),
               h(KbPager, { page: vp.page, setPage: vp.setPage, pages: vp.pages }))),
@@ -13898,7 +13916,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
             // La proposition passe TOUJOURS par le lecteur + contrôleur local,
             // et l'aller-retour en français s'affiche AVANT le bouton Appliquer.
             h('div', { style: { display: 'flex', flexDirection: 'column', gap: '8px', borderTop: '1px solid var(--dsw-alias-border-l1)', paddingTop: '10px', marginTop: '4px' } },
-              h('span', { className: 'kb8-parent' }, kbe('PROPOSE A KYBER.YML')),
+              h('span', { className: 'kb8-parent' }, kbe('Propose a kyber.yml')),
               h('span', { className: 'kb8-sub' }, kbe('Describe the workflow in French — the proposal is read back in French (round-trip) before anything is written.')),
               h('textarea', { value: wfPhrase, onChange: (e) => setWfPhrase(e.target.value), rows: 3, placeholder: kbe('E.g. a team that frames a feature, specifies it, tests it, then checks it in a loop until convergence.'), style: { resize: 'vertical', borderRadius: '8px', border: '1px solid var(--dsw-alias-border-l2)', background: 'var(--dsw-alias-bg-layer-2)', color: 'var(--dsw-alias-label-primary)', padding: '8px 10px', fontSize: '12.5px', fontFamily: 'inherit' } }),
               h('div', { style: { display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' } },
@@ -13921,17 +13939,17 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
           h('span', { className: 'kb8-parent' }, kbt('kbui.col.name')),
           h('input', { value: draft.name, onChange: (e) => update({ name: e.target.value }), style: field }),
           h('span', { className: 'kb8-sub' }, kbt('kbui.shown.kyber')),
-          h('span', { className: 'kb8-parent' }, 'AVATAR'),
+          h('span', { className: 'kb8-parent' }, 'Avatar'),
           h('div', { style: { display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' } },
             kbCfIcon(draft.color, draft.icon || KB_DEFAULT_ICON, avatarImg(), false, 96),
             h('span', { style: { display: 'flex', flexDirection: 'column', gap: '8px', flex: 1, minWidth: '180px' } },
               kbLookImage({ hint: 'PNG, JPG, WebP, GIF or SVG · max 3 MB. Clicking an icon below replaces the image.', onFile: onAvatarFile, hasImage: hasAvatar === true, onClear: () => update({ clearAvatar: true }) }))),
-          h('span', { className: 'kb8-parent' }, 'ICON'),
+          h('span', { className: 'kb8-parent' }, 'Icon'),
           kbLookIcon({ icons: allIcons, query: iconQ, onQuery: setIconQ, icon: draft.icon, color: draft.color, onPick: (n) => update({ icon: n, clearAvatar: true }) }),
           // `TYPE` n'a de sens que si le selecteur Local/Hosted est rendu : dans
           // un build `KB_SHOW_HOSTED === false`, l'etiquette restait seule entre
           // ICON et COLOUR, sans aucun controle (constat de la campagne visuelle).
-          (KB_SHOW_HOSTED === true ? h('span', { className: 'kb8-parent' }, 'TYPE') : null),
+          (KB_SHOW_HOSTED === true ? h('span', { className: 'kb8-parent' }, 'Type') : null),
           // `KB_SHOW_HOSTED === false` : ce build ne parle pas de Hosted (l'onglet
           // est masqué partout ailleurs). Le sélecteur Local/Hosted ET sa phrase
           // d'explication disparaissent ensemble — sinon la fiche contredit le
@@ -13942,7 +13960,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
               h('button', { type: 'button', className: 'kb8-chip' + (draft.hosted === true ? ' on' : ''), title: kbt('kbui.hosted.alsoexists'), onClick: () => update({ hosted: true }) }, Icon('cloud', 14), ' ' + kbt('kbui.hosted')))
             : null),
           (KB_SHOW_HOSTED === true ? h('span', { className: 'kb8-sub' }, kbt('kbui.hosted.means')) : null),
-          h('span', { className: 'kb8-parent' }, 'COLOUR'),
+          h('span', { className: 'kb8-parent' }, 'Colour'),
           kbLookColor(draft.color, (c) => update({ color: c })))
         if (tab === 'Roles') {
           // Édition du Crew : brouillon par rôle (provider / model / prompt),
@@ -14134,7 +14152,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
               h('span', { style: { display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 } },
                 h('span', { className: 'kb8-name' }, c.name),
                 h('span', { className: 'kb8-parent' }, c.meta)),
-              h('span', { style: Object.assign({}, pillT, c.state === 'ACTIVE' || c.state === 'READY' ? { color: 'var(--dsw-alias-state-success-primary)', borderColor: 'var(--dsw-alias-state-success-primary)' } : (c.state === 'FAILED' ? { color: 'var(--dsw-alias-state-error-primary)', borderColor: 'var(--dsw-alias-state-error-primary)' } : null)) }, c.state),
+              h('span', { style: Object.assign({}, pillT, c.state === 'ACTIVE' || c.state === 'READY' ? { color: 'var(--dsw-alias-state-success-primary)', borderColor: 'var(--dsw-alias-state-success-primary)' } : (c.state === 'FAILED' ? { color: 'var(--dsw-alias-state-error-primary)', borderColor: 'var(--dsw-alias-state-error-primary)' } : null)) }, String(c.state).charAt(0) + String(c.state).slice(1).toLowerCase()),
               h('button', {
                 type: 'button', className: 'kb8-iconbtn', 'data-kb': 'team-conn-toggle',
                 title: (c.real === true && c.account !== null && c.account !== undefined && c.account !== '') ? (connTeamArm === c.key ? kbt('kbui.conn.confirm') : kbt('kbui.conn.disable')) : kbt('kbui.conn.enable'),
@@ -14178,9 +14196,9 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
           return h(KbWidgetTab, { kyber: kyber, rootId: rootId })
         }
         if (tab === 'Settings') return h('div', { style: card },
-          h('span', { className: 'kb8-parent' }, 'CATEGORY'),
+          h('span', { className: 'kb8-parent' }, 'Category'),
           h('div', { className: 'kb8-chips' }, ['Sales', 'Marketing', 'Support', 'Finance', 'Engineering'].map((c) => h('button', { type: 'button', key: c, className: 'kb8-chip' + (draft.cat === c ? ' on' : ''), onClick: () => update({ cat: c }) }, c))),
-          h('span', { className: 'kb8-parent' }, 'TAGS'),
+          h('span', { className: 'kb8-parent' }, 'Tags'),
           h('div', { className: 'kb8-chips' }, draft.tags.map((t) => h('button', { type: 'button', key: t, className: 'kb8-chip on', title: kbt('kbui.remove') + t, onClick: () => update({ tags: draft.tags.filter((x) => x !== t) }) }, t + ' ✕'))),
           h('div', { style: { display: 'flex', gap: '8px' } },
             h('input', { value: tagsText, placeholder: kbt('kbui.add.tag'), list: 'kb8-taglist', onChange: (e) => setTagsText(e.target.value), onKeyDown: (e) => { if (e.key === 'Enter') addTag(tagsText) }, style: Object.assign({}, field, { flex: 1 }) }),
@@ -14227,7 +14245,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
           // pour l'onglet Team et choisit OÙ les détails d'un modèle s'affichent.
           (tab === 'Roles')
             ? h('div', { style: { display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 4px 4px 12px', border: '1px dashed #D6D6D8', borderRadius: '10px' } }, [
-              h('span', { style: { fontFamily: 'ui-monospace,SFMono-Regular,Menlo,Consolas,monospace', fontSize: '10.5px', letterSpacing: '0.08em', color: '#9A9A9E' } }, 'MOCKUP · MODEL INFO AS'),
+              h('span', { style: { fontFamily: 'ui-monospace,SFMono-Regular,Menlo,Consolas,monospace', fontSize: '10.5px', letterSpacing: '0.08em', color: '#9A9A9E' } }, 'Mockup · model info as'),
               h('div', { role: 'group', 'aria-label': 'Model info display', style: { display: 'flex', gap: '2px', padding: '2px', background: '#F3F3F4', borderRadius: '7px' } },
                 [['tooltip', 'Tooltip'], ['panel', 'Side panel']].map(([k, label]) => h('button', {
                   type: 'button',
@@ -14362,7 +14380,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
           h('span', { style: { display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 } },
             h('span', { className: 'kb8-name' }, k.name),
             h('span', { className: 'kb8-parent' }, k.ghost === true ? kbt('kbui.skills.ghostteam') : (k.kyber + ' · ' + k.where))),
-          h('span', { style: k.attached === true ? pillTOn : pillT, 'data-kb': 'team-skill-pill' }, k.attached === true ? 'ATTACHED' : 'AVAILABLE')))))
+          h('span', { style: k.attached === true ? pillTOn : pillT, 'data-kb': 'team-skill-pill' }, k.attached === true ? 'Attached' : 'Available')))))
     }
     // ── vue Runs : lanes SVG (déclaré / observé / réel) ───────────────────
     const KB_RUN_COLORS = { completed: '#22c55e', failed: '#ef4444', cancelled: '#f59e0b' }
@@ -14703,7 +14721,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         h('div', { style: { display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' } },
           h('span', { className: 'kb8-name' }, String(run.name || run.runId)),
           totalsView(run)),
-        h('div', { style: { fontSize: '11px', fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--dsw-alias-label-secondary)' } }, kbt('runs.parallelism')),
+        h('div', { style: { fontSize: '11px', fontWeight: 600, color: 'var(--dsw-alias-label-secondary)' } }, kbt('runs.parallelism')),
         h('div', { style: Object.assign({}, cardBox, { padding: '14px 10px 8px', overflowX: 'auto' }) }, renderRun(run)),
         legend,
         deviationsView(run))
@@ -15314,7 +15332,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
     const KB_FLOW_CSS = '.kbflow-wrap{height:520px;border:1px solid var(--dsw-alias-border-l1);border-radius:12px;overflow:hidden;background:var(--dsw-alias-bg-base)}' +
       // Bandes d'étage : fond discret, libellé en haut de colonne.
       '.kbflow-band{height:100%;border:1px dashed var(--dsw-alias-border-l1);border-radius:12px;background:color-mix(in srgb, var(--dsw-alias-label-primary) 3%, transparent);pointer-events:none}' +
-      '.kbflow-band-label{position:absolute;top:6px;left:12px;font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--dsw-alias-label-secondary);font-weight:600}' +
+      '.kbflow-band-label{position:absolute;top:6px;left:12px;font-size:10.5px;color:var(--dsw-alias-label-secondary);font-weight:600}' +
       '.react-flow__node-kbStage{cursor:default!important}' +
       '.kbflow-node{display:flex;align-items:center;gap:8px;min-width:180px;padding:9px 11px;border-radius:9px;border:1.5px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);font-size:12.5px;color:var(--dsw-alias-label-primary)}' +
       '.kbflow-node .kbflow-glyph{width:16px;text-align:center;opacity:.8}' +
@@ -15482,13 +15500,13 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       // Tableaux (cascade, coûts).
       '.kb2-tablewrap{flex-grow:1;overflow:auto;padding:14px 20px}' +
       '.kb2-table{border-collapse:collapse;width:100%;font-size:12.5px;color:#DCD6CB}' +
-      '.kb2-table th{text-align:left;font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:#8E8A82;font-weight:600;padding:6px 10px;border-bottom:1px solid var(--dsw-alias-border-l1,#2E2C2A)}' +
+      '.kb2-table th{text-align:left;font-size:10.5px;color:#8E8A82;font-weight:600;padding:6px 10px;border-bottom:1px solid var(--dsw-alias-border-l1,#2E2C2A)}' +
       '.kb2-table td{padding:7px 10px;border-bottom:1px solid rgba(46,44,42,.5);vertical-align:top}' +
       '.kb2-table tr:hover td{background:rgba(255,255,255,.03)}' +
       '.kb2-table .mono{font-family:ui-monospace,Menlo,monospace;font-size:11.5px}' +
       // En-tête de session (maquette) — variables DSH.
       '.kb2-sesshead{padding:14px 20px 6px;display:flex;flex-direction:column;gap:3px;border-bottom:1px solid var(--dsw-alias-border-l1,#2E2C2A)}' +
-      '.kb2-sessline{font-family:ui-monospace,Menlo,monospace;font-size:10.5px;letter-spacing:.09em;color:var(--dsw-alias-label-tertiary,#8E8A82);text-transform:uppercase}' +
+      '.kb2-sessline{font-family:ui-monospace,Menlo,monospace;font-size:10.5px;color:var(--dsw-alias-label-tertiary,#8E8A82);}' +
       '.kb2-sesstitle{font-size:16px;font-weight:650;color:var(--dsw-alias-label-primary,#DCD6CB)}' +
       '.kb2-sessstat{font-size:11.5px;color:var(--dsw-alias-label-secondary,#A8A49B)}' +
       // Chronologie.
@@ -15511,7 +15529,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       '.kb2j-hrow{display:flex;align-items:center;gap:16px;flex-wrap:wrap}' +
       '.kb2j-brand{font-size:13px;font-weight:700;letter-spacing:.22em;color:#C9A45C;padding-right:16px;border-right:1px solid var(--dsw-alias-border-l1,#2A2E38)}' +
       '.kb2j-ht{display:flex;flex-direction:column;gap:2px;flex:1;min-width:220px}' +
-      '.kb2j-meta{font-family:ui-monospace,Menlo,monospace;font-size:11px;letter-spacing:.06em;color:var(--dsw-alias-label-tertiary,#8B93A7);text-transform:uppercase}' +
+      '.kb2j-meta{font-family:ui-monospace,Menlo,monospace;font-size:11px;color:var(--dsw-alias-label-tertiary,#8B93A7);}' +
       '.kb2j-title{font-size:19px;font-weight:650;color:var(--dsw-alias-label-primary,#E8EAF0)}' +
       '.kb2j-hact{display:flex;align-items:center;gap:8px;margin-left:auto}' +
       '.kb2j-badge{display:inline-flex;align-items:center;gap:7px;height:28px;padding:0 12px;border-radius:99px;border:1px solid rgba(201,164,92,.45);background:rgba(201,164,92,.1);color:#E5B567;font-size:12px;cursor:pointer;font-family:inherit;white-space:nowrap}' +
@@ -15522,7 +15540,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       '.kb2j-kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}' +
       '@media (max-width:1100px){.kb2j-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}' +
       '.kb2j-tile{display:flex;flex-direction:column;gap:3px;padding:12px;border-radius:10px;background:var(--dsw-alias-bg-layer-2,#161A22);border:1px solid rgba(255,255,255,.10);min-width:0}' +
-      '.kb2j-tk{font-family:ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:.09em;color:var(--dsw-alias-label-tertiary,#6B7280);text-transform:uppercase}' +
+      '.kb2j-tk{font-family:ui-monospace,Menlo,monospace;font-size:10px;color:var(--dsw-alias-label-tertiary,#6B7280);}' +
       '.kb2j-tv{font-size:21px;font-weight:700;color:var(--dsw-alias-label-primary,#E8EAF0);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
       '.kb2j-tile.amb .kb2j-tv{color:#E5B567}' +
       '.kb2j-ts{font-family:ui-monospace,Menlo,monospace;font-size:10.5px;color:var(--dsw-alias-label-tertiary,#6B7280);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
@@ -15541,12 +15559,12 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       '.kb2j-dmeta{font-family:ui-monospace,Menlo,monospace;font-size:11px;color:var(--dsw-alias-label-tertiary,#8B93A7)}' +
       '.kb2j-dstats{display:flex;gap:18px;margin-left:auto;flex-wrap:wrap}' +
       '.kb2j-dstat{display:flex;flex-direction:column;gap:1px;align-items:flex-end}' +
-      '.kb2j-dk{font-family:ui-monospace,Menlo,monospace;font-size:9.5px;letter-spacing:.09em;color:var(--dsw-alias-label-tertiary,#6B7280);text-transform:uppercase}' +
+      '.kb2j-dk{font-family:ui-monospace,Menlo,monospace;font-size:9.5px;color:var(--dsw-alias-label-tertiary,#6B7280);}' +
       '.kb2j-dv{font-family:ui-monospace,Menlo,monospace;font-size:13px;font-weight:700;color:var(--dsw-alias-label-primary,#E8EAF0)}' +
       '.kb2j-two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}' +
       '@media (max-width:1100px){.kb2j-two{grid-template-columns:1fr}}' +
       '.kb2j-colwrap{display:flex;flex-direction:column;gap:6px;min-width:0}' +
-      '.kb2j-subh{font-family:ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:.09em;color:var(--dsw-alias-label-tertiary,#6B7280);text-transform:uppercase}' +
+      '.kb2j-subh{font-family:ui-monospace,Menlo,monospace;font-size:10px;color:var(--dsw-alias-label-tertiary,#6B7280);}' +
       '.kb2j-jour{max-height:280px;overflow-y:auto;display:flex;flex-direction:column;gap:1px;padding:4px;border-radius:8px;background:color-mix(in srgb,var(--dsw-alias-label-primary,#0E1118) 3%,transparent)}' +
       '.kb2j-inspwrap .kb2-igrid,.kb2j-inspwrap .kb2-io,.kb2j-inspwrap .kb2-ioh{max-width:100%}' +
             '.kb2-canvas{flex-grow:1;position:relative;min-height:0;background-color:#101318;background-image:radial-gradient(#22252B 1px,transparent 1px);background-size:24px 24px}' +
@@ -16612,7 +16630,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         sessKids.push(h('span', { className: 'kb8-parent' }, kbt('crew.nocost') + String(sessLast.provider) + ' / ' + String(sessLast.model) + '.'))
       }
       sessKids.push(h('span', { className: 'kb8-parent' }, kbt('crew.split.note')))
-      const sessCard = h(KbSec, { id: 'session', title: 'SESSION', meta: (sessCost === null ? null : kbFmtUsd(sessCost.usd) + kbt('crew.orchestrator.only')), count: sid === null ? '—' : String(sid).slice(0, 18) }, ...sessKids)
+      const sessCard = h(KbSec, { id: 'session', title: 'Session', meta: (sessCost === null ? null : kbFmtUsd(sessCost.usd) + kbt('crew.orchestrator.only')), count: sid === null ? '—' : String(sid).slice(0, 18) }, ...sessKids)
       // ── matrice : une ligne par rôle, colonnes alignées, paginée ─────────────
       const MX_PER_PAGE = 8
       const mxRows = []
@@ -16964,7 +16982,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         return labelOfProject(x).localeCompare(labelOfProject(y), undefined, { sensitivity: 'base' }) * m
       })
       const vp = usePagedView(projectsVisible.length, 9, tbProjects[0].viewMode, (m) => tbProjects[1]({ viewMode: m }))
-      const shown = (vp.mode === 'cards') ? projectsVisible.slice(vp.page * 9, vp.page * 9 + 9) : projectsVisible
+      const shown = (vp.mode === 'cards') ? vp.slice(projectsVisible) : projectsVisible
       const wUiOf = (w) => (wsUi[w.workspaceId] !== null && wsUi[w.workspaceId] !== undefined && typeof wsUi[w.workspaceId] === 'object') ? wsUi[w.workspaceId] : {}
       const openProject = (w) => set({ view: 'project', projectId: w.workspaceId })
       // Exporter un workspace (28/09, gabarit) : métadonnées seulement (id,
@@ -17151,7 +17169,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         (items.length > 0 && projectsVisible.length === 0 ? h('div', { className: 'kb9-empty' }, kbt('kbui.no.project.match') + pq + '\u201d.') : null),
         (vp.mode === 'list'
           ? h('div', { className: 'kb8-rows', 'data-kb': 'project-rows' }, shown.map((w, i) => projectRow(w, i)))
-          : h('div', { className: 'kb8-grid kb8-cmp' }, shown.map((w, i) => projectCard(w, i)))),
+          : h('div', { className: 'kb8-grid kb8-cmp', ref: vp.gridRef }, shown.map((w, i) => projectCard(w, i)))),
         // Section « trouvé dans les chats » : elle vit sous la grille de
         // projets, visible seulement quand une requête de ≥ 3 caractères est
         // en vol ou servie. Chaque ligne ouvre VRAIMENT le chat
@@ -17268,7 +17286,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       const errKey = st.error === null ? null : (['too-long', 'folder-missing', 'agents-write-failed'].indexOf(st.error) >= 0 ? 'kbwi.err.' + st.error : 'kbwi.err.generic')
       return h('div', { style: { display: 'flex', flexDirection: 'column', gap: '14px' }, 'data-kb': 'project-instructions' },
         h('div', { style: card },
-          h('span', { className: 'kb8-parent' }, kbt('kbwi.head').toUpperCase()),
+          h('span', { className: 'kb8-parent' }, kbt('kbwi.head')),
           h('span', { className: 'kb8-sub' }, kbt('kbwi.lead')),
           h('textarea', {
             value: st.text, rows: 9, maxLength: st.max, disabled: st.loading === true, 'data-kb': 'project-instructions-text',
@@ -17615,7 +17633,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       const delivOpen = delivOpenPair[0]
       const setDelivOpen = delivOpenPair[1]
       const delivVp = usePagedView(delivMine.length, 9, delivViewPair[0], delivViewPair[1])
-      const pageOf = (rows, vp) => rows.slice(vp.page * 9, vp.page * 9 + 9)
+      const pageOf = (rows, vp) => vp.slice(rows)
       const pagerOf = (vp) => h(KbPager, { page: vp.page, setPage: vp.setPage, pages: vp.pages })
       // La liste peut depasser la fenetre : la pagination est rappelee EN HAUT
       // aussi, sinon elle reste sous la ligne de flottaison et l'onglet semble
@@ -17684,7 +17702,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
             // Description courte : la carte du projet n'affiche que l'amorce,
             // le texte complet se regle et se lit ici.
             h('div', { style: card, 'data-kb': 'project-description' },
-              h('span', { className: 'kb8-parent' }, kbt('ui.description').toUpperCase()),
+              h('span', { className: 'kb8-parent' }, kbt('ui.description')),
               h('textarea', {
                 value: descDraft, rows: 3, maxLength: 280,
                 'aria-label': kbt('ui.description'),
@@ -17696,10 +17714,10 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
             // The folder card of the multi-device satellite (nothing when it is off).
             kbMdExtras('folder', ws),
             h('div', { style: card },
-              h('span', { className: 'kb8-parent' }, 'ICON'),
+              h('span', { className: 'kb8-parent' }, 'Icon'),
               kbLookIcon({ icons: allIcons, query: iconQ, onQuery: setIconQ, icon: iconDraft, color: colorDraft, onPick: (n) => updateDetails({ icon: n }) })),
             h('div', { style: card },
-              h('span', { className: 'kb8-parent' }, 'COLOUR'),
+              h('span', { className: 'kb8-parent' }, 'Colour'),
               kbLookColor(colorDraft, (c) => updateDetails({ color: c }))),
             // The folded "Advanced" preview of the multi-device satellite (nothing when it is off).
             kbMdExtras('advanced', ws),
@@ -17707,7 +17725,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
             // Zone de danger : suppression du workspace, deux clics. Le disque
             // et les journaux sont conservés — voir wsDelete plus haut.
             h('div', { style: { background: 'var(--dsw-alias-bg-layer-1)', border: '1px solid var(--dsw-alias-state-error-primary)', borderRadius: '16px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px', 'data-kb': 'ws-danger-zone' } },
-              h('span', { className: 'kb8-parent', style: { color: 'var(--dsh-alias-state-error-primary, var(--dsw-alias-state-error-primary))' } }, 'DELETE WORKSPACE'),
+              h('span', { className: 'kb8-parent', style: { color: 'var(--dsh-alias-state-error-primary, var(--dsw-alias-state-error-primary))' } }, 'Delete workspace'),
               h('span', { className: 'kb8-sub' }, 'Removes this workspace from the list. The folder on disk and the session logs are kept; nothing is destroyed.'),
               h('div', { style: { display: 'flex', gap: '10px', alignItems: 'center' } },
                 h('button', { type: 'button', className: 'kb8-chip', disabled: wsDelBusy === true, style: (wsDelArm === true ? { borderColor: 'var(--dsw-alias-state-error-primary)', color: 'var(--dsw-alias-state-error-primary)' } : null), onClick: () => (wsDelArm === true ? wsDelete() : setWsDelArm(true)) }, wsDelBusy === true ? 'Deleting…' : (wsDelArm === true ? 'Confirm deletion' : 'Delete workspace…')),
@@ -17733,7 +17751,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
                     (cat.known === true ? h('span', { style: { fontSize: '11px', lineHeight: '16px', fontWeight: 500, letterSpacing: '.01em', color: cat.color, background: catBg, border: '1px solid color-mix(in srgb, ' + cat.color + ' 30%, transparent)', borderRadius: '999px', padding: '0 8px', whiteSpace: 'nowrap' } }, cat.label) : null),
                     (sn.running === true ? h('span', { style: { fontSize: '11px', lineHeight: '16px', fontWeight: 500, color: 'var(--dsw-alias-state-success-primary)', display: 'inline-flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' } }, h('span', { style: { width: '6px', height: '6px', borderRadius: '50%', background: 'currentColor', flex: 'none' } }), kbt('kbui.frag.running').trim()) : null),
                     h('span', { className: 'kb8-parent', style: { whiteSpace: 'nowrap' } }, fmtAge(sn.updatedAt, Date.now())))),
-                (currentSid === sn.id ? h('span', { style: pillStyle }, 'CURRENT') : null))
+                (currentSid === sn.id ? h('span', { style: pillStyle }, 'Current') : null))
             })),
             pagerOf(threadsVp))
         }
@@ -17808,7 +17826,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
             pagerTop(docsVp),
             (docsVp.mode === 'list'
               ? h('div', { className: 'kb8-rows', 'data-kb': 'project-docs-list' }, pageOf(docsRows, docsVp).map(docRow))
-              : h('div', { className: 'kb8-docgrid', 'data-kb': 'project-docs-grid' }, pageOf(docsRows, docsVp).map(docCard))),
+              : h('div', { className: 'kb8-docgrid', 'data-kb': 'project-docs-grid', ref: docsVp.gridRef }, pageOf(docsRows, docsVp).map(docCard))),
             pagerOf(docsVp))
         }
         if (tab === kbt('kbui.objectifs')) {
@@ -17880,7 +17898,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
             pagerTop(delivVp),
             (delivVp.mode === 'list'
               ? h('div', { className: 'kb8-rows', 'data-kb': 'project-deliv-list' }, pageOf(mine, delivVp).map(delivRow))
-              : h('div', { className: 'kb8-docgrid', 'data-kb': 'project-deliv-grid' }, pageOf(mine, delivVp).map(delivCard))),
+              : h('div', { className: 'kb8-docgrid', 'data-kb': 'project-deliv-grid', ref: delivVp.gridRef }, pageOf(mine, delivVp).map(delivCard))),
             pagerOf(delivVp))
         }
         if (tab === kbt('kbui.skills')) {
@@ -17907,7 +17925,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
             h('div', { style: { display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px', flexWrap: 'wrap' } },
               h('span', { className: 'kb8-sub', style: { flex: 1, minWidth: '220px' }, 'data-kb': 'project-skills-hint' },
                 kbt('kbui.skills.hint') + ' (' + countLabel + ')'),
-              h('button', { type: 'button', className: 'kb8-primary', style: { padding: '8px 14px', height: 'auto' }, 'data-kb': 'project-skills-browse', title: kbt('kbui.skill.repo'), onClick: () => { try { set({ view: 'skills' }) } catch (e) { /* store unavailable */ } } },
+              h('button', { type: 'button', className: 'kb8-primary', style: { padding: '8px 14px', height: 'auto', marginInlineStart: 'auto' }, 'data-kb': 'project-skills-browse', title: kbt('kbui.skill.repo'), onClick: () => { try { set({ view: 'skills' }) } catch (e) { /* store unavailable */ } } },
                 '+ ' + kbt('kbui.skills.browse'))),
             (skillsErr !== null ? h('div', { role: 'alert', className: 'kb8-sub', style: { color: 'var(--dsw-alias-state-error-primary)', marginBottom: '8px' }, 'data-kb': 'project-skills-error' }, kbt('kbui.skills.savefail') + skillsErr) : null),
             pagerTop(skillsVp),
@@ -17928,7 +17946,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
               h('span', { style: { display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 } },
                 h('span', { className: 'kb8-name' }, k.name),
                 h('span', { className: 'kb8-parent' }, k.ghost === true ? kbt('kbui.skills.ghost') : (k.kyber + ' · ' + k.where))),
-              h('span', { style: k.attached === true ? pillAttached : pillStyle, 'data-kb': 'project-skill-pill' }, k.attached === true ? 'ATTACHED' : 'AVAILABLE'),
+              h('span', { style: k.attached === true ? pillAttached : pillStyle, 'data-kb': 'project-skill-pill' }, k.attached === true ? 'Attached' : 'Available'),
               h('button', {
                 type: 'button', className: 'kb8-iconbtn', 'data-kb': 'project-skill-info',
                 title: kbt('kbui.skill.info'), 'aria-label': kbt('kbui.skill.info') + kbfSep() + k.name,
@@ -17987,7 +18005,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
               h('span', { style: { display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 } },
                 h('span', { className: 'kb8-name' }, c.name),
                 h('span', { className: 'kb8-parent' }, c.meta)),
-              h('span', { style: Object.assign({}, pillStyle, c.state === 'ACTIVE' || c.state === 'READY' ? { color: 'var(--dsw-alias-state-success-primary)', borderColor: 'var(--dsw-alias-state-success-primary)' } : (c.state === 'FAILED' ? { color: 'var(--dsw-alias-state-error-primary)', borderColor: 'var(--dsw-alias-state-error-primary)' } : null)) }, c.state),
+              h('span', { style: Object.assign({}, pillStyle, c.state === 'ACTIVE' || c.state === 'READY' ? { color: 'var(--dsw-alias-state-success-primary)', borderColor: 'var(--dsw-alias-state-success-primary)' } : (c.state === 'FAILED' ? { color: 'var(--dsw-alias-state-error-primary)', borderColor: 'var(--dsw-alias-state-error-primary)' } : null)) }, String(c.state).charAt(0) + String(c.state).slice(1).toLowerCase()),
               h('button', {
                 type: 'button', className: 'kb8-iconbtn', 'data-kb': 'project-conn-toggle',
                 title: (c.real === true && c.account !== null && c.account !== undefined && c.account !== '') ? (connArm === c.key ? kbt('kbui.conn.confirm') : kbt('kbui.conn.disable')) : kbt('kbui.conn.enable'),
@@ -18021,13 +18039,13 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         return h('div', { style: { display: 'flex', flexDirection: 'column', gap: '14px' } },
           h('div', { style: { display: 'flex', gap: '14px', flexWrap: 'wrap' } },
             h('div', { style: cardBoxB },
-              h('span', { className: 'kb8-parent' }, kbe('BUDGET DECLARED BY THE PROJECT AGENT TEAMS')),
+              h('span', { className: 'kb8-parent' }, kbe('Budget declared by the project agent teams')),
               h('span', { className: 'kb8-h1' }, budgetRows.length === 0 ? '—' : (kbMoney(budgetTotal, budgetCurrency))),
               usedPct === null ? null : h('div', { className: 'kb9-bar' }, h('span', { style: { width: usedPct + '%' } })),
               h('span', { className: 'kb8-parent' }, budgetRows.length === 0 ? kbe('No `budget:` block in the project kyber.yml files.') : (budgetRows.length + (budgetRows.length === 1 ? ' agent team' : ' agent teams') + ' · ' + budgetRows.map((r) => r.kyber).join(', '))),
               h('span', { className: 'kb8-parent' }, budgetDeadline === null ? kbe('No declared deadline.') : (kbe('Closest deadline: ') + budgetDeadline))),
             h('div', { style: cardBoxB },
-              h('span', { className: 'kb8-parent' }, kbe('USAGE OF THIS SESSION')),
+              h('span', { className: 'kb8-parent' }, kbe('Usage of this session')),
               h('span', { className: 'kb8-h1' }, spentNow === null ? '—' : (kbMoney(spentNow, budgetCurrency))),
               h('span', { className: 'kb8-parent' }, spentNow === null ? kbe('The host does not report any usage for this session yet.') : (budgetTotal > 0 ? (kbe('Remaining ') + kbMoney(remaining, budgetCurrency) + kbe(' of the declared budget')) : kbe('No declared budget to report this spend against.'))),
               h('span', { className: 'kb8-parent' }, usageNow !== null && typeof usageNow.spentUsd === 'number' ? kbMoney(usageNow.spentUsd, 'USD') : ''))),
@@ -23093,7 +23111,7 @@ function renderFit(canvas, model, cam, opts){
    scheme (white knob on it, 1.05:1). Same pairing as .kbpv-sw in kybernos-models. */
 .kbw-sw-kn{position:absolute;top:1px;left:1px;width:16px;height:16px;border-radius:999px;background:var(--dsw-alias-label-secondary);transition:left .12s}
 .kbw-sw.on .kbw-sw-kn{left:17px;background:var(--dsw-alias-label-primary-foreground)}
-.kbw-lab{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--dsw-alias-label-secondary);font-weight:600}
+.kbw-lab{font-size:10.5px;color:var(--dsw-alias-label-secondary);font-weight:600}
 .kbw-field{height:40px;border:1px solid var(--dsw-alias-border-l1);border-radius:10px;background:var(--dsw-alias-bg-layer-1);padding:0 12px;font-size:13px;color:var(--dsw-alias-label-primary);outline:none;width:100%;box-sizing:border-box;font-family:inherit}
 .kbw-area{min-height:64px;border:1px solid var(--dsw-alias-border-l1);border-radius:10px;background:var(--dsw-alias-bg-layer-1);padding:9px 12px;font-size:13px;color:var(--dsw-alias-label-primary);outline:none;width:100%;box-sizing:border-box;font-family:inherit;resize:vertical}
 .kbw-hint{font-size:11.5px;color:var(--dsw-alias-label-secondary)}
@@ -24691,7 +24709,7 @@ function renderFit(canvas, model, cam, opts){
           key: 'kbm-file', ref: fileRef, type: 'file', accept: 'audio/*',
           style: { display: 'none' }, onChange: vmOnFile
         }),
-        [h('div', { style: kbmS("display: grid; gap: 24px; align-items: start; " + kbmP(gridStyle)) }, h('div', { style: kbmS("display: flex; flex-direction: column; gap: 18px; min-width: 0;") }, [h('section', { "aria-labelledby": "faces-title", style: kbmS("border: 1px solid #E4E4E4; border-radius: 12px; padding: 18px 20px; display: grid; grid-template-columns: 380px minmax(0, 1fr); gap: 22px;") }, [h('div', { style: kbmS("display: flex; flex-direction: column; gap: 8px;") }, [h('div', { style: kbmS("position: relative; height: 210px; border-radius: 10px; overflow: hidden; background: linear-gradient(170deg,#F1E6D5 0%,#E2CDAE 70%,#C9AE88 100%); display: flex; align-items: flex-end; justify-content: center; gap: 6px;") }, [h('div', { style: kbmS("position: absolute; left: 0; right: 0; bottom: 0; height: 36px; background: #B89468;") }), kbmList(group.faces).map((a, idx) => h('div', { key: idx, style: kbmS("width: 110px; height: 150px; position: relative; " + kbmP(a.groupStyle)) }, h('svg', { width: "100%", height: "100%", viewBox: "4 6 56 58", "aria-hidden": "true" }, [h('path', { d: "M8 64c2-12 12-18 24-18s22 6 24 18z", fill: a.shirt }), h('path', { d: "M27 38h10v10H27z", fill: a.skin }), h('ellipse', { cx: "32", cy: "28", rx: "11", ry: "13", fill: a.skin }), h('path', { d: a.hairD, fill: a.hair }), h('path', { d: a.glassesD, fill: "none", stroke: "#1F2937", strokeWidth: "1.4" })]))), ((group.busy) ? h('div', { className: "kbm-busy", style: kbmS("position: absolute; inset: 0; background: rgba(255,255,255,0.6); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; color: #3F3F46;") }, "Generating team scene…") : null)]), h('span', { className: "kbm-mono", style: kbmS("font-size: 11.5px; color: #9A9A9E;") }, kbmP(group.status))]), h('div', { style: kbmS("display: flex; flex-direction: column; gap: 12px; min-width: 0;") }, [h('div', { style: kbmS("display: flex; align-items: center; gap: 8px;") }, [h('h2', { id: "faces-title", style: kbmS("margin: 0; font-size: 15px; font-weight: 600;") }, "Team faces"), h('span', { className: "kbm-tip" }, [h('button', { type: "button", "aria-label": "How team faces are generated", style: kbmS("width: 18px; height: 18px; border-radius: 50%; border: 1px solid #C7C7C9; background: #FFFFFF; color: #77777B; font-size: 10px; font-weight: 700; cursor: help; padding: 0;") }, "i"), h('span', { className: "kbm-tipbox card below left", role: "tooltip" }, h('span', { style: kbmS("display: block; font-size: 12.5px; line-height: 1.5; color: #3F3F46;") }, [h('b', { style: kbmS("color:#16161A;") }, "Group + crop:"), " one image call renders the team scene, then each portrait is cropped locally — free and repeatable. 9 faces max per sheet; beyond that roles keep their initials.", h('br', null), h('br', null), h('b', { style: kbmS("color:#16161A;") }, "Per portrait:"), " one call per role, on click. Sharper faces, cost grows with headcount."]))])]), h('div', { style: kbmS("display: flex; align-items: center; gap: 10px;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em; color: #9A9A9E; width: 64px;") }, "MODE"), h('div', { role: "group", "aria-label": "Generation mode", style: kbmS("display: flex; gap: 2px; padding: 2px; background: #F3F3F4; border-radius: 8px;") }, kbmList(faceModes).map((fm, idx) => h('button', { key: idx, type: "button", "aria-pressed": fm.pressed, onClick: fm.pick, style: kbmS("height: 28px; padding: 0 12px; border: none; border-radius: 6px; cursor: pointer; font-size: 12.5px; font-weight: 500; " + kbmP(fm.style)) }, kbmP(fm.label))))]), h('div', { style: kbmS("display: flex; align-items: flex-start; gap: 10px;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em; color: #9A9A9E; width: 64px; padding-top: 12px;") }, "MODEL"), h('div', { style: kbmS("flex-grow: 1; border: 1px solid #EEEEEE; border-radius: 10px; min-width: 0;") }, kbmList(imageModels).map((m, idx) => h('div', { key: idx, style: kbmS("display: flex; align-items: center; gap: 4px; padding: 3px 6px; " + kbmP(m.rowBorder)) }, [h('button', { type: "button", className: "kbm-row-btn", disabled: m.disabled, "aria-pressed": m.pressed, onClick: m.pick, style: kbmS("flex-grow: 1; min-width: 0; height: 38px; padding: 0 10px; border: none; border-radius: 7px; display: flex; align-items: center; gap: 10px; text-align: left; " + kbmP(m.style)) }, [h('span', { style: kbmS("width: 13px; height: 13px; border-radius: 50%; box-sizing: border-box; flex-shrink: 0; " + kbmP(m.radioStyle)) }), h('span', { className: "kbm-mono", style: kbmS("font-size: 12.5px;") }, kbmP(m.id)), h('span', { style: kbmS("font-size: 12px; color: #9A9A9E;") }, kbmP(m.provider)), h('span', { style: kbmS("flex-grow: 1;") }), h('span', { className: "kbm-mono", style: kbmS("font-size: 11.5px; color: #77777B;") }, kbmP(m.metricShort)), h('span', { className: "kbm-mono", style: kbmS("display: inline-flex; align-items: center; gap: 5px; padding: 1px 8px; border-radius: 999px; font-size: 11px; min-width: 76px; box-sizing: border-box; border: 1px solid " + kbmP(m.hBorder) + "; background: " + kbmP(m.hBg) + "; color: " + kbmP(m.hColor) + ";") }, [h('span', { style: kbmS("width: 6px; height: 6px; border-radius: 50%; background: " + kbmP(m.hColor) + ";") }), kbmP(m.hLabel)])]), ((m.tooltipMode) ? h('span', { className: "kbm-tip" }, [h('button', { type: "button", className: "kbm-ico-btn", "aria-label": m.infoAria, style: kbmS("width: 30px; height: 30px; border: none; background: transparent; border-radius: 7px; color: #2563EB; cursor: help; display: flex; align-items: center; justify-content: center; padding: 0;") }, h('svg', { width: "15", height: "15", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M12 3a9 9 0 1 0 0 18a9 9 0 0 0 0-18zM12 11v5M12 8h.01" }))), h('span', { className: "kbm-tipbox card right", role: "tooltip" }, [h('span', { style: kbmS("display: flex; align-items: baseline; justify-content: space-between; gap: 8px;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 13px; font-weight: 600;") }, kbmP(m.id)), h('span', { style: kbmS("font-size: 11px; color: #9A9A9E;") }, kbmP(m.provider) + " · " + kbmP(m.priceLabel))]), h('span', { style: kbmS("display: block; margin-top: 8px; font-size: 12px; line-height: 1.5; color: #55555A;") }, kbmP(m.note))])]) : null), ((m.panelMode) ? h('button', { type: "button", className: "kbm-ico-btn", "aria-label": m.infoAria, "aria-pressed": m.infoPressed, onClick: m.showInfo, style: kbmS("width: 30px; height: 30px; border-radius: 7px; color: #2563EB; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; " + kbmP(m.infoStyle)) }, h('svg', { width: "15", height: "15", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M12 3a9 9 0 1 0 0 18a9 9 0 0 0 0-18zM12 11v5M12 8h.01" }))) : null)])))]), ((panelVariant) ? h('div', { style: kbmS("margin-left: 74px; padding: 10px 12px; border-radius: 8px; background: #F7F7F8; font-size: 12px; line-height: 1.5; color: #55555A;") }, [h('span', { className: "kbm-mono", style: kbmS("font-weight: 600; color: #16161A;") }, kbmP(faceNote.id)), " — " + kbmP(faceNote.note)]) : null), h('div', { style: kbmS("display: flex; align-items: center; gap: 8px; margin-top: auto;") }, [h('button', { type: "button", onClick: group.generate, style: kbmS("height: 38px; padding: 0 16px; border-radius: 9px; border: none; background: #16161A; color: #FFFFFF; font-size: 13.5px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px;") }, [h('svg', { width: "15", height: "15", viewBox: "0 0 24 24", fill: "none", stroke: "#F9A8D4", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M12 3l1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8zM19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z" })), " " + kbmP(group.cta) + " "]), h('button', { type: "button", className: "kbm-pill", style: kbmS("height: 38px; padding: 0 14px; border-radius: 9px; border: 1px solid #E4E4E4; background: #FFFFFF; font-size: 13px; color: #55555A; cursor: pointer;") , onClick: () => faceGo(true) }, "Re-crop (free, no call)"), h('span', { style: kbmS("font-size: 12px; color: #9A9A9E; margin-left: 4px;") }, kbmP(group.cost))])])]), h('section', { style: kbmS("border: 1px solid #E4E4E4; border-radius: 12px; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap;") }, [h('div', { style: kbmS("display: flex; align-items: center; gap: 10px; flex-wrap: wrap; row-gap: 8px; flex: 0 0 auto;") }, [h('span', { style: kbmS("font-size: 15px; font-weight: 600;") }, "Model management"), h('span', { className: "kbm-tip" }, [h('button', { type: "button", "aria-label": "How automatic model management works", style: kbmS("width: 18px; height: 18px; border-radius: 50%; border: 1px solid #C7C7C9; background: #FFFFFF; color: #77777B; font-size: 10px; font-weight: 700; cursor: help; padding: 0;") }, "i"), h('span', { className: "kbm-tipbox card below left", role: "tooltip" }, [h('span', { style: kbmS("display: block; font-size: 13px; font-weight: 600; margin-bottom: 10px;") }, "How Kybernos picks a model"), h('span', { style: kbmS("display: grid; grid-template-columns: 22px 1fr; row-gap: 8px; font-size: 12px; line-height: 1.45; color: #55555A;") }, [h('span', { className: "kbm-mono", style: kbmS("color: #C33543;") }, "01"), h('span', null, [h('b', { style: kbmS("color:#16161A;") }, "Read the role"), " — type, tier, required inputs, outputs, capabilities."]), h('span', { className: "kbm-mono", style: kbmS("color: #C33543;") }, "02"), h('span', null, [h('b', { style: kbmS("color:#16161A;") }, "Filter"), " — models that match, pass their probe, have capacity."]), h('span', { className: "kbm-mono", style: kbmS("color: #C33543;") }, "03"), h('span', null, [h('b', { style: kbmS("color:#16161A;") }, "Score"), " — benchmarks, price, latency, weighted by priority."]), h('span', { className: "kbm-mono", style: kbmS("color: #C33543;") }, "04"), h('span', null, [h('b', { style: kbmS("color:#16161A;") }, "Primary + fallback"), " — best runs, next best on standby. Every run."])])])]), h('div', { role: "group", "aria-label": "Model management mode", style: kbmS("display: flex; gap: 2px; padding: 2px; background: #F3F3F4; border-radius: 8px; margin-left: 6px;") }, kbmList(modes).map((m, idx) => h('button', { key: idx, type: "button", "aria-pressed": m.pressed, onClick: m.pick, style: kbmS("height: 28px; padding: 0 12px; border: none; border-radius: 6px; cursor: pointer; font-size: 12.5px; font-weight: 500; " + kbmP(m.style)) }, kbmP(m.label))))]), h('div', { style: kbmS("display: flex; align-items: center; gap: 16px; flex-wrap: wrap; row-gap: 8px; flex: 0 0 auto;") }, [h('div', { style: kbmS("display: flex; align-items: center; gap: 6px;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em; color: #9A9A9E;") }, "PRIORITY"), kbmList(priorities).map((p, idx) => h('button', { key: idx, type: "button", "aria-pressed": p.pressed, onClick: p.pick, style: kbmS("height: 28px; padding: 0 11px; border-radius: 999px; cursor: pointer; font-size: 12px; font-weight: 500; " + kbmP(p.style)) }, kbmP(p.label)))]), h('span', { className: "kbm-tip" }, [h('span', { tabIndex: "0", style: kbmS("height: 28px; padding: 0 10px; border-radius: 999px; border: 1px dashed #D6D6D8; font-size: 12px; color: #9A9A9E; display: inline-flex; align-items: center; gap: 6px; cursor: help;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em;") }, "BUDGET"), "coming soon"]), h('span', { className: "kbm-tipbox right", role: "tooltip" }, "Monthly spend cap across all models — not available yet")])]), h('p', { style: kbmS("margin: 0; width: 100%; font-size: 12.5px; color: #6B7280;") }, kbmP(modeSummary))]), h('div', { style: kbmS("display: flex; align-items: baseline; justify-content: space-between; margin-top: 4px;") }, [h('div', { style: kbmS("display: flex; align-items: baseline; gap: 12px;") }, [h('h2', { style: kbmS("margin: 0; font-size: 18px; font-weight: 700;") }, "Team members"), h('span', { className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.1em; color: #9A9A9E;") }, "ONE PERSONA · ONE PROMPT · ONE MODEL PER ROLE")]), h('button', { type: "button", className: "kbm-pill", style: kbmS("height: 34px; padding: 0 14px; border-radius: 9px; border: 1px solid #E4E4E4; background: #FFFFFF; font-size: 13px; font-weight: 600; cursor: pointer;") , onClick: addRole }, "+ Add a role")]), kbmList(roles).map((r, idx) => h('article', { key: idx, style: kbmS("border-radius: 12px; padding: 14px 18px; display: flex; flex-direction: column; gap: 14px; " + kbmP(r.cardStyle)) }, [h('div', { style: kbmS("display: flex; align-items: center; gap: 14px;") }, [h('div', { style: kbmS("width: 52px; height: 52px; border-radius: 12px; overflow: hidden; flex-shrink: 0; position: relative; background: " + kbmP(r.color) + ";") }, [((r.face.ready) ? h('svg', { width: "100%", height: "100%", viewBox: "0 0 64 64", "aria-hidden": "true" }, [h('rect', { width: "64", height: "64", fill: r.face.bg }), h('path', { d: "M8 64c2-12 12-18 24-18s22 6 24 18z", fill: r.face.shirt }), h('path', { d: "M27 38h10v10H27z", fill: r.face.skin }), h('ellipse', { cx: "32", cy: "28", rx: "11", ry: "13", fill: r.face.skin }), h('path', { d: r.face.hairD, fill: r.face.hair }), h('path', { d: r.face.glassesD, fill: "none", stroke: "#1F2937", strokeWidth: "1.6" })]) : null), ((r.face.empty) ? h('span', { style: kbmS("position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #FFFFFF; font-weight: 700; font-size: 17px;") }, kbmP(r.initial)) : null), ((r.face.busy) ? h('span', { className: "kbm-busy", style: kbmS("position: absolute; inset: 0; background: rgba(255,255,255,0.65);") }) : null)]), h('div', { style: kbmS("display: flex; flex-direction: column; gap: 4px; flex-grow: 1; min-width: 0;") }, [h('div', { style: kbmS("display: flex; align-items: center; gap: 8px;") }, [h('h3', { style: kbmS("margin: 0; font-size: 16px; font-weight: 700;") }, kbmP(r.name)), h('span', { className: "kbm-mono", style: kbmS("padding: 2px 8px; border-radius: 999px; background: #F3F3F4; font-size: 10px; letter-spacing: 0.08em; color: #77777B;") }, kbmP(r.tag)), h('span', { style: kbmS("display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: #55555A;") }, [h('svg', { width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: r.typeColor, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: r.typeD })), kbmP(r.typeLabel)]), ((r.isAuto) ? h('span', { className: "kbm-mono", style: kbmS("padding: 2px 8px; border-radius: 999px; background: #16161A; color: #FFFFFF; font-size: 10px; letter-spacing: 0.06em;") }, "AUTO") : null)]), h('div', { className: "kbm-mono", style: kbmS("display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: #55555A; flex-wrap: wrap;") }, [h('span', null, kbmP(r.modelLine)), h('span', { style: kbmS("display: inline-flex; align-items: center; gap: 5px; padding: 1px 8px; border-radius: 999px; font-size: 11px; border: 1px solid " + kbmP(r.hBorder) + "; background: " + kbmP(r.hBg) + "; color: " + kbmP(r.hColor) + ";") }, [h('span', { style: kbmS("width: 6px; height: 6px; border-radius: 50%; background: " + kbmP(r.hColor) + ";") }), kbmP(r.hLabel)]), h('span', { style: kbmS("color: #9A9A9E;") }, kbmP(r.fallbackLine))]), h('div', { style: kbmS("font-size: 12.5px; color: #77777B; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;") }, kbmP(r.personaShort))]), h('div', { style: kbmS("display: flex; gap: 6px; flex-shrink: 0;") }, [h('span', { className: "kbm-tip", style: { display: r.hasCall === true ? "" : "none" } }, [h('button', { type: "button", className: "kbm-ico-btn", "aria-label": r.voiceCallLabel, onClick: r.callVoice, style: kbmS("height: 34px; padding: 0 10px; border: 1px solid #E4E4E4; background: #FFFFFF; border-radius: 9px; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: #3F3F46;") }, [h('svg', { width: "15", height: "15", viewBox: "0 0 24 24", fill: "none", stroke: "#16A34A", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2" })), "Call"]), h('span', { className: "kbm-tipbox", role: "tooltip" }, kbmP(r.voiceCallTip))]), h('span', { className: "kbm-tip", style: { display: r.hasCall === true ? "" : "none" } }, [h('button', { type: "button", className: "kbm-ico-btn", "aria-label": r.videoCallLabel, onClick: r.callVideo, style: kbmS("height: 34px; padding: 0 10px; border: 1px solid #E4E4E4; background: #FFFFFF; border-radius: 9px; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: #3F3F46;") }, [h('svg', { width: "15", height: "15", viewBox: "0 0 24 24", fill: "none", stroke: "#2563EB", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M3 7h12v10H3zM15 10l6-3v10l-6-3" })), "Video"]), h('span', { className: "kbm-tipbox", role: "tooltip" }, kbmP(r.videoCallTip))])]), h('button', { type: "button", className: "kbm-ico-btn", "aria-label": r.expandLabel, "aria-expanded": r.expandedAttr, onClick: r.toggle, style: kbmS("width: 32px; height: 32px; border: none; background: transparent; border-radius: 8px; color: #77777B; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0;") }, h('svg', { width: "18", height: "18", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: r.chevron })))]), ((r.expanded) ? h('div', { style: kbmS("display: flex; flex-direction: column; gap: 16px; padding-top: 14px; border-top: 1px solid #F0F0F0;") }, [h('div', { style: kbmS("display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 16px; align-items: start;") }, [h('div', { style: kbmS("width: 96px; height: 96px; border-radius: 14px; overflow: hidden; position: relative; background: " + kbmP(r.color) + ";") }, [((r.face.ready) ? h('svg', { width: "100%", height: "100%", viewBox: "0 0 64 64", "aria-hidden": "true" }, [h('rect', { width: "64", height: "64", fill: r.face.bg }), h('path', { d: "M8 64c2-12 12-18 24-18s22 6 24 18z", fill: r.face.shirt }), h('path', { d: "M27 38h10v10H27z", fill: r.face.skin }), h('ellipse', { cx: "32", cy: "28", rx: "11", ry: "13", fill: r.face.skin }), h('path', { d: r.face.hairD, fill: r.face.hair }), h('path', { d: r.face.glassesD, fill: "none", stroke: "#1F2937", strokeWidth: "1.6" })]) : null), ((r.face.empty) ? h('span', { style: kbmS("position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #FFFFFF; font-weight: 700; font-size: 28px;") }, kbmP(r.initial)) : null), ((r.face.busy) ? h('span', { className: "kbm-busy", style: kbmS("position: absolute; inset: 0; background: rgba(255,255,255,0.7); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: #3F3F46;") }, "Generating…") : null)]), h('div', { style: kbmS("display: flex; flex-direction: column; gap: 8px; min-width: 0;") }, [h('label', { htmlFor: (r.personaId), className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em; color: #9A9A9E;") }, "PERSONA — DESCRIBE THE FACE BEFORE GENERATING"), h('input', { id: r.personaId, type: "text", value: r.persona, onChange: r.onPersona, style: kbmS("height: 38px; padding: 0 12px; border: 1px solid #E4E4E4; border-radius: 8px; font-size: 14px; font-family: inherit; color: #16161A; background: #FFFFFF;") }), h('div', { style: kbmS("display: flex; align-items: center; gap: 8px; flex-wrap: wrap;") }, [h('button', { type: "button", onClick: r.regen, disabled: r.face.busy, style: kbmS("height: 32px; padding: 0 12px; border-radius: 8px; border: 1px solid #16161A; background: #FFFFFF; font-size: 12.5px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;") }, [h('svg', { width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: "#DB2777", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M12 3l1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8z" })), " " + kbmP(r.regenLabel) + " "]), h('span', { style: kbmS("font-size: 12px; color: #9A9A9E;") }, kbmP(r.regenHint))])])]), h('div', { style: kbmS("display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 16px; align-items: center;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em; color: #9A9A9E;") }, "VOICE"), h('div', { style: kbmS("display: flex; align-items: center; gap: 8px; flex-wrap: wrap;") }, [h('div', { role: "group", "aria-label": "Voice", style: kbmS("display: flex; gap: 4px; flex-wrap: wrap;") }, kbmList(r.voices).map((vc, idx) => h('button', { key: idx, type: "button", "aria-pressed": vc.pressed, onClick: vc.pick, style: kbmS("height: 30px; padding: 0 11px; border-radius: 999px; cursor: pointer; font-size: 12.5px; display: flex; align-items: center; gap: 6px; " + kbmP(vc.style)) }, [h('svg', { width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: "#B45309", strokeWidth: "2", strokeLinecap: "round", "aria-hidden": "true" }, h('path', { d: "M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2" })), kbmP(vc.name) + " ", ((vc.custom) ? h('span', { className: "kbm-mono", style: kbmS("font-size: 9.5px; padding: 1px 5px; border-radius: 4px; background: #FEF3C7; color: #92400E;") }, "CUSTOM") : null)]))), h('button', { type: "button", onClick: r.preview, style: kbmS("height: 30px; padding: 0 11px; border-radius: 8px; border: 1px solid #E4E4E4; background: #FFFFFF; cursor: pointer; font-size: 12.5px; display: flex; align-items: center; gap: 5px; color: #3F3F46;") }, [h('svg', { width: "12", height: "12", viewBox: "0 0 24 24", fill: "#16A34A", "aria-hidden": "true" }, h('path', { d: "M7 5l12 7-12 7z" })), kbmP(r.previewLabel)]), h('button', { type: "button", onClick: r.openVoice, style: kbmS("height: 30px; padding: 0 11px; border-radius: 8px; border: 1px dashed #C7C7C9; background: #FAFAFA; cursor: pointer; font-size: 12.5px; color: #3F3F46; display: flex; align-items: center; gap: 5px;") }, [h('svg', { width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: "#DC2626", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3zM5 11a7 7 0 0 0 14 0M12 18v3" })), "Custom voice · record or upload"]), h('span', { style: kbmS("font-size: 12px; color: #9A9A9E;") }, "shared by all members · sample kept on this host · not yet spoken")])]), h('div', { style: kbmS("display: flex; flex-direction: column; gap: 6px;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em; color: #9A9A9E;") }, "SYSTEM PROMPT — THE DOCTRINE OF THIS ROLE"), h('div', { className: "kbm-mono", style: kbmS("padding: 12px 14px; background: #FAFAFA; border: 1px solid #EEEEEE; border-radius: 10px; font-size: 12.5px; line-height: 1.6;") }, kbmP(r.prompt))]), h('div', { style: kbmS("border: 1px solid #EEEEEE; border-radius: 10px;") }, [h('div', { style: kbmS("display: grid; grid-template-columns: 96px 1fr; align-items: center; gap: 12px; padding: 9px 14px; border-bottom: 1px solid #F3F3F4;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em; color: #9A9A9E;") }, "TYPE"), h('div', { style: kbmS("display: flex; align-items: center; gap: 10px;") }, [h('div', { role: "group", "aria-label": "Model type", style: kbmS("display: flex; gap: 3px;") }, kbmList(r.types).map((t, idx) => h('span', { key: idx, className: "kbm-tip" }, [h('button', { type: "button", "aria-label": t.label, "aria-pressed": t.pressed, onClick: t.pick, style: kbmS("width: 30px; height: 30px; border-radius: 7px; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; " + kbmP(t.style)) }, h('svg', { width: "15", height: "15", viewBox: "0 0 24 24", fill: "none", stroke: t.color, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: t.d }))), h('span', { className: "kbm-tipbox", role: "tooltip" }, kbmP(t.label))]))), h('span', { style: kbmS("font-size: 13px; font-weight: 500;") }, kbmP(r.typeLabel))])]), h('div', { style: kbmS("display: grid; grid-template-columns: 96px 1fr; align-items: center; gap: 12px; padding: 9px 14px; border-bottom: 1px solid #F3F3F4;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em; color: #9A9A9E;") }, "TIER"), h('div', { style: kbmS("display: flex; align-items: center; gap: 12px;") }, [h('div', { role: "group", "aria-label": "Tier", style: kbmS("display: flex; gap: 4px;") }, kbmList(r.needs).map((n, idx) => h('button', { key: idx, type: "button", "aria-pressed": n.pressed, onClick: n.pick, className: "kbm-mono", style: kbmS("height: 28px; padding: 0 11px; border-radius: 999px; cursor: pointer; font-size: 12px; " + kbmP(n.style)) }, kbmP(n.label)))), ((r.showToggle) ? h('span', { style: kbmS("display: flex; align-items: center; gap: 8px; margin-left: auto; font-size: 13px; color: #55555A;") }, [" Kybernos manages this model ", h('button', { type: "button", role: "switch", "aria-checked": r.autoPressed, "aria-label": "Kybernos manages this model", onClick: r.toggleAuto, style: kbmS("width: 36px; height: 22px; border-radius: 999px; border: none; padding: 3px; cursor: pointer; display: flex; align-items: center; " + kbmP(r.trackStyle)) }, h('span', { style: kbmS("width: 16px; height: 16px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 1px 2px rgba(0,0,0,0.25);") }))]) : null)])]), h('div', { style: kbmS("display: grid; grid-template-columns: 96px 1fr; align-items: center; gap: 12px; padding: 9px 14px;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em; color: #9A9A9E;") }, "REQUIRES"), h('div', { style: kbmS("display: flex; align-items: center; gap: 14px; flex-wrap: wrap;") }, [kbmList(r.filterGroups).map((g, idx) => h('div', { key: idx, style: kbmS("display: flex; align-items: center; gap: 6px;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 10.5px; color: #B0B0B3;") }, kbmP(g.label)), h('div', { role: "group", "aria-label": g.label, style: kbmS("display: flex; gap: 3px;") }, kbmList(g.items).map((f, idx) => h('span', { key: idx, className: "kbm-tip" }, [h('button', { type: "button", "aria-label": f.aria, "aria-pressed": f.pressed, onClick: f.toggle, style: kbmS("width: 28px; height: 28px; border-radius: 7px; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; " + kbmP(f.style)) }, h('svg', { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: f.color, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true", style: kbmS(kbmP(f.iconStyle)) }, h('path', { d: f.d }))), h('span', { className: "kbm-tipbox", role: "tooltip" }, kbmP(f.tip))])))])), h('span', { style: kbmS("font-size: 12px; color: #9A9A9E; margin-left: auto;") }, kbmP(r.filterSummary))])])]), h('div', { style: kbmS("display: flex; flex-direction: column; gap: 8px;") }, [h('div', { style: kbmS("display: flex; align-items: center; justify-content: space-between;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em; color: #9A9A9E;") }, kbmP(r.listLabel)), h('span', { style: kbmS("font-size: 12px; color: #9A9A9E;") }, kbmP(r.listHint))]), h('div', { style: kbmS("position: relative;") }, [h('div', { style: kbmS("display: flex; align-items: center; gap: 8px; height: 36px; padding: 0 6px 0 12px; border: 1px solid #E4E4E4; border-radius: 8px;") }, [h('svg', { width: "15", height: "15", viewBox: "0 0 24 24", fill: "none", stroke: "#9A9A9E", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M11 4a7 7 0 1 0 0 14a7 7 0 0 0 0-14zM20 20l-4-4" })), h('input', { type: "search", value: r.query, onChange: r.onQuery, placeholder: "Search any connected model, provider or type…", "aria-label": "Search models", style: kbmS("flex-grow: 1; border: none; outline: none; background: transparent; font-size: 13px; font-family: inherit; color: #16161A;") }), h('button', { type: "button", onClick: r.runCheck, style: kbmS("height: 26px; padding: 0 10px; border-radius: 6px; border: 1px solid #E4E4E4; background: #FAFAFA; cursor: pointer; display: flex; align-items: center; gap: 5px; font-size: 12px; color: #55555A;") }, [h('svg', { width: "12", height: "12", viewBox: "0 0 24 24", fill: "none", stroke: "#16A34A", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M3 12h4l3-8 4 16 3-8h4" })), "Probe all "])]), ((r.suggestOpen) ? h('div', { role: "listbox", "aria-label": "Model suggestions", style: kbmS("position: absolute; top: 40px; left: 0; right: 0; z-index: 30; background: #FFFFFF; border: 1px solid #E4E4E4; border-radius: 10px; box-shadow: 0 10px 28px rgba(0,0,0,0.1); padding: 4px; display: flex; flex-direction: column;") }, [kbmList(r.suggestions).map((sg, idx) => [h('button', { key: idx, type: "button", role: "option", className: "kbm-ico-btn", onClick: sg.choose, style: kbmS("min-height: 36px; padding: 6px 10px; border: none; border-radius: 7px; background: transparent; cursor: pointer; display: flex; align-items: center; gap: 10px; text-align: left;") }, [h('svg', { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: sg.typeColor, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: sg.typeD })), h('span', { className: "kbm-mono", style: kbmS("font-size: 13px; flex-grow: 1;") }, kbmP(sg.id)), h('span', { style: kbmS("font-size: 12px; color: #9A9A9E;") }, kbmP(sg.provider) + " · " + kbmP(sg.type)), h('span', { style: kbmS("width: 6px; height: 6px; border-radius: 50%; background: " + kbmP(sg.hColor) + ";") })]), h('button', { key: 'f' + idx, type: "button", className: "kbm-ico-btn", title: sg.fbLabel, "aria-label": sg.fbLabel, disabled: sg.fbDisabled, onClick: sg.setFallback, style: kbmS("min-height: 36px; padding: 0 8px; border: none; border-radius: 7px; background: transparent; opacity: " + (sg.fbDisabled === true ? '0.4' : '1') + ';') }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 13px; color: #7C3AED;") }, "\u21a9")])]), ((r.noSuggestion) ? h('span', { style: kbmS("padding: 8px 10px; font-size: 13px; color: #9A9A9E;") }, "No model found.") : null)]) : null)]), h('div', { style: kbmS("display: grid; gap: 12px; align-items: start; " + kbmP(r.listGrid)) }, [h('div', { style: kbmS("border: 1px solid #EEEEEE; border-radius: 10px; min-width: 0;") }, [kbmList(r.models).map((m, idx) => h('div', { key: idx, style: kbmS("display: flex; align-items: center; gap: 4px; padding: 4px 6px; " + kbmP(m.rowBorder)) }, [h('button', { type: "button", className: "kbm-row-btn", disabled: m.disabled, "aria-pressed": m.pressed, onClick: m.pick, style: kbmS("flex-grow: 1; min-width: 0; height: 42px; padding: 0 10px; border: none; border-radius: 8px; display: flex; align-items: center; gap: 10px; text-align: left; " + kbmP(m.style)) }, [h('span', { style: kbmS("width: 14px; height: 14px; border-radius: 50%; box-sizing: border-box; flex-shrink: 0; " + kbmP(m.radioStyle)) }), h('span', { className: "kbm-mono", style: kbmS("font-size: 13px; flex-shrink: 0;") }, kbmP(m.id)), ((m.isPick) ? h('span', { className: "kbm-mono", style: kbmS("padding: 2px 6px; border-radius: 4px; background: #C33543; color: #FFFFFF; font-size: 10px;") }, "PRIMARY") : null), ((m.isFallback) ? h('span', { className: "kbm-mono", style: kbmS("padding: 1px 6px; border-radius: 4px; border: 1px solid #D6D6D8; color: #55555A; font-size: 10px;") }, "FALLBACK") : null), h('span', { style: kbmS("font-size: 12px; color: #9A9A9E; flex-shrink: 0;") }, kbmP(m.provider)), h('span', { style: kbmS("display: flex; align-items: center; gap: 3px; margin-left: 4px;") }, kbmList(m.capIcons).map((ic, idx) => h('svg', { key: idx, width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: ic.c, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: ic.d })))), h('span', { style: kbmS("flex-grow: 1;") }), h('span', { className: "kbm-mono", style: kbmS("font-size: 12px; color: #77777B;") }, kbmP(m.metricShort)), h('span', { className: "kbm-mono", style: kbmS("font-size: 12px; color: #9A9A9E; min-width: 46px; text-align: right;") }, kbmP(m.latencyLabel)), h('span', { className: "kbm-mono", style: kbmS("display: inline-flex; align-items: center; gap: 5px; padding: 1px 8px; border-radius: 999px; font-size: 11px; min-width: 76px; box-sizing: border-box; border: 1px solid " + kbmP(m.hBorder) + "; background: " + kbmP(m.hBg) + "; color: " + kbmP(m.hColor) + ";") }, [h('span', { style: kbmS("width: 6px; height: 6px; border-radius: 50%; background: " + kbmP(m.hColor) + ";") }), kbmP(m.hLabel)])]), ((m.tooltipMode) ? h('span', { className: "kbm-tip" }, [h('button', { type: "button", className: "kbm-ico-btn", "aria-label": m.infoAria, style: kbmS("width: 32px; height: 32px; border: none; background: transparent; border-radius: 7px; color: #2563EB; cursor: help; display: flex; align-items: center; justify-content: center; padding: 0;") }, h('svg', { width: "16", height: "16", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M12 3a9 9 0 1 0 0 18a9 9 0 0 0 0-18zM12 11v5M12 8h.01" }))), h('span', { className: "kbm-tipbox card right", role: "tooltip" }, [h('span', { style: kbmS("display: flex; align-items: baseline; justify-content: space-between; gap: 8px;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 13px; font-weight: 600;") }, kbmP(m.id)), h('span', { style: kbmS("font-size: 11px; color: #9A9A9E;") }, kbmP(m.provider) + " · " + kbmP(m.priceLabel))]), h('span', { style: kbmS("display: flex; align-items: center; gap: 6px; margin-top: 10px; font-size: 12px; color: #55555A; flex-wrap: wrap;") }, [kbmList(m.inIcons).map((c, idx) => h('span', { key: idx, style: kbmS("display: inline-flex; align-items: center; gap: 4px;") }, [h('svg', { width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: c.c, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: c.d })), kbmP(c.label)])), h('span', { style: kbmS("color: #B0B0B3;") }, "→"), kbmList(m.outIcons).map((c, idx) => h('span', { key: idx, style: kbmS("display: inline-flex; align-items: center; gap: 4px;") }, [h('svg', { width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: c.c, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: c.d })), kbmP(c.label)]))]), h('span', { style: kbmS("display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px 10px; margin-top: 10px; font-size: 12px;") }, kbmList(m.capRows).map((c, idx) => h('span', { key: idx, style: kbmS("display: inline-flex; align-items: center; gap: 5px; " + kbmP(c.style)) }, [h('svg', { width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: c.c, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: c.d })), kbmP(c.label)]))), ((m.hasBench) ? h('span', { style: kbmS("display: block; margin-top: 12px; padding-top: 10px; border-top: 1px solid #F0F0F0;") }, [h('span', { style: kbmS("display: flex; justify-content: space-between; font-size: 12px;") }, [h('span', { style: kbmS("font-weight: 600;") }, "Artificial Analysis"), h('span', { className: "kbm-mono" }, kbmP(m.aaScore) + " intelligence")]), h('span', { style: kbmS("display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px 12px; margin-top: 6px; font-size: 11.5px; color: #55555A;") }, kbmList(m.aaRows).map((b, idx) => h('span', { key: idx, style: kbmS("display: flex; justify-content: space-between; gap: 6px;") }, [h('span', null, kbmP(b.k)), h('span', { className: "kbm-mono", style: kbmS("color: #16161A;") }, kbmP(b.v))]))), h('span', { style: kbmS("display: flex; justify-content: space-between; font-size: 12px; margin-top: 10px;") }, [h('span', { style: kbmS("font-weight: 600;") }, ["BenchLM ", h('span', { style: kbmS("font-weight: 400; color: #9A9A9E;") }, "· provisional")]), h('span', { className: "kbm-mono" }, kbmP(m.blScore) + " overall")]), h('span', { style: kbmS("display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px 12px; margin-top: 6px; font-size: 11.5px; color: #55555A;") }, kbmList(m.blRows).map((b, idx) => h('span', { key: idx, style: kbmS("display: flex; justify-content: space-between; gap: 6px;") }, [h('span', null, kbmP(b.k)), h('span', { className: "kbm-mono", style: kbmS("color: #16161A;") }, kbmP(b.v))]))), h('span', { style: kbmS("display: block; margin-top: 10px; font-size: 11px; color: #9A9A9E;") }, kbmP(m.benchFoot))]) : null), ((m.noBench) ? h('span', { style: kbmS("display: block; margin-top: 12px; padding-top: 10px; border-top: 1px solid #F0F0F0; font-size: 12px; line-height: 1.45; color: #77777B;") }, kbmP(m.note)) : null)])]) : null), ((m.panelMode) ? h('button', { type: "button", className: "kbm-ico-btn", "aria-label": m.infoAria, "aria-pressed": m.infoPressed, onClick: m.showInfo, style: kbmS("width: 32px; height: 32px; border-radius: 7px; color: #2563EB; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; " + kbmP(m.infoStyle)) }, h('svg', { width: "16", height: "16", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M12 3a9 9 0 1 0 0 18a9 9 0 0 0 0-18zM12 11v5M12 8h.01" }))) : null), h('span', { className: "kbm-tip" }, [h('button', { type: "button", className: "kbm-ico-btn", "aria-label": m.fbLabel, "aria-pressed": m.fbPressed, disabled: m.fbDisabled, onClick: m.setFallback, style: kbmS("width: 32px; height: 32px; border-radius: 7px; display: flex; align-items: center; justify-content: center; padding: 0; " + kbmP(m.fbStyle)) }, h('svg', { width: "15", height: "15", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M9 14l-5-5 5-5M4 9h11a5 5 0 0 1 0 10h-3" }))), h('span', { className: "kbm-tipbox right", role: "tooltip" }, kbmP(m.fbLabel))])])), ((r.hasHidden) ? h('div', { style: kbmS("padding: 9px 16px; border-top: 1px solid #F3F3F4; font-size: 12px; color: #9A9A9E;") }, kbmP(r.hiddenLabel)) : null)]), ((r.panelVariant) ? h('aside', { "aria-label": "Selected model details", style: kbmS("border: 1px solid #E4E4E4; border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 12px; background: #FFFFFF;") }, [h('div', { style: kbmS("display: flex; flex-direction: column; gap: 4px;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 10.5px; letter-spacing: 0.08em; color: " + kbmP(r.panelTagColor) + ";") }, kbmP(r.panelTag)), h('span', { className: "kbm-mono", style: kbmS("font-size: 15px; font-weight: 600;") }, kbmP(r.panel.id)), h('div', { style: kbmS("display: flex; align-items: center; gap: 8px; flex-wrap: wrap;") }, [h('span', { style: kbmS("font-size: 12px; color: #77777B;") }, kbmP(r.panel.provider) + " · " + kbmP(r.panel.priceLabel) + " · " + kbmP(r.panel.latencyLabel)), h('span', { className: "kbm-mono", style: kbmS("display: inline-flex; align-items: center; gap: 5px; padding: 1px 7px; border-radius: 999px; font-size: 10.5px; border: 1px solid " + kbmP(r.panel.hBorder) + "; background: " + kbmP(r.panel.hBg) + "; color: " + kbmP(r.panel.hColor) + ";") }, [h('span', { style: kbmS("width: 6px; height: 6px; border-radius: 50%; background: " + kbmP(r.panel.hColor) + ";") }), kbmP(r.panel.hLabel)])])]), h('div', { style: kbmS("display: flex; align-items: center; gap: 5px; flex-wrap: wrap; font-size: 12px; padding-top: 10px; border-top: 1px solid #F0F0F0;") }, [kbmList(r.panel.inIcons).map((c, idx) => h('span', { key: idx, style: kbmS("display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px; border-radius: 999px; background: " + kbmP(c.tint) + ";") }, [h('svg', { width: "12", height: "12", viewBox: "0 0 24 24", fill: "none", stroke: c.c, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: c.d })), kbmP(c.label)])), h('span', { style: kbmS("color: #B0B0B3;") }, "→"), kbmList(r.panel.outIcons).map((c, idx) => h('span', { key: idx, style: kbmS("display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px; border-radius: 999px; background: " + kbmP(c.tint) + ";") }, [h('svg', { width: "12", height: "12", viewBox: "0 0 24 24", fill: "none", stroke: c.c, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: c.d })), kbmP(c.label)]))]), h('div', { style: kbmS("display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px 8px; font-size: 12px;") }, kbmList(r.panel.capRows).map((c, idx) => h('span', { key: idx, style: kbmS("display: inline-flex; align-items: center; gap: 5px; " + kbmP(c.style)) }, [h('svg', { width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: c.c, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: c.d })), kbmP(c.label)]))), ((r.panel.hasBench) ? h('div', { style: kbmS("display: flex; flex-direction: column; gap: 8px; padding-top: 10px; border-top: 1px solid #F0F0F0;") }, [h('div', { style: kbmS("background: #1F1F22; color: #F4F4F5; border-radius: 8px; padding: 10px 12px;") }, [h('div', { style: kbmS("display: flex; align-items: baseline; gap: 6px;") }, [h('span', { style: kbmS("font-size: 12px; font-weight: 600; flex-grow: 1;") }, "Artificial Analysis"), h('span', { style: kbmS("font-size: 18px; font-weight: 700;") }, kbmP(r.panel.aaScore))]), h('div', { style: kbmS("display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 10px; margin-top: 6px; font-size: 11px;") }, kbmList(r.panel.aaRows).map((b, idx) => h('div', { key: idx, style: kbmS("display: flex; justify-content: space-between; gap: 4px;") }, [h('span', { style: kbmS("color: #A1A1AA; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;") }, kbmP(b.k)), h('span', null, kbmP(b.v))])))]), h('div', { style: kbmS("background: #1F1F22; color: #F4F4F5; border-radius: 8px; padding: 10px 12px;") }, [h('div', { style: kbmS("display: flex; align-items: baseline; gap: 6px;") }, [h('span', { style: kbmS("font-size: 12px; font-weight: 600; flex-grow: 1;") }, ["BenchLM ", h('span', { style: kbmS("font-size: 10px; font-weight: 400; color: #A1A1AA;") }, "provisional")]), h('span', { style: kbmS("font-size: 18px; font-weight: 700;") }, kbmP(r.panel.blScore))]), h('div', { style: kbmS("display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 10px; margin-top: 6px; font-size: 11px;") }, kbmList(r.panel.blRows).map((b, idx) => h('div', { key: idx, style: kbmS("display: flex; justify-content: space-between; gap: 4px;") }, [h('span', { style: kbmS("color: #A1A1AA;") }, kbmP(b.k)), h('span', null, kbmP(b.v))])))]), h('span', { style: kbmS("font-size: 11px; line-height: 1.45; color: #77777B;") }, kbmP(r.panel.benchFoot))]) : null), ((r.panel.noBench) ? h('p', { style: kbmS("margin: 0; padding: 10px; border-radius: 8px; background: #FAFAFA; font-size: 12px; line-height: 1.5; color: #55555A;") }, kbmP(r.panel.note)) : null)]) : null)])]), ((r.isAuto) ? h('div', { style: kbmS("display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 10px; background: #F7F7F8; border: 1px solid #EEEEEE; font-size: 13px;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em; color: #9A9A9E;") }, "DECISION"), h('span', { className: "kbm-mono", style: kbmS("font-weight: 600;") }, kbmP(r.pickName)), h('span', { style: kbmS("color: #6B7280;") }, kbmP(r.pickReasonShort)), h('span', { style: kbmS("margin-left: auto; font-size: 12px; color: #9A9A9E;") }, kbmP(r.skipped))]) : null), ((r.showDownWarning) ? h('div', { role: "alert", style: kbmS("display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 10px; background: #FEF2F2; border: 1px solid #FBD5D5; font-size: 13px; color: #9B1C1C;") }, [h('span', { style: kbmS("flex-grow: 1;") }, kbmP(r.downText)), h('button', { type: "button", onClick: r.enableAuto, style: kbmS("height: 28px; padding: 0 10px; border-radius: 7px; border: 1px solid #9B1C1C; background: #FFFFFF; color: #9B1C1C; font-size: 12px; font-weight: 600; cursor: pointer;") }, "Let Kybernos manage")]) : null)]) : null)]))])), ((vmView.open) ? h('div', { style: kbmS("position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; background: rgba(22,22,26,0.32);") }, h('div', { role: "dialog", "aria-modal": "true", "aria-labelledby": "vm-title", style: kbmS("position: relative; top: 0; left: 0; transform: none; width: 560px; max-height: 88vh; overflow: auto; background: #FFFFFF; border-radius: 16px; box-shadow: 0 24px 64px rgba(0,0,0,0.25); padding: 24px; display: flex; flex-direction: column; gap: 16px;") }, [h('div', { style: kbmS("display: flex; align-items: flex-start; gap: 12px;") }, [h('div', { style: kbmS("flex-grow: 1; display: flex; flex-direction: column; gap: 6px;") }, [h('h2', { id: "vm-title", style: kbmS("margin: 0; font-size: 20px; font-weight: 700;") }, "Create a custom voice"), h('p', { style: kbmS("margin: 0; font-size: 13.5px; line-height: 1.5; color: #6B7280;") }, ["For ", h('b', { style: kbmS("color: #16161A;") }, kbmP(vmView.roleName)), ". Record or upload a consent recording and a sample. The sample is stored on this machine and shared by every member — no synthesis engine yet, so the voice is selectable but not yet spoken."])]), h('button', { type: "button", className: "kbm-ico-btn", "aria-label": "Close", onClick: vmView.close, style: kbmS("width: 32px; height: 32px; border: none; background: transparent; border-radius: 8px; cursor: pointer; color: #77777B; display: flex; align-items: center; justify-content: center; padding: 0;") }, h('svg', { width: "18", height: "18", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", "aria-hidden": "true" }, h('path', { d: "M6 6l12 12M18 6L6 18" })))]), h('div', { style: kbmS("display: flex; flex-direction: column; gap: 6px;") }, [h('label', { htmlFor: "vm-name", className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em; color: #9A9A9E;") }, "VOICE NAME"), h('input', { id: "vm-name", type: "text", value: vmView.name, onChange: vmView.onName, placeholder: "My custom voice", style: kbmS("height: 40px; padding: 0 12px; border: 1px solid #E4E4E4; border-radius: 9px; font-size: 14px; font-family: inherit; color: #16161A;") })]), kbmList(vmView.steps).map((st, idx) => h('div', { key: idx, style: kbmS("border: 1px solid #EEEEEE; border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px;") }, [h('div', { style: kbmS("display: flex; flex-direction: column; gap: 3px;") }, [h('span', { style: kbmS("font-size: 14px; font-weight: 600;") }, kbmP(st.title)), h('span', { style: kbmS("font-size: 12.5px; line-height: 1.5; color: #6B7280;") }, kbmP(st.desc))]), h('div', { style: kbmS("display: flex; align-items: center; gap: 10px; flex-wrap: wrap;") }, [h('div', { role: "group", "aria-label": "Input method", style: kbmS("display: flex; gap: 2px; padding: 2px; background: #F3F3F4; border-radius: 8px;") }, kbmList(st.modes).map((md, idx) => h('button', { key: idx, type: "button", "aria-pressed": md.pressed, onClick: md.pick, style: kbmS("height: 28px; padding: 0 11px; border: none; border-radius: 6px; cursor: pointer; font-size: 12.5px; display: flex; align-items: center; gap: 5px; " + kbmP(md.style)) }, [h('svg', { width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: md.d })), kbmP(md.label)]))), ((st.showStart) ? h('button', { type: "button", onClick: st.start, style: kbmS("height: 34px; padding: 0 14px; border-radius: 9px; border: 1px solid #E4E4E4; background: #FFFFFF; cursor: pointer; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 6px;") }, [h('svg', { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "#DC2626", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3zM5 11a7 7 0 0 0 14 0M12 18v3" })), "Start recording"]) : null), ((st.showUpload) ? h('button', { type: "button", onClick: st.upload, style: kbmS("height: 34px; padding: 0 14px; border-radius: 9px; border: 1px dashed #C7C7C9; background: #FAFAFA; cursor: pointer; font-size: 13px; color: #3F3F46; display: flex; align-items: center; gap: 6px;") }, [h('svg', { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "#2563EB", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M12 16V4M7 9l5-5 5 5M4 20h16" })), "Choose a file · wav, mp3, m4a"]) : null), ((st.recording) ? [h('span', { style: kbmS("display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: #B91C1C;") }, [h('span', { className: "kbm-busy", style: kbmS("width: 9px; height: 9px; border-radius: 50%; background: #DC2626;") }), "Recording…"]), h('button', { type: "button", onClick: st.stop, style: kbmS("height: 30px; padding: 0 12px; border-radius: 8px; border: none; background: #DC2626; color: #FFFFFF; cursor: pointer; font-size: 12.5px; font-weight: 600;") }, "Stop")] : null), ((st.done) ? [h('span', { style: kbmS("display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px; border-radius: 999px; background: #F0FDF4; border: 1px solid #BBF7D0; font-size: 12.5px; color: #15803D;") }, [h('svg', { width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2.4", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M5 12l5 5L20 7" })), kbmP(st.doneLabel)]), h('button', { type: "button", onClick: st.reset, style: kbmS("height: 30px; padding: 0 10px; border-radius: 8px; border: 1px solid #E4E4E4; background: #FFFFFF; cursor: pointer; font-size: 12.5px; color: #55555A;") }, "Redo")] : null)])])), h('div', { style: kbmS("display: flex; justify-content: flex-end; gap: 8px;") }, [((vmView.err !== '') ? h('span', { role: "alert", style: kbmS("flex-grow: 1; font-size: 12.5px; line-height: 1.4; color: #9B1C1C; align-self: center;") }, kbmP(vmView.err)) : null), h('button', { type: "button", onClick: vmView.close, style: kbmS("height: 38px; padding: 0 16px; border-radius: 9px; border: 1px solid #E4E4E4; background: #FFFFFF; cursor: pointer; font-size: 14px;") }, "Cancel"), h('button', { type: "button", disabled: vmView.cannotCreate, onClick: vmView.create, style: kbmS("height: 38px; padding: 0 16px; border-radius: 9px; border: none; font-size: 14px; font-weight: 600; " + kbmP(vmView.createStyle)) }, "Create voice")])])) : null)]
+        [h('div', { style: kbmS("display: grid; gap: 24px; align-items: start; " + kbmP(gridStyle)) }, h('div', { style: kbmS("display: flex; flex-direction: column; gap: 18px; min-width: 0;") }, [h('section', { "aria-labelledby": "faces-title", style: kbmS("border: 1px solid #E4E4E4; border-radius: 12px; padding: 18px 20px; display: grid; grid-template-columns: 380px minmax(0, 1fr); gap: 22px;") }, [h('div', { style: kbmS("display: flex; flex-direction: column; gap: 8px;") }, [h('div', { style: kbmS("position: relative; height: 210px; border-radius: 10px; overflow: hidden; background: linear-gradient(170deg,#F1E6D5 0%,#E2CDAE 70%,#C9AE88 100%); display: flex; align-items: flex-end; justify-content: center; gap: 6px;") }, [h('div', { style: kbmS("position: absolute; left: 0; right: 0; bottom: 0; height: 36px; background: #B89468;") }), kbmList(group.faces).map((a, idx) => h('div', { key: idx, style: kbmS("width: 110px; height: 150px; position: relative; " + kbmP(a.groupStyle)) }, h('svg', { width: "100%", height: "100%", viewBox: "4 6 56 58", "aria-hidden": "true" }, [h('path', { d: "M8 64c2-12 12-18 24-18s22 6 24 18z", fill: a.shirt }), h('path', { d: "M27 38h10v10H27z", fill: a.skin }), h('ellipse', { cx: "32", cy: "28", rx: "11", ry: "13", fill: a.skin }), h('path', { d: a.hairD, fill: a.hair }), h('path', { d: a.glassesD, fill: "none", stroke: "#1F2937", strokeWidth: "1.4" })]))), ((group.busy) ? h('div', { className: "kbm-busy", style: kbmS("position: absolute; inset: 0; background: rgba(255,255,255,0.6); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; color: #3F3F46;") }, "Generating team scene…") : null)]), h('span', { className: "kbm-mono", style: kbmS("font-size: 11.5px; color: #9A9A9E;") }, kbmP(group.status))]), h('div', { style: kbmS("display: flex; flex-direction: column; gap: 12px; min-width: 0;") }, [h('div', { style: kbmS("display: flex; align-items: center; gap: 8px;") }, [h('h2', { id: "faces-title", style: kbmS("margin: 0; font-size: 15px; font-weight: 600;") }, "Team faces"), h('span', { className: "kbm-tip" }, [h('button', { type: "button", "aria-label": "How team faces are generated", style: kbmS("width: 18px; height: 18px; border-radius: 50%; border: 1px solid #C7C7C9; background: #FFFFFF; color: #77777B; font-size: 10px; font-weight: 700; cursor: help; padding: 0;") }, "i"), h('span', { className: "kbm-tipbox card below left", role: "tooltip" }, h('span', { style: kbmS("display: block; font-size: 12.5px; line-height: 1.5; color: #3F3F46;") }, [h('b', { style: kbmS("color:#16161A;") }, "Group + crop:"), " one image call renders the team scene, then each portrait is cropped locally — free and repeatable. 9 faces max per sheet; beyond that roles keep their initials.", h('br', null), h('br', null), h('b', { style: kbmS("color:#16161A;") }, "Per portrait:"), " one call per role, on click. Sharper faces, cost grows with headcount."]))])]), h('div', { style: kbmS("display: flex; align-items: center; gap: 10px;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em; color: #9A9A9E; width: 64px;") }, "Mode"), h('div', { role: "group", "aria-label": "Generation mode", style: kbmS("display: flex; gap: 2px; padding: 2px; background: #F3F3F4; border-radius: 8px;") }, kbmList(faceModes).map((fm, idx) => h('button', { key: idx, type: "button", "aria-pressed": fm.pressed, onClick: fm.pick, style: kbmS("height: 28px; padding: 0 12px; border: none; border-radius: 6px; cursor: pointer; font-size: 12.5px; font-weight: 500; " + kbmP(fm.style)) }, kbmP(fm.label))))]), h('div', { style: kbmS("display: flex; align-items: flex-start; gap: 10px;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em; color: #9A9A9E; width: 64px; padding-top: 12px;") }, "Model"), h('div', { style: kbmS("flex-grow: 1; border: 1px solid #EEEEEE; border-radius: 10px; min-width: 0;") }, kbmList(imageModels).map((m, idx) => h('div', { key: idx, style: kbmS("display: flex; align-items: center; gap: 4px; padding: 3px 6px; " + kbmP(m.rowBorder)) }, [h('button', { type: "button", className: "kbm-row-btn", disabled: m.disabled, "aria-pressed": m.pressed, onClick: m.pick, style: kbmS("flex-grow: 1; min-width: 0; height: 38px; padding: 0 10px; border: none; border-radius: 7px; display: flex; align-items: center; gap: 10px; text-align: left; " + kbmP(m.style)) }, [h('span', { style: kbmS("width: 13px; height: 13px; border-radius: 50%; box-sizing: border-box; flex-shrink: 0; " + kbmP(m.radioStyle)) }), h('span', { className: "kbm-mono", style: kbmS("font-size: 12.5px;") }, kbmP(m.id)), h('span', { style: kbmS("font-size: 12px; color: #9A9A9E;") }, kbmP(m.provider)), h('span', { style: kbmS("flex-grow: 1;") }), h('span', { className: "kbm-mono", style: kbmS("font-size: 11.5px; color: #77777B;") }, kbmP(m.metricShort)), h('span', { className: "kbm-mono", style: kbmS("display: inline-flex; align-items: center; gap: 5px; padding: 1px 8px; border-radius: 999px; font-size: 11px; min-width: 76px; box-sizing: border-box; border: 1px solid " + kbmP(m.hBorder) + "; background: " + kbmP(m.hBg) + "; color: " + kbmP(m.hColor) + ";") }, [h('span', { style: kbmS("width: 6px; height: 6px; border-radius: 50%; background: " + kbmP(m.hColor) + ";") }), kbmP(m.hLabel)])]), ((m.tooltipMode) ? h('span', { className: "kbm-tip" }, [h('button', { type: "button", className: "kbm-ico-btn", "aria-label": m.infoAria, style: kbmS("width: 30px; height: 30px; border: none; background: transparent; border-radius: 7px; color: #2563EB; cursor: help; display: flex; align-items: center; justify-content: center; padding: 0;") }, h('svg', { width: "15", height: "15", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M12 3a9 9 0 1 0 0 18a9 9 0 0 0 0-18zM12 11v5M12 8h.01" }))), h('span', { className: "kbm-tipbox card right", role: "tooltip" }, [h('span', { style: kbmS("display: flex; align-items: baseline; justify-content: space-between; gap: 8px;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 13px; font-weight: 600;") }, kbmP(m.id)), h('span', { style: kbmS("font-size: 11px; color: #9A9A9E;") }, kbmP(m.provider) + " · " + kbmP(m.priceLabel))]), h('span', { style: kbmS("display: block; margin-top: 8px; font-size: 12px; line-height: 1.5; color: #55555A;") }, kbmP(m.note))])]) : null), ((m.panelMode) ? h('button', { type: "button", className: "kbm-ico-btn", "aria-label": m.infoAria, "aria-pressed": m.infoPressed, onClick: m.showInfo, style: kbmS("width: 30px; height: 30px; border-radius: 7px; color: #2563EB; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; " + kbmP(m.infoStyle)) }, h('svg', { width: "15", height: "15", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M12 3a9 9 0 1 0 0 18a9 9 0 0 0 0-18zM12 11v5M12 8h.01" }))) : null)])))]), ((panelVariant) ? h('div', { style: kbmS("margin-left: 74px; padding: 10px 12px; border-radius: 8px; background: #F7F7F8; font-size: 12px; line-height: 1.5; color: #55555A;") }, [h('span', { className: "kbm-mono", style: kbmS("font-weight: 600; color: #16161A;") }, kbmP(faceNote.id)), " — " + kbmP(faceNote.note)]) : null), h('div', { style: kbmS("display: flex; align-items: center; gap: 8px; margin-top: auto;") }, [h('button', { type: "button", onClick: group.generate, style: kbmS("height: 38px; padding: 0 16px; border-radius: 9px; border: none; background: #16161A; color: #FFFFFF; font-size: 13.5px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px;") }, [h('svg', { width: "15", height: "15", viewBox: "0 0 24 24", fill: "none", stroke: "#F9A8D4", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M12 3l1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8zM19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z" })), " " + kbmP(group.cta) + " "]), h('button', { type: "button", className: "kbm-pill", style: kbmS("height: 38px; padding: 0 14px; border-radius: 9px; border: 1px solid #E4E4E4; background: #FFFFFF; font-size: 13px; color: #55555A; cursor: pointer;") , onClick: () => faceGo(true) }, "Re-crop (free, no call)"), h('span', { style: kbmS("font-size: 12px; color: #9A9A9E; margin-left: 4px;") }, kbmP(group.cost))])])]), h('section', { style: kbmS("border: 1px solid #E4E4E4; border-radius: 12px; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap;") }, [h('div', { style: kbmS("display: flex; align-items: center; gap: 10px; flex-wrap: wrap; row-gap: 8px; flex: 0 0 auto;") }, [h('span', { style: kbmS("font-size: 15px; font-weight: 600;") }, "Model management"), h('span', { className: "kbm-tip" }, [h('button', { type: "button", "aria-label": "How automatic model management works", style: kbmS("width: 18px; height: 18px; border-radius: 50%; border: 1px solid #C7C7C9; background: #FFFFFF; color: #77777B; font-size: 10px; font-weight: 700; cursor: help; padding: 0;") }, "i"), h('span', { className: "kbm-tipbox card below left", role: "tooltip" }, [h('span', { style: kbmS("display: block; font-size: 13px; font-weight: 600; margin-bottom: 10px;") }, "How Kybernos picks a model"), h('span', { style: kbmS("display: grid; grid-template-columns: 22px 1fr; row-gap: 8px; font-size: 12px; line-height: 1.45; color: #55555A;") }, [h('span', { className: "kbm-mono", style: kbmS("color: #C33543;") }, "01"), h('span', null, [h('b', { style: kbmS("color:#16161A;") }, "Read the role"), " — type, tier, required inputs, outputs, capabilities."]), h('span', { className: "kbm-mono", style: kbmS("color: #C33543;") }, "02"), h('span', null, [h('b', { style: kbmS("color:#16161A;") }, "Filter"), " — models that match, pass their probe, have capacity."]), h('span', { className: "kbm-mono", style: kbmS("color: #C33543;") }, "03"), h('span', null, [h('b', { style: kbmS("color:#16161A;") }, "Score"), " — benchmarks, price, latency, weighted by priority."]), h('span', { className: "kbm-mono", style: kbmS("color: #C33543;") }, "04"), h('span', null, [h('b', { style: kbmS("color:#16161A;") }, "Primary + fallback"), " — best runs, next best on standby. Every run."])])])]), h('div', { role: "group", "aria-label": "Model management mode", style: kbmS("display: flex; gap: 2px; padding: 2px; background: #F3F3F4; border-radius: 8px; margin-left: 6px;") }, kbmList(modes).map((m, idx) => h('button', { key: idx, type: "button", "aria-pressed": m.pressed, onClick: m.pick, style: kbmS("height: 28px; padding: 0 12px; border: none; border-radius: 6px; cursor: pointer; font-size: 12.5px; font-weight: 500; " + kbmP(m.style)) }, kbmP(m.label))))]), h('div', { style: kbmS("display: flex; align-items: center; gap: 16px; flex-wrap: wrap; row-gap: 8px; flex: 0 0 auto;") }, [h('div', { style: kbmS("display: flex; align-items: center; gap: 6px;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em; color: #9A9A9E;") }, "Priority"), kbmList(priorities).map((p, idx) => h('button', { key: idx, type: "button", "aria-pressed": p.pressed, onClick: p.pick, style: kbmS("height: 28px; padding: 0 11px; border-radius: 999px; cursor: pointer; font-size: 12px; font-weight: 500; " + kbmP(p.style)) }, kbmP(p.label)))]), h('span', { className: "kbm-tip" }, [h('span', { tabIndex: "0", style: kbmS("height: 28px; padding: 0 10px; border-radius: 999px; border: 1px dashed #D6D6D8; font-size: 12px; color: #9A9A9E; display: inline-flex; align-items: center; gap: 6px; cursor: help;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em;") }, "Budget"), "coming soon"]), h('span', { className: "kbm-tipbox right", role: "tooltip" }, "Monthly spend cap across all models — not available yet")])]), h('p', { style: kbmS("margin: 0; width: 100%; font-size: 12.5px; color: #6B7280;") }, kbmP(modeSummary))]), h('div', { style: kbmS("display: flex; align-items: baseline; justify-content: space-between; margin-top: 4px;") }, [h('div', { style: kbmS("display: flex; align-items: baseline; gap: 12px;") }, [h('h2', { style: kbmS("margin: 0; font-size: 18px; font-weight: 700;") }, "Team members"), h('span', { className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.1em; color: #9A9A9E;") }, "One persona · one prompt · one model per role")]), h('button', { type: "button", className: "kbm-pill", style: kbmS("height: 34px; padding: 0 14px; border-radius: 9px; border: 1px solid #E4E4E4; background: #FFFFFF; font-size: 13px; font-weight: 600; cursor: pointer;") , onClick: addRole }, "+ Add a role")]), kbmList(roles).map((r, idx) => h('article', { key: idx, style: kbmS("border-radius: 12px; padding: 14px 18px; display: flex; flex-direction: column; gap: 14px; " + kbmP(r.cardStyle)) }, [h('div', { style: kbmS("display: flex; align-items: center; gap: 14px;") }, [h('div', { style: kbmS("width: 52px; height: 52px; border-radius: 12px; overflow: hidden; flex-shrink: 0; position: relative; background: " + kbmP(r.color) + ";") }, [((r.face.ready) ? h('svg', { width: "100%", height: "100%", viewBox: "0 0 64 64", "aria-hidden": "true" }, [h('rect', { width: "64", height: "64", fill: r.face.bg }), h('path', { d: "M8 64c2-12 12-18 24-18s22 6 24 18z", fill: r.face.shirt }), h('path', { d: "M27 38h10v10H27z", fill: r.face.skin }), h('ellipse', { cx: "32", cy: "28", rx: "11", ry: "13", fill: r.face.skin }), h('path', { d: r.face.hairD, fill: r.face.hair }), h('path', { d: r.face.glassesD, fill: "none", stroke: "#1F2937", strokeWidth: "1.6" })]) : null), ((r.face.empty) ? h('span', { style: kbmS("position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #FFFFFF; font-weight: 700; font-size: 17px;") }, kbmP(r.initial)) : null), ((r.face.busy) ? h('span', { className: "kbm-busy", style: kbmS("position: absolute; inset: 0; background: rgba(255,255,255,0.65);") }) : null)]), h('div', { style: kbmS("display: flex; flex-direction: column; gap: 4px; flex-grow: 1; min-width: 0;") }, [h('div', { style: kbmS("display: flex; align-items: center; gap: 8px;") }, [h('h3', { style: kbmS("margin: 0; font-size: 16px; font-weight: 700;") }, kbmP(r.name)), h('span', { className: "kbm-mono", style: kbmS("padding: 2px 8px; border-radius: 999px; background: #F3F3F4; font-size: 10px; letter-spacing: 0.08em; color: #77777B;") }, kbmP(r.tag)), h('span', { style: kbmS("display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: #55555A;") }, [h('svg', { width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: r.typeColor, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: r.typeD })), kbmP(r.typeLabel)]), ((r.isAuto) ? h('span', { className: "kbm-mono", style: kbmS("padding: 2px 8px; border-radius: 999px; background: #16161A; color: #FFFFFF; font-size: 10px; letter-spacing: 0.06em;") }, "Auto") : null)]), h('div', { className: "kbm-mono", style: kbmS("display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: #55555A; flex-wrap: wrap;") }, [h('span', null, kbmP(r.modelLine)), h('span', { style: kbmS("display: inline-flex; align-items: center; gap: 5px; padding: 1px 8px; border-radius: 999px; font-size: 11px; border: 1px solid " + kbmP(r.hBorder) + "; background: " + kbmP(r.hBg) + "; color: " + kbmP(r.hColor) + ";") }, [h('span', { style: kbmS("width: 6px; height: 6px; border-radius: 50%; background: " + kbmP(r.hColor) + ";") }), kbmP(r.hLabel)]), h('span', { style: kbmS("color: #9A9A9E;") }, kbmP(r.fallbackLine))]), h('div', { style: kbmS("font-size: 12.5px; color: #77777B; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;") }, kbmP(r.personaShort))]), h('div', { style: kbmS("display: flex; gap: 6px; flex-shrink: 0;") }, [h('span', { className: "kbm-tip", style: { display: r.hasCall === true ? "" : "none" } }, [h('button', { type: "button", className: "kbm-ico-btn", "aria-label": r.voiceCallLabel, onClick: r.callVoice, style: kbmS("height: 34px; padding: 0 10px; border: 1px solid #E4E4E4; background: #FFFFFF; border-radius: 9px; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: #3F3F46;") }, [h('svg', { width: "15", height: "15", viewBox: "0 0 24 24", fill: "none", stroke: "#16A34A", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2" })), "Call"]), h('span', { className: "kbm-tipbox", role: "tooltip" }, kbmP(r.voiceCallTip))]), h('span', { className: "kbm-tip", style: { display: r.hasCall === true ? "" : "none" } }, [h('button', { type: "button", className: "kbm-ico-btn", "aria-label": r.videoCallLabel, onClick: r.callVideo, style: kbmS("height: 34px; padding: 0 10px; border: 1px solid #E4E4E4; background: #FFFFFF; border-radius: 9px; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: #3F3F46;") }, [h('svg', { width: "15", height: "15", viewBox: "0 0 24 24", fill: "none", stroke: "#2563EB", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M3 7h12v10H3zM15 10l6-3v10l-6-3" })), "Video"]), h('span', { className: "kbm-tipbox", role: "tooltip" }, kbmP(r.videoCallTip))])]), h('button', { type: "button", className: "kbm-ico-btn", "aria-label": r.expandLabel, "aria-expanded": r.expandedAttr, onClick: r.toggle, style: kbmS("width: 32px; height: 32px; border: none; background: transparent; border-radius: 8px; color: #77777B; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0;") }, h('svg', { width: "18", height: "18", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: r.chevron })))]), ((r.expanded) ? h('div', { style: kbmS("display: flex; flex-direction: column; gap: 16px; padding-top: 14px; border-top: 1px solid #F0F0F0;") }, [h('div', { style: kbmS("display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 16px; align-items: start;") }, [h('div', { style: kbmS("width: 96px; height: 96px; border-radius: 14px; overflow: hidden; position: relative; background: " + kbmP(r.color) + ";") }, [((r.face.ready) ? h('svg', { width: "100%", height: "100%", viewBox: "0 0 64 64", "aria-hidden": "true" }, [h('rect', { width: "64", height: "64", fill: r.face.bg }), h('path', { d: "M8 64c2-12 12-18 24-18s22 6 24 18z", fill: r.face.shirt }), h('path', { d: "M27 38h10v10H27z", fill: r.face.skin }), h('ellipse', { cx: "32", cy: "28", rx: "11", ry: "13", fill: r.face.skin }), h('path', { d: r.face.hairD, fill: r.face.hair }), h('path', { d: r.face.glassesD, fill: "none", stroke: "#1F2937", strokeWidth: "1.6" })]) : null), ((r.face.empty) ? h('span', { style: kbmS("position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #FFFFFF; font-weight: 700; font-size: 28px;") }, kbmP(r.initial)) : null), ((r.face.busy) ? h('span', { className: "kbm-busy", style: kbmS("position: absolute; inset: 0; background: rgba(255,255,255,0.7); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: #3F3F46;") }, "Generating…") : null)]), h('div', { style: kbmS("display: flex; flex-direction: column; gap: 8px; min-width: 0;") }, [h('label', { htmlFor: (r.personaId), className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em; color: #9A9A9E;") }, "Persona — describe the face before generating"), h('input', { id: r.personaId, type: "text", value: r.persona, onChange: r.onPersona, style: kbmS("height: 38px; padding: 0 12px; border: 1px solid #E4E4E4; border-radius: 8px; font-size: 14px; font-family: inherit; color: #16161A; background: #FFFFFF;") }), h('div', { style: kbmS("display: flex; align-items: center; gap: 8px; flex-wrap: wrap;") }, [h('button', { type: "button", onClick: r.regen, disabled: r.face.busy, style: kbmS("height: 32px; padding: 0 12px; border-radius: 8px; border: 1px solid #16161A; background: #FFFFFF; font-size: 12.5px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;") }, [h('svg', { width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: "#DB2777", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M12 3l1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8z" })), " " + kbmP(r.regenLabel) + " "]), h('span', { style: kbmS("font-size: 12px; color: #9A9A9E;") }, kbmP(r.regenHint))])])]), h('div', { style: kbmS("display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 16px; align-items: center;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em; color: #9A9A9E;") }, "Voice"), h('div', { style: kbmS("display: flex; align-items: center; gap: 8px; flex-wrap: wrap;") }, [h('div', { role: "group", "aria-label": "Voice", style: kbmS("display: flex; gap: 4px; flex-wrap: wrap;") }, kbmList(r.voices).map((vc, idx) => h('button', { key: idx, type: "button", "aria-pressed": vc.pressed, onClick: vc.pick, style: kbmS("height: 30px; padding: 0 11px; border-radius: 999px; cursor: pointer; font-size: 12.5px; display: flex; align-items: center; gap: 6px; " + kbmP(vc.style)) }, [h('svg', { width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: "#B45309", strokeWidth: "2", strokeLinecap: "round", "aria-hidden": "true" }, h('path', { d: "M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2" })), kbmP(vc.name) + " ", ((vc.custom) ? h('span', { className: "kbm-mono", style: kbmS("font-size: 9.5px; padding: 1px 5px; border-radius: 4px; background: #FEF3C7; color: #92400E;") }, "Custom") : null)]))), h('button', { type: "button", onClick: r.preview, style: kbmS("height: 30px; padding: 0 11px; border-radius: 8px; border: 1px solid #E4E4E4; background: #FFFFFF; cursor: pointer; font-size: 12.5px; display: flex; align-items: center; gap: 5px; color: #3F3F46;") }, [h('svg', { width: "12", height: "12", viewBox: "0 0 24 24", fill: "#16A34A", "aria-hidden": "true" }, h('path', { d: "M7 5l12 7-12 7z" })), kbmP(r.previewLabel)]), h('button', { type: "button", onClick: r.openVoice, style: kbmS("height: 30px; padding: 0 11px; border-radius: 8px; border: 1px dashed #C7C7C9; background: #FAFAFA; cursor: pointer; font-size: 12.5px; color: #3F3F46; display: flex; align-items: center; gap: 5px;") }, [h('svg', { width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: "#DC2626", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3zM5 11a7 7 0 0 0 14 0M12 18v3" })), "Custom voice · record or upload"]), h('span', { style: kbmS("font-size: 12px; color: #9A9A9E;") }, "shared by all members · sample kept on this host · not yet spoken")])]), h('div', { style: kbmS("display: flex; flex-direction: column; gap: 6px;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em; color: #9A9A9E;") }, "System prompt — the doctrine of this role"), h('div', { className: "kbm-mono", style: kbmS("padding: 12px 14px; background: #FAFAFA; border: 1px solid #EEEEEE; border-radius: 10px; font-size: 12.5px; line-height: 1.6;") }, kbmP(r.prompt))]), h('div', { style: kbmS("border: 1px solid #EEEEEE; border-radius: 10px;") }, [h('div', { style: kbmS("display: grid; grid-template-columns: 96px 1fr; align-items: center; gap: 12px; padding: 9px 14px; border-bottom: 1px solid #F3F3F4;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em; color: #9A9A9E;") }, "Type"), h('div', { style: kbmS("display: flex; align-items: center; gap: 10px;") }, [h('div', { role: "group", "aria-label": "Model type", style: kbmS("display: flex; gap: 3px;") }, kbmList(r.types).map((t, idx) => h('span', { key: idx, className: "kbm-tip" }, [h('button', { type: "button", "aria-label": t.label, "aria-pressed": t.pressed, onClick: t.pick, style: kbmS("width: 30px; height: 30px; border-radius: 7px; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; " + kbmP(t.style)) }, h('svg', { width: "15", height: "15", viewBox: "0 0 24 24", fill: "none", stroke: t.color, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: t.d }))), h('span', { className: "kbm-tipbox", role: "tooltip" }, kbmP(t.label))]))), h('span', { style: kbmS("font-size: 13px; font-weight: 500;") }, kbmP(r.typeLabel))])]), h('div', { style: kbmS("display: grid; grid-template-columns: 96px 1fr; align-items: center; gap: 12px; padding: 9px 14px; border-bottom: 1px solid #F3F3F4;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em; color: #9A9A9E;") }, "Tier"), h('div', { style: kbmS("display: flex; align-items: center; gap: 12px;") }, [h('div', { role: "group", "aria-label": "Tier", style: kbmS("display: flex; gap: 4px;") }, kbmList(r.needs).map((n, idx) => h('button', { key: idx, type: "button", "aria-pressed": n.pressed, onClick: n.pick, className: "kbm-mono", style: kbmS("height: 28px; padding: 0 11px; border-radius: 999px; cursor: pointer; font-size: 12px; " + kbmP(n.style)) }, kbmP(n.label)))), ((r.showToggle) ? h('span', { style: kbmS("display: flex; align-items: center; gap: 8px; margin-left: auto; font-size: 13px; color: #55555A;") }, [" Kybernos manages this model ", h('button', { type: "button", role: "switch", "aria-checked": r.autoPressed, "aria-label": "Kybernos manages this model", onClick: r.toggleAuto, style: kbmS("width: 36px; height: 22px; border-radius: 999px; border: none; padding: 3px; cursor: pointer; display: flex; align-items: center; " + kbmP(r.trackStyle)) }, h('span', { style: kbmS("width: 16px; height: 16px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 1px 2px rgba(0,0,0,0.25);") }))]) : null)])]), h('div', { style: kbmS("display: grid; grid-template-columns: 96px 1fr; align-items: center; gap: 12px; padding: 9px 14px;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em; color: #9A9A9E;") }, "Requires"), h('div', { style: kbmS("display: flex; align-items: center; gap: 14px; flex-wrap: wrap;") }, [kbmList(r.filterGroups).map((g, idx) => h('div', { key: idx, style: kbmS("display: flex; align-items: center; gap: 6px;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 10.5px; color: #B0B0B3;") }, kbmP(g.label)), h('div', { role: "group", "aria-label": g.label, style: kbmS("display: flex; gap: 3px;") }, kbmList(g.items).map((f, idx) => h('span', { key: idx, className: "kbm-tip" }, [h('button', { type: "button", "aria-label": f.aria, "aria-pressed": f.pressed, onClick: f.toggle, style: kbmS("width: 28px; height: 28px; border-radius: 7px; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; " + kbmP(f.style)) }, h('svg', { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: f.color, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true", style: kbmS(kbmP(f.iconStyle)) }, h('path', { d: f.d }))), h('span', { className: "kbm-tipbox", role: "tooltip" }, kbmP(f.tip))])))])), h('span', { style: kbmS("font-size: 12px; color: #9A9A9E; margin-left: auto;") }, kbmP(r.filterSummary))])])]), h('div', { style: kbmS("display: flex; flex-direction: column; gap: 8px;") }, [h('div', { style: kbmS("display: flex; align-items: center; justify-content: space-between;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em; color: #9A9A9E;") }, kbmP(r.listLabel)), h('span', { style: kbmS("font-size: 12px; color: #9A9A9E;") }, kbmP(r.listHint))]), h('div', { style: kbmS("position: relative;") }, [h('div', { style: kbmS("display: flex; align-items: center; gap: 8px; height: 36px; padding: 0 6px 0 12px; border: 1px solid #E4E4E4; border-radius: 8px;") }, [h('svg', { width: "15", height: "15", viewBox: "0 0 24 24", fill: "none", stroke: "#9A9A9E", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M11 4a7 7 0 1 0 0 14a7 7 0 0 0 0-14zM20 20l-4-4" })), h('input', { type: "search", value: r.query, onChange: r.onQuery, placeholder: "Search any connected model, provider or type…", "aria-label": "Search models", style: kbmS("flex-grow: 1; border: none; outline: none; background: transparent; font-size: 13px; font-family: inherit; color: #16161A;") }), h('button', { type: "button", onClick: r.runCheck, style: kbmS("height: 26px; padding: 0 10px; border-radius: 6px; border: 1px solid #E4E4E4; background: #FAFAFA; cursor: pointer; display: flex; align-items: center; gap: 5px; font-size: 12px; color: #55555A;") }, [h('svg', { width: "12", height: "12", viewBox: "0 0 24 24", fill: "none", stroke: "#16A34A", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M3 12h4l3-8 4 16 3-8h4" })), "Probe all "])]), ((r.suggestOpen) ? h('div', { role: "listbox", "aria-label": "Model suggestions", style: kbmS("position: absolute; top: 40px; left: 0; right: 0; z-index: 30; background: #FFFFFF; border: 1px solid #E4E4E4; border-radius: 10px; box-shadow: 0 10px 28px rgba(0,0,0,0.1); padding: 4px; display: flex; flex-direction: column;") }, [kbmList(r.suggestions).map((sg, idx) => [h('button', { key: idx, type: "button", role: "option", className: "kbm-ico-btn", onClick: sg.choose, style: kbmS("min-height: 36px; padding: 6px 10px; border: none; border-radius: 7px; background: transparent; cursor: pointer; display: flex; align-items: center; gap: 10px; text-align: left;") }, [h('svg', { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: sg.typeColor, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: sg.typeD })), h('span', { className: "kbm-mono", style: kbmS("font-size: 13px; flex-grow: 1;") }, kbmP(sg.id)), h('span', { style: kbmS("font-size: 12px; color: #9A9A9E;") }, kbmP(sg.provider) + " · " + kbmP(sg.type)), h('span', { style: kbmS("width: 6px; height: 6px; border-radius: 50%; background: " + kbmP(sg.hColor) + ";") })]), h('button', { key: 'f' + idx, type: "button", className: "kbm-ico-btn", title: sg.fbLabel, "aria-label": sg.fbLabel, disabled: sg.fbDisabled, onClick: sg.setFallback, style: kbmS("min-height: 36px; padding: 0 8px; border: none; border-radius: 7px; background: transparent; opacity: " + (sg.fbDisabled === true ? '0.4' : '1') + ';') }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 13px; color: #7C3AED;") }, "\u21a9")])]), ((r.noSuggestion) ? h('span', { style: kbmS("padding: 8px 10px; font-size: 13px; color: #9A9A9E;") }, "No model found.") : null)]) : null)]), h('div', { style: kbmS("display: grid; gap: 12px; align-items: start; " + kbmP(r.listGrid)) }, [h('div', { style: kbmS("border: 1px solid #EEEEEE; border-radius: 10px; min-width: 0;") }, [kbmList(r.models).map((m, idx) => h('div', { key: idx, style: kbmS("display: flex; align-items: center; gap: 4px; padding: 4px 6px; " + kbmP(m.rowBorder)) }, [h('button', { type: "button", className: "kbm-row-btn", disabled: m.disabled, "aria-pressed": m.pressed, onClick: m.pick, style: kbmS("flex-grow: 1; min-width: 0; height: 42px; padding: 0 10px; border: none; border-radius: 8px; display: flex; align-items: center; gap: 10px; text-align: left; " + kbmP(m.style)) }, [h('span', { style: kbmS("width: 14px; height: 14px; border-radius: 50%; box-sizing: border-box; flex-shrink: 0; " + kbmP(m.radioStyle)) }), h('span', { className: "kbm-mono", style: kbmS("font-size: 13px; flex-shrink: 0;") }, kbmP(m.id)), ((m.isPick) ? h('span', { className: "kbm-mono", style: kbmS("padding: 2px 6px; border-radius: 4px; background: #C33543; color: #FFFFFF; font-size: 10px;") }, "Primary") : null), ((m.isFallback) ? h('span', { className: "kbm-mono", style: kbmS("padding: 1px 6px; border-radius: 4px; border: 1px solid #D6D6D8; color: #55555A; font-size: 10px;") }, "Fallback") : null), h('span', { style: kbmS("font-size: 12px; color: #9A9A9E; flex-shrink: 0;") }, kbmP(m.provider)), h('span', { style: kbmS("display: flex; align-items: center; gap: 3px; margin-left: 4px;") }, kbmList(m.capIcons).map((ic, idx) => h('svg', { key: idx, width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: ic.c, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: ic.d })))), h('span', { style: kbmS("flex-grow: 1;") }), h('span', { className: "kbm-mono", style: kbmS("font-size: 12px; color: #77777B;") }, kbmP(m.metricShort)), h('span', { className: "kbm-mono", style: kbmS("font-size: 12px; color: #9A9A9E; min-width: 46px; text-align: right;") }, kbmP(m.latencyLabel)), h('span', { className: "kbm-mono", style: kbmS("display: inline-flex; align-items: center; gap: 5px; padding: 1px 8px; border-radius: 999px; font-size: 11px; min-width: 76px; box-sizing: border-box; border: 1px solid " + kbmP(m.hBorder) + "; background: " + kbmP(m.hBg) + "; color: " + kbmP(m.hColor) + ";") }, [h('span', { style: kbmS("width: 6px; height: 6px; border-radius: 50%; background: " + kbmP(m.hColor) + ";") }), kbmP(m.hLabel)])]), ((m.tooltipMode) ? h('span', { className: "kbm-tip" }, [h('button', { type: "button", className: "kbm-ico-btn", "aria-label": m.infoAria, style: kbmS("width: 32px; height: 32px; border: none; background: transparent; border-radius: 7px; color: #2563EB; cursor: help; display: flex; align-items: center; justify-content: center; padding: 0;") }, h('svg', { width: "16", height: "16", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M12 3a9 9 0 1 0 0 18a9 9 0 0 0 0-18zM12 11v5M12 8h.01" }))), h('span', { className: "kbm-tipbox card right", role: "tooltip" }, [h('span', { style: kbmS("display: flex; align-items: baseline; justify-content: space-between; gap: 8px;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 13px; font-weight: 600;") }, kbmP(m.id)), h('span', { style: kbmS("font-size: 11px; color: #9A9A9E;") }, kbmP(m.provider) + " · " + kbmP(m.priceLabel))]), h('span', { style: kbmS("display: flex; align-items: center; gap: 6px; margin-top: 10px; font-size: 12px; color: #55555A; flex-wrap: wrap;") }, [kbmList(m.inIcons).map((c, idx) => h('span', { key: idx, style: kbmS("display: inline-flex; align-items: center; gap: 4px;") }, [h('svg', { width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: c.c, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: c.d })), kbmP(c.label)])), h('span', { style: kbmS("color: #B0B0B3;") }, "→"), kbmList(m.outIcons).map((c, idx) => h('span', { key: idx, style: kbmS("display: inline-flex; align-items: center; gap: 4px;") }, [h('svg', { width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: c.c, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: c.d })), kbmP(c.label)]))]), h('span', { style: kbmS("display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px 10px; margin-top: 10px; font-size: 12px;") }, kbmList(m.capRows).map((c, idx) => h('span', { key: idx, style: kbmS("display: inline-flex; align-items: center; gap: 5px; " + kbmP(c.style)) }, [h('svg', { width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: c.c, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: c.d })), kbmP(c.label)]))), ((m.hasBench) ? h('span', { style: kbmS("display: block; margin-top: 12px; padding-top: 10px; border-top: 1px solid #F0F0F0;") }, [h('span', { style: kbmS("display: flex; justify-content: space-between; font-size: 12px;") }, [h('span', { style: kbmS("font-weight: 600;") }, "Artificial Analysis"), h('span', { className: "kbm-mono" }, kbmP(m.aaScore) + " intelligence")]), h('span', { style: kbmS("display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px 12px; margin-top: 6px; font-size: 11.5px; color: #55555A;") }, kbmList(m.aaRows).map((b, idx) => h('span', { key: idx, style: kbmS("display: flex; justify-content: space-between; gap: 6px;") }, [h('span', null, kbmP(b.k)), h('span', { className: "kbm-mono", style: kbmS("color: #16161A;") }, kbmP(b.v))]))), h('span', { style: kbmS("display: flex; justify-content: space-between; font-size: 12px; margin-top: 10px;") }, [h('span', { style: kbmS("font-weight: 600;") }, ["BenchLM ", h('span', { style: kbmS("font-weight: 400; color: #9A9A9E;") }, "· provisional")]), h('span', { className: "kbm-mono" }, kbmP(m.blScore) + " overall")]), h('span', { style: kbmS("display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px 12px; margin-top: 6px; font-size: 11.5px; color: #55555A;") }, kbmList(m.blRows).map((b, idx) => h('span', { key: idx, style: kbmS("display: flex; justify-content: space-between; gap: 6px;") }, [h('span', null, kbmP(b.k)), h('span', { className: "kbm-mono", style: kbmS("color: #16161A;") }, kbmP(b.v))]))), h('span', { style: kbmS("display: block; margin-top: 10px; font-size: 11px; color: #9A9A9E;") }, kbmP(m.benchFoot))]) : null), ((m.noBench) ? h('span', { style: kbmS("display: block; margin-top: 12px; padding-top: 10px; border-top: 1px solid #F0F0F0; font-size: 12px; line-height: 1.45; color: #77777B;") }, kbmP(m.note)) : null)])]) : null), ((m.panelMode) ? h('button', { type: "button", className: "kbm-ico-btn", "aria-label": m.infoAria, "aria-pressed": m.infoPressed, onClick: m.showInfo, style: kbmS("width: 32px; height: 32px; border-radius: 7px; color: #2563EB; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; " + kbmP(m.infoStyle)) }, h('svg', { width: "16", height: "16", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M12 3a9 9 0 1 0 0 18a9 9 0 0 0 0-18zM12 11v5M12 8h.01" }))) : null), h('span', { className: "kbm-tip" }, [h('button', { type: "button", className: "kbm-ico-btn", "aria-label": m.fbLabel, "aria-pressed": m.fbPressed, disabled: m.fbDisabled, onClick: m.setFallback, style: kbmS("width: 32px; height: 32px; border-radius: 7px; display: flex; align-items: center; justify-content: center; padding: 0; " + kbmP(m.fbStyle)) }, h('svg', { width: "15", height: "15", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M9 14l-5-5 5-5M4 9h11a5 5 0 0 1 0 10h-3" }))), h('span', { className: "kbm-tipbox right", role: "tooltip" }, kbmP(m.fbLabel))])])), ((r.hasHidden) ? h('div', { style: kbmS("padding: 9px 16px; border-top: 1px solid #F3F3F4; font-size: 12px; color: #9A9A9E;") }, kbmP(r.hiddenLabel)) : null)]), ((r.panelVariant) ? h('aside', { "aria-label": "Selected model details", style: kbmS("border: 1px solid #E4E4E4; border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 12px; background: #FFFFFF;") }, [h('div', { style: kbmS("display: flex; flex-direction: column; gap: 4px;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 10.5px; letter-spacing: 0.08em; color: " + kbmP(r.panelTagColor) + ";") }, kbmP(r.panelTag)), h('span', { className: "kbm-mono", style: kbmS("font-size: 15px; font-weight: 600;") }, kbmP(r.panel.id)), h('div', { style: kbmS("display: flex; align-items: center; gap: 8px; flex-wrap: wrap;") }, [h('span', { style: kbmS("font-size: 12px; color: #77777B;") }, kbmP(r.panel.provider) + " · " + kbmP(r.panel.priceLabel) + " · " + kbmP(r.panel.latencyLabel)), h('span', { className: "kbm-mono", style: kbmS("display: inline-flex; align-items: center; gap: 5px; padding: 1px 7px; border-radius: 999px; font-size: 10.5px; border: 1px solid " + kbmP(r.panel.hBorder) + "; background: " + kbmP(r.panel.hBg) + "; color: " + kbmP(r.panel.hColor) + ";") }, [h('span', { style: kbmS("width: 6px; height: 6px; border-radius: 50%; background: " + kbmP(r.panel.hColor) + ";") }), kbmP(r.panel.hLabel)])])]), h('div', { style: kbmS("display: flex; align-items: center; gap: 5px; flex-wrap: wrap; font-size: 12px; padding-top: 10px; border-top: 1px solid #F0F0F0;") }, [kbmList(r.panel.inIcons).map((c, idx) => h('span', { key: idx, style: kbmS("display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px; border-radius: 999px; background: " + kbmP(c.tint) + ";") }, [h('svg', { width: "12", height: "12", viewBox: "0 0 24 24", fill: "none", stroke: c.c, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: c.d })), kbmP(c.label)])), h('span', { style: kbmS("color: #B0B0B3;") }, "→"), kbmList(r.panel.outIcons).map((c, idx) => h('span', { key: idx, style: kbmS("display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px; border-radius: 999px; background: " + kbmP(c.tint) + ";") }, [h('svg', { width: "12", height: "12", viewBox: "0 0 24 24", fill: "none", stroke: c.c, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: c.d })), kbmP(c.label)]))]), h('div', { style: kbmS("display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px 8px; font-size: 12px;") }, kbmList(r.panel.capRows).map((c, idx) => h('span', { key: idx, style: kbmS("display: inline-flex; align-items: center; gap: 5px; " + kbmP(c.style)) }, [h('svg', { width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: c.c, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: c.d })), kbmP(c.label)]))), ((r.panel.hasBench) ? h('div', { style: kbmS("display: flex; flex-direction: column; gap: 8px; padding-top: 10px; border-top: 1px solid #F0F0F0;") }, [h('div', { style: kbmS("background: #1F1F22; color: #F4F4F5; border-radius: 8px; padding: 10px 12px;") }, [h('div', { style: kbmS("display: flex; align-items: baseline; gap: 6px;") }, [h('span', { style: kbmS("font-size: 12px; font-weight: 600; flex-grow: 1;") }, "Artificial Analysis"), h('span', { style: kbmS("font-size: 18px; font-weight: 700;") }, kbmP(r.panel.aaScore))]), h('div', { style: kbmS("display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 10px; margin-top: 6px; font-size: 11px;") }, kbmList(r.panel.aaRows).map((b, idx) => h('div', { key: idx, style: kbmS("display: flex; justify-content: space-between; gap: 4px;") }, [h('span', { style: kbmS("color: #A1A1AA; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;") }, kbmP(b.k)), h('span', null, kbmP(b.v))])))]), h('div', { style: kbmS("background: #1F1F22; color: #F4F4F5; border-radius: 8px; padding: 10px 12px;") }, [h('div', { style: kbmS("display: flex; align-items: baseline; gap: 6px;") }, [h('span', { style: kbmS("font-size: 12px; font-weight: 600; flex-grow: 1;") }, ["BenchLM ", h('span', { style: kbmS("font-size: 10px; font-weight: 400; color: #A1A1AA;") }, "provisional")]), h('span', { style: kbmS("font-size: 18px; font-weight: 700;") }, kbmP(r.panel.blScore))]), h('div', { style: kbmS("display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 10px; margin-top: 6px; font-size: 11px;") }, kbmList(r.panel.blRows).map((b, idx) => h('div', { key: idx, style: kbmS("display: flex; justify-content: space-between; gap: 4px;") }, [h('span', { style: kbmS("color: #A1A1AA;") }, kbmP(b.k)), h('span', null, kbmP(b.v))])))]), h('span', { style: kbmS("font-size: 11px; line-height: 1.45; color: #77777B;") }, kbmP(r.panel.benchFoot))]) : null), ((r.panel.noBench) ? h('p', { style: kbmS("margin: 0; padding: 10px; border-radius: 8px; background: #FAFAFA; font-size: 12px; line-height: 1.5; color: #55555A;") }, kbmP(r.panel.note)) : null)]) : null)])]), ((r.isAuto) ? h('div', { style: kbmS("display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 10px; background: #F7F7F8; border: 1px solid #EEEEEE; font-size: 13px;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em; color: #9A9A9E;") }, "Decision"), h('span', { className: "kbm-mono", style: kbmS("font-weight: 600;") }, kbmP(r.pickName)), h('span', { style: kbmS("color: #6B7280;") }, kbmP(r.pickReasonShort)), h('span', { style: kbmS("margin-left: auto; font-size: 12px; color: #9A9A9E;") }, kbmP(r.skipped))]) : null), ((r.showDownWarning) ? h('div', { role: "alert", style: kbmS("display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 10px; background: #FEF2F2; border: 1px solid #FBD5D5; font-size: 13px; color: #9B1C1C;") }, [h('span', { style: kbmS("flex-grow: 1;") }, kbmP(r.downText)), h('button', { type: "button", onClick: r.enableAuto, style: kbmS("height: 28px; padding: 0 10px; border-radius: 7px; border: 1px solid #9B1C1C; background: #FFFFFF; color: #9B1C1C; font-size: 12px; font-weight: 600; cursor: pointer;") }, "Let Kybernos manage")]) : null)]) : null)]))])), ((vmView.open) ? h('div', { style: kbmS("position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; background: rgba(22,22,26,0.32);") }, h('div', { role: "dialog", "aria-modal": "true", "aria-labelledby": "vm-title", style: kbmS("position: relative; top: 0; left: 0; transform: none; width: 560px; max-height: 88vh; overflow: auto; background: #FFFFFF; border-radius: 16px; box-shadow: 0 24px 64px rgba(0,0,0,0.25); padding: 24px; display: flex; flex-direction: column; gap: 16px;") }, [h('div', { style: kbmS("display: flex; align-items: flex-start; gap: 12px;") }, [h('div', { style: kbmS("flex-grow: 1; display: flex; flex-direction: column; gap: 6px;") }, [h('h2', { id: "vm-title", style: kbmS("margin: 0; font-size: 20px; font-weight: 700;") }, "Create a custom voice"), h('p', { style: kbmS("margin: 0; font-size: 13.5px; line-height: 1.5; color: #6B7280;") }, ["For ", h('b', { style: kbmS("color: #16161A;") }, kbmP(vmView.roleName)), ". Record or upload a consent recording and a sample. The sample is stored on this machine and shared by every member — no synthesis engine yet, so the voice is selectable but not yet spoken."])]), h('button', { type: "button", className: "kbm-ico-btn", "aria-label": "Close", onClick: vmView.close, style: kbmS("width: 32px; height: 32px; border: none; background: transparent; border-radius: 8px; cursor: pointer; color: #77777B; display: flex; align-items: center; justify-content: center; padding: 0;") }, h('svg', { width: "18", height: "18", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", "aria-hidden": "true" }, h('path', { d: "M6 6l12 12M18 6L6 18" })))]), h('div', { style: kbmS("display: flex; flex-direction: column; gap: 6px;") }, [h('label', { htmlFor: "vm-name", className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em; color: #9A9A9E;") }, "Voice name"), h('input', { id: "vm-name", type: "text", value: vmView.name, onChange: vmView.onName, placeholder: "My custom voice", style: kbmS("height: 40px; padding: 0 12px; border: 1px solid #E4E4E4; border-radius: 9px; font-size: 14px; font-family: inherit; color: #16161A;") })]), kbmList(vmView.steps).map((st, idx) => h('div', { key: idx, style: kbmS("border: 1px solid #EEEEEE; border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px;") }, [h('div', { style: kbmS("display: flex; flex-direction: column; gap: 3px;") }, [h('span', { style: kbmS("font-size: 14px; font-weight: 600;") }, kbmP(st.title)), h('span', { style: kbmS("font-size: 12.5px; line-height: 1.5; color: #6B7280;") }, kbmP(st.desc))]), h('div', { style: kbmS("display: flex; align-items: center; gap: 10px; flex-wrap: wrap;") }, [h('div', { role: "group", "aria-label": "Input method", style: kbmS("display: flex; gap: 2px; padding: 2px; background: #F3F3F4; border-radius: 8px;") }, kbmList(st.modes).map((md, idx) => h('button', { key: idx, type: "button", "aria-pressed": md.pressed, onClick: md.pick, style: kbmS("height: 28px; padding: 0 11px; border: none; border-radius: 6px; cursor: pointer; font-size: 12.5px; display: flex; align-items: center; gap: 5px; " + kbmP(md.style)) }, [h('svg', { width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: md.d })), kbmP(md.label)]))), ((st.showStart) ? h('button', { type: "button", onClick: st.start, style: kbmS("height: 34px; padding: 0 14px; border-radius: 9px; border: 1px solid #E4E4E4; background: #FFFFFF; cursor: pointer; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 6px;") }, [h('svg', { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "#DC2626", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3zM5 11a7 7 0 0 0 14 0M12 18v3" })), "Start recording"]) : null), ((st.showUpload) ? h('button', { type: "button", onClick: st.upload, style: kbmS("height: 34px; padding: 0 14px; border-radius: 9px; border: 1px dashed #C7C7C9; background: #FAFAFA; cursor: pointer; font-size: 13px; color: #3F3F46; display: flex; align-items: center; gap: 6px;") }, [h('svg', { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "#2563EB", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M12 16V4M7 9l5-5 5 5M4 20h16" })), "Choose a file · wav, mp3, m4a"]) : null), ((st.recording) ? [h('span', { style: kbmS("display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: #B91C1C;") }, [h('span', { className: "kbm-busy", style: kbmS("width: 9px; height: 9px; border-radius: 50%; background: #DC2626;") }), "Recording…"]), h('button', { type: "button", onClick: st.stop, style: kbmS("height: 30px; padding: 0 12px; border-radius: 8px; border: none; background: #DC2626; color: #FFFFFF; cursor: pointer; font-size: 12.5px; font-weight: 600;") }, "Stop")] : null), ((st.done) ? [h('span', { style: kbmS("display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px; border-radius: 999px; background: #F0FDF4; border: 1px solid #BBF7D0; font-size: 12.5px; color: #15803D;") }, [h('svg', { width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2.4", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M5 12l5 5L20 7" })), kbmP(st.doneLabel)]), h('button', { type: "button", onClick: st.reset, style: kbmS("height: 30px; padding: 0 10px; border-radius: 8px; border: 1px solid #E4E4E4; background: #FFFFFF; cursor: pointer; font-size: 12.5px; color: #55555A;") }, "Redo")] : null)])])), h('div', { style: kbmS("display: flex; justify-content: flex-end; gap: 8px;") }, [((vmView.err !== '') ? h('span', { role: "alert", style: kbmS("flex-grow: 1; font-size: 12.5px; line-height: 1.4; color: #9B1C1C; align-self: center;") }, kbmP(vmView.err)) : null), h('button', { type: "button", onClick: vmView.close, style: kbmS("height: 38px; padding: 0 16px; border-radius: 9px; border: 1px solid #E4E4E4; background: #FFFFFF; cursor: pointer; font-size: 14px;") }, "Cancel"), h('button', { type: "button", disabled: vmView.cannotCreate, onClick: vmView.create, style: kbmS("height: 38px; padding: 0 16px; border-radius: 9px; border: none; font-size: 14px; font-weight: 600; " + kbmP(vmView.createStyle)) }, "Create voice")])])) : null)]
       ])
     }
     const ManifestView = (props) => {
@@ -24726,7 +24744,7 @@ function renderFit(canvas, model, cam, opts){
       const card = { background: 'var(--dsw-alias-bg-layer-1)', border: '1px solid var(--dsw-alias-border-l1)', borderRadius: '16px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }
       const selStyle = { height: '38px', border: '1px solid var(--dsw-alias-border-l1)', borderRadius: '10px', background: 'var(--dsw-alias-bg-layer-1)', padding: '0 10px', fontSize: '13px', color: 'var(--dsw-alias-label-primary)', outline: 'none', minWidth: 0, flex: 1, fontFamily: 'inherit' }
       const labStyle = { display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: '140px' }
-      const labTxt = { fontSize: '11px', letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--dsw-alias-label-secondary)' }
+      const labTxt = { fontSize: '11px', color: 'var(--dsw-alias-label-secondary)' }
       const patchDraft = (r, patch) => {
         if (setRolesDraft === null) return
         const base = rolesDraft !== null && rolesDraft[r.id] !== undefined
@@ -24814,8 +24832,8 @@ function renderFit(canvas, model, cam, opts){
             h('span', { style: { display: 'flex', flexDirection: 'column', gap: '3px', minWidth: 0 } },
               h('span', { style: { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' } },
                 h('span', { style: { fontFamily: 'ui-monospace,SFMono-Regular,Menlo,monospace', fontSize: '13px', fontWeight: 700, color: 'var(--dsw-alias-label-primary)', wordBreak: 'break-all' } }, mm.id),
-                (isSel === true ? h('span', { style: { background: 'var(--dsw-alias-state-error-primary)', color: '#FFFFFF', borderRadius: '6px', padding: '1px 7px', fontSize: '9.5px', letterSpacing: '.07em', fontWeight: 700 } }, 'PRIMARY') : null),
-                (isFb === true ? h('span', { style: { border: '1px solid var(--dsw-alias-label-primary)', color: 'var(--dsw-alias-label-primary)', borderRadius: '6px', padding: '1px 7px', fontSize: '9.5px', letterSpacing: '.07em', fontWeight: 600 } }, 'FALLBACK') : null)),
+                (isSel === true ? h('span', { style: { background: 'var(--dsw-alias-state-error-primary)', color: '#FFFFFF', borderRadius: '6px', padding: '1px 7px', fontSize: '9.5px', letterSpacing: '.07em', fontWeight: 700 } }, 'Primary') : null),
+                (isFb === true ? h('span', { style: { border: '1px solid var(--dsw-alias-label-primary)', color: 'var(--dsw-alias-label-primary)', borderRadius: '6px', padding: '1px 7px', fontSize: '9.5px', letterSpacing: '.07em', fontWeight: 600 } }, 'Fallback') : null)),
               h('span', { style: { fontFamily: 'ui-monospace,SFMono-Regular,Menlo,monospace', fontSize: '11.5px', color: 'var(--dsw-alias-label-secondary)' } }, pn + (metricBits.length > 0 ? ' · ' + metricBits.join(' · ') : '')))),
           h('button', { type: 'button', title: isFb ? kbt('kbui.crew.fb.remove') : kbt('kbui.crew.fb.set'), disabled: fbDisabled, onClick: () => patchDraft(r, isFb ? { fallback: '' } : { fallback: mm.id }), style: { flex: '0 0 auto', width: '34px', height: '34px', borderRadius: '9px', border: isFb ? 'none' : '1px solid var(--dsw-alias-border-l1)', background: isFb ? 'var(--dsw-alias-label-primary)' : 'var(--dsw-alias-bg-layer-1)', color: isFb ? 'var(--dsw-alias-bg-layer-1)' : 'var(--dsw-alias-label-secondary)', cursor: fbDisabled ? 'not-allowed' : 'pointer', font: 'inherit', fontSize: '14px', opacity: fbDisabled ? 0.4 : 1 } }, '↩'))
       }
@@ -24919,7 +24937,7 @@ function renderFit(canvas, model, cam, opts){
             (fb !== ''
               ? h('div', { style: { display: 'flex', alignItems: 'center', gap: '9px', flexWrap: 'wrap' } },
                   h('span', { style: { fontFamily: 'ui-monospace,SFMono-Regular,Menlo,monospace', fontSize: '13px', fontWeight: 700, color: 'var(--dsw-alias-label-primary)', wordBreak: 'break-all' } }, fb),
-                  h('span', { style: { border: '1px solid var(--dsw-alias-label-primary)', color: 'var(--dsw-alias-label-primary)', borderRadius: '6px', padding: '1px 7px', fontSize: '9.5px', letterSpacing: '.07em', fontWeight: 600 } }, 'FALLBACK'),
+                  h('span', { style: { border: '1px solid var(--dsw-alias-label-primary)', color: 'var(--dsw-alias-label-primary)', borderRadius: '6px', padding: '1px 7px', fontSize: '9.5px', letterSpacing: '.07em', fontWeight: 600 } }, 'Fallback'),
                   h('button', { type: 'button', onClick: () => patchDraft(r, { fallback: '' }), style: { marginLeft: 'auto', border: '1px solid var(--dsw-alias-border-l1)', background: 'transparent', color: 'var(--dsw-alias-label-secondary)', borderRadius: '8px', padding: '3px 10px', cursor: 'pointer', font: 'inherit', fontSize: '12px' } }, kbt('kbui.crew.fb.remove')))
               : h('span', { className: 'kb8-sub' }, kbt('kbui.crew.fbnone'))),
             h('span', { className: 'kb8-sub' }, kbt('kbui.crew.fbnote'))))), detailsNode)
@@ -24975,7 +24993,7 @@ function renderFit(canvas, model, cam, opts){
           (team.topology ? h('span', { className: 'kb8-pills' }, h('span', { className: 'kb8-pill' }, 'topology · ' + team.topology)) : null))),
         section('crew', kbt('kbui.crew.members'), crewBody,
           h('div', { style: { display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' } },
-            h('span', { className: 'kb8-sub', style: { fontSize: '10.5px', letterSpacing: '.06em', textTransform: 'uppercase' } }, kbt('kbui.crew.members.sub')),
+            h('span', { className: 'kb8-sub', style: { fontSize: '10.5px' } }, kbt('kbui.crew.members.sub')),
             h('span', { title: kbt('kbui.crew.addrole.soon'), style: { display: 'inline-flex', alignItems: 'center', gap: '6px', border: '1px solid var(--dsw-alias-border-l1)', borderRadius: '999px', padding: '4px 12px', fontSize: '12px', color: 'var(--dsw-alias-label-primary)', cursor: 'default', whiteSpace: 'nowrap' } }, '+ ' + kbt('kbui.crew.addrole')))),
         section('skills', kbt('kbui.frag.skills') + skills.length, (skills.length === 0
           ? h('span', { className: 'kb8-sub' }, 'No skill declared — works on the repository the plugin already has.')
@@ -24987,7 +25005,7 @@ function renderFit(canvas, model, cam, opts){
             h('span', { style: { display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, gap: '2px' } },
               h('span', { className: 'kb8-name' }, st.id + ' · ' + (Array.isArray(st.roles) ? st.roles.join(' + ') : '')),
               h('span', { className: 'kb8-parent' }, (st.mode || 'once') + (st.cap !== null && st.cap !== undefined ? ' · cap ' + st.cap : '') + (Array.isArray(st.inputs) && st.inputs.length > 0 ? ' · in: ' + st.inputs.join(', ') : ''))),
-            (st.gate === true ? h('span', { className: 'kb8-pill', style: { color: 'var(--dsw-alias-state-error-primary)' } }, 'GATE') : null)))))),
+            (st.gate === true ? h('span', { className: 'kb8-pill', style: { color: 'var(--dsw-alias-state-error-primary)' } }, 'Gate') : null)))))),
         section('provenance', kbt('kbui.provenance'), h('div', { style: { display: 'flex', flexDirection: 'column', gap: '6px' } },
           [['source', team.source || 'local'], ['spec', team.specVersion || '1'], ['file', team.file || '—']].map((p) => h('div', { key: p[0], style: { display: 'flex', gap: '12px', alignItems: 'baseline' } },
             h('span', { className: 'kb8-parent', style: { minWidth: '64px' } }, p[0]),
@@ -25989,12 +26007,12 @@ function renderFit(canvas, model, cam, opts){
 .kbi-btn-on{background:var(--dsw-alias-brand-primary);border-color:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-foreground,var(--dsw-alias-bg-base))}
 .kbi-body{display:flex;flex-direction:column;gap:22px}
 .kbi-sec{display:flex;flex-direction:column;gap:10px}
-.kbi-sec-t{margin:0;font-size:12px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--dsw-alias-label-secondary)}
+.kbi-sec-t{margin:0;font-size:12px;font-weight:600;color:var(--dsw-alias-label-secondary)}
 .kbi-grid4{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
 .kbi-grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
 .kbi-grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}
 .kbi-card{min-width:0}
-.kbi-lab{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--dsw-alias-label-secondary)}
+.kbi-lab{font-size:10.5px;color:var(--dsw-alias-label-secondary)}
 .kbi-val{font-size:24px;font-weight:650;color:var(--dsw-alias-label-primary);line-height:1.15}
 .kbi-card-h{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .kbi-pill{font-size:10.5px;padding:2px 8px;border-radius:999px;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-secondary);border:1px solid var(--dsw-alias-border-l1);white-space:nowrap}
@@ -26800,7 +26818,7 @@ body[data-ds-dark-theme] [data-phase="hero"]:has([data-kb="newchat"]){background
 .kbv-note{padding:8px 10px;border-radius:9px;font-size:12px;line-height:1.45;background:color-mix(in srgb,var(--dsw-alias-state-error-primary,#ef4444) 14%,transparent);color:color-mix(in srgb,var(--dsw-alias-state-error-primary,#ef4444) 70%,var(--dsw-alias-label-primary))}
 .kbv-note.ok{background:var(--dsw-alias-state-success-tertiary,rgba(34,197,94,.14));color:color-mix(in srgb,var(--dsw-alias-state-success-primary,#22c55e) 55%,var(--dsw-alias-label-primary))}
 .kbv-src{display:flex;flex-direction:column;gap:2px;border-top:1px solid var(--dsw-alias-border-l1);padding-top:6px;margin-top:2px}
-.kbv-src-t{padding:2px 10px;font-size:11.5px;letter-spacing:.02em;text-transform:uppercase;color:var(--dsw-alias-label-tertiary)}
+.kbv-src-t{padding:2px 10px;font-size:11.5px;color:var(--dsw-alias-label-tertiary)}
 .kbv-src.seul{border-top:0;padding-top:0;margin-top:0}
 /* Pastille de SOURCE (mode natif) : elle prend la place de notre barre dans la
    rangée d'outils, mais ce n'est pas un micro — classe distincte de la barre
@@ -28388,7 +28406,7 @@ body:not([data-ds-dark-theme]) .kbs-search input::placeholder{color:var(--dsw-al
    gauche deborderait de la fenetre. */
 .kbci-pop{position:absolute;top:calc(100% + 8px);right:0;z-index:60;display:flex;align-items:center;gap:14px;padding:12px 12px 12px 16px;border:1px solid var(--dsw-alias-border-l2);border-radius:12px;background:var(--dsw-alias-bg-layer-2);box-shadow:var(--dsw-elevation-prominent,0 12px 32px rgba(0,0,0,.45));white-space:nowrap}
 .kbci-text{display:flex;flex-direction:column;gap:4px;min-width:0}
-.kbci-label{font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--dsw-alias-label-tertiary)}
+.kbci-label{font-size:11px;font-weight:500;color:var(--dsw-alias-label-tertiary)}
 .kbci-id{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:14px;color:var(--dsw-alias-label-primary);user-select:all}
 .kbci-copy{display:flex;align-items:center;gap:8px;height:34px;padding:0 12px;border:1px solid var(--dsw-alias-border-l1);border-radius:9px;background:var(--dsw-alias-bg-layer-3,var(--dsw-alias-bg-layer-2));color:var(--dsw-alias-label-primary);font:inherit;font-size:13px;font-weight:500;white-space:nowrap;cursor:pointer}
 .kbci-copy:hover{border-color:var(--dsw-alias-border-l2)}
@@ -28749,7 +28767,7 @@ body:not([data-ds-dark-theme]) .kbs-search input::placeholder{color:var(--dsw-al
 .kbtg-st.done{background:color-mix(in srgb,var(--dsw-alias-state-success-primary,#7FC98A) 15%,transparent);color:var(--dsw-alias-state-success-primary,#7FC98A)}
 .kbtg-st.rejected{background:color-mix(in srgb,var(--dsw-alias-state-error-primary,#E9A197) 15%,transparent);color:var(--dsw-alias-state-error-primary,#E9A197)}
 .kbtg-row{display:flex;align-items:center;flex-wrap:wrap;gap:6px}
-.kbtg-row-k{flex:none;display:flex;align-items:center;gap:6px;width:84px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--dsw-alias-label-tertiary)}
+.kbtg-row-k{flex:none;display:flex;align-items:center;gap:6px;width:84px;font-size:11px;color:var(--dsw-alias-label-tertiary)}
 .kbtg-chip{display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 9px;border-radius:7px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1);font-size:11.5px;color:var(--dsw-alias-label-secondary)}
 .kbtg-chip-kyber{color:var(--dsw-alias-brand-primary,#C9A45C)}
 .kbtg-chip-conn{color:var(--kbtg-blue,#8FB8DE)}
@@ -30248,7 +30266,7 @@ body:not([data-ds-dark-theme]) .kbt2-pill.warn{color:color-mix(in srgb,var(--dsw
 .kbq-score.none{color:var(--dsw-alias-label-secondary)}
 .kbq-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:10px}
 .kbq-kpi{border:1px solid var(--dsw-alias-border-l1);border-radius:12px;padding:10px 12px;background:var(--dsw-alias-bg-layer-1);display:flex;flex-direction:column;gap:3px;min-width:0}
-.kbq-kpilab{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--dsw-alias-label-secondary);font-weight:600}
+.kbq-kpilab{font-size:11px;color:var(--dsw-alias-label-secondary);font-weight:600}
 .kbq-kpival{font-size:23px;font-weight:650;font-variant-numeric:tabular-nums;color:var(--dsw-alias-label-primary)}
 .kbq-kpisub{font-size:11.5px;color:var(--dsw-alias-label-secondary)}
 .kbq-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px}
@@ -30432,7 +30450,7 @@ body:not([data-ds-dark-theme]) .kbt-micro-warn{color:color-mix(in srgb,var(--dsw
 .kb8-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:16px;align-items:stretch}
 /* En-tete de racine : la grille liste deux origines (installe / depot). */
 .kb8-groups{display:flex;flex-direction:column;gap:18px}
-.kb8-roothead{display:flex;align-items:baseline;gap:10px;min-width:0;margin:0 0 -8px}.kb8-rootlabel{font-family:ui-monospace,monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--dsw-alias-label-primary)}.kb8-rootpath{font-family:ui-monospace,monospace;font-size:11px;color:var(--dsw-alias-label-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kb8-roothead{display:flex;align-items:baseline;gap:10px;min-width:0;margin:0 0 -8px}.kb8-rootlabel{font-family:ui-monospace,monospace;font-size:11px;color:var(--dsw-alias-label-primary)}.kb8-rootpath{font-family:ui-monospace,monospace;font-size:11px;color:var(--dsw-alias-label-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* La carte demandait height:100% dans une grille ; avec padding 18 et bordure,
    sans border-box, elle est plus haute que sa ligne de 38 px : mesure a
    1700/1300/1000/760 px de large, les cartes se chevauchaient de 22 px
@@ -30569,7 +30587,7 @@ body[data-ds-dark-theme] .kb8-iconbtn.on.col{border-color:var(--kb8-pgd);color:v
 .kb8-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .kb8-toolbar .kb8-search{flex:1 1 260px;min-width:0}
 .kb8-order{display:inline-flex;align-items:center;gap:8px;height:50px;flex:0 0 auto;border:1px solid var(--dsw-alias-border-l1);border-radius:14px;background:var(--dsw-alias-bg-layer-1);padding:0 14px}
-.kb8-order-label{font-family:ui-monospace,monospace;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--dsw-alias-label-secondary)}
+.kb8-order-label{font-family:ui-monospace,monospace;font-size:10px;color:var(--dsw-alias-label-secondary)}
 .kb8-order select{border:0;background:none;color:var(--dsw-alias-label-primary);font-size:14px;outline:none;cursor:pointer}
 /* ── KbToolbar : barre unifiee search-filter-order ─────────────────────── */
 .kb6-toolbar{display:flex;flex-direction:column;gap:6px;margin:0 0 14px}
@@ -30636,7 +30654,7 @@ body[data-ds-dark-theme] .kb8-iconbtn.on.col{border-color:var(--kb8-pgd);color:v
 .kb6-tb-ctrllab{max-width:150px;overflow:hidden;text-overflow:ellipsis}
 .kb6-tb-pop{position:absolute;left:0;top:calc(100% + 6px);z-index:60;min-width:230px;background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l1);border-radius:13px;padding:8px;display:flex;flex-direction:column;gap:2px;box-shadow:0 14px 34px rgba(0,0,0,.3)}
 .kb6-tb-pop.wide{min-width:300px}
-.kb6-tb-pophead{font-family:ui-monospace,monospace;font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--dsw-alias-label-secondary);padding:6px 10px 4px}
+.kb6-tb-pophead{font-family:ui-monospace,monospace;font-size:10px;color:var(--dsw-alias-label-secondary);padding:6px 10px 4px}
 .kb6-tb-pophead.row{display:flex;align-items:center;justify-content:space-between;padding-right:2px}
 .kb6-tb-popsep{height:1px;background:var(--dsw-alias-border-l1);margin:6px 4px}
 .kb6-tb-popitem{display:flex;align-items:center;gap:8px;padding:7px 10px;border:none;background:transparent;border-radius:8px;color:var(--dsw-alias-label-primary);font:inherit;font-size:13px;cursor:pointer;text-align:left}
@@ -30650,7 +30668,7 @@ body[data-ds-dark-theme] .kb8-iconbtn.on.col{border-color:var(--kb8-pgd);color:v
 .kb6-tb-seg:hover{color:var(--dsw-alias-label-primary)}
 .kb6-tb-seg.on{background:color-mix(in srgb,var(--dsw-alias-brand-primary) 16%,transparent);border-color:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary);font-weight:600}
 .kb6-tb-facet{padding:2px 0}
-.kb6-tb-facetlabel{font-family:ui-monospace,monospace;font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--dsw-alias-label-secondary);padding:6px 10px 2px}
+.kb6-tb-facetlabel{font-family:ui-monospace,monospace;font-size:10px;color:var(--dsw-alias-label-secondary);padding:6px 10px 2px}
 .kb6-tb-facetbody{display:flex;flex-direction:column;gap:1px}
 .kb6-tb-reset{display:inline-flex;align-items:center;gap:5px;border:none;background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12px;cursor:pointer;padding:3px 8px;border-radius:7px}
 .kb6-tb-reset:hover{color:var(--dsw-alias-label-primary);background:var(--dsw-alias-bg-layer-2)}
@@ -30723,7 +30741,7 @@ body[data-ds-dark-theme] .kb8-iconbtn.on.col{border-color:var(--kb8-pgd);color:v
 .kb-typepanel-vis{font-size:11px;font-family:ui-monospace,monospace;color:var(--dsw-alias-label-secondary);padding-top:2px}
 .kb-typepanel-body{overflow:auto;padding:0 10px 8px}
 .kb-typepanel-group{border-top:1px solid var(--dsw-alias-border-l1);padding:4px 6px 8px;display:flex;flex-direction:column}
-.kb-typepanel-grouplab{font-family:ui-monospace,monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--dsw-alias-label-secondary);padding:10px 6px 4px}
+.kb-typepanel-grouplab{font-family:ui-monospace,monospace;font-size:10px;color:var(--dsw-alias-label-secondary);padding:10px 6px 4px}
 .kb-typepanel-row{display:flex;align-items:center;gap:10px;min-height:40px;padding:0 6px;border-radius:8px;cursor:pointer}
 .kb-typepanel-row:hover{background:var(--dsw-alias-bg-layer-2)}
 .kb-typepanel-thumb{width:44px;height:30px;border-radius:7px;flex:none;overflow:hidden}
@@ -30760,7 +30778,7 @@ body[data-ds-dark-theme] .kb8-iconbtn.on.col{border-color:var(--kb8-pgd);color:v
 .kb-task-modal{width:560px;max-width:94vw;max-height:88vh;overflow:auto;background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l1);border-radius:18px;padding:22px;display:flex;flex-direction:column;gap:14px;box-shadow:0 24px 60px rgba(0,0,0,.4)}
 .kb-task-modal h3{margin:0;font-size:16px;color:var(--dsw-alias-label-primary);display:flex;align-items:center;gap:9px}
 .kb-task-f{display:flex;flex-direction:column;gap:6px}
-.kb-task-f>label{font-family:ui-monospace,monospace;font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--dsw-alias-label-secondary)}
+.kb-task-f>label{font-family:ui-monospace,monospace;font-size:10px;color:var(--dsw-alias-label-secondary)}
 .kb-task-f input[type=text],.kb-task-f textarea,.kb-task-f select,.kb-task-f input[type=datetime-local],.kb-task-f input[type=time]{border:1px solid var(--dsw-alias-border-l1);border-radius:10px;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);font:inherit;font-size:13px;padding:9px 11px;outline:none;width:100%;box-sizing:border-box}
 .kb-task-f textarea{min-height:84px;resize:vertical}
 .kb-task-f input[type=time]{width:132px}
@@ -30867,7 +30885,7 @@ body[data-ds-dark-theme] .kb8-iconbtn.on.col{border-color:var(--kb8-pgd);color:v
 .kba-trgcell{display:flex;align-items:center;gap:10px;color:var(--dsw-alias-label-secondary);min-width:0}
 .kba-trigger-icon{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:7px;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-state-warn-primary);font-size:11px;flex:none}
 .kba-ell{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.kba-origin-badge{display:inline-block;padding:2px 8px;border-radius:5px;border:1px solid var(--dsw-alias-border-l1);font-family:ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--dsw-alias-label-secondary);background:var(--dsw-alias-bg-layer-2)}
+.kba-origin-badge{display:inline-block;padding:2px 8px;border-radius:5px;border:1px solid var(--dsw-alias-border-l1);font-family:ui-monospace,Menlo,monospace;font-size:10px;color:var(--dsw-alias-label-secondary);background:var(--dsw-alias-bg-layer-2)}
 .kba-last{display:flex;align-items:center;gap:8px;min-width:0;font-size:13px}
 .kba-kdot{width:8px;height:8px;border-radius:50%;flex:none;background:var(--dsw-alias-state-idle-primary)}
 .kba-kdot.ok{background:var(--dsw-alias-state-success-primary)}
@@ -30953,7 +30971,7 @@ button.kbbd-chip:hover{background:var(--dsw-alias-interactive-bg-hover,#f0f0f0)}
 .kbbd-sgn.warn{color:var(--dsw-alias-state-warn-primary,#b54708)}
 .kbbd-pip{width:7px;height:7px;border-radius:50%;background:var(--dsw-alias-label-tertiary,#777);display:inline-block}
 .kbbd-month{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
-.kbbd-mh{font-size:11.5px;text-transform:uppercase;letter-spacing:.3px;color:var(--dsw-alias-label-tertiary,#777);padding:0 4px;overflow:hidden;text-overflow:ellipsis}
+.kbbd-mh{font-size:11.5px;color:var(--dsw-alias-label-tertiary,#777);padding:0 4px;overflow:hidden;text-overflow:ellipsis}
 .kbbd-mc{display:block;text-align:start;background:var(--dsw-alias-bg-base,#fff);border:1px solid var(--dsw-alias-border-l1,#e6e6e6);border-radius:10px;min-height:72px;padding:6px;font:inherit;font-size:12px;min-width:0;cursor:pointer;color:var(--dsw-alias-label-primary,#111)}
 .kbbd-mc:hover{background:var(--dsw-alias-interactive-bg-hover,#f0f0f0)}
 .kbbd-mc.out{opacity:.45}
@@ -31096,7 +31114,7 @@ button.kbbd-chip:hover{background:var(--dsw-alias-interactive-bg-hover,#f0f0f0)}
 .kbcc-badge.warn{border-color:var(--dsw-alias-state-warn-primary);color:var(--dsw-alias-state-warn-primary)}
 .kbcc-figs{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr) minmax(0,.8fr) minmax(0,1fr);gap:8px}
 .kbcc-fig{display:flex;flex-direction:column;gap:2px;min-width:0}
-.kbcc-fk{font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--dsw-alias-label-tertiary)}
+.kbcc-fk{font-size:10.5px;color:var(--dsw-alias-label-tertiary)}
 .kbcc-fv{font-size:14px;font-weight:600;overflow-wrap:anywhere}
 .kbcc-fig.bad .kbcc-fv{color:var(--dsw-alias-state-error-primary)}
 .kbcc-tools{display:flex;align-items:center;gap:10px;border-top:1px solid var(--dsw-alias-border-l1);padding-top:10px;min-width:0}
@@ -31106,7 +31124,7 @@ button.kbbd-chip:hover{background:var(--dsw-alias-interactive-bg-hover,#f0f0f0)}
 @media (max-width:600px){.kbcc-figs{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .kbrn-stats{display:flex;gap:12px;flex-wrap:wrap;margin:0 0 12px}
 .kbrn-stat{display:flex;flex-direction:column;gap:2px;padding:10px 14px;border:1px solid var(--dsw-alias-border-l2);border-radius:12px;min-width:110px}
-.kbrn-stk{font-size:11px;color:var(--dsw-alias-label-tertiary);text-transform:uppercase;letter-spacing:.4px}
+.kbrn-stk{font-size:11px;color:var(--dsw-alias-label-tertiary);}
 .kbrn-stv{font-size:18px;font-weight:600}
 .kbrn-stat.bad .kbrn-stv{color:var(--dsw-alias-state-error-primary)}
 .kbrn-xwrap{display:grid;grid-template-columns:260px minmax(0,1fr);gap:14px;align-items:start}
@@ -31203,7 +31221,7 @@ button.kbbd-chip:hover{background:var(--dsw-alias-interactive-bg-hover,#f0f0f0)}
 .kba-nc-guard{font-size:10.5px;font-weight:600;padding:1px 7px;border-radius:8px;border:1px solid var(--dsw-alias-state-warn-primary);color:var(--dsw-alias-state-warn-primary)}
 .kba-nc-x{border:0;background:transparent;cursor:pointer;color:var(--dsw-alias-label-secondary);font:inherit;padding:2px 4px}
 .kba-nc-sec{display:flex;flex-direction:column;gap:3px;font-size:12px;border-top:1px solid var(--dsw-alias-border-l1);padding-top:8px}
-.kba-nc-sec .k{font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--dsw-alias-label-tertiary)}
+.kba-nc-sec .k{font-size:10.5px;color:var(--dsw-alias-label-tertiary)}
 .kba-nc-sec .v{color:var(--dsw-alias-label-primary);line-height:1.45;overflow-wrap:anywhere;white-space:pre-wrap}
 .kba-nc-code{font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:var(--dsw-alias-label-secondary)}
 .kba-nc-foot{display:flex;gap:8px}
@@ -31286,7 +31304,7 @@ button.kbbd-chip:hover{background:var(--dsw-alias-interactive-bg-hover,#f0f0f0)}
 .kbcs-more:hover{text-decoration:underline}
 .kbcs-more:disabled{cursor:default;opacity:.5}
 .kbcs-line{display:flex;gap:4px;align-items:baseline;min-width:0}
-.kbcs-role{flex:none;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--dsw-alias-label-secondary)}
+.kbcs-role{flex:none;font-size:11px;color:var(--dsw-alias-label-secondary)}
 .kbcs-excerpt{font-size:13px;color:var(--dsw-alias-label-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 .kbcs-mark{background:var(--dsw-alias-state-highlight-primary,rgba(250,204,21,.45));color:inherit;border-radius:3px;padding:0 2px;font-weight:600}
 .kbcs-ws{flex:none;font-size:11px;color:var(--dsw-alias-label-tertiary)}
@@ -31316,7 +31334,7 @@ button.kb8-docdl{background:transparent;font-family:inherit;cursor:pointer}
 .kb8-help-close:hover{background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary)}
 .kb8-help table{width:100%;border-collapse:collapse;font-size:13px}
 .kb8-help th,.kb8-help td{text-align:left;vertical-align:top;padding:8px 10px;border-bottom:1px solid var(--dsw-alias-border-l1);color:var(--dsw-alias-label-secondary)}
-.kb8-help th{font-size:11px;letter-spacing:.06em;text-transform:uppercase}
+.kb8-help th{font-size:11px;}
 .kb8-help td:first-child{width:118px;color:var(--dsw-alias-label-primary);font-weight:600}
 .kb8-help tr:last-child td{border-bottom:none}
 .kb8-help-steps{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;font-size:13.5px;line-height:1.5;color:var(--dsw-alias-label-secondary)}
@@ -31334,7 +31352,7 @@ button.kb8-docdl{background:transparent;font-family:inherit;cursor:pointer}
 .kb8-crew-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(430px,1fr));gap:14px;align-items:start}
 .kb8-crew-card{gap:10px}
 .kb8-crew-h{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
-.kb8-crew-sect{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--dsw-alias-label-secondary);margin-top:2px}
+.kb8-crew-sect{font-size:11px;color:var(--dsw-alias-label-secondary);margin-top:2px}
 /* Sections repliables : même carte que .kb8-card, mais le rembourrage passe sur
    l'en-tête cliquable et le corps, pour que toute la largeur soit cliquable. */
 .kb6-pinbtn.on{color:var(--dsw-alias-state-warn-label, var(--dsw-alias-state-warn-primary, #f5b301));border-color:var(--dsw-alias-state-warn-primary, #f5b301)}
@@ -31427,7 +31445,7 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
 .kbbm-tech{display:grid;grid-template-columns:minmax(0,1fr) minmax(220px,300px);gap:12px;align-items:start}
 .kbbm-tech .kbbm-view{min-width:0}
 .kbbm-legend{display:flex;flex-direction:column;gap:6px;max-height:380px;overflow:auto;padding-right:2px}
-.kbbm-legend-head{display:flex;align-items:baseline;gap:6px;font-size:10.5px;font-weight:650;letter-spacing:.04em;text-transform:uppercase;color:#8a8a87}
+.kbbm-legend-head{display:flex;align-items:baseline;gap:6px;font-size:10.5px;font-weight:650;color:#8a8a87}
 .kbbm-legend-now{margin-left:auto;text-transform:none;letter-spacing:0;font-weight:600;color:#e1502a;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .kbbm-legend-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:5px}
 .kbbm-legend-row{display:flex;gap:8px;padding:7px 9px;border:1px solid var(--dsw-alias-border-l1);border-radius:9px;background:var(--dsw-alias-bg-layer-1);opacity:.62;transition:opacity .18s,border-color .18s}
@@ -31507,7 +31525,7 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
 /* Matrice déclaré/exécuté : une ligne = un rôle, colonnes alignées. */
 .kb8-mx{display:flex;flex-direction:column;gap:6px}
 .kb8-mx-r{display:grid;grid-template-columns:140px 118px 150px 104px minmax(110px,1fr) 88px 76px 80px;gap:8px;align-items:center;padding:7px 10px;border-radius:10px;border:1px solid transparent;font-size:12.5px}
-.kb8-mx-r.h{font-family:ui-monospace,monospace;font-size:10px;letter-spacing:.04em;text-transform:uppercase;color:var(--dsw-alias-label-secondary);border-bottom:1px solid var(--dsw-alias-border-l1);border-radius:0;padding-bottom:8px}
+.kb8-mx-r.h{font-family:ui-monospace,monospace;font-size:10px;color:var(--dsw-alias-label-secondary);border-bottom:1px solid var(--dsw-alias-border-l1);border-radius:0;padding-bottom:8px}
 .kb8-mx-r.b{background:var(--dsw-alias-bg-layer-2)}
 .kb8-mx-r.b:hover{border-color:var(--dsw-alias-border-l1)}
 .kb8-mx-r.gap{border-left:2px solid var(--dsw-alias-state-error-primary, rgba(239,68,68,.6))}
@@ -32345,7 +32363,7 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
 .kbfb-types{display:flex;gap:6px;flex-wrap:wrap}
 .kbfb-type{height:36px;padding:0 14px;border:1px solid var(--dsw-alias-border-l2);border-radius:18px;background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;cursor:pointer}
 .kbfb-type.on{background:var(--dsw-alias-button-primary-fill);border-color:transparent;color:var(--dsw-alias-label-primary-foreground)}
-.kbfb-lab{font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--dsw-alias-label-tertiary)}
+.kbfb-lab{font-size:12px;font-weight:600;color:var(--dsw-alias-label-tertiary)}
 .kbfb-msg,.kbfb-manual{box-sizing:border-box;width:100%;resize:vertical;padding:10px 12px;border:1px solid var(--dsw-alias-border-l2);border-radius:10px;background:var(--dsw-alias-bg-base);color:var(--dsw-alias-label-primary);font:inherit;font-size:14px}
 .kbfb-msg:focus,.kbfb-manual:focus{outline:none;border-color:var(--dsw-alias-brand-primary)}
 .kbfb-manual{font-family:var(--ds-font-family-code,monospace);font-size:12px}
@@ -32667,7 +32685,7 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
 .kbu-rel-x{flex:0 0 auto;width:24px;height:24px;padding:0;border:none;border-radius:8px;background:transparent;color:var(--dsw-alias-label-secondary);display:flex;align-items:center;justify-content:center;cursor:pointer}
 .kbu-rel-x:hover{background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary)}
 .kbu-rel-code{margin-top:12px}
-.kbu-rel-cl{display:block;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--dsw-alias-label-secondary)}
+.kbu-rel-cl{display:block;font-size:11px;color:var(--dsw-alias-label-secondary)}
 .kbu-rel-cv{display:flex;align-items:center;gap:8px;margin-top:5px}
 .kbu-rel-code-v{flex:1 1 auto;min-width:0;padding:9px 11px;border-radius:11px;border:1px dashed color-mix(in srgb,#f59e0b 42%,transparent);background:color-mix(in srgb,#f59e0b 8%,transparent);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:17px;font-weight:700;letter-spacing:.14em;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .kbu-rel-mini{flex:0 0 auto;height:30px;padding:0 10px;border-radius:9px;border:1px solid var(--dsw-alias-border-l2);background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:11.5px;cursor:pointer}
@@ -33253,7 +33271,7 @@ html:not([data-kb-all-pages]) [class*="navList"][data-kb-settings] [data-kb-fold
           pending: { label: kbe('Awaiting a human'), tone: 'wait', pulse: 1 },
           error: { label: kbe('Failed'), tone: 'err' },
         }
-        const WV_TRIG = { webhook: 'WEBHOOK', human: kbe('HUMAN'), cron: 'CRON', agent: 'AGENT' }
+        const WV_TRIG = { webhook: 'WEBHOOK', human: kbe('Human'), cron: 'CRON', agent: 'AGENT' }
         const WV_SECS = [['tl', kbe('Timeline')], ['graph', kbe('Graph')], ['cascade', 'Cascade'], ['detail', kbe('Step detail')], ['analyse', kbe('Analysis')]]
         const WV_EDGE = {
           ok: { cls: 'e-ok', dash: 'none', w: 1.5 },
@@ -33290,7 +33308,7 @@ html:not([data-kb-all-pages]) [class*="navList"][data-kb-settings] [data-kb-fold
 .wv2-h2{margin:0;font-size:15px;font-weight:600}
 .wv2-h3{margin:0;font-size:14px;font-weight:600;white-space:nowrap}
 .wv2-hint{font-family:var(--wv-mono);font-size:11px;color:var(--wv-mut);min-width:0;text-align:end}
-.wv2-lbl{font-size:11px;color:var(--wv-mut);text-transform:uppercase;letter-spacing:.6px}
+.wv2-lbl{font-size:11px;color:var(--wv-mut);}
 .wv2-grow{flex-grow:1}
 /* pastille LED d état */
 .wv2-led{width:8px;height:8px;border-radius:50%;flex-shrink:0;background:var(--wv-idle)}
@@ -33339,7 +33357,7 @@ html:not([data-kb-all-pages]) [class*="navList"][data-kb-settings] [data-kb-fold
 .wv2-kpis{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:10px}
 @media (max-width:1280px){.wv2-kpis{grid-template-columns:repeat(4,minmax(0,1fr))}}
 .wv2-kpi{display:flex;flex-direction:column;gap:3px;padding:10px 12px;background:var(--wv-box);border:1px solid var(--wv-line2);border-radius:8px;min-width:0}
-.wv2-kpi .k{font-size:11px;color:var(--wv-mut);text-transform:uppercase;letter-spacing:.5px}
+.wv2-kpi .k{font-size:11px;color:var(--wv-mut);}
 .wv2-kpi .v{font-family:var(--wv-mono);font-size:16px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .wv2-kpi .s{font-family:var(--wv-mono);font-size:10.5px;color:var(--wv-mut);line-height:1.35;min-height:28px}
 /* chronologie */
@@ -33369,7 +33387,7 @@ html:not([data-kb-all-pages]) [class*="navList"][data-kb-settings] [data-kb-fold
 .wv2-tag{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:999px;font-family:var(--wv-mono);font-size:10px;letter-spacing:.5px;
   border:1px solid var(--wv-line2);color:var(--wv-mut)}
 .wv2-stat{display:flex;flex-direction:column;gap:1px}
-.wv2-stat .k{font-size:10.5px;color:var(--wv-faint);text-transform:uppercase;letter-spacing:.5px}
+.wv2-stat .k{font-size:10.5px;color:var(--wv-faint);}
 .wv2-stat .v{font-family:var(--wv-mono);font-size:13px}
 .wv2-canvas{position:relative;height:290px;border-radius:8px;background:var(--wv-box);border:1px solid var(--wv-line2);overflow-x:auto;overflow-y:hidden}
 .wv2-grid{position:absolute;inset:0;background-image:radial-gradient(var(--wv-line2) 1px,transparent 1px);background-size:24px 24px}
@@ -34262,7 +34280,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
           // l'enfant — un journal de sous-tâche ne se présente jamais comme
           // celui de la tâche.
           const subTask = S.lineage !== null && S.lineage !== undefined
-          const idLine = (subTask ? kbe('SUB-TASK') : 'SESSION ' + M.src.meta.id)
+          const idLine = (subTask ? kbe('Sub-task') : 'SESSION ' + M.src.meta.id)
             + (subTask && S.lineage.parentSession ? ' · ' + kbe('parent ') + String(S.lineage.parentSession).slice(0, 8) : '')
             + ' · workspace ' + M.src.meta.workspace + ' · ' + M.src.meta.date
           const head = El('header', { className: 'wv2-panel wv2-head', style: { position: 'relative' } },
@@ -34493,7 +34511,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
           const detail = S.sec.detail ? El('aside', { className: 'wv2-aside', style: { width: S.sec.cascade ? 380 : '100%' } },
             El('div', { style: { display: 'flex', flexDirection: 'column', gap: 6 } },
               El('div', { className: 'wv2-mono', style: { fontSize: 11, letterSpacing: '.8px', color: actVar(sel.act) } },
-                M.run.id + kbe(' · STEP ') + sel.num + ' · ' + WV_ACT[sel.act].label),
+                M.run.id + kbe(' · Step ') + sel.num + ' · ' + WV_ACT[sel.act].label),
               El('h2', { style: { margin: 0, fontSize: 18, fontWeight: 600 } }, sel.name),
               El('div', { style: { display: 'flex', alignItems: 'center', gap: 6 } },
                 WV2Led(sel.tone, sel.pulse),
@@ -36453,7 +36471,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       '.kb-ob-actions-row .kb-ob-ghost{align-self:center}',
       '.kb-ob-kitbox{margin-top:24px}',
       '.kb-ob-sticky{position:sticky;bottom:0;margin-top:12px;padding:14px 0;background:var(--bg);z-index:2}',
-      '.kb-ob-kitgrp{margin:0 0 10px;font-size:12px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:var(--ink3);display:flex;justify-content:space-between;align-items:baseline}',
+      '.kb-ob-kitgrp{margin:0 0 10px;font-size:12px;font-weight:500;color:var(--ink3);display:flex;justify-content:space-between;align-items:baseline}',
       '.kb-ob-kitgrp em{font-style:normal;letter-spacing:0;text-transform:none;font-weight:400}',
       '.kb-ob-kit{display:flex;gap:12px;align-items:flex-start;width:100%;padding:13px 16px;margin:0 0 8px;text-align:start;color:var(--ink);background:var(--bg2);border:1px solid var(--line);border-radius:14px;cursor:pointer}',
       '.kb-ob-kit:hover:not([disabled]){border-color:var(--ink3)}',
@@ -36475,7 +36493,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       '.kb-ob-mem b{display:block;color:var(--ink);font-weight:500}',
       // « What we set up for you »: one row per area, the sentence on the start side, « Change » on the end side
       '.kb-ob-setup{margin-top:22px;border:1px solid var(--line);border-radius:16px;background:var(--bg2);overflow:hidden}',
-      '.kb-ob-setup h2{margin:0;padding:14px 18px 6px;font-size:12px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:var(--ink3)}',
+      '.kb-ob-setup h2{margin:0;padding:14px 18px 6px;font-size:12px;font-weight:500;color:var(--ink3)}',
       '.kb-ob-srow{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 18px}',
       '.kb-ob-srow+.kb-ob-srow{border-top:1px solid var(--line)}',
       '.kb-ob-sbody{display:flex;flex-direction:column;gap:2px;min-width:0}',

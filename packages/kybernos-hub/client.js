@@ -486,7 +486,7 @@ window.__ModuleLoader__.load({
       // Featured: the same cards, larger, with the tagline and the full description
       '.kbsu-fgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:12px}',
       '.kbsu-vedette{padding:16px;gap:12px}',
-      '.kbsu-tag{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--kybernos-accent,var(--dsw-alias-brand-primary));font-weight:700}',
+      '.kbsu-tag{font-size:11px;color:var(--kybernos-accent,var(--dsw-alias-brand-primary));font-weight:700}',
       '.kbsu-vedette .kbsu-promise{font-size:13.5px;color:var(--dsw-alias-label-secondary);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}',
       '.kbsu-promise{margin:0;color:var(--dsw-alias-label-secondary);font-size:13px}',
       '.kbsu-card .kbsu-promise{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;line-height:1.45;min-height:4.35em}',
@@ -513,7 +513,7 @@ window.__ModuleLoader__.load({
       '.kbhp-q{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700;background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-primary)}',
       '.kbhp-pop{box-sizing:border-box;position:absolute;inset-inline-end:0;top:calc(100% + 8px);z-index:60;width:min(420px,calc(100vw - 32px));max-height:min(70vh,560px);overflow-y:auto;padding:16px 18px;border-radius:18px;border:1px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-label-primary);text-align:start;white-space:normal;font-size:14px;line-height:1.5;background:linear-gradient(var(--dsw-specific-menu,#1c1c1f),var(--dsw-specific-menu,#1c1c1f)),var(--dsw-alias-bg-base,#151517);box-shadow:0 16px 44px rgba(0,0,0,.42);display:flex;flex-direction:column;gap:12px}',
       '.kbhp-pop h4{margin:0;font-size:17px;font-weight:700}',
-      '.kbhp-pop h5{margin:0 0 8px;font-size:11.5px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;color:var(--dsw-alias-label-tertiary)}',
+      '.kbhp-pop h5{margin:0 0 8px;font-size:11.5px;font-weight:600;color:var(--dsw-alias-label-tertiary)}',
       '.kbhp-pop p{margin:0;color:var(--dsw-alias-label-secondary)}',
       '.kbhp-pop.start{inset-inline-end:auto;inset-inline-start:0}',
       '.kbhp-x{position:absolute;inset-inline-end:10px;top:10px;width:26px;height:26px;border:0;border-radius:8px;background:transparent;color:var(--dsw-alias-label-tertiary);cursor:pointer;font-size:14px}',

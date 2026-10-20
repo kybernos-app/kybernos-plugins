@@ -54,10 +54,12 @@ const BAD = STYLE + '<main style="width:880px">'
   + '</main>'
 
 const CLEAN = STYLE + '<main style="width:880px">'
+  + '<span style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap">Running</span>'
   + '<h2>Workspaces</h2><p>Each project holds its own chats and goals.</p>'
   + '<ul>' + ['Alpha', 'Bravo', 'Charlie', 'Delta', 'Echo'].map((t, i) => '<li><span class="logo" style="background:hsl(' + i * 60 + ',45%,45%)"></span>' + t + '</li>').join('') + '</ul>'
   + cards(8) + '<span>Page 1/2</span>'
   + '<div style="text-align:right;width:880px"><button class="btn">Create</button></div>'
+  + '<div style="display:flex;width:880px;padding-right:20px;box-sizing:border-box"><p style="width:300px;margin:0">Check the skills attached to this project.</p><button class="btn" style="margin-left:auto">Browse</button></div>'
   + '<div class="box"><svg width="48" height="48"><circle cx="24" cy="24" r="20"/></svg><p>No budget yet.</p><button class="btn">Add a budget</button></div>'
   + '</main>'
 
@@ -91,6 +93,13 @@ try {
   const f3 = await val('JSON.stringify(window.__UXH__.frame())')
   const moved = JSON.parse(await val(`JSON.stringify(window.__UXH__.diffFrames([{ label: 'a', frame: ${f1} }, { label: 'b', frame: ${f3} }]))`))
   check('a resized main is reported with its old and new width', moved.some((d) => d.landmark === 'main' && /w 880 -> 840/.test(d.deltas)), moved)
+
+  // frames: a landmark is compared with the first page that has it, so a page without a heading does not hide a title that moved.
+  const A = { label: 'a', frame: { viewport: { w: 1, h: 1 }, scrollbar: 0, landmarks: { heading: null, main: { x: 0, y: 0, w: 100, h: 50 } } } }
+  const B = { label: 'b', frame: { viewport: { w: 1, h: 1 }, scrollbar: 0, landmarks: { heading: { x: 272, y: 54, w: 90, h: 20 }, main: { x: 0, y: 0, w: 100, h: 50 } } } }
+  const C = { label: 'c', frame: { viewport: { w: 1, h: 1 }, scrollbar: 0, landmarks: { heading: { x: 289, y: 107, w: 190, h: 20 }, main: { x: 0, y: 0, w: 100, h: 50 } } } }
+  const shifted = JSON.parse(await val(`JSON.stringify(window.__UXH__.diffFrames([${JSON.stringify(A)}, ${JSON.stringify(B)}, ${JSON.stringify(C)}]))`))
+  check('a title that sits elsewhere than on the first page with a title is reported (x and y, not its width)', shifted.length === 1 && shifted[0].landmark === 'heading' && shifted[0].deltas === 'x 272 -> 289, y 54 -> 107', shifted)
 
   await load(CLEAN)
   const clean = JSON.parse(await val('JSON.stringify(window.__UXH__.scan())'))

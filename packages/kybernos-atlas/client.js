@@ -1069,7 +1069,7 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
 .kbat-grid[data-hover="1"] .kbat-lines path{opacity:.07}
 .kbat-grid[data-hover="1"] .kbat-lines path[data-hot="1"]{opacity:1;stroke:var(--dsw-alias-brand-primary-new-color,#4176e6);stroke-width:1.8}
 .kbat-col{position:relative;z-index:1;display:flex;flex-direction:column;gap:6px;min-width:0}
-.kbat-col h3{margin:0 0 6px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--dsw-alias-label-tertiary)}
+.kbat-col h3{margin:0 0 6px;font-size:11px;font-weight:600;color:var(--dsw-alias-label-tertiary)}
 .kbat-col h4{margin:10px 0 0;font-size:12px;font-weight:500;color:var(--dsw-alias-label-secondary)}
 .kbat-col h4 span{color:var(--dsw-alias-label-tertiary);font-variant-numeric:tabular-nums}
 .kbat-none{margin:0;color:var(--dsw-alias-label-tertiary);font-size:12px}
