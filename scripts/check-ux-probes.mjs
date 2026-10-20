@@ -29,6 +29,9 @@ const STYLE = `<meta charset="utf-8"><title>fixture</title><style>
   .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px}
   .card{height:60px;border:1px solid #ccc;border-radius:8px;padding:8px}
   .box{border:1px dashed #aaa;padding:30px;text-align:center;margin-bottom:20px}
+  .hit{position:relative;width:34px;height:20px;border:0;border-radius:99px;background:#888;padding:0}
+  .hit::before{content:"";position:absolute;inset:-2px 0}
+  .txt{background:none;border:0;padding:0;font:12px system-ui;text-decoration:underline;cursor:pointer}
 </style>`
 const LOGO = '<span class="logo"></span>'
 const ICON = '<svg width="18" height="18"><path d="M0 0h10v10z"/></svg>'
@@ -61,6 +64,7 @@ const CLEAN = STYLE + '<main style="width:880px">'
   + '<div style="text-align:right;width:880px"><button class="btn">Create</button></div>'
   + '<div style="display:flex;width:880px;padding-right:20px;box-sizing:border-box"><p style="width:300px;margin:0">Check the skills attached to this project.</p><button class="btn" style="margin-left:auto">Browse</button></div>'
   + '<div class="box"><svg width="48" height="48"><circle cx="24" cy="24" r="20"/></svg><p>No budget yet.</p><button class="btn">Add a budget</button></div>'
+  + '<p><button class="hit" aria-label="Enable"></button> <button class="txt">Manage languages</button></p>'
   + '</main>'
 
 const live = await openLivePage({ width: 1100, height: 900 }).catch((e) => { console.error('○ inconclusive: ' + e.message); process.exit(3) })

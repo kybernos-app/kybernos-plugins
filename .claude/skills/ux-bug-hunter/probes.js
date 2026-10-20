@@ -242,12 +242,48 @@
     for (const { el, t } of leaves) if (t.split(' ').length >= 4 && JARGON.test(t)) add('jargon', 'check', el, t, 'a file name, a key or an internal word in text a person reads')
 
     // Controls.
+    // A small control is fine when a 24 px box around it still hits it (an invisible ::before) and when it is a bare text link,
+    // whose size is the line's (WCAG 2.5.8: the target size of an inline text link is exempt).
+    const reachable = (el, r) => {
+      const cx = r.left + r.width / 2
+      const cy = r.top + r.height / 2
+      const dx = Math.max(0, (24 - r.width) / 2)
+      const dy = Math.max(0, (24 - r.height) / 2)
+      const inView = r.left - dx >= 0 && r.top - dy >= 0 && r.right + dx <= innerWidth && r.bottom + dy <= innerHeight
+      if (inView) {
+        // On screen: ask the browser. The points that would complete a 24 px box must still hit this control (a clipped ::before does not).
+        const at = (x, y) => { const hit = document.elementFromPoint(x, y); return hit !== null && (hit === el || el.contains(hit)) }
+        return (dx === 0 || (at(r.left - dx + 1, cy) && at(r.right + dx - 1, cy))) && (dy === 0 || (at(cx, r.top - dy + 1) && at(cx, r.bottom + dy - 1)))
+      }
+      // Off screen: read the box of an absolutely positioned ::before / ::after and take the union with the control.
+      let w = r.width
+      let h = r.height
+      for (const ps of ['::before', '::after']) {
+        const cs = getComputedStyle(el, ps)
+        if (cs.content === 'none' || cs.position !== 'absolute') continue
+        const bl = parseFloat(getComputedStyle(el).borderLeftWidth) || 0
+        const bt = parseFloat(getComputedStyle(el).borderTopWidth) || 0
+        const left = bl + (parseFloat(cs.left) || 0)
+        const top = bt + (parseFloat(cs.top) || 0)
+        w = Math.max(w, Math.max(r.width, left + (parseFloat(cs.width) || 0)) - Math.min(0, left))
+        h = Math.max(h, Math.max(r.height, top + (parseFloat(cs.height) || 0)) - Math.min(0, top))
+      }
+      return w >= 24 && h >= 24
+    }
+    const inSentence = (el) => {
+      const p = el.parentElement
+      return p !== null && /^(P|LI|SPAN|DIV|SMALL|LABEL)$/.test(p.tagName) && norm(p.textContent).replace(norm(el.textContent), '').length >= 12 && /^inline/.test(getComputedStyle(el).display)
+    }
+    const textLink = (el, r) => {
+      const cs = getComputedStyle(el)
+      return cs.backgroundColor === 'rgba(0, 0, 0, 0)' && parseFloat(cs.borderTopWidth) === 0 && parseFloat(cs.borderBottomWidth) === 0 && own(el).length >= 2 && r.height >= 12 && el.querySelector('svg,img') === null
+    }
     for (const el of shown.filter((e) => e.matches(INTERACTIVE))) {
       const r = el.getBoundingClientRect()
       if (getComputedStyle(el).display === 'inline' && el.tagName === 'A') continue
       const name = label(el)
       const boxed = el.matches('input[type="checkbox"],input[type="radio"]') && el.labels && el.labels.length > 0
-      if ((r.width < 24 || r.height < 24) && !boxed) add('tiny-target', 'ux', el, name, Math.round(r.width) + 'x' + Math.round(r.height) + ' px (24 is the floor, 32 comfortable)')
+      if ((r.width < 24 || r.height < 24) && !boxed && !reachable(el, r) && !textLink(el, r) && !inSentence(el)) add('tiny-target', 'ux', el, name, Math.round(r.width) + 'x' + Math.round(r.height) + ' px (24 is the floor, 32 comfortable)')
       if (name === '' && el.matches('button,[role="button"],a[href],[role="tab"],[role="menuitem"]') && el.querySelector('img[alt]:not([alt=""])') === null) add('no-name', 'ux', el, '', 'an icon-only control with no text, aria-label or title')
     }
     for (const el of shown.filter((e) => e.matches(INTERACTIVE)).slice(0, 400)) {
