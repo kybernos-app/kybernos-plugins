@@ -17925,7 +17925,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
             h('div', { style: { display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px', flexWrap: 'wrap' } },
               h('span', { className: 'kb8-sub', style: { flex: 1, minWidth: '220px' }, 'data-kb': 'project-skills-hint' },
                 kbt('kbui.skills.hint') + ' (' + countLabel + ')'),
-              h('button', { type: 'button', className: 'kb8-primary', style: { padding: '8px 14px', height: 'auto' }, 'data-kb': 'project-skills-browse', title: kbt('kbui.skill.repo'), onClick: () => { try { set({ view: 'skills' }) } catch (e) { /* store unavailable */ } } },
+              h('button', { type: 'button', className: 'kb8-primary', style: { padding: '8px 14px', height: 'auto', marginInlineStart: 'auto' }, 'data-kb': 'project-skills-browse', title: kbt('kbui.skill.repo'), onClick: () => { try { set({ view: 'skills' }) } catch (e) { /* store unavailable */ } } },
                 '+ ' + kbt('kbui.skills.browse'))),
             (skillsErr !== null ? h('div', { role: 'alert', className: 'kb8-sub', style: { color: 'var(--dsw-alias-state-error-primary)', marginBottom: '8px' }, 'data-kb': 'project-skills-error' }, kbt('kbui.skills.savefail') + skillsErr) : null),
             pagerTop(skillsVp),
