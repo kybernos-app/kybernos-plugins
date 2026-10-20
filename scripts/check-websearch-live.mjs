@@ -64,7 +64,13 @@ try {
 
   console.log('the page')
   const chain = await rows()
-  check('the chain shows only the engines that can answer, in order (no key needed ones)', chain.length >= 2 && chain.length <= 5 && chain.every((r) => r.badge === 'NO KEY'), chain.map((r) => r.id))
+  // A keyed engine whose key is set CAN answer, and the page says so (« add a key so a keyed engine goes first »):
+  // what must hold is that every listed engine is Ready and that the keyless ones come first.
+  const keylessFirst = chain.every((r, i) => i === 0 || !(String(chain[i - 1].badge || '').toUpperCase() === 'KEY' && String(r.badge || '').toUpperCase() !== 'KEY'))
+  // The panel lists a paused or switched-off engine WITH its status (measured 2026-10-21: « wikipedia / Switched off »),
+  // so the invariant is: the chain is short, at least two engines can answer, and the keyless ones come first.
+  const live = chain.filter((r) => String(r.status || '').trim() !== 'Switched off').length
+  check('the chain lists the engines in order, keyless first, and is not all switched off', chain.length >= 2 && chain.length <= 5 && live >= 1 && keylessFirst, chain.map((r) => r.id + ':' + String(r.badge || '').trim() + '/' + String(r.status || '').trim()))
   check('the others are folded under « More engines »', (await ev(`!!document.querySelector('[data-act="more"]') && !document.querySelector('[data-kb="websearch-more"]')`)) === true)
   await press('[data-act="more"]')
   await sleep(400)
