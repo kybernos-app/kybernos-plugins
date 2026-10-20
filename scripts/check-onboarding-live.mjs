@@ -280,15 +280,15 @@ try {
   check('the paste form is there for a known provider', (await q(`!!document.querySelector('#kb-ob-key')`)) === true)
   await press('Other provider')
   check('another provider has no paste field', (await q(`!!document.querySelector('#kb-ob-key')`)) === false)
-  await press('Open Settings → AI Provider & Models')
+  await press('Open Settings → AI provider and models')
   await waitFor(page, `document.querySelector('.kb-ob') === null`, 8000)
   check('the wizard is gone', (await q(`document.querySelector('.kb-ob') === null`)) === true)
   const settingsOpen = await waitFor(page, `[...document.querySelectorAll('nav button')].some((b) => /models/i.test(b.textContent))`, 8000)
   check('the Settings dialog opened', settingsOpen !== null)
   const selectedCell = `(() => { const sel = document.querySelector('nav button[aria-current], nav button[aria-selected="true"], nav button[class*="active"], nav button[class*="selected"]'); return sel ? sel.textContent.trim() : null })()`
-  await waitFor(page, `${selectedCell} === 'AI Provider & Models'`, 10000)
+  await waitFor(page, `${selectedCell} === 'AI provider and models'`, 10000)
   const landed = await q(selectedCell)
-  check('it landed on AI Provider & Models', landed === 'AI Provider & Models', JSON.stringify(landed))
+  check('it landed on AI provider and models', landed === 'AI provider and models', JSON.stringify(landed))
   let state = null
   try { state = JSON.parse(read('kybernos/onboarding.json')) } catch (e) { state = null }
   check('the host wrote the answers and kept the version', state !== null && state.completed === true && state.version === 1 && state.model === 'key' && state.lang === 'en', JSON.stringify(state))

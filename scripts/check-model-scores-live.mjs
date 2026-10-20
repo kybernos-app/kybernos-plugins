@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// « Load model scores » on AI Provider & Models › Models, in a real GUI (audit V-37): a fresh install has no score snapshot, so the
+// « Load model scores » on AI provider and models › Models, in a real GUI (audit V-37): a fresh install has no score snapshot, so the
 // Score badge, the Score filter and the Score sort never show. The page now offers a visible way in, and reads nothing before the click.
 //
 //   source scripts/sandbox/env.sh && node scripts/check-model-scores-live.mjs [--shots <dir>]
@@ -74,9 +74,9 @@ await page.send('Fetch.enable', { patterns: [{ urlPattern: '*kybernos-models/sco
 try {
   await sleep(1500)
   if ((await openSettings(page, { minCells: 3 })) !== true) { console.error('○ inconclusive: the Settings dialog did not open'); process.exit(3) }
-  await clickText(page, 'AI Provider & Models')
+  await clickText(page, 'AI provider and models')
   const tab = await waitFor(page, `document.querySelector('[data-kbm="tab-models"]') !== null`, 20000)
-  if (tab === null) { console.error('○ inconclusive: the AI Provider & Models page did not draw its Models tab'); process.exit(3) }
+  if (tab === null) { console.error('○ inconclusive: the AI provider and models page did not draw its Models tab'); process.exit(3) }
   await click('[data-kbm="tab-models"]')
   const listed = await waitFor(page, `document.querySelectorAll('[data-kbm="item"]').length > 0`, 20000)
   if (listed === null) { console.error('○ inconclusive: the Models tab lists no model in this sandbox'); process.exit(3) }

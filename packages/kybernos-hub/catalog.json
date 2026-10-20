@@ -438,7 +438,7 @@
     {
       "id": "kybernos-models",
       "nom": "@local/kybernos-models",
-      "titre": "AI Provider & Models",
+      "titre": "AI provider and models",
       "glyphe": "cpu",
       "famille": "models",
       "palier": "core",
@@ -1487,7 +1487,7 @@
     {
       "id": "kybernos-modeles-locaux",
       "nom": "@local/kybernos-modeles-locaux",
-      "titre": "Ollama Local Models",
+      "titre": "Ollama local models",
       "glyphe": "home",
       "famille": "models",
       "palier": "core",

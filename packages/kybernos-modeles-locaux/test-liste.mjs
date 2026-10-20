@@ -15,7 +15,7 @@ const check = (name, ok, detail) => { if (ok === true) { pass += 1; console.log(
 const a = src.indexOf('// KB-KML-PURE-BEGIN')
 const b = src.indexOf('// KB-KML-PURE-END')
 check('the pure block is delimited', a > 0 && b > a)
-const { KML_PAGE, kbScoreDe, kbOrdreAjuste, kbPagine, kbChercher, kbPaliers } = new Function(src.slice(a, b) + '\nreturn { KML_PAGE, kbScoreDe, kbOrdreAjuste, kbPagine, kbChercher, kbPaliers }')()
+const { KML_PAGE, kbScoreDe, kbOrdreAjuste, kbPagine, kbChercher, kbPaliers, kbEtatsAmarques } = new Function(src.slice(a, b) + '\nreturn { KML_PAGE, kbScoreDe, kbOrdreAjuste, kbPagine, kbChercher, kbPaliers, kbEtatsAmarques }')()
 
 console.log('\n── the score of a catalogue line ──')
 check('« II 32 · MMMU-Pro 69 % · 6.6–7.6 GB » reads 32', kbScoreDe('II 32 · MMMU-Pro 69 % · 6.6–7.6 GB') === 32 && kbScoreDe('II 16') === 16 && kbScoreDe('II 27.5') === 27.5 && kbScoreDe('II 27,5') === 27.5)
@@ -69,6 +69,12 @@ const ids = [...src.matchAll(/'(kml\.(?:search|score\.[a-z]+|page\.[a-z]+|lourd\
 check('every new sentence exists in French and English, with the same {variables}', ids.length >= 15 && ids.every((k) => k[2].length > 0 && k[3].length > 0 && (k[2].match(/\{[a-z]+\}/g) || []).sort().join() === (k[3].match(/\{[a-z]+\}/g) || []).sort().join()), ids.length)
 const used = [...src.matchAll(/m\('(kml\.(?:search|score\.[a-z]+|page\.[a-z]+|lourd\.n|aucun|detail\.[a-z]+))'/g)].map((x) => x[1])
 check('every one of them that the code asks for is declared', used.every((k) => ids.some((x) => x[1] === k)), used.filter((k) => !ids.some((x) => x[1] === k)))
+
+console.log('\n── the state words, only where they carry something (UX audit 2) ──')
+check('a list where every row fits says nothing: no row keeps its words', kbEtatsAmarques(['compatible', 'compatible', 'compatible']).every((x) => x === false))
+check('one row that differs keeps its words, the shared ones go', JSON.stringify(kbEtatsAmarques(['compatible', 'compatible', 'juste', 'compatible'])) === JSON.stringify([false, false, true, false]))
+check('the minority can be the fits too (six tight, one fits)', JSON.stringify(kbEtatsAmarques(['juste', 'juste', 'compatible', 'juste'])) === JSON.stringify([false, false, true, false]))
+check('an even split marks nothing (either side would be noise)', kbEtatsAmarques(['compatible', 'juste', 'compatible', 'juste']).every((x) => x === false) && kbEtatsAmarques([]).length === 0)
 
 console.log('\n' + pass + ' ✓  ' + fail + ' ✗')
 process.exit(fail === 0 ? 0 : 1)

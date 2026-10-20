@@ -1,4 +1,4 @@
-# The Providers tab (Settings → AI Provider & Models)
+# The Providers tab (Settings → AI provider and models)
 
 One page for what DSH's native Models page does, with the same writes underneath.
 Everything below was measured on DSH 0.2.0-rc.2 (`dsh-client-ui-settings-models`), not assumed.

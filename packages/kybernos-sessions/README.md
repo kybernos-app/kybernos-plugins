@@ -36,7 +36,7 @@ It is part of the **socle** (`socle: true` in `packages/kybernos-hub/catalog.jso
   (`decisionBrain`, the gateway's evaluation model) is gone: an old page that still posts the key is not refused, the key is
   ignored and leaves `settings.json` at the next write.
 - **Model-health alert** while a Study model is in force (Automatic included): this bundle probes and publishes the verdict
-  (`window.__kybernosHealth` and a `kybernos-health` event); `kybernos-models` draws it as a chip on the AI Provider & Models tab
+  (`window.__kybernosHealth` and a `kybernos-health` event); `kybernos-models` draws it as a chip on the AI provider and models tab
   bar. "Hide" silences it for 1 h. With the Study model on None, nothing is probed; on Automatic the probe watches the models whose
   provider is connected (a key is set), so an unused provider of the profile does not make noise; with a model you picked, it
   watches every model of your list.
