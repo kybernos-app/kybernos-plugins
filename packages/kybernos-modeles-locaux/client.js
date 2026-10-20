@@ -1,8 +1,8 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // @local/kybernos-modeles-locaux — client: the « Local models » panel, carried
-// by ONE door only: the dedicated « Ollama Local Models » section of Settings.
+// by ONE door only: the dedicated « Ollama local models » section of Settings.
 // Since 02/10, neither the foot of the native Models page (`settings.models.footer`)
-// nor the « AI Provider & Models » page (the old mount) repeat it.
+// nor the « AI provider and models » page (the old mount) repeat it.
 //
 // The path (mock-up v1, validated, docs/handoff/modeles-locaux):
 //   1. DETECT    — GET /modeles-locaux/machine (sysctl, ollama --version,
@@ -166,7 +166,7 @@ window.__ModuleLoader__.load({
         'kml.section': { fr: 'Branché sur DSH', en: 'Wired into DSH' },
                 // (01/10) Dedicated Settings section — the panel leaves the foot of the
                 // native Models page for its own navigation entry.
-        'kml.page.titre': { fr: 'Modèles locaux Ollama', en: 'Ollama Local Models' },
+        'kml.page.titre': { fr: 'Modèles locaux Ollama', en: 'Ollama local models' },
         'kml.vide': { fr: 'Aucun modèle local branché — installe une recommandation ci-dessus.', en: 'No local model wired yet — install a recommendation above.' },
         'kml.relance': { fr: 'relance DSH si absent du sélecteur', en: 'restart DSH if missing from the picker' },
         'kml.contexte': { fr: 'Contexte', en: 'Context' },
@@ -274,6 +274,17 @@ window.__ModuleLoader__.load({
       const kbPaliers = (liste) => {
         const top = Math.max(0, ...liste.map((mod) => kbScoreDe(mod.score)).filter((n) => n !== null))
         return [10, 20, 30, 40, 50].filter((n) => n <= top)
+      }
+      /** A verdict every row of the list shares says nothing: only the rows that differ from the
+       *  majority keep their state words (« Fits » on 8 of 8 rows was noise — UX audit 2). Pure. */
+      const kbEtatsAmarques = (etats) => {
+        const compte = { compatible: 0, juste: 0, lourd: 0, inconnu: 0 }
+        for (const e of etats) compte[e] = (compte[e] || 0) + 1
+        let majoritaire = null
+        for (const k of Object.keys(compte)) if (majoritaire === null || compte[k] > compte[majoritaire]) majoritaire = k
+        const net = etats.filter((e) => e === majoritaire).length
+        // One truth on the screen (or a tie): nothing is marked. Otherwise the minority is.
+        return etats.map((e) => (net === etats.length || net === etats.length - net ? false : e !== majoritaire))
       }
       // KB-KML-PURE-END
 
@@ -783,8 +794,10 @@ window.__ModuleLoader__.load({
         const visibles = ordonnes.filter((mod) => etatListe(mod) !== 'lourd')
         const pageDe = kbPagine(visibles, page, KML_PAGE)
         const paliers = kbPaliers(CATALOGUE)
+        // Which rows keep their state words (the shared ones are dropped): one pass for the page.
+        const marquesPage = kbEtatsAmarques(pageDe.tranche.map(etatListe))
 
-        const rangeeDe = (mod) => {
+        const rangeeDe = (mod, marques, index) => {
           const estInstalle = installees.some((x) => x.id === mod.id)
           const estBranche = branchees.some((x) => x.id === mod.id)
           const enCours = job !== null && job.cible === mod.id && job.running === true
@@ -832,10 +845,13 @@ window.__ModuleLoader__.load({
               echec === undefined ? null : h('span', { className: 'kml-mod-echec', role: 'alert', 'data-kml': 'echec', title: echec.brut },
                 m('kml.echec.titre') + ' ' + (echec.cle !== null ? m(echec.cle) : echec.brut))),
             h('span', { className: 'kml-mod-etat' },
-              h('span', { className: 'kml-etat' },
-                // Green fits, amber is tight, red is too heavy; grey is « no verdict » (size or machine not measured).
-                h('span', { className: 'kbm-dot', 'data-state': etat === 'compatible' ? 'done' : (etat === 'juste' ? 'warning' : (etat === 'lourd' ? 'error' : 'idle')) }),
-                m('kml.etat.' + etat)),
+              // Green fits, amber is tight, red is too heavy; grey is « no verdict » (size or machine not measured).
+              // The words only where the row differs from the rest of the list (a badge on every row carries nothing).
+              marques !== true
+                ? h('span', { className: 'kbm-dot', 'data-state': etat === 'compatible' ? 'done' : (etat === 'juste' ? 'warning' : (etat === 'lourd' ? 'error' : 'idle')) })
+                : h('span', { className: 'kml-etat' },
+                  h('span', { className: 'kbm-dot', 'data-state': etat === 'compatible' ? 'done' : (etat === 'juste' ? 'warning' : (etat === 'lourd' ? 'error' : 'idle')) }),
+                  m('kml.etat.' + etat)),
               ec !== null ? h('span', { className: 'kml-etat-sous' }, m('kml.en.charge', { go: kbNum(ec, kbLocaleRead()) })) : null,
               h('span', { className: 'kml-bar', 'aria-hidden': 'true' },
                 h('span', { className: 'kml-bar-fill', 'data-etat': etat, style: { width: ec === null || ramGo === null ? '0%' : Math.min(100, Math.round(ec / ramGo * 100)) + '%' } }))),
@@ -1002,7 +1018,7 @@ window.__ModuleLoader__.load({
                 }, n === 0 ? m('kml.score.any') : m('kml.score.min', { n })))
                 : null)),
           visibles.length === 0 && lourds.length === 0 ? h('p', { className: 'kml-vide', 'data-kml': 'aucun' }, m('kml.aucun')) : null,
-          h('div', { className: 'kml-liste', 'data-kml': 'liste' }, pageDe.tranche.map(rangeeDe)),
+          h('div', { className: 'kml-liste', 'data-kml': 'liste' }, pageDe.tranche.map((mod, i) => rangeeDe(mod, marquesPage[i] === true, i))),
           visibles.length > KML_PAGE
             ? h('div', { className: 'kml-pager', 'data-kml': 'pager' },
               h('span', { className: 'kml-pager-info' }, m('kml.page.info', { a: pageDe.debut + 1, b: pageDe.fin, n: pageDe.total })),
@@ -1014,7 +1030,7 @@ window.__ModuleLoader__.load({
             ? h('button', { type: 'button', className: 'kml-fold', 'data-kml': 'lourds-toggle', 'aria-expanded': String(lourdsOuverts), onClick: () => setLourdsOuverts(!lourdsOuverts) },
               h('span', { className: 'kml-chev' + (lourdsOuverts ? ' open' : ''), 'aria-hidden': 'true' }, '›'), m('kml.lourd.n', { n: lourds.length }))
             : null,
-          lourds.length > 0 && lourdsOuverts ? h('div', { className: 'kml-liste', 'data-kml': 'lourds' }, lourds.map(rangeeDe)) : null,
+          lourds.length > 0 && lourdsOuverts ? h('div', { className: 'kml-liste', 'data-kml': 'lourds' }, lourds.map((mod) => rangeeDe(mod, lourds.length === 1, 0))) : null,
           h('div', { className: 'kml-section' }, m('kml.section')),
           branchees.length === 0
             ? h('p', { className: 'kml-vide' }, m('kml.vide'))
@@ -1056,6 +1072,8 @@ window.__ModuleLoader__.load({
 
       return {
         inject: ['slots', 'remote', 'remote.settings', 'remote.llm'],
+        // Pure pieces, exposed for test-client.mjs.
+        __test: { kbEtatsAmarques },
         apply(ctx) {
           kbCtx = ctx
           // The first-run wizard (kybernos-plugin) asks for the recommendation and connects a pulled model through this.
@@ -1070,7 +1088,7 @@ window.__ModuleLoader__.load({
           styles.insert(KBM_CSS, '@local/kybernos-modeles-locaux')
           styles.insert(KML_CSS, '@local/kybernos-modeles-locaux')
                     // (02/10) One door only: the dedicated section below. The foot of the
-                    // native Models page and the mount in « AI Provider & Models » are removed.
+                    // native Models page and the mount in « AI provider and models » are removed.
                     // ── DEDICATED Settings section ─────────────────────────────────────
                     // Same Panel component, with its own seat in the Settings navigation.
           ctx.effect(() => {
@@ -1080,7 +1098,7 @@ window.__ModuleLoader__.load({
               { name: 'settings.section', id: 'kybernos-ollama', order: 28, label: m('kml.page.titre') },
               Panel))
           }, 'modeles-locaux: dedicated Settings section')
-                    // (02/10) The mount in the « AI Provider & Models » page is removed:
+                    // (02/10) The mount in the « AI provider and models » page is removed:
                     // the panel now only exists in the dedicated section above.
         },
       }
