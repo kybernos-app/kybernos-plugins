@@ -98,7 +98,10 @@ function runOne(file) {
     child.on('exit', (code) => {
       clearTimeout(timer)
       const ms = Date.now() - started
-      const status = timedOut ? 'timeout' : code === 0 ? 'pass' : 'fail'
+      // The checks answer in three ways, not two: exit 3 means « I could not measure » (the sandbox already has
+      // servers, no session to open, no model). Counting that as a failure is what turned environment gaps into
+      // phantom defects in the October campaign.
+      const status = timedOut ? 'timeout' : code === 0 ? 'pass' : code === 3 ? 'inconclusive' : 'fail'
       writeFileSync(join(out, file.replace(/\.mjs$/, '.log')), `# ${file}\n# host=${host} status=${status} code=${code} ms=${ms}\n\n${buf}\n`)
       resolve({ file, status, code, ms, tail: buf.trim().split('\n').slice(-4).join('\n') })
     })
