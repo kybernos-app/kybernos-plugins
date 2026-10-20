@@ -17648,6 +17648,18 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       const delivOpen = delivOpenPair[0]
       const setDelivOpen = delivOpenPair[1]
       const delivVp = usePagedView(delivMine.length, 9, delivViewPair[0], delivViewPair[1])
+      // What is inside each creation of the visible page: the same previews as the Creations page (kybers/art-previews, first 900 characters).
+      const delivPrevPair = React.useState({})
+      React.useEffect(() => {
+        if (tab !== 'Deliverables') return undefined
+        const paths = delivVp.slice(delivMine).map((x) => x.path).filter((pth) => typeof pth === 'string' && delivPrevPair[0][pth] === undefined)
+        if (paths.length === 0) return undefined
+        let dead = false
+        host.call('kybers/art-previews', { paths: paths }).then((res) => {
+          if (dead === false && res !== null && res !== undefined && res.ok === true && res.previews !== null && res.previews !== undefined) delivPrevPair[1]((old) => Object.assign({}, old, res.previews))
+        }).catch(() => { /* previews unavailable: the type's drawing stays */ })
+        return () => { dead = true }
+      }, [tab, delivVp.page, delivVp.per, delivMine.length])
       const pageOf = (rows, vp) => vp.slice(rows)
       const pagerOf = (vp) => h(KbPager, { page: vp.page, setPage: vp.setPage, pages: vp.pages })
       // La liste peut depasser la fenetre : la pagination est rappelee EN HAUT
@@ -17873,11 +17885,19 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
             return p > 0 ? n.slice(p + 1).toLowerCase() : ''
           }
           const delivType = (a) => { const e = delivExt(a); return e.length > 0 ? e.toUpperCase() : kbt('kbui.doc.file') }
-          const delivMeta = (a) => [delivType(a), (typeof a.size === 'number' ? kbFmtSize(a.size) : null), (typeof a.mtimeMs === 'number' ? fmtAge(a.mtimeMs) : null)].filter((x) => typeof x === 'string' && x.length > 0).join(' · ')
+          const delivMeta = (a) => [kbArtType(a.name).label, (typeof a.size === 'number' ? kbFmtSize(a.size) : null), (typeof a.mtimeMs === 'number' ? fmtAge(a.mtimeMs) : null)].filter((x) => typeof x === 'string' && x.length > 0).join(' · ')
           const delivUrl = (a) => '/kybernos/art-raw?path=' + encodeURIComponent(String(a.path === undefined || a.path === null ? '' : a.path))
           const delivField = (lab, val, k) => (val === null || val === undefined || String(val).length === 0
             ? null
             : h('div', { className: 'kb8-docfield', key: k }, h('span', { className: 'kb8-parent' }, lab), h('span', { className: 'kb8-docval', title: String(val) }, String(val))))
+          // What the creation looks like: the picture itself for an image, its real preview once read, the type's drawing until then.
+          const delivThumbInner = (a) => {
+            const t = kbArtType(a.name)
+            const pv = delivPrevPair[0][a.path]
+            if (KB_DOC_IMAGE_EXTS.indexOf(delivExt(a)) >= 0) return h('img', { className: 'kb8-docthumbimg', 'data-kb': 'project-deliv-thumb', src: delivUrl(a), alt: '', loading: 'lazy', onError: (e) => { try { e.target.style.display = 'none' } catch (e2) { /* image absente */ } } })
+            if (pv !== undefined && pv !== null) return h('div', { className: 'kb6-prev kb6-prev-' + t.id, 'data-kb': 'project-deliv-prev' }, previewContent(t, a.name, pv, a.path, a.size))
+            return h('span', { className: 'kb8-sl-stage', 'data-kb': 'project-deliv-art' }, kbTiArt(kbTiOfName(a.name)))
+          }
           const delivFiche = (a) => h('div', { className: 'kb8-docfiche', 'data-kb': 'project-deliv-sheet' },
             h('div', { className: 'kb8-docfields' }, [
               delivField(kbt('kbui.doc.type'), delivType(a), 't'),
@@ -17892,7 +17912,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
             style: { flexDirection: 'column', alignItems: 'stretch', gap: '0' },
           },
             h('div', { style: { display: 'flex', alignItems: 'center', gap: '13px', width: '100%' } },
-              h('span', { className: 'kb8-tile' }, Icon('package', 16)),
+              h('span', { className: 'kb8-delthumb kb8-delthumb-row' }, delivThumbInner(a)),
               h('span', { style: { display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 } },
                 h('span', { className: 'kb8-name' }, String(a.name)),
                 h('span', { className: 'kb8-parent' }, delivMeta(a)))),
@@ -17901,10 +17921,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
             className: 'kb8-doccard', 'data-kb': 'project-deliv-card', 'data-open': delivOpen === a.path ? '1' : '0', key: a.path,
             onClick: () => setDelivOpen(delivOpen === a.path ? null : a.path),
           },
-            h('div', { className: 'kb8-docthumb' },
-              (KB_DOC_IMAGE_EXTS.indexOf(delivExt(a)) >= 0
-                ? h('img', { className: 'kb8-docthumbimg', 'data-kb': 'project-deliv-thumb', src: delivUrl(a), alt: '', loading: 'lazy', onError: (e) => { try { e.target.style.display = 'none' } catch (e2) { /* image illisible */ } } })
-                : h(React.Fragment, null, Icon('package', 22), h('span', { className: 'kb8-docxt' }, delivType(a))))),
+            h('div', { className: 'kb8-docthumb kb8-delthumb-card' }, delivThumbInner(a)),
             h('span', { className: 'kb8-name', title: String(a.name) }, String(a.name)),
             h('span', { className: 'kb8-parent' }, delivMeta(a)),
             (delivOpen === a.path ? delivFiche(a) : null))
@@ -31331,6 +31348,17 @@ button.kbbd-chip:hover{background:var(--dsw-alias-interactive-bg-hover,#f0f0f0)}
 .kb8-doccard{display:flex;flex-direction:column;gap:6px;padding:12px;border-radius:15px;background:var(--dsw-alias-bg-layer-2);border:1px solid transparent;cursor:pointer;min-width:0}
 .kb8-doccard:hover{border-color:var(--dsw-alias-border-l1)}
 .kb8-docthumb{display:flex;align-items:center;justify-content:center;gap:8px;height:58px;border-radius:11px;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-secondary)}
+/* <kb-deliv-thumb> */
+.kb8-delthumb{position:relative;display:grid;place-items:center;flex:none;overflow:hidden;border-radius:9px;background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l1)}
+.kb8-delthumb-row{width:112px;height:56px}
+.kb8-delthumb-row>.kb6-prev{position:absolute;left:0;top:0;width:280px;height:140px;transform:scale(.4);transform-origin:0 0;pointer-events:none;cursor:default}
+.kb8-delthumb-row>.kb8-sl-stage{width:100%;height:100%}
+.kb8-delthumb-row>.kb8-sl-stage svg{width:48px;height:33px}
+.kb8-delthumb-row>.kb8-docthumbimg{border-radius:0}
+.kb8-docthumb.kb8-delthumb-card{height:88px;padding:0;overflow:hidden;position:relative;display:block}
+.kb8-docthumb.kb8-delthumb-card>.kb6-prev{height:100%;width:100%;cursor:default}
+.kb8-docthumb.kb8-delthumb-card>.kb8-sl-stage{height:100%}
+/* </kb-deliv-thumb> */
 .kb8-docxt{font-family:ui-monospace,Menlo,monospace;font-size:11px;font-weight:700;letter-spacing:.06em}
 .kb8-docfiche{margin-top:10px;padding:12px;border-radius:11px;background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l1);cursor:default}
 .kb8-docfields{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px 18px}
