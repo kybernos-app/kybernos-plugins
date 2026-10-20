@@ -63,10 +63,21 @@ function discover() {
     .sort()
 }
 
+// Some checks are driven by arguments rather than by KB_HOST: without them they exit 2 on `usage:` and look
+// like a broken check. Pass what the runner already knows (the sandbox port and its DSH home).
+function extraArgs(file) {
+  if (file === 'check-gate-live.mjs') {
+    const port = String(host).includes(':') ? String(host).split(':').pop() : '3080'
+    const home = process.env.DSH_HOME !== undefined && process.env.DSH_HOME !== '' ? process.env.DSH_HOME : join(process.env.HOME || '', '.dsh')
+    return ['--dsh-port', port, '--dsh-home', home]
+  }
+  return []
+}
+
 function runOne(file) {
   return new Promise((resolve) => {
     const started = Date.now()
-    const child = spawn(process.execPath, [join(HERE, file)], {
+    const child = spawn(process.execPath, [join(HERE, file), ...extraArgs(file)], {
       cwd: REPO,
       env: { ...process.env, KB_HOST: host },
       stdio: ['ignore', 'pipe', 'pipe'],
