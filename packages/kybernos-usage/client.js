@@ -333,7 +333,7 @@ window.__ModuleLoader__.load({
 .kbus-link:hover{text-decoration:underline}
 @media (max-width:760px){.kbus-pop{position:fixed;left:16px;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));width:auto;max-height:calc(100vh - 120px)}}
 
-.kbus-page{padding:22px 28px 32px;max-width:860px;color:var(--dsw-alias-label-primary,#e8eaec)}
+.kbus-page{padding:0 0 32px;max-width:860px;color:var(--dsw-alias-label-primary,#e8eaec)}
 /* Light schemes: label-tertiary is 3.7:1 on white. Inside this page it reads as label-secondary, 5.8:1 (audit A1-05); the dark scheme keeps its hierarchy. */
 body:not([data-ds-dark-theme]) .kbus-page{--dsw-alias-label-tertiary:var(--dsw-alias-label-secondary)}
 .kbus-page h2{margin:0;font-size:22px;line-height:1.25;font-weight:700}
@@ -387,7 +387,7 @@ body:not([data-ds-dark-theme]) .kbus-page{--dsw-alias-label-tertiary:var(--dsw-a
 .kbus-sw[aria-checked="true"]{background:var(--dsw-alias-state-business-primary,#4176e6)}
 .kbus-sw[aria-checked="true"]::after{transform:translateX(16px);background:#fff}
 @media (prefers-reduced-motion:reduce){.kbus-sw::after{transition:none}}
-@media (max-width:760px){.kbus-page{padding:18px 16px 24px}.kbus-kpis{grid-template-columns:minmax(0,1fr)}.kbus-row{grid-template-columns:minmax(0,1fr) auto}.kbus-row .sh{display:none}}
+@media (max-width:760px){.kbus-page{padding:0 0 24px}.kbus-kpis{grid-template-columns:minmax(0,1fr)}.kbus-row{grid-template-columns:minmax(0,1fr) auto}.kbus-row .sh{display:none}}
 `
       const placeCss = () => {
         if (document.querySelector('style[data-plugin="@local/kybernos-usage"]') !== null) return

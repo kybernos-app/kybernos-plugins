@@ -2642,7 +2642,7 @@ window.__ModuleLoader__.load({
       return h('div', { className: 'kbr-page', 'data-kbr': 'bloc' },
         // (28/09, audit) 26px page title like Theme/Maintenance/Tools —
         // the native h4 (16px) was the only small page title of the dialog.
-        h('div', { style: { display: 'flex', justifyContent: 'flex-end', width: '100%', marginBottom: 6 } }, (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-sessions' }) : null)),
+        h('div', { className: 'kbhp-row' }, (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-sessions' }) : null)),
         h('h4', { className: 'kb6-title', style: { fontSize: natif ? undefined : '26px' } }, kt('Réglages Kybernos', 'Kybernos Settings')),
         // ── at the very top: replay the onboarding ───────────────────────────
         // The wizard lives in the @local/kybernos bundle: we only emit the

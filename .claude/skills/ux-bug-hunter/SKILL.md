@@ -72,8 +72,8 @@ help text that restates the label. Remove the second one.
 
 **A frame that does not move.** Switching menu, tab or page must not move the dialog, the menu, the header or the content
 box, change their size, make a scrollbar appear and shift the content, or let something load in and push the rest. The
-title of every page starts at the same x and y (first audit: Settings titles sat at x 272, 289, 300 and 330, y 54 to 107). Measure
-the landmarks page by page (section 3). Fixes: a fixed or minimum height on the content box, `scrollbar-gutter: stable`, a
+title of every page starts at the same x and y (first audit: Settings titles sat at x 272, 289, 300 and 330, y 54 to 110). Measure
+the landmarks page by page (section 3); for Settings the check is ready: `scripts/check-settings-frame-live.mjs [--worktree]`. Fixes: a fixed or minimum height on the content box, `scrollbar-gutter: stable`, a
 skeleton in the real row's own box (`docs/dev/skeleton-screens.md`), reserved room for late content.
 
 **Alignment and rhythm.** Menu entries, icons, labels and rows share one leading edge; icons share one size; a row's

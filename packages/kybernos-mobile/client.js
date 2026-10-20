@@ -929,7 +929,7 @@ window.__ModuleLoader__.load({
         }
 
         const CSS = `
-.kbmr-page{display:flex;flex-direction:column;gap:20px;padding:4px 2px;max-width:1040px}
+.kbmr-page{display:flex;flex-direction:column;gap:20px;padding:0;max-width:1040px}
 [data-slot="settings.section"]:has(.kbpc-page){width:100%;max-width:none}
 /* The title row is a grid so that on a phone the sentence drops under the title and takes the whole width, instead of a column of five words. */
 .kbpc-head{display:grid;grid-template-columns:44px minmax(0,1fr) auto auto auto;grid-template-areas:"ic ttl chip help x" "ic lead chip help x";column-gap:12px;align-items:start}
