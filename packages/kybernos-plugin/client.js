@@ -107,11 +107,9 @@ let kbLocaleRead = () => 'en'
       'tasks.filter.attention': { kybernos: 'Attention requise', en: 'Needs attention' },
       'tasks.col.name': { kybernos: 'Nom', en: 'Name' },
       'tasks.col.trigger': { kybernos: 'Déclencheur', en: 'Trigger' },
-      'tasks.col.origin': { kybernos: 'Origine', en: 'Origin' },
       'tasks.col.lastsession': { kybernos: 'Dernière session', en: 'Last session' },
       'tasks.col.sessions': { kybernos: 'Sessions', en: 'Sessions' },
       'tasks.col.on': { kybernos: 'Actif', en: 'On' },
-      'tasks.origin.manual': { kybernos: 'Manuel', en: 'Manual' },
       'tasks.status.awaiting': { kybernos: 'En attente d\'approbation', en: 'Awaiting approval' },
       'tasks.status.ok': { kybernos: 'ok', en: 'ok' },
       'tasks.status.failed': { kybernos: 'Échoué', en: 'Failed' },
@@ -905,7 +903,6 @@ let kbLocaleRead = () => 'en'
       'ui.subsession': { kybernos: 'Sous-session', en: 'Sub-session' },
       'ui.attempts.sub': { kybernos: ' pour ce rôle dans ce run', en: ' for this role in this run' },
       'ui.noworkspace': { kybernos: 'Aucun workspace pour l\'instant.', en: 'No workspace yet.' },
-      'ui.nodeliverable': { kybernos: 'Aucune création dans ce projet.', en: 'No creation in this project.' },
       'runs.noroute': { kybernos: 'La liste des exécutions ne répond pas — redémarre DSH.', en: 'The list of runs is not answering — restart DSH.' },
       'runs.withruns': { kybernos: ' avec runs', en: ' with runs' },
       'runs.localstore': { kybernos: ' (store local)', en: ' (local store)' },
@@ -3445,9 +3442,7 @@ const KB_FR_EN = {
   'Afficher le détail': 'Show the detail',
   'Afficher les points': 'Show the points',
   'Aucun bloc `budget:` dans les kyber.yml du projet.': 'No `budget:` block in the project kyber.yml files.',
-  'Aucun budget déclaré par les Agent Teams de ce projet (bloc budget: du kyber.yml).': 'No budget declared by this project’s agent teams (budget: block of kyber.yml).',
   'Aucun budget déclaré pour y rapporter cette dépense.': 'No declared budget to report this spend against.',
-  'Aucun document envoyé dans les threads de ce projet pour l’instant.': 'No document sent in this project’s threads for now.',
   'Aucune Agent Team n’a encore tourné dans les threads de ce projet.': 'No agent team has run in this project’s threads yet.',
   'La liste ci-dessous est le catalogue de compétences de l’environnement.': 'The list below is the environment’s skill catalog.',
   'Aucune compétence détectée dans l’environnement — installe une Agent Team qui en déclare, ou importe-en une depuis le dépôt.': 'No skill detected in the environment — install an agent team that declares one, or import one from the repository.',
@@ -3473,10 +3468,8 @@ const KB_FR_EN = {
   'erreur inconnue': 'unknown error',
   'Aucun micro détecté': 'No microphone detected',
   'Aucun micro ne correspond à ce périphérique': 'No microphone matches this device',
-  'Aucun objectif en cours dans les threads de ce projet.': 'No ongoing goal in this project’s threads.',
   'Aucun outil déclaré ni connexion réelle pour ce projet.': 'No declared tool and no real connection for this project.',
   'Aucun son capté pendant ': 'No sound captured for ',
-  'Aucun thread dans ce projet pour l’instant — ouvre un chat dans ce projet et il apparaitra ici.': 'No thread in this project for now — open a chat in this project and it will show up here.',
   'Aucune clé Composio configurée sur cette machine : aucune connexion réelle ne peut être listée.': 'No Composio key configured on this machine: no real connection can be listed.',
   'Aucune session': 'No session',
   'Aucune session courante — ouvre une conversation puis reviens ici.': 'No current session — open a conversation and come back here.',
@@ -10170,6 +10163,20 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       h('button', { type: 'button', className: 'kb6-pgbtn', disabled: props.page <= 0, onClick: () => props.setPage(props.page - 1) }, '‹'),
       h('span', { className: 'kb6-pglabel' }, kbt('kbui.page') + (props.page + 1) + '/' + props.pages),
       h('button', { type: 'button', className: 'kb6-pgbtn', disabled: props.page >= props.pages - 1, onClick: () => props.setPage(props.page + 1) }, '›')))
+    // <kb-empty-state>
+    // An empty list teaches (UX audit 2026-10-20): a small drawing, what lives here, and the way to add the first one.
+    // Pure: `o` = { kb, title, text?, action?: { act, label, run } }.
+    const KbEmptyState = (o) => h('div', { className: 'kb9-emptyx', 'data-kb': o.kb === undefined ? 'empty-state' : o.kb },
+      h('svg', { className: 'kb9-emptyx-art', viewBox: '0 0 84 62', 'aria-hidden': 'true' },
+        h('rect', { className: 'f', x: 10, y: 14, width: 46, height: 38, rx: 6 }),
+        h('rect', { className: 'l', x: 22, y: 8, width: 46, height: 38, rx: 6 }),
+        h('path', { className: 'l', d: 'M32 20h26M32 28h18M32 36h22' }),
+        h('circle', { className: 'a', cx: 66, cy: 46, r: 11 }),
+        h('path', { className: 'p', d: 'M66 41v10M61 46h10' })),
+      h('div', { className: 'kb9-emptyx-t' }, o.title),
+      (typeof o.text === 'string' && o.text.length > 0 ? h('p', { className: 'kb9-emptyx-p' }, o.text) : null),
+      (o.action !== undefined && o.action !== null ? h('button', { type: 'button', className: 'kb8-primary kb9-emptyx-b', 'data-act': o.action.act, onClick: o.action.run }, o.action.label) : null))
+    // </kb-empty-state>
     const KybersPanel = (p0) => {
       const compact = p0 !== null && p0 !== undefined && p0.compact === true;
       const s = useStore();
@@ -14152,7 +14159,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
               h('span', { style: { display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 } },
                 h('span', { className: 'kb8-name' }, c.name),
                 h('span', { className: 'kb8-parent' }, c.meta)),
-              h('span', { style: Object.assign({}, pillT, c.state === 'ACTIVE' || c.state === 'READY' ? { color: 'var(--dsw-alias-state-success-primary)', borderColor: 'var(--dsw-alias-state-success-primary)' } : (c.state === 'FAILED' ? { color: 'var(--dsw-alias-state-error-primary)', borderColor: 'var(--dsw-alias-state-error-primary)' } : null)) }, String(c.state).charAt(0) + String(c.state).slice(1).toLowerCase()),
+              ((c.state === 'ACTIVE' || c.state === 'READY') ? null : h('span', { style: Object.assign({}, pillT, c.state === 'ACTIVE' || c.state === 'READY' ? { color: 'var(--dsw-alias-state-success-primary)', borderColor: 'var(--dsw-alias-state-success-primary)' } : (c.state === 'FAILED' ? { color: 'var(--dsw-alias-state-error-primary)', borderColor: 'var(--dsw-alias-state-error-primary)' } : null)) }, String(c.state).charAt(0) + String(c.state).slice(1).toLowerCase())),
               h('button', {
                 type: 'button', className: 'kb8-iconbtn', 'data-kb': 'team-conn-toggle',
                 title: (c.real === true && c.account !== null && c.account !== undefined && c.account !== '') ? (connTeamArm === c.key ? kbt('kbui.conn.confirm') : kbt('kbui.conn.disable')) : kbt('kbui.conn.enable'),
@@ -14380,7 +14387,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
           h('span', { style: { display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 } },
             h('span', { className: 'kb8-name' }, k.name),
             h('span', { className: 'kb8-parent' }, k.ghost === true ? kbt('kbui.skills.ghostteam') : (k.kyber + ' · ' + k.where))),
-          h('span', { style: k.attached === true ? pillTOn : pillT, 'data-kb': 'team-skill-pill' }, k.attached === true ? 'Attached' : 'Available')))))
+          (k.attached === true ? h('span', { style: pillTOn, 'data-kb': 'team-skill-pill' }, 'Attached') : null)))))
     }
     // ── vue Runs : lanes SVG (déclaré / observé / réel) ───────────────────
     const KB_RUN_COLORS = { completed: '#22c55e', failed: '#ef4444', cancelled: '#f59e0b' }
@@ -17379,6 +17386,12 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         h('span', { style: { display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, gap: '6px' } }, kbBone(i % 2 === 0 ? '34%' : '26%', 13), kbBone('52%', 10)),
         kbBone(70, 22, 'pill')))))
       const empty = (label) => (label === PROJ_LOADING ? projSkel() : h('div', { className: 'kb9-empty' }, label))
+      // An empty tab: the drawing, what lives here, and the way to add the first one. Bones while the project is still being read.
+      const emptyX = (o) => (projLoading === true ? projSkel() : KbEmptyState(o))
+      const startChatHere = () => {
+        try { if (uiWorkspaceSvc !== null && uiWorkspaceSvc !== undefined && typeof uiWorkspaceSvc.startSession === 'function' && ws !== null) { uiWorkspaceSvc.startSession(ws.workspaceId); set({ view: null }) } } catch (e) { /* no chat opened */ }
+      }
+      const chatAction = (label) => ({ act: 'new-chat', label: label, run: startChatHere })
       const hit = (t) => q === '' || String(t).toLowerCase().indexOf(q.toLowerCase()) >= 0
       // ── Donnees du projet absentes de la charge utile ──────────────────────
       // Trois choses ne sont connues que du host : quels kybers ont tourne dans
@@ -17633,6 +17646,18 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       const delivOpen = delivOpenPair[0]
       const setDelivOpen = delivOpenPair[1]
       const delivVp = usePagedView(delivMine.length, 9, delivViewPair[0], delivViewPair[1])
+      // What is inside each creation of the visible page: the same previews as the Creations page (kybers/art-previews, first 900 characters).
+      const delivPrevPair = React.useState({})
+      React.useEffect(() => {
+        if (tab !== 'Deliverables') return undefined
+        const paths = delivVp.slice(delivMine).map((x) => x.path).filter((pth) => typeof pth === 'string' && delivPrevPair[0][pth] === undefined)
+        if (paths.length === 0) return undefined
+        let dead = false
+        host.call('kybers/art-previews', { paths: paths }).then((res) => {
+          if (dead === false && res !== null && res !== undefined && res.ok === true && res.previews !== null && res.previews !== undefined) delivPrevPair[1]((old) => Object.assign({}, old, res.previews))
+        }).catch(() => { /* previews unavailable: the type's drawing stays */ })
+        return () => { dead = true }
+      }, [tab, delivVp.page, delivVp.per, delivMine.length])
       const pageOf = (rows, vp) => vp.slice(rows)
       const pagerOf = (vp) => h(KbPager, { page: vp.page, setPage: vp.setPage, pages: vp.pages })
       // La liste peut depasser la fenetre : la pagination est rappelee EN HAUT
@@ -17734,7 +17759,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         if (tab === 'Threads') {
           // Plus de maquette : soit de vrais threads, soit un etat vide explicite.
           if (threadsRows.length === 0) {
-            return empty(projLoading === true ? PROJ_LOADING : kbe('No thread in this project for now — open a chat in this project and it will show up here.'))
+            return emptyX({ kb: 'project-threads-empty', title: kbe('No thread yet', 'Aucun fil pour l’instant'), text: kbe('Chats you open in this project show up here.', 'Les chats ouverts dans ce projet apparaissent ici.'), action: chatAction(kbe('New chat in this project', 'Nouveau chat dans ce projet')) })
           }
           return h(React.Fragment, null,
             pagerTop(threadsVp),
@@ -17758,7 +17783,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         if (tab === kbt('kbui.documents')) {
           // Les documents ENVOYES par l'utilisateur dans les threads du projet.
           if (docsRows.length === 0) {
-            return empty(projLoading === true ? PROJ_LOADING : kbe('No document sent in this project’s threads for now.'))
+            return emptyX({ kb: 'project-docs-empty', title: kbe('No document yet', 'Aucun document'), text: kbe('Files you send in this project’s chats show up here.', 'Les fichiers envoyés dans les chats de ce projet apparaissent ici.'), action: chatAction(kbe('Open a chat in this project', 'Ouvrir un chat dans ce projet')) })
           }
           // Reconnaitre une piece : six « image.png » identiques cohabitaient dans
           // cette liste. Le host connait la date d'envoi et le thread d'origine —
@@ -17832,7 +17857,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         if (tab === kbt('kbui.objectifs')) {
           // Les objectifs REELLEMENT en cours dans les threads du projet.
           return goalRows.length === 0
-            ? empty(projLoading === true ? PROJ_LOADING : kbe('No ongoing goal in this project’s threads.'))
+            ? emptyX({ kb: 'project-goals-empty', title: kbe('No goal running', 'Aucun objectif en cours'), text: kbe('A goal set in one of this project’s chats is followed here until it is done.', 'Un objectif fixé dans un chat de ce projet est suivi ici jusqu’à son terme.'), action: chatAction(kbe('Open a chat in this project', 'Ouvrir un chat dans ce projet')) })
             : h(React.Fragment, null,
               pagerTop(goalsVp),
               h('div', { className: 'kb8-rows' }, pageOf(goalRows, goalsVp).map((g) => {
@@ -17847,7 +17872,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
               pagerOf(goalsVp))
         }
         if (tab === 'Deliverables') {
-          if (mine.length === 0) return empty(kbt('ui.nodeliverable'))
+          if (mine.length === 0) return emptyX({ kb: 'project-deliv-empty', title: kbe('No creation yet', 'Aucune création'), text: kbe('Pages, files and decks your Agent Teams make in this project show up here.', 'Les pages, fichiers et présentations créés par tes Agent Teams dans ce projet apparaissent ici.'), action: chatAction(kbe('Open a chat in this project', 'Ouvrir un chat dans ce projet')) })
           // Le nom d'un livrable ne dit ni son type ni son age : les deux sont
           // affiches, et la fiche dit ou il vit sur le disque (avec de quoi
           // l'ouvrir ou le telecharger). `docField` appartient a l'onglet
@@ -17858,11 +17883,19 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
             return p > 0 ? n.slice(p + 1).toLowerCase() : ''
           }
           const delivType = (a) => { const e = delivExt(a); return e.length > 0 ? e.toUpperCase() : kbt('kbui.doc.file') }
-          const delivMeta = (a) => [delivType(a), (typeof a.size === 'number' ? kbFmtSize(a.size) : null), (typeof a.mtimeMs === 'number' ? fmtAge(a.mtimeMs) : null)].filter((x) => typeof x === 'string' && x.length > 0).join(' · ')
+          const delivMeta = (a) => [kbArtType(a.name).label, (typeof a.size === 'number' ? kbFmtSize(a.size) : null), (typeof a.mtimeMs === 'number' ? fmtAge(a.mtimeMs) : null)].filter((x) => typeof x === 'string' && x.length > 0).join(' · ')
           const delivUrl = (a) => '/kybernos/art-raw?path=' + encodeURIComponent(String(a.path === undefined || a.path === null ? '' : a.path))
           const delivField = (lab, val, k) => (val === null || val === undefined || String(val).length === 0
             ? null
             : h('div', { className: 'kb8-docfield', key: k }, h('span', { className: 'kb8-parent' }, lab), h('span', { className: 'kb8-docval', title: String(val) }, String(val))))
+          // What the creation looks like: the picture itself for an image, its real preview once read, the type's drawing until then.
+          const delivThumbInner = (a) => {
+            const t = kbArtType(a.name)
+            const pv = delivPrevPair[0][a.path]
+            if (KB_DOC_IMAGE_EXTS.indexOf(delivExt(a)) >= 0) return h('img', { className: 'kb8-docthumbimg', 'data-kb': 'project-deliv-thumb', src: delivUrl(a), alt: '', loading: 'lazy', onError: (e) => { try { e.target.style.display = 'none' } catch (e2) { /* image absente */ } } })
+            if (pv !== undefined && pv !== null) return h('div', { className: 'kb6-prev kb6-prev-' + t.id, 'data-kb': 'project-deliv-prev' }, previewContent(t, a.name, pv, a.path, a.size))
+            return h('span', { className: 'kb8-sl-stage', 'data-kb': 'project-deliv-art' }, kbTiArt(kbTiOfName(a.name)))
+          }
           const delivFiche = (a) => h('div', { className: 'kb8-docfiche', 'data-kb': 'project-deliv-sheet' },
             h('div', { className: 'kb8-docfields' }, [
               delivField(kbt('kbui.doc.type'), delivType(a), 't'),
@@ -17877,7 +17910,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
             style: { flexDirection: 'column', alignItems: 'stretch', gap: '0' },
           },
             h('div', { style: { display: 'flex', alignItems: 'center', gap: '13px', width: '100%' } },
-              h('span', { className: 'kb8-tile' }, Icon('package', 16)),
+              h('span', { className: 'kb8-delthumb kb8-delthumb-row' }, delivThumbInner(a)),
               h('span', { style: { display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 } },
                 h('span', { className: 'kb8-name' }, String(a.name)),
                 h('span', { className: 'kb8-parent' }, delivMeta(a)))),
@@ -17886,10 +17919,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
             className: 'kb8-doccard', 'data-kb': 'project-deliv-card', 'data-open': delivOpen === a.path ? '1' : '0', key: a.path,
             onClick: () => setDelivOpen(delivOpen === a.path ? null : a.path),
           },
-            h('div', { className: 'kb8-docthumb' },
-              (KB_DOC_IMAGE_EXTS.indexOf(delivExt(a)) >= 0
-                ? h('img', { className: 'kb8-docthumbimg', 'data-kb': 'project-deliv-thumb', src: delivUrl(a), alt: '', loading: 'lazy', onError: (e) => { try { e.target.style.display = 'none' } catch (e2) { /* image illisible */ } } })
-                : h(React.Fragment, null, Icon('package', 22), h('span', { className: 'kb8-docxt' }, delivType(a))))),
+            h('div', { className: 'kb8-docthumb kb8-delthumb-card' }, delivThumbInner(a)),
             h('span', { className: 'kb8-name', title: String(a.name) }, String(a.name)),
             h('span', { className: 'kb8-parent' }, delivMeta(a)),
             (delivOpen === a.path ? delivFiche(a) : null))
@@ -17906,10 +17936,11 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
           // = détacher. Persisté côté host (workspace-skills), comme les
           // détails de la fiche — aucun état purement local.
           if (skillRows.length === 0) {
-            return empty(projLoading === true ? PROJ_LOADING
-              : (projActiveIds.length === 0
+            return emptyX({ kb: 'project-skills-empty', title: kbe('No skill yet', 'Aucune compétence'),
+              text: projActiveIds.length === 0
                 ? kbe('No agent team has run in this project’s threads yet.')
-                : kbe('No skill detected in the environment — install an agent team that declares one, or import one from the repository.')))
+                : kbe('No skill detected in the environment — install an agent team that declares one, or import one from the repository.'),
+              action: { act: 'browse-skills', label: kbt('kbui.skills.browse'), run: () => { try { set({ view: 'skills' }) } catch (e) { /* page unavailable */ } } } })
           }
           const attachedCount = skillRows.filter((r) => r.attached === true).length
           const countLabel = String(attachedCount) + ' ' + kbt(attachedCount === 1 ? 'kbui.skills.one' : 'kbui.skills.many')
@@ -17946,7 +17977,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
               h('span', { style: { display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 } },
                 h('span', { className: 'kb8-name' }, k.name),
                 h('span', { className: 'kb8-parent' }, k.ghost === true ? kbt('kbui.skills.ghost') : (k.kyber + ' · ' + k.where))),
-              h('span', { style: k.attached === true ? pillAttached : pillStyle, 'data-kb': 'project-skill-pill' }, k.attached === true ? 'Attached' : 'Available'),
+              (k.attached === true ? h('span', { style: pillAttached, 'data-kb': 'project-skill-pill' }, 'Attached') : null),
               h('button', {
                 type: 'button', className: 'kb8-iconbtn', 'data-kb': 'project-skill-info',
                 title: kbt('kbui.skill.info'), 'aria-label': kbt('kbui.skill.info') + kbfSep() + k.name,
@@ -17991,11 +18022,11 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
           if (connRows.length === 0) {
             return h(React.Fragment, null,
               h('span', { className: 'kb8-parent', 'data-kb': 'connectors-source' }, connsNote),
-              empty(projLoading === true
-                ? PROJ_LOADING
-                : (connsReal !== null && connsReal.configured === true
+              emptyX({ kb: 'project-conns-empty', title: kbe('No connector yet', 'Aucun connecteur'),
+                text: connsReal !== null && connsReal.configured === true
                   ? kbe('No declared tool and no real connection for this project.')
-                  : (projActiveIds.length === 0 ? kbe('No agent team has run in this project’s threads yet.') : kbe('This project’s agent teams declare no tool (connector).')))))
+                  : (projActiveIds.length === 0 ? kbe('No agent team has run in this project’s threads yet.') : kbe('This project’s agent teams declare no tool (connector).')),
+                action: KB_CP === true ? { act: 'open-connectors', label: kbe('Open Connectors', 'Ouvrir les connecteurs'), run: () => { try { set({ view: 'connectors' }) } catch (e) { /* page unavailable */ } } } : null }))
           }
           return h(React.Fragment, null,
             h('span', { className: 'kb8-parent', 'data-kb': 'connectors-source' }, connsNote),
@@ -18005,7 +18036,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
               h('span', { style: { display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 } },
                 h('span', { className: 'kb8-name' }, c.name),
                 h('span', { className: 'kb8-parent' }, c.meta)),
-              h('span', { style: Object.assign({}, pillStyle, c.state === 'ACTIVE' || c.state === 'READY' ? { color: 'var(--dsw-alias-state-success-primary)', borderColor: 'var(--dsw-alias-state-success-primary)' } : (c.state === 'FAILED' ? { color: 'var(--dsw-alias-state-error-primary)', borderColor: 'var(--dsw-alias-state-error-primary)' } : null)) }, String(c.state).charAt(0) + String(c.state).slice(1).toLowerCase()),
+              ((c.state === 'ACTIVE' || c.state === 'READY') ? null : h('span', { style: Object.assign({}, pillStyle, c.state === 'ACTIVE' || c.state === 'READY' ? { color: 'var(--dsw-alias-state-success-primary)', borderColor: 'var(--dsw-alias-state-success-primary)' } : (c.state === 'FAILED' ? { color: 'var(--dsw-alias-state-error-primary)', borderColor: 'var(--dsw-alias-state-error-primary)' } : null)) }, String(c.state).charAt(0) + String(c.state).slice(1).toLowerCase())),
               h('button', {
                 type: 'button', className: 'kb8-iconbtn', 'data-kb': 'project-conn-toggle',
                 title: (c.real === true && c.account !== null && c.account !== undefined && c.account !== '') ? (connArm === c.key ? kbt('kbui.conn.confirm') : kbt('kbui.conn.disable')) : kbt('kbui.conn.enable'),
@@ -18031,7 +18062,8 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         }
         // ── Budget : uniquement des chiffres reels, aucun graphe invente ──────
         if (budgetRows.length === 0 && spentNow === null) {
-          return empty(projLoading === true ? PROJ_LOADING : kbe('No budget declared by this project’s agent teams (budget: block of kyber.yml).'))
+          return emptyX({ kb: 'project-budget-empty', title: kbe('No budget set', 'Aucun budget défini'), text: kbe('A budget is set by an Agent Team. Once one of this project’s teams has one, its spending is followed here.', 'Un budget est défini par une Agent Team. Dès qu’une équipe de ce projet en a un, ses dépenses sont suivies ici.'),
+            action: { act: 'open-agent-teams', label: kbe('Open Agent Teams', 'Ouvrir les Agent Teams'), run: () => { try { set({ nav: 'kybers', view: 'gallery', detailPath: null, detailRoot: null }) } catch (e) { /* page unavailable */ } } } })
         }
         const cardBoxB = { flex: 1, minWidth: '220px', background: 'var(--dsw-alias-bg-layer-1)', border: '1px solid var(--dsw-alias-border-l1)', borderRadius: '16px', padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: '8px' }
         const remaining = spentNow === null ? null : Math.max(0, budgetTotal - spentNow)
@@ -22351,7 +22383,6 @@ function renderFit(canvas, model, cam, opts){
         h('div', { className: 'kba-rowhead' },
           h('span', { className: 'kba-tabver' }, kbt('tasks.col.name')),
           h('span', { className: 'kba-tabver' }, kbt('tasks.col.trigger')),
-          h('span', { className: 'kba-tabver' }, kbt('tasks.col.origin')),
           h('span', { className: 'kba-tabver' }, kbt('tasks.col.lastsession')),
           h('span', { className: 'kba-tabver' }, kbt('tasks.col.sessions'))),
         h('span', null),
@@ -22361,7 +22392,7 @@ function renderFit(canvas, model, cam, opts){
         [0, 1, 2, 3].map((i) => h('div', { key: 'r' + i, className: 'kba-rowline kb-sk-row' },
           h('div', { className: 'kba-rowbtn', style: { cursor: 'default' } },
             h('span', { style: { display: 'flex', flexDirection: 'column', gap: '3px' } }, kbBone(i % 2 === 0 ? '62%' : '48%', 13), kbBone('36%', 10)),
-            kbBone('72%', 12), kbBone(72, 20, 'pill'), kbBone('70%', 12), kbBone(20, 12)),
+            kbBone('72%', 12), kbBone('70%', 12), kbBone(20, 12)),
           h('span', null),
           h('span', { className: 'kba-oncol' }, kbBone(34, 20, 'pill'))))])
       const kbaLoadError = () => h('div', { className: 'kba-card' },
@@ -22838,7 +22869,6 @@ function renderFit(canvas, model, cam, opts){
               h('button', { type: 'button', className: 'kba-rowbtn', onClick: () => { setDetail(a.id); setTab('sessions'); setNodeSel(null) } },
                 h('span', { className: 'kba-namecell' }, h('span', { className: 'kba-name', title: a.name }, a.name), h('span', { className: 'kba-team', title: a.team }, a.team)),
                 h('span', { className: 'kba-trgcell' }, h('span', { className: 'kba-trigger-icon' }, Icon('zap', 12)), h('span', { className: 'kba-trg-stack' }, h('span', { className: 'kba-ell', title: a.tip !== '' ? a.trigger + ' · ' + a.tip : a.trigger }, a.trigger), a.hooked === true ? h('span', { className: 'kba-team' }, kbt('tasks.trigger.plushook')) : null)),
-                h('span', null, h('span', { className: 'kba-origin-badge' }, kbt('tasks.origin.manual'))),
                 h('span', { className: 'kba-last' + (a.lastCls !== '' ? ' ' + a.lastCls : '') }, h('span', { className: 'kba-kdot ' + a.lastCls }), h('span', { className: 'kba-ell', title: a.lastLabel }, a.lastLabel)),
                 h('span', { className: 'kba-td-num' }, String(a.sessions))),
               // The row's actions sit at the right, shown on hover and on focus (always on a touch screen): they used to stand to the
@@ -30822,7 +30852,7 @@ body[data-ds-dark-theme] .kb8-iconbtn.on.col{border-color:var(--kb8-pgd);color:v
 .kba-rowline:hover,.kba-rowline:focus-within{background:var(--dsw-alias-interactive-bg-hover)}
 .kba-rowline-head{cursor:default;border-top:0;padding-top:11px;padding-bottom:11px}
 .kba-rowline-head:hover{background:transparent}
-.kba-rowbtn,.kba-rowhead{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1.4fr) 88px 150px 64px;column-gap:14px;align-items:center;min-width:0}
+.kba-rowbtn,.kba-rowhead{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1.4fr) 150px 64px;column-gap:14px;align-items:center;min-width:0}
 .kba-oncol{display:flex;align-items:center;justify-content:center}
 .kba-namecell{display:flex;flex-direction:column;min-width:0}
 /* The row's actions: at the right, on hover and on focus; always on a touch screen. A starred row keeps its star. */
@@ -30835,7 +30865,7 @@ body[data-ds-dark-theme] .kb8-iconbtn.on.col{border-color:var(--kb8-pgd);color:v
 .kba-lcard .kba-toggle.on .kba-toggle-knob{left:16px}
 @container (max-width:939px){
   .kba-rowbtn,.kba-rowhead{grid-template-columns:minmax(0,1.3fr) minmax(0,1.4fr) 150px}
-  .kba-rowbtn>:nth-child(3),.kba-rowhead>:nth-child(3),.kba-rowbtn>:nth-child(5),.kba-rowhead>:nth-child(5){display:none}
+  .kba-rowbtn>:nth-child(4),.kba-rowhead>:nth-child(4){display:none}
 }
 @container (max-width:699px){
   .kba-rowline-head{display:none}
@@ -30885,7 +30915,6 @@ body[data-ds-dark-theme] .kb8-iconbtn.on.col{border-color:var(--kb8-pgd);color:v
 .kba-trgcell{display:flex;align-items:center;gap:10px;color:var(--dsw-alias-label-secondary);min-width:0}
 .kba-trigger-icon{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:7px;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-state-warn-primary);font-size:11px;flex:none}
 .kba-ell{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.kba-origin-badge{display:inline-block;padding:2px 8px;border-radius:5px;border:1px solid var(--dsw-alias-border-l1);font-family:ui-monospace,Menlo,monospace;font-size:10px;color:var(--dsw-alias-label-secondary);background:var(--dsw-alias-bg-layer-2)}
 .kba-last{display:flex;align-items:center;gap:8px;min-width:0;font-size:13px}
 .kba-kdot{width:8px;height:8px;border-radius:50%;flex:none;background:var(--dsw-alias-state-idle-primary)}
 .kba-kdot.ok{background:var(--dsw-alias-state-success-primary)}
@@ -31314,6 +31343,17 @@ button.kbbd-chip:hover{background:var(--dsw-alias-interactive-bg-hover,#f0f0f0)}
 .kb8-doccard{display:flex;flex-direction:column;gap:6px;padding:12px;border-radius:15px;background:var(--dsw-alias-bg-layer-2);border:1px solid transparent;cursor:pointer;min-width:0}
 .kb8-doccard:hover{border-color:var(--dsw-alias-border-l1)}
 .kb8-docthumb{display:flex;align-items:center;justify-content:center;gap:8px;height:58px;border-radius:11px;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-secondary)}
+/* <kb-deliv-thumb> */
+.kb8-delthumb{position:relative;display:grid;place-items:center;flex:none;overflow:hidden;border-radius:9px;background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l1)}
+.kb8-delthumb-row{width:112px;height:56px}
+.kb8-delthumb-row>.kb6-prev{position:absolute;left:0;top:0;width:280px;height:140px;transform:scale(.4);transform-origin:0 0;pointer-events:none;cursor:default}
+.kb8-delthumb-row>.kb8-sl-stage{width:100%;height:100%}
+.kb8-delthumb-row>.kb8-sl-stage svg{width:48px;height:33px}
+.kb8-delthumb-row>.kb8-docthumbimg{border-radius:0}
+.kb8-docthumb.kb8-delthumb-card{height:88px;padding:0;overflow:hidden;position:relative;display:block}
+.kb8-docthumb.kb8-delthumb-card>.kb6-prev{height:100%;width:100%;cursor:default}
+.kb8-docthumb.kb8-delthumb-card>.kb8-sl-stage{height:100%}
+/* </kb-deliv-thumb> */
 .kb8-docxt{font-family:ui-monospace,Menlo,monospace;font-size:11px;font-weight:700;letter-spacing:.06em}
 .kb8-docfiche{margin-top:10px;padding:12px;border-radius:11px;background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l1);cursor:default}
 .kb8-docfields{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px 18px}
@@ -31542,6 +31582,16 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
 .kb9-card{background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l1);border-radius:16px;overflow:hidden}
 .kb9-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
 .kb9-empty{display:flex;flex-direction:column;align-items:center;gap:10px;padding:80px 24px;background:var(--dsw-alias-bg-layer-1);border:1px dashed var(--dsw-alias-border-l1);border-radius:18px;text-align:center;color:var(--dsw-alias-label-secondary)}
+.kb9-emptyx{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:34px 24px;min-height:220px;background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l1);border-radius:16px;text-align:center}
+.kb9-emptyx-art{width:84px;height:62px;flex:none}
+.kb9-emptyx-art .l{fill:var(--dsw-alias-bg-layer-1);stroke:var(--dsw-alias-label-tertiary);stroke-width:1.5;stroke-linejoin:round;stroke-linecap:round}
+.kb9-emptyx-art path.l{fill:none}
+.kb9-emptyx-art .f{fill:var(--dsw-alias-bg-layer-2);stroke:var(--dsw-alias-label-tertiary);stroke-width:1.5}
+.kb9-emptyx-art .a{fill:var(--dsw-alias-label-primary);stroke:none}
+.kb9-emptyx-art .p{fill:none;stroke:var(--dsw-alias-bg-layer-1);stroke-width:2;stroke-linecap:round}
+.kb9-emptyx-t{margin-top:6px;font-size:15px;font-weight:600;color:var(--dsw-alias-label-primary)}
+.kb9-emptyx-p{margin:0;max-width:42ch;font-size:13px;line-height:1.5;color:var(--dsw-alias-label-secondary)}
+.kb9-emptyx-b{margin-top:6px}
 .kb9-bar{height:6px;border-radius:3px;background:var(--dsw-alias-bg-layer-2);overflow:hidden}
 .kb9-bar span{display:block;height:100%;background:var(--dsw-alias-brand-primary)}
 .kba-page{display:flex;flex-direction:column;gap:26px;width:100%;max-width:none;box-sizing:border-box;padding:30px 28px 36px;padding-left:max(28px,calc((100% - 1124px) / 2));padding-right:max(28px,calc((100% - 1124px) / 2));max-height:100%;overflow-y:auto;min-height:0}
