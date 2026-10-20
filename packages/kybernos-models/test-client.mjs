@@ -496,7 +496,7 @@ console.log('\n── Fetch available models (the engine lists what a provider s
 {
   const bl = (name) => { const i = src.indexOf('// ' + name + '-BEGIN'); const j = src.indexOf('// ' + name + '-END'); return src.slice(i, j) }
   ok('the fetch blocks are delimited', bl('KB-FETCH-PURE').length > 100 && bl('KB-FETCH-ACTIONS').length > 100)
-  const fx = new Function(bl('KB-CAP-PURE') + bl('KB-FETCH-PURE') + '\nreturn { kbFetchProbe, kbFetchAskable, kbFetchCandidates, kbFetchOutcome, kbFetchAdopt, kbFetchPreselect, kbFetchFilter, kbFetchApply, kbFetchSize }')()
+  const fx = new Function(bl('KB-CAP-PURE') + bl('KB-FETCH-PURE') + '\nreturn { kbFetchProbe, kbFetchAskable, kbFetchCandidates, kbFetchOutcome, kbFetchAdopt, kbFetchPreselect, kbFetchFilter, kbFetchApply, kbFetchSize, kbFetchLiveOutcome, kbFetchMerge, kbFetchWhy, kbFetchHost }')()
   const pv = new Function(bl('KB-PV-PURE') + '\nreturn { kbPvRows, kbPvMergeModels, kbPvEditProfile, kbPvNewProfile }')()
 
   console.log('  — the request')
@@ -546,9 +546,57 @@ console.log('\n── Fetch available models (the engine lists what a provider s
   const slow = new Function('kbMTimeout', 'KB_NS', bl('KB-FETCH-PURE') + bl('KB-FETCH-ACTIONS') + '\nreturn { kbFetchRun }')(() => Promise.resolve({ ok: false, error: { code: 'timeout', message: 'x' } }), 'llm-pi-ai').kbFetchRun
   ok('a timeout is told apart from a refusal', (await slow({ llm: { discoverModels: () => new Promise(() => {}) } }, {})).timeout === true)
 
+  console.log('  — the live list (the provider\'s own endpoint, through the host)')
+  const mk = () => new Function('kbMTimeout', 'KB_NS', bl('KB-FETCH-PURE') + bl('KB-FETCH-ACTIONS') + '\nreturn { kbFetchRun }')((p) => Promise.resolve(p), 'llm-pi-ai').kbFetchRun
+  const realFetch = globalThis.fetch
+  const answer = (body, status = 200) => { const calls = []; globalThis.fetch = async (url, init) => { calls.push({ url, init }); if (body instanceof Error) throw body; return new Response(JSON.stringify(body), { status }) }; return calls }
+  const catalog = { llm: { discoverModels: async () => ({ ok: true, value: [{ id: 'a', name: 'Model A', contextWindow: 256000, maxTokens: 32000, inputModalities: ['text', 'image'] }, { id: 'old', name: 'Gone' }] }) } }
+  try {
+    const live = mk()
+    let calls = answer({ ok: true, source: 'live', url: 'https://opencode.ai/zen/go/v1/models', models: [{ id: 'a', name: 'a' }, { id: 'new-1', name: 'new-1' }] })
+    const r1 = await live(catalog, { provider: 'opencode-go', apiKey: 'sk-typed' }, { live: true })
+    ok('a catalog route is asked through the host first: the route, and the typed key for this call', calls.length === 1 && calls[0].url === '/kybernos-models/models/live' && calls[0].init.method === 'POST' && JSON.parse(calls[0].init.body).route === 'opencode-go' && JSON.parse(calls[0].init.body).key === 'sk-typed', calls)
+    ok('the live list decides which models exist: a model the catalog has and the provider dropped is not offered, a new one is', r1.kind === 'found' && r1.live === true && r1.models.map((c) => c.id).join() === 'a,new-1', r1)
+    ok('a bare-id listing gets the name and capacities the catalog knows, and only those', r1.models[0].name === 'Model A' && r1.models[0].contextWindow === 256000 && r1.models[0].maxTokens === 32000 && r1.models[0].input.join() === 'text,image' && r1.models[1].contextWindow === undefined, r1.models)
+    ok('the source is told: live, and from which address', r1.url === 'https://opencode.ai/zen/go/v1/models' && fx.kbFetchHost(r1.url) === 'opencode.ai')
+
+    calls = answer({ ok: true, source: 'live', url: 'https://openrouter.ai/api/v1/models', models: [{ id: 'x', name: 'X', contextWindow: 1000 }] })
+    let asked = 0
+    const r2 = await live({ llm: { discoverModels: async () => { asked += 1; return { ok: true, value: [] } } } }, { provider: 'openrouter' }, { live: true })
+    ok('a listing that discloses capacities is not enriched: the engine is not asked a second time', r2.live === true && asked === 0 && r2.models[0].contextWindow === 1000)
+
+    calls = answer({ ok: false, error: 'refused', status: 401, detail: '' })
+    const r3 = await live(catalog, { provider: 'opencode-go' }, { live: true })
+    ok('a refused key falls back to the engine\'s catalog and says why, in words about the key', r3.kind === 'found' && r3.live === false && r3.why.key === 'kb.fetch.why.key' && r3.why.vars.status === 401 && r3.models.length === 2, r3)
+
+    calls = answer({ ok: false, error: 'refused', status: 400, detail: 'This API key is not scoped to a workspace' })
+    const r4 = await live(catalog, { provider: 'anthropic' }, { live: true })
+    ok('any other refusal carries the provider\'s own words', r4.why.key === 'kb.fetch.why.refused' && r4.why.vars.detail === ': This API key is not scoped to a workspace', r4)
+
+    answer(new Error('network down'))
+    const r5 = await live(catalog, { provider: 'opencode-go' }, { live: true })
+    ok('a host that cannot be reached (an old DSH, not restarted) is a fallback with its reason, never a throw', r5.kind === 'found' && r5.live === false && r5.why.key === 'kb.fetch.why.host', r5)
+
+    answer({ ok: false, error: 'no-endpoint' })
+    const r6 = await live({ llm: { discoverModels: async () => ({ ok: false, error: { message: 'HTTP 401' } }) } }, { provider: 'mine' }, { live: true })
+    ok('with no live list and no engine answer either, the engine\'s refusal is what the person sees', r6.kind === 'refused' && r6.message === 'HTTP 401', r6)
+
+    calls = answer({ ok: true, url: 'https://x', models: [] })
+    await live(catalog, { provider: 'a' })
+    await live(catalog, { baseURL: 'https://a/v1' }, { live: true })
+    await live(catalog, { provider: 'a' }, { live: false })
+    ok('without the option, or with no route to name, the host is never asked (a custom provider is already asked over the wire by the engine)', calls.length === 0, calls)
+  } finally { globalThis.fetch = realFetch }
+  ok('why: 401 and 403 are about the key; a plain refusal, an unreachable provider, a bad reply, a big one, an old host and no address each have their own words', fx.kbFetchWhy({ why: 'refused', status: 403, detail: '' }).key === 'kb.fetch.why.key' && fx.kbFetchWhy({ why: 'refused', status: 429, detail: '' }).vars.detail === '' && fx.kbFetchWhy({ why: 'unreachable' }).key === 'kb.fetch.why.unreachable' && fx.kbFetchWhy({ why: 'bad-reply' }).key === 'kb.fetch.why.bad' && fx.kbFetchWhy({ why: 'too-big' }).key === 'kb.fetch.why.big' && fx.kbFetchWhy({ why: 'host' }).key === 'kb.fetch.why.host' && fx.kbFetchWhy({ why: 'no-endpoint' }).key === 'kb.fetch.why.noaddr' && fx.kbFetchWhy({ why: 'foreign-endpoint' }).key === 'kb.fetch.why.noaddr')
+  ok('the host\'s answer is read defensively: anything unreadable is `none`, and a bad entry is dropped like in the engine\'s answer', fx.kbFetchLiveOutcome(null).kind === 'none' && fx.kbFetchLiveOutcome({ ok: true, models: 'x' }).kind === 'none' && fx.kbFetchLiveOutcome({ ok: true, models: [{ id: 'a' }, { id: 'a' }, { name: 'x' }] }).models.length === 1 && fx.kbFetchLiveOutcome({ ok: false, error: 'refused', status: 401 }).status === 401)
+  const merged = fx.kbFetchMerge([{ id: 'a', name: 'a' }, { id: 'b', name: 'Mine', contextWindow: 5 }], [{ id: 'a', name: 'Model A', contextWindow: 9, maxTokens: 3 }, { id: 'b', name: 'Other', contextWindow: 7, maxTokens: 4 }])
+  ok('merging never overrides what the endpoint disclosed', merged[0].name === 'Model A' && merged[0].contextWindow === 9 && merged[1].name === 'Mine' && merged[1].contextWindow === 5 && merged[1].maxTokens === 4)
+
   console.log('  — wiring')
   const w = (frag) => src.includes(frag)
   ok('the button sits in the models header of both panels, disabled with a reason until there is something to ask', w("'data-kbm': 'fetch-open'") && w("title: blocked !== null ? blocked : (!askable ? m('kb.fetch.needsurl') : undefined)") && w('probe: kbFetchProbe(route, dr)') && w('probe: kbFetchProbe(null, dr)'))
+  ok('the picker asks the provider\'s own endpoint for a catalog route, and tells where the list came from (live, or the catalog and why not)', w('kbFetchRun(kbMApi(), probe, { live: custom !== true })') && w("'data-kbm': 'fetch-source'") && w("m('kb.fetch.src.catalog', { raison: m(fp.src.why.key, fp.src.why.vars) })"))
+  ok('Add provider from the catalogue still adopts the engine\'s answer (a live list of hundreds is not adopted unasked)', w('const found = await kbFetchRun(api, kbFetchProbe(slug, d))'))
   ok('the picker is the native one: search, Select all / Deselect all, Add selected, Cancel', w("'data-kbm': 'fetch-search'") && w("'data-kbm': 'fetch-all'") && w("'data-kbm': 'fetch-adopt'") && w("'data-kbm': 'fetch-cancel'"))
   ok('models already in the list are shown, ticked and disabled — never overwritten', w("checked: known || fp.picked[c.id] === true, disabled: known"))
   ok('Escape closes the picker only: window capture runs before the drawer’s document capture', w("window.addEventListener('keydown', key, true)") && w('Escape closes the picker and nothing else'))
@@ -697,6 +745,8 @@ console.log('\n── why a model is not answering, and the first view (V-29, V-
   ok('the popover words each row with its own reason and the button says what it does (« Check key »)', has("'data-kbm': 'health-why'") && has("m(kbHealthWhy(a, kbHealthFree(a.route, a.cle.slice(a.route.length + 1), Object.keys(FREE_LINKS))))") && /'kb\.health\.fixkey': \{ kybernos: 'Vérifier la clé', en: 'Check key' \}/.test(src))
   ok('« Show unavailable (n) » brings the failing models back, on the Models tab, and the chip hears the bus so the tab re-reads it', has("m('kb.health.show', { n })") && has('UI.statut = \'down\'; UI.page = 1; UI.showDown = true') && has("const on = () => { tick((n) => n + 1); kbmNotify() }"))
   ok('the Models tab folds the failing models away until asked, with a toggle that counts them, and each shown row says why', has("hidden !== null && hidden[mo.route + '/' + mo.id] === true") && has("'data-kbm': 'toggle-down'") && has("'data-kbm': 'row-why'") && has("m('kb.health.showdown', { n: downN })"))
+
+  ok('a provider picked by name shows ALL its models (the fold only applies to the unscoped list) and counts « N of N » like its card, so 3 declared models are 3 on screen', has("UI.statut !== 'down' && UI.showDown !== true && UI.prov === 'all'") && has("const scope = UI.prov === 'all' ? toutes : toutes.filter((mo) => mo.route === UI.prov)") && has("m('kb.models.count', { a: rows.length, b: scope.length })") && has("downN > 0 && UI.statut !== 'down' && UI.prov === 'all'"))
 
   const { kbHeroPlan, kbHeroShowKey } = new Function(bl('KB-HERO-PURE') + '\nreturn { kbHeroPlan, kbHeroShowKey }')()
   ok('the plan comes from the active space, else from the account, lower case; nothing known is null', kbHeroPlan({ space_plan: { key: 'Free' }, user: { plan: 'team' } }) === 'free' && kbHeroPlan({ user: { plan: 'PLUS' } }) === 'plus' && kbHeroPlan({ space_plan: { key: '' }, user: { plan: 'pro' } }) === 'pro' && kbHeroPlan(null) === null && kbHeroPlan({}) === null && kbHeroPlan({ space_plan: 5, user: 7 }) === null)
