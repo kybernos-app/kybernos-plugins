@@ -52,6 +52,7 @@ import { zstdDecompressSync } from 'node:zlib'
 import { activeServer, stateFileName, llmBase, publicProfile } from './server-profile.mjs'
 import { agentsFile, readInstructions, writeInstructions } from './instructions.mjs'
 import { createKybyRoutes, pairingSupport } from './kyby.mjs'
+import { identityOf } from './computer-identity.mjs'
 import { writeGuard } from './session-guard.mjs'
 import { createKybyNative, isSessionId, readPointer, writePointer } from './kyby-native.mjs'
 import { appendEntry as journalAppend, journalTool, toolsOfTurn, turnEntry as journalEntry } from './kyby-journal.mjs'
@@ -76,6 +77,9 @@ const dshHome = (env = process.env, osHome = homedir) => {
   if (raw === '~') return osHome()
   return resolve(raw.startsWith('~/') || raw.startsWith('~\\') ? join(osHome(), raw.slice(2)) : raw)
 }
+
+/** Who this machine is as a cloud computer: its environment, or the identity a pooled computer was handed at its claim (computer-identity.mjs). `id` and `token` are '' on a machine that is not one. */
+const computerSelf = () => identityOf(process.env, dshHome())
 const serversFile = () => {
   const raw = typeof process.env.KYBERNOS_SERVERS_FILE === 'string' ? process.env.KYBERNOS_SERVERS_FILE.trim() : ''
   return raw === '' ? join(dshHome(), 'kybernos', 'servers.json') : raw
@@ -1471,7 +1475,7 @@ const serverRoute = async () => {
   return { ok: true, server: publicProfile(active.profile), source: active.source, error: active.error, servers: active.servers.map((x) => Object.assign({ active: x.id === active.profile.id, connected: connectedTo(x.id) }, x)), rejected: active.rejected,
     // A cloud computer (the platform names it in the machine's environment). The page of this checkout no longer reads it: only the page bundle of a release that still frames
     // the server's console does, and the computer image patches that one (services/computer-image/patch-console.mjs). It goes with that patch.
-    computer: typeof process.env.KYBERNOS_COMPUTER_ID === 'string' && process.env.KYBERNOS_COMPUTER_ID !== '' }
+    computer: computerSelf().id !== '' }
 }
 
 /** POST /kybernos-cloud/server/apply: the registry changed (the Servers page wrote it): make DSH follow. What the
@@ -4679,6 +4683,30 @@ const connections = createConnections({ apiCall, readState, isConnected, server,
 const instructionsRead = async () => readInstructions(agentsFile(dshHome()))
 const instructionsSave = async (req, body) => writeInstructions(agentsFile(dshHome()), body !== null && typeof body === 'object' ? body.text : undefined)
 
+// ── A pooled computer was just handed its identity ──────────────────────────────────────────────
+// A computer made ahead of need (services/computer-image, « pool ») boots with no token: DSH is already running when the platform hands it one, and a process cannot be given a new
+// environment. The claim step writes the identity to the volume (computer-identity.mjs) and then asks this route, over loopback, to put the token where the model route looks for it:
+// DSH's credential store (`apiKeyEnv: KYBERNOS_COMPUTER_TOKEN` resolves there first), so the next model call is signed with it and nothing restarts. The request carries nothing: the
+// identity is read from the volume, and only on a machine the platform made as a pool slot (computer-identity.mjs): a laptop's plugin ignores that file. A machine made the old way
+// (identity in its environment) has nothing to do.
+const computerClaimed = async () => {
+  const me = computerSelf()
+  if (me.token === '') return { ok: false, error: 'unclaimed' }
+  if (me.source === 'env') return { ok: true, source: 'env' }
+  const cred = service('credentials')
+  if (cred === null || typeof cred.set !== 'function') return { ok: false, error: 'credentials_unavailable' }
+  try { await cred.set('KYBERNOS_COMPUTER_TOKEN', me.token) } catch (e) { return { ok: false, error: 'credentials_refused' } }
+  return { ok: true, source: 'volume' }
+}
+// Whether the model route the entrypoint renders into the profile (`kybernos`) is live: that is a hot reload of the profile, about two seconds after the file is written, and the
+// entrypoint holds the reporter and the runner back until it is (a turn taken before it would find no model to call). Read-only, so that it can be asked every few hundred milliseconds.
+const computerRoute = async () => {
+  const llm = tidyLlm()
+  let route = false
+  try { route = llm !== undefined && typeof llm.listProviders === 'function' && llm.listProviders().some((p) => p !== null && typeof p === 'object' && p.id === 'kybernos') } catch (e) { route = false }
+  return { ok: true, route }
+}
+
 // ── A turn handed to this computer by the platform (ADR 0053 § 13.4) ───────────────────────────────
 // A message the person wrote in a chat on their phone arrives as a turn addressed to THIS computer. The computer's runner (services/computer-image/runner.mjs, a process next to DSH) claims
 // it with the computer's token and asks DSH to answer through these two routes, over loopback: `POST /kybernos-cloud/turn { prompt }` starts a session and queues the prompt,
@@ -4686,8 +4714,7 @@ const instructionsSave = async (req, body) => writeInstructions(agentsFile(dshHo
 // same-origin call: on a machine that is not a cloud computer they answer `unavailable`. The session keeps the profile's permission, as an automation set to `auto` does: nobody is there
 // to answer an approval, so what lets a chat message reach this is the platform owner's own switch for it.
 const turnAuthorized = (req) => {
-  const id = String(process.env.KYBERNOS_COMPUTER_ID || '')
-  const token = String(process.env.KYBERNOS_COMPUTER_TOKEN || '')
+  const { id, token } = computerSelf()
   if (id === '' || token === '') return false
   const given = String((req && req.headers && req.headers.authorization) || '')
   const want = 'Bearer ' + token
@@ -4775,7 +4802,7 @@ const kabyJournalDir = () => join(dshHome(), 'kybernos', 'kaby-journal')
 const journalTurn = (agent) => {
   const sid = agent !== null && agent !== undefined && agent.session !== undefined ? agent.session.id : undefined
   if (typeof sid !== 'string') return
-  const onComputer = String(process.env.KYBERNOS_COMPUTER_ID || '') !== ''
+  const onComputer = computerSelf().id !== ''
   const mine = onComputer ? turnSessions.has(sid) : readPointer(kybyPointerFile()) === sid
   if (!mine) return
   const messages = typeof agent.session.deriveMessages === 'function' ? agent.session.deriveMessages() : []
@@ -4865,8 +4892,7 @@ const turnApprovalSubject = (exec) => {
   return { kind: name.startsWith('mcp__') ? 'connector' : 'other', summary }
 }
 const turnPlatform = async (method, path, body) => {
-  const api = String(process.env.KYBERNOS_API || '').replace(/\/+$/u, '')
-  const token = String(process.env.KYBERNOS_COMPUTER_TOKEN || '')
+  const { api, token } = computerSelf()
   if (api === '' || token === '') return { status: 0, json: null }
   try {
     const r = await fetch(api + path, {
@@ -4881,7 +4907,7 @@ const turnPlatform = async (method, path, body) => {
   } catch (e) { return { status: 0, json: null } }
 }
 const turnGate = (ctx) => async (exec, next) => {
-  if (String(process.env.KYBERNOS_COMPUTER_ID || '') === '') return next()
+  if (computerSelf().id === '') return next()
   const root = turnRootOf(ctx, exec && exec.agent ? exec.agent.id : undefined)
   if (root === null) return next()
   const name = String((exec && exec.name) || '')
@@ -4954,7 +4980,7 @@ const nativeGate = (ctx) => async (exec, next) => {
 const toolGate = (ctx) => {
   const cloud = turnGate(ctx)
   const native = nativeGate(ctx)
-  return (exec, next) => (String(process.env.KYBERNOS_COMPUTER_ID || '') === '' ? native(exec, next) : cloud(exec, next))
+  return (exec, next) => (computerSelf().id === '' ? native(exec, next) : cloud(exec, next))
 }
 const mountTurnGate = (ctx) => { ctx.on('tools/pre-execute', toolGate(ctx)) }
 const turnStart = async (req, body) => {
@@ -5287,6 +5313,9 @@ const ROUTES = [
   { path: '/kybernos-cloud/marketplace/install', method: 'POST', guarded: true, body: true, cap: 32768, run: marketplaceInstallRoute },
   { path: '/kybernos-cloud/server', method: 'GET', guarded: false, run: serverRoute },
   // A turn the platform addressed to this computer (ADR 0053 § 13.4): started, then read, by the computer's own runner (token and same origin).
+  // A pooled computer has just been handed its identity (see computerClaimed): loopback, same origin, nothing in the request.
+  { path: '/kybernos-cloud/computer/claimed', method: 'POST', strict: true, run: computerClaimed },
+  { path: '/kybernos-cloud/computer/route', method: 'GET', guarded: true, run: computerRoute },
   { path: '/kybernos-cloud/turn', method: 'POST', strict: true, body: true, cap: 200000, run: turnStart },
   { path: '/kybernos-cloud/turn/answer', method: 'POST', strict: true, body: true, cap: 4096, run: turnAnswer },
   { path: '/kybernos-cloud/turn/continue', method: 'POST', strict: true, body: true, cap: 8192, run: turnContinue },

@@ -6,7 +6,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node test-cloud-host.mjs && node test-cloud-client.mjs && node test-kyby.mjs && node test-kyby-native.mjs && node test-kyby-identity.mjs && node test-kyby-journal.mjs && node test-kyby-knowledge.mjs && node test-kyby-account.mjs"
+    "test": "node test-cloud-host.mjs && node test-cloud-client.mjs && node test-kyby.mjs && node test-kyby-native.mjs && node test-kyby-identity.mjs && node test-kyby-journal.mjs && node test-kyby-knowledge.mjs && node test-kyby-account.mjs && node test-computer-identity.mjs"
   },
   "exports": {
     ".": "./index.js",
