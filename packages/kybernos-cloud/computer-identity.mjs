@@ -77,14 +77,15 @@ const VARIABLES = { KYBERNOS_COMPUTER_ID: 'id', KYBERNOS_COMPUTER_TOKEN: 'token'
 
 /**
  * The `export` lines that give a process the identity its environment lacks, for a shell script to evaluate: nothing when the machine was made the old way. Every value passed
- * `cleanIdentity`, so none holds a quote or a space; they are single-quoted all the same.
+ * `cleanIdentity`, so none holds a quote or a space; they are single-quoted all the same. The model is the exception to « never override »: a pool slot is made with the model of the
+ * day (so that its profile has the route before the claim), and the claim says the model of THIS day, which wins.
  */
 export function shellExports (env, dshHome) {
   const who = identityOf(env, dshHome)
   if (who.source !== 'volume') return ''
   const lines = []
   for (const [name, key] of Object.entries(VARIABLES)) {
-    if (String((env && env[name]) || '') === '') lines.push(`export ${name}='${who[key]}'`)
+    if (name === 'KYBERNOS_COMPUTER_MODEL' || String((env && env[name]) || '') === '') lines.push(`export ${name}='${who[key]}'`)
   }
   return lines.join('\n')
 }
