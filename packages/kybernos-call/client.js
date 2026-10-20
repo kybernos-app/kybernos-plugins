@@ -863,7 +863,7 @@ body:not([data-ds-dark-theme]) .kbcl-chip.kbcl-warn{color:color-mix(in srgb,${T.
             const cur = (p.config || {})[f.name] || ''
             const inList = list.some((m) => m.provider + ':' + m.id === cur)
             return h('div', { key: f.name, className: 'kbcl-f' }, [label, list.length === 0
-              ? h('div', { key: 'n', className: 'kbcl-notice', 'data-kb': 'kybernos-call-no-models' }, kt('Aucun modèle de ce genre dans tes fournisseurs. Ajoutes-en un dans Réglages › Fournisseur IA & modèles.', 'No model of this kind in your providers. Add one in Settings › AI Provider & Models.'))
+              ? h('div', { key: 'n', className: 'kbcl-notice', 'data-kb': 'kybernos-call-no-models' }, kt('Aucun modèle de ce genre dans tes fournisseurs. Ajoutes-en un dans Réglages › Fournisseur IA et modèles.', 'No model of this kind in your providers. Add one in Settings › AI provider and models.'))
               : h('select', { key: 's', id: 'kbcl-f-' + f.name, 'data-field': f.name, className: 'kbcl-in', value: inList ? cur : '', disabled: c.busy, onChange: (e) => c.save({ providers: { [p.id]: { [f.name]: e.target.value } } }) }, [h('option', { key: '', value: '' }, kt('Choisir un modèle…', 'Choose a model…'))].concat(list.map((m) => h('option', { key: m.provider + ':' + m.id, value: m.provider + ':' + m.id }, m.id + ' · ' + m.provider))))])
           }
           if (f.kind === 'switch') {

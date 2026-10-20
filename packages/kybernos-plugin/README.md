@@ -23,8 +23,8 @@ Socle = `kybernos-plugin`, `kybernos-hub`, `kybernos-theme`, `kybernos-sessions`
   « First-run onboarding » below). The account's own pages (Account, Referral, Security, Data, Support & legal) are not in
   Settings: they are reached from the sidebar footer menu (kybernos-cloud).
 - **The Settings menu is grouped, and ordered for everyone** (`GROUPES` in `client.js`, by the section id each cell carries, so it holds in every
-  language). **General** is a row of its own; eight **folds** follow, one open at a time (an accordion): **Models & routing** (AI Provider & Models,
-  Auto Routing, Free LLMs, Ollama Local Models, Usage), **Agents** (Agent presets, Workers, Automations, Commands), **Skills & tools** (Skills, Tools,
+  language). **General** is a row of its own; eight **folds** follow, one open at a time (an accordion): **Models & routing** (AI provider and models,
+  Auto Routing, Free LLMs, Ollama local models, Usage), **Agents** (Agent presets, Workers, Automations, Commands), **Skills & tools** (Skills, Tools,
   Connectors, Web Search), **Memory & context** (Memory & Lessons, Kybernos, Atlas), **Voice & calls**, **Interface** (Appearance, Theme, Language),
   **Devices & cloud** (Servers, Cloud computers, Phone and channels), **System** (Kybernos Suite, Built-in plugins, About, which closes the list). A group
   opens by itself when the person lands on a page inside it (a deep link, a help pointer, a search result, a click on a row of the Suite) and the open
@@ -476,7 +476,7 @@ soon as the person sends again; it comes back if that new turn fails the same wa
 catalog (`ctx.get('modelDirectories').catalog.store`, the one the picker draws from) is loaded and holds no model (`kbObNoModel`): the picker
 then says « No models available. » with nothing to do about it, and that sentence is the engine's, with no seam for an action. The card says what
 is wrong and offers two actions: *Sign in to Kybernos* (the window event `kybernos-cloud:open`, as the Models page does) and *Add a model*
-(Settings › AI Provider & Models, `kbOpenSettingsPage`). A person who is already signed in gets only *Add a model*. It shows on the new-chat page
+(Settings › AI provider and models, `kbOpenSettingsPage`). A person who is already signed in gets only *Add a model*. It shows on the new-chat page
 and in a chat, never beside the key card above (that one wins when a turn failed), is dismissed for the rest of the page, and is simply absent when
 an engine does not expose the catalog. The engine's red « This turn failed » row, with its raw sentence, is the engine's and stays in the
 transcript: the card under it is the plain-language version.

@@ -1,6 +1,6 @@
-# `@local/kybernos-modeles-locaux` — Ollama Local Models
+# `@local/kybernos-modeles-locaux` — Ollama local models
 
-Settings › **Ollama Local Models**: measure the machine, recommend the models that fit its memory, install one with Ollama
+Settings › **Ollama local models**: measure the machine, recommend the models that fit its memory, install one with Ollama
 and wire it into DSH so it can be used in the model picker. Nothing is downloaded without a click.
 
 ## The path, wired for real

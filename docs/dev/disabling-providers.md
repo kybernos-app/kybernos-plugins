@@ -1,6 +1,6 @@
 # Disabling a provider without deleting it
 
-Settings → **AI Provider & Models** → *Providers*: each provider card has a switch.
+Settings → **AI provider and models** → *Providers*: each provider card has a switch.
 Off = the provider cannot be called and its models vanish from every picker. On =
 everything comes back as it was (key reference, models, overrides).
 

@@ -19,7 +19,7 @@ const check = (name, ok, detail) => {
   else { fail += 1; console.log('  ✗ ' + name + (detail === undefined ? '' : ' — ' + JSON.stringify(detail))) }
 }
 // Wide by design: a map, a provider grid, a card grid of modules.
-const WIDE = new Set(['Atlas', 'AI Provider & Models', 'Kybernos Suite'])
+const WIDE = new Set(['Atlas', 'AI provider and models', 'Kybernos Suite'])
 // The title of this page follows a 44 px icon, the icon starts at the frame's left edge.
 const AFTER_ICON = new Set(['Phone and channels'])
 // DSH's own page (its title is the engine's, not ours) and a page whose title is not a heading.

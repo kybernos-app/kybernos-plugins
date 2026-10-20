@@ -1,4 +1,4 @@
-# The Models tab (Settings → AI Provider & Models → Models)
+# The Models tab (Settings → AI provider and models → Models)
 
 Nothing a model shows today was removed: the name and id (both editable in place), the provider, every
 capability, the type, the price in and out, the context, the source and the override count, and the whole details

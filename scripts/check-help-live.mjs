@@ -46,8 +46,8 @@ const key = async (k, code, vk) => { await page.send('Input.dispatchKeyEvent', {
 
 // Pages reached through Settings: [nav label, bundle folder]
 const PAGES = [
-  ['Theme', 'kybernos-theme'], ['AI Provider & Models', 'kybernos-models'], ['Commands', 'kybernos-slash'], ['Workers', 'kybernos-workers'],
-  ['About', 'kybernos-maintenance'], ['Ollama Local Models', 'kybernos-modeles-locaux'], ['Memory & Lessons', 'kybernos-memory'],
+  ['Theme', 'kybernos-theme'], ['AI provider and models', 'kybernos-models'], ['Commands', 'kybernos-slash'], ['Workers', 'kybernos-workers'],
+  ['About', 'kybernos-maintenance'], ['Ollama local models', 'kybernos-modeles-locaux'], ['Memory & Lessons', 'kybernos-memory'],
   ['General', 'kybernos-sessions'], ['Kybernos Suite', 'kybernos-hub']
 ]
 // Pages that already had a help of their own: the shared button must not double it.

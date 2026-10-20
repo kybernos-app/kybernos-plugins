@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Settings › AI Provider & Models, the Add provider form and the provider drawer, in a real GUI (audit A3-01, A3-07, A3-09).
+// Settings › AI provider and models, the Add provider form and the provider drawer, in a real GUI (audit A3-01, A3-07, A3-09).
 //
 //   source scripts/sandbox/env.sh && node scripts/check-models-provider-live.mjs [--shots <dir>]
 //
@@ -62,8 +62,8 @@ const dropAuditProvider = async () => {
 try {
   await sleep(2500)
   check('Settings open', (await openSettings(page)) === true)
-  const went = await val(`(() => { const b = Array.from(document.querySelectorAll('button[class*="navCell"]')).find((x) => x.innerText.trim().split('\\n')[0] === 'AI Provider & Models'); if (!b) return false; b.click(); return true })()`)
-  check('the AI Provider & Models entry is in the Settings menu', went === true)
+  const went = await val(`(() => { const b = Array.from(document.querySelectorAll('button[class*="navCell"]')).find((x) => x.innerText.trim().split('\\n')[0] === 'AI provider and models'); if (!b) return false; b.click(); return true })()`)
+  check('the AI provider and models entry is in the Settings menu', went === true)
   check('the provider list mounts', (await poll(() => q('[data-kbm="prov-add"]'))) !== null)
   await sleep(800)
   await dropAuditProvider()
