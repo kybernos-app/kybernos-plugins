@@ -206,7 +206,8 @@
         if (top && top[1] / info.length >= 0.9) add('badge-constant', 'check', parent, top[0], 'the same label on ' + top[1] + ' of ' + info.length + ' rows carries no information')
       }
       const files = info.filter((x) => [...x.r.querySelectorAll('*')].some((e) => /^\S+\.[A-Za-z][A-Za-z0-9]{0,4}$/.test(own(e)) && vis(e)))
-      if (files.length === info.length && info.length >= 3 && !info.some((x) => [...x.r.querySelectorAll(VISUAL)].some((m) => { const r = m.getBoundingClientRect(); return r.width >= 56 && r.height >= 40 }))) {
+      // A preview is a picture or a box named for it (thumb, preview): text rendered small counts as much as an image.
+      if (files.length === info.length && info.length >= 3 && !info.some((x) => [...x.r.querySelectorAll(VISUAL + ',[class*="thumb"],[class*="prev"],[data-kb*="prev"],[data-kb*="thumb"]')].some((m) => { const r = m.getBoundingClientRect(); return r.width >= 56 && r.height >= 40 }))) {
         add('no-preview', 'ux', parent, '', info.length + ' items name a file and none shows what is inside')
       }
     }
