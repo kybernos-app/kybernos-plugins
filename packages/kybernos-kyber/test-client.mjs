@@ -120,6 +120,15 @@ const server = { ok: true, server: { api: 'https://server-dev-7831.up.railway.ap
   ok('declined carries one of three reasons, anything else is « user »', f({ state: 'declined', reason: 'taken' }).reason === 'taken' && f({ state: 'declined', reason: 'botmade' }).reason === 'botmade' && f({ state: 'declined', reason: 'sql' }).reason === 'user')
   ok('done and an error are their own faces', f({ state: 'done' }).kind === 'done' && f({ error: 'rate_limited' }).code === 'rate_limited')
   ok('the clock reads m:ss', T.clock(0) === '0:00' && T.clock(65) === '1:05' && T.clock(299.9) === '4:59')
+  // Measured on dev, 2026-10-20: two real phone rounds, the code stayed « waiting » and no Start ever reached the server. On a bot the person already used, the link only opens the
+  // chat and the Start (or Restart) must be pressed, so a code that has waited a while with nothing says what to do instead of just counting down.
+  const stuck = (p) => f(Object.assign({ id: 'x', state: 'waiting', expiresAt: exp }, p)).stuck
+  // The page renews a lapsed code by itself within a poll (2 s): in between it must not flash « this code has expired » with a button; once it cannot renew any more, it says so.
+  const lapsed = { id: 'x', state: 'waiting', expiresAt: '2026-10-15T09:59:00Z' }
+  ok('a lapsed code that the page is about to renew still reads as waiting (0:00), not as expired', T.pairingFace(lapsed, now, true).kind === 'waiting' && T.pairingFace(lapsed, now, true).left === 0 && T.pairingFace(lapsed, now, false).kind === 'expired' && T.pairingFace(lapsed, now).kind === 'expired')
+  ok('a scanned code that ran out is expired, renewable or not (it is never replaced under the person\'s hand)', T.pairingFace(Object.assign({}, lapsed, { state: 'scanned' }), now, true).kind === 'expired')
+  ok('a code that a poll already marked expired shows as expired once there is no renewal left', T.pairingFace({ id: 'x', state: 'expired' }, now, false).kind === 'expired')
+  ok('a code that has waited 20 s with no Start is stuck; younger, scanned, or of unknown age it is not', stuck({ startedAt: now - 25000 }) === true && stuck({ startedAt: now - 10000 }) === false && stuck({ startedAt: now - 25000, state: 'scanned' }) === false && stuck({}) === false)
 }
 {
   ok('the strip is open only when there is a code to scan, and the person\'s choice wins', T.stripIsOpen(null, 'unlinked') === true && T.stripIsOpen(null, 'linked') === false && T.stripIsOpen(null, 'off') === false && T.stripIsOpen(null, 'old') === false && T.stripIsOpen(null, null) === false && T.stripIsOpen(true, 'off') === true && T.stripIsOpen(false, 'unlinked') === false)
@@ -371,6 +380,58 @@ const server = { ok: true, server: { api: 'https://server-dev-7831.up.railway.ap
     answer = () => ({ ok: true, id: '0f3b1b72-1111-4222-8333-444455556666', link: 'https://t.me/kybernos_bot?start=pair_new', bot: 'kybernos_bot', expires_at: soonFromNow(300), qr: { size: 21, modules: Array.from({ length: 21 }, () => '101010101010101010101') } })
     await press(ui(T.views.ChannelsColumn), 'kybernos-kyber-tg-switch')
     ok('after an expiry the switch is off, and turning it on again makes a new code', calls.length === 1 && T.state.pairing !== null && T.state.pairing.state === 'waiting' && /pair_new/.test(T.state.pairing.link))
+  }
+
+  // ── nothing arrives: the page says what to do (Start, or Restart on a bot already used), shows the message to send, and renews the code by itself a few times ──
+  {
+    ok('the second step says Start, or Restart for a bot the person already used', /Démarrer/.test(T.L('s2')) && /Redémarrer/.test(T.L('s2')), T.L('s2'))
+    reset(); set({ home: null })
+    T.state.pairing = Object.assign(WAITING(), { startedAt: Date.now() - 2000 })
+    const fresh = ui(T.views.ChannelsColumn)
+    ok('a fresh code has no extra help and keeps the message to send folded', one(fresh, 'kybernos-kyber-stuck') === undefined && one(fresh, 'kybernos-kyber-code-box') === undefined)
+    ok('the app link opens Telegram itself on this computer (tg://), the web link stays the main button', one(fresh, 'kybernos-kyber-open-app').props.href === 'tg://resolve?domain=kybernos_bot&start=pair_abc' && one(fresh, 'kybernos-kyber-open').props.href === 'https://t.me/kybernos_bot?start=pair_abc')
+    T.state.pairing = Object.assign(WAITING(), { startedAt: Date.now() - 30000 })
+    const late = ui(T.views.ChannelsColumn)
+    const help = one(late, 'kybernos-kyber-stuck')
+    ok('after 20 s with no Start the panel says what to do: tap Start or Restart in the chat, or send the message', help !== undefined && /Démarrer/.test(textOf(help)) && /Redémarrer/.test(textOf(help)) && /@kybernos_bot/.test(textOf(help)), help && textOf(help))
+    ok('the fold button is gone while the help is there (the message sits right under it)', one(late, 'kybernos-kyber-code') === undefined && one(fresh, 'kybernos-kyber-code') !== undefined)
+    ok('and the message to send is already shown, ready to copy, without a click', one(late, 'kybernos-kyber-code-box') !== undefined && textOf(one(late, 'kybernos-kyber-code-text')) === '/start pair_abc' && one(late, 'kybernos-kyber-code-copy') !== undefined)
+    T.state.pairing = Object.assign(WAITING(), { startedAt: Date.now() - 30000, state: 'scanned', sender: 'Amina (@alex)' })
+    ok('once scanned there is no stuck help (the person has pressed Start)', one(ui(T.views.ChannelsColumn), 'kybernos-kyber-stuck') === undefined)
+
+    // The code renews by itself, with the old one cancelled, while the page is open and in view; three times at most; never a scanned one.
+    const NEW_ID = '9a8b7c6d-1111-4222-8333-444455556666'
+    const QR = { size: 21, modules: Array.from({ length: 21 }, () => '101010101010101010101') }
+    const expiredCode = (extra) => Object.assign(WAITING(), { expiresAt: new Date(Date.now() - 1000).toISOString(), startedAt: Date.now() - 301000 }, extra || {})
+    const renewing = () => { answer = (u) => (u.includes('/pairing/state') ? { ok: true, state: 'waiting', reason: null, sender: '' } : u.endsWith('/telegram/pairing') ? { ok: true, id: NEW_ID, link: 'https://t.me/kybernos_bot?start=pair_new', bot: 'kybernos_bot', expires_at: soonFromNow(300), qr: QR } : { ok: true }) }
+    reset(); set({ home: null }); renewing()
+    T.listeners.add(() => {})
+    T.state.pairing = expiredCode(); T.state.renewals = 0
+    await T.actions.pairPoll('telegram'); await flush()
+    ok('an expired code on an open page is cancelled and replaced, in that order', calls.map((c) => c.method + ' ' + c.url.replace('/kybernos-cloud/telegram', '')).join(' | ') === 'GET /pairing/state?id=0f3b1b72-1111-4222-8333-444455556666 | POST /pairing/cancel | POST /pairing' && calls[1].body.id === '0f3b1b72-1111-4222-8333-444455556666', calls.map((c) => c.method + c.url).join(' | '))
+    ok('the new code is the one shown, polled again, and counted', T.state.pairing !== null && T.state.pairing.id === NEW_ID && T.state.pairing.state === 'waiting' && T.state.renewals === 1 && typeof T.state.pairing.startedAt === 'number' && timers.some((x) => x.ms === 2000))
+    reset(); set({ home: null }); renewing()
+    T.listeners.add(() => {})
+    T.state.pairing = expiredCode(); T.state.renewals = 3
+    await T.actions.pairPoll('telegram'); await flush()
+    ok('after three renewals it stops: the code is shown as expired with the button for a new one, and nothing more is asked', calls.every((c) => c.method === 'GET') && T.state.pairing.state === 'expired' && one(ui(T.views.ChannelsColumn), 'kybernos-kyber-retry') !== undefined && !timers.some((x) => x.ms === 2000), calls.map((c) => c.method + c.url).join(' | '))
+    reset(); set({ home: null }); renewing()
+    T.listeners.add(() => {})
+    T.state.pairing = expiredCode({ state: 'scanned', sender: 'Amina (@alex)' }); T.state.renewals = 0
+    answer = (u) => (u.includes('/pairing/state') ? { ok: true, state: 'scanned', reason: null, sender: 'Amina (@alex)' } : { ok: true })
+    await T.actions.pairPoll('telegram'); await flush()
+    ok('a code that was scanned is never replaced under the person\'s hand', !calls.some((c) => c.method === 'POST') && T.state.renewals === 0, calls.map((c) => c.method + c.url).join(' | '))
+    reset(); set({ home: null }); renewing()
+    T.listeners.add(() => {})
+    T.state.pairing = expiredCode(); T.state.renewals = 0
+    globalThis.document.visibilityState = 'hidden'
+    await T.actions.pairPoll('telegram'); await flush()
+    globalThis.document.visibilityState = 'visible'
+    ok('a page that is not in view does not renew (it would make a code nobody sees)', !calls.some((c) => c.method === 'POST'), calls.map((c) => c.method + c.url).join(' | '))
+    reset(); set({ home: null }); renewing()
+    T.state.pairing = { id: 'x', state: 'expired' }; T.state.renewals = 3
+    await press(ui(T.views.ChannelsColumn), 'kybernos-kyber-tg-switch')
+    ok('the person turning the switch on again starts the count over', T.state.renewals === 0 && T.state.pairing !== null && T.state.pairing.id === NEW_ID)
   }
 
   // ── WhatsApp: the same pairing as Telegram's, on its own routes and its own state; the code is the wa.me link with the message typed, and the last step is « answer 1 » ──
