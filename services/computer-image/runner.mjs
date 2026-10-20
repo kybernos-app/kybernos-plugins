@@ -17,6 +17,10 @@ const TOKEN = String(process.env.KYBERNOS_COMPUTER_TOKEN || '')
 const HOME = String(process.env.DSH_HOME || '')
 const DSH_PORT = Number(process.env.DSH_PORT || 3081)
 const IDLE_MS = Number(process.env.KYBERNOS_RUNNER_IDLE_MS || 2000)
+// The idle poll answers in a few hundred milliseconds. A computer is suspended between two turns, and a poll that was in flight when it froze never completes: its timeout counts only the time the
+// machine RAN, so a 15 s timeout kept the runner blind for the 12 s that were left after the wake (measured on dev, 2026-10-20: a message that woke a Home started its turn 18.8 s after it was
+// queued, 7 to 10 s on an awake one; the machine's log says « POST /v1/runner/claim could not be sent (TimeoutError) » 12 s after the wake). Short, so that the stall is a few seconds.
+export const CLAIM_TIMEOUT_MS = Number(process.env.KYBERNOS_RUNNER_CLAIM_TIMEOUT_MS || 4000)
 const LEASE_SECONDS = Number(process.env.KYBERNOS_RUNNER_LEASE_SECONDS || 120)
 const TURN_TIMEOUT_MS = Number(process.env.KYBERNOS_RUNNER_TURN_TIMEOUT_MS || 10 * 60_000)
 
@@ -64,11 +68,11 @@ export function buildPrompt (context) {
 const said = new Set()
 const sayOnce = (key, line) => { if (!said.has(key)) { said.add(key); log(line) } }
 
-async function platform (method, path, body, timeoutMs = 15_000) {
+async function platform (method, path, body, timeoutMs = 15_000, extraHeaders = {}) {
   try {
     const r = await fetch(API + path, {
       method,
-      headers: { authorization: 'Bearer ' + TOKEN, 'content-type': 'application/json' },
+      headers: { authorization: 'Bearer ' + TOKEN, 'content-type': 'application/json', ...extraHeaders },
       body: body === undefined ? undefined : JSON.stringify(body),
       signal: AbortSignal.timeout(timeoutMs)
     })
@@ -83,6 +87,16 @@ async function platform (method, path, body, timeoutMs = 15_000) {
     sayOnce(`${path}:net:${code}`, `${method} ${path} could not be sent (${code})`)
     return { status: 0, json: null }
   }
+}
+
+/**
+ * One poll of the idle loop. A poll that fails (a status of 0: nothing came back in time) is followed by one on a connection of its own, since the one it used may be a socket that died
+ * with the suspend; the polls that work reuse their connection as before.
+ */
+export async function claimOnce (state, options = {}) {
+  const r = await platform('POST', '/v1/runner/claim', { kinds: ['agent_turn'], limit: 1, lease_seconds: LEASE_SECONDS }, options.timeoutMs ?? CLAIM_TIMEOUT_MS, state.fresh ? { connection: 'close' } : {})
+  state.fresh = r.status === 0
+  return r
 }
 
 // ── the computer's DSH, through the cloud plugin's routes ────────────────────────────────────
@@ -236,8 +250,9 @@ async function main () {
   log('started')
   while (!(await dshAnswers())) await sleep(2000)
   log(`waiting for turns addressed to this computer (${join(HOME, 'kybernos')})`)
+  const claimState = { fresh: false }
   for (;;) {
-    const r = await platform('POST', '/v1/runner/claim', { kinds: ['agent_turn'], limit: 1, lease_seconds: LEASE_SECONDS })
+    const r = await claimOnce(claimState)
     if (r.status === 401 || r.status === 403 || r.status === 404) { await sleep(300_000); continue }
     const jobs = r.status === 200 && r.json && Array.isArray(r.json.jobs) ? r.json.jobs : []
     if (jobs.length === 0) { await sleep(IDLE_MS); continue }

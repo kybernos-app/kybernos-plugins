@@ -152,6 +152,11 @@ machine's DNS survives), and a machine running longer than 5 minutes (see the tr
 - **amd64.** An image built on Apple Silicon without `--platform linux/amd64` does not start on Fly.
 - **The machine creation call is slow the first time**: Fly answers it once the image is there (more than 20 s for an image it has not
   seen), and its `wait` call is a long poll. A client timeout of 20 s reports an unreachable platform for a machine that was made.
+- **A request in flight when the machine is suspended never comes back, and its timeout only counts the time the machine ran.** Measured on dev (2026-10-20): a message that woke a sleeping
+  Home started its turn 18.8 s after it was queued, against 7 to 10 s on an awake one; the machine's own log, 12 s after the wake, says `[runner] POST /v1/runner/claim could not be sent
+  (TimeoutError)` and one second later the same for the reporter's heartbeat: the loops were waiting out what was left of a 15 s timeout. The idle poll (`CLAIM_TIMEOUT_MS`, 4 s) and the beat
+  (`HEARTBEAT_TIMEOUT_MS`, 6 s) are short, and the call after a failed one goes on a connection of its own (`wake.test.mjs`, real sockets). The price of a short poll timeout: a claim the platform
+  processed but whose answer arrives late leaves its job leased to the runner until the lease ends (120 s); an answer takes tens of milliseconds, the timeout is a hundred times that.
 - **A `start` right after a `suspend` can answer 409** (the machine still holds its lease for a moment): ask again a second or two later.
 - **The gate's sign-in and the plugins' routes refuse a request with no `Origin`, or with another one**: a client sends
   `Origin: https://<its host>`, exactly the host the machine was told in `KYBERNOS_PUBLIC_HOST`.
