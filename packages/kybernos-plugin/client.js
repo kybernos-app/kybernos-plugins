@@ -4655,6 +4655,100 @@ const kbLookColor = (color, onColor, opts) => {
       h('input', { type: 'color', 'aria-label': kbt('kbui.custom'), value: cur !== '' ? cur : KB_SWATCHES[0], onChange: (e) => onColor(e.target.value), className: 'kb8-colorwheel' }),
       h('input', { value: cur, placeholder: '#635bff', onChange: (e) => onColor(e.target.value), className: 'kb8-colorhex' })))
 }
+// <kb-icon-search>
+// The icon pickers match what the person types against the icon's name, its Lucide search words (icon-tags.json) and a table of French and
+// English concepts (« musculation », « argent ») that stand for those words (icon-concepts.json): both are served by /kybernos/icon-tags and
+// fetched when the person first types. « sport » used to find `sport-shoe` and nothing else (UX audit 2026-10-20). A concept line is
+// « words people type | words the icons carry ».
+let kbConceptsOf = null
+let kbConceptsMap = {}
+const kbConcepts = (lines) => {
+  if (Array.isArray(lines) === false) return {}
+  if (kbConceptsOf === lines) return kbConceptsMap
+  const m = {}
+  for (const line of lines) {
+    const cut = String(line).indexOf('|')
+    if (cut < 0) continue
+    const terms = String(line).slice(cut + 1).split(' ')
+    for (const key of String(line).slice(0, cut).split(' ')) if (key !== '') m[key] = (m[key] || []).concat(terms)
+  }
+  kbConceptsOf = lines
+  kbConceptsMap = m
+  return m
+}
+const kbIconNorm = (s) => String(s === null || s === undefined ? '' : s).toLowerCase().normalize('NFD').replace(/\p{M}/gu, '').trim()
+// The icons that answer `query`, best first. Every typed word must be found (name, search words, or a concept it stands for).
+// Rank: the name itself, its start, one of its words, a word of its search words; a concept counts for less than the word itself.
+const kbIconSearch = (query, names, words) => {
+  const typed = kbIconNorm(query).split(/\s+/).filter((w) => w.length > 0)
+  if (typed.length === 0 || Array.isArray(names) === false) return []
+  const bank = (words !== null && words !== undefined && words.tags !== null && typeof words.tags === 'object') ? words.tags : {}
+  const concepts = kbConcepts(words !== null && words !== undefined ? words.concepts : null)
+  const standFor = (w) => {
+    let extra = concepts[w]
+    if (extra === undefined && w.length > 3) extra = concepts[w.replace(/[sx]$/, '')]
+    if (extra === undefined && w.length >= 4) {
+      const hit = []
+      for (const k of Object.keys(concepts)) if (k.startsWith(w)) hit.push(...concepts[k])
+      if (hit.length > 0) extra = hit
+    }
+    return extra === undefined ? [] : extra
+  }
+  const plans = typed.map((w) => ({ w: w, extra: standFor(w) }))
+  const scored = []
+  for (const n of names) {
+    const parts = n.split('-')
+    const tw = typeof bank[n] === 'string' ? bank[n].split(' ') : []
+    const score = (t, weight) => {
+      let s = 0
+      if (n === t) s = 100
+      else if (n.startsWith(t)) s = 80
+      else if (parts.indexOf(t) >= 0) s = 70
+      else if (parts.some((p) => p.startsWith(t))) s = 60
+      else if (t.length >= 3 && n.indexOf(t) >= 0) s = 50
+      else if (tw.indexOf(t) >= 0) s = 40
+      else if (t.length >= 2 && tw.some((x) => x.startsWith(t))) s = 30
+      return s * weight
+    }
+    let total = 0
+    for (const p of plans) {
+      let best = score(p.w, 1)
+      // the first concept of a line is its heart (the dumbbell of « musculation »), the others its neighbours
+      p.extra.forEach((t, i) => { const v = score(t, i === 0 ? 0.5 : 0.3); if (v > best) best = v })
+      if (best === 0) { total = 0; break }
+      total += best
+    }
+    if (total > 0) scored.push([total, n])
+  }
+  scored.sort((a, b) => b[0] - a[0] || a[1].length - b[1].length || (a[1] < b[1] ? -1 : 1))
+  return scored.map((x) => x[1])
+}
+// </kb-icon-search>
+// The search words arrive when the person first types in a picker (about 150 KB: not sent with the list). Until then, or without the route (an
+// older host), the names are searched, ranked.
+let kbIconTagsData = null
+let kbIconTagsAsked = false
+const kbIconTagsListeners = []
+const kbLoadIconTags = () => {
+  if (kbIconTagsAsked === true) return
+  kbIconTagsAsked = true
+  try {
+    fetch(kbApiBase() + '/icon-tags', { cache: 'force-cache' }).then((r) => (r.ok ? r.json() : null)).then((body) => {
+      if (body === null || body === undefined || body.tags === null || typeof body.tags !== 'object' || Object.keys(body.tags).length === 0) return
+      kbIconTagsData = { tags: body.tags, concepts: Array.isArray(body.concepts) === true ? body.concepts : [] }
+      for (const f of kbIconTagsListeners.slice()) { try { f() } catch (e) { /* subscriber gone */ } }
+    }).catch(() => { /* the names alone */ })
+  } catch (e) { /* no fetch */ }
+}
+const kbUseIconTags = () => {
+  const pair = React.useState(kbIconTagsData)
+  React.useEffect(() => {
+    const f = () => pair[1](kbIconTagsData)
+    kbIconTagsListeners.push(f)
+    return () => { const i = kbIconTagsListeners.indexOf(f); if (i >= 0) kbIconTagsListeners.splice(i, 1) }
+  }, [])
+  return pair[0]
+}
 const kbLookIcon = (opts) => {
   const o = (opts !== null && opts !== undefined) ? opts : {}
   const all = (Array.isArray(o.icons) === true) ? o.icons : []
@@ -4662,10 +4756,10 @@ const kbLookIcon = (opts) => {
   const q2 = q.trim().toLowerCase()
   // Liste vide = on montre la sélection courte du produit (sinon la grille est
   // muette tant que `icons.json` n'est pas arrivé).
-  const shown = (all.length === 0) ? KB_DEFAULT_ICONS : (q2 === '' ? KB_DEFAULT_ICONS.filter((n) => all.indexOf(n) >= 0) : all.filter((n) => n.indexOf(q2) >= 0).slice(0, 300))
+  const shown = (all.length === 0) ? KB_DEFAULT_ICONS : (q2 === '' ? KB_DEFAULT_ICONS.filter((n) => all.indexOf(n) >= 0) : kbIconSearch(q2, all, o.words).slice(0, 300))
   return h('div', { className: 'kb8-look' },
     h('div', { className: 'kb8-search', style: { height: '40px' } }, Icon('search', 14),
-      h('input', { value: q, onChange: (e) => o.onQuery(e.target.value), placeholder: kbt('kbui.search') + all.length + kbt('kbui.icons.suffix') })),
+      h('input', { value: q, onChange: (e) => { if (e.target.value.trim() !== '') kbLoadIconTags(); o.onQuery(e.target.value) }, placeholder: kbt('kbui.search') + all.length + kbt('kbui.icons.suffix') })),
     h('div', { className: 'kb8-iconpick' }, shown.map((n) => h('button', {
       // The chosen icon takes the colour that was picked (the pale ground, the glyph in that colour), as on every other tile.
       type: 'button', key: n, title: n, className: 'kb8-iconbtn' + (o.icon === n ? ' on' + (kbCfVars(o.color) !== null ? ' col' : '') : ''), style: (o.icon === n && kbCfVars(o.color) !== null) ? kbCfVars(o.color) : undefined, onClick: () => o.onPick(n),
@@ -11898,6 +11992,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       // repli à l'aperçu quand la suggestion n'a pas la sienne.
       const teinte = kbHex(safe.color)
       kbUseIconsRev()
+      const iconTags = kbUseIconTags()
       const openPair = React.useState(false)
       const open = openPair[0]
       const setOpen = openPair[1]
@@ -12074,7 +12169,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
           // mêmes contrôles que la fiche AI Team (recherche + grille, pastilles
           // + couleur libre), donc le même geste partout (demande du 23/09).
           (mode !== 'icon' ? null : h('div', { className: 'kb8-f', style: { gridColumn: '1 / -1' } },
-            kbLookIcon({ icons: allIcons, query: q, onQuery: setQ, icon: form.icon, onPick: (n) => set({ icon: n }) }))),
+            kbLookIcon({ icons: allIcons, query: q, words: iconTags, onQuery: setQ, icon: form.icon, onPick: (n) => set({ icon: n }) }))),
           h('div', { className: 'kb8-f', style: { gridColumn: '1 / -1' } },
             h('span', { className: 'kb8-lbl' }, kbt('kbui.starters.fieldColor')),
             kbLookColor(form.color, (c) => set({ color: c })),
@@ -13729,6 +13824,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         return () => { dead = true }
       }, [])
       kbUseIconsRev()
+      const iconTags = kbUseIconTags()
       React.useEffect(() => () => { if (timerRef.current !== null) { try { clearTimeout(timerRef.current) } catch (e) { /* deja nettoye */ } } }, [])
       React.useEffect(() => { if (draft !== null && draft.icon !== '') kbLoadIconNodes() }, [draft !== null ? draft.icon : ''])
       React.useEffect(() => {
@@ -13952,7 +14048,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
             h('span', { style: { display: 'flex', flexDirection: 'column', gap: '8px', flex: 1, minWidth: '180px' } },
               kbLookImage({ hint: 'PNG, JPG, WebP, GIF or SVG · max 3 MB. Clicking an icon below replaces the image.', onFile: onAvatarFile, hasImage: hasAvatar === true, onClear: () => update({ clearAvatar: true }) }))),
           h('span', { className: 'kb8-parent' }, 'Icon'),
-          kbLookIcon({ icons: allIcons, query: iconQ, onQuery: setIconQ, icon: draft.icon, color: draft.color, onPick: (n) => update({ icon: n, clearAvatar: true }) }),
+          kbLookIcon({ icons: allIcons, query: iconQ, words: iconTags, onQuery: setIconQ, icon: draft.icon, color: draft.color, onPick: (n) => update({ icon: n, clearAvatar: true }) }),
           // `TYPE` n'a de sens que si le selecteur Local/Hosted est rendu : dans
           // un build `KB_SHOW_HOSTED === false`, l'etiquette restait seule entre
           // ICON et COLOUR, sans aucun controle (constat de la campagne visuelle).
@@ -17360,6 +17456,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       const setSaveState = savePair[1]
       const timerRef = React.useRef(null)
       kbUseIconsRev()
+      const iconTags = kbUseIconTags()
       React.useEffect(() => { kbLoadIconNodes() }, [])
       React.useEffect(() => {
         if (iconList !== null || kbRemoteOk !== true) return undefined
@@ -17740,7 +17837,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
             kbMdExtras('folder', ws),
             h('div', { style: card },
               h('span', { className: 'kb8-parent' }, 'Icon'),
-              kbLookIcon({ icons: allIcons, query: iconQ, onQuery: setIconQ, icon: iconDraft, color: colorDraft, onPick: (n) => updateDetails({ icon: n }) })),
+              kbLookIcon({ icons: allIcons, query: iconQ, words: iconTags, onQuery: setIconQ, icon: iconDraft, color: colorDraft, onPick: (n) => updateDetails({ icon: n }) })),
             h('div', { style: card },
               h('span', { className: 'kb8-parent' }, 'Colour'),
               kbLookColor(colorDraft, (c) => updateDetails({ color: c }))),
