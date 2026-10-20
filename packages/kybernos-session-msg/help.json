@@ -1,0 +1,29 @@
+{
+  "what": {
+    "fr": "Envoyer un message ou une instruction d’une session à une autre, à une nouvelle session ou à celle-ci. L’agent préremplit un formulaire en ligne : tu modifies, tu fermes ou tu envoies.",
+    "en": "Send a message or an instruction from one session to another, to a new session or to this one. The agent prefills an inline form: you edit it, close it or send it."
+  },
+  "steps": [
+    {
+      "fr": "Demande à l’agent de prévenir ou de confier un travail à une session : un formulaire apparaît sous sa réponse, déjà rempli (type, texte, destination). Tu peux aussi l’ouvrir avec le bouton « Envoyer à une session… » de l’en-tête.",
+      "en": "Ask the agent to tell another session something or hand it some work: a form appears under its answer, already filled in (kind, text, destination). You can also open it with the “Send to a session…” button in the header."
+    },
+    {
+      "fr": "Choisis Message (une information, rien n’est lancé) ou Instruction (l’autre session agit, puis rapporte), corrige le texte si besoin, choisis Ici, Nouvelle session ou une autre session en cours ou récente, puis Envoyer (⌘↵). La croix ferme le formulaire en gardant le texte.",
+      "en": "Pick Message (information, nothing is started) or Instruction (the other session acts, then reports), fix the text if needed, pick Here, New session or another running or recent session, then Send (⌘↵). The cross closes the form and keeps the text."
+    },
+    {
+      "fr": "Sous le formulaire, chaque envoi montre où il en est : Envoyé, Reçu, Réponse. « Voir la réponse » ouvre la session qui a répondu. Dans le chat qui reçoit, une carte « Instruction de … » ou « Message de … » affiche le texte, ce que cela signifie pour l’agent et l’accusé de réception.",
+      "en": "Under the form, each send shows where it stands: Sent, Received, Answer. “See the answer” opens the session that answered. In the receiving chat, an “Instruction from …” or “Message from …” card shows the text, what it means for the agent and the receipt."
+    }
+  ],
+  "where": {
+    "fr": "Dans un chat : en-tête, sous la dernière réponse, et messages reçus",
+    "en": "In a chat: header, under the last answer, and received messages",
+    "page": false
+  },
+  "good": {
+    "fr": "L’hôte ajoute lui-même le cadrage (information venue d’une autre conversation, ou instruction de l’utilisateur) : la page ne peut pas le retirer. L’agent ne fait que proposer : rien ne part sans ton clic, texte complet sous les yeux. Aucun réseau, un journal local de métadonnées seulement.",
+    "en": "The host adds the framing itself (information from another conversation, or an instruction from the user): the page cannot remove it. The agent only proposes: nothing is sent without your click, with the full text in front of you. No network, a local metadata-only journal."
+  }
+}
