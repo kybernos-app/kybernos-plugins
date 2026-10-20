@@ -905,7 +905,6 @@ let kbLocaleRead = () => 'en'
       'ui.subsession': { kybernos: 'Sous-session', en: 'Sub-session' },
       'ui.attempts.sub': { kybernos: ' pour ce rôle dans ce run', en: ' for this role in this run' },
       'ui.noworkspace': { kybernos: 'Aucun workspace pour l\'instant.', en: 'No workspace yet.' },
-      'ui.nodeliverable': { kybernos: 'Aucune création dans ce projet.', en: 'No creation in this project.' },
       'runs.noroute': { kybernos: 'La liste des exécutions ne répond pas — redémarre DSH.', en: 'The list of runs is not answering — restart DSH.' },
       'runs.withruns': { kybernos: ' avec runs', en: ' with runs' },
       'runs.localstore': { kybernos: ' (store local)', en: ' (local store)' },
@@ -3445,9 +3444,7 @@ const KB_FR_EN = {
   'Afficher le détail': 'Show the detail',
   'Afficher les points': 'Show the points',
   'Aucun bloc `budget:` dans les kyber.yml du projet.': 'No `budget:` block in the project kyber.yml files.',
-  'Aucun budget déclaré par les Agent Teams de ce projet (bloc budget: du kyber.yml).': 'No budget declared by this project’s agent teams (budget: block of kyber.yml).',
   'Aucun budget déclaré pour y rapporter cette dépense.': 'No declared budget to report this spend against.',
-  'Aucun document envoyé dans les threads de ce projet pour l’instant.': 'No document sent in this project’s threads for now.',
   'Aucune Agent Team n’a encore tourné dans les threads de ce projet.': 'No agent team has run in this project’s threads yet.',
   'La liste ci-dessous est le catalogue de compétences de l’environnement.': 'The list below is the environment’s skill catalog.',
   'Aucune compétence détectée dans l’environnement — installe une Agent Team qui en déclare, ou importe-en une depuis le dépôt.': 'No skill detected in the environment — install an agent team that declares one, or import one from the repository.',
@@ -3473,10 +3470,8 @@ const KB_FR_EN = {
   'erreur inconnue': 'unknown error',
   'Aucun micro détecté': 'No microphone detected',
   'Aucun micro ne correspond à ce périphérique': 'No microphone matches this device',
-  'Aucun objectif en cours dans les threads de ce projet.': 'No ongoing goal in this project’s threads.',
   'Aucun outil déclaré ni connexion réelle pour ce projet.': 'No declared tool and no real connection for this project.',
   'Aucun son capté pendant ': 'No sound captured for ',
-  'Aucun thread dans ce projet pour l’instant — ouvre un chat dans ce projet et il apparaitra ici.': 'No thread in this project for now — open a chat in this project and it will show up here.',
   'Aucune clé Composio configurée sur cette machine : aucune connexion réelle ne peut être listée.': 'No Composio key configured on this machine: no real connection can be listed.',
   'Aucune session': 'No session',
   'Aucune session courante — ouvre une conversation puis reviens ici.': 'No current session — open a conversation and come back here.',
@@ -10170,6 +10165,20 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       h('button', { type: 'button', className: 'kb6-pgbtn', disabled: props.page <= 0, onClick: () => props.setPage(props.page - 1) }, '‹'),
       h('span', { className: 'kb6-pglabel' }, kbt('kbui.page') + (props.page + 1) + '/' + props.pages),
       h('button', { type: 'button', className: 'kb6-pgbtn', disabled: props.page >= props.pages - 1, onClick: () => props.setPage(props.page + 1) }, '›')))
+    // <kb-empty-state>
+    // An empty list teaches (UX audit 2026-10-20): a small drawing, what lives here, and the way to add the first one.
+    // Pure: `o` = { kb, title, text?, action?: { act, label, run } }.
+    const KbEmptyState = (o) => h('div', { className: 'kb9-emptyx', 'data-kb': o.kb === undefined ? 'empty-state' : o.kb },
+      h('svg', { className: 'kb9-emptyx-art', viewBox: '0 0 84 62', 'aria-hidden': 'true' },
+        h('rect', { className: 'f', x: 10, y: 14, width: 46, height: 38, rx: 6 }),
+        h('rect', { className: 'l', x: 22, y: 8, width: 46, height: 38, rx: 6 }),
+        h('path', { className: 'l', d: 'M32 20h26M32 28h18M32 36h22' }),
+        h('circle', { className: 'a', cx: 66, cy: 46, r: 11 }),
+        h('path', { className: 'p', d: 'M66 41v10M61 46h10' })),
+      h('div', { className: 'kb9-emptyx-t' }, o.title),
+      (typeof o.text === 'string' && o.text.length > 0 ? h('p', { className: 'kb9-emptyx-p' }, o.text) : null),
+      (o.action !== undefined && o.action !== null ? h('button', { type: 'button', className: 'kb8-primary kb9-emptyx-b', 'data-act': o.action.act, onClick: o.action.run }, o.action.label) : null))
+    // </kb-empty-state>
     const KybersPanel = (p0) => {
       const compact = p0 !== null && p0 !== undefined && p0.compact === true;
       const s = useStore();
@@ -17379,6 +17388,12 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         h('span', { style: { display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, gap: '6px' } }, kbBone(i % 2 === 0 ? '34%' : '26%', 13), kbBone('52%', 10)),
         kbBone(70, 22, 'pill')))))
       const empty = (label) => (label === PROJ_LOADING ? projSkel() : h('div', { className: 'kb9-empty' }, label))
+      // An empty tab: the drawing, what lives here, and the way to add the first one. Bones while the project is still being read.
+      const emptyX = (o) => (projLoading === true ? projSkel() : KbEmptyState(o))
+      const startChatHere = () => {
+        try { if (uiWorkspaceSvc !== null && uiWorkspaceSvc !== undefined && typeof uiWorkspaceSvc.startSession === 'function' && ws !== null) { uiWorkspaceSvc.startSession(ws.workspaceId); set({ view: null }) } } catch (e) { /* no chat opened */ }
+      }
+      const chatAction = (label) => ({ act: 'new-chat', label: label, run: startChatHere })
       const hit = (t) => q === '' || String(t).toLowerCase().indexOf(q.toLowerCase()) >= 0
       // ── Donnees du projet absentes de la charge utile ──────────────────────
       // Trois choses ne sont connues que du host : quels kybers ont tourne dans
@@ -17734,7 +17749,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         if (tab === 'Threads') {
           // Plus de maquette : soit de vrais threads, soit un etat vide explicite.
           if (threadsRows.length === 0) {
-            return empty(projLoading === true ? PROJ_LOADING : kbe('No thread in this project for now — open a chat in this project and it will show up here.'))
+            return emptyX({ kb: 'project-threads-empty', title: kbe('No thread yet', 'Aucun fil pour l’instant'), text: kbe('Chats you open in this project show up here.', 'Les chats ouverts dans ce projet apparaissent ici.'), action: chatAction(kbe('New chat in this project', 'Nouveau chat dans ce projet')) })
           }
           return h(React.Fragment, null,
             pagerTop(threadsVp),
@@ -17758,7 +17773,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         if (tab === kbt('kbui.documents')) {
           // Les documents ENVOYES par l'utilisateur dans les threads du projet.
           if (docsRows.length === 0) {
-            return empty(projLoading === true ? PROJ_LOADING : kbe('No document sent in this project’s threads for now.'))
+            return emptyX({ kb: 'project-docs-empty', title: kbe('No document yet', 'Aucun document'), text: kbe('Files you send in this project’s chats show up here.', 'Les fichiers envoyés dans les chats de ce projet apparaissent ici.'), action: chatAction(kbe('Open a chat in this project', 'Ouvrir un chat dans ce projet')) })
           }
           // Reconnaitre une piece : six « image.png » identiques cohabitaient dans
           // cette liste. Le host connait la date d'envoi et le thread d'origine —
@@ -17832,7 +17847,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         if (tab === kbt('kbui.objectifs')) {
           // Les objectifs REELLEMENT en cours dans les threads du projet.
           return goalRows.length === 0
-            ? empty(projLoading === true ? PROJ_LOADING : kbe('No ongoing goal in this project’s threads.'))
+            ? emptyX({ kb: 'project-goals-empty', title: kbe('No goal running', 'Aucun objectif en cours'), text: kbe('A goal set in one of this project’s chats is followed here until it is done.', 'Un objectif fixé dans un chat de ce projet est suivi ici jusqu’à son terme.'), action: chatAction(kbe('Open a chat in this project', 'Ouvrir un chat dans ce projet')) })
             : h(React.Fragment, null,
               pagerTop(goalsVp),
               h('div', { className: 'kb8-rows' }, pageOf(goalRows, goalsVp).map((g) => {
@@ -17847,7 +17862,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
               pagerOf(goalsVp))
         }
         if (tab === 'Deliverables') {
-          if (mine.length === 0) return empty(kbt('ui.nodeliverable'))
+          if (mine.length === 0) return emptyX({ kb: 'project-deliv-empty', title: kbe('No creation yet', 'Aucune création'), text: kbe('Pages, files and decks your Agent Teams make in this project show up here.', 'Les pages, fichiers et présentations créés par vos Agent Teams dans ce projet apparaissent ici.'), action: chatAction(kbe('Open a chat in this project', 'Ouvrir un chat dans ce projet')) })
           // Le nom d'un livrable ne dit ni son type ni son age : les deux sont
           // affiches, et la fiche dit ou il vit sur le disque (avec de quoi
           // l'ouvrir ou le telecharger). `docField` appartient a l'onglet
@@ -17906,10 +17921,11 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
           // = détacher. Persisté côté host (workspace-skills), comme les
           // détails de la fiche — aucun état purement local.
           if (skillRows.length === 0) {
-            return empty(projLoading === true ? PROJ_LOADING
-              : (projActiveIds.length === 0
+            return emptyX({ kb: 'project-skills-empty', title: kbe('No skill yet', 'Aucune compétence'),
+              text: projActiveIds.length === 0
                 ? kbe('No agent team has run in this project’s threads yet.')
-                : kbe('No skill detected in the environment — install an agent team that declares one, or import one from the repository.')))
+                : kbe('No skill detected in the environment — install an agent team that declares one, or import one from the repository.'),
+              action: { act: 'browse-skills', label: kbt('kbui.skills.browse'), run: () => { try { set({ view: 'skills' }) } catch (e) { /* page unavailable */ } } } })
           }
           const attachedCount = skillRows.filter((r) => r.attached === true).length
           const countLabel = String(attachedCount) + ' ' + kbt(attachedCount === 1 ? 'kbui.skills.one' : 'kbui.skills.many')
@@ -17991,11 +18007,11 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
           if (connRows.length === 0) {
             return h(React.Fragment, null,
               h('span', { className: 'kb8-parent', 'data-kb': 'connectors-source' }, connsNote),
-              empty(projLoading === true
-                ? PROJ_LOADING
-                : (connsReal !== null && connsReal.configured === true
+              emptyX({ kb: 'project-conns-empty', title: kbe('No connector yet', 'Aucun connecteur'),
+                text: connsReal !== null && connsReal.configured === true
                   ? kbe('No declared tool and no real connection for this project.')
-                  : (projActiveIds.length === 0 ? kbe('No agent team has run in this project’s threads yet.') : kbe('This project’s agent teams declare no tool (connector).')))))
+                  : (projActiveIds.length === 0 ? kbe('No agent team has run in this project’s threads yet.') : kbe('This project’s agent teams declare no tool (connector).')),
+                action: KB_CP === true ? { act: 'open-connectors', label: kbe('Open Connectors', 'Ouvrir les connecteurs'), run: () => { try { set({ view: 'connectors' }) } catch (e) { /* page unavailable */ } } } : null }))
           }
           return h(React.Fragment, null,
             h('span', { className: 'kb8-parent', 'data-kb': 'connectors-source' }, connsNote),
@@ -18031,7 +18047,8 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         }
         // ── Budget : uniquement des chiffres reels, aucun graphe invente ──────
         if (budgetRows.length === 0 && spentNow === null) {
-          return empty(projLoading === true ? PROJ_LOADING : kbe('No budget declared by this project’s agent teams (budget: block of kyber.yml).'))
+          return emptyX({ kb: 'project-budget-empty', title: kbe('No budget set', 'Aucun budget défini'), text: kbe('A budget is set by an Agent Team. Once one of this project’s teams has one, its spending is followed here.', 'Un budget est défini par une Agent Team. Dès qu’une équipe de ce projet en a un, ses dépenses sont suivies ici.'),
+            action: { act: 'open-agent-teams', label: kbe('Open Agent Teams', 'Ouvrir les Agent Teams'), run: () => { try { set({ nav: 'kybers', view: 'gallery', detailPath: null, detailRoot: null }) } catch (e) { /* page unavailable */ } } } })
         }
         const cardBoxB = { flex: 1, minWidth: '220px', background: 'var(--dsw-alias-bg-layer-1)', border: '1px solid var(--dsw-alias-border-l1)', borderRadius: '16px', padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: '8px' }
         const remaining = spentNow === null ? null : Math.max(0, budgetTotal - spentNow)
@@ -31542,6 +31559,16 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
 .kb9-card{background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l1);border-radius:16px;overflow:hidden}
 .kb9-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
 .kb9-empty{display:flex;flex-direction:column;align-items:center;gap:10px;padding:80px 24px;background:var(--dsw-alias-bg-layer-1);border:1px dashed var(--dsw-alias-border-l1);border-radius:18px;text-align:center;color:var(--dsw-alias-label-secondary)}
+.kb9-emptyx{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:34px 24px;min-height:220px;background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l1);border-radius:16px;text-align:center}
+.kb9-emptyx-art{width:84px;height:62px;flex:none}
+.kb9-emptyx-art .l{fill:var(--dsw-alias-bg-layer-1);stroke:var(--dsw-alias-label-tertiary);stroke-width:1.5;stroke-linejoin:round;stroke-linecap:round}
+.kb9-emptyx-art path.l{fill:none}
+.kb9-emptyx-art .f{fill:var(--dsw-alias-bg-layer-2);stroke:var(--dsw-alias-label-tertiary);stroke-width:1.5}
+.kb9-emptyx-art .a{fill:var(--dsw-alias-label-primary);stroke:none}
+.kb9-emptyx-art .p{fill:none;stroke:var(--dsw-alias-bg-layer-1);stroke-width:2;stroke-linecap:round}
+.kb9-emptyx-t{margin-top:6px;font-size:15px;font-weight:600;color:var(--dsw-alias-label-primary)}
+.kb9-emptyx-p{margin:0;max-width:42ch;font-size:13px;line-height:1.5;color:var(--dsw-alias-label-secondary)}
+.kb9-emptyx-b{margin-top:6px}
 .kb9-bar{height:6px;border-radius:3px;background:var(--dsw-alias-bg-layer-2);overflow:hidden}
 .kb9-bar span{display:block;height:100%;background:var(--dsw-alias-brand-primary)}
 .kba-page{display:flex;flex-direction:column;gap:26px;width:100%;max-width:none;box-sizing:border-box;padding:30px 28px 36px;padding-left:max(28px,calc((100% - 1124px) / 2));padding-right:max(28px,calc((100% - 1124px) / 2));max-height:100%;overflow-y:auto;min-height:0}
