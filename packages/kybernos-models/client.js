@@ -235,8 +235,9 @@ window.__ModuleLoader__.load({
         'kb.fetch.why.big': { kybernos: 'sa réponse est trop volumineuse', en: 'its answer is too large' },
         'kb.fetch.why.host': { kybernos: 'ce DSH n’a pas encore la route de liste en direct (relance-le)', en: 'this DSH has no live-list route yet (restart it)' },
         'kb.fetch.why.noaddr': { kybernos: 'aucune adresse connue pour ce fournisseur', en: 'no address is known for this provider' },
-        'kb.pv.err.needsapi': { kybernos: 'DSH ne sait pas parler à « {model} » : ce modèle n’est pas dans son catalogue pour {slug}, et {slug} sert des modèles de plusieurs protocoles. Retire-le de la liste pour appliquer le reste, ou ajoute-le dans « Ajouter un fournisseur › API personnalisée » (même adresse, même clé, en choisissant le protocole).', en: 'DSH cannot talk to “{model}”: it is not in its catalog for {slug}, and {slug} serves models over several protocols. Remove it from the list to apply the rest, or add it under “Add provider › Custom API” (same address and key, with the protocol chosen).' },
+        'kb.pv.err.needsapi': { kybernos: 'DSH ne sait pas parler à « {model} » : ce modèle n’est pas dans son catalogue pour {slug}, et {slug} sert des modèles de plusieurs protocoles, donc DSH ne peut pas savoir lequel il utilise. Choisis le « Protocole API » dans « Paramètres personnalisés » (il s’applique à tous les modèles de {slug}), ou retire le modèle de la liste.', en: 'DSH cannot talk to “{model}”: it is not in its catalog for {slug}, and {slug} serves models over several protocols, so DSH cannot tell which one it speaks. Choose the “API protocol” under Customized settings (it applies to every model of {slug}), or remove the model from the list.' },
         'kb.fetch.undescribed': { kybernos: 'Hors du catalogue de DSH', en: 'Not in DSH’s catalog' },
+        'kb.fetch.undescribed.note': { kybernos: '{n} modèle(s) ne sont pas dans le catalogue de DSH. Pour les ajouter, choisis d’abord le « Protocole API » de ce fournisseur dans « Paramètres personnalisés » (il s’applique à tous ses modèles).', en: '{n} model(s) are not in DSH’s catalog. To add them, first choose this provider’s “API protocol” under Customized settings (it applies to all its models).' },
         'kb.fetch.undescribed.tip': { kybernos: 'DSH peut le refuser : il doit connaître le protocole de ce modèle, et ce fournisseur en sert plusieurs.', en: 'DSH may refuse it: it has to know which protocol this model speaks, and this provider serves several.' },
         'kb.fetch.title': { kybernos: 'Choisir les modèles à ajouter', en: 'Choose models to add' },
         'kb.fetch.desc': { kybernos: 'Voici les modèles que ce fournisseur propose. Coche ceux à ajouter.', en: 'These are the models this provider has available. Choose the ones to add.' },
@@ -335,6 +336,9 @@ window.__ModuleLoader__.load({
         'kb.pv.url': { kybernos: 'URL de base', en: 'Base URL' },
         'kb.pv.url.default': { kybernos: 'Défaut du fournisseur', en: 'Provider default' },
         'kb.pv.proto': { kybernos: 'Protocole API', en: 'API protocol' },
+        'kb.pv.err.needsurl': { kybernos: 'DSH ne sait pas où joindre « {model} » : ce modèle n’est pas dans son catalogue pour {slug}. Renseigne aussi l’« URL de base » dans « Paramètres personnalisés » (comme le protocole, elle s’applique à tous les modèles de {slug}).', en: 'DSH does not know where to reach “{model}”: it is not in its catalog for {slug}. Also set the “Base URL” under Customized settings (like the protocol, it applies to every model of {slug}).' },
+        'kb.pv.proto.auto': { kybernos: 'Automatique (catalogue de DSH)', en: 'Automatic (DSH’s catalog)' },
+        'kb.pv.proto.auto.hint': { kybernos: 'S’applique, avec l’URL de base, à TOUS les modèles de ce fournisseur. Laisse « Automatique » sauf pour ajouter un modèle que le catalogue de DSH ne décrit pas : si ce fournisseur sert ses modèles avec plusieurs protocoles, ceux qui en parlent un autre cesseront de répondre (remets « Automatique » pour les rétablir).', en: 'Applies, with the Base URL, to EVERY model of this provider. Leave it on Automatic unless you add a model DSH’s catalog does not describe: if this provider serves its models over several protocols, the ones that speak another will stop answering (set it back to Automatic to restore them).' },
         'kb.pv.proto.chat': { kybernos: 'OpenAI Chat Completions', en: 'OpenAI Chat Completions' },
         'kb.pv.proto.resp': { kybernos: 'OpenAI Responses', en: 'OpenAI Responses' },
         'kb.pv.proto.msgs': { kybernos: 'Anthropic Messages', en: 'Anthropic Messages' },
@@ -1765,7 +1769,9 @@ window.__ModuleLoader__.load({
         const prof = kbPvIsObj(kbMOBJ(KBM.userProviders)[route]) ? KBM.userProviders[route] : {}
         const rows = Array.isArray(prof.models) ? prof.models.filter((x) => kbPvIsObj(x)).map((x) => ({ id: String(x.id || ''), name: typeof x.name === 'string' ? x.name : '' })) : []
         return { key: '', voir: false, adv: false, name: typeof prof.displayName === 'string' ? prof.displayName : '', url: typeof prof.baseURL === 'string' ? prof.baseURL : '',
-          proto: typeof prof.api === 'string' ? prof.api : 'openai-completions', models: rows, hadModels: Array.isArray(prof.models), touched: false, custom: pvIsCustom(route) }
+          proto: typeof prof.api === 'string' ? prof.api : 'openai-completions', models: rows, hadModels: Array.isArray(prof.models), touched: false, custom: pvIsCustom(route),
+          // A catalog route's protocol: '' = Automatic (the catalog's, per model); a protocol binds EVERY model of the route.
+          apiSel: typeof prof.api === 'string' ? prof.api : '' }
       }
       const pvAddDraft = () => ({ tab: 'catalog', prov: null, id: '', name: '', url: '', proto: 'openai-completions', key: '', voir: false, models: [], adv: false, liste: true, q: '', act: 0 })
 
@@ -1803,7 +1809,7 @@ window.__ModuleLoader__.load({
           }
           if (out.models.length === 0) { setFp((st) => ({ ...st, busy: false, err: m('kb.fetch.empty') })); return }
           // The route may refuse a model outside the engine's catalog (see kbPvNeedsApi): tag those; a route that already refused one locks them.
-          const hasApi = typeof (kbMOBJ(KBM.userProviders)[slug] || {}).api === 'string'
+          const hasApi = typeof (kbMOBJ(KBM.userProviders)[slug] || {}).api === 'string' || (typeof d.apiSel === 'string' && d.apiSel !== '')
           const cands = out.live === true ? kbFetchTagUndescribed(out.models, out.described, hasApi, KBM.needsApi[slug] === true) : out.models
           setFp({ busy: false, err: null, cands, picked: kbFetchPreselect(cands, rows), q: '', src: out.live === true ? { live: true, url: out.url } : (out.live === false ? { live: false, why: out.why } : null) })
         }
@@ -1824,6 +1830,7 @@ window.__ModuleLoader__.load({
                   ? h('p', { className: fp.src.live === true ? 'kbpv-fetch-desc' : 'kbpv-fetch-note', role: 'status', 'data-kbm': 'fetch-source', 'data-kbm-live': fp.src.live === true ? '1' : '0' },
                     fp.src.live === true ? m('kb.fetch.src.live', { host: kbFetchHost(fp.src.url) }) : m('kb.fetch.src.catalog', { raison: m(fp.src.why.key, fp.src.why.vars) }))
                   : null,
+                fp.cands.some((c) => c.undescribed === true) ? h('p', { className: 'kbpv-fetch-note', role: 'status', 'data-kbm': 'fetch-undescribed' }, m('kb.fetch.undescribed.note', { n: fp.cands.filter((c) => c.undescribed === true).length })) : null,
                 custom === true ? null : h('p', { className: 'kbpv-fetch-note', 'data-kbm': 'fetch-replaces' }, m('kb.fetch.replaces', { slug: slug || '' })),
                 h('div', { className: 'kbpv-fetch-bar' },
                   h('input', { type: 'search', className: 'kbm-in-input kbpv-in', 'data-kbm': 'fetch-search', autoFocus: true, placeholder: m('kb.fetch.search'), 'aria-label': m('kb.fetch.search'), value: fp.q, onChange: (ev) => { const q = ev.target.value; setFp((st) => ({ ...st, q })) } }),
@@ -2038,8 +2045,9 @@ window.__ModuleLoader__.load({
           catch (e) {
             const raison = String(e && e.message ? e.message : e)
             const model = errKey === 'kb.pv.save.err' ? kbPvNeedsApi(raison) : null
+            const modelUrl = errKey === 'kb.pv.save.err' && model === null ? kbPvNeedsUrl(raison) : null
             if (model !== null && slug) KBM.needsApi[slug] = true
-            patch({ busy: false, err: model !== null ? m('kb.pv.err.needsapi', { slug: slug || '', model }) : m(errKey, { slug: slug || '', raison }) })
+            patch({ busy: false, err: model !== null ? m('kb.pv.err.needsapi', { slug: slug || '', model }) : (modelUrl !== null ? m('kb.pv.err.needsurl', { slug: slug || '', model: modelUrl }) : m(errKey, { slug: slug || '', raison })) })
             return undefined
           }
         }
@@ -2140,6 +2148,7 @@ window.__ModuleLoader__.load({
             dr.custom === true ? h(PvField, { id: 'pv-name', label: m('kb.pv.name') }, h('input', { id: 'pv-name', className: 'kbm-in-input kbpv-in', placeholder: route, value: dr.name, onChange: (ev) => setD({ name: ev.target.value }) })) : null,
             h(PvField, { id: 'pv-url', label: m('kb.pv.url'), err: urlBad ? m('kb.pv.err.url') : null }, h('input', { id: 'pv-url', className: 'kbm-in-input kbpv-in kbpv-mono', placeholder: m('kb.pv.url.default'), value: dr.url, onChange: (ev) => setD({ url: ev.target.value }) })),
             dr.custom === true ? h(PvField, { id: 'pv-proto', label: m('kb.pv.proto') }, h('select', { id: 'pv-proto', className: 'kbm-in-input kbpv-in', value: dr.proto, onChange: (ev) => setD({ proto: ev.target.value }) }, PV_PROTOS.map((x) => h('option', { key: x[0], value: x[0] }, m(x[1]))))) : null,
+            dr.custom !== true && bloc === null ? h(PvField, { id: 'pv-apisel', label: m('kb.pv.proto'), hint: m('kb.pv.proto.auto.hint') }, h('select', { id: 'pv-apisel', className: 'kbm-in-input kbpv-in', 'data-kbm': 'pv-apisel', value: dr.apiSel, onChange: (ev) => setD({ apiSel: ev.target.value }) }, [h('option', { key: 'auto', value: '' }, m('kb.pv.proto.auto'))].concat(PV_PROTOS.map((x) => h('option', { key: x[0], value: x[0] }, m(x[1])))))) : null,
             h(PvModels, { d: dr, set: setD, custom: dr.custom === true, probe: kbFetchProbe(route, dr), blocked: urlBad ? m('kb.pv.err.url') : null, slug: route })) : null,
           h('div', { className: 'kbpv-zone' },
             h('div', { className: 'kbpv-z' }, h('div', null, h('b', null, m('kb.pv.zone.off')), h('span', null, m('kb.pv.zone.off.d'))),
@@ -4007,6 +4016,7 @@ window.__ModuleLoader__.load({
       /** The model the engine refuses for want of a protocol (« model "x" needs an api; the installed catalog does not describe it… »), or null when
        *  the message is anything else. The engine takes ONE `api` per route, which would bind every model of a route that serves several protocols,
        *  so a model its catalog does not describe cannot be added to such a route. Pure. */
+      const kbPvNeedsUrl = (message) => { const mm = /model "([^"]+)" needs a baseURL/.exec(String(message === undefined || message === null ? '' : message)); return mm === null ? null : mm[1] }
       const kbPvNeedsApi = (message) => { const mm = /model "([^"]+)" needs an api/.exec(String(message === undefined || message === null ? '' : message)); return mm === null ? null : mm[1] }
       /** Model rows (id + optional name) from a draft: drops blank ids, keeps the first of a duplicate. Pure. */
       const kbPvRows = (rows) => {
@@ -4063,6 +4073,10 @@ window.__ModuleLoader__.load({
           if (name === '') delete next.displayName
           else next.displayName = name
           if (typeof d.proto === 'string' && d.proto !== '') next.api = d.proto
+        } else if (typeof d.apiSel === 'string') {
+          // A catalog route: Automatic removes the route's `api` (each model speaks the catalog's protocol), a protocol sets it for every model.
+          if (d.apiSel === '') delete next.api
+          else next.api = d.apiSel
         }
         if (d.restoreModels === true) delete next.models // back to the adapter's built-in list
         else if (d.models !== undefined) {
@@ -4357,9 +4371,9 @@ window.__ModuleLoader__.load({
       const kbFetchLive = async (probe) => {
         try {
           const body = { route: probe.provider }
-          if (typeof probe.baseURL === 'string') body.baseURL = probe.baseURL
-          if (typeof probe.api === 'string') body.api = probe.api
-          if (typeof probe.apiKey === 'string') body.key = probe.apiKey
+          // The address being typed is not saved yet: the list is the provider's own (the host reads its saved or catalogue address). It goes along
+          // only beside a key typed for the same call: the person typed both, so the key may go where they said (live-models.mjs).
+          if (typeof probe.apiKey === 'string') { body.key = probe.apiKey; if (typeof probe.baseURL === 'string') body.baseURL = probe.baseURL; if (typeof probe.api === 'string') body.api = probe.api }
           const res = await kbMTimeout(fetch('/kybernos-models/models/live', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }), 25000)
           if (res === null || res === undefined || typeof res.json !== 'function') return kbFetchLiveOutcome(null)
           let out = null
