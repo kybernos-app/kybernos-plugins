@@ -4,11 +4,13 @@
 // the token in its credential store, and ends: the entrypoint then goes on as for any computer (the model route, the account link, the reporter, the runner, the gate).
 //
 //   KYBERNOS_API            the platform's address        KYBERNOS_POOL_TOKEN   the slot's token (never in the environment of anything else)
+//   KYBERNOS_POOL_SLOT      the slot's id (not secret): the plugin honours the identity on the volume only where it is set
 //   DSH_HOME                the profile on the volume     DSH_PORT              DSH's loopback port (3081)
 //   KYBERNOS_IMAGE_VERSION  a short build name, sent once
 //
 //   POST /v1/pool/ready   {version}   → 200            « I am booted and unclaimed: put me to sleep when you like »
 //   POST /v1/pool/claim   {}          → 200 {claimed:false}  or  200 {claimed:true, computer_id, token, model}
+//                                       (a claimed slot is answered again, with a fresh token, until its computer says ready: an answer lost on the way is not a lost computer)
 //
 // Nothing here opens a port, and nothing is taken from an answer but those three fields: the platform's address is the machine's own (its environment), never one an answer names.
 // Every request goes on a connection of its own: a socket that was open when the machine was suspended is dead when it wakes, and the first poll after a wake must not wait for it.
@@ -65,7 +67,7 @@ export async function waitForClaim (options) {
   const maxPolls = options.maxPolls ?? Infinity
   const version = String(options.version || '').replace(/[^A-Za-z0-9._+-]/gu, '').slice(0, 40)
   const say = options.log ?? log
-  if (api === '' || poolToken === '' || home === '') { say('no platform, pool token or profile given: nothing to wait for'); return 'stopped' }
+  if (api === '' || poolToken === '' || home === '' || !options.slot) { say('no platform, pool token, slot or profile given: nothing to wait for'); return 'stopped' }
   if (readIdentity(home) !== null) return 'already'
   const auth = { authorization: 'Bearer ' + poolToken }
   const local = `http://127.0.0.1:${dshPort}`
@@ -117,9 +119,13 @@ export async function waitForRoute (options) {
   const sleep = options.sleep ?? defaultSleep
   const local = `http://127.0.0.1:${dshPort}`
   const deadline = (options.now ?? Date.now)() + (options.timeoutMs ?? 20000)
+  let silent = 0
   for (;;) {
-    const a = await send('POST', local + '/kybernos-cloud/computer/claimed', { headers: { origin: local }, body: {}, timeoutMs: 5000 })
+    const a = await send('GET', local + '/kybernos-cloud/computer/route', { headers: { origin: local }, timeoutMs: 3000 })
     if (a.status === 200 && a.json !== null && a.json.ok === true && a.json.route === true) return true
+    // A DSH that does not answer at all (it crashed during the reload) will not get there: say so now, the entrypoint restarts it.
+    silent = a.status === 0 ? silent + 1 : 0
+    if (silent >= (options.silentPolls ?? 12)) return false
     if ((options.now ?? Date.now)() > deadline) return false
     await sleep(options.pollMs ?? 250)
   }
@@ -131,6 +137,7 @@ async function main () {
   const out = await waitForClaim({
     api: process.env.KYBERNOS_API,
     poolToken: process.env.KYBERNOS_POOL_TOKEN,
+    slot: process.env.KYBERNOS_POOL_SLOT,
     home: process.env.DSH_HOME,
     dshPort: process.env.DSH_PORT,
     version: process.env.KYBERNOS_IMAGE_VERSION

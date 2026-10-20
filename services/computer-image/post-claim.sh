@@ -6,7 +6,8 @@ set -eu
 
 LIB=/usr/local/lib/kybernos-computer
 # A claimed pool slot has its identity on the volume, not in its environment: give this shell what the environment lacks (a machine made the old way gets nothing).
-eval "$(node "$LIB/identity.mjs" env)"
+ids=$(node "$LIB/identity.mjs" env)
+eval "$ids"
 
 # The model route of the computer, from the environment: the block between two markers is replaced at every start (a hot reload when DSH is already up).
 sh "$LIB/render-profile.sh"

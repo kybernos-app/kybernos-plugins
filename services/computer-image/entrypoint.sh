@@ -11,11 +11,13 @@ set -eu
 LIB=/usr/local/lib/kybernos-computer
 DATA="${KYBERNOS_DATA:-/data}"
 mkdir -p "$DATA/dsh" "$DATA/work"
-# Once: a volume that big is not walked at every boot.
+# Once: a volume that big is not walked at every boot. The volume is the agent's to write, so root never follows a link it finds there: a `.owned` that is a link (a dangling one would
+# make `touch` create, and `chown` hand to `node`, a file anywhere, /etc/ld.so.preload for one) is removed first, and the marker is made without following anything.
+if [ -L "$DATA/.owned" ]; then rm -f "$DATA/.owned"; fi
 if [ ! -f "$DATA/.owned" ]; then
-  chown -R node:node "$DATA"
-  touch "$DATA/.owned"
-  chown node:node "$DATA/.owned"
+  chown -R -h node:node "$DATA"
+  : > "$DATA/.owned"
+  chown -h node:node "$DATA/.owned"
 fi
 
 # The profile and the workspace live on the volume. HOME stays the image's: DSH's own caches belong with the image.
@@ -30,8 +32,9 @@ sh "$LIB/egress.sh"
 # 2. The profile: seeded from the image's copy on the first boot (as `node`, so that it is node's).
 runuser -u node -- sh -c '[ -d "$DSH_HOME/profiles/web" ] || { mkdir -p "$DSH_HOME"; cp -a /opt/dsh-seed/. "$DSH_HOME"/; }'
 
-# 3. A pool slot with no identity yet waits here, with DSH already up, until it is claimed (or returns at once when a claim is already on the volume).
-if [ -z "${KYBERNOS_COMPUTER_TOKEN:-}" ] && [ -n "${KYBERNOS_POOL_TOKEN:-}" ]; then
+# 3. A pool slot with no identity yet waits here, with DSH already up, until it is claimed (or returns at once when a claim is already on the volume). The slot's id is not secret:
+#    it is what lets the plugin honour the identity on the volume (computer-identity.mjs), so it stays in the environment of everything that runs.
+if [ -z "${KYBERNOS_COMPUTER_TOKEN:-}" ] && [ -n "${KYBERNOS_POOL_TOKEN:-}" ] && [ -n "${KYBERNOS_POOL_SLOT:-}" ]; then
   runuser -u node -- sh "$LIB/pool-hold.sh"
 fi
 

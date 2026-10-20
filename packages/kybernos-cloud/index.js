@@ -4686,20 +4686,24 @@ const instructionsSave = async (req, body) => writeInstructions(agentsFile(dshHo
 // A computer made ahead of need (services/computer-image, « pool ») boots with no token: DSH is already running when the platform hands it one, and a process cannot be given a new
 // environment. The claim step writes the identity to the volume (computer-identity.mjs) and then asks this route, over loopback, to put the token where the model route looks for it:
 // DSH's credential store (`apiKeyEnv: KYBERNOS_COMPUTER_TOKEN` resolves there first), so the next model call is signed with it and nothing restarts. The request carries nothing: the
-// identity is read from the volume, which only the machine's own user can write, and a machine made the old way (identity in its environment) has nothing to do.
-// `route` says whether the model route the entrypoint renders into the profile (`kybernos`) is live: that is a hot reload of the profile, about two seconds after the file is written,
-// and the entrypoint holds the reporter and the runner back until it is (a turn taken before it would find no model to call).
+// identity is read from the volume, and only on a machine the platform made as a pool slot (computer-identity.mjs): a laptop's plugin ignores that file. A machine made the old way
+// (identity in its environment) has nothing to do.
 const computerClaimed = async () => {
   const me = computerSelf()
   if (me.token === '') return { ok: false, error: 'unclaimed' }
-  const llm = tidyLlm()
-  let route = false
-  try { route = llm !== undefined && typeof llm.listProviders === 'function' && llm.listProviders().some((p) => p !== null && typeof p === 'object' && p.id === 'kybernos') } catch (e) { route = false }
-  if (me.source === 'env') return { ok: true, source: 'env', route }
+  if (me.source === 'env') return { ok: true, source: 'env' }
   const cred = service('credentials')
   if (cred === null || typeof cred.set !== 'function') return { ok: false, error: 'credentials_unavailable' }
   try { await cred.set('KYBERNOS_COMPUTER_TOKEN', me.token) } catch (e) { return { ok: false, error: 'credentials_refused' } }
-  return { ok: true, source: 'volume', route }
+  return { ok: true, source: 'volume' }
+}
+// Whether the model route the entrypoint renders into the profile (`kybernos`) is live: that is a hot reload of the profile, about two seconds after the file is written, and the
+// entrypoint holds the reporter and the runner back until it is (a turn taken before it would find no model to call). Read-only, so that it can be asked every few hundred milliseconds.
+const computerRoute = async () => {
+  const llm = tidyLlm()
+  let route = false
+  try { route = llm !== undefined && typeof llm.listProviders === 'function' && llm.listProviders().some((p) => p !== null && typeof p === 'object' && p.id === 'kybernos') } catch (e) { route = false }
+  return { ok: true, route }
 }
 
 // ── A turn handed to this computer by the platform (ADR 0053 § 13.4) ───────────────────────────────
@@ -5226,6 +5230,7 @@ const ROUTES = [
   // A turn the platform addressed to this computer (ADR 0053 § 13.4): started, then read, by the computer's own runner (token and same origin).
   // A pooled computer has just been handed its identity (see computerClaimed): loopback, same origin, nothing in the request.
   { path: '/kybernos-cloud/computer/claimed', method: 'POST', strict: true, run: computerClaimed },
+  { path: '/kybernos-cloud/computer/route', method: 'GET', guarded: true, run: computerRoute },
   { path: '/kybernos-cloud/turn', method: 'POST', strict: true, body: true, cap: 200000, run: turnStart },
   { path: '/kybernos-cloud/turn/answer', method: 'POST', strict: true, body: true, cap: 4096, run: turnAnswer },
   { path: '/kybernos-cloud/turn/continue', method: 'POST', strict: true, body: true, cap: 8192, run: turnContinue },

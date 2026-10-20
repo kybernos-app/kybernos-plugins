@@ -12,6 +12,12 @@ DSH_PORT="${DSH_PORT:-3081}"
 
 # A machine claimed earlier (a stop, a cold start) has its identity on the volume: nothing to wait for.
 if node "$LIB/identity.mjs" has; then exit 0; fi
+# One that WAS claimed but whose identity is gone (the file lost): it must not sit here polling for a claim the platform will not make again, with the pool token in this process's
+# environment next to a person's DSH. It goes on without an identity and fails where it can be seen (the gate does not start).
+if node "$LIB/identity.mjs" claimed-before; then
+  echo "[pool] this slot was claimed before and its identity is gone from the volume: not waiting for another claim"
+  exit 0
+fi
 
 # The suite's cloud plugin follows this address (the same one post-claim.sh gives a machine made the old way).
 if [ -n "${KYBERNOS_API:-}" ]; then export KYBERNOS_CLOUD_API="${KYBERNOS_API%/}"; fi
@@ -42,7 +48,9 @@ node "$LIB/claimer.mjs" || rc=$?
 kill "$KEEPER" 2>/dev/null || true
 if [ "$rc" -eq 3 ]; then
   pkill -f -- "web --no-open --host 127.0.0.1 --port $DSH_PORT" 2>/dev/null || true
-  sleep 1
+  # Until it is really gone (post-claim.sh would take a DSH that is still shutting down for a live one).
+  n=0
+  while curl -s -o /dev/null --max-time 1 "http://127.0.0.1:$DSH_PORT/" && [ "$n" -lt 20 ]; do n=$((n + 1)); sleep 0.5; done
   rc=0
 fi
 exit "$rc"

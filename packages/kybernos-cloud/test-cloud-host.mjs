@@ -725,7 +725,7 @@ try {
     '/kybernos-cloud/whatsapp/pairing', '/kybernos-cloud/whatsapp/pairing/state', '/kybernos-cloud/whatsapp/pairing/cancel', '/kybernos-cloud/whatsapp/unlink',
     '/kybernos-cloud/computer/resume', '/kybernos-cloud/computer/suspend', '/kybernos-cloud/computer/open',
     // A pooled computer has just been handed its identity (loopback, nothing in the request): see 6f.
-    '/kybernos-cloud/computer/claimed',
+    '/kybernos-cloud/computer/claimed', '/kybernos-cloud/computer/route',
     // The Upgrade dialog: the plans and their quotes, the payment page and the billing portal (test-billing-proxy.mjs holds their rules).
     '/kybernos-cloud/plans', '/kybernos-cloud/plans/quote', '/kybernos-cloud/billing/checkout', '/kybernos-cloud/billing/portal',
   ]
@@ -1653,21 +1653,23 @@ try {
   // 6f. A POOLED computer (made ahead of need, handed to a person later): no identity in its environment, one on its volume (computer-identity.mjs). The turn routes follow it, the
   //     claim route puts the token in DSH's credential store, and a machine made the old way is left alone.
   {
-    const poolHit = async (path, authorization, origin = 'http://127.0.0.1:3080') => {
-      const req = fakeReq('POST', origin, {}, path)
+    const poolHit = async (path, authorization, origin = 'http://127.0.0.1:3080', method = 'POST') => {
+      const req = fakeReq(method, origin, {}, path)
       req.socket = { localPort: 3080, remoteAddress: '127.0.0.1' }
       if (authorization !== undefined) req.headers.authorization = authorization
       const res = fakeRes()
       await routes.get(path)(req, res)
       return res
     }
-    const poolSaved = { id: process.env.KYBERNOS_COMPUTER_ID, token: process.env.KYBERNOS_COMPUTER_TOKEN, home: process.env.DSH_HOME, llm: llmEnabled }
+    const poolSaved = { id: process.env.KYBERNOS_COMPUTER_ID, token: process.env.KYBERNOS_COMPUTER_TOKEN, home: process.env.DSH_HOME, llm: llmEnabled, slot: process.env.KYBERNOS_POOL_SLOT, api: process.env.KYBERNOS_API }
     const poolHome = mkdtempSync(join(tmpdir(), 'kb-pool-'))
     const POOLED = 'kyd_pooled_0123456789abcdef'
     try {
       delete process.env.KYBERNOS_COMPUTER_ID
       delete process.env.KYBERNOS_COMPUTER_TOKEN
       process.env.DSH_HOME = poolHome
+      process.env.KYBERNOS_POOL_SLOT = 'slot-1'
+      process.env.KYBERNOS_API = 'https://api.example.test'
       llmEnabled = true
       llmProviders = []
       credentialStore.delete('KYBERNOS_COMPUTER_TOKEN')
@@ -1680,13 +1682,21 @@ try {
       assert.equal((await poolHit('/kybernos-cloud/turn', 'Bearer ' + POOLED)).body.error, 'a prompt is expected', 'le jeton du volume ouvre la route de tour')
       assert.equal((await poolHit('/kybernos-cloud/turn', 'Bearer kyd_wrong_0123456789abcdef')).body.error, 'unavailable', 'un autre jeton, non')
       assert.equal((await poolHit('/kybernos-cloud/turn', 'Bearer ' + POOLED, 'https://evil.example')).status, 403, 'cross-origin refuse')
-      // The claim route: the token goes to the credential store, and it says whether the model route is live yet.
+      // The volume is honoured on a pool slot ONLY: a file there does not make a laptop's plugin a computer (the agent can write it).
+      delete process.env.KYBERNOS_POOL_SLOT
+      assert.equal((await poolHit('/kybernos-cloud/turn', 'Bearer ' + POOLED)).body.error, 'unavailable', 'sans identifiant de slot, le fichier est ignore')
+      assert.deepEqual((await poolHit('/kybernos-cloud/computer/claimed')).body, { ok: false, error: 'unclaimed' })
+      process.env.KYBERNOS_POOL_SLOT = 'slot-1'
+      // The claim route: the token goes to the credential store; the model route's state is a read of its own.
       const first = await poolHit('/kybernos-cloud/computer/claimed')
-      assert.deepEqual(first.body, { ok: true, source: 'volume', route: false })
+      assert.deepEqual(first.body, { ok: true, source: 'volume' })
       assert.equal(credentialStore.get('KYBERNOS_COMPUTER_TOKEN'), POOLED)
       assert.equal(JSON.stringify(first.body).includes(POOLED), false, 'jamais le jeton dans la reponse')
+      credentialStore.delete('KYBERNOS_COMPUTER_TOKEN')
+      assert.deepEqual((await poolHit('/kybernos-cloud/computer/route', undefined, 'http://127.0.0.1:3080', 'GET')).body, { ok: true, route: false })
+      assert.equal(credentialStore.has('KYBERNOS_COMPUTER_TOKEN'), false, 'lire l\'etat de la route n\'ecrit rien')
       llmProviders = [{ id: 'kybernos', name: 'Kybernos' }]
-      assert.equal((await poolHit('/kybernos-cloud/computer/claimed')).body.route, true, 'la route du modele est montee apres le rechargement du profil')
+      assert.equal((await poolHit('/kybernos-cloud/computer/route', undefined, 'http://127.0.0.1:3080', 'GET')).body.route, true, 'la route du modele est montee apres le rechargement du profil')
       assert.equal((await poolHit('/kybernos-cloud/computer/claimed', undefined, 'https://evil.example')).status, 403)
       // No credential service: said, not thrown.
       credentialsEnabled = false
@@ -1698,7 +1708,7 @@ try {
       process.env.KYBERNOS_COMPUTER_TOKEN = 'kyd_from_env_0123456789ab'
       assert.equal((await poolHit('/kybernos-cloud/turn', 'Bearer kyd_from_env_0123456789ab')).body.error, 'a prompt is expected')
       assert.equal((await poolHit('/kybernos-cloud/turn', 'Bearer ' + POOLED)).body.error, 'unavailable', 'l\'environnement l\'emporte sur le volume')
-      assert.deepEqual((await poolHit('/kybernos-cloud/computer/claimed')).body, { ok: true, source: 'env', route: true })
+      assert.deepEqual((await poolHit('/kybernos-cloud/computer/claimed')).body, { ok: true, source: 'env' })
       assert.equal(credentialStore.has('KYBERNOS_COMPUTER_TOKEN'), false, 'rien n\'est ecrit pour une machine faite a l\'ancienne')
     } finally {
       llmEnabled = poolSaved.llm
@@ -1707,6 +1717,8 @@ try {
       credentialStore.delete('KYBERNOS_COMPUTER_TOKEN')
       rmSync(poolHome, { recursive: true, force: true })
       if (poolSaved.home === undefined) delete process.env.DSH_HOME; else process.env.DSH_HOME = poolSaved.home
+      if (poolSaved.slot === undefined) delete process.env.KYBERNOS_POOL_SLOT; else process.env.KYBERNOS_POOL_SLOT = poolSaved.slot
+      if (poolSaved.api === undefined) delete process.env.KYBERNOS_API; else process.env.KYBERNOS_API = poolSaved.api
       if (poolSaved.id === undefined) delete process.env.KYBERNOS_COMPUTER_ID; else process.env.KYBERNOS_COMPUTER_ID = poolSaved.id
       if (poolSaved.token === undefined) delete process.env.KYBERNOS_COMPUTER_TOKEN; else process.env.KYBERNOS_COMPUTER_TOKEN = poolSaved.token
     }
