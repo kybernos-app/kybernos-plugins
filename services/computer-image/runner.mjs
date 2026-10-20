@@ -116,6 +116,9 @@ async function ack (jobId, body) {
   return false
 }
 
+/** The reasons the cloud plugin gives for a model that could not be reached (`model_429` is a rate limit): asking such a turn for words again only waits through the same retries once more. */
+const MODEL_DOWN = /^model_[a-z0-9]{1,20}$/u
+
 /** What a turn with no words is asked once: the words, now. */
 const NUDGE = 'Your last turn ended without a message to the person. Reply now, in one short message: what you did and what you found, or why you could not do it.'
 
@@ -168,7 +171,8 @@ export async function runOne (job, options = {}) {
       return 'no_message'
     }
     await emit('started')
-    const started = await dsh('/kybernos-cloud/turn', { prompt, jobId: job.id, channel: channelOf(ctx.json) })
+    // `budgetMs`: how long the turn may last, so that the computer never waits for the person's answer to a question past the end of the turn.
+    const started = await dsh('/kybernos-cloud/turn', { prompt, jobId: job.id, channel: channelOf(ctx.json), budgetMs: timeout })
     const sessionId = started.json && started.json.ok === true ? started.json.sessionId : null
     if (started.status !== 200 || typeof sessionId !== 'string') {
       await ack(job.id, { status: 'failed', error: 'dsh_failed' })
@@ -181,7 +185,7 @@ export async function runOne (job, options = {}) {
     if (waited === 'timeout') { await ack(job.id, { status: 'failed', error: 'run_timeout' }); return 'run_timeout' }
     let answer = await readText(sessionId)
     // A turn that ended with no words is asked for them once, in the same session: a model that only thought, or only called a tool, says what it found.
-    if (answer.text === '') {
+    if (answer.text === '' && !MODEL_DOWN.test(answer.why)) {
       const before = sessionState(sessionId)
       const more = await dsh('/kybernos-cloud/turn/continue', { sessionId, prompt: NUDGE })
       if (more.json && more.json.ok === true) {
@@ -204,7 +208,8 @@ export async function runOne (job, options = {}) {
     }
     if (answer.text === '') {
       // A turn that ended with no words says why when DSH said so: a code, never a message. That is what an owner reads in the platform's journal of the job.
-      const error = answer.why === '' ? 'empty_answer' : failCode(('empty_answer.' + answer.why).slice(0, 100))
+      // A rate-limited model is `model_429`, as the platform's own model route reports it: the door says « busy » for it. Anything else keeps the no-words family, with the cause after it.
+      const error = answer.why === '' ? 'empty_answer' : answer.why === 'model_429' ? 'model_429' : failCode(('empty_answer.' + answer.why).slice(0, 100))
       await ack(job.id, { status: 'failed', error })
       return error
     }

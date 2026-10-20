@@ -884,7 +884,7 @@ const computerTools = () => {
     },
     {
       name: 'computer_list',
-      description: 'Lists the E2B sandboxes tracked on this machine (identifier, label, time left before the TTL).',
+      description: 'Lists the E2B code sandboxes tracked on this machine (identifier, label, time left before the TTL). These are scratch microVMs started with computer_start, NOT the person\'s cloud computers, workspaces or plan: read those with kaby_account.',
       parameters: { type: 'object', additionalProperties: false, properties: {}, required: [] },
       output: { schema: { type: 'object', additionalProperties: false, properties: { ok: { type: 'boolean' }, sandboxes: { type: 'array' } }, required: ['ok'] },
         render: (args, value) => TEXT_RESULT(value.ok === true && Array.isArray(value.sandboxes) && value.sandboxes.length > 0

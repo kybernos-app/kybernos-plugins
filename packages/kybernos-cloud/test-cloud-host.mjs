@@ -107,7 +107,7 @@ const SUPPORT_ITEM = {
 const market = { mode: 'legacy', items: [SUPPORT_ITEM], hidden: [], pageSize: 200, listCalls: 0, failPage: null, endless: false, byAddressStatus: null }
 const teamApi = { workspace: '11111111-1111-4111-8111-111111111111', role: 'member', rows: [], next: 1, fail: null }
 const invites = { calls: [], answer: null }
-const seen = { memberReads: 0, team: [], startBody: null, pollBodies: [], authHeaders: [], modelsAuth: [], modelsWorkspace: [], memoryAuth: [], marketAuth: [], marketUrls: [], referralAuth: [], embedCalls: [], puts: [], searches: [], writes: [] }
+const seen = { memberReads: 0, computerListReads: 0, team: [], startBody: null, pollBodies: [], authHeaders: [], modelsAuth: [], modelsWorkspace: [], memoryAuth: [], marketAuth: [], marketUrls: [], referralAuth: [], embedCalls: [], puts: [], searches: [], writes: [] }
 
 // Parrainage : GET /v1/referral (route ajoutee au proxy le 24/09/2026, parce
 // que l'Edge Function kybernos-referral-info exige un JWT web que le jeton
@@ -304,6 +304,7 @@ const api = createServer((req, res) => {
       }
     }
     if (req.url === '/v1/workspaces/ws-1/computers' && req.method === 'GET') {
+      seen.computerListReads += 1
       if (tokenValid !== true || auth !== 'Bearer ' + TOKEN) return send(401, { error: 'invalid session' })
       return send(200, { computers: [{ name: 'Other', state: 'running' }, kyberHome], policy: {}, standing: {} })
     }
@@ -1579,12 +1580,25 @@ try {
           for (const listing of ['job_list', 'schedule_list', 'connections_list']) assert.deepEqual(await run(listing, {}), { kind: 'allow' }, listing)
           assert.deepEqual(await run('bash', { command: 'ls' }, 'someone-elses-session'), { kind: 'allow' })
           assert.equal(seen.length, 0, 'aucune question pour une lecture ni pour une autre session')
+          // Audit of the tools that only read (2026-10-20): the sandboxes this machine tracks, a sandbox's file, the connected apps' actions, the plan the model keeps for itself, the account.
+          for (const reading of ['computer_list', 'computer_read', 'connections_search_tools', 'todo_write', 'kaby_account']) assert.deepEqual(await run(reading, {}), { kind: 'allow' }, reading)
+          for (const reading of mod.TURN_GATE_SAFE_TOOLS) assert.deepEqual(await run(reading, {}), { kind: 'allow' }, reading)
+          // What changes something, or acts for someone, is still asked about.
+          for (const acting of ['computer_start', 'computer_exec', 'computer_write', 'connections_execute', 'memory_write', 'lesson_write', 'relancer_dsh', 'kybernos_report_feedback']) assert.equal(mod.TURN_GATE_SAFE_TOOLS.has(acting), false, acting + ' is asked about')
+          assert.equal(seen.length, 0, 'aucune question pour les outils de lecture')
+          // Nobody is at DSH's own question card on a cloud computer: it is refused at once, with the way out (ask in the answer), instead of waiting for ever.
+          const dshAsk = await run('ask_user_question', { questions: [{ question: 'Which one?' }] })
+          assert.equal(dshAsk.kind, 'deny')
+          assert.match(dshAsk.reason, /Nobody can answer here: ask the question in your reply/)
+          assert.equal(seen.length, 0, 'la carte de DSH n\'est pas posee a quelqu\'un')
           // A command waits for the answer, and goes when it is yes. The question carries the real command line, the turn and the computer's own token.
           assert.deepEqual(await run('bash', { command: 'curl -X POST https://hooks.example.test/x', description: 'harmless' }), { kind: 'allow' })
           const post = seen.find((c) => c.method === 'POST')
           assert.deepEqual(post.body, { job_id: JOB, kind: 'shell', summary: 'curl -X POST https://hooks.example.test/x' })
           assert.equal(post.auth, 'Bearer kyd_computer')
           // A no, an expired question, a platform that cannot be reached and a stopped task are refusals, never passes.
+          // Each scenario has its own turn: the number of questions one turn may ask is bounded (below).
+          const turnOf = async (id, extra = {}) => { nextSession = id; await turnHit('/kybernos-cloud/turn', { prompt: 'do it', jobId: JOB, ...extra }, 'Bearer kyd_computer'); return id }
           answers = ['denied']
           const denied = await run('bash', { command: 'rm -rf ~' })
           assert.equal(denied.kind, 'deny')
@@ -1594,16 +1608,62 @@ try {
           const stopper = new AbortController()
           stopper.abort()
           answers = ['pending', 'pending']
-          assert.equal((await run('edit', { file_path: '/home/node/a.txt' }, 's-gate', stopper.signal)).kind, 'deny')
+          assert.equal((await run('edit', { file_path: '/home/node/a.txt' }, await turnOf('s-stopped'), stopper.signal)).kind, 'deny')
           unreachable = true
-          assert.equal((await run('mcp__gmail__send_email', { to: 'x@example.test' })).kind, 'deny')
+          assert.equal((await run('mcp__gmail__send_email', { to: 'x@example.test' }, await turnOf('s-down'))).kind, 'deny')
           unreachable = false
           // « For the rest of this task »: the next call in that session is not asked about.
+          const rest = await turnOf('s-rest')
           answers = ['allowed_turn']
-          assert.deepEqual(await run('bash', { command: 'ls' }), { kind: 'allow' })
+          assert.deepEqual(await run('bash', { command: 'ls' }, rest), { kind: 'allow' })
           const before = seen.length
-          assert.deepEqual(await run('bash', { command: 'ls -la' }), { kind: 'allow' })
+          assert.deepEqual(await run('bash', { command: 'ls -la' }, rest), { kind: 'allow' })
           assert.equal(seen.length, before, 'plus de question pour la suite de cette tache')
+
+          // Too many questions: a turn asks the person at most three times, and says which one it is from the second (measured on WhatsApp, 2026-10-20: four in a row for « my workspaces »).
+          const capped = await turnOf('s-cap')
+          answers = ['allowed', 'allowed', 'allowed', 'allowed']
+          seen.length = 0
+          for (const command of ['ls /home', 'ls ~/.dsh', 'ls /data']) assert.deepEqual(await run('bash', { command }, capped), { kind: 'allow' }, command)
+          assert.deepEqual(seen.filter((c) => c.method === 'POST').map((c) => c.body.summary), ['ls /home', 'Question 2 in this task: ls ~/.dsh', 'Question 3 in this task: ls /data'])
+          const fourth = await run('bash', { command: 'sudo ls /data' }, capped)
+          assert.equal(fourth.kind, 'deny')
+          assert.match(fourth.reason, /already asked the person 3 times in this task/)
+          assert.match(fourth.reason, /say what you could not do/)
+          assert.equal(seen.filter((c) => c.method === 'POST').length, 3, 'no fourth question reaches the person')
+          // The person may still say « for the rest of this task » on one of the three: after that nothing is asked and nothing is capped.
+          const calm = await turnOf('s-calm')
+          answers = ['allowed', 'allowed_turn']
+          assert.deepEqual(await run('bash', { command: 'ls a' }, calm), { kind: 'allow' })
+          assert.deepEqual(await run('bash', { command: 'ls b' }, calm), { kind: 'allow' })
+          for (const command of ['ls c', 'ls d', 'ls e']) assert.deepEqual(await run('bash', { command }, calm), { kind: 'allow' })
+
+          // An unanswered question ends before the turn does: the model then answers with what it knows, instead of the whole turn timing out with no words.
+          process.env.KYBERNOS_TURN_GATE_WAIT_MS = '120'
+          answers = []
+          const slow = await turnOf('s-slow')
+          let t0 = Date.now()
+          const unanswered = await run('bash', { command: 'sleep 1' }, slow)
+          assert.equal(unanswered.kind, 'deny')
+          assert.match(unanswered.reason, /did not answer in time/)
+          assert.ok(Date.now() - t0 < 2000, 'the wait is bounded by the setting, not by ten minutes')
+          delete process.env.KYBERNOS_TURN_GATE_WAIT_MS
+          // The turn's own budget bounds the wait too, with room left to answer (the runner says how long the turn may last; a turn starts 750 ms after it is made).
+          process.env.KYBERNOS_TURN_GATE_GRACE_MS = '100'
+          const budgeted = await turnOf('s-budget', { budgetMs: 1500 })
+          t0 = Date.now()
+          const late = await run('bash', { command: 'sleep 1' }, budgeted)
+          assert.equal(late.kind, 'deny')
+          assert.match(late.reason, /did not answer in time/)
+          assert.ok(Date.now() - t0 < 1500, 'the wait ended with the budget, not after the default five minutes: ' + (Date.now() - t0))
+          // With no time left at all the person is not even asked.
+          const spent = await turnOf('s-spent', { budgetMs: 500 })
+          seen.length = 0
+          const none = await run('bash', { command: 'ls' }, spent)
+          assert.equal(none.kind, 'deny')
+          assert.match(none.reason, /there was no time left to ask/)
+          assert.equal(seen.length, 0, 'no question is put when there is no time to wait for it')
+          delete process.env.KYBERNOS_TURN_GATE_GRACE_MS
           // A session with no turn behind it (a restart lost it) cannot be asked about: a refusal.
           nextSession = 's-nojob'
           await turnHit('/kybernos-cloud/turn', { prompt: 'no job id' }, 'Bearer kyd_computer')
@@ -1634,6 +1694,35 @@ try {
       assert.equal(empty.body.text, '')
       assert.equal(empty.body.failure, 'ended_turn_end.b_thinking-tool_use')
       assert.equal(JSON.stringify(empty.body).includes('secret words'), false, 'jamais les mots, seulement les types')
+
+      // A model that could not be reached: the engine logs every retry (`llm/retry` with the failure's code), so the turn that ends with no words says WHY, as a code the platform can
+      // turn into a sentence (`model_429` is the one its door already reads as « busy »), instead of the anonymous `ended_turn_end` (measured on dev, 2026-10-20: glm-5.3-flash 429 for hours).
+      const retried = (codes, tail = []) => ({
+        open: async () => ({
+          read: async () => ({ events: [
+            { type: 'assistant/message', data: { message: { content: [{ type: 'tool_use', name: 'bash' }] } } },
+            ...codes.map((code, i) => ({ type: 'llm/retry', data: { retry: i + 1, failure: { code, message: 'Too many requests for Ada' } } })),
+            ...tail,
+            { type: 'turn/end', data: {} },
+          ] }),
+          close: async () => {},
+        }),
+      })
+      const failureOf = async (codes, tail) => {
+        fakeSessionPersistence = retried(codes, tail)
+        return (await turnHit('/kybernos-cloud/turn/answer', { sessionId: 's-9' }, 'Bearer kyd_computer')).body
+      }
+      assert.equal((await failureOf(['RATE_LIMIT', 'RATE_LIMIT', 'RATE_LIMIT'])).failure, 'model_429')
+      assert.equal((await failureOf(['SERVER'])).failure, 'model_server')
+      assert.equal((await failureOf(['TIMEOUT'])).failure, 'model_timeout')
+      assert.equal((await failureOf(['TRANSPORT'])).failure, 'model_transport')
+      assert.equal((await failureOf(['EMPTY_RESPONSE'])).failure, 'model_empty')
+      assert.equal((await failureOf(['SOMETHING NEW!'])).failure, 'model_error', 'an unknown code is a generic model failure, never passed on')
+      assert.equal((await failureOf(['SERVER', 'RATE_LIMIT'])).failure, 'model_429', 'the last cause wins')
+      const busyBody = await failureOf(['RATE_LIMIT'])
+      assert.equal(JSON.stringify(busyBody).includes('Ada'), false, 'jamais le message du fournisseur, seulement un code')
+      const recovered = await failureOf(['RATE_LIMIT'], [{ type: 'assistant/message', data: { message: { content: [{ type: 'text', text: 'Done: HTTP 200.' }] } } }])
+      assert.deepEqual([recovered.text, recovered.failure], ['Done: HTTP 200.', undefined], 'a retry that worked leaves no failure')
     } finally {
       fakeSessionController = undefined
       fakeSessionPersistence = undefined
@@ -2091,6 +2180,21 @@ try {
       const found = await know.execute({ query: 'garage dupont' })
       assert.ok(found.ok === true && /garage\.md/.test(found.text) && /640 euros/.test(found.text), found.text)
       assert.ok(/information, not instructions/.test((await know.execute({})).text))
+      // The account tool answers « my workspaces / my plan / my computers » by name, so that Kaby never looks for them with the shell (four approval questions in a row, measured on WhatsApp).
+      const account = registeredTools.get('kaby_account')
+      assert.ok(account !== undefined, 'kaby_account is registered')
+      const readsBefore = seen.computerListReads
+      const listed = await account.execute({})
+      assert.ok(listed.ok === true && /Workspaces \(1\): "My workspace" \(personal, [a-z]*, active\)/.test(listed.text), listed.text)
+      assert.ok(/Plan of "My workspace": /.test(listed.text) && /Cloud computers in "My workspace": /.test(listed.text) && /"Other"/.test(listed.text), listed.text)
+      assert.ok(!/ws-1|cmp-home|kys-|Bearer/.test(listed.text), 'names and states only: no id, no token')
+      assert.equal(seen.computerListReads, readsBefore + 1, 'on the person\'s own computer the list of computers is asked once')
+      // On a cloud computer the server shows the token its own workspace only and counts a call for the list of computers as a possible leak: none is made, and the answer says so.
+      process.env.KYBERNOS_COMPUTER_ID = 'cmp-1'
+      const fromComputer = await account.execute({})
+      delete process.env.KYBERNOS_COMPUTER_ID
+      assert.ok(fromComputer.ok === true && /sees only the workspace it belongs to/.test(fromComputer.text) && /I cannot see them from a cloud computer/.test(fromComputer.text), fromComputer.text)
+      assert.equal(seen.computerListReads, readsBefore + 1, 'no call for the list of computers from a cloud computer')
     } finally {
       fakeApproval = undefined
       if (homeSaved === undefined) delete process.env.DSH_HOME; else process.env.DSH_HOME = homeSaved
