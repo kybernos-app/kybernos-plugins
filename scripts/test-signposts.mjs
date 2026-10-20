@@ -43,7 +43,7 @@ const PLACES = {
   'web search': ['recherche web'],
   'built-in plugins': ['plugins intégrés', 'plugins integrados'],
   atlas: [],
-  'ai provider & models': ['fournisseur ia & modèles'],
+  'ai provider and models': ['fournisseur ia et modèles'],
   'agent presets': ['préréglages d’agent', 'preajustes de agente'],
   voice: ['voix', 'voz'],
   skills: ['compétences'],
@@ -62,7 +62,7 @@ const PLACES = {
 }
 // A page that lives INSIDE another one under the same name as a page of the menu (a tab or a row, not a second entry): the Voice
 // tab of Calls, the Language row of General (it opens the Language page), the Models list of the AI provider page.
-const NESTED_OK = new Set(['calls>voice', 'general>language', 'general>langue', 'ai provider & models>models', 'fournisseur ia & modèles>models'])
+const NESTED_OK = new Set(['calls>voice', 'general>language', 'general>langue', 'ai provider and models>models', 'fournisseur ia et modèles>models'])
 // The sidebar rows (a flat list; « Kybernos » is the wordmark on top, not a menu).
 const SIDEBAR_ROWS = ['kaby', 'dashboards', 'tableaux de bord', 'agent teams', 'workspaces', 'creations', 'automations', 'skills', 'compétences', 'connectors', 'connecteurs']
 // Pointers that are NOT ours, by the snippet that follows the arrow: the Composio dashboard's own menu.

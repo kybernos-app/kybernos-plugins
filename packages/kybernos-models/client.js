@@ -370,6 +370,8 @@ window.__ModuleLoader__.load({
         'kb.pv.err.url': { kybernos: 'URL de base invalide : http(s) requis.', en: 'Invalid base URL: http(s) required.' },
         'kb.pv.err.models': { kybernos: 'Ajoute au moins un modèle : rien ne peut le deviner.', en: 'Add at least one model: nothing can default it.' },
         'kb.pv.err.template': { kybernos: 'Remplace ${…} par les valeurs de ton compte.', en: 'Replace the ${…} with your account’s values.' },
+        'kb.pv.search': { kybernos: 'Rechercher un fournisseur ou un modèle', en: 'Search providers or models' },
+        'kb.pv.search.none': { kybernos: 'Aucun fournisseur ne correspond.', en: 'No matching providers.' },
         'kb.models.search': { kybernos: 'Rechercher par nom, id, fournisseur ou type', en: 'Search by name, id, provider or type' },
         'kb.models.allprov': { kybernos: 'Tous les fournisseurs', en: 'All providers' },
         'kb.models.alltypes': { kybernos: 'Tous les types', en: 'All types' },
@@ -1288,7 +1290,7 @@ window.__ModuleLoader__.load({
       // changes. The screen state (tab, search, filters, sort) is not persisted
       // and writes nothing.
 
-      const UI = { tab: 'providers', q: '', prov: 'all', type: 'all', statut: 'any', tri: 'name', score: 'any', caps: {}, menu: null, page: 1, edit: null, showDown: false }
+      const UI = { tab: 'providers', q: '', pq: '', prov: 'all', type: 'all', statut: 'any', tri: 'name', score: 'any', caps: {}, menu: null, page: 1, edit: null, showDown: false }
       // Changing a filter (or a tab) goes back to the first page: staying on
       // a page that no longer exists would show an empty list.
       const uiSet = (k, v) => { UI[k] = v; if (k !== 'page') UI.page = 1; kbmNotify() }
@@ -2074,7 +2076,7 @@ window.__ModuleLoader__.load({
           const hostOff = KBM.parkHost !== true
           const swWhy = off === true ? m('kb.prov.off.enable', { slug: route }) : (bloc === 'managed' ? m('kb.prov.off.managed') : (bloc === 'profile' ? m('kb.prov.off.locked') : m('kb.prov.off.disable', { slug: route })))
           return h('div', { key: (off === true ? 'off-' : '') + route, className: 'kbpv-card' + (off === true ? ' kbpv-off' : ''), 'data-kbm': off === true ? 'prov-card-off' : 'prov-card', 'data-prov': route },
-            h('span', { className: 'kbpv-logo' }, h(LogoProv, { route, taille: 20 })),
+            h('span', { className: 'kbpv-logo' }, h(LogoProv, { route, taille: 30 })),
             h('div', { className: 'kbpv-cbody' },
               h('span', { className: 'kbpv-nm' },
                 h('button', { type: 'button', className: 'kbpv-link', 'data-kbm': 'prov-voir', 'aria-label': m('kb.prov.voir') + ' · ' + label, onClick: () => { uiSet('prov', route); uiSet('tab', 'models') } }, label),
@@ -2308,7 +2310,7 @@ window.__ModuleLoader__.load({
               const count = Array.isArray(KBM.ds[c.ns].value.models) ? KBM.ds[c.ns].value.models.length : 0
               const ks = official ? (KBM.dsKey.configured === true ? 'ok' : (KBM.dsKey.configured === false ? 'missing' : 'unknown')) : 'none'
               return h('div', { key: c.ns, className: 'kbpv-card', 'data-kbm': 'prov-card', 'data-prov': c.provider },
-                h('span', { className: 'kbpv-logo' }, h(LogoProv, { route: 'deepseek', taille: 20 })),
+                h('span', { className: 'kbpv-logo' }, h(LogoProv, { route: 'deepseek', taille: 30 })),
                 h('div', { className: 'kbpv-cbody' },
                   h('span', { className: 'kbpv-nm' }, h('span', { className: 'kbpv-link kbpv-static' }, c.name),
                     ks === 'none' ? null : h('i', { className: 'kbpv-kd kbpv-kd-' + ks, title: m(ks === 'ok' ? 'kb.pv.key.ok' : (ks === 'missing' ? 'kb.pv.key.missing' : 'kb.pv.key.unknown')) })),
@@ -2317,14 +2319,20 @@ window.__ModuleLoader__.load({
                   h('button', { type: 'button', className: 'kbpv-ib', 'data-kbm': 'prov-edit', disabled: ro, title: m('kb.pv.edit', { slug: c.provider }), 'aria-label': m('kb.pv.edit', { slug: c.provider }), onClick: (ev) => { ev.stopPropagation(); openDs(c.ns) } }, Ic('pencil', 15)))))
             }
         // The cards in the order they have always had, each with whether it waits (no key yet, or switched off).
-        const cards = dsCards.map((c) => ({ node: renderDsCard(c), waiting: c.ns === 'llm-deepseek' && KBM.dsKey.configured === false }))
-          .concat(routes.map((route) => ({ node: renderCard({ route }), waiting: keyOf(route) === 'missing' })))
-          .concat(parkedShown.map((p) => ({ node: renderCard({ route: p.slug, off: true }), waiting: true })))
+        const wordsOf = (route) => route + ' ' + pvLabel(route) + ' ' + KBM.models.filter((mo) => mo.route === route).map((mo) => mo.id + ' ' + (mo.name || '')).join(' ')
+        const cards = dsCards.map((c) => ({ node: renderDsCard(c), waiting: c.ns === 'llm-deepseek' && KBM.dsKey.configured === false, hay: c.provider + ' ' + c.name + ' deepseek' }))
+          .concat(routes.map((route) => ({ node: renderCard({ route }), waiting: keyOf(route) === 'missing', hay: wordsOf(route) })))
+          .concat(parkedShown.map((p) => ({ node: renderCard({ route: p.slug, off: true }), waiting: true, hay: p.slug + ' ' + p.models.join(' ') })))
+        // While a search is typed the answer is the matching providers, all of them (a provider with no key included), with no fold and no Cloud card.
+        const searching = String(UI.pq).trim() !== ''
+        const hits = searching ? kbPvSearch(cards, UI.pq) : cards
         const fold = kbPvFold(cards.map((x) => x.waiting))
         const ready = cards.filter((x) => !x.waiting)
         const waiting = cards.filter((x) => x.waiting)
         return h('div', { className: 'kbpv', 'data-kbm': 'prov-list' },
           h('div', { className: 'kbpv-head' },
+            h('span', { className: 'kbm-in-wrap kbmp-search kbpv-search' }, Loupe(),
+              h('input', { className: 'kbm-in-input', type: 'search', placeholder: m('kb.pv.search'), 'aria-label': m('kb.pv.search'), 'data-kbm': 'prov-search', value: UI.pq, onChange: (ev) => uiSet('pq', ev.target.value) })),
             h('span', { className: 'kbpv-grow' }),
             (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-models' }) : null),
             h('button', { type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-primary', 'data-kbm': 'prov-add', disabled: ro, title: ro ? m('kb.models.readonly') : undefined, onClick: openAdd }, Ic('plus', 14), m('kb.prov.add')),
@@ -2337,11 +2345,15 @@ window.__ModuleLoader__.load({
           ui.err !== null && ui.drawer === null ? h('div', { className: 'kbpv-fail', role: 'alert', 'data-kbm': 'prov-off-err' }, ui.err) : null,
           KBM.parkHost !== true ? h('div', { className: 'kbpv-hostnote', role: 'status', 'data-kbm': 'park-host-note' }, Ic('info', 14), m('kb.pv.hostnote')) : null,
           h('div', { className: 'kbpv-cards', 'data-kbm': 'prov-cards' },
-            (fold.fold && !ui.waitOpen ? ready : cards).map((x) => x.node)),
-          fold.fold ? h('button', { type: 'button', className: 'kbpv-fold', 'data-kbm': 'prov-wait-toggle', 'aria-expanded': ui.waitOpen ? 'true' : 'false', onClick: () => patch({ waitOpen: !ui.waitOpen }) },
+            // The Kybernos Cloud card is the first cell of the grid, full width, before the first provider: above the tabs it pushed them down
+            // on this tab only, so they jumped 85 px between Providers and Models. A component, not a call: KybernosHero owns hooks.
+            searching ? null : h(KybernosHero, { key: 'kb-hero' }),
+            (searching ? hits : (fold.fold && !ui.waitOpen ? ready : cards)).map((x) => x.node)),
+          searching && hits.length === 0 ? h('p', { className: 'kbpv-hint', role: 'status', 'data-kbm': 'prov-nomatch' }, m('kb.pv.search.none')) : null,
+          fold.fold && !searching ? h('button', { type: 'button', className: 'kbpv-fold', 'data-kbm': 'prov-wait-toggle', 'aria-expanded': ui.waitOpen ? 'true' : 'false', onClick: () => patch({ waitOpen: !ui.waitOpen }) },
             h('span', { className: 'kbpv-fold-chev' + (ui.waitOpen ? ' open' : ''), 'aria-hidden': 'true' }, Ic('chevron', 13)), m('kb.pv.wait.n', { n: fold.waiting })) : null,
-          fold.fold && ui.waitOpen ? h('p', { className: 'kbpv-fold-hint', 'data-kbm': 'prov-wait-hint' }, m('kb.pv.wait.hint')) : null,
-          fold.fold && ui.waitOpen ? h('div', { className: 'kbpv-cards kbpv-cards-wait', 'data-kbm': 'prov-cards-wait' }, waiting.map((x) => x.node)) : null,
+          fold.fold && !searching && ui.waitOpen ? h('p', { className: 'kbpv-fold-hint', 'data-kbm': 'prov-wait-hint' }, m('kb.pv.wait.hint')) : null,
+          fold.fold && !searching && ui.waitOpen ? h('div', { className: 'kbpv-cards kbpv-cards-wait', 'data-kbm': 'prov-cards-wait' }, waiting.map((x) => x.node)) : null,
           ui.drawer !== null && ui.drawer.mode === 'edit' && dr !== null ? renderEdit() : null,
           ui.drawer !== null && ui.drawer.mode === 'add' && dr !== null ? renderAdd() : null,
           ui.drawer !== null && ui.drawer.mode === 'ds' && dr !== null ? renderDsEdit() : null,
@@ -2618,8 +2630,6 @@ window.__ModuleLoader__.load({
           }
         }, [])
         return h('div', { className: 'kbm-root kbmp', 'data-slot': 'kybernos-models-header' },
-          // A component, not a call: KybernosHero owns hooks, and a conditional call would change the hook order of Panel.
-          UI.tab === 'providers' ? h(KybernosHero, null) : null,
           KBM.live === true && KBM.loading === true && skelOf() === null ? h('div', { className: 'kbmp-dim', 'data-kbm': 'loading' }, m('kb.models.loading')) : null,
           KBM.live === true && KBM.loadError !== null ? h('div', { className: 'kbm-warn', 'data-kbm': 'loaderror' },
             // The helper-not-answering sentence stands on its own; any other reason follows « Load failed: ».
@@ -2699,7 +2709,8 @@ window.__ModuleLoader__.load({
         '.kbm-warn{margin-top:8px;font-size:12px;color:var(--dsw-alias-state-warn-primary)}',
         '.kbm-acts{display:flex;gap:8px;align-items:center;flex-wrap:wrap}',
         '.kbmp-armed{border-color:var(--dsw-alias-state-warn-primary)!important;color:var(--dsw-alias-state-warn-primary)}',
-        '.kbmp-tabs{position:relative;display:flex;flex-wrap:wrap;gap:8px;align-items:center}',
+        // 30 px on both tabs: the Models tab adds two 30 px icon buttons at the end of the row, which made the row 2 px taller there and moved the tabs by 1 px.
+        '.kbmp-tabs{position:relative;display:flex;flex-wrap:wrap;gap:8px;align-items:center;min-height:30px}',
         '.kbmp-tabs .kbm-pill{height:28px;padding:0 12px;font-size:13px;cursor:pointer}',
         '.kbmp-note{font-size:12px;color:var(--dsw-alias-label-tertiary);margin-left:8px}',
         '.kbmp-dim{color:var(--dsw-alias-label-tertiary)}',
@@ -2771,11 +2782,15 @@ window.__ModuleLoader__.load({
         '.kbpv-ib:disabled{opacity:.35;cursor:not-allowed}',
         '.kbpv-ib-danger:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover-danger);color:var(--dsw-alias-state-error-primary)}',
         '.kbpv-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:8px}',
-        '.kbpv-card{position:relative;display:flex;align-items:center;gap:12px;padding:12px 14px;min-height:64px;border:.5px solid var(--dsw-alias-border-l2);border-radius:14px;background:var(--dsw-alias-bg-layer-2)}',
+        '.kbpv-cards>.kbmh-hero{grid-column:1/-1}',
+        '.kbpv-card{position:relative;display:flex;align-items:center;gap:14px;padding:14px 16px;min-height:76px;border:.5px solid var(--dsw-alias-border-l2);border-radius:14px;background:var(--dsw-alias-bg-layer-2)}',
         '.kbpv-card:hover,.kbpv-card:focus-within{border-color:var(--dsw-alias-border-l3);background:var(--dsw-alias-bg-layer-3)}',
         '.kbpv-off{opacity:.62}',
         '.kbpv-off:hover{opacity:.92}',
         '.kbpv-logo{flex:none;display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:9px;background:var(--dsw-alias-bg-layer-1)}',
+        // On a card the logo is the first thing read: a 46 px tile with a 30 px drawing (the drawers' headers keep the small one).
+        '.kbpv-card>.kbpv-logo{width:46px;height:46px;border-radius:12px}',
+        '.kbpv-search{flex:0 1 320px;min-width:160px}',
         '.kbpv-cbody{min-width:0;flex:1;display:flex;flex-direction:column;gap:1px}',
         '.kbpv-cbody .kbmp-free{position:relative;z-index:1;align-self:flex-start;margin-top:3px}',
         '.kbpv-nm{display:flex;align-items:center;min-width:0;font-family:ui-monospace,monospace;font-size:13px;color:var(--dsw-alias-label-primary)}',
@@ -4004,6 +4019,14 @@ window.__ModuleLoader__.load({
         const list = Array.isArray(flags) ? flags : []
         const waiting = list.filter((x) => x === true).length
         return { fold: waiting > 0 && waiting < list.length, waiting }
+      }
+      /** The providers that match a search: every word typed must be among the provider's own words (its slug, its name, the ids and names of the
+       *  models it serves), case and accents ignored, so « claude » finds every provider that serves one. An empty query keeps everything. Pure. */
+      const kbPvSearch = (items, q) => {
+        const flat = (s) => String(s === undefined || s === null ? '' : s).toLowerCase().normalize('NFD').replace(/\p{M}/gu, '')
+        const words = flat(q).split(/\s+/).filter((w) => w !== '')
+        if (words.length === 0) return items
+        return items.filter((x) => { const hay = flat(x.hay); return words.every((w) => hay.indexOf(w) >= 0) })
       }
       /** Model rows (id + optional name) from a draft: drops blank ids, keeps the first of a duplicate. Pure. */
       const kbPvRows = (rows) => {
