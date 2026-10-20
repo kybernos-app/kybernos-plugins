@@ -41,6 +41,44 @@ docker buildx build --platform linux/amd64 -t kybernos-computer:<tag> \
 
 A computer's page must not open on the first-run wizard: its sign-in tries the built-in server, which the machine's network policy does not let out (« We couldn't reach Kybernos »). The entrypoint therefore (`link-account.mjs`) writes the cloud plugin's connection file (`<DSH home>/kybernos-cloud.json`) with the computer's own restricted token, points the plugin at `KYBERNOS_API` (`KYBERNOS_CLOUD_API`) and marks the wizard done once (`kybernos/onboarding.json`; a replay from the settings stays possible). What the plugin learns afterwards (the name, the plan, the workspaces) is kept across boots. The platform's token list allows the three reads the suite makes for that (`GET /v1/me`, `GET /v1/workspaces`, the plan of its own workspace), and the plugin reads a restricted token's `403 computer_route_not_allowed` as « not on the list », not as a revoked sign-in (a release before this one signs the computer out on it: the platform must be a version that has the reads).
 
+## A computer made ahead of need (the pool)
+
+A computer made for one person costs the person a wait: on dev, 25 to 41 s from the row to the machine saying `ready` (15 to 33 s for the provider to make the app, the
+volume and the machine, then 8 to 9.5 s of boot), and the first answer came 52 to 55 s after the message. This half of the image lets the platform make machines **before** anybody
+needs one, put them to sleep, and hand one to the next person: the claim is a wake (about a second on Fly) and a few seconds of wiring, not a creation. The platform's half (the
+pool, the claim, the routes below) is in the private server repository; nothing here changes a machine that is made the old way.
+
+**A pool slot** is given `KYBERNOS_API`, `KYBERNOS_PUBLIC_HOST`, the egress mode and `KYBERNOS_POOL_TOKEN` (a token that opens the two pool routes and nothing else), and **no**
+`KYBERNOS_COMPUTER_ID`, `_TOKEN` or `_MODEL`. `entrypoint.sh` sees a pool token and no computer token and runs `pool-hold.sh` as the unprivileged user before anything else:
+
+| Step | What happens |
+|---|---|
+| 1 | the machine boots like any other (outbound policy, volume, profile seeded from the image); DSH starts **without** the pool token in its environment, so that nothing it runs can read it |
+| 2 | `claimer.mjs` waits for DSH, says `POST /v1/pool/ready` (« booted and unclaimed: put me to sleep when you like »), then polls `POST /v1/pool/claim` every 500 ms. The platform suspends the machine meanwhile (memory kept) |
+| 3 | the platform wakes it and has the next poll answer `{claimed: true, computer_id, token, model}`. Every poll is on a connection of its own (a socket open at suspend is dead at wake) and short-timed |
+| 4 | the claimer checks the identity against closed alphabets (`computer-identity.mjs`), writes it to `<DSH home>/kybernos/computer-identity.json` (0600, atomic) with **the machine's own platform address**, never one an answer names, and asks DSH (`POST /kybernos-cloud/computer/claimed`, loopback, same origin, nothing in the request) to put the token in its credential store: the model route (`apiKeyEnv: KYBERNOS_COMPUTER_TOKEN`) resolves it there, so nothing restarts |
+| 5 | `post-claim.sh`, the steps every computer does, now with the identity read from the volume: the model route rendered into the profile (DSH hot-reloads it, about 2.5 s), the account link, the gate's ticket service, **a wait until DSH says the model route is live**, then the reporter and the runner (a turn taken before that finds no model: measured, it ends `empty_answer.ended_turn_end`), then the gate |
+
+A machine made the old way runs `post-claim.sh` directly: same steps, identity in its environment, no DSH up yet. A claimed pool slot that cold-boots finds its identity on the volume
+and skips steps 1 to 4. If DSH does not take the token or the route never comes up, DSH is restarted and reads the identity at its start.
+
+What the platform serves, for the server's half to build (the proposal is in the maintainer's notes; this is the contract the image keeps):
+
+| Route (bearer: the pool token) | Answer |
+|---|---|
+| `POST /v1/pool/ready` `{version}` | 200 when it has recorded that the slot is up and unclaimed |
+| `POST /v1/pool/claim` `{}` | 200 `{claimed: false}`, or 200 `{claimed: true, computer_id, token, model}`; 401/403/404 once the slot is retired (the claimer then polls every 5 s) |
+
+Rules the image keeps: a slot holds **nothing of a person** before the claim (no token, no id, no model, no account link; the volume is the seeded profile); root never reads or
+evaluates the identity (the volume is the agent's to write: `entrypoint.sh` has no `eval` and the identity is read by the unprivileged user); the pool token is stripped from the
+environment of everything that runs after the claim (`exec env -u KYBERNOS_POOL_TOKEN`); the identity file is the only place a claimed slot keeps its token, and it is what the plugin's
+turn routes and the runner's bearer check read when the environment has none (`packages/kybernos-cloud/computer-identity.mjs`, byte-copied here like `kyby-identity.mjs`).
+
+Checked locally (the real DSH and the suite of image p17 under amd64 emulation on a Mac, a stand-in platform over TLS, nothing left the machine): unclaimed boot to `ready` in 6 to 15 s;
+claim to the computer saying `ready` in 3.6 s (about 2.5 s of it the hot reload); a queued turn taken right after, its model call signed with the **claimed** token and its answer acknowledged
+(5.6 s from the claim to the acknowledgement with an instant model); a cold restart of a claimed slot reads the volume and calls no pool route; a machine made the old way is unchanged.
+**Not checked:** a real Fly suspend and wake of a slot (a stand-in `docker pause` did not freeze the processes, so it proves nothing), the platform's half, and the image on `amd64` hardware.
+
 ## What it was checked to do
 
 On the real platform (Fly.io, `ams`, `shared-cpu-1x` 2 GB, one 2 GB volume, 2026-10-14; one sample each, direction and not a guarantee),

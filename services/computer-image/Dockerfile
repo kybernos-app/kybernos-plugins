@@ -16,6 +16,8 @@
 #   KYBERNOS_PUBLIC_HOST                                         its own host name, for DSH's fence and the plugins' guards
 #   KYBERNOS_EGRESS_MODE, KYBERNOS_EGRESS_ALLOW                  the outbound policy, held by egress.sh (nftables)
 #   KYBERNOS_COMPUTER_MODEL                                      the model it starts its sessions on (default `auto`)
+# A machine made AHEAD of need (a pool slot) is given KYBERNOS_API, KYBERNOS_PUBLIC_HOST, the egress mode and KYBERNOS_POOL_TOKEN instead of the three identity variables; its identity
+# arrives at the claim and lands on the volume (computer-identity.mjs). Nothing of a person is on it before that.
 # The volume is mounted at /data: the DSH profile (/data/dsh) and the agent's workspace (/data/work) are on it, so that a restart, a
 # cold start and a wake keep sessions, memory, skills and automations.
 ARG BASE=kybernos-computer-base:latest
@@ -59,7 +61,8 @@ RUN cat >> /opt/dsh-seed/profiles/web/cordis.patch.yml <<'YAML'
 YAML
 
 COPY services/computer-image/entrypoint.sh /usr/local/bin/kybernos-computer-entrypoint
-COPY services/computer-image/egress.sh services/computer-image/render-profile.sh services/computer-image/reporter.mjs services/computer-image/runner.mjs services/computer-image/kyby-identity.mjs services/computer-image/link-account.mjs /usr/local/lib/kybernos-computer/
-RUN chmod 0755 /usr/local/bin/kybernos-computer-entrypoint /usr/local/lib/kybernos-computer/egress.sh /usr/local/lib/kybernos-computer/render-profile.sh
+# post-claim.sh, pool-hold.sh, claimer.mjs, identity.mjs and computer-identity.mjs are the pool's (a computer made ahead of need and handed to a person later: see docs/dev/computers.md).
+COPY services/computer-image/egress.sh services/computer-image/render-profile.sh services/computer-image/post-claim.sh services/computer-image/pool-hold.sh services/computer-image/reporter.mjs services/computer-image/runner.mjs services/computer-image/claimer.mjs services/computer-image/identity.mjs services/computer-image/computer-identity.mjs services/computer-image/kyby-identity.mjs services/computer-image/link-account.mjs /usr/local/lib/kybernos-computer/
+RUN chmod 0755 /usr/local/bin/kybernos-computer-entrypoint /usr/local/lib/kybernos-computer/egress.sh /usr/local/lib/kybernos-computer/render-profile.sh /usr/local/lib/kybernos-computer/post-claim.sh /usr/local/lib/kybernos-computer/pool-hold.sh
 ENTRYPOINT ["/usr/local/bin/kybernos-computer-entrypoint"]
 CMD []
