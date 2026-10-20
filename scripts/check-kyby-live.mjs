@@ -26,6 +26,8 @@ const shotDir = args.includes('--shots') ? args[args.indexOf('--shots') + 1] : n
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 let pass = 0
 let fail = 0
+// How many Telegram pairings the page has asked for so far (the renewals of section 3c make it more than the switch presses).
+let tgPairs = 2
 const check = (name, ok, detail) => {
   if (ok === true) { pass += 1; console.log('  ✓ ' + name) } else { fail += 1; console.log('  ✗ ' + name + (detail === undefined ? '' : ' — ' + JSON.stringify(detail).slice(0, 300))) }
 }
@@ -65,7 +67,7 @@ const MOCK = `(() => {
     const rec = (extra) => m.calls.push(Object.assign({ path: p, method, body }, extra || {}))
     if (p === '/kybernos-cloud/kyber') return json(m.kyber)
     if (p === '/kybernos-cloud/server') return json(m.server)
-    if (p === '/kybernos-cloud/telegram/pairing' && method === 'POST') { rec(); return json({ ok: true, id: ${JSON.stringify(PAIR)}, link: ${JSON.stringify(LINK)}, bot: 'kybernos_bot', expires_at: new Date(Date.now() + 300000).toISOString(), qr: m.qr }) }
+    if (p === '/kybernos-cloud/telegram/pairing' && method === 'POST') { rec(); return json({ ok: true, id: ${JSON.stringify(PAIR)}, link: ${JSON.stringify(LINK)}, bot: 'kybernos_bot', expires_at: new Date(Date.now() + (m.pairTtl || 300000)).toISOString(), qr: m.qr }) }
     if (p === '/kybernos-cloud/telegram/pairing/state') return json(Object.assign({}, m.pairingState, { expires_at: new Date(Date.now() + 200000).toISOString() }))
     if (p === '/kybernos-cloud/telegram/pairing/cancel') { rec(); return json({ ok: true }) }
     if (p === '/kybernos-cloud/whatsapp/pairing' && method === 'POST') { rec(); return json({ ok: true, id: ${JSON.stringify(WA_PAIR)}, link: ${JSON.stringify(WA_LINK)}, number: '33600000012', expires_at: new Date(Date.now() + 300000).toISOString(), qr: m.waQr }) }
@@ -248,6 +250,30 @@ try {
   await click('kybernos-kyber-tg-switch')
   check('turned on again: a new code', (await poll(async () => (await calls('/kybernos-cloud/telegram/pairing')).length === 2 && (await has('kybernos-kyber-qr')) === true, 6000)) === true)
 
+  console.log('── 3c. nothing arrives: the page says what to do, and the code renews by itself ──')
+  // Measured on dev, 2026-10-20: two real phone rounds, no Start ever reached the server. On a bot the person already used, the link only opens the chat and the Start (or Restart) must be pressed.
+  check('the second step says Start, or Restart for a bot already used', /Redémarrer|Restart/.test(await val(`document.querySelectorAll('[data-kb="kybernos-kyber-telegram"] ol li')[1].innerText`)))
+  check('the app link opens Telegram itself on this computer (tg://), beside the web link', (await attr('kybernos-kyber-open-app', 'href')) === 'tg://resolve?domain=kybernos_bot&start=pair_0123456789abcdefghij0123' && (await attr('kybernos-kyber-open', 'href')) === LINK)
+  check('a fresh code has no help yet and keeps the message to send folded', (await has('kybernos-kyber-stuck')) === false && (await has('kybernos-kyber-code-box')) === false)
+  check('after 20 s with no Start the help appears: Start or Restart in the chat, or send the message', (await poll(() => has('kybernos-kyber-stuck'), 32000)) === true && /Redémarrer|Restart/.test((await text('kybernos-kyber-stuck')) || '') && /@kybernos_bot/.test((await text('kybernos-kyber-stuck')) || ''), await text('kybernos-kyber-stuck'))
+  check('and the message to send is already shown, with its copy button, without a click', (await has('kybernos-kyber-code-box')) === true && /^\/start pair_[a-z0-9]+$/.test(((await text('kybernos-kyber-code-text')) || '').trim()) && (await has('kybernos-kyber-code-copy')) === true)
+  await shot('2c-stuck-help')
+  const cancelsBefore = (await calls('/kybernos-cloud/telegram/pairing/cancel')).length
+  await click('kybernos-kyber-tg-switch')
+  check('cancelled by the switch', (await poll(async () => (await calls('/kybernos-cloud/telegram/pairing/cancel')).length === cancelsBefore + 1 && (await has('kybernos-kyber-telegram')) === false, 6000)) === true)
+  // A code that lives 3.5 s (the mock's): the page cancels it and makes a new one by itself, three times, then stops and offers the button.
+  await setMock(`window.__kbMock.pairTtl = 3500`)
+  const madeBefore = (await calls('/kybernos-cloud/telegram/pairing')).length
+  await click('kybernos-kyber-tg-switch')
+  check('turned on: one code, then the page renews it by itself when it runs out (the old one cancelled)', (await poll(async () => (await calls('/kybernos-cloud/telegram/pairing')).length >= madeBefore + 2 && (await calls('/kybernos-cloud/telegram/pairing/cancel')).length >= cancelsBefore + 2, 20000)) === true, { made: (await calls('/kybernos-cloud/telegram/pairing')).length - madeBefore })
+  check('after three renewals it stops: the code is shown as expired with the button for a new one', (await poll(() => val(`(() => { const p = document.querySelector('[data-kb="kybernos-kyber-telegram"]'); return !!p && p.getAttribute('data-state') === 'expired' && !!document.querySelector('[data-kb="kybernos-kyber-retry"]') })()`), 45000)) === true)
+  check('exactly three renewals were made, no more', (await calls('/kybernos-cloud/telegram/pairing')).length === madeBefore + 4, (await calls('/kybernos-cloud/telegram/pairing')).length - madeBefore)
+  await shot('2d-expired-after-renewals')
+  await setMock(`window.__kbMock.pairTtl = 300000`)
+  await click('kybernos-kyber-retry')
+  check('the button makes a fresh code that lasts', (await poll(async () => (await has('kybernos-kyber-qr')) === true && (await attr('kybernos-kyber-telegram', 'data-state')) === 'waiting', 8000)) === true)
+  tgPairs = (await calls('/kybernos-cloud/telegram/pairing')).length
+
   console.log('── 4. the pairing goes by itself ──')
   await setMock(`window.__kbMock.pairingState = { ok: true, state: 'scanned', reason: null, sender: 'Amina (@alex)', expires_at: '' }`)
   check('after the scan the panel names who Telegram says it is', (await poll(() => val(`/Amina \\(@alex\\)/.test((document.querySelector('[data-kb="kybernos-kyber-telegram"]') || {}).innerText || '')`), 8000)) === true)
@@ -324,7 +350,7 @@ try {
   await click('kybernos-kyber-tg-switch')
   await click('kybernos-kyber-unlink-yes')
   check('confirmed: it is sent once and the row goes back to « not connected », the switch off', (await poll(async () => (await calls('/kybernos-cloud/telegram/unlink')).length === 1 && (await attr('kybernos-kyber-tg-switch', 'aria-checked')) === 'false' && /Pas connecté|Not connected/.test((await text('kybernos-kyber-tg-row')) || ''), 9000)) === true)
-  check('and no new code is asked for by itself', (await calls('/kybernos-cloud/telegram/pairing')).length === 2)
+  check('and no new code is asked for by itself', (await calls('/kybernos-cloud/telegram/pairing')).length === tgPairs)
 
   console.log('── 8b. the three states of the Telegram door, said in the window: a bot, no bot on this server, a server too old (the active server is a stand-in that answers each) ──')
   // The stand-in is the page's own answer to /kybernos-cloud/kyber (what the host would say for such a server): nothing here reaches a real server.
@@ -346,7 +372,7 @@ try {
   check('the switch stays greyed, and « Switch server » is offered', nb && nb.disabled === true && /Switch server|Changer de serveur/.test(nb.button || ''), nb)
   await shot('4b-no-bot')
   await click('kybernos-kyber-tg-switch')
-  check('pressing the greyed switch asks for no code', (await calls('/kybernos-cloud/telegram/pairing')).length === 2 && (await has('kybernos-kyber-telegram')) === false)
+  check('pressing the greyed switch asks for no code', (await calls('/kybernos-cloud/telegram/pairing')).length === tgPairs && (await has('kybernos-kyber-telegram')) === false)
   await click('kybernos-kyber-tg-switch-server')
   check('« Switch server » opens Settings on the Servers page, and the window gets out of the way', (await poll(async () => (await settingsOnServers()) === 'Servers', 10000)) === true && (await has('phone-channels')) === false, await settingsOnServers())
   await shot('4b-switch-server-opens-settings')
