@@ -10,10 +10,12 @@
 // Per screen: a screenshot, the probe scan, and a check for text left in the wrong
 // language (a French word under the English UI, an English one under French).
 import { mkdirSync, writeFileSync, readFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { join, dirname, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { openLivePage, waitFor, clickText } from './live-page.mjs'
 import { createFlow } from './lib-language-flow.mjs'
 
+const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const args = process.argv.slice(2)
 const argOf = (n, d) => { const i = args.indexOf(n); return i >= 0 && args[i + 1] !== undefined ? args[i + 1] : d }
 const OUT = argOf('--out', '/tmp/ux-audit-2/lang')
@@ -25,7 +27,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 const host = process.env.KB_HOST || '127.0.0.1:3080'
 if (host === '127.0.0.1:3080') { console.error('○ refusing to run against :3080 — this switches DSH\'s language'); process.exit(3) }
 mkdirSync(join(OUT, 'shots'), { recursive: true })
-const probes = readFileSync(process.env.KB_PROBES || '/Users/miled/kybernos-plugins/.claude/skills/ux-bug-hunter/probes.js', 'utf8')
+const probes = readFileSync(process.env.KB_PROBES || join(REPO_ROOT, '.claude', 'skills', 'ux-bug-hunter', 'probes.js'), 'utf8')
 
 const live = await openLivePage({ width: WIDTH, height: HEIGHT })
 const page = live.page
