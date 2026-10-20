@@ -30,6 +30,7 @@ assert.deepEqual(cleanIdentity({ ...GOOD, api: 'https://api.example.test/' }), G
 assert.equal(cleanIdentity({ ...GOOD, model: '' }).model, 'auto', 'no model: the platform\'s auto')
 assert.equal(cleanIdentity({ ...GOOD, api: 'http://127.0.0.1:8087' }).api, 'http://127.0.0.1:8087', 'http for a loopback address')
 assert.equal(cleanIdentity({ ...GOOD, api: 'http://localhost:3000' }) !== null, true)
+assert.equal(cleanIdentity({ ...GOOD, api: 'https://kybernos_server-dev.up.railway.app' }) !== null, true, 'the forms a real platform address takes')
 for (const bad of [
   { ...GOOD, api: 'http://api.example.test' },               // plain http to anything but a loopback address
   { ...GOOD, api: 'https://api.example.test/v1' },           // an origin, not a path
@@ -61,32 +62,39 @@ ok('written atomically as 0600, read back, and a damaged file is none')
 
 // ── who the machine is ───────────────────────────────────────────────────────────────────
 writeIdentity(home, GOOD)
-const env = (extra = {}) => ({ KYBERNOS_API: 'https://api.example.test', ...extra })
+const env = (extra = {}) => ({ KYBERNOS_API: 'https://api.example.test', KYBERNOS_POOL_SLOT: 'slot-1', ...extra })
 assert.equal(identityOf(env(), home).source, 'volume')
 assert.deepEqual(identityOf(env(), home), { source: 'volume', id: GOOD.computer_id, token: GOOD.token, api: GOOD.api, model: GOOD.model })
+// The agent can write the volume. A file there makes a machine a computer ONLY where the platform made it a pool slot, and it never moves the platform's address.
+assert.equal(identityOf({ KYBERNOS_API: GOOD.api }, home).source, null, 'a laptop (no slot id) ignores the file')
+assert.equal(identityOf({}, home).source, null)
+writeFileSync(identityFile(home), JSON.stringify({ ...GOOD, api: 'http://127.0.0.1:4444', token: 'kyd_' + 'c'.repeat(40) }))
+assert.equal(identityOf(env(), home).api, 'https://api.example.test', 'the address is the environment\'s, never the file\'s')
+assert.equal(identityOf(env({ KYBERNOS_API: '' }), home).api, '', 'no address in the environment: none, not the file\'s')
+writeIdentity(home, GOOD)
 const old = identityOf(env({ KYBERNOS_COMPUTER_ID: 'cmp-env', KYBERNOS_COMPUTER_TOKEN: 'kyd_from_env_0123456789', KYBERNOS_COMPUTER_MODEL: 'glm' }), home)
 assert.deepEqual(old, { source: 'env', id: 'cmp-env', token: 'kyd_from_env_0123456789', api: 'https://api.example.test', model: 'glm' }, 'the environment wins')
 assert.equal(identityOf(env({ KYBERNOS_COMPUTER_ID: 'cmp-env' }), home).source, 'volume', 'half an identity in the environment is none')
 assert.equal(identityOf(env(), mkdtempSync(join(tmpdir(), 'kb-identity-empty-'))).source, null, 'unclaimed: not a computer')
 assert.equal(identityOf(env(), '').source, null)
-assert.equal(identityOf({}, home).source, 'volume')
+assert.equal(identityOf({ KYBERNOS_POOL_SLOT: 's' }, home).source, 'volume')
 ok('the environment wins, then the volume, else it is not a computer')
 
 // ── the lines a shell evaluates ──────────────────────────────────────────────────────────
 assert.equal(shellExports(env({ KYBERNOS_COMPUTER_ID: 'cmp-env', KYBERNOS_COMPUTER_TOKEN: 'kyd_from_env_0123456789' }), home), '', 'a machine made the old way gets nothing')
 assert.equal(shellExports(env(), mkdtempSync(join(tmpdir(), 'kb-identity-empty-'))), '', 'nor an unclaimed one')
-const lines = shellExports({}, home)
-assert.deepEqual(lines.split('\n').map((l) => l.split('=')[0]), ['export KYBERNOS_API', 'export KYBERNOS_COMPUTER_ID', 'export KYBERNOS_COMPUTER_TOKEN', 'export KYBERNOS_COMPUTER_MODEL'])
+const lines = shellExports({ KYBERNOS_POOL_SLOT: 's' }, home)
+assert.deepEqual(lines.split('\n').map((l) => l.split('=')[0]), ['export KYBERNOS_COMPUTER_ID', 'export KYBERNOS_COMPUTER_TOKEN', 'export KYBERNOS_COMPUTER_MODEL'], 'never the address')
 assert.equal(shellExports(env({ KYBERNOS_COMPUTER_MODEL: 'already' }), home).includes('KYBERNOS_COMPUTER_MODEL'), false, 'a variable that is set is not overridden')
-const shown = execFileSync('sh', ['-c', `${lines}\nprintf '%s|%s|%s|%s' "$KYBERNOS_API" "$KYBERNOS_COMPUTER_ID" "$KYBERNOS_COMPUTER_TOKEN" "$KYBERNOS_COMPUTER_MODEL"`], { encoding: 'utf8', env: {} })
-assert.equal(shown, [GOOD.api, GOOD.computer_id, GOOD.token, GOOD.model].join('|'))
+const shown = execFileSync('sh', ['-c', `${lines}\nprintf '%s|%s|%s' "$KYBERNOS_COMPUTER_ID" "$KYBERNOS_COMPUTER_TOKEN" "$KYBERNOS_COMPUTER_MODEL"`], { encoding: 'utf8', env: {} })
+assert.equal(shown, [GOOD.computer_id, GOOD.token, GOOD.model].join('|'))
 // A file somebody edited by hand to carry a command is no identity at all, so no line is printed for the shell.
 const marker = join(home, 'pwned')
 mkdirSync(dirname(identityFile(home)), { recursive: true })
 writeFileSync(identityFile(home), JSON.stringify({ ...GOOD, token: `kyd_aaaaaaaaaaaaaaaaaaaaaaaa'; touch ${marker}; echo '`, model: 'x' }))
-assert.equal(shellExports({}, home), '')
+assert.equal(shellExports({ KYBERNOS_POOL_SLOT: 's' }, home), '')
 assert.equal(existsSync(marker), false)
-ok('the lines are exactly the four values, never override the environment, and a tampered file prints nothing')
+ok('the lines are exactly the three values, never the address, never override the environment, and a tampered file prints nothing')
 
 rmSync(home, { recursive: true, force: true })
 console.log(`\n${pass} verifications OK`)
