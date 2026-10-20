@@ -78,12 +78,34 @@ first-run wizard), which carries both by itself. The reads (`GET`) stay open beh
 | `POST /kybernos-models/annotations/save` | `{ok, key, fields, count}` — `{key, fields}`; key `route/id` (≤ 300, non-empty segments); `fields:null` purges the key; a `null`/`''` value removes the field |
 | `POST /kybernos-models/journal` | `{ok, line}` — one line per write attempt; `GET …?limit=N` re-reads the last N |
 | `POST /kybernos-models/key/check` | `{ok, result}` — `{provider, key}`: a read-only GET on the provider's model list (address chosen here from a table of four: anthropic, openai, deepseek, google; redirect refused; global fetch, never `web.fetch`). `result`: `ok`, `invalid`, `denied`, `rate_limited`, `unreachable`, `unexpected`. Neither the key nor the answer comes back. Same origin required. Used by `kybernos-plugin`'s first-run wizard. |
+| `POST /kybernos-models/models/live` | `{ok, source:'live', url, models:[{id, name, contextWindow?, maxTokens?, inputModalities?}]}` or `{ok:false, error, status?, detail?}` — `{route, baseURL?, api?, key?}`: « Fetch available models » for a catalog route. The host asks the provider's own endpoint (`GET {baseURL}/models`, Anthropic: `{root}/v1/models`) with the key the route's profile names, read through the `credentials` service (a typed `key` wins); the address is the profile's, else the shipped catalogue's. A page-typed `baseURL` is followed only beside a typed `key`. https (or http on this machine), redirect refused, 4 MB ceiling, global fetch, never `web.fetch`. `error`: `refused` (+`status`, `detail` = the provider's own `error.message`), `unreachable`, `bad-reply`, `too-big`, `no-endpoint`, `foreign-endpoint`, `unsupported-protocol`, `bad-endpoint`, `bad-route`, `bad-key`. The key never comes back. Same origin + session required. |
 | `GET /kybernos-models/modelsdev?route=&id=&force=1` | `{ok, at, stale, match:{…}\|null}`; `modelsdev-unavailable` when there is no index |
 | `POST /kybernos-models/scores/list` | `{ok, at, stale, scores:{ 'route/id': 52.3 }}` — `{models:[{key, name?}]}` (800 at most): the headline score (Artificial Analysis' intelligence index) of every model the snapshot knows, by the same matching rules as the sheet; a model it does not know is simply absent |
 
 The models.dev index is cached for 6 h in `$DSH_HOME/kybernos-models/modelsdev.json`, in the
 form `{ at, data }` (the old form, index at the root, is still read). Offline, the cache is
 still served and the answer carries `stale: true`.
+
+## Fetch available models: live, then the engine
+
+The picker of the provider panel (`Fetch available models`) asks, in this order:
+
+1. **The provider's own endpoint, through the host** (`POST /kybernos-models/models/live`), for a catalog route. This is the only
+   answer that sees a model the provider added yesterday: the engine's `llm.discoverModels` answers from its embedded catalog, with
+   no network call, whenever the route has one (measured on DSH 0.2.1-rc.2), and that catalog holds one protocol's models per
+   provider (`opencode-go`: 18 of 29 in the catalog, 37 at the endpoint on 20/10/2026). The key stays in the host: the page never
+   reads it. No engine patch.
+2. **The engine** (`llm.discoverModels`) when there is no live answer (no key accepted, endpoint unreachable, a DSH whose host
+   half has not been restarted). The picker then **says so** — « Live list unavailable (the provider refused the key (HTTP 401)).
+   These are the models DSH ships for this provider, possibly out of date » — so a stale catalog never passes for the real list.
+3. A **custom** provider (declared with its own address) is asked over the wire by the engine, as before; **Add provider** keeps the
+   engine's answer too (a live list of hundreds is not adopted unasked).
+
+Where the endpoint lists bare ids (`opencode-go`), the name and capacities the engine's catalog knows for the same id are filled
+in; the live list alone decides which models exist.
+
+The provider's card counts the models declared in its profile; its Models view shows all of them, whatever their health (the
+« not answering » fold applies to the unscoped list only), so « 3 models » is 3 on screen.
 
 ## Write rules (namespace `llm-pi-ai`)
 
