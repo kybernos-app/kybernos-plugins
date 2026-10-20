@@ -383,7 +383,8 @@ window.__ModuleLoader__.load({
         ".kbm-dot[data-state='idle'] { color: var(--dsw-alias-state-idle-primary); }\n"
 
       const KML_CSS = "/* kml-*: layout of the Local models panel (this bundle only — DSH tokens) */\n" +
-        ".kbm-resync { cursor: pointer; font: inherit; border: none; background: none; padding: 0; }\n" +
+        ".kbm-resync { cursor: pointer; font: inherit; border: none; background: none; padding: 0; position: relative; }\n" +
+        ".kbm-resync::before { content: ''; position: absolute; inset: -3px 0; }\n" +
         ".kml-root { max-width: 720px; margin-bottom: 16px; }\n" +
         "/* Light schemes: label-tertiary is 3.7:1 on white. Inside this page it reads as label-secondary, 5.8:1 (audit A1-05); the dark scheme keeps its hierarchy. */\n" +
         "body:not([data-ds-dark-theme]) .kml-root{--dsw-alias-label-tertiary:var(--dsw-alias-label-secondary)}\n" +
