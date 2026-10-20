@@ -115,8 +115,8 @@ try {
     }
     if (label === 'AI provider and models') {
       const hero = await ev(`(() => { const h = document.querySelector('.kbmh-hero'); return h ? Math.round(h.getBoundingClientRect().height) : null })()`)
-      if (hero === null) console.log('  ○ no « Kybernos Cloud » banner in this instance')
-      else check('AI provider and models: the banner is 260 px or less (it was ~390)', hero <= 260, hero)
+      if (hero === null) console.log('  ○ no « Kybernos Cloud » card in this instance')
+      else check('AI provider and models: the Cloud card is one card tall, 110 px or less (the banner it replaces was ~390)', hero <= 110, hero)
       await shot('phone-ai-provider')
     }
   }

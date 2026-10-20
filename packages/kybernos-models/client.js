@@ -235,6 +235,9 @@ window.__ModuleLoader__.load({
         'kb.fetch.why.big': { kybernos: 'sa réponse est trop volumineuse', en: 'its answer is too large' },
         'kb.fetch.why.host': { kybernos: 'ce DSH n’a pas encore la route de liste en direct (relance-le)', en: 'this DSH has no live-list route yet (restart it)' },
         'kb.fetch.why.noaddr': { kybernos: 'aucune adresse connue pour ce fournisseur', en: 'no address is known for this provider' },
+        'kb.pv.err.needsapi': { kybernos: 'DSH ne sait pas parler à « {model} » : ce modèle n’est pas dans son catalogue pour {slug}, et {slug} sert des modèles de plusieurs protocoles. Retire-le de la liste pour appliquer le reste, ou ajoute-le dans « Ajouter un fournisseur › API personnalisée » (même adresse, même clé, en choisissant le protocole).', en: 'DSH cannot talk to “{model}”: it is not in its catalog for {slug}, and {slug} serves models over several protocols. Remove it from the list to apply the rest, or add it under “Add provider › Custom API” (same address and key, with the protocol chosen).' },
+        'kb.fetch.undescribed': { kybernos: 'Hors du catalogue de DSH', en: 'Not in DSH’s catalog' },
+        'kb.fetch.undescribed.tip': { kybernos: 'DSH peut le refuser : il doit connaître le protocole de ce modèle, et ce fournisseur en sert plusieurs.', en: 'DSH may refuse it: it has to know which protocol this model speaks, and this provider serves several.' },
         'kb.fetch.title': { kybernos: 'Choisir les modèles à ajouter', en: 'Choose models to add' },
         'kb.fetch.desc': { kybernos: 'Voici les modèles que ce fournisseur propose. Coche ceux à ajouter.', en: 'These are the models this provider has available. Choose the ones to add.' },
         'kb.fetch.replaces': { kybernos: 'La liste que tu gardes remplace celle de {slug} : les modèles non cochés ne seront plus proposés. « Rétablir les modèles par défaut » ramène la liste d’origine.', en: 'The list you keep replaces {slug}’s built-in one: models you leave unchecked will no longer be offered. “Restore default models” brings the built-in list back.' },
@@ -449,16 +452,13 @@ window.__ModuleLoader__.load({
         'kb.hero.title.free': { kybernos: 'Commence gratuitement', en: 'Start for free' },
         'kb.hero.title.in': { kybernos: '{n} modèles inclus', en: '{n} models included' },
         'kb.hero.title.in.one': { kybernos: '1 modèle inclus', en: '1 model included' },
-        'kb.hero.pitch.free': { kybernos: 'Utilise notre liste de LLM sélectionnés — aucune clé d\u2019API à mettre à jour.', en: 'Use our curated list of LLMs — no API keys to update.' },
-        'kb.hero.pitch.in': { kybernos: 'Importés depuis ton abonnement Kybernos — aucune clé d\u2019API à mettre à jour.', en: 'Imported from your Kybernos subscription — no API keys to update.' },
-        'kb.hero.f.fallback': { kybernos: 'Repli automatique', en: 'Auto-fallback' },
-        'kb.hero.f.fallback.tip': { kybernos: 'Si un modèle est indisponible, le modèle sélectionné suivant prend le relais tout seul.', en: 'If a model is unavailable, the next curated model takes over automatically.' },
-        'kb.hero.f.guard': { kybernos: 'Garde-fous pour protéger tes données', en: 'Guardrails to protect your data' },
-        'kb.hero.f.guard.tip': { kybernos: 'Les requêtes restent sous les politiques de Kybernos Cloud — tes clés ne sortent jamais du coffre local.', en: 'Requests stay under Kybernos Cloud policies — your keys never leave the local vault.' },
         'kb.hero.connect': { kybernos: 'Connecter Kybernos Cloud', en: 'Connect to Kybernos Cloud' },
         'kb.hero.manage': { kybernos: 'Gérer Kybernos Cloud', en: 'Manage Kybernos Cloud' },
+        'kb.hero.connect.short': { kybernos: 'Connecter', en: 'Connect' },
+        'kb.hero.manage.short': { kybernos: 'Gérer', en: 'Manage' },
+        'kb.hero.addkey.short': { kybernos: 'ou ajouter une clé', en: 'or add a key' },
+        'kb.hero.models.tip': { kybernos: 'Voir les modèles de Kybernos Cloud', en: 'See the Kybernos Cloud models' },
         'kb.hero.connect.tip': { kybernos: 'Ouvre la carte Kybernos Cloud (appairage, profil, import des modèles).', en: 'Opens the Kybernos Cloud card (pairing, profile, model import).' },
-        'kb.hero.or': { kybernos: 'ou', en: 'or' },
         'kb.hero.addkey': { kybernos: 'Ajoute ta clé d\u2019API', en: 'Add your API key' },
         'kb.hero.addkey.tip': { kybernos: 'Ouvre l\u2019ajout de fournisseur natif — ta propre clé, ta propre route ; la carte n\u2019écrit rien.', en: 'Opens the native Add provider flow — your own key, your own route; the card writes nothing.' },
         'kb.models.local': { kybernos: 'ligne locale — non déclarée dans settings.yaml', en: 'local row — not declared in settings.yaml' },
@@ -705,6 +705,10 @@ window.__ModuleLoader__.load({
         scoreLoaded: false,
         scoresRunning: false,
         scoresAskedAt: null,
+        // Routes the engine refused a model on for want of a protocol (this session): their models outside the catalog are locked in the picker.
+        needsApi: {},
+        // The Kybernos Cloud account, as the Cloud card read it: null = not read yet · false = disconnected · true = connected.
+        cloud: null,
         listeners: new Set(),
       }
       const kbmNotify = () => { for (const fn of Array.from(KBM.listeners)) { try { fn() } catch (e) { /* abonne parti */ } } }
@@ -1798,14 +1802,17 @@ window.__ModuleLoader__.load({
             return
           }
           if (out.models.length === 0) { setFp((st) => ({ ...st, busy: false, err: m('kb.fetch.empty') })); return }
-          setFp({ busy: false, err: null, cands: out.models, picked: kbFetchPreselect(out.models, rows), q: '', src: out.live === true ? { live: true, url: out.url } : (out.live === false ? { live: false, why: out.why } : null) })
+          // The route may refuse a model outside the engine's catalog (see kbPvNeedsApi): tag those; a route that already refused one locks them.
+          const hasApi = typeof (kbMOBJ(KBM.userProviders)[slug] || {}).api === 'string'
+          const cands = out.live === true ? kbFetchTagUndescribed(out.models, out.described, hasApi, KBM.needsApi[slug] === true) : out.models
+          setFp({ busy: false, err: null, cands, picked: kbFetchPreselect(cands, rows), q: '', src: out.live === true ? { live: true, url: out.url } : (out.live === false ? { live: false, why: out.why } : null) })
         }
         const renderPicker = () => {
           const shown = kbFetchFilter(fp.cands, fp.q)
           const have = new Set(rows.map((r) => String(r.id).trim()))
-          const free = shown.filter((c) => !have.has(c.id))
+          const free = shown.filter((c) => !have.has(c.id) && c.locked !== true)
           const allOn = free.length > 0 && free.every((c) => fp.picked[c.id] === true)
-          const n = fp.cands.filter((c) => fp.picked[c.id] === true && !have.has(c.id)).length
+          const n = fp.cands.filter((c) => fp.picked[c.id] === true && !have.has(c.id) && c.locked !== true).length
           const tick = (ids, on) => setFp((st) => { const picked = { ...st.picked }; for (const id of ids) { if (on) picked[id] = true; else delete picked[id] } return { ...st, picked } })
           return h('div', { className: 'kbm-mdl-root', 'data-kbm': 'fetch-dialog', onMouseDown: (ev) => { if (ev.target === ev.currentTarget) close() } },
             h('div', { className: 'kbm-mdl-mask' }),
@@ -1825,13 +1832,13 @@ window.__ModuleLoader__.load({
                   ? h('p', { className: 'kbpv-hint', role: 'status', 'data-kbm': 'fetch-nomatch' }, m('kb.fetch.nomatch'))
                   : h('ul', { className: 'kbpv-fetch-list', 'data-kbm': 'fetch-list' }, shown.map((c) => {
                     const known = have.has(c.id)
-                    const meta = known ? m('kb.fetch.known') : [c.contextWindow !== undefined ? kbFetchSize(c.contextWindow) : null, c.input !== undefined && !(c.input.length === 1 && c.input[0] === 'text') ? c.input.join(' · ') : null].filter(Boolean).join(' · ')
+                    const meta = known ? m('kb.fetch.known') : c.undescribed === true ? m('kb.fetch.undescribed') : [c.contextWindow !== undefined ? kbFetchSize(c.contextWindow) : null, c.input !== undefined && !(c.input.length === 1 && c.input[0] === 'text') ? c.input.join(' · ') : null].filter(Boolean).join(' · ')
                     return h('li', { key: c.id, 'data-kbm': 'fetch-row', 'data-kbm-id': c.id },
                       h('label', { className: 'kbpv-fetch-lab' + (known ? ' kbpv-fetch-known' : '') },
-                        h('input', { type: 'checkbox', checked: known || fp.picked[c.id] === true, disabled: known, onChange: () => tick([c.id], fp.picked[c.id] !== true) }),
+                        h('input', { type: 'checkbox', checked: known || (fp.picked[c.id] === true && c.locked !== true), disabled: known || c.locked === true, onChange: () => tick([c.id], fp.picked[c.id] !== true) }),
                         h('span', { className: 'kbpv-fetch-id', title: c.name !== undefined ? c.name : c.id }, c.id),
                         c.name !== undefined && c.name !== c.id ? h('span', { className: 'kbpv-fetch-nm' }, c.name) : null,
-                        meta !== '' ? h('span', { className: 'kbpv-fetch-meta' }, meta) : null))
+                        meta !== '' ? h('span', { className: 'kbpv-fetch-meta', title: c.undescribed === true && !known ? m('kb.fetch.undescribed.tip') : undefined }, meta) : null))
                   })),
                 h('div', { className: 'kbpv-fetch-foot' },
                   h('span', { className: 'kbpv-hint', 'data-kbm': 'fetch-count' }, m('kb.fetch.count', { n, total: fp.cands.length })),
@@ -2028,7 +2035,13 @@ window.__ModuleLoader__.load({
         const run = async (fn, errKey, slug) => {
           patch({ busy: true, err: null })
           try { const out = await fn(); return out }
-          catch (e) { patch({ busy: false, err: m(errKey, { slug: slug || '', raison: String(e && e.message ? e.message : e) }) }); return undefined }
+          catch (e) {
+            const raison = String(e && e.message ? e.message : e)
+            const model = errKey === 'kb.pv.save.err' ? kbPvNeedsApi(raison) : null
+            if (model !== null && slug) KBM.needsApi[slug] = true
+            patch({ busy: false, err: model !== null ? m('kb.pv.err.needsapi', { slug: slug || '', model }) : m(errKey, { slug: slug || '', raison }) })
+            return undefined
+          }
         }
         const doSave = async (route) => {
           const out = await run(() => kbPvSave(route, { ...dr, models: dr.touched === true ? dr.models : undefined }), 'kb.pv.save.err', route)
@@ -2321,14 +2334,18 @@ window.__ModuleLoader__.load({
         // The cards in the order they have always had, each with whether it waits (no key yet, or switched off).
         const wordsOf = (route) => route + ' ' + pvLabel(route) + ' ' + KBM.models.filter((mo) => mo.route === route).map((mo) => mo.id + ' ' + (mo.name || '')).join(' ')
         const cards = dsCards.map((c) => ({ node: renderDsCard(c), waiting: c.ns === 'llm-deepseek' && KBM.dsKey.configured === false, hay: c.provider + ' ' + c.name + ' deepseek' }))
-          .concat(routes.map((route) => ({ node: renderCard({ route }), waiting: keyOf(route) === 'missing', hay: wordsOf(route) })))
+          .concat(routes.map((route) => ({ node: renderCard({ route }), waiting: keyOf(route) === 'missing', hay: wordsOf(route), cloud: route === 'kybernos' })))
           .concat(parkedShown.map((p) => ({ node: renderCard({ route: p.slug, off: true }), waiting: true, hay: p.slug + ' ' + p.models.join(' ') })))
         // While a search is typed the answer is the matching providers, all of them (a provider with no key included), with no fold and no Cloud card.
         const searching = String(UI.pq).trim() !== ''
-        const hits = searching ? kbPvSearch(cards, UI.pq) : cards
-        const fold = kbPvFold(cards.map((x) => x.waiting))
-        const ready = cards.filter((x) => !x.waiting)
-        const waiting = cards.filter((x) => x.waiting)
+        // The Kybernos Cloud card (first cell of the grid) IS the « kybernos » provider while the account is connected: its plain card is not drawn
+        // beside it. Not when the account is known to be disconnected (a « kybernos » route written by hand would be unreachable), nor in a search
+        // result, where the Cloud card steps aside and the provider has to be findable.
+        const listed = cards.filter((x) => !(x.cloud === true && KBM.cloud !== false))
+        const hits = searching ? kbPvSearch(cards, UI.pq) : listed
+        const fold = kbPvFold(listed.map((x) => x.waiting))
+        const ready = listed.filter((x) => !x.waiting)
+        const waiting = listed.filter((x) => x.waiting)
         return h('div', { className: 'kbpv', 'data-kbm': 'prov-list' },
           h('div', { className: 'kbpv-head' },
             h('span', { className: 'kbm-in-wrap kbmp-search kbpv-search' }, Loupe(),
@@ -2348,7 +2365,7 @@ window.__ModuleLoader__.load({
             // The Kybernos Cloud card is the first cell of the grid, full width, before the first provider: above the tabs it pushed them down
             // on this tab only, so they jumped 85 px between Providers and Models. A component, not a call: KybernosHero owns hooks.
             searching ? null : h(KybernosHero, { key: 'kb-hero' }),
-            (searching ? hits : (fold.fold && !ui.waitOpen ? ready : cards)).map((x) => x.node)),
+            (searching ? hits : (fold.fold && !ui.waitOpen ? ready : listed)).map((x) => x.node)),
           searching && hits.length === 0 ? h('p', { className: 'kbpv-hint', role: 'status', 'data-kbm': 'prov-nomatch' }, m('kb.pv.search.none')) : null,
           fold.fold && !searching ? h('button', { type: 'button', className: 'kbpv-fold', 'data-kbm': 'prov-wait-toggle', 'aria-expanded': ui.waitOpen ? 'true' : 'false', onClick: () => patch({ waitOpen: !ui.waitOpen }) },
             h('span', { className: 'kbpv-fold-chev' + (ui.waitOpen ? ' open' : ''), 'aria-hidden': 'true' }, Ic('chevron', 13)), m('kb.pv.wait.n', { n: fold.waiting })) : null,
@@ -2525,8 +2542,8 @@ window.__ModuleLoader__.load({
           let mort = false
           fetch('/kybernos-cloud/status', { headers: { 'content-type': 'application/json' } })
             .then((r) => r.json())
-            .then((res) => { if (mort !== true) { setCloud(res !== null && typeof res === 'object' && res.connected === true); setPlan(kbHeroPlan(res)) } })
-            .catch(() => {})
+            .then((res) => { if (mort !== true) { KBM.cloud = res !== null && typeof res === 'object' && res.connected === true; kbmNotify(); setCloud(KBM.cloud); setPlan(kbHeroPlan(res)) } })
+            .catch(() => { if (mort !== true) { KBM.cloud = false; kbmNotify() } })
           return () => { mort = true }
         }, [])
         const connecte = cloud === true
@@ -2543,44 +2560,32 @@ window.__ModuleLoader__.load({
             .filter((b) => /^add provider$/i.test((b.innerText || '').trim()))[0]
           if (btn) btn.click()
         }
-        return h('div', { className: 'kbmh-hero', 'data-kbmh': 'block' },
-          h('div', { className: 'kbmh-hero-main' },
-            h('div', { className: 'kbmh-hero-brand' },
-              h('span', { className: 'kbmh-hero-logo', 'aria-hidden': 'true' }, 'K'),
-              h('span', { className: 'kbmh-hero-name' }, 'Kybernos Cloud'),
-              // « Recommended » is an invitation to connect: once connected there is nothing left to recommend.
-              connecte === true ? null : h('span', { className: 'kbmh-hero-pill', 'data-kbmh': 'badge' }, m('kb.hero.badge')),
+        // Mock-up A (2026-10-20): the anatomy of a provider card — logo tile, name + dot, one line under it, the action on the right — on the night blue.
+        // Connected: « Manage » (and « or add a key » on a Free account). Not connected: « Connect » and « or add a key ». The name opens the Models view
+        // on its models once they exist; the card IS the « kybernos » provider (the plain card of that route is not drawn beside it).
+        const voirModeles = () => { uiSet('prov', 'kybernos'); uiSet('tab', 'models') }
+        const nom = connecte === true && mine.length > 0
+          ? h('button', { type: 'button', className: 'kbpv-link', 'data-kbmh': 'models', title: m('kb.hero.models.tip'), onClick: voirModeles }, 'Kybernos Cloud')
+          : h('span', null, 'Kybernos Cloud')
+        return h('div', { className: 'kbpv-card kbmh-hero', 'data-kbmh': 'block' },
+          h('span', { className: 'kbpv-logo kbmh-hero-logo', 'aria-hidden': 'true' }, 'K'),
+          h('div', { className: 'kbpv-cbody' },
+            h('span', { className: 'kbmh-hero-name' }, nom,
+              connecte === true ? h('i', { className: 'kbmh-hero-dot', 'data-kbmh': 'badge-on', title: m('kb.hero.connected') }) : null),
+            h('span', { className: 'kbmh-hero-sub', 'data-kbmh': 'title' },
               connecte === true
-                ? h('span', { className: 'kbmh-hero-pill kbmh-hero-pill-on', 'data-kbmh': 'badge-on' },
-                  h('span', { className: 'kbmh-hero-pill-dot', 'aria-hidden': 'true' }), m('kb.hero.connected'))
-                : null),
-            h('div', { className: 'kbmh-hero-title', 'data-kbmh': 'title' },
-              connecte === true ? m(n === 1 ? 'kb.hero.title.in.one' : 'kb.hero.title.in', { n }) : m('kb.hero.title.free')),
-            h('div', { className: 'kbmh-hero-pitch', 'data-kbmh': 'pitch' },
-              connecte === true ? m('kb.hero.pitch.in') : m('kb.hero.pitch.free')),
-            h('div', { className: 'kbmh-hero-feats', 'data-kbmh': 'feats' },
-              h('span', { className: 'kbmh-hero-feat', title: m('kb.hero.f.fallback.tip') },
-                h('span', { className: 'kbmh-hero-feat-i' }, Ic('check', 14)), m('kb.hero.f.fallback')),
-              h('span', { className: 'kbmh-hero-feat', title: m('kb.hero.f.guard.tip') },
-                h('span', { className: 'kbmh-hero-feat-i' }, Ic('check', 14)), m('kb.hero.f.guard')))),
-          // (The load error is told once, by the panel's banner right under the hero, which also has the Retry.)
-          h('div', { className: 'kbmh-hero-cta' },
+                ? [h('span', { key: 'sr', className: 'kbmh-hero-sr' }, m('kb.hero.connected') + '. '), m(n === 1 ? 'kb.hero.title.in.one' : 'kb.hero.title.in', { n })]
+                : [h('span', { key: 'tag', className: 'kbmh-hero-tag', 'data-kbmh': 'badge' }, m('kb.hero.badge')), ' ', m('kb.hero.title.free')])),
+          // (The load error is told once, by the panel's banner right under the tab bar, which also has the Retry.)
+          h('div', { className: 'kbmh-hero-side' },
             h('button', {
-              type: 'button', className: 'kbmh-hero-btn', 'data-kbmh': 'connect',
-              title: m('kb.hero.connect.tip'), onClick: ouvrirCloud,
-            },
-              h('span', { className: 'kbmh-hero-btn-i' }, Ic(connecte === true ? 'cloud' : 'arrowright', 15)),
-              h('span', null, connecte === true ? m('kb.hero.manage') : m('kb.hero.connect'))),
-            kbHeroShowKey(connecte, plan) ? h('div', { className: 'kbmh-hero-or', 'aria-hidden': 'true' },
-              h('span', { className: 'kbmh-hero-or-line' }),
-              h('span', { className: 'kbmh-hero-or-txt' }, m('kb.hero.or')),
-              h('span', { className: 'kbmh-hero-or-line' })) : null,
+              type: 'button', className: 'kbmh-hero-btn' + (connecte === true ? ' kbmh-hero-btn-ghost' : ''), 'data-kbmh': 'connect',
+              title: connecte === true ? m('kb.hero.manage') : m('kb.hero.connect.tip'), 'aria-label': connecte === true ? m('kb.hero.manage') : m('kb.hero.connect'), onClick: ouvrirCloud,
+            }, connecte === true ? m('kb.hero.manage.short') : m('kb.hero.connect.short')),
             kbHeroShowKey(connecte, plan) ? h('button', {
-              type: 'button', className: 'kbmh-hero-btn kbmh-hero-btn-ghost', 'data-kbmh': 'addkey',
-              title: m('kb.hero.addkey.tip'), onClick: ajouterCle,
-            },
-              h('span', { className: 'kbmh-hero-btn-i' }, Ic('key', 15)),
-              h('span', null, m('kb.hero.addkey'))) : null))
+              type: 'button', className: 'kbmh-hero-alt', 'data-kbmh': 'addkey',
+              title: m('kb.hero.addkey.tip'), 'aria-label': m('kb.hero.addkey'), onClick: ajouterCle,
+            }, m('kb.hero.addkey.short')) : null))
       }
 
       // ── the order marker of the kybernos row (provider-card seat) ──
@@ -2782,8 +2787,8 @@ window.__ModuleLoader__.load({
         '.kbpv-ib:disabled{opacity:.35;cursor:not-allowed}',
         '.kbpv-ib-danger:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover-danger);color:var(--dsw-alias-state-error-primary)}',
         '.kbpv-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:8px}',
-        '.kbpv-cards>.kbmh-hero{grid-column:1/-1}',
-        '.kbpv-card{position:relative;display:flex;align-items:center;gap:14px;padding:14px 16px;min-height:76px;border:.5px solid var(--dsw-alias-border-l2);border-radius:14px;background:var(--dsw-alias-bg-layer-2)}',
+        // border-box: min-height is the card's height, padding included (as a content box it came to 76 + 28 = 106 px, 30 px of empty air). 70 = the 46 px logo + 2 × 12 px of padding.
+        '.kbpv-card{box-sizing:border-box;position:relative;display:flex;align-items:center;gap:14px;padding:12px 14px;min-height:70px;border:.5px solid var(--dsw-alias-border-l2);border-radius:14px;background:var(--dsw-alias-bg-layer-2)}',
         '.kbpv-card:hover,.kbpv-card:focus-within{border-color:var(--dsw-alias-border-l3);background:var(--dsw-alias-bg-layer-3)}',
         '.kbpv-off{opacity:.62}',
         '.kbpv-off:hover{opacity:.92}',
@@ -3159,57 +3164,28 @@ window.__ModuleLoader__.load({
         '.kbm-wirenote{font-size:11.5px;color:var(--dsw-alias-label-tertiary)}',
         // ── « Kybernos Models » header block (the page's header seat) ──
         '.kbm-root.kbmh{margin-top:0;padding-top:0;border-top:none;gap:10px;flex-direction:column}',
-        // ── the Kybernos Cloud card (mock-up of 2026-09-21) ────────────────
-        // The card is a BRAND card: its night blue does not follow the
-        // theme — it reads the same in light and dark, like a sponsor
-        // block. One value per colour, documented here.
-        //   #1F2A4D the night blue · #FFFFFF the CTAs' white · #EAF0FF/#B9C4DE
-        //   the light texts · #34C759 the green of the ticks and of the connected badge.
-        // The CTA column stays ON THE RIGHT as in the mock-up: it is fixed
-        // (~248px) and the text takes the rest — the section is ~504px useful,
-        // not 1382 like the visual, so the sizes are recalibrated.
-        '.kbmh-hero{display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;background:#1F2A4D;border:.5px solid #2C3A63;border-radius:14px;padding:20px 22px}',
-        '.kbmh-hero-main{display:flex;flex-direction:column;gap:8px;min-width:0;flex:1 1 210px}',
-        '.kbmh-hero-brand{display:flex;align-items:center;gap:8px;flex-wrap:wrap}',
-        '.kbmh-hero-logo{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:9px;background:#FFFFFF;color:#10182B;font-size:16px;font-weight:700;line-height:1;flex:none}',
-        '.kbmh-hero-name{font-size:14px;font-weight:600;color:#EAF0FF;white-space:nowrap}',
-        '.kbmh-hero-pill{display:inline-flex;align-items:center;gap:5px;height:21px;padding:0 9px;border-radius:999px;border:.5px solid rgba(255,255,255,.22);background:rgba(255,255,255,.08);font-size:11px;color:#C7D2E8;white-space:nowrap}',
-        '.kbmh-hero-pill-dot{width:6px;height:6px;border-radius:999px;background:#34C759;flex:none}',
-        '.kbmh-hero-pill-on{border-color:rgba(52,199,89,.45);background:rgba(52,199,89,.16);color:#7CE3A4}',
-        '.kbmh-hero-title{font-size:25px;font-weight:700;letter-spacing:-.02em;color:#FFFFFF;line-height:1.16}',
-        '.kbmh-hero-pitch{font-size:13px;color:#B9C4DE;line-height:19px;max-width:56ch}',
-        '.kbmh-hero-feats{display:flex;align-items:flex-start;flex-direction:column;gap:5px;margin-top:3px}',
-        '.kbmh-hero-feat{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:#EAF0FF}',
-        '.kbmh-hero-feat-i{display:inline-flex;color:#34C759;flex:none}',
-        '.kbmh-hero-cta{display:flex;flex-direction:column;justify-content:center;gap:8px;flex:0 0 248px;min-width:0}',
-        '.kbmh-hero-btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:42px;padding:0 14px;border:none;border-radius:10px;background:#FFFFFF;color:#10182B;font-size:13.5px;font-weight:600;line-height:18px;cursor:pointer;font-family:inherit;text-align:center}',
+        // ── the Kybernos Cloud card: the first cell of the provider grid (mock-up A, 2026-10-20) ──
+        // Same anatomy as a provider card (logo tile, name + dot, a line under it, the action on the right), on a BRAND blue that does not follow the
+        // theme: it reads the same in light and dark. One value per colour: #1F2A4D the night blue (#243158 hovered), #2C3A63 its border (#3A4B80
+        // hovered), #FFFFFF the button and the logo tile, #EAF0FF / #B9C4DE the light texts, #34C759 the green of the connected dot.
+        '.kbpv-card.kbmh-hero{background:#1F2A4D;border-color:#2C3A63;color:#EAF0FF}',
+        '.kbpv-card.kbmh-hero:hover,.kbpv-card.kbmh-hero:focus-within{background:#243158;border-color:#3A4B80}',
+        '.kbmh-hero>.kbmh-hero-logo{background:#FFFFFF;color:#10182B;font-size:22px;font-weight:700;line-height:1}',
+        '.kbmh-hero-name{display:flex;align-items:center;gap:8px;min-width:0;font-size:14.5px;font-weight:600;color:#FFFFFF;white-space:nowrap}',
+        '.kbmh-hero-name .kbpv-link{font-weight:600}',
+        '.kbmh-hero-dot{flex:none;width:7px;height:7px;border-radius:50%;background:#34C759}',
+        '.kbmh-hero-sub{font-size:12.5px;line-height:18px;color:#B9C4DE;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+        '.kbmh-hero-tag{display:inline-block;margin-right:4px;padding:0 6px;border-radius:999px;border:.5px solid rgba(255,255,255,.22);background:rgba(255,255,255,.08);font-size:10px;line-height:16px;color:#C7D2E8}',
+        // The actions sit above the card-wide link of the name (the provider cards do the same with their own).
+        '.kbmh-hero-side{position:relative;z-index:1;flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:4px}',
+        '.kbmh-hero-btn{display:inline-flex;align-items:center;justify-content:center;height:30px;padding:0 12px;border:none;border-radius:9px;background:#FFFFFF;color:#10182B;font-family:inherit;font-size:12.5px;font-weight:600;line-height:18px;white-space:nowrap;cursor:pointer}',
         '.kbmh-hero-btn:hover{background:#E8EDF9}',
-        '.kbmh-hero-btn:focus-visible{outline:2px solid #FFFFFF;outline-offset:2px}',
+        '.kbmh-hero-btn:focus-visible,.kbmh-hero-alt:focus-visible{outline:2px solid #FFFFFF;outline-offset:2px}',
         '.kbmh-hero-btn-ghost{background:transparent;border:.5px solid rgba(255,255,255,.30);color:#FFFFFF}',
         '.kbmh-hero-btn-ghost:hover{background:rgba(255,255,255,.10)}',
-        '.kbmh-hero-btn-i{display:inline-flex;flex:none}',
-        '.kbmh-hero-or{display:flex;align-items:center;gap:10px}',
-        '.kbmh-hero-or-line{flex:1;height:1px;background:rgba(255,255,255,.20)}',
-        '.kbmh-hero-or-txt{font-size:11.5px;color:#9FACCB;white-space:nowrap}',
-        // ── compact version (02/10): a ~70 px strip instead of a ~200 px block ──
-        // Line 1: brand + pills; line 2: title; actions on the right, on one line.
-        // The pitch and the two highlights (Auto-fallback, Guardrails) are hidden: they
-        // stay in the DOM (chips' tooltips, data-kbmh hooks) for the checks.
-        '.kbmh-hero{padding:10px 14px;gap:8px 16px;border-radius:12px}',
-        '.kbmh-hero-main{display:grid;grid-template-columns:auto 1fr;align-items:center;gap:6px 14px;flex:1 1 300px;min-width:0}',
-        '.kbmh-hero-brand{grid-column:1/-1;flex-wrap:nowrap;gap:8px}',
-        '.kbmh-hero-logo{width:26px;height:26px;border-radius:7px;font-size:13px}',
-        '.kbmh-hero-name{font-size:13.5px}',
-        '.kbmh-hero-pill{height:19px;padding:0 8px;font-size:10.5px}',
-        '.kbmh-hero-title{grid-column:1;font-size:14px;font-weight:600;letter-spacing:-.005em;line-height:1.3;color:#EAF0FF;white-space:nowrap}',
-        '.kbmh-hero-pitch,.kbmh-hero-feats{display:none}',
-        '.kbmh-hero-cta{flex-direction:row;align-items:center;flex:0 0 auto;gap:8px}',
-        '.kbmh-hero-btn{height:28px;padding:0 10px;font-size:12px;border-radius:8px}',
-        '.kbmh-hero-or{display:none}',
-        // Narrow: the CTA column goes under the text and spreads on a line.
-        // In a column the « flex: 1 1 300px » of the text block is a HEIGHT: it made the banner 390 px tall on a phone (A3-18). The
-        // block takes the height of its content; the buttons share a line and wrap rather than squeezing.
-        '@container (max-width: 520px){.kbmh-hero{flex-direction:column;align-items:stretch;gap:14px;padding:18px}.kbmh-hero-main{flex:0 0 auto}.kbmh-hero-cta{flex:0 0 auto;flex-wrap:wrap}}',
+        '.kbmh-hero-alt{all:unset;box-sizing:border-box;font-size:11px;line-height:14px;color:#B9C4DE;text-decoration:underline;text-underline-offset:2px;white-space:nowrap;cursor:pointer}',
+        '.kbmh-hero-alt:hover{color:#FFFFFF}',
+        '.kbmh-hero-sr{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}',
         // ── the « Kybernos Cloud » row at the head of the native list ─────────
         // The native list (ul of the ModelsSection module) is already a flex
         // column: `order:-1` lifts the marked row without touching the DOM nor
@@ -4028,6 +4004,10 @@ window.__ModuleLoader__.load({
         if (words.length === 0) return items
         return items.filter((x) => { const hay = flat(x.hay); return words.every((w) => hay.indexOf(w) >= 0) })
       }
+      /** The model the engine refuses for want of a protocol (« model "x" needs an api; the installed catalog does not describe it… »), or null when
+       *  the message is anything else. The engine takes ONE `api` per route, which would bind every model of a route that serves several protocols,
+       *  so a model its catalog does not describe cannot be added to such a route. Pure. */
+      const kbPvNeedsApi = (message) => { const mm = /model "([^"]+)" needs an api/.exec(String(message === undefined || message === null ? '' : message)); return mm === null ? null : mm[1] }
       /** Model rows (id + optional name) from a draft: drops blank ids, keeps the first of a duplicate. Pure. */
       const kbPvRows = (rows) => {
         const seen = new Set()
@@ -4306,7 +4286,7 @@ window.__ModuleLoader__.load({
       const kbFetchPreselect = (cands, rows) => {
         const have = new Set((Array.isArray(rows) ? rows : []).map((r) => String(r && r.id !== undefined ? r.id : '').trim()))
         const picked = {}
-        for (const c of cands) if (!have.has(c.id)) picked[c.id] = true
+        for (const c of cands) if (!have.has(c.id) && c.undescribed !== true) picked[c.id] = true
         return picked
       }
       /** Search over id and display name, case-insensitive. Pure. */
@@ -4353,6 +4333,14 @@ window.__ModuleLoader__.load({
         const keys = { unreachable: 'kb.fetch.why.unreachable', 'bad-reply': 'kb.fetch.why.bad', 'too-big': 'kb.fetch.why.big', host: 'kb.fetch.why.host' }
         return { key: keys[none.why] !== undefined ? keys[none.why] : 'kb.fetch.why.noaddr', vars: {} }
       }
+      /** Tag the candidates a route may refuse: when the engine's catalog describes the route (`described` is its ids) and the profile declares no
+       *  `api` of its own, a model outside that catalog has no protocol to be talked to with. A locked route (the engine already refused one) locks
+       *  them in the picker; otherwise they are only unticked by default and tagged. `described` null = the engine could not say: nothing is tagged. Pure. */
+      const kbFetchTagUndescribed = (cands, described, hasApi, locked) => {
+        if (!Array.isArray(described) || described.length === 0 || hasApi === true) return cands
+        const known = new Set(described)
+        return cands.map((c) => (known.has(c.id) ? c : { ...c, undescribed: true, locked: locked === true }))
+      }
       /** The host name of an address, for « Live list from opencode.ai ». Pure. */
       const kbFetchHost = (url) => { try { return new URL(String(url)).hostname } catch (e) { return String(url) } }
       // KB-FETCH-PURE-END
@@ -4388,11 +4376,12 @@ window.__ModuleLoader__.load({
         const live = await kbFetchLive(probe)
         if (live.kind === 'found') {
           let models = live.models
-          if (models.length > 0 && models.every((c) => c.contextWindow === undefined)) {
+          let described = null
+          if (models.length > 0) {
             const eng = await kbFetchEngine(api, probe)
-            if (eng.kind === 'found') models = kbFetchMerge(models, eng.models)
+            if (eng.kind === 'found') { described = eng.models.map((c) => c.id); models = kbFetchMerge(models, eng.models) }
           }
-          return { kind: 'found', models, live: true, url: live.url }
+          return { kind: 'found', models, live: true, url: live.url, described }
         }
         const eng = await kbFetchEngine(api, probe)
         return eng.kind === 'found' ? { ...eng, live: false, why: kbFetchWhy(live) } : eng
