@@ -50,9 +50,14 @@ node "$HERE/rewrite.mjs" "$SB_PROFILE" "$KB_WORKTREE" "$SB_DSH" "$KB_REAL_HOME"
 #    as done when `completed` is true AND `version` is 1: `{"completed":true}` alone still shows the wizard.
 printf '{"version":1,"completed":true,"installedAt":"2026-01-01T00:00:00.000Z","completedAt":"2026-01-01T00:00:00.000Z","profil":"produit","uiMode":null}\n' > "$SB_DSH/kybernos/onboarding.json"
 
-# 5. Checks: nothing may still point at the shared tree; every @local link must land in the worktree
+# 5. Checks: nothing may still point at the shared tree; every @local link must land in the worktree.
+#    When the worktree IS the shared tree (running the sandbox from the main checkout, no branch worktree),
+#    the shared path below is the CORRECT target: skip that grep, or the check fails on its own success.
 bad=0
-if grep -rIl "$KB_REAL_HOME/kybernos-plugins/packages" "$SB_PROFILE/package.json" "$SB_PROFILE/pnpm-lock.yaml" "$SB_PROFILE/node_modules/.pnpm/lock.yaml" 2>/dev/null; then
+REAL_TREE="$KB_REAL_HOME/kybernos-plugins"
+SAME_TREE=0
+[ "$(cd "$KB_WORKTREE" 2>/dev/null && pwd -P)" = "$(cd "$REAL_TREE" 2>/dev/null && pwd -P)" ] && SAME_TREE=1
+if [ "$SAME_TREE" -eq 0 ] && grep -rIl "$REAL_TREE/packages" "$SB_PROFILE/package.json" "$SB_PROFILE/pnpm-lock.yaml" "$SB_PROFILE/node_modules/.pnpm/lock.yaml" 2>/dev/null; then
   echo "FAIL: shared-tree links remain (above)"; bad=1
 fi
 for l in "$SB_PROFILE"/node_modules/@local/*; do
