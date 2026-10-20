@@ -188,6 +188,12 @@ await checkAsync('computer_write puis computer_read font l’aller-retour', asyn
   const r = await tools.find((t) => t.name === 'computer_read').execute({ sandboxId: toolSandbox, path: '/home/user/o.txt' })
   assert.equal(r.content, 'contenu de /home/user/o.txt')
 })
+check('computer_list says it lists E2B code sandboxes, not the person\'s cloud computers (a model took it for « my computers » and improvised shell commands)', () => {
+  const d = tools.find((t) => t.name === 'computer_list').description
+  assert.match(d, /E2B code sandboxes/)
+  assert.match(d, /NOT the person's cloud computers, workspaces or plan/)
+  assert.match(d, /kaby_account/)
+})
 await checkAsync('computer_list rend les suivies', async () => {
   const listed = await tools.find((t) => t.name === 'computer_list').execute({})
   assert.equal(listed.ok, true)

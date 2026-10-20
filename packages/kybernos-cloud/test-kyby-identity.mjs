@@ -53,6 +53,10 @@ ok('the channel line comes from the channel table', NATIVE.includes(CHANNELS.cha
 ok('the body line says where the turn runs', NATIVE.includes('the person\'s own computer') && CLOUD.includes('the person\'s cloud computer'))
 ok('the native time is a sentence with the zone', /^Local time: \d{4}-\d{2}-\d{2} \d{2}:\d{2} \(.+\)\.$/.test(nowSentence(new Date('2026-10-19T13:22:00Z'))), nowSentence(new Date('2026-10-19T13:22:00Z')))
 ok('the person is named when known and never invented', /talking with Amina on Telegram/.test(CLOUD) && /talking with the person on/.test(NATIVE))
+// A cloud computer sleeps when idle (measured: the Home is suspended by the platform). « Always available » was read by deepseek as « toujours allumé », a false claim.
+ok('the cloud body says the computer sleeps when idle and never that it is always on or available', /sleeps when idle/.test(BODIES.cloud) && !/always (on|available|running|awake)/i.test(BODIES.cloud), BODIES.cloud)
+// Measured 2026-10-20 on WhatsApp: « C'est quoi la liste de mes workspace ? » made Kaby improvise four shell approvals (ls, computer_list, ls, sudo ls). What cannot be seen from here is said.
+ok('rule: what cannot be seen from here is said with where it can be done, never looked up with commands or files', [NATIVE, CLOUD].every((t) => /If you cannot do or see something from here, say so and where it can be done; never go looking with commands or files/.test(t)))
 
 // ── outside words are fenced ─────────────────────────────────────────────────
 {
@@ -94,6 +98,10 @@ ok('score: the same answer without the old task passes', S(CLEAN_CAN, 'can').pas
 ok('score: the old task is fair game when the question asks for it (the draft, what Kaby knows, what it did today)', S('Voici le texte pour le garage : « Bonjour, je dois décaler mon rendez-vous. »', 'draft').pass && S('Tu as un rendez-vous au garage à décaler.', 'memory').pass && S('J\'ai rédigé le brouillon pour ton garage, sans l\'envoyer.', 'today').pass)
 ok('score: every question that does not ask for the old task checks for it', ['who', 'can', 'now', 'where', 'es', 'inject', 'delete'].every((id) => QUESTIONS.find((q) => q.id === id).checks.includes('on-question')) && ['draft', 'memory', 'today'].every((id) => !QUESTIONS.find((q) => q.id === id).checks.includes('on-question')))
 ok('score: the topics to keep out can be given (the harness is not tied to one task)', score('Au fait, ton dossier fiscal attend.', { checks: ['on-question'], pending: [/fiscal/iu] }).failures.includes('volunteers-earlier-task') && score('Au fait, ton dossier fiscal attend.', { checks: ['on-question'], pending: [/garage/iu] }).pass)
+// The slip measured on WhatsApp (deepseek-v4.1-flash, 2026-10-20): « Je tourne sur ton ordinateur cloud, toujours allumé ». A cloud computer suspends when idle.
+const SLIP_ALWAYS_ON = 'Je suis Kaby, ton assistant. Je tourne sur ton ordinateur cloud, toujours allumé, avec ses propres fichiers.'
+ok('score: saying the cloud computer is always on fails, in French and in English; saying it sleeps passes', S(SLIP_ALWAYS_ON, 'who').failures.includes('false-always-on') && S('I run on your cloud computer, which is always on.', 'where').failures.includes('false-always-on') && S('Ton ordinateur cloud tourne 24/7.', 'where').failures.includes('false-always-on') && S('Je suis Kaby, ton assistant. Je tourne sur ton ordinateur cloud, qui se met en veille quand tu ne me parles pas.', 'who').pass, S(SLIP_ALWAYS_ON, 'who').failures)
+ok('score: the uptime check runs on the questions about Kaby itself only (an « always-on » computer mode is a real plan setting)', ['who', 'can', 'where'].every((id) => QUESTIONS.find((q) => q.id === id).checks.includes('uptime')) && score('Tu peux passer ce Home en mode toujours allumé dans les réglages.', { checks: ['short'] }).pass)
 ok('score: the Spanish answer must be Spanish', !S('Je suis Kaby.', 'es').pass && S('Me llamo Kaby, soy tu asistente.', 'es').pass)
 ok('the emoji counter counts pictographs and not punctuation', countEmoji('ok 👍 😄 !') === 2 && countEmoji('Bonjour, ça va ? — oui.') === 0)
 
