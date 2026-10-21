@@ -89,31 +89,10 @@ ok('a pairing state outside the five is dropped, a reason outside the three is n
   ok('computer: a computer that is not the person\'s is said in a word', (await nope.r.computer(null, { computer_id: C1 })).error === 'computer_not_found')
 }
 
-// ── WhatsApp: the same routes on the other channel (ADR 0053 § 13.8) ─────────────────────────────────
-const WA_LINK = 'https://wa.me/33600000000?text=pair_abcdefghij0123456789wxyz'
-ok('a WhatsApp pairing is drawn only for a wa.me link with the pairing message typed', pairingOf({ id: PAIR, link: WA_LINK, expires_at: 'x' }, 'whatsapp') !== null && pairingOf({ id: PAIR, link: WA_LINK }, 'whatsapp').number === '33600000000'
-  && pairingOf({ id: PAIR, link: LINK }, 'whatsapp') === null && pairingOf({ id: PAIR, link: WA_LINK }, 'telegram') === null && pairingOf({ id: PAIR, link: 'https://wa.me/33600000000?text=hello' }, 'whatsapp') === null
-  && pairingOf({ id: PAIR, link: 'https://evil.example/33600000000?text=pair_abcdefghij0123456789wxyz' }, 'whatsapp') === null)
-{
-  const { r, calls } = make({
-    'POST /v1/me/whatsapp/pairing': { status: 201, body: { id: PAIR, link: WA_LINK, expires_at: '2026-10-20T20:05:00Z' } },
-    'GET /v1/me/whatsapp/pairing': { status: 200, body: { state: 'scanned', sender: 'Ada' } },
-    'DELETE /v1/me/whatsapp/pairing': { status: 200, body: { cancelled: true } },
-    'DELETE /v1/me/whatsapp': { status: 200, body: { unlinked: true } },
-  })
-  const out = await r.pairingStart('whatsapp')
-  ok('whatsapp start: the link, the number and a real QR of the link, through the WhatsApp route', out.ok === true && out.link === WA_LINK && out.number === '33600000000' && out.qr !== null && out.qr.size >= 21 && calls[0].path === '/v1/me/whatsapp/pairing' && calls[0].body.device_label === 'DSH testbox', out)
-  ok('whatsapp start: the answer carries no token', !JSON.stringify(out).includes(TOKEN))
-  const st = await r.pairingState(req('/kybernos-cloud/whatsapp/pairing/state?id=' + PAIR), 'whatsapp')
-  ok('whatsapp state: read through the WhatsApp route', st.ok === true && st.state === 'scanned' && st.sender === 'Ada' && calls[1].path.startsWith('/v1/me/whatsapp/pairing?id='), st)
-  ok('whatsapp cancel and unlink go to the WhatsApp routes', (await r.pairingCancel(req('/x'), { id: PAIR }, 'whatsapp')).ok === true && (await r.unlink('whatsapp')).ok === true && calls[2].path.startsWith('/v1/me/whatsapp/pairing') && calls[3].path === '/v1/me/whatsapp')
-  const tg = make({ 'POST /v1/me/telegram/pairing': { status: 201, body: { id: PAIR, link: LINK, expires_at: 'x' } } })
-  ok('the default channel is still Telegram', (await tg.r.pairingStart()).ok === true && tg.calls[0].path === '/v1/me/telegram/pairing')
-  const wrong = make({ 'POST /v1/me/whatsapp/pairing': { status: 201, body: { id: PAIR, link: LINK } } })
-  ok('whatsapp start: a Telegram link from that route is refused, nothing is drawn', (await wrong.r.pairingStart('whatsapp')).ok === false)
-  const off = make({ 'POST /v1/me/whatsapp/pairing': { status: 404, body: { error: 'not_found' } } })
-  ok('whatsapp start: a door that is off or a bridge that is not open is not_found', (await off.r.pairingStart('whatsapp')).error === 'not_found')
-}
+// ── No second channel (L6-05, action 10 of the audit) ────────────────────────────────────────────────────────────────
+// WhatsApp had four host routes and a `wa.me` pairing shape, but no server has ever exposed `/v1/me/whatsapp`: the routes
+// could only fail and the state read paid a 404 on every read. They are gone, and with them the channel plumbing — the
+// pairing is Telegram's only, which the assertions above already cover (the default channel IS the only channel now).
 
 console.log(fail === 0 ? '\nall good' : '\n' + fail + ' failed')
 process.exit(fail === 0 ? 0 : 1)
