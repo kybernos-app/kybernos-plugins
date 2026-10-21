@@ -5,16 +5,16 @@
   },
   "steps": [
     {
-      "fr": "Demande à l’agent de prévenir ou de confier un travail à une session : un formulaire apparaît sous sa réponse, déjà rempli (type, texte, destination). Tu peux aussi l’ouvrir avec le bouton « Envoyer à une session… » de l’en-tête.",
-      "en": "Ask the agent to tell another session something or hand it some work: a form appears under its answer, already filled in (kind, text, destination). You can also open it with the “Send to a session…” button in the header."
+      "fr": "Demande à l’agent de prévenir une session ou de lui confier un travail : un formulaire prérempli apparaît sous sa réponse.",
+      "en": "Ask the agent to tell a session something or hand it some work: a prefilled form appears under its answer."
     },
     {
-      "fr": "Choisis Message (une information, rien n’est lancé) ou Instruction (l’autre session agit, puis rapporte), corrige le texte si besoin, choisis Ici, Nouvelle session ou une autre session en cours ou récente, puis Envoyer (⌘↵). La croix ferme le formulaire en gardant le texte.",
-      "en": "Pick Message (information, nothing is started) or Instruction (the other session acts, then reports), fix the text if needed, pick Here, New session or another running or recent session, then Send (⌘↵). The cross closes the form and keeps the text."
+      "fr": "Choisis Message (une info, rien ne part) ou Instruction (l’autre session agit), corrige le texte, choisis la destination, puis Envoie.",
+      "en": "Choose Message (information, nothing is started) or Instruction (the other session acts), fix the text, pick the destination, then Send."
     },
     {
-      "fr": "Sous le formulaire, chaque envoi montre où il en est : Envoyé, Reçu, Réponse. « Voir la réponse » ouvre la session qui a répondu. Dans le chat qui reçoit, une carte « Instruction de … » ou « Message de … » affiche le texte, ce que cela signifie pour l’agent et l’accusé de réception.",
-      "en": "Under the form, each send shows where it stands: Sent, Received, Answer. “See the answer” opens the session that answered. In the receiving chat, an “Instruction from …” or “Message from …” card shows the text, what it means for the agent and the receipt."
+      "fr": "Sous le formulaire, chaque envoi dit où il en est : Envoyé, Reçu, Réponse. « Voir la réponse » ouvre la session qui a répondu.",
+      "en": "Under the form, each send says where it stands: Sent, Received, Answer. “See the answer” opens the session that replied."
     }
   ],
   "where": {
@@ -23,7 +23,7 @@
     "page": false
   },
   "good": {
-    "fr": "L’hôte ajoute lui-même le cadrage (information venue d’une autre conversation, ou instruction de l’utilisateur) : la page ne peut pas le retirer. L’agent ne fait que proposer : rien ne part sans ton clic, texte complet sous les yeux. Aucun réseau, un journal local de métadonnées seulement.",
-    "en": "The host adds the framing itself (information from another conversation, or an instruction from the user): the page cannot remove it. The agent only proposes: nothing is sent without your click, with the full text in front of you. No network, a local metadata-only journal."
+    "fr": "L’hôte ajoute lui-même le cadrage (information venue d’une autre conversation, ou instruction de l’utilisateur) : la page ne peut pas le retirer. L’agent ne fait que proposer : rien ne part sans ton clic.",
+    "en": "The host adds the framing itself (information from another conversation, or an instruction from the user): the page cannot remove it. The agent only proposes: nothing is sent without your click."
   }
 }

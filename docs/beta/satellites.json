@@ -112,6 +112,15 @@
         "lib_vendor": null
       },
       {
+        "dir": "kybernos-session-msg",
+        "nom": "@local/kybernos-session-msg",
+        "tier": 2,
+        "obligatoire": false,
+        "role": "message between chats: the agent proposes an inline form (a message or an instruction, to another chat, to a new one or to this one), the person edits and sends it, with the sent trail and the received card",
+        "poids_ko": 228,
+        "lib_vendor": null
+      },
+      {
         "dir": "kybernos-maintenance",
         "nom": "@local/kybernos-maintenance",
         "tier": 2,
@@ -470,7 +479,8 @@
       "@local/kybernos-summary",
       "@local/kybernos-kyber",
       "@local/kybernos-search",
-      "@local/kybernos-servers"
+      "@local/kybernos-servers",
+      "@local/kybernos-session-msg"
     ]
   }
 }
