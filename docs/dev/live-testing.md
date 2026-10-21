@@ -224,6 +224,20 @@ the dot on the Skills row, the banner and the dashed cards on Skills › Yours, 
 back from the sandbox's skills folder), the Learned badge, the journal (and the hash chain of the file on disk), then Undo. It cleans up after
 itself. `docs/dev/learned-skills.md` says what the feature is.
 
+### What Kaby does on its own: `scripts/check-skills-learned-auto-live.mjs`
+
+```bash
+source scripts/sandbox/env.sh && node scripts/check-skills-learned-auto-live.mjs --shots /tmp/shots
+```
+
+Same rules (sandbox only, exit 3 elsewhere; it clears its own files first and cleans up after itself). It sets the level and the line through the
+real settings route, then hands a stable automation to the host the way the automations half does (the host module is called on the sandbox's own
+home, so no automation has to run), and the page must say it: the dot on the Skills row (« 1 skill is waiting for you »), the banner « Kaby changed 1
+skill on its own », the card chip, the journal with « Created by Kaby », its score and Undo, **Keep**, **Settings › Learned skills** (the levels, the
+slider that saves once the person stops, every change in the journal), and the kill switch (two presses, the skills go back, the level returns to
+« Ask me », the chain still verifies). **Not covered**: the card at the end of a chat answer and the agent tools: they need a model turn (the unit
+tests play them). A port held by another worktree's sandbox is skipped by `start.sh` (it says which port it took); `env.sh` follows `sandbox.port`.
+
 ## A bundle the user's DSH does not list yet: a second instance (`scripts/sandbox/*.sh`)
 
 A **new** bundle, or any **host** code, cannot be tried on the user's `dsh web`: it is not in their profile and a host change

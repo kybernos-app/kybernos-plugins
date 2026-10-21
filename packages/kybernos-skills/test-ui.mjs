@@ -194,7 +194,14 @@ new Function('window', SOURCE)(globalThis.window)
 const plugin = definition.factory((spec) => { if (spec === 'react') return React; throw new Error('unexpected require ' + spec) })
 let Screen = null
 let SettingsScreen = null
-plugin.apply({ get: (n) => (n === 'slots' ? { inject: (name, make) => { if (name === 'main.kybernos-skills' || name === 'settings.section') make() }, register: (def, comp) => { if (def.name === 'main.kybernos-skills') Screen = comp; if (def.name === 'settings.section') SettingsScreen = comp; return () => {} } } : undefined) })
+let LearnedSettingsScreen = null
+let TailScreen = null
+plugin.apply({ get: (n) => (n === 'slots' ? { inject: (name, make) => { if (name === 'main.kybernos-skills' || name === 'settings.section' || name === 'conversation.chat.turnTail') make() }, register: (def, comp) => {
+  if (def.name === 'main.kybernos-skills') Screen = comp
+  if (def.name === 'settings.section') { if (def.id === 'kybernos-skills-learned') LearnedSettingsScreen = comp; else SettingsScreen = comp }
+  if (def.name === 'conversation.chat.turnTail') TailScreen = comp
+  return () => {}
+} } : undefined) })
 if (Screen === null) { console.log('  ✗ the screen was not registered'); process.exit(1) }
 
 const open = async (w, lang) => {
@@ -594,6 +601,230 @@ console.log('Yours: what Kaby suggests waits, and nothing is active before Accep
     await click(root, kb(root, 'learned-banner-hide')[0])
     check('Hide removes the banner for this browser and keeps the cards', kb(root, 'learned-banner').length === 0 && kb(root, 'learned-card').length === 1 && store.get('kybernos.skills.learned.banner') === 'off')
     store.delete('kybernos.skills.learned.banner')
+  }
+}
+
+// ── Skills learned from experience, V1: what Kaby does on its own, the settings, the chat card ─────────────────────────────────
+console.log('Learned skills V1: changes Kaby made on its own are said, with Keep and Undo; the settings page; the chat card')
+{
+  const typed = async (root, node, value) => { node.props.onChange({ target: { value } }); await root.settle() }
+  const sess = new Map()
+  const opened = []
+  globalThis.window.localStorage = globalThis.localStorage
+  globalThis.window.sessionStorage = { getItem: (k) => (sess.has(k) ? sess.get(k) : null), setItem: (k, v) => { sess.set(k, String(v)) }, removeItem: (k) => { sess.delete(k) } }
+  globalThis.window.__KB_OPEN__ = (arg) => { opened.push(arg) }
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms))
+  const NOW = new Date().toISOString()
+  const signals = (e, w, c, cl, co, r) => [{ id: 'evidence', v: e, max: 35 }, { id: 'words', v: w, max: 25 }, { id: 'checks', v: c, max: 15 }, { id: 'clean', v: cl, max: 10 }, { id: 'copy', v: co, max: 10 }, { id: 'record', v: r, max: 5 }]
+  const paragraphChecks = [{ id: 'size', s: 'ok', size: 28, max: 600 }, { id: 'client_data', s: 'ok', count: 0 }]
+  const improve = {
+    id: 'p_dddd4444', name: 'sql-queries', kind: 'improve', target: 'sql-queries', add: 'Always start with LIMIT 100.', reason: 'You corrected the first query.', baseVer: 2,
+    createdAt: '2026-10-21T09:00:00.000Z', expiresAt: '2026-11-20T09:00:00.000Z', description: '', whenToUse: '', body: '', from: { improve: true, sessionId: 's9' }, edited: false,
+    checks: paragraphChecks, hits: [], blocking: false, text: '', source: { sessionId: 's9', tracked: true, tainted: true, tool: 'web_fetch' },
+    score: { total: 62, signals: signals(11, 10, 15, 10, 10, 5), risky: false }, stops: ['asks', 'untrusted'], hard: ['untrusted']
+  }
+  const nightly = { name: 'nightly-store-collector', kind: 'auto', acceptedAt: '2026-10-21T07:00:00.000Z', ver: 1, from: { automation: { id: 't1', runs: 5 } }, by: 'kaby', mode: 'auto', uses: 0, lastUsed: null, legacy: false, score: 95, reviewed: false, unusedDays: 0, improved: false, auto: true }
+  const sqlq = { name: 'sql-queries', kind: 'lessons', acceptedAt: '2026-10-12T10:00:00.000Z', ver: 2, from: { lessons: [{ text: 'a' }, { text: 'b' }, { text: 'c' }] }, by: 'you', mode: 'approved', uses: 4, lastUsed: '2026-10-20T10:00:00.000Z', legacy: false, score: 80, reviewed: false, unusedDays: 0, improved: true, auto: true }
+  const stats = { name: 'statistical-analysis', kind: 'lessons', acceptedAt: '2026-08-12T10:00:00.000Z', ver: 1, from: { lessons: [{ text: 'a' }] }, by: 'you', mode: 'approved', uses: 1, lastUsed: '2026-08-13T10:00:00.000Z', legacy: false, score: null, reviewed: true, unusedDays: 47, improved: false, auto: false }
+  const SET = { mode: 'ask', threshold: 90, cap: 3, notify: 'both', privOk: false, breaker: null }
+  const listOf = (over) => Object.assign({ ok: true, proposals: [], learned: [], discarded: [], week: { used: 1, cap: 3 }, sensitive: false, settings: SET, rules: ['Draft only: never send, publish, delete or pay.'], limits: { maxPending: 5, pendingDays: 30, discardedDays: 30 } }, over || {})
+
+  {
+    const w = world()
+    w.skills.push(mkSkill('nightly-store-collector', HOME))
+    w.answers['GET /kybernos-skills/learned'] = listOf({ proposals: [improve], learned: [nightly, sqlq, stats] })
+    w.answers['POST /kybernos-skills/learned/keep'] = (b) => ({ ok: true, name: b.name })
+    w.answers['POST /kybernos-skills/learned/undo'] = (b) => ({ ok: true, name: b.name, ver: 1 })
+    w.answers['POST /kybernos-skills/learned/accept'] = (b) => ({ ok: true, name: 'sql-queries', ver: 3 })
+    w.answers['POST /kybernos-skills/learned/edit'] = (b) => ({ ok: true, proposal: Object.assign({}, improve, { add: b.add }) })
+    const root = await open(w)
+    const ab = part(root, 'learned-auto-banner')
+    check('the banner says how many skills Kaby changed on its own, and the line it used', ab.includes('Kaby changed 2 skills on its own') && ab.includes('Above your confidence line (90)'), ab.slice(0, 200))
+    check('each change is named, with what happened and the score', ab.includes('nightly-store-collector') && ab.includes('improved to v2') && ab.includes('Score 95, applied by Kaby on its own') && ab.includes('Active. Not reviewed yet.'), ab.slice(0, 400))
+    check('every row has Keep and Undo', kb(root, 'learned-auto-keep').length === 2 && kb(root, 'learned-auto-undo').length === 2)
+    check('the sidebar count is the suggestions plus the changes nobody has read yet', globalThis.window.__KB_LEARNED__.count() === 3, globalThis.window.__KB_LEARNED__.count())
+    check('the suggestion of an improvement is a card that says what it adds and its score, and that the source is outside', (() => { const c = textOf(kb(root, 'learned-card')[0]); return c.includes('Adds a paragraph: Always start with LIMIT 100.') && c.includes('Improvement by Kaby') && c.includes('score 62') && c.includes('outside source') })())
+    const sc = cardOf(root, 'sql-queries')
+    check('a skill Kaby improved shows its version and « applied by Kaby · not reviewed »', textOf(kb(sc, 'learned-ver')[0]) === 'v2' && textOf(kb(sc, 'learned-auto')[0]).includes('applied by Kaby · not reviewed'))
+    check('a learned skill nobody used for a month says so, with a way to switch it off', textOf(kb(cardOf(root, 'statistical-analysis'), 'learned-stale')[0]).includes('Not used for 47 days.') && kb(cardOf(root, 'statistical-analysis'), 'learned-stale-off').length === 1)
+    await click(root, kb(cardOf(root, 'statistical-analysis'), 'learned-stale-off')[0])
+    check('Switch off uses the existing switch of the skill, nothing new', posted(w, '/kybernos-skills/toggle').length === 1 && posted(w, '/kybernos-skills/toggle')[0].body.name === 'statistical-analysis', posted(w, '/kybernos-skills/toggle'))
+
+    await click(root, kb(root, 'learned-auto-keep')[0])
+    check('Keep tells the host which skill, and says so', posted(w, '/kybernos-skills/learned/keep').length === 1 && posted(w, '/kybernos-skills/learned/keep')[0].body.name === 'nightly-store-collector' && page(root).includes('Kept.'), posted(w, '/kybernos-skills/learned/keep'))
+    await click(root, kb(root, 'learned-auto-undo')[1])
+    check('Undo takes the change back by name and says the previous version is back', posted(w, '/kybernos-skills/learned/undo').length === 1 && posted(w, '/kybernos-skills/learned/undo')[0].body.name === 'sql-queries' && page(root).includes('Undone: “sql-queries” is back to the previous version.'), posted(w, '/kybernos-skills/learned/undo'))
+
+    await click(root, kb(root, 'learned-review')[0])
+    const panel = part(root, 'learned-panel')
+    check('the improvement opens as « skill · v2 → v3 » with the paragraph as an addition', panel.includes('sql-queries · v2 → v3') && textOf(kb(root, 'learned-diff')[0]).includes('+ Always start with LIMIT 100.'), panel.slice(0, 300))
+    check('the panel says why, and what Kaby corrected', panel.includes('Kaby suggests adding a paragraph to “sql-queries” (now v2).') && panel.includes('Why: You corrected the first query.'))
+    check('the confidence is shown with its parts and the line', part(root, 'learned-confidence').includes('62 / 100') && part(root, 'learned-confidence').includes('your line: 90') && all(root, (n) => hasClass(n, 'kbl-sg')).length === 6)
+    check('and why Kaby may not act alone, in the person’s settings, and the outside source warning', part(root, 'learned-confidence').includes('With your settings:') && part(root, 'learned-confidence').includes('your level is “Ask me every time”') && part(root, 'learned-confidence').includes('Kaby never applies it alone, whatever the score.'))
+    await click(root, kb(root, 'learned-edit')[0])
+    check('Edit turns the paragraph into one field', all(root, (n) => n.tag === 'textarea').length === 1)
+    await typed(root, all(root, (n) => n.tag === 'textarea')[0], 'Always start with LIMIT 50.')
+    await click(root, kb(root, 'learned-save')[0])
+    check('Save sends the paragraph, still nothing applied', posted(w, '/kybernos-skills/learned/edit').length === 1 && posted(w, '/kybernos-skills/learned/edit')[0].body.add === 'Always start with LIMIT 50.' && posted(w, '/kybernos-skills/learned/accept').length === 0, posted(w, '/kybernos-skills/learned/edit'))
+    await click(root, kb(root, 'learned-accept')[0])
+    check('Accept applies THAT improvement and says which version the skill is now', posted(w, '/kybernos-skills/learned/accept').length === 1 && posted(w, '/kybernos-skills/learned/accept')[0].body.id === 'p_dddd4444' && page(root).includes('“sql-queries” is now v3. The previous version is kept.'), posted(w, '/kybernos-skills/learned/accept'))
+  }
+  {
+    // the hints the chat card and the settings page leave: one suggestion to read, or the journal
+    const w = world()
+    w.answers['GET /kybernos-skills/learned'] = listOf({ proposals: [improve], learned: [] })
+    sess.set('kybernos.skills.review', 'p_dddd4444')
+    const root = await open(w)
+    check('a hint from the chat card opens that suggestion on the right, once', kb(root, 'learned-panel').length === 1 && sess.has('kybernos.skills.review') === false)
+    sess.set('kybernos.skills.journal', '1')
+    w.answers['GET /kybernos-skills/learned/journal'] = { ok: true, verified: true, brokenAt: null, count: 0, entries: [] }
+    const root2 = await open(w)
+    check('a hint from the settings page opens the journal, once', kb(root2, 'learned-journal').length === 1 && sess.has('kybernos.skills.journal') === false)
+  }
+  {
+    const w = world()
+    const hash = (c) => c.repeat(64)
+    w.answers['GET /kybernos-skills/learned'] = listOf({ learned: [nightly] })
+    w.answers['GET /kybernos-skills/learned/journal'] = { ok: true, verified: true, brokenAt: null, count: 4, entries: [
+      { n: 5, t: '2026-10-21T10:00:00.000Z', act: 'reverted', skill: 'sql-queries', by: 'you', mode: 'manual', kind: 'lessons', ver: 1, note: 'undid_auto', prev: hash('d'), hash: hash('e') },
+      { n: 4, t: '2026-10-21T09:00:00.000Z', act: 'improved', skill: 'sql-queries', by: 'kaby', mode: 'auto', kind: 'improve', ver: 2, score: 86, sig: [['evidence', 22], ['words', 10]], from: { improve: { from: 1, to: 2, add: 'Always start with LIMIT 100.', reason: 'x' } }, prev: hash('c'), hash: hash('d') },
+      { n: 3, t: '2026-10-21T08:00:00.000Z', act: 'created', skill: 'nightly-store-collector', by: 'kaby', mode: 'auto', kind: 'auto', ver: 1, score: 95, sig: [['evidence', 35], ['words', 25]], from: { automation: { id: 't1', name: 'Nightly', runs: 5 } }, prev: hash('b'), hash: hash('c') },
+      { n: 2, t: '2026-10-21T07:00:00.000Z', act: 'settings', skill: '—', by: 'you', mode: 'manual', from: { settings: { mode: 'auto', threshold: 90, cap: 3, notify: 'both', privOk: false, breaker: null } }, prev: hash('a'), hash: hash('b') }] }
+    w.answers['POST /kybernos-skills/learned/undo'] = (b) => ({ ok: true, name: b.name, ver: 1 })
+    const root = await open(w)
+    await click(root, kb(root, 'learned-journal-btn')[0])
+    const j = part(root, 'learned-journal')
+    check('the journal words the new acts: created by Kaby, improved with its version, settings changed, and what the person undid', j.includes('nightly-store-collector Created by Kaby') && j.includes('sql-queries Improved v2') && j.includes('Settings changed') && j.includes('score 95') && j.includes('score 86'), j.slice(0, 500))
+    for (const e of kb(root, 'journal-entry')) await click(root, all(e, (n) => n.tag === 'button')[0])
+    const open1 = kb(root, 'journal-entry').map((e) => textOf(e)).join(' | ')
+    check('an entry opens on the parts of its score, the paragraph that was added and the level that was chosen', open1.includes('What it came from (lessons, runs, chats)') && open1.includes('+ Always start with LIMIT 100.') && open1.includes('Level: Create and improve · line 90 · 3 a week') && open1.includes('undid a change Kaby made on its own'), open1.slice(0, 600))
+    check('Undo is offered only on the latest change Kaby made on its own to a skill (not on one already undone)', kb(root, 'journal-undo').length === 1)
+    await click(root, kb(root, 'journal-undo')[0])
+    check('and it undoes that skill', posted(w, '/kybernos-skills/learned/undo').length === 1 && posted(w, '/kybernos-skills/learned/undo')[0].body.name === 'nightly-store-collector', posted(w, '/kybernos-skills/learned/undo'))
+  }
+
+  // Settings › Learned skills
+  const settingsWorld = (settings, over) => {
+    const w = world()
+    let current = Object.assign({}, SET, settings || {})
+    w.current = () => current
+    const auto = { id: 'p_bbbb2222', name: 'nightly-store-collector', kind: 'auto', createdAt: '2026-10-21T08:00:00.000Z', description: 'Does what the automation does. Use when asked.', body: '# x', from: { automation: { id: 't1', runs: 5 } }, checks: [], hits: [], score: { total: 95, signals: signals(35, 25, 15, 10, 10, 0), risky: false }, stops: ['asks'], hard: [] }
+    const lessons = { id: 'p_aaaa1111', name: 'i18n-checklist', kind: 'lessons', createdAt: '2026-10-20T10:00:00.000Z', description: 'x. Use when i18n.', body: '# y', from: { lessons: [{ text: 'a' }] }, checks: [], hits: [], score: { total: 70, signals: signals(11, 25, 15, 10, 10, 0), risky: false }, stops: ['your_click', 'asks'], hard: ['your_click'] }
+    w.answers['GET /kybernos-skills/learned'] = () => listOf(Object.assign({ proposals: [auto, lessons], settings: current }, over || {}))
+    w.answers['POST /kybernos-skills/learned/settings/set'] = (b) => { current = Object.assign({}, current, b); return { ok: true, settings: current } }
+    w.answers['POST /kybernos-skills/learned/stop'] = { ok: true, undone: 2 }
+    return w
+  }
+  const openSettings = async (w, lang) => {
+    globalThis.window.__KB_LANG_RESOLVE__ = () => lang || 'en'
+    globalThis.fetch = async (url, init) => { INFLIGHT.n += 1; try { return await w.fetch(url, init) } finally { INFLIGHT.n -= 1 } }
+    const root = mount(React.createElement(LearnedSettingsScreen, {}))
+    await root.settle()
+    return root
+  }
+  check('the page is registered as its own section of the Settings dialog', LearnedSettingsScreen !== null && TailScreen !== null)
+  {
+    const w = settingsWorld()
+    const root = await openSettings(w)
+    const pg = page(root)
+    check('the title and the three levels are there, « Ask me every time » is the one in force and the default', pg.includes('Learned skills') && pg.includes('Ask me every time') && pg.includes('Improve its own skills') && pg.includes('Create and improve') && kb(root, 'level-ask')[0].props['aria-pressed'] === 'true' && kb(root, 'level-auto')[0].props['aria-pressed'] === 'false' && textOf(kb(root, 'level-ask')[0]).includes('default'))
+    check('the preview shows what waits, as if « Create and improve » were chosen (the level is Ask)', pg.includes('Preview, if you chose “Create and improve”') && kb(root, 'preview-row').length === 2)
+    check('a score over the line would be applied, a suggestion that came from the person’s own click never is', textOf(kb(root, 'preview-row')[0]).includes('would be applied') && textOf(kb(root, 'preview-row')[1]).includes('you asked for it by hand'))
+    check('the hard stops are listed, with this week’s limit, and no switch is offered for them', all(kb(root, 'learned-stops')[0], (n) => n.tag === 'li').length === 6 && part(root, 'learned-stops').includes('More than 3 automatic changes') && all(kb(root, 'learned-stops')[0], (n) => n.tag === 'input' || n.tag === 'button').length === 0)
+    await click(root, kb(root, 'level-auto')[0])
+    check('choosing a level saves it at once (only that field) and says Saved', posted(w, '/kybernos-skills/learned/settings/set').length === 1 && JSON.stringify(posted(w, '/kybernos-skills/learned/settings/set')[0].body) === '{"mode":"auto"}' && page(root).includes('Saved.'), posted(w, '/kybernos-skills/learned/settings/set'))
+    check('the page follows what the host kept: the new level is pressed, and the preview says Kaby would apply it', kb(root, 'level-auto')[0].props['aria-pressed'] === 'true' && part(root, 'learned-line').includes('Preview on what is waiting now') && textOf(kb(root, 'preview-row')[0]).includes('Kaby would apply it'))
+    // the limit (a week with 1 change already made)
+    const cap = all(root, (n) => n.tag === 'select' && n.props.id === 'kbl-cap')[0]
+    await typed(root, cap, '1')
+    check('the weekly limit is a choice of 1, 3 or 5 and is saved as a number', posted(w, '/kybernos-skills/learned/settings/set').length === 2 && posted(w, '/kybernos-skills/learned/settings/set')[1].body.cap === 1 && cap.props.children.length === 3)
+    check('and the preview knows the limit is reached', textOf(kb(root, 'preview-row')[0]).includes('this week’s limit of automatic changes is reached'), textOf(kb(root, 'preview-row')[0]))
+    // the slider: the preview moves at once, the save waits for a pause
+    await typed(root, all(root, (n) => n.tag === 'select' && n.props.id === 'kbl-cap')[0], '3')
+    const range = kb(root, 'learned-range')[0]
+    check('the slider goes from 70 to 99', range.props.min === 70 && range.props.max === 99 && range.props.value === 90)
+    const before = posted(w, '/kybernos-skills/learned/settings/set').length
+    await typed(root, range, '99')
+    check('moving it shows the number and re-reads the preview at once: a score of 95 is now under the line', part(root, 'learned-line-value') === '99' && textOf(kb(root, 'preview-row')[0]).includes('the score is under your line') && posted(w, '/kybernos-skills/learned/settings/set').length === before)
+    await wait(650)
+    await root.settle()
+    check('and it is saved once the person stops', posted(w, '/kybernos-skills/learned/settings/set').length === before + 1 && posted(w, '/kybernos-skills/learned/settings/set')[before].body.threshold === 99, posted(w, '/kybernos-skills/learned/settings/set').slice(-1))
+    // the audit trail and the kill switch
+    await click(root, kb(root, 'settings-journal')[0])
+    check('the journal button sends the person to the Skills page, on the journal', sess.get('kybernos.skills.journal') === '1' && opened.some((o) => o.view === 'skills'))
+    sess.delete('kybernos.skills.journal')
+    await click(root, kb(root, 'learned-stop')[0])
+    check('the kill switch asks again before it does anything', kb(root, 'learned-stop-yes').length === 1 && posted(w, '/kybernos-skills/learned/stop').length === 0)
+    await click(root, kb(root, 'learned-stop-yes')[0])
+    check('and then stops Kaby and says how many changes went back', posted(w, '/kybernos-skills/learned/stop').length === 1 && part(root, 'learned-stopped').includes('Stopped. 2 change(s) undone'), part(root, 'learned-stopped'))
+  }
+  {
+    // Law and Health: the automatic levels are locked until the person unlocks them
+    const w = settingsWorld({}, { sensitive: true })
+    const root = await openSettings(w)
+    check('in Law and Health the two automatic levels are disabled and the field says why', kb(root, 'level-auto')[0].props.disabled === true && kb(root, 'level-improve')[0].props.disabled === true && kb(root, 'level-ask')[0].props.disabled !== true && page(root).includes('Kaby always asks.'))
+    kb(root, 'learned-unlock')[0].props.onChange({ target: { checked: true } })
+    await root.settle()
+    check('a single switch unlocks them (the privacy check still has to pass, the sentence says so)', posted(w, '/kybernos-skills/learned/settings/set').length === 1 && posted(w, '/kybernos-skills/learned/settings/set')[0].body.privOk === true && page(root).includes('The privacy check must still pass'))
+    check('once unlocked the levels can be chosen', kb(root, 'level-auto')[0].props.disabled !== true)
+  }
+  {
+    const w = settingsWorld({ breaker: '2026-10-21T10:00:00.000Z' })
+    const root = await openSettings(w)
+    check('when Kaby went back to « Ask me » after two undos, the page says so', part(root, 'learned-breaker').includes('You undid two of Kaby’s changes this week'))
+    const ok = settingsWorld()
+    const root2 = await openSettings(ok)
+    check('and says nothing otherwise', kb(root2, 'learned-breaker').length === 0)
+  }
+  {
+    const w = world()
+    const root = await openSettings(w)
+    check('a host that was not restarted says so instead of showing settings that do nothing', page(root).includes('These settings are not available: restart DSH') && kb(root, 'learned-levels').length === 0)
+    const fr = await openSettings(settingsWorld(), 'fr')
+    check('in French the page and the levels speak French', page(fr).includes('Compétences apprises') && page(fr).includes('Demande-moi à chaque fois') && page(fr).includes('Seuil de confiance'))
+  }
+
+  // The card at the end of the last answer
+  const openTail = async (w, props) => {
+    globalThis.window.__KB_LANG_RESOLVE__ = () => 'en'
+    globalThis.fetch = async (url, init) => { INFLIGHT.n += 1; try { return await w.fetch(url, init) } finally { INFLIGHT.n -= 1 } }
+    const root = mount(React.createElement(TailScreen, props))
+    await root.settle()
+    return root
+  }
+  {
+    const w = world()
+    w.answers['GET /kybernos-skills/learned/session'] = { ok: true, used: [], suggested: [
+      { id: 'p_s1', name: 'invoice-follow-up', kind: 'asked', description: 'Use when the person asks to chase an invoice.', score: 61, stops: ['asks'], createdAt: NOW },
+      { id: 'p_old', name: 'old-one', kind: 'asked', description: 'x', score: 61, stops: ['asks'], createdAt: '2026-10-01T10:00:00.000Z' }],
+    applied: [{ name: 'nightly-store-collector', ver: 1, score: 95, reviewed: false, auto: true, at: NOW }, { name: 'quiet-one', ver: 1, score: 80, reviewed: true, auto: true, at: NOW }] }
+    w.answers['POST /kybernos-skills/learned/discard'] = { ok: true, name: 'invoice-follow-up' }
+    w.answers['POST /kybernos-skills/learned/undo'] = (b) => ({ ok: true, name: b.name })
+    const root = await openTail(w, { sessionId: 's-tail-1', seq: 4 })
+    const tl = part(root, 'learned-tail')
+    check('what Kaby suggested from this chat is a card, says nothing is active, and an old suggestion is not shown', kb(root, 'learned-tail-suggest').length === 1 && tl.includes('Kaby suggests a skill: “invoice-follow-up”.') && tl.includes('It waits for your yes. Nothing is active.') && !tl.includes('old-one'), tl.slice(0, 300))
+    check('what Kaby applied on its own, not yet read, is a quiet line with the score, and one the person already kept is not shown', kb(root, 'learned-tail-applied').length === 1 && tl.includes('Kaby wrote “nightly-store-collector” on its own (score 95).') && !tl.includes('quiet-one'))
+    check('the route is asked for THIS chat only', w.calls.some((c) => c.path === '/kybernos-skills/learned/session' && c.query.sessionId === 's-tail-1'))
+    await click(root, kb(root, 'learned-tail-review')[0])
+    check('Review sends the person to that suggestion in Skills', sess.get('kybernos.skills.review') === 'p_s1' && opened.some((o) => o.view === 'skills'))
+    sess.delete('kybernos.skills.review')
+    await click(root, kb(root, 'learned-tail-discard')[0])
+    check('Discard sends the id, and the card goes', posted(w, '/kybernos-skills/learned/discard').length === 1 && posted(w, '/kybernos-skills/learned/discard')[0].body.id === 'p_s1' && kb(root, 'learned-tail-suggest').length === 0)
+    await click(root, kb(root, 'learned-tail-undo')[0])
+    check('Undo takes the applied change back by name, and the line goes', posted(w, '/kybernos-skills/learned/undo').length === 1 && posted(w, '/kybernos-skills/learned/undo')[0].body.name === 'nightly-store-collector' && kb(root, 'learned-tail-applied').length === 0)
+    const earlier = await openTail(w, { sessionId: 's-tail-1', seq: 2 })
+    check('an earlier answer of the same chat draws nothing (one card per chat, at the end)', kb(earlier, 'learned-tail').length === 0)
+  }
+  {
+    const w = world()
+    const none = await openTail(w, { sessionId: 's-tail-2', seq: 1 })
+    check('a host without the route draws nothing and breaks nothing', kb(none, 'learned-tail').length === 0)
+    const w2 = world()
+    w2.answers['GET /kybernos-skills/learned/session'] = { ok: true, used: [], applied: [], suggested: [] }
+    const empty = await openTail(w2, { sessionId: 's-tail-3', seq: 1 })
+    check('a chat where nothing was learned draws nothing', kb(empty, 'learned-tail').length === 0)
+    const bare = await openTail(w2, {})
+    check('mounted without a chat it draws nothing and asks nothing', kb(bare, 'learned-tail').length === 0 && w2.calls.filter((c) => c.path === '/kybernos-skills/learned/session').length === 1)
   }
 }
 

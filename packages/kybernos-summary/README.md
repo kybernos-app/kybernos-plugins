@@ -4,7 +4,7 @@ A **Summary** tab in the chat's right sidebar: what the chat is doing, on one pa
 
 ## What the user sees
 
-Right sidebar › **+** › **Summary**. Four sections, each folded with a click and carrying its count:
+Right sidebar › **+** › **Summary**. Four sections (a fifth when there is something to show, see below), each folded with a click and carrying its count:
 
 | Section | What it lists | Where it comes from |
 | --- | --- | --- |
@@ -17,14 +17,27 @@ Right sidebar › **+** › **Summary**. Four sections, each folded with a click
 the whole chat, and the choice is remembered in this browser. Agents and Progress always show the current state: a task list and
 a crew are standing things, not turn things.
 
+**Learned in this chat** appears only when Kaby did something with skills in the chat on screen, and lists one row per skill:
+a **suggestion** that still waits for the person (with a **Review** button that opens the Skills page on it; an improvement of an
+existing skill says so), a skill **applied by Kaby** (with its score, and a « not reviewed yet » chip until the person has looked), a
+skill the person **created** from a suggestion, and a skill the chat **reused** (« used in N chats »; a skill created here and loaded
+only here is not listed twice). The grey line under the rows says that nothing is applied for the person: a suggestion waits for their
+yes, unless their own settings (Settings › Learned skills) say otherwise. It is about the whole chat, so **Latest only** does not touch
+it. The rows come from `GET /kybernos-skills/learned/session?sessionId=<id>` (host route of `kybernos-skills`, read-only, same origin):
+the tab asks once when it opens for a chat, once more when the chat's tool-call count changes (after a half-second settle, so a burst of
+calls asks once) and every 30 s while the page is visible. An older host, a refusal, a 404 or an answer that is not JSON leaves the
+section out silently, never an error row. Nothing new is stored; the only trace is a pointer (`kybernos.skills.review`, in
+`sessionStorage`) left by **Review** so that the Skills page knows which suggestion to show.
+
 ## How it works
 
-No host route, no file, nothing sent: everything is read in the browser from what the engine already holds.
+No host route of its own, no file, nothing stored: the four sections are read in the browser from what the engine already holds, and
+the fifth from the one read-only route above.
 
 - a probe in the composer dock (`conversation.composer.dock`, id `kybernos-summary-probe`) reads `useChat((c) => c.nodes.valuesCache)`
   and `useProjection('todos' | 'subagentCatalog')` and files them under the session id (twelve sessions at most);
 - the tab body (`sidebar.right.pane.tab`) reads that store for the chat on screen and derives the four sections
-  (`derive` in `client.js`, pure and tested).
+  (`derive` in `client.js`, pure and tested); the fifth is `learnedRows` (pure) fed by `watchLearned` (the schedule above).
 
 The tab is registered with `ctx.sidebarRightTabs`, so it shows in the sidebar's **+** guide like any other tab. It does not open by
 itself.
@@ -36,6 +49,7 @@ itself.
   and is not listed.
 - Sub-agents come from the engine's catalog, so their calls are not merged into the parent's tools.
 - Files are the ones written or edited through the file tools; a file made by a shell command is not seen.
+- « Learned in this chat » needs a host that serves the learned-skills route of `kybernos-skills`; on an older one the section is simply absent.
 
 ## Tests
 
