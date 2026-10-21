@@ -787,7 +787,12 @@ window.__ModuleLoader__.load({
         view.limit = Number.isFinite(j.limit) ? j.limit : null
         // false: the plan is why the limit is 0 (an older server says nothing: null, and a limit is only a limit).
         view.entitled = typeof j.entitled === 'boolean' ? j.entitled : null
-        view.count = Number.isFinite(j.count) ? j.count : view.connections.length
+        // V1-13 (video review): the answer said « 0 of 3 connections » while carrying FOUR connections in the same message.
+        // The page draws that list, so the number must describe it: when the server's count disagrees with the list it just
+        // sent, the list wins (a count we cannot reconcile is not shown as if it were the list's size). A count LARGER than
+        // the list (a server that pages) is kept as is. The limit stays the server's business.
+        const compteServeur = Number.isFinite(j.count) ? j.count : view.connections.length
+        view.count = Math.max(compteServeur, view.connections.length)
         view.stale = j.stale === true
         return view
       }
