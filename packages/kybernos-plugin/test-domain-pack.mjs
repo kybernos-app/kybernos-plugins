@@ -2,12 +2,13 @@
 //
 //   node packages/kybernos-plugin/test-domain-pack.mjs
 import assert from 'node:assert/strict'
-import { mkdtempSync, writeFileSync, rmSync, readFileSync, readdirSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, writeFileSync, rmSync, readFileSync, readdirSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { CATALOG } from '../kybernos-composio/catalog.js'
-import { FORMAT, ROW_IDS, HIDEABLE, ICONS, HOME_IDS, MODES, PRESETS, BUNDLED_SOURCE, LIMITS, validatePack, checkSet, loadPacks, domainOfProfil } from './domain-pack.mjs'
+import { FORMAT, ROW_IDS, HIDEABLE, ICONS, HOME_IDS, MODES, PRESETS, BUNDLED_SOURCE, LIMITS, validatePack, checkSet, loadPacks, domainOfProfil, OWNER_VERSION, DOMAIN_POINT, DOMAIN_POINT_REF, CONTRIBUTED_ORDER, validateContribution, mergePackSets } from './domain-pack.mjs'
+import { createRegistry } from '../kybernos-registry/registry.mjs' // a test may reach across bundles; the code never does
 
 const here = fileURLToPath(new URL('.', import.meta.url))
 let count = 0
@@ -304,6 +305,73 @@ ok('the files carry no path of the machine and no markup', () => {
     const text = readFileSync(join(here, 'domains', f + '.json'), 'utf8')
     assert.equal(/\/Users\/|\\Users\\|<\/?[a-z]/i.test(text), false, f)
   }
+})
+
+/* ── the point other plugins contribute to (docs/dev/plugin-contract.md): kybernos/core#domain-pack ── */
+const manifestOfCore = JSON.parse(readFileSync(join(here, 'plugin.json'), 'utf8'))
+const pkgOfCore = JSON.parse(readFileSync(join(here, 'package.json'), 'utf8'))
+ok('the point the manifest declares is the one the code defines, and the owner version is the package\'s', () => {
+  const declared = manifestOfCore.provides.find((p) => p.name === 'domain-pack')
+  assert.ok(declared !== undefined)
+  assert.equal(DOMAIN_POINT_REF, manifestOfCore.id + '#' + declared.name)
+  assert.deepEqual([DOMAIN_POINT.version, DOMAIN_POINT.class, DOMAIN_POINT.kind, declared.validator], [declared.version, declared.class, declared.kind, 'builtin'])
+  assert.equal(OWNER_VERSION.split('.')[0], pkgOfCore.version.split('.')[0], 'a major bump of the plugin is a change of OWNER_VERSION')
+  assert.equal(DOMAIN_POINT.owner, manifestOfCore.id)
+})
+ok('validateContribution is the shipped check in the registry\'s shape', () => {
+  assert.deepEqual(validateContribution(good(), 'demo'), { ok: true, value: good() })
+  const refused = validateContribution({ ...good(), cron: '* * * * *' }, 'demo')
+  assert.equal(refused.ok, false)
+  assert.ok(refused.errors.some((e) => /cron/.test(e)))
+  assert.equal(validateContribution(good(), 'other').ok, false, 'the id is the file name')
+})
+ok('merging: ours first and untouched, a plugin\'s pack after, saying where it came from', () => {
+  const shipped = loadPacks(join(here, 'domains'))
+  const mine = { ...good(), id: 'vet', order: 1 }
+  const merged = mergePackSets(shipped, [{ plugin: 'local/vet', file: 'domains/vet.json', value: mine }])
+  assert.equal(merged.rejected.length, shipped.rejected.length)
+  const vet = merged.packs.find((p) => p.id === 'vet')
+  assert.equal(vet.from, 'local/vet')
+  assert.equal(vet.order, CONTRIBUTED_ORDER.min, 'a plugin cannot put itself before the shipped fields: its order is held at the minimum')
+  assert.deepEqual(merged.packs.filter((p) => p.from === undefined).map((p) => p.id), shipped.packs.map((p) => p.id), 'the shipped packs keep their order')
+  assert.equal(merged.packs[merged.packs.length - 1].id, 'general', 'the catch-all stays last')
+  assert.equal(mergePackSets(shipped, [{ plugin: 'local/vet', file: 'f.json', value: { ...good(), id: 'late', order: 99 } }]).packs.find((p) => p.id === 'late').order, CONTRIBUTED_ORDER.max)
+})
+ok('merging refuses a pack whose id is taken or that claims a legacy job someone already claims, and says so', () => {
+  const shipped = loadPacks(join(here, 'domains'))
+  const taken = mergePackSets(shipped, [{ plugin: 'local/vet', file: 'domains/edu.json', value: { ...good(), id: 'edu' } }])
+  assert.equal(taken.packs.length, shipped.packs.length)
+  assert.match(taken.rejected[taken.rejected.length - 1].errors[0], /already taken/)
+  const claimed = mergePackSets(shipped, [{ plugin: 'local/vet', file: 'domains/x.json', value: { ...good(), id: 'x', legacyJobs: ['soft'] } }])
+  assert.equal(claimed.packs.length, shipped.packs.length)
+  assert.match(claimed.rejected[claimed.rejected.length - 1].errors[0], /legacy job "soft"/)
+  const twice = mergePackSets(shipped, [{ plugin: 'local/a', file: 'domains/z.json', value: { ...good(), id: 'z' } }, { plugin: 'local/b', file: 'domains/z.json', value: { ...good(), id: 'z' } }])
+  assert.deepEqual(twice.packs.filter((p) => p.id === 'z').map((p) => p.from), ['local/a'], 'the first plugin keeps the id')
+})
+ok('end to end with the real registry: a local plugin\'s pack is offered once switched on, a bad one is left out with the pack check\'s reason', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'kb-domain-plugin-'))
+  const dshHome = join(dir, 'plugins')
+  const folder = join(dshHome, 'local', 'vet')
+  const write = (path, data) => { mkdirSync(join(path, '..'), { recursive: true }); writeFileSync(path, JSON.stringify(data)) }
+  write(join(folder, 'plugin.json'), {
+    contract: 1, id: 'local/vet', kind: 'data', version: '0.1.0', name: { en: 'Vet' }, description: { en: 'A pack.' }, author: { id: 'local', name: 'Me' }, license: 'MIT', pricing: 'free',
+    requires: { kybernos: '>=0.1.0', plugins: { 'kybernos/core': '^1.0' } }, extends: [{ point: DOMAIN_POINT_REF, range: '^1.0', dir: 'domains' }]
+  })
+  write(join(folder, 'domains', 'vet.json'), { ...good(), id: 'vet', legacyJobs: [] })
+  write(join(folder, 'domains', 'bad.json'), { ...good(), id: 'bad', cron: '* * * * *' })
+  const registry = createRegistry({ root: dshHome, stateFile: join(dir, 'state.json'), kybernosVersion: '0.1.1', ttlMs: 0 })
+  registry.definePoint(DOMAIN_POINT)
+  registry.definePoint(DOMAIN_POINT) // told again at each question: nothing changes
+  const shipped = loadPacks(join(here, 'domains'))
+  assert.equal(mergePackSets(shipped, registry.contributions(DOMAIN_POINT_REF)).packs.length, shipped.packs.length, 'off until switched on')
+  registry.setEnabled('local/vet', true)
+  const merged = mergePackSets(shipped, registry.contributions(DOMAIN_POINT_REF))
+  assert.equal(merged.packs.length, shipped.packs.length + 1)
+  assert.equal(merged.packs.find((p) => p.id === 'vet').from, 'local/vet')
+  const entry = registry.plugins().find((p) => p.id === 'local/vet')
+  assert.equal(entry.status, 'ok')
+  assert.ok(entry.extends[0].rejected.some((r) => r.file === 'bad.json' && /cron/.test(r.errors.join())), JSON.stringify(entry.extends[0].rejected))
+  rmSync(dir, { recursive: true, force: true })
 })
 
 console.log('\n' + count + ' checks passed')

@@ -151,8 +151,10 @@ a pack and that every skill an automation names exists.
 
 - Which fields ship first (nine here: education, health, real estate, law, finance, commerce, marketing, development, general).
 - One field per profile or several at once.
-- Packs by other authors: the draft plugin contract ([`plugin-contract.md`](plugin-contract.md)) makes a pack a **data plugin** of the point `kybernos/core#domain-pack`,
-  with the same validator, in a folder of installed plugins next to the shipped `domains/`.
+- Packs by other authors: a pack is a **data plugin** of the point `kybernos/core#domain-pack` ([`plugin-contract.md`](plugin-contract.md), phase 2). Built: a folder
+  `<DSH home>/kybernos/plugins/local/<name>/` with a `plugin.json` and a `domains/` folder is read by `kybernos-registry`, each file goes through `validatePack`, and once the
+  person switches the plugin on its packs join the shipped ones in `GET /kybernos/domains` (marked `from`, ordered after ours, an id or a legacy job already taken is refused).
+  A plugin pack cannot bundle skills yet.
 - Who writes the content marked soon (teams): us, or the Marketplace community. A signed catalogue (like themes and local models) is the way to
   ship packs without a release; the files stay bundled until then.
 - **Reading the site and the profile** (the « Understood » step: facts tagged Instruction or Memory, removable): not built. A public page reads easily; LinkedIn and Facebook often need a login, so a « paste a summary » fallback is planned. Today what was typed is stored and written into the person's memory as typed.

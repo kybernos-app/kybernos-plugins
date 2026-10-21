@@ -1,6 +1,6 @@
 # The Kybernos plugin contract (free and paid): draft v0
 
-Status: **specification, 2026-10-21. Phase 1 (the manifest on the 42 modules and its validator) is built, see section 14; everything else is still only written down.** The six decisions of section 16 and the registry bundle of
+Status: **specification, 2026-10-21. Phase 1 (the manifest on the 42 modules and its validator) and the foundation of phase 2 (the registry, the seam, the folder scan, the domain-pack point) are built, see section 14; the Plugins page is a mockup; everything else is still only written down.** The six decisions of section 16 and the registry bundle of
 section 6.5 were **taken on 2026-10-21: the owner accepted every recommendation**. Section 2 lists where this draft disagrees with the first proposal.
 
 The idea is WordPress's: a plugin is a folder with a header (who, which version, which platform versions, which licence, where updates come
@@ -90,7 +90,7 @@ a manifest with a `contract` the host does not know is listed as "needs a newer 
 | `commerce` | iff paid | `{ model, product?, unlocks, worksWithout, key? }` (section 8) |
 | `requires` | yes | at least one of: `dsh` (`{ min, max }`, **the same object as `dsh-compat.json`**), `kybernos` (a range on the suite version), `plugins` (`{ "<id>": "<range>" }`). Also `suggests` (ids, never blocking) and `platforms` (`mac linux windows`) |
 | `tested` | no | `{ dsh: […], kybernos: […] }`: what was actually played (the `testees` of `dsh-compat.json`) |
-| `provides` | no | the points this plugin exposes: `[{ name, version "1.0", kind, class?, summary?, schema? }]` (section 6) |
+| `provides` | no | the points this plugin exposes: `[{ name, version "1.0", kind, class?, summary?, schema?, validator? }]` (section 6): a data point has exactly one of `schema` (a file in the subset of 6.3) and `validator: "builtin"` (the owner registers the check in code) |
 | `extends` | no (data: yes) | the points it contributes to: `[{ point "owner/name#point", range, dir? }]`; `dir` is the folder whose files are the contributions (required for a data plugin) |
 | `permissions` | code: declared | words of the vocabulary (section 7). A data plugin may declare only `net:<host>` and `secrets.own` |
 | `package`, `entry` | code | the DSH package name (`@local/<dir>`) and `{ host?, client?, extra? }`: the `.` and `./client` exports of `package.json`, and `extra` for a bundle that exposes named modules instead (`dsh-subagent-maison`: `./opencode`, `./gemini`…) |
@@ -262,7 +262,7 @@ and logged, as today.
 
 | Point | Kind, class | Today | What opens |
 |---|---|---|---|
-| `kybernos/core#domain-pack` 1.0 | data, instruction | `domains/*.json` shipped, `domain-pack.mjs` validates | a second root; the point's validator is the existing one |
+| `kybernos/core#domain-pack` 1.0 | data, instruction | **opened 2026-10-21**: the shipped `domains/*.json`, plus what enabled plugins contribute through `kybernos-registry`; `domain-pack.mjs` is the built-in validator | done; the others below are not |
 | `kybernos/dashboards#preset` 1.0 | data, inert | `PRESETS` in `presets.mjs` | contributions read from the registry |
 | `kybernos/dashboards#http-source` 1.0 | data, inert | does not exist ("sources are internal only", `domain-packs.md`) | **new**: declarative sources (6.4) |
 | `kybernos/dashboards#source` 1.0 | code | internal | for code plugins only, later |
@@ -303,7 +303,7 @@ const dash = window.__KB__?.use('kybernos/dashboards', '^1')   // service, or nu
 window.__KB__.provide('kybernos/dashboards', '1.2.0', service)   // the owner publishes its service
 window.__KB__.extend('kybernos/dashboards#source', impl)         // a code contribution, checked against its declared range
 window.__KB__.status('acme/shop-dashboards')                     // 'ok' | 'disabled' | 'revoked' | 'absent' | …
-window.__KB__.entitlement('acme/shop-dashboards')                // section 8
+window.__KB__.entitlement('acme/shop-dashboards')                // section 8 (phase 3: not there yet)
 window.__KB__.on('change', fn)
 // host: globalThis[Symbol.for('kybernos.registry')], the same idiom as the trusted-authority predicate (hosted-instances.md)
 ```
@@ -524,7 +524,7 @@ or is based on Kybernos; rules 3 and 4 forbid suggesting endorsement or competin
 |---|---|---|---|---|
 | 0 | This spec | the pieces in section 1 | review and decisions of section 16 | the owner |
 | 1 | Manifest on the 42 modules + validator | `build-catalog.mjs` tables, `satellites.json`, `lifecycle-packages.json`, `test-layout.mjs`, `catalog.json` schema 1 | **Built 2026-10-21**, see below. `plugin.json` ×42, `scripts/plugin-manifest.mjs` on `scripts/schema-subset.mjs`, `scripts/plugin-scan.mjs`, a check in `test-layout.mjs`, `build-catalog.mjs` reading the manifests; `FICHE`/`TITRES`/`GLYPHES` deleted | `build-catalog.mjs --check`, layout, lifecycle tests; catalogue still accepted by an older panel |
-| 2 | Open the registries to data packages | `domain-pack.mjs` and its folder scan; `PRESETS`, `KB_MARKET_TEAMS`, the automation templates as constants | bundle `kybernos/registry`; `__KB__` and the host seam; the folder scan; points of 6.2 (domain pack first); `__KB_DOMAIN__` as alias; **mockup of the Plugins page first** | the point validators; a hostile data plugin test; DSH starts with a broken plugin |
+| 2 | Open the registries to data packages | `domain-pack.mjs` and its folder scan; `PRESETS`, `KB_MARKET_TEAMS`, the automation templates as constants | **Foundation built 2026-10-21**, see below: bundle `kybernos/registry` (socle), `__KB__` and the host seam, the folder scan, the domain-pack point, `__KB_DOMAIN__` as an alias. **Left:** the Plugins page (mockup published, awaiting the owner), the other points of 6.2 | the point validators; a hostile data plugin test; DSH starts with a broken plugin: all three exist and pass, on a real `dsh web` in the sandbox |
 | 3 | Per-plugin install and update from a signed multi-source catalogue, with the key and account models | signed-catalogue code ×4, `telechargement.mjs`, the origin guard, the Connectors key page as the key-handling model | one catalogue format; `pluginCatalogues`; install/update/remove for data; entitlement call; key storage; revocation; levels on the card; declarative `http-source` | rollback, revoked, wrong key, replay of an author signature; **needs a Kybernos server route for `account` entitlement and keys for the catalogue** |
 | 4 | Third-party code, review, Verified (only if the owner reopens decision 1) | the pieces of the conformance tool | `plugin-check.mjs` complete; a written checklist; reviewer keys; the robot extended to extra bundles | a second reviewer exists |
 | 5 | Commerce for third parties (revenue share) | nothing | seller of record, VAT, payouts, refunds, terms | counsel; last |
@@ -542,6 +542,17 @@ that the draft left open:
   Team locks); a limit is not an unlock, so they stay `free` until the owner says otherwise.
 - `name.fr` is new: the Suite only ever had English titles. The 42 French names are a draft for the owner to proof-read. `VEDETTES` (the featured cards) stays in `build-catalog.mjs`.
 - The manifest is checked in two places: `build-catalog.mjs` refuses to build a catalogue from an invalid one, and `test-layout.mjs` checks it against `package.json`, `satellites.json` and the other manifests.
+
+**Phase 2 foundation as built** (`packages/kybernos-registry`, the sixth socle bundle, mounted first). What it does is in its README; what the build settled:
+
+- The registry **reads on demand, never at boot** (a scan is reused for two seconds), so a broken plugin cannot stop DSH from starting. A folder it cannot accept is listed `invalid` with its reasons and logged once.
+- Only **`local/<name>`** folders are read (`<DSH home>/kybernos/plugins/local/<name>/plugin.json`, namespace `local`, level Local). A folder of another author is listed invalid until phase 3 brings the signed catalogue. A **code** plugin is never loaded from a folder.
+- A plugin seen for the first time is **off** (`disabled`), whatever its class, until the person switches it on (`POST /kybernos-registry/enable`: strict same origin and the signed session cookie). The choice lives in `<DSH home>/kybernos/plugins-state.json` (0600).
+- **Nothing in a plugin folder is run**: no import, eval or fetch, no symbolic link followed, files read as bounded text (manifest 64 KiB, contribution 256 KiB, 32 files per extension, 64 plugins) and parsed as JSON; a test greps the registry's own sources for `import(`, `eval`, `new Function`, `child_process`.
+- The owner of a point **registers it at run time** through the host seam (`definePoint`, idempotent, called at boot and at each question because mount order is not guaranteed); the registry judges `extends` and `requires.plugins` against those points. `requires.dsh` is read but **not enforced** (no reliable DSH version in the process); `requires.kybernos` is enforced from `VERSION`.
+- `kybernos/core#domain-pack` is the first point. A contributed pack goes through the same `validatePack` as a shipped one, comes after ours with its `order` held between 50 and 98, cannot reuse an id or a legacy job, and says where it came from (`from`). A plugin pack cannot ship skill folders yet (that is the `skill` point); it can name GitHub skills and the skills we ship.
+- The page seam is created when `client.js` is evaluated, announces itself with the event `kybernos:registry`, and the core offers `{ domain }` as `kybernos/core` (and keeps `__KB_DOMAIN__` as the alias). The validator and its schema moved into the bundle (the dev scripts re-export them); the copy in `docs/dev/schemas/` is kept identical by a test.
+- Checked on a real `dsh web` in the sandbox (`scripts/check-registry-live.mjs`, 24 checks) and in its page (`window.__KB__` version 1, the core's service is the legacy global). Not done: the real profile is not switched on, the Plugins page is not built.
 
 Each phase is a set of PRs that keep the three pre-push gates green, add no engine patch, and delete what the new thing supersedes.
 
