@@ -1,0 +1,50 @@
+{
+  "contract": 1,
+  "id": "kybernos/session-msg",
+  "kind": "code",
+  "version": "0.1.0",
+  "name": {
+    "en": "Messages between chats",
+    "fr": "Messages entre chats"
+  },
+  "description": {
+    "en": "A message or an instruction from one chat to another, to a new one or to this one: the agent proposes an inline form, the person edits and sends it, with the sent trail and the received card.",
+    "fr": "Un message ou une instruction d’un chat à un autre, à un nouveau ou à celui-ci : l’agent propose un formulaire en ligne, tu le modifies et tu l’envoies, avec la trace des envois et la carte reçue."
+  },
+  "icon": "send",
+  "family": "base",
+  "author": {
+    "id": "kybernos",
+    "name": "Kybernos"
+  },
+  "license": "Apache-2.0",
+  "pricing": "free",
+  "package": "@local/kybernos-session-msg",
+  "entry": {
+    "host": "index.js",
+    "client": "client.js"
+  },
+  "requires": {
+    "kybernos": ">=0.1.0"
+  },
+  "permissions": [
+    "ui.slot:conversation.chat.turnTail",
+    "ui.slot:conversation.session.header.actions",
+    "ui.slot:conversation.user.text.node",
+    "host.routes:/kybernos-session-msg:write",
+    "host.routes:/kybernos-sessions/message:write",
+    "fs.write:dsh-home",
+    "agent.tools",
+    "sessions.read"
+  ],
+  "claims": {
+    "routePrefixes": [
+      "/kybernos-session-msg",
+      "/kybernos-sessions/message"
+    ]
+  },
+  "help": "help.json",
+  "suite": {
+    "default": "off"
+  }
+}
