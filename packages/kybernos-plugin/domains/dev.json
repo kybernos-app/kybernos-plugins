@@ -47,6 +47,14 @@
     "produit",
     "design"
   ],
+  "mode": "code",
+  "agents": {
+    "preset": "auto",
+    "why": {
+      "en": "The agent acts inside the project; you are notified before it sends or spends.",
+      "fr": "L’agent agit dans le projet ; tu es prévenu·e avant d’envoyer ou de dépenser."
+    }
+  },
   "goals": [
     {
       "id": "review",

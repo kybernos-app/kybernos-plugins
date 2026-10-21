@@ -62,6 +62,13 @@
       "documents"
     ]
   },
+  "agents": {
+    "preset": "prudent",
+    "why": {
+      "en": "Figures and reminders: nothing goes out without your approval.",
+      "fr": "Chiffres et relances : rien ne part sans ton accord."
+    }
+  },
   "goals": [
     {
       "id": "reconcile",

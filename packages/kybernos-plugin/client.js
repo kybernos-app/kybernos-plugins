@@ -34877,9 +34877,6 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       'goals.t': ['What do you want Kybernos to do for you?', 'Qu’est-ce que tu veux que Kybernos fasse pour toi ?', '¿Qué quieres que Kybernos haga por ti?', 'ماذا تريد أن يفعل Kybernos من أجلك؟'],
       'goals.s': ['Tick what matters. Kybernos sets up only that, and you can change it later.', 'Coche ce qui compte. Kybernos prépare seulement ça, et tu pourras le changer plus tard.', 'Marca lo que importa. Kybernos prepara solo eso, y podrás cambiarlo más tarde.', 'حدّد ما يهمك. يجهّز Kybernos ذلك فقط، ويمكنك تغييره لاحقًا.'],
       'goals.pick': ['Pick at least one goal to continue.', 'Choisis au moins un objectif pour continuer.', 'Elige al menos un objetivo para continuar.', 'اختر هدفًا واحدًا على الأقل للمتابعة.'],
-      'job.nl': ['Or describe your work: “physio in private practice”', 'Ou décris ton activité : « kiné en libéral »', 'O describe tu trabajo: «fisioterapeuta autónomo»', 'أو صف عملك: «معالج فيزيائي مستقل»'],
-      'job.nl.ok': ['Understood: {name}. Change it if it is wrong.', 'Compris : {name}. Corrige si besoin.', 'Entendido: {name}. Corrígelo si no es así.', 'فهمت: {name}. صحّح إن لزم.'],
-      'job.nl.none': ['No field recognised. Pick one in the list.', 'Aucun domaine reconnu. Choisis dans la liste.', 'No reconozco ningún ámbito. Elige uno de la lista.', 'لم أتعرف على مجال. اختر من القائمة.'],
       'adds.sk': ['{n} skills', '{n} skills', '{n} skills', '{n} مهارات'],
       'adds.sk1': ['1 skill', '1 skill', '1 skill', 'مهارة واحدة'],
       'adds.au': ['{n} automations', '{n} automatisations', '{n} automatizaciones', '{n} أتمتة'],
@@ -34904,8 +34901,6 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       'k.autos': ['Automations', 'Automatisations', 'Automatizaciones', 'الأتمتة'],
       'k.autos.note': ['Created switched off: you turn each one on when you want it.', 'Créées éteintes : tu allumes chacune quand tu veux.', 'Se crean apagadas: tú enciendes cada una cuando quieras.', 'تُنشأ متوقفة: تشغّل كل واحدة عندما تريد.'],
       'k.src.kb': ['included with Kybernos', 'fourni avec Kybernos', 'incluido con Kybernos', 'مضمّن مع Kybernos'],
-      'mode.t': ['Choose your UI mode', 'Choisis ton affichage', 'Elige tu modo de visualización', 'اختر طريقة العرض'],
-      'mode.s': ['How would you like Kybernos to show its work?', 'Comment veux-tu que Kybernos montre son travail ?', '¿Cómo quieres que Kybernos muestre su trabajo?', 'كيف تريد أن يعرض Kybernos عمله؟'],
       'mode.code.t': ['Coding mode', 'Mode Code', 'Modo Código', 'وضع البرمجة'],
       'mode.code.d': ['I want to see code, command output, and change details throughout the development process.', 'Je veux voir le code, les sorties de commandes et le détail des changements tout au long du chantier.', 'Quiero ver el código, la salida de los comandos y el detalle de los cambios durante todo el trabajo.', 'أريد رؤية الشيفرة ومخرجات الأوامر وتفاصيل التغييرات طوال العمل.'],
       'mode.bureau.t': ['Office mode', 'Mode Bureau', 'Modo Oficina', 'وضع المكتب'],
@@ -35063,6 +35058,59 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       'fin.kit.n1': ['1 added', '1 ajouté', '1 añadido', 'تمت إضافة 1'],
       'fin.mem': ['Saved to your memory', 'Enregistré dans ta mémoire', 'Guardado en tu memoria', 'تم الحفظ في ذاكرتك'],
       'fin.mem.d': ['Agents read it to talk to you the right way. You can edit or forget it in Settings → Memory & Lessons.', 'Les agents le lisent pour te parler comme il faut. Tu peux le modifier ou l’oublier dans Réglages → Mémoire & Leçons.', 'Los agentes lo leen para hablarte como corresponde. Puedes editarlo u olvidarlo en Ajustes → Memory & Lessons.', 'يقرأه الوكلاء ليخاطبوك بالطريقة المناسبة. يمكنك تعديله أو نسيانه من الإعدادات ← Memory & Lessons.'],
+      // the « about you » step: three optional answers, one button (Skip while nothing is typed)
+      'about.t': ['Tell Kaby about you', 'Parle de toi à Kaby', 'Cuéntale a Kaby sobre ti', 'عرّف كابي بنفسك'],
+      'about.s': ['All optional. It helps Kaby adapt.', 'Tout est facultatif. Cela aide Kaby à s’adapter.', 'Todo es opcional. Ayuda a Kaby a adaptarse.', 'كل شيء اختياري. هذا يساعد كابي على التكيّف.'],
+      'about.site': ['Your website', 'Ton site web', 'Tu sitio web', 'موقعك الإلكتروني'],
+      'about.site.ph': ['your-site.com', 'ton-site.fr', 'tu-sitio.com', 'your-site.com'],
+      'about.site.h': ['Kaby uses it to adapt to what you do.', 'Kaby s’en sert pour s’adapter à ce que tu fais.', 'Kaby la usa para adaptarse a lo que haces.', 'يستخدمه كابي للتكيّف مع ما تفعله.'],
+      'about.soc': ['Your profile (LinkedIn, Facebook, Instagram…)', 'Ton profil (LinkedIn, Facebook, Instagram…)', 'Tu perfil (LinkedIn, Facebook, Instagram…)', 'ملفك الشخصي (LinkedIn وFacebook وInstagram…)'],
+      'about.soc.ph': ['linkedin.com/in/your-name', 'linkedin.com/in/ton-nom', 'linkedin.com/in/tu-nombre', 'linkedin.com/in/your-name'],
+      'about.free': ['Anything else?', 'Autre chose ?', '¿Algo más?', 'أي شيء آخر؟'],
+      'about.free.ph': ['Your clients, your tools, how you work: what Kaby should know.', 'Tes clients, tes outils, ta façon de travailler : ce que Kaby doit savoir.', 'Tus clientes, tus herramientas, tu forma de trabajar: lo que Kaby debe saber.', 'عملاؤك وأدواتك وطريقة عملك: ما يجب أن يعرفه كابي.'],
+      'about.pass': ['Skip this step', 'Passer cette étape', 'Omitir este paso', 'تخطَّ هذه الخطوة'],
+      'about.guess': ['Judging by what you wrote: {name}.', 'D’après ce que tu as écrit : {name}.', 'Según lo que escribiste: {name}.', 'استنادًا إلى ما كتبته: {name}.'],
+      'about.guess.go': ['Switch to it', 'Passer à ce domaine', 'Cambiar a este ámbito', 'التبديل إلى هذا المجال'],
+      // the « agents » step: how much they may do alone, three presets, the pack's reason under the choice
+      'ag.t': ['How much can agents do alone?', 'Que peuvent faire les agents seuls ?', '¿Cuánto pueden hacer solos los agentes?', 'ما الذي يمكن للوكلاء فعله بمفردهم؟'],
+      'ag.s': ['For your automations. You can change it any time in Settings.', 'Pour tes automatisations. Tu pourras le changer dans les Réglages.', 'Para tus automatizaciones. Podrás cambiarlo en Ajustes.', 'لأتمتتك. يمكنك تغييره في الإعدادات.'],
+      'ag.prudent.t': ['Careful', 'Prudent', 'Prudente', 'حذر'],
+      'ag.prudent.d': ['The agent prepares, you approve everything.', 'L’agent prépare, tu valides tout.', 'El agente prepara, tú apruebas todo.', 'يُحضّر الوكيل وتوافق أنت على كل شيء.'],
+      'ag.balanced.t': ['Balanced', 'Équilibré', 'Equilibrado', 'متوازن'],
+      'ag.balanced.d': ['It works in your space and asks before sending or spending.', 'Il agit dans ton espace et te demande avant d’envoyer ou de dépenser.', 'Actúa en tu espacio y te pregunta antes de enviar o gastar.', 'يعمل داخل مساحتك ويسألك قبل الإرسال أو الإنفاق.'],
+      'ag.auto.t': ['Autonomous', 'Autonome', 'Autónomo', 'مستقل'],
+      'ag.auto.d': ['It acts on its own and you are notified.', 'Il agit seul et tu es prévenu·e.', 'Actúa por su cuenta y tú recibes un aviso.', 'يتصرف بمفرده ويصلك إشعار.'],
+      'ag.prudent.l': ['Drafts only · no spending · the log keeps the actions, not their content', 'Brouillons seulement · aucune dépense · le journal garde les actions, pas leur contenu', 'Solo borradores · sin gastos · el registro guarda las acciones, no su contenido', 'مسودات فقط · لا إنفاق · السجل يحفظ الإجراءات لا محتواها'],
+      'ag.balanced.l': ['You approve each send and each spend · the log keeps actions and content', 'Tu valides chaque envoi et chaque dépense · le journal garde actions et contenu', 'Apruebas cada envío y cada gasto · el registro guarda acciones y contenido', 'توافق على كل إرسال وكل إنفاق · السجل يحفظ الإجراءات والمحتوى'],
+      'ag.auto.l': ['Sends on its own and spends within your budget · the log keeps actions and content', 'Envoie seul et dépense dans ton budget · le journal garde actions et contenu', 'Envía solo y gasta dentro de tu presupuesto · el registro guarda acciones y contenido', 'يرسل بمفرده وينفق ضمن ميزانيتك · السجل يحفظ الإجراءات والمحتوى'],
+      'ag.for': ['for your field', 'pour ton métier', 'para tu ámbito', 'لمجالك'],
+      'ag.why': ['Why: {why}', 'Pourquoi : {why}', 'Por qué: {why}', 'السبب: {why}'],
+      'ag.note': ['Agents read this choice; the settings that enforce it come later.', 'Les agents lisent ce choix ; les réglages qui l’imposent viennent ensuite.', 'Los agentes leen esta elección; los ajustes que la imponen llegan después.', 'يقرأ الوكلاء هذا الاختيار؛ أما الإعدادات التي تفرضه فتأتي لاحقًا.'],
+      // the plan, the last thing asked: the price and the payment page are the account's, nothing is typed here
+      'plan.t': ['So it keeps running without you', 'Pour que ça tourne sans toi', 'Para que siga funcionando sin ti', 'ليستمر العمل من دونك'],
+      'plan.s': ['Your space is ready. With Team, your automations run even when your computer is off.', 'Ton espace est prêt. Avec Team, tes automatisations tournent même quand ton ordinateur est éteint.', 'Tu espacio está listo. Con Team, tus automatizaciones funcionan incluso con el ordenador apagado.', 'مساحتك جاهزة. مع Team تعمل أتمتتك حتى عندما يكون حاسوبك مطفأً.'],
+      'plan.team.t': ['Team · solo', 'Team · solo', 'Team · solo', 'Team · solo'],
+      'plan.team.b1': ['Hosted automations: they run with your computer off', 'Automatisations hébergées : elles tournent ordinateur éteint', 'Automatizaciones alojadas: funcionan con el ordenador apagado', 'أتمتة مستضافة: تعمل والحاسوب مطفأ'],
+      'plan.team.b2': ['Credits for your agents every month', 'Des crédits chaque mois pour tes agents', 'Créditos cada mes para tus agentes', 'أرصدة شهرية لوكلائك'],
+      'plan.team.b3': ['One seat; invite your team any time', 'Un siège, tu invites ton équipe quand tu veux', 'Un puesto; invita a tu equipo cuando quieras', 'مقعد واحد؛ ادعُ فريقك متى شئت'],
+      'plan.team.go': ['Continue with Team solo', 'Continuer avec Team solo', 'Continuar con Team solo', 'المتابعة مع Team solo'],
+      'plan.team.note': ['The price and the secure payment page open on your account. Nothing is typed in Kybernos.', 'Le prix et la page de paiement sécurisée s’ouvrent sur ton compte. Rien n’est saisi dans Kybernos.', 'El precio y la página de pago seguro se abren en tu cuenta. No se escribe nada en Kybernos.', 'يُفتح السعر وصفحة الدفع الآمنة في حسابك. لا يُكتب شيء داخل Kybernos.'],
+      'plan.free.t': ['Free', 'Gratuit', 'Gratis', 'مجاني'],
+      'plan.free.b1': ['Everything that was just set up', 'Tout ce qui vient d’être préparé', 'Todo lo que se acaba de preparar', 'كل ما تم إعداده للتو'],
+      'plan.free.b2': ['The free models, or your own', 'Les modèles gratuits, ou les tiens', 'Los modelos gratuitos, o los tuyos', 'النماذج المجانية أو نماذجك'],
+      'plan.free.b3': ['Move to Team any time', 'Tu passes à Team quand tu veux', 'Pasas a Team cuando quieras', 'يمكنك الانتقال إلى Team متى شئت'],
+      'plan.free.go': ['Continue for free', 'Continuer gratuitement', 'Continuar gratis', 'المتابعة مجانًا'],
+      // the kit as one line (the list stays one tap away), and the end screen's agents row
+      'k.sum': ['Skills: {a} · Teams: {b} · Automations (off): {c}', 'Skills : {a} · Équipes : {b} · Automatisations (éteintes) : {c}', 'Skills: {a} · Equipos: {b} · Automatizaciones (apagadas): {c}', 'المهارات: {a} · الفرق: {b} · الأتمتة (متوقفة): {c}'],
+      'k.sum.open': ['See or untick', 'Voir ou décocher', 'Ver o desmarcar', 'عرض أو إلغاء التحديد'],
+      'k.sum.close': ['Fold up', 'Replier', 'Plegar', 'طيّ'],
+      'fin.agents': ['Agents', 'Agents', 'Agentes', 'الوكلاء'],
+      'mem.site': ['Website: {v}.', 'Site web : {v}.', 'Sitio web: {v}.', 'الموقع: {v}.'],
+      'mem.profile': ['Profile: {v}.', 'Profil : {v}.', 'Perfil: {v}.', 'الملف الشخصي: {v}.'],
+      'mem.words': ['In their own words: {v}', 'Dans ses mots : {v}', 'En sus palabras: {v}', 'بكلماته: {v}'],
+      'mem.agents.prudent': ['Agents: careful, they prepare drafts and never send without approval.', 'Agents : prudents, ils préparent des brouillons et n’envoient rien sans accord.', 'Agentes: prudentes, preparan borradores y no envían nada sin aprobación.', 'الوكلاء: حذرون، يُعدّون مسودات ولا يرسلون شيئًا دون موافقة.'],
+      'mem.agents.balanced': ['Agents: balanced, they ask before sending or spending.', 'Agents : équilibrés, ils demandent avant d’envoyer ou de dépenser.', 'Agentes: equilibrados, preguntan antes de enviar o gastar.', 'الوكلاء: متوازنون، يسألون قبل الإرسال أو الإنفاق.'],
+      'mem.agents.auto': ['Agents: autonomous, they act on their own and notify.', 'Agents : autonomes, ils agissent seuls et préviennent.', 'Agentes: autónomos, actúan por su cuenta y avisan.', 'الوكلاء: مستقلون، يتصرفون بمفردهم ويُخطرون.'],
       'mem.job': ['Field of work: {job}.', 'Domaine : {job}.', 'Ámbito: {job}.', 'المجال: {job}.'],
       'mem.goals': ['Wants help with: {goals}.', 'Veut de l’aide pour : {goals}.', 'Quiere ayuda con: {goals}.', 'يريد المساعدة في: {goals}.'],
       'mem.mode': ['Prefers: {mode}.', 'Préfère : {mode}.', 'Prefiere: {mode}.', 'يفضّل: {mode}.'],
@@ -35111,22 +35159,22 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       if (vars !== undefined && vars !== null) for (const k of Object.keys(vars)) out = out.split('{' + k + '}').join(String(vars[k]))
       return out
     }
-    /** The numbered steps. The model step is always there: a replay is where an account or a key gets added. Without any domain pack (`withField` false) there is no field and no goals to ask. */
-    const kbObPlan = (withField) => (withField === false ? ['mode', 'model', 'kit'] : ['job', 'goals', 'mode', 'model', 'kit'])
+    /** The numbered steps, one question each. The model step is always there: a replay is where an account or a key gets added. The display mode is no longer a step (it follows the field, and a row on the last one changes it). Without any domain pack (`withField` false) there is no field and no goals to ask. */
+    const kbObPlan = (withField) => (withField === false ? ['model', 'about', 'agents', 'kit'] : ['job', 'goals', 'model', 'about', 'agents', 'kit'])
     /** Which numbered step a screen belongs to (null = none: welcome and the end screen). */
     const kbObStepOf = (screen) => {
-      if (screen === 'job' || screen === 'goals' || screen === 'mode' || screen === 'kit') return screen
+      if (screen === 'job' || screen === 'goals' || screen === 'about' || screen === 'agents' || screen === 'kit') return screen
       if (screen === 'model' || screen === 'key' || screen === 'key-done' || screen === 'local' || screen === 'local-install' || screen === 'local-done' || screen === 'local-err' || screen === 'free' ||
         screen === 'cloud-wait' || screen === 'cloud-ok' || screen === 'cloud-err') return 'model'
       return null
     }
     /** Where « Back » goes from a screen (null = nowhere). */
-    const kbObBack = (screen) => ({ job: 'welcome', goals: 'job', mode: 'goals', model: 'mode', kit: 'model', key: 'model', local: 'model', free: 'model', 'local-err': 'local', 'cloud-wait': 'model', 'cloud-err': 'model' }[screen] || null)
+    const kbObBack = (screen) => ({ job: 'welcome', goals: 'job', model: 'goals', about: 'model', agents: 'about', kit: 'agents', plan: 'kit', key: 'model', local: 'model', free: 'model', 'local-err': 'local', 'cloud-wait': 'model', 'cloud-err': 'model' }[screen] || null)
     /** Where « Back » goes in the wizard as it stands (null = nowhere). The button and Escape share it. `S` is the wizard's state. */
     const kbObBackOf = (S) => {
       if ((S.standalone && (S.screen === 'model' || S.screen === 'kit')) || (S.screen === 'free' && S.fromAccount)) return null
-      // No field chosen (or no pack to choose from): the goals step was skipped, so « Back » from the display mode goes where we came from.
-      if (S.screen === 'mode' && (S.domain === null || S.domain === undefined)) return Array.isArray(S.packs) && S.packs.length === 0 ? 'welcome' : 'job'
+      // No field chosen (or no pack to choose from): the goals step was skipped, so « Back » from the model goes where we came from.
+      if (S.screen === 'model' && (S.domain === null || S.domain === undefined)) return Array.isArray(S.packs) && S.packs.length === 0 ? 'welcome' : 'job'
       return kbObBack(S.screen)
     }
     /**
@@ -35146,6 +35194,12 @@ html.wv2-actif [data-composer-seat]{display:none !important}
     const kbObPackOf = (packs, id) => (Array.isArray(packs) && typeof id === 'string' ? (packs.find((p) => p !== null && typeof p === 'object' && p.id === id) || null) : null)
     /** The goals of a pack that are in `ids`, in the pack's order (an id the pack does not know is ignored). */
     const kbObGoalsOf = (pack, ids) => (pack === null || !Array.isArray(pack.goals) || !Array.isArray(ids) ? [] : pack.goals.filter((g) => ids.indexOf(g.id) >= 0))
+    /** The autonomy presets of the agents step, the least autonomous first. */
+    const KB_OB_PRESETS = ['prudent', 'balanced', 'auto']
+    /** The display mode a field starts from (its pack says: Development starts in code mode), and what its agents may do alone by default, with the pack's reason. */
+    const kbObModeOf = (pack) => (pack !== null && pack !== undefined && KB_OB_MODES.indexOf(pack.mode) >= 0 ? pack.mode : 'bureau')
+    const kbObAgentsOf = (pack) => (pack !== null && pack !== undefined && pack.agents !== null && typeof pack.agents === 'object' && KB_OB_PRESETS.indexOf(pack.agents.preset) >= 0
+      ? { preset: pack.agents.preset, why: pack.agents.why !== undefined ? pack.agents.why : null } : { preset: 'balanced', why: null })
     /** The kit of a field for some goals: their skills and teams, each once, in the goals' order, and what is planned. Empty for no pack or no goal. */
     const kbObKitOf = (pack, goalIds) => {
       const kit = { skills: [], teams: [], autos: [], soon: [] }
@@ -35279,11 +35333,18 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         .concat((Array.isArray(kit.autos) ? kit.autos : []).filter((x) => !kbObAutoMade(x, have.autos)).map((x) => 'a:' + x.id))
     }
     /** The sentence kept in the person's memory about the field, the goals and the display mode, or null when none is known. `domain` and `goals` are names. */
-    const kbObMemoryText = (lang, domain, goals, mode) => {
+    const kbObMemoryText = (lang, domain, goals, mode, extra) => {
       const parts = []
       if (typeof domain === 'string' && domain !== '') parts.push(kbObText(lang, 'mem.job', { job: domain }))
       if (Array.isArray(goals) && goals.length > 0) parts.push(kbObText(lang, 'mem.goals', { goals: goals.join(', ') }))
       if (typeof mode === 'string' && KB_OB_MODES.indexOf(mode) >= 0) parts.push(kbObText(lang, 'mem.mode', { mode: kbObText(lang, 'mode.' + mode + '.t') }))
+      // What the person said about themselves (the « about you » step) and how much their agents may do alone: the agents read these lines.
+      if (extra !== null && typeof extra === 'object') {
+        if (typeof extra.site === 'string' && extra.site !== '') parts.push(kbObText(lang, 'mem.site', { v: extra.site }))
+        if (typeof extra.profile === 'string' && extra.profile !== '') parts.push(kbObText(lang, 'mem.profile', { v: extra.profile }))
+        if (typeof extra.words === 'string' && extra.words !== '') parts.push(kbObText(lang, 'mem.words', { v: extra.words }))
+        if (KB_OB_PRESETS.indexOf(extra.agents) >= 0) parts.push(kbObText(lang, 'mem.agents.' + extra.agents))
+      }
       return parts.length > 0 ? parts.join(' ') : null
     }
     // The names the web search page gives its engines (kybernos-websearch), for the end screen's line.
@@ -35401,7 +35462,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       const doc = env.document
       const win = env.window
       const S = {
-        screen: 'welcome', lang: 'en', domain: null, goals: [], packs: [], hover: null, nlText: '', nlNote: null, dark: false, mode: null, model: null,
+        screen: 'welcome', lang: 'en', domain: null, goals: [], packs: [], hover: null, dark: false, mode: null, model: null,
         ready: null, hasCloud: false, hasLocal: false, machine: null,
         provider: 'anthropic', menu: false, pairing: null, account: null, models: null, error: null, copied: false,
         keyDraft: '', keyMsg: null, keyVerdict: null, localId: null, job: null, localError: null, refs: null,
@@ -35416,6 +35477,10 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         memoryId: null, memState: null,
         // « What we set up for you » on the end screen: null until read, then the rows (kbObSetupRows)
         setup: null,
+        // the « about you » answers, the agents preset, and whether the person changed the two defaults the field gives (the display mode, the preset)
+        site: '', social: '', words: '', aboutSaved: false, agents: null, modeTouched: false, agentsTouched: false, replayDomain: false,
+        // the kit shown as one line (its list one tap away), and « Continue with Team solo » on the plan screen (the upgrade view opens when the wizard closes)
+        kitOpen: false, wantsTeam: false,
       }
       let root = null
       let pollTimer = null
@@ -35526,10 +35591,15 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         if (root !== null) { try { root.remove() } catch (e) { /* already gone */ } root = null }
         if (typeof env.onClose === 'function') env.onClose()
       }
+      // What was typed about the person: sent when there is something, or when a saved answer was emptied (a replay that leaves it alone keeps it).
+      const aboutBody = () => {
+        const said = { site: S.site, profile: S.social, words: S.words }
+        return S.site.trim() !== '' || S.social.trim() !== '' || S.words.trim() !== '' || S.aboutSaved ? said : null
+      }
       const finish = (openSettingsNames) => {
         if (finished) return
         finished = true
-        const reachedModel = kbObStepOf(S.screen) === 'model' || S.screen === 'kit' || S.screen === 'done'
+        const reachedModel = kbObStepOf(S.screen) === 'model' || ['about', 'agents', 'kit', 'plan', 'done'].indexOf(S.screen) >= 0
         // A model that already works counts as the choice; leaving the step without any is « later ».
         const model = S.model !== null ? S.model : (reachedModel ? (S.ready !== null ? S.ready : 'later') : null)
         // An abandoned pairing would sit on the host until it expires: the card of Kybernos Cloud does the same on « Cancel ».
@@ -35538,7 +35608,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         if (S.screen === 'local-install' && S.localId !== null) { S.model = 'local'; watchInstall(S.localId) }
         // Opened from the chat's card or from « Starter kit » in Settings (standalone), the wizard is not the first run: the
         // onboarding file is left alone.
-        if (!S.standalone) reloadDomain(env.post({ action: 'complete', profil: S.domain, goals: S.goals, uiMode: S.mode, model: model, lang: S.lang, memoryId: S.memoryId }))
+        if (!S.standalone) reloadDomain(env.post({ action: 'complete', profil: S.domain, goals: S.goals, uiMode: S.mode, model: model, lang: S.lang, memoryId: S.memoryId, agents: S.agents, ...(aboutBody() !== null ? { about: aboutBody() } : {}) }))
         // Free models (no account): wire them in on the first run, but only when the person brings no
         // working model of their own AND acknowledged the prompt-retention notice (S.freeAck). The host
         // re-checks both guardrails before writing the route, so a stale client can never force it.
@@ -35549,6 +35619,8 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         // Handed over to Settings is not connected yet: only a way that finished tells the card.
         if (connected !== null && openSettingsNames === undefined && typeof env.onConnected === 'function') { try { env.onConnected(connected, picked) } catch (e) { /* the card is gone */ } }
         if (openSettingsNames !== undefined) env.openSettings(openSettingsNames)
+        // « Continue with Team solo »: the account's own view (price, secure payment) opens once the wizard is out of the way. Nothing is typed here.
+        else if (S.wantsTeam === true) { try { if (win.__KB_UPGRADE__ !== undefined && win.__KB_UPGRADE__ !== null && typeof win.__KB_UPGRADE__.open === 'function') win.__KB_UPGRADE__.open() } catch (e) { /* no upgrade view */ } }
       }
 
       // ── making the connected model the one the next message uses ──
@@ -35607,7 +35679,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         if (screen === 'done') { memoryWrite(); setupLoad() }
       }
       // After a way is connected: the first run goes on to the starter kit; from the chat's card the wizard just closes.
-      const afterConnect = () => { if (S.standalone) finish(); else go('kit') }
+      const afterConnect = () => { if (S.standalone) finish(); else go('about') }
       // « Decide later »: nothing is connected, the kit does not need a model.
       const decideLater = () => { if (S.model === null && S.ready === null) S.model = 'later'; afterConnect() }
       // After an account: one whose plan brings no model leaves the person with nothing to talk to (unless a model already
@@ -35820,6 +35892,15 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       // Teams loader. A skill goes through the install route of the Skills page, a team through the same `kybers/create` the
       // marketplace uses; both refuse what exists already, and what is installed is never ticked, so a replay doubles nothing.
       const curPack = () => kbObPackOf(S.packs, S.domain)
+      // Choosing a field: its first two goals come ticked, with its display mode and the autonomy it suggests, unless the person already chose another.
+      const pickDomain = (pk) => {
+        if (S.domain === pk.id) return
+        S.domain = pk.id
+        S.goals = pk.goals.slice(0, 2).map((x) => x.id)
+        S.kitSel = null
+        if (!S.modeTouched) S.mode = kbObModeOf(pk)
+        if (!S.agentsTouched) S.agents = kbObAgentsOf(pk).preset
+      }
       const domainTile = (pk) => {
         const on = S.domain === pk.id
         const b = h('button', 'kb-ob-tile' + (on ? ' on' : ''))
@@ -35838,10 +35919,11 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         b.addEventListener('mouseenter', show)
         b.addEventListener('focus', show)
         b.addEventListener('click', () => {
-          if (S.domain !== pk.id) { S.domain = pk.id; S.goals = []; S.kitSel = null }
+          pickDomain(pk)
           S.hover = null
-          S.nlNote = null
           render(false)
+          // one tap: the chosen tile shows for a moment, then the goals
+          win.setTimeout(() => { if (root !== null && S.screen === 'job' && S.domain === pk.id) go('goals') }, 260)
         })
         return b
       }
@@ -35856,7 +35938,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         root.style.setProperty('--ob-on', S.dark ? '#121214' : '#ffffff')
       }
       // Does this screen carry the live miniature on its right? The field step always does (a neutral Kybernos until one is chosen).
-      const withPreview = () => S.packs.length > 0 && !S.standalone ? (S.screen !== 'welcome' && S.screen !== 'done') : (S.kitOnly && S.packs.length > 0)
+      const withPreview = () => S.packs.length > 0 && !S.standalone ? (S.screen !== 'welcome' && S.screen !== 'done' && S.screen !== 'plan') : (S.kitOnly && S.packs.length > 0)
       const previewRows = () => KB_OB_ROWS.filter((r) => !(r[0] === 'dashboards' && KB_DB !== true) && !(r[0] === 'connectors' && KB_CP !== true) && !(r[0] === 'documents' && KB_SHOW_DOCS !== true) && !(r[0] === 'kyber' && KB_KY !== true))
         .map((r) => ({ id: r[0], icon: r[1], label: kbt(r[2]) }))
       // One div of the miniature: a class, a text, children.
@@ -35926,8 +36008,9 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         live.appendChild(h('span', null, T('pv.live')))
         head.appendChild(live)
         head.appendChild(h('span', 'kb-ob-pv-name'))
-        pane.appendChild(head)
+        // the miniature first, then its « live » line and its caption: no text above it
         pane.appendChild(h('div', 'kb-ob-pv-box'))
+        pane.appendChild(head)
         pane.appendChild(h('p', 'kb-ob-pv-cap'))
         return pane
       }
@@ -35959,6 +36042,8 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       }
       // Settings, Starter kit: the field and the goals picked there are saved at once (the first run saves them when it completes).
       const saveDomain = () => { if (S.kitOnly && S.domain !== null) reloadDomain(env.post({ action: 'domain', profil: S.domain, goals: S.goals })) }
+      // After the kit: the plan is the last thing asked, and only where there is an account to ask it on.
+      const afterKit = () => go(S.hasCloud ? 'plan' : 'done')
       const kitSelection = () => {
         if (S.kitSel === null) S.kitSel = new Set(kbObKitDefaults(curKit(), S.kitInstalled))
         return S.kitSel
@@ -35990,7 +36075,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         for (const sk of kit.skills) if (sel.has('s:' + sk.name)) todo.push({ team: null, skill: sk })
         for (const id of kit.teams) if (sel.has('t:' + id)) todo.push({ team: id, skill: null })
         for (const x of kit.autos) if (sel.has('a:' + x.id)) todo.push({ team: null, skill: null, auto: x })
-        if (todo.length === 0) { if (S.kitOnly) finish(); else go('done'); return }
+        if (todo.length === 0) { if (S.kitOnly) finish(); else afterKit(); return }
         S.kitBusy = { i: 0, n: todo.length }
         S.kitAdded = 0
         S.kitFailed = 0
@@ -36031,7 +36116,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         S.kitBusy = null
         S.kitInstalled = null
         S.kitSel = null
-        if (S.kitOnly) { S.kitDone = true; render(false); kitLoad() } else go('done')
+        if (S.kitOnly) { S.kitDone = true; render(false); kitLoad() } else afterKit()
       }
 
       // ── the profession in the person's memory ──
@@ -36042,7 +36127,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         if (S.standalone || S.memState !== null) return
         if (!(S.ready === 'cloud' || S.model === 'cloud')) return
         const pack = curPack()
-        const text = kbObMemoryText(S.lang, packName(pack), kbObGoalsOf(pack, S.goals).map((g) => kbObPackText(S.lang, g.name)), S.mode)
+        const text = kbObMemoryText(S.lang, packName(pack), kbObGoalsOf(pack, S.goals).map((g) => kbObPackText(S.lang, g.name)), S.mode, { site: S.site.trim(), profile: S.social.trim(), words: S.words.trim(), agents: S.agents })
         if (text === null) return
         S.memState = 'saving'
         let r = null
@@ -36215,7 +36300,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
           s.appendChild(h('h1', null, T('wel.t')))
           s.appendChild(h('p', 'kb-ob-sub', T('wel.s')))
           const a = actions()
-          a.appendChild(primary(T('start'), () => go(S.packs.length > 0 ? 'job' : 'mode')))
+          a.appendChild(primary(T('start'), () => go(S.packs.length > 0 ? 'job' : 'model')))
           s.appendChild(a)
           return s
         },
@@ -36229,35 +36314,8 @@ html.wv2-actif [data-composer-seat]{display:none !important}
           g.addEventListener('mouseleave', () => { if (S.hover !== null) { S.hover = null; refreshPreview() } })
           for (const pk of S.packs) g.appendChild(domainTile(pk))
           s.appendChild(g)
-          // « kiné en libéral à Lyon »: a sentence finds the field, the person corrects it if it is wrong
-          const form = h('form', 'kb-ob-nl')
-          const input = h('input', 'kb-ob-nlin')
-          input.type = 'text'
-          input.setAttribute('autocomplete', 'off')
-          input.setAttribute('aria-label', T('job.nl'))
-          input.placeholder = T('job.nl')
-          input.value = S.nlText
-          const send = h('button', 'kb-ob-nlgo')
-          send.type = 'submit'
-          send.setAttribute('aria-label', T('cont'))
-          send.appendChild(icon(IC.chevron, 18))
-          form.appendChild(input)
-          form.appendChild(send)
-          form.addEventListener('submit', (ev) => {
-            ev.preventDefault()
-            S.nlText = input.value.trim()
-            if (S.nlText === '') return
-            const id = kbObDomainFromText(S.packs, S.nlText)
-            if (id !== null) { if (S.domain !== id) { S.domain = id; S.goals = []; S.kitSel = null }; S.nlNote = T('job.nl.ok', { name: packName(kbObPackOf(S.packs, id)) }) } else S.nlNote = T('job.nl.none')
-            S.hover = null
-            render(false)
-          })
-          s.appendChild(form)
-          s.appendChild(h('p', 'kb-ob-nlr', S.nlNote !== null ? S.nlNote : ''))
-          const a = actions()
-          // A field with its goals next; no field chosen, the goals are skipped.
-          a.appendChild(primary(T('cont'), () => go(S.domain !== null ? 'goals' : 'mode')))
-          s.appendChild(a)
+          // A field saved by an earlier run is already chosen: one more tap on it moves on, and so does Continue.
+          if (S.domain !== null && S.replayDomain === true) { const a = actions(); a.appendChild(primary(T('cont'), () => go('goals'))); s.appendChild(a) }
           return s
         },
         goals: () => {
@@ -36290,24 +36348,107 @@ html.wv2-actif [data-composer-seat]{display:none !important}
           s.appendChild(g)
           if (S.goals.length === 0) s.appendChild(h('p', 'kb-ob-sub kb-ob-hint', T('goals.pick')))
           const a = actions()
-          const next = primary(T('cont'), () => go('mode'))
+          const next = primary(T('cont'), () => go('model'))
           next.disabled = S.goals.length === 0
           a.appendChild(next)
           s.appendChild(a)
           return s
         },
-        mode: () => {
+        // « about you »: a website, a profile, a free word, all optional, one button that says Skip until something is typed. A free word that
+        // points to another field than « Something else » is offered, never applied on its own.
+        about: () => {
           const s = step()
-          s.appendChild(eyebrow('mode'))
-          s.appendChild(h('h1', null, T('mode.t')))
-          s.appendChild(h('p', 'kb-ob-sub', T('mode.s')))
+          s.appendChild(eyebrow('about'))
+          s.appendChild(h('h1', null, T('about.t')))
+          s.appendChild(h('p', 'kb-ob-sub', T('about.s')))
+          const guess = h('p', 'kb-ob-guess')
+          let cta = null
+          const sync = () => {
+            const any = S.site.trim() !== '' || S.social.trim() !== '' || S.words.trim() !== ''
+            if (cta !== null) cta.textContent = any ? T('cont') : T('about.pass')
+            const id = S.domain === null || S.domain === 'general' ? kbObDomainFromText(S.packs, S.words + ' ' + S.site) : null
+            while (guess.firstChild !== null) guess.removeChild(guess.firstChild)
+            const pk = id !== null && id !== S.domain ? kbObPackOf(S.packs, id) : null
+            if (pk !== null) {
+              guess.appendChild(h('span', null, T('about.guess', { name: packName(pk) }) + ' '))
+              guess.appendChild(button('kb-ob-lk', T('about.guess.go'), () => { pickDomain(pk); sync(); refreshPreview() }))
+            }
+          }
+          const field = (prop, labelKey, phKey, hintKey, max, multi) => {
+            const wrap = h('div', 'kb-ob-fgrp')
+            const label = h('label', null, T(labelKey))
+            const input = h(multi ? 'textarea' : 'input', 'kb-ob-in')
+            input.id = 'kb-ob-f-' + prop
+            label.setAttribute('for', input.id)
+            if (multi) input.rows = 3
+            else { input.type = 'text'; input.setAttribute('inputmode', 'url') }
+            input.setAttribute('autocomplete', 'off')
+            input.maxLength = max
+            input.placeholder = T(phKey)
+            input.value = S[prop]
+            input.addEventListener('input', () => { S[prop] = input.value; sync() })
+            wrap.appendChild(label)
+            wrap.appendChild(input)
+            if (hintKey !== null) wrap.appendChild(h('p', 'kb-ob-fh', T(hintKey)))
+            return wrap
+          }
+          s.appendChild(field('site', 'about.site', 'about.site.ph', 'about.site.h', 200, false))
+          s.appendChild(field('social', 'about.soc', 'about.soc.ph', null, 200, false))
+          s.appendChild(field('words', 'about.free', 'about.free.ph', null, 600, true))
+          s.appendChild(guess)
+          const a = actions()
+          cta = primary(T('about.pass'), () => go('agents'))
+          a.appendChild(cta)
+          s.appendChild(a)
+          sync()
+          return s
+        },
+        // « agents »: how much they may do alone, three presets, the field's own starting point and its reason under the choice
+        agents: () => {
+          const s = step()
+          s.appendChild(eyebrow('agents'))
+          s.appendChild(h('h1', null, T('ag.t')))
+          s.appendChild(h('p', 'kb-ob-sub', T('ag.s')))
+          const dflt = kbObAgentsOf(curPack())
+          const cur = S.agents !== null ? S.agents : dflt.preset
           const g = h('div', 'kb-ob-rows')
           g.setAttribute('role', 'radiogroup')
-          for (const id of KB_OB_MODES) g.appendChild(radioRow(T('mode.' + id + '.t'), T('mode.' + id + '.d'), S.mode === id, () => { S.mode = id; render(false) }))
+          for (const id of KB_OB_PRESETS) {
+            g.appendChild(radioRow(T('ag.' + id + '.t'), T('ag.' + id + '.d'), cur === id, () => { S.agents = id; S.agentsTouched = true; render(false) }, id === dflt.preset && curPack() !== null ? { tag: T('ag.for') } : undefined))
+          }
           s.appendChild(g)
+          const sum = h('div', 'kb-ob-sum')
+          if (dflt.why !== null && curPack() !== null) sum.appendChild(h('p', null, T('ag.why', { why: kbObPackText(S.lang, dflt.why) })))
+          sum.appendChild(h('p', 'kb-ob-sumd', T('ag.' + cur + '.l')))
+          s.appendChild(sum)
+          s.appendChild(note(T('ag.note'), 'info'))
           const a = actions()
-          a.appendChild(primary(T('cont'), () => go('model')))
+          a.appendChild(primary(T('cont'), () => { if (S.agents === null) S.agents = cur; go('kit') }))
           s.appendChild(a)
+          return s
+        },
+        // the plan, the last thing asked (only where there is an account): the price and the payment page are the account's own, nothing is typed here
+        plan: () => {
+          const s = step()
+          s.appendChild(h('h1', null, T('plan.t')))
+          s.appendChild(h('p', 'kb-ob-sub', T('plan.s')))
+          const cards = h('div', 'kb-ob-plans')
+          const card = (cls, titleKey, bullets) => {
+            const c = h('section', 'kb-ob-plan' + cls)
+            c.appendChild(h('h2', null, T(titleKey)))
+            const ul = h('ul')
+            for (const k of bullets) { const li = h('li'); li.appendChild(icon(IC.check, 16)); li.appendChild(h('span', null, T(k))); ul.appendChild(li) }
+            c.appendChild(ul)
+            return c
+          }
+          const team = card(' main', 'plan.team.t', ['plan.team.b1', 'plan.team.b2', 'plan.team.b3'])
+          team.appendChild(primary(T('plan.team.go'), () => { S.wantsTeam = true; go('done') }))
+          team.appendChild(h('p', null, T('plan.team.note')))
+          const free = card('', 'plan.free.t', ['plan.free.b1', 'plan.free.b2', 'plan.free.b3'])
+          free.appendChild(button('kb-ob-btn kb-ob-second', T('plan.free.go'), () => { S.wantsTeam = false; go('done') }))
+          cards.appendChild(team)
+          cards.appendChild(free)
+          s.appendChild(cards)
           return s
         },
         model: () => {
@@ -36372,6 +36513,33 @@ html.wv2-actif [data-composer-seat]{display:none !important}
             s.appendChild(h('p', 'kb-ob-sub kb-ob-hint', T('k.menu')))
           }
           const kit = curKit()
+          const teams = kit.teams.map((id) => KB_MARKET_TEAMS.find((t) => t.id === id)).filter((t) => t !== undefined)
+          // First run: the display mode as one row (it follows the field), the kit as one line whose list is one tap away.
+          if (!S.kitOnly) {
+            if (S.mode === null) S.mode = 'bureau'
+            const dr = h('div', 'kb-ob-rw')
+            dr.appendChild(h('span', 'kb-ob-rl', T('fin.mode')))
+            const seg = h('div', 'kb-ob-seg')
+            seg.setAttribute('role', 'radiogroup')
+            for (const id of KB_OB_MODES) {
+              const b = h('button', S.mode === id ? 'on' : null, T('mode.' + id + '.t'))
+              b.type = 'button'
+              b.setAttribute('role', 'radio')
+              b.setAttribute('aria-checked', S.mode === id ? 'true' : 'false')
+              b.title = T('mode.' + id + '.d')
+              b.addEventListener('click', () => { S.mode = id; S.modeTouched = true; render(false) })
+              seg.appendChild(b)
+            }
+            dr.appendChild(seg)
+            s.appendChild(dr)
+            const sumBtn = h('button', 'kb-ob-sumrow')
+            sumBtn.type = 'button'
+            sumBtn.setAttribute('aria-expanded', S.kitOpen ? 'true' : 'false')
+            sumBtn.appendChild(h('span', null, T('k.sum', { a: kit.skills.length, b: teams.length, c: kit.autos.length })))
+            sumBtn.appendChild(h('span', 'kb-ob-sumtg', S.kitOpen ? T('k.sum.close') : T('k.sum.open')))
+            sumBtn.addEventListener('click', () => { S.kitOpen = !S.kitOpen; render(false) })
+            s.appendChild(sumBtn)
+          }
           const have = S.kitInstalled
           const sel = kitSelection()
           const busy = S.kitBusy !== null
@@ -36403,11 +36571,11 @@ html.wv2-actif [data-composer-seat]{display:none !important}
             hd.appendChild(h('em', null, String(n)))
             return hd
           }
+          if (S.kitOnly || S.kitOpen) {
           const sk = h('div', 'kb-ob-kitbox')
           sk.appendChild(group('k.skills', kit.skills.length))
           for (const x of kit.skills) sk.appendChild(kitRow('s:' + x.name, x.name, kbObSkillText(S.lang, x), x.source === 'kybernos' ? T('k.src.kb') : T('k.src', { src: x.source }), { done: have !== null && have.skills.indexOf(x.name) >= 0 }))
           s.appendChild(sk)
-          const teams = kit.teams.map((id) => KB_MARKET_TEAMS.find((t) => t.id === id)).filter((t) => t !== undefined)
           if (teams.length > 0 || kit.soon.length > 0) {
             const tb = h('div', 'kb-ob-kitbox')
             tb.appendChild(group('k.teams', teams.length + kit.soon.length))
@@ -36424,6 +36592,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
           }
           if (kit.skills.length === 0 && teams.length === 0 && kit.autos.length === 0 && kit.soon.length === 0) s.appendChild(h('p', 'kb-ob-sub', S.kitOnly && S.domain === null ? T('k.pick') : T('k.empty')))
           s.appendChild(note(T('k.note'), 'info'))
+          }
           if (S.kitDone) {
             const st = h('div', 'kb-ob-state' + (S.kitFailed > 0 ? ' err' : ' ok'))
             st.appendChild(icon(IC.check, 18))
@@ -36435,7 +36604,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
           if (S.kitOnly && S.kitDone) {
             a.appendChild(primary(T('close'), () => finish()))
           } else {
-            a.appendChild(button('kb-ob-ghost', S.kitOnly ? T('close') : T('k.skip'), () => { if (S.kitOnly) finish(); else go('done') }))
+            a.appendChild(button('kb-ob-ghost', S.kitOnly ? T('close') : T('k.skip'), () => { if (S.kitOnly) finish(); else afterKit() }))
             const n = sel.size
             const label = busy ? T('k.busy', { i: S.kitBusy.i, n: S.kitBusy.n }) : (n === 0 ? T('k.none') : T('k.add', { n: n }))
             const add = primary(label, () => { kitApply() })
@@ -36672,6 +36841,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
             [T('fin.job'), curPack() !== null ? packName(curPack()) : T('fin.none')],
             [T('fin.goals'), kbObGoalsOf(curPack(), S.goals).length > 0 ? kbObGoalsOf(curPack(), S.goals).map((g) => kbObPackText(S.lang, g.name)).join(', ') : T('fin.none')],
             [T('fin.mode'), S.mode !== null ? T('mode.' + S.mode + '.t') : T('fin.none')],
+            [T('fin.agents'), S.agents !== null ? T('ag.' + S.agents + '.t') : T('fin.none')],
             [T('fin.model'), modelLabel()],
             [T('fin.kit'), S.kitAdded > 0 ? T('fin.kit.n', { n: S.kitAdded }) : T('k.skip')],
           ]))
@@ -36794,9 +36964,20 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         S.machine = init.machine
         S.dark = init.dark === true
         S.domain = typeof init.domain === 'string' ? init.domain : null
+        S.replayDomain = S.domain !== null
         S.goals = Array.isArray(init.goals) ? init.goals.slice() : []
         S.packs = Array.isArray(init.packs) ? init.packs : []
         S.mode = init.mode
+        S.modeTouched = init.mode !== null && init.mode !== undefined
+        S.agents = KB_OB_PRESETS.indexOf(init.agents) >= 0 ? init.agents : null
+        S.agentsTouched = S.agents !== null
+        // a replay shows what was said the last time
+        if (init.about !== null && typeof init.about === 'object') {
+          S.site = typeof init.about.site === 'string' ? init.about.site : ''
+          S.social = typeof init.about.profile === 'string' ? init.about.profile : ''
+          S.words = typeof init.about.words === 'string' ? init.about.words : ''
+          S.aboutSaved = S.site !== '' || S.social !== '' || S.words !== ''
+        }
         S.standalone = init.standalone === true
         S.kitOnly = S.standalone && init.kitOnly === true
         // Settings, Starter kit with a field saved by the previous wizard (no goals): everything the field offers is on offer.
@@ -36916,6 +37097,8 @@ html.wv2-actif [data-composer-seat]{display:none !important}
             goals: Array.isArray(saved.goals) ? saved.goals : [],
             packs: packs,
             mode: known(KB_OB_MODES, saved.uiMode),
+            agents: known(KB_OB_PRESETS, saved.agents),
+            about: saved.about !== undefined && saved.about !== null && typeof saved.about === 'object' ? saved.about : null,
             accountEmail: probe.accountEmail,
             accountModels: probe.accountModels,
             memoryId: typeof saved.memoryId === 'string' ? saved.memoryId : null,
@@ -37053,22 +37236,43 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       '.kb-ob-tile-t{min-width:0;display:flex;flex-direction:column;gap:2px}',
       '.kb-ob-tile-t b{font-size:15px;font-weight:500}',
       '.kb-ob-tile-t small{font-size:12px;line-height:1.35;color:var(--ink3)}',
-      '.kb-ob-nl{display:flex;gap:8px;margin-top:14px}',
-      '.kb-ob-nlin{flex:1;min-width:0;height:48px;padding:0 16px;border-radius:99px;border:1px solid var(--line);background:var(--bg2);color:var(--ink);font:inherit;font-size:14px}',
-      '.kb-ob-nlin:focus{outline:2px solid var(--ob-a,var(--ink));outline-offset:1px;border-color:transparent}',
-      '.kb-ob-nlgo{flex:none;width:48px;height:48px;border-radius:50%;border:0;background:var(--ob-a,var(--ink));color:var(--ob-on,var(--bg));cursor:pointer;display:flex;align-items:center;justify-content:center}',
-      '.kb-ob-nlr{margin:12px 0 0;font-size:14px;color:var(--ink2);min-height:21px}',
+      // the « about you », « agents » and plan steps, and the kit's display row
+      '.kb-ob-fgrp{display:flex;flex-direction:column;gap:6px;margin-top:18px}',
+      '.kb-ob-fgrp label{font-size:14px;font-weight:600;color:var(--ink)}',
+      '.kb-ob-in{width:100%;min-width:0;padding:12px 16px;border-radius:16px;border:1px solid var(--line);background:var(--bg2);color:var(--ink);font:inherit;font-size:14px;line-height:1.45;resize:vertical}',
+      '.kb-ob-in:focus{outline:2px solid var(--ob-a,var(--ink));outline-offset:1px;border-color:transparent}',
+      '.kb-ob-fh{margin:0;font-size:13px;line-height:1.5;color:var(--ink3)}',
+      '.kb-ob-guess{margin:14px 0 0;font-size:14px;color:var(--ink2);min-height:21px}',
+      '.kb-ob-sum{margin-top:16px;padding:13px 16px;border-radius:14px;background:var(--bg2);border:1px solid var(--line);font-size:14px;line-height:1.55;color:var(--ink2)}',
+      '.kb-ob-sum p{margin:0}',
+      '.kb-ob-sum p+p{margin-top:6px}',
+      '.kb-ob-sumd{font-size:13px;color:var(--ink3)}',
+      '.kb-ob-rw{display:flex;align-items:center;gap:14px;margin-top:22px;padding:10px 16px;border-radius:14px;background:var(--bg2);border:1px solid var(--line);font-size:14.5px}',
+      '.kb-ob-rl{font-weight:600;min-width:84px}',
+      '.kb-ob-seg{display:inline-flex;margin-inline-start:auto;padding:3px;border-radius:99px;border:1px solid var(--line);background:var(--bg)}',
+      '.kb-ob-seg button{border:0;background:none;padding:7px 14px;border-radius:99px;font:inherit;font-size:13px;color:var(--ink2);cursor:pointer}',
+      '.kb-ob-seg button.on{background:var(--ob-a,var(--ink));color:var(--ob-on,var(--bg));font-weight:600}',
+      '.kb-ob-sumrow{display:flex;align-items:center;gap:10px;width:100%;margin-top:12px;padding:13px 16px;text-align:start;border-radius:14px;background:var(--bg2);border:1px solid var(--line);color:var(--ink);font:inherit;font-size:14.5px;cursor:pointer}',
+      '.kb-ob-sumtg{margin-inline-start:auto;font-size:13px;color:var(--ink3)}',
+      '.kb-ob-plans{display:grid;grid-template-columns:1fr;gap:14px;margin-top:26px}',
+      '.kb-ob-plan{padding:20px;border-radius:18px;border:1px solid var(--line);background:var(--bg2);display:flex;flex-direction:column;gap:12px}',
+      '.kb-ob-plan.main{border-color:var(--ob-a,var(--ink));box-shadow:0 0 0 3px color-mix(in srgb,var(--ob-a,var(--ink)) 14%,transparent)}',
+      '.kb-ob-plan h2{margin:0;font-size:18px}',
+      '.kb-ob-plan ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px;font-size:14px;color:var(--ink2)}',
+      '.kb-ob-plan li{display:flex;gap:9px;align-items:flex-start}',
+      '.kb-ob-plan li svg{color:var(--green);margin-top:2px;flex:none}',
+      '.kb-ob-plan p{margin:0;font-size:13px;line-height:1.5;color:var(--ink3)}',
       '.kb-ob-adds{display:flex;flex-wrap:wrap;gap:4px 6px;margin-top:5px}',
       '.kb-ob-adds span{font-size:11.5px;color:var(--ink3);padding:1px 8px;border-radius:99px;border:1px solid var(--line)}',
       // the live miniature beside the step
       '.kb-ob-main.kb-ob-split{display:grid;grid-template-columns:minmax(0,520px) minmax(0,1fr);gap:clamp(28px,4.5vw,72px);align-items:start;width:100%;max-width:1480px;margin:0 auto}',
       '.kb-ob-split .kb-ob-step{justify-self:end}',
       '.kb-ob-pv{min-width:0;position:sticky;top:20px;align-self:start}',
-      '.kb-ob-pv-h{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:0 0 10px;font-size:12.5px;color:var(--ink3)}',
+      '.kb-ob-pv-h{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:14px 2px 0;font-size:12.5px;color:var(--ink3)}',
       '.kb-ob-pv-live{display:inline-flex;gap:7px;align-items:center}',
       '.kb-ob-pv-live i{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 0 3px color-mix(in srgb,var(--green) 22%,transparent)}',
       '.kb-ob-pv-name{padding:2px 10px;border-radius:99px;background:var(--ob-a,var(--ink));color:var(--ob-on,var(--bg));font-weight:500}',
-      '.kb-ob-pv-cap{margin:12px 2px 0;font-size:13px;line-height:1.5;color:var(--ink3)}',
+      '.kb-ob-pv-cap{margin:8px 2px 0;font-size:13px;line-height:1.5;color:var(--ink3)}',
       '.kb-ob-pv-box{position:relative;width:100%;aspect-ratio:720/460;overflow:hidden;border:1px solid var(--line);border-radius:16px;background:var(--bg2);box-shadow:0 18px 50px rgba(0,0,0,.12)}',
       '.kb-ob-pw{--pa:var(--ob-a,var(--ink));--pon:var(--ob-on,var(--bg));--pbg:color-mix(in srgb,var(--pa) 4%,var(--bg2));--pside:color-mix(in srgb,var(--pa) 9%,var(--bg));--pline:color-mix(in srgb,var(--pa) 15%,var(--line));',
       'position:absolute;left:0;top:0;width:720px;height:460px;transform-origin:0 0;transform:scale(var(--kb-ob-pvs,1));display:grid;grid-template-columns:168px minmax(0,1fr);direction:ltr;',

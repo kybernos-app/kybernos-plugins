@@ -405,7 +405,7 @@ A full-screen wizard (plain DOM, `KB-OB-*` blocks of `client.js`) opens once on 
 « Replay » button at the top of Kybernos Settings (`kybernos-sessions` fires the window event `kybernos:onboarding`).
 It is a single column in the look of dev.kybernos.app (light or dark, whichever the page behind it is) with the K logo.
 
-- **Screens:** welcome, profession, display mode, **« Which models should Kybernos use? »**, then **a starter kit**.
+- **Screens:** welcome, field (one tap), goals, **« Which models should Kybernos use? »**, about you (a website, a profile, a free word: optional), the agents (three presets), **a starter kit** (the display mode as one row), then the plan (only with an account) and the recap. See `docs/dev/domain-packs.md`.
   Numbered steps: `job`, `mode`, `model`, `kit`. **No step is skipped**, whatever already works: a replay is where an
   account or a key is added later (before, a connected account or a pulled model skipped the model step and with it the
   account offer, so a replay could never create one).

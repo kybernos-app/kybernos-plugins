@@ -16,6 +16,9 @@ export const ROW_IDS = ['kyber', 'dashboards', 'aiteams', 'projects', 'deliverab
 /** The rows a pack may hide: the others are the only door to a page. */
 export const HIDEABLE = ['documents']
 export const LANGS = ['en', 'fr', 'es', 'ar']
+/** The display modes of the wizard (KB_OB_MODES) and the autonomy presets of the agents step: a pack names the ones it starts from. */
+export const MODES = ['bureau', 'code']
+export const PRESETS = ['prudent', 'balanced', 'auto']
 /** The icons the wizard can draw for a field (client.js, KB-OB-UI). */
 export const ICONS = ['cap', 'heart', 'house', 'scales', 'trend', 'bag', 'mega', 'code', 'wand']
 /** The templates of the new-chat page (KB_NC_TEMPLATES): a pack may put some first. */
@@ -63,7 +66,7 @@ const listOf = (v, max, where, errors) => {
 export const validatePack = (raw, fileId) => {
   const errors = []
   if (!plain(raw)) return { ok: false, errors: ['a pack is a JSON object'] }
-  only(raw, ['v', 'id', 'order', 'accent', 'icon', 'name', 'tagline', 'keywords', 'home', 'legacyJobs', 'menu', 'goals'], 'pack', errors)
+  only(raw, ['v', 'id', 'order', 'accent', 'icon', 'name', 'tagline', 'keywords', 'home', 'legacyJobs', 'menu', 'mode', 'agents', 'goals'], 'pack', errors)
   if (raw.v !== FORMAT) errors.push('v: ' + FORMAT + ' expected')
   if (typeof raw.id !== 'string' || !ID_RE.test(raw.id)) errors.push('id: not a valid id')
   else if (raw.id !== fileId) errors.push('id: "' + raw.id + '" is not the file name "' + fileId + '"')
@@ -105,6 +108,19 @@ export const validatePack = (raw, fileId) => {
         if (HIDEABLE.indexOf(k) < 0) errors.push('menu.hide: "' + String(k) + '" cannot be hidden')
         else if (menu.hide.indexOf(k) < 0) menu.hide.push(k)
       }
+    }
+  }
+
+  if (raw.mode !== undefined && MODES.indexOf(raw.mode) < 0) errors.push('mode: one of ' + MODES.join(', '))
+  // How much the agents may do alone, by default, in this field, and why (one sentence the wizard shows under the choice).
+  const agents = { preset: 'balanced', why: null }
+  if (raw.agents !== undefined) {
+    if (!plain(raw.agents)) errors.push('agents: an object')
+    else {
+      only(raw.agents, ['preset', 'why'], 'agents', errors)
+      if (PRESETS.indexOf(raw.agents.preset) < 0) errors.push('agents.preset: one of ' + PRESETS.join(', '))
+      else agents.preset = raw.agents.preset
+      if (raw.agents.why !== undefined) agents.why = textOf(raw.agents.why, 'agents.why', errors)
     }
   }
 
@@ -162,7 +178,7 @@ export const validatePack = (raw, fileId) => {
     goals.push(goal)
   })
   if (errors.length > 0) return { ok: false, errors }
-  return { ok: true, pack: { v: FORMAT, id: raw.id, order: raw.order === undefined ? 50 : raw.order, accent: raw.accent, icon: raw.icon, name, tagline, keywords, home, legacyJobs, menu, goals } }
+  return { ok: true, pack: { v: FORMAT, id: raw.id, order: raw.order === undefined ? 50 : raw.order, accent: raw.accent, icon: raw.icon, name, tagline, keywords, home, legacyJobs, menu, mode: raw.mode === undefined ? 'bureau' : raw.mode, agents, goals } }
 }
 
 /** What no single file can see: a legacy job claimed by two packs. Returns the list of problems (empty = fine). */

@@ -68,6 +68,13 @@
       "documents"
     ]
   },
+  "agents": {
+    "preset": "balanced",
+    "why": {
+      "en": "What goes to students or parents is reviewed; the rest is free.",
+      "fr": "Ce qui part vers des élèves ou des parents est relu ; le reste est libre."
+    }
+  },
   "goals": [
     {
       "id": "exams",
