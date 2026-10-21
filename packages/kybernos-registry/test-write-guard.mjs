@@ -5,7 +5,7 @@
 // the right Origin and a forged cookie · the right Origin and the real cookie (the Plugins page). The reads are left as they were.
 //   node packages/kybernos-registry/test-write-guard.mjs
 import assert from 'node:assert/strict'
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { sessionSource } from './session-guard.mjs'
@@ -36,32 +36,46 @@ mod.apply({ get: (n) => (n === 'webServer' ? { register: ({ path, handler }) => 
 mod.ensureRegistry().definePoint({ owner: 'kybernos/core', ownerVersion: '1.0.0', name: 'domain-pack', version: '1.0', kind: 'data', class: 'instruction', validate: () => ({ ok: true, value: {} }) })
 const hit = async (path, method, headers, body) => {
   const r = { status: 0, writeHead(s) { this.status = s }, end() {} }
-  const req = { method, url: path, headers: { host: '127.0.0.1:3080', ...headers }, socket: { localPort: 3080 }, async *[Symbol.asyncIterator]() { if (body !== undefined) yield Buffer.from(JSON.stringify(body)) } }
+  const req = { method, url: path, headers: { host: '127.0.0.1:3080', ...headers }, socket: { localPort: 3080 }, async *[Symbol.asyncIterator]() { if (body !== undefined) yield Buffer.isBuffer(body) ? body : Buffer.from(JSON.stringify(body)) } }
   await registered.get(path.split('?')[0])(req, r)
   return r.status
 }
 
 const WRITES = mod.ROUTES.filter((r) => r.method === 'POST')
-assert.equal(WRITES.length, 1, 'the one write of this bundle is under the rule')
+assert.equal(WRITES.length, 2, 'the two writes of this bundle (consent, import) are under the rule')
 assert.ok(WRITES.every((r) => r.session === true), 'every POST route is marked session: true')
 assert.ok(mod.ROUTES.filter((r) => r.method === 'GET').every((r) => r.session !== true), 'the reads are not')
 ok('ROUTES: the POST route needs the session, the GET routes do not')
 
+const ARCHIVE = Buffer.concat([Buffer.from([0x1f, 0x8b]), Buffer.alloc(64, 1)])
+const importsDir = join(root, 'dsh', 'kybernos', 'plugin-imports')
 for (const w of WRITES) {
-  const body = { id: 'acme/vet', accepted: true }
-  const send = (headers, b = body) => hit(w.path, 'POST', headers, b)
+  const isImport = w.path.endsWith('/import')
+  const body = isImport ? ARCHIVE : { id: 'acme/vet', accepted: true }
+  const named = isImport ? { 'x-filename': 'acme-vet-1.0.0.tgz' } : {}
+  const send = (headers, b = body) => hit(w.path, 'POST', { ...headers, ...named }, b)
   assert.equal(await send({}), 403, w.path + ': no Origin and no cookie')
   assert.equal(await send({ ...browserHeaders(), origin: 'http://evil.example' }), 403, w.path + ': a foreign Origin, even with the real cookie')
   assert.equal(await send({ origin: 'http://127.0.0.1:3080' }), 401, w.path + ': the right Origin and no cookie')
   assert.equal(await send({ origin: 'http://127.0.0.1:3080', cookie: sessionCookie(undefined, { secret: OTHER_SECRET }) }), 401, w.path + ': the right Origin and a forged cookie')
-  assert.equal(existsSync(stateFile), false, w.path + ': nothing was written by the refused requests')
-  assert.equal(await send(browserHeaders(), { id: 'acme/nobody', accepted: true }), 404, w.path + ': an unknown plugin is 404 even for the real session')
-  assert.equal(await send(browserHeaders(), { id: 'acme/vet' }), 400, w.path + ': a body without `accepted` is 400')
+  assert.equal(existsSync(isImport ? importsDir : stateFile), false, w.path + ': nothing was written by the refused requests')
+  if (isImport) {
+    assert.equal(await send(browserHeaders(), Buffer.from('not an archive, just text of some length to pass the size floor')), 400, w.path + ': text is not a gzip archive')
+    assert.equal(await hit(w.path, 'POST', { ...browserHeaders(), 'x-filename': '../evil.tgz' }, ARCHIVE), 400, w.path + ': a file name that is not plain is refused')
+    assert.equal(await hit(w.path, 'POST', { ...browserHeaders(), 'x-filename': 'run.sh' }, ARCHIVE), 400, w.path + ': only .tgz and .tar.gz')
+    assert.equal(await send(browserHeaders(), Buffer.alloc(8 * 1024 * 1024 + 1, 0)), 413, w.path + ': larger than 8 MB')
+    assert.equal(existsSync(importsDir) && readdirSync(importsDir).length > 0, false, w.path + ': refused archives were not kept')
+  } else {
+    assert.equal(await send(browserHeaders(), { id: 'acme/nobody', accepted: true }), 404, w.path + ': an unknown plugin is 404 even for the real session')
+    assert.equal(await send(browserHeaders(), { id: 'acme/vet' }), 400, w.path + ': a body without `accepted` is 400')
+  }
   assert.equal(await send(browserHeaders()), 200, w.path + ': the right Origin and the real cookie')
-  assert.equal(existsSync(stateFile), true, w.path + ': the real pair wrote the acceptance')
+  assert.equal(existsSync(isImport ? importsDir : stateFile), true, w.path + ': the real pair wrote')
+  if (isImport) assert.equal((statSync(join(importsDir, readdirSync(importsDir)[0])).mode & 0o777), 0o600, w.path + ': the kept archive is private')
   ok(w.path + ': no header 403 · foreign Origin 403 · no cookie 401 · forged cookie 401 · nothing written · the real pair 200')
 }
 assert.equal(await hit('/kybernos-registry/state', 'GET', {}), 200, 'a read needs no header')
+assert.equal(await hit('/kybernos-registry/drafts', 'GET', {}), 200, 'the drafts are a read')
 assert.equal(await hit('/kybernos-registry/state', 'GET', { origin: 'http://evil.example' }), 403, 'a read from a foreign Origin is still refused')
 ok('the reads keep their rule: answered with no header, refused from a foreign Origin')
 

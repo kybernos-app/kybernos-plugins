@@ -231,6 +231,10 @@ page load. DSH's own « Get started » dialog (sign in to a DeepSeek account / a
 (`settings.onboarding` › `deepseek-official`), and `live-page.mjs` still presses its Close cross on an engine that shows it. A chat for a git folder only exists once a first message
 was sent (the turn then fails for lack of a key, which is fine): `check-changes-live.mjs` does both by itself.
 
+`start.sh` hands the sandbox DSH the **real pnpm store** (`pnpm_config_store_dir`, read with the real HOME): the profile is a clone, its dependencies are linked from that store, and without it an install made from the GUI
+(the Suite's Plugins page, DSH's own manager) stops with `ERR_PNPM_UNEXPECTED_STORE` because the sandbox HOME names another store (pnpm 11 reads `pnpm_config_store_dir`, not `npm_config_store_dir`). The store is a content-addressed cache; the real profile is not touched.
+`scripts/check-plugins-live.mjs` is the check that installs, switches and removes plugins through it.
+
 ## The new-chat page: `scripts/check-newchat-live.mjs`
 
 ```bash

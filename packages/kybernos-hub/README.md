@@ -44,6 +44,10 @@ in 7 families. Installed state and switches come from DSH's native plugin manage
 - **Updates.** *Check for updates* asks the signed online catalogue (nothing unsigned is ever shown); a newer suite offers *Update the suite*, which
   installs the whole suite with the lifecycle robot (one restart). A development checkout is updated with git, never by this. See `docs/dev/suite-updates.md`.
 - **Switch.** Saves the intent on the host, then asks the native manager. Base modules cannot be switched.
+- **Plugins.** A sixth tab, shown only when the plugin registry (`kybernos-registry`) answers. It lists the **plugins made by other people** that DSH's manager installed (plain data), as cards or rows with level, kind, price and state,
+  kind chips and « Needs attention », search, a page per plugin (*Description*, *Permissions*, *Compatibility*, details, *Remove*) and **Add a plugin** (GitHub or npm, a folder path or a `.tgz` archive, drafts the AI made with the `plugin-creator`
+  skill, and « Create with AI »; the catalogue is greyed for phase 3). *Read and accept* shows everything a plugin brings before it reaches an agent. The switch, the install and the removal are DSH's own manager (`inspect`, `installBundle`,
+  `removeBundle`, `setBundleEnabled`); the page writes only the person's acceptance. See `docs/dev/plugin-contract.md` (section 14, « The Plugins segment as built »). Code: `construirePlugins` in `client.js`, its pure helpers between `KB-PLUGINS-PURE-BEGIN` and `-END`.
 
 ## Host routes
 
@@ -74,7 +78,7 @@ and a banner offers a confirmed "Restart DSH".
 
 Run `for t in test*.mjs; do node "$t"; done` in this folder: `test-boot-guard.mjs` (verdicts, safe mode),
 `test-host.mjs` (routes, client beacons), `test-suite-host.mjs` (activation, install, routes),
-`test-suite-order.mjs` (order and view helpers), `test-suite-store.mjs` (catalogue sheets, Featured, family filters, the update words and wiring), `test-catalogue-distant.mjs`, `test-telechargement.mjs`, `test-suite-update.mjs` (the signed catalogue and the update). `scripts/test-suite-gui.mjs` renders the real panel in a
+`test-suite-order.mjs` (order and view helpers), `test-suite-store.mjs` (catalogue sheets, Featured, family filters, the update words and wiring), `test-suite-plugins.mjs` (the Plugins tab: helpers, every component drawn in both languages, the page's calls against the registry's routes), `test-catalogue-distant.mjs`, `test-telechargement.mjs`, `test-suite-update.mjs` (the signed catalogue and the update). `scripts/test-suite-gui.mjs` renders the real panel in a
 browser (needs Playwright and React 18; skipped otherwise).
 
 ## Engine fix route

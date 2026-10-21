@@ -301,6 +301,38 @@ console.log('points, and the scan lifetime')
   check('a validator that throws is a refused file, not an error', get(x.registry).extends[0].rejected[0].errors[0] === 'the check itself failed')
 }
 
+console.log('what a plugin brings is readable before it is accepted')
+{
+  const { registry, install } = fresh()
+  install('kybernos-plugin-vet', vetFiles())
+  const before = registry.preview('acme/vet')
+  check('preview shows the checked files of a plugin that is not accepted yet, and contributes nothing', before !== null && before[0].class === 'instruction' && before[0].files[0].value.id === 'vet' && registry.contributions('kybernos/core#domain-pack').length === 0, before)
+  check('preview says what the check refused', (() => { const f = fresh(); const r = f.install('kybernos-plugin-vet', vetFiles()); write(join(r, 'domains', 'bad.json'), { v: 1, id: 'bad', name: { en: 'x' }, cron: '*' }); return f.registry.preview('acme/vet')[0].rejected.some((x) => x.file === 'bad.json') })())
+  check('preview is null for an unknown plugin, an invalid one, and a code plugin', registry.preview('acme/nobody') === null && (() => { const f = fresh(); f.install('kybernos-plugin-vet', { ...vetFiles(), 'package.json': { ...DATA_PKG('kybernos-plugin-vet'), bin: { x: 'x.js' } } }); return f.registry.preview('acme/vet') === null })())
+}
+
+console.log('drafts: what the AI prepared, not installed')
+{
+  const dir = mkdtempSync(join(tmpdir(), 'kb-drafts-'))
+  const draftsDir = join(dir, 'drafts')
+  const f = fresh({ draftsDir })
+  check('no drafts folder gives an empty list', f.registry.drafts().length === 0)
+  const draft = (name, files) => { for (const [rel, data] of Object.entries(files)) write(join(draftsDir, name, rel), data) }
+  draft('cabinet-notes', { ...vetFiles('vet', { id: 'local/cabinet-notes', author: { id: 'local', name: 'Me' } }), 'package.json': DATA_PKG('kybernos-plugin-cabinet-notes') })
+  draft('broken', { 'plugin.json': manifest({ id: 'local/broken', author: { id: 'local', name: 'Me' }, permissions: ['exec'] }), 'package.json': DATA_PKG('kybernos-plugin-broken'), 'cordis.patch.yml': '[]' })
+  draft('not-a-plugin', { 'readme.txt': 'hello' })
+  draft('Bad Name', { 'plugin.json': manifest() })
+  write(join(dir, 'outside', 'plugin.json'), manifest({ id: 'local/out', author: { id: 'local', name: 'Me' } }))
+  symlinkSync(join(dir, 'outside'), join(draftsDir, 'linked'))
+  const list = f.registry.drafts()
+  const ok1 = list.find((d) => d.name === 'cabinet-notes')
+  check('a good draft is listed with the path the installer takes, its id and what it is', ok1?.ok === true && ok1.id === 'local/cabinet-notes' && ok1.path.endsWith('cabinet-notes') && ok1.package === 'kybernos-plugin-cabinet-notes' && ok1.kind === 'data' && ok1.installed === false, ok1)
+  check('a draft that fails the checks is listed with its reasons, so the AI can fix it', list.find((d) => d.name === 'broken')?.ok === false && /permissions/.test(list.find((d) => d.name === 'broken').errors.join()), list.find((d) => d.name === 'broken'))
+  check('a folder that is not a plugin, a bad folder name and a link out of the drafts folder are not listed', list.map((d) => d.name).sort().join() === 'broken,cabinet-notes', list.map((d) => d.name))
+  f.install('kybernos-plugin-cabinet-notes', { ...vetFiles('vet', { id: 'local/cabinet-notes', author: { id: 'local', name: 'Me' } }), 'package.json': DATA_PKG('kybernos-plugin-cabinet-notes') }, { spec: 'file:/x/cabinet-notes' })
+  check('a draft already installed says so', f.registry.drafts().find((d) => d.name === 'cabinet-notes').installed === true)
+}
+
 console.log('what is logged')
 {
   const { install, registry } = fresh()
