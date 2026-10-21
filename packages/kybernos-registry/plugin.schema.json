@@ -1,0 +1,242 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "plugin.schema.json",
+  "title": "Kybernos plugin manifest (plugin.json), contract 1, DRAFT v0",
+  "description": "Specified in docs/dev/plugin-contract.md. Nothing reads this file yet: it is the shape the future validator (scripts/plugin-manifest.mjs) will enforce. Rules a schema cannot say are listed in the contract, section 'Rules beyond the schema'.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract", "id", "kind", "version", "name", "description", "author", "license", "pricing", "requires"],
+  "properties": {
+    "$schema": { "type": "string", "maxLength": 200 },
+    "contract": { "const": 1 },
+    "id": { "$ref": "#/$defs/pluginId" },
+    "kind": { "enum": ["code", "data"] },
+    "version": { "$ref": "#/$defs/semver" },
+    "name": { "$ref": "#/$defs/text40" },
+    "description": { "$ref": "#/$defs/text240" },
+    "details": { "$ref": "#/$defs/text2000" },
+    "icon": {
+      "oneOf": [
+        { "type": "string", "pattern": "^[a-z][a-z0-9-]{1,23}$" },
+        { "type": "string", "pattern": "^(?!/)(?!.*\\.\\.)[A-Za-z0-9._/-]{1,100}\\.(png|webp)$" }
+      ]
+    },
+    "family": { "enum": ["base", "models", "teams", "create", "data", "connect", "cloud"] },
+    "keywords": { "type": "array", "maxItems": 8, "items": { "type": "string", "pattern": "^[a-z0-9][a-z0-9 -]{1,23}$" } },
+    "author": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name"],
+      "properties": {
+        "id": { "$ref": "#/$defs/namespace" },
+        "name": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "url": { "$ref": "#/$defs/httpsUrl" },
+        "contact": { "type": "string", "maxLength": 120 }
+      }
+    },
+    "homepage": { "$ref": "#/$defs/httpsUrl" },
+    "repository": { "$ref": "#/$defs/httpsUrl" },
+    "support": { "$ref": "#/$defs/httpsUrl" },
+    "license": { "type": "string", "maxLength": 120, "pattern": "^[A-Za-z0-9.+-]+( (AND|OR|WITH) [A-Za-z0-9.+-]+)*$" },
+
+    "pricing": { "enum": ["free", "paid"] },
+    "commerce": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["model", "unlocks", "worksWithout"],
+      "properties": {
+        "model": { "enum": ["account", "key"] },
+        "product": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{1,63}$" },
+        "unlocks": { "$ref": "#/$defs/text160" },
+        "worksWithout": { "$ref": "#/$defs/text160" },
+        "key": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["label", "hosts"],
+          "properties": {
+            "label": { "$ref": "#/$defs/text40" },
+            "hosts": { "type": "array", "minItems": 1, "maxItems": 4, "items": { "$ref": "#/$defs/host" } },
+            "getUrl": { "$ref": "#/$defs/httpsUrl" },
+            "format": { "type": "string", "maxLength": 120 }
+          }
+        }
+      }
+    },
+
+    "requires": {
+      "type": "object",
+      "additionalProperties": false,
+      "anyOf": [{ "required": ["dsh"] }, { "required": ["kybernos"] }, { "required": ["plugins"] }],
+      "properties": {
+        "dsh": { "$ref": "#/$defs/dshZone" },
+        "kybernos": { "$ref": "#/$defs/range" },
+        "plugins": { "type": "object", "maxProperties": 16, "propertyNames": { "$ref": "#/$defs/pluginId" }, "additionalProperties": { "$ref": "#/$defs/range" } },
+        "suggests": { "type": "array", "maxItems": 16, "items": { "$ref": "#/$defs/pluginId" } },
+        "platforms": { "type": "array", "minItems": 1, "maxItems": 3, "uniqueItems": true, "items": { "enum": ["mac", "linux", "windows"] } }
+      }
+    },
+    "tested": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "dsh": { "type": "array", "maxItems": 20, "items": { "type": "string", "maxLength": 40 } },
+        "kybernos": { "type": "array", "maxItems": 20, "items": { "type": "string", "maxLength": 40 } }
+      }
+    },
+
+    "provides": { "type": "array", "maxItems": 16, "items": { "$ref": "#/$defs/provided" } },
+    "extends": { "type": "array", "maxItems": 16, "items": { "$ref": "#/$defs/extension" } },
+    "permissions": { "type": "array", "maxItems": 128, "uniqueItems": true, "items": { "$ref": "#/$defs/permission" } },
+
+    "package": { "type": "string", "pattern": "^@local/[a-z0-9][a-z0-9-]{0,63}$" },
+    "entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "host": { "$ref": "#/$defs/relPath" },
+        "client": { "$ref": "#/$defs/relPath" },
+        "extra": { "type": "object", "minProperties": 1, "maxProperties": 8, "propertyNames": { "pattern": "^\\./[a-z][a-z0-9-]{0,31}$" }, "additionalProperties": { "$ref": "#/$defs/relPath" } }
+      },
+      "anyOf": [{ "required": ["host"] }, { "required": ["client"] }, { "required": ["extra"] }]
+    },
+    "claims": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "cssPrefix": { "type": "string", "pattern": "^[a-z]{3,5}$" },
+        "routePrefixes": { "type": "array", "maxItems": 8, "items": { "type": "string", "pattern": "^/[a-z][a-z0-9-]{1,40}(/[a-z][a-z0-9-]{1,40})?$" } },
+        "slotIds": { "type": "array", "maxItems": 8, "items": { "type": "string", "pattern": "^[a-z][a-z0-9-]{1,40}$" } }
+      }
+    },
+    "help": { "$ref": "#/$defs/relPath" },
+    "update": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["catalogue"],
+      "properties": {
+        "catalogue": { "$ref": "#/$defs/httpsUrl" },
+        "auth": { "enum": ["none", "key", "account"] }
+      }
+    },
+    "suite": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "core": { "type": "boolean" },
+        "default": { "enum": ["on", "off"] },
+        "order": { "type": "integer", "minimum": 0, "maximum": 999 },
+        "replaces": { "type": "string", "pattern": "^[a-z][a-z0-9-]{1,63}$" }
+      }
+    }
+  },
+
+  "allOf": [
+    {
+      "if": { "properties": { "pricing": { "const": "paid" } }, "required": ["pricing"] },
+      "then": { "required": ["commerce"] }
+    },
+    {
+      "if": { "properties": { "pricing": { "const": "free" } }, "required": ["pricing"] },
+      "then": { "not": { "required": ["commerce"] } }
+    },
+    {
+      "if": { "required": ["commerce"], "properties": { "commerce": { "properties": { "model": { "const": "key" } }, "required": ["model"] } } },
+      "then": { "properties": { "commerce": { "required": ["key"] } } },
+      "else": { "properties": { "commerce": { "not": { "required": ["key"] } } } }
+    },
+    {
+      "if": { "properties": { "author": { "properties": { "id": { "const": "kybernos" } }, "required": ["id"] } }, "required": ["author"] },
+      "then": { "properties": { "name": { "required": ["fr"] }, "description": { "required": ["fr"] } } }
+    },
+    {
+      "if": { "properties": { "kind": { "const": "code" } }, "required": ["kind"] },
+      "then": {
+        "required": ["package", "entry"],
+        "anyOf": [
+          { "required": ["suite"] },
+          { "required": ["requires"], "properties": { "requires": { "required": ["dsh"] } } }
+        ]
+      }
+    },
+    {
+      "if": { "properties": { "kind": { "const": "data" } }, "required": ["kind"] },
+      "then": {
+        "not": { "anyOf": [{ "required": ["package"] }, { "required": ["entry"] }, { "required": ["claims"] }, { "required": ["suite"] }] },
+        "properties": {
+          "permissions": { "maxItems": 6, "items": { "type": "string", "pattern": "^(net:[a-z0-9.-]{3,80}|secrets\\.own)$" } },
+          "extends": { "minItems": 1, "items": { "required": ["dir"] } }
+        },
+        "required": ["extends"]
+      }
+    }
+  ],
+
+  "$defs": {
+    "semver": { "type": "string", "maxLength": 60, "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?$" },
+    "range": {
+      "type": "string",
+      "maxLength": 120,
+      "description": "Up to four comparators separated by a space, all of which must hold: [^~]x.y.z or one of >= <= > < = then x.y.z. No '||', no wildcards.",
+      "pattern": "^(([\\^~]|[<>]=?|=)?[0-9]+(\\.[0-9]+){0,2}(-[0-9A-Za-z.-]+)?)( (([\\^~]|[<>]=?|=)?[0-9]+(\\.[0-9]+){0,2}(-[0-9A-Za-z.-]+)?)){0,3}$"
+    },
+    "dshZone": {
+      "type": "object",
+      "description": "Same object as dsh-compat.json: inclusive bounds, compared segment by segment (comparerVersions), pre-releases included.",
+      "additionalProperties": false,
+      "required": ["min", "max"],
+      "properties": {
+        "min": { "type": "string", "maxLength": 40, "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+([-.][0-9A-Za-z.-]+)?$" },
+        "max": { "type": "string", "maxLength": 40, "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+([-.][0-9A-Za-z.-]+)?$" }
+      }
+    },
+    "pluginId": { "type": "string", "maxLength": 80, "pattern": "^[a-z][a-z0-9-]{1,31}/[a-z][a-z0-9-]{1,39}$" },
+    "namespace": { "type": "string", "pattern": "^[a-z][a-z0-9-]{1,31}$" },
+    "host": { "type": "string", "maxLength": 80, "pattern": "^(\\*\\.)?[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$" },
+    "httpsUrl": { "type": "string", "maxLength": 300, "pattern": "^https://[^\\s/@]+(/[^\\s]*)?$" },
+    "relPath": { "type": "string", "pattern": "^(?!/)(?!.*\\.\\.)[A-Za-z0-9._/-]{1,120}$" },
+    "textOf": {
+      "type": "object",
+      "minProperties": 1,
+      "maxProperties": 12,
+      "required": ["en"],
+      "propertyNames": { "pattern": "^[a-z]{2}(-[A-Z]{2})?$" }
+    },
+    "text40": { "allOf": [{ "$ref": "#/$defs/textOf" }, { "additionalProperties": { "type": "string", "minLength": 1, "maxLength": 40, "pattern": "^[^<>\\u0000-\\u001f]+$" } }] },
+    "text240": { "allOf": [{ "$ref": "#/$defs/textOf" }, { "additionalProperties": { "type": "string", "minLength": 1, "maxLength": 240, "pattern": "^[^<>\\u0000-\\u001f]+$" } }] },
+    "text160": { "allOf": [{ "$ref": "#/$defs/textOf" }, { "additionalProperties": { "type": "string", "minLength": 1, "maxLength": 160, "pattern": "^[^<>\\u0000-\\u001f]+$" } }] },
+    "text2000": { "allOf": [{ "$ref": "#/$defs/textOf" }, { "additionalProperties": { "type": "string", "minLength": 1, "maxLength": 2000, "pattern": "^[^<>\\u0000-\\u0008\\u000b-\\u001f]+$" } }] },
+    "permission": {
+      "type": "string",
+      "maxLength": 100,
+      "description": "The vocabulary of the contract, section 'Permissions'. A new word is a new contract revision, never a free-form string.",
+      "pattern": "^(ui\\.slot:[a-z][A-Za-z0-9.-]{1,60}|ui\\.dom|host\\.routes:/[a-z][a-z0-9-]{1,40}(/[a-z][a-z0-9-]{1,40})?:(read|write)|fs\\.(read|write):(dsh-home|workspace|home)|net:(localhost|(\\*\\.)?[a-z0-9.-]{3,80})|exec(:[a-z][a-z0-9._-]{0,31})?|secrets\\.own|secrets\\.read|account|agent\\.prompt|agent\\.tools|memory\\.(read|write)|sessions\\.read|engine\\.patch)$"
+    },
+    "provided": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version", "kind"],
+      "if": { "properties": { "kind": { "const": "data" } } },
+      "then": { "required": ["class"] },
+      "else": { "not": { "required": ["class"] } },
+      "properties": {
+        "name": { "type": "string", "pattern": "^[a-z][a-z0-9-]{1,31}$" },
+        "version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+$" },
+        "kind": { "enum": ["data", "code"] },
+        "class": { "enum": ["inert", "instruction"], "description": "data points only: 'instruction' means an agent will follow the text (skills, prompts), see the contract, section 'Two kinds of plugin'." },
+        "summary": { "$ref": "#/$defs/text160" },
+        "schema": { "$ref": "#/$defs/relPath" },
+        "validator": { "const": "builtin", "description": "the owner registers the check in code (the registry's definePoint); exactly one of schema and validator for a data point" }
+      }
+    },
+    "extension": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["point", "range"],
+      "properties": {
+        "point": { "type": "string", "maxLength": 120, "pattern": "^[a-z][a-z0-9-]{1,31}/[a-z][a-z0-9-]{1,39}#[a-z][a-z0-9-]{1,31}$" },
+        "range": { "$ref": "#/$defs/range" },
+        "dir": { "$ref": "#/$defs/relPath" }
+      }
+    }
+  }
+}
