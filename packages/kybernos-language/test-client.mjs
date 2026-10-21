@@ -1137,5 +1137,12 @@ check('the internal read of DSH (dicts) is guarded by a shape test', /instanceof
   check('the French of the page speaks « tu »: no « vous », « votre », « vos »', !/(?<![A-Za-zÀ-ÿ])(vous|votre|vos)(?![A-Za-zÀ-ÿ])/i.test(code), (code.match(/.{30}(?<![A-Za-zÀ-ÿ])(vous|votre|vos)(?![A-Za-zÀ-ÿ]).{20}/i) || [''])[0])
 }
 
+// The count lines (Language page, 2026-10-21): a stored count can exceed the current total after the product's string
+// set changes (« 7 455 of 6 342 texts », at 100 %, next to « Resume translation »). The page clamps it once, and a
+// language that covers its whole set is COMPLETE, so it shows « Use » and never « Resume » with nothing left.
+check('a count never shows more done than there is to do', /const done = total > 0 \? Math\.min\(doneRaw, total\) : doneRaw/.test(SOURCE) && /const doneRaw = isRun \? snap\.done : staticDone/.test(SOURCE))
+check('a language that covers its whole set is complete, whatever the stored meta says', /const complete = isComplete\(id\) \|\| \(total > 0 && done >= total\)/.test(SOURCE))
+check('one label for the use-it-now action, the nuance in the tooltip only', (SOURCE.match(/L\('useNow'\)/g) || []).length === 3 && !/L\('useAnyway'\)/.test(SOURCE) && /title: L\(st === 'partial' \? 'tipUseAnyway' : 'tipUseNow'\)/.test(SOURCE))
+
 console.log('\n' + pass + ' ✓  ' + fail + ' ✗')
 process.exit(fail === 0 ? 0 : 1)
