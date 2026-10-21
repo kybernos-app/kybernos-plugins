@@ -25,6 +25,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { existsSync } from 'node:fs'
+import { writeGuard } from './session-guard.mjs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 // Hosted instance: also accept the authorities declared to DSH with --trusted-host. The core bundle publishes the predicate
@@ -308,6 +309,10 @@ export function monterRoutes (webServerSvc, magasin) {
   webServerSvc.register({ kind: 'exact', path: ROUTE_PUSH, handler: async (req, res) => {
     if (req.method !== 'POST') { res.writeHead(405); res.end('POST only'); return }
     if (!origineOK(req)) { res.writeHead(403); res.end('origin refused'); return }
+    // A-16: a push WRITES the model a panel replays. Its caller is the panel in the person's page (same-origin fetch, so the browser
+    // sends its cookie); the agent's `animer_briques` tool writes the store in-process and never goes through this route.
+    const refus = writeGuard(req)
+    if (refus !== null) { envoyer(res, refus.status, { ok: false, error: refus.error }); return }
     // Recette 2026-10 (M-02) : un POST qui écrit l'état exige du JSON —
     // text/plain multipart etc. sont refusés.
     const ct = String(req.headers['content-type'] || '')

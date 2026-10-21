@@ -14,6 +14,12 @@
 
 import { createServer } from 'node:http'
 import { apply, creerMagasin, optionsOutil, monterRoutes, definitionLiteral, specDefineTool } from './index.js'
+import { sessionSource } from './session-guard.mjs'
+import { SESSION_SECRET, sessionCookie } from './lib-session-test.mjs'
+
+// A-16: /push and /annote need DSH's signed session besides the right Origin. A test is not the attacker here: it plays the page, which
+// fetches same-origin and therefore carries the cookie. The refusal cases below send neither and must stay refused.
+sessionSource.secret = () => SESSION_SECRET
 
 let echecs = 0
 const ok = (label, condition, detail) => {
@@ -63,6 +69,7 @@ const serveur = createServer((req, res) => {
 })
 await new Promise((r) => serveur.listen(0, '127.0.0.1', r))
 const base = `http://127.0.0.1:${serveur.address().port}`
+const PAGE = () => ({ Origin: base, cookie: sessionCookie('127.0.0.1:' + serveur.address().port) })
 
 const lireEtat = async (session) => {
   const u = await fetch(`${base}/kybernos-modeleur/state${session === undefined ? '' : `?session=${session}`}`)
@@ -81,7 +88,7 @@ ok('l\'horloge de pose est dans le passé (le panneau rattrape)',
 const avant = etat.version
 const pousse = await fetch(`${base}/kybernos-modeleur/push`, {
   method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
+  headers: { 'Content-Type': 'application/json', ...PAGE() },
   body: JSON.stringify({ sessionId: 'session-t', espace: '3d', ops: [{ op: 'cyl', cx: 0, cy: 0, z: 0, r: 3, h: 8 }], duree_ms: 4000 }),
 })
 const repPush = await pousse.json()
@@ -97,7 +104,7 @@ ok('modifier à travers un changement d\'espace repart en nouveau', vBasculé.mo
 
 ok('une session inconnue retombe sur la dernière commande',
   (await lireEtat('session-absente')).titre !== undefined)
-ok('un corps illisible est refusé (400), il ne dépose pas de modèle vide', (await fetch(`${base}/kybernos-modeleur/push`, { method: 'POST', body: '{oops' })).status === 400)
+ok('un corps illisible est refusé (400), il ne dépose pas de modèle vide', (await fetch(`${base}/kybernos-modeleur/push`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...PAGE() }, body: '{oops' })).status === 400)
 ok('une méthode non POST est refusée', (await fetch(`${base}/kybernos-modeleur/push`)).status === 405)
 ok('une origine étrangère est refusée',
   (await fetch(`${base}/kybernos-modeleur/state`, { headers: { Origin: 'https://evil.example' } })).status === 403)
@@ -109,7 +116,7 @@ ok('une origine par préfixe est refusée (127.0.0.1.nip.io)',
 // ── 2 bis. les annotations : le pinceau du panneau relu par l'outil ─────────
 const repAnnote = await (await fetch(`${base}/kybernos-modeleur/annote`, {
   method: 'POST',
-  headers: { 'Content-Type': 'application/json', Origin: base },
+  headers: { 'Content-Type': 'application/json', ...PAGE() },
   body: JSON.stringify({ sessionId: 'session-t', strokes: [
     { coul: '#2A6FD6', pts: [[0.1, 0.2], [0.4, 0.5], [1.7, 0.5]] },
     { coul: 'pas-une-couleur', pts: [[0.1, 0.9], [0.3, 0.9]] },
@@ -130,7 +137,7 @@ ok('relire:true renvoie les traits sans redéposer de modèle',
 // type inconnu traités proprement (inconnu → trait, texte vide → écarté)
 const repTypes = await (await fetch(`${base}/kybernos-modeleur/annote`, {
   method: 'POST',
-  headers: { 'Content-Type': 'application/json', Origin: base },
+  headers: { 'Content-Type': 'application/json', ...PAGE() },
   body: JSON.stringify({ sessionId: 'session-t', strokes: [
     { type: 'trait', coul: '#E1502A', pts: [[0.1, 0.1], [0.2, 0.2], [0.3, 0.1]] },
     { type: 'rect', coul: '#2A6FD6', pts: [[0.1, 0.1], [0.5, 0.5], [0.9, 0.9]] },
@@ -167,7 +174,7 @@ ok('un nouveau modèle repart feuille neuve (ann vidée)',
   const sans = await definition.execute({}, { agent: { id: 'session-sans-modele' } })
   ok('with no model to reopen, an empty call still answers ok', sans.ok === true)
   await definition.execute({ espace: '3d', ops: [{ op: 'box', x: 0, y: 0, z: 0, w: 2, d: 2, h: 2 }, { op: 'box', x: 3, y: 0, z: 0, w: 2, d: 2, h: 2 }], titre: 'A garder' }, { agent: { id: SES } })
-  await fetch(`${base}/kybernos-modeleur/annote`, { method: 'POST', headers: { 'Content-Type': 'application/json', Origin: base }, body: JSON.stringify({ sessionId: SES, strokes: [{ coul: '#2A6FD6', pts: [[0.1, 0.2], [0.4, 0.5]] }] }) })
+  await fetch(`${base}/kybernos-modeleur/annote`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...PAGE() }, body: JSON.stringify({ sessionId: SES, strokes: [{ coul: '#2A6FD6', pts: [[0.1, 0.2], [0.4, 0.5]] }] }) })
   const avantR = await lireEtat(SES)
   const r = await definition.execute({}, { agent: { id: SES } })
   const apresR = await lireEtat(SES)
@@ -177,13 +184,13 @@ ok('un nouveau modèle repart feuille neuve (ann vidée)',
   ok('it raises the reopen counter the panel watches', apresR.ouverture === avantR.ouverture + 1, `${avantR.ouverture} → ${apresR.ouverture}`)
   ok('the agent can still read the strokes afterwards', (await definition.execute({ relire: true }, { agent: { id: SES } })).annotations.strokes.length === 1)
   for (const [nom, corps] of [['unreadable', '{oops'], ['an empty object', '{}'], ['null', 'null'], ['a JSON array', '[]'], ['ops that is not an array', '{"ops":"x"}']]) {
-    const rep = await fetch(`${base}/kybernos-modeleur/push`, { method: 'POST', headers: { 'Content-Type': 'application/json', Origin: base }, body: corps })
+    const rep = await fetch(`${base}/kybernos-modeleur/push`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...PAGE() }, body: corps })
     const j = await rep.json()
     ok(`a push with ${nom} → 400 corps_illisible`, rep.status === 400 && j.ok === false && j.raison === 'corps_illisible', `${rep.status} ${JSON.stringify(j)}`)
   }
   const sansSession = await lireEtat()
   ok('...and leaves no empty model behind: the state without a session is still the real one', sansSession.sessionId === SES && sansSession.ops.length === 2, JSON.stringify([sansSession.sessionId, sansSession.ops && sansSession.ops.length]))
-  const bonPush = await fetch(`${base}/kybernos-modeleur/push`, { method: 'POST', headers: { 'Content-Type': 'application/json', Origin: base }, body: JSON.stringify({ sessionId: SES, ops: [{ op: 'box', x: 0, y: 0, z: 0, w: 1, d: 1, h: 1 }] }) })
+  const bonPush = await fetch(`${base}/kybernos-modeleur/push`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...PAGE() }, body: JSON.stringify({ sessionId: SES, ops: [{ op: 'box', x: 0, y: 0, z: 0, w: 1, d: 1, h: 1 }] }) })
   ok('a push with ops still works', bonPush.status === 200 && (await bonPush.json()).ok === true)
 }
 

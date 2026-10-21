@@ -17,6 +17,12 @@ import {
   apply, creerMagasin, optionsOutil, monterRoutes,
   definitionLiteral, specDefineTool, normaliserSlide,
 } from './index.js'
+import { sessionSource } from './session-guard.mjs'
+import { SESSION_SECRET, sessionCookie } from './lib-session-test.mjs'
+
+// A-16: /push needs DSH's signed session besides the right Origin. The test plays the page, which fetches same-origin and so carries the
+// cookie; the refusal cases below send neither and must stay refused.
+sessionSource.secret = () => SESSION_SECRET
 
 let echecs = 0
 const ok = (label, condition, detail) => {
@@ -175,9 +181,10 @@ ok('GET /state d\'une session inconnue ne montre pas le deck d\'une autre sessio
   serveurVide.close()
 }
 
+const PAGE = () => ({ Origin: base, cookie: sessionCookie('127.0.0.1:' + serveur.address().port) })
 const pousser = async (corps, entete) => fetch(`${base}/kybernos-slides/push`, {
   method: 'POST',
-  headers: entete === false ? {} : { 'Content-Type': 'application/json', Origin: base },
+  headers: entete === false ? { ...PAGE() } : { 'Content-Type': 'application/json', ...PAGE() },
   body: typeof corps === 'string' ? corps : JSON.stringify(corps),
 })
 const rAnn = await pousser({
@@ -229,7 +236,7 @@ ok('GET sur /push est refusé', (await fetch(`${base}/kybernos-slides/push`)).st
   ok('L4-03 : un magasin qui lève rend un 500 JSON sur /state (pas un socket coupé)',
     etatLeve.status === 500 && (await etatLeve.json()).ok === false, String(etatLeve.status))
   const pushLeve = await fetch(`${baseLeve}/kybernos-slides/push`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionId: 'x', slides: [{ titre: 'a' }] }),
+    method: 'POST', headers: { 'Content-Type': 'application/json', Origin: baseLeve, cookie: sessionCookie('127.0.0.1:' + serveurLeve.address().port) }, body: JSON.stringify({ sessionId: 'x', slides: [{ titre: 'a' }] }),
   })
   ok('L4-03 : ...et un 500 JSON sur /push', pushLeve.status === 500 && (await pushLeve.json()).raison === 'erreur_hote', String(pushLeve.status))
   serveurLeve.close()

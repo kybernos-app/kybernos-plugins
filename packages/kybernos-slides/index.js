@@ -25,6 +25,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { existsSync } from 'node:fs'
+import { writeGuard } from './session-guard.mjs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 // Hosted instance: also accept the authorities declared to DSH with --trusted-host. The core bundle publishes the predicate
@@ -456,6 +457,10 @@ export function monterRoutes (webServerSvc, magasin) {
   })
 
   route(ROUTE_PUSH, ['POST'], async (req, res) => {
+    // A-16: a push WRITES the deck (and the annotations) a panel replays. Its caller is the panel in the person's page — a same-origin
+    // fetch, so the browser sends its cookie; the agent's tool writes the store in-process and never goes through this route.
+    const refus = writeGuard(req)
+    if (refus !== null) { envoyer(res, refus.status, { ok: false, error: refus.error }); return }
     const corps = await lireCorps(req, CORPS_MAX)
     if (corps && typeof corps === 'object' && (Array.isArray(corps.edits) || (corps.strokes && typeof corps.strokes === 'object'))) {
       const a = magasin.pousserAnnotations(corps)

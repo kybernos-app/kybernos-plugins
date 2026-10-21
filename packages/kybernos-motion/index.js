@@ -1,6 +1,7 @@
 // @local/kybernos-motion, host half: the `creer_motion` tool and the routes the panel talks to.
 // The logic lives in motion-host.mjs (pure, tested); this file only wires DSH services to it.
 import { createHash } from 'node:crypto'
+import { writeGuard } from './session-guard.mjs'
 import { createWriteStream, existsSync, readFileSync } from 'node:fs'
 import * as fsp from 'node:fs/promises'
 import { homedir } from 'node:os'
@@ -237,6 +238,10 @@ export function mountRoutes (webServer, host) {
   }
 
   route('frame', ['POST'], async (req, res) => {
+    // A-16: the panel POSTs the rendered PNG back for the waiting agent: that is a write on the person's disk, so it needs DSH's signed
+    // session on top of the strict Origin. The page answers the agent's own `frame` request, same-origin, so its cookie rides along.
+    const refus = writeGuard(req)
+    if (refus !== null) { send(res, refus.status, { ok: false, error: refus.error }); return }
     const p = q(req)
     const body = await readBody(req, LIMITS.png)
     const r = await host.deliverFrame(str(p.get('session')), str(p.get('id')), new Uint8Array(body))
@@ -245,6 +250,9 @@ export function mountRoutes (webServer, host) {
 
   // An exported video, written next to its scene (artifacts/ is where Creations lists media).
   route('export', ['POST'], async (req, res) => {
+    // A-16: an export WRITES a video file next to the scene: the page sends it after encoding, same-origin, with its cookie.
+    const refus = writeGuard(req)
+    if (refus !== null) { send(res, refus.status, { ok: false, error: refus.error }); return }
     const p = q(req)
     const ext = { mp4: '.mp4', webm: '.webm' }[p.get('format')]
     if (ext === undefined) { send(res, 400, { ok: false, message: 'format must be mp4 or webm.' }); return }
