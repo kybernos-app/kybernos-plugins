@@ -245,7 +245,7 @@
         }
       ],
       "where": {
-        "fr": "Réglages › Modèles",
+        "fr": "Réglages › Models",
         "en": "Settings › Models",
         "page": true
       },
@@ -311,7 +311,7 @@
         }
       ],
       "where": {
-        "fr": "Réglages › Plugins intégrés",
+        "fr": "Réglages › Built-in plugins",
         "en": "Settings › Built-in plugins",
         "page": true
       },
