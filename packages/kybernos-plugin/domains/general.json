@@ -2,6 +2,8 @@
   "v": 1,
   "id": "general",
   "order": 99,
+  "accent": "#68655C",
+  "icon": "wand",
   "name": {
     "en": "Something else",
     "fr": "Autre chose"
@@ -10,6 +12,12 @@
     "en": "Documents, spreadsheets, research",
     "fr": "Documents, tableurs, recherche"
   },
+  "keywords": [],
+  "home": [
+    "doc",
+    "sheet",
+    "slides"
+  ],
   "legacyJobs": [
     "autres"
   ],
@@ -125,6 +133,20 @@
       },
       "teams": [
         "research-desk"
+      ],
+      "automations": [
+        {
+          "id": "weekly-briefing",
+          "name": {
+            "en": "Weekly briefing",
+            "fr": "Point de la semaine"
+          },
+          "prompt": {
+            "en": "Every Friday at 16:00: summarise what I worked on this week from the files of this workspace, in ten lines, and list three things to do next week.",
+            "fr": "Chaque vendredi à 16 h : résume ce sur quoi j’ai travaillé cette semaine à partir des fichiers de ce workspace, en dix lignes, et liste trois choses à faire la semaine prochaine."
+          },
+          "cron": "0 16 * * 5"
+        }
       ],
       "starter": {
         "en": "Research this subject and brief me",

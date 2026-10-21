@@ -77,7 +77,12 @@ const backToTheStartingPoint = async () => {
 
 // The starter kit installs its two teams into DSH's own home (A6-24), where they stay: a second run would find them installed and tick nothing.
 // The sandbox is this check's own, so they are removed before the run and after it.
-const forgetKitTeams = () => { for (const id of ['studencik', 'research-desk']) { try { rmSync(join(dshHome, 'kybers', id), { recursive: true, force: true }) } catch (e) { /* none */ } } try { rmSync(join(dshHome, 'kybers', '.kyber-ui.json'), { force: true }) } catch (e) { /* none */ } }
+const forgetKitTeams = () => { for (const id of ['studencik', 'research-desk']) { try { rmSync(join(dshHome, 'kybers', id), { recursive: true, force: true }) } catch (e) { /* none */ } } try { rmSync(join(dshHome, 'kybers', '.kyber-ui.json'), { force: true }) } catch (e) { /* none */ }
+  // what the kit also made: the skill the plugin ships (and its mark in the seeding record) and the automation, which is a task of the sandbox's own file
+  try { rmSync(join(dshHome, 'skills', 'quiz-builder'), { recursive: true, force: true }) } catch (e) { /* none */ }
+  try { const f = join(dshHome, 'kybernos/seeded-skills.json'); if (existsSync(f)) { const j = JSON.parse(readFileSync(f, 'utf8')); if (j && j.skills) { delete j.skills['quiz-builder']; writeFileSync(f, JSON.stringify(j)) } } } catch (e) { /* none */ }
+  try { const f = join(dshHome, 'kybernos/tasks.json'); if (existsSync(f)) { const t = JSON.parse(readFileSync(f, 'utf8')); if (Array.isArray(t)) writeFileSync(f, JSON.stringify(t.filter((x) => !(x && ['Refresh my revision plan', 'Mettre à jour mon plan de révision'].includes(x.name))), null, 2) + '\n') } } catch (e) { /* none */ }
+}
 forgetKitTeams()
 
 // A fresh install: the sandbox's setup writes the file as done; the wizard opens only when it says otherwise. What the sandbox had is put back at the end.
@@ -397,15 +402,40 @@ try {
   check('Replay reopens the wizard on a connected machine', await replay())
   await goEnglish()
   await press('Get started')
-  check('the field of work is asked, with the nine fields the packs ship', (await h1()) === 'Which field do you work in?' && (await q(`document.querySelectorAll('.kb-ob-chips .kb-ob-chip').length`)) === 9, String(await h1()))
+  check('the field of work is asked, with the nine fields the packs ship as tiles (an icon, a name, what it covers)', (await h1()) === 'Which field do you work in?' && (await q(`document.querySelectorAll('.kb-ob-tiles .kb-ob-tile').length`)) === 9 && (await q(`[...document.querySelectorAll('.kb-ob-tile')].every((t) => t.querySelector('.kb-ob-tile-b svg') && t.querySelector('b').textContent.length > 2 && t.querySelector('small').textContent.length > 8)`)) === true, String(await h1()))
+  const pvName = () => q(`(() => { const n = document.querySelector('.kb-ob-pv-name'); return n && n.style.display !== 'none' ? n.textContent : null })()`)
+  const pvMenu = () => q(`[...document.querySelectorAll('.kb-ob-pv .kb-ob-pw-mi span:last-child')].map((e) => e.textContent.trim())`)
+  check('a live miniature of Kybernos sits beside the step, neutral until a field is shown', (await q(`!!document.querySelector('.kb-ob-split .kb-ob-pv .kb-ob-pw')`)) === true && (await pvName()) === null && (await q(`document.querySelector('.kb-ob').classList.contains('kb-ob-tint')`)) === false)
+  await page.shot(join(shotDir, 'field-neutral.png'))
+  await q(`document.querySelectorAll('.kb-ob-tile')[1].dispatchEvent(new Event('mouseenter'))`)
+  await sleep(300)
+  const tinted = await q(`(() => { const r = document.querySelector('.kb-ob'); return { on: r.classList.contains('kb-ob-tint'), a: r.style.getPropertyValue('--ob-a'), dark: r.classList.contains('kb-ob-dark') } })()`)
+  // the colour of Health is #1B7F76; on a dark page it is made lighter (30 % towards white), so that it reads
+  const healthColour = tinted !== undefined && tinted.dark === true ? '#5fa59f' : '#1b7f76'
+  check('hovering a field shows it at once: the page takes its colour, the miniature its name and its menu wording', tinted !== undefined && tinted.on === true && String(tinted.a).trim().toLowerCase() === healthColour && (await pvName()) === 'Health' && (await pvMenu()).includes('My activity') && (await pvMenu()).includes('Practice team'), JSON.stringify([tinted, await pvName(), await pvMenu()]))
+  check('and the primary button follows the colour', (await q(`getComputedStyle(document.querySelector('[data-kb-ob-primary]')).backgroundColor`)) === (tinted.dark === true ? 'rgb(95, 165, 159)' : 'rgb(27, 127, 118)'))
+  await page.shot(join(shotDir, 'field-hover-health.png'))
+  await q(`document.querySelector('.kb-ob-tiles').dispatchEvent(new Event('mouseleave'))`)
+  await sleep(200)
+  check('leaving the tiles puts the neutral Kybernos back', (await pvName()) === null && (await q(`document.querySelector('.kb-ob').classList.contains('kb-ob-tint')`)) === false)
+  // a sentence finds the field
+  await q(`(() => { const i = document.querySelector('.kb-ob-nlin'); i.value = 'kiné en libéral à Lyon'; document.querySelector('.kb-ob-nl').dispatchEvent(new Event('submit', { cancelable: true })) })()`)
+  await sleep(300)
+  check('a sentence finds the field and says so', /Understood: Health/.test(String(await q(`document.querySelector('.kb-ob-nlr').textContent`))) && (await q(`document.querySelector('.kb-ob-tile.on b').textContent`)) === 'Health')
+  await q(`(() => { const i = document.querySelector('.kb-ob-nlin'); i.value = 'zzzz qqqq'; document.querySelector('.kb-ob-nl').dispatchEvent(new Event('submit', { cancelable: true })) })()`)
+  await sleep(300)
+  check('a sentence that means nothing says so and keeps the field', /No field recognised/.test(String(await q(`document.querySelector('.kb-ob-nlr').textContent`))) && (await q(`document.querySelector('.kb-ob-tile.on b').textContent`)) === 'Health')
   await press('Education')
-  check('the field can be chosen in a replay', (await q(`document.querySelector('.kb-ob-chip.on').textContent`)) === 'Education')
+  check('the field can be chosen in a replay', (await q(`document.querySelector('.kb-ob-tile.on b').textContent`)) === 'Education')
   await press('Continue')
   check('the goals of that field come next, none ticked, and Continue waits for one', (await seen('What do you want Kybernos to do for you?')) !== null && (await q(`document.querySelectorAll('.kb-ob-rows .kb-ob-row').length`)) === 5 && (await q(`document.querySelectorAll('.kb-ob-rows .kb-ob-row.on').length`)) === 0 && (await q(`document.querySelector('[data-kb-ob-primary]').disabled`)) === true)
-  check('the goals are checkboxes', (await q(`[...document.querySelectorAll('.kb-ob-rows .kb-ob-row')].every((b) => b.getAttribute('role') === 'checkbox')`)) === true)
+  check('the goals are checkboxes, each saying what it adds', (await q(`[...document.querySelectorAll('.kb-ob-rows .kb-ob-row')].every((b) => b.getAttribute('role') === 'checkbox' && b.querySelector('.kb-ob-adds span'))`)) === true)
+  check('the first goal says what it adds: skills, an automation, a team', /2 skills.*1 automation.*team Studencik/.test(String(await q(`document.querySelector('.kb-ob-rows .kb-ob-row .kb-ob-adds').textContent`))), String(await q(`document.querySelector('.kb-ob-rows .kb-ob-row .kb-ob-adds').textContent`)))
+  check('the miniature shows the example of the field before a goal is ticked', (await q(`document.querySelectorAll('.kb-ob-pv .kb-ob-pw-sc:not(.empty)').length`)) === 2)
   await press('Pass my exams')
   await press('Understand my courses')
   check('two goals ticked, Continue is there', (await q(`document.querySelectorAll('.kb-ob-rows .kb-ob-row.on').length`)) === 2 && (await q(`document.querySelector('[data-kb-ob-primary]').disabled`)) === false)
+  check('the miniature follows the ticks: their first questions, their skills, their automation, their team', (await q(`document.querySelectorAll('.kb-ob-pv .kb-ob-pw-sc:not(.empty)').length`)) === 2 && (await q(`[...document.querySelectorAll('.kb-ob-pv .kb-ob-pw-skl span')].map((e) => e.textContent).join()`)).includes('study-plan') && /Refresh my revision plan/.test(String(await q(`document.querySelector('.kb-ob-pv').textContent`))) && /Studencik/.test(String(await q(`document.querySelector('.kb-ob-pv').textContent`))))
   await page.shot(join(shotDir, 'goals.png'))
   await press('Continue')
   await press('Continue')
@@ -422,21 +452,29 @@ try {
   check('the kit has read what is installed before it is looked at', kitLoaded !== null)
   const kitRows = await q(`[...document.querySelectorAll('.kb-ob-kit')].map((r) => r.querySelector('b').textContent + (r.classList.contains('done') ? ':done' : r.classList.contains('on') ? ':on' : r.classList.contains('soon') ? ':soon' : ':off'))`)
   console.log('     kit rows: ' + JSON.stringify(kitRows))
-  check('what is installed is marked and not ticked again', Array.isArray(kitRows) && kitRows.includes('pdf:done') && kitRows.includes('study-plan:on') && kitRows.includes('flashcards:on') && kitRows.includes('docx:on'), JSON.stringify(kitRows))
+  check('what is installed is marked and not ticked again', Array.isArray(kitRows) && kitRows.includes('pdf:done') && kitRows.includes('study-plan:on') && kitRows.includes('flashcards:on') && kitRows.includes('docx:on') && kitRows.includes('quiz-builder:on'), JSON.stringify(kitRows))
+  check('the automation of the goals is offered, ticked, with its schedule, and said to be created off', kitRows.includes('Refresh my revision plan:on') && /Every Sunday at 18:00/.test(String(await q(`document.querySelector('.kb-ob-kitbox:nth-of-type(3)') ? document.body.innerText : document.body.innerText`))) && /switched off/.test(String(await q(`document.querySelector('.kb-ob').innerText`))))
+  check('the skill the plugin ships says so, the others name their repository', /included with Kybernos/.test(String(await q(`document.querySelector('.kb-ob').innerText`))) && /from anthropics\/skills/.test(String(await q(`document.querySelector('.kb-ob').innerText`))))
   check('the teams of the marketplace are offered and ticked', Array.isArray(kitRows) && kitRows.includes('Studencik:on') && kitRows.includes('Research Desk:on'), JSON.stringify(kitRows))
-  check('the primary button counts what is ticked', /^Add 5 selected$/.test(String(await q(`document.querySelector('.kb-ob-primary').textContent`))), String(await q(`document.querySelector('.kb-ob-primary').textContent`)))
+  check('the primary button counts what is ticked', /^Add 7 selected$/.test(String(await q(`document.querySelector('.kb-ob-primary').textContent`))), String(await q(`document.querySelector('.kb-ob-primary').textContent`)))
   await page.shot(join(shotDir, 'starter-kit.png'))
   // untick one, then add: only what is ticked is installed
   await q(`[...document.querySelectorAll('.kb-ob-kit')].find((r) => r.querySelector('b').textContent === 'docx').click()`)
   await sleep(150)
-  check('a skill can be unticked', /^Add 4 selected$/.test(String(await q(`document.querySelector('.kb-ob-primary').textContent`))))
-  await press('Add 4 selected')
+  check('a skill can be unticked', /^Add 6 selected$/.test(String(await q(`document.querySelector('.kb-ob-primary').textContent`))))
+  await press('Add 6 selected')
   check('the recap follows the installation', (await seen('You’re all set', 40000)) !== null, String(await h1()))
   check('the skills went through the Skills page route, with their GitHub source', JSON.stringify(fake.skillInstalls.sort()) === JSON.stringify(['anthropics/claude-for-legal:flashcards', 'anthropics/claude-for-legal:study-plan']), JSON.stringify(fake.skillInstalls))
   const recapText = String(await q(`document.querySelector('.kb-ob-recap').textContent`))
-  check('the recap says what was added, without an error', /Starter kit/.test(recapText) && /4 added/.test(recapText) && (await q(`!document.querySelector('.kb-ob-state.err')`)) === true, recapText)
+  check('the recap says what was added, without an error', /Starter kit/.test(recapText) && /6 added/.test(recapText) && (await q(`!document.querySelector('.kb-ob-state.err')`)) === true, recapText)
   // A6-24: the kit's teams go to DSH's own home; a welcome screen must not add a `kybers/` folder to the project DSH was started in.
   check('the teams of the kit are in DSH\'s own home (~/.dsh/kybers)', read('kybers/studencik/kyber.yml') !== '' && read('kybers/research-desk/kyber.yml') !== '')
+  check('the skill the plugin ships was written into the skills folder by the plugin\'s own route (nothing downloaded)', existsSync(join(dshHome, 'skills', 'quiz-builder', 'SKILL.md')) && /^---\nname: quiz-builder\n/.test(read('skills/quiz-builder/SKILL.md')))
+  fake.skillsInstalled.push('quiz-builder') // the faked skills list stands for the registry: it now holds the file the route wrote
+  const madeTasks = (() => { try { return JSON.parse(read('kybernos/tasks.json')) } catch (e) { return [] } })()
+  const made = madeTasks.find((t) => t && t.name === 'Refresh my revision plan')
+  check('the automation was created switched OFF, on its schedule, asking before it acts, and its prompt names a skill that is installed', made !== undefined && made.active === false && made.schedule.cron === '0 18 * * 0' && made.approvals === 'ask' && /study-plan skill/.test(made.prompt) && made.nextRun === null, JSON.stringify(made))
+  check('and only that one: the kit made no other task', madeTasks.filter((t) => t && /revision|Refresh/i.test(t.name)).length === 1)
   check('and none was written into the project the instance was started in', process.env.KB_WORKTREE === undefined || (!existsSync(join(process.env.KB_WORKTREE, 'kybers/studencik')) && !existsSync(join(process.env.KB_WORKTREE, 'kybers/research-desk'))))
   check('the field, the goals and the display mode were written to memory, once, pinned', fake.memoryBodies.length === 1 && fake.memoryBodies[0].path === '/kybernos-cloud/memory/add' && fake.memoryBodies[0].body.pinned === true && fake.memoryBodies[0].body.kind === 'fact' && /^Field of work: Education\. Wants help with: Exams, Courses\./.test(fake.memoryBodies[0].body.content), JSON.stringify(fake.memoryBodies))
   check('and the recap says so', (await waitFor(page, `document.querySelector('.kb-ob-mem') !== null`, 4000)) === true)
@@ -469,6 +507,8 @@ try {
   await goEnglish()
   await press('Get started'); await press('Continue'); await press('Continue'); await press('Continue'); await press('Keep as is')
   await seen('A starter kit for Education', 8000)
+  const kitDone = await waitFor(page, `[...document.querySelectorAll('.kb-ob-kit')].some((r) => r.querySelector('b').textContent === 'Refresh my revision plan' && r.classList.contains('done'))`, 30000)
+  check('a replay finds the automation, the plugin skill and the teams already made, and ticks only what the person left out (docx)', kitDone !== null && JSON.stringify(await q(`[...document.querySelectorAll('.kb-ob-kit.on b')].map((b) => b.textContent)`)) === JSON.stringify(['docx']) && /^Add 1 selected$/.test(String(await q(`document.querySelector('.kb-ob-primary').textContent`))), String(await q(`[...document.querySelectorAll('.kb-ob-kit')].map((r) => r.querySelector('b').textContent + ':' + r.className).join(' | ')`)))
   await press('Not now')
   await waitFor(page, `!!document.querySelector('.kb-ob-recap')`, 8000)
   for (let i = 0; i < 40 && fake.memoryBodies.length < 1; i += 1) await sleep(250)
@@ -501,7 +541,7 @@ try {
   const onboardingNow = () => { try { return JSON.parse(read('kybernos/onboarding.json')) } catch (e) { return null } }
   const beforeSwitch = onboardingNow()
   check('it can switch to another field', (await press('Finance')) === true && (await seen('A starter kit for Finance')) !== null)
-  check('the things to come are listed, greyed', (await q(`[...document.querySelectorAll('.kb-ob-kit.soon b')].map((b) => b.textContent).join()`)) === 'Back-office Finance team,Monthly variance report,Late-invoice reminders')
+  check('the things to come are listed, greyed', (await q(`[...document.querySelectorAll('.kb-ob-kit.soon b')].map((b) => b.textContent).join()`)) === 'Back-office Finance team')
   for (let i = 0; i < 40 && (onboardingNow() || {}).profil !== 'fin'; i += 1) await sleep(250)
   const afterSwitch = onboardingNow()
   check('the choice is saved at once (field and all its goals), and nothing else of the file moves',

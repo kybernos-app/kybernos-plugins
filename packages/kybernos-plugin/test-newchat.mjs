@@ -38,6 +38,17 @@ const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_GROUPS, KB_NC_TEMP
   assert.ok(!api.kbNcSlider(['@local/kybernos-dashboards']).some((g) => g.templates.some((t) => t.id === 'slides')), 'a template of another bundle stays hidden')
   assert.ok(api.kbNcTemplates(api.KB_NC_TEMPLATES, ['@local/kybernos-modeleur']).some((t) => t.id === 'model3d'))
   ok('the 13 templates follow the installed bundles, in four chapters (never offered dead)')
+  // The field of work asks for its own templates first: inside a chapter, then the chapters themselves; nothing is added and nothing hidden is shown.
+  const every = ['@local/kybernos-slides', '@local/kybernos-dashboards', '@local/kybernos-motion', '@local/kybernos-miniapps', '@local/kybernos-modeleur']
+  const first = (boot, want) => J(api.kbNcSlider(boot, want).map((g) => g.id + ':' + g.templates.map((t) => t.id).join('/')))
+  assert.deepEqual(first([], undefined), core, 'no wish: the order of every day')
+  assert.deepEqual(first([], []), core)
+  assert.deepEqual(first([], ['automation', 'sheet']), ['auto:automation/team/skill/plugin', 'docs:sheet/doc', 'media:image', 'apps:website'], 'the chapter of the most wanted comes first, and so do the wanted inside a chapter')
+  assert.deepEqual(first(every, ['website', 'plugin', 'automation']), ['apps:website/miniapp/model3d', 'auto:plugin/automation/team/skill', 'docs:slides/doc/sheet/dashboard', 'media:image/video'])
+  assert.deepEqual(first([], ['slides', 'dashboard', 'nope']), core, 'a template this install cannot serve, or that does not exist, changes nothing')
+  assert.deepEqual(first(['@local/kybernos-slides'], ['slides']), ['docs:slides/doc/sheet', 'media:image', 'apps:website', 'auto:automation/team/skill/plugin'])
+  assert.equal(J(api.kbNcSlider(every, ['doc'])).flatMap((g) => g.templates).length, 13, 'the same thirteen, reordered')
+  ok('a field of work puts its templates first (the home page highlights what is its own)')
 }
 
 // 2. every template has its label and its prompt in French and English, a drawing, and the chapter has a name
