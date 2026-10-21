@@ -23832,6 +23832,9 @@ function renderFit(canvas, model, cam, opts){
           if (u === '') return ''
           try {
             const p = new URL(u)
+            // Credentials in the url are refused, as `legalLink` does: a terms link with a user:pass@ is a redirection
+            // trick, not a terms page.
+            if (p.username !== '' || p.password !== '') return ''
             if (p.protocol === 'https:') return u
             return p.protocol === 'http:' && ['127.0.0.1', 'localhost', '[::1]'].indexOf(p.hostname) >= 0 ? u : ''
           } catch (e) { return '' }

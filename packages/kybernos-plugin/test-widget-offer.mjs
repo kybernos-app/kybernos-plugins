@@ -28,9 +28,9 @@ const after = gate < 0 ? '' : SRC.slice(gate, gate + 900)
 check('the composer chip, its styles and the /widget command are mounted only behind the switch', gate > 0 && /KbWidgetChip/.test(after) && /styles\.insert\(KBW_CSS\)/.test(after) && /kbwAssurerSlash\(\)/.test(after))
 check('nothing else mounts the chip or registers /widget', (SRC.match(/KbWidgetChip\)\)/g) || []).length === 1 && (SRC.match(/kbwAssurerSlash\(\)/g) || []).length === 1)
 
-// I-06 (action 10 du bloc 13) : l'écran Légal LIT la route au lieu de la laisser morte. Les conditions que le widget
-// affiche sont celles que le serveur actif publie (`GET /kybernos-cloud/legal` — la route que `legalLink` durcit et que
-// personne n'appelait) ; les deux champs manuels restent la source quand `{ok:false}`.
+// I-06 (action 10 of block 13): the Legal screen READS the route instead of leaving it dead. The terms the widget
+// shows are the ones the active server publishes (`GET /kybernos-cloud/legal` — the route `legalLink` hardens and that
+// nobody called); the two manual fields stay the source when `{ok:false}`, and are never overwritten.
 check('the Legal fields read the active server\'s published terms instead of leaving that route uncalled', /fetch\('\/kybernos-cloud\/legal', \{ cache: 'no-store', credentials: 'same-origin' \}\)/.test(SRC))
 {
   // The order is the claim: the two INPUTS come first, the links after them (compared on the field's own text, not on
