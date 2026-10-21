@@ -35,6 +35,13 @@ const memoryId = (value) => {
   return clean !== null && /^[\x21-\x7e]+$/.test(clean) ? clean : null
 }
 
+/** The goals ticked in the wizard (ids of a domain pack): valid ids only, each once, at most GOALS_MAX. */
+export const GOALS_MAX = 12
+const GOAL_RE = /^[a-z][a-z0-9-]{1,23}$/
+const goalList = (value) => (Array.isArray(value)
+  ? [...new Set(value.filter((g) => typeof g === 'string' && GOAL_RE.test(g)))].slice(0, GOALS_MAX)
+  : [])
+
 /** A model choice from MODEL_CHOICES, or null. */
 const modelChoice = (value) => (typeof value === 'string' && MODEL_CHOICES.indexOf(value) >= 0 ? value : null)
 
@@ -49,6 +56,7 @@ export const defaultState = (now = new Date()) => ({
   model: null,
   lang: null,
   memoryId: null,
+  goals: [],
 })
 
 /** What GET answers: the completion flag already folds the version in. */
@@ -62,6 +70,7 @@ export const publicView = (state) => ({
   model: modelChoice(state.model),
   lang: lang(state.lang),
   memoryId: memoryId(state.memoryId),
+  goals: goalList(state.goals),
 })
 
 /** The person went through (or left) the wizard: record the choices, stamp the date. */
@@ -78,7 +87,15 @@ export const complete = (state, body, now = new Date()) => {
     lang: lang(input.lang),
     // The memory the wizard wrote about the profession: kept across replays so a replay updates it instead of adding another.
     memoryId: memoryId(input.memoryId) || memoryId(state.memoryId),
+    // `profil` is the domain (an id of domains/*.json) and `goals` the ones ticked; a client that sends no `goals` keeps the saved ones.
+    goals: Array.isArray(input.goals) ? goalList(input.goals) : goalList(state.goals),
   }
+}
+
+/** A new domain and goals chosen later (Settings, Starter kit): only those two answers move, the wizard's completion is left as it is. */
+export const chooseDomain = (state, body) => {
+  const input = body !== null && typeof body === 'object' ? body : {}
+  return { ...state, profil: text(input.profil), goals: goalList(input.goals) }
 }
 
 /** « Replay onboarding » in Settings: the next page load opens the wizard again. The old answers stay. */

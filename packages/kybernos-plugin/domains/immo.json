@@ -1,0 +1,219 @@
+{
+  "v": 1,
+  "id": "immo",
+  "order": 30,
+  "name": {
+    "en": "Real estate",
+    "fr": "Immobilier"
+  },
+  "tagline": {
+    "en": "Agents, agencies, property managers",
+    "fr": "Agents, agences, gestionnaires"
+  },
+  "legacyJobs": [],
+  "menu": {
+    "labels": {
+      "dashboards": {
+        "en": "My activity",
+        "fr": "Mon activité"
+      },
+      "aiteams": {
+        "en": "Agency team",
+        "fr": "Équipe agence"
+      },
+      "deliverables": {
+        "en": "Listings and documents",
+        "fr": "Annonces et documents"
+      },
+      "tasks": {
+        "en": "Follow-ups",
+        "fr": "Relances"
+      }
+    },
+    "hide": [
+      "documents"
+    ]
+  },
+  "goals": [
+    {
+      "id": "leads",
+      "name": {
+        "en": "Prospects",
+        "fr": "Prospects"
+      },
+      "title": {
+        "en": "Answer prospects fast",
+        "fr": "Répondre vite aux prospects"
+      },
+      "desc": {
+        "en": "A first reply within the hour",
+        "fr": "Une première réponse en moins d’une heure"
+      },
+      "skills": [
+        {
+          "source": "anthropics/knowledge-work-plugins",
+          "name": "draft-outreach",
+          "d": {
+            "en": "Write outreach people answer",
+            "fr": "Écrit des messages de prospection qui obtiennent une réponse"
+          }
+        }
+      ],
+      "teams": [
+        "inbound-closer"
+      ],
+      "starter": {
+        "en": "Reply to the new prospects",
+        "fr": "Réponds aux nouveaux prospects"
+      }
+    },
+    {
+      "id": "listings",
+      "name": {
+        "en": "Listings",
+        "fr": "Annonces"
+      },
+      "title": {
+        "en": "Write my listings",
+        "fr": "Rédiger mes annonces"
+      },
+      "desc": {
+        "en": "From the property sheet to the listing",
+        "fr": "De la fiche du bien à l’annonce"
+      },
+      "skills": [
+        {
+          "source": "anthropics/knowledge-work-plugins",
+          "name": "content-creation",
+          "d": {
+            "en": "Draft posts, scripts and pages",
+            "fr": "Rédige posts, scripts et pages"
+          }
+        },
+        {
+          "source": "anthropics/skills",
+          "name": "docx",
+          "d": {
+            "en": "Mandates, sale agreements, letters",
+            "fr": "Mandats, compromis, courriers"
+          }
+        }
+      ],
+      "soon": [
+        {
+          "en": "Listing writer",
+          "fr": "Rédacteur d’annonces"
+        }
+      ],
+      "starter": {
+        "en": "Write the listing for this property",
+        "fr": "Rédige l’annonce de ce bien"
+      }
+    },
+    {
+      "id": "visits",
+      "name": {
+        "en": "Visits",
+        "fr": "Visites"
+      },
+      "title": {
+        "en": "Plan my visits",
+        "fr": "Planifier mes visites"
+      },
+      "desc": {
+        "en": "Visits confirmed the day before",
+        "fr": "Des visites confirmées la veille"
+      },
+      "skills": [
+        {
+          "source": "anthropics/skills",
+          "name": "docx",
+          "d": {
+            "en": "Write and format papers",
+            "fr": "Rédige et met en forme tes devoirs"
+          }
+        }
+      ],
+      "soon": [
+        {
+          "en": "Visit confirmations",
+          "fr": "Confirmations de visite"
+        }
+      ],
+      "starter": {
+        "en": "Plan this week’s visits",
+        "fr": "Planifie les visites de la semaine"
+      }
+    },
+    {
+      "id": "valuation",
+      "name": {
+        "en": "Valuation",
+        "fr": "Estimation"
+      },
+      "title": {
+        "en": "Price and sell right",
+        "fr": "Estimer et vendre au bon prix"
+      },
+      "desc": {
+        "en": "Comparables and an argued price",
+        "fr": "Des comparables et un prix argumenté"
+      },
+      "skills": [
+        {
+          "source": "anthropics/skills",
+          "name": "xlsx",
+          "d": {
+            "en": "Track money and pipeline",
+            "fr": "Suit l’argent et le pipeline"
+          }
+        }
+      ],
+      "soon": [
+        {
+          "en": "Valuation from comparables",
+          "fr": "Estimation à partir de comparables"
+        }
+      ],
+      "starter": {
+        "en": "Value this property with comparables",
+        "fr": "Estime ce bien avec des comparables"
+      }
+    },
+    {
+      "id": "tenants",
+      "name": {
+        "en": "Tenants",
+        "fr": "Locataires"
+      },
+      "title": {
+        "en": "Follow my tenants",
+        "fr": "Suivre mes locataires"
+      },
+      "desc": {
+        "en": "Rents, reminders and works",
+        "fr": "Loyers, relances et travaux"
+      },
+      "skills": [
+        {
+          "source": "anthropics/skills",
+          "name": "docx",
+          "d": {
+            "en": "Write and format papers",
+            "fr": "Rédige et met en forme tes devoirs"
+          }
+        }
+      ],
+      "soon": [
+        {
+          "en": "Rent reminders",
+          "fr": "Relances de loyers"
+        }
+      ],
+      "starter": {
+        "en": "Prepare the reminder for unpaid rents",
+        "fr": "Prépare la relance des loyers impayés"
+      }
+    }
+  ]
+}
