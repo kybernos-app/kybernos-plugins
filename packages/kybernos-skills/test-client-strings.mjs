@@ -84,14 +84,23 @@ assert.deepEqual([...outsideTeam.matchAll(/\berror: '[a-z_]+' \+/g)].map((m) => 
 // Codes the host builds without writing `error: '…'` (a ternary, a thrown word): named here, and checked to be in the source.
 const built = ['timeout', 'network_unavailable', 'not_github', 'body_too_large']
 for (const w of built) assert.ok(host.includes("'" + w + "'"), w + ' is no longer in the host: drop it from this list')
-const codes = new Set([...literal, ...built])
+// The learned-skills half (learned.mjs) answers in codes too, and its journal has families of words built at run time.
+const learnedHost = readFileSync(join(here, 'learned.mjs'), 'utf8')
+const learnedCodes = [...learnedHost.matchAll(/\berror: '([a-z_]+)'/g)].map((m) => m[1])
+assert.ok(learnedCodes.length >= 8, 'the codes of learned.mjs were read (' + learnedCodes.length + ')')
+for (const w of learnedHost.matchAll(/'(edited_before_accepting|taken_back|folder_gone)'/g)) assert.ok(dict.has('ln.j.note.' + w[1]), 'no sentence for the journal note ' + w[1])
+for (const a of ['proposed', 'accepted', 'discarded', 'restored', 'reverted', 'expired', 'adopted', 'removed', 'other']) assert.ok(dict.has('ln.j.act.' + a), 'no sentence for the journal act ' + a)
+for (const k of ['ln.j.mode.manual', 'ln.j.mode.legacy', 'ln.j.mode.auto', 'ln.j.by.you', 'ln.j.by.kaby', 'ln.kind.lessons', 'ln.kind.lesson', 'ln.kind.auto']) assert.ok(dict.has(k), 'no sentence for ' + k)
+const actsInHost = [...learnedHost.matchAll(/act: '([a-z]+)'/g)].map((m) => m[1])
+assert.deepEqual(actsInHost.filter((a) => !dict.has('ln.j.act.' + a)), [], 'a journal act the host writes has no sentence')
+const codes = new Set([...literal, ...built, ...learnedCodes])
 // Nobody reads these on the screen: an image route, a method guard of a route the page never gets wrong, a note the page does not show.
 const unseen = new Set(['get_required', 'post_required', 'no_cover', 'cover_unreadable', 'bad_name', 'bad_root', 'bad_path', 'bad_target'])
 const noHe = [...codes].filter((w) => !unseen.has(w) && !dict.has('he.' + w))
 assert.deepEqual(noHe, [], 'host codes with no sentence on the screen: ' + noHe.join(', '))
 const orphan = [...dict.keys()].filter((k) => k.startsWith('he.') && !codes.has(k.slice(3)))
 assert.deepEqual(orphan, [], 'sentences for a code the host never sends: ' + orphan.join(', '))
-ok('the older routes answer in codes (' + codes.size + '), and every one the page can show has a French and an English sentence')
+ok('the routes answer in codes (' + codes.size + ', learned skills included), and every one the page can show has a French and an English sentence; the journal acts, modes and notes are worded too')
 
 // 2. The "Yours" card opens its local sheet (UB-13) without hijacking its inner buttons:
 //    the switch and the star must stop propagation, and the keyboard handler must ignore keys

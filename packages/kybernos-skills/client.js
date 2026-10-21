@@ -92,6 +92,107 @@ window.__ModuleLoader__.load({
       }
       const today = (iso) => { try { return new Date(iso).toLocaleDateString(isEn() ? 'en-GB' : 'fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }) } catch (e) { return '' } }
       const STR = {
+        // ── skills learned from experience (docs/dev/learned-skills.md) ──
+        'ln.cap': { fr: '{n} suggérés par Kaby', en: '{n} suggested by Kaby' },
+        'ln.cap.1': { fr: '1 suggéré par Kaby', en: '1 suggested by Kaby' },
+        'ln.b.title': { fr: '{n} skills suggérés par Kaby', en: '{n} skills suggested by Kaby' },
+        'ln.b.title.1': { fr: '1 skill suggéré par Kaby', en: '1 skill suggested by Kaby' },
+        'ln.b.sub': { fr: 'Appris depuis tes leçons et tes automatisations stables. Rien n’est actif avant que tu acceptes. {max} au plus attendent ici ; un skill que tu laisses {days} jours s’en va, et tu peux le ramener pendant {days} jours.', en: 'Learned from your lessons and your stable automations. Nothing is active until you accept. At most {max} wait here; one you leave alone for {days} days goes away, and you can bring it back for another {days} days.' },
+        'ln.b.hide': { fr: 'Masquer', en: 'Hide' },
+        'ln.b.foot': { fr: 'Accepter copie le skill dans ton dossier de skills, allumé. Il est ensuite à toi : modifie-le, éteins-le ou supprime-le comme les autres.', en: 'Accepting copies the skill to your skills folder, switched on. It is then yours: edit it, switch it off or delete it like any other.' },
+        'ln.b.local': { fr: 'Local, aucun contenu envoyé', en: 'Local, nothing sent' },
+        'ln.b.inactive': { fr: 'Pas encore actif', en: 'Not active yet' },
+        'ln.kind.lessons': { fr: 'Des leçons qui vont ensemble', en: 'Lessons that go together' },
+        'ln.kind.lesson': { fr: 'Une leçon que tu as choisie', en: 'A lesson you chose' },
+        'ln.kind.auto': { fr: 'Une automatisation stable', en: 'A stable automation' },
+        'ln.from.lessons': { fr: '{n} leçons', en: '{n} lessons' },
+        'ln.from.lessons.1': { fr: '1 leçon', en: '1 lesson' },
+        'ln.from.auto': { fr: 'automatisation « {name} », {n} exécutions', en: 'automation “{name}”, {n} runs' },
+        'ln.from.auto.anon': { fr: 'automatisation, {n} exécutions', en: 'automation, {n} runs' },
+        'ln.from.auto.none': { fr: 'automatisation', en: 'automation' },
+        'ln.review': { fr: 'Relire', en: 'Review' },
+        'ln.badge.suggested': { fr: 'Suggéré par Kaby', en: 'Suggested by Kaby' },
+        'ln.badge.learned': { fr: 'Appris', en: 'Learned' },
+        'ln.card.note': { fr: 'Pas actif. Rien ne change tant que tu n’as pas accepté.', en: 'Not active. Nothing changes until you accept.' },
+        'ln.card.from': { fr: 'Appris le {d} · {src}', en: 'Learned {d} · {src}' },
+        'ln.f.origin': { fr: 'Origine', en: 'Origin' },
+        'ln.f.kaby': { fr: 'Suggérés par Kaby', en: 'Suggested by Kaby' },
+        'ln.f.learned': { fr: 'Appris', en: 'Learned' },
+        'ln.f.mine': { fr: 'Les miens', en: 'Mine' },
+        'ln.p.crumb': { fr: 'Suggéré par Kaby', en: 'Suggested by Kaby' },
+        'ln.p.notactive': { fr: 'pas actif', en: 'not active' },
+        'ln.p.local': { fr: 'local seulement', en: 'local only' },
+        'ln.p.why': { fr: 'Pourquoi Kaby le suggère', en: 'Why Kaby suggests it' },
+        'ln.p.why.lessons': { fr: 'Kaby a trouvé {n} de tes leçons qui parlent de la même chose. Ce ne sont pas des doublons, le ménage les garde donc séparées, mais ensemble elles font une liste de contrôle.', en: 'Kaby found {n} of your lessons that are about the same thing. They are not duplicates, so the tidy-up keeps them apart, but together they make a checklist.' },
+        'ln.p.why.lesson': { fr: 'Tu as demandé de faire un skill de cette leçon : c’est un rappel de l’erreur déjà faite, pas une méthode.', en: 'You asked for a skill from this lesson: it is a reminder of the mistake already made, not a method.' },
+        'ln.p.why.auto': { fr: 'L’automatisation « {name} » a tourné {n} fois de suite sans échec.', en: 'The automation “{name}” ran {n} times in a row without a failure.' },
+        'ln.p.when': { fr: 'Quand l’utiliser', en: 'When to use it' },
+        'ln.p.does': { fr: 'Ce qu’il fait', en: 'What it does' },
+        'ln.p.rules': { fr: 'Ajouté à chaque skill appris', en: 'Added to every learned skill' },
+        'ln.p.checks': { fr: 'Contrôles', en: 'Checks' },
+        'ln.p.where': { fr: 'Où il vit', en: 'Where it lives' },
+        'ln.p.where.t': { fr: 'Sur cet ordinateur, dans ton dossier de skills une fois accepté. Il n’est envoyé nulle part.', en: 'On this computer, in your skills folder once accepted. It is never sent anywhere.' },
+        'ln.p.where.s': { fr: 'Sur cet ordinateur seulement, dans ton dossier de skills une fois accepté. Il n’est envoyé nulle part, et le contrôle de confidentialité doit passer.', en: 'On this computer only, in your skills folder once accepted. It is never sent anywhere, and the privacy check must pass.' },
+        'ln.p.editnote': { fr: 'Les contrôles se mettent à jour quand tu enregistres.', en: 'The checks update when you save.' },
+        'ln.p.fix': { fr: 'Remplacer par des repères', en: 'Replace with placeholders' },
+        'ln.c.name': { fr: 'Nom valide', en: 'Valid name' },
+        'ln.c.use_when': { fr: 'Une description « À utiliser quand… »', en: 'A “Use when…” description' },
+        'ln.c.rules': { fr: 'Brouillons seulement, rien d’inventé, la vérification est à toi', en: 'Drafts only, nothing invented, verification is yours' },
+        'ln.c.size': { fr: 'Taille bornée ({size} / {max} caractères)', en: 'Bounded size ({size} / {max} characters)' },
+        'ln.c.copy': { fr: 'Pas une copie d’un skill que tu as', en: 'Not a copy of a skill you have' },
+        'ln.c.copy.warn': { fr: 'Ressemble à « {name} » ({pct} %)', en: 'Looks like “{name}” ({pct} %)' },
+        'ln.c.client_data': { fr: 'Aucune donnée de client trouvée', en: 'No client data found' },
+        'ln.c.client_data.n': { fr: '{n} données de client à retirer', en: '{n} pieces of client data to remove' },
+        'ln.c.client_data.n.1': { fr: '1 donnée de client à retirer', en: '1 piece of client data to remove' },
+        'ln.c.client_data.block': { fr: 'dans ce domaine on ne peut pas accepter tant qu’elles y sont', en: 'in this field it cannot be accepted until they are gone' },
+        'ln.c.client_data.warn': { fr: 'ne bloque pas ici, mais relis', en: 'not blocking here, but read it' },
+        'ln.accept': { fr: 'Accepter', en: 'Accept' },
+        'ln.edit': { fr: 'Modifier', en: 'Edit' },
+        'ln.discard': { fr: 'Écarter', en: 'Discard' },
+        'ln.save': { fr: 'Enregistrer', en: 'Save' },
+        'ln.cancel': { fr: 'Annuler', en: 'Cancel' },
+        'ln.accept.locked': { fr: 'Accepter est verrouillé : retire d’abord les données de client.', en: 'Accept is locked: remove the client data first.' },
+        'ln.accept.note': { fr: 'Rien ne change tant que tu n’as pas accepté.', en: 'Nothing changes until you accept.' },
+        'ln.undo': { fr: 'Annuler', en: 'Undo' },
+        'ln.n.accepted': { fr: '« {name} » est actif.', en: '“{name}” is active.' },
+        'ln.n.undone': { fr: '« {name} » est retiré, la suggestion revient dans la liste.', en: '“{name}” is taken back, the suggestion is in the list again.' },
+        'ln.n.discarded': { fr: '« {name} » écarté. Gardé {days} jours : tu peux le ramener.', en: '“{name}” discarded. Kept {days} days, so you can bring it back.' },
+        'ln.n.restored': { fr: '« {name} » est revenu dans la liste.', en: '“{name}” is back in the list.' },
+        'ln.n.saved': { fr: 'Enregistré. Toujours pas actif.', en: 'Saved. Still not active.' },
+        'ln.j.btn': { fr: 'Journal', en: 'Journal' },
+        'ln.j.title': { fr: 'Journal de Kaby', en: 'Kaby’s journal' },
+        'ln.j.verified': { fr: 'Chaîne vérifiée', en: 'Chain verified' },
+        'ln.j.broken': { fr: 'Chaîne rompue à l’entrée {n}', en: 'Chain broken at entry {n}' },
+        'ln.j.broken.bad': { fr: 'Chaîne rompue : une ligne n’est pas lisible', en: 'Chain broken: a line is unreadable' },
+        'ln.j.entries': { fr: '{n} entrées', en: '{n} entries' },
+        'ln.j.entries.1': { fr: '1 entrée', en: '1 entry' },
+        'ln.j.empty': { fr: 'Rien pour l’instant. Chaque proposition, acceptation, refus et annulation sera notée ici.', en: 'Nothing yet. Every suggestion, acceptance, refusal and undo will be noted here.' },
+        'ln.j.act.proposed': { fr: 'Proposé', en: 'Suggested' },
+        'ln.j.act.accepted': { fr: 'Accepté', en: 'Accepted' },
+        'ln.j.act.discarded': { fr: 'Écarté', en: 'Discarded' },
+        'ln.j.act.restored': { fr: 'Rétabli', en: 'Restored' },
+        'ln.j.act.reverted': { fr: 'Annulé', en: 'Undone' },
+        'ln.j.act.expired': { fr: 'Expiré', en: 'Expired' },
+        'ln.j.act.adopted': { fr: 'Repris', en: 'Adopted' },
+        'ln.j.act.removed': { fr: 'Retiré', en: 'Removed' },
+        'ln.j.act.other': { fr: 'Autre', en: 'Other' },
+        'ln.j.by.you': { fr: 'Toi', en: 'You' },
+        'ln.j.by.kaby': { fr: 'Kaby', en: 'Kaby' },
+        'ln.j.mode.manual': { fr: 'à ton clic', en: 'at your click' },
+        'ln.j.mode.legacy': { fr: 'avant les suggestions', en: 'before suggestions' },
+        'ln.j.mode.auto': { fr: 'automatique', en: 'automatic' },
+        'ln.j.note.edited_before_accepting': { fr: 'modifié avant d’être accepté', en: 'edited before it was accepted' },
+        'ln.j.note.taken_back': { fr: 'skill accepté puis repris', en: 'accepted skill taken back' },
+        'ln.j.note.folder_gone': { fr: 'le dossier du skill n’existe plus', en: 'the skill’s folder is gone' },
+        'ln.j.from': { fr: 'Vient de : {src}', en: 'Came from: {src}' },
+        'ln.j.foot': { fr: 'Fichier en ajout seulement : chaque ligne porte l’empreinte de la précédente, donc une modification ou une suppression au milieu se voit.', en: 'Append-only file: each line carries the hash of the one before, so an edit or a deletion in the middle shows.' },
+        'he.checks_failed': { fr: 'Un contrôle ne passe pas : relis la liste, corrige le texte puis réessaie.', en: 'A check does not pass: read the list, fix the text and try again.' },
+        'he.no_free_name': { fr: 'Aucun nom libre pour ce skill.', en: 'No free name for this skill.' },
+        'he.too_many_pending': { fr: '{max} suggestions attendent déjà : réponds à l’une d’elles d’abord.', en: '{max} suggestions are already waiting: answer one of them first.' },
+        'he.already_proposed': { fr: 'Ces leçons ont déjà donné une suggestion.', en: 'These lessons already made a suggestion.' },
+        'he.no_lessons': { fr: 'Aucune leçon à transformer.', en: 'No lesson to turn into a skill.' },
+        'he.edited_since': { fr: 'Ce skill a été modifié depuis : il est à toi, supprime-le toi-même si tu n’en veux plus.', en: 'This skill was edited since: it is yours, delete it yourself if you no longer want it.' },
+        'he.not_undoable': { fr: 'Ce skill existait avant les suggestions : il ne peut pas être repris ici.', en: 'This skill existed before suggestions: it cannot be taken back here.' },
         'err.unreadable': { fr: 'réponse illisible du serveur', en: 'unreadable server response' },
         'err.noroute': { fr: 'route absente (HTTP {s})', en: 'route missing (HTTP {s})' },
         'err.unexpected': { fr: 'réponse inattendue de /kybernos-skills/{r}', en: 'unexpected response from /kybernos-skills/{r}' },
@@ -591,6 +692,33 @@ window.__ModuleLoader__.load({
           return l === 'kybernos' || l.split(/[-_]/)[0] === 'fr' ? 'fr' : 'en'
         } catch (e) { return 'en' }
       }
+      // ── skills learned from experience (docs/dev/learned-skills.md) ──────────────────────────────────────────────────────────────
+      // Kaby's suggestions wait on the host, in a ledger and not in the skills folder: nothing is active before Accept. The sidebar dot needs their
+      // count whatever page is open, so a light poll starts with the bundle and publishes `window.__KB_LEARNED__` ({ count, subscribe, refresh }),
+      // which the menu (kybernos-plugin) and the lessons page (kybernos-memory) read. A host without the route leaves it at 0.
+      const kbLearnedStore = { n: 0, subs: new Set() }
+      const kbLearnedSet = (n) => {
+        if (kbLearnedStore.n === n) return
+        kbLearnedStore.n = n
+        kbLearnedStore.subs.forEach((f) => { try { f(n) } catch (e) { /* a listener must not break the others */ } })
+      }
+      const kbLearnedPoll = () => fetch('/kybernos-skills/learned', { headers: { accept: 'application/json' } }).then((r) => r.json())
+        .then((j) => { if (j !== null && typeof j === 'object' && j.ok === true && Array.isArray(j.proposals)) kbLearnedSet(j.proposals.length) }).catch(() => null)
+      try {
+        window.__KB_LEARNED__ = { count: () => kbLearnedStore.n, subscribe: (fn) => { kbLearnedStore.subs.add(fn); return () => { kbLearnedStore.subs.delete(fn) } }, refresh: kbLearnedPoll }
+        setTimeout(kbLearnedPoll, 3000)
+        setInterval(kbLearnedPoll, 300000)
+        window.addEventListener('focus', kbLearnedPoll)
+      } catch (e) { /* no window: nothing to publish to */ }
+      const PH = { email: '[email]', phone: '[phone]', date: '[date]', name: '[client]' }
+      /** A text with the client data the host found (`hits`, offsets into description + newline + body) replaced by placeholders; `base` is where `text` starts. */
+      const scrub = (text, hits, base) => {
+        let out = ''
+        let at = 0
+        hits.filter((x) => x.s >= base && x.e <= base + text.length).forEach((x) => { out += text.slice(at, x.s - base) + (PH[x.kind] || '[…]'); at = x.e - base })
+        return out + text.slice(at)
+      }
+
       const isEn = () => tlang() === 'en'
       // Text separator, locale-aware: French ' : ', English ': '.
       const sep = () => (isEn() ? ': ' : ' : ')
@@ -1147,6 +1275,43 @@ body:not([data-ds-dark-theme]) .kbs-root .kb8-pill.warn{color:color-mix(in srgb,
 .kbss-page .kbss-root-row .p{font-family:ui-monospace,monospace;color:var(--dsw-alias-label-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1 1 220px}
 .kbss-page .kbss-kpis{display:flex;align-items:baseline;gap:18px;flex-wrap:wrap;font-size:12.5px;color:var(--dsw-alias-label-secondary)}
 .kbss-page .kbss-kpis .n{font-size:17px;font-weight:600;color:var(--dsw-alias-label-primary)}
+
+/* skills learned from experience */
+.kbs-root .kbl-banner{border:1px solid color-mix(in srgb,var(--dsw-alias-brand-primary) 38%,var(--dsw-alias-border-l1));background:color-mix(in srgb,var(--dsw-alias-brand-primary) 6%,var(--dsw-alias-bg-layer-1));border-radius:16px;margin:0 0 18px;overflow:hidden}
+.kbs-root .kbl-bh{display:flex;align-items:flex-start;gap:12px;padding:15px 18px 11px}
+.kbs-root .kbl-bh h3{margin:0;font-size:15px;font-weight:650;color:var(--dsw-alias-label-primary)}
+.kbs-root .kbl-bh p{margin:3px 0 0;font-size:13px;line-height:1.5;color:var(--dsw-alias-label-secondary);max-width:74ch}
+.kbs-root .kbl-bh .kbs-link{margin-inline-start:auto;white-space:nowrap}
+.kbs-root .kbl-dot{width:9px;height:9px;border-radius:50%;background:var(--dsw-alias-brand-primary);display:inline-block;flex:none;margin-top:6px}
+.kbs-root .kbl-chip .kbl-dot{width:7px;height:7px;margin-top:0}
+.kbs-root .kbl-brow{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1.4fr) minmax(0,1fr) auto;gap:10px 16px;align-items:center;padding:11px 18px;border-top:1px solid color-mix(in srgb,var(--dsw-alias-brand-primary) 18%,var(--dsw-alias-border-l1))}
+.kbs-root .kbl-bname{display:flex;flex-direction:column;gap:5px;align-items:flex-start;min-width:0;font-weight:600;font-size:14px;color:var(--dsw-alias-label-primary);overflow-wrap:anywhere}
+.kbs-root .kbl-bname code{font:12.5px ui-monospace,monospace;font-weight:500}
+.kbs-root .kbl-how{font-size:12.5px;line-height:1.45;color:var(--dsw-alias-label-secondary)}
+.kbs-root .kbl-acts{display:flex;gap:8px;align-items:center;justify-content:flex-end;flex-wrap:wrap}
+.kbs-root .kbl-bfoot{padding:9px 18px 13px;font-size:12.5px;color:var(--dsw-alias-label-caption);border-top:1px solid color-mix(in srgb,var(--dsw-alias-brand-primary) 18%,var(--dsw-alias-border-l1))}
+.kbs-root .kbl-pend{border-style:dashed;border-color:color-mix(in srgb,var(--dsw-alias-brand-primary) 55%,var(--dsw-alias-border-l1));background:color-mix(in srgb,var(--dsw-alias-brand-primary) 4%,var(--dsw-alias-bg-layer-1))}
+.kbs-root .kbl-sug,.kbs-root .kbl-lrn{display:inline-flex;align-items:center;gap:4px;color:var(--dsw-alias-brand-primary);background:color-mix(in srgb,var(--dsw-alias-brand-primary) 13%,transparent)}
+.kbs-root .kbl-from{font-size:12.5px;color:var(--dsw-alias-label-caption)}
+.kbs-root .kbl-chip{display:inline-flex;align-items:center;gap:7px;border:1px solid color-mix(in srgb,var(--dsw-alias-brand-primary) 40%,var(--dsw-alias-border-l1));background:color-mix(in srgb,var(--dsw-alias-brand-primary) 8%,var(--dsw-alias-bg-layer-1));border-radius:99px;padding:6px 13px;font:inherit;font-size:13px;font-weight:500;color:var(--dsw-alias-label-primary);cursor:pointer}
+.kbs-root .kbl-chip.on{background:var(--dsw-alias-label-primary);color:var(--dsw-alias-bg-base);border-color:var(--dsw-alias-label-primary)}
+.kbs-root .kbl-p{margin:0;font-size:13px;line-height:1.55;color:var(--dsw-alias-label-secondary)}
+.kbs-root .kbl-prov{margin:6px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px}
+.kbs-root .kbl-prov li{font-size:12.5px;line-height:1.45;color:var(--dsw-alias-label-secondary);border-inline-start:2px solid color-mix(in srgb,var(--dsw-alias-brand-primary) 50%,var(--dsw-alias-border-l1));padding:2px 0 2px 10px;overflow-wrap:anywhere}
+.kbs-root .kbl-dim{opacity:.7;max-height:130px;border-style:dashed}
+.kbs-root .kbl-flag{background:color-mix(in srgb,var(--dsw-alias-state-error-primary) 18%,transparent);color:var(--dsw-alias-state-error-primary);border-radius:4px;padding:0 2px;font-weight:600}
+.kbs-root .kbl-checks{display:flex;flex-direction:column;gap:7px}
+.kbs-root .kbl-checks div{display:flex;gap:9px;align-items:flex-start;font-size:12.5px;line-height:1.45;color:var(--dsw-alias-label-secondary)}
+.kbs-root .kbl-checks .m{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;flex:none;font-size:11px;font-weight:700;margin-top:1px}
+.kbs-root .kbl-checks .ok .m{background:color-mix(in srgb,var(--dsw-alias-state-success-primary) 16%,transparent);color:var(--dsw-alias-state-success-primary)}
+.kbs-root .kbl-checks .warn .m{background:color-mix(in srgb,var(--dsw-alias-state-warning-primary,#c98a00) 18%,transparent);color:var(--dsw-alias-state-warning-primary,#c98a00)}
+.kbs-root .kbl-checks .bad .m{background:color-mix(in srgb,var(--dsw-alias-state-error-primary) 16%,transparent);color:var(--dsw-alias-state-error-primary)}
+.kbs-root .kbl-jr{border-top:1px solid var(--dsw-alias-border-l1)}
+.kbs-root .kbl-jr>button{width:100%;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:flex-start;border:0;background:none;text-align:start;padding:10px 0;font:inherit;color:inherit;cursor:pointer}
+.kbs-root .kbl-jt{font-size:13px;line-height:1.5;color:var(--dsw-alias-label-primary);overflow-wrap:anywhere}
+.kbs-root .kbl-jt small{display:block;font-size:12px;color:var(--dsw-alias-label-caption)}
+.kbs-root .kbl-jb{padding:0 0 12px;display:flex;flex-direction:column;gap:6px;font-size:12.5px;color:var(--dsw-alias-label-secondary)}
+@media (max-width:900px){.kbs-root .kbl-brow{grid-template-columns:1fr}.kbs-root .kbl-acts{justify-content:flex-start}}
 `
 
       // ── route access ────────────────────────────────────────────────────
@@ -1304,6 +1469,63 @@ body:not([data-ds-dark-theme]) .kbs-root .kb8-pill.warn{color:color-mix(in srgb,
         const alive = React.useRef(true)
 
         React.useEffect(() => () => { alive.current = false }, [])
+
+        // ── skills learned from experience: what Kaby suggests (waiting in a ledger, not active) and what the person accepted ──
+        const [learned, setLearned] = React.useState({ phase: 'loading', proposals: [], learned: [], sensitive: false, rules: [], limits: { maxPending: 5, pendingDays: 30, discardedDays: 30 } })
+        const [originFilter, setOriginFilter] = React.useState('all')            // all | kaby | learned | mine
+        const [review, setReview] = React.useState(null)                          // the suggestion under review: { id, edit, description, body, err }
+        const [journalOpen, setJournalOpen] = React.useState(false)
+        const [lBusy, setLBusy] = React.useState(false)
+        const [lTick, setLTick] = React.useState(0)
+        const [bannerOff, setBannerOff] = React.useState(() => { try { return window.localStorage.getItem('kybernos.skills.learned.banner') === 'off' } catch (e) { return false } })
+        const loadLearned = React.useCallback(() => getJson('/kybernos-skills/learned').then((j) => {
+          if (alive.current !== true) return
+          if (j !== null && typeof j === 'object' && j.ok === true && Array.isArray(j.proposals)) {
+            setLearned({ phase: 'ready', proposals: j.proposals, learned: Array.isArray(j.learned) ? j.learned : [], sensitive: j.sensitive === true, rules: Array.isArray(j.rules) ? j.rules : [], limits: j.limits || { maxPending: 5, pendingDays: 30, discardedDays: 30 } })
+            kbLearnedSet(j.proposals.length)
+            setLTick((n) => n + 1)
+          } else setLearned((p) => ({ ...p, phase: 'absent' }))
+        }).catch(() => { if (alive.current === true) setLearned((p) => ({ ...p, phase: 'absent' })) }), [])
+        React.useEffect(() => { loadLearned() }, [sid])
+        const learnedByName = React.useMemo(() => new Map(learned.learned.map((l) => [l.name, l])), [learned])
+        const fromText = (f) => {
+          if (f === null || typeof f !== 'object') return ''
+          const a = f.automation
+          if (a !== undefined && a !== null) return a.name ? t('ln.from.auto', { name: a.name, n: a.runs || 0 }) : ((a.runs || 0) > 0 ? t('ln.from.auto.anon', { n: a.runs }) : t('ln.from.auto.none'))
+          return Array.isArray(f.lessons) ? t('ln.from.lessons', { n: f.lessons.length }) : ''
+        }
+        // One call to the learned routes: reads the list again on success, says why on a refusal.
+        const learnedAct = (path, body, done) => {
+          setLBusy(true)
+          return postJson('/kybernos-skills/learned/' + path, body).then((j) => {
+            if (alive.current !== true) return j
+            setLBusy(false)
+            if (j !== null && typeof j === 'object' && j.ok === true) { loadLearned(); if (typeof done === 'function') done(j) }
+            else {
+              const text = why(j, t('err.unexpected', { r: 'learned/' + path }))
+              setReview((r) => (r === null ? r : { ...r, err: text }))
+              setNotice({ kind: 'err', text })
+            }
+            return j
+          }).catch(() => { if (alive.current === true) { setLBusy(false); setNotice({ kind: 'err', text: t('err.unavail', { r: 'learned/' + path }) }) } })
+        }
+        const openReview = (p) => { setReview({ id: p.id, edit: false, description: p.description, body: p.body, err: '' }); setLocal(null); setDetail(null); setModal(null); setJournalOpen(false) }
+        const acceptLearned = (p) => {
+          learnedAct('accept', { id: p.id }, (j) => {
+            setReview(null)
+            loadCatalogue()
+            setNotice({ kind: 'ok', text: t('ln.n.accepted', { name: j.name }), undo: () => learnedAct('undo', { name: j.name }, () => { loadCatalogue(); setNotice({ kind: 'ok', text: t('ln.n.undone', { name: j.name }) }) }) })
+          })
+        }
+        const discardLearned = (p) => learnedAct('discard', { id: p.id }, (j) => {
+          setReview(null)
+          setNotice({ kind: 'ok', text: t('ln.n.discarded', { name: j.name, days: learned.limits.discardedDays }), undo: () => learnedAct('restore', { id: p.id }, () => setNotice({ kind: 'ok', text: t('ln.n.restored', { name: j.name }) })) })
+        })
+        const saveLearned = (p) => learnedAct('edit', { id: p.id, description: review.description, body: review.body }, () => { setReview((r) => (r === null ? r : { ...r, edit: false, err: '' })); setNotice({ kind: 'ok', text: t('ln.n.saved') }) })
+        const fixLearned = (p) => {
+          const hits = Array.isArray(p.hits) ? p.hits : []
+          learnedAct('edit', { id: p.id, description: scrub(p.description, hits, 0), body: scrub(p.body, hits, p.description.length + 1) }, () => setReview((r) => (r === null ? r : { ...r, err: '' })))
+        }
 
         // Closing the three popovers (Filters, Sort, Create/Install) on an outside click and
         // on Escape. Without this, an open menu only closed through its own button: you
@@ -1523,7 +1745,7 @@ body:not([data-ds-dark-theme]) .kbs-root .kb8-pill.warn{color:color-mix(in srgb,
 
         React.useEffect(() => {
           if (notice === null) return undefined
-          const t = setTimeout(() => { if (alive.current === true) setNotice(null) }, 4200)
+          const t = setTimeout(() => { if (alive.current === true) setNotice(null) }, typeof notice.undo === 'function' ? 9000 : 4200)
           return () => clearTimeout(t)
         }, [notice])
 
@@ -1546,13 +1768,16 @@ body:not([data-ds-dark-theme]) .kbs-root .kb8-pill.warn{color:color-mix(in srgb,
           if (stateFilter === 'active') list = list.filter((s) => s.active === true)
           if (stateFilter === 'disabled') list = list.filter((s) => s.active !== true)
           if (sourceFilter !== 'all') list = list.filter((s) => s.source === sourceFilter)
+          if (originFilter === 'kaby') list = []
+          if (originFilter === 'learned') list = list.filter((s) => learnedByName.has(s.name))
+          if (originFilter === 'mine') list = list.filter((s) => !learnedByName.has(s.name))
           const copy = list.slice()
           const d = dir.yours, k = sort.yours
           copy.sort((a, b) => k === 'name'
             ? d * String(a.name).localeCompare(String(b.name))
             : d * String(a.modifiedAt || '').localeCompare(String(b.modifiedAt || '')))
           return copy
-        }, [skills, q.yours, stateFilter, sourceFilter, sort.yours, dir.yours])
+        }, [skills, q.yours, stateFilter, sourceFilter, originFilter, learnedByName, sort.yours, dir.yours])
 
         // The three response shapes are reduced to ONE list, so the render only has one case.
         //   index   : { skills, total, hasMore, page }
@@ -1718,14 +1943,14 @@ body:not([data-ds-dark-theme]) .kbs-root .kb8-pill.warn{color:color-mix(in srgb,
 
         const razoirFiltres = () => {
           if (mode === 'discover') { setIview('all-time'); setIper(DISC_PER) }
-          else { setStateFilter('all'); setSourceFilter('all') }
+          else { setStateFilter('all'); setSourceFilter('all'); setOriginFilter('all') }
         }
         // Number of active filters: the state is read on the button (.kb-tool-lab .n), like the
         // "Filters 1" of the pivot. In Discover the view is written in plain text on the button, so only
         // the rows-per-page setting counts here.
         const filtresActifs = () => mode === 'discover'
           ? (iper === DISC_PER ? 0 : 1)
-          : (stateFilter === 'all' ? 0 : 1) + (sourceFilter === 'all' ? 0 : 1)
+          : (stateFilter === 'all' ? 0 : 1) + (sourceFilter === 'all' ? 0 : 1) + (originFilter === 'all' ? 0 : 1)
         const vueLabel = () => { const v = VUES.filter((x) => x[0] === iview)[0]; return v !== undefined ? v[1] : 'All Time' }
         const sortLabel = (isYours) => {
           const k = isYours ? sort.yours : sort.discover
@@ -1764,7 +1989,13 @@ body:not([data-ds-dark-theme]) .kbs-root .kb8-pill.warn{color:color-mix(in srgb,
             h('div', { className: 'kb-filter-row' },
               h('span', { className: 'lbl' }, t('f.root')),
               chip(t('flt.allf'), sourceFilter === 'all', () => setSourceFilter('all')),
-              sources.map((s) => chip(s, sourceFilter === s, () => setSourceFilter(s), s))))
+              sources.map((s) => chip(s, sourceFilter === s, () => setSourceFilter(s), s))),
+            learned.proposals.length + learned.learned.length > 0 ? h('div', { className: 'kb-filter-row' },
+              h('span', { className: 'lbl' }, t('ln.f.origin')),
+              chip(t('flt.allf'), originFilter === 'all', () => setOriginFilter('all'), 'org-all'),
+              chip(t('ln.f.kaby') + ' · ' + learned.proposals.length, originFilter === 'kaby', () => setOriginFilter('kaby'), 'org-kaby'),
+              chip(t('ln.f.learned') + ' · ' + learned.learned.length, originFilter === 'learned', () => setOriginFilter('learned'), 'org-learned'),
+              chip(t('ln.f.mine'), originFilter === 'mine', () => setOriginFilter('mine'), 'org-mine')) : null)
         }
 
         const renderAdd = () => {
@@ -1839,7 +2070,7 @@ body:not([data-ds-dark-theme]) .kbs-root .kb8-pill.warn{color:color-mix(in srgb,
           const on = s.active === true
           const err = errors[k]
           // The card opens its panel on the right: its inner buttons stop the propagation and keep their own action.
-          const pick = () => { setLocal(s); setDetail(null); setModal(null) }
+          const pick = () => { setLocal(s); setDetail(null); setModal(null); setReview(null); setJournalOpen(false) }
           return h('div', {
             key: k, className: 'kb8-card' + (local !== null && skillKey(local) === k ? ' sel' : '') + appear(i), role: 'button', tabIndex: 0,
             'aria-label': s.name + ' — ' + t('cap.detail'), 'data-kb': 'skill-card-' + k,
@@ -1866,7 +2097,9 @@ body:not([data-ds-dark-theme]) .kbs-root .kb8-pill.warn{color:color-mix(in srgb,
             h('div', { className: 'kb8-pills' },
               on ? h('span', { key: 'st', className: 'kb8-pill ok' }, t('card.active')) : h('span', { key: 'st', className: 'kb8-pill warn' }, t('card.disabled')),
               s.collision === true ? h('span', { key: 'co', className: 'kb8-pill warn' }, t('card.dup')) : null,
-              s.writable !== true ? h('span', { key: 'ro', className: 'kb8-pill' }, t('card.noedit')) : null),
+              s.writable !== true ? h('span', { key: 'ro', className: 'kb8-pill' }, t('card.noedit')) : null,
+              learnedByName.has(s.name) ? h('span', { key: 'ln', className: 'kb8-pill kbl-lrn', 'data-kb': 'learned-badge' }, icon('wand', 11), t('ln.badge.learned')) : null),
+            learnedByName.has(s.name) ? h('div', { className: 'kbl-from', 'data-kb': 'learned-from' }, t('ln.card.from', { d: today(learnedByName.get(s.name).acceptedAt), src: fromText(learnedByName.get(s.name).from) })) : null,
             h('div', { className: 'foot' },
               icon('shield', 13),
               h('span', null, s.modifiedAt !== '' ? t('mod.on', { d: today(s.modifiedAt) }) : t('mod.unknown')),
@@ -1876,6 +2109,46 @@ body:not([data-ds-dark-theme]) .kbs-root .kb8-pill.warn{color:color-mix(in srgb,
                 onClick: (e) => { e.stopPropagation(); copy('/' + s.name) }
               }, icon('code', 12), '/' + s.name)),
             err ? h('div', { className: 'kbs-err' }, err) : null)
+        }
+
+        // A suggestion of Kaby as a card in the grid of Yours: dashed, not active, and one button, Review.
+        const pendingCard = (p, i) => h('div', {
+          key: 'sg-' + p.id, className: 'kb8-card kbl-pend' + (review !== null && review.id === p.id ? ' sel' : '') + appear(i), role: 'button', tabIndex: 0,
+          'aria-label': p.name + ' — ' + t('ln.badge.suggested'), 'data-kb': 'learned-card',
+          onClick: () => openReview(p),
+          onKeyDown: (e) => { if (e.target !== e.currentTarget) return; if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openReview(p) } }
+        },
+          h('div', { className: 'kb-row' },
+            tile(p.name, 'pkg'),
+            h('span', { style: { display: 'flex', flexDirection: 'column', minWidth: 0, gap: '2px', flex: '1' } },
+              h('span', { className: 'kb8-name' }, p.name),
+              h('span', { className: 'kb8-parent kbs-nowrap' }, fromText(p.from))),
+            h('button', { type: 'button', className: 'kbs-star-btn', title: t('ln.discard'), 'aria-label': t('ln.discard') + ' ' + p.name, disabled: lBusy, onClick: (e) => { e.stopPropagation(); discardLearned(p) } }, '✕')),
+          h('div', { className: 'desc' }, p.description),
+          h('div', { className: 'kb8-pills' }, h('span', { key: 'sg', className: 'kb8-pill kbl-sug' }, icon('wand', 11), t('ln.badge.suggested')), learned.sensitive ? h('span', { key: 'lo', className: 'kb8-pill' }, t('ln.p.local')) : null),
+          h('div', { className: 'foot' }, h('span', null, t('ln.card.note')), h('span', { className: 'grow' }),
+            h('button', { type: 'button', className: 'kb8-primary', 'data-kb': 'learned-review', onClick: (e) => { e.stopPropagation(); openReview(p) } }, t('ln.review'))))
+        const pendingShown = () => {
+          if ((originFilter !== 'all' && originFilter !== 'kaby') || stateFilter !== 'all' || sourceFilter !== 'all') return []
+          const needle = q.yours.trim().toLowerCase()
+          return needle === '' ? learned.proposals : learned.proposals.filter((p) => p.name.toLowerCase().includes(needle) || p.description.toLowerCase().includes(needle))
+        }
+        // The reminder above the list, as the Automations one: what Kaby suggests, where it comes from, and Review. Hide keeps nothing but this browser's choice.
+        const learnedBanner = () => {
+          const list = learned.proposals
+          if (list.length === 0 || bannerOff === true || originFilter !== 'all') return null
+          const rows = list.map((p) => h('div', { key: 'br-' + p.id, className: 'kbl-brow' },
+            h('div', { className: 'kbl-bname' }, h('code', null, p.name), h('span', { className: 'kb8-pill kbl-sug' }, t('ln.kind.' + (p.kind === 'auto' ? 'auto' : (p.from !== null && typeof p.from === 'object' && Array.isArray(p.from.lessons) && p.from.lessons.length === 1 ? 'lesson' : 'lessons'))))),
+            h('div', { className: 'kbl-how' }, fromText(p.from)),
+            h('div', { className: 'kbl-how' }, learned.sensitive ? icon('lock', 12) : null, learned.sensitive ? ' ' + t('ln.b.local') : t('ln.b.inactive')),
+            h('div', { className: 'kbl-acts' },
+              h('button', { type: 'button', className: 'kb8-ghost', title: t('ln.discard'), 'aria-label': t('ln.discard') + ' ' + p.name, disabled: lBusy, onClick: () => discardLearned(p) }, '✕'),
+              h('button', { type: 'button', className: 'kb8-primary', 'data-kb': 'learned-banner-review', onClick: () => openReview(p) }, t('ln.review')))))
+          return h('section', { className: 'kbl-banner', 'data-kb': 'learned-banner', 'aria-label': t('ln.b.title', { n: list.length }) },
+            h('div', { className: 'kbl-bh' }, h('i', { className: 'kbl-dot' }),
+              h('div', null, h('h3', null, t('ln.b.title', { n: list.length })), h('p', null, t('ln.b.sub', { max: learned.limits.maxPending, days: learned.limits.pendingDays }))),
+              h('button', { type: 'button', className: 'kbs-link', 'data-kb': 'learned-banner-hide', onClick: () => { setBannerOff(true); try { window.localStorage.setItem('kybernos.skills.learned.banner', 'off') } catch (e) { /* a convenience only */ } } }, t('ln.b.hide'))),
+            rows, h('div', { className: 'kbl-bfoot' }, t('ln.b.foot')))
         }
 
         // ── Ranking TABLE ─────────────────────────────────────────────────────
@@ -1955,7 +2228,7 @@ body:not([data-ds-dark-theme]) .kbs-root .kb8-pill.warn{color:color-mix(in srgb,
           const k = skillKey(s)
           const on = s.active === true
           const err = errors[k]
-          const pick = () => { setLocal(s); setDetail(null); setModal(null) }
+          const pick = () => { setLocal(s); setDetail(null); setModal(null); setReview(null); setJournalOpen(false) }
           return h('div', {
             key: k, className: 'kbs-yrow' + (local !== null && skillKey(local) === k ? ' sel' : '') + appear(i), role: 'button', tabIndex: 0,
             'aria-label': s.name + ' — ' + t('cap.detail'), 'data-kb': 'skill-row-' + k,
@@ -1968,7 +2241,8 @@ body:not([data-ds-dark-theme]) .kbs-root .kb8-pill.warn{color:color-mix(in srgb,
             h('span', { className: 'kb8-pills' },
               on ? h('span', { key: 'st', className: 'kb8-pill ok' }, t('card.active')) : h('span', { key: 'st', className: 'kb8-pill warn' }, t('card.disabled')),
               s.collision === true ? h('span', { key: 'co', className: 'kb8-pill warn' }, t('card.dup')) : null,
-              s.writable !== true ? h('span', { key: 'ro', className: 'kb8-pill' }, t('card.noedit')) : null),
+              s.writable !== true ? h('span', { key: 'ro', className: 'kb8-pill' }, t('card.noedit')) : null,
+              learnedByName.has(s.name) ? h('span', { key: 'ln', className: 'kb8-pill kbl-lrn', 'data-kb': 'learned-badge' }, icon('wand', 11), t('ln.badge.learned')) : null),
             h('span', { className: 'when' }, s.modifiedAt !== '' ? today(s.modifiedAt) : ''),
             h('span', { className: 'acts' },
               s.writable === true
@@ -2247,15 +2521,17 @@ body:not([data-ds-dark-theme]) .kbs-root .kb8-pill.warn{color:color-mix(in srgb,
           if (catPhase === 'error') return h('div', { className: 'kb-empty' },
             h('span', { className: 'kb8-name' }, t('y.loadfail')), h('span', { className: 'kb8-parent' }, catError),
             h('button', { type: 'button', className: 'kb8-ghost', onClick: loadCatalogue }, t('y.retry')))
-          if (filtered.length === 0) {
-            return skills.length === 0
+          const pend = pendingShown()
+          if (filtered.length === 0 && pend.length === 0) {
+            return skills.length === 0 && learned.proposals.length === 0
               ? empty(t('y.none'), t('y.nonehint'))
               : empty(t('y.noresult'), t('y.nofilter'))
           }
           return h('div', null,
+            learnedBanner(),
             views.yours === 'list'
-              ? h('div', { className: 'kbs-ylist', 'data-kb': 'yours-list' }, shownYours.map(yourRow))
-              : h('div', { className: 'kb8-grid' }, shownYours.map(yourCard)),
+              ? h('div', null, pend.length > 0 ? h('div', { className: 'kb8-grid', style: { marginBottom: '14px' } }, pend.map(pendingCard)) : null, h('div', { className: 'kbs-ylist', 'data-kb': 'yours-list' }, shownYours.map(yourRow)))
+              : h('div', { className: 'kb8-grid' }, pend.map(pendingCard).concat(shownYours.map(yourCard))),
             pagerYours(shownYours.length, filtered.length))
         }
 
@@ -2449,6 +2725,18 @@ body:not([data-ds-dark-theme]) .kbs-root .kb8-pill.warn{color:color-mix(in srgb,
         }
 
         const renderPanel = () => {
+          if (mode === 'yours' && journalOpen === true) return h(JournalPanel, { tick: lTick, onClose: () => setJournalOpen(false) })
+          if (mode === 'yours' && review !== null) {
+            const p = learned.proposals.find((x) => x.id === review.id)
+            if (p !== undefined) {
+              return h(LearnedPanel, {
+                p, st: review, sensitive: learned.sensitive, rules: learned.rules, busy: lBusy, err: review.err,
+                onClose: () => setReview(null), onEdit: () => setReview((r) => ({ ...r, edit: true, description: p.description, body: p.body, err: '' })),
+                onCancel: () => setReview((r) => ({ ...r, edit: false, err: '' })), onChange: (patch) => setReview((r) => ({ ...r, ...patch })),
+                onSave: () => saveLearned(p), onAccept: () => acceptLearned(p), onDiscard: () => discardLearned(p), onFix: () => fixLearned(p)
+              })
+            }
+          }
           if (mode === 'yours' && local !== null) {
             const s = skills.find((x) => skillKey(x) === skillKey(local)) || local
             return h(SkillPanel, {
@@ -2554,7 +2842,7 @@ body:not([data-ds-dark-theme]) .kbs-root .kb8-pill.warn{color:color-mix(in srgb,
         const capTxt = mode === 'featured'
           ? t('cap.featured')
           : mode === 'yours'
-          ? t('cap.yours', { a: activeCount, n: skills.length })
+          ? t('cap.yours', { a: activeCount, n: skills.length }) + (learned.proposals.length > 0 ? ' · ' + t('ln.cap', { n: learned.proposals.length }) : '')
           : (mode === 'team' ? (tsum.phase === 'ready' ? t('cap.team', { ws: tsum.workspaceName || '…' }) : t('cap.teamLocked')) : (discKind === 'search' ? t('cap.search') : t('cap.rank')))
         // The shared bar (search, filter, order, and the primary action as its trailing item) sits in the header row, where Agent
         // Teams, Creations, Automations, Workspaces and Connectors put it. The page receives it as props from kybernos-plugin (a
@@ -2571,6 +2859,7 @@ body:not([data-ds-dark-theme]) .kbs-root .kb8-pill.warn{color:color-mix(in srgb,
           const types = []
           if (stateFilter !== 'all') types.push('st:' + stateFilter)
           if (sourceFilter !== 'all') types.push('src:' + sourceFilter)
+          if (originFilter !== 'all') types.push('org:' + originFilter)
           return { query: q[mode], sort: sort.yours, dir: dir.yours === -1 ? 'desc' : 'asc', types: mode === 'yours' ? types : [], period: 'all', fav: false, viewMode: views.yours }
         }
         // The bar's changes go to the page's own setters. The two filter groups of Yours (state, source) and the rows of Discover are
@@ -2615,13 +2904,15 @@ body:not([data-ds-dark-theme]) .kbs-root .kb8-pill.warn{color:color-mix(in srgb,
             const cur = barState().types
             let st = stateFilter
             let so = sourceFilter
-            for (const x of cur) if (patch.types.indexOf(x) < 0) { if (String(x).startsWith('st:')) st = 'all'; else so = 'all' }
+            let og = originFilter
+            for (const x of cur) if (patch.types.indexOf(x) < 0) { if (String(x).startsWith('st:')) st = 'all'; else if (String(x).startsWith('org:')) og = 'all'; else so = 'all' }
             for (const x of patch.types) {
               if (cur.indexOf(x) >= 0) continue
               if (String(x).startsWith('st:')) st = String(x).slice(3)
+              else if (String(x).startsWith('org:')) og = String(x).slice(4)
               else if (String(x).startsWith('src:')) so = String(x).slice(4)
             }
-            setStateFilter(st); setSourceFilter(so)
+            setStateFilter(st); setSourceFilter(so); setOriginFilter(og)
           }
         }
         const barSorts = () => (mode === 'featured'
@@ -2634,11 +2925,14 @@ body:not([data-ds-dark-theme]) .kbs-root .kb8-pill.warn{color:color-mix(in srgb,
           : mode === 'discover'
           ? { type: { options: [DISC_PER, 50, 100, 250].map((n) => ({ id: 'rows:' + n, label: t('flt.rows') + ': ' + n })) } }
           : { type: { options: [{ id: 'st:active', label: t('card.active'), count: activeCount }, { id: 'st:disabled', label: t('card.disabled'), count: skills.length - activeCount }]
-            .concat(sources.map((s) => ({ id: 'src:' + s, label: s, count: skills.filter((x) => x.source === s).length }))) } })
+            .concat(sources.map((s) => ({ id: 'src:' + s, label: s, count: skills.filter((x) => x.source === s).length })))
+            .concat(learned.proposals.length > 0 ? [{ id: 'org:kaby', label: t('ln.f.kaby'), count: learned.proposals.length }] : [])
+            .concat(learned.learned.length > 0 ? [{ id: 'org:learned', label: t('ln.f.learned'), count: learned.learned.length }] : []) } })
         const teamBarShown = mode === 'team' && tsum.phase === 'ready' && teamOpen === null
         const barShown = KbBar !== null && (mode === 'discover' || (mode === 'featured' && picks.phase === 'ready') || (mode === 'yours' && skills.length > 0) || teamBarShown)
         const teamAction = primary(teamRoleAdmin(tsum.role) ? t('tm.add') : t('tm.propose'), () => setTeamSheet(true), 'plus')
-        const headAction = mode === 'team' ? (teamBarShown ? teamAction : null) : renderAdd()
+        const journalBtn = mode === 'yours' && learned.phase === 'ready' ? h('button', { type: 'button', className: 'kb8-ghost', 'data-kb': 'learned-journal-btn', 'aria-pressed': journalOpen ? 'true' : 'false', onClick: () => { setJournalOpen((v) => !v); setReview(null); setLocal(null) } }, icon('file', 15), h('span', null, t('ln.j.btn'))) : null
+        const headAction = mode === 'team' ? (teamBarShown ? teamAction : null) : (journalBtn === null ? renderAdd() : h(React.Fragment, null, journalBtn, renderAdd()))
         const helpBtn = (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-skills' }) : null)
         // The animated help: opens the first time the page is visited (the hub remembers it was closed), and the card of the button above can bring it back.
         const introNode = (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Intro
@@ -2677,7 +2971,7 @@ body:not([data-ds-dark-theme]) .kbs-root .kb8-pill.warn{color:color-mix(in srgb,
                 h('div', { className: 'kbhp-row' }, helpBtn),
                 h('h2', { className: 'kbs-h1' }, pageTitle()),
                 h('p', { className: 'kbs-sub', title: capTxt }, capTxt)),
-              mode !== 'team' ? renderAdd() : null),
+              mode !== 'team' ? headAction : null),
           introNode,
           h('div', { className: 'kbs-ctlrow' },
             h('nav', { className: 'kbsub' },
@@ -2692,11 +2986,138 @@ body:not([data-ds-dark-theme]) .kbs-root .kb8-pill.warn{color:color-mix(in srgb,
                 tsum.phase !== 'absent' ? h('button', { type: 'button', role: 'tab', 'aria-selected': mode === 'team' ? 'true' : 'false', className: 'kb-seg' + (mode === 'team' ? ' on' : ''), onClick: () => { setMode('team'); setDetail(null); setLocal(null); setTeamOpen(null) } },
                   'Team ', tsum.phase === 'ready' ? h('span', { className: 'count' }, String((tsum.counts && tsum.counts.approved) || 0)) : (tsum.phase === 'locked' ? icon('lock', 13) : h('span', { className: 'count' }, '—')),
                   tsum.phase === 'ready' && teamRoleAdmin(tsum.role) && tsum.counts && tsum.counts.pending > 0 ? h('span', { className: 'kbt-dot', title: t('tm.v.review') }) : null) : null)),
+            mode === 'yours' && learned.proposals.length > 0
+              ? h('button', { type: 'button', className: 'kbl-chip' + (originFilter === 'kaby' ? ' on' : ''), 'data-kb': 'learned-chip', 'aria-pressed': originFilter === 'kaby' ? 'true' : 'false', onClick: () => setOriginFilter(originFilter === 'kaby' ? 'all' : 'kaby') }, h('i', { className: 'kbl-dot' }), t('ln.f.kaby') + ' · ' + learned.proposals.length)
+              : null,
             KbBar !== null ? null : (mode === 'team' ? (tsum.phase === 'ready' && teamOpen === null ? renderTeamToolbar() : null) : renderToolbar())),
           h('div', { className: 'kb8-page' }, body),
           renderModal(),
           notice !== null ? h('div', { className: 'kbs-toast' + (notice.kind === 'err' ? ' err' : '') },
-            icon(notice.kind === 'err' ? 'info' : 'check', 15), h('span', null, notice.text)) : null)
+            icon(notice.kind === 'err' ? 'info' : 'check', 15), h('span', null, notice.text),
+            typeof notice.undo === 'function' ? h('button', { type: 'button', className: 'kbs-link', 'data-kb': 'notice-undo', onClick: () => { const u = notice.undo; setNotice(null); u() } }, t('ln.undo')) : null) : null)
+      }
+
+      // A suggestion of Kaby, opened on the right: why it was suggested, the text it would write, the checks it passed and the three answers
+      // (Accept, Edit, Discard). Nothing is active before Accept. The rules every learned skill ends with are shown, dimmed, under the text.
+      function LearnedPanel(props) {
+        const p = props.p
+        const st = props.st
+        const editing = st.edit === true
+        const body = editing ? st.body : p.body
+        const description = editing ? st.description : p.description
+        const hits = !editing && Array.isArray(p.hits) ? p.hits : []
+        const base = p.description.length + 1
+        const mark = (text, from) => {
+          const out = []
+          let at = 0
+          hits.filter((x) => x.s >= from && x.e <= from + text.length).forEach((x, i) => {
+            out.push(text.slice(at, x.s - from), h('mark', { key: 'm' + i, className: 'kbl-flag', title: x.kind }, text.slice(x.s - from, x.e - from)))
+            at = x.e - from
+          })
+          out.push(text.slice(at))
+          return out
+        }
+        const checkText = (c) => {
+          if (c.id === 'name') return t('ln.c.name') + ' · ' + String(c.name)
+          if (c.id === 'use_when') return t('ln.c.use_when')
+          if (c.id === 'rules') return t('ln.c.rules')
+          if (c.id === 'size') return t('ln.c.size', { size: c.size, max: c.max })
+          if (c.id === 'copy') return c.s === 'ok' ? t('ln.c.copy') : t('ln.c.copy.warn', { name: c.closest, pct: c.percent })
+          return c.count === 0 ? t('ln.c.client_data') : t('ln.c.client_data.n', { n: c.count }) + ' — ' + (props.sensitive ? t('ln.c.client_data.block') : t('ln.c.client_data.warn'))
+        }
+        const lessons = p.from !== null && typeof p.from === 'object' && Array.isArray(p.from.lessons) ? p.from.lessons : []
+        const auto = p.from !== null && typeof p.from === 'object' && p.from.automation !== undefined && p.from.automation !== null ? p.from.automation : null
+        const whyText = auto !== null ? t('ln.p.why.auto', { name: auto.name || '', n: auto.runs || 0 }) : (lessons.length > 1 ? t('ln.p.why.lessons', { n: lessons.length }) : t('ln.p.why.lesson'))
+        const busy = props.busy === true
+        return h('aside', { className: 'kbs-panel', 'aria-label': p.name + ' — ' + t('ln.badge.suggested'), 'data-kb': 'learned-panel' },
+          h('div', { className: 'kbs-panel-top' },
+            h('span', { className: 'kb8-mono kbs-nowrap' }, t('ln.p.crumb') + ' › ' + p.name),
+            h('button', { type: 'button', className: 'kb-tool', 'aria-label': t('panel.close'), title: t('panel.close'), onClick: props.onClose }, '✕')),
+          h('div', { className: 'kb-detail-head' },
+            tile(p.name, 'pkg', 'lg'),
+            h('div', { className: 'meta' },
+              h('span', { className: 'kb8-h1', style: { fontSize: '19px', overflowWrap: 'anywhere' } }, p.name),
+              h('div', { className: 'kb8-pills' },
+                h('span', { key: 'sg', className: 'kb8-pill kbl-sug' }, icon('wand', 11), t('ln.badge.suggested')),
+                h('span', { key: 'na', className: 'kb8-pill' }, t('ln.p.notactive')),
+                props.sensitive ? h('span', { key: 'lo', className: 'kb8-pill' }, t('ln.p.local')) : null))),
+          h('span', { className: 'kb-section-label' }, t('ln.p.why')),
+          h('p', { className: 'kbl-p' }, whyText),
+          lessons.length > 0 ? h('ul', { className: 'kbl-prov' }, lessons.map((l, i) => h('li', { key: 'l' + i }, String(l.text) + (String(l.text).length >= 140 ? '…' : '')))) : null,
+          h('span', { className: 'kb-section-label' }, t('ln.p.when')),
+          editing
+            ? h('textarea', { className: 'kbs-area', style: { minHeight: '64px' }, 'aria-label': t('ln.p.when'), value: description, onChange: (e) => props.onChange({ description: e.target.value }) })
+            : h('p', { className: 'kbl-p', 'data-kb': 'learned-desc' }, mark(description, 0)),
+          h('div', { style: { display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' } },
+            h('span', { className: 'kb-section-label' }, t('ln.p.does')),
+            hits.length > 0 ? h('button', { type: 'button', className: 'kb8-ghost', 'data-kb': 'learned-fix', disabled: busy, onClick: props.onFix }, t('ln.p.fix')) : null),
+          editing
+            ? h('textarea', { className: 'kbs-area', style: { minHeight: '220px' }, 'aria-label': t('ln.p.does'), value: body, onChange: (e) => props.onChange({ body: e.target.value }) })
+            : h('pre', { className: 'kb-local-body', 'data-kb': 'learned-text' }, mark(body, base)),
+          h('span', { className: 'kb-section-label' }, t('ln.p.rules')),
+          h('pre', { className: 'kb-local-body kbl-dim' }, props.rules.map((r) => '- ' + r).join('\n')),
+          h('span', { className: 'kb-section-label' }, t('ln.p.checks')),
+          h('div', { className: 'kbl-checks', 'data-kb': 'learned-checks' }, p.checks.map((c) =>
+            h('div', { key: c.id, className: c.s }, h('span', { className: 'm' }, c.s === 'ok' ? '✓' : (c.s === 'warn' ? '!' : '✕')), h('span', null, checkText(c))))),
+          editing ? h('span', { className: 'kb8-mono' }, t('ln.p.editnote')) : null,
+          h('span', { className: 'kb-section-label' }, t('ln.p.where')),
+          h('p', { className: 'kbl-p' }, props.sensitive ? t('ln.p.where.s') : t('ln.p.where.t')),
+          props.err ? h('div', { className: 'kbs-err', role: 'alert' }, props.err) : null,
+          h('div', { className: 'kbs-panel-acts' },
+            editing
+              ? [h('button', { key: 'sv', type: 'button', className: 'kb8-primary', 'data-kb': 'learned-save', disabled: busy, onClick: props.onSave }, t('ln.save')),
+                h('button', { key: 'cn', type: 'button', className: 'kb8-ghost', onClick: props.onCancel }, t('ln.cancel'))]
+              : [h('button', { key: 'ac', type: 'button', className: 'kb8-primary', 'data-kb': 'learned-accept', disabled: busy || p.blocking === true, onClick: props.onAccept }, t('ln.accept')),
+                h('button', { key: 'ed', type: 'button', className: 'kb8-ghost', 'data-kb': 'learned-edit', disabled: busy, onClick: props.onEdit }, t('ln.edit')),
+                h('button', { key: 'di', type: 'button', className: 'kb8-ghost warn', 'data-kb': 'learned-discard', disabled: busy, onClick: props.onDiscard }, t('ln.discard'))]),
+          h('span', { className: 'kb8-mono' }, p.blocking === true && !editing ? t('ln.accept.locked') : t('ln.accept.note')))
+      }
+
+      // Kaby's journal, opened on the right: every suggestion, acceptance, refusal and undo, newest first, from the append-only file on this computer.
+      function JournalPanel(props) {
+        const [data, setData] = React.useState({ phase: 'loading' })
+        const [open, setOpen] = React.useState({})
+        React.useEffect(() => {
+          let stop = false
+          getJson('/kybernos-skills/learned/journal?limit=200').then((j) => {
+            if (stop === true) return
+            setData(j !== null && typeof j === 'object' && j.ok === true && Array.isArray(j.entries) ? { phase: 'ready', ...j } : { phase: 'error', error: why(j, t('err.unexpected', { r: 'learned/journal' })) })
+          }).catch(() => { if (stop !== true) setData({ phase: 'error', error: t('err.unavail', { r: 'learned/journal' }) }) })
+          return () => { stop = true }
+        }, [props.tick])
+        const ACTS = ['proposed', 'accepted', 'discarded', 'restored', 'reverted', 'expired', 'adopted', 'removed']
+        const when = (iso) => { try { return new Date(iso).toLocaleString(isEn() ? 'en-GB' : 'fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) } catch (e) { return '' } }
+        const src = (f) => {
+          if (f === null || typeof f !== 'object') return ''
+          if (f.automation !== undefined && f.automation !== null) return f.automation.name ? t('ln.from.auto', { name: f.automation.name, n: f.automation.runs || 0 }) : t('ln.from.auto.anon', { n: f.automation.runs || 0 })
+          return Array.isArray(f.lessons) ? t('ln.from.lessons', { n: f.lessons.length }) : ''
+        }
+        const ready = data.phase === 'ready'
+        return h('aside', { className: 'kbs-panel', 'aria-label': t('ln.j.title'), 'data-kb': 'learned-journal' },
+          h('div', { className: 'kbs-panel-top' },
+            h('span', { className: 'kb8-mono kbs-nowrap' }, t('ln.j.title')),
+            h('button', { type: 'button', className: 'kb-tool', 'aria-label': t('panel.close'), title: t('panel.close'), onClick: props.onClose }, '✕')),
+          ready ? h('div', { className: 'kb8-pills' },
+            data.verified === true
+              ? h('span', { key: 'v', className: 'kb8-pill ok', 'data-kb': 'journal-verified' }, icon('check', 12), t('ln.j.verified'))
+              : h('span', { key: 'v', className: 'kb8-pill warn', 'data-kb': 'journal-broken' }, data.brokenAt > 0 ? t('ln.j.broken', { n: data.brokenAt }) : t('ln.j.broken.bad')),
+            h('span', { key: 'n', className: 'kb8-pill' }, t('ln.j.entries', { n: data.count }))) : null,
+          data.phase === 'loading' ? h('span', { className: 'kb8-mono' }, t('y.loading')) : null,
+          data.phase === 'error' ? h('div', { className: 'kbs-err', role: 'alert' }, data.error) : null,
+          ready && data.entries.length === 0 ? h('p', { className: 'kbl-p' }, t('ln.j.empty')) : null,
+          ready ? h('div', null, data.entries.map((e) => {
+            const o = open[e.n] === true
+            const act = t('ln.j.act.' + (ACTS.indexOf(e.act) >= 0 ? e.act : 'other'))
+            return h('div', { key: 'e' + e.n, className: 'kbl-jr', 'data-kb': 'journal-entry' },
+              h('button', { type: 'button', 'aria-expanded': o ? 'true' : 'false', onClick: () => setOpen((m) => ({ ...m, [e.n]: !m[e.n] })) },
+                h('span', { className: 'kbl-jt' }, h('b', { className: 'kb8-mono' }, e.skill), ' ' + act, h('small', null, when(e.t) + (e.mode !== 'approved' && ['manual', 'legacy', 'auto'].indexOf(e.mode) >= 0 ? ' · ' + t('ln.j.mode.' + e.mode) : ''))),
+                h('span', { className: 'kb8-pill' + (e.by === 'kaby' ? ' warn' : '') }, t('ln.j.by.' + (e.by === 'kaby' ? 'kaby' : 'you')))),
+              o ? h('div', { className: 'kbl-jb' },
+                src(e.from) !== '' ? h('div', null, t('ln.j.from', { src: src(e.from) })) : null,
+                typeof e.note === 'string' && STR['ln.j.note.' + e.note] !== undefined ? h('div', null, t('ln.j.note.' + e.note)) : null,
+                h('div', { className: 'kb8-mono' }, '#' + String(e.hash).slice(0, 8) + ' ← #' + String(e.prev).slice(0, 8))) : null)
+          })) : null,
+          h('span', { className: 'kb8-mono' }, t('ln.j.foot')))
       }
 
       // A skill of Yours, opened: the real SKILL.md, where it lives, and what the host will let the screen do with it. The actions are only

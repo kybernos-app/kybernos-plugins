@@ -47,6 +47,7 @@ import { execFileSync, spawn } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { createHash } from 'node:crypto'
 import { validateTeamSkill, skillVersion, frontmatterOfText, TEAM_SKILL_LIMITS } from './team-skills.mjs'
+import { LEARNED_SEAM, listLearned, readAudit, proposeFromLessons, proposeFromAutomation, acceptProposal, editProposal, discardProposal, restoreProposal, undoAccept } from './learned.mjs'
 import { readPicks } from './featured-picks.mjs'
 // Hosted instance: also accept the authorities declared to DSH with --trusted-host. The core bundle publishes the predicate
 // (kybernos-plugin/trusted-authority.mjs); absent or failing, it answers false and the guard stays loopback-only.
@@ -1809,6 +1810,47 @@ const mountWebRoutes = (ctx, webServerSvc) => {
     config: configOf(),
     sessionId: body.sessionId
   }), 4 * 1024 * 1024)
+
+  // ── Skills learned from experience (docs/dev/learned-skills.md): proposals wait in a ledger, nothing is active before Accept ──
+  // `existing` is what the person already has, so a proposal that copies a skill is flagged. Every answer is HTTP 200 { ok, ... } with a snake_case `error`.
+  const existingOf = async (sessionId) => {
+    try { return (await catalogueOf(ctx, configOf(), sessionId)).skills.map((s) => ({ name: s.name, description: s.description })) } catch (e) { return [] }
+  }
+  GET('/kybernos-skills/learned', 'kybernos-skills: route learned', async (req) => listLearned({ dsh: configOf().dsh, existing: await existingOf(queryParam(req, 'sessionId')) }))
+  GET('/kybernos-skills/learned/journal', 'kybernos-skills: route learned journal', async (req) => {
+    const limit = Number(queryParam(req, 'limit'))
+    return { ok: true, ...readAudit(configOf().dsh, Number.isFinite(limit) && limit > 0 ? limit : 200) }
+  })
+  POST('/kybernos-skills/learned/from-lessons', 'kybernos-skills: route learned from lessons', async (body) => proposeFromLessons({ dsh: configOf().dsh, lessons: body.lessons, existing: await existingOf(body.sessionId) }))
+  POST('/kybernos-skills/learned/accept', 'kybernos-skills: route learned accept', async (body) => {
+    const done = await acceptProposal({ dsh: configOf().dsh, id: body.id, description: body.description, body: body.body, existing: await existingOf(body.sessionId) })
+    if (done.ok === true) invalidateSkills(ctx, body.sessionId)
+    return done
+  })
+  POST('/kybernos-skills/learned/edit', 'kybernos-skills: route learned edit', async (body) => editProposal({ dsh: configOf().dsh, id: body.id, description: body.description, body: body.body, existing: await existingOf(body.sessionId) }))
+  POST('/kybernos-skills/learned/discard', 'kybernos-skills: route learned discard', async (body) => discardProposal({ dsh: configOf().dsh, id: body.id }))
+  POST('/kybernos-skills/learned/restore', 'kybernos-skills: route learned restore', async (body) => restoreProposal({ dsh: configOf().dsh, id: body.id }))
+  POST('/kybernos-skills/learned/undo', 'kybernos-skills: route learned undo', async (body) => {
+    const done = await undoAccept({ dsh: configOf().dsh, name: body.name })
+    if (done.ok === true) invalidateSkills(ctx, body.sessionId)
+    return done
+  })
+  // The automations half of Kybernos is another bundle and cannot import this one: it finds this seam at call time (a frozen `{ version, propose }` on
+  // globalThis, read the way kybernos-memory reads the space seam) and hands over the parts of the skill it built. Without this bundle there is no seam
+  // and no skill is made.
+  ctx.effect(() => {
+    const seam = Object.freeze({
+      version: 1,
+      propose: async (input) => {
+        const i = input !== null && typeof input === 'object' ? input : {}
+        const made = await proposeFromAutomation({ dsh: configOf().dsh, name: i.name, description: i.description, whenToUse: i.whenToUse, body: i.body, automation: i.automation, acceptNow: i.acceptNow === true, existing: await existingOf(undefined) })
+        if (made.ok === true && made.pending === false) invalidateSkills(ctx, undefined)
+        return made
+      }
+    })
+    globalThis[LEARNED_SEAM] = seam
+    return () => { if (globalThis[LEARNED_SEAM] === seam) delete globalThis[LEARNED_SEAM] }
+  }, 'kybernos-skills: learned skills seam')
 
   // ── Featured: the highlighted list, controlled by the user ──────────────────────────
   GET('/kybernos-skills/featured', 'kybernos-skills: route featured', async (req) => {
