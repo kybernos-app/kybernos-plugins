@@ -101,14 +101,15 @@ A-16 / L6-02 / L1-01 / A-15 (447 routes of 34 bundles, 274 answering a write met
 | need a state the empty test home lacks, or a token the probe does not have (`kybernos-motion`; the widget's conversation token) | 3 | 4 |
 
 The `origin` column is the one A-16 measured: 43 write routes before this round, **4 now**; and the routes that answer every method alike fell from **5 to 3** at
-the `origin` level (the two `kybernos-auto` ones now answer their write methods at the `strict` level). The four write routes left are the documented non-browser
-callers above — no page-driven write is left, which is what A-16 asked:
+the `origin` level (the two `kybernos-auto` ones now answer their write methods at the `strict` level). Of the four write routes left, **three are the documented
+non-browser callers above**; the fourth, `/kybernos/slash/entries`, is the one route A-16 leaves open — it is written by pages too, so its exception is
+contradicted and the decision is described above:
 
 | Bundle | Routes left at `origin` | Caller that keeps them there |
 |---|---|---|
 | `kybernos-auto` | `/report`, `/router` (POST) | `cli/auto-router.mjs`, run by the agent: no Origin, no session (documented above) |
 | `kybernos-free-llms` | `/v1/chat/completions` (POST; its `/v1/models`, `/status` and `/health` are the every-method rows) | DSH's engine: no Origin, no cookie (documented above) |
-| `kybernos-slash` | `/entries` (POST) | the `slash-msgaction-creator` skill writes through it (documented above) |
+| `kybernos-slash` | `/entries` (POST) | **pages AND the skill**: `kybernos-slash/client.js` (the entry editor) and `kybernos-plugin/client.js` (the `/widget` upsert) write it with the cookie; `slash-msgaction-creator` writes it with no Origin and no session. Contradicted exception — the one open route, see above |
 
 Every other write route is under the rule. No route that used to answer a write fails for its real caller: the bundle harnesses (`test-cloud-host.mjs`,
 `test-account-state.mjs`, `test-unplug-host.mjs`, `test-write-guard.mjs` of each bundle) call the converted routes the way the page does — the right Origin
