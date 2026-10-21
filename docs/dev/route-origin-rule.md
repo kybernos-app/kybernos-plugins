@@ -6,6 +6,12 @@ data, installs software or stores a key cannot rely on an Origin check. Decision
 signed DSH session cookie, on top of a strict same-origin request, only on the write routes the audit names; every other route keeps the rule of
 its bundle, and a route with a caller that is not a browser stays open and says why in a comment.
 
+A-16 of the platform audit (2026-10-20) found **48 write paths still at the `origin` level** (43 write routes and 5 that answer every method
+alike; 31 of them in `kybernos-cloud`): a local program sending **no** `Origin` header passed, which the rule above forbids. The same audit
+found three more holes in the same family: A-15 (a widget route deleted a conversation file with no guard at all), L6-02 (the master bundle
+imported `writeGuard` but applied it to its three feedback routes only) and L1-01 (`kybernos-call` guarded secret writes with
+`sameOriginStrict` alone). This page is the ledger of what was converted, what stayed, and why.
+
 ## The rule
 
 A write route needs **both**:
@@ -30,18 +36,20 @@ To put a new write route under the rule: import `writeGuard` from `./session-gua
 each write with no Origin and no cookie, a foreign Origin, the right Origin without a cookie, a forged cookie, the real pair, and a check that a refused
 request left the files and the outside world as they were.
 
-## What is under the rule (the origin-rule audit, A6-22)
+## What is under the rule (the origin-rule audit, A6-22, plus A-16 / L6-02 / L1-01)
 
 | Bundle | Routes |
 |---|---|
 | `kybernos-composio` | every write: the key (save, delete), the connectors (save, delete, **test**: it starts the connector's command), their command folders, the accounts, the provider choice, the API connectors |
 | `kybernos-memory` | the nine POST routes: lessons add, update, delete, the tidy-up, the switches |
-| `kybernos-auto` | `/session`, `/settings`, `/probe` (a probe spends tokens) |
+| `kybernos-auto` | `/session`, `/settings`, `/probe` (a probe spends tokens), and the write methods of `/models` and `/state` (A-16: those two answer every method alike, so only their reads stay behind the Host fence — any other method must name this listener's Origin) |
 | `kybernos-modeles-locaux` | `/installer` (`brew install ollama`, `ollama pull`), `/annuler` |
 | `kybernos-models` | the eight POST routes: the notes (`annotations/save`), the journal, the pasted-key check (`key/check`: it spends a call on the provider), park / take / forget a provider, `scores/list`, `scores/sync`; and `modelsdev?force=1` (a forced 4.7 MB download). The reads stay open behind the Host fence |
 | `kybernos-computers` | the nine POST routes: the E2B key, start, exec, write, stop, pause, resume, the environment switch (they run on the person's key and bill) |
-| `kybernos-cloud` | the five deletes: `memory/delete`, `members/remove`, `team/lessons/delete`, `team/skills/delete`, `connections/delete`; and six more because the model has a shell and the personal memory is cut in a team space: `memory/add`, `memory/update`, `memory/lessons`, `team/lessons/add`, `space/active` (it decides whether the memory is cut), `kyby/native/set`; `space/folder` (it makes a directory on the person's disk: the team's working folder, from the team's id, never from a path the page sends); and `invitation/accept` (the invitation's token makes the person a member of a team; `invitation/preview` beside it asks the server what a link is for and joins nobody, so it keeps the strict same-origin rule alone) |
+| `kybernos-cloud` | **every POST route a page drives** (A-16: the 31 that were at the `origin` level, on top of the eleven the earlier round named). That is the memory (add, update, delete, lessons, the index batches, the mapping, the tidy-up scan / apply / dismiss / undo / settings), the space (active, applied, create, folder, for-folder), the team (lessons add / delete / review / retire, skills add / delete / review / retire), the connection (link, delete), the members (invite, remove), the invitation (accept), the shares (set, revoke), the artifacts (push, detail), the chats (ensure, push) and the profile/device writes (start, poll, refresh, disconnect, models/sync, marketplace/install, kyby/native/set). Two POST families keep the strict rule alone: `server/apply` and `turn*` (see the exceptions) |
 | `kybernos-miniapps` | `/install` (writes a native app and launches it), `/uninstall` |
+| `kybernos-plugin` | L6-02: the socle writes that were behind `sameOriginStrict` alone — `/kybernos/save` (rewrites `kyber.yml`), `/kybernos/create`, `/kybernos/workspace-ui-save`, `/kybernos/workspace-delete` (removes a workspace and purges its UI store), `/kybernos/pins`, `/kybernos/share`, `/kybernos/active-set`, `/kybernos/avatar-save` — plus the three they already had (`/kybernos/feedback`, `/feedback/export`, `/feedback/send`). The GET routes of the bundle keep their strict same-origin rule |
+| `kybernos-call` | L1-01: `/keys` (writes the LiveKit / Groq / ElevenLabs / LiveAvatar keys), `/engine` (it installs the call engine: venv and `pip install`), `/clone`, `/test` (one provider call), `/preset`, `/avatars` (it asks the face provider). The page of the settings tab sends both halves |
 
 Every one of them is called by a page, so the browser sends the Origin and the cookie itself (`scripts/check-write-guard-live.mjs` clicks the Auto
 Routing, Memory options and Cloud computers pages in a real GUI and reads what the browser got back). The phone link (`kybernos-mobile`) replays a phone's
@@ -50,38 +58,60 @@ requests with `Origin` and the machine's cookie, so it passes too.
 ## What stays open, and why
 
 - **A documented caller that is not a browser.** `/kybernos-auto/router` and `/report`: `cli/auto-router.mjs`, which the agent runs, sends no Origin and has no
-  session. `/kybernos/slash/entries` (POST): the `slash-msgaction-creator` skill writes through it. A foreign Origin is still refused on all three.
-  `/kybernos-cloud/turn*`: the computer's own runner (strict Origin only, as before).
+  session. `/kybernos/slash/entries` (POST): the `slash-msgaction-creator` skill writes through it. `/kybernos-cloud/turn*`: the computer's own runner
+  (strict Origin only, as before). **`/kybernos-cloud/server/apply`** (A-16): it is a real write a page also makes (the servers page), but
+  `packages/kybernos-servers/host.mjs` calls it over loopback with this listener's `Origin` and **no cookie** when it applies the active server, so it keeps
+  `strict` (a bare program with no header is now refused, where it used to pass) and the loopback call must be widened to the cookie before it can join the
+  full rule. A foreign Origin is still refused on all of them.
 - **The free-models gateway** (`/free-llms/v1/chat/completions`, `/v1/models`, `/status`, `/health`, A6-04). Its caller is DSH's engine: no Origin, no cookie, no
   browser header. It cannot ask for a session, so it refuses what a *browser* marks as another site: a foreign `Origin`, or `Sec-Fetch-Site` other than
   `same-origin` / `none`. A page the person merely visits can no longer make their machine call opencode.ai. (A browser too old to send `Sec-Fetch-Site` looks like
   the engine for a no-cors GET: only `/health` and `/status` can be reached that way, and DNS rebinding is stopped by the Host fence.)
-- **Public by design:** `/kybernos/widget/api/*` and `/kybernos/hooks` (a website's widget and the webhook receiver; their own secret is their fence).
-- **Not named by the audit, so unchanged (D3):** the other writes of `kybernos-cloud` (memory index / settings / tidy-up, team lessons and skills
-  review / retire, team skills add, shares, members invite, marketplace install, space, artifacts and chats push, `connections/link`, `disconnect`, `server/apply`, `start`,
-  `poll`, `refresh`, `models/sync`), `kybernos-motion` (export, frame), `kybernos-modeleur` and
-  `kybernos-bricks` and `kybernos-slides` (push), `kybernos-modeles-locaux` (`/decouvrir`, the catalogue refresh). All have a page as their caller (the table says
-  which), so they are the next candidates; each keeps the same-origin rule of its bundle (a foreign page is refused, a local program with no header is not).
+- **Public by design:** `/kybernos/widget/api/message` and `/kybernos/widget/api/account` (a website's widget: the visitor is on another site, has no DSH
+  session, and their own message is the whole exchange) and `/kybernos/hooks` (the webhook receiver; each task's own secret is its fence). **A-15 fixed the
+  odd one out:** `POST /kybernos/widget/api/history-delete` used to delete a conversation file with no guard at all. The host now mints a per-conversation
+  token when it creates the conversation, hands it back **once** in the answer to `/message`, stores it in the conversation's own record (never in the GET
+  listing) and refuses a delete without it (**403**, nothing on disk moves). The token is the visitor's fence, not a session: the widget stays reachable
+  from any site (`packages/kybernos-plugin/test-widget-history-delete.mjs`).
+
+## The counts, measured
 
 `node scripts/audit-routes.mjs` is the evidence, measured and not claimed: it mounts every bundle's routes in-process under Node's permission model (no spawn, no
 network, writes only in a throw-away home) and sends each route and method four requests (foreign Origin; no header; right Origin; right Origin and the signed
 cookie). `--table` prints one line per route, `--json` the raw rows, `--root DIR` judges another checkout (a `git archive` of an earlier commit gives the "before").
-Measured on 2026-10-16, 384 routes of 31 bundles, 249 of them answering a write method:
+Measured on 2026-10-16, 384 routes of 31 bundles, 249 of them answering a write method; the second column is the same table replayed on the 2026-10-21 tree after
+A-16 / L6-02 / L1-01 / A-15 (447 routes of 34 bundles, 274 answering a write method):
 
-| Write routes | Before | Now |
+| Write routes | Before (2026-10-16) | Now (2026-10-21) |
 |---|---|---|
-| strict same-origin **and** the session cookie | 3 | 40 |
-| strict same-origin (an Origin or Referer is required, a local program can send one) | 139 | 139 |
-| a foreign page is refused, a local program with no header is not | 86 | 53 |
-| a page of any site can drive them | 18 | 14 |
-| need a state the empty test home lacks (`kybernos-motion`) | 3 | 3 |
+| strict same-origin **and** the session cookie | 3 | **108** |
+| strict same-origin (an Origin or Referer is required, a local program can send one) | 139 | 147 |
+| a foreign page is refused, a local program with no header is not | 86 | **12** |
+| a page of any site can drive them | 18 | **3** |
+| need a state the empty test home lacks, or a token the probe does not have (`kybernos-motion`; the widget's conversation token) | 3 | 4 |
 
-Of the 67 left at the last two levels: 4 have a documented non-browser caller (above), 4 are public by design, 14 answer every method alike and are reads
-(the handler never looks at the method), 45 are the writes the audit does not name.
+The `origin` column is the one A-16 measured: 43 write routes before this round, **12 now**; and the routes that answer every method alike fell from **5 to 3** at the `origin` level (the two `kybernos-auto` ones now answer their write methods at the `strict` level). The 12 write routes left, with the caller that keeps them there:
 
-Two GET routes left the table afterwards, with the read-only account frame (WP-24, `docs/dev/frame-removal.md`): `/kybernos-cloud/relay` and `/kybernos/ws-console-key`, both
-strict (an Origin or Referer of this server was required). The routes are now 386 (388 before), 183 of them answering GET, 11 of those at the strict level; no write route is
-concerned by this removal. Both existed only to hand the account's data (or a key) to the framed console through the DSH page; neither answers any more.
+| Bundle | Routes left at `origin` | Caller |
+|---|---|---|
+| `kybernos-free-llms` | the gateway (`/v1/chat/completions`, `/v1/models`, `/status`, `/health`) | DSH's engine (no Origin, no cookie) — documented above |
+| `kybernos-modeles-locaux` | `/catalogue`, `/decouvrir` | the page (the catalogue refresh) |
+| `kybernos-modeleur` | `/annote`, `/push` | the page |
+| `kybernos-motion` | `/export`, `/frame` | the page (a live check drives it) |
+| `kybernos-bricks` | `/push` | the page |
+| `kybernos-slides` | `/push` | the page |
+| `kybernos-slash` | `/entries` (POST) | the `slash-msgaction-creator` skill — documented above |
+
+Those are the next candidates; each keeps the same-origin rule of its bundle (a foreign page is refused, a local program with no header is not) and each is
+one `writeGuard` import away from the full rule (or one `strict: true` row in the table-driven bundles). `kybernos-auto`'s `/router` and `/report` are not in
+this table because they are the two documented non-browser callers above (the CLI sends no Origin at all: converting them would refuse the agent's own router). No route that used to answer a write fails for its
+real caller: the bundle harnesses (`test-cloud-host.mjs`, `test-account-state.mjs`, `test-unplug-host.mjs`, `test-write-guard.mjs` of each bundle) call the
+converted routes the way the page does — the right Origin **and** the signed cookie — and the live checks that stay green drive the real pages.
+
+Two GET routes left the table with the read-only account frame (WP-24, `docs/dev/frame-removal.md`): `/kybernos-cloud/relay` and `/kybernos/ws-console-key`,
+both strict (an Origin or Referer of this server was required). The routes are now 386 (388 before), 183 of them answering GET, 11 of those at the strict level;
+no write route is concerned by this removal. Both existed only to hand the account's data (or a key) to the framed console through the DSH page; neither answers
+any more.
 
 ## The reads (A6-05), not changed
 

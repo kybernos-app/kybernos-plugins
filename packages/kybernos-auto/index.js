@@ -406,6 +406,13 @@ const envoyer = (res, code, obj) => {
   res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8' })
   res.end(JSON.stringify(obj))
 }
+/** The strict variant for a route that answers every method alike: a WRITE on it (any method but GET/HEAD) must NAME this listener's
+ *  Origin, the way docs/dev/route-origin-rule.md asks; an absent header is refused. Reads keep the rule of `origineOK` (the Host fence
+ *  is what stops a rebound page there, and a browser sends no Origin on a same-origin GET). A-16 of the platform audit, 2026-10-20. */
+const origineStricte = (req) => {
+  const source = String(req.headers.origin || req.headers.referer || '')
+  return source !== '' && origineOK(req)
+}
 const origineOK = (req) => {
   // 2026-10 acceptance (M-02/S-03): the EXACT host of the socket's real listener,
   // never a prefix (« localhost.evil.example » used to pass).
@@ -505,12 +512,16 @@ export function monterRoutes (webServerSvc, opts = {}) {
 
   webServerSvc.register({ kind: 'exact', path: '/kybernos-auto/state', handler: async (req, res) => {
     if (!origineOK(req)) { res.writeHead(403); res.end('origin refused'); return }
+    // A-16: this route answers every method, but only a READ is open behind the Host fence; a write must name this listener.
+    if (req.method !== 'GET' && req.method !== 'HEAD' && !origineStricte(req)) { res.writeHead(403); res.end('origin refused'); return }
     envoyer(res, 200, await etatComplet(new URL(req.url, 'http://x').searchParams.get('sessionId') || ''))
   } })
 
   // The configured models, for the picker of the typed list (read-only: `route/id` and whether the provider is connected).
   webServerSvc.register({ kind: 'exact', path: '/kybernos-auto/models', handler: async (req, res) => {
     if (!origineOK(req)) { res.writeHead(403); res.end('origin refused'); return }
+    // A-16: same rule as /state above (the picker only reads; a local program with no Origin may not drive any other method).
+    if (req.method !== 'GET' && req.method !== 'HEAD' && !origineStricte(req)) { res.writeHead(403); res.end('origin refused'); return }
     univers.oublier()
     const connus = await univers.lire()
     envoyer(res, 200, { ok: true, models: (connus === null ? [] : connus).map((x) => ({ cle: x.cle, route: x.route, id: x.id, connecte: x.connecte === true, locale: x.locale === true })) })
