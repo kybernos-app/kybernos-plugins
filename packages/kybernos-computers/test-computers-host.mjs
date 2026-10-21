@@ -2,9 +2,9 @@
 // Couvre : validation et store de la clé, cycle start/exec/write/read/stop,
 // TTL (clamp, échéance, balayage), cap de sandboxes, invariants (clé jamais
 // dans les réponses, état sans secret).
-import { readFileSync, rmSync, mkdtempSync } from 'node:fs'
+import { readFileSync, readdirSync, writeFileSync, rmSync, mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import assert from 'node:assert/strict'
 
 // Rediriger l'état AVANT l'import du module (STATE_FILE est dérivé de DSH_HOME).
@@ -246,6 +246,40 @@ await checkAsync('le balayeur ignore une entrée d\'état qui n\'est pas une san
   const clean = readState()
   clean.sandboxes = keep
   writeState(clean)
+})
+
+// L2-03: a truncated state file used to be read as an empty state — the ids of the paused microVMs were lost and the next write
+// replaced the file (the maxSandboxes quota is counted on them). Now: a state.corrupt-<ts> copy, a log line, no empty rewrite.
+await checkAsync('état illisible : copie state.corrupt-<ts>, journalisé, jamais réécrit par un état vide', async () => {
+  const file = testHooks.STATE_FILE
+  const folder = dirname(file)
+  const copies = () => readdirSync(folder).filter((n) => n.startsWith('state.json.corrupt-'))
+  const tronque = '{"version":1,"sandboxes":{"sbx-gelée-1":{"sandboxId":"sbx-gelée-1","label":"gelée","paused":true'
+  writeFileSync(file, tronque) // a crash mid-write, a hand edit
+  const logged = []
+  const oldError = console.error
+  console.error = (...a) => logged.push(a.join(' '))
+  try {
+    assert.deepEqual(readState().sandboxes, {}, 'en mémoire, l\'état illisible se lit comme vide')
+    assert.equal(copies().length, 1, 'une copie du fichier illisible est gardée')
+    assert.equal(readFileSync(join(folder, copies()[0]), 'utf8'), tronque, 'la copie garde les ids des microVM en pause')
+    assert.equal(logged.length, 1, 'le problème est journalisé')
+    assert.match(logged[0], /state\.json.*copy is kept|state\.json.*copie|state\.json/)
+    // an empty state (what every caller holds after a failed read) is never written over it
+    assert.equal(writeState({ version: 1, sandboxes: {}, env: 'desktop' }), false, 'écriture refusée')
+    assert.equal(readFileSync(file, 'utf8'), tronque, 'le fichier illisible est laissé tel quel')
+    // nor is a partial one: the old ids cannot be merged back, so nothing is written while the file is declared corrupt
+    assert.equal(writeState({ version: 1, sandboxes: { 'sbx-new': { sandboxId: 'sbx-new' } }, env: 'desktop' }), false)
+    assert.equal(readFileSync(file, 'utf8'), tronque)
+    assert.equal(copies().length, 1, 'une seconde lecture réutilise la copie (une par contenu)')
+    // the person fixes or removes the file: tracking resumes and writes go through again
+    writeFileSync(file, JSON.stringify({ version: 1, sandboxes: {}, env: 'desktop' }))
+    assert.equal(writeState({ version: 1, sandboxes: { 'sbx-ok': { sandboxId: 'sbx-ok' } }, env: 'desktop' }), true)
+    assert.deepEqual(Object.keys(readState().sandboxes), ['sbx-ok'])
+  } finally {
+    console.error = oldError
+    writeFileSync(file, JSON.stringify({ version: 1, sandboxes: {}, env: 'desktop' }))
+  }
 })
 
 rmSync(sandboxDir, { recursive: true, force: true })

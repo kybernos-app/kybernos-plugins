@@ -289,6 +289,17 @@ ok('in the default state the bar is dimmed, not hidden', barre !== null && barre
   ok('PROBE: an unreachable host changes nothing', T.pasSonde(etat, null, ouvrir) === etat && appels === 3)
 }
 
+// ── L4-02: no /state request before the session key is known ─────────────────
+// A request WITHOUT `session` makes the host answer with the last deck of ANOTHER conversation: the panel showed it and the probe
+// opened the tab on it. urlEtat is the single place that builds the URL, and it refuses an empty key.
+{
+  ok('L4-02: no /state URL while the session key is empty (never poll another chat\'s deck)',
+    T.urlEtat('') === null && T.urlEtat(undefined) === null && T.urlEtat(null) === null)
+  ok('L4-02: the URL carries the session once it is known',
+    T.urlEtat('session-1') === '/kybernos-slides/state?session=session-1'
+    && T.urlEtat('a b') === '/kybernos-slides/state?session=a%20b')
+}
+
 // ── the build and the demo ──────────────────────────────────────────────────
 // client.js is generated from src/plugin.js (scripts/build.mjs). It was edited by hand in four commits and src/plugin.js stayed behind:
 // the next build would have undone the focus fix, the reachable tool bar and the kbsd- selectors (audit 2026-10-16).

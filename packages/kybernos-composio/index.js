@@ -28,6 +28,7 @@ import { probeHttp, probeStdio, redactDeep } from './mcp-probe.mjs'
 import { readConnector } from './block-read.mjs'
 import { readProvider, writeProvider } from './provider.mjs'
 import { createOpenapi } from './openapi.mjs'
+import { keepCorruptCopy } from './corrupt-copy.mjs'
 import { writeGuard } from './session-guard.mjs'
 // Hosted instance: also accept the authorities declared to DSH with --trusted-host. The core bundle publishes the predicate
 // (kybernos-plugin/trusted-authority.mjs); absent or failing, it answers false and the guard stays loopback-only.
@@ -828,8 +829,6 @@ function blockSummary(lines) {
 }
 
 // ── the connectors sidecar (~/.dsh/kybernos/connecteurs.json) ───────────────
-const CORRUPT_SUFFIX = '.corrupt-'
-const CORRUPT_COPIES_MAX = 5
 
 /**
  * The sidecar on disk, in one of three shapes:
@@ -850,29 +849,6 @@ function readSidecarState() {
   try { data = JSON.parse(text) } catch (e) { return { corrupt: true, text: text } }
   const plain = (x) => x !== null && typeof x === 'object' && Array.isArray(x) === false && typeof x.nom === 'string'
   return Array.isArray(data) && data.every(plain) ? { list: data, text: text } : { corrupt: true, text: text }
-}
-
-/**
- * Keeps a copy of a corrupt file next to it as <name>.corrupt-<time>. A copy with the same
- * content is reused and there are never more than CORRUPT_COPIES_MAX, so repeated attempts
- * do not pile up files. Returns the copy's path or null.
- */
-function keepCorruptCopy(file, text) {
-  try {
-    const folder = dirname(file)
-    const prefix = basename(file) + CORRUPT_SUFFIX
-    const copies = readdirSync(folder).filter((n) => n.startsWith(prefix))
-    for (const n of copies) {
-      try { if (readFileSync(join(folder, n), 'utf8') === text) return join(folder, n) } catch (e) { /* unreadable copy: ignored */ }
-    }
-    if (copies.length >= CORRUPT_COPIES_MAX) return null
-    const base = join(folder, prefix + Date.now())
-    for (let i = 0; i < CORRUPT_COPIES_MAX; i += 1) {
-      const copy = i === 0 ? base : base + '-' + i
-      try { writeFileSync(copy, text, { mode: 0o600, flag: 'wx' }); return copy } catch (e) { if (!(e && e.code === 'EEXIST')) return null }
-    }
-    return null
-  } catch (e) { return null }
 }
 
 /**
