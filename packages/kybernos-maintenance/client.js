@@ -572,14 +572,18 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
           h('path', { d: 'M6 3.5 10.5 8 6 12.5', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round' })),
         h('span', null, t('details')),
         h('span', { className: 'kbmz-toggle-h' }, t('detailsAide')))
+      // A line whose « from » equals its « to » changed nothing: printing it as an update is a false record (this machine
+      // shows « 0.2.0-rc.2 → 0.2.0-rc.2 ✓ succeeded » on 2026-10-21, from a run started while already up to date). A
+      // same-version line that CARRIES a reason is a re-touch, and stays. Filtered once, before « last operation ».
+      const journalReel = journal.filter((e) => !(e.de !== undefined && e.de === e.vers && !e.raison))
       const panneau = h('div', { id: ID_DETAILS, className: 'kbmz-panel', hidden: !ouvert, 'data-kb': 'maintenance-details' },
         h('div', { className: 'kbmz-cartes' }, carteMoteur, cartePlugin, carteCompat, carteMaj),
         h('div', { className: 'kbmz-carte', 'data-kb': 'maintenance-last-op' },
           h('div', { className: 'kbmz-sec' }, t('derniere')),
-          journal.length === 0 ? h('div', { className: 'kbmz-vide' }, t('rien')) : ligneJournal(journal[0], 0)),
-        journal.length > 1 ? h('div', { className: 'kbmz-carte', 'data-kb': 'maintenance-journal' },
+          journalReel.length === 0 ? h('div', { className: 'kbmz-vide' }, t('rien')) : ligneJournal(journalReel[0], 0)),
+        journalReel.length > 1 ? h('div', { className: 'kbmz-carte', 'data-kb': 'maintenance-journal' },
           h('div', { className: 'kbmz-sec' }, t('majPrecedentes')),
-          journal.slice(1).map((e, i) => ligneJournal(e, i))) : null,
+          journalReel.slice(1).map((e, i) => ligneJournal(e, i))) : null,
         h('div', { className: 'kbmz-carte' },
           h('div', { className: 'kbmz-sec' }, t('procTitre')),
           h('div', { className: 'kbmz-proc' },
