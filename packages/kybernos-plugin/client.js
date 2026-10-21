@@ -1626,16 +1626,19 @@ let kbLocaleRead = () => 'en'
       'kbauto.set.paused.d': { kybernos: 'Rien ne se déclenche tant que c’est activé. Ce qui est arrivé à échéance pendant la pause se déclenche une fois au premier passage après la reprise.', en: 'Nothing fires while this is on. What came due during the pause fires once at the first check after you resume.' },
       'kbauto.set.native': { kybernos: 'Afficher la liste « Automation tasks » de DSH', en: 'Show DSH’s own “Automation tasks” list' },
       'kbauto.set.native.d': { kybernos: 'La page Automations de Kybernos est le lieu de tes automatisations : la liste native de DSH, qui la double, est masquée du menu. Active pour la retrouver.', en: 'The Kybernos Automations page is where your automations live: DSH’s own list, which overlaps it, is hidden from the menu. Turn on to get it back.' },
-      'kbauto.set.skill': { kybernos: 'Créer des skills automatiquement', en: 'Create skills automatically' },
-      'kbauto.set.skill.d': { kybernos: 'Quand une automatisation a tourné sans échec le nombre de fois choisi ci-dessous, son texte est écrit comme skill réutilisable. Règle fixe : aucun modèle ne décide. Désactivé par défaut ; le fichier est à toi, modifie-le ou supprime-le.', en: 'When an automation has run the number of times chosen below without a failure, its text is written down as a reusable skill. A fixed rule: no model decides. Off by default; the file is yours to edit or delete.' },
+      'kbauto.set.skill': { kybernos: 'Suggérer des skills depuis les automatisations stables', en: 'Suggest skills from stable automations' },
+      'kbauto.set.skill.d': { kybernos: 'Quand une automatisation a tourné sans échec le nombre de fois choisi ci-dessous, son texte est proposé comme skill réutilisable dans Skills. Règle fixe : aucun modèle ne décide, et rien n’est actif avant que tu acceptes. Activé par défaut ; une fois accepté, le fichier est à toi.', en: 'When an automation has run without a failure the number of times chosen below, its text is suggested as a reusable skill on the Skills page. Fixed rule: no model decides, and nothing is active before you accept. On by default; once accepted, the file is yours.' },
       'kbauto.set.stable': { kybernos: 'Stable après', en: 'Stable after' },
       'kbauto.set.stable.d': { kybernos: 'Nombre d’exécutions d’affilée sans échec. L’historique garde les 20 dernières exécutions : 20 est le maximum.', en: 'Runs in a row without a failure. The history keeps the last 20 runs: 20 is the most.' },
+      'kbui.skills.suggested': { kybernos: '{n} skills suggérés par Kaby', en: '{n} skills suggested by Kaby' },
+      'kbui.skills.suggested.1': { kybernos: '1 skill suggéré par Kaby', en: '1 skill suggested by Kaby' },
       'tasks.lesson.title': { kybernos: 'Leçons', en: 'Lessons' },
       'tasks.lesson.progress': { kybernos: 'Cette automatisation a tourné {k} fois d’affilée sans échec. À {n}, elle peut devenir un skill réutilisable.', en: 'This automation has run {k} times in a row without a failure. At {n} it can become a reusable skill.' },
       'tasks.lesson.stable': { kybernos: 'Cette automatisation a tourné {n} fois d’affilée sans échec : assez stable pour devenir un skill réutilisable.', en: 'This automation ran {n} times in a row without a failure: stable enough to become a reusable skill.' },
       'tasks.lesson.create': { kybernos: 'Créer le skill', en: 'Create skill' },
-      'tasks.lesson.hint': { kybernos: 'Pour que ce soit fait tout seul, active « Créer des skills automatiquement » dans Réglages › Automatisations.', en: 'To have it done for you, switch on “Create skills automatically” in Settings › Automations.' },
-      'tasks.lesson.soon': { kybernos: 'Elle sera créée automatiquement dans quelques minutes.', en: 'It will be created automatically within a few minutes.' },
+      'tasks.lesson.hint': { kybernos: 'Pour qu’elle soit proposée toute seule, active « Suggérer des skills depuis les automatisations stables » dans Réglages › Automatisations.', en: 'To have it suggested for you, switch on “Suggest skills from stable automations” in Settings › Automations.' },
+      'tasks.lesson.soon': { kybernos: 'Elle sera proposée dans quelques minutes : tu la trouveras dans Skills.', en: 'It will be suggested within a few minutes: you will find it in Skills.' },
+      'tasks.lesson.pending': { kybernos: 'Skill « {skill} » proposé après {n} exécutions sans échec. Il attend ton accord dans Skills › Les tiennes : rien n’est actif avant que tu acceptes.', en: 'Skill “{skill}” suggested after {n} runs without a failure. It waits for your yes in Skills › Yours: nothing is active before you accept.' },
       'tasks.lesson.made.auto': { kybernos: 'Skill « {skill} » créé automatiquement après {n} exécutions sans échec. Il est dans tes Skills : modifie-le ou supprime-le comme les autres.', en: 'Skill “{skill}” created automatically after {n} runs without a failure. It is in your Skills: edit or delete it like any other.' },
       'tasks.lesson.made.manual': { kybernos: 'Skill « {skill} » créé depuis cette page après {n} exécutions sans échec. Il est dans tes Skills : modifie-le ou supprime-le comme les autres.', en: 'Skill “{skill}” created from this page after {n} runs without a failure. It is in your Skills: edit or delete it like any other.' },
       'tasks.lesson.err': { kybernos: 'Le skill n’a pas pu être créé : {why}', en: 'The skill could not be created: {why}' },
@@ -4605,6 +4608,21 @@ const KbDynIcon = (props) => {
 }
 // Menu icon sets (kybernos-theme). The set the person chose draws the menu entries — grey at rest, in the entry's colour on the
 // open page; « classic », or no registry yet, keeps the line icons above. The theme plugin announces a change with `kb-icons-change`.
+// A dot on the Skills row when Kaby has suggestions waiting. The count comes from the Skills page's own bundle (window.__KB_LEARNED__: it polls the
+// ledger and shares the number); without that bundle there is no dot. Nothing is shown at 0, and the dot never carries the number: the page does.
+const KbLearnedDot = () => {
+  const store = (typeof window !== 'undefined' && window.__KB_LEARNED__ !== undefined && window.__KB_LEARNED__ !== null) ? window.__KB_LEARNED__ : null
+  const pair = React.useState(() => { try { return store !== null ? store.count() : 0 } catch (e) { return 0 } })
+  React.useEffect(() => {
+    if (store === null || typeof store.subscribe !== 'function') return undefined
+    try { pair[1](store.count()) } catch (e) { /* the next change sets it */ }
+    return store.subscribe((n) => pair[1](n))
+  }, [store])
+  if (!(pair[0] > 0)) return null
+  const n = pair[0]
+  const label = kbt(n === 1 ? 'kbui.skills.suggested.1' : 'kbui.skills.suggested').replace('{n}', String(n))
+  return h('span', { className: 'kb4-dot', role: 'img', 'aria-label': label, title: label, 'data-kb': 'learned-dot' })
+}
 const KB_MENU_ENTRY = { cloudcomputer: 'cloud', kyber: 'kyber', dashboards: 'dash', aiteams: 'teams', projects: 'ws', deliverables: 'creations', tasks: 'auto', skills: 'skills', connectors: 'plug' }
 const KB_MENU_CLASSIC = { cloud: 'monitor', kyber: 'bot', dash: 'layoutDashboard', teams: KB_DEFAULT_ICON, ws: 'folderOpen', creations: 'shapes', auto: 'zap', skills: 'sparkles', plug: 'plug' }
 const kbMenuIcon = (rowKey, fallback, on) => {
@@ -7595,6 +7613,7 @@ const CSS = `
 .kb4-isvg{display:inline-flex;width:1.25em;height:1.25em;color:var(--dsw-alias-label-secondary)}
 .kb4-isvg svg{display:block}
 .kb4-lab{flex:1;text-align:left}
+.kb4-dot{width:8px;height:8px;border-radius:50%;flex:none;margin-inline-start:6px;background:var(--dsw-alias-brand-primary)}
 .kb4-badge{font-size:.95em;color:var(--dsw-alias-label-secondary);font-variant-numeric:tabular-nums}
 @media (pointer:coarse){.kb4-item,.kb4-newchat{min-height:44px}}
 /* The menu is drawn in em of the chat text size (the engine keeps it in --dsh-content-font-size on <body>, 12 to 17 px): one setting, General › Font size,
@@ -22133,7 +22152,7 @@ function renderFit(canvas, model, cam, opts){
             return h('div', { className: 'kba-card kbrn-card', 'data-kb': 'journal-lesson' },
               h('span', { className: 'kba-tabver mono' }, kbt('tasks.lesson.title')),
               (made !== null
-                ? h('div', null, kbt(made.how === 'manual' ? 'tasks.lesson.made.manual' : 'tasks.lesson.made.auto').replace('{skill}', () => made.skill).replace('{n}', String(made.runs)))
+                ? h('div', null, kbt(made.state === 'pending' ? 'tasks.lesson.pending' : (made.how === 'manual' ? 'tasks.lesson.made.manual' : 'tasks.lesson.made.auto')).replace('{skill}', () => made.skill).replace('{n}', String(made.runs)))
                 : (lesson.streak >= lesson.stableAfter
                   ? h('div', { className: 'kbrn-lesson' },
                     h('span', null, kbt('tasks.lesson.stable').replace('{n}', String(lesson.streak))),
@@ -26189,6 +26208,11 @@ function renderFit(canvas, model, cam, opts){
       subscribe: kbDomainOn,
     }
     try { if (typeof window !== 'undefined') window.__KB_DOMAIN__ = kbDomainFacade } catch (e) { /* outside a browser */ }
+    // The same facade through the versioned seam (kybernos-registry, docs/dev/plugin-contract.md): `window.__KB__.use('kybernos/core', '^1').domain`. The old global stays an alias
+    // for two suite releases. The registry may load after this plugin, so it is offered again when the registry announces itself.
+    const kbProvideDomain = () => { try { if (window.__KB__ !== undefined && window.__KB__ !== null && window.__KB__.version === 1) window.__KB__.provide('kybernos/core', '1.0.0', { domain: kbDomainFacade }) } catch (e) { /* the seam is optional */ } }
+    kbProvideDomain()
+    try { window.addEventListener('kybernos:registry', kbProvideDomain) } catch (e) { /* no events */ }
     const kbDomainLoad = async () => {
       try {
         const get = (path) => fetch(path, { cache: 'no-store', headers: { accept: 'application/json' } }).then((r) => r.json())
@@ -26375,7 +26399,7 @@ function renderFit(canvas, model, cam, opts){
         // « Mon espace » retiré du menu (demande du 26/09/2026) : la page et sa
         // section Réglages restent en place, seule l'entrée de la barre disparaît.
         row('tasks', Icon('zap', 15), kbt('menu.tasks'), (KB_TASKS_COUNT !== null && KB_TASKS_COUNT !== undefined) ? KB_TASKS_COUNT : 0, shown === 'tasks', () => openPage({ view: 'tasks' })),
-        row('skills', Icon('sparkles', 15), kbt('kbui.skills'), c.skills, shown === 'skills', () => openPage({ view: 'skills' })),
+        row('skills', Icon('sparkles', 15), kbt('kbui.skills'), c.skills, shown === 'skills', () => openPage({ view: 'skills' }), h(KbLearnedDot)),
         (KB_CP === true ? row('connectors', Icon('plug', 15), kbt('kbui.connecteurs'), 0, shown === 'connectors', () => openPage({ view: 'connectors' })) : null),
         (KB_SHOW_DOCS === true && kbDomainHides('documents') === false ? row('documents', Icon('fileText', 15), kbt('kbui.documents'), c.docs, shown === 'documents', () => openPage({ view: 'documents' })) : null),
         // ── Barre de progression des objectifs ──────────────────────────
@@ -35445,6 +35469,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       'ag.auto.l': ['Sends on its own and spends within your budget · the log keeps actions and content', 'Envoie seul et dépense dans ton budget · le journal garde actions et contenu', 'Envía solo y gasta dentro de tu presupuesto · el registro guarda acciones y contenido', 'يرسل بمفرده وينفق ضمن ميزانيتك · السجل يحفظ الإجراءات والمحتوى'],
       'ag.for': ['for your field', 'pour ton métier', 'para tu ámbito', 'لمجالك'],
       'ag.why': ['Why: {why}', 'Pourquoi : {why}', 'Por qué: {why}', 'السبب: {why}'],
+      'ag.learn': ['Kaby learns from your work and proposes skills. You approve each one, whatever you choose here.', 'Kaby apprend de ton travail et propose des skills. Tu approuves chacun, quel que soit ton choix ici.', 'Kaby aprende de tu trabajo y propone skills. Tú apruebas cada uno, elijas lo que elijas aquí.', 'يتعلم Kaby من عملك ويقترح مهارات. توافق أنت على كل واحدة، مهما اخترت هنا.'],
       'ag.note': ['Agents read this choice; the settings that enforce it come later.', 'Les agents lisent ce choix ; les réglages qui l’imposent viennent ensuite.', 'Los agentes leen esta elección; los ajustes que la imponen llegan después.', 'يقرأ الوكلاء هذا الاختيار؛ أما الإعدادات التي تفرضه فتأتي لاحقًا.'],
       // the plan, the last thing asked: the price and the payment page are the account's, nothing is typed here
       'plan.t': ['So it keeps running without you', 'Pour que ça tourne sans toi', 'Para que siga funcionando sin ti', 'ليستمر العمل من دونك'],
@@ -36782,6 +36807,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
           sum.appendChild(h('p', 'kb-ob-sumd', T('ag.' + cur + '.l')))
           s.appendChild(sum)
           s.appendChild(note(T('ag.note'), 'info'))
+          s.appendChild(note(T('ag.learn'), 'info'))
           const a = actions()
           a.appendChild(primary(T('cont'), () => { if (S.agents === null) S.agents = cur; go('kit') }))
           s.appendChild(a)

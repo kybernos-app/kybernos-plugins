@@ -10,6 +10,10 @@
       "nom": "@local/kybernos-hub"
     },
     {
+      "dir": "kybernos-registry",
+      "nom": "@local/kybernos-registry"
+    },
+    {
       "dir": "kybernos-theme",
       "nom": "@local/kybernos-theme"
     },

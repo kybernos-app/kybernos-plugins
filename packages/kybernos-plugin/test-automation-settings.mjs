@@ -12,13 +12,13 @@ const ok = (label) => { pass += 1; console.log('  ✓ ' + label) }
 const here = dirname(fileURLToPath(import.meta.url))
 
 // 1. defaults and normalisation
-assert.deepEqual(defaults(), { version: 1, showNativeTasks: false, paused: false, autoSkill: false, stableAfter: 5 })
+assert.deepEqual(defaults(), { version: 1, showNativeTasks: false, paused: false, autoSkill: true, stableAfter: 5 })
 for (const bad of [null, undefined, 'x', 7, [], [true]]) assert.deepEqual(normalize(bad), defaults(), 'a non-object reads as the defaults')
 assert.deepEqual(normalize({ showNativeTasks: 'yes', paused: 1, autoSkill: 'on', stableAfter: '10' }), defaults(), 'a wrong type reads as the default')
 assert.equal(normalize({ stableAfter: 7 }).stableAfter, DEFAULT_STABLE_AFTER, 'a number that is not a choice reads as the default')
 assert.equal(normalize({ stableAfter: 20 }).stableAfter, 20)
 assert.deepEqual(STABLE_CHOICES, [3, 5, 10, 20])
-assert.equal(defaults().autoSkill, false, 'creating skills by itself is off until the person turns it on')
+assert.equal(defaults().autoSkill, true, 'suggesting skills is on by default: a suggestion is not active until the person accepts it')
 assert.equal(normalize({ paused: true }).paused, true)
 assert.equal(normalize({ paused: true }).showNativeTasks, false, 'a missing key reads as its default')
 ok('defaults, and what a damaged file reads as')

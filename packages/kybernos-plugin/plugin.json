@@ -27,6 +27,18 @@
   "requires": {
     "kybernos": ">=0.1.0"
   },
+  "provides": [
+    {
+      "name": "domain-pack",
+      "version": "1.0",
+      "kind": "data",
+      "class": "instruction",
+      "validator": "builtin",
+      "summary": {
+        "en": "A field of work: goals, skills, teams, automations and menu wording the onboarding offers."
+      }
+    }
+  ],
   "permissions": [
     "ui.slot:conversation.chat.assistant-actions",
     "ui.slot:conversation.chat.node",

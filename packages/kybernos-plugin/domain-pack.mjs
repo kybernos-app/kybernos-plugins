@@ -212,6 +212,40 @@ export const loadPacks = (dir) => {
   return { packs, rejected }
 }
 
+// ── The point of the plugin contract (docs/dev/plugin-contract.md): other plugins can contribute packs ──
+/** The version of this plugin, as a point owner: a plugin that says `requires: { "kybernos/core": "^1.0" }` is judged against it (test-domain-pack.mjs keeps it equal to package.json's major). */
+export const OWNER_VERSION = '1.0.0'
+/** Checks one contributed file for the registry: the same check as a shipped pack, in the registry's `{ ok, value }` shape. */
+export const validateContribution = (raw, fileId) => {
+  const r = validatePack(raw, fileId)
+  return r.ok ? { ok: true, value: r.pack } : { ok: false, errors: r.errors }
+}
+/** What the registry is told about this point (the owner calls `definePoint` with it). Instruction data: a pack carries prompts and starter questions. */
+export const DOMAIN_POINT = { owner: 'kybernos/core', ownerVersion: OWNER_VERSION, name: 'domain-pack', version: '1.0', kind: 'data', class: 'instruction', validate: validateContribution, max: 12 }
+export const DOMAIN_POINT_REF = 'kybernos/core#domain-pack'
+/** A pack that comes from a plugin is listed after ours: its `order` is held between these, so a plugin cannot put itself before Education or after the catch-all. */
+export const CONTRIBUTED_ORDER = { min: 50, max: 98 }
+
+/**
+ * The packs the wizard offers: the shipped ones, then what the enabled plugins contribute (`[{ plugin, file, value }]` from the registry). A contributed pack
+ * whose id is already taken (by a shipped pack or an earlier plugin), or that claims a legacy job someone already claims, is left out and reported. A kept
+ * pack says where it came from in `from`. Pure; `shipped` is `{ packs, rejected }` as `loadPacks` returns it.
+ */
+export const mergePackSets = (shipped, contributions) => {
+  const packs = shipped.packs.slice()
+  const rejected = shipped.rejected.slice()
+  for (const c of contributions) {
+    const pack = c.value
+    const where = String(c.plugin) + ':' + String(c.file)
+    if (packs.some((p) => p.id === pack.id)) { rejected.push({ file: where, errors: ['id "' + pack.id + '" is already taken'] }); continue }
+    const clash = checkSet(packs.concat([pack]))
+    if (clash.length > 0) { rejected.push({ file: where, errors: clash }); continue }
+    packs.push({ ...pack, order: Math.min(CONTRIBUTED_ORDER.max, Math.max(CONTRIBUTED_ORDER.min, pack.order)), from: c.plugin })
+  }
+  packs.sort((a, b) => a.order - b.order || (a.id < b.id ? -1 : 1))
+  return { packs, rejected }
+}
+
 /** The pack a saved `profil` stands for: the pack's own id, or the pack that claims it as a legacy job. `null` when none. */
 export const domainOfProfil = (packs, profil) => {
   if (typeof profil !== 'string') return null
