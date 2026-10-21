@@ -32,6 +32,12 @@ globalThis[Symbol.for('kybernos.workspace')] = {
   pathAllowed: async (real) => [project, project2].some((p) => real === p || real.startsWith(p + '/')),
 }
 const M = await import('./index.js')
+const { sessionSource } = await import('./session-guard.mjs')
+const { SESSION_SECRET, sessionCookie } = await import('./lib-session-test.mjs')
+
+// A-16: /frame and /export need DSH's signed session besides the strict Origin. The test plays the panel, which fetches same-origin and
+// so carries the cookie; the `call` helper below adds it unless the case names its own Origin (the refusal cases do).
+sessionSource.secret = () => SESSION_SECRET
 
 // ── apply() ─────────────────────────────────────────────────────────────────
 {
@@ -66,7 +72,10 @@ const server = http.createServer((req, res) => {
 await new Promise((r) => server.listen(0, '127.0.0.1', r))
 const port = server.address().port
 const call = async (method, path, { body, headers, raw } = {}) => {
-  const r = await fetch(`http://127.0.0.1:${port}${path}`, { method, headers: { ...(raw ? {} : body ? { 'content-type': 'application/json' } : {}), ...headers }, body: raw ? raw : body ? JSON.stringify(body) : undefined })
+  // The page's own headers: its Origin and DSH's signed cookie (a same-origin fetch carries it). A case that names another Origin
+  // overrides the first; a case that must be refused is the one that does.
+  const page = { origin: `http://127.0.0.1:${port}`, cookie: sessionCookie('127.0.0.1:' + port) }
+  const r = await fetch(`http://127.0.0.1:${port}${path}`, { method, headers: { ...(raw ? {} : body ? { 'content-type': 'application/json' } : {}), ...page, ...headers }, body: raw ? raw : body ? JSON.stringify(body) : undefined })
   const ct = r.headers.get('content-type') || ''
   return { status: r.status, json: ct.includes('json') ? await r.json() : null, buf: ct.includes('json') ? null : Buffer.from(await r.arrayBuffer()), type: ct }
 }

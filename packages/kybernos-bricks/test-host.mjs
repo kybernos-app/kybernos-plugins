@@ -14,6 +14,12 @@
 
 import { createServer } from 'node:http'
 import { apply, creerMagasin, optionsOutil, monterRoutes, definitionLiteral, specDefineTool } from './index.js'
+import { sessionSource } from './session-guard.mjs'
+import { SESSION_SECRET, sessionCookie } from './lib-session-test.mjs'
+
+// A-16: /push needs DSH's signed session besides the right Origin. The test plays the page, which fetches same-origin and so carries the
+// cookie; the refusal cases below send neither and must stay refused.
+sessionSource.secret = () => SESSION_SECRET
 
 let echecs = 0
 const ok = (label, condition, detail) => {
@@ -58,6 +64,7 @@ const serveur = createServer((req, res) => {
 })
 await new Promise((r) => serveur.listen(0, '127.0.0.1', r))
 const base = `http://127.0.0.1:${serveur.address().port}`
+const PAGE = () => ({ Origin: base, cookie: sessionCookie('127.0.0.1:' + serveur.address().port) })
 
 const lireEtat = async (session) => {
   const u = await fetch(`${base}/kybernos-bricks/state${session === undefined ? '' : `?session=${session}`}`)
@@ -75,7 +82,7 @@ ok('l\'horloge de pose est dans le passé (le panneau rattrape)',
 const avant = etat.version
 const pousse = await fetch(`${base}/kybernos-bricks/push`, {
   method: 'POST',
-  headers: { 'Content-Type': 'application/json', Origin: base },
+  headers: { 'Content-Type': 'application/json', ...PAGE() },
   body: JSON.stringify({ sessionId: 'session-t', cle: 'phare', duree_ms: 4000 }),
 })
 const repPush = await pousse.json()
@@ -84,8 +91,8 @@ ok('le push retient la clé d\'archétype', (await lireEtat('session-t')).cle ==
 
 ok('une session inconnue retombe sur la dernière commande',
   (await lireEtat('session-absente')).titre !== undefined)
-ok('un corps illisible est refusé (400), il ne dépose pas de maquette vide', (await fetch(`${base}/kybernos-bricks/push`, { method: 'POST', headers: { 'Content-Type': 'application/json', Origin: base }, body: '{oops' })).status === 400)
-ok('un Content-Type non JSON est refusé (415)', (await fetch(`${base}/kybernos-bricks/push`, { method: 'POST', headers: { 'Content-Type': 'text/plain', Origin: base }, body: '{}' })).status === 415)
+ok('un corps illisible est refusé (400), il ne dépose pas de maquette vide', (await fetch(`${base}/kybernos-bricks/push`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...PAGE() }, body: '{oops' })).status === 400)
+ok('un Content-Type non JSON est refusé (415)', (await fetch(`${base}/kybernos-bricks/push`, { method: 'POST', headers: { 'Content-Type': 'text/plain', ...PAGE() }, body: '{}' })).status === 415)
 ok('une origine par préfixe est refusée (localhost.evil.example)', (await fetch(`${base}/kybernos-bricks/push`, { method: 'POST', headers: { 'Content-Type': 'application/json', Origin: 'http://localhost.evil.example' }, body: '{}' })).status === 403)
 ok('une origine par préfixe est refusée (127.0.0.1.nip.io)', (await fetch(`${base}/kybernos-bricks/push`, { method: 'POST', headers: { 'Content-Type': 'application/json', Origin: 'http://127.0.0.1.nip.io' }, body: '{}' })).status === 403)
 ok('un port voisin est refusé (Origin :3080 vs port réel)', (await fetch(`${base}/kybernos-bricks/push`, { method: 'POST', headers: { 'Content-Type': 'application/json', Origin: 'http://127.0.0.1:3080' }, body: '{}' })).status === 403)
@@ -109,14 +116,14 @@ ok('une origine étrangère est refusée',
   ok('it raises the reopen counter the panel watches', apresR.ouverture === avantR.ouverture + 1, `${avantR.ouverture} → ${apresR.ouverture}`)
   ok('a call with only a prompt is still a real deposit (new version)', (await definition.execute({ prompt: 'un château' }, { agent: { id: SES } })).version === avantR.version + 1)
   for (const [nom, corps] of [['unreadable', '{oops'], ['an empty object', '{}'], ['null', 'null'], ['a JSON array', '[]'], ['a body of blanks', '{"prompt":"   ","ops":"x"}']]) {
-    const rep = await fetch(`${base}/kybernos-bricks/push`, { method: 'POST', headers: { 'Content-Type': 'application/json', Origin: base }, body: corps })
+    const rep = await fetch(`${base}/kybernos-bricks/push`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...PAGE() }, body: corps })
     const j = await rep.json()
     ok(`a push with ${nom} → 400 corps_illisible`, rep.status === 400 && j.ok === false && j.raison === 'corps_illisible', `${rep.status} ${JSON.stringify(j)}`)
   }
   const sansSession = await lireEtat()
   ok('...and leaves no empty model behind: the state without a session is still the real one', sansSession.sessionId === SES, sansSession.sessionId)
   for (const [nom, corps] of [['ops', { sessionId: SES, ops: [{ op: 'rect', x: 0, y: 0, z: 0, w: 1, d: 1, h: 1 }] }], ['a prompt', { sessionId: SES, prompt: 'une fusée' }], ['an archetype key', { sessionId: SES, cle: 'phare' }]]) {
-    const rep = await fetch(`${base}/kybernos-bricks/push`, { method: 'POST', headers: { 'Content-Type': 'application/json', Origin: base }, body: JSON.stringify(corps) })
+    const rep = await fetch(`${base}/kybernos-bricks/push`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...PAGE() }, body: JSON.stringify(corps) })
     ok(`a push with ${nom} still works`, rep.status === 200 && (await rep.json()).ok === true)
   }
 }
