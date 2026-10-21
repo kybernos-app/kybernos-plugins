@@ -1,5 +1,6 @@
-// Test of the pure part of the runs views of an automation (the Sessions and Journal tabs of its page): which history lines are one
-// run, how a run stands, the four figures above the list, the nodes and links of the execution graph, and the layout that draws it.
+// Test of the pure part of the runs view of an automation (the Sessions tab of its page, which also holds what the Journal tab used to
+// say): which history lines are one run, how a run stands, the four figures above the list, and the nodes and links of the execution graph.
+// The layout that draws the graph is the KB-AUTOFLOW block (test-automation-flow.mjs).
 // It extracts the KB-AUTORUNS block of client.js (the file is a browser bundle with no exports), then checks, on the source, the
 // contract of the pane that draws it: read-only, own fetch, bounded calls.
 // Usage: node packages/kybernos-plugin/test-automation-runs-client.mjs   (exit 0 = everything passes)
@@ -11,7 +12,7 @@ const src = readFileSync(fileURLToPath(new URL('./client.js', import.meta.url)),
 const parts = src.split('// KB-AUTORUNS-BEGIN')
 if (parts.length !== 2) { console.error('exactly one KB-AUTORUNS block expected in client.js'); process.exit(1) }
 const block = parts[1].split('// KB-AUTORUNS-END')[0]
-const names = ['kbRunsOf', 'kbRunFmtDur', 'kbRunFmtBytes', 'kbRunFmtDT', 'kbRunFmtHm', 'kbRunState', 'kbRunStats', 'kbRunGraph', 'kbGraphLayout', 'kbRunAgo', 'kbRunCardFigures']
+const names = ['kbRunsOf', 'kbRunFmtDur', 'kbRunFmtBytes', 'kbRunFmtDT', 'kbRunFmtHm', 'kbRunState', 'kbRunStats', 'kbRunGraph', 'kbRunBars', 'kbRunAgo', 'kbRunCardFigures']
 const m = await import('data:text/javascript,' + encodeURIComponent('const KB_RUNS_NOTE_WINDOW_MS = 600000\n' + block.replace(/^const KB_RUNS_NOTE_WINDOW_MS[^\n]*\n/m, '') + '\nexport { ' + names.join(', ') + ' }'))
 
 let fails = 0
@@ -117,21 +118,17 @@ eq('a run whose journal was not read is its start alone', [m.kbRunGraph(null, fa
   eq('a failed run ends on a failed final node', g.nodes[2].ok, false)
 }
 
-/* ── Layout of the graph ─────────────────────────────────────────────────── */
+/* ── The last ten runs, as bars, for the list ───────────────────────────── */
 {
-  const lay = m.kbGraphLayout(6, { cols: 4 })
-  eq('the first row runs left to right, the second right to left', lay.pos.map((p) => [p.x, p.y]), [[0, 0], [206, 0], [412, 0], [618, 0], [618, 106], [412, 106]])
-  eq('5 links for 6 nodes', lay.edges.length, 5)
-  eq('a link inside a row is horizontal, from the edge of one node to the edge of the next', [lay.edges[0].x1, lay.edges[0].x2, lay.edges[0].y1 === lay.edges[0].y2, lay.edges[0].vertical], [172, 206, true, false])
-  eq('a link between two rows is vertical and leaves from the middle of the node', [lay.edges[3].vertical, lay.edges[3].x1, lay.edges[3].x1 === lay.edges[3].x2, lay.edges[3].y1, lay.edges[3].y2], [true, 704, true, 70, 106])
-  eq('on the second row the link runs leftwards', [lay.edges[4].x1, lay.edges[4].x2], [618, 584])
-  eq('the label of a link sits in the middle of it', [lay.edges[0].lx, lay.edges[3].ly], [189, 88])
-  eq('size of the whole graph', [lay.width, lay.height], [790, 176])
-  eq('a short graph is as wide as its nodes, not as wide as a full row', m.kbGraphLayout(2).width, 378)
-  eq('no node, no size, no link', m.kbGraphLayout(0), { width: 0, height: 0, pos: [], edges: [] })
-  eq('one node, no link', m.kbGraphLayout(1).edges, [])
-  const all = m.kbGraphLayout(9, { cols: 3 })
-  eq('no two nodes share a place', new Set(all.pos.map((p) => p.x + ',' + p.y)).size, 9)
+  const hist = (n, badAt) => Array.from({ length: n }, (_, i) => ({ at: Z(1 + (i % 28), 8, i), sessionId: 's' + i, status: badAt.indexOf(i) >= 0 ? 'error' : 'fired' }))
+  const b = m.kbRunBars(hist(12, [11]))
+  eq('at most ten bars, the newest on the right', b.bars.length, 10)
+  eq('the newest run is the last bar', m.kbRunBars(hist(12, [11])).bars[9], 'bad')
+  eq('the share of the last ten that are not bad', m.kbRunBars(hist(12, [11])).pct, 90)
+  eq('a run the history says failed is a bad bar, the others are ok', m.kbRunBars(hist(3, [1])).bars.join(','), 'ok,bad,ok')
+  eq('no run: no bar, no percentage is claimed', m.kbRunBars([]), { bars: [], pct: null })
+  eq('a history that is not a list is no run', [m.kbRunBars(null).pct, m.kbRunBars('x').bars.length], [null, 0])
+  eq('a journal that was not read is never a bad bar', m.kbRunBars(hist(4, [])).bars.every((x) => x === 'ok'), true)
 }
 
 /* ── Relative time and the figures of a card ─────────────────────────────── */
@@ -171,9 +168,11 @@ eq('it reads the runs with its own fetch on the API base, GET only', pane.indexO
 eq('a host without the route (404, network error) gives an empty answer, never an exception', /if \(res\.ok !== true\) return \{\}/.test(pane) && /catch \(e\) \{ return \{\} \}/.test(pane), true)
 eq('journals are asked for five at a time, at most 20 runs, and detail for one run only', pane.indexOf('need.slice(i, i + 5)') >= 0 && pane.indexOf('.slice(0, 20)') >= 0 && /kbRunsFetch\(\[[^\]]+\], true\)/.test(pane), true)
 eq('a run still open is not cached, it is read again', pane.indexOf("outcome.state !== 'open'") >= 0, true)
-eq('the page has a Journal tab, next to Sessions and Webhook', src.indexOf("'data-kb': 'tab-journal'") >= 0 && src.indexOf("tab === 'journal'") >= 0, true)
-eq('the Sessions and Journal tabs are one pane, keyed by the automation and the tab', src.indexOf("key: t.id + ':' + tab") >= 0 && src.indexOf('KbRunsPane, {') >= 0, true)
-eq('the Journal shows six run chips, the chosen run when older, and a way to the rest: no run is cut without a word', src.indexOf('i < 6 || keys[i] === selKey') >= 0 && src.indexOf("'data-kb': 'runs-all'") >= 0 && src.indexOf('onSessions: () => setTab(\'sessions\')') >= 0, true)
+eq('the page has two tabs, Workflow and Sessions: no Journal tab, no Webhook tab', src.indexOf("'data-kb': 'tab-flow'") >= 0 && src.indexOf("'data-kb': 'tab-sessions'") >= 0 && src.indexOf("'data-kb': 'tab-journal'") < 0 && src.indexOf("tab === 'journal'") < 0 && src.indexOf("tab === 'hook'") < 0, true)
+eq('the Sessions pane is one pane per automation', src.indexOf("key: t.id,") >= 0 && src.indexOf('KbRunsPane, {') >= 0, true)
+eq('what the Journal said stays, under the run it is about: who ran (the model and why), the approvals, the lessons', src.indexOf("'data-kb': 'run-about'") >= 0 && src.indexOf("kbt('tasks.journal.who')") >= 0 && src.indexOf("kbt('tasks.journal.approvals')") >= 0 && src.indexOf("'data-kb': 'journal-lesson'") >= 0, true)
+eq('every run stays in the list: no run is cut', src.indexOf("runs.map((r, i) => { const s = sumOf(r)") >= 0 && src.indexOf('i < 6 ||') < 0, true)
+eq('the graph of a run is drawn by the shared canvas, with a card per step and a wire per hand-over', src.indexOf('h(KbFlowCanvas, { nodes: runCards, links: runLinks') >= 0, true)
 eq('the tab counts runs, not history lines', src.indexOf("kbt('tasks.tab.sessions').replace('{n}', String(kbRunsOf(t.history).length))") >= 0, true)
 eq('the Cards view reads one journal per card (the newest run), through the same reader as the runs pane', src.indexOf("const r = kbRunsOf(t.history)[0]; return r !== undefined ? r.sessionId : null") >= 0 && src.indexOf('React.useEffect(() => kbRunsRead(lastIds,') >= 0 && src.indexOf('React.useEffect(() => kbRunsRead(ids,') >= 0, true)
 eq('the Cards view switches an automation through the page, never by itself', src.indexOf("onToggle: (t) => act('toggle', t.id, { active: t.active === false })") >= 0, true)
