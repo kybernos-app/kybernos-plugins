@@ -117,7 +117,7 @@ try {
   await sleep(3500)
   await waitFor(page, `!!document.querySelector('[data-kb="learned-dot"]')`, 15000)
   check('the Skills row of the menu has a dot', (await count('[data-kb="learned-dot"]')) === 1)
-  check('and the dot says how many wait', /2 skills suggested by Kaby/.test((await ev(`(() => { const d = document.querySelector('[data-kb="learned-dot"]'); return d ? d.getAttribute('aria-label') : '' })()`)) || ''))
+  check('and the dot says how many wait', /2 skills are waiting for you/.test((await ev(`(() => { const d = document.querySelector('[data-kb="learned-dot"]'); return d ? d.getAttribute('aria-label') : '' })()`)) || ''))
   await clickText(page, 'Skills')
   await waitFor(page, `!!document.querySelector('.kbsub-group [role=tab]')`, 20000)
   for (let i = 0; i < 40; i += 1) {
@@ -166,7 +166,7 @@ try {
   await waitFor(page, `!!document.querySelector('[data-kb="skill-card-undefined"], [data-kb^="skill-card-"][data-kb$="live-i18n-checklist"]') || Array.from(document.querySelectorAll('[data-kb^="skill-card-"]')).some((e) => e.textContent.includes('live-i18n-checklist'))`, 15000)
   const learnedCard = await ev(`(() => { const c = Array.from(document.querySelectorAll('[data-kb^="skill-card-"]')).find((e) => e.textContent.includes('live-i18n-checklist')); return c ? { badge: !!c.querySelector('[data-kb="learned-badge"]'), from: (c.querySelector('[data-kb="learned-from"]') || {}).textContent || '' } : null })()`)
   check('the installed card has the Learned badge and says where it came from', learnedCard !== null && learnedCard.badge === true && /3 lessons/.test(learnedCard.from), learnedCard)
-  check('the dot counts one suggestion now', /1 skill suggested by Kaby/.test((await ev(`(() => { const d = document.querySelector('[data-kb="learned-dot"]'); return d ? d.getAttribute('aria-label') : '' })()`)) || ''))
+  check('the dot counts one suggestion now', /1 skill is waiting for you/.test((await ev(`(() => { const d = document.querySelector('[data-kb="learned-dot"]'); return d ? d.getAttribute('aria-label') : '' })()`)) || ''))
 
   console.log('the journal')
   await pressDom('[data-kb="learned-journal-btn"]')

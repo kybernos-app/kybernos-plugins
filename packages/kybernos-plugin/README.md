@@ -258,7 +258,7 @@ none is suggested twice. Without the Skills bundle there is no seam: nothing is 
   nothing else, never the text to be written). That click is the person's own acceptance: the skill is written at once and the journal says so.
 - `GET /kybernos/automation-skills?id=` (same origin) says how far an automation is and which skill was made or suggested; `POST {id}` (same
   origin and a signed session) makes it now. Host code: it needs a DSH restart.
-- The menu has a **dot on the Skills row** when suggestions wait (`KbLearnedDot`, reading `window.__KB_LEARNED__` from the Skills bundle), and the
+- The menu has a **dot on the Skills row** when something waits (a suggestion, or a change Kaby made alone that nobody read) (`KbLearnedDot`, reading `window.__KB_LEARNED__` from the Skills bundle), and the
   agents step of the onboarding says in one line that Kaby learns and the person approves each skill (`ag.learn`).
 
 `GET/POST /kybernos/automation-settings` has the guards of `tasks` (same origin, and a signed session to change). The route is host

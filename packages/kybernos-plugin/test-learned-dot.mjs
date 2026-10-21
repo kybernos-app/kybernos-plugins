@@ -27,7 +27,7 @@ ok('only the Skills row of the menu carries the dot, as the extra of the shared 
 for (const key of ['kbui.skills.suggested', 'kbui.skills.suggested.1']) {
   assert.ok(new RegExp("'" + key.replace(/\./g, '\\.') + "': \\{ kybernos: '[^']*\\{n\\}[^']*', en: '[^']*\\{n\\}[^']*' \\}").test(src) || key.endsWith('.1'), key + ' has both languages with {n}')
 }
-assert.ok(/'kbui\.skills\.suggested\.1': \{ kybernos: '1 skill suggéré par Kaby', en: '1 skill suggested by Kaby' \}/.test(src), 'the singular has its own words')
+assert.ok(/'kbui\.skills\.suggested\.1': \{ kybernos: '1 skill attend ta relecture', en: '1 skill is waiting for you' \}/.test(src), 'the singular has its own words')
 ok('the tooltip is worded in French and English, with its singular')
 
 assert.ok(/\.kb4-dot\{[^}]*border-radius:50%/.test(src), 'the dot has a style')

@@ -1605,8 +1605,8 @@ let kbLocaleRead = () => 'en'
       'kbauto.set.skill.d': { kybernos: 'Quand une automatisation a tourné sans échec le nombre de fois choisi ci-dessous, son texte est proposé comme skill réutilisable dans Skills. Règle fixe : aucun modèle ne décide, et rien n’est actif avant que tu acceptes. Activé par défaut ; une fois accepté, le fichier est à toi.', en: 'When an automation has run without a failure the number of times chosen below, its text is suggested as a reusable skill on the Skills page. Fixed rule: no model decides, and nothing is active before you accept. On by default; once accepted, the file is yours.' },
       'kbauto.set.stable': { kybernos: 'Stable après', en: 'Stable after' },
       'kbauto.set.stable.d': { kybernos: 'Nombre d’exécutions d’affilée sans échec. L’historique garde les 20 dernières exécutions : 20 est le maximum.', en: 'Runs in a row without a failure. The history keeps the last 20 runs: 20 is the most.' },
-      'kbui.skills.suggested': { kybernos: '{n} skills suggérés par Kaby', en: '{n} skills suggested by Kaby' },
-      'kbui.skills.suggested.1': { kybernos: '1 skill suggéré par Kaby', en: '1 skill suggested by Kaby' },
+      'kbui.skills.suggested': { kybernos: '{n} skills attendent ta relecture', en: '{n} skills are waiting for you' },
+      'kbui.skills.suggested.1': { kybernos: '1 skill attend ta relecture', en: '1 skill is waiting for you' },
       'tasks.lesson.title': { kybernos: 'Leçons', en: 'Lessons' },
       'tasks.lesson.progress': { kybernos: 'Cette automatisation a tourné {k} fois d’affilée sans échec. À {n}, elle peut devenir un skill réutilisable.', en: 'This automation has run {k} times in a row without a failure. At {n} it can become a reusable skill.' },
       'tasks.lesson.stable': { kybernos: 'Cette automatisation a tourné {n} fois d’affilée sans échec : assez stable pour devenir un skill réutilisable.', en: 'This automation ran {n} times in a row without a failure: stable enough to become a reusable skill.' },
@@ -2869,7 +2869,7 @@ const KB_NAV_KEYS = {
   'agent-presets': 'agent presets', voice: 'voice', 'kybernos-slash': 'commands', 'kybernos-ollama': 'ollama local models',
   'kybernos-suite': 'kybernos suite', 'kybernos-tools': 'tools', 'kybernos-workers': 'workers', 'kybernos-call': 'calls',
   // The pages the Suite's bundles add (their section id is the cell's key in every language).
-  'kybernos-usage': 'usage', 'kybernos-automations': 'automations', 'kybernos-skills': 'skills', 'kybernos-composio': 'connectors', 'kybernos-free-llms': 'free llms', 'kybernos-mobile': 'phone and channels',
+  'kybernos-usage': 'usage', 'kybernos-automations': 'automations', 'kybernos-skills': 'skills', 'kybernos-skills-learned': 'learned skills', 'kybernos-composio': 'connectors', 'kybernos-free-llms': 'free llms', 'kybernos-mobile': 'phone and channels',
   'kybernos-computers': 'cloud computers',
   // What stays on this computer (custom instructions, models re-import, DSH chats): kybernos-cloud's section.
   'kybernos-local': 'kybernos',
@@ -2994,6 +2994,9 @@ const KB_SS_INDEX = [
   ['phone and channels', '', 'Open my computer on my phone', '', 'add a phone show the qr allow', 'telephone mobile qr code telecommande smartphone movil remote control controle a distance'],
   ['phone and channels', '', 'Talk to Kaby on a messaging app', '', 'telegram whatsapp wechat imessage', 'messagerie canal bot kaby mensajeria'],
   ['phone and channels', '', 'Link a phone', '', '', 'appairer relier telephone scanner code qr smartphone movil', '', 'Link a phone in three steps'],
+  ['learned skills', '', 'How much may Kaby do on its own?', 'Three levels: ask me every time, improve its own skills, create and improve.', 'ask me every time improve its own skills create and improve', 'autonomie niveau validation automatique creer ameliorer competences apprises'],
+  ['learned skills', '', 'Confidence threshold', 'Kaby acts on its own only when the score reaches this line.', '', 'seuil confiance score ligne arrets durs'],
+  ['learned skills', '', 'Audit trail', 'Every creation, improvement, acceptance, refusal and undo, with the score and its parts.', 'open the journal stop and undo the last 7 days', 'journal audit trace annuler arret urgence'],
 
   ['atlas', '', 'Update', 'The Atlas reads your files and plugins only when you ask.', '', 'carte graphe relations projets cartographie mapa'],
   ['kybernos suite', '', 'Check for updates', '', '', 'plugins modules extensions installer catalogue'],
@@ -3005,7 +3008,7 @@ const KB_SS_INDEX = [
 const KB_SS_PAGE_KW = {
   'ai provider and models': 'modeles fournisseurs cle api openai', 'auto routing': 'routage routeur choix modele secours', 'free llms': 'gratuit gratis',
   'ollama local models': 'local hors ligne offline gpu', usage: 'consommation quota forfait cout', 'agent presets': 'agent mode persona', workers: 'assistants code delegation cli',
-  automations: 'planification taches cron', commands: 'slash raccourcis prompts', skills: 'competences habilidades', tools: 'outils mcp',
+  automations: 'planification taches cron', commands: 'slash raccourcis prompts', skills: 'competences habilidades', 'learned skills': 'competences apprises apprentissage confiance seuil autonomie audit journal', tools: 'outils mcp',
   connectors: 'integrations applications gmail slack', 'web search': 'recherche internet moteur navigateur', 'memory & lessons': 'memoire memoria souvenirs lecons',
   kybernos: 'instructions consignes', atlas: 'carte graphe', voice: 'voix voz micro dictee audio', calls: 'appels telephone visio',
   appearance: 'apparence aspecto mode sombre clair', theme: 'couleurs palette fond police', language: 'langue idioma traduction', servers: 'serveurs equipe reseau',
@@ -3078,6 +3081,9 @@ const KB_SS_FR = {
   'phone and channels|Open my computer on my phone': ['Ouvrir mon ordinateur sur mon téléphone', ''],
   'phone and channels|Talk to Kaby on a messaging app': ['Parler à Kaby sur une messagerie', ''],
   'phone and channels|Link a phone': ['Relier un téléphone', '', 'Relier un téléphone en trois étapes'],
+  'learned skills|How much may Kaby do on its own?': ['Que peut faire Kaby tout seul ?', 'Trois niveaux : me demander à chaque fois, améliorer ses propres skills, créer et améliorer.'],
+  'learned skills|Confidence threshold': ['Seuil de confiance', 'Kaby n’agit seul que si le score atteint cette ligne.'],
+  'learned skills|Audit trail': ['Journal d’audit', 'Chaque création, amélioration, acceptation, refus et annulation, avec le score et ses parties.'],
   'atlas|Update': ['Mettre à jour', 'L’Atlas ne lit tes fichiers et tes plugins que lorsque tu le demandes.'],
   'kybernos suite|Check for updates': ['Rechercher des mises à jour', ''],
   'about|Check for updates automatically': ['Vérifier les mises à jour automatiquement', ''],
@@ -4579,7 +4585,7 @@ const KbDynIcon = (props) => {
 }
 // Menu icon sets (kybernos-theme). The set the person chose draws the menu entries — grey at rest, in the entry's colour on the
 // open page; « classic », or no registry yet, keeps the line icons above. The theme plugin announces a change with `kb-icons-change`.
-// A dot on the Skills row when Kaby has suggestions waiting. The count comes from the Skills page's own bundle (window.__KB_LEARNED__: it polls the
+// A dot on the Skills row when something waits for the person: a suggestion of Kaby, or a change it made on its own that nobody has read yet. The count comes from the Skills page's own bundle (window.__KB_LEARNED__: it polls the
 // ledger and shares the number); without that bundle there is no dot. Nothing is shown at 0, and the dot never carries the number: the page does.
 const KbLearnedDot = () => {
   const store = (typeof window !== 'undefined' && window.__KB_LEARNED__ !== undefined && window.__KB_LEARNED__ !== null) ? window.__KB_LEARNED__ : null
@@ -33200,7 +33206,7 @@ body:not([data-ds-dark-theme]) .kbac-theme-cur{color:color-mix(in srgb,var(--dsw
         ] },
         { id: 'agents', titre: kbt('settings.group.agents'), pliable: true, icone: 'agent presets', mots: ['agent presets', 'workers', 'automations', 'commandes', 'commands'] },
         { id: 'tools', titre: kbt('settings.group.tools'), pliable: true, icone: 'tools', mots: ['skills', 'outils', 'tools', 'connectors', 'web search'] },
-        { id: 'memory', titre: kbt('settings.group.memory'), pliable: true, icone: 'memory & lessons', mots: ['memory & lessons', 'kybernos', 'atlas'] },
+        { id: 'memory', titre: kbt('settings.group.memory'), pliable: true, icone: 'memory & lessons', mots: ['memory & lessons', 'learned skills', 'kybernos', 'atlas'] },
         { id: 'voice', titre: kbt('settings.group.voice'), pliable: true, icone: 'voice', mots: ['voix', 'voice', 'calls', 'appels'] },
         { id: 'look', titre: kbt('settings.group.look'), pliable: true, icone: 'appearance', mots: ['apparence', 'appearance', 'theme', 'langue', 'language'] },
         { id: 'devices', titre: kbt('settings.group.devices'), pliable: true, icone: 'servers', mots: ['serveurs', 'servers', 'cloud computers', 'phone and channels'] },
@@ -33253,6 +33259,7 @@ body:not([data-ds-dark-theme]) .kbac-theme-cur{color:color-mix(in srgb,var(--dsw
         'a propos': '<circle cx="12" cy="12" r="10" ' + trait + '/><path d="M12 16v-4" ' + trait + '/><path d="M12 8h.01" ' + trait + '/>',
         'langue': '<path d="m5 8 6 6" ' + trait + '/>' + '<path d="m4 14 6-6 2-3" ' + trait + '/>' + '<path d="M2 5h12" ' + trait + '/>' + '<path d="M7 2h1" ' + trait + '/>' + '<path d="m22 22-5-10-5 10" ' + trait + '/>' + '<path d="M14 18h6" ' + trait + '/>',
         'language': '<path d="m5 8 6 6" ' + trait + '/>' + '<path d="m4 14 6-6 2-3" ' + trait + '/>' + '<path d="M2 5h12" ' + trait + '/>' + '<path d="M7 2h1" ' + trait + '/>' + '<path d="m22 22-5-10-5 10" ' + trait + '/>' + '<path d="M14 18h6" ' + trait + '/>',
+        'learned skills': '<path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z" ' + trait + '/><path d="M22 10v6" ' + trait + '/><path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5" ' + trait + '/>',
         'memory & lessons': '<path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5" ' + trait + '/><path d="M9 18h6" ' + trait + '/><path d="M10 22h4" ' + trait + '/>',
         'ollama local models': '<path d="M12 2 2 7l10 5 10-5-10-5z" ' + trait + '/><path d="M2 12l10 5 10-5" ' + trait + '/>',
         'plugins kybernos': '<rect x="3" y="3" width="7" height="7" rx="1" ' + trait + '/><rect x="14" y="3" width="7" height="7" rx="1" ' + trait + '/><rect x="3" y="14" width="7" height="7" rx="1" ' + trait + '/>',
