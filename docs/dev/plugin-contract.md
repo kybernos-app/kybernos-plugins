@@ -558,7 +558,7 @@ Each phase is a set of PRs that keep the three pre-push gates green, add no engi
 
 ## 15. Not in this draft
 
-The Plugins page and the card (a visual change: a mockup first). The exact `http-source` and `preset` schemas. Per-plugin install of third-party code.
+The Plugins view and the card: **decided 2026-10-21, they live in the Kybernos Suite page** (a sixth segment, "Plugins", beside Featured, All, Installed, Available and Updates; the same card and the same detail page as a module, with a trust chip, a price chip, a Permissions tab and, for a paid plugin, the key on the card). The mockup (v2, private artifact, archived outside git) follows the real page; the build waits for the owner's go. The exact `http-source` and `preset` schemas. Per-plugin install of third-party code.
 Run-time isolation. Telemetry, ratings, reviews by users. Pricing, tax and payout mechanics. A rename of the French-named directories.
 Auto-update policy (default off for anything that is not Official; never across a permission change).
 
