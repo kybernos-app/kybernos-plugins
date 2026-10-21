@@ -379,6 +379,16 @@ console.log('── nothing is lost: everything the old page showed is in the pa
   check('the engine arrow keeps the registry tooltip', parClasse(tree, 'kbmz-fleche')[0].props.title === 'latest 0.1.7 · next 0.2.0-rc.2 · alpha —')
   check('an empty journal says so, once, and shows no earlier-updates card', (() => { const t2 = rendrePage(avec({ journal: [] }), 'en'); return texte(parKb(t2, 'maintenance-last-op')[0]).includes('No update recorded yet.') && parKb(t2, 'maintenance-journal').length === 0 })())
   check('a single entry: no earlier-updates card', parKb(rendrePage(avec({ journal: [ETAT.journal[0]] }), 'en'), 'maintenance-journal').length === 0)
+  // A record whose « from » equals its « to » changed nothing: it must not be sold as an update (seen live on
+  // 2026-10-21: « 0.2.0-rc.2 → 0.2.0-rc.2 ✓ succeeded »). A same-version entry WITH a reason is a re-touch, kept.
+  {
+    const noop = { date: '2026-10-03T14:29:00.000Z', de: '0.2.0-rc.2', vers: '0.2.0-rc.2', quoi: 'moteur', resultat: 'reussi', photo: null }
+    const retouche = { date: '2026-10-02T10:00:00.000Z', de: '0.2.0-rc.2', vers: '0.2.0-rc.2', quoi: 'moteur', resultat: 'annule', raison: 'retouche(s) non posable(s)' }
+    const t = rendrePage(avec({ journal: [ETAT.journal[0], noop, retouche] }), 'en')
+    const bloc = parKb(t, 'maintenance-journal').length > 0 ? texte(parKb(t, 'maintenance-journal')[0]) : ''
+    check('a journal line that changed nothing (from == to, no reason) is not shown as an update', !/0\.2\.0-rc\.2 → 0\.2\.0-rc\.2(?! — )/.test(bloc), bloc.slice(0, 240))
+    check('a same-version line WITH a reason (a re-touch) is kept', /0\.2\.0-rc\.2 → 0\.2\.0-rc\.2 — retouche/.test(bloc), bloc.slice(0, 240))
+  }
   check('a failed audit is reported, not hidden', texte(parKb(rendrePage(avec({ surfaces: { erreur: 'boom', ruptures: [], aVerifier: [], doublons: [], natifs: [] } }), 'en'), 'maintenance-surfaces')[0]).includes('Audit failed: boom'))
   const fr = texte(panneau(rendrePage(ETAT, 'fr')))
   // Every sentence the host writes is ENGLISH (decision D1); a French page shows it through the client's French tables. A sentence with no
