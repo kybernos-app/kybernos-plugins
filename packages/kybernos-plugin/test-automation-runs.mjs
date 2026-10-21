@@ -205,6 +205,49 @@ try {
   for (const k of Object.keys(saved)) { if (saved[k] === undefined) delete process.env[k]; else process.env[k] = saved[k] }
   rmSync(scratch, { recursive: true, force: true })
 }
+// ── what a run used: skills, apps (connectors), teammates of the Agent Team, plain tools ───────────────────────────────────────────
+{
+  seq = 0
+  const usesRun = [
+    ev('session', 0, {}),
+    ev('turn/start', 100, { turn: 1 }),
+    ev('step/start', 110, { turn: 1, step: 1 }),
+    header(120),
+    call(1_000, 1, 'u1', 'skill', { name: 'report-writer' }),
+    call(1_100, 1, 'u2', 'skill', { name: 'report-writer' }),
+    call(1_200, 1, 'u3', 'mcp__composio__COMPOSIO_MULTI_EXECUTE_TOOL', { tools: [{ tool_slug: 'GMAIL_SEND_EMAIL' }, { tool_slug: 'NOTION_CREATE_PAGE' }, { tool_slug: 'GMAIL_FETCH_EMAILS' }] }),
+    call(1_300, 1, 'u4', 'mcp__playwright-mcp__browser_navigate', { url: 'https://example.com' }),
+    call(1_400, 1, 'u5', 'spawn_teammate', { name: 'researcher' }),
+    result(1_500, 1, 'u5', JSON.stringify({ member: { name: 'researcher', model: 'beta-2' } })),
+    ev('team/member', 1_450, { member: { id: 'm1', name: 'researcher', phase: 'running' } }),
+    ev('team/member', 1_460, { member: { id: 'm2', name: 'checker', phase: 'running' } }),
+    call(1_600, 1, 'u6', 'bash', { command: 'ls' }),
+    call(1_700, 1, 'u7', 'bash', { command: 'pwd' }),
+    call(1_800, 1, 'u8', 'web_search', { query: 'something' }),
+    ev('step/end', 2_000, { turn: 1, step: 1 }),
+    ev('turn/end', 2_100, { turn: 1, reason: { kind: 'completed' } }),
+  ]
+  const r = summarizeRun(usesRun)
+  assert.deepEqual(r.nodes.map((n) => n.ref), [{ type: 'skill', name: 'report-writer' }, { type: 'skill', name: 'report-writer' }, { type: 'app', name: 'gmail', apps: ['gmail', 'notion'] }, { type: 'app', name: 'playwright-mcp', apps: ['playwright-mcp'] }, { type: 'agent', name: 'researcher' }, { type: 'tool', name: 'bash' }, { type: 'tool', name: 'bash' }, { type: 'tool', name: 'web_search' }])
+  ok('every call says what it stands for: a skill by its name, an app by the first word of Composio\'s slugs (or its server), a teammate, a tool')
+  assert.deepEqual(r.uses.skills, [{ name: 'report-writer', count: 2 }])
+  assert.deepEqual(r.uses.apps, [{ name: 'gmail', count: 1 }, { name: 'notion', count: 1 }, { name: 'playwright-mcp', count: 1 }])
+  assert.deepEqual(r.uses.tools, [{ name: 'bash', count: 2 }, { name: 'web_search', count: 1 }])
+  ok('what the turn used is counted: the same skill twice is one skill seen twice, two apps behind one Composio call are two apps, plain tools are apart')
+  assert.deepEqual(r.uses.agents, [{ name: 'researcher', model: 'beta-2' }, { name: 'checker' }])
+  ok('the teammates of the Agent Team come from the spawn and the team events, with the model the spawn result names; one that says none has no model')
+  const many = [ev('session', 0, {}), ev('turn/start', 100, { turn: 1 })]
+  for (let i = 0; i < 30; i += 1) many.push(call(200 + i, 1, 'm' + i, 'skill', { name: 'skill-' + i }))
+  many.push(ev('turn/end', 900, { turn: 1, reason: { kind: 'completed' } }))
+  const big = summarizeRun(many)
+  assert.equal(big.uses.skills.length, 12)
+  assert.equal(big.nodes.length, RUN_NODES_LIST)
+  ok('the lists of what was used are bounded (12 each) whatever the bound on the steps')
+  const calm = summarizeRun([ev('session', 0, {}), ev('turn/start', 100, { turn: 1 }), ev('turn/end', 200, { turn: 1, reason: { kind: 'completed' } })])
+  assert.deepEqual(calm.uses, { skills: [], apps: [], agents: [], tools: [] })
+  ok('a run that called nothing used nothing')
+}
+
 console.log('\n' + pass + ' verifications OK')
 // The plugin may leave timers running (bridge tick, trim): the test is over.
 process.exit(0)
