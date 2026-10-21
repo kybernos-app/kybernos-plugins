@@ -48,7 +48,7 @@ try {
   // ── the detector ─────────────────────────────────────────────────────────────────────────────
   assert.equal(R.tokensOf('x'.repeat(401)), null, 'a brief of more than 400 characters is not an ask')
   assert.equal(R.tokensOf('ok merci'), null, 'too few words')
-  assert.equal(R.tokensOf('Fix /Users/someone/project/src/app.js https://example.com/a/b 12345 the'), null, 'paths, urls, numbers and common words are not words')
+  assert.equal(R.tokensOf('Fix /srv/project/src/app.js https://example.com/a/b 12345 the'), null, 'paths, urls, numbers and common words are not words')
   const t1 = R.tokensOf('Rédige les notes de version depuis les commits groupées par fonctionnalité')
   assert.ok(t1.has('notes') && t1.has('version') && t1.has('commits') && !t1.has('les'), 'accents folded, common words dropped')
   const found = R.findPatterns(FOUR(), { minRep: 3, windowDays: 60, now: NOW })
