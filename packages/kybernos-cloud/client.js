@@ -2859,14 +2859,21 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
             if (id === 'choose') return h('button', { key: id, type: 'button', className: 'kbfp-mcta', 'data-kb': 'menu-plan-cta', 'data-plan': 'none', onClick: closeThen(props.onUpgradePage) }, t('planChoose'))
             return h('button', { key: id, type: 'button', className: 'kbfp-mcta', 'data-kb': 'menu-plan-cta', onClick: closeThen(props.onUpgrade) }, t('menuPlanCta'))
           }
+          // ONE gauge for one number. In a personal space the menu's card showed the very same bar as the footer chip just
+          // below it (« 89 % » twice on screen at once — the beta report about the footer gauge). The footer keeps the bar;
+          // the card keeps the label, the percentage and the note. A team still draws its windows as bars: there are several,
+          // and the footer only shows one.
+          const barGardee = card.team === true || card.rows.length > 1
           const planCard = h('div', { className: 'kbfp-mplan', 'data-kb': 'menu-plan-card', 'data-team': card.team === true ? 'true' : 'false' },
             h('div', { className: 'kbfp-mplanline' },
               h('span', { className: 'kbfp-mplanname', 'data-plan': planInfo.none === true ? 'none' : undefined }, card.title),
               card.actions.length > 0 ? h('span', { className: 'kbfp-mplanacts' }, card.actions.map(cardAction)) : null),
             card.rows.map((r, i) => h('div', { key: r.key + String(i), className: 'kbfp-mwin', 'data-kb': 'menu-plan-window', 'data-win': r.key, 'data-level': r.level, 'data-percent': String(r.percent), title: r.title },
               h('div', { className: 'kbfp-mwinhead' }, h('span', null, r.label), h('span', { className: 'kbfp-usepct' }, r.percent + '%')),
-              h('span', { className: 'kbfp-use', 'data-level': r.level },
-                h('span', { className: 'kbfp-usebar', role: 'progressbar', 'aria-valuemin': 0, 'aria-valuemax': 100, 'aria-valuenow': r.percent, 'aria-label': r.label + ' · ' + quotaFill(t('winUsed'), { pct: r.percent }) }, h('span', { className: 'kbfp-usefill', style: { width: r.percent + '%' } }))),
+              barGardee
+                ? h('span', { className: 'kbfp-use', 'data-level': r.level },
+                  h('span', { className: 'kbfp-usebar', role: 'progressbar', 'aria-valuemin': 0, 'aria-valuemax': 100, 'aria-valuenow': r.percent, 'aria-label': r.label + ' · ' + quotaFill(t('winUsed'), { pct: r.percent }) }, h('span', { className: 'kbfp-usefill', style: { width: r.percent + '%' } })))
+                : null,
               h('small', { className: 'kbfp-mwinnote', 'data-full': r.full === true ? 'true' : undefined }, r.note))))
 
           // Blocks separated by a rule: Teams (spaces, plan, team settings) ·
