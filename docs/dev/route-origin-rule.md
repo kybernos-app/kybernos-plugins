@@ -62,11 +62,17 @@ requests with `Origin` and the machine's cookie, so it passes too.
 ## What stays open, and why
 
 - **A documented caller that is not a browser.** `/kybernos-auto/router` and `/report`: `cli/auto-router.mjs`, which the agent runs, sends no Origin and has no
-  session. `/kybernos/slash/entries` (POST): the `slash-msgaction-creator` skill writes through it. `/kybernos-cloud/turn*`: the computer's own runner
+  session. `/kybernos-cloud/turn*`: the computer's own runner
   (strict Origin only, as before). **`/kybernos-cloud/server/apply`** (A-16): it is a real write a page also makes (the servers page), but
   `packages/kybernos-servers/host.mjs` calls it over loopback with this listener's `Origin` and **no cookie** when it applies the active server, so it keeps
   `strict` (a bare program with no header is now refused, where it used to pass) and the loopback call must be widened to the cookie before it can join the
   full rule. A foreign Origin is still refused on all of them.
+- **`/kybernos/slash/entries` (POST): the exception is CONTRADICTED, and this is the one route A-16 leaves open.** It was written here as "the
+  `slash-msgaction-creator` skill writes through it", but two **pages** write through it too — `packages/kybernos-slash/client.js` (the entry editor's
+  add / delete / restore) and `packages/kybernos-plugin/client.js` (the startup upsert of the `/widget` entry, `credentials: 'same-origin'`). So it has a
+  browser caller *and* an agent caller without a session, and neither a plain conversion nor a documented exception is honest. The decision to take is one
+  of: give the route the cookie and give the skill a named host-side path (or a tool) instead of the route, or add an explicit second credential for the
+  local caller. Measured by the verifier on `6c0d055`, not read here: `node scripts/audit-routes.mjs --table` still shows it `origin`.
 - **The free-models gateway** (`/free-llms/v1/chat/completions`, `/v1/models`, `/status`, `/health`, A6-04). Its caller is DSH's engine: no Origin, no cookie, no
   browser header. It cannot ask for a session, so it refuses what a *browser* marks as another site: a foreign `Origin`, or `Sec-Fetch-Site` other than
   `same-origin` / `none`. A page the person merely visits can no longer make their machine call opencode.ai. (A browser too old to send `Sec-Fetch-Site` looks like
