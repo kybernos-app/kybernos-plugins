@@ -352,17 +352,17 @@
       },
       "aide": {
         "what": {
-          "fr": "Lit les plugins faits par d’autres pour Kybernos, vérifie que ce sont des données sans danger et laisse les pages utiliser ce qu’ils ajoutent. Un plugin refusé est écarté.",
-          "en": "Reads the plugins other people made for Kybernos, checks that they are plain data, and lets the pages use what they add. A plugin that fails the check is left out."
+          "fr": "Lit les plugins Kybernos installés avec la page Plugins de DSH, vérifie que ce sont des données simples et laisse les pages utiliser ce qu’ils ajoutent. Un plugin refusé est écarté.",
+          "en": "Reads the Kybernos plugins installed with DSH’s Plugins page, checks that they are plain data, and lets the pages use what they add. A plugin that fails the check is left out."
         },
         "steps": [
           {
-            "fr": "Dépose le dossier d’un plugin dans kybernos/plugins/local, à l’intérieur de ton dossier DSH.",
-            "en": "Put a plugin folder in kybernos/plugins/local, inside your DSH folder."
+            "fr": "Ajoute un plugin avec la page Plugins de DSH : un nom npm, une adresse GitHub ou un dossier.",
+            "en": "Add a plugin with DSH’s Plugins page: an npm name, a GitHub address or a folder."
           },
           {
-            "fr": "Un nouveau plugin reste éteint tant que tu ne l’allumes pas.",
-            "en": "A new plugin stays off until you switch it on."
+            "fr": "Kybernos le lit et te demande ton accord avant que des instructions n’atteignent tes agents.",
+            "en": "Kybernos reads it and asks you before any instruction reaches your agents."
           }
         ],
         "where": {
