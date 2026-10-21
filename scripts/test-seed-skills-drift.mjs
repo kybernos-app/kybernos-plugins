@@ -13,7 +13,7 @@ const body = (rel) => {
   const i = text.indexOf('import { createHash }')
   return i < 0 ? null : text.slice(i)
 }
-const COPIES = ['packages/kybernos-theme/seed-skills.mjs', 'packages/kybernos-plugin/seed-skills.mjs', 'packages/kybernos-dashboards/seed-skills.mjs', 'packages/kybernos-registry/seed-skills.mjs']
+const COPIES = ['packages/kybernos-theme/seed-skills.mjs', 'packages/kybernos-plugin/seed-skills.mjs', 'packages/kybernos-dashboards/seed-skills.mjs', 'packages/kybernos-registry/seed-skills.mjs', 'packages/kybernos-slash/seed-skills.mjs']
 const bodies = COPIES.map((rel) => ({ rel, text: body(rel) }))
 const missing = bodies.find((b) => b.text === null)
 if (missing !== undefined) { console.error('FAIL: ' + missing.rel + ' has no `import { createHash }` line to compare from'); process.exit(1) }
