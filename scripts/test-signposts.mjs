@@ -43,7 +43,7 @@ const PLACES = {
   'web search': ['recherche web'],
   'built-in plugins': ['plugins intégrés', 'plugins integrados'],
   atlas: [],
-  'ai provider & models': ['fournisseur ia & modèles'],
+  'ai provider and models': ['fournisseur ia et modèles'],
   'agent presets': ['préréglages d’agent', 'preajustes de agente'],
   voice: ['voix', 'voz'],
   skills: ['compétences'],
@@ -58,11 +58,11 @@ const PLACES = {
   'cloud computers': ['ordinateurs cloud'],
   calls: ['appels'],
   usage: [],
-  'remote control': [],
+  'phone and channels': ['téléphone et canaux'],
 }
 // A page that lives INSIDE another one under the same name as a page of the menu (a tab or a row, not a second entry): the Voice
 // tab of Calls, the Language row of General (it opens the Language page), the Models list of the AI provider page.
-const NESTED_OK = new Set(['calls>voice', 'general>language', 'general>langue', 'ai provider & models>models', 'fournisseur ia & modèles>models'])
+const NESTED_OK = new Set(['calls>voice', 'general>language', 'general>langue', 'ai provider and models>models', 'fournisseur ia et modèles>models'])
 // The sidebar rows (a flat list; « Kybernos » is the wordmark on top, not a menu).
 const SIDEBAR_ROWS = ['kaby', 'dashboards', 'tableaux de bord', 'agent teams', 'workspaces', 'creations', 'automations', 'skills', 'compétences', 'connectors', 'connecteurs']
 // Pointers that are NOT ours, by the snippet that follows the arrow: the Composio dashboard's own menu.
@@ -142,7 +142,7 @@ console.log('the checker')
   check('it refuses a card taken for a page (Kybernos Settings, Starter kit, Mobile)', bad('Settings → Kybernos Settings → Starter kit → Open') && bad('the Settings › Mobile page') && bad('Settings → Starter kit'))
   check('it refuses a page of the menu put inside another one', bad('Settings › General › Usage') && bad('Réglages › Appels › Atlas'))
   check('it refuses a sidebar that has a Kybernos level', bad('Sidebar › Kybernos › Skills') && bad('Barre latérale › Kybernos'))
-  check('it accepts the pages of the menu, at any depth and in a sentence', !bad('Settings › Connectors') && !bad('Settings › Calls › Voice marks the online engines') && !bad('Réglages › Général › Langue') && !bad('Settings › General › Kybernos Settings') && !bad('Réglages › Fournisseur IA & modèles') && !bad('Settings → **Memory & Lessons** (in the Kybernos group)') && !bad('Settings ▸ Remote Control and the sidebar') && !bad('Sidebar › Skills'))
+  check('it accepts the pages of the menu, at any depth and in a sentence', !bad('Settings › Connectors') && !bad('Settings › Calls › Voice marks the online engines') && !bad('Réglages › Général › Langue') && !bad('Settings › General › Kybernos Settings') && !bad('Réglages › Fournisseur IA et modèles') && !bad('Settings → **Memory & Lessons** (in the Kybernos group)') && !bad('Settings ▸ Phone and channels and the sidebar') && !bad('Sidebar › Skills'))
   check('it leaves System Settings and the Composio dashboard alone', !bad('Screen Recording (System Settings > Privacy)') && !bad('Menu Settings ▸ API Keys, then Generate new key.') && !bad('Right sidebar › Files tab'))
   check('it names the places that do not exist', goneOfLine('Kybernos menu › Dashboards').length > 0 && goneOfLine('Phone button at the bottom of the sidebar').length > 0 && goneOfLine('Menu › Search everywhere').length > 0 && goneOfLine('Sidebar › Skills').length === 0)
 }

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// « Search for new models » on the Ollama Local Models page, in a real GUI: it runs its three calls in order and names the
+// « Search for new models » on the Ollama local models page, in a real GUI: it runs its three calls in order and names the
 // one that is running, it says what the catalogue answered, and the page always says where the list comes from.
 //
 //   source scripts/sandbox/env.sh && node scripts/check-ollama-search-live.mjs [--shots <dir>]
@@ -35,7 +35,7 @@ try {
   }
   await val(`document.querySelector('[class*="settingsArea"] button[class*="trigger"]').click()`)
   check('Settings open', (await poll(() => val(`/Back to workspace/.test(document.body.innerText)`), 8000)) === true)
-  const went = await val(`(() => { const b = Array.from(document.querySelectorAll('button[class*="navCell"]')).find((x) => x.innerText.trim().split('\\n')[0] === 'Ollama Local Models'); if (!b) return false; b.click(); return true })()`)
+  const went = await val(`(() => { const b = Array.from(document.querySelectorAll('button[class*="navCell"]')).find((x) => x.innerText.trim().split('\\n')[0] === 'Ollama local models'); if (!b) return false; b.click(); return true })()`)
   check('the page opens', went === true)
   await poll(() => val(`!!document.querySelector('.kml-scan-source')`), 8000)
 

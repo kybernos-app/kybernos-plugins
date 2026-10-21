@@ -10,7 +10,7 @@ process.env.DSH_HOME = home
 process.env.KYBERNOS_API = 'https://api.example.test'
 process.env.KYBERNOS_COMPUTER_TOKEN = 'kyd_test_token'
 process.env.KYBERNOS_RUNNER_LEASE_SECONDS = '3000'
-const { buildPrompt, runOne } = await import('./runner.mjs')
+const { buildPrompt, channelOf, runOne } = await import('./runner.mjs')
 
 const closed = (sid) => {
   const dir = join(home, 'storages', 'session_projcache', 'sessions')
@@ -48,19 +48,30 @@ const standIn = (options = {}) => {
   return { calls, restore: () => { globalThis.fetch = real } }
 }
 
-test('the prompt is the person\'s last message, with the conversation before it as background', () => {
-  const p = buildPrompt(CONTEXT)
-  assert.match(p, /personal assistant of a person, working on their own cloud computer/)
+test('the prompt is Kaby, from the shared text and never from the name a kyber carries; the earlier messages are data, the last one ends it', () => {
+  const p = buildPrompt({ ...CONTEXT, kyber: { name: 'Second You', agents: [{ name: 'Echo' }, { name: 'Mira' }] } })
+  assert.match(p, /You are Kaby, the person's own assistant/)
+  assert.doesNotMatch(p, /Second You|Echo|Mira|Atlas/)
+  assert.match(p, /Voice: calm, direct, warm/)
+  assert.match(p, /you are talking with the person on a chat on the person's phone/)
   const named = buildPrompt({ ...CONTEXT, source: 'telegram', person: { name: 'Amina' } })
-  assert.match(named, /personal assistant of Amina, working on their own cloud computer\. They wrote to you from a Telegram chat on their phone/)
-  assert.match(p, /\[person\]\nhello/)
-  assert.match(p, /\[assistant\]\nHi, what can I do\?/)
+  assert.match(named, /you are talking with Amina on Telegram, a chat on the person's phone/)
+  assert.match(p, /<data>\nPerson: hello\nKaby: Hi, what can I do\?\n<\/data>/)
   assert.match(p, /Their message:\n\nPOST \{"a":1\} to https:\/\/hooks\.example\.test\/x$/)
   assert.equal(buildPrompt({ kyber: { name: 'K' }, messages: [{ role: 'assistant', content: 'x' }] }), null)
   assert.equal(buildPrompt(null), null)
   // A very long message is clipped, never sent whole.
   const long = buildPrompt({ kyber: { name: 'K' }, messages: [{ role: 'user', content: 'x'.repeat(50_000) }] })
-  assert.ok(long.length < 6000)
+  assert.ok(long.length < 8000)
+})
+
+test('the channel of a turn comes from what the platform says of the message, in one place', () => {
+  assert.equal(channelOf({ source: 'telegram' }), 'telegram')
+  assert.equal(channelOf({ source: 'whatsapp' }), 'whatsapp')
+  assert.equal(channelOf({}), 'phone')
+  assert.equal(channelOf(null), 'phone')
+  assert.equal(channelOf({ source: 'something else' }), 'phone')
+  assert.match(buildPrompt({ source: 'telegram', messages: [{ role: 'user', content: 'hi' }] }), /Telegram, a chat on the person's phone/)
 })
 
 test('a turn: context, the session in DSH, its closed turn, the answer, and the acknowledgement with only the answer', async () => {
@@ -74,6 +85,8 @@ test('a turn: context, the session in DSH, its closed turn, the answer, and the 
     assert.equal(post.headers.origin, 'http://127.0.0.1:3081')
     assert.match(post.body.prompt, /POST \{"a":1\}/)
     assert.equal(post.body.jobId, 'job-1', 'the turn it belongs to, so that the gate can ask the person about it')
+    assert.equal(post.body.channel, 'phone', 'where the message came from, so that the journal says where Kaby was asked')
+    assert.equal(post.body.budgetMs, 600_000, 'how long the turn may last, so that a question to the person is never waited for past its end')
     const events = s.calls.filter((c) => c.path.endsWith('/events')).map((c) => c.body.events[0])
     assert.deepEqual(events.map((e) => [e.seq, e.type]), [[4, 'started'], [5, 'model-call'], [6, 'answered']])
     const ack = s.calls.find((c) => c.path.endsWith('/ack'))
@@ -129,6 +142,18 @@ test('a turn that cannot be run is acknowledged failed with a code, never with w
     assert.equal(await runOne({ id: 'job-4b' }, { pollMs: 5, openMs: 30 }), 'empty_answer.turn_error.model_not_found')
     assert.deepEqual(why.calls.find((c) => c.path.endsWith('/ack')).body, { status: 'failed', error: 'empty_answer.turn_error.model_not_found' })
   } finally { why.restore() }
+
+  // A model that could not be reached (the engine retried and gave up) is not asked for words: a nudge would only wait through the same retries again (measured: ~2 minutes became ~4).
+  // A rate limit is acknowledged as `model_429`, the code the platform's door already reads as « busy »; the other causes keep the « no words » family with the cause after it.
+  for (const [why, error] of [['model_429', 'model_429'], ['model_server', 'empty_answer.model_server'], ['model_timeout', 'empty_answer.model_timeout']]) {
+    closed('s-1')
+    const down = standIn({ answer: { ok: true, text: '', tools: 1, failure: why } })
+    try {
+      assert.equal(await runOne({ id: 'job-' + why }, { pollMs: 5, openMs: 30 }), error)
+      assert.deepEqual(down.calls.find((c) => c.path.endsWith('/ack')).body, { status: 'failed', error })
+      assert.equal(down.calls.some((c) => c.path === '/kybernos-cloud/turn/continue'), false, 'no nudge for ' + why)
+    } finally { down.restore() }
+  }
 
   const slow = standIn({ start: { ok: true, sessionId: 's-open' } })
   try {

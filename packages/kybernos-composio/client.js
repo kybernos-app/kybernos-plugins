@@ -157,7 +157,7 @@ window.__ModuleLoader__.load({
       'kb.cp.loadall': { fr: 'Charger le catalogue complet', en: 'Load the full catalog' },
       'kb.cp.loading': { fr: 'Chargement…', en: 'Loading…' },
       'kb.cp.close': { fr: 'Fermer', en: 'Close' },
-      'kb.cp.active': { fr: 'ACTIF', en: 'ACTIVE' },
+      'kb.cp.active': { fr: 'Actif', en: 'ACTIVE' },
       'kb.cp.dismiss': { fr: 'Écarter ce lien', en: 'Dismiss this link' },
       'kb.cp.form.title': { fr: 'Nouveau connecteur', en: 'New connector' },
       'kb.cp.form.edit': { fr: 'Modifier le connecteur', en: 'Edit connector' },
@@ -175,13 +175,13 @@ window.__ModuleLoader__.load({
       'kb.cp.form.secretname': { fr: 'NOM (ex. TAVILY_API_KEY)', en: 'NAME (e.g. TAVILY_API_KEY)' },
       'kb.cp.form.secretvalue': { fr: 'valeur — enregistrée dans ~/.dsh/.env, jamais dans la config', en: 'value — stored in ~/.dsh/.env, never in the config' },
       'kb.cp.form.tokenhint': { fr: "Astuce : dans un en-tête ou une variable, écris $NOM pour référencer le secret NOM (ex. « Bearer $TAVILY_API_KEY »).", en: 'Tip: in a header or env value, write $NAME to reference secret NAME (e.g. "Bearer $TAVILY_API_KEY").' },
-      'kb.cp.form.envname': { fr: 'NOM', en: 'NAME' },
+      'kb.cp.form.envname': { fr: 'Nom', en: 'Name' },
       'kb.cp.form.envvalue': { fr: 'valeur ou $SECRET', en: 'value or $SECRET' },
       'kb.cp.form.addrow': { fr: 'Ajouter une ligne', en: 'Add row' },
       'kb.cp.form.saved': { fr: 'Serveur enregistré. DSH le charge dans quelques secondes.', en: 'Server saved. DSH loads it in a few seconds.' },
       'kb.cp.form.saving': { fr: 'Enregistrement…', en: 'Saving…' },
       'kb.cp.refresh': { fr: 'Rafraîchir', en: 'Refresh' },
-      'kbui.sort.az': { fr: 'A → Z', en: 'A → Z' },
+      'kbui.sort.az': { fr: 'A → z', en: 'A → z' },
       // (29/09) sous-onglets + aide « Connecteurs locaux ».
       'kb.cp.tab.yours': { fr: 'Tes connexions', en: 'Yours' },
       'kb.cp.tab.discover': { fr: 'Découvrir', en: 'Discover' },
@@ -989,7 +989,7 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
 .kb7-cxrow{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid rgba(128,128,128,.25);border-radius:12px}
 .kb7-cxname{font-size:13px;font-weight:600}
 .kb7-cxpath{font-family:ui-monospace,Menlo,monospace;font-size:10.5px;opacity:.55;word-break:break-all}
-.kb7-cxtype{font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:2px 8px;border-radius:999px;background:color-mix(in srgb,var(--dsw-alias-brand-primary) 16%,transparent);color:color-mix(in srgb,var(--dsw-alias-brand-primary) 55%,var(--dsw-alias-label-primary));white-space:nowrap}
+.kb7-cxtype{font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:999px;background:color-mix(in srgb,var(--dsw-alias-brand-primary) 16%,transparent);color:color-mix(in srgb,var(--dsw-alias-brand-primary) 55%,var(--dsw-alias-label-primary));white-space:nowrap}
 .kb7-cxtype.http{background:rgba(34,197,94,.14);color:#22c55e}
 /* (29/09) Sub-tabs Yours / Discover + help (i): same language as
    kb4-tab (page tab bar), set here so the page can be mounted without the plugin. */
@@ -1093,7 +1093,7 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
 .kbcp-carte-corps{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
 .kbcp-carte-titre{font-size:13.5px;font-weight:600;color:var(--dsw-alias-label-primary,#f9fafb);line-height:1.3;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .kbcp-carte-nom{overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;word-break:break-word}
-.kbcp-carte-type{font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;padding:2px 7px;border-radius:999px;background:var(--dsw-alias-border-l2,#ffffff1f);color:var(--dsw-alias-label-tertiary,#adb2b8)}
+.kbcp-carte-type{font-size:10px;font-weight:600;padding:2px 7px;border-radius:999px;background:var(--dsw-alias-border-l2,#ffffff1f);color:var(--dsw-alias-label-tertiary,#adb2b8)}
 .kbcp-carte-desc{font-size:12.5px;color:var(--dsw-alias-label-secondary,#cfd3d6);line-height:1.35;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;word-break:break-word}
 .kbcp-carte-note{font-size:11.5px;color:var(--dsw-alias-label-tertiary,#adb2b8);line-height:1.4}
 .kbcp-carte-lien{display:inline-flex;align-items:center;gap:5px;width:fit-content;margin-top:2px;font-size:11px;color:var(--dsw-alias-label-tertiary,#adb2b8);text-decoration:none;cursor:pointer}
@@ -1113,10 +1113,11 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
 [class*="_markdown_"] a.kbcp-carte-action{color:var(--dsw-alias-label-primary-foreground,#18181b);text-decoration:none}
 .kbcp-carte-ghost{flex-shrink:0;display:inline-flex;align-items:center;height:28px;padding:0 11px;border-radius:7px;border:1px solid var(--dsw-alias-border-l3,#ffffff29);color:var(--dsw-alias-label-secondary,#cfd3d6);font-size:11.5px}
 /* ── Kybernos connections mode: the mode switch, the quota meter, the app picker of the add window ── */
-.kb7-seclab{display:flex;align-items:center;gap:8px;margin:18px 0 8px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;opacity:.7;font-weight:600}
+.kb7-seclab{display:flex;align-items:center;gap:8px;margin:18px 0 8px;font-size:12px;opacity:.7;font-weight:600}
 .kb7-seclab span{font-weight:500;text-transform:none;letter-spacing:0;padding:0 7px;border-radius:7px;background:rgba(128,128,128,.18)}
 .kbcp-pv{display:flex;gap:14px;padding:16px;border-radius:14px;border:1px solid var(--dsw-alias-border-l2,rgba(128,128,128,.3));background:var(--dsw-alias-bg-layer-2,transparent);margin:0 0 12px}
 .kbcp-pv.sel{border-color:var(--dsw-alias-brand-primary,#6c8cff);box-shadow:0 0 0 1px var(--dsw-alias-brand-primary,#6c8cff)}
+.kbcp-pv-rad::before{content:"";position:absolute;inset:-5px;border-radius:50%}
 .kbcp-pv-rad{flex:none;width:18px;height:18px;border-radius:50%;border:2px solid var(--dsw-alias-border-l2,rgba(128,128,128,.5));margin-top:2px;position:relative;cursor:pointer;background:transparent;padding:0}
 .kbcp-pv.off .kbcp-pv-rad{cursor:default}
 .kbcp-pv.sel .kbcp-pv-rad{border-color:var(--dsw-alias-brand-primary,#6c8cff)}

@@ -48,7 +48,7 @@ return k === null ? loadingText : k.wrap('Loading…', 'my-table', rows.map((r, 
 | Settings › Web Search, Free LLMs | kybernos-websearch, kybernos-free-llms | yes, shift 0 px |
 | Connectors: Yours, Discover | kybernos-composio | yes (same card height) |
 | Settings › Memory & Lessons | kybernos-memory | bones yes; no signed-in data to compare the rows with |
-| Settings › AI Provider & Models (table body) | kybernos-models | by reading the code only: the page reads through an RPC the live check cannot hold |
+| Settings › AI provider and models (table body) | kybernos-models | by reading the code only: the page reads through an RPC the live check cannot hold |
 
 Left as they are, and why:
 

@@ -181,7 +181,15 @@ export async function startFakeRelay (options = {}) {
       '/__kb/remote-e2e.mjs': ['remote-e2e.mjs', 'text/javascript'],
       '/__kb/manifest.webmanifest': ['phone/manifest.webmanifest', 'application/manifest+json'],
       '/__kb/icon.svg': ['phone/icon.svg', 'image/svg+xml'],
+      '/__kb/kaby/': ['phone/kaby.html', 'text/html; charset=utf-8'],
+      '/__kb/kaby.webmanifest': ['phone/kaby.webmanifest', 'application/manifest+json'],
+      '/__kb/kaby-icon.svg': ['phone/kaby-icon.svg', 'image/svg+xml'],
       '/sw.js': ['phone/sw.js', 'text/javascript'],
+    }
+    // The server draws the apps' PNG icons (kybernos-server, src/modules/remote/icons.ts); here any valid PNG will do.
+    if (/^\/__kb\/(icon|kaby)-(180|192|512)\.png$/u.test(u.pathname)) {
+      res.writeHead(200, { 'content-type': 'image/png', 'cache-control': 'no-store' })
+      return res.end(Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC', 'base64'))
     }
     const hit = files[u.pathname]
     if (hit !== undefined) {

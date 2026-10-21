@@ -12,6 +12,8 @@ import { kyberTarget } from './kyber-root.mjs'
 import { createWorkspaceInstructions } from './workspace-instructions.mjs'
 import { selectAfterConnect } from './default-model.mjs'
 import { normalize as autoSettingsNormalize, publicView as autoSettingsView, apply as autoSettingsApply, isPaused as autoSettingsPaused } from './automation-settings.mjs'
+import { stableStreak as autoSkillStreak, skillSlug as autoSkillSlug, buildSkill as autoSkillBuild, normalizeRecords as autoSkillsNormalize, dueTasks as autoSkillsDue, lessonOf as autoSkillLesson } from './automation-skills.mjs'
+import { chooseWorkspace as autoWsChoose, idOf as autoWsIdOf, DEDICATED_TITLE as AUTO_WS_TITLE, DEDICATED_DIR as AUTO_WS_DIR } from './automation-workspace.mjs'
 import { recordFeedback, exportFeedback, relayReportOf } from './feedback-box.mjs'
 import { writeGuard } from './session-guard.mjs'
 import { defaultState as onboardingDefault, publicView as onboardingView, complete as onboardingComplete, replay as onboardingReplay, chooseDomain as onboardingChooseDomain } from './onboarding-state.mjs'
@@ -51,6 +53,7 @@ import { createProbe } from './audio-probe.mjs'
 import { createModelsAudio } from './models-audio.mjs'
 import { expandOccurrences, parseOccurrenceRange } from './automation-occurrences.mjs'
 import { lastTurnOutcome } from './session-outcome.mjs'
+import { summarizeRun } from './automation-runs.mjs'
 // Hosted instance: also accept the authorities declared to DSH with --trusted-host. The core bundle publishes the predicate
 // (kybernos-plugin/trusted-authority.mjs); absent or failing, it answers false and the guard stays loopback-only.
 const kbTrusted = (host) => { try { const f = globalThis[Symbol.for('kybernos.trustedAuthority')]; return typeof f === 'function' && f(host) === true } catch (e) { return false } }
@@ -88,6 +91,19 @@ let iconsCatalog = null
 try {
   iconsCatalog = JSON.parse(readFileSync(pluginDir + '/icons.json', 'utf8'))
 } catch (e) { iconsCatalog = null }
+// The search words of the icons (Lucide's tags, see scripts/build-icon-tags.mjs): a string of words per icon name. Absent or unreadable: the
+// pickers search the names only, as before.
+let iconTags = null
+let iconConcepts = []
+try {
+  const parsed = JSON.parse(readFileSync(pluginDir + '/icon-tags.json', 'utf8'))
+  iconTags = (parsed !== null && typeof parsed === 'object' && parsed.tags !== null && typeof parsed.tags === 'object') ? parsed.tags : null
+} catch (e) { iconTags = null }
+// ...and the table of concepts people type (French and English) that stand for those words: `lines`, « words typed | words the icons carry ».
+try {
+  const parsed = JSON.parse(readFileSync(pluginDir + '/icon-concepts.json', 'utf8'))
+  iconConcepts = (parsed !== null && typeof parsed === 'object' && Array.isArray(parsed.lines) === true) ? parsed.lines.filter((l) => typeof l === 'string') : []
+} catch (e) { iconConcepts = [] }
 const joinPath = (dir, name) => {
   const d = String(dir)
   return d.length > 0 && d.charAt(d.length - 1) === '/' ? d + name : d + '/' + name
@@ -387,6 +403,13 @@ const kbSanitizeTaskInput = (raw) => {
     approvals: r.approvals === 'auto' ? 'auto' : 'ask',
   }
   if (Array.isArray(r.notify) === true) out.notify = Array.from(new Set(r.notify.filter((x) => x === 'push' || x === 'email')))
+  // The workspace the runs land in (the id of one): sent only when the person chooses, `null` or '' goes back to « none » (the dedicated
+  // workspace). Left out, an edit keeps what the automation already has. The rule is the same as automation-workspace.mjs (this block takes no import).
+  if (r.workspaceHint !== undefined) {
+    if (r.workspaceHint === null || r.workspaceHint === '') out.workspaceHint = null
+    else if (typeof r.workspaceHint === 'string' && /^[A-Za-z0-9_.:@-]{1,160}$/.test(r.workspaceHint) === true) out.workspaceHint = r.workspaceHint
+    else return { ok: false, error: 'invalid workspace' }
+  }
   return { ok: true, task: out }
 }
 // ── Task store + trigger: pure, every side effect is injected, so the tests drive the code
@@ -2553,17 +2576,34 @@ function boot(ctx) {
     // Le tir : session neuve + prompt via le service sessionController quand il
     // est monté (create + prompt sideaux). Repli honnête : pendingFire consommé
     // par le client (startSession + prefill draft) à son prochain poll.
+    // Where a run lands (automation-workspace.mjs): the workspace the automation names, else ONE dedicated workspace, « Automations »,
+    // which adopts <dsh home>/kybernos/automations (created on first use; `create` returns the existing workspace for a folder it
+    // already owns, so asking every time is safe). Only when the engine cannot create one (an older registry, an unwritable folder)
+    // does it keep what it always did: the first workspace of the list.
+    const kbDedicatedWorkspaceId = async (w) => {
+      if (typeof w.create !== 'function') return null
+      try {
+        const home = await dshHome()
+        if (home === null || home.length === 0) return null
+        const dir = joinPath(home, 'kybernos/' + AUTO_WS_DIR)
+        mkdirSync(dir, { recursive: true })
+        return autoWsIdOf(await w.create(dir, AUTO_WS_TITLE))
+      } catch (e) {
+        try { console.error('[kybers] automations: the dedicated workspace could not be made (' + errText(e) + ')') } catch (e2) { /* console unavailable */ }
+        return null
+      }
+    }
     const kbTaskWorkspaceId = async (task) => {
       const w = workspacesAt()
       if (w === undefined || typeof w.list !== 'function') return null
       try {
         const list = w.list()
+        const pick = autoWsChoose(task.workspaceHint, list)
+        if (pick.id !== null) return pick.id
+        const dedicated = await kbDedicatedWorkspaceId(w)
+        if (dedicated !== null) return dedicated
         if (Array.isArray(list) === false || list.length === 0) return null
-        for (const ws of list) {
-          if (ws !== null && typeof ws === 'object' && str(task.workspaceHint) !== null && String((ws.id || ws.workspaceId || '')) === String(task.workspaceHint)) return str(ws.id) || str(ws.workspaceId)
-        }
-        const first = list[0]
-        return first !== null && typeof first === 'object' ? (str(first.id) || str(first.workspaceId)) : null
+        return autoWsIdOf(list[0])
       } catch (e) { return null }
     }
     // The sessions this plugin started for an automation set to `ask`: the MCP gate below applies to them
@@ -2706,10 +2746,67 @@ function boot(ctx) {
         throw e
       }
     }
+    // ── A stable automation becomes a skill (automation-skills.mjs) ────────────────────────────────────────────────────────────────
+    // The record of what was written lives in <dsh home>/kybernos/automation-skills.json, next to tasks.json. The skill itself goes to
+    // <dsh home>/skills/<name>/SKILL.md, where DSH looks for the person's skills.
+    const kbAutoSkillsFileOf = async () => {
+      const t = await kbTasksFileOf()
+      return t.slice(0, t.lastIndexOf('/')) + '/automation-skills.json'
+    }
+    const kbAutoSkillsRead = async () => {
+      try { return autoSkillsNormalize(JSON.parse(readFileSync(await kbAutoSkillsFileOf(), 'utf8'))) } catch (e) { return autoSkillsNormalize(null) }
+    }
+    const kbAutoSkillsWrite = async (state) => {
+      const p = await kbAutoSkillsFileOf()
+      try { mkdirSync(p.slice(0, p.lastIndexOf('/')), { recursive: true }) } catch (e) { /* already there */ }
+      const temp = p + '.tmp-' + String(process.pid) + '-' + Date.now().toString(36)
+      try {
+        writeFileSync(temp, JSON.stringify(state, null, 2) + String.fromCharCode(10), { encoding: 'utf8', mode: 0o600 })
+        renameSync(temp, p)
+      } catch (e) {
+        try { unlinkSync(temp) } catch (e2) { /* nothing to clean */ }
+        throw e
+      }
+    }
+    // Never over an existing skill: the file is opened with `wx`, and a name already taken gets the next free one. The record is written after
+    // the skill: a crash in between leaves a skill without a record (the next pass finds the name taken and picks another), never the reverse.
+    const kbAutoSkillWrite = async (task, how, streak) => {
+      const home = await dshHome()
+      if (home === null || home.length === 0) return { ok: false, error: 'DSH home unknown' }
+      const skillsDir = joinPath(home, 'skills')
+      const slug = autoSkillSlug(str(task.name), (n) => existsSync(joinPath(skillsDir, n)))
+      if (slug === null) return { ok: false, error: 'no free skill name' }
+      const dir = joinPath(skillsDir, slug)
+      mkdirSync(dir, { recursive: true })
+      writeFileSync(joinPath(dir, 'SKILL.md'), autoSkillBuild(task, slug, streak), { encoding: 'utf8', flag: 'wx', mode: 0o600 })
+      const recs = await kbAutoSkillsRead()
+      recs.skills[task.id] = { skill: slug, at: new Date().toISOString(), how, runs: streak }
+      await kbAutoSkillsWrite(recs)
+      return { ok: true, skill: slug }
+    }
+    // The automatic pass: only when the switch is on, at most every 5 minutes, at most three skills at a time, and never in the way of the tick.
+    let kbAutoSkillsLast = 0
+    let kbAutoSkillsBusy = false
+    const kbAutoSkillsPass = async () => {
+      if (kbAutoSkillsBusy === true || Date.now() - kbAutoSkillsLast < 300000) return
+      kbAutoSkillsBusy = true
+      kbAutoSkillsLast = Date.now()
+      try {
+        const settings = await kbAutoSettingsRead()
+        if (settings.autoSkill !== true) return
+        const tasks = await kbTasksRead()
+        const due = autoSkillsDue(Array.isArray(tasks) === true ? tasks : [], await kbAutoSkillsRead(), settings).slice(0, 3)
+        for (const t of due) await kbAutoSkillWrite(t, 'auto', autoSkillStreak(t.history))
+      } catch (e) {
+        try { console.error('[kybers] automation skills: ' + errText(e)) } catch (e2) { /* console unavailable */ }
+      } finally { kbAutoSkillsBusy = false }
+    }
     // « Pause all » holds the tick, not the store: nothing is lost, and what came due fires once at the first tick after it is off.
     const kbTasksTick = async () => {
       if (autoSettingsPaused(await kbAutoSettingsRead()) === true) return { fired: 0, paused: true }
-      return kbTasksTrigger.tick()
+      const fired = await kbTasksTrigger.tick()
+      kbAutoSkillsPass().catch(() => null)
+      return fired
     }
     // CRUD exposé au client (route unique /kybernos/tasks, action dans le corps).
     const kbTasksHandle = async (body) => {
@@ -6217,6 +6314,35 @@ function boot(ctx) {
       } catch (e) { return { ok: false, error: errText(e) } }
     }
 
+    // ── Suppression d'un workspace (recette 20/10/2026 : écart E1) ─────────
+    // Le registre DSH (`workspaceRegistry.delete`) retire l'enregistrement en
+    // CONSERVANT le dossier sur disque et les journaux de sessions — aucun
+    // fichier n'est détruit. On purge aussi l'entrée UI (nom/icône/couleur/
+    // desc/skills) du magasin `.kyber-workspaces.json`.
+    const deleteWorkspace = async (args) => {
+      try {
+        const req = args !== null && args !== undefined && typeof args === 'object' ? args : {}
+        const workspaceId = str(req.workspaceId)
+        if (workspaceId === null || workspaceId.length === 0 || workspaceId.length > 120) return { ok: false, error: 'workspaceId required' }
+        if (/^[A-Za-z0-9][A-Za-z0-9 ._:-]*$/.test(workspaceId) === false) return { ok: false, error: 'invalid workspaceId' }
+        const wsSvc = workspacesAt()
+        if (wsSvc === undefined || wsSvc === null || typeof wsSvc.delete !== 'function') return { ok: false, error: 'workspace registry unavailable' }
+        const removed = await wsSvc.delete(workspaceId)
+        try {
+          const home = await dshHome()
+          if (home !== null) {
+            const path = joinPath(home, '.kyber-workspaces.json')
+            const data = await readWorkspaceUi()
+            if (data[workspaceId] !== undefined) {
+              delete data[workspaceId]
+              await writeTextScoped(home, path, JSON.stringify(data, null, 2) + String.fromCharCode(10))
+            }
+          }
+        } catch (e) { /* purge UI best-effort : l'entrée orpheline est inerte */ }
+        return { ok: true, removed }
+      } catch (e) { return { ok: false, error: errText(e) } }
+    }
+
     // ── Skills rattachées à un projet (onglet Skills de la fiche projet) ────
     // Même magasin que le nom/l'icône/la couleur (`.kyber-workspaces.json`),
     // sous la clé `skills` de l'entrée du workspace : la sélection d'un projet
@@ -9679,6 +9805,13 @@ function boot(ctx) {
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
         sendJson(res, 200, await saveWorkspaceUiQueuee(await readJsonBody(req)))
       } }), 'kybernos: route workspace-ui-save')
+      // Suppression d'un workspace : POST { workspaceId } — le registre retire
+      // l'enregistrement (dossier et journaux conservés), le magasin UI est purgé.
+      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/workspace-delete', handler: async (req, res) => {
+        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        sendJson(res, 200, await deleteWorkspace(await readJsonBody(req)))
+      } }), 'kybernos: route workspace-delete')
       // ── Skills rattachées à un projet : GET lit, POST écrit la sélection ──
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/workspace-skills', handler: async (req, res) => {
         if (req.method === 'GET') {
@@ -9854,6 +9987,11 @@ function boot(ctx) {
         const nodes = name !== null && Object.prototype.hasOwnProperty.call(catalog, name) === true ? catalog[name] : null
         sendJson(res, 200, { ok: nodes !== null, name: name, nodes: nodes === undefined ? null : nodes })
       } }), 'kybernos: route icon')
+      // The search words of the icons and the table of concepts, fetched when the person types in a picker (about 150 KB: not worth sending with the list).
+      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/icon-tags', handler: (req, res) => {
+        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
+        sendJson(res, 200, { ok: iconTags !== null, tags: iconTags === null ? {} : iconTags, concepts: iconConcepts })
+      } }), 'kybernos: route icon-tags')
       // ── librairie React Flow (@xyflow/react 12.11.6, MIT) ──────────────────
       // Ce dépôt n'a ni bundler ni node_modules : on sert le build UMD et sa
       // feuille de style tels quels, et le client les charge à la demande. Le
@@ -10373,6 +10511,39 @@ function boot(ctx) {
         try { await kbAutoSettingsWrite(next.state) } catch (e) { return sendJson(res, 500, { ok: false, error: 'write failed' }) }
         sendJson(res, 200, Object.assign({ ok: true }, autoSettingsView(next.state)))
       } }), 'kybernos: route automation-settings')
+      // ── Stable automations as skills: GET ?id= (how far it is, the rule, the skill if there is one) / POST { id } (write it now) ──
+      // The rule is fixed (automation-skills.mjs): the button works only when the automation is stable. The skill is written from the stored
+      // automation, never from text sent by the page, and never over a skill that exists.
+      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/automation-skills', handler: async (req, res) => {
+        if (req.method !== 'GET' && req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'GET or POST expected' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        if (req.method === 'POST' && await kbTasksAuthorized(req) !== true) return sendJson(res, 401, { ok: false, error: 'sign-in required' })
+        try {
+          let id = ''
+          if (req.method === 'GET') id = String(queryOf(req).get('id') || '')
+          else {
+            let body = null
+            try { body = await readJsonBody(req, 2000) } catch (e) { return sendJson(res, 413, { ok: false, error: 'request body too large' }) }
+            id = body !== null && typeof body === 'object' ? String(body.id || '') : ''
+          }
+          if (/^[A-Za-z0-9_.-]{1,80}$/.test(id) !== true) return sendJson(res, 400, { ok: false, error: 'id required' })
+          const tasks = await kbTasksRead()
+          const task = (Array.isArray(tasks) === true ? tasks : []).find((t) => t !== null && typeof t === 'object' && t.id === id)
+          if (task === undefined) return sendJson(res, 404, { ok: false, error: 'task not found' })
+          const settings = await kbAutoSettingsRead()
+          if (req.method === 'POST') {
+            const now = autoSkillLesson(task, await kbAutoSkillsRead(), settings)
+            if (now.skill !== null) return sendJson(res, 200, { ok: false, error: 'a skill was already written', lesson: now })
+            if (now.streak < now.stableAfter) return sendJson(res, 200, { ok: false, error: 'not stable yet', lesson: now })
+            const done = await kbAutoSkillWrite(task, 'manual', now.streak)
+            if (done.ok !== true) return sendJson(res, 200, { ok: false, error: done.error, lesson: now })
+          }
+          sendJson(res, 200, { ok: true, lesson: autoSkillLesson(task, await kbAutoSkillsRead(), settings) })
+        } catch (e) {
+          try { console.error('[kybers] automation-skills route: ' + errText(e)) } catch (e2) { /* console unavailable */ }
+          sendJson(res, 500, { ok: false, error: 'internal error' })
+        }
+      } }), 'kybernos: route automation-skills')
       // ── The feedback box (V-10): POST saves one line in <DSH home>/kybernos/feedback.jsonl, GET …/export returns the file ──
       // Nothing leaves the machine. Both need the strict write guard (same-origin AND DSH's signed browser session, session-guard.mjs):
       // the box holds what a person wrote, and a local program must neither fill it nor read it. One method per path.
@@ -10477,6 +10648,44 @@ function boot(ctx) {
           sendJson(res, 500, { ok: false, error: 'internal error' })
         }
       } }), 'kybernos: route tasks/outcomes')
+      // ── What some automation runs did: GET /kybernos/tasks/runs?ids=a,b[&detail=1] ────────────────────────
+      // Read-only, for the Sessions and Journal views of an automation's detail page: how long a run took, which model
+      // answered, which tools it called and for how long, what asked for an approval, how its first turn ended. All of it
+      // is the engine's own journal (automation-runs.mjs); nothing is guessed. Same guard as the routes above. At most 20
+      // sessions per call, one journal read each. `detail=1`, for ONE session, adds the input and output of each step,
+      // scrubbed and bounded. A session that cannot be read is simply absent from the answer.
+      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/tasks/runs', handler: async (req, res) => {
+        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        if (await kbTasksAuthorized(req) !== true) return sendJson(res, 401, { ok: false, error: 'sign-in required' })
+        try {
+          const q = queryOf(req)
+          const ids = []
+          for (const raw of String(q.get('ids') || '').split(',')) {
+            const id = raw.trim()
+            if (/^[A-Za-z0-9_.-]{1,80}$/.test(id) === true && ids.indexOf(id) < 0 && ids.length < 20) ids.push(id)
+          }
+          const detail = q.get('detail') === '1' && ids.length === 1
+          const runs = {}
+          if (persistence !== undefined && persistence !== null && typeof persistence.open === 'function') {
+            for (const id of ids) {
+              let handle = null
+              try {
+                handle = await persistence.open(id, 'read')
+                const read = await handle.read()
+                const summary = summarizeRun(read !== null && read !== undefined ? read.events : null, { detail })
+                if (summary !== null) runs[id] = summary
+              } catch (e) { /* unreadable or gone: nothing is claimed */ } finally {
+                try { if (handle !== null && handle !== undefined && typeof handle.close === 'function') await handle.close() } catch (e) { /* already closed */ }
+              }
+            }
+          }
+          sendJson(res, 200, { ok: true, runs })
+        } catch (e) {
+          try { console.error('[kybers] tasks/runs route:', errText(e)) } catch (e2) { /* console unavailable */ }
+          sendJson(res, 500, { ok: false, error: 'internal error' })
+        }
+      } }), 'kybernos: route tasks/runs')
       // ══════════════════════════════════════════════════════════════════════
       // OUTILS (onglet « Outils ») — etat reel et activation cadree.
       //

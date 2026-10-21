@@ -74,9 +74,9 @@ const FICHE = {
 const TITRES = {
   'kybernos-plugin': 'Kybernos Core', 'kybernos-hub': 'Suite', 'kybernos-theme': 'Theme', 'kybernos-language': 'Language',
   'kybernos-sessions': 'Sessions', 'kybernos-maintenance': 'About', 'kybernos-skills': 'Skills', 'kybernos-slash': 'Commands',
-  'kybernos-relance': 'Relaunch', 'kybernos-models': 'AI Provider & Models', 'kybernos-modeles-locaux': 'Ollama Local Models', 'kybernos-auto': 'Auto Routing',
+  'kybernos-relance': 'Relaunch', 'kybernos-models': 'AI provider and models', 'kybernos-modeles-locaux': 'Ollama local models', 'kybernos-auto': 'Auto Routing',
   'kybernos-flow': 'Flow', 'kybernos-free-llms': 'Free LLMs', 'kybernos-slides': 'Slides', 'kybernos-bricks': 'Bricks', 'kybernos-modeleur': '3D modeller',
-  'kybernos-motion': 'Motion', 'kybernos-miniapps': 'Mini-apps', 'kybernos-refs': 'Reference chips', 'kybernos-search': 'Search everywhere', 'kybernos-servers': 'Servers', 'kybernos-mobile': 'Remote Control', 'kybernos-websearch': 'Web Search', 'dsh-mermaid': 'Mermaid', 'dsh-db-viewer': 'Databases',
+  'kybernos-motion': 'Motion', 'kybernos-miniapps': 'Mini-apps', 'kybernos-refs': 'Reference chips', 'kybernos-search': 'Search everywhere', 'kybernos-servers': 'Servers', 'kybernos-mobile': 'Phone and channels', 'kybernos-websearch': 'Web Search', 'dsh-mermaid': 'Mermaid', 'dsh-db-viewer': 'Databases',
   'dsh-media-player': 'Media player', 'kybernos-composio': 'Connectors', 'kybernos-computers': 'Cloud computers', 'kybernos-workers': 'Workers', 'dsh-subagent-maison': 'Workers connectors',
   'kybernos-cloud': 'Kybernos Cloud', 'kybernos-memory': 'Memory & Lessons', 'kybernos-atlas': 'Atlas', 'kybernos-changes': 'Changes', 'kybernos-usage': 'Usage', 'kybernos-multi-device': 'Workspaces & devices', 'kybernos-call': 'Calls', 'kybernos-terminal': 'Terminal', 'kybernos-dashboards': 'Dashboards', 'kybernos-summary': 'Summary', 'kybernos-kyber': 'Kaby'
 }

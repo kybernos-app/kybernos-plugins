@@ -23,9 +23,11 @@ MIT License
     (c) 2015-2017 Marijn Haverbeke and others
   - perfect-freehand 1.2.2, (c) 2021 Stephen Ruiz Ltd
   - Rough.js 4.6.6, (c) 2019 Preet Shihn
+  - Feather (the Lucide icons derived from it), (c) 2013-present Cole Bemis
 
 ISC License
   - d3, (c) 2010-2023 Mike Bostock
+  - Lucide (icon geometry and search words), (c) 2026 Lucide Icons and Contributors
 
 BSD 3-Clause License
   - d3-sankey, (c) 2015 Mike Bostock

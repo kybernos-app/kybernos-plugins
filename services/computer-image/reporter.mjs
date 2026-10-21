@@ -19,6 +19,8 @@ const HOME = String(process.env.DSH_HOME || '')
 const DSH_PORT = Number(process.env.DSH_PORT || 3081)
 const VERSION = String(process.env.KYBERNOS_IMAGE_VERSION || '').replace(/[^A-Za-z0-9._+-]/gu, '').slice(0, 40)
 const BEAT_MS = Number(process.env.KYBERNOS_REPORT_EVERY_MS || 30_000)
+// A beat answers at once; one that was in flight when the machine was suspended never does, and its timeout counts only the time the machine ran (see runner.mjs, CLAIM_TIMEOUT_MS).
+export const HEARTBEAT_TIMEOUT_MS = Number(process.env.KYBERNOS_REPORT_BEAT_TIMEOUT_MS || 6000)
 
 const log = (line) => console.log('[reporter] ' + line)
 
@@ -30,14 +32,17 @@ const readJson = (file) => { try { return JSON.parse(readFileSync(file, 'utf8'))
 const said = new Set()
 const sayOnce = (key, line) => { if (!said.has(key)) { said.add(key); log(line) } }
 
-async function call (method, path, body) {
+// After a call that failed, the next one goes on a connection of its own: the one it used may be a socket that died with a suspend.
+let fresh = false
+export async function call (method, path, body, timeoutMs = 15_000) {
   try {
     const r = await fetch(API + path, {
       method,
-      headers: { authorization: 'Bearer ' + TOKEN, 'content-type': 'application/json' },
+      headers: { authorization: 'Bearer ' + TOKEN, 'content-type': 'application/json', ...(fresh ? { connection: 'close' } : {}) },
       body: body === undefined ? undefined : JSON.stringify(body),
-      signal: AbortSignal.timeout(15_000)
+      signal: AbortSignal.timeout(timeoutMs)
     })
+    fresh = false
     const text = await r.text()
     let json = null
     try { json = JSON.parse(text) } catch (e) { /* not json */ }
@@ -47,6 +52,7 @@ async function call (method, path, body) {
   } catch (e) {
     const code = (e && e.cause && (e.cause.code || e.cause.name)) || (e && e.name) || 'error'
     sayOnce(`${path}:net:${code}`, `${method} ${path} could not be sent (${code})`)
+    fresh = true
     return { status: 0, json: null }
   }
 }
@@ -217,7 +223,7 @@ async function main () {
     }
     // A beat: sessions open and memory in use.
     const used = Math.max(0, Math.round((os.totalmem() - os.freemem()) / 1048576))
-    const beat = await call('POST', '/v1/computer/heartbeat', { sessions: openSessions(), rss_mb: used })
+    const beat = await call('POST', '/v1/computer/heartbeat', { sessions: openSessions(), rss_mb: used }, HEARTBEAT_TIMEOUT_MS)
     if (beat.status === 401 || beat.status === 404) await sleep(300_000)
     await sleep(BEAT_MS)
   }

@@ -385,7 +385,7 @@ KB_HELP_SITE=<kybernos-help>/dist-site node scripts/test-help.mjs   # ...and eac
 source scripts/sandbox/env.sh && node scripts/check-help-live.mjs --shots /tmp/shots
 ```
 
-The live check opens each page that carries the button (Theme, AI Provider & Models, Commands, Workers, About, Ollama Local Models,
+The live check opens each page that carries the button (Theme, AI provider and models, Commands, Workers, About, Ollama local models,
 Memory & Lessons, General, Kybernos Suite, Skills), opens the card, checks it holds the text **read from the file**, that Escape closes
 the card and not the Settings dialog behind it, then French, a module's page in the Suite, and that Atlas, Language and Auto Routing
 (which already had a help) do not get a second button. Two traps: the Settings dialog closes on Escape with a capture listener, so
@@ -419,10 +419,10 @@ source scripts/sandbox/env.sh && node scripts/check-help-intro-live.mjs --shots 
 ```
 
 The live check starts from a throw-away browser, so its empty localStorage **is** the first visit: it checks the animation opens
-on Skills, Connectors and Remote Control, runs (CSS animations counted; the three steps light in turn, sampled on the loop's own
+on Skills, Connectors and Phone and channels, runs (CSS animations counted; the three steps light in turn, sampled on the loop's own
 clock, not the test's), is marked `seen` after 8 s and does not come back, comes back from the card, and closes for good; the
 article links; one button of the same size and shape on sixteen pages (among them the ones whose own CSS restyles every button); reduced motion (no animation at all, the end of the story
-shown); the lines that say what Usage, Tools, Workers and Commands are for; and French on Remote Control.
+shown); the lines that say what Usage, Tools, Workers and Commands are for; and French on Phone and channels.
 Two traps: the first click on a sidebar entry right after the shell loaded can open nothing (the check clicks again until the page's
 own text is there), and the page behind the Settings dialog stays in the document, so a button is counted only where it is the
 topmost element (`elementFromPoint`).
@@ -831,11 +831,11 @@ clicks:
   drawn: no `[data-kb="ws-console"]` after Team settings, Account or Referral. The menu's Account entry asks the host for the console link itself, a refusal is said above
   the footer, and a host that could not open a browser hands the address back for the page to open. The notification bell is hidden behind `SHOW_BELL` in the cloud client
   and the check asserts it is absent.
-- **Remote control** (the phone link's status route, `kybernos-mobile/remote/status`, is answered in the page): the entry sits right after
-  Referral with the number of phones already linked, opens kybernos-mobile's own panel, and is absent when the server does not offer the
-  feature (`configured: false`), the plan does not include it (`entitled: false`), DSH cannot (`available: false`) or the status cannot be
-  read. The footer has no phone button of its own any more: `check-mobile-remote-live.mjs`, `check-mobile-remote-pages.mjs` and
-  `check-display-live.mjs` open the panel through this entry.
+- **Phone and channels** (the phone link's status route, `kybernos-mobile/remote/status`, is answered in the page): the entry sits between Appearance and Settings and is there
+  whatever the server and the plan say (nothing is a dead entry: the window says what is possible). It opens kybernos-mobile's window (phone link on the left, Kaby's messaging
+  apps on the right); with the feature off (`configured: false`), not in the plan (`entitled: false`) or unreadable the left column says so (`mobile-not-offered`,
+  `mobile-paywall`, `mobile-poll-error`). The footer has no phone button of its own: `check-mobile-remote-live.mjs`, `check-mobile-remote-pages.mjs` and
+  `check-display-live.mjs` open the window through this entry. `check-phone-channels-live.mjs` plays the screen itself (see below).
 - **Upgrade and « See plans »** (every answer is in the page; nothing is bought and no server is called): connected on Plus the menu has « Upgrade »
   right after the plan and before Team settings, with the arrow that leaves DSH; on Free there is the pill and no entry (it opens the dialog), on Pro (the
   top level) and on a paid Team plan there is none, and when the catalogue cannot be read the entry stays. Pressing it asks the host for the console link on the
@@ -850,7 +850,7 @@ clicks:
   port the REAL host answers the same way (the check does not need it: `POST /kybernos-cloud/console/link` and `/kybernos-mobile/remote/pair` both come back with the server).
 - **DSH's Settings** (connected scene): the navigation lists none of the five account entries that used to be ours (Account, Referral,
   Account security, Account data, Support & legal; matched by the React key each cell is rendered with, and by title for the four that have
-  no namesake in DSH) while General, Appearance and Remote Control are still listed and still open. The account's pages are the footer
+  no namesake in DSH) while General, Appearance and Phone and channels are still listed and still open. The account's pages are the footer
   menu's embedded ones: nothing replaces the entries in Settings.
 - **The « Kybernos » section of Settings** (kybernos-cloud's `kybernos-local`: what stays on this computer): one group header « Kybernos »
   (no « Account » header any more) holding Servers (kept first), the section, then the Suite. Signed out the section is there, the two
@@ -1098,8 +1098,8 @@ a summary line (`… 0 assertions run, SKIPPED`). The CI keeps the output of its
 list, so a green run states what it did not cover. `scripts/test-live-checks.mjs` fails on a test that prints « skipped » without it.
 `check-display-live.mjs` lists every view it could not measure the same way, and `--strict` fails on them. At 390 px the profile card lives in
 the closed drawer: the check opens the drawer with the card on screen (`drawer(CARD)`, reloading and retrying when a late redraw closed it) and
-reports a view it still cannot reach; the phone panel's paywall is measured in Settings › Remote Control, because the profile menu offers
-Remote control only to a plan that includes it.
+reports a view it still cannot reach; the window of « Phone and channels » is measured in each state the phone link can be in (the paywall included), and the same
+screen as a page in Settings › Phone and channels.
 
 `scripts/check-opencode-probe-live.mjs` asks the REAL OpenCode CLI of the machine whether it is signed in. It reports a fact about the
 machine and is not a gate: the logic of that probe is tested hermetically (a stand-in CLI in both states) by
@@ -1115,7 +1115,7 @@ node scripts/check-display-live.mjs --out <dir> [--sizes desktop,narrow] [--sche
 A sweep, not a gate (exit 0; `--strict` makes any finding exit 1; 3 when it could not run; it **refuses `:3080`**). It walks the
 home page and its menus, the sidebar pages and their tabs, every Settings section and its tabs and help card, the right pane's panels (`--only panels`:
 Slides empty, with its demo deck and its text editor open, Bricks and Modeleur empty), the account card
-(menu, switcher, update reminder, the phone panel in each of its five states, Settings › Remote Control) and the first-run wizard, with
+(menu, switcher, update reminder, the Phone and channels window in each of its five states, Settings › Phone and channels) and the first-run wizard, with
 real clicks, on a 1400 px window and at 390 px (the width `kybernos-mobile` lays out for), in DSH's dark theme, its light theme
 and the shipped *Neutral violet*. The account, the phone link and the wizard are answered **inside the page** (CDP Fetch on
 `/kybernos-cloud/status`, `/kybernos-mobile/remote/*`, `/kybernos/onboarding`): no server is called, nothing is written.
@@ -1214,3 +1214,20 @@ and not when accepting (so « a full team » is built by lowering the seats afte
 (and a row at the bottom of the list sits under the account card unless it is scrolled into view); DSH re-reads the account's teams every five minutes, so a team added on the server is
 shown at once only after `POST /kybernos-cloud/refresh`; the footer meter re-reads the quota every two minutes (measured: 120 s after a turn), so a headless page, which never gets the
 « window comes back into view » signal, is nudged with the page's own `kybernos-cloud:quota-read` event; chat titles are the stand-in's reply, so each run sets a unique reply text to find its chat in the sidebar.
+
+## Phone and channels (`scripts/check-phone-channels-live.mjs`)
+
+The screen that joins the phone link (kybernos-mobile) and Kaby's messaging apps (kybernos-kyber), shown as a window from the account menu and as Settings › Phone and channels.
+Run it against the sandbox, never the real DSH (it exits 3 on `127.0.0.1:3080`):
+
+```bash
+scripts/sandbox/setup.sh && scripts/sandbox/start.sh
+source scripts/sandbox/env.sh && node scripts/check-phone-channels-live.mjs [--shots <dir>]
+```
+
+The page's `fetch` is replaced for `/kybernos-cloud/*` and `/kybernos-mobile/remote/*` before any script runs (the account, what the phone link and Telegram say, the pairing
+gestures); nothing is paired and nothing leaves the machine. It plays the entry (between Appearance and Settings), both columns in every state (nothing linked, a code, a phone
+asking for the check, a code that ran out, a phone connected, a plan without the link, a server without it; Telegram not linked, a code, scanned, linked, no bot; WhatsApp not
+available on this server, WeChat and iMessage soon), light, dark and a 390 px phone (the account menu is in the drawer there; the window opens itself in a root of its own on `<body>`, also with the drawer closed, which is how Kaby's strip opens it), Escape / the
+dim / the cross, the code withdrawn when the window closes, and the Settings page. Traps met writing it: the window theme must be set explicitly (the sandbox starts dark), a window
+drawn inside the drawer would sit 354 px off-screen (it draws itself in a root of its own on `<body>`), and the sandbox's « Get started » dialog covers the page after every load (Escape).

@@ -1,4 +1,7 @@
 *
 !packages/kybernos-gate
-!packages/kybernos-cloud/index.js
+!packages/kybernos-cloud
+packages/kybernos-cloud/test-*
+packages/kybernos-cloud/lib-*-test.mjs
+packages/kybernos-cloud/README.md
 !services/computer-image

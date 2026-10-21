@@ -20,7 +20,7 @@ Settings › **Web Search**:
 When the host half does not answer (DSH was not restarted after an update, a route fails, a proxy answers with a page)
 the page keeps its title and its explanation and says "This page's helper is not answering. If DSH was just updated,
 restart DSH, then press Retry." with a **Retry** button. Never the browser's own "Failed to fetch". The same sentence
-is used by Auto routing, AI Provider & Models, Free LLMs and Ollama Local Models (`scripts/test-host-down.mjs` pins it).
+is used by Auto routing, AI provider and models, Free LLMs and Ollama local models (`scripts/test-host-down.mjs` pins it).
 
 An engine that fails is **paused** for a time that fits the cause (a refused key one hour, a captcha ten minutes, a
 rate limit five, a timeout one) and the next one answers. The row says why and until when. A search only fails when

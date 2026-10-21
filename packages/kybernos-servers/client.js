@@ -81,7 +81,7 @@ window.__ModuleLoader__.load({
 [aria-expanded="true"]>.kbsv-chev{transform:rotate(180deg)}
 .kbsv-note{margin:0;font-size:12px;color:var(--dsw-alias-label-secondary,inherit)}
 .kbsv-ent{border:1px solid var(--dsw-alias-border-l2,rgba(0,0,0,.1));border-radius:16px;padding:20px 22px;background:var(--dsw-alias-bg-layer-1,transparent);display:grid;gap:16px}
-.kbsv-ent-kick{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--dsw-alias-brand-primary-new-colorprimary-new-color,#4176e6)}
+.kbsv-ent-kick{font-size:11px;font-weight:700;color:var(--dsw-alias-brand-primary-new-colorprimary-new-color,#4176e6)}
 .kbsv-ent h3{margin:2px 0 0;font-size:19px;line-height:1.3;letter-spacing:-.01em}
 .kbsv-ent-lead{margin:6px 0 0;max-width:56ch;color:var(--dsw-alias-label-secondary,inherit)}
 .kbsv-feat{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 22px}
@@ -105,7 +105,7 @@ window.__ModuleLoader__.load({
 .kbsv-error{margin:0;font-size:13px;color:var(--dsw-alias-state-error-primary,#ec1313)}
 .kbsv-two{display:grid;grid-template-columns:1fr 1fr;gap:20px}
 .kbsv-two ul{margin:6px 0 0;padding-inline-start:18px;font-size:13px;display:grid;gap:2px}
-.kbsv-kick{font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--dsw-alias-label-secondary,inherit)}
+.kbsv-kick{font-size:11px;font-weight:700;color:var(--dsw-alias-label-secondary,inherit)}
 .kbsv-code{font-family:var(--ds-font-family-code,ui-monospace,Menlo,monospace);font-size:22px;font-weight:700;letter-spacing:.1em}
 .kbsv-toast{position:fixed;inset-inline:0;bottom:20px;display:flex;justify-content:center;z-index:2147483001;pointer-events:none;padding:0 16px}
 .kbsv-toast>div{background:var(--dsw-alias-label-primary,#111);color:var(--dsw-alias-label-primary-inverted,#fff);border-radius:14px;padding:9px 16px;font-size:13px;max-width:520px;box-shadow:0 8px 24px rgba(0,0,0,.25)}
@@ -284,7 +284,7 @@ window.__ModuleLoader__.load({
           h('div', { className: 'kbsv-dlg', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'kbsv-confirm-t', 'data-kb': 'servers-dialog' },
             h('h3', { id: 'kbsv-confirm-t' }, (leaving ? kt('Retirer ', 'Remove ') : kt('Passer à ', 'Switch to ')) + s.name + kt(' ?', '?')),
             leaving
-              ? h('p', { className: 'kbsv-note', style: { fontSize: '13px' } }, kt('Ta connexion à ce serveur est oubliée sur cet appareil. Rien n’est supprimé sur le serveur. ', 'Your sign-in to this server is forgotten on this device. Nothing is deleted on the server. ') + (s.active ? kt('Tu reviendras à Kybernos Cloud.', 'You will go back to Kybernos Cloud.') : ''))
+              ? h('p', { className: 'kbsv-note', style: { fontSize: '13px' } }, kt('Ta connexion à ce serveur est oubliée sur cet appareil. Rien n’est supprimé sur le serveur. ', 'Your sign-in to this server is forgotten on this device. Nothing is deleted on the server. ') + (s.active ? kt('C’est le serveur actif : Kybernos rebascule d’abord sur Kybernos Cloud, et si la bascule échoue, rien ne change.', 'This is the active server: Kybernos switches back to Kybernos Cloud first, and if that switch fails, nothing changes.') : ''))
               : h('div', { className: 'kbsv-two' },
                 h('div', null, h('div', { className: 'kbsv-kick' }, kt('Change', 'Changes')), h('ul', null, h('li', null, kt('Compte et connexion', 'Account and sign-in')), h('li', null, kt('Liste des modèles', 'Model list')), h('li', null, kt('Équipe et leçons partagées', 'Team and shared lessons')), h('li', null, kt('Pages d’équipe et facturation', 'Team settings and billing pages')))),
                 h('div', null, h('div', { className: 'kbsv-kick' }, kt('Reste', 'Stays')), h('ul', null, h('li', null, kt('Conversations et fichiers locaux', 'Local chats and files')), h('li', null, kt('Mémoire personnelle', 'Personal memory')), h('li', null, kt('Thème, langue, réglages', 'Theme, language, settings'))))),

@@ -411,6 +411,14 @@ console.log('looks after itself')
   check('the segmented pills have a minimum height, never a fixed one', seg !== null && /min-height:38px/.test(seg) && !/(^|;)height:/.test(seg) && segSm !== null && /min-height:32px/.test(segSm) && !/(^|;)height:/.test(segSm), { seg, segSm })
   check('the search field has a minimum height, never a fixed one, and its modes wrap under the input instead of over the next control', field !== null && /min-height:36px/.test(field) && !/(^|;)height:/.test(field) && /flex-wrap:wrap/.test(field) && modes !== null, { field })
   check('the search field asks for room (a flex basis) so the toolbar wraps instead of squeezing it', /flex:1 1 \d+px/.test(field || ''), field)
+
+  // A status every row shares carries nothing (UX audit 2, pass-1 leftover): the « Sent » chip is
+  // kept for the rows that differ from the majority, and goes away when the list says one truth.
+  const rows = (flags) => flags.map((sent) => ({ sent }))
+  check('a list where every row is sent shows no « Sent » chip at all', T.sentMarks(rows([true, true, true, true])).every((x) => x === false) && T.sentMarks(rows([false, false])).every((x) => x === false))
+  check('a mixed list marks the minority only', JSON.stringify(T.sentMarks(rows([true, true, true, false, false, false, false]))) === JSON.stringify([true, true, true, false, false, false, false]) && JSON.stringify(T.sentMarks(rows([false, false, true]))) === JSON.stringify([false, false, true]))
+  check('an even split marks nothing (either side would be noise)', T.sentMarks(rows([true, false, true, false])).every((x) => x === false))
+  check('an empty list is safe', T.sentMarks([]).length === 0 && T.sentMarks(rows([undefined, null])).every((x) => x === false))
 }
 
 console.error = realError

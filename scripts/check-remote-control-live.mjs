@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Settings › Remote Control when one status poll fails, in a real GUI (audit A5-08).
+// Settings › Phone and channels when one status poll fails, in a real GUI (audit A5-08).
 //
 //   source scripts/sandbox/env.sh && node scripts/check-remote-control-live.mjs [--shots <dir>]
 //
@@ -57,8 +57,8 @@ page.on('Runtime.exceptionThrown', (p) => errors.push(String((p.exceptionDetails
 try {
   await sleep(2500)
   check('Settings open', (await openSettings(page)) === true)
-  const went = await val(`(() => { const b = Array.from(document.querySelectorAll('button[class*="navCell"]')).find((x) => x.innerText.trim().split('\\n')[0] === 'Remote Control'); if (!b) return false; b.click(); return true })()`)
-  check('the Remote Control entry is in the Settings menu', went === true)
+  const went = await val(`(() => { const b = Array.from(document.querySelectorAll('button[class*="navCell"]')).find((x) => x.innerText.trim().split('\\n')[0] === 'Phone and channels'); if (!b) return false; b.click(); return true })()`)
+  check('the Phone and channels entry is in the Settings menu', went === true)
   check('the page shows « Add a phone » for a signed-in account', (await poll(() => q('[data-kb="mobile-pair"]'))) !== null)
   await shot('remote-control-good')
   for (const kind of ['network', 'html', 'empty', 'notok']) {

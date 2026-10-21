@@ -150,5 +150,11 @@ console.log('« Re-check » (V-43): a small button on the list, a fresh probe ea
   check('an answer without a stamp shows no time (the page never invents a check)', view.one((n) => n.props && n.props['data-kfl'] === 'verifie') === null)
 }
 
+{
+  // UX audit 2026-10-20: the page lists the free models, so a « free » tag on every row (10 of 10) said nothing.
+  check('a model row does not repeat the word free on every row', !/'data-tone': 'neutral' \}, 'free'\)/.test(SOURCE))
+  check('...and its skeleton row has no bone for it', !/bone\(34, 18, 'pill'\)/.test(SOURCE))
+}
+
 console.log(failed === 0 ? '\nOK' : `\n${failed} failure(s)`)
 process.exit(failed === 0 ? 0 : 1)
