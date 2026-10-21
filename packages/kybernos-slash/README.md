@@ -18,8 +18,10 @@ Settings → *Commands*.
   `{message}`, the text of the message acted on.
 - **Settings → *Commands*/*Commandes*** (slot order 27): two tabs, search, editor dialog, delete with a 5 s *Undo*
   toast, and a viewer of the stored JSON.
-- *Create with AI* starts a new chat pre-filled with `/skill-slash-msgaction-creator <text>`. That skill is not in
-  this repository; whether it is installed in a profile: not verified.
+- *Create with AI* starts a new chat pre-filled with `/skill-slash-msgaction-creator <text>`. That skill **is** shipped here
+  (`skills/slash-msgaction-creator/SKILL.md`) and seeded into `<dsh home>/skills` at host start by `seed-skills.mjs` (the same
+  rule as the other bundles: a skill the user edited is never overwritten). It is versioned because it carries the agent's
+  write path — the `enregistrer_entree` tool, not the route.
 
 ## Host routes
 
@@ -30,8 +32,13 @@ Settings → *Commands*.
 | `GET /kybernos/slash/status` | path, exists, bytes, mtime, counts; plus `state` and `error` when the file is present but unusable (the counts are then 0, which does not mean empty) |
 | `GET /kybernos/slash/message?sessionId=&messageId=` | `{ok, text}` of an assistant message, read from the session log |
 
-Body ≤ 256 KiB, ≤ 500 entries. A POST is refused (403) when an `Origin` header differs from `Host`; a request with no
-`Origin` (a script, the creator skill) is accepted. GET routes have no origin check.
+Body ≤ 256 KiB, ≤ 500 entries. A POST is a guarded write (A-16): it needs **both** this listener's `Origin` and DSH's
+signed session cookie (`session-guard.mjs`, the repo's rule) — no header at all is a 403, a missing, forged or expired
+cookie a 401, and a refused request writes nothing. Its caller is a page (Settings ▸ Commands, and the core plugin's
+`/widget` upsert): a same-origin `fetch` sends both by itself. **The agent does not write through this route**: the
+`slash-msgaction-creator` skill calls the host tool `enregistrer_entree` (`tool.mjs`), which applies the same mutation
+and the same validation in process — a route that accepted "a cookie, or no Origin at all" would be bypassed by
+omitting a header. GET routes have no origin check.
 
 ## Files and settings
 

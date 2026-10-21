@@ -67,12 +67,15 @@ requests with `Origin` and the machine's cookie, so it passes too.
   `packages/kybernos-servers/host.mjs` calls it over loopback with this listener's `Origin` and **no cookie** when it applies the active server, so it keeps
   `strict` (a bare program with no header is now refused, where it used to pass) and the loopback call must be widened to the cookie before it can join the
   full rule. A foreign Origin is still refused on all of them.
-- **`/kybernos/slash/entries` (POST): the exception is CONTRADICTED, and this is the one route A-16 leaves open.** It was written here as "the
+- **`/kybernos/slash/entries` (POST): CLOSED, and the skill moved off the route (A-16, 21/10).** It was written here as "the
   `slash-msgaction-creator` skill writes through it", but two **pages** write through it too — `packages/kybernos-slash/client.js` (the entry editor's
-  add / delete / restore) and `packages/kybernos-plugin/client.js` (the startup upsert of the `/widget` entry, `credentials: 'same-origin'`). So it has a
-  browser caller *and* an agent caller without a session, and neither a plain conversion nor a documented exception is honest. The decision to take is one
-  of: give the route the cookie and give the skill a named host-side path (or a tool) instead of the route, or add an explicit second credential for the
-  local caller. Measured by the verifier on `6c0d055`, not read here: `node scripts/audit-routes.mjs --table` still shows it `origin`.
+  add / delete / restore) and `packages/kybernos-plugin/client.js` (the startup upsert of the `/widget` entry, `credentials: 'same-origin'`). So the route
+  had a browser caller *and* an agent caller without a session, and neither a plain conversion nor a documented exception was honest. Both halves are now
+  separated, which is the only shape that holds: **the route takes the cookie** (its two page callers send it themselves, same-origin fetch), and **the
+  agent writes through a host tool**, `enregistrer_entree` (`packages/kybernos-slash/tool.mjs`), registered on the `tools` service — in process, so there
+  is nothing on the wire to authenticate and no second credential to leak. A route that accepted "a cookie, or no Origin at all" would be bypassed by
+  omitting a header. The skill is shipped by the bundle and seeded (`packages/kybernos-slash/skills/slash-msgaction-creator/SKILL.md`), so the instruction
+  follows the code instead of living on one machine. Measured, not read: `node scripts/audit-routes.mjs --table` shows `POST:cookie`.
 - **The free-models gateway** (`/free-llms/v1/chat/completions`, `/v1/models`, `/status`, `/health`, A6-04). Its caller is DSH's engine: no Origin, no cookie, no
   browser header. It cannot ask for a session, so it refuses what a *browser* marks as another site: a foreign `Origin`, or `Sec-Fetch-Site` other than
   `same-origin` / `none`. A page the person merely visits can no longer make their machine call opencode.ai. (A browser too old to send `Sec-Fetch-Site` looks like
@@ -100,21 +103,21 @@ A-16 / L6-02 / L1-01 / A-15 (447 routes of 34 bundles, 274 answering a write met
 | a page of any site can drive them | 18 | **3** |
 | need a state the empty test home lacks, or a token the probe does not have (`kybernos-motion`; the widget's conversation token) | 3 | 4 |
 
-The `origin` column is the one A-16 measured: 43 write routes before this round, **4 now**; and the routes that answer every method alike fell from **5 to 3** at
-the `origin` level (the two `kybernos-auto` ones now answer their write methods at the `strict` level). Of the four write routes left, **three are the documented
-non-browser callers above**; the fourth, `/kybernos/slash/entries`, is the one route A-16 leaves open — it is written by pages too, so its exception is
-contradicted and the decision is described above:
+The `origin` column is the one A-16 measured: 43 write routes before this round, **3 now**; and the routes that answer every method alike fell from **5 to 3** at
+the `origin` level (the two `kybernos-auto` ones now answer their write methods at the `strict` level). The three write routes left are the documented
+non-browser callers above — and each of them genuinely has no session to offer:
 
 | Bundle | Routes left at `origin` | Caller that keeps them there |
 |---|---|---|
 | `kybernos-auto` | `/report`, `/router` (POST) | `cli/auto-router.mjs`, run by the agent: no Origin, no session (documented above) |
 | `kybernos-free-llms` | `/v1/chat/completions` (POST; its `/v1/models`, `/status` and `/health` are the every-method rows) | DSH's engine: no Origin, no cookie (documented above) |
-| `kybernos-slash` | `/entries` (POST) | **pages AND the skill**: `kybernos-slash/client.js` (the entry editor) and `kybernos-plugin/client.js` (the `/widget` upsert) write it with the cookie; `slash-msgaction-creator` writes it with no Origin and no session. Contradicted exception — the one open route, see above |
+
+`kybernos-slash` `/entries` (POST) has left this table: it is `POST:cookie` now, and the agent's path is the `enregistrer_entree` tool (above).
 
 Every other write route is under the rule. No route that used to answer a write fails for its real caller: the bundle harnesses (`test-cloud-host.mjs`,
 `test-account-state.mjs`, `test-unplug-host.mjs`, `test-write-guard.mjs` of each bundle) call the converted routes the way the page does — the right Origin
-**and** the signed cookie — and the live checks that stay green drive the real pages. The five bundles converted last (modeles-locaux, modeleur, motion, bricks,
-slides) each carry their own copy of `session-guard.mjs` and a `test-write-guard.mjs` that proves the four refusals and the real pair; motion and slides also
+**and** the signed cookie — and the live checks that stay green drive the real pages. The six bundles converted last (modeles-locaux, modeleur, motion, bricks,
+slides, slash) each carry their own copy of `session-guard.mjs` and a `test-write-guard.mjs` that proves the four refusals and the real pair; motion and slides also
 prove that the source they build their `client.js` from is unchanged (`scripts/build.mjs --check`).
 
 Two GET routes left the table with the read-only account frame (WP-24, `docs/dev/frame-removal.md`): `/kybernos-cloud/relay` and `/kybernos/ws-console-key`,
