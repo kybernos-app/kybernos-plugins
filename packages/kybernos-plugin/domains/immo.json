@@ -60,6 +60,13 @@
       "documents"
     ]
   },
+  "agents": {
+    "preset": "balanced",
+    "why": {
+      "en": "Messages to prospects are reviewed; you are notified before any spending.",
+      "fr": "Les messages aux prospects sont relus ; tu es prévenu·e avant une dépense."
+    }
+  },
   "goals": [
     {
       "id": "leads",

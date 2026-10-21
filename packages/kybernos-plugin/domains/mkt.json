@@ -62,6 +62,13 @@
       "documents"
     ]
   },
+  "agents": {
+    "preset": "balanced",
+    "why": {
+      "en": "Every post is reviewed; content can be edited freely.",
+      "fr": "Chaque publication est relue ; les contenus se retouchent librement."
+    }
+  },
   "goals": [
     {
       "id": "content",

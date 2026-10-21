@@ -7,7 +7,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { CATALOG } from '../kybernos-composio/catalog.js'
-import { FORMAT, ROW_IDS, HIDEABLE, ICONS, HOME_IDS, BUNDLED_SOURCE, LIMITS, validatePack, checkSet, loadPacks, domainOfProfil } from './domain-pack.mjs'
+import { FORMAT, ROW_IDS, HIDEABLE, ICONS, HOME_IDS, MODES, PRESETS, BUNDLED_SOURCE, LIMITS, validatePack, checkSet, loadPacks, domainOfProfil } from './domain-pack.mjs'
 
 const here = fileURLToPath(new URL('.', import.meta.url))
 let count = 0
@@ -15,7 +15,7 @@ const ok = (label, fn) => { fn(); count++; console.log('ok  ', label) }
 const T = (en, fr) => ({ en, fr })
 const good = () => ({
   v: 1, id: 'demo', order: 40, accent: '#1B7F76', icon: 'heart', name: T('Demo', 'Démo'), tagline: T('A demo', 'Une démo'), keywords: ['demo', 'test case'], home: ['doc', 'sheet'], legacyJobs: ['old'],
-  menu: { labels: { dashboards: T('Numbers', 'Chiffres') }, hide: ['documents'] },
+  menu: { labels: { dashboards: T('Numbers', 'Chiffres') }, hide: ['documents'] }, mode: 'code', agents: { preset: 'prudent', why: T('Careful here', 'Prudent ici') },
   goals: [{ id: 'one', name: T('One', 'Un'), title: T('Do one', 'Faire un'), desc: T('One thing', 'Une chose'), skills: [{ source: 'anthropics/skills', name: 'pdf', d: T('Read PDFs', 'Lit des PDF') }], teams: ['studencik'], connectors: ['gmail', 'googlecalendar'], automations: [{ id: 'weekly', name: T('Weekly', 'Hebdo'), prompt: T('Every Friday: summarise the week.\nOne page.', 'Chaque vendredi : résume la semaine.'), cron: '0 17 * * 5' }], soon: [T('Later', 'Plus tard')], starter: T('Start', 'Commence') }]
 })
 const bad = (mutate, fileId = 'demo') => { const p = good(); mutate(p); return validatePack(p, fileId) }
@@ -253,6 +253,21 @@ ok('every skill is one the starter kits verified', () => {
 ok('nothing the old kits offered is lost', () => {
   const used = new Set(shipped.packs.flatMap((p) => p.goals.flatMap((g) => g.skills.filter((s) => s.source !== BUNDLED_SOURCE).map((s) => s.source + ' ' + s.name))))
   assert.deepEqual(VERIFIED.filter((x) => !used.has(x)), [])
+})
+ok('the display mode and the agents\' starting point are checked, and absent means « bureau » and « balanced »', () => {
+  assert.deepEqual([MODES, PRESETS], [['bureau', 'code'], ['prudent', 'balanced', 'auto']])
+  const bare = bad((p) => { delete p.mode; delete p.agents }).pack
+  assert.deepEqual([bare.mode, bare.agents], ['bureau', { preset: 'balanced', why: null }])
+  for (const m of ['Code', 'text', 3, null]) assert.equal(bad((p) => { p.mode = m }).ok, false, String(m))
+  assert.equal(bad((p) => { p.agents = { preset: 'wild' } }).ok, false)
+  assert.equal(bad((p) => { p.agents = { preset: 'auto', extra: 1 } }).ok, false)
+  assert.equal(bad((p) => { p.agents = { preset: 'auto', why: { fr: 'x' } } }).ok, false)
+  assert.equal(bad((p) => { p.agents = 'auto' }).ok, false)
+})
+ok('every shipped pack says how much its agents may do alone and why, and only Development starts in code mode', () => {
+  for (const p of shipped.packs) assert.ok(p.agents.why !== null && typeof p.agents.why.fr === 'string', p.id)
+  assert.deepEqual(shipped.packs.filter((p) => p.mode === 'code').map((p) => p.id), ['dev'])
+  assert.deepEqual(Object.fromEntries(shipped.packs.map((p) => [p.id, p.agents.preset])), { edu: 'balanced', sante: 'prudent', immo: 'balanced', droit: 'prudent', fin: 'prudent', com: 'balanced', mkt: 'balanced', dev: 'auto', general: 'balanced' })
 })
 ok('a goal names at most four apps, each a plain slug, each once; anything else is refused', () => {
   assert.equal(LIMITS.connectors, 4)

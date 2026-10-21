@@ -3,7 +3,7 @@
 //
 //   node packages/kybernos-plugin/test-onboarding-state.mjs
 import assert from 'node:assert/strict'
-import { ONBOARDING_VERSION, MODEL_CHOICES, GOALS_MAX, defaultState, publicView, complete, replay, chooseDomain } from './onboarding-state.mjs'
+import { ONBOARDING_VERSION, MODEL_CHOICES, GOALS_MAX, AGENT_PRESETS, ABOUT_MAX, aboutView, defaultState, publicView, complete, replay, chooseDomain } from './onboarding-state.mjs'
 
 const NOW = new Date('2026-10-10T09:00:00.000Z')
 let count = 0
@@ -120,6 +120,30 @@ ok('the memory id is kept across a replay, and only an opaque printable id is ac
   assert.equal(complete(again, { memoryId: 'mem_NEW' }, NOW).memoryId, 'mem_NEW')
   for (const bad of ['', '  ', 'has space', 'x\ny', 12, {}, null]) assert.equal(complete(defaultState(NOW), { memoryId: bad }, NOW).memoryId, null)
   assert.equal(defaultState(NOW).memoryId, null)
+})
+
+ok('the agents preset is one of the three, kept across a replay, and public; an older file reads null', () => {
+  assert.deepEqual(AGENT_PRESETS, ['prudent', 'balanced', 'auto'])
+  const first = complete(defaultState(NOW), { profil: 'droit', agents: 'prudent' }, NOW)
+  assert.equal(first.agents, 'prudent')
+  assert.equal(publicView(first).agents, 'prudent')
+  assert.equal(complete(replay(first), { profil: 'droit' }, NOW).agents, 'prudent', 'a client that sends none keeps the saved one')
+  assert.equal(complete(first, { agents: 'auto' }, NOW).agents, 'auto')
+  for (const bad of ['wild', '', 3, {}, null]) assert.equal(complete(defaultState(NOW), { agents: bad }, NOW).agents, null)
+  assert.equal(publicView({ version: 1, completed: true, profil: 'produit' }).agents, null)
+})
+ok('what the person said about themselves is bounded, cleaned, kept across a replay, and never part of the public view', () => {
+  const said = { site: '  roux-avocat.example ', profile: 'linkedin.com/in/claire-roux', words: 'Droit de la famille.\nClientèle de particuliers.' }
+  const first = complete(defaultState(NOW), { profil: 'droit', about: said }, NOW)
+  assert.deepEqual(first.about, { site: 'roux-avocat.example', profile: 'linkedin.com/in/claire-roux', words: 'Droit de la famille.\nClientèle de particuliers.' })
+  assert.equal('about' in publicView(first), false, 'GET is served before the sign-in: it never carries what was typed')
+  assert.deepEqual(complete(replay(first), { profil: 'droit' }, NOW).about, first.about)
+  assert.equal(complete(first, { about: {} }, NOW).about, null, 'an empty answer clears it')
+  assert.deepEqual(complete(defaultState(NOW), { about: { site: 'x'.repeat(500), words: 'y'.repeat(900), profile: 'a\u0000b\u0007c' } }, NOW).about,
+    { site: 'x'.repeat(ABOUT_MAX.site), profile: 'abc', words: 'y'.repeat(ABOUT_MAX.words) })
+  for (const bad of ['text', 3, null, [], { site: 4 }, { site: '  ' }]) assert.equal(complete(defaultState(NOW), { about: bad }, NOW).about, null)
+  assert.deepEqual(aboutView(first), first.about, 'the wizard\'s own replay reads it back through aboutView')
+  assert.deepEqual([aboutView(defaultState(NOW)), aboutView(null), aboutView({ about: 'x' })], [null, null, null])
 })
 
 console.log(count + ' checks passed')

@@ -16,7 +16,7 @@ import { stableStreak as autoSkillStreak, skillSlug as autoSkillSlug, buildSkill
 import { chooseWorkspace as autoWsChoose, idOf as autoWsIdOf, DEDICATED_TITLE as AUTO_WS_TITLE, DEDICATED_DIR as AUTO_WS_DIR } from './automation-workspace.mjs'
 import { recordFeedback, exportFeedback, relayReportOf } from './feedback-box.mjs'
 import { writeGuard } from './session-guard.mjs'
-import { defaultState as onboardingDefault, publicView as onboardingView, complete as onboardingComplete, replay as onboardingReplay, chooseDomain as onboardingChooseDomain } from './onboarding-state.mjs'
+import { defaultState as onboardingDefault, publicView as onboardingView, complete as onboardingComplete, replay as onboardingReplay, chooseDomain as onboardingChooseDomain, aboutView as onboardingAbout } from './onboarding-state.mjs'
 import { loadPacks as loadDomainPacks, domainOfProfil } from './domain-pack.mjs'
 const pluginDir = dirname(fileURLToPath(import.meta.url))
 // ── Le filet du compactage, sans retouche du moteur (23/09/2026) ────────────
@@ -9941,7 +9941,9 @@ function boot(ctx) {
           if (state === null) return sendJson(res, 200, { ok: false, error: 'onboarding state unreadable' })
           // `domain` is the pack the saved `profil` stands for (the previous wizard stored one of twelve professions): null when none.
           const view = onboardingView(state)
-          return sendJson(res, 200, { ok: true, ...view, domain: domainOfProfil(domainPacks().packs, view.profil) })
+          // What the person typed about themselves comes back only to this page (strict same origin), so a replay can show it; the route is served before DSH's own sign-in.
+          const about = sameOriginStrict(req) === true ? onboardingAbout(state) : undefined
+          return sendJson(res, 200, { ok: true, ...view, domain: domainOfProfil(domainPacks().packs, view.profil), ...(about !== undefined ? { about: about } : {}) })
         }
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'GET or POST expected' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
@@ -9966,7 +9968,7 @@ function boot(ctx) {
         const next = onboardingComplete(state, body)
         const written = await onboardingWrite(next)
         sendJson(res, 200, written === true
-          ? { ok: true, completed: true, profil: next.profil, uiMode: next.uiMode, model: next.model, lang: next.lang, goals: next.goals }
+          ? { ok: true, completed: true, profil: next.profil, uiMode: next.uiMode, model: next.model, lang: next.lang, goals: next.goals, agents: next.agents }
           : { ok: false, error: 'write failed' })
       } }), 'kybernos: onboarding route')
       // After a way to a model is connected (the first-run wizard, the chat's card): make that model the one the next

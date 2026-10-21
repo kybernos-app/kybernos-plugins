@@ -61,6 +61,13 @@
       "documents"
     ]
   },
+  "agents": {
+    "preset": "prudent",
+    "why": {
+      "en": "Professional secrecy: the agent prepares, you send. Client files stay on your computer.",
+      "fr": "Secret professionnel : l’agent prépare, tu envoies. Les dossiers restent sur ton ordinateur."
+    }
+  },
   "goals": [
     {
       "id": "contracts",
