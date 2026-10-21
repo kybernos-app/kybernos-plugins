@@ -1,0 +1,46 @@
+{
+  "contract": 1,
+  "id": "kybernos/multi-device",
+  "kind": "code",
+  "version": "0.1.0",
+  "name": {
+    "en": "Workspaces & devices",
+    "fr": "Espaces de travail et appareils"
+  },
+  "description": {
+    "en": "Workspaces with or without a folder: Create offers a private folder, and Details shows where the workspace works.",
+    "fr": "Des workspaces avec ou sans dossier : Create propose un dossier privé, et Détails montre où le workspace travaille."
+  },
+  "icon": "devices",
+  "family": "base",
+  "author": {
+    "id": "kybernos",
+    "name": "Kybernos"
+  },
+  "license": "Apache-2.0",
+  "pricing": "free",
+  "package": "@local/kybernos-multi-device",
+  "entry": {
+    "host": "index.js",
+    "client": "client.js"
+  },
+  "requires": {
+    "kybernos": ">=0.1.0"
+  },
+  "permissions": [
+    "ui.slot:conversation.hero.workspace.directoryFlow",
+    "ui.slot:sidebar.workspaces.directoryFlow",
+    "host.routes:/kybernos-multi-device:write",
+    "fs.write:home",
+    "exec:xdg-user-dir"
+  ],
+  "claims": {
+    "routePrefixes": [
+      "/kybernos-multi-device"
+    ]
+  },
+  "help": "help.json",
+  "suite": {
+    "default": "on"
+  }
+}
