@@ -14,7 +14,7 @@ const brand = src.match(/\/\/ KB-BRAND-CORE-BEGIN([\s\S]*?)\/\/ KB-BRAND-CORE-EN
 const core = src.match(/\/\/ KB-OB-CORE-BEGIN([\s\S]*?)\/\/ KB-OB-CORE-END/)
 const ui = src.match(/\/\/ KB-OB-UI-BEGIN([\s\S]*?)\/\/ KB-OB-UI-END/)
 if (core === null || ui === null) { console.error('BLOCKS KB-OB-CORE / KB-OB-UI NOT FOUND in packages/kybernos-plugin/client.js'); process.exit(1) }
-const names = 'KB_OB_LANGS, KB_OB_MODES, KB_OB_PROVIDERS, KB_OB_T, kbObPickLang, kbObText, kbObPlan, kbObStepOf, kbObBack, kbObBackOf, kbObEscape, kbObIsDark, kbObKeyShape, kbObProviderFromKey, kbObNeedModel, kbObNoModel, kbObPackText, kbObPackOf, kbObGoalsOf, kbObKitOf, kbObMenuOverlay, kbObFold, kbObDomainFromText, kbObMix, kbObCronLabel, KB_OB_ROWS, kbObPreviewOf, kbObAutoMade, kbObKitDefaults, kbObMemoryText, kbObSkillText, kbObSetupRows'
+const names = 'KB_OB_LANGS, KB_OB_MODES, KB_OB_PROVIDERS, KB_OB_T, kbObPickLang, kbObText, kbObPlan, kbObStepOf, kbObBack, kbObBackOf, kbObEscape, kbObIsDark, kbObKeyShape, kbObProviderFromKey, kbObNeedModel, kbObNoModel, kbObPackText, kbObPackOf, kbObGoalsOf, kbObKitOf, kbObMenuOverlay, kbObFold, kbObDomainFromText, kbObMix, kbObCronLabel, KB_OB_ROWS, kbObPreviewOf, kbObAutoMade, kbObKitDefaults, kbObMemoryText, kbObSkillText, kbObSetupRows, KB_OB_HOME_TILE, kbObTileOrder, kbObTileSort, kbObFieldSkills, kbObFieldConnectors'
 const mod = await import('data:text/javascript,' + encodeURIComponent(core[1] + '\nexport { ' + names + ' }'))
 
 let fails = 0
@@ -166,6 +166,27 @@ eq('a pack hides the rows it names', [mod.kbObMenuOverlay(health, 'en').hide, mo
 eq('no pack, a pack without a menu or a pack with odd values: the menu is left as it is',
   [mod.kbObMenuOverlay(null, 'en'), mod.kbObMenuOverlay({}, 'en'), mod.kbObMenuOverlay({ menu: { labels: { dashboards: 3, aiteams: { en: 'Team' } }, hide: [1, 'documents'] } }, 'en')],
   [{ labels: {}, hide: [] }, { labels: {}, hide: [] }, { labels: { aiteams: 'Team' }, hide: ['documents'] }])
+
+/* ── 5d. What a field puts forward on the pages ──────────────────────────── */
+const law = pack('droit')
+eq('the creation tiles a field wants first are its new-chat templates read as tiles, the rest have no tile',
+  [mod.kbObTileOrder(law), mod.kbObTileOrder(pack('mkt')), mod.kbObTileOrder(pack('dev')), mod.kbObTileOrder(null), mod.kbObTileOrder({})], [['documents', 'spreadsheets'], ['slides', 'images', 'documents'], ['websites'], [], []])
+eq('every template of a pack that has a tile maps to one of the Creations tiles', packs.every((p) => mod.kbObTileOrder(p).every((t) => ['slides', 'websites', 'documents', 'spreadsheets', 'images', 'av', 'miniapp'].indexOf(t) >= 0)), true)
+const tileIds = ['slides', 'websites', 'documents', 'spreadsheets', 'images', 'av', 'miniapp'].map((id) => ({ id }))
+eq('the tiles come in the field\'s order and the others keep theirs; the list is a new one',
+  [mod.kbObTileSort(tileIds, ['documents', 'spreadsheets']).map((d) => d.id), mod.kbObTileSort(tileIds, []).map((d) => d.id), mod.kbObTileSort(tileIds, ['av', 'nope', 'slides']).map((d) => d.id), mod.kbObTileSort(tileIds, ['documents']) === tileIds],
+  [['documents', 'spreadsheets', 'slides', 'websites', 'images', 'av', 'miniapp'], ['slides', 'websites', 'documents', 'spreadsheets', 'images', 'av', 'miniapp'], ['av', 'slides', 'websites', 'documents', 'spreadsheets', 'images', 'miniapp'], false])
+const fs = mod.kbObFieldSkills(law, ['deadlines'], 'fr')
+eq('the skills of a field: each once, the ticked goal\'s first, with the goal and the pack\'s text in the language',
+  [fs[0].name, fs[0].goal, fs[0].ticked, fs[0].shipped, fs[0].d === 'Contrôle les délais de procédure et de prescription à partir de la date de départ.' || fs[0].d.length > 0, fs.filter((x) => x.ticked).length, new Set(fs.map((x) => x.name)).size === fs.length],
+  ['deadline-check', 'Échéances', true, true, true, 1, true])
+eq('no goal ticked: the field\'s skills in the pack\'s order, none flagged; a language the pack does not write reads English; at most eight',
+  [mod.kbObFieldSkills(law, [], 'en').some((x) => x.ticked), mod.kbObFieldSkills(law, [], 'es')[0].goal, mod.kbObFieldSkills(law, null, 'en')[0].name, packs.every((p) => mod.kbObFieldSkills(p, [], 'en').length <= 8), mod.kbObFieldSkills(law, [], 'en', 2).length],
+  [false, 'Contracts', 'review-contract', true, 2])
+eq('the apps of a field: each once, the ticked goal\'s first, with the goal; at most eight; none for no pack',
+  [mod.kbObFieldConnectors(law, ['deadlines'], 'en').slice(0, 2), new Set(mod.kbObFieldConnectors(law, [], 'en').map((x) => x.app)).size === mod.kbObFieldConnectors(law, [], 'en').length, packs.every((p) => { const l = mod.kbObFieldConnectors(p, [], 'en'); return l.length >= 1 && l.length <= 8 }), mod.kbObFieldConnectors(null, [], 'en'), mod.kbObFieldSkills(null, [], 'en')],
+  [[{ app: 'googlecalendar', goal: 'Deadlines', ticked: true }, { app: 'outlook', goal: 'Deadlines', ticked: true }], true, true, [], []])
+eq('an unknown goal id is ignored and a skill shared by two goals shows once under the first', [mod.kbObFieldSkills(law, ['nope'], 'en').some((x) => x.ticked), mod.kbObFieldSkills(law, ['drafting', 'contracts'], 'en').filter((x) => x.name === 'docx').length], [false, 1])
 
 /* ── 5b. The pasted key ──────────────────────────────────────────────────── */
 eq('a key is one printable string of 8 to 400 characters', [mod.kbObKeyShape('sk-ant-api03-abcdefghij'), mod.kbObKeyShape('  sk-0123456789 \n')], ['sk-ant-api03-abcdefghij', 'sk-0123456789'])

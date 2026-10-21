@@ -82,6 +82,11 @@
           }
         }
       ],
+      "connectors": [
+        "zendesk",
+        "freshdesk",
+        "gorgias"
+      ],
       "automations": [
         {
           "id": "morning-triage",
@@ -126,8 +131,8 @@
           "source": "anthropics/skills",
           "name": "xlsx",
           "d": {
-            "en": "Track money and pipeline",
-            "fr": "Suit l’argent et le pipeline"
+            "en": "Track stock and sales in a sheet",
+            "fr": "Suit stocks et ventes dans un tableur"
           }
         },
         {
@@ -138,6 +143,11 @@
             "fr": "Articles bas, en rupture ou en surstock, avec une proposition de réapprovisionnement"
           }
         }
+      ],
+      "connectors": [
+        "shopify",
+        "googlesheets",
+        "airtable"
       ],
       "automations": [
         {
@@ -183,10 +193,14 @@
           "source": "anthropics/skills",
           "name": "docx",
           "d": {
-            "en": "Write and format papers",
-            "fr": "Rédige et met en forme tes devoirs"
+            "en": "Write and format letters to customers",
+            "fr": "Rédige et met en forme tes courriers clients"
           }
         }
+      ],
+      "connectors": [
+        "gmail",
+        "googledocs"
       ],
       "starter": {
         "en": "Write a letter to a customer",
@@ -227,6 +241,11 @@
       ],
       "teams": [
         "inbound-closer"
+      ],
+      "connectors": [
+        "mailchimp",
+        "klaviyo",
+        "hubspot"
       ],
       "soon": [
         {

@@ -575,7 +575,6 @@ let kbLocaleRead = () => 'en'
       'kb.cp.openlink': { kybernos: 'Ouvrir la page d’autorisation', en: 'Open the authorization page' },
       'kb.cp.connect': { kybernos: 'Connecter', en: 'Connect' },
       'kb.cp.empty': { kybernos: 'Aucune app ne correspond.', en: 'No matching app.' },
-      'connectors.title': { kybernos: 'Connecteurs', en: 'Connections' },
       'connectors.search': { kybernos: 'Rechercher dans le catalogue — WhatsApp, Slack, GitHub…', en: 'Search the catalog — WhatsApp, Slack, GitHub…' },
       'connectors.connected': { kybernos: 'Connectés', en: 'Connected' },
       'connectors.all': { kybernos: 'Toutes', en: 'All' },
@@ -11685,7 +11684,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       // (01/10, retour utilisateur) Plus d’onglet « Team Insight » au niveau du
       // hub Agent Teams : il existe déjà dans CHAQUE fiche AI Team — le doublon
       // disparaît, le composant KbiProjetWsInsight reste utilisé par les fiches.
-      const hubTabs = [['teams', kbt('kbui.kybers')], ['marketplace', kbt('kbui.marketplace.tab')]].map((t) => ({
+      const hubTabs = [['teams', kbDomainTitle('aiteams', kbt('kbui.kybers'))], ['marketplace', kbt('kbui.marketplace.tab')]].map((t) => ({
         id: t[0], label: t[1],
         onClick: () => { setHubTab(t[0]); setNewMenu(false); if (t[0] === 'marketplace') set({ view: 'marketplace' }); else set({ view: 'gallery' }) },
       }))
@@ -11761,7 +11760,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         h('div', { className: 'kb6-headrow' },
           h('div', { className: 'kb6-headcol' },
             h('div', { className: 'kb6-titlerow' },
-              h('h1', { className: 'kb6-title' }, kbt('kbui.kybers')),
+              h('h1', { className: 'kb6-title' }, kbDomainTitle('aiteams', kbt('kbui.kybers'))),
               h(KbHelpButton, { open: helpOpen === true, dataKb: 'kybers-help', title: kbt('kbui.kybers.vs.at'), onClick: () => setHelpOpen(helpOpen !== true) })),
             h('p', { className: 'kb8-sub' }, kbt('kbui.kybers.about'))),
           // Barre « épurée » (maquette v2) : dans la rangée d'en-tête, à droite
@@ -16931,6 +16930,9 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
     }
     const KybersMain = (props) => {
       const s = useStore()
+      // The pages read the field's words at each draw (kbDomainTitle): a saved choice redraws them.
+      const domainTick = React.useState(0)[1]
+      React.useEffect(() => kbDomainOn(() => domainTick((n) => n + 1)), [])
       const us = (props !== null && props !== undefined) ? props.useSessions : null
       const sidFromStore = (typeof us === 'function') ? us((st) => (st.ids && st.ids.length ? st.ids[0] : null)) : null
       React.useEffect(() => {
@@ -17280,7 +17282,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       return h('div', { className: 'kb8-page' },
         h('div', { className: 'kb6-headrow' },
           h('div', { className: 'kb6-headcol' },
-            h('div', { className: 'kb6-titlerow' }, h('h1', { className: 'kb6-title' }, kbt('kbui.projects')), kbPagePill('workspaces')),
+            h('div', { className: 'kb6-titlerow' }, h('h1', { className: 'kb6-title' }, kbDomainTitle('projects', kbt('kbui.projects'))), kbPagePill('workspaces')),
             h('p', { className: 'kb8-sub' }, kbt('kbui.project.holds'))),
           (items.length > 0
             ? h(KbToolbar, { state: tbProjectsView, onUpdate: onProjectsUpdate, searchPlaceholder: kbt('kbui.search.project'), sortOptions: [{ id: 'name', label: kbt('kbui.sort.az') }, { id: 'threads', label: kbt('kbui.sort.mostthreads') }, { id: 'deliverables', label: kbt('kbui.sort.mostdeliverables') }], total: items.length, shown: projectsVisible.length, trailing: projCreateBtn })
@@ -21021,8 +21023,9 @@ function renderFit(canvas, model, cam, opts){
       const fineTiles = present.filter((t) => !KB_ART_FAMILIES.some((f) => typed.every((a) => a.type.id !== t.id || kbArtFamille(a.name) === f.id)))
       const visSaved = (Array.isArray(tbArts[0].vis) === true) ? tbArts[0].vis : null
       const isRenderedMiniApp = (a) => (/\.miniapp\.json$/i).test(String(a.name || ''))
-      const tileDefs = KB_ART_FAMILIES.map((f) => ({ kind: 'fam', id: f.id, label: kbt('deliv.fam.' + f.id), desc: kbt('deliv.fam.' + f.id + '.desc'), count: typed.filter((a) => kbArtFamille(a.name) === f.id).length, art: kbArtDraw(KB_ART_DRAW.fam[f.id]) }))
-        .concat(KB_ART_TYPES.filter((t) => t.id !== 'other' && t.id !== 'doc').map((t) => ({ kind: 'type', id: t.id, label: t.label, desc: kbt('deliv.type.' + t.id + '.desc'), count: typed.filter((a) => a.type.id === t.id && (t.id !== 'miniapp' || isRenderedMiniApp(a) === true)).length, art: kbArtDraw(KB_ART_DRAW.type[t.id]) })))
+      // The field's own types come first (kbObTileOrder: its new-chat templates), the others keep their order; the Customize panel lists the same order.
+      const tileDefs = kbObTileSort(KB_ART_FAMILIES.map((f) => ({ kind: 'fam', id: f.id, label: kbt('deliv.fam.' + f.id), desc: kbt('deliv.fam.' + f.id + '.desc'), count: typed.filter((a) => kbArtFamille(a.name) === f.id).length, art: kbArtDraw(KB_ART_DRAW.fam[f.id]) }))
+        .concat(KB_ART_TYPES.filter((t) => t.id !== 'other' && t.id !== 'doc').map((t) => ({ kind: 'type', id: t.id, label: t.label, desc: kbt('deliv.type.' + t.id + '.desc'), count: typed.filter((a) => a.type.id === t.id && (t.id !== 'miniapp' || isRenderedMiniApp(a) === true)).length, art: kbArtDraw(KB_ART_DRAW.type[t.id]) }))), kbObTileOrder(kbDomainPack))
       // (02/10) `vis` devient une liste de types MASQUÉS : mémoriser les
       // affichés figeait la rangée à l'instant de la sauvegarde — un type
       // devenu présent plus tard (ex. miniapp) n'apparaissait jamais (constaté
@@ -21237,7 +21240,7 @@ function renderFit(canvas, model, cam, opts){
       })()
       const headRow = h('div', { className: 'kb6-headrow' },
         h('div', { className: 'kb6-headcol' },
-          h('div', { className: 'kb6-titlerow' }, h('div', { className: 'kb6-title' }, kbt('deliverables.title')), kbPagePill('creations')),
+          h('div', { className: 'kb6-titlerow' }, h('div', { className: 'kb6-title' }, kbDomainTitle('deliverables', kbt('deliverables.title'))), kbPagePill('creations')),
           h('div', { className: 'kb6-desc' }, kbt('deliverables.desc'))),
         h(KbToolbar, { state: Object.assign({}, tbArts[0], { query: q }), onUpdate: tbArts[1], searchPlaceholder: kbt('deliverables.search'), sortOptions: [{ id: 'modified', label: kbt('deliverables.sort.date') }, { id: 'name', label: kbt('deliverables.sort.name') }, { id: 'size', label: kbt('deliverables.sort.size') }], facets: { type: { options: tilesShown.map((d) => ({ id: d.id, label: d.label, count: d.count })) }, period: true }, total: hasPayload === true ? typed.length : 0, shown: hasPayload === true ? sorted.length : 0, trailing: h('button', { type: 'button', className: 'kb-createai', onClick: () => { try { kbCreateWithAI() } catch (e) { /* rien */ } } }, Icon('sparkles', 14), ' ' + kbt('deliv.createAI')) }))
       // Nothing has been read yet. The page used to draw seven invented files (a mock-up) until the host answered; it now
@@ -22964,7 +22967,7 @@ function renderFit(canvas, model, cam, opts){
         h('div', { className: 'kb6-headrow' },
           h('div', { className: 'kb6-headcol' },
             h('div', { className: 'kb6-titlerow' },
-              h('h1', { className: 'kb6-title' }, kbt('tasks.title')),
+              h('h1', { className: 'kb6-title' }, kbDomainTitle('tasks', kbt('tasks.title'))),
               h(KbHelpButton, { open: guide === true, dataKb: 'automation-help', title: kbt('tasks.help'), onClick: () => setGuide(guide === false) })),
             h('p', { className: 'kba-subtitle' }, kbt('tasks.subtitle'))),
           (list.length > 0 && section === 'yours'
@@ -25542,7 +25545,7 @@ function renderFit(canvas, model, cam, opts){
     // The page draws its own header (title, help, add): a second title above it said « Connectors » and « Connections » in a row.
     const KbConnectorsView = () => h('div', { className: 'kbg-root' },
       h(ComposioPage, { toolbar: { KbToolbar: KbToolbar, useToolbarState: useToolbarState } }))
-    const KbDocumentsView = () => h('div', { className: 'kbg-root' }, kbPageHead(kbt('kbui.documents')), h(DocumentsPage, null))
+    const KbDocumentsView = () => h('div', { className: 'kbg-root' }, kbPageHead(kbDomainTitle('documents', kbt('kbui.documents'))), h(DocumentsPage, null))
     // ── équipes embarquées : les kybers réellement installés ────────────────
     // Rien de maquette ici : la liste vient de `data.roots[].kybers`, donc de
     // ~/.dsh/kybers. Un kyber sans `ui.name` s'affiche sous son id.
@@ -25918,12 +25921,37 @@ function renderFit(canvas, model, cam, opts){
     // The wording of the Kybernos menu follows the person's field of work (docs/dev/domain-packs.md): the labels the domain pack gives and the rows
     // it hides. The pack is read at boot and each time the choice is saved (`kb-domain-reload`), from the onboarding file and the packs the host
     // serves; the menu redraws on `kb-domain-change`. Any failure leaves the menu as it is, with its own words. The overlay is computed at each
-    // draw, so a change of language needs no reload.
+    // draw, so a change of language needs no reload. The pages follow the same choice: their title is the menu's word (kbDomainTitle), the Creations
+    // tiles come in the field's order, and `window.__KB_DOMAIN__` hands the bundles that draw the Skills, Connectors and Dashboards pages what the field
+    // puts forward (they cannot see this file's state, the same way they get KbToolbar or the help card).
     let kbDomainPack = null
+    let kbDomainGoals = []
     const kbDomainLang = () => { const b = String(kbLangResolve()).split(/[-_]/)[0]; return b === 'kybernos' ? 'fr' : b }
     const kbDomainLabel = (id) => { const t = kbObMenuOverlay(kbDomainPack, kbDomainLang()).labels[id]; return typeof t === 'string' ? t : null }
     const kbDomainHome = () => (kbDomainPack !== null && Array.isArray(kbDomainPack.home) ? kbDomainPack.home : [])
     const kbDomainHides = (id) => kbObMenuOverlay(kbDomainPack, kbDomainLang()).hide.indexOf(id) >= 0
+    /** The title of a page: the word the menu gives its row in this field, else the page's own title. */
+    const kbDomainTitle = (id, dflt) => { const l = kbDomainLabel(id); return l !== null ? l : dflt }
+    const kbDomainOn = (fn) => { try { window.addEventListener('kb-domain-change', fn) } catch (e) { return () => {} } return () => { try { window.removeEventListener('kb-domain-change', fn) } catch (e) { /* gone */ } } }
+    const kbDomainFacade = {
+      v: 1,
+      /** `{ id, name, accent, icon }` of the saved field, in the language of the page; `null` when none. */
+      field: () => (kbDomainPack === null ? null : { id: kbDomainPack.id, name: kbObPackText(kbDomainLang(), kbDomainPack.name), accent: kbDomainPack.accent, icon: kbDomainPack.icon }),
+      label: kbDomainLabel,
+      skills: () => kbObFieldSkills(kbDomainPack, kbDomainGoals, kbDomainLang()),
+      connectors: () => kbObFieldConnectors(kbDomainPack, kbDomainGoals, kbDomainLang()),
+      /** Installs one of the skills this plugin ships; resolves true when it is there (or already was). */
+      installSkill: async (name) => {
+        try {
+          const r = await fetch('/kybernos/domain/skill', { method: 'POST', cache: 'no-store', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name: String(name) }) }).then((x) => x.json())
+          return r !== null && typeof r === 'object' && (r.ok === true || r.error === 'already_installed')
+        } catch (e) { return false }
+      },
+      /** The starter kit screen of the wizard (what the field suggests, ticked, installed in one go). */
+      openKit: () => { try { window.dispatchEvent(new CustomEvent('kybernos:onboarding', { detail: { action: 'kit' } })) } catch (e) { /* no events */ } },
+      subscribe: kbDomainOn,
+    }
+    try { if (typeof window !== 'undefined') window.__KB_DOMAIN__ = kbDomainFacade } catch (e) { /* outside a browser */ }
     const kbDomainLoad = async () => {
       try {
         const get = (path) => fetch(path, { cache: 'no-store', headers: { accept: 'application/json' } }).then((r) => r.json())
@@ -25932,7 +25960,8 @@ function renderFit(canvas, model, cam, opts){
         const list = both[1]
         kbDomainPack = saved !== null && typeof saved === 'object' && saved.ok === true && list !== null && typeof list === 'object' && list.ok === true
           ? kbObPackOf(list.packs, saved.domain) : null
-      } catch (e) { kbDomainPack = null }
+        kbDomainGoals = kbDomainPack !== null && Array.isArray(saved.goals) ? saved.goals.filter((g) => typeof g === 'string') : []
+      } catch (e) { kbDomainPack = null; kbDomainGoals = [] }
       try { window.dispatchEvent(new CustomEvent('kb-domain-change')) } catch (e) { /* no events */ }
     }
     // </kb-domain-menu>
@@ -35201,6 +35230,40 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       if (Array.isArray(pack.menu.hide)) out.hide = pack.menu.hide.filter((x) => typeof x === 'string')
       return out
     }
+    /** The new-chat templates a pack puts first, read as the tiles of the Creations page (the other templates have no tile). */
+    const KB_OB_HOME_TILE = { doc: 'documents', sheet: 'spreadsheets', slides: 'slides', image: 'images', video: 'av', website: 'websites', miniapp: 'miniapp' }
+    /** The Creations tiles a field wants first, in its order (none for no pack). */
+    const kbObTileOrder = (pack) => (pack !== null && pack !== undefined && Array.isArray(pack.home) ? pack.home.map((x) => KB_OB_HOME_TILE[x]).filter((x) => typeof x === 'string') : [])
+    /** `defs` (each with an `id`) with the ids of `first` put first, in that order; the others keep theirs. A new array. */
+    const kbObTileSort = (defs, first) => {
+      const rank = (d) => { const i = first.indexOf(d.id); return i < 0 ? first.length : i }
+      return defs.map((d, i) => [d, i]).sort((a, b) => rank(a[0]) - rank(b[0]) || a[1] - b[1]).map((x) => x[0])
+    }
+    /**
+     * What a field puts forward on a page: the `kind` ('skills' or 'connectors') of every goal of the pack, each once, those of the ticked goals first,
+     * each with the name of the goal it comes from (in `lang`). A skill carries the pack's one-line text and whether this plugin ships it. At most `max`.
+     */
+    const kbObFieldItems = (pack, goalIds, lang, kind, max) => {
+      if (pack === null || pack === undefined || !Array.isArray(pack.goals)) return []
+      const ticked = Array.isArray(goalIds) ? goalIds : []
+      const order = pack.goals.filter((g) => ticked.indexOf(g.id) >= 0).concat(pack.goals.filter((g) => ticked.indexOf(g.id) < 0))
+      const out = []
+      const seen = {}
+      for (const g of order) {
+        for (const x of Array.isArray(g[kind]) ? g[kind] : []) {
+          const key = kind === 'skills' ? x.name : x
+          if (seen[key] === true) continue
+          seen[key] = true
+          const base = { goal: kbObPackText(lang, g.name), ticked: ticked.indexOf(g.id) >= 0 }
+          out.push(kind === 'skills' ? Object.assign({ source: x.source, name: x.name, d: kbObSkillText(lang, x), shipped: x.source === 'kybernos' }, base) : Object.assign({ app: x }, base))
+        }
+      }
+      return out.slice(0, max)
+    }
+    /** The skills a field puts forward on the Skills page (see kbObFieldItems). */
+    const kbObFieldSkills = (pack, goalIds, lang, max) => kbObFieldItems(pack, goalIds, lang, 'skills', typeof max === 'number' ? max : 8)
+    /** The apps a field puts forward on the Connectors page (see kbObFieldItems). */
+    const kbObFieldConnectors = (pack, goalIds, lang, max) => kbObFieldItems(pack, goalIds, lang, 'connectors', typeof max === 'number' ? max : 8)
     /** Whether an automation of a pack is already among the tasks (by name, in any language the pack writes it in). */
     const kbObAutoMade = (auto, names) => {
       const have = Array.isArray(names) ? names.map(kbObFold) : []

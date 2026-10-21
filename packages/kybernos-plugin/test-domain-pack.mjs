@@ -6,6 +6,7 @@ import { mkdtempSync, writeFileSync, rmSync, readFileSync, readdirSync } from 'n
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { CATALOG } from '../kybernos-composio/catalog.js'
 import { FORMAT, ROW_IDS, HIDEABLE, ICONS, HOME_IDS, BUNDLED_SOURCE, LIMITS, validatePack, checkSet, loadPacks, domainOfProfil } from './domain-pack.mjs'
 
 const here = fileURLToPath(new URL('.', import.meta.url))
@@ -15,7 +16,7 @@ const T = (en, fr) => ({ en, fr })
 const good = () => ({
   v: 1, id: 'demo', order: 40, accent: '#1B7F76', icon: 'heart', name: T('Demo', 'Démo'), tagline: T('A demo', 'Une démo'), keywords: ['demo', 'test case'], home: ['doc', 'sheet'], legacyJobs: ['old'],
   menu: { labels: { dashboards: T('Numbers', 'Chiffres') }, hide: ['documents'] },
-  goals: [{ id: 'one', name: T('One', 'Un'), title: T('Do one', 'Faire un'), desc: T('One thing', 'Une chose'), skills: [{ source: 'anthropics/skills', name: 'pdf', d: T('Read PDFs', 'Lit des PDF') }], teams: ['studencik'], automations: [{ id: 'weekly', name: T('Weekly', 'Hebdo'), prompt: T('Every Friday: summarise the week.\nOne page.', 'Chaque vendredi : résume la semaine.'), cron: '0 17 * * 5' }], soon: [T('Later', 'Plus tard')], starter: T('Start', 'Commence') }]
+  goals: [{ id: 'one', name: T('One', 'Un'), title: T('Do one', 'Faire un'), desc: T('One thing', 'Une chose'), skills: [{ source: 'anthropics/skills', name: 'pdf', d: T('Read PDFs', 'Lit des PDF') }], teams: ['studencik'], connectors: ['gmail', 'googlecalendar'], automations: [{ id: 'weekly', name: T('Weekly', 'Hebdo'), prompt: T('Every Friday: summarise the week.\nOne page.', 'Chaque vendredi : résume la semaine.'), cron: '0 17 * * 5' }], soon: [T('Later', 'Plus tard')], starter: T('Start', 'Commence') }]
 })
 const bad = (mutate, fileId = 'demo') => { const p = good(); mutate(p); return validatePack(p, fileId) }
 
@@ -252,6 +253,18 @@ ok('every skill is one the starter kits verified', () => {
 ok('nothing the old kits offered is lost', () => {
   const used = new Set(shipped.packs.flatMap((p) => p.goals.flatMap((g) => g.skills.filter((s) => s.source !== BUNDLED_SOURCE).map((s) => s.source + ' ' + s.name))))
   assert.deepEqual(VERIFIED.filter((x) => !used.has(x)), [])
+})
+ok('a goal names at most four apps, each a plain slug, each once; anything else is refused', () => {
+  assert.equal(LIMITS.connectors, 4)
+  assert.deepEqual(bad((p) => { p.goals[0].connectors = ['gmail', 'gmail', 'notion'] }).pack.goals[0].connectors, ['gmail', 'notion'])
+  assert.deepEqual(bad((p) => { delete p.goals[0].connectors }).pack.goals[0].connectors, [])
+  for (const v of [['Gmail'], ['g'], ['a b'], [1], ['https://x.test'], ['a', 'b', 'c', 'd', 'e'], 'gmail']) assert.equal(bad((p) => { p.goals[0].connectors = v }).ok, false, JSON.stringify(v))
+})
+ok('every app a pack puts forward is in the Connectors catalogue, and every field has some', () => {
+  const slugs = new Set(CATALOG.map((a) => a.s))
+  const used = shipped.packs.flatMap((p) => p.goals.flatMap((g) => g.connectors))
+  assert.deepEqual([...new Set(used)].filter((s) => !slugs.has(s)), [])
+  assert.deepEqual(shipped.packs.filter((p) => p.goals.every((g) => g.connectors.length === 0)).map((p) => p.id), [])
 })
 ok('every team exists in the marketplace of the bundle', () => {
   assert.deepEqual(marketIds, ['inbound-closer', 'research-desk', 'studencik'])

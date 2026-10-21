@@ -104,6 +104,10 @@
       "teams": [
         "studencik"
       ],
+      "connectors": [
+        "googlecalendar",
+        "notion"
+      ],
       "automations": [
         {
           "id": "revision-plan",
@@ -166,6 +170,11 @@
       "teams": [
         "research-desk"
       ],
+      "connectors": [
+        "googledrive",
+        "googledocs",
+        "notion"
+      ],
       "starter": {
         "en": "Summarise this chapter in ten points",
         "fr": "Résume ce chapitre en dix points"
@@ -194,6 +203,10 @@
             "fr": "Rédige et met en forme tes devoirs"
           }
         }
+      ],
+      "connectors": [
+        "googledocs",
+        "googledrive"
       ],
       "automations": [
         {
@@ -254,6 +267,10 @@
           }
         }
       ],
+      "connectors": [
+        "googledrive",
+        "canva"
+      ],
       "starter": {
         "en": "Prepare a quiz on chapter 4",
         "fr": "Prépare un quiz sur le chapitre 4"
@@ -278,10 +295,14 @@
           "source": "anthropics/skills",
           "name": "xlsx",
           "d": {
-            "en": "Track money and pipeline",
-            "fr": "Suit l’argent et le pipeline"
+            "en": "Track grades and attendance in a sheet",
+            "fr": "Suit notes et présences dans un tableur"
           }
         }
+      ],
+      "connectors": [
+        "googlesheets",
+        "gmail"
       ],
       "automations": [
         {

@@ -79,8 +79,8 @@ const backToTheStartingPoint = async () => {
 // The sandbox is this check's own, so they are removed before the run and after it.
 const forgetKitTeams = () => { for (const id of ['studencik', 'research-desk']) { try { rmSync(join(dshHome, 'kybers', id), { recursive: true, force: true }) } catch (e) { /* none */ } } try { rmSync(join(dshHome, 'kybers', '.kyber-ui.json'), { force: true }) } catch (e) { /* none */ }
   // what the kit also made: the skill the plugin ships (and its mark in the seeding record) and the automation, which is a task of the sandbox's own file
-  try { rmSync(join(dshHome, 'skills', 'quiz-builder'), { recursive: true, force: true }) } catch (e) { /* none */ }
-  try { const f = join(dshHome, 'kybernos/seeded-skills.json'); if (existsSync(f)) { const j = JSON.parse(readFileSync(f, 'utf8')); if (j && j.skills) { delete j.skills['quiz-builder']; writeFileSync(f, JSON.stringify(j)) } } } catch (e) { /* none */ }
+  for (const name of ['quiz-builder', 'deadline-check']) try { rmSync(join(dshHome, 'skills', name), { recursive: true, force: true }) } catch (e) { /* none */ }
+  try { const f = join(dshHome, 'kybernos/seeded-skills.json'); if (existsSync(f)) { const j = JSON.parse(readFileSync(f, 'utf8')); if (j && j.skills) { delete j.skills['deadline-check']; delete j.skills['quiz-builder']; writeFileSync(f, JSON.stringify(j)) } } } catch (e) { /* none */ }
   try { const f = join(dshHome, 'kybernos/tasks.json'); if (existsSync(f)) { const t = JSON.parse(readFileSync(f, 'utf8')); if (Array.isArray(t)) writeFileSync(f, JSON.stringify(t.filter((x) => !(x && ['Refresh my revision plan', 'Mettre à jour mon plan de révision'].includes(x.name))), null, 2) + '\n') } } catch (e) { /* none */ }
 }
 forgetKitTeams()
@@ -568,6 +568,72 @@ try {
   writeFileSync(join(dshHome, 'kybernos/onboarding.json'), JSON.stringify({ ...onboardingNow(), profil: 'soft', goals: undefined }))
   const legacy = await q(`fetch('/kybernos/onboarding', { cache: 'no-store' }).then((r) => r.json()).then((j) => ({ completed: j.completed, profil: j.profil, domain: j.domain, goals: j.goals }))`)
   check('a profession of the old list reads as its field, still done, no goals', legacy !== undefined && legacy.completed === true && legacy.profil === 'soft' && legacy.domain === 'dev' && JSON.stringify(legacy.goals) === '[]', JSON.stringify(legacy))
+  await backToTheStartingPoint()
+
+  /* ── 5f. the field on the pages: titles, creation tiles, the Skills and Connectors sections ── */
+  // The saved field is Law with two goals ticked. Every page must say the word the menu gives its row, the Creations tiles come in the field's order,
+  // Skills opens on the field's skills (the ticked goals' first) and Connectors on its apps.
+  const reloadField = async () => { await q(`window.dispatchEvent(new CustomEvent('kb-domain-reload'))`); await sleep(1500) }
+  const openView = async (arg, ms = 3500) => { await q(`window.__KB_OPEN__(${JSON.stringify(arg)})`); await sleep(ms) }
+  const titleNow = () => q(`(document.querySelector('.kb6-title') || {}).textContent || null`)
+  const menuLabelOf = (row) => q(`(() => { const rows = [...document.querySelectorAll('.kb4-menu .kb4-item')]; const e = rows[${row}]; return e ? e.querySelector('.kb4-lab').textContent.trim() : null })()`)
+  check('Law saved with two goals', (await postDomain({ action: 'domain', profil: 'droit', goals: ['contracts', 'deadlines'] })) === 200)
+  await reloadField()
+  const pageRows = [['artifacts', { view: 'artifacts' }, 'Deeds and notes'], ['tasks', { view: 'tasks' }, 'Deadlines'], ['dashboards', { view: 'dashboards' }, 'My firm'], ['agent teams', { nav: 'kybers', view: 'gallery', detailPath: null, detailRoot: null }, 'Legal team'], ['workspaces', { view: 'projects' }, 'Workspaces'], ['skills', { view: 'skills' }, 'Skills'], ['connectors', { view: 'connectors' }, 'Connectors']]
+  for (const [name, arg, want] of pageRows) {
+    await openView(arg)
+    const got = await titleNow()
+    check('the ' + name + ' page is titled with the menu\'s word: ' + want, got === want && (await q(`[...document.querySelectorAll('.kb4-menu .kb4-lab')].some((e) => e.textContent.trim() === ${JSON.stringify(want)})`)) === true, JSON.stringify(got))
+  }
+  await openView({ view: 'artifacts' })
+  const tileNames = await q(`[...document.querySelectorAll('[data-kb="type-tiles"] .kb-type-lab')].map((e) => e.textContent.trim())`)
+  check('the Creations tiles come in the field\'s order: All, Documents, Spreadsheets, then the others as before', JSON.stringify(tileNames) === JSON.stringify(['All', 'Documents', 'Spreadsheets', 'Slides', 'Websites', 'Images', 'Audio & Video']), JSON.stringify(tileNames))
+  await page.shot(join(shotDir, 'pages-creations-law.png'))
+  await openView({ view: 'skills' })
+  const fieldHead = await q(`(document.querySelector('[data-kb="field-section"] .kbsf-fh') || {}).textContent || null`)
+  const fieldNames = await q(`[...document.querySelectorAll('[data-kb="field-skill"]')].map((e) => e.getAttribute('data-skill'))`)
+  const fieldTags = await q(`[...document.querySelectorAll('[data-kb="field-skill"] .kbsf-ftag')].map((e) => e.textContent.trim() + (e.classList.contains('on') ? '*' : ''))`)
+  check('Skills opens on « For your field · Law »', fieldHead === 'For your field · Law', JSON.stringify(fieldHead))
+  check('with the skills of the ticked goals first (marked), then the others of the field, each once', JSON.stringify(fieldNames) === JSON.stringify(['review-contract', 'compliance-check', 'deadline-check', 'case-law-watch', 'xlsx', 'docx']) && JSON.stringify(fieldTags) === JSON.stringify(['Contracts*', 'Contracts*', 'Deadlines*', 'Watch', 'Time', 'Drafting']), JSON.stringify([fieldNames, fieldTags]))
+  check('the curated skills carry the page\'s own title, not the folder name', (await q(`[...document.querySelectorAll('[data-skill="docx"] .kbsf-ftitle, [data-skill="xlsx"] .kbsf-ftitle')].map((e) => e.textContent.trim()).join('|')`)) !== 'Xlsx|Docx')
+  check('a skill from GitHub asks the usual confirmation before anything is installed', (await q(`(() => { const b = document.querySelector('[data-skill="docx"] [data-kb="field-install"]'); if (!b) return false; b.click(); return true })()`)) === true && (await waitFor(page, `!!document.querySelector('[data-kb="install-confirm"]') && /anthropics\\/skills/.test(document.querySelector('[data-kb="install-confirm"]').innerText)`, 6000)) === true)
+  await q(`(() => { const b = document.querySelector('[data-kb="install-confirm-no"]'); if (b) b.click() })()`)
+  await sleep(500)
+  await page.shot(join(shotDir, 'pages-skills-law.png'))
+  check('a skill that ships with Kybernos installs in one click, with no download', (await q(`(() => { const b = document.querySelector('[data-skill="deadline-check"] [data-kb="field-install"]'); if (!b) return false; b.click(); return true })()`)) === true &&
+    (await waitFor(page, `!!document.querySelector('[data-skill="deadline-check"] [data-kb="field-use"]')`, 15000)) === true && existsSync(join(dshHome, 'skills', 'deadline-check', 'SKILL.md')))
+  try { rmSync(join(dshHome, 'skills', 'deadline-check'), { recursive: true, force: true }) } catch (e) { /* none */ }
+  try { const f = join(dshHome, 'kybernos/seeded-skills.json'); if (existsSync(f)) { const j = JSON.parse(readFileSync(f, 'utf8')); if (j && j.skills) { delete j.skills['deadline-check']; writeFileSync(f, JSON.stringify(j, null, 2)) } } } catch (e) { /* none */ }
+  await openView({ view: 'connectors' })
+  check('Connectors, on Yours with nothing connected, names the field\'s apps and the way to them', /For your field · Law/.test(String(await q(`(document.querySelector('[data-kb="yours-field"]') || {}).innerText || ''`))) && (await q(`!!document.querySelector('[data-kb="yours-field-go"]')`)) === true)
+  await q(`(() => { const b = [...document.querySelectorAll('button')].find((x) => /^Discover/.test(x.textContent.trim())); if (b) b.click() })()`)
+  await waitFor(page, `!!document.querySelector('[data-kb="discover-field"]')`, 15000)
+  const apps = await q(`[...document.querySelectorAll('[data-kb="discover-field-grid"] .kb7-name')].map((e) => e.textContent.trim())`)
+  const appTags = await q(`[...document.querySelectorAll('[data-kb="field-goal"]')].map((e) => e.textContent.trim())`)
+  check('Discover puts the field\'s apps first, the ticked goals\' apps leading, each tagged with its goal', JSON.stringify(apps.slice(0, 6)) === JSON.stringify(['DocuSign', 'Google Drive', 'Dropbox', 'Google Calendar', 'Outlook', 'Gmail']) && JSON.stringify(appTags.slice(0, 5)) === JSON.stringify(['Contracts', 'Contracts', 'Contracts', 'Deadlines', 'Deadlines']), JSON.stringify([apps, appTags]))
+  check('an app shown there is not shown again below', (await q(`(() => { const top = new Set([...document.querySelectorAll('[data-kb="discover-field-grid"] .kb7-name')].map((e) => e.textContent)); const all = [...document.querySelectorAll('.kb7-grid .kb7-name')].map((e) => e.textContent); return all.length - new Set(all).size === 0 && top.size > 0 })()`)) === true)
+  await page.shot(join(shotDir, 'pages-connectors-law.png'))
+  // French: the page follows the menu there too
+  await q(`localStorage.setItem('kybernos.theme.lang', 'kybernos')`)
+  await page.send('Page.reload', { ignoreCache: true })
+  await waitFor(page, `document.body && document.body.innerText.length > 40`, 30000)
+  await sleep(3000)
+  for (const [name, arg, want] of [['artifacts', { view: 'artifacts' }, 'Actes et notes'], ['tasks', { view: 'tasks' }, 'Échéances'], ['dashboards', { view: 'dashboards' }, 'Mon cabinet'], ['agent teams', { nav: 'kybers', view: 'gallery', detailPath: null, detailRoot: null }, 'Équipe juridique']]) {
+    await openView(arg)
+    check('in French the ' + name + ' page is titled ' + want, (await titleNow()) === want)
+  }
+  await openView({ view: 'skills' })
+  check('in French the field section reads in French', (await q(`(document.querySelector('[data-kb="field-section"] .kbsf-fh') || {}).textContent || null`)) === 'Pour ton domaine · Droit')
+  await q(`localStorage.removeItem('kybernos.theme.lang')`)
+  // No field known (a profession no pack claims): the pages are as they were
+  writeFileSync(join(dshHome, 'kybernos/onboarding.json'), JSON.stringify({ ...onboardingNow(), profil: 'unknown-job', goals: [] }))
+  await page.send('Page.reload', { ignoreCache: true })
+  await waitFor(page, `document.body && document.body.innerText.length > 40`, 30000)
+  await sleep(3000)
+  await openView({ view: 'artifacts' })
+  const plain = await titleNow()
+  await openView({ view: 'skills' })
+  check('with no field the pages keep their own words and the Skills page has no field section', plain === 'Creations' && (await q(`!document.querySelector('[data-kb="field-section"]')`)) === true && (await titleNow()) === 'Skills', JSON.stringify(plain))
   await backToTheStartingPoint()
 
   /* ── 6. the moment of need: a chat whose model has no key ──────────────────────────────────────────── */

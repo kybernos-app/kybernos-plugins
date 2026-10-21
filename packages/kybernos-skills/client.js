@@ -249,6 +249,12 @@ window.__ModuleLoader__.load({
         'pick.none': { fr: 'Aucun skill ne correspond', en: 'No skill matches' },
         'pick.nonehint': { fr: 'Essaie une autre catégorie ou efface la recherche.', en: 'Try another category or clear the search.' },
         'pick.asof': { fr: 'Choix et verdicts d’audit relevés le {d}.', en: 'Picks and audit verdicts read on {d}.' },
+        'fld.title': { fr: 'Pour ton domaine · {field}', en: 'For your field · {field}' },
+        'fld.sub': { fr: 'Choisis à l’installation : chaque skill s’installe en un clic.', en: 'Picked at setup: each skill installs in one click.' },
+        'fld.kit': { fr: 'Starter kit', en: 'Starter kit' },
+        'fld.kit.tip': { fr: 'Rouvrir le starter kit : tout ce que propose ton domaine, en une fois', en: 'Reopen the starter kit: everything your field suggests, in one go' },
+        'fld.shipped': { fr: 'inclus avec Kybernos', en: 'ships with Kybernos' },
+        'fld.installing': { fr: 'Installation…', en: 'Installing…' },
         'pick.crumb': { fr: 'Choix de Kybernos', en: 'Featured' },
         'pick.back': { fr: 'Retour à Featured', en: 'Back to Featured' },
         'pick.copyPrompt': { fr: 'Copier avec /nom', en: 'Copy with /name' },
@@ -1099,6 +1105,24 @@ body:not([data-ds-dark-theme]) .kbs-root .kb8-pill.warn{color:color-mix(in srgb,
 .kbs-root .kbsf-seg .sw.tint{background:linear-gradient(135deg,#f4e6d6 0%,#c4d8f5 100%)}
 .kbs-root .kbsf-seg .sw.plain{background:var(--dsw-alias-bg-layer-2);border:1px solid var(--dsw-alias-border-l2)}
 .kbs-root .kbsf-foot{margin-top:18px;font-size:12px;color:var(--dsw-alias-label-secondary)}
+/* « For your field »: the field's colour (--kbsf-fld, set from the pack) is the rail and the dot; everything else is the page's own surfaces and text. */
+.kbs-root .kbsf-field{margin:0 0 20px;padding:14px 16px 16px;border:1px solid var(--dsw-alias-border-l1);border-inline-start:3px solid var(--kbsf-fld);border-radius:14px;background:var(--dsw-alias-bg-layer-1)}
+.kbs-root .kbsf-fhead{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.kbs-root .kbsf-fdot{width:10px;height:10px;border-radius:50%;background:var(--kbsf-fld);flex:none}
+.kbs-root .kbsf-fh{font-size:14px;font-weight:600;color:var(--dsw-alias-label-primary)}
+.kbs-root .kbsf-fsub{font-size:12px;color:var(--dsw-alias-label-secondary)}
+.kbs-root .kbsf-fhead .grow{flex:1}
+.kbs-root .kbsf-fgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:10px}
+.kbs-root .kbsf-frow{display:flex;align-items:center;gap:12px;min-width:0;padding:10px 12px;border:1px solid var(--dsw-alias-border-l1);border-radius:12px;background:var(--dsw-alias-bg-layer-2)}
+.kbs-root .kbsf-fmain{flex:1;min-width:0}
+.kbs-root .kbsf-ftop{display:flex;align-items:center;gap:8px;min-width:0}
+.kbs-root .kbsf-ftitle{font-size:13.5px;font-weight:600;color:var(--dsw-alias-label-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kbs-root .kbsf-ftag{flex:none;font-size:11px;line-height:1;padding:4px 8px;border-radius:999px;border:1px solid var(--dsw-alias-border-l1);color:var(--dsw-alias-label-secondary)}
+.kbs-root .kbsf-ftag.on{border-color:var(--kbsf-fld);color:var(--dsw-alias-label-primary)}
+.kbs-root .kbsf-fout{margin:3px 0 0;font-size:12.5px;line-height:1.4;color:var(--dsw-alias-label-secondary);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.kbs-root .kbsf-facts{display:flex;align-items:center;gap:8px;flex:none}
+.kbs-root .kbsf-frow .kb8-primary,.kbs-root .kbsf-frow .kb8-ghost{height:32px;padding:0 12px;font-size:13px;border-radius:10px;gap:6px}
+@media (max-width:640px){.kbs-root .kbsf-frow{flex-wrap:wrap}.kbs-root .kbsf-facts{margin-inline-start:auto}}
 /* — Settings page « Skills » (catalogue): its own scope (.kbss-page), not .kbs-root, so nothing
    here can reach the Skills panel; the shared input/link/note vocabulary is re-stated here because
    the kbs-* rules above are scoped to .kbs-root — */
@@ -1252,6 +1276,16 @@ body:not([data-ds-dark-theme]) .kbs-root .kb8-pill.warn{color:color-mix(in srgb,
         // The picks Kybernos proposes (GET /kybernos-skills/picks): `absent` = a host that does not have the route, or an empty file.
         const [picks, setPicks] = React.useState({ phase: 'loading', items: [], asOf: '' })
         const [pcat, setPcat] = React.useState('all')                            // all | one of the picks' categories
+        // The field of work the person chose (`window.__KB_DOMAIN__`, published by kybernos-plugin): its skills open the Featured tab and its word
+        // for this page is the title. Read at each draw; a change of the saved field redraws the page. Absent seam or no field: nothing changes.
+        const setDomTick = React.useState(0)[1]
+        React.useEffect(() => {
+          let stop = null
+          try { if (window.__KB_DOMAIN__ && typeof window.__KB_DOMAIN__.subscribe === 'function') stop = window.__KB_DOMAIN__.subscribe(() => setDomTick((n) => n + 1)) } catch (e) { stop = null }
+          return () => { try { if (typeof stop === 'function') stop() } catch (e2) { /* gone */ } }
+        }, [])
+        const [shipBusy, setShipBusy] = React.useState({})                        // a shipped skill being installed: name → true
+        const [shipDone, setShipDone] = React.useState({})                        // one the route has just installed: shown as installed before the registry has re-read the folder
         // The cover background (the category tint, or the plain card surface), kept in this browser.
         const [coverBg, setCoverBgState] = React.useState(() => {
           try { return window.localStorage.getItem('kybernos.skills.coverbg') === 'plain' ? 'plain' : 'tint' } catch (e) { return 'tint' }
@@ -2134,11 +2168,64 @@ body:not([data-ds-dark-theme]) .kbs-root .kb8-pill.warn{color:color-mix(in srgb,
         const empty = (title, hint) => h('div', { className: 'kb-empty' }, icon('search', 24),
           h('span', { className: 'kb8-name' }, title), h('span', { className: 'kb8-parent' }, hint))
 
+        // ── Featured tab, « For your field »: the skills the saved field puts forward (its goals' skills, those the person ticked first). Same card
+        // language as the rest of the page, no cover and no audit (those belong to the curated picks below): what the skill does, the goal it serves,
+        // and the one gesture. A skill from GitHub goes through the same confirmation as any install; one that ships with Kybernos is a plain copy.
+        const domainSeam = () => { try { const d = window.__KB_DOMAIN__; return d !== null && d !== undefined && typeof d.field === 'function' ? d : null } catch (e) { return null } }
+        const pageTitle = () => { try { const d = domainSeam(); const l = d !== null ? d.label('skills') : null; return typeof l === 'string' && l.trim() !== '' ? l : 'Skills' } catch (e) { return 'Skills' } }
+        const humanName = (n) => { const w = String(n).replace(/-/g, ' '); return w.charAt(0).toUpperCase() + w.slice(1) }
+        const installShipped = (name) => {
+          const d = domainSeam()
+          if (d === null || typeof d.installSkill !== 'function') return
+          setShipBusy((m) => ({ ...m, [name]: true }))
+          Promise.resolve(d.installSkill(name)).then((ok) => {
+            if (alive.current !== true) return
+            setShipBusy((m) => { const n = { ...m }; delete n[name]; return n })
+            if (ok === true) { setShipDone((m) => ({ ...m, [name]: true })); loadCatalogue(); setNotice({ kind: 'ok', text: t('notice.installed', { name }) }) } else setNotice({ kind: 'err', text: t('err.unavail', { r: 'install' }) })
+          })
+        }
+        const fieldRow = (sk) => {
+          const x = { id: sk.source + '/' + sk.name, source: sk.source, name: sk.name, installed: false, installable: true, official: false, sourceType: 'github', url: '' }
+          const isIn = skills.some((y) => y.name === sk.name) || shipDone[sk.name] === true
+          const busyNow = shipBusy[sk.name] === true
+          const curated = picks.items.find((it) => it.source === sk.source && it.id === sk.name)
+          return h('div', { key: 'fld:' + sk.name, className: 'kbsf-frow' + (isIn ? ' has' : ''), 'data-kb': 'field-skill', 'data-skill': sk.name },
+            tile(sk.name, 'pkg'),
+            h('div', { className: 'kbsf-fmain' },
+              h('div', { className: 'kbsf-ftop' }, h('span', { className: 'kbsf-ftitle' }, curated !== undefined ? pickText(curated.title) : humanName(sk.name)),
+                h('span', { className: 'kbsf-ftag' + (sk.ticked ? ' on' : ''), title: sk.shipped ? t('fld.shipped') : sk.source }, sk.goal)),
+              h('p', { className: 'kbsf-fout' }, sk.d)),
+            isIn
+              ? h('span', { className: 'kbsf-facts' },
+                h('span', { className: 'kbsf-pill ok' }, icon('check', 12), t('pick.installed')),
+                h('button', { type: 'button', className: 'kb8-ghost', 'data-kb': 'field-use', onClick: () => copy('/' + sk.name) }, icon('code', 14), h('span', null, t('pick.use'))))
+              : h('span', { className: 'kbsf-facts' },
+                h('button', {
+                  type: 'button', className: 'kb8-primary', 'data-kb': 'field-install', disabled: busyNow,
+                  onClick: () => { if (sk.shipped === true) installShipped(sk.name); else { setAskInstall(x); setErrors((m) => { const n = { ...m }; delete n.__modal; return n }) } }
+                }, icon('dl', 14), h('span', null, busyNow ? t('fld.installing') : t('btn.install')))))
+        }
+        const renderFieldSection = () => {
+          const d = domainSeam()
+          if (d === null || pcat !== 'all' || q.featured.trim() !== '') return null
+          let f = null
+          let list = []
+          try { f = d.field(); list = f === null ? [] : d.skills() } catch (e) { return null }
+          if (f === null || list.length === 0) return null
+          return h('section', { className: 'kbsf-field', 'data-kb': 'field-section', style: { '--kbsf-fld': f.accent } },
+            h('div', { className: 'kbsf-fhead' },
+              h('span', { className: 'kbsf-fdot', 'aria-hidden': 'true' }),
+              h('div', { className: 'kbsf-ftx' }, h('div', { className: 'kbsf-fh' }, t('fld.title', { field: f.name })), h('div', { className: 'kbsf-fsub' }, t('fld.sub'))),
+              h('span', { className: 'grow' }),
+              typeof d.openKit === 'function' ? h('button', { type: 'button', className: 'kbs-link', 'data-kb': 'field-kit', title: t('fld.kit.tip'), onClick: () => { try { d.openKit() } catch (e) { /* no wizard */ } } }, t('fld.kit')) : null),
+            h('div', { className: 'kbsf-fgrid' }, list.map(fieldRow)))
+        }
         const renderFeatured = () => {
           if (picks.phase === 'loading') return skeletonOf('cards', 6) || h('div', { className: 'kb-empty' }, h('span', { className: 'kb8-mono' }, t('pick.loading')))
           const counts = pickCounts()
           const list = pickList()
           return h('div', null,
+            renderFieldSection(),
             h('div', { className: 'kbsf-chips' },
               chip(t('pick.all') + ' ' + picks.items.length, pcat === 'all', () => setPcat('all'), 'all'),
               PICK_CATS.filter((c) => counts[c] > 0).map((c) => chip(t('pcat.' + c) + ' ' + counts[c], pcat === c, () => setPcat(c), c)),
@@ -2567,7 +2654,7 @@ body:not([data-ds-dark-theme]) .kbs-root .kb8-pill.warn{color:color-mix(in srgb,
           KbBar !== null
             ? h('div', { className: 'kb6-headrow' },
               h('div', { className: 'kb6-headcol' },
-                h('div', { className: 'kb6-titlerow' }, h('h1', { className: 'kb6-title' }, 'Skills'), helpBtn),
+                h('div', { className: 'kb6-titlerow' }, h('h1', { className: 'kb6-title' }, pageTitle()), helpBtn),
                 h('p', { className: 'kb8-sub', title: capTxt }, capTxt)),
               barShown === true
                 ? h(KbBar, {
@@ -2588,7 +2675,7 @@ body:not([data-ds-dark-theme]) .kbs-root .kb8-pill.warn{color:color-mix(in srgb,
             : h('div', { className: 'kbs-top' },
               h('div', { className: 'kbs-top-txt' },
                 h('div', { className: 'kbhp-row' }, helpBtn),
-                h('h2', { className: 'kbs-h1' }, 'Skills'),
+                h('h2', { className: 'kbs-h1' }, pageTitle()),
                 h('p', { className: 'kbs-sub', title: capTxt }, capTxt)),
               mode !== 'team' ? renderAdd() : null),
           introNode,
