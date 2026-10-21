@@ -1,0 +1,59 @@
+{
+  "contract": 1,
+  "id": "kybernos/call",
+  "kind": "code",
+  "version": "0.1.0",
+  "name": {
+    "en": "Calls",
+    "fr": "Appels"
+  },
+  "description": {
+    "en": "Talk to your assistant or a team member from any session: it answers as in the chat, in your language, in its own voice.",
+    "fr": "Parle à ton assistant ou à un membre de l’équipe, depuis n’importe quelle session : il répond comme dans le chat, dans ta langue, avec sa voix."
+  },
+  "icon": "phone",
+  "family": "base",
+  "author": {
+    "id": "kybernos",
+    "name": "Kybernos"
+  },
+  "license": "Apache-2.0",
+  "pricing": "free",
+  "package": "@local/kybernos-call",
+  "entry": {
+    "host": "index.js",
+    "client": "client.js"
+  },
+  "requires": {
+    "kybernos": ">=0.1.0"
+  },
+  "permissions": [
+    "ui.slot:conversation.session.header.actions",
+    "ui.slot:settings.section",
+    "ui.slot:shell.overlay",
+    "host.routes:/kybernos-call:write",
+    "fs.write:dsh-home",
+    "net:*.livekit.cloud",
+    "net:api.elevenlabs.io",
+    "net:api.groq.com",
+    "net:api.liveavatar.com",
+    "net:files.pythonhosted.org",
+    "net:github.com",
+    "net:localhost",
+    "net:pypi.org",
+    "exec",
+    "secrets.own",
+    "secrets.read",
+    "agent.prompt",
+    "sessions.read"
+  ],
+  "claims": {
+    "routePrefixes": [
+      "/kybernos-call"
+    ]
+  },
+  "help": "help.json",
+  "suite": {
+    "default": "on"
+  }
+}

@@ -1,6 +1,6 @@
 # The Kybernos plugin contract (free and paid): draft v0
 
-Status: **specification only, 2026-10-21. Nothing here is built and nothing reads it yet.** The six decisions of section 16 and the registry bundle of
+Status: **specification, 2026-10-21. Phase 1 (the manifest on the 42 modules and its validator) is built, see section 14; everything else is still only written down.** The six decisions of section 16 and the registry bundle of
 section 6.5 were **taken on 2026-10-21: the owner accepted every recommendation**. Section 2 lists where this draft disagrees with the first proposal.
 
 The idea is WordPress's: a plugin is a folder with a header (who, which version, which platform versions, which licence, where updates come
@@ -78,7 +78,7 @@ a manifest with a `contract` the host does not know is listed as "needs a newer 
 | `id` | yes | `author/name`, both `[a-z][a-z0-9-]`, 2 to 32 and 2 to 40 characters. The author part is the **namespace** (section 9.4). `kybernos`, `dsh`, `local` are reserved |
 | `kind` | yes | `code` or `data` |
 | `version` | yes | semver. For a code plugin it equals `package.json`'s |
-| `name`, `description` | yes | texts `{ "en": …, "fr": … }`: `en` required, `fr` required when the author is `kybernos`, other languages fall back to `en`. `name` ≤ 40 characters, `description` ≤ 160 (today's one-line "promise"). Plain text, no `<` or `>` |
+| `name`, `description` | yes | texts `{ "en": …, "fr": … }`: `en` required, `fr` required when the author is `kybernos`, other languages fall back to `en`. `name` ≤ 40 characters, `description` ≤ 240 (today's one-line "promise"; the longest in the Suite is 178). Plain text, no `<` or `>` |
 | `details` | no | the long description, ≤ 2000 characters |
 | `icon` | no | a glyph id the Suite already draws (`GLYPHES`), or a relative `.png`/`.webp` |
 | `family` | no | one of the Suite families (`base models teams create data connect cloud`); the host owns the list |
@@ -93,7 +93,7 @@ a manifest with a `contract` the host does not know is listed as "needs a newer 
 | `provides` | no | the points this plugin exposes: `[{ name, version "1.0", kind, class?, summary?, schema? }]` (section 6) |
 | `extends` | no (data: yes) | the points it contributes to: `[{ point "owner/name#point", range, dir? }]`; `dir` is the folder whose files are the contributions (required for a data plugin) |
 | `permissions` | code: declared | words of the vocabulary (section 7). A data plugin may declare only `net:<host>` and `secrets.own` |
-| `package`, `entry` | code | the DSH package name (`@local/<dir>`) and `{ host?, client? }` |
+| `package`, `entry` | code | the DSH package name (`@local/<dir>`) and `{ host?, client?, extra? }`: the `.` and `./client` exports of `package.json`, and `extra` for a bundle that exposes named modules instead (`dsh-subagent-maison`: `./opencode`, `./gemini`…) |
 | `claims` | code | the global names it takes: `cssPrefix` (3 to 5 letters), `routePrefixes`, `slotIds`. Collisions are the failure that `scripts/audit-css-prefixes.mjs` and the "slot ids and route paths are global" rule of the new-plugin skill already guard |
 | `help` | no | path of the `help.json` card (required for a plugin with a page) |
 | `update` | no | `{ catalogue: <https URL>, auth: none \| key \| account }`: where a newer version is announced (WordPress's `Update URI`) |
@@ -113,7 +113,7 @@ A free data plugin (a field of work for the domain-pack point, the smallest usef
   "description": { "en": "A domain pack for veterinary clinics: goals, skills, reminders." },
   "author": { "id": "acme", "name": "Acme Software" },
   "license": "CC-BY-4.0", "pricing": "free",
-  "requires": { "kybernos": "^0.1" },
+  "requires": { "kybernos": "^0.1", "plugins": { "kybernos/core": "^1.0" } },
   "extends": [{ "point": "kybernos/core#domain-pack", "range": "^1.0", "dir": "domains" }]
 }
 ```
@@ -135,7 +135,7 @@ A platform (the WooCommerce side), abridged:
   ],
   "permissions": ["ui.slot:sidebar.right.pane.tab", "host.routes:/kybernos-dashboards:write", "fs.write:dsh-home"],
   "claims": { "routePrefixes": ["/kybernos-dashboards"] },
-  "suite": { "default": "on", "order": 33 }
+  "help": "help.json", "suite": { "default": "on" }
 }
 ```
 
@@ -196,8 +196,8 @@ still accepted by an older panel. Packages without a `dsh` block (`messaging`, `
 2. A code plugin's `version` and `package` equal its `package.json`'s `version` and `name`; a first-party `id` follows the table above.
 3. `provides[].name` unique; a data point has a `schema` (the subset in section 6.3) or names a built-in validator; its `class` is set. A code point has no `class`.
 4. An `extends` names a point whose owner is listed in `requires.plugins`: you cannot extend what you do not depend on. No cycle; depth at most 4.
-5. `claims` are unique across the installed set; every `host.routes:/prefix` permission is inside `claims.routePrefixes`.
-6. `commerce.key.hosts` are all in the `net:` permissions; `commerce.key.format` is a regex checked for linear time (no nested quantifiers: the lesson of the Team skills checks).
+5. `claims` are unique across the installed set (a route prefix has one or two segments); every `host.routes:/prefix` permission is inside `claims.routePrefixes`.
+6. `commerce.key.hosts` are all in the `net:` permissions, and a code plugin that stores a key declares `secrets.own`; `commerce.key.format` is a regex checked for linear time (no nested quantifiers: the lesson of the Team skills checks).
 7. `worksWithout` is non-empty and different from `unlocks`; a reviewer checks it is true.
 8. A first-party `requires.dsh` lies **inside** the zone of `dsh-compat.json` (a wider one would claim what nobody tested); `tested.dsh` lies inside the zone.
 9. `engine.patch` only for `author.id` = `kybernos` and only for what `scripts/patches.json` lists (AGENTS.md rule 1).
@@ -280,8 +280,9 @@ Themes, languages and local models already *are* data plugins with their own cat
 
 The owner's schema (or a pure validator it exports) has to be: **known keys only** (`additionalProperties: false` everywhere), **every string
 and every array bounded**, plain values, no code, no URL the host would fetch except declared hosts, and **linear-time checks only**. The schema
-language is a deliberate subset (types, `enum`, `pattern`, length and item bounds, `required`, `$ref` inside the file) so that the validator stays a few dozen
-lines with no dependency (this repo has none). The conformance tool rejects a point whose schema is looser than that.
+language is a deliberate subset (types, `enum`, `const`, `pattern`, length and item bounds, `required`, `allOf`/`anyOf`/`oneOf`/`not`, `if`/`then`/`else`, `$ref` inside the file) so that the validator stays short
+with no dependency (this repo has none): `scripts/schema-subset.mjs` is that interpreter, about a hundred lines, and it throws on any keyword outside the subset. The manifest schema itself is validated by it.
+The conformance tool rejects a point whose schema is looser than the rules above.
 
 ### 6.4 Declarative sources (the way a paid third-party plugin reaches its service)
 
@@ -347,6 +348,32 @@ review has compared it with the code, and a static check (the conformance tool g
 catches honest mistakes and naive abuse, never obfuscated code. Two cases are different: for a **data plugin** the host does the work, so `net:` and
 `secrets.own` are enforced; and for a code plugin the later options are real isolation (a child process with the runtime's own permission flags,
 a worker for the page half), not evaluated here.
+
+### 7.1 What reading the 42 modules taught the vocabulary (2026-10-21)
+
+The manifests of the Suite were written by reading each module's code (six readers, the scanner as a lead, a second look at every
+disagreement). 354 words in all. The shape of the Suite, in words: `exec` in 16 modules (a bare `exec`, command built from input, in 5: connectors, the workers
+connectors, workers, calls, terminal), `secrets.read` in 10, `account` in 5, `agent.prompt` in 5, `agent.tools` in 12, `sessions.read` in 10, `memory.*` in 6,
+`fs.write:home` in 6 (hub, skills, cloud, mini-apps, workers, workspaces), `engine.patch` in 1. Six modules need only `ui.*` words (language, reference chips,
+changes, media player, Mermaid, Kaby's page): their card is one line.
+
+Rulings the reading forced, now part of the contract:
+
+- **Verifying DSH's session cookie is not `secrets.read`.** The origin rule makes about ten modules read the machine secret that signs the cookie; counting it would make the
+  word meaningless. A module that **mints** a cookie (the core's widget and gateway, the phone link, calls, the relaunch helper) or reads provider keys declares `secrets.read`.
+- **A route prefix has one or two segments.** The core owns `/kybernos`, and `slash`, `composio` and `flow` serve under it, so they claim `/kybernos/slash`, `/kybernos/composio`,
+  `/kybernos/queue-move`. Claims are compared for equality; a nested claim is fine.
+- **Slot names keep DSH's own capitals** (`conversation.hero.workspace.directoryFlow`).
+- **`engine.patch` is declared by the hub**, because the update it starts runs `dsh-lifecycle`, which re-applies the legacy engine patches. No other module declares it: the patches are applied by the robot, not by a bundle.
+- A word is declared for what the module's **own code** does, and for the helper it spawns when the helper is part of the shipped feature. A feature that lives in another bundle's route (`kybernos-changes` calls the session routes) belongs to that other bundle.
+
+What the vocabulary **cannot say** (candidates for the next revision of the contract, not added here): sending a key or the chat to an endpoint **named by the
+person's configuration** (Models' "fetch the available models" reaches any of 198 provider hosts, Calls' LiveKit address, a skills relay, the servers list) and not by the code, a `net:configured`;
+**changing DSH's own settings or profile** (Connectors writes `.env` and `cordis.patch.yml`, Free LLMs repairs a provider route, Auto's failover can swap the model of a chat), a `settings.write`;
+**injecting a message into a session** (the queue's auto-continue, calls), a `sessions.write`. Until then the manifest says what it can in `notes` of the review, and the gap is visible.
+
+`scripts/plugin-scan.mjs` and `scripts/test-plugin-scan.mjs` hold the line from here on: a manifest may declare more than the code shows, never less. The few places where
+the scan sees something a reader judged not to be shipped behaviour are in `scripts/plugin-scan-exceptions.json`, each with its reason.
 
 ## 8. Free and paid
 
@@ -459,10 +486,10 @@ one is generated from the same `plugin.json` files (so the Suite panel and the p
 
 | Check | Reuses |
 |---|---|
-| manifest against the schema, plus section 4.4 | new validator `scripts/plugin-manifest.mjs`; `scripts/test-layout.mjs` calls it for the suite |
+| manifest against the schema, plus section 4.4 | **exists**: `scripts/plugin-manifest.mjs` on `scripts/schema-subset.mjs`; `scripts/test-layout.mjs` and `build-catalog.mjs` call it for the suite |
 | ids, versions, dependencies, points, their schemas (6.3) | new |
 | claims (CSS prefix, route prefixes, slot ids) unique and used | `scripts/audit-css-prefixes.mjs`, `scripts/test-consistency-guards.mjs` |
-| permissions against the code (grep-level: `child_process`, `fetch`, writes, routes) | new; its limit is stated in section 7 |
+| permissions against the code (grep-level: `child_process`, `fetch`, writes, routes, slots) | **exists**: `scripts/plugin-scan.mjs`, held by `scripts/test-plugin-scan.mjs` (a manifest may declare more than the scan sees, never less); its limit is stated in section 7 |
 | every write route under the origin rule | the guard tests (`test-session-guard.mjs`, `test-write-guard.mjs`) |
 | no secret, no personal path, no media beyond the bounds | `scripts/garde-depot.mjs` rules, applied to the folder |
 | the help card | `test-help-card.mjs` |
@@ -496,11 +523,25 @@ or is based on Kybernos; rules 3 and 4 forbid suggesting endorsement or competin
 | # | Phase | Exists today | To build | Gate |
 |---|---|---|---|---|
 | 0 | This spec | the pieces in section 1 | review and decisions of section 16 | the owner |
-| 1 | Manifest on the 42 modules + validator | `build-catalog.mjs` tables, `satellites.json`, `lifecycle-packages.json`, `test-layout.mjs`, `catalog.json` schema 1 | `plugin.json` ×42 (generated, permissions read by a person), `scripts/plugin-manifest.mjs`, a check in `test-layout.mjs`, `build-catalog.mjs` reading the manifest. **Dead-code rider:** delete `FICHE`/`TITRES`/`GLYPHES` as the manifest replaces them | `build-catalog.mjs --check`, layout, lifecycle tests; catalogue still accepted by an older panel |
+| 1 | Manifest on the 42 modules + validator | `build-catalog.mjs` tables, `satellites.json`, `lifecycle-packages.json`, `test-layout.mjs`, `catalog.json` schema 1 | **Built 2026-10-21**, see below. `plugin.json` ×42, `scripts/plugin-manifest.mjs` on `scripts/schema-subset.mjs`, `scripts/plugin-scan.mjs`, a check in `test-layout.mjs`, `build-catalog.mjs` reading the manifests; `FICHE`/`TITRES`/`GLYPHES` deleted | `build-catalog.mjs --check`, layout, lifecycle tests; catalogue still accepted by an older panel |
 | 2 | Open the registries to data packages | `domain-pack.mjs` and its folder scan; `PRESETS`, `KB_MARKET_TEAMS`, the automation templates as constants | bundle `kybernos/registry`; `__KB__` and the host seam; the folder scan; points of 6.2 (domain pack first); `__KB_DOMAIN__` as alias; **mockup of the Plugins page first** | the point validators; a hostile data plugin test; DSH starts with a broken plugin |
 | 3 | Per-plugin install and update from a signed multi-source catalogue, with the key and account models | signed-catalogue code ×4, `telechargement.mjs`, the origin guard, the Connectors key page as the key-handling model | one catalogue format; `pluginCatalogues`; install/update/remove for data; entitlement call; key storage; revocation; levels on the card; declarative `http-source` | rollback, revoked, wrong key, replay of an author signature; **needs a Kybernos server route for `account` entitlement and keys for the catalogue** |
 | 4 | Third-party code, review, Verified (only if the owner reopens decision 1) | the pieces of the conformance tool | `plugin-check.mjs` complete; a written checklist; reviewer keys; the robot extended to extra bundles | a second reviewer exists |
 | 5 | Commerce for third parties (revenue share) | nothing | seller of record, VAT, payouts, refunds, terms | counsel; last |
+
+**Phase 1 as built.** Files: `packages/<dir>/plugin.json` ×42; `scripts/schema-subset.mjs` (the interpreter), `scripts/plugin-manifest.mjs` (schema + the rules of 4.4),
+`scripts/plugin-scan.mjs` (+ `plugin-scan-exceptions.json`); tests `test-plugin-manifest.mjs` (79 checks, including the three manifests printed in this document),
+`test-plugin-scan.mjs`, and two new checks in `test-layout.mjs`. `catalog.json` is byte-identical to what the tables produced, so an older panel is unaffected. What the build settled
+that the draft left open:
+
+- `description` may be 240 characters (the longest promise in the Suite is 178); `entry.extra` names the modules of a bundle that has no `.` export (`dsh-subagent-maison`).
+- A module's manifest carries no `provides`, `extends` or `requires.plugins` yet (there is no registry to read them: phase 2), `requires.kybernos` is `>=0.1.0` for all, `requires.dsh` is omitted
+  so the zone of `dsh-compat.json` applies, and `suite.order` is not stored (the order stays in `lifecycle-packages.json`; a stored copy would change in 42 files whenever a module is inserted).
+- `claims` holds the route prefixes only; CSS prefixes and slot ids stay with the audits that already guard them.
+- **`kybernos-mobile` is declared `paid` by Kybernos account** (`product: "phone-link"`), as its README says; every other module is `free`. Several have plan limits (connection counts,
+  Team locks); a limit is not an unlock, so they stay `free` until the owner says otherwise.
+- `name.fr` is new: the Suite only ever had English titles. The 42 French names are a draft for the owner to proof-read. `VEDETTES` (the featured cards) stays in `build-catalog.mjs`.
+- The manifest is checked in two places: `build-catalog.mjs` refuses to build a catalogue from an invalid one, and `test-layout.mjs` checks it against `package.json`, `satellites.json` and the other manifests.
 
 Each phase is a set of PRs that keep the three pre-push gates green, add no engine patch, and delete what the new thing supersedes.
 

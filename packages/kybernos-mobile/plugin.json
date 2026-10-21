@@ -1,0 +1,61 @@
+{
+  "contract": 1,
+  "id": "kybernos/mobile",
+  "kind": "code",
+  "version": "0.2.0",
+  "name": {
+    "en": "Phone and channels",
+    "fr": "Téléphone et canaux"
+  },
+  "description": {
+    "en": "DSH on your phone: the screen adapts, and a QR code links the phone to this computer, end-to-end encrypted.",
+    "fr": "DSH sur ton téléphone : l’écran s’adapte, et un code QR relie le téléphone à cet ordinateur, chiffré de bout en bout."
+  },
+  "icon": "mobile",
+  "family": "base",
+  "author": {
+    "id": "kybernos",
+    "name": "Kybernos"
+  },
+  "license": "Apache-2.0",
+  "pricing": "paid",
+  "commerce": {
+    "model": "account",
+    "product": "phone-link",
+    "unlocks": {
+      "en": "The end-to-end encrypted link between a phone and this computer (QR code).",
+      "fr": "Le lien chiffré de bout en bout entre un téléphone et cet ordinateur (QR code)."
+    },
+    "worksWithout": {
+      "en": "DSH is fully usable on a narrow screen: drawer menu and stacked Settings.",
+      "fr": "DSH reste pleinement utilisable sur petit écran : menu en tiroir et Réglages empilés."
+    }
+  },
+  "package": "@local/kybernos-mobile",
+  "entry": {
+    "host": "index.js",
+    "client": "client.js"
+  },
+  "requires": {
+    "kybernos": ">=0.1.0"
+  },
+  "permissions": [
+    "ui.slot:settings.section",
+    "ui.dom",
+    "host.routes:/kybernos-mobile:write",
+    "fs.write:dsh-home",
+    "net:*.kybernos.app",
+    "net:localhost",
+    "secrets.read",
+    "account"
+  ],
+  "claims": {
+    "routePrefixes": [
+      "/kybernos-mobile"
+    ]
+  },
+  "help": "help.json",
+  "suite": {
+    "default": "on"
+  }
+}

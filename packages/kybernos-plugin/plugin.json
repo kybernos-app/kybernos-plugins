@@ -1,0 +1,99 @@
+{
+  "contract": 1,
+  "id": "kybernos/core",
+  "kind": "code",
+  "version": "1.0.0",
+  "name": {
+    "en": "Kybernos Core",
+    "fr": "Cœur Kybernos"
+  },
+  "description": {
+    "en": "The core: Agent Teams, resources, settings and presets.",
+    "fr": "Le cœur : Agent Teams, ressources, réglages et préréglages."
+  },
+  "icon": "cube",
+  "family": "base",
+  "author": {
+    "id": "kybernos",
+    "name": "Kybernos"
+  },
+  "license": "Apache-2.0",
+  "pricing": "free",
+  "package": "@local/kybernos",
+  "entry": {
+    "host": "index.js",
+    "client": "client.js"
+  },
+  "requires": {
+    "kybernos": ">=0.1.0"
+  },
+  "permissions": [
+    "ui.slot:conversation.chat.assistant-actions",
+    "ui.slot:conversation.chat.node",
+    "ui.slot:conversation.composer.dock",
+    "ui.slot:conversation.hero.brand.mark",
+    "ui.slot:conversation.input.activity",
+    "ui.slot:conversation.input.dock",
+    "ui.slot:conversation.input.right",
+    "ui.slot:conversation.session.header.actions",
+    "ui.slot:conversation.view",
+    "ui.slot:main",
+    "ui.slot:settings.header",
+    "ui.slot:settings.onboarding",
+    "ui.slot:settings.section",
+    "ui.slot:sidebar.brand.mark",
+    "ui.slot:sidebar.brand.name",
+    "ui.slot:sidebar.footer.action",
+    "ui.slot:sidebar.panellist",
+    "ui.slot:sidebar.right.pane.tab",
+    "ui.slot:sidebar.workspaces.session.menu.item",
+    "ui.slot:tool.view.cordis",
+    "ui.dom",
+    "host.routes:/kybernos-technique:read",
+    "host.routes:/kybernos:write",
+    "fs.read:workspace",
+    "fs.write:dsh-home",
+    "fs.write:workspace",
+    "net:*.basemaps.cartocdn.com",
+    "net:api.groq.com",
+    "net:api.kybernos.app",
+    "net:api.openai.com",
+    "net:artificialanalysis.ai",
+    "net:cdn.jsdelivr.net",
+    "net:localhost",
+    "net:models.dev",
+    "net:nominatim.openstreetmap.org",
+    "net:photon.komoot.io",
+    "net:raw.githubusercontent.com",
+    "net:speech.platform.bing.com",
+    "net:token-plan-ams.xiaomimimo.com",
+    "net:token-plan.ap-southeast-1.maas.aliyuncs.com",
+    "net:unpkg.com",
+    "exec:afconvert",
+    "exec:cp",
+    "exec:du",
+    "exec:mv",
+    "exec:open",
+    "exec:python3",
+    "exec:rm",
+    "exec:say",
+    "secrets.own",
+    "secrets.read",
+    "account",
+    "agent.prompt",
+    "agent.tools",
+    "memory.write",
+    "sessions.read"
+  ],
+  "claims": {
+    "routePrefixes": [
+      "/kybernos-technique",
+      "/kybernos"
+    ]
+  },
+  "help": "help.json",
+  "suite": {
+    "core": true,
+    "default": "on"
+  }
+}
