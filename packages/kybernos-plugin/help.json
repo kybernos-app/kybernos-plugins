@@ -211,8 +211,8 @@
           "en": "Show DSH’s “Automation tasks” list if you want it back in the menu."
         },
         {
-          "fr": "« Créer des skills » : une automatisation stable (3, 5, 10 ou 20 exécutions sans échec) devient un skill. Sinon : bouton du Journal.",
-          "en": "“Create skills”: a stable automation (3, 5, 10 or 20 runs without a failure) becomes a skill. Otherwise: a button in its Journal."
+          "fr": "« Créer des skills » : une automatisation stable (3, 5, 10 ou 20 exécutions sans échec) devient un skill. Sinon : bouton dans Sessions.",
+          "en": "“Create skills”: a stable automation (3, 5, 10 or 20 runs without a failure) becomes a skill. Otherwise: a button in its Sessions tab."
         }
       ],
       "where": {

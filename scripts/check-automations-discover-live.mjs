@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // What the Automations page gained after its board, in a real GUI: Discover (the templates and the chat they open), the Cards view, the
-// Flow panel of a node, the lessons of the Journal and the two settings that write a stable automation down as a skill.
+// Workflow canvas (cards that move, nine styles, the webhook as a card), the lessons of the runs and the two settings that write a stable
+// automation down as a skill.
 //
 //   source scripts/sandbox/env.sh && node scripts/check-automations-discover-live.mjs [--shots <dir>]
 //
@@ -16,8 +17,12 @@
 //     whose draft starts with « Follow this conversation in my language: <the page's language> », then names the skill, carries the questions
 //     and asks for an automation left OFF;
 //   - Cards: the fourth view, one card per automation, the failed one outlined and « To review », figures that claim nothing unread;
-//   - Flow: a node's title stays inside it, a click opens the panel with the whole instruction, the guard mark and Previous / Next;
-//   - Journal lessons: how far an automation is, and for a stable one the button that writes the skill (the file is on disk, readable by
+//   - List: the success column, a percentage and the last ten runs as bars, from the history alone;
+//   - Workflow: two tabs (no Webhook tab, no Journal tab), the cards, a card's title stays inside it, a click opens the panel with the whole
+//     instruction, the guard mark and Previous / Next; Flow, Text and Code as quiet icons;
+//   - Canvas: nine styles in a menu and one choice for the page, a card dragged with a real mouse and kept per automation, « Tidy up »; the
+//     webhook added from the schedule's panel, drawn as a card, its address hidden until revealed, then revoked;
+//   - Lessons (in Sessions, under the run): how far an automation is, and for a stable one the button that writes the skill (the file is on disk, readable by
 //     the person only, with the steps and none of the automation's secrets); the same click twice writes nothing more;
 //   - Workspace of the runs: the form offers the dedicated « Automations » workspace and the person's own, the choice is saved as an id and
 //     named on the page, and a real « Run now » lands the session in the chosen workspace, else in the dedicated one (a folder the host
@@ -101,6 +106,11 @@ try {
   check('the Automations page opens', await openAutomations())
   await poll(() => q('.kba-lcard'), 15000)
 
+  console.log('\n── List ──')
+  check('every row has a success cell: a percentage and the last ten runs as bars', (await poll(async () => (await q('[data-kb="row-success"]')) === 3, 6000)) === true)
+  const succOf = (name) => val(`(() => { const row = Array.from(document.querySelectorAll('.kba-rowline')).find((r) => r.innerText.indexOf(${JSON.stringify(name)}) >= 0); const c = row && row.querySelector('[data-kb="row-success"]'); return c ? c.innerText.replace(/\\s+/g, ' ').trim() + '|' + c.querySelectorAll('.kba-bars i').length + '|' + c.querySelectorAll('.kba-bars i.x').length : '' })()`)
+  check('...a stable automation reads 100 % with six ok bars, the one that failed reads 50 % with a bad bar, from the history alone', (await succOf('Check stable report')) === '100%|6|0' && (await succOf('Check failed report')) === '50%|2|1', { stable: await succOf('Check stable report'), failed: await succOf('Check failed report') })
+
   console.log('\n── Discover ──')
   check('the page has two sections, Yours and Discover, and Yours is the one open', (await val(`Array.from(document.querySelectorAll('[data-kb^="section-"]')).map((b) => b.dataset.kb.slice(8) + (b.getAttribute('aria-selected') === 'true' ? '*' : '')).join()`)) === 'yours*,discover')
   await click('[data-kb="section-discover"]')
@@ -143,19 +153,18 @@ try {
   check('the figures come from the history: success 100 % / 67 %, runs 6 / 2', await (async () => {
     const t = (id) => val(`${cardOf(id)}.innerText.replace(/\\s+/g, ' ')`)
     const a = await t('chk-stable'); const b = await t('chk-failed')
-    return /SUCCESS 100 %/.test(a) && /RUNS 6/.test(a) && /SUCCESS 50 %/.test(b) && /RUNS 2/.test(b)
+    return /SUCCESS 100 %/i.test(a) && /RUNS 6/i.test(a) && /SUCCESS 50 %/i.test(b) && /RUNS 2/i.test(b)
   })())
-  check('a journal that was not read claims nothing: no duration and no tool', /DURATION —/.test(await val(`${cardOf('chk-stable')}.innerText.replace(/\\s+/g, ' ')`)) && /TOOLS —/.test(await val(`${cardOf('chk-stable')}.innerText.replace(/\\s+/g, ' ')`)))
-  check('the switch of a card changes nothing by a click on the card itself, and opening a card opens its page', (await val(`${cardOf('chk-young')}.querySelector('[role="switch"]').getAttribute('aria-checked')`)) === 'false' && (await click('[data-kb="auto-card"][data-id="chk-stable"]')) === true && (await poll(() => q('[data-kb="tab-journal"]'), 5000)) === 1)
+  check('a journal that was not read claims nothing: no duration and no tool', /DURATION —/i.test(await val(`${cardOf('chk-stable')}.innerText.replace(/\\s+/g, ' ')`)) && /TOOLS —/i.test(await val(`${cardOf('chk-stable')}.innerText.replace(/\\s+/g, ' ')`)))
+  check('the switch of a card changes nothing by a click on the card itself, and opening a card opens its page', (await val(`${cardOf('chk-young')}.querySelector('[role="switch"]').getAttribute('aria-checked')`)) === 'false' && (await click('[data-kb="auto-card"][data-id="chk-stable"]')) === true && (await poll(() => q('[data-kb="tab-flow"]'), 5000)) === 1)
   await shot('cards')
 
-  console.log('\n── Flow ──')
-  await tab(/^Workflow/)
-  await sleep(500)
-  await val(`(() => { const b = Array.from(document.querySelectorAll('.kba-tab')).find((x) => x.textContent === 'Flow'); if (b) b.click() })()`)
-  check('the Flow draws the trigger, the three steps and the log', (await poll(async () => (await q('.kba-node')) === 5, 5000)) === true)
-  check('the title of every node stays inside it (two lines at most, nothing spills)', await val(`Array.from(document.querySelectorAll('.kba-node')).every((n) => { const r = n.getBoundingClientRect(); return Array.from(n.querySelectorAll('.kba-ndn > span, .kba-ndn > small')).every((c) => c.getBoundingClientRect().bottom <= r.bottom + 1 && c.getBoundingClientRect().right <= r.right + 1) })`))
-  await val(`document.querySelectorAll('.kba-node')[1].click()`)
+  console.log('\n── Workflow ──')
+  check('the detail has two tabs, Workflow and Sessions: no Webhook tab, no Journal tab', (await val(`Array.from(document.querySelectorAll('.kba-tab')).map((b) => b.textContent.replace(/\\s+/g, ' ').trim()).join('|')`)) === 'Workflow|Sessions · 6')
+  check('the Workflow opens on the cards: the trigger, the three steps and the record of the run', (await poll(async () => (await q('[data-kb="flow-card"]')) === 5, 5000)) === true)
+  check('Flow, Text and Code are three quiet icons, Flow first and chosen', (await val(`Array.from(document.querySelectorAll('.kba-vbtn')).map((b) => b.dataset.kb + (b.getAttribute('aria-pressed') === 'true' ? '*' : '')).join()`)) === 'view-flow*,view-text,view-code')
+  check('the title of every card stays inside it (two lines at most, nothing spills)', await val(`Array.from(document.querySelectorAll('[data-kb="flow-card"]')).every((n) => { const r = n.getBoundingClientRect(); return Array.from(n.querySelectorAll('.kbfc-tt b, .kbfc-ft')).every((c) => c.getBoundingClientRect().bottom <= r.bottom + 1 && c.getBoundingClientRect().right <= r.right + 1) })`))
+  await val(`document.querySelectorAll('[data-kb="flow-card"]')[1].click()`)
   check('a click opens the panel: type, whole instruction, how it runs, the guard mark', (await poll(() => q('[data-kb="flow-node-panel"]'), 3000)) === 1 && /PREFLIGHT \(required\): check that the shared folder is reachable before anything else; stop with a clear reason if it is not\./.test(await text('[data-kb="flow-node-panel"]')) && /Guard/.test(await text('[data-kb="flow-node-panel"] .kba-nc-head')) && /How it runs/i.test(await text('[data-kb="flow-node-panel"]')))
   await click('[data-kb="flow-next"]')
   check('Next walks to the following step, Previous back', /Read the numbers of the week/.test(await text('[data-kb="flow-node-panel"]')) && (await click('[data-kb="flow-prev"]')) === true && /PREFLIGHT/.test(await text('[data-kb="flow-node-panel"]')))
@@ -163,8 +172,41 @@ try {
   await val(`document.querySelector('.kba-nc-x').click()`)
   check('the panel closes', (await q('[data-kb="flow-node-panel"]')) === 0)
 
-  console.log('\n── Journal lessons ──')
-  await click('[data-kb="tab-journal"]')
+  console.log('\n── Canvas: styles, cards that move, the webhook ──')
+  check('a button names the style in use, and it follows the app by default', /Kybernos/.test(await text('[data-kb="flow-style"]')) && (await val(`document.querySelector('[data-kb="flow-canvas"]').dataset.style`)) === 'auto')
+  await click('[data-kb="flow-style"]')
+  check('the style menu offers nine styles', (await poll(() => q('[data-kb="flow-style-menu"] [data-style]'), 3000)) === 9)
+  await val(`document.querySelector('[data-kb="flow-style-menu"] [data-style="lg"]').click()`)
+  check('picking Ledger restyles the canvas and the choice is remembered', (await poll(async () => (await val(`document.querySelector('[data-kb="flow-canvas"]').dataset.style`)) === 'lg', 3000)) === true && (await val(`localStorage.getItem('kybernos.flowstyle')`)) === 'lg')
+  await shot('style-ledger')
+  const centre = async (id) => JSON.parse(await val(`(() => { const r = document.querySelector('[data-kb="flow-card"][data-id="${id}"]').getBoundingClientRect(); return JSON.stringify({ x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) }) })()`))
+  const mouse = (type, x, y) => page.send('Input.dispatchMouseEvent', { type, x, y, button: type === 'mouseMoved' ? 'none' : 'left', buttons: type === 'mouseReleased' ? 0 : 1, clickCount: 1 })
+  const before = await centre('s2')
+  await mouse('mouseMoved', before.x, before.y)
+  await mouse('mousePressed', before.x, before.y)
+  for (let i = 1; i <= 6; i += 1) await mouse('mouseMoved', before.x + i * 6, before.y + i * 8)
+  await mouse('mouseReleased', before.x + 36, before.y + 48)
+  await sleep(300)
+  const after = await centre('s2')
+  check('a card follows the mouse when it is dragged, and the drop opens no panel', after.x > before.x + 20 && after.y > before.y + 30 && (await q('[data-kb="flow-node-panel"]')) === 0, { before, after })
+  check('the arrangement is kept for this automation, in this browser', /"s2":\{"dx":-?\d+,"dy":-?\d+\}/.test((await val(`localStorage.getItem('kybernos.flowpos2.wf.chk-stable')`)) || ''))
+  await shot('moved')
+  check('« Tidy up » appears and puts the cards back, and the kept arrangement goes', (await click('[data-kb="flow-reset"]')) === true && (await poll(async () => { const c = await centre('s2'); return Math.abs(c.x - before.x) < 3 && Math.abs(c.y - before.y) < 3 }, 3000)) === true && (await val(`localStorage.getItem('kybernos.flowpos2.wf.chk-stable')`)) === null)
+  await val(`(() => { document.querySelector('[data-kb="flow-style"]').click() })()`)
+  await val(`document.querySelector('[data-kb="flow-style-menu"] [data-style="auto"]').click()`)
+  await val(`document.querySelector('[data-kb="flow-card"][data-id="schedule"]').click()`)
+  check('a workflow with no webhook offers to add one in the schedule\'s panel', (await poll(() => q('[data-kb="hook-add"]'), 3000)) === 1 && (await q('[data-kb="flow-card"][data-id="hook"]')) === 0)
+  await click('[data-kb="hook-add"]')
+  check('adding it draws a Webhook card, opens its settings and keeps the address hidden', (await poll(() => q('[data-kb="flow-card"][data-id="hook"]'), 8000)) === 1 && (await poll(() => q('[data-kb="hook-panel"]'), 4000)) === 1 && /secret=•+$/.test(await text('[data-kb="hook-url"]')))
+  await click('[data-kb="hook-reveal"]')
+  check('Reveal shows the address, Hide hides it again', /secret=[A-Za-z0-9_-]{8,}$/.test(await text('[data-kb="hook-url"]')) && (await click('[data-kb="hook-reveal"]')) === true && /secret=•+$/.test(await text('[data-kb="hook-url"]')))
+  await shot('webhook')
+  await click('[data-kb="hook-revoke"]')
+  await click('.kb-task-btn.danger')
+  check('revoking removes the card and the settings', (await poll(async () => (await q('[data-kb="flow-card"][data-id="hook"]')) === 0 && (await q('[data-kb="hook-panel"]')) === 0, 8000)) === true)
+
+  console.log('\n── Lessons, in Sessions ──')
+  await click('[data-kb="tab-sessions"]')
   check('the stable automation says it is stable and offers « Create skill »', (await poll(() => q('[data-kb="lesson-create"]'), 6000)) === 1 && /6 times in a row without a failure: stable enough/.test(await text('[data-kb="journal-lesson"]')))
   await shot('lesson')
   await click('[data-kb="lesson-create"]')
@@ -175,7 +217,7 @@ try {
   check('...and what was written is recorded once', existsSync(files.records) && Object.keys(JSON.parse(readFileSync(files.records, 'utf8')).skills).join() === 'chk-stable' && readdirSync(join(home, 'skills')).filter((n) => n.startsWith('check-stable-report')).length === 1)
   await backToList()
   await openTask('Check failed report')
-  await click('[data-kb="tab-journal"]')
+  await click('[data-kb="tab-sessions"]')
   check('an automation that failed says how far it is from stable (none in a row)', (await poll(() => q('[data-kb="journal-lesson"]'), 6000)) === 1 && /0 times in a row without a failure\. At 5 it can become/.test(await text('[data-kb="journal-lesson"]')) && (await q('[data-kb="lesson-create"]')) === 0)
   check('...and the Sessions tab says the journals were not read rather than inventing a duration', await (async () => { await tab(/^Sessions/); await sleep(800); return /not be read/.test(await text('[data-kb="runs-sessions"]')) || /Not read/.test(await text('[data-kb="runs-sessions"]')) })())
   await backToList()
@@ -253,6 +295,14 @@ try {
   await click('[data-kb="view-cards"]')
   check('the Cards do not scroll sideways', (await poll(async () => (await q('[data-kb="auto-card"]')) === 3, 6000)) === true && (await shown('[data-kb="auto-card"]')) === true && (await overflow()) === false)
   await shot('phone-cards')
+  await click('[data-kb="auto-card"][data-id="chk-stable"]')
+  check('an automation opens on its Workflow at 390 px: the canvas is there and the page does not scroll sideways', (await poll(() => shown('[data-kb="flow-canvas"]'), 6000)) === true && (await overflow()) === false)
+  await val(`document.querySelectorAll('[data-kb="flow-card"]')[1].click()`)
+  check('...a card opens its panel under the canvas, still without scrolling sideways', (await poll(() => shown('[data-kb="flow-node-panel"]'), 4000)) === true && (await overflow()) === false)
+  await shot('phone-workflow')
+  await click('[data-kb="tab-sessions"]')
+  check('...and so does Sessions (the runs, their graph and the logs)', (await poll(() => shown('[data-kb="runs-sessions"]'), 6000)) === true && (await overflow()) === false)
+  await shot('phone-sessions')
   check('no script error from the page', exceptions.length === 0, exceptions.slice(0, 3))
 } catch (e) {
   fail += 1

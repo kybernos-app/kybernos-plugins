@@ -324,15 +324,43 @@ let kbLocaleRead = () => 'en'
       'tasks.view.text': { kybernos: 'Texte', en: 'Text' },
       'tasks.view.flow': { kybernos: 'Flow', en: 'Flow' },
       'tasks.view.code': { kybernos: 'Code', en: 'Code' },
+      'flow.style.title': { kybernos: 'Style du canevas', en: 'Canvas style' },
+      'flow.tidy': { kybernos: 'Remettre en ordre', en: 'Tidy up' },
+      'flow.hint.drag': { kybernos: 'Glisse les cartes pour les ranger', en: 'Drag the cards to rearrange them' },
+      'flow.style.auto': { kybernos: 'Kybernos', en: 'Kybernos' },
+      'flow.style.auto.d': { kybernos: 'Suit l’app, fils à angle droit', en: 'Follows the app, right-angle wires' },
+      'flow.style.nr': { kybernos: 'Node-RED', en: 'Node-RED' },
+      'flow.style.nr.d': { kybernos: 'Blocs bleu-gris, fils courbes', en: 'Blue-grey blocks, curved wires' },
+      'flow.style.bp': { kybernos: 'Blueprint', en: 'Blueprint' },
+      'flow.style.bp.d': { kybernos: 'Traits clairs sur bleu', en: 'Light lines on blue' },
+      'flow.style.pp': { kybernos: 'Paper', en: 'Paper' },
+      'flow.style.pp.d': { kybernos: 'Papier chaud, traits d’encre', en: 'Warm paper, ink lines' },
+      'flow.style.sf': { kybernos: 'Soft', en: 'Soft' },
+      'flow.style.sf.d': { kybernos: 'Une pastille de type sur chaque carte', en: 'A coloured kind pill on every card' },
+      'flow.style.lg': { kybernos: 'Ledger', en: 'Ledger' },
+      'flow.style.lg.d': { kybernos: 'Les cartes disent ce qu’elles sont et font, fils bleus pointillés', en: 'Cards say what they are and do, dashed blue wires' },
+      'flow.style.at': { kybernos: 'Atelier', en: 'Atelier' },
+      'flow.style.at.d': { kybernos: 'Papier chaud, fils colorés par type d’étape', en: 'Warm paper, wires coloured by step kind' },
+      'flow.style.jy': { kybernos: 'Journey', en: 'Journey' },
+      'flow.style.jy.d': { kybernos: 'Cartes nettes, courbes douces, des flèches', en: 'Clean cards, smooth curves, arrowheads' },
+      'flow.style.mx': { kybernos: 'Metrics', en: 'Metrics' },
+      'flow.style.mx.d': { kybernos: 'Durée, état et taille sur chaque carte, un montant sur chaque fil', en: 'Time, status and size on every card, an amount on every wire' },
       'tasks.flow.hint': { kybernos: 'Le texte est la source. Flow et Code en sont interprétés.', en: 'Text is the source. Flow and Code are interpreted from it.' },
-      'tasks.flow.readonly': { kybernos: 'Interprété du texte · lecture seule — modifie le texte.', en: 'Interpreted from Text · read-only — change the text.' },
-      'tasks.flow.drag': { kybernos: 'glisse les n\u0153uds pour réorganiser', en: 'drag nodes to rearrange' },
-      'tasks.flow.reset': { kybernos: 'Réinitialiser la disposition', en: 'Reset layout' },
-      'tasks.flow.nodes': { kybernos: 'n\u0153uds', en: 'nodes' },
       'tasks.flow.kind.trg': { kybernos: 'Déclencheur', en: 'Trigger' },
       'tasks.flow.kind.ai': { kybernos: 'IA', en: 'AI' },
       'tasks.flow.kind.act': { kybernos: 'Action', en: 'Action' },
       'tasks.flow.kind.gry': { kybernos: 'Flow', en: 'Flow' },
+      'tasks.flow.kind.hook': { kybernos: 'Webhook', en: 'Webhook' },
+      'tasks.flow.schedule': { kybernos: 'Horaire', en: 'Schedule' },
+      'tasks.flow.hook.sub': { kybernos: 'Appelée par un service', en: 'Called by a service' },
+      'tasks.flow.log': { kybernos: 'Enregistrer le run', en: 'Record the run' },
+      'tasks.flow.log.sub': { kybernos: 'Historique des runs', en: 'Run history' },
+      'tasks.flow.cell.type': { kybernos: 'Type', en: 'Type' },
+      'tasks.flow.cell.step': { kybernos: 'Étape', en: 'Step' },
+      'tasks.flow.how.hook': { kybernos: 'Lance l’automatisation quand un service envoie des données à son adresse.', en: 'Starts the automation when a service sends data to its address.' },
+      'tasks.hook.reveal': { kybernos: 'Afficher', en: 'Reveal' },
+      'tasks.hook.hide': { kybernos: 'Masquer', en: 'Hide' },
+      'tasks.col.success': { kybernos: 'Réussite · 10 derniers', en: 'Success · last 10' },
       'tasks.flow.guard': { kybernos: 'Garde', en: 'Guard' },
       'tasks.flow.what': { kybernos: 'Instruction', en: 'Instruction' },
       'tasks.flow.how': { kybernos: 'Comment elle tourne', en: 'How it runs' },
@@ -392,9 +420,7 @@ let kbLocaleRead = () => 'en'
       'tasks.cards.toreview': { kybernos: 'À revoir', en: 'To review' },
       'tasks.cards.paused': { kybernos: 'En pause', en: 'Paused' },
       'tasks.cards.hint': { kybernos: 'Réussite : part des 20 dernières exécutions qui ne sont pas notées en échec. Durée et outils viennent du journal de la dernière exécution ; il n’y a ni jetons ni budget ici.', en: 'Success: the share of the last 20 runs that are not recorded as failed. Duration and tools come from the journal of the last run; there are no tokens or budget here.' },
-      'tasks.tab.journal': { kybernos: 'Journal', en: 'Journal' },
       'tasks.runs.title': { kybernos: 'Exécutions', en: 'Executions' },
-      'tasks.runs.all': { kybernos: 'Toutes ({n})', en: 'All {n}' },
       'tasks.runs.count': { kybernos: '{n} exécutions', en: '{n} runs' },
       'tasks.runs.stat.runs': { kybernos: 'Exécutions', en: 'Runs' },
       'tasks.runs.stat.failed': { kybernos: 'En échec', en: 'Failed' },
@@ -411,8 +437,8 @@ let kbLocaleRead = () => 'en'
       'tasks.runs.more': { kybernos: '+{n} autres étapes', en: '+{n} more steps' },
       'tasks.runs.moresub': { kybernos: 'dans la session', en: 'in the session' },
       'tasks.runs.logs': { kybernos: 'Détails', en: 'Logs' },
-      'tasks.runs.input': { kybernos: 'Entrée', en: 'Input' },
-      'tasks.runs.output': { kybernos: 'Sortie', en: 'Output' },
+      'tasks.runs.input': { kybernos: 'Reçoit', en: 'Gets' },
+      'tasks.runs.output': { kybernos: 'Produit', en: 'Gives' },
       'tasks.runs.think': { kybernos: 'réflexion', en: 'think' },
       'tasks.runs.run': { kybernos: 'exécution', en: 'run' },
       'tasks.runs.reading': { kybernos: 'Lecture de l’étape…', en: 'Reading the step…' },
@@ -426,7 +452,6 @@ let kbLocaleRead = () => 'en'
       'tasks.journal.why': { kybernos: 'Pourquoi ce modèle', en: 'Why this model' },
       'tasks.journal.why.default': { kybernos: 'Modèle par défaut du profil : aucun modèle n’a été choisi pour cette exécution.', en: 'Profile default: no model was chosen for this run.' },
       'tasks.journal.why.set': { kybernos: 'Choisi pour cette exécution.', en: 'Chosen for this run.' },
-      'tasks.journal.what': { kybernos: 'Ce qui s’est passé', en: 'What happened' },
       'tasks.journal.approvals': { kybernos: 'Approbations', en: 'Approvals' },
       'tasks.journal.approval': { kybernos: 'approbation', en: 'approval' },
       'tasks.journal.approvals.none': { kybernos: 'Aucune demande pendant cette exécution · mode :', en: 'No request during this run · mode:' },
@@ -4521,6 +4546,10 @@ const LUCIDE = {
   chevronLeft: ['m15 18-6-6 6-6'],
   pause: ['M15 4h2a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z', 'M7 4h2a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z'],
   triangleAlert: ['m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3', 'M12 9v4', 'M12 17h.01'],
+  // The three ways to read a workflow (Flow, Text, Code), as quiet icons.
+  flowView: ['M3 3h6v6H3z', 'M15 15h6v6h-6z', 'M9 6h4a2 2 0 0 1 2 2v7'],
+  textView: ['M4 7V4h16v3', 'M9 20h6', 'M12 4v16'],
+  codeView: ['m16 18 6-6-6-6', 'm8 6-6 6 6 6'],
 }
 const Icon = (name, size) => {
   const d = LUCIDE[name]
@@ -6660,44 +6689,6 @@ const kbRunGraph = (sum, failed) => {
   return { nodes, labels: labels.slice(0, nodes.length - 1), read: true }
 }
 
-/**
- * Where each node of a graph goes, and the straight links between them: rows of `cols` nodes that snake (the second row runs
- * right to left), so a link between two rows is a vertical segment and no link ever crosses a node.
- */
-const kbGraphLayout = (count, opt) => {
-  const o = opt !== null && typeof opt === 'object' ? opt : {}
-  const cols = o.cols || 4
-  const nw = o.nw || 172
-  const nh = o.nh || 70
-  const hg = o.hg || 34
-  const vg = o.vg || 36
-  const n = Math.max(0, count | 0)
-  const rows = Math.ceil(n / cols)
-  const pos = []
-  for (let i = 0; i < n; i += 1) {
-    const row = Math.floor(i / cols)
-    let col = i % cols
-    if (row % 2 === 1) col = cols - 1 - col
-    pos.push({ x: col * (nw + hg), y: row * (nh + vg), row })
-  }
-  const edges = []
-  for (let i = 0; i < n - 1; i += 1) {
-    const a = pos[i]
-    const b = pos[i + 1]
-    if (a.row === b.row) {
-      const fwd = a.x < b.x
-      const x1 = fwd ? a.x + nw : a.x
-      const x2 = fwd ? b.x : b.x + nw
-      const y = a.y + nh / 2
-      edges.push({ x1, y1: y, x2, y2: y, lx: (x1 + x2) / 2, ly: y, vertical: false })
-    } else {
-      const x = a.x + nw / 2
-      edges.push({ x1: x, y1: a.y + nh, x2: x, y2: b.y, lx: x, ly: (a.y + nh + b.y) / 2, vertical: true })
-    }
-  }
-  const used = Math.min(n, cols)
-  return { width: n === 0 ? 0 : used * nw + (used - 1) * hg, height: n === 0 ? 0 : rows * nh + (rows - 1) * vg, pos, edges }
-}
 /** « 3 hours ago », « yesterday », « now »: in the page's language; nothing for a date in the future or unknown. */
 const kbRunAgo = (ms, now, locale) => {
   if (typeof ms !== 'number' || Number.isFinite(ms) !== true || typeof now !== 'number' || Number.isFinite(now) !== true) return ''
@@ -6739,7 +6730,187 @@ const kbRunCardFigures = (history, sums) => {
     tools,
   }
 }
+
+/**
+ * The last ten runs of an automation as bars, oldest on the left, for the list: { bars: ['ok' | 'bad', ...], pct }. A run is bad when the
+ * history says so (the journals are not read for a list); `pct` is the share of those runs that are not bad, null when there is no run.
+ */
+const kbRunBars = (history) => {
+  const runs = kbRunsOf(history).slice(0, 10)
+  const bars = runs.map((r) => (kbRunState(r, undefined) === 'failed' ? 'bad' : 'ok')).reverse()
+  const bad = bars.filter((b) => b === 'bad').length
+  return { bars, pct: runs.length === 0 ? null : Math.round(((runs.length - bad) / runs.length) * 100) }
+}
 // KB-AUTORUNS-END
+
+// KB-AUTOFLOW-BEGIN
+// The canvas of an automation's workflow and of one of its runs: where each card goes, how a wire runs from one card to the next, what a
+// canvas style changes, and what the person dragged. Pure: the page hands over the cards, the links and the offsets and gets back
+// positions and drawn paths.
+//   - the default layout is rows of cards that wrap left to right; a second trigger (the webhook) is stacked under the first one;
+//   - a wire leaves the right side of a card and enters the left side of the next one; when the next card is behind or below, the wire
+//     runs in the gap between two rows, so no wire goes through a card of the default layout;
+//   - a dragged card keeps an offset from its default place (not an absolute place), so a style with taller cards keeps the arrangement.
+const KB_FLOW_NW = 212
+const KB_FLOW_GX = 52
+const KB_FLOW_PADX = 70
+const KB_FLOW_PADY = 54
+const KB_FLOW_LANE = 22
+const KB_FLOW_GAPY = 52
+const KB_FLOW_COLS = 4
+const KB_FLOW_MIN_SCALE = 0.74
+/**
+ * The canvas styles. `wire`: 'orth' = right angles, 'bez' = curves (the wires that wrap around a row stay at right angles);
+ * `r` = the radius of a bend; `nh` = the height of a card; `arrow` = an arrowhead at the end of a wire; `val` = the amount that flows
+ * along a wire is shown on it; `dash` = the dash of the sample in the style menu.
+ */
+const KB_FLOW_STYLES = [
+  { id: 'auto', wire: 'orth', r: 12, nh: 92, arrow: false, val: false, dash: '' },
+  { id: 'nr', wire: 'bez', r: 22, nh: 92, arrow: false, val: false, dash: '' },
+  { id: 'bp', wire: 'orth', r: 4, nh: 92, arrow: false, val: false, dash: '' },
+  { id: 'pp', wire: 'orth', r: 3, nh: 92, arrow: false, val: false, dash: '' },
+  { id: 'sf', wire: 'orth', r: 16, nh: 104, arrow: false, val: false, dash: '' },
+  { id: 'lg', wire: 'orth', r: 18, nh: 132, arrow: false, val: false, dash: '4 3' },
+  { id: 'at', wire: 'orth', r: 16, nh: 84, arrow: false, val: false, dash: '3 3' },
+  { id: 'jy', wire: 'bez', r: 22, nh: 88, arrow: true, val: false, dash: '' },
+  { id: 'mx', wire: 'bez', r: 26, nh: 116, arrow: true, val: true, dash: '1 3' },
+]
+/** The style of an id; an unknown or missing id is the first one (it follows the app). */
+const kbFlowStyleOf = (id) => KB_FLOW_STYLES.filter((s) => s.id === id)[0] || KB_FLOW_STYLES[0]
+
+/**
+ * Which row, column and lane each card takes. `cards` = [{ id, trg }] in the order of the chain; the leading triggers (at most two)
+ * share the first column, one lane each; the other cards follow, `cols` to a row.
+ */
+const kbFlowGrid = (cards, cols) => {
+  const c = (cols | 0) >= 2 ? cols | 0 : KB_FLOW_COLS
+  const out = []
+  let lane = 0
+  let slot = 1
+  let lead = true
+  for (const k of cards) {
+    if (lead === true && k.trg === true && lane < 2) { out.push({ id: k.id, row: 0, col: 0, lane }); lane += 1; continue }
+    lead = false
+    out.push({ id: k.id, row: Math.floor(slot / c), col: slot % c, lane: 0 })
+    slot += 1
+  }
+  return out
+}
+
+/** The default place of every card for a card height `nh`, and the size of the canvas that holds them. */
+const kbFlowBase = (grid, nh) => {
+  const rows = grid.reduce((m, g) => Math.max(m, g.row), 0) + 1
+  const lane1 = (r) => grid.some((g) => g.row === r && g.lane === 1)
+  const rowTop = []
+  let y = KB_FLOW_PADY
+  for (let r = 0; r < rows; r += 1) { rowTop.push(y); y += nh + (lane1(r) === true ? KB_FLOW_LANE + nh : 0) + KB_FLOW_GAPY }
+  const used = grid.reduce((m, g) => Math.max(m, g.col), 0) + 1
+  const pos = {}
+  for (const g of grid) pos[g.id] = { x: KB_FLOW_PADX + g.col * (KB_FLOW_NW + KB_FLOW_GX), y: rowTop[g.row] + g.lane * (nh + KB_FLOW_LANE) }
+  return { pos, W: KB_FLOW_PADX * 2 + used * KB_FLOW_NW + (used - 1) * KB_FLOW_GX, H: y - KB_FLOW_GAPY + KB_FLOW_PADY }
+}
+
+/** A path through `pts` whose bends are rounded to radius `r` (never more than half of a segment). */
+const kbFlowRounded = (pts, r) => {
+  let d = 'M' + pts[0][0] + ' ' + pts[0][1]
+  for (let i = 1; i < pts.length - 1; i += 1) {
+    const a = pts[i - 1]
+    const b = pts[i]
+    const c = pts[i + 1]
+    const l1 = Math.hypot(b[0] - a[0], b[1] - a[1])
+    const l2 = Math.hypot(c[0] - b[0], c[1] - b[1])
+    const rr = Math.min(r, l1 / 2, l2 / 2)
+    const p1 = [b[0] - (b[0] - a[0]) / l1 * rr, b[1] - (b[1] - a[1]) / l1 * rr]
+    const p2 = [b[0] + (c[0] - b[0]) / l2 * rr, b[1] + (c[1] - b[1]) / l2 * rr]
+    d += ' L' + p1[0] + ' ' + p1[1] + ' Q' + b[0] + ' ' + b[1] + ' ' + p2[0] + ' ' + p2[1]
+  }
+  const z = pts[pts.length - 1]
+  return d + ' L' + z[0] + ' ' + z[1]
+}
+/** The middle of the longest segment of a polyline: where the label of a wire sits. */
+const kbFlowMid = (pts) => {
+  let best = -1
+  let m = pts[0]
+  for (let i = 0; i < pts.length - 1; i += 1) {
+    const l = Math.hypot(pts[i + 1][0] - pts[i][0], pts[i + 1][1] - pts[i][1])
+    if (l > best) { best = l; m = [(pts[i][0] + pts[i + 1][0]) / 2, (pts[i][1] + pts[i + 1][1]) / 2] }
+  }
+  return m
+}
+/** The wire from card place `A` to card place `B` (each { x, y }) for a style: { d, mid, x2, y2, pts } (`pts` = the corners of the path before the bends are rounded). */
+const kbFlowRoute = (A, B, style) => {
+  const nh = style.nh
+  const x1 = A.x + KB_FLOW_NW
+  const y1 = A.y + nh / 2
+  const x2 = B.x
+  const y2 = B.y + nh / 2
+  const OFF = 22
+  if (x2 - x1 >= 40) {
+    if (style.wire === 'bez' && Math.abs(y1 - y2) >= 1) {
+      const c = Math.max(40, (x2 - x1) * 0.5)
+      return { d: 'M' + x1 + ' ' + y1 + ' C' + (x1 + c) + ' ' + y1 + ' ' + (x2 - c) + ' ' + y2 + ' ' + x2 + ' ' + y2, mid: [(x1 + x2) / 2, (y1 + y2) / 2], x2, y2, pts: [[x1, y1], [x2, y2]] }
+    }
+    if (Math.abs(y1 - y2) < 1) return { d: 'M' + x1 + ' ' + y1 + ' L' + x2 + ' ' + y2, mid: [(x1 + x2) / 2, y1], x2, y2, pts: [[x1, y1], [x2, y2]] }
+    const mx = (x1 + x2) / 2
+    const pts = [[x1, y1], [mx, y1], [mx, y2], [x2, y2]]
+    return { d: kbFlowRounded(pts, style.r), mid: kbFlowMid(pts), x2, y2, pts }
+  }
+  let ym
+  if (B.y >= A.y + nh) ym = Math.max(B.y - KB_FLOW_GAPY / 2, A.y + nh + 10)
+  else if (B.y + nh <= A.y) ym = Math.min(B.y + nh + KB_FLOW_GAPY / 2, A.y - 10)
+  else ym = Math.max(A.y, B.y) + nh + 18
+  const pts = [[x1, y1], [x1 + OFF, y1], [x1 + OFF, ym], [x2 - OFF, ym], [x2 - OFF, y2], [x2, y2]]
+  return { d: kbFlowRounded(pts, Math.max(style.r, 12)), mid: kbFlowMid(pts), x2, y2, pts }
+}
+
+/**
+ * Everything the canvas draws. `cards` = [{ id, trg }], `links` = [{ from, to }] (ids), `opt` = { style, cols, offsets }, `offsets` =
+ * { id: { dx, dy } }. Returns { W, H, base, pos, wires } where `base` is the default place, `pos` the place with the offsets, and
+ * `wires[i]` is the path of `links[i]` (a link to an unknown card has no wire: null).
+ */
+const kbFlowCoords = (cards, links, opt) => {
+  const o = opt !== null && typeof opt === 'object' ? opt : {}
+  const style = o.style !== undefined && o.style !== null ? o.style : KB_FLOW_STYLES[0]
+  const off = o.offsets !== null && typeof o.offsets === 'object' ? o.offsets : {}
+  const base = kbFlowBase(kbFlowGrid(cards, o.cols), style.nh)
+  const pos = {}
+  let mx = 0
+  let my = 0
+  for (const k of cards) {
+    const b = base.pos[k.id]
+    const f = off[k.id]
+    pos[k.id] = { x: b.x + (f !== undefined && f !== null ? f.dx : 0), y: b.y + (f !== undefined && f !== null ? f.dy : 0) }
+    mx = Math.max(mx, pos[k.id].x + KB_FLOW_NW)
+    my = Math.max(my, pos[k.id].y + style.nh)
+  }
+  const wires = links.map((l) => (pos[l.from] !== undefined && pos[l.to] !== undefined ? kbFlowRoute(pos[l.from], pos[l.to], style) : null))
+  return { W: Math.max(base.W, mx + KB_FLOW_PADX), H: Math.max(base.H, my + KB_FLOW_PADY), base: base.pos, pos, wires }
+}
+
+/** What was saved about dragged cards, kept only for cards that exist and for finite, bounded numbers. */
+const kbFlowOffsetsClean = (raw, ids) => {
+  const out = {}
+  if (raw === null || typeof raw !== 'object' || Array.isArray(raw) === true) return out
+  for (const id of ids) {
+    const f = raw[id]
+    if (f === null || typeof f !== 'object') continue
+    if (typeof f.dx !== 'number' || typeof f.dy !== 'number' || Number.isFinite(f.dx) !== true || Number.isFinite(f.dy) !== true) continue
+    out[id] = { dx: Math.max(-3000, Math.min(3000, Math.round(f.dx))), dy: Math.max(-3000, Math.min(3000, Math.round(f.dy))) }
+  }
+  return out
+}
+/** A card dragged by (`dx`, `dy`) from `start` stays inside the canvas (8 px from the top and the left); returns its new offset from `base`. */
+const kbFlowDragOffset = (base, start, dx, dy) => {
+  const x = Math.max(8, start.x + dx)
+  const y = Math.max(8, start.y + dy)
+  return { dx: Math.round(x - base.x), dy: Math.round(y - base.y) }
+}
+/** The scale the canvas is shown at: it fits its frame down to a minimum, below which it scrolls so the cards stay readable. */
+const kbFlowScale = (w, h, cw, ch) => {
+  if (cw <= 0 || ch <= 0) return 1
+  return Math.max(KB_FLOW_MIN_SCALE, Math.min(1, (cw - 8) / w, (ch - 8) / h))
+}
+// KB-AUTOFLOW-END
 
 // KB-AUTOTPL-BEGIN
 // Discover: ready-made starting points for an automation, and the text that turns one into a chat. Pure: no React, no DOM, no host
@@ -21574,39 +21745,32 @@ function renderFit(canvas, model, cam, opts){
     // Plus de coupe à 26 caractères : le nœud replie son titre sur deux
     // lignes (CSS) — on ne garde qu'un garde-fou pour les prompts interminables.
     const kbTaskStepShort = (txt) => { const t = String(txt).replace(/[.]$/, ''); return t.length > 84 ? t.slice(0, 83) + '…' : t }
+    // The cards of the workflow canvas: the schedule, the webhook when there is one, the numbered steps of the text, and the record of the run.
+    // A text with no numbered step is one card: its whole instruction. `full` is the whole instruction (the title is cut), `how` is what the
+    // Code view calls for it, `guard` marks a check that must pass first. A card is told by its id, so adding a webhook moves none of the others.
     const kbTaskNodes = (t) => {
       const steps = kbTaskSteps(t)
-      const nodes = [{ l: 'Schedule', s: kbScheduleLabel(t), c: 'trg', ic: '\u25f7', full: kbScheduleLabel(t), how: 'trg', guard: false }]
-      // `full` is the whole instruction (the title is cut), `how` is what the Code view calls for it, `guard` marks a check that must pass first.
-      for (const st of steps) nodes.push({ l: kbTaskStepShort(st.text), s: kbt('tasks.flow.step') + ' ' + st.n, c: kbTaskStepIsAi(st.text) ? 'ai' : 'act', ic: String(st.n), full: st.text, how: kbTaskStepIsAi(st.text) ? 'ai' : 'act', guard: /^(preflight|pre-flight|garde|guard)\b/i.test(st.text) })
-      if (nodes.length > 1) nodes.push({ l: 'Log run', s: 'audit trail', c: 'gry', ic: '\u2261', full: '', how: 'log', guard: false })
-      // Disposition lisible par défaut : serpent en zigzag (≤ 4 par rangée).
-      // Une ligne droite devient illisible dès 5+ nœuds — le zigzag replie
-      // le parcours sur lui-même et garde le canvas compact.
-      const COLS = 4
-      const NW = 232, NH = 58, VG = 24, HG = 80
-      const rowsCount = Math.ceil(nodes.length / COLS)
-      const positioned = nodes.map((n, i) => {
-        const row = Math.floor(i / COLS)
-        const inRow = i % COLS
-        const rowLen = row === rowsCount - 1 ? nodes.length - row * COLS : COLS
-        const goingRight = row % 2 === 0
-        // dernière rangée incomplète : centrer les nœuds restants
-        const offset = row === rowsCount - 1 && rowLen < COLS ? Math.floor((COLS - rowLen) / 2) : 0
-        const inRowCentered = inRow + offset
-        const col = goingRight ? inRowCentered : (COLS - 1 - inRowCentered)
-        return Object.assign({}, n, { x: 8 + col * NW, y: 8 + row * (NH + HG) })
-      })
-      return { nodes: positioned, edges: nodes.slice(1).map((_, i) => [i, i + 1]) }
+      const tr = (t !== null && t.trigger !== null && t.trigger !== undefined && typeof t.trigger === 'object') ? t.trigger : null
+      const nodes = [{ id: 'schedule', l: kbt('tasks.flow.schedule'), s: kbScheduleLabel(t), c: 'trg', ic: '◷', full: kbScheduleLabel(t), how: 'trg', guard: false }]
+      if (tr !== null && tr.type === 'webhook') nodes.push({ id: 'hook', l: kbt('tasks.tab.hook'), s: kbt('tasks.flow.hook.sub'), c: 'hook', ic: '⇄', full: '', how: 'hook', guard: false })
+      const lead = nodes.length
+      const text = String((t !== null && typeof t.prompt === 'string') ? t.prompt : '').trim()
+      if (steps.length === 0 && text !== '') nodes.push({ id: 's1', l: kbTaskStepShort(text.split('\n')[0]), s: kbt('tasks.flow.step') + ' 1', c: 'ai', ic: '1', full: text, how: 'ai', guard: false })
+      steps.forEach((st, i) => nodes.push({ id: 's' + (i + 1), l: kbTaskStepShort(st.text), s: kbt('tasks.flow.step') + ' ' + st.n, c: kbTaskStepIsAi(st.text) ? 'ai' : 'act', ic: String(st.n), full: st.text, how: kbTaskStepIsAi(st.text) ? 'ai' : 'act', guard: /^(preflight|pre-flight|garde|guard)\b/i.test(st.text) }))
+      if (nodes.length > lead) nodes.push({ id: 'log', l: kbt('tasks.flow.log'), s: kbt('tasks.flow.log.sub'), c: 'gry', ic: '≡', full: '', how: 'log', guard: false })
+      // The triggers all start the first step; the steps follow one another, the last one is recorded.
+      const links = []
+      if (nodes.length > lead) {
+        for (let i = 0; i < lead; i += 1) links.push({ from: nodes[i].id, to: nodes[lead].id })
+        for (let i = lead; i < nodes.length - 1; i += 1) links.push({ from: nodes[i].id, to: nodes[i + 1].id })
+      }
+      return { nodes, links }
     }
-    // Déplacé : positions overrides (drag utilisateur) par automation, persistées en localStorage
-    const KB_FLOW_POS = 'kybernos.flowpos.'
-    const kbFlowPosLoad = (id) => {
-      try { const raw = localStorage.getItem(KB_FLOW_POS + id); return raw !== null ? JSON.parse(raw) : {} } catch (e) { return {} }
-    }
-    const kbFlowPosSave = (id, pos) => {
-      try { localStorage.setItem(KB_FLOW_POS + id, JSON.stringify(pos)) } catch (e) { /* stockage indisponible */ }
-    }
+    // What the canvas draws for each card: its kind, its title, what it says in the styles that say more.
+    const kbTaskCards = (nodes) => nodes.map((n) => {
+      const kind = kbt('tasks.flow.kind.' + n.c)
+      return { id: n.id, trg: n.c === 'trg' || n.c === 'hook', kind: n.c, icon: n.ic, title: n.l, kindLabel: kind, sub: n.c === 'trg' || n.c === 'hook' ? '' : n.s, chips: [n.s], st: null, desc: n.c === 'trg' || n.c === 'hook' || n.full === '' ? '' : n.full, cells: n.c === 'ai' || n.c === 'act' ? [[kbt('tasks.flow.cell.type'), kind], [kbt('tasks.flow.cell.step'), n.ic]] : [[kbt('tasks.flow.cell.type'), kind]] }
+    })
     const kbTaskCode = (t) => {
       const steps = kbTaskSteps(t)
       const out = ['// generated from Text — read-only', 'export default automation({', '  id: "task-' + String(t.id) + '",', '  runsOn: "local",', kbTaskTriggerCode(t.schedule), '  async run(event, { ai, tools }) {']
@@ -21668,6 +21832,176 @@ function renderFit(canvas, model, cam, opts){
         return json !== null && typeof json === 'object' && json.ok === true && json.outcomes !== null && typeof json.outcomes === 'object' ? json.outcomes : {}
       } catch (e) { return {} }
     }
+    // ── The canvas of a workflow and of a run: cards you can drag, wires routed between them, nine styles ─────────────────────────
+    // The layout, the wires and what a drag keeps are the pure KB-AUTOFLOW block at the top of this file (tested). This draws them. The
+    // style is one choice for the whole page (the two canvases, the workflow and a run, share it); the arrangement is kept per
+    // automation, in this browser: a card keeps an offset from its default place, so it survives a change of style.
+    const KB_FLOW_STYLE_KEY = 'kybernos.flowstyle'
+    const KB_FLOW_POS2 = 'kybernos.flowpos2.'
+    let kbFlowStyleNow = null
+    const kbFlowStyleSubs = []
+    const kbFlowStyleGet = () => {
+      if (kbFlowStyleNow === null) {
+        let raw = null
+        try { raw = localStorage.getItem(KB_FLOW_STYLE_KEY) } catch (e) { /* storage unavailable: the first style */ }
+        kbFlowStyleNow = kbFlowStyleOf(raw).id
+      }
+      return kbFlowStyleNow
+    }
+    const kbFlowStyleSet = (id) => {
+      kbFlowStyleNow = kbFlowStyleOf(id).id
+      try { localStorage.setItem(KB_FLOW_STYLE_KEY, kbFlowStyleNow) } catch (e) { /* storage unavailable: kept for this page only */ }
+      for (const f of kbFlowStyleSubs.slice()) { try { f() } catch (e) { /* a canvas that is gone */ } }
+    }
+    const kbFlowPosLoad2 = (key, ids) => {
+      try { const raw = localStorage.getItem(KB_FLOW_POS2 + key); return kbFlowOffsetsClean(raw !== null ? JSON.parse(raw) : null, ids) } catch (e) { return {} }
+    }
+    const kbFlowPosSave2 = (key, offsets) => {
+      try {
+        if (Object.keys(offsets).length === 0) localStorage.removeItem(KB_FLOW_POS2 + key)
+        else localStorage.setItem(KB_FLOW_POS2 + key, JSON.stringify(offsets))
+      } catch (e) { /* storage unavailable */ }
+    }
+    // A small drawing of a style for the menu: the canvas colours, two cards and a wire of its kind. It takes its colours from the
+    // style's own class, so it can never drift from the canvas.
+    const kbFlowSample = (s) => h('svg', { className: 'kbfc-sample kbfc-th-' + s.id, viewBox: '0 0 46 28', width: 46, height: 28, 'aria-hidden': 'true' },
+      h('rect', { className: 'bg', width: 46, height: 28 }),
+      h('rect', { className: 'nd', x: 4, y: 4.5, width: 13, height: 9, rx: 2.5 }),
+      h('rect', { className: 'nd', x: 30, y: 15.5, width: 13, height: 9, rx: 2.5 }),
+      h('path', { className: 'wr', d: s.wire === 'bez' ? 'M17 9 C26 9 21 20 30 20' : 'M17 9 H23 V20 H30', fill: 'none', strokeDasharray: s.dash }))
+    // props: nodes [{ id, trg, kind, icon, title, kindLabel, sub, chips[], st, desc, cells[[label, value]], tip }], links [{ from, to, label, tone }],
+    // selId, onSelect(id), storeKey (what the arrangement is kept under), height (CSS), extra (more buttons, after the style button).
+    const KbFlowCanvas = (props) => {
+      const stylePair = React.useState(kbFlowStyleGet())
+      const styleId = stylePair[0]
+      React.useEffect(() => {
+        const f = () => stylePair[1](kbFlowStyleGet())
+        kbFlowStyleSubs.push(f)
+        return () => { const i = kbFlowStyleSubs.indexOf(f); if (i >= 0) kbFlowStyleSubs.splice(i, 1) }
+      }, [])
+      const style = kbFlowStyleOf(styleId)
+      const ids = props.nodes.map((n) => n.id)
+      const idsKey = ids.join('|')
+      const offPair = React.useState(() => kbFlowPosLoad2(props.storeKey, ids))
+      const offsets = offPair[0]
+      const setOffsets = offPair[1]
+      const offRef = React.useRef(offsets)
+      offRef.current = offsets
+      React.useEffect(() => { const o = kbFlowPosLoad2(props.storeKey, ids); offRef.current = o; setOffsets(o) }, [props.storeKey, idsKey])
+      const menuPair = React.useState(false)
+      const menu = menuPair[0]
+      const setMenu = menuPair[1]
+      const hintPair = React.useState(true)
+      const sizePair = React.useState({ w: 0, h: 0 })
+      const size = sizePair[0]
+      const rootRef = React.useRef(null)
+      // Measured before the first paint, so the canvas is never shown at the wrong scale for a frame.
+      React.useLayoutEffect(() => {
+        const el = rootRef.current
+        if (el === null) return undefined
+        const measure = () => sizePair[1]((p) => (p.w === el.clientWidth && p.h === el.clientHeight ? p : { w: el.clientWidth, h: el.clientHeight }))
+        measure()
+        let ro = null
+        try { ro = new ResizeObserver(measure); ro.observe(el) } catch (e) { window.addEventListener('resize', measure) }
+        return () => { if (ro !== null) ro.disconnect(); else window.removeEventListener('resize', measure) }
+      }, [])
+      const dragRef = React.useRef(null)
+      const quietRef = React.useRef(false)
+      const cards = props.nodes.map((n) => ({ id: n.id, trg: n.trg === true }))
+      const lay = kbFlowCoords(cards, props.links, { style, offsets })
+      const k = kbFlowScale(lay.W, lay.H, size.w, size.h)
+      const layRef = React.useRef(lay)
+      layRef.current = lay
+      const kRef = React.useRef(k)
+      kRef.current = k
+      React.useEffect(() => {
+        if (props.selId === null || props.selId === undefined || rootRef.current === null) return
+        const el = rootRef.current.querySelector('[data-id="' + String(props.selId).replace(/"/g, '') + '"]')
+        try { if (el !== null && el.scrollIntoView !== undefined) el.scrollIntoView({ block: 'nearest', inline: 'nearest' }) } catch (e) { /* no scrolling */ }
+      }, [props.selId])
+      const onDown = (e, n) => {
+        if (e.button !== undefined && e.button > 0) return
+        dragRef.current = { id: n.id, sx: e.clientX, sy: e.clientY, start: layRef.current.pos[n.id], moved: false, pid: e.pointerId }
+      }
+      const onMove = (e) => {
+        const d = dragRef.current
+        if (d === null) return
+        const dx = (e.clientX - d.sx) / kRef.current
+        const dy = (e.clientY - d.sy) / kRef.current
+        if (d.moved === false) {
+          if (Math.hypot(dx, dy) * kRef.current < 5) return
+          d.moved = true
+          try { e.currentTarget.setPointerCapture(d.pid) } catch (er) { /* pointer capture unavailable */ }
+        }
+        const next = Object.assign({}, offRef.current, { [d.id]: kbFlowDragOffset(layRef.current.base[d.id], d.start, dx, dy) })
+        offRef.current = next
+        setOffsets(next)
+      }
+      const onUp = () => {
+        const d = dragRef.current
+        dragRef.current = null
+        if (d === null || d.moved === false) return
+        quietRef.current = true
+        setTimeout(() => { quietRef.current = false }, 0)
+        hintPair[1](false)
+        kbFlowPosSave2(props.storeKey, offRef.current)
+      }
+      const tidy = () => { offRef.current = {}; setOffsets({}); kbFlowPosSave2(props.storeKey, {}) }
+      const pick = (n) => { if (quietRef.current === true) return; props.onSelect(n.id) }
+      const hasOut = (id) => props.links.some((l) => l.from === id)
+      const hasIn = (id) => props.links.some((l) => l.to === id)
+      const wires = []
+      const labels = []
+      props.links.forEach((l, i) => {
+        const w = lay.wires[i]
+        if (w === null) return
+        const src = props.nodes.filter((n) => n.id === l.from)[0]
+        const cls = 'kbfc-k-' + (src !== undefined ? src.kind : 'gry') + (l.tone === 'ok' ? ' ok' : (l.tone === 'bad' ? ' bad' : (l.tone === 'dim' ? ' dim' : '')))
+        wires.push(h('path', { key: 'w' + i, className: 'kbfc-wire ' + cls, d: w.d }))
+        if (style.arrow === true) wires.push(h('path', { key: 'a' + i, className: 'kbfc-arr ' + cls, d: 'M' + (w.x2 - 10) + ' ' + (w.y2 - 5.5) + ' L' + w.x2 + ' ' + w.y2 + ' L' + (w.x2 - 10) + ' ' + (w.y2 + 5.5) + 'Z' }))
+        if (l.label !== null && l.label !== undefined && l.label !== '') labels.push(h('span', { key: 'l' + i, className: 'kbfc-el' + (l.tone === 'bad' ? ' bad' : '') + (l.tone === 'ok' ? ' ok' : ''), style: { left: w.mid[0], top: w.mid[1] } }, l.label))
+      })
+      const card = (n) => {
+        const p = lay.pos[n.id]
+        const kind = n.kindLabel
+        return h('div', {
+          key: n.id, role: 'button', tabIndex: 0, 'data-kb': 'flow-card', 'data-id': n.id, 'aria-label': n.title,
+          className: 'kbfc-nd kbfc-k-' + n.kind + (props.selId === n.id ? ' sel' : '') + (n.st === 'skip' ? ' skip' : '') + (n.st === 'bad' ? ' bad' : ''),
+          style: { left: p.x, top: p.y, width: KB_FLOW_NW, height: style.nh },
+          title: n.tip !== undefined ? n.tip : undefined,
+          onPointerDown: (e) => onDown(e, n), onPointerMove: onMove, onPointerUp: onUp, onPointerCancel: onUp,
+          onClick: () => pick(n),
+          onKeyDown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(n) } },
+        },
+          hasIn(n.id) ? h('i', { className: 'kbfc-pt pi' }) : null,
+          hasOut(n.id) ? h('i', { className: 'kbfc-pt po' }) : null,
+          h('span', { className: 'kbfc-kl' }, h('span', { className: 'kbfc-g' }, n.icon), kind),
+          h('span', { className: 'kbfc-top' },
+            h('span', { className: 'kbfc-ic' }, n.icon),
+            h('span', { className: 'kbfc-tt' }, h('b', null, n.title), h('em', { className: 'kbfc-kd' }, n.sub !== '' ? kind + ' · ' + n.sub : kind))),
+          h('span', { className: 'kbfc-ds' }, h('span', { className: 'kbfc-r' }, h('span', null, String(kind).toUpperCase()), n.chips.length > 0 ? h('span', null, n.chips[0]) : null), n.desc !== '' ? h('em', { className: 'kbfc-dx' }, n.desc) : null),
+          h('span', { className: 'kbfc-st3' }, n.cells.map((c, i) => h('span', { key: i }, h('i', null, c[0]), h('strong', null, c[1])))),
+          h('span', { className: 'kbfc-ft' }, n.chips.map((c, i) => h('span', { key: i, className: 'kbfc-ch' }, n.st !== null && i === 0 ? h('i', { className: 'kbfc-dot ' + (n.st === 'bad' ? 'bad' : (n.st === 'skip' ? 'skip' : '')) }) : null, c))),
+          n.st !== null ? h('i', { className: 'kbfc-sd ' + (n.st === 'bad' ? 'bad' : (n.st === 'skip' ? 'skip' : '')) }) : null)
+      }
+      const arranged = Object.keys(offsets).length > 0
+      return h('div', { className: 'kbfc kbfc-th-' + style.id, ref: rootRef, 'data-kb': 'flow-canvas', 'data-style': style.id, style: { height: props.height } },
+        h('div', { className: 'kbfc-scr' },
+          h('div', { className: 'kbfc-vpw', style: { width: Math.round(lay.W * k), height: Math.round(lay.H * k) } },
+            h('div', { className: 'kbfc-vp', style: { width: lay.W, height: lay.H, transform: 'scale(' + k + ')' } },
+              h('svg', { className: 'kbfc-wires', width: lay.W, height: lay.H, 'aria-hidden': 'true' }, wires),
+              h('div', { className: 'kbfc-labs' }, labels),
+              props.nodes.map(card)))),
+        h('div', { className: 'kbfc-tools' },
+          (arranged === true ? h('button', { type: 'button', className: 'kbfc-tb', 'data-kb': 'flow-reset', title: kbt('flow.tidy'), onClick: tidy }, Icon('rotateCcw', 13), h('span', null, kbt('flow.tidy'))) : null),
+          h('button', { type: 'button', className: 'kbfc-tb', 'data-kb': 'flow-style', 'aria-expanded': menu === true ? 'true' : 'false', title: kbt('flow.style.title'), onClick: () => setMenu(!menu) }, Icon('palette', 13), h('span', null, kbt('flow.style.' + style.id))),
+          props.extra !== undefined ? props.extra : null),
+        (menu === true ? h('div', { className: 'kbfc-menu', role: 'menu', 'data-kb': 'flow-style-menu' },
+          KB_FLOW_STYLES.map((s) => h('button', { key: s.id, type: 'button', role: 'menuitemradio', 'aria-checked': s.id === style.id ? 'true' : 'false', 'data-style': s.id, className: s.id === style.id ? 'on' : '', onClick: () => { kbFlowStyleSet(s.id); setMenu(false) } },
+            kbFlowSample(s), h('span', null, h('b', null, kbt('flow.style.' + s.id)), h('small', null, kbt('flow.style.' + s.id + '.d')))))) : null),
+        (hintPair[0] === true && arranged === false ? h('div', { className: 'kbfc-hint' }, kbt('flow.hint.drag')) : null))
+    }
+
     // ── The runs of one automation: Sessions (executions, graph, logs) and Journal (the story of one run) ──────────────────
     // Read-only. The history comes from tasks.json; what each run did comes from the engine's journals through
     // GET /kybernos/tasks/runs (the pure part is the KB-AUTORUNS block at the top of this file). Own fetch, not host.call: a host that
@@ -21730,13 +22064,13 @@ function renderFit(canvas, model, cam, opts){
       const lessonPair = React.useState(undefined)
       const lessonErrPair = React.useState('')
       React.useEffect(() => {
-        if (props.mode !== 'journal' || typeof props.taskId !== 'string') return undefined
+        if (typeof props.taskId !== 'string') return undefined
         let alive = true
         fetch(kbApiBase() + '/automation-skills?id=' + encodeURIComponent(props.taskId), { method: 'GET', cache: 'no-store' })
           .then((r) => (r.ok === true ? r.json() : null)).then((j) => { if (alive === true) lessonPair[1](j !== null && typeof j === 'object' && j.ok === true ? j.lesson : null) })
           .catch(() => { if (alive === true) lessonPair[1](null) })
         return () => { alive = false }
-      }, [props.mode, props.taskId, runs.length])
+      }, [props.taskId, runs.length])
       const createSkill = () => {
         lessonErrPair[1]('')
         fetch(kbApiBase() + '/automation-skills', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id: props.taskId }) })
@@ -21755,12 +22089,12 @@ function renderFit(canvas, model, cam, opts){
       React.useEffect(() => kbRunsRead(ids, (add) => setSums((prev) => Object.assign({}, prev, add))), [idsKey])
       // The input and output of the steps of the run that is open, asked for that one run only.
       React.useEffect(() => {
-        if (props.mode !== 'sessions' || selId === null || det[selId] !== undefined) return undefined
+        if (selId === null || det[selId] !== undefined) return undefined
         let alive = true
         setDet((prev) => Object.assign({}, prev, { [selId]: 'loading' }))
         kbRunsFetch([selId], true).then((got) => { if (alive === true) setDet((prev) => Object.assign({}, prev, { [selId]: got[selId] !== undefined ? got[selId] : 'none' })) })
         return () => { alive = false }
-      }, [selId, props.mode])
+      }, [selId])
       if (runs.length === 0) return h('div', { className: 'kba-sesscroll' }, h('div', { className: 'kba-empty' }, props.emptyText))
       const sumOf = (r) => (r.sessionId !== null && sums[r.sessionId] !== undefined && sums[r.sessionId] !== null ? sums[r.sessionId] : null)
       const sel = sumOf(selRun)
@@ -21768,37 +22102,44 @@ function renderFit(canvas, model, cam, opts){
       const stats = kbRunStats(runs, sums)
       const model = sel !== null && Array.isArray(sel.models) === true && sel.models.length > 0 ? sel.models[0] : null
       const durOf = (s) => kbRunFmtDur(s !== null ? s.durationMs : null)
-      const tile = (label, value, bad) => h('div', { key: label, className: 'kbrn-stat' + (bad === true ? ' bad' : '') }, h('span', { className: 'kbrn-stk' }, label), h('span', { className: 'kbrn-stv' }, value))
       const stateLine = h('span', { className: state === 'failed' ? 'kbrn-badtxt' : (state === 'completed' ? 'kbrn-oktxt' : 'dim') }, kbRunStateText(state, durOf(sel), selRun))
       const failNote = selRun.status === 'error' && selRun.error !== null ? h('div', { className: 'kbrn-xerr' }, selRun.error) : null
       const openChat = selId !== null ? h('button', { type: 'button', className: 'kba-btn', onClick: () => props.onOpenChat(selId) }, kbt('tasks.sessions.openchat') + ' ›') : null
       const readNote = sel === null && selId !== null ? h('div', { className: 'kba-hint' }, kbt('tasks.runs.noread')) : null
 
-      if (props.mode === 'journal') {
-        // The six newest runs, and the chosen one when it is older; the rest are one press away, in Sessions: no run is cut without a word.
-        const shownIdx = runs.map((r, i) => i).filter((i) => i < 6 || keys[i] === selKey)
-        const chips = shownIdx.map((i) => h('button', { key: keys[i], type: 'button', className: 'kba-tab' + (keys[i] === selKey ? ' on' : ''), onClick: () => props.onSelect(keys[i]) }, kbRunFmtDT(runs[i].at, locale)))
-        if (shownIdx.length < runs.length) chips.push(h('button', { key: 'all', type: 'button', className: 'kba-tab', 'data-kb': 'runs-all', onClick: () => props.onSessions() }, kbt('tasks.runs.all').replace('{n}', String(runs.length))))
-        const row = (k, v) => h('div', { key: k, className: 'kbrn-kv' }, h('span', { className: 'kbrn-k' }, k), h('span', { className: 'kbrn-v' }, v))
-        const nodes = sel !== null && Array.isArray(sel.nodes) === true ? sel.nodes : []
-        return h('div', { className: 'kba-sesscroll', 'data-kb': 'runs-journal' },
-          h('div', { className: 'kba-tabs' }, chips),
-          h('div', { className: 'kbrn-jhead' }, h('b', null, kbRunFmtDT(selRun.at, locale, true)), stateLine, h('span', { style: { flex: 1 } }), openChat),
-          failNote,
-          readNote,
+      // Sessions: the executions on the left, the one that is open on the right (its graph, then its logs).
+      const g = kbRunGraph(sel, state === 'failed')
+      const ix = Math.min(nodeIdx, g.nodes.length - 1)
+      const nodeView = g.nodes.map((n) => {
+        if (n.type === 'start') return { kind: 'trg', icon: '▶', title: kbt('tasks.runs.started'), sub: kbRunFmtHm(selRun.at, locale), st: null }
+        if (n.type === 'more') return { kind: 'gry', icon: '…', title: kbt('tasks.runs.more').replace('{n}', String(n.n)), sub: kbt('tasks.runs.moresub'), st: null }
+        if (n.type === 'final') return { kind: 'gry', icon: '≡', title: kbt('tasks.runs.final'), sub: kbRunFmtDur(n.thinkMs), st: n.ok === false ? 'bad' : 'ok' }
+        return { kind: n.kind === 'skill' ? 'ai' : 'act', icon: kbRunIcon(n.kind), title: n.label, sub: kbRunFmtDur((n.thinkMs || 0) + (n.runMs || 0)) + ' · ' + n.kind, st: n.ok === false ? 'bad' : 'ok' }
+      })
+      // The same canvas as the workflow: a card per step of this run, a wire per hand-over (labelled with what the step handed on).
+      const runCards = g.nodes.map((n, i) => { const v = nodeView[i]; return { id: 'n' + i, trg: i === 0, kind: v.kind, icon: v.icon, title: v.title, kindLabel: kbt('tasks.flow.kind.' + v.kind), sub: v.sub, chips: [v.sub], st: v.st, desc: '', cells: [[kbt('tasks.runs.duration'), v.sub.split(' · ')[0]], [kbt('tasks.flow.cell.type'), kbt('tasks.flow.kind.' + v.kind)]] } })
+      const runLinks = g.nodes.slice(1).map((n, i) => ({ from: 'n' + i, to: 'n' + (i + 1), label: g.labels[i] !== null && g.labels[i] !== undefined ? kbRunFmtBytes(g.labels[i]) : null, tone: nodeView[i + 1].st === 'bad' ? 'bad' : (nodeView[i].st !== 'bad' && nodeView[i + 1].st === 'ok' ? 'ok' : null) }))
+      const graph = h(KbFlowCanvas, { nodes: runCards, links: runLinks, selId: 'n' + ix, onSelect: (id) => setNodeIdx(Number(String(id).slice(1))), storeKey: 'run.' + String(props.taskId), height: 'clamp(330px,46vh,480px)' })
+      const detail = selId !== null && det[selId] !== undefined && det[selId] !== 'loading' && det[selId] !== 'none' ? det[selId] : null
+      const toolNode = g.nodes[ix] !== undefined && g.nodes[ix].type === 'tool' ? g.nodes[ix] : null
+      const exact = detail !== null && Array.isArray(detail.nodes) === true && toolNode !== null ? detail.nodes[ix - 1] : null
+      let logBody
+      if (toolNode === null) logBody = h('div', { className: 'kba-hint', style: { padding: 14 } }, nodeView[ix] !== undefined ? nodeView[ix].title : '')
+      else if (selId !== null && det[selId] === 'loading') logBody = h('div', { className: 'kba-hint', style: { padding: 14 } }, kbt('tasks.runs.reading'))
+      else if (exact === null || exact === undefined || typeof exact.in !== 'string') logBody = h('div', { className: 'kba-hint', style: { padding: 14 } }, kbt('tasks.runs.noio'))
+      else logBody = h('div', { style: { display: 'flex', flexDirection: 'column' } },
+        h('div', { className: 'kbrn-iot' },
+          ['in', 'out'].map((k) => h('button', { key: k, type: 'button', className: 'kbrn-tb' + (io === k ? ' on' : ''), onClick: () => setIo(k) }, kbt(k === 'in' ? 'tasks.runs.input' : 'tasks.runs.output'))),
+          h('span', { className: 'dim', style: { marginLeft: 'auto' } }, kbt('tasks.runs.think') + ' ' + kbRunFmtDur(exact.thinkMs) + ' · ' + kbt('tasks.runs.run') + ' ' + kbRunFmtDur(exact.runMs))),
+        h('pre', { className: 'kbrn-pre' }, io === 'in' ? exact.in : (typeof exact.out === 'string' && exact.out.length > 0 ? exact.out : '—')))
+      // What the Journal tab used to say, now under the run it is about: who ran (the model and why), the approvals, and what the runs teach.
+      const row = (k, v) => h('div', { key: k, className: 'kbrn-kv' }, h('span', { className: 'kbrn-k' }, k), h('span', { className: 'kbrn-v' }, v))
+      const about = h('div', { className: 'kbrn-about', 'data-kb': 'run-about' },
           sel === null ? null : h('div', { className: 'kba-card kbrn-card' },
             h('span', { className: 'kba-tabver mono' }, kbt('tasks.journal.who')),
             row(kbt('tasks.runs.model'), model !== null ? h('span', null, h('b', { className: 'kbrn-mono' }, model.model), model.provider !== '' ? ' · ' + model.provider : '') : '—'),
             row(kbt('tasks.journal.why'), sel.selected === true ? kbt('tasks.journal.why.set') : kbt('tasks.journal.why.default')),
             row(kbt('tasks.runs.duration'), durOf(sel) + ' · ' + kbt('tasks.runs.steps').replace('{n}', String(sel.steps)) + ' · ' + kbt('tasks.runs.tools').replace('{n}', String(sel.toolCalls)))),
-          sel === null ? null : h('div', { className: 'kba-card kbrn-card' },
-            h('span', { className: 'kba-tabver mono' }, kbt('tasks.journal.what')),
-            nodes.map((n, i) => h('div', { key: i, className: 'kbrn-step' },
-              h('span', { className: 'kba-kdot ' + (n.ok === false ? 'fail' : 'ok') }),
-              h('span', { className: 'kbrn-sl' }, h('b', null, String(i + 1) + ' · ' + n.label), h('span', { className: 'dim' }, ' · ' + n.kind + (typeof n.approval === 'string' ? ' · ' + kbt('tasks.journal.approval') + ': ' + n.approval : ''))),
-              h('span', { className: 'dim' }, kbRunFmtDur((n.thinkMs || 0) + (n.runMs || 0))))),
-            sel.nodeCount > nodes.length ? h('div', { className: 'kba-hint' }, kbt('tasks.runs.more').replace('{n}', String(sel.nodeCount - nodes.length)) + ' · ' + kbt('tasks.runs.moresub')) : null,
-            sel.final !== null && sel.final !== undefined ? h('div', { className: 'kbrn-step' }, h('span', { className: 'kba-kdot ' + (state === 'failed' ? 'fail' : 'ok') }), h('span', { className: 'kbrn-sl' }, h('b', null, kbt('tasks.runs.final'))), h('span', { className: 'dim' }, kbRunFmtDur(sel.final.thinkMs))) : null),
           sel === null ? null : h('div', { className: 'kba-card kbrn-card' },
             h('span', { className: 'kba-tabver mono' }, kbt('tasks.journal.approvals')),
             (Array.isArray(sel.approvals) === true && sel.approvals.length > 0
@@ -21819,42 +22160,7 @@ function renderFit(canvas, model, cam, opts){
                     h('span', { className: 'dim' }, kbt(lesson.autoSkill === true ? 'tasks.lesson.soon' : 'tasks.lesson.hint')))
                   : h('div', null, kbt('tasks.lesson.progress').replace('{k}', String(lesson.streak)).replace('{n}', String(lesson.stableAfter))))),
               (lessonErrPair[0] !== '' ? h('div', { className: 'kbrn-badtxt' }, lessonErrPair[0]) : null))
-          })()
-        )
-      }
-
-      // Sessions: the executions on the left, the one that is open on the right (its graph, then its logs).
-      const g = kbRunGraph(sel, state === 'failed')
-      const lay = kbGraphLayout(g.nodes.length, { nw: 160, hg: 56 })
-      const ix = Math.min(nodeIdx, g.nodes.length - 1)
-      const tools = sel !== null && Array.isArray(sel.nodes) === true ? sel.nodes : []
-      const nodeView = g.nodes.map((n) => {
-        if (n.type === 'start') return { kind: 'trg', icon: '▶', title: kbt('tasks.runs.started'), sub: kbRunFmtHm(selRun.at, locale), st: null }
-        if (n.type === 'more') return { kind: 'gry', icon: '…', title: kbt('tasks.runs.more').replace('{n}', String(n.n)), sub: kbt('tasks.runs.moresub'), st: null }
-        if (n.type === 'final') return { kind: 'gry', icon: '≡', title: kbt('tasks.runs.final'), sub: kbRunFmtDur(n.thinkMs), st: n.ok === false ? 'bad' : 'ok' }
-        return { kind: n.kind === 'skill' ? 'ai' : 'act', icon: kbRunIcon(n.kind), title: n.label, sub: kbRunFmtDur((n.thinkMs || 0) + (n.runMs || 0)) + ' · ' + n.kind, st: n.ok === false ? 'bad' : 'ok' }
-      })
-      const graph = h('div', { className: 'kbrn-gs' }, h('div', { className: 'kbrn-g', style: { width: lay.width, height: lay.height } },
-        h('svg', { className: 'kbrn-eg', width: lay.width, height: lay.height, viewBox: '0 0 ' + lay.width + ' ' + lay.height, 'aria-hidden': 'true' },
-          h('defs', null, h('marker', { id: 'kbrn-ar', viewBox: '0 0 8 8', refX: 7, refY: 4, markerWidth: 7, markerHeight: 7, orient: 'auto' }, h('path', { d: 'M0 0 8 4 0 8z', fill: 'currentColor' }))),
-          lay.edges.map((e, i) => h('path', { key: i, d: 'M' + e.x1 + ' ' + e.y1 + ' L' + e.x2 + ' ' + e.y2, stroke: 'currentColor', strokeWidth: 1.6, fill: 'none', markerEnd: 'url(#kbrn-ar)' }))),
-        lay.edges.map((e, i) => (g.labels[i] !== null && g.labels[i] !== undefined ? h('span', { key: 'l' + i, className: 'kbrn-el', style: { left: e.lx, top: e.ly } }, kbRunFmtBytes(g.labels[i])) : null)),
-        nodeView.map((n, i) => h('button', { key: i, type: 'button', 'data-kb': 'run-node', className: 'kbrn-nd ' + n.kind + (n.st !== null ? ' ' + n.st : '') + (i === ix ? ' sel' : ''), style: { left: lay.pos[i].x, top: lay.pos[i].y, width: 160 }, title: n.title, onClick: () => setNodeIdx(i) },
-          h('span', { className: 'kbrn-nb ' + n.kind }, n.icon),
-          h('span', { className: 'kbrn-nt' }, h('span', { className: 'kbrn-nh' }, n.title), h('span', { className: 'kbrn-ns' }, n.sub)),
-          n.st === 'ok' ? h('span', { className: 'kbrn-nok' }, Icon('check', 12)) : (n.st === 'bad' ? h('span', { className: 'kbrn-nbad' }, '✕') : null)))))
-      const detail = selId !== null && det[selId] !== undefined && det[selId] !== 'loading' && det[selId] !== 'none' ? det[selId] : null
-      const toolNode = g.nodes[ix] !== undefined && g.nodes[ix].type === 'tool' ? g.nodes[ix] : null
-      const exact = detail !== null && Array.isArray(detail.nodes) === true && toolNode !== null ? detail.nodes[ix - 1] : null
-      let logBody
-      if (toolNode === null) logBody = h('div', { className: 'kba-hint', style: { padding: 14 } }, nodeView[ix] !== undefined ? nodeView[ix].title : '')
-      else if (selId !== null && det[selId] === 'loading') logBody = h('div', { className: 'kba-hint', style: { padding: 14 } }, kbt('tasks.runs.reading'))
-      else if (exact === null || exact === undefined || typeof exact.in !== 'string') logBody = h('div', { className: 'kba-hint', style: { padding: 14 } }, kbt('tasks.runs.noio'))
-      else logBody = h('div', { style: { display: 'flex', flexDirection: 'column' } },
-        h('div', { className: 'kbrn-iot' },
-          ['in', 'out'].map((k) => h('button', { key: k, type: 'button', className: 'kbrn-tb' + (io === k ? ' on' : ''), onClick: () => setIo(k) }, kbt(k === 'in' ? 'tasks.runs.input' : 'tasks.runs.output'))),
-          h('span', { className: 'dim', style: { marginLeft: 'auto' } }, kbt('tasks.runs.think') + ' ' + kbRunFmtDur(exact.thinkMs) + ' · ' + kbt('tasks.runs.run') + ' ' + kbRunFmtDur(exact.runMs))),
-        h('pre', { className: 'kbrn-pre' }, io === 'in' ? exact.in : (typeof exact.out === 'string' && exact.out.length > 0 ? exact.out : '—')))
+          })())
       const logs = h('div', { className: 'kbrn-logs' }, h('div', { className: 'kbrn-lgh' }, kbt('tasks.runs.logs')),
         h('div', { className: 'kbrn-lgb' },
           h('div', { className: 'kbrn-lgl' }, nodeView.map((n, i) => h('button', { key: i, type: 'button', className: 'kbrn-lg' + (i === ix ? ' on' : ''), onClick: () => setNodeIdx(i) }, h('span', { className: 'kbrn-lgn ' + (n.st || n.kind) }, n.icon), h('span', { className: 'kbrn-lgt' }, n.title), h('span', { className: 'dim' }, String(n.sub).split(' · ')[0])))),
@@ -21865,13 +22171,14 @@ function renderFit(canvas, model, cam, opts){
           h('span', { className: 'kbrn-xbar ' + (st === 'failed' ? 'bad' : (st === 'completed' ? 'ok' : 'idle')) }),
           h('span', { className: 'kbrn-xt' }, h('b', null, kbRunFmtDT(r.at, locale)), h('span', { className: st === 'failed' ? 'kbrn-badtxt' : 'dim' }, kbRunStateText(st, durOf(s), r)))) }))
       return h('div', { className: 'kba-sesscroll', 'data-kb': 'runs-sessions' },
-        h('div', { className: 'kbrn-stats' }, tile(kbt('tasks.runs.stat.runs'), String(stats.runs)), tile(kbt('tasks.runs.stat.failed'), String(stats.failed), stats.failed > 0), tile(kbt('tasks.runs.stat.median'), kbRunFmtDur(stats.median)), tile(kbt('tasks.runs.stat.slowest'), kbRunFmtDur(stats.slowest))),
+        h('div', { className: 'kbrn-strip', 'data-kb': 'runs-strip' }, [[kbt('tasks.runs.stat.runs'), String(stats.runs), false], [kbt('tasks.runs.stat.failed'), String(stats.failed), stats.failed > 0], [kbt('tasks.runs.stat.median'), kbRunFmtDur(stats.median), false], [kbt('tasks.runs.stat.slowest'), kbRunFmtDur(stats.slowest), false]].map((x, k) => h('span', { key: k, className: x[2] === true ? 'bad' : '' }, x[0] + ' ', h('b', null, x[1])))),
         h('div', { className: 'kbrn-xwrap' }, listCol,
           h('div', { className: 'kbrn-xp' },
-            h('div', { className: 'kbrn-xph' }, h('div', null, h('div', { className: 'kbrn-xpd' }, kbRunFmtDT(selRun.at, locale, true)), h('div', null, stateLine, selId !== null ? h('span', { className: 'dim' }, ' | ' + selId.slice(0, 14) + (model !== null ? ' | ' + model.model : '')) : null)), h('span', { style: { flex: 1 } }), openChat, selId !== null ? h('button', { type: 'button', className: 'kba-btn', onClick: () => props.onJournal() }, kbt('tasks.tab.journal') + ' ›') : null),
+            h('div', { className: 'kbrn-xph' }, h('div', null, h('div', { className: 'kbrn-xpd' }, kbRunFmtDT(selRun.at, locale, true)), h('div', null, stateLine, selId !== null ? h('span', { className: 'dim' }, ' | ' + selId.slice(0, 14) + (model !== null ? ' | ' + model.model : '')) : null)), h('span', { style: { flex: 1 } }), openChat),
             failNote, readNote,
-            h('div', { className: 'kba-card kbrn-canvas' }, graph),
-            logs)),
+            graph,
+            logs,
+            about)),
         h('div', { className: 'kba-hint' }, kbt('tasks.runs.hint')))
     }
     // ── Discover: ready-made starting points (the pure part is the KB-AUTOTPL block at the top of this file) ────────────────────────────
@@ -22390,10 +22697,10 @@ function renderFit(canvas, model, cam, opts){
       const loadErrPair = React.useState(null)
       const loadErr = loadErrPair[0]
       const setLoadErr = loadErrPair[1]
-      const tabPair = React.useState('sessions')
+      const tabPair = React.useState('flow')
       const tab = tabPair[0]
       const setTab = tabPair[1]
-      const viewPair = React.useState('text')
+      const viewPair = React.useState('flow')
       const view = viewPair[0]
       const setView = viewPair[1]
       const nodeSelPair = React.useState(null)
@@ -22406,11 +22713,10 @@ function renderFit(canvas, model, cam, opts){
       const sectionPair = React.useState('yours')
       const section = sectionPair[0]
       const setSection = sectionPair[1]
-      // positions de flow déplacées par drag (persistées par automation)
-      const flowPosPair = React.useState(null)
-      const flowPos = flowPosPair[0]
-      const setFlowPos = flowPosPair[1]
-      const dragRef = React.useRef(null)
+      // The address of the webhook is hidden until the person asks for it.
+      const hookShownPair = React.useState(false)
+      const hookShown = hookShownPair[0]
+      const setHookShown = hookShownPair[1]
       const draftPair = React.useState({})
       const draft = draftPair[0]
       const setDraft = draftPair[1]
@@ -22543,6 +22849,7 @@ function renderFit(canvas, model, cam, opts){
           h('span', { className: 'kba-tabver' }, kbt('tasks.col.name')),
           h('span', { className: 'kba-tabver' }, kbt('tasks.col.trigger')),
           h('span', { className: 'kba-tabver' }, kbt('tasks.col.lastsession')),
+          h('span', { className: 'kba-tabver' }, kbt('tasks.col.success')),
           h('span', { className: 'kba-tabver' }, kbt('tasks.col.sessions'))),
         h('span', null),
         h('span', { className: 'kba-oncol' }, h('span', { className: 'kba-tabver' }, kbt('tasks.col.on'))))
@@ -22551,7 +22858,7 @@ function renderFit(canvas, model, cam, opts){
         [0, 1, 2, 3].map((i) => h('div', { key: 'r' + i, className: 'kba-rowline kb-sk-row' },
           h('div', { className: 'kba-rowbtn', style: { cursor: 'default' } },
             h('span', { style: { display: 'flex', flexDirection: 'column', gap: '3px' } }, kbBone(i % 2 === 0 ? '62%' : '48%', 13), kbBone('36%', 10)),
-            kbBone('72%', 12), kbBone('70%', 12), kbBone(20, 12)),
+            kbBone('72%', 12), kbBone('70%', 12), kbBone('60%', 12), kbBone(20, 12)),
           h('span', null),
           h('span', { className: 'kba-oncol' }, kbBone(34, 20, 'pill'))))])
       const kbaLoadError = () => h('div', { className: 'kba-card' },
@@ -22570,7 +22877,7 @@ function renderFit(canvas, model, cam, opts){
         const parts = kbTriggerParts(t, kbt, kbBoardLocale(), kbMachineTz())
         return {
           id: t.id, name: t.name || t.id, team: kbTaskWho(t, kbt), trigger: parts.label, tip: parts.tip, hooked: parts.hooked, active: t.active !== false,
-          sessions: hist.length, lastLabel: lastLabel, lastCls: lastCls, failed: failed === true || t.pendingFire === true, _t: t,
+          sessions: hist.length, succ: kbRunBars(t.history), lastLabel: lastLabel, lastCls: lastCls, failed: failed === true || t.pendingFire === true, _t: t,
         }
       })
       const activeCount = items.filter((a) => a.active === true).length
@@ -22633,9 +22940,118 @@ function renderFit(canvas, model, cam, opts){
         const textVal = draft[t.id] !== undefined ? draft[t.id] : (typeof t.prompt === 'string' ? t.prompt : '')
         const dirty = draft[t.id] !== undefined && draft[t.id] !== t.prompt
         const gr = kbTaskNodes(t)
-        const nodes = gr.nodes.map((n, i) => Object.assign({}, n, { sel: nodeSel === i }))
-        const node = (nodeSel !== null && gr.nodes[nodeSel] !== undefined) ? gr.nodes[nodeSel] : null
+        const cards = kbTaskCards(gr.nodes)
+        const nodeIx = nodeSel !== null ? gr.nodes.findIndex((n) => n.id === nodeSel) : -1
+        const node = nodeIx >= 0 ? gr.nodes[nodeIx] : null
         const codeLines = kbTaskCode(t)
+        // The webhook is a trigger of the workflow, not a tab of its own: its card is on the canvas and its settings are in the panel of
+        // that card (the address is hidden until the person asks for it). A workflow without one offers to add it in the schedule's panel.
+        const trig = (t.trigger !== null && t.trigger !== undefined && typeof t.trigger === 'object') ? t.trigger : null
+        const hooked = trig !== null && trig.type === 'webhook'
+        const hookUrl = (hooked === true && typeof trig.hookId === 'string')
+          ? String(window.location.origin) + kbApiBase() + '/hooks?hook=' + trig.hookId + '&secret=' + (typeof trig.secret === 'string' ? trig.secret : '')
+          : ''
+        const hookShownUrl = hookShown === true ? hookUrl : hookUrl.replace(/(secret=).*$/, (m, pre) => pre + '••••••••••••')
+        const genHook = () => {
+          if (kbHookBusy === true) return
+          kbHookBusy = true
+          host.call('kybers/tasks', { action: 'hook-generate', id: t.id }).then((r) => {
+            if (r !== null && r !== undefined && r.ok === true) { setHookShown(false); setNodeSel('hook'); refresh(); toast(kbt('tasks.hook.generated')) }
+            else toast((r !== null && r !== undefined && typeof r.error === 'string') ? kbTaskError(r.error, kbt) : kbt('tasks.hook.err'))
+          }).catch((e) => toast(String(e))).finally(() => { kbHookBusy = false })
+        }
+        const testHook = () => {
+          if (hookUrl === '') return
+          fetch(hookUrl, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ test: true, at: new Date().toISOString() }) })
+            .then((r) => r.json())
+            .then((j) => { toast(j !== null && j.ok === true ? kbt('tasks.hook.tested') : (j !== null && typeof j.error === 'string' ? kbTaskError(j.error, kbt) : kbt('tasks.hook.err'))) })
+            .catch(() => toast(kbt('tasks.hook.err')))
+        }
+        const copyUrl = () => {
+          try { navigator.clipboard.writeText(hookUrl).then(() => toast(kbt('tasks.hook.copied')), () => {}) } catch (e) { /* clipboard unavailable */ }
+        }
+        const revokeHook = () => {
+          if (kbHookBusy === true) return
+          kbHookBusy = true
+          host.call('kybers/tasks', { action: 'hook-revoke', id: t.id }).then((r) => {
+            if (r !== null && r !== undefined && r.ok === true) { setNodeSel(null); setHookShown(false); refresh(); toast(kbt('tasks.hook.revoked')) }
+            else toast((r !== null && r !== undefined && typeof r.error === 'string') ? kbTaskError(r.error, kbt) : kbt('tasks.hook.err'))
+          }).catch((e) => toast(String(e))).finally(() => { kbHookBusy = false })
+        }
+        const hookBlock = h('div', { className: 'kba-nc-sec', 'data-kb': 'hook-panel' },
+          h('span', { className: 'v' }, kbt('tasks.hook.intro')),
+          h('span', { className: 'k' }, kbt('tasks.hook.url')),
+          h('code', { className: 'kba-nc-code kba-hookurl', 'data-kb': 'hook-url' }, hookShownUrl),
+          h('span', { className: 'kba-hookrow' },
+            h('button', { type: 'button', className: 'kba-btn', 'data-kb': 'hook-reveal', onClick: () => setHookShown(hookShown !== true) }, kbt(hookShown === true ? 'tasks.hook.hide' : 'tasks.hook.reveal')),
+            h('button', { type: 'button', className: 'kba-btn', 'data-kb': 'hook-copy', onClick: copyUrl }, kbt('tasks.hook.copy')),
+            h('button', { type: 'button', className: 'kba-btn pri', 'data-kb': 'hook-test', onClick: testHook }, kbt('tasks.hook.test'))),
+          h('span', { className: 'kba-hookrow' },
+            h('button', { type: 'button', className: 'kba-btn', 'data-kb': 'hook-regen', onClick: () => setConfirm({ title: kbt('tasks.hook.regen.title'), body: kbt('tasks.hook.regen.body'), confirmLabel: kbt('tasks.hook.regen'), onConfirm: async () => { genHook() } }) }, kbt('tasks.hook.regen')),
+            h('button', { type: 'button', className: 'kba-btn', 'data-kb': 'hook-revoke', onClick: () => setConfirm({ title: kbt('tasks.hook.revoke.title'), body: kbt('tasks.hook.revoke.body'), confirmLabel: kbt('tasks.hook.revokeBtn'), onConfirm: async () => { revokeHook() } }) }, kbt('tasks.hook.revokeBtn'))),
+          h('span', { className: 'v dim' }, kbt('tasks.hook.local')))
+        const schedBlock = h('div', { className: 'kba-nc-sec', 'data-kb': 'sched-panel' },
+          h('span', { className: 'kba-hookrow' }, h('button', { type: 'button', className: 'kba-btn', 'data-kb': 'sched-edit', onClick: () => setModal(t) }, kbt('tasks.editsched'))),
+          (hooked === true ? null : h('span', { className: 'v dim' }, kbt('tasks.hook.none'))),
+          (hooked === true ? null : h('span', { className: 'kba-hookrow' }, h('button', { type: 'button', className: 'kba-btn', 'data-kb': 'hook-add', onClick: genHook }, kbt('tasks.hook.create')))))
+        const panelEl = node === null ? null : h('div', { className: 'kba-nodecard', 'data-kb': 'flow-node-panel' },
+          h('div', { className: 'kba-nc-head' },
+            h('span', { className: 'kba-cc cc-' + node.c }, node.ic),
+            h('span', { className: 'kba-tabver mono' }, kbt('tasks.flow.kind.' + node.c)),
+            (node.guard === true ? h('span', { className: 'kba-nc-guard' }, kbt('tasks.flow.guard')) : null),
+            h('span', { style: { flex: 1 } }),
+            h('button', { type: 'button', className: 'kba-nc-x', 'aria-label': kbt('tasks.flow.close'), onClick: () => setNodeSel(null) }, '✕')),
+          h('span', { className: 't' }, node.l),
+          h('span', { className: 's' }, node.s),
+          (node.how === 'hook' ? hookBlock : null),
+          (node.how === 'trg' ? schedBlock : null),
+          (node.full !== '' && node.how !== 'trg' ? h('div', { className: 'kba-nc-sec' }, h('span', { className: 'k' }, kbt('tasks.flow.what')), h('span', { className: 'v' }, node.full)) : null),
+          h('div', { className: 'kba-nc-sec' }, h('span', { className: 'k' }, kbt('tasks.flow.how')), h('span', { className: 'v' }, kbt('tasks.flow.how.' + node.how)),
+            (node.how === 'ai' || node.how === 'act' ? h('code', { className: 'kba-nc-code' }, (node.how === 'ai' ? 'ai.run' : 'tools.call') + '(' + kbt('tasks.flow.step') + ' ' + node.ic + ')') : null)),
+          h('div', { className: 'kba-nc-foot' },
+            h('button', { type: 'button', className: 'kba-btn', 'data-kb': 'flow-prev', disabled: nodeIx <= 0, onClick: () => setNodeSel(gr.nodes[Math.max(0, nodeIx - 1)].id) }, '‹ ' + kbt('tasks.flow.prev')),
+            h('button', { type: 'button', className: 'kba-btn', 'data-kb': 'flow-next', disabled: nodeIx >= gr.nodes.length - 1, onClick: () => setNodeSel(gr.nodes[Math.min(gr.nodes.length - 1, nodeIx + 1)].id) }, kbt('tasks.flow.next') + ' ›')),
+          (node.how === 'ai' || node.how === 'act' ? h('button', { type: 'button', className: 'kba-btn', style: { alignSelf: 'flex-start' }, onClick: () => { setView('text'); setNodeSel(null) } }, kbt('tasks.edittext')) : null))
+        // Flow, Text and Code are three ways to read the same workflow: quiet icons, Flow first; the text stays the source.
+        const viewBtn = (v, icn) => h('button', { key: v, type: 'button', className: 'kba-vbtn' + (view === v ? ' on' : ''), 'aria-pressed': view === v ? 'true' : 'false', 'data-kb': 'view-' + v, title: kbt('tasks.view.' + v), 'aria-label': kbt('tasks.view.' + v), onClick: () => { setView(v); if (v !== 'flow') setNodeSel(null) } }, Icon(icn, 15))
+        const viewBar = h('div', { className: 'kba-viewbar' },
+          h('span', { className: 'kba-flowhint' }, kbt('tasks.flow.hint')),
+          h('span', { className: 'kba-vgrp' }, viewBtn('flow', 'flowView'), viewBtn('text', 'textView'), viewBtn('code', 'codeView')))
+        const bodyEl = tab === 'sessions'
+          ? h(KbRunsPane, {
+            key: t.id,
+            runs: kbRunsOf(t.history),
+            sel: typeof runSel[t.id] === 'string' ? runSel[t.id] : null,
+            onSelect: (key) => setRunSel(Object.assign({}, runSel, { [t.id]: key })),
+            onOpenChat: (id) => { try { uiWorkspaceSvc.openSession(id) } catch (er) { /* navigation unavailable */ } },
+            approvalLabel: t.approvals === 'auto' ? kbt('tasks.auto') : kbt('tasks.ask'),
+            taskId: t.id,
+            emptyText: kbt('tasks.sessions.empty').replace('{trigger}', kbScheduleLabel(t)),
+          })
+          : h('div', { className: 'kba-flowwrap' }, viewBar,
+            (view === 'text' ? h('div', { style: { display: 'flex', flexDirection: 'column', gap: 10, flex: 1, minHeight: 0 } },
+                  (dirty === true ? h('div', { className: 'kba-dirty' },
+                    h('span', { className: 'kba-kdot wait' }),
+                    h('span', { style: { flex: 1 } }, kbt('tasks.dirty')),
+                    h('button', { type: 'button', className: 'kba-btn', onClick: () => { const d = Object.assign({}, draft); delete d[t.id]; setDraft(d) } }, kbt('tasks.revert')),
+                    h('button', { type: 'button', className: 'kba-btn pri', onClick: () => { const d = Object.assign({}, draft); delete d[t.id]; setDraft(d); act('update', t.id, { task: { prompt: textVal, name: t.name, schedule: t.schedule, active: t.active, notify: t.notify, approvals: t.approvals } }) } }, kbt('tasks.interpret'))) : null),
+                  h('textarea', { className: 'kba-textarea', 'aria-label': 'Workflow text', spellCheck: 'false', value: textVal, onChange: (e) => { const v = e.target === null || e.target === undefined ? '' : e.target.value; const d = Object.assign({}, draft); d[t.id] = v; setDraft(d) } }))
+              : view === 'flow' ? h('div', { className: 'kba-flowrow' },
+                h(KbFlowCanvas, { nodes: cards, links: gr.links, selId: nodeSel, onSelect: (id) => setNodeSel(nodeSel === id ? null : id), storeKey: 'wf.' + t.id, height: 'clamp(430px,62vh,640px)' }),
+                panelEl)
+                : h('div', { style: { display: 'flex', flexDirection: 'column', gap: 10, flex: 1, minHeight: 0 } },
+                      h('div', { className: 'kba-derived' },
+                        h('span', { className: 'kba-kdot ok' }),
+                        h('span', { style: { flex: 1 } }, kbt('tasks.code.readonly')),
+                        h('span', { className: 'mono', style: { fontSize: 11.5 } }, 'TypeScript')),
+                      h('div', { className: 'kba-code' },
+                        h('div', { className: 'kba-codein' },
+                          codeLines.map((l, i) => {
+                            const cm = /^\s*\/\//.test(l)
+                            return h('div', { key: i, className: 'kba-ln' + (cm ? ' cm' : '') },
+                              h('i', null, String(i + 1)),
+                              h('span', null, l.trim()))
+                          }))))))
         return h('div', { className: 'kba-detail' },
           h('div', { style: { display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--dsw-alias-label-secondary)', flexWrap: 'wrap' } },
             h('button', { type: 'button', className: 'kba-crumb', onClick: () => { setDetail(null); setNodeSel(null) } }, 'Automations'),
@@ -22657,191 +23073,9 @@ function renderFit(canvas, model, cam, opts){
             h('button', { type: 'button', className: 'kba-btn', onClick: () => setModal(t) }, Icon('calendar-clock', 13), ' ', kbt('tasks.editsched')),
             h('button', { type: 'button', className: 'kba-btn kba-trash', 'data-kb': 'detail-delete', onClick: () => askDelete(t.id, t.name || t.id) }, Icon('trash', 13), ' ', kbt('tasks.delete'))),
           h('div', { className: 'kba-tabs' },
-            h('button', { type: 'button', className: 'kba-tab' + (tab === 'sessions' ? ' on' : ''), onClick: () => setTab('sessions') }, kbt('tasks.tab.sessions').replace('{n}', String(kbRunsOf(t.history).length))),
-            h('button', { type: 'button', className: 'kba-tab' + (tab === 'flow' ? ' on' : ''), onClick: () => setTab('flow') }, kbt('tasks.tab.workflow')),
-            h('button', { type: 'button', className: 'kba-tab' + (tab === 'hook' ? ' on' : ''), onClick: () => setTab('hook') }, kbt('tasks.tab.hook')),
-            h('button', { type: 'button', className: 'kba-tab' + (tab === 'journal' ? ' on' : ''), 'data-kb': 'tab-journal', onClick: () => setTab('journal') }, kbt('tasks.tab.journal')),
-            h('span', { className: 'kba-tabver mono', hidden: true, style: { display: 'none' } }, 'Text')),
-          h('div', { className: 'kba-body' },
-            (tab === 'hook'
-              ? (() => {
-                const tr = (t.trigger !== null && t.trigger !== undefined && typeof t.trigger === 'object') ? t.trigger : null
-                const hookUrl = (tr !== null && typeof tr.hookId === 'string')
-                  ? String(window.location.origin) + kbApiBase() + '/hooks?hook=' + tr.hookId + '&secret=' + (typeof tr.secret === 'string' ? tr.secret : '')
-                  : ''
-                const genHook = () => {
-                  if (kbHookBusy === true) return
-                  kbHookBusy = true
-                  host.call('kybers/tasks', { action: 'hook-generate', id: t.id }).then((r) => {
-                    if (r !== null && r !== undefined && r.ok === true) { refresh(); toast(kbt('tasks.hook.generated')) }
-                    else toast((r !== null && r !== undefined && typeof r.error === 'string') ? kbTaskError(r.error, kbt) : kbt('tasks.hook.err'))
-                  }).catch((e) => toast(String(e))).finally(() => { kbHookBusy = false })
-                }
-                const testHook = () => {
-                  if (hookUrl === '') return
-                  fetch(hookUrl, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ test: true, at: new Date().toISOString() }) })
-                    .then((r) => r.json())
-                    .then((j) => { toast(j !== null && j.ok === true ? kbt('tasks.hook.tested') : (j !== null && typeof j.error === 'string' ? kbTaskError(j.error, kbt) : kbt('tasks.hook.err'))) })
-                    .catch(() => toast(kbt('tasks.hook.err')))
-                }
-                const copyUrl = () => {
-                  try { navigator.clipboard.writeText(hookUrl).then(() => toast(kbt('tasks.hook.copied')), () => {}) } catch (e) { /* clipboard indisponible */ }
-                }
-                const revokeHook = () => {
-                  if (kbHookBusy === true) return
-                  kbHookBusy = true
-                  host.call('kybers/tasks', { action: 'hook-revoke', id: t.id }).then((r) => {
-                    if (r !== null && r !== undefined && r.ok === true) { setTab('sessions'); refresh(); toast(kbt('tasks.hook.revoked')) }
-                    else toast((r !== null && r !== undefined && typeof r.error === 'string') ? kbTaskError(r.error, kbt) : kbt('tasks.hook.err'))
-                  }).catch((e) => toast(String(e))).finally(() => { kbHookBusy = false })
-                }
-                return h('div', { style: { display: 'flex', flexDirection: 'column', gap: 14, paddingBottom: 20, 'data-kb': 'hook-panel' } },
-                  h('div', { className: 'kba-aim' }, kbt('tasks.hook.intro')),
-                  (tr === null || tr.type !== 'webhook'
-                    ? h('div', { className: 'kba-card', style: { padding: 18 } },
-                        h('div', { style: { fontSize: 14, color: 'var(--dsw-alias-label-secondary)', marginBottom: 12 } }, kbt('tasks.hook.none')),
-                        h('button', { type: 'button', className: 'kba-btn pri', onClick: genHook }, kbt('tasks.hook.create')))
-                    : h('div', { className: 'kba-card' },
-                        h('div', { style: { padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10 } },
-                          h('span', { className: 'kba-tabver mono' }, kbt('tasks.hook.url')),
-                          h('div', { style: { display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' } },
-                            h('code', { style: { flex: '1 1 320px', minWidth: '0', font: '12px/1.5 var(--ds-font-family-code, monospace)', color: 'var(--dsw-alias-label-primary)', background: 'var(--dsw-alias-bg-base)', border: '1px solid var(--dsw-alias-border-l1)', borderRadius: 8, padding: '8px 10px', wordBreak: 'break-all', overflowWrap: 'anywhere' } }, hookUrl),
-                            h('button', { type: 'button', className: 'kba-btn', 'data-kb': 'hook-copy', onClick: copyUrl }, kbt('tasks.hook.copy'))),
-                          h('span', { style: { fontSize: 12, color: 'var(--dsw-alias-label-tertiary)' } }, kbt('tasks.hook.local')),
-                          h('div', { style: { display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 6 } },
-                            h('button', { type: 'button', className: 'kba-btn pri', 'data-kb': 'hook-test', onClick: testHook }, kbt('tasks.hook.test')),
-                            h('button', { type: 'button', className: 'kba-btn', 'data-kb': 'hook-regen', onClick: () => setConfirm({ title: kbt('tasks.hook.regen.title'), body: kbt('tasks.hook.regen.body'), confirmLabel: kbt('tasks.hook.regen'), onConfirm: async () => { genHook() } }) }, kbt('tasks.hook.regen')),
-                            h('button', { type: 'button', className: 'kba-btn', 'data-kb': 'hook-revoke', onClick: () => setConfirm({ title: kbt('tasks.hook.revoke.title'), body: kbt('tasks.hook.revoke.body'), confirmLabel: kbt('tasks.hook.revokeBtn'), onConfirm: async () => { revokeHook() } }) }, kbt('tasks.hook.revokeBtn'))))))
-                )
-              })()
-              : (tab === 'sessions' || tab === 'journal')
-              ? h(KbRunsPane, {
-                key: t.id + ':' + tab,
-                mode: tab,
-                runs: kbRunsOf(t.history),
-                sel: typeof runSel[t.id] === 'string' ? runSel[t.id] : null,
-                onSelect: (key) => setRunSel(Object.assign({}, runSel, { [t.id]: key })),
-                onOpenChat: (id) => { try { uiWorkspaceSvc.openSession(id) } catch (er) { /* navigation unavailable */ } },
-                onJournal: () => setTab('journal'),
-                onSessions: () => setTab('sessions'),
-                approvalLabel: t.approvals === 'auto' ? kbt('tasks.auto') : kbt('tasks.ask'),
-                taskId: t.id,
-                emptyText: kbt('tasks.sessions.empty').replace('{trigger}', kbScheduleLabel(t)),
-              })
-              : h('div', { className: 'kba-flowwrap' },
-                h('div', { className: 'kba-flowbar' },
-                  h('span', { style: { display: 'inline-flex', flexWrap: 'wrap', gap: 8 } },
-                    ['text', 'flow', 'code'].map((v) => h('button', { key: v, type: 'button', className: 'kba-tab' + (view === v ? ' on' : ''), onClick: () => { setView(v); if (v !== 'flow') setNodeSel(null) } }, kbt('tasks.view.' + v)))),
-                  h('span', { className: 'kba-flowhint' }, kbt('tasks.flow.hint'))),
-                (view === 'text' ? h('div', { style: { display: 'flex', flexDirection: 'column', gap: 10, flex: 1, minHeight: 0 } },
-                  (dirty === true ? h('div', { className: 'kba-dirty' },
-                    h('span', { className: 'kba-kdot wait' }),
-                    h('span', { style: { flex: 1 } }, kbt('tasks.dirty')),
-                    h('button', { type: 'button', className: 'kba-btn', onClick: () => { const d = Object.assign({}, draft); delete d[t.id]; setDraft(d) } }, kbt('tasks.revert')),
-                    h('button', { type: 'button', className: 'kba-btn pri', onClick: () => { const d = Object.assign({}, draft); delete d[t.id]; setDraft(d); act('update', t.id, { task: { prompt: textVal, name: t.name, schedule: t.schedule, active: t.active, notify: t.notify, approvals: t.approvals } }) } }, kbt('tasks.interpret'))) : null),
-                  h('textarea', { className: 'kba-textarea', 'aria-label': 'Workflow text', spellCheck: 'false', value: textVal, onChange: (e) => { const v = e.target === null || e.target === undefined ? '' : e.target.value; const d = Object.assign({}, draft); d[t.id] = v; setDraft(d) } }))
-                  : view === 'flow' ? (() => {
-                    // positions effectives : défaut serpent + overrides drag
-                    const pos = flowPos !== null && flowPos !== undefined ? flowPos : kbFlowPosLoad(t.id)
-                    const effective = gr.nodes.map((n, i) => Object.assign({}, n, {
-                      x: (pos[i] !== undefined && pos[i] !== null && typeof pos[i].x === 'number') ? pos[i].x : n.x,
-                      y: (pos[i] !== undefined && pos[i] !== null && typeof pos[i].y === 'number') ? pos[i].y : n.y
-                    }))
-                    const COLS2 = 4
-                    const rows = Math.ceil(effective.length / COLS2)
-                    const canvasW = 8 + COLS2 * 232 + 40
-                    const canvasH = 8 + rows * 138 + 40
-                    const NW2 = 208
-                    const onNodeDown = (e, i) => {
-                      dragRef.current = { idx: i, sx: e.clientX, sy: e.clientY, ox: effective[i].x, oy: effective[i].y, moved: false }
-                      try { e.currentTarget.setPointerCapture(e.pointerId) } catch (er) { /* pointer events indisponibles */ }
-                    }
-                    const onNodeMove = (e) => {
-                      const d = dragRef.current
-                      if (d === null || d === undefined) return
-                      const dx = e.clientX - d.sx, dy = e.clientY - d.sy
-                      if (Math.abs(dx) + Math.abs(dy) > 3) d.moved = true
-                      const np = Object.assign({}, (flowPos !== null && flowPos !== undefined) ? flowPos : kbFlowPosLoad(t.id))
-                      np[d.idx] = { x: Math.max(0, d.ox + dx), y: Math.max(0, d.oy + dy) }
-                      setFlowPos(np)
-                    }
-                    const onNodeUp = () => {
-                      const d = dragRef.current
-                      dragRef.current = null
-                      if (d !== null && d !== undefined && d.moved === true) {
-                        kbFlowPosSave(t.id, (flowPos !== null && flowPos !== undefined) ? flowPos : kbFlowPosLoad(t.id))
-                      }
-                    }
-                    const resetLayout = () => {
-                      setFlowPos({})
-                      kbFlowPosSave(t.id, {})
-                    }
-                    const wires = gr.edges.map((e) => {
-                      const a = effective[e[0]]; const b = effective[e[1]]
-                      const x1 = a.x + NW2; const y1 = a.y + 28; const x2 = b.x; const y2 = b.y + 28
-                      // si le nœud cible est à gauche (zigzag retour), courbe par le bas
-                      if (x2 < x1) {
-                        const mx = (x1 + x2) / 2
-                        return 'M' + x1 + ' ' + y1 + ' C' + (x1 + 30) + ' ' + (y1 + 60) + ',' + (x2 - 30) + ' ' + (y2 + 60) + ',' + x2 + ' ' + y2
-                      }
-                      return 'M' + x1 + ' ' + y1 + ' C' + (x1 + 40) + ' ' + y1 + ',' + (x2 - 40) + ' ' + y2 + ',' + x2 + ' ' + y2
-                    }).join(' ')
-                    const panelEl = node !== null ? h('div', { className: 'kba-nodecard', 'data-kb': 'flow-node-panel' },
-                            h('div', { className: 'kba-nc-head' },
-                              h('span', { className: 'kba-cc cc-' + node.c }, node.ic),
-                              h('span', { className: 'kba-tabver mono' }, kbt('tasks.flow.kind.' + node.c)),
-                              (node.guard === true ? h('span', { className: 'kba-nc-guard' }, kbt('tasks.flow.guard')) : null),
-                              h('span', { style: { flex: 1 } }),
-                              h('button', { type: 'button', className: 'kba-nc-x', 'aria-label': kbt('tasks.flow.close'), onClick: () => setNodeSel(null) }, '\u2715')),
-                            h('span', { className: 't' }, node.l),
-                            h('span', { className: 's' }, node.s),
-                            (node.full !== '' && node.how !== 'trg' ? h('div', { className: 'kba-nc-sec' }, h('span', { className: 'k' }, kbt('tasks.flow.what')), h('span', { className: 'v' }, node.full)) : null),
-                            h('div', { className: 'kba-nc-sec' }, h('span', { className: 'k' }, kbt('tasks.flow.how')), h('span', { className: 'v' }, kbt('tasks.flow.how.' + node.how)),
-                              (node.how === 'ai' || node.how === 'act' ? h('code', { className: 'kba-nc-code' }, (node.how === 'ai' ? 'ai.run' : 'tools.call') + '(step ' + node.ic + ')') : null)),
-                            h('div', { className: 'kba-nc-foot' },
-                              h('button', { type: 'button', className: 'kba-btn', 'data-kb': 'flow-prev', disabled: nodeSel === 0, onClick: () => setNodeSel(Math.max(0, nodeSel - 1)) }, '\u2039 ' + kbt('tasks.flow.prev')),
-                              h('button', { type: 'button', className: 'kba-btn', 'data-kb': 'flow-next', disabled: nodeSel >= gr.nodes.length - 1, onClick: () => setNodeSel(Math.min(gr.nodes.length - 1, nodeSel + 1)) }, kbt('tasks.flow.next') + ' \u203a')),
-                            h('button', { type: 'button', className: 'kba-btn', style: { alignSelf: 'flex-start' }, onClick: () => { setView('text'); setNodeSel(null) } }, kbt('tasks.edittext'))) : null
-                    return h('div', { className: 'kba-canvaswrap' },
-                      h('div', { className: 'kba-derived' },
-                        h('span', { className: 'kba-kdot ok' }),
-                        h('span', { style: { flex: 1 } }, kbt('tasks.flow.readonly') + ' · ' + kbt('tasks.flow.drag')),
-                        h('span', { className: 'mono', style: { fontSize: 11.5 } }, effective.length + ' ' + kbt('tasks.flow.nodes')),
-                        h('button', { type: 'button', className: 'kba-btn', 'data-kb': 'flow-reset', onClick: resetLayout, style: { height: 26, padding: '0 10px', fontSize: 11.5 } }, kbt('tasks.flow.reset'))),
-                      h('div', { className: 'kba-flowrow' },
-                      h('div', { className: 'kba-canvas' },
-                        h('div', { className: 'kba-zoom', style: { width: canvasW, height: canvasH } },
-                          h('svg', { width: canvasW, height: canvasH, style: { position: 'absolute', left: 0, top: 0 }, fill: 'none' },
-                          h('defs', null, h('marker', { id: 'kba-arrow', viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 7, markerHeight: 7, orient: 'auto-start-reverse' }, h('path', { d: 'M 0 0 L 10 5 L 0 10 z', fill: 'var(--dsw-alias-label-secondary)', opacity: 0.6 }))),
-                          wires.length > 0 ? h('path', { d: wires, stroke: 'var(--dsw-alias-label-secondary)', strokeWidth: 2, opacity: 0.6, markerEnd: 'url(#kba-arrow)' }) : null),
-                          effective.map((n, i) => h('button', {
-                            key: i, type: 'button',
-                            className: 'kba-node' + (nodeSel === i ? ' sel' : ''),
-                            style: { left: n.x, top: n.y, cursor: 'grab' },
-                            onPointerDown: (e) => onNodeDown(e, i),
-                            onPointerMove: onNodeMove,
-                            onPointerUp: onNodeUp,
-                            onPointerCancel: onNodeUp,
-                            onClick: () => { if (dragRef.current === null || dragRef.current.moved !== true) setNodeSel(nodeSel === i ? null : i) },
-                            'aria-label': n.l
-                          },
-                            h('span', { className: 'kba-cc cc-' + n.c }, n.ic),
-                            h('span', { className: 'kba-ndn' }, h('span', { style: { fontWeight: 600 } }, n.l), h('small', null, n.s)))),
-                          )), panelEl))
-                  })()
-                    : h('div', { style: { display: 'flex', flexDirection: 'column', gap: 10, flex: 1, minHeight: 0 } },
-                      h('div', { className: 'kba-derived' },
-                        h('span', { className: 'kba-kdot ok' }),
-                        h('span', { style: { flex: 1 } }, kbt('tasks.code.readonly')),
-                        h('span', { className: 'mono', style: { fontSize: 11.5 } }, 'TypeScript')),
-                      h('div', { className: 'kba-code' },
-                        h('div', { className: 'kba-codein' },
-                          codeLines.map((l, i) => {
-                            const cm = /^\s*\/\//.test(l)
-                            return h('div', { key: i, className: 'kba-ln' + (cm ? ' cm' : '') },
-                              h('i', null, String(i + 1)),
-                              h('span', null, l.trim()))
-                          })))))))),
+            h('button', { type: 'button', className: 'kba-tab' + (tab === 'flow' ? ' on' : ''), 'data-kb': 'tab-flow', onClick: () => setTab('flow') }, kbt('tasks.tab.workflow')),
+            h('button', { type: 'button', className: 'kba-tab' + (tab === 'sessions' ? ' on' : ''), 'data-kb': 'tab-sessions', onClick: () => setTab('sessions') }, kbt('tasks.tab.sessions').replace('{n}', String(kbRunsOf(t.history).length)))),
+          h('div', { className: 'kba-body' }, bodyEl),
           (msg !== null ? h('div', { className: 'kba-toast', role: 'status' }, h('span', { className: 'kba-kdot ok' }), h('span', { style: { flex: 1 } }, msg), h('button', { type: 'button', 'aria-label': kbt('tasks.dismiss'), onClick: () => setMsg(null) }, '\u2715')) : null),
           (confirmAsk !== null ? h(KbConfirm, { title: confirmAsk.title, body: confirmAsk.body, confirmLabel: confirmAsk.confirmLabel, onConfirm: confirmAsk.onConfirm, onClose: () => setConfirm(null) }) : null),
           (modal !== null ? h(KbTaskModal, { task: modal, onClose: () => setModal(null), onSaved: (m) => { setModal(null); toast(m); refresh() } }) : null))
@@ -22969,7 +23203,7 @@ function renderFit(canvas, model, cam, opts){
       // `.kb6-headacts` sinon (liste vide → pas de barre) — même position.
       const boardEl = boardView === 'list' ? null : h(KbBoardBoundary, { key: boardView, onList: () => tbAuto[1]({ viewMode: 'list' }) },
         boardView === 'cards'
-          ? h(KbAutoCards, { tasks: filtered.map((a) => a._t), onOpen: (id) => { setDetail(id); setTab('sessions'); setNodeSel(null) }, onToggle: (t) => act('toggle', t.id, { active: t.active === false }) })
+          ? h(KbAutoCards, { tasks: filtered.map((a) => a._t), onOpen: (id) => { setDetail(id); setTab('flow'); setNodeSel(null) }, onToggle: (t) => act('toggle', t.id, { active: t.active === false }) })
           : h(KbAutoBoard, {
           view: boardView, tasks: filtered.map((a) => a._t), rawTasks: tasks, loadErr: loadErr,
           onRetry: () => { setLoadErr(null); refresh() },
@@ -23025,10 +23259,13 @@ function renderFit(canvas, model, cam, opts){
           : (boardEl !== null ? boardEl : h('div', { className: 'kba-card kba-lcard' },
             kbaListHead(),
             filtered.map((a, i) => h('div', { key: a.id, className: 'kba-rowline' + kbIn(i) },
-              h('button', { type: 'button', className: 'kba-rowbtn', onClick: () => { setDetail(a.id); setTab('sessions'); setNodeSel(null) } },
+              h('button', { type: 'button', className: 'kba-rowbtn', onClick: () => { setDetail(a.id); setTab('flow'); setNodeSel(null) } },
                 h('span', { className: 'kba-namecell' }, h('span', { className: 'kba-name', title: a.name }, a.name), h('span', { className: 'kba-team', title: a.team }, a.team)),
                 h('span', { className: 'kba-trgcell' }, h('span', { className: 'kba-trigger-icon' }, Icon('zap', 12)), h('span', { className: 'kba-trg-stack' }, h('span', { className: 'kba-ell', title: a.tip !== '' ? a.trigger + ' · ' + a.tip : a.trigger }, a.trigger), a.hooked === true ? h('span', { className: 'kba-team' }, kbt('tasks.trigger.plushook')) : null)),
                 h('span', { className: 'kba-last' + (a.lastCls !== '' ? ' ' + a.lastCls : '') }, h('span', { className: 'kba-kdot ' + a.lastCls }), h('span', { className: 'kba-ell', title: a.lastLabel }, a.lastLabel)),
+                h('span', { className: 'kba-succ', 'data-kb': 'row-success' },
+                  (a.succ.pct === null ? h('span', { className: 'kba-ell' }, '\u2014') : h('span', { className: 'kba-pct ' + (a.succ.pct >= 95 ? 'g' : (a.succ.pct >= 85 ? 'a' : 'r')) }, String(a.succ.pct) + '%')),
+                  h('span', { className: 'kba-bars', 'aria-hidden': 'true' }, a.succ.bars.map((b, i) => h('i', { key: i, className: b === 'bad' ? 'x' : '' })))),
                 h('span', { className: 'kba-td-num' }, String(a.sessions))),
               // The row's actions sit at the right, shown on hover and on focus (always on a touch screen): they used to stand to the
               // left of the name and push it away from its column.
@@ -23042,7 +23279,7 @@ function renderFit(canvas, model, cam, opts){
                 h('span', { className: 'kba-toggle-knob' }))))))),
         (msg !== null ? h('div', { className: 'kba-toast', role: 'status' }, h('span', { className: 'kba-kdot ok' }), h('span', { style: { flex: 1 } }, msg), h('button', { type: 'button', 'aria-label': kbt('tasks.dismiss'), onClick: () => setMsg(null) }, '\u2715')) : null),
         (confirmAsk !== null ? h(KbConfirm, { title: confirmAsk.title, body: confirmAsk.body, confirmLabel: confirmAsk.confirmLabel, onConfirm: confirmAsk.onConfirm, onClose: () => setConfirm(null) }) : null),
-        (modal !== null ? h(KbTaskModal, { task: modal, onClose: () => setModal(null), onSaved: (m, extra) => { setModal(null); toast(m); refresh(); if (extra !== null && extra !== undefined && typeof extra.openWebhookOf === 'string') { setDetail(extra.openWebhookOf); setTab('hook') } } }) : null))
+        (modal !== null ? h(KbTaskModal, { task: modal, onClose: () => setModal(null), onSaved: (m, extra) => { setModal(null); toast(m); refresh(); if (extra !== null && extra !== undefined && typeof extra.openWebhookOf === 'string') { setDetail(extra.openWebhookOf); setTab('flow'); setView('flow'); setNodeSel('hook') } } }) : null))
     }
 
     const KB_MOCK_SKILLS = [
@@ -31065,7 +31302,7 @@ body[data-ds-dark-theme] .kb8-iconbtn.on.col{border-color:var(--kb8-pgd);color:v
 .kba-rowline:hover,.kba-rowline:focus-within{background:var(--dsw-alias-interactive-bg-hover)}
 .kba-rowline-head{cursor:default;border-top:0;padding-top:11px;padding-bottom:11px}
 .kba-rowline-head:hover{background:transparent}
-.kba-rowbtn,.kba-rowhead{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1.4fr) 150px 64px;column-gap:14px;align-items:center;min-width:0}
+.kba-rowbtn,.kba-rowhead{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1.3fr) 150px 112px 64px;column-gap:14px;align-items:center;min-width:0}
 .kba-oncol{display:flex;align-items:center;justify-content:center}
 .kba-namecell{display:flex;flex-direction:column;min-width:0}
 /* The row's actions: at the right, on hover and on focus; always on a touch screen. A starred row keeps its star. */
@@ -31078,7 +31315,7 @@ body[data-ds-dark-theme] .kb8-iconbtn.on.col{border-color:var(--kb8-pgd);color:v
 .kba-lcard .kba-toggle.on .kba-toggle-knob{left:16px}
 @container (max-width:939px){
   .kba-rowbtn,.kba-rowhead{grid-template-columns:minmax(0,1.3fr) minmax(0,1.4fr) 150px}
-  .kba-rowbtn>:nth-child(4),.kba-rowhead>:nth-child(4){display:none}
+  .kba-rowbtn>:nth-child(n+4),.kba-rowhead>:nth-child(n+4){display:none}
 }
 @container (max-width:699px){
   .kba-rowline-head{display:none}
@@ -31134,6 +31371,14 @@ body[data-ds-dark-theme] .kb8-iconbtn.on.col{border-color:var(--kb8-pgd);color:v
 .kba-kdot.wait{background:var(--dsw-alias-state-warn-primary)}
 .kba-kdot.fail{background:var(--dsw-alias-state-error-primary)}
 .kba-td-num{font-family:ui-monospace,Menlo,monospace;font-size:13px;color:var(--dsw-alias-label-secondary)}
+.kba-succ{display:flex;align-items:center;gap:8px;min-width:0}
+.kba-pct{font-variant-numeric:tabular-nums;font-weight:600;font-size:13px;min-width:34px}
+.kba-pct.g{color:var(--dsw-alias-state-success-primary)}
+.kba-pct.a{color:var(--dsw-alias-state-warn-primary)}
+.kba-pct.r{color:var(--dsw-alias-state-error-primary)}
+.kba-bars{display:flex;gap:2px;align-items:center}
+.kba-bars i{width:4px;height:12px;border-radius:2px;background:var(--dsw-alias-state-success-primary);opacity:.75}
+.kba-bars i.x{background:var(--dsw-alias-state-error-primary);opacity:1}
 .kba-toggle{display:inline-block;width:44px;height:26px;border-radius:13px;background:var(--dsw-alias-bg-layer-3);border:1px solid var(--dsw-alias-border-l2);position:relative;cursor:pointer;flex:none}
 .kba-toggle::before{content:"";position:absolute;inset:-2px 0}
 .kba-toggle-knob{position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:9px;background:var(--dsw-alias-label-secondary);transition:left .12s;box-shadow:var(--dsw-elevation-soft,0 1px 2px rgba(0,0,0,.2))}
@@ -31365,11 +31610,6 @@ button.kbbd-chip:hover{background:var(--dsw-alias-interactive-bg-hover,#f0f0f0)}
 .kbcc-tool{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;padding:2px 8px;border-radius:8px;border:1px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-label-secondary)}
 .kbcc-tool i{font-style:normal;font-family:ui-monospace,Menlo,monospace;font-size:10.5px;color:var(--dsw-alias-label-tertiary)}
 @media (max-width:600px){.kbcc-figs{grid-template-columns:repeat(2,minmax(0,1fr))}}
-.kbrn-stats{display:flex;gap:12px;flex-wrap:wrap;margin:0 0 12px}
-.kbrn-stat{display:flex;flex-direction:column;gap:2px;padding:10px 14px;border:1px solid var(--dsw-alias-border-l2);border-radius:12px;min-width:110px}
-.kbrn-stk{font-size:11px;color:var(--dsw-alias-label-tertiary);}
-.kbrn-stv{font-size:18px;font-weight:600}
-.kbrn-stat.bad .kbrn-stv{color:var(--dsw-alias-state-error-primary)}
 .kbrn-xwrap{display:grid;grid-template-columns:260px minmax(0,1fr);gap:14px;align-items:start}
 @media (max-width:1000px){.kbrn-xwrap{grid-template-columns:1fr}}
 .kbrn-xl{border:1px solid var(--dsw-alias-border-l2);border-radius:14px;background:var(--dsw-alias-bg-layer-2);overflow:hidden auto;max-height:780px}
@@ -31388,25 +31628,6 @@ button.kbbd-chip:hover{background:var(--dsw-alias-interactive-bg-hover,#f0f0f0)}
 .kbrn-xph{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .kbrn-xpd{font-size:18px;font-weight:600}
 .kbrn-xerr{color:color-mix(in srgb,var(--dsw-alias-state-error-primary) 72%,var(--dsw-alias-label-primary));font-size:13px;border:1px solid var(--dsw-alias-state-error-primary);border-radius:10px;padding:8px 12px}
-.kbrn-canvas{padding:16px;overflow:auto}
-.kbrn-gs{overflow:auto;padding:6px 2px}
-.kbrn-g{position:relative;margin:0 auto}
-.kbrn-eg{position:absolute;inset:0;color:var(--dsw-alias-border-l3);pointer-events:none}
-.kbrn-el{position:absolute;transform:translate(-50%,-50%);font-size:11px;color:var(--dsw-alias-label-tertiary);background:var(--dsw-alias-bg-layer-2);padding:1px 6px;border-radius:8px;border:1px solid var(--dsw-alias-border-l1);white-space:nowrap}
-.kbrn-nd{position:absolute;height:70px;box-sizing:border-box;display:flex;align-items:center;gap:10px;padding:0 10px;border:1px solid var(--dsw-alias-border-l2);border-radius:14px;background:var(--dsw-alias-bg-layer-2);text-align:left;cursor:pointer;font:inherit;color:inherit}
-.kbrn-nd:hover{border-color:var(--dsw-alias-border-l3)}
-.kbrn-nd.sel{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:1px}
-.kbrn-nd.ok{border-color:color-mix(in srgb,var(--dsw-alias-state-success-primary) 60%,transparent)}
-.kbrn-nd.bad{border-color:var(--dsw-alias-state-error-primary)}
-.kbrn-nb{flex:none;width:28px;height:28px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:#fff;background:var(--dsw-alias-label-tertiary)}
-.kbrn-nb.ai{background:var(--dsw-alias-state-business-primary,#3b6fd6)}
-.kbrn-nb.act{background:var(--dsw-alias-state-success-primary,#1fa355)}
-.kbrn-nb.trg{background:var(--dsw-alias-state-warn-primary,#e8890c)}
-.kbrn-nt{min-width:0;flex:1;display:flex;flex-direction:column;gap:2px}
-.kbrn-nh{font-size:13px;font-weight:600;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
-.kbrn-ns{font-size:11px;color:var(--dsw-alias-label-tertiary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.kbrn-nok{position:absolute;right:8px;bottom:6px;color:var(--dsw-alias-state-success-primary);display:inline-flex}
-.kbrn-nbad{position:absolute;right:8px;bottom:5px;color:var(--dsw-alias-state-error-primary);font-weight:700;font-size:12px}
 .kbrn-logs{border:1px solid var(--dsw-alias-border-l2);border-radius:14px;background:var(--dsw-alias-bg-layer-2);overflow:hidden}
 .kbrn-lgh{padding:10px 14px;font-weight:600;font-size:13px;border-bottom:1px solid var(--dsw-alias-border-l1)}
 .kbrn-lgb{display:grid;grid-template-columns:240px minmax(0,1fr)}
@@ -31433,31 +31654,35 @@ button.kbbd-chip:hover{background:var(--dsw-alias-interactive-bg-hover,#f0f0f0)}
 .kbrn-step{display:flex;align-items:center;gap:10px;font-size:13px;padding:6px 0;border-top:1px solid var(--dsw-alias-border-l1)}
 .kbrn-sl{flex:1;min-width:0;overflow-wrap:anywhere}
 .kbrn-lesson{display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:13px}
+.kba-viewbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:space-between}
+.kba-vgrp{display:inline-flex;gap:2px}
+.kba-vbtn{width:30px;height:28px;border-radius:8px;border:1px solid transparent;background:transparent;color:var(--dsw-alias-label-tertiary);display:inline-grid;place-items:center;cursor:pointer;padding:0}
+.kba-vbtn:hover{color:var(--dsw-alias-label-primary);background:var(--dsw-alias-bg-layer-2)}
+.kba-vbtn.on{color:var(--dsw-alias-label-primary);background:var(--dsw-alias-bg-layer-2);border-color:var(--dsw-alias-border-l2)}
+.kba-vbtn:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:1px}
+.kba-hookrow{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.kba-hookurl{overflow-wrap:anywhere;word-break:break-all;font-size:12px}
+.cc-hook{background:var(--dsw-alias-state-warn-primary)}
+.kba-nc-sec .v.dim{color:var(--dsw-alias-label-tertiary)}
+.kbrn-about{display:flex;flex-direction:column;margin-top:12px}
+.kbrn-strip{display:flex;gap:6px 18px;flex-wrap:wrap;font-size:13px;color:var(--dsw-alias-label-secondary);margin:0 0 12px}
+.kbrn-strip b{color:var(--dsw-alias-label-primary);font-weight:600}
+.kbrn-strip .bad b{color:var(--dsw-alias-state-error-primary)}
 .kba-hint{font-size:12.5px;color:var(--dsw-alias-label-tertiary);margin-top:10px}
 /* workflow : Text / Flow / Code */
 .kba-flowwrap{flex:1;min-height:0;display:flex;flex-direction:column;gap:10px}
-.kba-flowbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .kba-flowhint{font-size:12.5px;color:var(--dsw-alias-label-tertiary)}
 .kba-dirty{display:flex;align-items:center;gap:12px;padding:9px 13px;border-radius:10px;background:color-mix(in srgb,var(--dsw-alias-state-warn-primary) 9%,transparent);border:1px solid var(--dsw-alias-state-warn-primary);font-size:13px;flex-wrap:wrap;color:var(--dsw-alias-label-primary)}
 .kba-textarea{flex:0 1 auto;min-height:120px;max-height:420px;resize:none;padding:16px 18px;border-radius:12px;background:var(--dsw-alias-bg-base);border:1px solid var(--dsw-alias-border-l1);color:var(--dsw-alias-label-primary);font:inherit;font-size:13.5px;line-height:1.65;outline:none}
 .kba-textarea:focus{border-color:var(--dsw-alias-border-l3)}
 .kba-derived{display:flex;align-items:center;gap:10px;padding:7px 12px;border-radius:10px;background:var(--dsw-alias-bg-base);border:1px solid var(--dsw-alias-border-l1);font-size:12.5px;color:var(--dsw-alias-label-tertiary);flex:none}
-.kba-canvaswrap{flex:1;min-height:220px;display:flex;flex-direction:column}
-.kba-canvas{flex:1;min-height:200px;position:relative;overflow:auto;border-radius:12px;border:1px solid var(--dsw-alias-border-l1);background-color:var(--dsw-alias-bg-base);background-image:radial-gradient(color-mix(in srgb,var(--dsw-alias-label-primary) 13%,transparent) 1px,transparent 1px);background-size:20px 20px}
-.kba-zoom{position:relative;margin:12px 0 24px 12px}
-.kba-node{position:absolute;width:208px;height:56px;overflow:hidden;touch-action:none;user-select:none;border-radius:10px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);display:flex;align-items:center;gap:8px;padding:0 9px;text-align:left;font:inherit;font-size:12px;color:var(--dsw-alias-label-primary);cursor:pointer}
-.kba-node:hover{border-color:var(--dsw-alias-label-secondary)}
-.kba-node.sel{border-color:var(--dsw-alias-brand-primary);background:color-mix(in srgb,var(--dsw-alias-brand-primary) 12%,var(--dsw-alias-bg-layer-2))}
 .kba-cc{width:24px;height:24px;border-radius:7px;display:flex;align-items:center;justify-content:center;flex:none;font-family:ui-monospace,Menlo,monospace;font-size:10.5px;font-weight:600;color:var(--dsw-alias-label-primary-inverted,var(--dsw-alias-label-primary))}
 .cc-trg{background:var(--dsw-alias-state-warn-primary)}.cc-log{background:var(--dsw-alias-label-primary-bluish,var(--dsw-alias-state-business-primary))}.cc-ai{background:var(--dsw-alias-state-business-primary)}.cc-act{background:var(--dsw-alias-state-success-primary)}.cc-hum{background:var(--dsw-alias-state-error-primary)}.cc-gry{background:var(--dsw-alias-state-idle-primary)}
-.kba-ndn{line-height:1.2;min-width:0;flex:1}
-.kba-ndn>span{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
-.kba-ndn small{display:block;font-size:10.5px;color:var(--dsw-alias-label-secondary);font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .kba-nodecard{flex:none;align-self:flex-start;width:320px;padding:12px;border-radius:12px;background:var(--dsw-alias-bg-layer-2);border:1px solid var(--dsw-alias-border-l2);box-shadow:var(--dsw-elevation-prominent,0 10px 28px rgba(0,0,0,.18));display:flex;flex-direction:column;gap:5px}
 .kba-nodecard .t{font-size:13.5px;font-weight:600;color:var(--dsw-alias-label-primary)}
 .kba-nodecard .s{font-size:12px;color:var(--dsw-alias-label-secondary);line-height:1.45}
 .kba-flowrow{display:flex;gap:12px;flex:1;min-height:0;align-items:stretch}
-.kba-flowrow .kba-canvas{flex:1;min-width:0}
+.kba-flowrow .kbfc{flex:1;min-width:0}
 .kba-nodecard{gap:8px}
 @media (max-width:900px){.kba-flowrow{flex-direction:column}.kba-nodecard{width:auto;align-self:stretch}}
 .kba-nc-head{display:flex;align-items:center;gap:8px}
@@ -31877,6 +32102,141 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
 .kbsp-teamrow.off{opacity:.6}
 @media (max-width:600px){.kbsp-inv{flex-wrap:wrap}.kbsp-in{flex-basis:100%}.kbsp-sel{flex:1;max-width:none}}
 `), 'kybers: mockup v7 styles')
+    ctx.effect(() => styles.insert(`
+/* The canvas of a workflow and of a run (KbFlowCanvas). Colours of a style are custom properties on its class; a rule below reads them. */
+.kbfc,.kbfc-sample{--cv-bg:var(--dsw-alias-bg-base);--cv-dot:color-mix(in srgb,var(--dsw-alias-label-primary) 13%,transparent);--nd-bg:var(--dsw-alias-bg-layer-2);--nd-line:var(--dsw-alias-border-l2);--nd-ink:var(--dsw-alias-label-primary);--nd-sub:var(--dsw-alias-label-tertiary);--wire:var(--dsw-alias-label-tertiary);--wire-dim:var(--dsw-alias-border-l2);--chip:var(--dsw-alias-bg-base);--lbl:var(--dsw-alias-bg-layer-2);--ok:var(--dsw-alias-state-success-primary);--bad:var(--dsw-alias-state-error-primary);--sh:rgba(0,0,0,.25)}
+.kbfc-th-nr{--cv-bg:#F0F0EE;--cv-dot:#D8D8D4;--nd-bg:#DDE6EF;--nd-line:#8FA6BE;--nd-ink:#1D2630;--nd-sub:#4C5A69;--wire:#8A8A86;--wire-dim:#C9C9C4;--chip:rgba(255,255,255,.7);--lbl:#F8F8F6}
+.kbfc-th-bp{--cv-bg:#0C2A4B;--cv-dot:#1C4A7A;--nd-bg:#103B69;--nd-line:#4FB3E8;--nd-ink:#E6F4FF;--nd-sub:#9CC9EA;--wire:#7FD0FF;--wire-dim:#2D6196;--chip:rgba(127,208,255,.14);--lbl:#0C2A4B}
+.kbfc-th-pp{--cv-bg:#F6F1E6;--cv-dot:#DDD3BD;--nd-bg:#FFFDF8;--nd-line:#8C7F66;--nd-ink:#2D281E;--nd-sub:#7A6F58;--wire:#6B5F4A;--wire-dim:#CBBFA4;--chip:#F0E8D6;--lbl:#F6F1E6}
+.kbfc-th-sf{--cv-bg:#F7F7F8;--cv-dot:#DDDCE3;--nd-bg:#FFFFFF;--nd-line:#E6E4EE;--nd-ink:#1B1B22;--nd-sub:#6E6C7A;--wire:#B4B2C0;--wire-dim:#D9D8E0;--chip:#F3F2F7;--lbl:#EFEEF4}
+.kbfc-th-lg{--cv-bg:#F4F6FA;--cv-dot:#D9DFEA;--nd-bg:#FFFFFF;--nd-line:#E3E7EF;--nd-ink:#14161C;--nd-sub:#667085;--wire:#3B82F6;--wire-dim:#BFD3F5;--chip:#F1F3F8;--lbl:#FFFFFF}
+.kbfc-th-at{--cv-bg:#FBF8F3;--cv-dot:#EADFD0;--nd-bg:#FFFFFF;--nd-line:#E2D8C8;--nd-ink:#2E2418;--nd-sub:#8A7C69;--wire:#8A7C69;--wire-dim:#E0D6C6;--chip:#F5EFE5;--lbl:#FBF8F3}
+.kbfc-th-jy{--cv-bg:#FAFAFA;--cv-dot:transparent;--nd-bg:#FFFFFF;--nd-line:#ECECEC;--nd-ink:#1F1F1F;--nd-sub:#777777;--wire:#4A4A4A;--wire-dim:#D4D4D4;--chip:#F4F4F4;--lbl:#FFFFFF}
+.kbfc-th-mx{--cv-bg:#E9EFF3;--cv-dot:#C7D2DA;--nd-bg:#FFFFFF;--nd-line:#E1E7EC;--nd-ink:#15191D;--nd-sub:#6B7680;--wire:#3FBF7F;--wire-dim:#BFD0C8;--chip:#F1F4F6;--lbl:#FFFFFF}
+.kbfc-k-trg{--k:var(--dsw-alias-state-warn-primary)}
+.kbfc-k-hook{--k:var(--dsw-alias-state-warn-primary)}
+.kbfc-k-act{--k:var(--dsw-alias-state-success-primary)}
+.kbfc-k-ai{--k:var(--dsw-alias-state-business-primary)}
+.kbfc-k-gry{--k:var(--dsw-alias-label-tertiary)}
+.kbfc{position:relative;border:1px solid var(--dsw-alias-border-l1);border-radius:14px;overflow:hidden;background-color:var(--cv-bg);min-height:300px}
+.kbfc-scr{position:absolute;inset:0;overflow:auto;display:flex;background-image:radial-gradient(var(--cv-dot) 1px,transparent 1px);background-size:20px 20px;background-attachment:local}
+.kbfc-vpw{position:relative;margin:auto;flex:none}
+.kbfc-vp{position:absolute;left:0;top:0;transform-origin:0 0}
+.kbfc-wires{position:absolute;inset:0;overflow:visible;pointer-events:none}
+.kbfc-labs{position:absolute;inset:0;pointer-events:none}
+.kbfc-wire,.kbfc-arr{--wc:var(--wire)}
+.kbfc-wire{fill:none;stroke:var(--wc);stroke-width:1.8;stroke-linejoin:round}
+.kbfc-arr{fill:var(--wc);stroke:none}
+.kbfc-el{position:absolute;transform:translate(-50%,-50%);font-size:11px;line-height:1;padding:4px 8px;border-radius:99px;background:var(--lbl);border:1px solid var(--wire-dim);color:var(--nd-sub);white-space:nowrap;font-weight:500}
+.kbfc-el.ok{color:var(--ok);border-color:var(--ok)}
+.kbfc-el.bad{color:var(--bad);border-color:var(--bad)}
+/* a card */
+.kbfc-nd{position:absolute;box-sizing:border-box;display:flex;flex-direction:column;justify-content:space-between;gap:6px;padding:10px 12px;background:var(--nd-bg);border:1.5px solid var(--nd-line);border-radius:14px;color:var(--nd-ink);text-align:start;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
+.kbfc-nd:hover{border-color:var(--k)}
+.kbfc-nd:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px}
+.kbfc-nd.sel{border-color:var(--k);box-shadow:0 0 0 3px color-mix(in srgb,var(--k) 22%,transparent)}
+.kbfc-nd.skip{opacity:.5}
+.kbfc-nd.bad{border-color:var(--bad)}
+.kbfc-nd:active{cursor:grabbing}
+.kbfc-nd .kbfc-kl,.kbfc-nd .kbfc-ds,.kbfc-nd .kbfc-st3,.kbfc-nd .kbfc-sd,.kbfc-nd .kbfc-kd{display:none}
+.kbfc-top{display:flex;gap:9px;align-items:flex-start}
+.kbfc-ic{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;background:color-mix(in srgb,var(--k) 18%,transparent);color:var(--k);flex:none;font-size:12px;font-weight:600;font-family:ui-monospace,Menlo,monospace}
+.kbfc-tt{min-width:0;flex:1;display:flex;flex-direction:column}
+.kbfc-tt b{font-size:13px;line-height:1.28;font-weight:600;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+.kbfc-ft{display:flex;gap:5px;align-items:center;flex-wrap:nowrap;overflow:hidden}
+.kbfc-ch{font-size:11px;line-height:1;padding:4px 7px;border-radius:99px;background:var(--chip);color:var(--nd-sub);white-space:nowrap;font-weight:500;display:inline-flex;gap:4px;align-items:center;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.kbfc-dot{width:7px;height:7px;border-radius:50%;background:var(--ok);flex:none}
+.kbfc-dot.bad{background:var(--bad)}
+.kbfc-dot.skip{background:var(--wire-dim)}
+.kbfc-pt{position:absolute;top:50%;width:10px;height:10px;margin-top:-5px;border-radius:50%;background:var(--nd-bg);border:2px solid var(--wire);box-sizing:border-box}
+.kbfc-pt.pi{left:-6px}
+.kbfc-pt.po{right:-6px}
+.kbfc-sd{position:absolute;top:-5px;inset-inline-end:-5px;width:12px;height:12px;border-radius:50%;border:2px solid var(--nd-bg);background:var(--ok);box-sizing:border-box}
+.kbfc-sd.bad{background:var(--bad)}
+.kbfc-sd.skip{background:var(--wire-dim)}
+/* the tools, the style menu, the hint */
+.kbfc-tools{position:absolute;top:10px;inset-inline-end:10px;z-index:6;display:flex;gap:6px;align-items:center}
+.kbfc-tb{height:28px;min-width:28px;padding:0 8px;border-radius:8px;border:1px solid transparent;background:color-mix(in srgb,var(--cv-bg) 60%,transparent);color:var(--nd-sub);display:inline-flex;align-items:center;justify-content:center;gap:6px;font:inherit;font-size:12px;cursor:pointer}
+.kbfc-tb:hover,.kbfc-tb[aria-expanded="true"],.kbfc-tb.on{background:var(--nd-bg);border-color:var(--nd-line);color:var(--nd-ink)}
+.kbfc-tb:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:1px}
+.kbfc-tb span{white-space:nowrap}
+.kbfc-sep{width:1px;height:16px;background:var(--nd-line);opacity:.5}
+.kbfc-menu{position:absolute;z-index:40;top:44px;inset-inline-end:10px;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);border:1px solid var(--dsw-alias-border-l2);border-radius:12px;box-shadow:var(--dsw-elevation-prominent,0 12px 32px rgba(0,0,0,.25));padding:6px;width:min(520px,calc(100% - 20px));display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:2px;max-height:calc(100% - 54px);overflow:auto}
+.kbfc-menu button{display:flex;gap:10px;align-items:center;width:100%;border:0;background:transparent;text-align:start;padding:7px 8px;border-radius:9px;color:inherit;font:inherit;cursor:pointer}
+.kbfc-menu button:hover{background:var(--dsw-alias-bg-layer-2)}
+.kbfc-menu button.on{background:var(--dsw-alias-bg-layer-2);box-shadow:0 0 0 1px var(--dsw-alias-border-l3)}
+.kbfc-menu b{display:block;font-size:13px;font-weight:600}
+.kbfc-menu small{display:block;font-size:11px;line-height:1.35;color:var(--dsw-alias-label-tertiary)}
+.kbfc-sample{flex:none;border-radius:6px;border:1px solid var(--dsw-alias-border-l1)}
+.kbfc-sample .bg{fill:var(--cv-bg)}
+.kbfc-sample .nd{fill:var(--nd-bg);stroke:var(--wire);stroke-opacity:.55}
+.kbfc-sample .wr{stroke:var(--wire);stroke-width:1.7;stroke-linecap:round}
+.kbfc-hint{position:absolute;bottom:10px;inset-inline-end:10px;z-index:5;font-size:12px;padding:5px 10px;border-radius:99px;background:var(--nd-bg);border:1px solid var(--nd-line);color:var(--nd-sub);pointer-events:none}
+/* Soft: a coloured kind pill on every card, thin wires */
+.kbfc-th-sf .kbfc-nd{border-radius:16px;border-width:1px;padding:10px;gap:5px;justify-content:flex-start;box-shadow:0 1px 2px rgba(20,20,40,.05),0 6px 18px rgba(20,20,40,.05)}
+.kbfc-th-sf .kbfc-nd .kbfc-kl{display:inline-flex;align-self:flex-start;gap:6px;align-items:center;padding:3px 10px 3px 7px;border-radius:99px;background:color-mix(in srgb,var(--k) 14%,var(--nd-bg));color:var(--k);font-size:11.5px;font-weight:600}
+.kbfc-th-sf .kbfc-nd .kbfc-g{font-family:ui-monospace,Menlo,monospace;font-size:11px}
+.kbfc-th-sf .kbfc-top .kbfc-ic{display:none}
+.kbfc-th-sf .kbfc-ft{margin-top:auto}
+.kbfc-th-sf .kbfc-wire{stroke-width:1.4}
+/* Ledger: the card says what it is and what it does; dashed blue wires */
+.kbfc-th-lg .kbfc-nd{border-radius:14px;border-width:1px;padding:10px;gap:8px;justify-content:flex-start;box-shadow:0 1px 2px rgba(16,24,40,.06)}
+.kbfc-th-lg .kbfc-top{align-items:center}
+.kbfc-th-lg .kbfc-ic{width:32px;height:32px;border-radius:9px;background:color-mix(in srgb,var(--k) 12%,var(--nd-bg))}
+.kbfc-th-lg .kbfc-nd .kbfc-kd{display:block;font-size:11px;color:var(--nd-sub);margin-top:1px;font-style:normal;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kbfc-th-lg .kbfc-nd .kbfc-ds{display:block;background:var(--chip);border-radius:10px;padding:8px 10px;font-size:11.5px;line-height:1.4;color:var(--nd-sub);flex:1;min-height:0;overflow:hidden}
+.kbfc-th-lg .kbfc-r{display:flex;gap:8px;align-items:center;margin-bottom:3px;font-size:11px;font-weight:600;color:var(--nd-ink)}
+.kbfc-th-lg .kbfc-dx{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-style:normal}
+.kbfc-th-lg .kbfc-ft{display:none}
+.kbfc-th-lg .kbfc-pt{background:var(--wire);border-color:var(--nd-bg);width:9px;height:9px;margin-top:-4.5px}
+.kbfc-th-lg .kbfc-wire{stroke-dasharray:6 5;stroke-width:1.6}
+/* Atelier: warm paper, wires coloured by the kind of the step they leave */
+.kbfc-th-at .kbfc-scr{background-image:linear-gradient(var(--cv-dot) 1px,transparent 1px),linear-gradient(90deg,var(--cv-dot) 1px,transparent 1px);background-size:40px 40px}
+.kbfc-th-at .kbfc-nd{border-radius:14px;justify-content:center;box-shadow:0 1px 0 var(--cv-dot)}
+.kbfc-th-at .kbfc-ft{display:none}
+.kbfc-th-at .kbfc-ic{background:transparent}
+.kbfc-th-at .kbfc-top{align-items:center}
+.kbfc-th-at .kbfc-nd.sel{border-width:2.5px;box-shadow:0 0 0 5px color-mix(in srgb,var(--k) 14%,transparent)}
+.kbfc-th-at .kbfc-nd .kbfc-sd{display:block}
+.kbfc-th-at .kbfc-wire,.kbfc-th-at .kbfc-arr{--wc:var(--k)}
+.kbfc-th-at .kbfc-wire{stroke-dasharray:5 5;stroke-width:1.8}
+.kbfc-th-at .kbfc-el{background:var(--wire);color:var(--nd-bg);border-color:transparent;font-weight:600}
+.kbfc-th-at .kbfc-el.ok{background:var(--ok);color:var(--nd-bg)}
+.kbfc-th-at .kbfc-el.bad{background:var(--bad);color:var(--nd-bg)}
+/* Journey: clean cards, smooth curves, an arrowhead on every wire */
+.kbfc-th-jy .kbfc-scr{background-image:none}
+.kbfc-th-jy .kbfc-nd{border:0;border-radius:12px;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,.08),0 8px 20px rgba(0,0,0,.05)}
+.kbfc-th-jy .kbfc-ft{display:none}
+.kbfc-th-jy .kbfc-top{align-items:center;gap:11px}
+.kbfc-th-jy .kbfc-ic{width:34px;height:34px;border-radius:9px;background:var(--k);color:var(--nd-bg)}
+.kbfc-th-jy .kbfc-tt b{font-weight:500;-webkit-line-clamp:3}
+.kbfc-th-jy .kbfc-nd.sel{box-shadow:0 0 0 2px var(--nd-ink),0 8px 20px rgba(0,0,0,.08)}
+.kbfc-th-jy .kbfc-pt{display:none}
+.kbfc-th-jy .kbfc-nd .kbfc-sd{display:block;inset-inline-end:8px;top:8px}
+.kbfc-th-jy .kbfc-wire{stroke-width:1.2}
+.kbfc-th-jy .kbfc-el{border-color:var(--nd-line)}
+/* Metrics: time, status and size on every card; dotted green wires */
+.kbfc-th-mx .kbfc-nd{border:0;border-radius:8px;padding:10px 12px;gap:6px;justify-content:flex-start;box-shadow:0 1px 2px rgba(20,40,60,.08),0 6px 16px rgba(20,40,60,.06)}
+.kbfc-th-mx .kbfc-top .kbfc-ic{display:none}
+.kbfc-th-mx .kbfc-nd .kbfc-kd{display:block;font-size:11px;color:var(--nd-sub);font-style:normal;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kbfc-th-mx .kbfc-nd .kbfc-st3{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:auto;font-size:11px;color:var(--nd-sub)}
+.kbfc-th-mx .kbfc-st3 i{display:block;font-style:normal}
+.kbfc-th-mx .kbfc-st3 strong{display:block;font-size:12px;color:var(--nd-ink);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kbfc-th-mx .kbfc-ft{display:none}
+.kbfc-th-mx .kbfc-pt{display:none}
+.kbfc-th-mx .kbfc-wire{stroke-width:3;stroke-dasharray:.1 7;stroke-linecap:round}
+.kbfc-th-mx .kbfc-el{background:var(--ok);color:var(--nd-bg);border-color:transparent;font-weight:600;padding:5px 9px}
+.kbfc-th-mx .kbfc-el.bad{background:var(--bad);color:var(--nd-bg)}
+.kbfc-th-jy .kbfc-nd.bad,.kbfc-th-mx .kbfc-nd.bad{box-shadow:0 0 0 2px var(--bad)}
+/* wire states win over every style */
+.kbfc .kbfc-wire.ok{stroke:var(--ok);stroke-width:2.2}
+.kbfc .kbfc-wire.bad{stroke:var(--bad);stroke-width:2.2}
+.kbfc .kbfc-wire.dim{stroke:var(--wire-dim)}
+.kbfc .kbfc-arr.ok{fill:var(--ok)}
+.kbfc .kbfc-arr.bad{fill:var(--bad)}
+.kbfc .kbfc-arr.dim{fill:var(--wire-dim)}
+.kbfc-th-mx .kbfc-wire.dim{stroke-dasharray:.1 7}
+`), 'kybers: styles automation canvas')
 
     // ── Brand: the K, the "Kybernos" wordmark, the tab icon and title ──────────────────────
     // The mark is a red K whose stem carries three white dots: the typing dots of a chat. It is the logo AND

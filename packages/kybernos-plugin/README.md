@@ -173,22 +173,50 @@ block of `client.js` (every text is an English / French pair; the other language
 - **No image file is shipped.** The repository holds no media (`garde-depot.mjs`), so the cover of a template page is drawn in code (two inks on
   paper, halftone dots, a misregistered glyph), the compact cards carry no cover at all, and the logos come from the catalogue at run time.
 
-## The runs of an automation (Sessions and Journal)
+## The page of one automation: Workflow and Sessions
 
-The page of one automation has two read-only tabs on its runs. Nothing is written, nothing is guessed from what a model said.
+The page has two tabs, **Workflow** (the one it opens on) and **Sessions**. There is no Webhook tab and no Journal tab any more: the webhook
+is a card of the workflow, and what the Journal said is under the run in Sessions.
 
-- **Sessions** is the list of executions, n8n style: date and time, duration, outcome and a green / red bar on the left; four figures
-  above it (runs, failed, median duration, slowest); on the right the **execution** of the chosen run, a graph of its tool calls
-  (title, duration split into thinking and running, status, and on each link the size of what the step handed on), and a **Logs**
-  panel with the Input and Output of one step. More than seven tool calls show the first six and a "+N more steps" node.
-- **Journal** tells the story of the chosen run: which model answered and why (the profile's default, or one chosen for this run),
-  what happened step by step, and the approvals asked during the run (or the automation's mode when there were none). Under it,
-  **Lessons**: how many runs in a row the automation has had since its last failure, and, once that reaches the number chosen in
-  Settings › Automations, a **Create skill** button (see « Stable automations become skills » below).
+### Workflow
+
+The workflow is the numbered steps of the automation's text (`kbTaskSteps`); a text with no numbered step is one card, its whole instruction.
+Flow (the cards), Text (the source, editable) and Code (read-only) are three quiet icons above it, Flow first.
+
+- **The cards.** A trigger (the schedule; the webhook too when the automation has one), the steps, and the record of the run. A card is told
+  by its id (`schedule`, `hook`, `s1`…, `log`), so adding a webhook moves none of the others. A click opens the panel of the card: what it
+  is, the whole instruction, how it runs, a guard mark for a check that must pass first, Previous / Next.
+- **The webhook is the settings of its card.** Its panel has the address (hidden until « Reveal »; « Copy » copies the whole address), « Test »,
+  « Regenerate » and « Revoke » (both ask first). An automation with no webhook offers « Create webhook » in the schedule's panel; creating
+  it draws the card and opens its panel. The host routes are the same as before (`hook-generate`, `hook-revoke` of `kybers/tasks`).
+- **The cards move.** Drag any card: the wires follow and stay at right angles. The arrangement is kept per automation, in this browser
+  (`kybernos.flowpos2.<wf|run>.<id>`, an offset from the default place, so it survives a change of style); « Tidy up » puts the cards back.
+- **Nine styles.** Kybernos (follows the app), Node-RED, Blueprint, Paper, Soft, Ledger, Atelier, Journey and Metrics, in a menu on the
+  canvas. A style changes the cards, the wires (right angles, curves, dashes, dots), the arrowheads and what a card shows; it is one choice
+  for the whole page (`kybernos.flowstyle`), shared by the workflow and the graph of a run. All of it is CSS and custom properties
+  (`kbfc-*`): no library, no image.
+- **Where the code is.** The layout, the routing of a wire, the offsets and the scale are the pure `KB-AUTOFLOW` block of `client.js`
+  (`test-automation-flow.mjs`: no right-angle wire goes through a card of the default layout, for every style); `KbFlowCanvas` draws them.
+  React Flow (`@xyflow/react`, shipped for the team view) is not used here: the wires wrap around rows, which its built-in edges do not do.
+
+### Sessions (executions, graph, logs, and what the Journal said)
+
+Nothing is written, nothing is guessed from what a model said.
+
+- A line of figures (runs, failed, median duration, slowest), then the list of executions, n8n style: date and time, duration, outcome and
+  a green / red bar on the left; on the right the **execution** of the chosen run, drawn on the same canvas as the workflow (a card per tool
+  call: title, duration split into thinking and running, status, and on each wire the size of what the step handed on; more than seven
+  tool calls show the first six and a "+N more steps" card), and a **Logs** panel with what one step got and gave (the raw text, 420 characters).
+- Under it, **who ran**: which model answered and why (the profile's default, or one chosen for this run), how long, how many steps; the
+  **approvals** asked during the run (or the automation's mode when there were none); and the **Lessons** card: how many runs in a row the
+  automation has had since its last failure, and, once that reaches the number chosen in Settings › Automations, a **Create skill** button
+  (see « Stable automations become skills » below).
 - A **run** is one session. `tasks.json` also keeps, for a failed run, a line the run wrote about itself afterwards (it has no session
   id): that line is a note on the run it follows (within 10 minutes, one note per run), not a run of its own. The tab counts runs.
+- **The list** (the page that lists the automations) has a **Success** column: a percentage and the last ten runs as bars, from the history
+  alone (the journals are not read for a list).
 
-Both tabs only read, but for that one button. Where the runs come from: `GET /kybernos/tasks/runs?ids=a,b` (at most 20 plain session ids) opens each session with the engine's own
+The Sessions tab only reads, but for that one button. Where the runs come from: `GET /kybernos/tasks/runs?ids=a,b` (at most 20 plain session ids) opens each session with the engine's own
 `sessionPersistence` (`open(id, 'read')`) and summarises its **first turn** with `automation-runs.mjs`: the turn's clock, the engine's
 `turn/end` reason (read as `session-outcome.mjs` does), the models the requests were routed to, whether a model was chosen on purpose,
 each tool call with its think time, run time and output size, and the approvals asked and decided. `detail=1` (one id only) adds the
@@ -254,8 +282,8 @@ none is suggested twice. Without the Skills bundle there is no seam: nothing is 
 - With the switch on (the default), the scheduler's tick suggests the stable ones by itself: at most every 5 minutes, at most three per pass,
   never in the way of a tick (a failure is logged and the tick goes on), and not at all while « Pause all automations » is on. A refusal
   (five suggestions already wait) writes no record, so it is tried again later.
-- With it off, the Journal still offers the button; it works only for a stable automation (the host checks the rule, the page sends the id and
-  nothing else, never the text to be written). That click is the person's own acceptance: the skill is written at once and the journal says so.
+- With it off, the Sessions tab still offers the button; it works only for a stable automation (the host checks the rule, the page sends the id and
+  nothing else, never the text to be written). That click is the person's own acceptance: the skill is written at once and the card says so.
 - `GET /kybernos/automation-skills?id=` (same origin) says how far an automation is and which skill was made or suggested; `POST {id}` (same
   origin and a signed session) makes it now. Host code: it needs a DSH restart.
 - The menu has a **dot on the Skills row** when suggestions wait (`KbLearnedDot`, reading `window.__KB_LEARNED__` from the Skills bundle), and the
@@ -521,7 +549,8 @@ node packages/kybernos-plugin/test-automation-creator.mjs  # 64: the shipped ski
 node packages/kybernos-plugin/test-automation-occurrences.mjs  # the future runs: the same instants as the scheduler's matcher, bounds, what cannot fire
 node packages/kybernos-plugin/test-automation-board.mjs  # the KB-AUTOBOARD block: columns, week and month grids, what the page refuses to claim, texts in both languages
 node packages/kybernos-plugin/test-automation-runs.mjs   # the run summary: clock, outcome, models, tool calls, approvals, scrubbing, the guards and bounds of tasks/runs
-node packages/kybernos-plugin/test-automation-runs-client.mjs  # the KB-AUTORUNS block: history lines → runs, figures, graph, layout; the pane stays read-only
+node packages/kybernos-plugin/test-automation-runs-client.mjs  # the KB-AUTORUNS block: history lines → runs, figures, bars, graph; the pane stays read-only
+node packages/kybernos-plugin/test-automation-flow.mjs  # the KB-AUTOFLOW block: layout, wires (none through a card, 9 styles), drag offsets, scale
 node packages/kybernos-plugin/test-automation-settings.mjs  # the three switches and the choice, the guard of the route, the held tick
 node packages/kybernos-plugin/test-automation-skills.mjs  # the stable-run rule, the skill parts, the route and the tick suggesting a skill by itself (real apply() on a throw-away DSH home, a stand-in for the Skills seam)
 node packages/kybernos-plugin/test-learned-dot.mjs         # the dot on the Skills row of the menu
