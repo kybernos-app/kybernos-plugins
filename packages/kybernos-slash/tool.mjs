@@ -82,5 +82,9 @@ export async function enregistrerOutil (tools, store) {
   const options = specOutil(store)
   const defineTool = await chargerDefineTool()
   tools.register(defineTool !== undefined ? defineTool(definitionSpec(options)) : definitionLitterale(options))
+  // Logged on purpose, like the other tool-carrying bundles: `ctx.inject(['tools'])` only fires when the manifest
+  // DECLARES `agent.tools` (plugin.json), and without this line a bundle that forgot it registers nothing and says
+  // nothing — measured on 2026-10-21, where the tool was silently absent until the manifest was fixed.
+  try { console.log('[kybernos-slash] tool "' + TOOL_NAME + '" registered') } catch (e) { /* console unavailable */ }
   return true
 }

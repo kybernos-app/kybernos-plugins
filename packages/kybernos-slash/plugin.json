@@ -36,7 +36,8 @@
     "ui.dom",
     "host.routes:/kybernos/slash:write",
     "fs.write:dsh-home",
-    "sessions.read"
+    "sessions.read",
+    "agent.tools"
   ],
   "claims": {
     "routePrefixes": [
