@@ -1,15 +1,19 @@
 // kybernos-summary — browser half.
 //
-// One tab in the right sidebar, « Summary »: what the chat is doing, on one page. Four sections, each folded
+// One tab in the right sidebar, « Summary »: what the chat is doing, on one page. Five sections, each folded
 // with a click and carrying its count:
 //   - Agents             the sub-agents of this chat (projection `subagentCatalog`);
 //   - Progress           the agent's task list (projection `todos`, the one the engine shows above the composer);
 //   - Execution context  the skills it loaded and the tools it called, MCP servers first (the chat's tool calls);
-//   - Files              the files it wrote or edited, a click opens one in the sidebar.
-// « Latest only » scopes the last two sections to the current turn (the chat since the last message of the person).
-// Agents and Progress always show the current state: a task list and a crew are standing things, not turn things.
+//   - Files              the files it wrote or edited, a click opens one in the sidebar;
+//   - Learned in this chat  the skills Kaby suggested, applied and loaded in this chat (host route of kybernos-skills,
+//                        read-only; the section is left out when it has no row or when the route does not answer).
+// « Latest only » scopes the Execution context and Files sections to the current turn (the chat since the last message
+// of the person). Agents, Progress and Learned always show the whole chat: a task list, a crew and what was learned are
+// standing things, not turn things.
 //
-// No engine patch, nothing is stored or sent: the numbers come from what the engine already holds in the browser.
+// No engine patch, nothing is stored: the numbers come from what the engine already holds in the browser, and the
+// learned section asks the skills bundle (one same-origin GET) what happened to skills in the chat on screen.
 //   - a probe in the composer dock (slot conversation.composer.dock) reads `useChat` and `useProjection`, the same
 //     props the core's usage probe gets, and files them under the session id in a module-level store;
 //   - the tab body (slot sidebar.right.pane.tab) reads that store for the chat on screen.
@@ -62,6 +66,20 @@ window.__ModuleLoader__.load({
         st_pending: ['À faire', 'To do'],
         st_in_progress: ['En cours', 'In progress'],
         st_completed: ['Terminé', 'Done'],
+        // « Learned in this chat »: what Kaby suggested, applied and reused as skills (host route of kybernos-skills)
+        learned: ['Appris dans ce chat', 'Learned in this chat'],
+        lnSuggested: ['Skill suggéré', 'Skill suggested'],
+        lnImprove: ['Amélioration de skill suggérée', 'Skill improvement suggested'],
+        lnApplied: ['Skill appliqué par Kaby', 'Skill applied by Kaby'],
+        lnCreated: ['Skill créé', 'Skill created'],
+        lnReused: ['Skill réutilisé', 'Skill reused'],
+        lnScore: ['score {n}', 'score {n}'],
+        lnUsedOne: ['utilisé dans 1 chat', 'used in 1 chat'],
+        lnUsed: ['utilisé dans {n} chats', 'used in {n} chats'],
+        lnNotReviewed: ['pas encore relu', 'not reviewed yet'],
+        lnReview: ['Relire', 'Review'],
+        lnReviewTip: ['Relire {name} dans la page Skills', 'Review {name} in the Skills page'],
+        lnFoot: ['Une suggestion attend ton accord, sauf si Réglages › Compétences apprises en dit autrement.', 'A suggestion waits for your yes, unless Settings › Learned skills says otherwise.'],
       }
       const L = (key, p) => { const pair = S[key]; return pair === undefined ? key : fill(kt(pair[0], pair[1]), p) }
 
@@ -183,6 +201,93 @@ window.__ModuleLoader__.load({
         const normalized = String(path).replace(/\\/g, '/').replace(/^(?:\.\/)+/, '')
         return 'dsh-resource://file/session/' + encodeURIComponent(sessionId) + '/' + normalized.split('/').map(encodeURIComponent).join('/')
       }
+      /** How many tool calls the whole chat holds (the scope toggle does not matter): the cue to ask the learned route again. */
+      const countCalls = (data) => {
+        if (data === null || data === undefined || !Array.isArray(data.nodes)) return 0
+        const calls = []
+        const seen = new Set()
+        const budget = { n: 20000 }
+        for (const n of data.nodes) findCalls(n, calls, seen, budget, 0)
+        return calls.length
+      }
+
+      // ════════════════════════════════════════════════════════════════════════
+      // « Learned in this chat »: the answer of GET /kybernos-skills/learned/session, as rows
+      // ════════════════════════════════════════════════════════════════════════
+      const LEARNED_URL = '/kybernos-skills/learned/session?sessionId='
+      const LEARNED_SETTLE_MS = 500 // a burst of tool calls asks once, when it calms down
+      const LEARNED_EVERY_MS = 30000 // and again now and then while the page is visible
+      const LEARNED_KEEP = 50 // per list: the route is ours, the bound is for a broken one
+      const clean = (v) => (typeof v === 'string' && v.trim() !== '' ? v.trim() : '')
+      const intOf = (v) => (typeof v === 'number' && isFinite(v) ? Math.round(v) : null)
+      /**
+       * The rows of the section, in the order the person acts on them: what waits for a yes, what Kaby applied or the
+       * person created, then what the chat reused. `[]` for anything that is not an `ok` answer: the section is then left out.
+       * A skill created in this chat and loaded only here (`uses` of 1) is not « reused », so it keeps its one row.
+       */
+      const learnedRows = (answer) => {
+        const a = asObj(answer)
+        if (a === null || a.ok !== true) return []
+        const list = (v) => (Array.isArray(v) ? v.slice(0, LEARNED_KEEP) : [])
+        const rows = []
+        const keys = new Set()
+        const push = (row) => { if (!keys.has(row.key)) { keys.add(row.key); rows.push(row) } }
+        for (const e of list(a.suggested)) {
+          const o = asObj(e)
+          const id = o === null ? '' : clean(o.id)
+          const name = o === null ? '' : clean(o.name)
+          if (id !== '' && name !== '') push({ key: 's:' + id, kind: o.kind === 'improve' ? 'improve' : 'suggested', id: id, name: name, score: null, uses: null, notReviewed: false })
+        }
+        const applied = new Set()
+        for (const e of list(a.applied)) {
+          const o = asObj(e)
+          const name = o === null ? '' : clean(o.name)
+          if (name === '') continue
+          applied.add(name)
+          const auto = o.auto === true
+          push({ key: 'a:' + name, kind: auto ? 'auto' : 'created', id: '', name: name, score: auto ? intOf(o.score) : null, uses: null, notReviewed: auto && o.reviewed === false })
+        }
+        for (const e of list(a.used)) {
+          const o = asObj(e)
+          const name = o === null ? '' : clean(o.name)
+          if (name === '') continue
+          const uses = intOf(o.uses)
+          if (applied.has(name) && (uses === null || uses <= 1)) continue
+          push({ key: 'u:' + name, kind: 'reused', id: '', name: name, score: null, uses: uses === null || uses < 1 ? null : uses, notReviewed: false })
+        }
+        return rows
+      }
+      /** The answer of the route as rows, or null when it did not answer (older host, 404, not JSON, network): the caller keeps what it had. */
+      const loadLearned = (sid) => {
+        try {
+          if (typeof fetch !== 'function') return Promise.resolve(null)
+          return fetch(LEARNED_URL + encodeURIComponent(sid), { method: 'GET', headers: { accept: 'application/json' } })
+            .then((r) => (r !== null && typeof r === 'object' && r.ok === true ? r.json() : null))
+            .then((j) => (asObj(j) === null ? null : learnedRows(j)))
+            .catch(() => null)
+        } catch (e) { return Promise.resolve(null) }
+      }
+      /**
+       * Asks the route for a chat once things settle, then every 30 s while the page is visible. `onRows` gets the rows of
+       * each answer that came; a late answer of an earlier ask is dropped. Returns the function that stops it all.
+       */
+      const watchLearned = (sid, onRows) => {
+        let alive = true
+        let asked = 0
+        const ask = () => {
+          asked += 1
+          const mine = asked
+          loadLearned(sid).then((rows) => { if (alive && mine === asked && rows !== null) onRows(rows) }, () => { /* loadLearned never rejects */ })
+        }
+        const first = setTimeout(ask, LEARNED_SETTLE_MS)
+        const every = setInterval(() => { let hidden = false; try { hidden = document.visibilityState === 'hidden' } catch (e) { hidden = false } if (!hidden) ask() }, LEARNED_EVERY_MS)
+        return () => { alive = false; clearTimeout(first); clearInterval(every) }
+      }
+      /** « Review »: remembers which suggestion, then opens the Skills page. Each step is guarded: neither may break the tab. */
+      const reviewSuggestion = (id) => {
+        try { window.sessionStorage.setItem('kybernos.skills.review', String(id)) } catch (e) { /* no storage: the page opens without the pointer */ }
+        try { if (typeof window.__KB_OPEN__ === 'function') window.__KB_OPEN__({ view: 'skills' }) } catch (e) { /* the menu is the other way in */ }
+      }
 
       // ════════════════════════════════════════════════════════════════════════
       // the store the probe fills and the tab reads
@@ -267,6 +372,27 @@ window.__ModuleLoader__.load({
           items.length > CAP && !all ? h('button', { type: 'button', className: 'kbsm-more', 'data-act': 'more-' + props.id, onClick: () => setAll(true) }, L('more', { n: items.length - CAP })) : null)
       }
 
+      /** The rows of « Learned in this chat » for a chat: empty until the route has answered, and for good when it never does. */
+      const useLearned = (sid, calls) => {
+        const [got, setGot] = React.useState({ sid: '', rows: [] })
+        // a new chat, or one more tool call in this one, asks again (after a short settle); a timer covers the rest
+        React.useEffect(() => (sid === '' ? undefined : watchLearned(sid, (rows) => setGot({ sid: sid, rows: rows }))), [sid, calls])
+        return got.sid === sid ? got.rows : []
+      }
+      const learnedRow = (r, onReview) => {
+        const kindKey = { suggested: 'lnSuggested', improve: 'lnImprove', auto: 'lnApplied', created: 'lnCreated', reused: 'lnReused' }[r.kind]
+        const waits = r.kind === 'suggested' || r.kind === 'improve'
+        const bits = [L(kindKey)]
+        if (r.score !== null) bits.push(L('lnScore', { n: r.score }))
+        if (r.uses !== null) bits.push(L(r.uses === 1 ? 'lnUsedOne' : 'lnUsed', { n: r.uses }))
+        return h('div', { key: r.key, className: 'kbsm-row kbsm-learn', 'data-kb': 'kybernos-summary-learned', 'data-learned-kind': r.kind },
+          h(Icon, { kind: 'skill' }),
+          h('span', { className: 'kbsm-learn-text' },
+            h('span', { className: 'kbsm-name' }, r.name),
+            h('span', { className: 'kbsm-learn-sub' }, bits.join(' · '), r.notReviewed ? h('span', { className: 'kbsm-chip', 'data-kb': 'kybernos-summary-unreviewed' }, L('lnNotReviewed')) : null)),
+          waits ? h('button', { type: 'button', className: 'kbsm-review', 'data-act': 'review', 'data-id': r.id, title: L('lnReviewTip', { name: r.name }), 'aria-label': L('lnReviewTip', { name: r.name }), onClick: () => onReview(r.id) }, L('lnReview')) : null)
+      }
+
       const Pane = () => {
         const [, bump] = React.useState(0)
         const [latest, setLatest] = React.useState(readLatest)
@@ -280,6 +406,9 @@ window.__ModuleLoader__.load({
         const sid = currentSid()
         const data = sid !== '' && store.bySid[sid] !== undefined ? store.bySid[sid] : null
         const m = React.useMemo(() => derive(data, latest), [data, latest])
+        // the learned section is about the whole chat: the scope toggle does not touch it
+        const calls = React.useMemo(() => countCalls(data), [data])
+        const learned = useLearned(sid, calls)
         const flip = (id) => setFolded((f) => Object.assign({}, f, { [id]: f[id] !== true }))
         const isOpen = (id) => folded[id] !== true
         const openFile = (path) => {
@@ -292,9 +421,9 @@ window.__ModuleLoader__.load({
           h('h2', { className: 'kbsm-h' }, L('title')),
           h('button', { type: 'button', className: 'kbsm-toggle', 'data-act': 'scope', 'aria-pressed': latest ? 'true' : 'false', title: L(latest ? 'latestTip' : 'wholeTip'),
             onClick: () => { const v = !latest; setLatest(v); writeLatest(v) } }, L(latest ? 'latest' : 'whole')))
-        const body = sid === '' || data === null
-          ? h('p', { className: 'kbsm-empty' }, L(sid === '' ? 'noChat' : 'empty'))
-          : (total(m) === 0
+        const body = sid === ''
+          ? h('p', { className: 'kbsm-empty' }, L('noChat'))
+          : (total(m) === 0 && learned.length === 0
             ? h('p', { className: 'kbsm-empty' }, L('empty'))
             : h('div', { className: 'kbsm-card' },
               m.agents.length > 0 ? h(Section, { id: 'agents', title: L('agents'), count: m.agents.length, open: isOpen('agents'), onToggle: () => flip('agents') },
@@ -313,7 +442,10 @@ window.__ModuleLoader__.load({
               m.files.length > 0 ? h(Section, { id: 'files', title: L('files'), count: m.files.length, open: isOpen('files'), onToggle: () => flip('files') },
                 h(Capped, { id: 'files', items: m.files, render: (f) => h('button', { key: f.path, type: 'button', className: 'kbsm-row kbsm-file', 'data-kb': 'kybernos-summary-file', 'data-path': f.path, title: f.path,
                   'aria-label': L('open', { name: f.name }), onClick: () => openFile(f.path) },
-                  h(Icon, { kind: 'file' }), h('span', { className: 'kbsm-name' }, f.name), f.dir !== '' ? h('span', { className: 'kbsm-dir' }, f.dir) : null) })) : null))
+                  h(Icon, { kind: 'file' }), h('span', { className: 'kbsm-name' }, f.name), f.dir !== '' ? h('span', { className: 'kbsm-dir' }, f.dir) : null) })) : null,
+              learned.length > 0 ? h(Section, { id: 'learned', title: L('learned'), count: learned.length, open: isOpen('learned'), onToggle: () => flip('learned') },
+                h(Capped, { id: 'learned', items: learned, render: (r) => learnedRow(r, reviewSuggestion) }),
+                h('p', { className: 'kbsm-foot' }, L('lnFoot'))) : null))
         return h('div', { className: 'kbsm', 'data-kb': 'kybernos-summary-pane' }, head, body)
       }
 
@@ -348,7 +480,13 @@ window.__ModuleLoader__.load({
         '.kbsm-todo{color:var(--dsw-alias-label-tertiary,#999)}',
         '.kbsm-more{border:0;background:none;color:var(--dsw-alias-label-secondary,#555);font:inherit;padding:6px 2px;cursor:pointer}',
         '.kbsm-empty{margin:14px 4px;color:var(--dsw-alias-label-secondary,#666)}',
-        '.kbsm-toggle:focus-visible,.kbsm-sec-head:focus-visible,.kbsm-file:focus-visible,.kbsm-more:focus-visible{outline:2px solid var(--dsw-alias-brand-primary,#4c6ef5);outline-offset:1px}',
+        '.kbsm-learn-text{flex:1 1 auto;min-width:0;display:flex;flex-direction:column}',
+        '.kbsm-learn-sub{font-size:11.5px;color:var(--dsw-alias-label-tertiary,#888)}',
+        '.kbsm-chip{display:inline-block;margin-left:6px;padding:0 7px;border-radius:999px;border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.3));color:var(--dsw-alias-label-secondary,#555)}',
+        '.kbsm-review{flex:none;border:0;border-radius:9px;padding:4px 10px;cursor:pointer;font:inherit;color:inherit;background:var(--dsw-alias-bg-base,rgba(127,127,127,.14))}',
+        '.kbsm-review:hover{background:var(--dsw-alias-interactive-bg-hover,rgba(127,127,127,.22))}',
+        '.kbsm-foot{margin:6px 2px 4px;font-size:11.5px;color:var(--dsw-alias-label-tertiary,#888)}',
+        '.kbsm-toggle:focus-visible,.kbsm-sec-head:focus-visible,.kbsm-file:focus-visible,.kbsm-more:focus-visible,.kbsm-review:focus-visible{outline:2px solid var(--dsw-alias-brand-primary,#4c6ef5);outline-offset:1px}',
       ].join('\n')
 
       const TYPE_ID = 'kybernos-summary'
@@ -360,7 +498,7 @@ window.__ModuleLoader__.load({
         name: 'kybernos-summary',
         // `sidebarRightTabs` must be declared: ui-sidebar-right provides it, and without this `apply` could run before.
         inject: ['slots', 'sidebarRightTabs'],
-        __test: { S, L, kt, derive, callOf, findCalls, sinceLastUser, splitMcp, pretty, fileAddress, publish, store, total, CSS, TYPE_ID, KIND },
+        __test: { S, L, kt, derive, callOf, findCalls, sinceLastUser, splitMcp, pretty, fileAddress, publish, store, total, CSS, TYPE_ID, KIND, countCalls, learnedRows, loadLearned, watchLearned, reviewSuggestion, LEARNED_URL, LEARNED_SETTLE_MS, LEARNED_EVERY_MS },
         apply (ctx) {
           CTX = ctx
           ctx.effect(() => {

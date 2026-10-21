@@ -30,6 +30,7 @@
   "permissions": [
     "ui.slot:main.kybernos-skills",
     "ui.slot:settings.section",
+    "ui.slot:conversation.chat.turnTail",
     "host.routes:/kybernos-skills:write",
     "fs.read:workspace",
     "fs.write:dsh-home",
@@ -42,7 +43,9 @@
     "exec:notepad",
     "exec:open",
     "exec:tar",
-    "exec:xdg-open"
+    "exec:xdg-open",
+    "agent.prompt",
+    "agent.tools"
   ],
   "claims": {
     "routePrefixes": [
