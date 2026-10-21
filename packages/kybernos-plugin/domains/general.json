@@ -1,0 +1,135 @@
+{
+  "v": 1,
+  "id": "general",
+  "order": 99,
+  "name": {
+    "en": "Something else",
+    "fr": "Autre chose"
+  },
+  "tagline": {
+    "en": "Documents, spreadsheets, research",
+    "fr": "Documents, tableurs, recherche"
+  },
+  "legacyJobs": [
+    "autres"
+  ],
+  "goals": [
+    {
+      "id": "documents",
+      "name": {
+        "en": "Documents",
+        "fr": "Documents"
+      },
+      "title": {
+        "en": "Read and write documents",
+        "fr": "Lire et rédiger des documents"
+      },
+      "desc": {
+        "en": "PDFs in, documents out",
+        "fr": "Des PDF en entrée, des documents en sortie"
+      },
+      "skills": [
+        {
+          "source": "anthropics/skills",
+          "name": "pdf",
+          "d": {
+            "en": "Read and extract your course PDFs",
+            "fr": "Lit et extrait tes cours en PDF"
+          }
+        },
+        {
+          "source": "anthropics/skills",
+          "name": "docx",
+          "d": {
+            "en": "Write and format papers",
+            "fr": "Rédige et met en forme tes devoirs"
+          }
+        }
+      ],
+      "starter": {
+        "en": "Summarise this document",
+        "fr": "Résume ce document"
+      }
+    },
+    {
+      "id": "sheets",
+      "name": {
+        "en": "Spreadsheets",
+        "fr": "Tableurs"
+      },
+      "title": {
+        "en": "Work with spreadsheets",
+        "fr": "Travailler avec des tableurs"
+      },
+      "desc": {
+        "en": "Build and fix spreadsheets",
+        "fr": "Construire et corriger des tableurs"
+      },
+      "skills": [
+        {
+          "source": "anthropics/skills",
+          "name": "xlsx",
+          "d": {
+            "en": "Track money and pipeline",
+            "fr": "Suit l’argent et le pipeline"
+          }
+        }
+      ],
+      "starter": {
+        "en": "Fix this spreadsheet",
+        "fr": "Corrige ce tableur"
+      }
+    },
+    {
+      "id": "slides",
+      "name": {
+        "en": "Slides",
+        "fr": "Présentations"
+      },
+      "title": {
+        "en": "Build slide decks",
+        "fr": "Construire des présentations"
+      },
+      "desc": {
+        "en": "Slide decks from a brief",
+        "fr": "Des présentations à partir d’un brief"
+      },
+      "skills": [
+        {
+          "source": "anthropics/skills",
+          "name": "pptx",
+          "d": {
+            "en": "Build slide decks",
+            "fr": "Construit des présentations"
+          }
+        }
+      ],
+      "starter": {
+        "en": "Build a deck on this subject",
+        "fr": "Construis une présentation sur ce sujet"
+      }
+    },
+    {
+      "id": "research",
+      "name": {
+        "en": "Research",
+        "fr": "Recherche"
+      },
+      "title": {
+        "en": "Research a subject",
+        "fr": "Faire des recherches"
+      },
+      "desc": {
+        "en": "Sources read, one briefing",
+        "fr": "Des sources lues, un seul compte rendu"
+      },
+      "teams": [
+        "research-desk"
+      ],
+      "starter": {
+        "en": "Research this subject and brief me",
+        "fr": "Cherche sur ce sujet et fais-moi un point"
+      }
+    }
+  ]
+}

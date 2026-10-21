@@ -1,0 +1,250 @@
+{
+  "v": 1,
+  "id": "dev",
+  "order": 80,
+  "name": {
+    "en": "Development",
+    "fr": "Développement"
+  },
+  "tagline": {
+    "en": "Software, data, QA, product, design",
+    "fr": "Logiciel, données, QA, produit, design"
+  },
+  "legacyJobs": [
+    "soft",
+    "qa",
+    "produit",
+    "design"
+  ],
+  "goals": [
+    {
+      "id": "review",
+      "name": {
+        "en": "Code review",
+        "fr": "Revue de code"
+      },
+      "title": {
+        "en": "Review changes with care",
+        "fr": "Relire les changements avec soin"
+      },
+      "desc": {
+        "en": "Bugs and clarity, change by change",
+        "fr": "Bugs et clarté, changement par changement"
+      },
+      "skills": [
+        {
+          "source": "anthropics/knowledge-work-plugins",
+          "name": "code-review",
+          "d": {
+            "en": "Review a change for bugs and clarity",
+            "fr": "Relit un changement : bugs et clarté"
+          }
+        },
+        {
+          "source": "anthropics/knowledge-work-plugins",
+          "name": "testing-strategy",
+          "d": {
+            "en": "Decide what to test and how",
+            "fr": "Décide quoi tester et comment"
+          }
+        }
+      ],
+      "starter": {
+        "en": "Review this pull request",
+        "fr": "Relis cette pull request"
+      }
+    },
+    {
+      "id": "quality",
+      "name": {
+        "en": "Quality",
+        "fr": "Qualité"
+      },
+      "title": {
+        "en": "Test and run incidents calmly",
+        "fr": "Tester et tenir les incidents"
+      },
+      "desc": {
+        "en": "Test strategy, web checks, incident response",
+        "fr": "Stratégie de tests, vérifications web, incidents"
+      },
+      "skills": [
+        {
+          "source": "anthropics/knowledge-work-plugins",
+          "name": "testing-strategy",
+          "d": {
+            "en": "Decide what to test and how",
+            "fr": "Décide quoi tester et comment"
+          }
+        },
+        {
+          "source": "anthropics/knowledge-work-plugins",
+          "name": "incident-response",
+          "d": {
+            "en": "Run an incident calmly",
+            "fr": "Conduit un incident calmement"
+          }
+        },
+        {
+          "source": "anthropics/skills",
+          "name": "webapp-testing",
+          "d": {
+            "en": "Drive a web app and check it",
+            "fr": "Pilote une appli web et la vérifie"
+          }
+        }
+      ],
+      "starter": {
+        "en": "What should I test on this change?",
+        "fr": "Que tester sur ce changement ?"
+      }
+    },
+    {
+      "id": "data",
+      "name": {
+        "en": "Data",
+        "fr": "Données"
+      },
+      "title": {
+        "en": "Read data without fooling myself",
+        "fr": "Lire des données sans me tromper"
+      },
+      "desc": {
+        "en": "SQL and statistics",
+        "fr": "SQL et statistiques"
+      },
+      "skills": [
+        {
+          "source": "anthropics/knowledge-work-plugins",
+          "name": "sql-queries",
+          "d": {
+            "en": "Write and check SQL",
+            "fr": "Écrit et vérifie du SQL"
+          }
+        },
+        {
+          "source": "anthropics/knowledge-work-plugins",
+          "name": "statistical-analysis",
+          "d": {
+            "en": "Read a dataset without fooling yourself",
+            "fr": "Lit un jeu de données sans se tromper"
+          }
+        }
+      ],
+      "soon": [
+        {
+          "en": "Data Analyst team",
+          "fr": "Équipe Data Analyst"
+        }
+      ],
+      "starter": {
+        "en": "Write the SQL query",
+        "fr": "Écris la requête SQL"
+      }
+    },
+    {
+      "id": "product",
+      "name": {
+        "en": "Product",
+        "fr": "Produit"
+      },
+      "title": {
+        "en": "Turn ideas into plans",
+        "fr": "Transformer des idées en plans"
+      },
+      "desc": {
+        "en": "Specs, roadmap, sprints, research",
+        "fr": "Spécifications, feuille de route, sprints, études"
+      },
+      "skills": [
+        {
+          "source": "anthropics/knowledge-work-plugins",
+          "name": "write-spec",
+          "d": {
+            "en": "Turn an idea into a spec",
+            "fr": "Transforme une idée en spécification"
+          }
+        },
+        {
+          "source": "anthropics/knowledge-work-plugins",
+          "name": "roadmap-update",
+          "d": {
+            "en": "Keep the roadmap current",
+            "fr": "Tient la feuille de route à jour"
+          }
+        },
+        {
+          "source": "anthropics/knowledge-work-plugins",
+          "name": "sprint-planning",
+          "d": {
+            "en": "Plan a sprint with capacity in mind",
+            "fr": "Planifie un sprint selon la capacité"
+          }
+        },
+        {
+          "source": "anthropics/knowledge-work-plugins",
+          "name": "user-research",
+          "d": {
+            "en": "Plan and read user research",
+            "fr": "Prépare et lit une étude utilisateur"
+          }
+        }
+      ],
+      "soon": [
+        {
+          "en": "PM Assistant team",
+          "fr": "Équipe PM Assistant"
+        }
+      ],
+      "starter": {
+        "en": "Turn this idea into a spec",
+        "fr": "Transforme cette idée en spécification"
+      }
+    },
+    {
+      "id": "design",
+      "name": {
+        "en": "Design",
+        "fr": "Design"
+      },
+      "title": {
+        "en": "Design and write the interface",
+        "fr": "Concevoir et écrire l’interface"
+      },
+      "desc": {
+        "en": "Critique, interface text, polished code",
+        "fr": "Critique, textes d’interface, code soigné"
+      },
+      "skills": [
+        {
+          "source": "anthropics/knowledge-work-plugins",
+          "name": "design-critique",
+          "d": {
+            "en": "Get a structured critique of a design",
+            "fr": "Obtient une critique structurée d’un design"
+          }
+        },
+        {
+          "source": "anthropics/knowledge-work-plugins",
+          "name": "ux-copy",
+          "d": {
+            "en": "Write interface text",
+            "fr": "Rédige les textes d’interface"
+          }
+        },
+        {
+          "source": "anthropics/skills",
+          "name": "frontend-design",
+          "d": {
+            "en": "Build polished interfaces in code",
+            "fr": "Construit des interfaces soignées en code"
+          }
+        }
+      ],
+      "starter": {
+        "en": "Critique this design",
+        "fr": "Fais la critique de ce design"
+      }
+    }
+  ]
+}
