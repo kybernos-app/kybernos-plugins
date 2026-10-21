@@ -99,7 +99,7 @@ const openTask = async (name) => {
   return val(`(() => { const el = Array.from(document.querySelectorAll('*')).find((e) => e.children.length === 0 && e.textContent.trim() === ${JSON.stringify(name)}); if (!el) return false; el.click(); return true })()`)
 }
 const backToList = async () => { await click('.kba-crumb'); await poll(() => q('[data-kb="page-automations"]'), 6000) }
-const tab = (label) => val(`(() => { const b = Array.from(document.querySelectorAll('.kba-tab')).find((x) => ${label instanceof RegExp ? label + '.test(x.textContent)' : 'x.textContent === ' + JSON.stringify(label)}); if (!b) return false; b.click(); return true })()`)
+const tab = (label) => val(`(() => { const b = Array.from(document.querySelectorAll('[data-kb^="tab-"]')).find((x) => ${label instanceof RegExp ? label + '.test(x.textContent)' : 'x.textContent === ' + JSON.stringify(label)}); if (!b) return false; b.click(); return true })()`)
 
 try {
   console.log('Automations — Discover, Cards, Flow, Journal lessons, settings (live GUI, sandbox)')
@@ -160,9 +160,9 @@ try {
   await shot('cards')
 
   console.log('\n── Workflow ──')
-  check('the detail has two tabs, Workflow and Sessions: no Webhook tab, no Journal tab', (await val(`Array.from(document.querySelectorAll('.kba-tab')).map((b) => b.textContent.replace(/\\s+/g, ' ').trim()).join('|')`)) === 'Workflow|Sessions · 6')
+  check('the detail has two tabs, Workflow and Sessions: no Webhook tab, no Journal tab', (await val(`Array.from(document.querySelectorAll('[data-kb="detail-tabs"] [role="tab"]')).map((b) => b.textContent.replace(/\\s+/g, ' ').trim()).join('|')`)) === 'Workflow|Sessions · 6')
   check('the Workflow opens on the cards: the trigger, the three steps and the record of the run', (await poll(async () => (await q('[data-kb="flow-card"]')) === 5, 5000)) === true)
-  check('Flow, Text and Code are three quiet icons, Flow first and chosen', (await val(`Array.from(document.querySelectorAll('.kba-vbtn')).map((b) => b.dataset.kb + (b.getAttribute('aria-pressed') === 'true' ? '*' : '')).join()`)) === 'view-flow*,view-text,view-code')
+  check('Flow, Text and Code are three quiet icons in the toolbar of the canvas, Flow first and chosen', (await val(`Array.from(document.querySelectorAll('[data-kb="flow-canvas"] [data-kb^="view-"]')).map((b) => b.dataset.kb + (b.getAttribute('aria-pressed') === 'true' ? '*' : '')).join()`)) === 'view-flow*,view-text,view-code')
   check('the title of every card stays inside it (two lines at most, nothing spills)', await val(`Array.from(document.querySelectorAll('[data-kb="flow-card"]')).every((n) => { const r = n.getBoundingClientRect(); return Array.from(n.querySelectorAll('.kbfc-tt b, .kbfc-ft')).every((c) => c.getBoundingClientRect().bottom <= r.bottom + 1 && c.getBoundingClientRect().right <= r.right + 1) })`))
   await val(`document.querySelectorAll('[data-kb="flow-card"]')[1].click()`)
   check('a click opens the panel: type, whole instruction, how it runs, the guard mark', (await poll(() => q('[data-kb="flow-node-panel"]'), 3000)) === 1 && /PREFLIGHT \(required\): check that the shared folder is reachable before anything else; stop with a clear reason if it is not\./.test(await text('[data-kb="flow-node-panel"]')) && /Guard/.test(await text('[data-kb="flow-node-panel"] .kba-nc-head')) && /How it runs/i.test(await text('[data-kb="flow-node-panel"]')))
@@ -244,7 +244,13 @@ try {
   const sessionDirOf = (sid) => { const root = join(home, 'sessions'); try { for (const d of readdirSync(root)) if (existsSync(join(root, d, sid))) return d } catch (e) { /* no sessions yet */ } return null }
   const lastSession = () => { try { const t = JSON.parse(readFileSync(files.tasks, 'utf8')).find((x) => x.id === 'chk-young'); const h = t.history.filter((x) => typeof x.sessionId === 'string' && !x.sessionId.startsWith('seed-')); return { task: t, sid: h.length > 0 ? h[h.length - 1].sessionId : null, n: h.length } } catch (e) { return { task: null, sid: null, n: 0 } } }
   const setSelect = (v) => val(`(() => { const e = document.querySelector('[data-kb="task-workspace"]'); if (!e) return false; Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(e, ${JSON.stringify(v)}); e.dispatchEvent(new Event('change', { bubbles: true })); return true })()`)
-  const pressInHead = (label) => val(`(() => { const b = Array.from(document.querySelectorAll('.kba-dhead .kba-btn')).find((x) => x.innerText.trim() === ${JSON.stringify(label)}); if (!b) return false; b.click(); return true })()`)
+  // « Run now » is on the page; Schedule, Edit in chat and Delete are in its « more » menu.
+  const pressInHead = async (label) => {
+    if (label === 'Run now') return val(`(() => { const b = Array.from(document.querySelectorAll('.kba-dhead .kba-btn')).find((x) => x.innerText.trim() === 'Run now'); if (!b) return false; b.click(); return true })()`)
+    await click('[data-kb="detail-more"]')
+    await poll(() => q('[data-kb="detail-schedule"]'), 3000)
+    return click(label === 'Schedule' ? '[data-kb="detail-schedule"]' : '[data-kb="detail-edit-chat"]')
+  }
   const waitRun = async (before) => { await pressInHead('Run now'); return poll(() => { const l = lastSession(); return l.n > before ? l : null }, 20000) }
   await openAutomations()
   await poll(() => q('.kba-lcard, [data-kb="auto-card"]'), 10000)

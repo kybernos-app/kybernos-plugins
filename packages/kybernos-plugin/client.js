@@ -352,6 +352,20 @@ let kbLocaleRead = () => 'en'
       'tasks.flow.kind.gry': { kybernos: 'Flow', en: 'Flow' },
       'tasks.flow.kind.hook': { kybernos: 'Webhook', en: 'Webhook' },
       'tasks.flow.kind.conn': { kybernos: 'Connecteur', en: 'Connector' },
+      'tasks.more': { kybernos: 'Plus d’actions', en: 'More actions' },
+      'tasks.runs.ranwith': { kybernos: 'Lancé avec', en: 'Ran with' },
+      'tasks.runs.noapproval': { kybernos: 'Aucune approbation n’a été nécessaire.', en: 'No approval was needed.' },
+      'tasks.runs.approvalsn': { kybernos: '{n} approbation(s) demandée(s)', en: '{n} approval(s) asked' },
+      'tasks.runs.moreruns': { kybernos: '{n} de plus', en: '{n} more' },
+      'tasks.runs.thisrun': { kybernos: 'Ce run', en: 'This run' },
+      'tasks.runs.whatdid': { kybernos: 'Ce qu’elle a fait', en: 'What it did' },
+      'tasks.runs.status': { kybernos: 'Statut', en: 'Status' },
+      'tasks.runs.statusok': { kybernos: 'Fait', en: 'Done' },
+      'tasks.runs.statusbad': { kybernos: 'Arrêtée ici', en: 'Stopped here' },
+      'tasks.runs.outsize': { kybernos: 'Taille de la sortie', en: 'Output size' },
+      'tasks.runs.showraw': { kybernos: 'Voir les données brutes', en: 'Show raw data' },
+      'tasks.runs.hideraw': { kybernos: 'Masquer les données brutes', en: 'Hide raw data' },
+      'tasks.uses.run': { kybernos: 'Utilisé dans ce run', en: 'Used in this run' },
       'tasks.uses.title': { kybernos: 'Utilisé dans les {n} derniers runs lus', en: 'Used in the last {n} runs read' },
       'tasks.uses.none': { kybernos: 'Le modèle, les skills, les connecteurs et les agents apparaissent ici une fois les derniers runs lus.', en: 'The model, skills, connectors and agents show here once the last runs have been read.' },
       'tasks.uses.panel': { kybernos: 'Utilise', en: 'Uses' },
@@ -21867,6 +21881,24 @@ function renderFit(canvas, model, cam, opts){
       out.push('  },', '});')
       return out
     }
+    // The « more » menu of the page of an automation: the actions that are not the one a person comes for (Run now stays on the page).
+    const KbMoreMenu = (props) => {
+      const openPair = React.useState(false)
+      const open = openPair[0]
+      const setOpen = openPair[1]
+      const boxRef = React.useRef(null)
+      React.useEffect(() => {
+        if (open !== true) return undefined
+        const onDown = (e) => { if (boxRef.current !== null && boxRef.current.contains(e.target) !== true) setOpen(false) }
+        const onKey = (e) => { if (e.key === 'Escape') setOpen(false) }
+        document.addEventListener('mousedown', onDown, true)
+        document.addEventListener('keydown', onKey, true)
+        return () => { document.removeEventListener('mousedown', onDown, true); document.removeEventListener('keydown', onKey, true) }
+      }, [open])
+      return h('span', { className: 'kba-more', ref: boxRef },
+        h('button', { type: 'button', className: 'kba-btn kba-morebtn', 'aria-haspopup': 'menu', 'aria-expanded': open === true ? 'true' : 'false', 'aria-label': props.label, title: props.label, 'data-kb': 'detail-more', onClick: () => setOpen(open !== true) }, Icon('more', 15)),
+        (open === true ? h('div', { className: 'kba-dmenu', role: 'menu' }, props.items.map((it, i) => (it === null ? h('hr', { key: i }) : h('button', { key: i, type: 'button', role: 'menuitem', className: 'kba-dmi' + (it.danger === true ? ' danger' : ''), 'data-kb': it.kb, onClick: () => { setOpen(false); it.run() } }, it.icon, it.label)))) : null))
+    }
     // A confirmation for what cannot be undone: deleting an automation, regenerating or revoking its webhook URL.
     const KbConfirm = (p) => {
       const busyPair = React.useState(false)
@@ -21995,7 +22027,10 @@ function renderFit(canvas, model, cam, opts){
       const quietRef = React.useRef(false)
       const cards = props.nodes.map((n) => ({ id: n.id, trg: n.trg === true }))
       const lay = kbFlowCoords(cards, props.links, { style, offsets })
-      const k = kbFlowScale(lay.W, lay.H, size.w, size.h)
+      // `fitHeight` (px): the frame is as tall as the canvas needs, up to that, instead of a fixed height (a run of four cards is not shown in a big empty frame).
+      const kFit = props.fitHeight > 0 ? (size.w > 0 ? Math.max(KB_FLOW_MIN_SCALE, Math.min(1, (size.w - 8) / lay.W)) : 1) : null
+      const k = kFit !== null ? kFit : kbFlowScale(lay.W, lay.H, size.w, size.h)
+      const frameH = kFit !== null ? Math.min(props.fitHeight, Math.max(220, Math.round(lay.H * k) + 16)) : props.height
       const layRef = React.useRef(lay)
       layRef.current = lay
       const kRef = React.useRef(k)
@@ -22071,7 +22106,7 @@ function renderFit(canvas, model, cam, opts){
           n.st !== null ? h('i', { className: 'kbfc-sd ' + (n.st === 'bad' ? 'bad' : (n.st === 'skip' ? 'skip' : '')) }) : null)
       }
       const arranged = Object.keys(offsets).length > 0
-      return h('div', { className: 'kbfc kbfc-th-' + style.id, ref: rootRef, 'data-kb': 'flow-canvas', 'data-style': style.id, style: { height: props.height } },
+      return h('div', { className: 'kbfc kbfc-th-' + style.id, ref: rootRef, 'data-kb': 'flow-canvas', 'data-style': style.id, style: { height: frameH } },
         h('div', { className: 'kbfc-scr' },
           h('div', { className: 'kbfc-vpw', style: { width: Math.round(lay.W * k), height: Math.round(lay.H * k) } },
             h('div', { className: 'kbfc-vp', style: { width: lay.W, height: lay.H, transform: 'scale(' + k + ')' } },
@@ -22148,12 +22183,16 @@ function renderFit(canvas, model, cam, opts){
       const detPair = React.useState({})
       const det = detPair[0]
       const setDet = detPair[1]
-      const nodePair = React.useState(1)
+      // The card chosen in the graph: undefined = the default (the first one that failed), null = none, a number = that card.
+      const nodePair = React.useState(undefined)
       const nodeIdx = nodePair[0]
       const setNodeIdx = nodePair[1]
-      const ioPair = React.useState('in')
-      const io = ioPair[0]
-      const setIo = ioPair[1]
+      const rawPair = React.useState(false)
+      const raw = rawPair[0]
+      const setRaw = rawPair[1]
+      const moreRunsPair = React.useState(false)
+      const moreRuns = moreRunsPair[0]
+      const setMoreRuns = moreRunsPair[1]
       // Lessons: how far the automation is from becoming a skill, and the skill if it was written (GET /kybernos/automation-skills).
       const lessonPair = React.useState(undefined)
       const lessonErrPair = React.useState('')
@@ -22196,14 +22235,13 @@ function renderFit(canvas, model, cam, opts){
       const stats = kbRunStats(runs, sums)
       const model = sel !== null && Array.isArray(sel.models) === true && sel.models.length > 0 ? sel.models[0] : null
       const durOf = (s) => kbRunFmtDur(s !== null ? s.durationMs : null)
-      const stateLine = h('span', { className: state === 'failed' ? 'kbrn-badtxt' : (state === 'completed' ? 'kbrn-oktxt' : 'dim') }, kbRunStateText(state, durOf(sel), selRun))
       const failNote = selRun.status === 'error' && selRun.error !== null ? h('div', { className: 'kbrn-xerr' }, selRun.error) : null
       const openChat = selId !== null ? h('button', { type: 'button', className: 'kba-btn', onClick: () => props.onOpenChat(selId) }, kbt('tasks.sessions.openchat') + ' ›') : null
       const readNote = sel === null && selId !== null ? h('div', { className: 'kba-hint' }, kbt('tasks.runs.noread')) : null
 
-      // Sessions: the executions on the left, the one that is open on the right (its graph, then its logs).
+      // Sessions: the executions on the left; on the right the one that is open: what it says about itself, its graph, an inspector for the
+      // card that is chosen, and what it used.
       const g = kbRunGraph(sel, state === 'failed')
-      const ix = Math.min(nodeIdx, g.nodes.length - 1)
       const nodeView = g.nodes.map((n) => {
         if (n.type === 'start') return { kind: 'trg', icon: '▶', title: kbt('tasks.runs.started'), sub: kbRunFmtHm(selRun.at, locale), st: null }
         if (n.type === 'more') return { kind: 'gry', icon: '…', title: kbt('tasks.runs.more').replace('{n}', String(n.n)), sub: kbt('tasks.runs.moresub'), st: null }
@@ -22211,41 +22249,63 @@ function renderFit(canvas, model, cam, opts){
         // What the call stands for (a skill, an app, a teammate of the Agent Team, a plain tool); a host that does not say reads the kind.
         const rt = n.ref !== null && n.ref !== undefined ? n.ref.type : (n.kind === 'skill' ? 'skill' : 'tool')
         const rn = n.ref !== null && n.ref !== undefined ? n.ref.name : n.kind
-        return { kind: rt === 'skill' || rt === 'agent' ? 'ai' : (rt === 'app' ? 'conn' : 'act'), rt, icon: rt === 'app' ? String(rn).charAt(0).toUpperCase() : (rt === 'agent' ? '@' : kbRunIcon(n.kind)), title: n.label, sub: kbRunFmtDur((n.thinkMs || 0) + (n.runMs || 0)) + ' · ' + rn, st: n.ok === false ? 'bad' : 'ok' }
+        return { kind: rt === 'skill' || rt === 'agent' ? 'ai' : (rt === 'app' ? 'conn' : 'act'), rt, rn, icon: rt === 'app' ? String(rn).charAt(0).toUpperCase() : (rt === 'agent' ? '@' : kbRunIcon(n.kind)), title: n.label, sub: kbRunFmtDur((n.thinkMs || 0) + (n.runMs || 0)) + ' · ' + rn, st: n.ok === false ? 'bad' : 'ok' }
       })
+      const failedIx = nodeView.findIndex((v) => v.st === 'bad')
+      const ix = nodeIdx === undefined ? (failedIx >= 0 ? failedIx : null) : (nodeIdx !== null && nodeIdx < g.nodes.length ? nodeIdx : null)
+      const kindName = (v) => (v.rt !== undefined ? kbt('tasks.uses.' + v.rt) : kbt('tasks.flow.kind.' + v.kind))
       // The same canvas as the workflow: a card per step of this run, a wire per hand-over (labelled with what the step handed on).
-      const runCards = g.nodes.map((n, i) => { const v = nodeView[i]; return { id: 'n' + i, trg: i === 0, kind: v.kind, icon: v.icon, title: v.title, kindLabel: v.rt !== undefined ? kbt('tasks.uses.' + v.rt) : kbt('tasks.flow.kind.' + v.kind), sub: v.sub, chips: [v.sub], st: v.st, desc: '', cells: [[kbt('tasks.runs.duration'), v.sub.split(' · ')[0]], [kbt('tasks.flow.cell.type'), kbt('tasks.flow.kind.' + v.kind)]] } })
+      const runCards = g.nodes.map((n, i) => { const v = nodeView[i]; return { id: 'n' + i, trg: i === 0, kind: v.kind, icon: v.icon, title: v.title, kindLabel: kindName(v), sub: v.sub, chips: [v.sub], st: v.st, desc: '', cells: [[kbt('tasks.runs.duration'), v.sub.split(' · ')[0]], [kbt('tasks.flow.cell.type'), kindName(v)]] } })
       const runLinks = g.nodes.slice(1).map((n, i) => ({ from: 'n' + i, to: 'n' + (i + 1), label: g.labels[i] !== null && g.labels[i] !== undefined ? kbRunFmtBytes(g.labels[i]) : null, tone: nodeView[i + 1].st === 'bad' ? 'bad' : (nodeView[i].st !== 'bad' && nodeView[i + 1].st === 'ok' ? 'ok' : null) }))
-      const graph = h(KbFlowCanvas, { nodes: runCards, links: runLinks, selId: 'n' + ix, onSelect: (id) => setNodeIdx(Number(String(id).slice(1))), storeKey: 'run.' + String(props.taskId), height: 'clamp(330px,46vh,480px)' })
+      const graph = h(KbFlowCanvas, { nodes: runCards, links: runLinks, selId: ix === null ? null : 'n' + ix, onSelect: (id) => { const i = Number(String(id).slice(1)); setNodeIdx(ix === i ? null : i); setRaw(false) }, storeKey: 'run.' + String(props.taskId), fitHeight: 480 })
+      // The inspector of the card that is chosen: how that step went, what it did, what it got and gave, and what it used.
       const detail = selId !== null && det[selId] !== undefined && det[selId] !== 'loading' && det[selId] !== 'none' ? det[selId] : null
-      const toolNode = g.nodes[ix] !== undefined && g.nodes[ix].type === 'tool' ? g.nodes[ix] : null
+      const toolNode = ix !== null && g.nodes[ix] !== undefined && g.nodes[ix].type === 'tool' ? g.nodes[ix] : null
       const exact = detail !== null && Array.isArray(detail.nodes) === true && toolNode !== null ? detail.nodes[ix - 1] : null
-      let logBody
-      if (toolNode === null) logBody = h('div', { className: 'kba-hint', style: { padding: 14 } }, nodeView[ix] !== undefined ? nodeView[ix].title : '')
-      else if (selId !== null && det[selId] === 'loading') logBody = h('div', { className: 'kba-hint', style: { padding: 14 } }, kbt('tasks.runs.reading'))
-      else if (exact === null || exact === undefined || typeof exact.in !== 'string') logBody = h('div', { className: 'kba-hint', style: { padding: 14 } }, kbt('tasks.runs.noio'))
-      else logBody = h('div', { style: { display: 'flex', flexDirection: 'column' } },
-        h('div', { className: 'kbrn-iot' },
-          ['in', 'out'].map((k) => h('button', { key: k, type: 'button', className: 'kbrn-tb' + (io === k ? ' on' : ''), onClick: () => setIo(k) }, kbt(k === 'in' ? 'tasks.runs.input' : 'tasks.runs.output'))),
-          h('span', { className: 'dim', style: { marginLeft: 'auto' } }, kbt('tasks.runs.think') + ' ' + kbRunFmtDur(exact.thinkMs) + ' · ' + kbt('tasks.runs.run') + ' ' + kbRunFmtDur(exact.runMs))),
-        h('pre', { className: 'kbrn-pre' }, io === 'in' ? exact.in : (typeof exact.out === 'string' && exact.out.length > 0 ? exact.out : '—')))
-      // What the Journal tab used to say, now under the run it is about: who ran (the model and why), the approvals, and what the runs teach.
+      const oneLine = (v) => { const t = String(v).replace(/\s+/g, ' ').trim(); return t.length > 160 ? t.slice(0, 159) + '…' : t }
+      const kv = (k, v) => h('div', { key: k, className: 'kbrn-kv' }, h('span', { className: 'kbrn-k' }, k), h('span', { className: 'kbrn-v' }, v))
+      const isec = (key, title, body) => h('div', { key, className: 'kbrn-is' }, h('span', { className: 'kbrn-ik' }, title), body)
+      const insp = ix === null ? null : (() => {
+        const v = nodeView[ix]
+        const n = g.nodes[ix]
+        const rows = [kv(kbt('tasks.runs.status'), v.st === 'bad' ? h('span', { className: 'kbrn-badge bad' }, kbt('tasks.runs.statusbad')) : (v.st === 'ok' ? h('span', { className: 'kbrn-badge ok' }, kbt('tasks.runs.statusok')) : '—'))]
+        if (n.type === 'tool') {
+          rows.push(kv(kbt('tasks.runs.duration'), kbt('tasks.runs.think') + ' ' + kbRunFmtDur(n.thinkMs) + ' · ' + kbt('tasks.runs.run') + ' ' + kbRunFmtDur(n.runMs)))
+          if (typeof n.outBytes === 'number') rows.push(kv(kbt('tasks.runs.outsize'), kbRunFmtBytes(n.outBytes)))
+          if (typeof n.approval === 'string') rows.push(kv(kbt('tasks.journal.approval'), n.approval))
+        } else if (n.type === 'final') rows.push(kv(kbt('tasks.runs.think'), kbRunFmtDur(n.thinkMs)))
+        else if (n.type === 'start') rows.push(kv(kbt('tasks.runs.started'), kbRunFmtHm(selRun.at, locale)))
+        const body = [isec('run', kbt('tasks.runs.thisrun'), rows)]
+        if (n.type === 'tool') {
+          body.push(isec('did', kbt('tasks.runs.whatdid'), h('p', { className: 'kbrn-p' }, n.label)))
+          body.push(isec('io', kbt('tasks.runs.input') + ' · ' + kbt('tasks.runs.output'),
+            (selId !== null && det[selId] === 'loading') ? h('span', { className: 'kbrn-dim' }, kbt('tasks.runs.reading'))
+              : (exact === null || exact === undefined || typeof exact.in !== 'string') ? h('span', { className: 'kbrn-dim' }, kbt('tasks.runs.noio'))
+                : h('div', { className: 'kbrn-io' },
+                  kv(kbt('tasks.runs.input'), oneLine(exact.in)),
+                  kv(kbt('tasks.runs.output'), oneLine(typeof exact.out === 'string' && exact.out.length > 0 ? exact.out : '—')),
+                  h('button', { type: 'button', className: 'kbrn-lnk', 'data-kb': 'run-raw', onClick: () => setRaw(raw !== true) }, kbt(raw === true ? 'tasks.runs.hideraw' : 'tasks.runs.showraw')),
+                  (raw === true ? h('pre', { className: 'kbrn-pre' }, exact.in + '\n\n' + (typeof exact.out === 'string' ? exact.out : '')) : null))))
+          body.push(isec('uses', kbt('tasks.uses.panel'), [kv(kindName(v), v.rn), (model !== null ? kv(kbt('tasks.uses.model'), model.model + (model.provider !== '' ? ' (' + model.provider + ')' : '')) : null)]))
+        }
+        return h('aside', { className: 'kbrn-insp', 'data-kb': 'run-inspector' },
+          h('div', { className: 'kbrn-ih' }, h('span', { className: 'kba-cc cc-' + v.kind }, v.icon), h('div', { className: 'kbrn-it' }, h('b', null, v.title), h('small', null, kindName(v))),
+            h('button', { type: 'button', className: 'kba-nc-x', 'aria-label': kbt('tasks.flow.close'), onClick: () => setNodeIdx(null) }, '✕')),
+          body)
+      })()
+      // What the Journal tab used to say, under the run it is about: what it used, the approvals that were asked, and what the runs teach.
       const row = (k, v) => h('div', { key: k, className: 'kbrn-kv' }, h('span', { className: 'kbrn-k' }, k), h('span', { className: 'kbrn-v' }, v))
       const su = sel !== null && sel.uses !== null && typeof sel.uses === 'object' ? sel.uses : null
-      const listOf = (items, counted) => items.map((x) => x.name + (counted === true && x.count > 1 ? ' \u00d7' + x.count : '') + (typeof x.model === 'string' && x.model !== '' ? ' \u00b7 ' + x.model : '')).join(', ')
+      const listOf = (items, counted) => items.map((x) => x.name + (counted === true && x.count > 1 ? ' ×' + x.count : '') + (typeof x.model === 'string' && x.model !== '' ? ' · ' + x.model : '')).join(', ')
       const usesRows = su === null ? [] : [['agents', su.agents, false], ['skills', su.skills, true], ['apps', su.apps, true], ['tools', su.tools, true]].filter((x) => Array.isArray(x[1]) === true && x[1].length > 0).map((x) => row(kbt('tasks.uses.' + x[0]), listOf(x[1], x[2])))
+      const asked = sel !== null && Array.isArray(sel.approvals) === true ? sel.approvals : []
       const about = h('div', { className: 'kbrn-about', 'data-kb': 'run-about' },
-          sel === null ? null : h('div', { className: 'kba-card kbrn-card' },
-            h('span', { className: 'kba-tabver mono' }, kbt('tasks.journal.who')),
-            row(kbt('tasks.runs.model'), model !== null ? h('span', null, h('b', { className: 'kbrn-mono' }, model.model), model.provider !== '' ? ' · ' + model.provider : '') : '—'),
-            row(kbt('tasks.journal.why'), sel.selected === true ? kbt('tasks.journal.why.set') : kbt('tasks.journal.why.default')),
-            row(kbt('tasks.runs.duration'), durOf(sel) + ' · ' + kbt('tasks.runs.steps').replace('{n}', String(sel.steps)) + ' · ' + kbt('tasks.runs.tools').replace('{n}', String(sel.toolCalls))),
-            usesRows),
-          sel === null ? null : h('div', { className: 'kba-card kbrn-card' },
-            h('span', { className: 'kba-tabver mono' }, kbt('tasks.journal.approvals')),
-            (Array.isArray(sel.approvals) === true && sel.approvals.length > 0
-              ? sel.approvals.map((a, i) => h('div', { key: i, className: 'kbrn-step' }, h('span', { className: 'kba-kdot ' + (a.outcome === 'asked' ? 'wait' : 'ok') }), h('span', { className: 'kbrn-sl' }, h('b', null, a.toolName), h('span', { className: 'dim' }, ' · ' + a.outcome))))
-              : h('div', null, kbt('tasks.journal.approvals.none') + ' ' + props.approvalLabel))),
+        usesRows.length === 0 ? null : h('div', { className: 'kba-card kbrn-card', 'data-kb': 'run-used' },
+          h('span', { className: 'kba-tabver mono' }, kbt('tasks.uses.run')),
+          usesRows),
+        asked.length === 0 ? null : h('div', { className: 'kba-card kbrn-card' },
+          h('span', { className: 'kba-tabver mono' }, kbt('tasks.journal.approvals')),
+          asked.map((a, i) => h('div', { key: i, className: 'kbrn-step' }, h('span', { className: 'kba-kdot ' + (a.outcome === 'asked' ? 'wait' : 'ok') }), h('span', { className: 'kbrn-sl' }, h('b', null, a.toolName), h('span', { className: 'dim' }, ' · ' + a.outcome))))),
           (() => {
             const lesson = lessonPair[0]
             if (lesson === undefined || lesson === null || typeof lesson !== 'object') return null
@@ -22262,23 +22322,26 @@ function renderFit(canvas, model, cam, opts){
                   : h('div', null, kbt('tasks.lesson.progress').replace('{k}', String(lesson.streak)).replace('{n}', String(lesson.stableAfter))))),
               (lessonErrPair[0] !== '' ? h('div', { className: 'kbrn-badtxt' }, lessonErrPair[0]) : null))
           })())
-      const logs = h('div', { className: 'kbrn-logs' }, h('div', { className: 'kbrn-lgh' }, kbt('tasks.runs.logs')),
-        h('div', { className: 'kbrn-lgb' },
-          h('div', { className: 'kbrn-lgl' }, nodeView.map((n, i) => h('button', { key: i, type: 'button', className: 'kbrn-lg' + (i === ix ? ' on' : ''), onClick: () => setNodeIdx(i) }, h('span', { className: 'kbrn-lgn ' + (n.st || n.kind) }, n.icon), h('span', { className: 'kbrn-lgt' }, n.title), h('span', { className: 'dim' }, String(n.sub).split(' · ')[0])))),
-          h('div', { className: 'kbrn-lgd' }, logBody)))
-      const listCol = h('div', { className: 'kbrn-xl' },
-        h('div', { className: 'kbrn-xlh' }, h('b', null, kbt('tasks.runs.title')), h('span', { className: 'dim' }, kbt('tasks.runs.count').replace('{n}', String(runs.length)))),
-        runs.map((r, i) => { const s = sumOf(r); const st = kbRunState(r, s); return h('button', { key: keys[i], type: 'button', 'data-kb': 'run-row', className: 'kbrn-xr' + (keys[i] === selKey ? ' on' : ''), onClick: () => { props.onSelect(keys[i]); setNodeIdx(1) } },
-          h('span', { className: 'kbrn-xbar ' + (st === 'failed' ? 'bad' : (st === 'completed' ? 'ok' : 'idle')) }),
-          h('span', { className: 'kbrn-xt' }, h('b', null, kbRunFmtDT(r.at, locale)), h('span', { className: st === 'failed' ? 'kbrn-badtxt' : 'dim' }, kbRunStateText(st, durOf(s), r)))) }))
+      // The list of executions: a dot, the date, how it ended. The newest eight; the rest are one press away, and the chosen run is always shown.
+      const idxShown = runs.map((r, i) => i).filter((i) => moreRuns === true || i < 8 || keys[i] === selKey)
+      const listCol = h('div', { className: 'kbrn-runs', 'data-kb': 'runs-list' },
+        idxShown.map((i) => { const r = runs[i]; const s = sumOf(r); const st = kbRunState(r, s); return h('button', { key: keys[i], type: 'button', 'data-kb': 'run-row', className: 'kbrn-run' + (keys[i] === selKey ? ' on' : ''), onClick: () => { props.onSelect(keys[i]); setNodeIdx(undefined); setRaw(false) } },
+          h('span', { className: 'kbrn-ra' }, h('i', { className: 'kbrn-dot ' + (st === 'failed' ? 'bad' : (st === 'completed' ? 'ok' : 'idle')) }), kbRunFmtDT(r.at, locale)),
+          h('span', { className: 'kbrn-rb' + (st === 'failed' ? ' bad' : '') }, kbRunStateText(st, durOf(s), r) + (s !== null ? ' · ' + kbt('tasks.runs.tools').replace('{n}', String(s.toolCalls)) : ''))) }),
+        idxShown.length < runs.length ? h('button', { type: 'button', className: 'kbrn-run kbrn-more', 'data-kb': 'runs-all', onClick: () => setMoreRuns(true) }, '… ' + kbt('tasks.runs.moreruns').replace('{n}', String(runs.length - idxShown.length))) : null)
+      // The open run, in a line or two: when, how it ended, who ran (the model and why), how long, how many calls, whether anything asked.
+      const meta = h('div', { className: 'kbrn-meta' },
+        (model !== null ? h('span', { key: 'm' }, kbt('tasks.runs.ranwith') + ' ', h('b', { className: 'kbrn-mono' }, model.model), (model.provider !== '' ? ' · ' + model.provider : ''), ' · ' + kbt('tasks.journal.why').toLowerCase() + ': ' + (sel.selected === true ? kbt('tasks.journal.why.set') : kbt('tasks.journal.why.default'))) : null),
+        (sel !== null ? h('span', { key: 'd' }, kbt('tasks.runs.duration') + ' ' + durOf(sel) + ' · ' + kbt('tasks.runs.tools').replace('{n}', String(sel.toolCalls))) : null),
+        (sel !== null ? h('span', { key: 'a' }, asked.length === 0 ? kbt('tasks.runs.noapproval') : kbt('tasks.runs.approvalsn').replace('{n}', String(asked.length))) : null))
+      const badge = h('span', { className: 'kbrn-badge ' + (state === 'failed' ? 'bad' : (state === 'completed' ? 'ok' : 'idle')) }, kbRunStateText(state, durOf(sel), selRun))
       return h('div', { className: 'kba-sesscroll', 'data-kb': 'runs-sessions' },
         h('div', { className: 'kbrn-strip', 'data-kb': 'runs-strip' }, [[kbt('tasks.runs.stat.runs'), String(stats.runs), false], [kbt('tasks.runs.stat.failed'), String(stats.failed), stats.failed > 0], [kbt('tasks.runs.stat.median'), kbRunFmtDur(stats.median), false], [kbt('tasks.runs.stat.slowest'), kbRunFmtDur(stats.slowest), false]].map((x, k) => h('span', { key: k, className: x[2] === true ? 'bad' : '' }, x[0] + ' ', h('b', null, x[1])))),
-        h('div', { className: 'kbrn-xwrap' }, listCol,
+        h('div', { className: 'kbrn-sess' }, listCol,
           h('div', { className: 'kbrn-xp' },
-            h('div', { className: 'kbrn-xph' }, h('div', null, h('div', { className: 'kbrn-xpd' }, kbRunFmtDT(selRun.at, locale, true)), h('div', null, stateLine, selId !== null ? h('span', { className: 'dim' }, ' | ' + selId.slice(0, 14) + (model !== null ? ' | ' + model.model : '')) : null)), h('span', { style: { flex: 1 } }), openChat),
+            h('div', { className: 'kbrn-xph' }, h('div', { className: 'kbrn-xpt' }, h('h3', null, kbRunFmtDT(selRun.at, locale), badge), meta), openChat),
             failNote, readNote,
-            graph,
-            logs,
+            h('div', { className: 'kbrn-stage' + (insp !== null ? ' insp' : '') }, graph, insp),
             about)),
         h('div', { className: 'kba-hint' }, kbt('tasks.runs.hint')))
     }
@@ -23137,11 +23200,10 @@ function renderFit(canvas, model, cam, opts){
             h('button', { type: 'button', className: 'kba-btn', 'data-kb': 'flow-prev', disabled: nodeIx <= 0, onClick: () => setNodeSel(gr.nodes[Math.max(0, nodeIx - 1)].id) }, '‹ ' + kbt('tasks.flow.prev')),
             h('button', { type: 'button', className: 'kba-btn', 'data-kb': 'flow-next', disabled: nodeIx >= gr.nodes.length - 1, onClick: () => setNodeSel(gr.nodes[Math.min(gr.nodes.length - 1, nodeIx + 1)].id) }, kbt('tasks.flow.next') + ' ›')),
           (node.how === 'ai' || node.how === 'act' ? h('button', { type: 'button', className: 'kba-btn', style: { alignSelf: 'flex-start' }, onClick: () => { setView('text'); setNodeSel(null) } }, kbt('tasks.edittext')) : null))
-        // Flow, Text and Code are three ways to read the same workflow: quiet icons, Flow first; the text stays the source.
-        const viewBtn = (v, icn) => h('button', { key: v, type: 'button', className: 'kba-vbtn' + (view === v ? ' on' : ''), 'aria-pressed': view === v ? 'true' : 'false', 'data-kb': 'view-' + v, title: kbt('tasks.view.' + v), 'aria-label': kbt('tasks.view.' + v), onClick: () => { setView(v); if (v !== 'flow') setNodeSel(null) } }, Icon(icn, 15))
-        const viewBar = h('div', { className: 'kba-viewbar' },
-          h('span', { className: 'kba-flowhint' }, kbt('tasks.flow.hint')),
-          h('span', { className: 'kba-vgrp' }, viewBtn('flow', 'flowView'), viewBtn('text', 'textView'), viewBtn('code', 'codeView')))
+        // Flow, Text and Code are three ways to read the same workflow: three quiet icons in the toolbar of the frame, Flow first; the text stays the source.
+        const viewBtn = (v, icn) => h('button', { key: v, type: 'button', className: 'kbfc-tb', 'aria-pressed': view === v ? 'true' : 'false', 'data-kb': 'view-' + v, title: kbt('tasks.view.' + v), 'aria-label': kbt('tasks.view.' + v), onClick: () => { setView(v); if (v !== 'flow') setNodeSel(null) } }, Icon(icn, 15))
+        const viewBtns = [viewBtn('flow', 'flowView'), viewBtn('text', 'textView'), viewBtn('code', 'codeView')]
+        const frame = (inner) => h('div', { className: 'kbfc kbfc-frame', 'data-kb': 'flow-frame' }, h('div', { className: 'kbfc-body' }, inner), h('div', { className: 'kbfc-tools' }, viewBtns), h('span', { className: 'kbfc-note' }, kbt('tasks.flow.hint')))
         const bodyEl = tab === 'sessions'
           ? h(KbRunsPane, {
             key: t.id,
@@ -23153,18 +23215,18 @@ function renderFit(canvas, model, cam, opts){
             taskId: t.id,
             emptyText: kbt('tasks.sessions.empty').replace('{trigger}', kbScheduleLabel(t)),
           })
-          : h('div', { className: 'kba-flowwrap' }, viewBar, kbUsesStrip(wfUses, appLogos),
-            (view === 'text' ? h('div', { style: { display: 'flex', flexDirection: 'column', gap: 10, flex: 1, minHeight: 0 } },
+          : h('div', { className: 'kba-flowwrap' }, kbUsesStrip(wfUses, appLogos),
+            (view === 'text' ? frame(h('div', { style: { display: 'flex', flexDirection: 'column', gap: 10, flex: 1, minHeight: 0 } },
                   (dirty === true ? h('div', { className: 'kba-dirty' },
                     h('span', { className: 'kba-kdot wait' }),
                     h('span', { style: { flex: 1 } }, kbt('tasks.dirty')),
                     h('button', { type: 'button', className: 'kba-btn', onClick: () => { const d = Object.assign({}, draft); delete d[t.id]; setDraft(d) } }, kbt('tasks.revert')),
                     h('button', { type: 'button', className: 'kba-btn pri', onClick: () => { const d = Object.assign({}, draft); delete d[t.id]; setDraft(d); act('update', t.id, { task: { prompt: textVal, name: t.name, schedule: t.schedule, active: t.active, notify: t.notify, approvals: t.approvals } }) } }, kbt('tasks.interpret'))) : null),
-                  h('textarea', { className: 'kba-textarea', 'aria-label': 'Workflow text', spellCheck: 'false', value: textVal, onChange: (e) => { const v = e.target === null || e.target === undefined ? '' : e.target.value; const d = Object.assign({}, draft); d[t.id] = v; setDraft(d) } }))
+                  h('textarea', { className: 'kba-textarea', 'aria-label': 'Workflow text', spellCheck: 'false', value: textVal, onChange: (e) => { const v = e.target === null || e.target === undefined ? '' : e.target.value; const d = Object.assign({}, draft); d[t.id] = v; setDraft(d) } })))
               : view === 'flow' ? h('div', { className: 'kba-flowrow' },
-                h(KbFlowCanvas, { nodes: cards, links: gr.links, selId: nodeSel, onSelect: (id) => setNodeSel(nodeSel === id ? null : id), storeKey: 'wf.' + t.id, height: 'clamp(430px,62vh,640px)' }),
+                h(KbFlowCanvas, { nodes: cards, links: gr.links, selId: nodeSel, onSelect: (id) => setNodeSel(nodeSel === id ? null : id), storeKey: 'wf.' + t.id, fitHeight: 640, extra: [h('span', { key: 'sep', className: 'kbfc-sep' })].concat(viewBtns) }),
                 panelEl)
-                : h('div', { style: { display: 'flex', flexDirection: 'column', gap: 10, flex: 1, minHeight: 0 } },
+                : frame(h('div', { style: { display: 'flex', flexDirection: 'column', gap: 10, flex: 1, minHeight: 0 } },
                       h('div', { className: 'kba-derived' },
                         h('span', { className: 'kba-kdot ok' }),
                         h('span', { style: { flex: 1 } }, kbt('tasks.code.readonly')),
@@ -23176,7 +23238,7 @@ function renderFit(canvas, model, cam, opts){
                             return h('div', { key: i, className: 'kba-ln' + (cm ? ' cm' : '') },
                               h('i', null, String(i + 1)),
                               h('span', null, l.trim()))
-                          }))))))
+                          })))))))
         return h('div', { className: 'kba-detail' },
           h('div', { style: { display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--dsw-alias-label-secondary)', flexWrap: 'wrap' } },
             h('button', { type: 'button', className: 'kba-crumb', onClick: () => { setDetail(null); setNodeSel(null) } }, 'Automations'),
@@ -23194,12 +23256,14 @@ function renderFit(canvas, model, cam, opts){
             h('span', { role: 'switch', 'aria-checked': (t.active !== false) ? 'true' : 'false', 'aria-label': kbt('tasks.toggle.aria'), className: 'kba-toggle' + (t.active !== false ? ' on' : ''), tabIndex: 0, onKeyDown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); act('toggle', t.id, { active: t.active === false }) } }, onClick: () => act('toggle', t.id, { active: t.active === false }) },
               h('span', { className: 'kba-toggle-knob' })),
             h('button', { type: 'button', className: 'kba-btn', onClick: () => act('run-now', t.id) }, Icon('play', 13), ' ', kbt('tasks.runnow')),
-            h('button', { type: 'button', className: 'kba-btn', 'data-kb': 'detail-edit-chat', onClick: () => editInChat(t) }, Icon('messageSquare', 13), ' ', kbt('tasks.edit.chat.act')),
-            h('button', { type: 'button', className: 'kba-btn', onClick: () => setModal(t) }, Icon('calendar-clock', 13), ' ', kbt('tasks.editsched')),
-            h('button', { type: 'button', className: 'kba-btn kba-trash', 'data-kb': 'detail-delete', onClick: () => askDelete(t.id, t.name || t.id) }, Icon('trash', 13), ' ', kbt('tasks.delete'))),
-          h('div', { className: 'kba-tabs' },
-            h('button', { type: 'button', className: 'kba-tab' + (tab === 'flow' ? ' on' : ''), 'data-kb': 'tab-flow', onClick: () => setTab('flow') }, kbt('tasks.tab.workflow')),
-            h('button', { type: 'button', className: 'kba-tab' + (tab === 'sessions' ? ' on' : ''), 'data-kb': 'tab-sessions', onClick: () => setTab('sessions') }, kbt('tasks.tab.sessions').replace('{n}', String(kbRunsOf(t.history).length)))),
+            h(KbMoreMenu, { label: kbt('tasks.more'), items: [
+              { kb: 'detail-edit-chat', icon: Icon('messageSquare', 14), label: kbt('tasks.edit.chat.act'), run: () => editInChat(t) },
+              { kb: 'detail-schedule', icon: Icon('clock', 14), label: kbt('tasks.editsched'), run: () => setModal(t) },
+              null,
+              { kb: 'detail-delete', icon: Icon('trash', 14), label: kbt('tasks.delete'), danger: true, run: () => askDelete(t.id, t.name || t.id) }] })),
+          h('div', { className: 'kba-sub', role: 'tablist', 'data-kb': 'detail-tabs' },
+            h('button', { type: 'button', role: 'tab', 'aria-selected': tab === 'flow' ? 'true' : 'false', className: tab === 'flow' ? 'on' : '', 'data-kb': 'tab-flow', onClick: () => setTab('flow') }, kbt('tasks.tab.workflow')),
+            h('button', { type: 'button', role: 'tab', 'aria-selected': tab === 'sessions' ? 'true' : 'false', className: tab === 'sessions' ? 'on' : '', 'data-kb': 'tab-sessions', onClick: () => setTab('sessions') }, kbt('tasks.tab.sessions').replace('{n}', String(kbRunsOf(t.history).length)))),
           h('div', { className: 'kba-body' }, bodyEl),
           (msg !== null ? h('div', { className: 'kba-toast', role: 'status' }, h('span', { className: 'kba-kdot ok' }), h('span', { style: { flex: 1 } }, msg), h('button', { type: 'button', 'aria-label': kbt('tasks.dismiss'), onClick: () => setMsg(null) }, '\u2715')) : null),
           (confirmAsk !== null ? h(KbConfirm, { title: confirmAsk.title, body: confirmAsk.body, confirmLabel: confirmAsk.confirmLabel, onConfirm: confirmAsk.onConfirm, onClose: () => setConfirm(null) }) : null),
@@ -31651,11 +31715,7 @@ button.kbbd-chip:hover{background:var(--dsw-alias-interactive-bg-hover,#f0f0f0)}
 .kba-btn:hover{border-color:var(--dsw-alias-border-l3)}
 .kba-btn.pri{background:var(--dsw-alias-brand-primary);border-color:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-foreground)}
 .kba-btn:disabled{opacity:.45;cursor:default}
-.kba-tabs{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-.kba-tab{display:inline-flex;align-items:center;gap:7px;padding:9px 15px;border-radius:999px;font:inherit;font-size:13.5px;cursor:pointer;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary)}
-.kba-tab.on{border-color:var(--dsw-alias-brand-primary);color:var(--dsw-alias-brand-primary)}
 .kba-tabver{font-size:11.5px;color:var(--dsw-alias-label-tertiary)}
-.kba-tabs .kba-tabver{margin-left:auto;padding-right:4px}
 .kba-body{flex:1;min-height:0;display:flex;flex-direction:column}
 .kba-sesscroll{flex:1;min-height:0;overflow-y:auto;padding-bottom:16px}
 .kba-sub{align-self:flex-start;display:inline-flex;align-items:center;gap:2px;padding:4px;margin:0 0 14px;border-radius:999px;background:var(--dsw-alias-bg-layer-2);border:1px solid var(--dsw-alias-border-l1)}
@@ -31735,43 +31795,50 @@ button.kbbd-chip:hover{background:var(--dsw-alias-interactive-bg-hover,#f0f0f0)}
 .kbcc-tool{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;padding:2px 8px;border-radius:8px;border:1px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-label-secondary)}
 .kbcc-tool i{font-style:normal;font-family:ui-monospace,Menlo,monospace;font-size:10.5px;color:var(--dsw-alias-label-tertiary)}
 @media (max-width:600px){.kbcc-figs{grid-template-columns:repeat(2,minmax(0,1fr))}}
-.kbrn-xwrap{display:grid;grid-template-columns:260px minmax(0,1fr);gap:14px;align-items:start}
-@media (max-width:1000px){.kbrn-xwrap{grid-template-columns:1fr}}
-.kbrn-xl{border:1px solid var(--dsw-alias-border-l2);border-radius:14px;background:var(--dsw-alias-bg-layer-2);overflow:hidden auto;max-height:780px}
-.kbrn-xlh{display:flex;align-items:baseline;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--dsw-alias-border-l1);position:sticky;top:0;background:var(--dsw-alias-bg-layer-2);z-index:1}
-.kbrn-xr{display:flex;align-items:center;gap:10px;width:100%;border:0;border-bottom:1px solid var(--dsw-alias-border-l1);background:transparent;text-align:left;padding:0 12px 0 0;cursor:pointer;font:inherit;color:inherit;min-height:56px}
-.kbrn-xr:hover{background:var(--dsw-alias-interactive-bg-hover)}
-.kbrn-xr.on{background:var(--dsw-alias-interactive-bg-active,rgba(0,0,0,.06))}
-.kbrn-xbar{align-self:stretch;width:4px;flex:none;background:var(--dsw-alias-state-idle-primary)}
-.kbrn-xbar.ok{background:var(--dsw-alias-state-success-primary)}
-.kbrn-xbar.bad{background:var(--dsw-alias-state-error-primary)}
-.kbrn-xt{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;padding:8px 0;font-size:13px}
-.kbrn-xt b{font-weight:600}
 .kbrn-badtxt{color:var(--dsw-alias-state-error-primary);font-size:12px}
-.kbrn-oktxt{color:var(--dsw-alias-state-success-primary);font-size:13px}
 .kbrn-xp{display:flex;flex-direction:column;gap:12px;min-width:0}
-.kbrn-xph{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.kbrn-xpd{font-size:18px;font-weight:600}
+.kbrn-sess{display:grid;grid-template-columns:240px minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:1000px){.kbrn-sess{grid-template-columns:minmax(0,1fr)}}
+.kbrn-runs{border:1px solid var(--dsw-alias-border-l2);border-radius:14px;background:var(--dsw-alias-bg-layer-2);overflow:hidden;max-height:640px;overflow-y:auto}
+.kbrn-run{display:flex;flex-direction:column;gap:2px;width:100%;text-align:start;border:0;border-bottom:1px solid var(--dsw-alias-border-l1);background:transparent;color:inherit;font:inherit;padding:11px 14px;cursor:pointer}
+.kbrn-run:last-child{border-bottom:0}
+.kbrn-run:hover{background:var(--dsw-alias-interactive-bg-hover)}
+.kbrn-run.on{background:var(--dsw-alias-interactive-bg-active,rgba(0,0,0,.06));box-shadow:inset 3px 0 0 var(--dsw-alias-label-primary)}
+.kbrn-ra{display:flex;align-items:center;gap:8px;font-weight:600;font-size:13px}
+.kbrn-rb{font-size:12px;color:var(--dsw-alias-label-tertiary)}
+.kbrn-rb.bad{color:var(--dsw-alias-state-error-primary)}
+.kbrn-more{color:var(--dsw-alias-label-tertiary);font-size:13px}
+.kbrn-dot{width:8px;height:8px;border-radius:50%;flex:none;background:var(--dsw-alias-state-idle-primary)}
+.kbrn-dot.ok{background:var(--dsw-alias-state-success-primary)}
+.kbrn-dot.bad{background:var(--dsw-alias-state-error-primary)}
+.kbrn-xph{display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;justify-content:space-between}
+.kbrn-xpt{flex:1;min-width:240px}
+.kbrn-xpt h3{margin:0;font-size:16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.kbrn-badge{display:inline-flex;align-items:center;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:500;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-secondary)}
+.kbrn-badge.ok{background:color-mix(in srgb,var(--dsw-alias-state-success-primary) 16%,transparent);color:var(--dsw-alias-state-success-primary)}
+.kbrn-badge.bad{background:color-mix(in srgb,var(--dsw-alias-state-error-primary) 16%,transparent);color:var(--dsw-alias-state-error-primary)}
+.kbrn-meta{display:flex;flex-wrap:wrap;gap:3px 14px;margin-top:4px;font-size:13px;color:var(--dsw-alias-label-tertiary)}
+.kbrn-stage{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;align-items:start}
+.kbrn-stage.insp{grid-template-columns:minmax(0,1fr) 340px}
+@media (max-width:1200px){.kbrn-stage.insp{grid-template-columns:minmax(0,1fr)}}
+.kbrn-insp{border:1px solid var(--dsw-alias-border-l2);border-radius:14px;background:var(--dsw-alias-bg-layer-2);overflow:hidden;min-width:0}
+.kbrn-ih{display:flex;gap:10px;align-items:flex-start;padding:14px 16px;border-bottom:1px solid var(--dsw-alias-border-l1)}
+.kbrn-it{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.kbrn-it b{font-size:14px;line-height:1.3;overflow-wrap:anywhere}
+.kbrn-it small{font-size:12px;color:var(--dsw-alias-label-tertiary)}
+.kbrn-is{padding:12px 16px;border-bottom:1px solid var(--dsw-alias-border-l1);display:flex;flex-direction:column;gap:6px}
+.kbrn-is:last-child{border-bottom:0}
+.kbrn-ik{font-size:12px;color:var(--dsw-alias-label-tertiary)}
+.kbrn-p{margin:0;font-size:13px;line-height:1.5;color:var(--dsw-alias-label-secondary);overflow-wrap:anywhere}
+.kbrn-dim{font-size:12px;color:var(--dsw-alias-label-tertiary);line-height:1.5}
+.kbrn-io{display:flex;flex-direction:column;gap:6px}
+.kbrn-insp .kbrn-k{min-width:78px}
+.kbrn-insp .kbrn-v{flex:1 1 140px;overflow-wrap:anywhere}
+.kbrn-lnk{align-self:flex-start;border:0;background:none;padding:0;font:inherit;font-size:12px;color:var(--dsw-alias-label-tertiary);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.cc-conn{background:color-mix(in srgb,var(--dsw-alias-state-business-primary) 45%,var(--dsw-alias-state-success-primary))}
 .kbrn-xerr{color:color-mix(in srgb,var(--dsw-alias-state-error-primary) 72%,var(--dsw-alias-label-primary));font-size:13px;border:1px solid var(--dsw-alias-state-error-primary);border-radius:10px;padding:8px 12px}
-.kbrn-logs{border:1px solid var(--dsw-alias-border-l2);border-radius:14px;background:var(--dsw-alias-bg-layer-2);overflow:hidden}
-.kbrn-lgh{padding:10px 14px;font-weight:600;font-size:13px;border-bottom:1px solid var(--dsw-alias-border-l1)}
-.kbrn-lgb{display:grid;grid-template-columns:240px minmax(0,1fr)}
-@media (max-width:800px){.kbrn-lgb{grid-template-columns:1fr}}
-.kbrn-lgl{border-right:1px solid var(--dsw-alias-border-l1);display:flex;flex-direction:column;max-height:260px;overflow:auto}
-.kbrn-lg{display:flex;align-items:center;gap:8px;border:0;background:transparent;padding:8px 12px;cursor:pointer;font:inherit;color:inherit;text-align:left;font-size:13px}
-.kbrn-lg.on{background:var(--dsw-alias-interactive-bg-active,rgba(0,0,0,.06))}
-.kbrn-lgn{flex:none;width:22px;height:22px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;font-size:11px;color:#fff;background:var(--dsw-alias-label-tertiary)}
-.kbrn-lgn.ok{background:var(--dsw-alias-state-success-primary)}
-.kbrn-lgn.bad{background:var(--dsw-alias-state-error-primary)}
-.kbrn-lgn.trg{background:var(--dsw-alias-state-warn-primary)}
-.kbrn-lgt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.kbrn-lgd{min-width:0;display:flex;flex-direction:column}
-.kbrn-iot{display:flex;align-items:center;gap:6px;padding:8px 12px;border-bottom:1px solid var(--dsw-alias-border-l1)}
-.kbrn-tb{border:1px solid var(--dsw-alias-border-l2);background:transparent;border-radius:8px;padding:2px 10px;font:inherit;font-size:12px;cursor:pointer;color:inherit}
-.kbrn-tb.on{background:var(--dsw-alias-label-primary);color:var(--dsw-alias-label-primary-inverted,#fff);border-color:transparent}
 .kbrn-pre{margin:0;padding:12px 14px;font-family:var(--ds-font-family-code,ui-monospace,monospace);font-size:12px;white-space:pre-wrap;overflow-wrap:anywhere;max-height:220px;overflow:auto;color:var(--dsw-alias-label-secondary)}
-.kbrn-jhead{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:12px 0}
-.kbrn-card{padding:14px 16px;display:flex;flex-direction:column;gap:10px;margin:0 0 12px}
+.kbrn-card{padding:14px 16px;display:flex;flex-direction:column;gap:10px;margin:0 0 12px;font-size:13px}
 .kbrn-kv{display:flex;gap:12px;flex-wrap:wrap;font-size:13px}
 .kbrn-k{min-width:120px;color:var(--dsw-alias-label-tertiary);font-size:12px;padding-top:1px}
 .kbrn-v{flex:1 1 260px;min-width:0}
@@ -31779,12 +31846,6 @@ button.kbbd-chip:hover{background:var(--dsw-alias-interactive-bg-hover,#f0f0f0)}
 .kbrn-step{display:flex;align-items:center;gap:10px;font-size:13px;padding:6px 0;border-top:1px solid var(--dsw-alias-border-l1)}
 .kbrn-sl{flex:1;min-width:0;overflow-wrap:anywhere}
 .kbrn-lesson{display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:13px}
-.kba-viewbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:space-between}
-.kba-vgrp{display:inline-flex;gap:2px}
-.kba-vbtn{width:30px;height:28px;border-radius:8px;border:1px solid transparent;background:transparent;color:var(--dsw-alias-label-tertiary);display:inline-grid;place-items:center;cursor:pointer;padding:0}
-.kba-vbtn:hover{color:var(--dsw-alias-label-primary);background:var(--dsw-alias-bg-layer-2)}
-.kba-vbtn.on{color:var(--dsw-alias-label-primary);background:var(--dsw-alias-bg-layer-2);border-color:var(--dsw-alias-border-l2)}
-.kba-vbtn:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:1px}
 .kba-hookrow{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
 .kba-hookurl{overflow-wrap:anywhere;word-break:break-all;font-size:12px}
 .cc-hook{background:var(--dsw-alias-state-warn-primary)}
@@ -31806,7 +31867,13 @@ button.kbbd-chip:hover{background:var(--dsw-alias-interactive-bg-hover,#f0f0f0)}
 .kba-hint{font-size:12.5px;color:var(--dsw-alias-label-tertiary);margin-top:10px}
 /* workflow : Text / Flow / Code */
 .kba-flowwrap{flex:1;min-height:0;display:flex;flex-direction:column;gap:10px}
-.kba-flowhint{font-size:12.5px;color:var(--dsw-alias-label-tertiary)}
+.kba-more{position:relative;display:inline-flex}
+.kba-morebtn{padding:0 9px}
+.kba-dmenu{position:absolute;inset-inline-end:0;top:calc(100% + 6px);z-index:30;min-width:200px;padding:6px;border:1px solid var(--dsw-alias-border-l2);border-radius:12px;background:var(--dsw-alias-bg-layer-1);box-shadow:var(--dsw-elevation-prominent,0 12px 32px rgba(0,0,0,.25))}
+.kba-dmenu hr{border:0;border-top:1px solid var(--dsw-alias-border-l1);margin:5px 0}
+.kba-dmi{display:flex;gap:9px;align-items:center;width:100%;border:0;background:transparent;text-align:start;padding:8px 10px;border-radius:8px;font:inherit;font-size:13px;color:var(--dsw-alias-label-primary);cursor:pointer}
+.kba-dmi:hover{background:var(--dsw-alias-bg-layer-2)}
+.kba-dmi.danger{color:var(--dsw-alias-state-error-primary)}
 .kba-dirty{display:flex;align-items:center;gap:12px;padding:9px 13px;border-radius:10px;background:color-mix(in srgb,var(--dsw-alias-state-warn-primary) 9%,transparent);border:1px solid var(--dsw-alias-state-warn-primary);font-size:13px;flex-wrap:wrap;color:var(--dsw-alias-label-primary)}
 .kba-textarea{flex:0 1 auto;min-height:120px;max-height:420px;resize:none;padding:16px 18px;border-radius:12px;background:var(--dsw-alias-bg-base);border:1px solid var(--dsw-alias-border-l1);color:var(--dsw-alias-label-primary);font:inherit;font-size:13.5px;line-height:1.65;outline:none}
 .kba-textarea:focus{border-color:var(--dsw-alias-border-l3)}
@@ -32239,7 +32306,7 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
 `), 'kybers: mockup v7 styles')
     ctx.effect(() => styles.insert(`
 /* The canvas of a workflow and of a run (KbFlowCanvas). Colours of a style are custom properties on its class; a rule below reads them. */
-.kbfc,.kbfc-sample{--cv-bg:var(--dsw-alias-bg-base);--cv-dot:color-mix(in srgb,var(--dsw-alias-label-primary) 13%,transparent);--nd-bg:var(--dsw-alias-bg-layer-2);--nd-line:var(--dsw-alias-border-l2);--nd-ink:var(--dsw-alias-label-primary);--nd-sub:var(--dsw-alias-label-tertiary);--wire:var(--dsw-alias-label-tertiary);--wire-dim:var(--dsw-alias-border-l2);--chip:var(--dsw-alias-bg-base);--lbl:var(--dsw-alias-bg-layer-2);--ok:var(--dsw-alias-state-success-primary);--bad:var(--dsw-alias-state-error-primary);--sh:rgba(0,0,0,.25)}
+.kbfc,.kbfc-sample{--cv-bg:var(--dsw-alias-bg-layer-1);--cv-dot:color-mix(in srgb,var(--dsw-alias-label-primary) 13%,transparent);--nd-bg:var(--dsw-alias-bg-layer-2);--nd-line:var(--dsw-alias-border-l2);--nd-ink:var(--dsw-alias-label-primary);--nd-sub:var(--dsw-alias-label-tertiary);--wire:var(--dsw-alias-label-tertiary);--wire-dim:var(--dsw-alias-border-l2);--chip:var(--dsw-alias-bg-base);--lbl:var(--dsw-alias-bg-layer-2);--ok:var(--dsw-alias-state-success-primary);--bad:var(--dsw-alias-state-error-primary);--sh:rgba(0,0,0,.25)}
 .kbfc-th-nr{--cv-bg:#F0F0EE;--cv-dot:#D8D8D4;--nd-bg:#DDE6EF;--nd-line:#8FA6BE;--nd-ink:#1D2630;--nd-sub:#4C5A69;--wire:#8A8A86;--wire-dim:#C9C9C4;--chip:rgba(255,255,255,.7);--lbl:#F8F8F6}
 .kbfc-th-bp{--cv-bg:#0C2A4B;--cv-dot:#1C4A7A;--nd-bg:#103B69;--nd-line:#4FB3E8;--nd-ink:#E6F4FF;--nd-sub:#9CC9EA;--wire:#7FD0FF;--wire-dim:#2D6196;--chip:rgba(127,208,255,.14);--lbl:#0C2A4B}
 .kbfc-th-pp{--cv-bg:#F6F1E6;--cv-dot:#DDD3BD;--nd-bg:#FFFDF8;--nd-line:#8C7F66;--nd-ink:#2D281E;--nd-sub:#7A6F58;--wire:#6B5F4A;--wire-dim:#CBBFA4;--chip:#F0E8D6;--lbl:#F6F1E6}
@@ -32293,10 +32360,13 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
 /* the tools, the style menu, the hint */
 .kbfc-tools{position:absolute;top:10px;inset-inline-end:10px;z-index:6;display:flex;gap:6px;align-items:center}
 .kbfc-tb{height:28px;min-width:28px;padding:0 8px;border-radius:8px;border:1px solid transparent;background:color-mix(in srgb,var(--cv-bg) 60%,transparent);color:var(--nd-sub);display:inline-flex;align-items:center;justify-content:center;gap:6px;font:inherit;font-size:12px;cursor:pointer}
-.kbfc-tb:hover,.kbfc-tb[aria-expanded="true"],.kbfc-tb.on{background:var(--nd-bg);border-color:var(--nd-line);color:var(--nd-ink)}
+.kbfc-tb:hover,.kbfc-tb[aria-expanded="true"],.kbfc-tb[aria-pressed="true"],.kbfc-tb.on{background:var(--nd-bg);border-color:var(--nd-line);color:var(--nd-ink)}
 .kbfc-tb:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:1px}
 .kbfc-tb span{white-space:nowrap}
 .kbfc-sep{width:1px;height:16px;background:var(--nd-line);opacity:.5}
+.kbfc-frame{overflow:visible;min-height:0}
+.kbfc-body{padding:48px 16px 40px;display:flex;flex-direction:column;gap:10px}
+.kbfc-note{position:absolute;bottom:10px;inset-inline-start:14px;font-size:12px;color:var(--nd-sub)}
 .kbfc-menu{position:absolute;z-index:40;top:44px;inset-inline-end:10px;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);border:1px solid var(--dsw-alias-border-l2);border-radius:12px;box-shadow:var(--dsw-elevation-prominent,0 12px 32px rgba(0,0,0,.25));padding:6px;width:min(520px,calc(100% - 20px));display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:2px;max-height:calc(100% - 54px);overflow:auto}
 .kbfc-menu button{display:flex;gap:10px;align-items:center;width:100%;border:0;background:transparent;text-align:start;padding:7px 8px;border-radius:9px;color:inherit;font:inherit;cursor:pointer}
 .kbfc-menu button:hover{background:var(--dsw-alias-bg-layer-2)}

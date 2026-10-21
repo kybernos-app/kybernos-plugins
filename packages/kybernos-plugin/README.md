@@ -175,13 +175,16 @@ block of `client.js` (every text is an English / French pair; the other language
 
 ## The page of one automation: Workflow and Sessions
 
-The page has two tabs, **Workflow** (the one it opens on) and **Sessions**. There is no Webhook tab and no Journal tab any more: the webhook
+The page has two tabs (the same segmented control as Yours / Discover), **Workflow** (the one it opens on) and **Sessions**. Its header keeps
+**Run now** and the switch; Edit in chat, Schedule and Delete are in a « more » menu (`detail-more`). There is no Webhook tab and no Journal tab any more: the webhook
 is a card of the workflow, and what the Journal said is under the run in Sessions.
 
 ### Workflow
 
 The workflow is the numbered steps of the automation's text (`kbTaskSteps`); a text with no numbered step is one card, its whole instruction.
-Flow (the cards), Text (the source, editable) and Code (read-only) are three quiet icons above it, Flow first.
+Flow (the cards), Text (the source, editable) and Code (read-only) are three quiet icons in the toolbar of the frame (the canvas, or the box that
+holds the text or the code), Flow first, with the style button beside them; « Text is the source » is a note at the bottom of the frame.
+The frame is as tall as its cards need (`fitHeight`), not a fixed height, and one step lighter than the page.
 
 - **The cards.** A trigger (the schedule; the webhook too when the automation has one), the steps, and the record of the run. A card is told
   by its id (`schedule`, `hook`, `s1`…, `log`), so adding a webhook moves none of the others. A click opens the panel of the card: what it
@@ -211,13 +214,15 @@ Flow (the cards), Text (the source, editable) and Code (read-only) are three qui
 
 Nothing is written, nothing is guessed from what a model said.
 
-- A line of figures (runs, failed, median duration, slowest), then the list of executions, n8n style: date and time, duration, outcome and
-  a green / red bar on the left; on the right the **execution** of the chosen run, drawn on the same canvas as the workflow (a card per tool
-  call: title, duration split into thinking and running, status, and on each wire the size of what the step handed on; more than seven
-  tool calls show the first six and a "+N more steps" card), and a **Logs** panel with what one step got and gave (the raw text, 420 characters).
-- Under it, **who ran**: which model answered and why (the profile's default, or one chosen for this run), how long, how many steps, and what that
-  run used (Agent Team, skills, connectors, tools); each card of the graph says what its call stands for (a tool, a connector, a teammate, a skill); the
-  **approvals** asked during the run (or the automation's mode when there were none); and the **Lessons** card: how many runs in a row the
+- A line of figures (runs, failed, median duration, slowest), then the list of executions: a dot, the date, how it ended and how many tool
+  calls (the newest eight, the chosen run whatever its age, then « N more »). On the right the open run: its date and a badge (how it
+  ended), a line that says who ran (the model and why), how long, how many calls and whether anything asked for an approval, then its
+  **graph**, drawn on the same canvas as the workflow (a card per tool call: title, duration, what it stands for, status, and on each wire the
+  size of what the step handed on; more than seven tool calls show the first six and a "+N more steps" card). A card opens an
+  **inspector** at its right (this run: status, think and run time, output size; what it did; what it got and gave, one line each and « Show
+  raw data » for the 420 characters; what it used), and a failed run opens on the step that failed.
+- Under it: what that run used (Agent Team, skills, connectors, tools; each card of the graph says what its call stands for), the
+  **approvals** that were asked (nothing when none was), and the **Lessons** card: how many runs in a row the
   automation has had since its last failure, and, once that reaches the number chosen in Settings › Automations, a **Create skill** button
   (see « Stable automations become skills » below).
 - A **run** is one session. `tasks.json` also keeps, for a failed run, a line the run wrote about itself afterwards (it has no session

@@ -209,7 +209,7 @@ eq('a paused webhook test is explained', mod.kbTaskError('automation paused', en
   eq('the header is built once for the skeleton and the list', (page.match(/kbaListHead\(\)/g) || []).length === 2, true)
   eq('the row actions come after the name button and are not nested in it', page.indexOf("className: 'kba-rowbtn'") < page.indexOf("className: 'kba-lacts'") && page.indexOf("className: 'kba-lacts'") < page.indexOf("role: 'switch', 'aria-checked': a.active"), true)
   // V-19: Edit in chat from the row and from the page of an automation, through the channel « Create » uses.
-  eq('« Edit in chat » is on the row and on the page of an automation', page.indexOf("'data-kb': 'action-edit-chat'") >= 0 && page.indexOf("'data-kb': 'detail-edit-chat'") >= 0 && (page.match(/editInChat\(/g) || []).length >= 2, true)
+  eq('« Edit in chat » is on the row and, in the « more » menu, on the page of an automation', page.indexOf("'data-kb': 'action-edit-chat'") >= 0 && page.indexOf("kb: 'detail-edit-chat'") >= 0 && page.indexOf("'data-kb': 'detail-more'") >= 0 && (page.match(/editInChat\(/g) || []).length >= 2, true)
   eq('...it opens the chat the way « Create » does (kbStartChatText) and falls back to the form', /const editInChat = \(t\) => \{\s*try \{ kbStartChatText\(kbEditChatText\(t, kbt, kbBoardLocale\(\)\)\) \} catch \(e\) \{ setModal\(t\) \}/.test(page), true)
   eq('...and the row\x27s button is named for its row', page.indexOf("kbt('tasks.edit.chat.aria').replace('{name}', () => a.name)") >= 0, true)
   // A5-21: a screen-reader list of controls must tell the rows apart: every control of a row carries the automation's name.
