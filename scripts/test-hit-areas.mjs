@@ -21,7 +21,11 @@ const read = (b) => readFileSync(join(PACKAGES, b, 'client.js'), 'utf8')
 const RULES = [
   ['kybernos-hub', 'the Suite switch', '.kbsu-sw::before{content:"";position:absolute;inset:-3px 0}'],
   ['kybernos-websearch', 'the Web Search switch', '.kwse-switch::before{content:"";position:absolute;inset:-2px 0}'],
-  ['kybernos-websearch', 'the reorder arrows (24 wide, reaching out of the pair)', '.kwse-move button:first-child::before{content:"";position:absolute;inset:-6px -5px 0}'],
+  // The reorder arrows are 13 px lines; -11 px gives each of them 24 px, and they reach OUT of the pair so the two do not
+  // overlap. Both are checked: the lower arrow draws its extension downwards (the upper one upwards), and the pair only
+  // reaches 24 px if both do.
+  ['kybernos-websearch', 'the upper reorder arrow (13 px line, 24 px from -11 px, reaching out of the pair)', '.kwse-move button:first-child::before{content:"";position:absolute;inset:-11px -5px 0}'],
+  ['kybernos-websearch', 'the lower reorder arrow reaches down the same way', '.kwse-move button:last-child::before{content:"";position:absolute;inset:0 -5px -11px}'],
   ['kybernos-auto', 'the Auto Routing switch', '.kaa-switch-btn::before{content:"";position:absolute;inset:-2px 0}'],
   ['kybernos-auto', 'the cross of a chip', '.kaa-chip button::before{content:"";position:absolute;inset:-5px -4px}'],
   ['kybernos-plugin', 'the Automations switch', '.kba-toggle::before{content:"";position:absolute;inset:-2px 0}'],
