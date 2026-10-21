@@ -144,6 +144,76 @@ window.__ModuleLoader__.load({
         'ln.a.active': { fr: 'Actif. Pas encore relu.', en: 'Active. Not reviewed yet.' },
         'ln.a.keep': { fr: 'Garder', en: 'Keep' },
         'ln.a.foot': { fr: 'Garder laisse le skill tel quel. Annuler le reprend : la version précédente revient, et le journal le dit.', en: 'Keep leaves it as it is. Undo takes it back: the previous version returns, and the journal says so.' },
+        'ln2.n.text': { fr: 'C’est la {nth} fois que tu demandes quelque chose comme ça{label} ({dates}). Je note comment on fait, en compétence ? Tu la relis d’abord.', en: 'This is the {nth} time you ask for something like this{label} ({dates}). Shall I write down how we do it, as a skill? You read it first.' },
+        'ln2.n.yes': { fr: 'Écris-le en compétence', en: 'Write it down' },
+        'ln2.n.later': { fr: 'Pas maintenant', en: 'Not now' },
+        'ln2.n.never': { fr: 'Jamais pour celle-ci', en: 'Never for this one' },
+        'ln2.n.foot': { fr: 'Kaby l’a remarqué en lisant l’index local de tes conversations : aucun modèle, rien ne quitte cet ordinateur. Au plus une fois par jour, jamais pendant que tu écris ni pendant une exécution.', en: 'Kaby noticed by reading the local index of your chats: no model, nothing leaves this computer. At most once a day, never while you type or while something runs.' },
+        'ln2.n.foot.priv': { fr: 'Rien de tes conversations n’est gardé, seulement des nombres et des dates.', en: 'Nothing is kept from your chats, only numbers and dates.' },
+        'ln2.n.prompt': { fr: 'Retiens comment on fait ça, en compétence (utilise skill_propose), à partir de cette conversation.', en: 'Remember how to do this as a skill (use skill_propose), from this conversation.' },
+        'ln2.n.filled': { fr: 'Pré-rempli par Kaby : modifie-le ou efface-le. Rien n’est envoyé avant que tu appuies sur Envoyer.', en: 'Filled in by Kaby: edit it or clear it. Nothing is sent until you press Send.' },
+        'ln2.n.later.done': { fr: 'D’accord. Pas avant demain (deux « Pas maintenant » de suite : pas avant la semaine prochaine).', en: 'OK. Not before tomorrow (two “Not now” in a row: not before next week).' },
+        'ln2.n.never.done': { fr: 'Compris : plus jamais pour ce genre de demande. Tu peux le défaire dans Réglages › Compétences apprises.', en: 'Understood: never for this kind of ask. You can undo it in Settings › Learned skills.' },
+        'ln2.p.why.repeat': { fr: 'Tu as demandé quelque chose comme ça dans {n} conversations ({dates}). Kaby les a comptées dans l’index local de tes conversations : c’est un fait relevé, pas une note qu’il se donne.', en: 'You asked for something like this in {n} chats ({dates}). Kaby counted them in the local index of your chats: this is a fact it read, not a grade it gave itself.' },
+        'ln2.w.title': { fr: 'Ce que Kaby a appris cette semaine', en: 'What Kaby learned this week' },
+        'ln2.w.sub': { fr: '{from} – {to} · affichée une fois par semaine, et seulement s’il s’est passé quelque chose', en: '{from} – {to} · shown once a week, and only when something happened' },
+        'ln2.w.hide': { fr: 'Masquer', en: 'Hide' },
+        'ln2.w.hidden': { fr: 'Carte masquée jusqu’à la semaine prochaine. Tu peux la couper pour de bon dans Réglages › Compétences apprises.', en: 'Card hidden until next week. You can switch it off for good in Settings › Learned skills.' },
+        'ln2.w.lessons': { fr: 'leçons', en: 'lessons' },
+        'ln2.w.accepted': { fr: 'compétences acceptées', en: 'skills accepted' },
+        'ln2.w.used': { fr: 'compétences utilisées ({n})', en: 'skills used ({n})' },
+        'ln2.w.top': { fr: 'est celle que tu utilises le plus : {n} fois.', en: 'is the one you use most: {n} times.' },
+        'ln2.w.waiting': { fr: '{n} suggestions attendent ton accord.', en: '{n} suggestions are waiting for your yes.' },
+        'ln2.w.waiting.1': { fr: '1 suggestion attend ton accord.', en: '1 suggestion is waiting for your yes.' },
+        'ln2.w.auto': { fr: 'Kaby a créé {c} et amélioré {i} seul.', en: 'Kaby created {c} and improved {i} on its own.' },
+        'ln2.w.stale': { fr: 'n’a pas servi depuis {d} jours. L’éteindre ?', en: 'has not been used for {d} days. Switch it off?' },
+        'ln2.w.ready': { fr: 'est utilisée dans {n} conversations. La proposer à ton équipe ?', en: 'is used in {n} chats. Propose it to your team?' },
+        'ln2.w.later': { fr: 'Plus tard', en: 'Later' },
+        'ln2.w.propose': { fr: 'Proposer…', en: 'Propose…' },
+        'ln2.w.foot': { fr: 'Pour la couper : Réglages › Compétences apprises › Carte hebdomadaire.', en: 'To switch it off: Settings › Learned skills › Weekly card.' },
+        'ln2.chip.ready': { fr: 'prête à partager', en: 'ready to share' },
+        'ln2.chip.shared': { fr: 'proposée à ton équipe', en: 'proposed to your team' },
+        'ln2.s.h': { fr: 'Partager avec ton équipe', en: 'Share with your team' },
+        'ln2.s.text': { fr: 'Utilisée dans {n} conversations depuis que tu l’as acceptée. Tu peux la proposer à ton équipe : seul son texte quitte cet ordinateur, un admin l’approuve, et tu peux la retirer.', en: 'Used in {n} chats since you accepted it. You can propose it to your team: only its text leaves this computer, an admin approves it, and you can withdraw it.' },
+        'ln2.s.btn': { fr: 'Proposer à ton équipe…', en: 'Propose to your team…' },
+        'ln2.s.done': { fr: 'Proposée à ton équipe. Un admin doit l’approuver avant que les autres la voient.', en: 'Proposed to your team. An admin has to approve it before the others see it.' },
+        'ln2.s.priv': { fr: 'Reste sur cet ordinateur : le partage avec une équipe est coupé dans ce domaine.', en: 'Stays on this computer: sharing with a team is off in this field.' },
+        'ln2.s.noteam': { fr: 'Pas d’équipe sur ce compte : connecte-toi à une équipe pour la proposer.', en: 'No team on this account: sign in to a team to propose it.' },
+        'ln.j.act.shared': { fr: 'Proposée à l’équipe', en: 'Proposed to the team' },
+        'ln.j.note.kept_unused': { fr: 'gardée alors qu’elle n’avait pas servi depuis un mois', en: 'kept although it had not been used for a month' },
+        'he.bad_answer': { fr: 'Cette réponse n’est pas valide.', en: 'That answer is not valid.' },
+        'ls2.rep.h': { fr: 'Tâches que tu répètes', en: 'Tasks you repeat' },
+        'ls2.rep.sub': { fr: 'Kaby compare le premier message de tes conversations, dans l’index local qui fait marcher Rechercher partout. Aucun modèle, rien ne quitte cet ordinateur, et rien n’est écrit sans ton clic ni ta relecture.', en: 'Kaby compares the first message of your chats, in the local index that powers Search everywhere. No model, nothing leaves this computer, and nothing is written without your click and your review.' },
+        'ls2.rep.on': { fr: 'Me prévenir quand je redemande la même chose', en: 'Tell me when I ask for the same thing again' },
+        'ls2.rep.from': { fr: 'À partir de', en: 'From' },
+        'ls2.rep.within': { fr: 'sur', en: 'within' },
+        'ls2.rep.n3': { fr: '3 demandes', en: '3 asks' },
+        'ls2.rep.n4': { fr: '4 demandes', en: '4 asks' },
+        'ls2.rep.n5': { fr: '5 demandes', en: '5 asks' },
+        'ls2.rep.d30': { fr: '30 jours', en: '30 days' },
+        'ls2.rep.d60': { fr: '60 jours', en: '60 days' },
+        'ls2.rep.d90': { fr: '90 jours', en: '90 days' },
+        'ls2.rep.priv': { fr: 'Dans ce domaine Kaby ne garde que des nombres et des dates : aucun mot de tes conversations n’est stocké, et la carte ne nomme aucun sujet.', en: 'In this field Kaby keeps only numbers and dates: no word of your chats is stored, and the card names no topic.' },
+        'ls2.rep.noindex': { fr: 'Rechercher partout n’est pas chargé : sans l’index de tes conversations, Kaby ne peut rien remarquer.', en: 'Search everywhere is not loaded: without the index of your chats Kaby cannot notice anything.' },
+        'ls2.rep.none': { fr: 'Rien à signaler pour l’instant : Kaby garde ici ce que tu lui as répondu.', en: 'Nothing yet: Kaby keeps here what you answered it.' },
+        'ls2.rep.kind': { fr: 'une tâche de ce genre', en: 'a task of this kind' },
+        'ls2.rep.chats': { fr: '{n} conversations', en: '{n} chats' },
+        'ls2.rep.s.never': { fr: 'Jamais pour celle-ci', en: 'Never for this one' },
+        'ls2.rep.s.done': { fr: 'accepté', en: 'accepted' },
+        'ls2.rep.s.later': { fr: 'repoussé', en: 'put off' },
+        'ls2.rep.forget': { fr: 'Oublier', en: 'Forget' },
+        'ls2.rep.allow': { fr: 'Permettre de nouveau', en: 'Allow again' },
+        'ls2.w.h': { fr: 'Carte hebdomadaire', en: 'Weekly card' },
+        'ls2.w.sub': { fr: 'Une carte sur l’accueil d’une nouvelle conversation, une fois par semaine et seulement s’il s’est passé quelque chose : ce qui a été appris, ce qui a servi, ce que Kaby a fait seul, ce qui n’a pas servi depuis un mois. Elle suit « Me prévenir » dans les limites ci-dessus (conversation, carte hebdo, ou les deux).', en: 'One card on the home of a new chat, once a week and only when something happened: what was learned, what was used, what Kaby did alone, what has not been used for a month. It follows “Tell me” in the limits above (chat, weekly card, or both).' },
+        'ls2.w.on': { fr: 'Montrer la carte hebdomadaire', en: 'Show the weekly card' },
+        'ls2.t.h': { fr: 'Partage avec l’équipe', en: 'Sharing with the team' },
+        'ls2.t.sub': { fr: 'Kaby ne partage jamais rien. Après assez d’usage il peut signaler qu’une compétence est prête à être proposée à ton équipe, par le flux Team existant : seul le texte part, un admin approuve.', en: 'Kaby never shares anything. After enough use it can point out that a skill is ready to propose to your team, with the existing Team flow: only the text leaves, an admin approves.' },
+        'ls2.t.on': { fr: 'Signaler les compétences prêtes à partager, après', en: 'Point out skills that are ready to share, after' },
+        'ls2.t.n3': { fr: '3 conversations', en: '3 chats' },
+        'ls2.t.n5': { fr: '5 conversations', en: '5 chats' },
+        'ls2.t.n8': { fr: '8 conversations', en: '8 chats' },
+        'ls2.t.lock': { fr: 'Dans ce domaine les compétences restent sur cet ordinateur par défaut.', en: 'In this field skills stay on this computer by default.' },
+        'ls2.t.priv': { fr: 'Autoriser quand même le partage depuis ce domaine. Le contrôle de confidentialité doit toujours passer.', en: 'Allow sharing from this field anyway. The privacy check must still pass.' },
         'ln.n.kept': { fr: 'Gardé.', en: 'Kept.' },
         'ln.n.updated': { fr: '« {name} » est maintenant en v{v}. La version précédente est gardée.', en: '“{name}” is now v{v}. The previous version is kept.' },
         'ln.n.reverted': { fr: 'Annulé : « {name} » est revenu à la version précédente.', en: 'Undone: “{name}” is back to the previous version.' },
@@ -1476,6 +1546,25 @@ body:not([data-ds-dark-theme]) .kbs-root .kb8-pill.warn{color:color-mix(in srgb,
 .kbl-tail .kbl-tr{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .kbl-tail .kbl-how{font-size:12.5px;line-height:1.5;color:var(--dsw-alias-label-secondary)}
 @media (max-width:520px){.kbss-page .kbl-pr{grid-template-columns:minmax(0,1fr) 28px}.kbss-page .kbl-pr .kbl-bar{display:none}}
+/* skills learned from experience, V2: the two dock cards, the share block, the patterns list */
+.kbl-tail.kbl-dk{max-width:none;margin:0;padding:0 16px 10px}
+.kbl-dk .kbl-dim2{font-size:12px;color:var(--dsw-alias-label-caption,var(--dsw-alias-label-secondary))}
+.kbl-dk .kbl-wk{display:flex;flex-direction:column;gap:10px;padding:14px 16px;border:1px solid color-mix(in srgb,var(--dsw-alias-brand-primary) 38%,var(--dsw-alias-border-l1));border-radius:16px;background:color-mix(in srgb,var(--dsw-alias-brand-primary) 5%,var(--dsw-alias-bg-layer-1))}
+.kbl-dk .kbl-wh{display:flex;gap:12px;align-items:flex-start;justify-content:space-between}
+.kbl-dk .kbl-wh h3{margin:0;font-size:15px;font-weight:650;color:var(--dsw-alias-label-primary)}
+.kbl-dk .kbl-wh p{margin:3px 0 0;font-size:12.5px;color:var(--dsw-alias-label-secondary)}
+.kbl-dk .kbl-nums{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px}
+.kbl-dk .kbl-num{border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1);border-radius:12px;padding:9px 12px}
+.kbl-dk .kbl-num b{display:block;font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--dsw-alias-label-primary)}
+.kbl-dk .kbl-num span{font-size:12px;color:var(--dsw-alias-label-secondary)}
+.kbl-dk .kbl-wl{display:flex;flex-direction:column;gap:8px;font-size:13px}
+.kbl-dk .kbl-wr{display:flex;gap:10px;align-items:center;flex-wrap:wrap;border-top:1px solid color-mix(in srgb,var(--dsw-alias-brand-primary) 16%,var(--dsw-alias-border-l1));padding-top:8px}
+.kbl-dk .kbl-ws{flex:1;min-width:140px;color:var(--dsw-alias-label-secondary);overflow-wrap:anywhere}
+.kbs-root .kbl-share{display:flex;flex-direction:column;gap:8px}
+.kbss-page .kbl-pt{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(70px,auto) minmax(0,1fr) auto;gap:10px;align-items:center;padding:9px 12px;font-size:12.5px;color:var(--dsw-alias-label-secondary)}
+.kbss-page .kbl-pt+.kbl-pt{border-top:1px solid var(--dsw-alias-border-l1)}
+.kbss-page .kbl-pt b{font-weight:500;color:var(--dsw-alias-label-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media (max-width:520px){.kbss-page .kbl-pt{grid-template-columns:minmax(0,1fr) auto}}
 `
 
       // ── route access ────────────────────────────────────────────────────
@@ -1629,6 +1718,8 @@ body:not([data-ds-dark-theme]) .kbs-root .kb8-pill.warn{color:color-mix(in srgb,
         const [teamOpen, setTeamOpen] = React.useState(null)
         const [teamView, setTeamView] = React.useState('approved')
         const [teamSheet, setTeamSheet] = React.useState(false)
+        const [shareName, setShareName] = React.useState(null)   // the learned skill a hint asks to propose to the team: the sheet opens on it
+        const [pendingShare, setPendingShare] = React.useState(null)
         const [teamVer, setTeamVer] = React.useState(0)
         const alive = React.useRef(true)
 
@@ -1710,12 +1801,26 @@ body:not([data-ds-dark-theme]) .kbs-root .kb8-pill.warn{color:color-mix(in srgb,
               const p = learned.proposals.find((x) => x.id === wanted)
               if (p !== undefined) { setMode('yours'); openReview(p) }
             }
+            const share = window.sessionStorage.getItem('kybernos.skills.share')
+            if (share !== null) { window.sessionStorage.removeItem('kybernos.skills.share'); setMode('yours'); setPendingShare(share) }
             if (window.sessionStorage.getItem('kybernos.skills.journal') === '1') {
               window.sessionStorage.removeItem('kybernos.skills.journal')
               setMode('yours'); setReview(null); setLocal(null); setDetail(null); setJournalOpen(true)
             }
           } catch (e) { /* no storage: the page opens without the hint */ }
         }, [learned.phase, learned.proposals])
+
+        // « Propose to your team »: the existing Team sheet, opened on that skill. The hint of the weekly card waits for the team summary to answer.
+        const openShare = (name) => {
+          if (tsum.phase !== 'ready') { setNotice({ kind: 'err', text: t('ln2.s.noteam') }); return }
+          setShareName(name); setTeamSheet(true)
+        }
+        React.useEffect(() => {
+          if (pendingShare === null || tsum.phase === 'loading') return
+          const name = pendingShare
+          setPendingShare(null)
+          openShare(name)
+        }, [pendingShare, tsum.phase])
 
         // Closing the three popovers (Filters, Sort, Create/Install) on an outside click and
         // on Escape. Without this, an open menu only closed through its own button: you
@@ -2290,7 +2395,9 @@ body:not([data-ds-dark-theme]) .kbs-root .kb8-pill.warn{color:color-mix(in srgb,
               s.writable !== true ? h('span', { key: 'ro', className: 'kb8-pill' }, t('card.noedit')) : null,
               learnedByName.has(s.name) ? h('span', { key: 'ln', className: 'kb8-pill kbl-lrn', 'data-kb': 'learned-badge' }, icon('wand', 11), t('ln.badge.learned')) : null,
               learnedByName.has(s.name) && learnedByName.get(s.name).ver > 1 ? h('span', { key: 'lv', className: 'kb8-pill', 'data-kb': 'learned-ver' }, t('ln.chip.ver', { v: learnedByName.get(s.name).ver })) : null,
-              learnedByName.has(s.name) && learnedByName.get(s.name).auto === true ? h('span', { key: 'la', className: 'kb8-pill kbl-sug', 'data-kb': 'learned-auto' }, icon('wand', 11), t(learnedByName.get(s.name).reviewed === false ? 'ln.chip.auto.new' : 'ln.chip.auto')) : null),
+              learnedByName.has(s.name) && learnedByName.get(s.name).auto === true ? h('span', { key: 'la', className: 'kb8-pill kbl-sug', 'data-kb': 'learned-auto' }, icon('wand', 11), t(learnedByName.get(s.name).reviewed === false ? 'ln.chip.auto.new' : 'ln.chip.auto')) : null,
+              learnedByName.has(s.name) && learnedByName.get(s.name).shared === true ? h('span', { key: 'lh', className: 'kb8-pill ok', 'data-kb': 'learned-shared' }, t('ln2.chip.shared')) : null,
+              learnedByName.has(s.name) && learnedByName.get(s.name).shareReady === true ? h('span', { key: 'lr', className: 'kb8-pill kbl-sug', 'data-kb': 'learned-ready' }, t('ln2.chip.ready')) : null),
             learnedByName.has(s.name) ? h('div', { className: 'kbl-from', 'data-kb': 'learned-from' }, t('ln.card.from', { d: today(learnedByName.get(s.name).acceptedAt), src: fromText(learnedByName.get(s.name).from) })) : null,
             learnedByName.has(s.name) && learnedByName.get(s.name).unusedDays > 0
               ? h('div', { className: 'kbl-from', 'data-kb': 'learned-stale' }, t('ln.stale', { d: learnedByName.get(s.name).unusedDays }), on ? ' ' : null,
@@ -2958,6 +3065,7 @@ body:not([data-ds-dark-theme]) .kbs-root .kb8-pill.warn{color:color-mix(in srgb,
             return h(SkillPanel, {
               s, read: localRead, err: errors[skillKey(s)],
               busyKind: ['reveal', 'edit', 'duplicate', 'delete'].find((kd) => busy['act:' + kd + ':' + skillKey(s)] === true) || '',
+              learned: learnedByName.get(s.name) || null, shareLocked: learnedByName.has(s.name) && learned.sensitive === true && learned.settings !== null && learned.settings.teamPriv !== true, onShare: () => openShare(s.name),
               onClose: () => setLocal(null), onAct: (kind) => { if (kind === 'delete') setAskDelete(s); else skillAct(kind, s) }, onCopy: copy
             })
           }
@@ -2977,9 +3085,10 @@ body:not([data-ds-dark-theme]) .kbs-root .kb8-pill.warn{color:color-mix(in srgb,
         const renderModal = () => {
           if (srcOpen === true) return h(SourceModal, { source: src, busy: srcBusy, error: srcErr, onClose: () => setSrcOpen(false), onSubmit: saveSource })
           if (teamSheet === true && tsum.phase === 'ready') return h(ProposeSheet, {
-            local: skills, ws: tsum.workspaceName || '', admin: teamRoleAdmin(tsum.role), onClose: () => setTeamSheet(false),
+            local: skills, ws: tsum.workspaceName || '', admin: teamRoleAdmin(tsum.role), preselect: shareName, onClose: () => { setTeamSheet(false); setShareName(null) },
             onDone: (name) => {
-              setTeamSheet(false); setTeamView(teamRoleAdmin(tsum.role) ? 'approved' : 'mine'); setTeamVer((n) => n + 1); loadTeam()
+              setTeamSheet(false); setShareName(null); setTeamView(teamRoleAdmin(tsum.role) ? 'approved' : 'mine'); setTeamVer((n) => n + 1); loadTeam()
+              postJson('/kybernos-skills/learned/shared', { name }).then(() => loadLearned()).catch(() => null)
               setNotice({ kind: 'ok', text: t(teamRoleAdmin(tsum.role) ? 'tm.n.added' : 'tm.n.proposed', { name }) })
             }
           })
@@ -3246,7 +3355,7 @@ body:not([data-ds-dark-theme]) .kbs-root .kb8-pill.warn{color:color-mix(in srgb,
         }
         const lessons = p.from !== null && typeof p.from === 'object' && Array.isArray(p.from.lessons) ? p.from.lessons : []
         const auto = p.from !== null && typeof p.from === 'object' && p.from.automation !== undefined && p.from.automation !== null ? p.from.automation : null
-        const whyText = imp ? t('ln.p.imp.why', { name: p.target, v: p.baseVer }) : (auto !== null ? t('ln.p.why.auto', { name: auto.name || '', n: auto.runs || 0 }) : (p.kind === 'asked' ? t('ln.p.why.asked') : (lessons.length > 1 ? t('ln.p.why.lessons', { n: lessons.length }) : t('ln.p.why.lesson'))))
+        const whyText = imp ? t('ln.p.imp.why', { name: p.target, v: p.baseVer }) : (auto !== null ? t('ln.p.why.auto', { name: auto.name || '', n: auto.runs || 0 }) : (p.kind === 'asked' ? (p.from !== null && typeof p.from === 'object' && p.from.repeats !== undefined && p.from.repeats !== null ? t('ln2.p.why.repeat', { n: p.from.repeats.n, dates: p.from.repeats.dates.map((d) => today(d + 'T12:00:00Z')).join(', ') }) : t('ln.p.why.asked')) : (lessons.length > 1 ? t('ln.p.why.lessons', { n: lessons.length }) : t('ln.p.why.lesson'))))
         const busy = props.busy === true
         const score = p.score !== undefined && p.score !== null ? p.score : null
         const stops = Array.isArray(p.stops) ? p.stops : []
@@ -3323,7 +3432,7 @@ body:not([data-ds-dark-theme]) .kbs-root .kb8-pill.warn{color:color-mix(in srgb,
           }).catch(() => { if (stop !== true) setData({ phase: 'error', error: t('err.unavail', { r: 'learned/journal' }) }) })
           return () => { stop = true }
         }, [props.tick])
-        const ACTS = ['proposed', 'accepted', 'created', 'improved', 'discarded', 'restored', 'reverted', 'reviewed', 'expired', 'adopted', 'removed', 'settings', 'paused']
+        const ACTS = ['proposed', 'accepted', 'created', 'improved', 'discarded', 'restored', 'reverted', 'reviewed', 'expired', 'adopted', 'removed', 'settings', 'paused', 'shared']
         const when = (iso) => { try { return new Date(iso).toLocaleString(isEn() ? 'en-GB' : 'fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) } catch (e) { return '' } }
         const src = (f) => {
           if (f === null || typeof f !== 'object') return ''
@@ -3426,6 +3535,113 @@ body:not([data-ds-dark-theme]) .kbs-root .kb8-pill.warn{color:color-mix(in srgb,
               h('button', { type: 'button', className: 'kbl-btn', 'data-kb': 'learned-tail-undo', onClick: () => act('undo', { name: a.name }, 'a:' + a.name) }, t('ln.undo'))))))
       }
 
+      // ── what Kaby notices and tells (V2): a task that comes back, and the week ──────────────────────────────────────────────
+      // Two cards in the dock above the composer (`conversation.input.dock`), each a small component that asks the host for its own chat and draws nothing when there
+      // is nothing to say: the host holds the rules (what counts as « alike », once a day, once a week, the person's settings).
+      const kbDockKaby = (sid) => { try { return window.__KB_KYBER__ !== undefined && window.__KB_KYBER__ !== null && typeof window.__KB_KYBER__.isKybySession === 'function' && window.__KB_KYBER__.isKybySession(sid) === true } catch (e) { return false } }
+      const kbOrd = (n) => (isEn() ? String(n) + (n % 10 === 1 && n !== 11 ? 'st' : n % 10 === 2 && n !== 12 ? 'nd' : n % 10 === 3 && n !== 13 ? 'rd' : 'th') : String(n) + 'e')
+      const kbShortDay = (d) => { try { return new Date(d + 'T12:00:00Z').toLocaleDateString(isEn() ? 'en-GB' : 'fr-FR', { day: 'numeric', month: 'short', timeZone: 'UTC' }) } catch (e) { return String(d) } }
+      /** Is the chat in the middle of a turn? The dock entry gets the session's own state (`session.running`, the submissions still waiting); measured on a real dock. */
+      const kbBusy = (p) => {
+        const s = p !== null && p !== undefined && p.session !== null && typeof p.session === 'object' ? p.session : {}
+        const waiting = Array.isArray(s.pendingSubmissions) ? s.pendingSubmissions.length : (Number.isFinite(s.pendingSubmissions) ? s.pendingSubmissions : 0)
+        return s.running === true || waiting > 0
+      }
+      const kbDraftOf = (p) => (p !== null && p !== undefined && p.input !== null && typeof p.input === 'object' && typeof p.input.draft === 'string' ? p.input.draft : '')
+      const kbGoSkills = () => { try { if (typeof window.__KB_OPEN__ === 'function') window.__KB_OPEN__({ view: 'skills' }) } catch (e) { /* the menu is the other way in */ } }
+
+      function LearnedNotice (props) {
+        const p = props !== null && props !== undefined ? props : {}
+        const sid = typeof p.sessionId === 'string' ? p.sessionId : ''
+        const blank = p.session !== null && p.session !== undefined && p.session.blank === true
+        const draft = kbDraftOf(p)
+        const busy = kbBusy(p)
+        const [n, setN] = React.useState(null)
+        const [msg, setMsg] = React.useState('')
+        const [filled, setFilled] = React.useState(false)
+        const alive = React.useRef(true)
+        React.useEffect(() => () => { alive.current = false }, [])
+        React.useEffect(() => { setN(null); setMsg(''); setFilled(false) }, [sid])
+        React.useEffect(() => {
+          if (sid === '' || blank || busy || kbDockKaby(sid)) return undefined
+          let stop = false
+          fetch('/kybernos-skills/learned/notice?sessionId=' + encodeURIComponent(sid), { headers: { accept: 'application/json' } }).then((r) => r.json()).then((j) => {
+            if (stop === false && alive.current === true && j !== null && typeof j === 'object' && j.ok === true) setN(j.notice !== undefined && j.notice !== null ? j.notice : null)
+          }).catch(() => null)
+          return () => { stop = true }
+        }, [sid, blank, busy])
+        if (sid === '' || blank) return null
+        if (filled === true) return draft.trim() !== '' ? h('div', { className: 'kbl-tail kbl-dk', 'data-kb': 'learned-notice-filled' }, h('div', { className: 'kbl-how' }, icon('wand', 12), ' ' + t('ln2.n.filled'))) : null
+        if (msg !== '') return h('div', { className: 'kbl-tail kbl-dk', 'data-kb': 'learned-notice-done' }, h('div', { className: 'kbl-how' }, msg))
+        if (n === null || busy === true || draft.trim() !== '') return null
+        const answer = (a) => postJson('/kybernos-skills/learned/notice/answer', { id: n.id, answer: a }).catch(() => null)
+        const yes = () => {
+          let ok = false
+          try { if (p.inputActions !== null && p.inputActions !== undefined && typeof p.inputActions.setDraft === 'function') { p.inputActions.setDraft(t('ln2.n.prompt')); ok = true } } catch (e) { ok = false }
+          answer('yes')
+          if (ok === true) setFilled(true)
+          setN(null)
+        }
+        const label = typeof n.label === 'string' && n.label !== '' ? (isEn() ? ' (“' + n.label + '”)' : ' (« ' + n.label + ' »)') : ''
+        return h('div', { className: 'kbl-tail kbl-dk', 'data-kb': 'learned-notice' },
+          h('div', { className: 'kbl-tcard' },
+            h('div', { className: 'kbl-tr' }, h('span', { className: 'kbl-pill sug' }, icon('wand', 11), t('ln.badge.suggested'))),
+            h('div', { className: 'kbl-how', 'data-kb': 'learned-notice-text' }, t('ln2.n.text', { nth: kbOrd(n.n), label, dates: n.dates.map(kbShortDay).join(', ') })),
+            h('div', { className: 'kbl-tr' },
+              h('button', { type: 'button', className: 'kbl-btn pri', 'data-kb': 'learned-notice-yes', onClick: yes }, t('ln2.n.yes')),
+              h('button', { type: 'button', className: 'kbl-btn', 'data-kb': 'learned-notice-later', onClick: () => { answer('later'); setN(null); setMsg(t('ln2.n.later.done')) } }, t('ln2.n.later')),
+              h('button', { type: 'button', className: 'kbl-btn', 'data-kb': 'learned-notice-never', onClick: () => { answer('never'); setN(null); setMsg(t('ln2.n.never.done')) } }, t('ln2.n.never'))),
+            h('div', { className: 'kbl-how kbl-dim2' }, (n.label === null ? icon('lock', 12) : null), (n.label === null ? ' ' + t('ln2.n.foot.priv') + ' ' : ''), t('ln2.n.foot'))))
+      }
+
+      function LearnedWeek (props) {
+        const p = props !== null && props !== undefined ? props : {}
+        const sid = typeof p.sessionId === 'string' ? p.sessionId : ''
+        const blank = p.session !== null && p.session !== undefined && p.session.blank === true
+        const [w, setW] = React.useState(null)
+        const [lessons, setLessons] = React.useState(null)
+        const [gone, setGone] = React.useState({})
+        const [hidden, setHidden] = React.useState(false)
+        const alive = React.useRef(true)
+        React.useEffect(() => () => { alive.current = false }, [])
+        React.useEffect(() => { setW(null); setLessons(null); setGone({}); setHidden(false) }, [sid])
+        React.useEffect(() => {
+          if (sid === '' || blank !== true || kbDockKaby(sid)) return undefined
+          let stop = false
+          fetch('/kybernos-skills/learned/week?sessionId=' + encodeURIComponent(sid), { headers: { accept: 'application/json' } }).then((r) => r.json()).then((j) => {
+            if (stop === true || alive.current !== true || j === null || typeof j !== 'object' || j.ok !== true) return
+            setW(j.show === true ? j : null)
+            if (j.show === true) fetch('/kybernos-memory/lessons?added=7d&limit=1', { headers: { accept: 'application/json' } }).then((r) => r.json()).then((m) => { if (stop === false && alive.current === true && m !== null && typeof m === 'object' && m.ok === true && Number.isInteger(m.total)) setLessons(m.total) }).catch(() => null)
+          }).catch(() => null)
+          return () => { stop = true }
+        }, [sid, blank])
+        if (sid === '' || blank !== true) return null
+        if (hidden === true) return h('div', { className: 'kbl-tail kbl-dk', 'data-kb': 'learned-week-hidden' }, h('div', { className: 'kbl-how' }, t('ln2.w.hidden')))
+        if (w === null) return null
+        const drop = (k) => setGone((m) => ({ ...m, [k]: true }))
+        const row = (k, text, btns) => (gone[k] === true ? null : h('div', { key: k, className: 'kbl-wr', 'data-kb': 'learned-week-row' }, h('span', { className: 'kbl-ws' }, text), btns))
+        const post = (path, body) => postJson('/kybernos-skills/' + path, body).catch(() => null)
+        const rows = []
+        if (w.top !== null) rows.push(row('top', [h('b', { key: 'n', className: 'kbl-mono' }, w.top.name), ' ' + t('ln2.w.top', { n: w.top.uses })], null))
+        if (w.waiting > 0) rows.push(row('wait', t(w.waiting === 1 ? 'ln2.w.waiting.1' : 'ln2.w.waiting', { n: w.waiting }), h('button', { type: 'button', className: 'kbl-btn pri', 'data-kb': 'learned-week-review', onClick: kbGoSkills }, t('ln.review'))))
+        if (w.auto.created + w.auto.improved > 0) rows.push(row('auto', t('ln2.w.auto', { c: w.auto.created, i: w.auto.improved }), h('button', { type: 'button', className: 'kbl-btn', 'data-kb': 'learned-week-journal', onClick: () => kbOpenSkills('kybernos.skills.journal', '1') }, t('ln.j.btn'))))
+        for (const s of w.stale) rows.push(row('stale:' + s.name, [h('b', { key: 'n', className: 'kbl-mono' }, s.name), ' ' + t('ln2.w.stale', { d: s.days })],
+          [h('button', { key: 'k', type: 'button', className: 'kbl-btn', 'data-kb': 'learned-week-keep', onClick: () => { post('learned/keep', { name: s.name }); drop('stale:' + s.name) } }, t('ln.a.keep')),
+            h('button', { key: 'o', type: 'button', className: 'kbl-btn pri', 'data-kb': 'learned-week-off', onClick: () => { post('toggle', { root: s.root, name: s.name, active: false }); drop('stale:' + s.name); try { if (window.__KB_LEARNED__ && typeof window.__KB_LEARNED__.refresh === 'function') window.__KB_LEARNED__.refresh() } catch (e) { /* the dot catches up */ } } }, t('ln.stale.off'))]))
+        for (const r of w.ready) rows.push(row('ready:' + r.name, [h('b', { key: 'n', className: 'kbl-mono' }, r.name), ' ' + t('ln2.w.ready', { n: r.chats })],
+          [h('button', { key: 'l', type: 'button', className: 'kbl-btn', 'data-kb': 'learned-week-later', onClick: () => drop('ready:' + r.name) }, t('ln2.w.later')),
+            h('button', { key: 'p', type: 'button', className: 'kbl-btn pri', 'data-kb': 'learned-week-share', onClick: () => kbOpenSkills('kybernos.skills.share', r.name) }, t('ln2.w.propose'))]))
+        const num = (v, label, key) => h('div', { key, className: 'kbl-num' }, h('b', null, String(v)), h('span', null, label))
+        return h('div', { className: 'kbl-tail kbl-dk', 'data-kb': 'learned-week' },
+          h('section', { className: 'kbl-wk' },
+            h('div', { className: 'kbl-wh' },
+              h('div', null, h('h3', null, t('ln2.w.title')), h('p', null, t('ln2.w.sub', { from: kbShortDay(w.from), to: kbShortDay(w.to) }))),
+              h('button', { type: 'button', className: 'kbl-btn', 'data-kb': 'learned-week-hide', onClick: () => { post('learned/week/hide', {}); setHidden(true) } }, t('ln2.w.hide'))),
+            h('div', { className: 'kbl-nums' }, lessons !== null ? num(lessons, t('ln2.w.lessons'), 'l') : null, num(w.accepted, t('ln2.w.accepted'), 'a'), num(w.used + '×', t('ln2.w.used', { n: w.usedSkills }), 'u')),
+            rows.filter((x) => x !== null).length > 0 ? h('div', { className: 'kbl-wl' }, rows) : null,
+            h('div', { className: 'kbl-how kbl-dim2' }, t('ln2.w.foot'))))
+      }
+
       // Settings › Learned skills: how much Kaby may do on its own with the skills it learns. Three levels (Ask me every time by default), the confidence line with a live preview on
       // what waits now, the hard stops nothing lifts, the limits, the audit trail and the kill switch. Every change is saved at once and written to the journal by the host.
       function LearnedSettingsPage() {
@@ -3444,6 +3660,10 @@ body:not([data-ds-dark-theme]) .kbs-root .kb8-pill.warn{color:color-mix(in srgb,
           else setData({ phase: 'absent' })
         }).catch(() => { if (alive.current === true) setData({ phase: 'absent' }) }), [])
         React.useEffect(() => { load() }, [])
+        const [notices, setNotices] = React.useState(null)
+        const loadNotices = React.useCallback(() => getJson('/kybernos-skills/learned/notice/list').then((j) => { if (alive.current === true && j !== null && typeof j === 'object' && j.ok === true && Array.isArray(j.patterns)) setNotices(j) }).catch(() => null), [])
+        React.useEffect(() => { loadNotices() }, [])
+        const forget = (id) => postJson('/kybernos-skills/learned/notice/forget', { id }).then(() => loadNotices()).catch(() => null)
         const save = (patch) => {
           setErr(''); setSaved(false)
           return postJson('/kybernos-skills/learned/settings/set', patch).then((j) => {
@@ -3501,6 +3721,32 @@ body:not([data-ds-dark-theme]) .kbs-root .kb8-pill.warn{color:color-mix(in srgb,
             h('h3', { className: 'kbss-h2' }, t('ls.limits.h')),
             h('div', { className: 'kbl-fr' }, h('label', { htmlFor: 'kbl-cap' }, t('ls.cap')), sel('kbl-cap', s.cap, [[1, t('ls.cap.1')], [3, t('ls.cap.3')], [5, t('ls.cap.5')]], (v) => save({ cap: Number(v) }))),
             h('div', { className: 'kbl-fr' }, h('label', { htmlFor: 'kbl-notify' }, t('ls.notify')), sel('kbl-notify', s.notify, [['both', t('ls.notify.both')], ['chat', t('ls.notify.chat')], ['week', t('ls.notify.week')]], (v) => save({ notify: v })))),
+          h('div', { className: 'kbss-card', 'data-kb': 'learned-repeat-card' },
+            h('h3', { className: 'kbss-h2' }, t('ls2.rep.h')),
+            h('p', { className: 'kbss-sub' }, t('ls2.rep.sub')),
+            h('label', { className: 'kbl-chk' }, h('input', { type: 'checkbox', checked: s.notice === true, 'data-kb': 'learned-notice-on', onChange: (e) => save({ notice: e.target.checked }) }), h('span', null, t('ls2.rep.on'))),
+            h('div', { className: 'kbl-fr' },
+              h('label', { htmlFor: 'kbl-minrep' }, t('ls2.rep.from')), sel('kbl-minrep', s.minRep, [[3, t('ls2.rep.n3')], [4, t('ls2.rep.n4')], [5, t('ls2.rep.n5')]], (v) => save({ minRep: Number(v) })),
+              h('label', { htmlFor: 'kbl-win' }, t('ls2.rep.within')), sel('kbl-win', s.win, [[30, t('ls2.rep.d30')], [60, t('ls2.rep.d60')], [90, t('ls2.rep.d90')]], (v) => save({ win: Number(v) }))),
+            data.sensitive === true ? h('div', { className: 'kbl-lock' }, icon('lock', 14), h('span', null, t('ls2.rep.priv'))) : null,
+            notices !== null && notices.index === false ? h('div', { className: 'kbl-lock', 'data-kb': 'learned-noindex' }, icon('alert', 14), h('span', null, t('ls2.rep.noindex'))) : null,
+            notices !== null ? h('div', { className: 'kbl-pv', 'data-kb': 'learned-patterns' }, notices.patterns.length === 0
+              ? h('div', { className: 'kbl-pr' }, t('ls2.rep.none'))
+              : notices.patterns.map((x) => h('div', { key: x.id, className: 'kbl-pt', 'data-kb': 'pattern-row' },
+                h('b', { className: 'kbl-mono' }, x.label !== null ? x.label : t('ls2.rep.kind')), h('span', null, t('ls2.rep.chats', { n: x.n })), h('span', null, t('ls2.rep.s.' + x.state)),
+                h('button', { type: 'button', className: 'kbl-btn', 'data-kb': 'pattern-forget', onClick: () => forget(x.id) }, x.state === 'never' ? t('ls2.rep.allow') : t('ls2.rep.forget'))))) : null),
+          h('div', { className: 'kbss-card', 'data-kb': 'learned-week-card' },
+            h('h3', { className: 'kbss-h2' }, t('ls2.w.h')),
+            h('p', { className: 'kbss-sub' }, t('ls2.w.sub')),
+            h('label', { className: 'kbl-chk' }, h('input', { type: 'checkbox', checked: s.week === true, 'data-kb': 'learned-week-on', onChange: (e) => save({ week: e.target.checked }) }), h('span', null, t('ls2.w.on')))),
+          h('div', { className: 'kbss-card', 'data-kb': 'learned-team-card' },
+            h('h3', { className: 'kbss-h2' }, t('ls2.t.h')),
+            h('p', { className: 'kbss-sub' }, t('ls2.t.sub')),
+            h('div', { className: 'kbl-fr' },
+              h('label', { className: 'kbl-chk' }, h('input', { type: 'checkbox', checked: s.team === true && (data.sensitive !== true || s.teamPriv === true), disabled: data.sensitive === true && s.teamPriv !== true, 'data-kb': 'learned-team-on', onChange: (e) => save({ team: e.target.checked }) }), h('span', null, t('ls2.t.on'))),
+              sel('kbl-teammin', s.teamMin, [[3, t('ls2.t.n3')], [5, t('ls2.t.n5')], [8, t('ls2.t.n8')]], (v) => save({ teamMin: Number(v) }))),
+            data.sensitive === true ? h('div', { className: 'kbl-lock' }, icon('lock', 14), h('span', null, t('ls2.t.lock'))) : null,
+            data.sensitive === true ? h('label', { className: 'kbl-chk' }, h('input', { type: 'checkbox', checked: s.teamPriv === true, 'data-kb': 'learned-team-unlock', onChange: (e) => save({ teamPriv: e.target.checked }) }), h('span', null, t('ls2.t.priv'))) : null),
           h('div', { className: 'kbss-card' },
             h('h3', { className: 'kbss-h2' }, t('ls.audit.h')),
             h('p', { className: 'kbss-sub' }, t('ls.audit.sub')),
@@ -3553,6 +3799,14 @@ body:not([data-ds-dark-theme]) .kbs-root .kb8-pill.warn{color:color-mix(in srgb,
             : h('pre', { className: 'kb-local-body', 'data-kb': 'skill-text' }, ready ? r.data.text : t('det.local.loading')),
           ready && r.data.truncated === true ? h('span', { className: 'kb8-mono' }, t('panel.truncated')) : null,
           ready && r.data.files > 0 ? h('span', { className: 'kb8-mono' }, t('panel.files', { n: r.data.files + (r.data.filesMore === true ? '+' : '') })) : null,
+          props.learned !== null && props.learned !== undefined && (props.learned.shared === true || props.shareLocked === true || props.learned.shareReady === true)
+            ? h('div', { className: 'kbl-share', 'data-kb': 'learned-share' },
+              h('span', { className: 'kb-section-label' }, t('ln2.s.h')),
+              props.learned.shared === true ? h('p', { className: 'kbl-p' }, icon('check', 12), ' ' + t('ln2.s.done'))
+                : (props.shareLocked === true ? h('p', { className: 'kbl-p' }, icon('lock', 12), ' ' + t('ln2.s.priv'))
+                  : [h('p', { key: 't', className: 'kbl-p' }, t('ln2.s.text', { n: props.learned.chats })),
+                    h('div', { key: 'b' }, h('button', { type: 'button', className: 'kb8-primary', 'data-kb': 'learned-share-btn', onClick: props.onShare }, t('ln2.s.btn')))]))
+            : null,
           props.err ? h('div', { className: 'kbs-err' }, props.err) : null,
           h('div', { className: 'kbs-panel-acts' },
             act('reveal', h('span', null, t('act.reveal')), t('act.reveal.tip'), 'kb8-primary'),
@@ -3923,7 +4177,7 @@ body:not([data-ds-dark-theme]) .kbs-root .kb8-pill.warn{color:color-mix(in srgb,
 
       function ProposeSheet(props) {
         const cands = proposable(props.local)
-        const [pick, setPick] = React.useState('')
+        const [pick, setPick] = React.useState(() => { const c = typeof props.preselect === 'string' ? cands.filter((s) => s.name === props.preselect)[0] : undefined; return c !== undefined ? skillKey(c) : '' })
         const [pack, setPack] = React.useState({ phase: 'idle' })
         const [note, setNote] = React.useState('')
         const [sending, setSending] = React.useState(false)
@@ -4463,6 +4717,17 @@ body:not([data-ds-dark-theme]) .kbs-root .kb8-pill.warn{color:color-mix(in srgb,
             }))
         } catch (kbLearnedSettingsError) {
           try { console.warn('[kybernos-skills] learned settings section not mounted', kbLearnedSettingsError) } catch (e2) { /* console gone */ }
+        }
+        // ── above the composer: « you ask for this again » (a chat that has begun) and the weekly card (a blank chat) ──
+        try {
+          const mountDock = () => {
+            slots.inject('conversation.input.dock', () => slots.register({ name: 'conversation.input.dock', id: 'kybernos-skills-learned-notice', order: 22 }, LearnedNotice))
+            slots.inject('conversation.input.dock', () => slots.register({ name: 'conversation.input.dock', id: 'kybernos-skills-learned-week', order: 18 }, LearnedWeek))
+          }
+          if (typeof ctx.effect === 'function') ctx.effect(mountDock, 'kybernos-skills: notice and weekly cards above the composer')
+          else mountDock()
+        } catch (kbDockError) {
+          try { console.warn('[kybernos-skills] dock cards not mounted', kbDockError) } catch (e2) { /* console gone */ }
         }
         // ── at the end of the last answer: what Kaby suggested or applied from THIS chat (the card draws nothing when there is none) ──
         try {

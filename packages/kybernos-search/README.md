@@ -16,6 +16,12 @@ agent teams. The native search of the Workspaces list (a title filter) is not to
 - Memories (the account's, through `/kybernos-cloud/memory`) and creations (through `/kybernos/load`, the files the agents produced, by workspace) are read by the page from routes
   it already uses, so they need an account / the state load and are searched in the page.
 
+## A read-only seam for other bundles
+
+`globalThis[Symbol.for('kybernos.chat-index')]` is a frozen `{ version: 1, asks(sinceMs), refresh() }`, looked up at call time by whoever reads it (the way the learned-skills seam works).
+`asks(sinceMs)` returns `[{ id, at, text, cwd }]`: the first message the person typed in each chat since that moment, cut at 1,000 characters, nothing else of the chat. `refresh()`
+reads again the journals that changed. kybernos-skills compares those first messages to notice a task the person asks for again (`docs/dev/learned-skills.md`); nothing leaves the computer.
+
 ## What it reads, and where it keeps it
 
 | Source | Read from | Notes |

@@ -238,6 +238,19 @@ slider that saves once the person stops, every change in the journal), and the k
 « Ask me », the chain still verifies). **Not covered**: the card at the end of a chat answer and the agent tools: they need a model turn (the unit
 tests play them). A port held by another worktree's sandbox is skipped by `start.sh` (it says which port it took); `env.sh` follows `sandbox.port`.
 
+### What Kaby notices and tells: `scripts/check-skills-learned-v2-live.mjs`
+
+```bash
+source scripts/sandbox/env.sh && node scripts/check-skills-learned-v2-live.mjs --shots /tmp/shots
+```
+
+Same rules (sandbox only; clears and cleans its own files). It writes three synthetic chats with the same kind of ask on three days (zstd journals the chat index
+reads), has the GUI create a real conversation, appends the person's message to its journal (with no model DSH never journals a turn that fails), and checks the
+host end to end through the real Search everywhere seam: the notice (4th chat, 4 days, three words), what is kept on disk, the answer. Then the weekly card on a blank
+chat (numbers, rows, **Keep**, **Hide**), « ready to share » on the Skills page and the panel's button, and the three new cards of Settings › Learned skills (switch,
+number, Forget). **Not covered live:** the « you ask for this again » card under a finished answer. With no model the turn of that chat never completes, DSH keeps
+calling the session `blank` (measured) and the card speaks only in a chat that has begun: `test-ui.mjs` plays it with the real prop names of the dock entry.
+
 ## A bundle the user's DSH does not list yet: a second instance (`scripts/sandbox/*.sh`)
 
 A **new** bundle, or any **host** code, cannot be tried on the user's `dsh web`: it is not in their profile and a host change
