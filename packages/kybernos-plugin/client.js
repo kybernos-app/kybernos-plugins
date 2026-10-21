@@ -1865,6 +1865,9 @@ let kbLocaleRead = () => 'en'
       'kbsd.invite': { kybernos: 'Inviter', en: 'Invite' },
       'kbsd.invite.unavail': { kybernos: 'Invitations pas encore disponibles sur ce serveur', en: 'Invitations are not yet available on this server' },
       'kbsd.invite.adminonly': { kybernos: 'Seuls les propriétaires et administrateurs peuvent inviter.', en: 'Only owners and admins can invite.' },
+      // V1-27 (video review): the footer button went disabled (nothing to copy while the item is private and no share
+      // link exists yet) and said NOTHING about why — a dead button with no reason.
+      'kbsd.link.none': { kybernos: 'Aucun lien pour l’instant : choisis « Accès public » (ou l’accès équipe) pour en obtenir un.', en: 'No link yet: choose « Public access » (or team access) to get one.' },
       'kbsd.owner': { kybernos: 'Propriétaire', en: 'Owner' },
       'kbsd.you': { kybernos: 'Toi', en: 'You' },
       'kbsd.member': { kybernos: 'Membre', en: 'Member' },
@@ -11370,7 +11373,11 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         const libelle = niveau === 'me' ? T('kbsd.sharenow') : kbt('kbui.copylink')
         const inactif = busy === true || cloud === null || (niveau === 'me' && meilleurDispo !== true) || (niveau !== 'me' && lienPublic === null && webUrl === null)
         pied = h('div', { className: 'kbsp-foot' },
-          h('button', { type: 'button', className: 'kb6-btn kb6-btn-primary kbsp-wide', 'data-kb': 'share-copy-link', disabled: inactif, onClick: actionPied }, niveau === 'me' ? Icon('share', 14) : Icon('link', 14), ' ', libelle))
+          h('button', { type: 'button', className: 'kb6-btn kb6-btn-primary kbsp-wide', 'data-kb': 'share-copy-link', disabled: inactif, onClick: actionPied }, niveau === 'me' ? Icon('share', 14) : Icon('link', 14), ' ', libelle),
+          // V1-27: a disabled button that explains nothing. When the reason is « nothing to share yet », say it, once.
+          (inactif === true && busy !== true && niveau === 'me' && meilleurDispo !== true)
+            ? h('div', { className: 'kbsp-hint', 'data-kb': 'share-link-none' }, T('kbsd.link.none'))
+            : null)
       } else {
         // ── Variante PROJET ──
         const liste = mem.list

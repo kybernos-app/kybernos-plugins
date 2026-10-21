@@ -31,4 +31,11 @@ const text = SRC.join('\n')
 check('the team file has its words in both languages', text.includes("'team file', 'fichier d’équipe'") && text.includes("'skills folder', 'dossier de compétences'"))
 check('a skill row names where the skill is declared in words, not « skills/ » or « kyber.yml »', !/pushT\(s1, 'skills\/'|pushSkill\(s1, 'skills\/'|pushT\(s2, 'kyber\.yml'|pushSkill\(s2, 'kyber\.yml'/.test(text))
 check('the budget sentences speak of a budget section, not of a « budget: » block', !/budget: block|bloc budget:|`budget:`/.test(text))
+// V1-27 (video review): the share popover's footer button went disabled with no reason (« le lien d'invitation ne donne
+// rien quand il n'y a pas de partage public »). A disabled button now says why, in both languages.
+check('V1-27: a share button disabled for lack of a link says so',
+  SRC.join('\n').includes("'kbsd.link.none'") &&
+  /inactif === true && busy !== true && niveau === 'me' && meilleurDispo !== true/.test(SRC.join('\n')) &&
+  /'data-kb': 'share-link-none'/.test(SRC.join('\n')))
+
 process.exit(fail === 0 ? 0 : 1)
