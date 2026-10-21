@@ -18179,6 +18179,11 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         if (tab === 'Threads') {
           // Plus de maquette : soit de vrais threads, soit un etat vide explicite.
           if (threadsRows.length === 0) {
+            // V1-11 (video review): searching « vercel » showed « No thread yet / Chats you open in this project show up
+            // here » — a lie. The project HAD chats; the search matched none. An empty list caused by the filter says so,
+            // and says how to get the list back; only a project with no chat at all offers to open one.
+            const recherche = typeof q === 'string' && q.trim() !== ''
+            if (recherche) return emptyX({ kb: 'project-threads-empty-search', title: kbe('No thread matches « ' + q.trim() + ' »', 'Aucun fil ne correspond à « ' + q.trim() + ' »'), text: kbe('Clear the search to see every chat of this project.', 'Vide la recherche pour voir tous les chats de ce projet.'), action: null })
             return emptyX({ kb: 'project-threads-empty', title: kbe('No thread yet', 'Aucun fil pour l’instant'), text: kbe('Chats you open in this project show up here.', 'Les chats ouverts dans ce projet apparaissent ici.'), action: chatAction(kbe('New chat in this project', 'Nouveau chat dans ce projet')) })
           }
           return h(React.Fragment, null,
