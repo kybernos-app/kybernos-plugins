@@ -2,6 +2,8 @@
   "v": 1,
   "id": "droit",
   "order": 40,
+  "accent": "#7A2236",
+  "icon": "scales",
   "name": {
     "en": "Law",
     "fr": "Droit"
@@ -10,6 +12,29 @@
     "en": "Lawyers, in-house counsel, law students",
     "fr": "Avocats, juristes, étudiants en droit"
   },
+  "keywords": [
+    "avocat",
+    "lawyer",
+    "attorney",
+    "juriste",
+    "legal",
+    "notaire",
+    "notary",
+    "huissier",
+    "contrat",
+    "contract",
+    "droit",
+    "law",
+    "paralegal",
+    "juridique",
+    "tribunal",
+    "court"
+  ],
+  "home": [
+    "doc",
+    "automation",
+    "sheet"
+  ],
   "legacyJobs": [
     "legal"
   ],
@@ -94,10 +119,28 @@
         "en": "An alert before each due date",
         "fr": "Une alerte avant chaque date limite"
       },
-      "soon": [
+      "skills": [
         {
-          "en": "Deadline alerts",
-          "fr": "Alertes d’échéance"
+          "source": "kybernos",
+          "name": "deadline-check",
+          "d": {
+            "en": "The deadlines due soon, with the date computation shown",
+            "fr": "Les échéances proches, avec le calcul des dates"
+          }
+        }
+      ],
+      "automations": [
+        {
+          "id": "deadline-sweep",
+          "name": {
+            "en": "Deadlines of the week",
+            "fr": "Échéances de la semaine"
+          },
+          "prompt": {
+            "en": "Every Monday at 08:00: run the deadline-check skill on the matters and the calendar in this workspace for the next 7 days. Return the list sorted by date and the items to verify.",
+            "fr": "Chaque lundi à 8 h : lance le skill deadline-check sur les dossiers et l’agenda de ce workspace pour les 7 prochains jours. Renvoie la liste triée par date et les points à vérifier."
+          },
+          "cron": "0 8 * * 1"
         }
       ],
       "starter": {
@@ -119,13 +162,31 @@
         "en": "What is new on my cases’ subjects",
         "fr": "Les nouveautés qui touchent mes dossiers"
       },
+      "skills": [
+        {
+          "source": "kybernos",
+          "name": "case-law-watch",
+          "d": {
+            "en": "New decisions and texts on your subjects, with citations",
+            "fr": "Les nouvelles décisions et textes sur tes sujets, avec les références"
+          }
+        }
+      ],
       "teams": [
         "research-desk"
       ],
-      "soon": [
+      "automations": [
         {
-          "en": "Case-law watch",
-          "fr": "Veille de jurisprudence"
+          "id": "case-law-sweep",
+          "name": {
+            "en": "Weekly case-law watch",
+            "fr": "Veille de jurisprudence hebdomadaire"
+          },
+          "prompt": {
+            "en": "Every Monday at 07:30: run the case-law-watch skill on the topics and jurisdictions listed in my watch file in this workspace (ask me once if there is none). Return the digest only.",
+            "fr": "Chaque lundi à 7 h 30 : lance le skill case-law-watch sur les sujets et juridictions listés dans mon fichier de veille de ce workspace (demande-moi une fois s’il n’y en a pas). Renvoie seulement le digest."
+          },
+          "cron": "30 7 * * 1"
         }
       ],
       "starter": {
@@ -157,10 +218,18 @@
           }
         }
       ],
-      "soon": [
+      "automations": [
         {
-          "en": "Weekly time summary",
-          "fr": "Récapitulatif hebdomadaire du temps"
+          "id": "time-summary",
+          "name": {
+            "en": "Weekly billable time",
+            "fr": "Temps facturable de la semaine"
+          },
+          "prompt": {
+            "en": "Every Friday at 17:00: add up my billable time for the week from the time sheet in this workspace, by matter, and flag the matters with no time recorded. One table.",
+            "fr": "Chaque vendredi à 17 h : additionne mon temps facturable de la semaine à partir de la feuille de temps de ce workspace, par dossier, et signale les dossiers sans temps enregistré. Un seul tableau."
+          },
+          "cron": "0 17 * * 5"
         }
       ],
       "starter": {

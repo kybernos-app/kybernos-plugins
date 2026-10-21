@@ -16,26 +16,36 @@ export const ROW_IDS = ['kyber', 'dashboards', 'aiteams', 'projects', 'deliverab
 /** The rows a pack may hide: the others are the only door to a page. */
 export const HIDEABLE = ['documents']
 export const LANGS = ['en', 'fr', 'es', 'ar']
-export const LIMITS = { goals: 12, skills: 8, teams: 3, soon: 4, text: 160, legacy: 8 }
+/** The icons the wizard can draw for a field (client.js, KB-OB-UI). */
+export const ICONS = ['cap', 'heart', 'house', 'scales', 'trend', 'bag', 'mega', 'code', 'wand']
+/** The templates of the new-chat page (KB_NC_TEMPLATES): a pack may put some first. */
+export const HOME_IDS = ['slides', 'doc', 'sheet', 'dashboard', 'image', 'video', 'website', 'miniapp', 'model3d', 'automation', 'team', 'skill', 'plugin']
+/** The `source` of a skill the plugin itself ships (domains/skills/<name>/SKILL.md), installed by `POST /kybernos/domain/skill`. */
+export const BUNDLED_SOURCE = 'kybernos'
+export const LIMITS = { goals: 12, skills: 8, teams: 3, soon: 4, automations: 3, text: 160, prompt: 900, keywords: 40, keyword: 24, home: 6, legacy: 8 }
 
 const ID_RE = /^[a-z][a-z0-9-]{1,23}$/
 const SKILL_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 const SOURCE_RE = /^[A-Za-z0-9][A-Za-z0-9_.-]*\/[A-Za-z0-9][A-Za-z0-9_.-]*$/
 const TEAM_RE = /^[a-z0-9][a-z0-9-]{0,40}$/
 const JOB_RE = /^[a-z][a-z0-9-]{1,23}$/
+const COLOR_RE = /^#[0-9a-fA-F]{6}$/
+// Five cron fields made of digits, `*`, `/`, `,` and `-`: the host's own parser has the last word when the automation is created.
+const CRON_RE = /^[0-9*/,-]+( [0-9*/,-]+){4}$/
+const KEYWORD_RE = /^[a-z0-9][a-z0-9 .'-]*$/
 
 const plain = (v) => v !== null && typeof v === 'object' && !Array.isArray(v)
 const only = (obj, keys, where, errors) => { for (const k of Object.keys(obj)) if (keys.indexOf(k) < 0) errors.push(where + ': unknown key "' + k + '"') }
 
 /** A text in several languages: `en` is required, the others are optional. Printable, no angle brackets, at most LIMITS.text characters. */
-const textOf = (v, where, errors) => {
+const textOf = (v, where, errors, max) => {
   if (!plain(v)) { errors.push(where + ': a text is an object { en, fr… }'); return null }
   only(v, LANGS, where, errors)
   const out = {}
   for (const lang of LANGS) {
     if (v[lang] === undefined) continue
     const t = typeof v[lang] === 'string' ? v[lang].trim() : ''
-    if (t === '' || Array.from(t).length > LIMITS.text || /[<>\u0000-\u001f]/.test(t)) { errors.push(where + '.' + lang + ': empty, too long or not plain text'); return null }
+    if (t === '' || Array.from(t).length > (max === undefined ? LIMITS.text : max) || /[<>]/.test(t) || (max === undefined ? /[\u0000-\u001f]/ : /[\u0000-\u0008\u000b-\u001f]/).test(t)) { errors.push(where + '.' + lang + ': empty, too long or not plain text'); return null }
     out[lang] = t
   }
   if (out.en === undefined) { errors.push(where + ': "en" is required'); return null }
@@ -51,11 +61,23 @@ const listOf = (v, max, where, errors) => {
 export const validatePack = (raw, fileId) => {
   const errors = []
   if (!plain(raw)) return { ok: false, errors: ['a pack is a JSON object'] }
-  only(raw, ['v', 'id', 'order', 'name', 'tagline', 'legacyJobs', 'menu', 'goals'], 'pack', errors)
+  only(raw, ['v', 'id', 'order', 'accent', 'icon', 'name', 'tagline', 'keywords', 'home', 'legacyJobs', 'menu', 'goals'], 'pack', errors)
   if (raw.v !== FORMAT) errors.push('v: ' + FORMAT + ' expected')
   if (typeof raw.id !== 'string' || !ID_RE.test(raw.id)) errors.push('id: not a valid id')
   else if (raw.id !== fileId) errors.push('id: "' + raw.id + '" is not the file name "' + fileId + '"')
   if (raw.order !== undefined && !(Number.isInteger(raw.order) && raw.order >= 1 && raw.order <= 99)) errors.push('order: an integer from 1 to 99')
+  if (typeof raw.accent !== 'string' || !COLOR_RE.test(raw.accent)) errors.push('accent: a #rrggbb colour')
+  if (ICONS.indexOf(raw.icon) < 0) errors.push('icon: one of ' + ICONS.join(', '))
+  const keywords = []
+  for (const k of listOf(raw.keywords, LIMITS.keywords, 'keywords', errors)) {
+    if (typeof k !== 'string' || !KEYWORD_RE.test(k) || k.length > LIMITS.keyword) errors.push('keywords: "' + String(k) + '" is not a lower-case word or phrase')
+    else if (keywords.indexOf(k) < 0) keywords.push(k)
+  }
+  const home = []
+  for (const h of listOf(raw.home, LIMITS.home, 'home', errors)) {
+    if (HOME_IDS.indexOf(h) < 0) errors.push('home: "' + String(h) + '" is not a new-chat template')
+    else if (home.indexOf(h) < 0) home.push(h)
+  }
   const name = textOf(raw.name, 'name', errors)
   const tagline = textOf(raw.tagline, 'tagline', errors)
   const legacyJobs = listOf(raw.legacyJobs, LIMITS.legacy, 'legacyJobs', errors).filter((j) => {
@@ -91,18 +113,18 @@ export const validatePack = (raw, fileId) => {
   rawGoals.forEach((g, i) => {
     const where = 'goals[' + i + ']'
     if (!plain(g)) { errors.push(where + ': an object'); return }
-    only(g, ['id', 'name', 'title', 'desc', 'skills', 'teams', 'soon', 'starter'], where, errors)
+    only(g, ['id', 'name', 'title', 'desc', 'skills', 'teams', 'automations', 'soon', 'starter'], where, errors)
     if (typeof g.id !== 'string' || !ID_RE.test(g.id)) errors.push(where + '.id: not a valid id')
     else if (seenGoal[g.id] === true) errors.push(where + '.id: "' + g.id + '" appears twice')
     else seenGoal[g.id] = true
-    const goal = { id: g.id, name: textOf(g.name, where + '.name', errors), title: textOf(g.title, where + '.title', errors), desc: textOf(g.desc, where + '.desc', errors), skills: [], teams: [], soon: [], starter: null }
+    const goal = { id: g.id, name: textOf(g.name, where + '.name', errors), title: textOf(g.title, where + '.title', errors), desc: textOf(g.desc, where + '.desc', errors), skills: [], teams: [], automations: [], soon: [], starter: null }
     const seenSkill = {}
     for (const [j, s] of listOf(g.skills, LIMITS.skills, where + '.skills', errors).entries()) {
       const sw = where + '.skills[' + j + ']'
       if (!plain(s)) { errors.push(sw + ': an object'); continue }
       only(s, ['source', 'name', 'd'], sw, errors)
       if (typeof s.name !== 'string' || !SKILL_RE.test(s.name) || s.name.length > 64) { errors.push(sw + '.name: not a skill name'); continue }
-      if (typeof s.source !== 'string' || !SOURCE_RE.test(s.source)) { errors.push(sw + '.source: not a GitHub owner/repo'); continue }
+      if (typeof s.source !== 'string' || !(SOURCE_RE.test(s.source) || s.source === BUNDLED_SOURCE)) { errors.push(sw + '.source: not a GitHub owner/repo, nor "' + BUNDLED_SOURCE + '"'); continue }
       if (seenSkill[s.name + '|' + s.source] === true) { errors.push(sw + ': "' + s.name + '" appears twice in the goal'); continue }
       seenSkill[s.name + '|' + s.source] = true
       const d = textOf(s.d, sw + '.d', errors)
@@ -112,16 +134,29 @@ export const validatePack = (raw, fileId) => {
       if (typeof t !== 'string' || !TEAM_RE.test(t)) errors.push(where + '.teams: "' + String(t) + '" is not a team id')
       else if (goal.teams.indexOf(t) < 0) goal.teams.push(t)
     }
+    const seenAuto = {}
+    for (const [j, a] of listOf(g.automations, LIMITS.automations, where + '.automations', errors).entries()) {
+      const aw = where + '.automations[' + j + ']'
+      if (!plain(a)) { errors.push(aw + ': an object'); continue }
+      only(a, ['id', 'name', 'prompt', 'cron'], aw, errors)
+      if (typeof a.id !== 'string' || !ID_RE.test(a.id)) { errors.push(aw + '.id: not a valid id'); continue }
+      if (seenAuto[a.id] === true) { errors.push(aw + '.id: "' + a.id + '" appears twice in the goal'); continue }
+      seenAuto[a.id] = true
+      if (typeof a.cron !== 'string' || !CRON_RE.test(a.cron)) { errors.push(aw + '.cron: five cron fields'); continue }
+      const name = textOf(a.name, aw + '.name', errors)
+      const prompt = textOf(a.prompt, aw + '.prompt', errors, LIMITS.prompt)
+      if (name !== null && prompt !== null) goal.automations.push({ id: a.id, name, prompt, cron: a.cron })
+    }
     for (const [j, t] of listOf(g.soon, LIMITS.soon, where + '.soon', errors).entries()) {
       const x = textOf(t, where + '.soon[' + j + ']', errors)
       if (x !== null) goal.soon.push(x)
     }
     if (g.starter !== undefined) goal.starter = textOf(g.starter, where + '.starter', errors)
-    if (goal.skills.length + goal.teams.length + goal.soon.length === 0) errors.push(where + ': a goal asks for something (skills, teams or soon)')
+    if (goal.skills.length + goal.teams.length + goal.automations.length + goal.soon.length === 0) errors.push(where + ': a goal asks for something (skills, teams, automations or soon)')
     goals.push(goal)
   })
   if (errors.length > 0) return { ok: false, errors }
-  return { ok: true, pack: { v: FORMAT, id: raw.id, order: raw.order === undefined ? 50 : raw.order, name, tagline, legacyJobs, menu, goals } }
+  return { ok: true, pack: { v: FORMAT, id: raw.id, order: raw.order === undefined ? 50 : raw.order, accent: raw.accent, icon: raw.icon, name, tagline, keywords, home, legacyJobs, menu, goals } }
 }
 
 /** What no single file can see: a legacy job claimed by two packs. Returns the list of problems (empty = fine). */

@@ -2,6 +2,8 @@
   "v": 1,
   "id": "edu",
   "order": 10,
+  "accent": "#6C4DF6",
+  "icon": "cap",
   "name": {
     "en": "Education",
     "fr": "Éducation"
@@ -10,6 +12,36 @@
     "en": "Students, teachers, schools",
     "fr": "Étudiants, enseignants, écoles"
   },
+  "keywords": [
+    "etudiant",
+    "student",
+    "eleve",
+    "pupil",
+    "professeur",
+    "prof",
+    "teacher",
+    "enseignant",
+    "ecole",
+    "school",
+    "universite",
+    "university",
+    "cours",
+    "lecon",
+    "formation",
+    "teaching",
+    "lycee",
+    "college",
+    "examen",
+    "exam",
+    "these",
+    "thesis",
+    "doctorant"
+  ],
+  "home": [
+    "doc",
+    "slides",
+    "automation"
+  ],
   "legacyJobs": [
     "etudes"
   ],
@@ -72,6 +104,20 @@
       "teams": [
         "studencik"
       ],
+      "automations": [
+        {
+          "id": "revision-plan",
+          "name": {
+            "en": "Refresh my revision plan",
+            "fr": "Mettre à jour mon plan de révision"
+          },
+          "prompt": {
+            "en": "Every Sunday evening: look in this workspace for my course notes, my exam dates and my current revision plan (use the study-plan skill). Update the plan for the days left: what I covered, what is late, what to do each day this week. Keep it to one page. If you cannot find exam dates or notes, say what is missing and stop. Only edit the plan file, nothing else.",
+            "fr": "Chaque dimanche soir : cherche dans ce workspace mes notes de cours, mes dates d’examen et mon plan de révision actuel (utilise le skill study-plan). Mets le plan à jour pour les jours restants : ce que j’ai couvert, ce qui est en retard, quoi faire chaque jour cette semaine. Une page au plus. Si tu ne trouves ni dates d’examen ni notes, dis ce qui manque et arrête-toi. Ne modifie que le fichier du plan."
+          },
+          "cron": "0 18 * * 0"
+        }
+      ],
       "starter": {
         "en": "Plan my revision up to the exam",
         "fr": "Planifie mes révisions jusqu’à l’examen"
@@ -107,6 +153,14 @@
             "en": "Write and format papers",
             "fr": "Rédige et met en forme tes devoirs"
           }
+        },
+        {
+          "source": "kybernos",
+          "name": "quiz-builder",
+          "d": {
+            "en": "Build a quiz with an answer key from your material",
+            "fr": "Fabrique un quiz avec son corrigé à partir de tes supports"
+          }
         }
       ],
       "teams": [
@@ -141,10 +195,18 @@
           }
         }
       ],
-      "soon": [
+      "automations": [
         {
-          "en": "Reminders before each deadline",
-          "fr": "Rappels avant chaque rendu"
+          "id": "deadline-watch",
+          "name": {
+            "en": "Papers due soon",
+            "fr": "Rendus à venir"
+          },
+          "prompt": {
+            "en": "Every weekday morning: look in this workspace, and in my calendar if it is connected, for papers, assignments and deadlines in the next 7 days. List them by date with what is left to do. If nothing is due, say so in one line. Do not edit anything.",
+            "fr": "Chaque matin en semaine : cherche dans ce workspace, et dans mon agenda s’il est connecté, les devoirs, rendus et échéances des 7 prochains jours. Liste-les par date avec ce qui reste à faire. Si rien n’est dû, dis-le en une ligne. Ne modifie rien."
+          },
+          "cron": "0 8 * * 1-5"
         }
       ],
       "starter": {
@@ -182,12 +244,14 @@
             "en": "Read and extract your course PDFs",
             "fr": "Lit et extrait tes cours en PDF"
           }
-        }
-      ],
-      "soon": [
+        },
         {
-          "en": "Quiz builder",
-          "fr": "Générateur de quiz"
+          "source": "kybernos",
+          "name": "quiz-builder",
+          "d": {
+            "en": "Build a quiz with an answer key from your material",
+            "fr": "Fabrique un quiz avec son corrigé à partir de tes supports"
+          }
         }
       ],
       "starter": {
@@ -219,10 +283,18 @@
           }
         }
       ],
-      "soon": [
+      "automations": [
         {
-          "en": "Follow-up of pupils with no paper",
-          "fr": "Relance des élèves sans rendu"
+          "id": "no-paper-followup",
+          "name": {
+            "en": "Pupils with no paper",
+            "fr": "Élèves sans rendu"
+          },
+          "prompt": {
+            "en": "Every Monday morning: open the class spreadsheet or list in this workspace and find the pupils who have not handed in the last assignment. Draft a short, kind reminder for each one (do not send it). List the pupils and the drafts.",
+            "fr": "Chaque lundi matin : ouvre le tableur ou la liste de la classe dans ce workspace et trouve les élèves qui n’ont pas rendu le dernier devoir. Rédige un rappel court et bienveillant pour chacun (ne l’envoie pas). Donne la liste des élèves et les brouillons."
+          },
+          "cron": "0 8 * * 1"
         }
       ],
       "starter": {

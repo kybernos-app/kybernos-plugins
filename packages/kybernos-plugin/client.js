@@ -7047,8 +7047,20 @@ const kbNcPickLine = (count, last, rand) => {
 }
 /** The templates of a group this install can serve. `bootIds`: the ids of the bundles of the boot list. */
 const kbNcTemplates = (group, bootIds) => group.filter((t) => t.needs === null || (Array.isArray(bootIds) === true && bootIds.indexOf(t.needs) >= 0))
-/** The slider: the chapters that hold at least one template this install can serve, in order (`bootIds` as above). */
-const kbNcSlider = (bootIds) => KB_NC_GROUPS.map((g) => ({ id: g, templates: kbNcTemplates(KB_NC_TEMPLATES.filter((t) => t.group === g), bootIds) })).filter((g) => g.templates.length > 0)
+/**
+ * The slider: the chapters that hold at least one template this install can serve, in order (`bootIds` as above). `first` is the person's field
+ * of work asking for its own templates first (ids, most wanted first; the pack's `home`): inside a chapter they come first, and the chapter that
+ * holds the most wanted one comes first. Everything else keeps its place, and a template the install cannot serve stays hidden.
+ */
+const kbNcSlider = (bootIds, first) => {
+  const want = Array.isArray(first) ? first : []
+  const rank = (id) => { const i = want.indexOf(id); return i < 0 ? 999 : i }
+  const groups = KB_NC_GROUPS.map((g) => ({ id: g, templates: kbNcTemplates(KB_NC_TEMPLATES.filter((t) => t.group === g), bootIds) })).filter((g) => g.templates.length > 0)
+  if (want.length === 0) return groups
+  const best = (g) => Math.min.apply(null, g.templates.map((t) => rank(t.id)))
+  groups.forEach((g) => { g.templates = g.templates.map((t, i) => ({ t, i })).sort((a, b) => rank(a.t.id) - rank(b.t.id) || a.i - b.i).map((x) => x.t) })
+  return groups.map((g, i) => ({ g, i })).sort((a, b) => best(a.g) - best(b.g) || a.i - b.i).map((x) => x.g)
+}
 // What the person types → the template it sounds like. Words of the two shipped languages, matched on the text without its
 // accents; the specific rules first (a « team of agents » is not an « app »). Only a template that is offered can match.
 const KB_NC_WORDS = [
@@ -25910,6 +25922,7 @@ function renderFit(canvas, model, cam, opts){
     let kbDomainPack = null
     const kbDomainLang = () => { const b = String(kbLangResolve()).split(/[-_]/)[0]; return b === 'kybernos' ? 'fr' : b }
     const kbDomainLabel = (id) => { const t = kbObMenuOverlay(kbDomainPack, kbDomainLang()).labels[id]; return typeof t === 'string' ? t : null }
+    const kbDomainHome = () => (kbDomainPack !== null && Array.isArray(kbDomainPack.home) ? kbDomainPack.home : [])
     const kbDomainHides = (id) => kbObMenuOverlay(kbDomainPack, kbDomainLang()).hide.indexOf(id) >= 0
     const kbDomainLoad = async () => {
       try {
@@ -26538,13 +26551,13 @@ function renderFit(canvas, model, cam, opts){
       const kabyPair = React.useState(0)
       React.useEffect(() => {
         const again = () => kabyPair[1]((n) => n + 1)
-        try { window.addEventListener('kb-kyby-session', again) } catch (e) { return undefined }
-        return () => { try { window.removeEventListener('kb-kyby-session', again) } catch (e) { /* gone */ } }
+        try { window.addEventListener('kb-kyby-session', again); window.addEventListener('kb-domain-change', again) } catch (e) { return undefined }
+        return () => { try { window.removeEventListener('kb-kyby-session', again); window.removeEventListener('kb-domain-change', again) } catch (e) { /* gone */ } }
       }, [])
       if (blank !== '1') return null
       // Kaby's own chat is not a place to start building: its strip is all that sits above the composer.
       try { if (window.__KB_KYBER__ && typeof window.__KB_KYBER__.isKybySession === 'function' && window.__KB_KYBER__.isKybySession(sid) === true) return null } catch (e) { /* the cards stay */ }
-      const groups = kbNcSlider(kbNcBootIds())
+      const groups = kbNcSlider(kbNcBootIds(), kbDomainHome())
       const offered = []
       groups.forEach((g) => g.templates.forEach((t) => offered.push(t.id)))
       // The text in the composer, as the dock entry receives it: the template it sounds like is lit (never sent, never changed).
@@ -34835,6 +34848,33 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       'goals.t': ['What do you want Kybernos to do for you?', 'Qu’est-ce que tu veux que Kybernos fasse pour toi ?', '¿Qué quieres que Kybernos haga por ti?', 'ماذا تريد أن يفعل Kybernos من أجلك؟'],
       'goals.s': ['Tick what matters. Kybernos sets up only that, and you can change it later.', 'Coche ce qui compte. Kybernos prépare seulement ça, et tu pourras le changer plus tard.', 'Marca lo que importa. Kybernos prepara solo eso, y podrás cambiarlo más tarde.', 'حدّد ما يهمك. يجهّز Kybernos ذلك فقط، ويمكنك تغييره لاحقًا.'],
       'goals.pick': ['Pick at least one goal to continue.', 'Choisis au moins un objectif pour continuer.', 'Elige al menos un objetivo para continuar.', 'اختر هدفًا واحدًا على الأقل للمتابعة.'],
+      'job.nl': ['Or describe your work: “physio in private practice”', 'Ou décris ton activité : « kiné en libéral »', 'O describe tu trabajo: «fisioterapeuta autónomo»', 'أو صف عملك: «معالج فيزيائي مستقل»'],
+      'job.nl.ok': ['Understood: {name}. Change it if it is wrong.', 'Compris : {name}. Corrige si besoin.', 'Entendido: {name}. Corrígelo si no es así.', 'فهمت: {name}. صحّح إن لزم.'],
+      'job.nl.none': ['No field recognised. Pick one in the list.', 'Aucun domaine reconnu. Choisis dans la liste.', 'No reconozco ningún ámbito. Elige uno de la lista.', 'لم أتعرف على مجال. اختر من القائمة.'],
+      'adds.sk': ['{n} skills', '{n} skills', '{n} skills', '{n} مهارات'],
+      'adds.sk1': ['1 skill', '1 skill', '1 skill', 'مهارة واحدة'],
+      'adds.au': ['{n} automations', '{n} automatisations', '{n} automatizaciones', '{n} أتمتة'],
+      'adds.au1': ['1 automation', '1 automatisation', '1 automatización', 'أتمتة واحدة'],
+      'adds.tm': ['team {name}', 'équipe {name}', 'equipo {name}', 'فريق {name}'],
+      'pv.live': ['Live preview', 'Aperçu en direct', 'Vista previa en vivo', 'معاينة مباشرة'],
+      'pv.hello': ['Hello', 'Bonjour', 'Hola', 'مرحبًا'],
+      'pv.new': ['New chat', 'Nouveau chat', 'Nuevo chat', 'محادثة جديدة'],
+      'pv.team': ['Suggested team', 'Équipe suggérée', 'Equipo sugerido', 'فريق مقترح'],
+      'pv.noteam': ['None for these goals: create one whenever you want.', 'Aucune pour ces objectifs : crées-en une quand tu veux.', 'Ninguno para estos objetivos: crea uno cuando quieras.', 'لا فريق لهذه الأهداف: أنشئ واحدًا متى شئت.'],
+      'pv.autos': ['Automations', 'Automatisations', 'Automatizaciones', 'الأتمتة'],
+      'pv.off': ['off', 'éteintes', 'apagadas', 'متوقفة'],
+      'pv.skills': ['Skills', 'Compétences', 'Skills', 'المهارات'],
+      'pv.compose': ['Write to Kybernos…', 'Écris à Kybernos…', 'Escribe a Kybernos…', 'اكتب إلى Kybernos…'],
+      'pv.you': ['You', 'Toi', 'Tú', 'أنت'],
+      'pv.sub0': ['Pick your goals: their first questions appear here.', 'Choisis tes objectifs : leurs premières questions apparaissent ici.', 'Elige tus objetivos: sus primeras preguntas aparecen aquí.', 'اختر أهدافك: تظهر أسئلتها الأولى هنا.'],
+      'pv.sub': ['{n} goals on the way', '{n} objectifs en route', '{n} objetivos en marcha', '{n} أهداف قيد التنفيذ'],
+      'pv.sub1': ['1 goal on the way', '1 objectif en route', '1 objetivo en marcha', 'هدف واحد قيد التنفيذ'],
+      'pv.cap.job': ['Hover a field: the menu, the colours and the tools follow.', 'Survole un domaine : le menu, les couleurs et les outils suivent.', 'Pasa el cursor por un ámbito: el menú, los colores y las herramientas lo siguen.', 'مرّر على مجال: تتبعه القائمة والألوان والأدوات.'],
+      'pv.cap.goals': ['Each goal you tick adds its skills, its automations and its first questions.', 'Chaque objectif coché ajoute ses skills, ses automatisations et ses premières questions.', 'Cada objetivo marcado añade sus skills, sus automatizaciones y sus primeras preguntas.', 'كل هدف تحدده يضيف مهاراته وأتمتته وأسئلته الأولى.'],
+      'pv.cap.other': ['This is the space you are setting up.', 'Voilà l’espace que tu es en train de préparer.', 'Este es el espacio que estás preparando.', 'هذه هي المساحة التي تجهّزها.'],
+      'k.autos': ['Automations', 'Automatisations', 'Automatizaciones', 'الأتمتة'],
+      'k.autos.note': ['Created switched off: you turn each one on when you want it.', 'Créées éteintes : tu allumes chacune quand tu veux.', 'Se crean apagadas: tú enciendes cada una cuando quieras.', 'تُنشأ متوقفة: تشغّل كل واحدة عندما تريد.'],
+      'k.src.kb': ['included with Kybernos', 'fourni avec Kybernos', 'incluido con Kybernos', 'مضمّن مع Kybernos'],
       'mode.t': ['Choose your UI mode', 'Choisis ton affichage', 'Elige tu modo de visualización', 'اختر طريقة العرض'],
       'mode.s': ['How would you like Kybernos to show its work?', 'Comment veux-tu que Kybernos montre son travail ?', '¿Cómo quieres que Kybernos muestre su trabajo?', 'كيف تريد أن يعرض Kybernos عمله؟'],
       'mode.code.t': ['Coding mode', 'Mode Code', 'Modo Código', 'وضع البرمجة'],
@@ -35079,17 +35119,76 @@ html.wv2-actif [data-composer-seat]{display:none !important}
     const kbObGoalsOf = (pack, ids) => (pack === null || !Array.isArray(pack.goals) || !Array.isArray(ids) ? [] : pack.goals.filter((g) => ids.indexOf(g.id) >= 0))
     /** The kit of a field for some goals: their skills and teams, each once, in the goals' order, and what is planned. Empty for no pack or no goal. */
     const kbObKitOf = (pack, goalIds) => {
-      const kit = { skills: [], teams: [], soon: [] }
+      const kit = { skills: [], teams: [], autos: [], soon: [] }
       const seen = {}
       for (const g of kbObGoalsOf(pack, goalIds)) {
         for (const x of Array.isArray(g.skills) ? g.skills : []) if (seen['s ' + x.source + ' ' + x.name] !== true) { seen['s ' + x.source + ' ' + x.name] = true; kit.skills.push(x) }
         for (const id of Array.isArray(g.teams) ? g.teams : []) if (seen['t ' + id] !== true) { seen['t ' + id] = true; kit.teams.push(id) }
+        for (const x of Array.isArray(g.automations) ? g.automations : []) if (seen['a ' + x.id] !== true) { seen['a ' + x.id] = true; kit.autos.push(x) }
         for (const x of Array.isArray(g.soon) ? g.soon : []) if (seen['x ' + kbObPackText('en', x)] !== true) { seen['x ' + kbObPackText('en', x)] = true; kit.soon.push(x) }
       }
       return kit
     }
     /** A skill's one-line description in a language (its own language, else English). */
     const kbObSkillText = (lang, skill) => kbObPackText(lang, skill.d)
+    /** A text for matching: lower case, no accents. */
+    const kbObFold = (t) => (typeof t === 'string' ? t.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase() : '')
+    /**
+     * The field a sentence points to (« kiné en libéral à Lyon » → health): the pack whose keywords start the most words of the sentence (a longer
+     * keyword counts a little more); a tie goes to the pack listed first. `null` when no keyword is found.
+     */
+    const kbObDomainFromText = (packs, text) => {
+      const t = ' ' + kbObFold(text).replace(/[^a-z0-9' -]+/g, ' ') + ' '
+      let best = null
+      let top = 0
+      for (const p of Array.isArray(packs) ? packs : []) {
+        let score = 0
+        for (const k of Array.isArray(p.keywords) ? p.keywords : []) if (t.indexOf(' ' + k) >= 0) score += k.length > 6 ? 2 : 1
+        if (score > top) { top = score; best = p.id }
+      }
+      return best
+    }
+    /** `a` mixed with `b` by `t` (0 to 1), as `#rrggbb`: the field's colour made lighter on a dark page. */
+    const kbObMix = (a, b, t) => {
+      const parse = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16))
+      const x = parse(a)
+      const y = parse(b)
+      return '#' + x.map((v, i) => Math.round(v * (1 - t) + y[i] * t).toString(16).padStart(2, '0')).join('')
+    }
+    /** « Every Friday at 17:00 » for the five cron fields of a pack's automation (English and French; another language reads English). Odd shapes read as the cron itself. */
+    const kbObCronLabel = (lang, cron) => {
+      const f = typeof cron === 'string' ? cron.split(' ') : []
+      if (f.length !== 5 || !/^\d{1,2}$/.test(f[0]) || !/^\d{1,2}$/.test(f[1])) return typeof cron === 'string' ? cron : ''
+      const fr = lang === 'fr'
+      const at = fr ? ' à ' + f[1] + ' h' + (f[0] === '0' ? '' : f[0].padStart(2, '0')) : ' at ' + f[1].padStart(2, '0') + ':' + f[0].padStart(2, '0')
+      const days = fr ? ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'] : ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+      if (f[2] === '*' && f[3] === '*' && f[4] === '*') return (fr ? 'Chaque jour' : 'Every day') + at
+      if (f[2] === '*' && f[3] === '*' && f[4] === '1-5') return (fr ? 'Chaque jour de semaine' : 'Every weekday') + at
+      if (f[2] === '*' && f[3] === '*' && /^[0-6]$/.test(f[4])) return (fr ? 'Chaque ' : 'Every ') + days[Number(f[4])] + at
+      if (/^\d{1,2}$/.test(f[2]) && f[3] === '*' && f[4] === '*') return (fr ? (f[2] === '1' ? 'Le 1er' : 'Le ' + f[2]) + ' de chaque mois' : 'On day ' + f[2] + ' of each month') + at
+      return cron
+    }
+    /** The rows of the Kybernos menu, as the miniature draws them: id, icon, and the key of the menu's own text (kbt) for the default label. */
+    const KB_OB_ROWS = [['kyber', 'chat', 'kbui.kyber'], ['dashboards', 'grid', 'kbui.dashboards'], ['aiteams', 'users', 'menu.aiteams'], ['projects', 'files', 'menu.projects'], ['deliverables', 'doc', 'menu.deliverables'], ['tasks', 'repeat', 'menu.tasks'], ['skills', 'zap', 'kbui.skills'], ['connectors', 'plug', 'kbui.connecteurs'], ['documents', 'doc', 'kbui.documents']]
+    /**
+     * What the live miniature shows for a field and the goals ticked in it (none ticked: the first two goals, flagged `example`): the menu with the
+     * wording the pack gives, the first questions, the skills, the suggested team id and the automations of the kit. `rows` are the menu rows to draw,
+     * `{ id, label }` with the default label. `null` without a pack.
+     */
+    const kbObPreviewOf = (pack, goalIds, lang, rows) => {
+      if (pack === null || pack === undefined) return null
+      const ticked = Array.isArray(goalIds) && goalIds.length > 0
+      const ids = ticked ? goalIds : (Array.isArray(pack.goals) ? pack.goals.slice(0, 2).map((g) => g.id) : [])
+      const kit = kbObKitOf(pack, ids)
+      const overlay = kbObMenuOverlay(pack, lang)
+      const menu = (Array.isArray(rows) ? rows : []).filter((r) => overlay.hide.indexOf(r.id) < 0).map((r) => ({ id: r.id, label: typeof overlay.labels[r.id] === 'string' ? overlay.labels[r.id] : r.label }))
+      const starters = kbObGoalsOf(pack, ids).map((g) => kbObPackText(lang, g.starter)).filter((t) => t !== '')
+      return {
+        example: !ticked, accent: pack.accent, icon: pack.icon, name: kbObPackText(lang, pack.name), menu: menu, starters: starters.slice(0, 3),
+        skills: kit.skills.map((x) => x.name).slice(0, 7), teams: kit.teams.slice(0, 1), autos: kit.autos.map((x) => kbObPackText(lang, x.name)).slice(0, 3),
+        goalCount: ticked ? ids.length : 0,
+      }
+    }
     /**
      * What a pack does to the Kybernos menu in a language: the labels it gives, only in a language the pack writes (another language keeps its own words,
      * never a mix), and the rows it hides.
@@ -35102,6 +35201,11 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       if (Array.isArray(pack.menu.hide)) out.hide = pack.menu.hide.filter((x) => typeof x === 'string')
       return out
     }
+    /** Whether an automation of a pack is already among the tasks (by name, in any language the pack writes it in). */
+    const kbObAutoMade = (auto, names) => {
+      const have = Array.isArray(names) ? names.map(kbObFold) : []
+      return Object.keys(auto.name).some((l) => have.indexOf(kbObFold(auto.name[l])) >= 0)
+    }
     /** What is ticked when the kit opens: every skill and available team that is not installed yet. Keys: `s:<name>`, `t:<id>`. */
     const kbObKitDefaults = (kit, installed) => {
       const have = installed !== null && typeof installed === 'object' ? installed : {}
@@ -35109,6 +35213,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       const teams = Array.isArray(have.teams) ? have.teams : []
       return kit.skills.filter((s) => skills.indexOf(s.name) < 0).map((s) => 's:' + s.name)
         .concat(kit.teams.filter((id) => teams.indexOf(id) < 0).map((id) => 't:' + id))
+        .concat((Array.isArray(kit.autos) ? kit.autos : []).filter((x) => !kbObAutoMade(x, have.autos)).map((x) => 'a:' + x.id))
     }
     /** The sentence kept in the person's memory about the field, the goals and the display mode, or null when none is known. `domain` and `goals` are names. */
     const kbObMemoryText = (lang, domain, goals, mode) => {
@@ -35233,7 +35338,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       const doc = env.document
       const win = env.window
       const S = {
-        screen: 'welcome', lang: 'en', domain: null, goals: [], packs: [], mode: null, model: null,
+        screen: 'welcome', lang: 'en', domain: null, goals: [], packs: [], hover: null, nlText: '', nlNote: null, dark: false, mode: null, model: null,
         ready: null, hasCloud: false, hasLocal: false, machine: null,
         provider: 'anthropic', menu: false, pairing: null, account: null, models: null, error: null, copied: false,
         keyDraft: '', keyMsg: null, keyVerdict: null, localId: null, job: null, localError: null, refs: null,
@@ -35287,6 +35392,27 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         close: '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>',
         sparkles: '<path d="M9.94 15.5A2 2 0 0 0 8.5 14.06l-6.14-1.58a.5.5 0 0 1 0-.96L8.5 9.94A2 2 0 0 0 9.94 8.5l1.58-6.14a.5.5 0 0 1 .96 0L14.06 8.5A2 2 0 0 0 15.5 9.94l6.14 1.58a.5.5 0 0 1 0 .96L15.5 14.06a2 2 0 0 0-1.44 1.44l-1.58 6.14a.5.5 0 0 1-.96 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/>',
       }
+      // The field icons of the domain packs, and the menu rows the miniature draws.
+      Object.assign(IC, {
+        cap: '<path d="M2 9l10-5 10 5-10 5z"/><path d="M6 11v5c0 1.5 3 3 6 3s6-1.5 6-3v-5"/><path d="M22 9v6"/>',
+        heart: '<path d="M20.8 5.6a5 5 0 00-7.1 0L12 7.3l-1.7-1.7a5 5 0 00-7.1 7.1L12 21l8.8-8.3a5 5 0 000-7.1z"/>',
+        house: '<path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/>',
+        scales: '<path d="M12 3v18M5 21h14M5 7h14"/><path d="M5 7l-3 7a3.5 3.5 0 006 0z"/><path d="M19 7l-3 7a3.5 3.5 0 006 0z"/>',
+        trend: '<path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/>',
+        bag: '<path d="M5 8h14l-1 12H6z"/><path d="M9 8a3 3 0 016 0"/>',
+        mega: '<path d="M3 11v2a1 1 0 001 1h3l8 4V6L7 10H4a1 1 0 00-1 1z"/><path d="M19 9a4 4 0 010 6"/>',
+        code: '<path d="M8 8l-5 4 5 4"/><path d="M16 8l5 4-5 4"/><path d="M14 5l-4 14"/>',
+        wand: '<path d="M12 3v4M12 17v4M3 12h4M17 12h4"/><path d="M6 6l2 2M16 16l2 2M18 6l-2 2M8 16l-2 2"/>',
+        chat: '<path d="M21 12a8 8 0 01-11.6 7.1L4 20l1-4.6A8 8 0 1121 12z"/>',
+        zap: '<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>',
+        users: '<circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 5.2a3.2 3.2 0 010 5.6M18 14.3c1.8.8 3 2.6 3 4.7"/>',
+        repeat: '<path d="M17 2l4 4-4 4"/><path d="M3 11V9a3 3 0 013-3h15"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a3 3 0 01-3 3H3"/>',
+        grid: '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
+        plug: '<path d="M9 2v6M15 2v6"/><path d="M6 8h12v4a6 6 0 01-12 0z"/><path d="M12 18v4"/>',
+        files: '<path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>',
+        doc: '<path d="M6 3h9l4 4v14H6z"/><path d="M9 12h7M9 16h7"/>',
+        up: '<path d="M12 19V5M6 11l6-6 6 6"/>',
+      })
       const mark = (height) => {
         const s = h('span', 'kb-ob-mark')
         s.innerHTML = '<svg viewBox="' + KB_BRAND_VIEWBOX + '" style="height:' + height + 'px" aria-hidden="true">' + KB_BRAND_INNER + '</svg>'
@@ -35631,6 +35757,136 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       // Teams loader. A skill goes through the install route of the Skills page, a team through the same `kybers/create` the
       // marketplace uses; both refuse what exists already, and what is installed is never ticked, so a replay doubles nothing.
       const curPack = () => kbObPackOf(S.packs, S.domain)
+      const domainTile = (pk) => {
+        const on = S.domain === pk.id
+        const b = h('button', 'kb-ob-tile' + (on ? ' on' : ''))
+        b.type = 'button'
+        b.setAttribute('role', 'radio')
+        b.setAttribute('aria-checked', on ? 'true' : 'false')
+        b.style.setProperty('--ta', S.dark ? kbObMix(pk.accent, '#ffffff', 0.3) : pk.accent)
+        const bub = h('span', 'kb-ob-tile-b')
+        bub.appendChild(icon(IC[pk.icon], 20))
+        const tx = h('span', 'kb-ob-tile-t')
+        tx.appendChild(h('b', null, packName(pk)))
+        tx.appendChild(h('small', null, kbObPackText(S.lang, pk.tagline)))
+        b.appendChild(bub)
+        b.appendChild(tx)
+        const show = () => { if (S.hover !== pk.id) { S.hover = pk.id; refreshPreview() } }
+        b.addEventListener('mouseenter', show)
+        b.addEventListener('focus', show)
+        b.addEventListener('click', () => {
+          if (S.domain !== pk.id) { S.domain = pk.id; S.goals = []; S.kitSel = null }
+          S.hover = null
+          S.nlNote = null
+          render(false)
+        })
+        return b
+      }
+      // The page takes the colour of the field under the pointer, else of the chosen one (buttons, progress, ticks, a light wash of the ground).
+      const shownPack = () => (S.hover !== null && S.screen === 'job' ? kbObPackOf(S.packs, S.hover) : curPack())
+      const applyTint = () => {
+        if (root === null) return
+        const pk = shownPack()
+        if (pk === null) { root.classList.remove('kb-ob-tint'); return }
+        root.classList.add('kb-ob-tint')
+        root.style.setProperty('--ob-a', S.dark ? kbObMix(pk.accent, '#ffffff', 0.3) : pk.accent)
+        root.style.setProperty('--ob-on', S.dark ? '#121214' : '#ffffff')
+      }
+      // Does this screen carry the live miniature on its right? The field step always does (a neutral Kybernos until one is chosen).
+      const withPreview = () => S.packs.length > 0 && !S.standalone ? (S.screen !== 'welcome' && S.screen !== 'done') : (S.kitOnly && S.packs.length > 0)
+      const previewRows = () => KB_OB_ROWS.filter((r) => !(r[0] === 'dashboards' && KB_DB !== true) && !(r[0] === 'connectors' && KB_CP !== true) && !(r[0] === 'documents' && KB_SHOW_DOCS !== true) && !(r[0] === 'kyber' && KB_KY !== true))
+        .map((r) => ({ id: r[0], icon: r[1], label: kbt(r[2]) }))
+      // One div of the miniature: a class, a text, children.
+      const px = (cls, text, kids) => {
+        const e = h('div', cls, text)
+        if (Array.isArray(kids)) for (const k of kids) if (k !== null) e.appendChild(k)
+        return e
+      }
+      const pxIco = (name, size) => icon(IC[name], size)
+      // The miniature workspace, 720 x 460 as designed and scaled to the column by the CSS variable --kb-ob-pvs. Everything it shows is read from `m`
+      // (kbObPreviewOf); a field not chosen yet shows the plain Kybernos.
+      const buildMini = (m) => {
+        const rows = m !== null ? m.menu : previewRows()
+        const side = px('kb-ob-pw-side', null, [
+          px('kb-ob-pw-brand', null, [wordmarkSmall()]),
+          px('kb-ob-pw-new', '+ ' + T('pv.new')),
+          px('kb-ob-pw-menu', null, rows.map((r, i) => {
+            const base = KB_OB_ROWS.find((x) => x[0] === r.id)
+            const row = px('kb-ob-pw-mi' + (i === 0 ? ' act' : ''), null, [pxIco(base !== undefined ? base[1] : 'doc', 14), h('span', null, r.label)])
+            row.style.setProperty('--i', String(i))
+            return row
+          })),
+          px('kb-ob-pw-foot', null, [h('span', 'kb-ob-pw-av'), h('span', null, T('pv.you')), m !== null ? h('em', null, m.name) : null]),
+        ])
+        const sub = m === null || m.goalCount === 0 ? T('pv.sub0') : T('pv.sub', { n: m.goalCount })
+        const starters = m !== null ? m.starters : []
+        const cards = px('kb-ob-pw-starters', null, [0, 1, 2].map((i) => {
+          const c = px('kb-ob-pw-sc' + (starters[i] === undefined ? ' empty' : ''), null, starters[i] === undefined ? [] : [pxIco(['zap', 'doc', 'repeat'][i], 14), h('span', null, starters[i])])
+          c.style.setProperty('--i', String(i))
+          return c
+        }))
+        const team = m !== null && m.teams.length > 0 ? KB_MARKET_TEAMS.find((t) => t.id === m.teams[0]) : undefined
+        const teamBox = px('kb-ob-pw-box', null, [
+          px('kb-ob-pw-bh', null, [h('span', null, T('pv.team')), team !== undefined ? h('em', null, team.name) : null]),
+          ...(team !== undefined ? team.roles.slice(0, 3).map((r) => px('kb-ob-pw-rp', null, [h('i', null, String(r.id).slice(0, 2).toUpperCase()), h('span', null, String(r.id))])) : [px('kb-ob-pw-none', m === null ? '' : T('pv.noteam'))]),
+        ])
+        const autos = m !== null ? m.autos : []
+        const autoBox = px('kb-ob-pw-box', null, [
+          px('kb-ob-pw-bh', null, [h('span', null, T('pv.autos')), h('em', null, T('pv.off'))]),
+          ...autos.map((a) => px('kb-ob-pw-au', null, [h('span', null, a), h('u')])),
+        ])
+        const skills = m !== null ? m.skills : []
+        const chips = px('kb-ob-pw-skl', null, skills.length > 0 ? [h('em', null, T('pv.skills'))].concat(skills.map((n, i) => { const c = h('span', null, n); c.style.setProperty('--i', String(i)); return c })) : [])
+        const main = px('kb-ob-pw-main', null, [
+          px('kb-ob-pw-head', null, [px('', null, [h('h4', null, T('pv.hello')), h('p', null, sub)])]),
+          cards,
+          px('kb-ob-pw-two', null, [teamBox, autoBox]),
+          chips,
+          px('kb-ob-pw-comp', null, [h('span', null, T('pv.compose')), h('i', null)]),
+        ])
+        const ws = px('kb-ob-pw', null, [side, main])
+        return ws
+      }
+      const wordmarkSmall = () => {
+        const w = h('span', 'kb-ob-pw-wm')
+        w.innerHTML = '<svg viewBox="' + KB_BRAND_VIEWBOX + '" aria-hidden="true">' + KB_BRAND_INNER + '</svg><span>ybernos</span>'
+        return w
+      }
+      // The pane: the miniature in a box that scales it, a title line and a caption. Rebuilt in place by refreshPreview (hover, ticks), so a hover
+      // never redraws the list the pointer is on.
+      const buildPreviewPane = () => {
+        const pane = h('aside', 'kb-ob-pv')
+        pane.setAttribute('aria-hidden', 'true')
+        const head = h('div', 'kb-ob-pv-h')
+        const live = h('span', 'kb-ob-pv-live')
+        live.appendChild(h('i'))
+        live.appendChild(h('span', null, T('pv.live')))
+        head.appendChild(live)
+        head.appendChild(h('span', 'kb-ob-pv-name'))
+        pane.appendChild(head)
+        pane.appendChild(h('div', 'kb-ob-pv-box'))
+        pane.appendChild(h('p', 'kb-ob-pv-cap'))
+        return pane
+      }
+      const refreshPreview = () => {
+        if (root === null) return
+        applyTint()
+        const pane = root.querySelector('.kb-ob-pv')
+        if (pane === null) return
+        const pk = shownPack()
+        const goals = pk !== null && S.hover !== null && S.screen === 'job' ? [] : S.goals
+        const m = pk === null ? null : kbObPreviewOf(pk, goals, S.lang, previewRows())
+        const box = pane.querySelector('.kb-ob-pv-box')
+        while (box.firstChild !== null) box.removeChild(box.firstChild)
+        box.appendChild(buildMini(m))
+        const name = pane.querySelector('.kb-ob-pv-name')
+        name.textContent = m !== null ? m.name : ''
+        name.style.display = m !== null ? '' : 'none'
+        pane.querySelector('.kb-ob-pv-cap').textContent = T(S.screen === 'job' ? 'pv.cap.job' : (S.screen === 'goals' ? 'pv.cap.goals' : 'pv.cap.other'))
+        const fit = () => { try { box.style.setProperty('--kb-ob-pvs', String(box.clientWidth / 720)) } catch (e) { /* no layout */ } }
+        fit()
+        if (typeof win.ResizeObserver === 'function' && pane.__ro === undefined) { pane.__ro = new win.ResizeObserver(fit); pane.__ro.observe(box) }
+      }
       const curKit = () => kbObKitOf(curPack(), S.goals)
       const packName = (pack) => (pack === null ? '' : kbObPackText(S.lang, pack.name))
       // The saved field and goals move the menu wording: once the host has the answer, the menu reads it again.
@@ -35657,7 +35913,10 @@ html.wv2-actif [data-composer-seat]{display:none !important}
           }
         } catch (e) { teams = [] }
         if (root === null) return
-        S.kitInstalled = { skills: skills, teams: teams }
+        let autos = []
+        const tk = await call('/kybernos/tasks', 'POST', { action: 'list' })
+        if (tk !== null && tk.ok === true && Array.isArray(tk.tasks)) autos = tk.tasks.map((x) => (x !== null && typeof x === 'object' ? x.name : null)).filter((n) => typeof n === 'string')
+        S.kitInstalled = { skills: skills, teams: teams, autos: autos }
         S.kitSel = null
         if (S.screen === 'kit') render(false)
       }
@@ -35667,6 +35926,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         const todo = []
         for (const sk of kit.skills) if (sel.has('s:' + sk.name)) todo.push({ team: null, skill: sk })
         for (const id of kit.teams) if (sel.has('t:' + id)) todo.push({ team: id, skill: null })
+        for (const x of kit.autos) if (sel.has('a:' + x.id)) todo.push({ team: null, skill: null, auto: x })
         if (todo.length === 0) { if (S.kitOnly) finish(); else go('done'); return }
         S.kitBusy = { i: 0, n: todo.length }
         S.kitAdded = 0
@@ -35677,8 +35937,15 @@ html.wv2-actif [data-composer-seat]{display:none !important}
           S.kitBusy.i += 1
           render(false)
           let ok = false
-          if (item.skill !== null) {
-            const r = await call('/kybernos-skills/install', 'POST', { source: item.skill.source, name: item.skill.name })
+          if (item.auto !== undefined && item.auto !== null) {
+            // Created switched off, to run on the schedule the person turns on (approvals stay on « ask »).
+            const r = await call('/kybernos/tasks', 'POST', { action: 'create', task: { name: kbObPackText(S.lang, item.auto.name), prompt: kbObPackText(S.lang, item.auto.prompt), schedule: { mode: 'cron', cron: item.auto.cron }, active: false, approvals: 'ask' } })
+            ok = r !== null && r.ok === true
+          } else if (item.skill !== null) {
+            // A skill the plugin ships goes through its own route (a file copy, nothing downloaded); any other comes from its GitHub repository.
+            const r = item.skill.source === 'kybernos'
+              ? await call('/kybernos/domain/skill', 'POST', { name: item.skill.name })
+              : await call('/kybernos-skills/install', 'POST', { source: item.skill.source, name: item.skill.name })
             ok = r !== null && (r.ok === true || r.error === 'already_installed')
           } else {
             const tpl = KB_MARKET_TEAMS.find((t) => t.id === item.team)
@@ -35894,10 +36161,36 @@ html.wv2-actif [data-composer-seat]{display:none !important}
           s.appendChild(eyebrow('job'))
           s.appendChild(h('h1', null, T('job.t')))
           s.appendChild(h('p', 'kb-ob-sub', T('job.s')))
-          const g = h('div', 'kb-ob-chips')
+          const g = h('div', 'kb-ob-tiles')
           g.setAttribute('role', 'radiogroup')
-          for (const pk of S.packs) g.appendChild(chip(packName(pk), S.domain === pk.id, () => { if (S.domain !== pk.id) { S.domain = pk.id; S.goals = []; S.kitSel = null }; render(false) }))
+          g.addEventListener('mouseleave', () => { if (S.hover !== null) { S.hover = null; refreshPreview() } })
+          for (const pk of S.packs) g.appendChild(domainTile(pk))
           s.appendChild(g)
+          // « kiné en libéral à Lyon »: a sentence finds the field, the person corrects it if it is wrong
+          const form = h('form', 'kb-ob-nl')
+          const input = h('input', 'kb-ob-nlin')
+          input.type = 'text'
+          input.setAttribute('autocomplete', 'off')
+          input.setAttribute('aria-label', T('job.nl'))
+          input.placeholder = T('job.nl')
+          input.value = S.nlText
+          const send = h('button', 'kb-ob-nlgo')
+          send.type = 'submit'
+          send.setAttribute('aria-label', T('cont'))
+          send.appendChild(icon(IC.chevron, 18))
+          form.appendChild(input)
+          form.appendChild(send)
+          form.addEventListener('submit', (ev) => {
+            ev.preventDefault()
+            S.nlText = input.value.trim()
+            if (S.nlText === '') return
+            const id = kbObDomainFromText(S.packs, S.nlText)
+            if (id !== null) { if (S.domain !== id) { S.domain = id; S.goals = []; S.kitSel = null }; S.nlNote = T('job.nl.ok', { name: packName(kbObPackOf(S.packs, id)) }) } else S.nlNote = T('job.nl.none')
+            S.hover = null
+            render(false)
+          })
+          s.appendChild(form)
+          s.appendChild(h('p', 'kb-ob-nlr', S.nlNote !== null ? S.nlNote : ''))
           const a = actions()
           // A field with its goals next; no field chosen, the goals are skipped.
           a.appendChild(primary(T('cont'), () => go(S.domain !== null ? 'goals' : 'mode')))
@@ -35920,6 +36213,15 @@ html.wv2-actif [data-composer-seat]{display:none !important}
               S.kitSel = null
               render(false)
             })
+            const adds = []
+            if (goal.skills.length > 0) adds.push(T('adds.sk', { n: goal.skills.length }))
+            if (goal.automations.length > 0) adds.push(T('adds.au', { n: goal.automations.length }))
+            for (const id of goal.teams.slice(0, 1)) { const tpl = KB_MARKET_TEAMS.find((t) => t.id === id); if (tpl !== undefined) adds.push(T('adds.tm', { name: tpl.name })) }
+            if (adds.length > 0) {
+              const line = h('span', 'kb-ob-adds')
+              for (const x of adds) line.appendChild(h('span', null, x))
+              b.querySelector('.kb-ob-tx').appendChild(line)
+            }
             g.appendChild(b)
           }
           s.appendChild(g)
@@ -36040,7 +36342,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
           }
           const sk = h('div', 'kb-ob-kitbox')
           sk.appendChild(group('k.skills', kit.skills.length))
-          for (const x of kit.skills) sk.appendChild(kitRow('s:' + x.name, x.name, kbObSkillText(S.lang, x), T('k.src', { src: x.source }), { done: have !== null && have.skills.indexOf(x.name) >= 0 }))
+          for (const x of kit.skills) sk.appendChild(kitRow('s:' + x.name, x.name, kbObSkillText(S.lang, x), x.source === 'kybernos' ? T('k.src.kb') : T('k.src', { src: x.source }), { done: have !== null && have.skills.indexOf(x.name) >= 0 }))
           s.appendChild(sk)
           const teams = kit.teams.map((id) => KB_MARKET_TEAMS.find((t) => t.id === id)).filter((t) => t !== undefined)
           if (teams.length > 0 || kit.soon.length > 0) {
@@ -36050,7 +36352,14 @@ html.wv2-actif [data-composer-seat]{display:none !important}
             for (const x of kit.soon) { const name = kbObPackText(S.lang, x); tb.appendChild(kitRow('x:' + name, name, '', '', { soon: true, initials: name.slice(0, 2).toUpperCase() })) }
             s.appendChild(tb)
           }
-          if (kit.skills.length === 0 && teams.length === 0 && kit.soon.length === 0) s.appendChild(h('p', 'kb-ob-sub', S.kitOnly && S.domain === null ? T('k.pick') : T('k.empty')))
+          if (kit.autos.length > 0) {
+            const ab = h('div', 'kb-ob-kitbox')
+            ab.appendChild(group('k.autos', kit.autos.length))
+            for (const x of kit.autos) ab.appendChild(kitRow('a:' + x.id, kbObPackText(S.lang, x.name), kbObCronLabel(S.lang, x.cron), '', { done: have !== null && kbObAutoMade(x, have.autos) }))
+            s.appendChild(ab)
+            s.appendChild(note(T('k.autos.note'), 'info'))
+          }
+          if (kit.skills.length === 0 && teams.length === 0 && kit.autos.length === 0 && kit.soon.length === 0) s.appendChild(h('p', 'kb-ob-sub', S.kitOnly && S.domain === null ? T('k.pick') : T('k.empty')))
           s.appendChild(note(T('k.note'), 'info'))
           if (S.kitDone) {
             const st = h('div', 'kb-ob-state' + (S.kitFailed > 0 ? ' err' : ' ok'))
@@ -36357,7 +36666,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         root.setAttribute('aria-label', T('wel.t'))
         while (root.firstChild !== null) root.removeChild(root.firstChild)
 
-        const plan = kbObPlan()
+        const plan = kbObPlan(S.packs.length > 0)
         const current = kbObStepOf(S.screen)
         const idx = plan.indexOf(current)
         const pct = S.standalone ? 0 : (S.screen === 'welcome' ? 0 : (current === null ? 100 : ((idx + 1) / plan.length) * 100))
@@ -36403,7 +36712,9 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         if (kbObBackOf(S) !== null) main.appendChild(button('kb-ob-back', T('back'), goBack))
         const build = screens[S.screen]
         main.appendChild(build !== undefined ? build() : screens.welcome())
+        if (withPreview()) { main.classList.add('kb-ob-split'); main.appendChild(buildPreviewPane()) }
         root.appendChild(main)
+        refreshPreview()
 
         if (focus === true) {
           const p = root.querySelector('[data-kb-ob-primary]')
@@ -36418,6 +36729,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         S.hasCloud = init.hasCloud
         S.hasLocal = init.hasLocal
         S.machine = init.machine
+        S.dark = init.dark === true
         S.domain = typeof init.domain === 'string' ? init.domain : null
         S.goals = Array.isArray(init.goals) ? init.goals.slice() : []
         S.packs = Array.isArray(init.packs) ? init.packs : []
@@ -36661,6 +36973,82 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       '.kb-ob-dot{flex:none;width:18px;height:18px;border-radius:50%;border:1.5px solid var(--line);display:flex;align-items:center;justify-content:center;color:transparent}',
       '.kb-ob-row.on .kb-ob-dot{background:var(--ink);border-color:var(--ink);color:var(--bg)}',
       '.kb-ob-row[role="checkbox"] .kb-ob-dot{border-radius:5px}',
+      // the colour of the field the page is showing
+      '.kb-ob{transition:background-color .5s ease}',
+      '.kb-ob-tint{background:color-mix(in srgb,var(--ob-a) 5%,var(--bg))}',
+      '.kb-ob-tint .kb-ob-primary{background:var(--ob-a);color:var(--ob-on)}',
+      '.kb-ob-tint .kb-ob-bar i{background:var(--ob-a)}',
+      '.kb-ob-tint .kb-ob-row.on{border-color:var(--ob-a);box-shadow:inset 0 0 0 1px var(--ob-a)}',
+      '.kb-ob-tint .kb-ob-row.on .kb-ob-dot,.kb-ob-tint .kb-ob-chip.on{background:var(--ob-a);border-color:var(--ob-a);color:var(--ob-on)}',
+      '.kb-ob-tint .kb-ob-kit.on .kb-ob-cb{background:var(--ob-a);border-color:var(--ob-a);color:var(--ob-on)}',
+      // the fields of work: a tile with the field's icon and its colour
+      '.kb-ob-tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:22px}',
+      '.kb-ob-tile{display:flex;align-items:center;gap:12px;padding:12px 14px;text-align:start;color:var(--ink);background:var(--bg2);border:1px solid var(--line);border-radius:16px;cursor:pointer;transition:border-color .15s,transform .15s}',
+      '.kb-ob-tile:hover,.kb-ob-tile:focus-visible{border-color:var(--ta);transform:translateY(-1px);outline:none}',
+      '.kb-ob-tile.on{border-color:var(--ta);box-shadow:inset 0 0 0 1px var(--ta)}',
+      '.kb-ob-tile-b{flex:none;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:color-mix(in srgb,var(--ta) 14%,var(--bg2));color:var(--ta)}',
+      '.kb-ob-tile-t{min-width:0;display:flex;flex-direction:column;gap:2px}',
+      '.kb-ob-tile-t b{font-size:15px;font-weight:500}',
+      '.kb-ob-tile-t small{font-size:12px;line-height:1.35;color:var(--ink3)}',
+      '.kb-ob-nl{display:flex;gap:8px;margin-top:14px}',
+      '.kb-ob-nlin{flex:1;min-width:0;height:48px;padding:0 16px;border-radius:99px;border:1px solid var(--line);background:var(--bg2);color:var(--ink);font:inherit;font-size:14px}',
+      '.kb-ob-nlin:focus{outline:2px solid var(--ob-a,var(--ink));outline-offset:1px;border-color:transparent}',
+      '.kb-ob-nlgo{flex:none;width:48px;height:48px;border-radius:50%;border:0;background:var(--ob-a,var(--ink));color:var(--ob-on,var(--bg));cursor:pointer;display:flex;align-items:center;justify-content:center}',
+      '.kb-ob-nlr{margin:12px 0 0;font-size:14px;color:var(--ink2);min-height:21px}',
+      '.kb-ob-adds{display:flex;flex-wrap:wrap;gap:4px 6px;margin-top:5px}',
+      '.kb-ob-adds span{font-size:11.5px;color:var(--ink3);padding:1px 8px;border-radius:99px;border:1px solid var(--line)}',
+      // the live miniature beside the step
+      '.kb-ob-main.kb-ob-split{display:grid;grid-template-columns:minmax(0,520px) minmax(0,1fr);gap:clamp(28px,4.5vw,72px);align-items:start;width:100%;max-width:1480px;margin:0 auto}',
+      '.kb-ob-split .kb-ob-step{justify-self:end}',
+      '.kb-ob-pv{min-width:0;position:sticky;top:20px;align-self:start}',
+      '.kb-ob-pv-h{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:0 0 10px;font-size:12.5px;color:var(--ink3)}',
+      '.kb-ob-pv-live{display:inline-flex;gap:7px;align-items:center}',
+      '.kb-ob-pv-live i{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 0 3px color-mix(in srgb,var(--green) 22%,transparent)}',
+      '.kb-ob-pv-name{padding:2px 10px;border-radius:99px;background:var(--ob-a,var(--ink));color:var(--ob-on,var(--bg));font-weight:500}',
+      '.kb-ob-pv-cap{margin:12px 2px 0;font-size:13px;line-height:1.5;color:var(--ink3)}',
+      '.kb-ob-pv-box{position:relative;width:100%;aspect-ratio:720/460;overflow:hidden;border:1px solid var(--line);border-radius:16px;background:var(--bg2);box-shadow:0 18px 50px rgba(0,0,0,.12)}',
+      '.kb-ob-pw{--pa:var(--ob-a,var(--ink));--pon:var(--ob-on,var(--bg));--pbg:color-mix(in srgb,var(--pa) 4%,var(--bg2));--pside:color-mix(in srgb,var(--pa) 9%,var(--bg));--pline:color-mix(in srgb,var(--pa) 15%,var(--line));',
+      'position:absolute;left:0;top:0;width:720px;height:460px;transform-origin:0 0;transform:scale(var(--kb-ob-pvs,1));display:grid;grid-template-columns:168px minmax(0,1fr);direction:ltr;',
+      'font-size:11.5px;line-height:1.35;color:var(--ink);background:var(--pbg);text-align:start}',
+      '.kb-ob-pw svg{display:block}',
+      '.kb-ob-pw-side{background:var(--pside);border-inline-end:1px solid var(--pline);padding:14px 10px 10px;display:flex;flex-direction:column;gap:10px;min-width:0}',
+      '.kb-ob-pw-brand{padding:0 4px}',
+      '.kb-ob-pw-wm{display:inline-flex;align-items:flex-end;font-size:14px;font-weight:700;line-height:1;color:var(--ink)}',
+      '.kb-ob-pw-wm svg{height:.9306em;width:auto;margin-bottom:.135em;margin-inline-end:.075em;flex:none}',
+      '.kb-ob-pw-new{height:28px;border-radius:10px;background:var(--pa);color:var(--pon);font-weight:600;display:flex;align-items:center;justify-content:center}',
+      '.kb-ob-pw-menu{display:flex;flex-direction:column;gap:2px;flex:1;min-height:0}',
+      '.kb-ob-pw-mi{display:flex;align-items:center;gap:8px;height:26px;padding:0 8px;border-radius:7px;color:var(--ink3)}',
+      '.kb-ob-pw-mi span:last-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+      '.kb-ob-pw-mi.act{background:color-mix(in srgb,var(--pa) 17%,transparent);color:var(--ink);font-weight:600}',
+      '.kb-ob-pw-mi.act svg{color:var(--pa)}',
+      '.kb-ob-pw-foot{display:flex;align-items:center;gap:8px;padding:8px 4px 0;border-top:1px solid var(--pline)}',
+      '.kb-ob-pw-foot em{font-style:normal;margin-inline-start:auto;font-size:10px;font-weight:600;padding:1px 7px;border-radius:99px;background:color-mix(in srgb,var(--pa) 17%,transparent)}',
+      '.kb-ob-pw-av{width:22px;height:22px;border-radius:50%;background:color-mix(in srgb,var(--pa) 30%,var(--bg2));flex:none}',
+      '.kb-ob-pw-main{padding:14px 16px 12px;display:flex;flex-direction:column;gap:9px;min-width:0;min-height:0}',
+      '.kb-ob-pw-head h4{margin:0;font-size:16px;line-height:1.2;font-weight:600}',
+      '.kb-ob-pw-head p{margin:2px 0 0;color:var(--ink3);font-size:11px}',
+      '.kb-ob-pw-starters{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}',
+      '.kb-ob-pw-sc{display:flex;flex-direction:column;gap:5px;padding:8px 9px;min-height:62px;background:var(--bg2);border:1px solid var(--pline);border-radius:10px}',
+      '.kb-ob-pw-sc.empty{border-style:dashed;background:transparent}',
+      '.kb-ob-pw-sc svg{color:var(--pa)}',
+      '.kb-ob-pw-sc span:last-child{font-size:11px;line-height:1.3}',
+      '.kb-ob-pw-two{display:grid;grid-template-columns:1fr 1fr;gap:8px;flex:1;min-height:0}',
+      '.kb-ob-pw-box{padding:8px 10px;background:var(--bg2);border:1px solid var(--pline);border-radius:10px;min-width:0;overflow:hidden}',
+      '.kb-ob-pw-bh{display:flex;justify-content:space-between;gap:6px;font-weight:600;font-size:11px;margin-bottom:6px}',
+      '.kb-ob-pw-bh em{font-style:normal;font-weight:500;color:var(--ink3);font-size:10px}',
+      '.kb-ob-pw-none{font-size:10.5px;line-height:1.4;color:var(--ink3)}',
+      '.kb-ob-pw-rp{display:flex;align-items:center;gap:7px;margin-top:4px;font-size:10.5px}',
+      '.kb-ob-pw-rp i{width:17px;height:17px;border-radius:50%;background:color-mix(in srgb,var(--pa) 22%,var(--bg2));display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;font-style:normal;flex:none}',
+      '.kb-ob-pw-au{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:5px;font-size:10.5px;line-height:1.25}',
+      '.kb-ob-pw-au u{flex:none;position:relative;width:20px;height:11px;border-radius:99px;border:1px solid var(--ink3);text-decoration:none}',
+      '.kb-ob-pw-au u::after{content:"";position:absolute;top:1px;left:1px;width:7px;height:7px;border-radius:50%;background:var(--ink3)}',
+      '.kb-ob-pw-skl{display:flex;gap:5px;align-items:center;overflow:hidden;white-space:nowrap;min-height:20px}',
+      '.kb-ob-pw-skl em{font-style:normal;font-size:10px;color:var(--ink3);margin-inline-end:2px}',
+      '.kb-ob-pw-skl span{font:500 9.5px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;padding:2px 7px;border-radius:99px;border:1px solid var(--pline);background:var(--bg2)}',
+      '.kb-ob-pw-comp{display:flex;align-items:center;gap:8px;height:30px;padding:0 5px 0 12px;border:1px solid var(--pline);border-radius:99px;background:var(--bg2);color:var(--ink3);flex:none}',
+      '.kb-ob-pw-comp span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+      '.kb-ob-pw-comp i{flex:none;width:21px;height:21px;border-radius:50%;background:var(--pa)}',
+      '@media (max-width:1000px){.kb-ob-main.kb-ob-split{display:flex}.kb-ob-pv{display:none}}',
       '.kb-ob-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:26px}',
       '.kb-ob-chips-tight{margin-top:20px}',
       '.kb-ob-chip{padding:9px 15px;border-radius:99px;border:1px solid var(--line);background:var(--bg2);color:var(--ink);font-size:14px;cursor:pointer;transition:border-color .15s}',

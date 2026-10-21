@@ -2,6 +2,8 @@
   "v": 1,
   "id": "immo",
   "order": 30,
+  "accent": "#B4532A",
+  "icon": "house",
   "name": {
     "en": "Real estate",
     "fr": "Immobilier"
@@ -10,6 +12,30 @@
     "en": "Agents, agencies, property managers",
     "fr": "Agents, agences, gestionnaires"
   },
+  "keywords": [
+    "immobilier",
+    "real estate",
+    "agent immobilier",
+    "agence",
+    "mandat",
+    "locataire",
+    "tenant",
+    "bailleur",
+    "landlord",
+    "syndic",
+    "copropriete",
+    "promoteur",
+    "property",
+    "broker",
+    "appartement",
+    "realtor",
+    "gestion locative"
+  ],
+  "home": [
+    "doc",
+    "image",
+    "website"
+  ],
   "legacyJobs": [],
   "menu": {
     "labels": {
@@ -62,6 +88,20 @@
       "teams": [
         "inbound-closer"
       ],
+      "automations": [
+        {
+          "id": "prospect-replies",
+          "name": {
+            "en": "Draft replies to new prospects",
+            "fr": "Brouillons de réponses aux prospects"
+          },
+          "prompt": {
+            "en": "Every weekday at 09:00: if my mailbox or my CRM is connected, find the prospects who wrote since yesterday and draft a first reply for each one (use the draft-outreach skill): thank them, answer what they asked, propose two visit slots. Never send. List the prospects and the drafts. If no app is connected, say so and stop.",
+            "fr": "Chaque jour de semaine à 9 h : si ma messagerie ou mon CRM est connecté, trouve les prospects qui ont écrit depuis hier et rédige une première réponse pour chacun (utilise le skill draft-outreach) : remercie, réponds à sa question, propose deux créneaux de visite. N’envoie jamais. Liste les prospects et les brouillons. Si aucune app n’est connectée, dis-le et arrête-toi."
+          },
+          "cron": "0 9 * * 1-5"
+        }
+      ],
       "starter": {
         "en": "Reply to the new prospects",
         "fr": "Réponds aux nouveaux prospects"
@@ -97,12 +137,14 @@
             "en": "Mandates, sale agreements, letters",
             "fr": "Mandats, compromis, courriers"
           }
-        }
-      ],
-      "soon": [
+        },
         {
-          "en": "Listing writer",
-          "fr": "Rédacteur d’annonces"
+          "source": "kybernos",
+          "name": "listing-writer",
+          "d": {
+            "en": "Write a listing from a property sheet, in three lengths",
+            "fr": "Rédige une annonce à partir d’une fiche de bien, en trois formats"
+          }
         }
       ],
       "starter": {
@@ -134,10 +176,18 @@
           }
         }
       ],
-      "soon": [
+      "automations": [
         {
-          "en": "Visit confirmations",
-          "fr": "Confirmations de visite"
+          "id": "visit-confirmations",
+          "name": {
+            "en": "Confirm tomorrow’s visits",
+            "fr": "Confirmer les visites de demain"
+          },
+          "prompt": {
+            "en": "Every weekday at 17:00: read tomorrow’s visits from my calendar if it is connected, or from my visits file. Draft a short confirmation for each visitor with the address, the time and how to reach me. Never send. If there is no source, say what is missing.",
+            "fr": "Chaque jour de semaine à 17 h : lis les visites de demain dans mon agenda s’il est connecté, ou dans mon fichier de visites. Rédige une confirmation courte pour chaque visiteur avec l’adresse, l’heure et comment me joindre. N’envoie jamais. S’il n’y a pas de source, dis ce qui manque."
+          },
+          "cron": "0 17 * * 1-5"
         }
       ],
       "starter": {
@@ -167,12 +217,14 @@
             "en": "Track money and pipeline",
             "fr": "Suit l’argent et le pipeline"
           }
-        }
-      ],
-      "soon": [
+        },
         {
-          "en": "Valuation from comparables",
-          "fr": "Estimation à partir de comparables"
+          "source": "kybernos",
+          "name": "property-valuation",
+          "d": {
+            "en": "A price range from comparables, with the method shown",
+            "fr": "Une fourchette de prix à partir de comparables, méthode à l’appui"
+          }
         }
       ],
       "starter": {
@@ -202,12 +254,28 @@
             "en": "Write and format papers",
             "fr": "Rédige et met en forme tes devoirs"
           }
+        },
+        {
+          "source": "kybernos",
+          "name": "rent-reminders",
+          "d": {
+            "en": "Polite reminders for unpaid rents, in escalating steps",
+            "fr": "Des relances de loyers impayés, courtoises puis plus fermes"
+          }
         }
       ],
-      "soon": [
+      "automations": [
         {
-          "en": "Rent reminders",
-          "fr": "Relances de loyers"
+          "id": "rent-run",
+          "name": {
+            "en": "Monthly rent reminders",
+            "fr": "Relances de loyers du mois"
+          },
+          "prompt": {
+            "en": "On the 5th of each month at 09:00: open the rent tracking file in this workspace, find the unpaid rents and draft reminders with the rent-reminders skill at the right step. Never send. Give me the summary table first.",
+            "fr": "Le 5 de chaque mois à 9 h : ouvre le fichier de suivi des loyers de ce workspace, trouve les loyers impayés et rédige les relances avec le skill rent-reminders au bon niveau. N’envoie jamais. Donne-moi d’abord le tableau récapitulatif."
+          },
+          "cron": "0 9 5 * *"
         }
       ],
       "starter": {
