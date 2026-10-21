@@ -12,12 +12,12 @@ import { kyberTarget } from './kyber-root.mjs'
 import { createWorkspaceInstructions } from './workspace-instructions.mjs'
 import { selectAfterConnect } from './default-model.mjs'
 import { normalize as autoSettingsNormalize, publicView as autoSettingsView, apply as autoSettingsApply, isPaused as autoSettingsPaused } from './automation-settings.mjs'
-import { stableStreak as autoSkillStreak, skillSlug as autoSkillSlug, buildSkill as autoSkillBuild, normalizeRecords as autoSkillsNormalize, dueTasks as autoSkillsDue, lessonOf as autoSkillLesson } from './automation-skills.mjs'
+import { stableStreak as autoSkillStreak, skillSlug as autoSkillSlug, skillParts as autoSkillParts, normalizeRecords as autoSkillsNormalize, dueTasks as autoSkillsDue, lessonOf as autoSkillLesson } from './automation-skills.mjs'
 import { chooseWorkspace as autoWsChoose, idOf as autoWsIdOf, DEDICATED_TITLE as AUTO_WS_TITLE, DEDICATED_DIR as AUTO_WS_DIR } from './automation-workspace.mjs'
 import { recordFeedback, exportFeedback, relayReportOf } from './feedback-box.mjs'
 import { writeGuard } from './session-guard.mjs'
 import { defaultState as onboardingDefault, publicView as onboardingView, complete as onboardingComplete, replay as onboardingReplay, chooseDomain as onboardingChooseDomain, aboutView as onboardingAbout } from './onboarding-state.mjs'
-import { loadPacks as loadDomainPacks, domainOfProfil } from './domain-pack.mjs'
+import { loadPacks as loadDomainPacks, domainOfProfil, mergePackSets, DOMAIN_POINT, DOMAIN_POINT_REF } from './domain-pack.mjs'
 const pluginDir = dirname(fileURLToPath(import.meta.url))
 // ── Le filet du compactage, sans retouche du moteur (23/09/2026) ────────────
 // Mesuré : notre bundle monte APRÈS `dsh-web-app`, donc les enfants de preset
@@ -2768,23 +2768,24 @@ function boot(ctx) {
         throw e
       }
     }
-    // Never over an existing skill: the file is opened with `wx`, and a name already taken gets the next free one. The record is written after
-    // the skill: a crash in between leaves a skill without a record (the next pass finds the name taken and picks another), never the reverse.
+    // The skill goes to the Skills page as a PROPOSAL, through the seam its host publishes (kybernos-skills/learned.mjs; bundles cannot import each other, so it is
+    // read at call time, like the space seam of the memory bundle). Nothing is active before the person accepts it there. `how: 'manual'` is the person pressing
+    // « Create skill »: that click is the acceptance, so the skills page writes it at once. The record is kept after the proposal: a crash in between leaves a
+    // proposal without a record (the next pass proposes again and finds the name taken), never the reverse. A refusal writes no record, so it is tried again later.
+    const kbLearnedSeam = () => { try { const s = globalThis[Symbol.for('kybernos.learned-skills')]; return s !== undefined && s !== null && typeof s.propose === 'function' ? s : null } catch (e) { return null } }
     const kbAutoSkillWrite = async (task, how, streak) => {
-      const home = await dshHome()
-      if (home === null || home.length === 0) return { ok: false, error: 'DSH home unknown' }
-      const skillsDir = joinPath(home, 'skills')
-      const slug = autoSkillSlug(str(task.name), (n) => existsSync(joinPath(skillsDir, n)))
-      if (slug === null) return { ok: false, error: 'no free skill name' }
-      const dir = joinPath(skillsDir, slug)
-      mkdirSync(dir, { recursive: true })
-      writeFileSync(joinPath(dir, 'SKILL.md'), autoSkillBuild(task, slug, streak), { encoding: 'utf8', flag: 'wx', mode: 0o600 })
+      const seam = kbLearnedSeam()
+      if (seam === null) return { ok: false, error: 'the skills page is not loaded' }
+      const slug = autoSkillSlug(str(task.name), () => false)
+      const parts = autoSkillParts(task, slug, streak)
+      const made = await seam.propose({ name: slug, description: parts.description, whenToUse: parts.whenToUse, body: parts.body, automation: { id: str(task.id), name: str(task.name), runs: streak }, acceptNow: how === 'manual' })
+      if (made === null || typeof made !== 'object' || made.ok !== true) return { ok: false, error: made !== null && typeof made === 'object' && typeof made.error === 'string' ? made.error : 'refused' }
       const recs = await kbAutoSkillsRead()
-      recs.skills[task.id] = { skill: slug, at: new Date().toISOString(), how, runs: streak }
+      recs.skills[task.id] = { skill: made.name, at: new Date().toISOString(), how, runs: streak, state: made.pending === true ? 'pending' : 'made' }
       await kbAutoSkillsWrite(recs)
-      return { ok: true, skill: slug }
+      return { ok: true, skill: made.name, pending: made.pending === true }
     }
-    // The automatic pass: only when the switch is on, at most every 5 minutes, at most three skills at a time, and never in the way of the tick.
+    // The automatic pass: only when the switch is on, at most every 5 minutes, at most three proposals at a time, and never in the way of the tick.
     let kbAutoSkillsLast = 0
     let kbAutoSkillsBusy = false
     const kbAutoSkillsPass = async () => {
@@ -9906,13 +9907,26 @@ function boot(ctx) {
       // The domain packs (docs/dev/domain-packs.md): read and checked once from domains/*.json, served as data. A file that fails the check is
       // left out and counted, never an error: the wizard then simply offers fewer fields of work.
       let packsLoaded = null
-      const domainPacks = () => {
+      const shippedPacks = () => {
         if (packsLoaded === null) {
           packsLoaded = loadDomainPacks(pluginDir + '/domains')
           for (const r of packsLoaded.rejected) console.warn('[kybernos] domain pack left out: ' + r.file + ' (' + r.errors.join('; ') + ')')
         }
         return packsLoaded
       }
+      // The plugin registry (kybernos-registry, docs/dev/plugin-contract.md) is reached through a global, never imported: without it the packs are the shipped ones, as before.
+      // This plugin owns the point `kybernos/core#domain-pack`; it tells the registry at boot and again at each question (the registry may mount after this plugin).
+      const registrySeam = () => { try { const r = globalThis[Symbol.for('kybernos.registry')]; return r !== undefined && r !== null && r.version === 1 ? r : null } catch (e) { return null } }
+      const domainPacks = () => {
+        const shipped = shippedPacks()
+        const registry = registrySeam()
+        if (registry === null) return shipped
+        try {
+          registry.definePoint(DOMAIN_POINT)
+          return mergePackSets(shipped, registry.contributions(DOMAIN_POINT_REF))
+        } catch (e) { return shipped }
+      }
+      try { const registry = registrySeam(); if (registry !== null) registry.definePoint(DOMAIN_POINT) } catch (e) { /* the point is told again at the first question */ }
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/domains', handler: async (req, res) => {
         if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
         const r = domainPacks()

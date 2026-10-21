@@ -21,6 +21,14 @@
         "poids_ko": 28
       },
       {
+        "dir": "kybernos-registry",
+        "nom": "@local/kybernos-registry",
+        "tier": 1,
+        "obligatoire": false,
+        "role": "registry of plugins: reads the data plugins installed on this computer, checks them, publishes window.__KB__ and the host seam",
+        "poids_ko": 60
+      },
+      {
         "dir": "kybernos-theme",
         "nom": "@local/kybernos-theme",
         "tier": 1,
@@ -419,6 +427,7 @@
   "ordre_montage": {
     "commentaire": "Order of dsh.profile.bundles. The base first, then the satellites activated in that order. A deactivated satellite is simply left out of the list.",
     "socle": [
+      "@local/kybernos-registry",
       "@local/kybernos-theme",
       "@local/kybernos-models",
       "@local/kybernos-skills",

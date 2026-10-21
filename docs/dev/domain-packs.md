@@ -50,7 +50,7 @@ One question per screen, each with a button that moves on (and a quiet one for w
 2. **Goals**: each row says what it adds.
 3. **Model**: unchanged (a Kybernos account, an own key, a model on this computer, the free community models).
 4. **About you**: a website, a profile (LinkedIn, Facebook, Instagram…) and a free word, all optional; the button says « Skip this step » until something is typed. A free word that points to another field than « Something else » is offered, never applied on its own. It comes after the model because reading a site will need one.
-5. **Agents**: three presets (careful, balanced, autonomous); the field's own is marked, with the pack's reason under the choice. Today the choice is **recorded and written into the person's memory** for the agents to read; the settings that would enforce it are to come.
+5. **Agents**: three presets (careful, balanced, autonomous); the field's own is marked, with the pack's reason under the choice. Today the choice is **recorded and written into the person's memory** for the agents to read; the settings that would enforce it are to come. One line under the choice says that Kaby learns from the person's work and proposes skills, and that **the person approves each one, whatever the preset** (`docs/dev/learned-skills.md`: a suggestion waits in a ledger and nothing learned is active before Accept; the Autonomous preset never changes that).
 6. **Kit**: the display mode as one row (it follows the field), the kit as one line (« Skills: 5 · Teams: 2 · Automations (off): 1 ») whose list is one tap away.
 7. **Plan** (only where there is an account): Team solo or free, the last thing asked. The price and the payment page are the account's own: the wizard shows none and takes no card; « Continue with Team solo » opens the account's upgrade view when the wizard closes.
 
@@ -151,8 +151,10 @@ a pack and that every skill an automation names exists.
 
 - Which fields ship first (nine here: education, health, real estate, law, finance, commerce, marketing, development, general).
 - One field per profile or several at once.
-- Packs by other authors: the draft plugin contract ([`plugin-contract.md`](plugin-contract.md)) makes a pack a **data plugin** of the point `kybernos/core#domain-pack`,
-  with the same validator, in a folder of installed plugins next to the shipped `domains/`.
+- Packs by other authors: a pack is a **data plugin** of the point `kybernos/core#domain-pack` ([`plugin-contract.md`](plugin-contract.md), phase 2). Built: a folder
+  `<DSH home>/kybernos/plugins/local/<name>/` with a `plugin.json` and a `domains/` folder is read by `kybernos-registry`, each file goes through `validatePack`, and once the
+  person switches the plugin on its packs join the shipped ones in `GET /kybernos/domains` (marked `from`, ordered after ours, an id or a legacy job already taken is refused).
+  A plugin pack cannot bundle skills yet.
 - Who writes the content marked soon (teams): us, or the Marketplace community. A signed catalogue (like themes and local models) is the way to
   ship packs without a release; the files stay bundled until then.
 - **Reading the site and the profile** (the « Understood » step: facts tagged Instruction or Memory, removable): not built. A public page reads easily; LinkedIn and Facebook often need a login, so a « paste a summary » fallback is planned. Today what was typed is stored and written into the person's memory as typed.

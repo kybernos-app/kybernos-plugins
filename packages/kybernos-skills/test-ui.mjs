@@ -467,5 +467,135 @@ console.log('Settings › Skills: the Index source window is the tidy modal, not
   check('and the sentence that says what a source is', part(root, 'index-source-modal').includes('A source is where the Discover tab reads its list of public skills from'))
 }
 
+// ── Skills learned from experience ──────────────────────────────────────────────────────────────────────�
+console.log('Yours: what Kaby suggests waits, and nothing is active before Accept')
+{
+  const typed = async (root, node, value) => { node.props.onChange({ target: { value } }); await root.settle() }
+  globalThis.window.localStorage = globalThis.localStorage
+  const check1 = (c) => ({ id: c, s: 'ok' })
+  const checks = [{ id: 'name', s: 'ok', name: 'i18n-checklist' }, { id: 'use_when', s: 'ok' }, { id: 'rules', s: 'ok' }, { id: 'size', s: 'ok', size: 300, max: 8192 }, { id: 'copy', s: 'ok', closest: null, percent: 0 }, { id: 'client_data', s: 'ok', count: 0 }]
+  const lessonsProposal = { id: 'p_aaaa1111', name: 'i18n-checklist', kind: 'lessons', createdAt: '2026-10-20T10:00:00.000Z', expiresAt: '2026-11-19T10:00:00.000Z', description: 'Reminds you of 3 mistakes already made about “i18n”. Use when the user works on i18n.', whenToUse: '', body: '# I18n checklist\n\n## Watch out for\n- Prove the UI language first.\n- Extract keys line by line.', from: { topic: 'i18n', lessons: [{ text: 'Prove the UI language first.', kyber: 'default' }, { text: 'Extract keys line by line.', kyber: 'default' }, { text: 'Diff the shown dictionary.', kyber: 'default' }] }, edited: false, checks, hits: [], blocking: false, text: '---\nname: i18n-checklist\n---\n' }
+  const autoProposal = { id: 'p_bbbb2222', name: 'nightly-store-collector', kind: 'auto', createdAt: '2026-10-21T08:00:00.000Z', expiresAt: '2026-11-20T08:00:00.000Z', description: 'Does what the automation does. Use when asked.', whenToUse: '', body: '# Nightly store collector\n\nRead the orders.', from: { automation: { id: 't1', name: 'Nightly store collector', runs: 5 } }, edited: false, checks, hits: [], blocking: false, text: '' }
+  const learnedList = (over) => Object.assign({ ok: true, proposals: [lessonsProposal, autoProposal], learned: [{ name: 'sql-queries', kind: 'lessons', acceptedAt: '2026-10-12T10:00:00.000Z', ver: 1, from: { lessons: [{ text: 'a' }, { text: 'b' }, { text: 'c' }] }, by: 'you', mode: 'approved', uses: 0, lastUsed: null, legacy: false }], discarded: [], sensitive: false, rules: ['Speak the user’s language, whatever language this file is written in.', 'Draft only: never send, publish, delete or pay for the user.'], limits: { maxPending: 5, pendingDays: 30, discardedDays: 30 } }, over || {})
+
+  {
+    const w = world()
+    const root = await open(w)
+    check('a host without the route (not restarted): no banner, no chip, no journal button, the page is as before', kb(root, 'learned-banner').length === 0 && kb(root, 'learned-chip').length === 0 && kb(root, 'learned-journal-btn').length === 0 && kb(root, 'learned-card').length === 0)
+  }
+  {
+    const w = world()
+    w.answers['GET /kybernos-skills/learned'] = learnedList()
+    w.answers['POST /kybernos-skills/learned/accept'] = (body) => ({ ok: true, name: body.id === 'p_aaaa1111' ? 'i18n-checklist' : 'nightly-store-collector' })
+    w.answers['POST /kybernos-skills/learned/undo'] = (body) => ({ ok: true, name: body.name })
+    w.answers['POST /kybernos-skills/learned/discard'] = (body) => ({ ok: true, name: 'i18n-checklist' })
+    w.answers['POST /kybernos-skills/learned/restore'] = { ok: true, name: 'i18n-checklist' }
+    w.answers['POST /kybernos-skills/learned/edit'] = (body) => ({ ok: true, proposal: Object.assign({}, lessonsProposal, { description: body.description, body: body.body }) })
+    const root = await open(w)
+    check('the banner counts the suggestions', part(root, 'learned-banner').includes('2 skills suggested by Kaby'), part(root, 'learned-banner').slice(0, 160))
+    check('it says nothing is active before the person accepts', part(root, 'learned-banner').includes('Nothing is active until you accept'))
+    check('each suggestion is a dashed card, and no card of an installed skill was added', kb(root, 'learned-card').length === 2 && cardOf(root, 'sql-queries') !== undefined)
+    check('the cards carry the name, the origin (lessons, automation) and the badge', (() => { const t0 = textOf(kb(root, 'learned-card')[0]); const t1 = textOf(kb(root, 'learned-card')[1]); return t0.includes('i18n-checklist') && t0.includes('3 lessons') && t1.includes('Nightly store collector') && t1.includes('5 runs') && t0.includes('Suggested by Kaby') })())
+    check('the installed skill that was accepted from a suggestion shows the Learned badge and where it came from', (() => { const c = textOf(cardOf(root, 'sql-queries')); return c.includes('Learned') && c.includes('3 lessons') && kb(cardOf(root, 'sql-queries'), 'learned-badge').length === 1 })())
+    check('a skill that is not learned has no badge', kb(cardOf(root, 'proj-only'), 'learned-badge').length === 0)
+    check('the subtitle and the chip say how many wait', page(root).includes('2 suggested by Kaby') && kb(root, 'learned-chip').length === 1)
+    check('a host that reads the Skills page makes the count available to the menu (window.__KB_LEARNED__)', typeof globalThis.window.__KB_LEARNED__ === 'object' && globalThis.window.__KB_LEARNED__.count() === 2, globalThis.window.__KB_LEARNED__ && globalThis.window.__KB_LEARNED__.count())
+
+    // the chip filters to the suggestions
+    await click(root, kb(root, 'learned-chip')[0])
+    check('the chip shows the suggestions only', kb(root, 'learned-card').length === 2 && cardOf(root, 'sql-queries') === undefined && cardOf(root, 'proj-only') === undefined)
+    await click(root, kb(root, 'learned-chip')[0])
+    check('and a second click puts everything back', cardOf(root, 'sql-queries') !== undefined && kb(root, 'learned-card').length === 2)
+
+    // Review opens a panel; the list stays
+    await click(root, kb(root, 'learned-review')[0])
+    const panel = part(root, 'learned-panel')
+    check('Review opens the suggestion on the right, the list stays', kb(root, 'learned-panel').length === 1 && cardOf(root, 'sql-queries') !== undefined)
+    check('the panel says why, shows the text, the rules every learned skill ends with, and the checks', panel.includes('Kaby found 3 of your lessons') && panel.includes('Prove the UI language first.') && panel.includes('Draft only: never send') && panel.includes('Valid name') && panel.includes('Nothing changes until you accept'), panel.slice(0, 200))
+    check('nothing was written by opening it', posted(w, '/kybernos-skills/learned/accept').length === 0)
+
+    // Accept
+    await click(root, kb(root, 'learned-accept')[0])
+    const acc = posted(w, '/kybernos-skills/learned/accept')
+    check('Accept asks the host to accept THAT suggestion, once', acc.length === 1 && acc[0].body.id === 'p_aaaa1111', acc)
+    check('the panel closes and the page says it is active, with Undo', kb(root, 'learned-panel').length === 0 && page(root).includes('“i18n-checklist” is active.') && kb(root, 'notice-undo').length === 1)
+    check('both lists are read again (the new skill must show)', w.calls.filter((c) => c.path === '/kybernos-skills/learned').length >= 2 && w.calls.filter((c) => c.path === '/kybernos-skills/skills').length >= 2)
+    await click(root, kb(root, 'notice-undo')[0])
+    const und = posted(w, '/kybernos-skills/learned/undo')
+    check('Undo takes the acceptance back by name', und.length === 1 && und[0].body.name === 'i18n-checklist', und)
+
+    // Discard from the card, and bring it back
+    await click(root, all(kb(root, 'learned-card')[0], (n) => n.tag === 'button' && n.props.title === 'Discard')[0])
+    const dis = posted(w, '/kybernos-skills/learned/discard')
+    check('the ✕ on a card discards that suggestion', dis.length === 1 && dis[0].body.id === 'p_aaaa1111', dis)
+    check('and the page says it is kept 30 days, with Undo', page(root).includes('Kept 30 days') && kb(root, 'notice-undo').length === 1)
+    await click(root, kb(root, 'notice-undo')[0])
+    check('Undo asks the host to restore it', posted(w, '/kybernos-skills/learned/restore').length === 1 && posted(w, '/kybernos-skills/learned/restore')[0].body.id === 'p_aaaa1111')
+
+    // Edit, then Save
+    await click(root, kb(root, 'learned-review')[0])
+    await click(root, kb(root, 'learned-edit')[0])
+    const areas = all(root, (n) => n.tag === 'textarea')
+    check('Edit turns the two texts into fields', areas.length === 2)
+    await typed(root, areas[1], '# Mine\n- my words')
+    await click(root, kb(root, 'learned-save')[0])
+    const ed = posted(w, '/kybernos-skills/learned/edit')
+    check('Save sends the person’s own words, still nothing active', ed.length === 1 && ed[0].body.body === '# Mine\n- my words' && ed[0].body.id === 'p_aaaa1111' && posted(w, '/kybernos-skills/learned/accept').length === 1, ed)
+  }
+  {
+    // client data: Accept is locked and the flagged text is shown
+    const body = '# Clause table\n- Mail marie.roux@cabinet.example'
+    const desc = 'Compares clauses. Use when asked.'
+    const bad = Object.assign({}, lessonsProposal, { id: 'p_cccc3333', name: 'clause-table', description: desc, body, hits: [{ s: desc.length + 1 + body.indexOf('marie'), e: desc.length + 1 + body.length, kind: 'email' }], blocking: true, checks: [{ id: 'name', s: 'ok', name: 'clause-table' }, { id: 'use_when', s: 'ok' }, { id: 'rules', s: 'ok' }, { id: 'size', s: 'ok', size: 70, max: 8192 }, { id: 'copy', s: 'ok', closest: null, percent: 0 }, { id: 'client_data', s: 'bad', count: 1 }] })
+    const w = world()
+    let current = bad
+    w.answers['GET /kybernos-skills/learned'] = () => learnedList({ proposals: [current], sensitive: true })
+    w.answers['POST /kybernos-skills/learned/edit'] = (b) => { current = Object.assign({}, bad, { body: b.body, description: b.description, hits: [], blocking: false }); return { ok: true, proposal: current } }
+    const root = await open(w)
+    check('in Law and Health the banner says it stays on this computer', part(root, 'learned-banner').includes('Local, nothing sent'))
+    await click(root, kb(root, 'learned-review')[0])
+    const panel = part(root, 'learned-panel')
+    check('the panel names the client data and says it blocks Accept in this field', panel.includes('1 piece of client data to remove') && panel.includes('cannot be accepted until they are gone') && panel.includes('local only'), panel.slice(0, 300))
+    check('the flagged text is marked', all(root, (n) => n.tag === 'mark' && hasClass(n, 'kbl-flag')).length === 1 && textOf(all(root, (n) => n.tag === 'mark')[0]).includes('marie.roux@cabinet.example'))
+    check('Accept is disabled and says why', kb(root, 'learned-accept')[0].props.disabled === true && panel.includes('Accept is locked: remove the client data first.'))
+    await click(root, kb(root, 'learned-fix')[0])
+    const fx = posted(w, '/kybernos-skills/learned/edit')
+    check('“Replace with placeholders” saves the text with the data replaced, and nothing else', fx.length === 1 && fx[0].body.body === '# Clause table\n- Mail [email]' && fx[0].body.description === desc, fx)
+    check('then the suggestion can be accepted', kb(root, 'learned-accept')[0].props.disabled !== true)
+  }
+  {
+    const w = world()
+    w.answers['GET /kybernos-skills/learned'] = learnedList()
+    w.answers['GET /kybernos-skills/learned/journal'] = { ok: true, verified: true, brokenAt: null, count: 2, entries: [
+      { n: 2, t: '2026-10-21T10:00:00.000Z', act: 'accepted', skill: 'sql-queries', by: 'you', mode: 'approved', kind: 'lessons', ver: 1, from: { lessons: [{ text: 'a' }, { text: 'b' }] }, note: 'edited_before_accepting', prev: 'a'.repeat(64), hash: 'b'.repeat(64) },
+      { n: 1, t: '2026-10-20T10:00:00.000Z', act: 'proposed', skill: 'sql-queries', by: 'kaby', mode: 'approved', kind: 'lessons', ver: null, from: null, note: null, prev: '0'.repeat(64), hash: 'a'.repeat(64) }] }
+    const root = await open(w)
+    await click(root, kb(root, 'learned-journal-btn')[0])
+    const j = part(root, 'learned-journal')
+    check('the journal opens on the right and says the chain holds', kb(root, 'learned-journal').length === 1 && kb(root, 'journal-verified').length === 1 && j.includes('Chain verified') && j.includes('2 entries'), j.slice(0, 200))
+    check('each entry names the skill, what happened and who did it', kb(root, 'journal-entry').length === 2 && j.includes('sql-queries Accepted') && j.includes('sql-queries Suggested') && j.includes('Kaby'))
+    await click(root, all(kb(root, 'journal-entry')[0], (n) => n.tag === 'button')[0])
+    check('an entry opens on where it came from, its note and its hash', (() => { const e = part(root, 'journal-entry'); return e.includes('Came from: 2 lessons') && e.includes('edited before it was accepted') && e.includes('#bbbbbbbb ← #aaaaaaaa') })())
+    w.answers['GET /kybernos-skills/learned/journal'] = { ok: true, verified: false, brokenAt: 2, count: 2, entries: [] }
+    await click(root, kb(root, 'learned-journal-btn')[0])
+    await click(root, kb(root, 'learned-journal-btn')[0])
+    check('a broken chain is said, with the entry where it breaks', kb(root, 'journal-broken').length === 1 && part(root, 'learned-journal').includes('Chain broken at entry 2'), part(root, 'learned-journal').slice(0, 200))
+  }
+  {
+    const w = world()
+    w.answers['GET /kybernos-skills/learned'] = learnedList()
+    const root = await open(w, 'fr')
+    check('in French the banner and the cards speak French', part(root, 'learned-banner').includes('2 skills suggérés par Kaby') && textOf(kb(root, 'learned-card')[0]).includes('Suggéré par Kaby'), part(root, 'learned-banner').slice(0, 120))
+  }
+  {
+    const w = world()
+    w.answers['GET /kybernos-skills/learned'] = learnedList({ proposals: [lessonsProposal] })
+    const root = await open(w)
+    await click(root, kb(root, 'learned-banner-hide')[0])
+    check('Hide removes the banner for this browser and keeps the cards', kb(root, 'learned-banner').length === 0 && kb(root, 'learned-card').length === 1 && store.get('kybernos.skills.learned.banner') === 'off')
+    store.delete('kybernos.skills.learned.banner')
+  }
+}
+
 console.log('\n' + pass + ' passed' + (fail > 0 ? ', ' + fail + ' FAILED' : ''))
 process.exit(fail > 0 ? 1 : 0)

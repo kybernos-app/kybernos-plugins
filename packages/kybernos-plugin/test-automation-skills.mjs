@@ -7,7 +7,7 @@ import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFile
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
-import { SKILL_NAME_RE, SKILL_NAME_MAX, stableStreak, stableAfterOf, skillSlug, buildSkill, normalizeRecords, dueTasks, lessonOf } from './automation-skills.mjs'
+import { SKILL_NAME_RE, SKILL_NAME_MAX, stableStreak, stableAfterOf, skillSlug, skillParts, normalizeRecords, dueTasks, lessonOf } from './automation-skills.mjs'
 
 let pass = 0
 const ok = (label) => { pass += 1; console.log('  ✓ ' + label) }
@@ -48,22 +48,21 @@ assert.ok(SKILL_NAME_RE.test(skillSlug('a'.repeat(60), (n) => n === 'a'.repeat(4
 ok('a name that is taken gets the next free one, never the same')
 {
   const task = { id: 'st-1', name: 'Weekly report', prompt: 'Write the weekly report.\n1. Read the numbers.\n2. Write it.\n', trigger: { type: 'webhook', secret: 'SECRET-VALUE', hookId: 'h1' }, history: [run(1, 'session-secret-id')] }
-  const text = buildSkill(task, 'weekly-report', 12)
-  assert.match(text, /^---\nname: weekly-report\n/)
-  assert.match(text, /\ndescription: "Does what the automation “Weekly report” does: Write the weekly report\."\n/)
-  assert.match(text, /\nwhenToUse: "/)
-  assert.ok(text.includes('1. Read the numbers.\n2. Write it.'), 'the steps are the automation text')
-  assert.ok(text.includes('after 12 runs in a row without a failure'))
-  assert.equal(/SECRET-VALUE|session-secret-id|hookId/.test(text), false, 'no secret, no session id, no webhook')
-  const fm = text.split('---')[1]
-  assert.equal(fm.split('\n').filter((l) => l.trim() !== '').length, 3, 'three frontmatter lines: name, description, whenToUse')
-  ok('the skill is the automation text in the skill format, without its secret, history or webhook')
-  const hostile = buildSkill({ name: 'x"\n---\nname: evil', prompt: 'a\r\nb' }, 'x', 5)
-  assert.equal(hostile.split('\n---\n').length - 1 <= 1 || hostile.split('\n').filter((l) => l === '---').length === 2, true)
-  assert.equal(hostile.split('\n').filter((l) => l === '---').length, 2, 'a name with quotes and dashes cannot open a second frontmatter')
-  assert.equal(buildSkill({ name: 'e', prompt: '' }, 'e', 5).includes('(the automation had no text)'), true)
-  assert.equal(buildSkill(null, 'e', NaN).includes('after 0 runs'), true)
-  ok('a hostile name cannot break the format, an empty text and a null task do not throw')
+  const parts = skillParts(task, 'weekly-report', 12)
+  assert.equal(parts.description, 'Does what the automation “Weekly report” does: Write the weekly report. Use when the user asks for “Weekly report” by hand, or to redo what the automation of that name does.')
+  assert.match(parts.description, /\bUse when\b/, 'the skills page checks for a “Use when…” description')
+  assert.ok(parts.whenToUse.startsWith('The user asks for “Weekly report” by hand'))
+  assert.ok(parts.body.includes('1. Read the numbers.\n2. Write it.'), 'the steps are the automation text')
+  assert.ok(parts.body.includes('after 12 runs in a row without a failure') && parts.body.includes('Suggested by Kaby'))
+  assert.equal(/SECRET-VALUE|session-secret-id|hookId/.test(JSON.stringify(parts)), false, 'no secret, no session id, no webhook')
+  assert.equal(parts.body.startsWith('---'), false, 'no frontmatter: the skills page writes that, and the standard rules')
+  ok('the skill parts are the automation text, without its secret, history or webhook, and carry no frontmatter')
+  const hostile = skillParts({ name: 'x"\n---\nname: evil', prompt: 'a\r\nb' }, 'x', 5)
+  assert.equal(hostile.description.includes('\n'), false, 'a name with quotes and dashes stays on one line')
+  assert.equal(skillParts({ name: 'e', prompt: '' }, 'e', 5).body.includes('(the automation had no text)'), true)
+  assert.equal(skillParts(null, 'e', NaN).body.includes('after 0 runs'), true)
+  assert.equal(skillParts({ name: 'n', prompt: 'Do it' }, 'n', 5).description.includes('Do it. Use when'), true, 'a first line with no full stop gets one')
+  ok('a hostile name cannot spill over a line, an empty text and a null task do not throw')
 }
 
 // ── what is kept, what is due ────────────────────────────────────────────────────────────────────────────────────────────────
@@ -113,6 +112,8 @@ const tasks = [
 ]
 writeFileSync(join(dsh, 'kybernos', 'tasks.json'), JSON.stringify(tasks), { mode: 0o600 })
 const settingsFile = join(dsh, 'kybernos', 'automation-settings.json')
+// suggesting is on by default (automation-settings.mjs); the first checks want it off, so the tick cannot make a record of its own meanwhile
+writeFileSync(settingsFile, JSON.stringify({ version: 1, autoSkill: false, stableAfter: 5 }), { mode: 0o600 })
 const disposers = []
 try {
   const mod = await import(pathToFileURL(join(copy, 'index.js')).href)
@@ -149,28 +150,55 @@ try {
   assert.equal(existsSync(join(dsh, 'skills')), false, 'a refused request writes nothing')
   ok('the button works only for a stable automation: the rule is the host\'s, not the page\'s')
 
+  // The skills page's seam: this test stands in for it (the real one is packages/kybernos-skills/learned.mjs, tested in its own suite).
+  const SEAM = Symbol.for('kybernos.learned-skills')
+  const proposals = []
+  let reply = (input) => ({ ok: true, name: input.name, pending: input.acceptNow !== true })
+  globalThis[SEAM] = Object.freeze({ version: 1, propose: async (input) => { proposals.push(input); return reply(input) } })
+
+  const none = Object.getOwnPropertyDescriptor(globalThis, SEAM)
+  delete globalThis[SEAM]
+  const lonely = await call('POST', '', { id: 'st-stable' })
+  assert.deepEqual([lonely.json.ok, lonely.json.error], [false, 'the skills page is not loaded'])
+  assert.equal(existsSync(join(dsh, 'skills')), false, 'no skill is ever written by this half')
+  assert.equal(existsSync(join(dsh, 'kybernos', 'automation-skills.json')), false, 'and no record without a proposal')
+  Object.defineProperty(globalThis, SEAM, none)
+  ok('without the skills page there is nothing to hand the skill to: refused, no record')
+
   const made = await call('POST', '', { id: 'st-stable' })
   assert.equal(made.json.ok, true)
-  assert.deepEqual([made.json.lesson.skill.skill, made.json.lesson.skill.how, made.json.lesson.skill.runs], ['etude-a-la-demande', 'manual', 6])
-  const file = join(dsh, 'skills', 'etude-a-la-demande', 'SKILL.md')
-  const text = readFileSync(file, 'utf8')
-  assert.ok(text.startsWith('---\nname: etude-a-la-demande\n') && text.includes('1. Read it.\n2. Send the result.') && text.includes('after 6 runs in a row'))
-  assert.equal(statSync(file).mode & 0o777, 0o600)
-  ok('POST writes the skill from the STORED automation, in the skills folder, readable by the person only')
+  assert.deepEqual([made.json.lesson.skill.skill, made.json.lesson.skill.how, made.json.lesson.skill.runs, made.json.lesson.skill.state], ['etude-a-la-demande', 'manual', 6, 'made'])
+  assert.equal(proposals.length, 1)
+  const p = proposals[0]
+  assert.equal(p.acceptNow, true, 'the person pressing « Create skill » is the acceptance')
+  assert.equal(p.name, 'etude-a-la-demande')
+  assert.ok(p.body.includes('1. Read it.\n2. Send the result.') && p.body.includes('after 6 runs in a row'))
+  assert.match(p.description, /\bUse when\b/)
+  assert.deepEqual(p.automation, { id: 'st-stable', name: 'Étude à la demande', runs: 6 })
+  assert.equal(existsSync(join(dsh, 'skills')), false, 'this half writes no skill: the skills page does')
+  ok('POST hands the STORED automation to the skills page, as the person’s own acceptance, and keeps a record')
   const again = await call('POST', '', { id: 'st-stable' })
   assert.deepEqual([again.json.ok, again.json.error], [false, 'a skill was already written'])
-  assert.equal(readdirSync(join(dsh, 'skills')).length, 1)
+  assert.equal(proposals.length, 1)
   assert.equal((await call('GET', '?id=st-stable')).json.lesson.skill.skill, 'etude-a-la-demande')
-  ok('a skill is written once per automation, and GET then tells which')
+  ok('a skill is proposed once per automation, and GET then tells which')
 
-  // an existing skill of the same name is never overwritten
-  writeFileSync(file, 'MY OWN VERSION', { mode: 0o600 })
+  // the skills page picks the free name; the record keeps the name it answered
   const rec = join(dsh, 'kybernos', 'automation-skills.json')
   rmSync(rec)
+  reply = (input) => ({ ok: true, name: input.name + '-2', pending: false })
   const other = await call('POST', '', { id: 'st-stable' })
-  assert.equal(other.json.lesson.skill.skill, 'etude-a-la-demande-2', 'the name is taken: the next free one')
-  assert.equal(readFileSync(file, 'utf8'), 'MY OWN VERSION', 'the person\'s own skill is untouched')
-  ok('a skill that exists is never overwritten: the new one takes another name')
+  assert.equal(other.json.lesson.skill.skill, 'etude-a-la-demande-2', 'the name is taken: the next free one, as the skills page said')
+  rmSync(rec)
+  reply = () => ({ ok: false, error: 'too_many_pending', max: 5 })
+  const full = await call('POST', '', { id: 'st-stable' })
+  assert.deepEqual([full.json.ok, full.json.error], [false, 'too_many_pending'])
+  assert.equal(existsSync(rec), false, 'a refusal writes no record, so it is tried again later')
+  reply = () => { throw new Error('boom') }
+  assert.equal((await call('POST', '', { id: 'st-stable' })).code >= 200, true, 'a seam that throws does not take the route down')
+  assert.equal(existsSync(rec), false)
+  reply = (input) => ({ ok: true, name: input.name, pending: input.acceptNow !== true })
+  ok('the name comes from the skills page, a refusal or a failure writes no record')
 
   // the settings carry the rule
   writeFileSync(settingsFile, JSON.stringify({ version: 1, autoSkill: true, stableAfter: 3 }), { mode: 0o600 })
@@ -180,20 +208,22 @@ try {
   assert.equal(g4.json.error, 'not stable yet')
   ok('the number of runs and the switch come from the Automations settings')
 
-  // the automatic pass: with the switch on, the scheduler's tick writes the stable ones by itself (the first tick comes 5 s after boot)
-  rmSync(join(dsh, 'skills'), { recursive: true, force: true })
+  // the automatic pass: with the switch on, the scheduler's tick PROPOSES the stable ones (the first tick comes 5 s after boot)
   rmSync(rec, { force: true })
+  proposals.length = 0
   writeFileSync(settingsFile, JSON.stringify({ version: 1, autoSkill: true, stableAfter: 5 }), { mode: 0o600 })
   let waited = 0
   while (existsSync(rec) === false && waited < 20000) { await new Promise((r) => setTimeout(r, 500)); waited += 500 }
-  assert.equal(existsSync(rec), true, 'the tick wrote the skill of the stable automation')
+  assert.equal(existsSync(rec), true, 'the tick proposed the skill of the stable automation')
   const kept = JSON.parse(readFileSync(rec, 'utf8')).skills
   assert.deepEqual(Object.keys(kept), ['st-stable'], 'only the stable automation: not the young one, not the one that failed')
-  assert.deepEqual([kept['st-stable'].skill, kept['st-stable'].how, kept['st-stable'].runs], ['etude-a-la-demande', 'auto', 6])
-  assert.ok(readFileSync(join(dsh, 'skills', 'etude-a-la-demande', 'SKILL.md'), 'utf8').includes('1. Read it.'))
-  assert.deepEqual(readdirSync(join(dsh, 'skills')), ['etude-a-la-demande'])
-  ok('with the switch on, the tick writes the stable automation as a skill by itself, and only that one')
+  assert.deepEqual([kept['st-stable'].skill, kept['st-stable'].how, kept['st-stable'].runs, kept['st-stable'].state], ['etude-a-la-demande', 'auto', 6, 'pending'])
+  assert.equal(proposals.length, 1)
+  assert.equal(proposals[0].acceptNow, false, 'by itself it only suggests: nothing is active before the person accepts')
+  assert.equal(existsSync(join(dsh, 'skills')), false)
+  ok('with the switch on, the tick suggests the stable automation as a skill by itself, and only that one')
 } finally {
+  delete globalThis[Symbol.for('kybernos.learned-skills')]
   for (const d of disposers) { try { d() } catch (e) { /* best effort */ } }
   for (const k of Object.keys(saved)) { if (saved[k] === undefined) delete process.env[k]; else process.env[k] = saved[k] }
   rmSync(scratch, { recursive: true, force: true })

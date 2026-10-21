@@ -265,6 +265,11 @@ window.__ModuleLoader__.load({
         if (c === 'aucun_espace') return kt('Aucun espace d’équipe n’est sélectionné.', 'No team workspace is selected.')
         if (c === 'partage_desactive') return kt('Le partage des leçons avec ton équipe est désactivé dans Personnaliser.', 'Sharing lessons with your team is switched off in Customize.')
         if (c === 'texte_invalide') return kt('Écris d’abord la leçon (500 caractères au maximum).', 'Write the lesson first (500 characters at most).')
+        // the answers of the Skills page when a lesson is turned into a skill suggestion (kybernos-skills/learned.mjs)
+        if (c === 'already_proposed') return kt('Ces leçons ont déjà donné une suggestion de skill.', 'These lessons already made a skill suggestion.')
+        if (c === 'too_many_pending') return kt('5 suggestions de skills attendent déjà : réponds à l’une d’elles dans Skills d’abord.', '5 skill suggestions are already waiting: answer one in Skills first.')
+        if (c === 'no_free_name') return kt('Aucun nom libre pour ce skill.', 'No free name for this skill.')
+        if (c === 'no_lessons') return kt('Aucune leçon à transformer en skill.', 'No lesson to turn into a skill.')
         if (c === 'requete_invalide') return kt('Cette requête a été refusée comme invalide.', 'That request was refused as invalid.')
         if (c === 'a_change') return kt('Ça a changé depuis l’analyse : analyse à nouveau.', 'It changed since the scan: look again.')
         if (c === 'groupe_inconnu') return kt('Cette suggestion est périmée : analyse à nouveau.', 'That suggestion is out of date: look again.')
@@ -444,6 +449,25 @@ window.__ModuleLoader__.load({
       const LESSONS_NEAR = 40   // LESSONS_NEAR_COUNT: from here the host tidies the agent team by itself (index.js, tidyTick)
       const tidyEvery = () => ({ start: kt('au démarrage de DSH', 'when DSH starts'), daily: kt('chaque jour', 'every day'), weekly: kt('chaque semaine', 'every week'), n50: kt('tous les 50 nouveaux éléments', 'every 50 new items') })
 
+      /** The tag three lessons of the list share (the pitfalls of one topic make one checklist), with those lessons: `{ tag, items }`, or null. */
+      const lessonCluster = (items) => {
+        const by = new Map()
+        for (const l of Array.isArray(items) ? items : []) {
+          if (l === null || typeof l !== 'object') continue
+          for (const tag of Array.isArray(l.tags) ? l.tags : []) { const k = String(tag); if (k !== '' && k !== 'default') by.set(k, (by.get(k) || []).concat([l])) }
+        }
+        let best = null
+        for (const [tag, ls] of by) if (ls.length >= 3 && (best === null || ls.length > best.items.length)) best = { tag, items: ls.slice(0, 8) }
+        return best
+      }
+      /** Hand lessons to the Skills page as a SUGGESTION: nothing is active before the person accepts it there. Fixed rules, no model, no cost. */
+      const suggestSkill = async (lessons) => {
+        const r = await api('/kybernos-skills/learned/from-lessons', { lessons: lessons.map((l) => ({ text: l.text, tags: Array.isArray(l.tags) ? l.tags : [], kyber: l.kyber })) })
+        try { if (r.ok === true && window.__KB_LEARNED__ !== undefined && typeof window.__KB_LEARNED__.refresh === 'function') window.__KB_LEARNED__.refresh() } catch (e) { /* the menu dot catches up at its next look */ }
+        return r
+      }
+      const openSkills = () => { try { if (typeof window.__KB_OPEN__ === 'function') window.__KB_OPEN__({ view: 'skills' }) } catch (e) { /* the menu is the other way in */ } }
+
       /**
        * The one line under the title: what looks after itself, in words, and whether the one step left is the account.
        * `tone` is 'wait' (still reading: no line, never a flash of « Off »), 'ok', 'step' (it works and the account is the one thing
@@ -452,7 +476,7 @@ window.__ModuleLoader__.load({
        */
       const selfStatus = (input) => {
         try {
-          const { status, settings, tidy, now } = input === null || input === undefined ? {} : input
+          const { status, settings, tidy, now, skills } = input === null || input === undefined ? {} : input
           const wait = { tone: 'wait', text: '', connect: false }
           if (status === undefined || settings === undefined || tidy === undefined || status === null || settings === null || tidy === null) return wait
           if (status.loaded !== true || settings.loaded !== true || tidy.loaded !== true) return wait
@@ -477,7 +501,9 @@ window.__ModuleLoader__.load({
               else { const every = tidyEvery()[cfg.schedule] === undefined ? kt('chaque semaine', 'every week') : tidyEvery()[cfg.schedule]; parts.push(kt('Se range tout seul ' + every, 'Tidies itself ' + every)) }
             }
           } catch (e) { /* the tidy-up part is a bonus: the line stands without it */ }
-          return { tone: !connected ? 'step' : 'ok', text: parts.join(' · '), connect: !connected }
+          // Skills the person accepted from Kaby's suggestions (the Skills page's ledger): a count, only once there is one.
+          if (Number.isInteger(skills) && skills > 0) parts.push(kt(skills === 1 ? '1 skill fait par l’expérience' : skills + ' skills faits par l’expérience', skills === 1 ? '1 skill made from experience' : skills + ' skills made from experience'))
+          return { tone: !connected ? 'step' : 'ok', text: parts.join(' · '), connect: !connected, skills: Number.isInteger(skills) ? skills : 0 }
         } catch (e) { return { tone: 'wait', text: '', connect: false } }
       }
 
@@ -765,6 +791,7 @@ window.__ModuleLoader__.load({
       // ═══════════════════════════════════════════════════════════════
       const ICONS = {
         brain: '<path d="M9.5 3A3.5 3.5 0 0 0 6 6.5c0 .4.1.8.2 1.1A3.5 3.5 0 0 0 4 10.8c0 1 .5 2 1.2 2.6A3.5 3.5 0 0 0 7 19a3 3 0 0 0 5-1V4.5A1.5 1.5 0 0 0 9.5 3z"/><path d="M14.5 3A3.5 3.5 0 0 1 18 6.5c0 .4-.1.8-.2 1.1A3.5 3.5 0 0 1 20 10.8c0 1-.5 2-1.2 2.6A3.5 3.5 0 0 1 17 19a3 3 0 0 1-5-1V4.5A1.5 1.5 0 0 1 14.5 3z"/>',
+        wand: '<path d="M15 4V2M15 16v-2M8 9h2M20 9h2M17.8 11.8 19 13M17.8 6.2 19 5M3 21l9-9M12.2 6.2 11 5"/>',
         pin: '<path d="M12 17v5M9 3h6l-1 6 3 3H7l3-3z"/>', search: '<circle cx="11" cy="11" r="6"/><path d="m20 20-4-4"/>', plus: '<path d="M12 5v14M5 12h14"/>',
         check: '<path d="m5 12 5 5 9-10"/>', x: '<path d="M6 6l12 12M18 6 6 18"/>', trash: '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>',
         cloud: '<path d="M7 18a4.5 4.5 0 0 1-.6-8.96A6 6 0 0 1 18 9.5a4 4 0 0 1-.5 8.5z"/>', lock: '<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
@@ -1017,6 +1044,14 @@ window.__ModuleLoader__.load({
           return onDone(kt('Enregistré', 'Saved'))
         }
 
+        // « Make a skill »: this lesson, word for word, as a checklist of pitfalls waiting in Skills for the person's yes (fixed rules, no model).
+        const makeSkill = async () => {
+          setBusy(true)
+          const r = await suggestSkill([item])
+          if (r.ok !== true) return fail(r)
+          return onDone(kt('Skill suggéré : « ' + r.proposal.name + ' ». Il attend ton accord dans Skills.', 'Skill suggested: “' + r.proposal.name + '”. It waits for your yes in Skills.'))
+        }
+
         const remove = async () => {
           setBusy(true)
           if (mem) {
@@ -1048,6 +1083,7 @@ window.__ModuleLoader__.load({
             h('button', { type: 'button', className: 'kbmem-btn', 'data-act': 'save', disabled: busy || text.trim() === '', onClick: save }, isNew ? kt('Enregistrer le souvenir', 'Save memory') : kt('Enregistrer', 'Save')),
             h('button', { type: 'button', className: 'kbmem-btn ghost', onClick: onClose }, kt('Annuler', 'Cancel')),
             !mem && !isNew && typeof onPropose === 'function' ? h('button', { type: 'button', className: 'kbmem-btn ghost', 'data-act': 'propose-team', disabled: busy, onClick: () => onPropose(item) }, Ico('share'), kt('Proposer à l’équipe', 'Propose to team')) : null,
+            !mem && !isNew ? h('button', { type: 'button', className: 'kbmem-btn ghost', 'data-act': 'make-skill', disabled: busy, title: kt('Une liste de pièges avec les mots de cette leçon, qui attend ton accord dans Skills. Aucun modèle, aucun coût.', 'A checklist of pitfalls in this lesson’s own words, waiting for your yes in Skills. No model, no cost.'), onClick: makeSkill }, Ico('wand'), kt('Faire un skill', 'Make a skill')) : null,
             h('span', { className: 'kbmem-grow' }),
             isNew ? null : (confirm
               ? h('button', { type: 'button', className: 'kbmem-btn danger', 'data-act': 'confirm-remove', disabled: busy, onClick: remove }, mem ? kt('Confirmer : oublier', 'Confirm: forget') : kt('Confirmer : supprimer', 'Confirm: delete'))
@@ -1383,6 +1419,9 @@ window.__ModuleLoader__.load({
         const list = useList(tab, { f, q: qd, page, size, mode }, refreshKey)
         const [kybers, setKybers] = useState([])
         useEffect(() => { let live = true; api('/kybernos-memory/kybers').then((r) => { if (live && r.ok === true) setKybers(r.kybers) }); return () => { live = false } }, [refreshKey])
+        // Skills made from experience (the Skills page's ledger): read when the page opens and again when a sheet closes, so « Make a skill » shows at once.
+        const [skillsMade, setSkillsMade] = useState(null)
+        useEffect(() => { let live = true; api('/kybernos-skills/learned').then((r) => { if (live && r.ok === true && Array.isArray(r.learned)) setSkillsMade(r.learned.length) }); return () => { live = false } }, [sheet === null])
         const [otherCount, setOtherCount] = useState(null)
         useEffect(() => {
           let live = true
@@ -1406,7 +1445,7 @@ window.__ModuleLoader__.load({
         const memCount = mems ? (list.ok ? list.total : null) : otherCount
         const lesCount = mems ? otherCount : (list.ok ? list.total : null)
         // The line under the title, and the one step (the account) when it is the only thing left. No account is not « Off »: the lessons work.
-        const self = selfStatus({ status, settings, tidy, now: Date.now() })
+        const self = selfStatus({ status, settings, tidy, now: Date.now(), skills: skillsMade })
         const noAccount = mems && status.loaded === true && !connected
         // Team lessons: the Team scope of the Lessons tab, available on a Team workspace only.
         const teamInfo = team !== undefined && team.ok === true && team.team !== null ? team.team : null
@@ -1467,6 +1506,13 @@ window.__ModuleLoader__.load({
         // An agent team that nears its cap: it is tidied by itself; the note says which one and what happens at 50.
         const cap = mems ? null : capNote(kybers, tidySettingsOf(tidy))
         if (cap !== null) notes.push(h('div', { key: 'ncap', className: 'kbmem-note', 'data-note': 'cap' }, Ico('bulb'), h('div', null, cap)))
+        // Three lessons of this list share a topic (a tag): together they make a checklist. A hint, one click; nothing is active before the person accepts it in Skills.
+        const cluster = mems || teamMode ? null : lessonCluster(list.ok ? list.items : [])
+        if (cluster !== null) {
+          notes.push(h('div', { key: 'ncl', className: 'kbmem-note', 'data-note': 'cluster' }, Ico('wand'),
+            h('div', { className: 'kbmem-grow' }, kt(cluster.items.length + ' leçons parlent de « ' + cluster.tag + ' ». Ce ne sont pas des doublons : ensemble elles font une liste de contrôle.', cluster.items.length + ' lessons are about “' + cluster.tag + '”. They are not duplicates: together they make a checklist.')),
+            h('button', { type: 'button', className: 'kbmem-btn sm', 'data-act': 'cluster-skill', onClick: () => { suggestSkill(cluster.items).then((r) => { if (r.ok === true) { notify(kt('Skill suggéré : « ' + r.proposal.name + ' ». Il attend ton accord dans Skills.', 'Skill suggested: “' + r.proposal.name + '”. It waits for your yes in Skills.')) } else notify(friendlyError(r.error)) }) } }, kt('En faire un skill', 'Make a skill from them'))))
+        }
 
         // A meaning search that could not be done shows word matches instead — and says why, with the way to fix it.
         const sr = mems && mode === 'meaning' && String(qd).trim() !== '' && list.ok && list.extra !== null && list.extra.search !== undefined ? list.extra.search : null
@@ -1499,6 +1545,7 @@ window.__ModuleLoader__.load({
             h('button', { type: 'button', className: 'kbmem-btn ghost', 'data-act': 'customize', title: kt('Ce qui est gardé, ce qui est envoyé au modèle, quand ça se range', 'What is kept, what is sent to the model, when it tidies up'), onClick: openOptions }, Ico('gear'), kt('Personnaliser', 'Customize'))),
           h('div', { className: 'kbmem-st', 'data-st': self.tone, 'aria-live': 'polite' },
             self.tone === 'wait' ? null : h('span', null, h('i'), self.text),
+            self.skills > 0 ? h('button', { type: 'button', className: 'kbmem-btn sm', 'data-act': 'open-skills', onClick: openSkills }, kt('Voir dans Skills', 'See in Skills')) : null,
             self.connect ? h('button', { type: 'button', className: 'kbmem-btn sm', 'data-act': 'connect', onClick: connectAccount }, kt('Connecte ton compte', 'Connect your account')) : null),
           tabs, teamMode || mapOn || noAccount ? null : tools, teamMode || mapOn || noAccount ? null : chips, teamMode ? h(TeamPane, { team: teamFull, kybers, notify, bump, refreshKey, openReview: openTeamReview }) : null, teamMode ? null : (ran !== null && ran !== undefined ? h(TidyRanNotice, { notice: ran, onUndo: onRanUndo, onHide: onRanHide }) : null), teamMode ? null : (tidy.loaded === true && tidySaves(tidy) > 0 && hiddenKey !== scanKey(tidy) ? h(TidyBanner, { tidy, onReview: openReview, onHide: hideBanner }) : null), teamMode ? null : notes, teamMode ? null : (mapOn ? h(MapPane, { ctxOn, refreshKey, openOptions, onOpen: (m) => setSheet({ kind: 'mem', item: m }), onReady: () => writeLayout('map'), onList: () => setLayout('list') }) : body),
           sheet !== null && sheet.kind !== 'propose' ? h(Sheet, { key: (sheet.item.id === undefined ? 'new' : sheet.item.id) + String(sheet.isNew), sheet, onClose: () => setSheet(null), onDone: (m, u) => (sheet.kind === 'mem' ? forgetUndo(m, u) : after(m)), notify,
@@ -1975,7 +2022,7 @@ window.__ModuleLoader__.load({
       return {
         inject: ['slots'],
         // Pure pieces and the page, exposed for test-client.mjs and the live check.
-        __test: { sentMarks, selfStatus, connectAccount, capNote, LESSONS_CAP, LESSONS_NEAR, PAGE_TITLE, studyWords, mapMatches, mapZoom, mapPan, mapClamp, mapLabelSpots, mapWords, MAP_FIT, teamLockedWords, teamReasonOf, isTeamAdmin, minutesSince, teamStatusChip, teamMatches, teamMeta, tidyRanNotice, TIDY_MODES: tidyModes(), TIDY_SCHEDULES: tidySchedules(), whenAhead, tidySettingsOf, nextWords, tidyNextOf, tidyLast, lastWords, tidyBrain, logWho, TIDY_SHOWN, visibleItems, TIDY_MAX_REMOVALS, TIDY_SOURCES, plural, whenLabel, groupRemovals, tidyChunks, keeperOf, tidyBody, asTidyView, tidySaves, scanKey, logWords, tidyLog, onEscape, meaningWhy, closenessLabel, wordsLabel, readMode, writeMode, planOf, ageLabel, pagerPages, listUrl, activeFilters, defaultFilters, friendlyError, captureWords, api, GROUPS, Page, css, PAGE_SIZES },
+        __test: { lessonCluster, suggestSkill, sentMarks, selfStatus, connectAccount, capNote, LESSONS_CAP, LESSONS_NEAR, PAGE_TITLE, studyWords, mapMatches, mapZoom, mapPan, mapClamp, mapLabelSpots, mapWords, MAP_FIT, teamLockedWords, teamReasonOf, isTeamAdmin, minutesSince, teamStatusChip, teamMatches, teamMeta, tidyRanNotice, TIDY_MODES: tidyModes(), TIDY_SCHEDULES: tidySchedules(), whenAhead, tidySettingsOf, nextWords, tidyNextOf, tidyLast, lastWords, tidyBrain, logWho, TIDY_SHOWN, visibleItems, TIDY_MAX_REMOVALS, TIDY_SOURCES, plural, whenLabel, groupRemovals, tidyChunks, keeperOf, tidyBody, asTidyView, tidySaves, scanKey, logWords, tidyLog, onEscape, meaningWhy, closenessLabel, wordsLabel, readMode, writeMode, planOf, ageLabel, pagerPages, listUrl, activeFilters, defaultFilters, friendlyError, captureWords, api, GROUPS, Page, css, PAGE_SIZES },
         apply(ctx) {
           if (ctx === null || ctx === undefined || ctx.slots === null || ctx.slots === undefined) return
           ctx.effect(() => styles.insert(css), 'kybernos-memory: styles')
