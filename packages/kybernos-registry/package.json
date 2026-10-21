@@ -6,7 +6,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node test-version.mjs && node test-registry.mjs && node test-host.mjs && node test-write-guard.mjs && node test-client.mjs"
+    "test": "node test-version.mjs && node test-registry.mjs && node test-host.mjs && node test-write-guard.mjs && node test-skill.mjs && node test-client.mjs"
   },
   "exports": {
     ".": "./index.js",

@@ -1,6 +1,6 @@
 // The host half: the routes, the seam, and that nothing is read or written before a question is asked.   node packages/kybernos-registry/test-host.mjs
 // A stand-in for DSH's web server keeps what is registered (the real socket test is scripts/test-route-hosts.mjs, which mounts this bundle too).
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -23,9 +23,9 @@ const routes = new Map()
 const ctx = { get: (n) => (n === 'webServer' ? { register: ({ path, handler }) => { routes.set(path, handler); return () => {} } } : undefined), inject: () => {}, effect: (fn) => { void fn() } }
 mod.apply(ctx)
 
-check('three routes are mounted', [...routes.keys()].sort().join() === '/kybernos-registry/consent,/kybernos-registry/contributions,/kybernos-registry/state', [...routes.keys()])
+check('six routes are mounted', [...routes.keys()].sort().join() === '/kybernos-registry/consent,/kybernos-registry/contributions,/kybernos-registry/drafts,/kybernos-registry/import,/kybernos-registry/preview,/kybernos-registry/state', [...routes.keys()])
 check('the seam is published, version 1, and it is the same object after a second apply', globalThis[SEAM] !== undefined && globalThis[SEAM].version === 1 && (mod.apply(ctx), globalThis[SEAM] === mod.ensureRegistry()))
-check('booting read and wrote nothing', !existsSync(join(dsh, 'kybernos')) && readdirSync(decoy).length === 0, readdirSync(dsh))
+check('booting puts the plugin-creator skill in the DSH home and nothing else: no state, no drafts folder, no imports, and the other home is untouched', existsSync(join(dsh, 'skills', 'plugin-creator', 'SKILL.md')) && readdirSync(join(dsh, 'kybernos')).join() === 'seeded-skills.json' && readdirSync(decoy).length === 0, readdirSync(dsh))
 
 const hit = async (path, { method = 'GET', headers = {}, socket = true, host = '127.0.0.1:3080', body } = {}) => {
   const out = { status: 0, body: '', headers: {}, writeHead(s, h) { this.status = s; this.headers = h ?? {} }, end(b) { this.body = b === undefined ? '' : String(b) } }
@@ -61,6 +61,27 @@ check('the wrong method is 405', (await hit('/kybernos-registry/state', { method
 check('a read from a foreign Origin is refused', (await hit('/kybernos-registry/state', { headers: { origin: 'http://evil.example' } })).status === 403)
 check('a read under a foreign Host (a rebound page) is refused, with or without an Origin', (await hit('/kybernos-registry/state', { host: 'attacker.example:3080' })).status === 403 && (await hit('/kybernos-registry/state', { host: 'attacker.example:3080', headers: { origin: 'http://attacker.example:3080' } })).status === 403)
 check('a read with the right Origin and no cookie is fine (reads need none)', (await hit('/kybernos-registry/state', { headers: { origin: 'http://127.0.0.1:3080' } })).status === 200)
+const pv = await hit('/kybernos-registry/preview?id=acme/vet')
+check('preview: what the plugin brings, checked, readable before it is accepted', pv.status === 200 && pv.json.ok === true && pv.json.preview[0].class === 'instruction' && pv.json.preview[0].files[0].value.id === 'vet', pv.json)
+check('preview: an unknown plugin is 404, a bad id 400', (await hit('/kybernos-registry/preview?id=acme/nobody')).status === 404 && (await hit('/kybernos-registry/preview?id=x')).status === 400)
+const draftDir = join(dsh, 'kybernos', 'plugin-drafts', 'cabinet-notes')
+mkdirSync(join(draftDir, 'domains'), { recursive: true })
+writeFileSync(join(draftDir, 'package.json'), JSON.stringify({ name: 'kybernos-plugin-cabinet-notes', version: '0.1.0', dsh: { bundle: { patch: './cordis.patch.yml' } } }))
+writeFileSync(join(draftDir, 'cordis.patch.yml'), '[]\n')
+writeFileSync(join(draftDir, 'plugin.json'), JSON.stringify({ contract: 1, id: 'local/cabinet-notes', kind: 'data', version: '0.1.0', name: { en: 'Cabinet notes' }, description: { en: 'Notes for a cabinet.' }, author: { id: 'local', name: 'Me' }, license: 'MIT', pricing: 'free', requires: { kybernos: '>=0.1.0', plugins: { 'kybernos/core': '^1.0' } }, extends: [{ point: 'kybernos/core#domain-pack', range: '^1.0', dir: 'domains' }] }))
+const dr = await hit('/kybernos-registry/drafts')
+check('drafts: what the AI prepared is listed with the path DSH\'s manager installs from', dr.status === 200 && dr.json.drafts.length === 1 && dr.json.drafts[0].ok === true && dr.json.drafts[0].id === 'local/cabinet-notes' && dr.json.drafts[0].path.endsWith('cabinet-notes') && dr.json.drafts[0].installed === false, dr.json)
+// The folder is read again at once when the page says it has just asked DSH for a change (the scan is otherwise reused for a couple of seconds).
+{
+  const saved = readFileSync(join(profile, 'package.json'), 'utf8')
+  writeFileSync(join(profile, 'package.json'), JSON.stringify({ dependencies: {}, dsh: { profile: { bundles: [] } } }))
+  const stale = await hit('/kybernos-registry/state')
+  const fresh = await hit('/kybernos-registry/state?fresh=1')
+  check('state?fresh=1 reads the profile again; a plain state may still be the scan it just made', stale.json.plugins.length === 1 && fresh.json.plugins.length === 0, [stale.json.plugins.length, fresh.json.plugins.length])
+  writeFileSync(join(profile, 'package.json'), saved)
+  check('drafts?fresh=1 answers too', (await hit('/kybernos-registry/drafts?fresh=1')).json.drafts.length === 1)
+  globalThis[SEAM].refresh()
+}
 check('the person\'s own HOME was never touched', readdirSync(decoy).length === 0, readdirSync(decoy))
 check('what was left out is said on the console, with the reason', (() => { writeFileSync(join(dir, 'domains', 'x.json'), '{ nope'); globalThis[SEAM].refresh(); globalThis[SEAM].plugins(); return warnings.some((w) => /x\.json: is not valid JSON/.test(w)) })())
 
