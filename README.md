@@ -86,7 +86,7 @@ Each folder under [`packages/`](packages) is an independent DSH bundle (`package
 | [`kybernos-modeles-locaux`](packages/kybernos-modeles-locaux/README.md) | Local models panel: detects the machine, installs an Ollama model |
 | [`kybernos-refs`](packages/kybernos-refs/README.md) | Markdown links become compact reference chips |
 | [`kybernos-search`](packages/kybernos-search/README.md) | Search everywhere: the content of the chats, skills, memories, lessons, creations, automations and agent teams (⌘K) |
-| [`kybernos-registry`](packages/kybernos-registry/README.md) | The registry of plugins: reads the data plugins installed on this computer, checks them, and publishes the one versioned seam `window.__KB__` other bundles use (no page yet) |
+| [`kybernos-registry`](packages/kybernos-registry/README.md) | The registry of plugins: reads the data plugins installed on this computer, checks them, publishes the one versioned seam `window.__KB__` other bundles use, and feeds the Plugins tab of the Suite (add, read and accept, switch and remove, all through DSH's own manager); ships the `plugin-creator` skill |
 | [`kybernos-servers`](packages/kybernos-servers/README.md) | The Servers page: add a Kybernos server from its address, switch between servers, rename and remove them; nothing to buy and no key to paste |
 | [`kybernos-mobile`](packages/kybernos-mobile/README.md) | The phone: DSH usable on a narrow screen (drawer, stacked Settings), and on a paid plan a QR code that links a phone to this computer, end to end encrypted |
 | [`kybernos-websearch`](packages/kybernos-websearch/README.md) | Web search for the agents with or without an API key: free engines out of the box, keyed engines when you add one, one fallback chain |

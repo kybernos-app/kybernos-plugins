@@ -102,6 +102,14 @@ function readPackage (profileDir, name, spec, selected) {
   try { store = realpathSync(modules) } catch (e) { return null }
   // pnpm links an installed package into its store (inside node_modules); only a folder the person deliberately linked may lead anywhere else
   if (!real.startsWith(store + sep) && source !== 'local') { rec.id = name; rec.errors.push('resolves outside the profile'); return rec }
+  return inspectPackage(real, rec, name, source)
+}
+
+/**
+ * What a package folder is, as a Kybernos plugin: its manifest, its package.json and the rules of a data package. Fills `rec` (`id`, `info`, `hasBundle`, `errors`,
+ * `manifest`) and returns it, or returns null when the folder has no `plugin.json` (not a Kybernos plugin). Shared by what DSH installed and by the drafts.
+ */
+function inspectPackage (real, rec, name, source) {
   const m = readBounded(join(real, 'plugin.json'), LIMITS.manifest)
   if (m.error === 'is missing') return null // not a Kybernos plugin
   rec.id = name
@@ -124,18 +132,45 @@ function readPackage (profileDir, name, spec, selected) {
   return rec
 }
 
+/**
+ * The plugins somebody (the AI, the person) prepared in `draftsDir`, one folder each, NOT installed: `{ name, path, id, summary, errors, ok }`. The path is what DSH's
+ * manager is given to install it. A folder that is not a plugin, or leaves the drafts folder through a link, is not listed.
+ */
+export function scanDrafts (draftsDir) {
+  const out = []
+  let entries = []
+  try { entries = readdirSync(draftsDir, { withFileTypes: true }).sort(byName) } catch (e) { return out }
+  let base
+  try { base = realpathSync(draftsDir) } catch (e) { return out }
+  for (const d of entries) {
+    if (out.length >= LIMITS.plugins) break
+    if (!d.isDirectory() || !/^[a-z0-9][a-z0-9._-]{0,63}$/.test(d.name)) continue
+    let real
+    try { real = realpathSync(join(draftsDir, d.name)) } catch (e) { continue }
+    if (!real.startsWith(base + sep)) continue
+    const pj = readJson(join(real, 'package.json'), LIMITS.manifest)
+    const pkgName = pj.error === undefined && plain(pj.value) && typeof pj.value.name === 'string' && NPM_NAME.test(pj.value.name) ? pj.value.name : d.name
+    const rec = { id: null, package: pkgName, spec: 'file:' + real, source: 'local', level: 'local', selected: false, hasBundle: false, folder: real, manifest: null, errors: [], info: {} }
+    const r = inspectPackage(real, rec, pkgName, 'local')
+    if (r === null) continue
+    out.push({ name: d.name, path: real, package: pkgName, id: r.manifest !== null ? r.id : null, title: r.info.name || d.name, version: r.info.version || null, description: r.manifest !== null ? r.manifest.description.en : '', kind: r.manifest !== null ? r.manifest.kind : null, ok: r.manifest !== null, errors: r.errors })
+  }
+  return out
+}
+
 const pointRef = (def) => def.owner + '#' + def.name
 
 /**
  * @param {object} o
  * @param {string} o.profileDir     the DSH profile whose installed packages are read (<DSH home>/profiles/web)
  * @param {string} o.stateFile      where the person's acceptances are kept
+ * @param {string|null} [o.draftsDir]   where plugins prepared by the AI wait to be installed (<DSH home>/kybernos/plugin-drafts)
  * @param {string|null} [o.kybernosVersion]   the suite's version, when known (`requires.kybernos` is not enforced without it)
  * @param {string|null} [o.dshVersion]        DSH's version, when known (`requires.dsh` is not enforced without it)
  * @param {number} [o.ttlMs]        how long a scan is reused (a folder dropped in shows up after at most this long)
  * @param {() => number} [o.now]
  */
-export function createRegistry ({ profileDir, stateFile, kybernosVersion = null, dshVersion = null, ttlMs = 2000, now = Date.now }) {
+export function createRegistry ({ profileDir, stateFile, draftsDir = null, kybernosVersion = null, dshVersion = null, ttlMs = 2000, now = Date.now }) {
   const points = new Map()
   const listeners = new Set()
   let cache = null
@@ -222,6 +257,7 @@ export function createRegistry ({ profileDir, stateFile, kybernosVersion = null,
     const state = readState()
     const plugins = []
     const contributions = new Map()
+    const recs = new Map()
     const seen = new Map()
     for (const rec of scanProfile(profileDir)) {
       // A plain dependency has no switch in DSH: it is on. A bundle is on when DSH has it selected (the person's own switch in DSH's plugin page).
@@ -230,6 +266,7 @@ export function createRegistry ({ profileDir, stateFile, kybernosVersion = null,
       const base = { id: rec.id, package: rec.package, spec: rec.spec, source: rec.source, level: rec.level, enabled: on, consented: state.consented[rec.id] === true, errors: rec.errors, name: rec.info.name || rec.package, version: rec.info.version || null }
       if (rec.manifest === null) { plugins.push({ ...base, status: 'invalid', reason: rec.errors[0] ?? 'cannot be read', extends: [] }); warnOnce(rec.package, rec.errors); continue }
       seen.set(rec.id, rec.package)
+      recs.set(rec.id, rec)
       const m = rec.manifest
       const detail = { ...base, description: m.description.en, name: m.name.en, kind: m.kind, version: m.version, pricing: m.pricing, license: m.license, author: m.author, permissions: m.permissions ?? [], requires: m.requires, extends: [] }
       const why = problem(m)
@@ -246,7 +283,7 @@ export function createRegistry ({ profileDir, stateFile, kybernosVersion = null,
       }
       plugins.push({ ...detail, status })
     }
-    cache = { plugins, contributions }
+    cache = { plugins, contributions, recs }
     cachedAt = now()
     return cache
   }
@@ -262,6 +299,29 @@ export function createRegistry ({ profileDir, stateFile, kybernosVersion = null,
     definePoint,
     /** The points owners have defined, without their functions. */
     points: () => [...points.values()].map((p) => ({ id: pointRef(p), owner: p.owner, name: p.name, version: p.version, kind: p.kind, class: p.class, contributions: (load().contributions.get(pointRef(p)) ?? []).length })),
+    /**
+     * What an installed plugin brings, for the person to read BEFORE they accept it: every file of every extension through the point's check, whatever the plugin's
+     * status. `[{ point, class, files: [{ file, value }], rejected }]`, or null for a plugin that is not installed or whose manifest is not valid. Never contributes anything.
+     */
+    preview: (id) => {
+      try {
+        const rec = load().recs.get(id)
+        if (rec === undefined || rec.manifest === null || rec.manifest.kind !== 'data') return null
+        return rec.manifest.extends.filter((e) => points.has(e.point)).map((e) => {
+          const point = points.get(e.point)
+          const r = readExtension(rec, e, point)
+          return { point: e.point, class: point.class, files: r.contributions.map((c) => ({ file: c.file, value: c.value })), rejected: r.rejected }
+        })
+      } catch (e) { return null }
+    },
+    /** The drafts waiting to be installed, each marked `installed` when a plugin with the same id is already in the profile. */
+    drafts: () => {
+      try {
+        if (draftsDir === null) return []
+        const have = new Set(load().plugins.map((p) => p.id))
+        return scanDrafts(draftsDir).map((d) => ({ ...d, installed: d.id !== null && have.has(d.id) }))
+      } catch (e) { return [] }
+    },
     /** Every Kybernos plugin DSH has installed, with its status (never throws). */
     plugins: () => { try { return load().plugins.map((p) => ({ ...p })) } catch (e) { return [] } },
     /** What the enabled, valid plugins contribute to one point ("owner/name#point"): `[{ plugin, level, class, file, value }]`. */
