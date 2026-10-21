@@ -1723,6 +1723,10 @@ html[dir="rtl"] .kbln-page{direction:rtl}
           else if (hasProgress) metaLine = L('partialMeta', { pct, n: fmtN(Math.max(0, total - done)) })
           else metaLine = L('newMeta', { n: total > 0 ? fmtN(total) : '…', t: total > 0 ? L('aboutMin', { m: estimateMinutes(total) }) : '' })
 
+          // Texts whose source changed since this translation: the card's main action is then « Update » (only those
+          // texts are translated again, the rest is kept), not « Use » — the note said the translation was out of date
+          // while the only button offered to adopt it as it was (2026-10-21).
+          const staleN = !isBuiltIn(id) && !running && complete ? (staleOf.get(id) || 0) : 0
           // actions
           const acts = []
           const pack = isBuiltIn(id) ? undefined : packs.get(id)
@@ -1737,7 +1741,14 @@ html[dir="rtl"] .kbln-page{direction:rtl}
           else if (running) {
             if (canUseNow) acts.push(h('button', { key: 'now', className: 'kbln-btn', type: 'button', 'data-act': 'use-now', title: L('tipUseNow'), onClick: () => activate(id) }, L('useNow')))
             acts.push(h('button', { key: 'pause', className: 'kbln-btn', type: 'button', 'data-act': 'pause', title: L('tipPause'), disabled: st === 'pausing', onClick: pauseRun }, L(st === 'pausing' ? 'pausing' : 'pause')))
-          } else if (complete || st === 'done') acts.push(h('button', { key: 'use', className: 'kbln-btn primary', type: 'button', 'data-act': 'use', title: L('tipUse'), onClick: () => activate(id) }, L('use')))
+          } else if (complete || st === 'done') {
+            if (staleN > 0) {
+              acts.push(h('button', { key: 'upd', className: 'kbln-btn primary', type: 'button', 'data-act': 'update', disabled: models.length === 0, title: models.length === 0 ? L('noModels') : L('staleBody'), onClick: () => start(id) }, L('staleUpdate')))
+              acts.push(h('button', { key: 'use', className: 'kbln-btn', type: 'button', 'data-act': 'use', title: L('tipUse'), onClick: () => activate(id) }, L('use')))
+            } else {
+              acts.push(h('button', { key: 'use', className: 'kbln-btn primary', type: 'button', 'data-act': 'use', title: L('tipUse'), onClick: () => activate(id) }, L('use')))
+            }
+          }
           else {
             // One label for one act. The nuance (a translation still in progress vs one with holes) stays in the tooltip:
             // three labels for the same button (« Use », « Use now », « Use anyway ») read as three different actions.
@@ -1820,7 +1831,6 @@ html[dir="rtl"] .kbln-page{direction:rtl}
           if (packBusy === id) body.push(h('div', { key: 'packbusy', className: 'kbln-note', role: 'status' }, L('packInstalling')))
           if (packNote !== null && packNote.id === id) body.push(h('div', { key: 'packnote', className: packNote.ok ? 'kbln-note' : 'kbln-err', role: packNote.ok ? 'status' : 'alert', 'data-note': 'pack-result' }, packNote.text))
           // Texts of a translated language whose source changed since: only those are translated again.
-          const staleN = !isBuiltIn(id) && !running && complete ? (staleOf.get(id) || 0) : 0
           if (staleN > 0) {
             body.push(h('details', { key: 'stale', className: 'kbln-banner warn kbln-fold', 'data-note': 'stale' },
               h('summary', null, h('span', { className: 'kbln-chev', 'aria-hidden': true }, '▸'), L('staleSummary', { n: fmtN(staleN) })),
