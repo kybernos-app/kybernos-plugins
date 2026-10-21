@@ -282,6 +282,105 @@
               "en": "Settings › Automations",
               "page": true
             }
+          },
+          "models": {
+            "title": {
+              "fr": "Modèles",
+              "en": "Models"
+            },
+            "what": {
+              "fr": "Le modèle par défaut de DSH et les modèles proposés : chaque fournisseur, son état, et ce que les nouvelles tâches utilisent.",
+              "en": "DSH’s default model and the models on offer: each provider, its state, and what new tasks use."
+            },
+            "steps": [
+              {
+                "fr": "« Modèle par défaut » décide de ce que les nouvelles tâches utilisent ; un changement s’applique au tour suivant.",
+                "en": "“Default model” decides what new tasks use; a change applies from the next turn."
+              },
+              {
+                "fr": "Chaque ligne est un fournisseur ; un modèle sans clé ou hors ligne est marqué, et se corrige dans Fournisseur IA et modèles.",
+                "en": "Each row is a provider; a model without a key or offline is marked, and is fixed in AI provider and models."
+              },
+              {
+                "fr": "Le menu du chat change le modèle d’une seule tâche, sans toucher au défaut.",
+                "en": "The chat menu changes the model for one task only, without touching the default."
+              }
+            ],
+            "where": {
+              "fr": "Réglages › Modèles",
+              "en": "Settings › Models",
+              "page": true
+            },
+            "good": {
+              "fr": "Un modèle local ne quitte pas ton ordinateur ; un modèle distant reçoit le texte de la conversation.",
+              "en": "A local model never leaves your computer; a remote model receives the text of the conversation."
+            }
+          },
+          "appearance": {
+            "title": {
+              "fr": "Apparence",
+              "en": "Appearance"
+            },
+            "what": {
+              "fr": "L’allure de l’interface : thème clair, sombre ou système, et la taille du texte. Le fond et la police de Kybernos sont sur la page « Thème ».",
+              "en": "How the interface looks: light, dark or system theme, and the text size. Kybernos’ wallpaper and font are on the “Theme” page."
+            },
+            "steps": [
+              {
+                "fr": "Choisis Clair, Sombre ou Système : Système suit le réglage de ton ordinateur et bascule avec lui.",
+                "en": "Pick Light, Dark or System: System follows your computer’s setting and switches with it."
+              },
+              {
+                "fr": "La taille du texte change la densité du chat et des pages ; elle ne touche pas au contenu des fichiers.",
+                "en": "The text size changes how dense the chat and the pages are; it does not touch the content of files."
+              },
+              {
+                "fr": "L’animation de chargement et les libellés d’attente se règlent dans Thème › Animation.",
+                "en": "The loading animation and the waiting labels are set in Theme › Animation."
+              }
+            ],
+            "where": {
+              "fr": "Réglages › Apparence",
+              "en": "Settings › Appearance",
+              "page": true
+            },
+            "good": {
+              "fr": "L’apparence ne change que cette interface web, pas le terminal ni les réponses de l’assistant.",
+              "en": "The appearance changes this web interface only, not the terminal or the assistant’s replies."
+            }
+          },
+          "plugins": {
+            "title": {
+              "fr": "Plugins intégrés",
+              "en": "Built-in plugins"
+            },
+            "what": {
+              "fr": "Les modules installés sur ce poste : ce qui est activé, la version, et ce que DSH charge au démarrage. Kybernos en ajoute quelques-uns.",
+              "en": "The modules installed on this machine: what is on, the version, and what DSH loads at start-up. Kybernos adds a few."
+            },
+            "steps": [
+              {
+                "fr": "Un interrupteur désactive un module sans le désinstaller : il quitte l’interface au rechargement.",
+                "en": "A switch turns a module off without uninstalling it: it leaves the interface on reload."
+              },
+              {
+                "fr": "La version et la source disent d’où vient le module ; une mise à jour se fait depuis sa propre page.",
+                "en": "The version and the source say where the module comes from; an update is done from its own page."
+              },
+              {
+                "fr": "Les modules Kybernos (Atlas, Compétences, Connecteurs…) ont chacun leur page ; la Suite les liste tous.",
+                "en": "The Kybernos modules (Atlas, Skills, Connectors…) each have their own page; the Suite lists them all."
+              }
+            ],
+            "where": {
+              "fr": "Réglages › Plugins intégrés",
+              "en": "Settings › Built-in plugins",
+              "page": true
+            },
+            "good": {
+              "fr": "Désactiver n’efface rien : les fichiers, réglages et données du module restent sur ce poste.",
+              "en": "Turning off erases nothing: the module’s files, settings and data stay on this machine."
+            }
           }
         }
       }
@@ -608,7 +707,75 @@
           "fr": "Un skill vient d’un tiers ou d’un collègue : DSH ne le vérifie pas, lis ses fichiers et ses audits avant de l’installer ou de l’approuver.",
           "en": "A skill comes from a third party or a colleague: DSH does not check it, so read its files and audits before you install or approve it."
         },
-        "url": "https://help.kybernos.app/{lang}/features/what-are-skills-and-memory/"
+        "url": "https://help.kybernos.app/{lang}/features/what-are-skills-and-memory/",
+        "pages": {
+          "skills": {
+            "title": {
+              "fr": "Réglages › Compétences",
+              "en": "Settings › Skills"
+            },
+            "what": {
+              "fr": "D’où viennent les skills de ce profil : la source de l’index public, les dossiers où une installation s’écrit, et ce que ton profil compte.",
+              "en": "Where this profile’s skills come from: the source of the public index, the folders an install is written to, and what your profile counts."
+            },
+            "steps": [
+              {
+                "fr": "La carte « Source » dit d’où vient l’index : un dossier local ou un dépôt GitHub. Change-la, puis recharge.",
+                "en": "The “Source” card says where the index comes from: a local folder or a GitHub repository. Change it, then reload."
+              },
+              {
+                "fr": "« Dossiers d’installation » montre où chaque skill est écrite ; la liste des skills elle-même reste dans la barre latérale › Compétences.",
+                "en": "“Install folders” shows where each skill is written; the skills list itself stays in the sidebar › Skills."
+              },
+              {
+                "fr": "Une skill importée n’est pas relue par DSH : ouvre ses fichiers avant de l’activer, et retire-la si elle ne te dit rien.",
+                "en": "DSH does not review an imported skill: open its files before switching it on, and remove it if it says nothing to you."
+              }
+            ],
+            "where": {
+              "fr": "Réglages › Compétences",
+              "en": "Settings › Skills",
+              "page": true
+            },
+            "good": {
+              "fr": "Ce que compte ce profil ne quitte pas cet ordinateur : la source de l’index et les dossiers sont locaux.",
+              "en": "What this profile counts never leaves this computer: the index source and the folders are local."
+            }
+          },
+          "learned": {
+            "title": {
+              "fr": "Réglages › Compétences apprises",
+              "en": "Settings › Learned skills"
+            },
+            "what": {
+              "fr": "Ce que Kaby peut faire seule avec les skills qu’elle apprend : trois niveaux, un seuil de confiance, et un journal de chaque proposition.",
+              "en": "What Kaby may do on its own with the skills it learns: three levels, a confidence threshold, and a log of every proposal."
+            },
+            "steps": [
+              {
+                "fr": "Choisis le niveau : « Demander » ne fait rien sans toi, « Améliorer » retouche une skill existante, « Automatique » l’écrit seule.",
+                "en": "Pick the level: “Ask” does nothing without you, “Improve” reworks an existing skill, “Automatic” writes it on its own."
+              },
+              {
+                "fr": "« Me prévenir » règle où tu vois ce qui a été appris : dans le chat, en carte hebdomadaire, ou les deux.",
+                "en": "“Tell me” sets where you see what was learned: in the chat, as a weekly card, or both."
+              },
+              {
+                "fr": "« Voir le journal » montre chaque proposition avec son diff et son verdict : c’est là qu’on comprend ce qui a été retenu.",
+                "en": "“See the log” shows every proposal with its diff and its verdict: that is where you see what was kept."
+              }
+            ],
+            "where": {
+              "fr": "Réglages › Compétences apprises",
+              "en": "Settings › Learned skills",
+              "page": true
+            },
+            "good": {
+              "fr": "Rien n’est appris depuis tes fichiers privés tant que tu ne l’as pas déverrouillé, et tout reste sur cet ordinateur.",
+              "en": "Nothing is learned from your private files until you unlock it, and everything stays on this computer."
+            }
+          }
+        }
       }
     },
     {
@@ -984,7 +1151,42 @@
           "fr": "Un seul service à la fois côté agents : Kybernos Cloud ou ta clé. Ta clé reste sur ta machine ; une clé changée n'atteint les agents qu'après un redémarrage de DSH.",
           "en": "One service at a time for the agents: Kybernos Cloud or your key. Your key stays on your machine; a changed key reaches the agents only after DSH restarts."
         },
-        "url": "https://help.kybernos.app/{lang}/features/what-are-app-connections/"
+        "url": "https://help.kybernos.app/{lang}/features/what-are-app-connections/",
+        "pages": {
+          "connectors": {
+            "title": {
+              "fr": "Réglages › Connecteurs",
+              "en": "Settings › Connectors"
+            },
+            "what": {
+              "fr": "Brancher tes apps au chat : la clé Composio, les connexions actives (Gmail, Slack…), et qui assemble les outils de chaque app.",
+              "en": "Connecting your apps to the chat: the Composio key, the active connections (Gmail, Slack…), and who assembles each app’s tools."
+            },
+            "steps": [
+              {
+                "fr": "La clé Composio vient de l’environnement ou de ce champ : sans clé, aucune connexion ne peut s’ouvrir.",
+                "en": "The Composio key comes from the environment or from this field: without a key, no connection can open."
+              },
+              {
+                "fr": "« Connecter une app » ouvre la page Composio : autorise le compte, la connexion apparaît ici avec son nom.",
+                "en": "“Connect an app” opens the Composio page: authorise the account, and the connection appears here with its name."
+              },
+              {
+                "fr": "La composition choisit qui assemble les outils ; en mode Kybernos, c’est le compte Kybernos qui s’en charge.",
+                "en": "Composition picks who assembles the tools; in Kybernos mode, the Kybernos account does it."
+              }
+            ],
+            "where": {
+              "fr": "Réglages › Connecteurs",
+              "en": "Settings › Connectors",
+              "page": true
+            },
+            "good": {
+              "fr": "La clé est un secret : elle n’est jamais affichée en clair, et rien ne part vers une app que tu n’as pas branchée.",
+              "en": "The key is a secret: it is never shown in clear, and nothing goes to an app you have not connected."
+            }
+          }
+        }
       }
     },
     {
@@ -1034,7 +1236,42 @@
           "fr": "Les modèles Kybernos passent par les serveurs de Kybernos. Tes souvenirs y sont gardés et, par défaut, ajoutés à ce que lit le modèle à chaque tour, quel qu'il soit. Rien de tout cela sans connexion.",
           "en": "Kybernos models go through Kybernos servers. Your memories are kept there and, by default, added to what the model reads each turn, whichever model it is. None of this happens without signing in."
         },
-        "url": "https://help.kybernos.app/{lang}/get-started/connect-your-computer/"
+        "url": "https://help.kybernos.app/{lang}/get-started/connect-your-computer/",
+        "pages": {
+          "kybernos": {
+            "title": {
+              "fr": "Réglages › Kybernos",
+              "en": "Settings › Kybernos"
+            },
+            "what": {
+              "fr": "Ce qui reste sur cet ordinateur : les instructions que tes agents lisent à chaque conversation, l’import de tes modèles Kybernos, et l’envoi de tes chats DSH vers ton compte.",
+              "en": "What stays on this computer: the instructions your agents read in every conversation, the import of your Kybernos models, and the sending of your DSH chats to your account."
+            },
+            "steps": [
+              {
+                "fr": "Écris tes instructions dans le cadre, puis « Enregistrer » : elles sont gardées dans un fichier local que l’agent lit à chaque conversation.",
+                "en": "Write your instructions in the box, then “Save”: they are kept in a local file the agent reads at the start of every conversation."
+              },
+              {
+                "fr": "Ouvre « Avancé » : « Réimporter les modèles » remet à jour la liste de ta formule sans changer de compte.",
+                "en": "Open “Advanced”: “Re-import models” refreshes your plan’s list without changing account."
+              },
+              {
+                "fr": "« Envoyer les chats » demande d’abord confirmation : la page annonce ce qui part, et un refus ne touche à rien.",
+                "en": "“Send chats” asks for confirmation first: the page says what goes, and refusing changes nothing."
+              }
+            ],
+            "where": {
+              "fr": "Réglages › Kybernos",
+              "en": "Settings › Kybernos",
+              "page": true
+            },
+            "good": {
+              "fr": "Tes instructions restent sur cet ordinateur : seule une action d’envoi, que tu lances et confirmes, fait partir quelque chose.",
+              "en": "Your instructions stay on this computer: only a send action, which you start and confirm, makes anything leave it."
+            }
+          }
+        }
       }
     },
     {
