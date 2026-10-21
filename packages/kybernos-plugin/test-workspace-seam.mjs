@@ -14,5 +14,11 @@ ok('the publication is guarded (a frozen global must not stop DSH)', /try \{ glo
 const sibling = new URL('../kybernos-motion/index.js', import.meta.url)
 if (existsSync(sibling)) ok('kybernos-motion reads the same key', readFileSync(sibling, 'utf8').includes("Symbol.for('kybernos.workspace')"))
 
+// V1-09 (video review): deleting a workspace must say WHICH one. The armed chip names it (`nomDuProjet`, from `ws.title`,
+// the field the page renames) and never falls back to an empty or « undefined » name.
+const client = readFileSync(new URL('./client.js', import.meta.url), 'utf8')
+ok('V1-09: the delete confirmation names the workspace', /kbe\('Delete « ' \+ nomDuProjet \+ ' »\?', 'Supprimer « ' \+ nomDuProjet \+ ' » \?'\)/.test(client))
+ok('V1-09: the name comes from the title, with a readable fallback', /const nomDuProjet = ws !== null && ws !== undefined && typeof ws\.title === 'string' && ws\.title\.trim\(\) !== '' \? ws\.title\.trim\(\) : kbe\('this workspace', 'cet espace'\)/.test(client))
+
 console.log(fail === 0 ? 'workspace seam: ok' : `${fail} failed`)
 process.exit(fail ? 1 : 0)

@@ -18038,6 +18038,10 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         kbWsCats().then((cats) => { if (dead === false) setWsCats(cats) })
         return () => { dead = true }
       }, [])
+      // V1-09 (video review): « suppression sans confirmation nommée » — the armed chip said « Confirm deletion » and
+      // nothing said WHAT it deletes. It names the workspace now (its title, the field the page renames), and falls back
+      // to no name rather than to « undefined ».
+      const nomDuProjet = ws !== null && ws !== undefined && typeof ws.title === 'string' && ws.title.trim() !== '' ? ws.title.trim() : kbe('this workspace', 'cet espace')
       const wsDelete = async () => {
         if (wsDelBusy === true) return
         setWsDelBusy(true)
@@ -18169,8 +18173,8 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
               h('span', { className: 'kb8-parent', style: { color: 'var(--dsh-alias-state-error-primary, var(--dsw-alias-state-error-primary))' } }, 'Delete workspace'),
               h('span', { className: 'kb8-sub' }, 'Removes this workspace from the list. The folder on disk and the session logs are kept; nothing is destroyed.'),
               h('div', { style: { display: 'flex', gap: '10px', alignItems: 'center' } },
-                h('button', { type: 'button', className: 'kb8-chip', disabled: wsDelBusy === true, style: (wsDelArm === true ? { borderColor: 'var(--dsw-alias-state-error-primary)', color: 'var(--dsw-alias-state-error-primary)' } : null), onClick: () => (wsDelArm === true ? wsDelete() : setWsDelArm(true)) }, wsDelBusy === true ? 'Deleting…' : (wsDelArm === true ? 'Confirm deletion' : 'Delete workspace…')),
-                (wsDelArm === true && wsDelBusy !== true ? h('button', { type: 'button', className: 'kb8-chip', onClick: () => setWsDelArm(false) }, 'Cancel') : null))))
+                h('button', { type: 'button', className: 'kb8-chip', disabled: wsDelBusy === true, style: (wsDelArm === true ? { borderColor: 'var(--dsw-alias-state-error-primary)', color: 'var(--dsw-alias-state-error-primary)' } : null), onClick: () => (wsDelArm === true ? wsDelete() : setWsDelArm(true)) }, wsDelBusy === true ? kbe('Deleting…', 'Suppression…') : (wsDelArm === true ? kbe('Delete « ' + nomDuProjet + ' »?', 'Supprimer « ' + nomDuProjet + ' » ?') : kbe('Delete workspace…', 'Supprimer l’espace…'))),
+                (wsDelArm === true && wsDelBusy !== true ? h('button', { type: 'button', className: 'kb8-chip', onClick: () => setWsDelArm(false) }, kbe('Cancel', 'Annuler')) : null))))
         }
         if (tab === 'Threads') {
           // Plus de maquette : soit de vrais threads, soit un etat vide explicite.
