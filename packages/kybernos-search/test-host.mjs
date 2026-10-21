@@ -62,6 +62,10 @@ console.log('the index')
     ok('a search finds the chat by an accentless word', r.results.length === 1 && r.results[0].id === 'session-1' && r.results[0].title === 'Créer un thème' && r.results[0].open.kind === 'session')
     ok('a chat with no title is titled by its first words', idx.query({ q: 'webhook', scopes: ['chat'] }).results[0].title.startsWith('Question sans titre'))
     ok('the small sources are searched too', idx.query({ q: 'maquette' }).results.some((x) => x.scope === 'skill'))
+    // the read-only seam kybernos-skills compares the person's asks through: the first message the person typed in each chat, cut, and nothing else
+    const asks = idx.asks(0)
+    ok('asks: the first message of the person in each chat, with its time and its folder', asks.length === 3 && asks.every((a) => typeof a.id === 'string' && typeof a.text === 'string' && typeof a.cwd === 'string' && Number.isFinite(a.at)) && asks.find((a) => a.id === 'session-2').text === 'nettoyage des images docker', asks)
+    ok('asks: a chat older than the limit is left out', idx.asks(Number.MAX_SAFE_INTEGER).length === 0)
     reads = 0
     await idx.start()
     ok('a second start reads nothing that did not change', reads === 0, { reads })

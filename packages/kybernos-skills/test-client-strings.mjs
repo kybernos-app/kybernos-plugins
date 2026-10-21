@@ -88,8 +88,8 @@ for (const w of built) assert.ok(host.includes("'" + w + "'"), w + ' is no longe
 const learnedHost = readFileSync(join(here, 'learned.mjs'), 'utf8')
 const learnedCodes = [...learnedHost.matchAll(/\berror: '([a-z_]+)'/g)].map((m) => m[1])
 assert.ok(learnedCodes.length >= 8, 'the codes of learned.mjs were read (' + learnedCodes.length + ')')
-for (const w of learnedHost.matchAll(/'(edited_before_accepting|taken_back|folder_gone|undid_auto|two_undos|stopped)'/g)) assert.ok(dict.has('ln.j.note.' + w[1]), 'no sentence for the journal note ' + w[1])
-for (const a of ['proposed', 'accepted', 'created', 'improved', 'discarded', 'restored', 'reverted', 'reviewed', 'expired', 'adopted', 'removed', 'settings', 'paused', 'other']) assert.ok(dict.has('ln.j.act.' + a), 'no sentence for the journal act ' + a)
+for (const w of learnedHost.matchAll(/'(edited_before_accepting|taken_back|folder_gone|undid_auto|two_undos|stopped|kept_unused)'/g)) assert.ok(dict.has('ln.j.note.' + w[1]), 'no sentence for the journal note ' + w[1])
+for (const a of ['proposed', 'accepted', 'created', 'improved', 'discarded', 'restored', 'reverted', 'reviewed', 'expired', 'adopted', 'removed', 'settings', 'paused', 'shared', 'other']) assert.ok(dict.has('ln.j.act.' + a), 'no sentence for the journal act ' + a)
 // V1: the settings (codes of learned-settings.mjs), the hard stops and the parts of the score (learned-score.mjs) are worded; so are the three levels.
 const settingsHost = readFileSync(join(here, 'learned-settings.mjs'), 'utf8')
 const settingsCodes = [...settingsHost.matchAll(/\berror: '([a-z_]+)'/g)].map((m) => m[1])
@@ -104,7 +104,12 @@ for (const m of ['ask', 'improve', 'auto']) assert.ok(dict.has('ln.mode.' + m) &
 for (const k of ['ln.j.mode.manual', 'ln.j.mode.legacy', 'ln.j.mode.auto', 'ln.j.by.you', 'ln.j.by.kaby', 'ln.kind.lessons', 'ln.kind.lesson', 'ln.kind.auto']) assert.ok(dict.has(k), 'no sentence for ' + k)
 const actsInHost = [...learnedHost.matchAll(/act: '([a-z]+)'/g)].map((m) => m[1])
 assert.deepEqual(actsInHost.filter((a) => !dict.has('ln.j.act.' + a)), [], 'a journal act the host writes has no sentence')
-const codes = new Set([...literal, ...built, ...learnedCodes, ...settingsCodes])
+// V2: the answers of what Kaby notices (learned-repeat.mjs) are worded, and so are the states a pattern can be in
+const repeatHost = readFileSync(join(here, 'learned-repeat.mjs'), 'utf8')
+const repeatCodes = [...repeatHost.matchAll(/\berror: '([a-z_]+)'/g)].map((m) => m[1])
+assert.ok(repeatCodes.length >= 2, 'the codes of learned-repeat.mjs were read (' + repeatCodes.length + ')')
+for (const st of ['later', 'never', 'done']) assert.ok(dict.has('ls2.rep.s.' + st), 'no sentence for the pattern state ' + st)
+const codes = new Set([...literal, ...built, ...learnedCodes, ...settingsCodes, ...repeatCodes])
 // Nobody reads these on the screen: an image route, a method guard of a route the page never gets wrong, a note the page does not show.
 const unseen = new Set(['get_required', 'post_required', 'no_cover', 'cover_unreadable', 'bad_name', 'bad_root', 'bad_path', 'bad_target'])
 const noHe = [...codes].filter((w) => !unseen.has(w) && !dict.has('he.' + w))

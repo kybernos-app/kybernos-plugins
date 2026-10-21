@@ -3,7 +3,8 @@
 // THE SCORE IS MADE BY RULES, FROM FACTS, never by the model grading itself (a model that wrote a skill would grade it kindly):
 //
 //   evidence  35  how many independent things it came from: lessons (11 each), runs of an automation without a failure (6 each),
-//                 a chat where the person asked for it (11, plus 11 for each verified lesson it cites), and for an improvement the
+//                 a chat where the person asked for it (11, plus 11 for each verified lesson it cites and 11 for each earlier chat where the host
+//                 verified a similar ask, learned-repeat.mjs), and for an improvement the
 //                 distinct chats the skill was really used in (11 each, counted by the host)
 //   words     25  how much of the text is the person's own words: a lesson's sentence, an automation's text (25); text the agent wrote (10)
 //   checks    15  every check of the review passes (5 otherwise)
@@ -30,7 +31,7 @@ export const evidenceOf = (p, uses = 0) => {
   const lessons = p.from !== null && typeof p.from === 'object' && Array.isArray(p.from.lessons) ? p.from.lessons.length : 0
   if (p.kind === 'lessons') return Math.min(35, 11 * lessons)
   if (p.kind === 'auto') return Math.min(35, 6 * (p.from && p.from.automation && Number.isFinite(p.from.automation.runs) ? Math.max(0, p.from.automation.runs) : 0))
-  if (p.kind === 'asked') return Math.min(35, 11 + 11 * (Number.isFinite(p.verifiedLessons) ? Math.max(0, p.verifiedLessons) : 0))
+  if (p.kind === 'asked') return Math.min(35, 11 + 11 * ((Number.isFinite(p.verifiedLessons) ? Math.max(0, p.verifiedLessons) : 0) + (Number.isFinite(p.repeats) ? Math.max(0, p.repeats) : 0)))
   if (p.kind === 'improve') return Math.min(35, 11 * Math.max(0, uses))
   return 0
 }

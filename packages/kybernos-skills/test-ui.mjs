@@ -196,10 +196,13 @@ let Screen = null
 let SettingsScreen = null
 let LearnedSettingsScreen = null
 let TailScreen = null
-plugin.apply({ get: (n) => (n === 'slots' ? { inject: (name, make) => { if (name === 'main.kybernos-skills' || name === 'settings.section' || name === 'conversation.chat.turnTail') make() }, register: (def, comp) => {
+let NoticeScreen = null
+let WeekScreen = null
+plugin.apply({ get: (n) => (n === 'slots' ? { inject: (name, make) => { if (name === 'main.kybernos-skills' || name === 'settings.section' || name === 'conversation.chat.turnTail' || name === 'conversation.input.dock') make() }, register: (def, comp) => {
   if (def.name === 'main.kybernos-skills') Screen = comp
   if (def.name === 'settings.section') { if (def.id === 'kybernos-skills-learned') LearnedSettingsScreen = comp; else SettingsScreen = comp }
   if (def.name === 'conversation.chat.turnTail') TailScreen = comp
+  if (def.name === 'conversation.input.dock') { if (def.id === 'kybernos-skills-learned-notice') NoticeScreen = comp; if (def.id === 'kybernos-skills-learned-week') WeekScreen = comp }
   return () => {}
 } } : undefined) })
 if (Screen === null) { console.log('  ✗ the screen was not registered'); process.exit(1) }
@@ -825,6 +828,262 @@ console.log('Learned skills V1: changes Kaby made on its own are said, with Keep
     check('a chat where nothing was learned draws nothing', kb(empty, 'learned-tail').length === 0)
     const bare = await openTail(w2, {})
     check('mounted without a chat it draws nothing and asks nothing', kb(bare, 'learned-tail').length === 0 && w2.calls.filter((c) => c.path === '/kybernos-skills/learned/session').length === 1)
+  }
+}
+
+// ── Skills learned from experience, V2: a task that comes back, the weekly card, ready to share, the settings ────────────────────────
+console.log('Learned skills V2: the notice under a finished answer, the weekly card, ready to share, the settings cards')
+{
+  const typed = async (root, node, value) => { node.props.onChange({ target: { value } }); await root.settle() }
+  const sess = new Map()
+  const opened = []
+  globalThis.window.localStorage = globalThis.localStorage
+  globalThis.window.sessionStorage = { getItem: (k) => (sess.has(k) ? sess.get(k) : null), setItem: (k, v) => { sess.set(k, String(v)) }, removeItem: (k) => { sess.delete(k) } }
+  globalThis.window.__KB_OPEN__ = (arg) => { opened.push(arg) }
+  const SET = { mode: 'ask', threshold: 90, cap: 3, notify: 'both', privOk: false, breaker: null, notice: true, minRep: 3, win: 60, week: true, team: true, teamMin: 3, teamPriv: false }
+  const mount2 = async (w, Comp, props, lang) => {
+    globalThis.window.__KB_LANG_RESOLVE__ = () => lang || 'en'
+    globalThis.fetch = async (url, init) => { INFLIGHT.n += 1; try { return await w.fetch(url, init) } finally { INFLIGHT.n -= 1 } }
+    const root = mount(React.createElement(Comp, props))
+    await root.settle()
+    return root
+  }
+  check('the two dock cards are registered above the composer', NoticeScreen !== null && WeekScreen !== null)
+
+  // the card under a finished answer
+  const NOTICE = { id: 'r_aaaa1111', n: 4, dates: ['2026-10-03', '2026-10-09', '2026-10-14', '2026-10-20'], label: 'release notes commits', minRep: 3 }
+  const drafts = []
+  const dock = (over) => Object.assign({ sessionId: 's-n1', session: { blank: false, running: false, pendingSubmissions: [] }, input: { draft: '', phase: 'plain' }, inputActions: { setDraft: (x) => { drafts.push(x) } } }, over || {})
+  {
+    const w = world()
+    w.answers['GET /kybernos-skills/learned/notice'] = { ok: true, notice: NOTICE }
+    w.answers['POST /kybernos-skills/learned/notice/answer'] = (b) => ({ ok: true, id: b.id, state: b.answer })
+    const root = await mount2(w, NoticeScreen, dock())
+    const txt = part(root, 'learned-notice')
+    check('under a finished answer: « this is the 4th time you ask for something like this », the topic and the days', txt.includes('This is the 4th time you ask for something like this (“release notes commits”)') && txt.includes('3 Oct, 9 Oct, 14 Oct, 20 Oct'), txt.slice(0, 300))
+    check('it asks for THIS chat, and says how it knows and that nothing leaves the computer', w.calls.some((c) => c.path === '/kybernos-skills/learned/notice' && c.query.sessionId === 's-n1') && txt.includes('no model, nothing leaves this computer') && txt.includes('At most once a day'))
+    await click(root, kb(root, 'learned-notice-yes')[0])
+    check('« Write it down » pre-fills the composer with the sentence and never sends it', drafts.length === 1 && drafts[0] === 'Remember how to do this as a skill (use skill_propose), from this conversation.', drafts)
+    check('and tells the host the person said yes', posted(w, '/kybernos-skills/learned/notice/answer').length === 1 && posted(w, '/kybernos-skills/learned/notice/answer')[0].body.answer === 'yes' && posted(w, '/kybernos-skills/learned/notice/answer')[0].body.id === 'r_aaaa1111')
+    check('the card is gone', kb(root, 'learned-notice').length === 0)
+    const w2 = world()
+    w2.answers['GET /kybernos-skills/learned/notice'] = { ok: true, notice: NOTICE }
+    w2.answers['POST /kybernos-skills/learned/notice/answer'] = (b) => ({ ok: true, id: b.id, state: b.answer })
+    const r2 = await mount2(w2, NoticeScreen, dock())
+    await click(r2, kb(r2, 'learned-notice-later')[0])
+    check('Not now: the host is told, and the sentence says not before tomorrow', posted(w2, '/kybernos-skills/learned/notice/answer')[0].body.answer === 'later' && part(r2, 'learned-notice-done').includes('Not before tomorrow'))
+    const w3 = world()
+    w3.answers['GET /kybernos-skills/learned/notice'] = { ok: true, notice: NOTICE }
+    w3.answers['POST /kybernos-skills/learned/notice/answer'] = (b) => ({ ok: true, id: b.id, state: b.answer })
+    const r3 = await mount2(w3, NoticeScreen, dock())
+    await click(r3, kb(r3, 'learned-notice-never')[0])
+    check('Never for this one: remembered, and the way back is said', posted(w3, '/kybernos-skills/learned/notice/answer')[0].body.answer === 'never' && part(r3, 'learned-notice-done').includes('Settings › Learned skills'))
+  }
+  {
+    // when it stays silent
+    const quiet = async (props, label) => {
+      const w = world()
+      w.answers['GET /kybernos-skills/learned/notice'] = { ok: true, notice: NOTICE }
+      const root = await mount2(w, NoticeScreen, props)
+      check(label, kb(root, 'learned-notice').length === 0, textOf(root.tree || { text: '' }))
+      return w
+    }
+    const wb = await quiet(dock({ session: { blank: true } }), 'a blank chat: nothing, and the host is not even asked')
+    check('(not asked)', wb.calls.filter((c) => c.path === '/kybernos-skills/learned/notice').length === 0)
+    const wr = await quiet(dock({ session: { blank: false, running: true } }), 'while something runs: nothing, and the host is not asked')
+    check('(not asked either)', wr.calls.filter((c) => c.path === '/kybernos-skills/learned/notice').length === 0)
+    await quiet(dock({ input: { draft: 'I am typing', phase: 'plain' } }), 'while the person types: nothing')
+    await quiet(dock({ session: { blank: false, running: false, pendingSubmissions: [{}] } }), 'while a message waits to be sent: nothing')
+    await quiet({}, 'mounted without a chat: nothing')
+    const none = world()
+    none.answers['GET /kybernos-skills/learned/notice'] = { ok: true, notice: null, why: 'today' }
+    const rn = await mount2(none, NoticeScreen, dock())
+    check('when the host has nothing to say (once a day, never, not a pattern): nothing', kb(rn, 'learned-notice').length === 0)
+    const absent = await mount2(world(), NoticeScreen, dock())
+    check('a host without the route draws nothing and breaks nothing', kb(absent, 'learned-notice').length === 0)
+  }
+  {
+    const w = world()
+    w.answers['GET /kybernos-skills/learned/notice'] = { ok: true, notice: { ...NOTICE, label: null } }
+    const root = await mount2(w, NoticeScreen, dock({ sessionId: 's-n2' }))
+    const txt = part(root, 'learned-notice')
+    check('in Law and Health no topic is named and the card says only numbers and dates are kept', !txt.includes('(“') && txt.includes('Nothing is kept from your chats, only numbers and dates.'), txt.slice(0, 200))
+    const fr = await mount2(w, NoticeScreen, dock({ sessionId: 's-n3' }), 'fr')
+    check('in French: « C’est la 4e fois que tu demandes quelque chose comme ça »', part(fr, 'learned-notice').includes('C’est la 4e fois que tu demandes quelque chose comme ça'), part(fr, 'learned-notice').slice(0, 120))
+  }
+
+  // the weekly card
+  const WEEK = { ok: true, show: true, week: '2026-W43', from: '2026-10-14', to: '2026-10-20', accepted: 2, used: 9, usedSkills: 4, top: { name: 'release-notes-from-commits', uses: 5 }, waiting: 1, auto: { created: 1, improved: 1 },
+    stale: [{ name: 'image-budget-check', root: '/home/u/.dsh/skills', days: 41 }], ready: [{ name: 'release-notes-from-commits', chats: 3 }], sensitive: false }
+  const weekWorld = (over) => {
+    const w = world()
+    w.answers['GET /kybernos-skills/learned/week'] = Object.assign({}, WEEK, over || {})
+    w.answers['GET /kybernos-memory/lessons'] = { ok: true, total: 6, items: [] }
+    w.answers['POST /kybernos-skills/learned/week/hide'] = { ok: true }
+    w.answers['POST /kybernos-skills/learned/keep'] = (b) => ({ ok: true, name: b.name })
+    w.answers['POST /kybernos-skills/toggle'] = { ok: true }
+    return w
+  }
+  {
+    const w = weekWorld()
+    const root = await mount2(w, WeekScreen, { sessionId: 'home-1', session: { blank: true } })
+    const txt = part(root, 'learned-week')
+    check('on a blank chat: the card, the week, and the numbers (lessons from the memory route)', txt.includes('What Kaby learned this week') && txt.includes('14 Oct') && txt.includes('20 Oct') && txt.includes('6lessons') && txt.includes('2skills accepted') && txt.includes('9×skills used (4)'), txt.slice(0, 300))
+    check('it names the skill used most, what waits, what Kaby did alone, what nobody used for a month and what is ready for the team', txt.includes('release-notes-from-commits is the one you use most: 5 times.') && txt.includes('1 suggestion is waiting for your yes.') && txt.includes('Kaby created 1 and improved 1 on its own.') && txt.includes('image-budget-check has not been used for 41 days. Switch it off?') && txt.includes('is used in 3 chats. Propose it to your team?'), txt)
+    check('it asks the host for THIS chat', w.calls.some((c) => c.path === '/kybernos-skills/learned/week' && c.query.sessionId === 'home-1'))
+    await click(root, kb(root, 'learned-week-keep')[0])
+    check('Keep renews a skill nobody used, and the row goes', posted(w, '/kybernos-skills/learned/keep').length === 1 && posted(w, '/kybernos-skills/learned/keep')[0].body.name === 'image-budget-check' && !part(root, 'learned-week').includes('image-budget-check has not been used'))
+    await click(root, kb(root, 'learned-week-share')[0])
+    check('Propose… sends the person to that skill on the Skills page', sess.get('kybernos.skills.share') === 'release-notes-from-commits' && opened.some((o) => o.view === 'skills'))
+    sess.delete('kybernos.skills.share')
+    await click(root, kb(root, 'learned-week-journal')[0])
+    check('Open the journal opens it on the Skills page', sess.get('kybernos.skills.journal') === '1')
+    sess.delete('kybernos.skills.journal')
+    await click(root, kb(root, 'learned-week-hide')[0])
+    check('Hide tells the host and says the card is back next week', posted(w, '/kybernos-skills/learned/week/hide').length === 1 && part(root, 'learned-week-hidden').includes('hidden until next week'))
+    const w2 = weekWorld()
+    const r2 = await mount2(w2, WeekScreen, { sessionId: 'home-2', session: { blank: true } })
+    await click(r2, kb(r2, 'learned-week-off')[0])
+    check('Switch off uses the switch of the skills page (root and name from the host)', posted(w2, '/kybernos-skills/toggle').length === 1 && posted(w2, '/kybernos-skills/toggle')[0].body.name === 'image-budget-check' && posted(w2, '/kybernos-skills/toggle')[0].body.active === false && posted(w2, '/kybernos-skills/toggle')[0].body.root === '/home/u/.dsh/skills')
+    await click(r2, kb(r2, 'learned-week-later')[0])
+    check('Later drops the team row for now', !part(r2, 'learned-week').includes('Propose it to your team?'))
+  }
+  {
+    const nb = weekWorld()
+    const rb = await mount2(nb, WeekScreen, { sessionId: 'chat-1', session: { blank: false } })
+    check('in a chat that has begun: nothing, and the host is not asked', kb(rb, 'learned-week').length === 0 && nb.calls.filter((c) => c.path === '/kybernos-skills/learned/week').length === 0)
+    const off = weekWorld({ show: false, why: 'quiet' })
+    const ro = await mount2(off, WeekScreen, { sessionId: 'home-3', session: { blank: true } })
+    check('when the host says there is nothing to show: nothing', kb(ro, 'learned-week').length === 0)
+    const bare = world()
+    const rr = await mount2(bare, WeekScreen, { sessionId: 'home-4', session: { blank: true } })
+    check('a host without the route draws nothing', kb(rr, 'learned-week').length === 0)
+    const nl = weekWorld()
+    nl.answers['GET /kybernos-memory/lessons'] = undefined
+    delete nl.answers['GET /kybernos-memory/lessons']
+    const rl = await mount2(nl, WeekScreen, { sessionId: 'home-5', session: { blank: true } })
+    check('without the lessons route the card simply has no lessons number', part(rl, 'learned-week').includes('What Kaby learned this week') && !part(rl, 'learned-week').includes('lessons'))
+    const fr = await mount2(weekWorld(), WeekScreen, { sessionId: 'home-6', session: { blank: true } }, 'fr')
+    check('in French', part(fr, 'learned-week').includes('Ce que Kaby a appris cette semaine') && part(fr, 'learned-week').includes('1 suggestion attend ton accord.'))
+  }
+
+  // ready to share, on the Skills page
+  const entry = (over) => Object.assign({ name: 'statistical-analysis', kind: 'asked', acceptedAt: '2026-10-12T10:00:00.000Z', ver: 1, from: { asked: true }, by: 'you', mode: 'approved', uses: 3, lastUsed: '2026-10-19T10:00:00.000Z', legacy: false, score: null, reviewed: true, unusedDays: 0, improved: false, auto: false, chats: 3, shared: false, shareReady: true }, over || {})
+  const shareList = (e, over) => ({ ok: true, proposals: [], learned: [e], discarded: [], week: { used: 0, cap: 3 }, sensitive: false, settings: SET, rules: [], limits: { maxPending: 5, pendingDays: 30, discardedDays: 30 }, ...(over || {}) })
+  {
+    const w = world()
+    const sk = w.skills[0]
+    w.reads[sk.root + '|' + sk.name] = readOf(sk, '---\nname: statistical-analysis\n---\n# Stats', ALL)
+    w.answers['GET /kybernos-skills/learned'] = shareList(entry())
+    w.answers['GET /kybernos-cloud/team/skills'] = { ok: true, role: 'member', counts: { approved: 0, pending: 0 }, workspaceName: 'Team Alpha' }
+    w.answers['POST /kybernos-skills/team/pack'] = { ok: true, name: 'statistical-analysis', description: 'About statistical-analysis', files: [{ path: 'SKILL.md', bytes: 40 }], count: 1, bytes: 40, scripts: [] }
+    w.answers['POST /kybernos-cloud/team/skills/add'] = { ok: true }
+    w.answers['POST /kybernos-skills/learned/shared'] = (b) => ({ ok: true, name: b.name })
+    const root = await open(w)
+    check('a learned skill used in enough chats wears « ready to share »', textOf(kb(cardOf(root, 'statistical-analysis'), 'learned-ready')[0]).includes('ready to share'))
+    await click(root, cardOf(root, 'statistical-analysis'))
+    const pn = part(root, 'skill-panel')
+    check('its panel says how many chats used it and offers the proposal', pn.includes('Share with your team') && pn.includes('Used in 3 chats since you accepted it') && kb(root, 'learned-share-btn').length === 1, pn.slice(0, 300))
+    await click(root, kb(root, 'learned-share-btn')[0])
+    check('the button opens the existing Team sheet, on that skill', all(root, (n) => hasClass(n, 'kbt-sheet')).length === 1 && all(root, (n) => n.tag === 'select' && hasClass(n, 'kbs-select'))[0].props.value !== '', all(root, (n) => n.tag === 'select').map((n) => n.props.value))
+    await click(root, all(root, (n) => n.tag === 'button' && hasClass(n, 'kb8-primary') && /Propose to the team/i.test(textOf(n)))[0])
+    check('after the proposal the host notes it on the skill (journal, and the hint stops)', posted(w, '/kybernos-skills/learned/shared').length === 1 && posted(w, '/kybernos-skills/learned/shared')[0].body.name === 'statistical-analysis', posted(w, '/kybernos-skills/learned/shared'))
+  }
+  {
+    const w = world()
+    w.answers['GET /kybernos-skills/learned'] = shareList(entry())
+    const root = await open(w)
+    await click(root, cardOf(root, 'statistical-analysis'))
+    await click(root, kb(root, 'learned-share-btn')[0])
+    check('without a team on the account the button says so instead of opening a sheet', page(root).includes('No team on this account') && all(root, (n) => hasClass(n, 'kbt-sheet')).length === 0)
+    const w2 = world()
+    w2.answers['GET /kybernos-skills/learned'] = shareList(entry({ shared: true, shareReady: false }))
+    const r2 = await open(w2)
+    check('a skill already proposed says so, on the card and in the panel', textOf(kb(cardOf(r2, 'statistical-analysis'), 'learned-shared')[0]).includes('proposed to your team') && kb(cardOf(r2, 'statistical-analysis'), 'learned-ready').length === 0)
+    const w3 = world()
+    w3.answers['GET /kybernos-skills/learned'] = shareList(entry({ shareReady: false }), { sensitive: true })
+    const r3 = await open(w3)
+    await click(r3, cardOf(r3, 'statistical-analysis'))
+    check('in Law and Health: no hint, and the panel says it stays on this computer', kb(cardOf(r3, 'statistical-analysis'), 'learned-ready').length === 0 && part(r3, 'learned-share').includes('Stays on this computer'))
+    const w4 = world()
+    w4.answers['GET /kybernos-skills/learned'] = shareList(entry({ shareReady: false, chats: 1 }))
+    const r4 = await open(w4)
+    await click(r4, cardOf(r4, 'statistical-analysis'))
+    check('a skill not used enough shows nothing about sharing', kb(r4, 'learned-share').length === 0 && kb(cardOf(r4, 'statistical-analysis'), 'learned-ready').length === 0)
+    const w5 = world()
+    w5.answers['GET /kybernos-skills/learned'] = shareList(entry())
+    w5.answers['GET /kybernos-cloud/team/skills'] = { ok: true, role: 'member', counts: { approved: 0, pending: 0 }, workspaceName: 'Team Alpha' }
+    w5.answers['POST /kybernos-skills/team/pack'] = { ok: true, name: 'statistical-analysis', description: 'x', files: [{ path: 'SKILL.md', bytes: 40 }], count: 1, bytes: 40, scripts: [] }
+    sess.set('kybernos.skills.share', 'statistical-analysis')
+    const r5 = await open(w5)
+    check('the hint of the weekly card opens the Team sheet on that skill, once', all(r5, (n) => hasClass(n, 'kbt-sheet')).length === 1 && sess.has('kybernos.skills.share') === false)
+  }
+  {
+    // the proposal of a skill asked for several times, and the journal of the proposal to the team
+    const w = world()
+    const checksOk = [{ id: 'name', s: 'ok', name: 'invoice-follow-up' }, { id: 'use_when', s: 'ok' }, { id: 'rules', s: 'ok' }, { id: 'size', s: 'ok', size: 200, max: 8192 }, { id: 'copy', s: 'ok', closest: null, percent: 0 }, { id: 'client_data', s: 'ok', count: 0 }]
+    const asked = { id: 'p_eeee5555', name: 'invoice-follow-up', kind: 'asked', createdAt: '2026-10-20T10:00:00.000Z', expiresAt: '2026-11-19T10:00:00.000Z', description: 'Chases an invoice. Use when the person asks to chase an invoice.', whenToUse: '', body: '# Invoice\n\n1. Read the file.', from: { sessionId: 'x', asked: true, repeats: { n: 4, dates: ['2026-10-03', '2026-10-09', '2026-10-14', '2026-10-20'] } }, edited: false, checks: checksOk, hits: [], blocking: false, text: '', source: { sessionId: 'x', tracked: true, tainted: false, tool: null }, score: { total: 85, signals: [{ id: 'evidence', v: 35, max: 35 }, { id: 'words', v: 10, max: 25 }, { id: 'checks', v: 15, max: 15 }, { id: 'clean', v: 10, max: 10 }, { id: 'copy', v: 10, max: 10 }, { id: 'record', v: 5, max: 5 }], risky: false }, stops: ['asks'], hard: [] }
+    w.answers['GET /kybernos-skills/learned'] = { ok: true, proposals: [asked], learned: [], discarded: [], week: { used: 0, cap: 3 }, sensitive: false, settings: SET, rules: [], limits: { maxPending: 5, pendingDays: 30, discardedDays: 30 } }
+    w.answers['GET /kybernos-skills/learned/journal'] = { ok: true, verified: true, brokenAt: null, count: 1, entries: [{ n: 1, t: '2026-10-21T10:00:00.000Z', act: 'shared', skill: 'statistical-analysis', by: 'you', mode: 'manual', kind: 'asked', ver: 1, prev: '0'.repeat(64), hash: 'a'.repeat(64) }] }
+    const root = await open(w)
+    await click(root, kb(root, 'learned-review')[0])
+    const pn = part(root, 'learned-panel')
+    check('the panel says the host counted the earlier asks: 4 chats, the days, a fact and not a grade; the evidence is full', pn.includes('You asked for something like this in 4 chats (') && pn.includes('a fact it read, not a grade it gave itself') && pn.includes('85 / 100'), pn.slice(0, 400))
+    await click(root, kb(root, 'learned-journal-btn')[0])
+    check('the journal words « Proposed to the team »', part(root, 'learned-journal').includes('statistical-analysis Proposed to the team'), part(root, 'learned-journal').slice(0, 200))
+  }
+
+  // the settings cards
+  const setWorld = (over, list) => {
+    const w = world()
+    let current = Object.assign({}, SET, over || {})
+    w.current = () => current
+    w.answers['GET /kybernos-skills/learned'] = () => ({ ok: true, proposals: [], learned: [], discarded: [], week: { used: 0, cap: 3 }, sensitive: false, settings: current, rules: [], limits: { maxPending: 5, pendingDays: 30, discardedDays: 30 }, ...(list || {}) })
+    w.answers['POST /kybernos-skills/learned/settings/set'] = (b) => { current = Object.assign({}, current, b); return { ok: true, settings: current } }
+    w.answers['GET /kybernos-skills/learned/notice/list'] = { ok: true, index: true, patterns: [{ id: 'r_aaaa1111', state: 'never', n: 4, at: '2026-10-20T10:00:00.000Z', label: 'release notes commits' }, { id: 'r_bbbb2222', state: 'done', n: 3, at: '2026-10-12T10:00:00.000Z', label: null }] }
+    w.answers['POST /kybernos-skills/learned/notice/forget'] = (b) => ({ ok: true, id: b.id })
+    return w
+  }
+  {
+    const w = setWorld()
+    const root = await mount2(w, LearnedSettingsScreen, {})
+    const rc = part(root, 'learned-repeat-card')
+    check('three new cards: tasks you repeat, weekly card, sharing with the team', rc.includes('Tasks you repeat') && part(root, 'learned-week-card').includes('Weekly card') && part(root, 'learned-team-card').includes('Sharing with the team'))
+    check('the switch and the two choices show what is in force (on, 3 asks, 60 days)', kb(root, 'learned-notice-on')[0].props.checked === true && all(root, (n) => n.tag === 'select' && n.props.id === 'kbl-minrep')[0].props.value === '3' && all(root, (n) => n.tag === 'select' && n.props.id === 'kbl-win')[0].props.value === '60')
+    kb(root, 'learned-notice-on')[0].props.onChange({ target: { checked: false } })
+    await root.settle()
+    check('a switch saves at once, only that field', JSON.stringify(posted(w, '/kybernos-skills/learned/settings/set')[0].body) === '{"notice":false}' && kb(root, 'learned-notice-on')[0].props.checked === false, posted(w, '/kybernos-skills/learned/settings/set'))
+    await typed(root, all(root, (n) => n.tag === 'select' && n.props.id === 'kbl-minrep')[0], '5')
+    await typed(root, all(root, (n) => n.tag === 'select' && n.props.id === 'kbl-win')[0], '90')
+    await typed(root, all(root, (n) => n.tag === 'select' && n.props.id === 'kbl-teammin')[0], '8')
+    const bodies = posted(w, '/kybernos-skills/learned/settings/set').map((c) => JSON.stringify(c.body))
+    check('the choices are saved as numbers', bodies.includes('{"minRep":5}') && bodies.includes('{"win":90}') && bodies.includes('{"teamMin":8}'), bodies)
+    kb(root, 'learned-week-on')[0].props.onChange({ target: { checked: false } })
+    kb(root, 'learned-team-on')[0].props.onChange({ target: { checked: false } })
+    await root.settle()
+    check('the weekly card and the team hint each have their own switch', posted(w, '/kybernos-skills/learned/settings/set').map((c) => JSON.stringify(c.body)).includes('{"week":false}') && posted(w, '/kybernos-skills/learned/settings/set').map((c) => JSON.stringify(c.body)).includes('{"team":false}'))
+    const rows = kb(root, 'pattern-row')
+    check('what the person answered is listed, with the topic outside Law and Health and « a task of this kind » without one', rows.length === 2 && textOf(rows[0]).includes('release notes commits') && textOf(rows[0]).includes('Never for this one') && textOf(rows[1]).includes('a task of this kind') && textOf(rows[1]).includes('accepted'))
+    check('a refused pattern can be allowed again, an accepted one forgotten', textOf(all(rows[0], (n) => n.tag === 'button')[0]).includes('Allow again') && textOf(all(rows[1], (n) => n.tag === 'button')[0]).includes('Forget'))
+    await click(root, all(rows[0], (n) => n.tag === 'button')[0])
+    check('and the host forgets it', posted(w, '/kybernos-skills/learned/notice/forget').length === 1 && posted(w, '/kybernos-skills/learned/notice/forget')[0].body.id === 'r_aaaa1111')
+  }
+  {
+    const w = setWorld({}, { sensitive: true })
+    const root = await mount2(w, LearnedSettingsScreen, {})
+    check('in Law and Health: the repeat card says only numbers and dates are kept', part(root, 'learned-repeat-card').includes('keeps only numbers and dates'))
+    check('and sharing is off until a switch of its own is turned on', kb(root, 'learned-team-on')[0].props.disabled === true && kb(root, 'learned-team-on')[0].props.checked === false && part(root, 'learned-team-card').includes('stay on this computer by default'))
+    kb(root, 'learned-team-unlock')[0].props.onChange({ target: { checked: true } })
+    await root.settle()
+    check('the unlock is saved, then the hint switch can be used', JSON.stringify(posted(w, '/kybernos-skills/learned/settings/set')[0].body) === '{"teamPriv":true}' && kb(root, 'learned-team-on')[0].props.disabled !== true)
+  }
+  {
+    const w = setWorld()
+    w.answers['GET /kybernos-skills/learned/notice/list'] = { ok: true, index: false, patterns: [] }
+    const root = await mount2(w, LearnedSettingsScreen, {})
+    check('without Search everywhere the page says Kaby cannot notice anything, and the list says it has nothing', part(root, 'learned-noindex').includes('Search everywhere is not loaded') && part(root, 'learned-patterns').includes('Nothing yet'))
+    const fr = await mount2(setWorld(), LearnedSettingsScreen, {}, 'fr')
+    check('in French', part(fr, 'learned-repeat-card').includes('Tâches que tu répètes') && part(fr, 'learned-week-card').includes('Carte hebdomadaire') && part(fr, 'learned-team-card').includes('Partage avec l’équipe'))
   }
 }
 
