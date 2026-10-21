@@ -1,0 +1,183 @@
+{
+  "v": 1,
+  "id": "com",
+  "order": 60,
+  "name": {
+    "en": "Commerce",
+    "fr": "Commerce"
+  },
+  "tagline": {
+    "en": "Shops, operations, customer service, freelancers",
+    "fr": "Boutiques, opérations, service client, indépendants"
+  },
+  "legacyJobs": [
+    "commerce",
+    "entre"
+  ],
+  "menu": {
+    "labels": {
+      "dashboards": {
+        "en": "Sales and stock",
+        "fr": "Ventes et stock"
+      },
+      "aiteams": {
+        "en": "Shop team",
+        "fr": "Équipe boutique"
+      }
+    },
+    "hide": [
+      "documents"
+    ]
+  },
+  "goals": [
+    {
+      "id": "tickets",
+      "name": {
+        "en": "Support",
+        "fr": "Support"
+      },
+      "title": {
+        "en": "Sort customer requests",
+        "fr": "Trier les demandes clients"
+      },
+      "desc": {
+        "en": "Tickets sorted and prioritised",
+        "fr": "Des tickets triés et priorisés"
+      },
+      "skills": [
+        {
+          "source": "anthropics/knowledge-work-plugins",
+          "name": "ticket-triage",
+          "d": {
+            "en": "Sort and prioritise support tickets",
+            "fr": "Trie et priorise les tickets"
+          }
+        }
+      ],
+      "soon": [
+        {
+          "en": "Support Concierge team",
+          "fr": "Équipe Support Concierge"
+        }
+      ],
+      "starter": {
+        "en": "Sort today’s tickets",
+        "fr": "Trie les tickets du jour"
+      }
+    },
+    {
+      "id": "stock",
+      "name": {
+        "en": "Stock",
+        "fr": "Stock"
+      },
+      "title": {
+        "en": "Keep stock and orders under control",
+        "fr": "Garder stocks et commandes sous contrôle"
+      },
+      "desc": {
+        "en": "Stock, orders and reports",
+        "fr": "Stocks, commandes et rapports"
+      },
+      "skills": [
+        {
+          "source": "anthropics/skills",
+          "name": "xlsx",
+          "d": {
+            "en": "Track money and pipeline",
+            "fr": "Suit l’argent et le pipeline"
+          }
+        }
+      ],
+      "soon": [
+        {
+          "en": "E-commerce Operator team",
+          "fr": "Équipe E-commerce Operator"
+        },
+        {
+          "en": "Stock alerts",
+          "fr": "Alertes de stock"
+        }
+      ],
+      "starter": {
+        "en": "Which items are about to run out?",
+        "fr": "Quels articles vont manquer ?"
+      }
+    },
+    {
+      "id": "letters",
+      "name": {
+        "en": "Letters",
+        "fr": "Courriers"
+      },
+      "title": {
+        "en": "Write to my customers",
+        "fr": "Écrire à mes clients"
+      },
+      "desc": {
+        "en": "Procedures and customer letters",
+        "fr": "Procédures et courriers clients"
+      },
+      "skills": [
+        {
+          "source": "anthropics/skills",
+          "name": "docx",
+          "d": {
+            "en": "Write and format papers",
+            "fr": "Rédige et met en forme tes devoirs"
+          }
+        }
+      ],
+      "starter": {
+        "en": "Write a letter to a customer",
+        "fr": "Rédige un courrier client"
+      }
+    },
+    {
+      "id": "outreach",
+      "name": {
+        "en": "Outreach",
+        "fr": "Prospection"
+      },
+      "title": {
+        "en": "Find new customers",
+        "fr": "Trouver des clients"
+      },
+      "desc": {
+        "en": "Outreach people answer",
+        "fr": "Une prospection qui obtient des réponses"
+      },
+      "skills": [
+        {
+          "source": "anthropics/knowledge-work-plugins",
+          "name": "draft-outreach",
+          "d": {
+            "en": "Write outreach people answer",
+            "fr": "Écrit des messages de prospection qui obtiennent une réponse"
+          }
+        },
+        {
+          "source": "anthropics/knowledge-work-plugins",
+          "name": "campaign-plan",
+          "d": {
+            "en": "Plan a campaign end to end",
+            "fr": "Planifie une campagne de bout en bout"
+          }
+        }
+      ],
+      "teams": [
+        "inbound-closer"
+      ],
+      "soon": [
+        {
+          "en": "Back-office Finance team",
+          "fr": "Équipe Back-office Finance"
+        }
+      ],
+      "starter": {
+        "en": "Write an outreach message",
+        "fr": "Écris un message de prospection"
+      }
+    }
+  ]
+}

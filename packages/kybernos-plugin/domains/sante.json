@@ -1,0 +1,207 @@
+{
+  "v": 1,
+  "id": "sante",
+  "order": 20,
+  "name": {
+    "en": "Health",
+    "fr": "Santé"
+  },
+  "tagline": {
+    "en": "Practices, clinics, health students",
+    "fr": "Cabinets, cliniques, étudiants en santé"
+  },
+  "legacyJobs": [],
+  "menu": {
+    "labels": {
+      "dashboards": {
+        "en": "My activity",
+        "fr": "Mon activité"
+      },
+      "aiteams": {
+        "en": "Practice team",
+        "fr": "Équipe du cabinet"
+      },
+      "deliverables": {
+        "en": "Reports",
+        "fr": "Comptes rendus"
+      },
+      "tasks": {
+        "en": "Reminders and follow-ups",
+        "fr": "Rappels et suivis"
+      }
+    },
+    "hide": [
+      "documents"
+    ]
+  },
+  "goals": [
+    {
+      "id": "notes",
+      "name": {
+        "en": "Notes",
+        "fr": "Comptes rendus"
+      },
+      "title": {
+        "en": "Save time on consultation notes",
+        "fr": "Gagner du temps sur les comptes rendus"
+      },
+      "desc": {
+        "en": "Read a file, write the report in your format",
+        "fr": "Lire un dossier, rédiger le compte rendu dans ton format"
+      },
+      "skills": [
+        {
+          "source": "anthropics/skills",
+          "name": "pdf",
+          "d": {
+            "en": "Read and extract your course PDFs",
+            "fr": "Lit et extrait tes cours en PDF"
+          }
+        },
+        {
+          "source": "anthropics/skills",
+          "name": "docx",
+          "d": {
+            "en": "Write and format papers",
+            "fr": "Rédige et met en forme tes devoirs"
+          }
+        }
+      ],
+      "soon": [
+        {
+          "en": "Consultation-notes skill",
+          "fr": "Skill de notes de consultation"
+        },
+        {
+          "en": "Cabinet Assistant team",
+          "fr": "Équipe Cabinet Assistant"
+        }
+      ],
+      "starter": {
+        "en": "Write the report of the 2 pm consultation",
+        "fr": "Rédige le compte rendu de la consultation de 14 h"
+      }
+    },
+    {
+      "id": "appointments",
+      "name": {
+        "en": "Appointments",
+        "fr": "Rendez-vous"
+      },
+      "title": {
+        "en": "Cut missed appointments",
+        "fr": "Réduire les rendez-vous manqués"
+      },
+      "desc": {
+        "en": "Reminders the day before",
+        "fr": "Des rappels la veille"
+      },
+      "soon": [
+        {
+          "en": "Reminder messages",
+          "fr": "Messages de rappel"
+        },
+        {
+          "en": "Reminder automation",
+          "fr": "Automatisation de rappel"
+        }
+      ],
+      "starter": {
+        "en": "Prepare tomorrow’s reminders",
+        "fr": "Prépare les rappels de demain"
+      }
+    },
+    {
+      "id": "messages",
+      "name": {
+        "en": "Messages",
+        "fr": "Messages"
+      },
+      "title": {
+        "en": "Answer patients faster",
+        "fr": "Répondre plus vite aux patients"
+      },
+      "desc": {
+        "en": "Draft replies to validate each morning",
+        "fr": "Des réponses à valider chaque matin"
+      },
+      "skills": [
+        {
+          "source": "anthropics/skills",
+          "name": "docx",
+          "d": {
+            "en": "Letters and replies in your format",
+            "fr": "Courriers et réponses dans ton format"
+          }
+        }
+      ],
+      "starter": {
+        "en": "Draft replies to this morning’s messages",
+        "fr": "Prépare les réponses aux messages de ce matin"
+      }
+    },
+    {
+      "id": "activity",
+      "name": {
+        "en": "Activity",
+        "fr": "Activité"
+      },
+      "title": {
+        "en": "Follow my activity",
+        "fr": "Suivre mon activité"
+      },
+      "desc": {
+        "en": "My consultations and time at a glance",
+        "fr": "Mes consultations et mon temps d’un coup d’œil"
+      },
+      "skills": [
+        {
+          "source": "anthropics/skills",
+          "name": "xlsx",
+          "d": {
+            "en": "Track money and pipeline",
+            "fr": "Suit l’argent et le pipeline"
+          }
+        }
+      ],
+      "soon": [
+        {
+          "en": "Weekly summary",
+          "fr": "Résumé de la semaine"
+        }
+      ],
+      "starter": {
+        "en": "Summarise my week",
+        "fr": "Résume ma semaine"
+      }
+    },
+    {
+      "id": "learning",
+      "name": {
+        "en": "Learning",
+        "fr": "Formation"
+      },
+      "title": {
+        "en": "Keep up to date",
+        "fr": "Me former, rester à jour"
+      },
+      "desc": {
+        "en": "A watch on my subjects",
+        "fr": "Une veille sur mes sujets"
+      },
+      "teams": [
+        "research-desk"
+      ],
+      "soon": [
+        {
+          "en": "Literature-watch skill",
+          "fr": "Skill de veille de publications"
+        }
+      ],
+      "starter": {
+        "en": "What is new on this subject this week?",
+        "fr": "Quoi de neuf sur ce sujet cette semaine ?"
+      }
+    }
+  ]
+}

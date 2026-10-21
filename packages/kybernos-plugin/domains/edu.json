@@ -1,0 +1,234 @@
+{
+  "v": 1,
+  "id": "edu",
+  "order": 10,
+  "name": {
+    "en": "Education",
+    "fr": "Éducation"
+  },
+  "tagline": {
+    "en": "Students, teachers, schools",
+    "fr": "Étudiants, enseignants, écoles"
+  },
+  "legacyJobs": [
+    "etudes"
+  ],
+  "menu": {
+    "labels": {
+      "dashboards": {
+        "en": "Progress",
+        "fr": "Progression"
+      },
+      "aiteams": {
+        "en": "Study teams",
+        "fr": "Équipes d’étude"
+      },
+      "deliverables": {
+        "en": "Notes and quizzes",
+        "fr": "Fiches et quiz"
+      },
+      "tasks": {
+        "en": "Planning",
+        "fr": "Planning"
+      }
+    },
+    "hide": [
+      "documents"
+    ]
+  },
+  "goals": [
+    {
+      "id": "exams",
+      "name": {
+        "en": "Exams",
+        "fr": "Examens"
+      },
+      "title": {
+        "en": "Pass my exams",
+        "fr": "Réussir mes examens"
+      },
+      "desc": {
+        "en": "A revision plan and cards to replay",
+        "fr": "Un plan de révision et des cartes à rejouer"
+      },
+      "skills": [
+        {
+          "source": "anthropics/claude-for-legal",
+          "name": "study-plan",
+          "d": {
+            "en": "Plan revision sessions up to the exam",
+            "fr": "Planifie les sessions de révision jusqu’à l’examen"
+          }
+        },
+        {
+          "source": "anthropics/claude-for-legal",
+          "name": "flashcards",
+          "d": {
+            "en": "Turn notes into cards you replay",
+            "fr": "Transforme tes notes en cartes à rejouer"
+          }
+        }
+      ],
+      "teams": [
+        "studencik"
+      ],
+      "starter": {
+        "en": "Plan my revision up to the exam",
+        "fr": "Planifie mes révisions jusqu’à l’examen"
+      }
+    },
+    {
+      "id": "courses",
+      "name": {
+        "en": "Courses",
+        "fr": "Cours"
+      },
+      "title": {
+        "en": "Understand my courses",
+        "fr": "Comprendre mes cours"
+      },
+      "desc": {
+        "en": "Summaries and questions from my PDFs",
+        "fr": "Résumés et questions à partir de mes PDF"
+      },
+      "skills": [
+        {
+          "source": "anthropics/skills",
+          "name": "pdf",
+          "d": {
+            "en": "Read and extract your course PDFs",
+            "fr": "Lit et extrait tes cours en PDF"
+          }
+        },
+        {
+          "source": "anthropics/skills",
+          "name": "docx",
+          "d": {
+            "en": "Write and format papers",
+            "fr": "Rédige et met en forme tes devoirs"
+          }
+        }
+      ],
+      "teams": [
+        "research-desk"
+      ],
+      "starter": {
+        "en": "Summarise this chapter in ten points",
+        "fr": "Résume ce chapitre en dix points"
+      }
+    },
+    {
+      "id": "papers",
+      "name": {
+        "en": "Papers",
+        "fr": "Devoirs"
+      },
+      "title": {
+        "en": "Hand in my papers on time",
+        "fr": "Rendre mes devoirs à l’heure"
+      },
+      "desc": {
+        "en": "Write and format papers",
+        "fr": "Rédiger et mettre en forme mes devoirs"
+      },
+      "skills": [
+        {
+          "source": "anthropics/skills",
+          "name": "docx",
+          "d": {
+            "en": "Write and format papers",
+            "fr": "Rédige et met en forme tes devoirs"
+          }
+        }
+      ],
+      "soon": [
+        {
+          "en": "Reminders before each deadline",
+          "fr": "Rappels avant chaque rendu"
+        }
+      ],
+      "starter": {
+        "en": "List what is due this week",
+        "fr": "Liste mes rendus de la semaine"
+      }
+    },
+    {
+      "id": "teaching",
+      "name": {
+        "en": "Teaching",
+        "fr": "Enseignement"
+      },
+      "title": {
+        "en": "Prepare my classes",
+        "fr": "Préparer mes cours"
+      },
+      "desc": {
+        "en": "Handouts, quizzes and marking",
+        "fr": "Supports, quiz et corrections"
+      },
+      "skills": [
+        {
+          "source": "anthropics/skills",
+          "name": "docx",
+          "d": {
+            "en": "Write and format papers",
+            "fr": "Rédige et met en forme tes devoirs"
+          }
+        },
+        {
+          "source": "anthropics/skills",
+          "name": "pdf",
+          "d": {
+            "en": "Read and extract your course PDFs",
+            "fr": "Lit et extrait tes cours en PDF"
+          }
+        }
+      ],
+      "soon": [
+        {
+          "en": "Quiz builder",
+          "fr": "Générateur de quiz"
+        }
+      ],
+      "starter": {
+        "en": "Prepare a quiz on chapter 4",
+        "fr": "Prépare un quiz sur le chapitre 4"
+      }
+    },
+    {
+      "id": "class",
+      "name": {
+        "en": "Class follow-up",
+        "fr": "Suivi de classe"
+      },
+      "title": {
+        "en": "Follow a class’s progress",
+        "fr": "Suivre la progression d’une classe"
+      },
+      "desc": {
+        "en": "Who is stuck, who is moving",
+        "fr": "Qui décroche, qui avance"
+      },
+      "skills": [
+        {
+          "source": "anthropics/skills",
+          "name": "xlsx",
+          "d": {
+            "en": "Track money and pipeline",
+            "fr": "Suit l’argent et le pipeline"
+          }
+        }
+      ],
+      "soon": [
+        {
+          "en": "Follow-up of pupils with no paper",
+          "fr": "Relance des élèves sans rendu"
+        }
+      ],
+      "starter": {
+        "en": "Which pupils handed in nothing?",
+        "fr": "Quels élèves n’ont rien rendu ?"
+      }
+    }
+  ]
+}
