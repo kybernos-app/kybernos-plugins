@@ -76,6 +76,9 @@ assert.equal((clientSource.match(/callLocal\('\/console\/link'/g) || []).length,
 assert.equal((clientSource.match(/callLocal\('\/console\/link', 'POST', [^\n]*open: true/g) || []).length, 2, 'le lien de la console est ouvert par l hote (open: true), jamais par un onglet de la page')
 assert.ok(/const ouvrirAppli = \(section\) => \(\) => \{\s*setMenuOpen\(false\)\s*openAccountPage\(section, actif\)/.test(clientSource) && /section: section, open: true/.test(clientSource), 'les entrees du menu demandent un lien de console, ouvert par l hote')
 assert.ok(clientSource.includes("onSpace: ouvrirAppli('plan')"), 'Team settings ouvre la page du plan de l equipe dans le navigateur')
+  // V1-05 (video review): the space name is drawn at least twice (footer card, menu head) and CSS ellipsises it; with no
+  // title a long name was unreadable in both places (measured live: title and aria-label empty).
+  assert.ok(/className: 'kbfp-cardname', title: nomEspace \}/.test(clientSource) && /className: 'kbfp-mheadname', title: vueEspace\.name \}/.test(clientSource), 'le nom de l espace porte son infobulle là où le CSS le coupe (V1-05)')
 assert.ok(clientSource.includes("onAccount: ouvrirAppli('overview')") && clientSource.includes("onReferral: ouvrirAppli('referral')"), 'Account ouvre la vue d ensemble et Referral sa propre page (2026-10-18), dans le navigateur')
 // « Phone and channels » (decision of 2026-10-19): ONE entry of the connected menu, just before « Settings », that opens kybernos-mobile's window (the phone link on the left,
 // Kaby's messaging apps on the right). It replaced « Remote control », its popover (MobilePanel, with its fake QR code) and the 60-second poll of the phone link's status the
