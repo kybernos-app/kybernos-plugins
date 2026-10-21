@@ -1,0 +1,64 @@
+{
+  "contract": 1,
+  "id": "kybernos/cloud",
+  "kind": "code",
+  "version": "1.0.0",
+  "name": {
+    "en": "Kybernos Cloud",
+    "fr": "Kybernos Cloud"
+  },
+  "description": {
+    "en": "Kybernos account, proxy models, account memory.",
+    "fr": "Compte Kybernos, modèles du proxy, mémoire du compte."
+  },
+  "icon": "cloud",
+  "family": "cloud",
+  "author": {
+    "id": "kybernos",
+    "name": "Kybernos"
+  },
+  "license": "Apache-2.0",
+  "pricing": "free",
+  "package": "@local/kybernos-cloud",
+  "entry": {
+    "host": "index.js",
+    "client": "client.js"
+  },
+  "requires": {
+    "kybernos": ">=0.1.0"
+  },
+  "permissions": [
+    "ui.slot:conversation.chat.node",
+    "ui.slot:conversation.composer.dock",
+    "ui.slot:conversation.hero.options",
+    "ui.slot:settings.section",
+    "ui.slot:shell.quota-notice",
+    "ui.slot:sidebar.footer.action",
+    "ui.dom",
+    "host.routes:/kybernos-cloud:write",
+    "fs.read:dsh-home",
+    "fs.write:dsh-home",
+    "fs.write:home",
+    "net:api.kybernos.app",
+    "exec:open",
+    "exec:rundll32",
+    "exec:xdg-open",
+    "exec:xdg-user-dir",
+    "secrets.own",
+    "account",
+    "agent.prompt",
+    "agent.tools",
+    "memory.read",
+    "memory.write",
+    "sessions.read"
+  ],
+  "claims": {
+    "routePrefixes": [
+      "/kybernos-cloud"
+    ]
+  },
+  "help": "help.json",
+  "suite": {
+    "default": "off"
+  }
+}

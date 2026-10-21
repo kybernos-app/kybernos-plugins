@@ -1,0 +1,39 @@
+{
+  "contract": 1,
+  "id": "kybernos/kyber",
+  "kind": "code",
+  "version": "0.1.0",
+  "name": {
+    "en": "Kaby",
+    "fr": "Kaby"
+  },
+  "description": {
+    "en": "Kaby, your assistant: a real DSH chat with your account's memory, Telegram connected in one move by QR code or link, and the cloud computer it works on.",
+    "fr": "Kaby, ton assistant : une vraie conversation DSH avec la mémoire de ton compte, Telegram connecté d'un geste par QR code ou lien, et l'ordinateur cloud sur lequel il travaille."
+  },
+  "icon": "kyber",
+  "family": "base",
+  "author": {
+    "id": "kybernos",
+    "name": "Kybernos"
+  },
+  "license": "Apache-2.0",
+  "pricing": "free",
+  "package": "@local/kybernos-kyber",
+  "entry": {
+    "host": "index.js",
+    "client": "client.js"
+  },
+  "requires": {
+    "kybernos": ">=0.1.0"
+  },
+  "permissions": [
+    "ui.slot:conversation.input.dock",
+    "ui.slot:main.kybernos-kyber",
+    "ui.slot:sidebar.right.pane.tab"
+  ],
+  "help": "help.json",
+  "suite": {
+    "default": "on"
+  }
+}

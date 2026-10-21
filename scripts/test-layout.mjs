@@ -95,5 +95,32 @@ verifie('garde: launchd plist points at an existing garde.mjs', existsSync(join(
   verifie('no two Suite modules share a glyph', partages.length === 0, partages.join(' · '))
 }
 
+// 8. every module of the Suite has a manifest (docs/dev/plugin-contract.md): valid, in agreement with its package.json, and with a `suite` block that
+//    says what docs/beta/satellites.json says. Only the modules declared to the robot are held to it: a bundle that is not declared is already reported above.
+{
+  const { manifestErrors, setErrors } = await import('./plugin-manifest.mjs')
+  const zone = JSON.parse(readFileSync(join(REPO, 'dsh-compat.json'), 'utf8')).dsh
+  const parDir = new Map([...sats.socle.bundles.map((b) => [b.dir, { ...b, noyau: true }]), ...sats.satellites.bundles.map((b) => [b.dir, { ...b, noyau: false }])])
+  const manifestes = []
+  const fautes = []
+  for (const p of declared) {
+    const fichier = join(REPO, BASE_BUNDLES, p.dir, 'plugin.json')
+    if (!existsSync(fichier)) { fautes.push(p.dir + ': no plugin.json'); continue }
+    let m
+    try { m = JSON.parse(readFileSync(fichier, 'utf8')) } catch (e) { fautes.push(p.dir + ': plugin.json is not JSON'); continue }
+    manifestes.push(m)
+    const ctx = { firstParty: true, dir: p.dir, suiteZone: zone, packageJson: JSON.parse(readFileSync(join(REPO, BASE_BUNDLES, p.dir, 'package.json'), 'utf8')), fileExists: (rel) => existsSync(join(REPO, BASE_BUNDLES, p.dir, rel)) }
+    for (const f of manifestErrors(m, ctx)) fautes.push(p.dir + ': ' + f)
+    const s = parDir.get(p.dir)
+    if (s !== undefined && m.suite !== undefined) {
+      if ((m.suite.core === true) !== s.noyau) fautes.push(p.dir + ': suite.core is ' + (m.suite.core === true) + ' but satellites.json ' + (s.noyau ? 'lists it in the socle' : 'does not list it in the socle'))
+      const voulu = s.noyau || s.defaut === 'actif' ? 'on' : 'off'
+      if (m.suite.default !== voulu) fautes.push(p.dir + ': suite.default is "' + m.suite.default + '" but satellites.json says "' + voulu + '"')
+    }
+  }
+  verifie('every module of the Suite has a valid plugin.json (docs/dev/plugin-contract.md)', fautes.length === 0, fautes.slice(0, 6).join(' · ') + (fautes.length > 6 ? ' · +' + (fautes.length - 6) + ' more' : ''))
+  verifie('the manifests agree as a set (ids, claims, dependencies)', setErrors(manifestes).length === 0, setErrors(manifestes).slice(0, 4).join(' · '))
+}
+
 console.log(`\nLAYOUT — ${total} checks, ${echecs} failure(s)`)
 process.exit(echecs === 0 ? 0 : 1)
