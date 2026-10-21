@@ -2091,6 +2091,12 @@ let kbLocaleRead = () => 'en'
       'kbw.gate': { kybernos: 'Compte Kybernos requis — le visiteur se connecte et accepte ces conditions avant de discuter.', en: 'Kybernos account required — the visitor signs in and accepts these terms before chatting.' },
       'kbw.terms': { kybernos: 'URL conditions de service', en: 'Terms of service URL' },
       'kbw.privacy': { kybernos: 'URL politique de confidentialité', en: 'Privacy policy URL' },
+      // I-06: the terms of the ACTIVE server (`GET /kybernos-cloud/legal`, a route with no caller until now) — the links
+      // sit UNDER the two fields, which stay the source when this server publishes nothing. Two different sentences on
+      // purpose: "it publishes nothing" is a fact we read, "not read" is what we actually know when the route is absent.
+      'kbw.legal.published': { kybernos: 'Ce serveur publie : ', en: 'This server publishes: ' },
+      'kbw.legal.none': { kybernos: 'Ce serveur ne publie ni conditions ni confidentialité : saisis-les à la main ci-dessus.', en: 'This server publishes no terms or privacy policy: enter them by hand above.' },
+      'kbw.legal.unknown': { kybernos: 'Conditions de ce serveur non lues : saisis-les à la main ci-dessus.', en: 'This server’s terms could not be read: enter them by hand above.' },
       'kbw.footer': { kybernos: 'Mention légale — affichée sous le widget', en: 'Legal footer — shown under the widget' },
       'kbw.preview': { kybernos: 'Aperçu', en: 'Preview' },
       'kbw.embed': { kybernos: 'Embed — une ligne, n’importe quel site', en: 'Embed — one line, any site' },
@@ -23742,6 +23748,7 @@ function renderFit(canvas, model, cam, opts){
 .kbw-field{height:40px;border:1px solid var(--dsw-alias-border-l1);border-radius:10px;background:var(--dsw-alias-bg-layer-1);padding:0 12px;font-size:13px;color:var(--dsw-alias-label-primary);outline:none;width:100%;box-sizing:border-box;font-family:inherit}
 .kbw-area{min-height:64px;border:1px solid var(--dsw-alias-border-l1);border-radius:10px;background:var(--dsw-alias-bg-layer-1);padding:9px 12px;font-size:13px;color:var(--dsw-alias-label-primary);outline:none;width:100%;box-sizing:border-box;font-family:inherit;resize:vertical}
 .kbw-hint{font-size:11.5px;color:var(--dsw-alias-label-secondary)}
+.kbw-link{color:var(--dsw-alias-label-primary);text-decoration:underline;text-underline-offset:2px}
 .kbw-err{font-size:12px;color:var(--dsw-alias-state-error-primary)}
 .kbw-swatch{width:30px;height:30px;border-radius:999px;border:2px solid transparent;cursor:pointer;flex:none;padding:0}
 .kbw-swatch.on{outline:2px solid var(--dsw-alias-label-primary);outline-offset:2px}
@@ -23811,6 +23818,36 @@ function renderFit(canvas, model, cam, opts){
       const err = errPair[0]
       const setErr = errPair[1]
       React.useEffect(() => { setItems(kbwLoad(rootId, kId)) }, [rootId, kId])
+      // I-06: the screen READS the route instead of leaving it dead. `known` separates "this server publishes nothing"
+      // (the route answered `{ok:true}` with no url) from "we could not read it" (no route on an older host, a failed
+      // fetch): the page must not assert a fact it did not observe. Either way the two manual fields stay the source —
+      // nothing here calls `patcher`, so a hand-typed url is never overwritten.
+      const legalPair = React.useState({ loaded: false, ok: false, known: false, terms: '', privacy: '' })
+      const legal = legalPair[0]
+      React.useEffect(() => {
+        let alive = true
+        // Same rule as `legalLink` on the host side: https anywhere, http only to this machine.
+        const urlOf = (x) => {
+          const u = x !== null && x !== undefined && typeof x.url === 'string' ? x.url : ''
+          if (u === '') return ''
+          try {
+            const p = new URL(u)
+            if (p.protocol === 'https:') return u
+            return p.protocol === 'http:' && ['127.0.0.1', 'localhost', '[::1]'].indexOf(p.hostname) >= 0 ? u : ''
+          } catch (e) { return '' }
+        }
+        fetch('/kybernos-cloud/legal', { cache: 'no-store', credentials: 'same-origin' })
+          .then((r) => (r.ok ? r.json() : null))
+          .then((j) => {
+            if (alive !== true) return
+            const known = j !== null && j.ok === true
+            const terms = known ? urlOf(j.terms) : ''
+            const privacy = known ? urlOf(j.privacy) : ''
+            legalPair[1]({ loaded: true, ok: terms !== '' || privacy !== '', known: known, terms: terms, privacy: privacy })
+          })
+          .catch(() => { if (alive === true) legalPair[1]({ loaded: true, ok: false, known: false, terms: '', privacy: '' }) })
+        return () => { alive = false }
+      }, [])
       // Historique « Conversations » : source DSH (sessions qui activent ce
       // kyber). La route hôte peut ne pas être montée — la section reste alors
       // silencieuse, l'onglet garde toute sa fonction.
@@ -23904,6 +23941,12 @@ function renderFit(canvas, model, cam, opts){
               kbt('kbw.gate')),
             h('input', { value: draftW.termsUrl, placeholder: kbt('kbw.terms'), onChange: (e) => patcher({ termsUrl: e.target.value }), style: fieldStyle }),
             h('input', { value: draftW.privacyUrl, placeholder: kbt('kbw.privacy'), onChange: (e) => patcher({ privacyUrl: e.target.value }), style: fieldStyle }),
+            (legal.loaded === true && legal.ok === true
+              ? h('div', { className: 'kbw-hint', 'data-kb': 'widget-legal-server' }, kbt('kbw.legal.published'),
+                legal.terms !== '' ? h('a', { href: legal.terms, target: '_blank', rel: 'noreferrer noopener', className: 'kbw-link', 'data-kb': 'widget-legal-terms' }, kbt('kbw.terms') + ' ↗') : null,
+                legal.terms !== '' && legal.privacy !== '' ? ' · ' : null,
+                legal.privacy !== '' ? h('a', { href: legal.privacy, target: '_blank', rel: 'noreferrer noopener', className: 'kbw-link', 'data-kb': 'widget-legal-privacy' }, kbt('kbw.privacy') + ' ↗') : null)
+              : (legal.loaded === true ? h('div', { className: 'kbw-hint', 'data-kb': legal.known === true ? 'widget-legal-none' : 'widget-legal-unknown' }, kbt(legal.known === true ? 'kbw.legal.none' : 'kbw.legal.unknown')) : null)),
             h('input', { type: 'number', min: 1, value: draftW.termsVersion, placeholder: kbe('terms version'), onChange: (e) => patcher({ termsVersion: Number(e.target.value) > 0 ? Number(e.target.value) : 1 }), style: fieldStyle }),
             h('input', { value: draftW.footer, placeholder: kbt('kbw.footer'), onChange: (e) => patcher({ footer: e.target.value }), style: fieldStyle }),
             h('span', { className: 'kbw-lab' }, kbt('kbw.embed')),

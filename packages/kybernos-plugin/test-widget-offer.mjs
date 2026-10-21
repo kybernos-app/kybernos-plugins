@@ -28,5 +28,22 @@ const after = gate < 0 ? '' : SRC.slice(gate, gate + 900)
 check('the composer chip, its styles and the /widget command are mounted only behind the switch', gate > 0 && /KbWidgetChip/.test(after) && /styles\.insert\(KBW_CSS\)/.test(after) && /kbwAssurerSlash\(\)/.test(after))
 check('nothing else mounts the chip or registers /widget', (SRC.match(/KbWidgetChip\)\)/g) || []).length === 1 && (SRC.match(/kbwAssurerSlash\(\)/g) || []).length === 1)
 
+// I-06 (action 10 du bloc 13) : l'écran Légal LIT la route au lieu de la laisser morte. Les conditions que le widget
+// affiche sont celles que le serveur actif publie (`GET /kybernos-cloud/legal` — la route que `legalLink` durcit et que
+// personne n'appelait) ; les deux champs manuels restent la source quand `{ok:false}`.
+check('the Legal fields read the active server\'s published terms instead of leaving that route uncalled', /fetch\('\/kybernos-cloud\/legal', \{ cache: 'no-store', credentials: 'same-origin' \}\)/.test(SRC))
+{
+  // The order is the claim: the two INPUTS come first, the links after them (compared on the field's own text, not on
+  // the draft's initialiser, which sits hundreds of lines earlier and would make the assertion pass by accident).
+  const fieldTerms = SRC.indexOf('value: draftW.termsUrl')
+  const fieldPrivacy = SRC.indexOf('value: draftW.privacyUrl')
+  const linkTerms = SRC.indexOf("'data-kb': 'widget-legal-terms'")
+  const linkPrivacy = SRC.indexOf("'data-kb': 'widget-legal-privacy'")
+  check('what it finds is shown as links, AFTER the two manual fields that stay the fallback', fieldTerms > 0 && fieldPrivacy > fieldTerms && linkTerms > fieldPrivacy && linkPrivacy > linkTerms)
+}
+check('a server that publishes nothing says so, and the manual fields are then the only source', /'data-kb': legal\.known === true \? 'widget-legal-none' : 'widget-legal-unknown'/.test(SRC) && /kbw\.legal\.none/.test(SRC) && /kbw\.legal\.published/.test(SRC))
+check('"we could not read it" is not sold as "it publishes nothing"', /kbw\.legal\.unknown/.test(SRC) && /known: known/.test(SRC) && /const known = j !== null && j\.ok === true/.test(SRC))
+check('a url is drawn only over https, or over http to this machine (the host\'s legalLink rule, on the page side)', /\['127\.0\.0\.1', 'localhost', '\[::1\]'\]\.indexOf\(p\.hostname\)/.test(SRC) && /p\.protocol === 'https:'/.test(SRC))
+
 console.log(`\n${pass} ✓  ${fail} ✗`)
 process.exit(fail === 0 ? 0 : 1)
