@@ -6,21 +6,25 @@ import { Readable } from 'node:stream'
 import { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { mountCallRoutes, ROUTES, sameOriginStrict, readJsonBody } from './call-routes.mjs'
+import { sessionSource } from './session-guard.mjs'
+import { SESSION_SECRET, sessionCookie } from './lib-session-test.mjs'
 import { createSpeechFeed } from './speech-feed.mjs'
 import { apply, name } from './index.js'
 
 let pass = 0
 const ok = (label) => { pass += 1; console.log('  ✓ ' + label) }
 const here = dirname(fileURLToPath(import.meta.url))
+sessionSource.secret = () => SESSION_SECRET
 
 // A request: method, headers, socket port, and a JSON body.
-const makeReq = (method, { origin, referer, port = 3080, body } = {}) => {
+const makeReq = (method, { origin, referer, port = 3080, body, cookie } = {}) => {
   const chunks = body === undefined ? [] : [Buffer.from(typeof body === 'string' ? body : JSON.stringify(body))]
   const req = Readable.from(chunks)
   req.method = method
   req.headers = {}
   if (origin !== undefined) req.headers.origin = origin
   if (referer !== undefined) req.headers.referer = referer
+  if (cookie !== undefined) req.headers.cookie = cookie
   req.socket = { localPort: port }
   return req
 }
@@ -114,7 +118,8 @@ for (const path of [ROUTES.token, ROUTES.agent, ROUTES.utterance]) {
 }
 ok('token, agent, utterance: GET → 405, no or foreign origin → 403 (before anything is read or done)')
 
-const same = { origin: 'http://127.0.0.1:3080' }
+const same = { origin: 'http://127.0.0.1:3080', cookie: sessionCookie('127.0.0.1:3080') }
+const pageOnlyOrigin = { origin: 'http://127.0.0.1:3080' }
 res = await run(ROUTES.token, makeReq('POST', { ...same, body: { sessionId: 'session-aaaaaaaa' } }))
 assert.equal(res.status, 200)
 assert.equal(json(res).body.sessionId, 'session-aaaaaaaa')
@@ -155,8 +160,21 @@ for (const path of [ROUTES.settings, ROUTES.keys, ROUTES.test, ROUTES.clone]) {
   res = await run(path, makeReq('PUT', { ...same, body: {} }))
   assert.equal(res.status, 405, path)
 }
-assert.equal(adminCalls.length, 0)
+for (const path of [ROUTES.keys, ROUTES.test, ROUTES.clone, ROUTES.preset, ROUTES.avatars, ROUTES.engine]) {
+  // L1-01: the right Origin alone is what a local program sends; the writes need the signed cookie on top of it.
+  res = await run(path, makeReq('POST', { ...pageOnlyOrigin, body: {} }))
+  assert.equal(res.status, 401, path)
+  assert.equal(json(res).error, 'sign-in required')
+}
+assert.equal(adminCalls.length, 0, 'a request without the signed cookie reached nothing')
+for (const path of [ROUTES.keys, ROUTES.test, ROUTES.clone, ROUTES.preset, ROUTES.avatars, ROUTES.engine]) {
+  res = await run(path, makeReq('POST', { ...same, body: {} }))
+  assert.notEqual(res.status, 401, path)
+  assert.notEqual(res.status, 403, path)
+}
+adminCalls.length = 0
 ok('settings, keys, test, clone: no origin or a foreign one is 403 and nothing is done; other methods are 405')
+ok('keys, test, clone, preset, avatars, engine: the right Origin without the signed cookie is 401 (a local program is not signed in)')
 res = await run(ROUTES.settings, makeReq('POST', { ...same, body: { patch: { language: 'es' } } }))
 assert.equal(res.status, 200)
 assert.deepEqual(adminCalls.pop(), ['settings', { language: 'es' }])

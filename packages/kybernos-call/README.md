@@ -131,13 +131,13 @@ needs nothing: it is the one chosen on its card. A voice made from a recording n
 | `utterance` | POST | same origin only; `{ sessionId, text, mode: 'queue' \| 'steer' }` |
 | `speech` | GET | same origin only (it is the session's own text); `?room=&after=&wait=` a long poll; `known: false` once the room is released |
 | `settings` | GET, POST | GET: the settings, which secrets are set, the clones, the five slots, the provider catalogue with each provider's state and settings, the presets. POST (same origin): `{ patch }`, all or nothing |
-| `keys` | POST | same origin only; `{ patch: { NAME: value } }` (`''` removes); all or nothing; the answer never repeats a value |
-| `test` | POST | same origin only; `{ service: 'livekit' \| 'groq' \| 'elevenlabs' \| 'liveavatar' }`: one read-only call, on this click only |
-| `clone` | POST | same origin only; `{ rootId, voiceId, name }` creates, `{ action: 'delete', voiceId }` deletes |
-| `preset` | POST | same origin only; `{ id }` fills the slots at once (a preset that is not available is 400) |
-| `avatars` | POST | same origin only; the faces the face provider offers (names and ids; the account's own first) |
+| `keys` | POST | same origin **and the signed session cookie** (an Origin alone is forgeable: L1-01); `{ patch: { NAME: value } }` (`''` removes); all or nothing; the answer never repeats a value |
+| `test` | POST | same origin **and the signed session cookie**; `{ service: 'livekit' \| 'groq' \| 'elevenlabs' \| 'liveavatar' }`: one read-only call, on this click only |
+| `clone` | POST | same origin **and the signed session cookie**; `{ rootId, voiceId, name }` creates, `{ action: 'delete', voiceId }` deletes |
+| `preset` | POST | same origin **and the signed session cookie**; `{ id }` fills the slots at once (a preset that is not available is 400) |
+| `avatars` | POST | same origin **and the signed session cookie** (it asks the face provider); the faces it offers (names and ids; the account's own first) |
 | `health` | POST | same origin only; checks every slot and answers `{ checks: [{ id, status, code, detail?, ms }] }`; the voice is asked through this DSH's own engine, at the socket's address |
-| `engine` | POST | same origin only; `{ action: 'status' \| 'install' }`: the one-click install of the call engine, read back from its own log |
+| `engine` | POST | same origin **and the signed session cookie** (it installs software); `{ action: 'status' \| 'install' }`: the one-click install of the call engine, read back from its own log |
 | `vendor/livekit-client.js` | GET, HEAD | the SDK, served as is |
 
 DSH serves plugin routes before its own sign-in, so every POST, and the GET that returns session text, refuse any request that does not

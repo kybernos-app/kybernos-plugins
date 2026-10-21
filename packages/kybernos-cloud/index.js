@@ -5263,12 +5263,13 @@ const mountKybyNative = (ctx) => {
   })
 }
 
-// `session: true` is a route that DELETES the person's data (a memory, a team lesson or skill, a connection, a member): besides the same-origin rule it needs DSH's
-// signed browser-session cookie (session-guard.mjs, the terminal's rule). Plugin routes are served before DSH's own login and an Origin header is forgeable by any
-// local program, so before this a `curl -X POST .../memory/delete` with no header at all deleted a memory. Their callers are pages (Memory, Skills, Connectors,
-// the Share card). The same rule now covers what a model with a shell could otherwise do by a bare curl against the personal memory and the space: write or edit a memory,
-// push the lessons, choose the active space, propose to the team, make a session Kaby's. The other writes keep the rule of their row: they are not named by the origin-rule audit
-// (docs/dev/route-origin-rule.md says what is next).
+// `session: true` is a route that WRITES on the person's behalf: besides the same-origin rule it needs DSH's signed browser-session cookie
+// (session-guard.mjs, the terminal's rule). Plugin routes are served before DSH's own login and an Origin header is forgeable by any local
+// program, so a `curl -X POST ...` with no header at all used to reach them. A-16 (audit 2026-10-20) counted 31 of them here: they are all
+// under the rule now, because their caller is a page (Memory, Skills, Connectors, Team console, Share card, the servers page, the phone link
+// — the phone's tunnel replays the machine's Origin and cookie). Two POST families keep less, and only for a caller that is not a browser:
+// `server/apply` is strict (kybernos-servers' host calls it over loopback with an Origin and no cookie) and `turn*` is strict (the computer's
+// own runner). docs/dev/route-origin-rule.md carries the table and the exceptions.
 const ROUTES = [
   { path: '/kybernos-cloud/kyber', method: 'GET', guarded: true, run: kyberRoute },
   // A pairing creates a link that, once opened in Telegram and confirmed there, connects the chat: same origin, strictly.
@@ -5287,30 +5288,30 @@ const ROUTES = [
   { path: '/kybernos-cloud/computer/resume', method: 'POST', guarded: true, strict: true, run: () => computerAction('resume') },
   { path: '/kybernos-cloud/computer/suspend', method: 'POST', guarded: true, strict: true, run: () => computerAction('suspend') },
   { path: '/kybernos-cloud/computer/open', method: 'POST', guarded: true, strict: true, run: () => computerAction('open') },
-  { path: '/kybernos-cloud/start', method: 'POST', guarded: true, run: startPairing },
-  { path: '/kybernos-cloud/poll', method: 'POST', guarded: true, run: pollPairing },
+  { path: '/kybernos-cloud/start', method: 'POST', guarded: true, session: true, run: startPairing },
+  { path: '/kybernos-cloud/poll', method: 'POST', guarded: true, session: true, run: pollPairing },
   { path: '/kybernos-cloud/status', method: 'GET', guarded: false, run: statusRoute },
   { path: '/kybernos-cloud/space/active', method: 'POST', guarded: true, session: true, body: true, run: setActiveSpace },
-  { path: '/kybernos-cloud/space/applied', method: 'POST', guarded: true, body: true, run: spaceApplied },
-  { path: '/kybernos-cloud/space/for-folder', method: 'POST', guarded: true, body: true, cap: 8192, run: spaceForFolder },
+  { path: '/kybernos-cloud/space/applied', method: 'POST', guarded: true, session: true, body: true, run: spaceApplied },
+  { path: '/kybernos-cloud/space/for-folder', method: 'POST', guarded: true, session: true, body: true, cap: 8192, run: spaceForFolder },
   { path: '/kybernos-cloud/space/busy', method: 'GET', guarded: true, run: spaceBusy },
   // The folder of a team: makes a directory on the person's disk, so strict same-origin and the signed session.
   { path: '/kybernos-cloud/space/folder', method: 'POST', guarded: true, strict: true, session: true, body: true, cap: 1024, run: spaceFolder },
   { path: '/kybernos-cloud/spaces/summary', method: 'GET', guarded: true, run: spacesSummary },
-  { path: '/kybernos-cloud/space/create', method: 'POST', guarded: true, body: true, run: createSpace },
+  { path: '/kybernos-cloud/space/create', method: 'POST', guarded: true, session: true, body: true, run: createSpace },
   // Joining with an invitation link: the token is the credential. Both are strict same-origin; `accept` also needs the signed session (it makes the person a member of a team).
   { path: '/kybernos-cloud/invitation/preview', method: 'POST', guarded: true, strict: true, body: true, cap: 1024, run: invitationPreview },
   { path: '/kybernos-cloud/invitation/accept', method: 'POST', guarded: true, strict: true, session: true, body: true, cap: 1024, run: invitationAccept },
-  { path: '/kybernos-cloud/refresh', method: 'POST', guarded: true, run: refreshProfile },
+  { path: '/kybernos-cloud/refresh', method: 'POST', guarded: true, session: true, run: refreshProfile },
   // `disconnect` revokes the session on the server side: irreversible. A bare POST
   // (campaign finding: `curl -X POST /kybernos-cloud/disconnect`) was enough to
   // trigger it. It now needs an EXPLICIT body `{confirm:true}`.
-  { path: '/kybernos-cloud/disconnect', method: 'POST', guarded: true, confirm: true, run: disconnect },
+  { path: '/kybernos-cloud/disconnect', method: 'POST', guarded: true, session: true, confirm: true, run: disconnect },
   // Imported LiteLLM catalogue: detailed state + manual resynchronisation.
   // Catalogue of kybers published on kybernos.app (read only, no token
   // required for the local route: the link is verified plugin-side).
   { path: '/kybernos-cloud/marketplace', method: 'GET', guarded: false, run: marketplaceRoute },
-  { path: '/kybernos-cloud/marketplace/install', method: 'POST', guarded: true, body: true, cap: 32768, run: marketplaceInstallRoute },
+  { path: '/kybernos-cloud/marketplace/install', method: 'POST', guarded: true, session: true, body: true, cap: 32768, run: marketplaceInstallRoute },
   { path: '/kybernos-cloud/server', method: 'GET', guarded: false, run: serverRoute },
   // A turn the platform addressed to this computer (ADR 0053 § 13.4): started, then read, by the computer's own runner (token and same origin).
   // A pooled computer has just been handed its identity (see computerClaimed): loopback, same origin, nothing in the request.
@@ -5321,9 +5322,9 @@ const ROUTES = [
   { path: '/kybernos-cloud/turn/continue', method: 'POST', strict: true, body: true, cap: 8192, run: turnContinue },
   // The terms and privacy addresses of the active server (public document, no token).
   { path: '/kybernos-cloud/legal', method: 'GET', guarded: true, run: legalRoute },
-  { path: '/kybernos-cloud/server/apply', method: 'POST', guarded: true, run: serverApply },
+  { path: '/kybernos-cloud/server/apply', method: 'POST', guarded: true, strict: true, run: serverApply },
   { path: '/kybernos-cloud/models', method: 'GET', guarded: false, run: modelsRoute },
-  { path: '/kybernos-cloud/models/sync', method: 'POST', guarded: true, run: modelsSyncRoute },
+  { path: '/kybernos-cloud/models/sync', method: 'POST', guarded: true, session: true, run: modelsSyncRoute },
   // Referral code of the linked account (sidebar footer invitation card):
   // the card is served by the same origin, hence `guarded` — a third-party tab
   // has no business reading the account's code.
@@ -5331,8 +5332,8 @@ const ROUTES = [
   // Artifacts (phase A). `body: true` → the JSON body is read (bounded by `cap`)
   // and passed to the handler; the content can be a whole artifact in base64.
   { path: '/kybernos-cloud/artifacts', method: 'GET', guarded: true, run: artifactList },
-  { path: '/kybernos-cloud/artifacts/push', method: 'POST', guarded: true, body: true, cap: ARTIFACT_CONTENT_MAX + 131072, run: artifactPush },
-  { path: '/kybernos-cloud/artifacts/detail', method: 'POST', guarded: true, body: true, run: artifactDetail },
+  { path: '/kybernos-cloud/artifacts/push', method: 'POST', guarded: true, session: true, body: true, cap: ARTIFACT_CONTENT_MAX + 131072, run: artifactPush },
+  { path: '/kybernos-cloud/artifacts/detail', method: 'POST', guarded: true, session: true, body: true, run: artifactDetail },
   // DSH chats → webapp: pushes the DIRECTORY of local sessions (metadata
   // only) to /v1/dsh/sessions; GET = state of the last push.
   // DSH chat detail: full content read IN PLACE, served only to the local
@@ -5340,13 +5341,13 @@ const ROUTES = [
   // would refuse the dev webapp on :8081).
   { path: '/kybernos-cloud/chats/detail', method: 'GET', guarded: false, cors: true, run: chatsDetail },
   { path: '/kybernos-cloud/chats', method: 'GET', guarded: true, run: chatsStatusRoute },
-  { path: '/kybernos-cloud/chats/push', method: 'POST', guarded: true, run: chatsPushRoute },
+  { path: '/kybernos-cloud/chats/push', method: 'POST', guarded: true, session: true, run: chatsPushRoute },
   // Share of an artifact or a chat (core.shares). Three distinct paths.
   // Local chat → hosted session (prerequisite of sharing a chat).
-  { path: '/kybernos-cloud/chat/ensure', method: 'POST', guarded: true, body: true, cap: 4194304, run: chatEnsure },
+  { path: '/kybernos-cloud/chat/ensure', method: 'POST', guarded: true, session: true, body: true, cap: 4194304, run: chatEnsure },
   { path: '/kybernos-cloud/shares', method: 'GET', guarded: true, run: shareGet },
-  { path: '/kybernos-cloud/shares/set', method: 'POST', guarded: true, body: true, run: shareSet },
-  { path: '/kybernos-cloud/shares/revoke', method: 'POST', guarded: true, body: true, run: shareRevoke },
+  { path: '/kybernos-cloud/shares/set', method: 'POST', guarded: true, session: true, body: true, run: shareSet },
+  { path: '/kybernos-cloud/shares/revoke', method: 'POST', guarded: true, session: true, body: true, run: shareRevoke },
   // Members of a space: real read; invitation and removal return
   // {ok:false,error:'indisponible'} as long as the server reserves them to the master key.
   { path: '/kybernos-cloud/members', method: 'GET', guarded: true, run: membersGet },
@@ -5363,7 +5364,7 @@ const ROUTES = [
   // names no origin is refused): it changes a file the agents read.
   { path: '/kybernos-cloud/instructions', method: 'GET', guarded: true, run: instructionsRead },
   { path: '/kybernos-cloud/instructions/save', method: 'POST', guarded: true, strict: true, body: true, cap: 16384, run: instructionsSave },
-  { path: '/kybernos-cloud/members/invite', method: 'POST', guarded: true, body: true, cap: 8192, run: membersInvite },
+  { path: '/kybernos-cloud/members/invite', method: 'POST', guarded: true, session: true, body: true, cap: 8192, run: membersInvite },
   { path: '/kybernos-cloud/members/remove', method: 'POST', guarded: true, session: true, body: true, cap: 8192, run: membersRemove },
   // Account memory (cloud feature no. 2): read, write, search,
   // matching of local ↔ cloud kybers, and pushing of lessons.
@@ -5374,7 +5375,7 @@ const ROUTES = [
   { path: '/kybernos-cloud/memory/update', method: 'POST', guarded: true, session: true, body: true, run: memoryUpdateRoute },
   { path: '/kybernos-cloud/memory/delete', method: 'POST', guarded: true, session: true, body: true, run: memoryDeleteRoute },
   { path: '/kybernos-cloud/memory/search', method: 'GET', guarded: true, run: memorySearchRoute },
-  { path: '/kybernos-cloud/memory/map', method: 'POST', guarded: true, body: true, run: memoryMapRoute },
+  { path: '/kybernos-cloud/memory/map', method: 'POST', guarded: true, session: true, body: true, run: memoryMapRoute },
   // `dryRun` by default: pushing the lessons writes into the account, it
   // never goes out without a body that explicitly says `{"dryRun":false}`.
   { path: '/kybernos-cloud/memory/lessons', method: 'POST', guarded: true, session: true, body: true, run: memoryLessonsRoute },
@@ -5382,38 +5383,38 @@ const ROUTES = [
   // Distinct paths (GET and POST cannot share a path).
   { path: '/kybernos-cloud/memory/list', method: 'GET', guarded: true, run: memoryListRoute },
   { path: '/kybernos-cloud/memory/settings', method: 'GET', guarded: true, run: memorySettingsRoute },
-  { path: '/kybernos-cloud/memory/settings/set', method: 'POST', guarded: true, body: true, run: memorySettingsSetRoute },
+  { path: '/kybernos-cloud/memory/settings/set', method: 'POST', guarded: true, session: true, body: true, run: memorySettingsSetRoute },
   // Search by meaning (off by default): status, then one indexing batch per POST — each batch calls the embeddings route.
   { path: '/kybernos-cloud/memory/index', method: 'GET', guarded: true, run: memoryIndexStatusRoute },
-  { path: '/kybernos-cloud/memory/index/run', method: 'POST', guarded: true, body: true, cap: 4096, run: memoryIndexRunRoute },
+  { path: '/kybernos-cloud/memory/index/run', method: 'POST', guarded: true, session: true, body: true, cap: 4096, run: memoryIndexRunRoute },
   { path: '/kybernos-cloud/memory/meaning-map', method: 'GET', guarded: true, run: memoryMeaningMapRoute },
   // Tidy up (near-duplicates): the last scan and the log, a scan (it only looks), what to apply / keep apart / undo.
   { path: '/kybernos-cloud/team/status', method: 'GET', guarded: true, run: teamStatusRoute },
   { path: '/kybernos-cloud/team/lessons', method: 'GET', guarded: true, run: teamListRoute },
   { path: '/kybernos-cloud/team/lessons/add', method: 'POST', guarded: true, session: true, body: true, cap: 16384, run: teamAddRoute },
-  { path: '/kybernos-cloud/team/lessons/review', method: 'POST', guarded: true, body: true, cap: 16384, run: teamReviewRoute },
-  { path: '/kybernos-cloud/team/lessons/retire', method: 'POST', guarded: true, body: true, cap: 4096, run: teamRetireRoute },
+  { path: '/kybernos-cloud/team/lessons/review', method: 'POST', guarded: true, session: true, body: true, cap: 16384, run: teamReviewRoute },
+  { path: '/kybernos-cloud/team/lessons/retire', method: 'POST', guarded: true, session: true, body: true, cap: 4096, run: teamRetireRoute },
   { path: '/kybernos-cloud/team/lessons/delete', method: 'POST', guarded: true, session: true, body: true, cap: 4096, run: teamDeleteRoute },
   // Team skills: the server half only (files are read and written by kybernos-skills). A proposal carries up to 1 MiB of files.
   { path: '/kybernos-cloud/team/skills', method: 'GET', guarded: true, run: teamSkillsListRoute },
   { path: '/kybernos-cloud/team/skills/item', method: 'GET', guarded: true, run: teamSkillsItemRoute },
-  { path: '/kybernos-cloud/team/skills/add', method: 'POST', guarded: true, body: true, cap: 4 * 1024 * 1024, run: teamSkillsAddRoute },
-  { path: '/kybernos-cloud/team/skills/review', method: 'POST', guarded: true, body: true, cap: 4096, run: teamSkillsReviewRoute },
-  { path: '/kybernos-cloud/team/skills/retire', method: 'POST', guarded: true, body: true, cap: 4096, run: teamSkillsRetireRoute },
+  { path: '/kybernos-cloud/team/skills/add', method: 'POST', guarded: true, session: true, body: true, cap: 4 * 1024 * 1024, run: teamSkillsAddRoute },
+  { path: '/kybernos-cloud/team/skills/review', method: 'POST', guarded: true, session: true, body: true, cap: 4096, run: teamSkillsReviewRoute },
+  { path: '/kybernos-cloud/team/skills/retire', method: 'POST', guarded: true, session: true, body: true, cap: 4096, run: teamSkillsRetireRoute },
   { path: '/kybernos-cloud/team/skills/delete', method: 'POST', guarded: true, session: true, body: true, cap: 4096, run: teamSkillsDeleteRoute },
   // Kybernos connections: the account's connected apps. The routes sit here (the token does) and the connectors page calls them. A
   // link may carry the API key of a toolkit that has no OAuth, so its body is small and its handler never logs or echoes it.
   { path: '/kybernos-cloud/connections', method: 'GET', guarded: true, run: connections.listRoute },
   { path: '/kybernos-cloud/connections/apps', method: 'GET', guarded: true, run: connections.appsRoute },
   { path: '/kybernos-cloud/connections/item', method: 'GET', guarded: true, run: connections.itemRoute },
-  { path: '/kybernos-cloud/connections/link', method: 'POST', guarded: true, body: true, cap: 16384, run: connections.linkRoute },
+  { path: '/kybernos-cloud/connections/link', method: 'POST', guarded: true, session: true, body: true, cap: 16384, run: connections.linkRoute },
   { path: '/kybernos-cloud/connections/delete', method: 'POST', guarded: true, session: true, body: true, cap: 4096, run: connections.deleteRoute },
   { path: '/kybernos-cloud/memory/tidy', method: 'GET', guarded: true, run: memoryTidyRoute },
-  { path: '/kybernos-cloud/memory/tidy/scan', method: 'POST', guarded: true, run: memoryTidyScanRoute },
-  { path: '/kybernos-cloud/memory/tidy/apply', method: 'POST', guarded: true, body: true, cap: 65536, run: memoryTidyApplyRoute },
-  { path: '/kybernos-cloud/memory/tidy/dismiss', method: 'POST', guarded: true, body: true, cap: 16384, run: memoryTidyDismissRoute },
-  { path: '/kybernos-cloud/memory/tidy/undo', method: 'POST', guarded: true, body: true, cap: 4096, run: memoryTidyUndoRoute },
-  { path: '/kybernos-cloud/memory/tidy/settings', method: 'POST', guarded: true, body: true, cap: 4096, run: memoryTidySettingsRoute },
+  { path: '/kybernos-cloud/memory/tidy/scan', method: 'POST', guarded: true, session: true, run: memoryTidyScanRoute },
+  { path: '/kybernos-cloud/memory/tidy/apply', method: 'POST', guarded: true, session: true, body: true, cap: 65536, run: memoryTidyApplyRoute },
+  { path: '/kybernos-cloud/memory/tidy/dismiss', method: 'POST', guarded: true, session: true, body: true, cap: 16384, run: memoryTidyDismissRoute },
+  { path: '/kybernos-cloud/memory/tidy/undo', method: 'POST', guarded: true, session: true, body: true, cap: 4096, run: memoryTidyUndoRoute },
+  { path: '/kybernos-cloud/memory/tidy/settings', method: 'POST', guarded: true, session: true, body: true, cap: 4096, run: memoryTidySettingsRoute },
 ]
 
 const mountWebRoutes = (ctx, webServer) => {

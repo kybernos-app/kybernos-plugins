@@ -8994,12 +8994,18 @@ function boot(ctx) {
       } }), 'kybernos: route yaml')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/save', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
-        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+                if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        // L6-02: a socle write needs DSH's signed session too (the page sends it), not only a strict Origin.
+        const refused = writeGuard(req)
+        if (refused !== null) return sendJson(res, refused.status, { ok: false, error: refused.error })
         sendJson(res, 200, await saveKyber(await readJsonBody(req)))
       } }), 'kybernos: route save')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/create', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
-        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+                if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        // L6-02: a socle write needs DSH's signed session too (the page sends it), not only a strict Origin.
+        const refused = writeGuard(req)
+        if (refused !== null) return sendJson(res, refused.status, { ok: false, error: refused.error })
         sendJson(res, 200, await createKyber(await readJsonBody(req)))
       } }), 'kybernos: route create')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/ui-save', handler: async (req, res) => {
@@ -9125,6 +9131,8 @@ function boot(ctx) {
       // Un JSONL par conversation : chaque ligne {role, text, at}. `visitor`
       // écrit depuis n'importe quel site (CORS ouvert) ; `kyber` (réponse du
       // créateur, puis de l'IA) n'écrit qu'en same-origin. Lecture publique.
+      // PUBLIC BY DESIGN (A-15): the visitor's message route is the widget's front door, reached from any site with no session; the
+      // conversation's own token (minted here, required by /history-delete) is what protects deletion, not a session cookie.
       const kyberSlugSafe = (v) => String(v === null || v === undefined ? '' : v).replace(/[^A-Za-z0-9._-]/g, '').slice(0, 60) || 'inconnu'
       const widgetConvPath = async (conversation) => {
         const home = await dshHome()
@@ -9145,6 +9153,31 @@ function boot(ctx) {
           try { out.push(JSON.parse(l)) } catch (e) { /* ligne torn : ignorée */ }
         }
         return out
+      }
+      // The conversation's own record, beside its JSONL: the visitor's token, minted once when the conversation is created. It is
+      // what makes /history-delete safe: the conversation id alone is not a credential (32 random bits and a readable timestamp, and
+      // the visitor's own page also prints it). The record is never read back by the GET listing, so the token never leaves by a read.
+      const widgetConvRecordPath = async (conversation) => {
+        const home = await dshHome()
+        return nodePathJoin(home, 'kybernos-widget', 'conversations', kyberSlugSafe(conversation.kyberId), conversation.id + '.json')
+      }
+      const widgetConvRecordRead = async (conversation) => {
+        try {
+          const rec = JSON.parse(readFileSync(await widgetConvRecordPath(conversation), 'utf8'))
+          return rec !== null && typeof rec === 'object' ? rec : null
+        } catch (e) { return null }
+      }
+      const widgetConvRecordWrite = async (conversation, record) => {
+        const p = await widgetConvRecordPath(conversation)
+        mkdirSync(nodePathJoin(p, '..'), { recursive: true })
+        writeFileSync(p, JSON.stringify(record, null, 2) + '\n')
+      }
+      // A token compared without leaking its position: same length first (timingSafeEqual throws on different lengths).
+      const widgetTokenMatches = (given, stored) => {
+        if (typeof given !== 'string' || typeof stored !== 'string' || given === '' || stored === '') return false
+        const a = Buffer.from(given, 'utf8')
+        const b = Buffer.from(stored, 'utf8')
+        return a.length === b.length && timingSafeEqual(a, b)
       }
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/widget/api/message', handler: async (req, res) => {
         // Un POST `application/json` depuis un site tiers déclenche un
@@ -9171,13 +9204,21 @@ function boot(ctx) {
           if (kyberId === null) return sendJsonPublic(res, 404, { ok: false, error: 'widget unknown or paused' })
           const id = typeof body.conversationId === 'string' && /^[A-Za-z0-9][A-Za-z0-9._-]{0,80}$/.test(body.conversationId) ? body.conversationId : ('c-' + Date.now().toString(36) + '-' + randomUUID().replace(/-/g, '').slice(0, 8))
           const conv = { kyberId: kyberId, id: id }
+          // The visitor's token is minted WITH the conversation and handed back once, in this answer only: a conversation that
+          // already has a record keeps its token, so knowing its id never reveals it (a later append cannot ask for it either).
+          const recordExistant = await widgetConvRecordRead(conv)
+          let jeton = null
+          if (recordExistant === null) {
+            jeton = randomUUID().replace(/-/g, '')
+            try { await widgetConvRecordWrite(conv, { kyberId: kyberId, id: id, token: jeton, at: new Date().toISOString() }) } catch (e) { jeton = null }
+          }
           const visiteur = {
             role: 'visitor', text: text, at: new Date().toISOString(),
             vid: typeof body.vid === 'string' ? body.vid.slice(0, 40) : '',
             email: typeof body.email === 'string' ? body.email.slice(0, 120) : '',
           }
           await widgetConvAppend(conv, visiteur)
-          return sendJsonPublic(res, 200, { ok: true, conversationId: id })
+          return sendJsonPublic(res, 200, Object.assign({ ok: true, conversationId: id }, jeton === null ? {} : { token: jeton }))
         }
         if (req.method !== 'GET') return sendJsonPublic(res, 405, { ok: false, error: 'GET or POST expected' })
         const q = queryOf(req)
@@ -9198,6 +9239,8 @@ function boot(ctx) {
       // Compte visiteur : un email → une identité stable (vid) enregistrée
       // localement. Le backend cloud de kybernos.app prendra le relais avec la
       // même forme de réponse — le widget n'a pas à changer.
+      // PUBLIC BY DESIGN (A-15): a visitor is on ANOTHER site, with no DSH session. The route only mints/returns the visitor's own vid
+      // (a hash of what they typed) and never reads the host's data: it stays out of the origin rule with the widget's other public routes.
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/widget/api/account', handler: async (req, res) => {
         if (req.method === 'OPTIONS') {
           res.writeHead(204, { 'access-control-allow-origin': '*', 'access-control-allow-methods': 'POST, OPTIONS', 'access-control-allow-headers': 'content-type', 'access-control-max-age': '86400' })
@@ -9224,8 +9267,9 @@ function boot(ctx) {
         } catch (e) { return sendJsonPublic(res, 500, { ok: false, error: 'cannot write' }) }
         return sendJsonPublic(res, 200, { ok: true, vid: compte.vid, created: Array.isArray(compte.teams) === false || compte.teams.length <= 1 })
       } }), 'kybernos: route widget api account')
-      // Effacement par le visiteur de sa propre conversation (l'id de
-      // conversation est le secret porteur : le connaître permet de l'effacer).
+      // The visitor deletes their own conversation. The team + conversation id are NOT a credential (32 random bits, a readable
+      // timestamp, and the page itself prints the id): the conversation's record holds a token minted when it was created, handed
+      // to the visitor's page once by /message, and this route refuses (403) without it — nothing on disk moves on a refusal.
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/widget/api/history-delete', handler: async (req, res) => {
         if (req.method === 'OPTIONS') {
           res.writeHead(204, { 'access-control-allow-origin': '*', 'access-control-allow-methods': 'POST, OPTIONS', 'access-control-allow-headers': 'content-type', 'access-control-max-age': '86400' })
@@ -9236,6 +9280,10 @@ function boot(ctx) {
         try { body = await readJsonBody(req) } catch (e) { return sendJsonPublic(res, 400, { ok: false, error: 'invalid JSON body' }) }
         const team = body && typeof body.team === 'string' ? body.team.slice(0, 60) : ''
         const id = body && typeof body.conversation === 'string' ? body.conversation : ''
+        const token = body && typeof body.token === 'string' ? body.token.slice(0, 200) : ''
+        // The token is checked FIRST: a request that names no conversation and no token is refused, never answered with a 400
+        // that would tell a bare probe what the route expects (and it keeps the route out of the audit's "open" level).
+        if (token === '') return sendJsonPublic(res, 403, { ok: false, error: 'token required' })
         if (team === '' || /^[A-Za-z0-9][A-Za-z0-9._-]{0,80}$/.test(id) === false) return sendJsonPublic(res, 400, { ok: false, error: 'team and conversation expected' })
         const store = await readWidgetStore()
         let kyberId = null
@@ -9244,9 +9292,14 @@ function boot(ctx) {
           if (items.some((x) => x && x.slug === team)) { kyberId = k; break }
         }
         if (kyberId === null) return sendJsonPublic(res, 404, { ok: false, error: 'unknown widget' })
-        const cible = await widgetConvPath({ kyberId: kyberId, id: id })
+        const conv = { kyberId: kyberId, id: id }
+        // A conversation created before the token existed has no record: it cannot be deleted from here (its visitor had no token).
+        const record = await widgetConvRecordRead(conv)
+        if (record === null || widgetTokenMatches(token, record.token) !== true) return sendJsonPublic(res, 403, { ok: false, error: 'token required' })
+        const cible = await widgetConvPath(conv)
         let parti = false
         try { unlinkSync(cible); parti = true } catch (e) { if (e && e.code !== 'ENOENT') throw e }
+        try { unlinkSync(await widgetConvRecordPath(conv)) } catch (e) { if (e && e.code !== 'ENOENT') throw e }
         return sendJsonPublic(res, 200, { ok: true, deleted: id, parti: parti })
       } }), 'kybernos: route widget api history-delete')
       // Réponse du créateur (ou du kyber) depuis la fiche : same-origin, append.
@@ -9803,14 +9856,20 @@ function boot(ctx) {
       } }), 'kybernos: route art-load')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/workspace-ui-save', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
-        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+                if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        // L6-02: a socle write needs DSH's signed session too (the page sends it), not only a strict Origin.
+        const refused = writeGuard(req)
+        if (refused !== null) return sendJson(res, refused.status, { ok: false, error: refused.error })
         sendJson(res, 200, await saveWorkspaceUiQueuee(await readJsonBody(req)))
       } }), 'kybernos: route workspace-ui-save')
       // Suppression d'un workspace : POST { workspaceId } — le registre retire
       // l'enregistrement (dossier et journaux conservés), le magasin UI est purgé.
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/workspace-delete', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
-        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+                if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        // L6-02: a socle write needs DSH's signed session too (the page sends it), not only a strict Origin.
+        const refused = writeGuard(req)
+        if (refused !== null) return sendJson(res, refused.status, { ok: false, error: refused.error })
         sendJson(res, 200, await deleteWorkspace(await readJsonBody(req)))
       } }), 'kybernos: route workspace-delete')
       // ── Skills rattachées à un projet : GET lit, POST écrit la sélection ──
@@ -9850,18 +9909,27 @@ function boot(ctx) {
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/pins', handler: async (req, res) => {
         if (req.method === 'GET') return sendJson(res, 200, { ok: true, pins: pinsPayload(await readPins(), pinnedNatives()) })
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'GET or POST expected' })
-        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+                if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        // L6-02: a socle write needs DSH's signed session too (the page sends it), not only a strict Origin.
+        const refused = writeGuard(req)
+        if (refused !== null) return sendJson(res, refused.status, { ok: false, error: refused.error })
         sendJson(res, 200, await savePin(await readJsonBody(req)))
       } }), 'kybernos: route pins')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/share', handler: async (req, res) => {
         if (req.method === 'GET') return sendJson(res, 200, { ok: true, shares: await readShares() })
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'GET or POST expected' })
-        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+                if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        // L6-02: a socle write needs DSH's signed session too (the page sends it), not only a strict Origin.
+        const refused = writeGuard(req)
+        if (refused !== null) return sendJson(res, refused.status, { ok: false, error: refused.error })
         sendJson(res, 200, await saveShare(await readJsonBody(req)))
       } }), 'kybernos: route share')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/active-set', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
-        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+                if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        // L6-02: a socle write needs DSH's signed session too (the page sends it), not only a strict Origin.
+        const refused = writeGuard(req)
+        if (refused !== null) return sendJson(res, refused.status, { ok: false, error: refused.error })
         sendJson(res, 200, await setActiveKyber(await readJsonBody(req)))
       } }), 'kybernos: route active-set')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/project-data', handler: async (req, res) => {
@@ -10071,7 +10139,10 @@ function boot(ctx) {
         } }), 'kybernos: route kb-places')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/avatar-save', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
-        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+                if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        // L6-02: a socle write needs DSH's signed session too (the page sends it), not only a strict Origin.
+        const refused = writeGuard(req)
+        if (refused !== null) return sendJson(res, refused.status, { ok: false, error: refused.error })
         sendJson(res, 200, await saveAvatar(await readJsonBody(req, 6291456)))
       } }), 'kybernos: route avatar-save')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/avatar', handler: async (req, res) => {
@@ -11046,6 +11117,9 @@ function boot(ctx) {
         }
         return { tooLarge: false, buffer: Buffer.concat(chunks) }
       }
+      // PUBLIC BY DESIGN (A-15): the webhook receiver is called by another service, from another machine, with no DSH session. Its own
+      // secret — each task's hook secret, checked below — is its fence; that is why this one write stays out of the origin rule
+      // (docs/dev/route-origin-rule.md, « Public by design »).
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/hooks', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJsonPublic(res, 405, { ok: false, error: 'POST expected' }, { allow: 'POST' })
         try {
