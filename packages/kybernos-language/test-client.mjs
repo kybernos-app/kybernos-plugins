@@ -1144,5 +1144,10 @@ check('a count never shows more done than there is to do', /const done = total >
 check('a language that covers its whole set is complete, whatever the stored meta says', /const complete = isComplete\(id\) \|\| \(total > 0 && done >= total\)/.test(SOURCE))
 check('one label for the use-it-now action, the nuance in the tooltip only', (SOURCE.match(/L\('useNow'\)/g) || []).length === 3 && !/L\('useAnyway'\)/.test(SOURCE) && /title: L\(st === 'partial' \? 'tipUseAnyway' : 'tipUseNow'\)/.test(SOURCE))
 
+// A translation whose source changed is out of date: the card must offer the act that fixes it (update the changed
+// texts only) as its MAIN action, not only « Use » — and not hide it in a collapsed fold.
+check('a translation with changed texts offers Update as its main action, Use beside it', /const staleN = !isBuiltIn\(id\) && !running && complete/.test(SOURCE) && /if \(staleN > 0\) \{/.test(SOURCE) && /'data-act': 'update', disabled: models\.length === 0/.test(SOURCE) && SOURCE.indexOf("if (staleN > 0) {") < SOURCE.indexOf("'data-act': 'use', title: L('tipUse')"))
+check('the fold that explains the changed texts keeps its own Update button', /'data-note': 'stale'/.test(SOURCE) && /'data-act': 'update', disabled: models\.length === 0, title: models\.length === 0 \? L\('noModels'\) : undefined, onClick: \(\) => start\(id\) \}, L\('staleUpdate'\)\)/.test(SOURCE))
+
 console.log('\n' + pass + ' ✓  ' + fail + ' ✗')
 process.exit(fail === 0 ? 0 : 1)
