@@ -1,11 +1,12 @@
-// Writing a stable automation down as a reusable skill, by a fixed rule.
+// Suggesting a stable automation as a reusable skill, by a fixed rule.
 //
 // An automation that has run N times in a row without a failure is a procedure that works. This turns it into a skill the person can
 // use by hand in any chat. No model decides anything: the rule is a count of the history of tasks.json, and the skill is the text of the
-// automation put in the skill format. The result is the person's own file: it is never written over an existing skill, and it can be
-// edited or deleted like any other.
+// automation put in the skill format. It is handed to the skills page as a PROPOSAL (packages/kybernos-skills/learned.mjs): nothing is
+// active before the person accepts, and an accepted skill is their own file, edited or deleted like any other. The person's own click on
+// « Create skill » is the acceptance itself.
 //
-// Pure: history and text in, text and decisions out. index.js reads tasks.json and writes the skill and the record.
+// Pure: history and text in, text and decisions out. index.js reads tasks.json, hands the parts over and keeps the record.
 
 import { STABLE_CHOICES, DEFAULT_STABLE_AFTER } from './automation-settings.mjs'
 
@@ -54,46 +55,45 @@ export const skillSlug = (name, taken) => {
 const yamlText = (s) => JSON.stringify(String(s))
 
 /**
- * The SKILL.md of an automation: its text as the procedure, with where it came from. The webhook, the history and the
- * secrets of the automation are not part of it, only what it does.
+ * The parts of the skill of an automation: its text as the procedure, with where it came from. The webhook, the history and the
+ * secrets of the automation are not part of it, only what it does. The frontmatter and the standard rules are the skills page's to write.
  */
-export const buildSkill = (task, slug, runs) => {
+export const skillParts = (task, slug, runs) => {
   const t = plain(task) === true ? task : {}
   const name = oneLine(t.name, 120) || slug
   const steps = (typeof t.prompt === 'string' ? t.prompt : '').replace(/\r\n?/g, '\n').trim()
   const first = oneLine(steps.split('\n').find((l) => l.trim() !== '') || name, 180)
   const n = Number.isFinite(runs) === true ? Math.max(0, Math.floor(runs)) : 0
-  return [
-    '---',
-    'name: ' + slug,
-    'description: ' + yamlText('Does what the automation “' + name + '” does: ' + first),
-    'whenToUse: ' + yamlText('The user asks for “' + name + '” by hand, or to redo what the automation of that name does.'),
-    '---',
-    '',
-    '# ' + name,
-    '',
-    'Written by Kybernos from the automation “' + name + '”, after ' + String(n) + ' runs in a row without a failure. It is your file: edit it, or delete it, like any other skill.',
-    '',
-    '## What to do',
-    '',
-    steps === '' ? '(the automation had no text)' : steps,
-    '',
-  ].join('\n')
+  const sentence = /[.!?…:;]$/.test(first) === true ? first : first + '.'
+  const useWhen = 'The user asks for “' + name + '” by hand, or to redo what the automation of that name does.'
+  return {
+    description: 'Does what the automation “' + name + '” does: ' + sentence + ' Use when ' + useWhen.charAt(0).toLowerCase() + useWhen.slice(1),
+    whenToUse: useWhen,
+    body: [
+      '# ' + name,
+      '',
+      'Suggested by Kaby from the automation “' + name + '”, after ' + String(n) + ' runs in a row without a failure. Once you accept it, it is your file: edit it, or delete it, like any other skill.',
+      '',
+      '## What to do',
+      '',
+      steps === '' ? '(the automation had no text)' : steps
+    ].join('\n')
+  }
 }
 
-/** What is kept about the skills made from automations: { version, skills: { [taskId]: { skill, at, how, runs } } }. */
+/** What is kept about the skills made from automations: { version, skills: { [taskId]: { skill, at, how, runs, state } } }. `state` is « pending » for a suggestion the person may not have answered, « made » for a skill written at their click or before suggestions existed. */
 export const normalizeRecords = (raw) => {
   const out = { version: RECORDS_VERSION, skills: {} }
   if (plain(raw) !== true || plain(raw.skills) !== true) return out
   for (const id of Object.keys(raw.skills).slice(0, 500)) {
     const r = raw.skills[id]
     if (plain(r) !== true || typeof r.skill !== 'string' || SKILL_NAME_RE.test(r.skill) !== true) continue
-    out.skills[String(id).slice(0, 120)] = { skill: r.skill, at: oneLine(r.at, 40), how: r.how === 'manual' ? 'manual' : 'auto', runs: Number.isFinite(r.runs) === true ? Math.max(0, Math.floor(r.runs)) : 0 }
+    out.skills[String(id).slice(0, 120)] = { skill: r.skill, at: oneLine(r.at, 40), how: r.how === 'manual' ? 'manual' : 'auto', runs: Number.isFinite(r.runs) === true ? Math.max(0, Math.floor(r.runs)) : 0, state: r.state === 'pending' ? 'pending' : 'made' }
   }
   return out
 }
 
-/** The automations to write down now: stable, with no skill yet. Only when the switch is on; the Journal button does the same one at a time. */
+/** The automations to suggest now: stable, with no skill yet. Only when the switch is on; the Journal button does the same one at a time. */
 export const dueTasks = (tasks, records, settings) => {
   if (plain(settings) !== true || settings.autoSkill !== true) return []
   const after = stableAfterOf(settings)
