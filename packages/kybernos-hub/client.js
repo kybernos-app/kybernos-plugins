@@ -141,8 +141,11 @@ window.__ModuleLoader__.load({
     // drawn into a host node made right after the page's introduction paragraph, through a portal, when the open Settings cell is that
     // page. The page is known by the React key of the cell (« agent-presets »), the same in every language, never by its words. Nothing
     // here may throw: a shell that no longer looks like this simply gets no animation.
-    const NATIVE_SEL = { cell: 'button[class*="navCell"][aria-current="true"]', intro: '[data-slot="settings.section"] p[class*="_intro"]', host: '[data-kb="native-intro-host"]' }
-    const NATIVE_PAGES = ['agent-presets']
+    const NATIVE_SEL = { cell: 'button[class*="navCell"][aria-current="true"]', intro: '[data-slot="settings.section"] p[class*="_intro"]', section: '[data-slot="settings.section"]', host: '[data-kb="native-intro-host"]' }
+    // DSH's own Settings pages that carry the help. The key is the React key of the nav cell (the section id, the same in every
+    // language), measured in the engine's client bundles on 2026-10-21: models, appearance, plugins (Built-in plugins), plus Agent
+    // presets, which also has an animated introduction. A page whose markup changes simply gets no pill: never a broken button.
+    const NATIVE_PAGES = ['agent-presets', 'models', 'appearance', 'plugins']
     /** The React key of a DOM node (the id of the Settings section a cell stands for), or null. */
     const nativeKeyOf = (el) => {
       try {
@@ -159,16 +162,26 @@ window.__ModuleLoader__.load({
         const have = doc.querySelector(NATIVE_SEL.host)
         if (have !== null && have.getAttribute('data-native') === key) return { el: have, key }
         const intro = doc.querySelector(NATIVE_SEL.intro)
-        if (intro === null) return null
         const el = doc.createElement('div')
         el.setAttribute('data-kb', 'native-intro-host')
         el.setAttribute('data-native', key)
-        intro.insertAdjacentElement('afterend', el)
+        // After the page's introduction paragraph when it has one (Agent presets, Models, Built-in plugins); otherwise at the top of
+        // the section (Appearance has no intro paragraph), where the row is right-aligned by CSS like the others.
+        if (intro !== null) intro.insertAdjacentElement('afterend', el)
+        else {
+          const section = doc.querySelector(NATIVE_SEL.section)
+          if (section === null) return null
+          section.insertBefore(el, section.firstChild)
+        }
         return { el, key }
       } catch (e) { return null }
     }
     /** What the animation of a native page says: the card of its button (a page of the core bundle) and its own animation. */
     const nativeContent = (key) => {
+      // The three DSH pages that carry a help card only (their animated introduction is not written): the card itself is a page of
+      // `kybernos-plugin/help.json`, published with the catalogue like the others (see construireAide).
+      const CARD = { models: 'models', appearance: 'appearance', plugins: 'plugins' }
+      if (CARD[key] !== undefined) return { help: { id: 'kybernos-plugin', page: CARD[key] } }
       if (key !== 'agent-presets') return null
       return {
         help: { id: 'kybernos-plugin', page: 'presets' },
@@ -2021,7 +2034,7 @@ window.__ModuleLoader__.load({
         if (host === null) return null
         const c = nativeContent(host.key)
         if (c === null) return null
-        return ReactDOM.createPortal(h('div', { className: 'kbni', 'data-kb': 'native-intro' }, h('div', { className: 'kbni-row' }, h(api.Help, c.help)), h(api.Intro, c.intro)), host.el)
+        return ReactDOM.createPortal(h('div', { className: 'kbni', 'data-kb': 'native-intro' }, h('div', { className: 'kbni-row' }, h(api.Help, c.help)), c.intro !== undefined && c.intro !== null ? h(api.Intro, c.intro) : null), host.el)
       }
     }
 

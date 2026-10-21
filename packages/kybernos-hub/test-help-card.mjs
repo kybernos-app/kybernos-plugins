@@ -215,12 +215,12 @@ console.log('the animated help of a page (Intro)')
 console.log('a page of DSH itself: the animation on the native Agent presets page')
 {
   const FIBER = '__reactFiber$test'
-  const node = (attrs = {}) => ({ attrs, inserted: null, getAttribute (n) { return n in this.attrs ? this.attrs[n] : null }, setAttribute (n, v) { this.attrs[n] = v }, insertAdjacentElement (pos, e) { this.inserted = [pos, e]; return e } })
+  const node = (attrs = {}) => ({ attrs, inserted: null, getAttribute (n) { return n in this.attrs ? this.attrs[n] : null }, setAttribute (n, v) { this.attrs[n] = v }, insertAdjacentElement (pos, e) { this.inserted = [pos, e]; return e }, insertBefore (e) { this.inserted = ['before-first', e]; return e }, firstChild: null })
   const cell = (key) => Object.assign(node({ 'aria-current': 'true' }), { [FIBER]: { key } })
   // A document that answers the three questions the finder asks, by their selector.
-  const docWith = ({ active = null, intro = node(), host = null, throws = false } = {}) => {
+  const docWith = ({ active = null, intro = node(), host = null, section = null, throws = false } = {}) => {
     const made = []
-    return { made, querySelector: (sel) => { if (throws) throw new Error('hostile'); return sel === T.NATIVE_SEL.cell ? active : sel === T.NATIVE_SEL.intro ? intro : sel === T.NATIVE_SEL.host ? host : null }, createElement: (tag) => { const e = node(); e.tag = tag; made.push(e); return e } }
+    return { made, querySelector: (sel) => { if (throws) throw new Error('hostile'); return sel === T.NATIVE_SEL.cell ? active : sel === T.NATIVE_SEL.intro ? intro : sel === T.NATIVE_SEL.host ? host : sel === T.NATIVE_SEL.section ? section : null }, createElement: (tag) => { const e = node(); e.tag = tag; made.push(e); return e } }
   }
   const presets = cell('agent-presets')
   check('the page is told by the React key of the open Settings cell, not by its words (it works in every language)', T.nativeKeyOf(presets) === 'agent-presets' && T.nativeKeyOf(node()) === null && T.nativeKeyOf(null) === null)
@@ -233,7 +233,11 @@ console.log('a page of DSH itself: the animation on the native Agent presets pag
   const d2 = docWith({ active: presets, host: existing })
   const again = T.findNativeHost(d2)
   check('a second look finds the same host and makes none', again !== null && again.el === existing && d2.made.length === 0)
-  check('another page of Settings: nothing', T.findNativeHost(docWith({ active: cell('general') })) === null && T.findNativeHost(docWith({ active: cell('models') })) === null)
+  check('another page of Settings: nothing', T.findNativeHost(docWith({ active: cell('general') })) === null && T.findNativeHost(docWith({ active: cell('account') })) === null)
+  // A-06: the three DSH pages that had no help at all (Models, Appearance, Built-in plugins) get the card of a page of the core
+  // bundle, and no animated introduction (none is written for them).
+  check('the DSH pages that lack help get their card, and no animation', ['models', 'appearance', 'plugins'].every((key) => { const c = T.nativeContent(key); return c !== null && c.help !== undefined && c.help.id === 'kybernos-plugin' && c.help.page === key && c.intro === undefined }) && T.nativeContent('general') === null)
+  check('a DSH page without an introduction paragraph gets the host at the top of its section (Appearance)', (() => { const sec = node(); const d = docWith({ active: cell('appearance'), intro: null, section: sec }); const g = T.findNativeHost(d); return g !== null && g.key === 'appearance' && d.made.length === 1 && sec.inserted !== null && sec.inserted[0] === 'before-first' })())
   check('no open cell, an unreadable key, or no introduction on the page: nothing', T.findNativeHost(docWith({ active: null })) === null && T.findNativeHost(docWith({ active: node() })) === null && T.findNativeHost(docWith({ active: presets, intro: null })) === null)
   check('a page the shell no longer draws like this never throws', T.findNativeHost(docWith({ throws: true })) === null && T.findNativeHost(null) === null && T.findNativeHost(undefined) === null)
 

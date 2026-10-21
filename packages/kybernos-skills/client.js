@@ -1444,6 +1444,7 @@ body:not([data-ds-dark-theme]) .kbs-root .kb8-pill.warn{color:color-mix(in srgb,
    the kbs-* rules above are scoped to .kbs-root — */
 .kbss-page{display:flex;flex-direction:column;gap:22px;width:100%;max-width:720px;box-sizing:border-box}
 .kbss-page .kbss-h1{margin:0;font-size:18px;font-weight:600;line-height:1.3;letter-spacing:-.01em;color:var(--dsw-alias-label-primary)}
+.kbss-headrow{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .kbss-page .kbss-lead{margin:6px 0 0;font-size:13px;line-height:1.5;color:var(--dsw-alias-label-secondary)}
 .kbss-page .kbss-card{display:flex;flex-direction:column;gap:12px;padding:16px 18px;border:1px solid var(--dsw-alias-border-l1);border-radius:14px;background:var(--dsw-alias-bg-layer-1)}
 .kbss-page .kbss-h2{margin:0;font-size:14px;font-weight:600;color:var(--dsw-alias-label-primary)}
@@ -3693,7 +3694,9 @@ body:not([data-ds-dark-theme]) .kbs-root .kb8-pill.warn{color:color-mix(in srgb,
         const sel = (id, value, opts, onChange) => h('select', { id, className: 'kbl-sel', value: String(value), onChange: (e) => onChange(e.target.value) }, opts.map((o) => h('option', { key: o[0], value: String(o[0]) }, o[1])))
         const lessThan = (p) => (p.kind === 'improve' ? p.target : p.name)
         return h('div', { className: 'kbss-page', 'data-kb': 'learned-settings' },
-          h('h2', { className: 'kbss-h1' }, t('ls.h1')),
+          h('div', { className: 'kbss-headrow' },
+            h('h2', { className: 'kbss-h1' }, t('ls.h1')),
+            (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-skills', page: 'learned' }) : null)),
           h('p', { className: 'kbss-lead' }, t('ls.lead')),
           h('p', { className: 'kbss-sub' }, h('button', { type: 'button', className: 'kbss-link', 'data-kb': 'settings-journal', onClick: () => kbOpenSkills('kybernos.skills.journal', '1') }, t('ls.audit.open'))),
           s.breaker !== null ? h('div', { className: 'kbl-lock', 'data-kb': 'learned-breaker' }, icon('alert', 14), h('span', null, t('ls.breaker'))) : null,
@@ -4639,7 +4642,9 @@ body:not([data-ds-dark-theme]) .kbs-root .kb8-pill.warn{color:color-mix(in srgb,
                 counts.featured === null ? null : h('span', null, h('span', { className: 'n' }, nf(counts.featured)), ' ', t('set.featured'))))
 
         return h('div', { className: 'kbss-page', 'data-kb': 'kybernos-skills-settings' },
-          h('h2', { className: 'kbss-h1' }, t('set.h1')),
+          h('div', { className: 'kbss-headrow' },
+            h('h2', { className: 'kbss-h1' }, t('set.h1')),
+            (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-skills', page: 'skills' }) : null)),
           h('p', { className: 'kbss-lead' }, t('set.lead')),
           sourceCard(),
           rootsCard(),

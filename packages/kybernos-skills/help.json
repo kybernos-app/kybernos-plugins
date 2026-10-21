@@ -30,5 +30,73 @@
     "fr": "Un skill vient d’un tiers ou d’un collègue : DSH ne le vérifie pas, lis ses fichiers et ses audits avant de l’installer ou de l’approuver.",
     "en": "A skill comes from a third party or a colleague: DSH does not check it, so read its files and audits before you install or approve it."
   },
-  "url": "https://help.kybernos.app/{lang}/features/what-are-skills-and-memory/"
+  "url": "https://help.kybernos.app/{lang}/features/what-are-skills-and-memory/",
+  "pages": {
+    "skills": {
+      "title": {
+        "fr": "Réglages › Compétences",
+        "en": "Settings › Skills"
+      },
+      "what": {
+        "fr": "D’où viennent les skills de ce profil : la source de l’index public, les dossiers où une installation s’écrit, et ce que ton profil compte.",
+        "en": "Where this profile’s skills come from: the source of the public index, the folders an install is written to, and what your profile counts."
+      },
+      "steps": [
+        {
+          "fr": "La carte « Source » dit d’où vient l’index : un dossier local ou un dépôt GitHub. Change-la, puis recharge.",
+          "en": "The “Source” card says where the index comes from: a local folder or a GitHub repository. Change it, then reload."
+        },
+        {
+          "fr": "« Dossiers d’installation » montre où chaque skill est écrite ; la liste des skills elle-même reste dans la barre latérale › Compétences.",
+          "en": "“Install folders” shows where each skill is written; the skills list itself stays in the sidebar › Skills."
+        },
+        {
+          "fr": "Une skill importée n’est pas relue par DSH : ouvre ses fichiers avant de l’activer, et retire-la si elle ne te dit rien.",
+          "en": "DSH does not review an imported skill: open its files before switching it on, and remove it if it says nothing to you."
+        }
+      ],
+      "where": {
+        "fr": "Réglages › Compétences",
+        "en": "Settings › Skills",
+        "page": true
+      },
+      "good": {
+        "fr": "Ce que compte ce profil ne quitte pas cet ordinateur : la source de l’index et les dossiers sont locaux.",
+        "en": "What this profile counts never leaves this computer: the index source and the folders are local."
+      }
+    },
+    "learned": {
+      "title": {
+        "fr": "Réglages › Compétences apprises",
+        "en": "Settings › Learned skills"
+      },
+      "what": {
+        "fr": "Ce que Kaby peut faire seule avec les skills qu’elle apprend : trois niveaux, un seuil de confiance, et un journal de chaque proposition.",
+        "en": "What Kaby may do on its own with the skills it learns: three levels, a confidence threshold, and a log of every proposal."
+      },
+      "steps": [
+        {
+          "fr": "Choisis le niveau : « Demander » ne fait rien sans toi, « Améliorer » retouche une skill existante, « Automatique » l’écrit seule.",
+          "en": "Pick the level: “Ask” does nothing without you, “Improve” reworks an existing skill, “Automatic” writes it on its own."
+        },
+        {
+          "fr": "« Me prévenir » règle où tu vois ce qui a été appris : dans le chat, en carte hebdomadaire, ou les deux.",
+          "en": "“Tell me” sets where you see what was learned: in the chat, as a weekly card, or both."
+        },
+        {
+          "fr": "« Voir le journal » montre chaque proposition avec son diff et son verdict : c’est là qu’on comprend ce qui a été retenu.",
+          "en": "“See the log” shows every proposal with its diff and its verdict: that is where you see what was kept."
+        }
+      ],
+      "where": {
+        "fr": "Réglages › Compétences apprises",
+        "en": "Settings › Learned skills",
+        "page": true
+      },
+      "good": {
+        "fr": "Rien n’est appris depuis tes fichiers privés tant que tu ne l’as pas déverrouillé, et tout reste sur cet ordinateur.",
+        "en": "Nothing is learned from your private files until you unlock it, and everything stays on this computer."
+      }
+    }
+  }
 }

@@ -329,7 +329,8 @@ window.__ModuleLoader__.load({
         const CHEV = 'm6 9 6 6 6-6'
 
         const folderCard = path === null ? null : h('div', { className: 'kbmd-card', 'data-kb': 'kybernos-multi-device-folder' },
-          h('span', { className: 'kbmd-cap' }, L('dossierCap')),
+          h('span', { className: 'kbmd-cap' }, L('dossierCap'),
+            (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-multi-device' }) : null)),
           h('div', { className: 'kbmd-where' },
             h('span', { className: 'kbmd-ico' + (priv ? ' kbmd-priv' : '') }, icon(FOLDER)),
             h('span', { className: 'kbmd-txt' }, h('b', null, priv ? L('dossierPrivate') : L('dossierReal')), h('span', { className: 'kbmd-path' }, showPath(path, st)))),

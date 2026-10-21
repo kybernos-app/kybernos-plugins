@@ -1490,13 +1490,23 @@ function DashboardsPage () {
     h('div', { className: 'acts' }, h('button', { type: 'button', className: 'kbdb-btn sm', 'data-act': 'use-preset', onClick: () => usePreset(p) }, kt('Utiliser ce preset', 'Use this preset'))))
 
   let body
-  if (screen === 'boot' || (failed === false && list === null)) body = h('div', { className: 'kbdb-gal' }, [0, 1, 2].map((i) => h('div', { key: i, className: 'kbdb-gcard' }, bone('100%', 96), bone('50%', 16), bone('80%', 12))))
+  // A-04: the three grey cards had no label at all — the reader could not tell "empty" from "loading". The waiting label comes
+  // first and says what is loading; A-02: the help sits here too, because this is the state where the question « what is a
+  // dashboard? » is asked (the gallery header's pill only exists once a dashboard does).
+  if (screen === 'boot' || (failed === false && list === null)) body = h('div', null,
+    h('div', { className: 'kbdb-sec-h' },
+      h('h2', { role: 'status', 'data-kb': 'dashboards-loading' }, kt('Chargement des dashboards…', 'Loading dashboards…')),
+      h('span', { className: 'sp' }),
+      typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-dashboards' }) : null),
+    h('div', { className: 'kbdb-gal', 'aria-busy': 'true' }, [0, 1, 2].map((i) => h('div', { key: i, className: 'kbdb-gcard' }, bone('100%', 96), bone('50%', 16), bone('80%', 12)))))
   else if (failed) body = h('div', { className: 'kbdb-banner' }, h('span', { className: 'kbdb-dot warn' }), h('span', { className: 'sp' }, kt('Le serveur local ne répond pas aux dashboards. Réessaie dans un instant.', 'The local server is not answering for dashboards. Try again in a moment.')), h('button', { type: 'button', className: 'kbdb-btn sm', onClick: () => { setScreen('boot'); refreshList().then(() => setScreen('gallery')) } }, kt('Réessayer', 'Try again')))
   else if (screen === 'gallery') {
     body = h(React.Fragment, null,
       h('div', { className: 'kbdb-sec-h' }, h('h2', null, kt('Mes dashboards', 'My dashboards')), h('span', null, mine.length)),
       mine.length === 0
-        ? h('div', { className: 'kbdb-gempty' }, h('b', null, kt('Aucun dashboard pour l’instant', 'No dashboard yet')), h('span', null, kt('Demande à l’IA ce que tu veux suivre, ou pars d’un preset ci-dessous.', 'Ask the AI what you want to follow, or start from a preset below.')), h('button', { type: 'button', className: 'kbdb-btn primary', onClick: askCreate }, Ic('spark', 14), kt('Créer un dashboard avec l’IA', 'Create a dashboard with AI')))
+        ? h('div', { className: 'kbdb-gempty' }, h('b', null, kt('Aucun dashboard pour l’instant', 'No dashboard yet')), h('span', null, kt('Demande à l’IA ce que tu veux suivre, ou pars d’un preset ci-dessous.', 'Ask the AI what you want to follow, or start from a preset below.')), h('button', { type: 'button', className: 'kbdb-btn primary', onClick: askCreate }, Ic('spark', 14), kt('Créer un dashboard avec l’IA', 'Create a dashboard with AI')),
+          // A-02: the help of the page, in the empty state too — the state where a new reader actually needs it.
+          typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-dashboards' }) : null)
         : h('div', { className: 'kbdb-gal' }, mine.map(card)),
       h('div', { className: 'kbdb-sec-h' }, h('h2', null, 'Presets'), h('span', null, kt('Des modèles : en utiliser un te donne ta propre copie.', 'Templates: using one gives you your own copy.'))),
       h('div', { className: 'kbdb-gal' }, presets.map(presetCard)),

@@ -479,6 +479,7 @@ window.__ModuleLoader__.load({
               h('span', { key: 'n', style: css.name }, s.name),
               h('span', { key: 'p', className: 'kbcl-status', 'data-state': mood[0], role: 'status', 'aria-live': 'polite' }, [h('i', { key: 'd', className: 'kbcl-dot' }), mood[1] + (isLive ? ' · ' + clock(seconds(s)) : '')])
             ]),
+            (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { key: 'help', id: 'kybernos-call' }) : null),
             video ? h('button', { key: 'full', type: 'button', className: 'kbcl-hbtn', 'data-act': 'panel-full', 'aria-pressed': full ? 'true' : 'false', 'aria-label': full ? kt('Réduire la fenêtre', 'Make the window smaller') : kt('Plein écran', 'Full screen'), title: full ? kt('Réduire la fenêtre (Échap)', 'Make the window smaller (Esc)') : kt('Plein écran', 'Full screen'), onClick: toggleFull }, Ico(full ? 'shrink' : 'expand', 16)) : null,
             // A call that never started has nothing to hang up: the same button closes the panel, and says so.
             h('button', { key: 'hang', type: 'button', 'data-act': 'hangup', 'aria-label': s.phase === 'error' ? kt('Fermer', 'Close') : kt('Raccrocher', 'Hang up'), onClick: () => hangUp(), style: css.hangUp }, s.phase === 'error' ? kt('Fermer', 'Close') : kt('Raccrocher', 'Hang up'))

@@ -902,6 +902,7 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
 .kbfp-cardwrap{position:relative;width:100%;min-width:0;display:flex;justify-content:flex-start}
 .kbl-page{display:flex;flex-direction:column;gap:14px;max-width:640px}
 .kbl-head{margin:0 0 6px}
+.kbl-headrow{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
 .kbl-card{display:flex;flex-direction:column;gap:10px;padding:18px;border-radius:16px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1)}
 .kbl-sect{font-size:11px;color:var(--dsw-alias-label-tertiary,#8a8a93)}
 .kbl-area{box-sizing:border-box;width:100%;min-height:120px;padding:10px 12px;border-radius:11px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-base);color:var(--dsw-alias-label-primary);font:inherit;font-size:14px;line-height:1.45;resize:vertical}
@@ -3944,7 +3945,9 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
 
           return h('div', { className: 'kbl-page', 'data-kb': 'ky-section' },
             h('div', { className: 'kbl-head' },
-              h('h2', { className: 'kb6-title' }, t('kyTitle')),
+              h('div', { className: 'kbl-headrow' },
+                h('h2', { className: 'kb6-title' }, t('kyTitle')),
+                (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-cloud', page: 'kybernos' }) : null)),
               h('p', { className: 'kb8-sub' }, t('kySub'))),
 
             h('div', { className: 'kbl-card', 'data-kb': 'ky-instructions' },
