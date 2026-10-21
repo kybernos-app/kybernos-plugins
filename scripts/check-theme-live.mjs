@@ -40,7 +40,7 @@ import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, 
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { openLivePage } from './live-page.mjs'
+import { openLivePage, openSettings as openSettingsLive, clickText as clickTextLive } from './live-page.mjs'
 import { createFlow } from './lib-language-flow.mjs'
 import { profilePatch } from './dsh-home.mjs'
 
@@ -344,7 +344,15 @@ const settleMode = async () => {
 const openTheme = async ({ fresh = false, settle = true } = {}) => {
   if (fresh) await val(`localStorage.removeItem(${JSON.stringify(STORE)}); localStorage.removeItem(${JSON.stringify(LIB)}); localStorage.removeItem(${JSON.stringify(LD_KEY)}); localStorage.removeItem(${JSON.stringify(LD_CACHE)})`)
   for (let i = 0; i < 3; i += 1) {
-    await flow.openSettings(THEME_LABELS)
+    // The language flow clicks the signed-in sidebar footer; a fresh instance says « Sign in » there and the flow
+    // never opens the page (measured 2026-10-21). Try the live-page helper first — the same path the 29-page recette
+    // takes — and fall back to the flow only if it fails.
+    let opened = false
+    if ((await openSettingsLive(page)) === true) {
+      for (const label of THEME_LABELS) { if ((await clickTextLive(page, label)) === true) { opened = true; break } }
+      if (opened) await sleep(800)
+    }
+    if (!opened) await flow.openSettings(THEME_LABELS)
     if (await until(() => val(`!!document.querySelector('.kbth-page')`), 5000)) {
       try { await page.send('Page.bringToFront', {}); await page.send('Emulation.setFocusEmulationEnabled', { enabled: true }) } catch (e) { /* not available */ }
       if (settle && !(await settleMode())) throw new Error('the native mode never settled on "' + startMode + '" (nothing is clicked): ' + JSON.stringify({ ui: await modeInfo(), stored: storedUi(), level: (await store() || {}).level }))
