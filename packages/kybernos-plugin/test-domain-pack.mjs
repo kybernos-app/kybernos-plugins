@@ -348,27 +348,32 @@ ok('merging refuses a pack whose id is taken or that claims a legacy job someone
   const twice = mergePackSets(shipped, [{ plugin: 'local/a', file: 'domains/z.json', value: { ...good(), id: 'z' } }, { plugin: 'local/b', file: 'domains/z.json', value: { ...good(), id: 'z' } }])
   assert.deepEqual(twice.packs.filter((p) => p.id === 'z').map((p) => p.from), ['local/a'], 'the first plugin keeps the id')
 })
-ok('end to end with the real registry: a local plugin\'s pack is offered once switched on, a bad one is left out with the pack check\'s reason', () => {
+ok('end to end with the real registry, on a profile as DSH\'s plugin manager leaves it: a data plugin is offered once the person accepts it, a bad file is left out with the pack check\'s reason', () => {
   const dir = mkdtempSync(join(tmpdir(), 'kb-domain-plugin-'))
-  const dshHome = join(dir, 'plugins')
-  const folder = join(dshHome, 'local', 'vet')
-  const write = (path, data) => { mkdirSync(join(path, '..'), { recursive: true }); writeFileSync(path, JSON.stringify(data)) }
+  const profileDir = join(dir, 'profile')
+  const folder = join(profileDir, 'node_modules', 'kybernos-plugin-vet')
+  const write = (path, data) => { mkdirSync(join(path, '..'), { recursive: true }); writeFileSync(path, typeof data === 'string' ? data : JSON.stringify(data)) }
+  write(join(profileDir, 'package.json'), { dependencies: { 'kybernos-plugin-vet': '1.0.0' }, dsh: { profile: { bundles: ['kybernos-plugin-vet'] } } })
+  write(join(folder, 'package.json'), { name: 'kybernos-plugin-vet', version: '1.0.0', dsh: { bundle: { patch: './cordis.patch.yml' } } })
+  write(join(folder, 'cordis.patch.yml'), '# a data plugin: DSH loads nothing\n[]\n')
   write(join(folder, 'plugin.json'), {
-    contract: 1, id: 'local/vet', kind: 'data', version: '0.1.0', name: { en: 'Vet' }, description: { en: 'A pack.' }, author: { id: 'local', name: 'Me' }, license: 'MIT', pricing: 'free',
+    contract: 1, id: 'acme/vet', kind: 'data', version: '0.1.0', name: { en: 'Vet' }, description: { en: 'A pack.' }, author: { id: 'acme', name: 'Acme' }, license: 'MIT', pricing: 'free',
     requires: { kybernos: '>=0.1.0', plugins: { 'kybernos/core': '^1.0' } }, extends: [{ point: DOMAIN_POINT_REF, range: '^1.0', dir: 'domains' }]
   })
   write(join(folder, 'domains', 'vet.json'), { ...good(), id: 'vet', legacyJobs: [] })
   write(join(folder, 'domains', 'bad.json'), { ...good(), id: 'bad', cron: '* * * * *' })
-  const registry = createRegistry({ root: dshHome, stateFile: join(dir, 'state.json'), kybernosVersion: '0.1.1', ttlMs: 0 })
+  const registry = createRegistry({ profileDir, stateFile: join(dir, 'state.json'), kybernosVersion: '0.1.1', ttlMs: 0 })
   registry.definePoint(DOMAIN_POINT)
   registry.definePoint(DOMAIN_POINT) // told again at each question: nothing changes
   const shipped = loadPacks(join(here, 'domains'))
-  assert.equal(mergePackSets(shipped, registry.contributions(DOMAIN_POINT_REF)).packs.length, shipped.packs.length, 'off until switched on')
-  registry.setEnabled('local/vet', true)
+  assert.equal(registry.plugins().find((p) => p.id === 'acme/vet').status, 'needs-consent', 'a pack carries prompts: the person accepts first')
+  assert.equal(mergePackSets(shipped, registry.contributions(DOMAIN_POINT_REF)).packs.length, shipped.packs.length, 'nothing is offered before')
+  registry.setConsent('acme/vet', true)
   const merged = mergePackSets(shipped, registry.contributions(DOMAIN_POINT_REF))
   assert.equal(merged.packs.length, shipped.packs.length + 1)
-  assert.equal(merged.packs.find((p) => p.id === 'vet').from, 'local/vet')
-  const entry = registry.plugins().find((p) => p.id === 'local/vet')
+  const vet = merged.packs.find((p) => p.id === 'vet')
+  assert.equal(vet.from, 'acme/vet')
+  const entry = registry.plugins().find((p) => p.id === 'acme/vet')
   assert.equal(entry.status, 'ok')
   assert.ok(entry.extends[0].rejected.some((r) => r.file === 'bad.json' && /cron/.test(r.errors.join())), JSON.stringify(entry.extends[0].rejected))
   rmSync(dir, { recursive: true, force: true })

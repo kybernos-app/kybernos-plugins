@@ -88,7 +88,7 @@
     "extends": { "type": "array", "maxItems": 16, "items": { "$ref": "#/$defs/extension" } },
     "permissions": { "type": "array", "maxItems": 128, "uniqueItems": true, "items": { "$ref": "#/$defs/permission" } },
 
-    "package": { "type": "string", "pattern": "^@local/[a-z0-9][a-z0-9-]{0,63}$" },
+    "package": { "type": "string", "pattern": "^(@[a-z0-9][a-z0-9._-]{0,63}/)?[a-z0-9][a-z0-9._-]{0,63}$" },
     "entry": {
       "type": "object",
       "additionalProperties": false,

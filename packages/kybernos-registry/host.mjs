@@ -1,10 +1,10 @@
 // kybernos-registry, host half: the routes, and the seam other bundles reach the registry through.
 //
-//   GET  /kybernos-registry/state                              { ok, version, root, plugins: [...], points: [...] }: what was read, with each plugin's status
+//   GET  /kybernos-registry/state                              { ok, version, plugins: [...], points: [...] }: what was read, with each plugin's status
 //   GET  /kybernos-registry/contributions?point=owner/n%23p    { ok, contributions: [...] }: what the enabled plugins give one point
-//   POST /kybernos-registry/enable  { id, enabled }            switch a plugin on or off (a plugin seen for the first time is OFF)
+//   POST /kybernos-registry/consent { id, accepted }           the person has read and accepted what a plugin brings (switching on and off is DSH's)
 //
-// The seam, for the host halves of other bundles (they import nothing from each other): `globalThis[Symbol.for('kybernos.registry')]`, the same
+// The registry READS what DSH's own plugin manager installed (<DSH home>/profiles/web); it installs and switches nothing. The seam, for the host halves of other bundles (they import nothing from each other): `globalThis[Symbol.for('kybernos.registry')]`, the same
 // idiom as the trusted-authority predicate. A bundle that finds none works without it. The registry is created lazily and ONCE: reading the plugin
 // folder happens when a question is asked, never at boot, so a broken plugin cannot stop DSH from starting.
 //
@@ -26,7 +26,7 @@ export function ensureRegistry (options = {}) {
   const existing = globalThis[SEAM]
   if (existing !== undefined && existing !== null && existing.version === 1) return existing
   const home = dshHome()
-  const registry = createRegistry({ root: join(home, 'kybernos', 'plugins'), stateFile: join(home, 'kybernos', 'plugins-state.json'), kybernosVersion: suiteVersion(), ...options })
+  const registry = createRegistry({ profileDir: join(home, 'profiles', 'web'), stateFile: join(home, 'kybernos', 'plugins-state.json'), kybernosVersion: suiteVersion(), ...options })
   globalThis[SEAM] = registry
   return registry
 }
@@ -101,9 +101,9 @@ const contributionsRoute = (registry) => async (req) => {
   if (typeof point !== 'string' || !/^[a-z][a-z0-9-]{1,31}\/[a-z][a-z0-9-]{1,39}#[a-z][a-z0-9-]{1,31}$/.test(point)) return { ok: false, error: 'a point is owner/name#point' }
   return { ok: true, contributions: registry.contributions(point) }
 }
-const enableRoute = (registry) => async (req, body) => {
-  if (typeof body.id !== 'string' || typeof body.enabled !== 'boolean') return { ok: false, error: 'id and enabled are expected' }
-  const done = registry.setEnabled(body.id, body.enabled)
+const consentRoute = (registry) => async (req, body) => {
+  if (typeof body.id !== 'string' || typeof body.accepted !== 'boolean') return { ok: false, error: 'id and accepted are expected' }
+  const done = registry.setConsent(body.id, body.accepted)
   return done ? { ok: true, plugin: registry.plugins().find((p) => p.id === body.id) ?? null } : { ok: false, error: 'unknown plugin' }
 }
 
@@ -111,7 +111,7 @@ const enableRoute = (registry) => async (req, body) => {
 export const ROUTES = [
   { path: '/kybernos-registry/state', method: 'GET', guarded: true, make: stateRoute },
   { path: '/kybernos-registry/contributions', method: 'GET', guarded: true, make: contributionsRoute },
-  { path: '/kybernos-registry/enable', method: 'POST', guarded: true, session: true, body: true, make: enableRoute }
+  { path: '/kybernos-registry/consent', method: 'POST', guarded: true, session: true, body: true, make: consentRoute }
 ]
 
 export function mount (ctx, webServer, registry = ensureRegistry()) {
