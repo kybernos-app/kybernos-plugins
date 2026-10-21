@@ -351,6 +351,22 @@ let kbLocaleRead = () => 'en'
       'tasks.flow.kind.act': { kybernos: 'Action', en: 'Action' },
       'tasks.flow.kind.gry': { kybernos: 'Flow', en: 'Flow' },
       'tasks.flow.kind.hook': { kybernos: 'Webhook', en: 'Webhook' },
+      'tasks.flow.kind.conn': { kybernos: 'Connecteur', en: 'Connector' },
+      'tasks.uses.title': { kybernos: 'Utilisé dans les {n} derniers runs lus', en: 'Used in the last {n} runs read' },
+      'tasks.uses.none': { kybernos: 'Le modèle, les skills, les connecteurs et les agents apparaissent ici une fois les derniers runs lus.', en: 'The model, skills, connectors and agents show here once the last runs have been read.' },
+      'tasks.uses.panel': { kybernos: 'Utilise', en: 'Uses' },
+      'tasks.uses.model': { kybernos: 'Modèle', en: 'Model' },
+      'tasks.uses.agents': { kybernos: 'Équipe d’agents', en: 'Agent team' },
+      'tasks.uses.skills': { kybernos: 'Skills', en: 'Skills' },
+      'tasks.uses.apps': { kybernos: 'Connecteurs', en: 'Connectors' },
+      'tasks.uses.tools': { kybernos: 'Outils', en: 'Tools' },
+      'tasks.uses.named': { kybernos: 'Cité dans cette étape', en: 'Named in this step' },
+      'tasks.uses.chosen': { kybernos: 'choisi pour ces runs', en: 'chosen for these runs' },
+      'tasks.uses.default': { kybernos: 'modèle par défaut du profil', en: 'the profile\'s default' },
+      'tasks.uses.skill': { kybernos: 'Skill', en: 'Skill' },
+      'tasks.uses.app': { kybernos: 'Connecteur', en: 'Connector' },
+      'tasks.uses.agent': { kybernos: 'Agent', en: 'Agent' },
+      'tasks.uses.tool': { kybernos: 'Outil', en: 'Tool' },
       'tasks.flow.schedule': { kybernos: 'Horaire', en: 'Schedule' },
       'tasks.flow.hook.sub': { kybernos: 'Appelée par un service', en: 'Called by a service' },
       'tasks.flow.log': { kybernos: 'Enregistrer le run', en: 'Record the run' },
@@ -6681,7 +6697,7 @@ const kbRunGraph = (sum, failed) => {
   const shown = total > KB_RUNS_GRAPH_TOOLS + 1 ? sum.nodes.slice(0, KB_RUNS_GRAPH_TOOLS) : sum.nodes.slice(0, KB_RUNS_GRAPH_TOOLS + 1)
   labels.push(null)
   for (const n of shown) {
-    nodes.push({ type: 'tool', kind: String(n.kind), label: String(n.label), thinkMs: n.thinkMs, runMs: n.runMs, outBytes: n.outBytes, ok: n.ok !== false, approval: typeof n.approval === 'string' ? n.approval : null })
+    nodes.push({ type: 'tool', kind: String(n.kind), label: String(n.label), thinkMs: n.thinkMs, runMs: n.runMs, outBytes: n.outBytes, ok: n.ok !== false, approval: typeof n.approval === 'string' ? n.approval : null, ref: n.ref !== null && typeof n.ref === 'object' ? n.ref : null })
     labels.push(typeof n.outBytes === 'number' ? n.outBytes : null)
   }
   if (total > shown.length) { nodes.push({ type: 'more', n: total - shown.length }); labels.push(null) }
@@ -6740,6 +6756,41 @@ const kbRunBars = (history) => {
   const bars = runs.map((r) => (kbRunState(r, undefined) === 'failed' ? 'bad' : 'ok')).reverse()
   const bad = bars.filter((b) => b === 'bad').length
   return { bars, pct: runs.length === 0 ? null : Math.round(((runs.length - bad) / runs.length) * 100) }
+}
+
+/**
+ * What the newest runs of an automation used, for the Workflow tab: the models that answered, the teammates of the Agent Team, the skills,
+ * the apps (connectors) and the tools, each with how many times it was seen, most used first, at most eight of each. Only runs whose
+ * journal was read count (`read`); a run read by a host that does not yet say what was used (no `uses`) still tells its model.
+ *   { runs, read, models: [{ name, provider, count }], skills, apps, tools: [{ name, count }], agents: [{ name, model }], chosen }
+ * `chosen` is true when a model was picked on purpose for one of those runs, false when the profile's default answered.
+ */
+const kbRunUses = (history, sums, limit) => {
+  const runs = kbRunsOf(history).slice(0, limit > 0 ? limit : 5)
+  const tally = () => new Map()
+  const models = tally()
+  const skills = tally()
+  const apps = tally()
+  const tools = tally()
+  const agents = new Map()
+  let read = 0
+  let chosen = false
+  const add = (map, name, extra) => { if (typeof name !== 'string' || name === '') return; const e = map.get(name); if (e === undefined) map.set(name, Object.assign({ name, count: 1 }, extra)); else e.count += 1 }
+  for (const r of runs) {
+    const sum = r.sessionId !== null && sums !== null && typeof sums === 'object' ? sums[r.sessionId] : undefined
+    if (sum === undefined || sum === null) continue
+    read += 1
+    if (sum.selected === true) chosen = true
+    for (const m of (Array.isArray(sum.models) === true ? sum.models : [])) add(models, m.model, { provider: typeof m.provider === 'string' ? m.provider : '' })
+    const u = sum.uses !== null && typeof sum.uses === 'object' ? sum.uses : null
+    if (u === null) continue
+    for (const x of (Array.isArray(u.skills) === true ? u.skills : [])) for (let i = 0; i < x.count; i += 1) add(skills, x.name)
+    for (const x of (Array.isArray(u.apps) === true ? u.apps : [])) for (let i = 0; i < x.count; i += 1) add(apps, x.name)
+    for (const x of (Array.isArray(u.tools) === true ? u.tools : [])) for (let i = 0; i < x.count; i += 1) add(tools, x.name)
+    for (const x of (Array.isArray(u.agents) === true ? u.agents : [])) { const e = agents.get(x.name); if (e === undefined) agents.set(x.name, { name: x.name, model: typeof x.model === 'string' ? x.model : '' }); else if (e.model === '' && typeof x.model === 'string') e.model = x.model }
+  }
+  const top = (map) => [...map.values()].sort((a, b) => b.count - a.count || (a.name < b.name ? -1 : 1)).slice(0, 8)
+  return { runs: runs.length, read, models: top(models), skills: top(skills), apps: top(apps), tools: top(tools), agents: [...agents.values()].slice(0, 8), chosen }
 }
 // KB-AUTORUNS-END
 
@@ -21766,11 +21817,40 @@ function renderFit(canvas, model, cam, opts){
       }
       return { nodes, links }
     }
-    // What the canvas draws for each card: its kind, its title, what it says in the styles that say more.
-    const kbTaskCards = (nodes) => nodes.map((n) => {
+    // What a step names of what the runs used: a skill, an app or a teammate of the Agent Team whose name is in the step's text.
+    const kbStepMentions = (text, uses) => {
+      const hay = String(text).toLowerCase()
+      const named = (name) => { const n = String(name).toLowerCase(); return n.length >= 3 && hay.indexOf(n) >= 0 }
+      return { skills: uses.skills.filter((x) => named(x.name)), apps: uses.apps.filter((x) => named(x.name)), agents: uses.agents.filter((x) => named(x.name)) }
+    }
+    // What the canvas draws for each card: its kind, its title, the model of the runs, what the step names, and more in the styles that say more.
+    const kbTaskCards = (nodes, uses) => nodes.map((n) => {
       const kind = kbt('tasks.flow.kind.' + n.c)
-      return { id: n.id, trg: n.c === 'trg' || n.c === 'hook', kind: n.c, icon: n.ic, title: n.l, kindLabel: kind, sub: n.c === 'trg' || n.c === 'hook' ? '' : n.s, chips: [n.s], st: null, desc: n.c === 'trg' || n.c === 'hook' || n.full === '' ? '' : n.full, cells: n.c === 'ai' || n.c === 'act' ? [[kbt('tasks.flow.cell.type'), kind], [kbt('tasks.flow.cell.step'), n.ic]] : [[kbt('tasks.flow.cell.type'), kind]] }
+      const isStep = n.c === 'ai' || n.c === 'act'
+      const model = isStep && uses.models.length > 0 ? uses.models[0].name : ''
+      const men = isStep ? kbStepMentions(n.full, uses) : { skills: [], apps: [], agents: [] }
+      const named = men.skills.map((x) => x.name).concat(men.apps.map((x) => x.name), men.agents.map((x) => x.name))
+      const chips = [n.s].concat(model !== '' ? [model] : [], named.slice(0, 1))
+      const cells = isStep ? [[kbt('tasks.flow.cell.type'), kind], [kbt('tasks.flow.cell.step'), n.ic]].concat(model !== '' ? [[kbt('tasks.uses.model'), model]] : []) : [[kbt('tasks.flow.cell.type'), kind]]
+      return { id: n.id, trg: n.c === 'trg' || n.c === 'hook', kind: n.c, icon: n.ic, title: n.l, kindLabel: kind, sub: n.c === 'trg' || n.c === 'hook' ? '' : n.s, chips, st: null, desc: n.c === 'trg' || n.c === 'hook' || n.full === '' ? '' : n.full, cells }
     })
+    // The strip above the canvas: what the newest runs used, by kind. Every name comes from a journal that was read; nothing is guessed.
+    const kbUsesStrip = (uses, logos) => {
+      const group = (key, icon, items) => (items.length === 0 ? null : h('span', { key, className: 'kba-ug', 'data-kb': 'uses-' + key },
+        h('span', { className: 'kba-uk' }, Icon(icon, 13), kbt('tasks.uses.' + key)),
+        items))
+      const chip = (k, label, title, n) => h('span', { key: k, className: 'kba-use', title }, label, (n > 1 ? h('i', null, '×' + n) : null))
+      const modelTip = (m) => (m.provider !== '' ? m.provider + ' · ' : '') + kbt(uses.chosen === true ? 'tasks.uses.chosen' : 'tasks.uses.default')
+      return h('div', { className: 'kba-uses', 'data-kb': 'uses-strip' },
+        (uses.read === 0
+          ? h('span', { className: 'kba-ug dim' }, kbt('tasks.uses.none'))
+          : [h('span', { key: 'hd', className: 'kba-ug dim' }, kbt('tasks.uses.title').replace('{n}', String(uses.read))),
+            group('model', 'cpu', uses.models.map((m) => chip(m.name, m.name, modelTip(m), 0))),
+            group('agents', 'users', uses.agents.map((a) => chip(a.name, a.name + (a.model !== '' ? ' · ' + a.model : ''), a.name, 0))),
+            group('skills', 'zap', uses.skills.map((x) => chip(x.name, x.name, x.name, x.count))),
+            group('apps', 'plug', uses.apps.map((x) => h('span', { key: x.name, className: 'kbtd-appchip kba-appuse', title: x.name }, kbTplApp(x.name, logos), x.name, (x.count > 1 ? h('i', null, '×' + x.count) : null)))),
+            group('tools', 'terminal', uses.tools.map((x) => chip(x.name, x.name, x.name, x.count)))]))
+    }
     const kbTaskCode = (t) => {
       const steps = kbTaskSteps(t)
       const out = ['// generated from Text — read-only', 'export default automation({', '  id: "task-' + String(t.id) + '",', '  runsOn: "local",', kbTaskTriggerCode(t.schedule), '  async run(event, { ai, tools }) {']
@@ -22036,6 +22116,14 @@ function renderFit(canvas, model, cam, opts){
       })()
       return () => { alive = false }
     }
+    // The journals of the newest runs of an automation, read into the page's cache (five per call), for what the Workflow tab says the runs used.
+    const kbUseRunSums = (history, limit) => {
+      const pair = React.useState(() => { const o = {}; kbRunsCache.forEach((v, k) => { o[k] = v }); return o })
+      const ids = kbRunsOf(history).filter((r) => r.sessionId !== null).slice(0, limit).map((r) => r.sessionId)
+      const key = ids.join(',')
+      React.useEffect(() => kbRunsRead(ids, (add) => pair[1]((prev) => Object.assign({}, prev, add))), [key])
+      return pair[0]
+    }
     const kbRunKey = (r, i) => (r.sessionId !== null ? r.sessionId : 'x:' + r.at + ':' + String(i))
     const KB_RUN_ICONS = { bash: '>_', skill: '✦', read: '▤', write: '✎', edit: '✎', job_output: '⧗', lesson_write: '✎' }
     const kbRunIcon = (kind) => (KB_RUN_ICONS[kind] !== undefined ? KB_RUN_ICONS[kind] : String(kind).slice(0, 1).toUpperCase())
@@ -22114,10 +22202,13 @@ function renderFit(canvas, model, cam, opts){
         if (n.type === 'start') return { kind: 'trg', icon: '▶', title: kbt('tasks.runs.started'), sub: kbRunFmtHm(selRun.at, locale), st: null }
         if (n.type === 'more') return { kind: 'gry', icon: '…', title: kbt('tasks.runs.more').replace('{n}', String(n.n)), sub: kbt('tasks.runs.moresub'), st: null }
         if (n.type === 'final') return { kind: 'gry', icon: '≡', title: kbt('tasks.runs.final'), sub: kbRunFmtDur(n.thinkMs), st: n.ok === false ? 'bad' : 'ok' }
-        return { kind: n.kind === 'skill' ? 'ai' : 'act', icon: kbRunIcon(n.kind), title: n.label, sub: kbRunFmtDur((n.thinkMs || 0) + (n.runMs || 0)) + ' · ' + n.kind, st: n.ok === false ? 'bad' : 'ok' }
+        // What the call stands for (a skill, an app, a teammate of the Agent Team, a plain tool); a host that does not say reads the kind.
+        const rt = n.ref !== null && n.ref !== undefined ? n.ref.type : (n.kind === 'skill' ? 'skill' : 'tool')
+        const rn = n.ref !== null && n.ref !== undefined ? n.ref.name : n.kind
+        return { kind: rt === 'skill' || rt === 'agent' ? 'ai' : (rt === 'app' ? 'conn' : 'act'), rt, icon: rt === 'app' ? String(rn).charAt(0).toUpperCase() : (rt === 'agent' ? '@' : kbRunIcon(n.kind)), title: n.label, sub: kbRunFmtDur((n.thinkMs || 0) + (n.runMs || 0)) + ' · ' + rn, st: n.ok === false ? 'bad' : 'ok' }
       })
       // The same canvas as the workflow: a card per step of this run, a wire per hand-over (labelled with what the step handed on).
-      const runCards = g.nodes.map((n, i) => { const v = nodeView[i]; return { id: 'n' + i, trg: i === 0, kind: v.kind, icon: v.icon, title: v.title, kindLabel: kbt('tasks.flow.kind.' + v.kind), sub: v.sub, chips: [v.sub], st: v.st, desc: '', cells: [[kbt('tasks.runs.duration'), v.sub.split(' · ')[0]], [kbt('tasks.flow.cell.type'), kbt('tasks.flow.kind.' + v.kind)]] } })
+      const runCards = g.nodes.map((n, i) => { const v = nodeView[i]; return { id: 'n' + i, trg: i === 0, kind: v.kind, icon: v.icon, title: v.title, kindLabel: v.rt !== undefined ? kbt('tasks.uses.' + v.rt) : kbt('tasks.flow.kind.' + v.kind), sub: v.sub, chips: [v.sub], st: v.st, desc: '', cells: [[kbt('tasks.runs.duration'), v.sub.split(' · ')[0]], [kbt('tasks.flow.cell.type'), kbt('tasks.flow.kind.' + v.kind)]] } })
       const runLinks = g.nodes.slice(1).map((n, i) => ({ from: 'n' + i, to: 'n' + (i + 1), label: g.labels[i] !== null && g.labels[i] !== undefined ? kbRunFmtBytes(g.labels[i]) : null, tone: nodeView[i + 1].st === 'bad' ? 'bad' : (nodeView[i].st !== 'bad' && nodeView[i + 1].st === 'ok' ? 'ok' : null) }))
       const graph = h(KbFlowCanvas, { nodes: runCards, links: runLinks, selId: 'n' + ix, onSelect: (id) => setNodeIdx(Number(String(id).slice(1))), storeKey: 'run.' + String(props.taskId), height: 'clamp(330px,46vh,480px)' })
       const detail = selId !== null && det[selId] !== undefined && det[selId] !== 'loading' && det[selId] !== 'none' ? det[selId] : null
@@ -22134,12 +22225,16 @@ function renderFit(canvas, model, cam, opts){
         h('pre', { className: 'kbrn-pre' }, io === 'in' ? exact.in : (typeof exact.out === 'string' && exact.out.length > 0 ? exact.out : '—')))
       // What the Journal tab used to say, now under the run it is about: who ran (the model and why), the approvals, and what the runs teach.
       const row = (k, v) => h('div', { key: k, className: 'kbrn-kv' }, h('span', { className: 'kbrn-k' }, k), h('span', { className: 'kbrn-v' }, v))
+      const su = sel !== null && sel.uses !== null && typeof sel.uses === 'object' ? sel.uses : null
+      const listOf = (items, counted) => items.map((x) => x.name + (counted === true && x.count > 1 ? ' \u00d7' + x.count : '') + (typeof x.model === 'string' && x.model !== '' ? ' \u00b7 ' + x.model : '')).join(', ')
+      const usesRows = su === null ? [] : [['agents', su.agents, false], ['skills', su.skills, true], ['apps', su.apps, true], ['tools', su.tools, true]].filter((x) => Array.isArray(x[1]) === true && x[1].length > 0).map((x) => row(kbt('tasks.uses.' + x[0]), listOf(x[1], x[2])))
       const about = h('div', { className: 'kbrn-about', 'data-kb': 'run-about' },
           sel === null ? null : h('div', { className: 'kba-card kbrn-card' },
             h('span', { className: 'kba-tabver mono' }, kbt('tasks.journal.who')),
             row(kbt('tasks.runs.model'), model !== null ? h('span', null, h('b', { className: 'kbrn-mono' }, model.model), model.provider !== '' ? ' · ' + model.provider : '') : '—'),
             row(kbt('tasks.journal.why'), sel.selected === true ? kbt('tasks.journal.why.set') : kbt('tasks.journal.why.default')),
-            row(kbt('tasks.runs.duration'), durOf(sel) + ' · ' + kbt('tasks.runs.steps').replace('{n}', String(sel.steps)) + ' · ' + kbt('tasks.runs.tools').replace('{n}', String(sel.toolCalls)))),
+            row(kbt('tasks.runs.duration'), durOf(sel) + ' · ' + kbt('tasks.runs.steps').replace('{n}', String(sel.steps)) + ' · ' + kbt('tasks.runs.tools').replace('{n}', String(sel.toolCalls))),
+            usesRows),
           sel === null ? null : h('div', { className: 'kba-card kbrn-card' },
             h('span', { className: 'kba-tabver mono' }, kbt('tasks.journal.approvals')),
             (Array.isArray(sel.approvals) === true && sel.approvals.length > 0
@@ -22200,6 +22295,12 @@ function renderFit(canvas, model, cam, opts){
           .catch(() => { kbTplLogoPending = null; return {} })
       }
       return kbTplLogoPending
+    }
+    // The logos of the connectors catalogue, once the page has asked for them (the same ones the templates show).
+    const kbUseAppLogos = () => {
+      const pair = React.useState(kbTplLogoCache)
+      React.useEffect(() => { let alive = true; kbTplLogosLoad().then((l) => { if (alive === true) pair[1](l) }); return () => { alive = false } }, [])
+      return pair[0]
     }
     const kbTplApp = (name, logos) => {
       const svg = logos !== null && logos !== undefined && typeof logos === 'object' ? logos[kbTplSlug(name)] : undefined
@@ -22935,12 +23036,15 @@ function renderFit(canvas, model, cam, opts){
       })
 
       const t = (detail !== null) ? list.filter((x) => x === detail || x.id === detail)[0] || null : null
+      const wfSums = kbUseRunSums(t !== null ? t.history : null, 5)
+      const wfUses = kbRunUses(t !== null ? t.history : null, wfSums, 5)
+      const appLogos = kbUseAppLogos()
       if (t !== null) {
         // ── écran détail : sessions réelles + workflow Text·Flow·Code ──────
         const textVal = draft[t.id] !== undefined ? draft[t.id] : (typeof t.prompt === 'string' ? t.prompt : '')
         const dirty = draft[t.id] !== undefined && draft[t.id] !== t.prompt
         const gr = kbTaskNodes(t)
-        const cards = kbTaskCards(gr.nodes)
+        const cards = kbTaskCards(gr.nodes, wfUses)
         const nodeIx = nodeSel !== null ? gr.nodes.findIndex((n) => n.id === nodeSel) : -1
         const node = nodeIx >= 0 ? gr.nodes[nodeIx] : null
         const codeLines = kbTaskCode(t)
@@ -22994,6 +23098,20 @@ function renderFit(canvas, model, cam, opts){
           h('span', { className: 'kba-hookrow' }, h('button', { type: 'button', className: 'kba-btn', 'data-kb': 'sched-edit', onClick: () => setModal(t) }, kbt('tasks.editsched'))),
           (hooked === true ? null : h('span', { className: 'v dim' }, kbt('tasks.hook.none'))),
           (hooked === true ? null : h('span', { className: 'kba-hookrow' }, h('button', { type: 'button', className: 'kba-btn', 'data-kb': 'hook-add', onClick: genHook }, kbt('tasks.hook.create')))))
+        // What the runs used for a step: the model, the Agent Team, and what the step's own text names (a skill, an app or a teammate).
+        const stepUses = (node !== null && (node.how === 'ai' || node.how === 'act'))
+          ? (() => {
+            const men = kbStepMentions(node.full, wfUses)
+            const row = (k, v) => h('span', { key: k, className: 'kba-urow' }, h('b', null, kbt('tasks.uses.' + k)), v)
+            const named = men.skills.map((x) => x.name).concat(men.apps.map((x) => x.name), men.agents.map((x) => x.name))
+            return h('div', { className: 'kba-nc-sec', 'data-kb': 'step-uses' },
+              h('span', { className: 'k' }, kbt('tasks.uses.panel')),
+              (wfUses.read === 0 ? h('span', { className: 'v dim' }, kbt('tasks.uses.none')) : [
+                (wfUses.models.length > 0 ? row('model', wfUses.models.map((m) => m.name + (m.provider !== '' ? ' (' + m.provider + ')' : '')).join(', ') + ' \u00b7 ' + kbt(wfUses.chosen === true ? 'tasks.uses.chosen' : 'tasks.uses.default')) : null),
+                (wfUses.agents.length > 0 ? row('agents', wfUses.agents.map((a) => a.name + (a.model !== '' ? ' \u00b7 ' + a.model : '')).join(', ')) : null),
+                (named.length > 0 ? row('named', named.join(', ')) : null)]))
+          })()
+          : null
         const panelEl = node === null ? null : h('div', { className: 'kba-nodecard', 'data-kb': 'flow-node-panel' },
           h('div', { className: 'kba-nc-head' },
             h('span', { className: 'kba-cc cc-' + node.c }, node.ic),
@@ -23008,6 +23126,7 @@ function renderFit(canvas, model, cam, opts){
           (node.full !== '' && node.how !== 'trg' ? h('div', { className: 'kba-nc-sec' }, h('span', { className: 'k' }, kbt('tasks.flow.what')), h('span', { className: 'v' }, node.full)) : null),
           h('div', { className: 'kba-nc-sec' }, h('span', { className: 'k' }, kbt('tasks.flow.how')), h('span', { className: 'v' }, kbt('tasks.flow.how.' + node.how)),
             (node.how === 'ai' || node.how === 'act' ? h('code', { className: 'kba-nc-code' }, (node.how === 'ai' ? 'ai.run' : 'tools.call') + '(' + kbt('tasks.flow.step') + ' ' + node.ic + ')') : null)),
+          stepUses,
           h('div', { className: 'kba-nc-foot' },
             h('button', { type: 'button', className: 'kba-btn', 'data-kb': 'flow-prev', disabled: nodeIx <= 0, onClick: () => setNodeSel(gr.nodes[Math.max(0, nodeIx - 1)].id) }, '‹ ' + kbt('tasks.flow.prev')),
             h('button', { type: 'button', className: 'kba-btn', 'data-kb': 'flow-next', disabled: nodeIx >= gr.nodes.length - 1, onClick: () => setNodeSel(gr.nodes[Math.min(gr.nodes.length - 1, nodeIx + 1)].id) }, kbt('tasks.flow.next') + ' ›')),
@@ -23028,7 +23147,7 @@ function renderFit(canvas, model, cam, opts){
             taskId: t.id,
             emptyText: kbt('tasks.sessions.empty').replace('{trigger}', kbScheduleLabel(t)),
           })
-          : h('div', { className: 'kba-flowwrap' }, viewBar,
+          : h('div', { className: 'kba-flowwrap' }, viewBar, kbUsesStrip(wfUses, appLogos),
             (view === 'text' ? h('div', { style: { display: 'flex', flexDirection: 'column', gap: 10, flex: 1, minHeight: 0 } },
                   (dirty === true ? h('div', { className: 'kba-dirty' },
                     h('span', { className: 'kba-kdot wait' }),
@@ -31668,6 +31787,16 @@ button.kbbd-chip:hover{background:var(--dsw-alias-interactive-bg-hover,#f0f0f0)}
 .kbrn-strip{display:flex;gap:6px 18px;flex-wrap:wrap;font-size:13px;color:var(--dsw-alias-label-secondary);margin:0 0 12px}
 .kbrn-strip b{color:var(--dsw-alias-label-primary);font-weight:600}
 .kbrn-strip .bad b{color:var(--dsw-alias-state-error-primary)}
+.kba-uses{display:flex;flex-wrap:wrap;gap:6px 18px;align-items:center;font-size:13px}
+.kba-ug{display:inline-flex;flex-wrap:wrap;gap:6px;align-items:center}
+.kba-ug.dim{color:var(--dsw-alias-label-tertiary)}
+.kba-uk{display:inline-flex;align-items:center;gap:5px;color:var(--dsw-alias-label-tertiary);font-size:12px}
+.kba-use{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border:1px solid var(--dsw-alias-border-l2);border-radius:999px;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);font-size:12px;line-height:1.3}
+.kba-use i,.kba-appuse i{font-style:normal;color:var(--dsw-alias-label-tertiary)}
+.kba-appuse{padding:2px 9px 2px 3px;font-size:12px}
+.kba-appuse .kbtd-app{width:20px;height:20px;font-size:10px}
+.kba-urow{display:flex;flex-direction:column;gap:1px;font-size:12px;color:var(--dsw-alias-label-secondary);margin-top:4px}
+.kba-urow b{font-weight:500;color:var(--dsw-alias-label-tertiary);font-size:11px}
 .kba-hint{font-size:12.5px;color:var(--dsw-alias-label-tertiary);margin-top:10px}
 /* workflow : Text / Flow / Code */
 .kba-flowwrap{flex:1;min-height:0;display:flex;flex-direction:column;gap:10px}
@@ -32118,6 +32247,7 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
 .kbfc-k-act{--k:var(--dsw-alias-state-success-primary)}
 .kbfc-k-ai{--k:var(--dsw-alias-state-business-primary)}
 .kbfc-k-gry{--k:var(--dsw-alias-label-tertiary)}
+.kbfc-k-conn{--k:color-mix(in srgb,var(--dsw-alias-state-business-primary) 45%,var(--dsw-alias-state-success-primary))}
 .kbfc{position:relative;border:1px solid var(--dsw-alias-border-l1);border-radius:14px;overflow:hidden;background-color:var(--cv-bg);min-height:300px}
 .kbfc-scr{position:absolute;inset:0;overflow:auto;display:flex;background-image:radial-gradient(var(--cv-dot) 1px,transparent 1px);background-size:20px 20px;background-attachment:local}
 .kbfc-vpw{position:relative;margin:auto;flex:none}

@@ -189,6 +189,14 @@ Flow (the cards), Text (the source, editable) and Code (read-only) are three qui
 - **The webhook is the settings of its card.** Its panel has the address (hidden until « Reveal »; « Copy » copies the whole address), « Test »,
   « Regenerate » and « Revoke » (both ask first). An automation with no webhook offers « Create webhook » in the schedule's panel; creating
   it draws the card and opens its panel. The host routes are the same as before (`hook-generate`, `hook-revoke` of `kybers/tasks`).
+- **What the runs used.** A strip above the canvas says, from the newest five runs whose journal was read, which model answered (and whether
+  it was chosen or the profile's default), the teammates of the Agent Team with their models, the skills, the apps (connectors, with the
+  logos of the connectors catalogue) and the tools, each with how many times it was seen. A step card carries the model, plus one skill, app or
+  teammate its own text names; its panel has a **Uses** section (model, Agent Team, what the step names). Nothing is guessed: before a
+  journal is read the strip says what it will show, and a step is never tied to a tool call it cannot be tied to. The host says it:
+  `summarizeRun` (`automation-runs.mjs`) gives each call a `ref` (`skill` by its name, `app` by the server of an `mcp__<server>__…` tool, or
+  the first word of Composio's tool slugs, `agent` for `spawn_teammate` / `team/member` events with the model of the spawn result, else
+  `tool`) and a bounded `uses` for the whole turn. Host code: it needs a DSH restart (an older host gives the model alone).
 - **The cards move.** Drag any card: the wires follow and stay at right angles. The arrangement is kept per automation, in this browser
   (`kybernos.flowpos2.<wf|run>.<id>`, an offset from the default place, so it survives a change of style); « Tidy up » puts the cards back.
 - **Nine styles.** Kybernos (follows the app), Node-RED, Blueprint, Paper, Soft, Ledger, Atelier, Journey and Metrics, in a menu on the
@@ -207,7 +215,8 @@ Nothing is written, nothing is guessed from what a model said.
   a green / red bar on the left; on the right the **execution** of the chosen run, drawn on the same canvas as the workflow (a card per tool
   call: title, duration split into thinking and running, status, and on each wire the size of what the step handed on; more than seven
   tool calls show the first six and a "+N more steps" card), and a **Logs** panel with what one step got and gave (the raw text, 420 characters).
-- Under it, **who ran**: which model answered and why (the profile's default, or one chosen for this run), how long, how many steps; the
+- Under it, **who ran**: which model answered and why (the profile's default, or one chosen for this run), how long, how many steps, and what that
+  run used (Agent Team, skills, connectors, tools); each card of the graph says what its call stands for (a tool, a connector, a teammate, a skill); the
   **approvals** asked during the run (or the automation's mode when there were none); and the **Lessons** card: how many runs in a row the
   automation has had since its last failure, and, once that reaches the number chosen in Settings › Automations, a **Create skill** button
   (see « Stable automations become skills » below).

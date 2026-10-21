@@ -46,6 +46,28 @@ const textOf = (content) => {
 
 const sizeOf = (content) => { try { return JSON.stringify(content === undefined ? '' : content).length } catch (e) { return 0 } }
 
+/** What a step of a run used, for the page: a skill, an app (a connector), a teammate of the Agent Team, or a plain tool. */
+export const RUN_USES_MAX = 12
+const bump = (map, key, extra) => { const e = map.get(key); if (e === undefined) map.set(key, Object.assign({ count: 1 }, extra)); else e.count += 1 }
+/** The apps a connector call reaches: Composio's tool slugs (GMAIL_SEND_EMAIL) name the app first; any other server is its own app. */
+const appsOf = (server, a) => {
+  if (server.toLowerCase().indexOf('composio') < 0) return [server]
+  const slugs = []
+  if (typeof a.tool_slug === 'string') slugs.push(a.tool_slug)
+  if (Array.isArray(a.tools) === true) for (const t of a.tools) if (t !== null && typeof t === 'object' && typeof t.tool_slug === 'string') slugs.push(t.tool_slug)
+  const apps = []
+  for (const sl of slugs) { const app = one(sl.split('_')[0], 40).toLowerCase(); if (app !== '' && apps.indexOf(app) < 0) apps.push(app) }
+  return apps.length > 0 ? apps : [server]
+}
+/** The skill, app, teammate or tool a call stands for: { type: 'skill' | 'app' | 'agent' | 'tool', name, apps? }. */
+const refOf = (name, a) => {
+  if (name === 'skill') return { type: 'skill', name: one(a.name, 60) || 'skill' }
+  const m = /^mcp__(.+?)__(.+)$/.exec(name)
+  if (m !== null) { const apps = appsOf(one(m[1], 60), a); return { type: 'app', name: apps[0], apps } }
+  if (name === 'spawn_teammate') return { type: 'agent', name: one(a.name, 60) || one(a.target, 60) || one(a.role, 60) || 'agent' }
+  return { type: 'tool', name: one(name, 40) }
+}
+
 /**
  * The summary of the first turn of a session, or null when no turn ever started.
  *   startedAt / endedAt / durationMs   the turn's own clock (endedAt and durationMs are null while it is open)
@@ -53,7 +75,8 @@ const sizeOf = (content) => { try { return JSON.stringify(content === undefined 
  *   models    [{ provider, model }]    what the engine's requests were routed to, in order, without repeats
  *   selected  true when a model was chosen on purpose for this session (a `model/selection` event), false when the profile's default answered
  *   turns / steps / toolCalls          how many turns the session holds, steps of the first turn, tool calls of the first turn
- *   nodes     [{ kind, label, thinkMs, runMs, outBytes, ok, approval?, in?, out? }]   the tool calls in order (bounded; in/out only in detail mode)
+ *   nodes     [{ kind, label, ref, thinkMs, runMs, outBytes, ok, approval?, in?, out? }]   the tool calls in order (bounded; in/out only in detail mode); `ref` says what the call stands for (see refOf)
+ *   uses      { skills: [{ name, count }], apps: [{ name, count }], agents: [{ name, model? }], tools: [{ name, count }] }   what the whole turn used, whatever the bound on `nodes`
  *   nodeCount / final                  the number of tool calls, and the model's last step when it called no tool: { thinkMs }
  *   approvals [{ toolName, outcome }]  what asked for an approval during the turn, `outcome` is the engine's decision ('asked' while undecided)
  */
@@ -95,6 +118,12 @@ export const summarizeRun = (events, options) => {
   const byCall = new Map()
   const approvals = []
   const approvalById = new Map()
+  const usedSkills = new Map()
+  const usedApps = new Map()
+  const usedTools = new Map()
+  const agentOrder = []
+  const agentModel = new Map()
+  const spawnById = new Map()
   let steps = 0
   let toolCalls = 0
   let stepStart = startedMs
@@ -111,19 +140,37 @@ export const summarizeRun = (events, options) => {
       const a = argsOf(d.arguments)
       const kind = one(d.name, 40) || 'tool'
       const label = one(a.description, RUN_LABEL_MAX) || one(a.name, RUN_LABEL_MAX) || one(a.query, RUN_LABEL_MAX) || one(a.url, RUN_LABEL_MAX) || one(a.command, RUN_LABEL_MAX) || kind
-      const node = { kind, label: scrub(label, RUN_LABEL_MAX), thinkMs: t !== null && stepStart !== null && t >= stepStart ? t - stepStart : null, runMs: null, outBytes: 0, ok: true, atMs: t }
+      const ref = refOf(kind, a)
+      if (ref.type === 'skill') bump(usedSkills, ref.name)
+      else if (ref.type === 'app') { for (const app of ref.apps) bump(usedApps, app) }
+      else if (ref.type === 'tool') bump(usedTools, ref.name)
+      else if (ref.type === 'agent') { spawnById.set(String(d.callId), ref.name); if (agentOrder.indexOf(ref.name) < 0) agentOrder.push(ref.name) }
+      const node = { kind, ref, label: scrub(label, RUN_LABEL_MAX), thinkMs: t !== null && stepStart !== null && t >= stepStart ? t - stepStart : null, runMs: null, outBytes: 0, ok: true, atMs: t }
       if (detail === true) node.in = scrub(typeof a.command === 'string' ? a.command : (typeof a.query === 'string' ? a.query : (typeof a.name === 'string' ? a.name : JSON.stringify(a))))
       byCall.set(String(d.callId), node)
       if (nodes.length < cap) nodes.push(node)
     } else if (ev.type === 'tool/result') {
       const m = d.message !== null && typeof d.message === 'object' ? d.message : null
       const node = m !== null ? byCall.get(String(m.toolCallId)) : undefined
+      if (m !== null && spawnById.has(String(m.toolCallId)) === true) {
+        // The result of spawn_teammate says which model the teammate runs on ({ member: { name | target, model } }).
+        try {
+          const j = JSON.parse(textOf(m.content))
+          const mem = j !== null && typeof j === 'object' && j.member !== null && typeof j.member === 'object' ? j.member : null
+          const model = mem !== null ? one(mem.model, 80) : ''
+          if (model !== '') agentModel.set(spawnById.get(String(m.toolCallId)), model)
+        } catch (e) { /* a result that is not JSON says nothing about the model */ }
+      }
       if (node !== undefined) {
         node.runMs = t !== null && node.atMs !== null && t >= node.atMs ? t - node.atMs : null
         node.outBytes = sizeOf(m.content)
         node.ok = m.isError !== true
         if (detail === true) node.out = scrub(textOf(m.content))
       }
+    } else if (ev.type === 'team/member') {
+      const mem = d.member !== null && typeof d.member === 'object' ? d.member : null
+      const nm = mem !== null ? one(mem.name, 60) : ''
+      if (nm !== '' && agentOrder.indexOf(nm) < 0) agentOrder.push(nm)
     } else if (ev.type === 'approval/asked') {
       const entry = { toolName: one(d.toolName, 60), outcome: 'asked', callId: String(d.callId) }
       approvals.push(entry)
@@ -134,7 +181,7 @@ export const summarizeRun = (events, options) => {
     }
   }
   for (const a of approvals) { const node = byCall.get(a.callId); if (node !== undefined) node.approval = a.outcome }
-  const out = nodes.map((n) => { const x = { kind: n.kind, label: n.label, thinkMs: n.thinkMs, runMs: n.runMs, outBytes: n.outBytes, ok: n.ok }; if (n.approval !== undefined) x.approval = n.approval; if (n.in !== undefined) x.in = n.in; if (n.out !== undefined) x.out = n.out; return x })
+  const out = nodes.map((n) => { const x = { kind: n.kind, label: n.label, ref: n.ref, thinkMs: n.thinkMs, runMs: n.runMs, outBytes: n.outBytes, ok: n.ok }; if (n.approval !== undefined) x.approval = n.approval; if (n.in !== undefined) x.in = n.in; if (n.out !== undefined) x.out = n.out; return x })
   const final = lastStepCalls === 0 && lastStepStart !== null && lastStepEnd !== null && lastStepEnd >= lastStepStart ? { thinkMs: lastStepEnd - lastStepStart } : null
   return {
     startedAt: startedMs !== null ? new Date(startedMs).toISOString() : null,
@@ -147,6 +194,12 @@ export const summarizeRun = (events, options) => {
     steps,
     toolCalls,
     nodes: out,
+    uses: {
+      skills: [...usedSkills].slice(0, RUN_USES_MAX).map(([name, e]) => ({ name, count: e.count })),
+      apps: [...usedApps].slice(0, RUN_USES_MAX).map(([name, e]) => ({ name, count: e.count })),
+      agents: agentOrder.slice(0, RUN_USES_MAX).map((name) => (agentModel.has(name) === true ? { name, model: agentModel.get(name) } : { name })),
+      tools: [...usedTools].slice(0, RUN_USES_MAX).map(([name, e]) => ({ name, count: e.count })),
+    },
     nodeCount: toolCalls,
     final,
     approvals: approvals.map((a) => ({ toolName: a.toolName, outcome: a.outcome })),
