@@ -126,7 +126,7 @@ ok('an Agent Team’s tabs are Identity · Roles · Workflow · … · Insight (
 
 // 9. the marketplace is one word, and the page header does not change with the tab
 assert.ok(!dict.has('kbui.marketplace.title'), 'no second title for the Marketplace tab (the header moved when it was swapped)')
-assert.ok(/h\('h1', \{ className: 'kb6-title' \}, kbt\('kbui\.kybers'\)\)/.test(src), 'the page title is « Agent Teams » on both tabs')
+assert.ok(/h\('h1', \{ className: 'kb6-title' \}, kbDomainTitle\('aiteams', kbt\('kbui\.kybers'\)\)\)/.test(src), 'the page title is « Agent Teams » (or the field\'s word for that menu row) on both tabs')
 ok('the page header is the same on both tabs (no « Agent Teams Marketplace » title swapped in)')
 
 // 10. the other bundles: their help.json (EN and FR) and the catalogue built from them

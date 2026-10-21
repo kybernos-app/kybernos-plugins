@@ -55,6 +55,9 @@ Socle = `kybernos-plugin`, `kybernos-hub`, `kybernos-theme`, `kybernos-sessions`
   what already runs by itself (one sentence, one status dot) and keeps its knobs under one fold that is shut until the person opens it and that remembers the
   choice. `h(window.__KB_CUSTOMIZE__.Fold, { id: 'memory', state: 'Memory is on and tidies itself.', tone: 'on' }, …the knobs…)`;
   `read(id)` / `write(id, open)` are its store. A page of another bundle falls back to its own markup when the helper is not there.
+- **The person's field of work on the pages** (`window.__KB_DOMAIN__`, read-only, see `docs/dev/domain-packs.md`): `field()`, `label(rowId)` (the menu's word for a row),
+  `skills()` and `connectors()` (what the saved field and goals put forward), `installSkill(name)` (a skill this plugin ships), `openKit()`, `subscribe(fn)`.
+  The Skills, Connectors and Dashboards bundles read it at each draw; without it, or with no saved field, their pages are unchanged.
 
 ## Host routes
 

@@ -90,10 +90,14 @@
           "source": "anthropics/skills",
           "name": "xlsx",
           "d": {
-            "en": "Track money and pipeline",
-            "fr": "Suit l’argent et le pipeline"
+            "en": "Check and compute figures in a sheet",
+            "fr": "Contrôle et calcule des chiffres dans un tableur"
           }
         }
+      ],
+      "connectors": [
+        "quickbooks",
+        "googlesheets"
       ],
       "automations": [
         {
@@ -144,6 +148,10 @@
           }
         }
       ],
+      "connectors": [
+        "quickbooks",
+        "googledrive"
+      ],
       "starter": {
         "en": "Prepare this month’s closing",
         "fr": "Prépare la clôture du mois"
@@ -172,6 +180,10 @@
             "fr": "Explique les écarts par rapport au plan"
           }
         }
+      ],
+      "connectors": [
+        "googlesheets",
+        "airtable"
       ],
       "automations": [
         {
@@ -224,6 +236,11 @@
           }
         }
       ],
+      "connectors": [
+        "gmail",
+        "stripe",
+        "quickbooks"
+      ],
       "automations": [
         {
           "id": "late-invoices",
@@ -262,10 +279,14 @@
           "source": "anthropics/skills",
           "name": "xlsx",
           "d": {
-            "en": "Track money and pipeline",
-            "fr": "Suit l’argent et le pipeline"
+            "en": "Track cash in and out",
+            "fr": "Suit les entrées et sorties de trésorerie"
           }
         }
+      ],
+      "connectors": [
+        "stripe",
+        "googlesheets"
       ],
       "starter": {
         "en": "Where does my cash stand?",
