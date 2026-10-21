@@ -120,7 +120,7 @@ All POSTs are strict same-origin JSON. One operation at a time: while the update
 
 - The key pair exists (id `e69d1ec06bf2`, public half in `catalog-pubkey.json`); the first real release is `1.0.0-beta.2` (and `1.0.0-beta.3` the first whose notification works). The update was exercised end to end
   with a real archive, a signed release and a local server in a throwaway DSH home, with the robot in `--dry`; see the release notes for what ran on a real install.
-- Per-module DSH ranges (the verdict still comes from the suite-wide `dsh-compat.json`).
+- Per-module DSH ranges (the verdict still comes from the suite-wide `dsh-compat.json`). Specified in the draft [plugin contract](plugin-contract.md), sections 4 and 5.
 
 ## Tests
 

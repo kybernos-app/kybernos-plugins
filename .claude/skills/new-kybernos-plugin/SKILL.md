@@ -197,6 +197,9 @@ worktree started from an old `main` reads stale ones. Work from `dev`.)
    (otherwise the hot-file guard answers "not a known hot file" and nobody can reserve it).
 5. `README.md` — one row in the bundles table.
 
+A per-plugin manifest (`plugin.json`: id, version, DSH range, permissions, points) is specified in `docs/dev/plugin-contract.md` as a draft. It is **not required yet**: do not
+hand-write one before the generator of phase 1 exists.
+
 Add a `packages/<dir>/README.md` when the plugin has a user-facing surface: what it is, where to
 find it, how to use it in three steps, what it stores and where.
 
