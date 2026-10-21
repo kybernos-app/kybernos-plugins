@@ -431,7 +431,6 @@ html[dir="rtl"] .kbln-page{direction:rtl}
         readyOn1: ['Prête · traduite le {date} · 1 texte', 'Ready · translated on {date} · 1 text'],
         use: ['Utiliser', 'Use'],
         useNow: ['Utiliser maintenant', 'Use now'],
-        useAnyway: ['Utiliser quand même', 'Use anyway'],
         rtl: ['De droite à gauche', 'Right to left'],
         newMeta: ['Pas encore traduite · environ {n} textes · {t}', 'Not translated yet · about {n} texts · {t}'],
         newMeta1: ['Pas encore traduite · environ 1 texte · {t}', 'Not translated yet · about 1 text · {t}'],
@@ -1691,7 +1690,6 @@ html[dir="rtl"] .kbln-page{direction:rtl}
           const isRun = snap.lang === id && snap.state !== 'idle'
           const meta = metaRead(id)
           const plan = isBuiltIn(id) ? null : buildPlan(id)
-          const complete = isComplete(id)
           const pseudo = isBuiltIn(id) ? { n: 0, examples: [] } : pseudoStats(id)
           const inUse = activeLang === id
           const st = isRun ? snap.state : null
@@ -1702,8 +1700,14 @@ html[dir="rtl"] .kbln-page{direction:rtl}
           // 2026-10-21): count what is really translated, and fall back to the stored count only without a plan.
           const staticDone = held !== null ? held.done : (typeof meta.done === 'number' ? meta.done : 0)
           const total = running ? (snap.total || (plan !== null ? plan.total : 0)) : (plan !== null ? plan.total : (typeof meta.total === 'number' ? meta.total : 0))
-          const done = isRun ? snap.done : staticDone
+          // A count never exceeds what there is to count: a stored `done` written before the product's string set changed
+          // can be larger than the current total (« 7 455 of 6 342 texts », at 100 %, with « Resume translation » next to
+          // « 0 texts left » — the Language page, 2026-10-21). Clamped here, once, for every line that shows it.
+          const doneRaw = isRun ? snap.done : staticDone
+          const done = total > 0 ? Math.min(doneRaw, total) : doneRaw
           const pct = total > 0 ? Math.min(100, Math.floor(done / total * 100)) : 0
+          // A language that covers its whole set IS complete, whatever the stored meta says: no "Resume" for nothing left.
+          const complete = isComplete(id) || (total > 0 && done >= total)
           const hasProgress = !complete && !isBuiltIn(id) && done > 0
           const essentialsOk = isRun ? (snap.essentials === true) : (typeof meta.essentials === 'boolean' ? meta.essentials : (held !== null && held.essentials))
           const canUseNow = !isBuiltIn(id) && !complete && essentialsOk && !inUse && pseudo.n === 0
@@ -1735,8 +1739,10 @@ html[dir="rtl"] .kbln-page{direction:rtl}
             acts.push(h('button', { key: 'pause', className: 'kbln-btn', type: 'button', 'data-act': 'pause', title: L('tipPause'), disabled: st === 'pausing', onClick: pauseRun }, L(st === 'pausing' ? 'pausing' : 'pause')))
           } else if (complete || st === 'done') acts.push(h('button', { key: 'use', className: 'kbln-btn primary', type: 'button', 'data-act': 'use', title: L('tipUse'), onClick: () => activate(id) }, L('use')))
           else {
-            if (canUseNow) acts.push(h('button', { key: 'now', className: 'kbln-btn', type: 'button', 'data-act': 'use-now', title: L('tipUseNow'), onClick: () => activate(id) }, L(st === 'partial' ? 'useAnyway' : 'useNow')))
-            else if (done > 0 && pseudo.n === 0) acts.push(h('button', { key: 'any', className: 'kbln-btn', type: 'button', 'data-act': 'use-now', title: L('tipUseAnyway'), onClick: () => activate(id) }, L('useAnyway')))
+            // One label for one act. The nuance (a translation still in progress vs one with holes) stays in the tooltip:
+            // three labels for the same button (« Use », « Use now », « Use anyway ») read as three different actions.
+            if (canUseNow) acts.push(h('button', { key: 'now', className: 'kbln-btn', type: 'button', 'data-act': 'use-now', title: L(st === 'partial' ? 'tipUseAnyway' : 'tipUseNow'), onClick: () => activate(id) }, L('useNow')))
+            else if (done > 0 && pseudo.n === 0) acts.push(h('button', { key: 'any', className: 'kbln-btn', type: 'button', 'data-act': 'use-now', title: L('tipUseAnyway'), onClick: () => activate(id) }, L('useNow')))
             if (offerPack) acts.push(h('button', { key: 'pack', className: 'kbln-btn primary', type: 'button', 'data-act': 'install-pack', onClick: () => installReady(id) }, L('packInstall')))
             acts.push(goButton())
           }
