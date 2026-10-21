@@ -94,6 +94,11 @@
           }
         }
       ],
+      "connectors": [
+        "docusign",
+        "googledrive",
+        "dropbox"
+      ],
       "soon": [
         {
           "en": "Legal Compliance team",
@@ -128,6 +133,10 @@
             "fr": "Les échéances proches, avec le calcul des dates"
           }
         }
+      ],
+      "connectors": [
+        "googlecalendar",
+        "outlook"
       ],
       "automations": [
         {
@@ -175,6 +184,10 @@
       "teams": [
         "research-desk"
       ],
+      "connectors": [
+        "gmail",
+        "notion"
+      ],
       "automations": [
         {
           "id": "case-law-sweep",
@@ -213,10 +226,14 @@
           "source": "anthropics/skills",
           "name": "xlsx",
           "d": {
-            "en": "Track money and pipeline",
-            "fr": "Suit l’argent et le pipeline"
+            "en": "Track time and billing by case",
+            "fr": "Suit le temps passé et la facturation par dossier"
           }
         }
+      ],
+      "connectors": [
+        "googlesheets",
+        "quickbooks"
       ],
       "automations": [
         {
@@ -256,10 +273,14 @@
           "source": "anthropics/skills",
           "name": "docx",
           "d": {
-            "en": "Write and format papers",
-            "fr": "Rédige et met en forme tes devoirs"
+            "en": "Draft and format letters, notices and notes",
+            "fr": "Rédige et met en forme courriers, mises en demeure et notes"
           }
         }
+      ],
+      "connectors": [
+        "googledocs",
+        "googledrive"
       ],
       "starter": {
         "en": "Prepare a summary note",

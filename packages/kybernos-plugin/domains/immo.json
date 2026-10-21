@@ -88,6 +88,11 @@
       "teams": [
         "inbound-closer"
       ],
+      "connectors": [
+        "hubspot",
+        "pipedrive",
+        "gmail"
+      ],
       "automations": [
         {
           "id": "prospect-replies",
@@ -147,6 +152,11 @@
           }
         }
       ],
+      "connectors": [
+        "googledrive",
+        "instagram",
+        "facebook"
+      ],
       "starter": {
         "en": "Write the listing for this property",
         "fr": "Rédige l’annonce de ce bien"
@@ -171,10 +181,14 @@
           "source": "anthropics/skills",
           "name": "docx",
           "d": {
-            "en": "Write and format papers",
-            "fr": "Rédige et met en forme tes devoirs"
+            "en": "Write visit reports and forms",
+            "fr": "Rédige comptes rendus et fiches de visite"
           }
         }
+      ],
+      "connectors": [
+        "googlecalendar",
+        "calendly"
       ],
       "automations": [
         {
@@ -214,8 +228,8 @@
           "source": "anthropics/skills",
           "name": "xlsx",
           "d": {
-            "en": "Track money and pipeline",
-            "fr": "Suit l’argent et le pipeline"
+            "en": "Compare prices and compute a valuation in a sheet",
+            "fr": "Compare des prix et calcule une estimation dans un tableur"
           }
         },
         {
@@ -226,6 +240,9 @@
             "fr": "Une fourchette de prix à partir de comparables, méthode à l’appui"
           }
         }
+      ],
+      "connectors": [
+        "googlesheets"
       ],
       "starter": {
         "en": "Value this property with comparables",
@@ -251,8 +268,8 @@
           "source": "anthropics/skills",
           "name": "docx",
           "d": {
-            "en": "Write and format papers",
-            "fr": "Rédige et met en forme tes devoirs"
+            "en": "Write and format leases and notices",
+            "fr": "Rédige et met en forme baux et avis"
           }
         },
         {
@@ -263,6 +280,11 @@
             "fr": "Des relances de loyers impayés, courtoises puis plus fermes"
           }
         }
+      ],
+      "connectors": [
+        "gmail",
+        "docusign",
+        "quickbooks"
       ],
       "automations": [
         {

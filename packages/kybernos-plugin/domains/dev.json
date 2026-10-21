@@ -80,6 +80,10 @@
           }
         }
       ],
+      "connectors": [
+        "github",
+        "gitlab"
+      ],
       "automations": [
         {
           "id": "review-digest",
@@ -139,6 +143,10 @@
           }
         }
       ],
+      "connectors": [
+        "github",
+        "slack"
+      ],
       "starter": {
         "en": "What should I test on this change?",
         "fr": "Que tester sur ce changement ?"
@@ -175,6 +183,10 @@
             "fr": "Lit un jeu de données sans se tromper"
           }
         }
+      ],
+      "connectors": [
+        "supabase",
+        "snowflake"
       ],
       "soon": [
         {
@@ -234,6 +246,11 @@
             "fr": "Prépare et lit une étude utilisateur"
           }
         }
+      ],
+      "connectors": [
+        "linear",
+        "jira",
+        "notion"
       ],
       "automations": [
         {
@@ -299,6 +316,9 @@
             "fr": "Construit des interfaces soignées en code"
           }
         }
+      ],
+      "connectors": [
+        "figma"
       ],
       "starter": {
         "en": "Critique this design",

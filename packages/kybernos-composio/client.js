@@ -436,6 +436,8 @@ window.__ModuleLoader__.load({
       'kb.cp.kc.err.other': { fr: 'Réponse inattendue du serveur ({code}).', en: 'Unexpected answer from the server ({code}).' },
       // Discover: the known apps get their own section, same cards.
       'kb.cp.popularH': { fr: 'Populaires', en: 'Popular' },
+      'kb.cp.fieldH': { fr: 'Pour ton domaine · {field}', en: 'For your field · {field}' },
+      'kb.cp.fieldgo': { fr: 'Voir dans Découvrir', en: 'See them in Discover' },
       'kb.cp.allapps': { fr: 'Toutes les apps', en: 'All apps' },
       // Settings › Connectors: which service connects the apps for the agents.
       'kb.cp.pv.lead': { fr: 'Quel service relie tes apps (Gmail, Slack, Notion…) pour tes agents. Un seul à la fois : tes agents voient celui que tu choisis ici.', en: 'Which service connects your apps (Gmail, Slack, Notion…) for your agents. One at a time: your agents see the one you choose here.' },
@@ -1158,6 +1160,14 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
 .kbcp-kcrow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:6px}
 /* ── Discover popular pin + Yours empty-state illustration ── */
 .kb7-pill.pop{color:var(--dsw-alias-brand-primary);border-color:var(--dsw-alias-brand-primary)}
+/* « For your field »: the field's colour (--kb7-fld, set from the pack) is the dot and the goal tag's outline; the rest is the page's own. */
+.kb7-fieldlab{opacity:1;color:var(--dsw-alias-label-primary)}
+.kb7-fdot{width:10px;height:10px;border-radius:50%;background:var(--kb7-fld);flex:none}
+.kb7-fieldstrip{display:flex;align-items:center;flex-wrap:wrap;gap:10px 12px;margin:0 0 14px;padding:10px 14px;border:1px solid var(--dsw-alias-border-l1);border-inline-start:3px solid var(--kb7-fld);border-radius:12px;background:var(--dsw-alias-bg-layer-1)}
+.kb7-fieldtxt{font-size:13px;font-weight:600;color:var(--dsw-alias-label-primary)}
+.kb7-fieldapps{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;flex:1;min-width:0}
+.kb7-fieldapp{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--dsw-alias-label-secondary)}
+.kb7-card .kb7-pill.fld,.kb7-row .kb7-pill.fld{background:transparent;color:var(--dsw-alias-label-secondary);border:1px solid var(--dsw-alias-border-l1);font-weight:500}
 .kb7-emptyart{display:flex;align-items:center;justify-content:center;color:var(--dsw-alias-label-tertiary,#8a8f98);padding-bottom:2px}
 /* ── Settings page (Settings ▸ Connectors): same card language as the skills page ── */
 .kbcp-set-page{display:flex;flex-direction:column;gap:14px;max-width:760px}
@@ -2143,6 +2153,14 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
       // (or an older cloud half on this machine) does not offer it, and then the mode is not shown at all.
       const [kc, setKc] = React.useState(null)
       const [mode, setModeState] = React.useState(kbCpModeGet())
+      // The field of work the person chose (`window.__KB_DOMAIN__`, published by kybernos-plugin): its apps open Discover and its word for this page
+      // is the title. A change of the saved field redraws the page; without the seam nothing changes.
+      const setDomTick = React.useState(0)[1]
+      React.useEffect(() => {
+        let stop = null
+        try { if (window.__KB_DOMAIN__ && typeof window.__KB_DOMAIN__.subscribe === 'function') stop = window.__KB_DOMAIN__.subscribe(() => setDomTick((n) => n + 1)) } catch (e) { stop = null }
+        return () => { try { if (typeof stop === 'function') stop() } catch (e2) { /* gone */ } }
+      }, [])
       const reloadKc = React.useCallback(async (fresh) => {
         const r = await kbCpCloud('/connections' + (fresh === true ? '?refresh=1' : ''))
         setKc((prev) => kbCpCloudMerge(prev, kbCpCloudView(r)))
@@ -2394,8 +2412,16 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
       // With no search and no filter the known apps get their own section above the catalogue, drawn with the SAME cards;
       // the catalogue below (and its pages) is what is left. Any search or filter shows one list, as before.
       const popSplit = qn.length === 0 && chip === 'all'
-      const popList = popSplit ? POPULAR.map((sl) => list.find((a) => a.s === sl)).filter((a) => a !== undefined) : []
-      const mainList = popList.length > 0 ? list.filter((a) => POPULAR.indexOf(a.s) < 0) : list
+      // The field's own apps come first (the Connections the saved field names for its goals, those of the goals the person ticked first), drawn with
+      // the same cards and tagged with their goal; an app shown there is not repeated below.
+      const fieldSeam = (() => { try { const d = window.__KB_DOMAIN__; return d !== null && d !== undefined && typeof d.field === 'function' ? d : null } catch (e) { return null } })()
+      let fieldInfo = null
+      let fieldWant = []
+      try { fieldInfo = fieldSeam !== null ? fieldSeam.field() : null; fieldWant = fieldInfo !== null ? fieldSeam.connectors() : [] } catch (e) { fieldInfo = null; fieldWant = [] }
+      const fieldList = popSplit ? fieldWant.map((w) => ({ a: list.find((a) => a.s === w.app), goal: w.goal })).filter((x) => x.a !== undefined) : []
+      const inField = (sl) => fieldList.some((x) => x.a.s === sl)
+      const popList = popSplit ? POPULAR.filter((sl) => !inField(sl)).map((sl) => list.find((a) => a.s === sl)).filter((a) => a !== undefined) : []
+      const mainList = popSplit ? list.filter((a) => POPULAR.indexOf(a.s) < 0 && !inField(a.s)) : list
       const pages = Math.max(1, Math.ceil(mainList.length / PAGE))
       const cur = Math.min(page, pages)
       const shown = mainList.slice((cur - 1) * PAGE, cur * PAGE)
@@ -2453,7 +2479,7 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
           h('div', { className: 'kb7-desc', style: { display: 'flex', flexDirection: 'column', gap: 7 } }, k.bone('94%', 10), k.bone('72%', 10)),
           h('div', { className: 'kb7-foot' }, k.bone(70, 22, 'pill'))))))
       }
-      const appCard = (a, inPop) => {
+      const appCard = (a, inPop, tag) => {
         const st = statusOf(a.s)
         const accs = accOf(a.s)
         return h('button', { type: 'button', className: 'kb7-card', key: a.s, onClick: () => setOpen(a) },
@@ -2465,7 +2491,8 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
           accs.length > 0 ? h('div', { className: 'kb7-bars' }, accs.map((x, i) => h('span', { key: i, className: 'kb7-bar' + (String(x.status).toUpperCase() === 'ACTIVE' ? '' : ' pend') }))) : null,
           h('div', { className: 'kb7-foot' },
             st !== null ? h('span', { className: 'kb7-pill' + (st === 'ACTIVE' ? '' : ' pend') }, st === 'ACTIVE' ? kbt('kb.cp.connected') : kbt('kb.cp.pend')) : h('span', null),
-            POPULAR.indexOf(a.s) >= 0 && inPop !== true ? h('span', { className: 'kb7-pill pop' }, kbt('kb.cp.popular')) : null,
+            POPULAR.indexOf(a.s) >= 0 && inPop !== true && tag === undefined ? h('span', { className: 'kb7-pill pop' }, kbt('kb.cp.popular')) : null,
+            tag !== undefined ? h('span', { className: 'kb7-pill fld', 'data-kb': 'field-goal' }, tag) : null,
             accs.length > 1 ? h('span', { className: 'kb7-cat' }, accs.length + ' ' + kbt('kb.cp.accounts')) : null))
       }
       // "Yours": linked apps (at least one account), A -> Z, without
@@ -2494,7 +2521,7 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
       const mcpFacet = ['http', 'stdio', 'api'].map((k) => ({ id: k, label: k === 'api' ? kbt('kb.cp.api.tag') : k, count: k === 'api' ? apis.length : cx.filter((c) => kindOfServer(c) === k).length })).filter((o) => o.count > 0)
       const gridCls = viewMode === 'list' ? 'kb7-list' : 'kb7-grid'
       // One app, as a card or as a row: the same facts, the same click.
-      const appRow = (a, inPop) => {
+      const appRow = (a, inPop, tag) => {
         const st = statusOf(a.s)
         const accs = accOf(a.s)
         return h('button', { type: 'button', className: 'kb7-row', key: a.s, onClick: () => setOpen(a) },
@@ -2503,10 +2530,11 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
           h('div', { className: 'kb7-rowdesc' }, a.d || ''),
           h('div', { className: 'kb7-rowend' },
             st !== null ? h('span', { className: 'kb7-pill' + (st === 'ACTIVE' ? '' : ' pend') }, st === 'ACTIVE' ? kbt('kb.cp.connected') : kbt('kb.cp.pend')) : null,
-            POPULAR.indexOf(a.s) >= 0 && inPop !== true ? h('span', { className: 'kb7-pill pop' }, kbt('kb.cp.popular')) : null,
+            POPULAR.indexOf(a.s) >= 0 && inPop !== true && tag === undefined ? h('span', { className: 'kb7-pill pop' }, kbt('kb.cp.popular')) : null,
+            tag !== undefined ? h('span', { className: 'kb7-pill fld', 'data-kb': 'field-goal' }, tag) : null,
             accs.length > 1 ? h('span', { className: 'kb7-cat' }, accs.length + ' ' + kbt('kb.cp.accounts')) : null))
       }
-      const appItem = (a, inPop) => (viewMode === 'list' ? appRow(a, inPop) : appCard(a, inPop))
+      const appItem = (a, inPop, tag) => (viewMode === 'list' ? appRow(a, inPop, tag) : appCard(a, inPop, tag))
       // The mode in force: Kybernos connections only when this server offers them, else the person's own key, as before.
       const effMode = kbCpModeEffective(mode, kc !== null && kc.offered === true, hostCfg)
       const kcMode = effMode === 'kybernos'
@@ -2544,7 +2572,7 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
         h('div', { className: 'kb6-headrow' },
           h('div', { className: 'kb6-headcol' },
             h('div', { className: 'kb6-titlerow' },
-              h('h1', { className: 'kb6-title' }, kbt('kb.cp.title')),
+              h('h1', { className: 'kb6-title' }, (() => { try { const l = fieldSeam !== null ? fieldSeam.label('connectors') : null; return typeof l === 'string' && l.trim() !== '' ? l : kbt('kb.cp.title') } catch (e) { return kbt('kb.cp.title') } })()),
               // The Suite's « ? How it works » button, the one form of the help button on every page (its card is help.json).
               typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-composio' }) : null),
             h('p', { className: 'kb8-sub', title: kbt('kb.cp.sub') }, kbt('kb.cp.sub'))),
@@ -2592,6 +2620,16 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
               h('button', { type: 'button', className: kcMode ? '' : 'on', 'aria-pressed': kcMode ? 'false' : 'true', 'data-kb': 'mode-personal', onClick: () => setMode('personal') }, kbt('kb.cp.kc.mode.personal')),
               h('button', { type: 'button', className: kcMode ? 'on' : '', 'aria-pressed': kcMode ? 'true' : 'false', 'data-kb': 'mode-kybernos', onClick: () => setMode('kybernos') }, kbt('kb.cp.kc.mode.kybernos'))),
             h('span', { className: 'kbcp-help2' }, kbt(kcMode ? 'kb.cp.kc.mode.hint.kybernos' : 'kb.cp.kc.mode.hint.personal'))) : null,
+          // Nothing connected yet: the apps the saved field names, one line, and the way to them (Discover holds the cards).
+          (() => {
+            const none = kcMode ? (kc === null || !Array.isArray(kc.connections) || kc.connections.length === 0) : yoursPool.length === 0
+            const sug = fieldInfo !== null && none ? fieldWant.map((w) => apps.find((a) => a.s === w.app)).filter((a) => a !== undefined).slice(0, 6) : []
+            return sug.length === 0 ? null : h('div', { className: 'kb7-fieldstrip', 'data-kb': 'yours-field', style: { '--kb7-fld': fieldInfo.accent } },
+              h('i', { className: 'kb7-fdot', 'aria-hidden': 'true' }),
+              h('span', { className: 'kb7-fieldtxt' }, kbt('kb.cp.fieldH').replace('{field}', fieldInfo.name)),
+              h('span', { className: 'kb7-fieldapps' }, sug.map((a) => h('span', { key: a.s, className: 'kb7-fieldapp' }, AppLogo(a.s, 18), a.n))),
+              h('button', { type: 'button', className: 'kbcp-btn', 'data-kb': 'yours-field-go', onClick: () => setVtab('discover') }, kbt('kb.cp.fieldgo')))
+          })(),
           kcMode ? h(KybernosPanel, { kc: kc, reload: reloadKc, patch: patchKc, flash: flash, note: cxNote, query: qn }) : yoursList.length === 0
             ? (ready === true ? h('div', { className: 'kb7-emptybox' },
                 // Mini illustration (plain inline SVG, no image) when NOTHING is
@@ -2620,9 +2658,11 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
             apps.length <= CATALOG.length ? h('button', { type: 'button', className: 'kbcp-btn kb7-more', disabled: loadingAll, onClick: loadAll }, loadingAll ? kbt('kb.cp.loading') : kbt('kb.cp.loadall')) : null),
           (ready === false || (busy === true && Object.keys(conns).length === 0)) && shown.length === 0 && skelCards(9) !== null ? skelCards(9)
             : (ready === false || (busy === true && Object.keys(conns).length === 0) ? h('div', { className: 'kb7-empty' }, kbt('kb.cp.loading')) : null),
+          fieldList.length > 0 ? h('div', { className: 'kb7-seclab kb7-fieldlab', 'data-kb': 'discover-field', style: { '--kb7-fld': fieldInfo.accent } }, h('i', { className: 'kb7-fdot', 'aria-hidden': 'true' }), kbt('kb.cp.fieldH').replace('{field}', fieldInfo.name), h('span', null, String(fieldList.length))) : null,
+          fieldList.length > 0 ? h('div', { className: gridCls, 'data-kb': 'discover-field-grid' }, fieldList.map((x) => appItem(x.a, true, x.goal))) : null,
           popList.length > 0 ? h('div', { className: 'kb7-seclab', 'data-kb': 'discover-popular' }, kbt('kb.cp.popularH'), h('span', null, String(popList.length))) : null,
           popList.length > 0 ? h('div', { className: gridCls }, popList.map((a) => appItem(a, true))) : null,
-          popList.length > 0 && shown.length > 0 ? h('div', { className: 'kb7-seclab', 'data-kb': 'discover-all' }, kbt('kb.cp.allapps'), h('span', null, String(mainList.length))) : null,
+          (popList.length > 0 || fieldList.length > 0) && shown.length > 0 ? h('div', { className: 'kb7-seclab', 'data-kb': 'discover-all' }, kbt('kb.cp.allapps'), h('span', null, String(mainList.length))) : null,
           h('div', { className: gridCls }, shown.map((a) => appItem(a))),
           ready === true && list.length === 0 && busy === false ? h('div', { className: 'kb7-emptybox' }, h('div', { className: 'kb7-empty' }, kbt('kb.cp.empty'))) : null,
           pages > 1 ? h('div', { className: 'kb7-chips', style: { justifyContent: 'center' } },
