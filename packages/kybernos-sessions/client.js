@@ -89,8 +89,7 @@ window.__ModuleLoader__.load({
    replaces the two old ones, the content is intact. */
 .kbs-memwrap{display:flex;flex-direction:column;gap:12px}
 .kbs-note-sec{display:flex;flex-direction:column;gap:6px}
-.kbs-note-t{margin:0;font-size:11px;font-weight:600;letter-spacing:.3px;text-transform:uppercase;
-  color:var(--dsw-alias-label-tertiary,#8a9096)}
+.kbs-note-t{margin:0;font-size:11px;font-weight:600;color:var(--dsw-alias-label-tertiary,#8a9096)}
 /* The CARD of the last two pills follows the same rule (same cause, two
    surfaces): centred, it left the window at 900 px — 902 px for
    memory, 960 px for lessons. */
@@ -248,8 +247,7 @@ window.__ModuleLoader__.load({
 .kbs-recap-row{display:flex;gap:10px;align-items:baseline;padding:7px 0;
   border-top:1px solid var(--dsw-alias-border-l1,rgba(255,255,255,.07))}
 .kbs-recap-row:first-child{border-top:0}
-.kbs-recap-k{flex:none;width:74px;font-size:11px;font-weight:600;letter-spacing:.3px;
-  text-transform:uppercase;color:var(--dsw-alias-label-tertiary,#8a9096)}
+.kbs-recap-k{flex:none;width:74px;font-size:11px;font-weight:600;color:var(--dsw-alias-label-tertiary,#8a9096)}
 .kbs-recap-v{flex:1;min-width:0;font-size:13px;line-height:1.45;color:var(--dsw-alias-label-primary,#e8eaec)}
 .kbs-recap-v b{font-weight:600}
 .kbs-recap-att{color:var(--dsw-alias-label-tertiary,#8a9096);font-size:12px}
@@ -2365,7 +2363,7 @@ window.__ModuleLoader__.load({
       if (document.getElementById(RG_STYLE_ID) !== null) return
       const el = document.createElement('style')
       el.id = RG_STYLE_ID
-      el.textContent = '.kb-rg-groupe{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;opacity:.55;padding-block:14px 4px;padding-inline:12px;text-align:start;user-select:none;pointer-events:none}[dir="rtl"] .kb-rg-groupe{letter-spacing:0}'
+      el.textContent = '.kb-rg-groupe{font-size:11px;font-weight:600;opacity:.55;padding-block:14px 4px;padding-inline:12px;text-align:start;user-select:none;pointer-events:none}[dir="rtl"] .kb-rg-groupe{letter-spacing:0}'
       document.head.appendChild(el)
     }
 
@@ -2644,7 +2642,7 @@ window.__ModuleLoader__.load({
       return h('div', { className: 'kbr-page', 'data-kbr': 'bloc' },
         // (28/09, audit) 26px page title like Theme/Maintenance/Tools —
         // the native h4 (16px) was the only small page title of the dialog.
-        h('div', { style: { display: 'flex', justifyContent: 'flex-end', width: '100%', marginBottom: 6 } }, (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-sessions' }) : null)),
+        h('div', { className: 'kbhp-row' }, (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-sessions' }) : null)),
         h('h4', { className: 'kb6-title', style: { fontSize: natif ? undefined : '26px' } }, kt('Réglages Kybernos', 'Kybernos Settings')),
         // ── at the very top: replay the onboarding ───────────────────────────
         // The wizard lives in the @local/kybernos bundle: we only emit the
@@ -2735,7 +2733,7 @@ window.__ModuleLoader__.load({
     // probed on the host (one real, tiny call each); a model that no longer answers is reported. Setting empty =
     // nobody is watching: no alert, even when the host is silent — we do not shout about a watch nobody asked for.
     //
-    // This bundle owns the PROBE and the state, and draws nothing. The alert lives in the AI Provider & Models tab
+    // This bundle owns the PROBE and the state, and draws nothing. The alert lives in the AI provider and models tab
     // only (user rule, 26/09/2026): kybernos-models renders it there, as a chip on the tab bar. The two bundles
     // meet on a small public contract, so neither imports the other:
     //   · `window.__kybernosHealth` = { version: 1, get(), recheck(), hide() } — `get()` is the view below, or

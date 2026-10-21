@@ -24,7 +24,8 @@ ok('la rangée Auto est un enfant du menu natif (sous Model/Effort), pas un over
   src.indexOf('m.appendChild(panneau)') !== -1 && src.indexOf('z-index:1200') === -1 && src.indexOf('document.body.appendChild') === -1)
 ok('Model/Effort (menuitem) verrouillés tant qu’Auto est actif, la rangée Auto reste active',
   src.indexOf("querySelectorAll('[role=\"menuitem\"]')") !== -1 && src.indexOf("it.style.pointerEvents = on ? 'none'") !== -1)
-ok('le menu est remonté du hauteur de la rangée (ancré par le haut)', src.indexOf("translateY(") !== -1)
+ok('le menu est remonté seulement de ce qui recouvre encore le sélecteur (mesuré, pas la hauteur de la rangée: DSH 0.2.1-rc.2 le replace seul)',
+  src.indexOf("translateY(") !== -1 && src.indexOf('button[aria-label^="Select model"]') !== -1 && src.indexOf('const recouvre = m.top < b.top ? m.bottom - b.top + 8 : 0') !== -1)
 ok('id de session lu dans localStorage « dsh.sessions.current » (pas seulement l’URL)', src.indexOf("'dsh.sessions.current'") !== -1)
 ok('état PAR SESSION : POST /kybernos-auto/session avec sessionId courant', src.indexOf("'/kybernos-auto/session'") !== -1 && src.indexOf('sessionId: sessionIdCourante()') !== -1)
 ok('pastille « N of M models available » alimentée par disponibles/total', src.indexOf('etat.disponibles') !== -1 && src.indexOf('etat.total') !== -1)

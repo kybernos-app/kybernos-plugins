@@ -415,7 +415,7 @@ window.__ModuleLoader__.load({
     const CSS = [
       '.kbsu{position:relative;display:flex;flex-direction:column;gap:16px;max-width:980px;font-size:13.5px;color:var(--dsw-alias-label-primary)}',
       '/* Light schemes: label-tertiary is 3.7:1 on white. Inside this page it reads as label-secondary, 5.8:1 (audit A1-05); the dark scheme keeps its hierarchy. */',
-      'body:not([data-ds-dark-theme]) :is(.kbsu,.kbhp-pop){--dsw-alias-label-tertiary:var(--dsw-alias-label-secondary)}',
+      'body:not([data-ds-dark-theme]) :is(.kbsu,.kbhp-pop,.kbhi){--dsw-alias-label-tertiary:var(--dsw-alias-label-secondary)}',
       '.kbsu button{font:inherit;cursor:pointer}',
       '.kbsu button:disabled{opacity:.5;cursor:default}',
       '.kbsu-head{display:flex;flex-wrap:wrap;gap:10px 24px;justify-content:space-between;align-items:flex-start}',
@@ -486,7 +486,7 @@ window.__ModuleLoader__.load({
       // Featured: the same cards, larger, with the tagline and the full description
       '.kbsu-fgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:12px}',
       '.kbsu-vedette{padding:16px;gap:12px}',
-      '.kbsu-tag{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--kybernos-accent,var(--dsw-alias-brand-primary));font-weight:700}',
+      '.kbsu-tag{font-size:11px;color:var(--kybernos-accent,var(--dsw-alias-brand-primary));font-weight:700}',
       '.kbsu-vedette .kbsu-promise{font-size:13.5px;color:var(--dsw-alias-label-secondary);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}',
       '.kbsu-promise{margin:0;color:var(--dsw-alias-label-secondary);font-size:13px}',
       '.kbsu-card .kbsu-promise{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;line-height:1.45;min-height:4.35em}',
@@ -507,13 +507,16 @@ window.__ModuleLoader__.load({
       '.kbsu-good{padding-inline-start:12px;border-inline-start:2px solid var(--dsw-alias-border-l3)}',
       // The « ? How it works » button of any plugin page, and the card it opens (window.__KB_HELP__.Help).
       '.kbhp-wrap{position:relative;display:inline-block;max-width:100%}',
+      // The button's own row, put first in a page: it takes no height, so the page's title starts where it does on a page that holds the button in its title row (x 272, y 54). Narrow: back in the flow, above the title.
+      '.kbhp-row{display:flex;justify-content:flex-end;width:100%;height:0;overflow:visible;position:relative;z-index:1;margin-bottom:calc(-1 * var(--kbhp-gap,0px))}',
+      '@media (max-width:760px){.kbhp-row{height:auto;margin-bottom:6px}}',
       '.kbhp-wrap .kbhp-btn{appearance:none;display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 12px 0 6px;border-radius:16px;border:1px solid var(--dsw-alias-border-l3);background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12.5px;cursor:pointer;white-space:nowrap}',
       '.kbhp-wrap .kbhp-btn:hover,.kbhp-wrap .kbhp-btn[aria-expanded="true"]{border-color:var(--dsw-alias-label-tertiary);color:var(--dsw-alias-label-primary)}',
       '.kbhp-wrap .kbhp-btn:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px}',
       '.kbhp-q{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700;background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-primary)}',
       '.kbhp-pop{box-sizing:border-box;position:absolute;inset-inline-end:0;top:calc(100% + 8px);z-index:60;width:min(420px,calc(100vw - 32px));max-height:min(70vh,560px);overflow-y:auto;padding:16px 18px;border-radius:18px;border:1px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-label-primary);text-align:start;white-space:normal;font-size:14px;line-height:1.5;background:linear-gradient(var(--dsw-specific-menu,#1c1c1f),var(--dsw-specific-menu,#1c1c1f)),var(--dsw-alias-bg-base,#151517);box-shadow:0 16px 44px rgba(0,0,0,.42);display:flex;flex-direction:column;gap:12px}',
       '.kbhp-pop h4{margin:0;font-size:17px;font-weight:700}',
-      '.kbhp-pop h5{margin:0 0 8px;font-size:11.5px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;color:var(--dsw-alias-label-tertiary)}',
+      '.kbhp-pop h5{margin:0 0 8px;font-size:11.5px;font-weight:600;color:var(--dsw-alias-label-tertiary)}',
       '.kbhp-pop p{margin:0;color:var(--dsw-alias-label-secondary)}',
       '.kbhp-pop.start{inset-inline-end:auto;inset-inline-start:0}',
       '.kbhp-x{position:absolute;inset-inline-end:10px;top:10px;width:26px;height:26px;border:0;border-radius:8px;background:transparent;color:var(--dsw-alias-label-tertiary);cursor:pointer;font-size:14px}',
@@ -590,6 +593,7 @@ window.__ModuleLoader__.load({
       '.kbni .kbhi{margin:0}',
       '.kbsu-right{display:inline-flex;flex-wrap:wrap;gap:8px;align-items:center}',
       '.kbsu-sw{position:relative;flex:none;width:36px;height:20px;border-radius:999px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);padding:0}',
+      '.kbsu-sw::before{content:"";position:absolute;inset:-3px 0}',
       '.kbsu-sw i{position:absolute;inset-inline-start:2px;top:2px;width:14px;height:14px;border-radius:999px;background:var(--dsw-alias-label-secondary);transition:inset-inline-start .15s ease}',
       '.kbsu-sw.on{background:var(--kybernos-accent,var(--dsw-alias-brand-primary));border-color:var(--kybernos-accent,var(--dsw-alias-brand-primary))}.kbsu-sw.on i{inset-inline-start:18px;background:var(--kybernos-on-accent,var(--dsw-alias-label-primary-foreground))}',
       '.kbsu-note{margin:0;font-size:12.5px;color:var(--dsw-alias-label-tertiary);overflow-wrap:anywhere;white-space:pre-line}',

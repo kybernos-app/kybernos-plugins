@@ -584,7 +584,7 @@ window.__ModuleLoader__.load({
         if (s === '') return KB_ICON_NAMES.slice(0, 56)
         const starts = []
         const holds = []
-        const words = s.split(/s+/)
+        const words = s.split(/\s+/)
         for (let i = 0; i < KB_ICON_NAMES.length; i++) {
           const n = KB_ICON_NAMES[i]
           const hay = n.replace(/-/g, ' ') + ' ' + (KB_ICON_TAGS[n] || '')
@@ -753,7 +753,7 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
    ecraser par le repli flex des que la liste est longue. */
 .kbsl-pop>*{flex:none}
 .kbsl-rows{flex:1 1 auto;display:flex;flex-direction:column;gap:2px;min-height:0;overflow:auto;overscroll-behavior:contain}
-.kbsl-pop-h{font-size:var(--kb-fs-11,11px);font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--kb-caption)}
+.kbsl-pop-h{font-size:var(--kb-fs-11,11px);font-weight:600;color:var(--kb-caption)}
 .kbsl-pop-f{margin-top:2px;padding:5px 10px 3px;border-top:1px solid var(--kb-sep);font-size:var(--kb-fs-11,11px);color:var(--kb-caption)}
 .kbsl-pwrap{position:relative;display:flex;align-items:center;gap:4px;padding-right:6px;border-radius:10px}
 .kbsl-pwrap:hover,.kbsl-pwrap.on{background:var(--kb-hover)}
@@ -2129,7 +2129,7 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
           : null)
         return h('div', { className: 'kbsl-scope kbsl-page' },
           h('div', { className: 'kbsl-head' },
-            h('div', { style: { display: 'flex', justifyContent: 'flex-end', width: '100%', marginBottom: 6 } }, (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-slash' }) : null)),
+            h('div', { className: 'kbhp-row' }, (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-slash' }) : null)),
             h('span', { className: 'kbsl-h1' }, L({ fr: 'Commandes', en: 'Commands' })),
             h('span', { className: 'kbsl-sub' }, L({ fr: 'Un même modèle : du texte inséré, ou un formulaire en ligne. Tape / pour lancer une commande, ou utilise le bouton sous un message.', en: 'One template: inserted text, or an inline form. Type / to run a command, or use the button under a message.' }))),
           introNode,

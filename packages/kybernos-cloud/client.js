@@ -100,13 +100,6 @@ window.__ModuleLoader__.load({
         profParrain: 'Parrainage',
         profApparence: 'Apparence',
         profLogout: 'Se déconnecter',
-        mobTitle: 'Télécharger l\'app mobile',
-        mobScan: 'Scanne le code pour installer Kybernos sur ton téléphone.',
-        mobSoon: 'Aperçu — le vrai lien arrivera avec l\'app.',
-        // Help explaining what the phone link really is (asked 13/10): a web app
-        // that opens the same interface and talks to this machine through the
-        // Kybernos relay, which reads nothing (end to end). Not « direct ».
-        mobHelp: 'Kybernos Mobile est une web app : ton téléphone ouvre la même interface que cette application et parle à cette machine par un relais qui ne lit rien (chiffré de bout en bout). Le Mac doit être allumé et connecté à Internet.',
         spaceMark: 'actif',
         spaceUnknown: 'Équipe inconnue — rien n\'a été changé.',
         models: 'Modèles',
@@ -150,7 +143,7 @@ window.__ModuleLoader__.load({
         menuFeedback: 'Envoyer un retour',
         menuSettingsApp: 'Réglages',
         menuTeamsSettings: 'Réglages d\'équipe',
-        menuRemote: 'Contrôle à distance',
+        menuPhone: 'Téléphone et canaux',
         quotaPayment: 'Le dernier paiement de {name} a échoué : les appels IA sont suspendus jusqu\'à son règlement.',
         quotaPaymentAdmin: ' Règle-le dans Facturation.',
         quotaPaymentMember: ' Demande à un propriétaire ou à un admin de {name}.',
@@ -186,6 +179,10 @@ window.__ModuleLoader__.load({
         roleMember: 'Membre',
         spaceMembers: '{n} membres',
         spaceMembers1: '1 membre',
+        spaceKindPersonal: 'Personnel',
+        spaceKindTeam: 'Équipe',
+        spacePrivate: 'privé',
+        spaceShared: 'partagé',
         spaceSwitching: 'Changement en cours…',
         spaceSwitchSlow: 'Le passage à {name} prend plus de temps que d\'habitude. Attends un instant avant d\'envoyer un message : il pourrait encore être facturé à l\'équipe précédente.',
         spaceRouteStale: 'Tu es dans {name}, mais la route des modèles n\'a pas pu être mise à jour : tes messages pourraient encore être facturés à l\'équipe précédente. Réessaie.',
@@ -302,7 +299,7 @@ window.__ModuleLoader__.load({
         kyModelsCount: '{n} modèles · formule {plan}',
         kyModelsNone: 'Aucun modèle importé',
         kyLastOn: 'dernier import le {date}',
-        kyModelsNote: 'Relit le catalogue de modèles du serveur actif et ajoute ceux que ta formule inclut dans Réglages › Fournisseur IA & modèles.',
+        kyModelsNote: 'Relit le catalogue de modèles du serveur actif et ajoute ceux que ta formule inclut dans Réglages › Fournisseur IA et modèles.',
         kyModelsWarn: 'Import partiel : la route du fournisseur n\'a pas pu être écrite dans les réglages — « Réimporter » réessaie.',
         kyModelsFail: 'Réimport impossible — réessaie.',
         kyImport: 'Importer les modèles',
@@ -382,13 +379,6 @@ window.__ModuleLoader__.load({
         profParrain: 'Referral',
         profApparence: 'Appearance',
         profLogout: 'Sign out',
-        mobTitle: 'Get the mobile app',
-        mobScan: 'Scan the code to install Kybernos on your phone.',
-        mobSoon: 'Preview — the real link will come with the app.',
-        // Help explaining what the phone link really is (asked 13/10): a web app
-        // that opens the same interface and talks to this machine through the
-        // Kybernos relay, which reads nothing (end to end). Not « direct ».
-        mobHelp: 'Kybernos Mobile is a web app: your phone opens the same interface as this application and talks to this machine through a relay that reads nothing (end-to-end encrypted). The Mac must be on and connected to the Internet.',
         spaceMark: 'active',
         spaceUnknown: 'Unknown team — nothing was changed.',
         models: 'Models',
@@ -431,7 +421,7 @@ window.__ModuleLoader__.load({
         menuFeedback: 'Send feedback',
         menuSettingsApp: 'Settings',
         menuTeamsSettings: 'Team settings',
-        menuRemote: 'Remote control',
+        menuPhone: 'Phone and channels',
         quotaPayment: 'The last payment for {name} failed: AI calls are paused until it is settled.',
         quotaPaymentAdmin: ' Fix it in Billing.',
         quotaPaymentMember: ' Ask an owner or admin of {name}.',
@@ -467,6 +457,10 @@ window.__ModuleLoader__.load({
         roleMember: 'Member',
         spaceMembers: '{n} members',
         spaceMembers1: '1 member',
+        spaceKindPersonal: 'Personal',
+        spaceKindTeam: 'Team',
+        spacePrivate: 'private',
+        spaceShared: 'shared',
         spaceSwitching: 'Switching…',
         spaceSwitchSlow: 'The switch to {name} is taking longer than usual. Wait a moment before sending a message: it may still be billed to the previous team.',
         spaceRouteStale: 'You are in {name}, but the model route could not be updated: your messages may still be billed to the previous team. Try again.',
@@ -581,7 +575,7 @@ window.__ModuleLoader__.load({
         kyModelsCount: '{n} models · plan {plan}',
         kyModelsNone: 'No models imported',
         kyLastOn: 'last import on {date}',
-        kyModelsNote: 'Re-reads the active server\'s model catalogue and adds the ones your plan includes to Settings › AI Provider & Models.',
+        kyModelsNote: 'Re-reads the active server\'s model catalogue and adds the ones your plan includes to Settings › AI provider and models.',
         kyModelsWarn: 'Partial import: the provider route could not be written to settings — "Re-import" tries again.',
         kyModelsFail: 'Re-import failed — try again.',
         kyImport: 'Import models',
@@ -636,7 +630,7 @@ body:not([data-ds-dark-theme]) :is(.kbf-root,.kbfp-menu,.kbfp-sub,.kbf-pop,.kbf-
    fermerait la chaîne et la révision ne parserait plus (incident du 24/09). */
 /* La rangée workspace (carte + engrenage), au-dessus du menu user conservé. */
 .kbf-wsrow{display:flex;align-items:center;gap:4px;width:100%;min-width:0}
-/* Les popovers du pied de sidebar (changement d'espace, app mobile) : ancrés
+/* Les popovers du pied de sidebar (changement d'espace, notifications) : ancrés
    AU-DESSUS de leur rangée — .kbf-wsrow et .kbf-idrow portent le
    position:relative, parce que .kbf-root est en display:contents dans la
    grille du pied (plugin Kybernos). Le rideau transparent ferme au clic dehors. */
@@ -644,11 +638,6 @@ body:not([data-ds-dark-theme]) :is(.kbf-root,.kbfp-menu,.kbfp-sub,.kbf-pop,.kbf-
 .kbf-idrow{display:flex;align-items:center;gap:2px;width:100%;min-width:0}
 .kbf-pop{position:absolute;left:0;bottom:calc(100% + 8px);z-index:61;box-sizing:border-box;width:min(252px,100%);padding:8px;border-radius:13px;background:var(--dsw-alias-bg-layer-2,#191920);border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.3));box-shadow:0 12px 32px rgba(0,0,0,.4);color:var(--dsw-alias-label-primary,#e9e9ee);font-size:13px}
 .kbf-poptitle{padding:6px 10px 8px;font-size:12px;font-weight:600;color:var(--dsw-alias-label-tertiary,#8a8a93)}
-/* Le QR factice : dessine une grille deterministe (faux modules + 3 carrés de
-   repere) — assez pour une maquette, jamais assez pour tromper un scanner. */
-.kbf-qr{display:block;width:150px;height:150px;margin:2px auto 0;background:#fff;border-radius:10px;padding:10px}
-.kbf-qrnote{margin:8px 2px 2px;font-size:11.5px;line-height:1.45;color:var(--dsw-alias-label-tertiary,#8a8a93)}
-.kbf-popcenter{padding:10px 10px 12px}
 .kbws-link{display:inline-flex;align-items:center;gap:6px;padding:7px 11px;border-radius:9px;border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.35));background:transparent;color:inherit;font:inherit;font-size:12px;cursor:pointer;text-decoration:none}
 .kbws-link:hover{background:var(--dsw-alias-bg-layer-2,rgba(127,127,127,.14))}
 .kbf-off{display:flex;flex-direction:column;gap:8px;width:100%;min-width:0}
@@ -828,7 +817,7 @@ body:not([data-ds-dark-theme]) :is(.kbf-root,.kbfp-menu,.kbfp-sub,.kbf-pop,.kbf-
 .kbfp-mtail{flex:none;margin-inline-start:auto;white-space:nowrap;font-size:12px;color:var(--dsw-alias-label-tertiary);font-variant-numeric:tabular-nums}
 .kbfp-mplan{margin:3px 0;box-sizing:border-box;padding:0 10px;border-radius:10px;background:var(--dsw-alias-interactive-bg-hover)}
 .kbfp-mplanline{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:36px}
-.kbfp-mplanname{font-size:14px;font-weight:600;letter-spacing:-.01em;text-transform:capitalize}
+.kbfp-mplanname{font-size:14px;font-weight:600;text-transform:capitalize}
 .kbfp-mplanname[data-plan="none"]{text-transform:none}
 .kbfp-mcta{flex:none;height:26px;padding:0 12px;border:none;border-radius:10px;background:var(--dsw-alias-button-primary-fill);color:var(--dsw-alias-label-primary-foreground);font:inherit;font-size:12px;font-weight:600;cursor:pointer}
 .kbfp-mcta:hover{background:var(--dsw-alias-button-primary-hover)}
@@ -854,7 +843,7 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
 .kbfp-seg{display:flex;gap:2px;padding:2px;border-radius:8px;background:var(--dsw-alias-bg-base)}
 .kbfp-seg button{width:28px;height:24px;padding:0;border:none;border-radius:6px;background:transparent;color:var(--dsw-alias-label-tertiary);display:flex;align-items:center;justify-content:center;cursor:pointer}
 .kbfp-seg button.on{background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-primary)}
-.kbfp-msub{padding:8px 10px 6px;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--dsw-alias-label-tertiary)}
+.kbfp-msub{padding:8px 10px 6px;font-size:11px;font-weight:600;color:var(--dsw-alias-label-tertiary)}
 .kbfp-switchbody{display:flex;flex-direction:column}
 /* La sélection d'espace, gabarit maquette : ACTIF = carte surélevée (fond
    interactif, coche à droite), les autres des rangées nues ; « Créer un
@@ -914,7 +903,7 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
 .kbl-page{display:flex;flex-direction:column;gap:14px;max-width:640px}
 .kbl-head{margin:0 0 6px}
 .kbl-card{display:flex;flex-direction:column;gap:10px;padding:18px;border-radius:16px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1)}
-.kbl-sect{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--dsw-alias-label-tertiary,#8a8a93)}
+.kbl-sect{font-size:11px;color:var(--dsw-alias-label-tertiary,#8a8a93)}
 .kbl-area{box-sizing:border-box;width:100%;min-height:120px;padding:10px 12px;border-radius:11px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-base);color:var(--dsw-alias-label-primary);font:inherit;font-size:14px;line-height:1.45;resize:vertical}
 .kbl-area:hover{border-color:var(--dsw-alias-border-l3)}
 .kbl-area:focus-visible{outline:2px solid var(--dsw-alias-brand-primary,#4f7cff);outline-offset:1px}
@@ -1352,9 +1341,12 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
       const personal = spaceIsPersonal(w)
       const role = spaceRoleOf(w)
       const roleWord = role === 'owner' ? t('roleOwner') : (role === 'admin' ? t('roleAdmin') : (role === 'member' ? t('roleMember') : ''))
+      // The space kind leads the subtitle: switching spaces changes what is shared, and the row must say which space
+      // the person is in before it says their role in it (« Personnel · … » vs « Équipe · Propriétaire · 6 membres »).
+      const kindWord = personal ? t('spaceKindPersonal') : t('spaceKindTeam')
       const parts = personal
-        ? [typeof o.userName === 'string' ? o.userName : '', typeof o.planLabel === 'string' ? o.planLabel : '']
-        : [roleWord, facts !== null && Number.isInteger(facts.members) ? quotaCount(t, 'spaceMembers', facts.members) : '']
+        ? [kindWord, typeof o.userName === 'string' ? o.userName : '', typeof o.planLabel === 'string' ? o.planLabel : '']
+        : [kindWord, roleWord, facts !== null && Number.isInteger(facts.members) ? quotaCount(t, 'spaceMembers', facts.members) : '']
       const meter = facts !== null && Array.isArray(facts.usage)
         ? quotaMeterOf({ ok: true, workspace: { id: w.id, name: view.name, role: w.role, personal }, usage: facts.usage, payment_blocked: false, skew_ms: o.skew }, t, o.now)
         : null
@@ -2261,60 +2253,6 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
                 : null))
         }
 
-        // ── THE MOBILE APP (footer phone button) ───────────────────────────
-        // Popover anchored above the footer. When the kybernos-mobile bundle is there it publishes
-        // `window.__KB_MOBILE__.Panel`: the real pairing QR (or « included in paid
-        // plans »), and this panel is then just a frame. Without it, the earlier preview: a
-        // FAKE QR, deterministic grid (stable from one render to the next) and three finder squares.
-        const MobilePanel = (props) => {
-          React.useEffect(() => {
-            const onKey = (ev) => { if (ev.key === 'Escape') props.onClose() }
-            window.addEventListener('keydown', onKey)
-            return () => window.removeEventListener('keydown', onKey)
-          }, [props.onClose])
-          const popRef = React.useRef(null)
-          React.useEffect(() => {
-            const dehors = (ev) => {
-              const n = popRef.current
-              if (n !== null && n !== undefined && n.contains(ev.target) !== true) props.onClose()
-            }
-            document.addEventListener('mousedown', dehors)
-            return () => document.removeEventListener('mousedown', dehors)
-          }, [props.onClose])
-          // The phone link's own panel, when the bundle that owns it is there. Anything it throws falls back to the preview.
-          let Remote = null
-          try {
-            const seam = window.__KB_MOBILE__
-            if (seam !== undefined && seam !== null && typeof seam.Panel === 'function') Remote = seam.Panel
-          } catch (e) { Remote = null }
-          if (Remote !== null) {
-            return h('div', { className: 'kbf-pop kbf-popcenter kbf-popremote', ref: popRef, role: 'dialog', 'aria-label': t('mobTitle'), 'data-kb': 'mobile-panel' },
-              h(Remote, { onClose: props.onClose, web: props.web, onManage: props.onManage }))
-          }
-          // Fake modules: simple, deterministic hash, spread over 21×21.
-          const modules = []
-          for (let y = 0; y < 21; y++) {
-            for (let x = 0; x < 21; x++) {
-              const finder = (x < 7 && y < 7) || (x > 13 && y < 7) || (x < 7 && y > 13)
-              if (finder) continue
-              const bit = ((x * 73 + y * 149 + ((x * y) % 17)) % 7) < 3
-              if (bit === true) modules.push(h('rect', { key: String(x) + '-' + String(y), x: x, y: y, width: 1, height: 1 }))
-            }
-          }
-          const carre = (px, py) => h('g', null,
-            h('rect', { x: px, y: py, width: 7, height: 7 }),
-            h('rect', { x: px + 1, y: py + 1, width: 5, height: 5, fill: '#fff' }),
-            h('rect', { x: px + 2, y: py + 2, width: 3, height: 3 }))
-          return h('div', { className: 'kbf-pop kbf-popcenter', ref: popRef, role: 'dialog', 'aria-label': t('mobTitle') },
-              h('div', { className: 'kbf-poptitle' }, t('mobTitle')),
-              h('svg', {
-                className: 'kbf-qr', viewBox: '0 0 21 21', shapeRendering: 'crispEdges',
-                'aria-hidden': 'true', role: 'presentation',
-              }, h('g', { fill: '#111' }, modules, carre(0, 0), carre(14, 0), carre(0, 14))),
-              h('div', { className: 'kbf-qrnote' }, t('mobScan') + ' ' + t('mobSoon')),
-              h('div', { className: 'kbf-qrnote', 'data-kb': 'mobile-help' }, t('mobHelp')))
-        }
-
         // ── THE UNIFIED CARD MENU (30/09 rework, « Open menu » mockup)
         // Opened by clicking the workspace card. Two views: the main
         // menu, then the « Switch team » list in place. Each entry
@@ -2334,12 +2272,14 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
         // set this to true and it is always there; whatever a plugin publishes (window.__KB_NOTIFY__, kybernos-plugin: a translation that
         // finished, say) brings it back by itself while there is something to read.
         const SHOW_BELL = false
-        /** The phone link's status (GET kybernos-mobile/remote/status) as the menu needs it: `{ devices }` when the entry is offered, else null. A server that does not offer
-         *  the feature (`configured: false`), a plan that does not include it (`entitled: false`), a DSH that cannot (`available: false`) or no account: no entry. */
-        const remoteOffer = (j) => {
-          if (j === null || j === undefined || typeof j !== 'object' || j.ok !== true) return null
-          if (j.available === false || j.configured === false || j.entitled === false || j.connected === false) return null
-          return { devices: Array.isArray(j.devices) ? j.devices.length : 0 }
+        /** Opens the « Phone and channels » window (phone link on the left, Kaby's messaging apps on the right), or null when the bundle that draws it is not there
+         *  (kybernos-mobile publishes `window.__KB_MOBILE__.open`). This bundle only offers the menu entry; the window draws itself in a root of its own, so it does not live
+         *  in this footer (which is not mounted while a phone's drawer is closed). Read at the time of use, never kept. */
+        const phoneOpener = () => {
+          try {
+            const seam = window.__KB_MOBILE__
+            return seam !== undefined && seam !== null && typeof seam.open === 'function' ? () => seam.open() : null
+          } catch (e) { return null }
         }
         const HELP_LANGUAGES = ['en', 'fr', 'zh-cn', 'ar']
         const helpUrl = () => {
@@ -2961,11 +2901,10 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
               // Account and Referral: read-only pages of the server's console, in DSH (no arrow: they stay here).
               entree('account', h(UserIcon, { size: 18 }), t('profCompte'), props.onAccount),
               entree('referral', h(GiftMenuIcon, { size: 18 }), t('profParrain'), props.onReferral, { amber: true }),
-              // The phone link (kybernos-mobile): present only when the server offers it and the plan includes it, with the phones already linked.
-              props.remote !== null && props.remote !== undefined
-                ? entree('remote', h(PhoneIcon, { size: 18 }), t('menuRemote'), props.onRemote, props.remote.devices > 0 ? { tail: String(props.remote.devices) } : undefined)
-                : null,
               h(AppearanceRow, null),
+              // Phone and channels (kybernos-mobile's window): the phone link and the messaging apps, on one screen. Offered whenever that bundle is there; what the
+              // screen can do on this server and this plan it says itself.
+              props.phone === true ? entree('phone', h(PhoneIcon, { size: 18 }), t('menuPhone'), props.onPhone) : null,
               // DSH's own Settings (the app's): through the core plugin's seam, never through the native account popover.
               entree('settings', h(GearIcon, { size: 18 }), t('menuSettingsApp'), ouvrirReglagesDsh)),
             h('div', { className: 'kbfp-msep' }),
@@ -3089,7 +3028,6 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
           }, [])
           const [newOpen, setNewOpen] = React.useState(false)
           const [joinOpen, setJoinOpen] = React.useState(false)
-          const [mobileOpen, setMobileOpen] = React.useState(false)
           // Update available: an amber dot on the card tile, the discreet
           // reminder that stays visible with the menu closed (kybernos-maintenance signal).
           const [majInfo, setMajInfo] = React.useState(() => lireMaj())
@@ -3212,22 +3150,6 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
           // How the last pairing ended when it was not a success (`denied`, `expired`): said in the row, which stays until the person tries again.
           const [pairNote, setPairNote] = React.useState(null)
           const wasConnectedRef = React.useRef(false)
-          // What the phone link says about itself (kybernos-mobile's host route, the same one its panel reads): the menu offers « Remote control »
-          // only when the feature is there for this person. Unknown (not read yet, route absent, a refusal) is « not offered », never a dead entry.
-          const [remote, setRemote] = React.useState(null)
-          React.useEffect(() => {
-            if (phase !== 'connected') { setRemote(null); return undefined }
-            let on = true
-            const url = (() => { try { return new URL('kybernos-mobile/remote/status', document.baseURI).pathname } catch (e) { return '/kybernos-mobile/remote/status' } })()
-            const read = () => {
-              fetch(url, { credentials: 'same-origin', cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).then((j) => { if (on === true) setRemote(remoteOffer(j)) }).catch(() => { if (on === true) setRemote(null) })
-            }
-            read()
-            const seen = () => { if (document.visibilityState === 'visible') read() }
-            const timer = window.setInterval(read, 60000)
-            document.addEventListener('visibilitychange', seen)
-            return () => { on = false; window.clearInterval(timer); document.removeEventListener('visibilitychange', seen) }
-          }, [phase])
           const liveRef = React.useRef(true)
 
           React.useEffect(() => () => { liveRef.current = false }, [])
@@ -3436,7 +3358,7 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
 
           // The phone link (kybernos-mobile) asks for Settings › Servers when its server does not answer: a window event, like the other bundles' requests.
           React.useEffect(() => {
-            const ouvrirServeurs = () => { setMenuOpen(false); setNotifOpen(false); setMobileOpen(false); openServersPage() }
+            const ouvrirServeurs = () => { setMenuOpen(false); setNotifOpen(false); openServersPage() }
             window.addEventListener('kybernos-cloud:servers', ouvrirServeurs)
             return () => window.removeEventListener('kybernos-cloud:servers', ouvrirServeurs)
           }, [])
@@ -3451,7 +3373,7 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
           // The core plugin sends a real click on DSH's own account launcher here (it should not be reachable: its area is hidden, but
           // a shell that renamed its classes would show it): the person lands in OUR menu, connected or not.
           React.useEffect(() => {
-            const ouvrirMenu = () => { setNotifOpen(false); setMobileOpen(false); setMenuOpen(true) }
+            const ouvrirMenu = () => { setNotifOpen(false); setMenuOpen(true) }
             window.addEventListener('kybernos-cloud:menu', ouvrirMenu)
             return () => window.removeEventListener('kybernos-cloud:menu', ouvrirMenu)
           }, [])
@@ -3638,7 +3560,7 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
                 h('span', { className: 'kbfp-cardname' }, nomEspace),
                 switching !== null
                   ? h('span', { className: 'kbfp-cardsub', 'data-kb': 'workspace-card-switching' }, t('spaceSwitching'))
-                  : h('span', { className: 'kbfp-cardsub', title: mfaNote !== null ? mfaNote.long : undefined, 'data-kb': mfaNote !== null ? 'workspace-card-mfa' : undefined }, qui + ' · ' + planEspace + (mfaNote !== null ? ' · ⚠ ' + mfaNote.short : '')),
+                  : h('span', { className: 'kbfp-cardsub', title: mfaNote !== null ? mfaNote.long : undefined, 'data-kb': mfaNote !== null ? 'workspace-card-mfa' : undefined }, qui + ' · ' + planEspace + ' · ' + (spaceIsPersonal(shownEntry) ? t('spacePrivate') : t('spaceShared')) + (mfaNote !== null ? ' · ⚠ ' + mfaNote.short : '')),
                 meter !== null
                   ? h('span', { className: 'kbfp-use', 'data-kb': 'workspace-card-usage', 'data-level': meter.level, 'data-percent': String(meter.percent), title: meter.title },
                     h('span', { className: 'kbfp-usebar', 'aria-hidden': 'true' }, h('span', { className: 'kbfp-usefill', style: { width: meter.percent + '%' } })),
@@ -3652,7 +3574,6 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
                   title: t('notifTitle') + (notes.some((n) => n.read !== true) ? ' (' + notes.filter((n) => n.read !== true).length + ')' : ''), 'aria-label': t('notifTitle'),
                   'aria-expanded': notifOpen === true ? 'true' : 'false',
                   onClick: () => {
-                    setMobileOpen(false)
                     const next = notifOpen !== true
                     setNotifOpen(next)
                     if (next) { try { window.__KB_NOTIFY__.markRead() } catch (e) { /* no store */ } }
@@ -3694,21 +3615,14 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
                   onAccount: ouvrirAppli('overview'),
                   // The Referral page of the app (a server that does not know it yet lands the person on Overview, where its card used to be: the host asks again).
                   onReferral: ouvrirAppli('referral'),
-                  remote: remote,
-                  onRemote: () => { setMenuOpen(false); setNotifOpen(false); setMobileOpen(true) },
+                  phone: phoneOpener() !== null,
+                  onPhone: () => { setMenuOpen(false); setNotifOpen(false); const open = phoneOpener(); if (open !== null) open() },
                   onUpgrade: () => { setMenuOpen(false); setUpgradeOpen(true) },
                   onSpace: ouvrirAppli('plan'),
                   onUpgradePage: ouvrirAppli('plan'),
                   onLogout: () => { void seDeconnecter() },
                 })
-                : null),
-            mobileOpen === true
-              ? h(MobilePanel, {
-                onClose: () => setMobileOpen(false),
-                web: typeof state.web_url === 'string' ? state.web_url : '',
-                onManage: () => { setMobileOpen(false); ouvrirReglagesCompte('Remote Control', 'kybernos-mobile') },
-              })
-              : null)
+                : null))
           } else {
             // Signed out, or a pairing waiting for its confirmation: ONE button, in the place and at the size of the profile row, with
             // the same chevron. It opens OUR menu (sign in = the device-code card, create an account, appearance, DSH's Settings,

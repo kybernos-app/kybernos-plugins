@@ -13,7 +13,8 @@
 // not by its label, which is translated). Nothing of the layout runs above 700 px, except on a touch device lying down
 // (a phone in landscape is wider than 700 px but at most 500 px high).
 //
-// The second half of the file is the phone LINK (Settings › Remote Control and the sidebar's phone panel): see buildRemoteUi.
+// The second half of the file is the « Phone and channels » screen (a window the account menu opens, and Settings › Phone and channels): the
+// phone LINK on its left, Kaby's messaging apps on its right (kybernos-kyber draws those). See buildRemoteUi.
 // It is mounted apart, in its own try/catch, and only when DSH offers the `slots` service: whatever happens there, the
 // layout above is already in place.
 //
@@ -532,11 +533,17 @@ window.__ModuleLoader__.load({
       }
 
 
-      // ── the phone link: Settings › Remote Control and the sidebar's phone panel ───────────────────────────────────────────
-      // Everything the person sees is decided by the host half (GET /kybernos-mobile/remote/status): this is only a view
-      // and five buttons. The QR code is drawn from the modules the host computed; it is black on white on purpose,
-      // whatever the theme (a scanner needs the contrast), the only colours this file names.
-      const buildRemoteUi = (React) => {
+      // ── the « Phone and channels » screen ────────────────────────────────────────────────────────────────────────────────
+      // ONE screen, drawn in two places: a window (`window.__KB_MOBILE__.open()`: the account menu's entry and Kaby's strip ask for it) and
+      // Settings › Phone and channels. Two columns:
+      //   · left, this bundle's: the phone link — a QR code, a 4-digit check, the phones linked. It gives a phone the CONTROL OF THIS
+      //     computer, and the card says so in a sentence of its own;
+      //   · right, Kaby's (kybernos-kyber draws it, through `window.__KB_KYBER__.ChannelsColumn`): the messaging apps Kaby answers from,
+      //     which never give control of the computer. Without that bundle the card says it is not there.
+      // What the left column shows is decided by the host half (GET /kybernos-mobile/remote/status): this is only a view and a few
+      // buttons. The QR code is drawn from the modules the host computed; it is black on white on purpose, whatever the theme (a
+      // scanner needs the contrast), the only colours this file names.
+      const buildRemoteUi = (React, roots) => {
         const h = React.createElement
         const BASE = (() => { try { return new URL('kybernos-mobile/remote/', document.baseURI).pathname } catch (e) { return '/kybernos-mobile/remote/' } })()
         const api = async (name, body) => {
@@ -588,10 +595,32 @@ window.__ModuleLoader__.load({
           const act = React.useCallback(async (name, body) => { const j = await api(name, body === undefined ? {} : body); await load(); return j }, [load])
           return { s, err, act, reload: load }
         }
-        const useTick = () => {
+        // A clock for a code that runs out: it ticks only while `on` (a pairing is in progress), so an idle screen is not redrawn every second.
+        const useTick = (on) => {
           const [n, setN] = React.useState(Date.now())
-          React.useEffect(() => { const t = setInterval(() => setN(Date.now()), 1000); return () => clearInterval(t) }, [])
+          React.useEffect(() => {
+            if (on === false) return undefined
+            const t = setInterval(() => setN(Date.now()), 1000)
+            return () => clearInterval(t)
+          }, [on])
           return n
+        }
+        // The address of the Kybernos web app (for « See the plans »): the cloud half already knows it. The window is handed it; the Settings page reads it.
+        const useWeb = (given) => {
+          const [web, setWeb] = React.useState(typeof given === 'string' ? given : '')
+          React.useEffect(() => {
+            if (typeof given === 'string' && given !== '') return undefined
+            let live = true
+            void (async () => {
+              try {
+                const j = await (await fetch(new URL('kybernos-cloud/status', document.baseURI).pathname, { credentials: 'same-origin' })).json()
+                const w = j && j.state && typeof j.state.web_url === 'string' ? j.state.web_url : ''
+                if (live) setWeb(w)
+              } catch (e) { /* the screen still works, without the button */ }
+            })()
+            return () => { live = false }
+          }, [given])
+          return web
         }
         const clock = (ms) => { const t = Math.max(0, Math.round(ms / 1000)); return Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0') }
         const ago = (ms) => {
@@ -602,6 +631,26 @@ window.__ModuleLoader__.load({
           const hrs = Math.round(m / 60)
           if (hrs < 48) return kt('il y a ' + hrs + ' h', hrs + ' h ago')
           return kt('il y a ' + Math.round(hrs / 24) + ' j', Math.round(hrs / 24) + ' d ago')
+        }
+        /** Where the phone link stands, in one word: a code to scan (`waiting`), a code that ran out (`expired`), a phone asking for the check (`verify`), a phone connected now, linked phones that are off, or none. */
+        const faceOf = (s, now) => {
+          const p = s.pairing
+          if (p !== null && p !== undefined) {
+            if (p.state === 'verify') return 'verify'
+            return typeof p.expires_at === 'number' && p.expires_at - now <= 0 ? 'expired' : 'waiting'
+          }
+          const devices = Array.isArray(s.devices) ? s.devices : []
+          if (devices.some((d) => d.online === true)) return 'connected'
+          return devices.length > 0 ? 'offline' : 'none'
+        }
+        const Chip = (props) => h('span', { className: 'kbpc-chip' + (props.kind ? ' ' + props.kind : ''), 'data-kb': props.kb, 'data-face': props.face }, h('span', { className: 'kbpc-dot', 'aria-hidden': 'true' }), props.children)
+        const FACE_CHIP = {
+          waiting: () => ['warn', kt('En attente du téléphone', 'Waiting for the phone')],
+          verify: () => ['warn', kt('En attente de ton accord', 'Waiting for your OK')],
+          expired: () => ['err', kt('Code expiré', 'Code expired')],
+          connected: (s) => ['ok', s.devices.filter((d) => d.online === true).length > 1 ? kt('Téléphones connectés', 'Phones connected') : kt('Téléphone connecté', 'Phone connected')],
+          offline: () => ['', kt('Aucun téléphone connecté', 'No phone connected')],
+          none: () => ['', kt('Aucun téléphone relié', 'No phone linked')],
         }
 
         const Qr = (props) => {
@@ -629,7 +678,7 @@ window.__ModuleLoader__.load({
         // The pairing in progress: the QR code to scan, then the 4-digit check to approve.
         const Pairing = (props) => {
           const p = props.pairing
-          const now = useTick()
+          const now = useTick(true)
           const [copied, setCopied] = React.useState(false)
           if (p.state === 'verify') {
             const left = typeof p.verify_until === 'number' ? p.verify_until - now : null
@@ -644,30 +693,38 @@ window.__ModuleLoader__.load({
           }
           const left = p.expires_at - now
           const expired = left <= 0
+          if (expired) {
+            return h('div', { className: 'kbmr-pairing', 'data-kb': 'mobile-pairing', 'data-expired': 'true' },
+              h('div', { className: 'kbmr-sub kbmr-center' }, kt('Le code QR n’est plus valable. Fais-en un nouveau pour relier un téléphone.', 'The QR code is no longer valid. Make a new one to link a phone.')),
+              h('div', { className: 'kbmr-row' },
+                h('button', { type: 'button', className: 'kbmr-btn kbmr-primary', 'data-kb': 'mobile-new-code', disabled: props.busy, onClick: props.onNew }, kt('Nouveau code QR', 'New QR code')),
+                h('button', { type: 'button', className: 'kbmr-btn', 'data-kb': 'mobile-stop', disabled: props.busy, onClick: props.onStop }, kt('Arrêter', 'Stop'))))
+          }
           return h('div', { className: 'kbmr-pairing', 'data-kb': 'mobile-pairing' },
-            expired ? h('div', { className: 'kbmr-qr kbmr-qr-off' }, h('span', null, kt('Code expiré', 'Code expired'))) : h(Qr, { qr: p.qr }),
-            h('div', { className: 'kbmr-sub kbmr-center' }, expired ? kt('Fais un nouveau code.', 'Make a new code.') : kt('À usage unique · expire dans ', 'Single use · expires in ') + clock(left)),
-            props.compact ? null : h(Steps),
+            h(Qr, { qr: p.qr }),
+            h('div', { className: 'kbmr-sub kbmr-center' }, kt('À usage unique · expire dans ', 'Single use · expires in ') + clock(left)),
+            h(Steps),
             h('div', { className: 'kbmr-row' },
-              h('button', { type: 'button', className: 'kbmr-btn', 'data-kb': 'mobile-new-code', disabled: props.busy, onClick: props.onNew }, kt('Nouveau code', 'New code')),
-              typeof p.url === 'string' && !expired
+              h('button', { type: 'button', className: 'kbmr-btn', 'data-kb': 'mobile-new-code', disabled: props.busy, onClick: props.onNew }, kt('Actualiser le QR', 'Refresh the QR')),
+              typeof p.url === 'string'
                 ? h('button', { type: 'button', className: 'kbmr-btn', 'data-kb': 'mobile-copy', onClick: () => { try { void navigator.clipboard.writeText(p.url); setCopied(true); setTimeout(() => setCopied(false), 1800) } catch (e) { /* no clipboard */ } } }, copied ? kt('Copié', 'Copied') : kt('Copier le lien', 'Copy the link'))
-                : null),
+                : null,
+              h('button', { type: 'button', className: 'kbmr-btn', 'data-kb': 'mobile-stop', disabled: props.busy, onClick: props.onStop }, kt('Arrêter', 'Stop'))),
             h(Lock))
         }
 
         const Devices = (props) => {
           const [confirm, setConfirm] = React.useState(null)
           const list = props.devices
-          if (list.length === 0) return h('div', { className: 'kbmr-sub' }, kt('Aucun téléphone appairé pour l’instant.', 'No phone paired yet.'))
+          if (list.length === 0) return h('div', { className: 'kbmr-sub' }, kt('Aucun téléphone relié pour l’instant.', 'No phone linked yet.'))
           const stateText = (d) => (d.state === 'locked' ? kt('Verrouillé : hors de ton offre', 'Locked: not in your plan') : d.online ? kt('Connecté maintenant', 'Connected now') : kt('Hors ligne', 'Offline') + ' · ' + ago(d.last_seen_at))
           return h('div', { className: 'kbmr-devices', 'data-kb': 'mobile-devices' },
             list.map((d) => h('div', { key: d.id, className: 'kbmr-device', 'data-kb': 'mobile-device' },
               h('span', { className: 'kbmr-dot' + (d.online ? ' on' : ''), 'aria-hidden': 'true' }),
-              h('div', { className: 'kbmr-devtxt' }, h('div', { className: 'kbmr-devname' }, d.label), h('div', { className: 'kbmr-sub' }, stateText(d))),
+              h('div', { className: 'kbmr-devtxt' }, h('div', { className: 'kbmr-devname', title: d.label }, d.label), h('div', { className: 'kbmr-sub' }, stateText(d))),
               confirm === d.id
                 ? h('button', { type: 'button', className: 'kbmr-btn kbmr-danger', 'data-kb': 'mobile-revoke-confirm', onClick: () => { setConfirm(null); props.onRevoke(d.id) } }, kt('Confirmer', 'Confirm'))
-                : h('button', { type: 'button', className: 'kbmr-btn', 'data-kb': 'mobile-revoke', onClick: () => setConfirm(d.id) }, kt('Révoquer', 'Revoke')))))
+                : h('button', { type: 'button', className: 'kbmr-btn', 'data-kb': 'mobile-revoke', onClick: () => setConfirm(d.id) }, kt('Déconnecter', 'Disconnect')))))
         }
 
         const Paywall = (props) => h('div', { className: 'kbmr-paywall', 'data-kb': 'mobile-paywall' },
@@ -680,12 +737,12 @@ window.__ModuleLoader__.load({
             ? h('button', { type: 'button', className: 'kbmr-btn kbmr-primary', 'data-kb': 'mobile-plans', onClick: () => { try { window.open(props.web, '_blank', 'noopener') } catch (e) { /* cannot open */ } } }, kt('Voir les offres', 'See the plans'))
             : null)
 
-        // One body for the panel and the page: they differ by `compact` only.
+        // The left column's body, the same in the window and on the Settings page.
         const Body = (props) => {
           const s = props.r.s
+          useTick(s !== null && s.pairing != null)
           const [error, setError] = React.useState(null)
           const [busy, setBusy] = React.useState(false)
-          const started = React.useRef(false)
           // The way out of a server that does not answer is offered only when the host says there is another server to go to.
           const [switchable, setSwitchable] = React.useState(false)
           const run = async (name, body) => {
@@ -696,12 +753,7 @@ window.__ModuleLoader__.load({
             setSwitchable(j !== null && j !== undefined && j.ok === false && j.error === 'server_unavailable' && j.server !== null && typeof j.server === 'object' && j.server.can_switch === true)
             return j
           }
-          const usable = s !== null && s.available !== false && s.connected !== false && s.entitled !== false
-          // Opening the panel IS asking for a code: the QR appears without a further click.
-          React.useEffect(() => {
-            if (props.autoPair === true && usable && s.pairing == null && started.current === false) { started.current = true; void run('pair') }
-          }, [usable, s === null ? null : s.pairing == null])
-          // A failed poll keeps what was shown and adds the reason on top; with nothing shown yet it is the whole page until the next good poll.
+          // A failed poll keeps what was shown and adds the reason on top; with nothing shown yet it is the whole card until the next good poll.
           const polled = props.r.err !== null && props.r.err !== undefined ? h('div', { className: 'kbmr-error', role: 'alert', 'data-kb': 'mobile-poll-error' }, errorText(props.r.err)) : null
           if (s === null) return polled !== null ? polled : h('div', { className: 'kbmr-sub' }, kt('Chargement…', 'Loading…'))
           if (s.available === false) return h('div', { className: 'kbmr-sub' }, kt('Cette version de DSH ne permet pas la connexion mobile.', 'This DSH version cannot do the phone link.'))
@@ -709,45 +761,144 @@ window.__ModuleLoader__.load({
           if (s.connected === false) return h('div', { className: 'kbmr-sub', 'data-kb': 'mobile-signin' }, kt('Connecte-toi à ton compte Kybernos pour utiliser le mobile.', 'Sign in to your Kybernos account to use the phone link.'))
           const devices = Array.isArray(s.devices) ? s.devices : []
           if (s.entitled === false) return h('div', null, h(Paywall, { web: props.web }), devices.length > 0 ? h(Devices, { devices, onRevoke: (id) => run('devices/revoke', { id }) }) : null)
+          const face = faceOf(s, Date.now())
+          const chip = FACE_CHIP[face](s)
           return h('div', { className: 'kbmr-body' },
             polled,
             error !== null
               ? h('div', { className: 'kbmr-error', role: 'alert' }, error,
                 switchable === true ? h('button', { type: 'button', className: 'kbmr-link', 'data-kb': 'mobile-switch-server', onClick: typeof props.onSwitchServer === 'function' ? props.onSwitchServer : switchServer }, kt('Changer de serveur', 'Switch server')) : null)
               : null,
-            s.pairing != null
-              ? h(Pairing, { pairing: s.pairing, compact: props.compact, busy, onApprove: () => run('pair/approve'), onDeny: () => run('pair/deny'), onNew: () => run('pair') })
-              : h('div', { className: 'kbmr-row kbmr-start' },
-                h('button', { type: 'button', className: 'kbmr-btn kbmr-primary', 'data-kb': 'mobile-pair', disabled: busy, onClick: () => { void run('pair') } }, kt('Ajouter un téléphone', 'Add a phone'))),
-            props.compact ? null : h('div', { className: 'kbmr-section' },
+            h('div', { className: 'kbpc-state', 'data-kb': 'mobile-state', 'data-face': face },
+              h('div', { className: 'kbmr-row kbmr-start' }, h(Chip, { kind: chip[0], face, kb: 'mobile-chip' }, chip[1])),
+              s.pairing != null
+                ? h(Pairing, { pairing: s.pairing, busy, onApprove: () => run('pair/approve'), onDeny: () => run('pair/deny'), onNew: () => run('pair'), onStop: () => run('pair/cancel') })
+                : h('div', { className: 'kbmr-row kbmr-start' },
+                  h('button', { type: 'button', className: 'kbmr-btn' + (devices.length === 0 ? ' kbmr-primary' : ''), 'data-kb': 'mobile-pair', disabled: busy, onClick: () => { void run('pair') } }, kt('Ajouter un téléphone', 'Add a phone')))),
+            h('div', { className: 'kbmr-section' },
               h('div', { className: 'kbmr-sech' },
-                h('span', null, kt('Téléphones appairés', 'Paired phones') + ' (' + devices.length + ')'),
+                h('span', null, kt('Téléphones reliés', 'Linked phones') + ' (' + devices.length + ')'),
                 s.relay === 'up' ? h('span', { className: 'kbmr-sub kbmr-inline' }, h('span', { className: 'kbmr-dot on', 'aria-hidden': 'true' }), kt('Relais Kybernos joint', 'Kybernos relay reached')) : null),
               h(Devices, { devices, onRevoke: (id) => run('devices/revoke', { id }) }),
-              devices.length > 1 ? h('button', { type: 'button', className: 'kbmr-link', 'data-kb': 'mobile-revoke-all', onClick: () => { void run('devices/revoke-all') } }, kt('Tout révoquer', 'Revoke all')) : null,
+              devices.length > 1 ? h('button', { type: 'button', className: 'kbmr-link', 'data-kb': 'mobile-revoke-all', onClick: () => { void run('devices/revoke-all') } }, kt('Tout déconnecter', 'Disconnect all')) : null,
               s.refused > 0 ? h('div', { className: 'kbmr-sub' }, (s.refused === 1
                 ? kt('1 demande refusée depuis un téléphone (réglages, identifiants, extensions).', '1 request refused from a phone (settings, credentials, plugins).')
                 : kt(s.refused + ' demandes refusées depuis un téléphone (réglages, identifiants, extensions).', s.refused + ' requests refused from a phone (settings, credentials, plugins).'))) : null))
         }
 
-        // The « ? How it works » button of this bundle (the Suite publishes it; without the Suite there is none). The card it opens is
-        // help.json: the same text on the panel's title row and on the Settings page.
-        const helpButton = () => (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-mobile' }) : null)
-
-        // The button as the panel's title row carries it: the card is fixed to the window (the sidebar clips anything wider than the
-        // popover), and the popover's box is read when the button is pressed, before the card opens.
-        const PopHelp = () => {
-          const box = React.useRef(null)
-          const anchor = () => {
-            try {
-              const pop = box.current !== null && box.current.closest ? box.current.closest('.kbf-pop') : null
-              if (pop === null || pop === undefined) return
-              const r = pop.getBoundingClientRect()
-              box.current.style.setProperty('--kbmr-x', Math.max(8, Math.round(r.left)) + 'px')
-              box.current.style.setProperty('--kbmr-b', Math.max(8, Math.round(window.innerHeight - r.bottom)) + 'px')
-            } catch (e) { /* the card keeps its default place */ }
+        // ── the two cards ──
+        // The assistant's name is kybernos-kyber's (one constant there); this bundle asks for it, and says « Kaby » when that bundle is not there.
+        const kyberSeam = () => { try { const k = window.__KB_KYBER__; return k !== undefined && k !== null && typeof k.ChannelsColumn === 'function' ? k : null } catch (e) { return null } }
+        const assistantName = () => { const k = kyberSeam(); return k !== null && typeof k.name === 'string' && k.name !== '' ? k.name : 'Kaby' }
+        // A column that fails to draw must not take the window with it: a boundary around the right-hand one (a stub React without classes draws it bare).
+        const Guard = typeof React.Component === 'function'
+          ? class Guard extends React.Component {
+            constructor (p) { super(p); this.state = { failed: false } }
+            static getDerivedStateFromError () { return { failed: true } }
+            componentDidCatch (e) { try { console.warn('[kybernos-mobile] the channels column failed to draw:', e) } catch (e2) { /* no console */ } }
+            render () { return this.state.failed ? this.props.fallback : this.props.children }
           }
-          return h('span', { ref: box, className: 'kbmr-helpbox', onClickCapture: anchor }, helpButton())
+          : null
+
+        /** Left: this computer's phone link. */
+        const RemoteCard = (props) => {
+          const s = props.r.s
+          const computer = s !== null && typeof s.computer === 'string' && s.computer !== '' ? s.computer : ''
+          return h('section', { className: 'kbpc-card', 'data-kb': 'phone-remote' },
+            h('h2', { className: 'kbpc-h' }, kt('Ouvrir mon ordinateur sur mon téléphone', 'Open my computer on my phone')),
+            h('div', { className: 'kbpc-rights', 'data-kb': 'phone-remote-rights' },
+              h('svg', { width: 16, height: 16, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true' },
+                h('rect', { x: 4, y: 11, width: 16, height: 10, rx: 2 }), h('path', { d: 'M8 11V7a4 4 0 0 1 8 0v4' })),
+              h('span', null, h('b', null, kt('Contrôle complet', 'Full control')), ' ',
+                kt('de cet ordinateur' + (computer !== '' ? ' (' + computer + ')' : '') + '. À utiliser seulement sur un téléphone à toi.', 'of this computer' + (computer !== '' ? ' (' + computer + ')' : '') + '. Use it only on a phone that is yours.'))),
+            h(Body, { r: props.r, web: props.web, onSwitchServer: props.onSwitchServer }))
+        }
+        /** Right: the messaging apps Kaby answers from (kybernos-kyber's column), or the line that says why it is not there. */
+        const ChannelsCard = () => {
+          const k = kyberSeam()
+          if (k === null) {
+            return h('section', { className: 'kbpc-card', 'data-kb': 'phone-channels-off' },
+              h('h2', { className: 'kbpc-h' }, kt('Parler à ' + assistantName() + ' sur une messagerie', 'Talk to ' + assistantName() + ' on a messaging app')),
+              h('p', { className: 'kbmr-sub' }, kt('Les messageries ne sont pas disponibles : le module ' + assistantName() + ' n’est pas actif.', 'Messaging apps are not available: the ' + assistantName() + ' module is not active.')))
+          }
+          const column = h(k.ChannelsColumn, null)
+          return h('section', { className: 'kbpc-card', 'data-kb': 'phone-channels-card' }, Guard === null ? column : h(Guard, { fallback: h('p', { className: 'kbmr-sub' }, kt('Les messageries ne peuvent pas s’afficher pour l’instant.', 'Messaging apps cannot be shown right now.')) }, column))
+        }
+        const columns = (r, web, onSwitchServer) => h('div', { className: 'kbpc-cols', 'data-kb': 'phone-channels-cols' }, h(RemoteCard, { r, web, onSwitchServer }), h(ChannelsCard))
+
+        // The « ? How it works » button of this bundle (the Suite publishes it; without the Suite there is none). The card it opens is
+        // help.json: the same text in the window and on the Settings page.
+        const helpButton = () => (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-mobile' }) : null)
+        const TITLE = () => kt('Téléphone et canaux', 'Phone and channels')
+        const PhoneIcon = () => h('svg', { width: 22, height: 22, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.7, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true' },
+          h('rect', { x: 3, y: 4, width: 12, height: 9, rx: 1.5 }), h('path', { d: 'M6 17h6' }), h('rect', { x: 16, y: 9, width: 5, height: 10, rx: 1.2 }))
+        /** The title row, the same in both places: the mark, the name, one sentence, and (window) the cross or (page) the plan chip; the help button in both. */
+        const head = (o) => h('div', { className: 'kbpc-head' },
+          h('span', { className: 'kbpc-ic' }, h(PhoneIcon)),
+          h('h1', { className: 'kbpc-title', id: o.titleId }, TITLE()),
+          h('p', { className: 'kbmr-sub kbpc-lead' }, kt('Joins ' + assistantName() + ' depuis ton téléphone, ou ouvre cet ordinateur à distance.', 'Reach ' + assistantName() + ' from your phone, or open this computer remotely.')),
+          o.chip ? h('span', { className: 'kbmr-chip kbpc-chip2' }, o.chip) : null,
+          h('span', { className: 'kbpc-help' }, helpButton()),
+          typeof o.onClose === 'function' ? h('button', { type: 'button', className: 'kbpc-x', 'data-kb': 'phone-channels-close', 'aria-label': kt('Fermer', 'Close'), onClick: o.onClose }, '×') : null)
+
+        /** The window the account menu opens (kybernos-cloud mounts it). Closing it withdraws a code nobody scanned; it does not withdraw one a phone is waiting on. */
+        const Dialog = (props) => {
+          const r = useRemote()
+          const web = useWeb(props.web)
+          const card = React.useRef(null)
+          const latest = React.useRef(null)
+          latest.current = r.s
+          const closeRef = React.useRef(props.onClose)
+          closeRef.current = props.onClose
+          const close = () => { try { if (typeof closeRef.current === 'function') closeRef.current() } catch (e) { /* closed already */ } }
+          React.useEffect(() => {
+            let before = null
+            try { before = document.activeElement } catch (e) { before = null }
+            try { if (card.current !== null && card.current !== undefined && typeof card.current.focus === 'function') card.current.focus() } catch (e) { /* not focusable */ }
+            // Captured, because DSH's own dialogs underneath also close on Escape.
+            const onKey = (ev) => { if (ev.key === 'Escape') { ev.stopPropagation(); close() } }
+            window.addEventListener('keydown', onKey, true)
+            // Anything on this screen that asks for Settings › Servers (« Switch server », here or on Telegram's row) must not leave the window over the page it opens.
+            window.addEventListener('kybernos-cloud:servers', close)
+            return () => {
+              window.removeEventListener('keydown', onKey, true)
+              window.removeEventListener('kybernos-cloud:servers', close)
+              const p = latest.current !== null && latest.current !== undefined ? latest.current.pairing : null
+              if (p !== null && p !== undefined && p.state !== 'verify') void api('pair/cancel', {})
+              try { if (before !== null && before !== undefined && typeof before.focus === 'function') before.focus() } catch (e) { /* gone */ }
+            }
+          }, [])
+          return h('div', { className: 'kbpc-scrim', 'data-kb': 'phone-channels-scrim', onMouseDown: (ev) => { if (ev.target === ev.currentTarget) close() } },
+            h('div', { className: 'kbpc-dialog', ref: card, role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'kbpc-title', tabIndex: -1, 'data-kb': 'phone-channels' },
+              head({ titleId: 'kbpc-title', onClose: close }),
+              columns(r, web, () => { close(); switchServer() })))
+        }
+
+        // The window opens itself, in a React root of its own on <body>: it does not depend on the account menu, on the sidebar's footer or on the drawer the footer lives in (a fixed
+        // box inside a parent that slides with a transform is placed in that parent: measured, the window sat 354 px off to the left of the screen, and it would slide away with the
+        // drawer). Anyone may ask for it (the account menu's entry, Kaby's strip); one window at a time; false when this DSH offers no React root to draw it in.
+        let shown = null
+        const openWindow = () => {
+          if (shown !== null) return true
+          try {
+            if (roots === null || roots === undefined || typeof roots.createRoot !== 'function' || !document.body) return false
+            const node = document.createElement('div')
+            node.setAttribute('data-kb', 'phone-channels-root')
+            document.body.appendChild(node)
+            const mine = { node, root: roots.createRoot(node) }
+            shown = mine
+            const onClose = () => {
+              if (shown === mine) shown = null
+              // Not from inside the render that asked for it: a root is taken down on the next turn.
+              setTimeout(() => { try { mine.root.unmount() } catch (e) { /* gone */ } try { mine.node.remove() } catch (e) { /* gone */ } }, 0)
+            }
+            mine.root.render(h(Dialog, { onClose }))
+            return true
+          } catch (e) {
+            shown = null
+            try { console.warn('[kybernos-mobile] the phone and channels window could not open:', e) } catch (e2) { /* no console */ }
+            return false
+          }
         }
 
         // The animated help of the Settings page (the Suite publishes it): opens the first time the page is visited, and the card of the
@@ -758,85 +909,67 @@ window.__ModuleLoader__.load({
             title: kt('Relier un téléphone en trois étapes', 'Link a phone in three steps'),
             caption: kt('Le code QR est affiché sur l’ordinateur, scanné avec le téléphone, puis autorisé sur l’ordinateur.', 'The QR code is shown on the computer, scanned with the phone, then allowed on the computer.'),
             steps: [
-              { t: kt('Affiche le code', 'Show the code'), b: kt('Sur l’ordinateur, ouvre le menu du compte › « Contrôle à distance » : un code QR s’affiche.', 'On the computer, open the account menu › “Remote control”: a QR code appears.') },
+              { t: kt('Affiche le code', 'Show the code'), b: kt('Sur l’ordinateur, ouvre le menu du compte › « Téléphone et canaux » et touche « Ajouter un téléphone » : un code QR s’affiche.', 'On the computer, open the account menu › “Phone and channels” and click “Add a phone”: a QR code appears.') },
               { t: kt('Scanne-le', 'Scan it'), b: kt('Sur le téléphone, scanne le code avec l’appareil photo et ouvre le lien : un code à 4 chiffres s’affiche.', 'On the phone, scan the code with the camera and open the link: a 4-digit code appears.') },
               { t: kt('Autorise', 'Allow'), b: kt('Sur l’ordinateur, vérifie que le code est le même et touche Autoriser : ton téléphone pilote cet ordinateur.', 'On the computer, check the code is the same and click Allow: your phone now drives this computer.') }
             ],
-            mock: { bar: 'Remote Control', rows: [kt('Cet ordinateur', 'This computer')], hot: kt('Ton téléphone', 'Your phone'), states: [kt('Pas lié', 'Not linked'), kt('Code : 4821', 'Code: 4821'), kt('Lié', 'Linked')], actions: [kt('Afficher le QR', 'Show the QR'), kt('Scan…', 'Scanning…'), kt('Autoriser', 'Allow')] }
+            mock: { bar: 'Phone and channels', rows: [kt('Cet ordinateur', 'This computer')], hot: kt('Ton téléphone', 'Your phone'), states: [kt('Pas lié', 'Not linked'), kt('Code : 4821', 'Code: 4821'), kt('Lié', 'Linked')], actions: [kt('Afficher le QR', 'Show the QR'), kt('Scan…', 'Scanning…'), kt('Autoriser', 'Allow')] }
           })
           : null)
 
-        // The sidebar's phone button opens this (kybernos-cloud renders it inside its popover).
-        const Panel = (props) => {
-          const r = useRemote()
-          const devices = r.s !== null && Array.isArray(r.s.devices) ? r.s.devices.length : 0
-          // Closing the panel withdraws a code nobody scanned. It does not withdraw one a phone is waiting on (the check
-          // can still be approved from Settings), nor the one the person carries to the Settings page.
-          const latest = React.useRef(null)
-          latest.current = r.s
-          const keep = React.useRef(false)
-          React.useEffect(() => () => {
-            const p = latest.current !== null && latest.current !== undefined ? latest.current.pairing : null
-            if (keep.current !== true && !(p !== null && p !== undefined && p.state === 'verify')) void api('pair/cancel', {})
-          }, [])
-          return h('div', { className: 'kbmr-panel' },
-            h('div', { className: 'kbmr-pophead' },
-              h('div', { className: 'kbf-poptitle' }, kt('Connecter un téléphone', 'Connect a phone')),
-              h(PopHelp)),
-            h(Body, { r, compact: true, autoPair: true, web: props.web, onSwitchServer: () => { try { if (typeof props.onClose === 'function') props.onClose() } catch (e) { /* closed already */ } switchServer() } }),
-            typeof props.onManage === 'function'
-              ? h('button', { type: 'button', className: 'kbmr-link', 'data-kb': 'mobile-manage', onClick: () => { keep.current = true; props.onManage() } }, kt('Gérer les téléphones', 'Manage phones') + (devices > 0 ? ' (' + devices + ')' : ''))
-              : null)
-        }
-
-        // Settings › Remote Control.
+        // Settings › Phone and channels.
         const Page = () => {
           const r = useRemote()
-          // The address of the Kybernos web app (for « See the plans »): the cloud half already knows it.
-          const [web, setWeb] = React.useState('')
-          React.useEffect(() => {
-            let live = true
-            void (async () => {
-              try {
-                const j = await (await fetch(new URL('kybernos-cloud/status', document.baseURI).pathname, { credentials: 'same-origin' })).json()
-                const w = j && j.state && typeof j.state.web_url === 'string' ? j.state.web_url : ''
-                if (live) setWeb(w)
-              } catch (e) { /* the page still works, without the button */ }
-            })()
-            return () => { live = false }
-          }, [])
+          const web = useWeb('')
           const planChip = r.s !== null && r.s.entitled === true ? kt('Inclus dans ton offre', 'Included in your plan') : null
-          return h('div', { className: 'kbmr-page', 'data-kb': 'mobile-page' },
-            h('div', { className: 'kbmr-head' },
-              h('div', { className: 'kbmr-headtxt' },
-                h('h1', { className: 'kbmr-title' }, 'Remote Control'),
-                h('p', { className: 'kbmr-sub' }, kt('Pilote cet ordinateur depuis ton téléphone : scanne le code, c’est tout. Rien à installer, aucun compte à créer.', 'Drive this computer from your phone: scan the code, that is all. Nothing to install, no account to create.'))),
-              planChip !== null ? h('span', { className: 'kbmr-chip' }, planChip) : null,
-              helpButton()),
+          return h('div', { className: 'kbmr-page kbpc-page', 'data-kb': 'mobile-page' },
+            head({ titleId: 'kbpc-page-title', chip: planChip }),
             introNode(),
-            h(Body, { r, compact: false, autoPair: false, web }))
+            columns(r, web, switchServer))
         }
 
         const CSS = `
-.kbmr-panel{display:flex;flex-direction:column;gap:12px;min-width:240px}
-.kbmr-pophead{display:flex;gap:8px;align-items:center;justify-content:space-between}
-.kbmr-pophead .kbf-poptitle{flex:1 1 auto;min-width:0;padding-block:0}
-/* The card of the « ? How it works » button is wider than the popover and the sidebar clips what leaves it: it is fixed to the window, its left and bottom edges are the popover's (measured when the button is pressed, see PopHelp), so it opens upward over the popover and scrolls when the window is short. */
-.kbmr-panel .kbmr-pophead [data-kb="help-panel"]{position:fixed;top:auto;right:auto;inset-inline:auto;left:var(--kbmr-x,8px);bottom:var(--kbmr-b,72px)}
-.kbmr-page{display:flex;flex-direction:column;gap:20px;padding:4px 2px;max-width:720px}
-.kbmr-head{display:flex;gap:12px;align-items:flex-start}
-.kbmr-headtxt{flex:1;min-width:0}
-.kbmr-title{margin:0;font-size:22px;font-weight:650;color:var(--dsw-alias-label-primary, rgb(243,243,245))}
-.kbmr-h{font-size:15px;font-weight:650;color:var(--dsw-alias-label-primary, rgb(243,243,245))}
+.kbmr-page{display:flex;flex-direction:column;gap:20px;padding:0;max-width:1040px}
+[data-slot="settings.section"]:has(.kbpc-page){width:100%;max-width:none}
+/* The title row is a grid so that on a phone the sentence drops under the title and takes the whole width, instead of a column of five words. */
+.kbpc-head{display:grid;grid-template-columns:44px minmax(0,1fr) auto auto auto;grid-template-areas:"ic ttl chip help x" "ic lead chip help x";column-gap:12px;align-items:start}
+.kbpc-ic{grid-area:ic}
+.kbpc-title{grid-area:ttl;align-self:end}
+.kbpc-lead{grid-area:lead}
+.kbpc-chip2{grid-area:chip}
+.kbpc-help{grid-area:help;display:flex}
+.kbpc-x{grid-area:x}
+.kbpc-title{margin:0;font-size:20px;font-weight:650;line-height:1.25;color:var(--dsw-alias-label-primary, rgb(243,243,245))}
+.kbpc-ic{flex:none;width:44px;height:44px;border-radius:12px;display:grid;place-items:center;border:1px solid var(--dsw-alias-border-l2, rgb(46,46,52));background:var(--dsw-alias-bg-layer-1, rgb(27,27,31));color:var(--dsw-alias-label-primary, rgb(243,243,245))}
+.kbpc-head .kbmr-sub{margin-top:2px}
+.kbpc-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:16px}
+.kbpc-card{display:flex;flex-direction:column;gap:14px;min-width:0;padding:16px;border-radius:14px;border:1px solid var(--dsw-alias-border-l1, rgb(46,46,52));background:var(--dsw-alias-bg-layer-2, rgb(27,27,31))}
+.kbpc-h{margin:0;font-size:15px;font-weight:650;line-height:1.3;color:var(--dsw-alias-label-primary, rgb(243,243,245))}
+.kbpc-rights{display:flex;gap:8px;align-items:flex-start;padding:9px 11px;border-radius:10px;background:color-mix(in srgb,var(--dsw-alias-label-primary, rgb(243,243,245)) 5%,transparent);font-size:12.5px;line-height:1.45;color:var(--dsw-alias-label-secondary, rgb(161,161,171))}
+.kbpc-rights svg{flex:none;margin-top:2px}
+.kbpc-rights b{color:var(--dsw-alias-label-primary, rgb(243,243,245));font-weight:600}
+.kbpc-state{display:flex;flex-direction:column;gap:12px;padding:12px;border-radius:12px;background:color-mix(in srgb,var(--dsw-alias-label-primary, rgb(243,243,245)) 5%,transparent)}
+.kbpc-chip{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:999px;font-size:12px;white-space:nowrap;border:1px solid var(--dsw-alias-border-l2, rgb(46,46,52));color:var(--dsw-alias-label-secondary, rgb(161,161,171))}
+/* The text of a status chip leans toward the theme's own ink, so it reads on its tinted fill in light and in dark (measured: the bare state colours gave 2.2:1 and 4.05:1). */
+.kbpc-chip.ok{border-color:transparent;background:var(--dsw-alias-state-success-bg, rgba(34,197,94,.16));color:color-mix(in srgb,var(--dsw-alias-state-success-primary, rgb(21,128,61)) 55%,var(--dsw-alias-label-primary, rgb(243,243,245)))}
+.kbpc-chip.warn{border-color:transparent;background:var(--dsw-alias-state-warn-bg, rgba(245,158,11,.18));color:color-mix(in srgb,var(--dsw-alias-state-warn-label, rgb(168,83,10)) 55%,var(--dsw-alias-label-primary, rgb(243,243,245)))}
+.kbpc-chip.err{border-color:transparent;background:var(--dsw-alias-state-error-bg, rgba(236,19,19,.12));color:color-mix(in srgb,var(--dsw-alias-state-error-primary, rgb(185,28,28)) 55%,var(--dsw-alias-label-primary, rgb(243,243,245)))}
+.kbpc-dot{flex:none;width:7px;height:7px;border-radius:999px;background:currentColor}
+.kbpc-scrim{position:fixed;inset:0;z-index:9998;display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:max(16px,env(safe-area-inset-top)) 16px 16px;background:rgba(0,0,0,.45)}
+.kbpc-dialog{position:relative;width:100%;max-width:1040px;margin:auto;display:flex;flex-direction:column;gap:20px;padding:24px;border-radius:16px;border:1px solid var(--dsw-alias-border-l2, rgb(46,46,52));background:var(--dsw-alias-bg-base, rgb(21,21,23));color:var(--dsw-alias-label-primary, rgb(243,243,245));box-shadow:0 18px 50px rgba(0,0,0,.35);outline:none}
+.kbpc-x{flex:none;width:32px;height:32px;border:0;border-radius:8px;background:transparent;color:var(--dsw-alias-label-secondary, rgb(161,161,171));font-size:20px;line-height:1;cursor:pointer}
+.kbpc-x:hover{background:var(--dsw-alias-interactive-bg-hover, rgba(127,127,127,.22))}
+.kbpc-x:focus-visible,.kbmr-btn:focus-visible,.kbmr-link:focus-visible{outline:2px solid var(--dsw-alias-brand-primary, rgb(76,110,245));outline-offset:2px}
+@media (max-width:520px){.kbpc-dialog{padding:16px;border-radius:20px}.kbpc-scrim{padding:8px}.kbpc-head{grid-template-columns:44px minmax(0,1fr) auto auto;grid-template-areas:"ic ttl help x" "lead lead lead lead";row-gap:10px;align-items:center}.kbpc-chip2{display:none}}
 .kbmr-sub{margin:4px 0 0;font-size:13px;line-height:1.45;color:var(--dsw-alias-label-secondary, rgb(161,161,171))}
+.kbmr-h{font-size:15px;font-weight:650;color:var(--dsw-alias-label-primary, rgb(243,243,245))}
 .kbmr-center{text-align:center}
 .kbmr-chip{flex:none;padding:3px 10px;border:1px solid var(--dsw-alias-border-l2, rgb(46,46,52));border-radius:999px;font-size:12px;color:var(--dsw-alias-label-secondary, rgb(161,161,171))}
 .kbmr-body,.kbmr-pairing,.kbmr-verify,.kbmr-paywall{display:flex;flex-direction:column;gap:12px}
-.kbmr-pairing,.kbmr-verify,.kbmr-paywall{align-items:center;padding:16px;border:1px solid var(--dsw-alias-border-l2, rgb(46,46,52));border-radius:14px;background:var(--dsw-alias-bg-layer-2, rgb(27,27,31))}
-.kbmr-panel .kbmr-pairing,.kbmr-panel .kbmr-verify,.kbmr-panel .kbmr-paywall{border:0;background:transparent;padding:0}
+.kbmr-pairing,.kbmr-verify,.kbmr-paywall{align-items:center}
+.kbmr-paywall{padding:16px;border:1px solid var(--dsw-alias-border-l2, rgb(46,46,52));border-radius:14px;background:var(--dsw-alias-bg-layer-2, rgb(27,27,31))}
 .kbmr-qr{width:196px;height:196px;border-radius:10px;overflow:hidden;background:white;display:flex;align-items:center;justify-content:center}
 .kbmr-qr svg{display:block;width:100%;height:100%}
-.kbmr-qr-off{background:transparent;border:1px dashed var(--dsw-alias-border-l2, rgb(46,46,52));color:var(--dsw-alias-label-secondary, rgb(161,161,171));font-size:13px}
 .kbmr-steps{margin:0;padding-left:20px;font-size:13px;line-height:1.5;color:var(--dsw-alias-label-primary, rgb(243,243,245));align-self:stretch}
 .kbmr-row{display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap}
 .kbmr-start{justify-content:flex-start}
@@ -851,10 +984,10 @@ window.__ModuleLoader__.load({
 .kbmr-error{padding:8px 12px;border-radius:8px;border:1px solid rgb(240,68,55);color:var(--dsw-alias-label-primary, rgb(243,243,245));font-size:13px}
 .kbmr-error .kbmr-link{display:block;margin-top:4px}
 .kbmr-section{display:flex;flex-direction:column;gap:10px}
-.kbmr-sech{display:flex;gap:10px;align-items:center;justify-content:space-between;font-weight:650;font-size:15px;color:var(--dsw-alias-label-primary, rgb(243,243,245))}
+.kbmr-sech{display:flex;gap:10px;align-items:center;justify-content:space-between;font-weight:650;font-size:14px;color:var(--dsw-alias-label-primary, rgb(243,243,245))}
 .kbmr-inline{display:inline-flex;gap:6px;align-items:center;margin:0;font-weight:400}
-.kbmr-devices{border:1px solid var(--dsw-alias-border-l2, rgb(46,46,52));border-radius:12px;background:var(--dsw-alias-bg-layer-2, rgb(27,27,31))}
-.kbmr-device{display:flex;gap:12px;align-items:center;padding:12px 16px}
+.kbmr-devices{border:1px solid var(--dsw-alias-border-l2, rgb(46,46,52));border-radius:12px;background:var(--dsw-alias-bg-layer-1, rgb(27,27,31))}
+.kbmr-device{display:flex;gap:12px;align-items:center;padding:10px 14px}
 .kbmr-device+.kbmr-device{border-top:1px solid var(--dsw-alias-border-l2, rgb(46,46,52))}
 .kbmr-devtxt{flex:1;min-width:0}
 .kbmr-devname{font-weight:600;color:var(--dsw-alias-label-primary, rgb(243,243,245));overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -863,7 +996,7 @@ window.__ModuleLoader__.load({
 .kbmr-lockbox{color:var(--dsw-alias-label-secondary, rgb(161,161,171))}
 .kbmr-paywall .kbmr-sub{text-align:center;max-width:440px}
 `
-        return { Panel, Page, CSS }
+        return { Dialog, Page, CSS, open: openWindow }
       }
 
       return {
@@ -881,25 +1014,31 @@ window.__ModuleLoader__.load({
           try {
             if (typeof ctx.inject === 'function' && typeof require === 'function') {
               const React = require('react')
-              const ui = buildRemoteUi(React)
+              // A React root to draw the window in: `react-dom/client` (React 19), else `react-dom` when it still offers createRoot (React 18).
+              let roots = null
+              for (const name of ['react-dom/client', 'react-dom']) {
+                try { const m = require(name); if (roots === null && m !== undefined && m !== null && typeof m.createRoot === 'function') roots = m } catch (e) { /* not offered */ }
+              }
+              const ui = buildRemoteUi(React, roots)
               ctx.inject(['slots'], (scope) => {
                 try {
                   const slots = scope !== undefined && scope !== null ? scope.slots : null
                   ctx.effect(() => {
-                    const mine = { version: 1, Panel: ui.Panel }
+                    // `open()` draws the window (the account menu's entry in kybernos-cloud and Kaby's strip call it); the entry is offered only while this is there.
+                    const mine = { version: 3, Dialog: ui.Dialog, open: ui.open }
                     try { window.__KB_MOBILE__ = mine } catch (e) { /* frozen window */ }
                     return () => { try { if (window.__KB_MOBILE__ === mine) delete window.__KB_MOBILE__ } catch (e) { /* gone */ } }
-                  }, 'kybernos-mobile: phone panel for the sidebar')
+                  }, 'kybernos-mobile: phone and channels window for the account menu')
                   ctx.effect(() => {
                     const style = document.createElement('style')
                     style.dataset.plugin = '@local/kybernos-mobile'
                     style.textContent = ui.CSS
                     document.head.appendChild(style)
                     return () => style.remove()
-                  }, 'kybernos-mobile: phone link styles')
+                  }, 'kybernos-mobile: phone and channels styles')
                   if (slots !== null && slots !== undefined && typeof slots.inject === 'function') {
                     ctx.effect(() => slots.inject('settings.section', () => slots.register(
-                      { name: 'settings.section', id: 'kybernos-mobile', order: 45, label: 'Remote Control' },
+                      { name: 'settings.section', id: 'kybernos-mobile', order: 45, label: kt('Téléphone et canaux', 'Phone and channels') },
                       () => React.createElement(ui.Page))), 'kybernos-mobile: settings section')
                   }
                 } catch (e) { try { console.warn('[kybernos-mobile] phone link not mounted:', e) } catch (e2) { /* no console */ } }

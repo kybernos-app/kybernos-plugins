@@ -142,5 +142,12 @@ console.log('the page says what each tab is for (V-36)')
   check('the new sentences are among the L({fr, en}) pairs, none empty', pairs.filter((p) => /commande slash est un prompt|action de message est un bouton/.test(p[1])).length === 2)
 }
 
+{
+  // UX audit 2026-10-20: the icon search split the query on the LETTER s (`/s+/`, the backslash lost), so « sport » looked for « port ».
+  const at = src.indexOf('const kbIconSearch = (q) => {')
+  const body = src.slice(at, at + 700)
+  check('the icon search splits the typed words on spaces, not on the letter s', at > 0 && body.includes('s.split(/\\s+/)') && !body.includes('s.split(/s+/)'))
+}
+
 console.log(failed === 0 ? '\nOK' : `\n${failed} failure(s)`)
 process.exit(failed === 0 ? 0 : 1)

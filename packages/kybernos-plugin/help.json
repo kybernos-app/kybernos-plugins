@@ -194,8 +194,8 @@
         "en": "Automation settings"
       },
       "what": {
-        "fr": "Où vivent tes automatisations, et deux réglages : tout mettre en pause, ou réafficher la liste de tâches de DSH.",
-        "en": "Where your automations live, and two switches: pause everything, or show DSH’s own task list again."
+        "fr": "Où vivent tes automatisations, et leurs réglages : tout mettre en pause, réafficher la liste de tâches de DSH, ou écrire en skill les automatisations qui tournent sans échec.",
+        "en": "Where your automations live, and their settings: pause everything, show DSH’s own task list again, or write down as skills the automations that run without failing."
       },
       "steps": [
         {
@@ -209,6 +209,10 @@
         {
           "fr": "Réaffiche la liste « Automation tasks » de DSH si tu la veux de nouveau dans le menu.",
           "en": "Show DSH’s “Automation tasks” list if you want it back in the menu."
+        },
+        {
+          "fr": "« Créer des skills » : une automatisation stable (3, 5, 10 ou 20 exécutions sans échec) devient un skill. Sinon : bouton du Journal.",
+          "en": "“Create skills”: a stable automation (3, 5, 10 or 20 runs without a failure) becomes a skill. Otherwise: a button in its Journal."
         }
       ],
       "where": {

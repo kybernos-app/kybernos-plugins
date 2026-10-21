@@ -40,3 +40,8 @@ Third-party components (see THIRD_PARTY_LICENSES for details):
   Rough.js 4.6.6 (c) 2019 Preet Shihn — MIT License
   kybernos-modeleur inlines both in `client.js` (Rough.js is also bundled
   by mermaid).
+
+- Lucide (c) 2026 Lucide Icons and Contributors — ISC License
+  kybernos-plugin ships the geometry of the icons (`packages/kybernos-plugin/icons.json`) and their search
+  words (`icon-tags.json`, from Lucide's own tags.json, rebuilt by `scripts/build-icon-tags.mjs`). The icons
+  derived from Feather are (c) 2013-present Cole Bemis — MIT License.

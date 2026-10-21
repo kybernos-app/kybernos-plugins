@@ -1,4 +1,4 @@
-# The Models tab (Settings → AI Provider & Models → Models)
+# The Models tab (Settings → AI provider and models → Models)
 
 Nothing a model shows today was removed: the name and id (both editable in place), the provider, every
 capability, the type, the price in and out, the context, the source and the override count, and the whole details
@@ -37,7 +37,7 @@ Open DSH's native Models page. *Sync N from models.dev* stays on the results bar
 
 - **Escape**: the panel and the Edit/Add drawer capture it and stop it when they use it, so DSH does not also close
   Settings under an open sheet.
-- **Hooks**: `KybernosHero` owns hooks, so it is rendered as a component (`h(KybernosHero, null)`), never called
+- **Hooks**: `KybernosHero` owns hooks, so it is rendered as a component (`h(KybernosHero, { key: 'kb-hero' })`, the first child of the provider grid), never called
   conditionally from `Panel`: a conditional call changed Panel's hook order on the tab switch (React error #300, caught
   on the real GUI, and shown by the error boundary as "This page could not be displayed").
 - **CSS order**: the table's breakpoint rules are qualified with `.kbmp-table` so they win whatever their position in

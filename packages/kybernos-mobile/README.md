@@ -64,15 +64,27 @@ drew under the iPhone's home indicator.
 A style edit reaches the next page load without restarting DSH (the host re-reads `mobile.css` when its modification
 time changes); a change to the host half (`index.js`) still needs a restart.
 
-### The phone link
+### Phone and channels (one screen)
 
-- **The account menu's « Remote control » entry** (bottom of the sidebar) opens a panel with the QR code (it used to show a preview), and a « ? How it works » button
-  on its title row (the same card as on Settings › Remote Control: `help.json`). When the account's plan does not include
-  the phone link the panel says « Not included in your plan » and offers the plans.
-- **Settings › Remote Control** lists the paired phones, shows when each was seen, and revokes one (or all).
+One screen, two columns, shown in two places (decision of 2026-10-19; the old « Remote control » entry, its popover and the duplicated panel are gone):
+
+- **A window**, from the account menu's **« Phone and channels »** entry (just before « Settings ») or from the button of Kaby's strip. It opens itself:
+  `window.__KB_MOBILE__.open()` draws it in a React root of its own on `<body>` (`react-dom/client`, else `react-dom` when it still has `createRoot`; one window at a time;
+  `false` when there is no root to draw in), so it depends on neither the account menu nor the footer nor the phone layout's sliding drawer (a fixed box inside that drawer sits
+  off-screen). `kybernos-cloud` only offers the entry while `open` is published. Escape, the dim, the cross and any request for Settings › Servers close it; closing withdraws a
+  code nobody scanned (never one a phone is waiting on). It asks for no code by itself: « Add a phone » does.
+- **Settings › Phone and channels** (section id `kybernos-mobile`), the same two columns with the animated help and the plan chip above them.
+- **Left, « Open my computer on my phone »** (this bundle): a sentence that says it gives **full control of this computer**, then the phone link in its states
+  (nothing linked, a code to scan, a phone asking for the 4-digit check, a code that ran out, a phone connected, a plan without the link, a server without it)
+  and the linked phones (when each was seen, disconnect one or all). A chip says which state it is. When the account's plan does not include the link the column says « Not included in your plan » and offers the plans.
+- **Right, « Talk to Kaby on a messaging app »** (drawn by `kybernos-kyber`, which publishes `window.__KB_KYBER__.ChannelsColumn`; without that bundle the card says the messaging apps are not there):
+  Telegram (the real switch and pairing code), WhatsApp (a beta that says « not available on this server yet » until a server announces it), WeChat and iMessage (« soon »).
+  A messaging app reaches Kaby only, never this computer: the column says so.
 - On the phone: scan, open the link, a 4-digit code appears; on the computer the same code and an **Allow** button.
   Nothing is served to the phone before that. From then on the phone reconnects by itself.
 - Everything the person does is a gesture on the computer: a phone can never add, approve or remove a phone.
+- **Two apps from the phone page** (2026-10-19, `docs/etudes/2026-10-19-deux-pwa-telecommande-et-kaby.md`): once a phone is paired, the page offers to put Kybernos on the home screen as **two apps**, « Kybernos à distance » (`/__kb/`: the whole DSH of the computer, as before) and « Kaby » (`/__kb/kaby/`: the same DSH, opened on Kaby's own conversation by `kybernos-kyber`, whose strip stays folded there). Two pages, two manifests (own `id`, `start_url` and `scope`), **one service worker** (it lets the whole `/__kb` shell through). Android: the browser's own install prompt behind a button, and its menu when the prompt has not fired; the other app is another page that makes its own offer. iPhone: **an app keeps its own storage, so a pairing made in Safari is lost on installing**: opened from a pairing link, the page offers to install first (« Copy the pairing link »), and the app, which the camera cannot reach, links itself by **pasting** that link (a paste field when the clipboard is refused). The offer is not made inside an app, off a touch device, or for 7 days after « Later »; an app shows up in the computer's list as « iPhone · app » or « iPhone · Kaby ». Two icons are not two rights: whichever icon opens it, a linked phone has the power of the keyboard.
+- The remote only concerns the **local** DSH: a hosted session lives in the web app and a cloud computer opens from the console.
 
 ## How it works
 
@@ -80,13 +92,13 @@ time changes); a change to the host half (`index.js`) still needs a restart.
 |---|---|---|
 | `mobile.css` | data | the whole layout, in one `@media (max-width: 700px)` block; keyed on DSH's stable hooks (`data-slot`, `data-sidebar-collapsed`, `data-rightbar-*`, `data-shell-*`, `role`), never on its hashed class names |
 | `index.js` | host | puts `mobile.css` in every index render (`webserver/index-inject`), serves it at `GET /kybernos-mobile/mobile.css`, and registers the phone link's routes behind the Host and Origin fences |
-| `client.js` | browser | the menu button, the drawer taps and swipe, closing a drawer DSH left open, the "..." sheet, Settings' list and back bar, the rating star, the page measures (`fitKinds`), `viewport-fit=cover`; the phone panel (`window.__KB_MOBILE__.Panel`, opened from the account menu's « Remote control » entry) and the Settings › Remote Control page |
+| `client.js` | browser | the menu button, the drawer taps and swipe, closing a drawer DSH left open, the "..." sheet, Settings' list and back bar, the rating star, the page measures (`fitKinds`), `viewport-fit=cover`; the « Phone and channels » screen: the window (`window.__KB_MOBILE__.Dialog`, opened from the account menu's entry) and the Settings › Phone and channels page |
 | `remote-mount.mjs` | host | loaded lazily and in its own try/catch: builds the link manager from this DSH's surroundings |
 | `remote-host.mjs` | host | pairing, paired phones, one outbound relay connection per phone, and the replay of a phone's requests against this DSH |
 | `remote-local.mjs` | host | the DSH home, DSH's own port, and the session cookie the replay needs |
 | `remote-e2e.mjs` | both | the end-to-end channel (WebCrypto only; the computer and the phone page run the same file) |
 | `qr.mjs` | host | QR encoder (no dependency), checked against Chrome's decoder |
-| `phone/` | phone | the page the relay's web origin serves: `index.html`, `phone.mjs`, `sw.js` (service worker), `manifest.webmanifest`, `icon.svg` |
+| `phone/` | phone | the page the relay's web origin serves: `index.html` and `kaby.html` (the two apps' pages), `phone.mjs`, `sw.js` (service worker), `manifest.webmanifest` and `kaby.webmanifest`, `icon.svg` and `kaby-icon.svg` (the apps' PNG icons are drawn by the server) |
 | `remote-fake-relay.mjs` | tests | a stand-in for the relay and the server's `/v1/remote/*` routes (tests and live checks only) |
 
 The full protocol, the server's contract and the security model are in [`docs/dev/mobile-remote.md`](../../docs/dev/mobile-remote.md).
@@ -110,8 +122,8 @@ The full protocol, the server's contract and the security model are in [`docs/de
 
 ## Tests
 
-`test-host.mjs` (the row, the routes and their fences, the stylesheet's promises), `test-client.mjs` (the contract, the
-tap and swipe decisions, the sheet, the page measures, Settings), `test-remote-e2e.mjs` (the handshake and its attacks), `test-remote-host.mjs` (a real pairing,
+`test-phone-apps.mjs` (the two manifests, the two pages, the strings, the service worker both apps share), `test-host.mjs` (the row, the routes and their fences, the stylesheet's promises), `test-client.mjs` (the contract, the
+tap and swipe decisions, the sheet, the page measures, Settings), `test-remote-ui.mjs` (the screen's states, the window, a failed poll), `test-help.mjs`, `test-remote-e2e.mjs` (the handshake and its attacks), `test-remote-host.mjs` (a real pairing,
 replay and revocation through a stand-in relay and a stand-in DSH), `test-qr.mjs`, `test-dsh-home.mjs`; and on the real
 GUI `scripts/check-mobile-live.mjs` (the layout, a 390 px phone emulated in a sandbox DSH), `scripts/check-mobile-visual.mjs`
 (seven devices, dark and light, screenshots and measures on the real DOM with the working tree's stylesheet and
@@ -123,3 +135,5 @@ the stand-in relay with a slow uplink: the drawer, the Skills page, a restart of
 and
 `scripts/check-mobile-remote-live.mjs` (the QR code decoded by Chrome, a second browser as the phone, approval,
 revocation, a plan without the feature).
+
+On the real GUI, `scripts/check-phone-apps-live.mjs` plays the two apps in a sandbox DSH (an Android phone: the offer, the browser's prompt, Kaby's page resuming the same pairing and opening Kaby's chat; an iPhone: install first, an app pasting the link, revoked), and `scripts/check-phone-channels-live.mjs` plays the screen in a sandbox DSH (the account and the doors faked): the menu entry, both columns in every state, light and dark, a 390 px phone, closing, and the Settings page.

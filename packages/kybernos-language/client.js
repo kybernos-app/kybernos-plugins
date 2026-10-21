@@ -66,6 +66,8 @@ window.__ModuleLoader__.load({
    profile without this page losing its layout. Same values, same DSH tokens. */
 [data-slot="settings.section"]:has(.kbln-page) { width: 100%; max-width: none; }
 .kbln-page{display:grid;grid-template-columns:1fr;gap:22px;max-width:760px;align-items:start}
+/* Light schemes: the muted sentences of the help steps are label-tertiary (3.7:1 on white); inside the page they read label-secondary (5.8:1). */
+body:not([data-ds-dark-theme]) .kbln-page{--dsw-alias-label-tertiary:var(--dsw-alias-label-secondary)}
 .kbln-main{display:flex;flex-direction:column;gap:22px;min-width:0}
 .kbln-head{display:flex;flex-direction:column;gap:6px}
 .kbln-title{font-size:26px;line-height:32px;font-weight:800;letter-spacing:-.01em;color:var(--dsw-alias-label-primary)}
@@ -127,7 +129,7 @@ body:not([data-ds-dark-theme]) .kbln-lang-en{color:var(--dsw-alias-label-seconda
 .kbln-chip[disabled]{opacity:.4;cursor:default}
 .kbln-chip-tag{font-size:11px;font-weight:500;color:var(--dsw-alias-state-success-primary);margin-inline-start:2px}
 body:not([data-ds-dark-theme]) .kbln-chip-tag{color:color-mix(in srgb,var(--dsw-alias-state-success-primary) 55%,var(--dsw-alias-label-primary))}
-.kbln-sec-t{font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--dsw-alias-label-tertiary)}
+.kbln-sec-t{font-size:11px;font-weight:600;color:var(--dsw-alias-label-tertiary)}
 .kbln-iso{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:4px;max-height:280px;overflow:auto;padding-inline-end:4px}
 .kbln-iso-i{appearance:none;font:inherit;font-size:13px;display:flex;align-items:baseline;gap:8px;padding:7px 10px;border:0;border-radius:8px;background:transparent;color:var(--dsw-alias-label-primary);cursor:pointer;text-align:start;min-width:0}
 .kbln-iso-i:hover:not([disabled]){background:var(--dsw-alias-interactive-bg-hover, var(--dsw-alias-bg-layer-3))}
@@ -1695,7 +1697,10 @@ html[dir="rtl"] .kbln-page{direction:rtl}
           const st = isRun ? snap.state : null
           const running = st === 'running' || st === 'pausing'
           const held = typeof meta.done === 'number' || isBuiltIn(id) ? null : heldBy(id, plan)
-          const staticDone = typeof meta.done === 'number' ? meta.done : (held !== null ? held.done : 0)
+          // `held` is counted NOW against the current strings; meta.done was written by the last run. When the product's
+          // string set changed since, the stored count can exceed the current total (« 7 455 sur 6 267 textes » seen on
+          // 2026-10-21): count what is really translated, and fall back to the stored count only without a plan.
+          const staticDone = held !== null ? held.done : (typeof meta.done === 'number' ? meta.done : 0)
           const total = running ? (snap.total || (plan !== null ? plan.total : 0)) : (plan !== null ? plan.total : (typeof meta.total === 'number' ? meta.total : 0))
           const done = isRun ? snap.done : staticDone
           const pct = total > 0 ? Math.min(100, Math.floor(done / total * 100)) : 0

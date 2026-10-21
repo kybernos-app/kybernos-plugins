@@ -50,7 +50,7 @@ console.log('\n── the actions, run against the REAL host routes and a fake s
   const aBegin = src.indexOf('// KB-PARK-ACTIONS-BEGIN')
   const aEnd = src.indexOf('// KB-PARK-ACTIONS-END')
   ok('the actions block is delimited', aBegin > 0 && aEnd > aBegin)
-  const body = src.slice(begin, end) + '\n' + src.slice(aBegin, aEnd) + '\nreturn { kbMDisable, kbMEnable, kbMMutateRetry, kbMParkCall }'
+  const body = src.slice(begin, end) + '\n' + src.slice(src.indexOf('// KB-PV-PURE-BEGIN'), src.indexOf('// KB-PV-PURE-END')) + '\n' + src.slice(aBegin, aEnd) + '\nreturn { kbMDisable, kbMEnable, kbMMutateRetry, kbMParkCall }'
 
   /** A fresh world: a host store file, a fake settings service, the client's globals. */
   const world = (opts = {}) => {
@@ -324,14 +324,14 @@ console.log('\n── DSH’s native page: which menu cell to hide ──')
   const bl = (name) => { const i = src.indexOf('// ' + name + '-BEGIN'); const j = src.indexOf('// ' + name + '-END'); return src.slice(i, j) }
   const { kbNatPick, kbNatHidden } = new Function(bl('KB-NATIVE-PURE') + '\nreturn { kbNatPick, kbNatHidden }')()
   ok('the native cell is hidden by default (this page does everything the native one does); a stored choice still wins', /const KB_NAT_DEFAULT_HIDDEN = true/.test(src) && new Function(src.slice(src.indexOf('// KB-NATIVE-PURE-BEGIN'), src.indexOf('// KB-NATIVE-PURE-END')) + '\nreturn kbNatHidden')()(null, true) === true && new Function(src.slice(src.indexOf('// KB-NATIVE-PURE-BEGIN'), src.indexOf('// KB-NATIVE-PURE-END')) + '\nreturn kbNatHidden')()('0', true) === false)
-  const nav = ['Theme', 'AI Provider & Models', 'Models', 'Ollama Local Models', 'Voice']
-  ok('the native cell is found beside ours', JSON.stringify(kbNatPick([nav], 'Models', 'AI Provider & Models')) === JSON.stringify([{ group: 0, index: 2 }]))
-  ok('only the exact label matches, never "Ollama Local Models"', kbNatPick([nav], 'Models', 'AI Provider & Models').length === 1)
-  ok('a list that does not hold our cell is never touched', kbNatPick([['Models', 'Chat', 'Files', 'More']], 'Models', 'AI Provider & Models').length === 0)
-  ok('a list too short to be a menu is ignored', kbNatPick([['Models', 'AI Provider & Models']], 'Models', 'AI Provider & Models').length === 0)
-  ok('with no native label (locale did not answer) nothing is hidden', kbNatPick([nav], null, 'AI Provider & Models').length === 0 && kbNatPick([nav], '', 'AI Provider & Models').length === 0)
-  ok('never hides our own cell if the labels collide', kbNatPick([nav], 'AI Provider & Models', 'AI Provider & Models').length === 0)
-  ok('the translated label is matched as is', kbNatPick([['Thème', 'Fournisseur IA & modèles', 'Modèles', 'Voix']], 'Modèles', 'Fournisseur IA & modèles').length === 1)
+  const nav = ['Theme', 'AI provider and models', 'Models', 'Ollama local models', 'Voice']
+  ok('the native cell is found beside ours', JSON.stringify(kbNatPick([nav], 'Models', 'AI provider and models')) === JSON.stringify([{ group: 0, index: 2 }]))
+  ok('only the exact label matches, never "Ollama local models"', kbNatPick([nav], 'Models', 'AI provider and models').length === 1)
+  ok('a list that does not hold our cell is never touched', kbNatPick([['Models', 'Chat', 'Files', 'More']], 'Models', 'AI provider and models').length === 0)
+  ok('a list too short to be a menu is ignored', kbNatPick([['Models', 'AI provider and models']], 'Models', 'AI provider and models').length === 0)
+  ok('with no native label (locale did not answer) nothing is hidden', kbNatPick([nav], null, 'AI provider and models').length === 0 && kbNatPick([nav], '', 'AI provider and models').length === 0)
+  ok('never hides our own cell if the labels collide', kbNatPick([nav], 'AI provider and models', 'AI provider and models').length === 0)
+  ok('the translated label is matched as is', kbNatPick([['Thème', 'Fournisseur IA et modèles', 'Modèles', 'Voix']], 'Modèles', 'Fournisseur IA et modèles').length === 1)
   ok('the stored choice wins, otherwise the default', kbNatHidden('1', false) === true && kbNatHidden('0', true) === false && kbNatHidden(null, false) === false && kbNatHidden(null, true) === true && kbNatHidden('junk', false) === false)
 }
 
@@ -369,7 +369,9 @@ ok('row actions show on hover and focus, and stay visible on touch screens', has
 ok('the provider column and the matrix appear from 860 px, the compact layout below', has('@container (min-width: 860px)') && has('@container (min-width: 620px)'))
 ok('the capability chips are hidden by default from 860 px (the header filters), always shown below, and one menu item turns them on', has("const KB_CHIPS_PREF = 'kb.models.capChips'") && has('kbmp-capsbar-on') && has('.kbmp-capsbar:not(.kbmp-capsbar-on){display:none}') && has("'data-kbm': 'chips-toggle'"))
 ok('Restore, Sync all, the chips and DSH’s native page live in one ⋯ menu on the tab bar', has("'data-kbm': 'models-more'") && has("'data-kbm': 'models-menu'") && has("'data-kbm': 'restore'") && has("'data-kbm': 'fetch'"))
-ok('the Cloud card shows on the Providers tab only, and the old header block (intro, Live data pill, two buttons) is gone from Models', has("UI.tab === 'providers' ? h(KybernosHero, null) : null") && !has("className: 'kbm-head'"))
+ok('the Cloud card is the first cell of the provider grid, a card of its own size (so it shows on the Providers tab only and the tab bar never moves), and the old header block (intro, Live data pill, two buttons) is gone from Models', has("h(KybernosHero, { key: 'kb-hero' })") && !has("UI.tab === 'providers' ? h(KybernosHero, null) : null") && has("className: 'kbpv-card kbmh-hero'") && !has('grid-column:1/-1') && !has("className: 'kbm-head'"))
+ok('the Cloud card IS the « kybernos » provider while the account is connected: its plain card is not drawn beside it (it is when the account is disconnected, and in a search result where the provider has to be findable)', has("cloud: route === 'kybernos'") && has('const listed = cards.filter((x) => !(x.cloud === true && KBM.cloud !== false))') && has('KBM.cloud = res !== null && typeof res === \'object\' && res.connected === true; kbmNotify()') && has('.catch(() => { if (mort !== true) { KBM.cloud = false; kbmNotify() } })') && has('const hits = searching ? kbPvSearch(cards, UI.pq) : listed') && has('(searching ? hits : (fold.fold && !ui.waitOpen ? ready : listed))'))
+ok('the tab bar is the first thing the panel draws: nothing sits above it on either tab (it jumped 85 px between Providers and Models)', (() => { const a = src.indexOf("'data-slot': 'kybernos-models-header' }"); const b = src.indexOf("className: 'kbmp-tabs'", a); return a > 0 && b > a && b - a < 3000 && !src.slice(a, b).includes('KybernosHero') })())
 ok('the page uses the room it has (1120 px, against the core plugin’s 720 cap, with more specificity)', has('>.kbm-page:has(.kbm-root.kbmp){max-width:1120px}'))
 ok('no colour hard-coded in the new Providers styles', !/kbpv-[a-z-]+\{[^}']*#[0-9a-fA-F]{3,8}\b/.test(src))
 
@@ -496,7 +498,7 @@ console.log('\n── Fetch available models (the engine lists what a provider s
 {
   const bl = (name) => { const i = src.indexOf('// ' + name + '-BEGIN'); const j = src.indexOf('// ' + name + '-END'); return src.slice(i, j) }
   ok('the fetch blocks are delimited', bl('KB-FETCH-PURE').length > 100 && bl('KB-FETCH-ACTIONS').length > 100)
-  const fx = new Function(bl('KB-CAP-PURE') + bl('KB-FETCH-PURE') + '\nreturn { kbFetchProbe, kbFetchAskable, kbFetchCandidates, kbFetchOutcome, kbFetchAdopt, kbFetchPreselect, kbFetchFilter, kbFetchApply, kbFetchSize }')()
+  const fx = new Function(bl('KB-CAP-PURE') + bl('KB-FETCH-PURE') + '\nreturn { kbFetchProbe, kbFetchAskable, kbFetchCandidates, kbFetchOutcome, kbFetchAdopt, kbFetchPreselect, kbFetchFilter, kbFetchApply, kbFetchSize, kbFetchLiveOutcome, kbFetchMerge, kbFetchWhy, kbFetchHost, kbFetchTagUndescribed }')()
   const pv = new Function(bl('KB-PV-PURE') + '\nreturn { kbPvRows, kbPvMergeModels, kbPvEditProfile, kbPvNewProfile }')()
 
   console.log('  — the request')
@@ -546,9 +548,189 @@ console.log('\n── Fetch available models (the engine lists what a provider s
   const slow = new Function('kbMTimeout', 'KB_NS', bl('KB-FETCH-PURE') + bl('KB-FETCH-ACTIONS') + '\nreturn { kbFetchRun }')(() => Promise.resolve({ ok: false, error: { code: 'timeout', message: 'x' } }), 'llm-pi-ai').kbFetchRun
   ok('a timeout is told apart from a refusal', (await slow({ llm: { discoverModels: () => new Promise(() => {}) } }, {})).timeout === true)
 
+  console.log('  — the live list (the provider\'s own endpoint, through the host)')
+  const mk = () => new Function('kbMTimeout', 'KB_NS', bl('KB-FETCH-PURE') + bl('KB-FETCH-ACTIONS') + '\nreturn { kbFetchRun }')((p) => Promise.resolve(p), 'llm-pi-ai').kbFetchRun
+  const realFetch = globalThis.fetch
+  const answer = (body, status = 200) => { const calls = []; globalThis.fetch = async (url, init) => { calls.push({ url, init }); if (body instanceof Error) throw body; return new Response(JSON.stringify(body), { status }) }; return calls }
+  const catalog = { llm: { discoverModels: async () => ({ ok: true, value: [{ id: 'a', name: 'Model A', contextWindow: 256000, maxTokens: 32000, inputModalities: ['text', 'image'] }, { id: 'old', name: 'Gone' }] }) } }
+  try {
+    const live = mk()
+    let calls = answer({ ok: true, source: 'live', url: 'https://opencode.ai/zen/go/v1/models', models: [{ id: 'a', name: 'a' }, { id: 'new-1', name: 'new-1' }] })
+    const r1 = await live(catalog, { provider: 'opencode-go', apiKey: 'sk-typed' }, { live: true })
+    ok('a catalog route is asked through the host first: the route, and the typed key for this call', calls.length === 1 && calls[0].url === '/kybernos-models/models/live' && calls[0].init.method === 'POST' && JSON.parse(calls[0].init.body).route === 'opencode-go' && JSON.parse(calls[0].init.body).key === 'sk-typed', calls)
+    ok('the live list decides which models exist: a model the catalog has and the provider dropped is not offered, a new one is', r1.kind === 'found' && r1.live === true && r1.models.map((c) => c.id).join() === 'a,new-1', r1)
+    ok('a bare-id listing gets the name and capacities the catalog knows, and only those', r1.models[0].name === 'Model A' && r1.models[0].contextWindow === 256000 && r1.models[0].maxTokens === 32000 && r1.models[0].input.join() === 'text,image' && r1.models[1].contextWindow === undefined, r1.models)
+    ok('the source is told: live, and from which address', r1.url === 'https://opencode.ai/zen/go/v1/models' && fx.kbFetchHost(r1.url) === 'opencode.ai')
+
+    calls = answer({ ok: true, source: 'live', url: 'https://x/v1/models', models: [{ id: 'a' }] })
+    await live(catalog, { provider: 'opencode-go', baseURL: 'https://typed.example/v1' }, { live: true })
+    await live(catalog, { provider: 'opencode-go', baseURL: 'https://typed.example/v1', apiKey: 'sk-typed' }, { live: true })
+    const sent1 = JSON.parse(calls[0].init.body)
+    const sent2 = JSON.parse(calls[1].init.body)
+    ok('an address being typed (not saved) is not sent alone, so the live list is the provider\'s own; beside a typed key it goes along', sent1.baseURL === undefined && sent1.key === undefined && sent2.baseURL === 'https://typed.example/v1' && sent2.key === 'sk-typed', [sent1, sent2])
+
+    calls = answer({ ok: true, source: 'live', url: 'https://openrouter.ai/api/v1/models', models: [{ id: 'x', name: 'X', contextWindow: 1000 }] })
+    let asked = 0
+    const r2 = await live({ llm: { discoverModels: async () => { asked += 1; return { ok: true, value: [{ id: 'x', name: 'Catalog X', contextWindow: 9 }, { id: 'y' }] } } } }, { provider: 'openrouter' }, { live: true })
+    ok('the engine is asked for its catalog on the live path too (its ids say which models the route may refuse); what the endpoint disclosed still wins over the catalog', r2.live === true && asked === 1 && r2.models[0].contextWindow === 1000 && r2.models[0].name === 'X' && JSON.stringify(r2.described) === JSON.stringify(['x', 'y']), r2)
+
+    calls = answer({ ok: false, error: 'refused', status: 401, detail: '' })
+    const r3 = await live(catalog, { provider: 'opencode-go' }, { live: true })
+    ok('a refused key falls back to the engine\'s catalog and says why, in words about the key', r3.kind === 'found' && r3.live === false && r3.why.key === 'kb.fetch.why.key' && r3.why.vars.status === 401 && r3.models.length === 2, r3)
+
+    calls = answer({ ok: false, error: 'refused', status: 400, detail: 'This API key is not scoped to a workspace' })
+    const r4 = await live(catalog, { provider: 'anthropic' }, { live: true })
+    ok('any other refusal carries the provider\'s own words', r4.why.key === 'kb.fetch.why.refused' && r4.why.vars.detail === ': This API key is not scoped to a workspace', r4)
+
+    answer(new Error('network down'))
+    const r5 = await live(catalog, { provider: 'opencode-go' }, { live: true })
+    ok('a host that cannot be reached (an old DSH, not restarted) is a fallback with its reason, never a throw', r5.kind === 'found' && r5.live === false && r5.why.key === 'kb.fetch.why.host', r5)
+
+    answer({ ok: false, error: 'no-endpoint' })
+    const r6 = await live({ llm: { discoverModels: async () => ({ ok: false, error: { message: 'HTTP 401' } }) } }, { provider: 'mine' }, { live: true })
+    ok('with no live list and no engine answer either, the engine\'s refusal is what the person sees', r6.kind === 'refused' && r6.message === 'HTTP 401', r6)
+
+    calls = answer({ ok: true, url: 'https://x', models: [] })
+    await live(catalog, { provider: 'a' })
+    await live(catalog, { baseURL: 'https://a/v1' }, { live: true })
+    await live(catalog, { provider: 'a' }, { live: false })
+    ok('without the option, or with no route to name, the host is never asked (a custom provider is already asked over the wire by the engine)', calls.length === 0, calls)
+  } finally { globalThis.fetch = realFetch }
+  ok('why: 401 and 403 are about the key; a plain refusal, an unreachable provider, a bad reply, a big one, an old host and no address each have their own words', fx.kbFetchWhy({ why: 'refused', status: 403, detail: '' }).key === 'kb.fetch.why.key' && fx.kbFetchWhy({ why: 'refused', status: 429, detail: '' }).vars.detail === '' && fx.kbFetchWhy({ why: 'unreachable' }).key === 'kb.fetch.why.unreachable' && fx.kbFetchWhy({ why: 'bad-reply' }).key === 'kb.fetch.why.bad' && fx.kbFetchWhy({ why: 'too-big' }).key === 'kb.fetch.why.big' && fx.kbFetchWhy({ why: 'host' }).key === 'kb.fetch.why.host' && fx.kbFetchWhy({ why: 'no-endpoint' }).key === 'kb.fetch.why.noaddr' && fx.kbFetchWhy({ why: 'foreign-endpoint' }).key === 'kb.fetch.why.noaddr')
+  ok('the host\'s answer is read defensively: anything unreadable is `none`, and a bad entry is dropped like in the engine\'s answer', fx.kbFetchLiveOutcome(null).kind === 'none' && fx.kbFetchLiveOutcome({ ok: true, models: 'x' }).kind === 'none' && fx.kbFetchLiveOutcome({ ok: true, models: [{ id: 'a' }, { id: 'a' }, { name: 'x' }] }).models.length === 1 && fx.kbFetchLiveOutcome({ ok: false, error: 'refused', status: 401 }).status === 401)
+  const merged = fx.kbFetchMerge([{ id: 'a', name: 'a' }, { id: 'b', name: 'Mine', contextWindow: 5 }], [{ id: 'a', name: 'Model A', contextWindow: 9, maxTokens: 3 }, { id: 'b', name: 'Other', contextWindow: 7, maxTokens: 4 }])
+  ok('merging never overrides what the endpoint disclosed', merged[0].name === 'Model A' && merged[0].contextWindow === 9 && merged[1].name === 'Mine' && merged[1].contextWindow === 5 && merged[1].maxTokens === 4)
+
+  console.log('  — models outside the engine\'s catalog: custom models of the provider')
+  const cp = new Function(bl('KB-PV-PURE') + '\nreturn { kbPvRefusedModel, kbCompanionSlug, kbCompanionOf, kbCompanionsOf, kbCompanionProfile }')()
+  ok('the engine\'s two refusals (no protocol, then no address) name the model; any other message is not one', cp.kbPvRefusedModel('llm-pi-ai: provider "opencode-go" model "minimax-m3.1-flash-free" needs an api; the installed catalog does not describe it, so set the route\'s api to the wire protocol its endpoint speaks') === 'minimax-m3.1-flash-free' && cp.kbPvRefusedModel('llm-pi-ai: provider "opencode-go" model "glm-5.1" needs a baseURL; the installed catalog does not describe this route') === 'glm-5.1' && cp.kbPvRefusedModel('model "x" contextWindow must be a positive integer') === null && cp.kbPvRefusedModel(undefined) === null && cp.kbPvRefusedModel('') === null)
+  ok('a companion is named after its provider and its protocol, and only a provider that exists owns one', cp.kbCompanionSlug('opencode-go', 'openai-completions') === 'opencode-go-custom-chat' && cp.kbCompanionSlug('opencode-go', 'anthropic-messages') === 'opencode-go-custom-msgs' && cp.kbCompanionSlug('opencode-go', 'openai-responses') === 'opencode-go-custom-resp' && cp.kbCompanionSlug('x', 'nope') === 'x-custom-chat' && cp.kbCompanionOf('opencode-go-custom-msgs', ['opencode-go', 'other']) === 'opencode-go' && cp.kbCompanionOf('opencode-go-custom-msgs', ['other']) === null && cp.kbCompanionOf('opencode-go', ['opencode-go']) === null && cp.kbCompanionOf('my-custom-gw', ['my']) === null && JSON.stringify(cp.kbCompanionsOf('a', ['a', 'a-custom-chat', 'b-custom-chat', 'a-custom-msgs', 'a-custom'])) === JSON.stringify(['a-custom-chat', 'a-custom-msgs']))
+  const comp = cp.kbCompanionProfile({ displayName: 'OpenCode Go' }, 'opencode-go', 'OPENCODE_GO_API_KEY', 'openai-completions', 'https://opencode.ai/inference/go/v1', [{ id: 'm-new', name: 'M new', outside: true }], undefined)
+  ok('a companion\'s profile: the provider\'s name and key reference, its own protocol and address, the models', comp.displayName === 'OpenCode Go (custom)' && comp.api === 'openai-completions' && comp.baseURL === 'https://opencode.ai/inference/go/v1' && comp.apiKeyEnv === 'OPENCODE_GO_API_KEY' && comp.models.length === 1 && comp.models[0].id === 'm-new' && comp.models[0].name === 'M new' && !('outside' in comp.models[0]))
+  const comp2 = cp.kbCompanionProfile({}, 'opencode-go', null, 'openai-completions', 'https://x/v1', [{ id: 'm2', name: '' }], { ...comp, models: [{ id: 'm-new', name: 'M new', contextWindow: 7777 }] })
+  ok('completing a companion keeps the entries it has, tuned fields included, and adds the new ones', comp2.models.map((x) => x.id).join() === 'm-new,m2' && comp2.models[0].contextWindow === 7777 && comp2.apiKeyEnv === 'OPENCODE_GO_API_KEY' && comp2.displayName === 'opencode-go (custom)')
+  const live3 = [{ id: 'a' }, { id: 'new-1' }, { id: 'new-2' }]
+  const tagged = fx.kbFetchTagUndescribed(live3, ['a', 'old'])
+  ok('a model outside the engine\'s catalog is tagged, and only that; with no catalog to compare to nothing is tagged', tagged[0].undescribed === undefined && tagged[1].undescribed === true && tagged[2].undescribed === true && fx.kbFetchTagUndescribed(live3, []) === live3 && fx.kbFetchTagUndescribed(live3, null) === live3)
+  ok('the models outside the catalog are not ticked on opening (each one is asked of the provider), the others are; an adopted one is flagged for the save', Object.keys(fx.kbFetchPreselect(tagged, [])).join() === 'a' && fx.kbFetchAdopt(tagged[1]).outside === true && fx.kbFetchAdopt(tagged[0]).outside === undefined)
+
+  // the save itself, against a settings service that refuses like the engine: a model outside the catalog on a route without api/baseURL
+  {
+    const { mkdtempSync: mk2 } = await import('node:fs')
+    const { tmpdir: td2 } = await import('node:os')
+    process.env.DSH_HOME = mk2(join(td2(), 'kbm-comp-'))
+    const { kbPkMount: pkMount, kbPkRead: pkRead } = await import('./index.js')
+    const cbody = bl('KB-PARK-PURE') + '\n' + bl('KB-PARK-ACTIONS') + '\n' + bl('KB-PV-PURE') + '\n' + bl('KB-PV-ACTIONS') + '\nreturn { kbPvSaveSmart, kbCompanionRemove, kbPvDelete, kbMDisable, kbMEnable }'
+    const cworld = (o = {}) => {
+      const file = join(process.env.DSH_HOME, 'c' + Math.random().toString(36).slice(2) + '.json')
+      const routes = {}
+      pkMount((r) => { routes[r.path] = r.handler }, file)
+      const log = []
+      const settings = { providers: { cat: { apiKeyEnv: 'CAT_KEY', displayName: 'Cat', models: [{ id: 'known', name: 'Known' }] }, other: { baseURL: 'https://o/v1', api: 'openai-completions' } }, revision: 1 }
+      const KBM = { writable: true, revision: 1, routes: Object.keys(settings.providers), models: [], userProviders: settings.providers, baseProviders: {}, parked: [], parkHost: true }
+      const probes = []
+      const api = {
+        settings: { mutate: async (ns, ops) => {
+          log.push(ops.map((x) => x.op + ':' + x.path.join('.')).join(','))
+          // the engine's rule: a route with no api/baseURL of its own refuses the first model its catalog does not describe
+          for (const op of ops) {
+            if (op.op === 'set' && op.path.length === 3 && op.path[0] === 'providers' && op.path[2] === 'models' && op.path[1] === 'cat') {
+              const bad = op.value.find((x) => /^new/.test(x.id))
+              if (bad !== undefined) return { ok: false, error: { code: 'settings/invalid', message: 'llm-pi-ai: provider "cat" model "' + bad.id + '" needs an api; the installed catalog does not describe it, so set the route\'s api to the wire protocol its endpoint speaks' } }
+            }
+            if (o.refuseAll === true) return { ok: false, error: { code: 'settings/invalid', message: 'refused' } }
+          }
+          for (const op of ops) {
+            const p = op.path; let t = settings
+            for (let i = 0; i < p.length - 1; i++) t = t[p[i]]
+            if (op.op === 'set') t[p[p.length - 1]] = op.value
+            else delete t[p[p.length - 1]]
+          }
+          settings.revision += 1
+          return { ok: true, value: { revision: settings.revision } }
+        } },
+        credentials: { set: async () => ({ ok: true }), unset: async (ref) => { log.push('cred.unset:' + ref); return { ok: true } } },
+      }
+      const fakeFetch = async (url, init) => {
+        const u = String(url).split('?')[0]
+        if (u === '/kybernos-models/models/probe') {
+          const body = JSON.parse(init.body)
+          probes.push(body)
+          if (o.probe === undefined) return { status: 200, json: async () => ({ ok: false, error: 'refused', status: 401 }) }
+          return { status: 200, json: async () => o.probe(body) }
+        }
+        const handler = routes[u]
+        if (handler === undefined) return { status: 404, json: async () => { throw new Error('x') } }
+        const text = init && init.body ? init.body : ''
+        const req = { method: (init && init.method) || 'GET', url, socket: { localPort: 3080 }, headers: browserHeaders(), on (ev, cb) { if (ev === 'data' && text !== '') cb(text); if (ev === 'end') cb() } }
+        const r = { status: 0, body: null, writeHead (st) { r.status = st }, end (tx) { r.body = tx } }
+        await handler(req, r)
+        return { status: r.status, json: async () => JSON.parse(r.body) }
+      }
+      const kbMLoad = async () => { KBM.revision = settings.revision; KBM.routes = Object.keys(settings.providers); KBM.userProviders = settings.providers; KBM.parked = Object.keys(pkRead(file).providers).map((slug) => ({ slug, models: [] })) }
+      const kbMOBJ = (v) => (v === null || v === undefined || typeof v !== 'object' || Array.isArray(v)) ? {} : v
+      const catDe = (r) => (r === 'cat' ? { id: 'cat', env: 'CAT_KEY', url: 'https://cat.example/v1' } : null)
+      const fns = new Function('m', 'kbMApi', 'KBM', 'KB_NS', 'kbMLoad', 'kbMJournal', 'kbMTimeout', 'fetch', 'kbMOBJ', 'catDe', cbody)(
+        (k) => k, () => api, KBM, 'llm-pi-ai', kbMLoad, async () => {}, (p) => p, fakeFetch, kbMOBJ, catDe)
+      return { fns, KBM, settings, log, probes, file }
+    }
+    const draft = (models) => ({ url: '', key: '', custom: false, touched: true, models })
+
+    let cw = await cworld({ probe: (b) => (b.model === 'new-2' ? { ok: true, api: 'anthropic-messages', baseURL: 'https://cat.example' } : { ok: true, api: 'openai-completions', baseURL: 'https://cat.example/v1' }) })
+    let cr = await cw.fns.kbPvSaveSmart('cat', draft([{ id: 'known', name: 'Known' }, { id: 'new-1', name: '', outside: true }, { id: 'new-2', name: 'Two', outside: true }]))
+    ok('a model the engine refuses is not an error: it moves to a companion of the provider, found by asking the provider, and the rest is saved', cw.settings.providers.cat.models.map((x) => x.id).join() === 'known' && cr.customN === 2 && cr.custom.guessed === 0, [cw.settings.providers.cat, cr])
+    ok('...one companion per protocol, each with its own protocol and address, the provider\'s key reference and name', cw.settings.providers['cat-custom-chat'].api === 'openai-completions' && cw.settings.providers['cat-custom-chat'].baseURL === 'https://cat.example/v1' && cw.settings.providers['cat-custom-chat'].apiKeyEnv === 'CAT_KEY' && cw.settings.providers['cat-custom-chat'].displayName === 'Cat (custom)' && cw.settings.providers['cat-custom-chat'].models.map((x) => x.id).join() === 'new-1' && cw.settings.providers['cat-custom-msgs'].api === 'anthropic-messages' && cw.settings.providers['cat-custom-msgs'].baseURL === 'https://cat.example' && cw.settings.providers['cat-custom-msgs'].models[0].name === 'Two')
+    ok('the probe is asked about each model, by the provider\'s name (never an address)', JSON.stringify(cw.probes) === JSON.stringify([{ route: 'cat', model: 'new-1' }, { route: 'cat', model: 'new-2' }]))
+    ok('the refusal was met once and the models went together (all the flagged ones): the main route had nothing left to change, so it was not written again', cw.log.filter((l) => l.indexOf('providers.cat.models') >= 0).length === 1, cw.log)
+
+    cw = await cworld({})
+    cr = await cw.fns.kbPvSaveSmart('cat', draft([{ id: 'known', name: 'Known' }, { id: 'new-9', name: '', outside: true }]))
+    ok('when the provider cannot be asked (no key, unreachable) the model is still added, on OpenAI chat at the provider\'s address, and the page is told it was a guess', cw.settings.providers['cat-custom-chat'].api === 'openai-completions' && cw.settings.providers['cat-custom-chat'].baseURL === 'https://cat.example/v1' && cr.custom.guessed === 1)
+
+    cw = await cworld({})
+    cr = await cw.fns.kbPvSaveSmart('cat', draft([{ id: 'known', name: 'Known' }, { id: 'new-5', name: '' }, { id: 'also-ok', name: '' }]))
+    ok('a typed model nobody flagged is moved when the engine refuses it, and only it', cw.settings.providers.cat.models.map((x) => x.id).join() === 'known,also-ok' && cw.settings.providers['cat-custom-chat'].models.map((x) => x.id).join() === 'new-5' && cr.customN === 1)
+
+    cw = await cworld({})
+    cr = await cw.fns.kbPvSaveSmart('cat', draft([{ id: 'known', name: 'Known' }, { id: 'plain', name: '', outside: true }]))
+    ok('a model the engine accepts stays on the provider\'s own route (no companion is made for the sake of a flag)', cw.settings.providers.cat.models.map((x) => x.id).join() === 'known,plain' && cw.settings.providers['cat-custom-chat'] === undefined && cr.custom === null)
+
+    cw = await cworld({ refuseAll: true })
+    const refused = await (async () => { try { await cw.fns.kbPvSaveSmart('cat', draft([{ id: 'known', name: 'Known' }, { id: 'x', name: '' }])); return null } catch (e) { return String(e && e.message ? e.message : e) } })()
+    ok('any other refusal is still an error, said as it is', refused === 'refused', refused)
+
+    // removing, deleting, switching off
+    cw = await cworld({})
+    await cw.fns.kbPvSaveSmart('cat', draft([{ id: 'known', name: 'Known' }, { id: 'new-1', name: '', outside: true }, { id: 'new-2', name: '', outside: true }]))
+    await cw.fns.kbCompanionRemove('cat', 'new-1')
+    ok('removing one custom model keeps the companion and its other models', cw.settings.providers['cat-custom-chat'].models.map((x) => x.id).join() === 'new-2')
+    await cw.fns.kbCompanionRemove('cat', 'new-2')
+    ok('removing the last one removes the companion with it', cw.settings.providers['cat-custom-chat'] === undefined && cw.settings.providers.cat !== undefined)
+
+    cw = await cworld({})
+    await cw.fns.kbPvSaveSmart('cat', draft([{ id: 'known', name: 'Known' }, { id: 'new-1', name: '', outside: true }]))
+    await cw.fns.kbPvDelete('cat')
+    ok('deleting the provider deletes its companions in the same write, and the key reference once', cw.settings.providers.cat === undefined && cw.settings.providers['cat-custom-chat'] === undefined && cw.settings.providers.other !== undefined && cw.log.filter((l) => l === 'cred.unset:CAT_KEY').length === 1 && cw.log.some((l) => l === 'unset:providers.cat,unset:providers.cat-custom-chat'), cw.log)
+
+    cw = await cworld({})
+    await cw.fns.kbPvSaveSmart('cat', draft([{ id: 'known', name: 'Known' }, { id: 'new-1', name: '', outside: true }]))
+    await cw.fns.kbMDisable('cat')
+    ok('switching the provider off switches its companions off with it', cw.settings.providers.cat === undefined && cw.settings.providers['cat-custom-chat'] === undefined && Object.keys(pkRead(cw.file).providers).sort().join() === 'cat,cat-custom-chat', Object.keys(pkRead(cw.file).providers))
+    await cw.fns.kbMEnable('cat')
+    ok('...and back on with it', cw.settings.providers.cat !== undefined && cw.settings.providers['cat-custom-chat'] !== undefined && cw.settings.providers['cat-custom-chat'].models[0].id === 'new-1' && Object.keys(pkRead(cw.file).providers).length === 0, [Object.keys(cw.settings.providers), Object.keys(pkRead(cw.file).providers)])
+  }
+
+
   console.log('  — wiring')
   const w = (frag) => src.includes(frag)
   ok('the button sits in the models header of both panels, disabled with a reason until there is something to ask', w("'data-kbm': 'fetch-open'") && w("title: blocked !== null ? blocked : (!askable ? m('kb.fetch.needsurl') : undefined)") && w('probe: kbFetchProbe(route, dr)') && w('probe: kbFetchProbe(null, dr)'))
+  ok('the picker asks the provider\'s own endpoint for a catalog route, and tells where the list came from (live, or the catalog and why not)', w('kbFetchRun(kbMApi(), probe, { live: custom !== true })') && w("'data-kbm': 'fetch-source'") && w("m('kb.fetch.src.catalog', { raison: m(fp.src.why.key, fp.src.why.vars) })"))
+  ok('Add provider from the catalogue still adopts the engine\'s answer (a live list of hundreds is not adopted unasked)', w('const found = await kbFetchRun(api, kbFetchProbe(slug, d))'))
+  ok('the picker tags the models outside the engine\'s catalog and says what happens to them', w("kbFetchTagUndescribed(out.models, out.described)") && w("'data-kbm': 'fetch-undescribed'") && w("m('kb.fetch.undescribed')"))
+  ok('Apply saves through the smart save: a refused model becomes a custom model of the provider, and the page says how many (and when the protocol was a guess)', w("kbPvSaveSmart(route, { ...dr, models: dr.touched === true ? dr.models : undefined })") && w("m('kb.pv.saved.custom', { n: out.customN, slug: route })") && w("m('kb.pv.saved.custom.guess')"))
+  ok('the companion routes are not drawn as providers, their models count with the provider, and the Models tab lists them under it (name, logo, filter) with a « custom » tag', w("const routes = kbProvRoutes()") && w("const kbProvRoutes = () =>") && w("n: kbProvRoutes().length + kbDsCardsOf(KBM.ds, KBM.dsDir).length") && w("kbProvOf(mo.route) === route") && w("if (UI.prov !== 'all' && kbProvOf(mo.route) !== UI.prov) return false") && w("pvLabel(kbProvOf(mo.route))") && w("'data-kbm': 'row-custom'"))
+  ok('the Edit panel lists the custom models with a remove each, and a provider\'s companions follow it when it is deleted, switched off or on', w("'data-kbm': 'pv-custom'") && w("'data-kbm': 'pv-custom-del'") && w("kbCompanionRemove(route, x.id)") && w("const gone = [slug].concat(kbCompanionsOf(slug, KBM.routes))") && w("for (const c of kbCompanionsOf(route, KBM.routes)) { try { await kbMDisable(c) }") && w("for (const pk of KBM.parked.filter((x) => kbCompanionOf(x.slug, [slug]) !== null))"))
+  ok('no select of the provider\'s protocol, no lock: the engine\'s one-api-per-route rule is met by a route of its own, not by binding every model', !w('pv-apisel') && !w('apiSel') && !w('needsApi') && !w('kb.pv.proto.auto'))
   ok('the picker is the native one: search, Select all / Deselect all, Add selected, Cancel', w("'data-kbm': 'fetch-search'") && w("'data-kbm': 'fetch-all'") && w("'data-kbm': 'fetch-adopt'") && w("'data-kbm': 'fetch-cancel'"))
   ok('models already in the list are shown, ticked and disabled — never overwritten', w("checked: known || fp.picked[c.id] === true, disabled: known"))
   ok('Escape closes the picker only: window capture runs before the drawer’s document capture', w("window.addEventListener('keydown', key, true)") && w('Escape closes the picker and nothing else'))
@@ -698,10 +880,26 @@ console.log('\n── why a model is not answering, and the first view (V-29, V-
   ok('« Show unavailable (n) » brings the failing models back, on the Models tab, and the chip hears the bus so the tab re-reads it', has("m('kb.health.show', { n })") && has('UI.statut = \'down\'; UI.page = 1; UI.showDown = true') && has("const on = () => { tick((n) => n + 1); kbmNotify() }"))
   ok('the Models tab folds the failing models away until asked, with a toggle that counts them, and each shown row says why', has("hidden !== null && hidden[mo.route + '/' + mo.id] === true") && has("'data-kbm': 'toggle-down'") && has("'data-kbm': 'row-why'") && has("m('kb.health.showdown', { n: downN })"))
 
+  ok('a provider picked by name shows ALL its models (the fold only applies to the unscoped list) and counts « N of N » like its card, so 3 declared models are 3 on screen', has("UI.statut !== 'down' && UI.showDown !== true && UI.prov === 'all'") && has("const scope = UI.prov === 'all' ? toutes : toutes.filter((mo) => mo.route === UI.prov)") && has("m('kb.models.count', { a: rows.length, b: scope.length })") && has("downN > 0 && UI.statut !== 'down' && UI.prov === 'all'"))
+
+  const { kbPvSearch } = new Function(bl('KB-PV-PURE') + '\nreturn { kbPvSearch }')()
+  const provs = [{ id: 'a', hay: 'anthropic Anthropic claude-opus-5-5 Claude Opus 5.5' }, { id: 'b', hay: 'opencode-go OpenCode Go claude-haiku-5-5 qwen3.8-max' }, { id: 'c', hay: 'groq Groq llama-4-scout' }, { id: 'd', hay: 'mistral Mistral Large Modèle Étendu' }]
+  ok('a search finds the providers by their own words and by the models they serve', kbPvSearch(provs, 'claude').map((x) => x.id).join() === 'a,b' && kbPvSearch(provs, 'GROQ').map((x) => x.id).join() === 'c' && kbPvSearch(provs, 'qwen').map((x) => x.id).join() === 'b')
+  ok('every word typed must match (« claude opus » is not « claude haiku »), in any order', kbPvSearch(provs, 'claude opus').map((x) => x.id).join() === 'a' && kbPvSearch(provs, 'opus claude').map((x) => x.id).join() === 'a' && kbPvSearch(provs, 'claude zzz').length === 0)
+  ok('case and accents are ignored; an empty or blank query keeps everything and nothing throws on odd input', kbPvSearch(provs, 'modele etendu').map((x) => x.id).join() === 'd' && kbPvSearch(provs, '').length === 4 && kbPvSearch(provs, '   ').length === 4 && kbPvSearch(provs, null).length === 4 && kbPvSearch([{ id: 'x' }], 'a').length === 0)
+  ok('the Providers tab has a search; while it is typed the Cloud card and the folds step aside and a miss says so', has("'data-kbm': 'prov-search'") && has("searching ? null : h(KybernosHero, { key: 'kb-hero' })") && has("fold.fold && !searching ? h('button'") && has("'data-kbm': 'prov-nomatch'") && has("m('kb.pv.search.none')"))
+  ok('the provider logos are bigger on the cards (a 46 px tile, a 30 px drawing); the drawers keep their small header one', has('.kbpv-card>.kbpv-logo{width:46px;height:46px') && has("h(LogoProv, { route, taille: 30 })") && has("h(LogoProv, { route: 'deepseek', taille: 30 })") && has("h(LogoProv, { route, taille: 20 })"))
+
+  ok('the tab row is 30 px on both tabs, so the tabs do not move by a pixel when the Models tab adds its icon buttons', has('.kbmp-tabs{position:relative;display:flex;flex-wrap:wrap;gap:8px;align-items:center;min-height:30px}'))
+
+  ok('a provider card is 70 px tall at least, padding included (border-box): as a content box the 76 px minimum plus 28 px of padding made every card 106 px', has('.kbpv-card{box-sizing:border-box;position:relative;display:flex;align-items:center;gap:14px;padding:12px 14px;min-height:70px;'))
+
   const { kbHeroPlan, kbHeroShowKey } = new Function(bl('KB-HERO-PURE') + '\nreturn { kbHeroPlan, kbHeroShowKey }')()
   ok('the plan comes from the active space, else from the account, lower case; nothing known is null', kbHeroPlan({ space_plan: { key: 'Free' }, user: { plan: 'team' } }) === 'free' && kbHeroPlan({ user: { plan: 'PLUS' } }) === 'plus' && kbHeroPlan({ space_plan: { key: '' }, user: { plan: 'pro' } }) === 'pro' && kbHeroPlan(null) === null && kbHeroPlan({}) === null && kbHeroPlan({ space_plan: 5, user: 7 }) === null)
   ok('V-28: « Add your API key » is offered while not connected and on a Free account, not on a connected paid one', kbHeroShowKey(false, null) === true && kbHeroShowKey(null, null) === true && kbHeroShowKey(true, 'free') === true && kbHeroShowKey(true, 'plus') === false && kbHeroShowKey(true, null) === false)
-  ok('the hero hides the key button, its « or » and the « Recommended » pill once connected, and says it in one line (« N models included »)', has('kbHeroShowKey(connecte, plan) ? h(\'div\', { className: \'kbmh-hero-or\'') && has("connecte === true ? null : h('span', { className: 'kbmh-hero-pill', 'data-kbmh': 'badge' }") && has("m(n === 1 ? 'kb.hero.title.in.one' : 'kb.hero.title.in', { n })") && /'kb\.hero\.title\.in': \{ kybernos: '\{n\} modèles inclus', en: '\{n\} models included' \}/.test(src))
+  ok('the hero hides the key link and the « Recommended » tag once connected (on a Free account the link stays), and says it in one line (« N models included », with « Connected » for a screen reader)', has("kbHeroShowKey(connecte, plan) ? h('button', {") && has("'data-kbmh': 'badge' }, m('kb.hero.badge')") && has("m(n === 1 ? 'kb.hero.title.in.one' : 'kb.hero.title.in', { n })") && has("className: 'kbmh-hero-sr'") && /'kb\.hero\.title\.in': \{ kybernos: '\{n\} modèles inclus', en: '\{n\} models included' \}/.test(src))
+  ok('the card is a provider card in a night blue: short labels on the buttons (Connect / Manage / or add a key), the full sentence in the tooltip and the accessible name, and the name opens the Models view once connected', has("kb.hero.connect.short") && has("'kb.hero.manage.short': { kybernos: 'Gérer', en: 'Manage' }") && has("'aria-label': connecte === true ? m('kb.hero.manage') : m('kb.hero.connect')") && has("const voirModeles = () => { uiSet('prov', 'kybernos'); uiSet('tab', 'models') }") && has("'data-kbmh': 'models'"))
+  ok('the dead banner is gone: no pitch, no feature list, no « or » divider, no 520 px column rule', !has('kbmh-hero-pitch') && !has('kbmh-hero-feats') && !has('kbmh-hero-or') && !has('kbmh-hero-cta') && !has("'kb.hero.pitch") && !has("'kb.hero.f.") && !has("'kb.hero.or'"))
 
   const { kbPvFold } = new Function(bl('KB-PV-PURE') + '\nreturn { kbPvFold }')()
   ok('N-06: once one provider works, the ones with no key or switched off fold away and are counted', JSON.stringify(kbPvFold([false, true, true, true])) === JSON.stringify({ fold: true, waiting: 3 }))

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// The language of the AI Provider & Models page (WP-07, D1; audit A2-25, A2-18's rule): the page reads the language Kybernos resolved
+// The language of the AI provider and models page (WP-07, D1; audit A2-25, A2-18's rule): the page reads the language Kybernos resolved
 // (« kybernos » or fr* is French, every other language English, nothing resolved = English — it used to default to FRENCH), the
 // decimal comma is French only, the French half of the table speaks « tu », and no French word is left outside the table.
 // The language block and the number helper are cut out of the client as they are written.
@@ -32,7 +32,7 @@ check('a stale « es » in the theme storage does not turn the page French', mak
 console.log('\n── the words and the numbers ──')
 const en = make(() => 'en')
 const kyb = make(() => 'kybernos')
-check('the nav entry is « AI Provider & Models » / « Fournisseur IA & modèles »', en.m('kb.models.surface.entry') === 'AI Provider & Models' && kyb.m('kb.models.surface.entry') === 'Fournisseur IA & modèles')
+check('the nav entry is « AI provider and models » / « Fournisseur IA et modèles »', en.m('kb.models.surface.entry') === 'AI provider and models' && kyb.m('kb.models.surface.entry') === 'Fournisseur IA et modèles')
 check('the separator follows the language', en.sep() === ': ' && kyb.sep() === ' : ')
 check('a number has a decimal point in English and a comma in French', en.kbNum(1.5) === '1.5' && kyb.kbNum(1.5) === '1,5' && en.kbNum('x') === '—')
 check('every row has an English text and a French one', Object.values(en.KB_M_T).every((v) => typeof v.en === 'string' && typeof v.kybernos === 'string' && v.en.length > 0 && v.kybernos.length > 0))

@@ -77,25 +77,29 @@ assert.equal((clientSource.match(/callLocal\('\/console\/link', 'POST', [^\n]*op
 assert.ok(/const ouvrirAppli = \(section\) => \(\) => \{\s*setMenuOpen\(false\)\s*openAccountPage\(section, actif\)/.test(clientSource) && /section: section, open: true/.test(clientSource), 'les entrees du menu demandent un lien de console, ouvert par l hote')
 assert.ok(clientSource.includes("onSpace: ouvrirAppli('plan')"), 'Team settings ouvre la page du plan de l equipe dans le navigateur')
 assert.ok(clientSource.includes("onAccount: ouvrirAppli('overview')") && clientSource.includes("onReferral: ouvrirAppli('referral')"), 'Account ouvre la vue d ensemble et Referral sa propre page (2026-10-18), dans le navigateur')
-// « Remote control »: the phone link is ONE entry of the connected menu (right after Referral), offered only when the phone link's own status route says the
-// feature is there; the footer's separate phone button is gone. The panel is the same bridge and fallback as the old button's (MobilePanel).
+// « Phone and channels » (decision of 2026-10-19): ONE entry of the connected menu, just before « Settings », that opens kybernos-mobile's window (the phone link on the left,
+// Kaby's messaging apps on the right). It replaced « Remote control », its popover (MobilePanel, with its fake QR code) and the 60-second poll of the phone link's status the
+// old entry needed to decide whether to show itself: the window says by itself what this server and this plan allow. The window draws itself in a root of its own
+// (`window.__KB_MOBILE__.open()`): this footer mounts nothing (a window drawn inside the footer slides away with a phone's drawer, which moves with a transform).
 {
-  assert.ok(/entree\('referral'[^\n]*\n\s*\/\/[^\n]*\n\s*props\.remote !== null && props\.remote !== undefined\s*\? entree\('remote', h\(PhoneIcon/.test(clientSource), 'l entree Remote control vient juste apres Referral')
-  assert.ok(clientSource.includes("'kybernos-mobile/remote/status'"), 'la disponibilite se lit sur la route de kybernos-mobile')
-  assert.ok(!clientSource.includes("title: t('mobTitle') + ' — ' + t('mobHelp')"), 'le bouton telephone autonome du pied n existe plus')
-  assert.equal((clientSource.match(/h\(MobilePanel, \{/g) || []).length, 1, 'un seul panneau telephone')
-  assert.ok(/menuRemote: 'Remote control'/.test(clientSource) && /menuRemote: 'Contrôle à distance'/.test(clientSource), 'fr/en')
-  const m = clientSource.match(/const remoteOffer = \(j\) => \{[\s\S]*?\n        \}\n/)
-  assert.ok(m !== null, 'remoteOffer est la ou le test l attend')
-  const remoteOffer = new Function('return ' + m[0].replace('const remoteOffer = ', '').trim())()
-  const on = { ok: true, available: true, connected: true, configured: true, entitled: true, devices: [{ id: 'a' }, { id: 'b' }] }
-  assert.deepEqual(remoteOffer(on), { devices: 2 }, 'offered, with the phones already linked')
-  assert.deepEqual(remoteOffer(Object.assign({}, on, { devices: undefined })), { devices: 0 })
-  assert.deepEqual(remoteOffer(Object.assign({}, on, { configured: null, entitled: null, connected: null })), { devices: 2 }, 'not told it is off: offered')
-  for (const off of [{ configured: false }, { entitled: false }, { available: false }, { connected: false }, { ok: false }])
-    assert.equal(remoteOffer(Object.assign({}, on, off)), null, 'hidden: ' + JSON.stringify(off))
-  for (const odd of [null, undefined, 'x', 7, []]) assert.equal(remoteOffer(odd), null, 'an answer that is not a status offers nothing')
-  sok('Remote control : une entree apres Referral, lue sur le statut du lien telephone (cachee si non offert, hors forfait, ou illisible), plus de bouton telephone')
+  assert.ok(/entree\('referral'[^\n]*\n\s*h\(AppearanceRow, null\),\n\s*\/\/[^\n]*\n\s*\/\/[^\n]*\n\s*props\.phone === true \? entree\('phone', h\(PhoneIcon[^\n]*props\.onPhone\) : null,\n\s*\/\/[^\n]*\n\s*entree\('settings'/.test(clientSource), 'l entree « Phone and channels » vient apres Appearance et juste avant Settings')
+  assert.ok(/menuPhone: 'Phone and channels'/.test(clientSource) && /menuPhone: 'Téléphone et canaux'/.test(clientSource), 'fr/en')
+  assert.ok(!/MobilePanel|menuRemote|menu-remote|remoteOffer|kbf-qr|kbf-popcenter|mobTitle|mobScan|mobSoon|mobHelp|setMobileOpen|mobileOpen|\\bphoneOpen\\b|setPhoneOpen|phoneDialog/.test(clientSource), 'plus de panneau telephone, de faux QR code, de sondage du statut du lien, ni de fenetre montee dans le pied')
+  assert.ok(!clientSource.includes("'kybernos-mobile/remote/status'"), 'le pied ne lit plus le statut du lien telephone : la fenetre le dit elle-meme')
+  assert.ok(/phone: phoneOpener\(\) !== null,\s*onPhone: \(\) => \{ setMenuOpen\(false\); setNotifOpen\(false\); const open = phoneOpener\(\); if \(open !== null\) open\(\) \}/.test(clientSource), 'le menu se ferme et demande la fenetre quand le paquet qui la dessine est la')
+  assert.ok(/const ouvrirServeurs = \(\) => \{ setMenuOpen\(false\); setNotifOpen\(false\); openServersPage\(\) \}/.test(clientSource), 'Switch server ouvre Settings › Servers')
+  const m = clientSource.match(/const phoneOpener = \(\) => \{[\s\S]*?\n        \}\n/)
+  assert.ok(m !== null, 'phoneOpener est la ou le test l attend')
+  const phoneOpener = (win) => new Function('window', 'return ' + m[0].replace('const phoneOpener = ', '').trim())(win)()
+  const asked = []
+  const open = phoneOpener({ __KB_MOBILE__: { version: 3, open () { asked.push('open'); return true } } })
+  assert.equal(typeof open, 'function', 'the bundle publishes open: the entry is offered')
+  open()
+  assert.deepEqual(asked, ['open'], 'and it asks that bundle for the window')
+  for (const none of [{}, { __KB_MOBILE__: null }, { __KB_MOBILE__: { version: 2, Dialog () {} } }, { __KB_MOBILE__: { open: 'x' } }])
+    assert.equal(phoneOpener(none), null, 'no window to open, no entry: ' + JSON.stringify(none))
+  assert.equal(phoneOpener({ get __KB_MOBILE__ () { throw new Error('frozen') } }), null, 'a seam that throws offers nothing')
+  sok('Phone and channels : une entree avant Settings, qui demande sa fenetre a kybernos-mobile (open) quand elle existe ; le pied ne monte plus rien, plus de panneau telephone ni de sondage')
 }
 // A1-29: both footer menus (signed out, and the profile's) work with the keyboard. The focus moves INTO the menu when it opens, ArrowUp/ArrowDown (round the ends), Home and
 // End move between its buttons, Tab and Escape close it and give the focus back to the button that opened it. The signed-out menu is a portal on <body> (the last thing the

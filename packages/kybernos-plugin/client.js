@@ -73,10 +73,10 @@ let kbLocaleRead = () => 'en'
       'tb.summary.recent.old': { kybernos: 'Activité la plus ancienne', en: 'Oldest activity first' },
       'tb.summary.recent.new': { kybernos: 'Activité la plus récente', en: 'Most recent activity' },
       // Pastilles des cartes de projet (l'anglais etait en dur : « 1 DELIVERABLES »).
-      'kbui.pill.thread.one': { kybernos: 'FIL', en: 'THREAD' },
-      'kbui.pill.thread.many': { kybernos: 'FILS', en: 'THREADS' },
-      'kbui.pill.deliv.one': { kybernos: 'CRÉATION', en: 'CREATION' },
-      'kbui.pill.deliv.many': { kybernos: 'CRÉATIONS', en: 'CREATIONS' },
+      'kbui.pill.thread.one': { kybernos: 'Fil', en: 'Thread' },
+      'kbui.pill.thread.many': { kybernos: 'Fils', en: 'Threads' },
+      'kbui.pill.deliv.one': { kybernos: 'Création', en: 'Creation' },
+      'kbui.pill.deliv.many': { kybernos: 'Créations', en: 'Creations' },
       'tb.count.of': { kybernos: 'sur', en: 'of' },
       'tb.empty.title': { kybernos: 'Aucun résultat', en: 'No results' },
       'tb.empty.hint': { kybernos: 'Aucun élément ne correspond à cette recherche avec les filtres actuels.', en: 'Nothing matches this search with the current filters.' },
@@ -105,13 +105,11 @@ let kbLocaleRead = () => 'en'
       'tasks.filter.all': { kybernos: 'Toutes', en: 'All' },
       'tasks.filter.active': { kybernos: 'Actives', en: 'Active' },
       'tasks.filter.attention': { kybernos: 'Attention requise', en: 'Needs attention' },
-      'tasks.col.name': { kybernos: 'NOM', en: 'NAME' },
-      'tasks.col.trigger': { kybernos: 'DÉCLENCHEUR', en: 'TRIGGER' },
-      'tasks.col.origin': { kybernos: 'ORIGINE', en: 'ORIGIN' },
-      'tasks.col.lastsession': { kybernos: 'DERNIÈRE SESSION', en: 'LAST SESSION' },
-      'tasks.col.sessions': { kybernos: 'SESSIONS', en: 'SESSIONS' },
-      'tasks.col.on': { kybernos: 'ACTIF', en: 'ON' },
-      'tasks.origin.manual': { kybernos: 'MANUEL', en: 'MANUAL' },
+      'tasks.col.name': { kybernos: 'Nom', en: 'Name' },
+      'tasks.col.trigger': { kybernos: 'Déclencheur', en: 'Trigger' },
+      'tasks.col.lastsession': { kybernos: 'Dernière session', en: 'Last session' },
+      'tasks.col.sessions': { kybernos: 'Sessions', en: 'Sessions' },
+      'tasks.col.on': { kybernos: 'Actif', en: 'On' },
       'tasks.status.awaiting': { kybernos: 'En attente d\'approbation', en: 'Awaiting approval' },
       'tasks.status.ok': { kybernos: 'ok', en: 'ok' },
       'tasks.status.failed': { kybernos: 'Échoué', en: 'Failed' },
@@ -229,6 +227,14 @@ let kbLocaleRead = () => 'en'
       'tasks.failed.at': { kybernos: 'Échec · {when}', en: 'Failed · {when}' },
       'tasks.notify.on': { kybernos: 'notifications activées', en: 'notifications on' },
       'tasks.runson.local': { kybernos: 'cet ordinateur', en: 'this computer' },
+      'tasks.ws.label': { kybernos: 'Workspace', en: 'Workspace' },
+      'tasks.ws.dedicated': { kybernos: 'Automations (workspace dédié)', en: 'Automations (dedicated workspace)' },
+      'tasks.ws.gone': { kybernos: 'Workspace supprimé : les exécutions iront dans « Automations »', en: 'Removed workspace: runs go to “Automations”' },
+      'tasks.ws.hint': { kybernos: 'Là où les exécutions travaillent : les fichiers qu’elles écrivent y restent. Sans choix, elles vont dans le workspace dédié « Automations », créé au besoin.', en: 'Where the runs work: the files they write stay there. With no choice they go to the dedicated “Automations” workspace, made when needed.' },
+      'tasks.ws.meta': { kybernos: 'Workspace : {name}', en: 'Workspace: {name}' },
+      'tasks.ws.meta.dedicated': { kybernos: 'Workspace : Automations', en: 'Workspace: Automations' },
+      'tasks.ws.meta.gone': { kybernos: 'Workspace supprimé → Automations', en: 'Workspace removed → Automations' },
+      'tasks.err.workspace': { kybernos: 'Ce workspace n’est pas valide.', en: 'That workspace is not valid.' },
       'tasks.next': { kybernos: 'prochaine : {when}', en: 'next: {when}' },
       'tasks.toggle.aria': { kybernos: 'Activer l\u2019automation', en: 'Enable automation' },
       'tasks.runnow': { kybernos: 'Lancer maintenant', en: 'Run now' },
@@ -239,7 +245,7 @@ let kbLocaleRead = () => 'en'
       'tasks.hook.intro': { kybernos: 'Cette automation peut être déclenchée par un service externe (Stripe, GitHub, un formulaire…) qui POSTe sur son URL dédiée.', en: 'This automation can be triggered by an external service (Stripe, GitHub, a form…) POSTing to its dedicated URL.' },
       'tasks.hook.none': { kybernos: 'Aucun webhook pour l\u2019instant. Créer une URL dédiée pour déclencher cette automation depuis l\u2019extérieur.', en: 'No webhook yet. Create a dedicated URL to trigger this automation from outside.' },
       'tasks.hook.create': { kybernos: 'Créer le webhook', en: 'Create webhook' },
-      'tasks.hook.url': { kybernos: 'URL À DONNER AU SERVICE EXTERNE', en: 'URL TO GIVE THE EXTERNAL SERVICE' },
+      'tasks.hook.url': { kybernos: 'URL à donner au service externe', en: 'URL to give the external service' },
       'tasks.hook.copy': { kybernos: 'Copier', en: 'Copy' },
       'tasks.hook.local': { kybernos: 'Fonctionne tant que DSH tourne sur cette machine — pour un accès depuis internet, passer par un tunnel (ngrok, Cloudflare).', en: 'Works while DSH runs on this machine — for internet access, use a tunnel (ngrok, Cloudflare).' },
       'tasks.hook.test': { kybernos: 'Tester (POST interne)', en: 'Test (internal POST)' },
@@ -290,9 +296,9 @@ let kbLocaleRead = () => 'en'
       'tasks.wiz.r.res': { kybernos: 'Résultat', en: 'Result' },
       'tasks.wiz.r.mail': { kybernos: 'Email', en: 'Email' },
       'tasks.wiz.r.team': { kybernos: 'L’Agent Team ferait…', en: 'The Agent Team would…' },
-      'tasks.wiz.r.ok': { kybernos: 'RUN', en: 'RUN' },
-      'tasks.wiz.r.wait': { kybernos: 'ASK', en: 'ASK' },
-      'tasks.wiz.r.skip': { kybernos: 'SKIP', en: 'SKIP' },
+      'tasks.wiz.r.ok': { kybernos: 'Run', en: 'Run' },
+      'tasks.wiz.r.wait': { kybernos: 'Ask', en: 'Ask' },
+      'tasks.wiz.r.skip': { kybernos: 'Skip', en: 'Skip' },
       'tasks.wiz.r.1': { kybernos: '« Remboursement abonnement » · Amel B.', en: '“Refund subscription” · Amel B.' },
       'tasks.wiz.r.1d': { kybernos: 'billing → brouillon de réponse', en: 'billing → draft reply' },
       'tasks.wiz.r.2': { kybernos: '« Impossible de me connecter » · Karim T.', en: '“Cannot log in” · Karim T.' },
@@ -323,6 +329,20 @@ let kbLocaleRead = () => 'en'
       'tasks.flow.drag': { kybernos: 'glisse les n\u0153uds pour réorganiser', en: 'drag nodes to rearrange' },
       'tasks.flow.reset': { kybernos: 'Réinitialiser la disposition', en: 'Reset layout' },
       'tasks.flow.nodes': { kybernos: 'n\u0153uds', en: 'nodes' },
+      'tasks.flow.kind.trg': { kybernos: 'Déclencheur', en: 'Trigger' },
+      'tasks.flow.kind.ai': { kybernos: 'IA', en: 'AI' },
+      'tasks.flow.kind.act': { kybernos: 'Action', en: 'Action' },
+      'tasks.flow.kind.gry': { kybernos: 'Flow', en: 'Flow' },
+      'tasks.flow.guard': { kybernos: 'Garde', en: 'Guard' },
+      'tasks.flow.what': { kybernos: 'Instruction', en: 'Instruction' },
+      'tasks.flow.how': { kybernos: 'Comment elle tourne', en: 'How it runs' },
+      'tasks.flow.how.trg': { kybernos: 'Lance l’automatisation.', en: 'Starts the automation.' },
+      'tasks.flow.how.ai': { kybernos: 'Un modèle exécute cette étape.', en: 'A model runs this step.' },
+      'tasks.flow.how.act': { kybernos: 'Les outils de l’agent exécutent cette étape.', en: 'The agent’s tools run this step.' },
+      'tasks.flow.how.log': { kybernos: 'Écrit l’exécution dans l’historique.', en: 'Writes the run to the history.' },
+      'tasks.flow.prev': { kybernos: 'Précédent', en: 'Previous' },
+      'tasks.flow.next': { kybernos: 'Suivant', en: 'Next' },
+      'tasks.flow.close': { kybernos: 'Fermer', en: 'Close' },
       'tasks.flow.step': { kybernos: 'étape', en: 'step' },
       'tasks.edittext': { kybernos: 'Éditer le texte', en: 'Edit in Text' },
       'tasks.code.readonly': { kybernos: 'Généré du texte · lecture seule · ce que le runtime exécute.', en: 'Generated from Text · read-only · this is what the runtime executes.' },
@@ -331,12 +351,85 @@ let kbLocaleRead = () => 'en'
       'tasks.interpret': { kybernos: 'Interpréter', en: 'Interpret' },
       'tasks.interpreted': { kybernos: 'Interprété — flow et code régénérés.', en: 'Interpreted — flow and code regenerated.' },
       'tasks.sessions.empty': { kybernos: 'Aucune session encore. Le prochain déclencheur {trigger} en ouvrira une — ou utilise « Lancer maintenant ».', en: 'No sessions yet. The next {trigger} event opens one — or use “Run now”.' },
-      'tasks.session.run': { kybernos: 'Exécution', en: 'Run' },
-      'tasks.status.fired': { kybernos: 'lancée', en: 'fired' },
       'tasks.status.queued': { kybernos: 'en file', en: 'queued' },
-      'tasks.status.error': { kybernos: 'échec', en: 'failed' },
       'tasks.sessions.openchat': { kybernos: 'Ouvrir le chat', en: 'Open chat' },
-      'tasks.sessions.hint': { kybernos: 'Chaque session est un chat réel avec l’Agent Team. Ouvres-en une pour lire ce que les agents ont fait.', en: 'Each session is a real chat with the Agent Team. Open one to follow what the agents did.' },
+      'tasks.tab.yours': { kybernos: 'Tes automatisations', en: 'Yours' },
+      'tasks.tab.discover': { kybernos: 'Découvrir', en: 'Discover' },
+      'tasks.tpl.how.title': { kybernos: 'Une automatisation en trois étapes', en: 'Automations in three steps' },
+      'tasks.tpl.how.1': { kybernos: 'Choisis un modèle', en: 'Pick a template' },
+      'tasks.tpl.how.2': { kybernos: 'Réponds à quelques questions dans le chat', en: 'Answer a few questions in the chat' },
+      'tasks.tpl.how.3': { kybernos: 'Relis-la, connecte ce qu’il faut, active-la', en: 'Check it, connect what it needs, switch it on' },
+      'tasks.tpl.search': { kybernos: 'Chercher un modèle', en: 'Search templates' },
+      'tasks.tpl.empty': { kybernos: 'Aucun modèle ne correspond.', en: 'No template matches.' },
+      'tasks.tpl.import': { kybernos: 'Importer', en: 'Import' },
+      'tasks.tpl.use': { kybernos: 'Utiliser ce modèle', en: 'Use this template' },
+      'tasks.tpl.sec.steps': { kybernos: 'Ce qu’elle fait', en: 'What it does' },
+      'tasks.tpl.sec.ask': { kybernos: 'Les questions du chat', en: 'The chat’s questions' },
+      'tasks.tpl.sec.needs': { kybernos: 'Ce qu’il te faut', en: 'What you will need' },
+      'tasks.tpl.sec.guard': { kybernos: 'Règles écrites dans les étapes', en: 'Rules written into the steps' },
+      'tasks.tpl.kind.ai': { kybernos: 'IA', en: 'AI' },
+      'tasks.tpl.kind.act': { kybernos: 'Action', en: 'Action' },
+      'tasks.tpl.note': { kybernos: 'Un modèle est un point de départ : il dépend de tes comptes, de ta cible et de tes limites. « Utiliser ce modèle » ouvre un chat qui te pose ses questions, puis enregistre une vraie automatisation désactivée, le temps que tu connectes ce qu’il faut.', en: 'A template is a starting point: it depends on your accounts, your target and your limits. “Use this template” opens a chat that asks its questions, then saves a real automation that stays off until you have connected what it needs.' },
+      'tasks.tpl.nochat': { kybernos: 'Impossible d’ouvrir un chat d’ici.', en: 'A chat cannot be opened from here.' },
+      'tasks.tpl.chat.lang': { kybernos: 'Follow this conversation in my language: {lang}', en: 'Follow this conversation in my language: {lang}' },
+      'tasks.tpl.sec.apps': { kybernos: 'Intégrations', en: 'Integrations' },
+      'tasks.tpl.chat.head': { kybernos: 'Skill automation-creator — crée une automation à partir du modèle « {title} ».', en: 'Skill automation-creator — create an automation from the template “{title}”.' },
+      'tasks.tpl.chat.rule': { kybernos: 'Pars de ce brouillon et adapte-le à moi : n’invente rien sur mes comptes, ma cible ni mes limites, demande-le-moi.', en: 'Start from this draft and adapt it to me: invent nothing about my accounts, my target or my limits, ask me.' },
+      'tasks.tpl.chat.when': { kybernos: 'Ce qui la lance (proposé) :', en: 'What starts it (suggested):' },
+      'tasks.tpl.chat.steps': { kybernos: 'Étapes du brouillon :', en: 'Draft steps:' },
+      'tasks.tpl.chat.ask': { kybernos: 'Ce que tu dois savoir de moi : pose ces questions une par une, avec les options comme choix, et attends ma réponse avant la suivante :', en: 'What you need to know from me: ask these questions one at a time, offering the options as choices, and wait for my answer before the next:' },
+      'tasks.tpl.chat.options': { kybernos: 'Options :', en: 'Options:' },
+      'tasks.tpl.chat.multi': { kybernos: '(plusieurs possibles)', en: '(several allowed)' },
+      'tasks.tpl.chat.needs': { kybernos: 'À connecter de mon côté :', en: 'What I will need to connect:' },
+      'tasks.tpl.chat.guard': { kybernos: 'Règles à garder dans les étapes :', en: 'Rules to keep in the steps:' },
+      'tasks.tpl.chat.save': { kybernos: 'Montre-moi le brouillon final et attends mon accord. Enregistre-le avec le script, puis désactive-le (mode modification, active: false) pour qu’il ne tourne pas avant que j’aie tout connecté, et dis-moi ce qu’il reste à connecter et comment l’activer. Mode d’approbation : demande-moi d’abord.', en: 'Show me the final draft and wait for my yes. Save it with the script, then switch it off (edit mode, active: false) so it does not run before I have connected everything, and tell me what is left to connect and how to switch it on. Approval mode: ask me first.' },
+      'tasks.cards.last': { kybernos: 'Dernière exécution', en: 'Last run' },
+      'tasks.cards.success': { kybernos: 'Réussite', en: 'Success' },
+      'tasks.cards.runs': { kybernos: 'Exécutions', en: 'Runs' },
+      'tasks.cards.duration': { kybernos: 'Durée', en: 'Duration' },
+      'tasks.cards.tools': { kybernos: 'Outils', en: 'Tools' },
+      'tasks.cards.never': { kybernos: 'Jamais', en: 'Never' },
+      'tasks.cards.toreview': { kybernos: 'À revoir', en: 'To review' },
+      'tasks.cards.paused': { kybernos: 'En pause', en: 'Paused' },
+      'tasks.cards.hint': { kybernos: 'Réussite : part des 20 dernières exécutions qui ne sont pas notées en échec. Durée et outils viennent du journal de la dernière exécution ; il n’y a ni jetons ni budget ici.', en: 'Success: the share of the last 20 runs that are not recorded as failed. Duration and tools come from the journal of the last run; there are no tokens or budget here.' },
+      'tasks.tab.journal': { kybernos: 'Journal', en: 'Journal' },
+      'tasks.runs.title': { kybernos: 'Exécutions', en: 'Executions' },
+      'tasks.runs.all': { kybernos: 'Toutes ({n})', en: 'All {n}' },
+      'tasks.runs.count': { kybernos: '{n} exécutions', en: '{n} runs' },
+      'tasks.runs.stat.runs': { kybernos: 'Exécutions', en: 'Runs' },
+      'tasks.runs.stat.failed': { kybernos: 'En échec', en: 'Failed' },
+      'tasks.runs.stat.median': { kybernos: 'Durée médiane', en: 'Median duration' },
+      'tasks.runs.stat.slowest': { kybernos: 'Plus lente', en: 'Slowest' },
+      'tasks.runs.completedin': { kybernos: 'Terminée en {d}', en: 'Completed in {d}' },
+      'tasks.runs.failedin': { kybernos: 'Échec en {d}', en: 'Failed in {d}' },
+      'tasks.runs.failed': { kybernos: 'Échec', en: 'Failed' },
+      'tasks.runs.running': { kybernos: 'En cours', en: 'Running' },
+      'tasks.runs.unread': { kybernos: 'Non lue', en: 'Not read' },
+      'tasks.runs.noread': { kybernos: 'Le journal de cette exécution n’a pas pu être lu : seuls l’heure et l’état enregistrés sont affichés.', en: 'The journal of this run could not be read: only the recorded time and status are shown.' },
+      'tasks.runs.started': { kybernos: 'Exécution lancée', en: 'Run started' },
+      'tasks.runs.final': { kybernos: 'Réponse finale', en: 'Final answer' },
+      'tasks.runs.more': { kybernos: '+{n} autres étapes', en: '+{n} more steps' },
+      'tasks.runs.moresub': { kybernos: 'dans la session', en: 'in the session' },
+      'tasks.runs.logs': { kybernos: 'Détails', en: 'Logs' },
+      'tasks.runs.input': { kybernos: 'Entrée', en: 'Input' },
+      'tasks.runs.output': { kybernos: 'Sortie', en: 'Output' },
+      'tasks.runs.think': { kybernos: 'réflexion', en: 'think' },
+      'tasks.runs.run': { kybernos: 'exécution', en: 'run' },
+      'tasks.runs.reading': { kybernos: 'Lecture de l’étape…', en: 'Reading the step…' },
+      'tasks.runs.noio': { kybernos: 'L’entrée et la sortie de cette étape ne sont pas disponibles. « Ouvrir le chat » les montre.', en: 'The input and output of this step are not available. “Open chat” shows them.' },
+      'tasks.runs.model': { kybernos: 'Modèle', en: 'Model' },
+      'tasks.runs.duration': { kybernos: 'Durée', en: 'Duration' },
+      'tasks.runs.steps': { kybernos: '{n} étapes', en: '{n} steps' },
+      'tasks.runs.tools': { kybernos: '{n} appels d’outil', en: '{n} tool calls' },
+      'tasks.runs.hint': { kybernos: 'Chaque exécution est un vrai chat avec l’Agent Team. La ligne « échec » qu’une exécution a écrite sur elle-même est rattachée à cette exécution. Les liens montrent ce que chaque étape a transmis à la suivante.', en: 'Each run is a real chat with the Agent Team. The “failed” line a run wrote about itself sits on that run. The links show how much each step handed on to the next.' },
+      'tasks.journal.who': { kybernos: 'Qui a tourné', en: 'Who ran' },
+      'tasks.journal.why': { kybernos: 'Pourquoi ce modèle', en: 'Why this model' },
+      'tasks.journal.why.default': { kybernos: 'Modèle par défaut du profil : aucun modèle n’a été choisi pour cette exécution.', en: 'Profile default: no model was chosen for this run.' },
+      'tasks.journal.why.set': { kybernos: 'Choisi pour cette exécution.', en: 'Chosen for this run.' },
+      'tasks.journal.what': { kybernos: 'Ce qui s’est passé', en: 'What happened' },
+      'tasks.journal.approvals': { kybernos: 'Approbations', en: 'Approvals' },
+      'tasks.journal.approval': { kybernos: 'approbation', en: 'approval' },
+      'tasks.journal.approvals.none': { kybernos: 'Aucune demande pendant cette exécution · mode :', en: 'No request during this run · mode:' },
       'tasks.everyday8': { kybernos: 'Chaque jour, 8:00', en: 'Every day, 8:00' },
       'tasks.weekdays8': { kybernos: 'Jours ouvrés, 8:00', en: 'Weekdays, 8:00' },
       // The readable schedules (kbCronHuman): a sentence per common shape, `{day}` a weekday name, `{time}` HH:MM.
@@ -598,14 +691,14 @@ let kbLocaleRead = () => 'en'
       'kb2v.tab': { kybernos: 'Workflows', en: 'Workflows' },
       'kb2v.foldside': { kybernos: 'Afficher ou masquer la colonne des appels', en: 'Toggle calls column' },
       'kb2v.foldjour': { kybernos: 'Afficher ou masquer la colonne du journal', en: 'Toggle journal column' },
-      'kb2v.execs': { kybernos: 'EXÉCUTIONS', en: 'EXECUTIONS' },
-      'kb2v.journal': { kybernos: 'JOURNAL D’EXÉCUTION', en: 'EXECUTION LOG' },
-      'kb2v.insp': { kybernos: 'INSPECTEUR', en: 'INSPECTOR' },
+      'kb2v.execs': { kybernos: 'Exécutions', en: 'Executions' },
+      'kb2v.journal': { kybernos: 'Journal d’exécution', en: 'Execution log' },
+      'kb2v.insp': { kybernos: 'Inspecteur', en: 'Inspector' },
       'kb2v.replay': { kybernos: '▶ Rejouer', en: '▶ Replay' },
       'kb2v.pause': { kybernos: '⏸ Pause', en: '⏸ Pause' },
       'kb2v.reset': { kybernos: 'Réinitialiser', en: 'Reset' },
-      'kb2v.in': { kybernos: 'ENTRÉE', en: 'INPUT' },
-      'kb2v.out': { kybernos: 'SORTIE', en: 'OUTPUT' },
+      'kb2v.in': { kybernos: 'Entrée', en: 'Input' },
+      'kb2v.out': { kybernos: 'Sortie', en: 'Output' },
       'kb2v.actor': { kybernos: 'Acteur', en: 'Actor' },
       'kb2v.time': { kybernos: 'Horodatage', en: 'Timestamp' },
       'kb2v.scopes': { kybernos: 'Permissions', en: 'Permissions' },
@@ -665,12 +758,12 @@ let kbLocaleRead = () => 'en'
       'kb2v.journal.calls': { kybernos: ' appels', en: ' calls' },
       'kb2v.journal.crews': { kybernos: ' équipes', en: ' teams' },
       'kb2v.answer': { kybernos: 'Répondre', en: 'Answer' },
-      'kb2v.kpi.execs': { kybernos: 'EXÉCUTIONS', en: 'EXECUTIONS' },
-      'kb2v.kpi.crews': { kybernos: 'ÉQUIPES', en: 'TEAMS' },
-      'kb2v.kpi.time': { kybernos: 'TEMPS ACTIF', en: 'ACTIVE TIME' },
-      'kb2v.kpi.tokens': { kybernos: 'TOKENS', en: 'TOKENS' },
-      'kb2v.kpi.llm': { kybernos: 'APPELS LLM', en: 'LLM CALLS' },
-      'kb2v.kpi.cost': { kybernos: 'COÛT', en: 'COST' },
+      'kb2v.kpi.execs': { kybernos: 'Exécutions', en: 'Executions' },
+      'kb2v.kpi.crews': { kybernos: 'Équipes', en: 'Teams' },
+      'kb2v.kpi.time': { kybernos: 'Temps actif', en: 'Active time' },
+      'kb2v.kpi.tokens': { kybernos: 'Tokens', en: 'Tokens' },
+      'kb2v.kpi.llm': { kybernos: 'Appels LLM', en: 'LLM calls' },
+      'kb2v.kpi.cost': { kybernos: 'Coût', en: 'Cost' },
       'kbtc.crew': { kybernos: 'Équipe', en: 'Team' },
       'kbtc.appel': { kybernos: 'appel', en: 'call' },
       'kbtc.voir': { kybernos: 'Voir l’exécution', en: 'View execution' },
@@ -750,7 +843,7 @@ let kbLocaleRead = () => 'en'
       'ui.resolution': { kybernos: 'résolution : ', en: 'resolution: ' },
       'ui.realprobe': { kybernos: 'sonde réelle : ', en: 'real probe: ' },
       'ui.targets': { kybernos: ' cibles testées', en: ' targets tested' },
-      'ui.noyaml': { kybernos: 'aucun kyber.yml trouvé', en: 'no kyber.yml found' },
+      'ui.noyaml': { kybernos: 'aucun fichier d’équipe trouvé', en: 'no team file found' },
       'ui.failedmid': { kybernos: ' en échec / ', en: ' failed / ' },
       'ui.unprobedmid': { kybernos: ' non sondés / ', en: ' not probed / ' },
       'ui.filter': { kybernos: 'filtrer : Agent Team, agent, modèle…', en: 'filter: agent team, agent, model…' },
@@ -772,7 +865,7 @@ let kbLocaleRead = () => 'en'
       'ui.nogoal': { kybernos: 'Aucun objectif persistant sur cette session — ceux créés par l\'agent apparaîtront ici.', en: 'No persistent goal in this session — the ones the agent creates will show up here.' },
       'ui.recent': { kybernos: 'récent', en: 'recent' },
       'ui.input': { kybernos: 'entrée', en: 'input' },
-      'ui.notools': { kybernos: 'Aucun outil déclaré dans les rôles (champ tools: du kyber.yml).', en: 'No tool declared in the roles (tools: field of kyber.yml).' },
+      'ui.notools': { kybernos: 'Aucun outil déclaré dans les rôles (section outils du fichier de l’équipe).', en: 'No tool declared in the roles (tools section of the team file).' },
       'ui.unset': { kybernos: 'non fixé', en: 'not set' },
       'ui.emptyunchanged': { kybernos: 'vide = inchangé', en: 'empty = unchanged' },
       'ui.due': { kybernos: 'Échéance', en: 'Due date' },
@@ -788,11 +881,11 @@ let kbLocaleRead = () => 'en'
       'ui.teamnotfound': { kybernos: 'Agent Team introuvable.', en: 'Agent Team not found.' },
       'kbui.team.backall': { kybernos: 'Toutes les Agent Teams', en: 'All Agent Teams' },
       'kbui.team.reading': { kybernos: 'lecture…', en: 'reading…' },
-      'kbui.team.folderonly': { kybernos: 'Le dossier de l’Agent Team ne contient que kyber.yml.', en: 'The Agent Team folder only contains kyber.yml.' },
+      'kbui.team.folderonly': { kybernos: 'Le dossier de l’Agent Team ne contient que le fichier de l’équipe.', en: 'The Agent Team folder only contains the team file.' },
       'kbui.team.due': { kybernos: 'échéance ', en: 'due ' },
-      'kbui.team.budget.none': { kybernos: 'aucun — bloc budget: absent du kyber.yml', en: 'none — no budget: block in kyber.yml' },
+      'kbui.team.budget.none': { kybernos: 'aucun — pas de section budget dans le fichier de l’équipe', en: 'none — no budget section in the team file' },
       'kbui.team.budget.undeclared': { kybernos: 'montant non déclaré', en: 'amount not declared' },
-      'kbui.team.budget.declared': { kybernos: 'déclaré dans le kyber.yml', en: 'declared in kyber.yml' },
+      'kbui.team.budget.declared': { kybernos: 'déclaré dans le fichier de l’équipe', en: 'declared in the team file' },
       'ui.liveteam.head': { kybernos: '🛰 Équipe live (Agent Teams)', en: '🛰 Live team (Agent Teams)' },
       'ui.rosterunavailable': { kybernos: 'Roster indisponible ici — utilise le bouton Agent Teams dans le header de la conversation.', en: 'Roster unavailable here — use the Agent Teams button in the conversation header.' },
       'ui.nosession': { kybernos: 'aucune session connue pour cette Agent Team', en: 'no known session for this agent team' },
@@ -810,7 +903,6 @@ let kbLocaleRead = () => 'en'
       'ui.subsession': { kybernos: 'Sous-session', en: 'Sub-session' },
       'ui.attempts.sub': { kybernos: ' pour ce rôle dans ce run', en: ' for this role in this run' },
       'ui.noworkspace': { kybernos: 'Aucun workspace pour l\'instant.', en: 'No workspace yet.' },
-      'ui.nodeliverable': { kybernos: 'Aucune création dans ce projet.', en: 'No creation in this project.' },
       'runs.noroute': { kybernos: 'La liste des exécutions ne répond pas — redémarre DSH.', en: 'The list of runs is not answering — restart DSH.' },
       'runs.withruns': { kybernos: ' avec runs', en: ' with runs' },
       'runs.localstore': { kybernos: ' (store local)', en: ' (local store)' },
@@ -825,7 +917,7 @@ let kbLocaleRead = () => 'en'
       'runs.neverobserved': { kybernos: ' · non observée', en: ' · never observed' },
       'runs.declared.prefix': { kybernos: 'déclaré: ', en: 'declared: ' },
       'runs.nodeviation': { kybernos: 'Aucune déviation dérivée pour ce run.', en: 'No deviation derived for this run.' },
-      'runs.deviations': { kybernos: 'DÉVIATIONS (', en: 'DEVIATIONS (' },
+      'runs.deviations': { kybernos: 'Déviations (', en: 'Deviations (' },
       'runs.empty': { kybernos: 'Un run apparaît ici dès qu’un workflow est lancé (tool workflow + run-start dans les événements).', en: 'A run shows up here as soon as a workflow starts (the workflow tool + run-start in the events).' },
       'runs.norun': { kybernos: 'Aucun run workflow sur cette session', en: 'No workflow run in this session' },
       'runs.parallelism': { kybernos: 'Parallélisme observé', en: 'Observed parallelism' },
@@ -854,14 +946,14 @@ let kbLocaleRead = () => 'en'
       'crew.roles.pill': { kybernos: 'rôles déclarés ', en: 'declared roles ' },
       'crew.norole.pill': { kybernos: 'sans rôle ', en: 'no role ' },
       'crew.gaps.pill': { kybernos: 'écarts ', en: 'gaps ' },
-      'crew.declared.head': { kybernos: 'DÉCLARÉ — ', en: 'DECLARED — ' },
+      'crew.declared.head': { kybernos: 'Déclaré — ', en: 'Declared — ' },
       'crew.nodef': { kybernos: 'Définition absente de ce poste : rôles inconnus.', en: 'Definition missing on this machine: unknown roles.' },
       'crew.noroles': { kybernos: 'Cette Agent Team ne déclare aucun rôle.', en: 'This agent team declares no role.' },
       'crew.stages.colon': { kybernos: 'étages :', en: 'stages:' },
       'crew.executed.head': { kybernos: 'EXÉCUTÉ — coéquipiers du crew', en: 'EXECUTED — crew teammates' },
       'crew.noprefixed': { kybernos: 'Aucun coéquipier préfixé « ', en: 'No teammate prefixed “' },
       'crew.noprefixed2': { kybernos: '- » dans le roster.', en: '-” on the roster.' },
-      'crew.gap.head': { kybernos: 'ÉCART', en: 'GAP' },
+      'crew.gap.head': { kybernos: 'Écart', en: 'GAP' },
       'crew.origin.declared': { kybernos: 'déclaré', en: 'declared' },
       'crew.executed.mid': { kybernos: 'exécuté ', en: 'executed ' },
       'canvas.loading': { kybernos: 'Chargement du canvas…', en: 'Loading canvas…' },
@@ -899,15 +991,15 @@ let kbLocaleRead = () => 'en'
       'crew.declared.meta': { kybernos: 'ce que chaque Agent Team déclare, ce qui a tourné, où est l’écart', en: 'what each agent team declares, what ran, where the gap is' },
       'crew.declared.n': { kybernos: ' déclarés', en: ' declared' },
       'crew.declared.one': { kybernos: ' déclaré', en: ' declared' },
-      'crew.declared.title': { kybernos: 'CREWS DÉCLARÉS', en: 'DECLARED CREWS' },
-      'crew.detail.title': { kybernos: 'DÉTAIL DU RÔLE', en: 'ROLE DETAIL' },
+      'crew.declared.title': { kybernos: 'Crews déclarés', en: 'Declared crews' },
+      'crew.detail.title': { kybernos: 'Détail du rôle', en: 'Role detail' },
       'crew.duration': { kybernos: 'Durée · passages', en: 'Duration · passes' },
       'crew.duration.col': { kybernos: 'Durée', en: 'Duration' },
       'crew.executed': { kybernos: 'Exécuté', en: 'Executed' },
       'crew.firsttoken': { kybernos: ' · 1er token ', en: ' · 1st token ' },
       'crew.flow.hint': { kybernos: 'Clique un nœud du flux pour voir le détail du rôle.', en: 'Click a flow node to see role details.' },
       'crew.flow.meta': { kybernos: 'un graphe déclaré par crew', en: 'one declared graph per crew' },
-      'crew.flow.title': { kybernos: 'FLUX DES AGENTS', en: 'AGENT FLOW' },
+      'crew.flow.title': { kybernos: 'Flux des agents', en: 'Agent flow' },
       'crew.gap': { kybernos: 'écart de modèle', en: 'model gap' },
       'crew.gaps': { kybernos: 'Écarts de modèle', en: 'Model gaps' },
       'crew.gaps.sub': { kybernos: 'le modèle exécuté diffère du déclaré', en: 'the executed model differs from the declared one' },
@@ -916,7 +1008,7 @@ let kbLocaleRead = () => 'en'
       'crew.legend': { kybernos: '✓ conforme · ≠ écart de modèle · ○ non tenu · ✕ agent en échec', en: '✓ matches · ≠ model gap · ○ not held · ✕ agent failed' },
       'crew.llmtime': { kybernos: 'temps LLM ', en: 'LLM time ' },
       'crew.matches': { kybernos: 'conforme', en: 'matches' },
-      'crew.matrix.note': { kybernos: 'Le modèle inscrit dans le kyber.yml n\'est pas forcément celui qui s\'exécute : Agent Teams ne lit pas cette table. Les lignes marquées à gauche sont des écarts.', en: 'The model written in kyber.yml is not necessarily the one that runs: Agent Teams does not read this table. Rows flagged on the left are gaps.' },
+      'crew.matrix.note': { kybernos: 'Le modèle inscrit dans le fichier de l’équipe n\'est pas forcément celui qui s\'exécute : Agent Teams ne lit pas cette table. Les lignes marquées à gauche sont des écarts.', en: 'The model written in the team file is not necessarily the one that runs: Agent Teams does not read this table. Rows flagged on the left are gaps.' },
       'crew.member': { kybernos: 'membre', en: 'member' },
       'crew.members': { kybernos: 'membres', en: 'members' },
       'crew.modality': { kybernos: 'modalité ', en: 'modality ' },
@@ -924,7 +1016,7 @@ let kbLocaleRead = () => 'en'
       'crew.modeldeclared': { kybernos: 'Modèle déclaré', en: 'Declared model' },
       'crew.modelexecuted': { kybernos: 'Modèle exécuté', en: 'Executed model' },
       'crew.modelprojected': { kybernos: 'Modèle projeté', en: 'Projected model' },
-      'crew.models.title': { kybernos: 'MODÈLES — DÉCLARÉ VS EXÉCUTÉ', en: 'MODELS — DECLARED VS EXECUTED' },
+      'crew.models.title': { kybernos: 'Modèles — déclaré vs exécuté', en: 'Models — declared vs executed' },
       'crew.needs': { kybernos: 'Besoins déclarés', en: 'Declared needs' },
       'crew.next': { kybernos: 'Suivant ›', en: 'Next ›' },
       'crew.noactive': { kybernos: ' sans crew actif', en: ' with no active crew' },
@@ -995,7 +1087,7 @@ let kbLocaleRead = () => 'en'
       'crew.refresh': { kybernos: 'Rafraîchir', en: 'Refresh' },
       'crew.role': { kybernos: 'rôle', en: 'role' },
       'crew.role.noagent': { kybernos: 'Aucun agent Agent Teams rattaché à ce rôle.', en: 'No Agent Teams member attached to this role.' },
-      'crew.role.pill': { kybernos: 'RÔLE', en: 'ROLE' },
+      'crew.role.pill': { kybernos: 'Rôle', en: 'Role' },
       'crew.roles': { kybernos: 'rôles', en: 'roles' },
       'crew.rolesheld': { kybernos: 'Rôles tenus', en: 'Roles held' },
       'crew.rolesheld.sub': { kybernos: 'rapprochement rôle déclaré ↔ nom de coéquipier', en: 'declared role matched against teammate name' },
@@ -1039,8 +1131,8 @@ let kbLocaleRead = () => 'en'
       'kbui.useicon': { kybernos: ' Utiliser une icône', en: ' Use icon' },
       'kbui.guidedchat': { kybernos: 'Un chat guidé — il demande ce que l’Agent Team doit faire', en: 'A guided chat — it asks what the agent team should do' },
       'kbui.project.holds': { kybernos: 'Un projet a ses propres chats, documents, objectifs et créations. Ouvre-le pour voir ce que les Agent Teams y ont produit.', en: 'A project holds its own chats, documents, goals and creations. Open one to see what the Agent Teams produced there.' },
-      'kbui.sort.az': { kybernos: 'A → Z', en: 'A → Z' },
-      'kbui.apps.askfor': { kybernos: 'APPLICATIONS DEMANDÉES', en: 'APPS IT WILL ASK FOR' },
+      'kbui.sort.az': { kybernos: 'A → z', en: 'A → z' },
+      'kbui.apps.askfor': { kybernos: 'Applications demandées', en: 'Apps it will ask for' },
       'kbui.actions': { kybernos: 'Actions', en: 'Actions' },
       'kbui.add.document': { kybernos: 'Ajouter un document', en: 'Add a document' },
       'kbui.add.skill': { kybernos: 'Ajouter une compétence', en: 'Add a skill' },
@@ -1100,7 +1192,7 @@ let kbLocaleRead = () => 'en'
       'kbui.budget': { kybernos: 'Budget', en: 'Budget' },
       'kbui.buildteam': { kybernos: 'Construire l’Agent Team', en: 'Build the Agent Team' },
       'kbui.composio.absent': { kybernos: 'Paquet @local/kybernos-composio absent.', en: 'Bundle @local/kybernos-composio absent.' },
-      'kbui.crew.tag': { kybernos: 'ÉQUIPE ', en: 'CREW ' },
+      'kbui.crew.tag': { kybernos: 'Équipe ', en: 'Crew ' },
       'kbui.cache': { kybernos: 'Cache : ', en: 'Cache: ' },
       'kbui.cancel': { kybernos: 'Annuler', en: 'Cancel' },
       'kbui.category': { kybernos: 'Catégorie', en: 'Category' },
@@ -1162,7 +1254,7 @@ let kbLocaleRead = () => 'en'
       'kbui.keep.audio': { kybernos: 'Garder l’audio (message vocal)', en: 'Keep audio (voice message)' },
       'kbui.greeting': { kybernos: 'Message d’accueil', en: 'Greeting' },
       'kbui.grille': { kybernos: 'Grille', en: 'Grid' },
-      'kbui.outcrew': { kybernos: 'HORS ÉQUIPE', en: 'OUT OF CREW' },
+      'kbui.outcrew': { kybernos: 'Hors équipe', en: 'Out of crew' },
       'kbui.tts.headsup': { kybernos: 'Attention : ce moteur envoie le texte de la réponse à ', en: 'Heads-up: this engine sends the reply text to ' },
       'kbui.healthcheck.all': { kybernos: 'Tout vérifier', en: 'Healthcheck all' },
       'kbui.helpdocs': { kybernos: 'Aide et documentation', en: 'Help & docs' },
@@ -1172,7 +1264,7 @@ let kbLocaleRead = () => 'en'
       'kbui.hosted.vs.plugin': { kybernos: 'Hosted face au plugin open source', en: 'Hosted vs the open-source plugin' },
       'kbui.import.github': { kybernos: 'Importer un « Agent Team Manifest » depuis GitHub', en: 'Import an "Agent Team Manifest" from GitHub' },
       'kbui.import.workspace': { kybernos: 'Importer mon espace de travail', en: 'Import my workspace' },
-      'kbui.kybernos.hosted': { kybernos: 'KYBERNOS HOSTED', en: 'KYBERNOS HOSTED' },
+      'kbui.kybernos.hosted': { kybernos: 'Kybernos hosted', en: 'Kybernos hosted' },
       'kbui.keep.opensource': { kybernos: 'Garder le plugin open source', en: 'Keep the open-source plugin' },
       'kbui.kyber.notfound': { kybernos: 'Agent Team introuvable.', en: 'Agent Team not found.' },
       'kbui.kybernos': { kybernos: 'Kybernos', en: 'Kybernos' },
@@ -1187,7 +1279,7 @@ let kbLocaleRead = () => 'en'
       'kbui.liste': { kybernos: 'Liste', en: 'List' },
       'kbui.localiser': { kybernos: 'Localiser — ', en: 'Locate — ' },
       'kbui.reveal': { kybernos: 'Localiser', en: 'Reveal' },
-      'kbui.members.prompts': { kybernos: 'MEMBRES ET LEURS PROMPTS', en: 'MEMBERS AND THEIR PROMPTS' },
+      'kbui.members.prompts': { kybernos: 'Membres et leurs prompts', en: 'Members and their prompts' },
       'kbui.masquer': { kybernos: 'Masquer', en: 'Hide' },
       'kbui.mission': { kybernos: 'Mission', en: 'Mission' },
       'kbui.sort.mostagents': { kybernos: 'Plus d’agents', en: 'Most agents' },
@@ -1214,7 +1306,7 @@ let kbLocaleRead = () => 'en'
       'kbui.nothing.yet': { kybernos: 'Rien ici pour l’instant', en: 'Nothing here yet' },
       'kbui.notifications': { kybernos: 'Notifications', en: 'Notifications' },
       'kbui.notif.empty': { kybernos: 'Aucune notification pour le moment.', en: 'No notifications yet.' },
-      'kbui.opensource.plugin': { kybernos: 'PLUGIN OPEN SOURCE', en: 'OPEN-SOURCE PLUGIN' },
+      'kbui.opensource.plugin': { kybernos: 'Plugin open source', en: 'Open-source plugin' },
       'kbui.objectifs': { kybernos: 'Objectifs', en: 'Goals' },
       'kbui.open': { kybernos: 'Ouvrir', en: 'Open' },
       'kbui.overview.tabs': { kybernos: 'Vue d’ensemble · Santé · Agent Teams · Édition', en: 'Overview · Health · Agent Teams · Edit' },
@@ -1433,6 +1525,47 @@ let kbLocaleRead = () => 'en'
       'kbnc.p.sheet': { kybernos: 'Crée un tableur pour ', en: 'Build a spreadsheet to ' },
       'kbnc.p.image': { kybernos: 'Crée une image de ', en: 'Create an image of ' },
       'kbnc.p.video': { kybernos: 'Fais une courte vidéo sur ', en: 'Make a short video about ' },
+      'kbnc.s.slides.0': { kybernos: 'notre levée de fonds', en: 'our seed round' },
+      'kbnc.s.slides.1': { kybernos: 'le climat en 2030', en: 'climate in 2030' },
+      'kbnc.s.slides.2': { kybernos: 'l’année de mon équipe', en: 'my team’s year' },
+      'kbnc.s.doc.0': { kybernos: 'un cahier des charges', en: 'a project brief' },
+      'kbnc.s.doc.1': { kybernos: 'une proposition en une page', en: 'a one-page proposal' },
+      'kbnc.s.doc.2': { kybernos: 'un compte rendu de réunion', en: 'meeting notes' },
+      'kbnc.s.sheet.0': { kybernos: 'suivre mes dépenses du mois', en: 'track monthly expenses' },
+      'kbnc.s.sheet.1': { kybernos: 'suivre mon pipeline de ventes', en: 'follow my sales pipeline' },
+      'kbnc.s.sheet.2': { kybernos: 'planifier mes séances de sport', en: 'plan my workouts' },
+      'kbnc.s.dashboard.0': { kybernos: 'mes dépenses du mois', en: 'my monthly spend' },
+      'kbnc.s.dashboard.1': { kybernos: 'les ventes par région', en: 'sales by region' },
+      'kbnc.s.dashboard.2': { kybernos: 'l’avancement du projet', en: 'project status' },
+      'kbnc.s.image.0': { kybernos: 'un renard dans une forêt enneigée', en: 'a fox in a snowy forest' },
+      'kbnc.s.image.1': { kybernos: 'un logo plat', en: 'a flat logo mark' },
+      'kbnc.s.image.2': { kybernos: 'une affiche de soirée jazz', en: 'a jazz night poster' },
+      'kbnc.s.video.0': { kybernos: 'mon produit en 30 secondes', en: 'my product in 30 seconds' },
+      'kbnc.s.video.1': { kybernos: 'une recette en format vertical', en: 'a vertical recipe' },
+      'kbnc.s.video.2': { kybernos: 'notre séminaire d’équipe', en: 'our team offsite' },
+      'kbnc.s.website.0': { kybernos: 'ma boulangerie', en: 'my bakery' },
+      'kbnc.s.website.1': { kybernos: 'mon portfolio', en: 'my portfolio' },
+      'kbnc.s.website.2': { kybernos: 'un lancement de produit', en: 'a product launch' },
+      'kbnc.s.miniapp.0': { kybernos: 'suit mes habitudes', en: 'tracks my habits' },
+      'kbnc.s.miniapp.1': { kybernos: 'convertit des unités', en: 'converts units' },
+      'kbnc.s.miniapp.2': { kybernos: 'partage une addition', en: 'splits a bill' },
+      'kbnc.s.model3d.0': { kybernos: 'un support de téléphone', en: 'a phone stand' },
+      'kbnc.s.model3d.1': { kybernos: 'un range-bureau', en: 'a desk organiser' },
+      'kbnc.s.model3d.2': { kybernos: 'un pion d’échecs', en: 'a chess pawn' },
+      'kbnc.s.automation.0': { kybernos: 'résume ma boîte mail chaque lundi', en: 'summarises my inbox every Monday' },
+      'kbnc.s.automation.1': { kybernos: 'range mes factures dans un dossier', en: 'saves invoices to a folder' },
+      'kbnc.s.automation.2': { kybernos: 'publie un digest chaque jour', en: 'posts a daily digest' },
+      'kbnc.s.team.0': { kybernos: 'étudier un marché', en: 'researching a market' },
+      'kbnc.s.team.1': { kybernos: 'livrer une fonctionnalité', en: 'shipping a feature' },
+      'kbnc.s.team.2': { kybernos: 'gérer ma newsletter', en: 'running my newsletter' },
+      'kbnc.s.skill.0': { kybernos: 'rédige des notes de version', en: 'writes release notes' },
+      'kbnc.s.skill.1': { kybernos: 'relit mes pull requests', en: 'reviews my pull requests' },
+      'kbnc.s.skill.2': { kybernos: 'prépare mon compte rendu hebdo', en: 'drafts my weekly report' },
+      'kbnc.s.plugin.0': { kybernos: 'ajoute une barre d’état', en: 'adds a status bar' },
+      'kbnc.s.plugin.1': { kybernos: 'exporte les chats en Markdown', en: 'exports chats to Markdown' },
+      'kbnc.s.plugin.2': { kybernos: 'affiche ma consommation de tokens', en: 'shows my token usage' },
+      'kbnc.try': { kybernos: 'Essaie', en: 'Try' },
+      'kbnc.chip.remove': { kybernos: 'Retirer', en: 'Remove' },
       'kbnc.cc.awake': { kybernos: 'Éveillé', en: 'Awake' },
       'kbnc.cc.asleep': { kybernos: 'En veille', en: 'Asleep' },
       'kbnc.cc.starting': { kybernos: 'En création…', en: 'Being made…' },
@@ -1464,11 +1597,24 @@ let kbLocaleRead = () => 'en'
       'kbnc.cc.sub.none': { kybernos: 'Créé à ton premier message Telegram qui demande d’agir.', en: 'Made at your first Telegram message that asks it to act.' },
       'kbnc.cc.last': { kybernos: 'Dernière activité : ', en: 'Last active: ' },
       // Settings > Automations
-      'kbauto.set.sub': { kybernos: 'Où vivent tes automatisations, et deux réglages.', en: 'Where your automations live, and two settings.' },
+      'kbauto.set.sub': { kybernos: 'Où vivent tes automatisations, et leurs réglages.', en: 'Where your automations live, and their settings.' },
       'kbauto.set.paused': { kybernos: 'Mettre toutes les automatisations en pause', en: 'Pause all automations' },
       'kbauto.set.paused.d': { kybernos: 'Rien ne se déclenche tant que c’est activé. Ce qui est arrivé à échéance pendant la pause se déclenche une fois au premier passage après la reprise.', en: 'Nothing fires while this is on. What came due during the pause fires once at the first check after you resume.' },
       'kbauto.set.native': { kybernos: 'Afficher la liste « Automation tasks » de DSH', en: 'Show DSH’s own “Automation tasks” list' },
       'kbauto.set.native.d': { kybernos: 'La page Automations de Kybernos est le lieu de tes automatisations : la liste native de DSH, qui la double, est masquée du menu. Active pour la retrouver.', en: 'The Kybernos Automations page is where your automations live: DSH’s own list, which overlaps it, is hidden from the menu. Turn on to get it back.' },
+      'kbauto.set.skill': { kybernos: 'Créer des skills automatiquement', en: 'Create skills automatically' },
+      'kbauto.set.skill.d': { kybernos: 'Quand une automatisation a tourné sans échec le nombre de fois choisi ci-dessous, son texte est écrit comme skill réutilisable. Règle fixe : aucun modèle ne décide. Désactivé par défaut ; le fichier est à toi, modifie-le ou supprime-le.', en: 'When an automation has run the number of times chosen below without a failure, its text is written down as a reusable skill. A fixed rule: no model decides. Off by default; the file is yours to edit or delete.' },
+      'kbauto.set.stable': { kybernos: 'Stable après', en: 'Stable after' },
+      'kbauto.set.stable.d': { kybernos: 'Nombre d’exécutions d’affilée sans échec. L’historique garde les 20 dernières exécutions : 20 est le maximum.', en: 'Runs in a row without a failure. The history keeps the last 20 runs: 20 is the most.' },
+      'tasks.lesson.title': { kybernos: 'Leçons', en: 'Lessons' },
+      'tasks.lesson.progress': { kybernos: 'Cette automatisation a tourné {k} fois d’affilée sans échec. À {n}, elle peut devenir un skill réutilisable.', en: 'This automation has run {k} times in a row without a failure. At {n} it can become a reusable skill.' },
+      'tasks.lesson.stable': { kybernos: 'Cette automatisation a tourné {n} fois d’affilée sans échec : assez stable pour devenir un skill réutilisable.', en: 'This automation ran {n} times in a row without a failure: stable enough to become a reusable skill.' },
+      'tasks.lesson.create': { kybernos: 'Créer le skill', en: 'Create skill' },
+      'tasks.lesson.hint': { kybernos: 'Pour que ce soit fait tout seul, active « Créer des skills automatiquement » dans Réglages › Automatisations.', en: 'To have it done for you, switch on “Create skills automatically” in Settings › Automations.' },
+      'tasks.lesson.soon': { kybernos: 'Elle sera créée automatiquement dans quelques minutes.', en: 'It will be created automatically within a few minutes.' },
+      'tasks.lesson.made.auto': { kybernos: 'Skill « {skill} » créé automatiquement après {n} exécutions sans échec. Il est dans tes Skills : modifie-le ou supprime-le comme les autres.', en: 'Skill “{skill}” created automatically after {n} runs without a failure. It is in your Skills: edit or delete it like any other.' },
+      'tasks.lesson.made.manual': { kybernos: 'Skill « {skill} » créé depuis cette page après {n} exécutions sans échec. Il est dans tes Skills : modifie-le ou supprime-le comme les autres.', en: 'Skill “{skill}” created from this page after {n} runs without a failure. It is in your Skills: edit or delete it like any other.' },
+      'tasks.lesson.err': { kybernos: 'Le skill n’a pas pu être créé : {why}', en: 'The skill could not be created: {why}' },
       'kbauto.set.where': { kybernos: 'Les automatisations tournent sur cet ordinateur, tant que DSH est ouvert.', en: 'Automations run on this computer, while DSH is open.' },
       'kbauto.set.error': { kybernos: 'Réglage non enregistré. Réessaie.', en: 'Setting not saved. Try again.' },
       'kbauto.set.unavailable': { kybernos: 'Ces réglages ne sont pas encore disponibles : DSH doit être redémarré pour les charger.', en: 'These settings are not available yet: DSH needs a restart to load them.' },
@@ -1549,12 +1695,12 @@ let kbLocaleRead = () => 'en'
       'kbui.skill.detach': { kybernos: 'Détacher de ce projet', en: 'Detach from this project' },
       'kbui.skills.one': { kybernos: 'rattachée à ce projet', en: 'attached to this project' },
       'kbui.skills.many': { kybernos: 'rattachées à ce projet', en: 'attached to this project' },
-      'kbui.skills.hintteam': { kybernos: 'Coche les compétences rattachées à cette Agent Team — la sélection est écrite dans son kyber.yml.', en: 'Check the skills attached to this Agent Team — the selection is written to its kyber.yml.' },
+      'kbui.skills.hintteam': { kybernos: 'Coche les compétences rattachées à cette Agent Team — la sélection est écrite dans son fichier d’équipe.', en: 'Check the skills attached to this Agent Team — the selection is written to its team file.' },
       'kbui.skills.oneteam': { kybernos: 'rattachée à cette Agent Team', en: 'attached to this Agent Team' },
       'kbui.skills.manyteam': { kybernos: 'rattachées à cette Agent Team', en: 'attached to this Agent Team' },
       'kbui.skills.ghostteam': { kybernos: 'rattachée à cette Agent Team (plus détectée)', en: 'attached to this Agent Team (no longer detected)' },
       'kbui.kyber.declares': { kybernos: 'Le kyber.yml déclare l’équipe (rôles, ordre, modèle déclaré).', en: 'kyber.yml declares the crew (roles, order, declared model).' },
-      'kbui.model.caveat': { kybernos: 'Le modèle déclaré dans le kyber.yml n’est pas forcément celui qui tourne : Agent Teams ne lit pas encore cette table.', en: 'The model declared in kyber.yml is not necessarily the one that runs: Agent Teams does not read that table yet.' },
+      'kbui.model.caveat': { kybernos: 'Le modèle déclaré dans le fichier de l’équipe n’est pas forcément celui qui tourne : Agent Teams ne lit pas encore cette table.', en: 'The model declared in the team file is not necessarily the one that runs: Agent Teams does not read that table yet.' },
       'kbui.plugin.free': { kybernos: 'Le plugin reste libre et ouvert. Lance-le, forke-le, livre-le — hosted existe pour le travail qui ne peut pas attendre que ta machine se réveille.', en: 'The plugin stays free and open. Run it, fork it, ship it — hosted exists for the work that cannot wait for your laptop to wake up.' },
       'kbui.chat.bound': { kybernos: 'Ce chat est lié à cette Agent Team', en: 'This chat is bound to this Agent Team' },
       'kbui.three.gestures': { kybernos: 'Trois gestes pour tout organiser', en: 'Three gestures to organise everything' },
@@ -1586,13 +1732,13 @@ let kbLocaleRead = () => 'en'
       'kbui.fallback.from': { kybernos: 'repli depuis ', en: 'fallback from ' },
       'kbui.in.this.chat': { kybernos: 'dans ce chat', en: 'in this chat' },
       // ── Documents / Resources ──────────────────────────────────────────
-      'kbui.knowledge': { kybernos: 'CONNAISSANCES', en: 'KNOWLEDGE' },
-      'kbui.projects.caps': { kybernos: 'PROJETS', en: 'PROJECTS' },
-      'kbui.subprojects': { kybernos: 'SOUS-PROJETS', en: 'SUBPROJECTS' },
-      'kbui.col.name': { kybernos: 'NOM', en: 'NAME' },
-      'kbui.col.modified': { kybernos: 'MODIFIÉ', en: 'MODIFIED' },
-      'kbui.col.size': { kybernos: 'TAILLE', en: 'SIZE' },
-      'kbui.col.sharing': { kybernos: 'PARTAGE', en: 'SHARING' },
+      'kbui.knowledge': { kybernos: 'Connaissances', en: 'Knowledge' },
+      'kbui.projects.caps': { kybernos: 'Projets', en: 'Projects' },
+      'kbui.subprojects': { kybernos: 'Sous-projets', en: 'Subprojects' },
+      'kbui.col.name': { kybernos: 'Nom', en: 'Name' },
+      'kbui.col.modified': { kybernos: 'Modifié', en: 'Modified' },
+      'kbui.col.size': { kybernos: 'Taille', en: 'Size' },
+      'kbui.col.sharing': { kybernos: 'Partage', en: 'Sharing' },
       'kbui.drop.file': { kybernos: 'Dépose un fichier sur un dossier pour le classer', en: 'Drop a file on a folder to file it' },
       'kbui.edit.changes': { kybernos: '« Modifier » change l’icône et la couleur', en: '“Edit” changes icon and colour' },
       'kbui.file': { kybernos: ' fichier', en: ' file' },
@@ -1745,7 +1891,7 @@ let kbLocaleRead = () => 'en'
       'kbui.free': { kybernos: 'Gratuit', en: 'Free' },
       'kbui.paid': { kybernos: 'Payant', en: 'Paid' },
       'kbui.manual': { kybernos: 'Manuel', en: 'Manual' },
-      'kbui.frag.agents': { kybernos: ' AGENTS · ', en: ' AGENTS · ' },
+      'kbui.frag.agents': { kybernos: ' Agents · ', en: ' Agents · ' },
       'kbui.frag.ok': { kybernos: ' OK / ', en: ' OK / ' },
       'kbui.frag.agents2': { kybernos: ' agents · ', en: ' agents · ' },
       'kbui.frag.agents3': { kybernos: ' agents — ', en: ' agents — ' },
@@ -1790,7 +1936,7 @@ let kbLocaleRead = () => 'en'
       'kbui.mm.quality': { kybernos: 'Qualité', en: 'Quality' },
       'kbui.mm.budget': { kybernos: 'Budget mensuel', en: 'Monthly budget' },
       'kbui.mm.soon': { kybernos: 'bientôt', en: 'coming soon' },
-      'kbui.mm.caveat': { kybernos: 'Déclaré ici, sans effet encore : le routage automatique (filtrer, noter, choisir un primaire et un secours) n’est pas câblé côté hôte — « Tout auto » et « Par rôle » s’écrivent, mais ne changent pas le modèle exécuté. Le modèle déclaré dans le kyber.yml reste celui qui tourne.', en: 'Declared here, not effective yet: automatic routing (filter, score, pick a primary and a fallback) is not wired on the host — “All auto” and “Per role” are written down, but do not change the model that runs. The model declared in kyber.yml is still the one that runs.' },
+      'kbui.mm.caveat': { kybernos: 'Déclaré ici, sans effet encore : le routage automatique (filtrer, noter, choisir un primaire et un secours) n’est pas câblé côté hôte — « Tout auto » et « Par rôle » s’écrivent, mais ne changent pas le modèle exécuté. Le modèle déclaré dans le fichier de l’équipe reste celui qui tourne.', en: 'Declared here, not effective yet: automatic routing (filter, score, pick a primary and a fallback) is not wired on the host — “All auto” and “Per role” are written down, but do not change the model that runs. The model declared in the team file is still the one that runs.' },
       'kbui.portrait.title': { kybernos: 'Persona — description physique', en: 'Persona — physical description' },
       'kbui.portrait.regen': { kybernos: 'Régénérer ce portrait', en: 'Regenerate this portrait' },
       'kbui.portrait.with': { kybernos: 'avec ', en: 'with ' },
@@ -1801,7 +1947,7 @@ let kbLocaleRead = () => 'en'
       'kbui.crew.members.sub': { kybernos: 'Un persona · un prompt · un modèle par rôle', en: 'One persona · one prompt · one model per role' },
       'kbui.visages.pricehead': { kybernos: ' par équipe quel que soit l’effectif', en: ' per team whatever the headcount' },
       'kbui.visages.model.note': { kybernos: ' — un appel rend la scène et les portraits, la découpe est locale (gratuite, rejouable) ; 9 visages au maximum par planche, au-delà le modèle dérive.', en: ' — one call renders the scene and the portraits, the crop is local (free, repeatable); 9 faces maximum per sheet, beyond that the model drifts.' },
-      'kbui.crew.addrole.soon': { kybernos: 'Créer un rôle demande d’écrire le kyber.yml : pas encore câblé (le reste de la carte est actif).', en: 'Creating a role means writing kyber.yml: not wired yet (the rest of the card is live).' },
+      'kbui.crew.addrole.soon': { kybernos: 'Créer un rôle demande d’écrire le fichier de l’équipe : pas encore câblé (le reste de la carte est actif).', en: 'Creating a role means writing the team file: not wired yet (the rest of the card is live).' },
       'kbui.crew.provider': { kybernos: 'Fournisseur', en: 'Provider' },
       'kbui.crew.model': { kybernos: 'Modèle', en: 'Model' },
       'kbui.crew.prompt': { kybernos: 'Prompt système du rôle', en: 'Role system prompt' },
@@ -1815,17 +1961,17 @@ let kbLocaleRead = () => 'en'
       'kbui.crew.vision': { kybernos: 'vision', en: 'vision' },
       'kbui.crew.search.ph': { kybernos: 'Chercher un modèle, un fournisseur…', en: 'Search a model, provider or type…' },
       'kbui.crew.nosug': { kybernos: 'Aucun modèle ne correspond.', en: 'No model matches.' },
-      'kbui.crew.available': { kybernos: 'MODÈLES DISPONIBLES — CHOISIR LE PRIMAIRE, ↩ POUR LE FALLBACK', en: 'AVAILABLE MODELS — PICK PRIMARY, ↩ FOR FALLBACK' },
-      'kbui.crew.prompt.title': { kybernos: 'SYSTEM PROMPT — LA DOCTRINE DE CE RÔLE', en: 'SYSTEM PROMPT — THE DOCTRINE OF THIS ROLE' },
+      'kbui.crew.available': { kybernos: 'Modèles disponibles — choisir le primaire, ↩ pour le fallback', en: 'Available models — pick primary, ↩ for fallback' },
+      'kbui.crew.prompt.title': { kybernos: 'System prompt — la doctrine de ce rôle', en: 'System prompt — the doctrine of this role' },
       'kbui.crew.pick.primary': { kybernos: 'Choisir comme modèle principal', en: 'Pick as primary model' },
       'kbui.crew.fb.set': { kybernos: 'Définir comme fallback', en: 'Set as fallback' },
-      'kbui.crew.needs': { kybernos: 'BESOINS — RÉSOLUS À L’EXÉCUTION PAR KYBER-ROUTING', en: 'NEEDS — RESOLVED AT RUNTIME BY KYBER-ROUTING' },
-      'kbui.crew.fbtitle': { kybernos: '↩ MODÈLE DE REPLI (FALLBACK)', en: '↩ FALLBACK MODEL' },
+      'kbui.crew.needs': { kybernos: 'Besoins — résolus à l’exécution par kyber-routing', en: 'Needs — resolved at runtime by kyber-routing' },
+      'kbui.crew.fbtitle': { kybernos: '↩ Modèle de repli (fallback)', en: '↩ Fallback model' },
       'kbui.crew.fbnone': { kybernos: 'aucun fallback défini.', en: 'no fallback available.' },
       'kbui.crew.fbnote': { kybernos: 'Choix manuel — servi si le modèle principal échoue. Définis-le avec ↩ sur une carte modèle.', en: 'Manual choice — served when the primary model fails. Set it with ↩ on a model card.' },
-      'kbui.crew.details': { kybernos: 'MODÈLE SÉLECTIONNÉ — DÉTAILS', en: 'SELECTED MODEL — DETAILS' },
-      'kbui.crew.mods': { kybernos: 'ENTRÉE → SORTIE', en: 'INPUT → OUTPUT' },
-      'kbui.crew.caps': { kybernos: 'CAPACITÉS', en: 'CAPABILITIES' },
+      'kbui.crew.details': { kybernos: 'Modèle sélectionné — détails', en: 'Selected model — details' },
+      'kbui.crew.mods': { kybernos: 'Entrée → sortie', en: 'Input → output' },
+      'kbui.crew.caps': { kybernos: 'Capacités', en: 'Capabilities' },
       'kbui.crew.cap.tool': { kybernos: 'Appel d’outils', en: 'Tool calling' },
       'kbui.crew.cap.reasoning': { kybernos: 'Raisonnement', en: 'Reasoning' },
       'kbui.crew.cap.attach': { kybernos: 'Pièces jointes', en: 'Attachments' },
@@ -1871,26 +2017,26 @@ let kbLocaleRead = () => 'en'
       'kbw.confirm': { kybernos: 'Confirmer', en: 'Confirm' },
       'kbw.enabled': { kybernos: 'Widget activé', en: 'Widget enabled' },
       'kbw.off': { kybernos: 'Widget en pause — l’embed n’affiche rien', en: 'Widget paused — the embed shows nothing' },
-      'kbw.label': { kybernos: 'NOM INTERNE', en: 'INTERNAL NAME' },
-      'kbw.slug': { kybernos: 'SLUG — IDENTITÉ PUBLIQUE', en: 'SLUG — PUBLIC IDENTITY' },
+      'kbw.label': { kybernos: 'Nom interne', en: 'Internal name' },
+      'kbw.slug': { kybernos: 'Slug — identité publique', en: 'Slug — public identity' },
       'kbw.slug.hint': { kybernos: 'Unique dans cette Agent Team : c’est l’identité de la porte, pour le lien et le widget.', en: 'Unique within this agent team: it is the identity of the door, for the link and the widget.' },
       'kbw.slug.dup': { kybernos: 'Ce slug est déjà pris par un autre widget.', en: 'This slug is already taken by another widget.' },
       'kbw.slug.bad': { kybernos: 'Lettres minuscules, chiffres et tirets — 2 à 40 caractères.', en: 'Lowercase letters, digits and dashes — 2 to 40 characters.' },
-      'kbw.appearance': { kybernos: 'APPARENCE', en: 'APPEARANCE' },
-      'kbw.colour': { kybernos: 'COULEUR', en: 'COLOUR' },
-      'kbw.position': { kybernos: 'POSITION', en: 'POSITION' },
+      'kbw.appearance': { kybernos: 'Apparence', en: 'Appearance' },
+      'kbw.colour': { kybernos: 'Couleur', en: 'Colour' },
+      'kbw.position': { kybernos: 'Position', en: 'Position' },
       'kbw.pos.r': { kybernos: 'Bas droite', en: 'Bottom right' },
       'kbw.pos.l': { kybernos: 'Bas gauche', en: 'Bottom left' },
-      'kbw.message': { kybernos: 'MESSAGE', en: 'MESSAGE' },
+      'kbw.message': { kybernos: 'Message', en: 'Message' },
       'kbw.title': { kybernos: 'Titre affiché', en: 'Displayed title' },
       'kbw.greeting': { kybernos: "Message d'accueil", en: 'Greeting' },
-      'kbw.legal': { kybernos: 'LÉGAL & CONFORMITÉ — TES CONDITIONS', en: 'LEGAL & COMPLIANCE — YOUR TERMS' },
+      'kbw.legal': { kybernos: 'Légal & conformité — tes conditions', en: 'Legal & compliance — your terms' },
       'kbw.gate': { kybernos: 'Compte Kybernos requis — le visiteur se connecte et accepte ces conditions avant de discuter.', en: 'Kybernos account required — the visitor signs in and accepts these terms before chatting.' },
       'kbw.terms': { kybernos: 'URL conditions de service', en: 'Terms of service URL' },
       'kbw.privacy': { kybernos: 'URL politique de confidentialité', en: 'Privacy policy URL' },
       'kbw.footer': { kybernos: 'Mention légale — affichée sous le widget', en: 'Legal footer — shown under the widget' },
-      'kbw.preview': { kybernos: 'APERÇU', en: 'PREVIEW' },
-      'kbw.embed': { kybernos: 'EMBED — UNE LIGNE, N’IMPORTE QUEL SITE', en: 'EMBED — ONE LINE, ANY SITE' },
+      'kbw.preview': { kybernos: 'Aperçu', en: 'Preview' },
+      'kbw.embed': { kybernos: 'Embed — une ligne, n’importe quel site', en: 'Embed — one line, any site' },
       'kbw.copy': { kybernos: 'Copier', en: 'Copy' },
       'kbw.copied': { kybernos: 'Copié ✓', en: 'Copied ✓' },
       'kbw.save': { kybernos: 'Enregistrer le widget', en: 'Save widget' },
@@ -1918,7 +2064,7 @@ let kbLocaleRead = () => 'en'
       'kbui.quality.boucle': { kybernos: 'Boucle question → réponse → critique', en: 'Question → answer → critique loop' },
       'kbui.quality.defi': { kybernos: 'Défi : 3 modèles en relais', en: 'Challenge: 3 models in relay' },
       'kbui.quality.sources': { kybernos: 'Sources et réserves', en: 'Sources and caveats' },
-      'kbui.ins.sub': { kybernos: 'Ce que cette Agent Team a réellement fait : exécutions, sessions, tokens, économies. Chaque chiffre vient du ledger de l’Agent Team, des journaux de session ou des sauvegardes de kyber.yml — aucune donnée de démonstration.', en: 'What this Agent Team actually did: executions, sessions, tokens, savings. Every number comes from the Agent Team’s ledger, the session journals or the kyber.yml backups — no demo data.' },
+      'kbui.ins.sub': { kybernos: 'Ce que cette Agent Team a réellement fait : exécutions, sessions, tokens, économies. Chaque chiffre vient du ledger de l’Agent Team, des journaux de session ou des sauvegardes du fichier de l’équipe — aucune donnée de démonstration.', en: 'What this Agent Team actually did: executions, sessions, tokens, savings. Every number comes from the Agent Team’s ledger, the session journals or the team file’s backups — no demo data.' },
       'kbui.ins.period': { kybernos: 'Période', en: 'Period' },
       'kbui.ins.d7': { kybernos: '7 derniers jours', en: 'Last 7 days' },
       'kbui.ins.d30': { kybernos: '30 derniers jours', en: 'Last 30 days' },
@@ -1926,13 +2072,13 @@ let kbLocaleRead = () => 'en'
       'kbui.ins.refresh': { kybernos: 'Rafraîchir', en: 'Refresh' },
       'kbui.ins.loading': { kybernos: 'Lecture du ledger et des journaux…', en: 'Reading the ledger and journals…' },
       'kbui.ins.key': { kybernos: 'Indicateurs clés', en: 'Key metrics' },
-      'kbui.ins.runs': { kybernos: 'RUNS TOTAUX', en: 'TOTAL RUNS' },
+      'kbui.ins.runs': { kybernos: 'Runs totaux', en: 'Total runs' },
       'kbui.ins.runs.sub': { kybernos: 'Exécutions d’agents', en: 'Agent executions' },
-      'kbui.ins.users': { kybernos: 'UTILISATEURS UNIQUES', en: 'UNIQUE USERS' },
+      'kbui.ins.users': { kybernos: 'Utilisateurs uniques', en: 'Unique users' },
       'kbui.ins.users.sub': { kybernos: 'Sessions distinctes', en: 'Distinct sessions' },
-      'kbui.ins.last': { kybernos: 'DERNIER RUN', en: 'LAST RUN' },
+      'kbui.ins.last': { kybernos: 'Dernier run', en: 'Last run' },
       'kbui.ins.last.none': { kybernos: 'Aucune activité', en: 'No activity yet' },
-      'kbui.ins.versions': { kybernos: 'VERSIONS PUBLIÉES', en: 'PUBLISHED VERSIONS' },
+      'kbui.ins.versions': { kybernos: 'Versions publiées', en: 'Published versions' },
       'kbui.ins.versions.sub': { kybernos: 'Versions enregistrées', en: 'Versions saved' },
       'kbui.ins.usage': { kybernos: 'Graphiques d’usage', en: 'Usage charts' },
       'kbui.ins.usage.users': { kybernos: 'Utilisateurs', en: 'Users' },
@@ -1954,10 +2100,10 @@ let kbLocaleRead = () => 'en'
       'kbui.ins.llm.cost.sub': { kybernos: 'USD / appel', en: 'USD / call' },
       'kbui.ins.llm.none': { kybernos: 'Aucune mesure', en: 'No data' },
       'kbui.ins.roi': { kybernos: 'Productivité & ROI', en: 'Productivity & ROI' },
-      'kbui.ins.hours.day': { kybernos: 'HEURES / JOUR', en: 'HOURS / DAY' },
+      'kbui.ins.hours.day': { kybernos: 'Heures / jour', en: 'Hours / day' },
       'kbui.ins.hours.day.sub': { kybernos: 'Temps actif estimé', en: 'Estimated active time' },
-      'kbui.ins.hours.week': { kybernos: 'HEURES / SEMAINE', en: 'HOURS / WEEK' },
-      'kbui.ins.hours.month': { kybernos: 'HEURES / MOIS', en: 'HOURS / MONTH' },
+      'kbui.ins.hours.week': { kybernos: 'Heures / semaine', en: 'Hours / week' },
+      'kbui.ins.hours.month': { kybernos: 'Heures / mois', en: 'Hours / month' },
       'kbui.ins.hours.reset': { kybernos: 'Revenir à l’estimation', en: 'Reset to estimate' },
       'kbui.ins.sim': { kybernos: 'Simulateur d’économie', en: 'Economy simulator' },
       'kbui.ins.sim.country': { kybernos: 'Pays', en: 'Country' },
@@ -2644,6 +2790,31 @@ try {
 } catch (e) { /* no document: tests */ }
 // </kb-html-lang>
 
+// <kb-session-row-tip>
+// A session's name is cut by CSS (the engine scrolls it on hover but sets no native tooltip): copy the full name into
+// the row's `title`, plugin side, so the name is readable without patching the engine.
+try {
+  if (typeof document !== 'undefined' && typeof MutationObserver === 'function') {
+    let kbRowTipTimer = null
+    const kbRowTips = () => {
+      try {
+        for (const row of document.querySelectorAll('[data-row-key^="session:"]')) {
+          if (row.getAttribute('title')) continue
+          const span = row.querySelector('[class*="title"]')
+          const txt = span !== null && span.textContent !== null ? String(span.textContent).trim() : ''
+          if (txt !== '') row.setAttribute('title', txt)
+        }
+      } catch (e) { /* the list moved on */ }
+    }
+    kbRowTips()
+    new MutationObserver(() => {
+      if (kbRowTipTimer !== null) return
+      kbRowTipTimer = setTimeout(() => { kbRowTipTimer = null; kbRowTips() }, 250)
+    }).observe(document.body, { childList: true, subtree: true })
+  }
+} catch (e) { /* no document: tests */ }
+// </kb-session-row-tip>
+
 // <kb-rtl-bidi>
 // A text the page has no translation for (a skill's description from its repository, an English label of a plugin page) stays English inside a mirrored
 // right-to-left page (A2-26): in the RTL paragraph its final full stop jumped to the start of the line (« .and forms included »). `unicode-bidi:
@@ -2692,11 +2863,11 @@ const KB_NAV_KEYS = {
   general: 'general', 'kybernos-theme': 'theme', 'kybernos-language': 'language', 'kybernos-memory': 'memory & lessons', models: 'models',
   'kbac-appearance': 'appearance',
   'kybernos-maintenance': 'about', 'kybernos-servers': 'servers', 'kybernos-auto-page': 'auto routing', 'kybernos-websearch-page': 'web search',
-  plugins: 'built-in plugins', 'kybernos-atlas': 'atlas', 'kybernos-models': 'ai provider & models',
+  plugins: 'built-in plugins', 'kybernos-atlas': 'atlas', 'kybernos-models': 'ai provider and models',
   'agent-presets': 'agent presets', voice: 'voice', 'kybernos-slash': 'commands', 'kybernos-ollama': 'ollama local models',
   'kybernos-suite': 'kybernos suite', 'kybernos-tools': 'tools', 'kybernos-workers': 'workers', 'kybernos-call': 'calls',
   // The pages the Suite's bundles add (their section id is the cell's key in every language).
-  'kybernos-usage': 'usage', 'kybernos-automations': 'automations', 'kybernos-skills': 'skills', 'kybernos-composio': 'connectors', 'kybernos-free-llms': 'free llms', 'kybernos-mobile': 'remote control',
+  'kybernos-usage': 'usage', 'kybernos-automations': 'automations', 'kybernos-skills': 'skills', 'kybernos-composio': 'connectors', 'kybernos-free-llms': 'free llms', 'kybernos-mobile': 'phone and channels',
   'kybernos-computers': 'cloud computers',
   // What stays on this computer (custom instructions, models re-import, DSH chats): kybernos-cloud's section.
   'kybernos-local': 'kybernos',
@@ -2786,8 +2957,8 @@ const KB_SS_INDEX = [
   ['kybernos', '', 'Custom instructions', 'Kept on this computer: every agent reads them, in new chats.', '', 'instructions personnalisees consignes regles prompt systeme agents md preferences style'],
   ['kybernos', '', 'Models', 'The list updates by itself when your plan or your server changes.', '', 'modeles liste plan'],
 
-  ['ai provider & models', '', 'Add provider', '', '', 'cle api api key fournisseur openai anthropic deepseek jeton token ajouter proveedor erreur panne hors service sante health indisponible'],
-  ['ai provider & models', '', 'Kybernos Cloud', '', 'manage kybernos cloud', 'compte cloud abonnement forfait'],
+  ['ai provider and models', '', 'Add provider', '', '', 'cle api api key fournisseur openai anthropic deepseek jeton token ajouter proveedor erreur panne hors service sante health indisponible'],
+  ['ai provider and models', '', 'Kybernos Cloud', '', 'manage kybernos cloud', 'compte cloud abonnement forfait'],
   ['auto routing', '', 'Automatic routing', 'On: Auto is used in every session. Off: you turn it on per session, from the model menu in the composer.', '', 'routage automatique choix modele bascule routeur'],
   ['auto routing', '', 'Models Auto may use', 'Only the models you pick below. The list order is the fallback order.', 'all models free models my list', 'secours fallback liste modeles autorises'],
   ['free llms', '', 'Available free models', 'Free models, no account or API key.', 're-check', 'gratuit sans cle opencode gratis'],
@@ -2808,7 +2979,7 @@ const KB_SS_INDEX = [
   ['tools', '', 'Profile', 'Enable experimental capabilities and connect external tools to a DSH profile.', '', 'mcp outils experimental profil connexions herramientas'],
   ['connectors', '', 'Composio key', 'Your personal Composio key: it drives this tab and the chat agents.', 'save clear', 'cle api api key gmail slack notion applications integrations clave'],
   ['connectors', '', 'Kybernos Cloud', 'Connections are handled by your Kybernos account: no key to manage, and your accounts follow you across your devices.', 'paid plans', 'compte applications integrations abonnement'],
-  ['web search', '', 'Default engine', 'Agents try it first.', 'brave search exa duckduckgo wikipedia', 'moteur de recherche navigateur web internet buscador cle api api key ordre moteurs', '', 'DEFAULT'],
+  ['web search', '', 'Default engine', 'Agents try it first.', 'brave search exa duckduckgo wikipedia', 'moteur de recherche navigateur web internet buscador cle api api key ordre moteurs', '', 'Default'],
   ['web search', '', 'Sites', 'One per line or comma separated. “example.com” keeps only that site.', '', 'domaines sites autorises liste blanche filtre'],
 
   ['voice', '', 'Composer microphone', 'This plugin’s dictation mic takes the place of the native one, just before Send.', 'kybernos native dsh', 'micro dictee saisie vocale microfono'],
@@ -2818,7 +2989,9 @@ const KB_SS_INDEX = [
 
   ['servers', '', 'Add a server', '', '', 'serveur servidor equipe team entreprise self hosted reseau adresse address ajouter connecter'],
   ['cloud computers', '', 'API key', 'Stored on this machine, never shown again. Code and files the agent sends to a cloud computer go to E2B.', 'save', 'cle api api key e2b bac a sable sandbox execution cloud clave'],
-  ['remote control', '', 'Link a phone', 'Drive this computer from your phone: scan the code, that is all.', 'show the qr allow', 'telephone mobile qr code telecommande smartphone movil', '', 'Link a phone in three steps'],
+  ['phone and channels', '', 'Open my computer on my phone', '', 'add a phone show the qr allow', 'telephone mobile qr code telecommande smartphone movil remote control controle a distance'],
+  ['phone and channels', '', 'Talk to Kaby on a messaging app', '', 'telegram whatsapp wechat imessage', 'messagerie canal bot kaby mensajeria'],
+  ['phone and channels', '', 'Link a phone', '', '', 'appairer relier telephone scanner code qr smartphone movil', '', 'Link a phone in three steps'],
 
   ['atlas', '', 'Update', 'The Atlas reads your files and plugins only when you ask.', '', 'carte graphe relations projets cartographie mapa'],
   ['kybernos suite', '', 'Check for updates', '', '', 'plugins modules extensions installer catalogue'],
@@ -2828,13 +3001,13 @@ const KB_SS_INDEX = [
 ]
 // What people call a page, by its key: found by « voix » when the page is called Voice.
 const KB_SS_PAGE_KW = {
-  'ai provider & models': 'modeles fournisseurs cle api openai', 'auto routing': 'routage routeur choix modele secours', 'free llms': 'gratuit gratis',
+  'ai provider and models': 'modeles fournisseurs cle api openai', 'auto routing': 'routage routeur choix modele secours', 'free llms': 'gratuit gratis',
   'ollama local models': 'local hors ligne offline gpu', usage: 'consommation quota forfait cout', 'agent presets': 'agent mode persona', workers: 'assistants code delegation cli',
   automations: 'planification taches cron', commands: 'slash raccourcis prompts', skills: 'competences habilidades', tools: 'outils mcp',
   connectors: 'integrations applications gmail slack', 'web search': 'recherche internet moteur navigateur', 'memory & lessons': 'memoire memoria souvenirs lecons',
   kybernos: 'instructions consignes', atlas: 'carte graphe', voice: 'voix voz micro dictee audio', calls: 'appels telephone visio',
   appearance: 'apparence aspecto mode sombre clair', theme: 'couleurs palette fond police', language: 'langue idioma traduction', servers: 'serveurs equipe reseau',
-  'cloud computers': 'sandbox bac a sable e2b', 'remote control': 'telephone mobile qr telecommande', 'kybernos suite': 'plugins modules extensions',
+  'cloud computers': 'sandbox bac a sable e2b', 'phone and channels': 'telephone mobile qr telecommande messagerie telegram whatsapp', 'kybernos suite': 'plugins modules extensions',
   'built-in plugins': 'plugins integres', about: 'a propos version licence mise a jour'
 }
 // What the page draws in French: page|label of a row -> [label, description, text to go to when it is not the label]. A row the French menu draws in
@@ -2873,8 +3046,8 @@ const KB_SS_FR = {
   'memory & lessons|Lessons learned': ['Leçons apprises', ''],
   'kybernos|Custom instructions': ['Instructions personnalisées', 'Gardées sur cet ordinateur : tous les agents les lisent, dans les nouvelles conversations.'],
   'kybernos|Models': ['Modèles', 'La liste se met à jour toute seule quand ta formule ou ton serveur change.'],
-  'ai provider & models|Add provider': ['Ajouter un fournisseur', ''],
-  'ai provider & models|Kybernos Cloud': ['Kybernos Cloud', ''],
+  'ai provider and models|Add provider': ['Ajouter un fournisseur', ''],
+  'ai provider and models|Kybernos Cloud': ['Kybernos Cloud', ''],
   'auto routing|Automatic routing': ['Routage automatique', 'Activé : Auto sert dans toutes les sessions. Désactivé : tu l’actives session par session, depuis le menu du modèle dans le composer.'],
   'auto routing|Models Auto may use': ['Modèles qu’Auto peut utiliser', 'Seulement les modèles que tu choisis ci-dessous. L’ordre de la liste est l’ordre de repli.'],
   'free llms|Available free models': ['Modèles gratuits disponibles', 'Des modèles gratuits, sans compte ni clé API.'],
@@ -2892,7 +3065,7 @@ const KB_SS_FR = {
   'tools|Profile': ['Profil', 'Active des capacités expérimentales et branche des outils externes sur un profil DSH.'],
   'connectors|Composio key': ['Clé Composio', 'Ta clé personnelle Composio : elle pilote cet onglet ET les agents du chat.'],
   'connectors|Kybernos Cloud': ['Kybernos Cloud', 'Les connexions sont gérées par ton compte Kybernos : pas de clé à gérer, et tes comptes te suivent d’un appareil à l’autre.'],
-  'web search|Default engine': ['Moteur par défaut', 'Les agents l’essaient en premier.', 'PAR DÉFAUT'],
+  'web search|Default engine': ['Moteur par défaut', 'Les agents l’essaient en premier.', 'Par défaut'],
   'web search|Sites': ['Sites', 'Un par ligne ou séparés par des virgules. « exemple.com » ne garde que ce site.'],
   'voice|Composer microphone': ['Micro du composer', 'La dictée de ce plugin prend la place du micro natif, juste avant Envoyer.'],
   'voice|Read replies aloud as they arrive': ['Lire les réponses à voix haute à leur arrivée', ''],
@@ -2900,7 +3073,9 @@ const KB_SS_FR = {
   'calls|Calls': ['Appels', 'Parler en direct à ton assistant ou à un membre de ton équipe, à voix haute, depuis n’importe quelle session.'],
   'servers|Add a server': ['Ajouter un serveur', ''],
   'cloud computers|API key': ['Clé API', 'Stockée sur cette machine, jamais affichée de nouveau. Le code et les fichiers que l’agent envoie à un ordinateur cloud partent chez E2B.'],
-  'remote control|Link a phone': ['Relier un téléphone', 'Pilote cet ordinateur depuis ton téléphone : scanne le code, c’est tout.', 'Relier un téléphone en trois étapes'],
+  'phone and channels|Open my computer on my phone': ['Ouvrir mon ordinateur sur mon téléphone', ''],
+  'phone and channels|Talk to Kaby on a messaging app': ['Parler à Kaby sur une messagerie', ''],
+  'phone and channels|Link a phone': ['Relier un téléphone', '', 'Relier un téléphone en trois étapes'],
   'atlas|Update': ['Mettre à jour', 'L’Atlas ne lit tes fichiers et tes plugins que lorsque tu le demandes.'],
   'kybernos suite|Check for updates': ['Rechercher des mises à jour', ''],
   'about|Check for updates automatically': ['Vérifier les mises à jour automatiquement', ''],
@@ -3291,10 +3466,8 @@ const KB_FR_EN = {
   'Accès micro refusé — autorise le micro pour cette page': 'Microphone access denied — allow the mic for this page',
   'Afficher le détail': 'Show the detail',
   'Afficher les points': 'Show the points',
-  'Aucun bloc `budget:` dans les kyber.yml du projet.': 'No `budget:` block in the project kyber.yml files.',
-  'Aucun budget déclaré par les Agent Teams de ce projet (bloc budget: du kyber.yml).': 'No budget declared by this project’s agent teams (budget: block of kyber.yml).',
+  'Aucune section budget dans les fichiers d’équipe du projet.': 'No budget section in the project’s team files.',
   'Aucun budget déclaré pour y rapporter cette dépense.': 'No declared budget to report this spend against.',
-  'Aucun document envoyé dans les threads de ce projet pour l’instant.': 'No document sent in this project’s threads for now.',
   'Aucune Agent Team n’a encore tourné dans les threads de ce projet.': 'No agent team has run in this project’s threads yet.',
   'La liste ci-dessous est le catalogue de compétences de l’environnement.': 'The list below is the environment’s skill catalog.',
   'Aucune compétence détectée dans l’environnement — installe une Agent Team qui en déclare, ou importe-en une depuis le dépôt.': 'No skill detected in the environment — install an agent team that declares one, or import one from the repository.',
@@ -3320,17 +3493,15 @@ const KB_FR_EN = {
   'erreur inconnue': 'unknown error',
   'Aucun micro détecté': 'No microphone detected',
   'Aucun micro ne correspond à ce périphérique': 'No microphone matches this device',
-  'Aucun objectif en cours dans les threads de ce projet.': 'No ongoing goal in this project’s threads.',
   'Aucun outil déclaré ni connexion réelle pour ce projet.': 'No declared tool and no real connection for this project.',
   'Aucun son capté pendant ': 'No sound captured for ',
-  'Aucun thread dans ce projet pour l’instant — ouvre un chat dans ce projet et il apparaitra ici.': 'No thread in this project for now — open a chat in this project and it will show up here.',
   'Aucune clé Composio configurée sur cette machine : aucune connexion réelle ne peut être listée.': 'No Composio key configured on this machine: no real connection can be listed.',
   'Aucune session': 'No session',
   'Aucune session courante — ouvre une conversation puis reviens ici.': 'No current session — open a conversation and come back here.',
   'Aucune session ne correspond.': 'No session matches.',
   'Aucune échéance déclarée.': 'No declared deadline.',
   'Bonne réponse : ': 'Correct answer: ',
-  'BUDGET DÉCLARÉ PAR LES AGENT TEAMS DU PROJET': 'BUDGET DECLARED BY THE PROJECT AGENT TEAMS',
+  'Budget déclaré par les agent teams du projet': 'Budget declared by the project agent teams',
   'Budget forecast 2026.xlsx': 'Budget forecast 2026.xlsx', // donnée de démo, pas un libellé
   'Budgets you can trust': 'Budgets you can trust', // donnée de démo, pas un libellé
   'Ce que l’Agent Team doit faire à chaque déclenchement…': 'What the Agent Team must do on every trigger…',
@@ -3370,7 +3541,7 @@ const KB_FR_EN = {
   'Le navigateur a suspendu l audio : reclique le micro (un clic sur la page suffit à l autoriser)': 'The browser suspended audio: click the mic again (a click on the page is enough to allow it)',
   'Lecture de l’inventaire…': 'Reading the inventory…',
   'Lecture des connexions Composio…': 'Reading the Composio connections…',
-  'Lecture des kyber.yml…': 'Reading the kyber.yml files…',
+  'Lecture des fichiers d’équipe…': 'Reading the team files…',
   'Les Agent Teams de ce projet ne déclarent aucun outil (connector).': 'This project’s agent teams declare no tool (connector).',
   'Lien copié (Hosted only)': 'Link copied (Hosted only)',
   'Micro ': 'Mic ',
@@ -3380,7 +3551,7 @@ const KB_FR_EN = {
   'Modifier les paramètres et régénérer': 'Change the settings and regenerate',
   'modèle': 'model',
   'Média illisible : aucun item dans ': 'Unreadable media: no item in ',
-  'NON CONNECTÉ': 'NOT CONNECTED',
+  'Non connecté': 'Not connected',
   'Note vocale rangée dans le workspace : ': 'Voice note filed in the workspace: ',
   'Nouvelle session introuvable : équipe non liée': 'New session not found: team not linked',
   'Objectifs': 'Goals',
@@ -3400,7 +3571,7 @@ const KB_FR_EN = {
   'réponse inattendue de /kybernos/voice/config': 'unexpected response from /kybernos/voice/config',
   'Résumé': 'Summary',
   'Résumé illisible : aucune section exploitable dans ': 'Unreadable summary: no usable section in ',
-  'SANS CLÉ': 'NO KEY',
+  'Sans clé': 'No key',
   'Goal atteint': 'Goal achieved',
   'Scène ': 'Scene ',
   'Skills, connectors and documents are workspace-level — attach them per project instead of rebuilding them per bot.': 'Skills, connectors and documents are workspace-level — attach them per project instead of rebuilding them per bot.', // donnée de démo, pas un libellé
@@ -3448,11 +3619,11 @@ const KB_FR_EN = {
   'Livrer la recette bêta P7': 'Ship the P7 beta recipe',
   'Publier les trois archives sous /beta/': 'Publish the three archives under /beta/',
   'Projet · sessions de ce chat': 'Project · sessions of this chat',
-  'Le nom du projet vient de la page Projets — aucun nom dans le payload : le slot reste visible dans le pré-message.': 'The project name comes from the Projects page — no name in the payload: the slot stays visible in the pre-message.',
+  'Le nom de l’espace de travail vient de la page Espaces de travail ; quand il n’y en a pas, l’emplacement reste visible mais vide.': 'The workspace name comes from the Workspaces page; when there is none, the slot stays visible but empty.',
   'Documents du projet : ': 'Project documents: ',
   'Synthèse de l\u2019espace : ': 'Workspace overview: ',
   ' — rien de plus n\u2019est inventé.': ' — nothing else is invented.',
-  'les lignes sans tag « ex. » viennent du payload project-data.': 'lines without the “ex.” tag come from the project-data payload.',
+  'les lignes sans tag « ex. » sont des données réelles.': 'the lines without the “ex.” tag are real data.',
   'Aucun budget n’est déclaré pour ce projet : le bloc montre un exemple rempli (tag ex.), jamais un budget inventé. ': 'No budget declared for this project: the block shows a filled example (tag ex.), never an invented budget. ',
   'ligne d’exemple — pas une donnée de production': 'example line — not production data',
   ' affichée': ' shown',
@@ -3471,7 +3642,7 @@ const KB_FR_EN = {
   'racine + session courante': 'root + current session',
   'jeu d\u2019exemple': 'example set',
   'Avertissements': 'Warnings',
-  'Entrées runs-index': 'runs-index entries',
+  'Exécutions enregistrées': 'Recorded runs',
   '200 dernières': 'last 200',
   'Sessions avec runs': 'Sessions with runs',
   'une entrée = une session': 'one entry = one session',
@@ -3479,7 +3650,7 @@ const KB_FR_EN = {
   'Vues cachées': 'Hidden views',
   'Vues cachées — choisir celle à remettre': 'Hidden views — pick one to restore',
   'Rétablir': 'Restore',
-  'project-data et runs-index n\u2019ont pas de filtre de période — les blocs montrent l\u2019état courant.': 'project-data and runs-index have no period filter — blocks show the current state.',
+  'Les deux blocs n\u2019ont pas de filtre de période : ils montrent l\u2019état courant.': 'Neither block has a period filter: both show the current state.',
   'Créer un Dashboard avec l’IA': 'Create a dashboard with AI',
   'Améliorer avec l’IA': 'Improve with AI',
   'Lecture — skill insight-principe': 'Reading — insight-principe skill',
@@ -3558,9 +3729,9 @@ const KB_FR_EN = {
   ' réserve de sources': ' source caveat',
   ' réserves ouvertes': ' open caveats',
   ' réserve ouverte': ' open caveat',
-  'aucun bloc budget: pour ce projet': 'no budget: block for this project',
+  'aucune section budget pour ce projet': 'no budget section for this project',
   'aucune deadline déclarée': 'no deadline declared',
-  'Aucun budget déclaré (bloc budget: absent) — ': 'No budget declared (budget: block absent) — ',
+  'Aucun budget déclaré (pas de section budget) — ': 'No budget declared (no budget section) — ',
   'Budget déclaré : ': 'Declared budget: ',
   ' — ': ' — ',
   'Équipe non liée à la session : ': 'Team not linked to the session: ',
@@ -3572,12 +3743,12 @@ const KB_FR_EN = {
   'Étape « ': 'Stage "',
   'fermer': 'close',
   'kyber.yml — texte brut': 'kyber.yml — raw text',
-  'PROPOSER UN KYBER.YML': 'PROPOSE A KYBER.YML',
+  'Proposer un fichier d’équipe': 'Propose a team file',
   'Décris le workflow en français — la proposition est relue en français (aller-retour) avant toute écriture.': 'Describe the workflow in French — the proposal is read back in French (round-trip) before anything is written.',
   'Ex : une équipe qui cadre une fonctionnalité, la spécifie, la teste, puis la vérifie en boucle jusqu’à convergence.': 'E.g. a team that frames a feature, specifies it, tests it, then checks it in a loop until convergence.',
-  'Proposer un kyber.yml': 'Propose a kyber.yml',
+  'Proposer un fichier d’équipe': 'Propose a team file',
   'Le modèle rédige la proposition…': 'The model is drafting the proposal…',
-  'Écriture du kyber.yml…': 'Writing kyber.yml…',
+  'Écriture du fichier de l’équipe…': 'Writing the team file…',
   'échec': 'failed',
   '✓ Écrit dans ': '✓ Written to ',
   ' — sauvegarde : ': ' — backup: ',
@@ -3590,7 +3761,7 @@ const KB_FR_EN = {
   'par élément': 'per item',
   'converge': 'converge',
   'adversarial': 'adversarial',
-  'Lecture du kyber.yml…': 'Reading kyber.yml…',
+  'Lecture du fichier de l’équipe…': 'Reading the team file…',
   // ── Complétude kbf (audit du 25/09 : 23 chaînes utilisées sans traduction) ─
   'Hôte injoignable': 'Host unreachable',
   'Détection impossible': 'Detection unavailable',
@@ -3615,10 +3786,10 @@ const KB_FR_EN = {
   'Taux USD → EUR': 'USD → EUR rate',
   'Échéance': 'Deadline',
   'budget déclaré par l’Agent Team « ': 'budget declared by agent team "',
-  ' » (bloc budget: du kyber.yml)': '" (budget: block of kyber.yml)',
+  ' » (section budget du fichier de l’équipe)': '" (budget section of the team file)',
   'consommés sur la période (tarifs models.dev)': 'consumed over the period (models.dev pricing)',
   'taux du payload (llm.usdEur)': 'rate from the payload (llm.usdEur)',
-  'Aucun budget déclaré par cette Agent Team (bloc budget: du kyber.yml) — l’affichage reste une absence, jamais un zéro maquillé.': 'No budget declared by this agent team (budget: block of kyber.yml) — the display stays an absence, never a dressed-up zero.',
+  'Aucun budget déclaré par cette Agent Team (section budget du fichier de l’équipe) — l’affichage reste une absence, jamais un zéro maquillé.': 'No budget declared by this agent team (budget section of the team file) — the display stays an absence, never a dressed-up zero.',
   'Bonne réponse (Quality Score)': 'Good answer (Quality Score)',
   'Bonne réponse': 'Good answer',
   'Réponse à améliorer (Quality Score)': 'Answer to improve (Quality Score)',
@@ -3788,7 +3959,7 @@ const KB_FR_EN = {
   'Lecture du journal…': 'Reading the journal…',
   'Aucun run réel pour cette session. Le journal se remplit quand un workflow tourne ici.': 'No real run for this session. The journal fills in when a workflow runs here.',
   'Sous-tâche courante · réel': 'Current sub-task · real',
-  'SOUS-TÂCHE': 'SUB-TASK',
+  'Sous-tâche': 'Sub-task',
   'Journal de la sous-tâche': 'Sub-task journal',
   // Creations dialog (full page, resize) and small labels that had no English entry
   'Plein écran': 'Full page',
@@ -3818,7 +3989,7 @@ const KB_FR_EN = {
   'Dézoomer': 'Zoom out',
   'bande bleue = période sélectionnée': 'blue band = selected period',
   'Étape · acteur · modèle': 'Step · actor · model',
-  ' · ÉTAPE ': ' · STEP ',
+  ' · Étape ': ' · Step ',
   'Entrée': 'Input',
   'Décision humaine requise': 'Human decision required',
   'Assignée à Sarah M. · échéance 01:14 · 2 approbateurs de secours': 'Assigned to Sarah M. · due 01:14 · 2 backup approvers',
@@ -3985,18 +4156,18 @@ const KB_FR_EN = {
   'Contexte du dashboard': 'Dashboard context',
   'en utilisant le skill \'insight-principe\', créer un dashboard pour ': 'using the skill \'insight-principe\', create a dashboard for ',
   'en utilisant le skill \'insight-principe\', améliorer le dashboard \'Vue ': 'using the skill \'insight-principe\', improve the dashboard \'View ',
-  'Payload project-data sur les sessions de ce chat (racine + session courante). Les lignes marquées « ex. » sont un jeu d’exemple : elles meublent l’écran et servent de test réel de rendu, pas une donnée de production.': 'Payload project-data on the sessions of this chat (root + current session). Lines marked “ex.” are an example set: they fill the screen and serve as a real rendering test, not production data.',
+  'Ce que cette conversation envoie à propos de ses espaces de travail (le dossier et la session en cours). Les lignes marquées « ex. » sont un jeu d’exemple : elles meublent l’écran et ne sont pas des données réelles.': 'What this chat sends about its workspaces (the folder and the current session). Lines marked “ex.” are an example set: they fill the screen and are not real data.',
   'Ce que l\'espace a produit': 'What the workspace produced',
   'première entrée': 'first entry',
   'runs-index muet': 'runs-index silent',
-  'GET /runs-index?limit=200 — entrées réelles du plugin. Les lignes marquées « ex. » sont un jeu d’exemple qui meuble l’écran et sert de test réel de rendu.': 'GET /runs-index?limit=200 — real entries of the plugin. Lines marked “ex.” are an example set that fills the screen and serves as a real rendering test.',
+  'Les exécutions réellement enregistrées par Kybernos. Les lignes marquées « ex. » sont un jeu d’exemple qui meuble l’écran et ne sont pas des données réelles.': 'The runs Kybernos really recorded. Lines marked “ex.” are an example set that fills the screen and is not real data.',
   'en utilisant le skill \'insight-principe\', créer un dashboard pour l’Agent Team \'': 'using the skill \'insight-principe\', create a dashboard for the Agent Team \'',
   '\' pour l’Agent Team \'': '\' for the Agent Team \'',
   'Cacher la vue': 'Hide the view',
   'Archiver la vue': 'Archive the view',
   'Cloner la vue': 'Clone the view',
   'Actions de la vue ': 'Actions of the view ',
-  'déclarée dans le kyber.yml': 'declared in the kyber.yml',
+  'déclarée dans le fichier de l’équipe': 'declared in the team file',
   ' jours, le simulateur annonce ': ' days, the simulator reports ',
   ' car.) mais topologie non reconnue': ' char.) but topology not recognised',
   'yml illisible par le lecteur local': 'yml unreadable by the local reader',
@@ -4008,10 +4179,10 @@ const KB_FR_EN = {
   ' absente du store': ' missing from the store',
   'le membre ne porte pas de sessionId': 'the member carries no sessionId',
   '(objectif sans intitulé)': '(untitled goal)',
-  'CONSOMMATION DE CETTE SESSION': 'USAGE OF THIS SESSION',
+  'Consommation de cette session': 'Usage of this session',
   'Le host ne remonte pas encore de consommation pour cette session.': 'The host does not report any usage for this session yet.',
   'Comment ces chiffres sont obtenus': 'How these figures are obtained',
-  'Budget : bloc `budget:` des kyber.yml des Agent Teams qui ont tourné dans les threads de ce projet. Consommation : usage réel remonté par le host pour la session courante. Aucune estimation, aucun graphe inventé.': 'Budget: the `budget:` block of the kyber.yml files of the Agent Teams that ran in the threads of this project. Usage: real usage reported by the host for the current session. No estimate, no invented graph.',
+  'Budget : section budget des fichiers d’équipe des Agent Teams qui ont tourné dans les threads de ce projet. Consommation : usage réel remonté par le host pour la session courante. Aucune estimation, aucun graphe inventé.': 'Budget: the budget section of the team files of the Agent Teams that ran in the threads of this project. Usage: real usage reported by the host for the current session. No estimate, no invented graph.',
   'Contenu binaire — pas d apercu textuel': 'Binary content — no text preview',
   'Au-dessus du plafond de 1,2 Mo': 'Above the 1.2 MB limit',
   'Quiz illisible : aucun item exploitable dans ': 'Unreadable quiz: no usable item in ',
@@ -4036,7 +4207,7 @@ const KB_FR_EN = {
   'Capture micro indisponible dans ce contexte': 'Microphone capture unavailable in this context',
   'Web Audio indisponible dans ce navigateur': 'Web Audio unavailable in this browser',
   'Capture PCM indisponible dans ce navigateur': 'PCM capture unavailable in this browser',
-  'lecture des kyber.yml…': 'reading the kyber.yml files…',
+  'lecture des fichiers d’équipe…': 'reading the team files…',
   'erreur : ': 'error: ',
   'lecture impossible': 'cannot read',
   'host TTS indisponible (': 'TTS host unavailable (',
@@ -4059,7 +4230,7 @@ const KB_FR_EN = {
   ' pièces': ' pieces',
   'Reste ': 'Remaining ',
   'Tes modèles': 'Your models',
-  'Le texte de la réponse est envoyé au fournisseur du modèle que tu choisis, avec la clé déjà configurée dans Fournisseur IA & modèles.': 'The reply text is sent to the provider of the model you choose, with the key already set up in AI Provider & Models.',
+  'Le texte de la réponse est envoyé au fournisseur du modèle que tu choisis, avec la clé déjà configurée dans Fournisseur IA et modèles.': 'The reply text is sent to the provider of the model you choose, with the key already set up in AI provider and models.',
   'hors tarif': 'unpriced',
   'date inconnue': 'unknown date',
   'sonde OK': 'probe OK',
@@ -4128,7 +4299,7 @@ const KB_FR_EN = {
   'Connecteur': 'Connector',
   'Humain': 'Human',
   'Attente humaine': 'Awaiting a human',
-  'HUMAIN': 'HUMAN',
+  'Humain': 'Human',
   'Chronologie': 'Timeline',
   'Graphe': 'Graph',
   'Analyse': 'Analysis',
@@ -4251,6 +4422,7 @@ const LUCIDE = {
   panelRight: ['M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2z', 'M15 3v18'],
   // Dashboards menu row (lucide layout-dashboard, rects written as paths).
   layoutDashboard: ['M4 3h5a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z', 'M15 3h5a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z', 'M15 12h5a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1h-5a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1z', 'M4 16h5a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1z'],
+  phone: ['M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z'],
   mic: ['M12 19v3', 'M19 10v2a7 7 0 0 1-14 0v-2', 'M9 5a3 3 0 0 1 6 0v7a3 3 0 0 1-6 0z'],
   volume: ['M11 5 6 9H2v6h4l5 4V5z', 'M15.54 8.46a5 5 0 0 1 0 7.07', 'M19.07 4.93a10 10 0 0 1 0 14.14'],
   play: ['M6 3 20 12 6 21V3z'],
@@ -4353,6 +4525,38 @@ const Icon = (name, size) => {
   if (d === null || d === undefined) return null
   return h('svg', { width: size === undefined ? 16 : size, height: size === undefined ? 16 : size, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true', style: { flex: 'none' } },
     d.map((p, i) => h('path', { d: p, key: i })))
+}
+
+// ── Catégories de sessions, pour l'onglet Threads d'un workspace ─────────
+// Le registre vit chez kybernos-sessions (GET /kybernos-sessions/categories,
+// sessionId → { cat: slug }). On le lit une fois par page et on le cache : la
+// vignette de chaque rangée reprend la sémantique du sidebar (icône de
+// catégorie + accent de couleur), au lieu d'un « sparkles » identique pour
+// tous. Maquette validée du 20/10/2026 (~/recettes/workspaces-2026-10-20).
+let kbWsCatPromise = null
+const kbWsCats = () => {
+  if (kbWsCatPromise === null) {
+    kbWsCatPromise = fetch('/kybernos-sessions/categories').then((r) => r.json())
+      .then((j) => (j !== null && j !== undefined && j.categories !== null && typeof j.categories === 'object') ? j.categories : {})
+      .catch(() => ({}))
+  }
+  return kbWsCatPromise
+}
+// slug (registre) → [icône LUCIDE, accent, libellé]. Les slugs anglais sont
+// acceptés en repli ; sans catégorie, une bulle neutre garde la rangée lisible.
+const KB_WS_CAT = {
+  fonctionnalite: ['wrench', '#8b5cf6', 'Feature'], feature: ['wrench', '#8b5cf6', 'Feature'],
+  correctif: ['pencil', '#ef4444', 'Fix'], fix: ['pencil', '#ef4444', 'Fix'],
+  ui: ['palette', '#ec4899', 'UI/design'], design: ['palette', '#ec4899', 'UI/design'],
+  integration: ['plug', '#06b6d4', 'Integration'],
+  documentation: ['fileText', '#3b82f6', 'Documentation'], doc: ['fileText', '#3b82f6', 'Documentation'],
+  donnees: ['chart', '#f59e0b', 'Data'], data: ['chart', '#f59e0b', 'Data'],
+  nettoyage: ['refresh', '#14b8a6', 'Cleanup'], cleanup: ['refresh', '#14b8a6', 'Cleanup'],
+  question: ['circleHelp', '#84cc16', 'Question'],
+}
+const kbWsCatOf = (slug) => {
+  const e = (typeof slug === 'string') ? KB_WS_CAT[slug.toLowerCase()] : undefined
+  return e !== undefined ? { icon: e[0], color: e[1], label: e[2], known: true } : { icon: 'messageCircle', color: 'var(--dsw-alias-label-secondary)', label: null, known: false }
 }
 // L'icône par défaut d'un Kyber vit ici, en UN seul endroit : le menu
 // « AI Teams », la fiche d'un Kyber sans icône, la nouvelle équipe et la
@@ -4476,6 +4680,100 @@ const kbLookColor = (color, onColor, opts) => {
       h('input', { type: 'color', 'aria-label': kbt('kbui.custom'), value: cur !== '' ? cur : KB_SWATCHES[0], onChange: (e) => onColor(e.target.value), className: 'kb8-colorwheel' }),
       h('input', { value: cur, placeholder: '#635bff', onChange: (e) => onColor(e.target.value), className: 'kb8-colorhex' })))
 }
+// <kb-icon-search>
+// The icon pickers match what the person types against the icon's name, its Lucide search words (icon-tags.json) and a table of French and
+// English concepts (« musculation », « argent ») that stand for those words (icon-concepts.json): both are served by /kybernos/icon-tags and
+// fetched when the person first types. « sport » used to find `sport-shoe` and nothing else (UX audit 2026-10-20). A concept line is
+// « words people type | words the icons carry ».
+let kbConceptsOf = null
+let kbConceptsMap = {}
+const kbConcepts = (lines) => {
+  if (Array.isArray(lines) === false) return {}
+  if (kbConceptsOf === lines) return kbConceptsMap
+  const m = {}
+  for (const line of lines) {
+    const cut = String(line).indexOf('|')
+    if (cut < 0) continue
+    const terms = String(line).slice(cut + 1).split(' ')
+    for (const key of String(line).slice(0, cut).split(' ')) if (key !== '') m[key] = (m[key] || []).concat(terms)
+  }
+  kbConceptsOf = lines
+  kbConceptsMap = m
+  return m
+}
+const kbIconNorm = (s) => String(s === null || s === undefined ? '' : s).toLowerCase().normalize('NFD').replace(/\p{M}/gu, '').trim()
+// The icons that answer `query`, best first. Every typed word must be found (name, search words, or a concept it stands for).
+// Rank: the name itself, its start, one of its words, a word of its search words; a concept counts for less than the word itself.
+const kbIconSearch = (query, names, words) => {
+  const typed = kbIconNorm(query).split(/\s+/).filter((w) => w.length > 0)
+  if (typed.length === 0 || Array.isArray(names) === false) return []
+  const bank = (words !== null && words !== undefined && words.tags !== null && typeof words.tags === 'object') ? words.tags : {}
+  const concepts = kbConcepts(words !== null && words !== undefined ? words.concepts : null)
+  const standFor = (w) => {
+    let extra = concepts[w]
+    if (extra === undefined && w.length > 3) extra = concepts[w.replace(/[sx]$/, '')]
+    if (extra === undefined && w.length >= 4) {
+      const hit = []
+      for (const k of Object.keys(concepts)) if (k.startsWith(w)) hit.push(...concepts[k])
+      if (hit.length > 0) extra = hit
+    }
+    return extra === undefined ? [] : extra
+  }
+  const plans = typed.map((w) => ({ w: w, extra: standFor(w) }))
+  const scored = []
+  for (const n of names) {
+    const parts = n.split('-')
+    const tw = typeof bank[n] === 'string' ? bank[n].split(' ') : []
+    const score = (t, weight) => {
+      let s = 0
+      if (n === t) s = 100
+      else if (n.startsWith(t)) s = 80
+      else if (parts.indexOf(t) >= 0) s = 70
+      else if (parts.some((p) => p.startsWith(t))) s = 60
+      else if (t.length >= 3 && n.indexOf(t) >= 0) s = 50
+      else if (tw.indexOf(t) >= 0) s = 40
+      else if (t.length >= 2 && tw.some((x) => x.startsWith(t))) s = 30
+      return s * weight
+    }
+    let total = 0
+    for (const p of plans) {
+      let best = score(p.w, 1)
+      // the first concept of a line is its heart (the dumbbell of « musculation »), the others its neighbours
+      p.extra.forEach((t, i) => { const v = score(t, i === 0 ? 0.5 : 0.3); if (v > best) best = v })
+      if (best === 0) { total = 0; break }
+      total += best
+    }
+    if (total > 0) scored.push([total, n])
+  }
+  scored.sort((a, b) => b[0] - a[0] || a[1].length - b[1].length || (a[1] < b[1] ? -1 : 1))
+  return scored.map((x) => x[1])
+}
+// </kb-icon-search>
+// The search words arrive when the person first types in a picker (about 150 KB: not sent with the list). Until then, or without the route (an
+// older host), the names are searched, ranked.
+let kbIconTagsData = null
+let kbIconTagsAsked = false
+const kbIconTagsListeners = []
+const kbLoadIconTags = () => {
+  if (kbIconTagsAsked === true) return
+  kbIconTagsAsked = true
+  try {
+    fetch(kbApiBase() + '/icon-tags', { cache: 'force-cache' }).then((r) => (r.ok ? r.json() : null)).then((body) => {
+      if (body === null || body === undefined || body.tags === null || typeof body.tags !== 'object' || Object.keys(body.tags).length === 0) return
+      kbIconTagsData = { tags: body.tags, concepts: Array.isArray(body.concepts) === true ? body.concepts : [] }
+      for (const f of kbIconTagsListeners.slice()) { try { f() } catch (e) { /* subscriber gone */ } }
+    }).catch(() => { /* the names alone */ })
+  } catch (e) { /* no fetch */ }
+}
+const kbUseIconTags = () => {
+  const pair = React.useState(kbIconTagsData)
+  React.useEffect(() => {
+    const f = () => pair[1](kbIconTagsData)
+    kbIconTagsListeners.push(f)
+    return () => { const i = kbIconTagsListeners.indexOf(f); if (i >= 0) kbIconTagsListeners.splice(i, 1) }
+  }, [])
+  return pair[0]
+}
 const kbLookIcon = (opts) => {
   const o = (opts !== null && opts !== undefined) ? opts : {}
   const all = (Array.isArray(o.icons) === true) ? o.icons : []
@@ -4483,10 +4781,10 @@ const kbLookIcon = (opts) => {
   const q2 = q.trim().toLowerCase()
   // Liste vide = on montre la sélection courte du produit (sinon la grille est
   // muette tant que `icons.json` n'est pas arrivé).
-  const shown = (all.length === 0) ? KB_DEFAULT_ICONS : (q2 === '' ? KB_DEFAULT_ICONS.filter((n) => all.indexOf(n) >= 0) : all.filter((n) => n.indexOf(q2) >= 0).slice(0, 300))
+  const shown = (all.length === 0) ? KB_DEFAULT_ICONS : (q2 === '' ? KB_DEFAULT_ICONS.filter((n) => all.indexOf(n) >= 0) : kbIconSearch(q2, all, o.words).slice(0, 300))
   return h('div', { className: 'kb8-look' },
     h('div', { className: 'kb8-search', style: { height: '40px' } }, Icon('search', 14),
-      h('input', { value: q, onChange: (e) => o.onQuery(e.target.value), placeholder: kbt('kbui.search') + all.length + kbt('kbui.icons.suffix') })),
+      h('input', { value: q, onChange: (e) => { if (e.target.value.trim() !== '') kbLoadIconTags(); o.onQuery(e.target.value) }, placeholder: kbt('kbui.search') + all.length + kbt('kbui.icons.suffix') })),
     h('div', { className: 'kb8-iconpick' }, shown.map((n) => h('button', {
       // The chosen icon takes the colour that was picked (the pale ground, the glyph in that colour), as on every other tile.
       type: 'button', key: n, title: n, className: 'kb8-iconbtn' + (o.icon === n ? ' on' + (kbCfVars(o.color) !== null ? ' col' : '') : ''), style: (o.icon === n && kbCfVars(o.color) !== null) ? kbCfVars(o.color) : undefined, onClick: () => o.onPick(n),
@@ -4711,7 +5009,7 @@ const kbConnRowsOf = (connsReal, declaredTools, hit) => {
     if (hit(d.name + ' ' + d.kyber) === false) continue
     connRows.push({
       key: 'decl/' + d.key, name: d.name, meta: d.kyber + ' · ' + d.role + kbe(' · declared, not connected'),
-      state: connsReal !== null && connsReal.configured === false ? kbe('NO KEY') : kbe('NOT CONNECTED'),
+      state: connsReal !== null && connsReal.configured === false ? kbe('No key') : kbe('Not connected'),
       real: false, slug: d.slug, account: null,
     })
   }
@@ -4849,7 +5147,7 @@ const kbVisagesCard = (props) => {
   })()
   const appels = mode === 'person' ? Math.max(1, Math.min(9, roles.length)) : 1
   const cout = (prix === null) ? null : (appels * prix)
-  const lab = { fontSize: '11px', letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--dsw-alias-label-secondary)' }
+  const lab = { fontSize: '11px', color: 'var(--dsw-alias-label-secondary)' }
   const segStyle = (actif) => ({ display: 'inline-flex', alignItems: 'center', gap: '7px', height: '30px', padding: '0 12px', borderRadius: '999px', border: '1px solid ' + (actif === true ? 'var(--dsw-alias-state-error-primary)' : 'var(--dsw-alias-border-l1)'), background: actif === true ? 'color-mix(in srgb, var(--dsw-alias-state-error-primary) 10%, transparent)' : 'var(--dsw-alias-bg-layer-1)', color: actif === true ? 'var(--dsw-alias-state-error-primary)' : 'var(--dsw-alias-label-secondary)', fontSize: '12px', fontWeight: actif === true ? 600 : 500, cursor: busy ? 'not-allowed' : 'pointer', font: 'inherit', opacity: busy ? 0.6 : 1 })
   const modeLbl = (m) => kbt(m === 'person' ? 'kbui.visages.mode.person' : 'kbui.visages.mode.group')
   const enfants = []
@@ -5877,6 +6175,7 @@ const kbCloneDefinition = (t, name) => ({
   active: false,
   approvals: t.approvals === 'auto' ? 'auto' : 'ask',
   notify: Array.isArray(t.notify) ? t.notify : [],
+  workspaceHint: typeof t.workspaceHint === 'string' && t.workspaceHint.length > 0 ? t.workspaceHint : null,
 })
 // The trigger line of the read-only code view: the automation's own zone and kind (it said Europe/Paris and cron: "" for everything).
 const kbTaskTriggerCode = (sc) => {
@@ -5934,7 +6233,7 @@ const KB_TASK_ERRORS = {
   'invalid one-off date': 'tasks.err.date', 'unknown time zone': 'tasks.err.tz', 'that date is in the past': 'tasks.err.past',
   'this schedule never fires': 'tasks.err.never', 'sign-in required': 'tasks.err.signin', 'request body too large': 'tasks.err.large',
   'task not found': 'tasks.err.notfound', 'active must be true or false': 'tasks.err.active', 'automation paused': 'tasks.err.paused',
-  'frequent schedule': 'tasks.err.frequent',
+  'frequent schedule': 'tasks.err.frequent', 'invalid workspace': 'tasks.err.workspace',
 }
 const kbTaskError = (message, tr) => (Object.prototype.hasOwnProperty.call(KB_TASK_ERRORS, message) === true ? tr(KB_TASK_ERRORS[message]) : String(message))
 // KB-TASKS-CLIENT-END
@@ -5956,7 +6255,7 @@ const KB_BOARD_OVERDUE_MS = 180000
 const KB_BOARD_DAY_MS = 86400000
 const kbBoardPad = (n) => (n < 10 ? '0' + String(n) : String(n))
 // `cards` is what the shared toolbar stored before this page had three views: it reads as `list`, the old screen.
-const kbBoardView = (mode) => (mode === 'columns' || mode === 'calendar' ? mode : 'list')
+const kbBoardView = (mode) => (mode === 'columns' || mode === 'calendar' || mode === 'cards' ? mode : 'list')
 const kbBoardFmts = new Map()
 const kbBoardFmt = (zone) => {
   const key = typeof zone === 'string' ? zone : ''
@@ -6213,6 +6512,478 @@ const kbBoardReason = (pending, lang) => {
   return typeof pending.toolName === 'string' ? pending.toolName : ''
 }
 // KB-AUTOBOARD-END
+
+// KB-AUTORUNS-BEGIN
+// The runs of one automation, as the Sessions and Journal views show them. Pure: the page hands over the stored history and the
+// summaries the host read from the engine's journals (GET /kybernos/tasks/runs), and gets back what to draw. It claims nothing the
+// journal does not say: a run whose journal could not be read is « not read », never « completed ».
+//
+// `tasks.json` keeps one history line per firing (it carries the session id) AND, when a run failed, a line the run wrote about
+// itself after the fact (no session id). A run is the session; the failure line is a note on it, so it joins the run it follows.
+const KB_RUNS_NOTE_WINDOW_MS = 10 * 60 * 1000
+const KB_RUNS_GRAPH_TOOLS = 6
+
+/** The history of an automation → its runs, newest first. */
+const kbRunsOf = (history) => {
+  const list = Array.isArray(history) === true ? history : []
+  const entries = []
+  for (const e of list) {
+    if (e === null || typeof e !== 'object') continue
+    const ms = new Date(e.at).getTime()
+    entries.push({
+      at: typeof e.at === 'string' ? e.at : '',
+      ms: Number.isFinite(ms) === true ? ms : null,
+      sessionId: typeof e.sessionId === 'string' && e.sessionId.length > 0 ? e.sessionId : null,
+      status: typeof e.status === 'string' ? e.status : 'fired',
+      via: typeof e.via === 'string' ? e.via : '',
+      error: typeof e.error === 'string' && e.error.length > 0 ? e.error : null,
+    })
+  }
+  entries.sort((a, b) => (a.ms === null ? Infinity : a.ms) - (b.ms === null ? Infinity : b.ms))
+  const runs = []
+  for (const e of entries) {
+    if (e.sessionId !== null) { runs.push({ at: e.at, ms: e.ms, sessionId: e.sessionId, via: e.via, status: e.status, error: e.error, noted: false }); continue }
+    if (e.status === 'error' && e.ms !== null) {
+      let host = null
+      for (let i = runs.length - 1; i >= 0; i -= 1) {
+        const r = runs[i]
+        if (r.ms !== null && e.ms - r.ms > KB_RUNS_NOTE_WINDOW_MS) break
+        if (r.sessionId !== null && r.ms !== null && r.ms <= e.ms && r.noted === false) { host = r; break }
+      }
+      if (host !== null) { host.status = 'error'; host.error = e.error; host.noted = true; continue }
+    }
+    runs.push({ at: e.at, ms: e.ms, sessionId: null, via: e.via, status: e.status, error: e.error, noted: false })
+  }
+  return runs.reverse()
+}
+
+/** A duration for a person: « 6.5 s », « 35 s », « 7 min », « 1.2 h ». */
+const kbRunFmtDur = (ms) => {
+  if (typeof ms !== 'number' || Number.isFinite(ms) !== true || ms < 0) return '—'
+  const s = ms / 1000
+  if (s < 10) return (Math.round(s * 10) / 10) + ' s'
+  if (s < 90) return Math.round(s) + ' s'
+  const m = s / 60
+  if (m < 90) return Math.round(m) + ' min'
+  return (Math.round(m / 6) / 10) + ' h'
+}
+
+/** A size for a person: « 12 B », « 1.8 KB », « 2.4 MB ». */
+const kbRunFmtBytes = (n) => {
+  if (typeof n !== 'number' || Number.isFinite(n) !== true || n < 0) return ''
+  if (n < 1000) return Math.round(n) + ' B'
+  if (n < 1e6) return (Math.round(n / 100) / 10) + ' KB'
+  return (Math.round(n / 1e5) / 10) + ' MB'
+}
+
+/** « Oct 19, 16:19 » (short) or « Mon, Oct 19, 2026, 16:19:08 » (long), in the browser's zone and the page's language. */
+const kbRunFmtDT = (iso, locale, long) => {
+  const ms = new Date(iso).getTime()
+  if (Number.isFinite(ms) !== true) return '—'
+  try {
+    return new Intl.DateTimeFormat(locale || 'en', long === true
+      ? { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }
+      : { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(ms))
+  } catch (e) { return new Date(ms).toISOString() }
+}
+
+/** « 16:19 » in the browser's zone and the page's language. */
+const kbRunFmtHm = (iso, locale) => {
+  const ms = new Date(iso).getTime()
+  if (Number.isFinite(ms) !== true) return ''
+  try { return new Intl.DateTimeFormat(locale || 'en', { hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(ms)) } catch (e) { return '' }
+}
+
+/** How a run stands: 'failed' | 'completed' | 'running' | 'unread'. The history's own « error » or the engine's error verdict makes it failed. */
+const kbRunState = (run, sum) => {
+  if (run !== null && run !== undefined && run.status === 'error') return 'failed'
+  const st = sum !== null && sum !== undefined && sum.outcome !== null && typeof sum.outcome === 'object' ? sum.outcome.state : ''
+  if (st === 'failed') return 'failed'
+  if (st === 'completed') return 'completed'
+  if (st === 'open') return 'running'
+  return 'unread'
+}
+
+const kbRunMedian = (values) => {
+  const s = values.slice().sort((a, b) => a - b)
+  return s.length === 0 ? null : s[Math.floor(s.length / 2)]
+}
+
+/** The four figures above the list: runs, failed, median duration, slowest. Durations come only from journals that were read. */
+const kbRunStats = (runs, sums) => {
+  const durations = []
+  let failed = 0
+  for (const r of runs) {
+    const sum = r.sessionId !== null && sums !== null && typeof sums === 'object' ? sums[r.sessionId] : undefined
+    if (kbRunState(r, sum) === 'failed') failed += 1
+    if (sum !== undefined && sum !== null && typeof sum.durationMs === 'number' && Number.isFinite(sum.durationMs) === true) durations.push(sum.durationMs)
+  }
+  return { runs: runs.length, failed, median: kbRunMedian(durations), slowest: durations.length === 0 ? null : Math.max(...durations), read: durations.length }
+}
+
+/**
+ * The nodes of the execution graph of one run and the labels of its links.
+ *   { type: 'start' } , { type: 'tool', kind, label, thinkMs, runMs, outBytes, ok, approval } , { type: 'more', n } , { type: 'final', thinkMs, ok }
+ * A run with more than 7 tool calls shows the first 6 and one « more » node; the label of a link is what the step before it handed on.
+ * A run whose journal was not read is its start alone: the page says so, it does not draw steps it does not know.
+ */
+const kbRunGraph = (sum, failed) => {
+  const nodes = [{ type: 'start' }]
+  const labels = []
+  if (sum === null || sum === undefined || Array.isArray(sum.nodes) !== true) return { nodes, labels, read: false }
+  const total = typeof sum.nodeCount === 'number' ? sum.nodeCount : sum.nodes.length
+  const shown = total > KB_RUNS_GRAPH_TOOLS + 1 ? sum.nodes.slice(0, KB_RUNS_GRAPH_TOOLS) : sum.nodes.slice(0, KB_RUNS_GRAPH_TOOLS + 1)
+  labels.push(null)
+  for (const n of shown) {
+    nodes.push({ type: 'tool', kind: String(n.kind), label: String(n.label), thinkMs: n.thinkMs, runMs: n.runMs, outBytes: n.outBytes, ok: n.ok !== false, approval: typeof n.approval === 'string' ? n.approval : null })
+    labels.push(typeof n.outBytes === 'number' ? n.outBytes : null)
+  }
+  if (total > shown.length) { nodes.push({ type: 'more', n: total - shown.length }); labels.push(null) }
+  nodes.push({ type: 'final', thinkMs: sum.final !== null && sum.final !== undefined && typeof sum.final.thinkMs === 'number' ? sum.final.thinkMs : null, ok: failed !== true })
+  return { nodes, labels: labels.slice(0, nodes.length - 1), read: true }
+}
+
+/**
+ * Where each node of a graph goes, and the straight links between them: rows of `cols` nodes that snake (the second row runs
+ * right to left), so a link between two rows is a vertical segment and no link ever crosses a node.
+ */
+const kbGraphLayout = (count, opt) => {
+  const o = opt !== null && typeof opt === 'object' ? opt : {}
+  const cols = o.cols || 4
+  const nw = o.nw || 172
+  const nh = o.nh || 70
+  const hg = o.hg || 34
+  const vg = o.vg || 36
+  const n = Math.max(0, count | 0)
+  const rows = Math.ceil(n / cols)
+  const pos = []
+  for (let i = 0; i < n; i += 1) {
+    const row = Math.floor(i / cols)
+    let col = i % cols
+    if (row % 2 === 1) col = cols - 1 - col
+    pos.push({ x: col * (nw + hg), y: row * (nh + vg), row })
+  }
+  const edges = []
+  for (let i = 0; i < n - 1; i += 1) {
+    const a = pos[i]
+    const b = pos[i + 1]
+    if (a.row === b.row) {
+      const fwd = a.x < b.x
+      const x1 = fwd ? a.x + nw : a.x
+      const x2 = fwd ? b.x : b.x + nw
+      const y = a.y + nh / 2
+      edges.push({ x1, y1: y, x2, y2: y, lx: (x1 + x2) / 2, ly: y, vertical: false })
+    } else {
+      const x = a.x + nw / 2
+      edges.push({ x1: x, y1: a.y + nh, x2: x, y2: b.y, lx: x, ly: (a.y + nh + b.y) / 2, vertical: true })
+    }
+  }
+  const used = Math.min(n, cols)
+  return { width: n === 0 ? 0 : used * nw + (used - 1) * hg, height: n === 0 ? 0 : rows * nh + (rows - 1) * vg, pos, edges }
+}
+/** « 3 hours ago », « yesterday », « now »: in the page's language; nothing for a date in the future or unknown. */
+const kbRunAgo = (ms, now, locale) => {
+  if (typeof ms !== 'number' || Number.isFinite(ms) !== true || typeof now !== 'number' || Number.isFinite(now) !== true) return ''
+  const s = Math.round((now - ms) / 1000)
+  if (s < 0) return ''
+  try {
+    const f = new Intl.RelativeTimeFormat(locale || 'en', { numeric: 'auto' })
+    if (s < 60) return f.format(0, 'second')
+    for (const [unit, size] of [['day', 86400], ['hour', 3600], ['minute', 60]]) { if (s >= size) return f.format(-Math.floor(s / size), unit) }
+  } catch (e) { /* unknown locale: nothing */ }
+  return ''
+}
+
+/**
+ * The figures of the card of one automation (the Cards view), from its history and from the journals that were read.
+ *   runs      the runs the history holds (the host keeps the last 20)
+ *   success   the share of the last 20 runs that are not failed, in percent; null when there is no run. A run counts as failed when
+ *             the history says so or when its journal, if it was read, says so: a run whose journal was not read is not counted failed
+ *   lastAt / lastMs / lastState   the newest run: its time and how it stands (see kbRunState)
+ *   lastDurationMs / tools        what the journal of the newest run says, null and empty when it was not read
+ */
+const kbRunCardFigures = (history, sums) => {
+  const runs = kbRunsOf(history)
+  const recent = runs.slice(0, 20)
+  const sumOf = (r) => (r !== null && r !== undefined && r.sessionId !== null && sums !== null && typeof sums === 'object' && sums[r.sessionId] !== undefined && sums[r.sessionId] !== null ? sums[r.sessionId] : undefined)
+  const failed = recent.filter((r) => kbRunState(r, sumOf(r)) === 'failed').length
+  const last = runs.length > 0 ? runs[0] : null
+  const lastSum = sumOf(last)
+  const tools = []
+  if (lastSum !== undefined && Array.isArray(lastSum.nodes) === true) for (const n of lastSum.nodes) { if (tools.indexOf(String(n.kind)) < 0) tools.push(String(n.kind)) }
+  return {
+    runs: runs.length,
+    failed,
+    success: recent.length === 0 ? null : Math.round(((recent.length - failed) / recent.length) * 100),
+    lastAt: last !== null ? last.at : null,
+    lastMs: last !== null ? last.ms : null,
+    lastState: last !== null ? kbRunState(last, lastSum) : null,
+    lastDurationMs: lastSum !== undefined && typeof lastSum.durationMs === 'number' && Number.isFinite(lastSum.durationMs) === true ? lastSum.durationMs : null,
+    tools,
+  }
+}
+// KB-AUTORUNS-END
+
+// KB-AUTOTPL-BEGIN
+// Discover: ready-made starting points for an automation, and the text that turns one into a chat. Pure: no React, no DOM, no host
+// call. Tested by test-automation-templates.mjs, which extracts this block.
+//
+// A template is a STARTING POINT, not an automation: what it does depends on the person's accounts, target and limits, so choosing
+// one opens a chat where the automation-creator skill asks the questions of the template, drafts the steps, and saves a real task
+// that stays OFF until the person has connected what it needs. Nothing here runs by itself and nothing here is a feature the host
+// lacks: a cap or a hand-over below is an instruction written into the steps, not a mechanism of the engine.
+// Every text is a pair [English, French]; `pick(pair)` chooses (the page passes its own language rule).
+const KB_TPL_CATS = [
+  { id: 'social', title: ['Social media', 'Réseaux sociaux'], color: 'var(--dsw-alias-state-warn-primary)' },
+  { id: 'prospecting', title: ['Prospecting', 'Prospection'], color: 'var(--dsw-alias-state-business-primary)' },
+  { id: 'support', title: ['Customer service', 'Service client'], color: 'var(--dsw-alias-state-success-primary)' },
+]
+const KB_TPLS = [
+  { id: 'social-daily', cat: 'social', icon: 'image', title: ['Daily post pack', 'Pack de posts quotidien'],
+    cadence: ['Every day, 09:00', 'Tous les jours, 09:00'], cron: '0 9 * * *',
+    desc: ['Writes today’s post, then generates an image, a short video and a voice track, and queues them for your review.', 'Rédige le post du jour, puis génère une image, une courte vidéo et une voix off, et les met en file pour ta relecture.'],
+    tags: [['Content', 'Contenu'], ['Generation', 'Génération'], ['Memory check', 'Contrôle mémoire']], apps: ['Instagram', 'TikTok', 'Google Drive'],
+    steps: [
+      ['ai', ['PREFLIGHT (required): check that free memory is above 20 % and free disk above 10 GB before any generation; stop with a clear reason if not.', 'PREFLIGHT (obligatoire) : vérifier que la mémoire libre dépasse 20 % et le disque libre 10 Go avant toute génération ; sinon s’arrêter avec une raison claire.']],
+      ['ai', ['Pick today’s topic from the content calendar and write the post.', 'Choisir le sujet du jour dans le calendrier de contenu et rédiger le post.']],
+      ['act', ['Generate the image for the post.', 'Générer l’image du post.']],
+      ['act', ['Generate a 20-second vertical video from the post and the image.', 'Générer une vidéo verticale de 20 secondes à partir du post et de l’image.']],
+      ['act', ['Record the voice track with the chosen voice.', 'Enregistrer la voix off avec la voix choisie.']],
+      ['act', ['Queue image, video, voice track and copy for review. Publish nothing without approval.', 'Mettre image, vidéo, voix off et texte en file pour relecture. Ne rien publier sans accord.']]],
+    needs: [['An image model and a video model', 'Un modèle d’image et un modèle de vidéo'], ['A voice (text to speech)', 'Une voix (synthèse vocale)'], ['A calendar of topics: a file or a sheet', 'Un calendrier de sujets : un fichier ou une feuille']],
+    guard: [['Free memory and disk are measured before each heavy step: the run stops instead of freezing the machine.', 'La mémoire et le disque libres sont mesurés avant chaque étape lourde : l’exécution s’arrête au lieu de figer la machine.'], ['Nothing is published without your approval.', 'Rien n’est publié sans ton accord.']],
+    ask: [
+      { q: ['Where should the posts go?', 'Où les posts doivent-ils aller ?'], o: [['Instagram', 'Instagram'], ['TikTok', 'TikTok'], ['YouTube Shorts', 'YouTube Shorts'], ['X', 'X'], ['LinkedIn', 'LinkedIn']], multi: true },
+      { q: ['Which providers for image, video and voice?', 'Quels fournisseurs pour l’image, la vidéo et la voix ?'], o: [['I will paste my keys', 'Je colle mes clés'], ['Use my local models', 'Utiliser mes modèles locaux'], ['Help me choose', 'Aide-moi à choisir']] },
+      { q: ['Where do the topics come from?', 'D’où viennent les sujets ?'], o: [['A file I give you', 'Un fichier que je te donne'], ['I describe them in chat', 'Je les décris dans le chat'], ['Learn from my past posts', 'Apprendre de mes anciens posts']] },
+      { q: ['How much memory should stay free before a generation?', 'Quelle part de mémoire doit rester libre avant une génération ?'], o: [['20 % (default)', '20 % (par défaut)'], ['30 %', '30 %'], ['40 %', '40 %']] }] },
+  { id: 'social-video', cat: 'social', icon: 'play', title: ['Video from an article', 'Vidéo à partir d’un article'],
+    cadence: ['When a webhook calls it', 'Quand un webhook l’appelle'], cron: null,
+    desc: ['Turns a new article into a vertical video with captions and a voice track. The heavy step waits for enough free memory.', 'Transforme un nouvel article en vidéo verticale sous-titrée avec une voix off. L’étape lourde attend assez de mémoire libre.'],
+    tags: [['Video', 'Vidéo'], ['Voice', 'Voix'], ['Memory check', 'Contrôle mémoire']], apps: ['YouTube', 'Google Drive', 'Slack'],
+    steps: [
+      ['ai', ['PREFLIGHT (required): check that free memory is above 20 %; wait up to 10 minutes, then stop.', 'PREFLIGHT (obligatoire) : vérifier que la mémoire libre dépasse 20 % ; attendre jusqu’à 10 minutes, puis s’arrêter.']],
+      ['ai', ['Read the article and write a 30-second script.', 'Lire l’article et écrire un script de 30 secondes.']],
+      ['act', ['Record the voice track from the script.', 'Enregistrer la voix off à partir du script.']],
+      ['act', ['Render the vertical video with captions.', 'Produire la vidéo verticale avec sous-titres.']],
+      ['act', ['Queue the video for review.', 'Mettre la vidéo en file pour relecture.']]],
+    needs: [['A video model or renderer', 'Un modèle ou un moteur de rendu vidéo'], ['A voice (text to speech)', 'Une voix (synthèse vocale)'], ['A webhook from your site or feed', 'Un webhook de ton site ou de ton flux']],
+    guard: [['Memory is measured before the render step and the run waits for it.', 'La mémoire est mesurée avant le rendu et l’exécution l’attend.'], ['Nothing is published without your approval.', 'Rien n’est publié sans ton accord.']],
+    ask: [
+      { q: ['Where does the article come from?', 'D’où vient l’article ?'], o: [['An RSS feed', 'Un flux RSS'], ['A webhook from my site', 'Un webhook de mon site'], ['A folder', 'Un dossier']] },
+      { q: ['Which voice?', 'Quelle voix ?'], o: [['My cloned voice', 'Ma voix clonée'], ['A stock voice', 'Une voix standard'], ['No voice track', 'Pas de voix off']] },
+      { q: ['Where should the video be queued?', 'Où mettre la vidéo en file ?'], o: [['A review folder', 'Un dossier de relecture'], ['My drive', 'Mon drive'], ['A chat message', 'Un message dans le chat']] }] },
+  { id: 'social-calendar', cat: 'social', icon: 'calendar', title: ['Weekly content calendar', 'Calendrier de contenu hebdomadaire'],
+    cadence: ['Every Monday, 08:00', 'Chaque lundi, 08:00'], cron: '0 8 * * 1',
+    desc: ['Plans next week’s posts from what performed best and drafts the copy for each one.', 'Planifie les posts de la semaine à partir de ce qui a le mieux marché et rédige le texte de chacun.'],
+    tags: [['Planning', 'Planification'], ['Analysis', 'Analyse'], ['Draft only', 'Brouillons seulement']], apps: ['Google Sheets', 'Notion', 'Slack'],
+    steps: [
+      ['act', ['Read last week’s results from the analytics file.', 'Lire les résultats de la semaine dernière dans le fichier d’analyse.']],
+      ['ai', ['Analyse what performed and propose next week’s themes.', 'Analyser ce qui a marché et proposer les thèmes de la semaine.']],
+      ['ai', ['Write a draft for each planned post.', 'Rédiger un brouillon pour chaque post prévu.']],
+      ['act', ['Save the calendar and the drafts for review. Post nothing.', 'Enregistrer le calendrier et les brouillons pour relecture. Ne rien publier.']]],
+    needs: [['A file or a sheet with last week’s results', 'Un fichier ou une feuille avec les résultats de la semaine dernière']],
+    guard: [['Draft only: nothing is posted.', 'Brouillons seulement : rien n’est publié.']],
+    ask: [
+      { q: ['Where are your results?', 'Où sont tes résultats ?'], o: [['A sheet', 'Une feuille de calcul'], ['A CSV file', 'Un fichier CSV'], ['An analytics export', 'Un export d’analytics']] },
+      { q: ['Which channels should it plan for?', 'Pour quels canaux planifier ?'], o: [['Instagram', 'Instagram'], ['TikTok', 'TikTok'], ['X', 'X'], ['LinkedIn', 'LinkedIn']], multi: true }] },
+  { id: 'prosp-calls', cat: 'prospecting', icon: 'phone', title: ['Outbound call list', 'Liste d’appels sortants'],
+    cadence: ['Weekdays, 10:00', 'En semaine, 10:00'], cron: '0 10 * * 1-5',
+    desc: ['Finds contacts that match your target, checks them, and prepares a call list with a short script for each.', 'Trouve les contacts qui correspondent à ta cible, les vérifie et prépare une liste d’appels avec un court script pour chacun.'],
+    tags: [['Outbound calls', 'Appels sortants'], ['Cap per run', 'Plafond par exécution'], ['Asks first', 'Demande d’abord']], apps: ['HubSpot', 'Google Sheets', 'Twilio'],
+    steps: [
+      ['act', ['Fetch contacts that match the target from the chosen sources, never more than the cap for one run.', 'Récupérer les contacts qui correspondent à la cible dans les sources choisies, jamais plus que le plafond d’une exécution.']],
+      ['ai', ['Verify each contact and drop duplicates and bad numbers.', 'Vérifier chaque contact et écarter les doublons et les mauvais numéros.']],
+      ['ai', ['Write a short call script for each contact.', 'Rédiger un court script d’appel pour chaque contact.']],
+      ['act', ['Show the list and wait for approval.', 'Montrer la liste et attendre l’accord.']],
+      ['act', ['Place the approved calls only.', 'Passer uniquement les appels approuvés.']]],
+    needs: [['A contact source: your CRM, a sheet, or a data provider', 'Une source de contacts : ton CRM, une feuille ou un fournisseur de données'], ['A calling line (a telephony connection)', 'Une ligne d’appel (une connexion de téléphonie)']],
+    guard: [['A cap on contacts per run is written into the steps.', 'Un plafond de contacts par exécution est écrit dans les étapes.'], ['Calls are placed only after you approve the list.', 'Les appels ne partent qu’après ton accord sur la liste.']],
+    ask: [
+      { q: ['Who is your target?', 'Quelle est ta cible ?'], o: [['By industry', 'Par secteur'], ['By city or region', 'Par ville ou région'], ['By company size', 'Par taille d’entreprise']], multi: true },
+      { q: ['Where do the contacts come from?', 'D’où viennent les contacts ?'], o: [['My CRM', 'Mon CRM'], ['A sheet', 'Une feuille de calcul'], ['A data provider', 'Un fournisseur de données']] },
+      { q: ['Which calling line?', 'Quelle ligne d’appel ?'], o: [['A number I own', 'Un numéro que je possède'], ['Help me set one up', 'Aide-moi à en mettre une en place']] },
+      { q: ['Cap on contacts per run?', 'Plafond de contacts par exécution ?'], o: [['20', '20'], ['50', '50'], ['100', '100']] }] },
+  { id: 'prosp-leads', cat: 'prospecting', icon: 'search', title: ['Lead finder', 'Chercheur de prospects'],
+    cadence: ['Every day, 07:00', 'Tous les jours, 07:00'], cron: '0 7 * * *',
+    desc: ['Fetches contacts and company pages (LinkedIn among the sources, within its terms), scores them and adds the good ones to a sheet.', 'Récupère contacts et pages d’entreprise (LinkedIn parmi les sources, dans le respect de ses conditions), les note et ajoute les bons à une feuille.'],
+    tags: [['Lead search', 'Recherche de prospects'], ['Cap per run', 'Plafond par exécution']], apps: ['LinkedIn', 'Google Sheets', 'HubSpot'],
+    steps: [
+      ['act', ['Fetch new company pages and profiles from the chosen sources, never more than the cap for one run.', 'Récupérer les nouvelles pages d’entreprise et profils des sources choisies, jamais plus que le plafond d’une exécution.']],
+      ['ai', ['Analyse each one against the target and score it.', 'Analyser chacun par rapport à la cible et le noter.']],
+      ['act', ['Add the best ones to the sheet with the score and the reason.', 'Ajouter les meilleurs à la feuille avec la note et la raison.']]],
+    needs: [['A scraping or data key', 'Une clé de collecte ou de données'], ['A sheet to write to', 'Une feuille où écrire']],
+    guard: [['A cap on pages per run is written into the steps; sources are used within their terms.', 'Un plafond de pages par exécution est écrit dans les étapes ; les sources sont utilisées dans le respect de leurs conditions.']],
+    ask: [
+      { q: ['Which sources?', 'Quelles sources ?'], o: [['Company websites', 'Sites d’entreprises'], ['LinkedIn (within its terms)', 'LinkedIn (dans le respect de ses conditions)'], ['Job boards', 'Sites d’emploi']], multi: true },
+      { q: ['Who is your target?', 'Quelle est ta cible ?'], o: [['By industry', 'Par secteur'], ['By city or region', 'Par ville ou région'], ['By company size', 'Par taille d’entreprise']], multi: true },
+      { q: ['Where should good leads go?', 'Où envoyer les bons prospects ?'], o: [['A sheet', 'Une feuille de calcul'], ['My CRM', 'Mon CRM'], ['An email to me', 'Un e-mail pour moi']] }] },
+  { id: 'prosp-enrich', cat: 'prospecting', icon: 'users', title: ['Contact enrichment', 'Enrichissement de contacts'],
+    cadence: ['Every 6 hours', 'Toutes les 6 heures'], cron: '0 */6 * * *',
+    desc: ['Completes each new contact with role, company size and a verified email, and removes duplicates.', 'Complète chaque nouveau contact avec son poste, la taille de l’entreprise et un e-mail vérifié, et supprime les doublons.'],
+    tags: [['Enrichment', 'Enrichissement'], ['Cap per run', 'Plafond par exécution']], apps: ['HubSpot', 'Airtable', 'Google Sheets'],
+    steps: [
+      ['act', ['Read the new contacts since the last run, never more than the cap for one run.', 'Lire les nouveaux contacts depuis la dernière exécution, jamais plus que le plafond d’une exécution.']],
+      ['ai', ['Verify and complete each contact: role, company size, email.', 'Vérifier et compléter chaque contact : poste, taille de l’entreprise, e-mail.']],
+      ['act', ['Write the completed contacts back and drop duplicates.', 'Réécrire les contacts complétés et écarter les doublons.']]],
+    needs: [['A contact sheet or CRM', 'Une feuille de contacts ou un CRM'], ['A data provider key', 'Une clé de fournisseur de données']],
+    guard: [['A cap per run is written into the steps, so a large import cannot run away.', 'Un plafond par exécution est écrit dans les étapes : un gros import ne peut pas déraper.']],
+    ask: [
+      { q: ['Where are your contacts?', 'Où sont tes contacts ?'], o: [['A sheet', 'Une feuille de calcul'], ['My CRM', 'Mon CRM'], ['A CSV file', 'Un fichier CSV']] },
+      { q: ['Which data provider?', 'Quel fournisseur de données ?'], o: [['I have a key', 'J’ai une clé'], ['Help me choose', 'Aide-moi à choisir']] },
+      { q: ['Cap per run?', 'Plafond par exécution ?'], o: [['50 contacts', '50 contacts'], ['200 contacts', '200 contacts'], ['500 contacts', '500 contacts']] }] },
+  { id: 'cs-whatsapp', cat: 'support', icon: 'messageSquare', title: ['WhatsApp front desk', 'Accueil WhatsApp'],
+    cadence: ['When a webhook calls it', 'Quand un webhook l’appelle'], cron: null,
+    desc: ['Answers customers on WhatsApp (pair your number with a QR code) and hands over to you when it is not sure.', 'Répond aux clients sur WhatsApp (associe ton numéro avec un QR code) et te passe la main quand il n’est pas sûr.'],
+    tags: [['Support', 'Support'], ['Hands over to you', 'Te passe la main'], ['QR pairing', 'Association par QR code']], apps: ['WhatsApp', 'Gmail', 'Slack'],
+    steps: [
+      ['act', ['Receive the customer’s message.', 'Recevoir le message du client.']],
+      ['ai', ['Classify the request: question, order, complaint, other.', 'Classer la demande : question, commande, réclamation, autre.']],
+      ['ai', ['Answer from the documents and policies provided.', 'Répondre à partir des documents et des règles fournis.']],
+      ['act', ['If unsure, hand over with a summary and stay silent.', 'En cas de doute, passer la main avec un résumé et se taire.']]],
+    needs: [['Your WhatsApp number, paired with a QR code', 'Ton numéro WhatsApp, associé avec un QR code'], ['Your documents or FAQ', 'Tes documents ou ta FAQ']],
+    guard: [['It never promises refunds or prices: those are handed over.', 'Il ne promet jamais de remboursement ni de prix : cela te revient.'], ['Mode: ask first for anything that changes an order.', 'Mode : demander d’abord pour tout ce qui modifie une commande.']],
+    ask: [
+      { q: ['Which number should it answer on?', 'Sur quel numéro doit-il répondre ?'], o: [['Pair my number now (QR code)', 'Associer mon numéro maintenant (QR code)'], ['Pair later', 'Associer plus tard']] },
+      { q: ['Where are the answers?', 'Où sont les réponses ?'], o: [['My documents', 'Mes documents'], ['A website', 'Un site web'], ['An FAQ I paste', 'Une FAQ que je colle']] },
+      { q: ['When should it hand over to you?', 'Quand doit-il te passer la main ?'], o: [['Refunds and prices', 'Remboursements et prix'], ['Complaints', 'Réclamations'], ['Whenever unsure', 'Dès qu’il hésite']], multi: true }] },
+  { id: 'cs-widget', cat: 'support', icon: 'layoutDashboard', title: ['Website chat widget', 'Widget de chat pour ton site'],
+    cadence: ['When a webhook calls it', 'Quand un webhook l’appelle'], cron: null,
+    desc: ['Answers visitors from a chat widget on your site, using your own documents, and collects their email when you should follow up.', 'Répond aux visiteurs depuis un widget de chat sur ton site, avec tes propres documents, et recueille leur e-mail quand tu dois les recontacter.'],
+    tags: [['Support', 'Support'], ['Public widget', 'Widget public'], ['Hands over to you', 'Te passe la main']], apps: ['Slack', 'Gmail', 'Notion'],
+    steps: [
+      ['act', ['Receive the visitor’s message from the widget.', 'Recevoir le message du visiteur depuis le widget.']],
+      ['ai', ['Answer from the documents provided.', 'Répondre à partir des documents fournis.']],
+      ['act', ['Collect the visitor’s email when a follow-up is needed.', 'Recueillir l’e-mail du visiteur quand un suivi est nécessaire.']]],
+    needs: [['A site where you can paste the widget', 'Un site où coller le widget'], ['Your documents or FAQ', 'Tes documents ou ta FAQ']],
+    guard: [['The widget is public: it answers only from your documents and opens no other tool.', 'Le widget est public : il répond uniquement à partir de tes documents et n’ouvre aucun autre outil.']],
+    ask: [
+      { q: ['Which site?', 'Quel site ?'], o: [['I will paste the widget myself', 'Je colle le widget moi-même'], ['Show me the snippet', 'Montre-moi le code à coller']] },
+      { q: ['Where are the answers?', 'Où sont les réponses ?'], o: [['My documents', 'Mes documents'], ['A website', 'Un site web'], ['An FAQ I paste', 'Une FAQ que je colle']] },
+      { q: ['What should it collect?', 'Que doit-il recueillir ?'], o: [['An email', 'Un e-mail'], ['A phone number', 'Un numéro de téléphone'], ['Nothing', 'Rien']] }] },
+  { id: 'cs-calls', cat: 'support', icon: 'mic', title: ['Call reception', 'Accueil téléphonique'],
+    cadence: ['When a webhook calls it', 'Quand un webhook l’appelle'], cron: null,
+    desc: ['Takes incoming calls, answers the common questions and sends you a summary of each call.', 'Prend les appels entrants, répond aux questions courantes et t’envoie un résumé de chaque appel.'],
+    tags: [['Voice', 'Voix'], ['Support', 'Support'], ['Needs a phone line', 'Demande une ligne']], apps: ['Twilio', 'Gmail', 'Slack'],
+    steps: [
+      ['act', ['Pick up the incoming call.', 'Décrocher l’appel entrant.']],
+      ['ai', ['Answer the common questions from the documents provided.', 'Répondre aux questions courantes à partir des documents fournis.']],
+      ['ai', ['Summarise the call and its outcome.', 'Résumer l’appel et son issue.']],
+      ['act', ['Send the summary and any callback request.', 'Envoyer le résumé et toute demande de rappel.']]],
+    needs: [['A phone number that forwards to your automation', 'Un numéro de téléphone qui renvoie vers ton automatisation'], ['A voice', 'Une voix']],
+    guard: [['A call length limit is written into the steps.', 'Une durée maximale d’appel est écrite dans les étapes.']],
+    ask: [
+      { q: ['Which phone number?', 'Quel numéro de téléphone ?'], o: [['Forward my number', 'Renvoyer mon numéro'], ['Help me get one', 'Aide-moi à en obtenir un']] },
+      { q: ['Which voice and language?', 'Quelle voix et quelle langue ?'], o: [['French voice', 'Voix française'], ['English voice', 'Voix anglaise']] },
+      { q: ['Where do summaries go?', 'Où vont les résumés ?'], o: [['Email', 'E-mail'], ['A chat message', 'Un message dans le chat'], ['A sheet', 'Une feuille de calcul']] },
+      { q: ['Longest call?', 'Appel le plus long ?'], o: [['3 minutes', '3 minutes'], ['5 minutes', '5 minutes'], ['10 minutes', '10 minutes']] }] },
+  { id: 'cs-shopify', cat: 'support', icon: 'store', title: ['Order questions (Shopify)', 'Questions sur les commandes (Shopify)'],
+    cadence: ['When a webhook calls it', 'Quand un webhook l’appelle'], cron: null,
+    desc: ['Answers “where is my order?” from your shop data.', 'Répond à « où est ma commande ? » à partir des données de ta boutique.'],
+    tags: [['Orders', 'Commandes'], ['Read-only', 'Lecture seule'], ['To confirm', 'À confirmer']], apps: ['Shopify', 'WhatsApp', 'Gmail'],
+    steps: [
+      ['act', ['Look the order up in the shop.', 'Rechercher la commande dans la boutique.']],
+      ['ai', ['Answer with its status and the delivery date.', 'Répondre avec son statut et la date de livraison.']]],
+    needs: [['Read access to your Shopify shop (to confirm)', 'Un accès en lecture à ta boutique Shopify (à confirmer)']],
+    guard: [['Read-only: it can look orders up and never change them.', 'Lecture seule : il peut consulter les commandes, jamais les modifier.']],
+    ask: [
+      { q: ['Which shop?', 'Quelle boutique ?'], o: [['I will connect it now', 'Je la connecte maintenant'], ['To confirm: read-only access', 'À confirmer : accès en lecture seule']] },
+      { q: ['Which channel answers?', 'Quel canal répond ?'], o: [['WhatsApp', 'WhatsApp'], ['Website widget', 'Widget du site'], ['Email', 'E-mail']] }] },
+]
+
+/** The pair `[en, fr]` read in the page's language: `pick` is the page's rule, English when none is given. */
+const kbTplText = (pair, pick) => {
+  if (Array.isArray(pair) !== true) return ''
+  return typeof pick === 'function' ? String(pick(pair)) : String(pair[0])
+}
+/** The templates of one category (all when `cat` is empty), then those that contain the words of `query` in their title, text, tags or apps. */
+const kbTplFilter = (list, cat, query, pick) => {
+  const words = String(query === undefined || query === null ? '' : query).toLowerCase().split(/\s+/).filter((w) => w.length > 0)
+  return (Array.isArray(list) === true ? list : []).filter((t) => {
+    if (typeof cat === 'string' && cat.length > 0 && cat !== 'all' && t.cat !== cat) return false
+    if (words.length === 0) return true
+    const hay = [kbTplText(t.title, pick), kbTplText(t.desc, pick), t.tags.map((x) => kbTplText(x, pick)).join(' '), t.apps.join(' '), kbTplText(t.cadence, pick)].join(' ').toLowerCase()
+    return words.every((w) => hay.indexOf(w) >= 0)
+  })
+}
+/** The kind of a step of a template, read the way the Flow reads a step: 'ai' (a model works) or 'act' (a tool acts). */
+const kbTplStepKind = (step) => (Array.isArray(step) === true && step[0] === 'ai' ? 'ai' : 'act')
+/** « Google Drive » → « googledrive »: the slug the connectors catalogue uses for an app. */
+const kbTplSlug = (name) => String(name === undefined || name === null ? '' : name).toLowerCase().replace(/[^a-z0-9]/g, '')
+/** An SVG that may be put in the page: a plain <svg>, bounded, with no script, no handler and nothing that loads from elsewhere. */
+const kbTplSvgOk = (svg) => typeof svg === 'string' && svg.length <= 20000 && /^\s*<svg[\s>]/.test(svg) === true
+  && /<script|<foreignObject|<iframe|<image|\son\w+\s*=|javascript:|(?:xlink:)?href\s*=\s*["']https?:|url\(\s*["']?https?:|@import/i.test(svg) === false
+/** The logos of the connectors catalogue ([{ s: slug, l: svg }]) as { slug: svg }, only those that are safe. */
+const kbTplLogos = (list) => {
+  const out = {}
+  for (const c of Array.isArray(list) === true ? list : []) { if (c !== null && typeof c === 'object' && typeof c.s === 'string' && kbTplSvgOk(c.l) === true) out[c.s] = c.l }
+  return out
+}
+/** The name of the page's language, in English and with its code, for the model: « French (fr) ». `kybernos` is the French of the page. */
+const kbTplLangName = (code) => {
+  const c = code === 'kybernos' ? 'fr' : String(code === undefined || code === null ? '' : code).trim()
+  if (c === '') return ''
+  try {
+    const n = new Intl.DisplayNames(['en'], { type: 'language' }).of(c)
+    return typeof n === 'string' && n !== '' && n !== c ? n + ' (' + c + ')' : c
+  } catch (e) { return c }
+}
+/**
+ * What is put in the composer of a NEW chat when a template is chosen. It names the automation-creator skill the way « Create » and
+ * « Edit in chat » do, carries the template (what starts it, the draft steps, the questions, what to connect, the rules), and asks for
+ * a real task that stays OFF until the person has connected everything. `tr(key)` gives the fixed words, `pick(pair)` the template's, and
+ * `language` (kbTplLangName of the page's language, read when the person clicks) puts « Follow this conversation in my language » first.
+ */
+const kbTplChatText = (tpl, tr, pick, language) => {
+  const T = (p) => kbTplText(p, pick)
+  const lang = typeof language === 'string' ? language.trim() : ''
+  const lines = (lang !== '' ? [tr('tasks.tpl.chat.lang').replace(/\{lang\}/g, () => lang), ''] : []).concat([tr('tasks.tpl.chat.head').replace(/\{title\}/g, () => T(tpl.title)), T(tpl.desc), '', tr('tasks.tpl.chat.rule'), ''])
+  const when = tpl.cron === null || tpl.cron === undefined ? T(tpl.cadence) : T(tpl.cadence) + ' (cron ' + tpl.cron + ')'
+  lines.push(tr('tasks.tpl.chat.when') + ' ' + when, '', tr('tasks.tpl.chat.steps'))
+  tpl.steps.forEach((s, i) => { lines.push(String(i + 1) + '. ' + T(s[1])) })
+  lines.push('', tr('tasks.tpl.chat.ask'))
+  tpl.ask.forEach((q, i) => {
+    lines.push(String(i + 1) + '. ' + T(q.q) + ' ' + tr('tasks.tpl.chat.options') + ' ' + q.o.map((o) => T(o)).join(' / ') + (q.multi === true ? ' ' + tr('tasks.tpl.chat.multi') : ''))
+  })
+  lines.push('', tr('tasks.tpl.chat.needs') + ' ' + tpl.needs.map((n) => T(n)).join(' ; '))
+  lines.push(tr('tasks.tpl.chat.guard') + ' ' + tpl.guard.map((g) => T(g)).join(' '))
+  lines.push('', tr('tasks.tpl.chat.save'))
+  return lines.join('\n')
+}
+// KB-AUTOTPL-END
+
+// KB-AUTOWS-BEGIN
+// Where the runs of an automation land. A workspace is a folder DSH adopted (the page calls it a project); an automation may name one
+// by its id (`workspaceHint`), and with none the runs go to the dedicated « Automations » workspace the host makes (automation-workspace.mjs).
+// Pure: the list of workspaces as the page's store holds it, and the id the automation names, in; what to show, out.
+/** The name of a workspace record of the page's store. */
+const kbWsName = (ws) => {
+  if (ws === null || typeof ws !== 'object') return ''
+  const t = typeof ws.displayTitle === 'string' && ws.displayTitle.trim() !== '' ? ws.displayTitle : (typeof ws.title === 'string' && ws.title.trim() !== '' ? ws.title : '')
+  return t.trim() !== '' ? t.trim() : (typeof ws.workspaceId === 'string' ? ws.workspaceId : '')
+}
+/** Is this the dedicated workspace itself (the one that adopted <dsh home>/kybernos/automations)? It is « no choice », not one of the person's. */
+const kbWsIsDedicated = (ws) => ws !== null && typeof ws === 'object' && typeof ws.path === 'string' && /[\\/]kybernos[\\/]automations[\\/]?$/.test(ws.path) === true
+/**
+ * What the choice shows: { kind: 'dedicated' } when none is named (or when it names the dedicated workspace itself), { kind: 'ws', id, name } for one
+ * that exists, { kind: 'gone', id } for one that was deleted (its runs go to the dedicated workspace, and the page says so).
+ */
+const kbWsChoice = (hint, items) => {
+  if (typeof hint !== 'string' || hint === '') return { kind: 'dedicated' }
+  const found = (Array.isArray(items) === true ? items : []).find((w) => w !== null && typeof w === 'object' && w.workspaceId === hint)
+  if (found === undefined) return { kind: 'gone', id: hint }
+  return kbWsIsDedicated(found) === true ? { kind: 'dedicated' } : { kind: 'ws', id: hint, name: kbWsName(found) }
+}
+/** The options of the choice: the dedicated workspace first (value ''; the workspace itself is not listed a second time), then the person's workspaces by name, then the deleted one when the automation still names it. */
+const kbWsOptions = (items, hint) => {
+  const list = (Array.isArray(items) === true ? items : []).filter((w) => w !== null && typeof w === 'object' && typeof w.workspaceId === 'string' && w.workspaceId !== '' && kbWsIsDedicated(w) !== true)
+    .map((w) => ({ id: w.workspaceId, name: kbWsName(w) })).sort((a, b) => a.name.localeCompare(b.name))
+  const out = [{ id: '', kind: 'dedicated' }].concat(list.map((w) => ({ id: w.id, kind: 'ws', name: w.name })))
+  const dedicatedIds = (Array.isArray(items) === true ? items : []).filter((w) => kbWsIsDedicated(w) === true).map((w) => w.workspaceId)
+  if (typeof hint === 'string' && hint !== '' && list.every((w) => w.id !== hint) && dedicatedIds.indexOf(hint) < 0) out.push({ id: hint, kind: 'gone' })
+  return out
+}
+// KB-AUTOWS-END
 // KB-NEWCHAT-BEGIN
 // The new-chat page: the slider of what the product makes, the Cloud Computer's state, and the rule that hides DSH's own
 // « Automation tasks » menu entry. Pure: no React, no DOM, no host call, no translation. Tested by test-newchat.mjs,
@@ -6238,7 +7009,7 @@ const KB_NC_TEMPLATES = [
   { id: 'plugin', group: 'auto', needs: null },
 ]
 // What each template looks like: a small model of the result, drawn as inline SVG (viewBox 0 0 64 44) from rect / circle /
-// path only: no image, video or font in git (AGENTS rule 4), nothing fetched. The classes (paper, ink, acc, ...) are styled
+// path only (the last eight, cards to file, are not templates: the Creations page draws them on its type tiles and on its file icons, see KB_ART_DRAW): no image, video or font in git (AGENTS rule 4), nothing fetched. The classes (paper, ink, acc, ...) are styled
 // by the page's CSS from the theme's tokens, so the drawings follow the theme; the others (gr, blk, pop, dr ...) are the
 // little motion played when the card is hovered, focused or lit by what the person types.
 const KB_NC_ART = {
@@ -6255,6 +7026,14 @@ const KB_NC_ART = {
   team: '<path class="ln dr" pathLength="1" d="M32 15V21H15V26"/><path class="ln dr" pathLength="1" d="M32 21H49V26"/><rect class="paper" x="22" y="3" width="20" height="12" rx="4"/><circle class="acc" cx="28.5" cy="9" r="3"/><rect class="ink2" x="33.5" y="7.2" width="6" height="1.8" rx=".9"/><rect class="ink2" x="33.5" y="10.8" width="4" height="1.8" rx=".9"/><rect class="paper" x="4" y="26" width="22" height="13" rx="4"/><circle class="tint ring" cx="10.5" cy="32.5" r="3"/><rect class="ink2" x="15.5" y="30.7" width="6" height="1.8" rx=".9"/><rect class="ink2" x="15.5" y="34.3" width="4" height="1.8" rx=".9"/><rect class="paper" x="38" y="26" width="22" height="13" rx="4"/><circle class="tint ring" cx="44.5" cy="32.5" r="3"/><rect class="ink2" x="49.5" y="30.7" width="6" height="1.8" rx=".9"/><rect class="ink2" x="49.5" y="34.3" width="4" height="1.8" rx=".9"/>',
   skill: '<rect class="paper" x="14" y="5" width="36" height="34" rx="3"/><path class="acc pop" style="--d:0s" d="M30 9L32.6 14.4L38 17L32.6 19.6L30 25L27.4 19.6L22 17L27.4 14.4Z"/><path class="acc2 pop" style="--d:.15s" d="M43 9L44.3 11.7L47 13L44.3 14.3L43 17L41.7 14.3L39 13L41.7 11.7Z"/><rect class="ink2 blk" style="--d:.1s" x="19" y="29" width="26" height="2" rx="1"/><rect class="ink2 blk" style="--d:.2s" x="19" y="33" width="16" height="2" rx="1"/>',
   plugin: '<path class="ln dr" pathLength="1" d="M32 35V39C32 41.5 35 42 39 42"/><rect class="ink" x="24" y="6" width="4" height="10" rx="1.5"/><rect class="ink" x="36" y="6" width="4" height="10" rx="1.5"/><rect class="paper" x="18" y="15" width="28" height="20" rx="5"/><circle class="acc node" cx="32" cy="25" r="4.5"/><rect class="oa" style="opacity:.9" x="30.2" y="23.2" width="3.6" height="3.6" rx="1"/>',
+  cards: '<rect class="paper tint bk" style="--r:7deg" x="22" y="4" width="34" height="27" rx="3"/><rect class="paper" x="8" y="10" width="38" height="29" rx="3"/><rect class="ink" x="13" y="16" width="14" height="3.2" rx="1.6"/><rect class="ink2" x="13" y="22" width="24" height="2" rx="1"/><path class="grid" d="M13 28h28"/><rect class="acc blk" style="--d:.1s" x="13" y="31.5" width="16" height="2.6" rx="1.3"/>',
+  quiz: '<rect class="paper" x="10" y="3" width="44" height="38" rx="3.5"/><circle class="acc pop" style="--d:0s" cx="19" cy="13" r="3.4"/><circle class="oa" cx="19" cy="13" r="1.2"/><rect class="ink2" x="26" y="11.8" width="20" height="2.4" rx="1.2"/><circle class="tint ring" cx="19" cy="22" r="3.4"/><rect class="ink2" x="26" y="20.8" width="15" height="2.4" rx="1.2"/><circle class="tint ring" cx="19" cy="31" r="3.4"/><rect class="ink2" x="26" y="29.8" width="18" height="2.4" rx="1.2"/>',
+  code: '<rect class="paper" x="6" y="5" width="52" height="34" rx="3.5"/><rect class="scr" x="9" y="8" width="46" height="28" rx="2.5"/><path class="acc pop" d="M11.4 17.4L13 15.5L19.5 20L13 24.5L11.4 22.6L15.8 20Z"/><rect class="oa" style="opacity:.9" x="23" y="18.8" width="12" height="2.4" rx="1.2"/><rect class="oa" style="opacity:.5" x="14" y="27.5" width="20" height="2.2" rx="1.1"/><rect class="oa" style="opacity:.5" x="37" y="27.5" width="12" height="2.2" rx="1.1"/>',
+  diagram: '<path class="ln dr" pathLength="1" d="M20 22H25"/><path class="ln dr" pathLength="1" d="M39 22H44"/><rect class="paper" x="4" y="15" width="16" height="14" rx="4"/><circle class="tint ring" cx="12" cy="22" r="3.2"/><rect class="acc node" x="25" y="13" width="14" height="18" rx="4"/><rect class="oa" style="opacity:.9" x="28" y="19" width="8" height="2.2" rx="1.1"/><rect class="oa" style="opacity:.6" x="28" y="23.5" width="5.5" height="2.2" rx="1.1"/><rect class="paper" x="44" y="15" width="16" height="14" rx="4"/><path class="ln" d="M48 22.4L50.4 24.8L55.2 19.8"/>',
+  all: '<rect class="paper tint bk" style="--r:-8deg" x="8" y="8" width="30" height="26" rx="3"/><rect class="paper bk" style="--r:7deg" x="26" y="6" width="30" height="26" rx="3"/><rect class="paper" x="17" y="13" width="30" height="26" rx="3"/><rect class="ink" x="22" y="19" width="12" height="3" rx="1.5"/><rect class="ink2" x="22" y="25" width="19" height="2" rx="1"/><rect class="acc2" x="22" y="29.5" width="12" height="2" rx="1"/>',
+  pdf: '<rect class="paper" x="16" y="3" width="32" height="38" rx="3"/><rect class="ink" x="21" y="9" width="12" height="3" rx="1.5"/><rect class="ink2" x="21" y="15" width="22" height="2" rx="1"/><rect class="ink2" x="21" y="19" width="16" height="2" rx="1"/><rect class="acc pop" x="21" y="26" width="22" height="9" rx="2.5"/><rect class="oa" style="opacity:.9" x="25" y="29.4" width="14" height="2.2" rx="1.1"/>',
+  folder: '<path class="tint" d="M8 11a3 3 0 0 1 3-3h13l4 4h25a3 3 0 0 1 3 3v22a3 3 0 0 1-3 3H11a3 3 0 0 1-3-3z"/><rect class="paper bk" style="--r:-2deg" x="8" y="17" width="48" height="24" rx="3"/><rect class="ink2" x="14" y="24" width="18" height="2.2" rx="1.1"/><rect class="ink3" x="14" y="29" width="26" height="2.2" rx="1.1"/><rect class="acc2" x="14" y="34" width="12" height="2.2" rx="1.1"/>',
+  file: '<rect class="paper tint bk" style="--r:7deg" x="22" y="3" width="26" height="36" rx="3"/><rect class="paper" x="15" y="5" width="28" height="36" rx="3"/><rect class="ink2" x="20" y="12" width="14" height="2.2" rx="1.1"/><rect class="ink3" x="20" y="17" width="18" height="2.2" rx="1.1"/><rect class="ink3" x="20" y="22" width="18" height="2.2" rx="1.1"/><circle class="acc pop" cx="25" cy="32" r="2.4"/><circle class="acc2 pop" style="--d:.1s" cx="32" cy="32" r="2.4"/><circle class="ink3 pop" style="--d:.2s" cx="39" cy="32" r="2.4"/>',
 }
 // The headline of the new-chat page: a different line each time a new chat page appears (KB_NC_HERO_COUNT lines per
 // language, the dictionary keys `kbnc.hero.<n>`). `last` is the index shown the previous time: never the same twice in a row.
@@ -6295,14 +7074,53 @@ const kbNcDetect = (text, ids) => {
   for (const rule of KB_NC_WORDS) { if (ids.indexOf(rule[0]) >= 0 && rule[1].test(s)) return rule[0] }
   return null
 }
-/** What the composer holds once a template is picked: the template's own sentence when the box is empty or still holds a
- *  template sentence (`known`: all of them); otherwise the person's words are kept, after the sentence. Never loses text. */
-const kbNcFill = (draft, tpl, known) => {
+/** What the composer holds once a template is picked. Never loses the person's words, never stacks the page's own sentences:
+ *  - empty, or a template sentence alone (`known`: all of them), or exactly what the page wrote last (`own`, untouched): the new sentence
+ *    replaces it (a sentence with its suggestions belonged to the type left behind);
+ *  - the person's words after another template's sentence: that sentence is swapped, their words stay;
+ *  - the person's words alone: the sentence goes in front of them (unless it is already there). */
+const kbNcFill = (draft, tpl, known, own) => {
   const d = typeof draft === 'string' ? draft : ''
   const t = typeof tpl === 'string' ? tpl : ''
-  if (d.trim() === '') return t
-  if (Array.isArray(known) === true && known.some((k) => String(k).trim() === d.trim())) return t
-  return d.indexOf(t) === 0 ? d : t + d
+  const dt = d.trim()
+  if (dt === '') return t
+  const list = Array.isArray(known) === true ? known.map((k) => String(k)) : []
+  if (list.some((k) => k.trim() === dt)) return t
+  if (typeof own === 'string' && own.trim() !== '' && own.trim() === dt) return t
+  if (d.indexOf(t) === 0) return d
+  const lead = list.find((k) => k.trim() !== '' && k.trim() !== t.trim() && dt.indexOf(k.trim()) === 0)
+  if (lead !== undefined) return t + dt.slice(lead.trim().length).trim()
+  return t + d
+}
+/** What a suggestion puts in the composer: the template's sentence and the suggestion when the box is empty, holds a template sentence alone,
+ *  or holds the sentence and another of the type's suggestions (`sugs`: the type's own: a second click replaces, it does not pile up);
+ *  otherwise the suggestion goes after what the person wrote. Never loses text. */
+const kbNcSuggest = (draft, tpl, known, sug, sugs) => {
+  const d = typeof draft === 'string' ? draft : ''
+  const t = typeof tpl === 'string' ? tpl : ''
+  const s = typeof sug === 'string' ? sug : ''
+  const dt = d.trim()
+  if (dt === '' || (Array.isArray(known) === true && known.some((k) => String(k).trim() === dt))) return t + s
+  if (Array.isArray(sugs) === true && t.trim() !== '' && dt.indexOf(t.trim()) === 0 && sugs.some((x) => String(x) === dt.slice(t.trim().length).trim())) return t + s
+  return d.replace(/\s*$/, ' ') + s
+}
+/** Where the page's one accent comes from. A colour the theme gave its brand token wins. The engine's own brand colour IS its text colour
+ *  (white in dark, near black in light), which would leave every drawing grey: then the engine's blue (the one on its send button) is used.
+ *  `brand`, `label`: the values of --dsw-alias-brand-primary and --dsw-alias-label-primary; unreadable → 'brand' (the theme's own is kept). */
+const kbNcRgb = (c) => {
+  const v = String(c === undefined || c === null ? '' : c).trim().toLowerCase()
+  let m = /^#([0-9a-f]{3}|[0-9a-f]{6})(?:[0-9a-f]{2})?$/.exec(v)
+  if (m !== null) {
+    const h6 = m[1].length === 3 ? m[1].split('').map((x) => x + x).join('') : m[1]
+    return [parseInt(h6.slice(0, 2), 16), parseInt(h6.slice(2, 4), 16), parseInt(h6.slice(4, 6), 16)]
+  }
+  m = /^rgba?\(\s*(\d+(?:\.\d+)?)[ ,]+(\d+(?:\.\d+)?)[ ,]+(\d+(?:\.\d+)?)/.exec(v)
+  return m === null ? null : [Math.round(Number(m[1])), Math.round(Number(m[2])), Math.round(Number(m[3]))]
+}
+const kbNcAccentSource = (brand, label) => {
+  const a = kbNcRgb(brand)
+  const b = kbNcRgb(label)
+  return a !== null && b !== null && a[0] === b[0] && a[1] === b[1] && a[2] === b[2] ? 'engine' : 'brand'
 }
 const kbNcObj = (v) => (v !== null && typeof v === 'object' && !Array.isArray(v) ? v : null)
 // What the server calls the states of a computer, and what the card says.
@@ -6360,7 +7178,7 @@ const host = {
       'kybers/load': 'load', 'kybers/yaml': 'yaml', 'kybers/save': 'save', 'kybers/create': 'create',
       'kybers/ui-save': 'ui-save', 'kybers/art-read': 'art-read', 'kybers/avatar-save': 'avatar-save',
       'kybers/art-previews': 'art-previews', 'kybers/art-reveal': 'art-reveal', 'kybers/art-action': 'art-action',
-      'kybers/workspace-ui-save': 'workspace-ui-save', 'kybers/active-set': 'active-set', 'kybers/menu-save': 'menu-save',
+      'kybers/workspace-ui-save': 'workspace-ui-save', 'kybers/workspace-delete': 'workspace-delete', 'kybers/active-set': 'active-set', 'kybers/menu-save': 'menu-save',
       // Sélection de skills rattachées à un projet (onglet Skills) : GET lit,
       // POST écrit — même magasin `.kyber-workspaces.json` que les détails.
       'kybers/workspace-skills': 'workspace-skills',
@@ -6404,7 +7222,7 @@ const host = {
     }
     const route = routeMap[name]
     if (route !== undefined && kbRemoteOk === true) {
-      const post = name === 'kybers/save' || name === 'kybers/create' || name === 'kybers/ui-save' || name === 'kybers/avatar-save' || name === 'kybers/team-portraits' || name === 'kybers/art-previews' || name === 'kybers/art-reveal' || name === 'kybers/art-action' || name === 'kybers/workspace-ui-save' || name === 'kybers/workspace-skills' || name === 'kybers/active-set' || name === 'kybers/menu-save' || name === 'kybers/project-data' || name === 'kybers/art-load' || name === 'kybers/art-progress' || name === 'kybers/tasks' || name === 'kybers/insight-save' || name === 'kybers/quality-feedback' || name === 'kybers/quality-rating' || name === 'kybers/salary-detect' || name === 'kybers/starters-suggest' || name === 'kybers/yml-proposer' || name === 'kybers/yml-appliquer'
+      const post = name === 'kybers/save' || name === 'kybers/create' || name === 'kybers/ui-save' || name === 'kybers/avatar-save' || name === 'kybers/team-portraits' || name === 'kybers/art-previews' || name === 'kybers/art-reveal' || name === 'kybers/art-action' || name === 'kybers/workspace-ui-save' || name === 'kybers/workspace-skills' || name === 'kybers/workspace-delete' || name === 'kybers/active-set' || name === 'kybers/menu-save' || name === 'kybers/project-data' || name === 'kybers/art-load' || name === 'kybers/art-progress' || name === 'kybers/tasks' || name === 'kybers/insight-save' || name === 'kybers/quality-feedback' || name === 'kybers/quality-rating' || name === 'kybers/salary-detect' || name === 'kybers/starters-suggest' || name === 'kybers/yml-proposer' || name === 'kybers/yml-appliquer'
       let reply = null
       let failure = null
       try {
@@ -6464,11 +7282,11 @@ const SHARED_UI_CSS = "/* ── Button — les actions (capsule h36 r18) ──
 
 const CSS = `
 .kb2-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 14px 4px}
-.kb2-title{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--dsw-alias-label-secondary)}
+.kb2-title{font-size:11px;font-weight:600;color:var(--dsw-alias-label-secondary)}
 .kb2-hbtn{width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center;border:none;background:transparent;color:var(--dsw-alias-label-secondary);border-radius:6px;cursor:pointer;font-size:13px}
 .kb2-hbtn:hover{background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary)}
 .kb2-body{flex:1;min-height:0;overflow-y:auto;padding:0 14px 16px}
-.kb2-sect{margin:14px 0 6px;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--dsw-alias-label-secondary)}
+.kb2-sect{margin:14px 0 6px;font-size:11px;font-weight:600;color:var(--dsw-alias-label-secondary)}
 .kb2-budget{padding:2px 0 4px}
 .kb2-amount{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
 .kb2-big{font-size:30px;font-weight:700;color:var(--dsw-alias-label-primary);letter-spacing:-.01em}
@@ -6523,7 +7341,7 @@ const CSS = `
 .kb2-warnline{font-size:10.5px;line-height:1.35;color:var(--dsw-alias-state-warn-primary);margin-top:2px}
 .kb2-needs{font-size:10.5px;color:var(--dsw-alias-label-secondary);text-align:right;white-space:nowrap}
 .kb2-stages{margin-top:8px;font-size:10.5px;line-height:1.4;color:var(--dsw-alias-label-secondary)}
-.kb2-roothead{display:flex;justify-content:space-between;gap:8px;align-items:baseline;margin:12px 0 2px;font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--dsw-alias-label-secondary)}
+.kb2-roothead{display:flex;justify-content:space-between;gap:8px;align-items:baseline;margin:12px 0 2px;font-size:10.5px;color:var(--dsw-alias-label-secondary)}
 .kb2-path{font-size:10px;opacity:.75;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:60%;text-transform:none;letter-spacing:0}
 .kb2-run{display:flex;align-items:center;gap:10px;padding:8px 10px;margin:6px 0;border:1px solid var(--dsw-alias-border-l1);border-radius:8px;background:var(--dsw-alias-bg-layer-1)}
 .kb2-run-main{flex:1;min-width:0}
@@ -6569,7 +7387,7 @@ const CSS = `
 .kb4-split.open .kb4-chev{transform:rotate(180deg)}
 /* Selecteur « demarrer ce chat avec » : recouvre le contenu, comme la maquette. */
 .kb4-pick{position:absolute;left:0;right:0;top:calc(100% + 6px);z-index:60;display:flex;flex-direction:column;gap:1px;padding:10px;border:1px solid var(--dsw-alias-border-l2);border-radius:14px;background:var(--dsw-alias-bg-layer-1);box-shadow:0 18px 40px var(--dsw-alias-bg-overlay, rgba(0,0,0,.26))}
-.kb4-pick-h{padding:3px 8px 8px;font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--dsw-alias-label-secondary)}
+.kb4-pick-h{padding:3px 8px 8px;font-size:10.5px;font-weight:700;color:var(--dsw-alias-label-secondary)}
 .kb4-team{display:flex;align-items:center;gap:10px;width:100%;padding:8px;border:none;border-radius:11px;background:transparent;color:var(--dsw-alias-label-primary);cursor:pointer;text-align:left;font:inherit}
 .kb4-team:hover{background:var(--dsw-alias-bg-layer-2)}
 .kb4-team.on{background:var(--dsw-alias-bg-layer-2)}
@@ -6716,7 +7534,7 @@ body{--kb-u:var(--dsh-content-font-size,13px)}
 .kbg-cardhead{display:flex;align-items:center;gap:12px}
 .kbg-avatar{width:46px;height:46px;border-radius:13px;display:flex;align-items:center;justify-content:center;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);font-weight:700;font-size:15px;flex:none}
 .kbg-kname{font-size:17px;font-weight:700;color:var(--dsw-alias-label-primary)}
-.kbg-kmeta{margin-top:3px;font-size:10.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--dsw-alias-label-secondary)}
+.kbg-kmeta{margin-top:3px;font-size:10.5px;font-weight:600;color:var(--dsw-alias-label-secondary)}
 .kbg-desc{font-size:13.5px;line-height:1.55;color:var(--dsw-alias-label-secondary)}
 .kbg-stats{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 .kbg-pill{border:1px solid var(--dsw-alias-border-l1);border-radius:999px;padding:3px 10px;font-size:11.5px;color:var(--dsw-alias-label-secondary)}
@@ -6812,7 +7630,7 @@ body{--kb-u:var(--dsh-content-font-size,13px)}
 .kb6-tinfostats{display:flex;gap:8px;flex-wrap:wrap}
 .kb6-tinforoles{display:flex;flex-direction:column;gap:6px;border:1px solid var(--dsw-alias-border-l1);border-radius:12px;padding:12px 14px;background:var(--dsw-alias-bg-layer-1)}
 .kb6-tinfosec{display:flex;flex-direction:column;gap:6px;border:1px solid var(--dsw-alias-border-l1);border-radius:12px;padding:12px 14px;background:var(--dsw-alias-bg-layer-1)}
-.kb6-tinfolabel{font-size:12px;font-weight:700;color:var(--dsw-alias-label-secondary);letter-spacing:.04em;text-transform:uppercase}
+.kb6-tinfolabel{font-size:12px;font-weight:700;color:var(--dsw-alias-label-secondary);}
 .kb6-tinfoactions{display:flex;gap:8px;flex-wrap:wrap}
 .kb6-frame{width:100%;height:520px;border:1px solid var(--dsw-alias-border-l1);border-radius:12px;background:var(--dsw-alias-bg-document-preview, var(--dsw-alias-bg-base))}
 .kb6-cell-key{flex:0 0 38%;font-weight:700;color:var(--dsw-alias-label-primary)}
@@ -6924,7 +7742,8 @@ body{--kb-u:var(--dsh-content-font-size,13px)}
 .kb6-mfill{position:absolute;left:0;top:0;bottom:0;width:34%;border-radius:2px;background:currentColor;opacity:.85}
 .kb6-mtime{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:9px;color:var(--dsw-alias-label-secondary);flex:none}
 .kb6-arc{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;background:var(--dsw-alias-bg-layer-2)}
-.kb6-arc-ico{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:1.5px solid var(--dsw-alias-border-l2)}
+.kb6-arc-ico{width:56px;height:38px;border-radius:10px;overflow:hidden;border:1px solid var(--dsw-alias-border-l1)}
+.kb6-arc-ico.kb8-sl-stage svg{width:46px;height:32px}
 .kb6-prev-mini{padding:0}
 /* Les aperçus VIVANTS (iframe html/md, visuel miniapp) occupent le média
    PLEIN CADRE : le padding du conteneur faisait une margine autour du contenu
@@ -7195,7 +8014,7 @@ const kbGoalCardCss = () => {
   style.textContent = [
     '.kbg-gc{display:flex;flex-direction:column;gap:8px;min-width:0;margin:6px 0 2px}',
     '.kbg-gc-objwrap{display:flex;flex-direction:column;gap:2px;min-width:0}',
-    '.kbg-gc-label{color:var(--dsw-alias-label-tertiary);font:var(--dsw-font-xxs-12);text-transform:uppercase;letter-spacing:.04em}',
+    '.kbg-gc-label{color:var(--dsw-alias-label-tertiary);font:var(--dsw-font-xxs-12);}',
     '.kbg-gc-obj{color:var(--dsw-alias-label-primary);font:var(--dsw-font-xs-13);line-height:19px;overflow-wrap:anywhere}',
     '.kbg-gc-meta{display:flex;align-items:center;gap:8px;min-width:0}',
     '.kbg-gc-chip{flex:none;color:var(--dsw-alias-label-secondary);background:var(--dsw-alias-interactive-bg-hover);border-radius:999px;font:var(--dsw-font-xxs-12);line-height:16px;padding:1px 8px}',
@@ -9017,6 +9836,7 @@ html[data-kbth-brand~="dark"] body[data-ds-dark-theme]{--kybernos-accent:color-m
       for (const m of live.members) if (m.status === 'running') return 'LIVE'
       return 'IDLE'
     }
+    // <kb-paged-view>
     const usePagedView = (count, perPage, extMode, extSetMode) => {
       const pair = React.useState(0)
       const page = pair[0]
@@ -9026,11 +9846,28 @@ html[data-kbth-brand~="dark"] body[data-ds-dark-theme]{--kybernos-accent:color-m
       const internalSetMode = pair2[1]
       const mode = (typeof extMode === 'string') ? extMode : internalMode
       const setMode = (typeof extSetMode === 'function') ? extSetMode : internalSetMode
-      const pages = Math.max(1, Math.ceil(count / perPage))
+      // A grid of cards fills its width (auto-fill): 9 cards in 4 columns leave one card alone on the last row while another page
+      // still follows. The grid reports its column count (`gridRef`, put on the first grid of the page) and a page then holds whole
+      // rows, about `perPage` cards. Lists, and a grid that has not been measured yet, keep `perPage`.
+      const colsPair = React.useState(0)
+      const setCols = colsPair[1]
+      const watcher = React.useRef(null)
+      const gridRef = React.useCallback((el) => {
+        if (watcher.current !== null) { watcher.current.disconnect(); watcher.current = null }
+        if (el === null || el === undefined || typeof ResizeObserver === 'undefined') return
+        const read = () => { try { const n = String(getComputedStyle(el).gridTemplateColumns).split(' ').filter((t) => t.length > 0).length; setCols(n >= 1 ? n : 0) } catch (e) { /* keep the base size */ } }
+        read()
+        watcher.current = new ResizeObserver(read)
+        watcher.current.observe(el)
+      }, [])
+      const cols = colsPair[0]
+      const per = (mode === 'cards' && cols > 0) ? cols * Math.max(2, Math.round(perPage / cols)) : perPage
+      const pages = Math.max(1, Math.ceil(count / per))
       const p2 = Math.min(page, pages - 1)
       React.useEffect(() => { if (page !== p2) setPage(p2) }, [p2, page])
-      return { page: p2, setPage: setPage, pages: pages, mode: mode, setMode: setMode }
+      return { page: p2, setPage: setPage, pages: pages, mode: mode, setMode: setMode, per: per, gridRef: gridRef, slice: (rows) => rows.slice(p2 * per, p2 * per + per) }
     }
+    // </kb-paged-view>
     // ── Skeleton screens: ONE helper for every list ──────────────────────────
     // While a list is being read for the first time (no earlier data to show), the page draws bones in the SAME
     // boxes as its real rows (same classes, so the same heights and columns: nothing moves when the data lands),
@@ -9445,6 +10282,20 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       h('button', { type: 'button', className: 'kb6-pgbtn', disabled: props.page <= 0, onClick: () => props.setPage(props.page - 1) }, '‹'),
       h('span', { className: 'kb6-pglabel' }, kbt('kbui.page') + (props.page + 1) + '/' + props.pages),
       h('button', { type: 'button', className: 'kb6-pgbtn', disabled: props.page >= props.pages - 1, onClick: () => props.setPage(props.page + 1) }, '›')))
+    // <kb-empty-state>
+    // An empty list teaches (UX audit 2026-10-20): a small drawing, what lives here, and the way to add the first one.
+    // Pure: `o` = { kb, title, text?, action?: { act, label, run } }.
+    const KbEmptyState = (o) => h('div', { className: 'kb9-emptyx', 'data-kb': o.kb === undefined ? 'empty-state' : o.kb },
+      h('svg', { className: 'kb9-emptyx-art', viewBox: '0 0 84 62', 'aria-hidden': 'true' },
+        h('rect', { className: 'f', x: 10, y: 14, width: 46, height: 38, rx: 6 }),
+        h('rect', { className: 'l', x: 22, y: 8, width: 46, height: 38, rx: 6 }),
+        h('path', { className: 'l', d: 'M32 20h26M32 28h18M32 36h22' }),
+        h('circle', { className: 'a', cx: 66, cy: 46, r: 11 }),
+        h('path', { className: 'p', d: 'M66 41v10M61 46h10' })),
+      h('div', { className: 'kb9-emptyx-t' }, o.title),
+      (typeof o.text === 'string' && o.text.length > 0 ? h('p', { className: 'kb9-emptyx-p' }, o.text) : null),
+      (o.action !== undefined && o.action !== null ? h('button', { type: 'button', className: 'kb8-primary kb9-emptyx-b', 'data-act': o.action.act, onClick: o.action.run }, o.action.label) : null))
+    // </kb-empty-state>
     const KybersPanel = (p0) => {
       const compact = p0 !== null && p0 !== undefined && p0.compact === true;
       const s = useStore();
@@ -9478,7 +10329,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       const pins = (s.ppins !== null && s.ppins !== undefined && typeof s.ppins === 'object') ? s.ppins : {};
       shown.sort((a, b) => ((pins[a.rootId + '/' + a.kyber.id] === true ? 0 : 1) - (pins[b.rootId + '/' + b.kyber.id] === true ? 0 : 1)));
       const vp = usePagedView(shown.length, 9)
-      const pageShown = (vp.mode === 'cards') ? shown.slice(vp.page * 9, vp.page * 9 + 9) : shown
+      const pageShown = (vp.mode === 'cards') ? vp.slice(shown) : shown
       const kids = [];
       for (const it of pageShown) {
         const k = it.kyber;
@@ -9561,7 +10412,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
             h('div', { className: 'kbg-addplus' }, '+'),
             h('div', { className: 'kbg-addtitle' }, kbt('ui.addkyber')),
             h('div', { className: 'kbg-adddesc' }, kbt('ui.readonly'))) : null),
-        (s.loading === true && data === null ? h('div', { className: 'kbg-note' }, kbe('Reading the kyber.yml files…')) : null),
+        (s.loading === true && data === null ? h('div', { className: 'kbg-note' }, kbe('Reading the team files…')) : null),
         (s.error !== null ? h('div', { className: 'kbg-err' }, kbt('kbui.error') + s.error) : null),
         (data !== null && data !== undefined && data.pricing !== null && data.pricing !== undefined && typeof data.pricing.fetchedAt === 'string' ? h('div', { className: 'kbg-note' }, kbt('ui.ratesrefreshed') + data.pricing.fetchedAt) : null));
     };
@@ -10570,7 +11421,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       // Pagination : la grille rendait les 20+ kybers d'un coup. Meme reglage que
       // les projets (9 par page), et la pagination se masque s'il n'y a qu'une page.
       const vp = usePagedView(ordered.length, 9, tbTeams[0].viewMode, (m) => tbTeams[1]({ viewMode: m }))
-      const pageShown = ordered.slice(vp.page * 9, vp.page * 9 + 9)
+      const pageShown = vp.slice(ordered)
       // Carte d'un kyber. Extraite du `map` pour pouvoir grouper la grille par
       // racine (installe / depot) sans dupliquer le balisage.
       const cardOf = (entry, ci) => {
@@ -10987,7 +11838,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
                 let ci = 0
                 for (const entry of pageShown) {
                   if (entry.rootPath !== curRoot) {
-                    if (kids !== null) out.push(h('div', { className: 'kb8-grid kb8-cmp', key: 'grid-' + curRoot }, kids))
+                    if (kids !== null) out.push(h('div', { className: 'kb8-grid kb8-cmp', key: 'grid-' + curRoot, ref: out.length === 0 ? vp.gridRef : undefined }, kids))
                     curRoot = entry.rootPath
                     kids = []
                     // L'en-tete de racine (« Installes · dossier DSH » suivi du chemin
@@ -10998,7 +11849,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
                   kids.push(cardOf(entry, ci))
                 ci += 1
                 }
-                if (kids !== null) out.push(h('div', { className: 'kb8-grid kb8-cmp', key: 'grid-' + curRoot }, kids))
+                if (kids !== null) out.push(h('div', { className: 'kb8-grid kb8-cmp', key: 'grid-' + curRoot, ref: out.length === 0 ? vp.gridRef : undefined }, kids))
                 return out
               })())),
               h(KbPager, { page: vp.page, setPage: vp.setPage, pages: vp.pages }))),
@@ -11166,6 +12017,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       // repli à l'aperçu quand la suggestion n'a pas la sienne.
       const teinte = kbHex(safe.color)
       kbUseIconsRev()
+      const iconTags = kbUseIconTags()
       const openPair = React.useState(false)
       const open = openPair[0]
       const setOpen = openPair[1]
@@ -11342,7 +12194,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
           // mêmes contrôles que la fiche AI Team (recherche + grille, pastilles
           // + couleur libre), donc le même geste partout (demande du 23/09).
           (mode !== 'icon' ? null : h('div', { className: 'kb8-f', style: { gridColumn: '1 / -1' } },
-            kbLookIcon({ icons: allIcons, query: q, onQuery: setQ, icon: form.icon, onPick: (n) => set({ icon: n }) }))),
+            kbLookIcon({ icons: allIcons, query: q, words: iconTags, onQuery: setQ, icon: form.icon, onPick: (n) => set({ icon: n }) }))),
           h('div', { className: 'kb8-f', style: { gridColumn: '1 / -1' } },
             h('span', { className: 'kb8-lbl' }, kbt('kbui.starters.fieldColor')),
             kbLookColor(form.color, (c) => set({ color: c })),
@@ -11714,7 +12566,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         libelle: kbe('the project'),
         nom: kbe('project name'),
         onglet: kbe('Project · sessions of this chat'),
-        reserve: kbe('The project name comes from the Projects page — no name in the payload: the slot stays visible in the pre-message.'),
+        reserve: kbe('The workspace name comes from the Workspaces page; when there is none, the slot stays visible but empty.'),
         lectures: {
           pbudget: (n) => kbe('No budget declared for this project: the block shows a filled example (tag ex.), never an invented budget. ') + n.sessions + (n.sessions > 1 ? kbe(' sessions covered, ') : kbe(' session covered, ')) + n.docs + (n.docs > 1 ? ' documents.' : ' document.'),
           pdocs: (n) => kbe('Project documents: ') + n.docs + (n.docs > 1 ? kbe(' documents for ') : kbe(' document for ')) + n.sessions + (n.sessions > 1 ? ' sessions — ' : ' session — ') + kbe('lines without the “ex.” tag come from the project-data payload.')
@@ -11947,7 +12799,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
             (goalsM.exemple === true || warnsM.exemple === true ? KbiExNote() : null)),
           sec('budget', kbe('Budget'),
             h('div', { className: 'kbi-grid2' },
-              h('div', { className: 'kbi-card' }, h('div', { className: 'kbi-card-l' }, kbe('Declared budget')), h('div', { className: 'kbi-card-v' }, '—'), h('div', { className: 'kbi-card-s' }, kbe('no budget: block for this project'))),
+              h('div', { className: 'kbi-card' }, h('div', { className: 'kbi-card-l' }, kbe('Declared budget')), h('div', { className: 'kbi-card-v' }, '—'), h('div', { className: 'kbi-card-s' }, kbe('no budget section for this project'))),
               h('div', { className: 'kbi-card' }, h('div', { className: 'kbi-card-l' }, kbe('Deadline')), h('div', { className: 'kbi-card-v' }, '—'), h('div', { className: 'kbi-card-s' }, kbe('no deadline declared')))),
             h('h5', { className: 'kbi-card-l', style: { marginTop: '14px' } }, kbe('Filled budget example')),
             KbiExLignes({ lignes: KBI_EXEMPLES.budget, exemple: true }),
@@ -11956,7 +12808,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
             KbiExLignes(docsM),
             (docsM.exemple === true ? KbiExNote() : null)),
           sec('sources', kbe('Sources and caveats'),
-            h('p', { className: 'kbi-empty-in' }, kbe('Payload project-data on the sessions of this chat (root + current session). Lines marked “ex.” are an example set: they fill the screen and serve as a real rendering test, not production data.')),
+            h('p', { className: 'kbi-empty-in' }, kbe('What this chat sends about its workspaces (the folder and the current session). Lines marked “ex.” are an example set: they fill the screen and are not real data.')),
             h('p', { className: 'kbi-sub' }, conf.reserve))
         ]
         : [
@@ -11973,7 +12825,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
                 h('span', { className: 'kbi-ex-val' }, String(e.sessionId || ''))))
               : [KbiExLignes({ lignes: KBI_EXEMPLES.artefacts, exemple: true }), KbiExNote()])),
           sec('sources', kbe('Sources and caveats'),
-            h('p', { className: 'kbi-empty-in' }, kbe('GET /runs-index?limit=200 — real entries of the plugin. Lines marked “ex.” are an example set that fills the screen and serves as a real rendering test.')),
+            h('p', { className: 'kbi-empty-in' }, kbe('The runs Kybernos really recorded. Lines marked “ex.” are an example set that fills the screen and is not real data.')),
             h('p', { className: 'kbi-sub' }, conf.reserve))
         ]
       return h('div', { className: 'kbi-root', 'data-kb': 'insight-' + props.variante },
@@ -12261,7 +13113,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       const bgConsommeSub = kbiNum(bgAppels) + (bgAppels > 1 ? kbe(' LLM calls over the period') : kbe(' LLM call over the period'))
       const bgFx = (llm !== null && typeof llm.usdEur === 'number') ? kbFmtNum(llm.usdEur, { maximumFractionDigits: 4 }) : '—'
       const bgEcheance = (bgAbsent === false && typeof kbgt.echeance === 'string') ? kbgt.echeance : ((bgAbsent === false && typeof kbgt.deadline === 'string') ? kbgt.deadline : '—')
-      const bgEcheanceSub = bgEcheance === '—' ? kbe('no deadline declared') : kbe('declared in the kyber.yml')
+      const bgEcheanceSub = bgEcheance === '—' ? kbe('no deadline declared') : kbe('declared in the team file')
       // Lectures (skill insight-principe) : une par vue, ancrée aux chiffres
       // affichés. Aucune valeur inventée.
       const kbiLectures = {
@@ -12269,7 +13121,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         prod: () => 'Sur ' + days + ' jours : ' + kbiNum(msgTotal) + kbe(' messages exchanged and ') + kbiNum(usersTotal) + kbe(' users tracked in the series.'),
         qualite: () => kbiNum(roles.length) + kbe(' roles listed, ') + kbiNum(notes.length) + (notes.length > 1 ? kbe(' source caveats') : kbe(' source caveat')) + kbe(' — period of ') + days + kbe(' days.'),
         debug: () => kbiNum(Object.keys(methods).length) + kbe(' documented measurement methods, ') + kbiNum(notes.length) + (notes.length > 1 ? kbe(' open caveats') : kbe(' open caveat')) + kbe(' — period of ') + days + kbe(' days.'),
-        budget: () => (bgAbsent === true ? kbe('No budget declared (budget: block absent) — ') : kbe('Declared budget: ') + bgMontant + kbe(' — ')) + bgAppels + (bgAppels > 1 ? kbe(' LLM calls over ') : kbe(' LLM call over ')) + days + kbe(' days, FX ') + bgFx + '.'
+        budget: () => (bgAbsent === true ? kbe('No budget declared (no budget section) — ') : kbe('Declared budget: ') + bgMontant + kbe(' — ')) + bgAppels + (bgAppels > 1 ? kbe(' LLM calls over ') : kbe(' LLM call over ')) + days + kbe(' days, FX ') + bgFx + '.'
       }
       const lectureCle = (vueCourante !== undefined && typeof vueCourante.lecture === 'string') ? vueCourante.lecture : null
       const kbiLectureTexte = (lectureCle !== null && typeof kbiLectures[lectureCle] === 'function') ? kbiLectures[lectureCle]() : null
@@ -12365,11 +13217,11 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
               h('span', { className: 'kbi-sub kbi-caption' }, caption))),
           section('budget', kbe('Budget'),
             h('div', { className: 'kbi-grid4' },
-              hcard(kbe('Declared budget'), bgMontant, bgMontantSub, kbe('budget declared by agent team "') + kyberId + kbe('" (budget: block of kyber.yml)')),
+              hcard(kbe('Declared budget'), bgMontant, bgMontantSub, kbe('budget declared by agent team "') + kyberId + kbe('" (budget section of the team file)')),
               hcard(kbe('Consumed (models.dev)'), bgConsomme, bgConsommeSub, kbe('consumed over the period (models.dev pricing)')),
               hcard(kbe('USD → EUR rate'), bgFx, kbe('rate from the payload (llm.usdEur)')),
               hcard(kbe('Deadline'), bgEcheance, bgEcheanceSub)),
-            (bgAbsent === true ? h('p', { className: 'kbi-empty-in' }, kbe('No budget declared by this agent team (budget: block of kyber.yml) — the display stays an absence, never a dressed-up zero.')) : null)),
+            (bgAbsent === true ? h('p', { className: 'kbi-empty-in' }, kbe('No budget declared by this agent team (budget section of the team file) — the display stays an absence, never a dressed-up zero.')) : null)),
           section('top', kbt('kbui.ins.top'),
             h('div', { className: 'kbi-grid3' },
               topCard(kbt('kbui.ins.top.skills'), Array.isArray(top.skills) === true ? top.skills : [], kbt('kbui.ins.top.noskills')),
@@ -12997,6 +13849,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         return () => { dead = true }
       }, [])
       kbUseIconsRev()
+      const iconTags = kbUseIconTags()
       React.useEffect(() => () => { if (timerRef.current !== null) { try { clearTimeout(timerRef.current) } catch (e) { /* deja nettoye */ } } }, [])
       React.useEffect(() => { if (draft !== null && draft.icon !== '') kbLoadIconNodes() }, [draft !== null ? draft.icon : ''])
       React.useEffect(() => {
@@ -13160,7 +14013,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
           const graphe = (topo !== null && XY !== null && wfData.etat === 'ok') ? kbWfTraducteur.versGraphe(topo) : null
           const carte = (wfPick !== null && topo !== null) ? kbWfTraducteur.traduireEtape(topo, wfPick) : null
           return h('div', { style: card },
-            (wfData.etat === 'chargement' || wfData.etat === 'init') ? h('span', { className: 'kb8-sub' }, kbe('Reading kyber.yml…')) : null,
+            (wfData.etat === 'chargement' || wfData.etat === 'init') ? h('span', { className: 'kb8-sub' }, kbe('Reading the team file…')) : null,
             (wfData.etat === 'vide') ? h('span', { className: 'kb8-sub' }, kbt('ui.noyaml')) : null,
             (wfData.etat === 'vide' && wfData.err) ? h('div', { className: 'kb8-sub', style: { color: 'var(--dsw-alias-state-error-primary)', fontSize: '12px', wordBreak: 'break-all' } }, String(wfData.err)) : null,
             (wfData.etat === 'ok' && XY === null) ? h('span', { className: 'kb8-sub' }, kbt('reactflow.down')) : null,
@@ -13191,13 +14044,13 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
             // La proposition passe TOUJOURS par le lecteur + contrôleur local,
             // et l'aller-retour en français s'affiche AVANT le bouton Appliquer.
             h('div', { style: { display: 'flex', flexDirection: 'column', gap: '8px', borderTop: '1px solid var(--dsw-alias-border-l1)', paddingTop: '10px', marginTop: '4px' } },
-              h('span', { className: 'kb8-parent' }, kbe('PROPOSE A KYBER.YML')),
+              h('span', { className: 'kb8-parent' }, kbe('Propose a team file')),
               h('span', { className: 'kb8-sub' }, kbe('Describe the workflow in French — the proposal is read back in French (round-trip) before anything is written.')),
               h('textarea', { value: wfPhrase, onChange: (e) => setWfPhrase(e.target.value), rows: 3, placeholder: kbe('E.g. a team that frames a feature, specifies it, tests it, then checks it in a loop until convergence.'), style: { resize: 'vertical', borderRadius: '8px', border: '1px solid var(--dsw-alias-border-l2)', background: 'var(--dsw-alias-bg-layer-2)', color: 'var(--dsw-alias-label-primary)', padding: '8px 10px', fontSize: '12.5px', fontFamily: 'inherit' } }),
               h('div', { style: { display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' } },
-                h('button', { type: 'button', className: 'kb8-chip', disabled: wfProp !== null && wfProp.etat === 'occupe', onClick: () => { try { wfProposer() } catch (e) { /* proposition */ } } }, kbe('Propose a kyber.yml')),
+                h('button', { type: 'button', className: 'kb8-chip', disabled: wfProp !== null && wfProp.etat === 'occupe', onClick: () => { try { wfProposer() } catch (e) { /* proposition */ } } }, kbe('Propose a team file')),
                 (wfProp !== null && wfProp.etat === 'occupe') ? h('span', { className: 'kb8-sub' }, kbe('The model is drafting the proposal…')) : null,
-                (wfProp !== null && wfProp.etat === 'ecriture') ? h('span', { className: 'kb8-sub' }, kbe('Writing kyber.yml…')) : null),
+                (wfProp !== null && wfProp.etat === 'ecriture') ? h('span', { className: 'kb8-sub' }, kbe('Writing the team file…')) : null),
               (wfProp !== null && wfProp.etat === 'refus') ? h('div', { style: { color: 'var(--dsw-alias-state-error-primary)', fontSize: '12.5px', wordBreak: 'break-all' } }, '✗ ' + String(wfProp.err || kbe('failed'))) : null,
               (wfProp !== null && wfProp.etat === 'applique') ? h('div', { style: { color: '#7FC98A', fontSize: '12.5px', wordBreak: 'break-all' } }, kbe('✓ Written to ') + String(wfProp.path || '') + (wfProp.backup ? kbe(' — backup: ') + wfProp.backup : '') + kbe('. The graph above was reloaded.')) : null,
               (wfProp !== null && wfProp.etat === 'prete') ? h('div', { style: { display: 'flex', flexDirection: 'column', gap: '8px' } },
@@ -13214,17 +14067,17 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
           h('span', { className: 'kb8-parent' }, kbt('kbui.col.name')),
           h('input', { value: draft.name, onChange: (e) => update({ name: e.target.value }), style: field }),
           h('span', { className: 'kb8-sub' }, kbt('kbui.shown.kyber')),
-          h('span', { className: 'kb8-parent' }, 'AVATAR'),
+          h('span', { className: 'kb8-parent' }, 'Avatar'),
           h('div', { style: { display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' } },
             kbCfIcon(draft.color, draft.icon || KB_DEFAULT_ICON, avatarImg(), false, 96),
             h('span', { style: { display: 'flex', flexDirection: 'column', gap: '8px', flex: 1, minWidth: '180px' } },
               kbLookImage({ hint: 'PNG, JPG, WebP, GIF or SVG · max 3 MB. Clicking an icon below replaces the image.', onFile: onAvatarFile, hasImage: hasAvatar === true, onClear: () => update({ clearAvatar: true }) }))),
-          h('span', { className: 'kb8-parent' }, 'ICON'),
-          kbLookIcon({ icons: allIcons, query: iconQ, onQuery: setIconQ, icon: draft.icon, color: draft.color, onPick: (n) => update({ icon: n, clearAvatar: true }) }),
+          h('span', { className: 'kb8-parent' }, 'Icon'),
+          kbLookIcon({ icons: allIcons, query: iconQ, words: iconTags, onQuery: setIconQ, icon: draft.icon, color: draft.color, onPick: (n) => update({ icon: n, clearAvatar: true }) }),
           // `TYPE` n'a de sens que si le selecteur Local/Hosted est rendu : dans
           // un build `KB_SHOW_HOSTED === false`, l'etiquette restait seule entre
           // ICON et COLOUR, sans aucun controle (constat de la campagne visuelle).
-          (KB_SHOW_HOSTED === true ? h('span', { className: 'kb8-parent' }, 'TYPE') : null),
+          (KB_SHOW_HOSTED === true ? h('span', { className: 'kb8-parent' }, 'Type') : null),
           // `KB_SHOW_HOSTED === false` : ce build ne parle pas de Hosted (l'onglet
           // est masqué partout ailleurs). Le sélecteur Local/Hosted ET sa phrase
           // d'explication disparaissent ensemble — sinon la fiche contredit le
@@ -13235,7 +14088,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
               h('button', { type: 'button', className: 'kb8-chip' + (draft.hosted === true ? ' on' : ''), title: kbt('kbui.hosted.alsoexists'), onClick: () => update({ hosted: true }) }, Icon('cloud', 14), ' ' + kbt('kbui.hosted')))
             : null),
           (KB_SHOW_HOSTED === true ? h('span', { className: 'kb8-sub' }, kbt('kbui.hosted.means')) : null),
-          h('span', { className: 'kb8-parent' }, 'COLOUR'),
+          h('span', { className: 'kb8-parent' }, 'Colour'),
           kbLookColor(draft.color, (c) => update({ color: c })))
         if (tab === 'Roles') {
           // Édition du Crew : brouillon par rôle (provider / model / prompt),
@@ -13427,7 +14280,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
               h('span', { style: { display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 } },
                 h('span', { className: 'kb8-name' }, c.name),
                 h('span', { className: 'kb8-parent' }, c.meta)),
-              h('span', { style: Object.assign({}, pillT, c.state === 'ACTIVE' || c.state === 'READY' ? { color: 'var(--dsw-alias-state-success-primary)', borderColor: 'var(--dsw-alias-state-success-primary)' } : (c.state === 'FAILED' ? { color: 'var(--dsw-alias-state-error-primary)', borderColor: 'var(--dsw-alias-state-error-primary)' } : null)) }, c.state),
+              ((c.state === 'ACTIVE' || c.state === 'READY') ? null : h('span', { style: Object.assign({}, pillT, c.state === 'ACTIVE' || c.state === 'READY' ? { color: 'var(--dsw-alias-state-success-primary)', borderColor: 'var(--dsw-alias-state-success-primary)' } : (c.state === 'FAILED' ? { color: 'var(--dsw-alias-state-error-primary)', borderColor: 'var(--dsw-alias-state-error-primary)' } : null)) }, String(c.state).charAt(0) + String(c.state).slice(1).toLowerCase())),
               h('button', {
                 type: 'button', className: 'kb8-iconbtn', 'data-kb': 'team-conn-toggle',
                 title: (c.real === true && c.account !== null && c.account !== undefined && c.account !== '') ? (connTeamArm === c.key ? kbt('kbui.conn.confirm') : kbt('kbui.conn.disable')) : kbt('kbui.conn.enable'),
@@ -13471,9 +14324,9 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
           return h(KbWidgetTab, { kyber: kyber, rootId: rootId })
         }
         if (tab === 'Settings') return h('div', { style: card },
-          h('span', { className: 'kb8-parent' }, 'CATEGORY'),
+          h('span', { className: 'kb8-parent' }, 'Category'),
           h('div', { className: 'kb8-chips' }, ['Sales', 'Marketing', 'Support', 'Finance', 'Engineering'].map((c) => h('button', { type: 'button', key: c, className: 'kb8-chip' + (draft.cat === c ? ' on' : ''), onClick: () => update({ cat: c }) }, c))),
-          h('span', { className: 'kb8-parent' }, 'TAGS'),
+          h('span', { className: 'kb8-parent' }, 'Tags'),
           h('div', { className: 'kb8-chips' }, draft.tags.map((t) => h('button', { type: 'button', key: t, className: 'kb8-chip on', title: kbt('kbui.remove') + t, onClick: () => update({ tags: draft.tags.filter((x) => x !== t) }) }, t + ' ✕'))),
           h('div', { style: { display: 'flex', gap: '8px' } },
             h('input', { value: tagsText, placeholder: kbt('kbui.add.tag'), list: 'kb8-taglist', onChange: (e) => setTagsText(e.target.value), onKeyDown: (e) => { if (e.key === 'Enter') addTag(tagsText) }, style: Object.assign({}, field, { flex: 1 }) }),
@@ -13520,7 +14373,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
           // pour l'onglet Team et choisit OÙ les détails d'un modèle s'affichent.
           (tab === 'Roles')
             ? h('div', { style: { display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 4px 4px 12px', border: '1px dashed #D6D6D8', borderRadius: '10px' } }, [
-              h('span', { style: { fontFamily: 'ui-monospace,SFMono-Regular,Menlo,Consolas,monospace', fontSize: '10.5px', letterSpacing: '0.08em', color: '#9A9A9E' } }, 'MOCKUP · MODEL INFO AS'),
+              h('span', { style: { fontFamily: 'ui-monospace,SFMono-Regular,Menlo,Consolas,monospace', fontSize: '10.5px', letterSpacing: '0.08em', color: '#9A9A9E' } }, 'Mockup · model info as'),
               h('div', { role: 'group', 'aria-label': 'Model info display', style: { display: 'flex', gap: '2px', padding: '2px', background: '#F3F3F4', borderRadius: '7px' } },
                 [['tooltip', 'Tooltip'], ['panel', 'Side panel']].map(([k, label]) => h('button', {
                   type: 'button',
@@ -13578,8 +14431,8 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         for (const root of (props.roots || [])) {
           for (const k of (Array.isArray(root.kybers) === true ? root.kybers : [])) {
             const label = tNameOf(k)
-            for (const s1 of (Array.isArray(k.skills) === true ? k.skills : [])) pushT(s1, 'skills/', label)
-            for (const s2 of (Array.isArray(k.skillsDeclared) === true ? k.skillsDeclared : [])) pushT(s2, 'kyber.yml', label)
+            for (const s1 of (Array.isArray(k.skills) === true ? k.skills : [])) pushT(s1, kbe('skills folder', 'dossier de compétences'), label)
+            for (const s2 of (Array.isArray(k.skillsDeclared) === true ? k.skillsDeclared : [])) pushT(s2, kbe('team file', 'fichier d’équipe'), label)
           }
         }
         for (const g of teamSel) {
@@ -13655,7 +14508,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
           h('span', { style: { display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 } },
             h('span', { className: 'kb8-name' }, k.name),
             h('span', { className: 'kb8-parent' }, k.ghost === true ? kbt('kbui.skills.ghostteam') : (k.kyber + ' · ' + k.where))),
-          h('span', { style: k.attached === true ? pillTOn : pillT, 'data-kb': 'team-skill-pill' }, k.attached === true ? 'ATTACHED' : 'AVAILABLE')))))
+          (k.attached === true ? h('span', { style: pillTOn, 'data-kb': 'team-skill-pill' }, 'Attached') : null)))))
     }
     // ── vue Runs : lanes SVG (déclaré / observé / réel) ───────────────────
     const KB_RUN_COLORS = { completed: '#22c55e', failed: '#ef4444', cancelled: '#f59e0b' }
@@ -13996,7 +14849,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         h('div', { style: { display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' } },
           h('span', { className: 'kb8-name' }, String(run.name || run.runId)),
           totalsView(run)),
-        h('div', { style: { fontSize: '11px', fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--dsw-alias-label-secondary)' } }, kbt('runs.parallelism')),
+        h('div', { style: { fontSize: '11px', fontWeight: 600, color: 'var(--dsw-alias-label-secondary)' } }, kbt('runs.parallelism')),
         h('div', { style: Object.assign({}, cardBox, { padding: '14px 10px 8px', overflowX: 'auto' }) }, renderRun(run)),
         legend,
         deviationsView(run))
@@ -14607,7 +15460,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
     const KB_FLOW_CSS = '.kbflow-wrap{height:520px;border:1px solid var(--dsw-alias-border-l1);border-radius:12px;overflow:hidden;background:var(--dsw-alias-bg-base)}' +
       // Bandes d'étage : fond discret, libellé en haut de colonne.
       '.kbflow-band{height:100%;border:1px dashed var(--dsw-alias-border-l1);border-radius:12px;background:color-mix(in srgb, var(--dsw-alias-label-primary) 3%, transparent);pointer-events:none}' +
-      '.kbflow-band-label{position:absolute;top:6px;left:12px;font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--dsw-alias-label-secondary);font-weight:600}' +
+      '.kbflow-band-label{position:absolute;top:6px;left:12px;font-size:10.5px;color:var(--dsw-alias-label-secondary);font-weight:600}' +
       '.react-flow__node-kbStage{cursor:default!important}' +
       '.kbflow-node{display:flex;align-items:center;gap:8px;min-width:180px;padding:9px 11px;border-radius:9px;border:1.5px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);font-size:12.5px;color:var(--dsw-alias-label-primary)}' +
       '.kbflow-node .kbflow-glyph{width:16px;text-align:center;opacity:.8}' +
@@ -14775,13 +15628,13 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       // Tableaux (cascade, coûts).
       '.kb2-tablewrap{flex-grow:1;overflow:auto;padding:14px 20px}' +
       '.kb2-table{border-collapse:collapse;width:100%;font-size:12.5px;color:#DCD6CB}' +
-      '.kb2-table th{text-align:left;font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:#8E8A82;font-weight:600;padding:6px 10px;border-bottom:1px solid var(--dsw-alias-border-l1,#2E2C2A)}' +
+      '.kb2-table th{text-align:left;font-size:10.5px;color:#8E8A82;font-weight:600;padding:6px 10px;border-bottom:1px solid var(--dsw-alias-border-l1,#2E2C2A)}' +
       '.kb2-table td{padding:7px 10px;border-bottom:1px solid rgba(46,44,42,.5);vertical-align:top}' +
       '.kb2-table tr:hover td{background:rgba(255,255,255,.03)}' +
       '.kb2-table .mono{font-family:ui-monospace,Menlo,monospace;font-size:11.5px}' +
       // En-tête de session (maquette) — variables DSH.
       '.kb2-sesshead{padding:14px 20px 6px;display:flex;flex-direction:column;gap:3px;border-bottom:1px solid var(--dsw-alias-border-l1,#2E2C2A)}' +
-      '.kb2-sessline{font-family:ui-monospace,Menlo,monospace;font-size:10.5px;letter-spacing:.09em;color:var(--dsw-alias-label-tertiary,#8E8A82);text-transform:uppercase}' +
+      '.kb2-sessline{font-family:ui-monospace,Menlo,monospace;font-size:10.5px;color:var(--dsw-alias-label-tertiary,#8E8A82);}' +
       '.kb2-sesstitle{font-size:16px;font-weight:650;color:var(--dsw-alias-label-primary,#DCD6CB)}' +
       '.kb2-sessstat{font-size:11.5px;color:var(--dsw-alias-label-secondary,#A8A49B)}' +
       // Chronologie.
@@ -14804,7 +15657,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       '.kb2j-hrow{display:flex;align-items:center;gap:16px;flex-wrap:wrap}' +
       '.kb2j-brand{font-size:13px;font-weight:700;letter-spacing:.22em;color:#C9A45C;padding-right:16px;border-right:1px solid var(--dsw-alias-border-l1,#2A2E38)}' +
       '.kb2j-ht{display:flex;flex-direction:column;gap:2px;flex:1;min-width:220px}' +
-      '.kb2j-meta{font-family:ui-monospace,Menlo,monospace;font-size:11px;letter-spacing:.06em;color:var(--dsw-alias-label-tertiary,#8B93A7);text-transform:uppercase}' +
+      '.kb2j-meta{font-family:ui-monospace,Menlo,monospace;font-size:11px;color:var(--dsw-alias-label-tertiary,#8B93A7);}' +
       '.kb2j-title{font-size:19px;font-weight:650;color:var(--dsw-alias-label-primary,#E8EAF0)}' +
       '.kb2j-hact{display:flex;align-items:center;gap:8px;margin-left:auto}' +
       '.kb2j-badge{display:inline-flex;align-items:center;gap:7px;height:28px;padding:0 12px;border-radius:99px;border:1px solid rgba(201,164,92,.45);background:rgba(201,164,92,.1);color:#E5B567;font-size:12px;cursor:pointer;font-family:inherit;white-space:nowrap}' +
@@ -14815,7 +15668,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       '.kb2j-kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}' +
       '@media (max-width:1100px){.kb2j-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}' +
       '.kb2j-tile{display:flex;flex-direction:column;gap:3px;padding:12px;border-radius:10px;background:var(--dsw-alias-bg-layer-2,#161A22);border:1px solid rgba(255,255,255,.10);min-width:0}' +
-      '.kb2j-tk{font-family:ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:.09em;color:var(--dsw-alias-label-tertiary,#6B7280);text-transform:uppercase}' +
+      '.kb2j-tk{font-family:ui-monospace,Menlo,monospace;font-size:10px;color:var(--dsw-alias-label-tertiary,#6B7280);}' +
       '.kb2j-tv{font-size:21px;font-weight:700;color:var(--dsw-alias-label-primary,#E8EAF0);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
       '.kb2j-tile.amb .kb2j-tv{color:#E5B567}' +
       '.kb2j-ts{font-family:ui-monospace,Menlo,monospace;font-size:10.5px;color:var(--dsw-alias-label-tertiary,#6B7280);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
@@ -14834,12 +15687,12 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       '.kb2j-dmeta{font-family:ui-monospace,Menlo,monospace;font-size:11px;color:var(--dsw-alias-label-tertiary,#8B93A7)}' +
       '.kb2j-dstats{display:flex;gap:18px;margin-left:auto;flex-wrap:wrap}' +
       '.kb2j-dstat{display:flex;flex-direction:column;gap:1px;align-items:flex-end}' +
-      '.kb2j-dk{font-family:ui-monospace,Menlo,monospace;font-size:9.5px;letter-spacing:.09em;color:var(--dsw-alias-label-tertiary,#6B7280);text-transform:uppercase}' +
+      '.kb2j-dk{font-family:ui-monospace,Menlo,monospace;font-size:9.5px;color:var(--dsw-alias-label-tertiary,#6B7280);}' +
       '.kb2j-dv{font-family:ui-monospace,Menlo,monospace;font-size:13px;font-weight:700;color:var(--dsw-alias-label-primary,#E8EAF0)}' +
       '.kb2j-two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}' +
       '@media (max-width:1100px){.kb2j-two{grid-template-columns:1fr}}' +
       '.kb2j-colwrap{display:flex;flex-direction:column;gap:6px;min-width:0}' +
-      '.kb2j-subh{font-family:ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:.09em;color:var(--dsw-alias-label-tertiary,#6B7280);text-transform:uppercase}' +
+      '.kb2j-subh{font-family:ui-monospace,Menlo,monospace;font-size:10px;color:var(--dsw-alias-label-tertiary,#6B7280);}' +
       '.kb2j-jour{max-height:280px;overflow-y:auto;display:flex;flex-direction:column;gap:1px;padding:4px;border-radius:8px;background:color-mix(in srgb,var(--dsw-alias-label-primary,#0E1118) 3%,transparent)}' +
       '.kb2j-inspwrap .kb2-igrid,.kb2j-inspwrap .kb2-io,.kb2j-inspwrap .kb2-ioh{max-width:100%}' +
             '.kb2-canvas{flex-grow:1;position:relative;min-height:0;background-color:#101318;background-image:radial-gradient(#22252B 1px,transparent 1px);background-size:24px 24px}' +
@@ -15905,7 +16758,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         sessKids.push(h('span', { className: 'kb8-parent' }, kbt('crew.nocost') + String(sessLast.provider) + ' / ' + String(sessLast.model) + '.'))
       }
       sessKids.push(h('span', { className: 'kb8-parent' }, kbt('crew.split.note')))
-      const sessCard = h(KbSec, { id: 'session', title: 'SESSION', meta: (sessCost === null ? null : kbFmtUsd(sessCost.usd) + kbt('crew.orchestrator.only')), count: sid === null ? '—' : String(sid).slice(0, 18) }, ...sessKids)
+      const sessCard = h(KbSec, { id: 'session', title: 'Session', meta: (sessCost === null ? null : kbFmtUsd(sessCost.usd) + kbt('crew.orchestrator.only')), count: sid === null ? '—' : String(sid).slice(0, 18) }, ...sessKids)
       // ── matrice : une ligne par rôle, colonnes alignées, paginée ─────────────
       const MX_PER_PAGE = 8
       const mxRows = []
@@ -16257,7 +17110,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         return labelOfProject(x).localeCompare(labelOfProject(y), undefined, { sensitivity: 'base' }) * m
       })
       const vp = usePagedView(projectsVisible.length, 9, tbProjects[0].viewMode, (m) => tbProjects[1]({ viewMode: m }))
-      const shown = (vp.mode === 'cards') ? projectsVisible.slice(vp.page * 9, vp.page * 9 + 9) : projectsVisible
+      const shown = (vp.mode === 'cards') ? vp.slice(projectsVisible) : projectsVisible
       const wUiOf = (w) => (wsUi[w.workspaceId] !== null && wsUi[w.workspaceId] !== undefined && typeof wsUi[w.workspaceId] === 'object') ? wsUi[w.workspaceId] : {}
       const openProject = (w) => set({ view: 'project', projectId: w.workspaceId })
       // Exporter un workspace (28/09, gabarit) : métadonnées seulement (id,
@@ -16444,7 +17297,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         (items.length > 0 && projectsVisible.length === 0 ? h('div', { className: 'kb9-empty' }, kbt('kbui.no.project.match') + pq + '\u201d.') : null),
         (vp.mode === 'list'
           ? h('div', { className: 'kb8-rows', 'data-kb': 'project-rows' }, shown.map((w, i) => projectRow(w, i)))
-          : h('div', { className: 'kb8-grid kb8-cmp' }, shown.map((w, i) => projectCard(w, i)))),
+          : h('div', { className: 'kb8-grid kb8-cmp', ref: vp.gridRef }, shown.map((w, i) => projectCard(w, i)))),
         // Section « trouvé dans les chats » : elle vit sous la grille de
         // projets, visible seulement quand une requête de ≥ 3 caractères est
         // en vol ou servie. Chaque ligne ouvre VRAIMENT le chat
@@ -16561,7 +17414,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       const errKey = st.error === null ? null : (['too-long', 'folder-missing', 'agents-write-failed'].indexOf(st.error) >= 0 ? 'kbwi.err.' + st.error : 'kbwi.err.generic')
       return h('div', { style: { display: 'flex', flexDirection: 'column', gap: '14px' }, 'data-kb': 'project-instructions' },
         h('div', { style: card },
-          h('span', { className: 'kb8-parent' }, kbt('kbwi.head').toUpperCase()),
+          h('span', { className: 'kb8-parent' }, kbt('kbwi.head')),
           h('span', { className: 'kb8-sub' }, kbt('kbwi.lead')),
           h('textarea', {
             value: st.text, rows: 9, maxLength: st.max, disabled: st.loading === true, 'data-kb': 'project-instructions-text',
@@ -16628,6 +17481,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       const setSaveState = savePair[1]
       const timerRef = React.useRef(null)
       kbUseIconsRev()
+      const iconTags = kbUseIconTags()
       React.useEffect(() => { kbLoadIconNodes() }, [])
       React.useEffect(() => {
         if (iconList !== null || kbRemoteOk !== true) return undefined
@@ -16654,6 +17508,12 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         h('span', { style: { display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, gap: '6px' } }, kbBone(i % 2 === 0 ? '34%' : '26%', 13), kbBone('52%', 10)),
         kbBone(70, 22, 'pill')))))
       const empty = (label) => (label === PROJ_LOADING ? projSkel() : h('div', { className: 'kb9-empty' }, label))
+      // An empty tab: the drawing, what lives here, and the way to add the first one. Bones while the project is still being read.
+      const emptyX = (o) => (projLoading === true ? projSkel() : KbEmptyState(o))
+      const startChatHere = () => {
+        try { if (uiWorkspaceSvc !== null && uiWorkspaceSvc !== undefined && typeof uiWorkspaceSvc.startSession === 'function' && ws !== null) { uiWorkspaceSvc.startSession(ws.workspaceId); set({ view: null }) } } catch (e) { /* no chat opened */ }
+      }
+      const chatAction = (label) => ({ act: 'new-chat', label: label, run: startChatHere })
       const hit = (t) => q === '' || String(t).toLowerCase().indexOf(q.toLowerCase()) >= 0
       // ── Donnees du projet absentes de la charge utile ──────────────────────
       // Trois choses ne sont connues que du host : quels kybers ont tourne dans
@@ -16717,8 +17577,8 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         for (const root of kbRoots) {
           for (const k of (Array.isArray(root.kybers) === true ? root.kybers : [])) {
             const label = kbNameOf(k)
-            for (const s1 of (Array.isArray(k.skills) === true ? k.skills : [])) pushSkill(s1, 'skills/', label)
-            for (const s2 of (Array.isArray(k.skillsDeclared) === true ? k.skillsDeclared : [])) pushSkill(s2, 'kyber.yml', label)
+            for (const s1 of (Array.isArray(k.skills) === true ? k.skills : [])) pushSkill(s1, kbe('skills folder', 'dossier de compétences'), label)
+            for (const s2 of (Array.isArray(k.skillsDeclared) === true ? k.skillsDeclared : [])) pushSkill(s2, kbe('team file', 'fichier d’équipe'), label)
           }
         }
         for (const g of skillSelList) {
@@ -16864,6 +17724,36 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       const setConnArm = connArmPair[1]
       const connAgir = async (c) => kbConnActionOf(c, connArm, setConnArm, setConnAction)
       const connsVp = usePagedView(connRows.length, 9)
+      // Suppression du workspace (onglet Details, écart E1 de la recette
+      // 20/10) : deux clics — le premier ARME le bouton, le second confirme.
+      // Le registre conserve le dossier et les journaux : rien n'est détruit
+      // sur le disque, l'espace quitte juste la liste.
+      const wsDelArmPair = React.useState(false)
+      const wsDelArm = wsDelArmPair[0]
+      const setWsDelArm = wsDelArmPair[1]
+      const wsDelBusyPair = React.useState(false)
+      const wsDelBusy = wsDelBusyPair[0]
+      const setWsDelBusy = wsDelBusyPair[1]
+      // Catégories des sessions du projet (vignettes de l'onglet Threads) :
+      // une lecture, un cache — revalider quand le workspace change.
+      const wsCatsPair = React.useState({})
+      const wsCats = wsCatsPair[0]
+      const setWsCats = wsCatsPair[1]
+      React.useEffect(() => {
+        let dead = false
+        kbWsCats().then((cats) => { if (dead === false) setWsCats(cats) })
+        return () => { dead = true }
+      }, [])
+      const wsDelete = async () => {
+        if (wsDelBusy === true) return
+        setWsDelBusy(true)
+        try {
+          const res = await host.call('kybers/workspace-delete', { workspaceId: ws.workspaceId })
+          if (res !== null && res !== undefined && res.ok === true) { set({ view: 'projects' }); try { load() } catch (e) { /* rechargement */ } return }
+          setWsDelArm(false)
+        } catch (e) { setWsDelArm(false) }
+        setWsDelBusy(false)
+      }
       // Livrables : le host en sert jusqu'a 24, et l'onglet les affichait tous
       // d'un bloc — seul onglet sans pagination. `mine` est donc calcule AVANT
       // les hooks (qui sont inconditionnels, y compris quand la fiche annonce
@@ -16878,7 +17768,19 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       const delivOpen = delivOpenPair[0]
       const setDelivOpen = delivOpenPair[1]
       const delivVp = usePagedView(delivMine.length, 9, delivViewPair[0], delivViewPair[1])
-      const pageOf = (rows, vp) => rows.slice(vp.page * 9, vp.page * 9 + 9)
+      // What is inside each creation of the visible page: the same previews as the Creations page (kybers/art-previews, first 900 characters).
+      const delivPrevPair = React.useState({})
+      React.useEffect(() => {
+        if (tab !== 'Deliverables') return undefined
+        const paths = delivVp.slice(delivMine).map((x) => x.path).filter((pth) => typeof pth === 'string' && delivPrevPair[0][pth] === undefined)
+        if (paths.length === 0) return undefined
+        let dead = false
+        host.call('kybers/art-previews', { paths: paths }).then((res) => {
+          if (dead === false && res !== null && res !== undefined && res.ok === true && res.previews !== null && res.previews !== undefined) delivPrevPair[1]((old) => Object.assign({}, old, res.previews))
+        }).catch(() => { /* previews unavailable: the type's drawing stays */ })
+        return () => { dead = true }
+      }, [tab, delivVp.page, delivVp.per, delivMine.length])
+      const pageOf = (rows, vp) => vp.slice(rows)
       const pagerOf = (vp) => h(KbPager, { page: vp.page, setPage: vp.setPage, pages: vp.pages })
       // La liste peut depasser la fenetre : la pagination est rappelee EN HAUT
       // aussi, sinon elle reste sous la ligne de flottaison et l'onglet semble
@@ -16886,6 +17788,9 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       const pagerTop = (vp) => (vp.pages > 1 ? h('div', { style: { display: 'flex', justifyContent: 'flex-end' } }, pagerOf(vp)) : null)
       if (ws === null) return h('div', { className: 'kb9-empty' }, kbt('kbui.project.notfound'))
       const saveDetails = async (patch) => {
+        // « Save now » calls saveDetails() with no argument: without a guard,
+        // patch.name throws a TypeError on undefined (recette 2026-10-20).
+        if (patch === null || patch === undefined) patch = {}
         const n = patch.name !== undefined ? patch.name : nameDraft
         const ic = patch.icon !== undefined ? patch.icon : iconDraft
         const co = patch.color !== undefined ? patch.color : colorDraft
@@ -16944,7 +17849,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
             // Description courte : la carte du projet n'affiche que l'amorce,
             // le texte complet se regle et se lit ici.
             h('div', { style: card, 'data-kb': 'project-description' },
-              h('span', { className: 'kb8-parent' }, kbt('ui.description').toUpperCase()),
+              h('span', { className: 'kb8-parent' }, kbt('ui.description')),
               h('textarea', {
                 value: descDraft, rows: 3, maxLength: 280,
                 'aria-label': kbt('ui.description'),
@@ -16956,34 +17861,51 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
             // The folder card of the multi-device satellite (nothing when it is off).
             kbMdExtras('folder', ws),
             h('div', { style: card },
-              h('span', { className: 'kb8-parent' }, 'ICON'),
-              kbLookIcon({ icons: allIcons, query: iconQ, onQuery: setIconQ, icon: iconDraft, color: colorDraft, onPick: (n) => updateDetails({ icon: n }) })),
+              h('span', { className: 'kb8-parent' }, 'Icon'),
+              kbLookIcon({ icons: allIcons, query: iconQ, words: iconTags, onQuery: setIconQ, icon: iconDraft, color: colorDraft, onPick: (n) => updateDetails({ icon: n }) })),
             h('div', { style: card },
-              h('span', { className: 'kb8-parent' }, 'COLOUR'),
+              h('span', { className: 'kb8-parent' }, 'Colour'),
               kbLookColor(colorDraft, (c) => updateDetails({ color: c }))),
             // The folded "Advanced" preview of the multi-device satellite (nothing when it is off).
             kbMdExtras('advanced', ws),
-            h('span', { className: 'kb8-sub' }, 'Changing the name, icon or colour updates the project everywhere in DHS.'))
+            h('span', { className: 'kb8-sub' }, 'Changing the name, icon or colour updates the project everywhere in DSH.'),
+            // Zone de danger : suppression du workspace, deux clics. Le disque
+            // et les journaux sont conservés — voir wsDelete plus haut.
+            h('div', { style: { background: 'var(--dsw-alias-bg-layer-1)', border: '1px solid var(--dsw-alias-state-error-primary)', borderRadius: '16px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px', 'data-kb': 'ws-danger-zone' } },
+              h('span', { className: 'kb8-parent', style: { color: 'var(--dsh-alias-state-error-primary, var(--dsw-alias-state-error-primary))' } }, 'Delete workspace'),
+              h('span', { className: 'kb8-sub' }, 'Removes this workspace from the list. The folder on disk and the session logs are kept; nothing is destroyed.'),
+              h('div', { style: { display: 'flex', gap: '10px', alignItems: 'center' } },
+                h('button', { type: 'button', className: 'kb8-chip', disabled: wsDelBusy === true, style: (wsDelArm === true ? { borderColor: 'var(--dsw-alias-state-error-primary)', color: 'var(--dsw-alias-state-error-primary)' } : null), onClick: () => (wsDelArm === true ? wsDelete() : setWsDelArm(true)) }, wsDelBusy === true ? 'Deleting…' : (wsDelArm === true ? 'Confirm deletion' : 'Delete workspace…')),
+                (wsDelArm === true && wsDelBusy !== true ? h('button', { type: 'button', className: 'kb8-chip', onClick: () => setWsDelArm(false) }, 'Cancel') : null))))
         }
         if (tab === 'Threads') {
           // Plus de maquette : soit de vrais threads, soit un etat vide explicite.
           if (threadsRows.length === 0) {
-            return empty(projLoading === true ? PROJ_LOADING : kbe('No thread in this project for now — open a chat in this project and it will show up here.'))
+            return emptyX({ kb: 'project-threads-empty', title: kbe('No thread yet', 'Aucun fil pour l’instant'), text: kbe('Chats you open in this project show up here.', 'Les chats ouverts dans ce projet apparaissent ici.'), action: chatAction(kbe('New chat in this project', 'Nouveau chat dans ce projet')) })
           }
           return h(React.Fragment, null,
             pagerTop(threadsVp),
-            h('div', { className: 'kb8-rows' }, pageOf(threadsRows, threadsVp).map((sn) => h('div', { className: 'kb8-row', key: sn.id, onClick: () => { try { uiWorkspaceSvc.openSession(sn.id) } catch (e) { } } },
-              h('span', { className: 'kb8-tile' }, Icon('sparkles', 16)),
-              h('span', { style: { display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 } },
-                h('span', { className: 'kb8-name' }, sn.displayTitle || sn.id),
-                h('span', { className: 'kb8-parent' }, (sn.running === true ? kbt('kbui.frag.running') : '') + fmtAge(sn.updatedAt, Date.now()))),
-              (currentSid === sn.id ? h('span', { style: pillStyle }, 'CURRENT') : null)))),
+            h('div', { className: 'kb8-rows' }, pageOf(threadsRows, threadsVp).map((sn) => {
+              // Vignette de catégorie (maquette 20/10) : le sidebar classe déjà
+              // chaque session — l'onglet Threads reprend la même sémantique.
+              const cat = kbWsCatOf(wsCats !== null && wsCats[sn.id] !== undefined ? wsCats[sn.id].cat : null)
+              const catBg = cat.known === true ? ('color-mix(in srgb, ' + cat.color + ' 16%, transparent)') : 'var(--dsw-alias-bg-layer-2)'
+              return h('div', { className: 'kb8-row', key: sn.id, style: { minHeight: '52px' }, onClick: () => { try { uiWorkspaceSvc.openSession(sn.id) } catch (e) { } } },
+                h('span', { className: 'kb8-tile', style: { width: '36px', height: '36px', borderRadius: '10px', background: catBg, color: cat.color, display: 'grid', placeItems: 'center', flex: 'none' } }, Icon(cat.icon, 17)),
+                h('span', { style: { display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1, gap: '3px' } },
+                  h('span', { className: 'kb8-name' }, sn.displayTitle || sn.id),
+                  h('span', { style: { display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 } },
+                    (cat.known === true ? h('span', { style: { fontSize: '11px', lineHeight: '16px', fontWeight: 500, letterSpacing: '.01em', color: cat.color, background: catBg, border: '1px solid color-mix(in srgb, ' + cat.color + ' 30%, transparent)', borderRadius: '999px', padding: '0 8px', whiteSpace: 'nowrap' } }, cat.label) : null),
+                    (sn.running === true ? h('span', { style: { fontSize: '11px', lineHeight: '16px', fontWeight: 500, color: 'var(--dsw-alias-state-success-primary)', display: 'inline-flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' } }, h('span', { style: { width: '6px', height: '6px', borderRadius: '50%', background: 'currentColor', flex: 'none' } }), kbt('kbui.frag.running').trim()) : null),
+                    h('span', { className: 'kb8-parent', style: { whiteSpace: 'nowrap' } }, fmtAge(sn.updatedAt, Date.now())))),
+                (currentSid === sn.id ? h('span', { style: pillStyle }, 'Current') : null))
+            })),
             pagerOf(threadsVp))
         }
         if (tab === kbt('kbui.documents')) {
           // Les documents ENVOYES par l'utilisateur dans les threads du projet.
           if (docsRows.length === 0) {
-            return empty(projLoading === true ? PROJ_LOADING : kbe('No document sent in this project’s threads for now.'))
+            return emptyX({ kb: 'project-docs-empty', title: kbe('No document yet', 'Aucun document'), text: kbe('Files you send in this project’s chats show up here.', 'Les fichiers envoyés dans les chats de ce projet apparaissent ici.'), action: chatAction(kbe('Open a chat in this project', 'Ouvrir un chat dans ce projet')) })
           }
           // Reconnaitre une piece : six « image.png » identiques cohabitaient dans
           // cette liste. Le host connait la date d'envoi et le thread d'origine —
@@ -17051,13 +17973,13 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
             pagerTop(docsVp),
             (docsVp.mode === 'list'
               ? h('div', { className: 'kb8-rows', 'data-kb': 'project-docs-list' }, pageOf(docsRows, docsVp).map(docRow))
-              : h('div', { className: 'kb8-docgrid', 'data-kb': 'project-docs-grid' }, pageOf(docsRows, docsVp).map(docCard))),
+              : h('div', { className: 'kb8-docgrid', 'data-kb': 'project-docs-grid', ref: docsVp.gridRef }, pageOf(docsRows, docsVp).map(docCard))),
             pagerOf(docsVp))
         }
         if (tab === kbt('kbui.objectifs')) {
           // Les objectifs REELLEMENT en cours dans les threads du projet.
           return goalRows.length === 0
-            ? empty(projLoading === true ? PROJ_LOADING : kbe('No ongoing goal in this project’s threads.'))
+            ? emptyX({ kb: 'project-goals-empty', title: kbe('No goal running', 'Aucun objectif en cours'), text: kbe('A goal set in one of this project’s chats is followed here until it is done.', 'Un objectif fixé dans un chat de ce projet est suivi ici jusqu’à son terme.'), action: chatAction(kbe('Open a chat in this project', 'Ouvrir un chat dans ce projet')) })
             : h(React.Fragment, null,
               pagerTop(goalsVp),
               h('div', { className: 'kb8-rows' }, pageOf(goalRows, goalsVp).map((g) => {
@@ -17072,7 +17994,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
               pagerOf(goalsVp))
         }
         if (tab === 'Deliverables') {
-          if (mine.length === 0) return empty(kbt('ui.nodeliverable'))
+          if (mine.length === 0) return emptyX({ kb: 'project-deliv-empty', title: kbe('No creation yet', 'Aucune création'), text: kbe('Pages, files and decks your Agent Teams make in this project show up here.', 'Les pages, fichiers et présentations créés par tes Agent Teams dans ce projet apparaissent ici.'), action: chatAction(kbe('Open a chat in this project', 'Ouvrir un chat dans ce projet')) })
           // Le nom d'un livrable ne dit ni son type ni son age : les deux sont
           // affiches, et la fiche dit ou il vit sur le disque (avec de quoi
           // l'ouvrir ou le telecharger). `docField` appartient a l'onglet
@@ -17083,11 +18005,22 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
             return p > 0 ? n.slice(p + 1).toLowerCase() : ''
           }
           const delivType = (a) => { const e = delivExt(a); return e.length > 0 ? e.toUpperCase() : kbt('kbui.doc.file') }
-          const delivMeta = (a) => [delivType(a), (typeof a.size === 'number' ? kbFmtSize(a.size) : null), (typeof a.mtimeMs === 'number' ? fmtAge(a.mtimeMs) : null)].filter((x) => typeof x === 'string' && x.length > 0).join(' · ')
+          const delivMeta = (a) => [kbArtType(a.name).label, (typeof a.size === 'number' ? kbFmtSize(a.size) : null), (typeof a.mtimeMs === 'number' ? fmtAge(a.mtimeMs) : null)].filter((x) => typeof x === 'string' && x.length > 0).join(' · ')
           const delivUrl = (a) => '/kybernos/art-raw?path=' + encodeURIComponent(String(a.path === undefined || a.path === null ? '' : a.path))
+          // Opened in a tab, not downloaded: art-raw serves those types inline (no content-disposition), an image, a PDF
+          // or a text renders. A zip, a docx or a binary keeps the download; the label follows the real gesture.
+          const delivPreviewable = (a) => /\.(png|jpe?g|gif|webp|avif|bmp|ico|pdf|txt|md|html?|json|csv)$/i.test(String(a.name === undefined || a.name === null ? '' : a.name))
           const delivField = (lab, val, k) => (val === null || val === undefined || String(val).length === 0
             ? null
             : h('div', { className: 'kb8-docfield', key: k }, h('span', { className: 'kb8-parent' }, lab), h('span', { className: 'kb8-docval', title: String(val) }, String(val))))
+          // What the creation looks like: the picture itself for an image, its real preview once read, the type's drawing until then.
+          const delivThumbInner = (a) => {
+            const t = kbArtType(a.name)
+            const pv = delivPrevPair[0][a.path]
+            if (KB_DOC_IMAGE_EXTS.indexOf(delivExt(a)) >= 0) return h('img', { className: 'kb8-docthumbimg', 'data-kb': 'project-deliv-thumb', src: delivUrl(a), alt: '', loading: 'lazy', onError: (e) => { try { e.target.style.display = 'none' } catch (e2) { /* image absente */ } } })
+            if (pv !== undefined && pv !== null) return h('div', { className: 'kb6-prev kb6-prev-' + t.id, 'data-kb': 'project-deliv-prev' }, previewContent(t, a.name, pv, a.path, a.size))
+            return h('span', { className: 'kb8-sl-stage', 'data-kb': 'project-deliv-art' }, kbTiArt(kbTiOfName(a.name)))
+          }
           const delivFiche = (a) => h('div', { className: 'kb8-docfiche', 'data-kb': 'project-deliv-sheet' },
             h('div', { className: 'kb8-docfields' }, [
               delivField(kbt('kbui.doc.type'), delivType(a), 't'),
@@ -17095,14 +18028,14 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
               delivField(kbt('kbui.deliv.date'), (typeof a.mtimeMs === 'number' ? fmtAge(a.mtimeMs) : null), 'd'),
               delivField(kbt('kbui.deliv.path'), a.path, 'p'),
             ].filter((x) => x !== null)),
-            h('a', { className: 'kb8-docdl', 'data-kb': 'project-deliv-open', href: delivUrl(a), download: String(a.name) }, kbt('kbui.deliv.open')))
+            h('a', { className: 'kb8-docdl', 'data-kb': 'project-deliv-open', href: delivUrl(a), target: delivPreviewable(a) ? '_blank' : undefined, rel: delivPreviewable(a) ? 'noopener' : undefined, download: delivPreviewable(a) ? undefined : String(a.name) }, kbt(delivPreviewable(a) ? 'kbui.deliv.open' : 'kbui.doc.download')))
           const delivRow = (a) => h('div', {
             className: 'kb8-row', 'data-kb': 'project-deliv-row', 'data-open': delivOpen === a.path ? '1' : '0', key: a.path,
             onClick: () => setDelivOpen(delivOpen === a.path ? null : a.path),
             style: { flexDirection: 'column', alignItems: 'stretch', gap: '0' },
           },
             h('div', { style: { display: 'flex', alignItems: 'center', gap: '13px', width: '100%' } },
-              h('span', { className: 'kb8-tile' }, Icon('package', 16)),
+              h('span', { className: 'kb8-delthumb kb8-delthumb-row' }, delivThumbInner(a)),
               h('span', { style: { display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 } },
                 h('span', { className: 'kb8-name' }, String(a.name)),
                 h('span', { className: 'kb8-parent' }, delivMeta(a)))),
@@ -17111,10 +18044,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
             className: 'kb8-doccard', 'data-kb': 'project-deliv-card', 'data-open': delivOpen === a.path ? '1' : '0', key: a.path,
             onClick: () => setDelivOpen(delivOpen === a.path ? null : a.path),
           },
-            h('div', { className: 'kb8-docthumb' },
-              (KB_DOC_IMAGE_EXTS.indexOf(delivExt(a)) >= 0
-                ? h('img', { className: 'kb8-docthumbimg', 'data-kb': 'project-deliv-thumb', src: delivUrl(a), alt: '', loading: 'lazy', onError: (e) => { try { e.target.style.display = 'none' } catch (e2) { /* image illisible */ } } })
-                : h(React.Fragment, null, Icon('package', 22), h('span', { className: 'kb8-docxt' }, delivType(a))))),
+            h('div', { className: 'kb8-docthumb kb8-delthumb-card' }, delivThumbInner(a)),
             h('span', { className: 'kb8-name', title: String(a.name) }, String(a.name)),
             h('span', { className: 'kb8-parent' }, delivMeta(a)),
             (delivOpen === a.path ? delivFiche(a) : null))
@@ -17123,7 +18053,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
             pagerTop(delivVp),
             (delivVp.mode === 'list'
               ? h('div', { className: 'kb8-rows', 'data-kb': 'project-deliv-list' }, pageOf(mine, delivVp).map(delivRow))
-              : h('div', { className: 'kb8-docgrid', 'data-kb': 'project-deliv-grid' }, pageOf(mine, delivVp).map(delivCard))),
+              : h('div', { className: 'kb8-docgrid', 'data-kb': 'project-deliv-grid', ref: delivVp.gridRef }, pageOf(mine, delivVp).map(delivCard))),
             pagerOf(delivVp))
         }
         if (tab === kbt('kbui.skills')) {
@@ -17131,10 +18061,11 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
           // = détacher. Persisté côté host (workspace-skills), comme les
           // détails de la fiche — aucun état purement local.
           if (skillRows.length === 0) {
-            return empty(projLoading === true ? PROJ_LOADING
-              : (projActiveIds.length === 0
+            return emptyX({ kb: 'project-skills-empty', title: kbe('No skill yet', 'Aucune compétence'),
+              text: projActiveIds.length === 0
                 ? kbe('No agent team has run in this project’s threads yet.')
-                : kbe('No skill detected in the environment — install an agent team that declares one, or import one from the repository.')))
+                : kbe('No skill detected in the environment — install an agent team that declares one, or import one from the repository.'),
+              action: { act: 'browse-skills', label: kbt('kbui.skills.browse'), run: () => { try { set({ view: 'skills' }) } catch (e) { /* page unavailable */ } } } })
           }
           const attachedCount = skillRows.filter((r) => r.attached === true).length
           const countLabel = String(attachedCount) + ' ' + kbt(attachedCount === 1 ? 'kbui.skills.one' : 'kbui.skills.many')
@@ -17150,7 +18081,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
             h('div', { style: { display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px', flexWrap: 'wrap' } },
               h('span', { className: 'kb8-sub', style: { flex: 1, minWidth: '220px' }, 'data-kb': 'project-skills-hint' },
                 kbt('kbui.skills.hint') + ' (' + countLabel + ')'),
-              h('button', { type: 'button', className: 'kb8-primary', style: { padding: '8px 14px', height: 'auto' }, 'data-kb': 'project-skills-browse', title: kbt('kbui.skill.repo'), onClick: () => { try { set({ view: 'skills' }) } catch (e) { /* store unavailable */ } } },
+              h('button', { type: 'button', className: 'kb8-primary', style: { padding: '8px 14px', height: 'auto', marginInlineStart: 'auto' }, 'data-kb': 'project-skills-browse', title: kbt('kbui.skill.repo'), onClick: () => { try { set({ view: 'skills' }) } catch (e) { /* store unavailable */ } } },
                 '+ ' + kbt('kbui.skills.browse'))),
             (skillsErr !== null ? h('div', { role: 'alert', className: 'kb8-sub', style: { color: 'var(--dsw-alias-state-error-primary)', marginBottom: '8px' }, 'data-kb': 'project-skills-error' }, kbt('kbui.skills.savefail') + skillsErr) : null),
             pagerTop(skillsVp),
@@ -17171,7 +18102,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
               h('span', { style: { display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 } },
                 h('span', { className: 'kb8-name' }, k.name),
                 h('span', { className: 'kb8-parent' }, k.ghost === true ? kbt('kbui.skills.ghost') : (k.kyber + ' · ' + k.where))),
-              h('span', { style: k.attached === true ? pillAttached : pillStyle, 'data-kb': 'project-skill-pill' }, k.attached === true ? 'ATTACHED' : 'AVAILABLE'),
+              (k.attached === true ? h('span', { style: pillAttached, 'data-kb': 'project-skill-pill' }, 'Attached') : null),
               h('button', {
                 type: 'button', className: 'kb8-iconbtn', 'data-kb': 'project-skill-info',
                 title: kbt('kbui.skill.info'), 'aria-label': kbt('kbui.skill.info') + kbfSep() + k.name,
@@ -17216,11 +18147,11 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
           if (connRows.length === 0) {
             return h(React.Fragment, null,
               h('span', { className: 'kb8-parent', 'data-kb': 'connectors-source' }, connsNote),
-              empty(projLoading === true
-                ? PROJ_LOADING
-                : (connsReal !== null && connsReal.configured === true
+              emptyX({ kb: 'project-conns-empty', title: kbe('No connector yet', 'Aucun connecteur'),
+                text: connsReal !== null && connsReal.configured === true
                   ? kbe('No declared tool and no real connection for this project.')
-                  : (projActiveIds.length === 0 ? kbe('No agent team has run in this project’s threads yet.') : kbe('This project’s agent teams declare no tool (connector).')))))
+                  : (projActiveIds.length === 0 ? kbe('No agent team has run in this project’s threads yet.') : kbe('This project’s agent teams declare no tool (connector).')),
+                action: KB_CP === true ? { act: 'open-connectors', label: kbe('Open Connectors', 'Ouvrir les connecteurs'), run: () => { try { set({ view: 'connectors' }) } catch (e) { /* page unavailable */ } } } : null }))
           }
           return h(React.Fragment, null,
             h('span', { className: 'kb8-parent', 'data-kb': 'connectors-source' }, connsNote),
@@ -17230,7 +18161,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
               h('span', { style: { display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 } },
                 h('span', { className: 'kb8-name' }, c.name),
                 h('span', { className: 'kb8-parent' }, c.meta)),
-              h('span', { style: Object.assign({}, pillStyle, c.state === 'ACTIVE' || c.state === 'READY' ? { color: 'var(--dsw-alias-state-success-primary)', borderColor: 'var(--dsw-alias-state-success-primary)' } : (c.state === 'FAILED' ? { color: 'var(--dsw-alias-state-error-primary)', borderColor: 'var(--dsw-alias-state-error-primary)' } : null)) }, c.state),
+              ((c.state === 'ACTIVE' || c.state === 'READY') ? null : h('span', { style: Object.assign({}, pillStyle, c.state === 'ACTIVE' || c.state === 'READY' ? { color: 'var(--dsw-alias-state-success-primary)', borderColor: 'var(--dsw-alias-state-success-primary)' } : (c.state === 'FAILED' ? { color: 'var(--dsw-alias-state-error-primary)', borderColor: 'var(--dsw-alias-state-error-primary)' } : null)) }, String(c.state).charAt(0) + String(c.state).slice(1).toLowerCase())),
               h('button', {
                 type: 'button', className: 'kb8-iconbtn', 'data-kb': 'project-conn-toggle',
                 title: (c.real === true && c.account !== null && c.account !== undefined && c.account !== '') ? (connArm === c.key ? kbt('kbui.conn.confirm') : kbt('kbui.conn.disable')) : kbt('kbui.conn.enable'),
@@ -17256,7 +18187,8 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         }
         // ── Budget : uniquement des chiffres reels, aucun graphe invente ──────
         if (budgetRows.length === 0 && spentNow === null) {
-          return empty(projLoading === true ? PROJ_LOADING : kbe('No budget declared by this project’s agent teams (budget: block of kyber.yml).'))
+          return emptyX({ kb: 'project-budget-empty', title: kbe('No budget set', 'Aucun budget défini'), text: kbe('A budget is set by an Agent Team. Once one of this project’s teams has one, its spending is followed here.', 'Un budget est défini par une Agent Team. Dès qu’une équipe de ce projet en a un, ses dépenses sont suivies ici.'),
+            action: { act: 'open-agent-teams', label: kbe('Open Agent Teams', 'Ouvrir les Agent Teams'), run: () => { try { set({ nav: 'kybers', view: 'gallery', detailPath: null, detailRoot: null }) } catch (e) { /* page unavailable */ } } } })
         }
         const cardBoxB = { flex: 1, minWidth: '220px', background: 'var(--dsw-alias-bg-layer-1)', border: '1px solid var(--dsw-alias-border-l1)', borderRadius: '16px', padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: '8px' }
         const remaining = spentNow === null ? null : Math.max(0, budgetTotal - spentNow)
@@ -17264,13 +18196,13 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         return h('div', { style: { display: 'flex', flexDirection: 'column', gap: '14px' } },
           h('div', { style: { display: 'flex', gap: '14px', flexWrap: 'wrap' } },
             h('div', { style: cardBoxB },
-              h('span', { className: 'kb8-parent' }, kbe('BUDGET DECLARED BY THE PROJECT AGENT TEAMS')),
+              h('span', { className: 'kb8-parent' }, kbe('Budget declared by the project agent teams')),
               h('span', { className: 'kb8-h1' }, budgetRows.length === 0 ? '—' : (kbMoney(budgetTotal, budgetCurrency))),
               usedPct === null ? null : h('div', { className: 'kb9-bar' }, h('span', { style: { width: usedPct + '%' } })),
-              h('span', { className: 'kb8-parent' }, budgetRows.length === 0 ? kbe('No `budget:` block in the project kyber.yml files.') : (budgetRows.length + (budgetRows.length === 1 ? ' agent team' : ' agent teams') + ' · ' + budgetRows.map((r) => r.kyber).join(', '))),
+              h('span', { className: 'kb8-parent' }, budgetRows.length === 0 ? kbe('No budget section in the project’s team files.') : (budgetRows.length + (budgetRows.length === 1 ? ' agent team' : ' agent teams') + ' · ' + budgetRows.map((r) => r.kyber).join(', '))),
               h('span', { className: 'kb8-parent' }, budgetDeadline === null ? kbe('No declared deadline.') : (kbe('Closest deadline: ') + budgetDeadline))),
             h('div', { style: cardBoxB },
-              h('span', { className: 'kb8-parent' }, kbe('USAGE OF THIS SESSION')),
+              h('span', { className: 'kb8-parent' }, kbe('Usage of this session')),
               h('span', { className: 'kb8-h1' }, spentNow === null ? '—' : (kbMoney(spentNow, budgetCurrency))),
               h('span', { className: 'kb8-parent' }, spentNow === null ? kbe('The host does not report any usage for this session yet.') : (budgetTotal > 0 ? (kbe('Remaining ') + kbMoney(remaining, budgetCurrency) + kbe(' of the declared budget')) : kbe('No declared budget to report this spend against.'))),
               h('span', { className: 'kb8-parent' }, usageNow !== null && typeof usageNow.spentUsd === 'number' ? kbMoney(usageNow.spentUsd, 'USD') : ''))),
@@ -17282,7 +18214,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
               h('span', { className: 'kb8-parent' }, kbMoney(r.total, r.currency) + (r.deadline === null ? '' : ' · ' + r.deadline)))))),
           h('div', { style: { background: 'var(--dsw-alias-bg-layer-1)', border: '1px solid var(--dsw-alias-border-l1)', borderRadius: '16px', padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: '10px' } },
             h('span', { className: 'kb8-name' }, kbe('How these figures are obtained')),
-            h('span', { className: 'kb8-parent' }, kbe('Budget: the `budget:` block of the kyber.yml files of the Agent Teams that ran in the threads of this project. Usage: real usage reported by the host for the current session. No estimate, no invented graph.'))))
+            h('span', { className: 'kb8-parent' }, kbe('Budget: the budget section of the team files of the Agent Teams that ran in the threads of this project. Usage: real usage reported by the host for the current session. No estimate, no invented graph.'))))
       })()
       return h('div', { className: 'kb8-page' },
         h('button', { type: 'button', className: 'kb8-primary', style: { alignSelf: 'flex-start', background: 'transparent', border: '1px solid var(--dsw-alias-border-l1)', color: 'var(--dsw-alias-label-primary)' }, onClick: () => set({ view: 'projects' }) }, '‹ Back to projects'),
@@ -17357,7 +18289,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       const onClose = typeof props.onClose === 'function' ? props.onClose : (() => {})
       const row = (d) => h('label', { key: d.id, className: 'kb-typepanel-row' },
         h('input', { type: 'checkbox', checked: visible(d.id) === true, onChange: (e) => onToggle(d.id, e.target.checked === true), 'aria-label': d.label, style: { width: 16, height: 16, margin: 0, accentColor: 'var(--dsw-alias-brand-primary,#5563d6)', flex: 'none' } }),
-        h('span', { className: 'kb-typepanel-thumb', style: { background: d.bg, color: d.color } }, d.glyph),
+        h('span', { className: 'kb-typepanel-thumb kb8-sl-stage' }, d.art),
         h('span', { className: 'kb-typepanel-lab' }, d.label),
         h('span', { className: 'kb-typepanel-cnt' }, String(d.count)))
       return h('div', { className: 'kb-typepanel', 'data-kb': 'type-panel', role: 'dialog', 'aria-label': kbt('deliv.customize.title') },
@@ -17381,92 +18313,17 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
     // <kb-type-icons:begin> (généré par harmonisation/build-type-icons.mjs — ne pas éditer)
     const KB_TI = {"ids":["cards","chart","code","deck","doc","folder","image","media","miniapp","other","pdf","quiz","sheet","site"],"icons":{"cards":[["rect",{"x":20,"y":8,"width":38,"height":30,"rx":6},"N",null,1],["rect",{"x":6,"y":22,"width":40,"height":32,"rx":6},null,"P",1],["rect",{"x":6,"y":22,"width":40,"height":32,"rx":6},"A","A",0.12],["line",{"x1":14,"y1":32,"x2":26,"y2":32},"B",null,1],["line",{"x1":14,"y1":41,"x2":36,"y2":41},"N",null,1]],"chart":[["path",{"d":"M9 8 V54 H57"},"N",null,1],["rect",{"x":17,"y":34,"width":9,"height":20,"rx":2},"A","A",0.9],["rect",{"x":30,"y":22,"width":9,"height":32,"rx":2},"B","B",0.9],["rect",{"x":43,"y":12,"width":9,"height":42,"rx":2},"A","A",0.45]],"code":[["rect",{"x":6,"y":10,"width":52,"height":44,"rx":6},"A","A",0.12],["path",{"d":"M24 24 L15 32 L24 40"},"B",null,1],["path",{"d":"M40 24 L49 32 L40 40"},"B",null,1],["line",{"x1":35,"y1":21,"x2":29,"y2":43},"N",null,1]],"deck":[["rect",{"x":16,"y":8,"width":42,"height":30,"rx":6},"N",null,1],["rect",{"x":6,"y":18,"width":44,"height":34,"rx":6},null,"P",1],["rect",{"x":6,"y":18,"width":44,"height":34,"rx":6},"A","A",0.12],["line",{"x1":14,"y1":28,"x2":28,"y2":28},"B",null,1],["line",{"x1":14,"y1":36,"x2":40,"y2":36},"N",null,1],["line",{"x1":14,"y1":43,"x2":32,"y2":43},"N",null,1]],"doc":[["rect",{"x":14,"y":8,"width":36,"height":48,"rx":6},"A","A",0.12],["line",{"x1":22,"y1":20,"x2":34,"y2":20},"B",null,1],["line",{"x1":22,"y1":30,"x2":42,"y2":30},"N",null,1],["line",{"x1":22,"y1":38,"x2":42,"y2":38},"N",null,1],["line",{"x1":22,"y1":46,"x2":32,"y2":46},"N",null,1]],"folder":[["path",{"d":"M8 20 A6 6 0 0 1 14 14 H26 L32 22 H50 A6 6 0 0 1 56 28 V46 A6 6 0 0 1 50 52 H14 A6 6 0 0 1 8 46 Z"},"A","A",0.12],["line",{"x1":8,"y1":31,"x2":56,"y2":31},"A",null,1],["line",{"x1":18,"y1":41,"x2":34,"y2":41},"N",null,1],["circle",{"cx":45,"cy":41,"r":2.5},"B","B",1]],"image":[["rect",{"x":6,"y":10,"width":52,"height":44,"rx":6},"A","A",0.12],["circle",{"cx":21,"cy":24,"r":5},"B","B",1],["path",{"d":"M7 46 L22 32 L33 42 L41 35 L57 48"},"A",null,1]],"media":[["rect",{"x":6,"y":10,"width":52,"height":44,"rx":8},"A","A",0.12],["path",{"d":"M27 18 L41 26 L27 34 Z"},"B","B",1],["line",{"x1":14,"y1":44,"x2":50,"y2":44},"N",null,1],["line",{"x1":14,"y1":44,"x2":30,"y2":44},"B",null,1]],"miniapp":[["rect",{"x":14,"y":6,"width":36,"height":52,"rx":10},"A","A",0.12],["rect",{"x":21,"y":15,"width":9,"height":9,"rx":2.5},"B","B",1],["rect",{"x":34,"y":15,"width":9,"height":9,"rx":2.5},"A",null,1],["rect",{"x":21,"y":28,"width":9,"height":9,"rx":2.5},"A",null,1],["rect",{"x":34,"y":28,"width":9,"height":9,"rx":2.5},"B","B",1],["line",{"x1":26,"y1":48,"x2":38,"y2":48},"N",null,1]],"other":[["path",{"d":"M20 8 H38 L50 20 V50 A6 6 0 0 1 44 56 H20 A6 6 0 0 1 14 50 V14 A6 6 0 0 1 20 8 Z"},"A","A",0.12],["path",{"d":"M38 8 V20 H50"},"A",null,1],["circle",{"cx":23,"cy":38,"r":2.5},"B","B",1],["circle",{"cx":32,"cy":38,"r":2.5},"B","B",1],["circle",{"cx":41,"cy":38,"r":2.5},"B","B",1]],"pdf":[["path",{"d":"M20 8 H38 L50 20 V50 A6 6 0 0 1 44 56 H20 A6 6 0 0 1 14 50 V14 A6 6 0 0 1 20 8 Z"},"A","A",0.12],["path",{"d":"M38 8 V20 H50"},"A",null,1],["line",{"x1":22,"y1":28,"x2":32,"y2":28},"N",null,1],["rect",{"x":20,"y":36,"width":24,"height":12,"rx":3},"B","B",0.9]],"quiz":[["rect",{"x":10,"y":10,"width":44,"height":44,"rx":8},"A","A",0.12],["circle",{"cx":22,"cy":23,"r":4},"B","B",1],["line",{"x1":31,"y1":23,"x2":45,"y2":23},"N",null,1],["circle",{"cx":22,"cy":34,"r":4},"A",null,1],["line",{"x1":31,"y1":34,"x2":43,"y2":34},"N",null,1],["circle",{"cx":22,"cy":45,"r":4},"A",null,1],["line",{"x1":31,"y1":45,"x2":41,"y2":45},"N",null,1]],"sheet":[["rect",{"x":8,"y":10,"width":48,"height":44,"rx":6},"A","A",0.12],["rect",{"x":25,"y":35,"width":14,"height":9,"rx":1.5},null,"B",0.45],["line",{"x1":8,"y1":23,"x2":56,"y2":23},"A",null,1],["line",{"x1":8,"y1":34,"x2":56,"y2":34},"N",null,1],["line",{"x1":8,"y1":45,"x2":56,"y2":45},"N",null,1],["line",{"x1":24,"y1":23,"x2":24,"y2":54},"N",null,1],["line",{"x1":40,"y1":23,"x2":40,"y2":54},"N",null,1]],"site":[["rect",{"x":6,"y":10,"width":52,"height":44,"rx":6},"A","A",0.12],["line",{"x1":6,"y1":23,"x2":58,"y2":23},"A",null,1],["circle",{"cx":13,"cy":16.5,"r":1.5},"N","N",1],["circle",{"cx":19,"cy":16.5,"r":1.5},"N","N",1],["rect",{"x":14,"y":31,"width":16,"height":14,"rx":3},"B","B",0.3],["line",{"x1":37,"y1":33,"x2":50,"y2":33},"N",null,1],["line",{"x1":37,"y1":42,"x2":46,"y2":42},"N",null,1]]},"type":{"miniapp":"miniapp","html":"site","js":"code","quiz":"quiz","doc":"doc","deck":"deck","cards":"cards","resume":"doc","fiche":"doc","engine":"chart","data":"sheet","image":"image","other":"other"},"family":{"slides":"deck","websites":"site","documents":"doc","spreadsheets":"sheet","images":"image","av":"media"},"ext":{"html":"site","htm":"site","css":"code","js":"code","mjs":"code","cjs":"code","ts":"code","jsx":"code","tsx":"code","sh":"code","bash":"code","zsh":"code","py":"code","sql":"code","xml":"code","md":"doc","markdown":"doc","txt":"doc","rst":"doc","docx":"doc","doc":"doc","rtf":"doc","pages":"doc","log":"doc","resume":"doc","fiche":"doc","pdf":"pdf","deck":"deck","pptx":"deck","ppt":"deck","key":"deck","odp":"deck","csv":"sheet","tsv":"sheet","xlsx":"sheet","xls":"sheet","ods":"sheet","json":"sheet","yaml":"sheet","yml":"sheet","toml":"sheet","lock":"sheet","sha256":"sheet","png":"image","jpg":"image","jpeg":"image","webp":"image","gif":"image","svg":"image","avif":"image","bmp":"image","ico":"image","heic":"image","tif":"image","tiff":"image","sketch":"image","mp3":"media","wav":"media","m4a":"media","ogg":"media","oga":"media","flac":"media","aac":"media","opus":"media","mp4":"media","m4v":"media","mov":"media","webm":"media","mkv":"media","avi":"media","mpg":"media","mpeg":"media","engine":"chart","quiz":"quiz","exam":"quiz","cards":"cards","flashcards":"cards","zip":"folder","tar":"folder","gz":"folder","tgz":"folder","7z":"folder","rar":"folder"},"kind":{"note":"doc","plan":"chart","page":"site","pdf":"pdf","deck":"deck","quiz":"quiz","exam":"quiz","flashcards":"cards","game":"miniapp","sketchnote":"image","miniapp":"miniapp"}}
     // <kb-type-icons:end>
-    // ── jeu d'icônes de type UNIQUE (partagé avec Kybernos Cloud) ───────────
-    // 64×64, trait 3, arrondi rond, 2 teintes + neutre : A = business (bleu), B = warn (ambre),
-    // N = étiquette tertiaire, P = papier. Tout passe par les jetons --dsw-alias-*
-    // (clair et sombre). Source : harmonisation/type-icons/*.svg.
-    const KB_TI_COLOR = { A: 'var(--dsw-alias-state-business-primary)', B: 'var(--dsw-alias-state-warn-primary)', N: 'var(--dsw-alias-label-tertiary)', P: 'var(--dsw-alias-bg-layer-1)' }
-    const kbTiSvg = (id, size) => {
-      const els = (KB_TI.icons !== undefined && KB_TI.icons[id] !== undefined) ? KB_TI.icons[id] : (KB_TI.icons || {}).other
-      if (els === undefined) return null
-      return h('svg', { className: 'kb-ti', 'data-kb-ti': id, viewBox: '0 0 64 64', width: size, height: size, 'aria-hidden': 'true', focusable: 'false', fill: 'none', strokeWidth: 3, strokeLinecap: 'round', strokeLinejoin: 'round' },
-        els.map((e, i) => h(e[0], Object.assign({ key: i }, e[1], { stroke: e[2] === null ? 'none' : KB_TI_COLOR[e[2]], fill: e[3] === null ? 'none' : KB_TI_COLOR[e[3]], fillOpacity: e[4] }))))
-    }
     const kbTypeById = (id) => KB_ART_TYPES.filter((t) => t.id === id)[0] || null
-    // ── scènes des tuiles de type (Deliverables), fidèles à la maquette ─────
-    // demos/deliverables/index.html : chaque tuile illustre le CONTENU du type
-    // (slides empilées à barres, cartes Q/A, quiz coché, page de doc…), pas une
-    // icône. Tailles en px dans la bande .kb-type-view, traits en currentColor
-    // (= teinte du type), remplissage translucide — lisible clair et sombre.
-    // Renvoie null pour un type sans scène → l'appelant retombe sur l'icône.
-    const kbBandBg = (t) => {
-      const m = /^#([0-9a-f]{6})$/i.exec(String((t !== null && t !== undefined && t.color) || ''))
-      if (m === null) return (t !== null && t !== undefined) ? t.tint : 'transparent'
-      const n = parseInt(m[1], 16)
-      return 'rgba(' + ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',0.18)'
+    // The Creations tiles draw what the new chat page draws on its cards (KB_NC_ART: a small model of the result, ink and the
+    // theme's tint), so the two pages read as one. A family or a type with no drawing of its own borrows the nearest one.
+    const KB_ART_DRAW = {
+      fam: { slides: 'slides', websites: 'website', documents: 'doc', spreadsheets: 'sheet', images: 'image', av: 'video' },
+      type: { miniapp: 'miniapp', html: 'website', js: 'code', quiz: 'quiz', deck: 'slides', cards: 'cards', resume: 'doc', fiche: 'doc', engine: 'diagram', data: 'sheet', image: 'image' },
     }
-    const kbTypeMini = (t) => {
-      const id = (t !== null && t !== undefined && typeof t.id === 'string') ? t.id : ''
-      const ln = (w, k, o, hh) => h('i', { key: 'l' + k, className: 'kbm-ln', style: { width: w, opacity: (o === undefined ? 0.6 : o), height: (hh === undefined ? 3 : hh) } })
-      const box = (key, st) => h('i', { key: key, className: 'kbm-box', style: st })
-      const dot = (key, s, st) => h('i', { key: key, className: 'kbm-mdot', style: Object.assign({ width: s, height: s }, st) })
-      const page = (k, children) => h('span', { key: k, style: { position: 'relative', width: 46, height: 54, borderRadius: 4, border: '1.5px solid currentColor', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 4, padding: '0 7px', boxSizing: 'border-box' } }, [
-        h('i', { key: 'f', style: { position: 'absolute', inset: 0, background: 'currentColor', opacity: 0.08 } })].concat(children))
-      if (id === 'doc') return h('span', { className: 'kbm' }, page('p', [
-        ln('82%', 1), ln('62%', 2), ln('74%', 3),
-        ln('34%', 4)]))
-      if (id === 'resume') return h('span', { className: 'kbm' }, page('p', [0, 1, 2, 3].map((i) =>
-        h('span', { key: 'r' + i, style: { display: 'flex', alignItems: 'center', gap: 3 } }, dot('d' + i, 4, { opacity: 0.8, flex: 'none' }), ln(['70%', '55%', '76%', '44%'][i], i, 0.55)))))
-      if (id === 'fiche') return h('span', { className: 'kbm', style: { flexDirection: 'column', alignItems: 'center' } }, [
-        h('span', { key: 'tabs', style: { display: 'flex', gap: 3, width: 46, paddingLeft: 2 } }, [0, 1].map((i) => h('i', { key: i, style: { width: 15, height: 5, borderRadius: '3px 3px 0 0', background: 'currentColor', opacity: i === 0 ? 0.8 : 0.4 } }))),
-        page('p', [ln('80%', 1), ln('58%', 2), ln('70%', 3), ln('40%', 4)])])
-      if (id === 'html') return h('span', { className: 'kbm' }, h('span', { key: 'w', style: { position: 'relative', width: 70, height: 48, borderRadius: 4, border: '1.5px solid currentColor', overflow: 'hidden', display: 'flex', flexDirection: 'column' } }, [
-        h('i', { key: 'f', style: { position: 'absolute', inset: 0, background: 'currentColor', opacity: 0.08 } }),
-        h('span', { key: 'tb', style: { position: 'relative', display: 'flex', gap: 3, alignItems: 'center', padding: '4px 6px', borderBottom: '1px solid currentColor', opacity: 0.85 } }, [0, 1, 2].map((i) => dot('d' + i, 4))),
-        h('span', { key: 'bd', style: { position: 'relative', display: 'flex', flexDirection: 'column', gap: 4, justifyContent: 'center', padding: '0 8px' } }, [ln('55%', 1, 0.9), ln('80%', 2, 0.5), ln('42%', 3, 0.9)])]))
-      if (id === 'js') return h('span', { className: 'kbm' }, h('span', { key: 'w', style: { position: 'relative', width: 70, height: 48, borderRadius: 4, border: '1.5px solid currentColor', overflow: 'hidden', display: 'flex', flexDirection: 'column' } }, [
-        h('i', { key: 'f', style: { position: 'absolute', inset: 0, background: 'currentColor', opacity: 0.08 } }),
-        h('span', { key: 'bd', style: { position: 'relative', display: 'flex', flexDirection: 'column', gap: 4, justifyContent: 'center', padding: '0 8px' } }, [
-          h('span', { key: 't', className: 'kbm-txt', style: { fontSize: 11 } }, '>_'),
-          ln('70%', 1, 0.5), ln('48%', 2, 0.9)])]))
-      if (id === 'quiz') return h('span', { className: 'kbm', style: { flexDirection: 'column', gap: 6, alignItems: 'stretch', width: 74 } }, [0, 1, 2].map((i) =>
-        h('span', { key: 'o' + i, style: { display: 'flex', alignItems: 'center', gap: 5 } },
-          i === 0
-            ? h('span', { key: 'c', style: { position: 'relative', flex: 'none' } }, dot('o', 11), h('i', { key: 'in', style: { position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' } }, h('i', { style: { width: 4, height: 4, borderRadius: '50%', background: 'var(--dsw-alias-bg-layer-1,#fff)' } })))
-            : h('i', { key: 'r', className: 'kbm-ring', style: { width: 11, height: 11, opacity: 0.5, flex: 'none' } }),
-          ln(['48%', '62%', '40%'][i], i, i === 0 ? 0.85 : 0.4))))
-      if (id === 'deck') return h('span', { className: 'kbm', style: { width: 74, height: 50 } }, [
-        box('b2', { left: 12, top: 0, width: 60, height: 40, opacity: 0.3, transform: 'rotate(-6deg)' }),
-        box('b1', { left: 6, top: 3, width: 60, height: 40, opacity: 0.5, transform: 'rotate(-3deg)' }),
-        h('span', { key: 'f', style: { position: 'absolute', left: 0, top: 6, width: 60, height: 40, borderRadius: 4, border: '1.5px solid currentColor', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', gap: 4, padding: 6, boxSizing: 'border-box' } }, [
-          h('i', { key: 'bg', style: { position: 'absolute', inset: 0, borderRadius: 3, background: 'var(--dsw-alias-bg-layer-1,#fff)', opacity: 0.55 } }),
-          h('span', { key: 'ti', className: 'kbm-ln', style: { position: 'relative', width: '58%', height: 3, opacity: 0.9 } }),
-          h('span', { key: 'bars', style: { position: 'relative', display: 'flex', alignItems: 'flex-end', gap: 3 } }, [10, 16, 22].map((bh, i) => h('i', { key: i, style: { width: 7, height: bh, borderRadius: '1.5px 1.5px 0 0', background: 'currentColor', opacity: 0.85 - i * 0.2 } })))])])
-      if (id === 'cards') return h('span', { className: 'kbm', style: { width: 74, height: 48 } }, [
-        box('b', { left: 28, top: 6, width: 42, height: 34, transform: 'rotate(6deg)', opacity: 0.4 }),
-        h('span', { key: 'f', style: { position: 'absolute', left: 0, top: 4, width: 46, height: 38, borderRadius: 4, border: '1.5px solid currentColor', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 3, padding: '0 6px', boxSizing: 'border-box' } }, [
-          h('i', { key: 'bg', style: { position: 'absolute', inset: 0, borderRadius: 3, background: 'currentColor', opacity: 0.1 } }),
-          h('span', { key: 'q', style: { position: 'relative', display: 'flex', alignItems: 'center', gap: 4 } }, h('span', { key: 't', className: 'kbm-txt', style: { fontSize: 9 } }, 'Q'), ln('52%', 0, 0.6, 2)),
-          h('i', { key: 'dv', style: { height: 1, background: 'currentColor', opacity: 0.25 } }),
-          h('span', { key: 'a', style: { position: 'relative', display: 'flex', alignItems: 'center', gap: 4 } }, h('span', { key: 't2', className: 'kbm-txt', style: { fontSize: 9 } }, 'A'), ln('64%', 1, 0.85, 2))])])
-      if (id === 'data') return h('span', { className: 'kbm' }, h('span', { key: 'tb', style: { display: 'grid', gridTemplateColumns: 'repeat(3, 22px)', gap: 3 } }, [0, 1, 2, 3, 4, 5, 6, 7, 8].map((i) =>
-        h('i', { key: i, style: i < 3
-          ? { height: 11, borderRadius: 2, background: 'currentColor', opacity: 0.75 }
-          : { height: 11, borderRadius: 2, border: '1px solid currentColor', opacity: 0.45 } }))))
-      if (id === 'image') return h('span', { className: 'kbm' }, h('span', { key: 'fr', style: { position: 'relative', width: 70, height: 48, borderRadius: 4, border: '1.5px solid currentColor', overflow: 'hidden' } }, [
-        dot('sun', 9, { position: 'absolute', right: 8, top: 7, opacity: 0.9 }),
-        h('i', { key: 'm2', style: { position: 'absolute', right: -8, bottom: -6, width: 0, height: 0, borderLeft: '18px solid transparent', borderRight: '18px solid transparent', borderBottom: '22px solid currentColor', opacity: 0.45 } }),
-        h('i', { key: 'm1', style: { position: 'absolute', left: -6, bottom: -6, width: 0, height: 0, borderLeft: '22px solid transparent', borderRight: '22px solid transparent', borderBottom: '28px solid currentColor', opacity: 0.8 } })]))
-      if (id === 'engine') return h('span', { className: 'kbm', style: { gap: 0 } }, ['a', 'l1', 'b', 'l2', 'c'].map((k) =>
-        k.charAt(0) === 'l'
-          ? h('i', { key: k, style: { width: 16, height: 2, background: 'currentColor', opacity: 0.5 } })
-          : h('i', { key: k, style: { width: 13, height: 13, borderRadius: 3, border: '1.5px solid currentColor', background: 'currentColor', opacity: k === 'b' ? 0.95 : 0.45 } })))
-      if (id === 'miniapp') return h('span', { className: 'kbm' }, h('span', { key: 'w', style: { position: 'relative', width: 58, height: 48, borderRadius: 4, border: '1.5px solid currentColor', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' } }, [
-        h('i', { key: 'f', style: { position: 'absolute', inset: 0, background: 'currentColor', opacity: 0.08 } }),
-        h('span', { key: 'tb', style: { position: 'absolute', top: 0, left: 0, right: 0, display: 'flex', gap: 3, alignItems: 'center', padding: '4px 6px', borderBottom: '1px solid currentColor', opacity: 0.85 } }, [0, 1].map((i) => dot('d' + i, 4))),
-        h('i', { key: 'p', style: { position: 'relative', width: 0, height: 0, borderLeft: '10px solid currentColor', borderTop: '6px solid transparent', borderBottom: '6px solid transparent' } })]))
-      return null
-    }
+    const kbArtDraw = (id) => h('svg', { viewBox: '0 0 64 44', 'aria-hidden': 'true', focusable: 'false', dangerouslySetInnerHTML: { __html: KB_NC_ART[id] === undefined ? KB_NC_ART.file : KB_NC_ART[id] } })
+    // What a file wears in a row, a preview or the viewer's header: the icon id of kbTiOfName, drawn as the tiles are.
+    const KB_TI_DRAW = { cards: 'cards', chart: 'diagram', code: 'code', deck: 'slides', doc: 'doc', folder: 'folder', image: 'image', media: 'video', miniapp: 'miniapp', other: 'file', pdf: 'pdf', quiz: 'quiz', sheet: 'sheet', site: 'website' }
+    const kbTiArt = (id) => kbArtDraw(KB_TI_DRAW[id])
     const kbArtType = (name) => {
       const n = String(name || '').toLowerCase()
       // MiniApp universel : *.miniapp.json → type 'miniapp'
@@ -17485,7 +18342,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       if (KB_FAM_EXTS.av.indexOf(ext) >= 0) return KB_ART_TYPE_MEDIA
       return KB_ART_TYPES[KB_ART_TYPES.length - 1]
     }
-    // Nom de fichier → id d'icône du jeu (miniapp, genre dans un .json, extension, type DSH).
+    // File name → the icon id (miniapp, kind inside a .json, extension, DSH type); KB_TI_DRAW says what is drawn for it.
     const kbTiOfName = (name) => {
       const n = String(name || '').toLowerCase()
       if (n.endsWith('.miniapp.json')) return 'miniapp'
@@ -17542,33 +18399,6 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       const e = d >= 0 ? n.slice(d + 1) : ''
       for (const f of KB_ART_FAMILIES) { if (KB_FAM_EXTS[f.id].indexOf(e) >= 0) return f.id }
       return null
-    }
-    // Scène de tuile par famille : on réutilise les micro-scènes des types
-    // (deck → slides, html → sites, doc → documents, data → tableurs,
-    // image → images) et on dessine celle d'Audio & vidéo (lecture + onde).
-    const kbFamMini = (f) => {
-      if (f.id === 'slides') return kbTypeMini(kbTypeById('deck'))
-      if (f.id === 'websites') return kbTypeMini(kbTypeById('html'))
-      // Documents : scène PROPRE à la famille (la tuile fine « Doc » est
-      // masquée depuis le 26/09 — doublon) : deux pages décalées, coin plié,
-      // lignes de texte. Statique, aucun trait animé.
-      if (f.id === 'documents') return h('span', { className: 'kbm', style: { width: 60, height: 48 } }, [
-        h('i', { key: 'b', style: { position: 'absolute', left: 15, top: 0, width: 41, height: 39, border: '1.5px solid currentColor', borderRadius: 4, opacity: 0.35 } }),
-        h('span', { key: 'p', style: { position: 'absolute', left: 3, top: 7, width: 41, height: 39, border: '1.5px solid currentColor', borderRadius: 4, background: 'var(--dsw-alias-bg-layer-1,#1c2030)', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 3.5, padding: '0 7px', boxSizing: 'border-box' } }, [
-          h('i', { key: 'tt', style: { width: '62%', height: 3, borderRadius: 2, background: 'currentColor', opacity: 0.95 } }),
-          h('i', { key: 'l1', style: { width: '100%', height: 2.5, borderRadius: 2, background: 'currentColor', opacity: 0.45 } }),
-          h('i', { key: 'l2', style: { width: '74%', height: 2.5, borderRadius: 2, background: 'currentColor', opacity: 0.45 } }),
-          h('i', { key: 'fold', style: { position: 'absolute', right: 0, top: 0, width: 9, height: 9, background: 'var(--dsw-alias-bg-layer-1,#1c2030)', borderLeft: '1.5px solid currentColor', borderBottom: '1.5px solid currentColor', borderBottomLeftRadius: 3 } }),
-        ]),
-      ])
-      if (f.id === 'spreadsheets') return kbTypeMini(kbTypeById('data'))
-      if (f.id === 'images') return kbTypeMini(kbTypeById('image'))
-      return h('span', { className: 'kbm', style: { flexDirection: 'column', gap: 5, width: 66 } }, [
-        h('span', { key: 'c', style: { position: 'relative', width: 16, height: 16, borderRadius: '50%', border: '1.5px solid currentColor', display: 'flex', alignItems: 'center', justifyContent: 'center' } },
-          h('i', { key: 't', style: { width: 0, height: 0, borderLeft: '5px solid currentColor', borderTop: '3.5px solid transparent', borderBottom: '3.5px solid transparent', marginLeft: 1.5 } })),
-        h('i', { key: 'b1', className: 'kbm-ln', style: { width: '100%', height: 3, opacity: 0.45 } }),
-        h('i', { key: 'b2', className: 'kbm-ln', style: { width: '58%', height: 3, opacity: 0.9 } }),
-      ])
     }
     // Plafond d'affichage initial (« x more files ») : 6 cartes visibles au
     // premier rendu, puis +12 par clic — l'affichage reste léger sur les
@@ -17668,7 +18498,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
     }
     const kbArcNode = (t, size) => [
       h('div', { className: 'kb6-arc', key: 'arc' },
-        h('span', { className: 'kb6-arc-ico', style: { background: 'var(--dsw-alias-interactive-bg-hover)' } }, kbTiSvg('folder', 26)),
+        h('span', { className: 'kb6-arc-ico kb8-sl-stage' }, kbTiArt('folder')),
         h('span', { className: 'kb6-line2' }, 'Archive' + (kbFmtSize(size) !== '' ? ' · ' + kbFmtSize(size) : ''))),
     ]
     // ── Data creations: shown as DATA, never as the code of the file ────────────────────────────────────
@@ -17873,7 +18703,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       if (extB === 'zip' || extB === 'tar' || extB === 'gz' || extB === 'tgz' || extB === '7z' || extB === 'rar') return kbArcNode(t, size)
       if (kind === 'binary') {
         return [
-          h('div', { className: 'kb6-prevkind', key: 'bk' }, kbTiSvg(kbTiOfName(name), 30)),
+          h('div', { className: 'kb6-prevkind kb8-sl-stage', key: 'bk' }, kbTiArt(kbTiOfName(name))),
           h('div', { className: 'kb6-line2', key: 'bt' }, kbe('Binary content — no text preview')),
           h('div', { className: 'kb6-line2', key: 'bs' }, kbFmtSize(typeof preview.size === 'number' ? preview.size : null) + (typeof preview.ext === 'string' && preview.ext.length > 0 ? ' · .' + preview.ext : '')),
         ]
@@ -17886,7 +18716,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       // avait rendu aucun. Au-dessus du plafond, on le dit.
       if (lines === null && typeof size === 'number' && size > 1200000) {
         return [
-          h('div', { className: 'kb6-prevkind', key: 'ov' }, kbTiSvg(kbTiOfName(name), 30)),
+          h('div', { className: 'kb6-prevkind kb8-sl-stage', key: 'ov' }, kbTiArt(kbTiOfName(name))),
           h('div', { className: 'kb6-line2', key: 'o1' }, kbt('kbui.apercu.unavailable') + kbFmtSize(size)),
           h('div', { className: 'kb6-line2', key: 'o2' }, kbe('Above the 1.2 MB limit')),
         ]
@@ -17936,7 +18766,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         const comps = (p !== null && Array.isArray(p.components)) ? p.components.length
           : ((p !== null && Array.isArray(p.parts)) ? p.parts.length : null)
         return [
-          h('div', { className: 'kb6-prevkind', key: 'pk' }, kbTiSvg('miniapp', 30)),
+          h('div', { className: 'kb6-prevkind kb8-sl-stage', key: 'pk' }, kbTiArt('miniapp')),
           h('div', { className: 'kb6-prevtitle', key: 'tt' }, titre),
           h('div', { className: 'kb6-line2', key: 'ln' }, 'Mini-app ' + rendu
             + (lots !== null ? ' · ' + lots + (lots > 1 ? ' lots' : ' lot') : ' · ' + kbe('preview truncated'))
@@ -18031,7 +18861,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
           : previewContent(t, a.name, preview, a.path, a.size)
       return h('div', { className: 'kb6-card' + (typeof appear === 'string' ? appear : ''), title: a.path },
         h('div', { className: 'kb6-cardrow' },
-          h('div', { className: 'kb6-ico kb6-ico-ti', style: { background: 'var(--dsw-alias-interactive-bg-hover)' } }, kbTiSvg(kbTiOfName(a.name), 16)),
+          h('div', { className: 'kb6-ico kb6-ico-ti kb8-sl-stage' }, kbTiArt(kbTiOfName(a.name))),
           h('div', { className: 'kb6-cname' },
             h('div', { className: 'kbg-name' }, a.name || '—')),
           h('span', { className: 'kb6-type', style: { background: t.tint, '--kb6-ink': t.color } }, t.label),
@@ -19922,7 +20752,7 @@ function renderFit(canvas, model, cam, opts){
       return h('div', { className: 'kbg-root' },
         h('button', { type: 'button', className: 'kbg-back', onClick: onBack }, '← ' + kbt('deliverables.back')),
         h('div', { className: 'kb4-pagehead kb6-vhead' },
-          h('span', { className: 'kb6-vico', 'data-kb': 'artview-ico' }, kbTiSvg(kbTiOfName(name), 30)),
+          h('span', { className: 'kb6-vico kb8-sl-stage', 'data-kb': 'artview-ico' }, kbTiArt(kbTiOfName(name))),
           name,
           (typeof onPopup === 'function' ? h('button', { type: 'button', className: 'kbq-btn', 'data-kb': 'artview-popup', title: kbe('Open in a popup without leaving the page'), onClick: () => onPopup(path, name) }, Icon('maximize2', 13), ' Popup') : null),
           // Une miniapp peut se poser dans la barre latérale droite sans passer
@@ -20005,7 +20835,7 @@ function renderFit(canvas, model, cam, opts){
         h('div', { className: 'kb6-pop', role: 'dialog', 'aria-label': name, 'aria-modal': 'true', style: (popWidth !== null) ? { width: popWidth + 'px' } : null },
           h('div', { className: 'kb6-popresize', 'data-kb': 'art-popup-resize', title: kbe('Resize (drag the left edge)'), onMouseDown: startPopResize }),
           h('div', { className: 'kb6-pophead' },
-            h('span', { className: 'kb6-vico', 'data-kb': 'artpop-ico' }, kbTiSvg(kbTiOfName(name), 30)),
+            h('span', { className: 'kb6-vico kb8-sl-stage', 'data-kb': 'artpop-ico' }, kbTiArt(kbTiOfName(name))),
             h('div', { className: 'kb6-poptitle' },
               h('div', { className: 'kb6-popname' }, name),
               h('div', { className: 'kb6-popsub' }, kind.label + ' · ' + path)),
@@ -20179,8 +21009,8 @@ function renderFit(canvas, model, cam, opts){
       const fineTiles = present.filter((t) => !KB_ART_FAMILIES.some((f) => typed.every((a) => a.type.id !== t.id || kbArtFamille(a.name) === f.id)))
       const visSaved = (Array.isArray(tbArts[0].vis) === true) ? tbArts[0].vis : null
       const isRenderedMiniApp = (a) => (/\.miniapp\.json$/i).test(String(a.name || ''))
-      const tileDefs = KB_ART_FAMILIES.map((f) => ({ kind: 'fam', id: f.id, label: kbt('deliv.fam.' + f.id), desc: kbt('deliv.fam.' + f.id + '.desc'), count: typed.filter((a) => kbArtFamille(a.name) === f.id).length, color: 'var(--dsw-alias-brand-primary)', bg: 'var(--dsw-alias-interactive-bg-hover)', glyph: kbTiSvg(KB_TI.family[f.id], 34) }))
-        .concat(KB_ART_TYPES.filter((t) => t.id !== 'other' && t.id !== 'doc').map((t) => ({ kind: 'type', id: t.id, label: t.label, desc: kbt('deliv.type.' + t.id + '.desc'), count: typed.filter((a) => a.type.id === t.id && (t.id !== 'miniapp' || isRenderedMiniApp(a) === true)).length, color: 'var(--dsw-alias-brand-primary)', bg: 'var(--dsw-alias-interactive-bg-hover)', glyph: kbTiSvg(KB_TI.type[t.id] || 'other', 34) })))
+      const tileDefs = KB_ART_FAMILIES.map((f) => ({ kind: 'fam', id: f.id, label: kbt('deliv.fam.' + f.id), desc: kbt('deliv.fam.' + f.id + '.desc'), count: typed.filter((a) => kbArtFamille(a.name) === f.id).length, art: kbArtDraw(KB_ART_DRAW.fam[f.id]) }))
+        .concat(KB_ART_TYPES.filter((t) => t.id !== 'other' && t.id !== 'doc').map((t) => ({ kind: 'type', id: t.id, label: t.label, desc: kbt('deliv.type.' + t.id + '.desc'), count: typed.filter((a) => a.type.id === t.id && (t.id !== 'miniapp' || isRenderedMiniApp(a) === true)).length, art: kbArtDraw(KB_ART_DRAW.type[t.id]) })))
       // (02/10) `vis` devient une liste de types MASQUÉS : mémoriser les
       // affichés figeait la rangée à l'instant de la sauvegarde — un type
       // devenu présent plus tard (ex. miniapp) n'apparaissait jamais (constaté
@@ -20435,8 +21265,8 @@ function renderFit(canvas, model, cam, opts){
           // « Tous » et dans la recherche, il disparaît seulement des filtres.
           const tuile = (d) => {
             const on = selTypes.indexOf(d.id) >= 0
-            return h('button', { type: 'button', key: d.id, 'aria-pressed': on === true ? 'true' : 'false', className: 'kb-type' + (on === true ? ' kb-type-sel' : ''), style: on === true ? { borderColor: d.color } : {}, title: d.desc, onClick: () => toggleSel(d.id) },
-              h('span', { className: 'kb-type-view', style: { background: d.bg, color: d.color } }, d.glyph),
+            return h('button', { type: 'button', key: d.id, 'aria-pressed': on === true ? 'true' : 'false', className: 'kb-type' + (on === true ? ' kb-type-sel' : ''), title: d.desc, onClick: () => toggleSel(d.id) },
+              h('span', { className: 'kb-type-view kb8-sl-stage' }, d.art),
               h('span', { className: 'kb-type-check' + (on === true ? ' on' : ''), 'aria-hidden': 'true' }, on === true ? Icon('check', 10) : null),
               h('span', { className: 'kb-type-line' },
                 h('span', { className: 'kb-type-lab' }, d.label),
@@ -20469,7 +21299,7 @@ function renderFit(canvas, model, cam, opts){
             h('div', { className: 'kb-typerow-host' },
               h('div', { className: 'kb-typerow', 'data-kb': 'type-tiles' },
                 h('button', { type: 'button', className: 'kb-type' + (allOn === true ? ' kb-type-sel' : ''), 'aria-pressed': allOn === true ? 'true' : 'false', onClick: () => tbArts[1]({ types: [] }) },
-                  h('span', { className: 'kb-type-view', style: { background: 'var(--dsw-alias-interactive-bg-hover)', color: 'var(--dsw-alias-label-tertiary)' } }, Icon('layers', 22)),
+                  h('span', { className: 'kb-type-view kb8-sl-stage' }, kbArtDraw('all')),
                   h('span', { className: 'kb-type-check' + (allOn === true ? ' on' : ''), 'aria-hidden': 'true' }, allOn === true ? Icon('check', 10) : null),
                   h('span', { className: 'kb-type-line' },
                     h('span', { className: 'kb-type-lab' }, kbt('deliverables.all')),
@@ -20495,10 +21325,10 @@ function renderFit(canvas, model, cam, opts){
           const snippet = hasText === false ? '' : (a.type.id === 'data' ? kbDataSummary(kbDataInfo(pv.text, a.name, 3)) : kbArtFirstLine(pv))
           const pinned = pins[a.path] === true
           return h('div', { className: 'kb6-lrow' + kbIn(i), key: 'la' + a.path, title: a.path, role: 'button', tabIndex: 0, 'data-kb': 'art-row', onClick: () => openArtifact(a), onKeyDown: (e2) => { if (e2.target === e2.currentTarget && (e2.key === 'Enter' || e2.key === ' ')) { e2.preventDefault(); openArtifact(a) } } },
-          // Vignette de rangée : vraie miniature pour les images, micro-scène du
-          // type sinon — le nom seul ne disait rien du contenu.
-          h('span', { className: 'kb6-lthumb', style: { background: 'var(--dsw-alias-interactive-bg-hover)' } },
-            a.type.id === 'image' ? h('img', { src: kbArtRawUrl(a.path), alt: '', loading: 'lazy' }) : kbTiSvg(kbTiOfName(a.name), 34)),
+          // Row thumbnail: the real picture for images, the type's drawing otherwise
+          // (the name alone said nothing of the content).
+          h('span', { className: 'kb6-lthumb' + (a.type.id === 'image' ? '' : ' kb8-sl-stage') },
+            a.type.id === 'image' ? h('img', { src: kbArtRawUrl(a.path), alt: '', loading: 'lazy' }) : kbTiArt(kbTiOfName(a.name))),
           h('div', { className: 'kb6-lmain' },
             h('div', { className: 'kb6-ltop' },
               h('div', { className: 'kb6-lrowname' }, a.name),
@@ -20564,6 +21394,9 @@ function renderFit(canvas, model, cam, opts){
       const approvalsPair = React.useState(t0.approvals === 'auto' ? 'auto' : 'ask')
       const approvals = approvalsPair[0]; const setApprovals = approvalsPair[1]
       const notifyPair = React.useState(Array.isArray(t0.notify) === true ? t0.notify : [])
+      // Where the runs land: '' is the dedicated workspace (the host makes it), else the id of one of the person's workspaces.
+      const wsPair = React.useState(() => { const c = kbWsChoice(t0.workspaceHint, kbPinsSnapshots().items); return c.kind === 'dedicated' ? '' : (typeof t0.workspaceHint === 'string' ? t0.workspaceHint : '') })
+      const wsHint = wsPair[0]; const setWsHint = wsPair[1]
       const notify = notifyPair[0]; const setNotify = notifyPair[1]
       const errPair = React.useState(null)
       const err = errPair[0]; const setErr = errPair[1]
@@ -20600,6 +21433,7 @@ function renderFit(canvas, model, cam, opts){
           active: active === true,
           approvals,
           notify,
+          workspaceHint: wsHint === '' ? null : wsHint,
           runsOn: 'local',
           schedule: mode === 'webhook' ? { mode: 'webhook', tz: tz0 } : (mode === 'once' ? { mode: 'once', at: (atTouched === true || typeof sc0.at !== 'string') ? at : sc0.at, tz: tz0 } : { mode: 'cron', cron: cron.trim(), tz: tz0 }),
         }
@@ -20656,6 +21490,11 @@ function renderFit(canvas, model, cam, opts){
             h('div', { className: 'kb-task-row' },
               h('span', { className: 'kb-task-chip on' }, Icon('monitor', 12), ' ', kbt('tasks.local')),
               h('span', { className: 'kb-task-chip kb-task-disabled', title: kbt('tasks.cloud.soon') }, Icon('cloud', 12), ' ', kbt('tasks.cloud')))),
+          h('div', { className: 'kb-task-f' },
+            h('label', null, kbt('tasks.ws.label')),
+            h('select', { className: 'kb-task-select', 'data-kb': 'task-workspace', value: wsHint, onChange: (e) => setWsHint(e.target.value) },
+              kbWsOptions(kbPinsSnapshots().items, wsHint).map((o) => h('option', { key: o.id === '' ? '__dedicated' : o.id, value: o.id }, o.kind === 'dedicated' ? kbt('tasks.ws.dedicated') : (o.kind === 'gone' ? kbt('tasks.ws.gone') : o.name)))),
+            h('span', { className: 'kb-task-muted' }, kbt('tasks.ws.hint'))),
           h('div', { className: 'kb-task-row' },
             h('span', { className: 'kb-task-f', style: { flex: '1' } },
               h('label', null, kbt('tasks.active')),
@@ -20703,9 +21542,10 @@ function renderFit(canvas, model, cam, opts){
     const kbTaskStepShort = (txt) => { const t = String(txt).replace(/[.]$/, ''); return t.length > 84 ? t.slice(0, 83) + '…' : t }
     const kbTaskNodes = (t) => {
       const steps = kbTaskSteps(t)
-      const nodes = [{ l: 'Schedule', s: kbScheduleLabel(t), c: 'trg', ic: '\u25f7' }]
-      for (const st of steps) nodes.push({ l: kbTaskStepShort(st.text), s: kbt('tasks.flow.step') + ' ' + st.n, c: kbTaskStepIsAi(st.text) ? 'ai' : 'act', ic: String(st.n) })
-      if (nodes.length > 1) nodes.push({ l: 'Log run', s: 'audit trail', c: 'gry', ic: '\u2261' })
+      const nodes = [{ l: 'Schedule', s: kbScheduleLabel(t), c: 'trg', ic: '\u25f7', full: kbScheduleLabel(t), how: 'trg', guard: false }]
+      // `full` is the whole instruction (the title is cut), `how` is what the Code view calls for it, `guard` marks a check that must pass first.
+      for (const st of steps) nodes.push({ l: kbTaskStepShort(st.text), s: kbt('tasks.flow.step') + ' ' + st.n, c: kbTaskStepIsAi(st.text) ? 'ai' : 'act', ic: String(st.n), full: st.text, how: kbTaskStepIsAi(st.text) ? 'ai' : 'act', guard: /^(preflight|pre-flight|garde|guard)\b/i.test(st.text) })
+      if (nodes.length > 1) nodes.push({ l: 'Log run', s: 'audit trail', c: 'gry', ic: '\u2261', full: '', how: 'log', guard: false })
       // Disposition lisible par défaut : serpent en zigzag (≤ 4 par rangée).
       // Une ligne droite devient illisible dès 5+ nœuds — le zigzag replie
       // le parcours sur lui-même et garde le canvas compact.
@@ -20793,6 +21633,370 @@ function renderFit(canvas, model, cam, opts){
         const json = await res.json()
         return json !== null && typeof json === 'object' && json.ok === true && json.outcomes !== null && typeof json.outcomes === 'object' ? json.outcomes : {}
       } catch (e) { return {} }
+    }
+    // ── The runs of one automation: Sessions (executions, graph, logs) and Journal (the story of one run) ──────────────────
+    // Read-only. The history comes from tasks.json; what each run did comes from the engine's journals through
+    // GET /kybernos/tasks/runs (the pure part is the KB-AUTORUNS block at the top of this file). Own fetch, not host.call: a host that
+    // predates the route answers 404, and host.call reads a 404 as « this host has no routes at all » and switches every other route
+    // of the page off until it is reloaded. Without the route the list still shows every run, with what tasks.json knows (time,
+    // status, failure) and says the rest is not read.
+    const kbRunsCache = new Map()
+    const kbRunsFetch = async (ids, detail) => {
+      try {
+        const res = await fetch(kbApiBase() + '/tasks/runs?ids=' + encodeURIComponent(ids.join(',')) + (detail === true ? '&detail=1' : ''), { method: 'GET' })
+        if (res.ok !== true) return {}
+        const json = await res.json()
+        return json !== null && typeof json === 'object' && json.ok === true && json.runs !== null && typeof json.runs === 'object' ? json.runs : {}
+      } catch (e) { return {} }
+    }
+    // Reads the journals of `ids` that are not cached yet, five per call, and hands each batch to `onGot`; returns what stops it. A run still
+    // open is not kept: it is read again next time.
+    const kbRunsRead = (ids, onGot) => {
+      let alive = true
+      const need = ids.filter((id) => kbRunsCache.has(id) === false)
+      ;(async () => {
+        for (let i = 0; i < need.length; i += 5) {
+          const got = await kbRunsFetch(need.slice(i, i + 5), false)
+          if (alive !== true) return
+          const add = {}
+          for (const id of Object.keys(got)) {
+            add[id] = got[id]
+            if (got[id] !== null && typeof got[id] === 'object' && got[id].outcome !== null && typeof got[id].outcome === 'object' && got[id].outcome.state !== 'open') kbRunsCache.set(id, got[id])
+          }
+          if (Object.keys(add).length > 0) onGot(add)
+        }
+      })()
+      return () => { alive = false }
+    }
+    const kbRunKey = (r, i) => (r.sessionId !== null ? r.sessionId : 'x:' + r.at + ':' + String(i))
+    const KB_RUN_ICONS = { bash: '>_', skill: '✦', read: '▤', write: '✎', edit: '✎', job_output: '⧗', lesson_write: '✎' }
+    const kbRunIcon = (kind) => (KB_RUN_ICONS[kind] !== undefined ? KB_RUN_ICONS[kind] : String(kind).slice(0, 1).toUpperCase())
+    const kbRunStateText = (state, dur, run) => {
+      if (state === 'failed') return dur === '—' ? kbt('tasks.runs.failed') : kbt('tasks.runs.failedin').replace('{d}', dur)
+      if (state === 'completed') return kbt('tasks.runs.completedin').replace('{d}', dur)
+      if (state === 'running') return kbt('tasks.runs.running')
+      return run.status === 'queued' ? kbt('tasks.status.queued') : kbt('tasks.runs.unread')
+    }
+    const KbRunsPane = (props) => {
+      const runs = props.runs
+      const locale = kbBoardLocale()
+      const sumPair = React.useState(() => { const o = {}; kbRunsCache.forEach((v, k) => { o[k] = v }); return o })
+      const sums = sumPair[0]
+      const setSums = sumPair[1]
+      const detPair = React.useState({})
+      const det = detPair[0]
+      const setDet = detPair[1]
+      const nodePair = React.useState(1)
+      const nodeIdx = nodePair[0]
+      const setNodeIdx = nodePair[1]
+      const ioPair = React.useState('in')
+      const io = ioPair[0]
+      const setIo = ioPair[1]
+      // Lessons: how far the automation is from becoming a skill, and the skill if it was written (GET /kybernos/automation-skills).
+      const lessonPair = React.useState(undefined)
+      const lessonErrPair = React.useState('')
+      React.useEffect(() => {
+        if (props.mode !== 'journal' || typeof props.taskId !== 'string') return undefined
+        let alive = true
+        fetch(kbApiBase() + '/automation-skills?id=' + encodeURIComponent(props.taskId), { method: 'GET', cache: 'no-store' })
+          .then((r) => (r.ok === true ? r.json() : null)).then((j) => { if (alive === true) lessonPair[1](j !== null && typeof j === 'object' && j.ok === true ? j.lesson : null) })
+          .catch(() => { if (alive === true) lessonPair[1](null) })
+        return () => { alive = false }
+      }, [props.mode, props.taskId, runs.length])
+      const createSkill = () => {
+        lessonErrPair[1]('')
+        fetch(kbApiBase() + '/automation-skills', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id: props.taskId }) })
+          .then((r) => r.json().catch(() => null)).then((j) => {
+            if (j !== null && typeof j === 'object' && j.ok === true) lessonPair[1](j.lesson)
+            else lessonErrPair[1](kbt('tasks.lesson.err').replace('{why}', () => (j !== null && typeof j === 'object' && typeof j.error === 'string' ? j.error : '?')))
+          }).catch(() => lessonErrPair[1](kbt('tasks.lesson.err').replace('{why}', () => '?')))
+      }
+      const keys = runs.map(kbRunKey)
+      const selKey = props.sel !== null && keys.indexOf(props.sel) >= 0 ? props.sel : (keys.length > 0 ? keys[0] : null)
+      const selRun = selKey !== null ? runs[keys.indexOf(selKey)] : null
+      const selId = selRun !== null ? selRun.sessionId : null
+      const ids = runs.filter((r) => r.sessionId !== null).slice(0, 20).map((r) => r.sessionId)
+      const idsKey = ids.join(',')
+      // What each run did: five journals per call, so the list fills in as they are read. A run still open is read again next time.
+      React.useEffect(() => kbRunsRead(ids, (add) => setSums((prev) => Object.assign({}, prev, add))), [idsKey])
+      // The input and output of the steps of the run that is open, asked for that one run only.
+      React.useEffect(() => {
+        if (props.mode !== 'sessions' || selId === null || det[selId] !== undefined) return undefined
+        let alive = true
+        setDet((prev) => Object.assign({}, prev, { [selId]: 'loading' }))
+        kbRunsFetch([selId], true).then((got) => { if (alive === true) setDet((prev) => Object.assign({}, prev, { [selId]: got[selId] !== undefined ? got[selId] : 'none' })) })
+        return () => { alive = false }
+      }, [selId, props.mode])
+      if (runs.length === 0) return h('div', { className: 'kba-sesscroll' }, h('div', { className: 'kba-empty' }, props.emptyText))
+      const sumOf = (r) => (r.sessionId !== null && sums[r.sessionId] !== undefined && sums[r.sessionId] !== null ? sums[r.sessionId] : null)
+      const sel = sumOf(selRun)
+      const state = kbRunState(selRun, sel)
+      const stats = kbRunStats(runs, sums)
+      const model = sel !== null && Array.isArray(sel.models) === true && sel.models.length > 0 ? sel.models[0] : null
+      const durOf = (s) => kbRunFmtDur(s !== null ? s.durationMs : null)
+      const tile = (label, value, bad) => h('div', { key: label, className: 'kbrn-stat' + (bad === true ? ' bad' : '') }, h('span', { className: 'kbrn-stk' }, label), h('span', { className: 'kbrn-stv' }, value))
+      const stateLine = h('span', { className: state === 'failed' ? 'kbrn-badtxt' : (state === 'completed' ? 'kbrn-oktxt' : 'dim') }, kbRunStateText(state, durOf(sel), selRun))
+      const failNote = selRun.status === 'error' && selRun.error !== null ? h('div', { className: 'kbrn-xerr' }, selRun.error) : null
+      const openChat = selId !== null ? h('button', { type: 'button', className: 'kba-btn', onClick: () => props.onOpenChat(selId) }, kbt('tasks.sessions.openchat') + ' ›') : null
+      const readNote = sel === null && selId !== null ? h('div', { className: 'kba-hint' }, kbt('tasks.runs.noread')) : null
+
+      if (props.mode === 'journal') {
+        // The six newest runs, and the chosen one when it is older; the rest are one press away, in Sessions: no run is cut without a word.
+        const shownIdx = runs.map((r, i) => i).filter((i) => i < 6 || keys[i] === selKey)
+        const chips = shownIdx.map((i) => h('button', { key: keys[i], type: 'button', className: 'kba-tab' + (keys[i] === selKey ? ' on' : ''), onClick: () => props.onSelect(keys[i]) }, kbRunFmtDT(runs[i].at, locale)))
+        if (shownIdx.length < runs.length) chips.push(h('button', { key: 'all', type: 'button', className: 'kba-tab', 'data-kb': 'runs-all', onClick: () => props.onSessions() }, kbt('tasks.runs.all').replace('{n}', String(runs.length))))
+        const row = (k, v) => h('div', { key: k, className: 'kbrn-kv' }, h('span', { className: 'kbrn-k' }, k), h('span', { className: 'kbrn-v' }, v))
+        const nodes = sel !== null && Array.isArray(sel.nodes) === true ? sel.nodes : []
+        return h('div', { className: 'kba-sesscroll', 'data-kb': 'runs-journal' },
+          h('div', { className: 'kba-tabs' }, chips),
+          h('div', { className: 'kbrn-jhead' }, h('b', null, kbRunFmtDT(selRun.at, locale, true)), stateLine, h('span', { style: { flex: 1 } }), openChat),
+          failNote,
+          readNote,
+          sel === null ? null : h('div', { className: 'kba-card kbrn-card' },
+            h('span', { className: 'kba-tabver mono' }, kbt('tasks.journal.who')),
+            row(kbt('tasks.runs.model'), model !== null ? h('span', null, h('b', { className: 'kbrn-mono' }, model.model), model.provider !== '' ? ' · ' + model.provider : '') : '—'),
+            row(kbt('tasks.journal.why'), sel.selected === true ? kbt('tasks.journal.why.set') : kbt('tasks.journal.why.default')),
+            row(kbt('tasks.runs.duration'), durOf(sel) + ' · ' + kbt('tasks.runs.steps').replace('{n}', String(sel.steps)) + ' · ' + kbt('tasks.runs.tools').replace('{n}', String(sel.toolCalls)))),
+          sel === null ? null : h('div', { className: 'kba-card kbrn-card' },
+            h('span', { className: 'kba-tabver mono' }, kbt('tasks.journal.what')),
+            nodes.map((n, i) => h('div', { key: i, className: 'kbrn-step' },
+              h('span', { className: 'kba-kdot ' + (n.ok === false ? 'fail' : 'ok') }),
+              h('span', { className: 'kbrn-sl' }, h('b', null, String(i + 1) + ' · ' + n.label), h('span', { className: 'dim' }, ' · ' + n.kind + (typeof n.approval === 'string' ? ' · ' + kbt('tasks.journal.approval') + ': ' + n.approval : ''))),
+              h('span', { className: 'dim' }, kbRunFmtDur((n.thinkMs || 0) + (n.runMs || 0))))),
+            sel.nodeCount > nodes.length ? h('div', { className: 'kba-hint' }, kbt('tasks.runs.more').replace('{n}', String(sel.nodeCount - nodes.length)) + ' · ' + kbt('tasks.runs.moresub')) : null,
+            sel.final !== null && sel.final !== undefined ? h('div', { className: 'kbrn-step' }, h('span', { className: 'kba-kdot ' + (state === 'failed' ? 'fail' : 'ok') }), h('span', { className: 'kbrn-sl' }, h('b', null, kbt('tasks.runs.final'))), h('span', { className: 'dim' }, kbRunFmtDur(sel.final.thinkMs))) : null),
+          sel === null ? null : h('div', { className: 'kba-card kbrn-card' },
+            h('span', { className: 'kba-tabver mono' }, kbt('tasks.journal.approvals')),
+            (Array.isArray(sel.approvals) === true && sel.approvals.length > 0
+              ? sel.approvals.map((a, i) => h('div', { key: i, className: 'kbrn-step' }, h('span', { className: 'kba-kdot ' + (a.outcome === 'asked' ? 'wait' : 'ok') }), h('span', { className: 'kbrn-sl' }, h('b', null, a.toolName), h('span', { className: 'dim' }, ' · ' + a.outcome))))
+              : h('div', null, kbt('tasks.journal.approvals.none') + ' ' + props.approvalLabel))),
+          (() => {
+            const lesson = lessonPair[0]
+            if (lesson === undefined || lesson === null || typeof lesson !== 'object') return null
+            const made = lesson.skill !== null && lesson.skill !== undefined ? lesson.skill : null
+            return h('div', { className: 'kba-card kbrn-card', 'data-kb': 'journal-lesson' },
+              h('span', { className: 'kba-tabver mono' }, kbt('tasks.lesson.title')),
+              (made !== null
+                ? h('div', null, kbt(made.how === 'manual' ? 'tasks.lesson.made.manual' : 'tasks.lesson.made.auto').replace('{skill}', () => made.skill).replace('{n}', String(made.runs)))
+                : (lesson.streak >= lesson.stableAfter
+                  ? h('div', { className: 'kbrn-lesson' },
+                    h('span', null, kbt('tasks.lesson.stable').replace('{n}', String(lesson.streak))),
+                    h('button', { type: 'button', className: 'kba-btn pri', 'data-kb': 'lesson-create', onClick: createSkill }, kbt('tasks.lesson.create')),
+                    h('span', { className: 'dim' }, kbt(lesson.autoSkill === true ? 'tasks.lesson.soon' : 'tasks.lesson.hint')))
+                  : h('div', null, kbt('tasks.lesson.progress').replace('{k}', String(lesson.streak)).replace('{n}', String(lesson.stableAfter))))),
+              (lessonErrPair[0] !== '' ? h('div', { className: 'kbrn-badtxt' }, lessonErrPair[0]) : null))
+          })()
+        )
+      }
+
+      // Sessions: the executions on the left, the one that is open on the right (its graph, then its logs).
+      const g = kbRunGraph(sel, state === 'failed')
+      const lay = kbGraphLayout(g.nodes.length, { nw: 160, hg: 56 })
+      const ix = Math.min(nodeIdx, g.nodes.length - 1)
+      const tools = sel !== null && Array.isArray(sel.nodes) === true ? sel.nodes : []
+      const nodeView = g.nodes.map((n) => {
+        if (n.type === 'start') return { kind: 'trg', icon: '▶', title: kbt('tasks.runs.started'), sub: kbRunFmtHm(selRun.at, locale), st: null }
+        if (n.type === 'more') return { kind: 'gry', icon: '…', title: kbt('tasks.runs.more').replace('{n}', String(n.n)), sub: kbt('tasks.runs.moresub'), st: null }
+        if (n.type === 'final') return { kind: 'gry', icon: '≡', title: kbt('tasks.runs.final'), sub: kbRunFmtDur(n.thinkMs), st: n.ok === false ? 'bad' : 'ok' }
+        return { kind: n.kind === 'skill' ? 'ai' : 'act', icon: kbRunIcon(n.kind), title: n.label, sub: kbRunFmtDur((n.thinkMs || 0) + (n.runMs || 0)) + ' · ' + n.kind, st: n.ok === false ? 'bad' : 'ok' }
+      })
+      const graph = h('div', { className: 'kbrn-gs' }, h('div', { className: 'kbrn-g', style: { width: lay.width, height: lay.height } },
+        h('svg', { className: 'kbrn-eg', width: lay.width, height: lay.height, viewBox: '0 0 ' + lay.width + ' ' + lay.height, 'aria-hidden': 'true' },
+          h('defs', null, h('marker', { id: 'kbrn-ar', viewBox: '0 0 8 8', refX: 7, refY: 4, markerWidth: 7, markerHeight: 7, orient: 'auto' }, h('path', { d: 'M0 0 8 4 0 8z', fill: 'currentColor' }))),
+          lay.edges.map((e, i) => h('path', { key: i, d: 'M' + e.x1 + ' ' + e.y1 + ' L' + e.x2 + ' ' + e.y2, stroke: 'currentColor', strokeWidth: 1.6, fill: 'none', markerEnd: 'url(#kbrn-ar)' }))),
+        lay.edges.map((e, i) => (g.labels[i] !== null && g.labels[i] !== undefined ? h('span', { key: 'l' + i, className: 'kbrn-el', style: { left: e.lx, top: e.ly } }, kbRunFmtBytes(g.labels[i])) : null)),
+        nodeView.map((n, i) => h('button', { key: i, type: 'button', 'data-kb': 'run-node', className: 'kbrn-nd ' + n.kind + (n.st !== null ? ' ' + n.st : '') + (i === ix ? ' sel' : ''), style: { left: lay.pos[i].x, top: lay.pos[i].y, width: 160 }, title: n.title, onClick: () => setNodeIdx(i) },
+          h('span', { className: 'kbrn-nb ' + n.kind }, n.icon),
+          h('span', { className: 'kbrn-nt' }, h('span', { className: 'kbrn-nh' }, n.title), h('span', { className: 'kbrn-ns' }, n.sub)),
+          n.st === 'ok' ? h('span', { className: 'kbrn-nok' }, Icon('check', 12)) : (n.st === 'bad' ? h('span', { className: 'kbrn-nbad' }, '✕') : null)))))
+      const detail = selId !== null && det[selId] !== undefined && det[selId] !== 'loading' && det[selId] !== 'none' ? det[selId] : null
+      const toolNode = g.nodes[ix] !== undefined && g.nodes[ix].type === 'tool' ? g.nodes[ix] : null
+      const exact = detail !== null && Array.isArray(detail.nodes) === true && toolNode !== null ? detail.nodes[ix - 1] : null
+      let logBody
+      if (toolNode === null) logBody = h('div', { className: 'kba-hint', style: { padding: 14 } }, nodeView[ix] !== undefined ? nodeView[ix].title : '')
+      else if (selId !== null && det[selId] === 'loading') logBody = h('div', { className: 'kba-hint', style: { padding: 14 } }, kbt('tasks.runs.reading'))
+      else if (exact === null || exact === undefined || typeof exact.in !== 'string') logBody = h('div', { className: 'kba-hint', style: { padding: 14 } }, kbt('tasks.runs.noio'))
+      else logBody = h('div', { style: { display: 'flex', flexDirection: 'column' } },
+        h('div', { className: 'kbrn-iot' },
+          ['in', 'out'].map((k) => h('button', { key: k, type: 'button', className: 'kbrn-tb' + (io === k ? ' on' : ''), onClick: () => setIo(k) }, kbt(k === 'in' ? 'tasks.runs.input' : 'tasks.runs.output'))),
+          h('span', { className: 'dim', style: { marginLeft: 'auto' } }, kbt('tasks.runs.think') + ' ' + kbRunFmtDur(exact.thinkMs) + ' · ' + kbt('tasks.runs.run') + ' ' + kbRunFmtDur(exact.runMs))),
+        h('pre', { className: 'kbrn-pre' }, io === 'in' ? exact.in : (typeof exact.out === 'string' && exact.out.length > 0 ? exact.out : '—')))
+      const logs = h('div', { className: 'kbrn-logs' }, h('div', { className: 'kbrn-lgh' }, kbt('tasks.runs.logs')),
+        h('div', { className: 'kbrn-lgb' },
+          h('div', { className: 'kbrn-lgl' }, nodeView.map((n, i) => h('button', { key: i, type: 'button', className: 'kbrn-lg' + (i === ix ? ' on' : ''), onClick: () => setNodeIdx(i) }, h('span', { className: 'kbrn-lgn ' + (n.st || n.kind) }, n.icon), h('span', { className: 'kbrn-lgt' }, n.title), h('span', { className: 'dim' }, String(n.sub).split(' · ')[0])))),
+          h('div', { className: 'kbrn-lgd' }, logBody)))
+      const listCol = h('div', { className: 'kbrn-xl' },
+        h('div', { className: 'kbrn-xlh' }, h('b', null, kbt('tasks.runs.title')), h('span', { className: 'dim' }, kbt('tasks.runs.count').replace('{n}', String(runs.length)))),
+        runs.map((r, i) => { const s = sumOf(r); const st = kbRunState(r, s); return h('button', { key: keys[i], type: 'button', 'data-kb': 'run-row', className: 'kbrn-xr' + (keys[i] === selKey ? ' on' : ''), onClick: () => { props.onSelect(keys[i]); setNodeIdx(1) } },
+          h('span', { className: 'kbrn-xbar ' + (st === 'failed' ? 'bad' : (st === 'completed' ? 'ok' : 'idle')) }),
+          h('span', { className: 'kbrn-xt' }, h('b', null, kbRunFmtDT(r.at, locale)), h('span', { className: st === 'failed' ? 'kbrn-badtxt' : 'dim' }, kbRunStateText(st, durOf(s), r)))) }))
+      return h('div', { className: 'kba-sesscroll', 'data-kb': 'runs-sessions' },
+        h('div', { className: 'kbrn-stats' }, tile(kbt('tasks.runs.stat.runs'), String(stats.runs)), tile(kbt('tasks.runs.stat.failed'), String(stats.failed), stats.failed > 0), tile(kbt('tasks.runs.stat.median'), kbRunFmtDur(stats.median)), tile(kbt('tasks.runs.stat.slowest'), kbRunFmtDur(stats.slowest))),
+        h('div', { className: 'kbrn-xwrap' }, listCol,
+          h('div', { className: 'kbrn-xp' },
+            h('div', { className: 'kbrn-xph' }, h('div', null, h('div', { className: 'kbrn-xpd' }, kbRunFmtDT(selRun.at, locale, true)), h('div', null, stateLine, selId !== null ? h('span', { className: 'dim' }, ' | ' + selId.slice(0, 14) + (model !== null ? ' | ' + model.model : '')) : null)), h('span', { style: { flex: 1 } }), openChat, selId !== null ? h('button', { type: 'button', className: 'kba-btn', onClick: () => props.onJournal() }, kbt('tasks.tab.journal') + ' ›') : null),
+            failNote, readNote,
+            h('div', { className: 'kba-card kbrn-canvas' }, graph),
+            logs)),
+        h('div', { className: 'kba-hint' }, kbt('tasks.runs.hint')))
+    }
+    // ── Discover: ready-made starting points (the pure part is the KB-AUTOTPL block at the top of this file) ────────────────────────────
+    // Compact cards in the grid; the cover is drawn only on the page of one template. Nothing here runs an automation: « Import » opens a
+    // NEW chat where the automation-creator skill asks the questions of the template (kbTplChatText), the way « Create » does.
+    const kbTplPick = (p) => kbe(p[0], p[1])
+    const kbTplCat = (id) => KB_TPL_CATS.filter((c) => c.id === id)[0] || KB_TPL_CATS[0]
+    const kbTplIconTile = (tpl) => h('span', { className: 'kbtd-ico', style: { '--kbtd-c': kbTplCat(tpl.cat).color } }, Icon(tpl.icon, 20))
+    // The logos are the connectors catalogue's own (the Connections page's): one GET of what the host already serves, kept for the session. Without it
+    // (the connectors plugin is off, the host answers nothing) every app keeps its initial in a round tile.
+    let kbTplLogoCache = null
+    let kbTplLogoPending = null
+    const kbTplLogosLoad = () => {
+      if (kbTplLogoCache !== null) return Promise.resolve(kbTplLogoCache)
+      if (kbTplLogoPending === null) {
+        kbTplLogoPending = fetch(kbApiBase() + '/composio/catalog', { method: 'GET' })
+          .then((r) => (r.ok === true ? r.json() : []))
+          .then((list) => { kbTplLogoCache = kbTplLogos(list); return kbTplLogoCache })
+          .catch(() => { kbTplLogoPending = null; return {} })
+      }
+      return kbTplLogoPending
+    }
+    const kbTplApp = (name, logos) => {
+      const svg = logos !== null && logos !== undefined && typeof logos === 'object' ? logos[kbTplSlug(name)] : undefined
+      return typeof svg === 'string'
+        ? h('span', { key: name, className: 'kbtd-app logo', title: name, dangerouslySetInnerHTML: { __html: svg } })
+        : h('span', { key: name, className: 'kbtd-app', title: name }, String(name).charAt(0))
+    }
+    // The cover of a template, drawn in code (two inks on paper, halftone dots, a misregistered glyph): the repository holds no images.
+    const kbTplCover = (tpl) => {
+      const cat = kbTplCat(tpl.cat)
+      const inkB = { social: '#e0457b', prospecting: '#f2c230', support: '#2a6fdb' }[tpl.cat] || '#2a6fdb'
+      const n = tpl.id.split('').reduce((a, c) => (a * 31 + c.charCodeAt(0)) % 997, 7)
+      const x1 = 470 + (n % 90)
+      const r1 = 118 + (n % 26)
+      const rot = -12 + (n % 24)
+      const pid = 'kbtd-dots-' + tpl.id
+      return h('svg', { viewBox: '0 0 800 230', preserveAspectRatio: 'xMidYMid slice', className: 'kbtd-cover-svg', 'aria-hidden': 'true', focusable: 'false' },
+        h('defs', null, h('pattern', { id: pid, width: 11, height: 11, patternUnits: 'userSpaceOnUse' }, h('circle', { cx: 5.5, cy: 5.5, r: 2.4, fill: '#241f1a' }))),
+        h('rect', { width: 800, height: 230, fill: '#f3ecdd' }),
+        h('rect', { x: 0, y: 0, width: 800, height: 230, fill: 'url(#' + pid + ')', opacity: 0.08 }),
+        h('circle', { cx: x1, cy: 118, r: r1, fill: cat.color, style: { mixBlendMode: 'multiply' } }),
+        h('rect', { x: x1 - 150, y: 42, width: 250, height: 150, rx: 26, fill: inkB, transform: 'rotate(' + rot + ' ' + x1 + ' 118)', style: { mixBlendMode: 'multiply' } }),
+        h('circle', { cx: x1 + 70, cy: 150, r: 70, fill: 'url(#' + pid + ')', opacity: 0.55 }),
+        h('g', { transform: 'translate(' + (x1 - 52) + ' 66) scale(4.4)', color: '#241f1a', opacity: 0.9 }, tpl.icon !== undefined && LUCIDE[tpl.icon] !== undefined ? LUCIDE[tpl.icon].map((d, i) => h('path', { key: i, d: d, fill: 'none', stroke: '#241f1a', strokeWidth: 1.6, strokeLinecap: 'round', strokeLinejoin: 'round' })) : null))
+    }
+    const KbDiscover = (props) => {
+      const catPair = React.useState('all')
+      const selPair = React.useState(null)
+      const qPair = React.useState('')
+      const cat = catPair[0]
+      const sel = selPair[0]
+      const q = qPair[0]
+      const T = kbTplPick
+      const logoPair = React.useState(kbTplLogoCache)
+      const logos = logoPair[0]
+      React.useEffect(() => {
+        let alive = true
+        if (kbTplLogoCache === null) kbTplLogosLoad().then((m) => { if (alive === true) logoPair[1](m) })
+        return () => { alive = false }
+      }, [])
+      const tpl = sel !== null ? KB_TPLS.filter((x) => x.id === sel)[0] || null : null
+      if (tpl !== null) {
+        const c = kbTplCat(tpl.cat)
+        return h('div', { className: 'kbtd kbtd-detail', 'data-kb': 'tpl-detail' },
+          h('div', { className: 'kba-subhead' },
+            h('button', { type: 'button', className: 'kba-crumb', 'data-kb': 'tpl-back', onClick: () => selPair[1](null) }, kbt('tasks.tab.discover')),
+            h('span', null, '/'),
+            h('span', { style: { color: 'var(--dsw-alias-label-primary)' } }, T(tpl.title))),
+          h('div', { className: 'kbtd-cover' }, kbTplCover(tpl), h('span', { className: 'kbtd-ctag' }, T(c.title))),
+          h('div', { className: 'kbtd-dhead' },
+            kbTplIconTile(tpl),
+            h('div', { className: 'kbtd-dtitle' }, h('h1', null, T(tpl.title)), h('p', null, T(tpl.desc))),
+            h('button', { type: 'button', className: 'kb8-primary kba-new-btn', 'data-kb': 'tpl-use', onClick: () => props.onUse(tpl) }, kbt('tasks.tpl.use'))),
+          h('div', { className: 'kbtd-meta' },
+            h('span', { className: 'kbtd-cm' }, Icon('clock', 12), h('span', null, T(tpl.cadence))),
+            h('span', { className: 'kbtd-tgs' }, tpl.tags.map((x, i) => h('span', { key: i, className: 'kbtd-tg' }, T(x))))),
+          h('section', { className: 'kba-card kbtd-sec kbtd-integ', 'data-kb': 'tpl-apps' },
+            h('span', { className: 'kba-tabver mono' }, kbt('tasks.tpl.sec.apps')),
+            h('div', { className: 'kbtd-appchips' }, tpl.apps.map((a) => h('span', { key: a, className: 'kbtd-appchip' }, kbTplApp(a, logos), h('span', null, a))))),
+          h('div', { className: 'kbtd-grid' },
+            h('section', { className: 'kba-card kbtd-sec' },
+              h('span', { className: 'kba-tabver mono' }, kbt('tasks.tpl.sec.steps')),
+              tpl.steps.map((s, i) => h('div', { key: i, className: 'kbtd-step' },
+                h('span', { className: 'kba-cc cc-' + kbTplStepKind(s) }, String(i + 1)),
+                h('span', { className: 'kbtd-st' }, T(s[1])),
+                h('span', { className: 'kbtd-sk' }, kbt('tasks.tpl.kind.' + kbTplStepKind(s)))))),
+            h('section', { className: 'kba-card kbtd-sec' },
+              h('span', { className: 'kba-tabver mono' }, kbt('tasks.tpl.sec.ask')),
+              tpl.ask.map((x, i) => h('div', { key: i, className: 'kbtd-q' }, h('b', null, String(i + 1) + '. ' + T(x.q)), h('span', { className: 'kbtd-qo' }, x.o.map((o) => T(o)).join(' · '))))),
+            h('section', { className: 'kba-card kbtd-sec' },
+              h('span', { className: 'kba-tabver mono' }, kbt('tasks.tpl.sec.needs')),
+              h('ul', { className: 'kbtd-ul' }, tpl.needs.map((n, i) => h('li', { key: i }, T(n))))),
+            h('section', { className: 'kba-card kbtd-sec' },
+              h('span', { className: 'kba-tabver mono' }, kbt('tasks.tpl.sec.guard')),
+              h('ul', { className: 'kbtd-ul' }, tpl.guard.map((g, i) => h('li', { key: i }, T(g)))))),
+          h('div', { className: 'kba-hint' }, kbt('tasks.tpl.note')))
+      }
+      const shown = kbTplFilter(KB_TPLS, cat, q, T)
+      return h('div', { className: 'kbtd', 'data-kb': 'tpl-discover' },
+        h('section', { className: 'kbtd-how', 'aria-label': kbt('tasks.tpl.how.title') },
+          h('b', null, kbt('tasks.tpl.how.title')),
+          [1, 2, 3].map((i) => h('span', { key: i, className: 'kbtd-hs' }, h('span', { className: 'kbtd-hn' }, String(i)), kbt('tasks.tpl.how.' + i)))),
+        h('div', { className: 'kbtd-bar' },
+          h('span', { className: 'kbtd-chips' },
+            [{ id: 'all', title: [kbt('tasks.filter.all'), kbt('tasks.filter.all')] }].concat(KB_TPL_CATS).map((c) => h('button', { key: c.id, type: 'button', className: 'kbtd-chip' + (cat === c.id ? ' on' : ''), 'data-kb': 'tpl-cat-' + c.id, 'aria-pressed': cat === c.id ? 'true' : 'false', onClick: () => catPair[1](c.id) }, c.id === 'all' ? c.title[0] : T(c.title)))),
+          h('input', { className: 'kbtd-search', type: 'search', 'aria-label': kbt('tasks.tpl.search'), placeholder: kbt('tasks.tpl.search'), value: q, onChange: (e) => qPair[1](e.target === null || e.target === undefined ? '' : e.target.value) })),
+        (shown.length === 0
+          ? h('div', { className: 'kba-card' }, h('div', { className: 'kba-empty' }, kbt('tasks.tpl.empty')))
+          : h('div', { className: 'kbtd-gridcards' }, shown.map((t) => h('article', {
+            key: t.id, className: 'kbtd-card', tabIndex: 0, role: 'button', 'data-kb': 'tpl-card', 'data-tpl': t.id, 'aria-label': T(t.title),
+            onClick: () => selPair[1](t.id),
+            onKeyDown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selPair[1](t.id) } },
+          },
+            h('div', { className: 'kbtd-ch' }, kbTplIconTile(t), h('h3', null, T(t.title)),
+              h('button', { type: 'button', className: 'kba-btn kbtd-imp', 'data-kb': 'tpl-import', onClick: (e) => { e.stopPropagation(); props.onUse(t) } }, kbt('tasks.tpl.import'))),
+            h('p', { className: 'kbtd-cd' }, T(t.desc)),
+            h('div', { className: 'kbtd-cm' }, Icon('clock', 12), h('span', null, T(t.cadence))),
+            h('div', { className: 'kbtd-cf' },
+              h('span', { className: 'kbtd-tgs' }, h('span', { className: 'kbtd-tg' }, T(t.tags[0])), (t.tags.length > 1 ? h('span', { className: 'kbtd-tg' }, '+' + (t.tags.length - 1)) : null)),
+              h('span', { className: 'kbtd-apps' }, t.apps.map((a) => kbTplApp(a, logos)))))))))
+    }
+    // ── Cards: one card per automation, with what its runs say (the pure part is in the KB-AUTORUNS block) ────────────────────────────────
+    // Last run, success, runs, duration and tools are read from the history and from the journal of the NEWEST run of each automation (one
+    // journal per card). There is no token or budget figure: the journals hold no token count and nothing here spends money.
+    const KbAutoCards = (props) => {
+      const locale = kbBoardLocale()
+      const sumPair = React.useState(() => { const o = {}; kbRunsCache.forEach((v, k) => { o[k] = v }); return o })
+      const sums = sumPair[0]
+      const tasks = props.tasks
+      const lastIds = tasks.map((t) => { const r = kbRunsOf(t.history)[0]; return r !== undefined ? r.sessionId : null }).filter((x) => x !== null)
+      const idsKey = lastIds.join(',')
+      React.useEffect(() => kbRunsRead(lastIds, (add) => sumPair[1]((prev) => Object.assign({}, prev, add))), [idsKey])
+      const now = Date.now()
+      return h('div', { className: 'kbcc', 'data-kb': 'cards-view' },
+        h('div', { className: 'kbcc-grid' }, tasks.map((t) => {
+          const f = kbRunCardFigures(t.history, sums)
+          const attn = f.lastState === 'failed'
+          const fig = (k, v, bad) => h('div', { key: k, className: 'kbcc-fig' + (bad === true ? ' bad' : '') }, h('span', { className: 'kbcc-fk' }, kbt('tasks.cards.' + k)), h('span', { className: 'kbcc-fv' }, v))
+          return h('article', { key: t.id, className: 'kbcc-card' + (attn ? ' attn' : '') + (t.active === false ? ' off' : ''), tabIndex: 0, role: 'button', 'data-kb': 'auto-card', 'data-id': t.id, 'aria-label': t.name || t.id,
+            onClick: () => props.onOpen(t.id), onKeyDown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); props.onOpen(t.id) } } },
+            h('div', { className: 'kbcc-head' },
+              h('span', { className: 'kba-trigger-icon' }, Icon('zap', 14)),
+              h('div', { className: 'kbcc-title' }, h('b', null, t.name || t.id), h('span', null, kbScheduleLabel(t, true) + ' · ' + (t.approvals === 'auto' ? kbt('tasks.auto') : kbt('tasks.ask')))),
+              h('span', { role: 'switch', 'aria-checked': t.active !== false ? 'true' : 'false', 'aria-label': kbt('tasks.toggle.aria'), 'data-kb': 'card-toggle', className: 'kba-toggle' + (t.active !== false ? ' on' : ''), tabIndex: 0,
+                onKeyDown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); props.onToggle(t) } },
+                onClick: (e) => { e.stopPropagation(); props.onToggle(t) } }, h('span', { className: 'kba-toggle-knob' }))),
+            (attn || t.active === false ? h('div', { className: 'kbcc-badges' }, attn ? h('span', { className: 'kbcc-badge warn' }, kbt('tasks.cards.toreview')) : null, t.active === false ? h('span', { className: 'kbcc-badge' }, kbt('tasks.cards.paused')) : null) : null),
+            h('div', { className: 'kbcc-figs' },
+              fig('last', f.lastMs !== null ? (kbRunAgo(f.lastMs, now, locale) || kbWhenOf(f.lastAt)) : kbt('tasks.cards.never')),
+              fig('success', f.success === null ? '—' : f.success + ' %', f.success !== null && f.success < 70),
+              fig('runs', String(f.runs)),
+              fig('duration', kbRunFmtDur(f.lastDurationMs))),
+            h('div', { className: 'kbcc-tools' }, h('span', { className: 'kbcc-fk' }, kbt('tasks.cards.tools')),
+              (f.tools.length === 0
+                ? h('span', { className: 'dim' }, '—')
+                : h('span', { className: 'kbcc-tl' }, f.tools.slice(0, 4).map((k) => h('span', { key: k, className: 'kbcc-tool', title: k }, h('i', null, kbRunIcon(k)), k)), f.tools.length > 4 ? h('span', { className: 'kbcc-tool' }, '+' + (f.tools.length - 4)) : null))))
+        })),
+        h('div', { className: 'kba-hint' }, kbt('tasks.cards.hint')))
     }
     const kbBoardBones = (rows) => h('div', { className: 'kbbd-cols' }, [0, 1, 2, 3].map((c) => h('div', { key: c, className: 'kbbd-col' },
       h('div', { className: 'kbbd-colhead' }, kbBone('46%', 13)),
@@ -21129,10 +22333,8 @@ function renderFit(canvas, model, cam, opts){
       // vide la sélection au lieu d'empiler un pseudo-type inerte) et tout choix
       // de sens marque `dirTouched`, même contrat que Kybers et Projets.
       const tbAuto = useToolbarState('automations', { sort: 'name', viewMode: 'list' })
-      // Three views: Columns, Calendar, List (the old screen, still the default). The shared toolbar stored `cards`
-      // for this page before it had three: it reads as `list` and is rewritten once, silently.
+      // Four views: Columns, Calendar, Cards and List (the old screen, still the default).
       const boardView = kbBoardView(tbAuto[0].viewMode)
-      React.useEffect(() => { if (tbAuto[0].viewMode === 'cards') tbAuto[1]({ viewMode: 'list' }) }, [tbAuto[0].viewMode])
       const onAutoUpdate = (patch) => {
         let next = patch
         if (next !== null && typeof next === 'object' && Array.isArray(next.types) === true && next.types.indexOf('all') >= 0) next = Object.assign({}, next, { types: [] })
@@ -21163,6 +22365,13 @@ function renderFit(canvas, model, cam, opts){
       const nodeSelPair = React.useState(null)
       const nodeSel = nodeSelPair[0]
       const setNodeSel = nodeSelPair[1]
+      const runSelPair = React.useState({})
+      const runSel = runSelPair[0]
+      const setRunSel = runSelPair[1]
+      // Yours (the automations) or Discover (templates)
+      const sectionPair = React.useState('yours')
+      const section = sectionPair[0]
+      const setSection = sectionPair[1]
       // positions de flow déplacées par drag (persistées par automation)
       const flowPosPair = React.useState(null)
       const flowPos = flowPosPair[0]
@@ -21281,6 +22490,11 @@ function renderFit(canvas, model, cam, opts){
         try { kbStartChatText(kbEditChatText(t, kbt, kbBoardLocale())) } catch (e) { setModal(t) }
       }
 
+      // Discover: a template opens a NEW chat where the automation-creator skill asks the questions of the template.
+      const useTemplate = (tpl) => {
+        try { kbStartChatText(kbTplChatText(tpl, kbt, kbTplPick, kbTplLangName(kbLangResolve()))) } catch (e) { toast(kbt('tasks.tpl.nochat')) }
+      }
+
       const list = kbTasksList(tasks)
       const askDelete = (id, name) => setConfirm({
         title: kbt('tasks.delete.title').replace('{name}', String(name)),
@@ -21294,7 +22508,6 @@ function renderFit(canvas, model, cam, opts){
         h('div', { className: 'kba-rowhead' },
           h('span', { className: 'kba-tabver' }, kbt('tasks.col.name')),
           h('span', { className: 'kba-tabver' }, kbt('tasks.col.trigger')),
-          h('span', { className: 'kba-tabver' }, kbt('tasks.col.origin')),
           h('span', { className: 'kba-tabver' }, kbt('tasks.col.lastsession')),
           h('span', { className: 'kba-tabver' }, kbt('tasks.col.sessions'))),
         h('span', null),
@@ -21304,7 +22517,7 @@ function renderFit(canvas, model, cam, opts){
         [0, 1, 2, 3].map((i) => h('div', { key: 'r' + i, className: 'kba-rowline kb-sk-row' },
           h('div', { className: 'kba-rowbtn', style: { cursor: 'default' } },
             h('span', { style: { display: 'flex', flexDirection: 'column', gap: '3px' } }, kbBone(i % 2 === 0 ? '62%' : '48%', 13), kbBone('36%', 10)),
-            kbBone('72%', 12), kbBone(72, 20, 'pill'), kbBone('70%', 12), kbBone(20, 12)),
+            kbBone('72%', 12), kbBone('70%', 12), kbBone(20, 12)),
           h('span', null),
           h('span', { className: 'kba-oncol' }, kbBone(34, 20, 'pill'))))])
       const kbaLoadError = () => h('div', { className: 'kba-card' },
@@ -21383,7 +22596,6 @@ function renderFit(canvas, model, cam, opts){
       const t = (detail !== null) ? list.filter((x) => x === detail || x.id === detail)[0] || null : null
       if (t !== null) {
         // ── écran détail : sessions réelles + workflow Text·Flow·Code ──────
-        const hist = (Array.isArray(t.history) === true ? t.history : []).slice().reverse()
         const textVal = draft[t.id] !== undefined ? draft[t.id] : (typeof t.prompt === 'string' ? t.prompt : '')
         const dirty = draft[t.id] !== undefined && draft[t.id] !== t.prompt
         const gr = kbTaskNodes(t)
@@ -21401,6 +22613,7 @@ function renderFit(canvas, model, cam, opts){
               h('h1', null, t.name || t.id),
               h('div', { className: 'kba-dmeta' }, kbScheduleLabel(t, true)
                 + ' \u00b7 ' + kbt('tasks.runson.local')
+                + ' \u00b7 ' + (() => { const c = kbWsChoice(t.workspaceHint, kbPinsSnapshots().items); return c.kind === 'ws' ? kbt('tasks.ws.meta').replace('{name}', () => c.name) : kbt(c.kind === 'gone' ? 'tasks.ws.meta.gone' : 'tasks.ws.meta.dedicated') })()
                 + ' \u00b7 ' + (t.approvals === 'auto' ? kbt('tasks.auto') : kbt('tasks.ask'))
                 + (t.nextRun ? ' \u00b7 ' + kbt('tasks.next').replace('{when}', kbWhenOf(t.nextRun)) : ''))),
             h('span', { role: 'switch', 'aria-checked': (t.active !== false) ? 'true' : 'false', 'aria-label': kbt('tasks.toggle.aria'), className: 'kba-toggle' + (t.active !== false ? ' on' : ''), tabIndex: 0, onKeyDown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); act('toggle', t.id, { active: t.active === false }) } }, onClick: () => act('toggle', t.id, { active: t.active === false }) },
@@ -21410,9 +22623,10 @@ function renderFit(canvas, model, cam, opts){
             h('button', { type: 'button', className: 'kba-btn', onClick: () => setModal(t) }, Icon('calendar-clock', 13), ' ', kbt('tasks.editsched')),
             h('button', { type: 'button', className: 'kba-btn kba-trash', 'data-kb': 'detail-delete', onClick: () => askDelete(t.id, t.name || t.id) }, Icon('trash', 13), ' ', kbt('tasks.delete'))),
           h('div', { className: 'kba-tabs' },
-            h('button', { type: 'button', className: 'kba-tab' + (tab === 'sessions' ? ' on' : ''), onClick: () => setTab('sessions') }, kbt('tasks.tab.sessions').replace('{n}', String(hist.length))),
+            h('button', { type: 'button', className: 'kba-tab' + (tab === 'sessions' ? ' on' : ''), onClick: () => setTab('sessions') }, kbt('tasks.tab.sessions').replace('{n}', String(kbRunsOf(t.history).length))),
             h('button', { type: 'button', className: 'kba-tab' + (tab === 'flow' ? ' on' : ''), onClick: () => setTab('flow') }, kbt('tasks.tab.workflow')),
             h('button', { type: 'button', className: 'kba-tab' + (tab === 'hook' ? ' on' : ''), onClick: () => setTab('hook') }, kbt('tasks.tab.hook')),
+            h('button', { type: 'button', className: 'kba-tab' + (tab === 'journal' ? ' on' : ''), 'data-kb': 'tab-journal', onClick: () => setTab('journal') }, kbt('tasks.tab.journal')),
             h('span', { className: 'kba-tabver mono', hidden: true, style: { display: 'none' } }, 'Text')),
           h('div', { className: 'kba-body' },
             (tab === 'hook'
@@ -21466,25 +22680,20 @@ function renderFit(canvas, model, cam, opts){
                             h('button', { type: 'button', className: 'kba-btn', 'data-kb': 'hook-revoke', onClick: () => setConfirm({ title: kbt('tasks.hook.revoke.title'), body: kbt('tasks.hook.revoke.body'), confirmLabel: kbt('tasks.hook.revokeBtn'), onConfirm: async () => { revokeHook() } }) }, kbt('tasks.hook.revokeBtn'))))))
                 )
               })()
-              : tab === 'sessions'
-              ? (() => {
-                const sessionRows = hist.map((e, idx) => h('div', {
-                  key: String(e.at) + idx, className: 'kba-srow',
-                  onClick: () => { if (typeof e.sessionId === 'string' && e.sessionId.length > 0) { try { uiWorkspaceSvc.openSession(e.sessionId) } catch (er) { /* navigation indisponible */ } } },
-                },
-                  h('span', { className: 'kba-kdot ' + (e.status === 'error' ? 'fail' : e.status === 'queued' ? 'wait' : 'ok') }),
-                  h('span', { className: 'kba-ell', style: { fontWeight: 600 } }, kbt('tasks.session.run') + ' \u00b7 ' + kbWhenOf(e.at), e.status === 'error' && typeof e.error === 'string' && e.error.length > 0 ? h('span', { className: 'kba-reason' }, e.error) : null),
-                  h('span', { className: 'kba-ell dim kba-moboff' }, (typeof e.sessionId === 'string' && e.sessionId.length > 0) ? e.sessionId.slice(0, 14) : '\u2014'),
-                  h('span', { className: 'dim', title: e.status === 'error' && typeof e.error === 'string' ? e.error : undefined }, e.status === 'error' ? kbt('tasks.status.error') : e.status === 'queued' ? kbt('tasks.status.queued') : kbt('tasks.status.fired')),
-                  h('span', null, (typeof e.sessionId === 'string' && e.sessionId.length > 0)
-                    ? h('span', { style: { color: 'var(--dsw-alias-brand-primary)' } }, kbt('tasks.sessions.openchat') + ' \u203a')
-                    : h('span', { className: 'dim' }, '\u2014'))))
-                return h('div', { className: 'kba-sesscroll' },
-                  (hist.length === 0
-                    ? h('div', { className: 'kba-empty' }, kbt('tasks.sessions.empty').replace('{trigger}', kbScheduleLabel(t)))
-                    : h('div', { className: 'kba-card' }, sessionRows)),
-                  (hist.length > 0 ? h('div', { className: 'kba-hint' }, kbt('tasks.sessions.hint')) : null))
-              })()
+              : (tab === 'sessions' || tab === 'journal')
+              ? h(KbRunsPane, {
+                key: t.id + ':' + tab,
+                mode: tab,
+                runs: kbRunsOf(t.history),
+                sel: typeof runSel[t.id] === 'string' ? runSel[t.id] : null,
+                onSelect: (key) => setRunSel(Object.assign({}, runSel, { [t.id]: key })),
+                onOpenChat: (id) => { try { uiWorkspaceSvc.openSession(id) } catch (er) { /* navigation unavailable */ } },
+                onJournal: () => setTab('journal'),
+                onSessions: () => setTab('sessions'),
+                approvalLabel: t.approvals === 'auto' ? kbt('tasks.auto') : kbt('tasks.ask'),
+                taskId: t.id,
+                emptyText: kbt('tasks.sessions.empty').replace('{trigger}', kbScheduleLabel(t)),
+              })
               : h('div', { className: 'kba-flowwrap' },
                 h('div', { className: 'kba-flowbar' },
                   h('span', { style: { display: 'inline-flex', flexWrap: 'wrap', gap: 8 } },
@@ -21535,7 +22744,7 @@ function renderFit(canvas, model, cam, opts){
                     }
                     const wires = gr.edges.map((e) => {
                       const a = effective[e[0]]; const b = effective[e[1]]
-                      const x1 = a.x + NW2; const y1 = a.y + 25; const x2 = b.x; const y2 = b.y + 25
+                      const x1 = a.x + NW2; const y1 = a.y + 28; const x2 = b.x; const y2 = b.y + 28
                       // si le nœud cible est à gauche (zigzag retour), courbe par le bas
                       if (x2 < x1) {
                         const mx = (x1 + x2) / 2
@@ -21543,12 +22752,29 @@ function renderFit(canvas, model, cam, opts){
                       }
                       return 'M' + x1 + ' ' + y1 + ' C' + (x1 + 40) + ' ' + y1 + ',' + (x2 - 40) + ' ' + y2 + ',' + x2 + ' ' + y2
                     }).join(' ')
+                    const panelEl = node !== null ? h('div', { className: 'kba-nodecard', 'data-kb': 'flow-node-panel' },
+                            h('div', { className: 'kba-nc-head' },
+                              h('span', { className: 'kba-cc cc-' + node.c }, node.ic),
+                              h('span', { className: 'kba-tabver mono' }, kbt('tasks.flow.kind.' + node.c)),
+                              (node.guard === true ? h('span', { className: 'kba-nc-guard' }, kbt('tasks.flow.guard')) : null),
+                              h('span', { style: { flex: 1 } }),
+                              h('button', { type: 'button', className: 'kba-nc-x', 'aria-label': kbt('tasks.flow.close'), onClick: () => setNodeSel(null) }, '\u2715')),
+                            h('span', { className: 't' }, node.l),
+                            h('span', { className: 's' }, node.s),
+                            (node.full !== '' && node.how !== 'trg' ? h('div', { className: 'kba-nc-sec' }, h('span', { className: 'k' }, kbt('tasks.flow.what')), h('span', { className: 'v' }, node.full)) : null),
+                            h('div', { className: 'kba-nc-sec' }, h('span', { className: 'k' }, kbt('tasks.flow.how')), h('span', { className: 'v' }, kbt('tasks.flow.how.' + node.how)),
+                              (node.how === 'ai' || node.how === 'act' ? h('code', { className: 'kba-nc-code' }, (node.how === 'ai' ? 'ai.run' : 'tools.call') + '(step ' + node.ic + ')') : null)),
+                            h('div', { className: 'kba-nc-foot' },
+                              h('button', { type: 'button', className: 'kba-btn', 'data-kb': 'flow-prev', disabled: nodeSel === 0, onClick: () => setNodeSel(Math.max(0, nodeSel - 1)) }, '\u2039 ' + kbt('tasks.flow.prev')),
+                              h('button', { type: 'button', className: 'kba-btn', 'data-kb': 'flow-next', disabled: nodeSel >= gr.nodes.length - 1, onClick: () => setNodeSel(Math.min(gr.nodes.length - 1, nodeSel + 1)) }, kbt('tasks.flow.next') + ' \u203a')),
+                            h('button', { type: 'button', className: 'kba-btn', style: { alignSelf: 'flex-start' }, onClick: () => { setView('text'); setNodeSel(null) } }, kbt('tasks.edittext'))) : null
                     return h('div', { className: 'kba-canvaswrap' },
                       h('div', { className: 'kba-derived' },
                         h('span', { className: 'kba-kdot ok' }),
                         h('span', { style: { flex: 1 } }, kbt('tasks.flow.readonly') + ' · ' + kbt('tasks.flow.drag')),
                         h('span', { className: 'mono', style: { fontSize: 11.5 } }, effective.length + ' ' + kbt('tasks.flow.nodes')),
                         h('button', { type: 'button', className: 'kba-btn', 'data-kb': 'flow-reset', onClick: resetLayout, style: { height: 26, padding: '0 10px', fontSize: 11.5 } }, kbt('tasks.flow.reset'))),
+                      h('div', { className: 'kba-flowrow' },
                       h('div', { className: 'kba-canvas' },
                         h('div', { className: 'kba-zoom', style: { width: canvasW, height: canvasH } },
                           h('svg', { width: canvasW, height: canvasH, style: { position: 'absolute', left: 0, top: 0 }, fill: 'none' },
@@ -21566,12 +22792,8 @@ function renderFit(canvas, model, cam, opts){
                             'aria-label': n.l
                           },
                             h('span', { className: 'kba-cc cc-' + n.c }, n.ic),
-                            h('span', { className: 'kba-ndn' }, h('span', { style: { fontWeight: 600, display: 'block' } }, n.l), h('small', null, n.s)))),
-                          (node !== null ? h('div', { className: 'kba-nodecard' },
-                            h('span', { className: 'kba-tabver mono' }, node.c === 'trg' ? 'Trigger' : node.c === 'ai' ? 'AI' : node.c === 'gry' ? 'Flow' : 'Action'),
-                            h('span', { className: 't' }, node.l),
-                            h('span', { className: 's' }, node.s),
-                            h('button', { type: 'button', className: 'kba-btn', style: { alignSelf: 'flex-start', marginTop: 4 }, onClick: () => { setView('text'); setNodeSel(null) } }, kbt('tasks.edittext'))) : null))))
+                            h('span', { className: 'kba-ndn' }, h('span', { style: { fontWeight: 600 } }, n.l), h('small', null, n.s)))),
+                          )), panelEl))
                   })()
                     : h('div', { style: { display: 'flex', flexDirection: 'column', gap: 10, flex: 1, minHeight: 0 } },
                       h('div', { className: 'kba-derived' },
@@ -21712,7 +22934,9 @@ function renderFit(canvas, model, cam, opts){
       // Action primaire du gabarit : `trailing` de la barre quand elle est là,
       // `.kb6-headacts` sinon (liste vide → pas de barre) — même position.
       const boardEl = boardView === 'list' ? null : h(KbBoardBoundary, { key: boardView, onList: () => tbAuto[1]({ viewMode: 'list' }) },
-        h(KbAutoBoard, {
+        boardView === 'cards'
+          ? h(KbAutoCards, { tasks: filtered.map((a) => a._t), onOpen: (id) => { setDetail(id); setTab('sessions'); setNodeSel(null) }, onToggle: (t) => act('toggle', t.id, { active: t.active === false }) })
+          : h(KbAutoBoard, {
           view: boardView, tasks: filtered.map((a) => a._t), rawTasks: tasks, loadErr: loadErr,
           onRetry: () => { setLoadErr(null); refresh() },
           act: act, toast: toast,
@@ -21731,13 +22955,13 @@ function renderFit(canvas, model, cam, opts){
               h('h1', { className: 'kb6-title' }, kbt('tasks.title')),
               h(KbHelpButton, { open: guide === true, dataKb: 'automation-help', title: kbt('tasks.help'), onClick: () => setGuide(guide === false) })),
             h('p', { className: 'kba-subtitle' }, kbt('tasks.subtitle'))),
-          (list.length > 0
+          (list.length > 0 && section === 'yours'
             ? h(KbToolbar, {
               state: tbAutoView,
               onUpdate: onAutoUpdate,
-              views: ['columns', 'calendar', 'list'],
+              views: ['columns', 'calendar', 'cards', 'list'],
               viewLabels: true,
-              hideSort: boardView !== 'list',
+              hideSort: boardView === 'columns' || boardView === 'calendar',
               searchPlaceholder: kbt('kbui.search.task'),
               sortOptions: [{ id: 'name', label: kbt('kbui.sort.az') }, { id: 'sessions', label: kbt('tasks.sort.mostsessions') }, { id: 'recent', label: kbt('tasks.sort.recent') }],
               facets: { type: { options: [
@@ -21752,13 +22976,15 @@ function renderFit(canvas, model, cam, opts){
         // Aide ( ? ) : l'accueil onboarding rouvre AU-DESSUS de la liste quand
         // des automations existent déjà (quand la liste est vide, il est déjà
         // à l'écran).
-        (guide === true && list.length > 0 ? kbaOnboard(true) : null),
+        (guide === true && list.length > 0 && section === 'yours' ? kbaOnboard(true) : null),
+        h('div', { className: 'kba-sub', role: 'tablist', 'data-kb': 'automations-sections' },
+          ['yours', 'discover'].map((id) => h('button', { key: id, type: 'button', role: 'tab', 'aria-selected': section === id ? 'true' : 'false', className: section === id ? 'on' : '', 'data-kb': 'section-' + id, onClick: () => setSection(id) }, kbt('tasks.tab.' + id)))),
         // Barre unifiée (comme Projets et Kybers) : les anciens chips
         // Toutes / Actives / Attention requise deviennent la facette `type`
         // (compteurs sur la liste complète), Favoris devient l'étoile de la
         // barre. Trois vues (Colonnes, Calendrier, Liste) : la Liste est l'écran d'origine, inchangé ; les deux autres
         // sont le tableau (KbAutoBoard) et partagent la recherche, les facettes et les favoris de la barre.
-        (kbListState(tasks, loadErr) === 'loading' ? (boardView === 'list' ? kbaSkeleton() : kbBoardSkeleton(boardView)) : kbListState(tasks, loadErr) === 'error' ? kbaLoadError() : (list.length === 0 || filtered.length === 0)
+        (section === 'discover' ? h(KbDiscover, { onUse: useTemplate }) : kbListState(tasks, loadErr) === 'loading' ? (boardView === 'list' ? kbaSkeleton() : kbBoardSkeleton(boardView)) : kbListState(tasks, loadErr) === 'error' ? kbaLoadError() : (list.length === 0 || filtered.length === 0)
           ? (list.length === 0
             ? kbaOnboard(false)
             : h('div', { className: 'kba-card' }, h('div', { className: 'kba-empty' }, kbt('tb.empty.title'))))
@@ -21768,7 +22994,6 @@ function renderFit(canvas, model, cam, opts){
               h('button', { type: 'button', className: 'kba-rowbtn', onClick: () => { setDetail(a.id); setTab('sessions'); setNodeSel(null) } },
                 h('span', { className: 'kba-namecell' }, h('span', { className: 'kba-name', title: a.name }, a.name), h('span', { className: 'kba-team', title: a.team }, a.team)),
                 h('span', { className: 'kba-trgcell' }, h('span', { className: 'kba-trigger-icon' }, Icon('zap', 12)), h('span', { className: 'kba-trg-stack' }, h('span', { className: 'kba-ell', title: a.tip !== '' ? a.trigger + ' · ' + a.tip : a.trigger }, a.trigger), a.hooked === true ? h('span', { className: 'kba-team' }, kbt('tasks.trigger.plushook')) : null)),
-                h('span', null, h('span', { className: 'kba-origin-badge' }, kbt('tasks.origin.manual'))),
                 h('span', { className: 'kba-last' + (a.lastCls !== '' ? ' ' + a.lastCls : '') }, h('span', { className: 'kba-kdot ' + a.lastCls }), h('span', { className: 'kba-ell', title: a.lastLabel }, a.lastLabel)),
                 h('span', { className: 'kba-td-num' }, String(a.sessions))),
               // The row's actions sit at the right, shown on hover and on focus (always on a touch screen): they used to stand to the
@@ -22041,7 +23266,7 @@ function renderFit(canvas, model, cam, opts){
    scheme (white knob on it, 1.05:1). Same pairing as .kbpv-sw in kybernos-models. */
 .kbw-sw-kn{position:absolute;top:1px;left:1px;width:16px;height:16px;border-radius:999px;background:var(--dsw-alias-label-secondary);transition:left .12s}
 .kbw-sw.on .kbw-sw-kn{left:17px;background:var(--dsw-alias-label-primary-foreground)}
-.kbw-lab{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--dsw-alias-label-secondary);font-weight:600}
+.kbw-lab{font-size:10.5px;color:var(--dsw-alias-label-secondary);font-weight:600}
 .kbw-field{height:40px;border:1px solid var(--dsw-alias-border-l1);border-radius:10px;background:var(--dsw-alias-bg-layer-1);padding:0 12px;font-size:13px;color:var(--dsw-alias-label-primary);outline:none;width:100%;box-sizing:border-box;font-family:inherit}
 .kbw-area{min-height:64px;border:1px solid var(--dsw-alias-border-l1);border-radius:10px;background:var(--dsw-alias-bg-layer-1);padding:9px 12px;font-size:13px;color:var(--dsw-alias-label-primary);outline:none;width:100%;box-sizing:border-box;font-family:inherit;resize:vertical}
 .kbw-hint{font-size:11.5px;color:var(--dsw-alias-label-secondary)}
@@ -23639,7 +24864,7 @@ function renderFit(canvas, model, cam, opts){
           key: 'kbm-file', ref: fileRef, type: 'file', accept: 'audio/*',
           style: { display: 'none' }, onChange: vmOnFile
         }),
-        [h('div', { style: kbmS("display: grid; gap: 24px; align-items: start; " + kbmP(gridStyle)) }, h('div', { style: kbmS("display: flex; flex-direction: column; gap: 18px; min-width: 0;") }, [h('section', { "aria-labelledby": "faces-title", style: kbmS("border: 1px solid #E4E4E4; border-radius: 12px; padding: 18px 20px; display: grid; grid-template-columns: 380px minmax(0, 1fr); gap: 22px;") }, [h('div', { style: kbmS("display: flex; flex-direction: column; gap: 8px;") }, [h('div', { style: kbmS("position: relative; height: 210px; border-radius: 10px; overflow: hidden; background: linear-gradient(170deg,#F1E6D5 0%,#E2CDAE 70%,#C9AE88 100%); display: flex; align-items: flex-end; justify-content: center; gap: 6px;") }, [h('div', { style: kbmS("position: absolute; left: 0; right: 0; bottom: 0; height: 36px; background: #B89468;") }), kbmList(group.faces).map((a, idx) => h('div', { key: idx, style: kbmS("width: 110px; height: 150px; position: relative; " + kbmP(a.groupStyle)) }, h('svg', { width: "100%", height: "100%", viewBox: "4 6 56 58", "aria-hidden": "true" }, [h('path', { d: "M8 64c2-12 12-18 24-18s22 6 24 18z", fill: a.shirt }), h('path', { d: "M27 38h10v10H27z", fill: a.skin }), h('ellipse', { cx: "32", cy: "28", rx: "11", ry: "13", fill: a.skin }), h('path', { d: a.hairD, fill: a.hair }), h('path', { d: a.glassesD, fill: "none", stroke: "#1F2937", strokeWidth: "1.4" })]))), ((group.busy) ? h('div', { className: "kbm-busy", style: kbmS("position: absolute; inset: 0; background: rgba(255,255,255,0.6); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; color: #3F3F46;") }, "Generating team scene…") : null)]), h('span', { className: "kbm-mono", style: kbmS("font-size: 11.5px; color: #9A9A9E;") }, kbmP(group.status))]), h('div', { style: kbmS("display: flex; flex-direction: column; gap: 12px; min-width: 0;") }, [h('div', { style: kbmS("display: flex; align-items: center; gap: 8px;") }, [h('h2', { id: "faces-title", style: kbmS("margin: 0; font-size: 15px; font-weight: 600;") }, "Team faces"), h('span', { className: "kbm-tip" }, [h('button', { type: "button", "aria-label": "How team faces are generated", style: kbmS("width: 18px; height: 18px; border-radius: 50%; border: 1px solid #C7C7C9; background: #FFFFFF; color: #77777B; font-size: 10px; font-weight: 700; cursor: help; padding: 0;") }, "i"), h('span', { className: "kbm-tipbox card below left", role: "tooltip" }, h('span', { style: kbmS("display: block; font-size: 12.5px; line-height: 1.5; color: #3F3F46;") }, [h('b', { style: kbmS("color:#16161A;") }, "Group + crop:"), " one image call renders the team scene, then each portrait is cropped locally — free and repeatable. 9 faces max per sheet; beyond that roles keep their initials.", h('br', null), h('br', null), h('b', { style: kbmS("color:#16161A;") }, "Per portrait:"), " one call per role, on click. Sharper faces, cost grows with headcount."]))])]), h('div', { style: kbmS("display: flex; align-items: center; gap: 10px;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em; color: #9A9A9E; width: 64px;") }, "MODE"), h('div', { role: "group", "aria-label": "Generation mode", style: kbmS("display: flex; gap: 2px; padding: 2px; background: #F3F3F4; border-radius: 8px;") }, kbmList(faceModes).map((fm, idx) => h('button', { key: idx, type: "button", "aria-pressed": fm.pressed, onClick: fm.pick, style: kbmS("height: 28px; padding: 0 12px; border: none; border-radius: 6px; cursor: pointer; font-size: 12.5px; font-weight: 500; " + kbmP(fm.style)) }, kbmP(fm.label))))]), h('div', { style: kbmS("display: flex; align-items: flex-start; gap: 10px;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em; color: #9A9A9E; width: 64px; padding-top: 12px;") }, "MODEL"), h('div', { style: kbmS("flex-grow: 1; border: 1px solid #EEEEEE; border-radius: 10px; min-width: 0;") }, kbmList(imageModels).map((m, idx) => h('div', { key: idx, style: kbmS("display: flex; align-items: center; gap: 4px; padding: 3px 6px; " + kbmP(m.rowBorder)) }, [h('button', { type: "button", className: "kbm-row-btn", disabled: m.disabled, "aria-pressed": m.pressed, onClick: m.pick, style: kbmS("flex-grow: 1; min-width: 0; height: 38px; padding: 0 10px; border: none; border-radius: 7px; display: flex; align-items: center; gap: 10px; text-align: left; " + kbmP(m.style)) }, [h('span', { style: kbmS("width: 13px; height: 13px; border-radius: 50%; box-sizing: border-box; flex-shrink: 0; " + kbmP(m.radioStyle)) }), h('span', { className: "kbm-mono", style: kbmS("font-size: 12.5px;") }, kbmP(m.id)), h('span', { style: kbmS("font-size: 12px; color: #9A9A9E;") }, kbmP(m.provider)), h('span', { style: kbmS("flex-grow: 1;") }), h('span', { className: "kbm-mono", style: kbmS("font-size: 11.5px; color: #77777B;") }, kbmP(m.metricShort)), h('span', { className: "kbm-mono", style: kbmS("display: inline-flex; align-items: center; gap: 5px; padding: 1px 8px; border-radius: 999px; font-size: 11px; min-width: 76px; box-sizing: border-box; border: 1px solid " + kbmP(m.hBorder) + "; background: " + kbmP(m.hBg) + "; color: " + kbmP(m.hColor) + ";") }, [h('span', { style: kbmS("width: 6px; height: 6px; border-radius: 50%; background: " + kbmP(m.hColor) + ";") }), kbmP(m.hLabel)])]), ((m.tooltipMode) ? h('span', { className: "kbm-tip" }, [h('button', { type: "button", className: "kbm-ico-btn", "aria-label": m.infoAria, style: kbmS("width: 30px; height: 30px; border: none; background: transparent; border-radius: 7px; color: #2563EB; cursor: help; display: flex; align-items: center; justify-content: center; padding: 0;") }, h('svg', { width: "15", height: "15", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M12 3a9 9 0 1 0 0 18a9 9 0 0 0 0-18zM12 11v5M12 8h.01" }))), h('span', { className: "kbm-tipbox card right", role: "tooltip" }, [h('span', { style: kbmS("display: flex; align-items: baseline; justify-content: space-between; gap: 8px;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 13px; font-weight: 600;") }, kbmP(m.id)), h('span', { style: kbmS("font-size: 11px; color: #9A9A9E;") }, kbmP(m.provider) + " · " + kbmP(m.priceLabel))]), h('span', { style: kbmS("display: block; margin-top: 8px; font-size: 12px; line-height: 1.5; color: #55555A;") }, kbmP(m.note))])]) : null), ((m.panelMode) ? h('button', { type: "button", className: "kbm-ico-btn", "aria-label": m.infoAria, "aria-pressed": m.infoPressed, onClick: m.showInfo, style: kbmS("width: 30px; height: 30px; border-radius: 7px; color: #2563EB; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; " + kbmP(m.infoStyle)) }, h('svg', { width: "15", height: "15", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M12 3a9 9 0 1 0 0 18a9 9 0 0 0 0-18zM12 11v5M12 8h.01" }))) : null)])))]), ((panelVariant) ? h('div', { style: kbmS("margin-left: 74px; padding: 10px 12px; border-radius: 8px; background: #F7F7F8; font-size: 12px; line-height: 1.5; color: #55555A;") }, [h('span', { className: "kbm-mono", style: kbmS("font-weight: 600; color: #16161A;") }, kbmP(faceNote.id)), " — " + kbmP(faceNote.note)]) : null), h('div', { style: kbmS("display: flex; align-items: center; gap: 8px; margin-top: auto;") }, [h('button', { type: "button", onClick: group.generate, style: kbmS("height: 38px; padding: 0 16px; border-radius: 9px; border: none; background: #16161A; color: #FFFFFF; font-size: 13.5px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px;") }, [h('svg', { width: "15", height: "15", viewBox: "0 0 24 24", fill: "none", stroke: "#F9A8D4", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M12 3l1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8zM19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z" })), " " + kbmP(group.cta) + " "]), h('button', { type: "button", className: "kbm-pill", style: kbmS("height: 38px; padding: 0 14px; border-radius: 9px; border: 1px solid #E4E4E4; background: #FFFFFF; font-size: 13px; color: #55555A; cursor: pointer;") , onClick: () => faceGo(true) }, "Re-crop (free, no call)"), h('span', { style: kbmS("font-size: 12px; color: #9A9A9E; margin-left: 4px;") }, kbmP(group.cost))])])]), h('section', { style: kbmS("border: 1px solid #E4E4E4; border-radius: 12px; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap;") }, [h('div', { style: kbmS("display: flex; align-items: center; gap: 10px; flex-wrap: wrap; row-gap: 8px; flex: 0 0 auto;") }, [h('span', { style: kbmS("font-size: 15px; font-weight: 600;") }, "Model management"), h('span', { className: "kbm-tip" }, [h('button', { type: "button", "aria-label": "How automatic model management works", style: kbmS("width: 18px; height: 18px; border-radius: 50%; border: 1px solid #C7C7C9; background: #FFFFFF; color: #77777B; font-size: 10px; font-weight: 700; cursor: help; padding: 0;") }, "i"), h('span', { className: "kbm-tipbox card below left", role: "tooltip" }, [h('span', { style: kbmS("display: block; font-size: 13px; font-weight: 600; margin-bottom: 10px;") }, "How Kybernos picks a model"), h('span', { style: kbmS("display: grid; grid-template-columns: 22px 1fr; row-gap: 8px; font-size: 12px; line-height: 1.45; color: #55555A;") }, [h('span', { className: "kbm-mono", style: kbmS("color: #C33543;") }, "01"), h('span', null, [h('b', { style: kbmS("color:#16161A;") }, "Read the role"), " — type, tier, required inputs, outputs, capabilities."]), h('span', { className: "kbm-mono", style: kbmS("color: #C33543;") }, "02"), h('span', null, [h('b', { style: kbmS("color:#16161A;") }, "Filter"), " — models that match, pass their probe, have capacity."]), h('span', { className: "kbm-mono", style: kbmS("color: #C33543;") }, "03"), h('span', null, [h('b', { style: kbmS("color:#16161A;") }, "Score"), " — benchmarks, price, latency, weighted by priority."]), h('span', { className: "kbm-mono", style: kbmS("color: #C33543;") }, "04"), h('span', null, [h('b', { style: kbmS("color:#16161A;") }, "Primary + fallback"), " — best runs, next best on standby. Every run."])])])]), h('div', { role: "group", "aria-label": "Model management mode", style: kbmS("display: flex; gap: 2px; padding: 2px; background: #F3F3F4; border-radius: 8px; margin-left: 6px;") }, kbmList(modes).map((m, idx) => h('button', { key: idx, type: "button", "aria-pressed": m.pressed, onClick: m.pick, style: kbmS("height: 28px; padding: 0 12px; border: none; border-radius: 6px; cursor: pointer; font-size: 12.5px; font-weight: 500; " + kbmP(m.style)) }, kbmP(m.label))))]), h('div', { style: kbmS("display: flex; align-items: center; gap: 16px; flex-wrap: wrap; row-gap: 8px; flex: 0 0 auto;") }, [h('div', { style: kbmS("display: flex; align-items: center; gap: 6px;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em; color: #9A9A9E;") }, "PRIORITY"), kbmList(priorities).map((p, idx) => h('button', { key: idx, type: "button", "aria-pressed": p.pressed, onClick: p.pick, style: kbmS("height: 28px; padding: 0 11px; border-radius: 999px; cursor: pointer; font-size: 12px; font-weight: 500; " + kbmP(p.style)) }, kbmP(p.label)))]), h('span', { className: "kbm-tip" }, [h('span', { tabIndex: "0", style: kbmS("height: 28px; padding: 0 10px; border-radius: 999px; border: 1px dashed #D6D6D8; font-size: 12px; color: #9A9A9E; display: inline-flex; align-items: center; gap: 6px; cursor: help;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em;") }, "BUDGET"), "coming soon"]), h('span', { className: "kbm-tipbox right", role: "tooltip" }, "Monthly spend cap across all models — not available yet")])]), h('p', { style: kbmS("margin: 0; width: 100%; font-size: 12.5px; color: #6B7280;") }, kbmP(modeSummary))]), h('div', { style: kbmS("display: flex; align-items: baseline; justify-content: space-between; margin-top: 4px;") }, [h('div', { style: kbmS("display: flex; align-items: baseline; gap: 12px;") }, [h('h2', { style: kbmS("margin: 0; font-size: 18px; font-weight: 700;") }, "Team members"), h('span', { className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.1em; color: #9A9A9E;") }, "ONE PERSONA · ONE PROMPT · ONE MODEL PER ROLE")]), h('button', { type: "button", className: "kbm-pill", style: kbmS("height: 34px; padding: 0 14px; border-radius: 9px; border: 1px solid #E4E4E4; background: #FFFFFF; font-size: 13px; font-weight: 600; cursor: pointer;") , onClick: addRole }, "+ Add a role")]), kbmList(roles).map((r, idx) => h('article', { key: idx, style: kbmS("border-radius: 12px; padding: 14px 18px; display: flex; flex-direction: column; gap: 14px; " + kbmP(r.cardStyle)) }, [h('div', { style: kbmS("display: flex; align-items: center; gap: 14px;") }, [h('div', { style: kbmS("width: 52px; height: 52px; border-radius: 12px; overflow: hidden; flex-shrink: 0; position: relative; background: " + kbmP(r.color) + ";") }, [((r.face.ready) ? h('svg', { width: "100%", height: "100%", viewBox: "0 0 64 64", "aria-hidden": "true" }, [h('rect', { width: "64", height: "64", fill: r.face.bg }), h('path', { d: "M8 64c2-12 12-18 24-18s22 6 24 18z", fill: r.face.shirt }), h('path', { d: "M27 38h10v10H27z", fill: r.face.skin }), h('ellipse', { cx: "32", cy: "28", rx: "11", ry: "13", fill: r.face.skin }), h('path', { d: r.face.hairD, fill: r.face.hair }), h('path', { d: r.face.glassesD, fill: "none", stroke: "#1F2937", strokeWidth: "1.6" })]) : null), ((r.face.empty) ? h('span', { style: kbmS("position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #FFFFFF; font-weight: 700; font-size: 17px;") }, kbmP(r.initial)) : null), ((r.face.busy) ? h('span', { className: "kbm-busy", style: kbmS("position: absolute; inset: 0; background: rgba(255,255,255,0.65);") }) : null)]), h('div', { style: kbmS("display: flex; flex-direction: column; gap: 4px; flex-grow: 1; min-width: 0;") }, [h('div', { style: kbmS("display: flex; align-items: center; gap: 8px;") }, [h('h3', { style: kbmS("margin: 0; font-size: 16px; font-weight: 700;") }, kbmP(r.name)), h('span', { className: "kbm-mono", style: kbmS("padding: 2px 8px; border-radius: 999px; background: #F3F3F4; font-size: 10px; letter-spacing: 0.08em; color: #77777B;") }, kbmP(r.tag)), h('span', { style: kbmS("display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: #55555A;") }, [h('svg', { width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: r.typeColor, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: r.typeD })), kbmP(r.typeLabel)]), ((r.isAuto) ? h('span', { className: "kbm-mono", style: kbmS("padding: 2px 8px; border-radius: 999px; background: #16161A; color: #FFFFFF; font-size: 10px; letter-spacing: 0.06em;") }, "AUTO") : null)]), h('div', { className: "kbm-mono", style: kbmS("display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: #55555A; flex-wrap: wrap;") }, [h('span', null, kbmP(r.modelLine)), h('span', { style: kbmS("display: inline-flex; align-items: center; gap: 5px; padding: 1px 8px; border-radius: 999px; font-size: 11px; border: 1px solid " + kbmP(r.hBorder) + "; background: " + kbmP(r.hBg) + "; color: " + kbmP(r.hColor) + ";") }, [h('span', { style: kbmS("width: 6px; height: 6px; border-radius: 50%; background: " + kbmP(r.hColor) + ";") }), kbmP(r.hLabel)]), h('span', { style: kbmS("color: #9A9A9E;") }, kbmP(r.fallbackLine))]), h('div', { style: kbmS("font-size: 12.5px; color: #77777B; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;") }, kbmP(r.personaShort))]), h('div', { style: kbmS("display: flex; gap: 6px; flex-shrink: 0;") }, [h('span', { className: "kbm-tip", style: { display: r.hasCall === true ? "" : "none" } }, [h('button', { type: "button", className: "kbm-ico-btn", "aria-label": r.voiceCallLabel, onClick: r.callVoice, style: kbmS("height: 34px; padding: 0 10px; border: 1px solid #E4E4E4; background: #FFFFFF; border-radius: 9px; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: #3F3F46;") }, [h('svg', { width: "15", height: "15", viewBox: "0 0 24 24", fill: "none", stroke: "#16A34A", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2" })), "Call"]), h('span', { className: "kbm-tipbox", role: "tooltip" }, kbmP(r.voiceCallTip))]), h('span', { className: "kbm-tip", style: { display: r.hasCall === true ? "" : "none" } }, [h('button', { type: "button", className: "kbm-ico-btn", "aria-label": r.videoCallLabel, onClick: r.callVideo, style: kbmS("height: 34px; padding: 0 10px; border: 1px solid #E4E4E4; background: #FFFFFF; border-radius: 9px; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: #3F3F46;") }, [h('svg', { width: "15", height: "15", viewBox: "0 0 24 24", fill: "none", stroke: "#2563EB", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M3 7h12v10H3zM15 10l6-3v10l-6-3" })), "Video"]), h('span', { className: "kbm-tipbox", role: "tooltip" }, kbmP(r.videoCallTip))])]), h('button', { type: "button", className: "kbm-ico-btn", "aria-label": r.expandLabel, "aria-expanded": r.expandedAttr, onClick: r.toggle, style: kbmS("width: 32px; height: 32px; border: none; background: transparent; border-radius: 8px; color: #77777B; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0;") }, h('svg', { width: "18", height: "18", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: r.chevron })))]), ((r.expanded) ? h('div', { style: kbmS("display: flex; flex-direction: column; gap: 16px; padding-top: 14px; border-top: 1px solid #F0F0F0;") }, [h('div', { style: kbmS("display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 16px; align-items: start;") }, [h('div', { style: kbmS("width: 96px; height: 96px; border-radius: 14px; overflow: hidden; position: relative; background: " + kbmP(r.color) + ";") }, [((r.face.ready) ? h('svg', { width: "100%", height: "100%", viewBox: "0 0 64 64", "aria-hidden": "true" }, [h('rect', { width: "64", height: "64", fill: r.face.bg }), h('path', { d: "M8 64c2-12 12-18 24-18s22 6 24 18z", fill: r.face.shirt }), h('path', { d: "M27 38h10v10H27z", fill: r.face.skin }), h('ellipse', { cx: "32", cy: "28", rx: "11", ry: "13", fill: r.face.skin }), h('path', { d: r.face.hairD, fill: r.face.hair }), h('path', { d: r.face.glassesD, fill: "none", stroke: "#1F2937", strokeWidth: "1.6" })]) : null), ((r.face.empty) ? h('span', { style: kbmS("position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #FFFFFF; font-weight: 700; font-size: 28px;") }, kbmP(r.initial)) : null), ((r.face.busy) ? h('span', { className: "kbm-busy", style: kbmS("position: absolute; inset: 0; background: rgba(255,255,255,0.7); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: #3F3F46;") }, "Generating…") : null)]), h('div', { style: kbmS("display: flex; flex-direction: column; gap: 8px; min-width: 0;") }, [h('label', { htmlFor: (r.personaId), className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em; color: #9A9A9E;") }, "PERSONA — DESCRIBE THE FACE BEFORE GENERATING"), h('input', { id: r.personaId, type: "text", value: r.persona, onChange: r.onPersona, style: kbmS("height: 38px; padding: 0 12px; border: 1px solid #E4E4E4; border-radius: 8px; font-size: 14px; font-family: inherit; color: #16161A; background: #FFFFFF;") }), h('div', { style: kbmS("display: flex; align-items: center; gap: 8px; flex-wrap: wrap;") }, [h('button', { type: "button", onClick: r.regen, disabled: r.face.busy, style: kbmS("height: 32px; padding: 0 12px; border-radius: 8px; border: 1px solid #16161A; background: #FFFFFF; font-size: 12.5px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;") }, [h('svg', { width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: "#DB2777", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M12 3l1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8z" })), " " + kbmP(r.regenLabel) + " "]), h('span', { style: kbmS("font-size: 12px; color: #9A9A9E;") }, kbmP(r.regenHint))])])]), h('div', { style: kbmS("display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 16px; align-items: center;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em; color: #9A9A9E;") }, "VOICE"), h('div', { style: kbmS("display: flex; align-items: center; gap: 8px; flex-wrap: wrap;") }, [h('div', { role: "group", "aria-label": "Voice", style: kbmS("display: flex; gap: 4px; flex-wrap: wrap;") }, kbmList(r.voices).map((vc, idx) => h('button', { key: idx, type: "button", "aria-pressed": vc.pressed, onClick: vc.pick, style: kbmS("height: 30px; padding: 0 11px; border-radius: 999px; cursor: pointer; font-size: 12.5px; display: flex; align-items: center; gap: 6px; " + kbmP(vc.style)) }, [h('svg', { width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: "#B45309", strokeWidth: "2", strokeLinecap: "round", "aria-hidden": "true" }, h('path', { d: "M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2" })), kbmP(vc.name) + " ", ((vc.custom) ? h('span', { className: "kbm-mono", style: kbmS("font-size: 9.5px; padding: 1px 5px; border-radius: 4px; background: #FEF3C7; color: #92400E;") }, "CUSTOM") : null)]))), h('button', { type: "button", onClick: r.preview, style: kbmS("height: 30px; padding: 0 11px; border-radius: 8px; border: 1px solid #E4E4E4; background: #FFFFFF; cursor: pointer; font-size: 12.5px; display: flex; align-items: center; gap: 5px; color: #3F3F46;") }, [h('svg', { width: "12", height: "12", viewBox: "0 0 24 24", fill: "#16A34A", "aria-hidden": "true" }, h('path', { d: "M7 5l12 7-12 7z" })), kbmP(r.previewLabel)]), h('button', { type: "button", onClick: r.openVoice, style: kbmS("height: 30px; padding: 0 11px; border-radius: 8px; border: 1px dashed #C7C7C9; background: #FAFAFA; cursor: pointer; font-size: 12.5px; color: #3F3F46; display: flex; align-items: center; gap: 5px;") }, [h('svg', { width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: "#DC2626", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3zM5 11a7 7 0 0 0 14 0M12 18v3" })), "Custom voice · record or upload"]), h('span', { style: kbmS("font-size: 12px; color: #9A9A9E;") }, "shared by all members · sample kept on this host · not yet spoken")])]), h('div', { style: kbmS("display: flex; flex-direction: column; gap: 6px;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em; color: #9A9A9E;") }, "SYSTEM PROMPT — THE DOCTRINE OF THIS ROLE"), h('div', { className: "kbm-mono", style: kbmS("padding: 12px 14px; background: #FAFAFA; border: 1px solid #EEEEEE; border-radius: 10px; font-size: 12.5px; line-height: 1.6;") }, kbmP(r.prompt))]), h('div', { style: kbmS("border: 1px solid #EEEEEE; border-radius: 10px;") }, [h('div', { style: kbmS("display: grid; grid-template-columns: 96px 1fr; align-items: center; gap: 12px; padding: 9px 14px; border-bottom: 1px solid #F3F3F4;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em; color: #9A9A9E;") }, "TYPE"), h('div', { style: kbmS("display: flex; align-items: center; gap: 10px;") }, [h('div', { role: "group", "aria-label": "Model type", style: kbmS("display: flex; gap: 3px;") }, kbmList(r.types).map((t, idx) => h('span', { key: idx, className: "kbm-tip" }, [h('button', { type: "button", "aria-label": t.label, "aria-pressed": t.pressed, onClick: t.pick, style: kbmS("width: 30px; height: 30px; border-radius: 7px; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; " + kbmP(t.style)) }, h('svg', { width: "15", height: "15", viewBox: "0 0 24 24", fill: "none", stroke: t.color, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: t.d }))), h('span', { className: "kbm-tipbox", role: "tooltip" }, kbmP(t.label))]))), h('span', { style: kbmS("font-size: 13px; font-weight: 500;") }, kbmP(r.typeLabel))])]), h('div', { style: kbmS("display: grid; grid-template-columns: 96px 1fr; align-items: center; gap: 12px; padding: 9px 14px; border-bottom: 1px solid #F3F3F4;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em; color: #9A9A9E;") }, "TIER"), h('div', { style: kbmS("display: flex; align-items: center; gap: 12px;") }, [h('div', { role: "group", "aria-label": "Tier", style: kbmS("display: flex; gap: 4px;") }, kbmList(r.needs).map((n, idx) => h('button', { key: idx, type: "button", "aria-pressed": n.pressed, onClick: n.pick, className: "kbm-mono", style: kbmS("height: 28px; padding: 0 11px; border-radius: 999px; cursor: pointer; font-size: 12px; " + kbmP(n.style)) }, kbmP(n.label)))), ((r.showToggle) ? h('span', { style: kbmS("display: flex; align-items: center; gap: 8px; margin-left: auto; font-size: 13px; color: #55555A;") }, [" Kybernos manages this model ", h('button', { type: "button", role: "switch", "aria-checked": r.autoPressed, "aria-label": "Kybernos manages this model", onClick: r.toggleAuto, style: kbmS("width: 36px; height: 22px; border-radius: 999px; border: none; padding: 3px; cursor: pointer; display: flex; align-items: center; " + kbmP(r.trackStyle)) }, h('span', { style: kbmS("width: 16px; height: 16px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 1px 2px rgba(0,0,0,0.25);") }))]) : null)])]), h('div', { style: kbmS("display: grid; grid-template-columns: 96px 1fr; align-items: center; gap: 12px; padding: 9px 14px;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em; color: #9A9A9E;") }, "REQUIRES"), h('div', { style: kbmS("display: flex; align-items: center; gap: 14px; flex-wrap: wrap;") }, [kbmList(r.filterGroups).map((g, idx) => h('div', { key: idx, style: kbmS("display: flex; align-items: center; gap: 6px;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 10.5px; color: #B0B0B3;") }, kbmP(g.label)), h('div', { role: "group", "aria-label": g.label, style: kbmS("display: flex; gap: 3px;") }, kbmList(g.items).map((f, idx) => h('span', { key: idx, className: "kbm-tip" }, [h('button', { type: "button", "aria-label": f.aria, "aria-pressed": f.pressed, onClick: f.toggle, style: kbmS("width: 28px; height: 28px; border-radius: 7px; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; " + kbmP(f.style)) }, h('svg', { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: f.color, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true", style: kbmS(kbmP(f.iconStyle)) }, h('path', { d: f.d }))), h('span', { className: "kbm-tipbox", role: "tooltip" }, kbmP(f.tip))])))])), h('span', { style: kbmS("font-size: 12px; color: #9A9A9E; margin-left: auto;") }, kbmP(r.filterSummary))])])]), h('div', { style: kbmS("display: flex; flex-direction: column; gap: 8px;") }, [h('div', { style: kbmS("display: flex; align-items: center; justify-content: space-between;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em; color: #9A9A9E;") }, kbmP(r.listLabel)), h('span', { style: kbmS("font-size: 12px; color: #9A9A9E;") }, kbmP(r.listHint))]), h('div', { style: kbmS("position: relative;") }, [h('div', { style: kbmS("display: flex; align-items: center; gap: 8px; height: 36px; padding: 0 6px 0 12px; border: 1px solid #E4E4E4; border-radius: 8px;") }, [h('svg', { width: "15", height: "15", viewBox: "0 0 24 24", fill: "none", stroke: "#9A9A9E", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M11 4a7 7 0 1 0 0 14a7 7 0 0 0 0-14zM20 20l-4-4" })), h('input', { type: "search", value: r.query, onChange: r.onQuery, placeholder: "Search any connected model, provider or type…", "aria-label": "Search models", style: kbmS("flex-grow: 1; border: none; outline: none; background: transparent; font-size: 13px; font-family: inherit; color: #16161A;") }), h('button', { type: "button", onClick: r.runCheck, style: kbmS("height: 26px; padding: 0 10px; border-radius: 6px; border: 1px solid #E4E4E4; background: #FAFAFA; cursor: pointer; display: flex; align-items: center; gap: 5px; font-size: 12px; color: #55555A;") }, [h('svg', { width: "12", height: "12", viewBox: "0 0 24 24", fill: "none", stroke: "#16A34A", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M3 12h4l3-8 4 16 3-8h4" })), "Probe all "])]), ((r.suggestOpen) ? h('div', { role: "listbox", "aria-label": "Model suggestions", style: kbmS("position: absolute; top: 40px; left: 0; right: 0; z-index: 30; background: #FFFFFF; border: 1px solid #E4E4E4; border-radius: 10px; box-shadow: 0 10px 28px rgba(0,0,0,0.1); padding: 4px; display: flex; flex-direction: column;") }, [kbmList(r.suggestions).map((sg, idx) => [h('button', { key: idx, type: "button", role: "option", className: "kbm-ico-btn", onClick: sg.choose, style: kbmS("min-height: 36px; padding: 6px 10px; border: none; border-radius: 7px; background: transparent; cursor: pointer; display: flex; align-items: center; gap: 10px; text-align: left;") }, [h('svg', { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: sg.typeColor, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: sg.typeD })), h('span', { className: "kbm-mono", style: kbmS("font-size: 13px; flex-grow: 1;") }, kbmP(sg.id)), h('span', { style: kbmS("font-size: 12px; color: #9A9A9E;") }, kbmP(sg.provider) + " · " + kbmP(sg.type)), h('span', { style: kbmS("width: 6px; height: 6px; border-radius: 50%; background: " + kbmP(sg.hColor) + ";") })]), h('button', { key: 'f' + idx, type: "button", className: "kbm-ico-btn", title: sg.fbLabel, "aria-label": sg.fbLabel, disabled: sg.fbDisabled, onClick: sg.setFallback, style: kbmS("min-height: 36px; padding: 0 8px; border: none; border-radius: 7px; background: transparent; opacity: " + (sg.fbDisabled === true ? '0.4' : '1') + ';') }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 13px; color: #7C3AED;") }, "\u21a9")])]), ((r.noSuggestion) ? h('span', { style: kbmS("padding: 8px 10px; font-size: 13px; color: #9A9A9E;") }, "No model found.") : null)]) : null)]), h('div', { style: kbmS("display: grid; gap: 12px; align-items: start; " + kbmP(r.listGrid)) }, [h('div', { style: kbmS("border: 1px solid #EEEEEE; border-radius: 10px; min-width: 0;") }, [kbmList(r.models).map((m, idx) => h('div', { key: idx, style: kbmS("display: flex; align-items: center; gap: 4px; padding: 4px 6px; " + kbmP(m.rowBorder)) }, [h('button', { type: "button", className: "kbm-row-btn", disabled: m.disabled, "aria-pressed": m.pressed, onClick: m.pick, style: kbmS("flex-grow: 1; min-width: 0; height: 42px; padding: 0 10px; border: none; border-radius: 8px; display: flex; align-items: center; gap: 10px; text-align: left; " + kbmP(m.style)) }, [h('span', { style: kbmS("width: 14px; height: 14px; border-radius: 50%; box-sizing: border-box; flex-shrink: 0; " + kbmP(m.radioStyle)) }), h('span', { className: "kbm-mono", style: kbmS("font-size: 13px; flex-shrink: 0;") }, kbmP(m.id)), ((m.isPick) ? h('span', { className: "kbm-mono", style: kbmS("padding: 2px 6px; border-radius: 4px; background: #C33543; color: #FFFFFF; font-size: 10px;") }, "PRIMARY") : null), ((m.isFallback) ? h('span', { className: "kbm-mono", style: kbmS("padding: 1px 6px; border-radius: 4px; border: 1px solid #D6D6D8; color: #55555A; font-size: 10px;") }, "FALLBACK") : null), h('span', { style: kbmS("font-size: 12px; color: #9A9A9E; flex-shrink: 0;") }, kbmP(m.provider)), h('span', { style: kbmS("display: flex; align-items: center; gap: 3px; margin-left: 4px;") }, kbmList(m.capIcons).map((ic, idx) => h('svg', { key: idx, width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: ic.c, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: ic.d })))), h('span', { style: kbmS("flex-grow: 1;") }), h('span', { className: "kbm-mono", style: kbmS("font-size: 12px; color: #77777B;") }, kbmP(m.metricShort)), h('span', { className: "kbm-mono", style: kbmS("font-size: 12px; color: #9A9A9E; min-width: 46px; text-align: right;") }, kbmP(m.latencyLabel)), h('span', { className: "kbm-mono", style: kbmS("display: inline-flex; align-items: center; gap: 5px; padding: 1px 8px; border-radius: 999px; font-size: 11px; min-width: 76px; box-sizing: border-box; border: 1px solid " + kbmP(m.hBorder) + "; background: " + kbmP(m.hBg) + "; color: " + kbmP(m.hColor) + ";") }, [h('span', { style: kbmS("width: 6px; height: 6px; border-radius: 50%; background: " + kbmP(m.hColor) + ";") }), kbmP(m.hLabel)])]), ((m.tooltipMode) ? h('span', { className: "kbm-tip" }, [h('button', { type: "button", className: "kbm-ico-btn", "aria-label": m.infoAria, style: kbmS("width: 32px; height: 32px; border: none; background: transparent; border-radius: 7px; color: #2563EB; cursor: help; display: flex; align-items: center; justify-content: center; padding: 0;") }, h('svg', { width: "16", height: "16", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M12 3a9 9 0 1 0 0 18a9 9 0 0 0 0-18zM12 11v5M12 8h.01" }))), h('span', { className: "kbm-tipbox card right", role: "tooltip" }, [h('span', { style: kbmS("display: flex; align-items: baseline; justify-content: space-between; gap: 8px;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 13px; font-weight: 600;") }, kbmP(m.id)), h('span', { style: kbmS("font-size: 11px; color: #9A9A9E;") }, kbmP(m.provider) + " · " + kbmP(m.priceLabel))]), h('span', { style: kbmS("display: flex; align-items: center; gap: 6px; margin-top: 10px; font-size: 12px; color: #55555A; flex-wrap: wrap;") }, [kbmList(m.inIcons).map((c, idx) => h('span', { key: idx, style: kbmS("display: inline-flex; align-items: center; gap: 4px;") }, [h('svg', { width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: c.c, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: c.d })), kbmP(c.label)])), h('span', { style: kbmS("color: #B0B0B3;") }, "→"), kbmList(m.outIcons).map((c, idx) => h('span', { key: idx, style: kbmS("display: inline-flex; align-items: center; gap: 4px;") }, [h('svg', { width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: c.c, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: c.d })), kbmP(c.label)]))]), h('span', { style: kbmS("display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px 10px; margin-top: 10px; font-size: 12px;") }, kbmList(m.capRows).map((c, idx) => h('span', { key: idx, style: kbmS("display: inline-flex; align-items: center; gap: 5px; " + kbmP(c.style)) }, [h('svg', { width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: c.c, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: c.d })), kbmP(c.label)]))), ((m.hasBench) ? h('span', { style: kbmS("display: block; margin-top: 12px; padding-top: 10px; border-top: 1px solid #F0F0F0;") }, [h('span', { style: kbmS("display: flex; justify-content: space-between; font-size: 12px;") }, [h('span', { style: kbmS("font-weight: 600;") }, "Artificial Analysis"), h('span', { className: "kbm-mono" }, kbmP(m.aaScore) + " intelligence")]), h('span', { style: kbmS("display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px 12px; margin-top: 6px; font-size: 11.5px; color: #55555A;") }, kbmList(m.aaRows).map((b, idx) => h('span', { key: idx, style: kbmS("display: flex; justify-content: space-between; gap: 6px;") }, [h('span', null, kbmP(b.k)), h('span', { className: "kbm-mono", style: kbmS("color: #16161A;") }, kbmP(b.v))]))), h('span', { style: kbmS("display: flex; justify-content: space-between; font-size: 12px; margin-top: 10px;") }, [h('span', { style: kbmS("font-weight: 600;") }, ["BenchLM ", h('span', { style: kbmS("font-weight: 400; color: #9A9A9E;") }, "· provisional")]), h('span', { className: "kbm-mono" }, kbmP(m.blScore) + " overall")]), h('span', { style: kbmS("display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px 12px; margin-top: 6px; font-size: 11.5px; color: #55555A;") }, kbmList(m.blRows).map((b, idx) => h('span', { key: idx, style: kbmS("display: flex; justify-content: space-between; gap: 6px;") }, [h('span', null, kbmP(b.k)), h('span', { className: "kbm-mono", style: kbmS("color: #16161A;") }, kbmP(b.v))]))), h('span', { style: kbmS("display: block; margin-top: 10px; font-size: 11px; color: #9A9A9E;") }, kbmP(m.benchFoot))]) : null), ((m.noBench) ? h('span', { style: kbmS("display: block; margin-top: 12px; padding-top: 10px; border-top: 1px solid #F0F0F0; font-size: 12px; line-height: 1.45; color: #77777B;") }, kbmP(m.note)) : null)])]) : null), ((m.panelMode) ? h('button', { type: "button", className: "kbm-ico-btn", "aria-label": m.infoAria, "aria-pressed": m.infoPressed, onClick: m.showInfo, style: kbmS("width: 32px; height: 32px; border-radius: 7px; color: #2563EB; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; " + kbmP(m.infoStyle)) }, h('svg', { width: "16", height: "16", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M12 3a9 9 0 1 0 0 18a9 9 0 0 0 0-18zM12 11v5M12 8h.01" }))) : null), h('span', { className: "kbm-tip" }, [h('button', { type: "button", className: "kbm-ico-btn", "aria-label": m.fbLabel, "aria-pressed": m.fbPressed, disabled: m.fbDisabled, onClick: m.setFallback, style: kbmS("width: 32px; height: 32px; border-radius: 7px; display: flex; align-items: center; justify-content: center; padding: 0; " + kbmP(m.fbStyle)) }, h('svg', { width: "15", height: "15", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M9 14l-5-5 5-5M4 9h11a5 5 0 0 1 0 10h-3" }))), h('span', { className: "kbm-tipbox right", role: "tooltip" }, kbmP(m.fbLabel))])])), ((r.hasHidden) ? h('div', { style: kbmS("padding: 9px 16px; border-top: 1px solid #F3F3F4; font-size: 12px; color: #9A9A9E;") }, kbmP(r.hiddenLabel)) : null)]), ((r.panelVariant) ? h('aside', { "aria-label": "Selected model details", style: kbmS("border: 1px solid #E4E4E4; border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 12px; background: #FFFFFF;") }, [h('div', { style: kbmS("display: flex; flex-direction: column; gap: 4px;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 10.5px; letter-spacing: 0.08em; color: " + kbmP(r.panelTagColor) + ";") }, kbmP(r.panelTag)), h('span', { className: "kbm-mono", style: kbmS("font-size: 15px; font-weight: 600;") }, kbmP(r.panel.id)), h('div', { style: kbmS("display: flex; align-items: center; gap: 8px; flex-wrap: wrap;") }, [h('span', { style: kbmS("font-size: 12px; color: #77777B;") }, kbmP(r.panel.provider) + " · " + kbmP(r.panel.priceLabel) + " · " + kbmP(r.panel.latencyLabel)), h('span', { className: "kbm-mono", style: kbmS("display: inline-flex; align-items: center; gap: 5px; padding: 1px 7px; border-radius: 999px; font-size: 10.5px; border: 1px solid " + kbmP(r.panel.hBorder) + "; background: " + kbmP(r.panel.hBg) + "; color: " + kbmP(r.panel.hColor) + ";") }, [h('span', { style: kbmS("width: 6px; height: 6px; border-radius: 50%; background: " + kbmP(r.panel.hColor) + ";") }), kbmP(r.panel.hLabel)])])]), h('div', { style: kbmS("display: flex; align-items: center; gap: 5px; flex-wrap: wrap; font-size: 12px; padding-top: 10px; border-top: 1px solid #F0F0F0;") }, [kbmList(r.panel.inIcons).map((c, idx) => h('span', { key: idx, style: kbmS("display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px; border-radius: 999px; background: " + kbmP(c.tint) + ";") }, [h('svg', { width: "12", height: "12", viewBox: "0 0 24 24", fill: "none", stroke: c.c, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: c.d })), kbmP(c.label)])), h('span', { style: kbmS("color: #B0B0B3;") }, "→"), kbmList(r.panel.outIcons).map((c, idx) => h('span', { key: idx, style: kbmS("display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px; border-radius: 999px; background: " + kbmP(c.tint) + ";") }, [h('svg', { width: "12", height: "12", viewBox: "0 0 24 24", fill: "none", stroke: c.c, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: c.d })), kbmP(c.label)]))]), h('div', { style: kbmS("display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px 8px; font-size: 12px;") }, kbmList(r.panel.capRows).map((c, idx) => h('span', { key: idx, style: kbmS("display: inline-flex; align-items: center; gap: 5px; " + kbmP(c.style)) }, [h('svg', { width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: c.c, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: c.d })), kbmP(c.label)]))), ((r.panel.hasBench) ? h('div', { style: kbmS("display: flex; flex-direction: column; gap: 8px; padding-top: 10px; border-top: 1px solid #F0F0F0;") }, [h('div', { style: kbmS("background: #1F1F22; color: #F4F4F5; border-radius: 8px; padding: 10px 12px;") }, [h('div', { style: kbmS("display: flex; align-items: baseline; gap: 6px;") }, [h('span', { style: kbmS("font-size: 12px; font-weight: 600; flex-grow: 1;") }, "Artificial Analysis"), h('span', { style: kbmS("font-size: 18px; font-weight: 700;") }, kbmP(r.panel.aaScore))]), h('div', { style: kbmS("display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 10px; margin-top: 6px; font-size: 11px;") }, kbmList(r.panel.aaRows).map((b, idx) => h('div', { key: idx, style: kbmS("display: flex; justify-content: space-between; gap: 4px;") }, [h('span', { style: kbmS("color: #A1A1AA; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;") }, kbmP(b.k)), h('span', null, kbmP(b.v))])))]), h('div', { style: kbmS("background: #1F1F22; color: #F4F4F5; border-radius: 8px; padding: 10px 12px;") }, [h('div', { style: kbmS("display: flex; align-items: baseline; gap: 6px;") }, [h('span', { style: kbmS("font-size: 12px; font-weight: 600; flex-grow: 1;") }, ["BenchLM ", h('span', { style: kbmS("font-size: 10px; font-weight: 400; color: #A1A1AA;") }, "provisional")]), h('span', { style: kbmS("font-size: 18px; font-weight: 700;") }, kbmP(r.panel.blScore))]), h('div', { style: kbmS("display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 10px; margin-top: 6px; font-size: 11px;") }, kbmList(r.panel.blRows).map((b, idx) => h('div', { key: idx, style: kbmS("display: flex; justify-content: space-between; gap: 4px;") }, [h('span', { style: kbmS("color: #A1A1AA;") }, kbmP(b.k)), h('span', null, kbmP(b.v))])))]), h('span', { style: kbmS("font-size: 11px; line-height: 1.45; color: #77777B;") }, kbmP(r.panel.benchFoot))]) : null), ((r.panel.noBench) ? h('p', { style: kbmS("margin: 0; padding: 10px; border-radius: 8px; background: #FAFAFA; font-size: 12px; line-height: 1.5; color: #55555A;") }, kbmP(r.panel.note)) : null)]) : null)])]), ((r.isAuto) ? h('div', { style: kbmS("display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 10px; background: #F7F7F8; border: 1px solid #EEEEEE; font-size: 13px;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em; color: #9A9A9E;") }, "DECISION"), h('span', { className: "kbm-mono", style: kbmS("font-weight: 600;") }, kbmP(r.pickName)), h('span', { style: kbmS("color: #6B7280;") }, kbmP(r.pickReasonShort)), h('span', { style: kbmS("margin-left: auto; font-size: 12px; color: #9A9A9E;") }, kbmP(r.skipped))]) : null), ((r.showDownWarning) ? h('div', { role: "alert", style: kbmS("display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 10px; background: #FEF2F2; border: 1px solid #FBD5D5; font-size: 13px; color: #9B1C1C;") }, [h('span', { style: kbmS("flex-grow: 1;") }, kbmP(r.downText)), h('button', { type: "button", onClick: r.enableAuto, style: kbmS("height: 28px; padding: 0 10px; border-radius: 7px; border: 1px solid #9B1C1C; background: #FFFFFF; color: #9B1C1C; font-size: 12px; font-weight: 600; cursor: pointer;") }, "Let Kybernos manage")]) : null)]) : null)]))])), ((vmView.open) ? h('div', { style: kbmS("position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; background: rgba(22,22,26,0.32);") }, h('div', { role: "dialog", "aria-modal": "true", "aria-labelledby": "vm-title", style: kbmS("position: relative; top: 0; left: 0; transform: none; width: 560px; max-height: 88vh; overflow: auto; background: #FFFFFF; border-radius: 16px; box-shadow: 0 24px 64px rgba(0,0,0,0.25); padding: 24px; display: flex; flex-direction: column; gap: 16px;") }, [h('div', { style: kbmS("display: flex; align-items: flex-start; gap: 12px;") }, [h('div', { style: kbmS("flex-grow: 1; display: flex; flex-direction: column; gap: 6px;") }, [h('h2', { id: "vm-title", style: kbmS("margin: 0; font-size: 20px; font-weight: 700;") }, "Create a custom voice"), h('p', { style: kbmS("margin: 0; font-size: 13.5px; line-height: 1.5; color: #6B7280;") }, ["For ", h('b', { style: kbmS("color: #16161A;") }, kbmP(vmView.roleName)), ". Record or upload a consent recording and a sample. The sample is stored on this machine and shared by every member — no synthesis engine yet, so the voice is selectable but not yet spoken."])]), h('button', { type: "button", className: "kbm-ico-btn", "aria-label": "Close", onClick: vmView.close, style: kbmS("width: 32px; height: 32px; border: none; background: transparent; border-radius: 8px; cursor: pointer; color: #77777B; display: flex; align-items: center; justify-content: center; padding: 0;") }, h('svg', { width: "18", height: "18", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", "aria-hidden": "true" }, h('path', { d: "M6 6l12 12M18 6L6 18" })))]), h('div', { style: kbmS("display: flex; flex-direction: column; gap: 6px;") }, [h('label', { htmlFor: "vm-name", className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em; color: #9A9A9E;") }, "VOICE NAME"), h('input', { id: "vm-name", type: "text", value: vmView.name, onChange: vmView.onName, placeholder: "My custom voice", style: kbmS("height: 40px; padding: 0 12px; border: 1px solid #E4E4E4; border-radius: 9px; font-size: 14px; font-family: inherit; color: #16161A;") })]), kbmList(vmView.steps).map((st, idx) => h('div', { key: idx, style: kbmS("border: 1px solid #EEEEEE; border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px;") }, [h('div', { style: kbmS("display: flex; flex-direction: column; gap: 3px;") }, [h('span', { style: kbmS("font-size: 14px; font-weight: 600;") }, kbmP(st.title)), h('span', { style: kbmS("font-size: 12.5px; line-height: 1.5; color: #6B7280;") }, kbmP(st.desc))]), h('div', { style: kbmS("display: flex; align-items: center; gap: 10px; flex-wrap: wrap;") }, [h('div', { role: "group", "aria-label": "Input method", style: kbmS("display: flex; gap: 2px; padding: 2px; background: #F3F3F4; border-radius: 8px;") }, kbmList(st.modes).map((md, idx) => h('button', { key: idx, type: "button", "aria-pressed": md.pressed, onClick: md.pick, style: kbmS("height: 28px; padding: 0 11px; border: none; border-radius: 6px; cursor: pointer; font-size: 12.5px; display: flex; align-items: center; gap: 5px; " + kbmP(md.style)) }, [h('svg', { width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: md.d })), kbmP(md.label)]))), ((st.showStart) ? h('button', { type: "button", onClick: st.start, style: kbmS("height: 34px; padding: 0 14px; border-radius: 9px; border: 1px solid #E4E4E4; background: #FFFFFF; cursor: pointer; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 6px;") }, [h('svg', { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "#DC2626", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3zM5 11a7 7 0 0 0 14 0M12 18v3" })), "Start recording"]) : null), ((st.showUpload) ? h('button', { type: "button", onClick: st.upload, style: kbmS("height: 34px; padding: 0 14px; border-radius: 9px; border: 1px dashed #C7C7C9; background: #FAFAFA; cursor: pointer; font-size: 13px; color: #3F3F46; display: flex; align-items: center; gap: 6px;") }, [h('svg', { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "#2563EB", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M12 16V4M7 9l5-5 5 5M4 20h16" })), "Choose a file · wav, mp3, m4a"]) : null), ((st.recording) ? [h('span', { style: kbmS("display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: #B91C1C;") }, [h('span', { className: "kbm-busy", style: kbmS("width: 9px; height: 9px; border-radius: 50%; background: #DC2626;") }), "Recording…"]), h('button', { type: "button", onClick: st.stop, style: kbmS("height: 30px; padding: 0 12px; border-radius: 8px; border: none; background: #DC2626; color: #FFFFFF; cursor: pointer; font-size: 12.5px; font-weight: 600;") }, "Stop")] : null), ((st.done) ? [h('span', { style: kbmS("display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px; border-radius: 999px; background: #F0FDF4; border: 1px solid #BBF7D0; font-size: 12.5px; color: #15803D;") }, [h('svg', { width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2.4", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M5 12l5 5L20 7" })), kbmP(st.doneLabel)]), h('button', { type: "button", onClick: st.reset, style: kbmS("height: 30px; padding: 0 10px; border-radius: 8px; border: 1px solid #E4E4E4; background: #FFFFFF; cursor: pointer; font-size: 12.5px; color: #55555A;") }, "Redo")] : null)])])), h('div', { style: kbmS("display: flex; justify-content: flex-end; gap: 8px;") }, [((vmView.err !== '') ? h('span', { role: "alert", style: kbmS("flex-grow: 1; font-size: 12.5px; line-height: 1.4; color: #9B1C1C; align-self: center;") }, kbmP(vmView.err)) : null), h('button', { type: "button", onClick: vmView.close, style: kbmS("height: 38px; padding: 0 16px; border-radius: 9px; border: 1px solid #E4E4E4; background: #FFFFFF; cursor: pointer; font-size: 14px;") }, "Cancel"), h('button', { type: "button", disabled: vmView.cannotCreate, onClick: vmView.create, style: kbmS("height: 38px; padding: 0 16px; border-radius: 9px; border: none; font-size: 14px; font-weight: 600; " + kbmP(vmView.createStyle)) }, "Create voice")])])) : null)]
+        [h('div', { style: kbmS("display: grid; gap: 24px; align-items: start; " + kbmP(gridStyle)) }, h('div', { style: kbmS("display: flex; flex-direction: column; gap: 18px; min-width: 0;") }, [h('section', { "aria-labelledby": "faces-title", style: kbmS("border: 1px solid #E4E4E4; border-radius: 12px; padding: 18px 20px; display: grid; grid-template-columns: 380px minmax(0, 1fr); gap: 22px;") }, [h('div', { style: kbmS("display: flex; flex-direction: column; gap: 8px;") }, [h('div', { style: kbmS("position: relative; height: 210px; border-radius: 10px; overflow: hidden; background: linear-gradient(170deg,#F1E6D5 0%,#E2CDAE 70%,#C9AE88 100%); display: flex; align-items: flex-end; justify-content: center; gap: 6px;") }, [h('div', { style: kbmS("position: absolute; left: 0; right: 0; bottom: 0; height: 36px; background: #B89468;") }), kbmList(group.faces).map((a, idx) => h('div', { key: idx, style: kbmS("width: 110px; height: 150px; position: relative; " + kbmP(a.groupStyle)) }, h('svg', { width: "100%", height: "100%", viewBox: "4 6 56 58", "aria-hidden": "true" }, [h('path', { d: "M8 64c2-12 12-18 24-18s22 6 24 18z", fill: a.shirt }), h('path', { d: "M27 38h10v10H27z", fill: a.skin }), h('ellipse', { cx: "32", cy: "28", rx: "11", ry: "13", fill: a.skin }), h('path', { d: a.hairD, fill: a.hair }), h('path', { d: a.glassesD, fill: "none", stroke: "#1F2937", strokeWidth: "1.4" })]))), ((group.busy) ? h('div', { className: "kbm-busy", style: kbmS("position: absolute; inset: 0; background: rgba(255,255,255,0.6); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; color: #3F3F46;") }, "Generating team scene…") : null)]), h('span', { className: "kbm-mono", style: kbmS("font-size: 11.5px; color: #9A9A9E;") }, kbmP(group.status))]), h('div', { style: kbmS("display: flex; flex-direction: column; gap: 12px; min-width: 0;") }, [h('div', { style: kbmS("display: flex; align-items: center; gap: 8px;") }, [h('h2', { id: "faces-title", style: kbmS("margin: 0; font-size: 15px; font-weight: 600;") }, "Team faces"), h('span', { className: "kbm-tip" }, [h('button', { type: "button", "aria-label": "How team faces are generated", style: kbmS("width: 18px; height: 18px; border-radius: 50%; border: 1px solid #C7C7C9; background: #FFFFFF; color: #77777B; font-size: 10px; font-weight: 700; cursor: help; padding: 0;") }, "i"), h('span', { className: "kbm-tipbox card below left", role: "tooltip" }, h('span', { style: kbmS("display: block; font-size: 12.5px; line-height: 1.5; color: #3F3F46;") }, [h('b', { style: kbmS("color:#16161A;") }, "Group + crop:"), " one image call renders the team scene, then each portrait is cropped locally — free and repeatable. 9 faces max per sheet; beyond that roles keep their initials.", h('br', null), h('br', null), h('b', { style: kbmS("color:#16161A;") }, "Per portrait:"), " one call per role, on click. Sharper faces, cost grows with headcount."]))])]), h('div', { style: kbmS("display: flex; align-items: center; gap: 10px;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em; color: #9A9A9E; width: 64px;") }, "Mode"), h('div', { role: "group", "aria-label": "Generation mode", style: kbmS("display: flex; gap: 2px; padding: 2px; background: #F3F3F4; border-radius: 8px;") }, kbmList(faceModes).map((fm, idx) => h('button', { key: idx, type: "button", "aria-pressed": fm.pressed, onClick: fm.pick, style: kbmS("height: 28px; padding: 0 12px; border: none; border-radius: 6px; cursor: pointer; font-size: 12.5px; font-weight: 500; " + kbmP(fm.style)) }, kbmP(fm.label))))]), h('div', { style: kbmS("display: flex; align-items: flex-start; gap: 10px;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em; color: #9A9A9E; width: 64px; padding-top: 12px;") }, "Model"), h('div', { style: kbmS("flex-grow: 1; border: 1px solid #EEEEEE; border-radius: 10px; min-width: 0;") }, kbmList(imageModels).map((m, idx) => h('div', { key: idx, style: kbmS("display: flex; align-items: center; gap: 4px; padding: 3px 6px; " + kbmP(m.rowBorder)) }, [h('button', { type: "button", className: "kbm-row-btn", disabled: m.disabled, "aria-pressed": m.pressed, onClick: m.pick, style: kbmS("flex-grow: 1; min-width: 0; height: 38px; padding: 0 10px; border: none; border-radius: 7px; display: flex; align-items: center; gap: 10px; text-align: left; " + kbmP(m.style)) }, [h('span', { style: kbmS("width: 13px; height: 13px; border-radius: 50%; box-sizing: border-box; flex-shrink: 0; " + kbmP(m.radioStyle)) }), h('span', { className: "kbm-mono", style: kbmS("font-size: 12.5px;") }, kbmP(m.id)), h('span', { style: kbmS("font-size: 12px; color: #9A9A9E;") }, kbmP(m.provider)), h('span', { style: kbmS("flex-grow: 1;") }), h('span', { className: "kbm-mono", style: kbmS("font-size: 11.5px; color: #77777B;") }, kbmP(m.metricShort)), h('span', { className: "kbm-mono", style: kbmS("display: inline-flex; align-items: center; gap: 5px; padding: 1px 8px; border-radius: 999px; font-size: 11px; min-width: 76px; box-sizing: border-box; border: 1px solid " + kbmP(m.hBorder) + "; background: " + kbmP(m.hBg) + "; color: " + kbmP(m.hColor) + ";") }, [h('span', { style: kbmS("width: 6px; height: 6px; border-radius: 50%; background: " + kbmP(m.hColor) + ";") }), kbmP(m.hLabel)])]), ((m.tooltipMode) ? h('span', { className: "kbm-tip" }, [h('button', { type: "button", className: "kbm-ico-btn", "aria-label": m.infoAria, style: kbmS("width: 30px; height: 30px; border: none; background: transparent; border-radius: 7px; color: #2563EB; cursor: help; display: flex; align-items: center; justify-content: center; padding: 0;") }, h('svg', { width: "15", height: "15", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M12 3a9 9 0 1 0 0 18a9 9 0 0 0 0-18zM12 11v5M12 8h.01" }))), h('span', { className: "kbm-tipbox card right", role: "tooltip" }, [h('span', { style: kbmS("display: flex; align-items: baseline; justify-content: space-between; gap: 8px;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 13px; font-weight: 600;") }, kbmP(m.id)), h('span', { style: kbmS("font-size: 11px; color: #9A9A9E;") }, kbmP(m.provider) + " · " + kbmP(m.priceLabel))]), h('span', { style: kbmS("display: block; margin-top: 8px; font-size: 12px; line-height: 1.5; color: #55555A;") }, kbmP(m.note))])]) : null), ((m.panelMode) ? h('button', { type: "button", className: "kbm-ico-btn", "aria-label": m.infoAria, "aria-pressed": m.infoPressed, onClick: m.showInfo, style: kbmS("width: 30px; height: 30px; border-radius: 7px; color: #2563EB; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; " + kbmP(m.infoStyle)) }, h('svg', { width: "15", height: "15", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M12 3a9 9 0 1 0 0 18a9 9 0 0 0 0-18zM12 11v5M12 8h.01" }))) : null)])))]), ((panelVariant) ? h('div', { style: kbmS("margin-left: 74px; padding: 10px 12px; border-radius: 8px; background: #F7F7F8; font-size: 12px; line-height: 1.5; color: #55555A;") }, [h('span', { className: "kbm-mono", style: kbmS("font-weight: 600; color: #16161A;") }, kbmP(faceNote.id)), " — " + kbmP(faceNote.note)]) : null), h('div', { style: kbmS("display: flex; align-items: center; gap: 8px; margin-top: auto;") }, [h('button', { type: "button", onClick: group.generate, style: kbmS("height: 38px; padding: 0 16px; border-radius: 9px; border: none; background: #16161A; color: #FFFFFF; font-size: 13.5px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px;") }, [h('svg', { width: "15", height: "15", viewBox: "0 0 24 24", fill: "none", stroke: "#F9A8D4", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M12 3l1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8zM19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z" })), " " + kbmP(group.cta) + " "]), h('button', { type: "button", className: "kbm-pill", style: kbmS("height: 38px; padding: 0 14px; border-radius: 9px; border: 1px solid #E4E4E4; background: #FFFFFF; font-size: 13px; color: #55555A; cursor: pointer;") , onClick: () => faceGo(true) }, "Re-crop (free, no call)"), h('span', { style: kbmS("font-size: 12px; color: #9A9A9E; margin-left: 4px;") }, kbmP(group.cost))])])]), h('section', { style: kbmS("border: 1px solid #E4E4E4; border-radius: 12px; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap;") }, [h('div', { style: kbmS("display: flex; align-items: center; gap: 10px; flex-wrap: wrap; row-gap: 8px; flex: 0 0 auto;") }, [h('span', { style: kbmS("font-size: 15px; font-weight: 600;") }, "Model management"), h('span', { className: "kbm-tip" }, [h('button', { type: "button", "aria-label": "How automatic model management works", style: kbmS("width: 18px; height: 18px; border-radius: 50%; border: 1px solid #C7C7C9; background: #FFFFFF; color: #77777B; font-size: 10px; font-weight: 700; cursor: help; padding: 0;") }, "i"), h('span', { className: "kbm-tipbox card below left", role: "tooltip" }, [h('span', { style: kbmS("display: block; font-size: 13px; font-weight: 600; margin-bottom: 10px;") }, "How Kybernos picks a model"), h('span', { style: kbmS("display: grid; grid-template-columns: 22px 1fr; row-gap: 8px; font-size: 12px; line-height: 1.45; color: #55555A;") }, [h('span', { className: "kbm-mono", style: kbmS("color: #C33543;") }, "01"), h('span', null, [h('b', { style: kbmS("color:#16161A;") }, "Read the role"), " — type, tier, required inputs, outputs, capabilities."]), h('span', { className: "kbm-mono", style: kbmS("color: #C33543;") }, "02"), h('span', null, [h('b', { style: kbmS("color:#16161A;") }, "Filter"), " — models that match, pass their probe, have capacity."]), h('span', { className: "kbm-mono", style: kbmS("color: #C33543;") }, "03"), h('span', null, [h('b', { style: kbmS("color:#16161A;") }, "Score"), " — benchmarks, price, latency, weighted by priority."]), h('span', { className: "kbm-mono", style: kbmS("color: #C33543;") }, "04"), h('span', null, [h('b', { style: kbmS("color:#16161A;") }, "Primary + fallback"), " — best runs, next best on standby. Every run."])])])]), h('div', { role: "group", "aria-label": "Model management mode", style: kbmS("display: flex; gap: 2px; padding: 2px; background: #F3F3F4; border-radius: 8px; margin-left: 6px;") }, kbmList(modes).map((m, idx) => h('button', { key: idx, type: "button", "aria-pressed": m.pressed, onClick: m.pick, style: kbmS("height: 28px; padding: 0 12px; border: none; border-radius: 6px; cursor: pointer; font-size: 12.5px; font-weight: 500; " + kbmP(m.style)) }, kbmP(m.label))))]), h('div', { style: kbmS("display: flex; align-items: center; gap: 16px; flex-wrap: wrap; row-gap: 8px; flex: 0 0 auto;") }, [h('div', { style: kbmS("display: flex; align-items: center; gap: 6px;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em; color: #9A9A9E;") }, "Priority"), kbmList(priorities).map((p, idx) => h('button', { key: idx, type: "button", "aria-pressed": p.pressed, onClick: p.pick, style: kbmS("height: 28px; padding: 0 11px; border-radius: 999px; cursor: pointer; font-size: 12px; font-weight: 500; " + kbmP(p.style)) }, kbmP(p.label)))]), h('span', { className: "kbm-tip" }, [h('span', { tabIndex: "0", style: kbmS("height: 28px; padding: 0 10px; border-radius: 999px; border: 1px dashed #D6D6D8; font-size: 12px; color: #9A9A9E; display: inline-flex; align-items: center; gap: 6px; cursor: help;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em;") }, "Budget"), "coming soon"]), h('span', { className: "kbm-tipbox right", role: "tooltip" }, "Monthly spend cap across all models — not available yet")])]), h('p', { style: kbmS("margin: 0; width: 100%; font-size: 12.5px; color: #6B7280;") }, kbmP(modeSummary))]), h('div', { style: kbmS("display: flex; align-items: baseline; justify-content: space-between; margin-top: 4px;") }, [h('div', { style: kbmS("display: flex; align-items: baseline; gap: 12px;") }, [h('h2', { style: kbmS("margin: 0; font-size: 18px; font-weight: 700;") }, "Team members"), h('span', { className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.1em; color: #9A9A9E;") }, "One persona · one prompt · one model per role")]), h('button', { type: "button", className: "kbm-pill", style: kbmS("height: 34px; padding: 0 14px; border-radius: 9px; border: 1px solid #E4E4E4; background: #FFFFFF; font-size: 13px; font-weight: 600; cursor: pointer;") , onClick: addRole }, "+ Add a role")]), kbmList(roles).map((r, idx) => h('article', { key: idx, style: kbmS("border-radius: 12px; padding: 14px 18px; display: flex; flex-direction: column; gap: 14px; " + kbmP(r.cardStyle)) }, [h('div', { style: kbmS("display: flex; align-items: center; gap: 14px;") }, [h('div', { style: kbmS("width: 52px; height: 52px; border-radius: 12px; overflow: hidden; flex-shrink: 0; position: relative; background: " + kbmP(r.color) + ";") }, [((r.face.ready) ? h('svg', { width: "100%", height: "100%", viewBox: "0 0 64 64", "aria-hidden": "true" }, [h('rect', { width: "64", height: "64", fill: r.face.bg }), h('path', { d: "M8 64c2-12 12-18 24-18s22 6 24 18z", fill: r.face.shirt }), h('path', { d: "M27 38h10v10H27z", fill: r.face.skin }), h('ellipse', { cx: "32", cy: "28", rx: "11", ry: "13", fill: r.face.skin }), h('path', { d: r.face.hairD, fill: r.face.hair }), h('path', { d: r.face.glassesD, fill: "none", stroke: "#1F2937", strokeWidth: "1.6" })]) : null), ((r.face.empty) ? h('span', { style: kbmS("position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #FFFFFF; font-weight: 700; font-size: 17px;") }, kbmP(r.initial)) : null), ((r.face.busy) ? h('span', { className: "kbm-busy", style: kbmS("position: absolute; inset: 0; background: rgba(255,255,255,0.65);") }) : null)]), h('div', { style: kbmS("display: flex; flex-direction: column; gap: 4px; flex-grow: 1; min-width: 0;") }, [h('div', { style: kbmS("display: flex; align-items: center; gap: 8px;") }, [h('h3', { style: kbmS("margin: 0; font-size: 16px; font-weight: 700;") }, kbmP(r.name)), h('span', { className: "kbm-mono", style: kbmS("padding: 2px 8px; border-radius: 999px; background: #F3F3F4; font-size: 10px; letter-spacing: 0.08em; color: #77777B;") }, kbmP(r.tag)), h('span', { style: kbmS("display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: #55555A;") }, [h('svg', { width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: r.typeColor, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: r.typeD })), kbmP(r.typeLabel)]), ((r.isAuto) ? h('span', { className: "kbm-mono", style: kbmS("padding: 2px 8px; border-radius: 999px; background: #16161A; color: #FFFFFF; font-size: 10px; letter-spacing: 0.06em;") }, "Auto") : null)]), h('div', { className: "kbm-mono", style: kbmS("display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: #55555A; flex-wrap: wrap;") }, [h('span', null, kbmP(r.modelLine)), h('span', { style: kbmS("display: inline-flex; align-items: center; gap: 5px; padding: 1px 8px; border-radius: 999px; font-size: 11px; border: 1px solid " + kbmP(r.hBorder) + "; background: " + kbmP(r.hBg) + "; color: " + kbmP(r.hColor) + ";") }, [h('span', { style: kbmS("width: 6px; height: 6px; border-radius: 50%; background: " + kbmP(r.hColor) + ";") }), kbmP(r.hLabel)]), h('span', { style: kbmS("color: #9A9A9E;") }, kbmP(r.fallbackLine))]), h('div', { style: kbmS("font-size: 12.5px; color: #77777B; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;") }, kbmP(r.personaShort))]), h('div', { style: kbmS("display: flex; gap: 6px; flex-shrink: 0;") }, [h('span', { className: "kbm-tip", style: { display: r.hasCall === true ? "" : "none" } }, [h('button', { type: "button", className: "kbm-ico-btn", "aria-label": r.voiceCallLabel, onClick: r.callVoice, style: kbmS("height: 34px; padding: 0 10px; border: 1px solid #E4E4E4; background: #FFFFFF; border-radius: 9px; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: #3F3F46;") }, [h('svg', { width: "15", height: "15", viewBox: "0 0 24 24", fill: "none", stroke: "#16A34A", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2" })), "Call"]), h('span', { className: "kbm-tipbox", role: "tooltip" }, kbmP(r.voiceCallTip))]), h('span', { className: "kbm-tip", style: { display: r.hasCall === true ? "" : "none" } }, [h('button', { type: "button", className: "kbm-ico-btn", "aria-label": r.videoCallLabel, onClick: r.callVideo, style: kbmS("height: 34px; padding: 0 10px; border: 1px solid #E4E4E4; background: #FFFFFF; border-radius: 9px; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: #3F3F46;") }, [h('svg', { width: "15", height: "15", viewBox: "0 0 24 24", fill: "none", stroke: "#2563EB", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M3 7h12v10H3zM15 10l6-3v10l-6-3" })), "Video"]), h('span', { className: "kbm-tipbox", role: "tooltip" }, kbmP(r.videoCallTip))])]), h('button', { type: "button", className: "kbm-ico-btn", "aria-label": r.expandLabel, "aria-expanded": r.expandedAttr, onClick: r.toggle, style: kbmS("width: 32px; height: 32px; border: none; background: transparent; border-radius: 8px; color: #77777B; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0;") }, h('svg', { width: "18", height: "18", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: r.chevron })))]), ((r.expanded) ? h('div', { style: kbmS("display: flex; flex-direction: column; gap: 16px; padding-top: 14px; border-top: 1px solid #F0F0F0;") }, [h('div', { style: kbmS("display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 16px; align-items: start;") }, [h('div', { style: kbmS("width: 96px; height: 96px; border-radius: 14px; overflow: hidden; position: relative; background: " + kbmP(r.color) + ";") }, [((r.face.ready) ? h('svg', { width: "100%", height: "100%", viewBox: "0 0 64 64", "aria-hidden": "true" }, [h('rect', { width: "64", height: "64", fill: r.face.bg }), h('path', { d: "M8 64c2-12 12-18 24-18s22 6 24 18z", fill: r.face.shirt }), h('path', { d: "M27 38h10v10H27z", fill: r.face.skin }), h('ellipse', { cx: "32", cy: "28", rx: "11", ry: "13", fill: r.face.skin }), h('path', { d: r.face.hairD, fill: r.face.hair }), h('path', { d: r.face.glassesD, fill: "none", stroke: "#1F2937", strokeWidth: "1.6" })]) : null), ((r.face.empty) ? h('span', { style: kbmS("position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #FFFFFF; font-weight: 700; font-size: 28px;") }, kbmP(r.initial)) : null), ((r.face.busy) ? h('span', { className: "kbm-busy", style: kbmS("position: absolute; inset: 0; background: rgba(255,255,255,0.7); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: #3F3F46;") }, "Generating…") : null)]), h('div', { style: kbmS("display: flex; flex-direction: column; gap: 8px; min-width: 0;") }, [h('label', { htmlFor: (r.personaId), className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em; color: #9A9A9E;") }, "Persona — describe the face before generating"), h('input', { id: r.personaId, type: "text", value: r.persona, onChange: r.onPersona, style: kbmS("height: 38px; padding: 0 12px; border: 1px solid #E4E4E4; border-radius: 8px; font-size: 14px; font-family: inherit; color: #16161A; background: #FFFFFF;") }), h('div', { style: kbmS("display: flex; align-items: center; gap: 8px; flex-wrap: wrap;") }, [h('button', { type: "button", onClick: r.regen, disabled: r.face.busy, style: kbmS("height: 32px; padding: 0 12px; border-radius: 8px; border: 1px solid #16161A; background: #FFFFFF; font-size: 12.5px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;") }, [h('svg', { width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: "#DB2777", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M12 3l1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8z" })), " " + kbmP(r.regenLabel) + " "]), h('span', { style: kbmS("font-size: 12px; color: #9A9A9E;") }, kbmP(r.regenHint))])])]), h('div', { style: kbmS("display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 16px; align-items: center;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em; color: #9A9A9E;") }, "Voice"), h('div', { style: kbmS("display: flex; align-items: center; gap: 8px; flex-wrap: wrap;") }, [h('div', { role: "group", "aria-label": "Voice", style: kbmS("display: flex; gap: 4px; flex-wrap: wrap;") }, kbmList(r.voices).map((vc, idx) => h('button', { key: idx, type: "button", "aria-pressed": vc.pressed, onClick: vc.pick, style: kbmS("height: 30px; padding: 0 11px; border-radius: 999px; cursor: pointer; font-size: 12.5px; display: flex; align-items: center; gap: 6px; " + kbmP(vc.style)) }, [h('svg', { width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: "#B45309", strokeWidth: "2", strokeLinecap: "round", "aria-hidden": "true" }, h('path', { d: "M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2" })), kbmP(vc.name) + " ", ((vc.custom) ? h('span', { className: "kbm-mono", style: kbmS("font-size: 9.5px; padding: 1px 5px; border-radius: 4px; background: #FEF3C7; color: #92400E;") }, "Custom") : null)]))), h('button', { type: "button", onClick: r.preview, style: kbmS("height: 30px; padding: 0 11px; border-radius: 8px; border: 1px solid #E4E4E4; background: #FFFFFF; cursor: pointer; font-size: 12.5px; display: flex; align-items: center; gap: 5px; color: #3F3F46;") }, [h('svg', { width: "12", height: "12", viewBox: "0 0 24 24", fill: "#16A34A", "aria-hidden": "true" }, h('path', { d: "M7 5l12 7-12 7z" })), kbmP(r.previewLabel)]), h('button', { type: "button", onClick: r.openVoice, style: kbmS("height: 30px; padding: 0 11px; border-radius: 8px; border: 1px dashed #C7C7C9; background: #FAFAFA; cursor: pointer; font-size: 12.5px; color: #3F3F46; display: flex; align-items: center; gap: 5px;") }, [h('svg', { width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: "#DC2626", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3zM5 11a7 7 0 0 0 14 0M12 18v3" })), "Custom voice · record or upload"]), h('span', { style: kbmS("font-size: 12px; color: #9A9A9E;") }, "shared by all members · sample kept on this host · not yet spoken")])]), h('div', { style: kbmS("display: flex; flex-direction: column; gap: 6px;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em; color: #9A9A9E;") }, "System prompt — the doctrine of this role"), h('div', { className: "kbm-mono", style: kbmS("padding: 12px 14px; background: #FAFAFA; border: 1px solid #EEEEEE; border-radius: 10px; font-size: 12.5px; line-height: 1.6;") }, kbmP(r.prompt))]), h('div', { style: kbmS("border: 1px solid #EEEEEE; border-radius: 10px;") }, [h('div', { style: kbmS("display: grid; grid-template-columns: 96px 1fr; align-items: center; gap: 12px; padding: 9px 14px; border-bottom: 1px solid #F3F3F4;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em; color: #9A9A9E;") }, "Type"), h('div', { style: kbmS("display: flex; align-items: center; gap: 10px;") }, [h('div', { role: "group", "aria-label": "Model type", style: kbmS("display: flex; gap: 3px;") }, kbmList(r.types).map((t, idx) => h('span', { key: idx, className: "kbm-tip" }, [h('button', { type: "button", "aria-label": t.label, "aria-pressed": t.pressed, onClick: t.pick, style: kbmS("width: 30px; height: 30px; border-radius: 7px; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; " + kbmP(t.style)) }, h('svg', { width: "15", height: "15", viewBox: "0 0 24 24", fill: "none", stroke: t.color, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: t.d }))), h('span', { className: "kbm-tipbox", role: "tooltip" }, kbmP(t.label))]))), h('span', { style: kbmS("font-size: 13px; font-weight: 500;") }, kbmP(r.typeLabel))])]), h('div', { style: kbmS("display: grid; grid-template-columns: 96px 1fr; align-items: center; gap: 12px; padding: 9px 14px; border-bottom: 1px solid #F3F3F4;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em; color: #9A9A9E;") }, "Tier"), h('div', { style: kbmS("display: flex; align-items: center; gap: 12px;") }, [h('div', { role: "group", "aria-label": "Tier", style: kbmS("display: flex; gap: 4px;") }, kbmList(r.needs).map((n, idx) => h('button', { key: idx, type: "button", "aria-pressed": n.pressed, onClick: n.pick, className: "kbm-mono", style: kbmS("height: 28px; padding: 0 11px; border-radius: 999px; cursor: pointer; font-size: 12px; " + kbmP(n.style)) }, kbmP(n.label)))), ((r.showToggle) ? h('span', { style: kbmS("display: flex; align-items: center; gap: 8px; margin-left: auto; font-size: 13px; color: #55555A;") }, [" Kybernos manages this model ", h('button', { type: "button", role: "switch", "aria-checked": r.autoPressed, "aria-label": "Kybernos manages this model", onClick: r.toggleAuto, style: kbmS("width: 36px; height: 22px; border-radius: 999px; border: none; padding: 3px; cursor: pointer; display: flex; align-items: center; " + kbmP(r.trackStyle)) }, h('span', { style: kbmS("width: 16px; height: 16px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 1px 2px rgba(0,0,0,0.25);") }))]) : null)])]), h('div', { style: kbmS("display: grid; grid-template-columns: 96px 1fr; align-items: center; gap: 12px; padding: 9px 14px;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em; color: #9A9A9E;") }, "Requires"), h('div', { style: kbmS("display: flex; align-items: center; gap: 14px; flex-wrap: wrap;") }, [kbmList(r.filterGroups).map((g, idx) => h('div', { key: idx, style: kbmS("display: flex; align-items: center; gap: 6px;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 10.5px; color: #B0B0B3;") }, kbmP(g.label)), h('div', { role: "group", "aria-label": g.label, style: kbmS("display: flex; gap: 3px;") }, kbmList(g.items).map((f, idx) => h('span', { key: idx, className: "kbm-tip" }, [h('button', { type: "button", "aria-label": f.aria, "aria-pressed": f.pressed, onClick: f.toggle, style: kbmS("width: 28px; height: 28px; border-radius: 7px; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; " + kbmP(f.style)) }, h('svg', { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: f.color, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true", style: kbmS(kbmP(f.iconStyle)) }, h('path', { d: f.d }))), h('span', { className: "kbm-tipbox", role: "tooltip" }, kbmP(f.tip))])))])), h('span', { style: kbmS("font-size: 12px; color: #9A9A9E; margin-left: auto;") }, kbmP(r.filterSummary))])])]), h('div', { style: kbmS("display: flex; flex-direction: column; gap: 8px;") }, [h('div', { style: kbmS("display: flex; align-items: center; justify-content: space-between;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em; color: #9A9A9E;") }, kbmP(r.listLabel)), h('span', { style: kbmS("font-size: 12px; color: #9A9A9E;") }, kbmP(r.listHint))]), h('div', { style: kbmS("position: relative;") }, [h('div', { style: kbmS("display: flex; align-items: center; gap: 8px; height: 36px; padding: 0 6px 0 12px; border: 1px solid #E4E4E4; border-radius: 8px;") }, [h('svg', { width: "15", height: "15", viewBox: "0 0 24 24", fill: "none", stroke: "#9A9A9E", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M11 4a7 7 0 1 0 0 14a7 7 0 0 0 0-14zM20 20l-4-4" })), h('input', { type: "search", value: r.query, onChange: r.onQuery, placeholder: "Search any connected model, provider or type…", "aria-label": "Search models", style: kbmS("flex-grow: 1; border: none; outline: none; background: transparent; font-size: 13px; font-family: inherit; color: #16161A;") }), h('button', { type: "button", onClick: r.runCheck, style: kbmS("height: 26px; padding: 0 10px; border-radius: 6px; border: 1px solid #E4E4E4; background: #FAFAFA; cursor: pointer; display: flex; align-items: center; gap: 5px; font-size: 12px; color: #55555A;") }, [h('svg', { width: "12", height: "12", viewBox: "0 0 24 24", fill: "none", stroke: "#16A34A", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M3 12h4l3-8 4 16 3-8h4" })), "Probe all "])]), ((r.suggestOpen) ? h('div', { role: "listbox", "aria-label": "Model suggestions", style: kbmS("position: absolute; top: 40px; left: 0; right: 0; z-index: 30; background: #FFFFFF; border: 1px solid #E4E4E4; border-radius: 10px; box-shadow: 0 10px 28px rgba(0,0,0,0.1); padding: 4px; display: flex; flex-direction: column;") }, [kbmList(r.suggestions).map((sg, idx) => [h('button', { key: idx, type: "button", role: "option", className: "kbm-ico-btn", onClick: sg.choose, style: kbmS("min-height: 36px; padding: 6px 10px; border: none; border-radius: 7px; background: transparent; cursor: pointer; display: flex; align-items: center; gap: 10px; text-align: left;") }, [h('svg', { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: sg.typeColor, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: sg.typeD })), h('span', { className: "kbm-mono", style: kbmS("font-size: 13px; flex-grow: 1;") }, kbmP(sg.id)), h('span', { style: kbmS("font-size: 12px; color: #9A9A9E;") }, kbmP(sg.provider) + " · " + kbmP(sg.type)), h('span', { style: kbmS("width: 6px; height: 6px; border-radius: 50%; background: " + kbmP(sg.hColor) + ";") })]), h('button', { key: 'f' + idx, type: "button", className: "kbm-ico-btn", title: sg.fbLabel, "aria-label": sg.fbLabel, disabled: sg.fbDisabled, onClick: sg.setFallback, style: kbmS("min-height: 36px; padding: 0 8px; border: none; border-radius: 7px; background: transparent; opacity: " + (sg.fbDisabled === true ? '0.4' : '1') + ';') }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 13px; color: #7C3AED;") }, "\u21a9")])]), ((r.noSuggestion) ? h('span', { style: kbmS("padding: 8px 10px; font-size: 13px; color: #9A9A9E;") }, "No model found.") : null)]) : null)]), h('div', { style: kbmS("display: grid; gap: 12px; align-items: start; " + kbmP(r.listGrid)) }, [h('div', { style: kbmS("border: 1px solid #EEEEEE; border-radius: 10px; min-width: 0;") }, [kbmList(r.models).map((m, idx) => h('div', { key: idx, style: kbmS("display: flex; align-items: center; gap: 4px; padding: 4px 6px; " + kbmP(m.rowBorder)) }, [h('button', { type: "button", className: "kbm-row-btn", disabled: m.disabled, "aria-pressed": m.pressed, onClick: m.pick, style: kbmS("flex-grow: 1; min-width: 0; height: 42px; padding: 0 10px; border: none; border-radius: 8px; display: flex; align-items: center; gap: 10px; text-align: left; " + kbmP(m.style)) }, [h('span', { style: kbmS("width: 14px; height: 14px; border-radius: 50%; box-sizing: border-box; flex-shrink: 0; " + kbmP(m.radioStyle)) }), h('span', { className: "kbm-mono", style: kbmS("font-size: 13px; flex-shrink: 0;") }, kbmP(m.id)), ((m.isPick) ? h('span', { className: "kbm-mono", style: kbmS("padding: 2px 6px; border-radius: 4px; background: #C33543; color: #FFFFFF; font-size: 10px;") }, "Primary") : null), ((m.isFallback) ? h('span', { className: "kbm-mono", style: kbmS("padding: 1px 6px; border-radius: 4px; border: 1px solid #D6D6D8; color: #55555A; font-size: 10px;") }, "Fallback") : null), h('span', { style: kbmS("font-size: 12px; color: #9A9A9E; flex-shrink: 0;") }, kbmP(m.provider)), h('span', { style: kbmS("display: flex; align-items: center; gap: 3px; margin-left: 4px;") }, kbmList(m.capIcons).map((ic, idx) => h('svg', { key: idx, width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: ic.c, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: ic.d })))), h('span', { style: kbmS("flex-grow: 1;") }), h('span', { className: "kbm-mono", style: kbmS("font-size: 12px; color: #77777B;") }, kbmP(m.metricShort)), h('span', { className: "kbm-mono", style: kbmS("font-size: 12px; color: #9A9A9E; min-width: 46px; text-align: right;") }, kbmP(m.latencyLabel)), h('span', { className: "kbm-mono", style: kbmS("display: inline-flex; align-items: center; gap: 5px; padding: 1px 8px; border-radius: 999px; font-size: 11px; min-width: 76px; box-sizing: border-box; border: 1px solid " + kbmP(m.hBorder) + "; background: " + kbmP(m.hBg) + "; color: " + kbmP(m.hColor) + ";") }, [h('span', { style: kbmS("width: 6px; height: 6px; border-radius: 50%; background: " + kbmP(m.hColor) + ";") }), kbmP(m.hLabel)])]), ((m.tooltipMode) ? h('span', { className: "kbm-tip" }, [h('button', { type: "button", className: "kbm-ico-btn", "aria-label": m.infoAria, style: kbmS("width: 32px; height: 32px; border: none; background: transparent; border-radius: 7px; color: #2563EB; cursor: help; display: flex; align-items: center; justify-content: center; padding: 0;") }, h('svg', { width: "16", height: "16", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M12 3a9 9 0 1 0 0 18a9 9 0 0 0 0-18zM12 11v5M12 8h.01" }))), h('span', { className: "kbm-tipbox card right", role: "tooltip" }, [h('span', { style: kbmS("display: flex; align-items: baseline; justify-content: space-between; gap: 8px;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 13px; font-weight: 600;") }, kbmP(m.id)), h('span', { style: kbmS("font-size: 11px; color: #9A9A9E;") }, kbmP(m.provider) + " · " + kbmP(m.priceLabel))]), h('span', { style: kbmS("display: flex; align-items: center; gap: 6px; margin-top: 10px; font-size: 12px; color: #55555A; flex-wrap: wrap;") }, [kbmList(m.inIcons).map((c, idx) => h('span', { key: idx, style: kbmS("display: inline-flex; align-items: center; gap: 4px;") }, [h('svg', { width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: c.c, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: c.d })), kbmP(c.label)])), h('span', { style: kbmS("color: #B0B0B3;") }, "→"), kbmList(m.outIcons).map((c, idx) => h('span', { key: idx, style: kbmS("display: inline-flex; align-items: center; gap: 4px;") }, [h('svg', { width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: c.c, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: c.d })), kbmP(c.label)]))]), h('span', { style: kbmS("display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px 10px; margin-top: 10px; font-size: 12px;") }, kbmList(m.capRows).map((c, idx) => h('span', { key: idx, style: kbmS("display: inline-flex; align-items: center; gap: 5px; " + kbmP(c.style)) }, [h('svg', { width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: c.c, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: c.d })), kbmP(c.label)]))), ((m.hasBench) ? h('span', { style: kbmS("display: block; margin-top: 12px; padding-top: 10px; border-top: 1px solid #F0F0F0;") }, [h('span', { style: kbmS("display: flex; justify-content: space-between; font-size: 12px;") }, [h('span', { style: kbmS("font-weight: 600;") }, "Artificial Analysis"), h('span', { className: "kbm-mono" }, kbmP(m.aaScore) + " intelligence")]), h('span', { style: kbmS("display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px 12px; margin-top: 6px; font-size: 11.5px; color: #55555A;") }, kbmList(m.aaRows).map((b, idx) => h('span', { key: idx, style: kbmS("display: flex; justify-content: space-between; gap: 6px;") }, [h('span', null, kbmP(b.k)), h('span', { className: "kbm-mono", style: kbmS("color: #16161A;") }, kbmP(b.v))]))), h('span', { style: kbmS("display: flex; justify-content: space-between; font-size: 12px; margin-top: 10px;") }, [h('span', { style: kbmS("font-weight: 600;") }, ["BenchLM ", h('span', { style: kbmS("font-weight: 400; color: #9A9A9E;") }, "· provisional")]), h('span', { className: "kbm-mono" }, kbmP(m.blScore) + " overall")]), h('span', { style: kbmS("display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px 12px; margin-top: 6px; font-size: 11.5px; color: #55555A;") }, kbmList(m.blRows).map((b, idx) => h('span', { key: idx, style: kbmS("display: flex; justify-content: space-between; gap: 6px;") }, [h('span', null, kbmP(b.k)), h('span', { className: "kbm-mono", style: kbmS("color: #16161A;") }, kbmP(b.v))]))), h('span', { style: kbmS("display: block; margin-top: 10px; font-size: 11px; color: #9A9A9E;") }, kbmP(m.benchFoot))]) : null), ((m.noBench) ? h('span', { style: kbmS("display: block; margin-top: 12px; padding-top: 10px; border-top: 1px solid #F0F0F0; font-size: 12px; line-height: 1.45; color: #77777B;") }, kbmP(m.note)) : null)])]) : null), ((m.panelMode) ? h('button', { type: "button", className: "kbm-ico-btn", "aria-label": m.infoAria, "aria-pressed": m.infoPressed, onClick: m.showInfo, style: kbmS("width: 32px; height: 32px; border-radius: 7px; color: #2563EB; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; " + kbmP(m.infoStyle)) }, h('svg', { width: "16", height: "16", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M12 3a9 9 0 1 0 0 18a9 9 0 0 0 0-18zM12 11v5M12 8h.01" }))) : null), h('span', { className: "kbm-tip" }, [h('button', { type: "button", className: "kbm-ico-btn", "aria-label": m.fbLabel, "aria-pressed": m.fbPressed, disabled: m.fbDisabled, onClick: m.setFallback, style: kbmS("width: 32px; height: 32px; border-radius: 7px; display: flex; align-items: center; justify-content: center; padding: 0; " + kbmP(m.fbStyle)) }, h('svg', { width: "15", height: "15", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M9 14l-5-5 5-5M4 9h11a5 5 0 0 1 0 10h-3" }))), h('span', { className: "kbm-tipbox right", role: "tooltip" }, kbmP(m.fbLabel))])])), ((r.hasHidden) ? h('div', { style: kbmS("padding: 9px 16px; border-top: 1px solid #F3F3F4; font-size: 12px; color: #9A9A9E;") }, kbmP(r.hiddenLabel)) : null)]), ((r.panelVariant) ? h('aside', { "aria-label": "Selected model details", style: kbmS("border: 1px solid #E4E4E4; border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 12px; background: #FFFFFF;") }, [h('div', { style: kbmS("display: flex; flex-direction: column; gap: 4px;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 10.5px; letter-spacing: 0.08em; color: " + kbmP(r.panelTagColor) + ";") }, kbmP(r.panelTag)), h('span', { className: "kbm-mono", style: kbmS("font-size: 15px; font-weight: 600;") }, kbmP(r.panel.id)), h('div', { style: kbmS("display: flex; align-items: center; gap: 8px; flex-wrap: wrap;") }, [h('span', { style: kbmS("font-size: 12px; color: #77777B;") }, kbmP(r.panel.provider) + " · " + kbmP(r.panel.priceLabel) + " · " + kbmP(r.panel.latencyLabel)), h('span', { className: "kbm-mono", style: kbmS("display: inline-flex; align-items: center; gap: 5px; padding: 1px 7px; border-radius: 999px; font-size: 10.5px; border: 1px solid " + kbmP(r.panel.hBorder) + "; background: " + kbmP(r.panel.hBg) + "; color: " + kbmP(r.panel.hColor) + ";") }, [h('span', { style: kbmS("width: 6px; height: 6px; border-radius: 50%; background: " + kbmP(r.panel.hColor) + ";") }), kbmP(r.panel.hLabel)])])]), h('div', { style: kbmS("display: flex; align-items: center; gap: 5px; flex-wrap: wrap; font-size: 12px; padding-top: 10px; border-top: 1px solid #F0F0F0;") }, [kbmList(r.panel.inIcons).map((c, idx) => h('span', { key: idx, style: kbmS("display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px; border-radius: 999px; background: " + kbmP(c.tint) + ";") }, [h('svg', { width: "12", height: "12", viewBox: "0 0 24 24", fill: "none", stroke: c.c, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: c.d })), kbmP(c.label)])), h('span', { style: kbmS("color: #B0B0B3;") }, "→"), kbmList(r.panel.outIcons).map((c, idx) => h('span', { key: idx, style: kbmS("display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px; border-radius: 999px; background: " + kbmP(c.tint) + ";") }, [h('svg', { width: "12", height: "12", viewBox: "0 0 24 24", fill: "none", stroke: c.c, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: c.d })), kbmP(c.label)]))]), h('div', { style: kbmS("display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px 8px; font-size: 12px;") }, kbmList(r.panel.capRows).map((c, idx) => h('span', { key: idx, style: kbmS("display: inline-flex; align-items: center; gap: 5px; " + kbmP(c.style)) }, [h('svg', { width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: c.c, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: c.d })), kbmP(c.label)]))), ((r.panel.hasBench) ? h('div', { style: kbmS("display: flex; flex-direction: column; gap: 8px; padding-top: 10px; border-top: 1px solid #F0F0F0;") }, [h('div', { style: kbmS("background: #1F1F22; color: #F4F4F5; border-radius: 8px; padding: 10px 12px;") }, [h('div', { style: kbmS("display: flex; align-items: baseline; gap: 6px;") }, [h('span', { style: kbmS("font-size: 12px; font-weight: 600; flex-grow: 1;") }, "Artificial Analysis"), h('span', { style: kbmS("font-size: 18px; font-weight: 700;") }, kbmP(r.panel.aaScore))]), h('div', { style: kbmS("display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 10px; margin-top: 6px; font-size: 11px;") }, kbmList(r.panel.aaRows).map((b, idx) => h('div', { key: idx, style: kbmS("display: flex; justify-content: space-between; gap: 4px;") }, [h('span', { style: kbmS("color: #A1A1AA; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;") }, kbmP(b.k)), h('span', null, kbmP(b.v))])))]), h('div', { style: kbmS("background: #1F1F22; color: #F4F4F5; border-radius: 8px; padding: 10px 12px;") }, [h('div', { style: kbmS("display: flex; align-items: baseline; gap: 6px;") }, [h('span', { style: kbmS("font-size: 12px; font-weight: 600; flex-grow: 1;") }, ["BenchLM ", h('span', { style: kbmS("font-size: 10px; font-weight: 400; color: #A1A1AA;") }, "provisional")]), h('span', { style: kbmS("font-size: 18px; font-weight: 700;") }, kbmP(r.panel.blScore))]), h('div', { style: kbmS("display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 10px; margin-top: 6px; font-size: 11px;") }, kbmList(r.panel.blRows).map((b, idx) => h('div', { key: idx, style: kbmS("display: flex; justify-content: space-between; gap: 4px;") }, [h('span', { style: kbmS("color: #A1A1AA;") }, kbmP(b.k)), h('span', null, kbmP(b.v))])))]), h('span', { style: kbmS("font-size: 11px; line-height: 1.45; color: #77777B;") }, kbmP(r.panel.benchFoot))]) : null), ((r.panel.noBench) ? h('p', { style: kbmS("margin: 0; padding: 10px; border-radius: 8px; background: #FAFAFA; font-size: 12px; line-height: 1.5; color: #55555A;") }, kbmP(r.panel.note)) : null)]) : null)])]), ((r.isAuto) ? h('div', { style: kbmS("display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 10px; background: #F7F7F8; border: 1px solid #EEEEEE; font-size: 13px;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em; color: #9A9A9E;") }, "Decision"), h('span', { className: "kbm-mono", style: kbmS("font-weight: 600;") }, kbmP(r.pickName)), h('span', { style: kbmS("color: #6B7280;") }, kbmP(r.pickReasonShort)), h('span', { style: kbmS("margin-left: auto; font-size: 12px; color: #9A9A9E;") }, kbmP(r.skipped))]) : null), ((r.showDownWarning) ? h('div', { role: "alert", style: kbmS("display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 10px; background: #FEF2F2; border: 1px solid #FBD5D5; font-size: 13px; color: #9B1C1C;") }, [h('span', { style: kbmS("flex-grow: 1;") }, kbmP(r.downText)), h('button', { type: "button", onClick: r.enableAuto, style: kbmS("height: 28px; padding: 0 10px; border-radius: 7px; border: 1px solid #9B1C1C; background: #FFFFFF; color: #9B1C1C; font-size: 12px; font-weight: 600; cursor: pointer;") }, "Let Kybernos manage")]) : null)]) : null)]))])), ((vmView.open) ? h('div', { style: kbmS("position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; background: rgba(22,22,26,0.32);") }, h('div', { role: "dialog", "aria-modal": "true", "aria-labelledby": "vm-title", style: kbmS("position: relative; top: 0; left: 0; transform: none; width: 560px; max-height: 88vh; overflow: auto; background: #FFFFFF; border-radius: 16px; box-shadow: 0 24px 64px rgba(0,0,0,0.25); padding: 24px; display: flex; flex-direction: column; gap: 16px;") }, [h('div', { style: kbmS("display: flex; align-items: flex-start; gap: 12px;") }, [h('div', { style: kbmS("flex-grow: 1; display: flex; flex-direction: column; gap: 6px;") }, [h('h2', { id: "vm-title", style: kbmS("margin: 0; font-size: 20px; font-weight: 700;") }, "Create a custom voice"), h('p', { style: kbmS("margin: 0; font-size: 13.5px; line-height: 1.5; color: #6B7280;") }, ["For ", h('b', { style: kbmS("color: #16161A;") }, kbmP(vmView.roleName)), ". Record or upload a consent recording and a sample. The sample is stored on this machine and shared by every member — no synthesis engine yet, so the voice is selectable but not yet spoken."])]), h('button', { type: "button", className: "kbm-ico-btn", "aria-label": "Close", onClick: vmView.close, style: kbmS("width: 32px; height: 32px; border: none; background: transparent; border-radius: 8px; cursor: pointer; color: #77777B; display: flex; align-items: center; justify-content: center; padding: 0;") }, h('svg', { width: "18", height: "18", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", "aria-hidden": "true" }, h('path', { d: "M6 6l12 12M18 6L6 18" })))]), h('div', { style: kbmS("display: flex; flex-direction: column; gap: 6px;") }, [h('label', { htmlFor: "vm-name", className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em; color: #9A9A9E;") }, "Voice name"), h('input', { id: "vm-name", type: "text", value: vmView.name, onChange: vmView.onName, placeholder: "My custom voice", style: kbmS("height: 40px; padding: 0 12px; border: 1px solid #E4E4E4; border-radius: 9px; font-size: 14px; font-family: inherit; color: #16161A;") })]), kbmList(vmView.steps).map((st, idx) => h('div', { key: idx, style: kbmS("border: 1px solid #EEEEEE; border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px;") }, [h('div', { style: kbmS("display: flex; flex-direction: column; gap: 3px;") }, [h('span', { style: kbmS("font-size: 14px; font-weight: 600;") }, kbmP(st.title)), h('span', { style: kbmS("font-size: 12.5px; line-height: 1.5; color: #6B7280;") }, kbmP(st.desc))]), h('div', { style: kbmS("display: flex; align-items: center; gap: 10px; flex-wrap: wrap;") }, [h('div', { role: "group", "aria-label": "Input method", style: kbmS("display: flex; gap: 2px; padding: 2px; background: #F3F3F4; border-radius: 8px;") }, kbmList(st.modes).map((md, idx) => h('button', { key: idx, type: "button", "aria-pressed": md.pressed, onClick: md.pick, style: kbmS("height: 28px; padding: 0 11px; border: none; border-radius: 6px; cursor: pointer; font-size: 12.5px; display: flex; align-items: center; gap: 5px; " + kbmP(md.style)) }, [h('svg', { width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: md.d })), kbmP(md.label)]))), ((st.showStart) ? h('button', { type: "button", onClick: st.start, style: kbmS("height: 34px; padding: 0 14px; border-radius: 9px; border: 1px solid #E4E4E4; background: #FFFFFF; cursor: pointer; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 6px;") }, [h('svg', { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "#DC2626", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3zM5 11a7 7 0 0 0 14 0M12 18v3" })), "Start recording"]) : null), ((st.showUpload) ? h('button', { type: "button", onClick: st.upload, style: kbmS("height: 34px; padding: 0 14px; border-radius: 9px; border: 1px dashed #C7C7C9; background: #FAFAFA; cursor: pointer; font-size: 13px; color: #3F3F46; display: flex; align-items: center; gap: 6px;") }, [h('svg', { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "#2563EB", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M12 16V4M7 9l5-5 5 5M4 20h16" })), "Choose a file · wav, mp3, m4a"]) : null), ((st.recording) ? [h('span', { style: kbmS("display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: #B91C1C;") }, [h('span', { className: "kbm-busy", style: kbmS("width: 9px; height: 9px; border-radius: 50%; background: #DC2626;") }), "Recording…"]), h('button', { type: "button", onClick: st.stop, style: kbmS("height: 30px; padding: 0 12px; border-radius: 8px; border: none; background: #DC2626; color: #FFFFFF; cursor: pointer; font-size: 12.5px; font-weight: 600;") }, "Stop")] : null), ((st.done) ? [h('span', { style: kbmS("display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px; border-radius: 999px; background: #F0FDF4; border: 1px solid #BBF7D0; font-size: 12.5px; color: #15803D;") }, [h('svg', { width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2.4", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M5 12l5 5L20 7" })), kbmP(st.doneLabel)]), h('button', { type: "button", onClick: st.reset, style: kbmS("height: 30px; padding: 0 10px; border-radius: 8px; border: 1px solid #E4E4E4; background: #FFFFFF; cursor: pointer; font-size: 12.5px; color: #55555A;") }, "Redo")] : null)])])), h('div', { style: kbmS("display: flex; justify-content: flex-end; gap: 8px;") }, [((vmView.err !== '') ? h('span', { role: "alert", style: kbmS("flex-grow: 1; font-size: 12.5px; line-height: 1.4; color: #9B1C1C; align-self: center;") }, kbmP(vmView.err)) : null), h('button', { type: "button", onClick: vmView.close, style: kbmS("height: 38px; padding: 0 16px; border-radius: 9px; border: 1px solid #E4E4E4; background: #FFFFFF; cursor: pointer; font-size: 14px;") }, "Cancel"), h('button', { type: "button", disabled: vmView.cannotCreate, onClick: vmView.create, style: kbmS("height: 38px; padding: 0 16px; border-radius: 9px; border: none; font-size: 14px; font-weight: 600; " + kbmP(vmView.createStyle)) }, "Create voice")])])) : null)]
       ])
     }
     const ManifestView = (props) => {
@@ -23674,7 +24899,7 @@ function renderFit(canvas, model, cam, opts){
       const card = { background: 'var(--dsw-alias-bg-layer-1)', border: '1px solid var(--dsw-alias-border-l1)', borderRadius: '16px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }
       const selStyle = { height: '38px', border: '1px solid var(--dsw-alias-border-l1)', borderRadius: '10px', background: 'var(--dsw-alias-bg-layer-1)', padding: '0 10px', fontSize: '13px', color: 'var(--dsw-alias-label-primary)', outline: 'none', minWidth: 0, flex: 1, fontFamily: 'inherit' }
       const labStyle = { display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: '140px' }
-      const labTxt = { fontSize: '11px', letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--dsw-alias-label-secondary)' }
+      const labTxt = { fontSize: '11px', color: 'var(--dsw-alias-label-secondary)' }
       const patchDraft = (r, patch) => {
         if (setRolesDraft === null) return
         const base = rolesDraft !== null && rolesDraft[r.id] !== undefined
@@ -23762,8 +24987,8 @@ function renderFit(canvas, model, cam, opts){
             h('span', { style: { display: 'flex', flexDirection: 'column', gap: '3px', minWidth: 0 } },
               h('span', { style: { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' } },
                 h('span', { style: { fontFamily: 'ui-monospace,SFMono-Regular,Menlo,monospace', fontSize: '13px', fontWeight: 700, color: 'var(--dsw-alias-label-primary)', wordBreak: 'break-all' } }, mm.id),
-                (isSel === true ? h('span', { style: { background: 'var(--dsw-alias-state-error-primary)', color: '#FFFFFF', borderRadius: '6px', padding: '1px 7px', fontSize: '9.5px', letterSpacing: '.07em', fontWeight: 700 } }, 'PRIMARY') : null),
-                (isFb === true ? h('span', { style: { border: '1px solid var(--dsw-alias-label-primary)', color: 'var(--dsw-alias-label-primary)', borderRadius: '6px', padding: '1px 7px', fontSize: '9.5px', letterSpacing: '.07em', fontWeight: 600 } }, 'FALLBACK') : null)),
+                (isSel === true ? h('span', { style: { background: 'var(--dsw-alias-state-error-primary)', color: '#FFFFFF', borderRadius: '6px', padding: '1px 7px', fontSize: '9.5px', letterSpacing: '.07em', fontWeight: 700 } }, 'Primary') : null),
+                (isFb === true ? h('span', { style: { border: '1px solid var(--dsw-alias-label-primary)', color: 'var(--dsw-alias-label-primary)', borderRadius: '6px', padding: '1px 7px', fontSize: '9.5px', letterSpacing: '.07em', fontWeight: 600 } }, 'Fallback') : null)),
               h('span', { style: { fontFamily: 'ui-monospace,SFMono-Regular,Menlo,monospace', fontSize: '11.5px', color: 'var(--dsw-alias-label-secondary)' } }, pn + (metricBits.length > 0 ? ' · ' + metricBits.join(' · ') : '')))),
           h('button', { type: 'button', title: isFb ? kbt('kbui.crew.fb.remove') : kbt('kbui.crew.fb.set'), disabled: fbDisabled, onClick: () => patchDraft(r, isFb ? { fallback: '' } : { fallback: mm.id }), style: { flex: '0 0 auto', width: '34px', height: '34px', borderRadius: '9px', border: isFb ? 'none' : '1px solid var(--dsw-alias-border-l1)', background: isFb ? 'var(--dsw-alias-label-primary)' : 'var(--dsw-alias-bg-layer-1)', color: isFb ? 'var(--dsw-alias-bg-layer-1)' : 'var(--dsw-alias-label-secondary)', cursor: fbDisabled ? 'not-allowed' : 'pointer', font: 'inherit', fontSize: '14px', opacity: fbDisabled ? 0.4 : 1 } }, '↩'))
       }
@@ -23867,7 +25092,7 @@ function renderFit(canvas, model, cam, opts){
             (fb !== ''
               ? h('div', { style: { display: 'flex', alignItems: 'center', gap: '9px', flexWrap: 'wrap' } },
                   h('span', { style: { fontFamily: 'ui-monospace,SFMono-Regular,Menlo,monospace', fontSize: '13px', fontWeight: 700, color: 'var(--dsw-alias-label-primary)', wordBreak: 'break-all' } }, fb),
-                  h('span', { style: { border: '1px solid var(--dsw-alias-label-primary)', color: 'var(--dsw-alias-label-primary)', borderRadius: '6px', padding: '1px 7px', fontSize: '9.5px', letterSpacing: '.07em', fontWeight: 600 } }, 'FALLBACK'),
+                  h('span', { style: { border: '1px solid var(--dsw-alias-label-primary)', color: 'var(--dsw-alias-label-primary)', borderRadius: '6px', padding: '1px 7px', fontSize: '9.5px', letterSpacing: '.07em', fontWeight: 600 } }, 'Fallback'),
                   h('button', { type: 'button', onClick: () => patchDraft(r, { fallback: '' }), style: { marginLeft: 'auto', border: '1px solid var(--dsw-alias-border-l1)', background: 'transparent', color: 'var(--dsw-alias-label-secondary)', borderRadius: '8px', padding: '3px 10px', cursor: 'pointer', font: 'inherit', fontSize: '12px' } }, kbt('kbui.crew.fb.remove')))
               : h('span', { className: 'kb8-sub' }, kbt('kbui.crew.fbnone'))),
             h('span', { className: 'kb8-sub' }, kbt('kbui.crew.fbnote'))))), detailsNode)
@@ -23923,7 +25148,7 @@ function renderFit(canvas, model, cam, opts){
           (team.topology ? h('span', { className: 'kb8-pills' }, h('span', { className: 'kb8-pill' }, 'topology · ' + team.topology)) : null))),
         section('crew', kbt('kbui.crew.members'), crewBody,
           h('div', { style: { display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' } },
-            h('span', { className: 'kb8-sub', style: { fontSize: '10.5px', letterSpacing: '.06em', textTransform: 'uppercase' } }, kbt('kbui.crew.members.sub')),
+            h('span', { className: 'kb8-sub', style: { fontSize: '10.5px' } }, kbt('kbui.crew.members.sub')),
             h('span', { title: kbt('kbui.crew.addrole.soon'), style: { display: 'inline-flex', alignItems: 'center', gap: '6px', border: '1px solid var(--dsw-alias-border-l1)', borderRadius: '999px', padding: '4px 12px', fontSize: '12px', color: 'var(--dsw-alias-label-primary)', cursor: 'default', whiteSpace: 'nowrap' } }, '+ ' + kbt('kbui.crew.addrole')))),
         section('skills', kbt('kbui.frag.skills') + skills.length, (skills.length === 0
           ? h('span', { className: 'kb8-sub' }, 'No skill declared — works on the repository the plugin already has.')
@@ -23935,7 +25160,7 @@ function renderFit(canvas, model, cam, opts){
             h('span', { style: { display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, gap: '2px' } },
               h('span', { className: 'kb8-name' }, st.id + ' · ' + (Array.isArray(st.roles) ? st.roles.join(' + ') : '')),
               h('span', { className: 'kb8-parent' }, (st.mode || 'once') + (st.cap !== null && st.cap !== undefined ? ' · cap ' + st.cap : '') + (Array.isArray(st.inputs) && st.inputs.length > 0 ? ' · in: ' + st.inputs.join(', ') : ''))),
-            (st.gate === true ? h('span', { className: 'kb8-pill', style: { color: 'var(--dsw-alias-state-error-primary)' } }, 'GATE') : null)))))),
+            (st.gate === true ? h('span', { className: 'kb8-pill', style: { color: 'var(--dsw-alias-state-error-primary)' } }, 'Gate') : null)))))),
         section('provenance', kbt('kbui.provenance'), h('div', { style: { display: 'flex', flexDirection: 'column', gap: '6px' } },
           [['source', team.source || 'local'], ['spec', team.specVersion || '1'], ['file', team.file || '—']].map((p) => h('div', { key: p[0], style: { display: 'flex', gap: '12px', alignItems: 'baseline' } },
             h('span', { className: 'kb8-parent', style: { minWidth: '64px' } }, p[0]),
@@ -24959,12 +26184,12 @@ function renderFit(canvas, model, cam, opts){
 .kbi-btn-on{background:var(--dsw-alias-brand-primary);border-color:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-foreground,var(--dsw-alias-bg-base))}
 .kbi-body{display:flex;flex-direction:column;gap:22px}
 .kbi-sec{display:flex;flex-direction:column;gap:10px}
-.kbi-sec-t{margin:0;font-size:12px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--dsw-alias-label-secondary)}
+.kbi-sec-t{margin:0;font-size:12px;font-weight:600;color:var(--dsw-alias-label-secondary)}
 .kbi-grid4{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
 .kbi-grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
 .kbi-grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}
 .kbi-card{min-width:0}
-.kbi-lab{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--dsw-alias-label-secondary)}
+.kbi-lab{font-size:10.5px;color:var(--dsw-alias-label-secondary)}
 .kbi-val{font-size:24px;font-weight:650;color:var(--dsw-alias-label-primary);line-height:1.15}
 .kbi-card-h{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .kbi-pill{font-size:10.5px;padding:2px 8px;border-radius:999px;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-secondary);border:1px solid var(--dsw-alias-border-l1);white-space:nowrap}
@@ -25282,7 +26507,7 @@ function renderFit(canvas, model, cam, opts){
           groups.map((g) => h('div', { key: g.id, className: 'kb8-sl-group', 'data-group': g.id },
             h('button', { type: 'button', className: 'kb8-sl-gh', onClick: () => goTo(g.id) }, kbt('kbnc.g.' + g.id), h('small', null, String(g.templates.length))),
             h('div', { className: 'kb8-sl-cards' }, g.templates.map((t) =>
-              h('button', { type: 'button', key: t.id, className: 'kb8-sl-card' + (sp.match === t.id ? ' is-match' : ''), 'data-kb': 'newchat-visual', 'data-id': t.id, onClick: () => { if (quietRef.current !== true) sp.onPick(t.id) } },
+              h('button', { type: 'button', key: t.id, className: 'kb8-sl-card' + (sp.match === t.id ? ' is-match' : '') + (sp.chosen === t.id ? ' is-on' : ''), 'data-kb': 'newchat-visual', 'data-id': t.id, onClick: () => { if (quietRef.current !== true) sp.onPick(t.id) } },
                 h('span', { className: 'kb8-sl-stage', 'aria-hidden': 'true', dangerouslySetInnerHTML: { __html: '<svg viewBox="0 0 64 44" aria-hidden="true">' + KB_NC_ART[t.id] + '</svg>' } }),
                 h('span', { className: 'kb8-sl-label' }, kbt('kbnc.t.' + t.id)))))))),
         h('button', { type: 'button', className: 'kb8-sl-nav next' + (st.next ? '' : ' off'), 'aria-label': kbt('kbnc.sl.next'), tabIndex: st.next ? 0 : -1, onClick: () => page(1) }, Icon('chevronRight', 16)),
@@ -25302,6 +26527,13 @@ function renderFit(canvas, model, cam, opts){
       const act = actPair[0]
       const setAct = actPair[1]
       const cloud = useNcCloud()
+      // The type the person picked: it stays lit and its chip and suggestions show under the composer, until the chip is removed or the box is emptied.
+      const choPair = React.useState(null)
+      const chosen = choPair[0]
+      const setChosen = choPair[1]
+      const choArmed = React.useRef(false)
+      // The last text the page itself put in the composer, when it holds no word of the person's: switching type replaces it (see kbNcFill).
+      const ownRef = React.useRef('')
       // Kaby's chat becomes known after this renders on a page load (its bundle reads the pointer then): it says so with an event, and the cards go.
       const kabyPair = React.useState(0)
       React.useEffect(() => {
@@ -25318,11 +26550,37 @@ function renderFit(canvas, model, cam, opts){
       // The text in the composer, as the dock entry receives it: the template it sounds like is lit (never sent, never changed).
       const draft = (p.input !== null && p.input !== undefined && typeof p.input.draft === 'string') ? p.input.draft : ''
       const match = kbNcDetect(draft, offered)
+      // The chip goes when the box, once filled, is emptied (the text is the thing the chip stands for).
+      React.useEffect(() => {
+        if (draft.trim() !== '') choArmed.current = true
+        else if (choArmed.current === true) { choArmed.current = false; setChosen(null) }
+      }, [draft])
+      // A new blank chat starts clean: no chip, nothing the page wrote.
+      React.useEffect(() => { setChosen(null); ownRef.current = ''; choArmed.current = false }, [sid])
+      const knownTpl = KB_NC_TEMPLATES.map((t) => kbt('kbnc.p.' + t.id))
       // A template fills the composer and never sends. The person's own words stay (see kbNcFill).
       const prefill = (id) => {
+        setChosen(id)
         try {
           const ia = (p.inputActions !== null && p.inputActions !== undefined) ? p.inputActions : null
-          if (ia !== null && typeof ia.setDraft === 'function') ia.setDraft(kbNcFill(draft, kbt('kbnc.p.' + id), KB_NC_TEMPLATES.map((t) => kbt('kbnc.p.' + t.id))))
+          if (ia !== null && typeof ia.setDraft === 'function') {
+            const tpl = kbt('kbnc.p.' + id)
+            const next = kbNcFill(draft, tpl, knownTpl, ownRef.current)
+            ownRef.current = next === tpl ? next : ''
+            ia.setDraft(next)
+          }
+        } catch (e) { /* the composer stays the person's */ }
+      }
+      const suggest = (id, i) => {
+        try {
+          const ia = (p.inputActions !== null && p.inputActions !== undefined) ? p.inputActions : null
+          if (ia !== null && typeof ia.setDraft === 'function') {
+            const tpl = kbt('kbnc.p.' + id)
+            const sug = kbt('kbnc.s.' + id + '.' + i)
+            const next = kbNcSuggest(draft, tpl, knownTpl, sug, [0, 1, 2].map((n) => kbt('kbnc.s.' + id + '.' + n)))
+            ownRef.current = next === tpl + sug ? next : ''
+            ia.setDraft(next)
+          }
         } catch (e) { /* the composer stays the person's */ }
       }
       const openKyber = () => { try { if (typeof window.__KB_OPEN__ === 'function') window.__KB_OPEN__({ view: 'kyber' }) } catch (e) { /* no page to open */ } }
@@ -25351,8 +26609,16 @@ function renderFit(canvas, model, cam, opts){
         ? (cloud.kind === 'awake' ? kbt('kbnc.cc.sub.awake') : (cloud.lastActive !== '' ? kbt('kbnc.cc.last') + kbFmtWhen(cloud.lastActive) : kbt('kbnc.cc.' + cloud.kind)))
         : cloud.kind === 'none' ? kbt('kbnc.cc.sub.none') : kbt('kbnc.cc.' + cloud.kind)
       const ccText = act.note !== null ? act.note : (act.verb !== null ? kbt('kbnc.cc.act.busy') : (cloud.pausedReason === 'hours' && ccActions.length === 0 ? kbt('kbnc.cc.hours') : ccSub))
+      const picked = (chosen !== null && offered.indexOf(chosen) >= 0) ? chosen : null
       return h('div', { className: 'kb8-nc', 'data-kb': 'newchat' },
-        groups.length === 0 ? null : h(KbNcSlider, { groups, match, onPick: prefill }),
+        picked === null ? null : h('div', { className: 'kb8-nc-sel', 'data-kb': 'newchat-chosen' },
+          h('span', { className: 'kb8-nc-chip' },
+            h('span', { className: 'kb8-sl-stage kb8-nc-chip-art', 'aria-hidden': 'true', dangerouslySetInnerHTML: { __html: '<svg viewBox="0 0 64 44" aria-hidden="true">' + KB_NC_ART[picked] + '</svg>' } }),
+            kbt('kbnc.t.' + picked),
+            h('button', { type: 'button', className: 'kb8-nc-chip-x', 'data-kb': 'newchat-chip-x', 'aria-label': kbt('kbnc.chip.remove') + ' ' + kbt('kbnc.t.' + picked), onClick: () => setChosen(null) }, Icon('x', 11))),
+          h('span', { className: 'kb8-nc-try' }, kbt('kbnc.try')),
+          [0, 1, 2].map((i) => h('button', { type: 'button', key: i, className: 'kb8-nc-sug', 'data-kb': 'newchat-suggestion', onClick: () => suggest(picked, i) }, kbt('kbnc.s.' + picked + '.' + i)))),
+        groups.length === 0 ? null : h(KbNcSlider, { groups, match, chosen: picked, onPick: prefill }),
         (cloud.kind === 'unknown' ? null
           : h('div', { className: 'kb8-nc-cloud', 'data-kb': 'newchat-cloud' },
             h('button', { type: 'button', className: 'kb8-nc-main', 'data-kb': 'newchat-cloud-open', onClick: openKyber },
@@ -25364,11 +26630,14 @@ function renderFit(canvas, model, cam, opts){
     }
     ctx.effect(() => slots.inject('conversation.input.dock', () => slots.register(
       { name: 'conversation.input.dock', id: 'kybernos-newchat', order: 25 }, KbNewChatCards)), 'kybers: new chat cards');
-    // The little motion of a drawing plays when its card is hovered, focused, or lit by what the person types.
-    const kbNcHot = '.kb8-sl-card:is(:hover,:focus-visible,.is-match)'
+    // The little motion of a drawing plays when its card is hovered, focused, or lit by what the person types. The Creations page's type
+    // tiles (and the rows of its « Customize » panel) wear the same drawings, so they play it too (hovered, or selected).
+    const kbNcHot = ':is(.kb8-sl-card,.kb-type,.kb-typepanel-row):is(:hover,:focus-visible,.is-match,.is-on,.kb-type-sel)'
     ctx.effect(() => styles.insert(`
 /* The new chat: a slider of what can be made, under the composer, and the Cloud Computer line. Tokens only: the one accent is the theme's. */
-.kb8-nc{--kb8-acc:var(--dsw-alias-brand-primary);order:2;display:flex;flex-direction:column;align-items:stretch;gap:12px;padding:18px 16px 10px;container-type:inline-size;container-name:kbnc}
+body{--kb8-acc:var(--dsw-alias-brand-primary)}
+html[data-kb-acc="engine"] body{--kb8-acc:var(--dsw-alias-state-business-primary)}
+.kb8-nc{order:2;display:flex;flex-direction:column;align-items:stretch;gap:12px;padding:18px 16px 10px;container-type:inline-size;container-name:kbnc}
 .kb8-sl{position:relative}
 .kb8-sl-track{position:relative;display:flex;align-items:flex-start;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x proximity;scroll-padding-inline:4px;scrollbar-width:none;padding:6px 4px 18px;margin:-6px -4px -18px;-webkit-mask-image:linear-gradient(to right,transparent 0,#000 var(--kb8-ml,0px),#000 calc(100% - var(--kb8-mr,0px)),transparent 100%);mask-image:linear-gradient(to right,transparent 0,#000 var(--kb8-ml,0px),#000 calc(100% - var(--kb8-mr,0px)),transparent 100%)}
 .kb8-sl-track::-webkit-scrollbar{display:none}
@@ -25383,11 +26652,25 @@ function renderFit(canvas, model, cam, opts){
 .kb8-sl-card:hover,.kb8-sl-card:focus-visible{color:var(--dsw-alias-label-primary);transform:translateY(-3px);box-shadow:0 0 0 1px var(--dsw-alias-border-l2),0 12px 28px -14px rgba(0,0,0,.35)}
 .kb8-sl-card:focus-visible{outline:2px solid var(--kb8-acc);outline-offset:2px}
 .kb8-sl-card.is-match{color:var(--dsw-alias-label-primary);box-shadow:0 0 0 1.5px color-mix(in srgb,var(--kb8-acc) 70%,var(--dsw-alias-border-l2)),0 0 0 6px color-mix(in srgb,var(--kb8-acc) 10%,transparent)}
+.kb8-sl-card.is-on{color:var(--dsw-alias-label-primary);transform:translateY(-3px);box-shadow:0 0 0 1.5px var(--dsw-alias-label-primary),0 12px 28px -14px rgba(0,0,0,.35)}
+/* What the person picked: its chip and a few ways to go on, in one line under the composer. */
+.kb8-nc-sel{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;padding:0 2px;font-size:12.5px;color:var(--dsw-alias-label-tertiary);animation:kb8-chip-in .3s cubic-bezier(.16,1,.3,1)}
+.kb8-nc-chip{display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 6px 0 5px;border-radius:var(--dsw-radius-md,12px);background:color-mix(in srgb,var(--kb8-acc) 12%,transparent);border:1px solid color-mix(in srgb,var(--kb8-acc) 28%,transparent);font-size:12.5px;font-weight:550;color:var(--dsw-alias-label-primary)}
+.kb8-nc-chip .kb8-nc-chip-art{width:30px;height:21px;display:block;background:none}
+.kb8-nc-chip .kb8-nc-chip-art::before{display:none}
+.kb8-nc-chip .kb8-nc-chip-art svg{width:30px;height:21px;filter:none}
+.kb8-nc-chip-x{display:grid;place-items:center;width:18px;height:18px;padding:0;border:0;border-radius:50%;background:transparent;color:var(--dsw-alias-label-secondary);cursor:pointer}
+.kb8-nc-chip-x:hover{background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-primary)}
+.kb8-nc-try{margin-inline:2px 0}
+.kb8-nc-sug{height:26px;padding:0 10px;border-radius:var(--dsw-radius-md,12px);border:1px solid var(--dsw-alias-border-l2);background:transparent;font:inherit;font-size:12.5px;color:var(--dsw-alias-label-secondary);cursor:pointer}
+.kb8-nc-sug:hover{background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-primary)}
+.kb8-nc-chip-x:focus-visible,.kb8-nc-sug:focus-visible{outline:2px solid var(--kb8-acc);outline-offset:1px}
+@keyframes kb8-chip-in{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
 .kb8-sl-stage{position:relative;height:100px;display:grid;place-items:center;background:color-mix(in srgb,var(--kb8-acc) 5%,var(--dsw-alias-bg-module-platform))}
 .kb8-sl-stage::before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 88% -8%,color-mix(in srgb,var(--kb8-acc) 12%,transparent),transparent 62%)}
 .kb8-sl-stage svg{position:relative;width:92px;height:63px;overflow:visible;filter:drop-shadow(0 3px 4px color-mix(in srgb,var(--dsw-alias-label-primary) 14%,transparent));transition:transform .45s cubic-bezier(.16,1,.3,1)}
 .kb8-sl-stage svg *{transform-box:fill-box}
-.kb8-sl-card:hover .kb8-sl-stage svg,.kb8-sl-card:focus-visible .kb8-sl-stage svg,.kb8-sl-card.is-match .kb8-sl-stage svg{transform:translateY(-3px) scale(1.07)}
+.kb8-sl-card:hover .kb8-sl-stage svg,.kb8-sl-card:focus-visible .kb8-sl-stage svg,.kb8-sl-card.is-match .kb8-sl-stage svg,.kb8-sl-card.is-on .kb8-sl-stage svg{transform:translateY(-3px) scale(1.07)}
 .kb8-sl-label{flex:1;display:grid;place-items:center;padding:0 8px;line-height:1.15;overflow-wrap:anywhere}
 /* The drawings: the page's own tokens, so they follow the theme (ink, greys, ONE tint). */
 .kb8-sl-stage .paper{fill:var(--dsw-alias-bg-layer-1);stroke:var(--dsw-alias-border-l2);stroke-width:.7}
@@ -25449,10 +26732,47 @@ ${kbNcHot} .play{transform-origin:50% 50%;animation:kb8-pulse .9s cubic-bezier(.
 .kb8-nc-act{height:26px;padding:0 10px;border-radius:8px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-foreground);font:inherit;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap}
 .kb8-nc-act.ghost{background:transparent;color:var(--dsw-alias-label-secondary);font-weight:500}
 .kb8-nc-act:disabled{opacity:.5;cursor:default}
-@media (prefers-reduced-motion:reduce){.kb8-sl-card,.kb8-sl-stage svg,.kb8-sl-stage *,.kb8-sl-nav,.kb8-sl-thumb{transition:none!important;animation:none!important}}
+/* The page behind: a grid of dots and two soft glows of the accent, behind the headline and behind the composer (the dots fade out toward the edges),
+   and a halo, with one lap of light, on the composer when it has the focus. Only on the new chat page (the block is there), only CSS. */
+[data-phase="hero"]:has([data-kb="newchat"]){background-image:radial-gradient(560px circle at 50% 22%,color-mix(in srgb,var(--kb8-acc) 9%,transparent),transparent 66%),radial-gradient(380px circle at 50% 44%,color-mix(in srgb,var(--kb8-acc) 5%,transparent),transparent 68%)}
+body[data-ds-dark-theme] [data-phase="hero"]:has([data-kb="newchat"]){background-image:radial-gradient(560px circle at 50% 22%,color-mix(in srgb,var(--kb8-acc) 13%,transparent),transparent 66%),radial-gradient(380px circle at 50% 44%,color-mix(in srgb,var(--kb8-acc) 8%,transparent),transparent 68%)}
+[data-phase="hero"]:has([data-kb="newchat"])::before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;background-image:radial-gradient(color-mix(in srgb,var(--dsw-alias-label-primary) 13%,transparent) 1px,transparent 1.3px);background-size:22px 22px;-webkit-mask-image:radial-gradient(ellipse 58% 52% at 50% 36%,#000 0%,transparent 78%);mask-image:radial-gradient(ellipse 58% 52% at 50% 36%,#000 0%,transparent 78%)}
+[data-phase="hero"]:has([data-kb="newchat"]) [class*="titleGroup"][data-kb-hero]>:first-child{font-size:28px;font-weight:600;letter-spacing:-.028em;line-height:1.12}
+@media (min-width:900px){[data-phase="hero"]:has([data-kb="newchat"]) [class*="titleGroup"][data-kb-hero]>:first-child{font-size:32px}}
+@media (min-width:1280px){[data-phase="hero"]:has([data-kb="newchat"]) [class*="titleGroup"][data-kb-hero]>:first-child{font-size:40px}}
+[data-phase="hero"]:has([data-kb="newchat"]) [data-composer-card="true"]{transition:box-shadow .3s}
+[data-phase="hero"]:has([data-kb="newchat"]) [data-composer-card="true"]:focus-within{box-shadow:0 12px 28px -14px rgba(0,0,0,.35),0 0 0 1px color-mix(in srgb,var(--dsw-alias-label-primary) 26%,transparent),0 0 0 5px color-mix(in srgb,var(--kb8-acc) 9%,transparent)}
+[data-phase="hero"]:has([data-kb="newchat"]) [data-composer-card="true"]::before{content:"";position:absolute;inset:-1px;border-radius:inherit;padding:1.5px;pointer-events:none;opacity:0;background:conic-gradient(from var(--kb8-a),transparent 0deg,transparent 215deg,color-mix(in srgb,var(--kb8-acc) 95%,transparent) 300deg,transparent 360deg);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0);mask-composite:exclude}
+[data-phase="hero"]:has([data-kb="newchat"]) [data-composer-card="true"]:focus-within::before{animation:kb8-sweep 1.7s cubic-bezier(.16,1,.3,1) 1}
+@property --kb8-a{syntax:"<angle>";initial-value:0deg;inherits:false}
+@keyframes kb8-sweep{0%{--kb8-a:0deg;opacity:0}12%{opacity:1}100%{--kb8-a:360deg;opacity:0}}
+@media (prefers-reduced-motion:reduce){.kb8-sl-card,.kb8-sl-stage svg,.kb8-sl-stage *,.kb8-sl-nav,.kb8-sl-thumb,.kb8-nc-sel{transition:none!important;animation:none!important}[data-composer-card="true"]::before{animation:none!important}}
 /* What matters is the width the dock really has, not the window: arrows need a pointer, and a narrow dock is swiped. */
 @container kbnc (max-width:480px){.kb8-sl-nav{display:none}}
 `), 'kybers: styles of the new chat cards');
+
+    // The page's one accent (see kbNcAccentSource): read again when the theme changes (its style tag, the attributes of html and body).
+    ctx.effect(() => {
+      let stopped = false
+      let timer = null
+      const apply = () => {
+        try {
+          const cs = window.getComputedStyle(document.body)
+          const src = kbNcAccentSource(cs.getPropertyValue('--dsw-alias-brand-primary'), cs.getPropertyValue('--dsw-alias-label-primary'))
+          if (document.documentElement.getAttribute('data-kb-acc') !== src) document.documentElement.setAttribute('data-kb-acc', src)
+        } catch (e) { /* no document: the brand colour stays */ }
+      }
+      const later = () => { if (timer !== null) return; timer = setTimeout(() => { timer = null; if (stopped !== true) apply() }, 120) }
+      let obs = null
+      try {
+        obs = new MutationObserver(later)
+        obs.observe(document.documentElement, { attributes: true, attributeFilter: ['style', 'class', 'data-ds-theme-source'] })
+        obs.observe(document.body, { attributes: true })
+        obs.observe(document.head, { childList: true, subtree: true, characterData: true })
+      } catch (e) { obs = null }
+      apply()
+      return () => { stopped = true; if (obs !== null) obs.disconnect(); if (timer !== null) clearTimeout(timer) }
+    }, 'kybers: new chat accent source')
 
     // ── The headline of the new-chat page: a different line each time, and « Beta », small ────────────────────────
     // DSH draws « Into the Unknown » and a « Preview » badge itself (HeroShell: two locale keys; only the mark has a slot).
@@ -25499,8 +26819,8 @@ ${kbNcHot} .play{transform-origin:50% 50%;animation:kb8-pulse .9s cubic-bezier(.
       return () => { stopped = true; if (obs !== null) obs.disconnect(); window.removeEventListener('kybernos:space-cue', later); if (timer !== null) clearTimeout(timer) }
     }, 'kybers: new chat title and Beta badge')
     ctx.effect(() => styles.insert(`
-/* The badge DSH calls « Preview » says « Beta » and is small: its own look (colour, shape) is kept, its code font is not. */
-[class*="previewBadge"][data-kb-beta]{font-family:inherit;font-size:10px;font-weight:600;line-height:1;letter-spacing:.04em;padding:3px 7px}
+/* The badge DSH calls « Preview » says « Beta », small, an outline and not a fill (its code font goes). */
+[class*="previewBadge"][data-kb-beta]{font-family:inherit;font-size:10.5px;font-weight:600;line-height:1;letter-spacing:.07em;text-transform:uppercase;padding:3px 8px;background:transparent;border:1px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-label-tertiary)}
 `), 'kybers: styles badge Beta')
 
     // ── DSH's own « Automation tasks » menu entry overlaps the Automations page: hidden, unless asked back ──────
@@ -25657,7 +26977,7 @@ ${kbNcHot} .play{transform-origin:50% 50%;animation:kb8-pulse .9s cubic-bezier(.
 .kbv-btn:hover:not(:disabled){color:var(--dsw-alias-label-primary);background:var(--dsw-alias-bg-layer-1)}
 .kbv-btn:disabled{opacity:.4;cursor:not-allowed}
 .kbv-btn.rec{color:var(--dsw-alias-state-error-primary,#ef4444)}
-.kbv-caret{width:18px;border-left:1px solid var(--dsw-alias-border-l1)}
+.kbv-caret{width:24px;border-left:1px solid var(--dsw-alias-border-l1)}
 .kbv-pop{position:absolute;right:0;bottom:calc(100% + 8px);z-index:70;min-width:290px;max-width:min(420px,90vw);padding:10px;border:1px solid var(--dsw-alias-border-l1);border-radius:14px;background:var(--dsw-alias-bg-layer-2);box-shadow:0 14px 36px rgba(0,0,0,.34);display:flex;flex-direction:column;gap:8px}
 .kbv-head{display:flex;align-items:center;gap:9px;color:var(--dsw-alias-label-secondary)}
 .kbv-meter{flex:1;height:6px;border-radius:99px;background:var(--dsw-alias-bg-layer-1);overflow:hidden}
@@ -25675,7 +26995,7 @@ ${kbNcHot} .play{transform-origin:50% 50%;animation:kb8-pulse .9s cubic-bezier(.
 .kbv-note{padding:8px 10px;border-radius:9px;font-size:12px;line-height:1.45;background:color-mix(in srgb,var(--dsw-alias-state-error-primary,#ef4444) 14%,transparent);color:color-mix(in srgb,var(--dsw-alias-state-error-primary,#ef4444) 70%,var(--dsw-alias-label-primary))}
 .kbv-note.ok{background:var(--dsw-alias-state-success-tertiary,rgba(34,197,94,.14));color:color-mix(in srgb,var(--dsw-alias-state-success-primary,#22c55e) 55%,var(--dsw-alias-label-primary))}
 .kbv-src{display:flex;flex-direction:column;gap:2px;border-top:1px solid var(--dsw-alias-border-l1);padding-top:6px;margin-top:2px}
-.kbv-src-t{padding:2px 10px;font-size:11.5px;letter-spacing:.02em;text-transform:uppercase;color:var(--dsw-alias-label-tertiary)}
+.kbv-src-t{padding:2px 10px;font-size:11.5px;color:var(--dsw-alias-label-tertiary)}
 .kbv-src.seul{border-top:0;padding-top:0;margin-top:0}
 /* Pastille de SOURCE (mode natif) : elle prend la place de notre barre dans la
    rangée d'outils, mais ce n'est pas un micro — classe distincte de la barre
@@ -26667,7 +27987,7 @@ ${kbNcHot} .play{transform-origin:50% 50%;animation:kb8-pulse .9s cubic-bezier(.
         if (state.data === null && state.loading === false) load();
       }, []);
       const sum = s.data !== null ? s.data.summary : null;
-      let sub = kbe('reading the kyber.yml files…');
+      let sub = kbe('reading the team files…');
       if (s.error !== null) sub = kbe('error: ') + s.error;
       else if (sum !== null && sum !== undefined) {
         sub = sum.kybers + ' agent teams · ' + sum.roles + kbt('kbui.frag.agents2') + sum.ok + kbe(' probed models OK · ') + sum.fail + kbe(' failed · ') + sum.declared + kbe(' not probed · ') + sum.absent + ' absents';
@@ -26977,7 +28297,7 @@ html[data-kb-settings-full="on"] [role="dialog"]:has([data-slot="settings.sectio
    colonne, quelle que soit la langue du placeholder. */
 .kbs-search{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border:1px solid var(--dsw-alias-border-l1);border-radius:10px;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-secondary);margin:10px 0 0;width:100%;max-width:100%;min-width:0;box-sizing:border-box}
 .kbs-search input{border:none;background:transparent;color:var(--dsw-alias-label-primary);font:inherit;font-size:13px;width:100%;min-width:0;flex:1 1 auto;outline:none}
-/* (30/09) Libellé de nav tronqué (« Fournisseur IA & modèles » coupé après
+/* (30/09) Libellé de nav tronqué (« Fournisseur IA et modèles » coupé après
    112 px) : la colonne passe de 188 à 248 px, ancrée sur le SUFFIXE de classe
    du shell (stable entre builds, seul le préfixe haché change) — et le
    libellé reprend toute la place restante de sa cellule. */
@@ -27263,7 +28583,7 @@ body:not([data-ds-dark-theme]) .kbs-search input::placeholder{color:var(--dsw-al
    gauche deborderait de la fenetre. */
 .kbci-pop{position:absolute;top:calc(100% + 8px);right:0;z-index:60;display:flex;align-items:center;gap:14px;padding:12px 12px 12px 16px;border:1px solid var(--dsw-alias-border-l2);border-radius:12px;background:var(--dsw-alias-bg-layer-2);box-shadow:var(--dsw-elevation-prominent,0 12px 32px rgba(0,0,0,.45));white-space:nowrap}
 .kbci-text{display:flex;flex-direction:column;gap:4px;min-width:0}
-.kbci-label{font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--dsw-alias-label-tertiary)}
+.kbci-label{font-size:11px;font-weight:500;color:var(--dsw-alias-label-tertiary)}
 .kbci-id{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:14px;color:var(--dsw-alias-label-primary);user-select:all}
 .kbci-copy{display:flex;align-items:center;gap:8px;height:34px;padding:0 12px;border:1px solid var(--dsw-alias-border-l1);border-radius:9px;background:var(--dsw-alias-bg-layer-3,var(--dsw-alias-bg-layer-2));color:var(--dsw-alias-label-primary);font:inherit;font-size:13px;font-weight:500;white-space:nowrap;cursor:pointer}
 .kbci-copy:hover{border-color:var(--dsw-alias-border-l2)}
@@ -27624,7 +28944,7 @@ body:not([data-ds-dark-theme]) .kbs-search input::placeholder{color:var(--dsw-al
 .kbtg-st.done{background:color-mix(in srgb,var(--dsw-alias-state-success-primary,#7FC98A) 15%,transparent);color:var(--dsw-alias-state-success-primary,#7FC98A)}
 .kbtg-st.rejected{background:color-mix(in srgb,var(--dsw-alias-state-error-primary,#E9A197) 15%,transparent);color:var(--dsw-alias-state-error-primary,#E9A197)}
 .kbtg-row{display:flex;align-items:center;flex-wrap:wrap;gap:6px}
-.kbtg-row-k{flex:none;display:flex;align-items:center;gap:6px;width:84px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--dsw-alias-label-tertiary)}
+.kbtg-row-k{flex:none;display:flex;align-items:center;gap:6px;width:84px;font-size:11px;color:var(--dsw-alias-label-tertiary)}
 .kbtg-chip{display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 9px;border-radius:7px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1);font-size:11.5px;color:var(--dsw-alias-label-secondary)}
 .kbtg-chip-kyber{color:var(--dsw-alias-brand-primary,#C9A45C)}
 .kbtg-chip-conn{color:var(--kbtg-blue,#8FB8DE)}
@@ -28224,7 +29544,7 @@ body:not([data-ds-dark-theme]) .kbt2-pill.warn{color:color-mix(in srgb,var(--dsw
     }
     const kbttsTexte = (lg) => (typeof KBTTS_ESSAI[lg] === 'string' ? KBTTS_ESSAI[lg] : KBTTS_ESSAI.en)
     const kbttsDir = (lg) => (KBTTS_RTL.indexOf(lg) >= 0 ? 'rtl' : 'ltr')
-    const kbttsConfidentialite = (txt) => txt.indexOf('Stays on this Mac') >= 0 ? kbe('Stays on this Mac. Nothing leaves it.') : (txt.indexOf('sent to Microsoft') >= 0 ? kbe('The reply text is sent to Microsoft to be synthesized.') : (txt.indexOf('sent to the provider of the model') >= 0 ? kbe('The reply text is sent to the provider of the model you choose, with the key already set up in AI Provider & Models.') : txt))
+    const kbttsConfidentialite = (txt) => txt.indexOf('Stays on this Mac') >= 0 ? kbe('Stays on this Mac. Nothing leaves it.') : (txt.indexOf('sent to Microsoft') >= 0 ? kbe('The reply text is sent to Microsoft to be synthesized.') : (txt.indexOf('sent to the provider of the model') >= 0 ? kbe('The reply text is sent to the provider of the model you choose, with the key already set up in AI provider and models.') : txt))
     const kbttsOctets = (n) => {
       const v = typeof n === 'number' && n > 0 ? n : 0
       if (v < 1024) return v + ' B'
@@ -28637,7 +29957,7 @@ body:not([data-ds-dark-theme]) .kbt2-pill.warn{color:color-mix(in srgb,var(--dsw
           h('span', null, kbt('kbui.read.aloud'))),
         pied)
       return h('div', { className: 'kbt-page' },
-        h('div', { style: { display: 'flex', justifyContent: 'flex-end', width: '100%', marginBottom: 6 } }, (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-plugin', page: 'voice' }) : null)),
+        h('div', { className: 'kbhp-row', style: { '--kbhp-gap': '20px' } }, (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-plugin', page: 'voice' }) : null)),
         h('div', { className: 'kbt-tete' },
           // Gabarit Réglages 29/09 : titre 26px comme Outils/Maintenance.
           h('span', { className: 'kb6-title' }, kbt('kbui.voice')),
@@ -29123,7 +30443,7 @@ body:not([data-ds-dark-theme]) .kbt2-pill.warn{color:color-mix(in srgb,var(--dsw
 .kbq-score.none{color:var(--dsw-alias-label-secondary)}
 .kbq-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:10px}
 .kbq-kpi{border:1px solid var(--dsw-alias-border-l1);border-radius:12px;padding:10px 12px;background:var(--dsw-alias-bg-layer-1);display:flex;flex-direction:column;gap:3px;min-width:0}
-.kbq-kpilab{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--dsw-alias-label-secondary);font-weight:600}
+.kbq-kpilab{font-size:11px;color:var(--dsw-alias-label-secondary);font-weight:600}
 .kbq-kpival{font-size:23px;font-weight:650;font-variant-numeric:tabular-nums;color:var(--dsw-alias-label-primary)}
 .kbq-kpisub{font-size:11.5px;color:var(--dsw-alias-label-secondary)}
 .kbq-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px}
@@ -29307,7 +30627,7 @@ body:not([data-ds-dark-theme]) .kbt-micro-warn{color:color-mix(in srgb,var(--dsw
 .kb8-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:16px;align-items:stretch}
 /* En-tete de racine : la grille liste deux origines (installe / depot). */
 .kb8-groups{display:flex;flex-direction:column;gap:18px}
-.kb8-roothead{display:flex;align-items:baseline;gap:10px;min-width:0;margin:0 0 -8px}.kb8-rootlabel{font-family:ui-monospace,monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--dsw-alias-label-primary)}.kb8-rootpath{font-family:ui-monospace,monospace;font-size:11px;color:var(--dsw-alias-label-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kb8-roothead{display:flex;align-items:baseline;gap:10px;min-width:0;margin:0 0 -8px}.kb8-rootlabel{font-family:ui-monospace,monospace;font-size:11px;color:var(--dsw-alias-label-primary)}.kb8-rootpath{font-family:ui-monospace,monospace;font-size:11px;color:var(--dsw-alias-label-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* La carte demandait height:100% dans une grille ; avec padding 18 et bordure,
    sans border-box, elle est plus haute que sa ligne de 38 px : mesure a
    1700/1300/1000/760 px de large, les cartes se chevauchaient de 22 px
@@ -29444,7 +30764,7 @@ body[data-ds-dark-theme] .kb8-iconbtn.on.col{border-color:var(--kb8-pgd);color:v
 .kb8-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .kb8-toolbar .kb8-search{flex:1 1 260px;min-width:0}
 .kb8-order{display:inline-flex;align-items:center;gap:8px;height:50px;flex:0 0 auto;border:1px solid var(--dsw-alias-border-l1);border-radius:14px;background:var(--dsw-alias-bg-layer-1);padding:0 14px}
-.kb8-order-label{font-family:ui-monospace,monospace;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--dsw-alias-label-secondary)}
+.kb8-order-label{font-family:ui-monospace,monospace;font-size:10px;color:var(--dsw-alias-label-secondary)}
 .kb8-order select{border:0;background:none;color:var(--dsw-alias-label-primary);font-size:14px;outline:none;cursor:pointer}
 /* ── KbToolbar : barre unifiee search-filter-order ─────────────────────── */
 .kb6-toolbar{display:flex;flex-direction:column;gap:6px;margin:0 0 14px}
@@ -29511,7 +30831,7 @@ body[data-ds-dark-theme] .kb8-iconbtn.on.col{border-color:var(--kb8-pgd);color:v
 .kb6-tb-ctrllab{max-width:150px;overflow:hidden;text-overflow:ellipsis}
 .kb6-tb-pop{position:absolute;left:0;top:calc(100% + 6px);z-index:60;min-width:230px;background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l1);border-radius:13px;padding:8px;display:flex;flex-direction:column;gap:2px;box-shadow:0 14px 34px rgba(0,0,0,.3)}
 .kb6-tb-pop.wide{min-width:300px}
-.kb6-tb-pophead{font-family:ui-monospace,monospace;font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--dsw-alias-label-secondary);padding:6px 10px 4px}
+.kb6-tb-pophead{font-family:ui-monospace,monospace;font-size:10px;color:var(--dsw-alias-label-secondary);padding:6px 10px 4px}
 .kb6-tb-pophead.row{display:flex;align-items:center;justify-content:space-between;padding-right:2px}
 .kb6-tb-popsep{height:1px;background:var(--dsw-alias-border-l1);margin:6px 4px}
 .kb6-tb-popitem{display:flex;align-items:center;gap:8px;padding:7px 10px;border:none;background:transparent;border-radius:8px;color:var(--dsw-alias-label-primary);font:inherit;font-size:13px;cursor:pointer;text-align:left}
@@ -29525,7 +30845,7 @@ body[data-ds-dark-theme] .kb8-iconbtn.on.col{border-color:var(--kb8-pgd);color:v
 .kb6-tb-seg:hover{color:var(--dsw-alias-label-primary)}
 .kb6-tb-seg.on{background:color-mix(in srgb,var(--dsw-alias-brand-primary) 16%,transparent);border-color:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary);font-weight:600}
 .kb6-tb-facet{padding:2px 0}
-.kb6-tb-facetlabel{font-family:ui-monospace,monospace;font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--dsw-alias-label-secondary);padding:6px 10px 2px}
+.kb6-tb-facetlabel{font-family:ui-monospace,monospace;font-size:10px;color:var(--dsw-alias-label-secondary);padding:6px 10px 2px}
 .kb6-tb-facetbody{display:flex;flex-direction:column;gap:1px}
 .kb6-tb-reset{display:inline-flex;align-items:center;gap:5px;border:none;background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12px;cursor:pointer;padding:3px 8px;border-radius:7px}
 .kb6-tb-reset:hover{color:var(--dsw-alias-label-primary);background:var(--dsw-alias-bg-layer-2)}
@@ -29557,25 +30877,16 @@ body[data-ds-dark-theme] .kb8-iconbtn.on.col{border-color:var(--kb8-pgd);color:v
    noir. On passe aux jetons réels, qui basculent avec le thème.
    Les accents (--dsw-alias-brand-primary,#5563d6 / #5686fe / #b0578f) restent : ce
    sont des tons moyens, lisibles dans les deux thèmes. */
-/* Tuiles RESPONSIVE sur UNE ligne (demande 26/09) : flex:1 partage la largeur
-   de la rangée — jamais de débord ni de retour à la ligne ; les libellés longs
-   éllipsent. compactes : scène 44px, padding 8/10. */
-.kb-type{min-width:0;display:flex;flex-direction:column;align-items:stretch;gap:6px;padding:8px 10px;border:1px solid var(--dsw-alias-border-l1);border-radius:12px;background:var(--dsw-alias-bg-layer-1);cursor:pointer;text-align:left;transition:border-color .15s,box-shadow .15s;color:var(--dsw-alias-label-primary);position:relative}
-.kb-type:hover{border-color:var(--dsw-alias-border-l2)}
-.kb-type-sel{border-color:var(--dsw-alias-brand-primary,#5563d6);box-shadow:0 0 0 1px var(--dsw-alias-brand-primary,#5563d6)}
-/* Bande d'aperçu des tuiles de type (fidèle à la maquette demos/deliverables) :
-   une pastille pleine largeur qui illustre le CONTENU du type, pas une icône. */
-.kb-type-view{width:100%;height:44px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex:none;position:relative;overflow:hidden}
-.kbm{position:relative;display:flex;align-items:center;justify-content:center}
-.kbm i{display:block}
-.kbm-ln{height:3px;border-radius:2px;background:currentColor}
-.kbm-box{position:absolute;border:1.5px solid currentColor;border-radius:4px}
-.kbm-mdot{border-radius:50%;background:currentColor}
-.kbm-ring{border:1.5px solid currentColor;border-radius:50%}
-.kbm-txt{font-family:ui-monospace,Menlo,monospace;font-weight:700;line-height:1;color:currentColor}
-/* Pas d'ANIMATION dans les tuiles (demande 26/09 : « pas de trait qui
-   clignotte ») : l'ancien caret .kbm-caret pulsait en step-end infinite —
-   supprimé, scènes statiques. */
+/* Type tiles on ONE row (26/09 request): the row's width is shared, no overflow, no wrap; long labels ellipsize. A tile is a card of the
+   new chat page's family (ring, rounded, a tinted band that holds a drawing, the label under it): the band wears the class kb8-sl-stage, so
+   the drawings are styled by the new chat page's rules, from the theme's tokens. */
+.kb-type{min-width:0;display:flex;flex-direction:column;align-items:stretch;gap:0;padding:0;border:0;border-radius:var(--dsw-radius-lg,16px);background:var(--dsw-alias-bg-layer-1);box-shadow:0 0 0 1px var(--dsw-alias-border-l1);cursor:pointer;text-align:left;overflow:hidden;transition:box-shadow .25s,transform .25s cubic-bezier(.16,1,.3,1);color:var(--dsw-alias-label-primary);position:relative}
+.kb-type:hover{transform:translateY(-2px);box-shadow:0 0 0 1px var(--dsw-alias-border-l2),0 12px 28px -14px rgba(0,0,0,.35)}
+.kb-type-sel,.kb-type-sel:hover{box-shadow:0 0 0 1.5px var(--dsw-alias-brand-primary,#5563d6)}
+.kb-type .kb-type-view{width:100%;height:64px;flex:none}
+.kb-type .kb-type-view svg{width:68px;height:47px}
+.kb-type:hover .kb-type-view svg,.kb-type-sel .kb-type-view svg{transform:translateY(-2px) scale(1.06)}
+.kb-type-line{box-sizing:border-box;padding:8px 10px}
 
 .kb-type-lab{font-size:11.5px;font-weight:600;color:var(--dsw-alias-label-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .kb-type-cnt{font-size:10.5px;color:var(--dsw-alias-label-secondary);margin-left:auto;flex:none}
@@ -29584,7 +30895,7 @@ body[data-ds-dark-theme] .kb8-iconbtn.on.col{border-color:var(--kb8-pgd);color:v
 /* Sélection multi-types + panneau « Personnaliser » (maquette 29/09) : coche
    de tuile, rangée d'indice, panneau flottant — positions logiques (inline),
    sans left/right dur, pour rester bidi-sûres. */
-.kb-type-check{position:absolute;top:12px;inset-inline-end:10px;width:16px;height:16px;border-radius:5px;border:1.5px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);display:flex;align-items:center;justify-content:center;color:var(--dsw-alias-label-primary-foreground,#fff);flex:none;box-sizing:border-box}
+.kb-type-check{position:absolute;top:8px;inset-inline-end:8px;width:16px;height:16px;border-radius:5px;border:1.5px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);display:flex;align-items:center;justify-content:center;color:var(--dsw-alias-label-primary-foreground,#fff);flex:none;box-sizing:border-box}
 .kb-type-check.on{background:var(--dsw-alias-brand-primary,#5563d6);border-color:var(--dsw-alias-brand-primary,#5563d6)}
 .kb-typehint{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:0 2px 4px;font-size:12px;color:var(--dsw-alias-label-secondary)}
 .kb-typehint-end{display:flex;align-items:center;gap:10px;min-width:0;flex-wrap:wrap;margin-inline-start:auto}
@@ -29607,20 +30918,18 @@ body[data-ds-dark-theme] .kb8-iconbtn.on.col{border-color:var(--kb8-pgd);color:v
 .kb-typepanel-vis{font-size:11px;font-family:ui-monospace,monospace;color:var(--dsw-alias-label-secondary);padding-top:2px}
 .kb-typepanel-body{overflow:auto;padding:0 10px 8px}
 .kb-typepanel-group{border-top:1px solid var(--dsw-alias-border-l1);padding:4px 6px 8px;display:flex;flex-direction:column}
-.kb-typepanel-grouplab{font-family:ui-monospace,monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--dsw-alias-label-secondary);padding:10px 6px 4px}
+.kb-typepanel-grouplab{font-family:ui-monospace,monospace;font-size:10px;color:var(--dsw-alias-label-secondary);padding:10px 6px 4px}
 .kb-typepanel-row{display:flex;align-items:center;gap:10px;min-height:40px;padding:0 6px;border-radius:8px;cursor:pointer}
 .kb-typepanel-row:hover{background:var(--dsw-alias-bg-layer-2)}
-.kb-typepanel-thumb{width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;flex:none;overflow:hidden}
-.kb-typepanel-thumb .kbm{transform:scale(.6)}
-/* Jeu d'icônes de type unique (Livrables) : bande des tuiles, panneau Personnaliser,
-   vignettes de liste, en-tête de carte, visionneuse. Couleurs = jetons (rôles A/B/N/P). */
-.kb-ti{display:block;flex:none}
-.kb-type-view .kb-ti{width:34px;height:34px}
-.kb-typepanel-thumb{background:var(--dsw-alias-interactive-bg-hover)}
-.kb-typepanel-thumb .kb-ti{width:22px;height:22px}
-.kb6-ico.kb6-ico-ti{width:24px;height:24px}
-.kb6-vico{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:10px;background:var(--dsw-alias-interactive-bg-hover);flex:none}
-.kb6-prevkind .kb-ti{opacity:1}
+.kb-typepanel-thumb{width:44px;height:30px;border-radius:7px;flex:none;overflow:hidden}
+.kb-typepanel-thumb.kb8-sl-stage{height:30px}
+.kb-typepanel-thumb.kb8-sl-stage svg{width:40px;height:28px}
+.kb6-ico.kb6-ico-ti{width:34px;height:24px;border-radius:7px;overflow:hidden}
+.kb6-ico.kb6-ico-ti.kb8-sl-stage{height:24px}
+.kb6-ico.kb6-ico-ti.kb8-sl-stage svg{width:30px;height:21px}
+.kb6-vico{display:inline-flex;align-items:center;justify-content:center;width:56px;height:38px;border-radius:10px;overflow:hidden;flex:none}
+.kb6-vico.kb8-sl-stage{height:38px}
+.kb6-vico.kb8-sl-stage svg{width:46px;height:32px}
 .kb-typepanel-lab{font-size:13px;color:var(--dsw-alias-label-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .kb-typepanel-cnt{font-size:11px;font-family:ui-monospace,monospace;color:var(--dsw-alias-label-secondary);margin-inline-start:auto;flex:none}
 .kb-typepanel-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 16px;border-top:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-2)}
@@ -29646,8 +30955,8 @@ body[data-ds-dark-theme] .kb8-iconbtn.on.col{border-color:var(--kb8-pgd);color:v
 .kb-task-modal{width:560px;max-width:94vw;max-height:88vh;overflow:auto;background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l1);border-radius:18px;padding:22px;display:flex;flex-direction:column;gap:14px;box-shadow:0 24px 60px rgba(0,0,0,.4)}
 .kb-task-modal h3{margin:0;font-size:16px;color:var(--dsw-alias-label-primary);display:flex;align-items:center;gap:9px}
 .kb-task-f{display:flex;flex-direction:column;gap:6px}
-.kb-task-f>label{font-family:ui-monospace,monospace;font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--dsw-alias-label-secondary)}
-.kb-task-f input[type=text],.kb-task-f textarea,.kb-task-f input[type=datetime-local],.kb-task-f input[type=time]{border:1px solid var(--dsw-alias-border-l1);border-radius:10px;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);font:inherit;font-size:13px;padding:9px 11px;outline:none;width:100%;box-sizing:border-box}
+.kb-task-f>label{font-family:ui-monospace,monospace;font-size:10px;color:var(--dsw-alias-label-secondary)}
+.kb-task-f input[type=text],.kb-task-f textarea,.kb-task-f select,.kb-task-f input[type=datetime-local],.kb-task-f input[type=time]{border:1px solid var(--dsw-alias-border-l1);border-radius:10px;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);font:inherit;font-size:13px;padding:9px 11px;outline:none;width:100%;box-sizing:border-box}
 .kb-task-f textarea{min-height:84px;resize:vertical}
 .kb-task-f input[type=time]{width:132px}
 .kb-task-f input:focus,.kb-task-f textarea:focus{border-color:var(--dsw-alias-brand-primary)}
@@ -29690,7 +30999,7 @@ body[data-ds-dark-theme] .kb8-iconbtn.on.col{border-color:var(--kb8-pgd);color:v
 .kba-rowline:hover,.kba-rowline:focus-within{background:var(--dsw-alias-interactive-bg-hover)}
 .kba-rowline-head{cursor:default;border-top:0;padding-top:11px;padding-bottom:11px}
 .kba-rowline-head:hover{background:transparent}
-.kba-rowbtn,.kba-rowhead{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1.4fr) 88px 150px 64px;column-gap:14px;align-items:center;min-width:0}
+.kba-rowbtn,.kba-rowhead{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1.4fr) 150px 64px;column-gap:14px;align-items:center;min-width:0}
 .kba-oncol{display:flex;align-items:center;justify-content:center}
 .kba-namecell{display:flex;flex-direction:column;min-width:0}
 /* The row's actions: at the right, on hover and on focus; always on a touch screen. A starred row keeps its star. */
@@ -29703,7 +31012,7 @@ body[data-ds-dark-theme] .kb8-iconbtn.on.col{border-color:var(--kb8-pgd);color:v
 .kba-lcard .kba-toggle.on .kba-toggle-knob{left:16px}
 @container (max-width:939px){
   .kba-rowbtn,.kba-rowhead{grid-template-columns:minmax(0,1.3fr) minmax(0,1.4fr) 150px}
-  .kba-rowbtn>:nth-child(3),.kba-rowhead>:nth-child(3),.kba-rowbtn>:nth-child(5),.kba-rowhead>:nth-child(5){display:none}
+  .kba-rowbtn>:nth-child(4),.kba-rowhead>:nth-child(4){display:none}
 }
 @container (max-width:699px){
   .kba-rowline-head{display:none}
@@ -29743,7 +31052,6 @@ body[data-ds-dark-theme] .kb8-iconbtn.on.col{border-color:var(--kb8-pgd);color:v
 .kba-name{display:block;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .kba-team{display:block;font-size:11px;color:var(--dsw-alias-label-secondary);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .kba-trg-stack{display:flex;flex-direction:column;min-width:0}
-.kba-reason{display:block;margin-top:3px;font-size:12px;font-weight:400;color:var(--dsw-alias-state-error-primary);white-space:normal}
 .kba-trash:hover{color:var(--dsw-alias-state-error-primary)}
 .kba-banner{display:flex;gap:14px;align-items:center;padding:16px 18px;margin:14px;border:1px solid var(--dsw-alias-state-error-primary);border-radius:12px}
 .kba-banner b{display:block;margin-bottom:2px}
@@ -29754,7 +31062,6 @@ body[data-ds-dark-theme] .kb8-iconbtn.on.col{border-color:var(--kb8-pgd);color:v
 .kba-trgcell{display:flex;align-items:center;gap:10px;color:var(--dsw-alias-label-secondary);min-width:0}
 .kba-trigger-icon{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:7px;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-state-warn-primary);font-size:11px;flex:none}
 .kba-ell{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.kba-origin-badge{display:inline-block;padding:2px 8px;border-radius:5px;border:1px solid var(--dsw-alias-border-l1);font-family:ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--dsw-alias-label-secondary);background:var(--dsw-alias-bg-layer-2)}
 .kba-last{display:flex;align-items:center;gap:8px;min-width:0;font-size:13px}
 .kba-kdot{width:8px;height:8px;border-radius:50%;flex:none;background:var(--dsw-alias-state-idle-primary)}
 .kba-kdot.ok{background:var(--dsw-alias-state-success-primary)}
@@ -29762,6 +31069,7 @@ body[data-ds-dark-theme] .kb8-iconbtn.on.col{border-color:var(--kb8-pgd);color:v
 .kba-kdot.fail{background:var(--dsw-alias-state-error-primary)}
 .kba-td-num{font-family:ui-monospace,Menlo,monospace;font-size:13px;color:var(--dsw-alias-label-secondary)}
 .kba-toggle{display:inline-block;width:44px;height:26px;border-radius:13px;background:var(--dsw-alias-bg-layer-3);border:1px solid var(--dsw-alias-border-l2);position:relative;cursor:pointer;flex:none}
+.kba-toggle::before{content:"";position:absolute;inset:-2px 0}
 .kba-toggle-knob{position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:9px;background:var(--dsw-alias-label-secondary);transition:left .12s;box-shadow:var(--dsw-elevation-soft,0 1px 2px rgba(0,0,0,.2))}
 .kba-toggle.on{background:var(--dsw-alias-brand-primary);border-color:var(--dsw-alias-brand-primary)}
 .kba-toggle.on .kba-toggle-knob{left:21px;background:var(--dsw-alias-label-primary-foreground)}
@@ -29840,7 +31148,7 @@ button.kbbd-chip:hover{background:var(--dsw-alias-interactive-bg-hover,#f0f0f0)}
 .kbbd-sgn.warn{color:var(--dsw-alias-state-warn-primary,#b54708)}
 .kbbd-pip{width:7px;height:7px;border-radius:50%;background:var(--dsw-alias-label-tertiary,#777);display:inline-block}
 .kbbd-month{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
-.kbbd-mh{font-size:11.5px;text-transform:uppercase;letter-spacing:.3px;color:var(--dsw-alias-label-tertiary,#777);padding:0 4px;overflow:hidden;text-overflow:ellipsis}
+.kbbd-mh{font-size:11.5px;color:var(--dsw-alias-label-tertiary,#777);padding:0 4px;overflow:hidden;text-overflow:ellipsis}
 .kbbd-mc{display:block;text-align:start;background:var(--dsw-alias-bg-base,#fff);border:1px solid var(--dsw-alias-border-l1,#e6e6e6);border-radius:10px;min-height:72px;padding:6px;font:inherit;font-size:12px;min-width:0;cursor:pointer;color:var(--dsw-alias-label-primary,#111)}
 .kbbd-mc:hover{background:var(--dsw-alias-interactive-bg-hover,#f0f0f0)}
 .kbbd-mc.out{opacity:.45}
@@ -29914,9 +31222,151 @@ button.kbbd-chip:hover{background:var(--dsw-alias-interactive-bg-hover,#f0f0f0)}
 .kba-tabs .kba-tabver{margin-left:auto;padding-right:4px}
 .kba-body{flex:1;min-height:0;display:flex;flex-direction:column}
 .kba-sesscroll{flex:1;min-height:0;overflow-y:auto;padding-bottom:16px}
-.kba-srow{display:grid;grid-template-columns:18px minmax(0,1fr) 118px 100px 130px;gap:12px;align-items:center;width:100%;padding:11px 16px;border:0;border-top:1px solid var(--dsw-alias-border-l1);background:transparent;text-align:left;font:inherit;font-size:13px;color:var(--dsw-alias-label-primary);cursor:pointer}
-.kba-srow:hover{background:var(--dsw-alias-interactive-bg-hover)}
-.kba-srow .dim{color:var(--dsw-alias-label-secondary)}
+.kba-sub{align-self:flex-start;display:inline-flex;align-items:center;gap:2px;padding:4px;margin:0 0 14px;border-radius:999px;background:var(--dsw-alias-bg-layer-2);border:1px solid var(--dsw-alias-border-l1)}
+.kba-sub button{display:inline-flex;align-items:center;gap:8px;height:34px;border:0;border-radius:999px;padding:0 16px;background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.kba-sub button:hover{color:var(--dsw-alias-label-primary)}
+.kba-sub button.on{background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);box-shadow:0 1px 3px rgba(20,20,19,.14)}
+.kbtd{display:flex;flex-direction:column;gap:14px;min-width:0}
+.kbtd-how{display:flex;align-items:center;gap:18px;flex-wrap:wrap;padding:12px 16px;border:1px solid var(--dsw-alias-border-l1);border-radius:14px;background:var(--dsw-alias-bg-layer-2);font-size:13px}
+.kbtd-hs{display:inline-flex;align-items:center;gap:8px;color:var(--dsw-alias-label-secondary)}
+.kbtd-hn{width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;background:var(--dsw-alias-label-primary);color:var(--dsw-alias-label-primary-inverted,#fff)}
+.kbtd-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:space-between}
+.kbtd-chips{display:inline-flex;gap:8px;flex-wrap:wrap}
+.kbtd-chip{border:1px solid var(--dsw-alias-border-l2);background:transparent;color:var(--dsw-alias-label-secondary);border-radius:999px;padding:6px 14px;font:inherit;font-size:13px;cursor:pointer}
+.kbtd-chip.on{background:var(--dsw-alias-label-primary);color:var(--dsw-alias-label-primary-inverted,#fff);border-color:transparent}
+.kbtd-search{border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);border-radius:10px;padding:7px 12px;font:inherit;font-size:13px;min-width:200px}
+.kbtd-gridcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.kbtd-card{display:flex;flex-direction:column;gap:10px;padding:16px;border:1px solid var(--dsw-alias-border-l2);border-radius:16px;background:var(--dsw-alias-bg-layer-2);cursor:pointer;min-width:0}
+.kbtd-card:hover,.kbtd-card:focus-visible{border-color:var(--dsw-alias-border-l3);outline:none}
+.kbtd-ch{display:flex;align-items:center;gap:10px}
+.kbtd-ch h3{margin:0;flex:1;min-width:0;font-size:15px;font-weight:600;line-height:1.25;overflow-wrap:anywhere}
+.kbtd-ico{flex:none;width:38px;height:38px;border-radius:11px;display:inline-flex;align-items:center;justify-content:center;color:var(--kbtd-c);background:color-mix(in srgb,var(--kbtd-c) 16%,transparent)}
+.kbtd-imp{opacity:0;transition:opacity .12s;height:28px;padding:0 12px;font-size:12px}
+.kbtd-card:hover .kbtd-imp,.kbtd-card:focus-within .kbtd-imp{opacity:1}
+@media (hover:none){.kbtd-imp{opacity:1}}
+.kbtd-cd{margin:0;font-size:13px;line-height:1.45;color:var(--dsw-alias-label-secondary);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.kbtd-cm{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--dsw-alias-label-tertiary)}
+.kbtd-cf{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:auto}
+.kbtd-tgs{display:inline-flex;gap:6px;flex-wrap:wrap}
+.kbtd-tg{font-size:11.5px;padding:2px 9px;border-radius:999px;border:1px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-label-secondary)}
+.kbtd-apps{display:inline-flex}
+.kbtd-app{width:26px;height:26px;margin-left:-6px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:var(--dsw-alias-label-secondary);background:var(--dsw-alias-bg-layer-1);border:2px solid var(--dsw-alias-bg-layer-2);box-shadow:0 0 0 1px var(--dsw-alias-border-l2)}
+.kbtd-apps .kbtd-app:first-child{margin-left:0}
+.kbtd-app.logo{background:#fff}
+.kbtd-app svg{width:66%;height:66%;display:block}
+.kbtd-integ{padding:12px 16px}
+.kbtd-appchips{display:flex;flex-wrap:wrap;gap:8px}
+.kbtd-appchip{display:inline-flex;align-items:center;gap:8px;padding:4px 12px 4px 4px;border:1px solid var(--dsw-alias-border-l2);border-radius:999px;font-size:13px}
+.kbtd-appchip .kbtd-app{margin-left:0;width:28px;height:28px;box-shadow:none;border:1px solid var(--dsw-alias-border-l1)}
+.kbtd-detail{max-width:980px}
+.kbtd-cover{position:relative;border-radius:18px;overflow:hidden;height:190px;background:#f3ecdd;border:1px solid var(--dsw-alias-border-l1)}
+.kbtd-cover-svg{display:block;width:100%;height:100%}
+.kbtd-ctag{position:absolute;left:14px;top:12px;font-size:11.5px;font-weight:600;padding:3px 10px;border-radius:999px;background:#fff9;color:#241f1a;backdrop-filter:blur(4px)}
+.kbtd-dhead{display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap}
+.kbtd-dtitle{flex:1;min-width:240px}
+.kbtd-dtitle h1{margin:0;font-size:22px;line-height:1.2}
+.kbtd-dtitle p{margin:6px 0 0;color:var(--dsw-alias-label-secondary);font-size:14px;line-height:1.5}
+.kbtd-meta{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.kbtd-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:start}
+@media (max-width:900px){.kbtd-grid{grid-template-columns:1fr}}
+.kbtd-sec{padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.kbtd-step{display:flex;align-items:flex-start;gap:10px;font-size:13px;line-height:1.45;border-top:1px solid var(--dsw-alias-border-l1);padding-top:8px}
+.kbtd-st{flex:1;min-width:0;overflow-wrap:anywhere}
+.kbtd-sk{font-size:11px;color:var(--dsw-alias-label-tertiary)}
+.kbtd-q{display:flex;flex-direction:column;gap:2px;font-size:13px;border-top:1px solid var(--dsw-alias-border-l1);padding-top:8px}
+.kbtd-qo{color:var(--dsw-alias-label-secondary);font-size:12.5px;line-height:1.45}
+.kbtd-ul{margin:0;padding-left:18px;font-size:13px;line-height:1.5;display:flex;flex-direction:column;gap:4px}
+.kbcc{display:flex;flex-direction:column;gap:12px;min-width:0}
+.kbcc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}
+.kbcc-card{display:flex;flex-direction:column;gap:12px;padding:16px;border:1px solid var(--dsw-alias-border-l2);border-radius:16px;background:var(--dsw-alias-bg-layer-2);cursor:pointer;min-width:0}
+.kbcc-card:hover,.kbcc-card:focus-visible{border-color:var(--dsw-alias-border-l3);outline:none}
+.kbcc-card.attn{border-color:var(--dsw-alias-state-warn-primary)}
+.kbcc-card.off .kbcc-title b{color:var(--dsw-alias-label-secondary)}
+.kbcc-head{display:flex;align-items:center;gap:10px}
+.kbcc-title{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.kbcc-title b{font-size:15px;font-weight:600;line-height:1.25;overflow-wrap:anywhere}
+.kbcc-title span{font-size:12px;color:var(--dsw-alias-label-tertiary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kbcc-badges{display:flex;gap:6px;flex-wrap:wrap}
+.kbcc-badge{font-size:11.5px;font-weight:600;padding:2px 9px;border-radius:999px;border:1px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-label-secondary)}
+.kbcc-badge.warn{border-color:var(--dsw-alias-state-warn-primary);color:var(--dsw-alias-state-warn-primary)}
+.kbcc-figs{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr) minmax(0,.8fr) minmax(0,1fr);gap:8px}
+.kbcc-fig{display:flex;flex-direction:column;gap:2px;min-width:0}
+.kbcc-fk{font-size:10.5px;color:var(--dsw-alias-label-tertiary)}
+.kbcc-fv{font-size:14px;font-weight:600;overflow-wrap:anywhere}
+.kbcc-fig.bad .kbcc-fv{color:var(--dsw-alias-state-error-primary)}
+.kbcc-tools{display:flex;align-items:center;gap:10px;border-top:1px solid var(--dsw-alias-border-l1);padding-top:10px;min-width:0}
+.kbcc-tl{display:inline-flex;gap:6px;flex-wrap:wrap}
+.kbcc-tool{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;padding:2px 8px;border-radius:8px;border:1px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-label-secondary)}
+.kbcc-tool i{font-style:normal;font-family:ui-monospace,Menlo,monospace;font-size:10.5px;color:var(--dsw-alias-label-tertiary)}
+@media (max-width:600px){.kbcc-figs{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kbrn-stats{display:flex;gap:12px;flex-wrap:wrap;margin:0 0 12px}
+.kbrn-stat{display:flex;flex-direction:column;gap:2px;padding:10px 14px;border:1px solid var(--dsw-alias-border-l2);border-radius:12px;min-width:110px}
+.kbrn-stk{font-size:11px;color:var(--dsw-alias-label-tertiary);}
+.kbrn-stv{font-size:18px;font-weight:600}
+.kbrn-stat.bad .kbrn-stv{color:var(--dsw-alias-state-error-primary)}
+.kbrn-xwrap{display:grid;grid-template-columns:260px minmax(0,1fr);gap:14px;align-items:start}
+@media (max-width:1000px){.kbrn-xwrap{grid-template-columns:1fr}}
+.kbrn-xl{border:1px solid var(--dsw-alias-border-l2);border-radius:14px;background:var(--dsw-alias-bg-layer-2);overflow:hidden auto;max-height:780px}
+.kbrn-xlh{display:flex;align-items:baseline;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--dsw-alias-border-l1);position:sticky;top:0;background:var(--dsw-alias-bg-layer-2);z-index:1}
+.kbrn-xr{display:flex;align-items:center;gap:10px;width:100%;border:0;border-bottom:1px solid var(--dsw-alias-border-l1);background:transparent;text-align:left;padding:0 12px 0 0;cursor:pointer;font:inherit;color:inherit;min-height:56px}
+.kbrn-xr:hover{background:var(--dsw-alias-interactive-bg-hover)}
+.kbrn-xr.on{background:var(--dsw-alias-interactive-bg-active,rgba(0,0,0,.06))}
+.kbrn-xbar{align-self:stretch;width:4px;flex:none;background:var(--dsw-alias-state-idle-primary)}
+.kbrn-xbar.ok{background:var(--dsw-alias-state-success-primary)}
+.kbrn-xbar.bad{background:var(--dsw-alias-state-error-primary)}
+.kbrn-xt{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;padding:8px 0;font-size:13px}
+.kbrn-xt b{font-weight:600}
+.kbrn-badtxt{color:var(--dsw-alias-state-error-primary);font-size:12px}
+.kbrn-oktxt{color:var(--dsw-alias-state-success-primary);font-size:13px}
+.kbrn-xp{display:flex;flex-direction:column;gap:12px;min-width:0}
+.kbrn-xph{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.kbrn-xpd{font-size:18px;font-weight:600}
+.kbrn-xerr{color:color-mix(in srgb,var(--dsw-alias-state-error-primary) 72%,var(--dsw-alias-label-primary));font-size:13px;border:1px solid var(--dsw-alias-state-error-primary);border-radius:10px;padding:8px 12px}
+.kbrn-canvas{padding:16px;overflow:auto}
+.kbrn-gs{overflow:auto;padding:6px 2px}
+.kbrn-g{position:relative;margin:0 auto}
+.kbrn-eg{position:absolute;inset:0;color:var(--dsw-alias-border-l3);pointer-events:none}
+.kbrn-el{position:absolute;transform:translate(-50%,-50%);font-size:11px;color:var(--dsw-alias-label-tertiary);background:var(--dsw-alias-bg-layer-2);padding:1px 6px;border-radius:8px;border:1px solid var(--dsw-alias-border-l1);white-space:nowrap}
+.kbrn-nd{position:absolute;height:70px;box-sizing:border-box;display:flex;align-items:center;gap:10px;padding:0 10px;border:1px solid var(--dsw-alias-border-l2);border-radius:14px;background:var(--dsw-alias-bg-layer-2);text-align:left;cursor:pointer;font:inherit;color:inherit}
+.kbrn-nd:hover{border-color:var(--dsw-alias-border-l3)}
+.kbrn-nd.sel{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:1px}
+.kbrn-nd.ok{border-color:color-mix(in srgb,var(--dsw-alias-state-success-primary) 60%,transparent)}
+.kbrn-nd.bad{border-color:var(--dsw-alias-state-error-primary)}
+.kbrn-nb{flex:none;width:28px;height:28px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:#fff;background:var(--dsw-alias-label-tertiary)}
+.kbrn-nb.ai{background:var(--dsw-alias-state-business-primary,#3b6fd6)}
+.kbrn-nb.act{background:var(--dsw-alias-state-success-primary,#1fa355)}
+.kbrn-nb.trg{background:var(--dsw-alias-state-warn-primary,#e8890c)}
+.kbrn-nt{min-width:0;flex:1;display:flex;flex-direction:column;gap:2px}
+.kbrn-nh{font-size:13px;font-weight:600;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+.kbrn-ns{font-size:11px;color:var(--dsw-alias-label-tertiary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kbrn-nok{position:absolute;right:8px;bottom:6px;color:var(--dsw-alias-state-success-primary);display:inline-flex}
+.kbrn-nbad{position:absolute;right:8px;bottom:5px;color:var(--dsw-alias-state-error-primary);font-weight:700;font-size:12px}
+.kbrn-logs{border:1px solid var(--dsw-alias-border-l2);border-radius:14px;background:var(--dsw-alias-bg-layer-2);overflow:hidden}
+.kbrn-lgh{padding:10px 14px;font-weight:600;font-size:13px;border-bottom:1px solid var(--dsw-alias-border-l1)}
+.kbrn-lgb{display:grid;grid-template-columns:240px minmax(0,1fr)}
+@media (max-width:800px){.kbrn-lgb{grid-template-columns:1fr}}
+.kbrn-lgl{border-right:1px solid var(--dsw-alias-border-l1);display:flex;flex-direction:column;max-height:260px;overflow:auto}
+.kbrn-lg{display:flex;align-items:center;gap:8px;border:0;background:transparent;padding:8px 12px;cursor:pointer;font:inherit;color:inherit;text-align:left;font-size:13px}
+.kbrn-lg.on{background:var(--dsw-alias-interactive-bg-active,rgba(0,0,0,.06))}
+.kbrn-lgn{flex:none;width:22px;height:22px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;font-size:11px;color:#fff;background:var(--dsw-alias-label-tertiary)}
+.kbrn-lgn.ok{background:var(--dsw-alias-state-success-primary)}
+.kbrn-lgn.bad{background:var(--dsw-alias-state-error-primary)}
+.kbrn-lgn.trg{background:var(--dsw-alias-state-warn-primary)}
+.kbrn-lgt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kbrn-lgd{min-width:0;display:flex;flex-direction:column}
+.kbrn-iot{display:flex;align-items:center;gap:6px;padding:8px 12px;border-bottom:1px solid var(--dsw-alias-border-l1)}
+.kbrn-tb{border:1px solid var(--dsw-alias-border-l2);background:transparent;border-radius:8px;padding:2px 10px;font:inherit;font-size:12px;cursor:pointer;color:inherit}
+.kbrn-tb.on{background:var(--dsw-alias-label-primary);color:var(--dsw-alias-label-primary-inverted,#fff);border-color:transparent}
+.kbrn-pre{margin:0;padding:12px 14px;font-family:var(--ds-font-family-code,ui-monospace,monospace);font-size:12px;white-space:pre-wrap;overflow-wrap:anywhere;max-height:220px;overflow:auto;color:var(--dsw-alias-label-secondary)}
+.kbrn-jhead{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:12px 0}
+.kbrn-card{padding:14px 16px;display:flex;flex-direction:column;gap:10px;margin:0 0 12px}
+.kbrn-kv{display:flex;gap:12px;flex-wrap:wrap;font-size:13px}
+.kbrn-k{min-width:120px;color:var(--dsw-alias-label-tertiary);font-size:12px;padding-top:1px}
+.kbrn-v{flex:1 1 260px;min-width:0}
+.kbrn-mono{font-family:var(--ds-font-family-code,ui-monospace,monospace)}
+.kbrn-step{display:flex;align-items:center;gap:10px;font-size:13px;padding:6px 0;border-top:1px solid var(--dsw-alias-border-l1)}
+.kbrn-sl{flex:1;min-width:0;overflow-wrap:anywhere}
+.kbrn-lesson{display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:13px}
 .kba-hint{font-size:12.5px;color:var(--dsw-alias-label-tertiary);margin-top:10px}
 /* workflow : Text / Flow / Code */
 .kba-flowwrap{flex:1;min-height:0;display:flex;flex-direction:column;gap:10px}
@@ -29929,25 +31379,34 @@ button.kbbd-chip:hover{background:var(--dsw-alias-interactive-bg-hover,#f0f0f0)}
 .kba-canvaswrap{flex:1;min-height:220px;display:flex;flex-direction:column}
 .kba-canvas{flex:1;min-height:200px;position:relative;overflow:auto;border-radius:12px;border:1px solid var(--dsw-alias-border-l1);background-color:var(--dsw-alias-bg-base);background-image:radial-gradient(color-mix(in srgb,var(--dsw-alias-label-primary) 13%,transparent) 1px,transparent 1px);background-size:20px 20px}
 .kba-zoom{position:relative;margin:12px 0 24px 12px}
-.kba-node{position:absolute;width:208px;height:50px;touch-action:none;user-select:none;border-radius:10px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);display:flex;align-items:center;gap:8px;padding:0 9px;text-align:left;font:inherit;font-size:12px;color:var(--dsw-alias-label-primary);cursor:pointer}
+.kba-node{position:absolute;width:208px;height:56px;overflow:hidden;touch-action:none;user-select:none;border-radius:10px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);display:flex;align-items:center;gap:8px;padding:0 9px;text-align:left;font:inherit;font-size:12px;color:var(--dsw-alias-label-primary);cursor:pointer}
 .kba-node:hover{border-color:var(--dsw-alias-label-secondary)}
 .kba-node.sel{border-color:var(--dsw-alias-brand-primary);background:color-mix(in srgb,var(--dsw-alias-brand-primary) 12%,var(--dsw-alias-bg-layer-2))}
 .kba-cc{width:24px;height:24px;border-radius:7px;display:flex;align-items:center;justify-content:center;flex:none;font-family:ui-monospace,Menlo,monospace;font-size:10.5px;font-weight:600;color:var(--dsw-alias-label-primary-inverted,var(--dsw-alias-label-primary))}
 .cc-trg{background:var(--dsw-alias-state-warn-primary)}.cc-log{background:var(--dsw-alias-label-primary-bluish,var(--dsw-alias-state-business-primary))}.cc-ai{background:var(--dsw-alias-state-business-primary)}.cc-act{background:var(--dsw-alias-state-success-primary)}.cc-hum{background:var(--dsw-alias-state-error-primary)}.cc-gry{background:var(--dsw-alias-state-idle-primary)}
 .kba-ndn{line-height:1.2;min-width:0;flex:1}
-.kba-ndn small{display:block;font-size:10.5px;color:var(--dsw-alias-label-secondary);font-weight:400}
-.kba-nodecard{position:sticky;right:12px;bottom:12px;margin:0 12px 12px auto;width:270px;padding:12px;border-radius:12px;background:var(--dsw-alias-bg-layer-2);border:1px solid var(--dsw-alias-border-l2);box-shadow:var(--dsw-elevation-prominent,0 10px 28px rgba(0,0,0,.18));display:flex;flex-direction:column;gap:5px}
+.kba-ndn>span{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+.kba-ndn small{display:block;font-size:10.5px;color:var(--dsw-alias-label-secondary);font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kba-nodecard{flex:none;align-self:flex-start;width:320px;padding:12px;border-radius:12px;background:var(--dsw-alias-bg-layer-2);border:1px solid var(--dsw-alias-border-l2);box-shadow:var(--dsw-elevation-prominent,0 10px 28px rgba(0,0,0,.18));display:flex;flex-direction:column;gap:5px}
 .kba-nodecard .t{font-size:13.5px;font-weight:600;color:var(--dsw-alias-label-primary)}
 .kba-nodecard .s{font-size:12px;color:var(--dsw-alias-label-secondary);line-height:1.45}
+.kba-flowrow{display:flex;gap:12px;flex:1;min-height:0;align-items:stretch}
+.kba-flowrow .kba-canvas{flex:1;min-width:0}
+.kba-nodecard{gap:8px}
+@media (max-width:900px){.kba-flowrow{flex-direction:column}.kba-nodecard{width:auto;align-self:stretch}}
+.kba-nc-head{display:flex;align-items:center;gap:8px}
+.kba-nc-guard{font-size:10.5px;font-weight:600;padding:1px 7px;border-radius:8px;border:1px solid var(--dsw-alias-state-warn-primary);color:var(--dsw-alias-state-warn-primary)}
+.kba-nc-x{border:0;background:transparent;cursor:pointer;color:var(--dsw-alias-label-secondary);font:inherit;padding:2px 4px}
+.kba-nc-sec{display:flex;flex-direction:column;gap:3px;font-size:12px;border-top:1px solid var(--dsw-alias-border-l1);padding-top:8px}
+.kba-nc-sec .k{font-size:10.5px;color:var(--dsw-alias-label-tertiary)}
+.kba-nc-sec .v{color:var(--dsw-alias-label-primary);line-height:1.45;overflow-wrap:anywhere;white-space:pre-wrap}
+.kba-nc-code{font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:var(--dsw-alias-label-secondary)}
+.kba-nc-foot{display:flex;gap:8px}
 .kba-code{flex:1;min-height:0;overflow:auto;padding:13px 0;border-radius:12px;background:var(--dsw-alias-bg-base);border:1px solid var(--dsw-alias-border-l1)}
 .kba-codein{font-family:ui-monospace,Menlo,monospace;font-size:12.5px;line-height:19px;white-space:pre;padding-right:18px}
 .kba-ln{display:flex}
 .kba-ln i{font-style:normal;width:38px;text-align:right;padding-right:13px;color:var(--dsw-alias-label-tertiary);flex:none;opacity:.7}
 .kba-ln.cm span{color:var(--dsw-alias-label-tertiary)}
-@media (max-width:900px){
-  .kba-srow{grid-template-columns:14px minmax(0,1fr) 110px;row-gap:4px}
-  .kba-srow .kba-moboff{display:none}
-}
 .kb8-search input{flex:1;min-width:0;border:0;background:none;font-size:14px;color:var(--dsw-alias-label-primary);outline:none}
 /* .kb8-primary : défini avec .kba-new-btn plus haut (bouton primaire unifié) */
 .kb8-newmenu-wrap{position:relative;display:inline-flex}
@@ -30022,7 +31481,7 @@ button.kbbd-chip:hover{background:var(--dsw-alias-interactive-bg-hover,#f0f0f0)}
 .kbcs-more:hover{text-decoration:underline}
 .kbcs-more:disabled{cursor:default;opacity:.5}
 .kbcs-line{display:flex;gap:4px;align-items:baseline;min-width:0}
-.kbcs-role{flex:none;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--dsw-alias-label-secondary)}
+.kbcs-role{flex:none;font-size:11px;color:var(--dsw-alias-label-secondary)}
 .kbcs-excerpt{font-size:13px;color:var(--dsw-alias-label-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 .kbcs-mark{background:var(--dsw-alias-state-highlight-primary,rgba(250,204,21,.45));color:inherit;border-radius:3px;padding:0 2px;font-weight:600}
 .kbcs-ws{flex:none;font-size:11px;color:var(--dsw-alias-label-tertiary)}
@@ -30032,6 +31491,17 @@ button.kbbd-chip:hover{background:var(--dsw-alias-interactive-bg-hover,#f0f0f0)}
 .kb8-doccard{display:flex;flex-direction:column;gap:6px;padding:12px;border-radius:15px;background:var(--dsw-alias-bg-layer-2);border:1px solid transparent;cursor:pointer;min-width:0}
 .kb8-doccard:hover{border-color:var(--dsw-alias-border-l1)}
 .kb8-docthumb{display:flex;align-items:center;justify-content:center;gap:8px;height:58px;border-radius:11px;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-secondary)}
+/* <kb-deliv-thumb> */
+.kb8-delthumb{position:relative;display:grid;place-items:center;flex:none;overflow:hidden;border-radius:9px;background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l1)}
+.kb8-delthumb-row{width:112px;height:56px}
+.kb8-delthumb-row>.kb6-prev{position:absolute;left:0;top:0;width:280px;height:140px;transform:scale(.4);transform-origin:0 0;pointer-events:none;cursor:default}
+.kb8-delthumb-row>.kb8-sl-stage{width:100%;height:100%}
+.kb8-delthumb-row>.kb8-sl-stage svg{width:48px;height:33px}
+.kb8-delthumb-row>.kb8-docthumbimg{border-radius:0}
+.kb8-docthumb.kb8-delthumb-card{height:88px;padding:0;overflow:hidden;position:relative;display:block}
+.kb8-docthumb.kb8-delthumb-card>.kb6-prev{height:100%;width:100%;cursor:default}
+.kb8-docthumb.kb8-delthumb-card>.kb8-sl-stage{height:100%}
+/* </kb-deliv-thumb> */
 .kb8-docxt{font-family:ui-monospace,Menlo,monospace;font-size:11px;font-weight:700;letter-spacing:.06em}
 .kb8-docfiche{margin-top:10px;padding:12px;border-radius:11px;background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l1);cursor:default}
 .kb8-docfields{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px 18px}
@@ -30052,7 +31522,7 @@ button.kb8-docdl{background:transparent;font-family:inherit;cursor:pointer}
 .kb8-help-close:hover{background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary)}
 .kb8-help table{width:100%;border-collapse:collapse;font-size:13px}
 .kb8-help th,.kb8-help td{text-align:left;vertical-align:top;padding:8px 10px;border-bottom:1px solid var(--dsw-alias-border-l1);color:var(--dsw-alias-label-secondary)}
-.kb8-help th{font-size:11px;letter-spacing:.06em;text-transform:uppercase}
+.kb8-help th{font-size:11px;}
 .kb8-help td:first-child{width:118px;color:var(--dsw-alias-label-primary);font-weight:600}
 .kb8-help tr:last-child td{border-bottom:none}
 .kb8-help-steps{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;font-size:13.5px;line-height:1.5;color:var(--dsw-alias-label-secondary)}
@@ -30070,14 +31540,19 @@ button.kb8-docdl{background:transparent;font-family:inherit;cursor:pointer}
 .kb8-crew-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(430px,1fr));gap:14px;align-items:start}
 .kb8-crew-card{gap:10px}
 .kb8-crew-h{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
-.kb8-crew-sect{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--dsw-alias-label-secondary);margin-top:2px}
+.kb8-crew-sect{font-size:11px;color:var(--dsw-alias-label-secondary);margin-top:2px}
 /* Sections repliables : même carte que .kb8-card, mais le rembourrage passe sur
    l'en-tête cliquable et le corps, pour que toute la largeur soit cliquable. */
 .kb6-pinbtn.on{color:var(--dsw-alias-state-warn-label, var(--dsw-alias-state-warn-primary, #f5b301));border-color:var(--dsw-alias-state-warn-primary, #f5b301)}
 .kb6-previmg{width:100%;height:100%;object-fit:cover;display:block}
-.kb6-prevkind{display:flex;align-items:center;justify-content:center;opacity:.5;padding:6px 0}
+.kb6-prevkind{display:flex;align-items:center;justify-content:center;padding:6px 0}
+.kb6-prevkind.kb8-sl-stage{height:auto;background:none;padding:2px 0}
+.kb6-prevkind.kb8-sl-stage::before{display:none}
+.kb6-prevkind.kb8-sl-stage svg{width:48px;height:33px}
 /* Vignette + extrait enrichis des rangées Deliverables */
 .kb6-lthumb{width:46px;height:46px;border-radius:10px;flex:none;display:flex;align-items:center;justify-content:center;overflow:hidden;border:1px solid var(--dsw-alias-border-l1)}
+.kb6-lthumb.kb8-sl-stage{height:46px}
+.kb6-lthumb.kb8-sl-stage svg{width:40px;height:27px}
 .kb6-lthumb>img{width:100%;height:100%;object-fit:cover;display:block}
 .kb6-snip{font-family:ui-monospace,Menlo,monospace;font-size:10.5px;line-height:1.55;color:var(--dsw-alias-label-secondary);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-top:2px;white-space:pre-line}
 /* ── Artefacts rejouables : quiz, flashcards, popup ─────────────────────── */
@@ -30158,7 +31633,7 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
 .kbbm-tech{display:grid;grid-template-columns:minmax(0,1fr) minmax(220px,300px);gap:12px;align-items:start}
 .kbbm-tech .kbbm-view{min-width:0}
 .kbbm-legend{display:flex;flex-direction:column;gap:6px;max-height:380px;overflow:auto;padding-right:2px}
-.kbbm-legend-head{display:flex;align-items:baseline;gap:6px;font-size:10.5px;font-weight:650;letter-spacing:.04em;text-transform:uppercase;color:#8a8a87}
+.kbbm-legend-head{display:flex;align-items:baseline;gap:6px;font-size:10.5px;font-weight:650;color:#8a8a87}
 .kbbm-legend-now{margin-left:auto;text-transform:none;letter-spacing:0;font-weight:600;color:#e1502a;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .kbbm-legend-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:5px}
 .kbbm-legend-row{display:flex;gap:8px;padding:7px 9px;border:1px solid var(--dsw-alias-border-l1);border-radius:9px;background:var(--dsw-alias-bg-layer-1);opacity:.62;transition:opacity .18s,border-color .18s}
@@ -30238,7 +31713,7 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
 /* Matrice déclaré/exécuté : une ligne = un rôle, colonnes alignées. */
 .kb8-mx{display:flex;flex-direction:column;gap:6px}
 .kb8-mx-r{display:grid;grid-template-columns:140px 118px 150px 104px minmax(110px,1fr) 88px 76px 80px;gap:8px;align-items:center;padding:7px 10px;border-radius:10px;border:1px solid transparent;font-size:12.5px}
-.kb8-mx-r.h{font-family:ui-monospace,monospace;font-size:10px;letter-spacing:.04em;text-transform:uppercase;color:var(--dsw-alias-label-secondary);border-bottom:1px solid var(--dsw-alias-border-l1);border-radius:0;padding-bottom:8px}
+.kb8-mx-r.h{font-family:ui-monospace,monospace;font-size:10px;color:var(--dsw-alias-label-secondary);border-bottom:1px solid var(--dsw-alias-border-l1);border-radius:0;padding-bottom:8px}
 .kb8-mx-r.b{background:var(--dsw-alias-bg-layer-2)}
 .kb8-mx-r.b:hover{border-color:var(--dsw-alias-border-l1)}
 .kb8-mx-r.gap{border-left:2px solid var(--dsw-alias-state-error-primary, rgba(239,68,68,.6))}
@@ -30255,6 +31730,16 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
 .kb9-card{background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l1);border-radius:16px;overflow:hidden}
 .kb9-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
 .kb9-empty{display:flex;flex-direction:column;align-items:center;gap:10px;padding:80px 24px;background:var(--dsw-alias-bg-layer-1);border:1px dashed var(--dsw-alias-border-l1);border-radius:18px;text-align:center;color:var(--dsw-alias-label-secondary)}
+.kb9-emptyx{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:34px 24px;min-height:220px;background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l1);border-radius:16px;text-align:center}
+.kb9-emptyx-art{width:84px;height:62px;flex:none}
+.kb9-emptyx-art .l{fill:var(--dsw-alias-bg-layer-1);stroke:var(--dsw-alias-label-tertiary);stroke-width:1.5;stroke-linejoin:round;stroke-linecap:round}
+.kb9-emptyx-art path.l{fill:none}
+.kb9-emptyx-art .f{fill:var(--dsw-alias-bg-layer-2);stroke:var(--dsw-alias-label-tertiary);stroke-width:1.5}
+.kb9-emptyx-art .a{fill:var(--dsw-alias-label-primary);stroke:none}
+.kb9-emptyx-art .p{fill:none;stroke:var(--dsw-alias-bg-layer-1);stroke-width:2;stroke-linecap:round}
+.kb9-emptyx-t{margin-top:6px;font-size:15px;font-weight:600;color:var(--dsw-alias-label-primary)}
+.kb9-emptyx-p{margin:0;max-width:42ch;font-size:13px;line-height:1.5;color:var(--dsw-alias-label-secondary)}
+.kb9-emptyx-b{margin-top:6px}
 .kb9-bar{height:6px;border-radius:3px;background:var(--dsw-alias-bg-layer-2);overflow:hidden}
 .kb9-bar span{display:block;height:100%;background:var(--dsw-alias-brand-primary)}
 .kba-page{display:flex;flex-direction:column;gap:26px;width:100%;max-width:none;box-sizing:border-box;padding:30px 28px 36px;padding-left:max(28px,calc((100% - 1124px) / 2));padding-right:max(28px,calc((100% - 1124px) / 2));max-height:100%;overflow-y:auto;min-height:0}
@@ -31076,7 +32561,7 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
 .kbfb-types{display:flex;gap:6px;flex-wrap:wrap}
 .kbfb-type{height:36px;padding:0 14px;border:1px solid var(--dsw-alias-border-l2);border-radius:18px;background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;cursor:pointer}
 .kbfb-type.on{background:var(--dsw-alias-button-primary-fill);border-color:transparent;color:var(--dsw-alias-label-primary-foreground)}
-.kbfb-lab{font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--dsw-alias-label-tertiary)}
+.kbfb-lab{font-size:12px;font-weight:600;color:var(--dsw-alias-label-tertiary)}
 .kbfb-msg,.kbfb-manual{box-sizing:border-box;width:100%;resize:vertical;padding:10px 12px;border:1px solid var(--dsw-alias-border-l2);border-radius:10px;background:var(--dsw-alias-bg-base);color:var(--dsw-alias-label-primary);font:inherit;font-size:14px}
 .kbfb-msg:focus,.kbfb-manual:focus{outline:none;border-color:var(--dsw-alias-brand-primary)}
 .kbfb-manual{font-family:var(--ds-font-family-code,monospace);font-size:12px}
@@ -31398,7 +32883,7 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
 .kbu-rel-x{flex:0 0 auto;width:24px;height:24px;padding:0;border:none;border-radius:8px;background:transparent;color:var(--dsw-alias-label-secondary);display:flex;align-items:center;justify-content:center;cursor:pointer}
 .kbu-rel-x:hover{background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary)}
 .kbu-rel-code{margin-top:12px}
-.kbu-rel-cl{display:block;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--dsw-alias-label-secondary)}
+.kbu-rel-cl{display:block;font-size:11px;color:var(--dsw-alias-label-secondary)}
 .kbu-rel-cv{display:flex;align-items:center;gap:8px;margin-top:5px}
 .kbu-rel-code-v{flex:1 1 auto;min-width:0;padding:9px 11px;border-radius:11px;border:1px dashed color-mix(in srgb,#f59e0b 42%,transparent);background:color-mix(in srgb,#f59e0b 8%,transparent);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:17px;font-weight:700;letter-spacing:.14em;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .kbu-rel-mini{flex:0 0 auto;height:30px;padding:0 10px;border-radius:9px;border:1px solid var(--dsw-alias-border-l2);background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:11.5px;cursor:pointer}
@@ -31536,27 +33021,32 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
           h('button', { type: 'button', className: 'kbac-link-btn', onClick: () => { kbOpenSettingsSection(['theme']) } }, kbt('kbac.appearance.openTheme'))))
     }
     // Settings > Automations: where automations live, and two switches (the rules are in automation-settings.mjs).
+    // How many runs in a row without a failure make an automation stable (the same choices as automation-settings.mjs).
+    const KB_STABLE_CHOICES = [3, 5, 10, 20]
+    const kbStableChoice = (n) => (KB_STABLE_CHOICES.indexOf(n) >= 0 ? n : 5)
     const KbAutomationsSettings = () => {
-      const pair = React.useState({ loaded: false, showNativeTasks: false, paused: false, error: false, unavailable: false })
+      const pair = React.useState({ loaded: false, showNativeTasks: false, paused: false, autoSkill: false, stableAfter: 5, error: false, unavailable: false })
       const st = pair[0]
       React.useEffect(() => {
         let alive = true
         // A host that predates the route answers 404: the page says so instead of offering switches that cannot save.
         fetch('/kybernos/automation-settings', { cache: 'no-store', credentials: 'same-origin' }).then((r) => (r.ok ? r.json() : null)).then((j) => {
           if (alive !== true) return
-          if (j !== null && typeof j === 'object' && j.ok === true) pair[1]({ loaded: true, showNativeTasks: j.showNativeTasks === true, paused: j.paused === true, error: false, unavailable: false })
+          if (j !== null && typeof j === 'object' && j.ok === true) pair[1]({ loaded: true, showNativeTasks: j.showNativeTasks === true, paused: j.paused === true, autoSkill: j.autoSkill === true, stableAfter: kbStableChoice(j.stableAfter), error: false, unavailable: false })
           else pair[1]((x) => Object.assign({}, x, { loaded: true, unavailable: true }))
         }).catch(() => { if (alive === true) pair[1]((x) => Object.assign({}, x, { loaded: true, unavailable: true })) })
         return () => { alive = false }
       }, [])
       const change = (key, value) => {
+        const before = st[key]
         pair[1]((x) => Object.assign({}, x, { [key]: value, error: false }))
         fetch('/kybernos/automation-settings', { method: 'POST', headers: { 'content-type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ [key]: value }) })
           .then((r) => r.json().catch(() => null)).then((j) => {
-            if (j === null || j.ok !== true) { pair[1]((x) => Object.assign({}, x, { [key]: !value, error: true })); return }
-            pair[1]({ loaded: true, showNativeTasks: j.showNativeTasks === true, paused: j.paused === true, error: false })
-            try { window.dispatchEvent(new CustomEvent('kybernos:automation-settings', { detail: { showNativeTasks: j.showNativeTasks === true, paused: j.paused === true } })) } catch (e) { /* no window events here */ }
-          }).catch(() => { pair[1]((x) => Object.assign({}, x, { [key]: !value, error: true })) })
+            if (j === null || j.ok !== true) { pair[1]((x) => Object.assign({}, x, { [key]: before, error: true })); return }
+            const next = { showNativeTasks: j.showNativeTasks === true, paused: j.paused === true, autoSkill: j.autoSkill === true, stableAfter: kbStableChoice(j.stableAfter) }
+            pair[1](Object.assign({ loaded: true, error: false }, next))
+            try { window.dispatchEvent(new CustomEvent('kybernos:automation-settings', { detail: next })) } catch (e) { /* no window events here */ }
+          }).catch(() => { pair[1]((x) => Object.assign({}, x, { [key]: before, error: true })) })
       }
       const sw = (key, labelKey, descKey) => h('div', { className: 'kbac-row', key, 'data-kb': 'automation-setting-' + key },
         h('div', { className: 'kbac-row-txt' }, h('span', { className: 'kbac-row-l' }, kbt(labelKey)), h('span', { className: 'kbac-row-d' }, kbt(descKey))),
@@ -31572,6 +33062,11 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
         h('div', { className: 'kbac-list' },
           sw('paused', 'kbauto.set.paused', 'kbauto.set.paused.d'),
           sw('showNativeTasks', 'kbauto.set.native', 'kbauto.set.native.d'),
+          sw('autoSkill', 'kbauto.set.skill', 'kbauto.set.skill.d'),
+          h('div', { className: 'kbac-row', key: 'stableAfter', 'data-kb': 'automation-setting-stableAfter' },
+            h('div', { className: 'kbac-row-txt' }, h('span', { className: 'kbac-row-l' }, kbt('kbauto.set.stable')), h('span', { className: 'kbac-row-d' }, kbt('kbauto.set.stable.d'))),
+            h('span', { className: 'kbac-seg', role: 'group', 'aria-label': kbt('kbauto.set.stable') }, KB_STABLE_CHOICES.map((n) => h('button', { key: n, type: 'button', className: 'kbac-segb' + (st.stableAfter === n ? ' on' : ''), 'aria-pressed': st.stableAfter === n ? 'true' : 'false', 'data-kb': 'stable-' + n,
+              onClick: () => { if (st.unavailable !== true && st.stableAfter !== n) change('stableAfter', n) } }, String(n))))),
           h('div', { className: 'kbac-row', key: 'where' }, h('div', { className: 'kbac-row-txt' }, h('span', { className: 'kbac-row-d' }, kbt('kbauto.set.where'))))),
         st.unavailable === true ? h('p', { className: 'kb8-sub', role: 'status' }, kbt('kbauto.set.unavailable')) : null,
         st.error === true ? h('p', { className: 'kb8-sub', role: 'alert' }, kbt('kbauto.set.error')) : null)
@@ -31592,6 +33087,9 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
 .kbac-row-d{font-size:13px;line-height:1.45;color:var(--dsw-alias-label-secondary)}
 .kbac-btn{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:32px;padding:0 12px;border-radius:10px;border:1px solid var(--dsw-alias-border-l2);background:transparent;color:var(--dsw-alias-label-primary);font:inherit;font-size:13px;text-decoration:none;cursor:pointer;white-space:nowrap}
 .kbac-btn:hover{background:var(--dsw-alias-interactive-bg-hover)}
+.kbac-seg{display:inline-flex;gap:2px;padding:3px;border-radius:999px;background:var(--dsw-alias-bg-layer-2);border:1px solid var(--dsw-alias-border-l1);flex:none}
+.kbac-segb{border:0;background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:13px;font-weight:600;min-width:34px;height:28px;border-radius:999px;cursor:pointer}
+.kbac-segb.on{background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);box-shadow:0 1px 3px rgba(20,20,19,.14)}
 .kbac-hint{margin:0;font-size:13px;line-height:1.5;color:var(--dsw-alias-label-secondary)}
 .kbac-themes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
 .kbac-theme{display:flex;flex-direction:column;gap:12px;padding:12px;border-radius:14px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);font:inherit;text-align:start;cursor:pointer}
@@ -31627,8 +33125,8 @@ body:not([data-ds-dark-theme]) .kbac-theme-cur{color:color-mix(in srgb,var(--dsw
       // to the tail, after the groups and before About.
       const GROUPES = [
         { id: 'general', titre: null, mots: ['general', 'mon espace', 'my workspace'] },
-        { id: 'models', titre: kbt('settings.group.models'), pliable: true, icone: 'ai provider & models', mots: [
-          'fournisseur ia & modeles', 'ai provider & models', 'ai providers & models',
+        { id: 'models', titre: kbt('settings.group.models'), pliable: true, icone: 'models & routing', mots: [
+          'fournisseur ia et modeles', 'ai provider and models',
           'auto routing',
           'free llms',
           'ollama local models',
@@ -31639,7 +33137,7 @@ body:not([data-ds-dark-theme]) .kbac-theme-cur{color:color-mix(in srgb,var(--dsw
         { id: 'memory', titre: kbt('settings.group.memory'), pliable: true, icone: 'memory & lessons', mots: ['memory & lessons', 'kybernos', 'atlas'] },
         { id: 'voice', titre: kbt('settings.group.voice'), pliable: true, icone: 'voice', mots: ['voix', 'voice', 'calls', 'appels'] },
         { id: 'look', titre: kbt('settings.group.look'), pliable: true, icone: 'appearance', mots: ['apparence', 'appearance', 'theme', 'langue', 'language'] },
-        { id: 'devices', titre: kbt('settings.group.devices'), pliable: true, icone: 'servers', mots: ['serveurs', 'servers', 'cloud computers', 'remote control'] },
+        { id: 'devices', titre: kbt('settings.group.devices'), pliable: true, icone: 'servers', mots: ['serveurs', 'servers', 'cloud computers', 'phone and channels'] },
         { id: 'system', titre: kbt('settings.group.system'), pliable: true, icone: 'kybernos suite', mots: ['kybernos suite', 'plugins', 'listing', 'built-in plugins', 'models', 'plugins kybernos', 'kybernos plugins', 'about', 'a propos'] }
       ]
       // The open group is remembered under one key of its own (the shared fold store keeps booleans, an accordion needs a name).
@@ -31674,9 +33172,10 @@ body:not([data-ds-dark-theme]) .kbac-theme-cur{color:color-mix(in srgb,var(--dsw
         'mon espace': '<path d="M4 21V5a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v16M14 10h5a1 1 0 0 1 1 1v10M2 21h20M8 8h2M8 12h2M8 16h2" ' + trait + '/>',
         'atlas': '<polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21" ' + trait + '/><line x1="9" y1="3" x2="9" y2="18" ' + trait + '/><line x1="15" y1="6" x2="15" y2="21" ' + trait + '/>',
         'usage': '<path d="m12 14 4-4" ' + trait + '/><path d="M3.34 19a10 10 0 1 1 17.32 0" ' + trait + '/>',
-        'fournisseur ia & modeles': '<path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4" ' + trait + '/>' + '<path d="m21 2-9.6 9.6" ' + trait + '/>' + '<circle cx="7.5" cy="15.5" r="5.5" ' + trait + '/>',
-        'ai provider & models': '<path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4" ' + trait + '/>' + '<path d="m21 2-9.6 9.6" ' + trait + '/>' + '<circle cx="7.5" cy="15.5" r="5.5" ' + trait + '/>',
-        'ai providers & models': '<path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4" ' + trait + '/>' + '<path d="m21 2-9.6 9.6" ' + trait + '/>' + '<circle cx="7.5" cy="15.5" r="5.5" ' + trait + '/>',
+        'fournisseur ia et modeles': '<rect x="16" y="16" width="6" height="6" rx="1" ' + trait + '/>' + '<rect x="2" y="16" width="6" height="6" rx="1" ' + trait + '/>' + '<rect x="9" y="2" width="6" height="6" rx="1" ' + trait + '/>' + '<path d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3" ' + trait + '/>' + '<path d="M12 12V8" ' + trait + '/>',
+        'ai provider and models': '<rect x="16" y="16" width="6" height="6" rx="1" ' + trait + '/>' + '<rect x="2" y="16" width="6" height="6" rx="1" ' + trait + '/>' + '<rect x="9" y="2" width="6" height="6" rx="1" ' + trait + '/>' + '<path d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3" ' + trait + '/>' + '<path d="M12 12V8" ' + trait + '/>',
+        // The « Models & routing » group keeps the key it always wore: the page inside it has its own drawing now (no two entries share one).
+        'models & routing': '<path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4" ' + trait + '/>' + '<path d="m21 2-9.6 9.6" ' + trait + '/>' + '<circle cx="7.5" cy="15.5" r="5.5" ' + trait + '/>',
         'models': '<path d="M12 2 2 7l10 5 10-5-10-5z" ' + trait + '/><path d="M2 12l10 5 10-5" ' + trait + '/><path d="M2 17l10 5 10-5" ' + trait + '/>',
         'voix': '<path d="M2 10v3" ' + trait + '/>' + '<path d="M6 6v11" ' + trait + '/>' + '<path d="M10 3v18" ' + trait + '/>' + '<path d="M14 8v7" ' + trait + '/>' + '<path d="M18 5v13" ' + trait + '/>' + '<path d="M22 10v3" ' + trait + '/>',
         'voice': '<path d="M2 10v3" ' + trait + '/>' + '<path d="M6 6v11" ' + trait + '/>' + '<path d="M10 3v18" ' + trait + '/>' + '<path d="M14 8v7" ' + trait + '/>' + '<path d="M18 5v13" ' + trait + '/>' + '<path d="M22 10v3" ' + trait + '/>',
@@ -31704,7 +33203,7 @@ body:not([data-ds-dark-theme]) .kbac-theme-cur{color:color-mix(in srgb,var(--dsw
         'connectors': '<path d="M12 22v-5M9 8V2M15 8V2" ' + trait + '/><path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8z" ' + trait + '/>',
         'cloud computers': '<path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z" ' + trait + '/>',
         'free llms': '<path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2z" ' + trait + '/><path d="M13 5v2M13 11v2M13 17v2" ' + trait + '/>',
-        'remote control': '<rect x="5" y="2" width="14" height="20" rx="2" ry="2" ' + trait + '/><path d="M12 18h.01" ' + trait + '/>',
+        'phone and channels': '<rect x="5" y="2" width="14" height="20" rx="2" ry="2" ' + trait + '/><path d="M12 18h.01" ' + trait + '/>',
         'calls': '<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z" ' + trait + '/>',
       }
       // LANGUAGE variants of the titles: under a translated language the title drawn on a cell is no longer French or English and the match
@@ -31971,7 +33470,7 @@ html:not([data-kb-all-pages]) [class*="navList"][data-kb-settings] [data-kb-fold
           pending: { label: kbe('Awaiting a human'), tone: 'wait', pulse: 1 },
           error: { label: kbe('Failed'), tone: 'err' },
         }
-        const WV_TRIG = { webhook: 'WEBHOOK', human: kbe('HUMAN'), cron: 'CRON', agent: 'AGENT' }
+        const WV_TRIG = { webhook: 'WEBHOOK', human: kbe('Human'), cron: 'CRON', agent: 'AGENT' }
         const WV_SECS = [['tl', kbe('Timeline')], ['graph', kbe('Graph')], ['cascade', 'Cascade'], ['detail', kbe('Step detail')], ['analyse', kbe('Analysis')]]
         const WV_EDGE = {
           ok: { cls: 'e-ok', dash: 'none', w: 1.5 },
@@ -32008,7 +33507,7 @@ html:not([data-kb-all-pages]) [class*="navList"][data-kb-settings] [data-kb-fold
 .wv2-h2{margin:0;font-size:15px;font-weight:600}
 .wv2-h3{margin:0;font-size:14px;font-weight:600;white-space:nowrap}
 .wv2-hint{font-family:var(--wv-mono);font-size:11px;color:var(--wv-mut);min-width:0;text-align:end}
-.wv2-lbl{font-size:11px;color:var(--wv-mut);text-transform:uppercase;letter-spacing:.6px}
+.wv2-lbl{font-size:11px;color:var(--wv-mut);}
 .wv2-grow{flex-grow:1}
 /* pastille LED d état */
 .wv2-led{width:8px;height:8px;border-radius:50%;flex-shrink:0;background:var(--wv-idle)}
@@ -32057,7 +33556,7 @@ html:not([data-kb-all-pages]) [class*="navList"][data-kb-settings] [data-kb-fold
 .wv2-kpis{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:10px}
 @media (max-width:1280px){.wv2-kpis{grid-template-columns:repeat(4,minmax(0,1fr))}}
 .wv2-kpi{display:flex;flex-direction:column;gap:3px;padding:10px 12px;background:var(--wv-box);border:1px solid var(--wv-line2);border-radius:8px;min-width:0}
-.wv2-kpi .k{font-size:11px;color:var(--wv-mut);text-transform:uppercase;letter-spacing:.5px}
+.wv2-kpi .k{font-size:11px;color:var(--wv-mut);}
 .wv2-kpi .v{font-family:var(--wv-mono);font-size:16px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .wv2-kpi .s{font-family:var(--wv-mono);font-size:10.5px;color:var(--wv-mut);line-height:1.35;min-height:28px}
 /* chronologie */
@@ -32087,7 +33586,7 @@ html:not([data-kb-all-pages]) [class*="navList"][data-kb-settings] [data-kb-fold
 .wv2-tag{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:999px;font-family:var(--wv-mono);font-size:10px;letter-spacing:.5px;
   border:1px solid var(--wv-line2);color:var(--wv-mut)}
 .wv2-stat{display:flex;flex-direction:column;gap:1px}
-.wv2-stat .k{font-size:10.5px;color:var(--wv-faint);text-transform:uppercase;letter-spacing:.5px}
+.wv2-stat .k{font-size:10.5px;color:var(--wv-faint);}
 .wv2-stat .v{font-family:var(--wv-mono);font-size:13px}
 .wv2-canvas{position:relative;height:290px;border-radius:8px;background:var(--wv-box);border:1px solid var(--wv-line2);overflow-x:auto;overflow-y:hidden}
 .wv2-grid{position:absolute;inset:0;background-image:radial-gradient(var(--wv-line2) 1px,transparent 1px);background-size:24px 24px}
@@ -32980,7 +34479,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
           // l'enfant — un journal de sous-tâche ne se présente jamais comme
           // celui de la tâche.
           const subTask = S.lineage !== null && S.lineage !== undefined
-          const idLine = (subTask ? kbe('SUB-TASK') : 'SESSION ' + M.src.meta.id)
+          const idLine = (subTask ? kbe('Sub-task') : 'SESSION ' + M.src.meta.id)
             + (subTask && S.lineage.parentSession ? ' · ' + kbe('parent ') + String(S.lineage.parentSession).slice(0, 8) : '')
             + ' · workspace ' + M.src.meta.workspace + ' · ' + M.src.meta.date
           const head = El('header', { className: 'wv2-panel wv2-head', style: { position: 'relative' } },
@@ -33211,7 +34710,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
           const detail = S.sec.detail ? El('aside', { className: 'wv2-aside', style: { width: S.sec.cascade ? 380 : '100%' } },
             El('div', { style: { display: 'flex', flexDirection: 'column', gap: 6 } },
               El('div', { className: 'wv2-mono', style: { fontSize: 11, letterSpacing: '.8px', color: actVar(sel.act) } },
-                M.run.id + kbe(' · STEP ') + sel.num + ' · ' + WV_ACT[sel.act].label),
+                M.run.id + kbe(' · Step ') + sel.num + ' · ' + WV_ACT[sel.act].label),
               El('h2', { style: { margin: 0, fontSize: 18, fontWeight: 600 } }, sel.name),
               El('div', { style: { display: 'flex', alignItems: 'center', gap: 6 } },
                 WV2Led(sel.tone, sel.pulse),
@@ -33376,9 +34875,9 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       'key.g2': ['Create a key — call it “Kybernos”.', 'Crée une clé — appelle-la « Kybernos ».', 'Crea una clave y llámala «Kybernos».', 'أنشئ مفتاحًا وسمّه «Kybernos».'],
       'key.g3': ['Copy it, then paste it below.', 'Copie-la, puis colle-la ci-dessous.', 'Cópiala y pégala abajo.', 'انسخه ثم الصقه أدناه.'],
       'key.o1': ['In your provider’s console, get the service address and your key.', 'Dans l’espace de ton fournisseur, récupère l’adresse du service et ta clé.', 'En el panel de tu proveedor, obtén la dirección del servicio y tu clave.', 'من لوحة مزوّدك، احصل على عنوان الخدمة ومفتاحك.'],
-      'key.o2': ['You’ll paste them in Settings → AI Provider & Models.', 'Tu les colleras dans Réglages → Fournisseur IA & modèles.', 'Las pegarás en Ajustes → AI Provider & Models.', 'ستلصقهما في الإعدادات ← AI Provider & Models.'],
+      'key.o2': ['You’ll paste them in Settings → AI provider and models.', 'Tu les colleras dans Réglages → Fournisseur IA et modèles.', 'Las pegarás en Ajustes → AI provider and models.', 'ستلصقهما في الإعدادات ← AI provider and models.'],
       'key.note': ['The key stays on this computer and is only sent to your provider. Some providers ask for a payment method before you can create one.', 'La clé reste sur cet ordinateur et n’est envoyée qu’à ton fournisseur. Certains demandent un moyen de paiement avant d’en créer une.', 'La clave se queda en este ordenador y solo se envía a tu proveedor. Algunos piden un método de pago antes de crear una.', 'يبقى المفتاح على هذا الحاسوب ولا يُرسل إلا إلى مزوّدك. بعض المزوّدين يطلبون وسيلة دفع قبل إنشاء مفتاح.'],
-      'key.open': ['Open Settings → AI Provider & Models', 'Ouvrir Réglages → Fournisseur IA & modèles', 'Abrir Ajustes → AI Provider & Models', 'فتح الإعدادات ← AI Provider & Models'],
+      'key.open': ['Open Settings → AI provider and models', 'Ouvrir Réglages → Fournisseur IA et modèles', 'Abrir Ajustes → AI provider and models', 'فتح الإعدادات ← AI provider and models'],
       'key.nokey': ['No key? We’ll handle it — sign in instead', 'Pas de clé ? On s’en occupe — me connecter', '¿Sin clave? Nos encargamos: iniciar sesión', 'لا مفتاح؟ نتولى الأمر — سجّل الدخول'],
       'loc.t': ['A model on this computer', 'Un modèle sur cet ordinateur', 'Un modelo en este ordenador', 'نموذج على هذا الحاسوب'],
       'loc.s': ['Free and private: nothing leaves your machine. In return it’s slower and less capable than an online model on long tasks.', 'Gratuit et privé : rien ne quitte ta machine. En contrepartie, c’est plus lent et moins capable qu’un modèle en ligne sur les longues tâches.', 'Gratis y privado: nada sale de tu equipo. A cambio, es más lento y menos capaz que un modelo en línea en tareas largas.', 'مجاني وخاص: لا شيء يغادر جهازك. في المقابل هو أبطأ وأقل قدرة من نموذج عبر الإنترنت في المهام الطويلة.'],
@@ -33389,7 +34888,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       'loc.engine.no': ['Ollama — to install', 'Ollama — à installer', 'Ollama — por instalar', 'Ollama — يلزم تثبيته'],
       'loc.pulled': ['Models on this machine', 'Modèles sur cette machine', 'Modelos en este equipo', 'النماذج على هذا الجهاز'],
       'loc.pulled.n': ['{n}', '{n}', '{n}', '{n}'],
-      'loc.hint': ['Settings → AI Provider & Models shows what fits your machine and installs it for you.', 'Réglages → Fournisseur IA & modèles te montre ce qui tient sur ta machine et l’installe pour toi.', 'Ajustes → AI Provider & Models te muestra lo que cabe en tu equipo y lo instala por ti.', 'تعرض لك الإعدادات ← AI Provider & Models ما يناسب جهازك وتثبّته لك.'],
+      'loc.hint': ['Settings → AI provider and models shows what fits your machine and installs it for you.', 'Réglages → Fournisseur IA et modèles te montre ce qui tient sur ta machine et l’installe pour toi.', 'Ajustes → AI provider and models te muestra lo que cabe en tu equipo y lo instala por ti.', 'تعرض لك الإعدادات ← AI provider and models ما يناسب جهازك وتثبّته لك.'],
       'loc.go': ['Open local models', 'Ouvrir les modèles locaux', 'Abrir modelos locales', 'فتح النماذج المحلية'],
       'loc.other': ['Choose another way', 'Choisir autrement', 'Elegir otra opción', 'اختيار طريقة أخرى'],
       'fin.t': ['You’re all set', 'C’est prêt', 'Todo listo', 'كل شيء جاهز'],
@@ -33412,7 +34911,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       'key.err.invalid': ['{name} answered “invalid key”. Check that it’s complete, with no spaces, and that it comes from {name}.', '{name} a répondu « clé invalide ». Vérifie qu’elle est complète, sans espace, et qu’elle vient bien de {name}.', '{name} respondió «clave no válida». Comprueba que esté completa, sin espacios, y que sea de {name}.', 'أجاب {name} «مفتاح غير صالح». تأكد من أنه كامل وبلا مسافات وأنه من {name}.'],
       'key.err.denied': ['{name} refused this key. Check its permissions, and that billing is set up on your {name} account.', '{name} a refusé cette clé. Vérifie ses autorisations et que la facturation est activée sur ton compte {name}.', '{name} rechazó esta clave. Comprueba sus permisos y que la facturación esté activada en tu cuenta de {name}.', 'رفض {name} هذا المفتاح. تحقق من صلاحياته ومن تفعيل الفوترة في حسابك لدى {name}.'],
       'key.err.unreach': ['We couldn’t reach {name} to check it. Check your connection, or save it anyway and you’ll see at your first message.', 'On n’a pas pu joindre {name} pour la vérifier. Vérifie ta connexion, ou enregistre-la quand même et tu verras au premier message.', 'No hemos podido contactar con {name} para comprobarla. Comprueba tu conexión o guárdala igualmente y lo verás en tu primer mensaje.', 'تعذّر الوصول إلى {name} للتحقق. تحقق من اتصالك أو احفظه على أي حال وسترى عند أول رسالة.'],
-      'key.err.fail': ['The key could not be saved. You can add it in Settings → AI Provider & Models.', 'La clé n’a pas pu être enregistrée. Tu peux l’ajouter dans Réglages → Fournisseur IA & modèles.', 'No se pudo guardar la clave. Puedes añadirla en Ajustes → AI Provider & Models.', 'تعذّر حفظ المفتاح. يمكنك إضافته من الإعدادات ← AI Provider & Models.'],
+      'key.err.fail': ['The key could not be saved. You can add it in Settings → AI provider and models.', 'La clé n’a pas pu être enregistrée. Tu peux l’ajouter dans Réglages → Fournisseur IA et modèles.', 'No se pudo guardar la clave. Puedes añadirla en Ajustes → AI provider and models.', 'تعذّر حفظ المفتاح. يمكنك إضافته من الإعدادات ← AI provider and models.'],
       'key.again': ['Check again', 'Vérifier à nouveau', 'Comprobar de nuevo', 'تحقق مجددًا'],
       'key.anyway': ['Save anyway', 'Enregistrer quand même', 'Guardar igualmente', 'احفظ على أي حال'],
       'key.done.t': ['Key saved', 'Clé enregistrée', 'Clave guardada', 'تم حفظ المفتاح'],
@@ -33432,7 +34931,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       'loc.err.noengine': ['Ollama isn’t installed, and it can’t be installed from here on this system. Install it from ollama.com/download, then come back.', 'Ollama n’est pas installé, et il ne peut pas l’être d’ici sur ce système. Installe-le depuis ollama.com/download, puis reviens.', 'Ollama no está instalado y no se puede instalar desde aquí en este sistema. Instálalo desde ollama.com/download y vuelve.', 'Ollama غير مثبّت ولا يمكن تثبيته من هنا على هذا النظام. ثبّته من ollama.com/download ثم عد.'],
       'loc.err.busy': ['Another installation is already running. Wait for it to finish, then try again.', 'Une autre installation est déjà en cours. Attends qu’elle se termine, puis réessaie.', 'Ya hay otra instalación en curso. Espera a que termine y vuelve a intentarlo.', 'هناك تثبيت آخر قيد التنفيذ. انتظر حتى ينتهي ثم أعد المحاولة.'],
       'loc.err.failed': ['The download stopped before the end. You can try again.', 'Le téléchargement s’est arrêté avant la fin. Tu peux réessayer.', 'La descarga se detuvo antes del final. Puedes volver a intentarlo.', 'توقف التنزيل قبل اكتماله. يمكنك المحاولة مجددًا.'],
-      'loc.err.connect': ['{id} is downloaded but couldn’t be connected. Open Settings → Ollama Local Models to connect it.', '{id} est téléchargé mais n’a pas pu être branché. Ouvre Réglages → Ollama Local Models pour le brancher.', '{id} se descargó pero no se pudo conectar. Abre Ajustes → Ollama Local Models para conectarlo.', 'تم تنزيل {id} لكن تعذّر ربطه. افتح الإعدادات ← Ollama Local Models لربطه.'],
+      'loc.err.connect': ['{id} is downloaded but couldn’t be connected. Open Settings → Ollama local models to connect it.', '{id} est téléchargé mais n’a pas pu être branché. Ouvre Réglages → Ollama local models pour le brancher.', '{id} se descargó pero no se pudo conectar. Abre Ajustes → Ollama local models para conectarlo.', 'تم تنزيل {id} لكن تعذّر ربطه. افتح الإعدادات ← Ollama local models لربطه.'],
       'fin.key': ['API key · {name}', 'Clé API · {name}', 'Clave API · {name}', 'مفتاح API · {name}'],
       'fin.local.n': ['Local model · {id}', 'Modèle local · {id}', 'Modelo local · {id}', 'نموذج محلي · {id}'],
       'nm.t': ['This chat can’t answer yet', 'Ce chat ne peut pas encore répondre', 'Este chat aún no puede responder', 'لا يمكن لهذه المحادثة أن تجيب بعد'],
@@ -33455,7 +34954,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       'nm.none.signin': ['Sign in to Kybernos', 'Me connecter à Kybernos', 'Iniciar sesión en Kybernos', 'تسجيل الدخول إلى Kybernos'],
       'nm.none.add': ['Add a model', 'Ajouter un modèle', 'Añadir un modelo', 'إضافة نموذج'],
       'fin0.t': ['You can start', 'Tu peux commencer', 'Ya puedes empezar', 'يمكنك البدء'],
-      'fin0.s': ['Your agents will need a model to answer. Connect one whenever you like, in Settings → AI Provider & Models.', 'Pour que tes agents répondent, il faudra un modèle. Branches-en un quand tu veux, dans Réglages → Fournisseur IA & modèles.', 'Tus agentes necesitarán un modelo para responder. Conecta uno cuando quieras, en Ajustes → AI Provider & Models.', 'سيحتاج وكلاؤك إلى نموذج ليجيبوا. اربط واحدًا متى شئت من الإعدادات ← AI Provider & Models.'],
+      'fin0.s': ['Your agents will need a model to answer. Connect one whenever you like, in Settings → AI provider and models.', 'Pour que tes agents répondent, il faudra un modèle. Branches-en un quand tu veux, dans Réglages → Fournisseur IA et modèles.', 'Tus agentes necesitarán un modelo para responder. Conecta uno cuando quieras, en Ajustes → AI provider and models.', 'سيحتاج وكلاؤك إلى نموذج ليجيبوا. اربط واحدًا متى شئت من الإعدادات ← AI provider and models.'],
       // The model question (two answers, the other ways one quiet line below).
       'm.t': ['Which models should Kybernos use?', 'Quels modèles Kybernos doit-il utiliser ?', '¿Qué modelos debe usar Kybernos?', 'أي النماذج يجب أن يستخدمها Kybernos؟'],
       'm.s': ['You can change this any time in Settings.', 'Tu pourras changer cela à tout moment dans Réglages.', 'Podrás cambiarlo en cualquier momento en Ajustes.', 'يمكنك تغيير ذلك في أي وقت من الإعدادات.'],
@@ -35219,7 +36718,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       '.kb-ob-actions-row .kb-ob-ghost{align-self:center}',
       '.kb-ob-kitbox{margin-top:24px}',
       '.kb-ob-sticky{position:sticky;bottom:0;margin-top:12px;padding:14px 0;background:var(--bg);z-index:2}',
-      '.kb-ob-kitgrp{margin:0 0 10px;font-size:12px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:var(--ink3);display:flex;justify-content:space-between;align-items:baseline}',
+      '.kb-ob-kitgrp{margin:0 0 10px;font-size:12px;font-weight:500;color:var(--ink3);display:flex;justify-content:space-between;align-items:baseline}',
       '.kb-ob-kitgrp em{font-style:normal;letter-spacing:0;text-transform:none;font-weight:400}',
       '.kb-ob-kit{display:flex;gap:12px;align-items:flex-start;width:100%;padding:13px 16px;margin:0 0 8px;text-align:start;color:var(--ink);background:var(--bg2);border:1px solid var(--line);border-radius:14px;cursor:pointer}',
       '.kb-ob-kit:hover:not([disabled]){border-color:var(--ink3)}',
@@ -35241,7 +36740,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       '.kb-ob-mem b{display:block;color:var(--ink);font-weight:500}',
       // « What we set up for you »: one row per area, the sentence on the start side, « Change » on the end side
       '.kb-ob-setup{margin-top:22px;border:1px solid var(--line);border-radius:16px;background:var(--bg2);overflow:hidden}',
-      '.kb-ob-setup h2{margin:0;padding:14px 18px 6px;font-size:12px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:var(--ink3)}',
+      '.kb-ob-setup h2{margin:0;padding:14px 18px 6px;font-size:12px;font-weight:500;color:var(--ink3)}',
       '.kb-ob-srow{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 18px}',
       '.kb-ob-srow+.kb-ob-srow{border-top:1px solid var(--line)}',
       '.kb-ob-sbody{display:flex;flex-direction:column;gap:2px;min-width:0}',

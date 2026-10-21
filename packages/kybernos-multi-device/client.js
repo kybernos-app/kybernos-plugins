@@ -382,7 +382,7 @@ window.__ModuleLoader__.load({
       const CSS = `
 .kbmd-root{display:flex;flex-direction:column;gap:14px;min-width:0}
 .kbmd-card{background:var(--dsw-alias-bg-layer-1,transparent);border:1px solid var(--dsw-alias-border-l1,rgba(127,127,127,.25));border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:11px;min-width:0}
-.kbmd-cap{font-size:11px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--dsw-alias-label-tertiary,#8a8a93);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.kbmd-cap{font-size:11px;font-weight:600;color:var(--dsw-alias-label-tertiary,#8a8a93);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .kbmd-flag{letter-spacing:0;text-transform:none;font-size:11px;font-weight:600;border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.35));border-radius:999px;padding:1px 8px;color:var(--dsw-alias-label-secondary,#a0a0aa)}
 .kbmd-okflag{border-color:var(--dsw-alias-state-success-primary,#22c55e);color:var(--dsw-alias-state-success-primary,#22c55e)}
 .kbmd-sub{font-size:13px;color:var(--dsw-alias-label-secondary,#a0a0aa);overflow-wrap:anywhere}

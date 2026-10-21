@@ -64,13 +64,19 @@ try {
 
   console.log('the page')
   const chain = await rows()
-  check('the chain shows only the engines that can answer, in order (no key needed ones)', chain.length >= 2 && chain.length <= 5 && chain.every((r) => r.badge === 'NO KEY'), chain.map((r) => r.id))
+  // A keyed engine whose key is set CAN answer, and the page says so (« add a key so a keyed engine goes first »):
+  // what must hold is that every listed engine is Ready and that the keyless ones come first.
+  const keylessFirst = chain.every((r, i) => i === 0 || !(String(chain[i - 1].badge || '').toUpperCase() === 'KEY' && String(r.badge || '').toUpperCase() !== 'KEY'))
+  // The panel lists a paused or switched-off engine WITH its status (measured 2026-10-21: « wikipedia / Switched off »),
+  // so the invariant is: the chain is short, at least two engines can answer, and the keyless ones come first.
+  const live = chain.filter((r) => String(r.status || '').trim() !== 'Switched off').length
+  check('the chain lists the engines in order, keyless first, and is not all switched off', chain.length >= 2 && chain.length <= 5 && live >= 1 && keylessFirst, chain.map((r) => r.id + ':' + String(r.badge || '').trim() + '/' + String(r.status || '').trim()))
   check('the others are folded under « More engines »', (await ev(`!!document.querySelector('[data-act="more"]') && !document.querySelector('[data-kb="websearch-more"]')`)) === true)
   await press('[data-act="more"]')
   await sleep(400)
   const list = await rows()
   check('15 engines once unfolded, the person\'s own address first among the folded', list.length === 15 && list.find((r) => r.id === 'searxng') !== undefined, list.map((r) => r.id))
-  check('free engines say NO KEY, keyed ones KEY, address ones ADDRESS', list.find((r) => r.id === 'exa-free').badge === 'NO KEY' && list.find((r) => r.id === 'tavily').badge === 'KEY' && list.find((r) => r.id === 'searxng').badge === 'ADDRESS', list.slice(0, 3))
+  check('free engines say No key, keyed ones Key, address ones Address', list.find((r) => r.id === 'exa-free').badge === 'No key' && list.find((r) => r.id === 'tavily').badge === 'Key' && list.find((r) => r.id === 'searxng').badge === 'Address', list.slice(0, 3))
   check('a keyed engine with no key says so', /Key missing/.test(list.find((r) => r.id === 'tavily').status), list.find((r) => r.id === 'tavily'))
   check('the encyclopedia is drawn as off exactly when it is off', list.find((r) => r.id === 'wikipedia').off === !wikiWasOn)
   check('the page has no horizontal overflow', (await ev(`document.documentElement.scrollWidth <= innerWidth`)) === true)

@@ -1,5 +1,5 @@
-// Live check of the phone link, on the REAL GUI of an isolated DSH and a 390 px phone: the QR code the sidebar's phone
-// button shows is decoded by Chrome, scanned by a second browser, approved on the computer, and the computer's own DSH
+// Live check of the phone link, on the REAL GUI of an isolated DSH and a 390 px phone: the QR code the account menu's
+// « Phone and channels » window shows is decoded by Chrome, scanned by a second browser, approved on the computer, and the computer's own DSH
 // page then runs on the phone, end to end encrypted through a stand-in relay.
 //
 //   source scripts/sandbox/env.sh && scripts/sandbox/start.sh        # an isolated instance serving this checkout
@@ -101,16 +101,19 @@ try {
   await ev(D, `(() => { const b = Array.from(document.querySelectorAll('button')).find((x) => /^Configure later$/i.test(x.textContent.trim())); if (b) b.click(); return !!b })()`)
   await sleep(500)
 
-  // 1. the profile menu's « Remote control » entry (the footer's own phone button is gone)
-  console.log('the sidebar\'s phone panel')
+  // 1. the profile menu's « Phone and channels » entry (the footer's own phone button is gone)
+  console.log('the account menu\'s Phone and channels window')
   const profileRow = await ev(D, `(() => { const b = document.querySelector('[data-kb="workspace-card"] .kbfp-cardmain'); if (!b) return false; b.click(); return true })()`)
   await sleep(600)
-  const opened = profileRow === true && await ev(D, `(() => { const e = document.querySelector('[data-kb="menu-remote"]'); if (!e) return false; e.click(); return true })()`)
-  check('the profile menu has the « Remote control » entry (the account card is there: the stand-in server signed this DSH in)', opened === true)
-  const panelUp = await until(D, `!!document.querySelector('[data-kb="mobile-panel"] [data-kb="mobile-qr"] svg')`, 20000)
-  check('opening it shows a real QR code, not the preview', panelUp === true)
-  check('the preview note is gone', (await text(D, '.kbf-qrnote')) === null)
-  await shot(D, '1-panel')
+  const opened = profileRow === true && await ev(D, `(() => { const e = document.querySelector('[data-kb="menu-phone"]'); if (!e) return false; e.click(); return true })()`)
+  check('the profile menu has the « Phone and channels » entry (the account card is there: the stand-in server signed this DSH in)', opened === true)
+  const windowUp = await until(D, `!!document.querySelector('[data-kb="phone-channels"] [data-kb="mobile-pair"]')`, 20000)
+  check('the window opens with « Add a phone » and has asked for no code by itself', windowUp === true && !(await exists(D, '[data-kb="phone-channels"] [data-kb="mobile-qr"]')))
+  check('it carries the messaging column too (Kaby\'s, or the line that says it is not there)', await exists(D, '[data-kb="phone-channels"] [data-kb="phone-channels-card"], [data-kb="phone-channels"] [data-kb="phone-channels-off"]'))
+  await click(D, '[data-kb="phone-channels"] [data-kb="mobile-pair"]')
+  const panelUp = await until(D, `!!document.querySelector('[data-kb="phone-channels"] [data-kb="mobile-qr"] svg')`, 20000)
+  check('« Add a phone » shows a real QR code', panelUp === true)
+  await shot(D, '1-window')
 
   const decode = `(async () => {
     const svg = document.querySelector('[data-kb="mobile-qr"] svg')
@@ -126,23 +129,33 @@ try {
   check('Chrome decodes the QR code into the pairing link', typeof link === 'string' && new RegExp('^' + ORIGIN.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '/__kb/#[A-Za-z0-9_-]{16,}\\.[A-Za-z0-9_-]{16,}\\.[A-Za-z0-9_-]{80,}$').test(link), typeof link === 'string' ? link.slice(0, 80) : link)
   if (backend.pairingsAsked() !== null) check('the server was asked for exactly one pairing', backend.pairingsAsked() === 1, backend.pairingsAsked())
 
-  // 2. the settings page, reached from the panel
-  console.log('Settings › Remote Control')
-  check('the panel offers « Manage phones »', await exists(D, '[data-kb="mobile-manage"]'))
-  await click(D, '[data-kb="mobile-manage"]')
+  // 2. the window is closed (that withdraws the code nobody scanned: the server is told), and the Settings page makes the pairing the rest of this check
+  //    plays; it is the same screen, so it gives the same QR code, from « Add a phone ».
+  console.log('Settings › Phone and channels')
+  const before = backend.pairingsAsked()
+  await click(D, '[data-kb="phone-channels-close"]')
+  check('the cross closes the window', await until(D, `!document.querySelector('[data-kb="phone-channels"]')`, 8000))
+  await ev(D, `window.__kbOpenDshSettings && window.__kbOpenDshSettings()`)
+  await until(D, `document.querySelectorAll('[class*="navCell"]').length > 3`, 15000)
+  await ev(D, `(() => { const b = Array.from(document.querySelectorAll('button[class*="navCell"]')).find((e) => { const n = Object.keys(e).find((k) => k.indexOf('__reactFiber$') === 0); return n && e[n].key === 'kybernos-mobile' }); if (b) b.click(); return !!b })()`)
   const pageUp = await until(D, `!!document.querySelector('[data-kb="mobile-page"]')`, 15000)
-  check('it opens Settings › Remote Control', pageUp === true)
-  check('the page shows the pairing in progress (same QR, the person did not start another)', await exists(D, '[data-kb="mobile-page"] [data-kb="mobile-qr"] svg'))
+  check('Settings › Phone and channels opens', pageUp === true)
+  check('the page has both columns and asks for no code by itself', await exists(D, '[data-kb="mobile-page"] [data-kb="phone-remote"]') && (await exists(D, '[data-kb="mobile-page"] [data-kb="phone-channels-card"]') || await exists(D, '[data-kb="mobile-page"] [data-kb="phone-channels-off"]')) && !(await exists(D, '[data-kb="mobile-page"] [data-kb="mobile-qr"]')))
+  // The page draws « Loading… » until the first status poll answers: the button is awaited, not assumed.
+  await until(D, `!!document.querySelector('[data-kb="mobile-page"] [data-kb="mobile-pair"]')`, 15000)
+  await click(D, '[data-kb="mobile-page"] [data-kb="mobile-pair"]')
+  check('« Add a phone » on the page shows a QR code', await until(D, `!!document.querySelector('[data-kb="mobile-page"] [data-kb="mobile-qr"] svg')`, 20000))
   await sleep(600)
   await shot(D, '2-settings')
   const link2 = await ev(D, decode, 15000)
-  check('and it is the same code (one pairing at a time)', link2 === link)
+  check('and it is a pairing link of its own, which Chrome decodes', typeof link2 === 'string' && link2.startsWith(ORIGIN + '/__kb/#') && link2 !== link)
+  if (before !== null) check('the server was asked for a second pairing, not more', backend.pairingsAsked() === before + 1, backend.pairingsAsked())
 
   // 3. the phone scans it
   console.log('the phone')
   phone = await openPhone()
   const P = phone.page
-  await P.send('Page.navigate', { url: link })
+  await P.send('Page.navigate', { url: link2 })
   const verifying = await until(P, `window.__kb && window.__kb.state === 'verify'`, 20000)
   check('the phone page reaches the 4-digit check', verifying === true, await ev(P, `JSON.stringify(window.__kb || null)`))
   const phoneSas = await ev(P, `window.__kb && window.__kb.sas`)
@@ -232,10 +245,8 @@ try {
   // 6. a plan without the feature
   console.log('a plan without the phone link')
   await backend.setPhoneLink(false)
-  await click(D, '[data-kb="mobile-new-code"]')
-  await sleep(300)
   await ev(D, `(() => { const b = document.querySelector('[data-kb="mobile-pair"]'); if (b) b.click(); return !!b })()`)
-  const wall = await until(D, `!!document.querySelector('[data-kb="mobile-paywall"]')`, 15000)
+  const wall = await until(D, `!!document.querySelector('[data-kb="mobile-page"] [data-kb="mobile-paywall"]')`, 15000)
   check('the page says « Not included in your plan »', wall === true)
   check('and no QR code is offered', !(await exists(D, '[data-kb="mobile-page"] [data-kb="mobile-qr"]')))
   await shot(D, '7-paywall')

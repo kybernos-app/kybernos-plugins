@@ -202,7 +202,7 @@ eq('the verdict follows the last value even while the catalog reloads (no flicke
   eq('a failed turn that wants a key keeps its own card: the empty one is only for when there is no such failure', /need === null/.test(card) && /kbObNoModel\(/.test(card), true)
   eq('it says it is signed in or not from the account status, and offers the sign-in only to someone who is not', /fetch\('\/kybernos-cloud\/status'/.test(card) && /connected === true/.test(card), true)
   eq('« Sign in to Kybernos » opens the account sheet (the window event the Models page uses)', /new CustomEvent\('kybernos-cloud:open'\)/.test(card), true)
-  eq('« Add a model » opens Settings on the AI Provider & Models page', /kbOpenSettingsPage\(\['kybernos-models'/.test(card), true)
+  eq('« Add a model » opens Settings on the AI provider and models page', /kbOpenSettingsPage\(\['kybernos-models'/.test(card), true)
   eq('it can be dismissed for the rest of the page (no nag on every chat)', /kbNoModelAway/.test(card), true)
   eq('and it carries a hook for the checks', /'data-kb': 'no-model'/.test(card), true)
   eq('the wizard\'s « open Settings » and the card\'s are ONE helper (the wizard had its own copy)', (src.match(/const kbOpenSettingsPage = /g) || []).length === 1 && /openSettings: \(names\) => kbOpenSettingsPage\(names\)/.test(src), true)

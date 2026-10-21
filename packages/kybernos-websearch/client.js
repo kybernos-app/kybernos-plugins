@@ -104,8 +104,8 @@ window.__ModuleLoader__.load({
         return e === undefined ? null : e
       }
       const accessBadge = (e) => (e.access === 'free'
-        ? { cls: 'free', txt: kt('SANS CLÉ', 'NO KEY') }
-        : (e.access === 'key' ? { cls: 'key', txt: kt('CLÉ', 'KEY') } : { cls: 'url', txt: kt('ADRESSE', 'ADDRESS') }))
+        ? { cls: 'free', txt: kt('Sans clé', 'No key') }
+        : (e.access === 'key' ? { cls: 'key', txt: kt('Clé', 'Key') } : { cls: 'url', txt: kt('Adresse', 'Address') }))
 
       const statusOf = (e) => {
         const hl = e.health || {}
@@ -207,7 +207,7 @@ window.__ModuleLoader__.load({
             h('button', { type: 'button', className: 'kwse-name', 'data-act': 'open', 'aria-expanded': String(open), onClick: () => props.onToggle(e.id) },
               h('b', null, nameOf(e.id)),
               h('span', { className: 'kwse-badge ' + badge.cls }, badge.txt),
-              props.isDefault === true ? h('span', { className: 'kwse-badge def', 'data-kb': 'websearch-default', title: kt('Agents cherchent d’abord avec ce moteur ; le suivant prend le relais s’il échoue.', 'Agents search with this engine first; the next one takes over if it fails.') }, kt('PAR DÉFAUT', 'DEFAULT')) : null,
+              props.isDefault === true ? h('span', { className: 'kwse-badge def', 'data-kb': 'websearch-default', title: kt('Agents cherchent d’abord avec ce moteur ; le suivant prend le relais s’il échoue.', 'Agents search with this engine first; the next one takes over if it fails.') }, kt('Par défaut', 'Default')) : null,
               h('small', { className: 'kwse-status ' + st.cls }, h('i', { className: 'kwse-dot ' + st.cls }), st.txt)),
             h('button', {
               type: 'button', className: 'kwse-switch' + (e.enabled ? ' on' : ''), 'data-kb': 'websearch-switch', role: 'switch',
@@ -308,8 +308,10 @@ window.__ModuleLoader__.load({
             : kt('Moteur par défaut : ', 'Default engine: ') + nameOf(defaultId) + kt(' — les agents l’essaient en premier.', ' — agents try it first.')),
           wrongPin
             ? h('p', { className: 'kwse-banner', 'data-kb': 'websearch-banner' }, kt(
-              'DSH est réglé sur un autre fournisseur (« ' + state.pinned + ' ») : cette liste n’est pas utilisée tant que la ligne « web » du profil n’est pas revenue à « ' + state.provider + ' ».',
-              'DSH is set to another provider (“' + state.pinned + '”): this list is not used until the profile’s “web” row is back to “' + state.provider + '”.'))
+              'DSH est réglé sur un autre fournisseur (« ' + state.pinned + ' ») : cette liste n’est pas utilisée tant que la ligne « web » du profil n’est pas revenue à « ' + state.provider + ' ».' +
+                (/^deepseek/.test(state.pinned) ? ' Le réglage « Use the new Web Search API » de DSH (page DeepSeek) écrit ce choix, même quand on le remet sur off.' : ''),
+              'DSH is set to another provider (“' + state.pinned + '”): this list is not used until the profile’s “web” row is back to “' + state.provider + '”.' +
+                (/^deepseek/.test(state.pinned) ? ' DSH’s “Use the new Web Search API” switch (DeepSeek page) writes this choice, even when it is put back off.' : '')))
             : null,
           state.registered !== true
             ? h('p', { className: 'kwse-banner', 'data-kb': 'websearch-banner' }, kt('Le fournisseur n’est pas enregistré auprès de DSH : redémarre DSH pour l’activer.', 'The provider is not registered with DSH: restart DSH to activate it.'))
@@ -368,7 +370,12 @@ window.__ModuleLoader__.load({
         '.kwse-row.off .kwse-name b{color:var(--dsw-alias-label-tertiary,#888)}',
         '.kwse-row-main{display:flex;align-items:center;gap:10px;padding:10px 12px}',
         '.kwse-move{display:flex;flex-direction:column;gap:1px;flex:none}',
-        '.kwse-move button{border:0;background:none;padding:0 4px;font-size:9px;line-height:11px;cursor:pointer;color:var(--dsw-alias-label-tertiary,#888)}',
+        '.kwse-move button{border:0;background:none;padding:0 4px;font-size:9px;line-height:13px;min-height:13px;cursor:pointer;color:var(--dsw-alias-label-tertiary,#888)}',
+        '.kwse-move button{position:relative}',
+        /* Hit area, not icon size: both arrows reach 24 px without growing the glyphs — the up arrow extends
+           upwards, the down one downwards, so the two NEVER overlap (measured 15x11 before, 24x25 after). */
+        '.kwse-move button:first-child::before{content:"";position:absolute;inset:-11px -5px 0}',
+        '.kwse-move button:last-child::before{content:"";position:absolute;inset:0 -5px -11px}',
         '.kwse-move button:hover:not(:disabled){color:var(--dsw-alias-label-primary,inherit)}',
         '.kwse-move button:disabled{opacity:.3;cursor:default}',
         '.kwse-name{flex:1;min-width:0;display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;text-align:start;border:0;background:none;padding:0;cursor:pointer;font:inherit;color:inherit}',
@@ -387,6 +394,7 @@ window.__ModuleLoader__.load({
         '.kwse-dot.down{background:var(--dsw-alias-state-error-primary,#c33)}',
         '.kwse-switch{width:34px;height:20px;border:0;border-radius:999px;cursor:pointer;position:relative;flex:none;background:var(--dsw-alias-border-l3,#bbb)}',
         '.kwse-switch.on{background:var(--dsw-alias-brand-primary,#36c)}',
+        '.kwse-switch::before{content:"";position:absolute;inset:-2px 0}',
         '.kwse-switch span{position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:var(--dsw-alias-label-secondary,#666);transition:left 120ms ease}',
         '.kwse-switch.on span{left:16px;background:var(--dsw-alias-label-primary-foreground,#fff)}',
         '.kwse-detail{padding:2px 12px 12px 36px;display:flex;flex-direction:column;gap:8px}',
