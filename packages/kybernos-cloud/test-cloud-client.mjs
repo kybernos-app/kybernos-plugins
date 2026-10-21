@@ -82,7 +82,16 @@ assert.ok(clientSource.includes("onAccount: ouvrirAppli('overview')") && clientS
 // old entry needed to decide whether to show itself: the window says by itself what this server and this plan allow. The window draws itself in a root of its own
 // (`window.__KB_MOBILE__.open()`): this footer mounts nothing (a window drawn inside the footer slides away with a phone's drawer, which moves with a transform).
 {
-  assert.ok(/entree\('referral'[^\n]*\n\s*h\(AppearanceRow, null\),\n\s*\/\/[^\n]*\n\s*\/\/[^\n]*\n\s*props\.phone === true \? entree\('phone', h\(PhoneIcon[^\n]*props\.onPhone\) : null,\n\s*\/\/[^\n]*\n\s*entree\('settings'/.test(clientSource), 'l entree « Phone and channels » vient apres Appearance et juste avant Settings')
+  // V1-07 (video review): the menu was one block mixing three families, and the entries that OPEN THE SERVER'S CONSOLE
+  // (Account, Referral, Team settings) had no arrow while Upgrade/Website/Help did. Now: three blocks in that order
+  // (account · appearance · console), the console block keeping « Phone and channels » right before « Settings ».
+  assert.ok(
+    clientSource.indexOf("'data-kb': 'menu-block-account'") > 0 &&
+    clientSource.indexOf("'data-kb': 'menu-block-account'") < clientSource.indexOf("'data-kb': 'menu-block-appearance'") &&
+    clientSource.indexOf("'data-kb': 'menu-block-appearance'") < clientSource.indexOf("'data-kb': 'menu-block-console'") &&
+    /'data-kb': 'menu-block-console'[\s\S]{0,900}?entree\('phone'[\s\S]{0,420}?entree\('settings'/.test(clientSource),
+    'trois blocs (compte · apparence · console), « Phone and channels » juste avant Settings')
+  assert.ok(/entree\('account'[^\n]*props\.onAccount, \{ ext: true \}\)/.test(clientSource) && /entree\('referral'[^\n]*props\.onReferral, \{ amber: true, ext: true \}\)/.test(clientSource) && /entree\('space-settings'[^\n]*props\.onSpace, \{ ext: true \}\)/.test(clientSource), 'les entrées qui ouvrent la console web portent la flèche, comme Upgrade (V1-07)')
   assert.ok(/menuPhone: 'Phone and channels'/.test(clientSource) && /menuPhone: 'Téléphone et canaux'/.test(clientSource), 'fr/en')
   assert.ok(!/MobilePanel|menuRemote|menu-remote|remoteOffer|kbf-qr|kbf-popcenter|mobTitle|mobScan|mobSoon|mobHelp|setMobileOpen|mobileOpen|\\bphoneOpen\\b|setPhoneOpen|phoneDialog/.test(clientSource), 'plus de panneau telephone, de faux QR code, de sondage du statut du lien, ni de fenetre montee dans le pied')
   assert.ok(!clientSource.includes("'kybernos-mobile/remote/status'"), 'le pied ne lit plus le statut du lien telephone : la fenetre le dit elle-meme')

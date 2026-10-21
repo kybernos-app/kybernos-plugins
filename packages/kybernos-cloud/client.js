@@ -2903,13 +2903,18 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
               planCard,
               upgradeEntry ? entree('upgrade', h(UpgradeIcon, { size: 18 }), t('menuPlanCta'), props.onUpgradePage, { ext: true }) : null,
               // "Teams settings" = the former "Workspace settings" (same action).
-              entree('space-settings', h(BuildingIcon, { size: 18 }), t('menuTeamsSettings'), props.onSpace)),
+              entree('space-settings', h(BuildingIcon, { size: 18 }), t('menuTeamsSettings'), props.onSpace, { ext: true })),
             h('div', { className: 'kbfp-msep' }),
+            // V1-07 (video review): one block per family, and an arrow wherever the entry LEAVES DSH. Account, Referral and
+            // Team settings open the server's web console (`ouvrirAppli` → `openAccountPage`), exactly like Upgrade, which
+            // already carried the arrow — the comment that used to sit here claimed they « stay here », which was false:
+            // same act, two different affordances.
             h('div', { className: 'kbfp-mitems', 'data-kb': 'menu-block-account' },
-              // Account and Referral: read-only pages of the server's console, in DSH (no arrow: they stay here).
-              entree('account', h(UserIcon, { size: 18 }), t('profCompte'), props.onAccount),
-              entree('referral', h(GiftMenuIcon, { size: 18 }), t('profParrain'), props.onReferral, { amber: true }),
-              h(AppearanceRow, null),
+              entree('account', h(UserIcon, { size: 18 }), t('profCompte'), props.onAccount, { ext: true }),
+              entree('referral', h(GiftMenuIcon, { size: 18 }), t('profParrain'), props.onReferral, { amber: true, ext: true })),
+            // Appearance is a CONTROL, not a page of the account: it gets its own block, between the account and the console.
+            h('div', { className: 'kbfp-mitems', 'data-kb': 'menu-block-appearance' }, h(AppearanceRow, null)),
+            h('div', { className: 'kbfp-mitems', 'data-kb': 'menu-block-console' },
               // Phone and channels (kybernos-mobile's window): the phone link and the messaging apps, on one screen. Offered whenever that bundle is there; what the
               // screen can do on this server and this plan it says itself.
               props.phone === true ? entree('phone', h(PhoneIcon, { size: 18 }), t('menuPhone'), props.onPhone) : null,
