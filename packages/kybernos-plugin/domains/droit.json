@@ -1,0 +1,201 @@
+{
+  "v": 1,
+  "id": "droit",
+  "order": 40,
+  "name": {
+    "en": "Law",
+    "fr": "Droit"
+  },
+  "tagline": {
+    "en": "Lawyers, in-house counsel, law students",
+    "fr": "Avocats, juristes, étudiants en droit"
+  },
+  "legacyJobs": [
+    "legal"
+  ],
+  "menu": {
+    "labels": {
+      "dashboards": {
+        "en": "My firm",
+        "fr": "Mon cabinet"
+      },
+      "aiteams": {
+        "en": "Legal team",
+        "fr": "Équipe juridique"
+      },
+      "deliverables": {
+        "en": "Deeds and notes",
+        "fr": "Actes et notes"
+      },
+      "tasks": {
+        "en": "Deadlines",
+        "fr": "Échéances"
+      }
+    },
+    "hide": [
+      "documents"
+    ]
+  },
+  "goals": [
+    {
+      "id": "contracts",
+      "name": {
+        "en": "Contracts",
+        "fr": "Contrats"
+      },
+      "title": {
+        "en": "Review contracts faster",
+        "fr": "Relire les contrats plus vite"
+      },
+      "desc": {
+        "en": "A first pass on every contract received",
+        "fr": "Une première relecture de chaque contrat reçu"
+      },
+      "skills": [
+        {
+          "source": "anthropics/knowledge-work-plugins",
+          "name": "review-contract",
+          "d": {
+            "en": "Review a contract against your playbook",
+            "fr": "Relit un contrat selon ta grille"
+          }
+        },
+        {
+          "source": "anthropics/knowledge-work-plugins",
+          "name": "compliance-check",
+          "d": {
+            "en": "Check a document against a policy",
+            "fr": "Vérifie un document au regard d’une politique"
+          }
+        }
+      ],
+      "soon": [
+        {
+          "en": "Legal Compliance team",
+          "fr": "Équipe Legal Compliance"
+        }
+      ],
+      "starter": {
+        "en": "Review this contract and list the risks",
+        "fr": "Relis ce contrat et liste les risques"
+      }
+    },
+    {
+      "id": "deadlines",
+      "name": {
+        "en": "Deadlines",
+        "fr": "Échéances"
+      },
+      "title": {
+        "en": "Never miss a deadline",
+        "fr": "Ne plus rater une échéance"
+      },
+      "desc": {
+        "en": "An alert before each due date",
+        "fr": "Une alerte avant chaque date limite"
+      },
+      "soon": [
+        {
+          "en": "Deadline alerts",
+          "fr": "Alertes d’échéance"
+        }
+      ],
+      "starter": {
+        "en": "Which deadlines this week?",
+        "fr": "Quelles échéances cette semaine ?"
+      }
+    },
+    {
+      "id": "watch",
+      "name": {
+        "en": "Watch",
+        "fr": "Veille"
+      },
+      "title": {
+        "en": "Keep a legal watch",
+        "fr": "Faire ma veille juridique"
+      },
+      "desc": {
+        "en": "What is new on my cases’ subjects",
+        "fr": "Les nouveautés qui touchent mes dossiers"
+      },
+      "teams": [
+        "research-desk"
+      ],
+      "soon": [
+        {
+          "en": "Case-law watch",
+          "fr": "Veille de jurisprudence"
+        }
+      ],
+      "starter": {
+        "en": "Summarise this week’s news",
+        "fr": "Résume les nouveautés de la semaine"
+      }
+    },
+    {
+      "id": "time",
+      "name": {
+        "en": "Time",
+        "fr": "Temps"
+      },
+      "title": {
+        "en": "Track my billable time",
+        "fr": "Suivre mon temps facturable"
+      },
+      "desc": {
+        "en": "A summary every Friday",
+        "fr": "Un récapitulatif chaque vendredi"
+      },
+      "skills": [
+        {
+          "source": "anthropics/skills",
+          "name": "xlsx",
+          "d": {
+            "en": "Track money and pipeline",
+            "fr": "Suit l’argent et le pipeline"
+          }
+        }
+      ],
+      "soon": [
+        {
+          "en": "Weekly time summary",
+          "fr": "Récapitulatif hebdomadaire du temps"
+        }
+      ],
+      "starter": {
+        "en": "Add up my hours this week",
+        "fr": "Récapitule mes heures de la semaine"
+      }
+    },
+    {
+      "id": "drafting",
+      "name": {
+        "en": "Drafting",
+        "fr": "Rédaction"
+      },
+      "title": {
+        "en": "Draft deeds and notes",
+        "fr": "Rédiger actes et notes"
+      },
+      "desc": {
+        "en": "Drafts in your format",
+        "fr": "Des brouillons à ton format"
+      },
+      "skills": [
+        {
+          "source": "anthropics/skills",
+          "name": "docx",
+          "d": {
+            "en": "Write and format papers",
+            "fr": "Rédige et met en forme tes devoirs"
+          }
+        }
+      ],
+      "starter": {
+        "en": "Prepare a summary note",
+        "fr": "Prépare une note de synthèse"
+      }
+    }
+  ]
+}

@@ -3,7 +3,7 @@
 //
 //   node packages/kybernos-plugin/test-onboarding-state.mjs
 import assert from 'node:assert/strict'
-import { ONBOARDING_VERSION, MODEL_CHOICES, defaultState, publicView, complete, replay } from './onboarding-state.mjs'
+import { ONBOARDING_VERSION, MODEL_CHOICES, GOALS_MAX, defaultState, publicView, complete, replay, chooseDomain } from './onboarding-state.mjs'
 
 const NOW = new Date('2026-10-10T09:00:00.000Z')
 let count = 0
@@ -46,6 +46,37 @@ ok('leaving everything blank still completes (the wizard can be skipped)', () =>
   assert.equal(s.completed, true)
   assert.deepEqual([s.profil, s.uiMode, s.model, s.lang], [null, null, null, null])
   assert.equal(complete(defaultState(NOW), null, NOW).completed, true)
+})
+
+ok('the goals ticked are kept as valid ids, once each, bounded', () => {
+  assert.deepEqual(defaultState(NOW).goals, [])
+  const s = complete(defaultState(NOW), { profil: 'sante', goals: ['notes', 'notes', 'Bad Id', '', 7, null, 'appointments'] }, NOW)
+  assert.deepEqual(s.goals, ['notes', 'appointments'])
+  assert.deepEqual(complete(defaultState(NOW), { goals: 'notes' }, NOW).goals, [])
+  const many = Array.from({ length: GOALS_MAX + 5 }, (_, i) => 'goal-' + i)
+  assert.equal(complete(defaultState(NOW), { goals: many }, NOW).goals.length, GOALS_MAX)
+})
+
+ok('a client that sends no goals keeps the saved ones; one that sends an empty list clears them', () => {
+  const saved = complete(defaultState(NOW), { profil: 'edu', goals: ['exams'] }, NOW)
+  assert.deepEqual(complete(saved, { profil: 'edu' }, NOW).goals, ['exams'])
+  assert.deepEqual(complete(saved, { profil: 'edu', goals: [] }, NOW).goals, [])
+})
+
+ok('an older file (no goals) reads as no goals, and still means done', () => {
+  const old = { version: 1, completed: true, installedAt: 'x', completedAt: 'y', profil: 'produit', uiMode: null }
+  assert.deepEqual(publicView(old).goals, [])
+  assert.equal(publicView(old).completed, true)
+})
+
+ok('choosing a domain later moves the domain and the goals and nothing else', () => {
+  const done = complete(defaultState(NOW), { profil: 'soft', uiMode: 'code', model: 'cloud', lang: 'fr', memoryId: 'm1' }, NOW)
+  const next = chooseDomain(done, { profil: 'sante', goals: ['notes'] })
+  assert.deepEqual([next.profil, next.goals], ['sante', ['notes']])
+  assert.deepEqual([next.completed, next.completedAt, next.uiMode, next.model, next.lang, next.memoryId, next.installedAt],
+    [done.completed, done.completedAt, done.uiMode, done.model, done.lang, done.memoryId, done.installedAt])
+  assert.equal(chooseDomain(defaultState(NOW), { profil: 'sante' }).completed, false, 'it never completes the wizard')
+  assert.deepEqual([chooseDomain(done, null).profil, chooseDomain(done, null).goals], [null, []])
 })
 
 ok('only the known model choices are kept', () => {

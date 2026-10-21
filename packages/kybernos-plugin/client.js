@@ -25902,6 +25902,27 @@ function renderFit(canvas, model, cam, opts){
     // (a getter: KB_CP is only known once the menu renders). Keep it in step with the rows of SalesMenu.
     Object.defineProperty(kbOpenPage, 'views', { get: () => ['teaminfo', 'project', 'tasks', 'skills'].concat(KB_CP === true ? ['connectors'] : []).concat(KB_DB === true ? ['dashboards'] : []).concat(KB_KY === true ? ['kyber'] : []) })
     try { if (typeof window !== 'undefined') window.__KB_OPEN__ = kbOpenPage } catch (e) { /* outside a browser */ }
+    // <kb-domain-menu>
+    // The wording of the Kybernos menu follows the person's field of work (docs/dev/domain-packs.md): the labels the domain pack gives and the rows
+    // it hides. The pack is read at boot and each time the choice is saved (`kb-domain-reload`), from the onboarding file and the packs the host
+    // serves; the menu redraws on `kb-domain-change`. Any failure leaves the menu as it is, with its own words. The overlay is computed at each
+    // draw, so a change of language needs no reload.
+    let kbDomainPack = null
+    const kbDomainLang = () => { const b = String(kbLangResolve()).split(/[-_]/)[0]; return b === 'kybernos' ? 'fr' : b }
+    const kbDomainLabel = (id) => { const t = kbObMenuOverlay(kbDomainPack, kbDomainLang()).labels[id]; return typeof t === 'string' ? t : null }
+    const kbDomainHides = (id) => kbObMenuOverlay(kbDomainPack, kbDomainLang()).hide.indexOf(id) >= 0
+    const kbDomainLoad = async () => {
+      try {
+        const get = (path) => fetch(path, { cache: 'no-store', headers: { accept: 'application/json' } }).then((r) => r.json())
+        const both = await Promise.all([get('/kybernos/onboarding'), get('/kybernos/domains')])
+        const saved = both[0]
+        const list = both[1]
+        kbDomainPack = saved !== null && typeof saved === 'object' && saved.ok === true && list !== null && typeof list === 'object' && list.ok === true
+          ? kbObPackOf(list.packs, saved.domain) : null
+      } catch (e) { kbDomainPack = null }
+      try { window.dispatchEvent(new CustomEvent('kb-domain-change')) } catch (e) { /* no events */ }
+    }
+    // </kb-domain-menu>
     // <kb-menu-active>
     /** The page the sidebar rows read as « on screen ». `panelId` is the layout's selected panel (undefined when this engine tells none),
      *  `view` the page the store holds, `kabyChat` whether the chat on screen is Kaby's. The store keeps the page the person LEFT, and opening a
@@ -25920,7 +25941,8 @@ function renderFit(canvas, model, cam, opts){
       React.useEffect(() => {
         const onSet = () => icoSetter((n) => n + 1)
         window.addEventListener('kb-icons-change', onSet)
-        return () => window.removeEventListener('kb-icons-change', onSet)
+        window.addEventListener('kb-domain-change', onSet)
+        return () => { window.removeEventListener('kb-icons-change', onSet); window.removeEventListener('kb-domain-change', onSet) }
       }, [])
       React.useEffect(() => { if (state.data === null && state.loading === false) load() }, [])
       const c = navCounts(s.data)
@@ -26001,10 +26023,10 @@ function renderFit(canvas, model, cam, opts){
       }
       // In the icon rail the label is hidden: the row names itself (a screen reader, and a tooltip of its own, instead of the
       // group's « Kybernos » for all eight pages).
-      const row = (id, ico, label, badge, active, onClick, extra) => h('button', { type: 'button', key: id, className: 'kb4-item' + (active === true ? ' on' : ''), 'aria-label': label, title: label, onClick },
+      const row = (id, ico, dflt, badge, active, onClick, extra) => { const label = kbDomainLabel(id) !== null ? kbDomainLabel(id) : dflt; return h('button', { type: 'button', key: id, className: 'kb4-item' + (active === true ? ' on' : ''), 'aria-label': label, title: label, onClick },
         h('span', { className: 'kb4-ico' }, kbMenuIcon(id, ico, active === true)), h('span', { className: 'kb4-lab' }, label),
         (badge !== null && badge !== undefined && badge > 0) ? h('span', { className: 'kb4-badge' }, String(badge)) : null,
-        (extra === undefined ? null : extra))
+        (extra === undefined ? null : extra)) }
       const ncCloud = useNcCloud()
       const openPage = (patch) => { set(patch); try { if (canPanel === true) layoutSvc.selectPanel('kybers') } catch (e) { } if (state.data === null && state.loading === false) load() }
       // Le popover recouvre le contenu : il se ferme au clic extérieur et à Échap.
@@ -26076,7 +26098,7 @@ function renderFit(canvas, model, cam, opts){
         row('tasks', Icon('zap', 15), kbt('menu.tasks'), (KB_TASKS_COUNT !== null && KB_TASKS_COUNT !== undefined) ? KB_TASKS_COUNT : 0, shown === 'tasks', () => openPage({ view: 'tasks' })),
         row('skills', Icon('sparkles', 15), kbt('kbui.skills'), c.skills, shown === 'skills', () => openPage({ view: 'skills' })),
         (KB_CP === true ? row('connectors', Icon('plug', 15), kbt('kbui.connecteurs'), 0, shown === 'connectors', () => openPage({ view: 'connectors' })) : null),
-        (KB_SHOW_DOCS === true ? row('documents', Icon('fileText', 15), kbt('kbui.documents'), c.docs, shown === 'documents', () => openPage({ view: 'documents' })) : null),
+        (KB_SHOW_DOCS === true && kbDomainHides('documents') === false ? row('documents', Icon('fileText', 15), kbt('kbui.documents'), c.docs, shown === 'documents', () => openPage({ view: 'documents' })) : null),
         // ── Barre de progression des objectifs ──────────────────────────
         h(KbProgressBar, null),
         // « Kybernos Hosted » est masqué pour le moment (KB_SHOW_HOSTED) : la
@@ -34788,7 +34810,6 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       { id: 'ar', name: 'العربية', short: 'AR', rtl: true },
     ]
     // The ids are the ones the previous wizard stored in onboarding.json: an existing file stays valid.
-    const KB_OB_PROFILES = ['soft', 'entre', 'qa', 'produit', 'design', 'etudes', 'finance', 'medias', 'commerce', 'marketing', 'legal', 'autres']
     const KB_OB_MODES = ['code', 'bureau']
     // Where each provider hands out keys. The wizard only shows the address: it opens nothing by itself.
     const KB_OB_PROVIDERS = [
@@ -34809,20 +34830,11 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       'step': ['Step {n} of {total}', 'Étape {n} sur {total}', 'Paso {n} de {total}', 'الخطوة {n} من {total}'],
       'wel.t': ['Welcome to Kybernos', 'Bienvenue dans Kybernos', 'Te damos la bienvenida a Kybernos', 'مرحبًا بك في Kybernos'],
       'wel.s': ['A team of AI agents in one workspace. A few quick settings — and you can skip them all.', 'Une équipe d’agents IA dans un seul espace de travail. Quelques réglages — et tu peux tout passer.', 'Un equipo de agentes de IA en un solo espacio de trabajo. Unos ajustes rápidos — y puedes saltártelos todos.', 'فريق من وكلاء الذكاء الاصطناعي في مساحة عمل واحدة. بضعة إعدادات سريعة — ويمكنك تخطيها كلها.'],
-      'job.t': ['What do you do?', 'Et toi, tu fais quoi ?', '¿A qué te dedicas?', 'ما مجال عملك؟'],
-      'job.s': ['Choose the closest match to your everyday work.', 'Choisis ce qui ressemble le plus à ton quotidien.', 'Elige lo que más se parezca a tu día a día.', 'اختر ما يشبه عملك اليومي أكثر.'],
-      'p.soft': ['Software / Data / AI', 'Software / Data / IA', 'Software / Datos / IA', 'البرمجة / البيانات / الذكاء الاصطناعي'],
-      'p.entre': ['Entrepreneurship / Freelancing', 'Entrepreneuriat / Freelance', 'Emprendimiento / Freelance', 'ريادة الأعمال / العمل الحر'],
-      'p.qa': ['QA / Operations / Security', 'QA / Opérations / Sécurité', 'QA / Operaciones / Seguridad', 'ضمان الجودة / العمليات / الأمن'],
-      'p.produit': ['Product / Project / Solutions', 'Produit / Projet / Solutions', 'Producto / Proyecto / Soluciones', 'المنتج / المشاريع / الحلول'],
-      'p.design': ['UI / UX / Visual Design', 'UI / UX / Design visuel', 'UI / UX / Diseño visual', 'واجهات وتجربة المستخدم / التصميم'],
-      'p.etudes': ['Students / Teaching / Research', 'Étudiants / Enseignement / Recherche', 'Estudiantes / Docencia / Investigación', 'الطلاب / التعليم / البحث'],
-      'p.finance': ['Finance / Accounting / Consulting', 'Finance / Comptabilité / Conseil', 'Finanzas / Contabilidad / Consultoría', 'المالية / المحاسبة / الاستشارات'],
-      'p.medias': ['Media / Content Creation', 'Médias / Création de contenu', 'Medios / Creación de contenido', 'الإعلام / صناعة المحتوى'],
-      'p.commerce': ['Operations / Commerce / Customer Service', 'Opérations / Commerce / Service client', 'Operaciones / Comercio / Atención al cliente', 'العمليات / التجارة / خدمة العملاء'],
-      'p.marketing': ['Marketing / Brand / PR', 'Marketing / Marque / PR', 'Marketing / Marca / RR. PP.', 'التسويق / العلامة التجارية / العلاقات العامة'],
-      'p.legal': ['Legal / Administration / HR', 'Légal / Administration / RH', 'Legal / Administración / RR. HH.', 'القانون / الإدارة / الموارد البشرية'],
-      'p.autres': ['Other professions', 'Autres métiers', 'Otras profesiones', 'مهن أخرى'],
+      'job.t': ['Which field do you work in?', 'Dans quel domaine travailles-tu ?', '¿En qué ámbito trabajas?', 'في أي مجال تعمل؟'],
+      'job.s': ['Kybernos sets up its menu and its starter kit for it.', 'Kybernos règle son menu et son kit de départ en conséquence.', 'Kybernos ajusta su menú y su kit inicial en consecuencia.', 'يضبط Kybernos قائمته وحزمة البداية وفقًا لذلك.'],
+      'goals.t': ['What do you want Kybernos to do for you?', 'Qu’est-ce que tu veux que Kybernos fasse pour toi ?', '¿Qué quieres que Kybernos haga por ti?', 'ماذا تريد أن يفعل Kybernos من أجلك؟'],
+      'goals.s': ['Tick what matters. Kybernos sets up only that, and you can change it later.', 'Coche ce qui compte. Kybernos prépare seulement ça, et tu pourras le changer plus tard.', 'Marca lo que importa. Kybernos prepara solo eso, y podrás cambiarlo más tarde.', 'حدّد ما يهمك. يجهّز Kybernos ذلك فقط، ويمكنك تغييره لاحقًا.'],
+      'goals.pick': ['Pick at least one goal to continue.', 'Choisis au moins un objectif pour continuer.', 'Elige al menos un objetivo para continuar.', 'اختر هدفًا واحدًا على الأقل للمتابعة.'],
       'mode.t': ['Choose your UI mode', 'Choisis ton affichage', 'Elige tu modo de visualización', 'اختر طريقة العرض'],
       'mode.s': ['How would you like Kybernos to show its work?', 'Comment veux-tu que Kybernos montre son travail ?', '¿Cómo quieres que Kybernos muestre su trabajo?', 'كيف تريد أن يعرض Kybernos عمله؟'],
       'mode.code.t': ['Coding mode', 'Mode Code', 'Modo Código', 'وضع البرمجة'],
@@ -34881,7 +34893,8 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       'loc.other': ['Choose another way', 'Choisir autrement', 'Elegir otra opción', 'اختيار طريقة أخرى'],
       'fin.t': ['You’re all set', 'C’est prêt', 'Todo listo', 'كل شيء جاهز'],
       'fin.s': ['Here’s what is set up. You can change everything later in Settings.', 'Voilà ce qui est en place. Tout se change plus tard dans Réglages.', 'Esto es lo que está configurado. Puedes cambiarlo todo más tarde en Ajustes.', 'هذا ما تم إعداده. يمكنك تغيير كل شيء لاحقًا من الإعدادات.'],
-      'fin.job': ['Profession', 'Métier', 'Profesión', 'المهنة'],
+      'fin.job': ['Field', 'Domaine', 'Ámbito', 'المجال'],
+      'fin.goals': ['Goals', 'Objectifs', 'Objetivos', 'الأهداف'],
       'fin.mode': ['Display', 'Affichage', 'Visualización', 'العرض'],
       'fin.model': ['Model', 'Modèle', 'Modelo', 'النموذج'],
       'fin.none': ['Not specified', 'Non précisé', 'Sin especificar', 'غير محدد'],
@@ -34959,6 +34972,9 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       // The starter kit: skills and agent teams that fit the profession.
       'k.t': ['A starter kit for {job}', 'Un kit de départ pour {job}', 'Un kit inicial para {job}', 'مجموعة بداية لـ {job}'],
       'k.t0': ['Start with these', 'Pour commencer', 'Para empezar', 'ابدأ بهذه'],
+      'k.empty': ['Nothing to suggest for now. You can add skills later from the Skills page.', 'Rien à proposer pour l’instant. Tu pourras ajouter des skills plus tard depuis la page Skills.', 'Nada que proponer por ahora. Podrás añadir skills más tarde desde la página Skills.', 'لا شيء لاقتراحه الآن. يمكنك إضافة المهارات لاحقًا من صفحة Skills.'],
+      'k.pick': ['Pick a field and your goals to see what fits.', 'Choisis un domaine et tes objectifs pour voir ce qui convient.', 'Elige un ámbito y tus objetivos para ver lo que encaja.', 'اختر مجالًا وأهدافك لترى ما يناسبك.'],
+      'k.menu': ['Your choice here also sets the wording of the menu.', 'Ton choix ici règle aussi les mots du menu.', 'Tu elección aquí también ajusta las palabras del menú.', 'اختيارك هنا يضبط أيضًا كلمات القائمة.'],
       'k.s': ['Skills and agent teams that fit your work. Tick what you want: everything is optional and can be removed later.', 'Des skills et des Agent Teams qui collent à ton travail. Coche ce que tu veux : tout est facultatif et se retire plus tard.', 'Skills y Agent Teams que encajan con tu trabajo. Marca lo que quieras: todo es opcional y se puede quitar después.', 'مهارات وفرق وكلاء تناسب عملك. حدّد ما تريد: كل شيء اختياري ويمكن إزالته لاحقًا.'],
       'k.skills': ['Skills', 'Skills', 'Skills', 'المهارات'],
       'k.teams': ['Agent Teams', 'Agent Teams', 'Agent Teams', 'فرق الوكلاء'],
@@ -34978,7 +34994,8 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       'fin.kit.n1': ['1 added', '1 ajouté', '1 añadido', 'تمت إضافة 1'],
       'fin.mem': ['Saved to your memory', 'Enregistré dans ta mémoire', 'Guardado en tu memoria', 'تم الحفظ في ذاكرتك'],
       'fin.mem.d': ['Agents read it to talk to you the right way. You can edit or forget it in Settings → Memory & Lessons.', 'Les agents le lisent pour te parler comme il faut. Tu peux le modifier ou l’oublier dans Réglages → Mémoire & Leçons.', 'Los agentes lo leen para hablarte como corresponde. Puedes editarlo u olvidarlo en Ajustes → Memory & Lessons.', 'يقرأه الوكلاء ليخاطبوك بالطريقة المناسبة. يمكنك تعديله أو نسيانه من الإعدادات ← Memory & Lessons.'],
-      'mem.job': ['Works as: {job}.', 'Métier : {job}.', 'Profesión: {job}.', 'المهنة: {job}.'],
+      'mem.job': ['Field of work: {job}.', 'Domaine : {job}.', 'Ámbito: {job}.', 'المجال: {job}.'],
+      'mem.goals': ['Wants help with: {goals}.', 'Veut de l’aide pour : {goals}.', 'Quiere ayuda con: {goals}.', 'يريد المساعدة في: {goals}.'],
       'mem.mode': ['Prefers: {mode}.', 'Préfère : {mode}.', 'Prefiere: {mode}.', 'يفضّل: {mode}.'],
       // « What we set up for you »: the end screen, one line per area, each with a way to change it. What is said is what the host answered.
       'set.t': ['What we set up for you', 'Ce qu’on a réglé pour toi', 'Lo que hemos configurado para ti', 'ما أعددناه لك'],
@@ -35025,19 +35042,24 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       if (vars !== undefined && vars !== null) for (const k of Object.keys(vars)) out = out.split('{' + k + '}').join(String(vars[k]))
       return out
     }
-    /** The numbered steps. The model step is always there: a replay is where an account or a key gets added. */
-    const kbObPlan = () => ['job', 'mode', 'model', 'kit']
+    /** The numbered steps. The model step is always there: a replay is where an account or a key gets added. Without any domain pack (`withField` false) there is no field and no goals to ask. */
+    const kbObPlan = (withField) => (withField === false ? ['mode', 'model', 'kit'] : ['job', 'goals', 'mode', 'model', 'kit'])
     /** Which numbered step a screen belongs to (null = none: welcome and the end screen). */
     const kbObStepOf = (screen) => {
-      if (screen === 'job' || screen === 'mode' || screen === 'kit') return screen
+      if (screen === 'job' || screen === 'goals' || screen === 'mode' || screen === 'kit') return screen
       if (screen === 'model' || screen === 'key' || screen === 'key-done' || screen === 'local' || screen === 'local-install' || screen === 'local-done' || screen === 'local-err' || screen === 'free' ||
         screen === 'cloud-wait' || screen === 'cloud-ok' || screen === 'cloud-err') return 'model'
       return null
     }
     /** Where « Back » goes from a screen (null = nowhere). */
-    const kbObBack = (screen) => ({ job: 'welcome', mode: 'job', model: 'mode', kit: 'model', key: 'model', local: 'model', free: 'model', 'local-err': 'local', 'cloud-wait': 'model', 'cloud-err': 'model' }[screen] || null)
+    const kbObBack = (screen) => ({ job: 'welcome', goals: 'job', mode: 'goals', model: 'mode', kit: 'model', key: 'model', local: 'model', free: 'model', 'local-err': 'local', 'cloud-wait': 'model', 'cloud-err': 'model' }[screen] || null)
     /** Where « Back » goes in the wizard as it stands (null = nowhere). The button and Escape share it. `S` is the wizard's state. */
-    const kbObBackOf = (S) => ((S.standalone && (S.screen === 'model' || S.screen === 'kit')) || (S.screen === 'free' && S.fromAccount) ? null : kbObBack(S.screen))
+    const kbObBackOf = (S) => {
+      if ((S.standalone && (S.screen === 'model' || S.screen === 'kit')) || (S.screen === 'free' && S.fromAccount)) return null
+      // No field chosen (or no pack to choose from): the goals step was skipped, so « Back » from the display mode goes where we came from.
+      if (S.screen === 'mode' && (S.domain === null || S.domain === undefined)) return Array.isArray(S.packs) && S.packs.length === 0 ? 'welcome' : 'job'
+      return kbObBack(S.screen)
+    }
     /**
      * What Escape does: 'menu' (close the language menu), 'back', 'close' or 'none'. A first run is never abandoned by a stray key: leaving
      * it records « later » and it is not asked again (A6-03), so Escape steps back where « Back » exists and otherwise does nothing; « Skip » is
@@ -35045,88 +35067,41 @@ html.wv2-actif [data-composer-seat]{display:none !important}
      */
     const kbObEscape = (S) => (S.menu ? 'menu' : (S.standalone ? 'close' : (kbObBackOf(S) !== null ? 'back' : 'none')))
 
-    // The starter kit offered after the model step, by profession (the ids of KB_OB_PROFILES).
-    // A skill is { name, source, d: [English, French] }: every pair was checked on 2026-10-14 to exist exactly once in its
-    // GitHub repository, because the install route (/kybernos-skills/install) refuses anything else. The other languages
-    // read English. `teams` are ids of the Agent Teams marketplace of this bundle (KB_MARKET_TEAMS); `soon` are templates of
-    // the Kybernos server that are not ported to the plugin yet: listed, greyed, never installed.
-    const kbObSkill = (name, source, en, fr) => ({ name, source, d: [en, fr] })
-    const KB_OB_AK = 'anthropics/knowledge-work-plugins'
-    const KB_OB_AS = 'anthropics/skills'
-    const KB_OB_AL = 'anthropics/claude-for-legal'
-    const KB_OB_KITS = {
-      etudes: { skills: [
-        kbObSkill('study-plan', KB_OB_AL, 'Plan revision sessions up to the exam', 'Planifie les sessions de révision jusqu’à l’examen'),
-        kbObSkill('flashcards', KB_OB_AL, 'Turn notes into cards you replay', 'Transforme tes notes en cartes à rejouer'),
-        kbObSkill('pdf', KB_OB_AS, 'Read and extract your course PDFs', 'Lit et extrait tes cours en PDF'),
-        kbObSkill('docx', KB_OB_AS, 'Write and format papers', 'Rédige et met en forme tes devoirs'),
-      ], teams: ['studencik', 'research-desk'], soon: [] },
-      soft: { skills: [
-        kbObSkill('code-review', KB_OB_AK, 'Review a change for bugs and clarity', 'Relit un changement : bugs et clarté'),
-        kbObSkill('testing-strategy', KB_OB_AK, 'Decide what to test and how', 'Décide quoi tester et comment'),
-        kbObSkill('sql-queries', KB_OB_AK, 'Write and check SQL', 'Écrit et vérifie du SQL'),
-        kbObSkill('statistical-analysis', KB_OB_AK, 'Read a dataset without fooling yourself', 'Lit un jeu de données sans se tromper'),
-      ], teams: [], soon: ['Data Analyst'] },
-      entre: { skills: [
-        kbObSkill('draft-outreach', KB_OB_AK, 'Write outreach people answer', 'Écrit des messages de prospection qui obtiennent une réponse'),
-        kbObSkill('campaign-plan', KB_OB_AK, 'Plan a campaign end to end', 'Planifie une campagne de bout en bout'),
-        kbObSkill('docx', KB_OB_AS, 'Quotes, proposals, contracts', 'Devis, propositions, contrats'),
-        kbObSkill('xlsx', KB_OB_AS, 'Track money and pipeline', 'Suit l’argent et le pipeline'),
-      ], teams: ['inbound-closer'], soon: ['Back-office Finance'] },
-      qa: { skills: [
-        kbObSkill('testing-strategy', KB_OB_AK, 'Decide what to test and how', 'Décide quoi tester et comment'),
-        kbObSkill('incident-response', KB_OB_AK, 'Run an incident calmly', 'Conduit un incident calmement'),
-        kbObSkill('webapp-testing', KB_OB_AS, 'Drive a web app and check it', 'Pilote une appli web et la vérifie'),
-      ], teams: [], soon: [] },
-      produit: { skills: [
-        kbObSkill('write-spec', KB_OB_AK, 'Turn an idea into a spec', 'Transforme une idée en spécification'),
-        kbObSkill('roadmap-update', KB_OB_AK, 'Keep the roadmap current', 'Tient la feuille de route à jour'),
-        kbObSkill('sprint-planning', KB_OB_AK, 'Plan a sprint with capacity in mind', 'Planifie un sprint selon la capacité'),
-        kbObSkill('user-research', KB_OB_AK, 'Plan and read user research', 'Prépare et lit une étude utilisateur'),
-      ], teams: [], soon: ['PM Assistant'] },
-      design: { skills: [
-        kbObSkill('design-critique', KB_OB_AK, 'Get a structured critique of a design', 'Obtient une critique structurée d’un design'),
-        kbObSkill('ux-copy', KB_OB_AK, 'Write interface text', 'Rédige les textes d’interface'),
-        kbObSkill('frontend-design', KB_OB_AS, 'Build polished interfaces in code', 'Construit des interfaces soignées en code'),
-      ], teams: [], soon: [] },
-      finance: { skills: [
-        kbObSkill('financial-statements', KB_OB_AK, 'Read and explain statements', 'Lit et explique des états financiers'),
-        kbObSkill('reconciliation', KB_OB_AK, 'Match two sets of records', 'Rapproche deux jeux d’écritures'),
-        kbObSkill('variance-analysis', KB_OB_AK, 'Explain what moved versus plan', 'Explique les écarts par rapport au plan'),
-        kbObSkill('xlsx', KB_OB_AS, 'Build and fix spreadsheets', 'Construit et corrige des tableurs'),
-      ], teams: [], soon: ['Back-office Finance'] },
-      medias: { skills: [
-        kbObSkill('content-creation', KB_OB_AK, 'Draft posts, scripts and pages', 'Rédige posts, scripts et pages'),
-        kbObSkill('brand-voice-enforcement', KB_OB_AK, 'Keep a consistent voice', 'Garde une voix cohérente'),
-        kbObSkill('pptx', KB_OB_AS, 'Build slide decks', 'Construit des présentations'),
-      ], teams: [], soon: ['Content Studio'] },
-      commerce: { skills: [
-        kbObSkill('ticket-triage', KB_OB_AK, 'Sort and prioritise support tickets', 'Trie et priorise les tickets'),
-        kbObSkill('xlsx', KB_OB_AS, 'Stock, orders and reports', 'Stocks, commandes et rapports'),
-        kbObSkill('docx', KB_OB_AS, 'Procedures and customer letters', 'Procédures et courriers clients'),
-      ], teams: [], soon: ['E-commerce Operator', 'Support Concierge'] },
-      marketing: { skills: [
-        kbObSkill('campaign-plan', KB_OB_AK, 'Plan a campaign end to end', 'Planifie une campagne de bout en bout'),
-        kbObSkill('brand-voice-enforcement', KB_OB_AK, 'Keep every text in your brand’s voice', 'Garde tous les textes dans la voix de ta marque'),
-        kbObSkill('seo-audit', KB_OB_AK, 'Audit a page or a site for search', 'Audite une page ou un site pour le SEO'),
-        kbObSkill('content-creation', KB_OB_AK, 'Draft posts, emails and pages', 'Rédige posts, e-mails et pages'),
-      ], teams: [], soon: ['Community Manager', 'Growth Hacker'] },
-      legal: { skills: [
-        kbObSkill('review-contract', KB_OB_AK, 'Review a contract against your playbook', 'Relit un contrat selon ta grille'),
-        kbObSkill('compliance-check', KB_OB_AK, 'Check a document against a policy', 'Vérifie un document au regard d’une politique'),
-        kbObSkill('docx', KB_OB_AS, 'Write and format documents', 'Rédige et met en forme des documents'),
-      ], teams: [], soon: ['Legal Compliance', 'Recruiter'] },
-      autres: { skills: [
-        kbObSkill('pdf', KB_OB_AS, 'Read and extract PDFs', 'Lit et extrait des PDF'),
-        kbObSkill('docx', KB_OB_AS, 'Write and format documents', 'Rédige et met en forme des documents'),
-        kbObSkill('xlsx', KB_OB_AS, 'Build and fix spreadsheets', 'Construit et corrige des tableurs'),
-        kbObSkill('pptx', KB_OB_AS, 'Build slide decks', 'Construit des présentations'),
-      ], teams: ['research-desk'], soon: [] },
+    // The starter kit and the menu wording come from the domain packs (packages/kybernos-plugin/domains/*.json, checked by the host and served by
+    // GET /kybernos/domains, see docs/dev/domain-packs.md): a field of work and the goals the person ticked in it. A skill is { source, name, d }
+    // (`d` a text per language: the install route refuses a pair that does not exist), a team an id of the marketplace of this bundle
+    // (KB_MARKET_TEAMS), `soon` the texts of what is planned and cannot be installed yet. The other languages read English.
+    /** A pack text (`{ en, fr… }`) in a language: that language, else English, else nothing. */
+    const kbObPackText = (lang, t) => (t !== null && t !== undefined && typeof t === 'object' ? (typeof t[lang] === 'string' ? t[lang] : (typeof t.en === 'string' ? t.en : '')) : '')
+    /** The pack of a domain id, or null. */
+    const kbObPackOf = (packs, id) => (Array.isArray(packs) && typeof id === 'string' ? (packs.find((p) => p !== null && typeof p === 'object' && p.id === id) || null) : null)
+    /** The goals of a pack that are in `ids`, in the pack's order (an id the pack does not know is ignored). */
+    const kbObGoalsOf = (pack, ids) => (pack === null || !Array.isArray(pack.goals) || !Array.isArray(ids) ? [] : pack.goals.filter((g) => ids.indexOf(g.id) >= 0))
+    /** The kit of a field for some goals: their skills and teams, each once, in the goals' order, and what is planned. Empty for no pack or no goal. */
+    const kbObKitOf = (pack, goalIds) => {
+      const kit = { skills: [], teams: [], soon: [] }
+      const seen = {}
+      for (const g of kbObGoalsOf(pack, goalIds)) {
+        for (const x of Array.isArray(g.skills) ? g.skills : []) if (seen['s ' + x.source + ' ' + x.name] !== true) { seen['s ' + x.source + ' ' + x.name] = true; kit.skills.push(x) }
+        for (const id of Array.isArray(g.teams) ? g.teams : []) if (seen['t ' + id] !== true) { seen['t ' + id] = true; kit.teams.push(id) }
+        for (const x of Array.isArray(g.soon) ? g.soon : []) if (seen['x ' + kbObPackText('en', x)] !== true) { seen['x ' + kbObPackText('en', x)] = true; kit.soon.push(x) }
+      }
+      return kit
     }
-    /** The kit of a profession (an unknown or empty one gets the general kit). */
-    const kbObKitFor = (job) => (typeof job === 'string' && KB_OB_KITS[job] !== undefined ? KB_OB_KITS[job] : KB_OB_KITS.autres)
-    /** A skill's one-line description in a language (French, else English). */
-    const kbObSkillText = (lang, skill) => (lang === 'fr' ? skill.d[1] : skill.d[0])
+    /** A skill's one-line description in a language (its own language, else English). */
+    const kbObSkillText = (lang, skill) => kbObPackText(lang, skill.d)
+    /**
+     * What a pack does to the Kybernos menu in a language: the labels it gives, only in a language the pack writes (another language keeps its own words,
+     * never a mix), and the rows it hides.
+     */
+    const kbObMenuOverlay = (pack, lang) => {
+      const out = { labels: {}, hide: [] }
+      if (pack === null || typeof pack !== 'object' || pack.menu === null || typeof pack.menu !== 'object') return out
+      const labels = pack.menu.labels !== null && typeof pack.menu.labels === 'object' ? pack.menu.labels : {}
+      for (const id of Object.keys(labels)) if (labels[id] !== null && typeof labels[id] === 'object' && typeof labels[id][lang] === 'string') out.labels[id] = labels[id][lang]
+      if (Array.isArray(pack.menu.hide)) out.hide = pack.menu.hide.filter((x) => typeof x === 'string')
+      return out
+    }
     /** What is ticked when the kit opens: every skill and available team that is not installed yet. Keys: `s:<name>`, `t:<id>`. */
     const kbObKitDefaults = (kit, installed) => {
       const have = installed !== null && typeof installed === 'object' ? installed : {}
@@ -35135,10 +35110,11 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       return kit.skills.filter((s) => skills.indexOf(s.name) < 0).map((s) => 's:' + s.name)
         .concat(kit.teams.filter((id) => teams.indexOf(id) < 0).map((id) => 't:' + id))
     }
-    /** The sentence kept in the person's memory about the profession and display mode, or null when neither is known. */
-    const kbObMemoryText = (lang, job, mode) => {
+    /** The sentence kept in the person's memory about the field, the goals and the display mode, or null when none is known. `domain` and `goals` are names. */
+    const kbObMemoryText = (lang, domain, goals, mode) => {
       const parts = []
-      if (typeof job === 'string' && KB_OB_PROFILES.indexOf(job) >= 0) parts.push(kbObText(lang, 'mem.job', { job: kbObText(lang, 'p.' + job) }))
+      if (typeof domain === 'string' && domain !== '') parts.push(kbObText(lang, 'mem.job', { job: domain }))
+      if (Array.isArray(goals) && goals.length > 0) parts.push(kbObText(lang, 'mem.goals', { goals: goals.join(', ') }))
       if (typeof mode === 'string' && KB_OB_MODES.indexOf(mode) >= 0) parts.push(kbObText(lang, 'mem.mode', { mode: kbObText(lang, 'mode.' + mode + '.t') }))
       return parts.length > 0 ? parts.join(' ') : null
     }
@@ -35257,7 +35233,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       const doc = env.document
       const win = env.window
       const S = {
-        screen: 'welcome', lang: 'en', job: null, mode: null, model: null,
+        screen: 'welcome', lang: 'en', domain: null, goals: [], packs: [], mode: null, model: null,
         ready: null, hasCloud: false, hasLocal: false, machine: null,
         provider: 'anthropic', menu: false, pairing: null, account: null, models: null, error: null, copied: false,
         keyDraft: '', keyMsg: null, keyVerdict: null, localId: null, job: null, localError: null, refs: null,
@@ -35373,7 +35349,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         if (S.screen === 'local-install' && S.localId !== null) { S.model = 'local'; watchInstall(S.localId) }
         // Opened from the chat's card or from « Starter kit » in Settings (standalone), the wizard is not the first run: the
         // onboarding file is left alone.
-        if (!S.standalone) env.post({ action: 'complete', profil: S.job, uiMode: S.mode, model: model, lang: S.lang, memoryId: S.memoryId })
+        if (!S.standalone) reloadDomain(env.post({ action: 'complete', profil: S.domain, goals: S.goals, uiMode: S.mode, model: model, lang: S.lang, memoryId: S.memoryId }))
         // Free models (no account): wire them in on the first run, but only when the person brings no
         // working model of their own AND acknowledged the prompt-retention notice (S.freeAck). The host
         // re-checks both guardrails before writing the route, so a stale client can never force it.
@@ -35654,8 +35630,18 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       // What is installed is read from the two places that own it: the skills registry (disabled skills included) and the Agent
       // Teams loader. A skill goes through the install route of the Skills page, a team through the same `kybers/create` the
       // marketplace uses; both refuse what exists already, and what is installed is never ticked, so a replay doubles nothing.
+      const curPack = () => kbObPackOf(S.packs, S.domain)
+      const curKit = () => kbObKitOf(curPack(), S.goals)
+      const packName = (pack) => (pack === null ? '' : kbObPackText(S.lang, pack.name))
+      // The saved field and goals move the menu wording: once the host has the answer, the menu reads it again.
+      const reloadDomain = (posted) => {
+        if (posted === null || posted === undefined || typeof posted.then !== 'function') return
+        posted.then(() => { try { win.dispatchEvent(new win.CustomEvent('kb-domain-reload')) } catch (e) { /* no events */ } }).catch(() => null)
+      }
+      // Settings, Starter kit: the field and the goals picked there are saved at once (the first run saves them when it completes).
+      const saveDomain = () => { if (S.kitOnly && S.domain !== null) reloadDomain(env.post({ action: 'domain', profil: S.domain, goals: S.goals })) }
       const kitSelection = () => {
-        if (S.kitSel === null) S.kitSel = new Set(kbObKitDefaults(kbObKitFor(S.job), S.kitInstalled))
+        if (S.kitSel === null) S.kitSel = new Set(kbObKitDefaults(curKit(), S.kitInstalled))
         return S.kitSel
       }
       const kitLoad = async () => {
@@ -35676,7 +35662,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         if (S.screen === 'kit') render(false)
       }
       const kitApply = async () => {
-        const kit = kbObKitFor(S.job)
+        const kit = curKit()
         const sel = kitSelection()
         const todo = []
         for (const sk of kit.skills) if (sel.has('s:' + sk.name)) todo.push({ team: null, skill: sk })
@@ -35725,7 +35711,8 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       const memoryWrite = async () => {
         if (S.standalone || S.memState !== null) return
         if (!(S.ready === 'cloud' || S.model === 'cloud')) return
-        const text = kbObMemoryText(S.lang, S.job, S.mode)
+        const pack = curPack()
+        const text = kbObMemoryText(S.lang, packName(pack), kbObGoalsOf(pack, S.goals).map((g) => kbObPackText(S.lang, g.name)), S.mode)
         if (text === null) return
         S.memState = 'saving'
         let r = null
@@ -35815,6 +35802,18 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         b.addEventListener('click', onClick)
         return b
       }
+      // A row you tick among others (the goals): the same row as the radio ones, announced as a checkbox.
+      const checkRow = (title, desc, on, onClick) => {
+        const b = radioRow(title, desc, on, onClick)
+        b.setAttribute('role', 'checkbox')
+        return b
+      }
+      // A chip you tick among others (the goals in Settings, Starter kit).
+      const checkChip = (label, on, onClick) => {
+        const b = chip(label, on, onClick)
+        b.setAttribute('role', 'checkbox')
+        return b
+      }
       const chip = (label, on, onClick) => {
         const b = h('button', 'kb-ob-chip' + (on ? ' on' : ''), label)
         b.type = 'button'
@@ -35848,7 +35847,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       }
       const eyebrow = (screen) => {
         if (S.standalone) return h('span')
-        const plan = kbObPlan()
+        const plan = kbObPlan(S.packs.length > 0)
         const n = plan.indexOf(kbObStepOf(screen)) + 1
         return h('p', 'kb-ob-eyebrow', T('step', { n: n, total: plan.length }))
       }
@@ -35886,7 +35885,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
           s.appendChild(h('h1', null, T('wel.t')))
           s.appendChild(h('p', 'kb-ob-sub', T('wel.s')))
           const a = actions()
-          a.appendChild(primary(T('start'), () => go('job')))
+          a.appendChild(primary(T('start'), () => go(S.packs.length > 0 ? 'job' : 'mode')))
           s.appendChild(a)
           return s
         },
@@ -35897,10 +35896,38 @@ html.wv2-actif [data-composer-seat]{display:none !important}
           s.appendChild(h('p', 'kb-ob-sub', T('job.s')))
           const g = h('div', 'kb-ob-chips')
           g.setAttribute('role', 'radiogroup')
-          for (const id of KB_OB_PROFILES) g.appendChild(chip(T('p.' + id), S.job === id, () => { S.job = id; render(false) }))
+          for (const pk of S.packs) g.appendChild(chip(packName(pk), S.domain === pk.id, () => { if (S.domain !== pk.id) { S.domain = pk.id; S.goals = []; S.kitSel = null }; render(false) }))
           s.appendChild(g)
           const a = actions()
-          a.appendChild(primary(T('cont'), () => go('mode')))
+          // A field with its goals next; no field chosen, the goals are skipped.
+          a.appendChild(primary(T('cont'), () => go(S.domain !== null ? 'goals' : 'mode')))
+          s.appendChild(a)
+          return s
+        },
+        goals: () => {
+          const s = step()
+          const pack = curPack()
+          s.appendChild(eyebrow('goals'))
+          s.appendChild(h('h1', null, T('goals.t')))
+          s.appendChild(h('p', 'kb-ob-sub', T('goals.s')))
+          const g = h('div', 'kb-ob-rows')
+          g.setAttribute('role', 'group')
+          for (const goal of pack !== null ? pack.goals : []) {
+            const on = S.goals.indexOf(goal.id) >= 0
+            const b = checkRow(kbObPackText(S.lang, goal.title), kbObPackText(S.lang, goal.desc), on, () => {
+              const i = S.goals.indexOf(goal.id)
+              if (i >= 0) S.goals.splice(i, 1); else S.goals.push(goal.id)
+              S.kitSel = null
+              render(false)
+            })
+            g.appendChild(b)
+          }
+          s.appendChild(g)
+          if (S.goals.length === 0) s.appendChild(h('p', 'kb-ob-sub kb-ob-hint', T('goals.pick')))
+          const a = actions()
+          const next = primary(T('cont'), () => go('mode'))
+          next.disabled = S.goals.length === 0
+          a.appendChild(next)
           s.appendChild(a)
           return s
         },
@@ -35952,16 +35979,34 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         kit: () => {
           const s = step()
           if (!S.kitOnly) s.appendChild(eyebrow('kit'))
-          s.appendChild(h('h1', null, S.job !== null ? T('k.t', { job: T('p.' + S.job) }) : T('k.t0')))
+          s.appendChild(h('h1', null, curPack() !== null ? T('k.t', { job: packName(curPack()) }) : T('k.t0')))
           s.appendChild(h('p', 'kb-ob-sub', T('k.s')))
-          // Opened later from Settings, the kit lets the person look at another profession's kit.
+          // Opened later from Settings, the kit is where the field and the goals are changed: each pick is saved at once and moves the menu wording.
           if (S.kitOnly) {
             const pg = h('div', 'kb-ob-chips kb-ob-chips-tight')
             pg.setAttribute('role', 'radiogroup')
-            for (const id of KB_OB_PROFILES) pg.appendChild(chip(T('p.' + id), S.job === id, () => { S.job = id; S.kitSel = null; S.kitDone = false; render(false) }))
+            for (const pk of S.packs) {
+              pg.appendChild(chip(packName(pk), S.domain === pk.id, () => {
+                if (S.domain !== pk.id) { S.domain = pk.id; S.goals = pk.goals.map((x) => x.id); S.kitSel = null; S.kitDone = false; saveDomain() }
+                render(false)
+              }))
+            }
             s.appendChild(pg)
+            if (curPack() !== null) {
+              const gg = h('div', 'kb-ob-chips kb-ob-chips-tight')
+              gg.setAttribute('role', 'group')
+              for (const goal of curPack().goals) {
+                gg.appendChild(checkChip(kbObPackText(S.lang, goal.name), S.goals.indexOf(goal.id) >= 0, () => {
+                  const i = S.goals.indexOf(goal.id)
+                  if (i >= 0) S.goals.splice(i, 1); else S.goals.push(goal.id)
+                  S.kitSel = null; S.kitDone = false; saveDomain(); render(false)
+                }))
+              }
+              s.appendChild(gg)
+            }
+            s.appendChild(h('p', 'kb-ob-sub kb-ob-hint', T('k.menu')))
           }
-          const kit = kbObKitFor(S.job)
+          const kit = curKit()
           const have = S.kitInstalled
           const sel = kitSelection()
           const busy = S.kitBusy !== null
@@ -36002,9 +36047,10 @@ html.wv2-actif [data-composer-seat]{display:none !important}
             const tb = h('div', 'kb-ob-kitbox')
             tb.appendChild(group('k.teams', teams.length + kit.soon.length))
             for (const t of teams) tb.appendChild(kitRow('t:' + t.id, t.name, typeof t.desc === 'string' ? t.desc : '', '', { done: have !== null && have.teams.indexOf(t.id) >= 0, initials: t.name.slice(0, 2).toUpperCase(), color: t.color }))
-            for (const name of kit.soon) tb.appendChild(kitRow('x:' + name, name, '', '', { soon: true, initials: name.slice(0, 2).toUpperCase() }))
+            for (const x of kit.soon) { const name = kbObPackText(S.lang, x); tb.appendChild(kitRow('x:' + name, name, '', '', { soon: true, initials: name.slice(0, 2).toUpperCase() })) }
             s.appendChild(tb)
           }
+          if (kit.skills.length === 0 && teams.length === 0 && kit.soon.length === 0) s.appendChild(h('p', 'kb-ob-sub', S.kitOnly && S.domain === null ? T('k.pick') : T('k.empty')))
           s.appendChild(note(T('k.note'), 'info'))
           if (S.kitDone) {
             const st = h('div', 'kb-ob-state' + (S.kitFailed > 0 ? ' err' : ' ok'))
@@ -36251,7 +36297,8 @@ html.wv2-actif [data-composer-seat]{display:none !important}
           s.appendChild(h('h1', null, noModel ? T('fin0.t') : T('fin.t')))
           s.appendChild(h('p', 'kb-ob-sub', noModel ? T('fin0.s') : T('fin.s')))
           s.appendChild(recap([
-            [T('fin.job'), S.job !== null ? T('p.' + S.job) : T('fin.none')],
+            [T('fin.job'), curPack() !== null ? packName(curPack()) : T('fin.none')],
+            [T('fin.goals'), kbObGoalsOf(curPack(), S.goals).length > 0 ? kbObGoalsOf(curPack(), S.goals).map((g) => kbObPackText(S.lang, g.name)).join(', ') : T('fin.none')],
             [T('fin.mode'), S.mode !== null ? T('mode.' + S.mode + '.t') : T('fin.none')],
             [T('fin.model'), modelLabel()],
             [T('fin.kit'), S.kitAdded > 0 ? T('fin.kit.n', { n: S.kitAdded }) : T('k.skip')],
@@ -36371,10 +36418,14 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         S.hasCloud = init.hasCloud
         S.hasLocal = init.hasLocal
         S.machine = init.machine
-        S.job = init.job
+        S.domain = typeof init.domain === 'string' ? init.domain : null
+        S.goals = Array.isArray(init.goals) ? init.goals.slice() : []
+        S.packs = Array.isArray(init.packs) ? init.packs : []
         S.mode = init.mode
         S.standalone = init.standalone === true
         S.kitOnly = S.standalone && init.kitOnly === true
+        // Settings, Starter kit with a field saved by the previous wizard (no goals): everything the field offers is on offer.
+        if (S.kitOnly && S.goals.length === 0 && curPack() !== null) S.goals = curPack().goals.map((g) => g.id)
         S.accountEmail = typeof init.accountEmail === 'string' ? init.accountEmail : null
         S.accountModels = typeof init.accountModels === 'number' ? init.accountModels : null
         S.memoryId = typeof init.memoryId === 'string' ? init.memoryId : null
@@ -36401,6 +36452,17 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       return { open, close, state: S }
     }
 
+    /** The checked domain packs the host serves, or an empty list (an older host, a route that does not answer): the wizard then skips the field and the goals. */
+    const kbObLoadPacks = async (env) => {
+      try {
+        const ctl = typeof env.window.AbortController === 'function' ? new env.window.AbortController() : null
+        const timer = ctl !== null ? env.window.setTimeout(() => ctl.abort(), 2500) : null
+        const res = await env.fetch('/kybernos/domains', { cache: 'no-store', signal: ctl !== null ? ctl.signal : undefined })
+        if (timer !== null) env.window.clearTimeout(timer)
+        const j = await res.json()
+        return j !== null && typeof j === 'object' && j.ok === true && Array.isArray(j.packs) ? j.packs : []
+      } catch (e) { return [] }
+    }
     /** What decides the wizard's shape before it opens: is there already a model, and which ways are on offer. */
     const kbObProbe = async (env) => {
       const get = async (path) => {
@@ -36465,6 +36527,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         busy = true
         try {
           const probe = await kbObProbe(env)
+          const packs = await kbObLoadPacks(env)
           const wizard = kbObMount({ ...env, onClose: () => { busy = false } })
           const known = (list, v) => (typeof v === 'string' && list.indexOf(v) >= 0 ? v : null)
           const opened = wizard.open({
@@ -36474,7 +36537,9 @@ html.wv2-actif [data-composer-seat]{display:none !important}
             hasCloud: probe.hasCloud,
             hasLocal: probe.hasLocal,
             machine: probe.machine,
-            job: known(KB_OB_PROFILES, saved.profil),
+            domain: typeof saved.domain === 'string' ? saved.domain : null,
+            goals: Array.isArray(saved.goals) ? saved.goals : [],
+            packs: packs,
             mode: known(KB_OB_MODES, saved.uiMode),
             accountEmail: probe.accountEmail,
             accountModels: probe.accountModels,
@@ -36495,7 +36560,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
           })
           const opened = wizard.open({
             standalone: true, lang: kbObPickLang(appLanguage(), shellLanguage()), dark: isDark(), ready: null,
-            hasCloud: probe.hasCloud, hasLocal: probe.hasLocal, machine: probe.machine, job: null, mode: null,
+            hasCloud: probe.hasCloud, hasLocal: probe.hasLocal, machine: probe.machine, domain: null, goals: [], packs: [], mode: null,
           })
           if (opened !== true) busy = false
           return opened === true
@@ -36508,17 +36573,21 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         try {
           let saved = null
           try { saved = await win.fetch('/kybernos/onboarding', { headers: { accept: 'application/json' } }).then((r) => r.json()) } catch (e) { saved = null }
+          const packs = await kbObLoadPacks(env)
           const wizard = kbObMount({ ...env, onClose: () => { busy = false } })
-          const known = (list, v) => (typeof v === 'string' && list.indexOf(v) >= 0 ? v : null)
+          const mine = saved !== null && saved.ok === true
           const opened = wizard.open({
             standalone: true, kitOnly: true, lang: kbObPickLang(appLanguage(), shellLanguage()), dark: isDark(), ready: null,
             hasCloud: false, hasLocal: false, machine: null,
-            job: saved !== null && saved.ok === true ? known(KB_OB_PROFILES, saved.profil) : null, mode: null,
+            domain: mine && typeof saved.domain === 'string' ? saved.domain : null,
+            goals: mine && Array.isArray(saved.goals) ? saved.goals : [], packs: packs, mode: null,
           })
           if (opened !== true) busy = false
           return opened === true
         } catch (e) { busy = false; return false }
       }
+      // The menu wording follows the saved field: read now, and again each time the choice is saved.
+      try { win.addEventListener('kb-domain-reload', () => { kbDomainLoad() }); kbDomainLoad() } catch (e) { /* no window (test harness) */ }
       // A fresh install (or a newer wizard version) answers `completed:false`: the wizard opens at boot.
       try {
         win.fetch('/kybernos/onboarding', { headers: { accept: 'application/json' } })
@@ -36591,6 +36660,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       '.kb-ob-tag{font-size:11.5px;font-weight:500;padding:2px 9px;border-radius:99px;background:var(--wash);color:var(--ink2)}',
       '.kb-ob-dot{flex:none;width:18px;height:18px;border-radius:50%;border:1.5px solid var(--line);display:flex;align-items:center;justify-content:center;color:transparent}',
       '.kb-ob-row.on .kb-ob-dot{background:var(--ink);border-color:var(--ink);color:var(--bg)}',
+      '.kb-ob-row[role="checkbox"] .kb-ob-dot{border-radius:5px}',
       '.kb-ob-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:26px}',
       '.kb-ob-chips-tight{margin-top:20px}',
       '.kb-ob-chip{padding:9px 15px;border-radius:99px;border:1px solid var(--line);background:var(--bg2);color:var(--ink);font-size:14px;cursor:pointer;transition:border-color .15s}',

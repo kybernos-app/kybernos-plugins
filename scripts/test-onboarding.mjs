@@ -6,6 +6,7 @@
 // Usage: node scripts/test-onboarding.mjs   (exit 0 = everything passes)
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
+import { loadPacks } from '../packages/kybernos-plugin/domain-pack.mjs'
 
 const root = fileURLToPath(new URL('..', import.meta.url))
 const src = readFileSync(root + 'packages/kybernos-plugin/client.js', 'utf8')
@@ -13,7 +14,7 @@ const brand = src.match(/\/\/ KB-BRAND-CORE-BEGIN([\s\S]*?)\/\/ KB-BRAND-CORE-EN
 const core = src.match(/\/\/ KB-OB-CORE-BEGIN([\s\S]*?)\/\/ KB-OB-CORE-END/)
 const ui = src.match(/\/\/ KB-OB-UI-BEGIN([\s\S]*?)\/\/ KB-OB-UI-END/)
 if (core === null || ui === null) { console.error('BLOCKS KB-OB-CORE / KB-OB-UI NOT FOUND in packages/kybernos-plugin/client.js'); process.exit(1) }
-const names = 'KB_OB_LANGS, KB_OB_PROFILES, KB_OB_MODES, KB_OB_PROVIDERS, KB_OB_T, kbObPickLang, kbObText, kbObPlan, kbObStepOf, kbObBack, kbObBackOf, kbObEscape, kbObIsDark, kbObKeyShape, kbObProviderFromKey, kbObNeedModel, kbObNoModel, KB_OB_KITS, kbObKitFor, kbObKitDefaults, kbObMemoryText, kbObSkillText, kbObSetupRows'
+const names = 'KB_OB_LANGS, KB_OB_MODES, KB_OB_PROVIDERS, KB_OB_T, kbObPickLang, kbObText, kbObPlan, kbObStepOf, kbObBack, kbObBackOf, kbObEscape, kbObIsDark, kbObKeyShape, kbObProviderFromKey, kbObNeedModel, kbObNoModel, kbObPackText, kbObPackOf, kbObGoalsOf, kbObKitOf, kbObMenuOverlay, kbObKitDefaults, kbObMemoryText, kbObSkillText, kbObSetupRows'
 const mod = await import('data:text/javascript,' + encodeURIComponent(core[1] + '\nexport { ' + names + ' }'))
 
 let fails = 0
@@ -39,15 +40,14 @@ eq('a translated text is not left as the English one (apart from names and share
 eq('no raw HTML or script marker in any text', keys.filter((k) => mod.KB_OB_T[k].some((t) => /<\/?[a-z]|javascript:|on[a-z]+=/i.test(t))), [])
 
 /* ── 2. The families of keys the UI builds by concatenation ──────────────── */
-eq('a text for every profession', mod.KB_OB_PROFILES.filter((p) => mod.KB_OB_T['p.' + p] === undefined), [])
+eq('the twelve profession texts are gone: the fields of work come from the domain packs', Object.keys(mod.KB_OB_T).filter((k) => /^p\./.test(k)), [])
 eq('a title and a description for every display mode', mod.KB_OB_MODES.filter((m) => mod.KB_OB_T['mode.' + m + '.t'] === undefined || mod.KB_OB_T['mode.' + m + '.d'] === undefined), [])
-eq('the profession ids are the ones the previous wizard stored', mod.KB_OB_PROFILES, ['soft', 'entre', 'qa', 'produit', 'design', 'etudes', 'finance', 'medias', 'commerce', 'marketing', 'legal', 'autres'])
 eq('the display mode ids are the ones the previous wizard stored', mod.KB_OB_MODES, ['code', 'bureau'])
 eq('every message of the key form has a text', ['format', 'invalid', 'denied', 'unreach', 'fail'].filter((k) => mod.KB_OB_T['key.err.' + k] === undefined), [])
 eq('every refusal of an installation has a text', ['noengine', 'busy', 'failed', 'connect'].filter((k) => mod.KB_OB_T['loc.err.' + k] === undefined), [])
 eq('expired and refused pairings each have a title and a text', ['expired', 'denied'].filter((k) => mod.KB_OB_T['err.' + k + '.t'] === undefined || mod.KB_OB_T['err.' + k + '.s'] === undefined), [])
 const asked = new Set()
-// Only whole keys: the families built by concatenation ('p.' + id, 'mode.' + id + '.t', 'err.' + kind + '.s') are checked above.
+// Only whole keys: the families built by concatenation ('mode.' + id + '.t', 'err.' + kind + '.s') are checked above.
 for (const m of ui[1].matchAll(/\bT\('([a-z0-9.]+)'\s*[,)]/g)) asked.add(m[1])
 eq('the UI asks for texts that exist', [...asked].filter((k) => mod.KB_OB_T[k] === undefined), [])
 eq('the UI asked for a reasonable number of distinct texts', asked.size > 40, true)
@@ -77,12 +77,12 @@ eq('exactly one has its own wording: « 1 model ready », « 1 modèle prêt »,
 eq('…in every count line that can be 1: cloud models, kit added, kit failed, add selected', [T('en', 'fin.cloud.n', { n: 1 }), T('fr', 'fin.kit.n', { n: 1 }), T('en', 'k.err', { n: 1 }), T('es', 'k.add', { n: 1 })], ['Kybernos Cloud · 1 model', '1 ajouté', '1 could not be added. You can find it later in Skills and in Agent Teams.', 'Añadir el seleccionado'])
 
 /* ── 5. The steps ────────────────────────────────────────────────────────── */
-eq('four numbered steps, the model step among them whatever already works', mod.kbObPlan(), ['job', 'mode', 'model', 'kit'])
-eq('the plan does not depend on an argument any more (a replay always shows the model step)', mod.kbObPlan(true), mod.kbObPlan(false))
+eq('five numbered steps (field, goals, display, model, kit), the model step among them whatever already works', mod.kbObPlan(), ['job', 'goals', 'mode', 'model', 'kit'])
+eq('with no domain pack to choose from there is no field and no goals to ask: three steps, the model step still there', [mod.kbObPlan(false), mod.kbObPlan(true)], [['mode', 'model', 'kit'], ['job', 'goals', 'mode', 'model', 'kit']])
 eq('screens of the model step share one number', ['model', 'key', 'key-done', 'local', 'local-install', 'local-done', 'local-err', 'free', 'cloud-wait', 'cloud-ok', 'cloud-err'].map((s) => mod.kbObStepOf(s)), Array(11).fill('model'))
-eq('the kit is its own step', mod.kbObStepOf('kit'), 'kit')
+eq('the kit and the goals are their own steps', [mod.kbObStepOf('kit'), mod.kbObStepOf('goals')], ['kit', 'goals'])
 eq('welcome and the end screen have no number', ['welcome', 'done'].map((s) => mod.kbObStepOf(s)), [null, null])
-eq('back goes one screen up', ['job', 'mode', 'model', 'kit', 'key', 'local', 'local-err', 'cloud-wait', 'cloud-err'].map((s) => mod.kbObBack(s)), ['welcome', 'job', 'mode', 'model', 'model', 'model', 'local', 'model', 'model'])
+eq('back goes one screen up', ['job', 'goals', 'mode', 'model', 'kit', 'key', 'local', 'local-err', 'cloud-wait', 'cloud-err'].map((s) => mod.kbObBack(s)), ['welcome', 'job', 'goals', 'mode', 'model', 'model', 'model', 'local', 'model', 'model'])
 eq('the removed screens (the separate account offer, the « later » page) lead nowhere', [mod.kbObBack('offer'), mod.kbObStepOf('offer'), mod.kbObStepOf('later')], [null, null, null])
 eq('there is no back from welcome, from the end, mid-download, or once something is connected',
   ['welcome', 'done', 'cloud-ok', 'key-done', 'local-install', 'local-done'].map((s) => mod.kbObBack(s)), Array(6).fill(null))
@@ -90,37 +90,57 @@ eq('there is no back from welcome, from the end, mid-download, or once something
 const first = (screen, extra) => ({ screen, standalone: false, menu: false, fromAccount: false, ...extra })
 const alone = (screen, extra) => ({ screen, standalone: true, menu: false, fromAccount: false, ...extra })
 eq('first run: Escape on the welcome screen does nothing (there is nowhere back, and leaving is « Skip »)', mod.kbObEscape(first('welcome')), 'none')
-eq('first run: Escape steps back where « Back » exists', ['job', 'mode', 'model', 'kit', 'key', 'local', 'cloud-wait'].map((s) => mod.kbObEscape(first(s))), Array(7).fill('back'))
+eq('first run: Escape steps back where « Back » exists', ['job', 'goals', 'mode', 'model', 'kit', 'key', 'local', 'cloud-wait'].map((s) => mod.kbObEscape(first(s, { domain: 'edu', packs: [{}] }))), Array(8).fill('back'))
 eq('first run: nowhere to go back to (end, mid-download, connected) means nothing happens, never a close', ['done', 'cloud-ok', 'key-done', 'local-install', 'local-done'].map((s) => mod.kbObEscape(first(s))), Array(5).fill('none'))
 eq('first run: the free step that came right after an account has no back, so Escape does nothing there', mod.kbObEscape(first('free', { fromAccount: true })), 'none')
 eq('first run: an open language menu is closed first, on any screen', ['welcome', 'job', 'model'].map((s) => mod.kbObEscape(first(s, { menu: true }))), Array(3).fill('menu'))
 eq('opened on its own (replay, the chat card, the kit), nothing is recorded: Escape closes it', ['model', 'kit', 'key', 'local'].map((s) => mod.kbObEscape(alone(s))), Array(4).fill('close'))
 eq('opened on its own, the menu still goes first', mod.kbObEscape(alone('model', { menu: true })), 'menu')
+eq('without a field the goals step is skipped, so « Back » from the display mode goes to the field (or to the welcome when there is nothing to choose)',
+  [mod.kbObBackOf(first('mode', { domain: null, packs: [{}] })), mod.kbObBackOf(first('mode', { domain: null, packs: [] })), mod.kbObBackOf(first('mode', { domain: 'edu', packs: [{}] }))], ['job', 'welcome', 'goals'])
 eq('the Back button and Escape share one rule: no back from the model or kit step when opened alone', ['model', 'kit'].map((s) => mod.kbObBackOf(alone(s))), [null, null])
 eq('every string of the model question exists in the four languages', ['m.t', 'm.s', 'm.k', 'm.rec', 'm.kd', 'm.o', 'm.od', 'm.other', 'm.local', 'm.free', 'm.conn', 'm.later', 'm.keep'].map((k) => (Array.isArray(mod.KB_OB_T[k]) && mod.KB_OB_T[k].length === 4 && mod.KB_OB_T[k].every((v) => typeof v === 'string' && v.length > 0))), Array(13).fill(true))
 eq('the removed texts are gone from the dictionary', Object.keys(mod.KB_OB_T).filter((k) => /^(offer\.|v\.(cloud|key|free)|brain\.)/.test(k)), [])
 
 /* ── 5a. The starter kit ─────────────────────────────────────────────────── */
 const marketIds = [...src.slice(src.indexOf('const KB_MARKET_TEAMS = ['), src.indexOf('// Manifest read-only')).matchAll(/^        id: '([a-z0-9-]+)', name:/gm)].map((m) => m[1])
-eq('the marketplace of the bundle holds the teams the kits point at', marketIds.sort(), ['inbound-closer', 'research-desk', 'studencik'])
-eq('every profession has a kit, and only those', Object.keys(mod.KB_OB_KITS).sort(), [...mod.KB_OB_PROFILES].sort())
-const kitSkills = Object.values(mod.KB_OB_KITS).flatMap((k) => k.skills)
-eq('every skill is a valid skill name from a GitHub owner/repo, with an English and a French line',
-  kitSkills.filter((x) => !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(x.name) || !/^[A-Za-z0-9][A-Za-z0-9_.-]*\/[A-Za-z0-9][A-Za-z0-9_.-]*$/.test(x.source) || !Array.isArray(x.d) || x.d.length !== 2 || x.d.some((t) => typeof t !== 'string' || t.trim() === '')).map((x) => x.name), [])
-eq('every kit has between 3 and 4 skills, no duplicate inside a kit', Object.entries(mod.KB_OB_KITS).filter(([, k]) => k.skills.length < 3 || k.skills.length > 4 || new Set(k.skills.map((x) => x.name)).size !== k.skills.length).map(([id]) => id), [])
-eq('every team of a kit exists in the marketplace', Object.values(mod.KB_OB_KITS).flatMap((k) => k.teams).filter((id) => marketIds.indexOf(id) < 0), [])
-eq('the students are offered the team the product ships for them', mod.KB_OB_KITS.etudes.teams.indexOf('studencik') >= 0, true)
-eq('an unknown or empty profession gets the general kit', [mod.kbObKitFor(null), mod.kbObKitFor('nope'), mod.kbObKitFor(undefined)].every((k) => k === mod.KB_OB_KITS.autres), true)
-const etudes = mod.KB_OB_KITS.etudes
-eq('everything is ticked on a first run', mod.kbObKitDefaults(etudes, { skills: [], teams: [] }), ['s:study-plan', 's:flashcards', 's:pdf', 's:docx', 't:studencik', 't:research-desk'])
-eq('what is installed is not ticked again (a replay doubles nothing)', mod.kbObKitDefaults(etudes, { skills: ['pdf', 'flashcards'], teams: ['studencik'] }), ['s:study-plan', 's:docx', 't:research-desk'])
-eq('a probe that failed leaves everything ticked', [mod.kbObKitDefaults(etudes, null), mod.kbObKitDefaults(etudes, {})].map((k) => k.length), [6, 6])
-eq('a skill reads in French, other languages read English', [mod.kbObSkillText('fr', etudes.skills[0]), mod.kbObSkillText('es', etudes.skills[0]), mod.kbObSkillText('ar', etudes.skills[0])], ['Planifie les sessions de révision jusqu’à l’examen', 'Plan revision sessions up to the exam', 'Plan revision sessions up to the exam'])
-eq('every string of the kit exists in the four languages', ['k.t', 'k.t0', 'k.s', 'k.skills', 'k.teams', 'k.src', 'k.add', 'k.none', 'k.skip', 'k.done', 'k.soon', 'k.note', 'k.busy', 'k.err', 'fin.kit', 'fin.kit.n', 'fin.mem', 'fin.mem.d', 'mem.job', 'mem.mode'].map((k) => (Array.isArray(mod.KB_OB_T[k]) && mod.KB_OB_T[k].length === 4 && mod.KB_OB_T[k].every((v) => typeof v === 'string' && v.length > 0))), Array(20).fill(true))
-eq('the memory sentence names the profession and the display mode, in the wizard\'s language',
-  [mod.kbObMemoryText('en', 'etudes', 'bureau'), mod.kbObMemoryText('fr', 'soft', 'code')],
-  ['Works as: Students / Teaching / Research. Prefers: Office mode.', 'Métier : Software / Data / IA. Préfère : Mode Code.'])
-eq('with only one of the two it says only that, with neither it says nothing', [mod.kbObMemoryText('en', 'legal', null), mod.kbObMemoryText('en', null, 'code'), mod.kbObMemoryText('en', null, null), mod.kbObMemoryText('en', 'nope', 'nope')], ['Works as: Legal / Administration / HR.', 'Prefers: Coding mode.', null, null])
+eq('the marketplace of the bundle holds the teams the packs point at', marketIds.sort(), ['inbound-closer', 'research-desk', 'studencik'])
+const packs = loadPacks(root + 'packages/kybernos-plugin/domains').packs
+const pack = (id) => mod.kbObPackOf(packs, id)
+const edu = pack('edu')
+eq('a field of work is found by its id, anything else is null', [pack('edu').id, mod.kbObPackOf(packs, 'nope'), mod.kbObPackOf(null, 'edu'), mod.kbObPackOf(packs, 7)], ['edu', null, null, null])
+eq('a pack text reads in its language, else in English, else nothing', [mod.kbObPackText('fr', edu.name), mod.kbObPackText('es', edu.name), mod.kbObPackText('en', { en: 'x' }), mod.kbObPackText('fr', null), mod.kbObPackText('en', { fr: 'seulement' })], ['Éducation', 'Education', 'x', '', ''])
+const names2 = (kit) => [kit.skills.map((x) => x.name), kit.teams]
+eq('the kit of some goals is their skills and teams, each once, in the pack\'s order (not the order they were ticked)',
+  names2(mod.kbObKitOf(edu, ['courses', 'exams'])), [['study-plan', 'flashcards', 'pdf', 'docx'], ['studencik', 'research-desk']])
+eq('a goal listed twice, or one the pack does not know, changes nothing', names2(mod.kbObKitOf(edu, ['exams', 'exams', 'nope'])), [['study-plan', 'flashcards'], ['studencik']])
+eq('no goal, no pack or no list: an empty kit', [mod.kbObKitOf(edu, []), mod.kbObKitOf(null, ['exams']), mod.kbObKitOf(edu, null), mod.kbObKitOf(edu, 'exams')], Array(4).fill({ skills: [], teams: [], soon: [] }))
+eq('what is planned is listed once, whichever goals ask for it', mod.kbObKitOf(pack('sante'), ['notes', 'appointments', 'notes']).soon.map((x) => x.en),
+  ['Consultation-notes skill', 'Cabinet Assistant team', 'Reminder messages', 'Reminder automation'])
+eq('a goal that only plans something installs nothing', names2(mod.kbObKitOf(pack('sante'), ['appointments'])), [[], []])
+eq('a skill of a kit carries what the install route needs: a GitHub source, a name, a text per language',
+  packs.flatMap((p) => mod.kbObKitOf(p, p.goals.map((g) => g.id)).skills).filter((x) => !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(x.name) || !/^[A-Za-z0-9][A-Za-z0-9_.-]*\/[A-Za-z0-9][A-Za-z0-9_.-]*$/.test(x.source) || mod.kbObPackText('en', x.d) === '' || typeof x.d.fr !== 'string').length, 0)
+const kit = mod.kbObKitOf(edu, ['exams', 'courses'])
+eq('everything is ticked on a first run', mod.kbObKitDefaults(kit, { skills: [], teams: [] }), ['s:study-plan', 's:flashcards', 's:pdf', 's:docx', 't:studencik', 't:research-desk'])
+eq('what is installed is not ticked again (a replay doubles nothing)', mod.kbObKitDefaults(kit, { skills: ['pdf', 'flashcards'], teams: ['studencik'] }), ['s:study-plan', 's:docx', 't:research-desk'])
+eq('a probe that failed leaves everything ticked', [mod.kbObKitDefaults(kit, null), mod.kbObKitDefaults(kit, {})].map((k) => k.length), [6, 6])
+eq('a skill reads in French, other languages read English', [mod.kbObSkillText('fr', kit.skills[0]), mod.kbObSkillText('es', kit.skills[0]), mod.kbObSkillText('ar', kit.skills[0])], ['Planifie les sessions de révision jusqu’à l’examen', 'Plan revision sessions up to the exam', 'Plan revision sessions up to the exam'])
+const strings = ['k.t', 'k.t0', 'k.s', 'k.skills', 'k.teams', 'k.src', 'k.add', 'k.none', 'k.skip', 'k.done', 'k.soon', 'k.note', 'k.busy', 'k.err', 'k.empty', 'k.pick', 'k.menu', 'fin.kit', 'fin.kit.n', 'fin.mem', 'fin.mem.d', 'fin.job', 'fin.goals', 'mem.job', 'mem.goals', 'mem.mode', 'job.t', 'job.s', 'goals.t', 'goals.s', 'goals.pick']
+eq('every string of the field, goals and kit steps exists in the four languages', strings.map((k) => (Array.isArray(mod.KB_OB_T[k]) && mod.KB_OB_T[k].length === 4 && mod.KB_OB_T[k].every((v) => typeof v === 'string' && v.length > 0))), Array(strings.length).fill(true))
+eq('the memory sentence names the field, the goals and the display mode, in the wizard\'s language',
+  [mod.kbObMemoryText('en', 'Health', ['Notes', 'Appointments'], 'bureau'), mod.kbObMemoryText('fr', 'Santé', ['Comptes rendus'], 'code')],
+  ['Field of work: Health. Wants help with: Notes, Appointments. Prefers: Office mode.', 'Domaine : Santé. Veut de l’aide pour : Comptes rendus. Préfère : Mode Code.'])
+eq('with only some of the three it says only that, with none it says nothing', [mod.kbObMemoryText('en', 'Law', [], null), mod.kbObMemoryText('en', null, ['Notes'], null), mod.kbObMemoryText('en', null, [], 'code'), mod.kbObMemoryText('en', null, null, null), mod.kbObMemoryText('en', '', [], 'nope')],
+  ['Field of work: Law.', 'Wants help with: Notes.', 'Prefers: Coding mode.', null, null])
+
+/* ── 5c. The menu wording a pack gives ───────────────────────────────────── */
+const health = pack('sante')
+eq('the labels come in the language of the page, never a mix: a language the pack does not write keeps the menu\'s own words',
+  [mod.kbObMenuOverlay(health, 'fr').labels.dashboards, mod.kbObMenuOverlay(health, 'en').labels.dashboards, mod.kbObMenuOverlay(health, 'es').labels, mod.kbObMenuOverlay(health, 'ar').labels], ['Mon activité', 'My activity', {}, {}])
+eq('a pack hides the rows it names', [mod.kbObMenuOverlay(health, 'en').hide, mod.kbObMenuOverlay(pack('dev'), 'en')], [['documents'], { labels: {}, hide: [] }])
+eq('no pack, a pack without a menu or a pack with odd values: the menu is left as it is',
+  [mod.kbObMenuOverlay(null, 'en'), mod.kbObMenuOverlay({}, 'en'), mod.kbObMenuOverlay({ menu: { labels: { dashboards: 3, aiteams: { en: 'Team' } }, hide: [1, 'documents'] } }, 'en')],
+  [{ labels: {}, hide: [] }, { labels: {}, hide: [] }, { labels: { aiteams: 'Team' }, hide: ['documents'] }])
 
 /* ── 5b. The pasted key ──────────────────────────────────────────────────── */
 eq('a key is one printable string of 8 to 400 characters', [mod.kbObKeyShape('sk-ant-api03-abcdefghij'), mod.kbObKeyShape('  sk-0123456789 \n')], ['sk-ant-api03-abcdefghij', 'sk-0123456789'])
@@ -236,7 +256,7 @@ eq('the old wizard\'s texts are gone from the dictionary', /'ob\.(bienvenue|meti
 eq('Arabic is a right-to-left base of the app too', /KB_RTL_BASES = \[[^\]]*'ar'/.test(src), true)
 eq('the wizard never calls a host route it does not know', [...ui[1].matchAll(/'(\/(?:kybernos-cloud|kybernos-models|kybernos|modeles-locaux|free-llms)[^']*)'/g)].map((m) => m[1]).filter((p, i, a) => a.indexOf(p) === i).sort(),
   ['/free-llms/auto-enable', '/kybernos-auto/state', '/kybernos-cloud/disconnect', '/kybernos-cloud/memory/add', '/kybernos-cloud/memory/update', '/kybernos-cloud/poll', '/kybernos-cloud/start', '/kybernos-cloud/status',
-    '/kybernos-memory/settings', '/kybernos-models/key/check', '/kybernos-sessions/settings', '/kybernos-skills/install', '/kybernos-skills/skills', '/kybernos-websearch/state', '/kybernos/composio/provider', '/kybernos/model/auto', '/modeles-locaux/annuler', '/modeles-locaux/installation', '/modeles-locaux/installer', '/modeles-locaux/machine'])
+    '/kybernos-memory/settings', '/kybernos-models/key/check', '/kybernos-sessions/settings', '/kybernos-skills/install', '/kybernos-skills/skills', '/kybernos-websearch/state', '/kybernos/composio/provider', '/kybernos/domains', '/kybernos/model/auto', '/modeles-locaux/annuler', '/modeles-locaux/installation', '/modeles-locaux/installer', '/modeles-locaux/machine'])
 // The pages it hands over to are named by the id the Settings nav gives them (language-proof), and must be ids that nav knows.
 const navKeys = src.match(/const KB_NAV_KEYS = \{([\s\S]*?)\n\}/)[1]
 const known = new Set([...navKeys.matchAll(/(?:'([a-z0-9-]+)'|\b([a-z]+)):\s*'/g)].map((m) => m[1] || m[2]))

@@ -16,7 +16,8 @@ import { stableStreak as autoSkillStreak, skillSlug as autoSkillSlug, buildSkill
 import { chooseWorkspace as autoWsChoose, idOf as autoWsIdOf, DEDICATED_TITLE as AUTO_WS_TITLE, DEDICATED_DIR as AUTO_WS_DIR } from './automation-workspace.mjs'
 import { recordFeedback, exportFeedback, relayReportOf } from './feedback-box.mjs'
 import { writeGuard } from './session-guard.mjs'
-import { defaultState as onboardingDefault, publicView as onboardingView, complete as onboardingComplete, replay as onboardingReplay } from './onboarding-state.mjs'
+import { defaultState as onboardingDefault, publicView as onboardingView, complete as onboardingComplete, replay as onboardingReplay, chooseDomain as onboardingChooseDomain } from './onboarding-state.mjs'
+import { loadPacks as loadDomainPacks, domainOfProfil } from './domain-pack.mjs'
 const pluginDir = dirname(fileURLToPath(import.meta.url))
 // ── Le filet du compactage, sans retouche du moteur (23/09/2026) ────────────
 // Mesuré : notre bundle monte APRÈS `dsh-web-app`, donc les enfants de preset
@@ -9902,11 +9903,28 @@ function boot(ctx) {
           return (read !== null && typeof read === 'object') ? read : null
         } catch (e) { return null }
       }
+      // The domain packs (docs/dev/domain-packs.md): read and checked once from domains/*.json, served as data. A file that fails the check is
+      // left out and counted, never an error: the wizard then simply offers fewer fields of work.
+      let packsLoaded = null
+      const domainPacks = () => {
+        if (packsLoaded === null) {
+          packsLoaded = loadDomainPacks(pluginDir + '/domains')
+          for (const r of packsLoaded.rejected) console.warn('[kybernos] domain pack left out: ' + r.file + ' (' + r.errors.join('; ') + ')')
+        }
+        return packsLoaded
+      }
+      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/domains', handler: async (req, res) => {
+        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
+        const r = domainPacks()
+        sendJson(res, 200, { ok: true, packs: r.packs, rejected: r.rejected.length })
+      } }), 'kybernos: route domains')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/onboarding', handler: async (req, res) => {
         if (req.method === 'GET') {
           const state = await onboardingRead()
           if (state === null) return sendJson(res, 200, { ok: false, error: 'onboarding state unreadable' })
-          return sendJson(res, 200, { ok: true, ...onboardingView(state) })
+          // `domain` is the pack the saved `profil` stands for (the previous wizard stored one of twelve professions): null when none.
+          const view = onboardingView(state)
+          return sendJson(res, 200, { ok: true, ...view, domain: domainOfProfil(domainPacks().packs, view.profil) })
         }
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'GET or POST expected' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
@@ -9917,11 +9935,21 @@ function boot(ctx) {
           const written = await onboardingWrite(onboardingReplay(state))
           return sendJson(res, 200, written === true ? { ok: true, completed: false } : { ok: false, error: 'write failed' })
         }
-        if (action !== 'complete') return sendJson(res, 400, { ok: false, error: 'action complete or replay expected' })
+        if (action === 'domain') {
+          // A domain and goals chosen later (Settings, Starter kit). Only a pack's own id and the goals of that pack are kept.
+          const pack = domainPacks().packs.find((p) => p.id === str(body.profil))
+          if (pack === undefined) return sendJson(res, 400, { ok: false, error: 'unknown domain' })
+          const known = pack.goals.map((g) => g.id)
+          const goals = Array.isArray(body.goals) ? body.goals.filter((g) => known.indexOf(g) >= 0) : []
+          const chosen = onboardingChooseDomain(state, { profil: pack.id, goals: goals })
+          const written = await onboardingWrite(chosen)
+          return sendJson(res, 200, written === true ? { ok: true, profil: chosen.profil, goals: chosen.goals } : { ok: false, error: 'write failed' })
+        }
+        if (action !== 'complete') return sendJson(res, 400, { ok: false, error: 'action complete, replay or domain expected' })
         const next = onboardingComplete(state, body)
         const written = await onboardingWrite(next)
         sendJson(res, 200, written === true
-          ? { ok: true, completed: true, profil: next.profil, uiMode: next.uiMode, model: next.model, lang: next.lang }
+          ? { ok: true, completed: true, profil: next.profil, uiMode: next.uiMode, model: next.model, lang: next.lang, goals: next.goals }
           : { ok: false, error: 'write failed' })
       } }), 'kybernos: onboarding route')
       // After a way to a model is connected (the first-run wizard, the chat's card): make that model the one the next

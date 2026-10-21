@@ -1,0 +1,214 @@
+{
+  "v": 1,
+  "id": "mkt",
+  "order": 70,
+  "name": {
+    "en": "Marketing",
+    "fr": "Marketing"
+  },
+  "tagline": {
+    "en": "Campaigns, content, SEO, communication",
+    "fr": "Campagnes, contenu, SEO, communication"
+  },
+  "legacyJobs": [
+    "marketing",
+    "medias"
+  ],
+  "menu": {
+    "labels": {
+      "dashboards": {
+        "en": "Performance",
+        "fr": "Performance"
+      },
+      "aiteams": {
+        "en": "Content team",
+        "fr": "Équipe contenu"
+      },
+      "deliverables": {
+        "en": "Content",
+        "fr": "Contenus"
+      },
+      "tasks": {
+        "en": "Calendar",
+        "fr": "Calendrier"
+      }
+    },
+    "hide": [
+      "documents"
+    ]
+  },
+  "goals": [
+    {
+      "id": "content",
+      "name": {
+        "en": "Content",
+        "fr": "Contenu"
+      },
+      "title": {
+        "en": "Produce more content",
+        "fr": "Produire plus de contenu"
+      },
+      "desc": {
+        "en": "Posts and articles in your voice",
+        "fr": "Des posts et des articles dans ta voix"
+      },
+      "skills": [
+        {
+          "source": "anthropics/knowledge-work-plugins",
+          "name": "content-creation",
+          "d": {
+            "en": "Draft posts, scripts and pages",
+            "fr": "Rédige posts, scripts et pages"
+          }
+        },
+        {
+          "source": "anthropics/knowledge-work-plugins",
+          "name": "brand-voice-enforcement",
+          "d": {
+            "en": "Keep a consistent voice",
+            "fr": "Garde une voix cohérente"
+          }
+        }
+      ],
+      "soon": [
+        {
+          "en": "Content Studio team",
+          "fr": "Équipe Content Studio"
+        },
+        {
+          "en": "Community Manager team",
+          "fr": "Équipe Community Manager"
+        }
+      ],
+      "starter": {
+        "en": "Write three posts in my voice",
+        "fr": "Écris trois posts dans ma voix"
+      }
+    },
+    {
+      "id": "campaigns",
+      "name": {
+        "en": "Campaigns",
+        "fr": "Campagnes"
+      },
+      "title": {
+        "en": "Run campaigns end to end",
+        "fr": "Mener mes campagnes de bout en bout"
+      },
+      "desc": {
+        "en": "Plan, launch and follow",
+        "fr": "Planifier, lancer, suivre"
+      },
+      "skills": [
+        {
+          "source": "anthropics/knowledge-work-plugins",
+          "name": "campaign-plan",
+          "d": {
+            "en": "Plan a campaign end to end",
+            "fr": "Planifie une campagne de bout en bout"
+          }
+        }
+      ],
+      "teams": [
+        "inbound-closer"
+      ],
+      "soon": [
+        {
+          "en": "Growth Hacker team",
+          "fr": "Équipe Growth Hacker"
+        }
+      ],
+      "starter": {
+        "en": "Plan the May campaign",
+        "fr": "Planifie la campagne de mai"
+      }
+    },
+    {
+      "id": "seo",
+      "name": {
+        "en": "SEO",
+        "fr": "SEO"
+      },
+      "title": {
+        "en": "Rank better in search",
+        "fr": "Gagner en SEO"
+      },
+      "desc": {
+        "en": "Audit a page or a site",
+        "fr": "Auditer une page ou un site"
+      },
+      "skills": [
+        {
+          "source": "anthropics/knowledge-work-plugins",
+          "name": "seo-audit",
+          "d": {
+            "en": "Audit a page or a site for search",
+            "fr": "Audite une page ou un site pour le SEO"
+          }
+        }
+      ],
+      "starter": {
+        "en": "Audit this page for SEO",
+        "fr": "Audite cette page pour le SEO"
+      }
+    },
+    {
+      "id": "voice",
+      "name": {
+        "en": "Brand voice",
+        "fr": "Voix de marque"
+      },
+      "title": {
+        "en": "Keep one brand voice",
+        "fr": "Garder une voix de marque"
+      },
+      "desc": {
+        "en": "Every text read with the same voice",
+        "fr": "Tous les textes relus avec la même voix"
+      },
+      "skills": [
+        {
+          "source": "anthropics/knowledge-work-plugins",
+          "name": "brand-voice-enforcement",
+          "d": {
+            "en": "Keep a consistent voice",
+            "fr": "Garde une voix cohérente"
+          }
+        }
+      ],
+      "starter": {
+        "en": "Re-read this text in our brand voice",
+        "fr": "Relis ce texte avec notre voix de marque"
+      }
+    },
+    {
+      "id": "decks",
+      "name": {
+        "en": "Decks",
+        "fr": "Présentations"
+      },
+      "title": {
+        "en": "Build my presentations",
+        "fr": "Construire mes présentations"
+      },
+      "desc": {
+        "en": "Slide decks from a brief",
+        "fr": "Des présentations à partir d’un brief"
+      },
+      "skills": [
+        {
+          "source": "anthropics/skills",
+          "name": "pptx",
+          "d": {
+            "en": "Build slide decks",
+            "fr": "Construit des présentations"
+          }
+        }
+      ],
+      "starter": {
+        "en": "Build a five-slide deck on this brief",
+        "fr": "Construis une présentation de cinq slides sur ce brief"
+      }
+    }
+  ]
+}

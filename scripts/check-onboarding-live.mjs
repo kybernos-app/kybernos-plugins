@@ -1,6 +1,6 @@
 // The first-run wizard on a real GUI: the screens, the model question (a Kybernos account or an own key), the account
 // path's pairing, a key pasted and saved, a model installed and connected, the starter kit (skills and agent teams of
-// the profession) and the profession written to memory, a replay that never skips the model step, and the hand-over
+// the field of work and its goals), the field and goals written to memory, the menu wording the field gives, a replay that never skips the model step, and the hand-over
 // to Settings. SANDBOX ONLY (`source scripts/sandbox/env.sh`): the key
 // and the model are written for real to the settings of the instance, which is the point; the user's own
 // `dsh web` must never be the target (exit 3).
@@ -215,8 +215,8 @@ try {
     await q(`document.querySelector('.kb-ob-lang-btn').click()`); await sleep(150)
     await q(`document.querySelector('.kb-ob-menu button[lang="en"]').click()`); await sleep(150)
   }
-  // welcome → profession → display mode → the model question
-  const toModelStep = async () => { await press('Get started'); await press('Continue'); await press('Continue') }
+  // welcome → field → goals → display mode → the model question (a field saved by an earlier run is already ticked: press Continue until the model question)
+  const toModelStep = async () => { await press('Get started'); for (let i = 0; i < 5 && (await h1()) !== 'Which models should Kybernos use?'; i += 1) await press('Continue') }
   // The kit is left without installing anything: the recap follows.
   const skipKit = async () => { await seen('Start with these', 8000); await press('Not now') }
   const typeKey = async (value) => q(`(() => { const i = document.querySelector('#kb-ob-key'); i.value = ${JSON.stringify(value)}; i.dispatchEvent(new Event('input', { bubbles: true })); return true })()`)
@@ -253,7 +253,7 @@ try {
   // the model question comes right after the display mode, with two answers
   await toModelStep()
   check('after the display mode, the model question is asked', (await h1()) === 'Which models should Kybernos use?', String(await h1()))
-  check('it is the third of four numbered steps', /^Step 3 of 4$/.test(String(await q(`(document.querySelector('.kb-ob-eyebrow') || {}).textContent`))))
+  check('it is the fourth of five numbered steps (field, goals, display, model, kit)', /^Step 4 of 5$/.test(String(await q(`(document.querySelector('.kb-ob-eyebrow') || {}).textContent`))))
   const answersShown = await q(`[...document.querySelectorAll('.kb-ob-row .kb-ob-t')].map((e) => e.textContent.trim())`)
   check('two answers, the Kybernos account recommended', Array.isArray(answersShown) && answersShown.length === 2 && /^Kybernos models/.test(answersShown[0]) && /Recommended/.test(answersShown[0]) && /^My own API key/.test(answersShown[1]), JSON.stringify(answersShown))
   check('the Kybernos account is ticked by default', (await q(`document.querySelector('.kb-ob-row.on .kb-ob-t').textContent`)).startsWith('Kybernos models'))
@@ -397,8 +397,16 @@ try {
   check('Replay reopens the wizard on a connected machine', await replay())
   await goEnglish()
   await press('Get started')
-  await press('Students / Teaching / Research')
-  check('the profession can be changed in a replay', (await q(`document.querySelector('.kb-ob-chip.on').textContent`)) === 'Students / Teaching / Research')
+  check('the field of work is asked, with the nine fields the packs ship', (await h1()) === 'Which field do you work in?' && (await q(`document.querySelectorAll('.kb-ob-chips .kb-ob-chip').length`)) === 9, String(await h1()))
+  await press('Education')
+  check('the field can be chosen in a replay', (await q(`document.querySelector('.kb-ob-chip.on').textContent`)) === 'Education')
+  await press('Continue')
+  check('the goals of that field come next, none ticked, and Continue waits for one', (await seen('What do you want Kybernos to do for you?')) !== null && (await q(`document.querySelectorAll('.kb-ob-rows .kb-ob-row').length`)) === 5 && (await q(`document.querySelectorAll('.kb-ob-rows .kb-ob-row.on').length`)) === 0 && (await q(`document.querySelector('[data-kb-ob-primary]').disabled`)) === true)
+  check('the goals are checkboxes', (await q(`[...document.querySelectorAll('.kb-ob-rows .kb-ob-row')].every((b) => b.getAttribute('role') === 'checkbox')`)) === true)
+  await press('Pass my exams')
+  await press('Understand my courses')
+  check('two goals ticked, Continue is there', (await q(`document.querySelectorAll('.kb-ob-rows .kb-ob-row.on').length`)) === 2 && (await q(`document.querySelector('[data-kb-ob-primary]').disabled`)) === false)
+  await page.shot(join(shotDir, 'goals.png'))
   await press('Continue')
   await press('Continue')
   check('the model step is NOT skipped although an account is connected', (await h1()) === 'Which models should Kybernos use?', String(await h1()))
@@ -407,7 +415,7 @@ try {
   check('the other answer (an own key) is still there to add', (await q(`[...document.querySelectorAll('.kb-ob-row .kb-ob-t')].some((e) => /^My own API key/.test(e.textContent.trim()))`)) === true)
   await page.shot(join(shotDir, 'replay-model-question.png'))
   await press('Keep as is')
-  check('the starter kit follows, named after the profession', (await seen('A starter kit for Students / Teaching / Research')) !== null, String(await h1()))
+  check('the starter kit follows, named after the field', (await seen('A starter kit for Education')) !== null, String(await h1()))
   // The screen is drawn with the default ticks at once and the installed marks follow when the two reads of what is installed (the skills list, the agent teams) have
   // come back, which takes longer on a busy machine: the rows are read once the one this check installed (pdf) is marked as done, never at the moment the heading shows.
   const kitLoaded = await waitFor(page, `[...document.querySelectorAll('.kb-ob-kit')].some((r) => r.querySelector('b').textContent === 'pdf' && r.classList.contains('done'))`, 30000)
@@ -430,7 +438,7 @@ try {
   // A6-24: the kit's teams go to DSH's own home; a welcome screen must not add a `kybers/` folder to the project DSH was started in.
   check('the teams of the kit are in DSH\'s own home (~/.dsh/kybers)', read('kybers/studencik/kyber.yml') !== '' && read('kybers/research-desk/kyber.yml') !== '')
   check('and none was written into the project the instance was started in', process.env.KB_WORKTREE === undefined || (!existsSync(join(process.env.KB_WORKTREE, 'kybers/studencik')) && !existsSync(join(process.env.KB_WORKTREE, 'kybers/research-desk'))))
-  check('the profession and display mode were written to memory, once, pinned', fake.memoryBodies.length === 1 && fake.memoryBodies[0].path === '/kybernos-cloud/memory/add' && fake.memoryBodies[0].body.pinned === true && fake.memoryBodies[0].body.kind === 'fact' && /^Works as: Students \/ Teaching \/ Research\./.test(fake.memoryBodies[0].body.content), JSON.stringify(fake.memoryBodies))
+  check('the field, the goals and the display mode were written to memory, once, pinned', fake.memoryBodies.length === 1 && fake.memoryBodies[0].path === '/kybernos-cloud/memory/add' && fake.memoryBodies[0].body.pinned === true && fake.memoryBodies[0].body.kind === 'fact' && /^Field of work: Education\. Wants help with: Exams, Courses\./.test(fake.memoryBodies[0].body.content), JSON.stringify(fake.memoryBodies))
   check('and the recap says so', (await waitFor(page, `document.querySelector('.kb-ob-mem') !== null`, 4000)) === true)
   // N-09: the end screen lists what is set up, read from the host's own routes, one row per area, each with a Change link
   check('the end screen lists what we set up: five areas', (await waitFor(page, `document.querySelectorAll('.kb-ob-setup .kb-ob-srow').length === 5`, 8000)) === true, String(await q(`document.querySelectorAll('.kb-ob-setup .kb-ob-srow').length`)))
@@ -454,13 +462,13 @@ try {
   await press('Open Kybernos')
   let st6 = null
   try { st6 = JSON.parse(read('kybernos/onboarding.json')) } catch (e) { st6 = null }
-  check('the memory id is kept in the onboarding file, so the next replay updates it', st6 !== null && st6.memoryId === 'mem_test_1' && st6.profil === 'etudes', JSON.stringify(st6))
+  check('the memory id is kept in the onboarding file, so the next replay updates it', st6 !== null && st6.memoryId === 'mem_test_1' && st6.profil === 'edu' && JSON.stringify(st6.goals) === JSON.stringify(['exams', 'courses']), JSON.stringify(st6))
   // the second replay updates the same memory instead of adding another
   fake.memoryBodies.length = 0
   check('a second replay opens', await replay())
   await goEnglish()
-  await press('Get started'); await press('Continue'); await press('Continue'); await press('Keep as is')
-  await seen('A starter kit for Students / Teaching / Research', 8000)
+  await press('Get started'); await press('Continue'); await press('Continue'); await press('Continue'); await press('Keep as is')
+  await seen('A starter kit for Education', 8000)
   await press('Not now')
   await waitFor(page, `!!document.querySelector('.kb-ob-recap')`, 8000)
   for (let i = 0; i < 40 && fake.memoryBodies.length < 1; i += 1) await sleep(250)
@@ -488,9 +496,38 @@ try {
   await q(`window.dispatchEvent(new CustomEvent('kybernos:onboarding', { detail: { action: 'kit' } }))`)
   check('the starter kit opens on its own', (await waitFor(page, `!!document.querySelector('.kb-ob')`, 20000)) === true)
   check('with no numbered step and no way back', (await q(`!document.querySelector('.kb-ob-eyebrow') && !document.querySelector('.kb-ob-back')`)) === true)
-  check('it can look at another profession', (await press('Finance / Accounting / Consulting')) === true && (await seen('A starter kit for Finance / Accounting / Consulting')) !== null)
-  check('the teams to come are listed, greyed', (await q(`[...document.querySelectorAll('.kb-ob-kit.soon b')].map((b) => b.textContent).join()`)) === 'Back-office Finance')
-  check('and it closes without touching the onboarding file', (await press('Close')) === true && (await q(`document.querySelector('.kb-ob') === null`)) === true)
+  check('it opens on the saved field, with the goals of that field as ticked chips', (await seen('A starter kit for Education')) !== null && (await q(`document.querySelectorAll('.kb-ob-chips-tight')[1].querySelectorAll('.kb-ob-chip.on').length`)) === 2)
+  check('and says that the choice also sets the menu wording', /also sets the wording of the menu/.test(String(await q(`document.querySelector('.kb-ob').innerText`))))
+  const onboardingNow = () => { try { return JSON.parse(read('kybernos/onboarding.json')) } catch (e) { return null } }
+  const beforeSwitch = onboardingNow()
+  check('it can switch to another field', (await press('Finance')) === true && (await seen('A starter kit for Finance')) !== null)
+  check('the things to come are listed, greyed', (await q(`[...document.querySelectorAll('.kb-ob-kit.soon b')].map((b) => b.textContent).join()`)) === 'Back-office Finance team,Monthly variance report,Late-invoice reminders')
+  for (let i = 0; i < 40 && (onboardingNow() || {}).profil !== 'fin'; i += 1) await sleep(250)
+  const afterSwitch = onboardingNow()
+  check('the choice is saved at once (field and all its goals), and nothing else of the file moves',
+    afterSwitch !== null && afterSwitch.profil === 'fin' && JSON.stringify(afterSwitch.goals) === JSON.stringify(['reconcile', 'closing', 'variances', 'dunning', 'cash']) &&
+    ['completed', 'completedAt', 'installedAt', 'uiMode', 'model', 'lang', 'memoryId', 'version'].every((k) => JSON.stringify(afterSwitch[k]) === JSON.stringify(beforeSwitch[k])), JSON.stringify(afterSwitch))
+  const menuLabels = () => q(`[...document.querySelectorAll('.kb4-menu .kb4-lab')].map((e) => e.textContent.trim())`)
+  const hasLabels = (labels, want) => Array.isArray(labels) && want.every((w) => labels.includes(w))
+  check('the menu wording follows without a reload: the finance pack renames the rows', (await waitFor(page, `['Back-office team', 'Statements and reports', 'Closings and reminders'].every((w) => [...document.querySelectorAll('.kb4-menu .kb4-lab')].some((e) => e.textContent.trim() === w))`, 10000)) === true, JSON.stringify(await menuLabels()))
+  check('rows the pack leaves alone keep their own words', hasLabels(await menuLabels(), ['Kaby', 'Skills']) || hasLabels(await menuLabels(), ['Kaby', 'Compétences']), JSON.stringify(await menuLabels()))
+  await press('Reconciliation')
+  for (let i = 0; i < 40 && ((onboardingNow() || {}).goals || []).length !== 4; i += 1) await sleep(250)
+  check('a goal unticked is saved too', JSON.stringify((onboardingNow() || {}).goals) === JSON.stringify(['closing', 'variances', 'dunning', 'cash']), JSON.stringify((onboardingNow() || {}).goals))
+  check('and the kit follows the goals: no reconciliation skill any more', (await q(`[...document.querySelectorAll('.kb-ob-kit b')].map((b) => b.textContent).includes('reconciliation')`)) === false)
+  check('it closes with Close', (await press('Close')) === true && (await q(`document.querySelector('.kb-ob') === null`)) === true)
+
+  /* ── 5e. the packs and the saved choice, from the host ── */
+  const packsRes = await q(`fetch('/kybernos/domains', { cache: 'no-store' }).then((r) => r.json()).then((j) => ({ ok: j.ok, ids: (j.packs || []).map((p) => p.id), rejected: j.rejected }))`)
+  check('the host serves the nine packs, none rejected', packsRes !== undefined && packsRes.ok === true && JSON.stringify(packsRes.ids) === JSON.stringify(['edu', 'sante', 'immo', 'droit', 'fin', 'com', 'mkt', 'dev', 'general']) && packsRes.rejected === 0, JSON.stringify(packsRes))
+  const postDomain = (body) => q(`fetch('/kybernos/onboarding', { method: 'POST', headers: { 'content-type': 'application/json' }, body: ${JSON.stringify(JSON.stringify(body))} }).then((r) => r.status)`)
+  const fileBefore = read('kybernos/onboarding.json')
+  check('a field no pack ships is refused, and the file is left as it was', (await postDomain({ action: 'domain', profil: 'nope', goals: [] })) === 400 && read('kybernos/onboarding.json') === fileBefore)
+  check('goals the pack does not know are dropped', (await postDomain({ action: 'domain', profil: 'sante', goals: ['notes', 'nope', 'appointments', 'closing'] })) === 200 && JSON.stringify((onboardingNow() || {}).goals) === JSON.stringify(['notes', 'appointments']))
+  // A file the previous wizard wrote: a profession of the old list, no goals. It reads as the field that claims it.
+  writeFileSync(join(dshHome, 'kybernos/onboarding.json'), JSON.stringify({ ...onboardingNow(), profil: 'soft', goals: undefined }))
+  const legacy = await q(`fetch('/kybernos/onboarding', { cache: 'no-store' }).then((r) => r.json()).then((j) => ({ completed: j.completed, profil: j.profil, domain: j.domain, goals: j.goals }))`)
+  check('a profession of the old list reads as its field, still done, no goals', legacy !== undefined && legacy.completed === true && legacy.profil === 'soft' && legacy.domain === 'dev' && JSON.stringify(legacy.goals) === '[]', JSON.stringify(legacy))
   await backToTheStartingPoint()
 
   /* ── 6. the moment of need: a chat whose model has no key ──────────────────────────────────────────── */
