@@ -34,6 +34,10 @@
       "kybernos-cloud",
       "kybernos-plugin"
     ],
+    "kbl": [
+      "kybernos-cloud",
+      "kybernos-skills"
+    ],
     "kbln": [
       "kybernos-language",
       "kybernos-plugin"
@@ -166,8 +170,7 @@
     ],
     "kybernos-models": [
       "#0b7a3b",
-      "#34c759",
-      "#7ce3a4"
+      "#34c759"
     ],
     "kybernos-motion": [
       "#1f8f5f",
@@ -259,7 +262,6 @@
     "22px",
     "23px",
     "24px",
-    "25px",
     "26px",
     "28px",
     "30px",
