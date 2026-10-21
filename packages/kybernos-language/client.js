@@ -1697,7 +1697,10 @@ html[dir="rtl"] .kbln-page{direction:rtl}
           const st = isRun ? snap.state : null
           const running = st === 'running' || st === 'pausing'
           const held = typeof meta.done === 'number' || isBuiltIn(id) ? null : heldBy(id, plan)
-          const staticDone = typeof meta.done === 'number' ? meta.done : (held !== null ? held.done : 0)
+          // `held` is counted NOW against the current strings; meta.done was written by the last run. When the product's
+          // string set changed since, the stored count can exceed the current total (« 7 455 sur 6 267 textes » seen on
+          // 2026-10-21): count what is really translated, and fall back to the stored count only without a plan.
+          const staticDone = held !== null ? held.done : (typeof meta.done === 'number' ? meta.done : 0)
           const total = running ? (snap.total || (plan !== null ? plan.total : 0)) : (plan !== null ? plan.total : (typeof meta.total === 'number' ? meta.total : 0))
           const done = isRun ? snap.done : staticDone
           const pct = total > 0 ? Math.min(100, Math.floor(done / total * 100)) : 0
