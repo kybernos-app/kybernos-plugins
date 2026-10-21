@@ -14,7 +14,7 @@ const brand = src.match(/\/\/ KB-BRAND-CORE-BEGIN([\s\S]*?)\/\/ KB-BRAND-CORE-EN
 const core = src.match(/\/\/ KB-OB-CORE-BEGIN([\s\S]*?)\/\/ KB-OB-CORE-END/)
 const ui = src.match(/\/\/ KB-OB-UI-BEGIN([\s\S]*?)\/\/ KB-OB-UI-END/)
 if (core === null || ui === null) { console.error('BLOCKS KB-OB-CORE / KB-OB-UI NOT FOUND in packages/kybernos-plugin/client.js'); process.exit(1) }
-const names = 'KB_OB_LANGS, KB_OB_MODES, KB_OB_PROVIDERS, KB_OB_T, kbObPickLang, kbObText, kbObPlan, kbObStepOf, kbObBack, kbObBackOf, kbObEscape, kbObIsDark, kbObKeyShape, kbObProviderFromKey, kbObNeedModel, kbObNoModel, kbObPackText, kbObPackOf, kbObGoalsOf, kbObKitOf, kbObMenuOverlay, kbObFold, kbObDomainFromText, kbObMix, kbObCronLabel, KB_OB_ROWS, kbObPreviewOf, kbObAutoMade, kbObKitDefaults, kbObMemoryText, kbObSkillText, kbObSetupRows, KB_OB_HOME_TILE, kbObTileOrder, kbObTileSort, kbObFieldSkills, kbObFieldConnectors'
+const names = 'KB_OB_LANGS, KB_OB_MODES, KB_OB_PROVIDERS, KB_OB_T, kbObPickLang, kbObText, kbObPlan, kbObStepOf, kbObBack, kbObBackOf, kbObEscape, kbObIsDark, kbObKeyShape, kbObProviderFromKey, kbObNeedModel, kbObNoModel, kbObPackText, kbObPackOf, kbObGoalsOf, kbObKitOf, kbObMenuOverlay, kbObFold, kbObDomainFromText, kbObMix, kbObCronLabel, KB_OB_ROWS, kbObPreviewOf, kbObAutoMade, kbObKitDefaults, kbObMemoryText, kbObSkillText, kbObSetupRows, KB_OB_PRESETS, kbObModeOf, kbObAgentsOf, KB_OB_HOME_TILE, kbObTileOrder, kbObTileSort, kbObFieldSkills, kbObFieldConnectors'
 const mod = await import('data:text/javascript,' + encodeURIComponent(core[1] + '\nexport { ' + names + ' }'))
 
 let fails = 0
@@ -77,12 +77,13 @@ eq('exactly one has its own wording: « 1 model ready », « 1 modèle prêt »,
 eq('…in every count line that can be 1: cloud models, kit added, kit failed, add selected', [T('en', 'fin.cloud.n', { n: 1 }), T('fr', 'fin.kit.n', { n: 1 }), T('en', 'k.err', { n: 1 }), T('es', 'k.add', { n: 1 })], ['Kybernos Cloud · 1 model', '1 ajouté', '1 could not be added. You can find it later in Skills and in Agent Teams.', 'Añadir el seleccionado'])
 
 /* ── 5. The steps ────────────────────────────────────────────────────────── */
-eq('five numbered steps (field, goals, display, model, kit), the model step among them whatever already works', mod.kbObPlan(), ['job', 'goals', 'mode', 'model', 'kit'])
-eq('with no domain pack to choose from there is no field and no goals to ask: three steps, the model step still there', [mod.kbObPlan(false), mod.kbObPlan(true)], [['mode', 'model', 'kit'], ['job', 'goals', 'mode', 'model', 'kit']])
+eq('six numbered steps, one question each (field, goals, model, about you, agents, kit), the model step among them whatever already works', mod.kbObPlan(), ['job', 'goals', 'model', 'about', 'agents', 'kit'])
+eq('with no domain pack to choose from there is no field and no goals to ask: four steps, the model step still there', [mod.kbObPlan(false), mod.kbObPlan(true)], [['model', 'about', 'agents', 'kit'], ['job', 'goals', 'model', 'about', 'agents', 'kit']])
 eq('screens of the model step share one number', ['model', 'key', 'key-done', 'local', 'local-install', 'local-done', 'local-err', 'free', 'cloud-wait', 'cloud-ok', 'cloud-err'].map((s) => mod.kbObStepOf(s)), Array(11).fill('model'))
-eq('the kit and the goals are their own steps', [mod.kbObStepOf('kit'), mod.kbObStepOf('goals')], ['kit', 'goals'])
-eq('welcome and the end screen have no number', ['welcome', 'done'].map((s) => mod.kbObStepOf(s)), [null, null])
-eq('back goes one screen up', ['job', 'goals', 'mode', 'model', 'kit', 'key', 'local', 'local-err', 'cloud-wait', 'cloud-err'].map((s) => mod.kbObBack(s)), ['welcome', 'job', 'goals', 'mode', 'model', 'model', 'model', 'local', 'model', 'model'])
+eq('the kit, the goals, « about you » and the agents are their own steps', ['kit', 'goals', 'about', 'agents'].map((x) => mod.kbObStepOf(x)), ['kit', 'goals', 'about', 'agents'])
+eq('welcome, the plan (the last thing asked) and the end screen have no number', ['welcome', 'plan', 'done'].map((x) => mod.kbObStepOf(x)), [null, null, null])
+eq('the display mode is no longer a screen', [mod.kbObStepOf('mode'), mod.kbObBack('mode'), mod.kbObPlan().indexOf('mode')], [null, null, -1])
+eq('back goes one screen up', ['job', 'goals', 'model', 'about', 'agents', 'kit', 'plan', 'key', 'local', 'local-err', 'cloud-wait', 'cloud-err'].map((s) => mod.kbObBack(s)), ['welcome', 'job', 'goals', 'model', 'about', 'agents', 'kit', 'model', 'model', 'local', 'model', 'model'])
 eq('the removed screens (the separate account offer, the « later » page) lead nowhere', [mod.kbObBack('offer'), mod.kbObStepOf('offer'), mod.kbObStepOf('later')], [null, null, null])
 eq('there is no back from welcome, from the end, mid-download, or once something is connected',
   ['welcome', 'done', 'cloud-ok', 'key-done', 'local-install', 'local-done'].map((s) => mod.kbObBack(s)), Array(6).fill(null))
@@ -90,14 +91,14 @@ eq('there is no back from welcome, from the end, mid-download, or once something
 const first = (screen, extra) => ({ screen, standalone: false, menu: false, fromAccount: false, ...extra })
 const alone = (screen, extra) => ({ screen, standalone: true, menu: false, fromAccount: false, ...extra })
 eq('first run: Escape on the welcome screen does nothing (there is nowhere back, and leaving is « Skip »)', mod.kbObEscape(first('welcome')), 'none')
-eq('first run: Escape steps back where « Back » exists', ['job', 'goals', 'mode', 'model', 'kit', 'key', 'local', 'cloud-wait'].map((s) => mod.kbObEscape(first(s, { domain: 'edu', packs: [{}] }))), Array(8).fill('back'))
+eq('first run: Escape steps back where « Back » exists', ['job', 'goals', 'model', 'about', 'agents', 'kit', 'plan', 'key', 'local', 'cloud-wait'].map((s) => mod.kbObEscape(first(s, { domain: 'edu', packs: [{}] }))), Array(10).fill('back'))
 eq('first run: nowhere to go back to (end, mid-download, connected) means nothing happens, never a close', ['done', 'cloud-ok', 'key-done', 'local-install', 'local-done'].map((s) => mod.kbObEscape(first(s))), Array(5).fill('none'))
 eq('first run: the free step that came right after an account has no back, so Escape does nothing there', mod.kbObEscape(first('free', { fromAccount: true })), 'none')
 eq('first run: an open language menu is closed first, on any screen', ['welcome', 'job', 'model'].map((s) => mod.kbObEscape(first(s, { menu: true }))), Array(3).fill('menu'))
 eq('opened on its own (replay, the chat card, the kit), nothing is recorded: Escape closes it', ['model', 'kit', 'key', 'local'].map((s) => mod.kbObEscape(alone(s))), Array(4).fill('close'))
 eq('opened on its own, the menu still goes first', mod.kbObEscape(alone('model', { menu: true })), 'menu')
-eq('without a field the goals step is skipped, so « Back » from the display mode goes to the field (or to the welcome when there is nothing to choose)',
-  [mod.kbObBackOf(first('mode', { domain: null, packs: [{}] })), mod.kbObBackOf(first('mode', { domain: null, packs: [] })), mod.kbObBackOf(first('mode', { domain: 'edu', packs: [{}] }))], ['job', 'welcome', 'goals'])
+eq('without a field the goals step is skipped, so « Back » from the model goes to the field (or to the welcome when there is nothing to choose)',
+  [mod.kbObBackOf(first('model', { domain: null, packs: [{}] })), mod.kbObBackOf(first('model', { domain: null, packs: [] })), mod.kbObBackOf(first('model', { domain: 'edu', packs: [{}] }))], ['job', 'welcome', 'goals'])
 eq('the Back button and Escape share one rule: no back from the model or kit step when opened alone', ['model', 'kit'].map((s) => mod.kbObBackOf(alone(s))), [null, null])
 eq('every string of the model question exists in the four languages', ['m.t', 'm.s', 'm.k', 'm.rec', 'm.kd', 'm.o', 'm.od', 'm.other', 'm.local', 'm.free', 'm.conn', 'm.later', 'm.keep'].map((k) => (Array.isArray(mod.KB_OB_T[k]) && mod.KB_OB_T[k].length === 4 && mod.KB_OB_T[k].every((v) => typeof v === 'string' && v.length > 0))), Array(13).fill(true))
 eq('the removed texts are gone from the dictionary', Object.keys(mod.KB_OB_T).filter((k) => /^(offer\.|v\.(cloud|key|free)|brain\.)/.test(k)), [])
@@ -127,7 +128,7 @@ eq('what is installed is not ticked again (a replay doubles nothing), an automat
   [['s:study-plan', 's:docx', 's:quiz-builder', 't:research-desk'], false])
 eq('a probe that failed leaves everything ticked', [mod.kbObKitDefaults(kit, null), mod.kbObKitDefaults(kit, {})].map((k) => k.length), [8, 8])
 eq('a skill reads in French, other languages read English', [mod.kbObSkillText('fr', kit.skills[0]), mod.kbObSkillText('es', kit.skills[0]), mod.kbObSkillText('ar', kit.skills[0])], ['Planifie les sessions de révision jusqu’à l’examen', 'Plan revision sessions up to the exam', 'Plan revision sessions up to the exam'])
-const strings = ['k.t', 'k.t0', 'k.s', 'k.skills', 'k.teams', 'k.src', 'k.add', 'k.none', 'k.skip', 'k.done', 'k.soon', 'k.note', 'k.busy', 'k.err', 'k.empty', 'k.pick', 'k.menu', 'k.autos', 'k.autos.note', 'k.src.kb', 'job.nl', 'job.nl.ok', 'job.nl.none', 'adds.sk', 'adds.sk1', 'adds.au', 'adds.au1', 'adds.tm', 'pv.live', 'pv.hello', 'pv.new', 'pv.team', 'pv.noteam', 'pv.autos', 'pv.off', 'pv.skills', 'pv.compose', 'pv.you', 'pv.sub0', 'pv.sub', 'pv.sub1', 'pv.cap.job', 'pv.cap.goals', 'pv.cap.other', 'fin.kit', 'fin.kit.n', 'fin.mem', 'fin.mem.d', 'fin.job', 'fin.goals', 'mem.job', 'mem.goals', 'mem.mode', 'job.t', 'job.s', 'goals.t', 'goals.s', 'goals.pick']
+const strings = ['k.t', 'k.t0', 'k.s', 'k.skills', 'k.teams', 'k.src', 'k.add', 'k.none', 'k.skip', 'k.done', 'k.soon', 'k.note', 'k.busy', 'k.err', 'k.empty', 'k.pick', 'k.menu', 'k.autos', 'k.autos.note', 'k.src.kb', 'adds.sk', 'adds.sk1', 'adds.au', 'adds.au1', 'adds.tm', 'pv.live', 'pv.hello', 'pv.new', 'pv.team', 'pv.noteam', 'pv.autos', 'pv.off', 'pv.skills', 'pv.compose', 'pv.you', 'pv.sub0', 'pv.sub', 'pv.sub1', 'pv.cap.job', 'pv.cap.goals', 'pv.cap.other', 'fin.kit', 'fin.kit.n', 'fin.mem', 'fin.mem.d', 'fin.job', 'fin.goals', 'mem.job', 'mem.goals', 'mem.mode', 'job.t', 'job.s', 'goals.t', 'goals.s', 'goals.pick', 'k.sum', 'k.sum.open', 'k.sum.close', 'fin.agents', 'mem.site', 'mem.profile', 'mem.words', 'mem.agents.prudent', 'mem.agents.balanced', 'mem.agents.auto']
 eq('every string of the field, goals and kit steps exists in the four languages', strings.map((k) => (Array.isArray(mod.KB_OB_T[k]) && mod.KB_OB_T[k].length === 4 && mod.KB_OB_T[k].every((v) => typeof v === 'string' && v.length > 0))), Array(strings.length).fill(true))
 eq('the memory sentence names the field, the goals and the display mode, in the wizard\'s language',
   [mod.kbObMemoryText('en', 'Health', ['Notes', 'Appointments'], 'bureau'), mod.kbObMemoryText('fr', 'Santé', ['Comptes rendus'], 'code')],
@@ -187,6 +188,31 @@ eq('the apps of a field: each once, the ticked goal\'s first, with the goal; at 
   [mod.kbObFieldConnectors(law, ['deadlines'], 'en').slice(0, 2), new Set(mod.kbObFieldConnectors(law, [], 'en').map((x) => x.app)).size === mod.kbObFieldConnectors(law, [], 'en').length, packs.every((p) => { const l = mod.kbObFieldConnectors(p, [], 'en'); return l.length >= 1 && l.length <= 8 }), mod.kbObFieldConnectors(null, [], 'en'), mod.kbObFieldSkills(null, [], 'en')],
   [[{ app: 'googlecalendar', goal: 'Deadlines', ticked: true }, { app: 'outlook', goal: 'Deadlines', ticked: true }], true, true, [], []])
 eq('an unknown goal id is ignored and a skill shared by two goals shows once under the first', [mod.kbObFieldSkills(law, ['nope'], 'en').some((x) => x.ticked), mod.kbObFieldSkills(law, ['drafting', 'contracts'], 'en').filter((x) => x.name === 'docx').length], [false, 1])
+
+/* ── 5e. The new steps: « about you », the agents, the plan ──────────────── */
+const newStrings = ['about.t', 'about.s', 'about.site', 'about.site.ph', 'about.site.h', 'about.soc', 'about.soc.ph', 'about.free', 'about.free.ph', 'about.pass', 'about.guess', 'about.guess.go', 'ag.t', 'ag.s', 'ag.prudent.t', 'ag.prudent.d', 'ag.balanced.t', 'ag.balanced.d', 'ag.auto.t', 'ag.auto.d', 'ag.prudent.l', 'ag.balanced.l', 'ag.auto.l', 'ag.for', 'ag.why', 'ag.note', 'plan.t', 'plan.s', 'plan.team.t', 'plan.team.b1', 'plan.team.b2', 'plan.team.b3', 'plan.team.go', 'plan.team.note', 'plan.free.t', 'plan.free.b1', 'plan.free.b2', 'plan.free.b3', 'plan.free.go']
+eq('every string of the new steps exists in the four languages', newStrings.filter((k) => !(Array.isArray(mod.KB_OB_T[k]) && mod.KB_OB_T[k].length === 4 && mod.KB_OB_T[k].every((v) => typeof v === 'string' && v.length > 0))), [])
+eq('the display mode screen\'s own texts are gone, its modes keep theirs', [mod.KB_OB_T['mode.t'], mod.KB_OB_T['mode.s'], mod.KB_OB_T['mode.code.t'] !== undefined, mod.KB_OB_T['mode.bureau.d'] !== undefined], [undefined, undefined, true, true])
+eq('the sentence box is gone: its texts and its state are not left behind', [Object.keys(mod.KB_OB_T).filter((k) => /^job\.nl/.test(k)), /nlText|nlNote|kb-ob-nl/.test(ui[1] + src.slice(src.indexOf("'.kb-ob-main.kb-ob-split"), src.indexOf("'.kb-ob-chips{")))], [[], false])
+eq('the three presets, the least autonomous first, and a text for each', [mod.KB_OB_PRESETS, mod.KB_OB_PRESETS.every((id) => ['ag.' + id + '.t', 'ag.' + id + '.d', 'ag.' + id + '.l', 'mem.agents.' + id].every((k) => mod.KB_OB_T[k] !== undefined))], [['prudent', 'balanced', 'auto'], true])
+const dev = pack('dev')
+eq('a field starts in its display mode and with its agents preset, with the reason it gives: Development codes and acts, Law and Health are careful, anything else is balanced',
+  [mod.kbObModeOf(dev), mod.kbObModeOf(pack('droit')), mod.kbObAgentsOf(dev).preset, mod.kbObAgentsOf(pack('droit')).preset, mod.kbObAgentsOf(pack('sante')).preset, mod.kbObAgentsOf(pack('edu')).preset, mod.kbObPackText('fr', mod.kbObAgentsOf(pack('droit')).why).startsWith('Secret professionnel')],
+  ['code', 'bureau', 'auto', 'prudent', 'prudent', 'balanced', true])
+eq('no pack or a pack without the keys: office mode and balanced, no reason', [mod.kbObModeOf(null), mod.kbObAgentsOf(null), mod.kbObModeOf({}), mod.kbObAgentsOf({ agents: { preset: 'wild' } })], ['bureau', { preset: 'balanced', why: null }, 'bureau', { preset: 'balanced', why: null }])
+eq('the memory sentence carries what the person said and how much the agents may do alone',
+  [mod.kbObMemoryText('en', 'Law', ['Contracts'], 'bureau', { site: 'roux-avocat.example', profile: 'linkedin.com/in/claire-roux', words: 'Family law.', agents: 'prudent' })],
+  ['Field of work: Law. Wants help with: Contracts. Prefers: Office mode. Website: roux-avocat.example. Profile: linkedin.com/in/claire-roux. In their own words: Family law. Agents: careful, they prepare drafts and never send without approval.'])
+eq('empty answers and an unknown preset add nothing; the extra alone still makes a sentence', [mod.kbObMemoryText('en', 'Law', [], null, { site: '', profile: '', words: '', agents: 'wild' }), mod.kbObMemoryText('fr', null, [], null, { agents: 'auto' }), mod.kbObMemoryText('en', null, [], null, null)],
+  ['Field of work: Law.', 'Agents : autonomes, ils agissent seuls et préviennent.', null])
+eq('the wizard\'s steps in the UI: one screen each, the plan only with an account, the upgrade view opens once the wizard is closed',
+  [/about: \(\) => \{/.test(ui[1]), /agents: \(\) => \{/.test(ui[1]), /plan: \(\) => \{/.test(ui[1]), /mode: \(\) => \{/.test(ui[1]), /const afterKit = \(\) => go\(S\.hasCloud \? 'plan' : 'done'\)/.test(ui[1]), /win\.__KB_UPGRADE__\.open\(\)/.test(ui[1]), /go\(S\.packs\.length > 0 \? 'job' : 'model'\)/.test(ui[1])],
+  [true, true, true, false, true, true, true])
+eq('the « about you » button does not read like the header\'s Skip, a replay shows the last answers, and an emptied answer is sent so it can be cleared',
+  [mod.KB_OB_T['about.pass'][0] !== mod.KB_OB_T['skip'][0], /S\.aboutSaved = /.test(ui[1]), /S\.site\.trim\(\) !== '' \|\| S\.social\.trim\(\) !== '' \|\| S\.words\.trim\(\) !== '' \|\| S\.aboutSaved/.test(ui[1])], [true, true, true])
+eq('one tap on a field takes its goals, display mode and agents preset, then moves on', [/pickDomain\(pk\)/.test(ui[1]), /go\('goals'\)/.test(ui[1]), /S\.goals = pk\.goals\.slice\(0, 2\)/.test(ui[1])], [true, true, true])
+eq('the miniature\'s own text sits under it, never above', ui[1].indexOf("pane.appendChild(h('div', 'kb-ob-pv-box'))") < ui[1].indexOf('pane.appendChild(head)') && ui[1].indexOf('pane.appendChild(head)') < ui[1].indexOf("pane.appendChild(h('p', 'kb-ob-pv-cap'))"), true)
+eq('what the person typed goes to the host only in the complete answer, with the agents preset, and only when there is something to say (or to clear)', [/agents: S\.agents, \.\.\.\(aboutBody\(\) !== null \? \{ about: aboutBody\(\) \} : \{\}\)/.test(ui[1])], [true])
 
 /* ── 5b. The pasted key ──────────────────────────────────────────────────── */
 eq('a key is one printable string of 8 to 400 characters', [mod.kbObKeyShape('sk-ant-api03-abcdefghij'), mod.kbObKeyShape('  sk-0123456789 \n')], ['sk-ant-api03-abcdefghij', 'sk-0123456789'])
