@@ -211,6 +211,19 @@ panel beside the list with the SKILL.md exactly as it is on disk, the actions th
 confirmations (and only ever get Cancel), that two Discover cards have their own repository, folder and text, the publisher by
 repository, and the layout at 900 px.
 
+## Skills learned from experience: `scripts/check-skills-learned-live.mjs`
+
+```bash
+source scripts/sandbox/env.sh && node scripts/check-skills-learned-live.mjs --shots /tmp/shots
+```
+
+Sandbox only (it refuses `:3080`, exit 3; the sandbox serves this checkout, so nothing is swapped, and host code needs `stop` then `start`). It
+starts by clearing the learned-skills files of the sandbox's own home, adds three lessons that share a tag through the real lessons route (to the
+first agent team the sandbox has: a sandbox has no `default` one), and drives the real GUI: the grouping hint on Memory & Lessons, **Make a skill**,
+the dot on the Skills row, the banner and the dashed cards on Skills › Yours, Review, Discard and its Undo, **Accept** (the skill file is read
+back from the sandbox's skills folder), the Learned badge, the journal (and the hash chain of the file on disk), then Undo. It cleans up after
+itself. `docs/dev/learned-skills.md` says what the feature is.
+
 ## A bundle the user's DSH does not list yet: a second instance (`scripts/sandbox/*.sh`)
 
 A **new** bundle, or any **host** code, cannot be tried on the user's `dsh web`: it is not in their profile and a host change

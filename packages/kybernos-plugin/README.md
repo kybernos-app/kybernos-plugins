@@ -236,25 +236,30 @@ Settings › Automations has three switches and one choice, kept in `$DSH_HOME/k
 - **Show DSH's own « Automation tasks » list**: off by default. DSH's own scheduled-tasks entry overlaps the Automations page, so the
   menu hides it (the row is found by the React key `schedules`, the same in every language). It is a separate store: the tasks it
   lists are not the ones of this page, and they are one switch away.
-- **Create skills automatically** (off by default) and **Stable after** (3, 5, 10 or 20 runs in a row without a failure, default 5; the
+- **Suggest skills from stable automations** (on by default: a suggestion is not active before the person accepts it; the key is still `autoSkill`) and **Stable after** (3, 5, 10 or 20 runs in a row without a failure, default 5; the
   history keeps the last 20 runs, so 20 is the most it can see): see the next section.
 
-### Stable automations become skills
+### Stable automations are suggested as skills
 
-An automation that has run N times in a row without a failure is a procedure that works; it can be written down as a skill to use by
+An automation that has run N times in a row without a failure is a procedure that works; it can be suggested as a skill to use by
 hand in any chat. **A fixed rule, no model**: `automation-skills.mjs` counts the runs of `tasks.json` since the newest failure (a history
 line with a session id is a run; a line with the status `error`, the history's own or the note a run writes about itself, is a failure).
-The skill is the text of the automation in the skill format (`name`, `description`, `whenToUse`, then the steps), written to
-`$DSH_HOME/skills/<name>/SKILL.md` with the permissions of the person only, **never over an existing skill** (the file is opened with
-`wx`, a taken name gets `-2`, `-3`…), without the webhook, the history or any secret. It is the person's own file afterwards: edit it,
-delete it. What was written is kept in `$DSH_HOME/kybernos/automation-skills.json`.
+The skill is the text of the automation (`skillParts`: description with a « Use when… », `whenToUse`, the steps), without the webhook, the history or
+any secret. This half **writes no skill**: it hands the parts to the Skills page through the seam `kybernos-skills` publishes
+(`globalThis[Symbol.for('kybernos.learned-skills')]`, read at call time; `docs/dev/learned-skills.md`), where they wait as a **suggestion**
+until the person accepts (nothing is active before). Accepting writes `$DSH_HOME/skills/<name>/SKILL.md`, **never over an existing skill**, and the
+file is the person's own afterwards. What was suggested is kept in `$DSH_HOME/kybernos/automation-skills.json` (`state`: `pending` or `made`), so
+none is suggested twice. Without the Skills bundle there is no seam: nothing is written and the route says `the skills page is not loaded`.
 
-- With the switch on, the scheduler's tick writes the stable ones by itself: at most every 5 minutes, at most three per pass, never in
-  the way of a tick (a failure is logged and the tick goes on), and not at all while « Pause all automations » is on.
-- With it off, the Journal offers the button; it works only for a stable automation (the host checks the rule, the page sends the id and
-  nothing else, never the text to be written).
-- `GET /kybernos/automation-skills?id=` (same origin) says how far an automation is and which skill was written; `POST {id}` (same
-  origin and a signed session) writes it now. Host code: it needs a DSH restart.
+- With the switch on (the default), the scheduler's tick suggests the stable ones by itself: at most every 5 minutes, at most three per pass,
+  never in the way of a tick (a failure is logged and the tick goes on), and not at all while « Pause all automations » is on. A refusal
+  (five suggestions already wait) writes no record, so it is tried again later.
+- With it off, the Journal still offers the button; it works only for a stable automation (the host checks the rule, the page sends the id and
+  nothing else, never the text to be written). That click is the person's own acceptance: the skill is written at once and the journal says so.
+- `GET /kybernos/automation-skills?id=` (same origin) says how far an automation is and which skill was made or suggested; `POST {id}` (same
+  origin and a signed session) makes it now. Host code: it needs a DSH restart.
+- The menu has a **dot on the Skills row** when suggestions wait (`KbLearnedDot`, reading `window.__KB_LEARNED__` from the Skills bundle), and the
+  agents step of the onboarding says in one line that Kaby learns and the person approves each skill (`ag.learn`).
 
 `GET/POST /kybernos/automation-settings` has the guards of `tasks` (same origin, and a signed session to change). The route is host
 code: it needs a DSH restart; until then the page says so and the native entry stays hidden. It takes one key at a time
@@ -518,7 +523,8 @@ node packages/kybernos-plugin/test-automation-board.mjs  # the KB-AUTOBOARD bloc
 node packages/kybernos-plugin/test-automation-runs.mjs   # the run summary: clock, outcome, models, tool calls, approvals, scrubbing, the guards and bounds of tasks/runs
 node packages/kybernos-plugin/test-automation-runs-client.mjs  # the KB-AUTORUNS block: history lines → runs, figures, graph, layout; the pane stays read-only
 node packages/kybernos-plugin/test-automation-settings.mjs  # the three switches and the choice, the guard of the route, the held tick
-node packages/kybernos-plugin/test-automation-skills.mjs  # the stable-run rule, the skill text, the route, and the tick writing a skill by itself (real apply() on a throw-away DSH home)
+node packages/kybernos-plugin/test-automation-skills.mjs  # the stable-run rule, the skill parts, the route and the tick suggesting a skill by itself (real apply() on a throw-away DSH home, a stand-in for the Skills seam)
+node packages/kybernos-plugin/test-learned-dot.mjs         # the dot on the Skills row of the menu
 node packages/kybernos-plugin/test-automation-workspace.mjs  # where a run lands: the rule, the real host with a fake registry (chosen, none, deleted, no create), the route, the form and the detail line
 node packages/kybernos-plugin/test-automation-templates.mjs  # Discover: the ten templates in both languages, what they never promise, the filter, the chat text
 node packages/kybernos-plugin/test-newchat.mjs         # the cards, the Cloud Computer state, the hidden native entry, the starters pinned

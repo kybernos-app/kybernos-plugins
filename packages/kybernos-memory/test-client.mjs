@@ -421,6 +421,34 @@ console.log('looks after itself')
   check('an empty list is safe', T.sentMarks([]).length === 0 && T.sentMarks(rows([undefined, null])).every((x) => x === false))
 }
 
+// ── skills made from experience: the status line, the grouping hint, « Make a skill »
+console.log('skills from lessons')
+{
+  const now = Date.parse('2026-10-21T12:00:00Z')
+  const base = { status: { loaded: true, connected: true }, settings: { loaded: true, memory: { memories: true, context: true }, lessons: { lessons: true, context: true } }, tidy: { loaded: true, mem: null, les: null }, now }
+  check('the status line counts the skills made from experience, once there is one', T.selfStatus({ ...base, skills: 3 }).text.includes('3 skills made from experience') && T.selfStatus({ ...base, skills: 1 }).text.includes('1 skill made from experience'))
+  check('and says nothing about them before that', !/made from experience/.test(T.selfStatus({ ...base, skills: 0 }).text) && !/made from experience/.test(T.selfStatus({ ...base }).text) && !/made from experience/.test(T.selfStatus({ ...base, skills: null }).text))
+  const L = (id, tags) => ({ id, text: 'Lesson ' + id, tags, kyber: 'default' })
+  const c = T.lessonCluster([L(1, ['i18n', 'x']), L(2, ['i18n']), L(3, ['sandbox']), L(4, ['i18n', 'default']), L(5, ['x'])])
+  check('three lessons that share a tag make a group, the most shared tag first', c !== null && c.tag === 'i18n' && c.items.map((l) => l.id).join() === '1,2,4', c)
+  check('two are not a group, and the « default » tag is never one', T.lessonCluster([L(1, ['a']), L(2, ['a'])]) === null && T.lessonCluster([L(1, ['default']), L(2, ['default']), L(3, ['default'])]) === null)
+  check('never more than eight lessons go into one skill', T.lessonCluster(Array.from({ length: 12 }, (_, i) => L(i, ['t']))).items.length === 8)
+  check('garbage in, nothing out (never throws)', T.lessonCluster(null) === null && T.lessonCluster([null, {}, { tags: 'x' }]) === null)
+  const sent = []
+  fetchImpl = async (url, init) => { sent.push({ url, init }); return { status: 200, json: async () => ({ ok: true, proposal: { name: 'i18n-checklist' } }) } }
+  let refreshed = 0
+  globalThis.window.__KB_LEARNED__ = { refresh: () => { refreshed += 1 } }
+  const r = await T.suggestSkill([L(1, ['i18n']), L(2, ['i18n'])])
+  check('« Make a skill » posts the lessons to the Skills page (text, tags, agent team), and nothing else', r.ok === true && sent.length === 1 && sent[0].url === '/kybernos-skills/learned/from-lessons' && sent[0].init.method === 'POST' && JSON.parse(sent[0].init.body).lessons.length === 2 && JSON.parse(sent[0].init.body).lessons[0].kyber === 'default', sent)
+  check('and tells the menu dot to look again', refreshed === 1)
+  fetchImpl = async () => ({ status: 404, json: async () => { throw new Error('not json') } })
+  check('a host without the Skills page answers « unavailable », in words', (await T.suggestSkill([L(1, ['i18n'])])).error === 'indisponible' && T.friendlyError('indisponible').length > 10)
+  check('the refusals of the Skills page have a sentence in both languages', ['already_proposed', 'too_many_pending', 'no_free_name', 'no_lessons'].every((k) => T.friendlyError(k) !== k && T.friendlyError(k).length > 10))
+  check('the lesson sheet carries the button, next to « Propose to team »', SOURCE.includes("'data-act': 'make-skill'") && SOURCE.indexOf("'data-act': 'make-skill'") > SOURCE.indexOf("'data-act': 'propose-team'"))
+  check('and the page carries the grouping hint and the link to Skills', SOURCE.includes("'data-note': 'cluster'") && SOURCE.includes("'data-act': 'cluster-skill'") && SOURCE.includes("'data-act': 'open-skills'"))
+  delete globalThis.window.__KB_LEARNED__
+}
+
 console.error = realError
 console.log('\n' + String(pass) + ' verifications, ' + String(fail) + ' failure(s)')
 process.exit(fail === 0 ? 0 : 1)
