@@ -331,9 +331,9 @@ window.__ModuleLoader__.load({
           const btn = el('button', 'kbsr-hh-btn')
           btn.type = 'button'
           btn.setAttribute('aria-expanded', 'false')
-          btn.title = fr ? 'Comment ça marche' : 'How it works'
+          btn.title = kt('Comment ça marche', 'How it works')
           btn.appendChild(el('span', 'kbsr-hh-q', '?'))
-          btn.appendChild(document.createTextNode(fr ? 'Comment ça marche' : 'How it works'))
+          btn.appendChild(document.createTextNode(kt('Comment ça marche', 'How it works')))
           wrap.appendChild(btn)
           let card = null
           const close = () => { if (card !== null) { card.remove(); card = null } btn.setAttribute('aria-expanded', 'false') }
@@ -348,14 +348,14 @@ window.__ModuleLoader__.load({
               card.setAttribute('aria-label', String(m.titre || KB_HELP_ID))
               card.appendChild(el('h4', null, String(m.titre || KB_HELP_ID)))
               if (a.what !== undefined) card.appendChild(el('p', null, txt(a.what)))
-              card.appendChild(el('h5', null, fr ? 'Comment l’utiliser' : 'How to use it'))
+              card.appendChild(el('h5', null, kt('Comment l’utiliser', 'How to use it')))
               const ol = el('ol')
               for (const st of (Array.isArray(a.steps) ? a.steps : [])) ol.appendChild(el('li', null, txt(st)))
               card.appendChild(ol)
-              if (a.where !== undefined) card.appendChild(el('p', 'kbsr-hh-where', (fr ? 'Où le trouver : ' : 'Where to find it: ') + txt(a.where)))
+              if (a.where !== undefined) card.appendChild(el('p', 'kbsr-hh-where', kt('Où le trouver : ', 'Where to find it: ') + txt(a.where)))
               if (a.good !== undefined) card.appendChild(el('p', 'kbsr-hh-good', txt(a.good)))
               if (typeof a.url === 'string' && a.url !== '') {
-                const link = el('a', 'kbsr-hh-link', fr ? 'Lire l’article' : 'Read the article')
+                const link = el('a', 'kbsr-hh-link', kt('Lire l’article', 'Read the article'))
                 link.href = a.url.replace('{lang}', fr ? 'fr' : 'en')
                 link.target = '_blank'
                 link.rel = 'noopener noreferrer'

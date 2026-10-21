@@ -26,7 +26,8 @@ check('the Agent Team\'s connection too', /\(\(c\.state === 'ACTIVE' \|\| c\.sta
 check('a failed or pending connection still says so', /c\.state === 'FAILED' \? \{ color: 'var\(--dsw-alias-state-error-primary\)'/.test(SRC))
 
 console.log('automations (no Origin column)')
-check('the header names five columns (name, trigger, last session, success, sessions) and no origin', (SRC.slice(SRC.indexOf('const kbaListHead = '), SRC.indexOf('const kbaSkeleton = ')).match(/className: 'kba-tabver' \}, kbt\('tasks\.col\.(name|trigger|lastsession|success|sessions)'\)/g) || []).length === 5 && !/tasks\.col\.origin|tasks\.origin\.manual|kba-origin-badge/.test(SRC))
+// A-03/N-03: the fourth header is the run's STATE (« État »/« State »), not a session: « Last session » showed « Paused ».
+check('the header names five columns (name, trigger, state, success, sessions) and no origin', (SRC.slice(SRC.indexOf('const kbaListHead = '), SRC.indexOf('const kbaSkeleton = ')).match(/className: 'kba-tabver' \}, kbt\('tasks\.col\.(name|trigger|state|success|sessions)'\)/g) || []).length === 5 && !/tasks\.col\.origin|tasks\.origin\.manual|kba-origin-badge/.test(SRC))
 check('the grid has five tracks, the same for the header and the rows', /\n\.kba-rowbtn,\.kba-rowhead\{display:grid;grid-template-columns:minmax\(0,1\.3fr\) minmax\(0,1\.3fr\) 150px 112px 64px;/.test(SRC))
 check('the narrow layouts hide the success and sessions columns, the fourth and the fifth', /\.kba-rowbtn>:nth-child\(n\+4\),\.kba-rowhead>:nth-child\(n\+4\)\{display:none\}/.test(SRC))
 check('the skeleton row has a bone for each column, like the real row', /kbBone\('72%', 12\), kbBone\('70%', 12\), kbBone\('60%', 12\), kbBone\(20, 12\)\)/.test(SRC))
