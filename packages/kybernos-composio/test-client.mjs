@@ -420,6 +420,11 @@ ok('webUrl: a non-string is refused', webUrl(undefined) === null && webUrl(null)
   ok('a list: the rows that are rows, the limit, the count and the stale flag', listed.offered === true && listed.connected === true && listed.connections.length === 2 && listed.limit === 3 && listed.count === 2 && listed.stale === true && listed.error === null)
   const bare = view(200, { ok: true, offered: true, connected: true, connections: [row()] })
   ok('without a limit or a count: no limit, and the count is what was read', bare.limit === null && bare.count === 1 && bare.stale === false)
+  // V1-13 (video review): « Connected · 0 of 3 » next to four connections — the answer carried count 0 AND four rows.
+  const menteur = view(200, { ok: true, offered: true, connected: true, limit: 3, count: 0, connections: [row(), row({ id: 'c2' }), row({ id: 'c3' }), row({ id: 'c4' })] })
+  ok('V1-13: a server count BELOW the list it just sent is the list that wins (0 + 4 rows → 4)', menteur.count === 4, menteur.count)
+  const pagine = view(200, { ok: true, offered: true, connected: true, limit: 9, count: 7, connections: [row()] })
+  ok('V1-13: a count ABOVE the list (a server that pages) is kept as is', pagine.count === 7, pagine.count)
   // `entitled`: whether the plan includes connecting apps. Only a boolean counts; an older server says nothing and a limit is then only a limit.
   ok('entitled: false and true are kept, anything else (or nothing) is null', [false, true].every((b) => view(200, { ok: true, offered: true, connected: true, entitled: b, limit: 0, connections: [] }).entitled === b) && [undefined, null, 'false', 0, 1].every((x) => view(200, { ok: true, offered: true, connected: true, entitled: x, limit: 0, connections: [] }).entitled === null))
   ok('web: the address the cloud half gave, or null (an empty or non-text one is not an address)', view(200, { ok: true, offered: true, connected: true, web: 'https://kb.example', connections: [] }).web === 'https://kb.example' && [undefined, null, '', 5].every((x) => view(200, { ok: true, offered: true, connected: true, web: x, connections: [] }).web === null))
