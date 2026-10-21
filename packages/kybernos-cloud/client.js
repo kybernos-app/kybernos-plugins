@@ -2896,7 +2896,7 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
                 },
                 h('span', { className: 'kbfp-tile', 'aria-hidden': 'true', 'data-kb-hue': spaceHue(entry) !== null ? spaceHue(entry) : undefined }, vueEspace.initials),
                 h('span', { className: 'kbfp-mheadtxt' },
-                  h('span', { className: 'kbfp-mheadname' }, vueEspace.name),
+                  h('span', { className: 'kbfp-mheadname', title: vueEspace.name }, vueEspace.name),
                   h('span', { className: 'kbfp-mheadsub' }, t('wsSwitchTitle'))),
                 h(SwapIcon, { size: 18 })),
               mode === 'inline' ? h('div', { className: 'kbfp-msep' }) : null,
@@ -3570,7 +3570,8 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
               },
               h('span', { className: 'kbfp-tile', 'aria-hidden': 'true', 'data-update': majDispo === true ? 'true' : undefined, 'data-kb-hue': spaceHue(shownEntry) !== null ? spaceHue(shownEntry) : undefined }, shownView.initials),
               h('span', { className: 'kbfp-cardtxt' },
-                h('span', { className: 'kbfp-cardname' }, nomEspace),
+                // V1-05: the name is ellipsised by CSS; without a title a long name is unreadable everywhere it appears.
+                h('span', { className: 'kbfp-cardname', title: nomEspace }, nomEspace),
                 switching !== null
                   ? h('span', { className: 'kbfp-cardsub', 'data-kb': 'workspace-card-switching' }, t('spaceSwitching'))
                   : h('span', { className: 'kbfp-cardsub', title: mfaNote !== null ? mfaNote.long : undefined, 'data-kb': mfaNote !== null ? 'workspace-card-mfa' : undefined }, qui + ' · ' + planEspace + ' · ' + (spaceIsPersonal(shownEntry) ? t('spacePrivate') : t('spaceShared')) + (mfaNote !== null ? ' · ⚠ ' + mfaNote.short : '')),
