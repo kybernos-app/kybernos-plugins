@@ -2,6 +2,8 @@
   "v": 1,
   "id": "com",
   "order": 60,
+  "accent": "#C25E0A",
+  "icon": "bag",
   "name": {
     "en": "Commerce",
     "fr": "Commerce"
@@ -10,6 +12,32 @@
     "en": "Shops, operations, customer service, freelancers",
     "fr": "Boutiques, opérations, service client, indépendants"
   },
+  "keywords": [
+    "boutique",
+    "shop",
+    "magasin",
+    "store",
+    "commerce",
+    "e-commerce",
+    "ecommerce",
+    "vente",
+    "retail",
+    "service client",
+    "customer service",
+    "support",
+    "stock",
+    "restaurant",
+    "artisan",
+    "commercant",
+    "entrepreneur",
+    "freelance",
+    "independant"
+  ],
+  "home": [
+    "sheet",
+    "dashboard",
+    "automation"
+  ],
   "legacyJobs": [
     "commerce",
     "entre"
@@ -54,6 +82,20 @@
           }
         }
       ],
+      "automations": [
+        {
+          "id": "morning-triage",
+          "name": {
+            "en": "Morning ticket triage",
+            "fr": "Tri des tickets du matin"
+          },
+          "prompt": {
+            "en": "Every weekday at 08:30: if my support inbox or helpdesk is connected, sort the open tickets with the ticket-triage skill (urgent, today, later) and draft a reply for the urgent ones. Never send. If nothing is connected, say so.",
+            "fr": "Chaque jour de semaine à 8 h 30 : si ma boîte support ou mon helpdesk est connecté, trie les tickets ouverts avec le skill ticket-triage (urgent, aujourd’hui, plus tard) et rédige une réponse pour les urgents. N’envoie jamais. Si rien n’est connecté, dis-le."
+          },
+          "cron": "30 8 * * 1-5"
+        }
+      ],
       "soon": [
         {
           "en": "Support Concierge team",
@@ -87,16 +129,34 @@
             "en": "Track money and pipeline",
             "fr": "Suit l’argent et le pipeline"
           }
+        },
+        {
+          "source": "kybernos",
+          "name": "stock-check",
+          "d": {
+            "en": "Low, out and overstocked items, with a reorder proposal",
+            "fr": "Articles bas, en rupture ou en surstock, avec une proposition de réapprovisionnement"
+          }
+        }
+      ],
+      "automations": [
+        {
+          "id": "daily-stock",
+          "name": {
+            "en": "Daily stock check",
+            "fr": "Contrôle de stock quotidien"
+          },
+          "prompt": {
+            "en": "Every day at 08:00: run the stock-check skill on the stock file or the shop I use and list what is out, low or about to run out, with a reorder proposal. Never order.",
+            "fr": "Chaque jour à 8 h : lance le skill stock-check sur le fichier de stock ou la boutique que j’utilise et liste ce qui est en rupture, bas ou sur le point de manquer, avec une proposition de réapprovisionnement. Ne commande jamais."
+          },
+          "cron": "0 8 * * *"
         }
       ],
       "soon": [
         {
           "en": "E-commerce Operator team",
           "fr": "Équipe E-commerce Operator"
-        },
-        {
-          "en": "Stock alerts",
-          "fr": "Alertes de stock"
         }
       ],
       "starter": {

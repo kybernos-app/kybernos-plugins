@@ -2,20 +2,20 @@
 //
 //   node packages/kybernos-plugin/test-domain-pack.mjs
 import assert from 'node:assert/strict'
-import { mkdtempSync, writeFileSync, rmSync, readFileSync } from 'node:fs'
+import { mkdtempSync, writeFileSync, rmSync, readFileSync, readdirSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { FORMAT, ROW_IDS, HIDEABLE, LIMITS, validatePack, checkSet, loadPacks, domainOfProfil } from './domain-pack.mjs'
+import { FORMAT, ROW_IDS, HIDEABLE, ICONS, HOME_IDS, BUNDLED_SOURCE, LIMITS, validatePack, checkSet, loadPacks, domainOfProfil } from './domain-pack.mjs'
 
 const here = fileURLToPath(new URL('.', import.meta.url))
 let count = 0
 const ok = (label, fn) => { fn(); count++; console.log('ok  ', label) }
 const T = (en, fr) => ({ en, fr })
 const good = () => ({
-  v: 1, id: 'demo', order: 40, name: T('Demo', 'Démo'), tagline: T('A demo', 'Une démo'), legacyJobs: ['old'],
+  v: 1, id: 'demo', order: 40, accent: '#1B7F76', icon: 'heart', name: T('Demo', 'Démo'), tagline: T('A demo', 'Une démo'), keywords: ['demo', 'test case'], home: ['doc', 'sheet'], legacyJobs: ['old'],
   menu: { labels: { dashboards: T('Numbers', 'Chiffres') }, hide: ['documents'] },
-  goals: [{ id: 'one', name: T('One', 'Un'), title: T('Do one', 'Faire un'), desc: T('One thing', 'Une chose'), skills: [{ source: 'anthropics/skills', name: 'pdf', d: T('Read PDFs', 'Lit des PDF') }], teams: ['studencik'], soon: [T('Later', 'Plus tard')], starter: T('Start', 'Commence') }]
+  goals: [{ id: 'one', name: T('One', 'Un'), title: T('Do one', 'Faire un'), desc: T('One thing', 'Une chose'), skills: [{ source: 'anthropics/skills', name: 'pdf', d: T('Read PDFs', 'Lit des PDF') }], teams: ['studencik'], automations: [{ id: 'weekly', name: T('Weekly', 'Hebdo'), prompt: T('Every Friday: summarise the week.\nOne page.', 'Chaque vendredi : résume la semaine.'), cron: '0 17 * * 5' }], soon: [T('Later', 'Plus tard')], starter: T('Start', 'Commence') }]
 })
 const bad = (mutate, fileId = 'demo') => { const p = good(); mutate(p); return validatePack(p, fileId) }
 
@@ -41,6 +41,42 @@ ok('the order is an integer from 1 to 99, 50 when absent, and the loader lists b
     for (const [id, order] of [['aaa', 30], ['bbb', 10], ['ccc', 10]]) writeFileSync(join(dir, id + '.json'), JSON.stringify({ ...good(), id, order, legacyJobs: [] }))
     assert.deepEqual(loadPacks(dir).packs.map((p) => p.id), ['bbb', 'ccc', 'aaa'])
   } finally { rmSync(dir, { recursive: true, force: true }) }
+})
+ok('the colour, the icon, the keywords and the home order are checked', () => {
+  assert.deepEqual(ICONS.slice(0, 3), ['cap', 'heart', 'house'])
+  assert.equal(HOME_IDS.length, 13)
+  assert.equal(bad((p) => { delete p.accent }).ok, false)
+  for (const c of ['red', '#fff', '#12345', '#GGGGGG', 123]) assert.equal(bad((p) => { p.accent = c }).ok, false)
+  assert.equal(bad((p) => { p.icon = 'skull' }).ok, false)
+  assert.equal(bad((p) => { delete p.icon }).ok, false)
+  assert.equal(bad((p) => { p.keywords = ['Has Capitals'] }).ok, false)
+  assert.equal(bad((p) => { p.keywords = ['x'.repeat(LIMITS.keyword + 1)] }).ok, false)
+  assert.equal(bad((p) => { p.keywords = Array.from({ length: LIMITS.keywords + 1 }, (_, i) => 'k' + i) }).ok, false)
+  assert.deepEqual(bad((p) => { p.keywords = ['a b', 'a b', "o'k"] }).pack.keywords, ['a b', "o'k"], 'a keyword listed twice is kept once')
+  assert.equal(bad((p) => { p.home = ['nope'] }).ok, false)
+  assert.equal(bad((p) => { p.home = HOME_IDS.slice(0, LIMITS.home + 1) }).ok, false)
+  assert.equal(bad((p) => { delete p.keywords; delete p.home }).ok, true)
+})
+ok('an automation has an id, a name, a prompt and a schedule', () => {
+  const a = (f) => bad((p) => f(p.goals[0].automations[0]))
+  assert.equal(a((x) => { x.cron = '* * *' }).ok, false)
+  assert.equal(a((x) => { x.cron = '0 17 * * 5; rm' }).ok, false)
+  assert.equal(a((x) => { x.id = 'Bad Id' }).ok, false)
+  assert.equal(a((x) => { delete x.prompt }).ok, false)
+  assert.equal(a((x) => { x.extra = 1 }).ok, false)
+  assert.equal(a((x) => { x.prompt.en = 'x'.repeat(LIMITS.prompt + 1) }).ok, false)
+  assert.equal(a((x) => { x.prompt.en = 'a <script>' }).ok, false)
+  assert.equal(a((x) => { x.name.en = 'two\nlines' }).ok, false, 'a name is one line')
+  assert.equal(a((x) => { x.prompt.en = 'one\ntwo' }).ok, true, 'a prompt may have line breaks')
+  assert.equal(bad((p) => { p.goals[0].automations.push({ ...p.goals[0].automations[0] }) }).ok, false, 'the same automation twice in a goal')
+  assert.equal(bad((p) => { p.goals[0].automations = Array.from({ length: LIMITS.automations + 1 }, (_, i) => ({ ...good().goals[0].automations[0], id: 'a' + i })) }).ok, false)
+  assert.equal(bad((p) => { p.goals[0].skills = []; p.goals[0].teams = []; p.goals[0].soon = [] }).ok, true, 'a goal with only an automation is a goal')
+})
+ok('a skill the plugin ships is named by the source "kybernos", nothing else is accepted for it', () => {
+  assert.equal(BUNDLED_SOURCE, 'kybernos')
+  assert.equal(bad((p) => { p.goals[0].skills[0].source = 'kybernos' }).ok, true)
+  assert.equal(bad((p) => { p.goals[0].skills[0].source = 'Kybernos' }).ok, false)
+  assert.equal(bad((p) => { p.goals[0].skills[0].source = 'kybernos/x/y' }).ok, false)
 })
 ok('what is not a pack is refused', () => {
   for (const v of [null, undefined, 3, 'x', [], true]) assert.equal(validatePack(v, 'demo').ok, false)
@@ -85,7 +121,7 @@ ok('a skill is a skill name from a GitHub owner/repo, once per goal', () => {
 })
 ok('a team is an id, a goal asks for something, goal ids are unique, the list is bounded', () => {
   assert.equal(bad((p) => { p.goals[0].teams = ['Not An Id'] }).ok, false)
-  assert.equal(bad((p) => { p.goals[0].skills = []; p.goals[0].teams = []; p.goals[0].soon = [] }).ok, false)
+  assert.equal(bad((p) => { p.goals[0].skills = []; p.goals[0].teams = []; p.goals[0].soon = []; p.goals[0].automations = [] }).ok, false)
   assert.equal(bad((p) => { p.goals.push({ ...p.goals[0] }) }).ok, false, 'two goals of one id')
   assert.equal(bad((p) => { p.goals = [] }).ok, false)
   assert.equal(bad((p) => { delete p.goals }).ok, false)
@@ -149,6 +185,52 @@ const client = readFileSync(join(here, 'client.js'), 'utf8')
 const marketIds = [...client.slice(client.indexOf('const KB_MARKET_TEAMS = ['), client.indexOf('// Manifest read-only')).matchAll(/^        id: '([a-z0-9-]+)', name:/gm)].map((m) => m[1]).sort()
 const OLD_JOBS = ['soft', 'entre', 'qa', 'produit', 'design', 'etudes', 'finance', 'medias', 'commerce', 'marketing', 'legal', 'autres']
 
+const bundledNames = shipped.packs.flatMap((p) => p.goals.flatMap((g) => g.skills.filter((s) => s.source === BUNDLED_SOURCE).map((s) => s.name)))
+ok('every skill the packs say the plugin ships is a folder with a SKILL.md that names it', () => {
+  assert.ok(bundledNames.length >= 10)
+  for (const name of new Set(bundledNames)) {
+    const text = readFileSync(join(here, 'domains', 'skills', name, 'SKILL.md'), 'utf8')
+    const m = /^---\nname: ([a-z0-9-]+)\ndescription: (.+)\n---\n/.exec(text)
+    assert.ok(m !== null, name + ': frontmatter')
+    assert.equal(m[1], name, name + ': the folder and the skill name are the same')
+    assert.ok(m[2].length > 40 && m[2].length <= 1024, name + ': a description DSH accepts')
+    assert.ok(/Use when|Use this/i.test(m[2]), name + ': the description says when to use it')
+    assert.ok(!/[\u0000]/.test(text) && text.length < 12000 && text.length > 800, name + ': a plain text of a sensible size')
+  }
+})
+ok('no skill folder is left unused', () => {
+  const folders = readdirSync(join(here, 'domains', 'skills'))
+  assert.deepEqual(folders.filter((f) => !bundledNames.includes(f)), [])
+})
+ok('every automation is complete in both languages, never sends, and names only skills that exist', () => {
+  const all = shipped.packs.flatMap((p) => p.goals.flatMap((g) => g.automations.map((a) => ({ pack: p.id, goal: g.id, ...a }))))
+  assert.ok(all.length >= 20)
+  const skillNames = new Set(shipped.packs.flatMap((p) => p.goals.flatMap((g) => g.skills.map((s) => s.name))))
+  const ids = all.map((a) => a.pack + '/' + a.id)
+  assert.equal(new Set(ids).size, ids.length, 'automation ids are unique in a pack')
+  for (const a of all) {
+    for (const lang of ['en', 'fr']) assert.ok(typeof a.prompt[lang] === 'string' && a.prompt[lang].length > 60 && typeof a.name[lang] === 'string', a.pack + '/' + a.id + ': ' + lang)
+    // an automation that writes to people drafts only: it says so, in both languages
+    if (/draft|reminder|repl(y|ies)|confirmation/i.test(a.prompt.en)) {
+      assert.ok(/never send|do not send|never order|drafts only/i.test(a.prompt.en), a.pack + '/' + a.id + ': it drafts, so it must say it never sends')
+      assert.ok(/n’envoie|ne les envoie|ne l’envoie|n'envoie|ne commande|brouillons seulement/i.test(a.prompt.fr), a.pack + '/' + a.id + ': the French prompt says it too')
+    }
+    for (const m of (a.prompt.en + ' ').matchAll(/\b([a-z]+(?:-[a-z]+)+) skill\b/g)) assert.ok(skillNames.has(m[1]) || ['dsh', 'a'].includes(m[1]), a.pack + '/' + a.id + ' names the skill ' + m[1] + ' which no pack carries')
+  }
+})
+ok('the keywords find each field in a sentence, the catch-all has none', () => {
+  const kw = (id) => shipped.packs.find((p) => p.id === id).keywords
+  assert.ok(kw('sante').includes('kine') && kw('droit').includes('avocat') && kw('immo').includes('agence') && kw('general').length === 0)
+  const owner = {}
+  for (const p of shipped.packs) for (const k of p.keywords) (owner[k] = owner[k] || []).push(p.id)
+  assert.deepEqual(Object.entries(owner).filter(([, v]) => v.length > 1).map(([k, v]) => k + ':' + v.join('+')), [], 'a keyword belongs to one field')
+})
+ok('every pack has a colour, an icon and a home order of real new-chat templates', () => {
+  for (const p of shipped.packs) {
+    assert.ok(/^#[0-9a-f]{6}$/i.test(p.accent) && ICONS.includes(p.icon) && p.home.length >= 2 && p.home.every((h) => HOME_IDS.includes(h)), p.id)
+  }
+  assert.equal(new Set(shipped.packs.map((p) => p.accent)).size, shipped.packs.length, 'one colour per field')
+})
 ok('every shipped pack loads, and the nine fields of work are there', () => {
   assert.deepEqual(shipped.rejected, [])
   assert.deepEqual(shipped.packs.map((p) => p.id), ['edu', 'sante', 'immo', 'droit', 'fin', 'com', 'mkt', 'dev', 'general'], 'listed in the pack\'s own order, the catch-all last')
@@ -164,11 +246,11 @@ ok('every pack has English and French everywhere and between 4 and 6 goals', () 
   assert.deepEqual(texts.filter((t) => typeof t.fr !== 'string'), [])
 })
 ok('every skill is one the starter kits verified', () => {
-  const used = shipped.packs.flatMap((p) => p.goals.flatMap((g) => g.skills.map((s) => s.source + ' ' + s.name)))
+  const used = shipped.packs.flatMap((p) => p.goals.flatMap((g) => g.skills.filter((s) => s.source !== BUNDLED_SOURCE).map((s) => s.source + ' ' + s.name)))
   assert.deepEqual([...new Set(used)].filter((x) => VERIFIED.indexOf(x) < 0), [])
 })
 ok('nothing the old kits offered is lost', () => {
-  const used = new Set(shipped.packs.flatMap((p) => p.goals.flatMap((g) => g.skills.map((s) => s.source + ' ' + s.name))))
+  const used = new Set(shipped.packs.flatMap((p) => p.goals.flatMap((g) => g.skills.filter((s) => s.source !== BUNDLED_SOURCE).map((s) => s.source + ' ' + s.name))))
   assert.deepEqual(VERIFIED.filter((x) => !used.has(x)), [])
 })
 ok('every team exists in the marketplace of the bundle', () => {

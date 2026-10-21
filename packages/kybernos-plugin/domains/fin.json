@@ -2,6 +2,8 @@
   "v": 1,
   "id": "fin",
   "order": 50,
+  "accent": "#1E6B4A",
+  "icon": "trend",
   "name": {
     "en": "Finance",
     "fr": "Finance"
@@ -10,6 +12,30 @@
     "en": "Accounting, management control, freelancers",
     "fr": "Compta, contrôle de gestion, indépendants"
   },
+  "keywords": [
+    "comptable",
+    "accountant",
+    "compta",
+    "accounting",
+    "finance",
+    "daf",
+    "cfo",
+    "controleur de gestion",
+    "tresorerie",
+    "treasury",
+    "facturation",
+    "invoicing",
+    "tva",
+    "vat",
+    "audit",
+    "expert-comptable",
+    "bookkeeping"
+  ],
+  "home": [
+    "sheet",
+    "dashboard",
+    "doc"
+  ],
   "legacyJobs": [
     "finance"
   ],
@@ -67,6 +93,20 @@
             "en": "Track money and pipeline",
             "fr": "Suit l’argent et le pipeline"
           }
+        }
+      ],
+      "automations": [
+        {
+          "id": "morning-reconcile",
+          "name": {
+            "en": "Morning reconciliation check",
+            "fr": "Contrôle de rapprochement du matin"
+          },
+          "prompt": {
+            "en": "Every weekday at 08:00: if my accounting app or the bank export in this workspace has new lines since yesterday, list the unmatched ones and propose matches with the reconciliation skill. Never post entries. If there is no new data, say so in one line.",
+            "fr": "Chaque jour de semaine à 8 h : si mon outil de compta ou l’export bancaire de ce workspace a de nouvelles lignes depuis hier, liste celles qui ne sont pas rapprochées et propose des rapprochements avec le skill reconciliation. Ne passe jamais d’écriture. S’il n’y a rien de nouveau, dis-le en une ligne."
+          },
+          "cron": "0 8 * * 1-5"
         }
       ],
       "soon": [
@@ -133,10 +173,18 @@
           }
         }
       ],
-      "soon": [
+      "automations": [
         {
-          "en": "Monthly variance report",
-          "fr": "Rapport d’écarts mensuel"
+          "id": "monthly-variances",
+          "name": {
+            "en": "Monthly variance report",
+            "fr": "Rapport d’écarts mensuel"
+          },
+          "prompt": {
+            "en": "On the 1st of each month at 09:00: compare last month’s actuals with the plan in this workspace using the variance-analysis skill and explain the five largest variances. One page.",
+            "fr": "Le 1er de chaque mois à 9 h : compare le réalisé du mois dernier au plan de ce workspace avec le skill variance-analysis et explique les cinq écarts les plus importants. Une page."
+          },
+          "cron": "0 9 1 * *"
         }
       ],
       "starter": {
@@ -166,12 +214,28 @@
             "en": "Reminder letters",
             "fr": "Courriers de relance"
           }
+        },
+        {
+          "source": "kybernos",
+          "name": "invoice-reminders",
+          "d": {
+            "en": "Reminders for overdue invoices, in escalating tones",
+            "fr": "Des relances de factures en retard, de plus en plus fermes"
+          }
         }
       ],
-      "soon": [
+      "automations": [
         {
-          "en": "Late-invoice reminders",
-          "fr": "Relances de factures en retard"
+          "id": "late-invoices",
+          "name": {
+            "en": "Late-invoice reminders",
+            "fr": "Relances de factures en retard"
+          },
+          "prompt": {
+            "en": "Every Monday at 09:00: list the overdue invoices from the file or app I use and draft reminders with the invoice-reminders skill. Never send. Give me the summary table first.",
+            "fr": "Chaque lundi à 9 h : liste les factures en retard du fichier ou de l’outil que j’utilise et rédige les relances avec le skill invoice-reminders. N’envoie jamais. Donne-moi d’abord le tableau récapitulatif."
+          },
+          "cron": "0 9 * * 1"
         }
       ],
       "starter": {

@@ -2,6 +2,8 @@
   "v": 1,
   "id": "dev",
   "order": 80,
+  "accent": "#3A5BC7",
+  "icon": "code",
   "name": {
     "en": "Development",
     "fr": "Développement"
@@ -10,6 +12,35 @@
     "en": "Software, data, QA, product, design",
     "fr": "Logiciel, données, QA, produit, design"
   },
+  "keywords": [
+    "developpeur",
+    "developer",
+    "dev",
+    "code",
+    "coding",
+    "logiciel",
+    "software",
+    "ingenieur",
+    "engineer",
+    "informatique",
+    "data",
+    "devops",
+    "qa",
+    "testeur",
+    "tester",
+    "produit",
+    "product manager",
+    "designer",
+    "ux",
+    "programmeur",
+    "programmer",
+    "tech"
+  ],
+  "home": [
+    "website",
+    "plugin",
+    "automation"
+  ],
   "legacyJobs": [
     "soft",
     "qa",
@@ -47,6 +78,20 @@
             "en": "Decide what to test and how",
             "fr": "Décide quoi tester et comment"
           }
+        }
+      ],
+      "automations": [
+        {
+          "id": "review-digest",
+          "name": {
+            "en": "Morning review digest",
+            "fr": "Point de revue du matin"
+          },
+          "prompt": {
+            "en": "Every weekday at 09:00: if GitHub is connected, list the pull requests waiting for my review, oldest first, with a one-line risk note each (use the code-review skill on the smallest). Otherwise say it is not connected.",
+            "fr": "Chaque jour de semaine à 9 h : si GitHub est connecté, liste les pull requests qui attendent ma revue, les plus anciennes d’abord, avec une ligne de risque chacune (utilise le skill code-review sur la plus petite). Sinon dis que ce n’est pas connecté."
+          },
+          "cron": "0 9 * * 1-5"
         }
       ],
       "starter": {
@@ -188,6 +233,20 @@
             "en": "Plan and read user research",
             "fr": "Prépare et lit une étude utilisateur"
           }
+        }
+      ],
+      "automations": [
+        {
+          "id": "roadmap-friday",
+          "name": {
+            "en": "Friday roadmap update",
+            "fr": "Mise à jour de la feuille de route du vendredi"
+          },
+          "prompt": {
+            "en": "Every Friday at 16:00: update the roadmap in this workspace from what was done this week (use the roadmap-update skill) and list what slips to next week.",
+            "fr": "Chaque vendredi à 16 h : mets à jour la feuille de route de ce workspace à partir de ce qui a été fait cette semaine (utilise le skill roadmap-update) et liste ce qui glisse à la semaine prochaine."
+          },
+          "cron": "0 16 * * 5"
         }
       ],
       "soon": [

@@ -2,6 +2,8 @@
   "v": 1,
   "id": "mkt",
   "order": 70,
+  "accent": "#C2255C",
+  "icon": "mega",
   "name": {
     "en": "Marketing",
     "fr": "Marketing"
@@ -10,6 +12,29 @@
     "en": "Campaigns, content, SEO, communication",
     "fr": "Campagnes, contenu, SEO, communication"
   },
+  "keywords": [
+    "marketing",
+    "seo",
+    "community manager",
+    "communication",
+    "contenu",
+    "content",
+    "newsletter",
+    "growth",
+    "publicite",
+    "advertising",
+    "reseaux sociaux",
+    "social media",
+    "brand",
+    "marque",
+    "copywriter",
+    "redacteur"
+  ],
+  "home": [
+    "slides",
+    "image",
+    "doc"
+  ],
   "legacyJobs": [
     "marketing",
     "medias"
@@ -70,6 +95,20 @@
           }
         }
       ],
+      "automations": [
+        {
+          "id": "weekly-content-plan",
+          "name": {
+            "en": "Weekly content plan",
+            "fr": "Plan de contenu de la semaine"
+          },
+          "prompt": {
+            "en": "Every Monday at 09:00: propose this week’s content (three posts and one article idea) from the latest article or announcement in this workspace, in our brand voice (use the brand-voice-enforcement skill). Drafts only.",
+            "fr": "Chaque lundi à 9 h : propose le contenu de la semaine (trois posts et une idée d’article) à partir du dernier article ou de la dernière annonce de ce workspace, dans la voix de notre marque (utilise le skill brand-voice-enforcement). Brouillons seulement."
+          },
+          "cron": "0 9 * * 1"
+        }
+      ],
       "soon": [
         {
           "en": "Content Studio team",
@@ -111,6 +150,20 @@
       ],
       "teams": [
         "inbound-closer"
+      ],
+      "automations": [
+        {
+          "id": "campaign-report",
+          "name": {
+            "en": "Weekly campaign report",
+            "fr": "Rapport de campagne hebdomadaire"
+          },
+          "prompt": {
+            "en": "Every Monday at 09:00: if my marketing apps are connected, summarise last week’s campaigns: what ran, the results, what to change. Otherwise use the report files in this workspace. Say what data is missing.",
+            "fr": "Chaque lundi à 9 h : si mes apps marketing sont connectées, résume les campagnes de la semaine dernière : ce qui a tourné, les résultats, ce qu’il faut changer. Sinon utilise les fichiers de rapport de ce workspace. Dis quelles données manquent."
+          },
+          "cron": "0 9 * * 1"
+        }
       ],
       "soon": [
         {

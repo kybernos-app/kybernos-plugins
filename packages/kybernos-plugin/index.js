@@ -9918,6 +9918,23 @@ function boot(ctx) {
         const r = domainPacks()
         sendJson(res, 200, { ok: true, packs: r.packs, rejected: r.rejected.length })
       } }), 'kybernos: route domains')
+      // A skill a domain pack ships (domains/skills/<name>/SKILL.md): written into <DSH home>/skills by the same careful seeding as every skill this
+      // plugin ships (never over a skill the person wrote or edited, never back over one they switched off). Only a name some pack lists as
+      // bundled is accepted, so the route cannot write anything else.
+      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/domain/skill', handler: async (req, res) => {
+        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        let body = null
+        try { body = await readJsonBody(req, 2000) } catch (e) { return sendJson(res, 413, { ok: false, error: 'request body too large' }) }
+        const name = body !== null && typeof body === 'object' ? str(body.name) : null
+        const listed = name !== null && domainPacks().packs.some((p) => p.goals.some((g) => g.skills.some((s) => s.source === 'kybernos' && s.name === name)))
+        if (listed !== true) return sendJson(res, 400, { ok: false, error: 'unknown skill' })
+        try {
+          const r = seedSkills({ home: String(dshHomeSync()), sourceDir: pluginDir + '/domains/skills', names: [name] })[0]
+          const action = r !== undefined ? r.action : 'error'
+          sendJson(res, 200, { ok: action === 'created' || action === 'current' || action === 'updated' || action === 'kept' || action === 'disabled', action })
+        } catch (e) { sendJson(res, 200, { ok: false, action: 'error' }) }
+      } }), 'kybernos: route domain skill')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/onboarding', handler: async (req, res) => {
         if (req.method === 'GET') {
           const state = await onboardingRead()
