@@ -303,13 +303,13 @@
       },
       "aide": {
         "what": {
-          "fr": "Le panneau qui liste les modules Kybernos pour les activer, les installer ou les mettre à jour. En coulisse, une garde repère les démarrages ratés.",
-          "en": "The panel that lists the Kybernos modules so you can switch, install or update them. Behind the scenes, a guard spots failed starts."
+          "fr": "Le panneau qui liste les modules Kybernos pour les activer, les installer ou les mettre à jour, et les plugins d’autres auteurs. En coulisse, une garde repère les démarrages ratés.",
+          "en": "The panel that lists the Kybernos modules so you can switch, install or update them, and the plugins made by other people. Behind the scenes, a guard spots failed starts."
         },
         "steps": [
           {
-            "fr": "Ouvre « Kybernos Suite » : l’onglet « À la une » montre les modules phares, « Tous » les liste tous.",
-            "en": "Open “Kybernos Suite”: the “Featured” tab shows the main modules, “All” lists every one."
+            "fr": "Ouvre « Kybernos Suite » : « À la une » montre les modules phares, « Tous » les liste, « Plugins » ceux d’autres auteurs.",
+            "en": "Open “Kybernos Suite”: “Featured” shows the main modules, “All” lists them, “Plugins” the ones made by other people."
           },
           {
             "fr": "Cherche avec « Rechercher un module… », filtre par « Installés » ou « Mises à jour », puis clique sur une carte pour lire sa page.",
@@ -352,22 +352,26 @@
       },
       "aide": {
         "what": {
-          "fr": "Lit les plugins Kybernos installés avec la page Plugins de DSH, vérifie que ce sont des données simples et laisse les pages utiliser ce qu’ils ajoutent. Un plugin refusé est écarté.",
-          "en": "Reads the Kybernos plugins installed with DSH’s Plugins page, checks that they are plain data, and lets the pages use what they add. A plugin that fails the check is left out."
+          "fr": "Lit les plugins Kybernos installés avec le gestionnaire de DSH, vérifie que ce sont des données simples et alimente la page Plugins de la Suite. Un plugin refusé est écarté.",
+          "en": "Reads the Kybernos plugins installed with DSH’s plugin manager, checks that they are plain data and feeds the Plugins page of the Suite. A plugin that fails the check is left out."
         },
         "steps": [
           {
-            "fr": "Ajoute un plugin avec la page Plugins de DSH : un nom npm, une adresse GitHub ou un dossier.",
-            "en": "Add a plugin with DSH’s Plugins page: an npm name, a GitHub address or a folder."
+            "fr": "Ouvre « Kybernos Suite », l’onglet « Plugins », puis « Ajouter un plugin » : GitHub ou npm, un fichier ou un dossier, ou l’IA.",
+            "en": "Open “Kybernos Suite”, the “Plugins” tab, then “Add a plugin”: GitHub or npm, a file or a folder, or AI."
           },
           {
-            "fr": "Kybernos le lit et te demande ton accord avant que des instructions n’atteignent tes agents.",
-            "en": "Kybernos reads it and asks you before any instruction reaches your agents."
+            "fr": "DSH installe ; Kybernos lit le plugin et te demande ton accord (« Lire et accepter ») avant que des instructions n’atteignent tes agents.",
+            "en": "DSH installs it; Kybernos reads the plugin and asks for your OK (“Read and accept”) before any instruction reaches your agents."
+          },
+          {
+            "fr": "L’interrupteur de la carte est celui de DSH ; « Retirer le plugin » passe aussi par DSH.",
+            "en": "The switch on a card is DSH’s own; “Remove plugin” goes through DSH too."
           }
         ],
         "where": {
-          "fr": "Rien à ouvrir pour l’instant : la page Plugins arrive ensuite.",
-          "en": "Nothing to open yet: the Plugins page comes next.",
+          "fr": "Réglages › Kybernos Suite › onglet Plugins (c’est la page de la Suite qui l’affiche)",
+          "en": "Settings › Kybernos Suite › Plugins tab (the Suite page shows it)",
           "page": false
         },
         "good": {

@@ -2,7 +2,7 @@
 
 The registry of plugins: it reads the **Kybernos plugins DSH's own plugin manager installed**, checks them, and gives the owner of an extension point what they
 contribute. It also publishes the one versioned seam other bundles use, `window.__KB__`. Specification: `docs/dev/plugin-contract.md` (sections 5, 6, 14).
-Phase 2 of the contract: no page yet (the page is designed in the Plugins mockup and comes next), no catalogue, no key. It installs and switches **nothing**: DSH's manager does (the sidebar Plugins page, `dsh plugin add`, the `plugin_manager` tool).
+Phase 2 of the contract. The page is the **Plugins** segment of Settings, Kybernos Suite (`packages/kybernos-hub/client.js`); no catalogue and no key yet. It installs and switches **nothing**: DSH's manager does (the Suite's Plugins page and the sidebar Plugins page both ask it, as does `dsh plugin add` and the `plugin_manager` tool).
 
 ## What it does
 
@@ -35,9 +35,18 @@ Page: `window.__KB__` (created when `client.js` is evaluated): `use(id, range)`,
 
 | Route | |
 |---|---|
-| `GET /kybernos-registry/state` | the plugins found (with status and reasons) and the points defined |
+| `GET /kybernos-registry/state[?fresh=1]` | the plugins found (with status and reasons) and the points defined; `fresh=1` reads the profile again now (a scan is otherwise reused for two seconds) |
 | `GET /kybernos-registry/contributions?point=owner/name%23point` | what the accepted, selected plugins give one point |
+| `GET /kybernos-registry/preview?id=author/name` | everything an installed data plugin brings, each file through the point's check, for the person to read **before** accepting |
+| `GET /kybernos-registry/drafts[?fresh=1]` | the plugins the AI prepared in `<DSH home>/kybernos/plugin-drafts/<name>/`, each with the registry's own check, and whether it is already installed |
 | `POST /kybernos-registry/consent` `{ id, accepted }` | the person accepts (or withdraws) what a plugin brings: strict same origin **and** DSH's signed session cookie. Switching on and off is DSH's |
+| `POST /kybernos-registry/import` (raw `.tgz`/`.tar.gz`, `x-filename`) | keeps an archive the person chose (8 MB at most, gzip checked, last 20 kept) under `<DSH home>/kybernos/plugin-imports/` so DSH's manager can install it from that path. **Nothing is unpacked here.** Same origin and session as the acceptance |
+
+## The AI's skill
+
+The bundle ships `skills/plugin-creator/SKILL.md` and seeds it into `<DSH home>/skills` at start (`seed-skills.mjs`, the same rules as the other bundles: a skill the person edited is kept, one they switched off stays off).
+It interviews the person and writes a **draft** (four files, a data plugin whose id is `local/<name>`) into the drafts folder; the Plugins page installs it through DSH. `test-skill.mjs` keeps its examples, its limits
+and the skills, teams and connectors it lists equal to the pack check and to what the shipped packs use.
 
 ## Files
 
@@ -46,12 +55,13 @@ Page: `window.__KB__` (created when `client.js` is evaluated): `use(id, range)`,
 | `registry.mjs` | pure: the folder scan, the statuses, the contributions, the on/off state |
 | `manifest.mjs`, `schema-subset.mjs`, `plugin.schema.json` | the manifest validator and the JSON Schema subset it runs on (`scripts/plugin-manifest.mjs` re-exports them) |
 | `version.mjs` | comparison and ranges of the contract's grammar |
-| `host.mjs`, `index.js` | the routes and the host seam |
+| `host.mjs`, `index.js` | the routes and the host seam; `index.js` also seeds the skill |
+| `seed-skills.mjs`, `skills/plugin-creator/` | the skill that prepares a draft (the seeding module is one of four identical copies: `scripts/test-seed-skills-drift.mjs`) |
 | `client.js` | `window.__KB__` |
 | `session-guard.mjs`, `lib-session-test.mjs` | copies of the terminal's guard and its test helper (`scripts/test-session-guard.mjs` compares them) |
 
 ## Tests
 
-`node test-version.mjs && node test-registry.mjs && node test-host.mjs && node test-write-guard.mjs && node test-client.mjs`: the grammar, the scan and the
-statuses, a data package that tries to make DSH load code (a patch with entries, a client entry, install scripts, a bin), a hostile package (symbolic links, oversized files, a `__proto__` key, a script next to the manifest), the routes and the Host fence, the write guard,
-and the seam in the page. `test-registry.mjs` also keeps `docs/dev/schemas/plugin.schema.json` identical to the bundle's copy.
+`node test-version.mjs && node test-registry.mjs && node test-host.mjs && node test-write-guard.mjs && node test-skill.mjs && node test-client.mjs`: the grammar, the scan and the
+statuses, a data package that tries to make DSH load code (a patch with entries, a client entry, install scripts, a bin), a hostile package (symbolic links, oversized files, a `__proto__` key, a script next to the manifest), the routes and the Host fence, the write guard (acceptance and import), the skill (its examples are made into a draft the registry accepts, its lists are the real ones, it is seeded and never overwrites),
+and the seam in the page. The page itself is tested in `packages/kybernos-hub/test-suite-plugins.mjs` and on a real `dsh web` by `scripts/check-plugins-live.mjs`. `test-registry.mjs` also keeps `docs/dev/schemas/plugin.schema.json` identical to the bundle's copy.
