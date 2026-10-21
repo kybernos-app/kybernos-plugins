@@ -558,7 +558,7 @@ Each phase is a set of PRs that keep the three pre-push gates green, add no engi
 
 ## 15. Not in this draft
 
-The Plugins page and the card (a visual change: a mockup first). The exact `http-source` and `preset` schemas. Per-plugin install of third-party code.
+The Plugins view and the card: **decided 2026-10-21, they live in the Kybernos Suite page** (a sixth segment, "Plugins", beside Featured, All, Installed, Available and Updates; the same card and the same detail page as a module, with a trust chip, a price chip, a Permissions tab and, for a paid plugin, the key on the card). The mockup (v2, private artifact, archived outside git) follows the real page; the build waits for the owner's go. Since section 17, its "Add a plugin" button hands over to DSH's own dialog instead of drawing a second installer. The exact `http-source` and `preset` schemas. Per-plugin install of third-party code.
 Run-time isolation. Telemetry, ratings, reviews by users. Pricing, tax and payout mechanics. A rename of the French-named directories.
 Auto-update policy (default off for anything that is not Official; never across a permission change).
 
@@ -575,3 +575,43 @@ Auto-update policy (default off for anything that is not Official; never across 
 5. **Per-plugin or whole-suite updates.** Decided: **per plugin for data plugins; whole suite for first-party code** (the robot's snapshot, boot check and rollback stay the single install path); third-party code is not designed.
 6. **The namespace.** Decided: `author/name`, the author registered with keys in a signed catalogue, `kybernos`, `dsh` and `local` reserved, existing modules mapped by the table in 4.3
    (`kybernos-x` becomes `kybernos/x`, `kybernos-plugin` becomes `kybernos/core`).
+
+## 17. Grafting on DSH's plugin manager (found 2026-10-21, after phase 2)
+
+DSH already has a plugin installer, and the owner asked that the contract sit on it, not beside it. What it is (`@deepseek-ai/dsh-plugin-manager`, read in its README and code):
+
+- The sidebar **Plugins** page (Settings, System, "Built-in plugins"; the Suite's "Native manager" button) installs from an **npm name, a GitHub address, a tarball or a local directory**, with pnpm in the profile: a dialog, a choice of registries, an install log, cancel, "allow these scripts and retry". It enables, disables and removes **bundles** (`dsh.profile.bundles`). Its warning says it all: "Install only plugins you trust: they run with your permissions". The same service backs `dsh plugin` (the CLI, which forwards to pnpm) and the `plugin_manager` agent tool (Creator mode).
+- A **bundle** is a package whose `package.json` has `dsh.bundle.patch`; the manager reads that **without loading the package's JavaScript**. A package without it is installed as a **plain dependency, not a profile layer** (the CLI says so; the Web dialog refuses it as `not-a-bundle`). A bundle's patch is a top-level YAML list of entries; each entry that names a module is what DSH loads.
+- Updating a non-official plugin is uninstall and reinstall. Every one of our 43 modules is already a bundle of this manager.
+
+**What follows, to confirm in the sandbox before anything is built:**
+
+1. **Install, remove, enable, registries, logs and cancel stay DSH's.** The Suite's "Add a plugin" hands over to the native dialog (after our own check, below); we build none of it.
+2. **A Kybernos plugin is a DSH package with a `plugin.json` at its root.** A **code** plugin is a normal bundle: nothing new to install; the manifest adds the card (level, permissions, price). A **data** plugin is a bundle whose **patch is an empty list**: the Web dialog accepts it, DSH lists and toggles it like any bundle, and since no entry names a module, **no JavaScript is ever loaded**. (Assumption to verify: an empty list is an accepted patch. Fallback: a plain dependency installed with `dsh plugin add`, which loads nothing either but is not offered by the Web dialog.)
+3. **The registry reads what DSH installed**, not its own folder: `<DSH home>/profiles/web/package.json` (the bundles that are selected) and `node_modules/<name>/plugin.json`. "Enabled" is DSH's selection. The `local/` folder of the phase-2 registry becomes a developer convenience (`file:` installs do the same) and is a candidate for removal.
+4. **What we still add**, on top: the card (level, permissions in words, price and key); a **consent step** for instruction data (a plugin that is installed and selected contributes nothing until the person has read and accepted it: our state, since DSH enables on install); a check at read time that a "data" plugin's patch names no module (otherwise it is shown as unreviewed code, whatever it says); our **signed catalogue as a discovery source** that hands the native installer a pinned spec, with the archive hash checked before; revocation (the registry asks the manager to deselect); the vendor key and the entitlement call.
+5. **Honest consequence.** The native door is a code door by design. Third-party code is therefore *possible already*, as DSH's own feature, whatever decision 1 says; decision 1 now reads: **our catalogue lists, and we vouch for, data plugins only; code that comes from elsewhere is DSH's door and is labelled "unreviewed code" in the Suite.** The levels of section 9 apply on top and DSH's warning stays.
+
+## 18. The admin: Team plugins and policy on kybernos-server
+
+How an admin manages plugins from the server. **Read-only survey of `kybernos-server` on 2026-10-21; nothing built there** (it is another repository). What the server has, and the contract mirrors:
+
+| Exists on the server | Used for plugins |
+|---|---|
+| Team skills, `/v1/workspaces/{id}/skills`: a member proposes, an owner or admin reviews, `approved` / `rejected` / `retired`, the version is the SHA-256 of the files ("what an admin approved is what a member installs") | the template: **Team plugins**, same flow, same roles, same errors (`docs/dev/team-skills-contract.md`) |
+| Marketplace with admin takedowns, `/v1/admin/marketplace/takedowns` | the source of the **revocation list** of the signed plugin catalogue |
+| The owner's console `/v1/admin/*`: a signed audit chain, security events, hosted turns | audit entries `workspace.plugin.approved` / `.retired`; an owner page to curate |
+| A signed offline licence for on-premises servers (gates management, never access) | stays as it is; no plugin licence is added there |
+| Billing plans (Team) and `entitled` on connections | the entitlement of `commerce.model: "account"` plugins (seats) |
+| Server profile discovery `/.well-known/kybernos-server.json` | one more service, `plugins`, so a person's DSH finds the company's catalogue by itself |
+
+**The design, in four pieces:**
+
+1. **Team plugins (the workspace admin).** `/v1/workspaces/{id}/plugins`: a member proposes a plugin (its spec and `plugin.json`, with the SHA-256 of the archive); the server validates the manifest against the same JSON Schema; an owner or admin reviews it (permissions in words, the full text of instruction data) and approves or rejects; an approved plugin is pinned to its hash; `retire` ends it. Members see **"From your team"** in the Suite's Plugins segment and install through the native installer with the pinned spec; the hash is checked before it is handed over.
+2. **A policy per workspace and per server.** `{ mode: "open" | "approved-only" | "locked", require: [ids], deny: [ids], allowCode: false }`, served with the workspace. In `approved-only` only approved ids at the approved hash may be switched on or contribute; `require` plugins are offered at sign-in; `deny` plugins are switched off; `allowCode: false` shows any code plugin as "not allowed here". The registry enforces it for contract plugins and **flags** a bundle installed natively outside the policy.
+3. **The company's own catalogue and the revocation feed.** An on-premises server serves its own signed catalogue (`kind: "kybernos-plugin-catalogue"`, its own key) and relays the platform's `revoked` list; the owner console adds, retires and revokes. A person's DSH adds the server's catalogue as a source when it signs in (section 10, "Added by the person" becomes "Provided by your server", shown as such).
+4. **Visibility, opt-in.** In a team space, DSH reports which plugins (id, version, hash, status) run on which member's machine, never their content; the admin sees adoption and what is out of policy.
+
+**The honest limit.** DSH is local software and its installer is a shell command away: the server cannot force anything on a person's own computer. What it can do is refuse to *count* a plugin (nothing contributes, nothing is offered) and say so in the card, the way the Team-space memory gate already works ("it stops the habit and the plain curl, not a shell that hides what it touches"). **Hard enforcement exists only on hosted instances**, where the admin owns the profile: pre-install the approved set and lock `dsh plugin`.
+
+**What it needs from the server repository:** the Team plugins routes and table (a copy of the skills module), the policy field, the `services.plugins` entry and a catalogue endpoint, the manifest check with a JSON Schema validator, and the audit events. Nothing in the DSH plugins repo blocks on it: until it exists, the registry reads no policy and enforces none.
