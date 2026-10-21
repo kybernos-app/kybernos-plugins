@@ -2646,7 +2646,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
         const p = ldPackById(ld.S.pack)
         const names = []
         sel.forEach((l, i) => { if (i > 0) names.push(', '); names.push(l.name) })
-        return (sel.length > 0 ? names.concat([' · ', ld.S.mode === 'random' ? 'au hasard' : kt('dans l’ordre', 'in order')]) : [kt('Queue de baleine de DSH', 'DSH whale tail')]).concat([' · ', kt('texte :', 'text:'), ' ', p.name])
+        return (sel.length > 0 ? names.concat([' · ', ld.S.mode === 'random' ? kt('au hasard', 'at random') : kt('dans l’ordre', 'in order')]) : [kt('Queue de baleine de DSH', 'DSH whale tail')]).concat([' · ', kt('texte :', 'text:'), ' ', p.name])
       }
 
       /** The summary line of Essentials: points to the Animation tab. */
