@@ -21,6 +21,13 @@
   "legacyJobs": [
     "autres"
   ],
+  "agents": {
+    "preset": "balanced",
+    "why": {
+      "en": "One simple setting: the agent prepares, you approve what goes out.",
+      "fr": "Un réglage simple : l’agent prépare, tu valides les envois."
+    }
+  },
   "goals": [
     {
       "id": "documents",

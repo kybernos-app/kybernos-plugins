@@ -57,6 +57,13 @@
       "documents"
     ]
   },
+  "agents": {
+    "preset": "balanced",
+    "why": {
+      "en": "Replies to customers are reviewed at first; spending is approved.",
+      "fr": "Les réponses aux clients sont relues au début ; les dépenses sont validées."
+    }
+  },
   "goals": [
     {
       "id": "tickets",

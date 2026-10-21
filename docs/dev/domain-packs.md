@@ -30,6 +30,7 @@ and logged, it never stops the host).
 | `home` | ids of the new-chat templates this field wants first (`doc sheet slides automation website plugin…`) |
 | `legacyJobs` | ids the old 12-profession step stored (`soft`, `etudes`…): a saved `profil` of that id reads as this field |
 | `menu.labels`, `menu.hide` | rename our menu rows (`kyber dashboards aiteams projects deliverables tasks skills connectors documents`); hide only `documents` |
+| `mode`, `agents` | the display mode the field starts from (`bureau`, or `code` for Development) and how much its agents may do alone by default: `{ preset: prudent / balanced / auto, why: text }` (the reason is shown under the choice) |
 | `goals[]` | `id`, `name`, `title`, `desc`, `skills`, `teams`, `connectors`, `automations`, `soon`, `starter` |
 | `goals[].skills` | `{ source, name, d }`. `source` is a GitHub `owner/repo` (installed through `/kybernos-skills/install`, which refuses a pair that does not exist) or `kybernos` for a skill this plugin ships in `domains/skills/<name>/SKILL.md` |
 | `goals[].teams` | ids of the Agent Teams of the marketplace (`studencik`, `research-desk`, `inbound-closer`), created through `kybers/create` |
@@ -43,10 +44,19 @@ checks it) and says what it needs when no app is connected.
 
 ## What the person sees
 
-Welcome, **field** (tiles with the field's icon and colour, or a sentence), **goals** (each row says what it adds), display mode, model, **kit**.
-Beside every step a **live miniature** of Kybernos shows the result and follows the pointer and the ticks: the page and the miniature take the field's
+One question per screen, each with a button that moves on (and a quiet one for what is optional). After the welcome:
+
+1. **Field**: tiles with the field's icon and colour. One tap chooses it, takes its first two goals, its display mode and its agents preset, and moves on.
+2. **Goals**: each row says what it adds.
+3. **Model**: unchanged (a Kybernos account, an own key, a model on this computer, the free community models).
+4. **About you**: a website, a profile (LinkedIn, Facebook, Instagram…) and a free word, all optional; the button says « Skip this step » until something is typed. A free word that points to another field than « Something else » is offered, never applied on its own. It comes after the model because reading a site will need one.
+5. **Agents**: three presets (careful, balanced, autonomous); the field's own is marked, with the pack's reason under the choice. Today the choice is **recorded and written into the person's memory** for the agents to read; the settings that would enforce it are to come.
+6. **Kit**: the display mode as one row (it follows the field), the kit as one line (« Skills: 5 · Teams: 2 · Automations (off): 1 ») whose list is one tap away.
+7. **Plan** (only where there is an account): Team solo or free, the last thing asked. The price and the payment page are the account's own: the wizard shows none and takes no card; « Continue with Team solo » opens the account's upgrade view when the wizard closes.
+
+Beside every step (the plan apart) a **live miniature** of Kybernos shows the result and follows the pointer and the ticks: the page and the miniature take the field's
 colour, the menu rows take its words, the first questions, the skills, the suggested team and the automations of the ticked goals appear. The
-miniature draws only what is wired (no dashboard tiles until a connected app can feed them). It is hidden under 1000 px.
+miniature draws only what is wired (no dashboard tiles until a connected app can feed them). Its « live » line and its caption sit under it, never above. It is hidden under 1000 px.
 
 The kit is the union of the skills, teams and automations of the ticked goals. The same screen as before: everything ticked unless it already exists
 (a skill by name, a team by id, an automation by name in any language of the pack), nothing runs by itself.
@@ -58,7 +68,7 @@ The kit is the union of the skills, teams and automations of the ticked goals. T
    switched off). Only a name some pack lists as bundled is accepted.
 2. **Teams**: `kybers/create`, into DSH's own home.
 3. **Automations**: `POST /kybernos/tasks {action:"create"}` with `active:false`. Replays create nothing twice (the name is looked up first).
-4. **Saved choice**: `profil` (the field id) and `goals` in `~/.dsh/kybernos/onboarding.json` (the version stays `1`: older files read the new
+4. **Saved choice**: `profil` (the field id), `goals`, `agents` (the preset) and `about` (what was typed, bounded, kept in this local file; the public GET never carries it, only a strict same-origin request from the page gets it back, so a replay shows it) in `~/.dsh/kybernos/onboarding.json` (the version stays `1`: older files read the new
    field as empty). `POST /kybernos/onboarding {action:"domain"}` records a choice without finishing the wizard (Settings, Starter kit).
 5. **Wording and highlights, read from the saved field**: the menu rows take the pack's labels (only in a language the pack writes), and the
    new-chat page lists the pack's `home` templates first (`kbNcSlider(bootIds, first)`).
@@ -143,3 +153,6 @@ a pack and that every skill an automation names exists.
 - One field per profile or several at once.
 - Who writes the content marked soon (teams): us, or the Marketplace community. A signed catalogue (like themes and local models) is the way to
   ship packs without a release; the files stay bundled until then.
+- **Reading the site and the profile** (the « Understood » step: facts tagged Instruction or Memory, removable): not built. A public page reads easily; LinkedIn and Facebook often need a login, so a « paste a summary » fallback is planned. Today what was typed is stored and written into the person's memory as typed.
+- **Enforcing the agents preset**: only the approval of each automation and the usage alert exist today; the rest of a preset is words the agents read until a Settings › Agent rules page can enforce them.
+- **Prices on the plan screen**: none shown (the account's page has the validated ones).
