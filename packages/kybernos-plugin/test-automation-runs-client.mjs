@@ -12,7 +12,7 @@ const src = readFileSync(fileURLToPath(new URL('./client.js', import.meta.url)),
 const parts = src.split('// KB-AUTORUNS-BEGIN')
 if (parts.length !== 2) { console.error('exactly one KB-AUTORUNS block expected in client.js'); process.exit(1) }
 const block = parts[1].split('// KB-AUTORUNS-END')[0]
-const names = ['kbRunsOf', 'kbRunFmtDur', 'kbRunFmtBytes', 'kbRunFmtDT', 'kbRunFmtHm', 'kbRunState', 'kbRunStats', 'kbRunGraph', 'kbRunBars', 'kbRunAgo', 'kbRunCardFigures']
+const names = ['kbRunsOf', 'kbRunFmtDur', 'kbRunFmtBytes', 'kbRunFmtDT', 'kbRunFmtHm', 'kbRunState', 'kbRunStats', 'kbRunGraph', 'kbRunBars', 'kbRunUses', 'kbRunAgo', 'kbRunCardFigures']
 const m = await import('data:text/javascript,' + encodeURIComponent('const KB_RUNS_NOTE_WINDOW_MS = 600000\n' + block.replace(/^const KB_RUNS_NOTE_WINDOW_MS[^\n]*\n/m, '') + '\nexport { ' + names.join(', ') + ' }'))
 
 let fails = 0
@@ -131,6 +131,28 @@ eq('a run whose journal was not read is its start alone', [m.kbRunGraph(null, fa
   eq('a journal that was not read is never a bad bar', m.kbRunBars(hist(4, [])).bars.every((x) => x === 'ok'), true)
 }
 
+/* ── What the newest runs used ───────────────────────────────────────────── */
+{
+  const hist = [1, 2, 3, 4].map((d) => ({ at: Z(d, 8, 0), sessionId: 's' + d, status: 'fired' }))
+  const sums = {
+    s4: { selected: false, models: [{ provider: 'acme', model: 'alpha-1' }], uses: { skills: [{ name: 'writer', count: 2 }], apps: [{ name: 'gmail', count: 1 }], tools: [{ name: 'bash', count: 5 }], agents: [{ name: 'checker', model: 'beta-2' }] } },
+    s3: { selected: true, models: [{ provider: 'acme', model: 'alpha-1' }, { provider: 'acme', model: 'beta-2' }], uses: { skills: [{ name: 'writer', count: 1 }, { name: 'editor', count: 4 }], apps: [], tools: [{ name: 'bash', count: 1 }], agents: [{ name: 'checker' }] } },
+    s2: null,
+  }
+  const u = m.kbRunUses(hist, sums, 5)
+  eq('four runs, two of them read (a run that was not read is not counted)', [u.runs, u.read], [4, 2])
+  eq('the models that answered, the most used first', u.models.map((x) => [x.name, x.count]), [['alpha-1', 2], ['beta-2', 1]])
+  eq('skills are counted by how often they were called, the most used first', u.skills.map((x) => [x.name, x.count]), [['editor', 4], ['writer', 3]])
+  eq('apps and tools too', [u.apps.map((x) => [x.name, x.count]), u.tools.map((x) => [x.name, x.count])], [[['gmail', 1]], [['bash', 6]]])
+  eq('a teammate keeps the model any of the runs named', u.agents, [{ name: 'checker', model: 'beta-2' }])
+  eq('a model picked on purpose in one of the runs says so', u.chosen, true)
+  eq('the limit is on runs, newest first', [m.kbRunUses(hist, sums, 1).read, m.kbRunUses(hist, sums, 1).models.map((x) => x.name)], [1, ['alpha-1']])
+  eq('a host that does not say what was used still tells the model', m.kbRunUses(hist, { s4: { selected: false, models: [{ provider: 'acme', model: 'alpha-1' }] } }, 5).models.map((x) => x.name), ['alpha-1'])
+  eq('no run read, nothing claimed', (() => { const e = m.kbRunUses(hist, {}, 5); return [e.read, e.models, e.skills, e.apps, e.tools, e.agents, e.chosen] })(), [0, [], [], [], [], [], false])
+  eq('no history, or sums that are not an object, do not throw', [m.kbRunUses(null, null, 5).runs, m.kbRunUses(hist, 'x', 5).read], [0, 0])
+  eq('at most eight of each', m.kbRunUses(hist, { s4: { models: [], uses: { skills: Array.from({ length: 12 }, (_, i) => ({ name: 'sk' + i, count: 1 })), apps: [], tools: [], agents: [] } } }, 5).skills.length, 8)
+}
+
 /* ── Relative time and the figures of a card ─────────────────────────────── */
 {
   const NOW = Date.UTC(2026, 9, 19, 12, 0, 0)
@@ -172,6 +194,8 @@ eq('the page has two tabs, Workflow and Sessions: no Journal tab, no Webhook tab
 eq('the Sessions pane is one pane per automation', src.indexOf("key: t.id,") >= 0 && src.indexOf('KbRunsPane, {') >= 0, true)
 eq('what the Journal said stays, under the run it is about: who ran (the model and why), the approvals, the lessons', src.indexOf("'data-kb': 'run-about'") >= 0 && src.indexOf("kbt('tasks.journal.who')") >= 0 && src.indexOf("kbt('tasks.journal.approvals')") >= 0 && src.indexOf("'data-kb': 'journal-lesson'") >= 0, true)
 eq('every run stays in the list: no run is cut', src.indexOf("runs.map((r, i) => { const s = sumOf(r)") >= 0 && src.indexOf('i < 6 ||') < 0, true)
+eq('the Workflow tab says what the newest runs used, from the journals read: a strip, the model on the cards, a Uses section in the panel of a step', src.indexOf("kbRunUses(t !== null ? t.history : null, wfSums, 5)") >= 0 && src.indexOf("'data-kb': 'uses-strip'") >= 0 && src.indexOf("'data-kb': 'step-uses'") >= 0 && src.indexOf('kbTaskCards(gr.nodes, wfUses)') >= 0, true)
+eq('what a step names is matched on its own text, never tied to a tool call', src.indexOf('const kbStepMentions = (text, uses)') >= 0 && src.indexOf('hay.indexOf(n) >= 0') >= 0, true)
 eq('the graph of a run is drawn by the shared canvas, with a card per step and a wire per hand-over', src.indexOf('h(KbFlowCanvas, { nodes: runCards, links: runLinks') >= 0, true)
 eq('the tab counts runs, not history lines', src.indexOf("kbt('tasks.tab.sessions').replace('{n}', String(kbRunsOf(t.history).length))") >= 0, true)
 eq('the Cards view reads one journal per card (the newest run), through the same reader as the runs pane', src.indexOf("const r = kbRunsOf(t.history)[0]; return r !== undefined ? r.sessionId : null") >= 0 && src.indexOf('React.useEffect(() => kbRunsRead(lastIds,') >= 0 && src.indexOf('React.useEffect(() => kbRunsRead(ids,') >= 0, true)
