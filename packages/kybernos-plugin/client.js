@@ -33652,7 +33652,9 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
       }
       const cartes = [['light', kbt('kbac.theme.light')], ['dark', kbt('kbac.theme.dark')], ['system', kbt('kbac.theme.system')]]
       return h('div', { className: 'kbac-page' },
-        h(KbacHead, { title: kbt('kbac.appearance'), sub: kbt('kbac.appearance.sub') }),
+        // A-06: Appearance is THIS page (`kbac-appearance`), not one of DSH's own sections, so its help is the template of the
+        // neighbours — `KbacHead` already draws the pill when it is given a page of `kybernos-plugin/help.json`.
+        h(KbacHead, { title: kbt('kbac.appearance'), sub: kbt('kbac.appearance.sub'), help: 'appearance' }),
         h('div', { className: 'kbac-themes', role: 'radiogroup', 'aria-label': kbt('kbac.appearance') },
           cartes.map((c) => {
             const on = pref === c[0]
