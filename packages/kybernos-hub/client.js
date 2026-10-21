@@ -143,9 +143,11 @@ window.__ModuleLoader__.load({
     // here may throw: a shell that no longer looks like this simply gets no animation.
     const NATIVE_SEL = { cell: 'button[class*="navCell"][aria-current="true"]', intro: '[data-slot="settings.section"] p[class*="_intro"]', section: '[data-slot="settings.section"]', host: '[data-kb="native-intro-host"]' }
     // DSH's own Settings pages that carry the help. The key is the React key of the nav cell (the section id, the same in every
-    // language), measured in the engine's client bundles on 2026-10-21: models, appearance, plugins (Built-in plugins), plus Agent
-    // presets, which also has an animated introduction. A page whose markup changes simply gets no pill: never a broken button.
-    const NATIVE_PAGES = ['agent-presets', 'models', 'appearance', 'plugins']
+    // language), measured in the engine's client bundles on 2026-10-21: models, plugins (Built-in plugins), plus Agent presets,
+    // which also has an animated introduction. A page whose markup changes simply gets no pill: never a broken button.
+    // Appearance is NOT here: the page the person sees under that name is the core plugin's own section (`kbac-appearance`, it
+    // draws its own pill), measured live on 2026-10-21 — naming it here only created a host for a page that never comes.
+    const NATIVE_PAGES = ['agent-presets', 'models', 'plugins']
     /** The React key of a DOM node (the id of the Settings section a cell stands for), or null. */
     const nativeKeyOf = (el) => {
       try {
@@ -178,9 +180,9 @@ window.__ModuleLoader__.load({
     }
     /** What the animation of a native page says: the card of its button (a page of the core bundle) and its own animation. */
     const nativeContent = (key) => {
-      // The three DSH pages that carry a help card only (their animated introduction is not written): the card itself is a page of
+      // The two DSH pages that carry a help card only (their animated introduction is not written): the card itself is a page of
       // `kybernos-plugin/help.json`, published with the catalogue like the others (see construireAide).
-      const CARD = { models: 'models', appearance: 'appearance', plugins: 'plugins' }
+      const CARD = { models: 'models', plugins: 'plugins' }
       if (CARD[key] !== undefined) return { help: { id: 'kybernos-plugin', page: CARD[key] } }
       if (key !== 'agent-presets') return null
       return {
