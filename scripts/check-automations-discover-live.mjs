@@ -205,6 +205,24 @@ try {
   await click('.kb-task-btn.danger')
   check('revoking removes the card and the settings', (await poll(async () => (await q('[data-kb="flow-card"][data-id="hook"]')) === 0 && (await q('[data-kb="hook-panel"]')) === 0, 8000)) === true)
 
+  console.log('\n── What the runs used: the model, the skills, the connectors, the Agent Team ──')
+  check('with no journal read, the strip says what it will show and the cards carry no model', /show here once the last runs have been read/.test(await text('[data-kb="uses-strip"]')) && (await val(`Array.from(document.querySelectorAll('[data-kb="flow-card"] .kbfc-ch')).every((c) => !/alpha-1/.test(c.textContent))`)) === true)
+  // The seeded runs point at no session, so the host has no journal to read: the answer of the route is made up here, in the page, to prove
+  // how it is drawn. What a real journal gives is proved by the unit tests of the host and, on real runs, by the probe of the sandbox.
+  await val(`(() => { const of = window.fetch; window.__kbFetch0 = of; window.fetch = async (...a) => { if (String(a[0]).indexOf('/tasks/runs') < 0) return of(...a); const ids = decodeURIComponent(String(a[0]).split('ids=')[1] || '').split('&')[0].split(',').filter(Boolean); const runs = {}; for (const id of ids) runs[id] = { startedAt: '2026-09-06T08:00:00.000Z', endedAt: '2026-09-06T08:00:20.000Z', durationMs: 20000, outcome: { state: 'completed' }, models: [{ provider: 'acme', model: 'alpha-1' }], selected: false, turns: 1, steps: 3, toolCalls: 3, nodeCount: 3, final: { thinkMs: 900 }, approvals: [], uses: { skills: [{ name: 'numbers', count: 2 }], apps: [{ name: 'gmail', count: 3 }, { name: 'notion', count: 1 }], agents: [{ name: 'researcher', model: 'beta-2' }, { name: 'checker' }], tools: [{ name: 'bash', count: 4 }] }, nodes: [{ kind: 'bash', label: 'List the folder', ref: { type: 'tool', name: 'bash' }, thinkMs: 1000, runMs: 500, outBytes: 120, ok: true }, { kind: 'mcp__composio__COMPOSIO_MULTI_EXECUTE_TOOL', label: 'Send the report', ref: { type: 'app', name: 'gmail', apps: ['gmail'] }, thinkMs: 800, runMs: 900, outBytes: 300, ok: true }, { kind: 'spawn_teammate', label: 'Ask a teammate', ref: { type: 'agent', name: 'researcher' }, thinkMs: 700, runMs: 4000, outBytes: 90, ok: true }] }; return new Response(JSON.stringify({ ok: true, runs }), { status: 200, headers: { 'content-type': 'application/json' } }) } })()`)
+  await backToList()
+  await openTask('Check stable report')
+  check('the strip lists, from the runs read, the model, the Agent Team with its models, the skills, the connectors with their logos and the tools', (await poll(async () => /Model\s+alpha-1/.test(await text('[data-kb="uses-strip"]')), 8000)) === true && /Agent team\s+researcher · beta-2\s+checker/.test(await text('[data-kb="uses-strip"]')) && /Skills\s+numbers/.test(await text('[data-kb="uses-strip"]')) && /Connectors\s+gmail.*notion/.test(await text('[data-kb="uses-strip"]')) && /Tools\s+bash/.test(await text('[data-kb="uses-strip"]')) && (await q('[data-kb="uses-strip"] .kba-appuse svg')) >= 1, await text('[data-kb="uses-strip"]'))
+  check('a step card carries the model, and the skill its text names', (await val(`Array.from(document.querySelectorAll('[data-kb="flow-card"]')).filter((c) => /alpha-1/.test(c.textContent)).length`)) === 3 && (await val(`Array.from(document.querySelectorAll('[data-kb="flow-card"]')).some((c) => /step 2/.test(c.textContent) && /numbers/.test(c.querySelector('.kbfc-ft').textContent))`)) === true)
+  await val(`document.querySelectorAll('[data-kb="flow-card"]')[2].click()`)
+  check('the panel of a step says what it uses: the model (and whose), the Agent Team, what the step names', (await poll(() => q('[data-kb="step-uses"]'), 3000)) === 1 && /alpha-1 \(acme\) · the profile's default/.test(await text('[data-kb="step-uses"]')) && /researcher · beta-2, checker/.test(await text('[data-kb="step-uses"]')) && /Named in this step\s+numbers/.test(await text('[data-kb="step-uses"]')), await text('[data-kb="step-uses"]'))
+  await shot('uses')
+  await click('[data-kb="tab-sessions"]')
+  check('in Sessions, Who ran adds the Agent Team, the skills, the connectors and the tools of that run', (await poll(() => q('[data-kb="run-about"]'), 6000)) === 1 && /Agent team\s+researcher · beta-2, checker/.test(await text('[data-kb="run-about"]')) && /Connectors\s+gmail ×3, notion/.test(await text('[data-kb="run-about"]')) && /Skills\s+numbers ×2/.test(await text('[data-kb="run-about"]')), (await text('[data-kb="run-about"]')).slice(0, 200))
+  check('...and the graph says what each call stands for: a tool, a connector, a teammate', (await val(`Array.from(document.querySelectorAll('[data-kb="flow-card"]')).map((c) => c.textContent).join('|')`)).replace(/\s+/g, ' ').match(/Connector/g) !== null && /· researcher/.test(await val(`Array.from(document.querySelectorAll('[data-kb="flow-card"]')).map((c) => c.textContent).join('|')`)) && /· gmail/.test(await val(`Array.from(document.querySelectorAll('[data-kb="flow-card"]')).map((c) => c.textContent).join('|')`)))
+  await val(`window.fetch = window.__kbFetch0`)
+  await click('[data-kb="tab-flow"]')
+
   console.log('\n── Lessons, in Sessions ──')
   await click('[data-kb="tab-sessions"]')
   check('the stable automation says it is stable and offers « Create skill »', (await poll(() => q('[data-kb="lesson-create"]'), 6000)) === 1 && /6 times in a row without a failure: stable enough/.test(await text('[data-kb="journal-lesson"]')))
@@ -298,6 +316,7 @@ try {
   await click('[data-kb="auto-card"][data-id="chk-stable"]')
   check('an automation opens on its Workflow at 390 px: the canvas is there and the page does not scroll sideways', (await poll(() => shown('[data-kb="flow-canvas"]'), 6000)) === true && (await overflow()) === false)
   await val(`document.querySelectorAll('[data-kb="flow-card"]')[1].click()`)
+  await val(`(() => { const p = document.querySelector('[data-kb="flow-node-panel"]'); if (p) p.scrollIntoView() })()`)
   check('...a card opens its panel under the canvas, still without scrolling sideways', (await poll(() => shown('[data-kb="flow-node-panel"]'), 4000)) === true && (await overflow()) === false)
   await shot('phone-workflow')
   await click('[data-kb="tab-sessions"]')
