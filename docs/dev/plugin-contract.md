@@ -1,7 +1,7 @@
 # The Kybernos plugin contract (free and paid): draft v0
 
-Status: **specification only, 2026-10-21. Nothing here is built and nothing reads it yet.** It is written to be argued with: section 16 lists the six
-decisions that are the owner's, and the second section lists where this draft disagrees with the first proposal.
+Status: **specification only, 2026-10-21. Nothing here is built and nothing reads it yet.** The six decisions of section 16 and the registry bundle of
+section 6.5 were **taken on 2026-10-21: the owner accepted every recommendation**. Section 2 lists where this draft disagrees with the first proposal.
 
 The idea is WordPress's: a plugin is a folder with a header (who, which version, which platform versions, which licence, where updates come
 from), the platform exposes **extension points** other plugins build on, a repository tells the person what they are installing, and premium
@@ -53,7 +53,7 @@ plugin.json ──▶ validator (the conformance tool) ──▶ signed archive 
 | Runs | nothing of its own: the **host** reads and validates it, and for declarative sources makes the HTTP request itself | in the DSH process and in the page, with the person's OS rights |
 | Safe by | validation: known keys only, every string and array bounded, no URL to fetch except declared hosts, no code | review, signature, revocation. **Not** by a sandbox (section 7) |
 | Can extend | data points | data and code points |
-| Open to third parties | **v1** | not before decision 1 (section 16) |
+| Open to third parties | **v1** | not in v1 (decision 1, section 16) |
 | Examples | domain packs, themes, language packs, dashboard presets, declarative sources, skills, team and automation templates | every module of the suite today |
 
 Data has two classes, declared per point (`provides[].class`):
@@ -316,7 +316,7 @@ alias of its `__KB__` entry for two suite releases. The first one converted is `
 (`session-guard.mjs`) becomes a versioned service of `kybernos/registry` where it can, never at the price of a bundle that cannot start without another.
 
 The registry itself is a **new tiny socle bundle** `kybernos/registry` (no page, host routes, the seam). That changes the list of five
-socle bundles; it is recommended and cheap to reverse, so it is flagged here rather than in section 16. The alternative, the registry inside `kybernos-plugin`, works but deepens the biggest hot file of the repo.
+socle bundles. **Decided 2026-10-21: a new bundle**; the alternative, the registry inside `kybernos-plugin`, would have deepened the biggest hot file of the repo.
 
 ## 7. Permissions
 
@@ -388,7 +388,7 @@ refunds). The manifest already has room for it (`model: "account"` with a vendor
 | Level | Meaning | What proves it | Data plugin | Code plugin |
 |---|---|---|---|---|
 | **Official** | made and shipped by Kybernos | the suite release key, or the official catalogue key, and namespace `kybernos` | yes | yes (today's suite) |
-| **Verified** | **this exact version** was reviewed by us | the author's signature **and** a reviewer's countersignature on the same archive hash | yes | not before decision 1 |
+| **Verified** | **this exact version** was reviewed by us | the author's signature **and** a reviewer's countersignature on the same archive hash | yes | not in v1 (decision 1) |
 | **Community** | signed by its author, not reviewed | the author's signature, key published in a catalogue the person added | yes, with a plain warning | **not offered in v1** |
 | **Local development** | a folder on this computer | nothing | yes, namespace `local`, never updated | the bundle in a checkout, as today |
 
@@ -400,7 +400,7 @@ a permission, a host or a point never applies silently, and a Verified plugin wh
 Machine part: the conformance tool (section 11) passes. Human part, per version, written down: the manifest tells the truth (permissions, hosts,
 `worksWithout`); the host half is readable source (no minified or obfuscated host code), with no `eval`, `new Function` or dynamic import of a remote URL;
 no network use outside the declared hosts and no telemetry that is not declared; keys and personal data handled as section 8 says; the licence is real;
-the update does what the changelog says. Whether reviews happen, by whom and how fast is decision 3.
+the update does what the changelog says. Who reviews and how fast is open until phase 4; v1 claims no review (decision 3).
 
 ### 9.3 Signing
 
@@ -499,7 +499,7 @@ or is based on Kybernos; rules 3 and 4 forbid suggesting endorsement or competin
 | 1 | Manifest on the 42 modules + validator | `build-catalog.mjs` tables, `satellites.json`, `lifecycle-packages.json`, `test-layout.mjs`, `catalog.json` schema 1 | `plugin.json` ×42 (generated, permissions read by a person), `scripts/plugin-manifest.mjs`, a check in `test-layout.mjs`, `build-catalog.mjs` reading the manifest. **Dead-code rider:** delete `FICHE`/`TITRES`/`GLYPHES` as the manifest replaces them | `build-catalog.mjs --check`, layout, lifecycle tests; catalogue still accepted by an older panel |
 | 2 | Open the registries to data packages | `domain-pack.mjs` and its folder scan; `PRESETS`, `KB_MARKET_TEAMS`, the automation templates as constants | bundle `kybernos/registry`; `__KB__` and the host seam; the folder scan; points of 6.2 (domain pack first); `__KB_DOMAIN__` as alias; **mockup of the Plugins page first** | the point validators; a hostile data plugin test; DSH starts with a broken plugin |
 | 3 | Per-plugin install and update from a signed multi-source catalogue, with the key and account models | signed-catalogue code ×4, `telechargement.mjs`, the origin guard, the Connectors key page as the key-handling model | one catalogue format; `pluginCatalogues`; install/update/remove for data; entitlement call; key storage; revocation; levels on the card; declarative `http-source` | rollback, revoked, wrong key, replay of an author signature; **needs a Kybernos server route for `account` entitlement and keys for the catalogue** |
-| 4 | Third-party code, review, Verified (only if decision 1 says so) | the pieces of the conformance tool | `plugin-check.mjs` complete; a written checklist; reviewer keys; the robot extended to extra bundles | a second reviewer exists |
+| 4 | Third-party code, review, Verified (only if the owner reopens decision 1) | the pieces of the conformance tool | `plugin-check.mjs` complete; a written checklist; reviewer keys; the robot extended to extra bundles | a second reviewer exists |
 | 5 | Commerce for third parties (revenue share) | nothing | seller of record, VAT, payouts, refunds, terms | counsel; last |
 
 Each phase is a set of PRs that keep the three pre-push gates green, add no engine patch, and delete what the new thing supersedes.
@@ -510,16 +510,16 @@ The Plugins page and the card (a visual change: a mockup first). The exact `http
 Run-time isolation. Telemetry, ratings, reviews by users. Pricing, tax and payout mechanics. A rename of the French-named directories.
 Auto-update policy (default off for anything that is not Official; never across a permission change).
 
-## 16. Decisions for the owner
+## 16. Decisions (taken 2026-10-21: every recommendation accepted)
 
-1. **Third-party code plugins in v1, or data only?** Recommend **data only** in v1, including paid ones with the vendor's key through declarative sources (6.4): it
+1. **Third-party code plugins in v1, or data only?** Decided: **data only** in v1, including paid ones with the vendor's key through declarative sources (6.4): it
    serves the case you named (another developer, a key that unlocks features) without running anyone's code. Reopen code after the registry and the conformance tool are in use.
-2. **The paid model.** Recommend **two models, both in phase 3**: the vendor's key (first, for other developers) and the Kybernos account (ours). **Drop the offline
+2. **The paid model.** Decided: **two models, both in phase 3**: the vendor's key (first, for other developers) and the Kybernos account (ours). **Drop the offline
    licence file** as a contract mode (the `kybernos-servers` lesson), and write "an expired plan never locks, `worksWithout` is mandatory" into the contract as a rule for everyone.
-3. **Who reviews, and does "Verified" exist?** Recommend: v1 ships **Official, Community (data), Local** only; "Verified" opens in phase 4 with a written checklist
+3. **Who reviews, and does "Verified" exist?** Decided: v1 ships **Official, Community (data), Local** only; "Verified" opens in phase 4 with a written checklist
    and a second reviewer, and always means one version.
-4. **The "compatible with Kybernos" policy** while mark 5306518 is pending. Recommend nominative text use now (already allowed by `TRADEMARK.md` rule 1), reserved namespace
+4. **The "compatible with Kybernos" policy** while mark 5306518 is pending. Decided: nominative text use now (already allowed by `TRADEMARK.md` rule 1), reserved namespace
    and words, no badge or logo until registration; have counsel word the `TRADEMARK.md` addition (section 12).
-5. **Per-plugin or whole-suite updates.** Recommend **per plugin for data plugins; whole suite for first-party code** (the robot's snapshot, boot check and rollback stay the single install path); third-party code is not designed.
-6. **The namespace.** Recommend `author/name`, the author registered with keys in a signed catalogue, `kybernos`, `dsh` and `local` reserved, existing modules mapped by the table in 4.3
+5. **Per-plugin or whole-suite updates.** Decided: **per plugin for data plugins; whole suite for first-party code** (the robot's snapshot, boot check and rollback stay the single install path); third-party code is not designed.
+6. **The namespace.** Decided: `author/name`, the author registered with keys in a signed catalogue, `kybernos`, `dsh` and `local` reserved, existing modules mapped by the table in 4.3
    (`kybernos-x` becomes `kybernos/x`, `kybernos-plugin` becomes `kybernos/core`).
