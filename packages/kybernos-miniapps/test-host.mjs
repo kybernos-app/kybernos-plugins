@@ -7,11 +7,20 @@
 // EXACT origin + the session cookie + a JSON Content-Type required, app name confined.
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { apply } from './index.js'
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { sessionSource } from './session-guard.mjs'
 import { SESSION_SECRET, browserHeaders } from './lib-session-test.mjs'
 
 sessionSource.secret = () => SESSION_SECRET // the machine secret the guard checks the session cookie against (test-write-guard.mjs reads the file)
+
+// A temp HOME BEFORE the module is imported: DEST_ROOT derives from homedir() at load, so the failure paths (a disk that refuses to
+// create the install folder) are exercised without touching the real ~/Applications.
+const home = mkdtempSync(join(tmpdir(), 'kb-miniapps-'))
+const vraiHome = process.env.HOME
+process.env.HOME = home
+const { apply } = await import('./index.js')
 
 let echecs = 0
 const ok = (label, cond, detail) => {
@@ -78,6 +87,28 @@ if (process.platform === 'darwin') {
 } else {
   console.log('ℹ macOS required for the real install — 403/415 guards tested above')
 }
+
+// ── L3-01: a disk failure answers 500 {ok:false,error}, not a bodyless 400 ───
+// The install folder is a FILE here, so mkdirSync throws: the handler used to reject and the engine answered with a bodyless 400.
+// No app is installed, and the whole test runs under a temp HOME.
+{
+  const destRoot = join(home, 'Applications', 'Kybernos')
+  mkdirSync(join(home, 'Applications'), { recursive: true })
+  writeFileSync(destRoot, 'not a folder')
+  const res = await jouer(routes['/kybernos-miniapps/list'], { headers: {}, socket: { localPort: 3080 }, on: () => {} })
+  let j = {}
+  try { j = JSON.parse(res.corps) } catch { /* not JSON */ }
+  ok('L3-01: a disk failure on /list → 500 JSON {ok:false,error}', res.code === 500 && j.ok === false && typeof j.error === 'string' && j.error !== '', `${res.code} ${String(res.corps).slice(0, 80)}`)
+  if (process.platform === 'darwin') {
+    const inst = await jouer(routes['/kybernos-miniapps/install'], requete({ headers: { origin: 'http://127.0.0.1:3080' } }, { id: 'echec-disque', titre: 'Echec', html: '<html><body>ok</body></html>' }))
+    let ji = {}
+    try { ji = JSON.parse(inst.corps) } catch { /* not JSON */ }
+    ok('L3-01: ...and on /install (mkdir/codesign path) → 500 JSON', inst.code === 500 && ji.ok === false && typeof ji.error === 'string' && ji.error !== '', `${inst.code} ${String(inst.corps).slice(0, 80)}`)
+  }
+}
+
+process.env.HOME = vraiHome
+rmSync(home, { recursive: true, force: true })
 
 console.log(echecs === 0 ? '\nHost: all green.' : `\n✗ ${echecs} failure(s)`)
 process.exit(echecs === 0 ? 0 : 1)

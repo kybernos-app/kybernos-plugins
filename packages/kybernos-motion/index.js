@@ -215,7 +215,16 @@ export function mountRoutes (webServer, host) {
     if (!a.ok) { send(res, 404, a); return }
     res.writeHead(200, { 'Content-Type': a.type, 'Content-Length': a.size, 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' })
     const { createReadStream } = await import('node:fs')
-    createReadStream(a.path).pipe(res)
+    // The file could be stat-ed a moment ago but may not be openable now (deleted, EACCES, an I/O error): a ReadStream with no
+    // 'error' listener raises an uncaughtException, which ends the DSH host. Close this answer cleanly instead.
+    const flux = createReadStream(a.path)
+    flux.on('error', () => {
+      try {
+        if (res.headersSent) { res.destroy(); return }
+        send(res, 500, { ok: false, error: 'asset-unreadable' })
+      } catch { try { res.destroy() } catch { /* already closed */ } }
+    })
+    flux.pipe(res)
   })
 
   for (const name of Object.keys(VENDOR)) {

@@ -234,6 +234,22 @@ const lireCorps = (req) => new Promise((res) => {
   req.on('end', () => { try { res(JSON.parse(corps || '{}')) } catch { res({}) } })
 })
 
+/** Answers a handler's JSON result. A disk or codesign failure used to reject the async handler: the engine answers with a
+ *  bodyless 400, so the page got no reason at all. It is now a 500 JSON carrying the reason (same shape as maintenance). */
+const repondreJson = async (res, travail) => {
+  try {
+    const r = await travail()
+    res.setHeader('Content-Type', 'application/json')
+    res.end(JSON.stringify(r))
+  } catch (e) {
+    const motif = String((e && e.message) || e).slice(0, 300)
+    dire(`route failed: ${motif}`)
+    if (res.headersSent) { try { res.destroy() } catch { /* closed */ } return }
+    res.writeHead(500, { 'Content-Type': 'application/json' })
+    res.end(JSON.stringify({ ok: false, error: motif }))
+  }
+}
+
 export function apply (ctx) {
   const poser = (c) => {
     try {
@@ -244,22 +260,16 @@ export function apply (ctx) {
         const refus = writeGuard(req)
         if (refus !== null) { res.writeHead(refus.status, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ ok: false, error: refus.error })); return }
         if (!jsonSeulement(req)) { res.writeHead(415); res.end('application/json content-type expected'); return }
-        const r = await installer(await lireCorps(req))
-        res.setHeader('Content-Type', 'application/json')
-        res.end(JSON.stringify(r))
+        await repondreJson(res, async () => installer(await lireCorps(req)))
       } })
       webServerSvc.register({ kind: 'exact', path: '/kybernos-miniapps/uninstall', handler: async (req, res) => {
         const refus = writeGuard(req)
         if (refus !== null) { res.writeHead(refus.status, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ ok: false, error: refus.error })); return }
         if (!jsonSeulement(req)) { res.writeHead(415); res.end('application/json content-type expected'); return }
-        const r = await desinstaller(await lireCorps(req))
-        res.setHeader('Content-Type', 'application/json')
-        res.end(JSON.stringify(r))
+        await repondreJson(res, async () => desinstaller(await lireCorps(req)))
       } })
       webServerSvc.register({ kind: 'exact', path: '/kybernos-miniapps/list', handler: async (_req, res) => {
-        const r = await lister()
-        res.setHeader('Content-Type', 'application/json')
-        res.end(JSON.stringify(r))
+        await repondreJson(res, lister)
       } })
       dire('routes install / uninstall / list mounted')
     } catch (e) {

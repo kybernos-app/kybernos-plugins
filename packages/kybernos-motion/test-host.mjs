@@ -1,5 +1,5 @@
 // Host half tests: apply(), the tool and every route over real HTTP. `cd packages/kybernos-motion && node test-host.mjs`
-import { mkdirSync, mkdtempSync, readFileSync, realpathSync, writeFileSync, existsSync } from 'node:fs'
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, writeFileSync, existsSync } from 'node:fs'
 import { rm } from 'node:fs/promises'
 import http from 'node:http'
 import { tmpdir } from 'node:os'
@@ -7,6 +7,10 @@ import { join } from 'node:path'
 
 let fail = 0
 let n = 0
+// L4-01: a ReadStream whose 'error' has no listener becomes an uncaughtException, which ends the DSH host. Collected here instead
+// of killing the test process, so the assertion is `nothing was raised`.
+const uncaught = []
+process.on('uncaughtException', (e) => { uncaught.push(e) })
 const ok = (name, cond, detail) => {
   n++
   if (cond) return
@@ -167,6 +171,18 @@ ok('tool: creates the scene in the session folder', made.ok && made.chemin === j
   ok('asset: an image is served with its type and bytes', a.status === 200 && a.type === 'image/png' && a.buf.length === 8 && a.buf[1] === 0x50, a)
   const esc = await call('GET', `/kybernos-motion/asset?session=s1&scene=${encodeURIComponent(made.chemin)}&src=${encodeURIComponent('../../../elsewhere/secret.png')}`)
   ok('asset: an escape attempt is 404', esc.status === 404)
+  // L4-01: the file was stat-able but cannot be OPENED (EACCES here; a deletion or an I/O error in real life — resolveAsset only does
+  // realpath + stat). A ReadStream 'error' with no listener used to be an uncaughtException, ending the DSH host.
+  const raised = uncaught.length
+  const locked = join(project, 'artifacts', 'img', 'locked.png')
+  writeFileSync(locked, Buffer.from([0x89, 0x50, 0x4e, 0x47, 9]))
+  chmodSync(locked, 0o000)
+  try { await call('GET', `/kybernos-motion/asset?session=s1&scene=${encodeURIComponent(made.chemin)}&src=${encodeURIComponent('img/locked.png')}`) } catch { /* the answer is closed, not the host */ }
+  await new Promise((r) => setTimeout(r, 100))
+  ok('asset: an unreadable file is closed cleanly, it raises no uncaughtException', uncaught.length === raised, uncaught.slice(raised).map((e) => String(e && e.message)))
+  const alive = await call('GET', `/kybernos-motion/asset?session=s1&scene=${encodeURIComponent(made.chemin)}&src=${encodeURIComponent('img/logo.png')}`)
+  ok('asset: the host still serves the next asset (the process survived)', alive.status === 200 && alive.buf.length === 8)
+  chmodSync(locked, 0o600)
 }
 
 // ── the agent looks at a frame ──────────────────────────────────────────────

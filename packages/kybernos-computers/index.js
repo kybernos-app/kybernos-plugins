@@ -25,9 +25,9 @@
 //
 // The SDK is INJECTABLE for the tests (setSdkForTests): test-computers-host.mjs
 // runs with no key and no network.
-import { chmodSync, mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs'
+import { chmodSync, mkdirSync, readFileSync, readdirSync, writeFileSync, existsSync } from 'node:fs'
 import { homedir } from 'node:os'
-import { join, dirname } from 'node:path'
+import { basename, join, dirname } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { spawnSync } from 'node:child_process'
 import { writeGuard } from './session-guard.mjs'
@@ -95,19 +95,74 @@ let sdkForTests = null       // injected by the tests: bypasses loadSdk()
 // can stop a sandbox forgotten by a dead process.
 
 const emptyState = () => ({ version: 1, sandboxes: {}, env: 'desktop' })
+const CORRUPT_SUFFIX = '.corrupt-'
+const CORRUPT_COPIES_MAX = 5
+let corruptionLogged = null // the line already logged: a corrupt state must not write a log line on every poll
 
-const readState = () => {
+/** The unreadable state file, kept beside it as state.corrupt-<ts>. The same content reuses the same copy, at most
+ *  CORRUPT_COPIES_MAX copies (the ids of the paused microVMs are only in there: they make them listable again). */
+const keepCorruptState = (text) => {
   try {
-    const raw = JSON.parse(readFileSync(STATE_FILE, 'utf8'))
-    if (raw === null || typeof raw !== 'object' || raw.sandboxes === null || typeof raw.sandboxes !== 'object') return emptyState()
-    return { version: 1, sandboxes: raw.sandboxes, env: raw.env === 'e2b' ? 'e2b' : 'desktop' }
-  } catch { return emptyState() }
+    const prefix = basename(STATE_FILE) + CORRUPT_SUFFIX
+    const copies = readdirSync(DATA_DIR).filter((n) => n.startsWith(prefix))
+    for (const n of copies) {
+      try { if (readFileSync(join(DATA_DIR, n), 'utf8') === text) return join(DATA_DIR, n) } catch { /* unreadable copy: ignored */ }
+    }
+    if (copies.length >= CORRUPT_COPIES_MAX) return null
+    const base = join(DATA_DIR, prefix + Date.now())
+    for (let i = 0; i < CORRUPT_COPIES_MAX; i += 1) {
+      const copy = i === 0 ? base : base + '-' + i
+      try { writeFileSync(copy, text, { mode: 0o600, flag: 'wx' }); return copy } catch (e) { if (!(e && e.code === 'EEXIST')) return null }
+    }
+    return null
+  } catch { return null }
 }
 
+/** Says why the state cannot be used, keeps a copy of it, and logs it once. */
+const noteCorruption = (text, why) => {
+  const copy = typeof text === 'string' ? keepCorruptState(text) : null
+  const line = '[kybernos-computers] ' + basename(STATE_FILE) + ' cannot be used (' + why + '): '
+    + (copy === null ? 'no copy could be kept' : 'a copy is kept as ' + basename(copy))
+    + '; an empty state is not written over it'
+  if (corruptionLogged !== line) console.error(line)
+  corruptionLogged = line
+}
+
+/**
+ * The state on disk, or null when it cannot be used (truncated JSON, an unexpected shape, a read error). Such a file used to
+ * be read as an EMPTY state: the ids of the paused microVMs were lost and the next write replaced the file (the maxSandboxes
+ * quota is counted on trackedCount(), so the loss shows as a quota that no longer counts them).
+ */
+const readStateOrNull = () => {
+  let text = null
+  try { text = readFileSync(STATE_FILE, 'utf8') } catch (e) {
+    if (e !== null && e !== undefined && e.code === 'ENOENT') { corruptionLogged = null; return emptyState() }
+    noteCorruption(null, e && e.code ? String(e.code) : 'unknown error')
+    return null
+  }
+  if (text.trim() === '') return emptyState()
+  let raw = null
+  try { raw = JSON.parse(text) } catch { noteCorruption(text, 'truncated JSON'); return null }
+  if (raw === null || typeof raw !== 'object' || raw.sandboxes === null || typeof raw.sandboxes !== 'object') {
+    noteCorruption(text, 'not a state file'); return null
+  }
+  corruptionLogged = null
+  return { version: 1, sandboxes: raw.sandboxes, env: raw.env === 'e2b' ? 'e2b' : 'desktop' }
+}
+
+const readState = () => {
+  const state = readStateOrNull()
+  return state === null ? emptyState() : state
+}
+
+/** Writes the state; REFUSES while the state on disk is declared corrupt, so the ids kept in its copy are never replaced by an
+ *  empty (or partial) state. Returns false when the write was refused. */
 const writeState = (state) => {
+  if (readStateOrNull() === null) return false
   mkdirSync(DATA_DIR, { recursive: true })
   writeFileSync(STATE_FILE, JSON.stringify(state), { mode: 0o600 })
   try { chmodSync(STATE_FILE, 0o600) } catch { /* best effort */ }
+  return true
 }
 
 const trackSandbox = (entry) => {

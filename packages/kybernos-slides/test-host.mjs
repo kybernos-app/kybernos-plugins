@@ -119,6 +119,21 @@ const apresEfface = await definition.execute({}, { agent: { id: 'session-t' } })
 ok('effacer_annotations vide les traits', apresEfface.annotations.traits_total === 0
   , JSON.stringify(apresEfface.annotations.traits_total))
 
+// ── 2b. L4-02 : une session inconnue ne lit jamais le deck d'une autre ─────
+{
+  const isole = creerMagasin()
+  const outilIsole = optionsOutil(isole)
+  const ecrit = await outilIsole.execute({ titre: 'Session A', slides: [{ titre: 'A' }] }, { agent: { id: 'session-A' } })
+  ok('L4-02 : la session A a son deck', ecrit.ok === true && isole.deck('session-A') !== null)
+  const luB = await outilIsole.execute({}, { agent: { id: 'session-B' } })
+  ok('L4-02 : la session B (inconnue) lit VIDE, pas le deck de la session A',
+    luB.ok === true && luB.vide === true, JSON.stringify(luB))
+  ok('L4-02 : magasin.deck(session inconnue) rend null', isole.deck('session-B') === null)
+  ok('L4-02 : magasin.annotations(session inconnue) rend null', isole.annotations('session-B') === null)
+  ok('L4-02 : sans identifiant, le dernier deck reste rendu (page Créations, premier rendu du panneau)',
+    isole.deck(null) !== null && isole.deck(undefined) !== null && isole.deck('') !== null)
+}
+
 // ── 5. les routes, sur un vrai serveur ──────────────────────────────────────
 const routes = new Map()
 const fauxWebServer = { register: (r) => routes.set(r.path, r.handler) }
@@ -145,8 +160,8 @@ ok('GET /state porte l\'horloge de l\'hôte', typeof etat.t0 === 'number' && eta
 ok('GET /state porte les annotations', etat.annotations.version >= 1)
 const etatAutre = await lireEtat()
 ok('GET /state sans session rend la dernière commande', etatAutre.vide === false && etatAutre.titre === 'Lecture')
-ok('GET /state d\'une session inconnue retombe sur la dernière commande',
-  (await lireEtat('personne')).vide === false)
+ok('GET /state d\'une session inconnue ne montre pas le deck d\'une autre session (vide)',
+  (await lireEtat('personne')).vide === true)
 {
   // Magasin neuf : aucune session connue → l'état est vide, pas une erreur.
   const routesVides = new Map()
@@ -190,6 +205,35 @@ ok('une origine par préfixe est refusée (localhost.evil.example)',
 ok('une origine par préfixe est refusée (127.0.0.1.nip.io)',
   (await fetch(`${base}/kybernos-slides/push`, { method: 'POST', headers: { 'Content-Type': 'application/json', Origin: 'http://127.0.0.1.nip.io' }, body: '{}' })).status === 403)
 ok('GET sur /push est refusé', (await fetch(`${base}/kybernos-slides/push`)).status === 405)
+
+// ── 5b. L4-03 : oversized body → 413 JSON, throwing store → 500 JSON (no cut socket) ─
+{
+  const gros = await pousser(JSON.stringify({ sessionId: 'session-t', slides: [], bourre: 'x'.repeat(20 * 1024 * 1024) }), false)
+  const grosJson = gros.headers.get('content-type')?.includes('json') === true ? await gros.json() : null
+  ok('L4-03 : un corps de 20 Mo est refusé (413 JSON, pas un chargement complet)',
+    gros.status === 413 && grosJson !== null && grosJson.ok === false, String(gros.status))
+
+  const routesLeve = new Map()
+  monterRoutes({ register: (r) => routesLeve.set(r.path, r.handler) }, {
+    deck () { throw new Error('disque') },
+    annotations () { throw new Error('disque') },
+    pousserDeck () { throw new Error('disque') },
+    pousserAnnotations () { throw new Error('disque') },
+  })
+  const serveurLeve = createServer((req, res) => {
+    routesLeve.get(new URL(req.url, 'http://127.0.0.1').pathname)(req, res)
+  })
+  await new Promise((r) => serveurLeve.listen(0, '127.0.0.1', r))
+  const baseLeve = `http://127.0.0.1:${serveurLeve.address().port}`
+  const etatLeve = await fetch(`${baseLeve}/kybernos-slides/state?session=x`)
+  ok('L4-03 : un magasin qui lève rend un 500 JSON sur /state (pas un socket coupé)',
+    etatLeve.status === 500 && (await etatLeve.json()).ok === false, String(etatLeve.status))
+  const pushLeve = await fetch(`${baseLeve}/kybernos-slides/push`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionId: 'x', slides: [{ titre: 'a' }] }),
+  })
+  ok('L4-03 : ...et un 500 JSON sur /push', pushLeve.status === 500 && (await pushLeve.json()).raison === 'erreur_hote', String(pushLeve.status))
+  serveurLeve.close()
+}
 
 // ── 6. le plugin hôte ───────────────────────────────────────────────────────
 const demarres = []
