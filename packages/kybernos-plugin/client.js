@@ -107,7 +107,7 @@ let kbLocaleRead = () => 'en'
       'tasks.filter.attention': { kybernos: 'Attention requise', en: 'Needs attention' },
       'tasks.col.name': { kybernos: 'Nom', en: 'Name' },
       'tasks.col.trigger': { kybernos: 'Déclencheur', en: 'Trigger' },
-      'tasks.col.lastsession': { kybernos: 'Dernière session', en: 'Last session' },
+      'tasks.col.state': { kybernos: 'État', en: 'State' },
       'tasks.col.sessions': { kybernos: 'Sessions', en: 'Sessions' },
       'tasks.col.on': { kybernos: 'Actif', en: 'On' },
       'tasks.status.awaiting': { kybernos: 'En attente d\'approbation', en: 'Awaiting approval' },
@@ -222,7 +222,7 @@ let kbLocaleRead = () => 'en'
       'tasks.queued': { kybernos: 'En file — elle partira au prochain réveil du bureau.', en: 'Queued — it will fire when the desktop wakes next.' },
       'tasks.help': { kybernos: 'Aide', en: 'Help' },
       'tasks.help.close': { kybernos: 'Fermer l’aide', en: 'Close help' },
-      'tasks.none.yet': { kybernos: 'Pas encore de session', en: 'No session yet' },
+      'tasks.no.session': { kybernos: 'Aucune session', en: 'No session' },
       'tasks.paused': { kybernos: 'En pause', en: 'Paused' },
       'tasks.failed.at': { kybernos: 'Échec · {when}', en: 'Failed · {when}' },
       'tasks.notify.on': { kybernos: 'notifications activées', en: 'notifications on' },
@@ -8807,7 +8807,9 @@ const kbPinsRow = (kind, id, titre) => {
   open.setAttribute('role', 'button')
   open.tabIndex = 0
   open.textContent = titre
-  open.title = titre
+  // The label is the resolved title; the tooltip carries the short id too, so two sessions with the same title stay tellable apart
+  // and an unresolved row always has an identifier to go on (A-01).
+  open.title = kind === 'session' ? titre + ' · ' + String(id).replace(/^session-/, '').slice(0, 8) : titre
   open.addEventListener('click', () => { if (kind === 'session') kbPinsOpen(id) })
   open.addEventListener('keydown', (e) => { if ((e.key === 'Enter' || e.key === ' ') && kind === 'session') { e.preventDefault(); kbPinsOpen(id) } })
   open.addEventListener('dblclick', (e) => { e.stopPropagation(); if (kind === 'session') kbPinsRename(row, id, titre) })
@@ -8904,7 +8906,9 @@ const kbPinsModel = () => {
       const titre = row !== null ? (row.querySelector('[class*="title"]') || row.querySelector('span')) : null
       if (titre !== null && (titre.textContent || '').trim() !== '') return titre.textContent.trim()
     } catch (e) { /* DOM indisponible */ }
-    return sid.slice(0, 8) + '…'
+    // Last resort: the short id, WITHOUT the technical « session- » prefix (A-01: the section showed « session-… » five times in a
+    // row). `bare` is the same normalisation the rest of the section uses, so the label matches the id in the DOM.
+    return bare(sid).slice(0, 8) + '…'
   }
   const wsDe = (sid) => {
     const cle = byId[sid] !== undefined ? sid : sid.replace(/^session-/, '')
@@ -23023,7 +23027,7 @@ function renderFit(canvas, model, cam, opts){
         h('div', { className: 'kba-rowhead' },
           h('span', { className: 'kba-tabver' }, kbt('tasks.col.name')),
           h('span', { className: 'kba-tabver' }, kbt('tasks.col.trigger')),
-          h('span', { className: 'kba-tabver' }, kbt('tasks.col.lastsession')),
+          h('span', { className: 'kba-tabver' }, kbt('tasks.col.state')),
           h('span', { className: 'kba-tabver' }, kbt('tasks.col.success')),
           h('span', { className: 'kba-tabver' }, kbt('tasks.col.sessions'))),
         h('span', null),
@@ -23044,7 +23048,7 @@ function renderFit(canvas, model, cam, opts){
         const hist = Array.isArray(t.history) === true ? t.history : []
         const last = hist.length > 0 ? hist[hist.length - 1] : null
         const failed = last !== null && last.status === 'error'
-        let lastLabel = kbt('tasks.none.yet')
+        let lastLabel = kbt('tasks.no.session')
         let lastCls = ''
         if (t.active === false) { lastLabel = kbt('tasks.paused'); lastCls = '' }
         else if (failed) { lastLabel = kbt('tasks.failed.at').replace('{when}', kbWhenOf(last.at)); lastCls = 'fail' }

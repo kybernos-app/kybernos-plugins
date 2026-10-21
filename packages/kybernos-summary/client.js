@@ -419,6 +419,7 @@ window.__ModuleLoader__.load({
         }
         const head = h('div', { className: 'kbsm-head' },
           h('h2', { className: 'kbsm-h' }, L('title')),
+          (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-summary' }) : null),
           h('button', { type: 'button', className: 'kbsm-toggle', 'data-act': 'scope', 'aria-pressed': latest ? 'true' : 'false', title: L(latest ? 'latestTip' : 'wholeTip'),
             onClick: () => { const v = !latest; setLatest(v); writeLatest(v) } }, L(latest ? 'latest' : 'whole')))
         const body = sid === ''

@@ -502,6 +502,7 @@ window.__ModuleLoader__.load({
         return h('div', { className: 'kbmsg-form', 'data-kb': 'session-msg-form', onKeyDown: key },
           h('div', { className: 'kbmsg-f-top' },
             h('span', { className: 'kbmsg-f-q' }, T('formTitle')),
+            (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-session-msg' }) : null),
             h('button', { type: 'button', className: 'kbmsg-x', 'aria-label': T('close'), title: T('close'), onClick: () => closeForm(sessionId) }, '✕')),
           h('div', { className: 'kbmsg-kind', role: 'radiogroup', 'aria-label': T('formTitle') },
             kindButton('message', T('kindMessage'), kindAllowed(form, 'message') ? T('kindMessageCap') : T('kindMessageOnly'), kindAllowed(form, 'message') !== true),

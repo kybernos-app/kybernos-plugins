@@ -1201,7 +1201,8 @@ function t(t,e,s){if(t&&t.length){const[n,o]=e,a=Math.PI/180*s,h=Math.cos(a),r=M
       return h('div', { className: 'kbmo-root kbmo' },
         h('div', { className: 'kbmo-head' },
           h('span', { className: 'kbmo-title', title: titleOf(ETAT.titre) }, titleOf(ETAT.titre)),
-          h('span', { className: 'kbmo-badge' }, en2d ? '2D' : '3D')),
+          h('span', { className: 'kbmo-badge' }, en2d ? '2D' : '3D'),
+          (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-modeleur' }) : null)),
         h('div', { className: 'kbmo-view' },
           h('canvas', {
             ref: cvRef,

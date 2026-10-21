@@ -561,6 +561,7 @@ html[dir="rtl"] .kbch-card{left:auto;right:0;text-align:right}
             h('span', { className: 'kbch-txt' }, words[0])),
           open ? h('div', { className: 'kbch-card', id: 'kbch-card', role: 'dialog', 'aria-label': L('title'), 'data-kb': 'changes-card', style: shift > 0 && document.documentElement.dir !== 'rtl' ? { left: -shift } : undefined },
             h('div', { className: 'kbch-hd' }, h('span', { className: 'kbch-dot', 'aria-hidden': 'true' }), h('b', null, L('title')),
+              (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-changes' }) : null),
               h('button', { className: 'kbch-x', type: 'button', 'aria-label': L('close'), onClick: () => setOpen(false) }, cross)),
             h('h4', { className: 'kbch-h' }, words[1]),
             h('p', { className: 'kbch-p' }, words[2]),
