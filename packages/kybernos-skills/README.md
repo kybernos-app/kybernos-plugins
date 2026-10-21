@@ -63,6 +63,7 @@ All under `/kybernos-skills/`, JSON; refusals come back as HTTP 200 `{ok:false, 
 | `POST skill/delete {root,name}` | removes the folder of a skill whose real path is inside a writable root; refuses a link, a root, a folder with no `SKILL.md` |
 | `GET learned` · `GET learned/journal?limit=` | the suggestions Kaby made (with their checks), the skills accepted from them, and the journal with whether its hash chain holds (`docs/dev/learned-skills.md`) |
 | `POST learned/from-lessons {lessons}` · `learned/accept {id,description?,body?}` · `learned/edit` · `learned/discard {id}` · `learned/restore {id}` · `learned/undo {name}` | a suggestion waits in a ledger, **not in the skills folder**; Accept writes the skill (never over an existing folder), keeps version 1 and journals; Discard keeps 30 days; Undo works only while `SKILL.md` is still the text that was written |
+| `GET learned/settings` · `POST learned/settings/set {mode?,threshold?,cap?,notify?,privOk?}` · `GET learned/session?sessionId=` · `POST learned/keep {name}` · `POST learned/stop` | V1: what Kaby may do alone (**Settings › Learned skills**, `ask` by default), what happened to skills in one chat, « I read it, keep it », and the kill switch (every automatic change of the last 7 days goes back) |
 | `GET picks` | the picks Kybernos proposes (`featured-picks.json`, checked by `featured-picks.mjs`), each with a cover URL only when its file exists |
 | `GET featured` · `POST featured/toggle` · `GET cover/<name>` | Featured list and cover images |
 | `GET index-source` · `POST index-source/set {url}` | which relay the Discover index is read from (`origin`: `default`, `setting` or `env`; `editable: false` while the variable decides), and the setting that names another one (an empty `url` puts the default back) |
@@ -73,6 +74,10 @@ All under `/kybernos-skills/`, JSON; refusals come back as HTTP 200 `{ok:false, 
 
 - `<DSH home>/kybernos/skills-learned.json` (the ledger of suggestions and of what was accepted, 0600), `skills-learned.audit.jsonl` (the journal,
   append-only, each line hashed with the one before) and `skills-learned-versions/<name>/<n>.md` (the text as accepted, last 10 per skill, 90 days).
+  V1 adds `skills-learned-settings.json` (the person's level, line, weekly limit, notice, Law/Health unlock; `breaker` is the host's) and
+  `skills-learned-sessions.json` (per chat: did it reach the outside world, names only). `learned-score.mjs` (the score by rules and the hard stops),
+  `learned-settings.mjs`, `learned-taint.mjs` and `learned-tools.mjs` (the agent tools `skill_propose` / `skill_improve`, the prompt chunk and the two
+  watchers) are the V1 host half, mounted guarded part by part from `apply(ctx)`.
   `learned.mjs` is the host half; `globalThis[Symbol.for('kybernos.learned-skills')]` is the frozen seam the automations half (kybernos-plugin) reads at
   call time; `window.__KB_LEARNED__` (`count`, `subscribe`, `refresh`) is what the menu dot and the lessons page read from the page half.
 
