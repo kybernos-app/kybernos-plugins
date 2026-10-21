@@ -224,7 +224,8 @@
         "kind": { "enum": ["data", "code"] },
         "class": { "enum": ["inert", "instruction"], "description": "data points only: 'instruction' means an agent will follow the text (skills, prompts), see the contract, section 'Two kinds of plugin'." },
         "summary": { "$ref": "#/$defs/text160" },
-        "schema": { "$ref": "#/$defs/relPath" }
+        "schema": { "$ref": "#/$defs/relPath" },
+        "validator": { "const": "builtin", "description": "the owner registers the check in code (the registry's definePoint); exactly one of schema and validator for a data point" }
       }
     },
     "extension": {

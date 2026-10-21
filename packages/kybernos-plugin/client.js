@@ -25952,6 +25952,11 @@ function renderFit(canvas, model, cam, opts){
       subscribe: kbDomainOn,
     }
     try { if (typeof window !== 'undefined') window.__KB_DOMAIN__ = kbDomainFacade } catch (e) { /* outside a browser */ }
+    // The same facade through the versioned seam (kybernos-registry, docs/dev/plugin-contract.md): `window.__KB__.use('kybernos/core', '^1').domain`. The old global stays an alias
+    // for two suite releases. The registry may load after this plugin, so it is offered again when the registry announces itself.
+    const kbProvideDomain = () => { try { if (window.__KB__ !== undefined && window.__KB__ !== null && window.__KB__.version === 1) window.__KB__.provide('kybernos/core', '1.0.0', { domain: kbDomainFacade }) } catch (e) { /* the seam is optional */ } }
+    kbProvideDomain()
+    try { window.addEventListener('kybernos:registry', kbProvideDomain) } catch (e) { /* no events */ }
     const kbDomainLoad = async () => {
       try {
         const get = (path) => fetch(path, { cache: 'no-store', headers: { accept: 'application/json' } }).then((r) => r.json())

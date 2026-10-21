@@ -17,7 +17,7 @@ import { chooseWorkspace as autoWsChoose, idOf as autoWsIdOf, DEDICATED_TITLE as
 import { recordFeedback, exportFeedback, relayReportOf } from './feedback-box.mjs'
 import { writeGuard } from './session-guard.mjs'
 import { defaultState as onboardingDefault, publicView as onboardingView, complete as onboardingComplete, replay as onboardingReplay, chooseDomain as onboardingChooseDomain, aboutView as onboardingAbout } from './onboarding-state.mjs'
-import { loadPacks as loadDomainPacks, domainOfProfil } from './domain-pack.mjs'
+import { loadPacks as loadDomainPacks, domainOfProfil, mergePackSets, DOMAIN_POINT, DOMAIN_POINT_REF } from './domain-pack.mjs'
 const pluginDir = dirname(fileURLToPath(import.meta.url))
 // ── Le filet du compactage, sans retouche du moteur (23/09/2026) ────────────
 // Mesuré : notre bundle monte APRÈS `dsh-web-app`, donc les enfants de preset
@@ -9906,13 +9906,26 @@ function boot(ctx) {
       // The domain packs (docs/dev/domain-packs.md): read and checked once from domains/*.json, served as data. A file that fails the check is
       // left out and counted, never an error: the wizard then simply offers fewer fields of work.
       let packsLoaded = null
-      const domainPacks = () => {
+      const shippedPacks = () => {
         if (packsLoaded === null) {
           packsLoaded = loadDomainPacks(pluginDir + '/domains')
           for (const r of packsLoaded.rejected) console.warn('[kybernos] domain pack left out: ' + r.file + ' (' + r.errors.join('; ') + ')')
         }
         return packsLoaded
       }
+      // The plugin registry (kybernos-registry, docs/dev/plugin-contract.md) is reached through a global, never imported: without it the packs are the shipped ones, as before.
+      // This plugin owns the point `kybernos/core#domain-pack`; it tells the registry at boot and again at each question (the registry may mount after this plugin).
+      const registrySeam = () => { try { const r = globalThis[Symbol.for('kybernos.registry')]; return r !== undefined && r !== null && r.version === 1 ? r : null } catch (e) { return null } }
+      const domainPacks = () => {
+        const shipped = shippedPacks()
+        const registry = registrySeam()
+        if (registry === null) return shipped
+        try {
+          registry.definePoint(DOMAIN_POINT)
+          return mergePackSets(shipped, registry.contributions(DOMAIN_POINT_REF))
+        } catch (e) { return shipped }
+      }
+      try { const registry = registrySeam(); if (registry !== null) registry.definePoint(DOMAIN_POINT) } catch (e) { /* the point is told again at the first question */ }
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/domains', handler: async (req, res) => {
         if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
         const r = domainPacks()
