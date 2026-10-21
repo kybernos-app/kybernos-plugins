@@ -139,8 +139,8 @@ try {
   console.log('\n── V-18: one grid, one card, one border ──')
   const head = await leftEdges('.kba-rowline-head .kba-rowhead')
   const rows = JSON.parse(await val(`JSON.stringify(Array.from(document.querySelectorAll('.kba-rowline:not(.kba-rowline-head) .kba-rowbtn')).map((r) => Array.from(r.children).map((c) => Math.round(c.getBoundingClientRect().left))))`))
-  check('the header has its four columns (name, trigger, last session, sessions)', Array.isArray(head) && head.length === 4, head)
-  check('every row\'s cells start where their header does (it was 100 px off)', rows.length === SEED.length && rows.every((r) => r.length === 4 && r.every((x, i) => Math.abs(x - head[i]) <= 1)), { head, rows: rows.slice(0, 2) })
+  check('the header has its five columns (name, trigger, last session, success, sessions)', Array.isArray(head) && head.length === 5, head)
+  check('every row\'s cells start where their header does (it was 100 px off)', rows.length === SEED.length && rows.every((r) => r.length === 5 && r.every((x, i) => Math.abs(x - head[i]) <= 1)), { head, rows: rows.slice(0, 2) })
   const card = JSON.parse(await val(`(() => { const c = document.querySelector('.kba-lcard'); const s = getComputedStyle(c); const kids = Array.from(c.children); return JSON.stringify({ pad: s.paddingTop + '/' + s.paddingLeft, borders: kids.map((k) => getComputedStyle(k).borderTopWidth), bw: s.borderTopWidth, nested: c.querySelectorAll('.kba-card').length }) })()`))
   check('the list card has no padding of its own and no card inside it (it had a second border)', card.pad === '0px/0px' && card.nested === 0, card)
   check('...the header has no top border and each row exactly one', card.borders[0] === '0px' && card.borders.slice(1).every((b) => b === '1px'), card.borders)
@@ -218,8 +218,10 @@ try {
   check('...the List names it too', (await texts('.kba-rowline:not(.kba-rowline-head) .kba-trg-stack .kba-ell')).some((t) => t === 'Every day, 08:00 (' + otherCity + ')'))
 
   console.log('\n── A5-31: the Schedule form has a time field ──')
-  check('the page of an automation opens from its row', (await val(`(() => { const b = ${rowOf('wp18-weekdays')}.querySelector('.kba-rowbtn'); b.click(); return true })()`)) === true && (await poll(() => q('[data-kb="detail-edit-chat"]'))) === 1)
-  check('...and « Schedule » opens the form, which is still there for manual edits', (await clickText(page, 'Schedule')) === true && (await poll(() => q('.kb-task-modal'))) === 1)
+  check('the page of an automation opens from its row', (await val(`(() => { const b = ${rowOf('wp18-weekdays')}.querySelector('.kba-rowbtn'); b.click(); return true })()`)) === true && (await poll(() => q('[data-kb="detail-more"]'))) === 1)
+  // Schedule is in the « more » menu of the page (Run now stays on it).
+  const pressSchedule = async () => { await click('[data-kb="detail-more"]'); await poll(() => q('[data-kb="detail-schedule"]'), 3000); return click('[data-kb="detail-schedule"]') }
+  check('...and « Schedule » opens the form, which is still there for manual edits', (await pressSchedule()) === true && (await poll(() => q('.kb-task-modal'))) === 1)
   const timeVal = () => val(`(document.querySelector('[data-kb="task-time"]') || { value: null }).value`)
   check('a time field shows the time of the schedule (09:15)', (await timeVal()) === '09:15')
   check('the sentence under the presets says the same', /Weekdays, 09:15/.test(await val(`document.querySelector('.kb-task-modal').innerText`)))
@@ -238,7 +240,7 @@ try {
   check('Save writes the schedule: weekdays at 07:30', (await click('[data-kb="task-save"]')) === true && (await poll(async () => { const t = readTasks().find((x) => x.id === 'wp18-weekdays'); return t && t.schedule.cron === '30 7 * * 1-5' }, 10000)) === true, (readTasks().find((x) => x.id === 'wp18-weekdays') || {}).schedule)
   check('...and the form closes', (await poll(async () => (await q('.kb-task-modal')) === 0, 8000)) === true)
   check('the validation messages say « automation », not « task »', await (async () => {
-    await clickText(page, 'Schedule')
+    await pressSchedule()
     await poll(() => q('.kb-task-modal'))
     await val(`(() => { const el = document.querySelector('.kb-task-modal input[type="text"]'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(el, ''); el.dispatchEvent(new Event('input', { bubbles: true })) })()`)
     await click('[data-kb="task-save"]')
@@ -249,7 +251,8 @@ try {
   })() === true)
 
   console.log('\n── V-19: Edit in chat ──')
-  check('the page of an automation has the button next to Run now and Schedule', (await q('[data-kb="detail-edit-chat"]')) === 1 && /Edit in chat/.test(await val(`document.querySelector('[data-kb="detail-edit-chat"]').innerText`)))
+  check('the page of an automation has « Edit in chat » in its more menu, next to Run now', (await click('[data-kb="detail-more"]')) === true && (await poll(() => q('[data-kb="detail-edit-chat"]'), 3000)) === 1 && /Edit in chat/.test(await val(`document.querySelector('[data-kb="detail-edit-chat"]').innerText`)))
+  await val(`(() => { const b = document.querySelector('[data-kb="detail-more"]'); if (b && b.getAttribute('aria-expanded') === 'true') b.click() })()`)
   check('the button of a row is named for its row (« Edit Weekdays 9:15 in chat »)', await (async () => {
     await click('.kba-crumb')
     await poll(() => q('.kba-lcard'))
@@ -268,6 +271,8 @@ try {
   await shot('automations-edit-chat')
   check('the Automations page comes back, and its detail opens the same chat from « Edit in chat »', (await openAutomations()) === true && (await view('list')) === true && (await poll(() => q('.kba-lcard'))) === 1)
   await val(`(() => { (${rowOf('wp18-hook')}).querySelector('.kba-rowbtn').click() })()`)
+  await poll(() => q('[data-kb="detail-more"]'))
+  await click('[data-kb="detail-more"]')
   check('...from the page of a webhook-only automation', (await poll(() => q('[data-kb="detail-edit-chat"]'))) === 1 && (await click('[data-kb="detail-edit-chat"]')) === true && /External webhook/.test(await poll(async () => { const t = await val(`(() => { const e = document.querySelector('[contenteditable="true"]'); return e ? e.innerText : '' })()`); return /wp18-hook/.test(t) ? t : '' }, 20000)))
 
   console.log('\n── A5-24: a schedule that runs more often than every 5 minutes needs a confirmation ──')
