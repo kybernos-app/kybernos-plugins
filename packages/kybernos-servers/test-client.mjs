@@ -168,7 +168,7 @@ console.log('the sign-in, switch and remove dialogs')
   const sw = renderToStaticMarkup(React.createElement(Confirm, { confirm: { kind: 'switch', server: ACME, busy: false }, act }))
   check('switch: what changes and what stays, before it happens; a server not signed in says you will sign in next', sw.includes('Switch to Acme Corp?') && sw.includes('Model list') && sw.includes('Personal memory') && sw.includes('you will sign in next'))
   const rm = renderToStaticMarkup(React.createElement(Confirm, { confirm: { kind: 'remove', server: Object.assign({}, ACME, { active: true }), busy: false, error: say('registry_unreadable') }, act }))
-  check('remove: the sign-in is forgotten on this device, nothing deleted on the server, you go back to Kybernos Cloud; an error shows inside', rm.includes('forgotten on this device') && rm.includes('Nothing is deleted on the server') && rm.includes('go back to Kybernos Cloud') && rm.includes('The servers file is unreadable'))
+  check('remove: the sign-in is forgotten on this device, nothing deleted on the server, you go back to Kybernos Cloud; an error shows inside', rm.includes('forgotten on this device') && rm.includes('Nothing is deleted on the server') && rm.includes('switches back to Kybernos Cloud') && rm.includes('The servers file is unreadable'))
 }
 
 console.log('SRV-02 every host error is a sentence, in both languages, never a raw code')
