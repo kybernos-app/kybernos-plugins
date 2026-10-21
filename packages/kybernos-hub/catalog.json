@@ -336,6 +336,47 @@
       }
     },
     {
+      "id": "kybernos-registry",
+      "nom": "@local/kybernos-registry",
+      "titre": "Plugin registry",
+      "glyphe": "puzzle",
+      "famille": "base",
+      "palier": "core",
+      "version": "0.1.0",
+      "socle": true,
+      "defaut": null,
+      "poids_ko": 60,
+      "promesse": {
+        "fr": "Lit les plugins faits par d’autres, vérifie que ce sont des données simples et laisse les pages utiliser ce qu’ils ajoutent.",
+        "en": "Reads the plugins other people made, checks that they are plain data, and lets the pages use what they add."
+      },
+      "aide": {
+        "what": {
+          "fr": "Lit les plugins faits par d’autres pour Kybernos, vérifie que ce sont des données sans danger et laisse les pages utiliser ce qu’ils ajoutent. Un plugin refusé est écarté.",
+          "en": "Reads the plugins other people made for Kybernos, checks that they are plain data, and lets the pages use what they add. A plugin that fails the check is left out."
+        },
+        "steps": [
+          {
+            "fr": "Dépose le dossier d’un plugin dans kybernos/plugins/local, à l’intérieur de ton dossier DSH.",
+            "en": "Put a plugin folder in kybernos/plugins/local, inside your DSH folder."
+          },
+          {
+            "fr": "Un nouveau plugin reste éteint tant que tu ne l’allumes pas.",
+            "en": "A new plugin stays off until you switch it on."
+          }
+        ],
+        "where": {
+          "fr": "Rien à ouvrir pour l’instant : la page Plugins arrive ensuite.",
+          "en": "Nothing to open yet: the Plugins page comes next.",
+          "page": false
+        },
+        "good": {
+          "fr": "Seules des données simples se chargent ainsi : un plugin ne peut pas exécuter de code sur ton ordinateur.",
+          "en": "Only plain data loads this way: a plugin cannot run code on your computer."
+        }
+      }
+    },
+    {
       "id": "kybernos-theme",
       "nom": "@local/kybernos-theme",
       "titre": "Theme",

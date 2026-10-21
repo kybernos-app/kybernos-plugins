@@ -60,10 +60,10 @@ check('the catalogue builds: every bundle of the lifecycle list has a valid help
 if (catalogue !== null) {
   check('the catalogue carries the help of every module', catalogue.modules.length === lifecycle.length && catalogue.modules.every((m) => m.aide !== undefined && m.aide.steps.length >= 2))
   // V-06: every card links to its article. These five have none because the help site has no article that is theirs yet (the Suite panel, the core's several
-  // pages, the restart helper, the search, the Servers page): writing one on the site is the way to remove a name from this list, never an address that does not exist.
-  const NO_ARTICLE_YET = ['kybernos-hub', 'kybernos-plugin', 'kybernos-relance', 'kybernos-search', 'kybernos-servers']
+  // pages, the restart helper, the search, the Servers page, the plugin registry): writing one on the site is the way to remove a name from this list, never an address that does not exist.
+  const NO_ARTICLE_YET = ['kybernos-hub', 'kybernos-plugin', 'kybernos-registry', 'kybernos-relance', 'kybernos-search', 'kybernos-servers']
   const without = catalogue.modules.filter((m) => m.aide.url === undefined).map((m) => m.id).sort()
-  check('every module links to an article of the help site, but the five that have none yet', JSON.stringify(without) === JSON.stringify(NO_ARTICLE_YET), without)
+  check('every module links to an article of the help site, but the six that have none yet', JSON.stringify(without) === JSON.stringify(NO_ARTICLE_YET), without)
   // Where the site's own build is at hand (KB_HELP_SITE=<kybernos-help>/dist-site), each link is an article that exists there, in English.
   const site = process.env.KB_HELP_SITE
   if (typeof site === 'string' && site !== '') {
