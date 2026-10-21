@@ -118,3 +118,4 @@ Neither is a DSH bundle: each is a separate process, with its own tests (`node -
 ## Contributing
 
 Read [`AGENTS.md`](AGENTS.md) first. Licence: [Apache-2.0](LICENSE). The "Kybernos" name is covered by the [trademark policy](TRADEMARK.md).
+A draft of the plugin contract (manifest, extension points, permissions, free and paid, trust and catalogues) is in [`docs/dev/plugin-contract.md`](docs/dev/plugin-contract.md); it is a specification, nothing in it is built yet.
