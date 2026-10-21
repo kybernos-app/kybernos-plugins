@@ -1,0 +1,46 @@
+{
+  "contract": 1,
+  "id": "kybernos/dsh-subagent-maison",
+  "kind": "code",
+  "version": "0.1.0",
+  "name": {
+    "en": "Workers connectors",
+    "fr": "Connecteurs de workers"
+  },
+  "description": {
+    "en": "The Workers connectors (OpenCode, Gemini, Qwen, Hermes) that the Workers page turns on.",
+    "fr": "Les connecteurs de workers (OpenCode, Gemini, Qwen, Hermes) que la page Workers allume."
+  },
+  "icon": "agent",
+  "family": "connect",
+  "author": {
+    "id": "kybernos",
+    "name": "Kybernos"
+  },
+  "license": "Apache-2.0",
+  "pricing": "free",
+  "package": "@local/dsh-subagent-maison",
+  "entry": {
+    "extra": {
+      "./opencode": "dsh-subagent-opencode/index.js",
+      "./gemini": "dsh-subagent-gemini/index.js",
+      "./qwen": "dsh-subagent-qwen/index.js",
+      "./hermes": "dsh-subagent-hermes/index.js"
+    }
+  },
+  "requires": {
+    "kybernos": ">=0.1.0"
+  },
+  "permissions": [
+    "fs.read:workspace",
+    "fs.write:workspace",
+    "net:inference-api.nousresearch.com",
+    "exec",
+    "secrets.read",
+    "agent.tools"
+  ],
+  "help": "help.json",
+  "suite": {
+    "default": "on"
+  }
+}
