@@ -48,4 +48,13 @@ console.log('the project tabs')
   check('every empty tab has both languages (kbe with its French)', (SRC.match(/emptyX\(\{[^\n]*title: kbe\('[^']+', '[^']+'\)/g) || []).length >= 5)
   check('the plain dashed box is gone from the project tabs', !/empty\(projLoading === true \? PROJ_LOADING : kbe\('No (thread|document|ongoing goal|budget)/.test(SRC))
 }
+// V1-11 (video review): a search that matches nothing showed « No thread yet / Chats you open in this project show up
+// here » — a lie when the project has chats. The filtered empty state names the search and says how to get the list back.
+check('V1-11: a search that matches nothing does not claim the project has no chat',
+  /const recherche = typeof q === 'string' && q\.trim\(\) !== ''/.test(SRC) &&
+  /project-threads-empty-search/.test(SRC) &&
+  /No thread matches « ' \+ q\.trim\(\) \+ ' »/.test(SRC) &&
+  /Clear the search to see every chat of this project\./.test(SRC))
+check('V1-11: the no-chat-at-all state keeps its « open a chat » action', /kb: 'project-threads-empty', title: kbe\('No thread yet'/.test(SRC) && /chatAction\(kbe\('New chat in this project'/.test(SRC))
+
 process.exit(fail === 0 ? 0 : 1)
