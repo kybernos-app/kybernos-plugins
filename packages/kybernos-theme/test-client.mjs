@@ -1560,6 +1560,9 @@ section('the docs name the screen in English (A2-14)')
   const docs = { 'README.md': readFileSync(new URL('./README.md', import.meta.url), 'utf8'), 'docs/dev/theme-gallery.md': readFileSync(new URL('../../docs/dev/theme-gallery.md', import.meta.url), 'utf8') }
   const found = Object.entries(docs).flatMap(([f, t]) => t.split('\n').map((l, i) => ({ f, i: i + 1, l })).filter((o) => French.test(o.l.replace(/`[^`]*`/g, ''))).map((o) => o.f + ':' + o.i + ' ' + o.l.trim().slice(0, 60)))
   check('neither document quotes a French label of the Theme page', found.length === 0, found)
+  // And the CODE itself: the thinking-animation summary read « au hasard » in both languages on the English page
+  // (seen live 2026-10-21). Every word of that line now goes through kt(fr, en).
+  check('the thinking-animation summary says « at random » in English, not the French words', /kt\('au hasard', 'at random'\)/.test(SOURCE) && !/mode === 'random' \? 'au hasard'/.test(SOURCE))
   check('the gallery\'s refresh link has an English word while it works', /gal\.refreshing \? kt\('Actualisation…', 'Refreshing…'\)/.test(SOURCE))
 }
 
