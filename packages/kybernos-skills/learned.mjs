@@ -148,7 +148,9 @@ const normProposal = (p) => {
     ...(p.kind === 'improve' ? { target: SKILL_NAME_RE.test(String(p.target)) ? String(p.target) : '', add: oneLine(p.add, LEARNED_LIMITS.addMax), reason: oneLine(p.reason, 300), baseVer: Number.isInteger(p.baseVer) ? p.baseVer : 1 } : {}),
     // where an agent-written suggestion came from: the chat, and what the host knows about it (learned-taint.mjs): `tainted` is false only for a chat followed from its start that never reached outside
     source: plain(p.source) ? { sessionId: oneLine(p.source.sessionId, 80), tracked: p.source.tracked === true, tainted: p.source.tainted === false ? false : true, tool: typeof p.source.tool === 'string' ? oneLine(p.source.tool, 60) : null } : null,
-    verifiedLessons: Number.isInteger(p.verifiedLessons) && p.verifiedLessons > 0 ? Math.min(p.verifiedLessons, 8) : 0
+    verifiedLessons: Number.isInteger(p.verifiedLessons) && p.verifiedLessons > 0 ? Math.min(p.verifiedLessons, 8) : 0,
+    // earlier chats where the host saw a similar ask (a fact it read, learned-repeat.mjs): they count as evidence
+    repeats: Number.isInteger(p.repeats) && p.repeats > 0 ? Math.min(p.repeats, 8) : 0
   }
 }
 
@@ -175,6 +177,9 @@ export const normalizeLedger = (raw) => {
         // what Kaby did on its own: the score it was applied at, whether the person has looked at it, the chats it was used in (one use per chat), what changed since version 1
         score: Number.isFinite(l.score) ? Math.max(0, Math.min(SCORE_MAX, Math.round(l.score))) : null, reviewed: l.reviewed !== false,
         usedIn: (Array.isArray(l.usedIn) ? l.usedIn : []).map((x) => oneLine(x, 80)).filter((x) => x !== '').slice(-LEARNED_LIMITS.usedInKept),
+        // when each chat loaded it (one entry per chat, the last 60: the weekly card counts the week's) and when the person proposed it to the team
+        useLog: (Array.isArray(l.useLog) ? l.useLog : []).filter((x) => typeof x === 'string' && Number.isFinite(Date.parse(x))).slice(-60),
+        sharedAt: typeof l.sharedAt === 'string' && Number.isFinite(Date.parse(l.sharedAt)) ? l.sharedAt : null,
         sessionId: typeof l.sessionId === 'string' && l.sessionId !== '' ? oneLine(l.sessionId, 80) : null,
         history: (Array.isArray(l.history) ? l.history : []).filter(plain).slice(-20).map((x) => ({ ver: Number.isInteger(x.ver) ? x.ver : 1, at: oneLine(x.at, 40), by: x.by === 'kaby' ? 'kaby' : 'you', mode: ['approved', 'manual', 'auto'].indexOf(x.mode) >= 0 ? x.mode : 'approved', sha: typeof x.sha === 'string' ? x.sha : null, add: oneLine(x.add, LEARNED_LIMITS.addMax) }))
       }
@@ -315,8 +320,8 @@ export const isSensitive = (dsh) => {
 // ── settings, track record, the weekly cap ──────────────────────────────────────────────────────────────────────────────────
 export const readSettings = (dsh) => { try { return normalizeSettings(JSON.parse(readFileSync(settingsPath(dsh), 'utf8'))) } catch (e) { return settingsDefaults() } }
 const writeSettings = (dsh, state) => writeAtomic(settingsPath(dsh), JSON.stringify(state) + '\n', 0o600)
-const journalEntries = (dsh) => readLines(dsh).map(parseEntry).filter((e) => e !== null)
-const at = (e) => Date.parse(e.t) || 0
+export const journalEntries = (dsh) => readLines(dsh).map(parseEntry).filter((e) => e !== null)
+export const at = (e) => Date.parse(e.t) || 0
 /** Automatic changes of this week that still stand: what Kaby made or improved on its own, less what the person undid. */
 export const autoThisWeek = (entries, now) => {
   const since = now - LEARNED_LIMITS.weekDays * DAY
@@ -357,8 +362,10 @@ const proposalView = (p, ctx, a) => {
 }
 
 // ── reading ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+/** A learned skill the person could now propose to the team: used in enough chats, read by the person, not proposed yet, and the field allows it (Law and Health only when unlocked). A hint, never an action. */
+export const shareReady = (l, settings, sensitive) => settings.team === true && (sensitive !== true || settings.teamPriv === true) && l.sharedAt === null && l.reviewed !== false && l.uses >= settings.teamMin && l.usedIn.length >= 2
 /** Whole days since the skill was last used (or accepted, if never used), once that is a month or more; 0 before. */
-const unusedFor = (l, now) => { const d = Math.floor((now - (Date.parse(l.lastUsed || l.acceptedAt) || now)) / DAY); return d >= LEARNED_LIMITS.unusedDays ? d : 0 }
+export const unusedFor = (l, now) => { const d = Math.floor((now - (Date.parse(l.lastUsed || l.acceptedAt) || now)) / DAY); return d >= LEARNED_LIMITS.unusedDays ? d : 0 }
 
 /** What the page shows: the proposals with their checks and scores, the learned skills, the settings, the field's privacy, the limits. `existing` is `[{ name, description }]`. */
 export const listLearned = async ({ dsh, existing = [], now = Date.now() }) => {
@@ -369,7 +376,7 @@ export const listLearned = async ({ dsh, existing = [], now = Date.now() }) => {
     const entries = journalEntries(dsh)
     return {
       proposals: ledger.proposals.map((p) => proposalView(p, { existing, sensitive }, assess(dsh, ledger, p, { existing, settings, sensitive, entries, now }))),
-      learned: Object.keys(ledger.learned).map((name) => { const l = ledger.learned[name]; return { name, kind: l.kind, acceptedAt: l.acceptedAt, ver: l.ver, from: l.from, by: l.by, mode: l.mode, uses: l.uses, lastUsed: l.lastUsed, legacy: l.legacy, score: l.score, reviewed: l.reviewed, unusedDays: unusedFor(l, now), improved: l.history.length > 0, auto: l.by === 'kaby' && l.mode === 'auto' || l.history.some((h) => h.by === 'kaby') } }),
+      learned: Object.keys(ledger.learned).map((name) => { const l = ledger.learned[name]; return { name, kind: l.kind, acceptedAt: l.acceptedAt, ver: l.ver, from: l.from, by: l.by, mode: l.mode, uses: l.uses, lastUsed: l.lastUsed, legacy: l.legacy, score: l.score, reviewed: l.reviewed, unusedDays: unusedFor(l, now), improved: l.history.length > 0, auto: l.by === 'kaby' && l.mode === 'auto' || l.history.some((h) => h.by === 'kaby'), chats: l.usedIn.length, shared: l.sharedAt !== null, shareReady: shareReady(l, settings, sensitive) } }),
       discarded: ledger.discarded.map((d) => ({ id: d.id, name: d.name, kind: d.kind, discardedAt: d.discardedAt, why: d.why })),
       week: { used: autoThisWeek(entries, now), cap: settings.cap }
     }
@@ -646,9 +653,19 @@ function breakerCheck (dsh, now) {
 export const keepChange = ({ dsh, name, now = Date.now() }) => withLedger(dsh, async (ledger) => {
   const l = ledger.learned[String(name)]
   if (l === undefined) return { ok: false, error: 'not_found' }
+  // « Keep » on a skill nobody used for a month (the weekly card): it is read again and the clock starts over
+  if (l.reviewed === true && unusedFor(l, now) > 0) { l.lastUsed = iso(now); appendAudit(dsh, { act: 'reviewed', skill: String(name), by: 'you', mode: 'manual', kind: l.kind, ver: l.ver, note: 'kept_unused' }, now); return { ok: true, name: String(name) } }
   if (l.reviewed === true) return { ok: true, name: String(name) }
   l.reviewed = true
   appendAudit(dsh, { act: 'reviewed', skill: String(name), by: 'you', mode: 'manual', kind: l.kind, ver: l.ver }, now)
+  return { ok: true, name: String(name) }
+})
+
+/** The person proposed a learned skill to the team (the existing Team flow did the sending): it is noted on the skill and in the journal, so the hint stops and the audit trail says it. */
+export const markShared = ({ dsh, name, now = Date.now() }) => withLedger(dsh, async (ledger) => {
+  const l = ledger.learned[String(name)]
+  if (l === undefined) return { ok: false, error: 'not_found' }
+  if (l.sharedAt === null || l.sharedAt === undefined) { l.sharedAt = iso(now); appendAudit(dsh, { act: 'shared', skill: String(name), by: 'you', mode: 'manual', kind: l.kind, ver: l.ver }, now) }
   return { ok: true, name: String(name) }
 })
 
@@ -696,14 +713,15 @@ const clean = (v, max) => String(typeof v === 'string' ? v : '').replace(/[\x00-
  * and, only if the settings allow and no hard stop applies, applied on Kaby's word; otherwise it waits for the person. A failing check answers `checks_failed`
  * (the agent fixes its call): a broken suggestion is never left in the list.
  */
-export const proposeFromAsked = ({ dsh, name, description, steps, sessionId, existing = [], now = Date.now() }) => withLedger(dsh, async (ledger) => {
+export const proposeFromAsked = ({ dsh, name, description, steps, sessionId, repeats = 0, repeatDates = [], existing = [], now = Date.now() }) => withLedger(dsh, async (ledger) => {
   sweep(dsh, ledger, now)
   const desc = oneLine(description, LEARNED_LIMITS.descriptionMax)
   const text = clean(steps, LEARNED_LIMITS.bodyMax)
   const base = slugOf(name !== undefined && String(name).trim() !== '' ? name : desc.replace(/\bUse when\b.*$/i, '')) || 'skill'
   if (ledger.proposals.length >= LEARNED_LIMITS.maxPending) return { ok: false, error: 'too_many_pending', max: LEARNED_LIMITS.maxPending }
   const src = sourceOf(dsh, sessionId)
-  const draft = { name: base, kind: 'asked', description: desc, body: text.startsWith('#') ? text : '# ' + base.replace(/-/g, ' ') + '\n\n' + text, from: { sessionId: oneLine(sessionId, 80), asked: true }, source: { sessionId: oneLine(sessionId, 80), tracked: src.tracked, tainted: src.tainted, tool: src.tool } }
+  const again = Number.isInteger(repeats) && repeats > 0 ? Math.min(repeats, 8) : 0
+  const draft = { name: base, kind: 'asked', description: desc, body: text.startsWith('#') ? text : '# ' + base.replace(/-/g, ' ') + '\n\n' + text, repeats: again, from: { sessionId: oneLine(sessionId, 80), asked: true, ...(again > 0 ? { repeats: { n: again + 1, dates: (Array.isArray(repeatDates) ? repeatDates : []).map((d) => oneLine(d, 10)).slice(-6) } } : {}) }, source: { sessionId: oneLine(sessionId, 80), tracked: src.tracked, tainted: src.tainted, tool: src.tool } }
   const sensitive = isSensitive(dsh)
   const checks = checkProposal(draft, { existing, sensitive })
   if (checks.blocking) return { ok: false, error: 'checks_failed', checks: checks.list.filter((c) => c.s === 'bad').map((c) => c.id), hits: checks.hits.length }
@@ -747,6 +765,7 @@ export const recordUse = ({ dsh, name, sessionId, now = Date.now() }) => withLed
   if (l === undefined || sid === '') return { ok: false, counted: false }
   if (l.usedIn.indexOf(sid) >= 0) return { ok: true, counted: false }
   l.usedIn = l.usedIn.concat([sid]).slice(-LEARNED_LIMITS.usedInKept)
+  l.useLog = (l.useLog || []).concat([iso(now)]).slice(-60)
   l.uses += 1
   l.lastUsed = iso(now)
   return { ok: true, counted: true, uses: l.uses }

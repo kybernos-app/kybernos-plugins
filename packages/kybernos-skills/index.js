@@ -47,8 +47,10 @@ import { execFileSync, spawn } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { createHash } from 'node:crypto'
 import { validateTeamSkill, skillVersion, frontmatterOfText, TEAM_SKILL_LIMITS } from './team-skills.mjs'
-import { LEARNED_SEAM, listLearned, readAudit, proposeFromLessons, proposeFromAutomation, acceptProposal, editProposal, discardProposal, restoreProposal, undoAccept, getSettings, patchSettings, keepChange, stopAll, sessionView } from './learned.mjs'
+import { LEARNED_SEAM, listLearned, readAudit, proposeFromLessons, proposeFromAutomation, acceptProposal, editProposal, discardProposal, restoreProposal, undoAccept, getSettings, patchSettings, keepChange, stopAll, sessionView, markShared, isSensitive, readSettings } from './learned.mjs'
 import { mountLearned } from './learned-tools.mjs'
+import { answerNotice, forgetNotice, listNotices, noticeFor } from './learned-repeat.mjs'
+import { hideWeek, weekView } from './learned-week.mjs'
 import { readPicks } from './featured-picks.mjs'
 // Hosted instance: also accept the authorities declared to DSH with --trusted-host. The core bundle publishes the predicate
 // (kybernos-plugin/trusted-authority.mjs); absent or failing, it answers false and the guard stays loopback-only.
@@ -1841,6 +1843,14 @@ const mountWebRoutes = (ctx, webServerSvc) => {
   POST('/kybernos-skills/learned/settings/set', 'kybernos-skills: route learned settings set', async (body) => patchSettings({ dsh: configOf().dsh, patch: body !== null && typeof body === 'object' ? Object.fromEntries(Object.entries(body).filter(([k]) => k !== 'sessionId')) : body }))
   GET('/kybernos-skills/learned/session', 'kybernos-skills: route learned session', async (req) => sessionView({ dsh: configOf().dsh, sessionId: queryParam(req, 'sessionId') || '', existing: await existingOf(queryParam(req, 'sessionId')) }))
   POST('/kybernos-skills/learned/keep', 'kybernos-skills: route learned keep', async (body) => keepChange({ dsh: configOf().dsh, name: body.name }))
+  // V2: what Kaby notices (a task that comes back), the weekly card, and « I proposed it to the team ». The chat index is Search everywhere's, read through its seam: without it there is no notice.
+  GET('/kybernos-skills/learned/notice', 'kybernos-skills: route learned notice', async (req) => { const dsh = configOf().dsh; return noticeFor({ dsh, sessionId: queryParam(req, 'sessionId') || '', settings: readSettings(dsh), sensitive: isSensitive(dsh) }) })
+  POST('/kybernos-skills/learned/notice/answer', 'kybernos-skills: route learned notice answer', async (body) => answerNotice({ dsh: configOf().dsh, id: body.id, answer: body.answer }))
+  GET('/kybernos-skills/learned/notice/list', 'kybernos-skills: route learned notice list', async () => { const dsh = configOf().dsh; return listNotices({ dsh, sensitive: isSensitive(dsh) }) })
+  POST('/kybernos-skills/learned/notice/forget', 'kybernos-skills: route learned notice forget', async (body) => forgetNotice({ dsh: configOf().dsh, id: body.id }))
+  GET('/kybernos-skills/learned/week', 'kybernos-skills: route learned week', async (req) => weekView({ dsh: configOf().dsh, sessionId: queryParam(req, 'sessionId') || '' }))
+  POST('/kybernos-skills/learned/week/hide', 'kybernos-skills: route learned week hide', async () => hideWeek({ dsh: configOf().dsh }))
+  POST('/kybernos-skills/learned/shared', 'kybernos-skills: route learned shared', async (body) => markShared({ dsh: configOf().dsh, name: body.name }))
   POST('/kybernos-skills/learned/stop', 'kybernos-skills: route learned stop', async (body) => {
     const done = await stopAll({ dsh: configOf().dsh })
     if (done.ok === true) invalidateSkills(ctx, body.sessionId)

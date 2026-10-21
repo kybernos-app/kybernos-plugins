@@ -125,6 +125,22 @@ export function createIndex (io) {
       load()
       return { state, done, total, chats: entries.size, updatedAt, errors, sources: sourceDocs().length }
     },
+    /**
+     * The first message the person typed in each chat since `sinceMs`: `[{ id, at, text, cwd }]`, `text` cut at 1,000 characters. Read-only; what
+     * kybernos-skills compares to notice a task the person repeats (the seam of index.js). A chat with no message of the person's is left out.
+     */
+    asks (sinceMs) {
+      load()
+      const out = []
+      for (const e of entries.values()) {
+        const u = Array.isArray(e.msgs) ? e.msgs.find((m) => m[0] === 'u') : undefined
+        if (u === undefined) continue
+        const when = Number.isFinite(e.createdAt) ? e.createdAt : (Number.isFinite(u[1]) ? u[1] : e.lastAt)
+        if (!Number.isFinite(when) || when < sinceMs) continue
+        out.push({ id: e.id, at: when, text: String(u[2]).slice(0, 1000), cwd: typeof e.cwd === 'string' ? e.cwd : '' })
+      }
+      return out
+    },
     query ({ q, scopes, limit, perScope }) {
       load()
       const t0 = io.now()

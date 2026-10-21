@@ -101,6 +101,8 @@ export function mountRoutes (webServer, index) {
 export function apply (ctx) {
   try {
     const index = createIndex(realIo(dshHome()))
+    // A read-only seam for the bundles that compare the person's asks (kybernos-skills notices a task that comes back): frozen, looked up at call time by the reader.
+    try { globalThis[Symbol.for('kybernos.chat-index')] = Object.freeze({ version: 1, asks: (sinceMs) => index.asks(sinceMs), refresh: () => index.start() }) } catch (e) { /* a seam that cannot be set leaves the readers without it */ }
     const mount = (webServer) => { try { mountRoutes(webServer, index); console.log('[kybernos-search] routes mounted') } catch (e) { console.log('[kybernos-search] routes not mounted: ' + String(e?.message ?? e)) } }
     const have = typeof ctx?.get === 'function' ? ctx.get('webServer') : undefined
     if (have !== undefined && have !== null) mount(have)

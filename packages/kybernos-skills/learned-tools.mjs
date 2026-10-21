@@ -8,7 +8,8 @@
 //
 // The tools never activate a skill by themselves: learned.mjs checks the text, scores it by rules and applies it only when the person's settings allow and no hard stop
 // applies; otherwise it waits for the person (« Suggested by Kaby »). The result tells the agent which one happened, so it never claims a skill is active when it is not.
-import { proposeFromAsked, proposeImprove, recordUse } from './learned.mjs'
+import { proposeFromAsked, proposeImprove, readSettings, recordUse } from './learned.mjs'
+import { repeatInfo } from './learned-repeat.mjs'
 import { noteTool, noteTurn } from './learned-taint.mjs'
 
 export const CHUNK_NAME = 'kybernos:learned-skills'
@@ -71,7 +72,10 @@ export const toolDefinitions = (deps) => {
     async execute (args, exec) {
       const sid = sessionOf(exec)
       if (sid === '') return { ok: false, error: 'no_session' }
-      const done = await proposeFromAsked({ dsh: deps.dsh(), name: str(args, 'name'), description: str(args, 'description'), steps: str(args, 'steps'), sessionId: sid, existing: await deps.existing(sid) })
+      // a fact the host read, not something the agent says: how many chats asked something alike (the chat index of Search everywhere; none without it)
+      const settings = readSettings(deps.dsh())
+      const again = await repeatInfo({ sessionId: sid, minRep: 3, windowDays: settings.win })
+      const done = await proposeFromAsked({ dsh: deps.dsh(), name: str(args, 'name'), description: str(args, 'description'), steps: str(args, 'steps'), sessionId: sid, repeats: again === null ? 0 : again.n - 1, repeatDates: again === null ? [] : again.dates, existing: await deps.existing(sid) })
       if (done.ok === true && done.state === 'applied') deps.invalidate()
       return done
     }

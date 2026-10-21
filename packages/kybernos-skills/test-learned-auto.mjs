@@ -38,7 +38,7 @@ try {
   console.log('kybernos-skills — learned skills V1, host half')
 
   // ── settings ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
-  assert.deepEqual(S.defaults(), { version: 1, mode: 'ask', threshold: 90, cap: 3, notify: 'both', privOk: false, breaker: null })
+  assert.deepEqual(S.defaults(), { version: 1, mode: 'ask', threshold: 90, cap: 3, notify: 'both', privOk: false, breaker: null, notice: true, minRep: 3, win: 60, week: true, team: true, teamMin: 3, teamPriv: false })
   assert.deepEqual(S.normalize({ mode: 'yolo', threshold: 12, cap: 7, notify: 'x', privOk: 'yes', breaker: 'soon' }), S.defaults(), 'a wrong value reads as its default')
   assert.equal(S.normalize({ mode: 'auto', threshold: 85, cap: 5, notify: 'chat', privOk: true, breaker: '2026-10-21T10:00:00.000Z' }).threshold, 85)
   const good = S.apply(S.defaults(), { mode: 'auto', threshold: 80 })
