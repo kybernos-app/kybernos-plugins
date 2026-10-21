@@ -14,7 +14,7 @@ const brand = src.match(/\/\/ KB-BRAND-CORE-BEGIN([\s\S]*?)\/\/ KB-BRAND-CORE-EN
 const core = src.match(/\/\/ KB-OB-CORE-BEGIN([\s\S]*?)\/\/ KB-OB-CORE-END/)
 const ui = src.match(/\/\/ KB-OB-UI-BEGIN([\s\S]*?)\/\/ KB-OB-UI-END/)
 if (core === null || ui === null) { console.error('BLOCKS KB-OB-CORE / KB-OB-UI NOT FOUND in packages/kybernos-plugin/client.js'); process.exit(1) }
-const names = 'KB_OB_LANGS, KB_OB_MODES, KB_OB_PROVIDERS, KB_OB_T, kbObPickLang, kbObText, kbObPlan, kbObStepOf, kbObBack, kbObBackOf, kbObEscape, kbObIsDark, kbObKeyShape, kbObProviderFromKey, kbObNeedModel, kbObNoModel, kbObPackText, kbObPackOf, kbObGoalsOf, kbObKitOf, kbObMenuOverlay, kbObKitDefaults, kbObMemoryText, kbObSkillText, kbObSetupRows'
+const names = 'KB_OB_LANGS, KB_OB_MODES, KB_OB_PROVIDERS, KB_OB_T, kbObPickLang, kbObText, kbObPlan, kbObStepOf, kbObBack, kbObBackOf, kbObEscape, kbObIsDark, kbObKeyShape, kbObProviderFromKey, kbObNeedModel, kbObNoModel, kbObPackText, kbObPackOf, kbObGoalsOf, kbObKitOf, kbObMenuOverlay, kbObFold, kbObDomainFromText, kbObMix, kbObCronLabel, KB_OB_ROWS, kbObPreviewOf, kbObAutoMade, kbObKitDefaults, kbObMemoryText, kbObSkillText, kbObSetupRows'
 const mod = await import('data:text/javascript,' + encodeURIComponent(core[1] + '\nexport { ' + names + ' }'))
 
 let fails = 0
@@ -112,26 +112,51 @@ eq('a field of work is found by its id, anything else is null', [pack('edu').id,
 eq('a pack text reads in its language, else in English, else nothing', [mod.kbObPackText('fr', edu.name), mod.kbObPackText('es', edu.name), mod.kbObPackText('en', { en: 'x' }), mod.kbObPackText('fr', null), mod.kbObPackText('en', { fr: 'seulement' })], ['Éducation', 'Education', 'x', '', ''])
 const names2 = (kit) => [kit.skills.map((x) => x.name), kit.teams]
 eq('the kit of some goals is their skills and teams, each once, in the pack\'s order (not the order they were ticked)',
-  names2(mod.kbObKitOf(edu, ['courses', 'exams'])), [['study-plan', 'flashcards', 'pdf', 'docx'], ['studencik', 'research-desk']])
+  names2(mod.kbObKitOf(edu, ['courses', 'exams'])), [['study-plan', 'flashcards', 'pdf', 'docx', 'quiz-builder'], ['studencik', 'research-desk']])
 eq('a goal listed twice, or one the pack does not know, changes nothing', names2(mod.kbObKitOf(edu, ['exams', 'exams', 'nope'])), [['study-plan', 'flashcards'], ['studencik']])
-eq('no goal, no pack or no list: an empty kit', [mod.kbObKitOf(edu, []), mod.kbObKitOf(null, ['exams']), mod.kbObKitOf(edu, null), mod.kbObKitOf(edu, 'exams')], Array(4).fill({ skills: [], teams: [], soon: [] }))
-eq('what is planned is listed once, whichever goals ask for it', mod.kbObKitOf(pack('sante'), ['notes', 'appointments', 'notes']).soon.map((x) => x.en),
-  ['Consultation-notes skill', 'Cabinet Assistant team', 'Reminder messages', 'Reminder automation'])
-eq('a goal that only plans something installs nothing', names2(mod.kbObKitOf(pack('sante'), ['appointments'])), [[], []])
+eq('no goal, no pack or no list: an empty kit', [mod.kbObKitOf(edu, []), mod.kbObKitOf(null, ['exams']), mod.kbObKitOf(edu, null), mod.kbObKitOf(edu, 'exams')], Array(4).fill({ skills: [], teams: [], autos: [], soon: [] }))
+eq('what is planned is listed once, whichever goals ask for it', mod.kbObKitOf(pack('sante'), ['notes', 'notes']).soon.map((x) => x.en), ['Cabinet Assistant team'])
+eq('the automations of the ticked goals come with the kit, each once, in the pack\'s order', mod.kbObKitOf(pack('sante'), ['appointments', 'notes', 'appointments']).autos.map((x) => x.id), ['day-reports', 'tomorrow-reminders'])
+eq('a skill the plugin ships is in the kit like any other, with the source that routes it to the plugin', mod.kbObKitOf(pack('sante'), ['notes']).skills.map((x) => x.source + ' ' + x.name), ['anthropics/skills pdf', 'anthropics/skills docx', 'kybernos consult-notes'])
 eq('a skill of a kit carries what the install route needs: a GitHub source, a name, a text per language',
-  packs.flatMap((p) => mod.kbObKitOf(p, p.goals.map((g) => g.id)).skills).filter((x) => !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(x.name) || !/^[A-Za-z0-9][A-Za-z0-9_.-]*\/[A-Za-z0-9][A-Za-z0-9_.-]*$/.test(x.source) || mod.kbObPackText('en', x.d) === '' || typeof x.d.fr !== 'string').length, 0)
+  packs.flatMap((p) => mod.kbObKitOf(p, p.goals.map((g) => g.id)).skills).filter((x) => !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(x.name) || !/^[A-Za-z0-9][A-Za-z0-9_.-]*\/[A-Za-z0-9][A-Za-z0-9_.-]*$/.test(x.source) && x.source !== 'kybernos' || mod.kbObPackText('en', x.d) === '' || typeof x.d.fr !== 'string').length, 0)
 const kit = mod.kbObKitOf(edu, ['exams', 'courses'])
-eq('everything is ticked on a first run', mod.kbObKitDefaults(kit, { skills: [], teams: [] }), ['s:study-plan', 's:flashcards', 's:pdf', 's:docx', 't:studencik', 't:research-desk'])
-eq('what is installed is not ticked again (a replay doubles nothing)', mod.kbObKitDefaults(kit, { skills: ['pdf', 'flashcards'], teams: ['studencik'] }), ['s:study-plan', 's:docx', 't:research-desk'])
-eq('a probe that failed leaves everything ticked', [mod.kbObKitDefaults(kit, null), mod.kbObKitDefaults(kit, {})].map((k) => k.length), [6, 6])
+eq('everything is ticked on a first run, the automations included', mod.kbObKitDefaults(kit, { skills: [], teams: [], autos: [] }), ['s:study-plan', 's:flashcards', 's:pdf', 's:docx', 's:quiz-builder', 't:studencik', 't:research-desk', 'a:revision-plan'])
+eq('what is installed is not ticked again (a replay doubles nothing), an automation already made is found by its name in any language the pack writes it in',
+  [mod.kbObKitDefaults(kit, { skills: ['pdf', 'flashcards'], teams: ['studencik'], autos: ['Mettre à jour mon plan de révision'] }), mod.kbObKitDefaults(kit, { skills: ['pdf'], teams: [], autos: ['refresh my revision PLAN'] }).includes('a:revision-plan')],
+  [['s:study-plan', 's:docx', 's:quiz-builder', 't:research-desk'], false])
+eq('a probe that failed leaves everything ticked', [mod.kbObKitDefaults(kit, null), mod.kbObKitDefaults(kit, {})].map((k) => k.length), [8, 8])
 eq('a skill reads in French, other languages read English', [mod.kbObSkillText('fr', kit.skills[0]), mod.kbObSkillText('es', kit.skills[0]), mod.kbObSkillText('ar', kit.skills[0])], ['Planifie les sessions de révision jusqu’à l’examen', 'Plan revision sessions up to the exam', 'Plan revision sessions up to the exam'])
-const strings = ['k.t', 'k.t0', 'k.s', 'k.skills', 'k.teams', 'k.src', 'k.add', 'k.none', 'k.skip', 'k.done', 'k.soon', 'k.note', 'k.busy', 'k.err', 'k.empty', 'k.pick', 'k.menu', 'fin.kit', 'fin.kit.n', 'fin.mem', 'fin.mem.d', 'fin.job', 'fin.goals', 'mem.job', 'mem.goals', 'mem.mode', 'job.t', 'job.s', 'goals.t', 'goals.s', 'goals.pick']
+const strings = ['k.t', 'k.t0', 'k.s', 'k.skills', 'k.teams', 'k.src', 'k.add', 'k.none', 'k.skip', 'k.done', 'k.soon', 'k.note', 'k.busy', 'k.err', 'k.empty', 'k.pick', 'k.menu', 'k.autos', 'k.autos.note', 'k.src.kb', 'job.nl', 'job.nl.ok', 'job.nl.none', 'adds.sk', 'adds.sk1', 'adds.au', 'adds.au1', 'adds.tm', 'pv.live', 'pv.hello', 'pv.new', 'pv.team', 'pv.noteam', 'pv.autos', 'pv.off', 'pv.skills', 'pv.compose', 'pv.you', 'pv.sub0', 'pv.sub', 'pv.sub1', 'pv.cap.job', 'pv.cap.goals', 'pv.cap.other', 'fin.kit', 'fin.kit.n', 'fin.mem', 'fin.mem.d', 'fin.job', 'fin.goals', 'mem.job', 'mem.goals', 'mem.mode', 'job.t', 'job.s', 'goals.t', 'goals.s', 'goals.pick']
 eq('every string of the field, goals and kit steps exists in the four languages', strings.map((k) => (Array.isArray(mod.KB_OB_T[k]) && mod.KB_OB_T[k].length === 4 && mod.KB_OB_T[k].every((v) => typeof v === 'string' && v.length > 0))), Array(strings.length).fill(true))
 eq('the memory sentence names the field, the goals and the display mode, in the wizard\'s language',
   [mod.kbObMemoryText('en', 'Health', ['Notes', 'Appointments'], 'bureau'), mod.kbObMemoryText('fr', 'Santé', ['Comptes rendus'], 'code')],
   ['Field of work: Health. Wants help with: Notes, Appointments. Prefers: Office mode.', 'Domaine : Santé. Veut de l’aide pour : Comptes rendus. Préfère : Mode Code.'])
 eq('with only some of the three it says only that, with none it says nothing', [mod.kbObMemoryText('en', 'Law', [], null), mod.kbObMemoryText('en', null, ['Notes'], null), mod.kbObMemoryText('en', null, [], 'code'), mod.kbObMemoryText('en', null, null, null), mod.kbObMemoryText('en', '', [], 'nope')],
   ['Field of work: Law.', 'Wants help with: Notes.', 'Prefers: Coding mode.', null, null])
+
+/* ── 5b'. Finding the field from a sentence, the colour, the schedule label ── */
+eq('accents and capitals do not matter', [mod.kbObFold('Kiné À LYON'), mod.kbObFold(null)], ['kine a lyon', ''])
+const field = (t) => mod.kbObDomainFromText(packs, t)
+eq('a sentence finds its field, in French or English', [field('kiné en libéral à Lyon'), field('I am a lawyer in Paris'), field('agent immobilier, mandats et locataires'), field('prof de maths au lycée'), field('Comptable en cabinet'), field('community manager et SEO'), field('développeur backend')],
+  ['sante', 'droit', 'immo', 'edu', 'fin', 'mkt', 'dev'])
+eq('a keyword counts at the start of a word only', [field('luxe'), field('retail manager'), field('codex')], [null, 'com', 'dev'])
+eq('nothing found, an empty sentence or no packs: no field', [field('xyzzy'), field(''), field(null), mod.kbObDomainFromText([], 'avocat'), mod.kbObDomainFromText(null, 'avocat')], Array(5).fill(null))
+eq('a colour mixed with white or black stays a #rrggbb', [mod.kbObMix('#000000', '#ffffff', 0.5), mod.kbObMix('#1B7F76', '#ffffff', 0), mod.kbObMix('#1B7F76', '#ffffff', 1)], ['#808080', '#1b7f76', '#ffffff'])
+eq('a schedule reads as words, in French too, and an odd one as itself',
+  [mod.kbObCronLabel('en', '0 17 * * 5'), mod.kbObCronLabel('en', '30 18 * * 1-5'), mod.kbObCronLabel('fr', '0 8 * * 1'), mod.kbObCronLabel('fr', '30 8 * * 1-5'), mod.kbObCronLabel('en', '0 9 5 * *'), mod.kbObCronLabel('fr', '0 9 1 * *'), mod.kbObCronLabel('en', '0 8 * * *'), mod.kbObCronLabel('en', '*/5 * * * *'), mod.kbObCronLabel('en', null)],
+  ['Every Friday at 17:00', 'Every weekday at 18:30', 'Chaque lundi à 8 h', 'Chaque jour de semaine à 8 h30', 'On day 5 of each month at 09:00', 'Le 1er de chaque mois à 9 h', 'Every day at 08:00', '*/5 * * * *', ''])
+eq('every schedule of every pack reads as words', packs.flatMap((p) => p.goals.flatMap((g) => g.automations.map((a) => mod.kbObCronLabel('en', a.cron)))).filter((t) => !/^(Every|On day)/.test(t)), [])
+eq('an automation already made is found by name, accents and capitals aside', [mod.kbObAutoMade(edu.goals[0].automations[0], ['Refresh my revision plan']), mod.kbObAutoMade(edu.goals[0].automations[0], ['METTRE à jour mon plan de revision']), mod.kbObAutoMade(edu.goals[0].automations[0], ['Other']), mod.kbObAutoMade(edu.goals[0].automations[0], null)], [true, true, false, false])
+const rowsIn = mod.KB_OB_ROWS.map((r) => ({ id: r[0], label: r[0].toUpperCase() }))
+const pvHealth = mod.kbObPreviewOf(pack('sante'), ['notes', 'appointments'], 'fr', rowsIn)
+eq('the miniature of a field: its colour, its name, the menu in its words, the first questions, the skills, the automations',
+  [pvHealth.accent, pvHealth.name, pvHealth.example, pvHealth.menu.find((r) => r.id === 'dashboards').label, pvHealth.menu.find((r) => r.id === 'kyber').label, pvHealth.menu.some((r) => r.id === 'documents'), pvHealth.starters.length, pvHealth.skills.includes('consult-notes'), pvHealth.autos.length, pvHealth.goalCount],
+  ['#1B7F76', 'Santé', false, 'Mon activité', 'KYBER', false, 2, true, 2, 2])
+eq('no goal ticked: an example made of the first two goals, flagged', [mod.kbObPreviewOf(pack('sante'), [], 'en', rowsIn).example, mod.kbObPreviewOf(pack('sante'), [], 'en', rowsIn).goalCount, mod.kbObPreviewOf(pack('sante'), [], 'en', rowsIn).skills.includes('pdf')], [true, 0, true])
+eq('a language the pack does not write keeps the menu\'s own words, and no pack means no miniature', [mod.kbObPreviewOf(pack('sante'), ['notes'], 'es', rowsIn).menu.find((r) => r.id === 'dashboards').label, mod.kbObPreviewOf(null, [], 'en', rowsIn), mod.kbObPreviewOf(pack('dev'), ['review'], 'en', rowsIn).menu.length], ['DASHBOARDS', null, 9])
+eq('the miniature suggests at most one team, three questions, seven skills and three automations', packs.every((p) => { const m = mod.kbObPreviewOf(p, p.goals.map((g) => g.id), 'en', rowsIn); return m.teams.length <= 1 && m.starters.length <= 3 && m.skills.length <= 7 && m.autos.length <= 3 }), true)
+eq('the rows of the miniature are the rows of the menu', mod.KB_OB_ROWS.map((r) => r[0]), ['kyber', 'dashboards', 'aiteams', 'projects', 'deliverables', 'tasks', 'skills', 'connectors', 'documents'])
 
 /* ── 5c. The menu wording a pack gives ───────────────────────────────────── */
 const health = pack('sante')
@@ -256,7 +281,7 @@ eq('the old wizard\'s texts are gone from the dictionary', /'ob\.(bienvenue|meti
 eq('Arabic is a right-to-left base of the app too', /KB_RTL_BASES = \[[^\]]*'ar'/.test(src), true)
 eq('the wizard never calls a host route it does not know', [...ui[1].matchAll(/'(\/(?:kybernos-cloud|kybernos-models|kybernos|modeles-locaux|free-llms)[^']*)'/g)].map((m) => m[1]).filter((p, i, a) => a.indexOf(p) === i).sort(),
   ['/free-llms/auto-enable', '/kybernos-auto/state', '/kybernos-cloud/disconnect', '/kybernos-cloud/memory/add', '/kybernos-cloud/memory/update', '/kybernos-cloud/poll', '/kybernos-cloud/start', '/kybernos-cloud/status',
-    '/kybernos-memory/settings', '/kybernos-models/key/check', '/kybernos-sessions/settings', '/kybernos-skills/install', '/kybernos-skills/skills', '/kybernos-websearch/state', '/kybernos/composio/provider', '/kybernos/domains', '/kybernos/model/auto', '/modeles-locaux/annuler', '/modeles-locaux/installation', '/modeles-locaux/installer', '/modeles-locaux/machine'])
+    '/kybernos-memory/settings', '/kybernos-models/key/check', '/kybernos-sessions/settings', '/kybernos-skills/install', '/kybernos-skills/skills', '/kybernos-websearch/state', '/kybernos/composio/provider', '/kybernos/domain/skill', '/kybernos/domains', '/kybernos/model/auto', '/kybernos/tasks', '/modeles-locaux/annuler', '/modeles-locaux/installation', '/modeles-locaux/installer', '/modeles-locaux/machine'])
 // The pages it hands over to are named by the id the Settings nav gives them (language-proof), and must be ids that nav knows.
 const navKeys = src.match(/const KB_NAV_KEYS = \{([\s\S]*?)\n\}/)[1]
 const known = new Set([...navKeys.matchAll(/(?:'([a-z0-9-]+)'|\b([a-z]+)):\s*'/g)].map((m) => m[1] || m[2]))
