@@ -95,6 +95,11 @@
           }
         }
       ],
+      "connectors": [
+        "canva",
+        "notion",
+        "linkedin"
+      ],
       "automations": [
         {
           "id": "weekly-content-plan",
@@ -151,6 +156,11 @@
       "teams": [
         "inbound-closer"
       ],
+      "connectors": [
+        "mailchimp",
+        "klaviyo",
+        "hubspot"
+      ],
       "automations": [
         {
           "id": "campaign-report",
@@ -200,6 +210,10 @@
           }
         }
       ],
+      "connectors": [
+        "ahrefs",
+        "googlesheets"
+      ],
       "starter": {
         "en": "Audit this page for SEO",
         "fr": "Audite cette page pour le SEO"
@@ -229,6 +243,9 @@
           }
         }
       ],
+      "connectors": [
+        "notion"
+      ],
       "starter": {
         "en": "Re-read this text in our brand voice",
         "fr": "Relis ce texte avec notre voix de marque"
@@ -257,6 +274,10 @@
             "fr": "Construit des présentations"
           }
         }
+      ],
+      "connectors": [
+        "canva",
+        "figma"
       ],
       "starter": {
         "en": "Build a five-slide deck on this brief",

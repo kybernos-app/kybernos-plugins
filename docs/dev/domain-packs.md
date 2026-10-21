@@ -30,9 +30,10 @@ and logged, it never stops the host).
 | `home` | ids of the new-chat templates this field wants first (`doc sheet slides automation website plugin…`) |
 | `legacyJobs` | ids the old 12-profession step stored (`soft`, `etudes`…): a saved `profil` of that id reads as this field |
 | `menu.labels`, `menu.hide` | rename our menu rows (`kyber dashboards aiteams projects deliverables tasks skills connectors documents`); hide only `documents` |
-| `goals[]` | `id`, `name`, `title`, `desc`, `skills`, `teams`, `automations`, `soon`, `starter` |
+| `goals[]` | `id`, `name`, `title`, `desc`, `skills`, `teams`, `connectors`, `automations`, `soon`, `starter` |
 | `goals[].skills` | `{ source, name, d }`. `source` is a GitHub `owner/repo` (installed through `/kybernos-skills/install`, which refuses a pair that does not exist) or `kybernos` for a skill this plugin ships in `domains/skills/<name>/SKILL.md` |
 | `goals[].teams` | ids of the Agent Teams of the marketplace (`studencik`, `research-desk`, `inbound-closer`), created through `kybers/create` |
+| `goals[].connectors` | slugs of apps of the Connectors catalogue (`packages/kybernos-composio/catalog.js`, at most 4, a test checks each exists): **suggested**, never connected for the person (each needs their own authorisation) |
 | `goals[].automations` | `{ id, name, prompt, cron }` (texts per language, five cron fields): created **switched off** through `/kybernos/tasks`, approvals on « ask » |
 | `goals[].soon` | names of things planned and not installable yet: listed greyed, never installed |
 | `goals[].starter` | a first question, shown in the miniature |
@@ -62,6 +63,21 @@ The kit is the union of the skills, teams and automations of the ticked goals. T
 5. **Wording and highlights, read from the saved field**: the menu rows take the pack's labels (only in a language the pack writes), and the
    new-chat page lists the pack's `home` templates first (`kbNcSlider(bootIds, first)`).
 
+### On the pages
+
+The saved field and goals also shape the pages the person opens, with no engine patch. `kybernos-plugin` publishes a read-only seam,
+`window.__KB_DOMAIN__` (same idiom as `__KB_SKEL__`, `__KB_CUSTOMIZE__`): `field()`, `label(rowId)`, `skills()`, `connectors()`, `installSkill(name)`,
+`openKit()`, `subscribe(fn)`. The bundles that draw the Skills, Connectors and Dashboards pages read it at each draw and redraw on a change; without
+it (or with no saved field) they draw exactly what they drew before.
+
+| Page | What the field changes |
+|---|---|
+| Every page that has a menu row | its **title is the menu's word** (`Deeds and notes`, `Deadlines`, `My firm`, `Legal team`), in a language the pack writes, else the page's own title |
+| Creations | the **type tiles** come in the field's order: its `home` templates read as tiles (`doc`→Documents, `sheet`→Spreadsheets, `slides`→Slides, `image`→Images, `video`→Audio & Video, `website`→Websites, `miniapp`→Mini-app), the others keep their order; the Customize panel lists the same order. No new pack key |
+| Skills › Featured | a section **For your field · Law** above the categories: every skill of the pack once, the ticked goals' first, each with its goal as a tag. A skill from GitHub goes through the usual install confirmation; one the plugin ships is a plain copy (`installSkill`), shown as installed at once. No cover and no audit of its own. Not drawn on a category or a search |
+| Connectors › Discover | the same section above « Popular », with the same cards tagged by goal (an app shown there is not repeated below); not drawn on a search or a filter |
+| Connectors › Yours | with nothing connected, one line naming the field's apps and a button to Discover |
+
 Switching to another field later follows three rules: **replaces** the menu wording, the home order and the saved choice (reversible); **adds
 only** skills, teams and automations (never removed by a switch); **never touches** sessions, memory, workspaces or anything the person made.
 
@@ -75,11 +91,14 @@ only** skills, teams and automations (never removed by a switch); **never touche
 | Automations (off) | `/kybernos/tasks` | **wired** |
 | Menu wording, hidden rows | `SalesMenu` rows (our own component, no engine patch) | **wired** |
 | Home order | `kbNcSlider(bootIds, first)` in `KbNewChatCards` | **wired** |
+| Page titles, Creations tiles | `kbDomainTitle`, `kbObTileSort` (one subscription in `KybersMain`) | **wired** |
+| Skills and Connectors sections | `window.__KB_DOMAIN__` read by `kybernos-skills` and `kybernos-composio` | **wired** |
 | Saved choice | `onboarding.json` | **wired** |
 | Theme per field | theme presets (`theme-presets.json`, plain data). No public « apply a preset » call was found | next |
 | « What do you want to see first » | order of the menu and the home | next |
 | Dashboards | `*.miniapp.json` and `presets.mjs`. Sources are internal only; tiles fed by a connected app need a new source kind. Until then a dashboard shows samples marked as such | next |
-| Connectors | suggested in the Connectors page; each needs the person's authorisation | next (suggest only) |
+| Connectors | suggested in the Connectors page (Discover section, Yours line); each needs the person's authorisation | **wired** (suggest only) |
+| Page descriptions in the field's words, a nudge on Automations for the switched-off ones the kit made | the page's own sentence | next |
 | Per team | see below | next |
 
 ## Per team (not wired yet)
@@ -113,8 +132,10 @@ a pack and that every skill an automation names exists.
 - `node packages/kybernos-plugin/test-onboarding-state.mjs`: the saved fields, an older file still reads as done.
 - `node scripts/test-onboarding.mjs`: the wizard's pure core (steps, kit, sentence matching, miniature model, cron labels, menu wording).
 - `node packages/kybernos-plugin/test-newchat.mjs`: the home order.
+- `node packages/kybernos-skills/test-picks.mjs`, `node packages/kybernos-composio/test-connectors-ui.mjs`: the Skills and Connectors sections (source level).
 - Live, sandbox only: `node scripts/check-onboarding-live.mjs` (tiles, miniature, sentence, goals, kit with a shipped skill and an automation, the
-  saved choice, the menu wording on the real page).
+  saved choice, the menu wording on the real page, and the pages: titles in English and French, the Creations tiles, the Skills and Connectors sections
+  with a shipped skill installed and a GitHub one stopped at its confirmation, no field = the pages as before).
 
 ## Open decisions
 

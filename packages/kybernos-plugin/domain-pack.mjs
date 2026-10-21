@@ -22,11 +22,13 @@ export const ICONS = ['cap', 'heart', 'house', 'scales', 'trend', 'bag', 'mega',
 export const HOME_IDS = ['slides', 'doc', 'sheet', 'dashboard', 'image', 'video', 'website', 'miniapp', 'model3d', 'automation', 'team', 'skill', 'plugin']
 /** The `source` of a skill the plugin itself ships (domains/skills/<name>/SKILL.md), installed by `POST /kybernos/domain/skill`. */
 export const BUNDLED_SOURCE = 'kybernos'
-export const LIMITS = { goals: 12, skills: 8, teams: 3, soon: 4, automations: 3, text: 160, prompt: 900, keywords: 40, keyword: 24, home: 6, legacy: 8 }
+export const LIMITS = { goals: 12, skills: 8, teams: 3, soon: 4, automations: 3, connectors: 4, text: 160, prompt: 900, keywords: 40, keyword: 24, home: 6, legacy: 8 }
 
 const ID_RE = /^[a-z][a-z0-9-]{1,23}$/
 const SKILL_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 const SOURCE_RE = /^[A-Za-z0-9][A-Za-z0-9_.-]*\/[A-Za-z0-9][A-Za-z0-9_.-]*$/
+// The slug of an app of the Connectors catalogue (packages/kybernos-composio/catalog.js): lower case, digits and underscores.
+const APP_RE = /^[a-z0-9_]{2,40}$/
 const TEAM_RE = /^[a-z0-9][a-z0-9-]{0,40}$/
 const JOB_RE = /^[a-z][a-z0-9-]{1,23}$/
 const COLOR_RE = /^#[0-9a-fA-F]{6}$/
@@ -113,11 +115,11 @@ export const validatePack = (raw, fileId) => {
   rawGoals.forEach((g, i) => {
     const where = 'goals[' + i + ']'
     if (!plain(g)) { errors.push(where + ': an object'); return }
-    only(g, ['id', 'name', 'title', 'desc', 'skills', 'teams', 'automations', 'soon', 'starter'], where, errors)
+    only(g, ['id', 'name', 'title', 'desc', 'skills', 'teams', 'connectors', 'automations', 'soon', 'starter'], where, errors)
     if (typeof g.id !== 'string' || !ID_RE.test(g.id)) errors.push(where + '.id: not a valid id')
     else if (seenGoal[g.id] === true) errors.push(where + '.id: "' + g.id + '" appears twice')
     else seenGoal[g.id] = true
-    const goal = { id: g.id, name: textOf(g.name, where + '.name', errors), title: textOf(g.title, where + '.title', errors), desc: textOf(g.desc, where + '.desc', errors), skills: [], teams: [], automations: [], soon: [], starter: null }
+    const goal = { id: g.id, name: textOf(g.name, where + '.name', errors), title: textOf(g.title, where + '.title', errors), desc: textOf(g.desc, where + '.desc', errors), skills: [], teams: [], connectors: [], automations: [], soon: [], starter: null }
     const seenSkill = {}
     for (const [j, s] of listOf(g.skills, LIMITS.skills, where + '.skills', errors).entries()) {
       const sw = where + '.skills[' + j + ']'
@@ -133,6 +135,10 @@ export const validatePack = (raw, fileId) => {
     for (const t of listOf(g.teams, LIMITS.teams, where + '.teams', errors)) {
       if (typeof t !== 'string' || !TEAM_RE.test(t)) errors.push(where + '.teams: "' + String(t) + '" is not a team id')
       else if (goal.teams.indexOf(t) < 0) goal.teams.push(t)
+    }
+    for (const c of listOf(g.connectors, LIMITS.connectors, where + '.connectors', errors)) {
+      if (typeof c !== 'string' || !APP_RE.test(c)) errors.push(where + '.connectors: "' + String(c) + '" is not an app slug')
+      else if (goal.connectors.indexOf(c) < 0) goal.connectors.push(c)
     }
     const seenAuto = {}
     for (const [j, a] of listOf(g.automations, LIMITS.automations, where + '.automations', errors).entries()) {

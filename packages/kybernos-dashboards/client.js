@@ -1680,6 +1680,24 @@ window.__ModuleLoader__.load({
           } catch (e) { /* no dictionary: English */ }
           return en
         }
+        /** The page's name: the word the Kybernos menu gives this row in the person's field of work (`window.__KB_DOMAIN__`, published by kybernos-plugin), else « Dashboards ». */
+        const pageName = () => {
+          try {
+            const w = window.__KB_DOMAIN__
+            const l = w !== null && w !== undefined && typeof w.label === 'function' ? w.label('dashboards') : null
+            if (typeof l === 'string' && l.trim() !== '') return l
+          } catch (e) { /* no such seam: the default name */ }
+          return kt('Dashboards', 'Dashboards')
+        }
+        /** Redraws the page when the saved field changes (the title above follows it). */
+        const useDomainTick = () => {
+          const set = React.useState(0)[1]
+          React.useEffect(() => {
+            let stop = null
+            try { if (window.__KB_DOMAIN__ && typeof window.__KB_DOMAIN__.subscribe === 'function') stop = window.__KB_DOMAIN__.subscribe(() => set((n) => n + 1)) } catch (e) { stop = null }
+            return () => { try { if (typeof stop === 'function') stop() } catch (e) { /* gone */ } }
+          }, [])
+        }
         /** 'fr' for a French UI, 'en' for every other language: what a date format or a weekday table is keyed by. */
         const langBase = () => { const l = lang(); return l === 'kybernos' || l.slice(0, 2) === 'fr' ? 'fr' : 'en' }
         const WEEKDAYS = {
@@ -2566,6 +2584,7 @@ window.__ModuleLoader__.load({
           const [list, setList] = useState(null)
           const [presets, setPresets] = useState([])
           const [failed, setFailed] = useState(false)
+          useDomainTick()
           const [screen, setScreen] = useState('boot')
           const [dash, setDash] = useState(null) // { id, dashboard, rev, history, isDefault }
           const [edit, setEdit] = useState(false)
@@ -2704,7 +2723,7 @@ window.__ModuleLoader__.load({
           const header = screen === 'dash' && D !== null
             ? h('header', { className: 'kbdb-ph' },
               h('div', { className: 'kbdb-ph-l' },
-                h('div', { className: 'kbdb-crumb' }, h('button', { type: 'button', onClick: toGallery }, kt('Dashboards', 'Dashboards')), h('span', null, '/'), h('span', null, D.name), dash.isDefault ? h('span', { className: 'kbdb-pill def' }, kt('Par défaut', 'Default')) : null),
+                h('div', { className: 'kbdb-crumb' }, h('button', { type: 'button', onClick: toGallery }, pageName()), h('span', null, '/'), h('span', null, D.name), dash.isDefault ? h('span', { className: 'kbdb-pill def' }, kt('Par défaut', 'Default')) : null),
                 h('h1', { className: 'kbdb-title' }, h('span', { className: 'kbdb-rel' },
                   h('button', { type: 'button', 'aria-haspopup': 'listbox', 'aria-expanded': pop === 'switch', onClick: () => setPop(pop === 'switch' ? '' : 'switch') }, D.name, Ic('chev', 16)),
                   pop === 'switch' ? h('div', { className: 'kbdb-pop', role: 'listbox' },
@@ -2735,7 +2754,7 @@ window.__ModuleLoader__.load({
             // bar's trailing action does elsewhere.
             : h('header', { className: 'kbdb-gal-head kb6-headrow' },
               h('div', { className: 'kb6-headcol' },
-                h('div', { className: 'kb6-titlerow' }, h('h1', { className: 'kb6-title' }, kt('Dashboards', 'Dashboards')), typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-dashboards' }) : null),
+                h('div', { className: 'kb6-titlerow' }, h('h1', { className: 'kb6-title' }, pageName()), typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-dashboards' }) : null),
                 h('p', { className: 'kb8-sub' }, kt('Tes dashboards sont des fichiers. Pars d’un preset, ou demande à l’IA d’en construire un.', 'Your dashboards are files. Start from a preset, or ask the AI to build one.'))),
               h('div', { className: 'kb6-headacts' },
                 hiddenCount > 0 ? h('button', { type: 'button', className: 'kbdb-btn', 'aria-pressed': showHidden, onClick: () => setShowHidden((v) => !v) }, Ic('eyeoff', 14), kt('Masqués', 'Hidden'), h('span', { style: { color: 'var(--kbdb-t3)' } }, hiddenCount)) : null,
