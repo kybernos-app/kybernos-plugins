@@ -23,7 +23,7 @@ const routes = new Map()
 const ctx = { get: (n) => (n === 'webServer' ? { register: ({ path, handler }) => { routes.set(path, handler); return () => {} } } : undefined), inject: () => {}, effect: (fn) => { void fn() } }
 mod.apply(ctx)
 
-check('three routes are mounted', [...routes.keys()].sort().join() === '/kybernos-registry/contributions,/kybernos-registry/enable,/kybernos-registry/state', [...routes.keys()])
+check('three routes are mounted', [...routes.keys()].sort().join() === '/kybernos-registry/consent,/kybernos-registry/contributions,/kybernos-registry/state', [...routes.keys()])
 check('the seam is published, version 1, and it is the same object after a second apply', globalThis[SEAM] !== undefined && globalThis[SEAM].version === 1 && (mod.apply(ctx), globalThis[SEAM] === mod.ensureRegistry()))
 check('booting read and wrote nothing', !existsSync(join(dsh, 'kybernos')) && readdirSync(decoy).length === 0, readdirSync(dsh))
 
@@ -36,24 +36,28 @@ const hit = async (path, { method = 'GET', headers = {}, socket = true, host = '
   return { status: out.status, json, headers: out.headers }
 }
 
-// a plugin, and a point the owner (here: the test) defines through the seam
-const dir = join(dsh, 'kybernos', 'plugins', 'local', 'vet')
+// a plugin as DSH's plugin manager leaves it in the profile, and a point the owner (here: the test) defines through the seam
+const profile = join(dsh, 'profiles', 'web')
+const dir = join(profile, 'node_modules', 'kybernos-plugin-vet')
 mkdirSync(join(dir, 'domains'), { recursive: true })
+writeFileSync(join(profile, 'package.json'), JSON.stringify({ dependencies: { 'kybernos-plugin-vet': '1.0.0' }, dsh: { profile: { bundles: ['kybernos-plugin-vet'] } } }))
+writeFileSync(join(dir, 'package.json'), JSON.stringify({ name: 'kybernos-plugin-vet', version: '1.0.0', dsh: { bundle: { patch: './cordis.patch.yml' } } }))
+writeFileSync(join(dir, 'cordis.patch.yml'), '[]\n')
 writeFileSync(join(dir, 'plugin.json'), JSON.stringify({
-  contract: 1, id: 'local/vet', kind: 'data', version: '0.1.0', name: { en: 'Vet' }, description: { en: 'A pack.' }, author: { id: 'local', name: 'Me' }, license: 'MIT', pricing: 'free',
+  contract: 1, id: 'acme/vet', kind: 'data', version: '0.1.0', name: { en: 'Vet' }, description: { en: 'A pack.' }, author: { id: 'acme', name: 'Acme' }, license: 'MIT', pricing: 'free',
   requires: { kybernos: '>=0.1.0', plugins: { 'kybernos/core': '^1.0' } }, extends: [{ point: 'kybernos/core#domain-pack', range: '^1.0', dir: 'domains' }]
 }))
 writeFileSync(join(dir, 'domains', 'vet.json'), JSON.stringify({ id: 'vet' }))
 globalThis[SEAM].definePoint({ owner: 'kybernos/core', ownerVersion: '1.0.0', name: 'domain-pack', version: '1.0', kind: 'data', class: 'instruction', validate: (raw, id) => (raw.id === id ? { ok: true, value: raw } : { ok: false, errors: ['id'] }) })
 
 const state = await hit('/kybernos-registry/state')
-check('state: the plugin is listed, off, with its point', state.status === 200 && state.json.ok === true && state.json.plugins.length === 1 && state.json.plugins[0].id === 'local/vet' && state.json.plugins[0].status === 'disabled' && state.json.points[0].id === 'kybernos/core#domain-pack', state.json)
+check('state: the plugin DSH installed is listed, waiting for the person\'s acceptance, with its point', state.status === 200 && state.json.ok === true && state.json.plugins.length === 1 && state.json.plugins[0].id === 'acme/vet' && state.json.plugins[0].status === 'needs-consent' && state.json.points[0].id === 'kybernos/core#domain-pack', state.json)
 check('state: the answer is not cached by the browser', state.headers['cache-control'] === 'no-store', state.headers)
-globalThis[SEAM].setEnabled('local/vet', true)
+globalThis[SEAM].setConsent('acme/vet', true)
 const contrib = await hit('/kybernos-registry/contributions?point=' + encodeURIComponent('kybernos/core#domain-pack'))
-check('contributions: what the enabled plugin gives the point', contrib.status === 200 && contrib.json.contributions.length === 1 && contrib.json.contributions[0].value.id === 'vet', contrib.json)
+check('contributions: what the accepted plugin gives the point', contrib.status === 200 && contrib.json.contributions.length === 1 && contrib.json.contributions[0].value.id === 'vet', contrib.json)
 check('contributions: a point must be owner/name#point', (await hit('/kybernos-registry/contributions?point=x')).status === 400 && (await hit('/kybernos-registry/contributions')).status === 400)
-check('the wrong method is 405', (await hit('/kybernos-registry/state', { method: 'POST' })).status === 405 && (await hit('/kybernos-registry/enable', { method: 'GET' })).status === 405)
+check('the wrong method is 405', (await hit('/kybernos-registry/state', { method: 'POST' })).status === 405 && (await hit('/kybernos-registry/consent', { method: 'GET' })).status === 405)
 check('a read from a foreign Origin is refused', (await hit('/kybernos-registry/state', { headers: { origin: 'http://evil.example' } })).status === 403)
 check('a read under a foreign Host (a rebound page) is refused, with or without an Origin', (await hit('/kybernos-registry/state', { host: 'attacker.example:3080' })).status === 403 && (await hit('/kybernos-registry/state', { host: 'attacker.example:3080', headers: { origin: 'http://attacker.example:3080' } })).status === 403)
 check('a read with the right Origin and no cookie is fine (reads need none)', (await hit('/kybernos-registry/state', { headers: { origin: 'http://127.0.0.1:3080' } })).status === 200)

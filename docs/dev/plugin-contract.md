@@ -1,6 +1,6 @@
 # The Kybernos plugin contract (free and paid): draft v0
 
-Status: **specification, 2026-10-21. Phase 1 (the manifest on the 42 modules and its validator) and the foundation of phase 2 (the registry, the seam, the folder scan, the domain-pack point) are built, see section 14; the Plugins page is a mockup; everything else is still only written down.** The six decisions of section 16 and the registry bundle of
+Status: **specification, 2026-10-21. Phase 1 (the manifest on the 42 modules and its validator) and the foundation of phase 2 (the registry, the seam, the domain-pack point, reading what DSH's own plugin manager installed: section 17) are built, see section 14; the Plugins page is a mockup; everything else is still only written down.** The six decisions of section 16 and the registry bundle of
 section 6.5 were **taken on 2026-10-21: the owner accepted every recommendation**. Section 2 lists where this draft disagrees with the first proposal.
 
 The idea is WordPress's: a plugin is a folder with a header (who, which version, which platform versions, which licence, where updates come
@@ -236,7 +236,7 @@ Three axes, all declared, all checked before anything is mounted or read.
 segment may not change), which matters because the suite is `0.1.x`. **DSH uses the `{ min, max }` object, not a range string**, and pre-releases
 count as ordinary versions in it: every DSH version in `dsh-compat.json` is a pre-release (`0.2.1-rc.2` is the newest), and an npm-style "satisfies" would never match them.
 
-**Status.** At boot the registry gives each installed plugin one status: `ok`, `disabled`, `needs-dsh`, `needs-kybernos`, `missing-dependency`,
+**Status.** At boot the registry gives each installed plugin one status: `ok`, `disabled`, `needs-consent`, `needs-dsh`, `needs-kybernos`, `missing-dependency`,
 `incompatible-point`, `revoked`, `invalid`. Anything but `ok` is **not mounted** (code) or **not read** (data), is listed in the Suite panel with its
 reason, and never stops DSH from starting (AGENTS.md rule 2). A broken plugin is a line in a list.
 
@@ -410,14 +410,15 @@ refunds). The manifest already has room for it (`model: "account"` with a vendor
 
 ## 9. Trust, review and signing
 
-### 9.1 Four levels
+### 9.1 Five levels
 
 | Level | Meaning | What proves it | Data plugin | Code plugin |
 |---|---|---|---|---|
 | **Official** | made and shipped by Kybernos | the suite release key, or the official catalogue key, and namespace `kybernos` | yes | yes (today's suite) |
 | **Verified** | **this exact version** was reviewed by us | the author's signature **and** a reviewer's countersignature on the same archive hash | yes | not in v1 (decision 1) |
 | **Community** | signed by its author, not reviewed | the author's signature, key published in a catalogue the person added | yes, with a plain warning | **not offered in v1** |
-| **Local development** | a folder on this computer | nothing | yes, namespace `local`, never updated | the bundle in a checkout, as today |
+| **Local development** | a folder of this computer, installed with `link:` or `file:` | nothing | yes, may use the namespace `local` | the bundle in a checkout, as today |
+| **Unlisted** | installed through DSH's installer from npm, GitHub or a tarball, with no catalogue entry | nothing: no signature, not reviewed | yes, with a plain warning and the person's acceptance of any instruction | listed as **unreviewed code**: DSH's own door, and the manager's own warning |
 
 The card shows the level, the author, the licence, the last update and the permissions. **A level never survives a change**: an update that adds
 a permission, a host or a point never applies silently, and a Verified plugin whose new version is not reviewed is shown as Community until it is.
@@ -545,14 +546,15 @@ that the draft left open:
 
 **Phase 2 foundation as built** (`packages/kybernos-registry`, the sixth socle bundle, mounted first). What it does is in its README; what the build settled:
 
-- The registry **reads on demand, never at boot** (a scan is reused for two seconds), so a broken plugin cannot stop DSH from starting. A folder it cannot accept is listed `invalid` with its reasons and logged once.
-- Only **`local/<name>`** folders are read (`<DSH home>/kybernos/plugins/local/<name>/plugin.json`, namespace `local`, level Local). A folder of another author is listed invalid until phase 3 brings the signed catalogue. A **code** plugin is never loaded from a folder.
-- A plugin seen for the first time is **off** (`disabled`), whatever its class, until the person switches it on (`POST /kybernos-registry/enable`: strict same origin and the signed session cookie). The choice lives in `<DSH home>/kybernos/plugins-state.json` (0600).
-- **Nothing in a plugin folder is run**: no import, eval or fetch, no symbolic link followed, files read as bounded text (manifest 64 KiB, contribution 256 KiB, 32 files per extension, 64 plugins) and parsed as JSON; a test greps the registry's own sources for `import(`, `eval`, `new Function`, `child_process`.
+- The registry **reads on demand, never at boot** (a scan is reused for two seconds), so a broken plugin cannot stop DSH from starting. A package it cannot accept is listed `invalid` with its reasons and logged once.
+- **It reads what DSH's own plugin manager installed** (section 17), and installs and switches nothing: `<DSH home>/profiles/web/package.json` (`dependencies`: what is installed and from where; `dsh.profile.bundles`: what is selected) and `node_modules/<name>/plugin.json`. A package without a `plugin.json`, one of our `@local/*` modules and the engine's packages are not plugins of this kind and are left alone. The level comes from the install: a `link:`/`file:`/path dependency is **Local**, anything DSH fetched is **Unlisted**. The `kybernos/plugins/local` folder of the first build is gone (a `file:` or `link:` install does the same, with DSH's switch).
+- **A data plugin cannot make DSH load or run anything**: its patch is an empty list (comments allowed), it has no `dsh.client` or other `dsh` key, no install script, no `bin`; otherwise it is `invalid` whatever its manifest says. Verified with DSH itself on 2026-10-21: `dsh plugin add file:<dir>` (the manager the Plugins page and the `plugin_manager` tool share) accepts such a package, selects it as a bundle, and a DSH booted on it loads nothing and prints only its usual lines; `dsh plugin remove` takes it away. A package that is a **plain dependency** (no `dsh.bundle`) is read too and is always on.
+- **Switching on and off is DSH's** (its Plugins page toggles `dsh.profile.bundles`). What is ours is the person's **acceptance**: a data plugin that contributes to a point of the instruction class (skills, prompts, packs) is `needs-consent` until the person has read and accepted it (`POST /kybernos-registry/consent`: strict same origin and the signed session cookie; kept in `<DSH home>/kybernos/plugins-state.json`, 0600); inert data needs none. A code plugin DSH installed is listed with what it declares, as unreviewed code; nothing is contributed from it.
+- **Nothing in a package is run**: no import, eval or fetch; a symbolic link is followed only at the top, into the profile's own store (where pnpm puts it) or to a folder the person linked, and never inside a package; files are read as bounded text (manifest 64 KiB, contribution 256 KiB, 32 files per extension, 64 plugins) and parsed as JSON; a test greps the registry's own sources for `import(`, `eval`, `new Function`, `child_process`.
 - The owner of a point **registers it at run time** through the host seam (`definePoint`, idempotent, called at boot and at each question because mount order is not guaranteed); the registry judges `extends` and `requires.plugins` against those points. `requires.dsh` is read but **not enforced** (no reliable DSH version in the process); `requires.kybernos` is enforced from `VERSION`.
 - `kybernos/core#domain-pack` is the first point. A contributed pack goes through the same `validatePack` as a shipped one, comes after ours with its `order` held between 50 and 98, cannot reuse an id or a legacy job, and says where it came from (`from`). A plugin pack cannot ship skill folders yet (that is the `skill` point); it can name GitHub skills and the skills we ship.
 - The page seam is created when `client.js` is evaluated, announces itself with the event `kybernos:registry`, and the core offers `{ domain }` as `kybernos/core` (and keeps `__KB_DOMAIN__` as the alias). The validator and its schema moved into the bundle (the dev scripts re-export them); the copy in `docs/dev/schemas/` is kept identical by a test.
-- Checked on a real `dsh web` in the sandbox (`scripts/check-registry-live.mjs`, 24 checks) and in its page (`window.__KB__` version 1, the core's service is the legacy global). Not done: the real profile is not switched on, the Plugins page is not built.
+- Checked on a real `dsh web` in the sandbox with DSH's own installer doing the install and the removal (`scripts/check-registry-live.mjs`, 24 checks) and in its page (`window.__KB__` version 1, the core's service is the legacy global). Not done: the real profile is not switched on, the Plugins page is not built.
 
 Each phase is a set of PRs that keep the three pre-push gates green, add no engine patch, and delete what the new thing supersedes.
 
@@ -584,11 +586,11 @@ DSH already has a plugin installer, and the owner asked that the contract sit on
 - A **bundle** is a package whose `package.json` has `dsh.bundle.patch`; the manager reads that **without loading the package's JavaScript**. A package without it is installed as a **plain dependency, not a profile layer** (the CLI says so; the Web dialog refuses it as `not-a-bundle`). A bundle's patch is a top-level YAML list of entries; each entry that names a module is what DSH loads.
 - Updating a non-official plugin is uninstall and reinstall. Every one of our 43 modules is already a bundle of this manager.
 
-**What follows, to confirm in the sandbox before anything is built:**
+**What follows. Points 2 and 3 were verified and built on 2026-10-21 (section 14, "Phase 2 foundation as built"):**
 
 1. **Install, remove, enable, registries, logs and cancel stay DSH's.** The Suite's "Add a plugin" hands over to the native dialog (after our own check, below); we build none of it.
-2. **A Kybernos plugin is a DSH package with a `plugin.json` at its root.** A **code** plugin is a normal bundle: nothing new to install; the manifest adds the card (level, permissions, price). A **data** plugin is a bundle whose **patch is an empty list**: the Web dialog accepts it, DSH lists and toggles it like any bundle, and since no entry names a module, **no JavaScript is ever loaded**. (Assumption to verify: an empty list is an accepted patch. Fallback: a plain dependency installed with `dsh plugin add`, which loads nothing either but is not offered by the Web dialog.)
-3. **The registry reads what DSH installed**, not its own folder: `<DSH home>/profiles/web/package.json` (the bundles that are selected) and `node_modules/<name>/plugin.json`. "Enabled" is DSH's selection. The `local/` folder of the phase-2 registry becomes a developer convenience (`file:` installs do the same) and is a candidate for removal.
+2. **A Kybernos plugin is a DSH package with a `plugin.json` at its root.** A **code** plugin is a normal bundle: nothing new to install; the manifest adds the card (level, permissions, price). A **data** plugin is a bundle whose **patch is an empty list**: the Web dialog accepts it, DSH lists and toggles it like any bundle, and since no entry names a module, **no JavaScript is ever loaded**. (Verified: an empty list is an accepted patch, `dsh plugin add` selects the bundle and DSH boots on it loading nothing. A plain dependency, installed the same way without `dsh.bundle`, loads nothing either but is not offered by the Web dialog.)
+3. **The registry reads what DSH installed**, not its own folder: `<DSH home>/profiles/web/package.json` (the bundles that are selected) and `node_modules/<name>/plugin.json`. "Enabled" is DSH's selection. The `local/` folder of the first phase-2 build is removed: a `file:` or `link:` install does the same.
 4. **What we still add**, on top: the card (level, permissions in words, price and key); a **consent step** for instruction data (a plugin that is installed and selected contributes nothing until the person has read and accepted it: our state, since DSH enables on install); a check at read time that a "data" plugin's patch names no module (otherwise it is shown as unreviewed code, whatever it says); our **signed catalogue as a discovery source** that hands the native installer a pinned spec, with the archive hash checked before; revocation (the registry asks the manager to deselect); the vendor key and the entitlement call.
 5. **Honest consequence.** The native door is a code door by design. Third-party code is therefore *possible already*, as DSH's own feature, whatever decision 1 says; decision 1 now reads: **our catalogue lists, and we vouch for, data plugins only; code that comes from elsewhere is DSH's door and is labelled "unreviewed code" in the Suite.** The levels of section 9 apply on top and DSH's warning stays.
 

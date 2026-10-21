@@ -34,6 +34,7 @@ const PLACES = {
   theme: ['thème', 'tema'],
   language: ['langue', 'idioma'],
   'memory & lessons': ['mémoire & leçons'],
+  'learned skills': ['compétences apprises'],
   models: ['modelos'],
   kybernos: [],
   appearance: ['apparence', 'apariencia'],
