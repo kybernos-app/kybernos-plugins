@@ -1358,8 +1358,8 @@ if (React === null) {
     if (prevDoc === undefined) delete globalThis.document; else globalThis.document = prevDoc
   }
   const natural = render({ mode: 'dark' })
-  check('natural state: the pill says no layer is posted', /DSH natif/.test(natural))
-  check('themed state: the pill announces the 17-token layer', /17 jetons/.test(simple))
+  check('natural state: the pill says no theme is applied, in plain words', /Couleurs de DSH — aucun thème posé/.test(natural) && !/jeton|token|couche/i.test(natural.replace(/<[^>]+>/g, '|').split('kbth-foot')[1] || ''))
+  check('themed state: the pill says a theme is applied (light and dark), without the word « token »', /Thème posé · clair et sombre/.test(simple) && !/17 jetons/.test(simple))
   check('the nine vertical tabs are always there (Icônes next to Animation), Essentiel pressed by default', (simple.match(/class="kbth-adv-tab[ "]/g) || []).length === 9 && />Icônes</.test(simple) && /kbth-adv-tab on" aria-pressed="true">Essentiel</.test(simple))
   check('there is no Simple / Avancé switch any more', !/>Simple</.test(simple) && !/>Avancé</.test(simple) && !/Besoin de plus de réglages/.test(simple))
   check('Essentiel carries appearance, colour, background and font', ['Apparence', 'Couleur', 'Arrière-plan', 'Police'].every((t) => simple.includes('>' + t + '<')))
