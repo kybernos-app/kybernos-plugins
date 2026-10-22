@@ -10,8 +10,8 @@
 //   GET  /kybernos-sessions/state?session=<id>[&kyber=<id>][&window=24]
 //   POST /kybernos-sessions/isolate     → creates OR reuses (idempotent, marked)
 //   POST /kybernos-sessions/reclaim     → picks up the clean trees with no work
-//   POST /kybernos-sessions/commit      → attributed commit + merge (`local:true`
-//                                          = nothing sent to GitHub)
+//   POST /kybernos-sessions/commit      → attributed commit + merge; it sends to GitHub only when
+//                                          the body says `push:true` (L6-01: a bare POST stays local)
 //   POST /kybernos-sessions/close-check → « can this session be closed? »
 //                                          (same guards as the closing)
 //   POST /kybernos-sessions/close       → merges, then removes the tree
@@ -1002,6 +1002,8 @@ export async function cloturer ({ chemin, exec = false, run = gitRun, forceIgnor
 // `-A` takes the others' work in progress into the commit and pushes it.
 // Given AND EMPTY, it means « this chat wrote nothing »: we refuse, instead of
 // committing somebody else's folder.
+/** Pure. Whether a body of `/commit` asks to send to GitHub: only an explicit `push:true`, never `local:true`. A bare POST (a script, a curl) commits on this computer and sends nothing (L6-01). */
+export const veutPousser = (corps) => corps !== null && typeof corps === 'object' && corps.push === true && corps.local !== true
 export async function commiter ({ chemin, message, exec = false, run = gitRun, chemins = null, pousser: pousserAussi = true }) {
   if (!chemin || !existsSync(chemin)) return gitFail('folder-not-found')
   const g = await etatGit(chemin, run)
@@ -1374,7 +1376,7 @@ export function monterRoutes (webServerSvc, opts) {
     const corps = await lireCorps(req)
     const slug = dossierDeSession(sessionsHome, corps.session || '')
     const chemin = cheminConfine(sessionsHome, corps, slug)
-    envoyer(res, 200, await commiter({ chemin, message: corps.message, exec: corps.exec === true, chemins: Array.isArray(corps.chemins) ? corps.chemins : null, pousser: corps.local !== true }))
+    envoyer(res, 200, await commiter({ chemin, message: corps.message, exec: corps.exec === true, chemins: Array.isArray(corps.chemins) ? corps.chemins : null, pousser: veutPousser(corps) }))
   } })
   // ── « commit & merge into the local repo »: no remote write ────────────────
   // The same route as /commit with `local:true` (pousser:false): add only this

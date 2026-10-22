@@ -49,7 +49,7 @@ Under `/kybernos-sessions/`. Every action route is a **dry run unless the body h
 | --- | --- |
 | `GET state?session=<id>&window=<hours>` | `{session:{git, sync, pr, worktrees, etat…}, kybers:[memory]}` |
 | `POST isolate` · `reclaim` | create or reuse `<project>/.worktrees/<slug>` on `feature/<slug>`; remove clean ones |
-| `POST commit` | add only this chat's files, commit, push (not with `local:true`), merge if in a worktree |
+| `POST commit` | add only this chat's files, commit, merge if in a worktree; **sends to GitHub only with `push:true`** (a bare POST stays local; the page's « Save my work » and « Add to project » say it, after the dry run shows the `git push`) |
 | `POST close-check` · `close` | can the worktree be closed; merge then remove it |
 | `POST push` · `fetch` · `sync` · `pr` | `git push` / `fetch` / both; `gh pr create`, or `{action:'merge'}` |
 | `GET\|POST settings` · `GET\|POST categories` | the two JSON files below |
