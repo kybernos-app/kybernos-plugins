@@ -81,3 +81,7 @@ curl -s localhost:8848/v1/chat/completions -H 'content-type: application/json' \
 | `POST /free-llms/enable` | wires the route (`acknowledged: true` required) |
 | `POST /free-llms/disable` | removes the route (keeps the acknowledgement) |
 | `POST /free-llms/auto-enable` | first run, if no custom model + acknowledgement |
+
+The activation marker (`~/.dsh/kybernos/free-llms.json`) is written atomically. If it cannot be written, `enable`, `disable` and `auto-enable`
+answer `500 { ok: false, error: 'state-not-saved', routeWritten }` instead of `ok: true`: the route may be in place, but the page must not
+claim the choice (and the prompt-retention acknowledgement) survives a restart.

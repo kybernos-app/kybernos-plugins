@@ -103,6 +103,14 @@ const CHART = { type: 'chart', title: 'Per day', kind: 'columns', x: 'day', y: '
   await fsp.writeFile(join(home, 'kybernos', 'dashboards', 'files', 'big.miniapp.json'), 'x'.repeat(500000), 'utf8')
   ok('read: damaged, foreign and oversized files are refused politely', (await host.readDoc('broken')).ok === false && (await host.readDoc('other')).ok === false && (await host.readDoc('big')).ok === false)
   ok('list: skips them, does not throw', (await host.list()).dashboards.every((d) => !['broken', 'other', 'big'].includes(d.id)))
+  // L2-08: a file the host cannot read is named with its reason, not dropped without a word.
+  const lst = await host.list()
+  ok('list: the unreadable files are named, each with a stable code and the host\'s reason', same(lst.unreadable, [
+    { id: 'big', code: 'too-large', message: 'The dashboard file is too large.' },
+    { id: 'broken', code: 'invalid-json', message: 'The dashboard file is not valid JSON.' },
+    { id: 'other', code: 'not-dashboard', message: 'This file is not a dashboard (kind must be "dashboard").' },
+  ]), lst.unreadable)
+  ok('list: readable dashboards are not in the unreadable list, and a clean store has an empty one', lst.unreadable.every((u) => !lst.dashboards.some((d) => d.id === u.id)) && same((await mkHost(tmp()).list()).unreadable, []))
   await fsp.writeFile(join(home, 'kybernos', 'dashboards', 'index.json'), 'garbage', 'utf8')
   ok('index: a damaged index is an empty one', same(await host.readIndex(), { version: 1, default: null, flags: {} }))
   ok('doc helpers round-trip', dashboardOfDoc(makeDoc({ name: 'x', widgets: [] }, { rev: 1 })).name === 'x' && dashboardOfDoc({ kind: 'motion' }) === null && dashboardOfDoc(null) === null && dashboardOfDoc({ kind: 'dashboard', data: [{ payload: { name: 'wrapped' } }] }).name === 'wrapped')
@@ -118,6 +126,12 @@ const CHART = { type: 'chart', title: 'Per day', kind: 'columns', x: 'day', y: '
   const run = (a) => runTool(host, 'sess-1', a)
   const empty = await run({})
   ok('tool: nothing yet says how to start', empty.ok && empty.dashboards.length === 0 && /preset/.test(empty.message))
+  // L2-08: the agent is told about a damaged file too (writing its id would replace it).
+  await fsp.mkdir(join(home, 'kybernos', 'dashboards', 'files'), { recursive: true })
+  await fsp.writeFile(join(home, 'kybernos', 'dashboards', 'files', 'cut.miniapp.json'), '{"kind":"dashb', 'utf8')
+  const damaged = await run({})
+  ok('tool: a listing names the unreadable files and tells the agent to ask first', damaged.ok && same(damaged.unreadable.map((u) => u.id), ['cut']) && /cannot be read/.test(damaged.message) && /preset/.test(damaged.message), damaged)
+  await fsp.rm(join(home, 'kybernos', 'dashboards', 'files', 'cut.miniapp.json'))
   const cat = await run({ catalogue: true })
   ok('tool: catalogue lists providers, widgets and presets', cat.ok && cat.providers.includes('automations.timeline') && cat.widgets.includes('kanban') && cat.presets.length >= 4)
 

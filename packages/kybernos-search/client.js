@@ -238,6 +238,8 @@ window.__ModuleLoader__.load({
 .kbsr-bar i{display:block;height:100%;background:#4f8cff;border-radius:3px}
 .kbsr-foot{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;padding:9px 14px;border-top:1px solid var(--dsw-alias-border-l1,rgba(128,128,128,.2));font-size:12px;color:var(--dsw-alias-label-tertiary,#888)}
 .kbsr-foot .sp{flex:1}
+.kbsr-warn{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;padding:8px 14px;border-top:1px solid var(--dsw-alias-border-l1,rgba(128,128,128,.2));font-size:12px;color:var(--dsw-alias-label-secondary,#666)}
+.kbsr-warn[hidden]{display:none}
 .kbsr-hdr{color:var(--dsw-alias-brand-primary,#4f8cff)}
 .kbsr-hdr-own{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:8px;border:0;background:transparent;cursor:pointer}
 .kbsr-hdr-own:hover{background:var(--dsw-alias-interactive-bg-hover,rgba(128,128,128,.14))}
@@ -399,8 +401,12 @@ window.__ModuleLoader__.load({
         const pop = el('div', 'kbsr-pop')
         pop.hidden = true
         const body = el('div', 'kbsr-body')
+        // The index missed some chats (a journal that could not be read): said here, with a way to try again. Hidden when nothing was missed.
+        const warn = el('div', 'kbsr-warn')
+        warn.setAttribute('data-kb', 'search-partial')
+        warn.hidden = true
         const foot = el('div', 'kbsr-foot')
-        box.append(top, scopesBar, pop, body, foot)
+        box.append(top, scopesBar, pop, body, warn, foot)
         scrim.appendChild(box)
 
         const flat = () => S.results
@@ -566,6 +572,19 @@ window.__ModuleLoader__.load({
               prev.appendChild(act)
             }
             body.appendChild(prev)
+          }
+
+          // the chats the index could not read
+          const missed = typeof S.host.errors === 'number' && S.host.state !== 'building' ? S.host.errors : 0
+          warn.textContent = ''
+          warn.hidden = missed <= 0
+          if (missed > 0) {
+            warn.appendChild(el('span', null, missed + ' ' + (missed === 1 ? kt('chat illisible, absent des résultats.', 'chat could not be read and is missing from the results.') : kt('chats illisibles, absents des résultats.', 'chats could not be read and are missing from the results.'))))
+            const retry = el('button', 'kbsr-btn', kt('Réessayer', 'Retry'))
+            retry.type = 'button'
+            retry.setAttribute('data-act', 'retry')
+            retry.addEventListener('click', async () => { try { await post('/kybernos-search/start', {}) } catch (e) { /* offline */ } poll(); render() })
+            warn.appendChild(retry)
           }
 
           // footer

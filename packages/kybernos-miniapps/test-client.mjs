@@ -204,5 +204,58 @@ ok('bundle client charge et expose __test', T !== null && typeof T.escTitre === 
   ok('langue pas encore connue : anglais', T.kt('Lancer', 'Launch') === 'Launch')
 }
 
+// ── L3-06: the reason the host gives for a refused install reaches the person (it used to be thrown away) ──
+{
+  const el = (tag) => ({
+    tag, style: {}, className: '', textContent: '', title: '', children: [], attrs: {}, disabled: false,
+    prepend (n) { this.children.unshift(n) }, appendChild (n) { this.children.push(n) }, setAttribute (k, v) { this.attrs[k] = v }, remove () {},
+    querySelector () { return null },
+  })
+  globalThis.window.document.createElement = el
+  const toasts = []
+  globalThis.window.document.body = { appendChild: (n) => { toasts.push(n) } }
+  globalThis.window.__KB_MINIAPP_EXPORTERS__ = { motion: async () => ({ titre: 'Intro', html: '<html>live</html>' }) }
+  let n = 0
+  /** Click the App button of a fresh mini-app while the host answers `reponse` (a function throws when called with the request). */
+  const clique = async (reponse) => {
+    n += 1
+    const racine = el('div')
+    racine.getAttribute = (k) => (k === 'data-renderer' ? 'motion' : null)
+    globalThis.window.fetch = async () => (typeof reponse === 'function' ? reponse() : { json: async () => reponse })
+    T.majBouton({ racineDynamique: racine, id: 'essai-' + n, tete: null, defaut: 'essai', l: 300, h: 300, flottant: false })
+    await racine.children[0].onclick()
+    return toasts[toasts.length - 1]
+  }
+  const REFUS = {
+    codesign: { ok: false, code: 'codesign', erreur: 'Cannot sign the app (codesign).' },
+    'html-short': { ok: false, code: 'html-short', erreur: 'HTML too short.' },
+    'html-long': { ok: false, code: 'html-long', erreur: 'HTML too large.' },
+    'name-refused': { ok: false, code: 'name-refused', erreur: 'app name refused (outside the install folder).' },
+    'macos-only': { ok: false, code: 'macos-only', erreur: 'Installing a widget app is macOS only.' },
+  }
+  globalThis.window.__KB_LANG_RESOLVE__ = () => 'en'
+  const sig = await clique(REFUS.codesign)
+  ok('L3-06: a codesign refusal says that the signing failed, with a hook for the checks', sig.attrs['data-kb'] === 'miniapps-install-error' && /^Cannot install: signing the app failed/.test(sig.textContent), sig.textContent)
+  globalThis.window.__KB_LANG_RESOLVE__ = () => 'fr'
+  const sigFr = await clique(REFUS.codesign)
+  ok('L3-06: the same, in French', /^Installation impossible : la signature de l’app a échoué/.test(sigFr.textContent), sigFr.textContent)
+  globalThis.window.__KB_LANG_RESOLVE__ = () => 'en'
+  const causes = new Set()
+  for (const code of Object.keys(REFUS)) {
+    const t = await clique(REFUS[code])
+    causes.add(t.textContent)
+    ok('L3-06: ' + code + ' has its own sentence, not the generic one', t.textContent.startsWith('Cannot install: ') && t.textContent !== 'Installation failed.', t.textContent)
+  }
+  ok('L3-06: the five refusals read differently (the person can tell what to do)', causes.size === 5)
+  const inconnu = await clique({ ok: false, code: 'something-new' })
+  const sansCode = await clique({ ok: false, erreur: 'Cannot sign the app (codesign).' })
+  const hote = await clique(() => { throw new Error('host down') })
+  ok('L3-06: an unknown code, an answer without a code and a host that does not answer keep the generic sentence (and the hook)',
+    [inconnu, sansCode, hote].every((t) => t.textContent === 'Installation failed.' && t.attrs['data-kb'] === 'miniapps-install-error'))
+  const bon = await clique({ ok: true, chemin: '/x' })
+  ok('L3-06: a successful install is not an error toast', bon.attrs['data-kb'] === undefined && /installed/.test(bon.textContent), bon.textContent)
+  ok('L3-06: a hostile code cannot pick a prototype member as its sentence', T.messageEchecInstallation({ code: 'constructor' }) === 'Installation failed.' && T.messageEchecInstallation({ code: '__proto__' }) === 'Installation failed.')
+}
+
 console.log(echecs === 0 ? '\nClient : tout est vert.' : `\n✗ ${echecs} échec(s)`)
 process.exit(echecs === 0 ? 0 : 1)

@@ -7,6 +7,7 @@ import { zstdFrames } from './zstd-frames.mjs'
 const CACHE_VERSION = 1
 const SOURCES_TTL_MS = 60000
 const YIELD_EVERY = 8
+const MAX_FAILURES = 20
 
 const basename = (p) => String(p ?? '').split(/[\\/]/).filter(Boolean).pop() ?? ''
 
@@ -45,6 +46,8 @@ export function createIndex (io) {
   let total = 0
   let updatedAt = null
   let errors = 0
+  // Which journals could not be read, and why: { id, code }, at most MAX_FAILURES (`errors` counts them all). Kept for the diagnostic and the page.
+  let failures = []
   let building = null
   let src = { at: 0, docs: [] }
 
@@ -69,6 +72,7 @@ export function createIndex (io) {
   const run = async () => {
     state = 'building'
     errors = 0
+    failures = []
     let files = []
     try { files = io.listSessions() } catch (e) { files = [] }
     total = files.length
@@ -80,11 +84,19 @@ export function createIndex (io) {
       const have = entries.get(f.id)
       if (have === undefined || have.size !== f.size || have.mtimeMs !== f.mtimeMs) {
         try {
-          const j = extractJournal(zstdFrames(io.readFile(f.file)))
+          const raw = io.readFile(f.file)
+          const text = zstdFrames(raw)
+          // A file with bytes in it but not one decodable frame (cut short, a frame this reader does not handle) used to become an empty chat,
+          // found by nothing and reported by nothing.
+          if (text === '' && raw.length > 0) { const bad = new Error('no frame could be decoded'); bad.code = 'no-frame'; throw bad }
+          const j = extractJournal(text)
           const e = { id: f.id, size: f.size, mtimeMs: f.mtimeMs, cwd: j.cwd, title: j.title, createdAt: j.createdAt, lastAt: j.lastAt, msgs: j.msgs }
           entries.set(f.id, e)
           docs.set(f.id, chatDoc(e))
-        } catch (e) { errors += 1 }
+        } catch (e) {
+          errors += 1
+          if (failures.length < MAX_FAILURES) failures.push({ id: f.id, code: e !== null && typeof e === 'object' && typeof e.code === 'string' ? e.code : 'unreadable' })
+        }
       }
       done += 1
       sinceYield += 1
@@ -93,7 +105,8 @@ export function createIndex (io) {
     for (const id of [...entries.keys()]) if (!present.has(id)) { entries.delete(id); docs.delete(id) }
     updatedAt = io.now()
     persist()
-    state = 'ready'
+    // « ready » means every journal was read: an index that missed some says `partial`, and `failed` says which.
+    state = errors > 0 ? 'partial' : 'ready'
   }
 
   const sourceDocs = () => {
@@ -110,7 +123,14 @@ export function createIndex (io) {
     /** Starts (or joins) a refresh. Resolves when it is done. Idempotent. */
     start () {
       load()
-      if (building === null) building = run().catch(() => { state = 'ready' }).finally(() => { building = null })
+      // A run that fell over is not « ready »: what was read stays searchable, and the state and the counts say it is incomplete.
+      if (building === null) {
+        building = run().catch(() => {
+          errors += 1
+          if (failures.length < MAX_FAILURES) failures.push({ id: null, code: 'run-failed' })
+          state = 'partial'
+        }).finally(() => { building = null })
+      }
       return building
     },
     /** Drops everything and reads every journal again. */
@@ -123,7 +143,7 @@ export function createIndex (io) {
     },
     status () {
       load()
-      return { state, done, total, chats: entries.size, updatedAt, errors, sources: sourceDocs().length }
+      return { state, done, total, chats: entries.size, updatedAt, errors, failed: failures.slice(), sources: sourceDocs().length }
     },
     /**
      * The first message the person typed in each chat since `sinceMs`: `[{ id, at, text, cwd }]`, `text` cut at 1,000 characters. Read-only; what
