@@ -30,7 +30,7 @@ globalThis.CustomEvent = class { constructor (type) { this.type = type } }
 globalThis.document = { createElement: () => ({ style: {} }), head: { append() {} }, querySelector: () => null, querySelectorAll: () => [], addEventListener() {} }
 new Function('window', SOURCE)(win)
 const mod = definition.factory((spec) => { if (spec === 'react') return React; throw new Error('unexpected require ' + spec) })
-const { santeVue, santeCause, suivreSante, etudeVue } = mod.__test
+const { santeVue, santeCause, suivreSante, etudeVue, choixCorrespondants } = mod.__test
 
 console.log('the view')
 const verdict = (over) => ({ actif: true, total: 5, tousEnEchec: false, verifieA: '2026-10-05T09:00:00Z', alertes: [{ cle: 'groq/llama-3.1-8b', route: 'groq', modele: 'llama-3.1-8b', code: 'AUTH' }], ...over })
@@ -114,6 +114,18 @@ console.log('who is watching: the Study model IN FORCE, not the raw setting')
   check('the person\'s own pick: probed', await demande({ reglages: { brain: 'groq/llama-3.1-8b' }, etude: { actif: true, cle: 'groq/llama-3.1-8b', mode: 'choisi' } }) === 1)
   check('an older host that says nothing of the Study model in force: the old rule (a pick is watching, empty is not)', await demande({ reglages: { brain: 'groq/llama-3.1-8b' } }) === 1 && await demande({ reglages: { brain: '' } }) === 0 && await demande({ reglages: { brain: 'none' } }) === 0)
   probe.reglages = { reglages: { brain: 'groq/llama-3.1-8b' } }
+}
+
+console.log('the Study model search')
+{
+  const items = [{ value: '', label: 'Automatic — kybernos/auto' }, { value: 'gmicloud/Kimi-K3', label: 'Kimi-K3', group: 'gmicloud' }, { value: 'nvidia/Kimi-K3', label: 'Kimi-K3', group: 'nvidia' }, { value: 'openai/gpt-5.5', label: 'gpt-5.5', group: 'openai' }, { value: 'none', label: 'None' }]
+  const ids = (q) => choixCorrespondants(items, q).map((it) => it.value).join(' ')
+  check('an empty search keeps every choice, in order', choixCorrespondants(items, '') === items && choixCorrespondants(items, '  ') === items)
+  check('the search reads the name, the route and the value, in any case', ids('KIMI') === 'gmicloud/Kimi-K3 nvidia/Kimi-K3' && ids('nvidia') === 'nvidia/Kimi-K3' && ids('gpt') === 'openai/gpt-5.5')
+  check('every word typed must match, in any order, and nothing matching shows nothing', ids('kimi gmicloud') === 'gmicloud/Kimi-K3' && ids('gmicloud kimi') === 'gmicloud/Kimi-K3' && ids('zzz') === '')
+  check('Automatic and None are choices like the others (found by their words)', ids('automatic') === '' && ids('none') === 'none')
+  const SRC = SOURCE
+  check('the choice is a button that opens a searchable listbox, not a native select', /h\(ChoixRecherche, \{/.test(SRC) && /type: 'search', placeholder: props\.recherche/.test(SRC) && !/h\('select'/.test(SRC))
 }
 
 console.log('the Study model row')
