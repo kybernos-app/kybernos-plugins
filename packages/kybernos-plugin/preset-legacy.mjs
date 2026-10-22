@@ -17,7 +17,7 @@
 
 export const ID_PRESET_KYBERNOS = 'kybernos-standard'
 export const ID_PRESET_STANDARD = 'standard'
-export const NOM_PRESET_LEGACY = 'Kybernos compact (legacy)'
+export const NOM_PRESET_LEGACY = 'Standard mode (older chats)'
 export const DESCRIPTION_PRESET_LEGACY = 'Identical to Standard mode. Kept so the chats started with it keep opening; new chats use Standard mode.'
 export const NS_REGLAGES_PRESET = 'agent-preset-registry'
 

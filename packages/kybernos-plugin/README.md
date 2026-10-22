@@ -422,7 +422,7 @@ base) and `.credentials.yaml` (browser-session secret). The quiz and cards score
 `KYBERNOS_CLOUD_STATE`, `AA_API_KEY`, `KB_RETRY_PLAFOND`.
 
 **At boot, unasked** (each step guarded, none blocks the start): registers `kybernos-standard` as a plain copy of the Standard preset
-(« Kybernos compact (legacy) »: DSH compacts natively now, and stored sessions still carry that id, which the registry rejects when
+(« Standard mode (older chats) »: DSH compacts natively now, and stored sessions still carry that id, which the registry rejects when
 it is missing) and puts the default of new chats back on Standard when it still pointed at it; turns on the
 `subagent_claude_code` row of every preset definition (in memory); lowers any retry policy above 10 attempts (`settings.update`,
 only on a violation); appends a marked "initiative" section (English, v3) to `~/.dsh/AGENTS.md` once (the French v1 and v2 it laid in earlier versions are replaced by it unless the person edited them; their text is data in `agents-proposition-legacy.json`); writes the `report-feedback`
