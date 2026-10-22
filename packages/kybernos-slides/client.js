@@ -459,8 +459,8 @@ window.__ModuleLoader__.load({
               get slides () {
                 return [
                   { layout: 'titre', kicker: kt('La démo', 'The demo'), titre: 'Rain is a given.', sous: kt('Slides écrites en direct par le chat — modifie-les pendant qu\'il tape.', 'Slides written live by the chat — edit them while it types.') },
-                  { layout: 'statement', kicker: 'The premise', titre: 'Shells should come prepared.' },
-                  { layout: 'puces', kicker: 'How it works', titre: kt('Trois gestes', 'Three gestures'), points: [kt('Le chat écrit : machine à écrire, slide après slide.', 'The chat writes: typewriter style, slide after slide.'), kt('Tu corriges : retape un texte, dessine au pinceau.', 'You correct: retype a text, draw with the brush.'), kt('Le chat relit : tes annotations, puis corrige en soulignant.', 'The chat reads back: your annotations, then corrects with underlines.')] },
+                  { layout: 'statement', kicker: kt('Le principe', 'The premise'), titre: 'Shells should come prepared.' },
+                  { layout: 'puces', kicker: kt('Comment ça marche', 'How it works'), titre: kt('Trois gestes', 'Three gestures'), points: [kt('Le chat écrit : machine à écrire, slide après slide.', 'The chat writes: typewriter style, slide after slide.'), kt('Tu corriges : retape un texte, dessine au pinceau.', 'You correct: retype a text, draw with the brush.'), kt('Le chat relit : tes annotations, puis corrige en soulignant.', 'The chat reads back: your annotations, then corrects with underlines.')] },
                   { layout: 'chiffre', kicker: 'Tempo', grand: '12 s', legende: kt('pour un deck complet, tempo réglable', 'for a whole deck, adjustable pace') },
                   { layout: 'fin', titre: kt('À toi.', 'Your turn.'), sous: kt('Demande une correction : l\'agent relit tes retouches et les intègre.', 'Ask for a correction: the agent reads your edits back and works them in.') },
                 ]
