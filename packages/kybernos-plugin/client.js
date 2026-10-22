@@ -8264,6 +8264,11 @@ const KB_SHOW_HOSTED = false
 // de décider où elle vit — `DocumentsPage`, la route hôte et la traduction
 // restent en place. Passer à `true` la remet telle quelle.
 const KB_SHOW_DOCS = false
+// Onglets « Budget » et « Insight » de la page projet : masqués pour le moment (demande produit, 23/10/2026). Leurs panneaux, les hôtes et les
+// traductions restent en place ; passer à `true` remet l'onglet tel quel.
+const KB_SHOW_PROJECT_BUDGET = false
+const KB_SHOW_PROJECT_INSIGHT = false
+const kbProjectTabHidden = (name) => (KB_SHOW_PROJECT_BUDGET !== true && name === kbt('kbui.budget')) || (KB_SHOW_PROJECT_INSIGHT !== true && name === kbt('kbui.insight'))
 // Entrée « Cloud Computer » du menu latéral : masquée pour le moment (demande produit, 15/10/2026). Le point d'état, la carte de
 // la nouvelle conversation et la page Kaby (qui porte les détails de l'ordinateur) restent en place. Passer à `true` la remet.
 const KB_SHOW_CLOUD_COMPUTER_ROW = false
@@ -18039,7 +18044,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       const snapS = (typeof us === 'function') ? us((st) => st) : null
       const byId = (snapS !== null && snapS !== undefined && snapS.byId !== null && snapS.byId !== undefined) ? snapS.byId : {}
       const currentSid = (snapS !== null && snapS !== undefined) ? snapS.current : undefined
-      const tabPair = React.useState(typeof s.projectTab === 'string' && s.projectTab.length > 0 ? s.projectTab : 'Threads')
+      const tabPair = React.useState(typeof s.projectTab === 'string' && s.projectTab.length > 0 && kbProjectTabHidden(s.projectTab) === false ? s.projectTab : 'Threads')
       const tab = tabPair[0]
       const setTab = tabPair[1]
       const qPair = React.useState('')
@@ -18466,7 +18471,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       // Meme liste que celle des hooks : les livrables du projet, filtre de
       // recherche compris.
       const mine = delivMine
-      const TABS = ['Threads', kbt('kbui.details'), kbt('kbui.instructions'), kbt('kbui.documents'), kbt('kbui.objectifs'), 'Deliverables', kbt('kbui.skills'), kbt('kbui.connecteurs'), kbt('kbui.budget'), kbt('kbui.insight')]
+      const TABS = ['Threads', kbt('kbui.details'), kbt('kbui.instructions'), kbt('kbui.documents'), kbt('kbui.objectifs'), 'Deliverables', kbt('kbui.skills'), kbt('kbui.connecteurs'), kbt('kbui.budget'), kbt('kbui.insight')].filter((t) => kbProjectTabHidden(t) === false)
       const rowStyle = { display: 'flex', alignItems: 'center', gap: '13px', padding: '14px 16px', borderBottom: '1px solid var(--dsw-alias-border-l1)' }
       const pillStyle = { fontFamily: 'ui-monospace,monospace', fontSize: '10px', letterSpacing: '.06em', borderRadius: '999px', padding: '4px 10px', border: '1px solid var(--dsw-alias-border-l1)', color: 'var(--dsw-alias-label-secondary)', whiteSpace: 'nowrap' }
       const pane = (() => {
