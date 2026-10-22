@@ -75,6 +75,36 @@ console.log('which edge of the button the card hangs from (coteDeLaCarte)')
   check('the margin from the window or the box is 16 px, as it was', T.coteDeLaCarte({ left: 400, right: 436 }, win, W, false) === 'end' && T.coteDeLaCarte({ left: 400, right: 435 }, win, W, false) === 'start' && T.coteDeLaCarte({ left: 0, right: 436 }, { left: 0, right: 1500 }, W, false) === 'end')
 }
 
+console.log('docked in the margin beside the page (V1-23: carteAmarree)')
+{
+  // A Settings page at 1400 px: its column is 720 px wide (x 272 to 992), the visible box runs from the sidebar's edge to the window's; 992 + 28 + 340 = 1360, 16 px short of the edge.
+  const col = { left: 272, right: 992 }
+  const box = { left: 248, right: 1400 }
+  check('a wide window, a Settings page, room for 340 px beside its column: docked', T.carteAmarree(col, box, false, 1400) === true)
+  check('a window under 1400 px is never docked, whatever the room', T.carteAmarree(col, { left: 248, right: 1399 }, false, 1399) === false)
+  check('a button that is on no Settings page (no column) is never docked: its margin is the page', T.carteAmarree(null, box, false, 1400) === false && T.carteAmarree(undefined, box, false, 1400) === false)
+  check('not enough room beside the column: the card hangs from its button (16 px of margin to the edge)', T.carteAmarree(col, { left: 248, right: 1375 }, false, 1400) === false && T.carteAmarree(col, { left: 248, right: 1376 }, false, 1400) === true)
+  check('right to left: docked on the other side of the column, with the same margin', T.carteAmarree({ left: 408, right: 1128 }, { left: 0, right: 1152 }, true, 1400) === true && T.carteAmarree({ left: 383, right: 1103 }, { left: 0, right: 1152 }, true, 1400) === false)
+  // The column of the page a button sits in: the direct child of the section DSH draws the page in.
+  const el = (rect, parent, section) => ({ parentElement: parent, getBoundingClientRect: () => rect, closest: (sel) => (sel === '[data-slot="settings.section"]' ? section : null) })
+  const sec = {}
+  const pageRoot = el({ left: 272, right: 992 }, sec, sec)
+  const row = el({ left: 272, right: 992 }, pageRoot, sec)
+  const pill = el({ left: 349, right: 470 }, row, sec)
+  pageRoot.parentElement = sec
+  check('the column of a page is the child of the section that holds the button, wherever the button is in it', T.colonneDeLaPage(pill).right === 992 && T.colonneDeLaPage(pill).left === 272)
+  check('a button outside any Settings section has no column', T.colonneDeLaPage({ closest: () => null, parentElement: null }) === null)
+  const { React } = fakeReact([true, { id: 'kybernos-x', titre: 'Thing', aide: { what: { fr: 'a', en: 'a' }, steps: [{ fr: 'u', en: 'u' }, { fr: 'd', en: 'd' }], where: { fr: 'i', en: 'i', page: true } } }, 'dock'])
+  const docked = T.construireAide(React).Help({ id: 'kybernos-x' })
+  const panel = find(docked, attr('data-kb', 'help-panel'))
+  check('the panel of a docked card carries the dock class (and the hanging one does not)', panel.length === 1 && /\bdock\b/.test(panel[0].props.className))
+  const { React: React2 } = fakeReact([true, { id: 'kybernos-x', titre: 'Thing', aide: { what: { fr: 'a', en: 'a' }, steps: [{ fr: 'u', en: 'u' }, { fr: 'd', en: 'd' }], where: { fr: 'i', en: 'i', page: true } } }, 'end'])
+  check('a hanging card has no dock class', !/\bdock\b/.test(find(T.construireAide(React2).Help({ id: 'kybernos-x' }), attr('data-kb', 'help-panel'))[0].props.className))
+  const src = readFileSync(new URL('./client.js', import.meta.url), 'utf8')
+  check('the dock class is drawn level with the button, 340 px, flat, and its start is set inline from the column', /\.kbhp-pop\.dock\{[^}]*top:0[^}]*width:340px[^}]*box-shadow:none/.test(src) && /style: side === 'dock' \? \{ insetInlineStart: dockX\.current \+ 'px' \}/.test(src))
+  check('a click on the page does not close a docked card, a hanging card still closes on it', /querySelector\('\.kbhp-pop\.dock'\) === null\) setOpen\(false\)/.test(src))
+}
+
 console.log('the card of a page: the link at its foot')
 {
   const aide = (extra = {}) => ({ what: { fr: 'Fait une chose.', en: 'Does a thing.' }, steps: [{ fr: 'Un.', en: 'One.' }, { fr: 'Deux.', en: 'Two.' }], where: { fr: 'Ici', en: 'Here', page: true }, ...extra })
