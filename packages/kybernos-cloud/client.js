@@ -1396,6 +1396,14 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
       if (viewportWidth <= SUB_PANEL_PHONE_MAX) return { left: 8, top, width: viewportWidth - 16 }
       return { left: Math.max(8, Math.min(menuRect.right + 8, viewportWidth - (SUB_PANEL_WIDTH + 8))), top, width: SUB_PANEL_WIDTH }
     }
+    // The account menu of a COLLAPSED rail: the card there is a 44 px button and the sidebar column clips what overflows it, so a menu that took the card's
+    // width was a 44 px strip with a sideways scrollbar. It is drawn fixed on <body> instead, at least RAIL_MENU_WIDTH wide, anchored above the card and kept inside the window.
+    const RAIL_MENU_WIDTH = 264
+    const railMenuBox = (cardRect, viewportWidth, viewportHeight) => {
+      const width = Math.min(Math.max(Math.round(cardRect.width), RAIL_MENU_WIDTH), viewportWidth - 16)
+      const bottom = Math.max(8, Math.round(viewportHeight - cardRect.top) + 10)
+      return { left: Math.max(8, Math.min(Math.round(cardRect.left), viewportWidth - width - 8)), bottom, width, maxHeight: Math.max(160, viewportHeight - bottom - 8) }
+    }
     // <teams-menu:end>
 
     // <join-link:begin> joining a team with an invitation link (plan « Équipes », step 4; test-join-link.mjs plays this block on its own)
@@ -2828,6 +2836,9 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
           const posPair = React.useState(null)
           const subPos = posPair[0]
           const setSubPos = posPair[1]
+          // Collapsed rail: the menu leaves the column (see railMenuBox). Read from the card when it renders: the card does not move while the menu is open.
+          const anchor = props.narrow === true && props.toggleRef !== undefined ? props.toggleRef.current : null
+          const railBox = anchor !== null && anchor !== undefined ? railMenuBox(anchor.getBoundingClientRect(), window.innerWidth, window.innerHeight) : null
           React.useEffect(() => {
             if (switchOpen !== true) { setSubPos(null); return undefined }
             const m = popRef.current
@@ -2881,7 +2892,10 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
           // Account · Links, then Log out. An available update goes first.
           // "Security" is no longer in the menu (04/10); the plan moves up under
           // the space selector, just before "Teams settings".
-          return h('div', { className: 'kbfp-menu', ref: popRef, role: 'menu', 'aria-label': t('wsPageTitle'), onKeyDown: menuKeyDown(popRef, props.toggleRef, props.onClose) },
+          const menu = h('div', {
+            className: railBox !== null ? 'kbfp-menu kbfp-menu-off' : 'kbfp-menu', ref: popRef, role: 'menu', 'aria-label': t('wsPageTitle'), onKeyDown: menuKeyDown(popRef, props.toggleRef, props.onClose),
+            style: railBox !== null ? { left: railBox.left + 'px', bottom: railBox.bottom + 'px', width: railBox.width + 'px', maxHeight: railBox.maxHeight + 'px' } : undefined,
+          },
             maj !== null
               ? h('div', { className: 'kbfp-mitems', 'data-kb': 'menu-block-update' },
                   entree('update', h(UpdateIcon, { size: 18 }), t('menuUpdate'), () => envoyer('update'), { amber: true, tail: (maj.kind === 'moteur' ? 'DSH ' : '') + (typeof maj.version === 'string' ? maj.version : maj.cible) }),
@@ -2951,6 +2965,7 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
                     onJoin: props.onJoinSpace,
                   })), document.body)
               : null)
+          return railBox !== null ? ReactDOM.createPortal(menu, document.body) : menu
         }
         // ── The composer's cues in a team space ─────────────────────────────────────────────────────────────────────────────────────
         // A team space shows, where the person writes: a coloured pill on memory, a pill on the working folder (when the team has one), « Message <Team>… » in the box and
@@ -3625,6 +3640,7 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
                   busy: switching !== null,
                   onPick: (id) => { void pickSpace(id) },
                   toggleRef: cardRef,
+                  narrow: etroit === true,
                   onClose: () => setMenuOpen(false),
                   onChanged: () => { void load() },
                   onCreateSpace: () => {

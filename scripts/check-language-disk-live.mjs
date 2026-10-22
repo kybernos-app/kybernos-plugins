@@ -54,7 +54,9 @@ const swap = useWorktree || baseline ? await swapBundles(page, [{ name: 'kyberno
 await flow.installStub() // reloads the page: the swapped client is what loads
 const browserCount = async (id) => Number(await val(`Object.keys(JSON.parse(localStorage.getItem('kybernos.i18n.${id}') || '{}')).length`))
 const browserDshCount = async (id) => Number(await val(`Object.keys(JSON.parse(localStorage.getItem('kybernos.i18n.dsh.${id}') || '{}')).length`))
-const diskLine = async () => val(`(() => { const e = document.querySelector('[data-disk]'); return e ? JSON.stringify({ state: e.getAttribute('data-disk'), text: e.innerText.replace(/\\s+/g, ' ').trim(), title: e.getAttribute('title') || '' }) : null })()`)
+// The disk state is a row of the Settings tab: open the tab, read it, come back to the list (the other steps click rows).
+const tabClick = (t) => val(`(() => { const b = document.querySelector('[data-act="tab-${t}"]'); if (b) b.click(); return !!b })()`)
+const diskLine = async () => { await tabClick('settings'); await sleep(300); const r = await val(`(() => { const e = document.querySelector('[data-disk]'); return e ? JSON.stringify({ state: e.getAttribute('data-disk'), text: e.innerText.replace(/\\s+/g, ' ').trim(), title: e.getAttribute('title') || '' }) : null })()`); await tabClick('langs'); await sleep(200); return r }
 const poll = async (fn, ms = 20000) => { const end = Date.now() + ms; for (;;) { const v = await fn(); if (v) return v; if (Date.now() > end) return v; await sleep(500) } }
 
 try {
