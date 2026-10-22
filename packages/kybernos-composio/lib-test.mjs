@@ -168,7 +168,7 @@ rl.on('line', (l) => {
  * globalThis.fetch (any other address throws). `state.keys`: the keys it accepts; `state.accounts`:
  * { slug: [account] }; `state.calls`: every request; `state.down`: make it unreachable; `state.failNext`: answer the next N
  * requests with a 502, as Composio's gateway does at times.
- * Accounts carry an e-mail in `user_info`, which the host must never pass on.
+ * Accounts carry an e-mail, an id and a picture link in `user_info`: the host passes on the e-mail as `identity` and nothing else.
  */
 export function composioStub() {
   const state = { keys: new Set(['ck_good']), accounts: {}, calls: [], down: false, failNext: 0, seq: 0, linkUrl: 'https://connect.composio.dev/link/abc123' }
@@ -196,7 +196,7 @@ export function composioStub() {
         const list = state.accounts[t.name] || (state.accounts[t.name] = [])
         if (t.action === 'add') {
           state.seq += 1
-          list.push({ id: 'ca_' + state.seq, status: 'INITIATED', user_info: { email: 'person@example.org' } })
+          list.push({ id: 'ca_' + state.seq, status: 'INITIATED', user_info: { email: 'person@example.org', sub: 'sub-secret-1', picture: 'https://example.org/p.png' } })
           results[t.name] = { status: 'initiated', redirect_url: state.linkUrl, accounts: list.slice() }
         } else {
           if (t.action === 'remove') state.accounts[t.name] = list.filter((a) => a.id !== t.account_id)
