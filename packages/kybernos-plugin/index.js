@@ -57,6 +57,7 @@ import { createProbe } from './audio-probe.mjs'
 import { createModelsAudio } from './models-audio.mjs'
 import { expandOccurrences, parseOccurrenceRange } from './automation-occurrences.mjs'
 import { lastTurnOutcome } from './session-outcome.mjs'
+import { goalFromEvents, sortGoals } from './project-goals.mjs'
 import { summarizeRun } from './automation-runs.mjs'
 // Hosted instance: also accept the authorities declared to DSH with --trusted-host. The core bundle publishes the predicate
 // (kybernos-plugin/trusted-authority.mjs); absent or failing, it answers false and the guard stays loopback-only.
@@ -6768,6 +6769,14 @@ function boot(ctx) {
     // chargement `/load` reste rapide et n'attend jamais `goals`.
     const KB_PROJECT_MAX_SESSIONS = 40
     const KB_PROJECT_MAX_GOALS = 20
+    // The goal read from a session's log, kept by the log's size: a session that did not grow is not read again (the page asks at every visit).
+    const goalCache = new Map()
+    const GOAL_CACHE_MAX = 200
+    const rememberGoal = (sid, size, goal) => {
+      goalCache.delete(sid)
+      goalCache.set(sid, { size: size, goal: goal })
+      if (goalCache.size > GOAL_CACHE_MAX) goalCache.delete(goalCache.keys().next().value)
+    }
     // ── Documents envoyes par l'utilisateur dans un thread ──────────────────
     // Un document « envoye par l'utilisateur » vit dans le TRANSCRIPT
     // (`user/message` de source `user`), pas sur le disque : sur cette machine
@@ -6860,6 +6869,7 @@ function boot(ctx) {
       const warnings = []
       const active = {}
       const goals = []
+      const liveGoal = {}
       for (let i = 0; i < ids.length; i += 1) {
         const sid = ids[i]
         try {
@@ -6876,12 +6886,16 @@ function boot(ctx) {
           if (lead === null || lead === undefined) continue
           const g = goalsSvc.get(lead)
           if (g === null || g === undefined || typeof g !== 'object') continue
+          liveGoal[sid] = true
           goals.push({
             sessionId: sid,
             objective: typeof g.objective === 'string' ? g.objective : null,
             phase: typeof g.phase === 'string' ? g.phase : null,
             roundsStarted: typeof g.roundsStarted === 'number' ? g.roundsStarted : null,
             maxGoalRounds: typeof g.maxGoalRounds === 'number' ? g.maxGoalRounds : null,
+            blockedReason: g.blockedReason !== null && typeof g.blockedReason === 'object' && typeof g.blockedReason.message === 'string' ? g.blockedReason.message : null,
+            updatedAt: null,
+            live: true,
           })
         } catch (e) { warnings.push('goal unreadable') }
       }
@@ -6889,21 +6903,20 @@ function boot(ctx) {
       // cette machine : ~435 ms pour 15,8 Mo / 6 sessions). Un thread illisible
       // est note, jamais fatal : le reste du projet reste affichable.
       const docs = []
+      let home = null
+      try { home = await dshHome() } catch (e) { home = null }
+      const storagesDir = home === null ? null : joinPath(joinPath(home, 'storages'), 'session_projcache/sessions')
+      const titleOf = (sid) => {
+        if (storagesDir === null) return null
+        const t = indexTitleOf(joinPath(storagesDir, sid + '.json'))
+        return t !== null && t.length > 0 ? t : null
+      }
+      const threadOf = (sid) => { const t = titleOf(sid); return t !== null ? t : sid.slice(0, 8) }
       const readIds = ids.slice(0, KB_DOCS_MAX_READ_SESSIONS)
       if (ids.length > readIds.length) warnings.push('documents: ' + readIds.length + ' threads out of ' + ids.length + ' read (capped)')
       if (persistence === undefined || persistence === null || typeof persistence.open !== 'function') {
         if (ids.length > 0) warnings.push('documents: sessionPersistence service unavailable')
       } else {
-        let home = null
-        try { home = await dshHome() } catch (e) { home = null }
-        const storagesDir = home === null ? null : joinPath(joinPath(home, 'storages'), 'session_projcache/sessions')
-        const threadOf = (sid) => {
-          if (storagesDir !== null) {
-            const t = indexTitleOf(joinPath(storagesDir, sid + '.json'))
-            if (t !== null && t.length > 0) return t
-          }
-          return sid.slice(0, 8)
-        }
         let totalBytes = 0
         let readCount = 0
         for (const sid of readIds) {
@@ -6940,7 +6953,7 @@ function boot(ctx) {
           // Un thread de sous-agent herite des messages du parent : ses pieces
           // jointes seraient des doublons (mesure : 12/12 sur cette machine).
           if (header !== null && header !== undefined && ((typeof header.delegationDepth === 'number' && header.delegationDepth > 0) || header.origin === 'subagent')) continue
-          if (size !== null) totalBytes += size
+          if (size !== null) { totalBytes += size; rememberGoal(sid, size, goalFromEvents(events)) }
           readCount += 1
           for (const row of userDocumentsFromEvents(events, { sessionId: sid, thread: threadOf(sid), since: inherited })) {
             if (docs.length >= KB_DOCS_MAX) break
@@ -6951,7 +6964,48 @@ function boot(ctx) {
         if (readIds.length > 0 && readCount === 0 && docs.length === 0) warnings.push('documents: no readable thread')
       }
       docs.sort((a, b) => ((b.at === null ? 0 : b.at) - (a.at === null ? 0 : a.at)))
-      return { ok: true, sessionIds: ids, active: active, goals: goals, docs: docs, warnings: warnings }
+      // Goals kept in the session logs: the live service above only knows the agents that run in THIS DSH, so a goal set in a chat that is not
+      // open (after a restart, a resume, a fork) was invisible although the engine keeps it. The log is the engine's only store of a goal.
+      if (persistence !== undefined && persistence !== null && typeof persistence.open === 'function') {
+        let goalBytes = 0
+        for (let i = 0; i < ids.length && i < KB_PROJECT_MAX_GOALS; i += 1) {
+          const sid = ids[i]
+          if (liveGoal[sid] === true) continue
+          let size = null
+          try {
+            const st = await persistence.stat(sid)
+            if (st !== null && st !== undefined && typeof st.size === 'number') size = st.size
+          } catch (e) { size = null }
+          let saved = null
+          const kept = goalCache.get(sid)
+          if (size !== null && kept !== undefined && kept.size === size) saved = kept.goal
+          else {
+            if (size !== null && (size > KB_DOCS_MAX_SESSION_BYTES || goalBytes + size > KB_DOCS_MAX_TOTAL_BYTES)) continue
+            try {
+              const handle = await persistence.open(sid, 'read')
+              let header = null
+              let events = []
+              try {
+                header = handle.header
+                const read = await handle.read()
+                events = read !== null && read !== undefined && Array.isArray(read.events) === true ? read.events : []
+              } finally {
+                try { if (handle !== null && handle !== undefined && typeof handle.close === 'function') await handle.close() } catch (e) { /* already closed */ }
+              }
+              if (header !== null && header !== undefined && ((typeof header.delegationDepth === 'number' && header.delegationDepth > 0) || header.origin === 'subagent')) continue
+              saved = goalFromEvents(events)
+              if (size !== null) { goalBytes += size; rememberGoal(sid, size, saved) }
+            } catch (e) { warnings.push('goal unreadable'); continue }
+          }
+          if (saved === null) continue
+          goals.push({
+            sessionId: sid, objective: saved.objective, phase: saved.phase, roundsStarted: saved.roundsStarted, maxGoalRounds: saved.maxGoalRounds,
+            blockedReason: saved.blockedReason, updatedAt: saved.updatedAt, live: false,
+          })
+        }
+      }
+      for (const g of goals) g.thread = titleOf(g.sessionId)
+      return { ok: true, sessionIds: ids, active: active, goals: sortGoals(goals), docs: docs, warnings: warnings }
     }
     const setActiveKyber = async (args) => {
       try {
