@@ -1011,6 +1011,8 @@ html[dir="rtl"] .kbln-page{direction:rtl}
         try { localStorage.setItem(I18N_RUN_KEY, JSON.stringify({ lang, model: route !== null && route !== undefined ? route : null, beat: Date.now() })) } catch (e) { /* storage unavailable: the run goes on, it just cannot be picked up again */ }
       }
       const intentClear = () => { try { localStorage.removeItem(I18N_RUN_KEY) } catch (e) { /* storage unavailable */ } }
+      // Drops the intent only when it is about `lang`: a live tab running another language keeps writing its own.
+      const intentDrop = (lang) => { const left = intentRead(); if (left !== null && left.lang === lang) intentClear() }
       const autoResumeOn = () => { try { return localStorage.getItem(I18N_AUTO_KEY) !== 'off' } catch (e) { return true } }
       const setAutoResume = (on) => { try { if (on) localStorage.removeItem(I18N_AUTO_KEY); else localStorage.setItem(I18N_AUTO_KEY, 'off') } catch (e) { /* storage unavailable */ } }
       // Pure: should a tab that just opened take over the run `it` describes?
@@ -1245,8 +1247,11 @@ html[dir="rtl"] .kbln-page{direction:rtl}
         pauseWanted = false
         hostStart(lang, route).then((out) => {
           starting = false
-          if (out.mode === 'host') watchJob(lang)
-          else if (out.mode === 'error') { pauseWanted = false; setRun({ state: 'failed', error: out.error }); return }
+          // The host answered: this attempt is settled, so the intent a closed tab left behind (the reason an automatic resume
+          // came here) must not bring it back at every load. Accepted, the run is the host's and survives tabs; refused, the
+          // person is told now. Only the in-tab engine below keeps (and rewrites) an intent.
+          if (out.mode === 'host') { intentDrop(lang); watchJob(lang) }
+          else if (out.mode === 'error') { intentDrop(lang); pauseWanted = false; setRun({ state: 'failed', error: out.error }); return }
           else startLocalRun(lang, route)
           if (pauseWanted) { pauseWanted = false; applyPause() }
         }).catch(() => { starting = false; startLocalRun(lang, route); if (pauseWanted) { pauseWanted = false; applyPause() } })
@@ -2021,10 +2026,11 @@ html[dir="rtl"] .kbln-page{direction:rtl}
             // Optional: a failure here must not take DSH down with it.
             try { startLiveLayer(ctx) } catch (e5) { /* */ }
           }
-          // A run the previous tab left behind goes on by itself, once DSH has had time to register its dictionaries.
-          try { window.setTimeout(() => { autoResume().catch(() => { /* never breaks the boot */ }) }, 3000) } catch (e6) { /* no timers */ }
           // The host's own run, if it has one: watch it or say how it ended (see bootJobs). A note in the bell offers « Use ».
-          try { window.setTimeout(() => { bootJobs().catch(() => { /* never breaks the boot */ }) }, 3500) } catch (e7) { /* no timers */ }
+          // It comes FIRST: the resume below only starts from an idle page, so it must find the host's run already on screen.
+          try { window.setTimeout(() => { bootJobs().catch(() => { /* never breaks the boot */ }) }, 3000) } catch (e7) { /* no timers */ }
+          // A run the previous tab left behind goes on by itself, once DSH has had time to register its dictionaries.
+          try { window.setTimeout(() => { autoResume().catch(() => { /* never breaks the boot */ }) }, 3500) } catch (e6) { /* no timers */ }
           try {
             window.addEventListener('kb-lang-use', (ev) => {
               const id = ev !== null && ev !== undefined && ev.detail !== null && ev.detail !== undefined && typeof ev.detail.lang === 'string' ? ev.detail.lang : ''
