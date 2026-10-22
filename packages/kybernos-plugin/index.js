@@ -6300,6 +6300,8 @@ function boot(ctx) {
         return (parsed !== null && typeof parsed === 'object') ? parsed : {}
       } catch (e) { return {} }
     }
+    // An entry of the store is dropped when every field is empty (name, icon, color, desc, and the two selections: skills, connectors).
+    const workspaceEntryEmpty = (entry) => Object.keys(entry).every((k) => entry[k] === null || entry[k] === undefined)
     const saveWorkspaceUi = async (args) => {
       try {
         const req = args !== null && args !== undefined && typeof args === 'object' ? args : {}
@@ -6322,11 +6324,10 @@ function boot(ctx) {
         next.icon = icon === '' ? null : icon
         next.color = color === '' ? null : color
         next.desc = desc === '' ? null : desc
-        // `skills` (sélection de l'onglet Skills du projet) appartient à
-        // saveWorkspaceSkills : ici on ne fait que la PRÉSERVER — une sauvegarde
-        // des détails (nom/icône/couleur/desc) ne doit jamais effacer la
-        // sélection, ni supprimer l'entrée tant qu'une sélection existe.
-        if (next.name === null && next.icon === null && next.color === null && next.desc === null && (next.skills === null || next.skills === undefined)) delete data[workspaceId]
+        // `skills` and `connectors` (the selections of the project's Skills and Connectors tabs) belong to saveWorkspaceSkills and
+        // saveWorkspaceConnectors: here they are only PRESERVED — saving the details (name/icon/color/desc) never erases a selection,
+        // nor drops the entry while one exists.
+        if (workspaceEntryEmpty(next) === true) delete data[workspaceId]
         else data[workspaceId] = next
         await writeTextScoped(home, path, JSON.stringify(data, null, 2) + String.fromCharCode(10))
         return { ok: true, path: path, ui: data[workspaceId] === undefined ? null : data[workspaceId] }
@@ -6393,33 +6394,78 @@ function boot(ctx) {
     const readWorkspaceSkills = async (args) => {
       try {
         const req = args !== null && args !== undefined && typeof args === 'object' ? args : {}
-        const workspaceId = str(req.workspaceId)
-        if (workspaceId === null || workspaceId.length === 0 || workspaceId.length > 120) return { ok: false, error: 'workspaceId required' }
-        if (/^[A-Za-z0-9][A-Za-z0-9 ._:-]*$/.test(workspaceId) === false) return { ok: false, error: 'invalid workspaceId' }
-        const data = await readWorkspaceUi()
-        return { ok: true, workspaceId: workspaceId, skills: workspaceSkillsOf(data, workspaceId) }
+        const w = workspaceIdOf(req)
+        if (w.id === undefined) return { ok: false, error: w.error }
+        return { ok: true, workspaceId: w.id, skills: workspaceSkillsOf(await readWorkspaceUi(), w.id) }
       } catch (e) { return { ok: false, error: errText(e) } }
+    }
+    // Writes one selection (`skills` or `connectors`) of a workspace entry, leaving the other fields as they are.
+    const writeWorkspaceSelection = async (workspaceId, key, list) => {
+      const home = await dshHome()
+      if (home === null) return { ok: false, error: 'DSH home not found' }
+      const path = joinPath(home, '.kyber-workspaces.json')
+      const data = await readWorkspaceUi()
+      const prev = (data[workspaceId] !== null && data[workspaceId] !== undefined && typeof data[workspaceId] === 'object') ? data[workspaceId] : {}
+      const next = Object.assign({}, prev)
+      next[key] = list.length > 0 ? list : null
+      if (workspaceEntryEmpty(next) === true) delete data[workspaceId]
+      else data[workspaceId] = next
+      await writeTextScoped(home, path, JSON.stringify(data, null, 2) + String.fromCharCode(10))
+      return { ok: true, path: path }
+    }
+    const workspaceIdOf = (req) => {
+      const workspaceId = str(req.workspaceId)
+      if (workspaceId === null || workspaceId.length === 0 || workspaceId.length > 120) return { error: 'workspaceId required' }
+      if (/^[A-Za-z0-9][A-Za-z0-9 ._:-]*$/.test(workspaceId) === false) return { error: 'invalid workspaceId' }
+      return { id: workspaceId }
     }
     const saveWorkspaceSkills = async (args) => {
       try {
         const req = args !== null && args !== undefined && typeof args === 'object' ? args : {}
-        const workspaceId = str(req.workspaceId)
-        if (workspaceId === null || workspaceId.length === 0 || workspaceId.length > 120) return { ok: false, error: 'workspaceId required' }
-        if (/^[A-Za-z0-9][A-Za-z0-9 ._:-]*$/.test(workspaceId) === false) return { ok: false, error: 'invalid workspaceId' }
+        const w = workspaceIdOf(req)
+        if (w.id === undefined) return { ok: false, error: w.error }
         const skills = sanitizeSkillList(req.skills)
         if (skills === null) return { ok: false, error: 'skills required (list of strings)' }
-        const home = await dshHome()
-        if (home === null) return { ok: false, error: 'DSH home not found' }
-        const path = joinPath(home, '.kyber-workspaces.json')
-        const data = await readWorkspaceUi()
-        const prev = (data[workspaceId] !== null && data[workspaceId] !== undefined && typeof data[workspaceId] === 'object') ? data[workspaceId] : {}
-        const next = Object.assign({}, prev)
-        next.skills = skills.length > 0 ? skills : null
-        const absent = (v) => v === null || v === undefined
-        if (absent(next.name) === true && absent(next.icon) === true && absent(next.color) === true && absent(next.desc) === true && absent(next.skills) === true) delete data[workspaceId]
-        else data[workspaceId] = next
-        await writeTextScoped(home, path, JSON.stringify(data, null, 2) + String.fromCharCode(10))
-        return { ok: true, path: path, workspaceId: workspaceId, skills: skills }
+        const res = await writeWorkspaceSelection(w.id, 'skills', skills)
+        return res.ok === true ? { ok: true, path: res.path, workspaceId: w.id, skills: skills } : res
+      } catch (e) { return { ok: false, error: errText(e) } }
+    }
+
+    // ── Connectors a project uses (Connectors tab of the project page) ──────
+    // Same store and same shape as the skills: the toolkit slugs under the `connectors` key of the workspace entry. It is the owner's
+    // choice of which apps this project works with (the page shows them first); the Composio account itself stays account-wide.
+    const WORKSPACE_CONNECTORS_MAX = 100
+    const sanitizeConnectorList = (raw) => {
+      const list = sanitizeSkillList(raw, WORKSPACE_CONNECTORS_MAX)
+      if (list === null) return null
+      const out = []
+      for (const item of list) {
+        const slug = item.toLowerCase()
+        if (/^[a-z0-9][a-z0-9_.-]{0,62}$/.test(slug) === true && out.indexOf(slug) < 0) out.push(slug)
+      }
+      return out
+    }
+    const workspaceConnectorsOf = (data, workspaceId) => {
+      const entry = (data[workspaceId] !== null && data[workspaceId] !== undefined && typeof data[workspaceId] === 'object') ? data[workspaceId] : {}
+      return Array.isArray(entry.connectors) === true ? entry.connectors.filter((c) => typeof c === 'string') : []
+    }
+    const readWorkspaceConnectors = async (args) => {
+      try {
+        const req = args !== null && args !== undefined && typeof args === 'object' ? args : {}
+        const w = workspaceIdOf(req)
+        if (w.id === undefined) return { ok: false, error: w.error }
+        return { ok: true, workspaceId: w.id, connectors: workspaceConnectorsOf(await readWorkspaceUi(), w.id) }
+      } catch (e) { return { ok: false, error: errText(e) } }
+    }
+    const saveWorkspaceConnectors = async (args) => {
+      try {
+        const req = args !== null && args !== undefined && typeof args === 'object' ? args : {}
+        const w = workspaceIdOf(req)
+        if (w.id === undefined) return { ok: false, error: w.error }
+        const connectors = sanitizeConnectorList(req.connectors)
+        if (connectors === null) return { ok: false, error: 'connectors required (list of toolkit slugs)' }
+        const res = await writeWorkspaceSelection(w.id, 'connectors', connectors)
+        return res.ok === true ? { ok: true, path: res.path, workspaceId: w.id, connectors: connectors } : res
       } catch (e) { return { ok: false, error: errText(e) } }
     }
 
@@ -9900,6 +9946,16 @@ function boot(ctx) {
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
         sendJson(res, 200, await saveWorkspaceSkills(await readJsonBody(req)))
       } }), 'kybernos: route workspace-skills')
+      // ── Connectors used by a project: GET reads, POST writes the selection ──
+      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/workspace-connectors', handler: async (req, res) => {
+        if (req.method === 'GET') {
+          const wid = str(queryOf(req).get('workspaceId'))
+          return sendJson(res, 200, await readWorkspaceConnectors({ workspaceId: wid }))
+        }
+        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'GET or POST expected' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        sendJson(res, 200, await saveWorkspaceConnectors(await readJsonBody(req)))
+      } }), 'kybernos: route workspace-connectors')
       // ── Instructions of a workspace: a text sent with the prompt of its sessions (private store, optional AGENTS.md section) ──
       const wsInstructions = createWorkspaceInstructions({ home: dshHomeSync() })
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/workspace-instructions', handler: async (req, res) => {
