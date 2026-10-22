@@ -598,6 +598,7 @@ The routes the **Kaby** page (`kybernos-kyber`) uses; the shapes and the words o
 | `POST /kybernos-cloud/telegram/pairing/cancel` `{id}` | “it is not me” |
 | `POST /kybernos-cloud/kyby/computer` `{computer_id}` | the cloud computer linked to the assistant (null = the default Home); `GET /kybernos-cloud/kyber` lists `computers` and gives `home` as the chosen one |
 | `POST /kybernos-cloud/telegram/unlink` | disconnects the account's Telegram |
+| `POST /kybernos-cloud/whatsapp/pairing`, `GET …/whatsapp/pairing/state?id=`, `POST …/whatsapp/pairing/cancel` `{id}`, `POST …/whatsapp/unlink` | the same four calls for the WhatsApp door (ADR 0053 § 13.8, a beta bridge), on the server's `/v1/me/whatsapp[/pairing]`; the pairing's `link` is the number's `wa.me` address with the pairing message typed (`number` is answered, no `bot`). `GET /kybernos-cloud/kyber` carries a `whatsapp` object `{ configured, enabled, available, linked }` only when the server answers `/v1/me/whatsapp`; a server without the door (it answers 404) gives `null` and the page says « Not available on this server yet ». Played end to end on the server's replica (`whatsapp-door` branch, a stand-in bridge): not connected → code → the person's message → Kaby's question → « 1 » → connected → disconnected. |
 | `GET /kybernos-cloud/kyby/native` | which DSH chat is Kaby's (`sessionId`, null before the first time) and its folder (`cwd`, made here) |
 | `POST /kybernos-cloud/kyby/native/set` `{sessionId}` | remembers that chat (null forgets it) |
 

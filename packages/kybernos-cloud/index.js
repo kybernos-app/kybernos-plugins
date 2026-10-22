@@ -5116,10 +5116,7 @@ const kyberRoute = async () => {
     kybyChosen.status = r.status
     return { id, status: r.status }
   }
-  // L6-05: the server exposes no `/v1/me/whatsapp` (only `/v1/me/telegram`), so this call returned 404 on every state
-  // read and the projection below turned that silence into `null`. The channel is not offered here and the page now says
-  // so; the call, the four `whatsapp/*` routes and `baseOf('whatsapp')` are gone (no caller can pair what does not exist).
-  const [tg, ws, kyby0] = await Promise.all([get('/v1/me/telegram'), get('/v1/workspaces'), chosen()])
+  const [tg, wa, ws, kyby0] = await Promise.all([get('/v1/me/telegram'), get('/v1/me/whatsapp'), get('/v1/workspaces'), chosen()])
   const pick = kyby0.id
   const list = ws.status === 200 && ws.body !== null && Array.isArray(ws.body.workspaces) ? ws.body.workspaces : []
   const personal = list.find((w) => w !== null && typeof w === 'object' && w.personal === true)
@@ -5151,6 +5148,8 @@ const kyberRoute = async () => {
     }
   }
   const t = tg.status === 200 && tg.body !== null && typeof tg.body === 'object' ? tg.body : null
+  // WhatsApp, the beta bridge (ADR 0053 § 13.8): the same shape as Telegram's, plus whether a bridge is open right now; a server with no such door says nothing of it.
+  const w = wa.status === 200 && wa.body !== null && typeof wa.body === 'object' ? wa.body : null
   return {
     ok: true,
     connected: true,
@@ -5162,11 +5161,14 @@ const kyberRoute = async () => {
         ? { display: String(t.linked.display || ''), linked_at: String(t.linked.linked_at || ''), paused: t.linked.paused === true, blocked: t.linked.blocked === true }
         : null,
     },
-    // L6-05: no `whatsapp` field at all. The host does not have that door, and the rule for a door it does not have is the
-    // one Telegram already follows — say nothing of it. The page then draws its own sentence (« WhatsApp · Bêta · pas encore
-    // disponible sur ce serveur », tested in kybernos-kyber/test-client.mjs), which is why the old 404-driven `null` was
-    // never the silent hole it looked like: the four `whatsapp/*` routes, the always-404 call and `baseOf('whatsapp')` were
-    // the dead surface, and they are gone.
+    whatsapp: w === null ? null : {
+      configured: w.configured === true,
+      enabled: w.enabled === true,
+      available: w.available === true,
+      linked: w.linked !== null && typeof w.linked === 'object'
+        ? { display: String(w.linked.display || ''), linked_at: String(w.linked.linked_at || ''), paused: w.linked.paused === true, blocked: w.linked.blocked === true }
+        : null,
+    },
     computers,
     home,
     // Which server this is (the footer's helper: its label, its host, whether the registry names another to switch to) and whether it has the pairing routes:
@@ -5276,9 +5278,11 @@ const ROUTES = [
   { path: '/kybernos-cloud/telegram/pairing/cancel', method: 'POST', guarded: true, strict: true, body: true, cap: 1024, run: (req, body) => kyby.pairingCancel(req, body) },
   { path: '/kybernos-cloud/kyby/computer', method: 'POST', guarded: true, strict: true, body: true, cap: 1024, run: async (req, body) => { kybyChosen.at = 0; return kyby.computer(req, body) } },
   { path: '/kybernos-cloud/telegram/unlink', method: 'POST', guarded: true, strict: true, body: true, cap: 1024, run: () => kyby.unlink() },
-  // L6-05: the four `whatsapp/*` routes are gone. The server has never exposed `/v1/me/whatsapp` (its channel table holds
-  // only `/v1/me/telegram*`), so they could only ever answer an error, and the page offers no pairing for a channel the
-  // host itself declares unavailable (`available: false` above). ADR 0053 § 13.8 stays the intention, not a route.
+  // WhatsApp, the beta bridge (ADR 0053 § 13.8): the same four calls on the other channel.
+  { path: '/kybernos-cloud/whatsapp/pairing', method: 'POST', guarded: true, strict: true, run: () => kyby.pairingStart('whatsapp') },
+  { path: '/kybernos-cloud/whatsapp/pairing/state', method: 'GET', guarded: true, run: (req) => kyby.pairingState(req, 'whatsapp') },
+  { path: '/kybernos-cloud/whatsapp/pairing/cancel', method: 'POST', guarded: true, strict: true, body: true, cap: 1024, run: (req, body) => kyby.pairingCancel(req, body, 'whatsapp') },
+  { path: '/kybernos-cloud/whatsapp/unlink', method: 'POST', guarded: true, strict: true, body: true, cap: 1024, run: () => kyby.unlink('whatsapp') },
   { path: '/kybernos-cloud/kyby/native', method: 'GET', guarded: true, run: kybySessionRoute },
   { path: '/kybernos-cloud/kyby/native/set', method: 'POST', guarded: true, strict: true, session: true, body: true, cap: 1024, run: kybySessionSet },
   { path: '/kybernos-cloud/computer/resume', method: 'POST', guarded: true, strict: true, run: () => computerAction('resume') },
