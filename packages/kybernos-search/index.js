@@ -98,12 +98,22 @@ export function mountRoutes (webServer, index) {
   })
 }
 
+// What `register` hands back takes the route off again. It is kept here and given to `ctx.effect` by `apply`, so that unloading the plugin removes every route it
+// added: without it a hot reload met « duplicate exact route », logged « routes not mounted » and went on serving the OLD handlers (audit L4-05, L6-04).
+const kbRetraits = []
+const kbRetirerRoutes = () => { for (const retrait of kbRetraits.splice(0).reverse()) { try { retrait() } catch (e) { /* already gone */ } } }
+/** `service` with a `register` that keeps the way to remove each route it adds (see kbRetirerRoutes). */
+const kbSuivi = (service) => (service === null || service === undefined || typeof service.register !== 'function'
+  ? service
+  : new Proxy(service, { get: (target, key) => (key === 'register' ? (route) => { const retrait = target.register(route); if (typeof retrait === 'function') kbRetraits.push(retrait); return retrait } : (typeof target[key] === 'function' ? target[key].bind(target) : target[key])) }))
+
 export function apply (ctx) {
+  if (ctx !== null && ctx !== undefined && typeof ctx.effect === 'function') ctx.effect(() => kbRetirerRoutes, 'kybernos-search: routes')
   try {
     const index = createIndex(realIo(dshHome()))
     // A read-only seam for the bundles that compare the person's asks (kybernos-skills notices a task that comes back): frozen, looked up at call time by the reader.
     try { globalThis[Symbol.for('kybernos.chat-index')] = Object.freeze({ version: 1, asks: (sinceMs) => index.asks(sinceMs), refresh: () => index.start() }) } catch (e) { /* a seam that cannot be set leaves the readers without it */ }
-    const mount = (webServer) => { try { mountRoutes(webServer, index); console.log('[kybernos-search] routes mounted') } catch (e) { console.log('[kybernos-search] routes not mounted: ' + String(e?.message ?? e)) } }
+    const mount = (webServer) => { try { mountRoutes(kbSuivi(webServer), index); console.log('[kybernos-search] routes mounted') } catch (e) { console.log('[kybernos-search] routes not mounted: ' + String(e?.message ?? e)) } }
     const have = typeof ctx?.get === 'function' ? ctx.get('webServer') : undefined
     if (have !== undefined && have !== null) mount(have)
     else if (typeof ctx?.inject === 'function') ctx.inject(['webServer'], (h) => mount(h.webServer))

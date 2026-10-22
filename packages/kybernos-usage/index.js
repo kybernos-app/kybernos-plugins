@@ -8,7 +8,17 @@ export const name = 'kybernos-usage'
 
 const ledgerPath = () => join(process.env.DSH_HOME || join(homedir(), '.dsh'), 'kybernos', 'usage', 'ledger.json')
 
+// What `register` hands back takes the route off again. It is kept here and given to `ctx.effect` by `apply`, so that unloading the plugin removes every route it
+// added: without it a hot reload met « duplicate exact route », logged « routes not mounted » and went on serving the OLD handlers (audit L4-05, L6-04).
+const kbRetraits = []
+const kbRetirerRoutes = () => { for (const retrait of kbRetraits.splice(0).reverse()) { try { retrait() } catch (e) { /* already gone */ } } }
+/** `service` with a `register` that keeps the way to remove each route it adds (see kbRetirerRoutes). */
+const kbSuivi = (service) => (service === null || service === undefined || typeof service.register !== 'function'
+  ? service
+  : new Proxy(service, { get: (target, key) => (key === 'register' ? (route) => { const retrait = target.register(route); if (typeof retrait === 'function') kbRetraits.push(retrait); return retrait } : (typeof target[key] === 'function' ? target[key].bind(target) : target[key])) }))
+
 export function apply (ctx) {
+  if (ctx !== null && ctx !== undefined && typeof ctx.effect === 'function') ctx.effect(() => kbRetirerRoutes, 'kybernos-usage: routes')
   try {
     const file = ledgerPath()
     const store = createStore({
@@ -21,7 +31,7 @@ export function apply (ctx) {
       },
     })
     const mount = (webServer) => {
-      try { mountRoutes(webServer, store); console.log('[kybernos-usage] routes mounted') } catch (e) { console.log('[kybernos-usage] routes not mounted: ' + String(e && e.message ? e.message : e)) }
+      try { mountRoutes(kbSuivi(webServer), store); console.log('[kybernos-usage] routes mounted') } catch (e) { console.log('[kybernos-usage] routes not mounted: ' + String(e && e.message ? e.message : e)) }
     }
     if (ctx.get('webServer') !== undefined) mount(ctx.get('webServer'))
     else ctx.inject(['webServer'], (host) => mount(host.webServer))
