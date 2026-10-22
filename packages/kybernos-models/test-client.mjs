@@ -725,7 +725,9 @@ console.log('\n── Fetch available models (the engine lists what a provider s
   const w = (frag) => src.includes(frag)
   // A provider the catalogue knows is named by the catalogue ("OpenRouter"), not by its id ("openrouter"): pvLabel falls back on the catalogue's `nom` before the raw route.
   ok('pvLabel names a catalogue provider by its catalogue name, and falls back on the id only for a provider nobody named',
-    /const pvLabel = \(route\) => \{[\s\S]*?const known = catDe\(route\)[\s\S]*?known\.nom[\s\S]*?: route\n\s*\}/.test(src))
+    /const pvLabel = \(route\) => \{[\s\S]*?engineName\.trim\(\)\.toLowerCase\(\) !== String\(route\)\.toLowerCase\(\)\) return engineName[\s\S]*?const known = catDe\(route\)[\s\S]*?known\.nom[\s\S]*?: route\n\s*\}/.test(src))
+  // ...and an engine name that is only the id ("openrouter") does not win over the catalogue's name: the live page showed the ids because the engine directory carries them as names.
+  ok('an engine name equal to the id is not a name: it comes after the catalogue name', /engineName\.trim\(\)\.toLowerCase\(\) !== String\(route\)\.toLowerCase\(\)/.test(src))
   ok('the button sits in the models header of both panels, disabled with a reason until there is something to ask', w("'data-kbm': 'fetch-open'") && w("title: blocked !== null ? blocked : (!askable ? m('kb.fetch.needsurl') : undefined)") && w('probe: kbFetchProbe(route, dr)') && w('probe: kbFetchProbe(null, dr)'))
   ok('the picker asks the provider\'s own endpoint for a catalog route, and tells where the list came from (live, or the catalog and why not)', w('kbFetchRun(kbMApi(), probe, { live: custom !== true })') && w("'data-kbm': 'fetch-source'") && w("m('kb.fetch.src.catalog', { raison: m(fp.src.why.key, fp.src.why.vars) })"))
   ok('Add provider from the catalogue still adopts the engine\'s answer (a live list of hundreds is not adopted unasked)', w('const found = await kbFetchRun(api, kbFetchProbe(slug, d))'))
