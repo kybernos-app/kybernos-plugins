@@ -55,6 +55,7 @@ window.__ModuleLoader__.load({
         cacheLine: ['{tokens} tokens, dont {pct} lus dans le cache (environ {saved} évités).', '{tokens} tokens, {pct} of them read from the cache (about {saved} saved).'],
         entryNew: ['Entrée neuve', 'New input'],
         cacheRead: ['Cache lu', 'Cache read'],
+        cacheWrite: ['Cache écrit', 'Cache write'],
         output: ['Sortie', 'Output'],
         free: ['Gratuit', 'Free'],
         freeLine: ['{model} tourne {where}. {tokens} tokens, sans frais.', '{model} runs {where}. {tokens} tokens, free of charge.'],
@@ -572,18 +573,24 @@ body:not([data-ds-dark-theme]) .kbus-page{--dsw-alias-label-tertiary:var(--dsw-a
         if (kind === 'unknown') return h('div', null, h('h3', null, L('priceUnknown')), h('p', null, L('priceUnknownLine', { model, tokens: fmtTok(all) })))
         if (kind !== 'priced') return h('div', null, h('h3', null, L('noCostTitle')), h('p', null, L('noCostLine')))
         const cu = tokens.u * price.in / 1e6; const cc = tokens.cr * (price.cr === null ? price.in : price.cr) / 1e6; const co = tokens.o * price.out / 1e6
+        // L5-01: the title counts the tokens written to the cache (`tsum`, `costOf`), so the lines under it must too, or they do not add up to it.
+        const cw = tokens.cw * (price.cw === null ? price.in : price.cw) / 1e6
+        const wrote = tokens.cw > 0
         const total = costOf(tokens, price)
         const over = month !== null && month.budget && month.budget.usd !== null
         return h('div', null,
           h('div', { className: 'kbus-hd' }, h('span', null, L('sessionOwn', { model }))),
           h('h3', { style: { marginTop: 6 } }, fmtMoney(total)),
-          h('p', null, L('cacheLine', { tokens: fmtTok(all), pct: fmtPct(tokens.cr / Math.max(1, tokens.u + tokens.cr)), saved: fmtMoney(saved(tokens, price)) })),
+          h('p', null, L('cacheLine', { tokens: fmtTok(all), pct: fmtPct(tokens.cr / Math.max(1, tokens.u + tokens.cr + tokens.cw)), saved: fmtMoney(saved(tokens, price)) })),
           h('div', { className: 'kbus-split', 'aria-hidden': 'true' },
             h('i', { style: { flex: Math.max(1, tokens.u), background: 'var(--dsw-static-deepseek-500,#4176e6)' } }),
             h('i', { style: { flex: Math.max(1, tokens.cr), background: 'var(--dsw-static-green-500,#22c55e)' } }),
+            wrote ? h('i', { style: { flex: Math.max(1, tokens.cw), background: 'var(--dsw-static-neutral-500,#8a9096)' } }) : null,
             h('i', { style: { flex: Math.max(1, tokens.o * 6), background: 'var(--dsw-static-amber-500,#f59e0b)' } })),
           h('ul', { className: 'kbus-leg' },
-            [[L('entryNew'), tokens.u, cu, 'var(--dsw-static-deepseek-500,#4176e6)'], [L('cacheRead'), tokens.cr, cc, 'var(--dsw-static-green-500,#22c55e)'], [L('output'), tokens.o, co, 'var(--dsw-static-amber-500,#f59e0b)']]
+            [[L('entryNew'), tokens.u, cu, 'var(--dsw-static-deepseek-500,#4176e6)'], [L('cacheRead'), tokens.cr, cc, 'var(--dsw-static-green-500,#22c55e)']]
+              .concat(wrote ? [[L('cacheWrite'), tokens.cw, cw, 'var(--dsw-static-neutral-500,#8a9096)']] : [])
+              .concat([[L('output'), tokens.o, co, 'var(--dsw-static-amber-500,#f59e0b)']])
               .map((r, i) => h('li', { key: i }, h('span', { className: 'd', style: { background: r[3] } }), h('span', null, r[0]), h('span', { className: 't' }, fmtTok(r[1])), h('span', { className: 'c' }, fmtMoney(r[2]))))),
           over && month.spent >= month.budget.usd ? h('p', { className: 'kbus-line' }, L('budgetOver', { spent: fmtMoney(month.spent), b: fmtMoney(month.budget.usd) })) : null)
       }
@@ -739,7 +746,7 @@ body:not([data-ds-dark-theme]) .kbus-page{--dsw-alias-label-tertiary:var(--dsw-a
       return {
         name: 'kybernos-usage',
         inject: ['slots'],
-        __test: { S, L, kt, fmtMoney, fmtTok, fmtPct, priceOf, costOf, saved, kindOf, aggregate, sessionCost, windowView, tone, splitKey, FREE_PROVIDERS, CSS, reportOne, storeSignature },
+        __test: { S, L, kt, fmtMoney, fmtTok, fmtPct, priceOf, costOf, saved, kindOf, aggregate, sessionCost, windowView, tone, splitKey, FREE_PROVIDERS, CSS, reportOne, storeSignature, OwnBlock },
         apply (ctx) {
           // After the sessions pills (order 5) and the changes chip (order 4). The id must NOT be `kybernos-usage`:
           // the core's usage probe already registers that id in this slot.
