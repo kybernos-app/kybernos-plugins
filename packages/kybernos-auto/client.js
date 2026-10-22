@@ -275,7 +275,9 @@ window.__ModuleLoader__.load({
       refs = null
     }
 
-    setInterval(() => {
+    // L1-03: one tick of the composer, started (and stopped) by `apply`; it used to run from the load of the module with no way to stop it,
+    // so every hot reload of the client left one more tick running and one more panel fighting over the menu.
+    const tictacComposer = () => {
       try {
         if (etatPanneau !== null) appliquerChipAuto(actif(etatPanneau))
         const menu = menuOuvert()
@@ -303,7 +305,7 @@ window.__ModuleLoader__.load({
           decaler(menu)
         }
       } catch (e) { /* DOM en transition : réessai au prochain tick */ }
-    }, 300)
+    }
 
         // ── 2. the dedicated Settings section ───────────────────────────────
     // The page shows the first rows of the health table and folds the rest (« all models » can list a hundred).
@@ -659,14 +661,22 @@ window.__ModuleLoader__.load({
           try { console.error('[kybernos-auto] service slots indisponible : pas d interface') } catch (e) { /* */ }
           return
         }
+        // L1-03: what the client starts, it stops. The stylesheet and the two timers are effects of the plugin: when DSH unmounts it (or hot
+        // reloads the client) the tag goes, the timers stop, and the panel this instance put in the menu goes with them.
+        const effet = (fn, label) => { try { if (typeof ctx.effect === 'function') ctx.effect(fn, label); else fn() } catch (e) { /* un effet ne doit pas empêcher le montage */ } }
                 // CSS: a dedicated tag (no styles service required — same technique as
                 // the other bundles that own their stylesheet).
-        try {
+        effet(() => {
           const tag = document.createElement('style')
           tag.dataset.plugin = '@local/kybernos-auto'
           tag.textContent = CSS
           document.head.append(tag)
-        } catch (e) { /* hors navigateur */ }
+          return () => { tag.remove() }
+        }, 'kybernos-auto: styles')
+        effet(() => {
+          const tic = setInterval(tictacComposer, 300)
+          return () => { clearInterval(tic); retirerPanneau(); appliquerChipAuto(false) }
+        }, 'kybernos-auto: composer tick')
         try {
             slots.inject('settings.section', () => slots.register(
             { name: 'settings.section', id: 'kybernos-auto-page', order: 14, label: kt('Routage Auto', 'Auto Routing') },
@@ -685,8 +695,11 @@ window.__ModuleLoader__.load({
               .then((st) => { if (st && st.ok === true) appliquerChipAuto(st.sessionOn === true || st.global === true) })
               .catch(() => { /* hors ligne : réessai au prochain tick */ })
           }
-          appliquerAuMontage()
-          setInterval(appliquerAuMontage, 5000)
+          effet(() => {
+            appliquerAuMontage()
+            const tic = setInterval(appliquerAuMontage, 5000)
+            return () => { clearInterval(tic) }
+          }, 'kybernos-auto: mount state')
         } catch (e3) { /* sans DOM */ }
         } catch (e) { console.error('[kybernos-auto] montage client impossible', e) }
       }
