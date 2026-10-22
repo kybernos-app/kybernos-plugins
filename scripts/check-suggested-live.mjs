@@ -56,6 +56,20 @@ try {
   const left = await post({ action: 'list' })
   check('Discard deletes the suggestion and the card goes', left.tasks.find((t) => t.id === s2.task.id) === undefined && (await q(`!document.querySelector('[data-kb="suggested-block"]')`)) === true)
   check('the pulse stops when nothing waits', (await q(`(() => { const r = [...document.querySelectorAll('.kb4-item')].find((e) => e.querySelector('.kb4-badge') && /Automation|Deadline/i.test(e.textContent)); return !!r && !r.querySelector('.kb-ping') })()`)) === true)
+  // The apps the suggestions ask for: a pulse and a number on the Connectors row, the apps first on the page
+  const s3 = await post({ action: 'suggest', task: task('Check needs apps', { needs: ['gmail', 'googlecalendar'] }), proof: { n: 3 } })
+  made.push(s3.task.id)
+  await clickText(page, 'Skills'); await sleep(800); await clickText(page, 'Automations'); await sleep(3500)
+  const cnRow = `[...document.querySelectorAll('.kb4-item')].find((e) => /Connectors/i.test(e.textContent))`
+  check('the Connectors row pulses with the number of apps to connect', (await q(`(() => { const r = ${cnRow}; return !!r && !!r.querySelector('.kb-ping') && r.querySelector('.kb4-badge') !== null && r.querySelector('.kb4-badge').textContent === '2' })()`)) === true, await q(`(() => { const r = ${cnRow}; return r ? r.textContent : 'none' })()`))
+  await clickText(page, 'Connectors'); await sleep(2500)
+  check('on Yours the two apps come first, in dashed cards that say who needs them', (await q(`document.querySelectorAll('[data-kb="yours-need"] .kb7-card').length`)) === 2 && /Needed by.*Check needs apps/.test(String(await q(`document.querySelector('[data-kb="yours-need"]').textContent`))))
+  check('the old « For your field » strip is gone', (await q(`!document.querySelector('[data-kb="yours-field"]')`)) === true)
+  await page.shot(join(shotDir, 'connectors-need.png')).catch(() => null)
+  await q(`document.querySelector('[data-kb="need-later"]').click()`); await sleep(800)
+  check('« Not now » silences one pulse and keeps the app listed', (await q(`(() => { const r = ${cnRow}; return !!r && r.querySelector('.kb4-badge').textContent === '1' })()`)) === true && (await q(`document.querySelectorAll('[data-kb="yours-need"] .kb7-card').length`)) === 2)
+  await clickText(page, 'Discover'); await sleep(1500)
+  check('on Discover the same two apps head one flat list, with no section titles', (await q(`[...document.querySelectorAll('[data-kb="discover-grid"] .kb7-card')].slice(0, 2).every((c) => /Needed by/.test(c.textContent))`)) === true && (await q(`document.querySelectorAll('.kb7-seclab').length`)) === 0)
 } catch (e) {
   fails += 1
   console.log('FAIL an error nobody caught: ' + String(e && e.message ? e.message : e).slice(0, 300))

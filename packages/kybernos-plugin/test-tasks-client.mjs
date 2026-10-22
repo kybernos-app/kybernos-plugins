@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url'
 const src = readFileSync(fileURLToPath(new URL('./client.js', import.meta.url)), 'utf8')
 const m = src.match(/\/\/ KB-TASKS-CLIENT-BEGIN([\s\S]*?)\/\/ KB-TASKS-CLIENT-END/)
 if (m === null) { console.error('KB-TASKS-CLIENT block not found in client.js'); process.exit(1) }
-const mod = await import('data:text/javascript,' + encodeURIComponent(m[1] + '\nexport { kbSuggestedList, kbTasksLastSessions, kbTasksRunningIds, kbSuggestionMeta, KB_ROUTES_WITH_LOCAL_FALLBACK, kbRemoteOutcome, kbMachineTz, kbCronHuman, kbCronTime, kbCronAt, kbCronOnDays, kbOnceLabel, kbZoneLabel, kbEditChatText, kbTaskWho, kbFmtWhen, kbTasksList, kbExportTask, kbCloneDefinition, kbTaskError, kbTaskTriggerCode, kbTriggerParts, kbListState, KB_TASK_ERRORS }'))
+const mod = await import('data:text/javascript,' + encodeURIComponent(m[1] + '\nexport { kbTasksNeeds, kbSuggestedList, kbTasksLastSessions, kbTasksRunningIds, kbSuggestionMeta, KB_ROUTES_WITH_LOCAL_FALLBACK, kbRemoteOutcome, kbMachineTz, kbCronHuman, kbCronTime, kbCronAt, kbCronOnDays, kbOnceLabel, kbZoneLabel, kbEditChatText, kbTaskWho, kbFmtWhen, kbTasksList, kbExportTask, kbCloneDefinition, kbTaskError, kbTaskTriggerCode, kbTriggerParts, kbListState, KB_TASK_ERRORS }'))
 
 let fails = 0
 const eq = (label, got, want) => { const ok = got === want; if (!ok) { fails++; console.log('FAIL', label, '| got', got, '| want', want) } else console.log('ok  ', label) }
@@ -107,6 +107,7 @@ eq('an automation is working when its latest session is running', mod.kbTasksRun
 eq('no sessions list: nothing is said to run', mod.kbTasksRunningIds([{ id: 'a', sid: 's1' }], null).length, 0)
 eq('a suggestion shows its proof: count, period, place', mod.kbSuggestionMeta({ origin: { proof: { n: 14, span: '60 days', where: 'Gmail', note: 'same request' } } }).line, '14\u00d7 \u00b7 60 days \u00b7 Gmail')
 eq('...and its note as the tooltip', mod.kbSuggestionMeta({ origin: { proof: { n: 14, note: 'same request' } } }).note, 'same request')
+eq('the apps asked for come from the suggestions and the automations that are on, with who asks', JSON.stringify(mod.kbTasksNeeds([{ name: 'A', suggested: true, needs: ['gmail', 'googlecalendar'] }, { name: 'B', active: true, needs: ['gmail'] }, { name: 'C', active: false, needs: ['slack'] }, { name: 'D', active: true }, null])), '{"gmail":["A","B"],"googlecalendar":["A"]}')
 eq('a suggestion with no proof shows nothing', JSON.stringify(mod.kbSuggestionMeta({ name: 'x' })), '{"line":"","note":""}')
 {
   const t = { id: 'st-1', name: 'N', prompt: 'P', schedule: { mode: 'cron', cron: '0 8 * * *', tz: 'UTC' }, runsOn: 'local', active: true, approvals: 'auto', notify: ['push'], nextRun: 'x', lastRun: 'y', history: [{ at: 'z' }], trigger: { type: 'webhook', hookId: 'hk_aaaaaaaaaaaa', secret: 'SECRET0123456789' }, pendingFires: ['an event'] }

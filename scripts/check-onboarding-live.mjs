@@ -654,10 +654,11 @@ try {
   check('the Creations tiles come in the field\'s order: All, Documents, Spreadsheets, then the others as before', JSON.stringify(tileNames) === JSON.stringify(['All', 'Documents', 'Spreadsheets', 'Slides', 'Websites', 'Images', 'Audio & Video']), JSON.stringify(tileNames))
   await page.shot(join(shotDir, 'pages-creations-law.png'))
   await openView({ view: 'skills' })
-  const fieldHead = await q(`(document.querySelector('[data-kb="field-section"] .kbsf-fh') || {}).textContent || null`)
+  const fieldDots = await q(`document.querySelectorAll('[data-kb="field-rows"] [data-kb="field-skill"] .kbsf-fdot').length`)
+  const fieldFrame = await q(`!!document.querySelector('.kbsf-field, .kbsf-fhead')`)
   const fieldNames = await q(`[...document.querySelectorAll('[data-kb="field-skill"]')].map((e) => e.getAttribute('data-skill'))`)
   const fieldTags = await q(`[...document.querySelectorAll('[data-kb="field-skill"] .kbsf-ftag')].map((e) => e.textContent.trim() + (e.classList.contains('on') ? '*' : ''))`)
-  check('Skills opens on « For your field · Law »', fieldHead === 'For your field · Law', JSON.stringify(fieldHead))
+  check('Skills opens on the Law skills, flat in the list: a dot each, no frame, no title', fieldDots === 6 && fieldFrame === false, JSON.stringify([fieldDots, fieldFrame]))
   check('with the skills of the ticked goals first (marked), then the others of the field, each once', JSON.stringify(fieldNames) === JSON.stringify(['review-contract', 'compliance-check', 'deadline-check', 'case-law-watch', 'xlsx', 'docx']) && JSON.stringify(fieldTags) === JSON.stringify(['Contracts*', 'Contracts*', 'Deadlines*', 'Watch', 'Time', 'Drafting']), JSON.stringify([fieldNames, fieldTags]))
   check('the curated skills carry the page\'s own title, not the folder name', (await q(`[...document.querySelectorAll('[data-skill="docx"] .kbsf-ftitle, [data-skill="xlsx"] .kbsf-ftitle')].map((e) => e.textContent.trim()).join('|')`)) !== 'Xlsx|Docx')
   check('a skill from GitHub asks the usual confirmation before anything is installed', (await q(`(() => { const b = document.querySelector('[data-skill="docx"] [data-kb="field-install"]'); if (!b) return false; b.click(); return true })()`)) === true && (await waitFor(page, `!!document.querySelector('[data-kb="install-confirm"]') && /anthropics\\/skills/.test(document.querySelector('[data-kb="install-confirm"]').innerText)`, 6000)) === true)
@@ -669,13 +670,13 @@ try {
   try { rmSync(join(dshHome, 'skills', 'deadline-check'), { recursive: true, force: true }) } catch (e) { /* none */ }
   try { const f = join(dshHome, 'kybernos/seeded-skills.json'); if (existsSync(f)) { const j = JSON.parse(readFileSync(f, 'utf8')); if (j && j.skills) { delete j.skills['deadline-check']; writeFileSync(f, JSON.stringify(j, null, 2)) } } } catch (e) { /* none */ }
   await openView({ view: 'connectors' })
-  check('Connectors, on Yours with nothing connected, names the field\'s apps and the way to them', /For your field · Law/.test(String(await q(`(document.querySelector('[data-kb="yours-field"]') || {}).innerText || ''`))) && (await q(`!!document.querySelector('[data-kb="yours-field-go"]')`)) === true)
+  check('Connectors has no « For your field » strip any more: the apps are in the lists', (await q(`!document.querySelector('[data-kb="yours-field"], [data-kb="yours-field-go"]')`)) === true)
   await q(`(() => { const b = [...document.querySelectorAll('button')].find((x) => /^Discover/.test(x.textContent.trim())); if (b) b.click() })()`)
-  await waitFor(page, `!!document.querySelector('[data-kb="discover-field"]')`, 15000)
-  const apps = await q(`[...document.querySelectorAll('[data-kb="discover-field-grid"] .kb7-name')].map((e) => e.textContent.trim())`)
+  await waitFor(page, `!!document.querySelector('[data-kb="discover-grid"] .kb7-card')`, 15000)
+  const apps = await q(`[...document.querySelectorAll('[data-kb="discover-grid"] .kb7-name')].map((e) => e.textContent.trim())`)
   const appTags = await q(`[...document.querySelectorAll('[data-kb="field-goal"]')].map((e) => e.textContent.trim())`)
-  check('Discover puts the field\'s apps first, the ticked goals\' apps leading, each tagged with its goal', JSON.stringify(apps.slice(0, 6)) === JSON.stringify(['DocuSign', 'Google Drive', 'Dropbox', 'Google Calendar', 'Outlook', 'Gmail']) && JSON.stringify(appTags.slice(0, 5)) === JSON.stringify(['Contracts', 'Contracts', 'Contracts', 'Deadlines', 'Deadlines']), JSON.stringify([apps, appTags]))
-  check('an app shown there is not shown again below', (await q(`(() => { const top = new Set([...document.querySelectorAll('[data-kb="discover-field-grid"] .kb7-name')].map((e) => e.textContent)); const all = [...document.querySelectorAll('.kb7-grid .kb7-name')].map((e) => e.textContent); return all.length - new Set(all).size === 0 && top.size > 0 })()`)) === true)
+  check('Discover puts the field\'s apps first in ONE list, the ticked goals\' apps leading, each tagged with its goal and a dot, no section title', JSON.stringify(apps.slice(0, 6)) === JSON.stringify(['DocuSign', 'Google Drive', 'Dropbox', 'Google Calendar', 'Outlook', 'Gmail']) && JSON.stringify(appTags.slice(0, 5)) === JSON.stringify(['Contracts', 'Contracts', 'Contracts', 'Deadlines', 'Deadlines']) && (await q(`document.querySelectorAll('.kb7-seclab').length === 0 && document.querySelectorAll('[data-kb="discover-grid"] .kb7-fdot').length >= 5`)) === true, JSON.stringify([apps, appTags]))
+  check('an app shown there is not shown again below', (await q(`(() => { const all = [...document.querySelectorAll('[data-kb="discover-grid"] .kb7-name')].map((e) => e.textContent); return all.length - new Set(all).size === 0 && all.length > 0 })()`)) === true)
   await page.shot(join(shotDir, 'pages-connectors-law.png'))
   // French: the page follows the menu there too
   await q(`localStorage.setItem('kybernos.theme.lang', 'kybernos')`)
@@ -687,7 +688,7 @@ try {
     check('in French the ' + name + ' page is titled ' + want, (await titleNow()) === want)
   }
   await openView({ view: 'skills' })
-  check('in French the field section reads in French', (await q(`(document.querySelector('[data-kb="field-section"] .kbsf-fh') || {}).textContent || null`)) === 'Pour ton domaine · Droit')
+  check('in French the field skills keep their dot and no title', (await q(`document.querySelectorAll('[data-kb="field-rows"] .kbsf-fdot').length`)) === 6 && (await q(`!document.querySelector('.kbsf-fh')`)) === true)
   await q(`localStorage.removeItem('kybernos.theme.lang')`)
   // No field known (a profession no pack claims): the pages are as they were
   writeFileSync(join(dshHome, 'kybernos/onboarding.json'), JSON.stringify({ ...onboardingNow(), profil: 'unknown-job', goals: [] }))
@@ -697,7 +698,7 @@ try {
   await openView({ view: 'artifacts' })
   const plain = await titleNow()
   await openView({ view: 'skills' })
-  check('with no field the pages keep their own words and the Skills page has no field section', plain === 'Creations' && (await q(`!document.querySelector('[data-kb="field-section"]')`)) === true && (await titleNow()) === 'Skills', JSON.stringify(plain))
+  check('with no field the pages keep their own words and the Skills page has no field rows', plain === 'Creations' && (await q(`!document.querySelector('[data-kb="field-rows"]')`)) === true && (await titleNow()) === 'Skills', JSON.stringify(plain))
   await backToTheStartingPoint()
 
   /* ── 6. the moment of need: a chat whose model has no key ──────────────────────────────────────────── */

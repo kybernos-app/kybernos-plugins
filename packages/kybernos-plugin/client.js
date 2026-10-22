@@ -4695,7 +4695,7 @@ const KbLearnedDot = () => {
   if (!(pair[0] > 0)) return null
   const n = pair[0]
   const label = kbt(n === 1 ? 'kbui.skills.suggested.1' : 'kbui.skills.suggested').replace('{n}', String(n))
-  return h('span', { className: 'kb4-dot', role: 'img', 'aria-label': label, title: label, 'data-kb': 'learned-dot' })
+  return h('span', { className: 'kb4-dot kb-ping', role: 'img', 'aria-label': label, title: label, 'data-kb': 'learned-dot' })
 }
 const KB_MENU_ENTRY = { cloudcomputer: 'cloud', kyber: 'kyber', dashboards: 'dash', aiteams: 'teams', projects: 'ws', deliverables: 'creations', tasks: 'auto', skills: 'skills', connectors: 'plug' }
 const KB_MENU_CLASSIC = { cloud: 'monitor', kyber: 'bot', dash: 'layoutDashboard', teams: KB_DEFAULT_ICON, ws: 'folderOpen', creations: 'shapes', auto: 'zap', skills: 'sparkles', plug: 'plug' }
@@ -6317,6 +6317,18 @@ const kbTasksLastSessions = (raw) => {
 }
 // The ids of the automations whose latest run is working now (`byId`: the sessions list's rows, `running: true`).
 const kbTasksRunningIds = (pairs, byId) => (byId === null || typeof byId !== 'object' ? [] : (Array.isArray(pairs) === true ? pairs : []).filter((e) => Object.prototype.hasOwnProperty.call(byId, e.sid) === true && byId[e.sid] !== null && typeof byId[e.sid] === 'object' && byId[e.sid].running === true).map((e) => e.id))
+// The apps the automations ask for: { slug: [names of the automations] }, from the suggestions and from the ones that are switched on.
+const kbTasksNeeds = (raw) => {
+  const out = {}
+  for (const t of (Array.isArray(raw) === true ? raw : []).filter((x) => x !== null && typeof x === 'object' && Array.isArray(x) === false && (x.suggested === true || x.active === true))) {
+    for (const slug of (Array.isArray(t.needs) === true ? t.needs : [])) {
+      if (typeof slug !== 'string' || slug === '') continue
+      if (out[slug] === undefined) out[slug] = []
+      if (typeof t.name === 'string' && out[slug].indexOf(t.name) < 0) out[slug].push(t.name)
+    }
+  }
+  return out
+}
 // What a suggestion shows under its name: the proof the host kept (a count, a period, where it was seen) and its note.
 const kbSuggestionMeta = (t) => {
   const pr = t !== null && typeof t === 'object' && t.origin !== null && typeof t.origin === 'object' && t.origin.proof !== null && typeof t.origin.proof === 'object' ? t.origin.proof : null
@@ -22078,7 +22090,7 @@ function renderFit(canvas, model, cam, opts){
     const kbPublishTasks = (raw) => {
       KB_TASKS_COUNT = kbTasksList(raw).length
       const prev = KB_MENU_STATE.get('tasks')
-      KB_MENU_STATE.set('tasks', Object.assign({}, prev !== null ? prev : {}, { count: KB_TASKS_COUNT, review: kbSuggestedList(raw).length }))
+      KB_MENU_STATE.set('tasks', Object.assign({}, prev !== null ? prev : {}, { count: KB_TASKS_COUNT, review: kbSuggestedList(raw).length, needs: kbTasksNeeds(raw) }))
     }
     // Requests in flight, so a double click never starts the same action twice.
     const kbActInflight = {}
@@ -26983,7 +26995,7 @@ function renderFit(canvas, model, cam, opts){
         // section Réglages restent en place, seule l'entrée de la barre disparaît.
         row('tasks', Icon('zap', 15), kbt('menu.tasks'), (KB_TASKS_COUNT !== null && KB_TASKS_COUNT !== undefined) ? KB_TASKS_COUNT : 0, shown === 'tasks', () => openPage({ view: 'tasks' }), h(KbRowState, { k: 'tasks' })),
         row('skills', Icon('sparkles', 15), kbt('kbui.skills'), c.skills, shown === 'skills', () => openPage({ view: 'skills' }), h(KbLearnedDot)),
-        (KB_CP === true ? row('connectors', Icon('plug', 15), kbt('kbui.connecteurs'), 0, shown === 'connectors', () => openPage({ view: 'connectors' })) : null),
+        (KB_CP === true ? row('connectors', Icon('plug', 15), kbt('kbui.connecteurs'), 0, shown === 'connectors', () => openPage({ view: 'connectors' }), h(KbRowState, { k: 'connectors' })) : null),
         (KB_SHOW_DOCS === true && kbDomainHides('documents') === false ? row('documents', Icon('fileText', 15), kbt('kbui.documents'), c.docs, shown === 'documents', () => openPage({ view: 'documents' })) : null),
         // ── Barre de progression des objectifs ──────────────────────────
         h(KbProgressBar, null),
