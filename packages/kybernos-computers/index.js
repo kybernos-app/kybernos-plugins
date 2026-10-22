@@ -757,7 +757,7 @@ const mountEnvPrompt = (ctx) => {
 // `session: true` is a route that WRITES or SPENDS: besides the same-origin rule it needs DSH's signed browser-session cookie (session-guard.mjs, the
 // terminal's rule). Plugin routes are served before DSH's own login and an Origin header is forgeable by any local program, so before this a
 // `curl -X POST .../sandboxes/exec` with no header at all ran a command in the person's E2B sandbox, on the person's key and bill. Every caller is a page
-// (Settings > Cloud computers, the composer's selector); the agent's computer_* tools call the same functions in-process, not these routes.
+// (Settings > Code sandbox (E2B), the composer's selector); the agent's computer_* tools call the same functions in-process, not these routes.
 export const ROUTES = [
   { path: '/kybernos-computers/status', method: 'GET', guarded: true, run: statusRoute },
   { path: '/kybernos-computers/key/set', method: 'POST', guarded: true, session: true, body: true, cap: 4096, run: keySetRoute },
@@ -811,7 +811,7 @@ const describeError = (out) => out.error + (out.detail !== undefined ? ' — ' +
 const computerTools = () => {
   const startedHint = (out) => out.ok === true
     ? 'Sandbox ' + out.sandbox.sandboxId + ' started (' + out.sandbox.label + ', expires in ' + Math.round((out.sandbox.expiresAt - Date.now()) / 60000) + ' min). Use this identifier for computer_exec / computer_write / computer_read / computer_stop.'
-    : 'Failed: ' + describeError(out) + (out.error === 'cle_absente' ? ' — ask the user to set up their E2B key in Settings › Cloud computers.' : '')
+    : 'Failed: ' + describeError(out) + (out.error === 'cle_absente' ? ' — ask the user to set up their E2B key in Settings › Code sandbox (E2B).' : '')
   return [
     {
       name: 'computer_start',

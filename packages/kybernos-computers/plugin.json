@@ -4,8 +4,8 @@
   "kind": "code",
   "version": "0.1.0",
   "name": {
-    "en": "Cloud computers",
-    "fr": "Ordinateurs cloud"
+    "en": "Code sandbox (E2B)",
+    "fr": "Bac à sable de code (E2B)"
   },
   "description": {
     "en": "A computer in the cloud where the agents run code (with your E2B key).",

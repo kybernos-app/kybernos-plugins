@@ -1546,7 +1546,7 @@ window.__ModuleLoader__.load({
           titre: 'This chat has work that isn’t saved',
           texte: phrase + ' Save to avoid losing anything.',
           steps: ['next', 'todo'],
-          action: h(PlanAction, { url: '/kybernos-sessions/commit', corps: { session: sessionId, chemins: mesChemins },
+          action: h(PlanAction, { url: '/kybernos-sessions/commit', corps: { session: sessionId, chemins: mesChemins, push: true },
             label: 'Save my work',
             hint: 'Saves only the files this chat wrote, then pushes. Other chats’ files are left alone.' }),
           details: detailCommun }
@@ -1565,7 +1565,7 @@ window.__ModuleLoader__.load({
           titre: 'Saved, but not in the project yet',
           texte: 'Your separate copy is safe, but other sessions can’t see it yet.',
           steps: ['done', 'next'],
-          action: h(PlanAction, { url: '/kybernos-sessions/commit', corps: { session: sessionId },
+          action: h(PlanAction, { url: '/kybernos-sessions/commit', corps: { session: sessionId, push: true },
             label: 'Add to project',
             hint: 'Your copy gets combined with the main version. Dry-run first.' }),
           details: detailCommun }

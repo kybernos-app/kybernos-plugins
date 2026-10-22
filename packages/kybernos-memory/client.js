@@ -1088,7 +1088,7 @@ window.__ModuleLoader__.load({
             isNew ? null : (confirm
               ? h('button', { type: 'button', className: 'kbmem-btn danger', 'data-act': 'confirm-remove', disabled: busy, onClick: remove }, mem ? kt('Confirmer : oublier', 'Confirm: forget') : kt('Confirmer : supprimer', 'Confirm: delete'))
               : h('button', { type: 'button', className: 'kbmem-btn danger', 'data-act': 'remove', disabled: busy, onClick: () => setConfirm(true) }, Ico('trash'), mem ? kt('Oublier', 'Forget') : kt('Supprimer', 'Delete')))),
-          !mem && !isNew ? h('div', { className: 'kbmem-tiny' }, kt('Une leçon supprimée va dans le fichier lessons.archive.jsonl de l’Agent Team : elle n’est pas détruite.', 'A deleted lesson goes to the agent team\'s lessons.archive.jsonl — it is not destroyed.')) : null)
+          !mem && !isNew ? h('div', { className: 'kbmem-tiny' }, kt('Une leçon supprimée va dans les archives de l’Agent Team : elle n’est pas détruite.', 'A deleted lesson goes to the agent team\'s archive — it is not destroyed.')) : null)
       }
 
       // ── Team lessons: the Team tab, proposing, reviewing ─────────────────────────────────────────────────

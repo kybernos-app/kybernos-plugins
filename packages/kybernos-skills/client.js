@@ -1518,6 +1518,7 @@ body:not([data-ds-dark-theme]) .kbs-root .kb8-pill.warn{color:color-mix(in srgb,
 .kbss-page .kbl-mono,.kbl-tail .kbl-mono{font-family:ui-monospace,monospace;font-size:11px;color:var(--dsw-alias-label-caption,var(--dsw-alias-label-secondary))}
 .kbss-page .kbl-pill,.kbl-tail .kbl-pill{display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 9px;border-radius:11px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-2);font-size:11.5px;color:var(--dsw-alias-label-secondary);white-space:nowrap}
 .kbss-page .kbl-pill.ok{color:var(--dsw-alias-state-success-primary)}
+body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-ink,#166534)}
 .kbss-page .kbl-pill.sug,.kbl-tail .kbl-pill.sug{color:var(--dsw-alias-brand-primary);border-color:color-mix(in srgb,var(--dsw-alias-brand-primary) 40%,var(--dsw-alias-border-l1))}
 .kbss-page .kbl-btn,.kbl-tail .kbl-btn{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:10px;border:1px solid var(--dsw-alias-border-l2);background:transparent;color:var(--dsw-alias-label-primary);font:inherit;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap}
 .kbss-page .kbl-btn:hover,.kbl-tail .kbl-btn:hover{background:var(--dsw-alias-interactive-bg-hover)}

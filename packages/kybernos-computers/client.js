@@ -1,7 +1,7 @@
 // ── kybernos-computers — where the E2B key is set, and where the agent runs ──
 //
 // Two doors to the same key (the credential `E2B_API_KEY`, stored by the host, never in the settings file):
-//   1. The Settings page « Cloud computers »: the page people are told to open (help, README, the composer menu).
+//   1. The Settings page « Code sandbox (E2B) »: the page people are told to open (help, README, the composer menu).
 //      It speaks to the host routes /kybernos-computers/status, /key/set and /key/clear; the key typed is never read back,
 //      the page only learns « configured or not ».
 //   2. A card in the `plugins.item` slot of the engine's Plugins page, with a native secret field. Same mechanism as
@@ -45,7 +45,7 @@ window.__ModuleLoader__.load({
     // Kybernos by, not « fr ». Any other language reads the English table.
     const locales = {
       en: {
-        title: 'Cloud computers',
+        title: 'Code sandbox (E2B)',
         description: 'E2B sandboxes for agents — bring your own key.',
         apiKey: 'API key',
         apiKeyHint: 'Stored outside the settings file. Leave blank to keep the current key.',
@@ -60,7 +60,7 @@ window.__ModuleLoader__.load({
         envDesktop: 'This machine',
         envDesktopSub: 'Code runs on the local machine.',
         envE2bSub: 'Ephemeral cloud microVM — code runs off this machine.',
-        envE2bNoKey: 'E2B key required — Settings › Cloud computers.',
+        envE2bNoKey: 'E2B key required — Settings › Code sandbox (E2B).',
         envCloud: 'Cloud Computer',
         envCloudSub: 'Not available from a chat yet — write to your assistant on Telegram.',
         pageIntro: 'Run the code of your agents in a throwaway cloud computer (E2B) instead of on this machine. You bring your own E2B key: the usage is billed to your E2B account.',
@@ -75,7 +75,7 @@ window.__ModuleLoader__.load({
         pageErrNoAnswer: 'DSH did not answer. Reload the page and try again.',
       },
       kybernos: {
-        title: 'Ordinateurs cloud',
+        title: 'Bac à sable de code (E2B)',
         description: 'Sandboxes E2B pour les agents — avec ta propre clé.',
         apiKey: 'Clé API',
         apiKeyHint: 'Stockée hors du fichier de réglages. Laisse vide pour conserver la clé actuelle.',
@@ -90,7 +90,7 @@ window.__ModuleLoader__.load({
         envDesktop: 'Ce poste',
         envDesktopSub: 'Le code tourne sur la machine locale.',
         envE2bSub: 'MicroVM cloud éphémère — le code tourne hors du poste.',
-        envE2bNoKey: 'Clé E2B requise — Réglages › Ordinateurs cloud.',
+        envE2bNoKey: 'Clé E2B requise — Réglages › Bac à sable de code (E2B).',
         envCloud: 'Cloud Computer',
         envCloudSub: 'Pas encore disponible depuis un chat — écris à ton assistant sur Telegram.',
         pageIntro: 'Exécute le code de tes agents dans un ordinateur cloud jetable (E2B) plutôt que sur cette machine. Tu apportes ta propre clé E2B : l’usage est facturé sur ton compte E2B.',
@@ -389,7 +389,7 @@ body:not([data-ds-dark-theme]) :is(.kcc-root,.kbenv-root,.kbenv-menu){--dsw-alia
           return off
         })
 
-        // The Settings page « Cloud computers »: the E2B key, in a place a person can find (the card above is drawn only by
+        // The Settings page « Code sandbox (E2B) »: the E2B key, in a place a person can find (the card above is drawn only by
         // builds of DSH that still draw the `plugins.item` slot). It talks to the same host routes as the composer menu.
         const KeyPage = () => {
           const [present, setPresent] = React.useState(null) // null: not read yet (or the host did not answer)
