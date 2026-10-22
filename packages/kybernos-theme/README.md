@@ -14,7 +14,7 @@ key is not in `DEF`, which is how 41 dead ones went unnoticed before.
 | Colors | the 17 pilotable tokens per scheme, accent ramp |
 | Text and shape | text size, ligatures, radii (`--dsw-radius-*` ×0.25 / ×1 / ×1.5), logo and name |
 | Animation | the thinking animation (below) |
-| Accessibility | contrast level, reduce animations, focus ring, 44 px targets, underlined links, colour-blind palette (success/error → blue/vermillion) |
+| Accessibility | contrast level, reduce animations, focus ring, 44 px targets, underlined links, colour-blind palette (success/warning/error → blue/bluish green/vermilion, Okabe-Ito) |
 | Sharing | **My themes** (save, apply, rename, export, delete), import a theme file, export of the current look (YAML / JSON / CSS), reset |
 | Gallery | themes to **try** and **install** (shipped with Kybernos, plus a signed online catalogue), search, light/dark filter, updates |
 
