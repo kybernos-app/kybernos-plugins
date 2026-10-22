@@ -29,8 +29,12 @@ const val = async (e, ms) => (await page.evalJs(e, ms)).val
 const settings = () => val(`fetch('/kybernos-sessions/settings').then((r) => r.json()).then((j) => JSON.stringify(j))`, 8000).then((t) => JSON.parse(t))
 const decide = (corps) => val(`fetch('/kybernos-sessions/decision', { method: 'POST', headers: { 'content-type': 'application/json' }, body: ${JSON.stringify(JSON.stringify(corps))} }).then((r) => r.json()).then((j) => JSON.stringify(j))`, 8000).then((t) => JSON.parse(t))
 const row = `document.querySelector('[data-kbr="brain"]')`
+// The Study model is a button that opens a searchable list (the harness has dozens of models): choosing is opening it and clicking the item.
+const trigger = `document.querySelector('[data-kbr="brain-select"]')`
 const choose = async (value) => {
-  await val(`(() => { const s = document.querySelector('[data-kbr="brain-select"]'); const set = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set; set.call(s, ${JSON.stringify(value)}); s.dispatchEvent(new Event('change', { bubbles: true })) })()`)
+  await val(`(() => { ${trigger}.click() })()`)
+  await sleep(300)
+  await val(`(() => { const o = [...document.querySelectorAll('.kbr-pick-opt')].find((x) => x.dataset.value === ${JSON.stringify(value)}); if (o) o.click() })()`)
   await sleep(900)
 }
 
@@ -40,15 +44,24 @@ try {
   const there = await waitFor(page, `!!document.querySelector('[data-kbr="brain-select"]')`, 15000)
   if (there === null) { console.error('○ inconclusive: Kybernos Settings did not show (does this sandbox serve this checkout?)'); process.exit(3) }
   await waitFor(page, `document.querySelector('[data-kbr="brain-select"]').disabled === false`, 15000)
+  // The list as the person sees it: open it, read the items, close it.
+  await val(`${trigger}.click()`); await sleep(400)
+  const options = JSON.parse(await val(`JSON.stringify(Array.from(document.querySelectorAll('.kbr-pick-opt')).map((o) => ({ v: o.dataset.value, t: o.textContent })))`))
+  await val(`${trigger}.click()`); await sleep(200)
 
   console.log('the row')
   const text = await val(`document.body.innerText`)
   check('« Decision Brain » is gone: no row, no select, no word of it on the page', (await val(`!document.querySelector('[data-kbr="decision-brain"]') && !document.querySelector('[data-kbr="decision-brain-select"]')`)) === true && !/Decision Brain|\/v1\/evaluate/i.test(text))
   check('one brain setting, named « Study model »', (await val(`${row}.innerText`)).split('\n')[0].trim() === 'Study model' && (await val(`document.querySelectorAll('[data-kbr="brain"]').length`)) === 1)
-  const options = JSON.parse(await val(`JSON.stringify(Array.from(document.querySelectorAll('[data-kbr="brain-select"] option')).map((o) => ({ v: o.value, t: o.textContent, d: o.disabled })))`))
   check('the first choice is Automatic (the empty value), the last is None', options.length >= 2 && options[0].v === '' && /^Automatic/.test(options[0].t) && options[options.length - 1].v === 'none' && options[options.length - 1].t === 'None', options.slice(0, 3))
-  const outOfLoop = options.filter((o) => o.v !== '' && o.v !== 'none' && o.d !== true)
-  check('« Choose another… » opens the list of the configured models, between the two', options.some((o) => o.d === true && o.t === 'Choose another…') ? outOfLoop.length > 0 : outOfLoop.length === 0, { n: outOfLoop.length })
+  const outOfLoop = options.filter((o) => o.v !== '' && o.v !== 'none' && !/not configured anymore/.test(o.t))
+  check('the configured models (grouped by route, searchable) sit between the two', options.length === 2 + outOfLoop.length + options.filter((o) => /not configured anymore/.test(o.t)).length, { n: outOfLoop.length })
+  await val(`${trigger}.click()`); await sleep(300)
+  check('the list has a search field, focused on opening, and typing filters it', (await val(`document.activeElement && document.activeElement.type === 'search'`)) === true)
+  await val(`document.querySelector('.kbr-pick-in').focus()`)
+  await page.send('Input.insertText', { text: 'zzzz-no-such-model' }); await sleep(300)
+  check('a search that matches nothing says so, and shows no item', (await val(`document.querySelectorAll('.kbr-pick-opt').length === 0 && /No model matches/.test(document.querySelector('.kbr-pick-none').textContent)`)) === true)
+  await val(`${trigger}.click()`); await sleep(200)
 
   const start = await settings()
   check('the host announces the Study model in force (and no list of decision models)', start.etude !== undefined && typeof start.etude.mode === 'string' && !('modelesDecision' in start) && !('decisionBrain' in start.reglages), start)
@@ -62,30 +75,25 @@ try {
   // real model id, and never leaves the row. `need` = the width the same select would take with only that label inside.
   const fit = (labelText) => val(`(() => {
     const sel = document.querySelector('[data-kbr="brain-select"]')
-    const first = sel.options[0]
-    const was = first.textContent
-    if (${JSON.stringify(labelText)} !== null) first.textContent = ${JSON.stringify(labelText)}
-    const clone = sel.cloneNode(false)
-    clone.removeAttribute('data-kbr'); clone.style.cssText = 'position:absolute;visibility:hidden;width:auto;max-width:none;min-width:0'
-    const o = document.createElement('option'); o.textContent = first.textContent; clone.appendChild(o)
-    sel.parentElement.appendChild(clone)
-    const need = clone.getBoundingClientRect().width
-    clone.remove()
+    const cur = sel.querySelector('.kbr-pick-cur')
+    const was = cur.textContent
+    if (${JSON.stringify(labelText)} !== null) cur.textContent = ${JSON.stringify(labelText)}
     const s = sel.getBoundingClientRect(); const r = sel.closest('[data-kbr="brain"]').getBoundingClientRect()
-    first.textContent = was
-    return JSON.stringify({ need, width: s.width, inside: s.left >= r.left - 1 && s.right <= r.right + 1 })
+    const out = { cut: cur.scrollWidth > cur.clientWidth + 1, width: s.width, inside: s.left >= r.left - 1 && s.right <= r.right + 1 }
+    cur.textContent = was
+    return JSON.stringify(out)
   })()`).then((t) => JSON.parse(t))
   const f1 = await fit(null)
-  check('the closed select is wide enough for its selected sentence', f1.width >= f1.need - 1 && f1.inside === true, f1)
+  check('the closed button shows its selected sentence in full (no ellipsis), inside the row', f1.cut === false && f1.inside === true, f1)
   const f2 = await fit('Automatic — openrouter/anthropic/claude-sonnet-4.5')
-  check('...and for « Automatic — openrouter/anthropic/claude-sonnet-4.5 », inside the row', f2.width >= f2.need - 1 && f2.inside === true, f2)
+  check('...and « Automatic — openrouter/anthropic/claude-sonnet-4.5 », inside the row', f2.cut === false && f2.inside === true, f2)
   if (shotDir !== null) { try { await page.shot(join(shotDir, 'study-model-automatic.png')) } catch (e) { /* no screenshot */ } }
 
   console.log('None')
   await choose('none')
   const none = await settings()
   check('None is kept by the host: the setting is « none », nobody watches', none.reglages.brain === 'none' && none.etude.mode === 'none' && none.etude.actif === false, none)
-  check('the select and the words follow', (await val(`document.querySelector('[data-kbr="brain-select"]').value`)) === 'none' && /None: no model is watched/.test(await val(`${row}.innerText`)))
+  check('the select and the words follow', (await val(`document.querySelector('[data-kbr="brain-select"]').dataset.value`)) === 'none' && /None: no model is watched/.test(await val(`${row}.innerText`)))
   const sentence = await decide({ categorie: 'Projet Mars' })
   check('with None, a title the word rules cannot place is sent to no model', sentence.ok === false && sentence.code === 'ETUDE-ABSENTE', sentence)
   const words = await decide({ categorie: 'Nettoyage du repo' })
@@ -104,7 +112,7 @@ try {
   await choose('')
   const back = await settings()
   check('Automatic again: the setting is empty', back.reglages.brain === '' && back.etude.mode !== 'none' && back.etude.mode !== 'choisi', back)
-  check('...and the select reads Automatic', (await val(`document.querySelector('[data-kbr="brain-select"]').value`)) === '' && /^Automatic/.test(await val(`document.querySelector('[data-kbr="brain-select"]').selectedOptions[0].textContent`)))
+  check('...and the select reads Automatic', (await val(`document.querySelector('[data-kbr="brain-select"]').dataset.value`)) === '' && /^Automatic/.test(await val(`document.querySelector('[data-kbr="brain-select"] .kbr-pick-cur').textContent`)))
   const gone = await decide({ state: 'x', questions: { q: { type: 'boolean' } } })
   check('the old free typed question is refused, not sent anywhere', gone.ok === false && gone.code === 'QUESTION-NON-SUPPORTEE', gone)
 } catch (e) {
