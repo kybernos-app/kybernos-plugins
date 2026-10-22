@@ -940,7 +940,7 @@ let kbLocaleRead = () => 'en'
       'kbui.team.budget.none': { kybernos: 'aucun — pas de section budget dans le fichier de l’équipe', en: 'none — no budget section in the team file' },
       'kbui.team.budget.undeclared': { kybernos: 'montant non déclaré', en: 'amount not declared' },
       'kbui.team.budget.declared': { kybernos: 'déclaré dans le fichier de l’équipe', en: 'declared in the team file' },
-      'ui.liveteam.head': { kybernos: '🛰 Équipe live (Agent Teams)', en: '🛰 Live team (Agent Teams)' },
+      'ui.liveteam.head': { kybernos: 'Équipe live (Agent Teams)', en: 'Live team (Agent Teams)' },
       'ui.rosterunavailable': { kybernos: 'Roster indisponible ici — utilise le bouton Agent Teams dans le header de la conversation.', en: 'Roster unavailable here — use the Agent Teams button in the conversation header.' },
       'ui.nosession': { kybernos: 'aucune session connue pour cette Agent Team', en: 'no known session for this agent team' },
       'ui.opensession': { kybernos: 'ouvrir la session', en: 'open the session' },
@@ -10847,7 +10847,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       }, [liveOpen])
       const teamLiveSection = h('div', null,
         h('button', { type: 'button', className: 'kbg-menurow', onClick: () => setLiveOpen(liveOpen !== true) },
-          h('span', { className: 'kbg-mico' }, '🛰'), h('span', { className: 'kbg-mlab' }, kbt('ui.liveteam')),
+          h('span', { className: 'kbg-mico' }, Icon('users', 14)), h('span', { className: 'kbg-mlab' }, kbt('ui.liveteam')),
           h('span', { className: 'kbg-mval' }, (liveTeam !== null && liveTeam.state === 'ok' && kbRosterOf(liveTeam.view).length > 0) ? kbPlural(kbRosterOf(liveTeam.view).length, kbt('crew.member'), kbt('crew.members')) : kbt('kbui.agentteams'))),
         (liveOpen === true ? h('div', { className: 'kbg-msec' }, (() => {
           if (liveTeam === null) return h('div', { className: 'kbg-empty' }, kbt('kbui.loading'))
@@ -10879,7 +10879,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         h('button', { type: 'button', className: 'kbg-talkbtn', disabled: sid2 === null, title: sid2 === null ? kbt('ui.nosession') : kbt('ui.opensession'), onClick: () => { try { if (sid2 !== null && sessionsSvc !== undefined && sessionsSvc !== null && typeof sessionsSvc.open === 'function') sessionsSvc.open(sid2) } catch (e) { /* session inconnue */ } } }, Icon('messageCircle', 13), ' ' + kbe('Chat')),
         h('div', { className: 'kbg-menu' },
           h('button', { type: 'button', className: 'kbg-menurow', onClick: () => secT('goals') },
-            h('span', { className: 'kbg-mico' }, '🎯'), h('span', { className: 'kbg-mlab' }, kbe('Goals')),
+            h('span', { className: 'kbg-mico' }, Icon('target', 14)), h('span', { className: 'kbg-mlab' }, kbe('Goals')),
             h('span', { className: 'kbg-mval' }, goal !== null ? kbe('goal') + ' ' + (goal.phase || kbe('active')) : kbe('none', 'aucun'))),
           (sec.goals === true ? h('div', { className: 'kbg-msec' },
             goal !== null
@@ -10888,7 +10888,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
                   h('div', { className: 'kbg-note' }, 'phase' + kbfSep() + (goal.phase || '?') + (typeof goal.roundsStarted === 'number' ? ' · ' + kbPlural(goal.roundsStarted, 'round') + (typeof goal.maxGoalRounds === 'number' ? ' / ' + goal.maxGoalRounds : '') : '')))
               : h('div', { className: 'kbg-empty' }, kbt('ui.nogoal'))) : null),
           h('button', { type: 'button', className: 'kbg-menurow', onClick: () => secT('artifacts') },
-            h('span', { className: 'kbg-mico' }, '📦'), h('span', { className: 'kbg-mlab' }, kbt('kbui.artefacts')),
+            h('span', { className: 'kbg-mico' }, Icon('package', 14)), h('span', { className: 'kbg-mlab' }, kbt('kbui.artefacts')),
             h('span', { className: 'kbg-mval' }, arts.length > 0 ? kbPlural(arts.length, kbt('ui.recent')) : kbe('none', 'aucun'))),
           (sec.artifacts === true ? h('div', { className: 'kbg-msec' },
             arts.length > 0
@@ -10923,7 +10923,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
               ? h('div', { className: 'kbg-tags' }, conns.map((c) => h('span', { className: 'kbg-tag', key: c }, c)))
               : h('div', { className: 'kbg-empty' }, kbt('ui.notools'))) : null),
           h('button', { type: 'button', className: 'kbg-menurow', onClick: () => secT('budget') },
-            h('span', { className: 'kbg-mico' }, '💰'), h('span', { className: 'kbg-mlab' }, kbt('kbui.budget')),
+            h('span', { className: 'kbg-mico' }, Icon('chart', 14)), h('span', { className: 'kbg-mlab' }, kbt('kbui.budget')),
             h('span', { className: 'kbg-mval' }, (kyber.budget !== null && kyber.budget !== undefined && typeof kyber.budget.total === 'number') ? fmtEur(kyber.budget.total, kyber.budget.currency) : kbt('ui.unset'))),
           (sec.budget === true ? h('div', { className: 'kbg-msec' },
             h('div', { className: 'kbg-fieldrow' },
@@ -10946,7 +10946,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
                 h('div', { className: 'kbg-dockey' }, (r.provider || '?') + ' / ' + (r.model || '?') + (r.image === true ? ' · image' : ''))),
               h('span', { className: 'kbg-pill' }, kbStatusLabel(r.status) || r.status)))) : null),
           h('button', { type: 'button', className: 'kbg-menurow', onClick: () => secT('manage') },
-            h('span', { className: 'kbg-mico' }, '⚙️'), h('span', { className: 'kbg-mlab' }, kbt('ui.manage')),
+            h('span', { className: 'kbg-mico' }, Icon('settings', 14)), h('span', { className: 'kbg-mlab' }, kbt('ui.manage')),
             h('span', { className: 'kbg-mval' }, kbt('ui.manage.meta'))),
           (sec.manage === true ? h('div', { className: 'kbg-msec' },
             h('div', { className: 'kbg-note' }, kbt('kbui.mission')),
@@ -23931,7 +23931,7 @@ function renderFit(canvas, model, cam, opts){
         h('div', { className: 'kbw-prev-card' },
           h('div', { className: 'kbw-prev-head', style: { background: w.color } }, w.title !== '' ? w.title : w.slug),
           h('div', { className: 'kbw-prev-body' }, w.greeting !== '' ? w.greeting : kbt('kbw.prev.defgreet')),
-          h('span', { className: 'kbw-prev-chip' }, '💬 ' + kbt('kbw.prev.chip'))),
+          h('span', { className: 'kbw-prev-chip' }, Icon('messageCircle', 12), ' ' + kbt('kbw.prev.chip'))),
         h('span', { className: 'kbw-prev-dot', style: { background: w.color } },
           h('svg', { width: 15, height: 15, viewBox: '0 0 24 24', fill: 'none', stroke: '#fff', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' }, h('path', { d: 'M21 11.5a8.38 8.38 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.7a8.5 8.5 0 1 1 16.1-3.8z' }))))
       // ── ÉDITEUR (un widget) ──
