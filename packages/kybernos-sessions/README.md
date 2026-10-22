@@ -128,6 +128,9 @@ automatic Study model (the order, what is skipped, reading the host's services, 
 sentence, the `detail` apart, the plurals, and that the table `GIT_TEXTS` has no dead entry. `node packages/kybernos-sessions/test-language.mjs`
 renders the Kybernos Settings block in French, English and a translated language, and checks the pair helper, the words of the
 category icons and of the settings refusals, and that the « General » tab is renamed in French only.
+`node packages/kybernos-sessions/test-panels-language.mjs` renders the Memory & Lessons card (both tabs, the empty states, the capture status, the
+ledger, the singular and plural forms) and the action card (« Confirm & run », « Copy as text », « Details », « Close ») in French, English and a language
+with no table of ours, and checks that « Open Memory & Lessons » looks the Settings page up under the same words the memory plugin gives it.
 `test-sante.mjs`, `test-dsh-home.mjs`, `test-changes-facts.mjs`, `test-journal.mjs`, `test-prefix.mjs` and `test-wording.mjs`
 cover the health bus and the Study model row, `$DSH_HOME`, and small pure parts of the page. `node scripts/test-layout.mjs` checks that the hot-file list of `garde.mjs` points at existing files
 and that its LaunchAgent path is right; `node packages/kybernos-sessions/garde.mjs --check` parses every hot client file
