@@ -4669,6 +4669,9 @@ const kbWsCatOf = (slug) => {
 const KB_DEFAULT_ICON = 'waypoints'
 const KB_DEFAULT_ICONS = [KB_DEFAULT_ICON, 'sparkles', 'rocket', 'zap', 'target', 'chart-bar', 'users', 'folder', 'file-text', 'settings', 'search', 'star', 'heart', 'bell', 'cloud', 'globe', 'mail', 'calendar', 'clock', 'camera', 'image', 'music', 'video', 'book', 'tag', 'key', 'lock', 'shield', 'wand-sparkles', 'brain', 'bot', 'cpu', 'database', 'terminal', 'code', 'git-branch', 'compass', 'flag', 'briefcase', 'lightbulb', 'palette']
 const kbIconCache = {}
+// The set of icons (the nodes of every icon) is fetched once. While that is under way, or waiting for a retry, an icon the page does not carry
+// itself is drawn blank: drawing the default glyph there made the picker a grid of the same icon, until the page was reloaded.
+let kbIconsPending = true
 const KbDynIcon = (props) => {
   const name = (props !== null && props !== undefined && typeof props.name === 'string') ? props.name : ''
   const size = (props !== null && props !== undefined && typeof props.size === 'number') ? props.size : 16
@@ -4677,7 +4680,10 @@ const KbDynIcon = (props) => {
     return h('svg', { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true', style: { flex: 'none' } },
       nodes.map((el, i) => h(el[0], Object.assign({ key: i }, el[1]))))
   }
-  return Icon(name, size) || Icon(KB_DEFAULT_ICON, size)
+  const own = Icon(name, size)
+  if (own !== null) return own
+  if (kbIconsPending === true) return h('span', { 'aria-hidden': 'true', style: { display: 'inline-block', width: size, height: size, flex: 'none' } })
+  return Icon(KB_DEFAULT_ICON, size)
 }
 // Menu icon sets (kybernos-theme). The set the person chose draws the menu entries — grey at rest, in the entry's colour on the
 // open page; « classic », or no registry yet, keeps the line icons above. The theme plugin announces a change with `kb-icons-change`.
@@ -4933,23 +4939,33 @@ const kbUseIconsRev = () => {
   return pair[0]
 }
 let kbCatalogLoaded = false
+const KB_ICON_RETRY_MS = [1500, 4000, 10000, 30000]
+let kbIconTries = 0
 const kbLoadIconNodes = (names) => {
-  if (kbCatalogLoaded === true || kbRemoteOk !== true) return
+  if (kbCatalogLoaded === true) return
+  // No host to ask (yet): nothing is on its way, an icon the page does not carry is drawn as the default.
+  if (kbRemoteOk !== true) { kbIconsPending = false; return }
   kbCatalogLoaded = true
+  kbIconsPending = true
+  // A refusal (the host restarting, a gateway error), an empty answer or a network error is a failure: the next attempt is scheduled, and after the last one the
+  // pending state ends so the default glyph shows (an unknown icon name is then drawn as the default, never left blank).
+  const failed = () => {
+    kbCatalogLoaded = false
+    if (kbIconTries < KB_ICON_RETRY_MS.length) { const wait = KB_ICON_RETRY_MS[kbIconTries]; kbIconTries += 1; setTimeout(() => kbLoadIconNodes(), wait) } else { kbIconsPending = false; kbBumpIcons() }
+  }
   try {
     fetch(kbApiBase() + '/icons?nodes=1', { cache: 'force-cache' })
       .then((r) => (r.ok ? r.json() : null))
       .then((body) => {
-        if (body !== null && body !== undefined && body.nodes !== null && typeof body.nodes === 'object') {
-          let got = 0
-          for (const n of Object.keys(body.nodes)) {
-            if (kbIconCache[n] === undefined) { kbIconCache[n] = body.nodes[n]; got += 1 }
-          }
-          if (got > 0) kbBumpIcons()
+        if (body === null || body === undefined || body.nodes === null || typeof body.nodes !== 'object' || Object.keys(body.nodes).length === 0) { failed(); return }
+        for (const n of Object.keys(body.nodes)) {
+          if (kbIconCache[n] === undefined) kbIconCache[n] = body.nodes[n]
         }
+        kbIconsPending = false
+        kbBumpIcons()
       })
-      .catch(() => { kbCatalogLoaded = false })
-  } catch (e) { kbCatalogLoaded = false }
+      .catch(() => { failed() })
+  } catch (e) { failed() }
 }
 // ── Donnees propres a un projet : cache module, une requete par liste ───────
 // Meme contrat que les icones : la lecture est synchrone (cache) et un abonne
@@ -18495,31 +18511,26 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
           const field = { height: '44px', border: '1px solid var(--dsw-alias-border-l1)', borderRadius: '12px', background: 'var(--dsw-alias-bg-base, var(--dsw-alias-bg-layer-1))', padding: '0 14px', fontSize: '14px', color: 'var(--dsw-alias-label-primary)', outline: 'none', width: '100%', boxSizing: 'border-box' }
           const allIcons = iconList !== null ? iconList : Object.keys(LUCIDE)
           return h('div', { style: { display: 'flex', flexDirection: 'column', gap: '14px' } },
+            // The same card and the same rhythm as the Identity tab of an Agent Team: fields stacked, the icon grid and the colours across the full width.
             h('div', { className: 'kbpd-card', 'data-kb': 'project-details-card' },
-              h('div', { className: 'kbpd-top' },
-                h('label', { className: 'kbpd-col' },
-                  h('span', { className: 'kb8-parent' }, kbt('kbui.col.name')),
-                  h('input', { value: nameDraft, onChange: (e) => updateDetails({ name: e.target.value }), style: field }),
-                  h('span', { className: 'kb8-sub' }, kbt('kbui.shown.project'))),
-                // Short description: the project card only shows its start, the whole text is set and read here.
-                h('label', { className: 'kbpd-col kbpd-wide', 'data-kb': 'project-description' },
-                  h('span', { className: 'kbpd-lh' }, h('span', { className: 'kb8-parent' }, kbt('ui.description')), h('span', { className: 'kb8-parent' }, String(descDraft.length) + ' / 280')),
-                  h('textarea', {
-                    value: descDraft, rows: 3, maxLength: 280,
-                    'aria-label': kbt('ui.description'),
-                    onChange: (e) => updateDetails({ desc: e.target.value }),
-                    placeholder: kbt('ui.description.ph'),
-                    style: Object.assign({}, field, { height: 'auto', minHeight: '76px', padding: '11px 14px', lineHeight: '1.5', resize: 'vertical', fontFamily: 'inherit' }),
-                  }))),
+              h('span', { className: 'kb8-parent' }, kbt('kbui.col.name')),
+              h('input', { value: nameDraft, onChange: (e) => updateDetails({ name: e.target.value }), style: field }),
+              h('span', { className: 'kb8-sub' }, kbt('kbui.shown.project')),
+              // Short description: the project card only shows its start, the whole text is set and read here.
+              h('span', { className: 'kbpd-lh' }, h('span', { className: 'kb8-parent' }, kbt('ui.description')), h('span', { className: 'kb8-parent' }, String(descDraft.length) + ' / 280')),
+              h('textarea', {
+                value: descDraft, rows: 3, maxLength: 280, 'data-kb': 'project-description',
+                'aria-label': kbt('ui.description'),
+                onChange: (e) => updateDetails({ desc: e.target.value }),
+                placeholder: kbt('ui.description.ph'),
+                style: Object.assign({}, field, { height: 'auto', minHeight: '76px', padding: '11px 14px', lineHeight: '1.5', resize: 'vertical', fontFamily: 'inherit' }),
+              }),
               // The working folder row of the multi-device satellite (nothing when it is off).
               kbMdExtras('folder', ws),
-              h('div', { className: 'kbpd-look' },
-                h('div', { className: 'kb8-look' },
-                  h('span', { className: 'kb8-parent' }, kbe('Icon', 'Icône')),
-                  kbLookIcon({ icons: allIcons, query: iconQ, words: iconTags, onQuery: setIconQ, icon: iconDraft, color: colorDraft, onPick: (n) => updateDetails({ icon: n }) })),
-                h('div', { className: 'kb8-look' },
-                  h('span', { className: 'kb8-parent' }, kbe('Colour', 'Couleur')),
-                  kbLookColor(colorDraft, (c) => updateDetails({ color: c }))))),
+              h('span', { className: 'kb8-parent' }, kbe('Icon', 'Icône')),
+              kbLookIcon({ icons: allIcons, query: iconQ, words: iconTags, onQuery: setIconQ, icon: iconDraft, color: colorDraft, onPick: (n) => updateDetails({ icon: n }) }),
+              h('span', { className: 'kb8-parent' }, kbe('Colour', 'Couleur')),
+              kbLookColor(colorDraft, (c) => updateDetails({ color: c }))),
             // Danger zone: one line. Deleting takes two clicks; the folder on disk and the session logs are kept (see wsDelete above).
             h('div', { className: 'kbpd-danger', 'data-kb': 'ws-danger-zone' },
               h('span', { className: 'kb8-sub', style: { flex: 1, minWidth: '220px', maxWidth: 'none' } },
@@ -32484,14 +32495,8 @@ button.kbbd-chip:hover{background:var(--dsw-alias-interactive-bg-hover,#f0f0f0)}
    suggestions) : une seule mise en page, héritée des classes ci-dessus. */
 .kb8-look{display:flex;flex-direction:column;gap:10px}
 /* Details tab of a project: one card like the Identity tab of an Agent Team. */
-.kbpd-card{background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l1);border-radius:16px;padding:20px 22px;display:flex;flex-direction:column;gap:20px}
-.kbpd-top{display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start}
-.kbpd-col{display:flex;flex-direction:column;gap:6px;flex:1 1 260px;min-width:0}
-.kbpd-wide{flex-grow:1.5;flex-basis:320px}
+.kbpd-card{background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l1);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:11px}
 .kbpd-lh{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
-.kbpd-look{display:flex;gap:28px;flex-wrap:wrap;align-items:flex-start;border-top:1px solid var(--dsw-alias-border-l1);padding-top:18px}
-.kbpd-look>:first-child{flex:1.4 1 360px;min-width:0}
-.kbpd-look>:last-child{flex:1 1 320px;min-width:0}
 .kbpd-danger{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:10px 14px;border-radius:14px;border:1px dashed var(--dsw-alias-state-error-primary)}
 .kbpd-save{display:flex;align-items:center;gap:12px;flex:none}
 .kb8-look-chips{display:flex;gap:8px;flex-wrap:wrap}
