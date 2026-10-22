@@ -65,7 +65,7 @@ const send = (path, body, raw) => new Promise((resolve) => {
 // Every socle write that reads its body outside a `try` (the audit counted 22; these are the distinct paths it names and its neighbours).
 const PATHS = [
   '/kybernos/save', '/kybernos/create', '/kybernos/art-previews', '/kybernos/art-reveal', '/kybernos/art-action', '/kybernos/art-progress',
-  '/kybernos/art-load', '/kybernos/workspace-ui-save', '/kybernos/workspace-delete', '/kybernos/workspace-skills',
+  '/kybernos/art-load', '/kybernos/workspace-ui-save', '/kybernos/workspace-delete', '/kybernos/workspace-skills', '/kybernos/workspace-connectors',
   '/kybernos/workspace-instructions', '/kybernos/pins', '/kybernos/share', '/kybernos/active-set', '/kybernos/project-data',
   '/kybernos/menu-save', '/kybernos/onboarding', '/kybernos/model/auto',
 ]
