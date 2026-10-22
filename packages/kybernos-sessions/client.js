@@ -2676,16 +2676,6 @@ window.__ModuleLoader__.load({
             type: 'button', className: 'kbr-choix on', 'data-kbr': 'onboarding-replay-btn',
             onClick: () => { try { window.dispatchEvent(new CustomEvent('kybernos:onboarding', { detail: { action: 'replay' } })) } catch (e) { /* context without a window */ } }
           }, kt('Rejouer', 'Replay'))),
-        // The kit alone, later: the wizard's own page opens on the profession saved at the first run.
-        h('div', { className: natif ? natif.row : 'kbr-row', 'data-kbr': 'starter-kit' },
-          h('div', { className: natif ? natif.rowText : 'kbr-txt' },
-            h('div', { className: natif ? natif.title : undefined }, kt('Kit de départ', 'Starter kit')),
-            h('div', { className: natif ? natif.desc : undefined }, kt('Des skills et des équipes d’agents qui vont avec ton métier. Ouvre-le quand tu veux pour en ajouter, ou si tu changes de travail.',
-              'Skills and agent teams that fit your profession. Open it any time to add more, or after a change of work.'))),
-          h('button', {
-            type: 'button', className: 'kbr-choix on', 'data-kbr': 'starter-kit-btn',
-            onClick: () => { try { window.dispatchEvent(new CustomEvent('kybernos:onboarding', { detail: { action: 'kit' } })) } catch (e) { /* context without a window */ } }
-          }, kt('Ouvrir', 'Open'))),
         // The block of switches has its own heading (audit C-06): the sentence below used to introduce Name each chat… / Study model /
         // Permission / Language / Font size with nothing above it to say what the block is.
         h('h5', { className: 'kbr-sub', 'data-kbr': 'behaviour-title' }, kt('Comportement', 'Behaviour')),

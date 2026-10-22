@@ -497,8 +497,8 @@ It is a single column in the look of dev.kybernos.app (light or dark, whichever 
   was checked to exist exactly once in its repository (an ambiguous name is refused by the route). A **team** is an id of
   `KB_MARKET_TEAMS` and goes through the same `kybers/create` as the Agent Teams marketplace (so it lands in the
   workspace root, like a marketplace install). The server's templates that the plugin does not have yet are listed greyed
-  (`soon`), never installed. The kit also opens on its own: **Settings › General › Kybernos Settings › Starter kit › Open**
-  (`kybernos:onboarding` with `action: 'kit'`, the profession saved at the first run, another one can be looked at).
+  (`soon`), never installed. The kit also opens on its own, from the pages that suggest it (`window.__KB_DOMAIN__.openKit()`, `kybernos:onboarding` with
+  `action: 'kit'`, the profession saved at the first run, another one can be looked at); Settings has no row for it: **Onboarding › Replay** goes through it as its last page.
 - **What we set up for you** (the end screen, `kbObSetupRows`): under the recap, one row per area, each with a **Change** link that ends the wizard and opens that area's page of Settings (the section id, so it works in every language): Memory (`kybernos-memory`), Auto routing (`kybernos-auto-page`), Connectors (`kybernos-composio`), Web search (`kybernos-websearch-page`) and the Study model (`general`, where the Kybernos Settings block is). What a row says is what the bundle's own read route answered (`/kybernos-memory/settings`, `/kybernos-cloud/status`, `/kybernos-auto/state`, `/kybernos/composio/provider`, `/kybernos-websearch/state`, `/kybernos-sessions/settings`), read once when the screen opens and each on its own: a route that does not answer leaves its row out, and nothing here turns anything on (Auto routing reads « Off » unless the person switched it on).
 - **The profession in memory:** with a Kybernos account, the recap writes ONE pinned `fact` memory (« Works as: … Prefers: … »,
   source `taught`) through `/kybernos-cloud/memory/add`; its id is kept in `onboarding.json` (`memoryId`) so a replay updates

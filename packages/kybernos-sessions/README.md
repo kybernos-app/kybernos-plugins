@@ -18,11 +18,11 @@ It is part of the **socle** (`socle: true` in `packages/kybernos-hub/catalog.jso
   without calling any model. Only when the words say nothing is the **Study model** asked (see below); its answer is kept only if
   it is one of the eight categories (`motif: 'choisi'`), otherwise the row keeps its neutral speech bubble. A row whose title
   changes after an automatic classification is judged again (« Greeting » becomes the real subject).
-- **Settings ▸ General ▸ Kybernos Settings** (slot `settings.general.item`, order -30): replay onboarding, *Name each chat when it ends*,
+- **Settings ▸ General ▸ Kybernos Settings** (slot `settings.general.item`, order -30): replay onboarding (its last page is the starter kit: no row of its own), *Name each chat when it ends*,
   *Study model*. The bundle also reorders the native Settings navigation into a
   "Kybernos" and a "DSH" group and hides the native Appearance and Font-size rows and the version footer, by position.
   **Language.** English is the base of every text; the block has a French twin (`Réglages Kybernos`, `Premiers pas`,
-  `Kit de départ`, `Nommer chaque conversation à sa fin`, `Modèle d’étude`; the French speaks « tu »). One pair helper
+  `Nommer chaque conversation à sa fin`, `Modèle d’étude`; the French speaks « tu »). One pair helper
   `kt(fr, en)` says which: French for `window.__KB_LANG_RESOLVE__()` = `kybernos` or an `fr*` tag, **English for every other
   language**, and English when the resolver throws or is absent; a translated language (es, ar…) is looked up by the French text
   in the dictionary the language layer serves. The same helper words the category icons (aria-label and tooltip) and the
