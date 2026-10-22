@@ -603,6 +603,77 @@ ok('carte : l espace personnel n a plus de jauge de quota (lu a l hote, mais jam
 }
 ok('section Kybernos : instructions lues sur l hote, deconnecte (actions serveur desactivees et dites) puis connecte (dernier import, dernier envoi)')
 
+// Kaby's suggested section of the custom instructions (the ledger of the core plugin): a dashed block under the instructions, Add / Edit / Discard, nothing saved before a click.
+{
+  const Section = settingsSections[0].component
+  const propsOf = (n) => n[Object.keys(n).find((k) => k.indexOf('__reactProps$') === 0)]
+  const find = (n, pred) => {
+    if (n.nodeType === 1 && pred(n)) return n
+    for (const c of (n.childNodes || [])) { const r = find(c, pred); if (r !== null) return r }
+    return null
+  }
+  const byKb = (name) => (n) => n.attributes !== undefined && n.attributes['data-kb'] === name
+  const play = async (items, steps) => {
+    const calls = []
+    let current = 'Be direct.'
+    const realFetch = globalThis.fetch
+    globalThis.fetch = async (url, init) => {
+      const u = new URL(String(url), 'http://localhost')
+      const method = init && init.method ? init.method : 'GET'
+      calls.push(method + ' ' + u.pathname.replace(/^.*\/kybernos-cloud/, '') + (u.search || '') + (init && init.body ? ' ' + init.body : ''))
+      const path = u.pathname.replace(/^.*\/kybernos-cloud/, '')
+      let body = { ok: false, error: 'inconnu' }
+      if (u.pathname === '/kybernos/suggestions') body = method === 'GET' ? { ok: true, items } : { ok: true }
+      else if (path === '/status') body = { ok: true, connected: false }
+      else if (path === '/instructions') body = { ok: true, present: true, text: current, file: '/home/dev/.dsh/AGENTS.md' }
+      else if (path === '/instructions/save') { current = JSON.parse(init.body).text; body = { ok: true, present: true, changed: true, file: '/home/dev/.dsh/AGENTS.md' } }
+      return { ok: true, status: 200, json: async () => body }
+    }
+    const root = element(doc)
+    const r = ReactClient.createRoot(root)
+    await act(async () => { r.render(createElement(Section, null)); await new Promise((res) => setTimeout(res, 40)) })
+    const out = await steps({ root, calls, press: async (kb) => { await act(async () => { propsOf(find(root, byKb(kb))).onClick({ preventDefault () {}, stopPropagation () {} }); await new Promise((res) => setTimeout(res, 30)) }) } })
+    r.unmount()
+    globalThis.fetch = realFetch
+    return out
+  }
+  const item = { id: 's_1', kind: 'instructions', text: 'Write short, plain sentences. Never promise a date you cannot keep.', from: { n: null, span: '', where: '' }, at: '2026-10-22T08:00:00Z' }
+  // Nothing waits: no block, and the page asked the ledger for instructions only.
+  await play([], async ({ root, calls }) => {
+    assert.equal(find(root, byKb('ky-instr-suggested')), null, 'no suggestion: no dashed block')
+    assert.ok(calls.some((c) => c === 'GET /kybernos/suggestions?kind=instructions'), 'the page asks the ledger for the instructions kind')
+  })
+  // A suggestion waits: the dashed block shows the text with the three actions, and nothing was saved.
+  await play([item], async ({ root, calls, press }) => {
+    const block = find(root, byKb('ky-instr-suggested'))
+    assert.ok(block !== null && htmlDe(block).includes('Kaby suggests adding this') && htmlDe(block).includes('Never promise a date'), 'the block shows who suggests and the text')
+    assert.ok(htmlDe(block).includes('kb-ping'), 'the block carries the pulsing dot')
+    for (const k of ['ky-sug-add', 'ky-sug-edit', 'ky-sug-discard']) assert.ok(find(root, byKb(k)) !== null, k + ' is there')
+    assert.equal(calls.some((c) => c.startsWith('POST /instructions/save')), false, 'nothing is saved before a click')
+    await press('ky-sug-add')
+    const save = calls.find((c) => c.startsWith('POST /instructions/save '))
+    assert.ok(save !== undefined, 'Add saves through the ordinary Save route')
+    const saved = JSON.parse(save.slice('POST /instructions/save '.length)).text
+    assert.ok(saved.startsWith('Be direct.\n\n# Learned from your work (') && saved.includes('Never promise a date you cannot keep.'), 'the section is appended under a heading and the date, the typed text kept')
+    assert.ok(calls.some((c) => c.startsWith('POST /kybernos/suggestions ') && c.includes('"action":"resolve"') && c.includes('"id":"s_1"')), 'the ledger is told it was answered')
+    assert.equal(find(root, byKb('ky-instr-suggested')), null, 'the block goes after Add')
+  })
+  // Discard resolves without saving.
+  await play([item], async ({ root, calls, press }) => {
+    await press('ky-sug-discard')
+    assert.equal(calls.some((c) => c.startsWith('POST /instructions/save')), false, 'Discard saves nothing')
+    assert.ok(calls.some((c) => c.startsWith('POST /kybernos/suggestions ') && c.includes('"id":"s_1"')), 'Discard resolves the suggestion')
+    assert.equal(find(root, byKb('ky-instr-suggested')), null, 'the block goes after Discard')
+  })
+  // Edit opens the text in a box; too long for the 2000 characters, Add refuses and keeps the block.
+  await play([Object.assign({}, item, { text: 'x'.repeat(1500) })], async ({ root, calls, press }) => {
+    await press('ky-sug-edit')
+    assert.ok(find(root, byKb('ky-sug-field')) !== null, 'Edit shows the text in a box')
+  })
+  assert.ok(/kySugTitle:[^\n]*\n[\s\S]*kySugTitle:/.test(source) || (source.match(/kySugTitle:/g) || []).length === 2, 'the block speaks both languages')
+}
+ok('instructions suggerees : bloc en pointilles sous les instructions, Ajouter (a la suite, sous un titre et la date, par le Save ordinaire) / Modifier / Ecarter, rien de sauve avant un clic')
+
 // « Teams settings » is a NAMED entry of the account menu. It opens the app's plan page for the active team in the person's browser, signed in (the console link,
 // asked of the host, which opens the system browser). No frame, no bridge to the core, no local page.
 assert.ok(source.includes("entree('space-settings', h(BuildingIcon, { size: 18 }), t('menuTeamsSettings'), props.onSpace, { ext: true })"),
