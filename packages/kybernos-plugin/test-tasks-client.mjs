@@ -243,5 +243,14 @@ eq('a paused webhook test is explained', mod.kbTaskError('automation paused', en
   eq('the menu watcher calls the sessions hook unconditionally (the selector answers an empty string when there is nothing to look at)', /const runningKey = \(typeof uss === 'function'\)\n\s+\? uss\(\(st\) => \(pairs\.length === 0 \? '' : kbTasksRunningIds/.test(w) && !/typeof uss === 'function' && pairs\.length > 0/.test(w), true)
 }
 
+// The canvas styles that are light keep their character in a dark app: each has a dark twin read from the app's own scheme (the style « bp » is dark already, « auto » follows the app)
+{
+  const ids = ['nr', 'pp', 'sf', 'lg', 'at', 'jy', 'mx']
+  eq('every light canvas style has a dark twin under data-kb-theme="dark", with all the colours the canvas reads', ids.every((id) => {
+    const m = new RegExp('html\\[data-kb-theme="dark"\\] \\.kbfc-th-' + id + '\\{([^}]*)\\}').exec(src)
+    return m !== null && ['--cv-bg', '--cv-dot', '--nd-bg', '--nd-line', '--nd-ink', '--nd-sub', '--wire', '--wire-dim', '--chip', '--lbl'].every((v) => m[1].indexOf(v + ':') >= 0)
+  }), true)
+}
+
 console.log(fails === 0 ? '\nALL PASS' : '\n' + fails + ' FAILURES')
 process.exit(fails === 0 ? 0 : 1)
