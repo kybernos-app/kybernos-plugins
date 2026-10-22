@@ -374,7 +374,7 @@ section in `<workspace folder>/AGENTS.md` (the folder is that table's too; off o
 
 ## Chat header toggle
 
-A chat's header is busy: tags (Agent Team, Teams, link, ID), call and video buttons, Journal / Trajectory tabs and a
+A chat's header is busy: tags (Agent Team, Teams), the call button, the **Chat tools** menu, Journal / Trajectory tabs and a
 status line under the composer. Three buttons now sit right after the title: **pin / unpin**, **rename** and a
 **toggle** that folds all of that away. Folded (the default) shows the title, those three buttons, the header menu and
 the sidebar button; unfolded is DSH's own header. The state is kept per browser (`localStorage`, key
@@ -384,6 +384,21 @@ the sidebar button; unfolded is DSH's own header. The state is kept per browser 
 - Folding from the Journal or Trajectory tab goes back to Chat first.
 - Never hidden: a call in progress (hang-up button) and a save problem (the « not saved » chip).
 - Wide screens only: on a phone the header actions are parked by `kybernos-mobile`.
+
+### Chat tools (the « + » of the header)
+
+The occasional actions of a chat are entries of ONE menu at the right end of the header actions (chat header variant B, mockup of 2026-10-22), not a button each:
+**send to another session** (kybernos-session-msg), **copy public link**, **copy chat ID** and **full screen** (this bundle; no Fullscreen API, no entry). The call is one
+split button (kybernos-call), and the « Teams » chip is drawn only while the chat has a team or a call to validate (`.kbtg-root[data-empty="1"]{display:none}`).
+
+- **Seam:** `window.__KB_CHAT_TOOLS__ = { version: 1, add(tool) → remove, list(), subscribe(fn) }`, published by this bundle. A tool is
+  `{ id, order, icon, label, hint, working, available, run({ sessionId, title }) }`; `label`, `hint`, `working` and `icon` are a value or a function (read when the menu opens);
+  `icon` is a name of this bundle's icon set, a list of 24-grid path strings, or `{ viewBox, paths }`. `run` may answer `{ ok, note }` or a promise of it: the note is said in a toast
+  (`working` is the toast while a promise is pending). A bundle that finds no registry draws its own button (session-msg does), so none depends on this one.
+- **Phone:** the root of the menu has no `data-kb` and no `span`, so `mobile.css` parks it like the roots it replaces; each entry is also a hidden button (`.kbct-flat`) that the
+  « … » sheet lists by its label, and the « + » itself carries `data-kb-sheet="skip"` (kybernos-mobile leaves it out of the sheet).
+- Tests: `test-chat-tools.mjs` (the registry and the running of an entry are cut out of the bundle and played; the wiring), `kybernos-session-msg/test-client.mjs` (the entry and the fallback),
+  `kybernos-call/test-client.mjs` (the split button).
 - No engine patch: a `conversation.session.header.actions` slot entry plus CSS keyed on `[data-slot]` hooks.
 
 ## The feedback box

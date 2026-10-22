@@ -147,6 +147,8 @@ window.__ModuleLoader__.load({
         for (const el of list) {
           try {
             if (typeof el.closest === 'function' && el.closest('[data-open-target]') !== null) continue
+            // a button that is only the opener of a menu whose entries are listed on their own (the chat tools « + », the call arrow) is not an action
+            if (typeof el.closest === 'function' && el.closest('[data-kb-sheet="skip"]') !== null) continue
             if (!isParked(el, styleOf)) continue
             // the view that is shown is not an action (the other views are)
             if (el.getAttribute('aria-selected') === 'true') continue
