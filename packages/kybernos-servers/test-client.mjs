@@ -177,6 +177,10 @@ check('removing the active server says it was removed, that you are back on Kybe
 check('removing a server that is not active says only that it was removed', doneMessage('remove', Object.assign({}, ACME, { active: false })) === 'Acme Corp was removed.', doneMessage('remove', ACME))
 check('switching still asks for the reload', doneMessage('switch', ACME) === 'You are on Acme Corp. Reload DSH to refresh the model list.', doneMessage('switch', ACME))
 
+// Light theme: the engine's success green is 2.1:1 on its own tint and the Enterprise blue 4.2:1 on white (measured, scripts/audit-contrast-live.mjs); both texts get a darker ink in the
+// light theme only (6.3:1 and 5.2:1; a token with the ink as its fallback, so a theme may set it), and the dark theme keeps the engine's colours.
+check('light theme: the Active tag and the Enterprise kicker carry a darker ink, the dark theme is left to the engine', /body:not\(\[data-ds-dark-theme\]\) \.kbsv-tag\[data-tone="ok"\]\{color:var\(--kybernos-ok-ink,#166534\)\}/.test(mod.__test.CSS) && /body:not\(\[data-ds-dark-theme\]\) \.kbsv-ent-kick\{color:var\(--kybernos-brand-ink,#3566d9\)\}/.test(mod.__test.CSS))
+
 console.log('SRV-02 every host error is a sentence, in both languages, never a raw code')
 {
   const codes = Object.keys(ERR)
