@@ -291,7 +291,15 @@ console.log('the screen: the switch of the remote control (on by default = ready
   await off.settle()
   check('« Turn on » asks the host with on: true', enableBodies.length === 1 && enableBodies[0].on === true)
   const none = await mountDialog({ ...GOOD, configured: false })
-  check('a server that does not offer the phone link: the switch is greyed, and the card says it will come by itself', kb(none, 'phone-remote-switch').props.disabled === true && kb(none, 'mobile-not-offered') !== null && /switch on here by itself/.test(none.text().replace(/\s+/g, ' ')))
+  check('a server that does not offer the phone link: the SWITCH STILL WORKS (it is this computer\'s own), and the card says nothing can be linked for now, in the same box as the other states, with a chip', kb(none, 'phone-remote-switch').props.disabled === false && kb(none, 'phone-remote-switch').props['aria-checked'] === 'true' && kb(none, 'mobile-not-offered') !== null && /Not offered yet/.test(none.text()) && /Nothing can be linked for now/.test(none.text().replace(/\s+/g, ' ')) && chipOf(none) !== null && chipOf(none).face === 'not-offered')
+  enableBodies.length = 0
+  kb(none, 'phone-remote-switch').props.onClick()
+  await none.settle()
+  check('and pressing it asks the host to switch off, as anywhere else', enableBodies.length === 1 && enableBodies[0].on === false)
+  const unavailable = await mountDialog({ ...GOOD, available: false })
+  check('a DSH that cannot do the phone link: the switch is greyed (nothing to switch), and the card says so in the same box', kb(unavailable, 'phone-remote-switch').props.disabled === true && kb(unavailable, 'mobile-unavailable') !== null && chipOf(unavailable).face === 'unavailable')
+  const signedOut = await mountDialog({ ...GOOD, connected: false })
+  check('signed out: the same box, a chip « Sign in needed » and the sentence; the switch still works', kb(signedOut, 'mobile-signin') !== null && chipOf(signedOut).face === 'signin' && kb(signedOut, 'phone-remote-switch').props.disabled === false)
   const failing = await mountDialog(GOOD)
   enableAnswer = { ok: false, error: 'network' }
   kb(failing, 'phone-remote-switch').props.onClick()

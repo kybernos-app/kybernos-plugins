@@ -764,13 +764,14 @@ window.__ModuleLoader__.load({
           // A failed poll keeps what was shown and adds the reason on top; with nothing shown yet it is the whole card until the next good poll.
           const polled = props.r.err !== null && props.r.err !== undefined ? h('div', { className: 'kbmr-error', role: 'alert', 'data-kb': 'mobile-poll-error' }, errorText(props.r.err)) : null
           if (s === null) return polled !== null ? polled : h('div', { className: 'kbmr-sub' }, kt('Chargement…', 'Loading…'))
-          if (s.available === false) return h('div', { className: 'kbmr-sub' }, kt('Cette version de DSH ne permet pas la connexion mobile.', 'This DSH version cannot do the phone link.'))
-          if (s.configured === false) {
-            return h('div', { className: 'kbmr-body', 'data-kb': 'mobile-not-offered' },
-              h('div', { className: 'kbmr-sub' }, kt('Ce serveur Kybernos ne propose pas encore le mobile.', 'This Kybernos server does not offer the phone link yet.')),
-              h('div', { className: 'kbmr-sub' }, kt('Il s’activera ici tout seul dès que ce sera le cas.', 'It will switch on here by itself as soon as it does.')))
-          }
-          if (s.connected === false) return h('div', { className: 'kbmr-sub', 'data-kb': 'mobile-signin' }, kt('Connecte-toi à ton compte Kybernos pour utiliser le mobile.', 'Sign in to your Kybernos account to use the phone link.'))
+          // The states that say why there is nothing to do yet are drawn like the others: the same shaded box, a chip, one sentence.
+          const said = (face, chip, sentence, kb) => h('div', { className: 'kbmr-body', 'data-kb': kb },
+            h('div', { className: 'kbpc-state' },
+              h('div', { className: 'kbmr-row kbmr-start' }, h(Chip, { kind: '', face, kb: 'mobile-chip' }, chip)),
+              h('div', { className: 'kbmr-sub' }, sentence)))
+          if (s.available === false) return said('unavailable', kt('Indisponible', 'Unavailable'), kt('Cette version de DSH ne permet pas la connexion mobile.', 'This DSH version cannot do the phone link.'), 'mobile-unavailable')
+          if (s.configured === false) return said('not-offered', kt('Pas encore proposé', 'Not offered yet'), kt('Ce serveur Kybernos ne propose pas encore le mobile. Rien ne peut être relié pour l’instant : ça marchera ici dès que ce sera le cas.', 'This Kybernos server does not offer the phone link yet. Nothing can be linked for now: it will work here as soon as it does.'), 'mobile-not-offered')
+          if (s.connected === false) return said('signin', kt('Connexion requise', 'Sign in needed'), kt('Connecte-toi à ton compte Kybernos pour utiliser le mobile.', 'Sign in to your Kybernos account to use the phone link.'), 'mobile-signin')
           const devices = Array.isArray(s.devices) ? s.devices : []
           if (s.entitled === false) return h('div', null, h(Paywall, { web: props.web }), devices.length > 0 ? h(Devices, { devices, onRevoke: (id) => run('devices/revoke', { id }) }) : null)
           const face = faceOf(s, Date.now())
@@ -824,7 +825,9 @@ window.__ModuleLoader__.load({
         const RemoteCard = (props) => {
           const s = props.r.s
           const computer = s !== null && typeof s.computer === 'string' && s.computer !== '' ? s.computer : ''
-          const usable = s !== null && s.available !== false && s.configured !== false
+          // The switch is this computer's own: it works whenever the host half answers, even while the server does not offer the phone link yet (nothing can be linked then, and
+          // the choice is kept for when it does).
+          const reachable = s !== null && s.available !== false
           const enabled = s === null || s.enabled !== false
           const [error, setError] = React.useState(null)
           const [busy, setBusy] = React.useState(false)
@@ -840,7 +843,7 @@ window.__ModuleLoader__.load({
             : h('div', { className: 'kbmr-body', 'data-kb': 'phone-remote-off' },
               h('div', { className: 'kbpc-state' },
                 h('div', { className: 'kbmr-row kbmr-start' }, h(Chip, { kind: '', kb: 'mobile-chip', face: 'off' }, kt('Désactivé : aucun téléphone ne peut se connecter à cet ordinateur.', 'Off. No phone can connect to this computer.'))),
-                h('div', { className: 'kbmr-row kbmr-start' }, h('button', { type: 'button', className: 'kbmr-btn kbmr-primary', 'data-kb': 'phone-remote-turn-on', disabled: busy || !usable, onClick: () => { void turn(true) } }, kt('Activer', 'Turn on')))),
+                h('div', { className: 'kbmr-row kbmr-start' }, h('button', { type: 'button', className: 'kbmr-btn kbmr-primary', 'data-kb': 'phone-remote-turn-on', disabled: busy || !reachable, onClick: () => { void turn(true) } }, kt('Activer', 'Turn on')))),
               linked.length > 0
                 ? h('div', { className: 'kbmr-section' },
                   h('div', { className: 'kbmr-sech' }, h('span', null, kt('Téléphones reliés', 'Linked phones') + ' (' + linked.length + ')')),
@@ -853,7 +856,7 @@ window.__ModuleLoader__.load({
               h('span', { className: 'kbpc-tag warn', 'data-kb': 'phone-remote-tag' }, kt('Contrôle complet', 'Full control'))),
             h('div', { className: 'kbpc-swrow' },
               h('span', { className: 'kbmr-sub', 'data-kb': 'phone-remote-lead' }, kt('Ouvrir cet ordinateur sur ton téléphone.', 'Open this computer on your phone.')),
-              h(Switch, { on: enabled && usable, disabled: busy || !usable, kb: 'phone-remote-switch', label: kt('Contrôle à distance', 'Remote control'), title: usable ? undefined : kt('Pas encore proposé par ce serveur', 'Not offered by this server yet'), onClick: () => { void turn(!enabled) } })),
+              h(Switch, { on: enabled, disabled: busy || !reachable, kb: 'phone-remote-switch', label: kt('Contrôle à distance', 'Remote control'), onClick: () => { void turn(!enabled) } })),
             error !== null ? h('div', { className: 'kbmr-error', role: 'alert', 'data-kb': 'phone-remote-error' }, error) : null,
             body,
             h('div', { className: 'kbpc-does', 'data-kb': 'phone-remote-does' },

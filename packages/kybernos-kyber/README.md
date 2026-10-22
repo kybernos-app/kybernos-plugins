@@ -22,8 +22,8 @@ works on.
   not yet) and **the computer** (« This computer · Ready », or « Home · Asleep ») — then one button, **« Set up… »** (`window.__KB_MOBILE__.open()`, there only while that bundle publishes `open`:
   never a dead one) and the Suite's **« ? How it works »** pill (`window.__KB_HELP__`, this bundle's `help.json`; its card opens on the side that has room, a sheet at the foot of the screen on a phone).
   A chip opens a small list of the same three lines in words, each with one button to the screen that sets it up (Escape and a click elsewhere close it). Nothing opens by itself, nothing is
-  folded, nothing is remembered: there is no paragraph and no tile in the chat any more (the explanation lives on the screen the button opens). In the dock it lines up with the composer's card (same
-  left and right edge, same 28 px radius); on a narrow window the line wraps (about 800 px is where it fits). **Three states of Telegram's door**, told by the host (`GET /kybernos-cloud/kyber`:
+  folded, nothing is remembered: there is no paragraph and no tile in the chat any more (the explanation lives on the screen the button opens). In the dock it is as wide as the composer's card and centred like it (the engine's own `--dsh-composer-card-max-width` and `--dsh-composer-side-clearance`, inherited; the full
+  width where an engine has none), with the same 28 px radius; on a narrow window the line wraps (about 800 px is where it fits). **Three states of Telegram's door**, told by the host (`GET /kybernos-cloud/kyber`:
   `telegram`, `pairing`, `server`): a **bot there**; **no bot on this server** (`configured` or `enabled` false); a **server too old** for the pairing routes (`pairing: 'unsupported'`: a 404 on
   `/v1/me/telegram` or `/v1/me/kyby`, the routes of kybernos-server#230). No bot AND too old reads « no bot » (the answer that tells where to go). A host that says nothing claims nothing. A pairing
   the server answers 404 to with none of our codes is `unsupported`. The store reads the phone link again with the rest (every 30 s, after a gesture of kybernos-mobile through its
