@@ -422,6 +422,8 @@ const kbSanitizeTaskInput = (raw) => {
     approvals: r.approvals === 'auto' ? 'auto' : 'ask',
   }
   if (Array.isArray(r.notify) === true) out.notify = Array.from(new Set(r.notify.filter((x) => x === 'push' || x === 'email')))
+  // The apps the automation asks for (Composio toolkit slugs): the Connectors row and page put the ones that are not connected first. Left out, an edit keeps what it has.
+  if (Array.isArray(r.needs) === true) out.needs = Array.from(new Set(r.needs.filter((x) => typeof x === 'string' && /^[a-z0-9_-]{2,40}$/.test(x) === true))).slice(0, 6)
   // The workspace the runs land in (the id of one): sent only when the person chooses, `null` or '' goes back to « none » (the dedicated
   // workspace). Left out, an edit keeps what the automation already has. The rule is the same as automation-workspace.mjs (this block takes no import).
   if (r.workspaceHint !== undefined) {

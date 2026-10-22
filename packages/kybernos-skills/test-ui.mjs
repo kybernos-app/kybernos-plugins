@@ -491,7 +491,7 @@ console.log('Yours: what Kaby suggests waits, and nothing is active before Accep
   {
     const w = world()
     const root = await open(w)
-    check('a host without the route (not restarted): no banner, no chip, no journal button, the page is as before', kb(root, 'learned-banner').length === 0 && kb(root, 'learned-chip').length === 0 && kb(root, 'learned-journal-btn').length === 0 && kb(root, 'learned-card').length === 0)
+    check('a host without the route (not restarted): no chip, no journal button, the page is as before', kb(root, 'learned-chip').length === 0 && kb(root, 'learned-journal-btn').length === 0 && kb(root, 'learned-card').length === 0)
   }
   {
     const w = world()
@@ -502,8 +502,8 @@ console.log('Yours: what Kaby suggests waits, and nothing is active before Accep
     w.answers['POST /kybernos-skills/learned/restore'] = { ok: true, name: 'i18n-checklist' }
     w.answers['POST /kybernos-skills/learned/edit'] = (body) => ({ ok: true, proposal: Object.assign({}, lessonsProposal, { description: body.description, body: body.body }) })
     const root = await open(w)
-    check('the banner counts the suggestions', part(root, 'learned-banner').includes('2 skills suggested by Kaby'), part(root, 'learned-banner').slice(0, 160))
-    check('it says nothing is active before the person accepts', part(root, 'learned-banner').includes('Nothing is active until you accept'))
+    check('no banner sits above the cards: the dashed cards are the notice', kb(root, 'learned-banner').length === 0 && kb(root, 'learned-card').length === 2)
+    check('each card says nothing is active before the person accepts, and pulses until it is reviewed', textOf(kb(root, 'learned-card')[0]).includes('Not active. Nothing changes until you accept.') && kb(root, 'learned-ping').length === 2)
     check('each suggestion is a dashed card, and no card of an installed skill was added', kb(root, 'learned-card').length === 2 && cardOf(root, 'sql-queries') !== undefined)
     check('the cards carry the name, the origin (lessons, automation) and the badge', (() => { const t0 = textOf(kb(root, 'learned-card')[0]); const t1 = textOf(kb(root, 'learned-card')[1]); return t0.includes('i18n-checklist') && t0.includes('3 lessons') && t1.includes('Nightly store collector') && t1.includes('5 runs') && t0.includes('Suggested by Kaby') })())
     check('the installed skill that was accepted from a suggestion shows the Learned badge and where it came from', (() => { const c = textOf(cardOf(root, 'sql-queries')); return c.includes('Learned') && c.includes('3 lessons') && kb(cardOf(root, 'sql-queries'), 'learned-badge').length === 1 })())
@@ -562,7 +562,7 @@ console.log('Yours: what Kaby suggests waits, and nothing is active before Accep
     w.answers['GET /kybernos-skills/learned'] = () => learnedList({ proposals: [current], sensitive: true })
     w.answers['POST /kybernos-skills/learned/edit'] = (b) => { current = Object.assign({}, bad, { body: b.body, description: b.description, hits: [], blocking: false }); return { ok: true, proposal: current } }
     const root = await open(w)
-    check('in Law and Health the banner says it stays on this computer', part(root, 'learned-banner').includes('Local, nothing sent'))
+    check('in Law and Health the cards say it stays on this computer', textOf(kb(root, 'learned-card')[0]).includes('Local, nothing sent'))
     await click(root, kb(root, 'learned-review')[0])
     const panel = part(root, 'learned-panel')
     check('the panel names the client data and says it blocks Accept in this field', panel.includes('1 piece of client data to remove') && panel.includes('cannot be accepted until they are gone') && panel.includes('local only'), panel.slice(0, 300))
@@ -595,15 +595,7 @@ console.log('Yours: what Kaby suggests waits, and nothing is active before Accep
     const w = world()
     w.answers['GET /kybernos-skills/learned'] = learnedList()
     const root = await open(w, 'fr')
-    check('in French the banner and the cards speak French', part(root, 'learned-banner').includes('2 skills suggérés par Kaby') && textOf(kb(root, 'learned-card')[0]).includes('Suggéré par Kaby'), part(root, 'learned-banner').slice(0, 120))
-  }
-  {
-    const w = world()
-    w.answers['GET /kybernos-skills/learned'] = learnedList({ proposals: [lessonsProposal] })
-    const root = await open(w)
-    await click(root, kb(root, 'learned-banner-hide')[0])
-    check('Hide removes the banner for this browser and keeps the cards', kb(root, 'learned-banner').length === 0 && kb(root, 'learned-card').length === 1 && store.get('kybernos.skills.learned.banner') === 'off')
-    store.delete('kybernos.skills.learned.banner')
+    check('in French the cards speak French', textOf(kb(root, 'learned-card')[0]).includes('Suggéré par Kaby') && textOf(kb(root, 'learned-card')[0]).includes('Pas actif'))
   }
 }
 

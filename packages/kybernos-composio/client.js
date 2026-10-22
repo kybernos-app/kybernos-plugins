@@ -459,10 +459,9 @@ window.__ModuleLoader__.load({
       'kb.cp.kc.err.forbidden': { fr: 'Ce compte ne peut pas utiliser les connexions.', en: 'This account cannot use connections.' },
       'kb.cp.kc.err.other': { fr: 'Réponse inattendue du serveur ({code}).', en: 'Unexpected answer from the server ({code}).' },
       // Discover: the known apps get their own section, same cards.
-      'kb.cp.popularH': { fr: 'Populaires', en: 'Popular' },
-      'kb.cp.fieldH': { fr: 'Pour ton domaine · {field}', en: 'For your field · {field}' },
-      'kb.cp.fieldgo': { fr: 'Voir dans Découvrir', en: 'See them in Discover' },
-      'kb.cp.allapps': { fr: 'Toutes les apps', en: 'All apps' },
+      'kb.cp.needBy': { fr: 'Demandé par {who}', en: 'Needed by {who}' },
+      'kb.cp.needLater': { fr: 'Pas maintenant', en: 'Not now' },
+      'kb.cp.needAria': { fr: 'À connecter', en: 'To connect' },
       // Settings › Connectors: which service connects the apps for the agents.
       'kb.cp.pv.lead': { fr: 'Quel service relie tes apps (Gmail, Slack, Notion…) pour tes agents. Un seul à la fois : tes agents voient celui que tu choisis ici.', en: 'Which service connects your apps (Gmail, Slack, Notion…) for your agents. One at a time: your agents see the one you choose here.' },
       'kb.cp.pv.composio': { fr: 'Composio — ta propre clé', en: 'Composio — your own key' },
@@ -832,6 +831,48 @@ window.__ModuleLoader__.load({
       if (next.offered !== true || next.error === null || had === false || next.connected === false) return next
       return Object.assign({}, next, { connections: prev.connections, limit: prev.limit, entitled: prev.entitled, web: prev.web, count: prev.count, stale: true })
     }
+    // ── The apps the person's automations ask for ───────────────────────────────────────────────────────────────────────────
+    // The Automations page and the menu publish what the suggestions and the switched-on automations need (`window.__KB_MENU_STATE__`, key `tasks`,
+    // `needs: { slug: [names] }`). This watcher, which lives outside the page, reads which of those apps are connected (the person's own key and the
+    // Kybernos connections both count) and publishes the rest as `connectors: { need, slugs, by }`: a pulse and a number on the menu row, and the apps the
+    // page puts first. « Not now » on an app silences its pulse (this browser only); the page still lists it.
+    const KB_CP_NEED_OFF = 'kybernos.composio.needDismissed'
+    const kbCpMenuStore = () => { try { const st = window.__KB_MENU_STATE__; return st !== undefined && st !== null && typeof st.get === 'function' ? st : null } catch (e) { return null } }
+    const kbCpNeeds = () => { const st = kbCpMenuStore(); const v = st === null ? null : st.get('tasks'); return v !== null && v !== undefined && v.needs !== null && typeof v.needs === 'object' ? v.needs : {} }
+    const kbCpNeedOff = () => { try { const a = JSON.parse(localStorage.getItem(KB_CP_NEED_OFF) || '[]'); return Array.isArray(a) ? a.filter((x) => typeof x === 'string') : [] } catch (e) { return [] } }
+    let kbCpActiveSet = null
+    /** What the watcher publishes, from what is wanted, what is known connected and what the person silenced. Pure. */
+    const kbCpNeedView = (needs, active, off) => {
+      const wanted = Object.keys(needs !== null && typeof needs === 'object' ? needs : {})
+      const pending = wanted.filter((sl) => active === null || active.has(sl) !== true)
+      return { need: pending.filter((sl) => (off || []).indexOf(sl) < 0).length, slugs: pending, by: needs }
+    }
+    const kbCpNeedPublish = () => { const st = kbCpMenuStore(); if (st !== null) st.set('connectors', kbCpNeedView(kbCpNeeds(), kbCpActiveSet, kbCpNeedOff())) }
+    const kbCpNeedDismiss = (slug) => { try { const a = kbCpNeedOff(); if (a.indexOf(slug) < 0) a.push(slug); localStorage.setItem(KB_CP_NEED_OFF, JSON.stringify(a.slice(-50))) } catch (e) { /* a convenience only */ } kbCpNeedPublish() }
+    const kbCpNeedRead = async () => {
+      const wanted = Object.keys(kbCpNeeds())
+      if (wanted.length === 0) { kbCpActiveSet = new Set(); kbCpNeedPublish(); return }
+      const act = new Set()
+      const p = await kbCpHost('/connections?toolkits=' + encodeURIComponent(wanted.join(',')))
+      if (p.status === 200 && p.json !== null && Array.isArray(p.json.connections)) for (const c of p.json.connections) { if (c !== null && typeof c === 'object' && String(c.status).toLowerCase() === 'active') act.add(String(c.toolkit).toLowerCase()) }
+      const cv = kbCpCloudView(await kbCpCloud('/connections'))
+      if (cv !== null && cv.offered === true && Array.isArray(cv.connections)) for (const c of cv.connections) { if (c !== null && typeof c === 'object' && String(c.status).toLowerCase() === 'active') act.add(String(c.toolkit).toLowerCase()) }
+      kbCpActiveSet = act
+      kbCpNeedPublish()
+    }
+    const kbCpNeedStart = () => {
+      let lastKey = null
+      let tries = 0
+      const hook = () => {
+        const st = kbCpMenuStore()
+        if (st === null) { tries += 1; if (tries < 40) setTimeout(hook, 1500); return }
+        const check = () => { const k = JSON.stringify(Object.keys(kbCpNeeds()).sort()); if (k !== lastKey) { lastKey = k; kbCpNeedRead().catch(() => { /* the next change or minute retries */ }) } }
+        st.subscribe(check)
+        check()
+        setInterval(() => { kbCpNeedRead().catch(() => { /* retried */ }) }, 60000)
+      }
+      hook()
+    }
     /** The chip of a connection: its colour family and its words. */
     const kbCpConnState = (status) => {
       if (status === 'active') return { kind: 'ok', key: 'kb.cp.kc.st.active' }
@@ -1190,12 +1231,12 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
 /* ── Discover popular pin + Yours empty-state illustration ── */
 .kb7-pill.pop{color:var(--dsw-alias-brand-primary);border-color:var(--dsw-alias-brand-primary)}
 /* « For your field »: the field's colour (--kb7-fld, set from the pack) is the dot and the goal tag's outline; the rest is the page's own. */
-.kb7-fieldlab{opacity:1;color:var(--dsw-alias-label-primary)}
-.kb7-fdot{width:10px;height:10px;border-radius:50%;background:var(--kb7-fld);flex:none}
-.kb7-fieldstrip{display:flex;align-items:center;flex-wrap:wrap;gap:10px 12px;margin:0 0 14px;padding:10px 14px;border:1px solid var(--dsw-alias-border-l1);border-inline-start:3px solid var(--kb7-fld);border-radius:12px;background:var(--dsw-alias-bg-layer-1)}
-.kb7-fieldtxt{font-size:13px;font-weight:600;color:var(--dsw-alias-label-primary)}
-.kb7-fieldapps{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;flex:1;min-width:0}
-.kb7-fieldapp{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--dsw-alias-label-secondary)}
+.kb7-fdot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--kb7-fld);flex:none;margin-inline-end:6px}
+.kbcp-needgrid .kb7-card{border-style:dashed;border-color:color-mix(in srgb,var(--dsw-alias-brand-primary) 55%,var(--dsw-alias-border-l1));background:color-mix(in srgb,var(--dsw-alias-brand-primary) 4%,var(--dsw-alias-bg-layer-1))}
+.kbcp-needwrap{position:relative;display:flex;flex-direction:column;gap:6px;min-width:0}
+.kbcp-needlater{align-self:flex-start;font-size:12px;opacity:.8}
+.kbcp-needtag{display:inline-flex;align-items:center;gap:2px}
+.kbcp-needtag .kb-ping{margin:0 8px 0 2px}
 .kb7-card .kb7-pill.fld,.kb7-row .kb7-pill.fld{background:transparent;color:var(--dsw-alias-label-secondary);border:1px solid var(--dsw-alias-border-l1);font-weight:500}
 .kb7-emptyart{display:flex;align-items:center;justify-content:center;color:var(--dsw-alias-label-tertiary,#8a8f98);padding-bottom:2px}
 /* ── Settings page (Settings ▸ Connectors): same card language as the skills page ── */
@@ -2164,6 +2205,9 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
       // "discover" (Discover) for the catalog.
       const p15 = React.useState('yours')
       const vtab = p15[0]
+      // The page follows what the watcher publishes (an app got connected, a suggestion needs one).
+      const needBump = React.useState(0)[1]
+      React.useEffect(() => { const st = kbCpMenuStore(); return st === null ? undefined : st.subscribe(() => needBump((n) => n + 1)) }, [])
       const setVtab = p15[1]
       // Whether the host has a Composio key: null until it has answered, so the "add your key" banner never flashes.
       const p17 = React.useState(null)
@@ -2448,10 +2492,15 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
       let fieldInfo = null
       let fieldWant = []
       try { fieldInfo = fieldSeam !== null ? fieldSeam.field() : null; fieldWant = fieldInfo !== null ? fieldSeam.connectors() : [] } catch (e) { fieldInfo = null; fieldWant = [] }
-      const fieldList = popSplit ? fieldWant.map((w) => ({ a: list.find((a) => a.s === w.app), goal: w.goal })).filter((x) => x.a !== undefined) : []
+      // The apps the automations need and that are not connected come first, then the field's, then the popular ones: one list, no section titles.
+      const needView = (() => { const st = kbCpMenuStore(); const v = st === null ? null : st.get('connectors'); return v !== null && v !== undefined && Array.isArray(v.slugs) ? v : { need: 0, slugs: [], by: {} } })()
+      const needTag = (sl) => h('span', { className: 'kbcp-needtag' }, h('i', { className: 'kb-ping', 'aria-hidden': 'true' }), kbt('kb.cp.needBy').replace('{who}', ((needView.by || {})[sl] || []).join(', ')))
+      const needApps = needView.slugs.map((sl) => apps.find((a) => a.s === sl)).filter((a) => a !== undefined)
+      const fieldList = popSplit ? fieldWant.map((w) => ({ a: list.find((a) => a.s === w.app), goal: w.goal })).filter((x) => x.a !== undefined && needView.slugs.indexOf(x.a.s) < 0) : []
       const inField = (sl) => fieldList.some((x) => x.a.s === sl)
-      const popList = popSplit ? POPULAR.filter((sl) => !inField(sl)).map((sl) => list.find((a) => a.s === sl)).filter((a) => a !== undefined) : []
-      const mainList = popSplit ? list.filter((a) => POPULAR.indexOf(a.s) < 0 && !inField(a.s)) : list
+      const inNeed = (sl) => needView.slugs.indexOf(sl) >= 0
+      const popList = popSplit ? POPULAR.filter((sl) => !inField(sl) && !inNeed(sl)).map((sl) => list.find((a) => a.s === sl)).filter((a) => a !== undefined) : []
+      const mainList = popSplit ? list.filter((a) => POPULAR.indexOf(a.s) < 0 && !inField(a.s) && !inNeed(a.s)) : list
       const pages = Math.max(1, Math.ceil(mainList.length / PAGE))
       const cur = Math.min(page, pages)
       const shown = mainList.slice((cur - 1) * PAGE, cur * PAGE)
@@ -2652,16 +2701,10 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
               h('button', { type: 'button', className: kcMode ? '' : 'on', 'aria-pressed': kcMode ? 'false' : 'true', 'data-kb': 'mode-personal', onClick: () => setMode('personal') }, kbt('kb.cp.kc.mode.personal')),
               h('button', { type: 'button', className: kcMode ? 'on' : '', 'aria-pressed': kcMode ? 'true' : 'false', 'data-kb': 'mode-kybernos', onClick: () => setMode('kybernos') }, kbt('kb.cp.kc.mode.kybernos'))),
             h('span', { className: 'kbcp-help2' }, kbt(kcMode ? 'kb.cp.kc.mode.hint.kybernos' : 'kb.cp.kc.mode.hint.personal'))) : null,
-          // Nothing connected yet: the apps the saved field names, one line, and the way to them (Discover holds the cards).
-          (() => {
-            const none = kcMode ? (kc === null || !Array.isArray(kc.connections) || kc.connections.length === 0) : yoursPool.length === 0
-            const sug = fieldInfo !== null && none ? fieldWant.map((w) => apps.find((a) => a.s === w.app)).filter((a) => a !== undefined).slice(0, 6) : []
-            return sug.length === 0 ? null : h('div', { className: 'kb7-fieldstrip', 'data-kb': 'yours-field', style: { '--kb7-fld': fieldInfo.accent } },
-              h('i', { className: 'kb7-fdot', 'aria-hidden': 'true' }),
-              h('span', { className: 'kb7-fieldtxt' }, kbt('kb.cp.fieldH').replace('{field}', fieldInfo.name)),
-              h('span', { className: 'kb7-fieldapps' }, sug.map((a) => h('span', { key: a.s, className: 'kb7-fieldapp' }, AppLogo(a.s, 18), a.n))),
-              h('button', { type: 'button', className: 'kbcp-btn', 'data-kb': 'yours-field-go', onClick: () => setVtab('discover') }, kbt('kb.cp.fieldgo')))
-          })(),
+          // The apps the automations ask for and that are not connected come first, in dashed cards that pulse: connecting them is the next step.
+          needApps.length > 0 ? h('div', { className: gridCls + ' kbcp-needgrid', 'data-kb': 'yours-need' },
+            needApps.map((a) => h('div', { key: 'nd-' + a.s, className: 'kbcp-needwrap' }, appItem(a, true, needTag(a.s)),
+              h('button', { type: 'button', className: 'kbcp-btn kbcp-needlater', 'data-kb': 'need-later', onClick: () => kbCpNeedDismiss(a.s) }, kbt('kb.cp.needLater'))))) : null,
           kcMode ? h(KybernosPanel, { kc: kc, reload: reloadKc, patch: patchKc, flash: flash, note: cxNote, query: qn }) : yoursList.length === 0
             ? (ready === true ? h('div', { className: 'kb7-emptybox' },
                 // Mini illustration (plain inline SVG, no image) when NOTHING is
@@ -2690,12 +2733,11 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
             apps.length <= CATALOG.length ? h('button', { type: 'button', className: 'kbcp-btn kb7-more', disabled: loadingAll, onClick: loadAll }, loadingAll ? kbt('kb.cp.loading') : kbt('kb.cp.loadall')) : null),
           (ready === false || (busy === true && Object.keys(conns).length === 0)) && shown.length === 0 && skelCards(9) !== null ? skelCards(9)
             : (ready === false || (busy === true && Object.keys(conns).length === 0) ? h('div', { className: 'kb7-empty' }, kbt('kb.cp.loading')) : null),
-          fieldList.length > 0 ? h('div', { className: 'kb7-seclab kb7-fieldlab', 'data-kb': 'discover-field', style: { '--kb7-fld': fieldInfo.accent } }, h('i', { className: 'kb7-fdot', 'aria-hidden': 'true' }), kbt('kb.cp.fieldH').replace('{field}', fieldInfo.name), h('span', null, String(fieldList.length))) : null,
-          fieldList.length > 0 ? h('div', { className: gridCls, 'data-kb': 'discover-field-grid' }, fieldList.map((x) => appItem(x.a, true, x.goal))) : null,
-          popList.length > 0 ? h('div', { className: 'kb7-seclab', 'data-kb': 'discover-popular' }, kbt('kb.cp.popularH'), h('span', null, String(popList.length))) : null,
-          popList.length > 0 ? h('div', { className: gridCls }, popList.map((a) => appItem(a, true))) : null,
-          (popList.length > 0 || fieldList.length > 0) && shown.length > 0 ? h('div', { className: 'kb7-seclab', 'data-kb': 'discover-all' }, kbt('kb.cp.allapps'), h('span', null, String(mainList.length))) : null,
-          h('div', { className: gridCls }, shown.map((a) => appItem(a))),
+          h('div', { className: gridCls, 'data-kb': 'discover-grid' },
+            (popSplit ? needApps.map((a) => appItem(a, true, needTag(a.s))) : []),
+            fieldList.map((x) => appItem(x.a, true, h('span', { className: 'kbcp-needtag', style: { '--kb7-fld': fieldInfo !== null ? fieldInfo.accent : undefined } }, h('i', { className: 'kb7-fdot', 'aria-hidden': 'true', title: fieldInfo !== null ? fieldInfo.name : undefined }), x.goal))),
+            popList.map((a) => appItem(a, true)),
+            shown.map((a) => appItem(a))),
           ready === true && list.length === 0 && busy === false ? h('div', { className: 'kb7-emptybox' }, h('div', { className: 'kb7-empty' }, kbt('kb.cp.empty'))) : null,
           pages > 1 ? h('div', { className: 'kb7-chips', style: { justifyContent: 'center' } },
             h('button', { type: 'button', className: 'kbcp-btn', disabled: cur <= 1, onClick: () => setPage(cur - 1) }, '‹'),
@@ -3175,6 +3217,7 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
       try { ctx.effect(() => { const s = document.createElement('style'); s.textContent = CSS; document.head.appendChild(s); return () => s.remove() }, 'composio: styles') } catch (e) { }
       carteMontre(ctx)
       kbfMontre(ctx)
+      try { kbCpNeedStart() } catch (e) { /* the pulse is a convenience */ }
       slots.inject('plugins.bundle.config', () => slots.register(
         { name: 'plugins.bundle.config', key: '@local/kybernos-composio' }, ComposioKeyConfig))
       // Settings ▸ Connectors: same seat as the other bundles (settings.section,
@@ -3198,7 +3241,7 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
       // exposed for the Resources tab of the kybernos bundle; the pure parts (webUrl, carteHtml,
       // carteAccepter, errText, hostState) and the MCP timeout are exposed so test-client.mjs can
       // reach them without a DOM.
-      composio: { modeEffective: kbCpModeEffective, providerEffective: kbCpProviderEffective, cloudView: kbCpCloudView, cloudMerge: kbCpCloudMerge, cloudErr: kbCpCloudErr, connState: kbCpConnState, connActions: kbCpConnActions, failedText: kbCpFailedText, appsMatch: kbCpAppsMatch, modeGet: kbCpModeGet, modeSet: kbCpModeSet, page: ComposioPage, hostIsOld: kbCpHostIsOld, getLink: kbCpGetLink, saveLink: kbCpSaveLink, event: 'kbcp-key', webUrl: kbCpWebUrl, carteHtml: carteHtml, carteAccepter: carteAccepter, carteAcceptMax: CARTE_ACCEPT_MAX, match: kbCpMatch, joinArgs: kbCpJoinArgs, t: kbt, errText: kbCpErrText, keyState: kbCpKeyState, testErr: kbCpTestErr, statusOf: kbCpStatusOf, importParse: kbCpImportParse, httpUrl: kbCpHttpUrl, tN: kbtN, importBody: kbCpImportBody, safeName: kbCpSafeName, targetOf: kbCpTargetOf, formOf: kbCpFormOf, bodyOf: kbCpBodyOf },
+      composio: { needView: kbCpNeedView, modeEffective: kbCpModeEffective, providerEffective: kbCpProviderEffective, cloudView: kbCpCloudView, cloudMerge: kbCpCloudMerge, cloudErr: kbCpCloudErr, connState: kbCpConnState, connActions: kbCpConnActions, failedText: kbCpFailedText, appsMatch: kbCpAppsMatch, modeGet: kbCpModeGet, modeSet: kbCpModeSet, page: ComposioPage, hostIsOld: kbCpHostIsOld, getLink: kbCpGetLink, saveLink: kbCpSaveLink, event: 'kbcp-key', webUrl: kbCpWebUrl, carteHtml: carteHtml, carteAccepter: carteAccepter, carteAcceptMax: CARTE_ACCEPT_MAX, match: kbCpMatch, joinArgs: kbCpJoinArgs, t: kbt, errText: kbCpErrText, keyState: kbCpKeyState, testErr: kbCpTestErr, statusOf: kbCpStatusOf, importParse: kbCpImportParse, httpUrl: kbCpHttpUrl, tN: kbtN, importBody: kbCpImportBody, safeName: kbCpSafeName, targetOf: kbCpTargetOf, formOf: kbCpFormOf, bodyOf: kbCpBodyOf },
     }
   },
 })

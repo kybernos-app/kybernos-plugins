@@ -125,10 +125,10 @@ try {
     if (on === true) break
     await sleep(250)
   }
-  await waitFor(page, `!!document.querySelector('[data-kb="learned-banner"]')`, 15000)
+  await waitFor(page, `document.querySelectorAll('[data-kb="learned-card"]').length >= 2`, 15000)
   await sleep(500)
   await shot('03-yours')
-  check('Yours shows the banner with the count, and says nothing is active before Accept', /2 skills suggested by Kaby/.test((await text('[data-kb="learned-banner"]')) || '') && /Nothing is active until you accept/.test((await text('[data-kb="learned-banner"]')) || ''))
+  check('Yours shows the two suggestions as dashed cards that pulse, no banner above them, each saying nothing is active before Accept', (await ev(`document.querySelectorAll('[data-kb="learned-card"] [data-kb="learned-ping"]').length`)) === 2 && (await ev(`!document.querySelector('[data-kb="learned-banner"]')`)) === true && /Not active\. Nothing changes until you accept/.test((await text('[data-kb="learned-card"]')) || ''))
   check('two dashed cards and a chip', (await count('[data-kb="learned-card"]')) === 2 && (await count('[data-kb="learned-chip"]')) === 1)
   check('the journal button is there', (await count('[data-kb="learned-journal-btn"]')) === 1)
 
