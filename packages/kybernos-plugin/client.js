@@ -1258,7 +1258,10 @@ let kbLocaleRead = () => 'en'
       'kbui.comingsoon': { kybernos: 'Bientôt disponible', en: 'Coming soon' },
       'kbui.connecteurs': { kybernos: 'Connecteurs', en: 'Connectors' },
       'kbui.conn.team.declared': { kybernos: 'Ce que cette Agent Team réclame', en: 'What this Agent Team claims' },
-      'kbui.conn.team.none': { kybernos: 'Aucun outil réclamé par cette Agent Team (champ tools: de ses rôles).', en: 'No tool claimed by this Agent Team (tools: field of its roles).' },
+      // V1-19 (video review): « No tool claimed » sat ABOVE five connected tools and read as a contradiction. It is true of
+      // ONE population (the `tools:` field of the roles) and false of the list under it (the team's connectors): say which,
+      // so the two no longer look like one wrong count.
+      'kbui.conn.team.none': { kybernos: 'Aucun outil réclamé dans le champ tools : des rôles. Les connecteurs ci-dessous restent utilisables par l’équipe.', en: 'No tool claimed in the roles’ tools: field. The connectors below are still usable by the team.' },
       'kbui.conn.enable': { kybernos: 'Activer', en: 'Enable' },
       'kbui.conn.disable': { kybernos: 'Désactiver', en: 'Disable' },
       'kbui.conn.confirm': { kybernos: 'Confirmer la désactivation', en: 'Confirm disable' },

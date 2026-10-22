@@ -38,4 +38,11 @@ check('V1-27: a share button disabled for lack of a link says so',
   /inactif === true && busy !== true && niveau === 'me' && meilleurDispo !== true/.test(SRC.join('\n')) &&
   /'data-kb': 'share-link-none'/.test(SRC.join('\n')))
 
+// V1-19 (video review): « No tool claimed » above five connected tools read as a contradiction. The sentence now names the
+// population it is about (the roles' `tools:` field) and says the connectors below stay usable.
+check('V1-19: the empty claimed-tools line names its population and points at the connectors below',
+  /Aucun outil réclamé dans le champ tools : des rôles\./.test(SRC.join('\n')) &&
+  /Les connecteurs ci-dessous restent utilisables par l’équipe\./.test(SRC.join('\n')) &&
+  /The connectors below are still usable by the team\./.test(SRC.join('\n')))
+
 process.exit(fail === 0 ? 0 : 1)
