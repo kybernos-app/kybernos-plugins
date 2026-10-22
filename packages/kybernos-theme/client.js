@@ -906,8 +906,8 @@ window.__ModuleLoader__.load({
         sideTone: 'auto', shadow: 'none', glow: false,
         // The pills under the message box: shown unless switched off here
         wgSessions: true, wgChanges: true, wgUsage: true,
-        // Bars on hover: the collapsed rail and the chat's top bar leave the layout and come back at the edge (off unless chosen)
-        autoHideBars: false
+        // Bars on hover: the collapsed rail and the chat's top bar leave the layout and come back at the edge (on by default, owner's call 2026-10-22; switch off in the Sidebar panel)
+        autoHideBars: true
       }
       const ENUMS = { glassEffect: ['frosted', 'liquid'], bgFit: ['cover', 'fill', 'center', 'stretch'], radius: ['sharp', 'standard', 'soft'], focusRing: ['accent', 'double', 'thick'], iconSet: ICON_SET_IDS, sideTone: ['auto', 'darker', 'lighter', 'tinted'], shadow: ['none', 'soft'], replyBg: ['none', 'card', 'outline', 'tint'] }
       /** Your bubble: one of DSH's own / the accent / a soft tone / a dark one, or any colour (a hex). The three text colours are a hex or null (= the colour of the app). */
