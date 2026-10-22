@@ -88,6 +88,13 @@ const pousse = await fetch(`${base}/kybernos-bricks/push`, {
 const repPush = await pousse.json()
 ok('un push incrémente la version', repPush.version === avant + 1, `${avant} → ${repPush.version}`)
 ok('le push retient la clé d\'archétype', (await lireEtat('session-t')).cle === 'phare')
+// L1-07: the preview chips post `duree_ms`; the duration they ask for is the one the panel gets (it used to fall back to 12 s).
+ok('a push { duree_ms: 4000 } gives a pose of 4000 ms', (await lireEtat('session-t')).dureeMs === 4000, String((await lireEtat('session-t')).dureeMs))
+for (const [nom, corps, voulu] of [['dureeMs', { dureeMs: 5000 }, 5000], ['neither name', {}, 12000], ['both names (dureeMs wins)', { dureeMs: 6000, duree_ms: 9000 }, 6000], ['a duration below the floor', { duree_ms: 3 }, 1500]]) {
+  await fetch(`${base}/kybernos-bricks/push`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...PAGE() }, body: JSON.stringify({ sessionId: 'session-d', cle: 'phare', ...corps }) })
+  const d = (await lireEtat('session-d')).dureeMs
+  ok(`a push with ${nom} -> ${voulu} ms`, d === voulu, String(d))
+}
 
 ok('une session inconnue retombe sur la dernière commande',
   (await lireEtat('session-absente')).titre !== undefined)
