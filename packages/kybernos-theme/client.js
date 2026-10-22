@@ -2520,6 +2520,18 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
 
 `
 
+      // V1-24: the mode (System / Light / Dark) is set on the Appearance page and only there; this page shows it and opens that page by clicking
+      // the cell of the Settings nav (the shell stays master of its DOM; same technique as the core plugin's, bundles share no code).
+      const ouvrirReglages = (noms) => {
+        try {
+          const norm = (x) => String(x === undefined || x === null ? '' : x).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim()
+          const cells = Array.prototype.slice.call(document.querySelectorAll('nav button'))
+          for (let i = 0; i < cells.length; i++) {
+            if (noms.indexOf(norm(cells[i].textContent)) !== -1) { cells[i].click(); return true }
+          }
+        } catch (e) { /* nav indisponible */ }
+        return false
+      }
       const seg = (opts) => h('div', { className: 'kbth-seg', role: 'group' },
         opts.items.map((it) => h('button', {
           key: it.id, type: 'button', 'aria-pressed': it.on === true ? 'true' : 'false',
@@ -3307,15 +3319,13 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
         const apparence = h('div', { className: 'kbth-sec' },
           h('div', { className: 'kbth-sec-h' },
             h('div', { className: 'kbth-sec-t' }, kt('Apparence', 'Appearance')),
-            h('div', { className: 'kbth-sec-d' }, kt('Choisis un mode, puis un thème prêt à l’emploi. Le mode est le même réglage que sur la page Apparence : change-le à l’un ou l’autre endroit.', 'Pick a mode, then a ready-made theme. The mode is the same setting as on the Appearance page: change it in either place.'))),
+            h('div', { className: 'kbth-sec-d' }, kt('Choisis un thème prêt à l’emploi. Le mode clair ou sombre se règle sur la page Apparence.', 'Pick a ready-made theme. The light or dark mode is set on the Appearance page.'))),
           h('button', { className: 'kbth-btn', type: 'button', style: { width: 'max-content' },
             onClick: () => commit(surprendre()) }, kt('Me surprendre', 'Surprise me')),
           h('div', { className: 'kbth-row' },
             h('span', { className: 'kbth-lb' }, 'Mode'),
-            seg({ items: [
-              { id: 'system', label: kt('Système', 'System'), on: S.mode === 'system', tap: () => commit({ mode: 'system' }) },
-              { id: 'light', label: kt('Clair', 'Light'), on: S.mode === 'light', tap: () => commit({ mode: 'light' }) },
-              { id: 'dark', label: kt('Sombre', 'Dark'), on: S.mode === 'dark', tap: () => commit({ mode: 'dark' }) }] }),
+            h('span', { className: 'kbth-sec-t', 'data-kb': 'theme-mode-is' }, S.mode === 'system' ? kt('Système', 'System') : (S.mode === 'light' ? kt('Clair', 'Light') : kt('Sombre', 'Dark'))),
+            h('button', { className: 'kbth-btn', type: 'button', 'data-kb': 'theme-mode-open', onClick: () => { ouvrirReglages(['appearance', 'apparence']) } }, kt('Changer dans Apparence', 'Change in Appearance')),
             themeTiers !== null ? h('div', { className: 'kbth-conflict' },
               h('strong', null, kt('Conflit de thème : ', 'Theme conflict: ')),
               kt('Un autre plugin (« ' + themeTiers + ' ») contrôle le mode clair/sombre. ', 'Another plugin (“' + themeTiers + '”) controls the light/dark mode. '),
@@ -3977,7 +3987,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
           appliquerBoot, appliquerTout, appliquerJetons, appliquerFond, appliquerPolice, Page, bootSnapshot, posterBoot, retirerFeuilleBoot, jetonsDe, BOOT_ID,
           PRESET_FORMAT, PRESET_GROUPS, PRESET_KEYS, PRESET_LIMIT, PRESET_ID, LIB_KEY, lib, libClean, libRead, libWrite, libSet, libAdd, libPatch, libRemove, libPull, libFreeName, libNameTaken,
           gal, galTheme, galClean, galLoad, galRefresh, galInstalled, galInstall, galUpdate, galOnlineText, kbLang,
-          presetSettings, presetRecord, presetFromState, presetFile, presetFromFileText, settingsDirty, skinSettings, presetAsSkin, groupsOf, fileSlug, ThemeModal,
+          presetSettings, presetRecord, presetFromState, presetFile, presetFromFileText, settingsDirty, skinSettings, presetAsSkin, groupsOf, fileSlug, ThemeModal, ouvrirReglages,
           ICON_ENTRIES, ICON_HUES, ICON_SETS, ICON_SET_IDS, iconInner, iconSvg, iconRegistry, appliquerIcones,
         },
         apply(ctx) {

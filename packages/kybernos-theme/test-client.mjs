@@ -1299,7 +1299,21 @@ if (React === null) {
   const simple = render({ mode: 'dark', skin: 'bleu', acc: '#4176E6' })
   check('the page opens on Essentiel and renders the 18 shipped theme dots', (simple.match(/class="kbth-skin"/g) || []).length === 18, (simple.match(/class="kbth-skin"/g) || []).length)
   check('...marks exactly the current theme as pressed', (simple.match(/class="kbth-skin" aria-pressed="true"/g) || []).length === 1 && /aria-pressed="true"[^>]*title="Bleu profond/.test(simple))
-  check('...the mode segment shows Sombre pressed', /aria-pressed="true">Sombre</.test(simple))
+  // V1-24: Appearance and Theme both drew the System/Light/Dark selector. The mode is set on the Appearance page only; this page shows it and links there.
+  check('...the mode is shown as text (Sombre), not as a System/Light/Dark selector', /data-kb="theme-mode-is"[^>]*>Sombre</.test(simple) && !/aria-pressed="true">Sombre</.test(simple) && !/>Clair<\/button>/.test(simple) && !/>Système<\/button>/.test(simple))
+  check('...with a button that opens the Appearance page, and the description says where the mode is set', /data-kb="theme-mode-open"[^>]*>Changer dans Apparence</.test(simple) && /Le mode clair ou sombre se règle sur la page Apparence/.test(simple))
+  for (const [mode, shown] of [['light', 'Clair'], ['system', 'Système']]) check('...the mode line follows the setting (' + mode + ' -> ' + shown + ')', new RegExp('data-kb="theme-mode-is"[^>]*>' + shown + '<').test(render({ mode, skin: 'bleu', acc: '#4176E6' })))
+  {
+    // The button clicks the Settings nav cell of the Appearance page (names compared without accents or case).
+    const clicked = []
+    const cell = (label) => ({ textContent: label, click: () => clicked.push(label) })
+    const prevDoc = globalThis.document
+    globalThis.document = { querySelectorAll: (sel) => (sel === 'nav button' ? [cell('General'), cell('Apparence'), cell('Theme')] : []) }
+    check('ouvrirReglages clicks the Appearance cell of the nav, whatever the language and the accents', real.ouvrirReglages(['appearance', 'apparence']) === true && clicked.join() === 'Apparence', clicked.join())
+    globalThis.document = { querySelectorAll: () => [cell('General')] }
+    check('...and says false, clicking nothing, when the nav has no such cell', real.ouvrirReglages(['appearance', 'apparence']) === false && clicked.length === 1)
+    if (prevDoc === undefined) delete globalThis.document; else globalThis.document = prevDoc
+  }
   const natural = render({ mode: 'dark' })
   check('natural state: the pill says no layer is posted', /DSH natif/.test(natural))
   check('themed state: the pill announces the 17-token layer', /17 jetons/.test(simple))
