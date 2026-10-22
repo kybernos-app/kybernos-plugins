@@ -77,7 +77,7 @@ window.__ModuleLoader__.load({
         pillPlan: ['Usage du plan : {pct}', 'Plan usage: {pct}'],
         pillOwn: ['Coût de cette session avec ta clé : {cost}', 'This session’s cost on your key: {cost}'],
 
-        pageLead: ['Deux sources, séparées. Ton plan Kybernos : le serveur compte, en pourcentage. Tes propres clés et tes modèles locaux : calculé sur cette machine, rien n’est envoyé.', 'Two separate sources. Your Kybernos plan: the server counts, as a percentage. Your own keys and local models: worked out on this machine, nothing is sent.'],
+        pageLead: ['Le serveur compte ton plan Kybernos, en pourcentage. Tes propres clés et tes modèles locaux sont calculés sur cet ordinateur : rien n’est envoyé.', 'The server counts your Kybernos plan, as a percentage. Your own keys and local models are worked out on this computer: nothing is sent.'],
         planSec: ['Ton plan Kybernos', 'Your Kybernos plan'],
         planSecSub: ['vu par le serveur', 'as the server sees it'],
         planSolo: ['Plan {name}', '{name} plan'],
@@ -125,7 +125,7 @@ window.__ModuleLoader__.load({
         saved: ['Enregistré', 'Saved'],
         why: ['Pourquoi deux blocs. Le serveur ne voit que les appels qui passent par lui, et il les compte en pourcentage. Tes clés et tes modèles locaux ne passent pas par lui : seul cet ordinateur peut les chiffrer.', 'Why two blocks. The server only sees calls that go through it, and counts them as a percentage. Your keys and local models do not go through it: only this computer can count them.'],
         pageName: ['Usage', 'Usage'],
-        pageFor: ['Il couvre tous les modèles utilisés ici : un modèle du plan Kybernos (compté par le serveur), une clé à toi ou un modèle local (compté sur cet ordinateur). La console Kybernos garde le détail du plan par membre et par jour.', 'It covers every model you use here: a Kybernos plan model (counted by the server), a key of your own or a local model (counted on this computer). The Kybernos console keeps the plan’s detail per member and per day.'],
+        pageFor: ['Il couvre tous les modèles utilisés ici : un modèle du plan Kybernos, une clé à toi ou un modèle local. La console Kybernos garde le détail du plan par membre et par jour.', 'It covers every model you use here: a Kybernos plan model, a key of your own or a local model. The Kybernos console keeps the plan’s detail per member and per day.'],
       }
       const L = (key, p) => { const v = S[key]; return v === undefined ? key : fill(kt(v[0], v[1]), p) }
 
