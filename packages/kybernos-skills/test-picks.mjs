@@ -204,8 +204,8 @@ try {
   assert.match(src, /'seg-featured'/, 'the segment')
   ok('Featured is the first tab and the landing one; a host without picks falls back to Yours')
 
-  assert.match(src, /h\('div', \{ className: 'kbsf-trow' \},\s*h\('div', \{ className: 'kbsf-title' \}, title\),\s*h\('div', \{ className: 'kbsf-side' \}/, 'the creator and the count sit on the right of the title')
-  const card = src.slice(src.indexOf('const pickCard = '), src.indexOf('const renderFeatured = '))
+  assert.match(src, /h\('div', \{ className: 'kbsf-trow' \},\s*h\('div', \{ className: 'kbsf-title' \}, opts !== undefined \? opts\.dot : null, title\),\s*h\('div', \{ className: 'kbsf-side' \}/, 'the creator and the count sit on the right of the title')
+  const card = src.slice(src.indexOf('const pickCard = '), src.indexOf('const pickRow = '))
   assert.ok(!/'\/' \+ p\.id\s*\)\s*\)\s*,\s*h\('p'/.test(card) && !/className: 'kbs-copy'/.test(card), 'no /name link on the card')
   const parts = src.slice(src.indexOf('const pickCover = '), src.indexOf('const pickCard = '))
   assert.match(parts, /icon\('dl', 13\), nf\(p\.installs\)/, 'the count is an icon and a figure')
@@ -229,7 +229,7 @@ try {
   assert.match(src, /views\.featured === 'list'\s*\? h\('div', \{ className: 'kbsf-list'[\s\S]*list\.map\(pickRow\)/, 'the list view draws a row per pick')
   const row = src.slice(src.indexOf('const pickRow = '), src.indexOf('// Pager based on the SERVER'))
   assert.match(row, /pickBy\(p\), pickCnt\(p\)/, 'the row has the creator and the count')
-  assert.match(row, /pickButtons\(p, x, isIn, openIt\)/, 'and the same two gestures as the card')
+  assert.match(row, /pickButtons\(p, x, isIn, openIt, opts\)/, 'and the same two gestures as the card')
   assert.ok(!/'\/' \+ p\.id\)\s*\)/.test(row.replace(/copy\('\/' \+ p\.id\)/g, '')), 'no /name link in the row either')
   ok('the list view: a row per pick with the creator, the count, the verdicts and the same actions; the shared bar switches it, per browser')
 
