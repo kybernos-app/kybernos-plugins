@@ -372,7 +372,7 @@ window.__ModuleLoader__.load({
         'kb.pv.sw.aria': { kybernos: '{slug} activé', en: '{slug} enabled' },
         'kb.pv.zone.del': { kybernos: 'Supprimer le fournisseur', en: 'Delete provider' },
         'kb.pv.zone.del.d': { kybernos: 'Le retire avec ses modèles, ses surcharges et sa clé.', en: 'Removes it with its models, overrides and key.' },
-        'kb.pv.hostnote': { kybernos: 'Désactiver demande un redémarrage de DSH : les nouvelles routes de l’hôte ne sont pas encore chargées.', en: 'Disabling needs a DSH restart: the new host routes are not loaded yet.' },
+        'kb.pv.hostnote': { kybernos: 'Désactiver demande un redémarrage de DSH : la nouvelle version n’est pas encore chargée.', en: 'Disabling needs a DSH restart: the new version is not loaded yet.' },
         'kb.pv.err.pick': { kybernos: 'Choisis un fournisseur.', en: 'Choose a provider.' },
         'kb.pv.err.slug': { kybernos: 'Identifiant invalide : minuscules, chiffres et tirets.', en: 'Invalid identifier: lowercase letters, digits and dashes.' },
         'kb.pv.err.taken': { kybernos: 'Ce fournisseur existe déjà.', en: 'This provider already exists.' },

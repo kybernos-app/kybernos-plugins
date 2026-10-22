@@ -2578,7 +2578,7 @@ window.__ModuleLoader__.load({
             setReglages(j && j.reglages && typeof j.reglages === 'object' ? j.reglages : autoDefauts())
             setEtude(j && j.etude && typeof j.etude === 'object' ? j.etude : null)
           })
-          .catch(() => { setReglages(autoDefauts()); setErreur(kt('Route des réglages injoignable — la valeur affichée est celle par défaut.', 'Settings route unreachable — the value shown is the default.')) })
+          .catch(() => { setReglages(autoDefauts()); setErreur(kt('Les réglages n’ont pas répondu : la valeur affichée est celle par défaut.', 'The settings did not answer: the value shown is the default.')) })
         kbModeles().then((l) => setModeles(l))
       }, [])
       // NATIVE classes of the shell, copied live from a neighbouring row of the
