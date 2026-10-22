@@ -162,6 +162,8 @@ window.__ModuleLoader__.load({
         'ln2.w.lessons': { fr: 'leçons', en: 'lessons' },
         'ln2.w.accepted': { fr: 'compétences acceptées', en: 'skills accepted' },
         'ln2.w.used': { fr: 'utilisations de compétences ({n} différentes)', en: 'skill uses ({n} different)' },
+        'ln2.w.used.d1': { fr: 'utilisations de compétences (1 différente)', en: 'skill uses (1 different)' },
+        'ln2.w.used.1': { fr: 'utilisation de compétence', en: 'skill use' },
         'ln2.w.top': { fr: 'est celle que tu utilises le plus : {n} fois.', en: 'is the one you use most: {n} times.' },
         'ln2.w.waiting': { fr: '{n} suggestions attendent ton accord.', en: '{n} suggestions are waiting for your yes.' },
         'ln2.w.waiting.1': { fr: '1 suggestion attend ton accord.', en: '1 suggestion is waiting for your yes.' },
@@ -3638,7 +3640,7 @@ body:not([data-ds-dark-theme]) .kbs-root .kb8-pill.warn{color:color-mix(in srgb,
             h('div', { className: 'kbl-wh' },
               h('div', null, h('h3', null, t('ln2.w.title')), h('p', null, t('ln2.w.sub', { from: kbShortDay(w.from), to: kbShortDay(w.to) }))),
               h('button', { type: 'button', className: 'kbl-btn', 'data-kb': 'learned-week-hide', onClick: () => { post('learned/week/hide', {}); setHidden(true) } }, t('ln2.w.hide'))),
-            h('div', { className: 'kbl-nums' }, lessons !== null ? num(lessons, t('ln2.w.lessons'), 'l') : null, num(w.accepted, t('ln2.w.accepted'), 'a'), num(w.used + '×', t('ln2.w.used', { n: w.usedSkills }), 'u')),
+            h('div', { className: 'kbl-nums' }, lessons !== null ? num(lessons, t('ln2.w.lessons'), 'l') : null, num(w.accepted, t('ln2.w.accepted'), 'a'), num(w.used + '×', w.used === 1 ? t('ln2.w.used.1') : (w.usedSkills === 1 ? t('ln2.w.used.d1') : t('ln2.w.used', { n: w.usedSkills })), 'u')),
             rows.filter((x) => x !== null).length > 0 ? h('div', { className: 'kbl-wl' }, rows) : null,
             h('div', { className: 'kbl-how kbl-dim2' }, t('ln2.w.foot'))))
       }
