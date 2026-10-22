@@ -76,6 +76,22 @@ const between = (a, b) => {
   assert.equal(ctx.kbConnRowsOf(real, [], () => false, ['zoom']).connRows.length, 0)
   ok('no ticked-app row while the account is still being read, nor when the search filters it out')
 
+  // which account: its address first, then the name the owner gave it, Composio's id only at last
+  const accounts = ctx.kbConnRowsOf({ configured: true, connections: [
+    { toolkit: 'googledrive', status: 'active', accounts: [{ id: 'googledrive_invert-chaya', status: 'active', identity: 'ada@example.org', isDefault: true }] },
+    { toolkit: 'gmail', status: 'active', accounts: [{ id: 'g1', alias: 'ada@example.org', status: 'active', identity: 'ada@example.org' }] },
+    { toolkit: 'outlook', status: 'active', accounts: [{ id: 'o1', alias: 'work', status: 'active', identity: 'ada@corp.example' }] },
+    { toolkit: 'slack', status: 'active', accounts: [{ id: 'slack_x-y', status: 'active' }] },
+  ] }, [], () => true, []).connRows
+  const labelOf = (slug) => accounts.find((r) => r.slug === slug).label
+  assert.equal(labelOf('googledrive'), 'ada@example.org')
+  assert.equal(labelOf('gmail'), 'ada@example.org')
+  assert.equal(labelOf('outlook'), 'ada@corp.example · work')
+  assert.equal(labelOf('slack'), 'slack_x-y')
+  ok('a row names the account by its address, then the name the owner gave it, and by Composio\'s id only when nothing else is known')
+  assert.equal(ctx.kbConnRowsOf({ configured: true, connections: [{ toolkit: 'googledrive', status: 'active', accounts: [{ id: 'd1', status: 'active', identity: 'ada@example.org' }] }] }, [], (t) => t.indexOf('ada@example') >= 0, []).connRows.length, 1)
+  ok('the search finds an account by its address')
+
   // names
   assert.equal(ctx.kbAppName('googlecalendar'), 'Google Calendar')
   assert.equal(ctx.kbAppName('microsoft_teams'), 'Microsoft Teams')
