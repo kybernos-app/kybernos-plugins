@@ -1036,6 +1036,14 @@ section('look studio: the agent\'s replies, shadows, glow, the pills under the m
   check('with Liquid glass the highlight is kept under the shadow', /box-shadow:0 4px 14px rgba\(0,0,0,\.2\),inset 0 0 0 \.5px/.test(css({ wp: 'aurore', glassEffect: 'liquid', glassBlur: 20, shadow: 'soft' })))
   const dock = '[data-slot="conversation.composer.dock"]'
   check('the pills are shown unless switched off, each on its own', css({}) === '' && css({ wgSessions: false }) === dock + ' [data-kb="status-pill"]{display:none!important}' && css({ wgChanges: false }) === dock + ' [data-kb="changes"]{display:none!important}' && css({ wgUsage: false }) === dock + ' [data-kb="usage-chip"]{display:none!important}')
+  // Bars on hover (owner's call, 2026-10-22): the collapsed rail and the chat's top bar hide to a sliver and come back at the edge.
+  check('bars on hover: off by default (nothing drawn), checked like the other booleans, and kept out of the presets', T.DEF.autoHideBars === false && css({}) === '' && T.valeursValides({ autoHideBars: true }).autoHideBars === true && T.valeursValides({ autoHideBars: 'yes' }).autoHideBars === undefined && !Object.values(T.PRESET_GROUPS).some((g) => g.includes('autoHideBars')))
+  check('bars on hover: only under a pointer that can hover; the rail and the top bar hide to a sliver, and come back on hover, on focus or while a popup they opened is open', (() => {
+    const x = css({ autoHideBars: true })
+    return x.startsWith('@media (hover:hover) and (pointer:fine){') && /_sidebarCol"\]\{[^}]*translateX\(calc\(-100% \+ 8px\)\)/.test(x) && /_headerLeading"\]\)\{[^}]*translateY\(calc\(-100% \+ 6px\)\)/.test(x)
+      && /:focus-within/.test(x) && /:has\(\[aria-haspopup\]\[aria-expanded="true"\]\)/.test(x) && /\{grid-column:1 \/ 3;grid-row:1\}/.test(x) && x.split('{').length === x.split('}').length
+  })())
+  check('bars on hover: it is a toggle of the look studio\'s sidebar panel', /ldToggle\(say\('Barres au survol', 'Bars on hover'\), S\.autoHideBars, \(\) => commit\(\{ autoHideBars: !S\.autoHideBars \}\)/.test(SOURCE))
   check('everything on at once is still well formed', (() => { const x = css({ wp: 'aurore', glassEffect: 'liquid', bubbleUser: '#123456', textUser: '#fff', replyBg: 'card', replyColor: '#aa5500', textReply: '#000', shadow: 'soft', glow: true, wgSessions: false, wgChanges: false, wgUsage: false, sideTone: 'tinted' }); return (x.match(/\{/g) || []).length === (x.match(/\}/g) || []).length && !x.includes('undefined') && !x.includes('null') })())
 }
 
