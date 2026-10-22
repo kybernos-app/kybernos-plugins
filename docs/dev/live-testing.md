@@ -511,6 +511,21 @@ Both need a sandbox that serves this checkout and refuse `:3080`; neither writes
   `packages/kybernos-modeles-locaux/test-modeles-catalogue.mjs`. Trap: the button is in the machine tile, which is drawn only
   once the machine is measured (a few seconds when Ollama is installed but not serving): wait for it.
 
+## The Commands page and editor: `scripts/check-slash-live.mjs`
+
+```bash
+source scripts/sandbox/env.sh && node scripts/check-slash-live.mjs [--shots /tmp/shots]
+```
+
+Sandbox only (it writes commands and sends one message; it refuses `:3080`, exit 3). It creates a slash command with three questions
+(a choice, a long text shown only for one choice), orders them with the arrow and by drag and drop, picks « Send right away », saves
+with Ctrl/Cmd + S and reads back what the host kept; edits, duplicates, deletes with the in-row question and Undo; creates a message
+action; leaves Settings and runs the command from the `/` menu (the conditional question appears, the answers are in the text, Send
+sends it); and empties the sandbox's list at the end. Trap: a drag is `dragstart`, `dragover`, `drop` with a pause between them,
+because the editor keeps the dragged index in React state (events fired in one tick drop on nothing). **Not covered:** running an
+action on a reply, since a sandbox has no assistant reply; do it on a real conversation, read-only: the action inserts its text in the
+composer (delivery « insert ») and sends nothing.
+
 ## The Study model: `scripts/check-study-model-live.mjs`
 
 ```bash
