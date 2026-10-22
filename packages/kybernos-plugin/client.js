@@ -4691,6 +4691,14 @@ const KbLearnedDot = () => {
 }
 const KB_MENU_ENTRY = { cloudcomputer: 'cloud', kyber: 'kyber', dashboards: 'dash', aiteams: 'teams', projects: 'ws', deliverables: 'creations', tasks: 'auto', skills: 'skills', connectors: 'plug' }
 const KB_MENU_CLASSIC = { cloud: 'monitor', kyber: 'bot', dash: 'layoutDashboard', teams: KB_DEFAULT_ICON, ws: 'folderOpen', creations: 'shapes', auto: 'zap', skills: 'sparkles', plug: 'plug' }
+/** What the person gave Kaby (the kybernos-kaby-customisation bundle): { name, portrait: { url } | null } or null when that bundle is not there. */
+const kbKabyMe = () => {
+  try {
+    const k = window.__KB_KABY__
+    const p = k !== undefined && k !== null && typeof k.profile === 'function' ? k.profile() : null
+    return p !== null && p !== undefined && typeof p.name === 'string' && p.name !== '' ? p : null
+  } catch (e) { return null }
+}
 const kbMenuIcon = (rowKey, fallback, on) => {
   try {
     const reg = (typeof window !== 'undefined') ? window.__KB_ICONSETS__ : null
@@ -7736,6 +7744,7 @@ const CSS = `
 .kb4-ico{flex:none;width:1.25em;height:1.25em;display:flex;align-items:center;justify-content:center}
 .kb4-isvg{display:inline-flex;width:1.25em;height:1.25em;color:var(--dsw-alias-label-secondary)}
 .kb4-isvg svg{display:block}
+.kb4-kabyav{width:1.25em;height:1.25em;border-radius:50%;object-fit:cover;display:block}
 .kb4-lab{flex:1;text-align:left}
 .kb4-dot{width:8px;height:8px;border-radius:50%;flex:none;margin-inline-start:6px;background:var(--dsw-alias-brand-primary)}
 .kb4-badge{font-size:.95em;color:var(--dsw-alias-label-secondary);font-variant-numeric:tabular-nums}
@@ -26741,12 +26750,14 @@ function renderFit(canvas, model, cam, opts){
       const kabyPair = React.useState(0)
       React.useEffect(() => {
         const onKaby = () => kabyPair[1]((n) => n + 1)
-        try { window.addEventListener('kb-kyby-session', onKaby) } catch (e) { return undefined }
-        return () => { try { window.removeEventListener('kb-kyby-session', onKaby) } catch (e) { /* gone */ } }
+        // `kb-kaby-profile`: the name or the portrait the person gave Kaby changed (kybernos-kaby-customisation).
+        try { window.addEventListener('kb-kyby-session', onKaby); window.addEventListener('kb-kaby-profile', onKaby) } catch (e) { return undefined }
+        return () => { try { window.removeEventListener('kb-kyby-session', onKaby); window.removeEventListener('kb-kaby-profile', onKaby) } catch (e) { /* gone */ } }
       }, [])
       let kabyChat = false
       try { kabyChat = typeof curSid === 'string' && window.__KB_KYBER__ !== undefined && typeof window.__KB_KYBER__.isKybySession === 'function' && window.__KB_KYBER__.isKybySession(curSid) === true } catch (e) { kabyChat = false }
       const shown = kbMenuShown(panelId, s.view, kabyChat)
+      const kabyMe = kbKabyMe()
       const canPanel = layoutSvc !== undefined && layoutSvc !== null && typeof layoutSvc.selectPanel === 'function'
       const teams = kbTeams(s.data)
       const sel = kbSelectedTeam(s.data)
@@ -26803,8 +26814,13 @@ function renderFit(canvas, model, cam, opts){
       }
       // In the icon rail the label is hidden: the row names itself (a screen reader, and a tooltip of its own, instead of the
       // group's « Kybernos » for all eight pages).
-      const row = (id, ico, dflt, badge, active, onClick, extra) => { const label = kbDomainLabel(id) !== null ? kbDomainLabel(id) : dflt; return h('button', { type: 'button', key: id, className: 'kb4-item' + (active === true ? ' on' : ''), 'aria-label': label, title: label, onClick },
-        h('span', { className: 'kb4-ico' }, kbMenuIcon(id, ico, active === true)), h('span', { className: 'kb4-lab' }, label),
+      const row = (id, ico, dflt, badge, active, onClick, extra) => {
+        // Kaby's row carries what the person gave it (kybernos-kaby-customisation): its name over the domain's word, its portrait over the icon.
+        const kabyOwn = id === 'kyber' && kabyMe !== null
+        const label = kabyOwn ? kabyMe.name : (kbDomainLabel(id) !== null ? kbDomainLabel(id) : dflt)
+        const iconNode = kabyOwn && kabyMe.portrait !== null ? h('img', { className: 'kb4-kabyav', src: kabyMe.portrait.url, alt: '', 'data-kb': 'kb-kaby-row-portrait' }) : kbMenuIcon(id, ico, active === true)
+        return h('button', { type: 'button', key: id, className: 'kb4-item' + (active === true ? ' on' : ''), 'aria-label': label, title: label, onClick },
+        h('span', { className: 'kb4-ico' }, iconNode), h('span', { className: 'kb4-lab' }, label),
         (badge !== null && badge !== undefined && badge > 0) ? h('span', { className: 'kb4-badge' }, String(badge)) : null,
         (extra === undefined ? null : extra)) }
       const ncCloud = useNcCloud()
