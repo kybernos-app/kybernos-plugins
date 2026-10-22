@@ -1322,10 +1322,9 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
         for (const x of own.filter((y) => y.exhausted === true)) if (mine.indexOf(x) < 0) mine.push(x)
         if (mine.length === 0 && quotaMostUsed(own) !== null) mine.push(quotaMostUsed(own))
         for (const x of mine.sort((a, b) => a.window_seconds - b.window_seconds)) model.rows.push(winRowOf(x, 'you', t('winYou'), name, t, now))
-      } else {
-        const w = quotaBlocking(own) || quotaMostUsed(own)
-        if (w !== null) model.rows.push(winRowOf(w, 'allowance', t('winAllowance'), name, t, now))
       }
+      // A personal space has no allowance row: the number is the Kybernos plan's, which means nothing to a person on a key of their own, and the composer's chip
+      // (kybernos-usage) already shows it, on a Kybernos model only. Only a blocked payment (above) is worth the menu's space.
       if (team && spaceIsAdmin(space)) {
         model.actions.push('manage')
         if (facts !== null && (facts.payment_blocked === true || pool.some((x) => x.exhausted === true))) model.actions.push('credits')
@@ -2859,10 +2858,8 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
             if (id === 'choose') return h('button', { key: id, type: 'button', className: 'kbfp-mcta', 'data-kb': 'menu-plan-cta', 'data-plan': 'none', onClick: closeThen(props.onUpgradePage) }, t('planChoose'))
             return h('button', { key: id, type: 'button', className: 'kbfp-mcta', 'data-kb': 'menu-plan-cta', onClick: closeThen(props.onUpgrade) }, t('menuPlanCta'))
           }
-          // ONE gauge for one number. In a personal space the menu's card showed the very same bar as the footer chip just
-          // below it (« 89 % » twice on screen at once — the beta report about the footer gauge). The footer keeps the bar;
-          // the card keeps the label, the percentage and the note. A team still draws its windows as bars: there are several,
-          // and the footer only shows one.
+          // A personal space draws no allowance here at all (see planCardModel): the footer's gauge and this card used to show the same « 89 % » twice. A team draws its
+          // windows as bars: there are several, and the footer only shows one. The one row a personal card can still carry is a blocked payment, with no bar.
           const barGardee = card.team === true || card.rows.length > 1
           const planCard = h('div', { className: 'kbfp-mplan', 'data-kb': 'menu-plan-card', 'data-team': card.team === true ? 'true' : 'false' },
             h('div', { className: 'kbfp-mplanline' },
@@ -2912,6 +2909,8 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
             h('div', { className: 'kbfp-mitems', 'data-kb': 'menu-block-account' },
               entree('account', h(UserIcon, { size: 18 }), t('profCompte'), props.onAccount, { ext: true }),
               entree('referral', h(GiftMenuIcon, { size: 18 }), t('profParrain'), props.onReferral, { amber: true, ext: true })),
+            // What is the account's (Account, Referral) stops here; what is the app's (Appearance, Phone and channels, Settings) starts below the rule.
+            h('div', { className: 'kbfp-msep' }),
             // Appearance is a CONTROL, not a page of the account: it gets its own block, between the account and the console.
             h('div', { className: 'kbfp-mitems', 'data-kb': 'menu-block-appearance' }, h(AppearanceRow, null)),
             h('div', { className: 'kbfp-mitems', 'data-kb': 'menu-block-console' },
@@ -3540,7 +3539,10 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
             const nomEspace = shownView.name
             const mfaNote = mfaNoteText(state.space_plan !== undefined && state.space_plan !== null ? state.space_plan.mfa : null, nomEspace, t, fmtDate)
             const planEspace = planNameOf(state, user, t)
-            const meter = quota !== null && switching === null ? quotaMeterOf(quota, t) : null
+            // A personal space draws no gauge here: its allowance is the Kybernos plan's, which a person on a key of their own never touches. The composer's chip
+            // (kybernos-usage) says it, only on a Kybernos model. A team keeps its meter: the pool is the team's to manage.
+            const personalQuota = spaceIsPersonal(shownEntry) || (quota !== null && quota !== undefined && quota.workspace !== null && typeof quota.workspace === 'object' && quota.workspace.personal === true)
+            const meter = quota !== null && switching === null && personalQuota !== true ? quotaMeterOf(quota, t) : null
             // « Team settings », « Account » and « Referral » open the APP, in the person's browser, signed in (the single-use console link, section `plan`,
             // `overview` or `referral`, on the active workspace). They used to open a read-only copy of it in DSH's content zone, and every change in that copy sent the person
             // to the browser anyway (ADR 0054, decision of 2026-10-16): the way in now says where the work happens. The copy is gone from the core bundle too
