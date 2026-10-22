@@ -388,6 +388,7 @@ window.__ModuleLoader__.load({
 .kbmd-txt b{color:var(--dsw-alias-label-primary,inherit);font-weight:600}
 .kbmd-path{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13px;overflow-wrap:anywhere;color:var(--dsw-alias-label-primary,inherit)}
 .kbmd-folder{display:flex;flex-direction:column;gap:6px;min-width:0}
+.kbmd-folder>.kbmd-cap{font-size:12px;font-weight:400;color:var(--dsw-alias-label-secondary,#a0a0aa)}
 .kbmd-row1{padding:10px 12px;border-radius:12px;background:var(--dsw-alias-bg-layer-2,rgba(127,127,127,.12));border:1px solid var(--dsw-alias-border-l1,rgba(127,127,127,.25))}
 .kbmd-row1 .kbmd-ico{width:36px;height:36px;flex-basis:36px;border-radius:10px}
 .kbmd-row1 .kbmd-txt{flex:1 1 180px}
