@@ -50,6 +50,7 @@ window.__ModuleLoader__.load({
         'kfl.relance': { fr: 'Si un modèle n’apparaît pas dans le sélecteur : relance DSH.', en: 'If a model does not show in the picker: restart DSH.' },
         'kfl.auto': { fr: 'Activé automatiquement au premier lancement.', en: 'Enabled automatically at first run.' },
         'kfl.erreur': { fr: 'Erreur', en: 'Error' },
+        'kfl.nonsauve': { fr: 'Ton choix n’a pas pu être enregistré sur ce disque. Réessaie, ou vérifie qu’il reste de la place.', en: 'Your choice could not be saved on this disk. Try again, or check that there is room left.' },
         // The page's host half does not answer (DSH not restarted after an update, a failing route): the same sentence as the other settings pages.
         'kfl.hote': { fr: 'L’assistant de cette page ne répond pas. Si DSH vient d’être mis à jour, redémarre DSH, puis appuie sur Réessayer.', en: 'This page’s helper is not answering. If DSH was just updated, restart DSH, then press Retry.' },
         'kfl.reessayer': { fr: 'Réessayer', en: 'Retry' },
@@ -176,7 +177,7 @@ window.__ModuleLoader__.load({
         } catch (e) { return { ok: false, error: 'hote' } }
       }
       // What a failed call says: the sentence for a host that does not answer, « Error: <reason> » otherwise.
-      const erreurDe = (r, repli) => (r && r.error === 'hote' ? m('kfl.hote') : m('kfl.erreur') + sep() + String((r && r.error) || repli))
+      const erreurDe = (r, repli) => (r && r.error === 'hote' ? m('kfl.hote') : (r && r.error === 'state-not-saved' ? m('kfl.nonsauve') : m('kfl.erreur') + sep() + String((r && r.error) || repli)))
 
       const skelHelper = () => {
         try {
@@ -236,9 +237,11 @@ window.__ModuleLoader__.load({
         }
         const deconnecter = async () => {
           setErreur(null); setBusy('connect')
-          await jsonPost('/free-llms/disable', {})
+          const r = await jsonPost('/free-llms/disable', {})
           setBusy(null)
           await refresh()
+          // The host says when it could not keep the choice (state-not-saved): the person is told, not left looking at a page that changed back.
+          if (r && r.ok !== true && r.error === 'state-not-saved') setErreur(erreurDe(r, 'refused'))
         }
         const sonder = async () => {
           setErreur(null); setProbe(null); setBusy('probe')

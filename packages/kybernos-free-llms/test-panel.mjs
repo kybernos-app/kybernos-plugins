@@ -67,11 +67,14 @@ const makeRenderer = () => {
 const MODELS = Array.from({ length: 13 }, (_, i) => 'free-model-' + (i + 1))
 const calls = []
 let healthAnswer = { ok: true, model: MODELS[0], code: 'ok' }
+let statusState = { wired: false, acknowledged: false }
+let postAnswer = { ok: true }
 globalThis.fetch = async (url) => {
   calls.push(String(url))
   const u = String(url)
-  if (u.startsWith('/free-llms/status')) return { json: async () => ({ ok: true, models: MODELS, catalogOk: true, state: { wired: false, acknowledged: false } }) }
+  if (u.startsWith('/free-llms/status')) return { json: async () => ({ ok: true, models: MODELS, catalogOk: true, state: statusState }) }
   if (u.startsWith('/free-llms/health')) return { json: async () => healthAnswer }
+  if (u.startsWith('/free-llms/enable') || u.startsWith('/free-llms/disable')) return { json: async () => postAnswer }
   return { json: async () => ({ ok: true }) }
 }
 globalThis.document = { documentElement: { lang: 'en' }, head: { append () {} }, createElement: () => ({ dataset: {}, remove () {} }) }
@@ -154,6 +157,25 @@ console.log('« Re-check » (V-43): a small button on the list, a fresh probe ea
   // UX audit 2026-10-20: the page lists the free models, so a « free » tag on every row (10 of 10) said nothing.
   check('a model row does not repeat the word free on every row', !/'data-tone': 'neutral' \}, 'free'\)/.test(SOURCE))
   check('...and its skeleton row has no bone for it', !/bone\(34, 18, 'pill'\)/.test(SOURCE))
+}
+
+console.log('the host could not keep the choice (state-not-saved): the page says so, for Connect and for Remove')
+{
+  const view = await open({ ok: true, model: MODELS[0], code: 'ok' })
+  postAnswer = { ok: false, error: 'state-not-saved', routeWritten: true }
+  await acknowledge(view)
+  connectButton(view).props.onClick()
+  await view.settle()
+  check('Connect: a refusal to save is a sentence, not « Error: state-not-saved »', /could not be saved on this disk/.test(view.text()) && !/state-not-saved/.test(view.text()), view.text().slice(0, 300))
+  statusState = { wired: true, acknowledged: true }
+  const wired = await open({ ok: true, model: MODELS[0], code: 'ok' })
+  const inner = (n) => (n === null || n === undefined ? '' : typeof n === 'string' ? n : (n.kids || []).map(inner).join(' '))
+  const remove = wired.one((n) => n.tag === 'button' && /^\s*Remove\s*$/.test(inner(n)))
+  check('a wired page offers Remove', remove !== null)
+  remove.props.onClick()
+  await wired.settle()
+  check('Remove: the same sentence (the disable answer was ignored before)', /could not be saved on this disk/.test(wired.text()) && !/state-not-saved/.test(wired.text()), wired.text().slice(0, 300))
+  postAnswer = { ok: true }; statusState = { wired: false, acknowledged: false }
 }
 
 console.log(failed === 0 ? '\nOK' : `\n${failed} failure(s)`)

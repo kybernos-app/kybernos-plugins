@@ -60,13 +60,14 @@ if (JSDOM === null) {
   w.document.querySelector('.x_collapseBtn').getBoundingClientRect = () => ({ top: 28, left: 240, width: 28, height: 28, right: 268, bottom: 56 })
   const calls = []
   const reply = (body, status = 200) => Promise.resolve({ ok: status < 400, status, json: async () => body })
+  let statusAnswer = null
   let hostAnswer = { ok: true, state: 'ready', terms: ['theme'], indexed: 3, tookMs: 4, counts: { chat: 1 }, results: [{ scope: 'chat', id: 'session-1', title: 'Créer un <img src=x onerror=alert(1)> thème', titleMarks: [[28, 33]], meta: { where: 'proj', when: Date.now() - 86400000 }, open: { kind: 'session', id: 'session-1' }, hits: [{ r: 'u', ts: 1, text: 'un thème <script>alert(1)</script> sombre', marks: [[3, 8]], pre: true, post: false }] }] }
   w.fetch = (url, opts) => {
     calls.push([String(url), opts && opts.body ? JSON.parse(opts.body) : null])
     const u = String(url)
     if (u === '/kybernos-search/query') return reply(hostAnswer)
     if (u === '/kybernos-search/start') return reply({ ok: true, state: 'building', done: 1, total: 2, chats: 1 }, 202)
-    if (u === '/kybernos-search/status') return reply({ ok: true, state: 'ready', done: 2, total: 2, chats: 2, updatedAt: Date.now(), errors: 0, sources: 0 })
+    if (u === '/kybernos-search/status') return reply(statusAnswer !== null ? statusAnswer : { ok: true, state: 'ready', done: 2, total: 2, chats: 2, updatedAt: Date.now(), errors: 0, sources: 0 })
     if (u === '/kybernos-cloud/memory') return reply({ ok: true, account: [{ id: 'm1', content: 'Le thème sombre est préféré', kind: 'preference', pinned: true }] })
     if (u === '/kybernos/load') return reply({ ok: true, artifacts: [{ path: '/w/p/slides-theme-de-marque.html', name: 'slides-theme-de-marque.html', mtimeMs: Date.now(), workspace: 'proj' }] })
     return reply({}, 404)
@@ -133,6 +134,28 @@ if (JSDOM === null) {
   doc.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true }))
   doc.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true }))
   ok('Ctrl+K again toggles it closed', doc.querySelector('[data-kb="search-dialog"]') === null)
+  // L4-04: an index that missed some chats says so, with a way to try again (the host used to count `errors` and the page never read it)
+  doc.querySelector('[data-kb="search-dialog"]') === null && w.__KB_SEARCH__.open()
+  await sleep(100)
+  ok('nothing missed: no notice is shown', doc.querySelector('[data-kb="search-partial"]').hidden === true)
+  w.__KB_SEARCH__.close()
+  statusAnswer = { ok: true, state: 'partial', done: 3, total: 3, chats: 2, updatedAt: Date.now(), errors: 2, failed: [{ id: 'a', code: 'no-frame' }, { id: 'b', code: 'EACCES' }], sources: 0 }
+  w.__KB_SEARCH__.open()
+  await sleep(100)
+  const notice = doc.querySelector('[data-kb="search-partial"]')
+  ok('chats the index could not read are announced in the dialog', notice !== null && notice.hidden === false && /2 chats could not be read|2 chats illisibles/.test(notice.textContent), notice && notice.textContent)
+  const startsBefore = calls.filter((c) => c[0] === '/kybernos-search/start').length
+  notice.querySelector('[data-act="retry"]').dispatchEvent(new w.MouseEvent('click', { bubbles: true }))
+  await sleep(100)
+  ok('Retry asks the host to build again (only what changed or failed is read)', calls.filter((c) => c[0] === '/kybernos-search/start').length === startsBefore + 1)
+  statusAnswer = { ok: true, state: 'partial', done: 3, total: 3, chats: 2, updatedAt: Date.now(), errors: 1, failed: [{ id: 'a', code: 'no-frame' }], sources: 0 }
+  w.__KB_SEARCH__.close()
+  w.__KB_SEARCH__.open()
+  await sleep(100)
+  ok('one chat is said in the singular', /1 chat could not be read|1 chat illisible/.test(doc.querySelector('[data-kb="search-partial"]').textContent), doc.querySelector('[data-kb="search-partial"]').textContent)
+  statusAnswer = null
+  w.__KB_SEARCH__.close()
+
   // the host does not answer: the dialog says so, it does not break
   hostAnswer = null
   w.__KB_SEARCH__.open()

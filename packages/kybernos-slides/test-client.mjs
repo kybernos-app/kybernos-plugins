@@ -412,6 +412,22 @@ ok('DEMO: …and in English, the tools of the English bar', /Text tool/.test(leg
     const t = textes()
     ok(`language « ${lg} »: the empty panel and the demo deck speak the language of the page`, attendu.every((m) => t.includes(m)) && !interdit.test(t), t.slice(0, 120))
   }
+  // L4-07: the demo deck's kickers (the small line above a slide's title) were English literals in a French interface, one of them
+  // missed by every earlier pass. Each is a kt(fr, en) pair; the only bare word left is one that is the same in both languages.
+  {
+    const src = readFileSync(new URL('./src/plugin.js', import.meta.url), 'utf8')
+    const demo = src.slice(src.indexOf('const DEMOS = ['), src.indexOf('/* ═══════════════ 5. PANNEAU'))
+    const nus = [...demo.matchAll(/kicker:\s*'([^']*)'/g)].map((m) => m[1])
+    ok('the demo deck: no kicker is a bare literal (only « Tempo », the same word in French and English)', demo.length > 200 && nus.every((k) => k === 'Tempo'), nus)
+    const kickers = (lg) => { langue = lg; return T.DEMOS[0].slides.map((sl) => sl.kicker).filter(Boolean) }
+    const fr = kickers('kybernos')
+    ok('French: the demo kickers are French', fr.includes('Comment ça marche') && fr.includes('Le principe') && !fr.includes('How it works') && !fr.includes('The premise'), fr.join(' | '))
+    const en = kickers('en')
+    ok('English: the same kickers in English', en.includes('How it works') && en.includes('The premise') && !en.includes('Comment ça marche'), en.join(' | '))
+    const es = kickers('es')
+    ok('Spanish (no table of ours): English, never French', es.includes('How it works') && !es.includes('Comment ça marche'), es.join(' | '))
+    langue = 'kybernos'
+  }
   const barreEn = avecDeckBarre('en')
   ok('English: the tool bar reads View / Text / Brush / Eraser / Clear all', ['"View"', '"✎ Text"', '"✎ Brush"', '"Eraser"', '"Clear all"'].every((m) => barreEn.includes(m)) && !/Gomme|Tout effacer|"Voir"/.test(barreEn))
   const barreFr = avecDeckBarre('kybernos')

@@ -3075,14 +3075,20 @@ const KB_SS_INDEX = [
 ]
 // What people call a page, by its key: found by « voix » when the page is called Voice.
 const KB_SS_PAGE_KW = {
-  'ai provider and models': 'modeles fournisseurs cle api openai', 'auto routing': 'routage routeur choix modele secours', 'free llms': 'gratuit gratis',
-  'ollama local models': 'local hors ligne offline gpu', usage: 'consommation quota forfait cout', 'agent presets': 'agent mode persona', workers: 'assistants code delegation cli',
-  automations: 'planification taches cron', commands: 'slash raccourcis prompts', skills: 'competences habilidades', 'learned skills': 'competences apprises apprentissage confiance seuil autonomie audit journal', tools: 'outils mcp',
-  connectors: 'integrations applications gmail slack', 'web search': 'recherche internet moteur navigateur', 'memory & lessons': 'memoire memoria souvenirs lecons',
-  kybernos: 'instructions consignes', atlas: 'carte graphe', voice: 'voix voz micro dictee audio', calls: 'appels telephone visio',
-  appearance: 'apparence aspecto mode sombre clair', theme: 'couleurs palette fond police', language: 'langue idioma traduction', servers: 'serveurs equipe reseau',
-  'cloud computers': 'sandbox bac a sable e2b', 'phone and channels': 'telephone mobile qr telecommande messagerie telegram whatsapp', 'kybernos suite': 'plugins modules extensions',
-  'built-in plugins': 'plugins integres', about: 'a propos version licence mise a jour'
+  'ai provider and models': 'modeles fournisseurs cle api openai provider providers key keys llm gpt claude anthropic openrouter', 'auto routing': 'routage routeur choix modele secours router fallback failover',
+  'free llms': 'gratuit gratis', 'ollama local models': 'local hors ligne offline gpu on device',
+  usage: 'consommation quota forfait cout cost price spend spending money bill billing dollars tokens', 'agent presets': 'agent mode persona',
+  workers: 'assistants code delegation cli codex claude gemini', automations: 'planification taches cron schedule scheduler tasks timer recurring reminders',
+  commands: 'slash raccourcis prompts saved', skills: 'competences habilidades abilities library',
+  'learned skills': 'competences apprises apprentissage confiance seuil autonomie audit journal learning', tools: 'outils mcp backup experimental browser computer use',
+  connectors: 'integrations applications gmail slack email mcp composio', 'web search': 'recherche internet moteur navigateur browse brave duckduckgo',
+  'memory & lessons': 'memoire memoria souvenirs lecons memories remember notes', kybernos: 'instructions consignes custom rules',
+  atlas: 'carte graphe', voice: 'voix voz micro dictee audio speech sound speaker dictation tts read aloud',
+  calls: 'appels telephone visio call video sound camera speaker live', appearance: 'apparence aspecto mode sombre clair look dark light night system',
+  theme: 'couleurs palette fond police colors style skin import export share reset', language: 'langue idioma traduction translate locale french spanish',
+  servers: 'serveurs equipe reseau server team enterprise', 'cloud computers': 'sandbox bac a sable e2b cloud vm',
+  'phone and channels': 'telephone mobile qr telecommande messagerie telegram whatsapp phone remote messaging', 'kybernos suite': 'plugins modules extensions install update restart',
+  'built-in plugins': 'plugins integres', about: 'a propos version licence mise a jour update restart relaunch'
 }
 // What the page draws in French: page|label of a row -> [label, description, text to go to when it is not the label]. A row the French menu draws in
 // English (DSH's own rows of General, Agent presets, Built-in plugins) is not listed: it keeps its English text, which is what the page shows. A

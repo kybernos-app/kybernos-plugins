@@ -44,6 +44,11 @@ chats is what a drive-by page would want, `POST` with an Origin from this machin
 `GET status` (counts only) · `POST start` (build or refresh, idempotent, 202) · `POST reindex` (read everything again, 202) ·
 `POST query { q, scopes }` (q capped at 200 characters, only known scopes pass).
 
+`status.state` is `idle`, `building`, `ready` or `partial`. `partial` means some journals could not be read (cut short, a zstd frame
+the reader does not handle, a permission): `errors` counts them and `failed` lists the first 20 as `{ id, code }` (`no-frame`, a system
+code such as `EACCES`, or `run-failed` when a whole run fell over). The dialog shows "N chats could not be read" with a Retry button
+(`POST start` reads again what changed or failed).
+
 ## Design notes
 
 - No inverted index and no SQLite: the text of 2,100 chats is ~15 M characters (measured), a linear scan answers in 4 to 15 ms, and

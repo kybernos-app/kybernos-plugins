@@ -107,6 +107,20 @@ if (process.platform === 'darwin') {
   }
 }
 
+// ── L3-06: a refused install carries a stable code beside the English sentence (the page words it for the person) ──
+{
+  const refus = async (corps) => { const res = await jouer(routes['/kybernos-miniapps/install'], requete({ headers: { origin: 'http://127.0.0.1:3080' } }, corps)); try { return JSON.parse(res.corps) } catch { return {} } }
+  if (process.platform === 'darwin') {
+    const court = await refus({ id: 'code-test', html: '<b>x</b>' })
+    ok('L3-06: a page that is too short is refused with the code html-short', court.ok === false && court.code === 'html-short' && court.erreur === 'HTML too short.', JSON.stringify(court))
+    const long = await refus({ id: 'code-test', html: 'x'.repeat(4_000_001) })
+    ok('L3-06: a page that is too large is refused with the code html-long', long.ok === false && long.code === 'html-long' && long.erreur === 'HTML too large.', JSON.stringify(long).slice(0, 80))
+  } else {
+    const autre = await refus({ id: 'code-test', html: '<b>x</b>' })
+    ok('L3-06: off macOS the refusal carries the code macos-only', autre.ok === false && autre.code === 'macos-only', JSON.stringify(autre))
+  }
+}
+
 process.env.HOME = vraiHome
 rmSync(home, { recursive: true, force: true })
 
