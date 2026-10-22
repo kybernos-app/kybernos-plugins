@@ -103,6 +103,8 @@ settings writes, plugin install/remove/enable, the dynamic runner's invoke, term
 sign-in/out, creating or changing a schedule, `/kybernos-cloud/disconnect`, `/kybernos-cloud/server/apply`,
 `/kybernos-cloud/start`, and every `/kybernos-mobile/remote/` route. The list is data in that file; the live check
 counts refusals during normal use (`refused` in the status).
+The phone page recognises the answer (a 403 whose small JSON body says `refused_on_phone`, or a `refused` frame) and shows one line
+over the DSH page, `refusedPhone` in `phone/phone.mjs` (`test-phone-refusal.mjs`), as the computer's screen explains the same refusals.
 
 Responses are gzip-compressed when textual; the phone's service worker decompresses and caches hashed files
 (`/assets/<name>-<hash>.<ext>`, `…&rev=<hex>`), so only the first load is heavy (measured: 26 MB decompressed for the DSH

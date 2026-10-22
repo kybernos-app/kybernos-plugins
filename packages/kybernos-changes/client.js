@@ -7,8 +7,8 @@
 // `window.__KB_SESSIONS_VIEW__` (published by the sessions client) and runs the SAME actions through the routes
 // of @local/kybernos-sessions (dry run first, then confirm). Nothing here talks to git or GitHub itself.
 //
-// Without the sessions seam (an older sessions bundle) or while its state route is silent, this plugin shows
-// nothing and does NOT silence the pills: the four pills stay.
+// Without the sessions seam (an older sessions bundle, or the bundle is off) or while its state route is silent, this plugin
+// shows a grey « Tracking unavailable » chip that cannot be pressed, and does NOT silence the pills: the four pills stay.
 //
 // Loaded through window.__ModuleLoader__.load. The factory must RETURN a plugin object; on any evaluation error a
 // disabled one is returned, so the GUI is preserved.
@@ -54,6 +54,10 @@ window.__ModuleLoader__.load({
         chipSync: ['À synchroniser', 'Needs syncing'],
         chipConflict: ['Un conflit bloque', 'A conflict blocks'],
         chipElsewhere: ['Rien à sauvegarder ici', 'Nothing to save here'],
+        // The chip is there but cannot say anything: the Sessions module it reads from is not loaded, or does not answer.
+        chipOff: ['Suivi indisponible', 'Tracking unavailable'],
+        tOffModule: ['Le suivi des changements n’est pas disponible : le module Sessions n’est pas chargé.', 'Change tracking is not available: the Sessions module is not loaded.'],
+        tOffRead: ['Le suivi des changements n’est pas disponible pour l’instant : le module Sessions ne répond pas.', 'Change tracking is not available right now: the Sessions module is not answering.'],
 
         tUnsaved1: ['1 fichier de cette conversation n’est pas sauvegardé', '1 file from this chat is not saved'],
         tUnsavedN: ['{n} fichiers de cette conversation ne sont pas sauvegardés', '{n} files from this chat are not saved'],
@@ -323,6 +327,9 @@ window.__ModuleLoader__.load({
 .kbch-warn{--kbch-c:var(--dsw-alias-state-warn-primary,#f59e0b)}
 .kbch-info{--kbch-c:var(--dsw-alias-state-business-primary,#7aaaff)}
 .kbch-err{--kbch-c:var(--dsw-alias-state-error-primary,#f25a5a)}
+.kbch-off{--kbch-c:var(--dsw-alias-label-tertiary,#8b9096)}
+.kbch-static{cursor:default}
+.kbch-static:hover{background:transparent}
 .kbch-card{box-sizing:border-box;position:absolute;left:0;bottom:calc(100% + 10px);z-index:70;width:min(380px,calc(100vw - 24px));max-height:min(560px,calc(100vh - 180px));overflow-y:auto;text-align:left;font-size:14px;padding:12px 18px 14px;border:1px solid var(--dsw-alias-border-l2,rgba(255,255,255,.12));border-radius:18px;color:var(--dsw-alias-label-primary,#f9fafb);background:linear-gradient(var(--dsw-specific-menu,#1c1c1f),var(--dsw-specific-menu,#1c1c1f)),var(--dsw-alias-bg-base,#151517);box-shadow:0 16px 44px rgba(0,0,0,.42)}
 .kbch-hd{display:flex;align-items:center;gap:8px;min-height:30px;font-size:12.5px;color:var(--dsw-alias-label-tertiary,#adb2b8)}
 .kbch-hd b{flex:1;font-weight:500}
@@ -422,16 +429,17 @@ html[dir="rtl"] .kbch-card{left:auto;right:0;text-align:right}
         const [msg, setMsg] = React.useState('')
         const [, setLangTick] = React.useState(0)
         const [shift, setShift] = React.useState(0) // how far the card is pulled left so that it stays inside the window
+        const [off, setOff] = React.useState('') // why there are no facts: 'module' (no Sessions seam) · 'read' (it did not answer) · '' (nothing wrong)
         const alive = React.useRef(true)
         const wrap = React.useRef(null)
 
         const load = React.useCallback(async () => {
           const view = typeof window !== 'undefined' ? window.__KB_SESSIONS_VIEW__ : undefined
-          if (view === undefined || view === null || typeof view.read !== 'function') { if (alive.current) setFacts(null); return }
+          if (view === undefined || view === null || typeof view.read !== 'function') { if (alive.current) { setFacts(null); setOff('module') } return }
           try {
             const f = await view.read(sessionId)
-            if (alive.current) setFacts(f === undefined ? null : f)
-          } catch (e) { if (alive.current) setFacts(null) }
+            if (alive.current) { setFacts(f === undefined ? null : f); setOff(f === undefined || f === null ? 'read' : '') }
+          } catch (e) { if (alive.current) { setFacts(null); setOff('read') } }
         }, [sessionId])
         React.useEffect(() => {
           alive.current = true
@@ -471,6 +479,15 @@ html[dir="rtl"] .kbch-card{left:auto;right:0;text-align:right}
         }, [open])
 
         const m = usable ? classify(facts) : null
+        // No facts for a chat that exists: say so, in a chip that cannot be pressed. It used to vanish without a word, and the only help
+        // text of the bundle describes a chip the person does not see. (Not read yet, no chat, or not a git project: nothing to say.)
+        if (facts === null && typeof sessionId === 'string' && sessionId !== '') {
+          const why = L(off === 'module' ? 'tOffModule' : 'tOffRead')
+          return h('span', { className: 'kbch-wrap kbch-off', 'data-kb': 'changes', 'data-state': 'unavailable' },
+            h('span', { className: 'kbch-chip kbch-static', role: 'status', 'data-kb': 'changes-chip', title: why },
+              h('span', { className: 'kbch-dot', 'aria-hidden': 'true' }),
+              h('span', { className: 'kbch-txt' }, L('chipOff'))))
+        }
         if (!usable || m === null) return null
         const words = wording(m, facts)
         const dev = mode === 'dev'

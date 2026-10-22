@@ -309,7 +309,7 @@ function apply(ctx) {
   let themeRevision = 0
   let renderId = 0
   let timer = 0
-  const rendered = new WeakMap() // block -> { key, inflight, card }
+  const rendered = new WeakMap() // block -> { key, inflight, card, forced }  (forced: an error, not the person, put the source on show)
 
   const theme = palette()
   initMermaid(theme)
@@ -371,7 +371,7 @@ function apply(ctx) {
     const previous = rendered.get(block)
     if (previous && previous.key === key) return
     if (previous && previous.inflight === key) return
-    rendered.set(block, { key, inflight: key, card: previous && previous.card })
+    rendered.set(block, { key, inflight: key, card: previous && previous.card, forced: previous !== undefined && previous.forced === true })
 
     const card = makeCard(block)
     const canvas = card.querySelector('.' + CARD_CLASS + '-canvas')
@@ -405,6 +405,15 @@ function apply(ctx) {
       if (card.parentNode === block && block.lastElementChild !== card) block.append(card)
       card.dataset.dshMermaidState = 'ok'
       block.setAttribute(READY_ATTR, 'ready')
+      // A failed render put the source on show; this one succeeded (a fence streamed in, then completed), so the source goes back
+      // under the diagram. Left on, it stayed next to the diagram and the button said « Diagram » over a diagram already there.
+      // Only a source shown BY THE ERROR is taken back: one the person asked for with the button stays.
+      if (current.forced === true) {
+        block.classList.remove(SOURCE_ATTR)
+        current.forced = false
+      }
+      const toggle = card.querySelector('.' + CARD_CLASS + '-bar button')
+      if (toggle !== null) toggle.textContent = toggleLabel(block.classList.contains(SOURCE_ATTR))
       current.inflight = ''
     } catch (error) {
       showProblem(block, card, key, explainError(error))
@@ -428,8 +437,11 @@ function apply(ctx) {
     // The reason goes ABOVE the source: under a 5 000-line source it would be out of sight.
     if (card.parentNode === block) block.insertBefore(card, block.firstChild)
     card.dataset.dshMermaidState = 'error'
-    // Source left visible: the reader sees the faulty code.
-    block.classList.add(SOURCE_ATTR)
+    // Source left visible: the reader sees the faulty code. (Remembered when it is the error that shows it: see draw().)
+    if (!block.classList.contains(SOURCE_ATTR)) {
+      block.classList.add(SOURCE_ATTR)
+      current.forced = true
+    }
     current.inflight = ''
   }
 

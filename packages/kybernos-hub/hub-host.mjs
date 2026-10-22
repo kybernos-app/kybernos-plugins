@@ -135,9 +135,14 @@ export function monterRoutes (webServer, hub, liens = {}) {
     const { statut, corps: charge } = hub.balise({ type: corps?.type, bootId: corps?.bootId, entries: corps?.entries })
     return envoyer(res, statut, charge)
   }
+  // What `register` hands back is the way to take the route off again: the effect gives it to the host, which calls it when the plugin unloads
+  // (a reload of the bundle used to meet « duplicate exact route » because nothing had been removed).
   const enregistrer = () => {
-    webServer.register({ kind: 'exact', path: '/kybernos-hub/state', handler: etat })
-    webServer.register({ kind: 'exact', path: '/kybernos-hub/beacon', handler: balise })
+    const retraits = [
+      webServer.register({ kind: 'exact', path: '/kybernos-hub/state', handler: etat }),
+      webServer.register({ kind: 'exact', path: '/kybernos-hub/beacon', handler: balise })
+    ]
+    return () => { for (const retrait of retraits) { try { if (typeof retrait === 'function') retrait() } catch { /* already gone */ } } }
   }
   return typeof liens.effect === 'function' ? liens.effect(enregistrer, 'kybernos-hub: routes') : enregistrer()
 }
@@ -271,13 +276,16 @@ export function monterSuite (webServer, deps, liens = {}) {
     return envoyer(res, 200, { ok: true, ...tache })
   }
   const enregistrer = () => {
-    webServer.register({ kind: 'exact', path: '/kybernos-hub/catalogue/refresh', handler: rafraichirRoute })
-    webServer.register({ kind: 'exact', path: '/kybernos-hub/update', handler: mettreAJourRoute })
-    webServer.register({ kind: 'exact', path: '/kybernos-hub/update/status', handler: etatMiseAJour })
-    webServer.register({ kind: 'exact', path: '/kybernos-hub/engine', handler: moteurRoute })
-    webServer.register({ kind: 'exact', path: '/kybernos-hub/suite', handler: suite })
-    webServer.register({ kind: 'exact', path: '/kybernos-hub/module', handler: module_ })
-    webServer.register({ kind: 'exact', path: '/kybernos-hub/relaunch', handler: relancer })
+    const retraits = [
+      webServer.register({ kind: 'exact', path: '/kybernos-hub/catalogue/refresh', handler: rafraichirRoute }),
+      webServer.register({ kind: 'exact', path: '/kybernos-hub/update', handler: mettreAJourRoute }),
+      webServer.register({ kind: 'exact', path: '/kybernos-hub/update/status', handler: etatMiseAJour }),
+      webServer.register({ kind: 'exact', path: '/kybernos-hub/engine', handler: moteurRoute }),
+      webServer.register({ kind: 'exact', path: '/kybernos-hub/suite', handler: suite }),
+      webServer.register({ kind: 'exact', path: '/kybernos-hub/module', handler: module_ }),
+      webServer.register({ kind: 'exact', path: '/kybernos-hub/relaunch', handler: relancer })
+    ]
+    return () => { for (const retrait of retraits) { try { if (typeof retrait === 'function') retrait() } catch { /* already gone */ } } }
   }
   return typeof liens.effect === 'function' ? liens.effect(enregistrer, 'kybernos-hub: suite routes') : enregistrer()
 }

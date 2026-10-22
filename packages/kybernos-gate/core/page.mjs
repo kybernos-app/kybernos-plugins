@@ -1,7 +1,8 @@
 // The gate's pages: the sign-in form and the "Kybernos is starting" page.
 //
-// The text is written into the HTML on the server, so the page reads correctly with scripts off;
-// the script only adds the interaction (submit, wrong password, lock countdown, success).
+// The text is written into the HTML on the server, so the page reads correctly with scripts off, and the form
+// signs in without them (a urlencoded post, answered with a redirect or with this page and the reason). The script
+// only adds the interaction (submit without a reload, wrong password, lock countdown, success).
 // Colours are the DSH values (dsh-client-ui-theme 0.2.0-rc.2) and the Kybernos K, as in the validated mockup.
 
 const STRINGS = {
@@ -88,28 +89,49 @@ const EYE_OFF = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" str
 const ICON_ERR = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M12 7.5v5.5M12 16.5h.01"/></svg>'
 const TICK = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>'
 
-const shell = ({ lang, nonce, title, body, script }) => `<!doctype html>
-<html lang="${lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex">
+const shell = ({ lang, nonce, title, body, script, head = '' }) => `<!doctype html>
+<html lang="${lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex">${head}
 <title>${escapeHtml(title)}</title><style nonce="${nonce}">${CSS}</style></head>
 <body><main>${body}</main><script nonce="${nonce}">${script}</script></body></html>`
 
 /** The Content-Security-Policy that goes with these pages (they carry one inline style and one inline script). */
 export const pageCsp = (nonce) => `default-src 'none'; style-src 'nonce-${nonce}'; script-src 'nonce-${nonce}'; connect-src 'self'; img-src data:; form-action 'self'; base-uri 'none'; frame-ancestors 'none'`
 
-/** The sign-in page. `next` is where to go afterwards (sanitised here as well). */
-export function renderLogin ({ lang, nonce, next, sessionDays }) {
+const mmss = (seconds) => Math.floor(seconds / 60) + ':' + String(seconds % 60).padStart(2, '0')
+
+/** What the server says when a plain form post (no script) is refused, in the page's own words. `error` is the JSON payload of the refusal. */
+function serverMessage (s, error) {
+  if (error === undefined || error === null) return { markup: '<div id="msg" role="status" aria-live="polite"></div>', bad: false }
+  if (error.error === 'locked' && Number.isFinite(error.retryAfter)) {
+    const [before, after = ''] = s.locked.split('{t}')
+    return { markup: `<div id="msg" class="box" role="alert"><div>${escapeHtml(before)}<b>${mmss(error.retryAfter)}</b>${escapeHtml(after)}</div></div>`, bad: false }
+  }
+  let text = s.failed
+  if (error.error === 'empty') text = s.empty
+  else if (error.error === 'invalid' && Number.isFinite(error.triesLeft)) text = (error.triesLeft === 1 ? s.wrongOne : s.wrongMany).replace('{n}', String(error.triesLeft))
+  return { markup: `<div id="msg" class="msg err" role="alert">${ICON_ERR}<span>${escapeHtml(text)}</span></div>`, bad: error.error === 'invalid' || error.error === 'empty' }
+}
+
+/**
+ * The sign-in page. `next` is where to go afterwards (sanitised here as well). The form works without the script: it posts
+ * urlencoded to the same route and the server answers with a redirect, or with this page again carrying `error` (the payload of
+ * the refusal) and the `user` that was typed.
+ */
+export function renderLogin ({ lang, nonce, next, sessionDays, error, user = '' }) {
   const s = STRINGS[lang] ?? STRINGS.en
   const note = (sessionDays === 1 ? s.noteOne : s.note).replace('{days}', String(sessionDays))
   const cfg = { next: safeNext(next), dict: { ...s, note } }
+  const msg = serverMessage(s, error)
+  const bad = msg.bad ? ' bad' : ''
   const body = `<section class="card" aria-labelledby="ttl">${wordmark}
-<form id="form" novalidate autocomplete="on" method="post" action="/__gate/login">
+<form id="form" novalidate autocomplete="on" method="post" action="/__gate/login?next=${encodeURIComponent(cfg.next)}">
 <h1 id="ttl">${escapeHtml(s.title)}</h1><p class="sub">${escapeHtml(s.sub)}</p>
 <label class="f" for="user">${escapeHtml(s.userLabel)}</label>
-<div class="field u" id="ufield"><input id="user" name="username" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" autofocus placeholder="${escapeHtml(s.userLabel)}"></div>
+<div class="field u${bad}" id="ufield"><input id="user" name="username" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" autofocus placeholder="${escapeHtml(s.userLabel)}" value="${escapeHtml(user)}"></div>
 <label class="f" for="pw">${escapeHtml(s.label)}</label>
-<div class="field" id="field"><input id="pw" name="password" type="password" autocomplete="current-password" aria-describedby="msg" placeholder="${escapeHtml(s.label)}">
+<div class="field${bad}" id="field"><input id="pw" name="password" type="password" autocomplete="current-password" aria-describedby="msg" placeholder="${escapeHtml(s.label)}">
 <button type="button" class="eye" id="eye" aria-pressed="false" aria-label="${escapeHtml(s.show)}"><span id="eye-on">${EYE_ON}</span><span id="eye-off" class="hide">${EYE_OFF}</span></button></div>
-<div id="msg" role="status" aria-live="polite"></div>
+${msg.markup}
 <button class="btn" id="submit" type="submit">${escapeHtml(s.signin)}</button>
 <p class="note">${escapeHtml(note)}</p></form>
 <div id="done" class="ok hide" role="status"><div class="tick">${TICK}</div><h1>${escapeHtml(s.doneTitle)}</h1><p>${escapeHtml(s.doneSub)}</p><div class="bar" aria-hidden="true"><i id="doneBar"></i></div></div>
@@ -148,5 +170,6 @@ $('user').focus()}catch(x){busy=false;lock(false);$('submit').textContent=D.sign
 export function renderStarting ({ lang, nonce }) {
   const s = STRINGS[lang] ?? STRINGS.en
   const body = `<section class="card">${wordmark}<div class="ok" role="status"><span class="spin big" aria-hidden="true"></span><h1>${escapeHtml(s.startTitle)}</h1><p>${escapeHtml(s.startSub)}</p></div></section>`
-  return shell({ lang, nonce, title: 'Kybernos', body, script: 'setTimeout(()=>location.reload(),3000)' })
+  // The refresh header reloads the page whether or not the script runs.
+  return shell({ lang, nonce, title: 'Kybernos', body, script: 'setTimeout(()=>location.reload(),3000)', head: '<meta http-equiv="refresh" content="3">' })
 }

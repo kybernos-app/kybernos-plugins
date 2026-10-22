@@ -34,6 +34,7 @@ const STR = {
     paste: 'Coller le lien', pasteSub: 'Sur ton ordinateur : menu du compte › Téléphone et canaux › Copier le lien. Colle-le ici.', pasteHere: 'Colle le lien ici', pasteBad: 'Ce n\'est pas un lien de liaison de Kybernos.',
     revokedPasteSub: 'Il a été retiré depuis l\'ordinateur. Pour le relier à nouveau, copie le lien sur l\'ordinateur et colle-le ici.',
     kabyOfflineTitle: 'Kaby est sur ton ordinateur', kabyOfflineSub: 'Il est éteint, ou Kybernos n\'est pas ouvert. Allume-le : la connexion reprend toute seule.',
+    refusedPhone: 'Cette action n\'est pas possible depuis le téléphone — fais-la sur l\'ordinateur.',
   },
   en: {
     scanTitle: 'Scan the code on your computer', scanSub: 'Open the account menu › Phone and channels on your computer and aim the camera at the code.',
@@ -56,6 +57,7 @@ const STR = {
     paste: 'Paste the link', pasteSub: 'On your computer: account menu › Phone and channels › Copy the link. Paste it here.', pasteHere: 'Paste the link here', pasteBad: 'That is not a Kybernos pairing link.',
     revokedPasteSub: 'It was removed from the computer. To link it again, copy the link on the computer and paste it here.',
     kabyOfflineTitle: 'Kaby is on your computer', kabyOfflineSub: 'It is off, or Kybernos is not open. Turn it on: the connection resumes by itself.',
+    refusedPhone: 'This cannot be done from the phone — do it on the computer.',
   },
 }[lang]
 
@@ -78,6 +80,7 @@ function show (state, { title, sub, sas, actions } = {}) {
   kb.state = state
   document.body.dataset.state = state
   const running = state === 'running'
+  if (!running) hideRefusal() // a line about the DSH page means nothing on the connection screens
   $('gate').hidden = running
   $('app').hidden = !running
   $('title').textContent = title || ''
@@ -100,6 +103,32 @@ function show (state, { title, sub, sas, actions } = {}) {
   }
 }
 const veil = (text) => { const v = $('veil'); v.hidden = !text; v.textContent = text || '' }
+
+// A request the computer refuses for a phone (settings, credentials, plugins, the server, phones: `refusedOnPhone` in remote-host.mjs)
+// is answered 403 `refused_on_phone`. The computer's own screen counts and explains those refusals; the phone used to count them in
+// silence, so a tap on a forbidden surface did nothing the person could see. Now one line says it, apart from the veil (which is
+// about the connection). It goes away on a tap, or by itself.
+const REFUSAL_SHOWN_MS = 8000
+let refusalTimer = null
+function hideRefusal () {
+  clearTimeout(refusalTimer)
+  refusalTimer = null
+  const box = $('refusal')
+  if (box) { box.hidden = true; box.textContent = '' }
+}
+function showRefusal () {
+  kb.refusals += 1
+  const box = $('refusal')
+  if (!box) return
+  box.textContent = STR.refusedPhone
+  box.hidden = false
+  clearTimeout(refusalTimer)
+  refusalTimer = setTimeout(hideRefusal, REFUSAL_SHOWN_MS)
+}
+if ($('refusal')) $('refusal').addEventListener('click', hideRefusal)
+const isRefusedBody = (body) => {
+  try { const j = JSON.parse(td.decode(body)); return j !== null && typeof j === 'object' && j.error === 'refused_on_phone' } catch (e) { return false }
+}
 const fail = (state, title, sub) => show(state, { title, sub, actions: [{ label: STR.retry, primary: true, run: () => location.reload() }] })
 
 // ── a tiny IndexedDB key/value store for the paired identity ─────────────────────────────────────────────────────
@@ -141,7 +170,7 @@ function deviceLabel () {
 }
 
 // ── the tunnel: requests of the DSH page, through the service worker and the shim ───────────────────────────────
-const session = { channel: null, ws: null, ports: new Map(), headed: new Set(), sockets: new Set(), seq: 0, saved: null, frameReady: false }
+const session = { channel: null, ws: null, ports: new Map(), headed: new Set(), sockets: new Set(), refusable: new Set(), seq: 0, saved: null, frameReady: false }
 
 async function sendEnc (header, body) {
   if (session.channel === null || session.ws === null || session.ws.readyState !== 1) return false
@@ -164,16 +193,18 @@ function onServiceWorkerMessage (ev) {
 
 function onFrameFromComputer (header, body) {
   switch (header.t) {
-    case 'res': { const p = session.ports.get(header.id); if (p) { session.headed.add(header.id); p.postMessage({ t: 'res', status: header.status, headers: header.headers || {}, enc: header.enc || null }) } return }
+    case 'res': { const p = session.ports.get(header.id); if (p) { session.headed.add(header.id); if (header.status === 403) session.refusable.add(header.id); p.postMessage({ t: 'res', status: header.status, headers: header.headers || {}, enc: header.enc || null }) } return }
     case 'chunk': {
       const p = session.ports.get(header.id)
       if (!p) return
+      // The refusal arrives as an ordinary 403 answer: its small JSON body is what says it was the phone's rule.
+      if (session.refusable.delete(header.id) && isRefusedBody(body)) showRefusal()
       kb.bytes += body.length
       const copy = body.slice().buffer
       p.postMessage({ t: 'chunk', buf: copy }, [copy])
       return
     }
-    case 'end': { const p = session.ports.get(header.id); if (p) { p.postMessage({ t: 'end' }); session.ports.delete(header.id); session.headed.delete(header.id) } return }
+    case 'end': { session.refusable.delete(header.id); const p = session.ports.get(header.id); if (p) { p.postMessage({ t: 'end' }); session.ports.delete(header.id); session.headed.delete(header.id) } return }
     case 'ws-open': kb.wsOpen += 1; toFrame({ kbws: 'open', id: header.id, protocol: header.protocol || '' }); return
     case 'ws-msg': {
       kb.wsMsgs += 1
@@ -182,7 +213,7 @@ function onFrameFromComputer (header, body) {
       return
     }
     case 'ws-close': session.sockets.delete(header.id); toFrame({ kbws: 'close', id: header.id, code: header.code || 1006 }); return
-    case 'refused': kb.refusals += 1; return
+    case 'refused': showRefusal(); return
     case 'bye': if (header.reason === 'revoked') void revoked(); return
     default: log('unknown frame ' + String(header.t).slice(0, 20))
   }
@@ -427,6 +458,7 @@ function dropTunnel () {
   }
   session.ports.clear()
   session.headed.clear()
+  session.refusable.clear()
 }
 function onPeerDown () { dropTunnel(); if (kb.state === 'running') { veil(STR.peerDown); scheduleResume() } }
 function onRelayDown () { session.channel = null; dropTunnel(); if (kb.state === 'running') { veil(STR.relayDown); scheduleResume() } else if (kb.state === 'connecting' || kb.state === 'install') scheduleResume() }

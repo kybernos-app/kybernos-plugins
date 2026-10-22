@@ -928,7 +928,7 @@ console.log('Learned skills V2: the notice under a finished answer, the weekly c
     const w = weekWorld()
     const root = await mount2(w, WeekScreen, { sessionId: 'home-1', session: { blank: true } })
     const txt = part(root, 'learned-week')
-    check('on a blank chat: the card, the week, and the numbers (lessons from the memory route)', txt.includes('What Kaby learned this week') && txt.includes('14 Oct') && txt.includes('20 Oct') && txt.includes('6lessons') && txt.includes('2skills accepted') && txt.includes('9×skills used (4)'), txt.slice(0, 300))
+    check('on a blank chat: the card, the week, and the numbers (lessons from the memory route)', txt.includes('What Kaby learned this week') && txt.includes('14 Oct') && txt.includes('20 Oct') && txt.includes('6lessons') && txt.includes('2skills accepted') && txt.includes('9×skill uses (4 different)'), txt.slice(0, 300))
     check('it names the skill used most, what waits, what Kaby did alone, what nobody used for a month and what is ready for the team', txt.includes('release-notes-from-commits is the one you use most: 5 times.') && txt.includes('1 suggestion is waiting for your yes.') && txt.includes('Kaby created 1 and improved 1 on its own.') && txt.includes('image-budget-check has not been used for 41 days. Switch it off?') && txt.includes('is used in 3 chats. Propose it to your team?'), txt)
     check('it asks the host for THIS chat', w.calls.some((c) => c.path === '/kybernos-skills/learned/week' && c.query.sessionId === 'home-1'))
     await click(root, kb(root, 'learned-week-keep')[0])
