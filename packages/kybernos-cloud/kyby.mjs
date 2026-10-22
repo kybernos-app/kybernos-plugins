@@ -12,10 +12,9 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const BOT = /^[A-Za-z0-9_]{3,64}$/
 const START = /^https:\/\/t\.me\/([A-Za-z0-9_]{3,64})\?start=pair_[a-z0-9]{8,64}$/
 /** WhatsApp's pairing link (ADR 0053 § 13.8): the Kybernos number's wa.me address with the pairing message already typed. */
+const WA_START = /^https:\/\/wa\.me\/(\d{5,20})\?text=pair_[a-z0-9]{8,64}$/
 /** The server's route of a channel: Telegram's by default. */
-// One channel. The WhatsApp door was never opened by any server (`/v1/me/whatsapp` has never existed), so the host's four
-// `whatsapp/*` routes, this second base and the `wa.me` pairing shape are gone with it (L6-05, action 10 of the audit).
-const TELEGRAM = '/v1/me/telegram'
+const baseOf = (channel) => (channel === 'whatsapp' ? '/v1/me/whatsapp' : '/v1/me/telegram')
 export const PAIRING_STATES = Object.freeze(['waiting', 'scanned', 'done', 'declined', 'expired'])
 export const DECLINE_REASONS = Object.freeze(['user', 'taken', 'botmade'])
 
@@ -50,12 +49,16 @@ export const pairingSupport = (telegramStatus, kybyStatus) => {
 const asObj = (v) => (v !== null && typeof v === 'object' && !Array.isArray(v) ? v : null)
 const str = (v, max) => (typeof v === 'string' ? v.slice(0, max) : '')
 
-/** What the page may know of a pairing. `link` is checked: only the bot's own t.me address with a start payload is ever
- *  drawn or opened. */
-export const pairingOf = (body) => {
+/** What the page may know of a pairing. `link` is checked: only the bot's own t.me address with a start payload (Telegram), or the number's own wa.me address with the pairing message
+ *  (WhatsApp), is ever drawn or opened. */
+export const pairingOf = (body, channel = 'telegram') => {
   const b = asObj(body)
   if (b === null || typeof b.id !== 'string' || !UUID.test(b.id)) return null
   const link = typeof b.link === 'string' ? b.link : ''
+  if (channel === 'whatsapp') {
+    const w = WA_START.exec(link)
+    return w === null ? null : { id: b.id, link, number: w[1], expires_at: str(b.expires_at, 40) }
+  }
   const m = START.exec(link)
   if (m === null) return null
   return { id: b.id, link, bot: m[1], expires_at: str(b.expires_at, 40) }
@@ -89,12 +92,12 @@ export function createKybyRoutes (deps) {
 
   return {
     /** POST: asks the server for a pairing and draws its QR. */
-    async pairingStart () {
+    async pairingStart (channel) {
       const token = session()
       if (token === null) return { ok: false, error: 'not_connected' }
-      const res = await deps.apiCall(TELEGRAM + '/pairing', { method: 'POST', token, body: { device_label: String(deps.deviceLabel()).slice(0, 60) }, timeoutMs: 15000 })
+      const res = await deps.apiCall(baseOf(channel) + '/pairing', { method: 'POST', token, body: { device_label: String(deps.deviceLabel()).slice(0, 60) }, timeoutMs: 15000 })
       if (res.status !== 201 && res.status !== 200) return { ok: false, error: codeOf(res) }
-      const p = pairingOf(res.body)
+      const p = pairingOf(res.body, channel)
       if (p === null) return { ok: false, error: 'refused' }
       let qr = null
       try {
@@ -105,24 +108,24 @@ export function createKybyRoutes (deps) {
     },
 
     /** GET ?id=: where the pairing stands. */
-    async pairingState (req) {
+    async pairingState (req, channel) {
       const token = session()
       if (token === null) return { ok: false, error: 'not_connected' }
       const id = queryOf(req).get('id') || ''
       if (!UUID.test(id)) return { ok: false, error: 'invalid_request' }
-      const res = await deps.apiCall(TELEGRAM + '/pairing?id=' + encodeURIComponent(id), { method: 'GET', token, timeoutMs: 15000 })
+      const res = await deps.apiCall(baseOf(channel) + '/pairing?id=' + encodeURIComponent(id), { method: 'GET', token, timeoutMs: 15000 })
       if (res.status !== 200) return { ok: false, error: codeOf(res) }
       const s = pairingStateOf(res.body)
       return s === null ? { ok: false, error: 'refused' } : { ok: true, ...s }
     },
 
     /** POST {id}: the person says it is not them. */
-    async pairingCancel (req, body) {
+    async pairingCancel (req, body, channel) {
       const token = session()
       if (token === null) return { ok: false, error: 'not_connected' }
       const id = body !== null && typeof body === 'object' ? String(body.id || '') : ''
       if (!UUID.test(id)) return { ok: false, error: 'invalid_request' }
-      const res = await deps.apiCall(TELEGRAM + '/pairing?id=' + encodeURIComponent(id), { method: 'DELETE', token, timeoutMs: 15000 })
+      const res = await deps.apiCall(baseOf(channel) + '/pairing?id=' + encodeURIComponent(id), { method: 'DELETE', token, timeoutMs: 15000 })
       return res.status === 200 ? { ok: true } : { ok: false, error: codeOf(res) }
     },
 
@@ -137,11 +140,11 @@ export function createKybyRoutes (deps) {
       return b !== null && (b.computer_id === null || typeof b.computer_id === 'string') ? { ok: true, computer_id: b.computer_id } : { ok: false, error: codeOf(res) }
     },
 
-    /** POST: disconnects this account's Telegram (the route needs no recent sign-in; the chat can be linked again at once). */
-    async unlink () {
+    /** POST: disconnects this account's Telegram or WhatsApp (the route needs no recent sign-in; the chat can be linked again at once). */
+    async unlink (channel) {
       const token = session()
       if (token === null) return { ok: false, error: 'not_connected' }
-      const res = await deps.apiCall(TELEGRAM, { method: 'DELETE', token, timeoutMs: 15000 })
+      const res = await deps.apiCall(baseOf(channel), { method: 'DELETE', token, timeoutMs: 15000 })
       return res.status === 200 ? { ok: true } : { ok: false, error: codeOf(res) }
     },
   }
