@@ -2493,7 +2493,9 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
             h('div', { style: { minWidth: 0 } },
               h('div', { className: 'kb7-name' }, a.n),
               h('div', { className: 'kb7-cat' }, (a.c || [])[0] || 'App'))),
-          h('div', { className: 'kb7-desc' }, a.d || ''),
+          // V1-12 (video review): `kb7-desc` clamps to two lines (-webkit-line-clamp:2) and carried no title — the rest of
+          // the description was unreachable. Same for the single-line list row below.
+          h('div', { className: 'kb7-desc', title: a.d || undefined }, a.d || ''),
           accs.length > 0 ? h('div', { className: 'kb7-bars' }, accs.map((x, i) => h('span', { key: i, className: 'kb7-bar' + (String(x.status).toUpperCase() === 'ACTIVE' ? '' : ' pend') }))) : null,
           h('div', { className: 'kb7-foot' },
             st !== null ? h('span', { className: 'kb7-pill' + (st === 'ACTIVE' ? '' : ' pend') }, st === 'ACTIVE' ? kbt('kb.cp.connected') : kbt('kb.cp.pend')) : h('span', null),
@@ -2533,7 +2535,7 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
         return h('button', { type: 'button', className: 'kb7-row', key: a.s, onClick: () => setOpen(a) },
           AppLogo(a.s, 30),
           h('div', { className: 'kb7-rowid' }, h('div', { className: 'kb7-name' }, a.n), h('div', { className: 'kb7-cat' }, (a.c || [])[0] || 'App')),
-          h('div', { className: 'kb7-rowdesc' }, a.d || ''),
+          h('div', { className: 'kb7-rowdesc', title: a.d || undefined }, a.d || ''),
           h('div', { className: 'kb7-rowend' },
             st !== null ? h('span', { className: 'kb7-pill' + (st === 'ACTIVE' ? '' : ' pend') }, st === 'ACTIVE' ? kbt('kb.cp.connected') : kbt('kb.cp.pend')) : null,
             POPULAR.indexOf(a.s) >= 0 && inPop !== true && tag === undefined ? h('span', { className: 'kb7-pill pop' }, kbt('kb.cp.popular')) : null,

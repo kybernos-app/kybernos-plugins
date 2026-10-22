@@ -425,6 +425,14 @@ ok('webUrl: a non-string is refused', webUrl(undefined) === null && webUrl(null)
   ok('V1-13: a server count BELOW the list it just sent is the list that wins (0 + 4 rows → 4)', menteur.count === 4, menteur.count)
   const pagine = view(200, { ok: true, offered: true, connected: true, limit: 9, count: 7, connections: [row()] })
   ok('V1-13: a count ABOVE the list (a server that pages) is kept as is', pagine.count === 7, pagine.count)
+  // V1-12 (video review): card and row descriptions are clamped by CSS (2 lines / ellipsis) — without a title the rest was
+  // unreachable. Read the file the way this harness already does elsewhere (`await import('node:fs')`).
+  {
+    const { readFileSync } = await import('node:fs')
+    const SRC12 = readFileSync(new URL('./client.js', import.meta.url), 'utf8')
+    ok('V1-12: the connector descriptions carry their full text in a title (card and row)',
+      /className: 'kb7-desc', title: a\.d \|\| undefined/.test(SRC12) && /className: 'kb7-rowdesc', title: a\.d \|\| undefined/.test(SRC12))
+  }
   // `entitled`: whether the plan includes connecting apps. Only a boolean counts; an older server says nothing and a limit is then only a limit.
   ok('entitled: false and true are kept, anything else (or nothing) is null', [false, true].every((b) => view(200, { ok: true, offered: true, connected: true, entitled: b, limit: 0, connections: [] }).entitled === b) && [undefined, null, 'false', 0, 1].every((x) => view(200, { ok: true, offered: true, connected: true, entitled: x, limit: 0, connections: [] }).entitled === null))
   ok('web: the address the cloud half gave, or null (an empty or non-text one is not an address)', view(200, { ok: true, offered: true, connected: true, web: 'https://kb.example', connections: [] }).web === 'https://kb.example' && [undefined, null, '', 5].every((x) => view(200, { ok: true, offered: true, connected: true, web: x, connections: [] }).web === null))
