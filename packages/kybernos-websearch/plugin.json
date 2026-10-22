@@ -8,8 +8,8 @@
     "fr": "Recherche web"
   },
   "description": {
-    "en": "Web search for the agents, with or without a key: free engines right away, keyed engines when you add one, and the next one takes over when one fails.",
-    "fr": "La recherche web des agents, avec ou sans clé : des moteurs gratuits tout de suite, des moteurs à clé quand tu en ajoutes une, et le suivant prend le relais si l’un échoue."
+    "en": "Lets the agents search the web, with or without a key: free engines right away, keyed engines when you add one, and the next one takes over when one fails.",
+    "fr": "Les agents cherchent sur le web, avec ou sans clé : des moteurs gratuits tout de suite, des moteurs à clé quand tu en ajoutes une, et le suivant prend le relais si l’un échoue."
   },
   "icon": "search",
   "family": "connect",

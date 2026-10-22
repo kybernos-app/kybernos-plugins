@@ -111,6 +111,14 @@ const CHART = { type: 'chart', title: 'Per day', kind: 'columns', x: 'day', y: '
     { id: 'other', code: 'not-dashboard', message: 'This file is not a dashboard (kind must be "dashboard").' },
   ]), lst.unreadable)
   ok('list: readable dashboards are not in the unreadable list, and a clean store has an empty one', lst.unreadable.every((u) => !lst.dashboards.some((d) => d.id === u.id)) && same((await mkHost(tmp()).list()).unreadable, []))
+  // L2-08 (the rest): saving over a file that cannot be read keeps the damaged original beside it, and the list does not mistake that copy for a dashboard.
+  await fsp.writeFile(join(home, 'kybernos', 'dashboards', 'files', 'torn.miniapp.json'), '{"kind":"dashboard","na', 'utf8')
+  const repaired = await host.save({ id: 'torn', raw: { name: 'Repaired', widgets: [] }, by: 'agent', what: 'Rewrite' })
+  ok('save over an unreadable file succeeds and says where the damaged original went', repaired.ok === true && typeof repaired.damagedCopy === 'string' && repaired.damagedCopy.startsWith('torn.miniapp.json.damaged-'), repaired.damagedCopy)
+  ok('...the copy holds the damaged text, untouched', (await fsp.readFile(join(home, 'kybernos', 'dashboards', 'files', repaired.damagedCopy), 'utf8')) === '{"kind":"dashboard","na')
+  ok('...the dashboard now reads, and neither the copy nor a clean save is listed as unreadable', (await host.readDoc('torn')).ok === true && (await host.list()).unreadable.every((u) => u.id !== 'torn' && !String(u.id).includes('damaged')))
+  const clean = await host.save({ id: 'torn', raw: { name: 'Repaired again', widgets: [] }, by: 'agent', what: 'Edit' })
+  ok('a save over a readable file keeps no copy', clean.ok === true && clean.damagedCopy === undefined)
   await fsp.writeFile(join(home, 'kybernos', 'dashboards', 'index.json'), 'garbage', 'utf8')
   ok('index: a damaged index is an empty one', same(await host.readIndex(), { version: 1, default: null, flags: {} }))
   ok('doc helpers round-trip', dashboardOfDoc(makeDoc({ name: 'x', widgets: [] }, { rev: 1 })).name === 'x' && dashboardOfDoc({ kind: 'motion' }) === null && dashboardOfDoc(null) === null && dashboardOfDoc({ kind: 'dashboard', data: [{ payload: { name: 'wrapped' } }] }).name === 'wrapped')

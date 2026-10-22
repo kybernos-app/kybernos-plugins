@@ -174,6 +174,13 @@ export function createHost ({ fs, home, now = () => Date.now(), log = () => {} }
     if (!v.ok) return { ok: false, message: 'The dashboard must be an object.', errors: v.errors }
     const prev = (await exists(fileOf(id))) ? await readDoc(id) : null
     const prevRev = prev !== null && prev.ok ? prev.rev : 0
+    // L2-08: a file that is there but cannot be read (cut short, not JSON) is about to be replaced: what it held is kept beside it, under a name list() does not
+    // read, so a repair never costs the person the damaged original (no confirmation to ask for, nothing refused).
+    let damagedCopy
+    if (prev !== null && prev.ok !== true) {
+      damagedCopy = id + EXT + '.damaged-' + now()
+      try { await fs.copyFile(fileOf(id), join(filesDir, damagedCopy)) } catch (e) { damagedCopy = undefined; log(`damaged file not kept: ${e && e.message}`) }
+    }
     if (typeof expectRev === 'number' && prev !== null && prev.ok && expectRev !== prevRev) {
       return { ok: false, conflict: true, rev: prevRev, message: 'The dashboard changed while you were editing (revision ' + prevRev + '). Reload it first.' }
     }
@@ -185,7 +192,7 @@ export function createHost ({ fs, home, now = () => Date.now(), log = () => {} }
     if (text.length > LIMITS.doc) return { ok: false, message: 'The dashboard is too large to save.' }
     await writeAtomic(fileOf(id), text)
     await snapshot(id, doc)
-    return { ok: true, id, rev, dashboard: v.dashboard, errors: v.errors }
+    return damagedCopy === undefined ? { ok: true, id, rev, dashboard: v.dashboard, errors: v.errors } : { ok: true, id, rev, dashboard: v.dashboard, errors: v.errors, damagedCopy }
   }
 
   /** A fresh id from a name: the slug, then -2, -3 ... until it is free. */

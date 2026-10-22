@@ -941,6 +941,13 @@ console.log('Learned skills V2: the notice under a finished answer, the weekly c
     sess.delete('kybernos.skills.journal')
     await click(root, kb(root, 'learned-week-hide')[0])
     check('Hide tells the host and says the card is back next week', posted(w, '/kybernos-skills/learned/week/hide').length === 1 && part(root, 'learned-week-hidden').includes('hidden until next week'))
+    // French agreement: « 1 différente », and « 1× utilisation de compétence » for a single use (it used to read « 1 différentes » / « 1× utilisations »).
+    const frOne = await mount2(weekWorld({ used: 9, usedSkills: 1 }), WeekScreen, { sessionId: 'home-fr1', session: { blank: true } }, 'fr')
+    check('in French, one different skill is « 1 différente », not « 1 différentes »', part(frOne, 'learned-week').includes('(1 différente)') && !part(frOne, 'learned-week').includes('1 différentes'), part(frOne, 'learned-week').slice(0, 300))
+    const frSingle = await mount2(weekWorld({ used: 1, usedSkills: 1 }), WeekScreen, { sessionId: 'home-fr2', session: { blank: true } }, 'fr')
+    check('...and a single use reads « 1× utilisation de compétence »', part(frSingle, 'learned-week').includes('1×utilisation de compétence') && !part(frSingle, 'learned-week').includes('utilisations'), part(frSingle, 'learned-week').slice(0, 300))
+    const enSingle = await mount2(weekWorld({ used: 1, usedSkills: 1 }), WeekScreen, { sessionId: 'home-en2', session: { blank: true } })
+    check('...in English « 1× skill use »', part(enSingle, 'learned-week').includes('1×skill use'), part(enSingle, 'learned-week').slice(0, 300))
     const w2 = weekWorld()
     const r2 = await mount2(w2, WeekScreen, { sessionId: 'home-2', session: { blank: true } })
     await click(r2, kb(r2, 'learned-week-off')[0])

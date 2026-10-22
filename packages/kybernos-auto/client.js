@@ -489,7 +489,9 @@ window.__ModuleLoader__.load({
                   h('input', {
                     className: 'kaa-ajout-in', 'data-kb': 'auto-whitelist-add', type: 'text', list: 'kaa-modeles', autoComplete: 'off', spellCheck: false,
                     'aria-invalid': refus !== '' ? 'true' : 'false', 'aria-describedby': refus !== '' ? 'kaa-refus' : undefined,
-                    placeholder: kt('fournisseur/modèle — choisis dans la liste', 'provider/model — pick from the list'), value: ajouter,
+                    // Short enough for the field (the old text was cut after "pick from the"); the whole hint is the tooltip.
+                    placeholder: kt('fournisseur/modèle — cherche', 'provider/model — search'),
+                    title: kt('Tape pour chercher parmi tes modèles configurés, ou écris fournisseur/modèle.', 'Type to search your configured models, or write provider/model.'), value: ajouter,
                     onChange: (ev) => { setAjouter(ev.target.value); if (refus !== '') setRefus('') },
                     onKeyDown: (ev) => { if (ev.key === 'Enter') ajouterModele() }
                   }),
@@ -685,7 +687,12 @@ window.__ModuleLoader__.load({
         }, 'kybernos-auto: styles')
         effet(() => {
           const tic = setInterval(tictacComposer, 300)
-          return () => { clearInterval(tic); retirerPanneau(); appliquerChipAuto(false) }
+          return () => {
+            clearInterval(tic)
+            // A menu left open keeps what this instance did to it: the greyed-out rows and the lift. Give them back before the panel goes.
+            try { const m = menuOuvert(); if (m !== null) { verrouiller(m, false); m.style.transform = '' } } catch (e) { /* the menu is gone with its DOM */ }
+            retirerPanneau(); appliquerChipAuto(false)
+          }
         }, 'kybernos-auto: composer tick')
         try {
             slots.inject('settings.section', () => slots.register(

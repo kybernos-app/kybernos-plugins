@@ -8,8 +8,8 @@
     "fr": "Pastilles de référence"
   },
   "description": {
-    "en": "Message links become reference chips.",
-    "fr": "Les liens des messages deviennent des pastilles de référence."
+    "en": "Links in an answer become small chips, one per sentence, that open their sources.",
+    "fr": "Les liens d’une réponse deviennent de petites pastilles, une par phrase, qui ouvrent leurs sources."
   },
   "icon": "link",
   "family": "create",

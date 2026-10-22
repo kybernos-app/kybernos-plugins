@@ -27,6 +27,7 @@ check('2 to 4 steps', throwsWith(() => { const g = good(); g.steps = [g.steps[0]
 check('the lengths are bounded (it has to fit a card)', throwsWith(() => { const g = good(); g.what.fr = 'x'.repeat(201); validerAide('x', g) }, /limit is 200/) && throwsWith(() => { const g = good(); g.steps[0].en = 'x'.repeat(141); validerAide('x', g) }, /limit is 140/))
 check('where.page must be a boolean', throwsWith(() => { const g = good(); g.where.page = 'yes'; validerAide('x', g) }, /where\.page/))
 check('a word the user does not know is refused', throwsWith(() => { const g = good(); g.steps[0].en = 'Register a slot.'; validerAide('x', g) }, /does not know \(slot\)/))
+check('a file name or a project folder is refused too', throwsWith(() => { const g = good(); g.good.en = 'It is a plain .miniapp.json file.'; validerAide('x', g) }, /does not know \(\.json\)/) && throwsWith(() => { const g = good(); g.steps[0].fr = 'Rangé dans artifacts/ du projet.'; validerAide('x', g) }, /does not know \(artifacts\/\)/))
 check('no emoji', throwsWith(() => { const g = good(); g.what.fr = 'Super 🎉'; validerAide('x', g) }, /emoji/))
 check('the error names the bundle', throwsWith(() => validerAide('kybernos-zz', null), /"kybernos-zz"/))
 

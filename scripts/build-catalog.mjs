@@ -118,8 +118,8 @@ const AIDE_LIMITES = { what: 200, step: 140, good: 220, where: 120, title: 40 }
 // lower-case words; « {lang} » as its first part stands for the language of the reader (en, fr, ar, zh-cn), the way the site
 // addresses its articles (https://help.kybernos.app/<lang>/<category>/<article>/); a bare https://help.kybernos.app/<slug> passes too.
 const AIDE_ADRESSE = /^https:\/\/help\.kybernos\.app\/(\{lang\}\/)?[a-z0-9]+(-[a-z0-9]+)*(\/[a-z0-9]+(-[a-z0-9]+)*){0,3}\/?$/
-// Words a person who is not a developer does not know: the help is for them.
-const JARGON = /\b(slot|bundle|endpoint|DOM|settings\.section|webServer)\b/i
+// Words a person who is not a developer does not know: the help is for them. A file name or a folder of the project (« .miniapp.json », « artifacts/ ») is one too.
+const JARGON = /\b(slot|bundle|endpoint|DOM|settings\.section|webServer)\b|\.(?:json|ya?ml|mjs|js|toml)\b|\bartifacts\//i
 
 /** Pure: one help card ({ what, steps, where, good?, url? }, plus a title for a page card), checked. */
 function validerFiche (dir, brut, champ, { titre }) {

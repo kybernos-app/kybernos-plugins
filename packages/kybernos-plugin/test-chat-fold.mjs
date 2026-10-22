@@ -66,7 +66,7 @@ const css = block.slice(cssStart + 'styles.insert(`'.length, block.lastIndexOf('
   assert.match(css, /@media \(min-width:701px\)\{[\s\S]*data-kb-chat-fold="1"\][^{]*header\.actions"\] > :not\(\.kbfold-root\):not\(:has\(\[data-act="hangup-header"\]\)\)\{display:none!important\}/, 'actions hidden, our root and a live call spared')
   assert.match(css, /header"\] > \[class\*="tabs"\]\{display:none!important\}/, 'tabs row hidden')
   assert.match(css, /composer\.dock"\] > :not\(\[data-kb="changes"\]\)\{display:none!important\}/, 'status chips hidden')
-  assert.match(css, /\[data-kb="changes"\]\[data-state="ok"\]\{display:none!important\}/, 'a healthy save chip hidden')
+  assert.match(css, /\[data-kb="changes"\]\[data-state="ok"\],[^{]*\[data-kb="changes"\]\[data-state="unavailable"\]\{display:none!important\}/, 'a healthy save chip and the « tracking unavailable » chip (nothing to act on) hidden')
   assert.ok(!/\.kbch-|\.kbcl-/.test(css), 'no class of another bundle is named (the bundles share one class namespace)')
   assert.match(css, /@media \(max-width:700px\)\{\.kbfold-root\{display:none\}\}/, 'the phone keeps its own parked actions')
   ok('hiding keys on [data-slot] hooks, wide screens only, a live call and a save problem stay visible')
@@ -99,16 +99,17 @@ if (JSDOM === undefined) {
       <span class="anchor" id="toks">44 tok/s</span>
       <span class="kbch-wrap kbch-ok" data-kb="changes" data-state="ok" id="saved">saved</span>
       <span class="kbch-wrap kbch-warn" data-kb="changes" data-state="unsaved" id="unsaved">not saved</span>
+      <span class="kbch-wrap kbch-off" data-kb="changes" data-state="unavailable" id="off">tracking unavailable</span>
       <span class="kbs-popwrap" id="mem">memory</span>
     </div></body></html>`
   const show = (live, nocall) => {
     const w = new JSDOM(html(live, nocall)).window
     const shown = (id) => w.getComputedStyle(w.document.getElementById(id)).display !== 'none'
-    return Object.fromEntries(['agent', 'fold', 'teams', 'call', 'utils', 'tabs', 'toks', 'saved', 'unsaved', 'mem'].map((id) => [id, shown(id)]))
+    return Object.fromEntries(['agent', 'fold', 'teams', 'call', 'utils', 'tabs', 'toks', 'saved', 'unsaved', 'off', 'mem'].map((id) => [id, shown(id)]))
   }
   const folded = show(' data-kb-chat-fold="1"', true)
-  assert.deepEqual(folded, { agent: false, fold: true, teams: false, call: false, utils: true, tabs: false, toks: false, saved: false, unsaved: true, mem: false })
-  ok('folded: tags, call, tabs and chips hidden; toggle, header menu and a save problem stay')
+  assert.deepEqual(folded, { agent: false, fold: true, teams: false, call: false, utils: true, tabs: false, toks: false, saved: false, unsaved: true, off: false, mem: false })
+  ok('folded: tags, call, tabs and chips hidden (the « tracking unavailable » one too); toggle, header menu and a save problem stay')
   const open = show('', true)
   assert.ok(Object.values(open).every((v) => v === true), 'unfolded: nothing hidden')
   ok('unfolded: the header is DSH’s own')

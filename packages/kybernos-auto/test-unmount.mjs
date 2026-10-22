@@ -91,5 +91,42 @@ ok('after mount, unmount, mount: exactly one set of timers and one tag (no pile-
 c.unmount()
 ok('and the last unmount leaves nothing', timers.size === 0 && tags.length === 0)
 
+// ── The model menu left open while the plugin goes (review 2026-10-22) ────────────────────────────────────────────────
+// While Auto is on the panel greys out the menu's Model and Effort rows (opacity, pointer-events) and lifts the menu; unmounting with the menu still open
+// removed the panel but left the rows greyed and dead, so the person could not pick a model until the menu closed. Needs a DOM: jsdom (KYBERNOS_JSDOM).
+let JSDOM
+try { ({ JSDOM } = await import(process.env.KYBERNOS_JSDOM ?? 'jsdom')) } catch { JSDOM = undefined }
+if (JSDOM === undefined) {
+  console.log('SKIPPED: the open-menu pass — jsdom not found (KYBERNOS_JSDOM=<path of its entry> plays it)')
+} else {
+  const dom = new JSDOM('<!doctype html><html><head></head><body><div id="m" role="menu"><div role="menuitem">Model</div><div role="menuitem">Effort</div></div></body></html>', { url: 'http://127.0.0.1:3080/' })
+  const doc = dom.window.document
+  const menu = doc.getElementById('m')
+  // jsdom lays nothing out: the menu is given the box and the text the client looks for.
+  menu.getBoundingClientRect = () => ({ width: 220, height: 140, top: 300, bottom: 440, left: 0, right: 220 })
+  Object.defineProperty(menu, 'innerText', { get: () => 'Model Effort' })
+  let loaded2 = null
+  const sandbox2 = {
+    ...sandbox,
+    window: { __ModuleLoader__: { load: (def) => { loaded2 = def } }, __KB_LANG_RESOLVE__: () => 'en' },
+    document: doc,
+    location: { hash: '' },
+    fetch: () => Promise.resolve({ json: () => Promise.resolve({ ok: true, sessionOn: true, global: false }) }),
+  }
+  vm.runInNewContext(source, sandbox2, { filename: 'kybernos-auto/client.js' })
+  const mod2 = loaded2.factory(() => React)
+  const effects2 = []
+  mod2.apply({ slots: { inject: (_name, cb) => cb(), register: () => () => {} }, effect: (fn, label) => { effects2.push({ label, dispose: fn() }) } })
+  const tick = [...timers.values()].find((t) => t.ms === 300)
+  tick.fn()
+  await new Promise((resolve) => setTimeout(resolve, 50))
+  const rows = Array.from(menu.querySelectorAll('[role="menuitem"]'))
+  ok('Auto on, menu open: the panel is in the menu and Model / Effort are greyed out', menu.querySelector('[data-kb="auto-popover"]') !== null && rows.every((r) => r.style.opacity === '0.4' && r.style.pointerEvents === 'none'), rows.map((r) => r.style.opacity + '/' + r.style.pointerEvents).join(' '))
+  for (const e of effects2.slice().reverse()) if (typeof e.dispose === 'function') e.dispose()
+  ok('unmounted with the menu open: the panel is gone', menu.querySelector('[data-kb="auto-popover"]') === null)
+  ok('...and Model / Effort are usable again (no opacity, no pointer-events lock)', rows.every((r) => r.style.opacity === '' && r.style.pointerEvents === ''), rows.map((r) => r.style.opacity + '/' + r.style.pointerEvents).join(' '))
+  ok('...and the menu is back where the shell put it (no transform left)', menu.style.transform === '', menu.style.transform)
+}
+
 console.log(ko === 0 ? '\nclient : ' + ok0 + ' vérification(s), 0 échec' : '\nclient : ' + ko + ' échec(s)')
 process.exit(ko === 0 ? 0 : 1)
