@@ -70,7 +70,8 @@ export function createGate (config, { limiter = createLimiter(), log = (line) =>
     res.writeHead(status, { ...baseHeaders, 'content-type': 'text/plain; charset=utf-8', ...extra })
     res.end(text)
   }
-  const redirect = (res, location, extra = {}) => { res.writeHead(303, { ...baseHeaders, location, ...extra }); res.end() }
+  // A header value must be latin-1: a character above it (a hand-written `next`) is sent percent-encoded instead of throwing.
+  const redirect = (res, location, extra = {}) => { res.writeHead(303, { ...baseHeaders, location: String(location).replace(/[^\x20-\x7e]/gu, (c) => encodeURIComponent(c)), ...extra }); res.end() }
   const nonce = () => randomBytes(16).toString('base64')
   // The sign-in page sends its own origin with the form post (no-referrer would make browsers send `Origin: null` there).
   const LOGIN_PAGE_HEADERS = { 'referrer-policy': 'same-origin' }
@@ -95,7 +96,9 @@ export function createGate (config, { limiter = createLimiter(), log = (line) =>
     const raw = await readBody(req)
     if (raw === null) return null
     const form = new URLSearchParams(raw)
-    return { user: form.get('user') ?? form.get('username'), password: form.get('password') }
+    // Trimmed like the page's script does (a phone keyboard often adds a trailing space after a user name).
+    const user = form.get('user') ?? form.get('username')
+    return { user: typeof user === 'string' ? user.trim() : user, password: form.get('password') }
   }
 
   /** The cookies of a signed-in browser: the gate's own session and, once, DSH's (one sign-in). */

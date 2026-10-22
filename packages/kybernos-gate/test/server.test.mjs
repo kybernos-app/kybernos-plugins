@@ -199,6 +199,20 @@ test('a plain form post signs in without any script: a redirect to where the per
   await gate.close()
 })
 
+test('a form post trims the user name like the page does, and a next with a character above latin-1 still signs in', async () => {
+  const { gate, port } = await startGate()
+  // A phone keyboard often appends a space to the user name: the script trims it, so does the plain form (it used to burn a try and say "wrong").
+  const spaced = await postForm(port, { username: ' kybernos ', password: PASSWORD }, { next: '/ok' })
+  assert.equal(spaced.status, 303, 'the trimmed name is the right name: ' + spaced.status)
+  assert.ok([].concat(spaced.headers['set-cookie'] || []).some((c) => c.startsWith('kybernos_gate=')), 'and it set the cookie')
+  // A hand-written next with a euro sign: a Location header must be latin-1, it used to throw after the limiter had counted a success (500, no cookie).
+  const euro = await postForm(port, { username: 'kybernos', password: PASSWORD }, { next: '/€' })
+  assert.equal(euro.status, 303, 'a redirect, not a 500: ' + euro.status)
+  assert.equal(euro.headers.location, '/%E2%82%AC', 'sent percent-encoded')
+  assert.ok([].concat(euro.headers['set-cookie'] || []).some((c) => c.startsWith('kybernos_gate=')), 'with its cookie')
+  await gate.close()
+})
+
 test('a plain form post cannot send the person to another site, and still needs this site as its origin', async () => {
   const { gate, port } = await startGate()
   for (const next of ['https://evil.example/x', '//evil.example', '/\\evil.example']) {
