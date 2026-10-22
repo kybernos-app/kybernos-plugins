@@ -17,6 +17,10 @@ import { chooseWorkspace as autoWsChoose, idOf as autoWsIdOf, DEDICATED_TITLE as
 import { recordFeedback, exportFeedback, relayReportOf } from './feedback-box.mjs'
 import { writeGuard } from './session-guard.mjs'
 import { defaultState as onboardingDefault, publicView as onboardingView, complete as onboardingComplete, replay as onboardingReplay, chooseDomain as onboardingChooseDomain, aboutView as onboardingAbout } from './onboarding-state.mjs'
+import { isSuggested as autoIsSuggested, suggestedTask as autoSuggestedTask, acceptedTask as autoAcceptedTask, refusalFor as autoSuggestRefusal, HOME_ID_RE as AUTO_HOME_ID_RE, runFrame as autoRunFrame } from './automation-suggest.mjs'
+import { learnTask as autoLearnTask, isLearnName as autoIsLearnName, LEARN_ID as AUTO_LEARN_ID } from './learn-business.mjs'
+import { mountAutomationTools } from './automation-tools.mjs'
+import { makeLedger as makeSuggestionLedger } from './suggestions.mjs'
 import { loadPacks as loadDomainPacks, domainOfProfil, mergePackSets, DOMAIN_POINT, DOMAIN_POINT_REF } from './domain-pack.mjs'
 const pluginDir = dirname(fileURLToPath(import.meta.url))
 // ── Le filet du compactage, sans retouche du moteur (23/09/2026) ────────────
@@ -364,7 +368,7 @@ const kbFrequentRefusal = (cleanTask, requestTask, previous) => {
 // Generic nextRun (ms epoch): a one-time date that has passed never comes back.
 const kbComputeNextRun = (task, afterMs, tzFallback) => {
   if (task === null || typeof task !== 'object') return null
-  if (task.active !== true) return null
+  if (task.active !== true || task.suggested === true) return null // (inline: this block is read on its own by the tests and has no imports)
   const sc = task.schedule
   if (sc === null || typeof sc !== 'object') return null
   const nowMs = typeof afterMs === 'number' && Number.isFinite(afterMs) ? afterMs : Date.now()
@@ -421,6 +425,15 @@ const kbSanitizeTaskInput = (raw) => {
     approvals: r.approvals === 'auto' ? 'auto' : 'ask',
   }
   if (Array.isArray(r.notify) === true) out.notify = Array.from(new Set(r.notify.filter((x) => x === 'push' || x === 'email')))
+  // Where its runs happen: `home` = one session, reused (the chat it was made in, or one created at the first run); anything else = a new session each run, as before.
+  if (r.sessionMode !== undefined) out.sessionMode = r.sessionMode === 'home' ? 'home' : 'new'
+  if (r.homeSessionId !== undefined) {
+    if (r.homeSessionId === null || r.homeSessionId === '') out.homeSessionId = null
+    else if (typeof r.homeSessionId === 'string' && /^[A-Za-z0-9_.:@-]{1,160}$/.test(r.homeSessionId) === true) out.homeSessionId = r.homeSessionId
+    else return { ok: false, error: 'invalid session' }
+  }
+  // The apps the automation asks for (Composio toolkit slugs): the Connectors row and page put the ones that are not connected first. Left out, an edit keeps what it has.
+  if (Array.isArray(r.needs) === true) out.needs = Array.from(new Set(r.needs.filter((x) => typeof x === 'string' && /^[a-z0-9_-]{2,40}$/.test(x) === true))).slice(0, 6)
   // The workspace the runs land in (the id of one): sent only when the person chooses, `null` or '' goes back to « none » (the dedicated
   // workspace). Left out, an edit keeps what the automation already has. The rule is the same as automation-workspace.mjs (this block takes no import).
   if (r.workspaceHint !== undefined) {
@@ -516,7 +529,7 @@ const kbMakeTrigger = (deps) => {
         const nowMs = now()
         const out = []
         for (const t of tasks) {
-          if (t === null || typeof t !== 'object' || t.active !== true) continue
+          if (t === null || typeof t !== 'object' || t.active !== true || t.suggested === true) continue
           // A task written without a next run (the automation-creator skill edits the file directly)
           // is adopted here: its next run is computed now instead of waiting for an edit in the page.
           if (typeof t.nextRun !== 'string' || Number.isFinite(Date.parse(t.nextRun)) === false) {
@@ -543,7 +556,7 @@ const kbMakeTrigger = (deps) => {
           // tasks of this tick take about a second each) is left alone, and the run uses its
           // latest definition. A one-time task is already inactive by its own claim.
           const current = (await store.read()).find((x) => x !== null && typeof x === 'object' && x.id === claim.id)
-          if (current === undefined) continue
+          if (current === undefined || current.suggested === true) continue
           const once = current.schedule !== null && typeof current.schedule === 'object' && current.schedule.mode === 'once'
           if (once === false && current.active !== true) continue
           const res = await withTimeout(Promise.resolve().then(() => fire(Object.assign({}, current))))
@@ -2680,10 +2693,26 @@ function boot(ctx) {
         return typeof v[field] === 'string' ? v[field] : null
       }
       const requestId = 'kb-task-' + String(task.id) + '-' + Date.now().toString(36)
-      const workspaceId = await kbTaskWorkspaceId(task)
-      const created = await sc.create(workspaceId !== null ? { workspaceId } : {})
-      const sessionId = unwrap(created, 'sessionId')
-      if (sessionId === null) throw new Error('session.create returned no sessionId')
+      // `sessionMode: 'home'`: the runs happen in ONE session, posted as messages: the chat the automation was made in, or the session its first run created. A
+      // session that is gone (the person deleted it) is replaced by a new one, which becomes the home from then on.
+      const homeMode = task.sessionMode === 'home'
+      const homeId = homeMode === true && typeof task.homeSessionId === 'string' ? task.homeSessionId : ''
+      let sessionId = null
+      let reused = false
+      if (homeId !== '') {
+        try { const liveHome = ctx.get('sessions') !== undefined && ctx.get('sessions') !== null && typeof ctx.get('sessions').get === 'function' ? ctx.get('sessions').get(homeId) : null; if (liveHome !== undefined && liveHome !== null) { sessionId = homeId; reused = true } } catch (e) { sessionId = null; reused = false }
+      }
+      if (reused === false) {
+        const workspaceId = await kbTaskWorkspaceId(task)
+        const created = await sc.create(workspaceId !== null ? { workspaceId } : {})
+        sessionId = unwrap(created, 'sessionId')
+        if (sessionId === null) throw new Error('session.create returned no sessionId')
+        if (homeMode === true) {
+          await kbTasksMutate(async (tasks) => {
+            for (const t of tasks) { if (t !== null && typeof t === 'object' && t.id === task.id) { t.homeSessionId = sessionId; t.homeOwn = true } }
+          }).catch(() => null)
+        }
+      }
       // D3 (recette team 29/09) — honorer task.model : la sélection DOIT
       // précéder le prompt (sélection durable de la session). Format
       // attendu « provider/model » (ex. kybernos/free). Échec best-effort :
@@ -2691,7 +2720,7 @@ function boot(ctx) {
       // par défaut, comme avant ce correctif).
       const taskModel = typeof task.model === 'string' ? task.model.trim() : ''
       const slash = taskModel.indexOf('/')
-      if (slash > 0 && typeof sc.selectModel === 'function') {
+      if (reused === false && slash > 0 && typeof sc.selectModel === 'function') {
         try {
           const selRes = await sc.selectModel({
             sessionId,
@@ -2721,7 +2750,9 @@ function boot(ctx) {
         if (askPreset === null || liveSession === undefined || liveSession === null) {
           throw new Error('approvals "ask" could not be applied (' + (askPreset === null ? 'no permission preset asks for approval' : 'session not found') + '): the run was not started')
         }
-        presetsSvc.set(liveSession, askPreset)
+        // A chat the person made the automation in keeps its own permission preset (the run must not narrow what they are doing there); the gate that asks
+        // before an outside tool is called still covers it. A session made for the automation takes the asking preset as always.
+        if (reused === false || task.homeOwn === true) presetsSvc.set(liveSession, askPreset)
         kbRememberAskSession(sessionId)
       }
       // Laisse la sélection durable se propager avant l'assemblage du tour.
@@ -2731,7 +2762,7 @@ function boot(ctx) {
         requestId,
         sessionId,
         mode: 'queue',
-        content: [{ type: 'text', text: String(task.prompt || '') }],
+        content: [{ type: 'text', text: (homeMode === true ? autoRunFrame(task.name, new Date().toISOString()) + '\n\n' : '') + String(task.prompt || '') }],
       }, controller.signal)
       if (ack !== null && typeof ack === 'object' && ack.ok === false) throw new Error(ack.error !== null && ack.error !== undefined && ack.error.message !== undefined ? String(ack.error.message) : 'prompt refused')
       return { sessionId }
@@ -2848,6 +2879,66 @@ function boot(ctx) {
         await kbTasksMutate(async (tasks) => { tasks.push(task) })
         return { ok: true, task }
       }
+      // Kaby proposes an automation: stored switched off and flagged, never scheduled before Add. `accept` is Add (it stays off), Discard is `delete`.
+      if (action === 'suggest') {
+        const raw = body.task !== null && typeof body.task === 'object' ? body.task : {}
+        const clean = kbSanitizeTaskInput(Object.assign({}, raw, { active: false }))
+        if (clean.ok !== true) return { ok: false, error: clean.error }
+        const frequent = kbFrequentRefusal(clean.task, raw, null)
+        if (frequent !== null) return frequent
+        const now = new Date().toISOString()
+        const task = Object.assign({ id: kbTaskId(), createdAt: now, updatedAt: now, history: [], lastRun: null, nextRun: null }, autoSuggestedTask(clean.task, body.proof, now))
+        let refused = null
+        await kbTasksMutate(async (tasks) => {
+          refused = autoSuggestRefusal(tasks, task.name)
+          if (refused === null) tasks.push(task)
+        })
+        return refused !== null ? refused : { ok: true, task }
+      }
+      // « Learn my business »: made once (found again by its name in any language), switched on, weekly, in a session of its own. The onboarding step calls it; it only ever proposes.
+      if (action === 'learn') {
+        const about = body.about !== null && typeof body.about === 'object' ? body.about : {}
+        const built = autoLearnTask({ lang: str(body.lang) || 'en', tz: str(body.tz), fieldId: str(body.fieldId) || '', field: str(body.field) || '', goals: Array.isArray(body.goals) ? body.goals.filter((g) => typeof g === 'string') : [], about })
+        const clean = kbSanitizeTaskInput(built)
+        if (clean.ok !== true) return { ok: false, error: clean.error }
+        const now = new Date().toISOString()
+        const task = Object.assign({ id: kbTaskId(), createdAt: now, updatedAt: now, history: [], lastRun: null }, clean.task, { origin: { by: 'kaby', recipe: AUTO_LEARN_ID, at: now } })
+        const nx = kbComputeNextRun(task, Date.now())
+        if (kbNeverRuns(task, nx) === true) return { ok: false, error: kbNoNextRunError(task) }
+        task.nextRun = nx === null ? null : new Date(nx).toISOString()
+        let existing = null
+        await kbTasksMutate(async (tasks) => {
+          existing = tasks.find((t) => t !== null && typeof t === 'object' && ((t.origin !== null && typeof t.origin === 'object' && t.origin.recipe === AUTO_LEARN_ID) || autoIsLearnName(t.name))) || null
+          if (existing === null) tasks.push(task)
+        })
+        return existing !== null ? { ok: true, task: existing, existed: true } : { ok: true, task, existed: false }
+      }
+      if (action === 'accept') {
+        const id = str(body.id)
+        if (id === null) return { ok: false, error: 'id required' }
+        let found = null
+        await kbTasksMutate(async (tasks) => {
+          for (let i = 0; i < tasks.length; i += 1) {
+            const t = tasks[i]
+            if (t !== null && typeof t === 'object' && t.id === id && autoIsSuggested(t) === true) { tasks[i] = autoAcceptedTask(t, new Date().toISOString()); found = tasks[i]; break }
+          }
+        })
+        return found === null ? { ok: false, error: 'not a suggestion' } : { ok: true, task: found }
+      }
+      // The chat an automation was made in becomes its home: from then on its runs are posted there.
+      if (action === 'bind-home') {
+        const id = str(body.id)
+        const sid = str(body.sessionId)
+        if (id === null) return { ok: false, error: 'id required' }
+        if (sid === null || AUTO_HOME_ID_RE.test(sid) !== true) return { ok: false, error: 'invalid session' }
+        let found = null
+        await kbTasksMutate(async (tasks) => {
+          for (const t of tasks) {
+            if (t !== null && typeof t === 'object' && t.id === id) { t.sessionMode = 'home'; t.homeSessionId = sid; t.homeOwn = false; t.updatedAt = new Date().toISOString(); found = t; break }
+          }
+        })
+        return found === null ? { ok: false, error: 'task not found' } : { ok: true, task: found }
+      }
       if (action === 'update') {
         const id = str(body.id)
         if (id === null) return { ok: false, error: 'id required' }
@@ -2863,6 +2954,7 @@ function boot(ctx) {
               frequentUpdate = kbFrequentRefusal(clean.task, body.task, t)
               if (frequentUpdate !== null) break
               const merged = Object.assign({}, t, clean.task, { id, createdAt: t.createdAt, updatedAt: new Date().toISOString(), history: Array.isArray(t.history) === true ? t.history : [] })
+              if (t.suggested === true) merged.active = false
               const nx = kbComputeNextRun(merged, Date.now())
               if (kbNeverRuns(merged, nx) === true) { refusal = kbNoNextRunError(merged); break }
               merged.nextRun = nx === null ? null : new Date(nx).toISOString()
@@ -2885,6 +2977,7 @@ function boot(ctx) {
         await kbTasksMutate(async (tasks) => {
           for (const t of tasks) {
             if (t !== null && typeof t === 'object' && t.id === id) {
+              if (autoIsSuggested(t) === true) { refusal = 'suggested: add it first'; break }
               const nx = kbComputeNextRun(Object.assign({}, t, { active: body.active }), Date.now())
               if (kbNeverRuns(Object.assign({}, t, { active: body.active }), nx) === true) { refusal = kbNoNextRunError(t); break }
               t.active = body.active
@@ -2938,6 +3031,7 @@ function boot(ctx) {
         const tasks = await kbTasksRead()
         const t = tasks.find((x) => x !== null && typeof x === 'object' && x.id === id)
         if (t === undefined) return { ok: false, error: 'task not found' }
+        if (autoIsSuggested(t) === true) return { ok: false, error: 'suggested: add it first' }
         try {
           const res = await kbFireTask(t)
           await kbTasksMutate(async (fresh) => {
@@ -2970,6 +3064,7 @@ function boot(ctx) {
         // l'ancienne URL (Make fait pareil).
         const id = str(body.id)
         if (id === null) return { ok: false, error: 'id required' }
+        if (autoIsSuggested((await kbTasksRead()).find((x) => x !== null && typeof x === 'object' && x.id === id)) === true) return { ok: false, error: 'suggested: add it first' }
         const crypto2 = await import('node:crypto')
         const hookId = 'hk_' + crypto2.randomBytes(6).toString('hex')
         const secret = crypto2.randomBytes(16).toString('hex')
@@ -3043,6 +3138,14 @@ function boot(ctx) {
       setTimeout(() => { kbTasksTick().catch(() => null) }, 5000)
     }
     try { kbTasksStart() } catch (e) { try { console.error('[kybers] task timer unavailable:', errText(e)) } catch (e2) { /* console */ } }
+    // The agent tools that propose an automation and bind one to its chat; a seam that is missing drops only this.
+    // The ledger of the suggestions that wait for a click on a page (a memory, a section of the custom instructions), next to tasks.json; made on first use.
+    let kbSuggLedger = null
+    const kbSugg = async () => {
+      if (kbSuggLedger === null) kbSuggLedger = makeSuggestionLedger({ file: joinPath(dirname(await kbTasksFileOf()), 'suggestions.json') })
+      return kbSuggLedger
+    }
+    try { mountAutomationTools(ctx, { tasks: kbTasksHandle, ledger: { add: async (kind, raw) => (await kbSugg()).add(kind, raw) } }, (m) => { try { console.error('[kybernos] ' + m) } catch (e) { /* console */ } }) } catch (e) { /* never stop DSH from starting */ }
 
     // ── lire un namespace de réglages, 0.1.6 ET 0.1.7 ────────────────────────
     // 0.1.6 : `settings.get(ns)` rendait le document du namespace.
@@ -10694,6 +10797,25 @@ function boot(ctx) {
           sendJson(res, 500, { ok: false, error: 'internal error' })
         }
       } }), 'kybernos: route tasks')
+      // ── The suggestions that wait for a click on a page (memory, instructions): GET ?kind= lists, POST { action: 'resolve', id } removes one once the page has dealt with it ──
+      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/suggestions', handler: async (req, res) => {
+        if (req.method !== 'GET' && req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'GET or POST expected' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        if (await kbTasksAuthorized(req) !== true) return sendJson(res, 401, { ok: false, error: 'sign-in required' })
+        try {
+          if (req.method === 'GET') {
+            const kind = queryOf(req).get('kind')
+            return sendJson(res, 200, { ok: true, items: (await kbSugg()).list(kind === null || kind === '' ? undefined : kind) })
+          }
+          let body = null
+          try { body = await readJsonBody(req, 20000) } catch (e) { return sendJson(res, 413, { ok: false, error: 'request body too large' }) }
+          if (body === null || typeof body !== 'object' || Array.isArray(body) === true || body.action !== 'resolve' || typeof body.id !== 'string') return sendJson(res, 400, { ok: false, error: 'resolve with an id is expected' })
+          sendJson(res, 200, await (await kbSugg()).resolve(body.id))
+        } catch (e) {
+          try { console.error('[kybernos] suggestions route:', errText(e)) } catch (e2) { /* console unavailable */ }
+          sendJson(res, 500, { ok: false, error: 'internal error' })
+        }
+      } }), 'kybernos: route suggestions')
       // ── The Automations settings page: GET (what the sidebar and the page read) / POST { showNativeTasks?, paused? } ──
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/automation-settings', handler: async (req, res) => {
         if (req.method !== 'GET' && req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'GET or POST expected' })
@@ -11227,7 +11349,7 @@ function boot(ctx) {
           const timingSafe = (a, b) => { if (a.length !== b.length) return false; let d = 0; for (let i = 0; i < a.length; i += 1) d |= a.charCodeAt(i) ^ b.charCodeAt(i); return d === 0 }
           // A secret that is missing or too short (hand-edited file) never matches anything.
           if (expected.length < 8 || timingSafe(given, expected) !== true) return sendJsonPublic(res, 401, { ok: false, error: 'invalid secret' })
-          if (task.active !== true) return sendJsonPublic(res, 409, { ok: false, error: 'automation paused' })
+          if (task.active !== true || task.suggested === true) return sendJsonPublic(res, 409, { ok: false, error: 'automation paused' })
           const body = await kbHookReadBody(req, 262144)
           // An event that is too large is refused, not delivered as an empty one.
           if (body.tooLarge === true) return sendJsonPublic(res, 413, { ok: false, error: 'body too large (256 KB maximum)' }, { connection: 'close' })

@@ -296,6 +296,11 @@ body[data-ds-dark-theme] .kbdb,[data-ds-dark-theme] .kbdb{--kbdb-s1:#3987e5;--kb
 .kbdb-gal{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
 .kbdb-gcard{position:relative;display:flex;flex-direction:column;gap:10px;padding:12px;border-radius:14px;border:1px solid var(--kbdb-b2);background:var(--kbdb-l1);text-align:left;min-width:0;animation:kbdb-w-in .45s var(--kbdb-ease) both;animation-delay:calc(var(--i,0) * 50ms);transition:transform .2s var(--kbdb-spring),border-color .15s,box-shadow .2s}
 .kbdb-gcard.link{cursor:pointer}
+.kbdb-sug{display:flex;flex-direction:column;gap:6px;margin-bottom:18px;padding:12px 14px;border-radius:14px;border:1px dashed var(--kbdb-b3);background:var(--kbdb-l1)}
+.kbdb-sug-h{display:flex;align-items:center;gap:4px;font-size:13px}.kbdb-sug-sub{margin-inline-start:8px;font-size:12px;color:var(--kbdb-t3)}
+.kbdb-sug-row{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:8px 0;border-top:1px solid var(--kbdb-b2)}.kbdb-sug-row:first-of-type{border-top:0}
+.kbdb-sug-main{flex:1 1 300px;min-width:0}.kbdb-sug-name{display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-weight:600;font-size:14px}
+.kbdb-sug-desc{font-size:13px;color:var(--kbdb-t2);margin-top:2px;overflow-wrap:anywhere}.kbdb-sug-proof{font-size:12px;color:var(--kbdb-t3);margin-top:2px}.kbdb-sug-act{display:flex;gap:6px;flex:none}
 .kbdb-gcard.link:hover{transform:translateY(-2px);border-color:var(--kbdb-b3);box-shadow:0 8px 18px #0002}
 .kbdb-gcard.dim{opacity:.65}
 .kbdb-gcard .gh{display:flex;align-items:center;gap:8px}
@@ -425,6 +430,8 @@ const reduceMotion = () => { try { return window.matchMedia('(prefers-reduced-mo
 let SESSION_ID = ''
 const setSession = (id) => { if (typeof id === 'string' && id.length > 0) SESSION_ID = id }
 const sessionId = () => SESSION_ID
+/** The pulse on the Dashboards row of the menu: how many suggestions of Kaby wait. The core plugin draws it from its shared store; without it, nothing happens. */
+const publishWaiting = (n) => { try { if (window.__KB_MENU_STATE__ && typeof window.__KB_MENU_STATE__.set === 'function') window.__KB_MENU_STATE__.set('dashboards', { review: Number(n) > 0 ? Number(n) : 0 }) } catch (e) { /* no menu */ } }
 
 /** The host routes of this bundle. Never throws: { status, ok, json }. */
 async function api (method, path, body) {
@@ -1337,6 +1344,7 @@ function DashboardsPage () {
     if (!l.ok) { setFailed(true); return null }
     setFailed(false)
     setList({ dashboards: l.json.dashboards || [], default: l.json.default || null, unreadable: Array.isArray(l.json.unreadable) ? l.json.unreadable : [] })
+    publishWaiting((l.json.dashboards || []).filter((d) => d.suggested === true && !d.archived).length)
     if (p.ok) setPresets(p.json.presets || [])
     return l.json
   }, [])
@@ -1362,10 +1370,11 @@ function DashboardsPage () {
     ;(async () => {
       const l = await refreshList()
       if (dead || l === null) { if (!dead) setScreen('gallery'); return }
-      const live = (l.dashboards || []).filter((d) => !d.archived)
+      // a suggestion of Kaby waits in its block of the gallery: it is never opened by itself, not even as the only dashboard
+      const live = (l.dashboards || []).filter((d) => !d.archived && d.suggested !== true)
       const want = WANT_OPEN_ID; WANT_OPEN_ID = null
-      // the one asked for, the default, the one looked at last, else the only one there is; with several and no choice, the gallery
-      const pick = (want !== null && live.find((d) => d.id === want)) || live.find((d) => d.id === l.default) || live.find((d) => d.id === lastOpened.get()) || (live.length === 1 ? live[0] : null)
+      // the one asked for, the default, the one looked at last, else the only one there is (unless a suggestion waits: then the gallery shows it); with several and no choice, the gallery
+      const pick = (want !== null && live.find((d) => d.id === want)) || live.find((d) => d.id === l.default) || live.find((d) => d.id === lastOpened.get()) || (live.length === 1 && !(l.dashboards || []).some((d) => d.suggested === true && !d.archived) ? live[0] : null)
       if (pick) await open(pick.id); else setScreen('gallery')
     })()
     const onWant = () => { const id = WANT_OPEN_ID; WANT_OPEN_ID = null; if (id) { refreshList().then(() => open(id)) } }
@@ -1434,9 +1443,11 @@ function DashboardsPage () {
   }
 
   const items = list === null ? [] : list.dashboards
-  const mine = items.filter((d) => !d.archived && (!d.hidden || showHidden))
+  // What Kaby suggested waits in its own dashed block (Add / Discard); it is neither in « My dashboards » nor counted as hidden.
+  const sug = items.filter((d) => d.suggested === true && !d.archived)
+  const mine = items.filter((d) => !d.archived && d.suggested !== true && (!d.hidden || showHidden))
   const archived = items.filter((d) => d.archived)
-  const hiddenCount = items.filter((d) => d.hidden && !d.archived).length
+  const hiddenCount = items.filter((d) => d.hidden && !d.archived && d.suggested !== true).length
   const D = dash !== null ? dash.dashboard : null
 
   // ── header ──
@@ -1448,7 +1459,7 @@ function DashboardsPage () {
   const header = screen === 'dash' && D !== null
     ? h('header', { className: 'kbdb-ph' },
       h('div', { className: 'kbdb-ph-l' },
-        h('div', { className: 'kbdb-crumb' }, h('button', { type: 'button', onClick: toGallery }, pageName()), h('span', null, '/'), h('span', null, D.name), dash.isDefault ? h('span', { className: 'kbdb-pill def' }, kt('Par défaut', 'Default')) : null),
+        h('div', { className: 'kbdb-crumb' }, h('button', { type: 'button', 'data-kb': 'crumb-gallery', onClick: toGallery }, pageName(), sug.length > 0 ? h('i', { className: 'kb-ping', role: 'img', 'aria-label': kt('Suggestions de Kaby à voir', 'Kaby suggestions to review') }) : null), h('span', null, '/'), h('span', null, D.name), dash.isDefault ? h('span', { className: 'kbdb-pill def' }, kt('Par défaut', 'Default')) : null),
         h('h1', { className: 'kbdb-title' }, h('span', { className: 'kbdb-rel' },
           h('button', { type: 'button', 'aria-haspopup': 'listbox', 'aria-expanded': pop === 'switch', onClick: () => setPop(pop === 'switch' ? '' : 'switch') }, D.name, Ic('chev', 16)),
           pop === 'switch' ? h('div', { className: 'kbdb-pop', role: 'listbox' },
@@ -1512,6 +1523,17 @@ function DashboardsPage () {
   else if (screen === 'gallery') {
     body = h(React.Fragment, null,
       h(UnreadableNotice, { items: list === null ? [] : list.unreadable }),
+      sug.length > 0 ? h('div', { className: 'kbdb-sug', 'data-kb': 'suggested-block' },
+        h('div', { className: 'kbdb-sug-h' }, h('i', { className: 'kb-ping', 'aria-hidden': 'true' }), h('b', null, kt('Kaby suggère', 'Kaby suggests')), h('span', { className: 'kbdb-sug-sub' }, kt('Rien n’est ajouté avant ton clic.', 'Nothing is added before you click.'))),
+        sug.map((d) => h('div', { key: d.id, className: 'kbdb-sug-row', 'data-kb': 'suggested-row', 'data-id': d.id },
+          h('div', { className: 'kbdb-sug-main' },
+            h('div', { className: 'kbdb-sug-name' }, d.name, h('span', { className: 'kbdb-pill' }, d.widgets + ' widgets'), h('span', { className: 'kbdb-pill' }, d.sources.length + ' ' + kt('sources', 'sources'))),
+            d.desc !== '' ? h('div', { className: 'kbdb-sug-desc' }, d.desc) : null,
+            h('div', { className: 'kbdb-sug-proof' }, kt('Suggéré par Kaby', 'Suggested by Kaby') + (d.proof ? ' · ' + d.proof : ''))),
+          h('div', { className: 'kbdb-sug-act' },
+            h('button', { type: 'button', className: 'kbdb-btn sm primary', 'data-kb': 'suggested-add', onClick: () => act('flags', { id: d.id, suggested: false }, kt('Ajouté à tes dashboards.', 'Added to your dashboards.')) }, kt('Ajouter', 'Add')),
+            h('button', { type: 'button', className: 'kbdb-btn sm', 'data-kb': 'suggested-view', onClick: () => open(d.id) }, kt('Voir', 'Preview')),
+            h('button', { type: 'button', className: 'kbdb-btn sm', 'data-kb': 'suggested-discard', onClick: () => act('discard', { id: d.id }, kt('Écarté.', 'Discarded.')) }, kt('Écarter', 'Discard')))))) : null,
       h('div', { className: 'kbdb-sec-h' }, h('h2', null, kt('Mes dashboards', 'My dashboards')), h('span', null, mine.length)),
       mine.length === 0
         ? h('div', { className: 'kbdb-gempty' }, h('b', null, kt('Aucun dashboard pour l’instant', 'No dashboard yet')), h('span', null, kt('Demande à l’IA ce que tu veux suivre, ou pars d’un preset ci-dessous.', 'Ask the AI what you want to follow, or start from a preset below.')), h('button', { type: 'button', className: 'kbdb-btn primary', onClick: askCreate }, Ic('spark', 14), kt('Créer un dashboard avec l’IA', 'Create a dashboard with AI')),
@@ -1682,6 +1704,7 @@ function apply (ctx) {
   ctx.effect(() => {
     const probe = async () => {
       const s = await api('GET', 'state?strict=1')
+      if (s.ok) publishWaiting(s.json.suggested)
       if (s.ok && s.json.current) {
         const at = s.json.current.at
         if (seen !== at) {

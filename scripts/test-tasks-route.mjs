@@ -140,6 +140,127 @@ await tick(); await tick()
 eq('corrupt file: the scheduler leaves it alone', readFileSync(file, 'utf8'), truncated)
 writeFileSync(file, good)
 
+/* ── Suggested automations: proposed by Kaby, switched off until Add ────────── */
+{
+  const sug = (name, extra) => api({ action: 'suggest', task: task({ name, active: true, ...(extra || {}) }), proof: { n: 14, span: '60 days', where: 'Gmail › Contact form', note: '11 of the 14 got the same document request' } })
+  const a = (await sug('New enquiry summary')).json
+  eq('suggest stores the automation, switched off and flagged', a.ok + ':' + a.task.active + ':' + a.task.suggested, 'true:false:true')
+  eq('...with no next run, and where it came from', String(a.task.nextRun) + ':' + a.task.origin.by + ':' + a.task.origin.proof.n + ':' + a.task.origin.proof.where, 'null:kaby:14:Gmail › Contact form')
+  eq('a suggestion is listed with the others', (await api({ action: 'list' })).json.tasks.some((t) => t.id === a.task.id && t.suggested === true), true)
+  eq('the same name twice is refused', (await sug('new ENQUIRY summary')).json.error, 'already exists')
+  eq('a name already used by a real automation is refused', (await sug('Weekly report')).json.error, 'already exists')
+  const needy = (await sug('Needs apps', { needs: ['gmail', 'googlecalendar', 'GMAIL', 'bad slug!', 42, 'gmail', 'a', 'x'.repeat(50), 'notion', 'slack', 'github', 'linear', 'asana'] })).json
+  eq('the apps an automation asks for are kept: valid slugs, once each, six at most', JSON.stringify(needy.task.needs), '["gmail","googlecalendar","notion","slack","github","linear"]')
+  await api({ action: 'delete', id: needy.task.id })
+  eq('a client cannot make a suggestion by creating one', (await api({ action: 'create', task: { ...task({ name: 'Forged' }), suggested: true } })).json.task.suggested, undefined)
+  const forged = (await api({ action: 'list' })).json.tasks.find((t) => t.name === 'Forged')
+  await api({ action: 'delete', id: forged.id })
+  eq('toggle on a suggestion is refused', (await api({ action: 'toggle', id: a.task.id, active: true })).json.error, 'suggested: add it first')
+  eq('run-now on a suggestion is refused', (await api({ action: 'run-now', id: a.task.id })).json.error, 'suggested: add it first')
+  const edited = (await api({ action: 'update', id: a.task.id, task: task({ name: 'New enquiry summary', prompt: 'Edited prompt', active: true }) })).json
+  eq('editing a suggestion keeps it off and flagged', edited.ok + ':' + edited.task.active + ':' + edited.task.suggested + ':' + edited.task.prompt, 'true:false:true:Edited prompt')
+  eq('the proof of a suggestion is bounded', (await api({ action: 'suggest', task: task({ name: 'Long proof', active: false }), proof: { n: 1e12, span: 'x'.repeat(500), where: 'y'.repeat(500), note: 'z'.repeat(500) } })).json.task.origin.proof.n, 100000)
+  const longProof = (await api({ action: 'list' })).json.tasks.find((t) => t.name === 'Long proof')
+  eq('...each text is cut', longProof.origin.proof.span.length + ':' + longProof.origin.proof.where.length + ':' + longProof.origin.proof.note.length, '40:80:160')
+  await api({ action: 'delete', id: longProof.id })
+  eq('a suggestion that cannot fire is still refused (frequent schedule)', (await sug('Every minute', { schedule: { mode: 'cron', cron: '* * * * *', tz: 'Europe/Paris' } })).json.error, 'frequent schedule')
+  // a hand-edited file that marks a suggestion active and due must not run either
+  {
+    const all = onDisk()
+    const t = all.find((x) => x.id === a.task.id)
+    t.active = true; t.nextRun = new Date(Date.now() - 5000).toISOString()
+    writeFileSync(file, JSON.stringify(all, null, 2))
+    await tick()
+    eq('the scheduler never starts a suggestion, even a hand-edited due one', sessions.created, 0)
+    eq('a webhook cannot be made for a suggestion', (await api({ action: 'hook-generate', id: a.task.id })).json.error, 'suggested: add it first')
+  }
+  const fresh = onDisk(); fresh.find((x) => x.id === a.task.id).active = false; writeFileSync(file, JSON.stringify(fresh, null, 2))
+  const acc = (await api({ action: 'accept', id: a.task.id })).json
+  eq('Add clears the flag and keeps the automation switched off', acc.ok + ':' + acc.task.suggested + ':' + acc.task.active + ':' + String(acc.task.nextRun), 'true:undefined:false:null')
+  eq('...and keeps where it came from', acc.task.origin.by + ':' + typeof acc.task.acceptedAt, 'kaby:string')
+  eq('accepting a real automation is refused', (await api({ action: 'accept', id: acc.task.id })).json.error, 'not a suggestion')
+  eq('switching it on afterwards is the ordinary toggle', typeof (await api({ action: 'toggle', id: acc.task.id, active: true })).json.task.nextRun, 'string')
+  for (let i = 0; i < 8; i += 1) await sug('Waiting ' + i)
+  eq('no more than eight suggestions wait', (await sug('Waiting 9')).json.error, 'too many suggestions waiting')
+  for (const t of (await api({ action: 'list' })).json.tasks.filter((x) => x.suggested === true || x.id === acc.task.id)) await api({ action: 'delete', id: t.id })
+  writeFileSync(file, good)
+}
+
+/* ── « Learn my business »: made once, weekly, switched on, in a session of its own, asking first ─────────────── */
+{
+  const body = { action: 'learn', lang: 'fr', tz: 'Europe/Paris', fieldId: 'immo', field: 'Immobilier', goals: ['Suivre mes mandats'], about: { site: 'https://agence-exemple.test', profile: 'linkedin.com/in/exemple', words: 'Agence de quartier, vente et location.' } }
+  const l = (await api(body)).json
+  eq('learn creates the recipe, switched on, weekly on Mondays, in a session of its own', l.ok + ':' + l.existed + ':' + l.task.active + ':' + l.task.schedule.cron + ':' + l.task.sessionMode + ':' + l.task.approvals, 'true:false:true:0 7 * * 1:home:ask')
+  eq('...named in the person\'s language and marked as Kaby\'s recipe', l.task.name + ':' + l.task.origin.by + ':' + l.task.origin.recipe, 'Apprendre mon métier:kaby:learn-my-business')
+  eq('...with a next run', typeof l.task.nextRun, 'string')
+  eq('...asking for the two mail apps outside the sensitive fields', l.task.needs.join(','), 'gmail,googlecalendar')
+  eq('...and carrying what the person said, as data', /agence-exemple\.test/.test(l.task.prompt) && /Agence de quartier/.test(l.task.prompt) && /Immobilier/.test(l.task.prompt), true)
+  const again = (await api({ ...body, lang: 'en' })).json
+  eq('learn twice finds the first one again, whatever the language', again.ok + ':' + again.existed + ':' + again.task.id, 'true:true:' + l.task.id)
+  eq('...and there is one in the list', (await api({ action: 'list' })).json.tasks.filter((t) => t.name === 'Apprendre mon métier' || t.name === 'Learn my business').length, 1)
+  await api({ action: 'delete', id: l.task.id })
+  const law = (await api({ ...body, lang: 'en', fieldId: 'droit', field: 'Law' })).json
+  eq('Law: no mail app is asked for and the prompt says mail is not read', law.task.needs.length + ':' + /NOT read in this run/.test(law.task.prompt), '0:true')
+  await api({ action: 'delete', id: law.task.id })
+}
+
+/* ── Runs in a session of their own: the home of an automation ─────────────── */
+{
+  sessions.created = 0; sessions.prompts.length = 0; perm.log.length = 0
+  const mk = async (name, extra) => (await api({ action: 'create', task: task({ name, active: false, ...(extra || {}) }) })).json.task
+  const plain = await mk('Plain runs')
+  const r1 = (await api({ action: 'run-now', id: plain.id })).json.sessionId
+  const r2 = (await api({ action: 'run-now', id: plain.id })).json.sessionId
+  eq('an ordinary automation opens a new session at each run, as before', r1 !== r2 && sessions.created === 2, true)
+  eq('...and its prompt carries no frame', sessions.prompts[0].content[0].text, 'Write the report')
+  sessions.created = 0; sessions.prompts.length = 0; perm.log.length = 0
+  const home = await mk('Home runs', { sessionMode: 'home' })
+  eq('the mode is kept by the sanitizer', home.sessionMode, 'home')
+  const h1 = (await api({ action: 'run-now', id: home.id })).json.sessionId
+  const stored = onDisk().find((x) => x.id === home.id)
+  eq('the first run creates the home session and remembers it', sessions.created + ':' + stored.homeSessionId + ':' + stored.homeOwn, '1:' + h1 + ':true')
+  const h2 = (await api({ action: 'run-now', id: home.id })).json.sessionId
+  eq('the second run posts into the same session: no new one', h2 === h1 && sessions.created === 1, true)
+  eq('a run posted into a chat opens with the automation\'s name and the moment', /^\[Automation « Home runs » · run of \d{4}-\d{2}-\d{2}T/.test(sessions.prompts[1].content[0].text) && sessions.prompts[1].content[0].text.endsWith('Write the report') && sessions.prompts[1].sessionId === h1, true)
+  // a home that is gone is replaced
+  const all = onDisk(); all.find((x) => x.id === home.id).homeSessionId = 'gone-1'; writeFileSync(file, JSON.stringify(all, null, 2))
+  const h3 = (await api({ action: 'run-now', id: home.id })).json.sessionId
+  eq('a session the person deleted is replaced by a new home', h3 !== 'gone-1' && onDisk().find((x) => x.id === home.id).homeSessionId === h3 && sessions.created === 2, true)
+  // the chat the person made it in
+  sessions.created = 0; sessions.prompts.length = 0; perm.log.length = 0
+  const chat = await mk('Made in a chat')
+  eq('a session id that is not one is refused', (await api({ action: 'bind-home', id: chat.id, sessionId: 'bad id!' })).json.error, 'invalid session')
+  eq('binding an unknown automation is refused', (await api({ action: 'bind-home', id: 'nope', sessionId: 'sess-chat' })).json.error, 'task not found')
+  const bound = (await api({ action: 'bind-home', id: chat.id, sessionId: 'sess-chat' })).json
+  eq('the chat becomes the home, not owned by the automation', bound.ok + ':' + bound.task.sessionMode + ':' + bound.task.homeSessionId + ':' + bound.task.homeOwn, 'true:home:sess-chat:false')
+  const c1 = (await api({ action: 'run-now', id: chat.id })).json.sessionId
+  eq('its runs land in that chat, no session is created', c1 === 'sess-chat' && sessions.created === 0, true)
+  eq('Ask me first: the person\'s own chat keeps its permission preset', perm.log.filter((l) => l.indexOf('set:sess-chat') === 0).length === 0 && perm.log.indexOf('prompt:sess-chat') >= 0, true)
+  const own = await mk('Own home', { sessionMode: 'home', homeSessionId: 'sess-own' })
+  const all2 = onDisk(); all2.find((x) => x.id === own.id).homeOwn = true; writeFileSync(file, JSON.stringify(all2, null, 2))
+  await api({ action: 'run-now', id: own.id })
+  eq('a home session the automation made keeps the asking preset on every run', perm.log.filter((l) => l.indexOf('set:sess-own') === 0).length === 1, true)
+  for (const id of [plain.id, home.id, chat.id, own.id]) await api({ action: 'delete', id })
+  sessions.created = 0; sessions.prompts.length = 0; perm.log.length = 0
+  writeFileSync(file, good)
+}
+
+/* ── The suggestions that wait for a click on a page (memory, instructions) ───── */
+{
+  const sf = join(dshHome, 'kybernos', 'suggestions.json')
+  const S = '/kybernos/suggestions'
+  eq('the suggestions route refuses a foreign Origin', (await call('GET', undefined, { origin: 'http://evil.example' }, S)).status, 403)
+  eq('...and a missing session', (await call('GET', undefined, { cookie: '' }, S)).status, 401)
+  eq('...and a method that is not GET or POST', (await call('PUT', undefined, {}, S)).status, 405)
+  eq('an empty ledger lists nothing', JSON.stringify((await call('GET', undefined, {}, S)).json), '{"ok":true,"items":[]}')
+  writeFileSync(sf, JSON.stringify({ version: 1, items: [{ id: 's_a', kind: 'memory', text: 'Clients are private individuals', from: { n: 14 }, at: 'x' }, { id: 's_b', kind: 'instructions', text: 'Write in French', from: {}, at: 'x' }] }))
+  eq('GET lists everything, or one kind', [(await call('GET', undefined, {}, S)).json.items.length, (await call('GET', undefined, {}, S + '?kind=memory')).json.items.map((i) => i.id).join(), (await call('GET', undefined, {}, S + '?kind=instructions')).json.items.map((i) => i.id).join()].join('|'), '2|s_a|s_b')
+  eq('POST needs a resolve and an id', (await call('POST', JSON.stringify({ action: 'resolve' }), {}, S)).status, 400)
+  eq('resolving removes the item', (await call('POST', JSON.stringify({ action: 'resolve', id: 's_a' }), {}, S)).json.ok === true && (await call('GET', undefined, {}, S)).json.items.length === 1, true)
+  eq('resolving an unknown id says so', (await call('POST', JSON.stringify({ action: 'resolve', id: 'nope' }), {}, S)).json.error, 'not found')
+  rmSync(sf, { force: true })
+}
+
 /* ── The tick, on the real code ───────────────────────────────────────────── */
 {
   const all = onDisk()
