@@ -3030,7 +3030,7 @@ const KB_SS_INDEX = [
   ['auto routing', '', 'Automatic routing', 'On: Auto is used in every session. Off: you turn it on per session, from the model menu in the composer.', '', 'routage automatique choix modele bascule routeur'],
   ['auto routing', '', 'Models Auto may use', 'Only the models you pick below. The list order is the fallback order.', 'all models free models my list', 'secours fallback liste modeles autorises'],
   ['free llms', '', 'Available free models', 'Free models, no account or API key.', 're-check', 'gratuit sans cle opencode gratis'],
-  ['ollama local models', '', 'Machine', '', '', 'ram memoire gpu puce materiel processeur', '', 'Machine · measured (sysctl)'],
+  ['ollama local models', '', 'Machine', '', '', 'ram memoire gpu puce materiel processeur', '', 'Machine · measured'],
   ['ollama local models', '', 'Model memory budget', '', '', 'memoire budget ram modele local hors ligne offline', '', 'Model memory budget · estimated'],
   ['ollama local models', '', 'Local engine', '', '', 'moteur ollama local hors ligne offline'],
   ['usage', '', 'Your Kybernos plan', '', '', 'quota limite consommation forfait abonnement jetons facture cuota'],
@@ -3052,7 +3052,7 @@ const KB_SS_INDEX = [
 
   ['voice', '', 'Composer microphone', 'This plugin’s dictation mic takes the place of the native one, just before Send.', 'kybernos native dsh', 'micro dictee saisie vocale microfono'],
   ['voice', '', 'Read replies aloud as they arrive', '', '', 'lecture voix haute synthese vocale tts lire'],
-  ['voice', '', 'Voice engines', '', 'apple say piper supertonic edge tts', 'moteur voix synthese local hors ligne vitesse debit', '', 'Apple « say »'],
+  ['voice', '', 'Voice engines', '', 'apple say piper supertonic edge tts', 'moteur voix synthese local hors ligne vitesse debit', '', 'Apple say'],
   ['calls', '', 'Calls', 'Talk live to your assistant, or to a team member, out loud, from any session.', 'check everything', 'appel telephone vocal visio conversation orale llamada'],
 
   ['servers', '', 'Add a server', '', '', 'serveur servidor equipe team entreprise self hosted reseau adresse address ajouter connecter'],
@@ -3124,7 +3124,7 @@ const KB_SS_FR = {
   'auto routing|Automatic routing': ['Routage automatique', 'Activé : Auto sert dans toutes les sessions. Désactivé : tu l’actives session par session, depuis le menu du modèle dans le composer.'],
   'auto routing|Models Auto may use': ['Modèles qu’Auto peut utiliser', 'Seulement les modèles que tu choisis ci-dessous. L’ordre de la liste est l’ordre de repli.'],
   'free llms|Available free models': ['Modèles gratuits disponibles', 'Des modèles gratuits, sans compte ni clé API.'],
-  'ollama local models|Machine': ['Machine', '', 'Machine · mesuré (sysctl)'],
+  'ollama local models|Machine': ['Machine', '', 'Machine · mesurée'],
   'ollama local models|Model memory budget': ['Budget mémoire modèle', '', 'Budget mémoire modèle · estimé'],
   'ollama local models|Local engine': ['Moteur local', ''],
   'usage|Your Kybernos plan': ['Ton plan Kybernos', ''],
@@ -3142,7 +3142,7 @@ const KB_SS_FR = {
   'web search|Sites': ['Sites', 'Un par ligne ou séparés par des virgules. « exemple.com » ne garde que ce site.'],
   'voice|Composer microphone': ['Micro du composer', 'La dictée de ce plugin prend la place du micro natif, juste avant Envoyer.'],
   'voice|Read replies aloud as they arrive': ['Lire les réponses à voix haute à leur arrivée', ''],
-  'voice|Voice engines': ['Moteurs de voix', '', 'Apple « say »'],
+  'voice|Voice engines': ['Moteurs de voix', '', 'Apple say'],
   'calls|Calls': ['Appels', 'Parler en direct à ton assistant ou à un membre de ton équipe, à voix haute, depuis n’importe quelle session.'],
   'servers|Add a server': ['Ajouter un serveur', ''],
   'cloud computers|API key': ['Clé API', 'Stockée sur cette machine, jamais affichée de nouveau. Le code et les fichiers que l’agent envoie à un ordinateur cloud partent chez E2B.'],
@@ -11745,7 +11745,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         const avatar = (kbHasAvatar(ui) === true ? h('img', { src: kbAvatarUrl(rootId, k.id) + (ui.avatarAt ? '&v=' + encodeURIComponent(ui.avatarAt) : ''), alt: '', onError: (ev) => { try { ev.currentTarget.style.display = 'none' } catch (e) { /* img */ } }, style: { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' } }) : null)
         return h('div', { className: 'kb8-card kb8-cmp kb8-kyber kb8-cf' + kbIn(ci), key: rootPath + '/' + k.id, 'data-kb': 'kyber-card', 'data-root': rootPath, style: kbCfVars(color) === null ? undefined : kbCfVars(color), onClick: () => open({ rootId, k, rootLabel }) },
           kbCfWatermark(icon),
-          h('div', { className: 'kb8-cf-top' }, kbCfIcon(color, icon, avatar, isActive === true), h('span', { className: 'kb8-cf-txt' }, h('span', { className: 'kb8-name' }, name), sub === '' ? null : h('span', { className: 'kb8-cf-sub' }, sub))),
+          h('div', { className: 'kb8-cf-top' }, kbCfIcon(color, icon, avatar, isActive === true), h('span', { className: 'kb8-cf-txt' }, h('span', { className: 'kb8-name' }, name), sub === '' ? null : h('span', { className: 'kb8-cf-sub', title: sub }, sub))),
           mission === '' ? null : h('p', { className: 'kb8-desc' }, mission),
           // The foot: the number of agents, where the team runs (the badge that used to wait for a hover in the actions row is always
           // there, so two cards can be compared at a glance: a cloud when the team also exists as Hosted, a screen when it is local) and

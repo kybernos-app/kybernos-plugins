@@ -76,7 +76,7 @@ window.__ModuleLoader__.load({
       const KB_M_T = {
         'kml.soustitre': { fr: 'Un modèle qui tourne sur cette machine — détecté, recommandé, branché sur DSH.', en: 'A model running on this machine — detected, recommended, wired into DSH.' },
         'kml.machine': { fr: 'Machine :', en: 'Machine:' },
-        'kml.mesure': { fr: 'mesuré — sysctl', en: 'measured — sysctl' },
+        'kml.mesure': { fr: 'mesuré sur cette machine', en: 'measured on this machine' },
         'kml.ollama.absent': { fr: 'absent', en: 'not installed' },
         'kml.ollama.arrete': { fr: "serveur arrêté : ouvre l'app Ollama ou lance « ollama serve »", en: 'server not running: open the Ollama app or run “ollama serve”' },
         'kml.ollama.note': { fr: 'installé au 1ᵉʳ téléchargement', en: 'installed on first download' },
@@ -104,7 +104,7 @@ window.__ModuleLoader__.load({
         'kml.cat.source.signe': { fr: 'Liste : catalogue signé · {date}', en: 'List: signed catalogue · {date}' },
         'kml.cat.source.livre': { fr: 'Liste : livrée avec cette version · {date}', en: 'List: shipped with this version · {date}' },
         'kml.cat.source.embarque': { fr: 'Liste : intégrée à la page (DSH à redémarrer pour la recherche en ligne)', en: 'List: built into the page (restart DSH for the online search)' },
-        'kml.tuile.machine': { fr: 'Machine · mesuré (sysctl)', en: 'Machine · measured (sysctl)' },
+        'kml.tuile.machine': { fr: 'Machine · mesurée', en: 'Machine · measured' },
         'kml.tuile.budget': { fr: 'Budget mémoire modèle · estimé', en: 'Model memory budget · estimated' },
         'kml.budget.note': { fr: '≈ RAM − 5 Go, DSH + Chrome ouverts', en: '≈ RAM − 5 GB, DSH + Chrome open' },
         'kml.tuile.moteur': { fr: 'Moteur local', en: 'Local engine' },
@@ -247,6 +247,9 @@ window.__ModuleLoader__.load({
         const r = /(?:^|[^A-Za-z])II\s+(\d+(?:[.,]\d+)?)/.exec(String(texte === undefined || texte === null ? '' : texte))
         return r === null ? null : Number(r[1].replace(',', '.'))
       }
+      /** What a catalogue line says once its intelligence index is taken out (« II 32 · MMMU-Pro 69 % · 6.6–7.6 GB » → « MMMU-Pro 69 % · 6.6–7.6 GB »):
+       *  the card already shows the index as its own badge, and the line under the name must not say it a second time. Pure. */
+      const kbScoreSansII = (texte) => String(texte === undefined || texte === null ? '' : texte).replace(/(^|·\s*)II\s+\d+(?:[.,]\d+)?\s*(?:·\s*)?/, '$1').replace(/\s*·\s*$/, '').trim()
       /** The order a person should read them in: the models that fit first (in the catalogue's own order of preference), then the tight
        *  ones, then those whose size is not known, the too-heavy ones last. Stable; `etatDe` answers compatible, juste, inconnu or lourd. Pure. */
       const kbOrdreAjuste = (liste, etatDe) => liste
@@ -841,7 +844,7 @@ window.__ModuleLoader__.load({
                 idsNouveaux.has(mod.id) ? h('span', { className: 'kbm-tag', 'data-tone': 'warning' }, m('kml.scan.tag')) : null,
                 mod.tailleGo !== null && mod.tailleGo <= 4 ? h('span', { className: 'kbm-tag', 'data-tone': 'quiet' }, m('kml.leger.tag')) : null,
                 kbScoreDe(mod.score) !== null ? h('span', { className: 'kbm-tag kml-score', 'data-tone': 'neutral', 'data-kml': 'score', title: m('kml.score.badge', { n: kbScoreDe(mod.score) }) }, 'II ' + String(kbScoreDe(mod.score))) : null),
-              h('span', { className: 'kml-mod-desc', title: descDe(mod) + (mod.score ? ' · ' + mod.score : '') }, descDe(mod) + (mod.score ? ' · ' + mod.score : '')),
+              h('span', { className: 'kml-mod-desc', title: descDe(mod) + (kbScoreSansII(mod.score) !== '' ? ' · ' + kbScoreSansII(mod.score) : '') }, descDe(mod) + (kbScoreSansII(mod.score) !== '' ? ' · ' + kbScoreSansII(mod.score) : '')),
               echec === undefined ? null : h('span', { className: 'kml-mod-echec', role: 'alert', 'data-kml': 'echec', title: echec.brut },
                 m('kml.echec.titre') + ' ' + (echec.cle !== null ? m(echec.cle) : echec.brut))),
             h('span', { className: 'kml-mod-etat' },

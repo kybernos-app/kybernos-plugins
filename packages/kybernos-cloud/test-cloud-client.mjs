@@ -485,7 +485,7 @@ const htmlConnecte = htmlDe(racineEl)
 // The unified card (04/10): ONE card carries the active space, "who · plan", the phone and the bell; a click opens the
 // account menu. No gear inside the row (DSH shows its own right beside it) and no menu until it is opened.
 assert.ok(htmlConnecte.includes('data-kb="workspace-card"'), 'la carte unifiee est la (un clic ouvre le menu)')
-assert.ok(htmlConnecte.includes('kbfp-cardname">Personal<'), 'la carte montre l espace ACTIF (le personnel s affiche Personal)')
+assert.ok(htmlConnecte.includes('kbfp-cardname" title="Personal">Personal<'), 'la carte montre l espace ACTIF (le personnel s affiche Personal)')
 assert.ok(htmlConnecte.includes('kbfp-tile') && htmlConnecte.includes('>PE<'), 'tuile d initiales de l espace (celles du nom affiche : Personal, pas My workspace)')
 assert.ok(htmlConnecte.includes('dev · Free'), 'sous-titre : qui · formule (partie locale de l email, pas un « — » muet)')
 assert.ok(htmlConnecte.includes('aria-haspopup="menu"') && htmlConnecte.includes('aria-expanded="false"'), 'la carte ouvre un menu, ferme au premier rendu')
@@ -558,7 +558,8 @@ ok('carte : compteur d usage en pourcentage (lu a l hote, ambre des 75 %, phrase
   await act(async () => { r.render(createElement(Section, null)); await new Promise((res) => setTimeout(res, 30)) })
   let html = htmlDe(root)
   assert.ok(html.includes('data-kb="ky-section"') && html.includes('data-kb="ky-instructions"') && html.includes('data-kb="ky-models"') && html.includes('data-kb="ky-advanced"') && !html.includes('data-kb="ky-chats"'), 'the instructions, the models and a folded Advanced')
-  assert.ok(html.includes('Kept on this computer, in /home/dev/.dsh/AGENTS.md'), 'la page dit ou sont gardees les instructions : sur cet ordinateur')
+  // ux: the sentence no longer shows the file's path (a person reads "Kept on this computer"); the path is the tooltip of that line.
+  assert.ok(html.includes('Kept on this computer: every agent reads them, in new chats.') && !/Kept on this computer, in /.test(html) && html.includes('title="/home/dev/.dsh/AGENTS.md"'), 'la page dit ou sont gardees les instructions : sur cet ordinateur, le chemin en infobulle')
   assert.ok(html.includes('data-kb="ky-signed-out"'), 'deconnecte : les actions qui demandent un serveur le disent')
   const tag = (h, k) => { const i = h.indexOf('data-kb="' + k + '"'); return i < 0 ? '' : h.slice(h.lastIndexOf('<', i), h.indexOf('>', i)) }
   // N-07: the two developer actions (re-import the models, send the DSH chats) are not on the page a newcomer reads: they sit under a folded « Advanced ».
@@ -607,7 +608,7 @@ ok('section Kybernos : instructions lues sur l hote, deconnecte (actions serveur
 
 // « Teams settings » is a NAMED entry of the account menu. It opens the app's plan page for the active team in the person's browser, signed in (the console link,
 // asked of the host, which opens the system browser). No frame, no bridge to the core, no local page.
-assert.ok(source.includes("entree('space-settings', h(BuildingIcon, { size: 18 }), t('menuTeamsSettings'), props.onSpace)"),
+assert.ok(source.includes("entree('space-settings', h(BuildingIcon, { size: 18 }), t('menuTeamsSettings'), props.onSpace, { ext: true })"),
   'le menu doit porter une entree nommee pour les reglages de la team')
 assert.ok(source.includes("onSpace: ouvrirAppli('plan')"), 'Teams settings ouvre la page du plan dans le navigateur')
 for (const needle of ['window.__kbOpenWsConsole', 'window.__kbOpenWorkspace']) {
@@ -1290,13 +1291,13 @@ ok('selecteur d equipe : route du choix, evenement d ouverture, message d equipe
     await act(async () => { await new Promise((r) => setTimeout(r, 120)) })
     const during = htmlDe(el)
     assert.ok(during.includes('data-kb="workspace-card-switching"') && during.includes('>Switching…<'), 'while DSH has not applied the route: « Switching… » on the card: ' + during.slice(0, 400))
-    assert.ok(during.includes('kbfp-cardname">Acme<'), 'with the team that was chosen')
+    assert.ok(during.includes('kbfp-cardname" title="Acme">Acme<'), 'with the team that was chosen')
     assert.equal(during.includes('workspace-card-usage'), false, 'and no meter of another team\'s allowance')
     assert.equal(find(el, byClass('kbfp-menu')), null, 'the menu is closed')
     await act(async () => { await new Promise((r) => setTimeout(r, 900)) })
     const after = htmlDe(el)
     assert.equal(after.includes('workspace-card-switching'), false, 'once the route is applied the card is back to normal')
-    assert.ok(after.includes('kbfp-cardname">Acme<'))
+    assert.ok(after.includes('kbfp-cardname" title="Acme">Acme<'))
     const asked = world.calls.filter((c) => c.indexOf('/space/') >= 0)
     assert.equal(asked[0], 'POST /space/active')
     assert.equal(asked.filter((c) => c === 'POST /space/applied').length, 3, 'it asked the host whether the route is applied until it said yes: ' + JSON.stringify(asked))
@@ -1463,7 +1464,7 @@ ok('selecteur d equipe : route du choix, evenement d ouverture, message d equipe
     assert.equal(find(foot.el, byKb('join-team')), null, 'the dialog is closed')
     await settle(900)
     assert.ok(order.indexOf('POST /space/applied') >= 0 || world.calls.indexOf('POST /space/applied') >= 0, 'with the same wait on the model route as any switch')
-    assert.ok(htmlDe(foot.el).includes('kbfp-cardname">Studio B<'), 'the card shows the new team')
+    assert.ok(htmlDe(foot.el).includes('kbfp-cardname" title="Studio B">Studio B<'), 'the card shows the new team')
     await act(async () => { foot.root.unmount() })
 
     // A team that has no plan: the person stays where they are and is told.
@@ -1480,7 +1481,7 @@ ok('selecteur d equipe : route du choix, evenement d ouverture, message d equipe
     const flash = htmlDe(foot.el)
     assert.ok(flash.includes('data-kb="foot-flash"') && flash.includes('You joined “Acme”, which has no plan yet. You are still in “Personal”.'), 'and the person is told: ' + flash.slice(Math.max(0, flash.indexOf('foot-flash') - 40), flash.indexOf('foot-flash') + 300) + ' / ' + flash.length)
     assert.equal(flash.includes('foot-flash-action'), false, 'a member has no plan to choose')
-    assert.ok(flash.includes('kbfp-cardname">Personal<'), 'they stay where they were')
+    assert.ok(flash.includes('kbfp-cardname" title="Personal">Personal<'), 'they stay where they were')
     await act(async () => { foot.root.unmount() })
 
     // Each refusal has its own sentence; the dialog stays so the person can go on.
@@ -1613,7 +1614,7 @@ ok('selecteur d equipe : route du choix, evenement d ouverture, message d equipe
     foot = await draw()
     await pick(foot.el, 't1')
     await settle(900)
-    assert.ok(htmlDe(foot.el).includes('kbfp-cardname">Acme<'), 'with no DSH services the switch itself still works')
+    assert.ok(htmlDe(foot.el).includes('kbfp-cardname" title="Acme">Acme<'), 'with no DSH services the switch itself still works')
     await act(async () => { foot.root.unmount() })
 
     // A route that could not be rewritten still opens the chat in the team's folder (the choice is kept), after the notice.

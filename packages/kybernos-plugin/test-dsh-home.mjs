@@ -228,6 +228,16 @@ try {
   assert.equal(zcodeAfter.installed, true, 'the server installed under $DSH_HOME/mcp is seen')
   ok('the ZCode MCP server path of the Tools tab is $DSH_HOME/mcp, never <HOME>/.dsh/mcp')
 
+  // The profile picker of the Tools tab lists the folders of $DSH_HOME/profiles that are profiles: not `node_modules` (the packages they share), not a dot folder.
+  iso.seedDshHome('profiles/web/cordis.patch.yml', '# web\n')
+  iso.seedDshHome('profiles/team-a/cordis.patch.yml', '# team-a\n')
+  iso.seedDshHome('profiles/node_modules/some-package/package.json', '{}\n')
+  iso.seedDshHome('profiles/.cache/x.json', '{}\n')
+  const picker = (await call('GET', '/kybernos/tools/state?profile=web')).json
+  assert.equal(picker.ok, true, JSON.stringify(picker).slice(0, 200))
+  assert.deepEqual(picker.profiles, ['team-a', 'web'], 'the picker lists the profiles only: ' + JSON.stringify(picker.profiles))
+  ok('the Tools tab profile picker lists the profiles, not node_modules or a dot folder')
+
   // The quiz/cards score registry: in the DSH home, never beside the plugin folder (it was `<plugin dir>/../.dsh/artifacts/.progress.json`).
   const besidePlugin = join(copy, '..', '.dsh', 'artifacts', '.progress.json')
   const hadBeside = existsSync(besidePlugin)
