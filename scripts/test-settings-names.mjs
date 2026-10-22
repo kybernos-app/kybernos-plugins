@@ -87,10 +87,11 @@ check('every module that is one Settings page carries the name of that page on i
 
 console.log('the two places that set the mode say so')
 // Appearance (Light / Dark / System) and Theme › Mode both set the mode. Theme used to say it « replaces the Appearance block of the General
-// page — one place only » while an Appearance page exists beside it (audit A1-09): it now says the two are the same setting.
+// page — one place only » while an Appearance page exists beside it (audit A1-09); then said the two were the same setting (V1-24 made Appearance the only place).
 const theme = read('packages', 'kybernos-theme', 'client.js')
 check('Theme no longer claims to be the only place of the mode', !/replaces the “Appearance” block of the General page/.test(theme) && !/one place only/.test(theme))
-check('Theme says the mode is the same setting as the Appearance page, in English and in French', /The mode is the same setting as on the Appearance page/.test(theme) && /Le mode est le même réglage que sur la page Apparence/.test(theme))
+// V1-24: the mode is set on the Appearance page ONLY; the Theme page shows it and says where it is set (it used to say « change it in either place »).
+check('Theme says the mode is set on the Appearance page, in English and in French, and no longer offers it as a second place', /The light or dark mode is set on the Appearance page/.test(theme) && /Le mode clair ou sombre se règle sur la page Apparence/.test(theme) && !/change it in either place/.test(theme))
 check('and the Appearance page it points to exists and points back to Theme', /'kbac-appearance': 'Appearance'|'kbac-appearance': 'appearance'/.test(CORE) && /'kbac.appearance.openTheme'/.test(CORE))
 
 console.log(`\n${pass} ✓  ${fail} ✗`)

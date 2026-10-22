@@ -215,6 +215,8 @@ ok('stable test hooks exist', ['kybernos-usage-pill', 'kybernos-usage-card', 'ky
   const en = draw('en', { version: 1, Help })
   const forEn = find(en, (n) => n.props && /\bkbus-for\b/.test(n.props.className)).map(text).join(' ')
   ok('a line says what the page covers: every model used here, in two kinds', /every model/i.test(forEn) && /Kybernos plan/i.test(forEn) && /key of your own/i.test(forEn) && /local model/i.test(forEn), forEn)
+  // The lead says HOW each kind is counted, the next line only WHAT the page covers: the how was said twice, in two paragraphs one under the other.
+  ok('how each kind is counted is said once (the lead), not again in the line that says what the page covers', /server counts/.test(T.S.pageLead[1]) && /worked out/.test(T.S.pageLead[1]) && !/counted (by|on)/i.test(T.S.pageFor[1]) && /le serveur compte/i.test(T.S.pageLead[0]) && !/compté (par|sur)/i.test(T.S.pageFor[0]), JSON.stringify([T.S.pageLead[1], T.S.pageFor[1]]))
   ok('…and how it differs from the console: the per-member and per-day detail of the plan stays there', /console/i.test(forEn) && /per member|by member/i.test(forEn) && /per day|by day/i.test(forEn), forEn)
   const fr = draw('kybernos', { version: 1, Help })
   const forFr = find(fr, (n) => n.props && /\bkbus-for\b/.test(n.props.className)).map(text).join(' ')
