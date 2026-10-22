@@ -106,18 +106,19 @@ export function createHost ({ fs, home, now = () => Date.now(), log = () => {} }
   async function writeIndex (idx) { await writeAtomic(indexFile, JSON.stringify(idx, null, 2)) }
 
   // ── reading ────────────────────────────────────────────────────────────────
+  // A refusal carries a stable `code` beside its message: the page words the reason in the person's language from the code (list() → `unreadable`).
   async function readDoc (id) {
-    if (typeof id !== 'string' || !ID_RE.test(id)) return { ok: false, message: 'Unknown dashboard.' }
+    if (typeof id !== 'string' || !ID_RE.test(id)) return { ok: false, code: 'unknown', message: 'Unknown dashboard.' }
     let text
     try {
       const st = await fs.stat(fileOf(id))
-      if (st.size > LIMITS.doc) return { ok: false, message: 'The dashboard file is too large.' }
+      if (st.size > LIMITS.doc) return { ok: false, code: 'too-large', message: 'The dashboard file is too large.' }
       text = await fs.readFile(fileOf(id), 'utf8')
-    } catch { return { ok: false, message: 'Unknown dashboard.' } }
+    } catch { return { ok: false, code: 'unknown', message: 'Unknown dashboard.' } }
     let doc
-    try { doc = JSON.parse(text) } catch { return { ok: false, message: 'The dashboard file is not valid JSON.' } }
+    try { doc = JSON.parse(text) } catch { return { ok: false, code: 'invalid-json', message: 'The dashboard file is not valid JSON.' } }
     const raw = dashboardOfDoc(doc)
-    if (raw === null) return { ok: false, message: 'This file is not a dashboard (kind must be "dashboard").' }
+    if (raw === null) return { ok: false, code: 'not-dashboard', message: 'This file is not a dashboard (kind must be "dashboard").' }
     const v = validateDashboard(raw)
     const meta = isObj(doc.meta) ? doc.meta : {}
     return { ok: true, id, doc, dashboard: v.dashboard, errors: v.errors, rev: Number(meta.rev) || 0, history: Array.isArray(meta.history) ? meta.history : [] }
@@ -128,11 +129,17 @@ export function createHost ({ fs, home, now = () => Date.now(), log = () => {} }
     try { names = (await fs.readdir(filesDir)).filter((n) => n.endsWith(EXT)).slice(0, KEEP.files) } catch { names = [] }
     const idx = await readIndex()
     const out = []
+    // A file the host cannot read is reported, not dropped: a truncated dashboard used to vanish from the page without a word.
+    const unreadable = []
     for (const n of names) {
       const id = n.slice(0, -EXT.length)
       if (!ID_RE.test(id)) continue
       const r = await readDoc(id)
-      if (!r.ok) continue
+      if (!r.ok) {
+        // The file is listed in its folder, so « unknown » here means it could not be read (permissions, a read cut short), not that it does not exist.
+        unreadable.push(r.code === 'unknown' ? { id, code: 'unreadable', message: 'The dashboard file cannot be read.' } : { id, code: r.code, message: r.message })
+        continue
+      }
       let mtimeMs = 0
       try { mtimeMs = (await fs.stat(fileOf(id))).mtimeMs } catch { /* keep 0 */ }
       const last = r.history.length ? r.history[r.history.length - 1] : null
@@ -145,7 +152,8 @@ export function createHost ({ fs, home, now = () => Date.now(), log = () => {} }
       })
     }
     out.sort((a, b) => b.updatedAt - a.updatedAt)
-    return { dashboards: out, default: idx.default }
+    unreadable.sort((a, b) => (a.id < b.id ? -1 : 1))
+    return { dashboards: out, default: idx.default, unreadable }
   }
 
   // ── writing ────────────────────────────────────────────────────────────────
@@ -339,7 +347,15 @@ export async function runTool (host, sessionId, a) {
     if (isObj(a.dashboard)) return finish(await host.create({ name: typeof a.name === 'string' ? a.name : undefined, raw: a.dashboard, by: 'agent', what: note || 'Created' }), 'Created.')
     const l = await host.list()
     const cur = host.getCurrent(sessionId, true)
-    return { ok: true, dashboards: l.dashboards.filter((d) => !d.archived).map((d) => ({ id: d.id, name: d.name, widgets: d.widgets, rev: d.rev })), current: cur ? cur.id : null, message: l.dashboards.length === 0 ? 'No dashboard yet: write one with `dashboard`, or use a `preset`.' : undefined }
+    // Say it to the agent too: writing one of these ids replaces the damaged file, so it should tell the person first.
+    const damaged = l.unreadable.length > 0 ? l.unreadable.map((u) => ({ id: u.id, message: u.message })) : undefined
+    const notes = []
+    if (l.dashboards.length === 0) notes.push('No dashboard yet: write one with `dashboard`, or use a `preset`.')
+    if (damaged !== undefined) notes.push(damaged.length + ' dashboard file(s) cannot be read (see `unreadable`): tell the person before writing over one of those ids.')
+    return {
+      ok: true, dashboards: l.dashboards.filter((d) => !d.archived).map((d) => ({ id: d.id, name: d.name, widgets: d.widgets, rev: d.rev })), current: cur ? cur.id : null,
+      message: notes.length > 0 ? notes.join(' ') : undefined, unreadable: damaged,
+    }
   }
   const r = await host.readDoc(id)
   if (isObj(a.dashboard)) {

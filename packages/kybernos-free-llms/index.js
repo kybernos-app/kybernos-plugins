@@ -312,15 +312,24 @@ const readState = async () => {
     return parsed !== null && typeof parsed === 'object' ? parsed : defaultFreeLlmState()
   } catch (e) { return defaultFreeLlmState() }
 }
+/**
+ * Persist the marker, atomically (a temporary file renamed over it, like the hub's own files): a cut in the middle of the write leaves
+ * the previous marker, never a truncated one. Returns whether it is on disk; callers must not tell the person it is saved when it is not.
+ */
 const writeState = async (state) => {
   const path = stateFile()
   if (path === null) return false
+  const tmp = path + '.tmp-' + process.pid
   try {
-    const { mkdir, writeFile } = await import('node:fs/promises')
+    const { mkdir, writeFile, rename } = await import('node:fs/promises')
     await mkdir(path.slice(0, path.lastIndexOf('/')), { recursive: true })
-    await writeFile(path, JSON.stringify(state, null, 2) + '\n')
+    await writeFile(tmp, JSON.stringify(state, null, 2) + '\n')
+    await rename(tmp, path)
     return true
-  } catch (e) { return false }
+  } catch (e) {
+    try { const { rm } = await import('node:fs/promises'); await rm(tmp, { force: true }) } catch (e2) { /* nothing to clean */ }
+    return false
+  }
 }
 
 /** The loopback address of the gateway this bundle mounts: DSH's own web server, never a guessed port. */
@@ -367,7 +376,8 @@ const repairWiring = async () => {
   if (found.models.length === 0) return 'no_free_models'
   const route = await writeRoute(found.models, null)
   if (route.wrote !== true) return route.reason
-  await writeState({ ...(await readState()), routeBase: route.baseURL })
+  // The route is right now; if the marker cannot say so, report it (not a final outcome: the next attempt writes it again).
+  if (await writeState({ ...(await readState()), routeBase: route.baseURL }) !== true) return 'state_not_saved'
   return 'repaired'
 }
 
@@ -447,7 +457,8 @@ export function apply(ctx) {
         const route = await writeRoute(found.models, req)
         if (route.wrote !== true) { sendJson(res, 200, { ok: false, error: route.reason }); return }
         const state = { ...recordEnable(await readState(), { acknowledged, auto }), routeBase: route.baseURL }
-        await writeState(state)
+        // The route is written; if the marker is not, the next boot would read « not wired » and ask for the acknowledgement again: say so.
+        if (await writeState(state) !== true) { sendJson(res, 500, { ok: false, error: 'state-not-saved', routeWritten: true, state: publicView(state) }); return }
         sendJson(res, 200, { ok: true, models: found.models, state: publicView(state) })
       } }), 'free-llms: enable')
 
@@ -457,7 +468,7 @@ export function apply(ctx) {
         if (sameOriginStrict(req) !== true) { sendJson(res, 403, { ok: false, error: 'origin' }); return }
         const route = await writeRoute([])
         const state = recordDisable(await readState())
-        await writeState(state)
+        if (await writeState(state) !== true) { sendJson(res, 500, { ok: false, error: 'state-not-saved', routeWritten: route.wrote === true, state: publicView(state) }); return }
         sendJson(res, 200, { ok: route.wrote === true, state: publicView(state) })
       } }), 'free-llms: disable')
 
@@ -482,7 +493,7 @@ export function apply(ctx) {
         const route = await writeRoute(found.models, req)
         if (route.wrote !== true) { sendJson(res, 200, { ok: false, skipped: true, reason: route.reason }); return }
         const next = { ...recordEnable(state, { acknowledged: true, auto: true }), routeBase: route.baseURL }
-        await writeState(next)
+        if (await writeState(next) !== true) { sendJson(res, 500, { ok: false, error: 'state-not-saved', routeWritten: true, state: publicView(next) }); return }
         sendJson(res, 200, { ok: true, models: found.models, state: publicView(next) })
       } }), 'free-llms: auto-enable')
 

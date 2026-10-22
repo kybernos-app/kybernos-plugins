@@ -17,8 +17,11 @@ export function apply (ctx) {
       documents: () => documentsDir({ platform: platform(), home: homedir(), env: process.env, xdgDocuments }),
       mkdir: (path, opts) => { mkdirSync(path, opts) },
     }
+    // The routes live as long as the plugin does: they are registered through ctx.effect, so disposing the plugin removes them.
+    // A host without ctx.effect still gets its routes (plainly registered), never none.
+    const links = typeof ctx.effect === 'function' ? { effect: (fn, label) => ctx.effect(fn, label) } : {}
     const mount = (webServer) => {
-      try { monterRoutes(webServer, deps); console.log('[kybernos-multi-device] routes mounted') } catch (e) { console.log('[kybernos-multi-device] routes not mounted: ' + String(e && e.message ? e.message : e)) }
+      try { monterRoutes(webServer, deps, links); console.log('[kybernos-multi-device] routes mounted') } catch (e) { console.log('[kybernos-multi-device] routes not mounted: ' + String(e && e.message ? e.message : e)) }
     }
     if (ctx.get('webServer') !== undefined) mount(ctx.get('webServer'))
     else ctx.inject(['webServer'], (host) => mount(host.webServer))
