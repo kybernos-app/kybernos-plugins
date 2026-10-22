@@ -43,7 +43,7 @@ window.__ModuleLoader__.load({
         subtitle: 'Connecte DSH à ton compte Kybernos.',
         connect: 'Connecter Kybernos Cloud',
         pairingTitle: 'Appairage en cours',
-        pairingBody: 'Ouvre la page d\'activation et confirme le code : DSH se connectera tout seul.',
+        pairingBody: 'Ouvre la page d\'activation : le code est copié, colle-le là-bas pour confirmer. DSH se connectera tout seul.',
         openPage: 'Ouvrir la page d\'activation',
         copyCode: 'Copier le code',
         copied: 'Code copié',
@@ -323,7 +323,7 @@ window.__ModuleLoader__.load({
         subtitle: 'Connect DSH to your Kybernos account.',
         connect: 'Connect Kybernos Cloud',
         pairingTitle: 'Pairing in progress',
-        pairingBody: 'Open the activation page and confirm the code: DSH will connect on its own.',
+        pairingBody: 'Open the activation page: the code is copied, paste it there to confirm. DSH will connect on its own.',
         openPage: 'Open activation page',
         copyCode: 'Copy code',
         copied: 'Code copied',
@@ -1964,8 +1964,11 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
             try { await navigator.clipboard.writeText(code); setCopied(true) } catch (e) { /* clipboard refused */ }
           }
 
+          // Opening the page also puts the code on the clipboard (the click is the gesture the browser asks for), so that what is left to do there is to paste it: the page
+          // asks for the code to be typed on purpose (it shows nothing of it, so that a link someone sent cannot get a device approved by itself).
           const openPage = () => {
             const url = view.pairing !== undefined && view.pairing !== null ? view.pairing.activation_url : null
+            copy()
             if (typeof url === 'string' && url !== '') window.open(url, '_blank', 'noopener,noreferrer')
           }
 
