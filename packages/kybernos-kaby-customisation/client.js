@@ -176,11 +176,11 @@ window.__ModuleLoader__.load({
       '.kbkc-titlerow h4{margin:0;font-size:22px;font-weight:700}',
       '.kbkc-lead{margin:4px 0 0;color:var(--dsw-alias-label-secondary,#666);max-width:62ch}',
       '.kbkc-card{border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.3));border-radius:16px;padding:18px 20px;display:flex;flex-direction:column;gap:14px}',
-      '.kbkc-cap{font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--dsw-alias-label-secondary,#666)}',
+      '.kbkc-cap{font-size:12px;font-weight:700;color:var(--dsw-alias-label-secondary,#666)}',
       '.kbkc-id{display:flex;gap:20px;align-items:flex-start}',
       '.kbkc-tile{position:relative;width:176px;height:176px;border-radius:14px;overflow:hidden;flex:none;background:var(--dsw-alias-bg-layer-2,rgba(127,127,127,.16));display:grid;place-items:center}',
       '.kbkc-tile img{width:100%;height:100%;object-fit:cover;display:block}',
-      '.kbkc-mono{font-size:76px;font-weight:700;color:var(--dsw-alias-label-primary,#222)}',
+      '.kbkc-mono{width:100%;height:100%;color:var(--dsw-alias-label-primary,#222)}',
       '.kbkc-busy{position:absolute;inset:0;display:grid;place-items:center;align-content:center;gap:8px;background:var(--dsw-alias-bg-layer-1,rgba(0,0,0,.55));font-size:13px}',
       '.kbkc-col{flex:1 1 auto;display:flex;flex-direction:column;gap:8px;min-width:0}',
       '.kbkc-lab{font-size:12.5px;font-weight:700;color:var(--dsw-alias-label-secondary,#666)}',
@@ -389,7 +389,7 @@ window.__ModuleLoader__.load({
           h('div', { key: 'c', className: 'kbkc-cap' }, kt('Identité', 'Identity')),
           h('div', { key: 'r', className: 'kbkc-id' }, [
             h('div', { key: 't', className: 'kbkc-tile' }, [
-              hasPortrait ? h('img', { key: 'i', src: profile.portrait.url, alt: kt('Portrait de ', 'Portrait of ') + name, 'data-kb': 'kaby-custom-portrait' }) : h('span', { key: 'm', className: 'kbkc-mono', 'aria-hidden': 'true' }, (name.trim().charAt(0) || 'K').toUpperCase()),
+              hasPortrait ? h('img', { key: 'i', src: profile.portrait.url, alt: kt('Portrait de ', 'Portrait of ') + name, 'data-kb': 'kaby-custom-portrait' }) : h('svg', { key: 'm', className: 'kbkc-mono', viewBox: '0 0 100 100', 'aria-hidden': 'true' }, h('text', { x: 50, y: 68, textAnchor: 'middle', fontSize: 64, fontWeight: 700, fill: 'currentColor' }, (name.trim().charAt(0) || 'K').toUpperCase())),
               gen.busy ? h('div', { key: 'b', className: 'kbkc-busy', role: 'status' }, [h('span', { key: 's', className: 'kbkc-spin' }), kt('Génération…', 'Generating…')]) : null
             ]),
             h('div', { key: 'f', className: 'kbkc-col' }, [
