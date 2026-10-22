@@ -227,6 +227,22 @@ writeFileSync(file, good)
   writeFileSync(file, good)
 }
 
+/* ── The suggestions that wait for a click on a page (memory, instructions) ───── */
+{
+  const sf = join(dshHome, 'kybernos', 'suggestions.json')
+  const S = '/kybernos/suggestions'
+  eq('the suggestions route refuses a foreign Origin', (await call('GET', undefined, { origin: 'http://evil.example' }, S)).status, 403)
+  eq('...and a missing session', (await call('GET', undefined, { cookie: '' }, S)).status, 401)
+  eq('...and a method that is not GET or POST', (await call('PUT', undefined, {}, S)).status, 405)
+  eq('an empty ledger lists nothing', JSON.stringify((await call('GET', undefined, {}, S)).json), '{"ok":true,"items":[]}')
+  writeFileSync(sf, JSON.stringify({ version: 1, items: [{ id: 's_a', kind: 'memory', text: 'Clients are private individuals', from: { n: 14 }, at: 'x' }, { id: 's_b', kind: 'instructions', text: 'Write in French', from: {}, at: 'x' }] }))
+  eq('GET lists everything, or one kind', [(await call('GET', undefined, {}, S)).json.items.length, (await call('GET', undefined, {}, S + '?kind=memory')).json.items.map((i) => i.id).join(), (await call('GET', undefined, {}, S + '?kind=instructions')).json.items.map((i) => i.id).join()].join('|'), '2|s_a|s_b')
+  eq('POST needs a resolve and an id', (await call('POST', JSON.stringify({ action: 'resolve' }), {}, S)).status, 400)
+  eq('resolving removes the item', (await call('POST', JSON.stringify({ action: 'resolve', id: 's_a' }), {}, S)).json.ok === true && (await call('GET', undefined, {}, S)).json.items.length === 1, true)
+  eq('resolving an unknown id says so', (await call('POST', JSON.stringify({ action: 'resolve', id: 'nope' }), {}, S)).json.error, 'not found')
+  rmSync(sf, { force: true })
+}
+
 /* ── The tick, on the real code ───────────────────────────────────────────── */
 {
   const all = onDisk()

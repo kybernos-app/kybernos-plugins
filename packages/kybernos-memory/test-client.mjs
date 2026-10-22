@@ -449,6 +449,17 @@ console.log('skills from lessons')
   delete globalThis.window.__KB_LEARNED__
 }
 
+// ── Kaby's suggested memories (the ledger of the core plugin, kind « memory »)
+console.log('suggested memories')
+{
+  check('the page asks the ledger for the memory kind and draws a dashed block above the list, after the notes', SOURCE.includes("'/kybernos/suggestions?kind=memory'") && SOURCE.includes("'data-sug': 'block'") && SOURCE.indexOf('h(MemSuggest,') > SOURCE.indexOf('teamMode ? null : notes'))
+  check('the block shows on the Memories tab only, never in team mode', SOURCE.includes('teamMode || !mems ? null : h(MemSuggest,'))
+  check('Add keeps the text through the ordinary add route (a fact, not pinned, taught), then tells the ledger and the list', SOURCE.includes("api('/kybernos-cloud/memory/add', { content: it.text, kind: 'fact', pinned: false, source: 'taught' })") && SOURCE.includes("await resolve(it.id); drop(it.id); onChanged()"))
+  check('without an account Add and Edit wait (disabled) and the block says why, in both languages', SOURCE.includes("disabled: busy !== '' || connected !== true") && SOURCE.includes("'data-sug': 'account'") && SOURCE.includes('Connect your account to keep them') && SOURCE.includes('Connecte ton compte pour les garder'))
+  check('Discard asks nothing of the account: it only resolves the suggestion', /discard = async \(it\) => \{ drop\(it\.id\); await resolve\(it\.id\) \}/.test(SOURCE))
+  check('Edit opens the usual sheet with the text, and the ledger is told only once the memory is saved', SOURCE.includes("onSaved: done }) }), teamMode") && SOURCE.includes("typeof sheet.onSaved === 'function'"))
+}
+
 console.error = realError
 console.log('\n' + String(pass) + ' verifications, ' + String(fail) + ' failure(s)')
 process.exit(fail === 0 ? 0 : 1)
