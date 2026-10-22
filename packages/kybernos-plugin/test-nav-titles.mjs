@@ -22,7 +22,7 @@ if (a < 0 || b < a) { console.log('  ✗ cannot cut the nav title helpers out of
 const { KB_NAV_KEYS, kbNavKeyOf, kbNavTitles } = new Function(SRC.slice(a, b) + '\nreturn { KB_NAV_KEYS, kbNavKeyOf, kbNavTitles }')()
 
 // What the organiser knows by title (its GROUPES and ICONES, in normalised form): every key must lead to a title it can place.
-const ORGANISER = new Set(readFileSync(new URL('./client.js', import.meta.url), 'utf8').match(/'[a-z0-9 &.-]+'/g).map((x) => x.slice(1, -1)))
+const ORGANISER = new Set(readFileSync(new URL('./client.js', import.meta.url), 'utf8').match(/'[a-z0-9 &.()-]+'/g).map((x) => x.slice(1, -1)))
 const cell = (key) => ({ ['__reactFiber$abc']: { key } })
 
 console.log('a cell is named by its React key')
