@@ -129,10 +129,13 @@ window.__ModuleLoader__.load({
         Object.keys(o.ov || {}).forEach((k) => { if (k.indexOf(mode + ':') === 0) { t[k.slice(mode.length + 1)] = o.ov[k] } })
         // Colour-blind palette: the green/red pair becomes blue/vermilion (Okabe-Ito, distinguishable by the three
         // common forms of colour blindness), and it really is `ok` / `err` — applied tokens — that change, not
-        // just their soft backgrounds. Each ink keeps ≥ 5:1 on layer 1 (tested).
+        // just their soft backgrounds. `warn` moves too: amber (38°) sat 14° from the new orange `err` (24°), the very
+        // pair this palette exists to separate, so it takes the Okabe-Ito bluish green. Each ink keeps ≥ 5:1 on
+        // layer 1 and the three stay apart under simulated protanopia / deuteranopia (tested). The grade inks of
+        // the notes (`.kbth-gr-*`, CSS below) repeat these hexes: a test pins them to this function.
         if (o.cb) {
-          t.ok = dark ? '#56B4E9' : '#0072B2'; t.err = dark ? '#FF8A3D' : '#B84A00'
-          t.okSoft = dark ? '#10263F' : '#E3EEFF'; t.errSoft = dark ? '#3D2A10' : '#FFEBD6'
+          t.ok = dark ? '#56B4E9' : '#0072B2'; t.err = dark ? '#FF8A3D' : '#B84A00'; t.warn = dark ? '#14B58A' : '#00785A'
+          t.okSoft = dark ? '#10263F' : '#E3EEFF'; t.errSoft = dark ? '#3D2A10' : '#FFEBD6'; t.warnSoft = dark ? '#0F2E27' : '#DDF3EC'
         }
         let acc = o.acc || t.brand
         // An accent that blends into the surface (the black of the last dot, on the dark theme) makes
@@ -2510,7 +2513,11 @@ body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#15803D}
 body:not([data-ds-dark-theme]) .kbth-gr-warn{--kbth-ink:#B45309}
 body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B91C1C}
 html[data-kbth-cb] .kbth-gr-ok{--kbth-ink:#56B4E9}
+html[data-kbth-cb] .kbth-gr-warn{--kbth-ink:#14B58A}
+html[data-kbth-cb] .kbth-gr-err{--kbth-ink:#FF8A3D}
 html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2}
+html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-warn{--kbth-ink:#00785A}
+html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A00}
 .kbth-a11y-badge[class*="kbth-gr-"],.kbth-tok-badge[class*="kbth-gr-"]{color:var(--kbth-ink);border-color:var(--kbth-ink)}
 [hidden]{display:none!important}
 
@@ -3670,7 +3677,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
             h('div', { className: 'kbth-sec-d' }, kt('Repères supplémentaires.', 'Extra aids.'))),
           toggle(kt('Cibles de 44 px', '44 px targets'), S.largeTargets, () => commit({ largeTargets: !S.largeTargets }), kt('Boutons et champs d’au moins 44 px de haut.', 'Buttons and fields at least 44 px tall.')),
           toggle(kt('Soulignement des liens', 'Link underlining'), S.underlineLinks, () => commit({ underlineLinks: !S.underlineLinks })),
-          toggle(kt('Palette daltonisme', 'Color-blind palette'), S.cbSafe, () => commit({ cbSafe: !S.cbSafe }), kt('Succès et erreurs en bleu et orange plutôt qu’en vert et rouge.', 'Success and errors in blue and orange rather than green and red.')))
+          toggle(kt('Palette daltonisme', 'Color-blind palette'), S.cbSafe, () => commit({ cbSafe: !S.cbSafe }), kt('Succès en bleu, alertes en vert bleuté et erreurs en orange plutôt qu’en vert, ambre et rouge.', 'Success in blue, warnings in bluish green and errors in orange rather than green, amber and red.')))
 
         // ── Sharing tab: your themes, import, and the file of the current look ───────────
         const importThemeFile = (file) => {
