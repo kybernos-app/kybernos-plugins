@@ -748,7 +748,7 @@ function t(t,e,s){if(t&&t.length){const[n,o]=e,a=Math.PI/180*s,h=Math.cos(a),r=M
     const PINCEAU = { on: false, coul: '#E1502A', outil: 'trait', trait: null, texte: null, texteEnAttente: null }
     const COULEURS_PEN = ['#E1502A', '#2A6FD6', '#F2C31A']
     const OUTILS_PEN = [
-      { id: 'trait', label: '✏', get titre () { return kt('Trait libre', 'Freehand') } },
+      { id: 'trait', label: '✎', get titre () { return kt('Trait libre', 'Freehand') } },
       { id: 'rect', label: '▭', get titre () { return kt('Rectangle', 'Rectangle') } },
       { id: 'ellipse', label: '◯', get titre () { return kt('Ellipse', 'Ellipse') } },
       { id: 'fleche', label: '➔', get titre () { return kt('Flèche', 'Arrow') } },
@@ -1185,8 +1185,8 @@ function t(t,e,s){if(t&&t.length){const[n,o]=e,a=Math.PI/180*s,h=Math.cos(a),r=M
         ANN.traits.length > 0
           ? h('div', { className: 'kbmo-note' },
               ANN.traits.length === 1
-                ? kt('✏️ 1 trait dessiné par-dessus — demande au chat : « réajuste d\'après mes traits »', '✏️ 1 stroke drawn on top — ask the chat: “readjust from my strokes”')
-                : kt(`✏️ ${ANN.traits.length} traits dessinés par-dessus — demande au chat : « réajuste d'après mes traits »`, `✏️ ${ANN.traits.length} strokes drawn on top — ask the chat: “readjust from my strokes”`))
+                ? kt('1 trait dessiné par-dessus — demande au chat : « réajuste d\'après mes traits »', '1 stroke drawn on top — ask the chat: “readjust from my strokes”')
+                : kt(`${ANN.traits.length} traits dessinés par-dessus — demande au chat : « réajuste d'après mes traits »`, `${ANN.traits.length} strokes drawn on top — ask the chat: “readjust from my strokes”`))
           : null,
       )
 
