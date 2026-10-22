@@ -40,7 +40,7 @@ import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, 
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { openLivePage, openSettings as openSettingsLive, clickText as clickTextLive } from './live-page.mjs'
+import { openLivePage, openSettings as openSettingsLive, clickText as clickTextLive, openThemeAdvanced } from './live-page.mjs'
 import { createFlow } from './lib-language-flow.mjs'
 import { profilePatch } from './dsh-home.mjs'
 
@@ -231,6 +231,8 @@ const modeGuard = async () => {
 const clickEl = async (expr) => {
   trail.push('click ' + expr.replace(/\s+/g, ' ').slice(0, 70))
   await modeGuard()
+  // The Advanced editor (everything this script drives) sits folded under the simple view and folds again whenever the page is drawn anew: open it first.
+  if ((await val(`(() => { const d = document.querySelector('[data-kb="theme-classic"]'); if (d && !d.open) { d.open = true; d.dispatchEvent(new Event('toggle')); return true } return false })()`)) === true) await sleep(250)
   await val(`(() => { const e = ${expr}; if (e) e.scrollIntoView({ block: 'center' }) })()`)
   await sleep(60)
   const pos = await val(`(() => { const e = ${expr}; if (!e) return null; const r = e.getBoundingClientRect(); if (r.width < 1 || r.height < 1) return 'hidden'; const x = r.left + r.width / 2, y = r.top + r.height / 2; const t = document.elementFromPoint(x, y); const ms = ${Q.modeSeg}; return JSON.stringify({ x, y, ok: !!t && (e === t || e.contains(t) || t.contains(e)), over: t ? (t.tagName + '.' + String(t.className).slice(0, 40)) : null, // a theme of yours was saved from the look in use: it carries the mode that is already there (the library section checks it), so it is not a « Light theme » click
@@ -364,6 +366,8 @@ const openTheme = async ({ fresh = false, settle = true } = {}) => {
     }
     if (!opened) await flow.openSettings(THEME_LABELS)
     if (await until(() => val(`!!document.querySelector('.kbth-page')`), 5000)) {
+      // The page opens on its simple view; the editor this script drives (the nine tabs, the shipped themes, the mode cards) is folded under it.
+      await openThemeAdvanced(page)
       try { await page.send('Page.bringToFront', {}); await page.send('Emulation.setFocusEmulationEnabled', { enabled: true }) } catch (e) { /* not available */ }
       if (settle && !(await settleMode())) throw new Error('the native mode never settled on "' + startMode + '" (nothing is clicked): ' + JSON.stringify({ ui: await modeInfo(), stored: storedUi(), level: (await store() || {}).level }))
       return true
@@ -520,7 +524,7 @@ try {
     check('Settings › Theme opens on the real GUI (title « Theme »)', /^(theme|thème)$/i.test(j.title), j.title)
     check('there is no Simple / Advanced switch any more (no button of that name, no segment in the header)', j.switchLike === false, j.switchLike)
     check('the tabs are stacked vertically on the left, « Essentiel » the one open (and the only one pressed)', j.tabs.length === TAB_IDS.length && j.tabs.every((t) => t.x === j.tabs[0].x) && j.tabs.every((t, i) => i === 0 || t.y > j.tabs[i - 1].y) && j.tabs[0].on === true && j.tabs[0].pressed === 'true' && j.tabs.filter((t) => t.on).length === 1, j.tabs)
-    check('the header says the basic settings are in « Essentiel »', /essentiel|essentials?/i.test(j.sub), j.sub)
+    check('the header sends to the window below, and says every setting stays in the advanced editor', /advanced editor|éditeur avancé/i.test(j.sub), j.sub)
     // The mode is set on the Theme page, on three cards (Light, Dark, System), the native one checked; no segmented selector and no button to another page.
     check('Mode cards: Light, Dark, System, the native mode (' + startMode + ') checked, no selector and no button to another page', j.mode.cards === 'light,dark,system' && j.mode.checked === startMode && j.mode.selector === false && j.mode.openButton === false, j.mode)
     check('18 shipped theme dots (and the add button next to « My themes »), each with a coloured disc, a name and « name — mode · accent » as label', j.skins === 18 && j.skinNamed === true, { n: j.skins, named: j.skinNamed })
@@ -1510,7 +1514,7 @@ try {
       let disk = null
       try { disk = JSON.parse(readFileSync(hostFile, 'utf8')) } catch (e) { disk = null }
       check('saving writes <DSH_HOME>/kybernos/theme-presets.json (after a short pause): one theme, same name, same clock as the browser copy', !!onDisk && disk !== null && disk.presets.length === 1 && disk.presets[0].name === 'Sur disque' && disk.updatedAt === (await libJson()).updatedAt, disk && { n: disk.presets.length, at: disk.updatedAt })
-      check('… the file holds only data: known settings, no skin, no text size', disk !== null && !('skin' in disk.presets[0].settings) && !('fs' in disk.presets[0].settings) && Object.keys(disk.presets[0].settings).every((k) => /^(mode|acc|ov|fontText|ligatures|radius|iconSet|wp|wpVis|wpBlur|tint|glass\w+|sidebar\w+|fieldOpacity|floatOpacity|bg\w+)$/.test(k)), disk && Object.keys(disk.presets[0].settings))
+      check('… the file holds only data: known settings, no skin, no text size', disk !== null && !('skin' in disk.presets[0].settings) && !('fs' in disk.presets[0].settings) && Object.keys(disk.presets[0].settings).every((k) => /^(mode|acc|ov|sideTone|fontText|ligatures|radius|shadow|glow|iconSet|bubbleUser|textUser|replyBg|replyColor|textReply|wp|wpVis|wpBlur|tint|glass\w+|sidebar\w+|fieldOpacity|floatOpacity|bg\w+)$/.test(k)), disk && Object.keys(disk.presets[0].settings))
       // clear the browser: the disk brings it back
       await val(`localStorage.removeItem(${JSON.stringify(LIB)})`)
       await reloadBoot()

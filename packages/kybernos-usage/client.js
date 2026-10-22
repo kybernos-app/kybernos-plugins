@@ -558,7 +558,7 @@ body:not([data-ds-dark-theme]) .kbus-page{--dsw-alias-label-tertiary:var(--dsw-a
           onPlan ? h('p', { className: 'kbus-line' }, L('viaPlan')) : null,
           h('p', { className: 'kbus-line' }, L('detailHint')))
 
-        return h('span', { className: 'kbus-wrap', ref: wrap },
+        return h('span', { className: 'kbus-wrap', ref: wrap, 'data-kb': 'usage-chip' },
           h('button', { type: 'button', className: 'kbus-pill ' + cls, 'aria-expanded': open ? 'true' : 'false', 'aria-haspopup': 'dialog', 'data-kb': 'kybernos-usage-pill', 'data-act': 'toggle', title: aria, onClick: () => setOpen(!open) },
             h('span', { className: 'kbus-ico' }, svg(onPlan ? ICON.gauge : ICON.coin)),
             h('span', { className: 'kbus-n' }, label)),

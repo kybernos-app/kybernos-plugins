@@ -13,7 +13,7 @@
 import { readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { openLivePage, openSettings, goToSettingsPage } from './live-page.mjs'
+import { openLivePage, openSettings, goToSettingsPage, openThemeAdvanced } from './live-page.mjs'
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const args = process.argv.slice(2)
@@ -37,6 +37,7 @@ const click = async (x, y) => { for (const type of ['mouseMoved', 'mousePressed'
 /** Presses the Theme page's mode card that starts with `name`; resolves the name of the card that was current before (so it can be put back). */
 const pickMode = async (name) => {
   await goToSettingsPage(page, 'Theme', { settleMs: 1500 })
+  await openThemeAdvanced(page) // the mode cards sit in the Advanced editor, folded under the simple view
   const before = await ev(`(() => { const c = Array.from(document.querySelectorAll('.kbth-mode')).find((x) => /current/i.test(x.innerText || '')); return c ? (c.innerText || '').trim().split('\\n')[0] : null })()`)
   const at = await ev(`(() => { const e = Array.from(document.querySelectorAll('.kbth-mode')).find((x) => (x.innerText || '').trim().startsWith(${JSON.stringify(name)})); if (!e) return null; const r = e.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 } })()`)
   if (at === null) throw new Error('the Theme page has no « ' + name + ' » mode card')

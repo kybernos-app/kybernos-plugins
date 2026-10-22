@@ -951,6 +951,128 @@ section('export: three real formats')
 
 // ═══ 7. Render stage (needs react) ═════════════════════════════════════════
 // ═══ Theme library (« My themes ») ═══════════════════════════════════════════
+// ═══ The look studio: the settings it adds, and what applies them ════════════
+section('look studio: stored settings (bubbles, replies, sidebar tone, shadows, pills)')
+{
+  const D = T.DEF
+  check('the defaults leave DSH alone', D.bubbleUser === 'auto' && D.textUser === null && D.replyBg === 'none' && D.replyColor === null && D.textReply === null && D.sideTone === 'auto' && D.shadow === 'none' && D.glow === false && D.wgSessions === true && D.wgChanges === true && D.wgUsage === true)
+  const v = T.valeursValides
+  check('a bubble is one of DSH\'s choices or any hex colour, nothing else', v({ bubbleUser: 'accent' }).bubbleUser === 'accent' && v({ bubbleUser: '#ABCDEF' }).bubbleUser === '#abcdef' && v({ bubbleUser: 'purple' }).bubbleUser === undefined && v({ bubbleUser: 5 }).bubbleUser === undefined && v({ bubbleUser: 'url(x)' }).bubbleUser === undefined)
+  check('the three text / reply colours are a hex or null, nothing else', ['textUser', 'replyColor', 'textReply'].every((k) => v({ [k]: '#FFF' })[k] === '#ffffff' && v({ [k]: null })[k] === null && v({ [k]: 'red' })[k] === undefined && v({ [k]: 3 })[k] === undefined))
+  check('the choices are checked: reply frame, sidebar tone, shadows', v({ replyBg: 'card' }).replyBg === 'card' && v({ replyBg: 'x' }).replyBg === undefined && v({ sideTone: 'tinted' }).sideTone === 'tinted' && v({ sideTone: 'x' }).sideTone === undefined && v({ shadow: 'soft' }).shadow === 'soft' && v({ shadow: 'x' }).shadow === undefined)
+  check('the booleans are checked: glow and the three pills', ['glow', 'wgSessions', 'wgChanges', 'wgUsage'].every((k) => v({ [k]: false })[k] === false && v({ [k]: 'no' })[k] === undefined))
+  reset()
+  store.set(T.STORE_KEY, JSON.stringify({ bubbleUser: 'weird', textUser: 'blue', replyBg: 'x', replyColor: 7, sideTone: 3, shadow: null, glow: 'yes', wgUsage: 0 }))
+  const st = T.readState()
+  check('a damaged stored value falls back to the default (never to a broken style)', st.bubbleUser === 'auto' && st.textUser === null && st.replyBg === 'none' && st.replyColor === null && st.sideTone === 'auto' && st.shadow === 'none' && st.glow === false && st.wgUsage === true, st)
+  store.set(T.STORE_KEY, JSON.stringify({ bubbleUser: '#123456', textUser: '#ffffff', replyBg: 'tint', textReply: null }))
+  const st2 = T.readState()
+  check('good values are kept', st2.bubbleUser === '#123456' && st2.textUser === '#ffffff' && st2.replyBg === 'tint' && st2.textReply === null)
+  const imp = T.sanitiserImport({ bubbleUser: '#aabbcc', replyBg: 'outline', sideTone: 'darker', textReply: '#111111', glow: true, wgChanges: false, shadow: 'soft' })
+  check('an imported file can set them, with the same checks', imp.bubbleUser === '#aabbcc' && imp.replyBg === 'outline' && imp.sideTone === 'darker' && imp.textReply === '#111111' && imp.glow === true && imp.wgChanges === false && imp.shadow === 'soft')
+  check('...and cannot smuggle a style through them', T.sanitiserImport({ bubbleUser: 'red;}body{display:none', textUser: 'url(//x)', replyColor: '#12345g' }).bubbleUser === undefined && T.sanitiserImport({ textUser: 'url(//x)' }).textUser === undefined && T.sanitiserImport({ replyColor: '#12345g' }).replyColor === undefined)
+  check('a theme keeps the chat settings in their own group, the sidebar tone with the colours, shadows with the corners', T.PRESET_GROUPS.chat.join() === 'bubbleUser,textUser,replyBg,replyColor,textReply' && T.PRESET_GROUPS.colors.includes('sideTone') && T.PRESET_GROUPS.radius.includes('shadow') && T.PRESET_GROUPS.radius.includes('glow'))
+  const pre = T.presetFromState({ ...D, bubbleUser: '#aabbcc', replyBg: 'card' }, { chat: true })
+  check('saved with « chat », a theme carries the bubble and the frame; without it, it does not', pre.bubbleUser === '#aabbcc' && pre.replyBg === 'card' && !('bubbleUser' in T.presetFromState({ ...D, bubbleUser: '#aabbcc' }, {})))
+  const withNull = T.presetFromState({ ...D, textUser: null }, { chat: true })
+  check('a null text colour survives the sanitiser and the host store', T.presetSettings(withNull) !== null && T.presetSettings(withNull).textUser === null && sanitizeLibrary({ presets: [{ id: 'u-n', name: 'N', settings: { ...T.presetSettings(withNull), bubbleUser: '#aabbcc' } }] }).library.presets.length === 1)
+}
+
+section('look studio: the tone of the sidebar')
+{
+  const base = { acc: null, ov: {}, lvl: 0, cb: false, tint: 0, dom: '' }
+  for (const mode of ['light', 'dark']) {
+    const a = T.makeTheme(mode, base).side
+    const dk = T.makeTheme(mode, { ...base, sideTone: 'darker' }).side
+    const lt = T.makeTheme(mode, { ...base, sideTone: 'lighter' }).side
+    const ti = T.makeTheme(mode, { ...base, acc: '#EC4899', sideTone: 'tinted' }).side
+    const lu = (c) => { const p = T.HEX(c); return 0.2126 * p[0] + 0.7152 * p[1] + 0.0722 * p[2] }
+    check(mode + ': « auto » keeps the sidebar of the theme; darker is darker, lighter is lighter', T.makeTheme(mode, { ...base, sideTone: 'auto' }).side === a && lu(dk) < lu(a) && lu(lt) > lu(a), { a, dk, lt })
+    const dist = (x, y) => { const p = T.HEX(x), q = T.HEX(y); return Math.abs(p[0] - q[0]) + Math.abs(p[1] - q[1]) + Math.abs(p[2] - q[2]) }
+    check(mode + ': tinted pulls the sidebar towards the accent', ti !== a && dist(ti, '#EC4899') < dist(a, '#EC4899'), { a, ti })
+  }
+  const ov = T.makeTheme('dark', { ...base, ov: { 'dark:side': '#202020' }, sideTone: 'darker' }).side
+  check('the tone is taken from the sidebar colour the scheme ended with (a theme\'s own, or an edit)', ov === T.mix('#202020', '#000000', 0.35))
+  const j = T.jetonsDe({ ...T.DEF, sideTone: 'darker' })
+  check('the sidebar token carries the tone; the tone alone makes the layer exist', j !== null && j['--dsw-specific-sidebar-fill'].dark === T.makeTheme('dark', { ...base, sideTone: 'darker' }).side && T.jetonsDe({ ...T.DEF }) === null)
+}
+
+section('look studio: your bubble (a token) and the text colours')
+{
+  const o = T.optsDe({ ...T.DEF })
+  const cl = T.makeTheme('light', o), cd = T.makeTheme('dark', o)
+  const b = (st, c, dark) => T.bulleDe({ ...T.DEF, ...st }, c, dark)
+  check('auto: DSH\'s own bubble, no text colour of ours', b({}, cl, false).bg === null && b({}, cl, false).text === null)
+  check('accent: the filled accent, with a text that reads on it', b({ bubbleUser: 'accent', acc: '#EC4899' }, T.makeTheme('light', T.optsDe({ ...T.DEF, acc: '#EC4899' })), false).bg === T.makeTheme('light', T.optsDe({ ...T.DEF, acc: '#EC4899' })).fill)
+  check('dark: black on dark, ink on light', b({ bubbleUser: 'dark' }, cd, true).bg === '#000000' && b({ bubbleUser: 'dark' }, cl, false).bg === '#1D1F24')
+  check('a custom colour is used as is, and its text is whichever of white / ink reads best', (() => { const x = b({ bubbleUser: '#ffee00' }, cl, false), y = b({ bubbleUser: '#101030' }, cl, false); return x.bg === '#ffee00' && x.text === '#0F1115' && y.text === '#FFFFFF' })())
+  check('a chosen text colour wins over the automatic one', b({ bubbleUser: '#101030', textUser: '#fde68a' }, cl, false).text === '#fde68a' && b({ textUser: '#fde68a' }, cl, false).text === '#fde68a' && b({ textUser: '#fde68a' }, cl, false).bg === null)
+  check('every automatic text reads at 4.5:1 or better on its bubble (accent, soft, dark, a dozen colours)', ['accent', 'soft', 'dark', '#ff0000', '#00ff00', '#0000ff', '#ffff00', '#808080', '#ff00ff', '#00ffff', '#ffa500', '#123456'].every((v) => ['light', 'dark'].every((mode) => { const c = T.makeTheme(mode, T.optsDe({ ...T.DEF, acc: '#4176E6' })); const r = b({ bubbleUser: v, acc: '#4176E6' }, c, mode === 'dark'); return r.bg === null || T.ratio(r.text, r.bg) >= 4.5 })))
+  const j = T.jetonsDe({ ...T.DEF, bubbleUser: '#aabbcc' })
+  check('a bubble colour is the token DSH paints its bubble with, one value per scheme', j !== null && j['--dsw-specific-bubble'].light === '#aabbcc' && j['--dsw-specific-bubble'].dark === '#aabbcc' && !('--dsw-specific-bubble' in T.jetonsDe({ ...T.DEF, acc: '#4176E6' })))
+  const ja = T.jetonsDe({ ...T.DEF, bubbleUser: 'accent', acc: '#EC4899' })
+  check('« accent » follows each scheme\'s own accent fill', ja['--dsw-specific-bubble'].light === T.makeTheme('light', T.optsDe({ ...T.DEF, acc: '#EC4899' })).fill && ja['--dsw-specific-bubble'].dark === T.makeTheme('dark', T.optsDe({ ...T.DEF, acc: '#EC4899' })).fill)
+  check('the bubble alone makes the layer exist (it is not the « natural » look)', T.estNaturel({ ...T.DEF }) === true && T.estNaturel({ ...T.DEF, bubbleUser: 'dark' }) === false && T.estNaturel({ ...T.DEF, sideTone: 'darker' }) === false)
+  const css = (st) => T.effetsCss({ ...T.DEF, ...st })
+  check('the text colour is scoped to your messages by DSH\'s marker, never to the whole app', /\[data-chat-flow-kind="user"\]\{--dsw-alias-label-primary:#fde68a\}/.test(css({ textUser: '#fde68a' })) && !/^\*|(^|\})body\{/.test(css({ textUser: '#fde68a' })))
+  const auto = css({ bubbleUser: 'dark' })
+  check('an automatic text colour is written per scheme (white on the dark bubble of dark, on the ink one of light)', /body:not\(\[data-ds-dark-theme\]\) \[data-chat-flow-kind="user"\]\{--dsw-alias-label-primary:#FFFFFF\}/.test(auto) && /body\[data-ds-dark-theme\] \[data-chat-flow-kind="user"\]\{--dsw-alias-label-primary:#FFFFFF\}/.test(auto))
+  check('nothing for auto', css({ bubbleUser: 'auto' }) === '')
+}
+
+section('look studio: the agent\'s replies, shadows, glow, the pills under the message box')
+{
+  const css = (st) => T.effetsCss({ ...T.DEF, ...st })
+  const R = '[data-chat-group-part="response"]{'
+  check('no frame by default', !css({}).includes('data-chat-group-part'))
+  const card = css({ replyBg: 'card' })
+  check('card: a background, a hairline, rounded and padded, on the container of the reply', card.includes(R) && /background:color-mix/.test(card) && /border:1px solid var\(--dsw-alias-border-l2\)/.test(card) && /border-radius:var\(--dsw-radius-lg,16px\)/.test(card) && /padding:10px 14px/.test(card))
+  check('outline: a border only', (() => { const x = css({ replyBg: 'outline' }); return x.includes(R) && /border:1px solid var\(--dsw-alias-border-l4\)/.test(x) && !/background:/.test(x) })())
+  check('tint: the accent at 12 %', /background:color-mix\(in srgb,var\(--dsw-alias-brand-primary\) 12%,transparent\)/.test(css({ replyBg: 'tint' })))
+  check('a reply colour: the card is that colour (text that reads on it), the outline is that colour, the tint is made of it', (() => { const a = css({ replyBg: 'card', replyColor: '#fde68a' }), b = css({ replyBg: 'outline', replyColor: '#ff0000' }), c = css({ replyBg: 'tint', replyColor: '#00aa00' }); return /background:#fde68a/.test(a) && /color:#0F1115/.test(a) && /border:1px solid #ff0000/.test(b) && /#00aa00 12%/.test(c) })())
+  check('a reply text colour alone frames nothing and sets the text of the reply only', (() => { const x = css({ textReply: '#a7f3d0' }); return x.includes(R) && /color:#a7f3d0/.test(x) && /--dsw-alias-label-primary:#a7f3d0/.test(x) && !/padding/.test(x) })())
+  check('shadows: soft shadow on menus, lists and the message box', /\[role="menu"\],\[role="listbox"\]\{box-shadow:0 4px 14px/.test(css({ shadow: 'soft' })) && /\[data-composer-card\]\{box-shadow:0 4px 14px/.test(css({ shadow: 'soft' })))
+  check('glow: a light of the accent around the message box, with the shadow when both are on', /\[data-composer-card\]\{box-shadow:0 0 18px color-mix/.test(css({ glow: true })) && /box-shadow:0 4px 14px rgba\(0,0,0,\.2\),0 0 18px/.test(css({ glow: true, shadow: 'soft' })))
+  check('with Liquid glass the highlight is kept under the shadow', /box-shadow:0 4px 14px rgba\(0,0,0,\.2\),inset 0 0 0 \.5px/.test(css({ wp: 'aurore', glassEffect: 'liquid', glassBlur: 20, shadow: 'soft' })))
+  const dock = '[data-slot="conversation.composer.dock"]'
+  check('the pills are shown unless switched off, each on its own', css({}) === '' && css({ wgSessions: false }) === dock + ' [data-kb="status-pill"]{display:none!important}' && css({ wgChanges: false }) === dock + ' [data-kb="changes"]{display:none!important}' && css({ wgUsage: false }) === dock + ' [data-kb="usage-chip"]{display:none!important}')
+  check('everything on at once is still well formed', (() => { const x = css({ wp: 'aurore', glassEffect: 'liquid', bubbleUser: '#123456', textUser: '#fff', replyBg: 'card', replyColor: '#aa5500', textReply: '#000', shadow: 'soft', glow: true, wgSessions: false, wgChanges: false, wgUsage: false, sideTone: 'tinted' }); return (x.match(/\{/g) || []).length === (x.match(/\}/g) || []).length && !x.includes('undefined') && !x.includes('null') })())
+}
+
+section('look studio: vibes, draws, panels')
+{
+  const D = T.DEF
+  const same = (a, b) => JSON.stringify(a).toLowerCase() === JSON.stringify(b).toLowerCase() // the sanitiser lowercases a hex colour; the page keeps an accent as typed
+  check('five vibes, each a whole look made of things that exist', T.ST_VIBES.length === 5 && T.ST_VIBES.every((v) => T.SKINS.some((x) => x.id === v.skin) && T.LD_PRESETS.some((l) => l.id === v.think) && T.LD_PACKS.some((p) => p.id === v.pack) && (v.set.iconSet === undefined || T.ICON_SET_IDS.includes(v.set.iconSet)) && (v.set.fontText === undefined || T.FONTS.some((f) => f.id === v.set.fontText)) && (v.set.wp === undefined || T.WPS.some((w) => w.id === v.set.wp))))
+  check('a vibe sets every key of a look (a vibe starts from the defaults, so it never keeps a bubble or a font of the last one)', T.ST_VIBES.every((v) => { const p = T.stVibePatch(v).state; return T.stLookKeys().every((k) => k in p) && !T.PRESET_GROUPS.a11y.some((k) => k in p) }), T.stVibePatch(T.ST_VIBES[0]).state)
+  check('a vibe never touches accessibility', T.ST_VIBES.every((v) => T.PRESET_GROUPS.a11y.every((k) => !(k in T.stVibePatch(v).state))))
+  check('what a vibe sets survives the sanitiser as is (no value is dropped on the way)', T.ST_VIBES.every((v) => { const p = T.stVibePatch(v).state; const ok = T.sanitiserImport(p); return Object.keys(p).filter((k) => k !== 'skin').every((k) => same(ok[k], p[k])) }), T.ST_VIBES.map((v) => { const p = T.stVibePatch(v).state; const ok = T.sanitiserImport(p); return Object.keys(p).filter((k) => k !== 'skin' && !same(ok[k], p[k])) }))
+  check('the animation of a vibe is one loop and one set of words, both valid', T.ST_VIBES.every((v) => { const l = T.ldClean(T.stVibePatch(v).loop); return l.sel.length === 1 && l.sel[0] === v.think && l.pack === v.pack }))
+  check('the six fonts of the first sight exist, and so do the three sizes', T.ST_FONTS.length === 6 && T.ST_FONTS.every((f) => T.FONTS.some((x) => x.id === f[0])) && T.ST_SIZES.map((z) => z[1]).join() === '13,15,16' && T.ST_SPEEDS.length === 3)
+  const rand = (() => {
+    for (const z of Object.keys(T.ST_RAND)) for (let i = 0; i < 300; i++) {
+      const r = T.ST_RAND[z]()
+      if (r.skin !== undefined && !T.SKINS.includes(r.skin)) return z + ': skin'
+      if (r.state !== undefined) { const ok = T.sanitiserImport(r.state); for (const k of Object.keys(r.state)) if (!same(ok[k], r.state[k])) return z + ': ' + k + ' ' + JSON.stringify(r.state[k]) }
+      if (r.loop !== undefined) { const l = T.ldClean(r.loop); if (r.loop.sel !== undefined && JSON.stringify(l.sel) !== JSON.stringify(r.loop.sel)) return z + ': loop ' + JSON.stringify(r.loop.sel); if (r.loop.pack !== undefined && l.pack !== r.loop.pack) return z + ': pack' }
+    }
+    return true
+  })()
+  check('a random draw per panel is always valid (300 each)', rand === true, rand)
+  const surprise = (() => {
+    for (let i = 0; i < 100; i++) {
+      const r = T.stSurprise()
+      if (Object.keys(r.state).some((k) => T.PRESET_GROUPS.a11y.includes(k) || k.startsWith('wg'))) return 'a need or a pill was drawn'
+      const ok = T.sanitiserImport(r.state)
+      for (const k of Object.keys(r.state)) if (k !== 'skin' && !same(ok[k], r.state[k])) return k + ' ' + JSON.stringify(r.state[k])
+    }
+    return true
+  })()
+  check('« Surprise me » never draws accessibility or the pills, and is valid (100 draws)', surprise === true, surprise)
+  check('the bubble DSH paints by itself is read from the page when there is one, with a fallback', /^#[0-9a-f]{6}$/i.test(T.stDshBubble(false)) && /^#[0-9a-f]{6}$/i.test(T.stDshBubble(true)))
+  void D
+}
+
 section('theme library: what a theme may retain')
 {
   check('the retained keys are exactly the host store\'s list (no drift)', [...T.PRESET_KEYS].sort().join() === [...SETTINGS_KEYS].sort().join(), { client: T.PRESET_KEYS.length, host: SETTINGS_KEYS.length })
@@ -960,6 +1082,7 @@ section('theme library: what a theme may retain')
     iconSet: 'bauhaus', wp: 'nuit', wpVis: 50, wpBlur: 5, tint: 10, glassEffect: 'liquid', glassBlur: 10, sidebarLinked: false, sidebarOpacity: 30, fieldOpacity: 30, floatOpacity: 30,
     bgBrightness: 110, bgContrast: 110, bgSaturation: 110, bgDarken: 10, bgFit: 'fill', bgMirror: true,
     contrastMode: 'plus', cbSafe: true, reduceMotion: true, focusRing: 'thick', largeTargets: true, underlineLinks: true,
+    sideTone: 'tinted', shadow: 'soft', glow: true, bubbleUser: '#aabbcc', textUser: '#ffffff', replyBg: 'card', replyColor: '#445566', textReply: '#111111',
   }
   const got = T.presetSettings(sample)
   check('a value for every retained key survives the sanitiser (nothing a theme saves is dropped on the way back)', got !== null && T.PRESET_KEYS.every((k) => got[k] !== undefined), T.PRESET_KEYS.filter((k) => got === null || got[k] === undefined))
@@ -972,7 +1095,7 @@ section('theme library: what a theme may retain')
 
   const S = { ...T.DEF, mode: 'dark', acc: '#0ea5e9', ov: { 'dark:base': '#101010' }, fontText: 'inter', radius: 'soft', wp: 'nuit', contrastMode: 'max', cbSafe: true }
   const colorsOnly = T.presetFromState(S, {})
-  check('colours always travel, nothing else unless asked', Object.keys(colorsOnly).sort().join() === 'acc,mode,ov', Object.keys(colorsOnly))
+  check('colours always travel, nothing else unless asked', Object.keys(colorsOnly).sort().join() === 'acc,mode,ov,sideTone', Object.keys(colorsOnly))
   const withFont = T.presetFromState(S, { font: true, radius: true })
   check('font and corners travel when asked', withFont.fontText === 'inter' && withFont.radius === 'soft' && withFont.ligatures === true && !('wp' in withFont))
   const all = T.presetFromState(S, { font: true, radius: true, glass: true })
@@ -981,7 +1104,7 @@ section('theme library: what a theme may retain')
   const copy = T.presetFromState(S, {})
   copy.ov['dark:base'] = '#ffffff'
   check('the saved overrides are a copy, not the live object', S.ov['dark:base'] === '#101010')
-  check('groupsOf says which groups a theme retains', JSON.stringify(T.groupsOf(withFont)) === JSON.stringify({ colors: true, font: true, radius: true, icons: false, glass: false, a11y: false }), T.groupsOf(withFont))
+  check('groupsOf says which groups a theme retains', JSON.stringify(T.groupsOf(withFont)) === JSON.stringify({ colors: true, font: true, radius: true, icons: false, chat: false, glass: false, a11y: false }), T.groupsOf(withFont))
 }
 
 section('theme library: records, names and the file')
@@ -1374,7 +1497,8 @@ if (React === null) {
   // The Animation tab: four blocks, the library and the settings stay out of the way.
   real.ld.ctx = mkCtx({}).ctx
   real.ld.S = real.ldClean({})
-  const pane = render({ mode: 'dark' }, 'animation')
+  const page = render({ mode: 'dark' }, 'animation')
+  const pane = page.slice(page.indexOf('data-kb="ld-pane"')) // the studio above it has its own « Me surprendre »
   const ptext = text(pane)
   check('Animation tab: preview, rotation, status text and settings are the four blocks', ['Animation de réflexion', 'Aperçu', 'Ma rotation', 'Texte d’état', 'Réglages'].every((t) => ptext.includes(t)))
   check('...with the draw, add, surprise (animations AND words) and pack buttons', ['Simuler une réponse', 'Ajouter une animation…', 'Modifier mon pack…'].every((t) => ptext.includes(t)) && (pane.match(/Me surprendre/g) || []).length === 2)
@@ -1576,6 +1700,74 @@ if (React === null) {
     LANG = 'kybernos'
     const namesFr = [real.SKINS[0].name, real.WPS[1].name, real.FONTS[0].name, real.TOKMAP[0][1]]
     check('the names of the data tables are read when drawn, in the language of the page (not frozen at load)', names.join() === 'DSH default,OLED black,DSH (default),Base background' && namesFr.join() === 'Défaut DSH,Noir OLED,DSH (défaut),Fond de base', [names, namesFr])
+    LANG = 'kybernos'
+  }
+
+  // ── the look studio, drawn ───────────────────────────────────────────────────
+  section('look studio: the page')
+  {
+    const count = (html, re) => (html.match(re) || []).length
+    const page = render({ ...real.DEF, mode: 'dark' })
+    check('the page opens on the studio, with the five vibes and « Surprise me »', page.includes('data-kb="theme-studio"') && count(page, /data-kb="theme-st-vibe"/g) === 5 && page.includes('data-kb="theme-st-surprise"'))
+    const zones = [...new Set([...page.matchAll(/data-zone="([a-z]+)"/g)].map((m) => m[1]))].sort().join()
+    check('eleven parts of the small window can be clicked', zones === 'accent,agent,icons,letters,mood,sidebar,style,think,user,wall,widgets', zones)
+    check('the parts are real buttons (role, tab stop, a name)', count(page, /data-kb="theme-zone"[^>]*role="button"[^>]*tabindex="0"[^>]*aria-label="[^"]+"/g) >= 11 || count(page, /role="button"[^>]*tabindex="0"[^>]*aria-label="[^"]+"[^>]*data-kb="theme-zone"/g) >= 11 || count(page, /data-zone="[a-z]+"[^>]*tabindex="0"/g) >= 11)
+    check('the three chips for what cannot be pointed at: accent, effects, accessibility', ['accent', 'effects', 'access'].every((z) => page.includes('data-chip="' + z + '"')))
+    check('Undo, Reset, a name, Save, Export and Import', ['theme-st-undo', 'theme-st-reset', 'theme-st-name', 'theme-st-save', 'theme-st-export', 'theme-st-import'].every((k) => page.includes('data-kb="' + k + '"')))
+    check('nothing is open: no panel until a part is clicked', !page.includes('data-kb="theme-st-panel"'))
+    check('the editor of the nine tabs is still whole, folded under it (« Advanced editor »)', /<details[^>]*data-kb="theme-classic"/.test(page) && !/<details[^>]*data-kb="theme-classic"[^>]*\bopen=/.test(page) && page.includes('kbth-adv-tabs') && count(page, /kbth-adv-tab[ "]/g) >= 9 && page.includes('Éditeur avancé'))
+    check('the window draws the look (the accent on the send button, the font of the look)', page.includes('data-kb="theme-st-window"') && /kbth-st-send/.test(page))
+    const dark = render({ ...real.DEF, mode: 'dark' }), light = render({ ...real.DEF, mode: 'light' })
+    check('the window follows the scheme on display (different surfaces in light and in dark)', dark.match(/data-kb="theme-st-window" style="background:([^;]+)/)[1] !== light.match(/data-kb="theme-st-window" style="background:([^;]+)/)[1])
+    const withBubble = render({ ...real.DEF, bubbleUser: '#ff00aa', textUser: '#ffffff', replyBg: 'outline' })
+    check('your bubble and the frame of the replies are drawn in the window', /kbth-st-bub[^>]*style="[^"]*background:#ff00aa/.test(withBubble) && /kbth-st-reply1[^>]*style="[^"]*border:1px solid/.test(withBubble))
+    const noPills = render({ ...real.DEF, wgSessions: false, wgChanges: false, wgUsage: false })
+    check('the pills under the message box are drawn only when on (and « No pills » when none)', page.includes('Enregistré') && page.includes('Usage 8') && !noPills.includes('Usage 8') && noPills.includes('Aucune pastille'))
+    const sideOk = render({ ...real.DEF, wp: 'aurore', wpVis: 80 })
+    check('a wallpaper is drawn behind the window', sideOk.includes('kbth-st-wpl') && !page.includes('kbth-st-wpl'))
+  }
+
+  section('look studio: the thirteen panels')
+  {
+    const count = (html, re) => (html.match(re) || []).length
+    const studio = (zone, st) => {
+      reset()
+      const S = { ...real.DEF, ...(st || {}) }
+      const dark = S.mode !== 'light'
+      const c = real.makeTheme(dark ? 'dark' : 'light', real.optsDe(S))
+      return renderToStaticMarkup(React.createElement(real.Studio, { S, c, dark, commit: () => {}, applySkin: () => {}, applyMine: () => {}, skinMeta: () => 'meta', openClassic: () => {}, importFile: () => {}, libNote: null, setLibNote: () => {}, canUndo: () => false, pushHist: () => {}, undo: () => {}, reset: () => {}, initialZone: zone }))
+    }
+    const titles = { mood: 'Clair ou sombre ?', style: 'Choisis un style', accent: 'Couleur d’accent', sidebar: 'Barre latérale', wall: 'Arrière-plan', user: 'Tes messages', agent: 'Réponses de l’agent', icons: 'Icônes du menu', think: 'Animation de réflexion', letters: 'Lettres', widgets: 'Sous la zone de message', effects: 'Effets et formes', access: 'Accessibilité' }
+    check('every part opens its own panel, titled, with a « Done » button', real.ST_ZONES.every((z) => { const h = studio(z); return h.includes('data-kb="theme-st-panel"') && h.includes('data-panel="' + z + '"') && h.includes('aria-label="' + titles[z] + '"') && h.includes('data-kb="theme-st-done"') }))
+    check('the dice is in every panel but the pills and accessibility (those are needs, not a style)', real.ST_ZONES.every((z) => studio(z).includes('data-kb="theme-dice"') === (z !== 'widgets' && z !== 'access')))
+    check('Light or dark: three cards', count(studio('mood'), /data-kb="theme-st-mood"/g) === 3)
+    const st = studio('style')
+    check('Style: the ten shipped looks first, the other eight behind « All 18 styles »', count(st, /data-kb="theme-st-style"/g) === 10 && st.includes('Les 18 styles') && st.includes('la galerie'))
+    check('Accent: the twelve accents, any colour, how readable the text on it is', count(studio('accent'), /kbth-st-sw"/g) === 12 && studio('accent').includes('Une autre couleur') && studio('accent').includes('data-kb="theme-badge"'))
+    check('Sidebar: four tones; the see-through slider only with a wallpaper', count(studio('sidebar'), /data-kb="theme-st-side"/g) === 4 && !studio('sidebar').includes('Transparence') && studio('sidebar', { wp: 'aurore' }).includes('Transparence'))
+    check('Wallpaper: None + the four kinds, tiles of the open kind, the rest under « More options »', count(studio('wall'), /data-kb="theme-st-wpcat"/g) === 4 && studio('wall').includes('data-kb="theme-st-wpnone"') && count(studio('wall'), /data-kb="theme-st-wp"/g) === real.WPS.filter((w) => w.cat === 'gradients').length && studio('wall').includes('Plus d’options'))
+    check('Your messages: four bubbles, any colour, the text colour', count(studio('user'), /data-kb="theme-st-bubble"/g) === 4 && studio('user').includes('Couleur du texte') && count(studio('user'), /kbth-st-sw[ "]/g) === 8)
+    check('Agent replies: four frames; the reply colour only once there is a frame', count(studio('agent'), /data-kb="theme-st-reply"/g) === 4 && !studio('agent').includes('Couleur de la réponse') && studio('agent', { replyBg: 'card' }).includes('Couleur de la réponse') && studio('agent').includes('Couleur du texte'))
+    check('Agent replies: says plainly that DSH has no bubble there and what happens if it renames its marker', /DSH ne dessine aucune bulle/.test(studio('agent')) && /le cadre disparaît/.test(studio('agent')))
+    check('Menu icons: the twenty-one sets', count(studio('icons'), /data-kb="theme-st-icons"/g) === 21)
+    const th = studio('think')
+    check('Thinking animation: DSH\'s whale tail and the 34 loops in one compact grid, each named for the hover', count(th, /data-kb="theme-st-loop"/g) === 35 && count(th, /data-name="/g) >= 36 && th.includes('data-kb="theme-st-addloop"'))
+    check('Thinking animation: no names printed under the tiles (they show on hover), words in a dropdown, the rest under « More options »', !th.includes('kbth-st-nm') && th.includes('data-kb="theme-st-pack"') && count(th, /<option /g) >= 12 && th.includes('Plus d’options'))
+    check('Thinking animation: size, speed, tint, time, words kept, change, delay, mix, own words', ['Taille', 'Vitesse', 'Teinter avec ma couleur', 'Montrer le temps', 'Garder le texte', 'Changer de mot', 'Délai', 'Mélanger plusieurs animations', 'Mes propres mots'].every((t) => th.includes(t)))
+    const le = studio('letters')
+    check('Letters: six fonts and three sizes, the long list is behind « More options »', count(le, /data-kb="theme-st-font"/g) === 6 && ['Petit', 'Moyen', 'Grand'].every((t) => le.includes(t)) && le.includes('Plus d’options') && count(le, /data-kb="theme-st-fontall"/g) === 30)
+    check('Letters: says a font only shows if it is installed', /ne s’affiche que si elle est installée/.test(le))
+    check('Under the message box: the three real pills, each on its own', count(studio('widgets'), /role="switch"/g) === 3 && ['Pastilles d’état', 'Changements', 'Usage'].every((t) => studio('widgets').includes(t)))
+    check('Effects: corners, shadows, glow, glass, blur', ['Coins', 'Ombres', 'Halo', 'Verre', 'Flou du verre'].every((t) => studio('effects').includes(t)))
+    check('Accessibility: contrast, motion, focus ring, targets, links, colour-blind palette', ['Contraste', 'Réduire les animations', 'Anneau de focus', 'Cibles de 44 px', 'Liens soulignés', 'Palette daltonisme'].every((t) => studio('access').includes(t)))
+    check('the selected choice is marked (pressed)', /aria-pressed="true"[^>]*data-kb="theme-st-bubble"[^>]*data-id="dark"/.test(studio('user', { bubbleUser: 'dark' })) || /data-kb="theme-st-bubble" data-id="dark"[^>]*>|aria-pressed="true"[^>]*data-id="dark"/.test(studio('user', { bubbleUser: 'dark' })) || /title="[^"]*"[^>]*aria-pressed="true"/.test(studio('user', { bubbleUser: 'dark' })) || studio('user', { bubbleUser: 'dark' }).includes('aria-pressed="true"'))
+    LANG = 'en'
+    const FRENCH = /[àâçéèêëîïôùûœÀÉÈÊ]|\b(Terminé|Aucun|Annuler|Enregistrer|Exporter|Importer|Choisis|Couleur|Taille|Vitesse|Mélanger|Réinitialiser)\b/
+    const english = real.ST_ZONES.map((z) => [z, text(studio(z))]).filter(([, t]) => FRENCH.test(t))
+    check('English: no French word in any of the thirteen panels', english.length === 0, english.map(([z, t]) => z + ': ' + (t.match(FRENCH) || [])[0]))
+    check('English: the panels are English', studio('user').includes('Your messages') && studio('agent').includes('Agent replies') && studio('think').includes('Thinking animation') && studio('widgets').includes('Under the message box'))
+    const pageEn = text(render({ ...real.DEF }))
+    check('English: the page around the window is English (vibes, hint, actions, advanced editor)', ['Start from a vibe', 'Surprise me', 'Click anything in the window', 'Undo', 'Reset', 'Save', 'Export', 'Import', 'My looks', 'Advanced editor'].every((t) => pageEn.includes(t)))
     LANG = 'kybernos'
   }
   void exp
