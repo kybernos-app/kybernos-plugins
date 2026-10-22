@@ -10849,7 +10849,8 @@ function boot(ctx) {
           // la page annoncait « aucun profil lisible » (mesure du 22/09).
           const list = readdirSync(dir, { withFileTypes: true })
             .filter((d) => d !== undefined && d !== null && typeof d.isDirectory === 'function' && d.isDirectory() === true)
-            .map((d) => d.name).sort()
+            // `profiles/node_modules` holds the packages the profiles share, and a dot folder is a cache: neither is a profile a person can pick.
+            .map((d) => d.name).filter((n) => n !== 'node_modules' && n.charAt(0) !== '.').sort()
           kbToolsProfilesError = null
           return list
         } catch (e) { kbToolsProfilesError = errText(e); return [] }
