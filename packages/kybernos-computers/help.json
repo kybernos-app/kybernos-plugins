@@ -9,8 +9,8 @@
       "en": "Create an account on e2b.dev and copy your API key."
     },
     {
-      "fr": "Colle-la dans Réglages › Ordinateurs cloud (champ « Clé API »), puis « Enregistrer ».",
-      "en": "Paste it in Settings › Cloud computers (“API key” field), then click “Save”."
+      "fr": "Colle-la dans Réglages › Bac à sable de code (E2B) (champ « Clé API »), puis « Enregistrer ».",
+      "en": "Paste it in Settings › Code sandbox (E2B) (“API key” field), then click “Save”."
     },
     {
       "fr": "Dans le chat, ouvre le menu « Ce poste ▾ » à gauche de la zone de saisie et choisis « E2B ».",
@@ -22,8 +22,8 @@
     }
   ],
   "where": {
-    "fr": "Réglages › Ordinateurs cloud ; le choix « E2B » est dans le chat, près de la zone de saisie",
-    "en": "Settings › Cloud computers; the “E2B” choice is in the chat, next to the message box",
+    "fr": "Réglages › Bac à sable de code (E2B) ; le choix « E2B » est dans le chat, près de la zone de saisie",
+    "en": "Settings › Code sandbox (E2B); the “E2B” choice is in the chat, next to the message box",
     "page": true
   },
   "good": {

@@ -26,7 +26,7 @@ Socle = `kybernos-plugin`, `kybernos-hub`, `kybernos-theme`, `kybernos-sessions`
   language). **General** is a row of its own; eight **folds** follow, one open at a time (an accordion): **Models & routing** (AI provider and models,
   Auto Routing, Free LLMs, Ollama local models, Usage), **Agents** (Agent presets, Workers, Automations, Commands), **Skills & tools** (Skills, Tools,
   Connectors, Web Search), **Memory & context** (Memory & Lessons, Kybernos, Atlas), **Voice & calls**, **Interface** (Appearance, Theme, Language),
-  **Devices & cloud** (Servers, Cloud computers, Phone and channels), **System** (Kybernos Suite, Built-in plugins, About, which closes the list). A group
+  **Devices & cloud** (Servers, Code sandbox (E2B), Phone and channels), **System** (Kybernos Suite, Built-in plugins, About, which closes the list). A group
   opens by itself when the person lands on a page inside it (a deep link, a help pointer, a search result, a click on a row of the Suite) and the open
   one is remembered (`kybernos.settings.open-group` in the browser). To move a page, move its title inside `mots`; a page not listed falls to the tail,
   before About. One icon table (`ICONES`, keyed by the page's title) draws every entry and every group header, and `test-settings-icons.mjs` checks that
