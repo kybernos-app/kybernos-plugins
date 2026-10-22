@@ -167,9 +167,13 @@ export function monterRoutes (webServer, deps, links = {}) {
     const out = createPrivateFolder({ name: body?.name, documents: deps.documents(), io: { mkdir: deps.mkdir } })
     return send(res, out.status, out.status === 200 ? { ...out.body, display: display(out.body.path, deps.home()) } : out.body)
   }
+  // Returns what removes both routes: `links.effect` runs it when the plugin is disposed (a bundle reload must not leave the old handlers behind).
   const register = () => {
-    webServer.register({ kind: 'exact', path: '/kybernos-multi-device/status', handler: status })
-    webServer.register({ kind: 'exact', path: '/kybernos-multi-device/private-folder', handler: privateFolder })
+    const offs = [
+      webServer.register({ kind: 'exact', path: '/kybernos-multi-device/status', handler: status }),
+      webServer.register({ kind: 'exact', path: '/kybernos-multi-device/private-folder', handler: privateFolder }),
+    ]
+    return () => { for (const off of offs) { if (typeof off === 'function') { try { off() } catch (e) { /* already gone */ } } } }
   }
   return typeof links.effect === 'function' ? links.effect(register, 'kybernos-multi-device: routes') : register()
 }

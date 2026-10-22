@@ -91,6 +91,47 @@ const sameOrigin = { origin: 'http://127.0.0.1:3080', host: '127.0.0.1:3080', 'c
   ok('create: a bad name is a 400 with a reason', bad.status === 400 && bad.json.reason === 'forbidden-char')
 }
 
+// ── L4-05: the routes live and die with the plugin (they go through the lifecycle effect) ──────────────────────
+{
+  const removed = []
+  const svc = { register: (r) => { removed.push({ path: r.path, off: false }); const entry = removed[removed.length - 1]; return () => { entry.off = true } } }
+  const deps = { documents: () => '/d', home: () => '/home/x', mkdir: () => {} }
+  // without an effect link: routes are registered at once and the disposer is still handed back
+  const plain = monterRoutes(svc, deps)
+  ok('without an effect link the routes are registered at once, and the way to remove them is returned', removed.length === 2 && typeof plain === 'function')
+  plain()
+  ok('...and calling it removes both routes', removed.every((e) => e.off === true))
+
+  removed.length = 0
+  const effects = []
+  const out = monterRoutes(svc, deps, { effect: (fn, label) => { effects.push({ fn, label }); return 'handled' } })
+  ok('with an effect link the registration is handed to it, with a label, and not run behind its back', effects.length === 1 && typeof effects[0].label === 'string' && /kybernos-multi-device/.test(effects[0].label) && removed.length === 0 && out === 'handled')
+  const dispose = effects[0].fn()
+  ok('the effect callback registers both routes and returns what removes them', removed.length === 2 && typeof dispose === 'function')
+  dispose()
+  ok('disposing the effect removes both routes (a bundle reload leaves no old handler behind)', removed.every((e) => e.off === true))
+  ok('a service whose register returns nothing does not break the disposer', (() => { try { monterRoutes({ register: () => undefined }, deps)(); return true } catch (e) { return false } })())
+
+  // through the bundle's own apply(): the routes are registered by ctx.effect, and what it returns removes them
+  const offs = []
+  const applied = []
+  const ctx = {
+    get: (n) => (n === 'webServer' ? { register: (r) => { applied.push(r.path); return () => { offs.push(r.path) } } } : undefined),
+    effect: (fn, label) => { ctx.effects.push(label); const dispose = fn(); ctx.disposers.push(dispose); return dispose },
+    effects: [], disposers: [],
+  }
+  apply(ctx)
+  ok('apply registers the routes through ctx.effect', ctx.effects.length === 1 && applied.length === 2)
+  ctx.disposers[0]()
+  ok('apply: disposing that effect removes both routes', offs.length === 2 && offs.includes('/kybernos-multi-device/status') && offs.includes('/kybernos-multi-device/private-folder'))
+}
+
+{
+  const seen = []
+  apply({ get: (n) => (n === 'webServer' ? { register: (r) => { seen.push(r.path); return () => {} } } : undefined) })
+  ok('apply on a host without ctx.effect still mounts both routes', seen.length === 2)
+}
+
 // ── apply never throws ────────────────────────────────────────────────────────
 ok('the bundle has its name', name === 'kybernos-multi-device')
 ok('apply survives a context without services', (() => { try { apply({ get: () => undefined, inject: () => { throw new Error('no service') } }); return true } catch (e) { return false } })())
