@@ -199,6 +199,9 @@ try {
   await sleep(800)
   const sb = await box('kybernos-kyber-strip')
   check('on a wide chat it is ONE line high (under 56 px)', sb !== null && sb.h < 56, sb)
+  // The strip is as wide as the composer's card and centred like it, also when the chat is wide (the card has a maximum width, the dock used to run the full column).
+  const wideGeo = await val(`(() => { const ed = document.querySelector('[contenteditable="true"], textarea'); let card = null; for (let e = ed; e; e = e.parentElement) { if (parseFloat(getComputedStyle(e).borderTopLeftRadius) >= 20) { card = e; break } } const s = document.querySelector('[data-kb="kybernos-kyber-strip"]'); if (!card || !s) return null; const a = card.getBoundingClientRect(); const b = s.getBoundingClientRect(); return { cx: a.x, cw: a.width, sx: b.x, sw: b.width } })()`)
+  check('on a wide chat the strip starts and ends where the composer\'s card does (same width, same centre)', wideGeo !== null && Math.abs(wideGeo.cx - wideGeo.sx) <= 1.5 && Math.abs(wideGeo.cw - wideGeo.sw) <= 1.5, wideGeo)
   await shot('2-strip-wide')
   await page.send('Emulation.clearDeviceMetricsOverride', {})
   await sleep(500)
@@ -334,7 +337,7 @@ try {
   console.log('── 7. the list the chips open, once Telegram is connected ──')
   await closeWin()
   await click('kybernos-kyber-computer-chip')
-  check('a chip opens the list: the three lines in words (remote control ready, Telegram connected, the computer)', (await poll(() => has('kybernos-kyber-pop'), 4000)) === true && /Amina \(@alex\)/.test((await val(`document.querySelector('[data-kb="kybernos-kyber-pop"] [data-kb="kybernos-kyber-tg-row"]').innerText`)) || '') && /prêt à relier|ready to pair/i.test((await text('kybernos-kyber-row-remote')) || ''))
+  check('a chip opens the list: the three lines in words (remote control ready, Telegram connected, the computer)', (await poll(() => has('kybernos-kyber-pop'), 4000)) === true && /Amina \(@alex\)/.test((await val(`document.querySelector('[data-kb="kybernos-kyber-pop"] [data-kb="kybernos-kyber-tg-row"]').innerText`)) || '') && /prêt à relier|ready to pair|relié|linked/i.test((await text('kybernos-kyber-row-remote')) || ''))  // the sandbox may hold a phone linked by check-phone-apps-live: the line says so then
   check('each line has one button to the Phone and channels screen', (await val(`document.querySelectorAll('[data-kb="kybernos-kyber-pop"] button').length`)) === 3)
   await click('kybernos-kyber-set-telegram')
   check('a line\'s button opens the window', (await poll(() => has('phone-channels'), 6000)) === true)
