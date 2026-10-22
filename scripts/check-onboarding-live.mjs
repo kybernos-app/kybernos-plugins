@@ -220,11 +220,12 @@ try {
     await q(`document.querySelector('.kb-ob-lang-btn').click()`); await sleep(150)
     await q(`document.querySelector('.kb-ob-menu button[lang="en"]').click()`); await sleep(150)
   }
-  // welcome → field (one tap on a tile moves on) → goals → the model question
+  // welcome → field (a tap on a tile chooses, Continue moves on) → goals → the model question
   const toModelStep = async () => {
     await press('Get started')
     for (let i = 0; i < 8 && (await h1()) !== 'Which models should Kybernos use?'; i += 1) {
-      if ((await h1()) === 'Which field do you work in?') { await press('Education'); await sleep(800) } else await press('Continue')
+      if ((await h1()) === 'Which field do you work in?') { await press('Education'); await sleep(300) }
+      await press('Continue')
     }
   }
   // After the model: « about you » is passed, the agents are kept as proposed, the kit is left without installing anything, the plan is left free: the recap follows.
@@ -429,10 +430,27 @@ try {
   await q(`document.querySelector('.kb-ob-tiles').dispatchEvent(new Event('mouseleave'))`)
   await sleep(200)
   check('leaving the tiles puts the neutral Kybernos back', (await pvName()) === null && (await q(`document.querySelector('.kb-ob').classList.contains('kb-ob-tint')`)) === false)
-  check('the sentence box is gone: a field is chosen by one tap', (await q(`!document.querySelector('.kb-ob-nl, .kb-ob-nlin')`)) === true)
+  check('the sentence box is gone: a field is chosen by a tap on its tile', (await q(`!document.querySelector('.kb-ob-nl, .kb-ob-nlin')`)) === true)
   check('the miniature\'s own text sits under it, never above', (await q(`(() => { const p = document.querySelector('.kb-ob-pv'); const k = [...p.children].map((e) => e.className); return k.indexOf('kb-ob-pv-box') === 0 && k.indexOf('kb-ob-pv-h') === 1 && k.indexOf('kb-ob-pv-cap') === 2 })()`)) === true)
+  const fieldState = () => q(`(() => ({ h1: (document.querySelector('.kb-ob h1') || {}).textContent, on: [...document.querySelectorAll('.kb-ob-tile.on')].map((t) => t.getAttribute('data-pack')), checked: [...document.querySelectorAll('.kb-ob-tile[aria-checked="true"]')].length, next: (document.querySelector('[data-kb-ob-primary]') || {}).disabled }))()`)
+  check('Continue waits for a choice on the field step', (await fieldState()).next === true)
+  await q(`document.querySelector('.kb-ob-tile').__kept = 1`)
   await press('Education')
-  check('one tap on a field chooses it and moves on to its goals, the first two ticked and Continue there', (await seen('What do you want Kybernos to do for you?')) !== null && (await q(`document.querySelectorAll('.kb-ob-rows .kb-ob-row').length`)) === 5 && (await q(`document.querySelectorAll('.kb-ob-rows .kb-ob-row.on').length`)) === 2 && (await q(`document.querySelector('[data-kb-ob-primary]').disabled`)) === false)
+  await sleep(600)
+  const edu = await fieldState()
+  check('a tap on a field only chooses it: still on the field step, its tile ticked, Continue enabled', edu.h1 === 'Which field do you work in?' && edu.on.length === 1 && edu.checked === 1 && edu.next === false, JSON.stringify(edu))
+  await press('Health')
+  await sleep(600)
+  const hea = await fieldState()
+  check('the choice can be changed: another tap moves the tick, still no jump', hea.h1 === 'Which field do you work in?' && hea.on.length === 1 && hea.on[0] !== edu.on[0] && hea.checked === 1, JSON.stringify(hea))
+  check('a choice does not redraw the screen (no flash): the very same tile elements are still there', (await q(`document.querySelector('.kb-ob-tile').__kept === 1`)) === true)
+  await press('Education')
+  await sleep(300)
+  await q(`document.querySelector('.kb-ob-lang-btn').click()`); await sleep(250)
+  check('a redraw of the same screen (the language menu opened) does not replay its entrance animation', (await q(`(() => { const e = document.querySelector('.kb-ob-step'); return e.classList.contains('kb-ob-still') && getComputedStyle(e).animationName === 'none' })()`)) === true)
+  await q(`document.querySelector('.kb-ob-lang-btn').click()`); await sleep(250)
+  await press('Continue')
+  check('Continue moves on to the goals, the first two ticked and Continue there', (await seen('What do you want Kybernos to do for you?')) !== null && (await q(`document.querySelectorAll('.kb-ob-rows .kb-ob-row').length`)) === 5 && (await q(`document.querySelectorAll('.kb-ob-rows .kb-ob-row.on').length`)) === 2 && (await q(`document.querySelector('[data-kb-ob-primary]').disabled`)) === false)
   check('the goals are checkboxes, each saying what it adds', (await q(`[...document.querySelectorAll('.kb-ob-rows .kb-ob-row')].every((b) => b.getAttribute('role') === 'checkbox' && b.querySelector('.kb-ob-adds span'))`)) === true)
   check('the first goal says what it adds: skills, an automation, a team', /2 skills.*1 automation.*team Studencik/.test(String(await q(`document.querySelector('.kb-ob-rows .kb-ob-row .kb-ob-adds').textContent`))), String(await q(`document.querySelector('.kb-ob-rows .kb-ob-row .kb-ob-adds').textContent`)))
   check('the primary button follows the colour of the field (Education)', (await q(`getComputedStyle(document.querySelector('[data-kb-ob-primary]')).backgroundColor`)) === (tinted.dark === true ? 'rgb(152, 130, 249)' : 'rgb(108, 77, 246)'))

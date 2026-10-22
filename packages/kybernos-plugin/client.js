@@ -36251,7 +36251,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       const doc = env.document
       const win = env.window
       const S = {
-        screen: 'welcome', lang: 'en', domain: null, goals: [], packs: [], hover: null, dark: false, mode: null, model: null,
+        screen: 'welcome', drawn: null, lang: 'en', domain: null, goals: [], packs: [], hover: null, dark: false, mode: null, model: null,
         ready: null, hasCloud: false, hasLocal: false, machine: null,
         provider: 'anthropic', menu: false, pairing: null, account: null, models: null, error: null, copied: false,
         keyDraft: '', keyMsg: null, keyVerdict: null, localId: null, job: null, localError: null, refs: null,
@@ -36267,13 +36267,14 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         // « What we set up for you » on the end screen: null until read, then the rows (kbObSetupRows)
         setup: null,
         // the « about you » answers, the agents preset, and whether the person changed the two defaults the field gives (the display mode, the preset)
-        site: '', social: '', words: '', aboutSaved: false, agents: null, modeTouched: false, agentsTouched: false, replayDomain: false,
+        site: '', social: '', words: '', aboutSaved: false, agents: null, modeTouched: false, agentsTouched: false,
         // the kit shown as one line (its list one tap away), and « Continue with Team solo » on the plan screen (the upgrade view opens when the wizard closes)
         kitOpen: false, wantsTeam: false,
       }
       let root = null
       let pollTimer = null
       let jobTimer = null
+      let hoverTimer = null
       let copyTimer = null
       let keyHandler = null
       let finished = false
@@ -36694,6 +36695,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         const on = S.domain === pk.id
         const b = h('button', 'kb-ob-tile' + (on ? ' on' : ''))
         b.type = 'button'
+        b.setAttribute('data-pack', pk.id)
         b.setAttribute('role', 'radio')
         b.setAttribute('aria-checked', on ? 'true' : 'false')
         b.style.setProperty('--ta', S.dark ? kbObMix(pk.accent, '#ffffff', 0.3) : pk.accent)
@@ -36704,17 +36706,36 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         tx.appendChild(h('small', null, kbObPackText(S.lang, pk.tagline)))
         b.appendChild(bub)
         b.appendChild(tx)
-        const show = () => { if (S.hover !== pk.id) { S.hover = pk.id; refreshPreview() } }
+        // The preview follows the pointer only once it rests on a tile, so sweeping across the grid does not flash the page.
+        const show = () => {
+          if (S.hover === pk.id) return
+          if (hoverTimer !== null) win.clearTimeout(hoverTimer)
+          hoverTimer = win.setTimeout(() => { hoverTimer = null; S.hover = pk.id; refreshPreview() }, 120)
+        }
         b.addEventListener('mouseenter', show)
         b.addEventListener('focus', show)
+        // A tap only chooses (and can be changed): the tiles are updated in place, the person moves on with Continue.
         b.addEventListener('click', () => {
           pickDomain(pk)
-          S.hover = null
-          render(false)
-          // one tap: the chosen tile shows for a moment, then the goals
-          win.setTimeout(() => { if (root !== null && S.screen === 'job' && S.domain === pk.id) go('goals') }, 260)
+          clearHover()
+          syncTiles()
+          refreshPreview()
         })
         return b
+      }
+      const clearHover = () => {
+        if (hoverTimer !== null) { win.clearTimeout(hoverTimer); hoverTimer = null }
+        S.hover = null
+      }
+      const syncTiles = () => {
+        if (root === null) return
+        for (const t of root.querySelectorAll('.kb-ob-tile')) {
+          const on = t.getAttribute('data-pack') === S.domain
+          t.classList.toggle('on', on)
+          t.setAttribute('aria-checked', on ? 'true' : 'false')
+        }
+        const next = root.querySelector('[data-kb-ob-primary]')
+        if (next !== null) next.disabled = S.domain === null
       }
       // The page takes the colour of the field under the pointer, else of the chosen one (buttons, progress, ticks, a light wash of the ground).
       const shownPack = () => (S.hover !== null && S.screen === 'job' ? kbObPackOf(S.packs, S.hover) : curPack())
@@ -37100,11 +37121,15 @@ html.wv2-actif [data-composer-seat]{display:none !important}
           s.appendChild(h('p', 'kb-ob-sub', T('job.s')))
           const g = h('div', 'kb-ob-tiles')
           g.setAttribute('role', 'radiogroup')
-          g.addEventListener('mouseleave', () => { if (S.hover !== null) { S.hover = null; refreshPreview() } })
+          g.addEventListener('mouseleave', () => { const was = S.hover; clearHover(); if (was !== null) refreshPreview() })
           for (const pk of S.packs) g.appendChild(domainTile(pk))
           s.appendChild(g)
-          // A field saved by an earlier run is already chosen: one more tap on it moves on, and so does Continue.
-          if (S.domain !== null && S.replayDomain === true) { const a = actions(); a.appendChild(primary(T('cont'), () => go('goals'))); s.appendChild(a) }
+          // Choosing a field never moves on by itself: Continue waits for a choice, and the choice can be changed until then.
+          const a = actions()
+          const next = primary(T('cont'), () => go('goals'))
+          next.disabled = S.domain === null
+          a.appendChild(next)
+          s.appendChild(a)
           return s
         },
         goals: () => {
@@ -37734,7 +37759,11 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         const main = h('main', 'kb-ob-main')
         if (kbObBackOf(S) !== null) main.appendChild(button('kb-ob-back', T('back'), goBack))
         const build = screens[S.screen]
-        main.appendChild(build !== undefined ? build() : screens.welcome())
+        const body = build !== undefined ? build() : screens.welcome()
+        // Only a new screen slides in: a tick, a choice or the language menu redraws the same one without the entrance animation (it flashed).
+        if (S.drawn === S.screen) body.classList.add('kb-ob-still')
+        S.drawn = S.screen
+        main.appendChild(body)
         if (withPreview()) { main.classList.add('kb-ob-split'); main.appendChild(buildPreviewPane()) }
         root.appendChild(main)
         refreshPreview()
@@ -37754,7 +37783,6 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         S.machine = init.machine
         S.dark = init.dark === true
         S.domain = typeof init.domain === 'string' ? init.domain : null
-        S.replayDomain = S.domain !== null
         S.goals = Array.isArray(init.goals) ? init.goals.slice() : []
         S.packs = Array.isArray(init.packs) ? init.packs : []
         S.mode = init.mode
@@ -37989,6 +38017,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       '.kb-ob-back::before{content:"\\2190 "}',
       '.kb-ob[dir="rtl"] .kb-ob-back::before{content:"\\2192 "}',
       '.kb-ob-step{width:100%;max-width:520px;animation:kbObRise .3s ease}',
+      '.kb-ob-step.kb-ob-still{animation:none}',
       '.kb-ob-eyebrow{margin:0 0 14px;font-size:13px;color:var(--ink3)}',
       '.kb-ob h1{margin:0 0 10px;font-size:clamp(26px,3.2vw,34px);line-height:1.2;font-weight:500;letter-spacing:-.02em;color:var(--ink)}',
       '.kb-ob-sub{margin:0;font-size:16px;line-height:1.6;color:var(--ink2)}',
