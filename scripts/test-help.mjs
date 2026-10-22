@@ -91,6 +91,13 @@ if (catalogue !== null) {
   const core = catalogue.modules.find((m) => m.id === 'kybernos-plugin')
   check('the Agent presets page (a page of DSH itself, drawn by no plugin) has its own card in the core bundle, and the hub asks for exactly that one', core !== undefined && core.aide.pages.presets !== undefined && /preset/i.test(core.aide.pages.presets.title.en) && /Settings › Agent presets/.test(core.aide.pages.presets.where.en) && /id: 'kybernos-plugin', page: 'presets'/.test(readFileSync(join(REPO, 'packages', 'kybernos-hub', 'client.js'), 'utf8')))
   check('the Voice page has its own card (it is a page of the core bundle, whose general help is about Agent Teams)', core !== undefined && core.aide.pages !== undefined && core.aide.pages.voice !== undefined && /voice/i.test(core.aide.pages.voice.title.en))
+  // L6-08: a page card nothing asks for is written, translated and never shown. Every card of a `pages` block is requested by a page:
+  // `kbPagePill('key')`, the `help: 'key'` of a settings header, `{ id, page: 'key' }` for a Help, or the hub's CARD map of native pages.
+  const clients = readdirSync(join(REPO, 'packages')).filter((d) => existsSync(join(REPO, 'packages', d, 'client.js'))).map((d) => readFileSync(join(REPO, 'packages', d, 'client.js'), 'utf8')).join('\n')
+  const asked = (key) => new RegExp("(?:kbPagePill\\('" + key + "'|\\bhelp: '" + key + "'|\\bpage: '" + key + "'|\\bCARD = \\{[^}]*'" + key + "')").test(clients)
+  const unasked = catalogue.modules.flatMap((m) => Object.keys(m.aide.pages ?? {}).filter((k) => !asked(k)).map((k) => m.id + ' / ' + k))
+  check('every page card of a help.json is asked for by a page (none is written and never shown)', unasked.length === 0, unasked)
+  check('...and the check can tell: a card nobody asks for is found', asked('ghost-page') === false && asked('voice') === true)
 }
 
 console.log('the « ? How it works » buttons')
