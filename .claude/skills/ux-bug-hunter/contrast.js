@@ -8,6 +8,7 @@
 //   - text in an `aria-hidden` subtree (a drawing of a screen, a decorative glyph);
 //   - a disabled control or one inside `aria-disabled` (WCAG exempts it), and `:disabled` buttons;
 //   - an element with a running animation or transition, or inside one (a caption that fades in and out is measured half-way);
+//   - text with no opacity left (revealed on hover or focus: it is not on screen until then);
 //   - text over a gradient or an image (the real background is unknown: look at it).
 // A hit says where, the text, both colours and the ratio; whether the colour comes from DSH's own tokens (the engine's pages) or ours is read from `where`.
 (() => {
@@ -60,9 +61,11 @@
     if (tr.width < 2 || tr.height < 2 || tr.bottom < 0 || tr.top > innerHeight) continue
     seen.add(el)
     if (exempt(el)) continue
+    const dim = opacityOf(el)
+    if (dim < 0.05) continue
     const bg = bgOf(el)
     if (bg === null) continue
-    const fg = rgba(cs.color); fg[3] *= opacityOf(el)
+    const fg = rgba(cs.color); fg[3] *= dim
     const eff = over(fg, bg)
     const size = parseFloat(cs.fontSize)
     const large = size >= 24 || (size >= 18.66 && Number(cs.fontWeight) >= 700)
