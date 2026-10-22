@@ -116,8 +116,8 @@ sensible order, focus is visible, Escape closes what opened, Enter confirms. The
 Nothing important lives only in a hover. Nothing covered by another layer (`elementFromPoint`). No dead link or button.
 
 **The house.** Colours from the DSH tokens with a fallback, never a hard-coded theme colour; one icon family and one stroke;
-the brand as in `docs/dev/brand.md`; both themes legible (text contrast at least 4.5:1: look at it, the probes do not
-measure it); a CSS prefix that no other bundle uses (`scripts/audit-css-prefixes.mjs`). Where the owner has not chosen a
+the brand as in `docs/dev/brand.md`; both themes legible (text contrast at least 4.5:1: `scripts/audit-contrast-live.mjs` measures
+it, section 3); a CSS prefix that no other bundle uses (`scripts/audit-css-prefixes.mjs`). Where the owner has not chosen a
 recipe (decision D2 in `scripts/test-consistency-guards.mjs`), propose one as B instead of inventing it.
 
 **Plain bugs.** Console errors and unhandled rejections, 4xx/5xx requests, a count that does not match its list, stale data
@@ -147,6 +147,12 @@ for (const p of pages) { await goToSettingsPage(live.page, p); frames.push({ lab
 const moved = await ev(`JSON.stringify(window.__UXH__.diffFrames(${JSON.stringify(frames)}))`)   // anything listed jumps
 await live.close()
 ```
+
+**Contrast** is measured apart, by `contrast.js` (same folder; `scripts/check-contrast-probe.mjs` proves it on a faulty and a clean page) through
+`scripts/audit-contrast-live.mjs [--only "A|B"] [--json f]`: every Settings page, the hits grouped by pair of colours. `--mode Light|Dark` (sandbox only, the
+mode is put back) measures the other theme. It leaves out drawings (`aria-hidden`), disabled controls, text that is animating and text on a gradient, so a
+hit is a real one; a class with a hashed prefix belongs to the engine, which is a report, not a fix. Pale text is a bug (class C) when it is ours; a new
+ink for a status colour is a colour change, so class B.
 
 `level` is `bug`, `ux` or `check`; `check` means look at it. A probe cannot know a list is meant to have no logos or that a
 repeated label is deliberate: you decide, then classify. Read the screenshot of every flagged screen.
