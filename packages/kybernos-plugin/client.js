@@ -719,6 +719,11 @@ let kbLocaleRead = () => 'en'
       // Full-page toggle in the conversation header (browser Fullscreen API).
       'kbfs.on': { kybernos: 'Afficher en plein écran', en: 'Enter full screen' },
       'kbfs.off': { kybernos: 'Quitter le plein écran', en: 'Exit full screen' },
+'kbct.title': { kybernos: 'Outils du chat', en: 'Chat tools' },
+'kbct.share': { kybernos: 'Copier le lien public', en: 'Copy public link' },
+'kbct.id': { kybernos: 'Copier l’ID du chat', en: 'Copy chat ID' },
+'kbct.working': { kybernos: 'Création du lien…', en: 'Creating the link…' },
+'kbct.failed': { kybernos: 'L’action a échoué', en: 'The action failed' },
       // Chat header: fold the extras (tags, call, tabs, status line), pin and rename from there.
       'kbfold.show': { kybernos: 'Afficher les outils du chat', en: 'Show chat tools' },
       'kbfold.hide': { kybernos: 'Masquer les outils du chat', en: 'Hide chat tools' },
@@ -3566,6 +3571,12 @@ const KB_FR_EN = {
   'Épingler': 'Pin',
   'Détacher': 'Unpin',
   'Désépingler la conversation': 'Unpin session',
+  'En cours': 'Running',
+  'En attente d’approbation': 'Waiting for approval',
+  'Plan à relire': 'Plan awaiting review',
+  'En attente de réponse': 'Waiting for answer',
+  'Conversation terminée': 'Completed',
+  'Sous-agents en cours': 'Subagents running',
   'Renommer': 'Rename',
   'Bifurquer la conversation': 'Fork session',
   'Archiver la conversation': 'Archive session',
@@ -4545,6 +4556,7 @@ const LUCIDE = {
   key: ['M2 18v3c0 .6.4 1 1 1h4v-3h3v-3h2l1.4-1.4a6.5 6.5 0 1 0-3.9-3.9L2 18Z', 'M16.5 7.5a.5.5 0 1 1-1 0 .5.5 0 0 1 1 0z'],
   settings: ['M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .07 2.73l.15.14a2 2 0 0 1 0 2.85l-.15.14a2 2 0 0 0-.07 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.07-2.73l-.15-.14a2 2 0 0 0 0-2.85l.15-.14a2 2 0 0 0 .07-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z', 'M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0z'],
   plus: ['M5 12h14', 'M12 5v14'],
+  squarePlus: ['M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z', 'M8 12h8', 'M12 8v8'],
   refresh: ['M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8', 'M21 3v5h-5', 'M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16', 'M8 16H3v5'],
   grid: ['M3 3h7v7H3z', 'M14 3h7v7h-7z', 'M14 14h7v7h-7z', 'M3 14h7v7H3z'],
   // Sliders horizontaux — l'icône du bouton unique filtres/tri/vue (maquette
@@ -8964,6 +8976,125 @@ const kbPinsModel = () => {
   return groups
 }
 
+// ── The status dots of the rows (the same dots as DSH's own session row) ──────────────────────
+// A native row says what the chat is doing: a spinner while it runs, an amber dot while it waits for an approval, an answer or a plan review, a green one once it
+// has finished. The rows of this section are drawn by hand and used to say nothing, so a running chat looked idle there. The facts are DSH's own: `uiSession.sessionStatus`
+// (a Map of session id → `{ running, pendingInteraction: { kind }, completionUnread }`), the sessions store for the running flag the Map may lack, and the sub-agents' catalogue.
+// <pins-status:begin> the choice of the dot, pure (test-pinned-rows.mjs plays this block on its own)
+/** An entry of `map` (a Map or a plain object) under the id as written, bare, or with the `session-` prefix: the stores hold both forms. */
+const kbPinsPick = (map, id) => {
+  const bare = String(id).replace(/^session-/, '')
+  for (const key of [id, bare, 'session-' + bare]) {
+    const v = map !== null && typeof map === 'object' ? (typeof map.get === 'function' ? map.get(key) : map[key]) : undefined
+    if (v !== undefined) return v
+  }
+  return undefined
+}
+/** How many sub-agents of session `id` are running: its catalogue's children, each by DSH's status Map, else by the sessions store. */
+const kbPinsSubagentsRunning = (list, statuses, id) => {
+  try {
+    const proj = kbPinsPick(list.projectionsBySession, id)
+    const catalog = proj !== undefined && proj !== null && proj.values !== undefined && proj.values !== null ? proj.values.subagentCatalog : undefined
+    if (Array.isArray(catalog) !== true) return 0
+    let n = 0
+    for (const child of catalog) {
+      if (child === null || typeof child !== 'object' || typeof child.id !== 'string') continue
+      const st = kbPinsPick(statuses, child.id)
+      const own = kbPinsPick(list.byId, child.id)
+      const run = st !== undefined && st !== null && st.running !== undefined ? st.running : (own !== undefined && own !== null ? own.running : undefined)
+      if (run === true) n += 1
+    }
+    return n
+  } catch (e) { return 0 }
+}
+/** What the native row shows, in DSH's own order: a pending interaction first, then activity (the chat running, or one of its sub-agents), then a completion
+ *  reminder; an idle chat shows nothing (null). `status` is its entry of DSH's status Map, `running` the sessions store's flag for when the Map has none. */
+const kbPinsStateOf = (status, running, subagents) => {
+  const s = status !== null && typeof status === 'object' ? status : {}
+  const kind = s.pendingInteraction !== null && typeof s.pendingInteraction === 'object' ? s.pendingInteraction.kind : undefined
+  if (kind === 'approval') return { state: 'warning', label: 'Waiting for approval' }
+  if (kind === 'plan-review') return { state: 'warning', label: 'Plan awaiting review' }
+  if (kind === 'question') return { state: 'warning', label: 'Waiting for answer' }
+  if (s.running !== undefined ? s.running === true : running === true) return { state: 'ongoing', label: 'Running' }
+  if (subagents > 0) return { state: 'ongoing', label: 'Subagents running' }
+  if (s.completionUnread === true) return { state: 'done', label: 'Completed' }
+  return null
+}
+// <pins-status:end>
+/** DSH's session-status source (`getSnapshot` + `subscribe`), or null while the service is not there yet or this engine has none. */
+const kbPinsStatusSource = () => {
+  try {
+    if (kbPinsCtx === null) return null
+    const svc = kbPinsCtx.get('uiSession')
+    const src = svc !== null && svc !== undefined ? svc.sessionStatus : null
+    return src !== null && src !== undefined && typeof src.getSnapshot === 'function' && typeof src.subscribe === 'function' ? src : null
+  } catch (e) { return null }
+}
+/** The dot as the native row draws it: a 14 px spinner while the chat runs, otherwise a 10 px dot (amber waiting, green done), with the state said to a screen reader. */
+const kbPinsDot = (st) => {
+  const box = document.createElement('span')
+  box.className = 'kbpin_state'
+  box.setAttribute('data-state', st.state)
+  box.setAttribute('role', 'img')
+  const label = kbe(st.label)
+  box.setAttribute('aria-label', label)
+  box.title = label
+  if (st.state === 'ongoing') {
+    const NS = 'http://www.w3.org/2000/svg'
+    const svg = document.createElementNS(NS, 'svg')
+    svg.setAttribute('class', 'kbm-dot-spinner')
+    svg.setAttribute('width', '14')
+    svg.setAttribute('height', '14')
+    svg.setAttribute('viewBox', '0 0 24 24')
+    svg.setAttribute('aria-hidden', 'true')
+    const g = document.createElementNS(NS, 'g')
+    g.setAttribute('class', 'kbm-dot-spinnerMotion')
+    for (const cls of ['kbm-dot-spinnerTrack', 'kbm-dot-spinnerArc']) {
+      const c = document.createElementNS(NS, 'circle')
+      c.setAttribute('class', cls)
+      c.setAttribute('cx', '12')
+      c.setAttribute('cy', '12')
+      c.setAttribute('r', '9.5')
+      g.appendChild(c)
+    }
+    svg.appendChild(g)
+    box.appendChild(svg)
+  } else {
+    const dot = document.createElement('span')
+    dot.className = 'kbm-dot'
+    dot.setAttribute('data-state', st.state)
+    dot.setAttribute('aria-hidden', 'true')
+    dot.style.width = '10px'
+    dot.style.height = '10px'
+    box.appendChild(dot)
+  }
+  return box
+}
+/** Puts each session row's dot in step with DSH's status, in place: the section is not rebuilt for it (a rebuild under the user's fingers loses clicks). */
+const kbPinsStatusApply = (section) => {
+  const src = kbPinsStatusSource()
+  const svc = kbPinsSvc()
+  let statuses = null
+  let list = null
+  try {
+    statuses = src !== null ? src.getSnapshot() : null
+    list = svc !== null && svc !== undefined && svc.sessions !== undefined && svc.sessions !== null ? svc.sessions.list.getSnapshot() : null
+  } catch (e) { statuses = null }
+  for (const row of Array.from(section.querySelectorAll('.kbpin_row[data-kbpin-kind="session"]'))) {
+    const old = row.querySelector(':scope > .kbpin_state')
+    let st = null
+    if (statuses !== null) {
+      const id = row.getAttribute('data-kbpin-id') || ''
+      const own = list !== null && list.byId !== undefined && list.byId !== null ? kbPinsPick(list.byId, id) : undefined
+      st = kbPinsStateOf(kbPinsPick(statuses, id), own !== undefined && own !== null ? own.running : undefined, list !== null ? kbPinsSubagentsRunning(list, statuses, id) : 0)
+    }
+    if (st === null) { if (old !== null) old.remove(); continue }
+    if (old !== null && old.getAttribute('data-state') === st.state && old.getAttribute('aria-label') === kbe(st.label)) continue
+    if (old !== null) old.remove()
+    row.appendChild(kbPinsDot(st))
+  }
+}
+
 /** Collapse chevron: a real path (the span was empty — nothing showed that the
  *  section collapses). Rotates -90° when collapsed (see `.kbpin_chevron`). */
 const kbPinsChevron = () => {
@@ -8985,7 +9116,7 @@ const kbPinsSectionRender = (section) => {
   const groups = kbPinsModel()
   const total = kbPinsState.workspaces.length + kbPinsState.sessions.length
   const sig = JSON.stringify([replie, kbe('Pinned'), groups])
-  if (section.getAttribute('data-kbpin-sig') === sig) return
+  if (section.getAttribute('data-kbpin-sig') === sig) { kbPinsStatusApply(section); return }
   section.setAttribute('data-kbpin-sig', sig)
   section.replaceChildren()
   const head = document.createElement('button')
@@ -9032,6 +9163,7 @@ const kbPinsSectionRender = (section) => {
     rows.appendChild(vide)
   }
   section.appendChild(rows)
+  kbPinsStatusApply(section)
 }
 
 /** Trouve le conteneur du navigateur (classe finissant `_listArea`) et y monte
@@ -9040,6 +9172,7 @@ const kbPinsSectionRender = (section) => {
 const kbPinsScan = () => {
   if (typeof document === 'undefined' || document.body === null) return
   kbPinsWatchNative()
+  kbPinsWatchStatus()
   for (const el of Array.from(document.querySelectorAll('[class*="_listArea"]'))) {
     if (/(^|\s)[A-Za-z0-9_-]+_listArea(\s|$)/.test(el.className || '') !== true) continue
     if (el.getAttribute(KB_PINS_ATTR) === 'done') {
@@ -9087,6 +9220,17 @@ const kbPinsWatchNative = () => {
     kbPinsAdoptNative()
   } catch (e) { /* retried on the next scan */ }
 }
+/** The dots follow DSH's session status (a chat starts, stops, asks, finishes): one subscription, retried on each scan until the service is there. */
+let kbPinsStatusWatched = false
+const kbPinsWatchStatus = () => {
+  if (kbPinsStatusWatched === true) return
+  const src = kbPinsStatusSource()
+  if (src === null) return
+  try {
+    src.subscribe(() => kbPinsEmit())
+    kbPinsStatusWatched = true
+  } catch (e) { /* retried on the next scan */ }
+}
 
 /** A mutation made inside OUR section must not trigger a scan: the
  *  render mutated itself and rebuilt ~3 times per second. */
@@ -9122,6 +9266,7 @@ const kbPinsEnsureCss = () => {
     '.kbpin_row[data-kbpin-drop=after]::after{bottom:-2px}',
     '.kbpin_section[data-kbpin-drop=empty]{outline:1px dashed var(--dsw-alias-state-business-primary,#6b8cff);outline-offset:-2px;border-radius:8px}',
     '.kbpin_row:hover{background:var(--dsw-alias-interactive-bg-hover)}',
+    '.kbpin_state{position:absolute;inset-inline-start:8px;top:50%;width:14px;height:14px;margin-top:-7px;display:inline-flex;align-items:center;justify-content:center;pointer-events:none}',
     '.kbpin_open{flex:1 1 auto;min-width:0;display:block;box-sizing:border-box;height:calc(var(--dsh-content-font-size,13px)*2.2);padding:0 8px 0 28px;border:none;background:0 0;color:var(--dsw-alias-label-primary);font:var(--dsw-font-xs-13);font-size:var(--dsh-content-font-size,13px);line-height:calc(var(--dsh-content-font-size,13px)*2.2);text-align:start;cursor:pointer;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;border-radius:12px}',
     '@media (pointer:coarse){.kbpin_open{height:44px;line-height:44px}}',
     '.kbpin_row:hover .kbpin_open,.kbpin_row:focus-within .kbpin_open,.kbpin_row[data-kbpin-menu=true] .kbpin_open{padding-inline-end:84px}',
@@ -15738,19 +15883,12 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
     // !important (la spécificité descendant-directe suffit). Validé au rendu live
     // (test-composer-candidate.mjs) : carte 98→90 px, stack 128→120 px, et les
     // 13 boutons/chips conservent leur taille exacte (0 effet de bord mesuré).
-    // Réordonnement du header de conversation : 🔗 (kbsh-root, Partager) et
-    // Ⓝ (kbci-root, Afficher l'ID) passent en TOUTE fin de la barre d'actions,
-    // à droite du bouton « Équipes » (kbtg-root). Mesure du 29/09 : les boutons
-    // ne sont PAS des enfants directs de wSkVaW_headerActions (un seul wrapper
-    // DIV les contient) — donc pas de `>` : on cible kbsh/kbci/kbtg à tout
-    // niveau, et on force le parent flex pour que `order` s'applique.
+    // Réordonnement du header de conversation : le bouton « Équipes » (kbtg-root) passe après les contrôles du moteur ; le menu « Outils du chat » (kbct-root) passe en
+    // TOUTE fin de la barre d'actions, à droite de l'appel (kbcl-hdr, order 99). Mesure du 29/09 : les boutons ne sont PAS des enfants directs de wSkVaW_headerActions
+    // (un seul wrapper DIV les contient) — donc pas de `>` : on cible kbtg/kbct à tout niveau, et on force le parent flex pour que `order` s'applique.
     const KB_HEADER_ORDER_CSS =
-      '[class*="wSkVaW_headerActions"] [class*="kbsh-root"],' +
-      '[class*="wSkVaW_headerActions"] [class*="kbci-root"],' +
       '[class*="wSkVaW_headerActions"] [class*="kbtg-root"]{order:3}' +
-      '[class*="wSkVaW_headerActions"] [class*="kbsh-root"]{order:4}' +
-      '[class*="wSkVaW_headerActions"] [class*="kbci-root"]{order:5}' +
-      '[class*="wSkVaW_headerActions"] [class*="kbtg-root"]{order:3}' +
+      '[class*="wSkVaW_headerActions"] [class*="kbct-root"]{order:100}' +
       '[class*="wSkVaW_headerActions"] > div{display:flex;flex-direction:row;align-items:center;gap:inherit}'
     try { kbStyleOnce('kb-header-order', KB_HEADER_ORDER_CSS) } catch (e) { /* DOM pas prêt */ }
     // Masquage du pill « Kybernos » redondant dans le header de conversation
@@ -28936,118 +29074,163 @@ body:not([data-ds-dark-theme]) .kbs-search input::placeholder{color:var(--dsw-al
 .kbsb-label{white-space:nowrap}
 `), 'kybers: full-screen settings styles')
 
-    // ── Copier l'ID du chat : bouton dans l'en-tête de conversation ──────────
-    // La maquette « Header chat — copie ID » : une pastille « ID », posée à côté
-    // des pastilles de mode, ouvre un petit panneau qui montre l'identifiant en
-    // chasse fixe et le copie ; la confirmation descend en bas de la fenêtre
-    // pendant 1,8 s. Le panneau se referme dès qu'on clique AILLEURS (ou sur
-    // `Escape`) : les deux écouteurs n'existent que tant qu'il est ouvert.
-    // ── Partage du fil, en haut à droite de la fenêtre de chat ──────────
-    // Un chat de DSH n'a AUCUN pendant hébergé : on le matérialise d'abord
-    // (`/kybernos-cloud/chat/ensure`, idempotent par `external_ref` — deux
-    // partages du même fil retombent sur la même session), puis on pose un lien
-    // public et on le copie. Le bouton dit ce qu'il fait à chaque étape : jamais
-    // de geste muet. Styles en ligne : rien à ajouter à la feuille du plugin.
-    const KbShareChat = (props) => {
-      const sessionId = props !== undefined && props !== null && typeof props.sessionId === 'string' ? props.sessionId : ''
-      const etatPair = React.useState('repos')
-      const etat = etatPair[0]
-      const setEtat = etatPair[1]
-      const notePair = React.useState('')
-      const note = notePair[0]
-      const setNote = notePair[1]
-      const minuteur = React.useRef(null)
-      React.useEffect(() => () => { if (minuteur.current !== null) clearTimeout(minuteur.current) }, [])
-      if (sessionId === '') return null
-
-      const finir = (suite, texte) => {
-        setEtat(suite)
-        setNote(texte)
-        if (minuteur.current !== null) clearTimeout(minuteur.current)
-        minuteur.current = setTimeout(() => { setEtat('repos'); setNote('') }, 6000)
+    // ── Chat tools: the occasional actions of a chat, behind ONE button of the header (2026-10-22, mockup variant B) ──────────────────────────
+    // The header carried a button each for sending to another session, sharing the link, copying the chat id and the full screen: four icons that are rarely used and that
+    // crowded the title line. They are entries of one menu now (the « + » at the right end of the actions). Any bundle adds its own entry:
+    //   window.__KB_CHAT_TOOLS__.add({ id, order, icon, label, hint, working, available, run }) → remove
+    // `label`, `hint`, `working` and `icon` are a value or a function (read when the menu opens); `run({ sessionId, title })` may answer `{ ok, note }` or a promise of it, and the
+    // note is said in a toast. A bundle that finds no registry keeps its own button, as it did. On a phone the menu itself is parked like the other header actions and each entry is
+    // listed in the « … » sheet by its label (`.kbct-flat`, never shown on a wide screen).
+    // <chat-tools:begin> the registry, pure (test-chat-tools.mjs plays this block on its own)
+    const KB_CHAT_TOOLS_VERSION = 1
+    const kbChatToolsMake = () => {
+      const tools = new Map()
+      const subs = new Set()
+      const tell = () => { for (const fn of [...subs]) { try { fn() } catch (e) { /* one failing subscriber does not stop the others */ } } }
+      const rank = (t) => (Number.isFinite(t.order) ? t.order : 100)
+      return {
+        version: KB_CHAT_TOOLS_VERSION,
+        add (tool) {
+          if (tool === null || typeof tool !== 'object' || typeof tool.id !== 'string' || tool.id === '' || typeof tool.run !== 'function') return () => {}
+          tools.set(tool.id, tool)
+          tell()
+          return () => { if (tools.get(tool.id) === tool) { tools.delete(tool.id); tell() } }
+        },
+        list () { return [...tools.values()].sort((a, b) => rank(a) - rank(b)) },
+        subscribe (fn) { subs.add(fn); return () => { subs.delete(fn) } },
       }
-
-      const partager = () => {
-        if (etat === 'travail') return
-        setEtat('travail')
-        setNote('')
-        const titre = props !== undefined && props !== null && typeof props.title === 'string' && props.title.trim() !== '' ? props.title.trim() : 'Chat'
-        const json = { headers: { 'Content-Type': 'application/json' } }
-        fetch('/kybernos-cloud/chat/ensure', { method: 'POST', ...json, body: JSON.stringify({ external_ref: sessionId, title: titre }) })
-          .then((r) => r.json().catch(() => null))
-          .then((mat) => {
-            const cle = mat !== null && mat !== undefined && typeof mat.id === 'string' ? mat.id : null
-            if (mat !== null && mat !== undefined && mat.ok !== true && mat.error === 'not_on_this_server') {
-              finir('erreur', kbt('kbsd.public.sub.unavail'))
-              return null
-            }
-            if (mat === null || mat.ok !== true || cle === null) {
-              finir('erreur', kbe('hosting refused: ') + ((mat !== null && mat.error) ? mat.error : kbe('unknown reason')))
-              return null
-            }
-            return fetch('/kybernos-cloud/shares/set', { method: 'POST', ...json, body: JSON.stringify({ resource_type: 'chat', resource_id: cle, audience: 'link' }) })
-              .then((r) => r.json().catch(() => null))
-          })
-          .then((pose) => {
-            if (pose === null || pose === undefined) return
-            const slug = pose.share !== undefined && pose.share !== null ? pose.share.slug : null
-            if (pose.ok !== true || slug === null || slug === undefined) {
-              finir('erreur', kbe('sharing refused: ') + (pose.error !== undefined ? pose.error : kbe('unknown reason')))
-              return
-            }
-            const lien = kbServer.web.replace(/\/+$/, '') + '/s/' + slug
-            try {
-              const nav = typeof navigator !== 'undefined' ? navigator : null
-              if (nav !== null && nav.clipboard !== undefined && nav.clipboard !== null && typeof nav.clipboard.writeText === 'function') {
-                const pr = nav.clipboard.writeText(lien)
-                if (pr !== undefined && pr !== null && typeof pr.catch === 'function') pr.catch(() => { /* presse-papier refusé */ })
-              }
-              finir('fait', kbe('link copied — ') + lien)
-            } catch (e) { finir('fait', lien) }
-          })
-          .catch(() => finir('erreur', kbe('network unavailable')))
-      }
-
-      const teinte = etat === 'erreur' ? 'var(--dsw-alias-state-error-primary, #c0392b)' : (etat === 'fait' ? 'var(--dsw-alias-state-success-primary, #1f7a43)' : 'inherit')
-      return h('div', { className: 'kbsh-root', style: { position: 'relative', display: 'inline-flex', alignItems: 'center' } },
-        h('button', {
-          type: 'button',
-          style: { background: 'none', border: 'none', padding: '4px', cursor: 'pointer', color: teinte, opacity: etat === 'travail' ? 0.5 : 1, display: 'inline-flex' },
-          'aria-label': kbt('kbui.share'),
-          title: kbt('kbui.share'),
-          onClick: partager,
-        }, Icon('link', 17)),
-        note === ''
-          ? null
-          : h('span', {
-              style: { position: 'absolute', right: 0, top: '100%', marginTop: 6, whiteSpace: 'nowrap', font: '11.5px/1.4 ui-monospace,monospace', color: teinte, background: 'var(--dsw-alias-bg-overlay, #222)', padding: '5px 8px', borderRadius: 6, zIndex: 60 },
-            }, note))
     }
-
-    const KbChatId = (props) => {
+    // <chat-tools:end>
+    const kbChatToolsApi = (() => {
+      try {
+        const have = window.__KB_CHAT_TOOLS__
+        if (have !== undefined && have !== null && have.version === KB_CHAT_TOOLS_VERSION && typeof have.add === 'function' && typeof have.list === 'function') return have
+        const made = kbChatToolsMake()
+        window.__KB_CHAT_TOOLS__ = made
+        return made
+      } catch (e) { return kbChatToolsMake() }
+    })()
+    const kbChatCopy = (text) => {
+      try {
+        const nav = typeof navigator !== 'undefined' && navigator !== null ? navigator : null
+        if (nav !== null && nav.clipboard !== undefined && nav.clipboard !== null && typeof nav.clipboard.writeText === 'function') {
+          const p = nav.clipboard.writeText(text)
+          if (p !== undefined && p !== null && typeof p.catch === 'function') p.catch(() => { /* clipboard refused */ })
+          return true
+        }
+      } catch (e) { /* clipboard unavailable */ }
+      return false
+    }
+    // <chat-tools-run:begin> the toast and the running of an entry (test-chat-tools.mjs plays this block with a fake document)
+    // One toast at a time, at the bottom of the window (the old « ID copied » confirmation, now the voice of every entry). `ms` 0 keeps it until the next one.
+    let kbChatToastEl = null
+    let kbChatToastTimer = null
+    const kbChatToastHide = () => {
+      if (kbChatToastTimer !== null) { clearTimeout(kbChatToastTimer); kbChatToastTimer = null }
+      if (kbChatToastEl !== null) { try { kbChatToastEl.remove() } catch (e) { /* gone */ } kbChatToastEl = null }
+    }
+    const kbChatToast = (text, tone, ms) => {
+      try {
+        if (typeof document === 'undefined' || document.body === null) return
+        if (kbChatToastTimer !== null) { clearTimeout(kbChatToastTimer); kbChatToastTimer = null }
+        if (kbChatToastEl === null || kbChatToastEl.isConnected !== true) {
+          kbChatToastEl = document.createElement('div')
+          kbChatToastEl.className = 'kbci-toast'
+          kbChatToastEl.setAttribute('role', 'status')
+          kbChatToastEl.setAttribute('aria-live', 'polite')
+          document.body.appendChild(kbChatToastEl)
+        }
+        kbChatToastEl.setAttribute('data-tone', tone)
+        kbChatToastEl.textContent = text
+        if (ms > 0) kbChatToastTimer = setTimeout(kbChatToastHide, ms)
+      } catch (e) { /* no DOM */ }
+    }
+    const kbChatToolValue = (v, o) => (typeof v === 'function' ? v(o) : v)
+    /** Runs an entry: its answer (sync or promise) says itself in the toast; a refusal or a throw says that it failed, never silence. */
+    const kbChatToolRun = (tool, o) => {
+      const failed = () => kbChatToast(kbt('kbct.failed'), 'err', 5000)
+      const say = (r) => {
+        const note = r !== undefined && r !== null && typeof r === 'object' && typeof r.note === 'string' ? r.note : ''
+        if (note === '') { kbChatToastHide(); return }
+        kbChatToast(note, r.ok === false ? 'err' : 'ok', r.ok === false ? 6500 : 5000)
+      }
+      let out
+      try { out = tool.run(o) } catch (e) { failed(); return }
+      if (out !== undefined && out !== null && typeof out.then === 'function') {
+        if (tool.working !== undefined) kbChatToast(String(kbChatToolValue(tool.working, o)), 'busy', 0)
+        out.then(say, failed)
+      } else if (out !== undefined && out !== null) say(out)
+    }
+    // <chat-tools-run:end>
+    const kbChatToolIcon = (icon, o, size) => {
+      const v = kbChatToolValue(icon, o)
+      if (typeof v === 'string') return Icon(v, size)
+      const paths = Array.isArray(v) === true ? v : (v !== null && v !== undefined && typeof v === 'object' && Array.isArray(v.paths) === true ? v.paths : null)
+      if (paths === null) return null
+      return h('svg', { width: size, height: size, viewBox: (v !== null && typeof v === 'object' && typeof v.viewBox === 'string') ? v.viewBox : '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true' },
+        paths.map((p, i) => h('path', { d: p, key: i })))
+    }
+    // The public link of a chat: a chat of DSH has NO hosted twin, so it is materialised first (`/kybernos-cloud/chat/ensure`, idempotent by `external_ref`: two shares of the same
+    // thread land on the same session), then a public link is set and copied. The toast says what happens at each step: never a mute gesture.
+    const kbShareChatRun = async (o) => {
+      const json = { headers: { 'Content-Type': 'application/json' } }
+      const titre = typeof o.title === 'string' && o.title.trim() !== '' ? o.title.trim() : 'Chat'
+      try {
+        const matRes = await fetch('/kybernos-cloud/chat/ensure', { method: 'POST', ...json, body: JSON.stringify({ external_ref: o.sessionId, title: titre }) })
+        const mat = await matRes.json().catch(() => null)
+        const cle = mat !== null && mat !== undefined && typeof mat.id === 'string' ? mat.id : null
+        if (mat !== null && mat !== undefined && mat.ok !== true && mat.error === 'not_on_this_server') return { ok: false, note: kbt('kbsd.public.sub.unavail') }
+        if (mat === null || mat.ok !== true || cle === null) return { ok: false, note: kbe('hosting refused: ') + ((mat !== null && mat.error) ? mat.error : kbe('unknown reason')) }
+        const poseRes = await fetch('/kybernos-cloud/shares/set', { method: 'POST', ...json, body: JSON.stringify({ resource_type: 'chat', resource_id: cle, audience: 'link' }) })
+        const pose = await poseRes.json().catch(() => null)
+        const slug = pose !== null && pose !== undefined && pose.share !== undefined && pose.share !== null ? pose.share.slug : null
+        if (pose === null || pose === undefined || pose.ok !== true || slug === null || slug === undefined) {
+          return { ok: false, note: kbe('sharing refused: ') + (pose !== null && pose !== undefined && pose.error !== undefined ? pose.error : kbe('unknown reason')) }
+        }
+        const lien = kbServer.web.replace(/\/+$/, '') + '/s/' + slug
+        return { ok: true, note: kbChatCopy(lien) === true ? kbe('link copied — ') + lien : lien }
+      } catch (e) { return { ok: false, note: kbe('network unavailable') } }
+    }
+    const kbFullscreenOn = () => { try { return document.fullscreenElement !== null && document.fullscreenElement !== undefined } catch (e) { return false } }
+    const kbFullscreenToggle = () => {
+      try {
+        if (kbFullscreenOn() === true) void document.exitFullscreen()
+        else void document.documentElement.requestFullscreen()
+      } catch (e) { /* refused by the browser */ }
+    }
+    ctx.effect(() => {
+      const off = [
+        kbChatToolsApi.add({ id: 'share', order: 20, icon: 'link', label: () => kbt('kbct.share'), working: () => kbt('kbct.working'), run: kbShareChatRun }),
+        kbChatToolsApi.add({
+          id: 'chat-id', order: 30, icon: 'idBadge', label: () => kbt('kbct.id'), hint: (o) => String(o.sessionId).replace(/^session-/, '').slice(0, 8),
+          run: (o) => { kbChatCopy(o.sessionId); return { ok: true, note: kbt('kbci.toast') } },
+        }),
+      ]
+      // No Fullscreen API (an embedded webview): no entry, as there was no button.
+      if (typeof document !== 'undefined' && document.documentElement !== null && typeof document.documentElement.requestFullscreen === 'function') {
+        off.push(kbChatToolsApi.add({ id: 'fullscreen', order: 40, icon: () => (kbFullscreenOn() === true ? 'minimize2' : 'maximize2'), label: () => (kbFullscreenOn() === true ? kbt('kbfs.off') : kbt('kbfs.on')), run: kbFullscreenToggle }))
+      }
+      return () => { for (const f of off) f() }
+    }, 'kybers: chat tools of the header (public link, chat id, full screen)')
+    const KbChatTools = (props) => {
       const sessionId = props !== undefined && props !== null && typeof props.sessionId === 'string' ? props.sessionId : ''
+      const title = props !== undefined && props !== null && typeof props.title === 'string' ? props.title : ''
       const openPair = React.useState(false)
       const open = openPair[0]
       const setOpen = openPair[1]
-      const copyPair = React.useState(false)
-      const copied = copyPair[0]
-      const setCopied = copyPair[1]
+      const setVer = React.useState(0)[1]
       const racine = React.useRef(null)
-      const minuteur = React.useRef(null)
-
+      // An entry added or removed by another bundle (it loads after this one, or leaves) redraws the menu.
+      React.useEffect(() => kbChatToolsApi.subscribe(() => setVer((n) => n + 1)), [])
       React.useEffect(() => {
         if (open !== true) return undefined
         const ailleurs = (e) => {
           const r = racine.current
-          // Le clic DANS le panneau (ou sur le bouton) ne referme rien : c'est
-          // le geste de copie lui-même.
           if (r !== null && r !== undefined && typeof r.contains === 'function' && e !== null && e !== undefined && r.contains(e.target) === true) return
           setOpen(false)
         }
         const touche = (e) => { if (e !== null && e !== undefined && e.key === 'Escape') setOpen(false) }
-        // `pointerdown` en phase de capture : on referme avant que le clic
-        // n'atteigne sa cible, donc un clic sur un autre bouton de l'en-tête ne
-        // laisse pas le panneau ouvert derrière lui.
+        // Capture phase: the menu closes before the click reaches another header button, so none leaves it open behind itself.
         document.addEventListener('pointerdown', ailleurs, true)
         document.addEventListener('keydown', touche)
         return () => {
@@ -29055,124 +29238,65 @@ body:not([data-ds-dark-theme]) .kbs-search input::placeholder{color:var(--dsw-al
           document.removeEventListener('keydown', touche)
         }
       }, [open])
-
-      React.useEffect(() => () => { if (minuteur.current !== null) clearTimeout(minuteur.current) }, [])
-
       if (sessionId === '') return null
-      const copier = () => {
-        try {
-          const nav = typeof navigator !== 'undefined' && navigator !== null ? navigator : null
-          if (nav !== null && nav.clipboard !== undefined && nav.clipboard !== null && typeof nav.clipboard.writeText === 'function') {
-            const p = nav.clipboard.writeText(sessionId)
-            if (p !== undefined && p !== null && typeof p.catch === 'function') p.catch(() => { /* presse-papier refuse */ })
-          }
-        } catch (e) { /* presse-papier indisponible */ }
-        setCopied(true)
-        if (minuteur.current !== null) clearTimeout(minuteur.current)
-        minuteur.current = setTimeout(() => setCopied(false), 1800)
+      const o = { sessionId: sessionId, title: title }
+      const tools = kbChatToolsApi.list().filter((t) => { try { return typeof t.available !== 'function' || t.available(o) === true } catch (e) { return false } })
+      if (tools.length === 0) return null
+      const labelOf = (t) => String(kbChatToolValue(t.label, o))
+      const pick = (t) => { setOpen(false); kbChatToolRun(t, o) }
+      const arrows = (e) => {
+        if (open !== true || (e.key !== 'ArrowDown' && e.key !== 'ArrowUp')) return
+        const items = Array.from(racine.current.querySelectorAll('.kbct-item'))
+        if (items.length === 0) return
+        e.preventDefault()
+        const at = items.indexOf(document.activeElement)
+        items[e.key === 'ArrowDown' ? (at + 1) % items.length : (at <= 0 ? items.length - 1 : at - 1)].focus()
       }
-      const titre = kbt('kbci.label')
-      return h('div', { className: 'kbci-root', ref: racine },
+      return h('div', { className: 'kbct-root', ref: racine, onKeyDown: arrows },
         h('button', {
           type: 'button',
           className: 'kbci-btn' + (open === true ? ' on' : ''),
-          'aria-label': kbt('kbci.open'),
-          'aria-haspopup': 'dialog',
+          'data-act': 'chat-tools',
+          'data-kb-sheet': 'skip',
+          'aria-label': kbt('kbct.title'),
+          'aria-haspopup': 'menu',
           'aria-expanded': open === true,
-          title: kbt('kbci.open'),
+          title: kbt('kbct.title'),
           onClick: () => setOpen(open !== true),
-        }, Icon('idBadge', 17)),
+        }, Icon('squarePlus', 17)),
         open === true
-          ? h('div', { className: 'kbci-pop', role: 'dialog', 'aria-label': titre },
-            h('div', { className: 'kbci-text' },
-              h('span', { className: 'kbci-label' }, titre),
-              h('span', { className: 'kbci-id', title: sessionId }, sessionId)),
-            h('button', {
-              type: 'button',
-              className: 'kbci-copy' + (copied === true ? ' on' : ''),
-              'aria-label': kbt('kbci.copy'),
-              onClick: copier,
-            }, Icon(copied === true ? 'check' : 'copy', 16),
-            h('span', null, copied === true ? kbt('kbci.copied') : kbt('kbci.copy'))))
+          ? h('div', { className: 'kbct-menu', role: 'menu', 'aria-label': kbt('kbct.title') },
+            tools.map((t) => {
+              const hint = t.hint !== undefined ? String(kbChatToolValue(t.hint, o)) : ''
+              return h('button', { key: t.id, type: 'button', role: 'menuitem', className: 'kbct-item', 'data-tool': t.id, onClick: () => pick(t) },
+                kbChatToolIcon(t.icon, o, 16), h('i', { className: 'kbct-l' }, labelOf(t)), hint !== '' ? h('i', { className: 'kbct-hint' }, hint) : null)
+            }))
           : null,
-        copied === true
-          ? h('div', { className: 'kbci-toast', role: 'status', 'aria-live': 'polite' },
-            Icon('check', 16), h('span', null, kbt('kbci.toast')))
-          : null)
+        // The phone's « … » sheet lists the parked header buttons by label and clicks them: one per entry, never shown on a wide screen.
+        h('div', { className: 'kbct-flat', hidden: true },
+          tools.map((t) => h('button', { key: t.id, type: 'button', tabIndex: -1, 'aria-label': labelOf(t), 'data-tool-flat': t.id, onClick: () => pick(t) }))))
     }
     ctx.effect(() => slots.inject('conversation.session.header.actions', () => slots.register(
-      { name: 'conversation.session.header.actions', id: 'kybernos-share-chat', order: 25 }, KbShareChat)),
-      'kybers: thread sharing in the conversation header');
-    ctx.effect(() => slots.inject('conversation.session.header.actions', () => slots.register(
-      { name: 'conversation.session.header.actions', id: 'kybernos-chat-id', order: 30 }, KbChatId)),
-    'kybers: copy chat id button')
-    // ── Plein écran : bouton dans l'en-tête de conversation ─────────────────
-    // Toggle the whole page through the browser Fullscreen API. The state
-    // follows `fullscreenchange` (not the click) so Esc and the browser's own
-    // controls keep the icon honest. No API (embedded webview) → no button.
-    const KbFullscreen = () => {
-      const pleinPair = React.useState(false)
-      const plein = pleinPair[0]
-      const setPlein = pleinPair[1]
-      const dispoPair = React.useState(false)
-      const dispo = dispoPair[0]
-      const setDispo = dispoPair[1]
-
-      React.useEffect(() => {
-        const doc = typeof document !== 'undefined' ? document : null
-        if (doc === null || doc.documentElement === null || typeof doc.documentElement.requestFullscreen !== 'function') return undefined
-        setDispo(true)
-        const lu = () => { try { setPlein(doc.fullscreenElement !== null && doc.fullscreenElement !== undefined) } catch (e) { /* lecture interdite */ } }
-        lu()
-        doc.addEventListener('fullscreenchange', lu)
-        return () => { doc.removeEventListener('fullscreenchange', lu) }
-      }, [])
-
-      if (dispo !== true) return null
-      const basculer = () => {
-        const doc = typeof document !== 'undefined' ? document : null
-        if (doc === null) return
-        try {
-          if (doc.fullscreenElement !== null && doc.fullscreenElement !== undefined) void doc.exitFullscreen()
-          else void doc.documentElement.requestFullscreen()
-        } catch (e) { /* refus navigateur */ }
-      }
-      const libelle = plein === true ? kbt('kbfs.off') : kbt('kbfs.on')
-      return h('button', {
-        type: 'button',
-        className: 'kbci-btn',
-        'data-kb': 'fullscreen-toggle',
-        'aria-label': libelle,
-        'aria-pressed': plein === true,
-        title: libelle,
-        onClick: basculer,
-      }, Icon(plein === true ? 'minimize2' : 'maximize2', 17))
-    }
-    ctx.effect(() => slots.inject('conversation.session.header.actions', () => slots.register(
-      { name: 'conversation.session.header.actions', id: 'kybernos-fullscreen', order: 35 }, KbFullscreen)),
-    'kybers: full-screen toggle in the conversation header')
+      { name: 'conversation.session.header.actions', id: 'kybernos-chat-tools', order: 55 }, KbChatTools)),
+    'kybers: chat tools menu in the conversation header')
     ctx.effect(() => styles.insert(`
-/* ── La pastille « ID » et son panneau ───────────────────────────────────────
-   Le gabarit de la maquette, transpose sur les jetons du theme : meme
-   disposition (etiquette, identifiant en chasse fixe, bouton de copie), meme
-   etat « copie » en vert, meme confirmation en bas de la fenetre. */
-.kbci-root{position:relative;display:flex;align-items:center}
+/* ── Outils du chat : le bouton « + » de l'en-tête et son menu (maquette du 22/10, variante B) ─────────────
+   Le bouton garde le gabarit 30 px de l'ancienne pastille « ID » ; le menu est ancré à DROITE (le bouton est le dernier de la rangée : un menu ancré à gauche débordait de la fenêtre).
+   La confirmation (toast) est la même qu'avant, en bas de la fenêtre. */
+.kbct-root{position:relative;display:flex;align-items:center}
 .kbci-btn{display:flex;align-items:center;justify-content:center;width:30px;height:30px;box-sizing:border-box;padding:0;border:1px solid transparent;border-radius:9px;background:transparent;color:var(--dsw-alias-label-secondary);cursor:pointer}
 .kbci-btn:hover{background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary)}
 .kbci-btn.on{background:var(--dsw-alias-bg-layer-3,var(--dsw-alias-bg-layer-2));border-color:var(--dsw-alias-border-l2);color:var(--dsw-alias-brand-primary)}
 .kbci-btn:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px}
-/* Ancre a DROITE : le bouton est le dernier de la rangee, un panneau ancre a
-   gauche deborderait de la fenetre. */
-.kbci-pop{position:absolute;top:calc(100% + 8px);right:0;z-index:60;display:flex;align-items:center;gap:14px;padding:12px 12px 12px 16px;border:1px solid var(--dsw-alias-border-l2);border-radius:12px;background:var(--dsw-alias-bg-layer-2);box-shadow:var(--dsw-elevation-prominent,0 12px 32px rgba(0,0,0,.45));white-space:nowrap}
-.kbci-text{display:flex;flex-direction:column;gap:4px;min-width:0}
-.kbci-label{font-size:11px;font-weight:500;color:var(--dsw-alias-label-tertiary)}
-.kbci-id{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:14px;color:var(--dsw-alias-label-primary);user-select:all}
-.kbci-copy{display:flex;align-items:center;gap:8px;height:34px;padding:0 12px;border:1px solid var(--dsw-alias-border-l1);border-radius:9px;background:var(--dsw-alias-bg-layer-3,var(--dsw-alias-bg-layer-2));color:var(--dsw-alias-label-primary);font:inherit;font-size:13px;font-weight:500;white-space:nowrap;cursor:pointer}
-.kbci-copy:hover{border-color:var(--dsw-alias-border-l2)}
-.kbci-copy.on{border-color:var(--dsw-alias-state-success-primary,#7BE0A4);background:color-mix(in srgb,var(--dsw-alias-state-success-primary,#7BE0A4) 14%,transparent);color:var(--dsw-alias-state-success-primary,#7BE0A4)}
-.kbci-toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:80;display:flex;align-items:center;gap:10px;padding:10px 16px;border-radius:10px;background:var(--dsw-alias-label-primary);color:var(--dsw-alias-label-primary-foreground,#0f1115);box-shadow:0 8px 24px rgba(0,0,0,.4);font-size:13.5px;font-weight:500}
-.kbci-toast svg{color:var(--dsw-alias-state-success-primary,#1F7A45)}
-`), 'kybers: styles of the copy chat id button')
+.kbct-menu{position:absolute;top:calc(100% + 8px);right:0;z-index:60;min-width:236px;padding:6px;border:1px solid var(--dsw-alias-border-l2);border-radius:14px;background:var(--dsw-alias-bg-layer-1,var(--dsw-alias-bg-layer-2));box-shadow:var(--dsw-elevation-prominent,0 12px 32px rgba(0,0,0,.35))}
+.kbct-item{display:flex;align-items:center;gap:10px;width:100%;height:34px;box-sizing:border-box;padding:0 10px;border:0;border-radius:10px;background:transparent;color:var(--dsw-alias-label-primary);font:inherit;font-size:13.5px;text-align:start;white-space:nowrap;cursor:pointer}
+.kbct-item:hover,.kbct-item:focus-visible{background:var(--dsw-alias-interactive-bg-hover);outline:none}
+.kbct-item svg{flex:none;color:var(--dsw-alias-label-secondary)}
+.kbct-l,.kbct-hint{font-style:normal}
+.kbct-hint{margin-inline-start:auto;padding-inline-start:14px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;color:var(--dsw-alias-label-tertiary)}
+.kbci-toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:80;display:flex;align-items:center;gap:10px;max-width:min(560px,calc(100vw - 32px));padding:10px 16px;border-radius:10px;background:var(--dsw-alias-label-primary);color:var(--dsw-alias-label-primary-foreground,#0f1115);box-shadow:0 8px 24px rgba(0,0,0,.4);font-size:13.5px;font-weight:500;overflow-wrap:anywhere}
+.kbci-toast[data-tone="err"]{background:var(--dsw-alias-state-error-primary,#c0392b);color:#fff}
+`), 'kybers: styles of the chat tools menu')
     // ── Chat header: one toggle folds the extras, pin and rename live next to the title ──
     // Folded (the default): the title, pin, rename and the toggle. Unfolded: the header as DSH draws
     // it (tags, call, Journal / Trajectory tabs, status line). The state is kept per browser. Hiding
@@ -29496,6 +29620,8 @@ body:not([data-ds-dark-theme]) .kbs-search input::placeholder{color:var(--dsw-al
    connecteurs vus dans le journal, bandeau de gate, bouton d'ouverture.
    Couleurs : contrat de fidélité §2, en repli des jetons du thème. */
 .kbtg-root{position:relative;display:flex;align-items:center}
+/* « Teams 0 » says nothing: the chip appears when the chat has a team or a call to validate (the phone sheet already parks it then, see kybernos-mobile). */
+.kbtg-root[data-empty="1"]{display:none}
 .kbtg-btn{display:flex;align-items:center;gap:7px;height:30px;box-sizing:border-box;padding:0 10px;border:1px solid transparent;border-radius:9px;background:transparent;color:var(--dsw-alias-label-secondary);cursor:pointer;font:inherit;font-size:12.5px;font-weight:500}
 .kbtg-btn:hover{background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary)}
 .kbtg-btn.on{background:var(--dsw-alias-bg-layer-3,var(--dsw-alias-bg-layer-2));border-color:var(--dsw-alias-border-l2);color:var(--dsw-alias-brand-primary)}
