@@ -112,6 +112,7 @@ export const FICHIERS_CHAUDS = [
   'packages/kybernos-slash/client.js',
   'packages/kybernos-skills/client.js',
   'packages/kybernos-composio/client.js',
+  'packages/kybernos-kaby-customisation/client.js',
   'packages/kybernos-cloud/client.js',
   'packages/kybernos-maintenance/client.js',
   'packages/kybernos-relance/client.js',

@@ -18,6 +18,8 @@ import { PRESETS } from './presets.mjs'
 export const EXT = '.miniapp.json'
 export const TOOL = 'kybernos_dashboard'
 export const KEEP = { revisions: 20, history: 30, files: 200 }
+/** How many dashboards Kaby may have suggested and waiting at once: the person answers some before there are more. */
+export const SUGGESTED_MAX = 8
 
 const isObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v)
 const hashOf = (s) => createHash('sha1').update(String(s)).digest('hex').slice(0, 16)
@@ -94,12 +96,14 @@ export function createHost ({ fs, home, now = () => Date.now(), log = () => {} }
     try { await fs.writeFile(tmp, text, 'utf8'); await fs.rename(tmp, path) } catch (e) { try { await fs.rm(tmp, { force: true }) } catch { /* nothing to clean */ } throw e }
   }
 
-  // ── the index: default, hidden, archived ───────────────────────────────────
+  // ── the index: default, hidden, archived, suggested ────────────────────────
+  // `suggested`: Kaby made it and it waits for the person's Add (it is not in « My dashboards », never the default, and the pane does not open on it).
+  const flagsOf = (f) => (isObj(f) ? Object.assign({ hidden: f.hidden === true, archived: f.archived === true }, f.suggested === true ? { suggested: true, proof: typeof f.proof === 'string' ? f.proof.slice(0, 160) : '' } : {}) : { hidden: false, archived: false })
   async function readIndex () {
     try {
       const j = JSON.parse(await fs.readFile(indexFile, 'utf8'))
       const flags = {}
-      if (isObj(j.flags)) for (const id of Object.keys(j.flags)) if (ID_RE.test(id) && isObj(j.flags[id])) flags[id] = { hidden: j.flags[id].hidden === true, archived: j.flags[id].archived === true }
+      if (isObj(j.flags)) for (const id of Object.keys(j.flags)) if (ID_RE.test(id) && isObj(j.flags[id])) flags[id] = flagsOf(j.flags[id])
       return { version: 1, default: typeof j.default === 'string' && ID_RE.test(j.default) ? j.default : null, flags }
     } catch { return { version: 1, default: null, flags: {} } }
   }
@@ -147,7 +151,7 @@ export function createHost ({ fs, home, now = () => Date.now(), log = () => {} }
       out.push({
         id, name: r.dashboard.name, desc: r.dashboard.desc, widgets: r.dashboard.widgets.length,
         sources: sourcesOf(r.dashboard).map((s) => s.provider), rev: r.rev, by: last ? last.by : 'user', updatedAt: mtimeMs,
-        hidden: f.hidden, archived: f.archived, isDefault: idx.default === id,
+        hidden: f.hidden, archived: f.archived, isDefault: idx.default === id, suggested: f.suggested === true, proof: f.suggested === true ? f.proof : '',
         shape: r.dashboard.widgets.map((w) => shapeOf(w)),
       })
     }
@@ -227,11 +231,13 @@ export function createHost ({ fs, home, now = () => Date.now(), log = () => {} }
     if (!r.ok) return r
     return create({ name: r.dashboard.name + ' copy', raw: r.dashboard, by: 'user', what: 'Cloned from "' + r.dashboard.name + '"' })
   }
-  /** Hide, archive, make default. Archiving the default dashboard clears the default. */
+  /** Hide, archive, make default. Archiving the default dashboard clears the default. `suggested: false` is Add (the only way a suggestion becomes one of the person's). */
   async function setFlags (id, patch) {
     if (typeof id !== 'string' || !ID_RE.test(id) || !(await exists(fileOf(id)))) return { ok: false, message: 'Unknown dashboard.' }
     const idx = await readIndex()
     const f = idx.flags[id] || { hidden: false, archived: false }
+    if (f.suggested === true && patch.suggested !== false) return { ok: false, message: 'Add it first: it is only a suggestion.' }
+    if (patch.suggested === false) { delete f.suggested; delete f.proof }
     if (typeof patch.hidden === 'boolean') f.hidden = patch.hidden
     if (typeof patch.archived === 'boolean') f.archived = patch.archived
     idx.flags[id] = f
@@ -240,6 +246,28 @@ export function createHost ({ fs, home, now = () => Date.now(), log = () => {} }
     if (f.archived && idx.default === id) idx.default = null
     await writeIndex(idx)
     return { ok: true, id, hidden: f.hidden, archived: f.archived, isDefault: idx.default === id }
+  }
+
+  /** How many suggestions wait, and a new dashboard turned into one (the tool calls this right after it wrote it). */
+  async function suggestedCount () { const idx = await readIndex(); return Object.keys(idx.flags).filter((id) => idx.flags[id].suggested === true).length }
+  async function markSuggested (id, proof) {
+    if (typeof id !== 'string' || !ID_RE.test(id) || !(await exists(fileOf(id)))) return { ok: false, message: 'Unknown dashboard.' }
+    const idx = await readIndex()
+    idx.flags[id] = { hidden: false, archived: false, suggested: true, proof: typeof proof === 'string' ? proof.replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 160) : '' }
+    if (idx.default === id) idx.default = null
+    await writeIndex(idx)
+    return { ok: true, id }
+  }
+  /** Discard: removes a SUGGESTED dashboard (its file, its history, its flag). Anything the person owns is refused: a dashboard of theirs is archived, never deleted here. */
+  async function discardSuggested (id) {
+    if (typeof id !== 'string' || !ID_RE.test(id)) return { ok: false, message: 'Unknown dashboard.' }
+    const idx = await readIndex()
+    if (idx.flags[id] === undefined || idx.flags[id].suggested !== true) return { ok: false, message: 'Only a suggestion can be discarded.' }
+    try { await fs.rm(fileOf(id), { force: true }) } catch (e) { return { ok: false, message: 'The file could not be removed.' } }
+    try { await fs.rm(historyDir(id), { recursive: true, force: true }) } catch { /* the history of a removed suggestion is not worth an error */ }
+    delete idx.flags[id]
+    await writeIndex(idx)
+    return { ok: true, id }
   }
 
   async function revisions (id) {
@@ -283,7 +311,7 @@ export function createHost ({ fs, home, now = () => Date.now(), log = () => {} }
     return lastSession !== null ? current.get(lastSession) || null : null
   }
 
-  return { root, filesDir, readDoc, list, save, create, fromPreset, clone, setFlags, readIndex, revisions, restore, userEditsSince, setCurrent, getCurrent }
+  return { root, filesDir, readDoc, list, save, create, fromPreset, clone, setFlags, suggestedCount, markSuggested, discardSuggested, readIndex, revisions, restore, userEditsSince, setCurrent, getCurrent }
 }
 
 // ── the agent's tool ───────────────────────────────────────────────────────────
@@ -313,6 +341,8 @@ export function toolOptions (host) {
       name: { type: 'string', description: 'Name for a new dashboard made from a preset.' },
       catalogue: { type: 'boolean', description: 'Return the sources (with their columns) and the widget types.' },
       note: { type: 'string', description: 'One line saying what changed (kept in the dashboard history).' },
+      suggested: { type: 'boolean', description: 'true = PROPOSE this new dashboard instead of creating it: it waits for the person\'s Add on the Dashboards page (and is not opened beside the chat). Only with `dashboard` or `preset`, never with `id`.' },
+      proof: { type: 'string', description: 'With `suggested`: what you saw that makes it useful, in one short sentence, no names or amounts (160 characters).' },
     },
     render: (_args, value) => [{ type: 'text', text: typeof value === 'string' ? value : JSON.stringify(value, null, 2) }],
     execute: async (raw, exec) => {
@@ -331,8 +361,16 @@ export async function runTool (host, sessionId, a) {
     const c = describeCatalogue()
     return { ok: true, providers: c.providers, widgets: c.widgets, presets: PRESETS.map((p) => ({ id: p.id, name: p.name, desc: p.desc })) }
   }
+  const wantsSuggestion = a.suggested === true && !(typeof a.id === 'string' && a.id.trim() !== '')
+  if (wantsSuggestion && await host.suggestedCount() >= SUGGESTED_MAX) return { ok: false, message: 'Eight suggestions already wait: the person has to answer some first.' }
   const finish = async (saved, verbOk) => {
     if (!saved.ok) return { ok: false, message: saved.message, conflict: saved.conflict === true, errors: saved.errors }
+    if (wantsSuggestion) {
+      // Suggested: flagged right away, and the pane is NOT pointed at it: nothing opens beside the chat for something the person did not ask for.
+      await host.markSuggested(saved.id, a.proof)
+      return { ok: true, id: saved.id, name: saved.dashboard.name, suggested: true, widgets: saved.dashboard.widgets.map((w) => ({ id: w.id, type: w.type, title: w.title })), dropped: saved.errors.slice(0, 15),
+        message: 'Suggested: “' + saved.dashboard.name + '” waits for the person\'s Add on the Dashboards page. It is not opened for them.' }
+    }
     host.setCurrent(sessionId, saved.id, saved.dashboard.name)
     const warnings = inspectDashboard(saved.dashboard)
     return {
@@ -360,7 +398,7 @@ export async function runTool (host, sessionId, a) {
     if (l.dashboards.length === 0) notes.push('No dashboard yet: write one with `dashboard`, or use a `preset`.')
     if (damaged !== undefined) notes.push(damaged.length + ' dashboard file(s) cannot be read (see `unreadable`): tell the person before writing over one of those ids.')
     return {
-      ok: true, dashboards: l.dashboards.filter((d) => !d.archived).map((d) => ({ id: d.id, name: d.name, widgets: d.widgets, rev: d.rev })), current: cur ? cur.id : null,
+      ok: true, dashboards: l.dashboards.filter((d) => !d.archived).map((d) => Object.assign({ id: d.id, name: d.name, widgets: d.widgets, rev: d.rev }, d.suggested ? { suggested: true } : {})), current: cur ? cur.id : null,
       message: notes.length > 0 ? notes.join(' ') : undefined, unreadable: damaged,
     }
   }

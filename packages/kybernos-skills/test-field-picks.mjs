@@ -23,7 +23,8 @@ const between = (a, b) => {
 }
 
 const field = between('const fieldAsPick = ', 'const renderFeatured = ')
-assert.ok(field.includes('pickRow(fieldAsPick(sk), i, fieldOpts(sk))') && field.includes('pickCard(fieldAsPick(sk), i, fieldOpts(sk))'))
+assert.ok(field.includes('pickRow(fieldAsPick(sk), i, fieldOpts(sk, f))') && field.includes('pickCard(fieldAsPick(sk), i, fieldOpts(sk, f))'))
+assert.ok(field.includes("h('i', { className: 'kbsf-fdot'") && !/kbsf-fhead|fld\.title/.test(src), 'a dot in the field\'s colour, no frame and no title')
 assert.ok(field.includes("views.featured === 'list'"))
 assert.ok(!src.includes('const fieldRow ') && !src.includes('kbsf-frow') && !src.includes('kbsf-fgrid'), 'the old field rows are gone (dead code)')
 ok('the field skills are the same cards and rows as the picks, in the view the page is on; the old rows are gone')

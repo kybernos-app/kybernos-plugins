@@ -197,7 +197,7 @@ const webServer = { register: (r) => { routes.set(r.path, r) } }
     return out
   }
   const page = { origin: 'http://127.0.0.1:3080' }
-  const expected = ['state', 'list', 'presets', 'dashboard', 'revisions', 'save', 'preset', 'clone', 'flags', 'open', 'restore']
+  const expected = ['state', 'list', 'presets', 'dashboard', 'revisions', 'save', 'preset', 'clone', 'flags', 'discard', 'open', 'restore']
   ok('routes: every route is mounted exactly under /kybernos-dashboards/', expected.every((e) => routes.has('/kybernos-dashboards/' + e)) && routes.size === expected.length, [...routes.keys()])
 
   ok('GET list: empty at first', same((await call('GET', 'list')).body.dashboards, []))
@@ -232,6 +232,23 @@ const webServer = { register: (r) => { routes.set(r.path, r) } }
   ok('guard: a huge body is 413', (await call('POST', 'flags', { body: { id: 'teams', pad: 'x'.repeat(9000) }, headers: page })).status === 413)
   ok('guard: a body that is not JSON is a 400', (await call('POST', 'flags', { body: 'not json', headers: page })).status === 400 && (await call('POST', 'flags', { body: '[1,2]', headers: page })).status === 400)
   ok('guard: a path in an id never reaches the disk', (await call('GET', 'dashboard', { query: '?id=../../etc/passwd' })).status === 404 && !existsSync(join(home, 'etc')))
+  // Kaby's suggestions: a dashboard written with `suggested: true` waits for the person's Add.
+  const sess = 'sess-sug'
+  const sg = await runTool(host, sess, { dashboard: { name: 'Weekly enquiries', widgets: [{ type: 'card', title: 'Tokens', source: { provider: 'usage.daily', params: { days: 7 } }, metric: { agg: 'sum', field: 'tokens' } }] }, suggested: true, proof: 'Seen in 14 enquiries over 60 days' })
+  ok('suggested: the tool says it waits for Add and does not open it', sg.ok === true && sg.suggested === true && /waits for the person/.test(sg.message) && host.getCurrent(sess, true) === null, sg)
+  const lsg = (await call('GET', 'list')).body.dashboards.find((d) => d.id === sg.id)
+  ok('suggested: the list carries the flag and the proof', lsg !== undefined && lsg.suggested === true && lsg.proof === 'Seen in 14 enquiries over 60 days', lsg)
+  ok('suggested: it cannot be made default or hidden before Add', (await call('POST', 'flags', { body: { id: sg.id, default: true }, headers: page })).status === 404 && (await host.readIndex()).default !== sg.id)
+  ok('suggested: the page cannot make a dashboard a suggestion (only Add exists)', (await call('POST', 'flags', { body: { id: 'teams', suggested: true }, headers: page })).body.suggested !== true)
+  const add = await call('POST', 'flags', { body: { id: sg.id, suggested: false }, headers: page })
+  ok('suggested: Add clears the flag', add.status === 200 && (await call('GET', 'list')).body.dashboards.find((d) => d.id === sg.id).suggested === false)
+  const sg2 = await runTool(host, sess, { dashboard: { name: 'Quiet one', widgets: [] }, suggested: true })
+  ok('suggested: Discard removes a suggestion (file, history, flag)', (await call('POST', 'discard', { body: { id: sg2.id }, headers: page })).status === 200 && !existsSync(join(home, 'kybernos', 'dashboards', 'files', sg2.id + '.miniapp.json')) && (await host.readIndex()).flags[sg2.id] === undefined)
+  ok('suggested: Discard refuses a dashboard of the person (never deletes theirs)', (await call('POST', 'discard', { body: { id: sg.id }, headers: page })).status === 404 && existsSync(join(home, 'kybernos', 'dashboards', 'files', sg.id + '.miniapp.json')))
+  for (let i = 0; i < 8; i++) await runTool(host, sess, { dashboard: { name: 'Idea ' + i, widgets: [] }, suggested: true })
+  const full = await runTool(host, sess, { dashboard: { name: 'One too many', widgets: [] }, suggested: true })
+  ok('suggested: at most eight wait at once', full.ok === false && /Eight suggestions/.test(full.message), full)
+  ok('suggested: with an id it is a normal write, never a suggestion', (await runTool(host, sess, { id: 'plain', dashboard: { name: 'Plain', widgets: [] }, suggested: true })).suggested !== true)
 }
 
 // ── apply ────────────────────────────────────────────────────────────────────
