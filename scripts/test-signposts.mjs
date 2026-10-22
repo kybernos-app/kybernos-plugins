@@ -37,7 +37,6 @@ const PLACES = {
   'learned skills': ['compétences apprises'],
   models: ['modelos'],
   kybernos: [],
-  appearance: ['apparence', 'apariencia'],
   about: ['à propos'],
   servers: ['serveurs'],
   'auto routing': ['routage auto'],

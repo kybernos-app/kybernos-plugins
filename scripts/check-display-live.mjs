@@ -491,13 +491,9 @@ async function setScheme(ctx, scheme) {
   await ctx.drawer()
   await ctx.click({ css: '[class*="navCell"]', text: 'Theme' })
   await sleep(1200)
-  // The mode is set on the Appearance page only (V1-24): go there, press the card, come back to the Theme page (the look is picked on it).
+  // The mode is set on the Theme page itself, on three cards (the page is already open).
   const seg = async (name) => {
-    await ctx.click({ css: '[class*="navCell"]', text: 'Appearance' })
-    await sleep(900)
-    await ctx.click({ css: '.kbac-theme', text: name })
-    await sleep(900)
-    await ctx.click({ css: '[class*="navCell"]', text: 'Theme' })
+    await ctx.click({ css: '.kbth-mode', text: name })
     await sleep(900)
   }
   const skin = (name) => ctx.click({ css: '.kbth-skin', text: name })

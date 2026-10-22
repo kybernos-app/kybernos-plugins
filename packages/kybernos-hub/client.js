@@ -164,8 +164,7 @@ window.__ModuleLoader__.load({
     // DSH's own Settings pages that carry the help. The key is the React key of the nav cell (the section id, the same in every
     // language), measured in the engine's client bundles on 2026-10-21: models, plugins (Built-in plugins), plus Agent presets,
     // which also has an animated introduction. A page whose markup changes simply gets no pill: never a broken button.
-    // Appearance is NOT here: the page the person sees under that name is the core plugin's own section (`kbac-appearance`, it
-    // draws its own pill), measured live on 2026-10-21 — naming it here only created a host for a page that never comes.
+    // Appearance is NOT here (and is no page any more: the light / dark mode is on the Theme page, which draws its own pill).
     const NATIVE_PAGES = ['agent-presets', 'models', 'plugins']
     /** The React key of a DOM node (the id of the Settings section a cell stands for), or null. */
     const nativeKeyOf = (el) => {

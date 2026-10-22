@@ -20,13 +20,13 @@ Socle = `kybernos-plugin`, `kybernos-hub`, `kybernos-theme`, `kybernos-sessions`
   (a board task that belongs to no team of ours, with no `[team]` tag and no call the host knows, is one line, its state and its subject, not a card),
   composer extras (token usage, starters, widget chip, voice dictation, artifact selector), read-aloud
   buttons, share / chat-id actions. Also pinned conversations, the Kybernos brand mark and sidebar footer tools.
-- Settings sections **Tools**, **Voice** and Appearance (shortcut to Theme); a first-run **onboarding** wizard (see
+- Settings sections **Tools** and **Voice** (there is no Appearance page: the light / dark / system mode is on three cards at the top of the **Theme** page); a first-run **onboarding** wizard (see
   « First-run onboarding » below). The account's own pages (Account, Referral, Security, Data, Support & legal) are not in
   Settings: they are reached from the sidebar footer menu (kybernos-cloud).
 - **The Settings menu is grouped, and ordered for everyone** (`GROUPES` in `client.js`, by the section id each cell carries, so it holds in every
   language). **General** is a row of its own; eight **folds** follow, one open at a time (an accordion): **Models & routing** (AI provider and models,
   Auto Routing, Free LLMs, Ollama local models, Usage), **Agents** (Agent presets, Workers, Automations, Commands), **Skills & tools** (Skills, Tools,
-  Connectors, Web Search), **Memory & context** (Memory & Lessons, Kybernos, Atlas), **Voice & calls**, **Interface** (Appearance, Theme, Language),
+  Connectors, Web Search), **Memory & context** (Memory & Lessons, Kybernos, Atlas), **Voice & calls**, **Interface** (Theme, Language),
   **Devices & cloud** (Servers, Code sandbox (E2B), Phone and channels), **System** (Kybernos Suite, Built-in plugins, About, which closes the list). A group
   opens by itself when the person lands on a page inside it (a deep link, a help pointer, a search result, a click on a row of the Suite) and the open
   one is remembered (`kybernos.settings.open-group` in the browser). To move a page, move its title inside `mots`; a page not listed falls to the tail,

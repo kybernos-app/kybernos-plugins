@@ -5,8 +5,8 @@
   },
   "steps": [
     {
-      "fr": "Dans « Essentiel » (ouvert par défaut), choisis un mode, un thème (livré ou à toi), un accent, un fond et une police.",
-      "en": "In “Essentials” (open by default), pick a mode, a theme (shipped or your own), an accent color, a background and a font."
+      "fr": "Dans « Essentiel » (ouvert par défaut), choisis le mode (Clair, Sombre, Système), un thème, un accent, un fond et une police.",
+      "en": "In “Essentials” (open by default), pick the mode (Light, Dark, System), a theme, an accent color, a background and a font."
     },
     {
       "fr": "« Verre et fond » règle transparence et flou une fois un fond choisi ; « Couleurs », « Texte et forme » et « Accessibilité » affinent.",
