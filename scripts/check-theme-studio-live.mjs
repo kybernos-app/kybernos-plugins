@@ -127,10 +127,16 @@ try {
   const titles = { mood: 'Light or dark?', style: 'Pick a style', accent: 'Accent color', sidebar: 'Sidebar', wall: 'Wallpaper', user: 'Your messages', agent: 'Agent replies', icons: 'Menu icons', think: 'Thinking animation', letters: 'Letters', widgets: 'Under the message box' }
   for (const z of Object.keys(titles)) {
     const t = await openZone(z)
-    const box = await ev(`(() => { const p = document.querySelector('[data-kb="theme-st-panel"]'), w = document.querySelector('[data-kb="theme-st-window"]'); if (!p || !w) return null; const a = p.getBoundingClientRect(), b = w.getBoundingClientRect(); return { l: Math.round(a.left - b.left), r: Math.round(b.right - a.right), op: getComputedStyle(p).opacity } })()`)
-    check('« ' + titles[z] + ' » opens by a click on the ' + z + ' part, inside the window, visible', t === titles[z] && box !== null && box.l >= -1 && box.r >= -1 && box.op === '1', { t, box })
+    const box = await ev(`(() => { const p = document.querySelector('[data-kb="theme-st-panel"]'), w = document.querySelector('[data-kb="theme-st-window"]'); if (!p || !w) return null; const a = p.getBoundingClientRect(), b = w.getBoundingClientRect(); return { l: Math.round(a.left - b.left), r: Math.round(b.right - a.right), gap: Math.round(a.top - b.bottom) } })()`)
+    check('« ' + titles[z] + ' » opens by a click on the ' + z + ' part, under the window (never over it), as wide as it', t === titles[z] && box !== null && box.gap >= 0 && Math.abs(box.l) <= 1 && Math.abs(box.r) <= 1, { t, box })
   }
-  for (const [z, t] of [['effects', 'Effects and shape'], ['access', 'Accessibility']]) { const got = await openChip(z); check('« ' + t + ' » opens from its chip under the window', got === t, got) }
+  for (const [z, t] of [['effects', 'Effects and shape'], ['access', 'Accessibility']]) { const got = await openChip(z); check('« ' + t + ' » opens from its chip, under the window', got === t && (await ev(`document.querySelector('[data-kb="theme-st-panel"]').getBoundingClientRect().top >= document.querySelector('[data-kb="theme-st-window"]').getBoundingClientRect().bottom`)), got) }
+  // What you change must stay in view while you change it: with the tallest panel open and scrolled to its end, the window is still on screen and nothing covers it.
+  await openZone('think'); await openMore()
+  await ev(`document.querySelector('[data-kb="theme-st-panel"]').scrollIntoView({ block: 'end' })`); await sleep(300)
+  check('the window stays in view, uncovered, while the tallest panel is scrolled to its end', await ev(`(() => { const w = document.querySelector('[data-kb="theme-st-window"]'); const r = w.getBoundingClientRect(); const e = document.elementFromPoint(r.left + r.width / 2, r.top + 60); return r.top >= 0 && r.bottom <= innerHeight && !!e && w.contains(e) })()`))
+  await shot('00-window-stays')
+  await closePanel()
   await closePanel()
   // Escape and outside press
   await click(Z('mood')); await key('Escape')

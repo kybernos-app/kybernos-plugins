@@ -2628,7 +2628,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A0
 .kbth-st-hint b{color:var(--dsw-alias-label-primary);font-weight:600}
 .kbth-st-also>span,.kbth-st-looks .kbth-link{font-size:12.5px}
 .kbth-st-stage{position:relative}
-.kbth-st-win{position:relative;display:grid;grid-template-columns:148px minmax(0,1fr);height:340px;overflow:hidden;border:1px solid;isolation:isolate;line-height:1.4}
+.kbth-st-win{position:sticky;top:8px;z-index:3;display:grid;grid-template-columns:148px minmax(0,1fr);height:340px;overflow:hidden;border:1px solid;isolation:isolate;line-height:1.4}
 .kbth-st.narrow .kbth-st-win{grid-template-columns:104px minmax(0,1fr);height:auto;min-height:330px}
 .kbth-st-wpl{position:absolute;inset:0;z-index:0;pointer-events:none}
 .kbth-st-side{position:relative;z-index:1;display:flex;flex-direction:column;gap:12px;padding:12px 10px;border-right:1px solid}
@@ -2659,8 +2659,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A0
 .kbth-st-dock{display:flex;flex-wrap:wrap;gap:6px;margin:0 12px 10px;padding:3px;min-height:24px;border-radius:8px}
 .kbth-st-pillw{padding:2px 9px;border-radius:999px;border:1px solid}
 .kbth-st-pillw.none{border-style:dashed}
-.kbth-st-pop{box-sizing:border-box;position:absolute;z-index:30;width:min(520px,calc(100% - 16px));max-height:min(560px,calc(100vh - 120px));overflow:auto;border:1px solid var(--dsw-alias-border-l3);border-radius:16px;background:var(--dsw-alias-bg-layer-1);box-shadow:0 12px 40px rgba(0,0,0,.22);padding:0 16px 16px;display:flex;flex-direction:column;gap:12px;opacity:0;outline:none}
-.kbth-st.narrow .kbth-st-pop{position:static;width:100%;max-height:none;margin-top:10px;opacity:1;box-shadow:none}
+.kbth-st-pop{box-sizing:border-box;margin-top:10px;width:100%;max-height:max(240px,calc(100vh - 420px));overflow:auto;border:1px solid var(--dsw-alias-border-l3);border-radius:16px;background:var(--dsw-alias-bg-layer-1);padding:0 16px 16px;display:flex;flex-direction:column;gap:12px;outline:none}
 .kbth-st-ph2{position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;padding:14px 0 8px;background:var(--dsw-alias-bg-layer-1)}
 .kbth-st-ph2 h3{margin:0;font-size:15px;font-weight:700;color:var(--dsw-alias-label-primary)}
 .kbth-st-pa{display:flex;align-items:center;gap:8px}
@@ -3363,20 +3362,13 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A0
           ro.observe(el)
           return () => { try { ro.disconnect() } catch (e) { /* gone */ } }
         }, [])
-        // The panel floats under the part that opened it, kept inside the window. Written straight on the element (no state: nothing redraws).
+        // The panel sits UNDER the window, never over it: what you change must stay in view while you change it. The window sticks to the top while the panel
+        // scrolls under it; opening a panel brings it into view.
         React.useEffect(() => {
-          const p = pop.current, st = stage.current
-          if (p === null || st === null) return
-          if (narrow) { p.style.left = ''; p.style.top = ''; p.style.opacity = ''; return }
-          const z = st.querySelector('[data-zone="' + zoneOn + '"]') || st.parentElement.querySelector('[data-chip="' + zoneOn + '"]')
-          const win = st.querySelector('.kbth-st-win')
-          if (z === null || win === null) return
-          const zr = z.getBoundingClientRect(), sr = st.getBoundingClientRect(), wr = win.getBoundingClientRect(), w = p.offsetWidth
-          const lo = wr.left - sr.left + 8, hi = wr.right - sr.left - w - 8
-          p.style.left = Math.max(lo, Math.min(zr.left - sr.left, hi)) + 'px'
-          p.style.top = Math.max(48, Math.min(zr.bottom - sr.top + 10, wr.bottom - sr.top - p.offsetHeight - 12)) + 'px'
-          p.style.opacity = '1'
-        })
+          const p = pop.current
+          if (zoneOn === null || p === null || typeof p.scrollIntoView !== 'function') return
+          try { p.scrollIntoView({ block: 'nearest' }) } catch (e) { /* nothing to scroll */ }
+        }, [zoneOn])
         // Escape closes the panel (and nothing else); a press outside it closes it too, a press on another part opens that one.
         React.useEffect(() => {
           if (zoneOn === null) return undefined
