@@ -166,12 +166,22 @@ export function workersDeps (dshHome, env = process.env) {
   }
 }
 
+// What `register` hands back takes the route off again. It is kept here and given to `ctx.effect` by `apply`, so that unloading the plugin removes every route it
+// added: without it a hot reload met « duplicate exact route », logged « routes not mounted » and went on serving the OLD handlers (audit L4-05, L6-04).
+const kbRetraits = []
+const kbRetirerRoutes = () => { for (const retrait of kbRetraits.splice(0).reverse()) { try { retrait() } catch (e) { /* already gone */ } } }
+/** `service` with a `register` that keeps the way to remove each route it adds (see kbRetirerRoutes). */
+const kbSuivi = (service) => (service === null || service === undefined || typeof service.register !== 'function'
+  ? service
+  : new Proxy(service, { get: (target, key) => (key === 'register' ? (route) => { const retrait = target.register(route); if (typeof retrait === 'function') kbRetraits.push(retrait); return retrait } : (typeof target[key] === 'function' ? target[key].bind(target) : target[key])) }))
+
 export function apply (ctx) {
+  if (ctx !== null && ctx !== undefined && typeof ctx.effect === 'function') ctx.effect(() => kbRetirerRoutes, 'kybernos-workers: routes')
   try {
     const dshHome = process.env.DSH_HOME || join(homedir(), '.dsh')
     const liens = { effect: (fn, etiquette) => ctx.effect(fn, etiquette) }
     const monter = (webServer) => {
-      try { monterWorkers(webServer, workersDeps(dshHome), liens); dire('routes mounted') } catch (erreur) { dire('routes not mounted: ' + String(erreur?.message ?? erreur)) }
+      try { monterWorkers(kbSuivi(webServer), workersDeps(dshHome), liens); dire('routes mounted') } catch (erreur) { dire('routes not mounted: ' + String(erreur?.message ?? erreur)) }
     }
     if (ctx.get('webServer') !== undefined) monter(ctx.get('webServer'))
     else ctx.inject(['webServer'], (hote) => monter(hote.webServer))
