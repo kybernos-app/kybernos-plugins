@@ -10055,7 +10055,7 @@ function boot(ctx) {
           return sendJson(res, 200, written === true ? { ok: true, completed: false } : { ok: false, error: 'write failed' })
         }
         if (action === 'domain') {
-          // A domain and goals chosen later (Settings, Starter kit). Only a pack's own id and the goals of that pack are kept.
+          // A domain and goals chosen later (the starter kit opened on its own). Only a pack's own id and the goals of that pack are kept.
           const pack = domainPacks().packs.find((p) => p.id === str(body.profil))
           if (pack === undefined) return sendJson(res, 400, { ok: false, error: 'unknown domain' })
           const known = pack.goals.map((g) => g.id)

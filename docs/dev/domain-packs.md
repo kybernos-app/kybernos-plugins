@@ -69,7 +69,7 @@ The kit is the union of the skills, teams and automations of the ticked goals. T
 2. **Teams**: `kybers/create`, into DSH's own home.
 3. **Automations**: `POST /kybernos/tasks {action:"create"}` with `active:false`. Replays create nothing twice (the name is looked up first).
 4. **Saved choice**: `profil` (the field id), `goals`, `agents` (the preset) and `about` (what was typed, bounded, kept in this local file; the public GET never carries it, only a strict same-origin request from the page gets it back, so a replay shows it) in `~/.dsh/kybernos/onboarding.json` (the version stays `1`: older files read the new
-   field as empty). `POST /kybernos/onboarding {action:"domain"}` records a choice without finishing the wizard (Settings, Starter kit).
+   field as empty). `POST /kybernos/onboarding {action:"domain"}` records a choice without finishing the wizard (the starter kit opened on its own).
 5. **Wording and highlights, read from the saved field**: the menu rows take the pack's labels (only in a language the pack writes), and the
    new-chat page lists the pack's `home` templates first (`kbNcSlider(bootIds, first)`).
 

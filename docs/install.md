@@ -81,8 +81,8 @@ The first time, Kybernos asks four short questions. Every one can be skipped, an
 
 The last screen says **What we set up for you**: memory, auto routing, connectors, web search and the study model, each in one line as it really stands on your machine, with a **Change** link to its page of Settings.
 
-Your answers are stored in `~/.dsh/kybernos/onboarding.json`. To go through them again, or to open the starter kit alone:
-**Settings › General › Kybernos Settings › Onboarding › Replay**, or **Starter kit › Open**. A replay always shows the model question,
+Your answers are stored in `~/.dsh/kybernos/onboarding.json`. To go through them again (the starter kit is the last page):
+**Settings › General › Kybernos Settings › Onboarding › Replay**. A replay always shows the model question,
 so it is also where you add an account or a key later.
 
 ## Update
