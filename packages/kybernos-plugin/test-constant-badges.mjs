@@ -21,7 +21,7 @@ check('so does the Agent Team\'s skill row', /\(k\.attached === true \? h\('span
 check('no « Available » label is drawn any more', !/'Available'\)/.test(SRC.slice(SRC.indexOf("'data-kb': 'project-skill-pill'") - 200, SRC.indexOf("'data-kb': 'project-skill-pill'") + 200)))
 
 console.log('connectors (only a state that is not the usual one)')
-check('the project\'s connection shows its state unless it is active or ready', /\(\(c\.state === 'ACTIVE' \|\| c\.state === 'READY'\) \? null : h\('span', \{ style: Object\.assign\(\{\}, pillStyle,/.test(SRC))
+check('the project\'s connection shows its state unless it is active or ready (an active one only says « In use » when the project selects it)', /const live = c\.state === 'ACTIVE' \|\| c\.state === 'READY'/.test(SRC) && /\(live === true\s*\? \(c\.selected === true \? h\('span', \{ style: pillOn, 'data-kb': 'project-conn-pill' \}, kbe\('In use', 'Utilisé'\)\) : null\)\s*: h\('span', \{ style: Object\.assign\(\{\}, pillStyle,/.test(SRC))
 check('the Agent Team\'s connection too', /\(\(c\.state === 'ACTIVE' \|\| c\.state === 'READY'\) \? null : h\('span', \{ style: Object\.assign\(\{\}, pillT,/.test(SRC))
 check('a failed or pending connection still says so', /c\.state === 'FAILED' \? \{ color: 'var\(--dsw-alias-state-error-primary\)'/.test(SRC))
 

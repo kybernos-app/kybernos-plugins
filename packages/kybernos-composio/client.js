@@ -70,14 +70,15 @@ window.__ModuleLoader__.load({
     // ── logo seam for the other bundles ───────────────────────────────────────
     // `window.__KB_APP_LOGOS__.svg(slug)` is the embedded SVG logo of a Composio app, or null: the catalog is not here yet (the first
     // call starts its one load and `subscribe(fn)` is told when it lands), the app has no logo, or the load failed (tried again after a
-    // minute, never on every render). The SVGs are this bundle's own embedded markup, never a third-party address. kybernos-plugin draws
-    // them in the Connectors tabs of a project and of a team; without this bundle those tiles keep their initials.
+    // minute, never on every render). `name(slug)` is the app's display name (« Google Calendar » for `googlecalendar`), or null for the same reasons.
+    // The SVGs are this bundle's own embedded markup, never a third-party address. kybernos-plugin draws them, and writes the names, in the
+    // Connectors tabs of a project and of a team; without this bundle those tiles keep their initials and the names are made from the slug.
     const kbCpLogoSubs = new Set()
     let kbCpLogoTriedAt = 0
-    const kbCpLogoSvg = (slug) => {
+    const kbCpEntry = (slug) => {
       try {
         const e = CAT_BY_SLUG[String(slug).toLowerCase()]
-        if (e !== undefined && e !== null && typeof e.l === 'string' && e.l.length > 0) return e.l
+        if (e !== undefined && e !== null) return e
         if (catOk === false && catalogLoad === null && Date.now() - kbCpLogoTriedAt > 60000) {
           kbCpLogoTriedAt = Date.now()
           kbCpCatalog().then(() => { for (const f of Array.from(kbCpLogoSubs)) { try { f() } catch (e2) { /* one listener must not stop the others */ } } }, () => { /* tried again in a minute */ })
@@ -85,8 +86,16 @@ window.__ModuleLoader__.load({
       } catch (e) { /* the tile keeps its initials */ }
       return null
     }
+    const kbCpLogoSvg = (slug) => {
+      const e = kbCpEntry(slug)
+      return (e !== null && typeof e.l === 'string' && e.l.length > 0) ? e.l : null
+    }
+    const kbCpAppName = (slug) => {
+      const e = kbCpEntry(slug)
+      return (e !== null && typeof e.n === 'string' && e.n.trim().length > 0) ? e.n.trim() : null
+    }
     try {
-      window.__KB_APP_LOGOS__ = { version: 1, svg: kbCpLogoSvg, subscribe: (fn) => { kbCpLogoSubs.add(fn); return () => { kbCpLogoSubs.delete(fn) } } }
+      window.__KB_APP_LOGOS__ = { version: 1, svg: kbCpLogoSvg, name: kbCpAppName, subscribe: (fn) => { kbCpLogoSubs.add(fn); return () => { kbCpLogoSubs.delete(fn) } } }
     } catch (e) { /* no window: the tiles keep their initials */ }
     // <app-logos:end>
 

@@ -94,7 +94,8 @@ delete process.env.COMPOSIO_API_KEY
   const post = (body, headers) => h.call(A, { method: 'POST', body, headers })
   let r = await post({ action: 'add', toolkit: 'gmail' })
   ok('accounts: add gives the address to authorize at, and the pending account', r.code === 200 && r.json.redirectUrl === 'https://connect.composio.dev/link/abc123' && r.json.connection.accounts.length === 1 && r.json.connection.accounts[0].status === 'initiated', r.text.slice(0, 200))
-  ok('accounts: ...and never the person\'s e-mail from user_info', !r.text.includes('person@example.org'))
+  ok('accounts: ...and says which account it is (the e-mail of user_info, as `identity`)', r.json.connection.accounts[0].identity === 'person@example.org')
+  ok('accounts: ...and nothing else of user_info (no id, no picture link)', !r.text.includes('sub-secret-1') && !r.text.includes('example.org/p.png') && !r.text.includes('user_info'))
   comp.state.linkUrl = 'javascript:alert(1)'
   r = await post({ action: 'add', toolkit: 'gmail' })
   ok('accounts: a link that is not http(s) is dropped, not passed to the page', r.code === 200 && r.json.redirectUrl === null, r.text.slice(0, 120))

@@ -28,7 +28,7 @@ const teamsSrc = block('// <teams-menu:begin>', '// <teams-menu:end>')
 check('the three blocks are where the test expects them', faceSrc !== null && quotaSrc !== null && teamsSrc !== null)
 const lib = new Function(faceSrc + '\n' + quotaSrc + '\n' + teamsSrc + `
 return { INLINE_SPACES_MAX, spacesMenuMode, spaceIsPersonal, spaceIsAdmin, spaceHue, SPACE_HUES, SWITCH_WAIT_MIN_MS, SWITCH_WAIT_MAX_MS, switchPlan, switchState,
-  planCardModel, spaceRowOf, spaceCueOf, PERSONAL_MEMORY_CUT, placeholderNext, quotaMeterOf, planDeEspace, subPanelBox, SUB_PANEL_WIDTH }`)()
+  planCardModel, spaceRowOf, spaceCueOf, PERSONAL_MEMORY_CUT, placeholderNext, quotaMeterOf, planDeEspace, subPanelBox, SUB_PANEL_WIDTH, railMenuBox, RAIL_MENU_WIDTH }`)()
 
 // The dictionary of one language, read from the source (the strings the page uses): French is the first block of client.js, English the last.
 const frFrom = source.indexOf('      fr: {')
@@ -259,6 +259,22 @@ console.log('the box of the « Switch team » list')
   check('a 320 px phone: still inside the window, and never above it', small.left === 8 && small.width === 304 && small.top === 8, small)
   check('a tablet\'s width (521 px) keeps the beside-the-menu panel', lib.subPanelBox(menu, 521).width === 248 && lib.subPanelBox(menu, 520).width === 504)
   check('the footer places the list through this rule and sets its width', /setSubPos\(subPanelBox\(r, window\.innerWidth\)\)/.test(source) && /width: subPos\.width \+ 'px'/.test(source))
+}
+
+console.log('the box of the account menu in a collapsed rail')
+{
+  const card = { left: 10, top: 662, width: 36 }
+  const box = lib.railMenuBox(card, 1000, 800)
+  check('a 36 px card gives a ' + lib.RAIL_MENU_WIDTH + ' px menu, not a 36 px strip', box.width === lib.RAIL_MENU_WIDTH && box.left === 10, box)
+  check('the menu sits 10 px above the card and may not grow past the window\'s top', box.bottom === 148 && box.maxHeight === 800 - 148 - 8, box)
+  check('a wide card (an expanded rail) keeps its own width', lib.railMenuBox({ left: 12, top: 700, width: 300 }, 1400, 900).width === 300)
+  const edge = lib.railMenuBox({ left: 900, top: 500, width: 36 }, 1000, 800)
+  check('a card near the right edge pushes the menu back inside the window', edge.left + edge.width + 8 <= 1000 && edge.left >= 8, edge)
+  const phone = lib.railMenuBox({ left: 10, top: 700, width: 36 }, 390, 700)
+  check('a 390 px phone: the menu keeps its ' + lib.RAIL_MENU_WIDTH + ' px, inside the window', phone.width === lib.RAIL_MENU_WIDTH && phone.left === 10, phone)
+  const tiny = lib.railMenuBox({ left: 10, top: 700, width: 36 }, 240, 700)
+  check('a window narrower than the menu: the window\'s width less 16, never wider', tiny.width === 224 && tiny.left === 8, tiny)
+  check('the menu is drawn through this rule, fixed on <body>, only when the card is narrow', /railMenuBox\(anchor\.getBoundingClientRect\(\), window\.innerWidth, window\.innerHeight\)/.test(source) && /narrow: etroit === true/.test(source) && /railBox !== null \? ReactDOM\.createPortal\(menu, document\.body\)/.test(source))
 }
 
 if (failed > 0) { console.error('\n' + failed + ' check(s) failed'); process.exit(1) }

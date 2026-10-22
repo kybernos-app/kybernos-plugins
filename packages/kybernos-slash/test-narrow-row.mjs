@@ -21,6 +21,6 @@ assert.match(block, /\.kbsl-tabs \.kbsl-search\{flex:1 1 100%;width:auto!importa
 assert.match(block, /\.kbsl-lrow\{flex-wrap:wrap/, 'a row wraps')
 assert.match(block, /\.kbsl-lrow>\.kbsl-lmain\{flex:1 1 calc\(100% - 40px\)\}/, 'the name takes the whole line next to the tile')
 assert.match(block, /\.kbsl-lrow>\.kbsl-chip\{margin-inline-start:40px\}/, 'the chip starts under the name')
-assert.match(block, /\.kbsl-lrow>\.kbsl-chip\+\.kbsl-ibtn\{margin-inline-start:auto\}/, 'the actions go to the end of that line')
+assert.match(block, /\.kbsl-lrow>\.kbsl-chip\+\.kbsl-lacts\{margin-inline-start:auto;opacity:1\}/, 'the actions go to the end of that line, and show (a touch screen has no hover)')
 console.log('  ✓ below 520 px the row, the tabs and the search of the Commands page wrap instead of squeezing the name')
 console.log('\n1 check passed')
