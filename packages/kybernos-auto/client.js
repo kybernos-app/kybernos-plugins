@@ -687,7 +687,12 @@ window.__ModuleLoader__.load({
         }, 'kybernos-auto: styles')
         effet(() => {
           const tic = setInterval(tictacComposer, 300)
-          return () => { clearInterval(tic); retirerPanneau(); appliquerChipAuto(false) }
+          return () => {
+            clearInterval(tic)
+            // A menu left open keeps what this instance did to it: the greyed-out rows and the lift. Give them back before the panel goes.
+            try { const m = menuOuvert(); if (m !== null) { verrouiller(m, false); m.style.transform = '' } } catch (e) { /* the menu is gone with its DOM */ }
+            retirerPanneau(); appliquerChipAuto(false)
+          }
         }, 'kybernos-auto: composer tick')
         try {
             slots.inject('settings.section', () => slots.register(
