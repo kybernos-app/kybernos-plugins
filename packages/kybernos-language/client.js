@@ -76,30 +76,60 @@ body:not([data-ds-dark-theme]) .kbln-page{--dsw-alias-label-tertiary:var(--dsw-a
 .kbln-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .kbln-lb{font-size:13px;font-weight:500;color:var(--dsw-alias-label-secondary);width:160px;flex:none}
 .kbln-hint{font-size:12px;color:var(--dsw-alias-label-secondary);line-height:1.5}
-.kbln-btn{appearance:none;font:inherit;font-size:13px;font-weight:500;padding:7px 14px;border-radius:9px;cursor:pointer;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);transition:background .12s,border-color .12s;white-space:nowrap}
-.kbln-btn:hover{background:var(--dsw-alias-interactive-bg-hover, var(--dsw-alias-bg-layer-3));border-color:var(--dsw-alias-border-l3)}
+/* Buttons: one height, one shape, everywhere on the page. Filled = the one action a row wants most; outline = the others; icon = the ⋯ and the chevron. */
+.kbln-btn{appearance:none;font:inherit;font-size:12.5px;font-weight:500;line-height:1;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:30px;padding:0 12px;border-radius:8px;cursor:pointer;border:1px solid var(--dsw-alias-border-l2);background:transparent;color:var(--dsw-alias-label-primary);transition:background .12s,border-color .12s,opacity .12s;white-space:nowrap}
+.kbln-btn:hover:not([disabled]){background:var(--dsw-alias-interactive-bg-hover, var(--dsw-alias-bg-layer-3));border-color:var(--dsw-alias-border-l3)}
+.kbln-btn[disabled]{opacity:.45;cursor:default}
+.kbln-btn:focus-visible,.kbln-tab:focus-visible,.kbln-sw input:focus-visible+i{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px}
 .kbln-btn.primary{background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-foreground,#fff);border-color:var(--dsw-alias-brand-primary)}
-.kbln-btn.primary:hover{opacity:.9}
-.kbln-btn.quiet{border-color:transparent;background:transparent;color:var(--dsw-alias-label-secondary)}
-.kbln-btn.quiet:hover{background:var(--dsw-alias-interactive-bg-hover, var(--dsw-alias-bg-layer-3))}
+.kbln-btn.primary:hover:not([disabled]){background:var(--dsw-alias-brand-primary);border-color:var(--dsw-alias-brand-primary);opacity:.9}
+.kbln-btn.quiet{border-color:transparent;color:var(--dsw-alias-label-secondary)}
+.kbln-btn.icon{width:30px;padding:0}
 .kbln-btn.danger{color:var(--dsw-alias-state-error, #e5484d)}
-/* ── Language rows ──────────────────────────────────────────────────────── */
-.kbln-langs{display:flex;flex-direction:column;gap:8px}
-.kbln-lang{display:flex;flex-direction:column;gap:12px;padding:12px 14px;border-radius:12px;border:.5px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2)}
-.kbln-lang.on{border:1.5px solid var(--dsw-alias-brand-primary);padding:11.25px 13.25px}
-.kbln-lang-top{display:flex;align-items:center;gap:12px}
-.kbln-badge{width:38px;height:38px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;letter-spacing:.02em;background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-secondary)}
-.kbln-lang.on .kbln-badge{background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-foreground,#fff)}
-.kbln-lang-info{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+/* ── Toolbar: the two tabs, and « Add a language » ──────────────────────── */
+.kbln-bar-row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.kbln-tabs{display:inline-flex;gap:2px;padding:3px;border-radius:10px;background:var(--dsw-alias-bg-layer-3)}
+.kbln-tab{appearance:none;font:inherit;font-size:12.5px;font-weight:500;height:28px;padding:0 14px;border:0;border-radius:7px;background:transparent;color:var(--dsw-alias-label-secondary);cursor:pointer;white-space:nowrap}
+.kbln-tab:hover{color:var(--dsw-alias-label-primary)}
+.kbln-tab[aria-selected="true"]{background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);box-shadow:0 1px 2px rgba(0,0,0,.2)}
+/* ── Language rows: one list, one line each. The actions show on hover or focus; a warning is a dot, its details open with the chevron. ─ */
+.kbln-langs{display:flex;flex-direction:column;border-radius:12px;border:.5px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2)}
+.kbln-lang{position:relative;display:flex;flex-direction:column;gap:10px;padding:10px 14px;border-top:.5px solid var(--dsw-alias-border-l2)}
+.kbln-lang:first-child{border-top:0;border-start-start-radius:12px;border-start-end-radius:12px}
+.kbln-lang:last-child{border-end-start-radius:12px;border-end-end-radius:12px}
+.kbln-lang:hover{background:color-mix(in srgb,var(--dsw-alias-label-primary) 3%,transparent)}
+.kbln-lang.on::before{content:"";position:absolute;inset-block:10px;inset-inline-start:0;width:3px;border-radius:0 3px 3px 0;background:var(--dsw-alias-brand-primary)}
+html[dir="rtl"] .kbln-lang.on::before{border-radius:3px 0 0 3px}
+.kbln-lang-top{display:flex;align-items:center;gap:12px;min-height:40px}
+.kbln-badge{width:34px;height:34px;border-radius:50%;flex:none;display:grid;place-items:center;overflow:hidden;font-size:11px;font-weight:700;letter-spacing:.02em;line-height:1;background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-secondary)}
+.kbln-badge.flag{font-size:19px;letter-spacing:0}
+.kbln-badge svg{display:block}
+.kbln-lang.on .kbln-badge:not(.flag){background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-foreground,#fff)}
+.kbln-lang-info{display:flex;flex-direction:column;gap:1px;min-width:0;flex:1}
 .kbln-lang-name{font-size:14px;font-weight:600;color:var(--dsw-alias-label-primary);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.kbln-lang-en{font-weight:400;color:var(--dsw-alias-label-tertiary);font-size:12px}
+.kbln-lang-en{font-weight:400;color:var(--dsw-alias-label-tertiary);font-size:12.5px}
 body:not([data-ds-dark-theme]) .kbln-lang-en{color:var(--dsw-alias-label-secondary)}
 .kbln-lang-meta{font-size:12px;color:var(--dsw-alias-label-secondary);line-height:1.4}
-.kbln-lang-act{display:flex;align-items:center;gap:8px;flex:none;flex-wrap:wrap;justify-content:flex-end}
+.kbln-lang-act{display:flex;align-items:center;gap:8px;flex:none;justify-content:flex-end}
+.kbln-tools{display:flex;align-items:center;gap:6px;opacity:0;transition:opacity .12s}
+.kbln-lang:hover .kbln-tools,.kbln-lang:focus-within .kbln-tools,.kbln-lang.tools .kbln-tools,.kbln-lang.open .kbln-tools{opacity:1}
+.kbln-tgl{opacity:0}
+.kbln-tgl svg{transition:transform .15s ease}
+.kbln-lang:hover .kbln-tgl,.kbln-lang:focus-within .kbln-tgl,.kbln-lang.has-alert .kbln-tgl,.kbln-lang.open .kbln-tgl{opacity:1}
+.kbln-lang.open .kbln-tgl svg{transform:rotate(180deg)}
+@media (hover:none){.kbln-tools,.kbln-tgl{opacity:1}}
 .kbln-pill{font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-label-tertiary);font-weight:500;white-space:nowrap}
-.kbln-pill.ok{border-color:transparent;background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-foreground,#fff)}
+.kbln-state{display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 10px 0 8px;border-radius:999px;font-size:11.5px;font-weight:500;white-space:nowrap;color:var(--dsw-alias-label-primary);background:color-mix(in srgb,var(--dsw-alias-label-primary) 10%,transparent)}
+/* A warning is a dot: amber for something to look at, red for something that stopped, grey for a remark. The words are in the row's details. */
+.kbln-dot{width:8px;height:8px;border-radius:50%;flex:none;cursor:help;background:var(--dsw-alias-state-warn-primary,#f59e0b)}
+.kbln-dot.error{background:var(--dsw-alias-state-error, #e5484d)}
+.kbln-dot.info{background:var(--dsw-alias-label-tertiary)}
+.kbln-detail{display:flex;flex-direction:column;gap:12px;padding-inline-start:46px}
+.kbln-al{display:flex;flex-direction:column;gap:8px;font-size:12.5px;line-height:1.5;color:var(--dsw-alias-label-secondary)}
+.kbln-al-h{display:flex;align-items:center;gap:8px;font-weight:600;color:var(--dsw-alias-label-primary)}
+.kbln-al b{color:var(--dsw-alias-label-primary);font-weight:600}
 /* Progress, inside the row */
-.kbln-prog{display:flex;flex-direction:column;gap:10px;padding-top:2px}
+.kbln-prog{display:flex;flex-direction:column;gap:10px;padding-inline-start:46px}
 .kbln-bar{height:8px;border-radius:999px;background:var(--dsw-alias-bg-layer-3);overflow:hidden}
 .kbln-bar>i{display:block;height:100%;border-radius:999px;background:var(--dsw-alias-brand-primary);transition:width .3s ease}
 .kbln-bar.sm{height:5px}
@@ -116,11 +146,9 @@ body:not([data-ds-dark-theme]) .kbln-lang-en{color:var(--dsw-alias-label-seconda
 .kbln-menu-pop button{appearance:none;font:inherit;font-size:13px;text-align:start;padding:8px 10px;border:0;border-radius:7px;background:transparent;color:var(--dsw-alias-label-primary);cursor:pointer}
 .kbln-menu-pop button:hover{background:var(--dsw-alias-interactive-bg-hover, var(--dsw-alias-bg-layer-3))}
 .kbln-menu-pop button[disabled]{opacity:.45;cursor:default}
-/* ── Add a language ─────────────────────────────────────────────────────── */
-.kbln-add{display:flex;flex-direction:column;border-radius:12px;border:.5px dashed var(--dsw-alias-border-l3)}
-.kbln-add-h{appearance:none;font:inherit;display:flex;align-items:center;gap:10px;padding:11px 14px;background:transparent;border:0;cursor:pointer;color:var(--dsw-alias-label-secondary);font-size:14px;text-align:start}
-.kbln-add-h:hover{color:var(--dsw-alias-brand-primary)}
-.kbln-add-body{display:flex;flex-direction:column;gap:10px;padding:0 14px 14px}
+/* ── Add a language: the picker opens under the toolbar ───────────────── */
+.kbln-add{display:flex;flex-direction:column;border-radius:12px;border:.5px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2)}
+.kbln-add-body{display:flex;flex-direction:column;gap:10px;padding:14px}
 .kbln-input{appearance:none;font:inherit;font-size:13px;padding:8px 12px;border-radius:9px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);outline:none;width:100%;box-sizing:border-box}
 .kbln-input:focus{border-color:var(--dsw-alias-brand-primary)}
 .kbln-chips{display:flex;flex-wrap:wrap;gap:6px}
@@ -137,10 +165,33 @@ body:not([data-ds-dark-theme]) .kbln-chip-tag{color:color-mix(in srgb,var(--dsw-
 .kbln-iso-i b{font-weight:500}
 .kbln-iso-i small{font-size:11px;color:var(--dsw-alias-label-tertiary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .kbln-iso-i code{margin-inline-start:auto;font-size:10px;color:var(--dsw-alias-label-tertiary)}
-/* ── Advanced ───────────────────────────────────────────────────────────── */
-.kbln-adv{border-radius:12px;border:.5px solid var(--dsw-alias-border-l2);padding:10px 14px}
-.kbln-adv>summary{cursor:pointer;font-size:13px;color:var(--dsw-alias-label-secondary)}
-.kbln-adv-body{display:flex;flex-direction:column;gap:12px;padding-top:12px}
+/* ── Settings tab: one list of rows, a switch where it is a yes/no ──────── */
+.kbln-set{display:flex;flex-direction:column;border-radius:12px;border:.5px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2)}
+.kbln-set-row{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:14px;border-top:.5px solid var(--dsw-alias-border-l2)}
+.kbln-set-row:first-child{border-top:0}
+.kbln-set-txt{display:flex;flex-direction:column;gap:3px;min-width:0}
+.kbln-set-lb{font-size:13.5px;font-weight:600;color:var(--dsw-alias-label-primary)}
+.kbln-sw{position:relative;display:inline-block;width:36px;height:20px;flex:none}
+.kbln-sw input{position:absolute;inset:0;margin:0;opacity:0;cursor:pointer;z-index:1}
+.kbln-sw i{position:absolute;inset:0;border-radius:999px;background:var(--dsw-alias-bg-layer-3);border:1px solid var(--dsw-alias-border-l3);transition:background .15s,border-color .15s;pointer-events:none}
+.kbln-sw i::after{content:"";position:absolute;top:2px;inset-inline-start:2px;width:14px;height:14px;border-radius:50%;background:var(--dsw-alias-label-secondary);transition:transform .15s,background .15s}
+.kbln-sw input:checked+i{background:var(--dsw-alias-brand-primary);border-color:var(--dsw-alias-brand-primary)}
+.kbln-sw input:checked+i::after{transform:translateX(16px);background:var(--dsw-alias-label-primary-foreground,#fff)}
+html[dir="rtl"] .kbln-sw input:checked+i::after{transform:translateX(-16px)}
+.kbln-pick{position:relative;flex:none}
+.kbln-pick>.kbln-select{display:flex;align-items:center;gap:8px;width:300px;max-width:100%;text-align:start;white-space:nowrap}
+.kbln-pick>.kbln-select[disabled]{opacity:.5;cursor:default}
+.kbln-pick-cur{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.kbln-pick-pop{position:absolute;inset-inline-end:0;top:calc(100% + 6px);z-index:30;width:380px;max-width:calc(100vw - 48px);display:flex;flex-direction:column;border-radius:12px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);box-shadow:0 12px 32px rgba(0,0,0,.28);overflow:hidden}
+.kbln-pick-q{padding:8px;border-bottom:.5px solid var(--dsw-alias-border-l2)}
+.kbln-pick-list{list-style:none;margin:0;padding:4px;max-height:320px;overflow:auto}
+.kbln-pick-opt{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:8px;font-size:13px;color:var(--dsw-alias-label-primary);cursor:pointer}
+.kbln-pick-opt.cur{background:var(--dsw-alias-interactive-bg-hover, var(--dsw-alias-bg-layer-3))}
+.kbln-pick-opt>span:first-child{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kbln-pick-opt small{flex:none;font-size:11px;color:var(--dsw-alias-label-tertiary)}
+.kbln-pick-opt svg{flex:none;width:14px;height:14px;color:var(--dsw-alias-brand-primary)}
+.kbln-pick-opt:not(.on) svg{visibility:hidden}
+.kbln-pick-none{padding:14px 10px;font-size:12.5px;color:var(--dsw-alias-label-secondary)}
 .kbln-select{appearance:none;font:inherit;font-size:13px;padding:7px 28px 7px 10px;border-radius:8px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2381858c'/%3E%3C/svg%3E") no-repeat right 10px center;color:var(--dsw-alias-label-primary);cursor:pointer;min-width:240px;max-width:100%}
 .kbln-select:focus{border-color:var(--dsw-alias-brand-primary);outline:none}
 /* ── Help: a small animated walkthrough ──────────────────────────────────────
@@ -217,17 +268,8 @@ body:not([data-ds-dark-theme]) .kbln-chip-tag{color:color-mix(in srgb,var(--dsw-
 @keyframes kbln-k-s3{0%,65%{opacity:.45}68%,95%{opacity:1}98%,100%{opacity:.45}}
 @media (prefers-reduced-motion:reduce){.kbln-mm *,.kbln-step{animation:none !important}.kbln-step{opacity:1}}
 /* A run lives in the tab: what to expect, a stale bar for a language that is not running, test marks */
-.kbln-banner{display:flex;flex-direction:column;gap:8px;padding:10px 12px;border-radius:10px;font-size:12.5px;line-height:1.5;color:var(--dsw-alias-label-secondary);background:var(--dsw-alias-bg-layer-3)}
-.kbln-banner b{color:var(--dsw-alias-label-primary);font-weight:600}
-.kbln-banner.warn{border:1px solid var(--dsw-alias-state-warn-primary,#f59e0b)}
-.kbln-fold>summary{display:flex;align-items:center;gap:6px;cursor:pointer;list-style:none;font-weight:600;color:var(--dsw-alias-label-primary)}
-.kbln-fold>summary::-webkit-details-marker{display:none}
-.kbln-fold>summary .kbln-chev{display:inline-block;transition:transform .15s ease}
-.kbln-fold[open]>summary .kbln-chev{transform:rotate(90deg)}
 .kbln-bar.stale>i{background:var(--dsw-alias-label-tertiary)}
 .kbln-ex{font:11.5px/1.6 ui-monospace,Menlo,monospace;color:var(--dsw-alias-label-secondary);overflow-wrap:anywhere}
-.kbln-check{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--dsw-alias-label-secondary);cursor:pointer}
-.kbln-check input{width:16px;height:16px;margin:0;accent-color:var(--dsw-alias-brand-primary)}
 /* The footer indicator: a ring that fills while a translation runs, with the percentage inside */
 .kbln-ring{appearance:none;--p:0;position:relative;display:inline-grid;place-items:center;flex:none;width:30px;height:30px;padding:0;border:0;border-radius:50%;cursor:pointer;font:inherit;background:conic-gradient(var(--dsw-alias-brand-primary) calc(var(--p) * 1%),var(--dsw-alias-border-l3) 0)}
 .kbln-ring::before{content:"";position:absolute;inset:3px;border-radius:50%;background:var(--dsw-alias-bg-layer-2)}
@@ -252,7 +294,7 @@ html[dir="rtl"] .kbln-slider{background:linear-gradient(to left,var(--dsw-alias-
 html[dir="rtl"] .kbln-sl-vl,html[dir="rtl"] .kbln-fsmeta,html[dir="rtl"] .kbln-prog-line b,
 html[dir="rtl"] code,html[dir="rtl"] pre{direction:ltr;unicode-bidi:isolate;text-align:left}
 html[dir="rtl"] .kbln-page{direction:rtl}
-@media (max-width:640px){.kbln-lang-top{flex-wrap:wrap}.kbln-lang-act{width:100%;justify-content:flex-start}.kbln-areas{grid-template-columns:1fr 60px}}
+@media (max-width:640px){.kbln-lang-top{flex-wrap:wrap}.kbln-lang-act{width:100%;justify-content:flex-start;padding-inline-start:46px}.kbln-tools,.kbln-tgl{opacity:1}.kbln-areas{grid-template-columns:1fr 60px}.kbln-set-row{flex-direction:column;align-items:flex-start}.kbln-prog,.kbln-detail{padding-inline-start:0}}
 `
 
       // ══════════════════════════════════════════════════════════════════════
@@ -310,6 +352,51 @@ html[dir="rtl"] .kbln-page{direction:rtl}
         infoCache.set(id, info)
         return info
       }
+
+      // ── flags ────────────────────────────────────────────────────────────
+      // A language is not a country, and the page says so by what it does not draw: no flag for a language without one country to point at
+      // (Catalan, Esperanto, Latin…: the two-letter code stays). Where a country does stand for the language, its flag is the regional-indicator
+      // pair of that country, built here from the two letters (no emoji in the source). Arabic belongs to twenty-odd countries, so it gets an
+      // emblem of its own, drawn below. Systems whose fonts have no flags (Windows) draw the two letters instead: detected once on a canvas.
+      const FLAG_REGION = {
+        kybernos: 'FR', fr: 'FR', en: 'GB', es: 'ES', it: 'IT', de: 'DE', pt: 'PT', pl: 'PL', nl: 'NL', ru: 'RU', uk: 'UA', tr: 'TR', zh: 'CN', ja: 'JP', ko: 'KR',
+        hi: 'IN', bn: 'BD', he: 'IL', fa: 'IR', ur: 'PK', vi: 'VN', id: 'ID', th: 'TH', sv: 'SE', da: 'DK', nb: 'NO', no: 'NO', nn: 'NO', fi: 'FI', cs: 'CZ', sk: 'SK',
+        sl: 'SI', hr: 'HR', sr: 'RS', bg: 'BG', ro: 'RO', hu: 'HU', el: 'GR', lt: 'LT', lv: 'LV', et: 'EE', ms: 'MY', sw: 'KE', tl: 'PH', af: 'ZA', sq: 'AL', hy: 'AM',
+        ka: 'GE', az: 'AZ', kk: 'KZ', uz: 'UZ', mn: 'MN', ne: 'NP', si: 'LK', km: 'KH', lo: 'LA', my: 'MM', is: 'IS', ga: 'IE', mt: 'MT', lb: 'LU', mk: 'MK', bs: 'BA', be: 'BY', am: 'ET',
+      }
+      const flagEmoji = (id) => {
+        const r = FLAG_REGION[id]
+        return r === undefined ? null : String.fromCodePoint(0x1F1E6 + r.charCodeAt(0) - 65, 0x1F1E6 + r.charCodeAt(1) - 65)
+      }
+      let flagFontKnown = null
+      const flagsDrawn = () => {
+        if (flagFontKnown !== null) return flagFontKnown
+        try {
+          const cv = document.createElement('canvas')
+          cv.width = 28; cv.height = 28
+          const cx = cv.getContext('2d', { willReadFrequently: true })
+          cx.textBaseline = 'top'; cx.font = '20px sans-serif'
+          cx.fillText(String.fromCodePoint(0x1F1EB, 0x1F1F7), 0, 2)
+          const px = cx.getImageData(0, 0, 28, 28).data
+          let coloured = 0
+          for (let k = 0; k < px.length; k += 4) if (px[k + 3] > 200 && (Math.abs(px[k] - px[k + 2]) > 60)) coloured += 1
+          flagFontKnown = coloured > 12
+        } catch (e) { flagFontKnown = false }
+        return flagFontKnown
+      }
+      // Arabic's own emblem: a teal field, a pale line, the letter ʿayn that opens « عربي ». Drawn, so it shows everywhere.
+      const arabicEmblem = () => h('svg', { width: 24, height: 17, viewBox: '0 0 24 17', 'aria-hidden': 'true', focusable: 'false' },
+        h('rect', { width: 24, height: 17, rx: 3, fill: '#0f766e' }),
+        h('rect', { y: 12.2, width: 24, height: 2.2, fill: '#c9d6d2' }),
+        h('text', { x: 12, y: 11, textAnchor: 'middle', fontSize: 12.5, fontWeight: 700, fill: '#fff', fontFamily: 'system-ui, sans-serif' }, '\u0639'))
+      /** What the round badge of a language holds: `{ flag: true, node }` (a flag or the Arabic emblem) or `{ flag: false, node }` (the two letters). */
+      const badgeFor = (id) => {
+        if (id === 'ar') return { flag: true, node: arabicEmblem() }
+        const e = flagEmoji(id)
+        if (e !== null && flagsDrawn()) return { flag: true, node: e }
+        return { flag: false, node: id === 'kybernos' ? 'FR' : id.toUpperCase() }
+      }
+      const svgIcon = (d, size) => h('svg', { width: size, height: size, viewBox: '0 0 16 16', fill: 'none', stroke: 'currentColor', strokeWidth: 1.6, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true', focusable: 'false' }, h('path', { d }))
 
       // ── storage ──────────────────────────────────────────────────────────
       // The browser's copy is what this page reads. The always-on runtime (@local/kybernos)
@@ -480,7 +567,14 @@ html[dir="rtl"] .kbln-page{direction:rtl}
         allLangs: ['Toutes les langues (ISO 639-1)', 'All languages (ISO 639-1)'],
         noMatch: ['Aucune langue ne correspond. Essaie le nom en anglais.', 'No language matches. Try the English name.'],
         added: ['Déjà ajoutée', 'Already added'],
-        advanced: ['Avancé', 'Advanced'],
+        tabLangs: ['Langues', 'Languages'],
+        tabSettings: ['Réglages', 'Settings'],
+        rowOpen: ['Afficher les détails de {name}', 'Show details for {name}'],
+        rowClose: ['Masquer les détails de {name}', 'Hide details for {name}'],
+        autoHint: ['Si l’onglet est fermé pendant une traduction, elle reprend toute seule. Désactivé, il faut appuyer sur Reprendre.', 'If the tab is closed during a translation, it resumes by itself. Off, you press Resume.'],
+        setDisk: ['Stockage', 'Storage'],
+        searchModel: ['Rechercher un modèle', 'Search a model'],
+        noModelMatch: ['Aucun modèle ne correspond.', 'No model matches.'],
         modelLabel: ['Modèle de traduction', 'Translation model'],
         modelHint: ['Les traductions sont générées par ce modèle, puis gardées sur cet ordinateur. Elles s’appliquent à l’interface de Kybernos et à celle de DSH.', 'Translations are generated by this model, then kept on this computer. They apply to Kybernos and to DSH’s own screens.'],
         noModels: ['Aucun modèle détecté. Configure un fournisseur dans Réglages › Fournisseur IA et modèles pour activer la traduction.', 'No model detected. Set up a provider in Settings › AI provider and models to enable translation.'],
@@ -553,7 +647,6 @@ html[dir="rtl"] .kbln-page{direction:rtl}
         tipAdd: ['Choisis n’importe quelle langue de la liste ISO 639-1.', 'Pick any language from the ISO 639-1 list.'],
         tipAddLang: ['Ajouter {name} ({code})', 'Add {name} ({code})'],
         tipModel: ['Le modèle qui écrit les traductions. N’importe quel modèle configuré dans DSH convient ; un modèle rapide suffit.', 'The model that writes the translations. Any model configured in DSH works; a fast one is enough.'],
-        tipAdvanced: ['Choix du modèle de traduction.', 'Translation model choice.'],
         diskOn: ['Traductions enregistrées sur cet ordinateur : {dir}', 'Translations saved on this computer: {dir}'],
         diskOff: ['Traductions gardées dans ce navigateur seulement. Relance DSH pour les enregistrer aussi sur le disque de cet ordinateur.', 'Translations kept in this browser only. Restart DSH to save them on this computer’s disk too.'],
         diskErr: ['Enregistrement sur le disque impossible ({err}). Nouvel essai automatique.', 'Could not save to the disk ({err}). Trying again automatically.'],
@@ -1588,6 +1681,61 @@ html[dir="rtl"] .kbln-page{direction:rtl}
             h('div', { className: 'kbln-note' }, L('helpNote'))))
       }
 
+      /** The models whose name, provider or id holds what was typed (case-insensitive, every word of it): the whole list for an empty query. */
+      const modelMatches = (models, query) => {
+        const words = String(query || '').trim().toLocaleLowerCase().split(/\s+/).filter((w) => w !== '')
+        if (words.length === 0) return models
+        return models.filter((m) => { const hay = (m.name + ' ' + m.provider + ' ' + m.id).toLocaleLowerCase(); return words.every((w) => hay.indexOf(w) >= 0) })
+      }
+
+      // The translation model: a button that opens a short list with a search field (the provider's catalogue runs to dozens of models, which a native
+      // <select> scrolls through blindly). Keyboard: type to filter, ↑ ↓ to move, Enter to choose, Esc to close; a click outside closes it.
+      function ModelPicker(props) {
+        const [open, setOpen] = React.useState(false)
+        const [q, setQ] = React.useState('')
+        const [cursor, setCursor] = React.useState(0)
+        const root = React.useRef(null)
+        const input = React.useRef(null)
+        const list = React.useRef(null)
+        const shown = modelMatches(props.models, q)
+        const current = props.models.find((m) => m.id === props.value)
+        const openIt = () => { setQ(''); setCursor(Math.max(0, props.models.findIndex((m) => m.id === props.value))); setOpen(true) }
+        const closeIt = (back) => { setOpen(false); if (back && props.btnRef.current !== null) { try { props.btnRef.current.focus() } catch (e) { /* gone */ } } }
+        const choose = (m) => { props.onChange(m.id); closeIt(true) }
+        React.useEffect(() => { if (open && input.current !== null) { try { input.current.focus() } catch (e) { /* no focus */ } } }, [open])
+        React.useEffect(() => {
+          if (!open) return undefined
+          const away = (ev) => { if (root.current !== null && !root.current.contains(ev.target)) setOpen(false) }
+          document.addEventListener('mousedown', away)
+          return () => document.removeEventListener('mousedown', away)
+        }, [open])
+        React.useEffect(() => {
+          const li = list.current !== null ? list.current.children[cursor] : null
+          if (open && li !== undefined && li !== null) { try { li.scrollIntoView({ block: 'nearest' }) } catch (e) { /* no layout */ } }
+        }, [cursor, open])
+        const onKey = (e) => {
+          if (e.key === 'ArrowDown') { e.preventDefault(); setCursor(shown.length === 0 ? 0 : Math.min(shown.length - 1, cursor + 1)) }
+          else if (e.key === 'ArrowUp') { e.preventDefault(); setCursor(Math.max(0, cursor - 1)) }
+          else if (e.key === 'Enter') { e.preventDefault(); if (shown[cursor] !== undefined) choose(shown[cursor]) }
+          else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closeIt(true) }
+          else if (e.key === 'Tab') setOpen(false)
+        }
+        return h('div', { className: 'kbln-pick', ref: root },
+          h('button', {
+            id: 'kbln-model', ref: props.btnRef, className: 'kbln-select', type: 'button', disabled: props.disabled, 'aria-haspopup': 'listbox', 'aria-expanded': open ? 'true' : 'false',
+            'aria-label': L('modelLabel'), title: L('tipModel'), 'data-act': 'model-pick', onClick: () => { if (open) closeIt(false); else openIt() },
+          }, h('span', { className: 'kbln-pick-cur' }, current !== undefined ? current.name : '…')),
+          open ? h('div', { className: 'kbln-pick-pop', 'data-kb': 'model-pop' },
+            h('div', { className: 'kbln-pick-q' },
+              h('input', { ref: input, className: 'kbln-input', type: 'search', placeholder: L('searchModel'), 'aria-label': L('searchModel'), value: q, onKeyDown: onKey, onChange: (e) => { setQ(e.target.value); setCursor(0) } })),
+            shown.length > 0
+              ? h('ul', { className: 'kbln-pick-list', role: 'listbox', 'aria-label': L('modelLabel'), ref: list },
+                  shown.map((m, i) => h('li', { key: m.id, className: 'kbln-pick-opt' + (i === cursor ? ' cur' : '') + (m.id === props.value ? ' on' : ''), role: 'option', 'aria-selected': m.id === props.value ? 'true' : 'false', 'data-model': m.id,
+                    onMouseMove: () => { if (cursor !== i) setCursor(i) }, onClick: () => choose(m) },
+                    h('span', null, m.name), h('small', null, m.provider), svgIcon('M3.5 8.5l3 3 6-6.5', 14))))
+              : h('div', { className: 'kbln-pick-none', role: 'status' }, L('noModelMatch'))) : null)
+      }
+
       function Page() {
         const [activeLang, setActiveLang] = React.useState(readActiveLang())
         const [snap, setSnap] = React.useState(run)
@@ -1598,6 +1746,12 @@ html[dir="rtl"] .kbln-page{direction:rtl}
         const [menuFor, setMenuFor] = React.useState(null)
         const [askRemove, setAskRemove] = React.useState(null)
         const [details, setDetails] = React.useState(false)
+        // Which tab is shown, which rows have their details open, and « go to the model choice » (set by « Choose another model »).
+        const [tab, setTab] = React.useState('langs')
+        const [openRows, setOpenRows] = React.useState({})
+        const [focusModel, setFocusModel] = React.useState(false)
+        const toggleRow = (rid) => setOpenRows((m) => Object.assign({}, m, { [rid]: m[rid] !== true }))
+        const modelRef = React.useRef(null)
         const [, setTick] = React.useState(0)
         const [autoOn, setAutoOn] = React.useState(autoResumeOn)
         // Open the first time (nothing translated yet), then as the user left it.
@@ -1610,7 +1764,6 @@ html[dir="rtl"] .kbln-page{direction:rtl}
           setHelpOpen(next)
           try { localStorage.setItem(I18N_HELP_KEY, next ? 'open' : 'closed') } catch (e) { /* storage unavailable */ }
         }
-        const advRef = React.useRef(null)
 
         React.useEffect(() => { setSnap(run); return subscribeRun(setSnap) }, [])
         // Where the translations are kept (disk or browser only) can change after the page opened.
@@ -1628,6 +1781,12 @@ html[dir="rtl"] .kbln-page{direction:rtl}
           return () => { off = true }
         }, [])
         React.useEffect(() => { applyLanguage(activeLang) }, [activeLang])
+        React.useEffect(() => {
+          if (!focusModel || tab !== 'settings') return
+          setFocusModel(false)
+          const sel = modelRef.current
+          if (sel !== null) { try { sel.scrollIntoView({ block: 'center' }); sel.focus() } catch (e) { /* no layout */ } }
+        }, [focusModel, tab])
         // The plan only exists once DSH has registered its dictionaries: look again shortly.
         React.useEffect(() => { const t = window.setTimeout(() => setTick((n) => n + 1), 1500); return () => window.clearTimeout(t) }, [])
         React.useEffect(() => {
@@ -1640,13 +1799,13 @@ html[dir="rtl"] .kbln-page{direction:rtl}
         const langs = getAvailableLangs()
         // Where the translations are kept: on the disk (shared by every browser), or in this
         // browser only (DSH not restarted since the disk copy was added, or the host is down).
-        const diskLine = () => {
+        const diskInfo = () => {
           const d = diskRuntime()
           if (d === null) return null
           const st = d.status()
-          if (st.state === 'on' && st.error === '') return h('div', { key: 'disk', className: 'kbln-note', 'data-disk': 'on', title: L('tipDiskOn') }, L('diskOn', { dir: st.dir }))
-          if (st.state === 'on') return h('div', { key: 'disk', className: 'kbln-note', 'data-disk': 'error', role: 'status', title: L('tipDiskOff') }, L('diskErr', { err: st.error }))
-          if (st.state === 'off' && st.error !== 'disabled') return h('div', { key: 'disk', className: 'kbln-note', 'data-disk': 'off', role: 'status', title: L('tipDiskOff') }, L('diskOff'))
+          if (st.state === 'on' && st.error === '') return { state: 'on', text: L('diskOn', { dir: st.dir }), title: L('tipDiskOn') }
+          if (st.state === 'on') return { state: 'error', text: L('diskErr', { err: st.error }), title: L('tipDiskOff') }
+          if (st.state === 'off' && st.error !== 'disabled') return { state: 'off', text: L('diskOff'), title: L('tipDiskOff') }
           return null
         }
         const route = () => {
@@ -1685,9 +1844,7 @@ html[dir="rtl"] .kbln-page{direction:rtl}
           return () => { alive = false }
         }, [snap.state])
         const addLanguage = (id) => { registryAdd(id); setPickerOpen(false); setQuery(''); setTick((n) => n + 1) }
-        const chooseModel = () => {
-          if (advRef.current !== null) { advRef.current.open = true; try { advRef.current.scrollIntoView({ block: 'center' }) } catch (e) { /* no layout */ } }
-        }
+        const chooseModel = () => { setTab('settings'); setFocusModel(true) }
 
         // ── one row ────────────────────────────────────────────────────────
         const row = (info) => {
@@ -1734,12 +1891,13 @@ html[dir="rtl"] .kbln-page{direction:rtl}
           const staleN = !isBuiltIn(id) && !running && complete ? (staleOf.get(id) || 0) : 0
           // actions
           const acts = []
+          let chip = null
           const pack = isBuiltIn(id) ? undefined : packs.get(id)
           const offerPack = pack !== undefined && !complete && !running && packBusy !== id
           const goButton = () => h('button', { key: 'go', className: 'kbln-btn' + (offerPack ? '' : ' primary'), type: 'button', 'data-act': 'start', disabled: snap.state === 'running' || snap.state === 'pausing' || models.length === 0, title: models.length === 0 ? L('noModels') : (st === 'partial' ? L('tipRetry') : (hasProgress || st === 'paused' || st === 'failed') ? L('tipResume') : L('tipStart')), onClick: () => start(id) },
               st === 'partial' ? L('retryMissing') : (hasProgress || st === 'paused' || st === 'failed') ? L('resume') : L('start'))
           if (inUse) {
-            acts.push(h('span', { key: 'use', className: 'kbln-pill ok', 'data-act': 'in-use', title: L('tipInUse') }, L('inUse')))
+            chip = h('span', { key: 'use', className: 'kbln-state', 'data-act': 'in-use', title: L('tipInUse') }, svgIcon('M3.5 8.5l3 3 6-6.5', 12), L('inUse'))
             // In use but not finished (an older translation, a paused run): it can still be completed.
             if (!complete && !running) acts.push(goButton())
           }
@@ -1764,7 +1922,7 @@ html[dir="rtl"] .kbln-page{direction:rtl}
           }
           if (!isBuiltIn(id) && !running) {
             acts.push(h('div', { key: 'menu', className: 'kbln-menu' },
-              h('button', { className: 'kbln-btn quiet', type: 'button', 'data-act': 'menu', 'aria-label': L('more'), title: L('more'), 'aria-haspopup': 'menu', onClick: (e) => { e.stopPropagation(); setMenuFor(menuFor === id ? null : id) } }, '⋯'),
+              h('button', { className: 'kbln-btn quiet icon', type: 'button', 'data-act': 'menu', 'aria-label': L('more'), title: L('more'), 'aria-haspopup': 'menu', onClick: (e) => { e.stopPropagation(); setMenuFor(menuFor === id ? null : id) } }, '⋯'),
               menuFor === id
                 ? h('div', { className: 'kbln-menu-pop', role: 'menu', onClick: (e) => e.stopPropagation() },
                     h('button', { role: 'menuitem', type: 'button', 'data-act': 'again', title: L('tipAgain'), onClick: () => { setMenuFor(null); try { localStorage.removeItem(I18N_STORE_PREFIX + id); localStorage.removeItem(I18N_DSH_PREFIX + id); localStorage.removeItem(I18N_LIVE_PREFIX + id); localStorage.removeItem(I18N_META_PREFIX + id) } catch (e2) { /* */ } start(id) } }, L('again')),
@@ -1773,13 +1931,17 @@ html[dir="rtl"] .kbln-page{direction:rtl}
           }
 
           // body: progress, errors, remove confirmation
-          const body = []
+          // `live`: always on the row (progress, the answer to a click). `alerts`: something to look at, a dot on the row and the words in its
+          // details. `infos`: plain notes, in the details too.
+          const live = []
+          const alerts = []
+          const infos = []
           // A failure before anything was translated shows the cause only: no empty bars.
           // Also for a language that is not running but holds some progress (after a reload, a closed tab): the bar
           // is the one place that says how far it is.
           if (running || st === 'paused' || (st === 'failed' && snap.done > 0) || (st === null && hasProgress)) {
             const mins = running ? minutesLeft(snap) : null
-            body.push(h('div', { key: 'prog', className: 'kbln-prog' },
+            live.push(h('div', { key: 'prog', className: 'kbln-prog' },
               h('div', { className: 'kbln-bar' + (running ? '' : ' stale'), role: 'progressbar', 'aria-valuemin': 0, 'aria-valuemax': 100, 'aria-valuenow': pct, title: L('tipProgress') },
                 h('i', { style: { width: pct + '%' } })),
               h('div', { className: 'kbln-prog-line' },
@@ -1799,85 +1961,92 @@ html[dir="rtl"] .kbln-page{direction:rtl}
                 : null,
               running && snap.essentials ? h('div', { className: 'kbln-note' }, L('essentials')) : null))
           }
-          if (running) body.push(h('div', { key: 'tab', className: 'kbln-banner', role: 'status', 'data-note': 'in-tab' }, L(autoOn ? 'runsInTab' : 'runsInTabManual')))
+          if (running) live.push(h('div', { key: 'tab', className: 'kbln-note kbln-prog', role: 'status', 'data-note': 'in-tab' }, L(autoOn ? 'runsInTab' : 'runsInTabManual')))
           // The tab was closed during a run and the automatic resume is off: say why it stopped.
           if (!running && st === null && !complete && !autoOn && !isBuiltIn(id)) {
             const left = intentRead()
-            if (left !== null && left.lang === id) body.push(h('div', { key: 'cut', className: 'kbln-banner warn', role: 'status', 'data-note': 'cut' }, L('cutNote')))
+            if (left !== null && left.lang === id) alerts.push({ key: 'cut', level: 'warn', summary: L('cutNote') })
           }
           if (pseudo.n > 0 && !running) {
-            // Collapsed by default: one summary line with the count and a chevron
-            // (native <details>). Blocking errors stay outside this fold.
-            body.push(h('details', { key: 'pseudo', className: 'kbln-banner warn kbln-fold', 'data-note': 'pseudo' },
-              h('summary', null,
-                h('span', { className: 'kbln-chev', 'aria-hidden': true }, '▸'),
-                L('pseudoSummary', { n: fmtN(pseudo.n) })),
-              h('div', null, h('b', null, L('pseudoTitle', { n: fmtN(pseudo.n) })), ' ', L('pseudoBody')),
-              h('div', { className: 'kbln-row', style: { gap: 8 } },
+            alerts.push({ key: 'pseudo', level: 'warn', summary: L('pseudoSummary', { n: fmtN(pseudo.n) }), body: [
+              h('div', { key: 't' }, h('b', null, L('pseudoTitle', { n: fmtN(pseudo.n) })), ' ', L('pseudoBody')),
+              h('div', { key: 'a', className: 'kbln-row', style: { gap: 8 } },
                 h('button', { className: 'kbln-btn primary', type: 'button', 'data-act': 'repair', title: L('tipRepair'), disabled: models.length === 0, onClick: () => start(id) }, L('repair'))),
-              h('div', { className: 'kbln-ex' }, pseudo.examples.map((x) => h('div', { key: x.store + x.id }, x.id + ' → ' + x.text)))))
+              h('div', { key: 'e', className: 'kbln-ex' }, pseudo.examples.map((x) => h('div', { key: x.store + x.id }, x.id + ' → ' + x.text)))] })
           }
           if (st === 'failed') {
             const key = friendlyError(snap.error)
-            body.push(h('div', { key: 'err', className: 'kbln-err', role: 'alert' },
-              h('div', null, L(key)),
-              snap.done > 0 ? h('div', { className: 'kbln-note' }, L('kept')) : null,
-              h('div', { className: 'kbln-row', style: { gap: 8 } },
+            alerts.push({ key: 'err', level: 'error', summary: L('errTitle'), body: [
+              h('div', { key: 'c' }, L(key)),
+              snap.done > 0 ? h('div', { key: 'k', className: 'kbln-note' }, L('kept')) : null,
+              h('div', { key: 'a', className: 'kbln-row', style: { gap: 8 } },
                 h('button', { className: 'kbln-btn', type: 'button', 'data-act': 'choose-model', title: L('tipChooseModel'), onClick: chooseModel }, L('chooseModel')),
                 h('button', { className: 'kbln-link', type: 'button', 'data-act': 'details', title: L('tipDetails'), onClick: () => setDetails(!details) }, L(details ? 'hideDetails' : 'showDetails'))),
-              details ? h('code', null, String(snap.error)) : null))
+              details ? h('code', { key: 'd' }, String(snap.error)) : null] })
           }
-          if (st === 'partial') body.push(h('div', { key: 'gaps', className: 'kbln-note' }, L('gaps', { n: fmtN(snap.missing) })))
           // A ready-made translation the project published for this language: offered above, explained here.
           if (pack !== undefined && !complete && !running) {
-            body.push(h('div', { key: 'pack', className: 'kbln-note', 'data-note': 'pack' },
+            infos.push(h('div', { key: 'pack', className: 'kbln-note', 'data-note': 'pack' },
               L('packNote', { n: fmtN(pack.counts.kb + pack.counts.dsh) }) + (pack.reviewed ? ' (' + L('packReviewed') + ')' : '')))
           }
-          if (packBusy === id) body.push(h('div', { key: 'packbusy', className: 'kbln-note', role: 'status' }, L('packInstalling')))
-          if (packNote !== null && packNote.id === id) body.push(h('div', { key: 'packnote', className: packNote.ok ? 'kbln-note' : 'kbln-err', role: packNote.ok ? 'status' : 'alert', 'data-note': 'pack-result' }, packNote.text))
+          if (packBusy === id) live.push(h('div', { key: 'packbusy', className: 'kbln-note', role: 'status' }, L('packInstalling')))
+          if (packNote !== null && packNote.id === id) live.push(h('div', { key: 'packnote', className: packNote.ok ? 'kbln-note' : 'kbln-err', role: packNote.ok ? 'status' : 'alert', 'data-note': 'pack-result' }, packNote.text))
           // Texts of a translated language whose source changed since: only those are translated again.
           if (staleN > 0) {
-            body.push(h('details', { key: 'stale', className: 'kbln-banner warn kbln-fold', 'data-note': 'stale' },
-              h('summary', null, h('span', { className: 'kbln-chev', 'aria-hidden': true }, '▸'), L('staleSummary', { n: fmtN(staleN) })),
-              h('div', null, L('staleBody')),
-              h('div', { className: 'kbln-row', style: { gap: 8 } },
-                h('button', { className: 'kbln-btn primary', type: 'button', 'data-act': 'update', disabled: models.length === 0, title: models.length === 0 ? L('noModels') : undefined, onClick: () => start(id) }, L('staleUpdate')))))
+            alerts.push({ key: 'stale', level: 'warn', summary: L('staleSummary', { n: fmtN(staleN) }), body: h('div', null, L('staleBody')) })
           }
           // Texts the host kept but doubts (identical to the source, a product name that vanished): listed, never refused.
           const doubt = !isBuiltIn(id) && !running ? doubtful.get(id) : undefined
           if (doubt !== undefined && doubt.count > 0) {
-            body.push(h('details', { key: 'doubt', className: 'kbln-banner kbln-fold', 'data-note': 'doubt' },
-              h('summary', null, h('span', { className: 'kbln-chev', 'aria-hidden': true }, '▸'), L('doubtSummary', { n: fmtN(doubt.count) })),
-              h('div', null, L('doubtBody')),
-              h('div', { className: 'kbln-ex' }, doubt.examples.map((x) => h('div', { key: x.wire }, x.wire.replace(/^(kb|dsh):/, '') + ' — ' + String(x.why).split('+').map((w) => { const k = 'doubtWhy_' + w.split(':')[0]; return S[k] !== undefined ? L(k) + (w.indexOf(':') > 0 ? ' (' + w.split(':')[1] + ')' : '') : w }).join(', '))))))
+            alerts.push({ key: 'doubt', level: 'info', summary: L('doubtSummary', { n: fmtN(doubt.count) }), body: [
+              h('div', { key: 'b' }, L('doubtBody')),
+              h('div', { key: 'e', className: 'kbln-ex' }, doubt.examples.map((x) => h('div', { key: x.wire }, x.wire.replace(/^(kb|dsh):/, '') + ' — ' + String(x.why).split('+').map((w) => { const k = 'doubtWhy_' + w.split(':')[0]; return S[k] !== undefined ? L(k) + (w.indexOf(':') > 0 ? ' (' + w.split(':')[1] + ')' : '') : w }).join(', '))))] })
           }
           if (!isBuiltIn(id) && !complete && !running && st === null && plan !== null && !hasProgress) {
             const lines = []
             if (!plan.dshAvailable && !plan.dshNative) lines.push(L('noDsh'))
             if (plan.dshNative) lines.push(L('zhNative'))
             if (modelName() !== null) lines.push(L('usesModel', { model: modelName() }))
-            if (lines.length > 0) body.push(h('div', { key: 'info', className: 'kbln-note' }, lines.join(' · ')))
+            if (lines.length > 0) infos.push(h('div', { key: 'info', className: 'kbln-note' }, lines.join(' · ')))
           }
           if (askRemove === id) {
-            body.push(h('div', { key: 'rm', className: 'kbln-err', role: 'alertdialog' },
+            live.push(h('div', { key: 'rm', className: 'kbln-err kbln-prog', role: 'alertdialog' },
               h('div', null, L('removeAsk', { name: info.native })),
               h('div', { className: 'kbln-row', style: { gap: 8 } },
                 h('button', { className: 'kbln-btn danger', type: 'button', 'data-act': 'confirm-remove', onClick: () => { dropLanguage(id); setAskRemove(null); setTick((n) => n + 1) } }, L('confirmRemove')),
                 h('button', { className: 'kbln-btn', type: 'button', onClick: () => setAskRemove(null) }, L('cancel')))))
           }
 
-          const badge = info.id === 'kybernos' ? 'FR' : info.id.toUpperCase()
-          return h('div', { key: id, className: 'kbln-lang' + (inUse ? ' on' : ''), 'data-lang': id },
+          const flag = badgeFor(info.id)
+          const alertLevel = alerts.some((x) => x.level === 'error') ? 'error' : alerts.some((x) => x.level === 'warn') ? 'warn' : 'info'
+          const alertText = alerts.map((x) => x.summary).join(' · ')
+          const hasDetail = alerts.length > 0 || infos.length > 0
+          const open = hasDetail && openRows[id] === true
+          // The actions stay on show while they are what the row is about: a run to pause, a stop to resume, an open menu, a question.
+          const toolsOn = running || st === 'paused' || st === 'failed' || menuFor === id || askRemove === id
+          const alertBlock = (x) => h('div', { key: x.key, className: 'kbln-al ' + x.level, role: x.level === 'error' ? 'alert' : undefined, 'data-note': x.key },
+            h('div', { className: 'kbln-al-h' }, h('span', { className: 'kbln-dot ' + x.level, 'aria-hidden': 'true' }), x.summary),
+            x.body === undefined ? null : x.body)
+          return h('div', { key: id, className: 'kbln-lang' + (inUse ? ' on' : '') + (alerts.length > 0 ? ' has-alert' : '') + (open ? ' open' : '') + (toolsOn ? ' tools' : ''), 'data-lang': id },
             h('div', { className: 'kbln-lang-top' },
-              h('div', { className: 'kbln-badge', 'aria-hidden': 'true' }, badge),
+              h('div', { className: 'kbln-badge' + (flag.flag ? ' flag' : ''), 'aria-hidden': 'true' }, flag.node),
               h('div', { className: 'kbln-lang-info' },
                 h('div', { className: 'kbln-lang-name' },
                   h('span', { lang: id === 'kybernos' ? 'fr' : id }, info.native),
                   info.english !== info.native ? h('span', { className: 'kbln-lang-en' }, info.english) : null,
-                  info.rtl ? h('span', { className: 'kbln-pill', title: L('tipRtl') }, L('rtl')) : null),
+                  info.rtl ? h('span', { className: 'kbln-pill', title: L('tipRtl') }, L('rtl')) : null,
+                  alerts.length > 0 ? h('span', { className: 'kbln-dot ' + alertLevel, role: 'img', 'aria-label': alertText, title: alertText, 'data-alert': alertLevel }) : null),
                 h('div', { className: 'kbln-lang-meta', title: !complete && !running && st === null && !hasProgress && !isBuiltIn(id) ? L('tipEstimate') : undefined }, metaLine)),
-              h('div', { className: 'kbln-lang-act' }, acts)),
-            body)
+              h('div', { className: 'kbln-lang-act' },
+                chip,
+                acts.length > 0 ? h('div', { className: 'kbln-tools' }, acts) : null,
+                hasDetail
+                  ? h('button', { className: 'kbln-btn quiet icon kbln-tgl', type: 'button', 'data-act': 'toggle', 'aria-expanded': open ? 'true' : 'false', 'aria-controls': 'kbln-d-' + id,
+                      'aria-label': L(open ? 'rowClose' : 'rowOpen', { name: info.native }), title: alertText !== '' ? alertText : L(open ? 'rowClose' : 'rowOpen', { name: info.native }), onClick: () => toggleRow(id) },
+                    svgIcon('M3.5 6l4.5 4.5L12.5 6', 14))
+                  : null)),
+            live,
+            open ? h('div', { id: 'kbln-d-' + id, className: 'kbln-detail' }, alerts.map(alertBlock), infos) : null)
         }
 
         // ── the ISO picker ─────────────────────────────────────────────────
@@ -1889,13 +2058,43 @@ html[dir="rtl"] .kbln-page{direction:rtl}
         const isoBtn = (i) => h('button', { key: i.id, type: 'button', className: 'kbln-iso-i', 'data-iso': i.id, disabled: taken.has(i.id), title: taken.has(i.id) ? L('added') : L('tipAddLang', { name: i.english, code: i.id }), onClick: () => addLanguage(i.id) },
           h('b', { lang: i.id }, i.native), i.english !== i.native ? h('small', null, i.english) : null, packs.has(i.id) ? h('small', { className: 'kbln-chip-tag' }, L('packTag')) : null, h('code', null, i.id))
         const picker = pickerOpen
-          ? h('div', { className: 'kbln-add-body' },
+          ? h('div', { className: 'kbln-add' }, h('div', { className: 'kbln-add-body' },
               h('input', { className: 'kbln-input', type: 'search', autoFocus: true, placeholder: L('search'), value: query, 'aria-label': L('search'), onChange: (e) => setQuery(e.target.value) }),
               q === '' ? h('div', { className: 'kbln-sec-t' }, L('popular')) : null,
               q === '' ? h('div', { className: 'kbln-chips' }, POPULAR.map(langInfo).map((i) => h('button', { key: i.id, type: 'button', className: 'kbln-chip', 'data-iso': i.id, title: taken.has(i.id) ? L('added') : L('tipAddLang', { name: i.english, code: i.id }), disabled: taken.has(i.id), onClick: () => addLanguage(i.id) }, i.native, packs.has(i.id) ? h('small', { className: 'kbln-chip-tag' }, ' · ' + L('packTag')) : null))) : null,
               h('div', { className: 'kbln-sec-t' }, L('allLangs')),
-              filtered.length > 0 ? h('div', { className: 'kbln-iso' }, filtered.map(isoBtn)) : h('div', { className: 'kbln-note' }, L('noMatch')))
+              filtered.length > 0 ? h('div', { className: 'kbln-iso' }, filtered.map(isoBtn)) : h('div', { className: 'kbln-note' }, L('noMatch'))))
           : null
+
+        const disk = diskInfo()
+        const tabBtn = (key, label) => h('button', { key, id: 'kbln-tab-' + key, className: 'kbln-tab', type: 'button', role: 'tab', 'data-act': 'tab-' + key, 'aria-selected': tab === key ? 'true' : 'false', 'aria-controls': 'kbln-panel-' + key, tabIndex: tab === key ? 0 : -1, onClick: () => setTab(key) }, label)
+        const onTabKey = (e) => {
+          if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft' && e.key !== 'Home' && e.key !== 'End') return
+          e.preventDefault()
+          const next = tab === 'langs' ? 'settings' : 'langs'
+          setTab(next)
+          try { const el = document.getElementById('kbln-tab-' + next); if (el !== null) el.focus() } catch (e2) { /* no layout */ }
+        }
+        const settingsPanel = h('div', { className: 'kbln-set', role: 'tabpanel', id: 'kbln-panel-settings', 'aria-labelledby': 'kbln-tab-settings' },
+          h('div', { className: 'kbln-set-row' },
+            h('div', { className: 'kbln-set-txt' },
+              h('label', { className: 'kbln-set-lb', htmlFor: 'kbln-model' }, L('modelLabel')),
+              h('div', { className: 'kbln-hint' }, models.length > 0 ? L('modelHint') : L('noModels'))),
+            models.length > 0
+              ? h(ModelPicker, { models, value: selectedModel, disabled: snap.state === 'running', btnRef: modelRef,
+                onChange: (id) => { setSelectedModel(id); try { localStorage.setItem(I18N_MODEL_KEY, id) } catch (ex) { /* */ } } })
+              : null),
+          h('div', { className: 'kbln-set-row' },
+            h('div', { className: 'kbln-set-txt' },
+              h('label', { className: 'kbln-set-lb', htmlFor: 'kbln-auto', title: L('tipAuto') }, L('autoLabel')),
+              h('div', { className: 'kbln-hint' }, L('autoHint'))),
+            h('label', { className: 'kbln-sw', title: L('tipAuto') },
+              h('input', { id: 'kbln-auto', type: 'checkbox', role: 'switch', 'data-act': 'autoresume', checked: autoOn, onChange: (e) => { setAutoResume(e.target.checked); setAutoOn(e.target.checked) } }),
+              h('i', { 'aria-hidden': 'true' }))),
+          disk === null ? null : h('div', { className: 'kbln-set-row' },
+            h('div', { className: 'kbln-set-txt' },
+              h('div', { className: 'kbln-set-lb' }, L('setDisk')),
+              h('div', { className: 'kbln-hint', 'data-disk': disk.state, role: disk.state === 'on' ? undefined : 'status', title: disk.title }, disk.text))))
 
         return h('div', { className: 'kbln-page', 'data-kb': 'language-page' },
           h('div', { className: 'kbln-main' },
@@ -1906,29 +2105,17 @@ html[dir="rtl"] .kbln-page{direction:rtl}
                   h('span', { className: 'kbln-help-q', 'aria-hidden': 'true' }, '?'), L('helpBtn'))),
               h('div', { className: 'kbln-sub' }, L('sub'))),
             helpOpen ? h(HelpPanel, null) : null,
-            h('div', { className: 'kbln-sec' },
-              h('div', { className: 'kbln-langs' }, langs.map(row)),
-              h('div', { className: 'kbln-add' },
-                h('button', { className: 'kbln-add-h', type: 'button', 'data-act': 'add-language', title: L('tipAdd'), 'aria-expanded': pickerOpen ? 'true' : 'false', onClick: () => setPickerOpen(!pickerOpen) },
-                  h('span', { 'aria-hidden': 'true' }, pickerOpen ? '−' : '+'), L('addLang')),
-                picker),
-              h('details', { className: 'kbln-adv', ref: advRef },
-                h('summary', { title: L('tipAdvanced') }, L('advanced')),
-                h('div', { className: 'kbln-adv-body' },
-                  models.length > 0
-                    ? h('div', { className: 'kbln-row' },
-                        h('span', { className: 'kbln-lb' }, L('modelLabel')),
-                        h('select', {
-                          className: 'kbln-select', value: selectedModel, disabled: snap.state === 'running',
-                          'aria-label': L('modelLabel'), title: L('tipModel'),
-                          onChange: (e) => { setSelectedModel(e.target.value); try { localStorage.setItem(I18N_MODEL_KEY, e.target.value) } catch (ex) { /* */ } },
-                        }, models.map((m) => h('option', { key: m.id, value: m.id }, m.name + ' (' + m.provider + ')'))))
-                    : null,
-                  h('div', { className: 'kbln-hint' }, models.length > 0 ? L('modelHint') : L('noModels')),
-                  h('label', { className: 'kbln-check', title: L('tipAuto') },
-                    h('input', { type: 'checkbox', 'data-act': 'autoresume', checked: autoOn, onChange: (e) => { setAutoResume(e.target.checked); setAutoOn(e.target.checked) } }),
-                    L('autoLabel')))),
-              diskLine())))
+            h('div', { className: 'kbln-bar-row' },
+              h('div', { className: 'kbln-tabs', role: 'tablist', 'aria-label': L('title'), onKeyDown: onTabKey }, tabBtn('langs', L('tabLangs')), tabBtn('settings', L('tabSettings'))),
+              tab === 'langs'
+                ? h('button', { className: 'kbln-btn', type: 'button', 'data-act': 'add-language', title: L('tipAdd'), 'aria-expanded': pickerOpen ? 'true' : 'false', onClick: () => setPickerOpen(!pickerOpen) },
+                  svgIcon(pickerOpen ? 'M3.5 8h9' : 'M8 3.5v9M3.5 8h9', 14), L('addLang'))
+                : null),
+            tab === 'langs'
+              ? h('div', { className: 'kbln-sec', role: 'tabpanel', id: 'kbln-panel-langs', 'aria-labelledby': 'kbln-tab-langs' },
+                picker,
+                h('div', { className: 'kbln-langs' }, langs.map(row)))
+              : settingsPanel))
       }
 
       // Opens this page from anywhere in the settings: the nav entry is found by its
@@ -1997,7 +2184,7 @@ html[dir="rtl"] .kbln-page{direction:rtl}
           kbSources, dshSources, buildPlan, runTranslation, hostTranslate, planBatches, isComplete, metaRead, i18nRead, dshRead, liveRead,
           isTestMark, holds, pseudoStats, repairPseudo, intentRead, intentWrite, intentClear, shouldTakeOver, autoResume, autoResumeOn, setAutoResume,
           resetRun: () => { stopBeat(); stopWatching(); run = { state: 'idle', lang: null, done: 0, total: 0, areas: null, model: null, error: null, missing: 0, essentials: false, startedWith: 0, elapsedMs: 0 } },
-          startRun, pauseRun, subscribeRun, getRun: () => run, friendlyError, langInfo, ISO_639_1, POPULAR, isLiveCandidate,
+          startRun, pauseRun, subscribeRun, getRun: () => run, friendlyError, langInfo, ISO_639_1, POPULAR, isLiveCandidate, FLAG_REGION, flagEmoji, badgeFor, modelMatches,
           bootJobs, watchOnce, missingFor, stopWatching, hostStart, announceJob, JOB_LOST_AFTER, checkStale, staleOf, doubtful,
           loadPacks, installPack, getPacks: () => packs,
           managedIds, registryAdd, registryRead, dropLanguage, registerDshPack, activateLanguage, startLiveLayer, openLanguagePage, heldBy,

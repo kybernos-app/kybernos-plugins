@@ -905,14 +905,16 @@ window.__ModuleLoader__.load({
         // The tone of the sidebar, shadows, glow
         sideTone: 'auto', shadow: 'none', glow: false,
         // The pills under the message box: shown unless switched off here
-        wgSessions: true, wgChanges: true, wgUsage: true
+        wgSessions: true, wgChanges: true, wgUsage: true,
+        // Bars on hover: the collapsed rail and the chat's top bar leave the layout and come back at the edge (on by default, owner's call 2026-10-22; switch off in the Sidebar panel)
+        autoHideBars: true
       }
       const ENUMS = { glassEffect: ['frosted', 'liquid'], bgFit: ['cover', 'fill', 'center', 'stretch'], radius: ['sharp', 'standard', 'soft'], focusRing: ['accent', 'double', 'thick'], iconSet: ICON_SET_IDS, sideTone: ['auto', 'darker', 'lighter', 'tinted'], shadow: ['none', 'soft'], replyBg: ['none', 'card', 'outline', 'tint'] }
       /** Your bubble: one of DSH's own / the accent / a soft tone / a dark one, or any colour (a hex). The three text colours are a hex or null (= the colour of the app). */
       const BUBBLE_CHOICES = ['auto', 'accent', 'soft', 'dark']
       const HEX_KEYS = ['textUser', 'replyColor', 'textReply']
       const RANGES = { glassBlur: [0, 40], sidebarOpacity: [0, 100], fieldOpacity: [0, 100], floatOpacity: [0, 100], bgBrightness: [0, 200], bgContrast: [0, 200], bgSaturation: [0, 200], bgDarken: [0, 100] }
-      const BOOLS = ['cbSafe', 'sidebarLinked', 'bgMirror', 'ligatures', 'showBrand', 'reduceMotion', 'largeTargets', 'underlineLinks', 'glow', 'wgSessions', 'wgChanges', 'wgUsage']
+      const BOOLS = ['cbSafe', 'sidebarLinked', 'bgMirror', 'ligatures', 'showBrand', 'reduceMotion', 'largeTargets', 'underlineLinks', 'glow', 'wgSessions', 'wgChanges', 'wgUsage', 'autoHideBars']
       /** The choice, range or boolean settings of any object: only the VALID values come out. */
       const valeursValides = (raw) => {
         const out = {}
@@ -1240,8 +1242,28 @@ window.__ModuleLoader__.load({
         if (!S.wgSessions) css.push(dock + ' [data-kb="status-pill"]{display:none!important}')
         if (!S.wgChanges) css.push(dock + ' [data-kb="changes"]{display:none!important}')
         if (!S.wgUsage) css.push(dock + ' [data-kb="usage-chip"]{display:none!important}')
+        if (S.autoHideBars) css.push(AUTOHIDE_CSS)
         return css.join('\n')
       }
+      /** Bars on hover (owner's call, 2026-10-22). Only on a pointer that can hover: a touch screen has nothing to hover with.
+       *  - The collapsed rail slides out to an 8 px sliver and the chat takes its column back (the three columns are placed by hand so the
+       *    grid does not reflow); it comes back while the pointer or the keyboard is in it, or while a menu opened from it is open
+       *    (an open section of the rail is aria-expanded too, so only a popup trigger counts).
+       *  - The top bar of a chat (title, pin, ⋯) does the same with a 6 px sliver at the top.
+       *  Found by the suffix of the shell's hashed classes, which survives a rebuild (the prefix does not). */
+      const AUTOHIDE_FRAME = '[class*="_frame"]:has(>[class*="_sidebarCol"] [class*="_collapsed"])'
+      const AUTOHIDE_RAIL = AUTOHIDE_FRAME + '>[class*="_sidebarCol"]'
+      const AUTOHIDE_TOP = '[class*="_centerCol"] header[class*="_header"]:has(>[class*="_headerLeading"])'
+      const AUTOHIDE_CSS = '@media (hover:hover) and (pointer:fine){' +
+        AUTOHIDE_FRAME + '>[class*="_centerCol"]{grid-column:1 / 3;grid-row:1}' +
+        AUTOHIDE_FRAME + '>[class*="_rightbarCol"]{grid-column:3;grid-row:1}' +
+        AUTOHIDE_RAIL + '{grid-column:1;grid-row:1;z-index:40;transform:translateX(calc(-100% + 8px));transition:transform .18s ease .2s,box-shadow .18s ease .2s;background:var(--dsw-alias-bg-layer-1)}' +
+        'html[dir="rtl"] ' + AUTOHIDE_RAIL + '{transform:translateX(calc(100% - 8px))}' +
+        AUTOHIDE_RAIL + ':hover,' + AUTOHIDE_RAIL + ':focus-within,' + AUTOHIDE_RAIL + ':has([aria-haspopup][aria-expanded="true"]){transform:none;transition-delay:0s;box-shadow:0 0 28px rgba(0,0,0,.35)}' +
+        '[class*="_centerCol"]:has(' + AUTOHIDE_TOP.slice('[class*="_centerCol"] '.length) + '){position:relative}' +
+        AUTOHIDE_TOP + '{position:absolute;inset-inline:0;top:0;z-index:30;transform:translateY(calc(-100% + 6px));transition:transform .18s ease .2s,box-shadow .18s ease .2s;background:var(--dsw-alias-bg-layer-1)}' +
+        AUTOHIDE_TOP + ':hover,' + AUTOHIDE_TOP + ':focus-within,' + AUTOHIDE_TOP + ':has([aria-haspopup][aria-expanded="true"]){transform:none;transition-delay:0s;box-shadow:0 8px 24px rgba(0,0,0,.28)}' +
+        '}'
       let effetsDispose = null
       const appliquerEffets = (S) => {
         if (effetsDispose !== null) { try { effetsDispose() } catch (e) { /* already removed */ } effetsDispose = null }
@@ -3482,6 +3504,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A0
             inner: h('i', { className: 'kbth-st-ms wide', style: { background: makeTheme(dark ? 'dark' : 'light', { ...o, sideTone: t }).side } }) }))),
           wpOn ? sl(say('Transparence', 'See-through'), 0, 100, S.sidebarOpacity, S.sidebarOpacity + ' %', (v) => commit({ sidebarOpacity: v }), S.sidebarLinked ? undefined : say('Activé dans « Plus d’options ».', 'Switched on under “More options”.'))
             : cap(say('Choisis un arrière-plan pour qu’il se voie à travers la barre latérale.', 'Pick a wallpaper to let it show through the sidebar.')),
+          ldToggle(say('Barres au survol', 'Bars on hover'), S.autoHideBars, () => commit({ autoHideBars: !S.autoHideBars }), say('Le rail replié et la barre du haut du chat se cachent, et reviennent quand tu approches le bord de la fenêtre.', 'The collapsed rail and the chat’s top bar hide, and come back when you reach for the edge of the window.')),
           moreBox('sidebar', [
             ldToggle(say('Laisser voir le fond', 'Let the wallpaper show'), S.sidebarLinked, () => commit({ sidebarLinked: !S.sidebarLinked }), say('Désactivé, la barre latérale reste pleine.', 'When off, the sidebar stays solid.')),
             sl(say('Flou derrière', 'Blur behind'), 0, 40, S.glassBlur, S.glassBlur + ' px', (v) => commit({ glassBlur: v }), wpOn ? undefined : themeNeeds),

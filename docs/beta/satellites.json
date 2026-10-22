@@ -413,6 +413,16 @@
         "lib_vendor": null
       },
       {
+        "dir": "kybernos-kaby-customisation",
+        "nom": "@local/kybernos-kaby-customisation",
+        "tier": 2,
+        "obligatoire": false,
+        "defaut": "actif",
+        "role": "the Kaby page in Settings: the assistant's name, portrait and voice, and the face of its video calls with its own keys",
+        "poids_ko": 60,
+        "lib_vendor": null
+      },
+      {
         "dir": "kybernos-search",
         "nom": "@local/kybernos-search",
         "tier": 2,
@@ -478,6 +488,7 @@
       "@local/kybernos-dashboards",
       "@local/kybernos-summary",
       "@local/kybernos-kyber",
+      "@local/kybernos-kaby-customisation",
       "@local/kybernos-search",
       "@local/kybernos-servers",
       "@local/kybernos-session-msg"
