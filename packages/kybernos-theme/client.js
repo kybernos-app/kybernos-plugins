@@ -2528,11 +2528,22 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A0
 `
 
       // V1-24: the mode (System / Light / Dark) is set on the Appearance page and only there; this page shows it and opens that page by clicking
-      // the cell of the Settings nav (the shell stays master of its DOM; same technique as the core plugin's, bundles share no code).
-      const ouvrirReglages = (noms) => {
+      // the cell of the Settings nav (the shell stays master of its DOM; same technique as the core plugin's, bundles share no code). A cell is found by
+      // the React key it is rendered with, the id of its section, the same in every language; its drawn title is the fallback (the shell's internals moved).
+      const ouvrirReglages = (noms, cles) => {
         try {
           const norm = (x) => String(x === undefined || x === null ? '' : x).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim()
+          const cleDe = (el) => {
+            try {
+              const nom = Object.keys(el).find((x) => x.indexOf('__reactFiber$') === 0)
+              const k = nom === undefined ? null : el[nom].key
+              return typeof k === 'string' ? k : null
+            } catch (e) { return null }
+          }
           const cells = Array.prototype.slice.call(document.querySelectorAll('nav button'))
+          for (let i = 0; i < cells.length; i++) {
+            if (Array.isArray(cles) && cles.indexOf(cleDe(cells[i])) !== -1) { cells[i].click(); return true }
+          }
           for (let i = 0; i < cells.length; i++) {
             if (noms.indexOf(norm(cells[i].textContent)) !== -1) { cells[i].click(); return true }
           }
@@ -3332,7 +3343,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A0
           h('div', { className: 'kbth-row' },
             h('span', { className: 'kbth-lb' }, 'Mode'),
             h('span', { className: 'kbth-sec-t', 'data-kb': 'theme-mode-is' }, S.mode === 'system' ? kt('Système', 'System') : (S.mode === 'light' ? kt('Clair', 'Light') : kt('Sombre', 'Dark'))),
-            h('button', { className: 'kbth-btn', type: 'button', 'data-kb': 'theme-mode-open', onClick: () => { ouvrirReglages(['appearance', 'apparence']) } }, kt('Changer dans Apparence', 'Change in Appearance')),
+            h('button', { className: 'kbth-btn', type: 'button', 'data-kb': 'theme-mode-open', onClick: () => { ouvrirReglages(['appearance', 'apparence'], ['kbac-appearance']) } }, kt('Changer dans Apparence', 'Change in Appearance')),
             themeTiers !== null ? h('div', { className: 'kbth-conflict' },
               h('strong', null, kt('Conflit de thème : ', 'Theme conflict: ')),
               kt('Un autre plugin (« ' + themeTiers + ' ») contrôle le mode clair/sombre. ', 'Another plugin (“' + themeTiers + '”) controls the light/dark mode. '),
