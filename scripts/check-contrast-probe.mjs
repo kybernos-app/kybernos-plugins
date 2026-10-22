@@ -35,6 +35,7 @@ const CLEAN = STYLE + '<main>'
   + '<div aria-hidden="true" style="color:#ccc">decorative drawing text</div>'
   + '<p style="color:#bbb;animation:pulse 1s infinite alternate">animating caption</p>'
   + '<p style="background:linear-gradient(90deg,#fff,#000);color:#888">on a gradient, unknown background</p>'
+  + '<p style="opacity:0;color:#111">revealed on hover</p>'
   + '</main>'
 
 const live = await openLivePage({ width: 1100, height: 900 }).catch((e) => { console.error('○ inconclusive: ' + e.message); process.exit(3) })
@@ -56,7 +57,7 @@ try {
 
   await load(CLEAN)
   const clean = await val(PROBE)
-  check('the clean page raises nothing: large text at 3:1, a disabled control, an aria-hidden drawing, an animating caption and a gradient are left out', clean.bad.length === 0, clean.bad)
+  check('the clean page raises nothing: large text at 3:1, a disabled control, an aria-hidden drawing, an animating caption, a gradient and text revealed on hover are left out', clean.bad.length === 0, clean.bad)
   check('...and it did read the readable and the large text', clean.scanned === 2, clean.scanned)
 } finally {
   await live.close()
