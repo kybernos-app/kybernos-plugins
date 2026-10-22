@@ -45,7 +45,8 @@ check('no two rows are the same setting by accident: label and page are unique',
 console.log('what people type')
 {
   const dark = run('dark')
-  check('« dark » finds the mode first, one result for the setting three pages show, and says where else it is', labels(dark)[0] === 'appearance/Mode' && dark[0].also.length === 2 && labels(dark).filter((l) => /\/Mode$/.test(l)).length === 1, labels(dark))
+  // V1-24: the Theme page no longer draws a mode selector (it shows the mode and links to Appearance), so it is not a place where the setting lives.
+  check('« dark » finds the mode first, one result for the setting two pages draw (Appearance, and DSH\'s own General block), and says where else it is', labels(dark)[0] === 'appearance/Mode' && dark[0].also.length === 1 && labels(dark).filter((l) => /\/Mode$/.test(l)).length === 1 && labels(dark).every((l) => l !== 'theme/Mode'), labels(dark))
   const police = run('police')
   check('« police » (French) finds the text size, shown on two pages as one setting, then the font', labels(police)[0] === 'general/Font size' && police[0].also.length === 1 && labels(police).indexOf('theme/Font') > 0, labels(police))
   check('« police » also offers the Theme page, but only after the settings', pagesOf(police).join() === 'theme' && police[police.length - 1].kind === 'page', police.map((x) => x.kind))
