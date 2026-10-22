@@ -694,7 +694,7 @@ window.__ModuleLoader__.load({
           return h('div', { className: 'kbwk' },
             h('div', { className: 'kbwk-head' }, h('div', null, h('h4', null, 'Workers'))),
             h('div', { className: 'kbwk-banner', role: 'alert' }, h('strong', null, ic('alert'), kt('Les workers sont injoignables.', 'Workers cannot be reached.')),
-              h('span', null, kt('Le serveur DSH ne répond pas sur /kybernos-workers/state. Les routes de l’hôte ne se montent qu’au démarrage : relance DSH après l’installation.', 'The DSH server does not answer on /kybernos-workers/state. Host routes only mount at startup: restart DSH after installing.'))),
+              h('span', null, kt('Le serveur DSH ne répond pas. Les workers ne se chargent qu’au démarrage de DSH : relance DSH après l’installation.', 'The DSH server does not answer. Workers load when DSH starts: restart DSH after installing.'))),
             h('div', null, h('button', { type: 'button', className: 'kbwk-btn ghost', onClick: () => { setLoaded({ state: 'loading', data: null }); reload() } }, ic('refresh'), kt('Réessayer', 'Retry'))))
         }
 
