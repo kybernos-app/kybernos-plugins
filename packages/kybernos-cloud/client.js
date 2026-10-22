@@ -286,6 +286,12 @@ window.__ModuleLoader__.load({
         kyInstrPh: 'Sois direct. Phrases courtes…',
         kyInstrNote: 'Gardées sur cet ordinateur : tous les agents les lisent, dans les nouvelles conversations.',
         kyInstrNone: 'Le fichier des instructions n\'a pas pu être lu sur cet ordinateur.',
+        kySugTitle: 'Kaby suggère d’ajouter ceci',
+        kySugHeading: 'Appris de ton travail',
+        kySugAdd: 'Ajouter',
+        kySugEdit: 'Modifier',
+        kySugDiscard: 'Écarter',
+        kySugNote: 'Issu de « Apprendre mon métier ». Cela devient du texte simple dans le champ ci-dessus : modifie-le ou supprime-le quand tu veux.',
         kyInstrErr: 'Pas enregistrées : {why}.',
         kyWhyReserved: 'le texte contient un repère réservé de Kybernos',
         kyWhyDamaged: 'la section Kybernos de AGENTS.md est abîmée : corrige-la ou supprime-la à la main',
@@ -562,6 +568,12 @@ window.__ModuleLoader__.load({
         kyInstrPh: 'Be direct. Short sentences…',
         kyInstrNote: 'Kept on this computer: every agent reads them, in new chats.',
         kyInstrNone: 'The instructions file could not be read on this computer.',
+        kySugTitle: 'Kaby suggests adding this',
+        kySugHeading: 'Learned from your work',
+        kySugAdd: 'Add',
+        kySugEdit: 'Edit',
+        kySugDiscard: 'Discard',
+        kySugNote: 'From « Learn my business ». It becomes plain text in the box above: edit or delete it whenever you want.',
         kyInstrErr: 'Not saved: {why}.',
         kyWhyReserved: 'the text contains a reserved Kybernos marker',
         kyWhyDamaged: 'the Kybernos section of AGENTS.md is damaged: fix or delete it by hand',
@@ -905,6 +917,9 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
 .kbl-head{margin:0 0 6px}
 .kbl-headrow{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
 .kbl-card{display:flex;flex-direction:column;gap:10px;padding:18px;border-radius:16px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1)}
+.kbl-card.kbl-sug{border-style:dashed;border-color:color-mix(in srgb,var(--dsw-alias-brand-primary) 55%,var(--dsw-alias-border-l1));background:color-mix(in srgb,var(--dsw-alias-brand-primary) 4%,var(--dsw-alias-bg-layer-1))}
+.kbl-sugh{display:flex;align-items:center;gap:6px;font-size:14px}.kbl-sugh .kbl-count{margin-inline-start:auto}
+.kbl-sugtext{margin:0;white-space:pre-wrap;padding:10px 12px;border-radius:10px;background:var(--dsw-alias-bg-layer-2);border:1px solid var(--dsw-alias-border-l1);font:12.5px/1.55 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:var(--dsw-alias-label-primary);overflow-x:auto}
 .kbl-sect{font-size:11px;color:var(--dsw-alias-label-tertiary,#8a8a93)}
 .kbl-area{box-sizing:border-box;width:100%;min-height:120px;padding:10px 12px;border-radius:11px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-base);color:var(--dsw-alias-label-primary);font:inherit;font-size:14px;line-height:1.45;resize:vertical}
 .kbl-area:hover{border-color:var(--dsw-alias-border-l3)}
@@ -3884,6 +3899,9 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
           const [flash, setFlash] = React.useState(false)
           const [busy, setBusy] = React.useState('')
           const [fail, setFail] = React.useState({ models: false, chats: false })
+          // The section Kaby suggests for the instructions (a ledger of the core plugin): it waits here for Add, Edit or Discard.
+          const [sug, setSug] = React.useState(null)
+          const [sugEdit, setSugEdit] = React.useState(null)
           const live = React.useRef(true)
           React.useEffect(() => () => { live.current = false }, [])
 
@@ -3921,6 +3939,31 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
             return () => { alive = false }
           }, [])
 
+          React.useEffect(() => {
+            let alive = true
+            fetch('/kybernos/suggestions?kind=instructions', { credentials: 'same-origin' }).then((r) => r.json()).then((j) => {
+              if (alive === true && j !== null && typeof j === 'object' && j.ok === true && Array.isArray(j.items) && j.items.length > 0) setSug(j.items[j.items.length - 1])
+            }).catch(() => { /* an older host without the route: no suggestion */ })
+            return () => { alive = false }
+          }, [])
+          const resolveSug = (id) => { try { fetch('/kybernos/suggestions', { method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action: 'resolve', id: id }) }).catch(() => null) } catch (e) { /* the ledger keeps it: it is offered again */ } }
+          // Add keeps the text as a section of the instructions, under a heading and the date, through the same Save as a typed text; too long for the box, it stays to be edited.
+          const addSug = async () => {
+            if (sug === null || busy !== '' || instr !== 'ready') return
+            const body = sugEdit !== null ? sugEdit : sug.text
+            const head = '# ' + t('kySugHeading') + ' (' + new Date().toISOString().slice(0, 10) + ')'
+            const next = (text.trim() === '' ? '' : text.trim() + '\n\n') + head + '\n' + body.trim()
+            if (next.length > KY_INSTR_MAX) { setInstrErr('too-long'); if (sugEdit === null) setSugEdit(sug.text); return }
+            setBusy('save'); setInstrErr('')
+            let r = null
+            try { r = await callLocal('/instructions/save', 'POST', { text: next }) } catch (e) { r = null }
+            if (live.current !== true) return
+            setBusy('')
+            if (r !== null && r.ok === true) {
+              const kept = next.replace(/\r\n/g, '\n').trim()
+              setText(kept); setSaved(kept); setFlash(true); resolveSug(sug.id); setSug(null); setSugEdit(null)
+            } else setInstrErr(r !== null && typeof r.error === 'string' ? r.error : 'write-failed')
+          }
           const dirty = instr === 'ready' && text !== saved
           const save = async () => {
             if (dirty !== true || busy !== '') return
@@ -3990,6 +4033,17 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
                   'data-kb': 'ky-instr-save', onClick: () => { void save() },
                 }, busy === 'save' ? t('kySaving') : t('kySave')),
                 flash === true ? h('span', { className: 'kbl-ok', 'data-kb': 'ky-instr-saved' }, t('kySaved')) : null)),
+
+            sug === null ? null : h('div', { className: 'kbl-card kbl-sug', 'data-kb': 'ky-instr-suggested' },
+              h('div', { className: 'kbl-sugh' }, h('i', { className: 'kb-ping', 'aria-hidden': 'true' }), h('b', null, t('kySugTitle')), h('span', { className: 'kbl-count' }, String((sugEdit !== null ? sugEdit : sug.text).length) + ' / ' + String(KY_INSTR_MAX))),
+              sugEdit !== null
+                ? h('textarea', { className: 'kbl-area', rows: 5, maxLength: KY_INSTR_MAX, value: sugEdit, 'data-kb': 'ky-sug-field', onChange: (e) => setSugEdit(e.target.value) })
+                : h('pre', { className: 'kbl-sugtext', 'data-kb': 'ky-sug-text' }, sug.text),
+              h('p', { className: 'kbm-setform-unavailable kbl-note' }, t('kySugNote')),
+              h('div', { className: 'kbl-actions' },
+                h('button', { type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-primary', disabled: busy !== '' || instr !== 'ready', 'data-kb': 'ky-sug-add', onClick: () => { void addSug() } }, t('kySugAdd')),
+                h('button', { type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-outline', 'data-kb': 'ky-sug-edit', onClick: () => setSugEdit(sugEdit === null ? sug.text : null) }, t('kySugEdit')),
+                h('button', { type: 'button', className: 'kbm-btn kbm-btn-md', 'data-kb': 'ky-sug-discard', onClick: () => { resolveSug(sug.id); setSug(null); setSugEdit(null) } }, t('kySugDiscard')))),
 
             h('div', { className: 'kbl-card', 'data-kb': 'ky-models' },
               h('div', { className: 'kbl-sect' }, t('kyModelsTitle')),

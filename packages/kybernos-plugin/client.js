@@ -26984,7 +26984,7 @@ function renderFit(canvas, model, cam, opts){
           if (opened === null || typeof opened.then !== 'function') { openPage({ view: 'kyber' }); return }
           opened.then((ok) => { if (ok !== true) openPage({ view: 'kyber' }) }).catch(() => openPage({ view: 'kyber' }))
         }) : null),
-        (KB_DB === true ? row('dashboards', Icon('layoutDashboard', 15), kbt('kbui.dashboards'), null, shown === 'dashboards', () => openPage({ view: 'dashboards' })) : null),
+        (KB_DB === true ? row('dashboards', Icon('layoutDashboard', 15), kbt('kbui.dashboards'), null, shown === 'dashboards', () => openPage({ view: 'dashboards' }), h(KbRowState, { k: 'dashboards' })) : null),
         // Search everywhere (kybernos-search) is no longer a menu row: its icon sits at the top of the sidebar, next to « Collapse », and ⌘K opens it.
         row('aiteams', Icon(KB_DEFAULT_ICON, 15), kbt('menu.aiteams'), c.kybers, shown === 'kybers' || shown === 'gallery' || shown === 'teamnew' || shown === 'teamedit' || shown === 'teaminfo' || shown === 'detail' || shown === 'marketplace' || shown === undefined || shown === null, () => openPage({ nav: 'kybers', view: 'gallery', detailPath: null, detailRoot: null })),
         // Runs n'est plus ici : c'est un onglet de conversation, à côté de

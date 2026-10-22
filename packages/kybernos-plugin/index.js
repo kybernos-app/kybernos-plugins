@@ -19,6 +19,7 @@ import { writeGuard } from './session-guard.mjs'
 import { defaultState as onboardingDefault, publicView as onboardingView, complete as onboardingComplete, replay as onboardingReplay, chooseDomain as onboardingChooseDomain, aboutView as onboardingAbout } from './onboarding-state.mjs'
 import { isSuggested as autoIsSuggested, suggestedTask as autoSuggestedTask, acceptedTask as autoAcceptedTask, refusalFor as autoSuggestRefusal, HOME_ID_RE as AUTO_HOME_ID_RE, runFrame as autoRunFrame } from './automation-suggest.mjs'
 import { mountAutomationTools } from './automation-tools.mjs'
+import { makeLedger as makeSuggestionLedger } from './suggestions.mjs'
 import { loadPacks as loadDomainPacks, domainOfProfil, mergePackSets, DOMAIN_POINT, DOMAIN_POINT_REF } from './domain-pack.mjs'
 const pluginDir = dirname(fileURLToPath(import.meta.url))
 // ── Le filet du compactage, sans retouche du moteur (23/09/2026) ────────────
@@ -3119,7 +3120,13 @@ function boot(ctx) {
     }
     try { kbTasksStart() } catch (e) { try { console.error('[kybers] task timer unavailable:', errText(e)) } catch (e2) { /* console */ } }
     // The agent tools that propose an automation and bind one to its chat; a seam that is missing drops only this.
-    try { mountAutomationTools(ctx, { tasks: kbTasksHandle }, (m) => { try { console.error('[kybernos] ' + m) } catch (e) { /* console */ } }) } catch (e) { /* never stop DSH from starting */ }
+    // The ledger of the suggestions that wait for a click on a page (a memory, a section of the custom instructions), next to tasks.json; made on first use.
+    let kbSuggLedger = null
+    const kbSugg = async () => {
+      if (kbSuggLedger === null) kbSuggLedger = makeSuggestionLedger({ file: joinPath(dirname(await kbTasksFileOf()), 'suggestions.json') })
+      return kbSuggLedger
+    }
+    try { mountAutomationTools(ctx, { tasks: kbTasksHandle, ledger: { add: async (kind, raw) => (await kbSugg()).add(kind, raw) } }, (m) => { try { console.error('[kybernos] ' + m) } catch (e) { /* console */ } }) } catch (e) { /* never stop DSH from starting */ }
 
     // ── lire un namespace de réglages, 0.1.6 ET 0.1.7 ────────────────────────
     // 0.1.6 : `settings.get(ns)` rendait le document du namespace.
@@ -10697,6 +10704,25 @@ function boot(ctx) {
           sendJson(res, 500, { ok: false, error: 'internal error' })
         }
       } }), 'kybernos: route tasks')
+      // ── The suggestions that wait for a click on a page (memory, instructions): GET ?kind= lists, POST { action: 'resolve', id } removes one once the page has dealt with it ──
+      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/suggestions', handler: async (req, res) => {
+        if (req.method !== 'GET' && req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'GET or POST expected' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        if (await kbTasksAuthorized(req) !== true) return sendJson(res, 401, { ok: false, error: 'sign-in required' })
+        try {
+          if (req.method === 'GET') {
+            const kind = queryOf(req).get('kind')
+            return sendJson(res, 200, { ok: true, items: (await kbSugg()).list(kind === null || kind === '' ? undefined : kind) })
+          }
+          let body = null
+          try { body = await readJsonBody(req, 20000) } catch (e) { return sendJson(res, 413, { ok: false, error: 'request body too large' }) }
+          if (body === null || typeof body !== 'object' || Array.isArray(body) === true || body.action !== 'resolve' || typeof body.id !== 'string') return sendJson(res, 400, { ok: false, error: 'resolve with an id is expected' })
+          sendJson(res, 200, await (await kbSugg()).resolve(body.id))
+        } catch (e) {
+          try { console.error('[kybernos] suggestions route:', errText(e)) } catch (e2) { /* console unavailable */ }
+          sendJson(res, 500, { ok: false, error: 'internal error' })
+        }
+      } }), 'kybernos: route suggestions')
       // ── The Automations settings page: GET (what the sidebar and the page read) / POST { showNativeTasks?, paused? } ──
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/automation-settings', handler: async (req, res) => {
         if (req.method !== 'GET' && req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'GET or POST expected' })

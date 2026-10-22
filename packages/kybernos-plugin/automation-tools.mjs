@@ -7,6 +7,9 @@ export const PROMPT = [
   'Automations (Kybernos): use automation_suggest to PROPOSE an automation you noticed the person needs. It is stored switched off and waits for the person\'s Add: say it is suggested, never that it is running.',
   'Give the proof you measured (how many times, over what period, where you saw it) and the apps it needs (Composio toolkit slugs such as gmail or googlecalendar).',
   'When the person asks you in a chat to create an automation, after you saved it call automation_home with its id so that its runs happen in this chat.',
+  'Use memory_suggest for a fact about the person you SAW several times (give the count and where), and instructions_suggest for ONE short section of custom instructions. Both wait for the person\'s Add; neither is saved before.',
+  'To propose a dashboard call kybernos_dashboard with suggested: true and a one-sentence proof: it is kept aside until the person adds it, and it is not opened for them.',
+  'Never put in a suggestion a name, an e-mail address, a phone number, an amount or any data of a client: it is refused. Write patterns, not people.',
   'An automation never sends, deletes, pays or publishes on its own: write prompts that prepare drafts and ask first.'
 ].join('\n')
 
@@ -25,15 +28,22 @@ const WHY = {
   'already exists': 'an automation with that name already exists',
   'too many suggestions waiting': 'eight suggestions already wait: the person has to answer some first',
   'frequent schedule': 'that schedule runs more often than every 5 minutes',
-  'task not found': 'no automation has that id'
+  'task not found': 'no automation has that id',
+  'personal data': 'the text contains an address, a phone number or a secret: write patterns, not people',
+  'too long': 'the text is too long',
+  empty: 'the text is empty',
+  'already waiting': 'that was already suggested',
+  'too many waiting': 'too many suggestions of that kind already wait: the person has to answer some first'
 }
 const say = (value, what) => (value !== null && typeof value === 'object' && value.ok === true
-  ? (what === 'suggest'
+  ? (what === 'memory' || what === 'instructions'
+    ? 'Suggested: it waits for the person\'s Add in ' + (what === 'memory' ? 'Memory' : 'Custom instructions') + '. It is NOT saved yet.'
+    : what === 'suggest'
     ? 'Suggested: “' + String(value.task.name) + '” waits for the person\'s Add in Automations. It is switched OFF and will not run before that.'
     : 'Bound: the runs of “' + String(value.task.name) + '” will happen in this chat.')
   : 'Not done: ' + (value !== null && typeof value === 'object' ? (WHY[value.error] || String(value.error)) : 'no answer') + '.')
 
-/** The two tools as literals the registry accepts. `deps`: `{ tasks(body) }`, the tasks route's own handler. */
+/** The tools as literals the registry accepts. `deps`: `{ tasks(body), ledger? }`, the tasks route's own handler and the suggestions ledger (without it, only the two automation tools). */
 export const toolDefinitions = (deps) => {
   const suggestTool = {
     name: 'automation_suggest',
@@ -81,7 +91,39 @@ export const toolDefinitions = (deps) => {
       return deps.tasks({ action: 'bind-home', id: str(args, 'task_id'), sessionId: sid })
     }
   }
-  return [suggestTool, homeTool]
+  const tools = [suggestTool, homeTool]
+  if (deps.ledger !== undefined && deps.ledger !== null && typeof deps.ledger.add === 'function') {
+    tools.push({
+      name: 'memory_suggest',
+      description: 'Proposes a fact about the person as a memory. It waits for their Add in Memory; nothing is saved before. Give what you measured (how many times, over what period, where). No names, addresses, numbers or client data.',
+      parameters: {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          text: { type: 'string', description: 'One fact, 500 characters at most, a pattern and not a person.' },
+          n: { type: 'number', description: 'How many times you saw it.' },
+          span: { type: 'string', description: 'Over what period, for example "60 days".' },
+          where: { type: 'string', description: 'Where you saw it, for example "Gmail › Sent". No names.' }
+        },
+        required: ['text']
+      },
+      output: { schema: { type: 'object' }, render: (args, value) => TEXT(say(value, 'memory')) },
+      async execute (args) { return deps.ledger.add('memory', { text: str(args, 'text'), n: args !== null && typeof args === 'object' ? args.n : undefined, span: str(args, 'span'), where: str(args, 'where') }) }
+    })
+    tools.push({
+      name: 'instructions_suggest',
+      description: 'Proposes ONE short section for the person\'s custom instructions (how to write, what never to do). It waits for their Add in Custom instructions. A new proposal replaces the previous one.',
+      parameters: {
+        type: 'object',
+        additionalProperties: false,
+        properties: { text: { type: 'string', description: 'The section, 1500 characters at most, plain sentences addressed to the agent. No names, addresses, numbers or client data.' } },
+        required: ['text']
+      },
+      output: { schema: { type: 'object' }, render: (args, value) => TEXT(say(value, 'instructions')) },
+      async execute (args) { return deps.ledger.add('instructions', { text: str(args, 'text') }) }
+    })
+  }
+  return tools
 }
 
 /** Mounts the tools and the prompt chunk. Each part is guarded: a seam that is missing drops that part only (a bundle never stops DSH from starting). */

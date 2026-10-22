@@ -253,7 +253,11 @@ const finite = (s) => !/NaN|Infinity|undefined/.test(s)
   const many = T.UnreadableNotice({ items: ['a', 'b', 'c', 'd', 'e', 'f'].map((id) => ({ id, code: 'too-large' })) })
   ok('unreadable notice: several files are listed, the list is cut after five', /^Dashboards that cannot be read: a\.miniapp\.json \(file too large\), b\./.test(flat(many)) && !flat(many).includes('f.miniapp.json') && flat(many).endsWith('…'), flat(many))
   ok('unreadable notice: nothing to say, nothing drawn', T.UnreadableNotice({ items: [] }) === null && T.UnreadableNotice({ items: undefined }) === null)
-  ok('the gallery draws it above the dashboards and the page keeps the host\'s list', /h\(UnreadableNotice, \{ items: list === null \? \[\] : list\.unreadable \}\),\n\s+h\('div', \{ className: 'kbdb-sec-h' \}, h\('h2', null, kt\('Mes dashboards'/.test(plugin) && /unreadable: Array\.isArray\(l\.json\.unreadable\)/.test(plugin))
+  ok('the gallery draws it above the dashboards and the page keeps the host\'s list', plugin.indexOf("h(UnreadableNotice, { items: list === null ? [] : list.unreadable }),") > 0 && plugin.indexOf("h(UnreadableNotice, { items: list === null ? [] : list.unreadable }),") < plugin.indexOf("kt('Mes dashboards'") && /unreadable: Array\.isArray\(l\.json\.unreadable\)/.test(plugin))
+  // Kaby's suggestions: a dashed block above « My dashboards », Add / Preview / Discard, the menu row pulses on the count
+  ok('suggested dashboards: a dashed block above My dashboards, not in the list, not counted as hidden', plugin.indexOf("'data-kb': 'suggested-block'") > plugin.indexOf('h(UnreadableNotice,') && plugin.indexOf("'data-kb': 'suggested-block'") < plugin.indexOf("kt('Mes dashboards'") && /const mine = items\.filter\(\(d\) => !d\.archived && d\.suggested !== true/.test(plugin) && /hiddenCount = items\.filter\(\(d\) => d\.hidden && !d\.archived && d\.suggested !== true\)/.test(plugin))
+  ok('suggested dashboards: Add clears the flag, Discard asks the discard route, Preview opens it', plugin.includes("act('flags', { id: d.id, suggested: false }") && plugin.includes("act('discard', { id: d.id }") && plugin.includes("'data-kb': 'suggested-view', onClick: () => open(d.id)"))
+  ok('suggested dashboards: the menu row is told how many wait, from the list and from the 1.5 s probe', plugin.includes("set('dashboards', { review:") && plugin.includes('publishWaiting((l.json.dashboards') && plugin.includes('publishWaiting(s.json.suggested)'))
 }
 
 console.log(fail === 0 ? 'client: ok (' + passed + ' checks)' : fail + ' failed of ' + (passed + fail))
