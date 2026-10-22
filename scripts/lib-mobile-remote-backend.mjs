@@ -8,6 +8,8 @@
 // Both point the isolated DSH (scripts/sandbox/) at their API, signed in, and put its files back on close().
 //
 //   const backend = await startBackend({ real: true, serverDir })
+//   Options of `real`: `phoneOrigin: 'http://phone.localhost:<port>'` skips the ngrok tunnel (the server accepts http for a loopback address only, and the phone page must not be the API's own
+//   host): nothing leaves the machine, which is enough to SEE the QR code and the pairing, not enough for a phone to scan it; `script` names another file than scripts/replica.ts in serverDir.
 //   backend.phoneOrigin    where the phone page is served
 //   backend.serverDevices() how many phones the server lists for the signed-in person
 //   backend.setPhoneLink(on)  the person's plan lists the phone link, or stops listing it
@@ -109,31 +111,40 @@ async function waitUntil (what, test, ms) {
   }
 }
 
-async function startReal ({ serverDir, port = 8797, log = () => {} }) {
-  if (typeof serverDir !== 'string' || serverDir === '' || !existsSync(join(serverDir, 'scripts', 'replica.ts'))) {
+async function startReal ({ serverDir, port = 8797, log = () => {}, phoneOrigin: givenOrigin, script = 'scripts/replica.ts' }) {
+  if (typeof serverDir !== 'string' || serverDir === '' || !existsSync(join(serverDir, script))) {
     throw new Error('the kybernos-server checkout is needed (KYBERNOS_SERVER_DIR=<its folder>, with scripts/replica.ts)')
   }
   const cleanups = []
   const close = async () => { for (const f of cleanups.reverse()) { try { await f() } catch (e) { /* closing */ } } }
   try {
-    // 1. the public https address, before the server, because the server wants to know it.
-    log('opening the https tunnel (ngrok)')
-    let tunnelUrl = null
-    let tunnelError = null
-    // ngrok keeps its account in the person's own home; the isolated DSH's HOME is another one (scripts/sandbox/env.sh).
-    const ngrokEnv = process.env.KB_REAL_HOME ? { ...process.env, HOME: process.env.KB_REAL_HOME } : process.env
-    const tunnel = spawnLogged('ngrok', ['http', '127.0.0.1:' + port, '--log=stdout', '--log-format=json'], { env: ngrokEnv }, (line) => {
-      try {
-        const o = JSON.parse(line)
-        if (o.msg === 'started tunnel' && typeof o.url === 'string') tunnelUrl = o.url
-        if (typeof o.err === 'string' && o.err !== 'nil' && o.err !== '') tunnelError = o.err
-      } catch (e) { /* not a log line */ }
-    })
-    cleanups.push(() => { try { tunnel.child.kill('SIGTERM') } catch (e) { /* gone */ } })
-    await waitUntil('the tunnel (' + (tunnelError || 'no error yet') + ')', () => tunnelUrl !== null || tunnelError !== null, 30000)
-    if (tunnelUrl === null) throw new Error('the tunnel did not open: ' + String(tunnelError).split('\n')[0].slice(0, 200))
-    const phoneOrigin = new URL(tunnelUrl).origin
-    log('tunnel ' + phoneOrigin)
+    // 1. the public https address, before the server, because the server wants to know it. With `phoneOrigin: 'http://127.0.0.1:<port>'` (the server accepts http for
+    //    a loopback address only) there is no tunnel: nothing leaves the machine, which is enough to SEE the QR code and the pairing; a phone that scans it needs the tunnel.
+    let phoneOrigin = null
+    if (givenOrigin !== undefined) {
+      const u = new URL(givenOrigin)
+      if (u.protocol !== 'http:' || !(['127.0.0.1', 'localhost', '[::1]'].includes(u.hostname) || u.hostname.endsWith('.localhost'))) throw new Error('phoneOrigin without a tunnel must be an http loopback address, got ' + givenOrigin)
+      phoneOrigin = u.origin
+      log('no tunnel, the phone page is at ' + phoneOrigin)
+    } else {
+      log('opening the https tunnel (ngrok)')
+      let tunnelUrl = null
+      let tunnelError = null
+      // ngrok keeps its account in the person's own home; the isolated DSH's HOME is another one (scripts/sandbox/env.sh).
+      const ngrokEnv = process.env.KB_REAL_HOME ? { ...process.env, HOME: process.env.KB_REAL_HOME } : process.env
+      const tunnel = spawnLogged('ngrok', ['http', '127.0.0.1:' + port, '--log=stdout', '--log-format=json'], { env: ngrokEnv }, (line) => {
+        try {
+          const o = JSON.parse(line)
+          if (o.msg === 'started tunnel' && typeof o.url === 'string') tunnelUrl = o.url
+          if (typeof o.err === 'string' && o.err !== 'nil' && o.err !== '') tunnelError = o.err
+        } catch (e) { /* not a log line */ }
+      })
+      cleanups.push(() => { try { tunnel.child.kill('SIGTERM') } catch (e) { /* gone */ } })
+      await waitUntil('the tunnel (' + (tunnelError || 'no error yet') + ')', () => tunnelUrl !== null || tunnelError !== null, 30000)
+      if (tunnelUrl === null) throw new Error('the tunnel did not open: ' + String(tunnelError).split('\n')[0].slice(0, 200))
+      phoneOrigin = new URL(tunnelUrl).origin
+      log('tunnel ' + phoneOrigin)
+    }
 
     // 2. the server: the real application on an embedded Postgres, seeded with the catalogue's plans.
     log('starting the server')
@@ -141,7 +152,7 @@ async function startReal ({ serverDir, port = 8797, log = () => {} }) {
     cleanups.push(() => rmSync(work, { recursive: true, force: true }))
     const stateFile = join(work, 'replica-state.json')
     let ready = false
-    const server = spawnLogged(process.execPath, ['scripts/replica.ts'], {
+    const server = spawnLogged(process.execPath, [script], {
       cwd: serverDir,
       env: { ...process.env, REPLICA_PORT: String(port), REPLICA_STATE: stateFile, REPLICA_SEED: 'catalogue', REMOTE_PHONE_URL: phoneOrigin, LOG_LEVEL: 'warn' },
     }, (line) => { if (line.startsWith('replica ready')) ready = true })
