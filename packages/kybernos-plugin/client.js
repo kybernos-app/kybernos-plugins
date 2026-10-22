@@ -5305,6 +5305,15 @@ const kbProjectData = (key, sids) => {
   // Pas encore de reponse : l'appelant montre un etat « lecture » explicite.
   return null
 }
+// The answer for a project is kept for the whole page visit; a goal is set or changes in a chat meanwhile. Asking again (the page keeps showing the
+// old answer until the new one lands) is what the Goals tab does when it opens.
+const kbProjRefresh = (key, sids) => {
+  if (key === '' || kbRemoteOk !== true || kbProjInflight['r:' + key] === true) return
+  kbProjInflight['r:' + key] = true
+  host.call('kybers/project-data', { sessionIds: sids }).then((res) => {
+    if (res !== null && res !== undefined && res.ok === true) { kbProjCache[key] = res; kbBumpProj() }
+  }).catch(() => { /* the answer already shown stays */ }).then(() => { kbProjInflight['r:' + key] = false })
+}
 const kbArtRawUrl = (path) => {
       try { return kbApiBase() + '/art-raw?path=' + encodeURIComponent(String(path || '')) } catch (e) { return '' }
     }
@@ -18184,6 +18193,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       const projSidKey = projSids.join(',')
       kbUseProjRev()
       const projData = kbProjectData(projSidKey, projSids)
+      React.useEffect(() => { if (tab === kbt('kbui.objectifs')) kbProjRefresh(projSidKey, projSids) }, [tab, projSidKey])
       const projLoading = (projData === null && projSidKey !== '')
       // Kybers du projet = ceux declares actifs dans au moins un de ses threads.
       const projActiveIds = []
@@ -18682,19 +18692,36 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
             pagerOf(docsVp))
         }
         if (tab === kbt('kbui.objectifs')) {
-          // Les objectifs REELLEMENT en cours dans les threads du projet.
+          // The goals of the project's chats: the ones running in this DSH, and the ones the engine kept in the session logs (a goal set in a chat
+          // that is not open any more is still there). A goal is set with /goal in a chat.
+          const phaseOf = (g) => {
+            const p = String(g.phase === null || g.phase === undefined ? '' : g.phase)
+            if (p === 'active') return { word: kbe('Active', 'En cours'), color: 'var(--dsw-alias-state-success-primary)' }
+            if (p === 'blocked') return { word: kbe('Blocked', 'Bloqué'), color: 'var(--dsw-alias-state-error-primary)' }
+            if (p === 'paused') return { word: kbe('Paused', 'En pause'), color: null }
+            if (p === 'complete') return { word: kbe('Done', 'Terminé'), color: null }
+            return { word: p === '' ? kbe('DSH goal') : p, color: null }
+          }
           return goalRows.length === 0
-            ? emptyX({ kb: 'project-goals-empty', title: kbe('No goal running', 'Aucun objectif en cours'), text: kbe('A goal set in one of this project’s chats is followed here until it is done.', 'Un objectif fixé dans un chat de ce projet est suivi ici jusqu’à son terme.'), action: chatAction(kbe('Open a chat in this project', 'Ouvrir un chat dans ce projet')) })
+            ? emptyX({ kb: 'project-goals-empty', title: kbe('No goal yet', 'Aucun objectif'), text: kbe('Type /goal followed by what you want done, in one of this project’s chats: the AI keeps working, round after round, until it is done. The goal is followed here.', 'Tape /goal suivi de ce que tu veux obtenir, dans un chat de ce projet : l’IA continue, tour après tour, jusqu’à ce que ce soit fait. L’objectif est suivi ici.'), action: chatAction(kbe('Open a chat in this project', 'Ouvrir un chat dans ce projet')) })
             : h(React.Fragment, null,
               pagerTop(goalsVp),
-              h('div', { className: 'kb8-rows' }, pageOf(goalRows, goalsVp).map((g) => {
+              h('div', { className: 'kb8-rows', 'data-kb': 'project-goals-list' }, pageOf(goalRows, goalsVp).map((g) => {
                 const max = typeof g.maxGoalRounds === 'number' && g.maxGoalRounds > 0 ? g.maxGoalRounds : null
                 const done = typeof g.roundsStarted === 'number' ? g.roundsStarted : null
                 const pct = (max !== null && done !== null) ? Math.max(4, Math.min(100, Math.round((done / max) * 100))) : null
-                return h('div', { className: 'kb8-row', key: g.sessionId, style: Object.assign({}, rowStyle, { cursor: 'default', flexDirection: 'column', alignItems: 'stretch', gap: '8px' }) },
-                  h('span', { className: 'kb8-name' }, g.objective === null || g.objective === undefined || g.objective === '' ? kbe('(untitled goal)') : String(g.objective)),
-                  h('span', { className: 'kb8-parent' }, [g.phase === null || g.phase === undefined ? null : String(g.phase).toUpperCase(), done !== null && max !== null ? (kbe('turn ') + done + '/' + max) : null].filter((x) => x !== null).join(' · ') || kbe('DSH goal')),
-                  pct === null ? null : h('div', { className: 'kb9-bar' }, h('span', { style: { width: pct + '%' } })))
+                const ph = phaseOf(g)
+                return h('div', { className: 'kb8-row', key: g.sessionId, 'data-kb': 'project-goal-row', 'data-phase': String(g.phase), title: kbe('Open this chat', 'Ouvrir ce chat'), style: Object.assign({}, rowStyle, { flexDirection: 'column', alignItems: 'stretch', gap: '8px' }), onClick: () => { try { uiWorkspaceSvc.openSession(g.sessionId) } catch (e) { /* the chat is not available */ } } },
+                  h('span', { style: { display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 } },
+                    h('span', { className: 'kb8-name', style: { flex: 1, minWidth: 0 } }, g.objective === null || g.objective === undefined || g.objective === '' ? kbe('(untitled goal)') : String(g.objective)),
+                    h('span', { style: Object.assign({}, pillStyle, ph.color === null ? null : { color: ph.color, borderColor: ph.color }), 'data-kb': 'project-goal-phase' }, ph.word)),
+                  h('span', { className: 'kb8-parent' }, [
+                    (byId[g.sessionId] !== undefined && byId[g.sessionId] !== null && byId[g.sessionId].displayTitle) ? byId[g.sessionId].displayTitle : (typeof g.thread === 'string' && g.thread !== '' ? g.thread : null),
+                    done !== null && max !== null ? (kbe('turn ') + done + '/' + max) : null,
+                    typeof g.updatedAt === 'number' ? fmtAge(g.updatedAt, Date.now()) : null,
+                  ].filter((x) => x !== null).join(' · ') || kbe('DSH goal')),
+                  (typeof g.blockedReason === 'string' && g.blockedReason !== '' ? h('span', { className: 'kb8-parent', style: { color: 'var(--dsw-alias-state-error-primary)' }, 'data-kb': 'project-goal-blocked' }, g.blockedReason) : null),
+                  pct === null || g.phase === 'complete' ? null : h('div', { className: 'kb9-bar' }, h('span', { style: { width: pct + '%' } })))
               })),
               pagerOf(goalsVp))
         }
