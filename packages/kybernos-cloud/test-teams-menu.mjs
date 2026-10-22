@@ -116,9 +116,11 @@ console.log('the plan card by role')
   check('a member of that team gets neither, and the card says when it is back', same(memberFull.actions, []) && memberFull.rows[0].full === true && plain(memberFull.rows[0].note) === 'Back in about 3 h', memberFull.rows[0])
   check('Add credits is never offered while the pool has room', !card({ space: team('admin'), facts: facts(base) }).actions.includes('credits'))
   const free = card({ space: personalSpace, title: 'Free', planInfo: FREE_PLAN, facts: facts([win('member', 2592000, 5), win('member', 18000, 1)]) })
-  check('a free personal space: Upgrade and ONE allowance bar (the one closest to full)', same(free.actions, ['upgrade']) && free.rows.length === 1 && free.rows[0].percent === 5 && free.rows[0].key === 'allowance' && free.rows[0].note === 'Last 30 days', free)
+  check('a free personal space: Upgrade and NO allowance row (it is the Kybernos plan\'s number; the composer\'s chip shows it on a Kybernos model)', same(free.actions, ['upgrade']) && free.rows.length === 0, free)
   const paid = card({ space: personalSpace, title: 'Solo Plus', planInfo: { none: false, free: false }, facts: facts([win('member', 18000, 40)]) })
-  check('a paid personal space: the bar, no action in the card', same(paid.actions, []) && paid.rows.length === 1 && paid.rows[0].percent === 40, paid)
+  check('a paid personal space: no row, no action in the card', same(paid.actions, []) && paid.rows.length === 0, paid)
+  const personalBlocked = card({ space: personalSpace, title: 'Free', planInfo: FREE_PLAN, facts: { ok: true, payment_blocked: true, usage: [] } })
+  check('a personal space whose payment is blocked still says so, with no bar', personalBlocked.rows.length === 1 && personalBlocked.rows[0].full === true && personalBlocked.rows[0].key === 'allowance', personalBlocked)
   const none = card({ space: team('admin'), title: 'No plan', planInfo: NO_PLAN, facts: facts([]) })
   check('a team nobody bought a plan for: « Choose a plan », no bar', same(none.actions, ['choose']) && none.rows.length === 0, none)
   const unread = card({ space: team('admin'), facts: null })
@@ -153,8 +155,8 @@ console.log('percent and bars only: the sentence of a window')
   check('minutes when it is under an hour', plain(mins.note) === 'Back in about 25 min', mins.note)
   const capped = card({ space: team('member', 't9', 'Acme'), facts: facts([win('member', 604800, 30, { scope: 'team' })]) }).rows[0]
   check('a cap an admin set says where it was set', capped.note === 'Last 7 days (a cap set in Acme)', capped.note)
-  const personalCap = card({ space: personalSpace, planInfo: FREE_PLAN, facts: facts([win('member', 604800, 30, { scope: 'team' })]) }).rows[0]
-  check('the cap wording follows the space\'s name', personalCap.note.includes('(a cap set in this team)') || personalCap.note.includes('(a cap set in'), personalCap.note)
+  const otherCap = card({ space: team('member', 't8', 'Beta'), facts: facts([win('member', 604800, 30, { scope: 'team' })]) }).rows[0]
+  check('the cap wording follows the team\'s name', otherCap.note === 'Last 7 days (a cap set in Beta)', otherCap.note)
   const skewed = lib.planCardModel({ t, title: 'Team', planInfo: TEAM_PLAN, space: team('member'), facts: { ok: true, skew_ms: 3 * 3600000, usage: [full('member', 18000, { resets_at: new Date(Date.now() + 6 * 3600000).toISOString() })] } }).rows[0]
   check('a clock that is hours off is corrected by the server\'s own stamp', plain(skewed.note) === 'Back in about 3 h', skewed.note)
   void row
