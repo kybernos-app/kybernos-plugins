@@ -273,6 +273,29 @@ const server = { ok: true, server: { api: 'https://server-dev-7831.up.railway.ap
     delete globalThis.window.__KB_MOBILE__
     ok('without the bundle that draws the screen there is no button (never a dead one), the chips remain', byKb(ui(T.views.Strip), 'kybernos-kyber-open-phone').length === 0 && byKb(ui(T.views.Strip), 'kybernos-kyber-computer-chip').length === 1)
     globalThis.window.__KB_MOBILE__ = { version: 3, open () { phoneOpens.push('open'); return true } }
+
+    // ── the name and the portrait the person gave Kaby (kybernos-kaby-customisation, through window.__KB_KABY__) ──
+    ok('without that bundle the strip keeps the glyph and the product name, with no customise button', byKb(ui(T.views.Strip), 'kybernos-kyber-customise').length === 0 && textOf(one(ui(T.views.Strip), 'kybernos-kyber-strip')).startsWith('Kaby'))
+    const kabyAsked = []
+    globalThis.window.__KB_KABY__ = { profile: () => ({ name: 'Léa', portrait: null }), open () { kabyAsked.push('open'); return true } }
+    {
+      const mine = ui(T.views.Strip)
+      const btn = one(mine, 'kybernos-kyber-customise')
+      ok('with it, the strip heads with the name the person chose, in ONE button that says what it does', btn !== undefined && btn.tag === 'button' && btn.props['aria-label'] === 'Personnaliser Léa' && nodes([btn]).some((n) => n.tag === 'b' && textOf(n) === 'Léa') && textOf(one(mine, 'kybernos-kyber-strip')).includes('Léa'))
+      ok('no portrait yet: the first letter of the name, drawn in a round monogram, and no image', byKb(mine, 'kybernos-kyber-portrait').length === 0 && nodes([btn]).some((n) => n.tag === 'text' && textOf(n) === 'L'))
+      ok('a click opens Settings › Kaby, through the seam', (() => { kabyAsked.length = 0; btn.props.onClick(); return kabyAsked.length === 1 })())
+      ok('the chips and the button of the strip are still there', byKb(mine, 'kybernos-kyber-computer-chip').length === 1 && byKb(mine, 'kybernos-kyber-open-phone').length === 1)
+      globalThis.window.__KB_KABY__ = { profile: () => ({ name: 'Léa', portrait: { url: '/kybernos-kaby-customisation/portrait?v=1' } }), open () {} }
+      const withPic = ui(T.views.Strip)
+      const pic = one(withPic, 'kybernos-kyber-portrait')
+      ok('with a portrait: the picture the host serves, round, with no alt text (the button already says it)', pic !== undefined && pic.tag === 'img' && pic.props.src === '/kybernos-kaby-customisation/portrait?v=1' && pic.props.alt === '')
+      globalThis.window.__KB_KABY__ = { profile: () => { throw new Error('not ready') }, open () {} }
+      ok('a seam that throws leaves the strip as it was, never breaks it', byKb(ui(T.views.Strip), 'kybernos-kyber-customise').length === 0 && textOf(one(ui(T.views.Strip), 'kybernos-kyber-strip')).startsWith('Kaby'))
+      globalThis.window.__KB_KABY__ = { open () {} }
+      ok('a seam without a profile reader is no seam', byKb(ui(T.views.Strip), 'kybernos-kyber-customise').length === 0)
+    }
+    delete globalThis.window.__KB_KABY__
+    ok('the strip re-reads the profile when the bundle says it changed (window event kb-kaby-profile), and stops listening when it goes', /addEventListener\('kb-kaby-profile', again\)/.test(src) && /removeEventListener\('kb-kaby-profile', again\)/.test(src))
   }
 
   // ── the list the chips open (and the tab shows): the same three lines in words, each with one button to the screen that sets it up ──
