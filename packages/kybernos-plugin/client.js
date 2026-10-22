@@ -1750,6 +1750,14 @@ let kbLocaleRead = () => 'en'
       'kbui.skill.by': { kybernos: 'Porté par', en: 'Provided by' },
       'kbui.skill.declared': { kybernos: 'Déclaré dans', en: 'Declared in' },
       'kbui.skill.state': { kybernos: 'État', en: 'State' },
+      'kbui.skill.when': { kybernos: 'À utiliser quand', en: 'Use it when' },
+      'kbui.skill.source': { kybernos: 'Origine', en: 'Source' },
+      'kbui.skill.folder': { kybernos: 'Dossier', en: 'Folder' },
+      'kbui.skill.modified': { kybernos: 'Modifiée', en: 'Modified' },
+      'kbui.skill.read': { kybernos: 'Voir les instructions', en: 'Show the instructions' },
+      'kbui.skill.hide': { kybernos: 'Masquer les instructions', en: 'Hide the instructions' },
+      'kbui.skill.loading': { kybernos: 'Lecture de la compétence…', en: 'Reading the skill…' },
+      'kbui.skill.readfail': { kybernos: 'Impossible de lire les instructions : ', en: 'Could not read the instructions: ' },
       'kbui.skill.stateon': { kybernos: 'Rattachée à ce projet', en: 'Attached to this project' },
       'kbui.skill.stateoff': { kybernos: 'Disponible, non rattachée', en: 'Available, not attached' },
       'kbui.skill.attach': { kybernos: 'Rattacher à ce projet', en: 'Attach to this project' },
@@ -5003,6 +5011,8 @@ const kbComposioConnections = (slugs) => {
 // et la meme route de lecture pour le rafraichissement.
 const kbConnForget = () => {
   for (const k of Object.keys(kbConnCache)) delete kbConnCache[k]
+  // The « busy » flags go too: left set, the re-read never started and the list stayed on « Reading… » until the page was reloaded.
+  for (const k of Object.keys(kbConnBusy)) delete kbConnBusy[k]
   kbBumpConn()
 }
 // Ce que le COMPTE a connecte, vu depuis la page projet. Le MCP exige des noms
@@ -5092,10 +5102,47 @@ const kbConnMerge = (slugs, actif) => {
   return Object.assign({}, base, { connections: out, scan: balayage.scan === true || declaration.scan === true })
 }
 
+// What the Skills page knows of each skill (its description, when to use it, where it lives): read once a minute from the Skills plugin,
+// keyed by lower-case name. `null` when that plugin is not loaded or does not answer: the sheet then shows what the project page already knew.
+let kbSkillCatCache = { at: 0, p: null }
+const kbSkillCatalog = () => {
+  const now = Date.now()
+  if (kbSkillCatCache.p !== null && now - kbSkillCatCache.at < 60000) return kbSkillCatCache.p
+  kbSkillCatCache = {
+    at: now,
+    p: fetch('/kybernos-skills/skills', { credentials: 'same-origin' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => {
+        if (j === null || j === undefined || Array.isArray(j.skills) !== true) return null
+        const out = {}
+        for (const x of j.skills) { const k = String(x.name === undefined || x.name === null ? '' : x.name).toLowerCase(); if (k !== '' && out[k] === undefined) out[k] = x }
+        return out
+      })
+      .catch(() => null),
+  }
+  return kbSkillCatCache.p
+}
+// The Skills plugin writes a date as an ISO string; a number of milliseconds is accepted too.
+const kbSkillTime = (v) => (typeof v === 'number' ? v : Date.parse(String(v === undefined || v === null ? '' : v)))
+// The words for where a skill comes from.
+const kbSkillSourceLabel = (src) => {
+  const k = String(src === undefined || src === null ? '' : src)
+  if (k === 'user-dsh') return kbe('DSH skills folder', 'Dossier de compétences de DSH')
+  if (k === 'user-agents') return kbe('Agents skills folder', 'Dossier de compétences des agents')
+  if (k === 'project') return kbe('This project', 'Ce projet')
+  return k
+}
 /** Lignes « connexions » communes : une ligne par compte, puis les declares seuls. */
 const kbConnRowsOf = (connsReal, declaredTools, hit) => {
   const realBySlug = {}
   const connRows = []
+  // The connectors the kybers of the page declare they can call are « selected » for it: they come first and say who uses them.
+  const usedBy = {}
+  for (const d of declaredTools) {
+    const who = String(d.kyber === undefined || d.kyber === null ? '' : d.kyber)
+    if (usedBy[d.slug] === undefined) usedBy[d.slug] = []
+    if (who !== '' && usedBy[d.slug].indexOf(who) < 0) usedBy[d.slug].push(who)
+  }
   if (connsReal !== null && Array.isArray(connsReal.connections) === true) {
     for (const c of connsReal.connections) {
       const slug = String(c.toolkit === null || c.toolkit === undefined ? '' : c.toolkit).toLowerCase()
@@ -5111,6 +5158,7 @@ const kbConnRowsOf = (connsReal, declaredTools, hit) => {
         connRows.push({
           key: 'real/' + slug + '/' + String(a.id), name: slug, real: true, slug: slug, account: String(a.id),
           meta: 'Composio · ' + label + (typeof a.accountType === 'string' && a.accountType.length > 0 ? ' · ' + a.accountType : '') + (a.isDefault === true ? kbe(' · default') : ''),
+          label: label, isDefault: a.isDefault === true,
           state: String(a.status === null || a.status === undefined ? c.status : a.status).toUpperCase(),
         })
       }
@@ -5125,6 +5173,14 @@ const kbConnRowsOf = (connsReal, declaredTools, hit) => {
       real: false, slug: d.slug, account: null,
     })
   }
+  const live = (r) => r.state === 'ACTIVE' || r.state === 'READY'
+  for (const r of connRows) {
+    r.selected = usedBy[r.slug] !== undefined
+    r.usedBy = r.selected === true ? usedBy[r.slug].join(', ') : ''
+    r.rank = (r.selected === true ? 0 : 2) + (live(r) === true ? 0 : 1)
+  }
+  // Selected first, then what is connected, then what needs attention; the order of the account is kept inside each band.
+  connRows.sort((a, b) => a.rank - b.rank)
   return { connRows: connRows, realBySlug: realBySlug }
 }
 
@@ -18220,6 +18276,25 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       const skillOpenPair = React.useState(null)
       const skillOpen = skillOpenPair[0]
       const setSkillOpen = skillOpenPair[1]
+      // The catalogue of skills (description, when to use, folder), read when the Skills tab is on screen; and the instructions of the skill whose sheet asked for them.
+      const skillCatPair = React.useState(undefined)
+      const skillsTabOn = tab === kbt('kbui.skills')
+      React.useEffect(() => {
+        if (skillsTabOn !== true) return undefined
+        let dead = false
+        kbSkillCatalog().then((m) => { if (dead === false) skillCatPair[1](m) })
+        return () => { dead = true }
+      }, [skillsTabOn])
+      const skillTextPair = React.useState(null)
+      const readSkillText = async (info, key) => {
+        skillTextPair[1]({ key: key, loading: true, text: '', err: null })
+        try {
+          const res = await fetch('/kybernos-skills/skill/read', { method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/json', accept: 'application/json' }, body: JSON.stringify({ root: info.root, name: info.name }) })
+          const j = await res.json()
+          if (j !== null && j !== undefined && j.ok === true && typeof j.text === 'string') skillTextPair[1]({ key: key, loading: false, text: j.text, err: null })
+          else skillTextPair[1]({ key: key, loading: false, text: '', err: (j !== null && j !== undefined && typeof j.error === 'string') ? j.error : 'unavailable' })
+        } catch (e) { skillTextPair[1]({ key: key, loading: false, text: '', err: errText(e) }) }
+      }
       // Une connexion s'active ou se desactive depuis la page projet. La
       // desactivation se fait en deux temps : la connexion est globale.
       const connActionPair = React.useState(null)
@@ -18631,15 +18706,40 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
                   style: { flexBasis: '100%', width: '100%' },
                   onClick: (e) => { if (e !== undefined && e.stopPropagation !== undefined) e.stopPropagation() },
                 },
-                  h('div', { className: 'kb8-docfields' }, [
-                    skillField(kbt('kbui.skill.state'), k.attached === true ? kbt('kbui.skill.stateon') : kbt('kbui.skill.stateoff'), 'e'),
-                    skillField(kbt('kbui.skill.by'), k.kyber, 'k'),
-                    skillField(kbt('kbui.skill.declared'), k.where, 'w'),
-                  ].filter((x) => x !== null)),
-                  h('button', {
-                    type: 'button', className: 'kb8-docdl', 'data-kb': 'project-skill-sheet-toggle',
-                    onClick: (e) => { if (e !== undefined && e.stopPropagation !== undefined) e.stopPropagation(); toggleSkill(k) },
-                  }, k.attached === true ? kbt('kbui.skill.detach') : kbt('kbui.skill.attach')))
+                  (() => {
+                    const cat = skillCatPair[0]
+                    const info = cat !== undefined && cat !== null ? cat[k.key] : undefined
+                    const txt = skillTextPair[0] !== null && skillTextPair[0].key === k.key ? skillTextPair[0] : null
+                    return h(React.Fragment, null,
+                      info !== undefined && typeof info.description === 'string' && info.description.trim() !== ''
+                        ? h('p', { className: 'kb8-skdesc', 'data-kb': 'project-skill-desc' }, info.description.trim()) : null,
+                      info !== undefined && typeof info.whenToUse === 'string' && info.whenToUse.trim() !== ''
+                        ? h('p', { className: 'kb8-skwhen', 'data-kb': 'project-skill-when' }, h('b', null, kbt('kbui.skill.when')), ' ', info.whenToUse.trim()) : null,
+                      cat === undefined ? h('p', { className: 'kb8-sub', role: 'status' }, kbt('kbui.skill.loading')) : null,
+                      cat !== undefined && cat !== null && info === undefined && k.ghost !== true
+                        ? h('p', { className: 'kb8-sub', 'data-kb': 'project-skill-unknown' }, kbe('Not found in the skills catalog: ', 'Introuvable dans le catalogue des compétences : ') + (k.kyber === null ? '' : k.kyber + kbe(' declares it, but no skills folder holds it.', ' la déclare, mais aucun dossier de compétences ne la porte.'))) : null,
+                      h('div', { className: 'kb8-docfields' }, [
+                        skillField(kbt('kbui.skill.state'), k.attached === true ? kbt('kbui.skill.stateon') : kbt('kbui.skill.stateoff'), 'e'),
+                        skillField(kbt('kbui.skill.by'), k.kyber, 'k'),
+                        skillField(kbt('kbui.skill.declared'), k.where, 'w'),
+                        info === undefined ? null : skillField(kbt('kbui.skill.source'), kbSkillSourceLabel(info.source), 's'),
+                        info === undefined ? null : skillField(kbt('kbui.skill.folder'), info.folder, 'f'),
+                        info === undefined || Number.isFinite(kbSkillTime(info.modifiedAt)) === false ? null : skillField(kbt('kbui.skill.modified'), fmtAge(kbSkillTime(info.modifiedAt)), 'm'),
+                      ].filter((x) => x !== null)),
+                      h('div', { style: { display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '12px' } },
+                        h('button', {
+                          type: 'button', className: 'kb8-docdl', style: { marginBottom: 0 }, 'data-kb': 'project-skill-sheet-toggle',
+                          onClick: (e) => { if (e !== undefined && e.stopPropagation !== undefined) e.stopPropagation(); toggleSkill(k) },
+                        }, k.attached === true ? kbt('kbui.skill.detach') : kbt('kbui.skill.attach')),
+                        info === undefined ? null : h('button', {
+                          type: 'button', className: 'kb8-docdl', style: { marginBottom: 0 }, 'data-kb': 'project-skill-read',
+                          'aria-expanded': txt !== null,
+                          onClick: (e) => { if (e !== undefined && e.stopPropagation !== undefined) e.stopPropagation(); if (txt !== null) skillTextPair[1](null); else readSkillText(info, k.key) },
+                        }, txt !== null ? kbt('kbui.skill.hide') : kbt('kbui.skill.read'))),
+                      txt === null ? null : (txt.loading === true ? h('p', { className: 'kb8-sub', role: 'status' }, kbt('kbui.skill.loading'))
+                        : (txt.err !== null ? h('p', { className: 'kb8-sub', role: 'alert', style: { color: 'var(--dsw-alias-state-error-primary)' } }, kbt('kbui.skill.readfail') + txt.err)
+                          : h('pre', { className: 'kb8-skpre', 'data-kb': 'project-skill-text', tabIndex: 0 }, txt.text))))
+                  })())
                 : null)))),
             pagerOf(skillsVp))
         }
@@ -18659,6 +18759,8 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
                     const n = (Array.isArray(connsReal.connections) === true ? connsReal.connections : []).filter((c) => Array.isArray(c.accounts) === true && c.accounts.length > 0).length
                     return kbe('Real Composio connections — ') + n + (n === 1 ? kbe(' connected tool') : kbe(' connected tools')) + (connsReal.scan === true ? kbe(' (whole account, not only what this project declares)') : '') + (connsReal.stale === true ? kbe(' (last known state)') : '') + '.'
                   })())))
+          // While the account is being read (the first time, or again after a connect / disconnect) the page says so: an empty-state card would claim there is nothing.
+          if (connRows.length === 0 && connsReal === null) return h('span', { className: 'kb8-parent', 'data-kb': 'connectors-source' }, connsNote)
           if (connRows.length === 0) {
             return h(React.Fragment, null,
               h('span', { className: 'kb8-parent', 'data-kb': 'connectors-source' }, connsNote),
@@ -18668,24 +18770,58 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
                   : (projActiveIds.length === 0 ? kbe('No agent team has run in this project’s threads yet.') : kbe('This project’s agent teams declare no tool (connector).')),
                 action: KB_CP === true ? { act: 'open-connectors', label: kbe('Open Connectors', 'Ouvrir les connecteurs'), run: () => { try { set({ view: 'connectors' }) } catch (e) { /* page unavailable */ } } } : null }))
           }
-          return h(React.Fragment, null,
-            h('span', { className: 'kb8-parent', 'data-kb': 'connectors-source' }, connsNote),
-            pagerTop(connsVp),
-            h('div', { className: 'kb8-rows' }, pageOf(connRows, connsVp).map((c) => h('div', { className: 'kb8-row', key: c.key, style: { flexWrap: 'wrap' } },
+          // The connectors the project's agent teams declare come first, under their own heading, in a tinted row that says who uses them.
+          // Removing an account is global (every project, the whole Composio account): the armed step says so in words, with a way back.
+          const connPage = pageOf(connRows, connsVp)
+          const connAnySel = connRows.some((x) => x.selected === true)
+          const pillOn = Object.assign({}, pillStyle, { borderColor: 'var(--dsw-alias-state-success-primary)', color: 'var(--dsw-alias-state-success-primary)' })
+          const connNodes = []
+          connPage.forEach((c, i) => {
+            const prev = i > 0 ? connPage[i - 1] : null
+            if (prev === null || prev.selected !== c.selected) {
+              const n = connRows.filter((x) => (x.selected === true) === (c.selected === true)).length
+              connNodes.push(h('div', {
+                key: 'grp/' + (c.selected === true ? 'sel' : 'acc'), className: 'kb8-parent', 'data-kb': 'project-conn-group', 'data-group': c.selected === true ? 'selected' : 'account',
+                style: { padding: '12px 16px 6px', fontWeight: 600, borderBottom: '1px solid var(--dsw-alias-border-l1)' },
+              }, (c.selected === true ? kbe('Used by this project', 'Utilisés par ce projet') : (connAnySel === true ? kbe('Also connected on your account', 'Aussi connectés sur votre compte') : kbe('Connected on your account', 'Connectés sur votre compte'))) + ' · ' + n))
+            }
+            const isReal = c.real === true && c.account !== null && c.account !== undefined && c.account !== ''
+            const armed = connArm === c.key
+            const live = c.state === 'ACTIVE' || c.state === 'READY'
+            connNodes.push(h('div', {
+              className: 'kb8-row', key: c.key, 'data-kb': 'project-conn-row', 'data-selected': c.selected === true ? '1' : '0',
+              style: Object.assign({ flexWrap: 'wrap' }, c.selected === true ? { background: 'var(--dsw-alias-bg-layer-2)', boxShadow: 'inset 3px 0 0 var(--dsw-alias-state-success-primary)' } : {}),
+            },
               h(KbConnTile, { slug: c.slug, name: c.name }),
               h('span', { style: { display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 } },
                 h('span', { className: 'kb8-name' }, c.name),
-                h('span', { className: 'kb8-parent' }, c.meta)),
-              ((c.state === 'ACTIVE' || c.state === 'READY') ? null : h('span', { style: Object.assign({}, pillStyle, c.state === 'ACTIVE' || c.state === 'READY' ? { color: 'var(--dsw-alias-state-success-primary)', borderColor: 'var(--dsw-alias-state-success-primary)' } : (c.state === 'FAILED' ? { color: 'var(--dsw-alias-state-error-primary)', borderColor: 'var(--dsw-alias-state-error-primary)' } : null)) }, String(c.state).charAt(0) + String(c.state).slice(1).toLowerCase())),
-              h('button', {
-                type: 'button', className: 'kb8-iconbtn', 'data-kb': 'project-conn-toggle',
-                title: (c.real === true && c.account !== null && c.account !== undefined && c.account !== '') ? (connArm === c.key ? kbt('kbui.conn.confirm') : kbt('kbui.conn.disable')) : kbt('kbui.conn.enable'),
-                'aria-label': ((c.real === true && c.account !== null && c.account !== undefined && c.account !== '') ? (connArm === c.key ? kbt('kbui.conn.confirm') : kbt('kbui.conn.disable')) : kbt('kbui.conn.enable')) + kbfSep() + c.name,
-                onClick: (e) => { if (e !== undefined && e.stopPropagation !== undefined) e.stopPropagation(); connAgir(c) },
-                'data-arm': connArm === c.key ? '1' : '0',
-                // 28 px au lieu des 40 px de la classe : cette ligne est dense.
-                style: { width: '28px', height: '28px', flex: '0 0 auto' },
-              }, Icon((c.real === true && c.account !== null && c.account !== undefined && c.account !== '') ? (connArm === c.key ? 'check' : 'x') : 'plus', 15)),
+                h('span', { className: 'kb8-parent' }, (c.real === true && c.label !== undefined) ? c.label + (c.isDefault === true ? kbe(' · default', ' · par défaut') : '') : c.meta),
+                (c.selected === true && c.usedBy !== '' ? h('span', { className: 'kb8-parent', 'data-kb': 'project-conn-usedby' }, kbe('Used by ', 'Utilisé par ') + c.usedBy) : null)),
+              (live === true
+                ? (c.selected === true ? h('span', { style: pillOn, 'data-kb': 'project-conn-pill' }, kbe('In use', 'Utilisé')) : null)
+                : h('span', { style: Object.assign({}, pillStyle, c.state === 'FAILED' ? { color: 'var(--dsw-alias-state-error-primary)', borderColor: 'var(--dsw-alias-state-error-primary)' } : null) }, String(c.state).charAt(0) + String(c.state).slice(1).toLowerCase())),
+              (isReal === true && armed === true
+                ? h('span', { style: { display: 'inline-flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' } },
+                  h('button', {
+                    type: 'button', className: 'kb8-chip', 'data-kb': 'project-conn-toggle', 'data-arm': '1',
+                    title: kbe('Removes this account from your whole Composio account, for every project.', 'Retire ce compte de tout votre compte Composio, pour tous les projets.'),
+                    'aria-label': kbt('kbui.conn.confirm') + kbfSep() + c.name,
+                    onClick: (e) => { if (e !== undefined && e.stopPropagation !== undefined) e.stopPropagation(); connAgir(c) },
+                    style: { padding: '5px 12px', borderColor: 'var(--dsw-alias-state-error-primary)', color: 'var(--dsw-alias-state-error-primary)' },
+                  }, kbe('Disconnect everywhere?', 'Déconnecter partout ?')),
+                  h('button', {
+                    type: 'button', className: 'kb8-chip', 'data-kb': 'project-conn-cancel', style: { padding: '5px 12px' },
+                    'aria-label': kbe('Cancel', 'Annuler') + kbfSep() + c.name,
+                    onClick: (e) => { if (e !== undefined && e.stopPropagation !== undefined) e.stopPropagation(); setConnArm(null) },
+                  }, kbe('Cancel', 'Annuler')))
+                : h('button', {
+                  type: 'button', className: 'kb8-iconbtn', 'data-kb': 'project-conn-toggle', 'data-arm': '0',
+                  title: isReal === true ? kbe('Disconnect from your account (every project)', 'Déconnecter de votre compte (tous les projets)') : kbt('kbui.conn.enable'),
+                  'aria-label': (isReal === true ? kbt('kbui.conn.disable') : kbt('kbui.conn.enable')) + kbfSep() + c.name,
+                  onClick: (e) => { if (e !== undefined && e.stopPropagation !== undefined) e.stopPropagation(); connAgir(c) },
+                  // 28 px au lieu des 40 px de la classe : cette ligne est dense.
+                  style: { width: '28px', height: '28px', flex: '0 0 auto' },
+                }, Icon(isReal === true ? 'x' : 'plus', 15))),
               (connAction !== null && connAction.key === c.key
                 ? h('div', {
                   className: 'kb8-docfiche', 'data-kb': 'project-conn-etat',
@@ -18693,11 +18829,16 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
                   onClick: (e) => { if (e !== undefined && e.stopPropagation !== undefined) e.stopPropagation() },
                 },
                   h('span', { className: 'kb8-parent', style: connAction.etat === 'err' ? { color: 'var(--dsw-alias-state-error-primary)' } : undefined },
-                    connAction.message + (connAction.etat === 'ok' && c.real === true && c.account !== null && c.account !== undefined && c.account !== '' ? kbt('kbui.conn.global') : '')),
+                    connAction.message + (connAction.etat === 'ok' && isReal === true ? kbt('kbui.conn.global') : '')),
                   (connAction.lien === null || connAction.lien === undefined)
                     ? null
                     : h('a', { className: 'kb8-docdl', 'data-kb': 'project-conn-link', href: connAction.lien, target: '_blank', rel: 'noopener' }, Icon('link', 14), kbt('kbui.conn.openlink')))
-                : null)))),
+                : null)))
+          })
+          return h(React.Fragment, null,
+            h('span', { className: 'kb8-parent', 'data-kb': 'connectors-source' }, connsNote),
+            pagerTop(connsVp),
+            h('div', { className: 'kb8-rows', 'data-kb': 'project-conns-list' }, connNodes),
             pagerOf(connsVp))
         }
         // ── Budget : uniquement des chiffres reels, aucun graphe invente ──────
@@ -32279,6 +32420,10 @@ button.kbbd-chip:hover{background:var(--dsw-alias-interactive-bg-hover,#f0f0f0)}
 .kb8-docthumb.kb8-delthumb-card>.kb8-sl-stage{height:100%}
 /* </kb-deliv-thumb> */
 .kb8-docxt{font-family:ui-monospace,Menlo,monospace;font-size:11px;font-weight:700;letter-spacing:.06em}
+.kb8-skdesc{margin:0 0 10px;font-size:13.5px;line-height:1.55;color:var(--dsw-alias-label-primary)}
+.kb8-skwhen{margin:0 0 12px;font-size:12.5px;line-height:1.5;color:var(--dsw-alias-label-secondary)}
+.kb8-skwhen b{color:var(--dsw-alias-label-primary);font-weight:600}
+.kb8-skpre{margin:12px 0 0;padding:12px 14px;max-height:260px;overflow:auto;border-radius:10px;background:var(--dsw-alias-bg-layer-2);border:1px solid var(--dsw-alias-border-l1);font:12px/1.55 ui-monospace,Menlo,monospace;white-space:pre-wrap;overflow-wrap:anywhere;color:var(--dsw-alias-label-secondary)}
 .kb8-docfiche{margin-top:10px;padding:12px;border-radius:11px;background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l1);cursor:default}
 .kb8-docfields{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px 18px}
 .kb8-docfield{display:flex;flex-direction:column;gap:2px;min-width:0}

@@ -15,7 +15,7 @@ Socle = `kybernos-plugin`, `kybernos-hub`, `kybernos-theme`, `kybernos-sessions`
 - Sidebar entry **Kybernos** (`sidebar.panellist`) opening a main panel: **Agent Teams** (gallery and Marketplace tabs, create / edit / info pages,
   Insight, Quality Score), **Workspaces**, **Creations**, **Automations** (cron, one-time and webhook tasks, as **Columns**, **Calendar** or **List**) and **Resources**
   (Connectors tab only when `@local/kybernos-composio` is booted, with each app's real logo on its row through that bundle's `window.__KB_APP_LOGOS__` seam and the two first letters when it is absent, Skills tab, Documents tab off via `KB_SHOW_DOCS`). "Kybernos
-  Hosted" is off via `KB_SHOW_HOSTED`. The Skills tab mounts the slot `main.kybernos-skills`, with a core page as fallback.
+  Hosted" is off via `KB_SHOW_HOSTED`. The Skills tab mounts the slot `main.kybernos-skills`, with a core page as fallback. On the project page the Skills sheet (i) shows what the Skills page knows of a skill (description, when to use it, origin, folder, date, instructions on demand), and the Connectors tab lists first the connectors the project's agent teams declare (« Used by this project », with who uses them, green « In use » pill), then the rest of the account; removing an account is armed in words (« Disconnect everywhere? ») because it is global.
 - In the chat: a **Journal** tab (`conversation.view`, runs derived from session events), team-call cards
   (a board task that belongs to no team of ours, with no `[team]` tag and no call the host knows, is one line, its state and its subject, not a card),
   composer extras (token usage, starters, widget chip, voice dictation, artifact selector), read-aloud
