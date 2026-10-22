@@ -594,7 +594,13 @@ window.__ModuleLoader__.load({
             const timer = setInterval(() => { if (document.visibilityState === 'visible') void load() }, 1500)
             return () => { live.current = false; clearInterval(timer) }
           }, [load])
-          const act = React.useCallback(async (name, body) => { const j = await api(name, body === undefined ? {} : body); await load(); return j }, [load])
+          // After a gesture the page reads the status again, and tells the rest of the page (Kaby's strip shows the phone link's state too).
+          const act = React.useCallback(async (name, body) => {
+            const j = await api(name, body === undefined ? {} : body)
+            await load()
+            try { window.dispatchEvent(new Event('kybernos-mobile:changed')) } catch (e) { /* no window events */ }
+            return j
+          }, [load])
           return { s, err, act, reload: load }
         }
         // A clock for a code that runs out: it ticks only while `on` (a pairing is in progress), so an idle screen is not redrawn every second.
@@ -652,7 +658,7 @@ window.__ModuleLoader__.load({
           expired: () => ['err', kt('Code expiré', 'Code expired')],
           connected: (s) => ['ok', s.devices.filter((d) => d.online === true).length > 1 ? kt('Téléphones connectés', 'Phones connected') : kt('Téléphone connecté', 'Phone connected')],
           offline: () => ['', kt('Aucun téléphone connecté', 'No phone connected')],
-          none: () => ['', kt('Aucun téléphone relié', 'No phone linked')],
+          none: () => ['', kt('Prêt à relier un téléphone', 'Ready to pair')],
         }
 
         const Qr = (props) => {
@@ -759,7 +765,11 @@ window.__ModuleLoader__.load({
           const polled = props.r.err !== null && props.r.err !== undefined ? h('div', { className: 'kbmr-error', role: 'alert', 'data-kb': 'mobile-poll-error' }, errorText(props.r.err)) : null
           if (s === null) return polled !== null ? polled : h('div', { className: 'kbmr-sub' }, kt('Chargement…', 'Loading…'))
           if (s.available === false) return h('div', { className: 'kbmr-sub' }, kt('Cette version de DSH ne permet pas la connexion mobile.', 'This DSH version cannot do the phone link.'))
-          if (s.configured === false) return h('div', { className: 'kbmr-sub', 'data-kb': 'mobile-not-offered' }, kt('Ce serveur Kybernos ne propose pas encore le mobile.', 'This Kybernos server does not offer the phone link yet.'))
+          if (s.configured === false) {
+            return h('div', { className: 'kbmr-body', 'data-kb': 'mobile-not-offered' },
+              h('div', { className: 'kbmr-sub' }, kt('Ce serveur Kybernos ne propose pas encore le mobile.', 'This Kybernos server does not offer the phone link yet.')),
+              h('div', { className: 'kbmr-sub' }, kt('Il s’activera ici tout seul dès que ce sera le cas.', 'It will switch on here by itself as soon as it does.')))
+          }
           if (s.connected === false) return h('div', { className: 'kbmr-sub', 'data-kb': 'mobile-signin' }, kt('Connecte-toi à ton compte Kybernos pour utiliser le mobile.', 'Sign in to your Kybernos account to use the phone link.'))
           const devices = Array.isArray(s.devices) ? s.devices : []
           if (s.entitled === false) return h('div', null, h(Paywall, { web: props.web }), devices.length > 0 ? h(Devices, { devices, onRevoke: (id) => run('devices/revoke', { id }) }) : null)
@@ -773,11 +783,13 @@ window.__ModuleLoader__.load({
               : null,
             h('div', { className: 'kbpc-state', 'data-kb': 'mobile-state', 'data-face': face },
               h('div', { className: 'kbmr-row kbmr-start' }, h(Chip, { kind: chip[0], face, kb: 'mobile-chip' }, chip[1])),
+              face === 'none' && s.pairing == null ? h('div', { className: 'kbmr-sub', 'data-kb': 'mobile-none-note' }, kt('Aucun téléphone n’est relié : rien ne peut atteindre cet ordinateur.', 'No phone is linked yet, so nothing can reach this computer.')) : null,
               s.pairing != null
                 ? h(Pairing, { pairing: s.pairing, busy, onApprove: () => run('pair/approve'), onDeny: () => run('pair/deny'), onNew: () => run('pair'), onStop: () => run('pair/cancel') })
                 : h('div', { className: 'kbmr-row kbmr-start' },
                   h('button', { type: 'button', className: 'kbmr-btn' + (devices.length === 0 ? ' kbmr-primary' : ''), 'data-kb': 'mobile-pair', disabled: busy, onClick: () => { void run('pair') } }, kt('Ajouter un téléphone', 'Add a phone')))),
-            h('div', { className: 'kbmr-section' },
+            // With no phone linked the state above already says so: no empty « Linked phones (0) » section under it.
+            devices.length === 0 && !(s.refused > 0) ? null : h('div', { className: 'kbmr-section' },
               h('div', { className: 'kbmr-sech' },
                 h('span', null, kt('Téléphones reliés', 'Linked phones') + ' (' + devices.length + ')'),
                 s.relay === 'up' ? h('span', { className: 'kbmr-sub kbmr-inline' }, h('span', { className: 'kbmr-dot on', 'aria-hidden': 'true' }), kt('Relais Kybernos joint', 'Kybernos relay reached')) : null),
@@ -802,25 +814,60 @@ window.__ModuleLoader__.load({
           }
           : null
 
-        /** Left: this computer's phone link. */
+        /** The one switch of the phone link. A button with a role, a name and a state: it is what a screen reader and the keyboard use. */
+        const Switch = (props) => h('button', {
+          type: 'button', role: 'switch', className: 'kbpc-sw', 'data-kb': props.kb, 'aria-checked': props.on ? 'true' : 'false', 'aria-label': props.label, title: props.title,
+          disabled: props.disabled === true, onClick: props.onClick,
+        })
+        /** Left: this computer's phone link, WALLED OFF from Kaby (2026-10-22): it is the only thing on this screen that gives control of the computer. A switch (on by default: ready to
+         *  pair, nothing reachable until a phone is linked), the state, and in three lines what it does, what it needs and what to be careful about. */
         const RemoteCard = (props) => {
           const s = props.r.s
           const computer = s !== null && typeof s.computer === 'string' && s.computer !== '' ? s.computer : ''
-          return h('section', { className: 'kbpc-card', 'data-kb': 'phone-remote' },
-            h('h2', { className: 'kbpc-h' }, kt('Ouvrir mon ordinateur sur mon téléphone', 'Open my computer on my phone')),
-            h('div', { className: 'kbpc-rights', 'data-kb': 'phone-remote-rights' },
-              h('svg', { width: 16, height: 16, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true' },
-                h('rect', { x: 4, y: 11, width: 16, height: 10, rx: 2 }), h('path', { d: 'M8 11V7a4 4 0 0 1 8 0v4' })),
-              h('span', null, h('b', null, kt('Contrôle complet', 'Full control')), ' ',
-                kt('de cet ordinateur' + (computer !== '' ? ' (' + computer + ')' : '') + '. À utiliser seulement sur un téléphone à toi.', 'of this computer' + (computer !== '' ? ' (' + computer + ')' : '') + '. Use it only on a phone that is yours.'))),
-            h(Body, { r: props.r, web: props.web, onSwitchServer: props.onSwitchServer }))
+          const usable = s !== null && s.available !== false && s.configured !== false
+          const enabled = s === null || s.enabled !== false
+          const [error, setError] = React.useState(null)
+          const [busy, setBusy] = React.useState(false)
+          const turn = async (on) => {
+            setBusy(true)
+            const j = await props.r.act('enable', { on })
+            setBusy(false)
+            setError(j !== null && j !== undefined && j.ok === false ? errorText(j.error, j.server) : null)
+          }
+          const linked = s !== null && Array.isArray(s.devices) ? s.devices : []
+          const body = enabled
+            ? h(Body, { r: props.r, web: props.web, onSwitchServer: props.onSwitchServer })
+            : h('div', { className: 'kbmr-body', 'data-kb': 'phone-remote-off' },
+              h('div', { className: 'kbpc-state' },
+                h('div', { className: 'kbmr-row kbmr-start' }, h(Chip, { kind: '', kb: 'mobile-chip', face: 'off' }, kt('Désactivé : aucun téléphone ne peut se connecter à cet ordinateur.', 'Off. No phone can connect to this computer.'))),
+                h('div', { className: 'kbmr-row kbmr-start' }, h('button', { type: 'button', className: 'kbmr-btn kbmr-primary', 'data-kb': 'phone-remote-turn-on', disabled: busy || !usable, onClick: () => { void turn(true) } }, kt('Activer', 'Turn on')))),
+              linked.length > 0
+                ? h('div', { className: 'kbmr-section' },
+                  h('div', { className: 'kbmr-sech' }, h('span', null, kt('Téléphones reliés', 'Linked phones') + ' (' + linked.length + ')')),
+                  h(Devices, { devices: linked, onRevoke: (id) => { void props.r.act('devices/revoke', { id }) } }))
+                : null)
+          return h('section', { className: 'kbpc-card', 'data-kb': 'phone-remote', 'data-enabled': enabled ? 'true' : 'false' },
+            h('h2', { className: 'kbpc-h' },
+              h('span', { className: 'kbpc-hico', 'aria-hidden': 'true' }, h(PhoneIcon)),
+              h('span', null, kt('Contrôle à distance', 'Remote control')),
+              h('span', { className: 'kbpc-tag warn', 'data-kb': 'phone-remote-tag' }, kt('Contrôle complet', 'Full control'))),
+            h('div', { className: 'kbpc-swrow' },
+              h('span', { className: 'kbmr-sub', 'data-kb': 'phone-remote-lead' }, kt('Ouvrir cet ordinateur sur ton téléphone.', 'Open this computer on your phone.')),
+              h(Switch, { on: enabled && usable, disabled: busy || !usable, kb: 'phone-remote-switch', label: kt('Contrôle à distance', 'Remote control'), title: usable ? undefined : kt('Pas encore proposé par ce serveur', 'Not offered by this server yet'), onClick: () => { void turn(!enabled) } })),
+            error !== null ? h('div', { className: 'kbmr-error', role: 'alert', 'data-kb': 'phone-remote-error' }, error) : null,
+            body,
+            h('div', { className: 'kbpc-does', 'data-kb': 'phone-remote-does' },
+              h('b', null, kt('Ce que ça fait', 'It does')), h('span', null, kt('Montre le Kybernos de cet ordinateur sur ton téléphone, par un relais qui ne lit rien (chiffré de bout en bout).', 'Shows this computer’s Kybernos on your phone, through a relay that reads nothing (end-to-end encrypted).')),
+              h('b', null, kt('Ce qu’il faut', 'It needs')), h('span', null, kt('Cet ordinateur allumé et connecté.', 'This computer switched on and online.')),
+              h('b', { 'data-kb': 'phone-remote-rights' }, kt('Attention', 'Be careful')), h('span', null, h('b', null, kt('Contrôle complet', 'Full control')), ' ',
+                kt('de cet ordinateur' + (computer !== '' ? ' (' + computer + ')' : '') + '. À utiliser seulement sur un téléphone à toi.', 'of this computer' + (computer !== '' ? ' (' + computer + ')' : '') + '. Use it only on a phone that is yours.'))))
         }
         /** Right: the messaging apps Kaby answers from (kybernos-kyber's column), or the line that says why it is not there. */
         const ChannelsCard = () => {
           const k = kyberSeam()
           if (k === null) {
             return h('section', { className: 'kbpc-card', 'data-kb': 'phone-channels-off' },
-              h('h2', { className: 'kbpc-h' }, kt('Parler à ' + assistantName() + ' sur une messagerie', 'Talk to ' + assistantName() + ' on a messaging app')),
+              h('h2', { className: 'kbpc-h' }, h('span', null, assistantName())),
               h('p', { className: 'kbmr-sub' }, kt('Les messageries ne sont pas disponibles : le module ' + assistantName() + ' n’est pas actif.', 'Messaging apps are not available: the ' + assistantName() + ' module is not active.')))
           }
           const column = h(k.ChannelsColumn, null)
@@ -838,7 +885,7 @@ window.__ModuleLoader__.load({
         const head = (o) => h('div', { className: 'kbpc-head' },
           h('span', { className: 'kbpc-ic' }, h(PhoneIcon)),
           h('h1', { className: 'kbpc-title', id: o.titleId }, TITLE()),
-          h('p', { className: 'kbmr-sub kbpc-lead' }, kt('Joins ' + assistantName() + ' depuis ton téléphone, ou ouvre cet ordinateur à distance.', 'Reach ' + assistantName() + ' from your phone, or open this computer remotely.')),
+          h('p', { className: 'kbmr-sub kbpc-lead' }, kt('Ouvre cet ordinateur depuis ton téléphone, et joins ' + assistantName() + ' depuis tes messageries.', 'Open this computer from your phone, and reach ' + assistantName() + ' from your messaging apps.')),
           o.chip ? h('span', { className: 'kbmr-chip kbpc-chip2' }, o.chip) : null,
           h('span', { className: 'kbpc-help' }, helpButton()),
           typeof o.onClose === 'function' ? h('button', { type: 'button', className: 'kbpc-x', 'data-kb': 'phone-channels-close', 'aria-label': kt('Fermer', 'Close'), onClick: o.onClose }, '×') : null)
@@ -944,12 +991,29 @@ window.__ModuleLoader__.load({
 .kbpc-title{margin:0;font-size:20px;font-weight:650;line-height:1.25;color:var(--dsw-alias-label-primary, rgb(243,243,245))}
 .kbpc-ic{flex:none;width:44px;height:44px;border-radius:12px;display:grid;place-items:center;border:1px solid var(--dsw-alias-border-l2, rgb(46,46,52));background:var(--dsw-alias-bg-layer-1, rgb(27,27,31));color:var(--dsw-alias-label-primary, rgb(243,243,245))}
 .kbpc-head .kbmr-sub{margin-top:2px}
-.kbpc-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:16px}
+.kbpc-cols{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:16px;align-items:start}
+@media (max-width:760px){.kbpc-cols{grid-template-columns:minmax(0,1fr)}}
 .kbpc-card{display:flex;flex-direction:column;gap:14px;min-width:0;padding:16px;border-radius:14px;border:1px solid var(--dsw-alias-border-l1, rgb(46,46,52));background:var(--dsw-alias-bg-layer-2, rgb(27,27,31))}
 .kbpc-h{margin:0;font-size:15px;font-weight:650;line-height:1.3;color:var(--dsw-alias-label-primary, rgb(243,243,245))}
-.kbpc-rights{display:flex;gap:8px;align-items:flex-start;padding:9px 11px;border-radius:10px;background:color-mix(in srgb,var(--dsw-alias-label-primary, rgb(243,243,245)) 5%,transparent);font-size:12.5px;line-height:1.45;color:var(--dsw-alias-label-secondary, rgb(161,161,171))}
-.kbpc-rights svg{flex:none;margin-top:2px}
-.kbpc-rights b{color:var(--dsw-alias-label-primary, rgb(243,243,245));font-weight:600}
+.kbpc-h{display:flex;align-items:center;gap:8px}
+.kbpc-hico{display:inline-flex;color:var(--dsw-alias-label-secondary, rgb(161,161,171))}
+.kbpc-hico svg{width:18px;height:18px}
+.kbpc-tag{margin-inline-start:auto;flex:none;padding:2px 9px;border-radius:999px;font-size:11.5px;font-weight:600;white-space:nowrap}
+.kbpc-tag.warn{background:var(--dsw-alias-state-warn-bg, rgba(245,158,11,.18));color:color-mix(in srgb,var(--dsw-alias-state-warn-label, rgb(168,83,10)) 60%,var(--dsw-alias-label-primary, rgb(243,243,245)))}
+.kbpc-tag.ok{background:var(--dsw-alias-state-success-bg, rgba(34,197,94,.16));color:color-mix(in srgb,var(--dsw-alias-state-success-primary, rgb(21,128,61)) 60%,var(--dsw-alias-label-primary, rgb(243,243,245)))}
+.kbpc-swrow{display:flex;align-items:center;gap:12px}
+.kbpc-swrow .kbmr-sub{flex:1;margin:0}
+.kbpc-sw{position:relative;flex:none;width:36px;height:20px;padding:0;border:0;border-radius:10px;background:var(--dsw-alias-border-l3, rgba(127,127,127,.45));cursor:pointer}
+.kbpc-sw::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:var(--dsw-alias-label-primary-foreground, rgb(255,255,255));box-shadow:0 1px 2px rgba(0,0,0,.3);transition:left .12s ease}
+.kbpc-sw[aria-checked="true"]{background:var(--dsw-alias-state-success-primary, rgb(31,157,85))}
+.kbpc-sw[aria-checked="true"]::after{left:18px}
+.kbpc-sw:disabled{opacity:.45;cursor:default}
+.kbpc-sw:focus-visible{outline:2px solid var(--dsw-alias-brand-primary, rgb(76,110,245));outline-offset:2px}
+@media (prefers-reduced-motion:reduce){.kbpc-sw::after{transition:none}}
+/* « It does / It needs / Be careful »: three short lines under each block, the same on both sides of the screen. */
+.kbpc-does{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 12px;padding:10px 12px;border-radius:10px;background:color-mix(in srgb,var(--dsw-alias-label-primary, rgb(243,243,245)) 5%,transparent);font-size:12.5px;line-height:1.45;color:var(--dsw-alias-label-secondary, rgb(161,161,171))}
+.kbpc-does>b{color:var(--dsw-alias-label-primary, rgb(243,243,245));font-weight:600;white-space:nowrap}
+.kbpc-does span b{color:var(--dsw-alias-label-primary, rgb(243,243,245));font-weight:600}
 .kbpc-state{display:flex;flex-direction:column;gap:12px;padding:12px;border-radius:12px;background:color-mix(in srgb,var(--dsw-alias-label-primary, rgb(243,243,245)) 5%,transparent)}
 .kbpc-chip{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:999px;font-size:12px;white-space:nowrap;border:1px solid var(--dsw-alias-border-l2, rgb(46,46,52));color:var(--dsw-alias-label-secondary, rgb(161,161,171))}
 /* The text of a status chip leans toward the theme's own ink, so it reads on its tinted fill in light and in dark (measured: the bare state colours gave 2.2:1 and 4.05:1). */
