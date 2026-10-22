@@ -546,12 +546,16 @@ export function monterRoutes (webServerSvc, opts = {}) {
     // Whitelist and classifier: the same global keys as settings.json — the
     // dedicated page is their main writer. Validate first, touch the disk after.
     const maj = {}
+    // Every refusal of this route carries a CODE: the host keeps the code and an English sentence, the page words the code in the
+    // person's language (client.js, refusTxt). A refusal without a code reaches the page as English text in a French interface.
     if (corps.autoWhitelist !== undefined) {
-      const valide = Array.isArray(corps.autoWhitelist) && corps.autoWhitelist.length <= 64 &&
-        corps.autoWhitelist.every((x) => typeof x === 'string' && x.length <= 200) &&
-        new Set(corps.autoWhitelist).size === corps.autoWhitelist.length
-      if (valide !== true) {
-        envoyer(res, 400, { ok: false, code: 'liste', erreur: 'autoWhitelist: an array of unique ids was expected' }); return
+      // The shape (an array of strings) and the count (64 at most, no duplicate) are two causes, so two codes.
+      const forme = Array.isArray(corps.autoWhitelist) && corps.autoWhitelist.every((x) => typeof x === 'string' && x.length <= 200)
+      if (forme !== true) {
+        envoyer(res, 400, { ok: false, code: 'liste-type', erreur: 'autoWhitelist: an array of strings (200 characters at most each) was expected' }); return
+      }
+      if (corps.autoWhitelist.length > 64 || new Set(corps.autoWhitelist).size !== corps.autoWhitelist.length) {
+        envoyer(res, 400, { ok: false, code: 'liste', erreur: 'autoWhitelist: at most 64 unique ids were expected' }); return
       }
       // A list of models is a list of `provider/model` the profile knows (A3-24): « model-only », « a b/c d » or « <script>/x »
       // used to be saved and then « really asked » by the health check. The existence is judged only when the host can read the
@@ -572,27 +576,27 @@ export function monterRoutes (webServerSvc, opts = {}) {
     }
     if (corps.autoRouting !== undefined) {
       // Inherited GLOBAL breaker: true forces Auto on every session.
-      if (typeof corps.autoRouting !== 'boolean') { envoyer(res, 400, { ok: false, erreur: 'autoRouting: a boolean was expected' }); return }
+      if (typeof corps.autoRouting !== 'boolean') { envoyer(res, 400, { ok: false, code: 'routage', erreur: 'autoRouting: a boolean was expected' }); return }
       maj.autoRouting = corps.autoRouting
     }
     if (corps.autoFailover !== undefined) {
-      if (typeof corps.autoFailover !== 'boolean') { envoyer(res, 400, { ok: false, erreur: 'autoFailover: a boolean was expected' }); return }
+      if (typeof corps.autoFailover !== 'boolean') { envoyer(res, 400, { ok: false, code: 'failover', erreur: 'autoFailover: a boolean was expected' }); return }
       maj.autoFailover = corps.autoFailover
     }
     if (corps.autoClassifier !== undefined) {
       if (typeof corps.autoClassifier !== 'string' || corps.autoClassifier.length > 200) {
-        envoyer(res, 400, { ok: false, erreur: 'autoClassifier: a string was expected' }); return
+        envoyer(res, 400, { ok: false, code: 'classifieur', erreur: 'autoClassifier: a string (200 characters at most) was expected' }); return
       }
       maj.autoClassifier = corps.autoClassifier
     }
     const lu = readRawSettings(reglagesFichier)
     const bloque = settingsFileBlocked(lu, reglagesFichier)
-    if (bloque !== null) { envoyer(res, 500, { ok: false, erreur: bloque }); return }
+    if (bloque !== null) { envoyer(res, 500, { ok: false, code: 'settings-illisible', erreur: bloque }); return }
     try {
       writeFileAtomically(reglagesFichier, JSON.stringify({ ...lu.raw, ...maj }, null, 2) + '\n')
       envoyer(res, 200, await etatComplet(''))
     } catch (e) {
-      envoyer(res, 500, { ok: false, erreur: String(e && e.message ? e.message : e) })
+      envoyer(res, 500, { ok: false, code: 'ecriture', erreur: String(e && e.message ? e.message : e) })
     }
   } })
 
@@ -622,7 +626,7 @@ export function monterRoutes (webServerSvc, opts = {}) {
     if (req.method !== 'POST') { res.writeHead(405); res.end('POST expected'); return }
     if (!ecritureAutorisee(req, res)) return
     const corps = await lireCorps(req)
-    if (!llmDispo()) { envoyer(res, 503, { ok: false, erreur: 'llm service unavailable: nothing can be probed' }); return }
+    if (!llmDispo()) { envoyer(res, 503, { ok: false, code: 'llm-indisponible', erreur: 'llm service unavailable: nothing can be probed' }); return }
     const reg = await reglagesEffectifs()
     // Only whitelist models are ever probed: these routes need no login (DSH serves plugin routes before its own
     // authentication), so they must not become a way to make the server call arbitrary models.
