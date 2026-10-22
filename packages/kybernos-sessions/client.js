@@ -1387,13 +1387,13 @@ window.__ModuleLoader__.load({
         st === null || echec
           ? h('button', { className: 'kbs-btn', onClick: () => lancer(false) }, label)
           : null,
-        echec ? h('p', { className: 'kbs-erreur' }, st.erreur || 'refused') : null,
+        echec ? h('p', { className: 'kbs-erreur' }, st.erreur || kt('refusé', 'refused')) : null,
         sec
           ? h('div', { className: 'kbs-plan' },
               (st.commandes || []).map((c, i) => h('code', { className: 'kbs-cmd', key: i }, c)),
-              h('button', { className: 'kbs-btn', onClick: () => lancer(true) }, 'Confirm & run'))
+              h('button', { className: 'kbs-btn', onClick: () => lancer(true) }, kt('Confirmer et lancer', 'Confirm & run')))
           : null,
-        fait ? h('p', { className: 'kbs-done' }, 'Done ✓ — ' + (st.message || 'ok')) : null,
+        fait ? h('p', { className: 'kbs-done' }, kt('Terminé ✓ — ', 'Done ✓ — ') + (st.message || 'ok')) : null,
         st === null && hint ? h('p', { className: 'kbs-hint' }, hint) : null)
     }
 
@@ -1427,7 +1427,7 @@ window.__ModuleLoader__.load({
         style: { '--acc': accent }, role: 'dialog', 'aria-label': name },
         h('div', { className: 'kbs-pop-head' },
           h('span', { className: 'kbs-pop-name' }, svg(icon, 15), name),
-          h('button', { className: 'kbs-x', 'aria-label': 'Close', onClick: onClose }, svg('close', 15))),
+          h('button', { className: 'kbs-x', 'aria-label': kt('Fermer', 'Close'), onClick: onClose }, svg('close', 15))),
         h('h3', { className: 'kbs-cartetitre' }, titre),
         texte ? h('p', { className: 'kbs-text' }, texte) : null,
         nav || null,
@@ -1436,7 +1436,7 @@ window.__ModuleLoader__.load({
         details
           ? h('div', { className: 'kbs-pied' },
               h('button', { className: 'kbs-more', 'aria-expanded': String(det), onClick: () => setDet(!det) },
-                'Details', svg('chev', 14)))
+                kt('Détails', 'Details'), svg('chev', 14)))
           : null,
         det && details ? h('div', { className: 'kbs-detail' }, details) : null)
     }
@@ -1458,8 +1458,8 @@ window.__ModuleLoader__.load({
         else repli()
       }
       return h('div', { className: 'kbs-minirow' },
-        h('button', { className: 'kbs-minibtn', onClick: faire }, 'Copy as text'),
-        copie ? h('span', { className: 'kbs-copie' }, 'copied ✓') : null)
+        h('button', { className: 'kbs-minibtn', onClick: faire }, kt('Copier en texte', 'Copy as text')),
+        copie ? h('span', { className: 'kbs-copie' }, kt('copié ✓', 'copied ✓')) : null)
     }
 
     // ── local pill → state of THIS session (the other chats of the folder
@@ -2113,22 +2113,23 @@ window.__ModuleLoader__.load({
       // do not read the memory files, we read the gestures of the journal.
       const entKyber = kyber === null ? [] : memoire.entrees.filter((x) => x.kyber === kyber)
       const memFaites = entKyber.filter((x) => x.ok === true)
-      const libelleMemo = (x) => x.type === 'record' ? 'run recorded' : (x.type === 'lesson' ? 'lesson written' : 'lesson reused')
+      const libelleMemo = (x) => x.type === 'record' ? kt('exécution enregistrée', 'run recorded') : (x.type === 'lesson' ? kt('leçon écrite', 'lesson written') : kt('leçon réutilisée', 'lesson reused'))
+      const texteReutilisee = (x) => kt('leçon n° ' + x.index + ' — son compteur d’utilisations a été augmenté', 'lesson #' + x.index + ' — its uses counter was raised')
       const texteMemo = (x) => x.type === 'record'
         ? [x.role, x.outcome, x.note].filter((z) => z !== '' && z !== null).join(' · ')
-        : (x.type === 'lesson' ? x.text : 'lesson #' + x.index + ' — its uses counter was raised')
+        : (x.type === 'lesson' ? x.text : texteReutilisee(x))
       const ligneMemo = (x, i) => h('div', { className: 'kbs-memo-row', key: i },
         h('div', { className: 'kbs-memo-head' },
           h('span', { className: 'kbs-memo-kind' }, libelleMemo(x)),
           h('span', null, (x.kyber || '?') + (x.ts ? ' · ' + court(x.ts) : '')),
-          x.ok === true ? null : h('span', { className: 'kbs-memo-kind', style: { color: 'var(--dsw-alias-state-error-primary,#ef4444)' } }, 'failed')),
+          x.ok === true ? null : h('span', { className: 'kbs-memo-kind', style: { color: 'var(--dsw-alias-state-error-primary,#ef4444)' } }, kt('échec', 'failed'))),
         h('p', null, texteMemo(x) || '—'))
       // ── lessons: written or reused INSIDE this session ───────────────
       // (the definition followed its consumer: the Notes block reads both.)
       const leconsSession = entKyber.filter((x) => (x.type === 'lesson' || x.type === 'used') && x.ok === true)
       const ligneLecon = (l, i) => h('div', { className: 'kbs-lesson', key: i },
         h('time', null, libelleMemo(l) + (l.ts ? ' · ' + court(l.ts) : '')),
-        h('p', null, l.type === 'lesson' ? l.text : 'lesson #' + l.index + ' — its uses counter was raised'),
+        h('p', null, l.type === 'lesson' ? l.text : texteReutilisee(l)),
         (l.tags && l.tags.length) ? h('div', { className: 'kbs-tags' },
           l.tags.map((t, j) => h('span', { className: 'kbs-tag', key: j }, t))) : null)
 
@@ -2144,58 +2145,75 @@ window.__ModuleLoader__.load({
       const rien = ecritsMem === 0 && nbLecons === 0 && memFaites.length === 0
       const notesAccent = ecritsMem > 0 || memFaites.length > 0 ? ACC.teal : (nbLecons > 0 ? ACC.pink : ACC.idle)
       const memBadge = memInfo !== null ? memInfo.sent : (memFaites.length > 0 ? memFaites.length : null)
-      const memDit = memInfo !== null ? memInfo.sent + ' of ' + memInfo.total + ' memories sent to the model' : 'Account memory unavailable (connect Kybernos Cloud)'
-      const lesDit = nbLecons === 0 ? 'no lesson in this chat' : nbLecons + ' lesson' + pl(nbLecons, '', 's') + ' in this chat'
-      const notesTip = ['Memory', memDit, lesDit, delta > 0 ? delta + ' written by this chat' : 'Nothing written by this chat yet']
+      // The panel speaks the language of the page (kt: French for French, English for every other language); the plural stays in the words.
+      const memDit = memInfo !== null
+        ? kt(memInfo.sent + ' sur ' + memInfo.total + ' ' + (memInfo.total > 1 ? 'souvenirs' : 'souvenir') + ' ' + (memInfo.sent > 1 ? 'envoyés' : 'envoyé') + ' au modèle', memInfo.sent + ' of ' + memInfo.total + ' memories sent to the model')
+        : kt('Mémoire du compte indisponible (connecte Kybernos Cloud)', 'Account memory unavailable (connect Kybernos Cloud)')
+      const lesDit = nbLecons === 0
+        ? kt('aucune leçon dans cette conversation', 'no lesson in this chat')
+        : kt(nbLecons + ' ' + (nbLecons === 1 ? 'leçon' : 'leçons') + ' dans cette conversation', nbLecons + ' lesson' + pl(nbLecons, '', 's') + ' in this chat')
+      const libMemoire = kt('Mémoire', 'Memory')
+      const notesTip = [libMemoire, memDit, lesDit, delta > 0 ? kt(delta + ' ' + (delta === 1 ? 'écrit' : 'écrits') + ' par cette conversation', delta + ' written by this chat') : kt('Rien d’écrit par cette conversation pour l’instant', 'Nothing written by this chat yet')]
       const sectionNote = (titre, corps) => h('section', { className: 'kbs-note-sec', key: titre },
         h('h4', { className: 'kbs-note-t' }, titre), corps)
-      const MOTS_CAPTURE = { jamais: 'has not run since DSH started', hors_connexion: 'not connected', desactivee: 'switched off', espace_equipe: 'off in a team space', sans_session: 'no session',
-        tour_trop_court: 'turn too short', llm_indisponible: 'no model available', rien_a_retenir: 'nothing worth keeping', deja_connu: 'already known', erreur: 'failed' }
+      const MOTS_CAPTURE = { jamais: ['n’a pas tourné depuis le démarrage de DSH', 'has not run since DSH started'], hors_connexion: ['non connecté', 'not connected'], desactivee: ['désactivée', 'switched off'],
+        espace_equipe: ['désactivée dans un espace d’équipe', 'off in a team space'], sans_session: ['aucune session', 'no session'], tour_trop_court: ['tour trop court', 'turn too short'],
+        llm_indisponible: ['aucun modèle disponible', 'no model available'], rien_a_retenir: ['rien à retenir', 'nothing worth keeping'], deja_connu: ['déjà connu', 'already known'], erreur: ['a échoué', 'failed'] }
       const ditCapture = (c) => c === null || c === undefined || c.status === undefined ? null
-        : (c.status === 'ecrit' ? 'wrote ' + c.facts + (c.facts === 1 ? ' memory' : ' memories') : (MOTS_CAPTURE[c.status] || String(c.status)))
+        : (c.status === 'ecrit'
+          ? kt('a écrit ' + c.facts + ' ' + (c.facts > 1 ? 'souvenirs' : 'souvenir'), 'wrote ' + c.facts + (c.facts === 1 ? ' memory' : ' memories'))
+          : (MOTS_CAPTURE[c.status] !== undefined ? kt(MOTS_CAPTURE[c.status][0], MOTS_CAPTURE[c.status][1]) : String(c.status)))
       const ligneSouvenir = (x, i) => h('div', { className: 'kbs-memo-row', key: 'sv' + i },
-        h('div', { className: 'kbs-memo-head' }, h('span', { className: 'kbs-memo-kind' }, 'memory saved'), h('span', null, (x.kind || '?') + (x.pinned ? ' · pinned' : '') + (x.ts ? ' · ' + court(x.ts) : ''))),
+        h('div', { className: 'kbs-memo-head' }, h('span', { className: 'kbs-memo-kind' }, kt('souvenir enregistré', 'memory saved')), h('span', null, (x.kind || '?') + (x.pinned ? kt(' · épinglé', ' · pinned') : '') + (x.ts ? ' · ' + court(x.ts) : ''))),
         h('p', null, x.text || '—'))
       const pct = memInfo !== null && memInfo.total > 0 ? Math.max(2, Math.round(memInfo.sent / memInfo.total * 100)) : 0
       const visuelMem = h('div', { className: 'kbs-memwrap' },
         memInfo === null
-          ? h('div', { className: 'kbs-vide' }, 'The account memory is not available here: connect Kybernos Cloud, or switch its plugin on.')
+          ? h('div', { className: 'kbs-vide' }, kt('La mémoire du compte n’est pas disponible ici : connecte Kybernos Cloud, ou active son plugin.', 'The account memory is not available here: connect Kybernos Cloud, or switch its plugin on.'))
           : h('div', null,
-              h('div', { className: 'kbs-meter', role: 'img', 'aria-label': memInfo.sent + ' of ' + memInfo.total }, h('i', { style: { width: pct + '%' } })),
+              h('div', { className: 'kbs-meter', role: 'img', 'aria-label': kt(memInfo.sent + ' sur ' + memInfo.total, memInfo.sent + ' of ' + memInfo.total) }, h('i', { style: { width: pct + '%' } })),
               h('p', { className: 'kbs-note-line' }, memInfo.actif === false
-                ? 'Memory is switched off: nothing is sent to the model.'
-                : memInfo.sent + ' of ' + memInfo.total + ' · ' + memInfo.used + ' / ' + memInfo.cap + ' characters · newest first, pinned ones reserved a share'),
-              memInfo.picked > 0 && memInfo.actif !== false ? h('p', { className: 'kbs-note-line', 'data-kbs': 'picked' }, 'Picked for your latest message: ' + memInfo.picked + (memInfo.picked === 1 ? ' memory' : ' memories') + ' that match it') : null,
-              ditCapture(memInfo.capture) !== null ? h('p', { className: 'kbs-note-line' }, 'Auto-capture: ' + ditCapture(memInfo.capture)) : null),
-        sectionNote('Written by this chat', ecritsMem === 0 && memFaites.length === 0
-          ? h('div', { className: 'kbs-vide' }, 'Nothing yet. Memories are captured at the end of a turn, or saved by the agent.')
+                ? kt('La mémoire est désactivée : rien n’est envoyé au modèle.', 'Memory is switched off: nothing is sent to the model.')
+                : kt(memInfo.sent + ' sur ' + memInfo.total + ' · ' + memInfo.used + ' / ' + memInfo.cap + ' caractères · les plus récents d’abord, une part réservée aux épinglés',
+                  memInfo.sent + ' of ' + memInfo.total + ' · ' + memInfo.used + ' / ' + memInfo.cap + ' characters · newest first, pinned ones reserved a share')),
+              memInfo.picked > 0 && memInfo.actif !== false ? h('p', { className: 'kbs-note-line', 'data-kbs': 'picked' },
+                kt((memInfo.picked > 1 ? 'Retenus' : 'Retenu') + ' pour ton dernier message : ' + memInfo.picked + ' ' + (memInfo.picked > 1 ? 'souvenirs' : 'souvenir') + ' qui y ' + (memInfo.picked > 1 ? 'correspondent' : 'correspond'),
+                  'Picked for your latest message: ' + memInfo.picked + (memInfo.picked === 1 ? ' memory' : ' memories') + ' that match it')) : null,
+              ditCapture(memInfo.capture) !== null ? h('p', { className: 'kbs-note-line' }, kt('Capture automatique : ', 'Auto-capture: ') + ditCapture(memInfo.capture)) : null),
+        sectionNote(kt('Écrit par cette conversation', 'Written by this chat'), ecritsMem === 0 && memFaites.length === 0
+          ? h('div', { className: 'kbs-vide' }, kt('Rien pour l’instant. Les souvenirs sont capturés à la fin d’un tour, ou enregistrés par l’agent.', 'Nothing yet. Memories are captured at the end of a turn, or saved by the agent.'))
           : h('div', { className: 'kbs-memo' }, memoire.souvenirs.slice(-3).map(ligneSouvenir).concat(memFaites.slice(-3).map(ligneMemo)))))
       const visuelLecons = h('div', { className: 'kbs-memwrap' },
-        lesPicked > 0 ? h('p', { className: 'kbs-note-line', 'data-kbs': 'picked-lessons' }, 'Picked for your latest message: ' + lesPicked + (lesPicked === 1 ? ' lesson' : ' lessons') + ' that match it') : null,
-        teamSent !== null ? h('p', { className: 'kbs-note-line', 'data-kbs': 'team-lessons' }, 'From your team: ' + teamSent.count + (teamSent.count === 1 ? ' lesson' : ' lessons') + ' sent' + (teamSent.picked > 0 ? ' (' + teamSent.picked + ' that match your latest message)' : '')) : null,
-        sectionNote('Lessons in this chat', nbLecons === 0
-          ? h('div', { className: 'kbs-vide' }, 'Nothing learned or reused in this chat yet.')
+        lesPicked > 0 ? h('p', { className: 'kbs-note-line', 'data-kbs': 'picked-lessons' }, kt((lesPicked > 1 ? 'Retenues' : 'Retenue') + ' pour ton dernier message : ' + lesPicked + ' ' + (lesPicked === 1 ? 'leçon' : 'leçons') + ' qui y ' + (lesPicked > 1 ? 'correspondent' : 'correspond'),
+          'Picked for your latest message: ' + lesPicked + (lesPicked === 1 ? ' lesson' : ' lessons') + ' that match it')) : null,
+        teamSent !== null ? h('p', { className: 'kbs-note-line', 'data-kbs': 'team-lessons' },
+          kt('De ton équipe : ' + teamSent.count + ' ' + (teamSent.count === 1 ? 'leçon envoyée' : 'leçons envoyées') + (teamSent.picked > 0 ? ' (' + teamSent.picked + ' qui ' + (teamSent.picked > 1 ? 'correspondent' : 'correspond') + ' à ton dernier message)' : ''),
+            'From your team: ' + teamSent.count + (teamSent.count === 1 ? ' lesson' : ' lessons') + ' sent' + (teamSent.picked > 0 ? ' (' + teamSent.picked + ' that match your latest message)' : ''))) : null,
+        sectionNote(kt('Leçons de cette conversation', 'Lessons in this chat'), nbLecons === 0
+          ? h('div', { className: 'kbs-vide' }, kt('Rien d’appris ni de réutilisé dans cette conversation pour l’instant.', 'Nothing learned or reused in this chat yet.'))
           : h('div', { className: 'kbs-lessons' }, leconsSession.slice(0, 3).map(ligneLecon))))
-      const notesPop = h(Pop, { idCarte: 'notes', name: 'Memory & Lessons', icon: 'brain', accent: notesAccent,
+      const titreMemLecons = kt('Mémoire & Leçons', 'Memory & Lessons') // the name of the Settings page (kybernos-memory words it the same way)
+      const notesPop = h(Pop, { idCarte: 'notes', name: titreMemLecons, icon: 'brain', accent: notesAccent,
         titre: onglet === 'mem' ? memDit : lesDit.charAt(0).toUpperCase() + lesDit.slice(1),
         texte: onglet === 'mem'
-          ? 'What the account remembers about you, and what reaches the model on each turn. Only what THIS chat wrote is listed — other chats never appear here.'
-          : 'Lessons are written by an agent when an expectation was contradicted. Only this chat’s are listed.',
-        nav: h('div', { className: 'kbs-kybers', role: 'tablist', 'aria-label': 'Memory and lessons' },
-          [['mem', 'Memory'], ['les', 'Lessons']].map((t) => h('button', { key: t[0], role: 'tab', 'aria-selected': String(onglet === t[0]), 'data-kbs-tab': t[0],
+          ? kt('Ce que le compte retient sur toi, et ce qui arrive au modèle à chaque tour. Seul ce qu’a écrit CETTE conversation est listé — les autres conversations n’apparaissent jamais ici.',
+            'What the account remembers about you, and what reaches the model on each turn. Only what THIS chat wrote is listed — other chats never appear here.')
+          : kt('Les leçons sont écrites par un agent quand une attente a été contredite. Seules celles de cette conversation sont listées.', 'Lessons are written by an agent when an expectation was contradicted. Only this chat’s are listed.'),
+        nav: h('div', { className: 'kbs-kybers', role: 'tablist', 'aria-label': kt('Mémoire et leçons', 'Memory and lessons') },
+          [['mem', libMemoire], ['les', kt('Leçons', 'Lessons')]].map((t) => h('button', { key: t[0], role: 'tab', 'aria-selected': String(onglet === t[0]), 'data-kbs-tab': t[0],
             className: 'kbs-kyb' + (onglet === t[0] ? ' on' : ''), onClick: () => setOnglet(t[0]) }, t[1]))),
         visuel: h('div', null, onglet === 'mem' ? visuelMem : visuelLecons, onglet === 'les' ? switcher : null),
         action: h('div', { className: 'kbs-minirow' },
-          h('button', { className: 'kbs-minibtn', 'data-kbs-act': 'open-memory', onClick: () => { fermer('notes'); ouvrirReglagesSection('Memory & Lessons') } }, 'Open Memory & Lessons ›')),
+          h('button', { className: 'kbs-minibtn', 'data-kbs-act': 'open-memory', onClick: () => { fermer('notes'); ouvrirReglagesSection(titreMemLecons) } }, kt('Ouvrir Mémoire & Leçons ›', 'Open Memory & Lessons ›'))),
         onClose: () => fermer('notes'),
         details: h('div', null,
-          sectionNote('Agent Team ledger', h('div', { className: 'kbs-memo' }, memFaites.map(ligneMemo))),
+          sectionNote(kt('Registre de l’Agent Team', 'Agent Team ledger'), h('div', { className: 'kbs-memo' }, memFaites.map(ligneMemo))),
           h('dl', { style: { margin: '10px 0 0', display: 'flex', flexDirection: 'column', gap: 9 } },
-            Ligne('Runs recorded', String(memoire.records.length), 'rb'),
-            Ligne('Lessons written', String(memoire.lessons.length), 'lb'),
-            Ligne('Lessons reused', String(memoire.used.length), 'ub'),
-            Ligne('Memories saved', String(memoire.souvenirs.length), 'mb'),
-            Ligne('Storage', h('code', { className: 'kbs-code-in' }, '~/.dsh/kybers/' + (kyber || '<kyber>') + '/memory'), 'st')),
+            Ligne(kt('Exécutions enregistrées', 'Runs recorded'), String(memoire.records.length), 'rb'),
+            Ligne(kt('Leçons écrites', 'Lessons written'), String(memoire.lessons.length), 'lb'),
+            Ligne(kt('Leçons réutilisées', 'Lessons reused'), String(memoire.used.length), 'ub'),
+            Ligne(kt('Souvenirs enregistrés', 'Memories saved'), String(memoire.souvenirs.length), 'mb'),
+            Ligne(kt('Stockage', 'Storage'), h('code', { className: 'kbs-code-in' }, '~/.dsh/kybers/' + (kyber || '<kyber>') + '/memory'), 'st')),
           h(Copier, { key: 'cpm', texte: 'memory written in this chat\n' + memoire.souvenirs.map((x) => '- memory saved [' + (x.kind || '?') + '] ' + x.text).concat(memFaites.map((x) => '- ' + libelleMemo(x) + ' [' + (x.kyber || '?') + '] ' + (texteMemo(x) || ''))).join('\n') }),
           h(Copier, { key: 'cpl', texte: (kyber || 'agent team') + ' — lessons from this chat\n' + leconsSession.map((l) => '- ' + libelleMemo(l) + ' ' + (l.type === 'lesson' ? l.text : 'lesson #' + l.index)).join('\n') })) })
 
@@ -2272,7 +2290,7 @@ window.__ModuleLoader__.load({
         changesOn ? null : pill('recap', 'merge', rec.accent, rec.label, null, rec.tip, rec.act, calme(rec, null)),
         !changesOn && v ? pill('sync', 'cloud', v.accent, v.label, vBadge, vTip, false, calme(v, vBadge)) : null,
         !changesOn && r ? pill('pr', 'pr', r.accent, r.label, null, rTip, false, calme(r, null)) : null,
-        pill('notes', 'brain', notesAccent, 'Memory', memBadge, notesTip, false, rien,
+        pill('notes', 'brain', notesAccent, libMemoire, memBadge, notesTip, false, rien,
           { libelleVisible: true, extra: h(React.Fragment, null, h('span', { className: 'kbs-pillsep' }), svg('bulb', 15), h('span', { className: 'kbs-n' }, String(nbLecons)),
             delta > 0 ? h('span', { className: 'kbs-d' }, '+' + delta) : null) }))
     }
@@ -2986,7 +3004,7 @@ window.__ModuleLoader__.load({
       // the entry stays « loading » (the same contract as kybernos/kybernos-theme).
       inject: ['slots'],
       // Pure pieces, exposed for test-journal.mjs, test-sante.mjs and test-language.mjs.
-      __test: { memoireDuJournal, santeVue, santeCause, suivreSante, faitsChangements, genreDeCode, descripteur, etudeVue, kt, direErreur, ERR_REGLAGES, motAffiche, CATEGORIE_PAR_SLUG, MOTS_FR, ReglagesKybernos, rgRenommerGeneral },
+      __test: { memoireDuJournal, santeVue, santeCause, suivreSante, faitsChangements, genreDeCode, descripteur, etudeVue, kt, direErreur, ERR_REGLAGES, motAffiche, CATEGORIE_PAR_SLUG, MOTS_FR, ReglagesKybernos, rgRenommerGeneral, Pills, PlanAction, Pop, Copier },
       apply
     }
   }
