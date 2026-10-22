@@ -79,11 +79,64 @@ console.log('the index')
     files.set('/j/broken', { id: 'broken', size: 4, mtimeMs: 1, data: Buffer.from('boom') })
     const again = createIndex(io())
     await again.start()
-    ok('a journal that cannot be read is counted, never fatal', again.status().state === 'ready' && again.status().chats >= 2, again.status())
+    ok('a journal that cannot be read is counted and never fatal; the index says it is partial, it does not claim to be ready (L4-04)', again.status().state === 'partial' && again.status().errors === 1 && again.status().chats === 2, again.status())
     await idx.rebuild()
     ok('rebuild reads everything again', reads >= 3, { reads })
   }
   ok('the answer of a query says how many chats are indexed and how long it took', typeof idx.query({ q: 'x' }).indexed === 'number' && typeof idx.query({ q: 'x' }).tookMs === 'number')
+}
+
+console.log('an index that missed some chats says so (L4-04)')
+{
+  // Before: an unreadable journal bumped `errors` and nothing else; a truncated one was indexed as an empty chat without even that, and a run
+  // that fell over was declared `ready`. Now the state is `partial`, `errors` counts, `failed` names the journals (id + code).
+  const files = new Map()
+  let clock = 1
+  const put = (id, title, text, mtimeMs = 1) => {
+    const data = HAS_ZSTD ? zlib.zstdCompressSync(Buffer.from(journal(id, title, [['u', text]]))) : Buffer.from(journal(id, title, [['u', text]]))
+    files.set(id, { id, size: data.length, mtimeMs, data })
+  }
+  const base = (over = {}) => ({
+    listSessions: () => [...files.values()].map((f) => ({ id: f.id, file: f.id, size: f.size, mtimeMs: f.mtimeMs })),
+    readFile: (file) => { const f = files.get(file); if (f.throws !== undefined) { const e = new Error('denied'); e.code = f.throws; throw e } return f.data },
+    readCache: () => null, writeCache: () => {}, sources: () => [], now: () => (clock += 1), ...over
+  })
+  if (HAS_ZSTD) {
+    put('good', 'Bon', 'alpha lisible')
+    put('cut', 'Coupé', 'beta tronqué')
+    files.get('cut').data = files.get('cut').data.subarray(0, Math.floor(files.get('cut').data.length / 2))
+    files.get('cut').size = files.get('cut').data.length
+    const idx = createIndex(base())
+    await idx.start()
+    let st = idx.status()
+    ok('a truncated zstd journal is counted: errors 1, the state is partial, not ready', st.errors === 1 && st.state === 'partial', st)
+    ok('...and named with a code, for the diagnostic', JSON.stringify(st.failed) === '[{"id":"cut","code":"no-frame"}]', st.failed)
+    ok('...while the readable chat is still searchable and the broken one is not an empty phantom', st.chats === 1 && idx.query({ q: 'alpha', scopes: ['chat'] }).results.length === 1)
+    ok('the query answer carries the partial state too', idx.query({ q: 'alpha', scopes: ['chat'] }).state === 'partial')
+    put('cut', 'Coupé', 'beta tronqué', 9)
+    await idx.start()
+    st = idx.status()
+    ok('once the journal is readable a new start is ready again, with nothing failed', st.state === 'ready' && st.errors === 0 && st.failed.length === 0 && st.chats === 2, st)
+    files.set('empty', { id: 'empty', size: 0, mtimeMs: 1, data: Buffer.alloc(0) })
+    await idx.start()
+    ok('an empty journal (just created) is not an error', idx.status().errors === 0 && idx.status().state === 'ready', idx.status())
+    files.get('good').throws = 'EACCES'
+    files.get('good').mtimeMs = 77
+    files.get('good').size = 77
+    await idx.start()
+    st = idx.status()
+    ok('a journal that cannot be read from disk is named with the system code', st.state === 'partial' && st.errors === 1 && st.failed[0].id === 'good' && st.failed[0].code === 'EACCES', st)
+    for (let i = 0; i < 30; i += 1) files.set('bad' + i, { id: 'bad' + i, size: 5, mtimeMs: 1, data: Buffer.from('boom!') })
+    await idx.start()
+    st = idx.status()
+    ok('errors counts every failure, the detail is capped at 20', st.errors === 31 && st.failed.length === 20, { errors: st.errors, failed: st.failed.length })
+  }
+  // a run that falls over is not declared ready
+  put('one', 'Un', 'gamma')
+  const boom = createIndex(base({ tick: () => Promise.reject(new Error('tick failed')), listSessions: () => Array.from({ length: 9 }, (_, i) => ({ id: 'one', file: 'one', size: files.get('one').size, mtimeMs: i })) }))
+  await boom.start()
+  const bs = boom.status()
+  ok('a run that fell over is partial with an error, never ready', bs.state === 'partial' && bs.errors >= 1 && bs.failed.some((x) => x.code === 'run-failed'), bs)
 }
 
 console.log('the sources, on a real directory')
