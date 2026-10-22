@@ -3052,7 +3052,7 @@ const KB_SS_INDEX = [
 
   ['voice', '', 'Composer microphone', 'This plugin’s dictation mic takes the place of the native one, just before Send.', 'kybernos native dsh', 'micro dictee saisie vocale microfono'],
   ['voice', '', 'Read replies aloud as they arrive', '', '', 'lecture voix haute synthese vocale tts lire'],
-  ['voice', '', 'Voice engines', '', 'apple say piper supertonic edge tts', 'moteur voix synthese local hors ligne vitesse debit', '', 'Apple « say »'],
+  ['voice', '', 'Voice engines', '', 'apple say piper supertonic edge tts', 'moteur voix synthese local hors ligne vitesse debit', '', 'Apple say'],
   ['calls', '', 'Calls', 'Talk live to your assistant, or to a team member, out loud, from any session.', 'check everything', 'appel telephone vocal visio conversation orale llamada'],
 
   ['servers', '', 'Add a server', '', '', 'serveur servidor equipe team entreprise self hosted reseau adresse address ajouter connecter'],
@@ -3142,7 +3142,7 @@ const KB_SS_FR = {
   'web search|Sites': ['Sites', 'Un par ligne ou séparés par des virgules. « exemple.com » ne garde que ce site.'],
   'voice|Composer microphone': ['Micro du composer', 'La dictée de ce plugin prend la place du micro natif, juste avant Envoyer.'],
   'voice|Read replies aloud as they arrive': ['Lire les réponses à voix haute à leur arrivée', ''],
-  'voice|Voice engines': ['Moteurs de voix', '', 'Apple « say »'],
+  'voice|Voice engines': ['Moteurs de voix', '', 'Apple say'],
   'calls|Calls': ['Appels', 'Parler en direct à ton assistant ou à un membre de ton équipe, à voix haute, depuis n’importe quelle session.'],
   'servers|Add a server': ['Ajouter un serveur', ''],
   'cloud computers|API key': ['Clé API', 'Stockée sur cette machine, jamais affichée de nouveau. Le code et les fichiers que l’agent envoie à un ordinateur cloud partent chez E2B.'],
