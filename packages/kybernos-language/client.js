@@ -836,7 +836,7 @@ html[dir="rtl"] .kbln-page{direction:rtl}
           if (json !== null && typeof json === 'object' && json.ok === true && json.translations !== null && typeof json.translations === 'object') {
             return { ok: true, translations: json.translations, provider: json.provider, model: json.model }
           }
-          return { ok: false, error: json !== null && typeof json === 'object' && typeof json.error === 'string' && json.error !== '' ? json.error : 'unexpected answer from the host route' }
+          return { ok: false, error: json !== null && typeof json === 'object' && typeof json.error === 'string' && json.error !== '' ? json.error : 'unexpected answer from the server' }
         } catch (e) {
           if (signal !== null && signal !== undefined && signal.aborted) return { ok: false, aborted: true, error: 'cancelled' }
           return { ok: false, error: 'UNREACHABLE: host route unreachable — ' + String((e !== null && e !== undefined && e.message) || e) }

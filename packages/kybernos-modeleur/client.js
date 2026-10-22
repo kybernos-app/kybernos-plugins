@@ -1234,7 +1234,7 @@ function t(t,e,s){if(t&&t.length){const[n,o]=e,a=Math.PI/180*s,h=Math.cos(a),r=M
               className: 'kbmo-tool' + (PINCEAU.on ? ' on' : ''),
               title: kt('Dessiner par-dessus — le chat relit tes traits et réajuste', 'Draw on top — the chat reads your strokes and adjusts the model'),
               onClick: () => { PINCEAU.on = !PINCEAU.on; PINCEAU.trait = null; maj() },
-            }, '✏'),
+            }, '✎'),
             PINCEAU.on
               ? [
                   ...OUTILS_PEN.map((o) => h('button', {
