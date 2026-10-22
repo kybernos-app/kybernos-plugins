@@ -307,7 +307,17 @@ window.__ModuleLoader__.load({
       if (code === 'liste-forme') return kt('« ' + x + ' » n’est pas de la forme fournisseur/modèle (par exemple openrouter/anthropic/claude-sonnet-4.5).', '“' + x + '” is not a provider/model name (for example openrouter/anthropic/claude-sonnet-4.5).')
       if (code === 'liste-inconnu') return kt('« ' + x + ' » n’est pas un modèle que tu as configuré. Choisis-en un dans la liste, ou ajoute-le d’abord dans Fournisseur IA & modèles.', '“' + x + '” is not a model you have configured. Pick one from the list, or add it first in AI Provider & Models.')
       if (code === 'liste') return kt('La liste est trop longue (64 au plus) ou contient un doublon.', 'The list is too long (64 at most) or has a duplicate.')
-      return j !== null && typeof j === 'object' && j.erreur ? String(j.erreur) : 'Rejected.'
+      if (code === 'liste-type') return kt('La liste doit être une suite de noms de modèles (200 caractères au plus chacun).', 'The list must be a series of model names (200 characters at most each).')
+      // The other refusals of the settings route: the host sends a code and an English sentence, the page words the code (L1-06).
+      if (code === 'scope') return kt('Ce choix n’existe pas : prends « Tous les modèles », « Modèles gratuits » ou « Ma liste ».', 'That choice does not exist: pick “All models”, “Free models” or “My list”.')
+      if (code === 'routage') return kt('Le routage automatique attend « activé » ou « désactivé ».', 'Automatic routing expects on or off.')
+      if (code === 'failover') return kt('Le repli du chat attend « activé » ou « désactivé ».', 'Chat fallback expects on or off.')
+      if (code === 'classifieur') return kt('Le classifieur attend un nom de modèle de 200 caractères au plus.', 'The classifier expects a model name of 200 characters at most.')
+      if (code === 'settings-illisible') return kt('Rien n’a été enregistré : settings.json est illisible ou n’est pas un objet JSON valide. Répare-le ou supprime-le (une copie du fichier abîmé est gardée à côté quand c’est possible), puis enregistre à nouveau.', 'Nothing was saved: settings.json cannot be read or is not a valid JSON object. Fix or remove it (a copy of the damaged file is kept next to it when possible), then save again.')
+      if (code === 'ecriture') return kt('Réglage non enregistré : ', 'Setting not saved: ') + (typeof j.erreur === 'string' ? j.erreur : '')
+      if (code === 'llm-indisponible') return kt('Le service de modèles de DSH n’est pas disponible : rien à vérifier pour l’instant.', 'DSH’s model service is not available: nothing can be checked right now.')
+      // A code this page does not know (a newer host) keeps the host's own sentence; no sentence at all is a plain refusal.
+      return j !== null && typeof j === 'object' && j.erreur ? String(j.erreur) : kt('Refusé.', 'Rejected.')
     }
     const KbAutoSettings = () => {
       const etatPair = React.useState(null)
@@ -379,7 +389,7 @@ window.__ModuleLoader__.load({
         fetch('/kybernos-auto/settings', {
           method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patch)
         }).then((r) => r.json()).then((j) => {
-          if (j && j.ok === true) { setEtat(j); setMsg('') } else setMsg(j && j.erreur ? String(j.erreur) : 'Rejected.')
+          if (j && j.ok === true) { setEtat(j); setMsg('') } else setMsg(refusTxt(j))
         }).catch((e) => setMsg(String(e && e.message ? e.message : e)))
       }
       // The typed list: the answer comes back to the field that asked, with the host's reason in the person's language.
@@ -398,7 +408,7 @@ window.__ModuleLoader__.load({
         fetch('/kybernos-auto/probe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })
           // A DSH started before the probe route existed answers 404: say what to do instead of a JSON parse error.
           .then((r) => (r.status === 404 ? Promise.reject(new Error(kt('Le serveur DSH n’a pas encore chargé cette version : redémarre-le.', 'The DSH server has not loaded this version yet: restart it.'))) : r.json()))
-          .then((j) => { setSondage(false); if (j && j.ok === true) setEtat(j); else setMsg(j && j.erreur ? String(j.erreur) : 'Rejected.') })
+          .then((j) => { setSondage(false); if (j && j.ok === true) setEtat(j); else setMsg(refusTxt(j)) })
           .catch((e) => { setSondage(false); setMsg(String(e && e.message ? e.message : e)) })
       }
       const scope = etat.scope === 'free' || etat.scope === 'custom' ? etat.scope : 'all'
