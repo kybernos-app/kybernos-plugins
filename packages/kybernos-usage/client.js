@@ -430,6 +430,15 @@ body:not([data-ds-dark-theme]) .kbus-page{--dsw-alias-label-tertiary:var(--dsw-a
           }
         } catch (e) { /* the store is not ours to break */ }
       }
+      /**
+       * What changes in the store when any session's counters move. It decides the re-render AND the report, so it must carry every counter
+       * `reportOne` compares (L5-06): it left out `cacheWriteTokens`, so an update where only the cache write advanced was neither drawn nor sent.
+       */
+      const storeSignature = (st) => {
+        let sig = ''
+        try { for (const id of Object.keys(st.byId)) { const pv = st.byId[id].projectionValues; if (pv && pv.tokenUsage) { const u = pv.tokenUsage; sig += id.slice(-4) + (u.uncachedInputTokens | 0) + ':' + (u.outputTokens | 0) + ':' + (u.cacheReadTokens | 0) + ':' + (u.cacheWriteTokens | 0) + ';' } } } catch (e) { /* unexpected store */ }
+        return sig
+      }
       const reportOne = (sid, usage, model, title) => {
         const sig = [usage.uncachedInputTokens, usage.outputTokens, usage.cacheReadTokens, usage.cacheWriteTokens, model.provider, model.model].join('|')
         const prev = sent.get(sid)
@@ -457,10 +466,8 @@ body:not([data-ds-dark-theme]) .kbus-page{--dsw-alias-label-tertiary:var(--dsw-a
         // Re-render (and report) when any session of the store gets new counters: the sub-agents live there.
         const storeSig = typeof props.useSessions === 'function'
           ? props.useSessions((st) => {
-            let sig = ''
-            try { for (const id of Object.keys(st.byId)) { const pv = st.byId[id].projectionValues; if (pv && pv.tokenUsage) { const u = pv.tokenUsage; sig += id.slice(-4) + (u.uncachedInputTokens | 0) + ':' + (u.outputTokens | 0) + ':' + (u.cacheReadTokens | 0) + ';' } } } catch (e) { /* unexpected store */ }
             latestStore.current = st
-            return sig
+            return storeSignature(st)
           })
           : ''
         const [open, setOpen] = React.useState(false)
@@ -732,7 +739,7 @@ body:not([data-ds-dark-theme]) .kbus-page{--dsw-alias-label-tertiary:var(--dsw-a
       return {
         name: 'kybernos-usage',
         inject: ['slots'],
-        __test: { S, L, kt, fmtMoney, fmtTok, fmtPct, priceOf, costOf, saved, kindOf, aggregate, sessionCost, windowView, tone, splitKey, FREE_PROVIDERS, CSS, reportOne },
+        __test: { S, L, kt, fmtMoney, fmtTok, fmtPct, priceOf, costOf, saved, kindOf, aggregate, sessionCost, windowView, tone, splitKey, FREE_PROVIDERS, CSS, reportOne, storeSignature },
         apply (ctx) {
           // After the sessions pills (order 5) and the changes chip (order 4). The id must NOT be `kybernos-usage`:
           // the core's usage probe already registers that id in this slot.
