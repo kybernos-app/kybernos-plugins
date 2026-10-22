@@ -10,8 +10,8 @@
 //   1. the host routes answer through the page's own origin: status, a private folder is created on disk, a second
 //      create is refused (409), a bad name is refused (400) and writes nothing;
 //   2. Projects › Create opens the bundle's dialog (not the native chooser), refuses a bad name, cancels without creating
-//      anything, and "No folder" creates a project whose Details tab says "Private folder" and shows the folded preview;
-//   3. the folded Advanced block holds the phone card and two greyed cards that change nothing;
+//      anything, and "No folder" creates a project whose Details tab says "Private folder";
+//   3. the Devices tab (the old folded Advanced block) holds the phone card and two greyed cards that change nothing;
 //   4. the sidebar "add workspace" button opens the same dialog;
 //   5. the dialog fits a narrow window.
 //
@@ -117,16 +117,17 @@ try {
   check('the card says it is a private folder and shows where', /Dossier privé|Private folder/.test(cardText) && cardText.includes('Documents/Kybernos/' + name), cardText.slice(0, 200))
   check('the folder exists on disk', existsSync(join(root, name)))
 
-  console.log('── 3. the folded Advanced preview ──')
-  check('Advanced is folded', (await exists('[data-kb="kybernos-multi-device-today"]')) === false)
-  await click('[data-kb="kybernos-multi-device-adv"]')
+  console.log('── 3. the Devices tab (the old Advanced block) ──')
+  check('Details carries no folded Advanced block and no preview card', (await exists('[data-kb="kybernos-multi-device-adv"]')) === false && (await exists('[data-kb="kybernos-multi-device-today"]')) === false)
+  check('the Devices tab is listed', (await exists('[data-kb="project-tab-devices"]')) === true)
+  await click('[data-kb="project-tab-devices"]')
   await sleep(300)
   check('it holds the phone card and the two greyed cards', (await exists('[data-kb="kybernos-multi-device-today"]')) === true && (await exists('[data-kb="kybernos-multi-device-exec"]')) === true && (await exists('[data-kb="kybernos-multi-device-devices"]')) === true)
   check('the preview cards are disabled', (await val(`document.querySelector('[data-kb="kybernos-multi-device-exec"]').getAttribute('aria-disabled')`)) === 'true' && (await val(`document.querySelector('[data-kb="kybernos-multi-device-devices"]').getAttribute('aria-disabled')`)) === 'true')
   check('nothing in the preview is an enabled control', (await val(`document.querySelectorAll('[data-kb="kybernos-multi-device-exec"] button:not([disabled]), [data-kb="kybernos-multi-device-devices"] button:not([disabled]), [data-kb="kybernos-multi-device-exec"] input, [data-kb="kybernos-multi-device-devices"] input').length`)) === 0)
-  await val(`document.querySelector('[data-kb="kybernos-multi-device-adv"]').scrollIntoView({ block: 'start' })`)
+  await val(`document.querySelector('[data-kb="kybernos-multi-device-today"]').scrollIntoView({ block: 'start' })`)
   await sleep(300)
-  await shot('04-advanced')
+  await shot('04-devices')
 
   console.log('── 4. the sidebar "add workspace" button ──')
   await val(`(() => { try { window.__KB_OPEN__({ view: 'projects' }); return true } catch (e) { return false } })()`)
