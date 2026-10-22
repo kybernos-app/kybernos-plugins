@@ -126,12 +126,17 @@ const win = { __ModuleLoader__: { load: (def) => { definition = def } }, __KB_LA
 let reponse = null
 let appels = 0 // calls to /state (the switch of the automatic check has its own route, counted apart)
 let reglageReponse = { ok: true, autoCheck: true }
+let liberer = null
 const appelsReglage = []
 globalThis.fetch = (url, init) => {
   if (String(url) === '/kybernos-maintenance/settings') {
     const post = init !== undefined && init !== null && init.method === 'POST'
     appelsReglage.push(post ? 'POST ' + init.body : 'GET')
     if (reglageReponse === 'reseau-ko') return Promise.reject(new Error('offline'))
+    // the host refusing an origin answers 403 with an EMPTY body: the answer is there, it is not JSON
+    // an answer the test holds back until it lets it go (what the page shows WHILE it waits)
+    if (reglageReponse === 'en-attente') return new Promise((fini) => { liberer = () => fini({ json: async () => ({ ok: false, erreur: 'boom' }) }) })
+    if (reglageReponse === 'vide-403') return Promise.resolve({ status: 403, json: async () => { throw new SyntaxError('Unexpected end of JSON input') } })
     return Promise.resolve({ json: async () => (post && reglageReponse.ok === true ? { ok: true, autoCheck: JSON.parse(init.body).autoCheck } : reglageReponse) })
   }
   appels += 1
@@ -485,6 +490,33 @@ console.log('── the container: loading, failing, refreshing ──')
   interrupteur().props.onClick()
   await tick(); await tick()
   check('a refused write puts the switch back where it was (it never shows a state the host did not keep)', interrupteur().props['aria-checked'] === 'false', interrupteur().props['aria-checked'])
+  // L3-03: the switch used to go back alone. Refused, lost and broken now each say so, under the switch, with the reason.
+  const alerte = () => parKb(s.tree, 'maintenance-settings-error')
+  check('...and says why: a visible alert under the switch with the host\'s own reason', alerte().length === 1 && alerte()[0].props.role === 'alert' && texte(alerte()[0]) === 'Setting not saved: boom', alerte().map(texte))
+  reglageReponse = 'en-attente'
+  interrupteur().props.onClick()
+  await tick()
+  check('...the next press clears the reason while it waits (it is not left under a switch that is working again)', alerte().length === 0 && interrupteur().props.disabled === true, alerte().map(texte))
+  liberer()
+  await tick(); await tick()
+  check('...and a refusal again puts it back', alerte().length === 1)
+  reglageReponse = 'reseau-ko'
+  interrupteur().props.onClick()
+  await tick(); await tick()
+  check('the network down: the switch is back and the alert says the DSH server did not answer', interrupteur().props['aria-checked'] === 'false' && alerte().length === 1 && texte(alerte()[0]) === 'Setting not saved: the DSH server did not answer', alerte().map(texte))
+  reglageReponse = 'vide-403'
+  interrupteur().props.onClick()
+  await tick(); await tick()
+  check('an answer that is not JSON (an origin refused, empty body): the alert names its HTTP status', alerte().length === 1 && texte(alerte()[0]) === 'Setting not saved: unexpected answer from the server (HTTP 403)', alerte().map(texte))
+  lang = 'fr'
+  interrupteur().props.onClick()
+  await tick(); await tick()
+  check('in French the alert is French', alerte().length === 1 && texte(alerte()[0]) === 'Réglage non enregistré : réponse inattendue du serveur (HTTP 403)', alerte().map(texte))
+  lang = 'en'
+  reglageReponse = { ok: true, autoCheck: true }
+  interrupteur().props.onClick()
+  await tick(); await tick()
+  check('a write that goes through leaves no alert behind and shows what the host kept', alerte().length === 0 && interrupteur().props['aria-checked'] === 'true', interrupteur().props['aria-checked'])
   reglageReponse = { ok: true, autoCheck: true }
 
   reglageReponse = { erreur: 'not found' }
