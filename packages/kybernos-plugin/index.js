@@ -17,6 +17,7 @@ import { chooseWorkspace as autoWsChoose, idOf as autoWsIdOf, DEDICATED_TITLE as
 import { recordFeedback, exportFeedback, relayReportOf } from './feedback-box.mjs'
 import { writeGuard } from './session-guard.mjs'
 import { defaultState as onboardingDefault, publicView as onboardingView, complete as onboardingComplete, replay as onboardingReplay, chooseDomain as onboardingChooseDomain, aboutView as onboardingAbout } from './onboarding-state.mjs'
+import { isSuggested as autoIsSuggested, suggestedTask as autoSuggestedTask, acceptedTask as autoAcceptedTask, refusalFor as autoSuggestRefusal } from './automation-suggest.mjs'
 import { loadPacks as loadDomainPacks, domainOfProfil, mergePackSets, DOMAIN_POINT, DOMAIN_POINT_REF } from './domain-pack.mjs'
 const pluginDir = dirname(fileURLToPath(import.meta.url))
 // ── Le filet du compactage, sans retouche du moteur (23/09/2026) ────────────
@@ -364,7 +365,7 @@ const kbFrequentRefusal = (cleanTask, requestTask, previous) => {
 // Generic nextRun (ms epoch): a one-time date that has passed never comes back.
 const kbComputeNextRun = (task, afterMs, tzFallback) => {
   if (task === null || typeof task !== 'object') return null
-  if (task.active !== true) return null
+  if (task.active !== true || autoIsSuggested(task) === true) return null
   const sc = task.schedule
   if (sc === null || typeof sc !== 'object') return null
   const nowMs = typeof afterMs === 'number' && Number.isFinite(afterMs) ? afterMs : Date.now()
@@ -516,7 +517,7 @@ const kbMakeTrigger = (deps) => {
         const nowMs = now()
         const out = []
         for (const t of tasks) {
-          if (t === null || typeof t !== 'object' || t.active !== true) continue
+          if (t === null || typeof t !== 'object' || t.active !== true || t.suggested === true) continue
           // A task written without a next run (the automation-creator skill edits the file directly)
           // is adopted here: its next run is computed now instead of waiting for an edit in the page.
           if (typeof t.nextRun !== 'string' || Number.isFinite(Date.parse(t.nextRun)) === false) {
@@ -543,7 +544,7 @@ const kbMakeTrigger = (deps) => {
           // tasks of this tick take about a second each) is left alone, and the run uses its
           // latest definition. A one-time task is already inactive by its own claim.
           const current = (await store.read()).find((x) => x !== null && typeof x === 'object' && x.id === claim.id)
-          if (current === undefined) continue
+          if (current === undefined || current.suggested === true) continue
           const once = current.schedule !== null && typeof current.schedule === 'object' && current.schedule.mode === 'once'
           if (once === false && current.active !== true) continue
           const res = await withTimeout(Promise.resolve().then(() => fire(Object.assign({}, current))))
@@ -2848,6 +2849,34 @@ function boot(ctx) {
         await kbTasksMutate(async (tasks) => { tasks.push(task) })
         return { ok: true, task }
       }
+      // Kaby proposes an automation: stored switched off and flagged, never scheduled before Add. `accept` is Add (it stays off), Discard is `delete`.
+      if (action === 'suggest') {
+        const raw = body.task !== null && typeof body.task === 'object' ? body.task : {}
+        const clean = kbSanitizeTaskInput(Object.assign({}, raw, { active: false }))
+        if (clean.ok !== true) return { ok: false, error: clean.error }
+        const frequent = kbFrequentRefusal(clean.task, raw, null)
+        if (frequent !== null) return frequent
+        const now = new Date().toISOString()
+        const task = Object.assign({ id: kbTaskId(), createdAt: now, updatedAt: now, history: [], lastRun: null, nextRun: null }, autoSuggestedTask(clean.task, body.proof, now))
+        let refused = null
+        await kbTasksMutate(async (tasks) => {
+          refused = autoSuggestRefusal(tasks, task.name)
+          if (refused === null) tasks.push(task)
+        })
+        return refused !== null ? refused : { ok: true, task }
+      }
+      if (action === 'accept') {
+        const id = str(body.id)
+        if (id === null) return { ok: false, error: 'id required' }
+        let found = null
+        await kbTasksMutate(async (tasks) => {
+          for (let i = 0; i < tasks.length; i += 1) {
+            const t = tasks[i]
+            if (t !== null && typeof t === 'object' && t.id === id && autoIsSuggested(t) === true) { tasks[i] = autoAcceptedTask(t, new Date().toISOString()); found = tasks[i]; break }
+          }
+        })
+        return found === null ? { ok: false, error: 'not a suggestion' } : { ok: true, task: found }
+      }
       if (action === 'update') {
         const id = str(body.id)
         if (id === null) return { ok: false, error: 'id required' }
@@ -2863,6 +2892,7 @@ function boot(ctx) {
               frequentUpdate = kbFrequentRefusal(clean.task, body.task, t)
               if (frequentUpdate !== null) break
               const merged = Object.assign({}, t, clean.task, { id, createdAt: t.createdAt, updatedAt: new Date().toISOString(), history: Array.isArray(t.history) === true ? t.history : [] })
+              if (t.suggested === true) merged.active = false
               const nx = kbComputeNextRun(merged, Date.now())
               if (kbNeverRuns(merged, nx) === true) { refusal = kbNoNextRunError(merged); break }
               merged.nextRun = nx === null ? null : new Date(nx).toISOString()
@@ -2885,6 +2915,7 @@ function boot(ctx) {
         await kbTasksMutate(async (tasks) => {
           for (const t of tasks) {
             if (t !== null && typeof t === 'object' && t.id === id) {
+              if (autoIsSuggested(t) === true) { refusal = 'suggested: add it first'; break }
               const nx = kbComputeNextRun(Object.assign({}, t, { active: body.active }), Date.now())
               if (kbNeverRuns(Object.assign({}, t, { active: body.active }), nx) === true) { refusal = kbNoNextRunError(t); break }
               t.active = body.active
@@ -2938,6 +2969,7 @@ function boot(ctx) {
         const tasks = await kbTasksRead()
         const t = tasks.find((x) => x !== null && typeof x === 'object' && x.id === id)
         if (t === undefined) return { ok: false, error: 'task not found' }
+        if (autoIsSuggested(t) === true) return { ok: false, error: 'suggested: add it first' }
         try {
           const res = await kbFireTask(t)
           await kbTasksMutate(async (fresh) => {
@@ -2970,6 +3002,7 @@ function boot(ctx) {
         // l'ancienne URL (Make fait pareil).
         const id = str(body.id)
         if (id === null) return { ok: false, error: 'id required' }
+        if (autoIsSuggested((await kbTasksRead()).find((x) => x !== null && typeof x === 'object' && x.id === id)) === true) return { ok: false, error: 'suggested: add it first' }
         const crypto2 = await import('node:crypto')
         const hookId = 'hk_' + crypto2.randomBytes(6).toString('hex')
         const secret = crypto2.randomBytes(16).toString('hex')
@@ -11153,7 +11186,7 @@ function boot(ctx) {
           const timingSafe = (a, b) => { if (a.length !== b.length) return false; let d = 0; for (let i = 0; i < a.length; i += 1) d |= a.charCodeAt(i) ^ b.charCodeAt(i); return d === 0 }
           // A secret that is missing or too short (hand-edited file) never matches anything.
           if (expected.length < 8 || timingSafe(given, expected) !== true) return sendJsonPublic(res, 401, { ok: false, error: 'invalid secret' })
-          if (task.active !== true) return sendJsonPublic(res, 409, { ok: false, error: 'automation paused' })
+          if (task.active !== true || task.suggested === true) return sendJsonPublic(res, 409, { ok: false, error: 'automation paused' })
           const body = await kbHookReadBody(req, 262144)
           // An event that is too large is refused, not delivered as an empty one.
           if (body.tooLarge === true) return sendJsonPublic(res, 413, { ok: false, error: 'body too large (256 KB maximum)' }, { connection: 'close' })
