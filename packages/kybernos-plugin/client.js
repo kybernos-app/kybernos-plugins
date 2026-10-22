@@ -2934,7 +2934,7 @@ const KB_NAV_KEYS = {
   'kybernos-maintenance': 'about', 'kybernos-servers': 'servers', 'kybernos-auto-page': 'auto routing', 'kybernos-websearch-page': 'web search',
   plugins: 'built-in plugins', 'kybernos-atlas': 'atlas', 'kybernos-models': 'ai provider and models',
   'agent-presets': 'agent presets', voice: 'voice', 'kybernos-slash': 'commands', 'kybernos-ollama': 'ollama local models',
-  'kybernos-suite': 'kybernos suite', 'kybernos-tools': 'tools', 'kybernos-workers': 'workers', 'kybernos-call': 'calls',
+  'kybernos-suite': 'kybernos suite', 'kybernos-tools': 'tools', 'kybernos-workers': 'workers', 'kybernos-call': 'calls', 'kybernos-kaby-customisation': 'kaby',
   // The pages the Suite's bundles add (their section id is the cell's key in every language).
   'kybernos-usage': 'usage', 'kybernos-automations': 'automations', 'kybernos-skills': 'skills', 'kybernos-skills-learned': 'learned skills', 'kybernos-composio': 'connectors', 'kybernos-free-llms': 'free llms', 'kybernos-mobile': 'phone and channels',
   'kybernos-computers': 'code sandbox (e2b)',
@@ -3035,6 +3035,7 @@ const KB_SS_INDEX = [
   ['usage', '', 'Your keys and local models', '', '', 'cout depenses tokens cles consommation'],
 
   ['agent presets', '', 'Standard mode', 'Work with code, files, and information.', 'ptc creator minimal', 'mode agent persona preajuste'],
+  ['kaby', '', 'Name, portrait and voice', 'Give your assistant a name, a portrait and a voice.', 'avatar face image picture', 'nom portrait voix visage image assistant avatar'],
   ['workers', '', 'Check all', 'Workers are the coding assistants installed on your computer.', '', 'claude code codex gemini cli assistants code delegation'],
   ['automations', '', 'Pause all automations', 'Nothing fires while this is on.', '', 'pause automatisations taches planifiees cron planificador'],
   ['automations', '', 'Show DSH’s own “Automation tasks” list', '', '', 'liste taches automatisation'],
@@ -3131,6 +3132,7 @@ const KB_SS_FR = {
   'ollama local models|Local engine': ['Moteur local', ''],
   'usage|Your Kybernos plan': ['Ton plan Kybernos', ''],
   'usage|Your keys and local models': ['Tes clés et modèles locaux', ''],
+  'kaby|Name, portrait and voice': ['Nom, portrait et voix', 'Donne à ton assistant un nom, un portrait et une voix.'],
   'workers|Check all': ['Tout vérifier', 'Les workers sont les assistants de code installés sur ton ordinateur.'],
   'automations|Pause all automations': ['Mettre toutes les automatisations en pause', 'Rien ne se déclenche tant que c’est activé.'],
   'automations|Show DSH’s own “Automation tasks” list': ['Afficher la liste « Automation tasks » de DSH', ''],
@@ -33973,7 +33975,7 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
           'ollama local models',
           'usage'
         ] },
-        { id: 'agents', titre: kbt('settings.group.agents'), pliable: true, icone: 'agent presets', mots: ['agent presets', 'workers', 'automations', 'commandes', 'commands'] },
+        { id: 'agents', titre: kbt('settings.group.agents'), pliable: true, icone: 'agent presets', mots: ['agent presets', 'kaby', 'workers', 'automations', 'commandes', 'commands'] },
         { id: 'tools', titre: kbt('settings.group.tools'), pliable: true, icone: 'tools', mots: ['skills', 'outils', 'tools', 'connectors', 'web search'] },
         { id: 'memory', titre: kbt('settings.group.memory'), pliable: true, icone: 'memory & lessons', mots: ['memory & lessons', 'learned skills', 'kybernos', 'atlas'] },
         { id: 'voice', titre: kbt('settings.group.voice'), pliable: true, icone: 'voice', mots: ['voix', 'voice', 'calls', 'appels'] },
@@ -34039,6 +34041,7 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
         // The pages the Suite's plugins add under « Third party plugins »: each its own picture instead of the shell's gear.
         'auto routing': '<path d="M16 3h5v5" ' + trait + '/><path d="M8 3H3v5" ' + trait + '/><path d="M12 22v-8.3a4 4 0 0 0-1.17-2.87L3 3" ' + trait + '/><path d="m15 9 6-6" ' + trait + '/>',
         'kybernos suite': '<path d="M19.44 7.85c-.05.32.06.65.29.88l1.57 1.57c.47.47.7 1.09.7 1.7s-.23 1.23-.7 1.7l-1.61 1.61a.98.98 0 0 1-.84.28c-.47-.07-.8-.48-.97-.93a2.5 2.5 0 1 0-3.21 3.21c.45.17.86.5.93.97a.98.98 0 0 1-.28.84l-1.61 1.61a2.4 2.4 0 0 1-1.7.7 2.4 2.4 0 0 1-1.7-.7l-1.57-1.57a1.03 1.03 0 0 0-.88-.29c-.49.07-.84.5-1.02.97a2.5 2.5 0 1 1-3.24-3.24c.46-.18.89-.53.97-1.02a1.03 1.03 0 0 0-.29-.88l-1.57-1.57A2.4 2.4 0 0 1 2 12c0-.62.24-1.23.7-1.7l1.53-1.53c.24-.24.58-.35.92-.3.52.08.88.53 1.07 1.01a2.5 2.5 0 1 0 3.26-3.26c-.48-.2-.93-.56-1.01-1.07-.05-.34.06-.68.3-.92l1.53-1.53A2.4 2.4 0 0 1 12 2c.62 0 1.23.24 1.7.7l1.57 1.57c.23.23.56.34.88.29.49-.07.84-.5 1.02-.97a2.5 2.5 0 1 1 3.24 3.24c-.46.18-.89.53-.97 1.02z" ' + trait + '/>',
+        'kaby': '<circle cx="12" cy="8" r="4" ' + trait + '/><path d="M4 21c1-4.2 4-6.5 8-6.5s7 2.3 8 6.5" ' + trait + '/>',
         'workers': '<rect x="4" y="4" width="16" height="16" rx="2" ' + trait + '/><rect x="9" y="9" width="6" height="6" rx="1" ' + trait + '/><path d="M15 2v2M15 20v2M2 15h2M2 9h2M20 15h2M20 9h2M9 2v2M9 20v2" ' + trait + '/>',
         'automations': '<path d="M13 2 4 14h7l-1 8 9-12h-7z" ' + trait + '/>',
         'skills': '<path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" ' + trait + '/><path d="M20 3v4M22 5h-4M4 17v2M5 18H3" ' + trait + '/>',

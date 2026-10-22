@@ -540,8 +540,8 @@
           "page": true
         },
         "good": {
-          "fr": "Seuls des textes d’interface partent chez le fournisseur du modèle choisi dans « Avancé », pas le contenu de tes conversations. Ce qui n’est pas encore traduit s’affiche en anglais.",
-          "en": "Only interface texts go to the provider of the model chosen in “Advanced”, not the content of your chats. Anything not translated yet shows in English."
+          "fr": "Seuls des textes d’interface partent chez le fournisseur du modèle choisi dans l’onglet « Réglages », pas le contenu de tes conversations. Ce qui n’est pas encore traduit s’affiche en anglais.",
+          "en": "Only interface texts go to the provider of the model chosen in the “Settings” tab, not the content of your chats. Anything not translated yet shows in English."
         },
         "url": "https://help.kybernos.app/{lang}/agents-and-tools/small-tools-of-the-chat/"
       }
@@ -2644,6 +2644,51 @@
           "en": "Kaby keeps the same memory here and on Telegram. Nothing is connected without your approval in Telegram, and before acting on its computer it asks you: Allow, Refuse, or Allow for this task."
         },
         "url": "https://help.kybernos.app/{lang}/computers/see-where-kyby-answers/"
+      }
+    },
+    {
+      "id": "kybernos-kaby-customisation",
+      "nom": "@local/kybernos-kaby-customisation",
+      "titre": "Kaby, yours",
+      "glyphe": "face",
+      "famille": "teams",
+      "palier": "core",
+      "version": "0.1.0",
+      "socle": false,
+      "defaut": "actif",
+      "poids_ko": 60,
+      "promesse": {
+        "fr": "Donne à Kaby un nom, un portrait et une voix, et choisis le visage qu'il montre en appel vidéo, avec ses propres clés.",
+        "en": "Give Kaby a name, a portrait and a voice, and choose the face it shows on video calls, with its own keys."
+      },
+      "aide": {
+        "what": {
+          "fr": "La page où tu donnes à Kaby son allure : un nom, un portrait et une voix. Elle règle aussi le visage qu'il montrera en appel vidéo, avec ses propres clés, à part des Appels.",
+          "en": "The page where you give Kaby its look: a name, a portrait and a voice. It also sets the face it will show on video calls, with its own keys, apart from Calls."
+        },
+        "steps": [
+          {
+            "fr": "Ouvre Réglages › Kaby, ou clique le portrait de Kaby au-dessus de sa conversation.",
+            "en": "Open Settings › Kaby, or click Kaby's portrait above its conversation."
+          },
+          {
+            "fr": "Choisis un nom, décris son allure et génère un portrait, ou importe une image dont tu as le droit.",
+            "en": "Pick a name, describe how it looks and generate a portrait, or import a picture you have the right to use."
+          },
+          {
+            "fr": "Choisis une voix et écoute-la. Tu peux aussi enregistrer ou importer une voix perso, avec ton consentement.",
+            "en": "Pick a voice and listen to it. You can also record or upload a custom voice, with your consent."
+          }
+        ],
+        "where": {
+          "fr": "Réglages › Kaby",
+          "en": "Settings › Kaby",
+          "page": true
+        },
+        "good": {
+          "fr": "Rien ne change à ce que Kaby sait faire, à ses règles ni à sa mémoire. Le portrait reste sur cet ordinateur ; il ne part chez un fournisseur que si tu choisis un visage en appel vidéo.",
+          "en": "Nothing changes in what Kaby can do, its rules or its memory. The portrait stays on this computer; it goes to a provider only if you choose a face for video calls."
+        }
       }
     },
     {

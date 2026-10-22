@@ -10225,6 +10225,24 @@ function boot(ctx) {
         const probe = (rootPath !== null) ? await readProbe(rootPath) : null
         sendJson(res, 200, { ok: true, default: kbTeamImageModel(), models: kbImageModels(probe) })
       } }), 'kybernos: route image-models')
+      // One picture from the image model of the person's Models, for a bundle that needs one (Settings › Kaby asks for a portrait).
+      // The same call as the team portraits (kbImageGen): there is no second way to the provider's key.
+      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/image/generate', handler: async (req, res) => {
+        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        let body = {}
+        try { body = await readJsonBody(req, 16384) } catch (e) { return sendJson(res, 413, { ok: false, error: errText(e) }) }
+        const prompt = str(body !== null && body !== undefined ? body.prompt : null)
+        if (prompt === null || prompt.length > 1500) return sendJson(res, 400, { ok: false, error: 'a prompt of 1 to 1500 characters is expected' })
+        const asked = str(body.model)
+        const model = (asked !== null && kbImageModels(null).some((m) => m.id === asked)) ? asked : kbTeamImageModel()
+        const size = ['1024*1024', '768*1024', '1024*768'].indexOf(str(body.size)) >= 0 ? body.size : '1024*1024'
+        const gen = await kbImageGen(prompt, model, size, 180000)
+        if (gen.ok !== true) return sendJson(res, 200, { ok: false, error: gen.error || 'generation failed' })
+        const b = gen.bytes
+        const mime = (b.length > 3 && b[0] === 0xff && b[1] === 0xd8) ? 'image/jpeg' : 'image/png'
+        sendJson(res, 200, { ok: true, model: model, ms: gen.ms, price: (KB_IMAGE_PRIX[model] !== undefined ? KB_IMAGE_PRIX[model] : null), image: 'data:' + mime + ';base64,' + b.toString('base64') })
+      } }), 'kybernos: route image/generate')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/runs', handler: async (req, res) => {
         if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
         const query = queryOf(req)
