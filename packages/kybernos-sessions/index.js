@@ -1264,6 +1264,13 @@ const cheminConfine = (sessionsHome, corps, slug) => {
 // DSH with a fake `llm` service, with no network and no key.
 export function monterRoutes (webServerSvc, opts) {
   webServerSvc = kbFenced(webServerSvc)
+  // What `register` hands back is the way to take the route off again. The host calls it when the plugin unloads (apply() gives this function to
+  // `ctx.effect`): without it a bundle that was switched off kept serving routes that run git and rm, and a reload met « duplicate exact route ».
+  const retraits = []
+  const bruts = webServerSvc
+  webServerSvc = new Proxy(bruts, { get: (target, key) => (key === 'register'
+    ? (route) => { const retrait = target.register(route); if (typeof retrait === 'function') retraits.push(retrait); return retrait }
+    : (typeof target[key] === 'function' ? target[key].bind(target) : target[key])) })
   const sessionsHome = opts.sessionsHome
   const kybersHome = opts.kybersHome
   // Settings, category registry and credentials. Given by `apply()` (the real DSH
@@ -1541,19 +1548,22 @@ export function monterRoutes (webServerSvc, opts) {
   routeAction('/kybernos-sessions/sync', (o) => synchroniser(o))
   routeAction('/kybernos-sessions/pr', (o) => (o.action === 'merge' ? prFusionner(o) : prCreer(o)),
     (corps) => ({ action: corps.action }))
+  return () => { for (const retrait of retraits.splice(0).reverse()) { try { retrait() } catch (e) { /* already gone */ } } }
 }
 
 export function apply (ctx) {
   try {
     const home = dshHome()
     const demarrer = (hostCtx) => {
-      monterRoutes(hostCtx.webServer, {
+      const monter = () => monterRoutes(hostCtx.webServer, {
         ctx: hostCtx,
         sessionsHome: join(home, 'sessions'),
         kybersHome: join(home, 'kybers'),
         reglagesPath: join(home, 'kybernos', 'settings.json'),
         categoriesPath: join(home, 'kybernos', 'categories.json')
       })
+      if (typeof hostCtx.effect === 'function') hostCtx.effect(monter, 'kybernos-sessions: routes')
+      else monter()
       console.log('[kybernos-sessions] webServer routes /kybernos-sessions/* registered (state, settings, categories, actions)')
     }
     if (ctx.get('webServer') !== undefined) demarrer(ctx)
