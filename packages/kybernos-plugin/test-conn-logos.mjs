@@ -162,6 +162,17 @@ if (renderToStaticMarkup !== null) {
   const known = card({ call: { id: 't1', team: 'acme', n: 3, st: 'active', short: 'Draft', nodes: [] }, crews: [{ id: 'acme', name: 'Acme' }] }, lot, 'in_progress')
   assert.ok(known.includes('kbtc-card') && known.includes('Acme') && known.includes('#3'), 'a call the host knows keeps its card even with no tag in the subject: ' + known)
   ok('call card: a team call (tag or known to the host) keeps its card')
+
+  // A bracketed head that the host does not list as a team is a reference (a lot code, a ticket), not a team: it must not bring the
+  // phantom card back — and the code has to stay readable on the one-line row, since that row is now the only place it lives.
+  const notATeam = card({ call: null, crews: [{ id: 'acme', name: 'Acme' }] }, '[A1] Relire le contrat', 'in_progress')
+  assert.ok(!notATeam.includes('kbtc-card') && !notATeam.includes('kbtc-voir'), 'a bracketed code the host does not know is not a team: no card, no dead button: ' + notATeam)
+  assert.ok(notATeam.includes('kbtc-plain') && notATeam.includes('[A1] Relire le contrat'), 'and its code stays on the line: ' + notATeam)
+  const lotCode = card({ call: null, crews: [] }, '[L6-02] Gardes d’écriture', 'pending')
+  assert.ok(lotCode.includes('kbtc-plain') && lotCode.includes('[L6-02]'), 'a lot code at the head of a subject: one line, code kept: ' + lotCode)
+  const teamNamedLikeACode = card({ call: null, crews: [{ id: 'a1', name: 'A1 squad' }] }, '[a1] Draft the plan', 'in_progress')
+  assert.ok(teamNamedLikeACode.includes('kbtc-card') && teamNamedLikeACode.includes('A1 squad'), 'a team that really carries that id keeps its card: ' + teamNamedLikeACode)
+  ok('call card: a bracketed code is a team only when the host lists it')
 }
 
 console.log(pass + ' groups OK')
