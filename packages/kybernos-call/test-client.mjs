@@ -442,6 +442,44 @@ console.log('kybernos-call: the call buttons at the top right of a chat')
   assert.equal(t.getState().name, 'Assistant')
   assert.equal(t.getState().phase, 'live')
   ok('the voice button calls the session\'s assistant (no team, no member) as a voice call: the session is asked, the host picks voice and language from the settings')
+
+  // Kaby's own conversation: the name and the voice the person gave it (kybernos-kaby-customisation), asked for on purpose.
+  {
+    const w = e.win
+    const seen = { kyby: w.__KB_KYBER__, kaby: w.__KB_KABY__ }
+    const J = (v) => JSON.parse(JSON.stringify(v)) // the code runs in its own realm: compare by value
+    const profile = (voice, name = 'Léa') => ({ profile: () => ({ name, voice }) })
+    w.__KB_KYBER__ = { isKybySession: (s) => s === 'session-kkkkkkkk' }
+    w.__KB_KABY__ = profile({ pick: 'voice', engine: 'edge', voice: 'fr-FR-DeniseNeural', lang: 'fr-FR' })
+    assert.deepEqual(J(t.kabyCallOf('session-kkkkkkkk')), { name: 'Léa', voice: { engine: 'edge', voice: 'fr-FR-DeniseNeural', lang: 'fr-FR' } })
+    w.__KB_KABY__ = profile({ pick: 'default' })
+    assert.deepEqual(J(t.kabyCallOf('session-kkkkkkkk')), { name: 'Léa', voice: { app: true } })
+    w.__KB_KABY__ = profile({ pick: 'custom' })
+    assert.deepEqual(J(t.kabyCallOf('session-kkkkkkkk')), { name: 'Léa', voice: { app: true } })
+    w.__KB_KABY__ = profile(undefined)
+    assert.deepEqual(J(t.kabyCallOf('session-kkkkkkkk').voice), { app: true })
+    ok('in Kaby\'s own conversation a call carries Kaby\'s name and the voice it was given; a voice not chosen, or a custom one no engine speaks, is the app\'s own voice on purpose')
+    assert.equal(t.kabyCallOf('session-aaaaaaaa'), null)
+    assert.equal(t.kabyCallOf(null), null)
+    assert.equal(t.kabyCallOf(undefined), null)
+    ok('any other session is the plain assistant with the default voice (unchanged)')
+    w.__KB_KABY__ = undefined
+    assert.equal(t.kabyCallOf('session-kkkkkkkk'), null)
+    w.__KB_KABY__ = { profile: () => null }
+    assert.equal(t.kabyCallOf('session-kkkkkkkk'), null)
+    w.__KB_KABY__ = { profile: () => { throw new Error('x') } }
+    assert.equal(t.kabyCallOf('session-kkkkkkkk'), null)
+    w.__KB_KABY__ = profile({ pick: 'default' }, '')
+    assert.equal(t.kabyCallOf('session-kkkkkkkk'), null)
+    w.__KB_KYBER__ = undefined
+    w.__KB_KABY__ = profile({ pick: 'default' })
+    assert.equal(t.kabyCallOf('session-kkkkkkkk'), null)
+    ok('without the customisation bundle, with a profile not read yet, a seam that throws, or without Kaby\'s chat bundle, nothing changes')
+    w.__KB_KYBER__ = seen.kyby
+    w.__KB_KABY__ = seen.kaby
+    assert.ok(/const kaby = kabyCallOf\(sessionId\); return open\(\{ sessionId: sessionId, kyberId: null, roleId: null, name: kaby !== null \? kaby\.name : kt\('Assistant', 'Assistant'\), mode: mode, voice: kaby !== null \? kaby\.voice : null \}\)/.test(readFileSync(new URL('./client.js', import.meta.url), 'utf8')))
+    ok('the header\'s button starts the call through that reader')
+  }
   const active = t.CallHeader({ sessionId: 'session-aaaaaaaa' })
   assert.equal(active.children.props['data-act'], 'hangup-header')
   assert.ok(JSON.stringify(active.children.children).includes('Hang up'))

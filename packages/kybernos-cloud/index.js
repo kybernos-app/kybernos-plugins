@@ -5232,7 +5232,10 @@ const kyby = createKybyRoutes({ readState, isConnected, apiCall, deviceLabel })
 // Kaby's own chat is a native DSH conversation (kyby-native.mjs): which session it is, who Kaby is there, and the end of its turns written
 // on the person's thread. The hooks are mounted below (mountKybyNative); the page asks for the session through the two routes under /kyby/native.
 const kybyPointerFile = () => join(dshHome(), 'kybernos-kyby.json')
-const kybyNative = createKybyNative({ pointerFile: kybyPointerFile, readState, isConnected, apiCall })
+// The name the person gave Kaby: kybernos-kaby-customisation publishes its profile under this symbol (no bundle imports another). It is validated again
+// where it is used (aliasOf), because it ends up in a prompt.
+const kabyGivenName = () => { try { const read = globalThis[Symbol.for('kybernos.kabyProfile')]; const p = typeof read === 'function' ? read() : null; return p !== null && typeof p === 'object' ? p.name : null } catch (e) { return null } }
+const kybyNative = createKybyNative({ pointerFile: kybyPointerFile, readState, isConnected, apiCall, assistantName: kabyGivenName })
 // Kaby's own folder: its chat lives in a workspace of its own, so that DSH's « New chat » never reuses it (a chat with no message yet is a
 // blank, and a blank is taken back by the next new chat of its workspace) and it has a home on this machine.
 const kybyFolder = () => join(dshHome(), 'kybernos', 'kyby')

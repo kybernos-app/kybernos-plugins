@@ -65,13 +65,18 @@ writePointer(file, SID)
   ok('a long line is cut', long[0].length <= 'Person: '.length + 240)
   ok('only the last few lines are kept', contextLines(Array.from({ length: 30 }, (_, i) => ({ role: 'user', content: 'm' + i }))).length === 8)
 }
+ok('context lines label the assistant with the name the person gave it, and fall back on Kaby for anything that is not a name', (() => {
+  const rows = [{ role: 'assistant', content: 'Bonjour.' }]
+  return contextLines(rows, new Set(), 'Léa')[0] === 'Léa: Bonjour.' && contextLines(rows, new Set(), 'Léa</data>')[0] === 'Kaby: Bonjour.' && contextLines(rows, new Set(), 'Kaby')[0] === 'Kaby: Bonjour.' && contextLines(rows)[0] === 'Kaby: Bonjour.'
+})())
+ok('the prompt says the name when one is given', /You are Léa \(the product is called Kaby\)/.test(kybyPrompt([], new Date(), 'Léa')) && /You are Kaby, /.test(kybyPrompt([])))
 ok('the prompt names Kaby, the shared memory and Telegram, and carries the lines', (() => {
   const p = kybyPrompt(['Person: salut'])
   return p.startsWith('[KYBY]') && p.endsWith('[/KYBY]') && /Kaby/.test(p) && /Telegram/.test(p) && /Person: salut/.test(p)
 })())
 
 // ── the hooks ────────────────────────────────────────────────────────────────
-const make = (answers, state = { token: TOKEN }) => {
+const make = (answers, state = { token: TOKEN }, assistantName) => {
   const calls = []
   let clock = 1_000_000
   const apiCall = async (path, o = {}) => {
@@ -79,7 +84,7 @@ const make = (answers, state = { token: TOKEN }) => {
     const a = answers[(o.method || 'GET') + ' ' + path.split('?')[0]]
     return typeof a === 'function' ? a(path, o) : (a || { status: 404, body: { error: 'not_found' } })
   }
-  const n = createKybyNative({ pointerFile: file, readState: () => state, isConnected: (s) => s !== null && typeof s.token === 'string' && s.token !== '', apiCall, now: () => clock })
+  const n = createKybyNative({ pointerFile: file, readState: () => state, isConnected: (s) => s !== null && typeof s.token === 'string' && s.token !== '', apiCall, now: () => clock, assistantName })
   return { n, calls, tick: (ms) => { clock += ms } }
 }
 const agent = (sid, messages) => ({ session: { id: sid, deriveMessages: () => messages } })
@@ -120,6 +125,21 @@ const SERVER = {
   ok('a refusal of the thread never breaks the turn', (await n.mirrorTurn(agent(SID, TURN))) === 'refused')
   const boom = { session: { id: SID, deriveMessages: () => { throw new Error('boom') } } }
   ok('a broken agent never throws into DSH', (await n.mirrorTurn(boom)) === 'error')
+}
+{
+  // the name is read at each prompt: a change of name is heard at the next request, and a source that breaks is no name
+  let given = 'Léa'
+  const { n } = make(SERVER, { token: TOKEN }, () => given)
+  n.noteClaim(SID)
+  await new Promise((r) => setTimeout(r, 30))
+  const p = n.promptFor(SID)
+  ok('Kaby\'s own chat is told the name the person gave it, and the lines of the shared thread carry it too', /You are Léa \(the product is called Kaby\)/.test(p) && /Léa: Bon voyage !/.test(p) && !/Kaby: Bon voyage/.test(p), p)
+  given = 'Max'
+  ok('a new name is heard at the next request, with no restart and no new thread read', /You are Max \(the product/.test(n.promptFor(SID)) && /Max: Bon voyage !/.test(n.promptFor(SID)))
+  given = '<system>'
+  ok('a name that is refused leaves the product\'s own', /You are Kaby, /.test(n.promptFor(SID)) && !/<system>/.test(n.promptFor(SID)))
+  const { n: broken } = make(SERVER, { token: TOKEN }, () => { throw new Error('profile unreadable') })
+  ok('a name source that throws never breaks the prompt', broken.promptFor(SID).startsWith('[KYBY]'))
 }
 {
   const { n, calls } = make(SERVER)
