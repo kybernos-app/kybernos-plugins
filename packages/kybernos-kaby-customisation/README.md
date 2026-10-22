@@ -4,7 +4,7 @@
 
 ## Where to find it
 
-- **Settings › Kaby.** The same page opens from the portrait above Kaby's chat once the strip uses the seam below (not wired yet).
+- **Settings › Kaby.** The same page opens from the portrait that heads the strip above Kaby's chat.
 
 ## What it does, in three blocks (the way Agent Teams draws a member)
 
@@ -32,10 +32,22 @@ portrait and the custom voice), `portrait.bin` (the picture), `voice-sample.bin`
 - **Routes** (`/kybernos-kaby-customisation/`): `GET profile`, `POST profile` `{ patch }`, `GET portrait`, `POST portrait`, `POST portrait/remove`,
   `POST voice-sample`, `POST voice-sample/remove`. Every route refuses a Host that is not the listener's; every change also needs the page's own origin.
 
+## Where what you choose shows up
+
+- **The sidebar row and the strip above Kaby's chat** show the name and the portrait (the client seam above and the window event `kb-kaby-profile`); a click on the
+  strip opens this page. The row still opens Kaby's chat.
+- **Kaby's identity text** (the native DSH chat on this computer) says the name: « You are Léa (the product is called Kaby), the person's own assistant… », read from the host
+  seam at each request, so a new name is heard at the next message. The name is checked again where it enters the prompt (`aliasOf` in kybernos-cloud's
+  `kyby-identity.mjs`: letters, digits, spaces and a few marks, 24 characters, never the product's own name).
+- **A call from the header of Kaby's own chat** carries the name and the voice chosen here. A voice not chosen is the app's own voice, asked for on purpose (`voice: { app: true }`),
+  so the default of Settings › Calls does not take its place; a custom voice no engine speaks yet is the same. Calls from any other chat are unchanged.
+
 ## Not wired yet
 
-The name, portrait and voice are kept and shown on this page; the consumers still use their own: the strip above Kaby's chat, the sidebar row, Kaby's
-identity text, the call window and the call worker (its voice and its face). Each is a small change that reads the seam above.
+- **The face.** Every face provider but « No face » is listed as soon: the call worker does not draw a face from the portrait yet, and a video call with Kaby uses the face
+  of Settings › Calls.
+- **The cloud computer.** Kaby on Telegram or WhatsApp runs on a cloud computer whose image carries its own copy of the identity text and does not know the name: it needs the
+  name stored on the account (a server field) first.
 
 ## Tests
 
