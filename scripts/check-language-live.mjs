@@ -115,7 +115,10 @@ try {
   check('and it reopens with a click', (await val(`!!document.querySelector('[data-help="panel"]')`)) === true)
   const inUseTip = await titleOf('[data-lang="en"] [data-act="in-use"]')
   check('tooltip on "In use"', /language Kybernos and DSH are using/i.test(inUseTip), inUseTip)
-  check('tooltip on the model choice (Advanced section) and on its title', /model that writes the translations/i.test(await titleOf('.kbln-select')) && /model choice/i.test(await titleOf('.kbln-adv > summary')), [await titleOf('.kbln-select'), await titleOf('.kbln-adv > summary')])
+  // The model choice lives in the Settings tab (it used to be an « Advanced » fold under the list).
+  await clickSel('[data-act="tab-settings"]'); await sleep(400)
+  check('tooltip on the model choice (Settings tab), which has its own label', /model that writes the translations/i.test(await titleOf('.kbln-select')) && (await val(`!!document.querySelector('label[for="kbln-model"]')`)) === true, [await titleOf('.kbln-select')])
+  await clickSel('[data-act="tab-langs"]'); await sleep(400)
 
   // ═══ 2. adding a language: the ISO list ══════════════════════════════════
   console.log('\n── adding a language (ISO list) ──')
@@ -185,6 +188,9 @@ try {
   await addLanguage('de', 'deutsch')
   check('Deutsch added, with no automatic start', (await hasRow('de')) && (await val(`document.querySelectorAll('[data-lang="de"] [role="progressbar"]').length`)) === 0)
   await clickSel('[data-lang="de"] [data-act="start"]')
+  // A stop is a red dot on the row; its words are in the row's details, opened with the chevron.
+  await waitFor(page, `!!document.querySelector('[data-lang="de"] .kbln-dot.error')`, 20000)
+  await clickSel('[data-lang="de"] [data-act="toggle"]')
   await waitFor(page, `!!document.querySelector('[data-lang="de"] [role="alert"]')`, 20000)
   await shot('07-error')
   const err = String(await rowText('de'))
@@ -194,7 +200,8 @@ try {
   await clickSel('[data-lang="de"] [data-act="details"]'); await sleep(400)
   check('"Show details" shows the technical code', /MISSING_CREDENTIAL/.test(String(await rowText('de'))))
   await clickSel('[data-lang="de"] [data-act="choose-model"]'); await sleep(500)
-  check('"Choose another model" opens the Advanced section', (await val(`document.querySelector('.kbln-adv').open`)) === true)
+  check('"Choose another model" opens the Settings tab, on the model choice', (await val(`document.querySelector('[data-act="tab-settings"]').getAttribute('aria-selected')`)) === 'true')
+  await clickSel('[data-act="tab-langs"]'); await sleep(400)
   await val(`window.__KB_TEST__.fail = false`)
   await clickSel('[data-lang="de"] [data-act="start"]')
   check('once the model is fixed, "Resume" takes the translation to the end', (await waitReady('de', 60000)) !== null, await rowText('de'))
