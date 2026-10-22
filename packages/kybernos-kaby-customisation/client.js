@@ -11,7 +11,8 @@
 //
 // The page also publishes a small seam for the other bundles (the strip above Kaby's chat, the call window):
 //   window.__KB_KABY__ = { profile(), subscribe(fn) → unsubscribe, refresh(), open() }
-// `profile()` is the public profile the host keeps (name, look, portrait address, voice, face) or null until it has been read.
+// `profile()` is the public profile the host keeps (name, look, portrait address, voice, face) or null until it has been read. Every change, and the
+// seam appearing or going away, is announced by the window event `kb-kaby-profile`: a consumer re-reads `profile()` when it hears it.
 //
 // Everything is wrapped in try/catch: this page is optional, never the reason another page fails to load.
 // ═══════════════════════════════════════════════════════
@@ -117,10 +118,13 @@ window.__ModuleLoader__.load({
 
     // ── the profile, shared between the page and the seam ──────────────────────────────────────────────────────────────
     const store = { profile: null, listeners: new Set(), failed: false }
+    /** Consumers that render the name or the portrait (the sidebar row, the strip above Kaby's chat) re-read `window.__KB_KABY__.profile()` when told. */
+    const announce = () => { try { window.dispatchEvent(new Event('kb-kaby-profile')) } catch (e) { /* no event target: nobody listens */ } }
     const publish = (profile) => {
       store.profile = profile
       store.failed = profile === null
       for (const fn of Array.from(store.listeners)) { try { fn(profile) } catch (e) { /* a listener must never break the others */ } }
+      announce()
     }
     const call = async (path, body) => {
       try {
@@ -540,8 +544,9 @@ window.__ModuleLoader__.load({
         ctx.effect(() => {
           const seam = { profile: () => store.profile, subscribe: (fn) => { store.listeners.add(fn); return () => store.listeners.delete(fn) }, refresh: refresh, open: openSettings }
           window.__KB_KABY__ = seam
+          announce()
           refresh()
-          return () => { try { if (window.__KB_KABY__ === seam) delete window.__KB_KABY__ } catch (e) { /* window gone */ } }
+          return () => { try { if (window.__KB_KABY__ === seam) delete window.__KB_KABY__ } catch (e) { /* window gone */ } announce() }
         }, 'kybernos-kaby-customisation: seam')
       } catch (e) { /* the seam is optional */ }
       try { ctx.inject(['slots'], (scope) => { mount(ctx, scope || {}) }) } catch (e) { /* optional */ }
