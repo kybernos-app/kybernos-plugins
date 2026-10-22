@@ -140,6 +140,49 @@ await tick(); await tick()
 eq('corrupt file: the scheduler leaves it alone', readFileSync(file, 'utf8'), truncated)
 writeFileSync(file, good)
 
+/* ── Suggested automations: proposed by Kaby, switched off until Add ────────── */
+{
+  const sug = (name, extra) => api({ action: 'suggest', task: task({ name, active: true, ...(extra || {}) }), proof: { n: 14, span: '60 days', where: 'Gmail › Contact form', note: '11 of the 14 got the same document request' } })
+  const a = (await sug('New enquiry summary')).json
+  eq('suggest stores the automation, switched off and flagged', a.ok + ':' + a.task.active + ':' + a.task.suggested, 'true:false:true')
+  eq('...with no next run, and where it came from', String(a.task.nextRun) + ':' + a.task.origin.by + ':' + a.task.origin.proof.n + ':' + a.task.origin.proof.where, 'null:kaby:14:Gmail › Contact form')
+  eq('a suggestion is listed with the others', (await api({ action: 'list' })).json.tasks.some((t) => t.id === a.task.id && t.suggested === true), true)
+  eq('the same name twice is refused', (await sug('new ENQUIRY summary')).json.error, 'already exists')
+  eq('a name already used by a real automation is refused', (await sug('Weekly report')).json.error, 'already exists')
+  eq('a client cannot make a suggestion by creating one', (await api({ action: 'create', task: { ...task({ name: 'Forged' }), suggested: true } })).json.task.suggested, undefined)
+  const forged = (await api({ action: 'list' })).json.tasks.find((t) => t.name === 'Forged')
+  await api({ action: 'delete', id: forged.id })
+  eq('toggle on a suggestion is refused', (await api({ action: 'toggle', id: a.task.id, active: true })).json.error, 'suggested: add it first')
+  eq('run-now on a suggestion is refused', (await api({ action: 'run-now', id: a.task.id })).json.error, 'suggested: add it first')
+  const edited = (await api({ action: 'update', id: a.task.id, task: task({ name: 'New enquiry summary', prompt: 'Edited prompt', active: true }) })).json
+  eq('editing a suggestion keeps it off and flagged', edited.ok + ':' + edited.task.active + ':' + edited.task.suggested + ':' + edited.task.prompt, 'true:false:true:Edited prompt')
+  eq('the proof of a suggestion is bounded', (await api({ action: 'suggest', task: task({ name: 'Long proof', active: false }), proof: { n: 1e12, span: 'x'.repeat(500), where: 'y'.repeat(500), note: 'z'.repeat(500) } })).json.task.origin.proof.n, 100000)
+  const longProof = (await api({ action: 'list' })).json.tasks.find((t) => t.name === 'Long proof')
+  eq('...each text is cut', longProof.origin.proof.span.length + ':' + longProof.origin.proof.where.length + ':' + longProof.origin.proof.note.length, '40:80:160')
+  await api({ action: 'delete', id: longProof.id })
+  eq('a suggestion that cannot fire is still refused (frequent schedule)', (await sug('Every minute', { schedule: { mode: 'cron', cron: '* * * * *', tz: 'Europe/Paris' } })).json.error, 'frequent schedule')
+  // a hand-edited file that marks a suggestion active and due must not run either
+  {
+    const all = onDisk()
+    const t = all.find((x) => x.id === a.task.id)
+    t.active = true; t.nextRun = new Date(Date.now() - 5000).toISOString()
+    writeFileSync(file, JSON.stringify(all, null, 2))
+    await tick()
+    eq('the scheduler never starts a suggestion, even a hand-edited due one', sessions.created, 0)
+    eq('a webhook cannot be made for a suggestion', (await api({ action: 'hook-generate', id: a.task.id })).json.error, 'suggested: add it first')
+  }
+  const fresh = onDisk(); fresh.find((x) => x.id === a.task.id).active = false; writeFileSync(file, JSON.stringify(fresh, null, 2))
+  const acc = (await api({ action: 'accept', id: a.task.id })).json
+  eq('Add clears the flag and keeps the automation switched off', acc.ok + ':' + acc.task.suggested + ':' + acc.task.active + ':' + String(acc.task.nextRun), 'true:undefined:false:null')
+  eq('...and keeps where it came from', acc.task.origin.by + ':' + typeof acc.task.acceptedAt, 'kaby:string')
+  eq('accepting a real automation is refused', (await api({ action: 'accept', id: acc.task.id })).json.error, 'not a suggestion')
+  eq('switching it on afterwards is the ordinary toggle', typeof (await api({ action: 'toggle', id: acc.task.id, active: true })).json.task.nextRun, 'string')
+  for (let i = 0; i < 8; i += 1) await sug('Waiting ' + i)
+  eq('no more than eight suggestions wait', (await sug('Waiting 9')).json.error, 'too many suggestions waiting')
+  for (const t of (await api({ action: 'list' })).json.tasks.filter((x) => x.suggested === true || x.id === acc.task.id)) await api({ action: 'delete', id: t.id })
+  writeFileSync(file, good)
+}
+
 /* ── The tick, on the real code ───────────────────────────────────────────── */
 {
   const all = onDisk()
