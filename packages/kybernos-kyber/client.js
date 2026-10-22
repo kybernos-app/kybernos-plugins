@@ -973,7 +973,7 @@ window.__ModuleLoader__.load({
       /**
        * The right-hand block of the « Phone and channels » screen (kybernos-mobile draws the screen and asks for this through `window.__KB_KYBER__.ChannelsColumn`): {NAME}, the assistant, in two
        * sub-blocks. « Messaging apps »: the doors {NAME} answers from, one row each, with what each one honestly is today (Telegram works, the same row and the same code panel as ever, so one
-       * pairing is one pairing wherever it is looked at; WhatsApp is a beta that no server offers yet; WeChat and iMessage are « soon »), and in two lines what they do and what they never do.
+       * pairing is one pairing wherever it is looked at; WhatsApp is a beta that only a server with the door offers (otherwise « not available on this server yet »); WeChat and iMessage are « soon »), and in two lines what they do and what they never do.
        * « {NAME}'s computer »: where it works. The block says it always asks first, since the other half of the screen is the one that gives control of the computer.
        */
       const ChannelsColumn = () => {
