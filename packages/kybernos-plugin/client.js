@@ -2998,7 +2998,6 @@ const KB_SS_INDEX = [
   ['appearance', '', 'Mode', 'Choose the interface theme.', KB_SS_MODE, 'mode sombre mode clair nuit jour systeme apparence modo oscuro', 'mode', 'Choose the interface theme.'],
   ['appearance', '', 'Palette, accent, background and font', '', 'open theme', 'palette couleurs fond police accent'],
 
-  ['theme', 'Essentials', 'Mode', 'The mode is the same setting as on the Appearance page: change it in either place.', KB_SS_MODE, 'mode sombre mode clair nuit jour systeme apparence modo oscuro', 'mode'],
   ['theme', 'Essentials', 'Theme', 'A theme sets the colors; it can also keep the font, the corners and the menu icons.', 'dsh default deep blue aurora nebula amber oled midnight paper clean light neutral violet rose ember', 'palette couleurs preset sombre noir oled nuit clair dark light papier tema'],
   ['theme', 'Essentials', 'Font', 'Choose the interface font; search filters the families.', '', 'police typographie caracteres letra'],
   ['theme', 'Glass and background', 'Glass blur', '', '', 'flou verre depoli transparence effet'],
@@ -3096,7 +3095,6 @@ const KB_SS_FR = {
   'general|Language': ['Language', 'Gérer les langues et les traductions ici'],
   'appearance|Mode': ['Mode', 'Choisis le thème de l’interface.', 'Choisis le thème de l’interface.'],
   'appearance|Palette, accent, background and font': ['Palette, accent, fond et police', ''],
-  'theme|Mode': ['Mode', 'Le mode est le même réglage que sur la page Apparence : change-le à l’un ou l’autre endroit.'],
   'theme|Theme': ['Thème', 'Un thème règle les couleurs ; il peut aussi retenir la police, les coins et les icônes du menu.'],
   'theme|Font': ['Police', 'Choisis la police de l’interface ; la recherche filtre les familles.'],
   'theme|Glass blur': ['Flou du verre', ''],
