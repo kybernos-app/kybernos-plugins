@@ -29,7 +29,11 @@ top while the panel scrolls under it. A click on a choice changes the look at on
   glass and wallpaper; never accessibility) to *My themes*; *Export* downloads the same `kybernos-theme-preset` file; *Import* adds a file to
   *My themes* without applying it; a look is deleted after a confirmation.
 - Added settings (`DEF`): `bubbleUser` (`auto`, `accent`, `soft`, `dark` or any hex), `textUser`, `replyBg` (`none`, `card`, `outline`, `tint`),
-  `replyColor`, `textReply`, `sideTone` (`auto`, `darker`, `lighter`, `tinted`), `shadow`, `glow`, `wgSessions`, `wgChanges`, `wgUsage`.
+  `replyColor`, `textReply`, `sideTone` (`auto`, `darker`, `lighter`, `tinted`), `shadow`, `glow`, `wgSessions`, `wgChanges`, `wgUsage`, `autoHideBars`.
+  - `autoHideBars` (*Sidebar* panel, « Bars on hover », off by default; personal like the pills: never in a theme, a vibe or the dice): the collapsed
+    rail and the top bar of a chat slide out to an 8 px / 6 px sliver and come back when the pointer or the keyboard is in them, or while a popup
+    they opened is open (an open section of the rail is `aria-expanded` too, so only a popup trigger counts). Only under a pointer that can hover.
+    The three columns of the shell grid are placed by hand while it is on so the chat takes the rail's column back without a reflow; no engine patch.
   - Your bubble is DSH's own token `--dsw-specific-bubble` (declared on `body` and `body[data-ds-dark-theme]`), through the same token layer
     as the sidebar: no hook on the markup. Its text colour is `--dsw-alias-label-primary`, set inside `[data-chat-flow-kind="user"]` only,
     per scheme when it is automatic (white or ink, whichever reads at 4.5:1 on the bubble).
