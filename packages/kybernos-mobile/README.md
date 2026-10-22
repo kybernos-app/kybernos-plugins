@@ -106,10 +106,13 @@ The full protocol, the server's contract and the security model are in [`docs/de
   from a web host that served a hostile page.
 - A phone has the power of the keyboard (it can talk to the agent, under DSH's own approvals). It cannot reach the
   routes that change who can reach this computer (credentials, plugins, the server, phones), see `refusedOnPhone`.
+  When the phone tries one, the computer answers `403 refused_on_phone` and the phone page says so in one line (French on a French
+  phone), apart from the connection veil; it goes away on a tap or after 8 seconds.
 - Node 22 or later (the WebSocket client is the runtime's own).
 
 ## Tests
 
+`test-phone-refusal.mjs` (the phone page, run with a fake DOM: a request the computer refuses for a phone shows one line, « This cannot be done from the phone — do it on the computer. »),
 `test-host.mjs` (the row, the routes and their fences, the stylesheet's promises), `test-client.mjs` (the contract, the
 tap and swipe decisions, the sheet, the page measures, Settings), `test-remote-e2e.mjs` (the handshake and its attacks), `test-remote-host.mjs` (a real pairing,
 replay and revocation through a stand-in relay and a stand-in DSH), `test-qr.mjs`, `test-dsh-home.mjs`; and on the real
