@@ -65,6 +65,12 @@ window.__ModuleLoader__.load({
     /** `engines` as /kybernos/tts/voices sends them → the voices to show as pills (the person's language first) and all of them for « More ». */
     const ENGINE_RANK = ['edge', 'piper', 'supertonic', 'models', 'say']
     const rankOf = (e) => { const i = ENGINE_RANK.indexOf(String(e.id)); return i < 0 ? ENGINE_RANK.length - 1 : i }
+    /** « en-AU-WilliamMultilingual » → « William Multilingual »: the region stays in the pill's title. */
+    const prettyVoice = (label) => {
+      const m = /^[a-z]{2,3}-[A-Z][A-Za-z0-9]{1,7}-(.+?)(?:Neural)?$/.exec(String(label))
+      return m === null ? String(label) : m[1].replace(/([a-z])([A-Z])/g, '$1 $2')
+    }
+    const REGIONS = { fr: ['fr-FR', 'fr-CA', 'fr-BE', 'fr-CH'], en: ['en-US', 'en-GB', 'en-AU', 'en-CA', 'en-IE'], es: ['es-ES', 'es-MX', 'es-US'] }
     const voicePills = (engines, uiLang, max) => {
       const all = []
       // The Mac's own voices come last: its list holds novelty voices (Bells, Bubbles…) that nobody wants for an assistant.
@@ -73,9 +79,14 @@ window.__ModuleLoader__.load({
         if (e === null || typeof e !== 'object' || e.ready !== true || !Array.isArray(e.voices)) continue
         for (const v of e.voices) {
           if (v === null || typeof v !== 'object' || typeof v.id !== 'string') continue
-          all.push({ engine: String(e.id), engineName: String(e.name || e.id), voice: v.id, label: String(v.label || v.id), lang: typeof v.lang === 'string' ? v.lang : '' })
+          const lang = typeof v.lang === 'string' ? v.lang : ''
+          all.push({ engine: String(e.id), engineName: String(e.name || e.id), voice: v.id, label: prettyVoice(v.label || v.id), lang: lang })
         }
       }
+      // Within an engine, the person's own region first (fr-FR, en-US…), the other regions after, in the order the engine gave them.
+      const regionRank = (v) => { const i = (REGIONS[uiLang] || []).indexOf(v.lang.replace('_', '-')); return i < 0 ? 99 : i }
+      const rankedAll = all.map((v, i) => ({ v, i })).sort((a, b) => regionRank(a.v) - regionRank(b.v) || a.i - b.i).map((x) => x.v)
+      all.splice(0, all.length, ...rankedAll)
       const mine = all.filter((v) => v.lang.toLowerCase().indexOf(uiLang) === 0)
       return { pills: (mine.length > 0 ? mine : all).slice(0, max), all: all }
     }
@@ -426,7 +437,7 @@ window.__ModuleLoader__.load({
           h('div', { key: 'c', className: 'kbkc-cap' }, kt('Voix', 'Voice')),
           h('div', { key: 'p', className: 'kbkc-row', style: { gap: 10 } }, [
             h('button', { key: 'def', type: 'button', className: 'kbkc-vp', 'data-kb': 'kaby-custom-voice-pill', 'data-voice': 'default', 'aria-pressed': profile.voice.pick === 'default' ? 'true' : 'false', onClick: () => pickVoice({ pick: 'default' }) }, [svg(h, ICON.wave), kt('Voix de l’app', 'App voice')])
-          ].concat(voices.pills.map((v) => h('button', { key: v.engine + '|' + v.voice, type: 'button', className: 'kbkc-vp', 'data-kb': 'kaby-custom-voice-pill', 'data-voice': v.voice, 'aria-pressed': sameVoice(profile.voice, v) ? 'true' : 'false', title: v.engineName, onClick: () => pickVoice({ pick: 'voice', engine: v.engine, voice: v.voice, lang: v.lang }) }, [svg(h, ICON.wave), v.label])))
+          ].concat(voices.pills.map((v) => h('button', { key: v.engine + '|' + v.voice, type: 'button', className: 'kbkc-vp', 'data-kb': 'kaby-custom-voice-pill', 'data-voice': v.voice, 'aria-pressed': sameVoice(profile.voice, v) ? 'true' : 'false', title: v.engineName + (v.lang ? ' · ' + v.lang : ''), onClick: () => pickVoice({ pick: 'voice', engine: v.engine, voice: v.voice, lang: v.lang }) }, [svg(h, ICON.wave), v.label])))
             .concat(profile.customVoice !== null ? [h('button', { key: 'custom', type: 'button', className: 'kbkc-vp', 'data-kb': 'kaby-custom-voice-pill', 'data-voice': 'custom', 'aria-pressed': profile.voice.pick === 'custom' ? 'true' : 'false', onClick: () => pickVoice({ pick: 'custom' }) }, [svg(h, ICON.mic), profile.customVoice.name])] : [])
             .concat([
               h('button', { key: 'pv', type: 'button', className: 'kbkc-btn', 'data-kb': 'kaby-custom-preview', disabled: playing, onClick: preview }, [svg(h, ICON.play, 13), playing ? kt('Lecture…', 'Playing…') : kt('Écouter', 'Preview')]),
@@ -540,7 +551,7 @@ window.__ModuleLoader__.load({
       name: NAME,
       inject: [],
       apply: start,
-      __test: { buildPanel, kt, tx, lang, nameText, portraitProblem, portraitPrompt, voicePills, sameVoice, voiceSummary, sampleLine, providerState, publish, store, CSS, NAME_MAX, PILLS_SHOWN }
+      __test: { buildPanel, prettyVoice, kt, tx, lang, nameText, portraitProblem, portraitPrompt, voicePills, sameVoice, voiceSummary, sampleLine, providerState, publish, store, CSS, NAME_MAX, PILLS_SHOWN }
     }
   }
 })
