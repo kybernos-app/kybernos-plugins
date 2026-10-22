@@ -1723,4 +1723,12 @@ ok('selecteur d equipe : route du choix, evenement d ouverture, message d equipe
   globalThis.window.removeEventListener = realRemove
 }
 
+// « Open activation page » also copies the code: the page asks for it typed (it shows nothing of it, on purpose), so what is left there is to paste it.
+{
+  const open = clientSource.slice(clientSource.indexOf('const openPage = () => {'), clientSource.indexOf('const header = h(\'div\', { className: \'kbc-head\' }'))
+  assert.ok(open.includes('copy()') && open.indexOf('copy()') < open.indexOf('window.open('), 'the page opens after the code is copied, in the same click')
+  assert.ok(clientSource.includes('the code is copied, paste it there to confirm') && clientSource.includes('le code est copié, colle-le là-bas'), 'the card says so, in both languages')
+  ok('Open activation page copies the code in the same click and the card says it is copied (both languages)')
+}
+
 console.log('\n' + pass + ' verifications OK')

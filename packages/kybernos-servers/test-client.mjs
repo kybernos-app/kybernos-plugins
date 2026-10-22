@@ -163,6 +163,7 @@ console.log('the sign-in, switch and remove dialogs')
 {
   const code = renderToStaticMarkup(React.createElement(SigninDialog, { signin: { id: 'acme-corp', code: 'KB-4829', url: 'https://kb.acme.corp/cloud/cli/activate?code=KB-4829' }, server: ACME, act }))
   check('the code, the link to the server\'s own activation page (opens a new tab safely), the waiting line and « Later »', code.includes('KB-4829') && /href="https:\/\/kb\.acme\.corp\/cloud\/cli\/activate/.test(code) && code.includes('rel="noopener noreferrer"') && code.includes('Waiting for your approval') && code.includes('data-kb="servers-signin-later"') && !code.includes('servers-newcode'))
+  check('opening the activation page also copies the code (the page asks for it typed): the link copies it on click, and the note says it is copied', read('client.js').includes("onClick: () => { try { navigator.clipboard.writeText(String(signin.code))") && code.includes('it is copied, paste it there'))
   const expired = renderToStaticMarkup(React.createElement(SigninDialog, { signin: { id: 'acme-corp', code: 'KB-4829', url: null, expired: true, error: say('code_expired') }, server: ACME, act }))
   check('an expired code says so, never mentions a licence, and offers a new one', expired.includes('The code expired. If you cannot create an account on this server, ask its administrator.') && expired.includes('data-kb="servers-newcode"') && !/licen/i.test(expired))
   const sw = renderToStaticMarkup(React.createElement(Confirm, { confirm: { kind: 'switch', server: ACME, busy: false }, act }))
