@@ -20,7 +20,7 @@ ok('the row key → icon entry table exists with the nine entries', Object.keys(
 const rowIds = [...SRC.matchAll(/\brow\('(\w+)', Icon\(/g)].map((m) => m[1])
 ok('every menu row that has an icon-set entry is in the table', Object.keys(entry).every((k) => rowIds.indexOf(k) >= 0), { rows: rowIds, table: Object.keys(entry) })
 ok('the rows that are not in the table are the ones with no entry (documents)', rowIds.filter((r) => entry[r] === undefined).every((r) => r === 'documents'), rowIds.filter((r) => entry[r] === undefined))
-ok('the row helper draws its icon through the registry', /h\('span', \{ className: 'kb4-ico' \}, kbMenuIcon\(id, ico, active === true\)\)/.test(SRC))
+ok('the row helper draws its icon through the registry (but for Kaby\'s own portrait)', /: kbMenuIcon\(id, ico, active === true\)/.test(SRC) && /h\('span', \{ className: 'kb4-ico' \}, iconNode\)/.test(SRC))
 ok('without a registry (or with the classic set) the line icon is returned as it was', /return fallback\n\}/.test(SRC) && /typeof svg === 'string'/.test(SRC))
 ok('the menu redraws when the set changes', /addEventListener\('kb-icons-change'/.test(SRC) && /removeEventListener\('kb-icons-change'/.test(SRC))
 const lucideKeys = new Set([...SRC.slice(SRC.indexOf('const LUCIDE = {'), SRC.indexOf('const Icon = (name, size)')).matchAll(/^  (\w+): \[/gm)].map((m) => m[1]))

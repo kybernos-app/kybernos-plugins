@@ -144,12 +144,16 @@ console.log('── the plugin ──')
   ok('a failing inject never throws out of apply', true)
   const noWindowOpen = await (async () => { const d = globalThis.document; globalThis.document = undefined; try { return await globalThis.window.__KB_KABY__.open() } finally { globalThis.document = d } })()
   ok('open() answers false instead of throwing when there is no page', noWindowOpen === false)
+  const events = []
+  globalThis.window.dispatchEvent = (e) => { events.push(e.type) }
+  globalThis.Event = globalThis.Event || class { constructor (type) { this.type = type } }
   const heard = []
   const off = globalThis.window.__KB_KABY__.subscribe((p) => heard.push(p))
   T.publish(publicProfile(emptyProfile()))
   off()
   T.publish(null)
   ok('a subscriber hears each change until it unsubscribes', heard.length === 1 && heard[0].name === 'Kaby')
+  ok('every change is also announced on the window, for the consumers that only read the profile', events.filter((t) => t === 'kb-kaby-profile').length >= 2, events.join())
   ok('a subscriber that throws does not stop the others', (() => { const got = []; const a = globalThis.window.__KB_KABY__.subscribe(() => { throw new Error('x') }); const b = globalThis.window.__KB_KABY__.subscribe((p) => got.push(p)); T.publish(publicProfile(emptyProfile())); a(); b(); return got.length === 1 })())
 }
 

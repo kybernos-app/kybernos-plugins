@@ -9,7 +9,7 @@
 // into a turn, and nothing here returns the account's token.
 import { chmodSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
-import { identityBlock } from './kyby-identity.mjs'
+import { aliasOf, identityBlock } from './kyby-identity.mjs'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const SESSION_ID = /^[A-Za-z0-9_.-]{8,120}$/
@@ -73,14 +73,15 @@ export const lastTurn = (messages) => {
 }
 
 /** What the server's conversation said last, as a few short lines. `skip` holds the starts of the texts this chat itself wrote there. */
-export const contextLines = (rows, skip) => {
+export const contextLines = (rows, skip, assistantName) => {
+  const label = aliasOf(assistantName) ?? ASSISTANT_NAME
   const out = []
   const mine = skip instanceof Set ? skip : new Set()
   for (const r of Array.isArray(rows) ? rows : []) {
     if (r === null || typeof r !== 'object' || (r.role !== 'user' && r.role !== 'assistant') || typeof r.content !== 'string') continue
     const text = strip(r.content).replace(/\s+/g, ' ')
     if (text === '' || mine.has(text.slice(0, 120))) continue
-    out.push((r.role === 'user' ? 'Person: ' : ASSISTANT_NAME + ': ') + (text.length > CONTEXT_CHARS ? text.slice(0, CONTEXT_CHARS - 1) + '…' : text))
+    out.push((r.role === 'user' ? 'Person: ' : label + ': ') + (text.length > CONTEXT_CHARS ? text.slice(0, CONTEXT_CHARS - 1) + '…' : text))
   }
   return out.slice(-CONTEXT_LINES)
 }
@@ -95,8 +96,8 @@ export const nowSentence = (d = new Date()) => {
 }
 
 /** The block of the system prompt, for Kaby's own chat: the identity text shared with the cloud computer's turns (kyby-identity.mjs). `lines` is what was said lately on the person's shared thread (Telegram's), given as data. */
-export const kybyPrompt = (lines, now = new Date()) =>
-  [KYBY_HEAD, identityBlock({ channel: 'chat', body: 'computer', nowText: nowSentence(now), thread: lines }), KYBY_TAIL].join('\n')
+export const kybyPrompt = (lines, now = new Date(), assistantName) =>
+  [KYBY_HEAD, identityBlock({ channel: 'chat', body: 'computer', nowText: nowSentence(now), thread: lines, assistantName }), KYBY_TAIL].join('\n')
 
 // ── the pointer file: which session is Kaby's ───────────────────────────────────────────────────────
 
@@ -129,7 +130,10 @@ export function createKybyNative (deps) {
   let pointer = { at: 0, value: null }
   let identity = { at: 0, token: '', value: null }
   let unsupportedUntil = 0
-  let context = { at: 0, lines: [], busy: false }
+  // The rows of the shared thread as the server sent them: they become lines at each prompt, so the label of the assistant's lines is always its current name.
+  let context = { at: 0, rows: [], busy: false }
+  /** The name the person gave their assistant, or null (a function of the caller: it can change at any time). */
+  const assistantName = () => { try { return typeof deps.assistantName === 'function' ? aliasOf(deps.assistantName()) : null } catch (e) { return null } }
   const mirrored = new Set()
 
   const sessionId = () => {
@@ -161,11 +165,11 @@ export function createKybyNative (deps) {
     context.busy = true
     try {
       const th = await thread(t)
-      if (th === null) { context.lines = []; context.at = now(); return }
+      if (th === null) { context.rows = []; context.at = now(); return }
       const res = await deps.apiCall('/v1/threads/' + encodeURIComponent(th.thread) + '/messages?limit=12', { method: 'GET', token: t, timeoutMs: 15000 })
       if (res.status === 404) { identity.value = null; return }
       const rows = res.status === 200 && res.body !== null && typeof res.body === 'object' ? res.body.messages : []
-      context.lines = contextLines(rows, mirrored)
+      context.rows = Array.isArray(rows) ? rows : []
       context.at = now()
     } catch (e) { /* the words stay as they were */ } finally { context.busy = false }
   }
@@ -177,7 +181,8 @@ export function createKybyNative (deps) {
     /** Called for each request of a turn: the identity block for Kaby's session, an empty string for every other. */
     promptFor (sid) {
       if (!this.isKyby(sid)) return ''
-      return kybyPrompt(context.lines)
+      const alias = assistantName()
+      return kybyPrompt(contextLines(context.rows, mirrored, alias), undefined, alias)
     },
     /** A message of the person was taken in Kaby's session: the shared thread is read again, for the next request. */
     noteClaim (sid) {
