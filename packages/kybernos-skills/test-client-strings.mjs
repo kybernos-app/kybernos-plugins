@@ -36,6 +36,11 @@ const missing = [...used].filter((k) => !dict.has(k))
 assert.deepEqual(missing, [], 'keys asked for and not defined: ' + missing.join(', '))
 ok('every t(\'…\') of the client names a defined key (' + used.size + ' used)')
 
+// 2a. the weekly card's third figure is « 12× » (how many times skills were used) with the number of DIFFERENT skills in brackets: its label says so
+// ("0× skills used (0)" read as two contradictory counts of the same thing).
+assert.ok(/uses/.test(dict.get('ln2.w.used').en) && /different/.test(dict.get('ln2.w.used').en) && /utilisations/.test(dict.get('ln2.w.used').fr) && /différentes/.test(dict.get('ln2.w.used').fr), 'the "used" figure names uses and how many different skills')
+ok('the weekly card says « N× skill uses (M different) »: the times and the number of skills are not two counts of the same thing')
+
 // 2b. the create dialog says a bad name while it is typed (A3-27): the same rule as the host, a sentence for each refusal
 assert.ok(dict.has('he.name_too_long') && dict.has('he.invalid_name'), 'the two name refusals have a sentence')
 assert.ok(/const nameRule = name === '' \? null : \(\/\^\[a-z0-9\]\+\(\?:-\[a-z0-9\]\+\)\*\$\/\.test\(name\) \? \(name\.length > 64 \? 'name_too_long' : null\) : 'invalid_name'\)/.test(src), 'the dialog applies the host rule')

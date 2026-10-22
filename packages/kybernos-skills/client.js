@@ -161,7 +161,7 @@ window.__ModuleLoader__.load({
         'ln2.w.hidden': { fr: 'Carte masquée jusqu’à la semaine prochaine. Tu peux la couper pour de bon dans Réglages › Compétences apprises.', en: 'Card hidden until next week. You can switch it off for good in Settings › Learned skills.' },
         'ln2.w.lessons': { fr: 'leçons', en: 'lessons' },
         'ln2.w.accepted': { fr: 'compétences acceptées', en: 'skills accepted' },
-        'ln2.w.used': { fr: 'compétences utilisées ({n})', en: 'skills used ({n})' },
+        'ln2.w.used': { fr: 'utilisations de compétences ({n} différentes)', en: 'skill uses ({n} different)' },
         'ln2.w.top': { fr: 'est celle que tu utilises le plus : {n} fois.', en: 'is the one you use most: {n} times.' },
         'ln2.w.waiting': { fr: '{n} suggestions attendent ton accord.', en: '{n} suggestions are waiting for your yes.' },
         'ln2.w.waiting.1': { fr: '1 suggestion attend ton accord.', en: '1 suggestion is waiting for your yes.' },
