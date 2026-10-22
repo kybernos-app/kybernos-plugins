@@ -16,8 +16,8 @@ the real application), with eleven parts to click: the brand → *Style*, the si
 *Light or dark*, the empty chat → *Wallpaper*, your bubble → *Your messages*, the agent's reply → *Agent replies*, the status line →
 *Thinking animation*, the title and the message box text → *Letters*, the send button → *Accent color*, the pills under the message
 box → *Under the message box*. Three chips under the window hold what cannot be pointed at: *Accent color*, *Effects and shape*,
-*Accessibility*. A click opens a short panel under the part (over it on a narrow page: under the window, in the flow); a click on a choice
-changes the look at once; « More options » in a panel holds the rest of what the nine tabs have for it.
+*Accessibility*. A click opens a short panel UNDER the window, never over it (what you change must stay in view while you change it); the window sticks to the
+top while the panel scrolls under it. A click on a choice changes the look at once; « More options » in a panel holds the rest of what the nine tabs have for it.
 
 - It has **no state of its own** but which panel is open. A choice is a setting of the page (`S`, through `commit`) or of the animation store
   (`ld`, through `ldSet`); the classic editor below sees the same state.
