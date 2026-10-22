@@ -246,11 +246,12 @@ try {
   await shot('intro-commands')
   const cpills = await pills()
   check('Commands: one « ? How it works » button', Array.isArray(cpills) && cpills.length === 1, cpills)
-  const c1 = await val(`(() => { const e = document.querySelector('.kbsl-tabfor'); return e ? e.innerText : null })()`)
-  check('Commands: the slash tab says what a slash command is', c1 !== null && /A slash command is a saved prompt/.test(c1), c1)
+  // The sentence of each tab is its tooltip (the page keeps no permanent line for it).
+  const c1 = await val(`(() => { const e = document.querySelectorAll('.kbsl-tab')[0]; return e ? e.title : null })()`)
+  check('Commands: the slash tab (its tooltip) says what a slash command is', c1 !== null && /A slash command is a saved prompt/.test(c1), c1)
   await press('.kbsl-tabs button:nth-of-type(2)')
   await sleep(500)
-  const c2 = await val(`(() => { const e = document.querySelector('.kbsl-tabfor'); return e ? e.innerText : null })()`)
+  const c2 = await val(`(() => { const e = document.querySelectorAll('.kbsl-tab')[1]; return e ? e.title : null })()`)
   check('…and the Message actions tab says what an action is', c2 !== null && /A message action is a button under each assistant reply/.test(c2), c2)
   await shot('commands')
 
