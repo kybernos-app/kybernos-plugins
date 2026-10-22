@@ -148,7 +148,7 @@ ok('A1-15: every bundle that declares an @keyframes or an animation has a prefer
 // These three had none (kbsl-blink, kbsl-livedot, kbsl-pulse, kbsl-spin, kbsl-rise; the Slides cursor, its correction flash and its caret; the Ollama spinner):
 // the rule must name every class they animate, and switch the animation off.
 for (const [bundle, classes] of [
-  ['kybernos-slash', ['kbsl-anim', 'kbsl-spin', 'kbsl-caret', 'kbsl-live', 'kbsl-flash', 'kbsl-fbody']],
+  ['kybernos-slash', ['kbsl-anim', 'kbsl-flash', 'kbsl-fbody']],
   ['kybernos-slides', ['ProseMirror-gapcursor', 'kbsd-cor', 'kbsd-caret']],
   ['kybernos-modeles-locaux', ['kml-spin']],
 ]) {

@@ -804,7 +804,8 @@ section('wired controls: the wallpaper itself')
 }
 section('wired controls: the effects stylesheet')
 {
-  const css = (st) => T.effetsCss({ ...T.DEF, ...st })
+  // bars on hover is ON by default: these tests look at everything else, so it is off here unless a test asks (see « bars on hover » below)
+  const css = (st) => T.effetsCss({ ...T.DEF, autoHideBars: false, ...st })
   check('nothing asked → nothing injected', css({}) === '')
   const g = css({ wp: 'aurore' })
   check('glass (wallpaper on): backdrop blur on the sidebar slot, the composer card, menus and listboxes — by DSH\'s stable hooks, never hashed classes', /\[data-slot="sidebar"\]/.test(g) && /\[data-composer-card\]/.test(g) && /\[role="menu"\]/.test(g) && /blur\(18px\)/.test(g) && !/[a-zA-Z0-9]{5,}_[a-z]/.test(g.replace(/data-[a-z-]+/g, '').replace(/backdrop-filter|-webkit-backdrop-filter/g, '')))
@@ -1013,7 +1014,8 @@ section('look studio: your bubble (a token) and the text colours')
   const ja = T.jetonsDe({ ...T.DEF, bubbleUser: 'accent', acc: '#EC4899' })
   check('« accent » follows each scheme\'s own accent fill', ja['--dsw-specific-bubble'].light === T.makeTheme('light', T.optsDe({ ...T.DEF, acc: '#EC4899' })).fill && ja['--dsw-specific-bubble'].dark === T.makeTheme('dark', T.optsDe({ ...T.DEF, acc: '#EC4899' })).fill)
   check('the bubble alone makes the layer exist (it is not the « natural » look)', T.estNaturel({ ...T.DEF }) === true && T.estNaturel({ ...T.DEF, bubbleUser: 'dark' }) === false && T.estNaturel({ ...T.DEF, sideTone: 'darker' }) === false)
-  const css = (st) => T.effetsCss({ ...T.DEF, ...st })
+  // bars on hover is ON by default: these tests look at everything else, so it is off here unless a test asks (see « bars on hover » below)
+  const css = (st) => T.effetsCss({ ...T.DEF, autoHideBars: false, ...st })
   check('the text colour is scoped to your messages by DSH\'s marker, never to the whole app', /\[data-chat-flow-kind="user"\]\{--dsw-alias-label-primary:#fde68a\}/.test(css({ textUser: '#fde68a' })) && !/^\*|(^|\})body\{/.test(css({ textUser: '#fde68a' })))
   const auto = css({ bubbleUser: 'dark' })
   check('an automatic text colour is written per scheme (white on the dark bubble of dark, on the ink one of light)', /body:not\(\[data-ds-dark-theme\]\) \[data-chat-flow-kind="user"\]\{--dsw-alias-label-primary:#FFFFFF\}/.test(auto) && /body\[data-ds-dark-theme\] \[data-chat-flow-kind="user"\]\{--dsw-alias-label-primary:#FFFFFF\}/.test(auto))
@@ -1022,7 +1024,8 @@ section('look studio: your bubble (a token) and the text colours')
 
 section('look studio: the agent\'s replies, shadows, glow, the pills under the message box')
 {
-  const css = (st) => T.effetsCss({ ...T.DEF, ...st })
+  // bars on hover is ON by default: these tests look at everything else, so it is off here unless a test asks (see « bars on hover » below)
+  const css = (st) => T.effetsCss({ ...T.DEF, autoHideBars: false, ...st })
   const R = '[data-chat-group-part="response"]{'
   check('no frame by default', !css({}).includes('data-chat-group-part'))
   const card = css({ replyBg: 'card' })
@@ -1037,7 +1040,7 @@ section('look studio: the agent\'s replies, shadows, glow, the pills under the m
   const dock = '[data-slot="conversation.composer.dock"]'
   check('the pills are shown unless switched off, each on its own', css({}) === '' && css({ wgSessions: false }) === dock + ' [data-kb="status-pill"]{display:none!important}' && css({ wgChanges: false }) === dock + ' [data-kb="changes"]{display:none!important}' && css({ wgUsage: false }) === dock + ' [data-kb="usage-chip"]{display:none!important}')
   // Bars on hover (owner's call, 2026-10-22): the collapsed rail and the chat's top bar hide to a sliver and come back at the edge.
-  check('bars on hover: off by default (nothing drawn), checked like the other booleans, and kept out of the presets', T.DEF.autoHideBars === false && css({}) === '' && T.valeursValides({ autoHideBars: true }).autoHideBars === true && T.valeursValides({ autoHideBars: 'yes' }).autoHideBars === undefined && !Object.values(T.PRESET_GROUPS).some((g) => g.includes('autoHideBars')))
+  check('bars on hover: on by default (owner\'s call), drawn only when on, checked like the other booleans, and kept out of the presets', T.DEF.autoHideBars === true && css({}) === '' && css({ autoHideBars: true }) !== '' && T.effetsCss({ ...T.DEF }) !== '' && T.valeursValides({ autoHideBars: true }).autoHideBars === true && T.valeursValides({ autoHideBars: 'yes' }).autoHideBars === undefined && !Object.values(T.PRESET_GROUPS).some((g) => g.includes('autoHideBars')))
   check('bars on hover: only under a pointer that can hover; the rail and the top bar hide to a sliver, and come back on hover, on focus or while a popup they opened is open', (() => {
     const x = css({ autoHideBars: true })
     return x.startsWith('@media (hover:hover) and (pointer:fine){') && /_sidebarCol"\]\{[^}]*translateX\(calc\(-100% \+ 8px\)\)/.test(x) && /_headerLeading"\]\)\{[^}]*translateY\(calc\(-100% \+ 6px\)\)/.test(x)
