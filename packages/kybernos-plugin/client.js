@@ -11745,7 +11745,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         const avatar = (kbHasAvatar(ui) === true ? h('img', { src: kbAvatarUrl(rootId, k.id) + (ui.avatarAt ? '&v=' + encodeURIComponent(ui.avatarAt) : ''), alt: '', onError: (ev) => { try { ev.currentTarget.style.display = 'none' } catch (e) { /* img */ } }, style: { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' } }) : null)
         return h('div', { className: 'kb8-card kb8-cmp kb8-kyber kb8-cf' + kbIn(ci), key: rootPath + '/' + k.id, 'data-kb': 'kyber-card', 'data-root': rootPath, style: kbCfVars(color) === null ? undefined : kbCfVars(color), onClick: () => open({ rootId, k, rootLabel }) },
           kbCfWatermark(icon),
-          h('div', { className: 'kb8-cf-top' }, kbCfIcon(color, icon, avatar, isActive === true), h('span', { className: 'kb8-cf-txt' }, h('span', { className: 'kb8-name' }, name), sub === '' ? null : h('span', { className: 'kb8-cf-sub' }, sub))),
+          h('div', { className: 'kb8-cf-top' }, kbCfIcon(color, icon, avatar, isActive === true), h('span', { className: 'kb8-cf-txt' }, h('span', { className: 'kb8-name' }, name), sub === '' ? null : h('span', { className: 'kb8-cf-sub', title: sub }, sub))),
           mission === '' ? null : h('p', { className: 'kb8-desc' }, mission),
           // The foot: the number of agents, where the team runs (the badge that used to wait for a hover in the actions row is always
           // there, so two cards can be compared at a glance: a cloud when the team also exists as Hosted, a screen when it is local) and
