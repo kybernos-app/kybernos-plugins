@@ -481,7 +481,7 @@ try {
   await page.shot(join(shotDir, 'agents.png'))
   await press('Continue')
   check('the starter kit follows, named after the field', (await seen('A starter kit for Education')) !== null, String(await h1()))
-  check('it is the last numbered step, with the display mode as one row (office for an educator) and the kit as one line', /^Step 6 of 6$/.test(String(await q(`(document.querySelector('.kb-ob-eyebrow') || {}).textContent`))) && (await q(`document.querySelector('.kb-ob-seg button.on').textContent`)) === 'Office mode' && /^Skills: 5 · Teams: 2 · Automations \(off\): 1/.test(String(await q(`document.querySelector('.kb-ob-sumrow').textContent`))) && (await q(`document.querySelectorAll('.kb-ob-kit').length`)) === 0)
+  check('it is the last numbered step, with NO display-mode row (the field decides it) and the kit as one line', /^Step 6 of 6$/.test(String(await q(`(document.querySelector('.kb-ob-eyebrow') || {}).textContent`))) && (await q(`!document.querySelector('.kb-ob-seg') && !document.querySelector('.kb-ob-rw')`)) === true && /^Skills: 5 · Teams: 2 · Automations \(off\): 1/.test(String(await q(`document.querySelector('.kb-ob-sumrow').textContent`))) && (await q(`document.querySelectorAll('.kb-ob-kit').length`)) === 0)
   await q(`document.querySelector('.kb-ob-sumrow').click()`)
   await sleep(200)
   // The screen is drawn with the default ticks at once and the installed marks follow when the two reads of what is installed (the skills list, the agent teams) have

@@ -41,7 +41,7 @@ eq('no raw HTML or script marker in any text', keys.filter((k) => mod.KB_OB_T[k]
 
 /* ── 2. The families of keys the UI builds by concatenation ──────────────── */
 eq('the twelve profession texts are gone: the fields of work come from the domain packs', Object.keys(mod.KB_OB_T).filter((k) => /^p\./.test(k)), [])
-eq('a title and a description for every display mode', mod.KB_OB_MODES.filter((m) => mod.KB_OB_T['mode.' + m + '.t'] === undefined || mod.KB_OB_T['mode.' + m + '.d'] === undefined), [])
+eq('a title for every display mode (the recap and the memory line name it; the kit step no longer asks for it)', mod.KB_OB_MODES.filter((m) => mod.KB_OB_T['mode.' + m + '.t'] === undefined), [])
 eq('the display mode ids are the ones the previous wizard stored', mod.KB_OB_MODES, ['code', 'bureau'])
 eq('every message of the key form has a text', ['format', 'invalid', 'denied', 'unreach', 'fail'].filter((k) => mod.KB_OB_T['key.err.' + k] === undefined), [])
 eq('every refusal of an installation has a text', ['noengine', 'busy', 'failed', 'connect'].filter((k) => mod.KB_OB_T['loc.err.' + k] === undefined), [])
@@ -198,7 +198,7 @@ eq('an unknown goal id is ignored and a skill shared by two goals shows once und
 /* ── 5e. The new steps: « about you », the agents, the plan ──────────────── */
 const newStrings = ['about.t', 'about.s', 'about.site', 'about.site.ph', 'about.site.h', 'about.soc', 'about.soc.ph', 'about.free', 'about.free.ph', 'about.pass', 'about.guess', 'about.guess.go', 'ag.t', 'ag.s', 'ag.prudent.t', 'ag.prudent.d', 'ag.balanced.t', 'ag.balanced.d', 'ag.auto.t', 'ag.auto.d', 'ag.prudent.l', 'ag.balanced.l', 'ag.auto.l', 'ag.for', 'ag.why', 'ag.note', 'ag.learn', 'plan.t', 'plan.s', 'plan.team.t', 'plan.team.b1', 'plan.team.b2', 'plan.team.b3', 'plan.team.go', 'plan.team.note', 'plan.free.t', 'plan.free.b1', 'plan.free.b2', 'plan.free.b3', 'plan.free.go']
 eq('every string of the new steps exists in the four languages', newStrings.filter((k) => !(Array.isArray(mod.KB_OB_T[k]) && mod.KB_OB_T[k].length === 4 && mod.KB_OB_T[k].every((v) => typeof v === 'string' && v.length > 0))), [])
-eq('the display mode screen\'s own texts are gone, its modes keep theirs', [mod.KB_OB_T['mode.t'], mod.KB_OB_T['mode.s'], mod.KB_OB_T['mode.code.t'] !== undefined, mod.KB_OB_T['mode.bureau.d'] !== undefined], [undefined, undefined, true, true])
+eq('the display mode screen\'s own texts are gone, its modes keep their names only (the row of the kit step is gone too)', [mod.KB_OB_T['mode.t'], mod.KB_OB_T['mode.s'], mod.KB_OB_T['mode.code.t'] !== undefined, mod.KB_OB_T['mode.bureau.d'], mod.KB_OB_T['mode.code.d']], [undefined, undefined, true, undefined, undefined])
 eq('the sentence box is gone: its texts and its state are not left behind', [Object.keys(mod.KB_OB_T).filter((k) => /^job\.nl/.test(k)), /nlText|nlNote|kb-ob-nl/.test(ui[1] + src.slice(src.indexOf("'.kb-ob-main.kb-ob-split"), src.indexOf("'.kb-ob-chips{")))], [[], false])
 eq('the three presets, the least autonomous first, and a text for each', [mod.KB_OB_PRESETS, mod.KB_OB_PRESETS.every((id) => ['ag.' + id + '.t', 'ag.' + id + '.d', 'ag.' + id + '.l', 'mem.agents.' + id].every((k) => mod.KB_OB_T[k] !== undefined))], [['prudent', 'balanced', 'auto'], true])
 const dev = pack('dev')
