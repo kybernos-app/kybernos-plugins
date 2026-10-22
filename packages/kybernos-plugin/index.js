@@ -18,6 +18,7 @@ import { recordFeedback, exportFeedback, relayReportOf } from './feedback-box.mj
 import { writeGuard } from './session-guard.mjs'
 import { defaultState as onboardingDefault, publicView as onboardingView, complete as onboardingComplete, replay as onboardingReplay, chooseDomain as onboardingChooseDomain, aboutView as onboardingAbout } from './onboarding-state.mjs'
 import { isSuggested as autoIsSuggested, suggestedTask as autoSuggestedTask, acceptedTask as autoAcceptedTask, refusalFor as autoSuggestRefusal, HOME_ID_RE as AUTO_HOME_ID_RE, runFrame as autoRunFrame } from './automation-suggest.mjs'
+import { learnTask as autoLearnTask, isLearnName as autoIsLearnName, LEARN_ID as AUTO_LEARN_ID } from './learn-business.mjs'
 import { mountAutomationTools } from './automation-tools.mjs'
 import { makeLedger as makeSuggestionLedger } from './suggestions.mjs'
 import { loadPacks as loadDomainPacks, domainOfProfil, mergePackSets, DOMAIN_POINT, DOMAIN_POINT_REF } from './domain-pack.mjs'
@@ -367,7 +368,7 @@ const kbFrequentRefusal = (cleanTask, requestTask, previous) => {
 // Generic nextRun (ms epoch): a one-time date that has passed never comes back.
 const kbComputeNextRun = (task, afterMs, tzFallback) => {
   if (task === null || typeof task !== 'object') return null
-  if (task.active !== true || autoIsSuggested(task) === true) return null
+  if (task.active !== true || task.suggested === true) return null // (inline: this block is read on its own by the tests and has no imports)
   const sc = task.schedule
   if (sc === null || typeof sc !== 'object') return null
   const nowMs = typeof afterMs === 'number' && Number.isFinite(afterMs) ? afterMs : Date.now()
@@ -2893,6 +2894,24 @@ function boot(ctx) {
           if (refused === null) tasks.push(task)
         })
         return refused !== null ? refused : { ok: true, task }
+      }
+      // « Learn my business »: made once (found again by its name in any language), switched on, weekly, in a session of its own. The onboarding step calls it; it only ever proposes.
+      if (action === 'learn') {
+        const about = body.about !== null && typeof body.about === 'object' ? body.about : {}
+        const built = autoLearnTask({ lang: str(body.lang) || 'en', tz: str(body.tz), fieldId: str(body.fieldId) || '', field: str(body.field) || '', goals: Array.isArray(body.goals) ? body.goals.filter((g) => typeof g === 'string') : [], about })
+        const clean = kbSanitizeTaskInput(built)
+        if (clean.ok !== true) return { ok: false, error: clean.error }
+        const now = new Date().toISOString()
+        const task = Object.assign({ id: kbTaskId(), createdAt: now, updatedAt: now, history: [], lastRun: null }, clean.task, { origin: { by: 'kaby', recipe: AUTO_LEARN_ID, at: now } })
+        const nx = kbComputeNextRun(task, Date.now())
+        if (kbNeverRuns(task, nx) === true) return { ok: false, error: kbNoNextRunError(task) }
+        task.nextRun = nx === null ? null : new Date(nx).toISOString()
+        let existing = null
+        await kbTasksMutate(async (tasks) => {
+          existing = tasks.find((t) => t !== null && typeof t === 'object' && ((t.origin !== null && typeof t.origin === 'object' && t.origin.recipe === AUTO_LEARN_ID) || autoIsLearnName(t.name))) || null
+          if (existing === null) tasks.push(task)
+        })
+        return existing !== null ? { ok: true, task: existing, existed: true } : { ok: true, task, existed: false }
       }
       if (action === 'accept') {
         const id = str(body.id)

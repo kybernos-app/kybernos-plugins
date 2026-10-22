@@ -186,6 +186,24 @@ writeFileSync(file, good)
   writeFileSync(file, good)
 }
 
+/* ── « Learn my business »: made once, weekly, switched on, in a session of its own, asking first ─────────────── */
+{
+  const body = { action: 'learn', lang: 'fr', tz: 'Europe/Paris', fieldId: 'immo', field: 'Immobilier', goals: ['Suivre mes mandats'], about: { site: 'https://agence-exemple.test', profile: 'linkedin.com/in/exemple', words: 'Agence de quartier, vente et location.' } }
+  const l = (await api(body)).json
+  eq('learn creates the recipe, switched on, weekly on Mondays, in a session of its own', l.ok + ':' + l.existed + ':' + l.task.active + ':' + l.task.schedule.cron + ':' + l.task.sessionMode + ':' + l.task.approvals, 'true:false:true:0 7 * * 1:home:ask')
+  eq('...named in the person\'s language and marked as Kaby\'s recipe', l.task.name + ':' + l.task.origin.by + ':' + l.task.origin.recipe, 'Apprendre mon métier:kaby:learn-my-business')
+  eq('...with a next run', typeof l.task.nextRun, 'string')
+  eq('...asking for the two mail apps outside the sensitive fields', l.task.needs.join(','), 'gmail,googlecalendar')
+  eq('...and carrying what the person said, as data', /agence-exemple\.test/.test(l.task.prompt) && /Agence de quartier/.test(l.task.prompt) && /Immobilier/.test(l.task.prompt), true)
+  const again = (await api({ ...body, lang: 'en' })).json
+  eq('learn twice finds the first one again, whatever the language', again.ok + ':' + again.existed + ':' + again.task.id, 'true:true:' + l.task.id)
+  eq('...and there is one in the list', (await api({ action: 'list' })).json.tasks.filter((t) => t.name === 'Apprendre mon métier' || t.name === 'Learn my business').length, 1)
+  await api({ action: 'delete', id: l.task.id })
+  const law = (await api({ ...body, lang: 'en', fieldId: 'droit', field: 'Law' })).json
+  eq('Law: no mail app is asked for and the prompt says mail is not read', law.task.needs.length + ':' + /NOT read in this run/.test(law.task.prompt), '0:true')
+  await api({ action: 'delete', id: law.task.id })
+}
+
 /* ── Runs in a session of their own: the home of an automation ─────────────── */
 {
   sessions.created = 0; sessions.prompts.length = 0; perm.log.length = 0

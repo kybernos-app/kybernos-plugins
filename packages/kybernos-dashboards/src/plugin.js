@@ -1370,10 +1370,11 @@ function DashboardsPage () {
     ;(async () => {
       const l = await refreshList()
       if (dead || l === null) { if (!dead) setScreen('gallery'); return }
-      const live = (l.dashboards || []).filter((d) => !d.archived)
+      // a suggestion of Kaby waits in its block of the gallery: it is never opened by itself, not even as the only dashboard
+      const live = (l.dashboards || []).filter((d) => !d.archived && d.suggested !== true)
       const want = WANT_OPEN_ID; WANT_OPEN_ID = null
-      // the one asked for, the default, the one looked at last, else the only one there is; with several and no choice, the gallery
-      const pick = (want !== null && live.find((d) => d.id === want)) || live.find((d) => d.id === l.default) || live.find((d) => d.id === lastOpened.get()) || (live.length === 1 ? live[0] : null)
+      // the one asked for, the default, the one looked at last, else the only one there is (unless a suggestion waits: then the gallery shows it); with several and no choice, the gallery
+      const pick = (want !== null && live.find((d) => d.id === want)) || live.find((d) => d.id === l.default) || live.find((d) => d.id === lastOpened.get()) || (live.length === 1 && !(l.dashboards || []).some((d) => d.suggested === true && !d.archived) ? live[0] : null)
       if (pick) await open(pick.id); else setScreen('gallery')
     })()
     const onWant = () => { const id = WANT_OPEN_ID; WANT_OPEN_ID = null; if (id) { refreshList().then(() => open(id)) } }
@@ -1458,7 +1459,7 @@ function DashboardsPage () {
   const header = screen === 'dash' && D !== null
     ? h('header', { className: 'kbdb-ph' },
       h('div', { className: 'kbdb-ph-l' },
-        h('div', { className: 'kbdb-crumb' }, h('button', { type: 'button', onClick: toGallery }, pageName()), h('span', null, '/'), h('span', null, D.name), dash.isDefault ? h('span', { className: 'kbdb-pill def' }, kt('Par défaut', 'Default')) : null),
+        h('div', { className: 'kbdb-crumb' }, h('button', { type: 'button', 'data-kb': 'crumb-gallery', onClick: toGallery }, pageName(), sug.length > 0 ? h('i', { className: 'kb-ping', role: 'img', 'aria-label': kt('Suggestions de Kaby à voir', 'Kaby suggestions to review') }) : null), h('span', null, '/'), h('span', null, D.name), dash.isDefault ? h('span', { className: 'kbdb-pill def' }, kt('Par défaut', 'Default')) : null),
         h('h1', { className: 'kbdb-title' }, h('span', { className: 'kbdb-rel' },
           h('button', { type: 'button', 'aria-haspopup': 'listbox', 'aria-expanded': pop === 'switch', onClick: () => setPop(pop === 'switch' ? '' : 'switch') }, D.name, Ic('chev', 16)),
           pop === 'switch' ? h('div', { className: 'kbdb-pop', role: 'listbox' },

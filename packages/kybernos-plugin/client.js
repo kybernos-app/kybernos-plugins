@@ -26823,8 +26823,10 @@ function renderFit(canvas, model, cam, opts){
         const iv = setInterval(pull, 20000)
         return () => { dead = true; clearInterval(iv) }
       }, [])
-      const runningKey = (typeof uss === 'function' && pairs.length > 0)
-        ? uss((st) => kbTasksRunningIds(pairs, st !== null && st !== undefined ? st.byId : null).join(','))
+      // The hook is called at EVERY render (a hook called only once there are runs to look at changes the hook count between two renders and React throws, which took the whole menu down):
+      // with nothing to look at, the selector answers an empty string.
+      const runningKey = (typeof uss === 'function')
+        ? uss((st) => (pairs.length === 0 ? '' : kbTasksRunningIds(pairs, st !== null && st !== undefined ? st.byId : null).join(',')))
         : ''
       React.useEffect(() => {
         const prev = KB_MENU_STATE.get('tasks')
@@ -35840,6 +35842,13 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       'pv.cap.other': ['This is the space you are setting up.', 'Voilà l’espace que tu es en train de préparer.', 'Este es el espacio que estás preparando.', 'هذه هي المساحة التي تجهّزها.'],
       'k.autos': ['Automations', 'Automatisations', 'Automatizaciones', 'الأتمتة'],
       'k.autos.note': ['Created switched off: you turn each one on when you want it.', 'Créées éteintes : tu allumes chacune quand tu veux.', 'Se crean apagadas: tú enciendes cada una cuando quieras.', 'تُنشأ متوقفة: تشغّل كل واحدة عندما تريد.'],
+      'k.learn.t': ['Learn my business', 'Apprendre mon métier', 'Aprender mi negocio', 'تعلم عملي'],
+      'k.learn.d': ['An automation that runs now, then every Monday at 07:00. It reads your site; with Gmail and Calendar connected, it reads them too. It only proposes: nothing is added or switched on without your click.', 'Une automation qui s’exécute maintenant, puis chaque lundi à 07 h. Elle lit ton site ; avec Gmail et Agenda connectés, elle les lit aussi. Elle ne fait que proposer : rien n’est ajouté ni activé sans ton clic.', 'Una automatización que se ejecuta ahora y luego cada lunes a las 07:00. Lee tu sitio; con Gmail y Calendar conectados, también los lee. Solo propone: nada se añade ni se activa sin tu clic.', 'أتمتة تعمل الآن ثم كل اثنين الساعة 07:00. تقرأ موقعك، ومع ربط Gmail والتقويم تقرأهما أيضا. تقترح فقط: لا يضاف شيء ولا يفعل بدون نقرتك.'],
+      'k.learn.d.s': ['An automation that runs now, then every Monday at 07:00. It reads your site and your public profile. In your field your mail and calendar are never read: that would need a model that stays on your computer. It only proposes: nothing is added or switched on without your click.', 'Une automation qui s’exécute maintenant, puis chaque lundi à 07 h. Elle lit ton site et ton profil public. Dans ton domaine, ton mail et ton agenda ne sont jamais lus : il faudrait un modèle qui reste sur ton ordinateur. Elle ne fait que proposer : rien n’est ajouté ni activé sans ton clic.', 'Una automatización que se ejecuta ahora y luego cada lunes a las 07:00. Lee tu sitio y tu perfil público. En tu campo tu correo y tu agenda nunca se leen: haría falta un modelo que se quede en tu ordenador. Solo propone: nada se añade ni se activa sin tu clic.', 'أتمتة تعمل الآن ثم كل اثنين الساعة 07:00. تقرأ موقعك وملفك العام. في مجالك لا يقرأ بريدك ولا تقويمك أبدا: يلزم نموذج يبقى على حاسوبك. تقترح فقط: لا يضاف شيء ولا يفعل بدون نقرتك.'],
+      'k.learn.better': ['Better with Gmail and Google Calendar: you will be asked later, in Connectors.', 'Plus utile avec Gmail et Google Agenda : on te le proposera plus tard, dans Connecteurs.', 'Mejor con Gmail y Google Calendar: te lo propondremos más tarde, en Conectores.', 'أفضل مع Gmail وتقويم Google: سنقترح ذلك لاحقا في الموصلات.'],
+      'k.learn.chip': ['proposes only', 'propose seulement', 'solo propone', 'يقترح فقط'],
+      'k.learn.note': ['« Learn my business » is the one exception: it starts now, then every Monday. Everything it proposes waits for your click on the page it belongs to.', '« Apprendre mon métier » est la seule exception : elle démarre maintenant, puis chaque lundi. Tout ce qu’elle propose attend ton clic, sur la page concernée.', '« Aprender mi negocio » es la única excepción: empieza ahora y luego cada lunes. Todo lo que propone espera tu clic en la página correspondiente.', 'تعلم عملي هي الاستثناء الوحيد: تبدأ الآن ثم كل اثنين. كل ما تقترحه ينتظر نقرتك في الصفحة المعنية.'],
+      'k.sum.learn': [' · Learn my business: on', ' · Apprendre mon métier : active', ' · Aprender mi negocio: activa', ' · تعلم عملي: مفعلة'],
       'k.src.kb': ['included with Kybernos', 'fourni avec Kybernos', 'incluido con Kybernos', 'مضمّن مع Kybernos'],
       'mode.code.t': ['Coding mode', 'Mode Code', 'Modo Código', 'وضع البرمجة'],
       'mode.code.d': ['I want to see code, command output, and change details throughout the development process.', 'Je veux voir le code, les sorties de commandes et le détail des changements tout au long du chantier.', 'Quiero ver el código, la salida de los comandos y el detalle de los cambios durante todo el trabajo.', 'أريد رؤية الشيفرة ومخرجات الأوامر وتفاصيل التغييرات طوال العمل.'],
@@ -36141,10 +36150,16 @@ html.wv2-actif [data-composer-seat]{display:none !important}
     const kbObModeOf = (pack) => (pack !== null && pack !== undefined && KB_OB_MODES.indexOf(pack.mode) >= 0 ? pack.mode : 'bureau')
     const kbObAgentsOf = (pack) => (pack !== null && pack !== undefined && pack.agents !== null && typeof pack.agents === 'object' && KB_OB_PRESETS.indexOf(pack.agents.preset) >= 0
       ? { preset: pack.agents.preset, why: pack.agents.why !== undefined ? pack.agents.why : null } : { preset: 'balanced', why: null })
+    /** « Learn my business » (host: learn-business.mjs): its id, its names, and the fields whose mail and calendar are never read. */
+    const KB_OB_LEARN_ID = 'learn-my-business'
+    const KB_OB_LEARN_NAMES = { en: 'Learn my business', fr: 'Apprendre mon métier' }
+    const KB_OB_SENSITIVE = ['droit', 'sante']
     /** The kit of a field for some goals: their skills and teams, each once, in the goals' order, and what is planned. Empty for no pack or no goal. */
     const kbObKitOf = (pack, goalIds) => {
-      const kit = { skills: [], teams: [], autos: [], soon: [] }
+      const kit = { skills: [], teams: [], autos: [], soon: [], learn: null }
       const seen = {}
+      // « Learn my business » is offered with every field once a goal is ticked: it is not one of the pack's own automations (those are created switched off).
+      if (pack !== null && pack !== undefined && kbObGoalsOf(pack, goalIds).length > 0) kit.learn = { id: KB_OB_LEARN_ID, sensitive: KB_OB_SENSITIVE.indexOf(pack.id) >= 0 }
       for (const g of kbObGoalsOf(pack, goalIds)) {
         for (const x of Array.isArray(g.skills) ? g.skills : []) if (seen['s ' + x.source + ' ' + x.name] !== true) { seen['s ' + x.source + ' ' + x.name] = true; kit.skills.push(x) }
         for (const id of Array.isArray(g.teams) ? g.teams : []) if (seen['t ' + id] !== true) { seen['t ' + id] = true; kit.teams.push(id) }
@@ -36272,6 +36287,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       return kit.skills.filter((s) => skills.indexOf(s.name) < 0).map((s) => 's:' + s.name)
         .concat(kit.teams.filter((id) => teams.indexOf(id) < 0).map((id) => 't:' + id))
         .concat((Array.isArray(kit.autos) ? kit.autos : []).filter((x) => !kbObAutoMade(x, have.autos)).map((x) => 'a:' + x.id))
+        .concat(kit.learn !== null && kit.learn !== undefined && !kbObAutoMade({ name: KB_OB_LEARN_NAMES }, have.autos) ? ['a:' + KB_OB_LEARN_ID] : [])
     }
     /** The sentence kept in the person's memory about the field, the goals and the display mode, or null when none is known. `domain` and `goals` are names. */
     const kbObMemoryText = (lang, domain, goals, mode, extra) => {
@@ -37047,6 +37063,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         for (const sk of kit.skills) if (sel.has('s:' + sk.name)) todo.push({ team: null, skill: sk })
         for (const id of kit.teams) if (sel.has('t:' + id)) todo.push({ team: id, skill: null })
         for (const x of kit.autos) if (sel.has('a:' + x.id)) todo.push({ team: null, skill: null, auto: x })
+        if (kit.learn !== null && sel.has('a:' + KB_OB_LEARN_ID)) todo.push({ team: null, skill: null, learn: kit.learn })
         if (todo.length === 0) { if (S.kitOnly) finish(); else afterKit(); return }
         S.kitBusy = { i: 0, n: todo.length }
         S.kitAdded = 0
@@ -37057,7 +37074,14 @@ html.wv2-actif [data-composer-seat]{display:none !important}
           S.kitBusy.i += 1
           render(false)
           let ok = false
-          if (item.auto !== undefined && item.auto !== null) {
+          if (item.learn !== undefined && item.learn !== null) {
+            // Made on, weekly, in its own session; the host finds it again if it exists. Started at once, so the first proposals wait on the pages by the time the person gets there.
+            let tz = ''
+            try { tz = new win.Intl.DateTimeFormat().resolvedOptions().timeZone || '' } catch (e) { tz = '' }
+            const r = await call('/kybernos/tasks', 'POST', { action: 'learn', lang: S.lang, tz: tz, fieldId: S.domain, field: packName(curPack()), goals: kbObGoalsOf(curPack(), S.goals).map((g) => kbObPackText(S.lang, g.name)), about: { site: S.site.trim(), profile: S.social.trim(), words: S.words.trim() } })
+            ok = r !== null && r.ok === true
+            if (ok && r.existed !== true && r.task !== null && typeof r.task === 'object' && typeof r.task.id === 'string') await call('/kybernos/tasks', 'POST', { action: 'run-now', id: r.task.id })
+          } else if (item.auto !== undefined && item.auto !== null) {
             // Created switched off, to run on the schedule the person turns on (approvals stay on « ask »).
             const r = await call('/kybernos/tasks', 'POST', { action: 'create', task: { name: kbObPackText(S.lang, item.auto.name), prompt: kbObPackText(S.lang, item.auto.prompt), schedule: { mode: 'cron', cron: item.auto.cron }, active: false, approvals: 'ask' } })
             ok = r !== null && r.ok === true
@@ -37512,7 +37536,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
             const sumBtn = h('button', 'kb-ob-sumrow')
             sumBtn.type = 'button'
             sumBtn.setAttribute('aria-expanded', S.kitOpen ? 'true' : 'false')
-            sumBtn.appendChild(h('span', null, T('k.sum', { a: kit.skills.length, b: teams.length, c: kit.autos.length })))
+            sumBtn.appendChild(h('span', null, T('k.sum', { a: kit.skills.length, b: teams.length, c: kit.autos.length }) + (kit.learn !== null && kitSelection().has('a:' + KB_OB_LEARN_ID) ? T('k.sum.learn') : '')))
             sumBtn.appendChild(h('span', 'kb-ob-sumtg', S.kitOpen ? T('k.sum.close') : T('k.sum.open')))
             sumBtn.addEventListener('click', () => { S.kitOpen = !S.kitOpen; render(false) })
             s.appendChild(sumBtn)
@@ -37540,6 +37564,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
             if (meta !== '') tx.appendChild(h('span', 'kb-ob-meta', meta))
             b.appendChild(tx)
             if (done || o.soon === true) b.appendChild(h('span', 'kb-ob-chip2', done ? T('k.done') : T('k.soon')))
+            else if (typeof o.chip === 'string') b.appendChild(h('span', 'kb-ob-chip2', o.chip))
             if (!off) b.addEventListener('click', () => { if (sel.has(key)) sel.delete(key); else sel.add(key); render(false) })
             return b
           }
@@ -37560,14 +37585,16 @@ html.wv2-actif [data-composer-seat]{display:none !important}
             for (const x of kit.soon) { const name = kbObPackText(S.lang, x); tb.appendChild(kitRow('x:' + name, name, '', '', { soon: true, initials: name.slice(0, 2).toUpperCase() })) }
             s.appendChild(tb)
           }
-          if (kit.autos.length > 0) {
+          if (kit.autos.length > 0 || kit.learn !== null) {
             const ab = h('div', 'kb-ob-kitbox')
-            ab.appendChild(group('k.autos', kit.autos.length))
+            ab.appendChild(group('k.autos', kit.autos.length + (kit.learn !== null ? 1 : 0)))
             for (const x of kit.autos) ab.appendChild(kitRow('a:' + x.id, kbObPackText(S.lang, x.name), kbObCronLabel(S.lang, x.cron), '', { done: have !== null && kbObAutoMade(x, have.autos) }))
+            if (kit.learn !== null) ab.appendChild(kitRow('a:' + KB_OB_LEARN_ID, T('k.learn.t'), T(kit.learn.sensitive ? 'k.learn.d.s' : 'k.learn.d'), kit.learn.sensitive ? '' : T('k.learn.better'), { done: have !== null && kbObAutoMade({ name: KB_OB_LEARN_NAMES }, have.autos), chip: T('k.learn.chip') }))
             s.appendChild(ab)
-            s.appendChild(note(T('k.autos.note'), 'info'))
+            if (kit.autos.length > 0) s.appendChild(note(T('k.autos.note'), 'info'))
+            if (kit.learn !== null) s.appendChild(note(T('k.learn.note'), 'info'))
           }
-          if (kit.skills.length === 0 && teams.length === 0 && kit.autos.length === 0 && kit.soon.length === 0) s.appendChild(h('p', 'kb-ob-sub', S.kitOnly && S.domain === null ? T('k.pick') : T('k.empty')))
+          if (kit.skills.length === 0 && teams.length === 0 && kit.autos.length === 0 && kit.learn === null && kit.soon.length === 0) s.appendChild(h('p', 'kb-ob-sub', S.kitOnly && S.domain === null ? T('k.pick') : T('k.empty')))
           s.appendChild(note(T('k.note'), 'info'))
           }
           if (S.kitDone) {
