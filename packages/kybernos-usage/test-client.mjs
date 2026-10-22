@@ -138,6 +138,60 @@ ok('stable test hooks exist', ['kybernos-usage-pill', 'kybernos-usage-card', 'ky
   ok('a change inside the throttle window is deferred, not lost', posts.length === 1)
 }
 
+// ── L5-01: the lines under the title add up to the title ───────────────────────────────────────────────────────────────────
+// The title and the cost count the tokens written to the cache (`tsum`, `costOf`); the card listed three lines and a three-segment bar,
+// so as soon as `cw > 0` the lines no longer made the total and a person checking the counter could not redo it.
+{
+  const prevLang = globalThis.window.__KB_LANG_RESOLVE__
+  globalThis.window.__KB_LANG_RESOLVE__ = () => 'en'
+  const find = (node, test, out = []) => {
+    if (node === null || typeof node !== 'object') return out
+    if (test(node)) out.push(node)
+    const kids = node.kids || []
+    for (const c of Array.isArray(kids) ? kids.flat() : [kids]) find(c, test, out)
+    return out
+  }
+  const text = (n) => (n === null || n === undefined || n === false ? '' : typeof n !== 'object' ? String(n) : (n.kids || []).flat().map(text).join(' '))
+  const price = { in: 3, out: 15, cr: 0.3, cw: 3.75 }
+  const card = (tokens, p = price) => T.OwnBlock({ key: 'acme/pro', kind: 'priced', tokens, price: p, month: null })
+  const rows = (el) => find(el, (n) => n.type === 'li').map((li) => { const cells = find(li, (n) => n.type === 'span' && !(n.props && n.props.className === 'd')).map(text); return { label: cells[0], tokens: cells[1], cost: cells[2] } })
+  const segments = (el) => find(el, (n) => n.props && n.props.className === 'kbus-split').flatMap((n) => find(n, (k) => k.type === 'i'))
+
+  const without = { u: 1e6, cr: 2e6, cw: 0, o: 1e5 }
+  const r3 = rows(card(without))
+  ok('no cache write: the three lines stay three (New input, Cache read, Output)', r3.map((r) => r.label).join('|') === 'New input|Cache read|Output', r3.map((r) => r.label).join('|'))
+  ok('no cache write: the bar keeps its three segments', segments(card(without)).length === 3, String(segments(card(without)).length))
+
+  const withCw = { u: 1e6, cr: 2e6, cw: 1e6, o: 1e5 }
+  const el = card(withCw)
+  const r4 = rows(el)
+  ok('with a cache write: a fourth line, in the order the bar draws', r4.map((r) => r.label).join('|') === 'New input|Cache read|Cache write|Output', r4.map((r) => r.label).join('|'))
+  ok('...and a fourth segment in the bar', segments(el).length === 4, String(segments(el).length))
+  const want = [withCw.u, withCw.cr, withCw.cw, withCw.o]
+  ok('the token column lists the four counters', r4.every((r, i) => r.tokens === T.fmtTok(want[i])), JSON.stringify(r4.map((r) => r.tokens)))
+  const parts = [withCw.u * price.in, withCw.cr * price.cr, withCw.cw * price.cw, withCw.o * price.out].map((v) => v / 1e6)
+  ok('the cost column prices each line (cache write at the cache-write rate)', r4.every((r, i) => r.cost === T.fmtMoney(parts[i])), JSON.stringify(r4.map((r) => r.cost)))
+  ok('the four lines make the title: tokens add up to the total and costs to costOf',
+    want.reduce((a, b) => a + b, 0) === 4.1e6 && Math.abs(parts.reduce((a, b) => a + b, 0) - T.costOf(withCw, price)) < 1e-9)
+  ok('the title is that cost', text(el).includes(T.fmtMoney(T.costOf(withCw, price))), text(el).slice(0, 80))
+  const noRate = card(withCw, { ...price, cw: null })
+  ok('a model with no cache-write rate prices the written tokens at the input rate, like costOf', rows(noRate)[2].cost === T.fmtMoney(withCw.cw * price.in / 1e6), rows(noRate)[2].cost)
+  // The share read from the cache is a share of ALL input tokens (new + read + written): 1M read of 4M = 25 %, not 50 %.
+  const share = card({ u: 1e6, cr: 1e6, cw: 2e6, o: 0 })
+  ok('the cache share counts the written tokens too (1M read out of 4M input = 25 %)', text(share).includes(T.fmtPct(0.25)) && !text(share).includes(T.fmtPct(0.5)), text(share).slice(0, 140))
+  globalThis.window.__KB_LANG_RESOLVE__ = prevLang
+}
+
+// ── L5-06: the store signature moves when ANY counter moves ────────────────────────────────────────────────────────────────────
+// It decides the re-render and the report; reportOne compares four counters, the signature compared three, so an update where only the
+// cache write advanced was neither drawn nor sent (the delta waited for the next update that moved something else).
+{
+  const store = (cw) => ({ byId: { 'session-abcd': { projectionValues: { tokenUsage: { uncachedInputTokens: 10, outputTokens: 2, cacheReadTokens: 100, cacheWriteTokens: cw } } } } })
+  ok('the same counters give the same signature', T.storeSignature(store(5)) === T.storeSignature(store(5)))
+  ok('only the cache write advancing changes the signature', T.storeSignature(store(5)) !== T.storeSignature(store(9)), T.storeSignature(store(5)))
+  ok('a store with no counters, or junk, gives an empty signature without throwing', T.storeSignature({ byId: {} }) === '' && T.storeSignature(null) === '' && T.storeSignature({ byId: { x: null } }) === '')
+}
+
 // ── the page says what it is for (V-31) and carries the shared « ? How it works » button (A5-19) ─────────────────────────────
 {
   const regs = []

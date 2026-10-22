@@ -70,6 +70,18 @@ const kbHostOK = (req) => {
     return ['127.0.0.1' + port, 'localhost' + port, '[::1]' + port].indexOf(host) >= 0 || kbTrusted(host)
   } catch (e) { return false }
 }
+// L6-06: a handler that throws — a body past its cap above all, `readJsonBody` raises past 64 KB — used to reach the engine, which answers a bare 400 with
+// no body: the page had no `{ok:false,error}` to show. The fence is the one place every route of this bundle passes through, so it answers for them all:
+// 413 for the body too large (same words as /ui-save), 500 with the reason for anything else. A reply already started is left alone.
+const kbHandlerFailed = (res, e) => {
+  if (res.headersSent === true || res.writableEnded === true) return undefined
+  const big = e instanceof Error && e.message === 'request body too large'
+  try {
+    res.writeHead(big ? 413 : 500, { 'content-type': 'application/json; charset=utf-8' })
+    res.end(JSON.stringify({ ok: false, error: big ? 'request body too large' : (e && e.message ? String(e.message) : String(e)) }))
+  } catch (err) { /* closed */ }
+  return undefined
+}
 // `isOpen(route)` names the routes that are PUBLIC BY DESIGN (a website's widget, a webhook receiver called by another service): their own secret or
 // scope is their fence, and they are reached through a tunnel under any name.
 const kbFenced = (service, isOpen = () => false) => {
@@ -81,7 +93,10 @@ const kbFenced = (service, isOpen = () => false) => {
           try { res.writeHead(403, { 'content-type': 'application/json; charset=utf-8' }); res.end('{"ok":false,"error":"origin refused"}') } catch (e) { /* closed */ }
           return undefined
         }
-        return route.handler(req, res, ...rest)
+        try {
+          const out = route.handler(req, res, ...rest)
+          return out !== null && out !== undefined && typeof out.then === 'function' ? out.catch((e) => kbHandlerFailed(res, e)) : out
+        } catch (e) { return kbHandlerFailed(res, e) }
       },
     })
     : route)
