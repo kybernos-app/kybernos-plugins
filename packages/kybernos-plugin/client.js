@@ -1750,6 +1750,14 @@ let kbLocaleRead = () => 'en'
       'kbui.skill.by': { kybernos: 'Porté par', en: 'Provided by' },
       'kbui.skill.declared': { kybernos: 'Déclaré dans', en: 'Declared in' },
       'kbui.skill.state': { kybernos: 'État', en: 'State' },
+      'kbui.skill.when': { kybernos: 'À utiliser quand', en: 'Use it when' },
+      'kbui.skill.source': { kybernos: 'Origine', en: 'Source' },
+      'kbui.skill.folder': { kybernos: 'Dossier', en: 'Folder' },
+      'kbui.skill.modified': { kybernos: 'Modifiée', en: 'Modified' },
+      'kbui.skill.read': { kybernos: 'Voir les instructions', en: 'Show the instructions' },
+      'kbui.skill.hide': { kybernos: 'Masquer les instructions', en: 'Hide the instructions' },
+      'kbui.skill.loading': { kybernos: 'Lecture de la compétence…', en: 'Reading the skill…' },
+      'kbui.skill.readfail': { kybernos: 'Impossible de lire les instructions : ', en: 'Could not read the instructions: ' },
       'kbui.skill.stateon': { kybernos: 'Rattachée à ce projet', en: 'Attached to this project' },
       'kbui.skill.stateoff': { kybernos: 'Disponible, non rattachée', en: 'Available, not attached' },
       'kbui.skill.attach': { kybernos: 'Rattacher à ce projet', en: 'Attach to this project' },
@@ -5090,6 +5098,36 @@ const kbConnMerge = (slugs, actif) => {
   return Object.assign({}, base, { connections: out, scan: balayage.scan === true || declaration.scan === true })
 }
 
+// What the Skills page knows of each skill (its description, when to use it, where it lives): read once a minute from the Skills plugin,
+// keyed by lower-case name. `null` when that plugin is not loaded or does not answer: the sheet then shows what the project page already knew.
+let kbSkillCatCache = { at: 0, p: null }
+const kbSkillCatalog = () => {
+  const now = Date.now()
+  if (kbSkillCatCache.p !== null && now - kbSkillCatCache.at < 60000) return kbSkillCatCache.p
+  kbSkillCatCache = {
+    at: now,
+    p: fetch('/kybernos-skills/skills', { credentials: 'same-origin' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => {
+        if (j === null || j === undefined || Array.isArray(j.skills) !== true) return null
+        const out = {}
+        for (const x of j.skills) { const k = String(x.name === undefined || x.name === null ? '' : x.name).toLowerCase(); if (k !== '' && out[k] === undefined) out[k] = x }
+        return out
+      })
+      .catch(() => null),
+  }
+  return kbSkillCatCache.p
+}
+// The Skills plugin writes a date as an ISO string; a number of milliseconds is accepted too.
+const kbSkillTime = (v) => (typeof v === 'number' ? v : Date.parse(String(v === undefined || v === null ? '' : v)))
+// The words for where a skill comes from.
+const kbSkillSourceLabel = (src) => {
+  const k = String(src === undefined || src === null ? '' : src)
+  if (k === 'user-dsh') return kbe('DSH skills folder', 'Dossier de compétences de DSH')
+  if (k === 'user-agents') return kbe('Agents skills folder', 'Dossier de compétences des agents')
+  if (k === 'project') return kbe('This project', 'Ce projet')
+  return k
+}
 /** Lignes « connexions » communes : une ligne par compte, puis les declares seuls. */
 const kbConnRowsOf = (connsReal, declaredTools, hit) => {
   const realBySlug = {}
@@ -18218,6 +18256,25 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       const skillOpenPair = React.useState(null)
       const skillOpen = skillOpenPair[0]
       const setSkillOpen = skillOpenPair[1]
+      // The catalogue of skills (description, when to use, folder), read when the Skills tab is on screen; and the instructions of the skill whose sheet asked for them.
+      const skillCatPair = React.useState(undefined)
+      const skillsTabOn = tab === kbt('kbui.skills')
+      React.useEffect(() => {
+        if (skillsTabOn !== true) return undefined
+        let dead = false
+        kbSkillCatalog().then((m) => { if (dead === false) skillCatPair[1](m) })
+        return () => { dead = true }
+      }, [skillsTabOn])
+      const skillTextPair = React.useState(null)
+      const readSkillText = async (info, key) => {
+        skillTextPair[1]({ key: key, loading: true, text: '', err: null })
+        try {
+          const res = await fetch('/kybernos-skills/skill/read', { method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/json', accept: 'application/json' }, body: JSON.stringify({ root: info.root, name: info.name }) })
+          const j = await res.json()
+          if (j !== null && j !== undefined && j.ok === true && typeof j.text === 'string') skillTextPair[1]({ key: key, loading: false, text: j.text, err: null })
+          else skillTextPair[1]({ key: key, loading: false, text: '', err: (j !== null && j !== undefined && typeof j.error === 'string') ? j.error : 'unavailable' })
+        } catch (e) { skillTextPair[1]({ key: key, loading: false, text: '', err: errText(e) }) }
+      }
       // Une connexion s'active ou se desactive depuis la page projet. La
       // desactivation se fait en deux temps : la connexion est globale.
       const connActionPair = React.useState(null)
@@ -18629,15 +18686,40 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
                   style: { flexBasis: '100%', width: '100%' },
                   onClick: (e) => { if (e !== undefined && e.stopPropagation !== undefined) e.stopPropagation() },
                 },
-                  h('div', { className: 'kb8-docfields' }, [
-                    skillField(kbt('kbui.skill.state'), k.attached === true ? kbt('kbui.skill.stateon') : kbt('kbui.skill.stateoff'), 'e'),
-                    skillField(kbt('kbui.skill.by'), k.kyber, 'k'),
-                    skillField(kbt('kbui.skill.declared'), k.where, 'w'),
-                  ].filter((x) => x !== null)),
-                  h('button', {
-                    type: 'button', className: 'kb8-docdl', 'data-kb': 'project-skill-sheet-toggle',
-                    onClick: (e) => { if (e !== undefined && e.stopPropagation !== undefined) e.stopPropagation(); toggleSkill(k) },
-                  }, k.attached === true ? kbt('kbui.skill.detach') : kbt('kbui.skill.attach')))
+                  (() => {
+                    const cat = skillCatPair[0]
+                    const info = cat !== undefined && cat !== null ? cat[k.key] : undefined
+                    const txt = skillTextPair[0] !== null && skillTextPair[0].key === k.key ? skillTextPair[0] : null
+                    return h(React.Fragment, null,
+                      info !== undefined && typeof info.description === 'string' && info.description.trim() !== ''
+                        ? h('p', { className: 'kb8-skdesc', 'data-kb': 'project-skill-desc' }, info.description.trim()) : null,
+                      info !== undefined && typeof info.whenToUse === 'string' && info.whenToUse.trim() !== ''
+                        ? h('p', { className: 'kb8-skwhen', 'data-kb': 'project-skill-when' }, h('b', null, kbt('kbui.skill.when')), ' ', info.whenToUse.trim()) : null,
+                      cat === undefined ? h('p', { className: 'kb8-sub', role: 'status' }, kbt('kbui.skill.loading')) : null,
+                      cat !== undefined && cat !== null && info === undefined && k.ghost !== true
+                        ? h('p', { className: 'kb8-sub', 'data-kb': 'project-skill-unknown' }, kbe('Not found in the skills catalog: ', 'Introuvable dans le catalogue des compétences : ') + (k.kyber === null ? '' : k.kyber + kbe(' declares it, but no skills folder holds it.', ' la déclare, mais aucun dossier de compétences ne la porte.'))) : null,
+                      h('div', { className: 'kb8-docfields' }, [
+                        skillField(kbt('kbui.skill.state'), k.attached === true ? kbt('kbui.skill.stateon') : kbt('kbui.skill.stateoff'), 'e'),
+                        skillField(kbt('kbui.skill.by'), k.kyber, 'k'),
+                        skillField(kbt('kbui.skill.declared'), k.where, 'w'),
+                        info === undefined ? null : skillField(kbt('kbui.skill.source'), kbSkillSourceLabel(info.source), 's'),
+                        info === undefined ? null : skillField(kbt('kbui.skill.folder'), info.folder, 'f'),
+                        info === undefined || Number.isFinite(kbSkillTime(info.modifiedAt)) === false ? null : skillField(kbt('kbui.skill.modified'), fmtAge(kbSkillTime(info.modifiedAt)), 'm'),
+                      ].filter((x) => x !== null)),
+                      h('div', { style: { display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '12px' } },
+                        h('button', {
+                          type: 'button', className: 'kb8-docdl', style: { marginBottom: 0 }, 'data-kb': 'project-skill-sheet-toggle',
+                          onClick: (e) => { if (e !== undefined && e.stopPropagation !== undefined) e.stopPropagation(); toggleSkill(k) },
+                        }, k.attached === true ? kbt('kbui.skill.detach') : kbt('kbui.skill.attach')),
+                        info === undefined ? null : h('button', {
+                          type: 'button', className: 'kb8-docdl', style: { marginBottom: 0 }, 'data-kb': 'project-skill-read',
+                          'aria-expanded': txt !== null,
+                          onClick: (e) => { if (e !== undefined && e.stopPropagation !== undefined) e.stopPropagation(); if (txt !== null) skillTextPair[1](null); else readSkillText(info, k.key) },
+                        }, txt !== null ? kbt('kbui.skill.hide') : kbt('kbui.skill.read'))),
+                      txt === null ? null : (txt.loading === true ? h('p', { className: 'kb8-sub', role: 'status' }, kbt('kbui.skill.loading'))
+                        : (txt.err !== null ? h('p', { className: 'kb8-sub', role: 'alert', style: { color: 'var(--dsw-alias-state-error-primary)' } }, kbt('kbui.skill.readfail') + txt.err)
+                          : h('pre', { className: 'kb8-skpre', 'data-kb': 'project-skill-text', tabIndex: 0 }, txt.text))))
+                  })())
                 : null)))),
             pagerOf(skillsVp))
         }
@@ -32277,6 +32359,10 @@ button.kbbd-chip:hover{background:var(--dsw-alias-interactive-bg-hover,#f0f0f0)}
 .kb8-docthumb.kb8-delthumb-card>.kb8-sl-stage{height:100%}
 /* </kb-deliv-thumb> */
 .kb8-docxt{font-family:ui-monospace,Menlo,monospace;font-size:11px;font-weight:700;letter-spacing:.06em}
+.kb8-skdesc{margin:0 0 10px;font-size:13.5px;line-height:1.55;color:var(--dsw-alias-label-primary)}
+.kb8-skwhen{margin:0 0 12px;font-size:12.5px;line-height:1.5;color:var(--dsw-alias-label-secondary)}
+.kb8-skwhen b{color:var(--dsw-alias-label-primary);font-weight:600}
+.kb8-skpre{margin:12px 0 0;padding:12px 14px;max-height:260px;overflow:auto;border-radius:10px;background:var(--dsw-alias-bg-layer-2);border:1px solid var(--dsw-alias-border-l1);font:12px/1.55 ui-monospace,Menlo,monospace;white-space:pre-wrap;overflow-wrap:anywhere;color:var(--dsw-alias-label-secondary)}
 .kb8-docfiche{margin-top:10px;padding:12px;border-radius:11px;background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l1);cursor:default}
 .kb8-docfields{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px 18px}
 .kb8-docfield{display:flex;flex-direction:column;gap:2px;min-width:0}
