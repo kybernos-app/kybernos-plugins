@@ -1347,8 +1347,14 @@ if (React === null) {
     const prevDoc = globalThis.document
     globalThis.document = { querySelectorAll: (sel) => (sel === 'nav button' ? [cell('General'), cell('Apparence'), cell('Theme')] : []) }
     check('ouvrirReglages clicks the Appearance cell of the nav, whatever the language and the accents', real.ouvrirReglages(['appearance', 'apparence']) === true && clicked.join() === 'Apparence', clicked.join())
+    // Under a translated language no title matches: the cell is found by the React key it is rendered with (the id of its section, the same in every language).
+    const keyed = (label, key) => Object.assign(cell(label), { ['__reactFiber$test']: { key } })
+    clicked.length = 0
+    globalThis.document = { querySelectorAll: (sel) => (sel === 'nav button' ? [keyed('Allgemein', 'general'), keyed('Erscheinungsbild', 'kbac-appearance'), keyed('Design', 'kybernos-theme')] : []) }
+    check('...found by its React key when the title is in another language (German Erscheinungsbild)', real.ouvrirReglages(['appearance', 'apparence'], ['kbac-appearance']) === true && clicked.join() === 'Erscheinungsbild', clicked.join())
+    clicked.length = 0
     globalThis.document = { querySelectorAll: () => [cell('General')] }
-    check('...and says false, clicking nothing, when the nav has no such cell', real.ouvrirReglages(['appearance', 'apparence']) === false && clicked.length === 1)
+    check('...and says false, clicking nothing, when the nav has no such cell', real.ouvrirReglages(['appearance', 'apparence'], ['kbac-appearance']) === false && clicked.length === 0)
     if (prevDoc === undefined) delete globalThis.document; else globalThis.document = prevDoc
   }
   const natural = render({ mode: 'dark' })
