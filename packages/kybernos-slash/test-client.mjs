@@ -156,6 +156,7 @@ console.log('the Commands page and its editor (owner\'s redesign, 2026-10-22)')
   check('the window takes its content\'s height (a ceiling, no fixed height), and widens when the preview opens', /\.kbsl-modal\{width:min\(760px,100%\);max-height:min\(840px/.test(css) && !/\.kbsl-modal\{[^}]*[^-]height:min\(780px/.test(css) && /\.kbsl-modal\.pv\{width:min\(1100px/.test(css))
   check('« Insert a blank » drops the token at the cursor, the footer names what blocks a save and goes to it, unsaved changes are said', /kbInsertAtCaret/.test(src) && /kbFocusProblem\(problem\.go\)/.test(src) && /Unsaved changes/.test(src))
   check('the icon picker searches, shows a ring on the chosen icon and says when nothing matches', /'aria-label': 'Search icons'/.test(src) && /'aria-pressed': n === d\.icon/.test(src) && /No icon matches/.test(src))
+  check('Escape belongs to the editor while it is open: the listener is on window (capture) and stops the event, so DSH\'s Settings dialog behind it stays open', /window\.addEventListener\('keydown', onKey, true\)/.test(src) && /window\.removeEventListener\('keydown', onKey, true\)/.test(src) && /if \(mine\) \{ ev\.preventDefault\(\); ev\.stopImmediatePropagation\(\) \}/.test(src) && !/document\.addEventListener\('keydown', onKey, true\)/.test(src))
   check('Ctrl/Cmd + S saves the open editor', /String\(ev\.key\)\.toLowerCase\(\) === 's' && ui\.editor !== null/.test(src) && /kbSaveEditor\(\)/.test(src))
 }
 
