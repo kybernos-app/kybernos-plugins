@@ -37,6 +37,7 @@ window.__ModuleLoader__.load({
       // [fr, en] pairs, by key, in ONE table so that a test can check both sides of every pair.
       const S = {
         title: ['{NAME}', '{NAME}'],
+        customise: ['Personnaliser {name}', 'Customise {name}'],
         tabHint: ['Ton assistant : la conversation, Telegram et l’ordinateur sur lequel il travaille.', 'Your assistant: the conversation, Telegram and the computer it works on.'],
         // header and intro
        
@@ -873,6 +874,24 @@ window.__ModuleLoader__.load({
         return () => { stopped = true; clearTimeout(timer) }
       }
 
+      // The person's own name, portrait and voice for Kaby (the bundle kybernos-kaby-customisation, when it is there): read from its seam, re-read when it says it changed.
+      const kabySeam = () => { try { const k = window.__KB_KABY__; return k !== undefined && k !== null && typeof k.profile === 'function' ? k : null } catch (e) { return null } }
+      const useKaby = () => {
+        const [, setTick] = React.useState(0)
+        React.useEffect(() => {
+          const again = () => setTick((n) => n + 1)
+          try { window.addEventListener('kb-kaby-profile', again) } catch (e) { return undefined }
+          return () => { try { window.removeEventListener('kb-kaby-profile', again) } catch (e) { /* gone */ } }
+        }, [])
+        const k = kabySeam()
+        try { return k === null ? null : k.profile() } catch (e) { return null }
+      }
+      const openKabySettings = () => { try { const k = kabySeam(); if (k !== null && typeof k.open === 'function') k.open() } catch (e) { /* the page is optional */ } }
+      /** The round picture of Kaby: the portrait, or the first letter of its name. */
+      const KabyAv = (props) => (props.me.portrait !== null
+        ? h('img', { className: 'kbky-av', src: props.me.portrait.url, alt: '', 'data-kb': 'kybernos-kyber-portrait' })
+        : h('svg', { className: 'kbky-av', viewBox: '0 0 100 100', 'aria-hidden': 'true' }, h('circle', { cx: 50, cy: 50, r: 50 }), h('text', { x: 50, y: 67, textAnchor: 'middle', fontSize: 52, fontWeight: 700 }, (props.me.name.trim().charAt(0) || 'K').toUpperCase())))
+
       const useStore = () => {
         const [, setTick] = React.useState(0)
         React.useEffect(() => {
@@ -899,6 +918,7 @@ window.__ModuleLoader__.load({
       /** The strip: ONE line above the composer of {NAME}'s chat (2026-10-22). {NAME}'s name, three chips that say how things stand (the remote control, Telegram, the computer) and the button
        *  « Set up… » that opens the screen where they are set up. A chip opens a small list of the same three, in words. Nothing here asks for attention by opening itself. */
       const Strip = () => {
+        const me = useKaby()
         const [pop, setPop] = React.useState(false)
         const root = React.useRef(null)
         React.useEffect(() => {
@@ -920,7 +940,10 @@ window.__ModuleLoader__.load({
         // Telegram that can be connected and is not yet is the one thing worth a colour; a server with no bot, or a signed-out account, is just said.
         const tgCls = tg === null ? '' : (tg[1] === 'stOff' ? 'warn' : tg[0])
         return h('div', { className: 'kbky-strip', 'data-kb': 'kybernos-kyber-strip', ref: root },
-          h('span', { className: 'kbky-who' }, Ic('kyby', 16), h('b', null, L('title'))),
+          me === null
+            ? h('span', { className: 'kbky-who' }, Ic('kyby', 16), h('b', null, L('title')))
+            // With the customisation bundle: the portrait and the name the person gave, and a click that opens Settings › Kaby.
+            : h('button', { type: 'button', className: 'kbky-who kbky-whob', 'data-kb': 'kybernos-kyber-customise', title: L('customise', { name: me.name }), 'aria-label': L('customise', { name: me.name }), onClick: openKabySettings }, h(KabyAv, { me: me }), h('b', null, me.name)),
           rm === null ? null : chip('remote', rm.cls, Ic('phone', 13), rm.chip, 'kybernos-kyber-remote-chip'),
           tg === null ? null : chip('telegram', tgCls, BRAND.telegram(14), L({ stOn: 'tgcOn', stOff: 'tgcOff', stWait: 'tgcWait', stNone: 'tgcNone' }[tg[1]]), 'kybernos-kyber-status'),
           chip('computer', cp.cls, Ic(cp.icon, 13), cp.chip, 'kybernos-kyber-computer-chip'),
@@ -1029,6 +1052,11 @@ window.__ModuleLoader__.load({
         // the strip: ONE line (2026-10-22): the name, three chips, « Set up… », and a small list that opens above it
         '.kbky-strip{box-sizing:border-box;width:100%;max-width:var(--dsh-composer-card-max-width,none);margin-inline:auto;position:relative;display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:5px 10px 5px 12px;border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.25));border-radius:28px;background:var(--dsw-alias-bg-layer-1,rgba(127,127,127,.06));color:var(--dsw-alias-label-primary,#222);font-size:var(--dsh-content-font-size-secondary,13.5px);line-height:1.5}',
         '.kbky-who{display:inline-flex;align-items:center;gap:8px;margin-inline-end:4px}',
+        '.kbky-whob{border:0;background:none;padding:0;color:inherit;font:inherit;cursor:pointer;border-radius:99px}',
+        '.kbky-whob:focus-visible{outline:2px solid var(--dsw-alias-brand-primary,#4a7bd0);outline-offset:2px}',
+        '.kbky-av{width:28px;height:28px;border-radius:50%;object-fit:cover;flex:none;display:block}',
+        '.kbky-av circle{fill:var(--dsw-alias-button-primary-fill,#0f1115)}',
+        '.kbky-av text{fill:var(--dsw-alias-label-primary-foreground,#fff)}',
         '.kbky-spacer{flex:1;min-width:0}',
         '.kbky-chipb{cursor:pointer;background:transparent;font:inherit;font-size:12px;padding-inline:8px}',
         '.kbky-chipb:hover{background:var(--dsw-alias-interactive-bg-hover,rgba(127,127,127,.22))}',
