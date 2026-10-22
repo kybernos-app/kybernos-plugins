@@ -1924,8 +1924,8 @@
       },
       "aide": {
         "what": {
-          "fr": "Ton téléphone ouvre une application web qui parle à ton ordinateur par un relais qui ne lit rien : tout est chiffré de bout en bout. Le même écran relie Telegram, pour parler à Kaby.",
-          "en": "Your phone opens a web app that talks to your computer through a relay that reads nothing: everything is end-to-end encrypted. The same screen links Telegram, to talk to Kaby."
+          "fr": "Ton téléphone ouvre une application web qui parle à ton ordinateur par un relais qui ne lit rien (chiffré de bout en bout). Rien n’est accessible sans téléphone relié. Le même écran relie Telegram.",
+          "en": "Your phone opens a web app that talks to your computer through a relay that reads nothing (end-to-end encrypted). Nothing is reachable without a linked phone. The same screen links Telegram."
         },
         "steps": [
           {
@@ -2655,16 +2655,16 @@
         },
         "steps": [
           {
-            "fr": "Ouvre « Kaby » dans le menu : une conversation DSH ordinaire, avec deux tuiles au-dessus de la saisie, les canaux et l’ordinateur.",
-            "en": "Open “Kaby” in the menu: an ordinary DSH chat, with two tiles above the composer: the channels and the computer."
+            "fr": "Ouvre « Kaby » dans le menu : une conversation DSH, et une ligne au-dessus de la saisie : contrôle à distance, Telegram, ordinateur.",
+            "en": "Open “Kaby” in the menu: a DSH chat, and one line above the composer: remote control, Telegram, computer."
           },
           {
-            "fr": "Dans la tuile des canaux, touche « Téléphone et canaux » puis active Telegram : scanne le code, Démarrer, « Oui, c’est moi ».",
-            "en": "In the channels tile, tap “Phone and channels”, turn Telegram on: scan the code, tap Start, then “Yes, it’s me”."
+            "fr": "Touche « Régler… », puis active Telegram : scanne le code, Démarrer, « Oui, c’est moi ».",
+            "en": "Tap “Set up…”, then turn Telegram on: scan the code, tap Start, then “Yes, it’s me”."
           },
           {
-            "fr": "La tuile Ordinateur dit où Kaby travaille : cet ordinateur, ou un ordinateur dans le cloud. Ton choix est retenu.",
-            "en": "The computer tile says where Kaby works: this computer, or a cloud computer. Your choice is remembered."
+            "fr": "Dans « Ordinateur de Kaby », même fenêtre, choisis où Kaby travaille : cet ordinateur, ou un ordinateur dans le cloud. Ton choix est retenu.",
+            "en": "In “Kaby’s computer”, same window, choose where Kaby works: this computer, or a cloud computer. Your choice is remembered."
           }
         ],
         "where": {

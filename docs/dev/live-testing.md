@@ -1261,7 +1261,7 @@ shown at once only after `POST /kybernos-cloud/refresh`; the footer meter re-rea
 
 ## Phone and channels (`scripts/check-phone-channels-live.mjs`)
 
-The screen that joins the phone link (kybernos-mobile) and Kaby's messaging apps (kybernos-kyber), shown as a window from the account menu and as Settings › Phone and channels.
+The screen that joins the remote control (kybernos-mobile: the phone link, with its on/off switch) and Kaby (kybernos-kyber: its messaging apps and its computer), shown as a window from the account menu and as Settings › Phone and channels.
 Run it against the sandbox, never the real DSH (it exits 3 on `127.0.0.1:3080`):
 
 ```bash
@@ -1270,7 +1270,7 @@ source scripts/sandbox/env.sh && node scripts/check-phone-channels-live.mjs [--s
 ```
 
 The page's `fetch` is replaced for `/kybernos-cloud/*` and `/kybernos-mobile/remote/*` before any script runs (the account, what the phone link and Telegram say, the pairing
-gestures); nothing is paired and nothing leaves the machine. It plays the entry (between Appearance and Settings), both columns in every state (nothing linked, a code, a phone
+gestures); nothing is paired and nothing leaves the machine. It plays the entry (between Appearance and Settings), both blocks in every state (nothing linked = ready to pair, the switch off and on, a code, a phone
 asking for the check, a code that ran out, a phone connected, a plan without the link, a server without it; Telegram not linked, a code, scanned, linked, no bot; WhatsApp not
 available on this server, WeChat and iMessage soon), light, dark and a 390 px phone (the account menu is in the drawer there; the window opens itself in a root of its own on `<body>`, also with the drawer closed, which is how Kaby's strip opens it), Escape / the
 dim / the cross, the code withdrawn when the window closes, and the Settings page. Traps met writing it: the window theme must be set explicitly (the sandbox starts dark), a window
