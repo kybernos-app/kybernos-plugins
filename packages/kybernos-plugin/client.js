@@ -5158,7 +5158,11 @@ const kbConnRowsOf = (connsReal, declaredTools, hit, attached) => {
         continue
       }
       for (const a of accounts) {
-        const label = (typeof a.alias === 'string' && a.alias.length > 0) ? a.alias : String(a.id)
+        // Which account it is: its address or name (what the host reads from the account), then the name the owner gave it, and only at last
+        // Composio's own id, which says nothing.
+        const alias = (typeof a.alias === 'string' && a.alias.length > 0) ? a.alias : ''
+        const identity = (typeof a.identity === 'string' && a.identity.length > 0) ? a.identity : ''
+        const label = identity !== '' ? identity + (alias !== '' && alias !== identity ? ' · ' + alias : '') : (alias !== '' ? alias : String(a.id))
         if (hit(slug + ' ' + kbAppName(slug) + ' ' + label) === false) continue
         connRows.push({
           key: 'real/' + slug + '/' + String(a.id), name: slug, real: true, slug: slug, account: String(a.id),
