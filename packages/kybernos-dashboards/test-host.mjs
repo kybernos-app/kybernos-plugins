@@ -119,6 +119,13 @@ const CHART = { type: 'chart', title: 'Per day', kind: 'columns', x: 'day', y: '
   ok('...the dashboard now reads, and neither the copy nor a clean save is listed as unreadable', (await host.readDoc('torn')).ok === true && (await host.list()).unreadable.every((u) => u.id !== 'torn' && !String(u.id).includes('damaged')))
   const clean = await host.save({ id: 'torn', raw: { name: 'Repaired again', widgets: [] }, by: 'agent', what: 'Edit' })
   ok('a save over a readable file keeps no copy', clean.ok === true && clean.damagedCopy === undefined)
+  // A save the host refuses (too large) changes nothing, so it keeps no copy either ("A refused write changes nothing").
+  await fsp.writeFile(join(home, 'kybernos', 'dashboards', 'files', 'torn2.miniapp.json'), '{"kind":"dashboard","na', 'utf8')
+  // 24 manual kanbans of 6 columns of 40 cards pass validation and are past the 400 000-character cap once written.
+  const kanban = () => ({ type: 'kanban', manual: true, title: 'Board', cols: Array.from({ length: 6 }, (_, c) => ({ t: 'Col ' + c, c: Array.from({ length: 40 }, (_, k) => ['card ' + c + '-' + k + ' ' + 'x'.repeat(120), 'sub ' + 'y'.repeat(60)]) })) })
+  const huge = await host.save({ id: 'torn2', raw: { name: 'Huge', widgets: Array.from({ length: 24 }, kanban) }, by: 'agent', what: 'Too big' })
+  const after = (await fsp.readdir(join(home, 'kybernos', 'dashboards', 'files'))).filter((n) => n.startsWith('torn2.miniapp.json.damaged-'))
+  ok('a refused save (too large) keeps no damaged copy and leaves the torn file as it was', huge.ok === false && after.length === 0 && (await fsp.readFile(join(home, 'kybernos', 'dashboards', 'files', 'torn2.miniapp.json'), 'utf8')) === '{"kind":"dashboard","na', JSON.stringify({ huge: huge.message, after }))
   await fsp.writeFile(join(home, 'kybernos', 'dashboards', 'index.json'), 'garbage', 'utf8')
   ok('index: a damaged index is an empty one', same(await host.readIndex(), { version: 1, default: null, flags: {} }))
   ok('doc helpers round-trip', dashboardOfDoc(makeDoc({ name: 'x', widgets: [] }, { rev: 1 })).name === 'x' && dashboardOfDoc({ kind: 'motion' }) === null && dashboardOfDoc(null) === null && dashboardOfDoc({ kind: 'dashboard', data: [{ payload: { name: 'wrapped' } }] }).name === 'wrapped')

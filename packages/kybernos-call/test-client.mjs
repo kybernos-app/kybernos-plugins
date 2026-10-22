@@ -267,7 +267,7 @@ console.log('kybernos-call: what goes wrong is said, never invented over')
     { name: 'status not ok', responses: [{ ok: false }], expect: UNREACHABLE, retry: true },
     { name: 'HTTP 500', responses: [{ __http: 500, __body: { ok: false, error: 'boom' } }], expect: UNREACHABLE, retry: true },
     { name: 'an HTML page instead of JSON', responses: [{ __http: 200, __html: true }], expect: UNREACHABLE, retry: true },
-    { name: 'HTTP 404: the routes are not mounted', responses: [{ __http: 404, __html: true }], expect: /Calls are not loaded yet: restart DSH once/, retry: false },
+    { name: 'HTTP 404: the routes are not mounted', responses: [{ __http: 404, __html: true }], expect: /Calls are not loaded yet: restart DSH once$/, retry: false },
     { name: 'token refused', responses: [{ ok: true, secrets: 'posee' }, { ok: false, error: 'LiveKit secrets missing' }], expect: /LiveKit secrets missing/, retry: false },
     { name: 'token without an error text', responses: [{ ok: true, secrets: 'posee' }, new Error('network')], expect: /Cannot reach the call service/, retry: true }
   ]
