@@ -159,9 +159,9 @@ try {
   console.log('  . Kaby\'s chat was on screen ' + ((Date.now() - t0) / 1000 + 6).toFixed(1) + ' s after the page started running')
   const kyby = await ev(P, `(() => { const w = document.getElementById('app').contentWindow; try { return { sid: w.__KB_KYBER__.state().kybySid, failed: w.__KB_KYBER__.state().openFailed, cur: w.localStorage.getItem('dsh.sessions.current'), path: w.parent.location.pathname } } catch (e) { return String(e) } })()`)
   check('DSH shows Kaby\'s own chat (its strip sits above the composer of that chat and no other), and it is the session the host remembers', bridged === true && kyby !== null && typeof kyby === 'object' && typeof kyby.cur === 'string' && kyby.cur.includes(kyby.sid), kyby)
-  // The strip is folded in the app: the conversation is what the person came for.
+  // The strip is ONE line in the app, never open by itself: the conversation is what the person came for.
   const folded = await ev(P, `(() => { const d = document.getElementById('app').contentDocument; return !!d.querySelector('[data-kb="kybernos-kyber-dock"]') && !d.querySelector('[data-kb="kybernos-kyber-strip"].open') })()`)
-  check('the strip above the composer is folded', folded === true)
+  check('the strip above the composer is one line, nothing open', folded === true)
   await shot(P, 'a4-kaby-chat')
 
   // The remote's page does not take that decision: it is the whole computer.

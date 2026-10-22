@@ -72,8 +72,11 @@ const GOOD = { ok: true, available: true, running: true, connected: true, config
 let answer = null // what the status route says next: an object, or a function that throws
 let pairAnswer = { ok: true } // what the pairing route says next
 const calls = []
+const enableBodies = [] // what the switch sent
+let enableAnswer = null // what the switch route says next (null: echo the request)
 globalThis.fetch = async (url, init) => {
   calls.push(String(url))
+  if (String(url).endsWith('/remote/enable')) { const b = JSON.parse(init.body); enableBodies.push(b); return { json: async () => (enableAnswer !== null ? enableAnswer : { ok: true, enabled: b.on }) } }
   if (String(url).includes('kybernos-cloud/status')) return { json: async () => ({ state: {} }) }
   if (String(url).includes('/remote/status')) {
     if (typeof answer === 'function') return answer()
@@ -223,8 +226,9 @@ console.log('the screen: the left column says it is full control of THIS compute
 {
   const view = await mountDialog({ ...GOOD, computer: 'DESKTOP-4F2K' })
   const text = view.text().replace(/\s+/g, ' ')
-  check('the window is titled « Phone and channels » and says one thing about itself', /Phone and channels/.test(text) && /Reach Kaby from your phone, or open this computer remotely\./.test(text), text.slice(0, 160))
-  check('left: « Open my computer on my phone »', /Open my computer on my phone/.test(text))
+  check('the window is titled « Phone and channels » and says one thing about itself', /Phone and channels/.test(text) && /Open this computer from your phone, and reach Kaby from your messaging apps\./.test(text), text.slice(0, 160))
+  check('left: the block is « Remote control », tagged « Full control », with its one-line lead', /Remote control/.test(text) && kb(view, 'phone-remote-tag') !== null && /Full control/.test(text) && /Open this computer on your phone\./.test(text))
+  check('left: what it does, what it needs, what to be careful about', /It does Shows this computer’s Kybernos on your phone/.test(text) && /It needs This computer switched on and online\./.test(text) && /Be careful Full control of this computer/.test(text) && kb(view, 'phone-remote-does') !== null)
   check('left: full control of this computer, named, only on a phone that is the person\'s', /Full control of this computer \(DESKTOP-4F2K\)\. Use it only on a phone that is yours\./.test(text), text)
   const noName = await mountDialog(GOOD)
   check('without a computer name the sentence still reads', /Full control of this computer\. Use it only on a phone that is yours\./.test(noName.text().replace(/\s+/g, ' ')))
@@ -237,7 +241,7 @@ console.log('the screen: every state of the phone link has its chip and its way 
   const waiting = () => ({ state: 'waiting', expires_at: Date.now() + 120000, qr: null, url: 'https://x.example/p' })
   const dev = (o) => ({ id: 'a', label: 'iPhone', online: false, state: 'offline', last_seen_at: Date.now(), ...o })
   const cases = [
-    ['nothing linked', GOOD, 'none', /No phone linked/, ['mobile-pair'], ['mobile-pairing', 'mobile-verify']],
+    ['nothing linked', GOOD, 'none', /Ready to pair/, ['mobile-pair'], ['mobile-pairing', 'mobile-verify']],
     ['a code to scan', { ...GOOD, pairing: waiting() }, 'waiting', /Waiting for the phone/, ['mobile-pairing', 'mobile-new-code', 'mobile-copy', 'mobile-stop'], ['mobile-pair', 'mobile-verify']],
     ['a phone asks for the check', { ...GOOD, pairing: { state: 'verify', expires_at: Date.now() + 60000, qr: null, url: null, sas: '4821', phone_label: 'iPhone', verify_until: Date.now() + 60000 } }, 'verify', /Waiting for your OK/, ['mobile-verify', 'mobile-sas', 'mobile-approve', 'mobile-deny'], ['mobile-pair', 'mobile-pairing']],
     ['a code that ran out', { ...GOOD, pairing: { ...waiting(), expires_at: Date.now() - 1000 } }, 'expired', /Code expired/, ['mobile-pairing', 'mobile-new-code', 'mobile-stop'], ['mobile-copy', 'mobile-qr']],
@@ -265,13 +269,43 @@ console.log('the screen: every state of the phone link has its chip and its way 
   const wall = await mountDialog({ ...GOOD, entitled: false })
   check('a plan without the link: the paywall in the left column, the messaging column untouched', kb(wall, 'mobile-paywall') !== null && kb(wall, 'mobile-pair') === null && (kb(wall, 'phone-channels-card') !== null || kb(wall, 'phone-channels-off') !== null))
   const fr = await mountDialog({ ...GOOD, computer: 'MAC' }, { lang: 'kybernos' })
-  check('in French: the title, the left column, the full-control sentence', /Téléphone et canaux/.test(fr.text()) && /Ouvrir mon ordinateur sur mon téléphone/.test(fr.text()) && /Contrôle complet de cet ordinateur \(MAC\)\. À utiliser seulement sur un téléphone à toi\./.test(fr.text().replace(/\s+/g, ' ')), fr.text().slice(0, 200))
+  check('in French: the title, the left column, the full-control sentence', /Téléphone et canaux/.test(fr.text()) && /Contrôle à distance/.test(fr.text()) && /Contrôle complet de cet ordinateur \(MAC\)\. À utiliser seulement sur un téléphone à toi\./.test(fr.text().replace(/\s+/g, ' ')), fr.text().slice(0, 200))
+}
+
+console.log('the screen: the switch of the remote control (on by default = ready to pair)')
+{
+  const view = await mountDialog(GOOD)
+  const sw = kb(view, 'phone-remote-switch')
+  check('the switch is there, ON when the host sends no word of it (a host from before the switch)', sw !== null && sw.props.role === 'switch' && sw.props['aria-checked'] === 'true' && sw.props.disabled === false)
+  check('ON: the card shows the pairing way forward (Add a phone), no « off » state', kb(view, 'mobile-pair') !== null && kb(view, 'phone-remote-off') === null && kb(view, 'phone-remote').props['data-enabled'] === 'true')
+  check('with nothing linked it says nothing can reach this computer', kb(view, 'mobile-none-note') !== null && /so nothing can reach this computer/.test(view.text().replace(/\s+/g, ' ')))
+  enableBodies.length = 0
+  sw.props.onClick()
+  await view.settle()
+  check('turning it off asks the host, once, with on: false', enableBodies.length === 1 && enableBodies[0].on === false, JSON.stringify(enableBodies))
+  const off = await mountDialog({ ...GOOD, enabled: false, devices: [{ id: 'a', label: 'iPhone', online: false, state: 'offline', last_seen_at: Date.now() }] })
+  check('OFF: the switch is off, the card says no phone can connect, one button turns it on', kb(off, 'phone-remote-switch').props['aria-checked'] === 'false' && /Off\. No phone can connect to this computer\./.test(off.text().replace(/\s+/g, ' ')) && kb(off, 'phone-remote-turn-on') !== null)
+  check('OFF: no way to pair, but the linked phones stay listed and can be disconnected', kb(off, 'mobile-pair') === null && kb(off, 'mobile-devices') !== null && kb(off, 'mobile-revoke') !== null)
+  enableBodies.length = 0
+  kb(off, 'phone-remote-turn-on').props.onClick()
+  await off.settle()
+  check('« Turn on » asks the host with on: true', enableBodies.length === 1 && enableBodies[0].on === true)
+  const none = await mountDialog({ ...GOOD, configured: false })
+  check('a server that does not offer the phone link: the switch is greyed, and the card says it will come by itself', kb(none, 'phone-remote-switch').props.disabled === true && kb(none, 'mobile-not-offered') !== null && /switch on here by itself/.test(none.text().replace(/\s+/g, ' ')))
+  const failing = await mountDialog(GOOD)
+  enableAnswer = { ok: false, error: 'network' }
+  kb(failing, 'phone-remote-switch').props.onClick()
+  await failing.settle()
+  enableAnswer = null
+  check('a refusal of the host is said under the switch', kb(failing, 'phone-remote-error') !== null)
+  const frOff = await mountDialog({ ...GOOD, enabled: false }, { lang: 'kybernos' })
+  check('in French the off state reads', /Désactivé : aucun téléphone ne peut se connecter/.test(frOff.text()) && /Activer/.test(frOff.text()))
 }
 
 console.log('the screen: the right column is Kaby\'s, and is told honestly when it is not there')
 {
   const off = await mountDialog(GOOD)
-  check('without the Kaby bundle the card says so, under the same heading', kb(off, 'phone-channels-off') !== null && /Talk to Kaby on a messaging app/.test(off.text()) && /not available: the Kaby module is not active/.test(off.text().replace(/\s+/g, ' ')))
+  check('without the Kaby bundle the card says so, under the same heading', kb(off, 'phone-channels-off') !== null && /not available: the Kaby module is not active/.test(off.text().replace(/\s+/g, ' ')))
   const Column = function ChannelsColumn () { return { type: 'div', props: { 'data-kb': 'stub-column' }, kids: [] } }
   const r = makeRenderer()
   timers.length = 0
@@ -288,7 +322,7 @@ console.log('the screen: the right column is Kaby\'s, and is told honestly when 
   globalThis.window.__KB_KYBER__ = { version: 1, ChannelsColumn: Column, name: 'Zed' }
   const named = r.mount(r.React.createElement(dialog, { onClose () {} }))
   await named.settle()
-  check('the assistant\'s name is the one the Kaby bundle publishes', /Reach Zed from your phone/.test(named.text()))
+  check('the assistant\'s name is the one the Kaby bundle publishes', /reach Zed from your messaging apps/.test(named.text()))
 }
 
 console.log('the window: closing, and what closing leaves behind')

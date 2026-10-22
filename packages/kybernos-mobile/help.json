@@ -1,7 +1,7 @@
 {
   "what": {
-    "fr": "Ton téléphone ouvre une application web qui parle à ton ordinateur par un relais qui ne lit rien : tout est chiffré de bout en bout. Le même écran relie Telegram, pour parler à Kaby.",
-    "en": "Your phone opens a web app that talks to your computer through a relay that reads nothing: everything is end-to-end encrypted. The same screen links Telegram, to talk to Kaby."
+    "fr": "Ton téléphone ouvre une application web qui parle à ton ordinateur par un relais qui ne lit rien (chiffré de bout en bout). Rien n’est accessible sans téléphone relié. Le même écran relie Telegram.",
+    "en": "Your phone opens a web app that talks to your computer through a relay that reads nothing (end-to-end encrypted). Nothing is reachable without a linked phone. The same screen links Telegram."
   },
   "steps": [
     {

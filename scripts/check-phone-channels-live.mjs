@@ -10,8 +10,8 @@
 // `/kybernos-mobile/remote/*` before any script runs: the account (signed in), what the phone link and Kaby's doors say, and the pairing
 // gestures; nothing is sent to any server and nothing is paired.
 //
-// It plays: the entry sits in the account menu just before Settings and opens the window; the two columns in every state of the phone
-// link (nothing linked, a code to scan, a phone asking for the check, a code that ran out, a phone connected, not in the plan, a server
+// It plays: the entry sits in the account menu just before Settings and opens the window; the two blocks (Remote control, and Kaby with its messaging apps and its computer) in every state of the phone
+// link, its on/off switch (nothing linked, a code to scan, a phone asking for the check, a code that ran out, a phone connected, not in the plan, a server
 // without the feature) and of Telegram (not linked, a code, linked, no bot on this server); WhatsApp that says it is not available on this
 // server, WeChat and iMessage « soon »; Escape and a click on the dim close the window; the Settings page shows the same screen; a phone
 // width stacks the columns; light and dark. Exit code 0 / 1 / 3 (not run).
@@ -46,7 +46,7 @@ const KYBER = {
   pairing: 'supported', server: { name: 'Kybernos Cloud', host: 'api.kybernos.app', can_switch: true },
   computers: [], home: null,
 }
-const REMOTE = { ok: true, available: true, running: true, connected: true, configured: true, entitled: true, computer: 'MacBook-de-test', max_devices: 3, relay: 'up', refused: 0, error: null, pairing: null, devices: [] }
+const REMOTE = { ok: true, available: true, running: true, enabled: true, connected: true, configured: true, entitled: true, computer: 'MacBook-de-test', max_devices: 3, relay: 'up', refused: 0, error: null, pairing: null, devices: [] }
 
 // Installed before any script of the page. `window.__pcMock` is what the check drives.
 const MOCK = `(() => {
@@ -78,6 +78,7 @@ const MOCK = `(() => {
       if (name === 'pair/cancel') m.remote.pairing = null
       if (name === 'pair/approve') { m.remote.pairing = null; m.remote.devices = [{ id: 'd1', label: 'iPhone de test', created_at: Date.now(), last_seen_at: Date.now(), online: true, state: 'serving' }] }
       if (name === 'pair/deny') m.remote.pairing = null
+      if (name === 'enable') { m.remote.enabled = body.on === true; if (!m.remote.enabled) m.remote.pairing = null; return json({ ok: true, enabled: m.remote.enabled }) }
       if (name === 'devices/revoke') m.remote.devices = m.remote.devices.filter((d) => d.id !== body.id)
       if (name === 'devices/revoke-all') m.remote.devices = []
       return json({ ok: true })
@@ -140,15 +141,15 @@ try {
   await click('[data-kb="menu-phone"]')
   check('the entry opens the window and the menu closes', (await poll(() => has('[data-kb="phone-channels"]'), 8000)) === true && (await has('.kbfp-menu')) === false)
   check('the window is a dialog with a title, labelled by it', (await val(`(() => { const d = document.querySelector('[data-kb="phone-channels"]'); const t = document.getElementById(d.getAttribute('aria-labelledby')); return d.getAttribute('role') === 'dialog' && d.getAttribute('aria-modal') === 'true' && !!t && t.innerText === 'Phone and channels' })()`)) === true)
-  check('one sentence under the title', /Reach Kaby from your phone, or open this computer remotely\./.test(await text('[data-kb="phone-channels"]')))
+  check('one sentence under the title', /Open this computer from your phone, and reach Kaby from your messaging apps\./.test(await text('[data-kb="phone-channels"]')))
   const lum = (kb) => val(`(() => { const d = document.querySelector('[data-kb="${kb}"]'); const m = getComputedStyle(d).backgroundColor.match(/[\\d.]+/g).map(Number); return (m[0] * 299 + m[1] * 587 + m[2] * 114) / 1000 })()`)
   check('light: the window is light', (await lum('phone-channels')) > 200, await lum('phone-channels'))
 
-  console.log('── 2. two columns, each one saying what it gives ──')
+  console.log('── 2. two blocks, each one saying what it gives ──')
   const left = await text('[data-kb="phone-remote"]')
   const right = await text('[data-kb="phone-channels-card"]')
-  check('left: Open my computer on my phone, with full control of THIS computer', /Open my computer on my phone/.test(left) && /Full control of this computer \(MacBook-de-test\)\. Use it only on a phone that is yours\./.test(left), left)
-  check('right: Talk to Kaby on a messaging app, Kaby only, even with the computer off', /Talk to Kaby on a messaging app/.test(right) && /Only Kaby\./.test(right) && /even when your computer is off/.test(right) && /never gives control of your computer/.test(right), right)
+  check('left: Remote control, tagged Full control, with what it does, what it needs and what to be careful about', /Remote control/.test(left) && (await has('[data-kb="phone-remote-tag"]')) === true && /It does Shows this computer’s Kybernos on your phone/.test(left) && /It needs This computer switched on and online\./.test(left) && /Be careful Full control of this computer \(MacBook-de-test\)\. Use it only on a phone that is yours\./.test(left), left)
+  check('right: Kaby, tagged « Always asks first », with its messaging apps (what they do, what they never do) and its computer', /Kaby/.test(right) && /Always asks first/.test(right) && /Messaging apps/.test(right) && /even when this computer is off/.test(right) && /never controls this computer/.test(right) && /Kaby’s computer/.test(right) && (await has('[data-kb="kybernos-kyber-messaging"]')) === true && (await has('[data-kb="kybernos-kyber-computer"]')) === true, right)
   const lb = await box('[data-kb="phone-remote"]')
   const rb = await box('[data-kb="phone-channels-card"]')
   check('on a desktop width the cards sit side by side', lb !== null && rb !== null && Math.abs(lb.y - rb.y) < 4 && rb.x > lb.r - 2 && lb.w > 300 && rb.w > 300, [lb, rb])
@@ -169,7 +170,7 @@ try {
   check('its cross closes the card and leaves the window', (await has('[data-kb="help-panel"]')) === false && (await has('[data-kb="phone-channels"]')) === true)
 
   console.log('── 3. the phone link, state by state ──')
-  check('nothing linked: the chip says so, one button adds a phone', /No phone linked/.test(await text('[data-kb="mobile-chip"]')) && (await has('[data-kb="mobile-pair"]')) === true)
+  check('nothing linked: the chip says it is ready to pair, the card says nothing can reach this computer, one button adds a phone', /Ready to pair/.test(await text('[data-kb="mobile-chip"]')) && /so nothing can reach this computer/.test(await text('[data-kb="phone-remote"]')) && (await has('[data-kb="mobile-pair"]')) === true)
   await click('[data-kb="mobile-pair"]')
   check('« Add a phone » asks the host for a code (one POST) and shows the QR', (await poll(() => has('[data-kb="mobile-qr"]'), 6000)) === true && (await calls('/kybernos-mobile/remote/pair')).length === 1)
   check('the chip says it is waiting for the phone', /Waiting for the phone/.test(await text('[data-kb="mobile-chip"]')))
@@ -188,7 +189,15 @@ try {
   await shot('3c-phone-connected-light')
   await click('[data-kb="mobile-revoke"]')
   await click('[data-kb="mobile-revoke-confirm"]')
-  check('Disconnect asks to confirm, then the phone is gone', (await poll(async () => /No phone linked/.test((await text('[data-kb="mobile-chip"]')) || ''), 6000)) === true)
+  check('Disconnect asks to confirm, then the phone is gone', (await poll(async () => /Ready to pair/.test((await text('[data-kb="mobile-chip"]')) || ''), 6000)) === true)
+
+  // the switch: on by default, off cuts everything
+  check('the switch is on by default, and named', (await val(`(() => { const e = document.querySelector('[data-kb="phone-remote-switch"]'); return !!e && e.getAttribute('role') === 'switch' && e.getAttribute('aria-checked') === 'true' && !!e.getAttribute('aria-label') })()`)) === true)
+  await click('[data-kb="phone-remote-switch"]')
+  check('turning it off asks the host (on: false) and the card says no phone can connect, with a button to turn it on and no way to pair', (await poll(() => has('[data-kb="phone-remote-off"]'), 6000)) === true && /Off\. No phone can connect to this computer\./.test(await text('[data-kb="phone-remote"]')) && (await has('[data-kb="mobile-pair"]')) === false && (await has('[data-kb="phone-remote-turn-on"]')) === true && (await calls('/kybernos-mobile/remote/enable')).some((c) => c.body && c.body.on === false))
+  await shot('3f-remote-off-light')
+  await click('[data-kb="phone-remote-turn-on"]')
+  check('« Turn on » brings the pairing button back', (await poll(() => has('[data-kb="mobile-pair"]'), 6000)) === true && (await calls('/kybernos-mobile/remote/enable')).some((c) => c.body && c.body.on === true))
 
   await setMock(`m.remote.pairing = { state: 'waiting', expires_at: Date.now() + 1500, qr: m.phoneQr, url: ${JSON.stringify(phoneUrl)}, sas: null, phone_label: null, verify_until: null }`)
   check('a code that runs out says so, and offers a new one', (await poll(async () => /Code expired/.test((await text('[data-kb="mobile-chip"]')) || ''), 8000)) === true && /no longer valid/.test(await text('[data-kb="mobile-pairing"]')) && (await has('[data-kb="mobile-new-code"]')) === true && (await has('[data-kb="mobile-qr"]')) === false)
@@ -196,7 +205,7 @@ try {
   await setMock(`m.remote.pairing = null`)
 
   await setMock(`m.remote.entitled = false`)
-  check('a plan without the phone link: the left column says so, the right one is still there', (await poll(() => has('[data-kb="mobile-paywall"]'), 6000)) === true && (await has('[data-kb="phone-channels-card"]')) === true && /Talk to Kaby/.test(await text('[data-kb="phone-channels-card"]')))
+  check('a plan without the phone link: the left column says so, the right one is still there', (await poll(() => has('[data-kb="mobile-paywall"]'), 6000)) === true && (await has('[data-kb="phone-channels-card"]')) === true && /Messaging apps/.test(await text('[data-kb="phone-channels-card"]')))
   await shot('3e-phone-paywall-light')
   await setMock(`m.remote.entitled = true; m.remote.configured = false`)
   check('a server without the phone link: the left column says so, honestly', (await poll(() => has('[data-kb="mobile-not-offered"]'), 6000)) === true)
