@@ -16948,13 +16948,24 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       }, [sessionId, d.id])
       const call = (env !== null && env !== undefined) ? env.call : null
       const crews = (env !== null && env !== undefined && Array.isArray(env.crews)) ? env.crews : []
-      const crewId = (call !== null && call.team != null) ? call.team : d.crew
+      // The bracketed head of a subject (« [acme] Draft ») is a TEAM ID only when the host lists that team. Not every bracketed word is:
+      // a lot code (« [A1] Relire le contrat », « [L6-02] … ») used to be read as a team, which brought the phantom card back through
+      // that door — a card headed « A1 · call », no node, and a button that led nowhere.
+      const sujet = String(d.subject != null ? d.subject : '')
+      const tagM = sujet.match(/^\s*\[([a-z0-9][a-z0-9-]*)\]\s*/i)
+      const tag = (tagM !== null) ? String(tagM[1]) : null
+      const tagAsked = (tag !== null) ? tag : ((d.crew !== null && d.crew !== undefined && String(d.crew) !== '') ? String(d.crew) : null)
+      const tagKnown = (tagAsked !== null) && crews.some((x) => x !== null && x !== undefined && String(x.id) === tagAsked)
+      const crewId = (call !== null && call.team != null) ? call.team : (tagKnown ? tagAsked : null)
       const crewNom = ((crews.find((x) => x.id === crewId) || {}).name) || String(crewId != null ? crewId : '?')
       const st = (call !== null && call.st != null) ? call.st : d.st
       const n = (call !== null && typeof call.n === 'number') ? call.n : null
       const nodes = (call !== null && Array.isArray(call.nodes)) ? call.nodes : []
       const short = (call !== null && typeof call.short === 'string') ? call.short : ''
-      const intro = String(d.subject != null ? d.subject : '').replace(/^\s*\[[a-z0-9][a-z0-9-]*\]\s*/i, '')
+      // A bracketed head is stripped from the shown subject only when it really was the team of the call: an unknown code stays
+      // visible in the one-line row, since that row is the only place left to carry it.
+      const stripTag = (tag !== null) && (tagKnown || (call !== null && call.team != null))
+      const intro = stripTag ? sujet.replace(/^\s*\[[a-z0-9][a-z0-9-]*\]\s*/i, '') : sujet
       const mono = crewNom.replace(/[^a-z0-9]/gi, '').slice(0, 2).toUpperCase()
       // A task of the board that belongs to no team of ours (no [team] tag in its subject, no call the host knows) used to draw a card
       // that read « ? · call », an empty line and a button that led nowhere. It is one line now: its state and its subject. While the
