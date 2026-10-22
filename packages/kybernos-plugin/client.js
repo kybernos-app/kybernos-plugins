@@ -33009,6 +33009,14 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
 .kbfc-th-at{--cv-bg:#FBF8F3;--cv-dot:#EADFD0;--nd-bg:#FFFFFF;--nd-line:#E2D8C8;--nd-ink:#2E2418;--nd-sub:#8A7C69;--wire:#8A7C69;--wire-dim:#E0D6C6;--chip:#F5EFE5;--lbl:#FBF8F3}
 .kbfc-th-jy{--cv-bg:#FAFAFA;--cv-dot:transparent;--nd-bg:#FFFFFF;--nd-line:#ECECEC;--nd-ink:#1F1F1F;--nd-sub:#777777;--wire:#4A4A4A;--wire-dim:#D4D4D4;--chip:#F4F4F4;--lbl:#FFFFFF}
 .kbfc-th-mx{--cv-bg:#E9EFF3;--cv-dot:#C7D2DA;--nd-bg:#FFFFFF;--nd-line:#E1E7EC;--nd-ink:#15191D;--nd-sub:#6B7680;--wire:#3FBF7F;--wire-dim:#BFD0C8;--chip:#F1F4F6;--lbl:#FFFFFF}
+/* The light styles keep their look in a dark app: each has a dark twin (same character, same wire colour where it carries the style), read from the app's own scheme. « bp » is dark already. */
+html[data-kb-theme="dark"] .kbfc-th-nr{--cv-bg:#17191C;--cv-dot:#2A2E33;--nd-bg:#222B35;--nd-line:#4A6078;--nd-ink:#E6EDF4;--nd-sub:#9AA8B7;--wire:#8A98A6;--wire-dim:#3A4350;--chip:rgba(255,255,255,.08);--lbl:#1B1E22}
+html[data-kb-theme="dark"] .kbfc-th-pp{--cv-bg:#1E1B15;--cv-dot:#38322A;--nd-bg:#27231B;--nd-line:#8C7F66;--nd-ink:#EFE7D6;--nd-sub:#B3A78E;--wire:#B8A98C;--wire-dim:#4A4333;--chip:#322C22;--lbl:#1E1B15}
+html[data-kb-theme="dark"] .kbfc-th-sf{--cv-bg:#17171B;--cv-dot:#2A2A32;--nd-bg:#202026;--nd-line:#33333D;--nd-ink:#ECECF2;--nd-sub:#9A98A8;--wire:#6C6A7C;--wire-dim:#3A3A45;--chip:#2A2A33;--lbl:#26262E}
+html[data-kb-theme="dark"] .kbfc-th-lg{--cv-bg:#14171C;--cv-dot:#262B34;--nd-bg:#1D2128;--nd-line:#2E3440;--nd-ink:#EAEDF3;--nd-sub:#8E98AB;--wire:#5B9BFF;--wire-dim:#2A4470;--chip:#262B35;--lbl:#1D2128}
+html[data-kb-theme="dark"] .kbfc-th-at{--cv-bg:#1D1A16;--cv-dot:#352F27;--nd-bg:#26221C;--nd-line:#4A4236;--nd-ink:#F1E9DC;--nd-sub:#A89A86;--wire:#A89A86;--wire-dim:#463F34;--chip:#312C24;--lbl:#1D1A16}
+html[data-kb-theme="dark"] .kbfc-th-jy{--cv-bg:#161616;--cv-dot:transparent;--nd-bg:#1F1F1F;--nd-line:#2E2E2E;--nd-ink:#F2F2F2;--nd-sub:#9A9A9A;--wire:#BDBDBD;--wire-dim:#3C3C3C;--chip:#2A2A2A;--lbl:#1F1F1F}
+html[data-kb-theme="dark"] .kbfc-th-mx{--cv-bg:#141A1E;--cv-dot:#27323A;--nd-bg:#1C242A;--nd-line:#2D3A43;--nd-ink:#E7EEF2;--nd-sub:#8A99A5;--wire:#3FBF7F;--wire-dim:#2F5446;--chip:#25303A;--lbl:#1C242A}
 .kbfc-k-trg{--k:var(--dsw-alias-state-warn-primary)}
 .kbfc-k-hook{--k:var(--dsw-alias-state-warn-primary)}
 .kbfc-k-act{--k:var(--dsw-alias-state-success-primary)}
