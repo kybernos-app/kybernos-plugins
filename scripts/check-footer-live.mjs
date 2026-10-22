@@ -778,7 +778,9 @@ try {
     const at = flow.findIndex((x) => x.head && x.t === 'Devices & cloud')
     check('Servers (kept where it was) is first under Devices & cloud', at >= 0 && flow[at + 1] && flow[at + 1].key === 'kybernos-servers', flow.slice(at, at + 3))
     const mem = flow.findIndex((x) => x.head && x.t === 'Memory & context')
-    check('the section of what stays on this computer is under Memory & context, after Memory & Lessons', mem >= 0 && flow[mem + 1] && flow[mem + 1].key === 'kybernos-memory' && flow[mem + 2] && flow[mem + 2].key === 'kybernos-local', flow.slice(mem, mem + 4))
+    const memEnd = flow.findIndex((x, i) => i > mem && x.head)
+    const memGroup = flow.slice(mem + 1, memEnd < 0 ? flow.length : memEnd).map((x) => x.key)
+    check('the section of what stays on this computer is under Memory & context, after Memory & Lessons', mem >= 0 && memGroup[0] === 'kybernos-memory' && memGroup.indexOf('kybernos-local') > 0, memGroup)
     // Each of the remaining ones still opens: pick General and Phone and channels by key and read the page that comes up.
     const pageText = async () => (await val(`(document.querySelector('[data-slot="settings.section"]') || document.querySelector('[class*="settingsContent"]') || { innerText: '' }).innerText`)) || ''
     const openCell = async (cellKey) => {
@@ -802,7 +804,9 @@ try {
     check('the section opens: instructions and models are there, and a folded Advanced', (await exists('[data-kb="ky-instructions"]')) && (await exists('[data-kb="ky-models"]')) && (await exists('[data-kb="ky-advanced"]')) && !(await exists('[data-kb="ky-chats"]')))
     const AGENTS = join(DSH_HOME, 'AGENTS.md')
     const note = (await text('[data-kb="ky-instr-note"]')) || ''
-    check('it says the instructions are kept on this computer, and in which file (the sandbox\'s own AGENTS.md)', /on this computer/i.test(note) && note.includes(AGENTS), note)
+    // The file is the note's tooltip (title), not part of its text.
+    const noteTitle = (await val(`(document.querySelector('[data-kb="ky-instr-note"]') || { title: '' }).title || ''`)) || ''
+    check('it says the instructions are kept on this computer, and in which file (the sandbox\'s own AGENTS.md, in its tooltip)', /on this computer/i.test(note) && noteTitle.includes(AGENTS), { note, noteTitle })
     const setField = (value) => val(`(() => { const t = document.querySelector('[data-kb="ky-instr-field"]'); const set = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set; set.call(t, ${JSON.stringify(value)}); t.dispatchEvent(new Event('input', { bubbles: true })) })()`)
     const field = () => val(`document.querySelector('[data-kb="ky-instr-field"]').value`)
     const INSTR = 'Answer in short sentences. Say what you checked.'
@@ -1074,7 +1078,7 @@ try {
       if (inline) {
         const rows = await rowsOf('.kbfp-menu')
         check(count + ': one row each, the personal one active (check mark), in the order of the account', rows.length === count && rows[0].current === true && rows.slice(1).every((r) => r.current === false) && JSON.stringify(rows.map((r) => r.name)) === JSON.stringify(T_NAMES.slice(0, count)), rows)
-        check(count + ': the personal row says « you · plan », a team its role and head count (« Admin · 6 members »)', rows[0].sub === 'Dev Person · Free' && (count === 1 || (rows[1].sub === 'Admin · 6 members' && rows[1].pct === '84')), rows)
+        check(count + ': the personal row says « Personal · you · plan », a team « Team · role · head count » (« Team · Admin · 6 members »)', rows[0].sub === 'Personal · Dev Person · Free' && (count === 1 || (rows[1].sub === 'Team · Admin · 6 members' && rows[1].pct === '84')), rows)
         check(count + ': no « Switch team » row while the list is in the menu, and « Create a team » then « Join with an invitation link » are under it (scripts/check-join-live.mjs plays the dialog)', !(await exists('.kbfp-menu [data-kb="menu-switch"]')) && (await exists('.kbfp-menu [data-kb="space-create"]')) && (await exists('.kbfp-menu [data-kb="space-join"]')))
         if (count === 3) {
           check('3: each team row carries its own colour, two different ones, the personal tile none', rows[1].hue !== null && rows[2].hue !== null && rows[1].hue !== rows[2].hue && rows[0].hue === null, rows.map((r) => r.hue))
@@ -1092,7 +1096,7 @@ try {
         await sleep(300)
         const rows = await rowsOf('.kbfp-sub')
         check(count + ': it opens the full list next to the menu, with every space, « Create a team » and « Join with an invitation link »', rows.length === count && (await exists('.kbfp-sub [data-kb="space-create"]')) && (await exists('.kbfp-sub [data-kb="space-join"]')), rows.length)
-        check(count + ': the rows carry the same role and head count', rows[1].sub === 'Admin · 6 members', rows[1])
+        check(count + ': the rows carry the same role and head count', rows[1].sub === 'Team · Admin · 6 members', rows[1])
         const sub = await rect('.kbfp-sub')
         check(count + ': the list fits the window', sub !== null && sub.x >= 0 && sub.y >= 0 && sub.x + sub.w <= 1400 && sub.y + sub.h <= 860, sub)
         await shot('t-list-' + count + '-' + (await schemeNow2()))
@@ -1262,7 +1266,7 @@ try {
     const frCard = await cardOf()
     const frRows = await rowsOf('.kbfp-menu')
     check('French: the card says « Équipe », « Toi », « Sur 5 heures », « Revient dans environ 3 h » and has « Gérer » and « Ajouter des crédits »', frCard !== null && frCard.rows[0].label === 'Équipe' && frCard.rows[1].label === 'Toi' && /Sur 5 heures/.test(frCard.rows[1].note) && /Revient dans environ 3.h/.test(frCard.rows[0].note) && /Gérer/.test(frCard.text) && /Ajouter des crédits/.test(frCard.text), frCard)
-    check('French: the rows say « Admin · 6 membres »', frRows.some((r) => r.sub === 'Admin · 6 membres'), frRows)
+    check('French: the rows say « Équipe · Admin · 6 membres »', frRows.some((r) => r.sub === 'Équipe · Admin · 6 membres'), frRows)
     await shot('t-fr-plan-full')
     await val(`(() => { window.__KB_LANG_RESOLVE__ = window.__kbLangBefore; delete window.__kbLangBefore })()`)
     await clean()

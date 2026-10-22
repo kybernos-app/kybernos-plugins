@@ -827,6 +827,11 @@ let kbLocaleRead = () => 'en'
       'kbtc.appel': { kybernos: 'appel', en: 'call' },
       'kbtc.voir': { kybernos: 'Voir l’exécution', en: 'View execution' },
       'kbtc.done': { kybernos: 'Appel terminé', en: 'Call done' },
+'kbtc.st.pending': { kybernos: 'À faire', en: 'To do' },
+'kbtc.st.active': { kybernos: 'En cours', en: 'In progress' },
+'kbtc.st.waiting': { kybernos: 'En attente', en: 'Waiting' },
+'kbtc.st.done': { kybernos: 'Terminée', en: 'Done' },
+'kbtc.st.rejected': { kybernos: 'Refusée', en: 'Rejected' },
 
       'status.ok': { kybernos: 'sondé OK', en: 'probe OK' },
       'status.fail': { kybernos: 'sonde en échec', en: 'probe failed' },
@@ -5134,6 +5139,29 @@ const kbConnRowsOf = (connsReal, declaredTools, hit) => {
   }
   return { connRows: connRows, realBySlug: realBySlug }
 }
+
+// <conn-logo:begin>
+/**
+ * The tile of a connection row: the app's real logo when kybernos-composio can give it (`window.__KB_APP_LOGOS__`, which holds the
+ * embedded SVGs of its catalogue), the two first letters of the app otherwise (bundle absent, catalogue not loaded yet, app without a logo).
+ */
+const KbConnTile = (props) => {
+  const slug = String(props.slug === null || props.slug === undefined ? '' : props.slug).toLowerCase()
+  const name = String(props.name === null || props.name === undefined ? '' : props.name)
+  const [, tick] = React.useState(0)
+  React.useEffect(() => {
+    let off = null
+    try { const s = window.__KB_APP_LOGOS__; if (s !== undefined && s !== null && typeof s.subscribe === 'function') off = s.subscribe(() => tick((n) => n + 1)) } catch (e) { off = null }
+    return () => { if (typeof off === 'function') { try { off() } catch (e) { /* already gone */ } } }
+  }, [])
+  let svg = null
+  try { const s = window.__KB_APP_LOGOS__; if (slug !== '' && s !== undefined && s !== null && typeof s.svg === 'function') svg = s.svg(slug) } catch (e) { svg = null }
+  if (typeof svg === 'string' && svg !== '') {
+    return h('span', { className: 'kb8-tile kbcn-logo', 'data-kb': 'conn-logo', 'data-slug': slug, role: 'img', 'aria-label': name, dangerouslySetInnerHTML: { __html: svg } })
+  }
+  return h('span', { className: 'kb8-tile', 'data-kb': 'conn-initials', style: { background: 'var(--dsw-alias-bg-layer-2)' } }, h('span', { className: 'kb8-parent' }, name.slice(0, 2).toUpperCase()))
+}
+// <conn-logo:end>
 
 /**
  * Action commune : le PREMIER clic arme seulement (aucun appel, aucune cle
@@ -14719,14 +14747,14 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
             connTeamDeclared.length === 0
               ? h('div', { className: 'kbg-empty' }, connTeamYaml === null ? kbe('Reading the claimed tools…') : kbt('kbui.conn.team.none'))
               : h('div', { className: 'kb8-rows', 'data-kb': 'team-conn-declared' }, connTeamDeclared.map((d) => h('div', { className: 'kb8-row', key: 'td/' + d.key },
-                h('span', { className: 'kb8-tile', style: { background: 'var(--dsw-alias-bg-layer-2)' } }, h('span', { className: 'kb8-parent' }, d.name.slice(0, 2).toUpperCase())),
+                h(KbConnTile, { slug: d.slug, name: d.name }),
                 h('span', { style: { display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 } },
                   h('span', { className: 'kb8-name' }, d.name),
                   h('span', { className: 'kb8-parent' }, kbt('kbui.tools') + (d.role.length > 0 ? ' · ' + d.role : ''))),
                 h('span', { style: Object.assign({}, pillT, { color: 'var(--dsw-alias-state-success-primary)', borderColor: 'var(--dsw-alias-state-success-primary)' }) }, kbt('kbui.conn.enable'))))),
             h('span', { className: 'kb8-parent', 'data-kb': 'team-connectors-source' }, connTeamNote),
             h('div', { className: 'kb8-rows' }, connTeamRows.map((c) => h('div', { className: 'kb8-row', key: c.key, style: { flexWrap: 'wrap' } },
-              h('span', { className: 'kb8-tile', style: { background: 'var(--dsw-alias-bg-layer-2)' } }, h('span', { className: 'kb8-parent' }, c.name.slice(0, 2).toUpperCase())),
+              h(KbConnTile, { slug: c.slug, name: c.name }),
               h('span', { style: { display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 } },
                 h('span', { className: 'kb8-name' }, c.name),
                 h('span', { className: 'kb8-parent' }, c.meta)),
@@ -16930,6 +16958,19 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       const short = (call !== null && typeof call.short === 'string') ? call.short : ''
       const intro = String(d.subject != null ? d.subject : '').replace(/^\s*\[[a-z0-9][a-z0-9-]*\]\s*/i, '')
       const mono = crewNom.replace(/[^a-z0-9]/gi, '').slice(0, 2).toUpperCase()
+      // A task of the board that belongs to no team of ours (no [team] tag in its subject, no call the host knows) used to draw a card
+      // that read « ? · call », an empty line and a button that led nowhere. It is one line now: its state and its subject. While the
+      // host has not answered yet only the subject shows, so the card does not flash and then change.
+      if (crewId == null || crewId === '') {
+        const stKey = ['pending', 'active', 'waiting', 'done', 'rejected'].indexOf(String(st)) >= 0 ? String(st) : 'pending'
+        return h('div', { className: 'kbtc-wrap', 'data-kb': 'team-call-card', 'data-plain': '1' },
+          env === null
+            ? h('div', { className: 'kbtc-intro' }, kbBadgeSpans(intro))
+            : h('div', { className: 'kbtc-plain kbtc-b-' + stKey, 'data-st': stKey },
+              h('span', { className: 'kbtc-pdot' }),
+              h('span', { className: 'kbtc-pst' }, kbt('kbtc.st.' + stKey)),
+              intro !== '' ? h('span', { className: 'kbtc-ptxt', title: intro }, kbBadgeSpans(intro)) : null))
+      }
       // Palette maquette §2 (ST + typeCol) : états et types de nœuds.
       const STC = { done: '#7FC98A', active: '#E8B85C', waiting: '#B99CF0', rejected: '#E9A197', pending: '#6E6A63' }
       const TYP = { trigger: ['#5B8DEF', '#1E2A44', '▶'], kyber: ['#C9A45C', '#3A3120', '⬡'], connector: ['#8FB8DE', '#1E2B36', '⇄'], agent: ['#6CC6BC', '#1E3A37', '●'], human: ['#B99CF0', '#2C2540', '◆'], end: ['#9C988F', '#2E2D2B', '■'] }
@@ -16958,6 +16999,14 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       '.kbtc-wrap{margin:10px 0;display:flex;flex-direction:column;gap:8px}' +
       '.kbtc-intro{font-size:14px;line-height:1.5;color:var(--dsw-alias-label-secondary)}' +
       '.kbtc-card{display:flex;align-items:center;gap:14px;padding:12px 14px;border-radius:12px;background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l1)}' +
+      '.kbtc-plain{display:flex;align-items:center;gap:10px;min-width:0;padding:8px 12px;border-radius:10px;background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l1);font-size:13px;color:var(--dsw-alias-label-secondary)}' +
+      '.kbtc-pdot{width:8px;height:8px;border-radius:50%;flex:0 0 auto;background:var(--dsw-alias-label-tertiary)}' +
+      '.kbtc-plain[data-st="active"] .kbtc-pdot{background:var(--dsw-alias-state-warn-primary)}' +
+      '.kbtc-plain[data-st="waiting"] .kbtc-pdot{background:var(--dsw-alias-brand-primary)}' +
+      '.kbtc-plain[data-st="done"] .kbtc-pdot{background:var(--dsw-alias-state-success-primary)}' +
+      '.kbtc-plain[data-st="rejected"] .kbtc-pdot{background:var(--dsw-alias-state-error-primary)}' +
+      '.kbtc-pst{flex:0 0 auto;font-size:12px;font-weight:600;color:var(--dsw-alias-label-primary)}' +
+      '.kbtc-ptxt{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}' +
       '.kbtc-b-active{border-color:var(--dsw-alias-state-warn-primary)}' +
       '.kbtc-b-waiting{border-color:var(--dsw-alias-brand-primary)}' +
       '.kbtc-b-rejected{border-color:var(--dsw-alias-state-error-primary)}' +
@@ -18612,7 +18661,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
             h('span', { className: 'kb8-parent', 'data-kb': 'connectors-source' }, connsNote),
             pagerTop(connsVp),
             h('div', { className: 'kb8-rows' }, pageOf(connRows, connsVp).map((c) => h('div', { className: 'kb8-row', key: c.key, style: { flexWrap: 'wrap' } },
-              h('span', { className: 'kb8-tile', style: { background: 'var(--dsw-alias-bg-layer-2)' } }, h('span', { className: 'kb8-parent' }, c.name.slice(0, 2).toUpperCase())),
+              h(KbConnTile, { slug: c.slug, name: c.name }),
               h('span', { style: { display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 } },
                 h('span', { className: 'kb8-name' }, c.name),
                 h('span', { className: 'kb8-parent' }, c.meta)),
@@ -29469,6 +29518,9 @@ body:not([data-ds-dark-theme]) .kbs-search input::placeholder{color:var(--dsw-al
 @media (min-width:701px){
   html[data-kb-chat-fold="1"] [data-slot="conversation.session.header.actions"] > :not(.kbfold-root):not(:has([data-act="hangup-header"])){display:none!important}
   html[data-kb-chat-fold="1"] [data-slot="conversation.session.header"] > [class*="tabs"]{display:none!important}
+  /* The header is a grid of two rows (the title, the tabs) at least 76 px high: with the tabs gone the title row used to stretch over both and the title slid down. It stays
+     where it was (top row, its own height): folding no longer moves the title, nor the chat under it. */
+  html[data-kb-chat-fold="1"] [data-slot="conversation.session.header"] > [class*="titleRow"]{align-self:start}
   html[data-kb-chat-fold="1"] [data-slot="conversation.composer.dock"] > :not([data-kb="changes"]){display:none!important}
   html[data-kb-chat-fold="1"] [data-slot="conversation.composer.dock"] > [data-kb="changes"][data-state="ok"],
   html[data-kb-chat-fold="1"] [data-slot="conversation.composer.dock"] > [data-kb="changes"][data-state="unavailable"]{display:none!important}
@@ -31460,6 +31512,8 @@ body[data-ds-dark-theme] .kb8-iconbtn.on.col{border-color:var(--kb8-pgd);color:v
 .kb-favbtn.on{color:var(--dsw-alias-state-warn-primary)}
 .kb-favbtn:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:1px}
 .kb8-tile{flex:0 0 auto;width:38px;height:38px;border-radius:13px;display:flex;align-items:center;justify-content:center;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-secondary)}
+.kbcn-logo{background:#fff;border:1px solid var(--dsw-alias-border-l1);box-sizing:border-box;overflow:hidden}
+.kbcn-logo svg{width:68%;height:68%;display:block}
 .kb8-name{font-size:16px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--dsw-alias-label-primary)}
 .kb8-parent{font-size:12px;color:var(--dsw-alias-label-secondary)}
 .kb8-pills{display:flex;flex-wrap:wrap;gap:6px}

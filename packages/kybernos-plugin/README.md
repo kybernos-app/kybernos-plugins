@@ -14,9 +14,10 @@ Socle = `kybernos-plugin`, `kybernos-hub`, `kybernos-theme`, `kybernos-sessions`
 
 - Sidebar entry **Kybernos** (`sidebar.panellist`) opening a main panel: **Agent Teams** (gallery and Marketplace tabs, create / edit / info pages,
   Insight, Quality Score), **Workspaces**, **Creations**, **Automations** (cron, one-time and webhook tasks, as **Columns**, **Calendar** or **List**) and **Resources**
-  (Connectors tab only when `@local/kybernos-composio` is booted, Skills tab, Documents tab off via `KB_SHOW_DOCS`). "Kybernos
+  (Connectors tab only when `@local/kybernos-composio` is booted, with each app's real logo on its row through that bundle's `window.__KB_APP_LOGOS__` seam and the two first letters when it is absent, Skills tab, Documents tab off via `KB_SHOW_DOCS`). "Kybernos
   Hosted" is off via `KB_SHOW_HOSTED`. The Skills tab mounts the slot `main.kybernos-skills`, with a core page as fallback.
-- In the chat: a **Journal** tab (`conversation.view`, runs derived from session events), team-call cards,
+- In the chat: a **Journal** tab (`conversation.view`, runs derived from session events), team-call cards
+  (a board task that belongs to no team of ours, with no `[team]` tag and no call the host knows, is one line, its state and its subject, not a card),
   composer extras (token usage, starters, widget chip, voice dictation, artifact selector), read-aloud
   buttons, share / chat-id actions. Also pinned conversations, the Kybernos brand mark and sidebar footer tools.
 - Settings sections **Tools**, **Voice** and Appearance (shortcut to Theme); a first-run **onboarding** wizard (see
