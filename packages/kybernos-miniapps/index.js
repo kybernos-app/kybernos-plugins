@@ -100,18 +100,19 @@ const nomAppSur = (nomApp) => {
 
 // ── install ─────────────────────────────────────────────────────────────────
 async function installer (corps) {
-  if (!MACOS) return { ok: false, erreur: 'Installing a widget app is macOS only.' }
+  // `erreur` is the host's own sentence (English, for the log); `code` is what the page words in the person's language.
+  if (!MACOS) return { ok: false, code: 'macos-only', erreur: 'Installing a widget app is macOS only.' }
   const id = slug(corps.id)
   const titre = String(corps.titre || 'MiniApp Kybernos').slice(0, 60)
   const html = String(corps.html || '')
-  if (html.length < 10) return { ok: false, erreur: 'HTML too short.' }
-  if (html.length > 4_000_000) return { ok: false, erreur: 'HTML too large.' }
+  if (html.length < 10) return { ok: false, code: 'html-short', erreur: 'HTML too short.' }
+  if (html.length > 4_000_000) return { ok: false, code: 'html-long', erreur: 'HTML too large.' }
   const largeur = Math.max(180, Math.min(600, Number(corps.largeur) || 260))
   const hauteur = Math.max(180, Math.min(800, Number(corps.hauteur) || 340))
 
   mkdirSync(DEST_ROOT, { recursive: true })
   const nomApp = `${titre.replace(/[^\p{L}\p{N} .-]/gu, '').trim() || 'MiniApp'} ${id}`.slice(0, 80)
-  if (!nomAppSur(nomApp)) return { ok: false, erreur: 'app name refused (outside the install folder).' }
+  if (!nomAppSur(nomApp)) return { ok: false, code: 'name-refused', erreur: 'app name refused (outside the install folder).' }
   const appDir = join(DEST_ROOT, `${nomApp}.app`)
 
   // start from scratch on a reinstall
@@ -146,7 +147,7 @@ async function installer (corps) {
   const signature = await executer('/usr/bin/codesign', ['-f', '-s', '-', appDir])
   if (signature.err) {
     dire(`codesign failed: ${signature.err.message ?? signature.err}`)
-    return { ok: false, erreur: 'Cannot sign the app (codesign).' }
+    return { ok: false, code: 'codesign', erreur: 'Cannot sign the app (codesign).' }
   }
 
   // optional LaunchAgent — « Launch automatically »
