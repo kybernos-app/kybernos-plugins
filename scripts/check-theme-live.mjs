@@ -331,7 +331,20 @@ const readPage = () => val(`JSON.stringify({
   current: (document.querySelector('.kbth-sum-n') || { textContent: '' }).textContent,
   summaryPills: Array.from(document.querySelectorAll('.kbth-sum-n .kbth-pill')).map((e) => e.textContent.trim()),
 })`).then((s) => JSON.parse(s))
-const modeInfo = async () => JSON.parse(await val(`(() => { const s = ${Q.modeSeg}; const i = s ? Array.from(s.children).findIndex((b) => b.getAttribute('aria-pressed') === 'true') : -2; return JSON.stringify({ idx: i, has: !!s, source: document.documentElement.getAttribute('data-ds-theme-source') }) })()`))
+// V1-24: the Mode row is the mode as a word plus a button to the Appearance page (no selector any more): `idx` is read from the word, `has` says the row is there.
+const modeIndex = (t) => (/^(system|système)$/i.test(t) ? 0 : (/^(light|clair)$/i.test(t) ? 1 : (/^(dark|sombre)$/i.test(t) ? 2 : -1)))
+const modeInfo = async () => {
+  const r = JSON.parse(await val(`(() => { const e = document.querySelector('[data-kb="theme-mode-is"]'); return JSON.stringify({ text: e ? e.textContent.trim() : null, has: !!e, source: document.documentElement.getAttribute('data-ds-theme-source') }) })()`))
+  return { idx: r.has ? modeIndex(r.text) : -2, has: r.has, source: r.source }
+}
+/** The mode is set on the Appearance page only: press its card there (System / Light / Dark, in English), then come back to the Theme page. */
+const pressMode = async (name) => {
+  await clickEl(`Array.from(document.querySelectorAll('button[class*="navCell"]')).find((b) => /^appearance/i.test((b.innerText || '').trim()))`)
+  await until(async () => (await val(`document.querySelectorAll('.kbac-theme').length`)) > 0, 8000)
+  await clickEl(`Array.from(document.querySelectorAll('.kbac-theme')).find((c) => (c.innerText || '').trim().toLowerCase().startsWith(${JSON.stringify(name.toLowerCase())}))`)
+  await sleep(1200)
+  await openTheme({ fresh: false, settle: false })
+}
 /** Waits until the Mode row, DSH’s own report (html[data-ds-theme-source]) and — once known — the mode found at the start all agree. */
 const settleMode = async () => {
   // (On any tab but « Essentiel » there is no Mode row: DSH’s own report is then the only witness.)
@@ -392,7 +405,7 @@ const restoreUserSettings = async () => {
     const m = await modeInfo()
     if (m.has && MODES[m.idx] !== startMode) {
       console.log('  ! restoring the mode: pressing « ' + startMode + ' »')
-      await clickEl(`(${Q.modeSeg}).children[${MODES.indexOf(startMode)}]`)
+      await pressMode(['System', 'Light', 'Dark'][MODES.indexOf(startMode)])
       await sleep(1500)
     }
     if (startFont !== null && startFont >= 12 && startFont <= 17) {
@@ -494,7 +507,7 @@ try {
       switchLike: !!document.querySelector('.kbth-head .kbth-seg') || Array.from(document.querySelectorAll('.kbth-page button')).some((b) => /^(simple|avanc[ée]e?|advanced)$/i.test(b.textContent.trim())),
       sub: (document.querySelector('.kbth-sub') || { textContent: '' }).textContent.trim(),
       tabs: Array.from(document.querySelectorAll('.kbth-adv-tab')).map((b) => { const r = b.getBoundingClientRect(); return { text: b.textContent.trim(), on: b.classList.contains('on'), pressed: b.getAttribute('aria-pressed'), x: Math.round(r.left), y: Math.round(r.top) } }),
-      mode: Array.from((${Q.modeSeg}).children).map((b) => b.getAttribute('aria-pressed')),
+      mode: { text: (document.querySelector('[data-kb="theme-mode-is"]') || { textContent: null }).textContent, openButton: !!document.querySelector('[data-kb="theme-mode-open"]'), selector: !!(${Q.modeSeg}) },
       skins: document.querySelectorAll('.kbth-skin:not(.kbth-skin-add)').length,
       skinNamed: Array.from(document.querySelectorAll('.kbth-skin:not(.kbth-skin-add)')).every((b) => (b.getAttribute('aria-label') || '').indexOf(' — ') > 0 && b.querySelector('.kbth-skin-dot') && b.querySelector('.kbth-skin-name')),
       dots: document.querySelectorAll('.kbth-dots .kbth-dot').length,
@@ -511,7 +524,9 @@ try {
     check('there is no Simple / Advanced switch any more (no button of that name, no segment in the header)', j.switchLike === false, j.switchLike)
     check('the tabs are stacked vertically on the left, « Essentiel » the one open (and the only one pressed)', j.tabs.length === TAB_IDS.length && j.tabs.every((t) => t.x === j.tabs[0].x) && j.tabs.every((t, i) => i === 0 || t.y > j.tabs[i - 1].y) && j.tabs[0].on === true && j.tabs[0].pressed === 'true' && j.tabs.filter((t) => t.on).length === 1, j.tabs)
     check('the header says the basic settings are in « Essentiel »', /essentiel|essentials?/i.test(j.sub), j.sub)
-    check('Mode row: System / Light / Dark, exactly one pressed, and it is the native one (' + startMode + ')', j.mode.filter((x) => x === 'true').length === 1 && j.mode[MODES.indexOf(startMode)] === 'true', j.mode)
+    // V1-24: the mode is set on the Appearance page only. The Theme page's Mode row names the native mode as text and opens that page: it has no System / Light / Dark selector.
+    const modeWord = { system: /^(system|système)$/i, light: /^(light|clair)$/i, dark: /^(dark|sombre)$/i }[startMode]
+    check('Mode row: the native mode (' + startMode + ') as text and a button to the Appearance page, no selector', j.mode.selector === false && j.mode.openButton === true && j.mode.text !== null && modeWord.test(j.mode.text.trim()), j.mode)
     check('18 shipped theme dots (and the add button next to « My themes »), each with a coloured disc, a name and « name — mode · accent » as label', j.skins === 18 && j.skinNamed === true, { n: j.skins, named: j.skinNamed })
     const labels = await skinLabels()
     check('every theme of the catalogue is there, under its name', SKINS.every((d) => findSkin(labels, d).idx >= 0), labels)
@@ -519,7 +534,7 @@ try {
     check('accent: a row of dots (' + j.dots + '), a colour picker and a hex field', j.dots >= 8 && j.pipette === 1 && j.hex === 1, j)
     check('wallpaper: 4 categories and a grid of tiles (no sliders while no wallpaper is set)', j.cats === 4 && j.tiles > 0 && j.sliders.length === 1, { cats: j.cats, tiles: j.tiles, sliders: j.sliders })
     check('font selector: a closed button showing the DSH default, and the text-size slider 12…17 showing DSH’s real size (' + startFont + ', adopted at boot)', /dsh/i.test(j.fsbtn) && j.fsOpen === 'false' && j.sliders[0][0] === '12' && j.sliders[0][1] === '17' && j.sliders[0][2] === String(startFont), { fsbtn: j.fsbtn, fsOpen: j.fsOpen, slider: j.sliders[0], dshStored: startFont })
-    check('footer pill says the look is native (no layer)', /native|natif/i.test(pg.pills[0] || ''), pg.pills)
+    check('footer pill says the look is native (no theme applied)', /no theme applied|aucun thème/i.test(pg.pills[0] || ''), pg.pills)
     const french = JSON.parse(await val(`JSON.stringify((() => { const t = document.querySelector('.kbth-page').innerText; const words = ['Visibilité', 'Flou', 'Teinte des surfaces', 'Petits carreaux', 'Personnalisé', 'jeton(s)', 'Opacité', 'Adoucit', 'Rechercher une police']; return words.filter((w) => t.indexOf(w) >= 0) })())`))
     if (french.length) note('the page is shown in English but still carries French text (' + french.join(', ') + '): hardcoded strings the live translation does not cover (see scripts/audit-i18n-live.mjs)')
   })
@@ -563,7 +578,7 @@ try {
       if (font.tags.length !== 0) problems.push('font tag present')
       if (pg.skinPressed.length !== 1 || pg.skinPressed[0] !== f.idx) problems.push('pressed dots ' + pg.skinPressed)
       if (!def.names.some((n) => pg.current.indexOf(n) >= 0)) problems.push('summary line: ' + pg.current.slice(0, 60))
-      if (/native|natif/i.test(pg.pills[0] || '')) problems.push('pill still says native')
+      if (/no theme applied|aucun thème/i.test(pg.pills[0] || '')) problems.push('pill still says native')
       if (mode.source !== startMode) problems.push('NATIVE MODE CHANGED to ' + mode.source)
       check(def.names[0] + (def.mode === null ? ' (mode-less pack)' : '') + ': skin stored, tokens' + (def.wp ? ', wallpaper' : '') + ', pill, native mode kept', problems.length === 0, problems)
     }
@@ -593,7 +608,7 @@ try {
       const pg = await readPage()
       const diff = TOKEN_VARS.filter((v) => !sameColor(tok[v], NATIVE[v]))
       check('from « ' + from.names[0] + ' » (' + changed + ' tokens differed from native): all 17 tokens are back to the values measured at the start', diff.length === 0, diff.map((v) => v + ' ' + tok[v] + ' ≠ ' + NATIVE[v]))
-      check('… the wallpaper <div> is gone, no theme font tag, pill says native', wp.count === 0 && font.tags.length === 0 && /native|natif/i.test(pg.pills[0] || ''), { wp: wp.count, tags: font.tags, pill: pg.pills[0] })
+      check('… the wallpaper <div> is gone, no theme font tag, pill says native', wp.count === 0 && font.tags.length === 0 && /no theme applied|aucun thème/i.test(pg.pills[0] || ''), { wp: wp.count, tags: font.tags, pill: pg.pills[0] })
       check('… stored state is the default one (skin dsh, no accent, no wallpaper, ov empty)', st.skin === 'dsh' && st.acc === null && st.wp === 'none' && Object.keys(st.ov).length === 0, st)
     }
   })
@@ -1142,7 +1157,7 @@ try {
     const font = await readFont()
     await goTab(TAB.essentiel)
     const pg = await readPage()
-    check('… the 17 tokens are the native ones, no wallpaper <div>, no font tag, the pill says native, and the page still shows its tabs', TOKEN_VARS.every((v) => sameColor(tok[v], NATIVE[v])) && wp.count === 0 && font.tags.length === 0 && /native|natif/i.test(pg.pills[0] || '') && (await val(`document.querySelectorAll('.kbth-skin:not(.kbth-skin-add)').length`)) === 18, { diff: TOKEN_VARS.filter((v) => !sameColor(tok[v], NATIVE[v])), wp: wp.count, tags: font.tags, pill: pg.pills[0] })
+    check('… the 17 tokens are the native ones, no wallpaper <div>, no font tag, the pill says native, and the page still shows its tabs', TOKEN_VARS.every((v) => sameColor(tok[v], NATIVE[v])) && wp.count === 0 && font.tags.length === 0 && /no theme applied|aucun thème/i.test(pg.pills[0] || '') && (await val(`document.querySelectorAll('.kbth-skin:not(.kbth-skin-add)').length`)) === 18, { diff: TOKEN_VARS.filter((v) => !sameColor(tok[v], NATIVE[v])), wp: wp.count, tags: font.tags, pill: pg.pills[0] })
     check('… « DSH default » is the pressed theme again; the native mode is still ' + startMode, pg.skinPressed.length === 1 && pg.skinPressed[0] === 0 && (await modeInfo()).source === startMode, pg.skinPressed)
     const junk = Object.keys(st).filter((k) => DEFAULTS[k] === undefined && k !== 'ov')
     check('… and nothing is left behind in the stored state: « Reset all » REPLACES it (a key outside the defaults, such as radius, would otherwise survive)', junk.length === 0, junk.map((k) => k + '=' + JSON.stringify(st[k])))
@@ -1777,7 +1792,7 @@ try {
     const pillStd = (await readPage()).pills[0]
     check('« Rayons »: Net → --dsw-radius-md 3px, Doux → 18px, Standard → the DSH 12px', rSharp.md === '3px' && rSoft.md === '18px' && rStd.md === '12px' && r0.md === '12px', { start: r0.md, sharp: rSharp.md, soft: rSoft.md, standard: rStd.md })
     check('… a real element follows: the composer card’s border-radius is smaller with Net and larger with Doux than with Standard (' + rSharp.composer + ' < ' + rStd.composer + ' < ' + rSoft.composer + ' px)', rSharp.composer < rStd.composer && rStd.composer < rSoft.composer, { sharp: rSharp.composer, standard: rStd.composer, soft: rSoft.composer })
-    check('… Standard posts NO radius token: the footer pill says « DSH native » again (it said a layer was on with Net: « ' + pillSharp + ' »)', !/native|natif/i.test(pillSharp || '') && /native|natif/i.test(pillStd || ''), { sharp: pillSharp, standard: pillStd })
+    check('… Standard posts NO radius token: the footer pill says « DSH native » again (it said a layer was on with Net: « ' + pillSharp + ' »)', !/no theme applied|aucun thème/i.test(pillSharp || '') && /no theme applied|aucun thème/i.test(pillStd || ''), { sharp: pillSharp, standard: pillStd })
     // brand
     const brand = async () => ({ name: await cs('[data-slot="sidebar.brand.name"]', 'display'), mark: await cs('[data-slot="sidebar.brand.mark"]', 'display'), hero: await cs('[data-slot="conversation.hero.brand.mark"]', 'display') })
     const b0 = await brand()
@@ -1849,8 +1864,8 @@ try {
       const c2 = { ok: await succ(), err: await errv(), pill: (await readPage()).pills[0] }
       const cbDark = await displayedDark()
       const cbWant = cbDark ? CB_PALETTE.dark : CB_PALETTE.light
-      check('« Palette daltonisme »: success → ' + cbWant.ok + ' and error → ' + cbWant.err + ' on ' + (cbDark ? 'Dark' : 'Light') + ', and on its own it posts the layer (the pill no longer says « DSH native »)', sameColor(c1.ok, cbWant.ok) && sameColor(c1.err, cbWant.err) && !/native|natif/i.test(c1.pill || '') && /native|natif/i.test(c0.pill || ''), { before: c0, on: c1, want: cbWant })
-      check('… off gives DSH’s own success/error colours and the « DSH native » pill back', sameColor(c2.ok, c0.ok) && sameColor(c2.err, c0.err) && /native|natif/i.test(c2.pill || ''), { before: c0, after: c2 })
+      check('« Palette daltonisme »: success → ' + cbWant.ok + ' and error → ' + cbWant.err + ' on ' + (cbDark ? 'Dark' : 'Light') + ', and on its own it posts the layer (the pill no longer says « DSH native »)', sameColor(c1.ok, cbWant.ok) && sameColor(c1.err, cbWant.err) && !/no theme applied|aucun thème/i.test(c1.pill || '') && /no theme applied|aucun thème/i.test(c0.pill || ''), { before: c0, on: c1, want: cbWant })
+      check('… off gives DSH’s own success/error colours and the « DSH native » pill back', sameColor(c2.ok, c0.ok) && sameColor(c2.err, c0.err) && /no theme applied|aucun thème/i.test(c2.pill || ''), { before: c0, after: c2 })
     } finally {
       await val(`(() => { const a = document.getElementById('kb-probe'); if (a) a.remove() })()`)
     }
