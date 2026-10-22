@@ -1245,6 +1245,7 @@ let kbLocaleRead = () => 'en'
       'kbui.best.quality': { kybernos: 'Meilleure qualité', en: 'Best quality' },
       'kbui.best.value': { kybernos: 'Meilleur rapport', en: 'Best value' },
       'kbui.budget': { kybernos: 'Budget', en: 'Budget' },
+      'kbui.devices': { kybernos: 'Appareils', en: 'Devices' },
       'kbui.buildteam': { kybernos: 'Construire l’Agent Team', en: 'Build the Agent Team' },
       'kbui.composio.absent': { kybernos: 'Paquet @local/kybernos-composio absent.', en: 'Bundle @local/kybernos-composio absent.' },
       'kbui.crew.tag': { kybernos: 'Équipe ', en: 'Crew ' },
@@ -18471,64 +18472,55 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       // Meme liste que celle des hooks : les livrables du projet, filtre de
       // recherche compris.
       const mine = delivMine
-      const TABS = ['Threads', kbt('kbui.details'), kbt('kbui.instructions'), kbt('kbui.documents'), kbt('kbui.objectifs'), 'Deliverables', kbt('kbui.skills'), kbt('kbui.connecteurs'), kbt('kbui.budget'), kbt('kbui.insight')].filter((t) => kbProjectTabHidden(t) === false)
+      const TABS = ['Threads', kbt('kbui.details'), kbt('kbui.instructions'), kbt('kbui.documents'), kbt('kbui.objectifs'), 'Deliverables', kbt('kbui.skills'), kbt('kbui.connecteurs'), kbt('kbui.devices'), kbt('kbui.budget'), kbt('kbui.insight')].filter((t) => kbProjectTabHidden(t) === false && (t !== kbt('kbui.devices') || kbMdExtras('devices', ws) !== null))
       const rowStyle = { display: 'flex', alignItems: 'center', gap: '13px', padding: '14px 16px', borderBottom: '1px solid var(--dsw-alias-border-l1)' }
       const pillStyle = { fontFamily: 'ui-monospace,monospace', fontSize: '10px', letterSpacing: '.06em', borderRadius: '999px', padding: '4px 10px', border: '1px solid var(--dsw-alias-border-l1)', color: 'var(--dsw-alias-label-secondary)', whiteSpace: 'nowrap' }
+      const saveLabel = saveState === 'saving' ? kbt('kbui.saving') : (saveState === 'pending' ? kbt('kbui.unsaved') : (saveState === 'ok' ? kbt('kbui.saved.check') : (saveState === 'err' ? kbt('kbui.retry.save') : kbt('kbui.autosave'))))
+      const saveColor = saveState === 'err' ? 'var(--dsw-alias-state-error-primary)' : (saveState === 'ok' ? 'var(--dsw-alias-state-success-primary)' : 'var(--dsw-alias-label-secondary)')
       const pane = (() => {
         if (tab === kbt('kbui.insight')) return h(KbiProjetWsInsight, { variante: 'projet', sessionIds: (Array.isArray(ws.sessionIds) === true ? ws.sessionIds : []), kyberId: null, rootId: null, sessionId: currentSid })
         if (tab === kbt('kbui.instructions')) return h(KbWsInstructions, { ws: ws })
         if (tab === kbt('kbui.details')) {
-          const field = { height: '44px', border: '1px solid var(--dsw-alias-border-l1)', borderRadius: '12px', background: 'var(--dsw-alias-bg-layer-1)', padding: '0 14px', fontSize: '14px', color: 'var(--dsw-alias-label-primary)', outline: 'none', width: '100%', boxSizing: 'border-box' }
-          const card = { background: 'var(--dsw-alias-bg-layer-1)', border: '1px solid var(--dsw-alias-border-l1)', borderRadius: '16px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '11px' }
+          // Laid out like the Identity tab of an Agent Team: one card, the save controls in the page header, the project's icon only once (up there).
+          const field = { height: '44px', border: '1px solid var(--dsw-alias-border-l1)', borderRadius: '12px', background: 'var(--dsw-alias-bg-base, var(--dsw-alias-bg-layer-1))', padding: '0 14px', fontSize: '14px', color: 'var(--dsw-alias-label-primary)', outline: 'none', width: '100%', boxSizing: 'border-box' }
           const allIcons = iconList !== null ? iconList : Object.keys(LUCIDE)
-          const iq = iconQ.trim().toLowerCase()
-          const saveLabel = saveState === 'saving' ? kbt('kbui.saving') : (saveState === 'pending' ? kbt('kbui.unsaved') : (saveState === 'ok' ? kbt('kbui.saved.check') : (saveState === 'err' ? kbt('kbui.retry.save') : kbt('kbui.autosave'))))
-          const saveColor = saveState === 'err' ? 'var(--dsw-alias-state-error-primary)' : (saveState === 'ok' ? 'var(--dsw-alias-state-success-primary)' : 'var(--dsw-alias-label-secondary)')
           return h('div', { style: { display: 'flex', flexDirection: 'column', gap: '14px' } },
-            h('div', { style: { display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' } },
-              kbCfIcon(colorDraft, iconDraft || 'folder', undefined, false, 56),
-              // Le nom du projet etait repete ici a 40 px sous le titre de la
-              // page : deux fois le meme mot, puis une troisieme dans le champ
-              // NAME. Le panneau garde un espaceur (la geometrie ne bouge pas).
-              h('span', { style: { flex: 1, minWidth: 0 } }),
-              h('span', { style: { fontSize: '12.5px', color: saveColor } }, saveLabel),
-              h('button', { type: 'button', className: 'kb8-chip', onClick: () => saveDetails() }, kbt('kbui.save.now'))),
-            h('div', { style: card },
-              h('span', { className: 'kb8-parent' }, kbt('kbui.col.name')),
-              h('input', { value: nameDraft, onChange: (e) => updateDetails({ name: e.target.value }), style: field }),
-              h('span', { className: 'kb8-sub' }, kbt('kbui.shown.project'))),
-            // Description courte : la carte du projet n'affiche que l'amorce,
-            // le texte complet se regle et se lit ici.
-            h('div', { style: card, 'data-kb': 'project-description' },
-              h('span', { className: 'kb8-parent' }, kbt('ui.description')),
-              h('textarea', {
-                value: descDraft, rows: 3, maxLength: 280,
-                'aria-label': kbt('ui.description'),
-                onChange: (e) => updateDetails({ desc: e.target.value }),
-                placeholder: kbt('ui.description.ph'),
-                style: Object.assign({}, field, { height: '84px', padding: '12px 14px', lineHeight: '1.5', resize: 'vertical', fontFamily: 'inherit' }),
-              }),
-              h('span', { className: 'kb8-sub' }, kbt('ui.description.hint') + ' (' + String(descDraft.length) + '/280)')),
-            // The folder card of the multi-device satellite (nothing when it is off).
-            kbMdExtras('folder', ws),
-            h('div', { style: card },
-              h('span', { className: 'kb8-parent' }, 'Icon'),
-              kbLookIcon({ icons: allIcons, query: iconQ, words: iconTags, onQuery: setIconQ, icon: iconDraft, color: colorDraft, onPick: (n) => updateDetails({ icon: n }) })),
-            h('div', { style: card },
-              h('span', { className: 'kb8-parent' }, 'Colour'),
-              kbLookColor(colorDraft, (c) => updateDetails({ color: c }))),
-            // The folded "Advanced" preview of the multi-device satellite (nothing when it is off).
-            kbMdExtras('advanced', ws),
-            h('span', { className: 'kb8-sub' }, 'Changing the name, icon or colour updates the project everywhere in DSH.'),
-            // Zone de danger : suppression du workspace, deux clics. Le disque
-            // et les journaux sont conservés — voir wsDelete plus haut.
-            h('div', { style: { background: 'var(--dsw-alias-bg-layer-1)', border: '1px solid var(--dsw-alias-state-error-primary)', borderRadius: '16px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px', 'data-kb': 'ws-danger-zone' } },
-              h('span', { className: 'kb8-parent', style: { color: 'var(--dsh-alias-state-error-primary, var(--dsw-alias-state-error-primary))' } }, 'Delete workspace'),
-              h('span', { className: 'kb8-sub' }, 'Removes this workspace from the list. The folder on disk and the session logs are kept; nothing is destroyed.'),
+            h('div', { className: 'kbpd-card', 'data-kb': 'project-details-card' },
+              h('div', { className: 'kbpd-top' },
+                h('label', { className: 'kbpd-col' },
+                  h('span', { className: 'kb8-parent' }, kbt('kbui.col.name')),
+                  h('input', { value: nameDraft, onChange: (e) => updateDetails({ name: e.target.value }), style: field }),
+                  h('span', { className: 'kb8-sub' }, kbt('kbui.shown.project'))),
+                // Short description: the project card only shows its start, the whole text is set and read here.
+                h('label', { className: 'kbpd-col kbpd-wide', 'data-kb': 'project-description' },
+                  h('span', { className: 'kbpd-lh' }, h('span', { className: 'kb8-parent' }, kbt('ui.description')), h('span', { className: 'kb8-parent' }, String(descDraft.length) + ' / 280')),
+                  h('textarea', {
+                    value: descDraft, rows: 3, maxLength: 280,
+                    'aria-label': kbt('ui.description'),
+                    onChange: (e) => updateDetails({ desc: e.target.value }),
+                    placeholder: kbt('ui.description.ph'),
+                    style: Object.assign({}, field, { height: 'auto', minHeight: '76px', padding: '11px 14px', lineHeight: '1.5', resize: 'vertical', fontFamily: 'inherit' }),
+                  }))),
+              // The working folder row of the multi-device satellite (nothing when it is off).
+              kbMdExtras('folder', ws),
+              h('div', { className: 'kbpd-look' },
+                h('div', { className: 'kb8-look' },
+                  h('span', { className: 'kb8-parent' }, kbe('Icon', 'Icône')),
+                  kbLookIcon({ icons: allIcons, query: iconQ, words: iconTags, onQuery: setIconQ, icon: iconDraft, color: colorDraft, onPick: (n) => updateDetails({ icon: n }) })),
+                h('div', { className: 'kb8-look' },
+                  h('span', { className: 'kb8-parent' }, kbe('Colour', 'Couleur')),
+                  kbLookColor(colorDraft, (c) => updateDetails({ color: c }))))),
+            // Danger zone: one line. Deleting takes two clicks; the folder on disk and the session logs are kept (see wsDelete above).
+            h('div', { className: 'kbpd-danger', 'data-kb': 'ws-danger-zone' },
+              h('span', { className: 'kb8-sub', style: { flex: 1, minWidth: '220px', maxWidth: 'none' } },
+                h('b', { style: { color: 'var(--dsw-alias-state-error-primary)', fontWeight: 600 } }, kbe('Delete workspace', 'Supprimer l’espace')),
+                ' — ' + kbe('removes it from the list. The folder on disk and the session logs are kept; nothing is destroyed.', 'le retire de la liste. Le dossier sur disque et les journaux de sessions sont conservés ; rien n’est détruit.')),
               h('div', { style: { display: 'flex', gap: '10px', alignItems: 'center' } },
                 h('button', { type: 'button', className: 'kb8-chip', disabled: wsDelBusy === true, style: (wsDelArm === true ? { borderColor: 'var(--dsw-alias-state-error-primary)', color: 'var(--dsw-alias-state-error-primary)' } : null), onClick: () => (wsDelArm === true ? wsDelete() : setWsDelArm(true)) }, wsDelBusy === true ? kbe('Deleting…', 'Suppression…') : (wsDelArm === true ? kbe('Delete « ' + nomDuProjet + ' »?', 'Supprimer « ' + nomDuProjet + ' » ?') : kbe('Delete workspace…', 'Supprimer l’espace…'))),
                 (wsDelArm === true && wsDelBusy !== true ? h('button', { type: 'button', className: 'kb8-chip', onClick: () => setWsDelArm(false) }, kbe('Cancel', 'Annuler')) : null))))
         }
+        // The body of the Devices tab comes from the multi-device satellite (the tab is only listed when it is there).
+        if (tab === kbt('kbui.devices')) return kbMdExtras('devices', ws)
         if (tab === 'Threads') {
           // Plus de maquette : soit de vrais threads, soit un etat vide explicite.
           if (threadsRows.length === 0) {
@@ -18960,7 +18952,8 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       return h('div', { className: 'kb8-page' },
         h('button', { type: 'button', className: 'kb8-primary', style: { alignSelf: 'flex-start', background: 'transparent', border: '1px solid var(--dsw-alias-border-l1)', color: 'var(--dsw-alias-label-primary)' }, onClick: () => set({ view: 'projects' }) }, '‹ Back to projects'),
         h('div', { style: { display: 'flex', alignItems: 'flex-start', gap: '16px', flexWrap: 'wrap' } },
-          kbCfIcon(typeof wsUi.color === 'string' ? wsUi.color : '', typeof wsUi.icon === 'string' && wsUi.icon.length > 0 ? wsUi.icon : 'folder', undefined, false, 56),
+          // The tile follows the draft while the Details tab is being edited (the icon and the colour are picked in that tab, which no longer draws a second tile).
+          kbCfIcon(colorDraft !== '' ? colorDraft : (typeof wsUi.color === 'string' ? wsUi.color : ''), iconDraft !== '' ? iconDraft : (typeof wsUi.icon === 'string' && wsUi.icon.length > 0 ? wsUi.icon : 'folder'), undefined, false, 56),
           h('div', { style: { display: 'flex', flexDirection: 'column', gap: '8px', flex: 1, minWidth: 220 } },
             h('h1', { className: 'kb8-h1 kb8-hd-h1' }, nameDraft || ws.title || ws.workspaceId),
             // La description du projet s'affiche ici, sur tous les onglets —
@@ -18968,9 +18961,14 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
             h('p', { className: 'kb8-sub', 'data-kb': 'project-description-line' },
               (typeof wsUi.desc === 'string' && wsUi.desc.length > 0)
                 ? wsUi.desc
-                : kbt('kbui.project.sub')))),
+                : kbt('kbui.project.sub'))),
+          (tab === kbt('kbui.details')
+            ? h('div', { className: 'kbpd-save', 'data-kb': 'project-save' },
+              h('span', { style: { fontSize: '12.5px', color: saveColor } }, saveLabel),
+              h('button', { type: 'button', className: 'kb8-chip', onClick: () => saveDetails() }, kbt('kbui.save.now')))
+            : null)),
         h('div', { className: 'kb8-tabs' }, TABS.map((t) => h('button', { type: 'button', key: t, className: 'kb8-tab' + (tab === t ? ' on' : ''), 'data-kb': 'project-tab-' + t.toLowerCase(), onClick: () => { setTab(t); try { set({ projectTab: t }) } catch (e) { /* store unavailable */ } } }, t === 'Deliverables' ? kbt('menu.deliverables') : t))),
-        ((tab === kbt('kbui.budget') || tab === kbt('kbui.details')) ? null : h('div', { className: 'kb8-search' }, Icon('search', 15), h('input', { value: q, onChange: (e) => setQ(e.target.value), placeholder: kbt('kbui.search') + tab.toLowerCase() + kbt('kbui.frag.inproject') }))),
+        ((tab === kbt('kbui.budget') || tab === kbt('kbui.details') || tab === kbt('kbui.devices')) ? null : h('div', { className: 'kb8-search' }, Icon('search', 15), h('input', { value: q, onChange: (e) => setQ(e.target.value), placeholder: kbt('kbui.search') + tab.toLowerCase() + kbt('kbui.frag.inproject') }))),
         pane)
     }
     // La langue est resolue a l'APPEL, jamais a la definition : `kbCtx` n'est
@@ -32458,6 +32456,17 @@ button.kbbd-chip:hover{background:var(--dsw-alias-interactive-bg-hover,#f0f0f0)}
 /* Les trois contrôles de « look » partagés (fiche AI Team, Projects,
    suggestions) : une seule mise en page, héritée des classes ci-dessus. */
 .kb8-look{display:flex;flex-direction:column;gap:10px}
+/* Details tab of a project: one card like the Identity tab of an Agent Team. */
+.kbpd-card{background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l1);border-radius:16px;padding:20px 22px;display:flex;flex-direction:column;gap:20px}
+.kbpd-top{display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start}
+.kbpd-col{display:flex;flex-direction:column;gap:6px;flex:1 1 260px;min-width:0}
+.kbpd-wide{flex-grow:1.5;flex-basis:320px}
+.kbpd-lh{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.kbpd-look{display:flex;gap:28px;flex-wrap:wrap;align-items:flex-start;border-top:1px solid var(--dsw-alias-border-l1);padding-top:18px}
+.kbpd-look>:first-child{flex:1.4 1 360px;min-width:0}
+.kbpd-look>:last-child{flex:1 1 320px;min-width:0}
+.kbpd-danger{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:10px 14px;border-radius:14px;border:1px dashed var(--dsw-alias-state-error-primary)}
+.kbpd-save{display:flex;align-items:center;gap:12px;flex:none}
 .kb8-look-chips{display:flex;gap:8px;flex-wrap:wrap}
 /* La confirmation du Brain (1 à 3 suggestions) : un encadré discret sous le
    bouton, avant que quoi que ce soit ne parte au modèle. */
