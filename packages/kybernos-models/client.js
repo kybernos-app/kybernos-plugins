@@ -1768,7 +1768,11 @@ window.__ModuleLoader__.load({
         const d = KBM.dir[route]
         if (kbPvIsObj(d) && typeof d.name === 'string' && d.name.trim() !== '') return d.name
         const prof = kbMOBJ(KBM.userProviders)[route]
-        return kbPvIsObj(prof) && typeof prof.displayName === 'string' && prof.displayName.trim() !== '' ? prof.displayName : route
+        if (kbPvIsObj(prof) && typeof prof.displayName === 'string' && prof.displayName.trim() !== '') return prof.displayName
+        // A provider the catalogue knows is named as the catalogue names it ("OpenRouter", "Anthropic"), not by its id ("openrouter"): the list
+        // mixed proper names and raw ids.
+        const known = catDe(route)
+        return known !== null && typeof known.nom === 'string' && known.nom.trim() !== '' ? known.nom : route
       }
       const pvEditDraft = (route) => {
         const prof = kbPvIsObj(kbMOBJ(KBM.userProviders)[route]) ? KBM.userProviders[route] : {}
