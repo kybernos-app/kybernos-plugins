@@ -10,7 +10,7 @@
 // Exit 0 all good, 1 a check failed, 3 not run (no GUI).
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { openLivePage, waitFor, clickText, openSettings } from './live-page.mjs'
+import { openLivePage, waitFor, clickText, openSettings, openThemeAdvanced } from './live-page.mjs'
 import { swapBundles } from './lib-bundle-swap.mjs'
 
 const shotsDir = process.argv.includes('--shots') ? process.argv[process.argv.indexOf('--shots') + 1] : null
@@ -54,6 +54,7 @@ try {
   if (opened === true) {
     await clickText(page, 'Theme')
     await sleep(1200)
+    await openThemeAdvanced(page) // the tabs sit in the Advanced editor, folded under the simple view
     const tab = (await clickText(page, 'Animation')) || (await clickText(page, 'Animations'))
     check('the Animation tab opens', tab === true)
     await sleep(1000)

@@ -16,7 +16,7 @@
 // it is pointed at, so it refuses :3080. Exit code 0 / 1 / 3 (3 = inconclusive: no sandbox).
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
-import { openLivePage, openSettings, waitFor } from './live-page.mjs'
+import { openLivePage, openSettings, waitFor, openThemeAdvanced } from './live-page.mjs'
 
 const args = process.argv.slice(2)
 const shotDir = args.includes('--shots') ? args[args.indexOf('--shots') + 1] : null
@@ -42,7 +42,7 @@ const press = async (css, text) => {
 }
 const cell = (name) => press('button[class*="navCell"]', name)
 /** The mode (System / Light / Dark) is set on the Theme page, on three cards. */
-const setMode = async (name) => (await cell('Theme')) && (await waitFor(page, `document.querySelector('.kbth-mode') !== null`, 10000)) !== null && (await press('.kbth-mode', name))
+const setMode = async (name) => (await cell('Theme')) && (await waitFor(page, `document.querySelector('.kbth-mode') !== null`, 10000)) !== null && (await openThemeAdvanced(page)) && (await press('.kbth-mode', name))
 
 /** In-page measurement: every colour is normalised to [r,g,b] through a canvas (so color-mix() and color() read as numbers), the background an element sits on is
  *  the first opaque ancestor fill, and a contrast is WCAG's. */
@@ -81,7 +81,7 @@ try {
   check('Settings open', await openSettings(page, { tries: 4 }))
   for (const sc of SCHEMES) {
     console.log('— ' + sc.id + ' (' + sc.skin + (sc.seg ? ', ' + sc.seg : '') + ')')
-    check('the Theme page opens', await cell('Theme') && (await waitFor(page, `document.querySelector('.kbth-skin') !== null`, 10000)) !== null)
+    check('the Theme page opens (its Advanced editor is opened: the shipped themes and the mode cards sit there)', await cell('Theme') && (await waitFor(page, `document.querySelector('.kbth-skin') !== null`, 10000)) !== null && (await openThemeAdvanced(page)))
     check('the look is picked', await press('.kbth-skin', sc.skin) && (sc.seg === null || (await sleep(900), await setMode(sc.seg))))
     await sleep(1500)
     check('the Suite page opens on its Featured tab', await cell('Kybernos Suite') && (await waitFor(page, `document.querySelector('[data-kb="suite-card"] .kbsu-sw.on') !== null`, 15000)) !== null && await press('button', 'Featured') && (await waitFor(page, `document.querySelector('.kbsu-tag') !== null`, 8000)) !== null)
