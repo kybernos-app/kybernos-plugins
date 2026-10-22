@@ -118,6 +118,14 @@ await page.waitForFunction(() => document.querySelector('#stream .dsh-mermaid-ca
 s = await state('stream')
 ok('source shown by the person before an error: still shown after the success', s.sourceClass && s.preShown && s.button === 'Diagram', JSON.stringify(s))
 
+// The `forced` flag (the error, not the person, put the source on show) stays right because the person cannot touch the source while the error shows: the card's
+// button is not on offer then. If that button ever came back during an error, a source the person hid and showed again by hand would be taken back by the next success.
+await page.click('#stream .dsh-mermaid-bar button') // person hides the source they had shown
+await edit('stream', BAD)
+await page.waitForSelector('#stream .dsh-mermaid-error', { timeout: 30000 })
+const barShown = await page.evaluate(() => { const b = document.querySelector('#stream .dsh-mermaid-bar'); return b !== null && b.getClientRects().length > 0 })
+ok('while the error shows, the source toggle is not on offer (the error owns the source it put on show)', barShown === false)
+
 ok('no page error', errors.length === 0, errors.join(' | '))
 await browser.close()
 console.log(ko === 0 ? '\nOK' : `\n${ko} failure(s)`)
