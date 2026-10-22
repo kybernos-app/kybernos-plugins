@@ -2990,7 +2990,6 @@ const kbGroupNext = (state) => {
 const KB_SS_MODE = 'light dark system'
 const KB_SS_INDEX = [
   ['general', 'Behaviour', 'Onboarding', 'The welcome pages ran when the plugin was installed. Replay them to redo your profession, display mode, models and starter kit.', 'replay', 'bienvenue tutoriel premiers pas demarrage profession bienvenida'],
-  ['general', 'Behaviour', 'Starter kit', 'Skills and agent teams that fit your profession. Open it any time to add more, or after a change of work.', 'open', 'kit de demarrage metier profession competences equipes'],
   ['general', 'Behaviour', 'Name each chat when it ends', 'On: when a work session ends, the chat gets a short title that says what was done, and an icon that fits.', 'yes no', 'titre automatique renommer nommer conversation chat icone rename titulo'],
   ['general', 'Behaviour', 'Study model', 'Your pick. It checks that your models still answer, helps tidy your memory, and decides which agent team and which chat icon fit.', '', 'modele etude memoire titre ranger'],
   ['general', '', 'Permission', 'Choose the default permission mode for new sessions', 'full access', 'autorisation droits acces complet securite confirmer sandbox permisos'],
@@ -3067,8 +3066,8 @@ const KB_SS_INDEX = [
 
   ['servers', '', 'Add a server', '', '', 'serveur servidor equipe team entreprise self hosted reseau adresse address ajouter connecter'],
   ['code sandbox (e2b)', '', 'API key', 'Stored on this machine, never shown again. Code and files the agent sends to a cloud computer go to E2B.', 'save', 'cle api api key e2b bac a sable sandbox execution cloud clave'],
-  ['phone and channels', '', 'Open my computer on my phone', '', 'add a phone show the qr allow', 'telephone mobile qr code telecommande smartphone movil remote control controle a distance'],
-  ['phone and channels', '', 'Talk to Kaby on a messaging app', '', 'telegram whatsapp wechat imessage', 'messagerie canal bot kaby mensajeria'],
+  ['phone and channels', '', 'Remote control', '', 'add a phone show the qr allow', 'telephone mobile qr code telecommande smartphone movil remote control controle a distance'],
+  ['phone and channels', '', 'Kaby', '', 'telegram whatsapp wechat imessage messaging apps', 'messagerie canal bot assistant kaby mensajeria'],
   ['phone and channels', '', 'Link a phone', '', '', 'appairer relier telephone scanner code qr smartphone movil', '', 'Link a phone in three steps'],
   ['learned skills', '', 'How much may Kaby do on its own?', 'Three levels: ask me every time, improve its own skills, create and improve.', 'ask me every time improve its own skills create and improve', 'autonomie niveau validation automatique creer ameliorer competences apprises'],
   ['learned skills', '', 'Confidence threshold', 'Kaby acts on its own only when the score reaches this line.', '', 'seuil confiance score ligne arrets durs'],
@@ -3105,7 +3104,6 @@ const KB_SS_PAGE_KW = {
 // description left empty is one we have not seen drawn in French: never paraphrased. The related words stay French/English/Spanish for every language.
 const KB_SS_FR = {
   'general|Onboarding': ['Premiers pas', 'Les pages d’accueil sont passées à l’installation du plugin. Rejoue-les pour refaire ta profession, ton mode d’affichage, tes modèles et ton kit de départ.'],
-  'general|Starter kit': ['Kit de départ', 'Des skills et des équipes d’agents qui vont avec ton métier. Ouvre-le quand tu veux pour en ajouter, ou si tu changes de travail.'],
   'general|Name each chat when it ends': ['Nommer chaque conversation à sa fin', 'Activé : quand une session de travail se termine, la conversation reçoit un titre court qui dit ce qui a été fait, et une icône qui lui va.'],
   'general|Study model': ['Modèle d’étude', ''],
   'general|Language': ['Language', 'Gérer les langues et les traductions ici'],
@@ -3162,8 +3160,8 @@ const KB_SS_FR = {
   'calls|Calls': ['Appels', 'Parler en direct à ton assistant ou à un membre de ton équipe, à voix haute, depuis n’importe quelle session.'],
   'servers|Add a server': ['Ajouter un serveur', ''],
   'code sandbox (e2b)|API key': ['Clé API', 'Stockée sur cette machine, jamais affichée de nouveau. Le code et les fichiers que l’agent envoie à un ordinateur cloud partent chez E2B.'],
-  'phone and channels|Open my computer on my phone': ['Ouvrir mon ordinateur sur mon téléphone', ''],
-  'phone and channels|Talk to Kaby on a messaging app': ['Parler à Kaby sur une messagerie', ''],
+  'phone and channels|Remote control': ['Contrôle à distance', ''],
+  'phone and channels|Kaby': ['Kaby', ''],
   'phone and channels|Link a phone': ['Relier un téléphone', '', 'Relier un téléphone en trois étapes'],
   'learned skills|How much may Kaby do on its own?': ['Que peut faire Kaby tout seul ?', 'Trois niveaux : me demander à chaque fois, améliorer ses propres skills, créer et améliorer.'],
   'learned skills|Confidence threshold': ['Seuil de confiance', 'Kaby n’agit seul que si le score atteint cette ligne.'],
@@ -35698,8 +35696,8 @@ html.wv2-actif [data-composer-seat]{display:none !important}
     // starter kit of skills and agent teams that fit the profession. « Skip » closes it and records what was chosen so
     // far: it is never asked twice. Escape never does that on a first run (it closes the language menu, or steps back like « Back »);
     // opened on its own (replay, the chat's card, the kit) nothing is recorded and Escape closes it. Replay and
-    // « Starter kit »: the buttons at the top of Kybernos Settings (bundle kybernos-sessions) fire
-    // the window event `kybernos:onboarding` with `action: 'replay' | 'kit'`.
+    // « Replay »: the button at the top of Kybernos Settings (bundle kybernos-sessions) fires the window event `kybernos:onboarding` with `action: 'replay'`
+    // (the kit is its last page); the kit alone, `action: 'kit'`, opens from the pages that suggest it (`__KB_DOMAIN__.openKit`).
     //
     // The texts are SHIPPED here for English, French, Spanish and Arabic, and are NOT read from the
     // translation runtime: that one needs a model, and this wizard is what gets the person one.
@@ -36472,7 +36470,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         if (S.screen === 'cloud-wait') call('/kybernos-cloud/disconnect', 'POST', { confirm: true })
         // Leaving while a model is still downloading: it keeps downloading, and connects itself when it is done.
         if (S.screen === 'local-install' && S.localId !== null) { S.model = 'local'; watchInstall(S.localId) }
-        // Opened from the chat's card or from « Starter kit » in Settings (standalone), the wizard is not the first run: the
+        // Opened from the chat's card or from a page that suggests the kit (standalone), the wizard is not the first run: the
         // onboarding file is left alone.
         if (!S.standalone) reloadDomain(env.post({ action: 'complete', profil: S.domain, goals: S.goals, uiMode: S.mode, model: model, lang: S.lang, memoryId: S.memoryId, agents: S.agents, ...(aboutBody() !== null ? { about: aboutBody() } : {}) }))
         // Free models (no account): wire them in on the first run, but only when the person brings no
@@ -36906,7 +36904,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         if (posted === null || posted === undefined || typeof posted.then !== 'function') return
         posted.then(() => { try { win.dispatchEvent(new win.CustomEvent('kb-domain-reload')) } catch (e) { /* no events */ } }).catch(() => null)
       }
-      // Settings, Starter kit: the field and the goals picked there are saved at once (the first run saves them when it completes).
+      // The starter kit on its own: the field and the goals picked there are saved at once (the first run saves them when it completes).
       const saveDomain = () => { if (S.kitOnly && S.domain !== null) reloadDomain(env.post({ action: 'domain', profil: S.domain, goals: S.goals })) }
       // After the kit: the plan is the last thing asked, and only where there is an account to ask it on.
       const afterKit = () => go(S.hasCloud ? 'plan' : 'done')
@@ -37089,7 +37087,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         b.setAttribute('role', 'checkbox')
         return b
       }
-      // A chip you tick among others (the goals in Settings, Starter kit).
+      // A chip you tick among others (the goals in the starter kit opened on its own).
       const checkChip = (label, on, onClick) => {
         const b = chip(label, on, onClick)
         b.setAttribute('role', 'checkbox')
@@ -37847,7 +37845,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         }
         S.standalone = init.standalone === true
         S.kitOnly = S.standalone && init.kitOnly === true
-        // Settings, Starter kit with a field saved by the previous wizard (no goals): everything the field offers is on offer.
+        // The starter kit on its own, with a field saved by the previous wizard (no goals): everything the field offers is on offer.
         if (S.kitOnly && S.goals.length === 0 && curPack() !== null) S.goals = curPack().goals.map((g) => g.id)
         S.accountEmail = typeof init.accountEmail === 'string' ? init.accountEmail : null
         S.accountModels = typeof init.accountModels === 'number' ? init.accountModels : null
@@ -37991,7 +37989,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
           return opened === true
         } catch (e) { busy = false; return false }
       }
-      // The starter kit on its own (Settings → Starter kit): the kit of the profession saved at the first run, nothing else.
+      // The starter kit on its own (`action: 'kit'`, from the pages that suggest it): the kit of the profession saved at the first run, nothing else.
       const kitStandaloneOpen = async () => {
         if (busy) return false
         busy = true

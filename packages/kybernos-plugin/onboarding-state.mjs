@@ -121,7 +121,7 @@ export const complete = (state, body, now = new Date()) => {
   }
 }
 
-/** A new domain and goals chosen later (Settings, Starter kit): only those two answers move, the wizard's completion is left as it is. */
+/** A new domain and goals chosen later (the starter kit opened on its own): only those two answers move, the wizard's completion is left as it is. */
 export const chooseDomain = (state, body) => {
   const input = body !== null && typeof body === 'object' ? body : {}
   return { ...state, profil: text(input.profil), goals: goalList(input.goals) }
