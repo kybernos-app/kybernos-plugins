@@ -3,7 +3,7 @@
 // L6-06 (audit 2026-10-20): 22 routes of the socle read their JSON body outside any `try`: `readJsonBody` throws past its cap (64 KB by
 // default), the handler rejects, the engine logs it and answers a 400 with NO body — so the page had no `{ ok:false, error }` to show.
 // /kybernos/ui-save already did the right thing (413 + a message). The route fence every route of the bundle passes through now
-// answers for the rest: 413 `request body too large` for the cap, 500 with the reason for any other throw.
+// answers for the rest: 413 `request body too large` for the cap, a plain 500 `request failed` for any other throw (the reason goes to the log).
 //
 //   node packages/kybernos-plugin/test-body-cap.mjs
 import assert from 'node:assert/strict'
@@ -50,8 +50,8 @@ const port = server.address().port
 const own = '127.0.0.1:' + port
 const origin = 'http://' + own
 
-const send = (path, body) => new Promise((resolve) => {
-  const payload = JSON.stringify(body)
+const send = (path, body, raw) => new Promise((resolve) => {
+  const payload = raw === undefined ? JSON.stringify(body) : raw
   const req = http.request({ host: '127.0.0.1', port, path, method: 'POST', headers: { host: own, origin, cookie: sessionCookie(own), 'content-type': 'application/json', 'content-length': Buffer.byteLength(payload) } }, (res) => {
     let text = ''
     res.on('data', (c) => { text += c })
@@ -88,6 +88,20 @@ try {
   const small = await send('/kybernos/pins', { kind: 'workspace', op: 'add', id: 'w-body-cap' })
   assert.equal(small.status, 200, 'a small body is not refused: ' + small.status + ' ' + small.text.slice(0, 80))
   ok('a small body on /kybernos/pins still answers 200')
+  // Any other throw is a plain 500 that does not give the reason away (an fs error carries an absolute path), and the fence logs it since the engine no longer sees it.
+  // A body of `null` makes these handlers read a field of null: the TypeError message must not reach the page.
+  const warned = []
+  const realWarn = console.warn
+  console.warn = (...a) => { warned.push(a.join(' ')) }
+  try {
+    for (const path of ['/kybernos/art-load', '/kybernos/art-progress', '/kybernos/onboarding', '/kybernos/model/auto']) {
+      const r = await send(path, null, 'null')
+      assert.equal(r.status, 500, path + ': a handler that throws -> ' + r.status + ' ' + r.text.slice(0, 80))
+      assert.deepEqual(JSON.parse(r.text), { ok: false, error: 'request failed' }, path + ': the page gets a plain refusal, not the reason')
+      assert.ok(warned.some((w) => w.includes(path) && w.includes('failed')), path + ': the failure is logged with its route')
+    }
+  } finally { console.warn = realWarn }
+  ok('a handler that throws answers 500 { ok:false, error:"request failed" } (no reason leaked) and the route logs it')
   // /ui-save kept its own, larger cap (1 MB): 100 KB is under it.
   const ui = await send('/kybernos/ui-save', big)
   assert.notEqual(ui.status, 413, '/kybernos/ui-save keeps its 1 MB cap: ' + ui.status)

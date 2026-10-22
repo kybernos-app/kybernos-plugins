@@ -72,13 +72,16 @@ const kbHostOK = (req) => {
 }
 // L6-06: a handler that throws — a body past its cap above all, `readJsonBody` raises past 64 KB — used to reach the engine, which answers a bare 400 with
 // no body: the page had no `{ok:false,error}` to show. The fence is the one place every route of this bundle passes through, so it answers for them all:
-// 413 for the body too large (same words as /ui-save), 500 with the reason for anything else. A reply already started is left alone.
-const kbHandlerFailed = (res, e) => {
-  if (res.headersSent === true || res.writableEnded === true) return undefined
+// 413 for the body too large (same words as /ui-save), a plain 500 for anything else (the reason goes to the log, not to the page: an fs error carries an
+// absolute path). The engine logged a handler's failure; the fence swallows it first, so it logs it here. A reply already begun cannot take a status any more:
+// the connection is dropped, as the engine did, so the client does not wait for a body that will never end.
+const kbHandlerFailed = (res, e, path) => {
   const big = e instanceof Error && e.message === 'request body too large'
+  if (big !== true) { try { console.warn('[kybernos] route ' + String(path) + ' failed: ' + (e && e.message ? String(e.message) : String(e))) } catch (err) { /* no console */ } }
+  if (res.headersSent === true || res.writableEnded === true) { try { if (res.writableEnded !== true) res.destroy() } catch (err) { /* closed */ } return undefined }
   try {
     res.writeHead(big ? 413 : 500, { 'content-type': 'application/json; charset=utf-8' })
-    res.end(JSON.stringify({ ok: false, error: big ? 'request body too large' : (e && e.message ? String(e.message) : String(e)) }))
+    res.end(JSON.stringify({ ok: false, error: big ? 'request body too large' : 'request failed' }))
   } catch (err) { /* closed */ }
   return undefined
 }
@@ -95,8 +98,8 @@ const kbFenced = (service, isOpen = () => false) => {
         }
         try {
           const out = route.handler(req, res, ...rest)
-          return out !== null && out !== undefined && typeof out.then === 'function' ? out.catch((e) => kbHandlerFailed(res, e)) : out
-        } catch (e) { return kbHandlerFailed(res, e) }
+          return out !== null && out !== undefined && typeof out.then === 'function' ? out.catch((e) => kbHandlerFailed(res, e, route.path)) : out
+        } catch (e) { return kbHandlerFailed(res, e, route.path) }
       },
     })
     : route)
