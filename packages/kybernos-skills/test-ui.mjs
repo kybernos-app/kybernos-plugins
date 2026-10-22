@@ -523,6 +523,7 @@ console.log('Yours: what Kaby suggests waits, and nothing is active before Accep
     check('Review opens the suggestion on the right, the list stays', kb(root, 'learned-panel').length === 1 && cardOf(root, 'sql-queries') !== undefined)
     check('the panel says why, shows the text, the rules every learned skill ends with, and the checks', panel.includes('Kaby found 3 of your lessons') && panel.includes('Prove the UI language first.') && panel.includes('Draft only: never send') && panel.includes('Valid name') && panel.includes('Nothing changes until you accept'), panel.slice(0, 200))
     check('nothing was written by opening it', posted(w, '/kybernos-skills/learned/accept').length === 0)
+    check('the three answers and their note are in ONE sticky footer, so they stay in view when the panel scrolls', kb(root, 'learned-foot').length === 1 && part(root, 'learned-foot').includes('Nothing changes until you accept.') && /\.kbs-root \.kbs-panel-foot\{position:sticky;bottom:-16px/.test(SOURCE) && /\.kbs-split\.open \.kbs-panel \.kbs-panel-foot\{bottom:0\}/.test(SOURCE))
 
     // Accept
     await click(root, kb(root, 'learned-accept')[0])

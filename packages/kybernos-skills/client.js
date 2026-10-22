@@ -1191,6 +1191,8 @@ window.__ModuleLoader__.load({
 .kbs-root .kbs-panel .kbs-desc{margin:0;font-size:13.5px;line-height:1.5;color:var(--dsw-alias-label-secondary)}
 .kbs-root .kbs-panel-acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:auto;padding-top:4px}
 .kbs-root .kbs-panel-acts a.kb8-ghost{text-decoration:none}
+.kbs-root .kbs-panel-foot{position:sticky;bottom:-16px;z-index:1;display:flex;flex-direction:column;gap:6px;margin:auto -18px -16px;padding:10px 18px 14px;background:var(--dsw-alias-bg-layer-1);border-top:1px solid var(--dsw-alias-border-l1);border-radius:0 0 16px 16px}
+.kbs-root .kbs-panel-foot .kbs-panel-acts{margin-top:0;padding-top:0}
 .kbs-root .kb8-ghost.warn{color:var(--dsw-alias-state-error-primary);border-color:color-mix(in srgb,var(--dsw-alias-state-error-primary) 45%,transparent)}
 .kbs-root .kb8-card.sel{border-color:var(--dsw-alias-brand-primary);box-shadow:0 0 0 1px var(--dsw-alias-brand-primary)}
 .kbs-root .kbs-row.sel{background:var(--dsw-alias-interactive-bg-hover);box-shadow:inset 2px 0 0 var(--dsw-alias-brand-primary)}
@@ -1200,6 +1202,7 @@ window.__ModuleLoader__.load({
 @media (max-width:1100px){
   .kbs-root .kbs-split.open{grid-template-columns:minmax(0,1fr)}
   .kbs-root .kbs-split.open .kbs-panel{order:-1;position:static;max-height:none}
+  .kbs-root .kbs-split.open .kbs-panel .kbs-panel-foot{bottom:0}
 }
 .kbs-root .kbs-nowrap{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* — Featured: the same rows as the ranking below it (same grid, same height); the cover, when there is one, is the row's tile. */
@@ -3373,14 +3376,16 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
           h('span', { className: 'kb-section-label' }, t('ln.p.where')),
           h('p', { className: 'kbl-p' }, props.sensitive ? t('ln.p.where.s') : t('ln.p.where.t')),
           props.err ? h('div', { className: 'kbs-err', role: 'alert' }, props.err) : null,
-          h('div', { className: 'kbs-panel-acts' },
-            editing
-              ? [h('button', { key: 'sv', type: 'button', className: 'kb8-primary', 'data-kb': 'learned-save', disabled: busy, onClick: props.onSave }, t('ln.save')),
-                h('button', { key: 'cn', type: 'button', className: 'kb8-ghost', onClick: props.onCancel }, t('ln.cancel'))]
-              : [h('button', { key: 'ac', type: 'button', className: 'kb8-primary', 'data-kb': 'learned-accept', disabled: busy || p.blocking === true, onClick: props.onAccept }, t('ln.accept')),
-                h('button', { key: 'ed', type: 'button', className: 'kb8-ghost', 'data-kb': 'learned-edit', disabled: busy, onClick: props.onEdit }, t('ln.edit')),
-                h('button', { key: 'di', type: 'button', className: 'kb8-ghost warn', 'data-kb': 'learned-discard', disabled: busy, onClick: props.onDiscard }, t('ln.discard'))]),
-          h('span', { className: 'kb8-mono' }, p.blocking === true && !editing ? t('ln.accept.locked') : t('ln.accept.note')))
+          // The answers stay in view while the panel scrolls (a long text pushed them out of sight): Accept, Edit and Discard are the point of the panel.
+          h('div', { className: 'kbs-panel-foot', 'data-kb': 'learned-foot' },
+            h('div', { className: 'kbs-panel-acts' },
+              editing
+                ? [h('button', { key: 'sv', type: 'button', className: 'kb8-primary', 'data-kb': 'learned-save', disabled: busy, onClick: props.onSave }, t('ln.save')),
+                  h('button', { key: 'cn', type: 'button', className: 'kb8-ghost', onClick: props.onCancel }, t('ln.cancel'))]
+                : [h('button', { key: 'ac', type: 'button', className: 'kb8-primary', 'data-kb': 'learned-accept', disabled: busy || p.blocking === true, onClick: props.onAccept }, t('ln.accept')),
+                  h('button', { key: 'ed', type: 'button', className: 'kb8-ghost', 'data-kb': 'learned-edit', disabled: busy, onClick: props.onEdit }, t('ln.edit')),
+                  h('button', { key: 'di', type: 'button', className: 'kb8-ghost warn', 'data-kb': 'learned-discard', disabled: busy, onClick: props.onDiscard }, t('ln.discard'))]),
+            h('span', { className: 'kb8-mono' }, p.blocking === true && !editing ? t('ln.accept.locked') : t('ln.accept.note'))))
       }
 
       // Kaby's journal, opened on the right: every suggestion, acceptance, change Kaby made on its own, refusal, undo and change of settings, newest first, from the
