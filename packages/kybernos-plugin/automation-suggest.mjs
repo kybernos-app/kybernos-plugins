@@ -21,6 +21,7 @@ export const isSuggested = (task) => task !== null && typeof task === 'object' &
 export const suggestedTask = (clean, rawProof, nowIso) => Object.assign({}, clean, {
   active: false,
   suggested: true,
+  sessionMode: 'home', // once added and switched on, its runs happen in one session of its own, created at the first run and reused
   origin: { by: 'kaby', recipe: 'learn-my-business', proof: proofOf(rawProof), at: nowIso },
 })
 
@@ -40,3 +41,9 @@ export const refusalFor = (tasks, name) => {
   if (list.filter(isSuggested).length >= SUGGESTED_MAX) return { ok: false, error: 'too many suggestions waiting' }
   return null
 }
+
+/** The id of a session as the engine writes it (letters, digits and a few separators): what a task may be bound to. */
+export const HOME_ID_RE = /^[A-Za-z0-9_.:@-]{1,160}$/
+
+/** The line that opens a run posted into a chat: which automation, and when, so the person sees what started it. */
+export const runFrame = (name, nowIso) => '[Automation « ' + String(name).replace(/[\r\n]+/g, ' ').slice(0, 120) + ' » · run of ' + String(nowIso) + ']'
