@@ -208,7 +208,7 @@ window.__ModuleLoader__.load({
       const hostFailure = (down) => ({
         ok: false, down: down,
         error: down === 'absent'
-          ? kt('les routes d’appel ne sont pas chargées — relance DSH une fois', 'the call routes are not loaded — relaunch DSH once')
+          ? kt('Les appels ne sont pas encore chargés : relance DSH une fois.', 'Calls are not loaded yet: restart DSH once.')
           : kt('Impossible de joindre le service d’appel — réessaie', 'Cannot reach the call service — try again')
       })
       // A POST to the host: its JSON answer, or a hostFailure (ok:false, down:'absent'|'unreachable', error: the sentence).

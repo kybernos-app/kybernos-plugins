@@ -3650,7 +3650,7 @@ const KB_FR_EN = {
   'Gestionnaire indisponible sur cet hôte — la liste reste en lecture seule.': 'Manager unavailable on this host — the list stays read-only.',
   'Lecture des bundles impossible.': 'Could not read bundles.',
   'Bascule impossible (bundle protégé ou manager absent).': 'Cannot toggle (protected bundle or no manager).',
-  'Plugin Composio non chargé (route /kybernos/composio/connections absente) : seuls les outils déclarés sont affichés.': 'Composio plugin not loaded (route /kybernos/composio/connections missing): only declared tools are listed.',
+  'Composio n’est pas chargé (relance DSH une fois) : seuls les outils déclarés sont affichés.': 'Composio is not loaded (restart DSH once): only declared tools are listed.',
   'Renommé': 'Renamed',
   'Réponds à toutes les questions avant de corriger': 'Answer every question before grading',
   'réponse inattendue de /kybernos/voice/config': 'unexpected response from /kybernos/voice/config',
@@ -3756,7 +3756,7 @@ const KB_FR_EN = {
   ' appels LLM sur la période': ' LLM calls over the period',
   ' appel LLM sur la période': ' LLM call over the period',
   ' d’économie sur ': ' saved over ',
-  'Lecture de \`kybers/quality\` impossible (hôte sans la route ? relance DSH pour la charger).': 'Cannot read \`kybers/quality\` (host without the route? restart DSH to load it).',
+  'Impossible de lire les chiffres de qualité. Relance DSH une fois, puis rouvre cette page.': 'The quality figures cannot be read. Restart DSH once, then open this page again.',
   'réponse invalide du host': 'invalid host response',
   'réponse vide du modèle': 'empty model response',
   'Création illisible : ': 'Unreadable creation: ',
@@ -4289,7 +4289,7 @@ const KB_FR_EN = {
   'Copie indisponible': 'Copy unavailable',
   'Widget : Agent Team introuvable': 'Widget: Agent Team not found',
   'liaison indisponible': 'link unavailable',
-  'route /kybernos/voice/config indisponible': 'route /kybernos/voice/config unavailable',
+  'La voix n’est pas disponible : relance DSH une fois': 'Voice is not available: restart DSH once',
   ' : le micro choisi ne rend que du silence. Ouvre le chevron pour en essayer un autre.': ': the chosen microphone only returns silence. Open the chevron to try another one.',
   'Transcription vide': 'Empty transcription',
   'Capture micro indisponible dans ce contexte': 'Microphone capture unavailable in this context',
@@ -4337,7 +4337,7 @@ const KB_FR_EN = {
   'Connecteurs': 'Connectors',
   'outil': 'tool',
   'illisible': 'unreadable',
-  'route injoignable': 'route unreachable',
+  'le serveur n’a pas répondu': 'the server did not answer',
   'Initiale': 'Initial',
   'notes-recette.md : date de modification inconnue': 'notes-recette.md: modification date unknown',
   'archive sans manifeste : generique.mp4': 'archive without a manifest: generique.mp4',
@@ -4362,7 +4362,7 @@ const KB_FR_EN = {
   ' jours, FX ': ' days, FX ',
   'lecture: ': 'read: ',
   'yml lu (': 'yml read (',
-  'route absente': 'route missing',
+  'indisponible : relance DSH une fois': 'unavailable: restart DSH once',
   'fiche': 'sheet',
   'connecteur': 'connector',
   'palier ': 'tier ',
@@ -11832,9 +11832,9 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
             const reste = Array.isArray(res.aCompleter) ? res.aCompleter.slice(0, 2).join(' · ') : ''
             notify('“' + item.name + '”' + kbt('kbui.market.cloud.done') + reste)
           } else {
-            notify('“' + item.name + '” : ' + String(res !== null && res.error !== undefined ? res.error : kbe('route unreachable')))
+            notify('“' + item.name + '” : ' + String(res !== null && res.error !== undefined ? res.error : kbe('the server did not answer')))
           }
-        } catch (e) { notify('“' + item.name + '” : ' + kbe('route unreachable')) }
+        } catch (e) { notify('“' + item.name + '” : ' + kbe('the server did not answer')) }
         setMarketBusy(null)
       }
 
@@ -13948,7 +13948,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       const etatLigne = (txt) => h('div', { className: 'kbq-kpisub' }, txt)
       const blocEtats = [
         etat === 'chargement' ? etatLigne(kbt('kbui.quality.loading')) : null,
-        etat === 'erreur' ? etatLigne(kbe('Cannot read `kybers/quality` (host without the route? restart DSH to load it).')) : null,
+        etat === 'erreur' ? etatLigne(kbe('The quality figures cannot be read. Restart DSH once, then open this page again.')) : null,
         etat === 'vide' ? etatLigne(kbe('Host unavailable: no real numbers can be shown.')) : null,
       ].filter((x) => x !== null)
       const blocNotes = notes.length > 0
@@ -15144,7 +15144,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       if (phase === 'loading') content = h('div', { style: cardBox }, kbt('runs.loading'))
       else if (phase === 'error') content = h('div', { style: Object.assign({}, cardBox, { borderColor: 'var(--dsw-alias-state-error-primary)' }) },
         h('span', { className: 'kb8-name' }, kbt('kbui.runs.unavailable')),
-        h('span', { style: { fontSize: '13px', color: 'var(--dsw-alias-label-secondary)' } }, String(error || kbe('route missing'))))
+        h('span', { style: { fontSize: '13px', color: 'var(--dsw-alias-label-secondary)' } }, String(error || kbe('unavailable: restart DSH once'))))
       else if (runs.length === 0) content = h('div', { className: 'kb9-empty' },
         Icon('gitBranch', 22),
         h('span', { className: 'kb8-name' }, kbt('runs.norun')),
@@ -18452,7 +18452,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
           const connsNote = connsReal === null
             ? kbe('Reading the Composio connections…')
             : (connsReal.missing === true
-              ? kbe('Composio plugin not loaded (route /kybernos/composio/connections missing): only declared tools are listed.')
+              ? kbe('Composio is not loaded (restart DSH once): only declared tools are listed.')
               : (connsReal.offline === true
                 ? kbe('Composio unreachable: only declared tools are listed.')
                 : (connsReal.configured === false
@@ -27803,7 +27803,7 @@ body[data-ds-dark-theme] [data-phase="hero"]:has([data-kb="newchat"]){background
         fetch('/kybernos/voice/config', { headers: { accept: 'application/json' } })
           .then((r) => r.json())
           .then((j) => { if (alive === true) setCap((j !== null && j !== undefined && j.ok === true && j.asr !== undefined) ? j.asr : { ready: false, reason: kbe('unexpected response from /kybernos/voice/config') }) })
-          .catch(() => { if (alive === true) setCap({ ready: false, reason: kbe('route /kybernos/voice/config unavailable') }) })
+          .catch(() => { if (alive === true) setCap({ ready: false, reason: kbe('Voice is not available: restart DSH once') }) })
         return () => { alive = false }
       }, [])
       React.useEffect(() => {

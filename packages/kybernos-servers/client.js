@@ -134,6 +134,11 @@ window.__ModuleLoader__.load({
         pairing_failed: ['Impossible de joindre ce serveur pour la connexion.', 'Cannot reach this server to sign in.'],
         code_expired: ['Le code a expiré. Si tu ne peux pas créer de compte sur ce serveur, demande à son administrateur.', 'The code expired. If you cannot create an account on this server, ask its administrator.'],
       }
+      // What the person is told once a switch or a removal went through. Removing the ACTIVE server switches back to Kybernos Cloud first (the host does it), so the
+      // account, the models and the team change: it says so and asks for the reload, as « Switch to this server » does (it used to say only « X was removed »).
+      const doneMessage = (kind, server) => (kind === 'switch'
+        ? kt('Tu es sur ', 'You are on ') + server.name + '. ' + kt('Recharge DSH pour rafraîchir la liste des modèles.', 'Reload DSH to refresh the model list.')
+        : server.name + kt(' a été retiré.', ' was removed.') + (server.active === true ? ' ' + kt('Tu es revenu sur Kybernos Cloud. Recharge DSH pour rafraîchir la liste des modèles.', 'You are back on Kybernos Cloud. Reload DSH to refresh the model list.') : ''))
       const say = (code) => { const e = ERR[code]; return e === undefined ? kt('Une erreur est survenue.', 'Something went wrong.') : kt(e[0], e[1]) }
       const STEP = {
         reach: ['Le serveur répond', 'The server answers'],
@@ -430,7 +435,7 @@ window.__ModuleLoader__.load({
             if (!alive.current) return
             if (r.ok === true) {
               setConfirm(null)
-              notify(c.kind === 'switch' ? kt('Tu es sur ', 'You are on ') + c.server.name + '. ' + kt('Recharge DSH pour rafraîchir la liste des modèles.', 'Reload DSH to refresh the model list.') : c.server.name + kt(' a été retiré.', ' was removed.'))
+              notify(doneMessage(c.kind, c.server))
               void load()
             } else setConfirm(Object.assign({}, c, { busy: false, error: say(r.error) }))
           },
@@ -459,7 +464,7 @@ window.__ModuleLoader__.load({
               () => h(Conteneur)))
           } catch (e) { try { console.error('[kybernos-servers] page not registered: ' + String((e && e.message) || e)) } catch (e2) { /* console */ } }
         },
-        __test: { View, AddDialog, SigninDialog, Confirm, Enterprise, Row, Steps, addressesOf, say, hostOf, ERR, ENTERPRISE, BUILTIN_ID, EMPTY, NEW_ADD, CSS }
+        __test: { View, AddDialog, SigninDialog, Confirm, Enterprise, Row, Steps, addressesOf, say, doneMessage, hostOf, ERR, ENTERPRISE, BUILTIN_ID, EMPTY, NEW_ADD, CSS }
       }
     } catch (e) {
       try { console.warn('[kybernos-servers] disabled:', e) } catch (e2) { /* console */ }

@@ -82,7 +82,7 @@ const load = (contact) => {
   return def.factory((name) => { if (name === 'react') return React; throw new Error('unexpected require ' + name) })
 }
 const mod = load()
-const { View, AddDialog, SigninDialog, Confirm, say, ERR, NEW_ADD, addressesOf } = mod.__test
+const { View, AddDialog, SigninDialog, Confirm, say, doneMessage, ERR, NEW_ADD, addressesOf } = mod.__test
 const lang = (l) => { globalThis.window.__KB_LANG_RESOLVE__ = () => l }
 const noop = () => {}
 const act = new Proxy({}, { get: () => noop })
@@ -170,6 +170,12 @@ console.log('the sign-in, switch and remove dialogs')
   const rm = renderToStaticMarkup(React.createElement(Confirm, { confirm: { kind: 'remove', server: Object.assign({}, ACME, { active: true }), busy: false, error: say('registry_unreadable') }, act }))
   check('remove: the sign-in is forgotten on this device, nothing deleted on the server, you go back to Kybernos Cloud; an error shows inside', rm.includes('forgotten on this device') && rm.includes('Nothing is deleted on the server') && rm.includes('switches back to Kybernos Cloud') && rm.includes('The servers file is unreadable'))
 }
+
+// L5-05: removing the ACTIVE server switches back to Kybernos Cloud, so the account and the models change: the message says so and asks for the reload,
+// as « Switch to this server » does. Removing a server that is not active changes nothing else and says only that it was removed.
+check('removing the active server says it was removed, that you are back on Kybernos Cloud, and to reload DSH', doneMessage('remove', Object.assign({}, ACME, { active: true })) === 'Acme Corp was removed. You are back on Kybernos Cloud. Reload DSH to refresh the model list.', doneMessage('remove', Object.assign({}, ACME, { active: true })))
+check('removing a server that is not active says only that it was removed', doneMessage('remove', Object.assign({}, ACME, { active: false })) === 'Acme Corp was removed.', doneMessage('remove', ACME))
+check('switching still asks for the reload', doneMessage('switch', ACME) === 'You are on Acme Corp. Reload DSH to refresh the model list.', doneMessage('switch', ACME))
 
 console.log('SRV-02 every host error is a sentence, in both languages, never a raw code')
 {
