@@ -210,7 +210,11 @@ eq('the wizard\'s steps in the UI: one screen each, the plan only with an accoun
   [true, true, true, false, true, true, true])
 eq('the « about you » button does not read like the header\'s Skip, a replay shows the last answers, and an emptied answer is sent so it can be cleared',
   [mod.KB_OB_T['about.pass'][0] !== mod.KB_OB_T['skip'][0], /S\.aboutSaved = /.test(ui[1]), /S\.site\.trim\(\) !== '' \|\| S\.social\.trim\(\) !== '' \|\| S\.words\.trim\(\) !== '' \|\| S\.aboutSaved/.test(ui[1])], [true, true, true])
-eq('one tap on a field takes its goals, display mode and agents preset, then moves on', [/pickDomain\(pk\)/.test(ui[1]), /go\('goals'\)/.test(ui[1]), /S\.goals = pk\.goals\.slice\(0, 2\)/.test(ui[1])], [true, true, true])
+const tileClick = ui[1].slice(ui[1].indexOf("b.addEventListener('click', () => {\n          pickDomain(pk)"), ui[1].indexOf('const clearHover = () =>'))
+eq('choosing a field takes its goals, display mode and agents preset but never moves on by itself: the tiles change in place, Continue waits for a choice',
+  [/pickDomain\(pk\)/.test(tileClick), /syncTiles\(\)/.test(tileClick), /go\(|setTimeout|render\(/.test(tileClick), /S\.goals = pk\.goals\.slice\(0, 2\)/.test(ui[1]), /next\.disabled = S\.domain === null/.test(ui[1])], [true, true, false, true, true])
+eq('a redraw of the same screen does not replay the entrance animation, and the preview follows the pointer only once it rests on a tile',
+  [/if \(S\.drawn === S\.screen\) body\.classList\.add\('kb-ob-still'\)/.test(ui[1]), /\.kb-ob-step\.kb-ob-still\{animation:none\}/.test(src), /win\.setTimeout\(\(\) => \{ hoverTimer = null; S\.hover = pk\.id; refreshPreview\(\) \}, 120\)/.test(ui[1])], [true, true, true])
 eq('the miniature\'s own text sits under it, never above', ui[1].indexOf("pane.appendChild(h('div', 'kb-ob-pv-box'))") < ui[1].indexOf('pane.appendChild(head)') && ui[1].indexOf('pane.appendChild(head)') < ui[1].indexOf("pane.appendChild(h('p', 'kb-ob-pv-cap'))"), true)
 eq('what the person typed goes to the host only in the complete answer, with the agents preset, and only when there is something to say (or to clear)', [/agents: S\.agents, \.\.\.\(aboutBody\(\) !== null \? \{ about: aboutBody\(\) \} : \{\}\)/.test(ui[1])], [true])
 
