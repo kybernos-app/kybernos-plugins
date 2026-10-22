@@ -36839,7 +36839,17 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         name.textContent = m !== null ? m.name : ''
         name.style.display = m !== null ? '' : 'none'
         pane.querySelector('.kb-ob-pv-cap').textContent = T(S.screen === 'job' ? 'pv.cap.job' : (S.screen === 'goals' ? 'pv.cap.goals' : 'pv.cap.other'))
-        const fit = () => { try { box.style.setProperty('--kb-ob-pvs', String(box.clientWidth / 720)) } catch (e) { /* no layout */ } }
+        // The miniature starts level with the subtitle, not with the step's eyebrow: the title above it takes one line or two, so the offset is measured.
+        // The subtitle's offset inside its own step (both move together while the step slides in for 0.3 s), never against the pane.
+        const align = () => {
+          try {
+            const step = root.querySelector('.kb-ob-split .kb-ob-step')
+            const sub = step === null ? null : step.querySelector('.kb-ob-sub')
+            const d = sub === null ? 0 : sub.getBoundingClientRect().top - step.getBoundingClientRect().top
+            pane.style.marginTop = (d > 0 ? Math.round(d) : 0) + 'px'
+          } catch (e) { /* no layout */ }
+        }
+        const fit = () => { try { box.style.setProperty('--kb-ob-pvs', String(box.clientWidth / 720)) } catch (e) { /* no layout */ } align() }
         fit()
         if (typeof win.ResizeObserver === 'function' && pane.__ro === undefined) { pane.__ro = new win.ResizeObserver(fit); pane.__ro.observe(box) }
       }

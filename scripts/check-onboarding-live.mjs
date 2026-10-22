@@ -419,6 +419,7 @@ try {
   const pvName = () => q(`(() => { const n = document.querySelector('.kb-ob-pv-name'); return n && n.style.display !== 'none' ? n.textContent : null })()`)
   const pvMenu = () => q(`[...document.querySelectorAll('.kb-ob-pv .kb-ob-pw-mi span:last-child')].map((e) => e.textContent.trim())`)
   check('a live miniature of Kybernos sits beside the step, neutral until a field is shown', (await q(`!!document.querySelector('.kb-ob-split .kb-ob-pv .kb-ob-pw')`)) === true && (await pvName()) === null && (await q(`document.querySelector('.kb-ob').classList.contains('kb-ob-tint')`)) === false)
+  check('the miniature starts level with the subtitle, within 2 px', (await q(`(() => { const s = document.querySelector('.kb-ob-split .kb-ob-step .kb-ob-sub'); const p = document.querySelector('.kb-ob-pv'); return !!s && !!p && Math.abs(s.getBoundingClientRect().top - p.getBoundingClientRect().top) <= 2 })()`)) === true)
   await page.shot(join(shotDir, 'field-neutral.png'))
   await q(`document.querySelectorAll('.kb-ob-tile')[1].dispatchEvent(new Event('mouseenter'))`)
   await sleep(300)
