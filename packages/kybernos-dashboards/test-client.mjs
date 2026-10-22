@@ -244,5 +244,17 @@ const finite = (s) => !/NaN|Infinity|undefined/.test(s)
   ok('gallery header: the core plugin\'s primary button keeps its colours inside the page', /\.kbdb \.kb8-primary\{color:var\(--dsw-alias-label-primary-foreground\)\}/.test(plugin))
 }
 
+{
+  // L2-08: the gallery says which dashboard files could not be read (they used to vanish from the page without a word)
+  const plugin = text('./src/plugin.js')
+  const flat = (n) => (n === null || n === undefined || typeof n === 'boolean' ? '' : (typeof n === 'string' || typeof n === 'number' ? String(n) : (Array.isArray(n) ? n.map(flat).join('') : flat(n.c))))
+  const one = T.UnreadableNotice({ items: [{ id: 'broken', code: 'invalid-json', message: 'The dashboard file is not valid JSON.' }] })
+  ok('unreadable notice: names the file and the reason, with a hook for the checks', one !== null && one.p['data-kb'] === 'dashboards-unreadable' && flat(one) === 'Dashboard that cannot be read: broken.miniapp.json (invalid JSON)', flat(one))
+  const many = T.UnreadableNotice({ items: ['a', 'b', 'c', 'd', 'e', 'f'].map((id) => ({ id, code: 'too-large' })) })
+  ok('unreadable notice: several files are listed, the list is cut after five', /^Dashboards that cannot be read: a\.miniapp\.json \(file too large\), b\./.test(flat(many)) && !flat(many).includes('f.miniapp.json') && flat(many).endsWith('…'), flat(many))
+  ok('unreadable notice: nothing to say, nothing drawn', T.UnreadableNotice({ items: [] }) === null && T.UnreadableNotice({ items: undefined }) === null)
+  ok('the gallery draws it above the dashboards and the page keeps the host\'s list', /h\(UnreadableNotice, \{ items: list === null \? \[\] : list\.unreadable \}\),\n\s+h\('div', \{ className: 'kbdb-sec-h' \}, h\('h2', null, kt\('Mes dashboards'/.test(plugin) && /unreadable: Array\.isArray\(l\.json\.unreadable\)/.test(plugin))
+}
+
 console.log(fail === 0 ? 'client: ok (' + passed + ' checks)' : fail + ' failed of ' + (passed + fail))
 process.exit(fail ? 1 : 0)

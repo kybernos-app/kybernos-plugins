@@ -2561,6 +2561,15 @@ window.__ModuleLoader__.load({
           })))
         }
 
+        /** The dashboard files the host could not read, named with the reason: a damaged file used to vanish from the gallery without a word. */
+        function UnreadableNotice ({ items }) {
+          if (!Array.isArray(items) || items.length === 0) return null
+          const why = (code) => (code === 'invalid-json' ? kt('JSON invalide', 'invalid JSON') : (code === 'not-dashboard' ? kt('ce n’est pas un dashboard', 'not a dashboard') : (code === 'too-large' ? kt('fichier trop gros', 'file too large') : kt('fichier illisible', 'file cannot be read'))))
+          const shown = items.slice(0, 5).map((d) => String(d.id) + '.miniapp.json (' + why(d.code) + ')').join(', ') + (items.length > 5 ? ' …' : '')
+          const lead = items.length === 1 ? kt('Dashboard illisible : ', 'Dashboard that cannot be read: ') : kt('Dashboards illisibles : ', 'Dashboards that cannot be read: ')
+          return h('div', { className: 'kbdb-banner', role: 'status', 'data-kb': 'dashboards-unreadable' }, h('span', { className: 'kbdb-dot warn' }), h('span', { className: 'sp' }, lead + shown))
+        }
+
         function DashboardsPage () {
           const rootRef = useRef(null)
           const [list, setList] = useState(null)
@@ -2592,7 +2601,7 @@ window.__ModuleLoader__.load({
             const [l, p] = await Promise.all([api('GET', 'list'), api('GET', 'presets')])
             if (!l.ok) { setFailed(true); return null }
             setFailed(false)
-            setList({ dashboards: l.json.dashboards || [], default: l.json.default || null })
+            setList({ dashboards: l.json.dashboards || [], default: l.json.default || null, unreadable: Array.isArray(l.json.unreadable) ? l.json.unreadable : [] })
             if (p.ok) setPresets(p.json.presets || [])
             return l.json
           }, [])
@@ -2759,6 +2768,7 @@ window.__ModuleLoader__.load({
           else if (failed) body = h('div', { className: 'kbdb-banner' }, h('span', { className: 'kbdb-dot warn' }), h('span', { className: 'sp' }, kt('Le serveur local ne répond pas aux dashboards. Réessaie dans un instant.', 'The local server is not answering for dashboards. Try again in a moment.')), h('button', { type: 'button', className: 'kbdb-btn sm', onClick: () => { setScreen('boot'); refreshList().then(() => setScreen('gallery')) } }, kt('Réessayer', 'Try again')))
           else if (screen === 'gallery') {
             body = h(React.Fragment, null,
+              h(UnreadableNotice, { items: list === null ? [] : list.unreadable }),
               h('div', { className: 'kbdb-sec-h' }, h('h2', null, kt('Mes dashboards', 'My dashboards')), h('span', null, mine.length)),
               mine.length === 0
                 ? h('div', { className: 'kbdb-gempty' }, h('b', null, kt('Aucun dashboard pour l’instant', 'No dashboard yet')), h('span', null, kt('Demande à l’IA ce que tu veux suivre, ou pars d’un preset ci-dessous.', 'Ask the AI what you want to follow, or start from a preset below.')), h('button', { type: 'button', className: 'kbdb-btn primary', onClick: askCreate }, Ic('spark', 14), kt('Créer un dashboard avec l’IA', 'Create a dashboard with AI')))
@@ -2963,7 +2973,7 @@ window.__ModuleLoader__.load({
           // `sidebarRightTabs` must be declared: ui-sidebar-right provides it, and without this `apply` could run before.
           inject: ['slots', 'sidebarRightTabs'],
           apply,
-          __test: { model, chart, fmtLabel, paintColumns, paintBars, paintLine, paintDonut, paintHeatmap, miniGlyph, paintSankey, paintFlow, paintSpark, legendHtml, fmtWhen, ago, changedIds, createMessage, improveMessage, addMessage, CSS },
+          __test: { model, chart, fmtLabel, paintColumns, paintBars, paintLine, paintDonut, paintHeatmap, miniGlyph, paintSankey, paintFlow, paintSpark, legendHtml, fmtWhen, ago, changedIds, createMessage, improveMessage, addMessage, UnreadableNotice, CSS },
         }
       })(model, chart)
     } catch (error) {
