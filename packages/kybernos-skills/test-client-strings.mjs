@@ -131,4 +131,8 @@ assert.ok(/onClick: \(e\) => \{ e\.stopPropagation\(\); toggleFeatured\(s\.name\
 assert.ok(/onKeyDown: \(e\) => \{ if \(e\.target !== e\.currentTarget\) return;/.test(src), 'the card keyboard handler ignores keys from inner buttons')
 ok('the Yours card opens its sheet without hijacking the inner switch/star (mouse + keyboard)')
 
+// Light theme: the engine's green is 2.3:1 on white for the « default » pill of the learned skills (measured, scripts/audit-contrast-live.mjs): a darker ink (7.1:1) in the light theme only.
+assert.ok(/body:not\(\[data-ds-dark-theme\]\) \.kbss-page \.kbl-pill\.ok\{color:var\(--kybernos-ok-ink,#166534\)\}/.test(src), 'the ok pill has a darker ink in the light theme')
+ok('light theme: the learned skills’ ok pill has a readable ink (7.1:1), the dark theme keeps the engine’s')
+
 console.log('\n' + pass + ' verifications OK')
