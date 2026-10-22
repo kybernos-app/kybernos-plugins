@@ -654,7 +654,7 @@ window.__ModuleLoader__.load({
 .kbmem-page :focus-visible{outline:2px solid var(--m-acc);outline-offset:1px}
 .kbmem-grow{flex:1}.kbmem-muted{color:var(--m-muted)}.kbmem-cap{color:var(--m-cap)}.kbmem-tiny{font-size:12px;color:var(--m-cap)}
 .kbmem-top{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
-.kbmem-h1{margin:0;font-size:18px;line-height:23.4px;font-weight:600;letter-spacing:-.18px}
+.kbmem-h1{margin:0;font-size:18px;line-height:30px;font-weight:600;letter-spacing:-.18px}
 .kbmem-lead{margin:4px 0 22px;font-size:13px;color:var(--m-muted)}
 .kbmem-top{margin-bottom:8px}
 .kbmem-st{display:flex;gap:6px 10px;align-items:center;flex-wrap:wrap;min-height:30px;margin:0 0 14px;font-size:13px;color:var(--m-ink2)}
