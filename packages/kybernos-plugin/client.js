@@ -826,7 +826,7 @@ let kbLocaleRead = () => 'en'
       'status.ok': { kybernos: 'sondé OK', en: 'probe OK' },
       'status.fail': { kybernos: 'sonde en échec', en: 'probe failed' },
       'status.declared': { kybernos: 'déclaré, non sondé', en: 'declared, not probed' },
-      'status.absent': { kybernos: 'absent de settings.yaml', en: 'absent from settings.yaml' },
+      'status.absent': { kybernos: 'absent de tes réglages', en: 'absent from your settings' },
       'ui.declaredid': { kybernos: ': id declaré "', en: ': declared id "' },
       'ui.agenttask': { kybernos: 'Tâche de l’agent', en: 'Agent task' },
       'ui.ratesrefreshed': { kybernos: 'tarifs models.dev relus à ', en: 'models.dev pricing refreshed at ' },
@@ -850,7 +850,7 @@ let kbLocaleRead = () => 'en'
       'ui.probe.ok': { kybernos: 'sondé OK', en: 'probe OK' },
       'ui.probe.fail': { kybernos: 'sonde en échec', en: 'probe failed' },
       'ui.probe.declared': { kybernos: 'déclaré, non sondé', en: 'declared, not probed' },
-      'ui.probe.absent': { kybernos: 'absent de settings.yaml', en: 'absent from settings.yaml' },
+      'ui.probe.absent': { kybernos: 'absent de tes réglages', en: 'absent from your settings' },
       'ui.justnow': { kybernos: 'à l\'instant', en: 'just now' },
       // L'age d'une conversation existait en francais EN DUR (« il y a 4 min »)
       // alors que l'etat juste devant (« Running ») etait traduit : une meme
