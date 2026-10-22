@@ -17,7 +17,8 @@ import { chooseWorkspace as autoWsChoose, idOf as autoWsIdOf, DEDICATED_TITLE as
 import { recordFeedback, exportFeedback, relayReportOf } from './feedback-box.mjs'
 import { writeGuard } from './session-guard.mjs'
 import { defaultState as onboardingDefault, publicView as onboardingView, complete as onboardingComplete, replay as onboardingReplay, chooseDomain as onboardingChooseDomain, aboutView as onboardingAbout } from './onboarding-state.mjs'
-import { isSuggested as autoIsSuggested, suggestedTask as autoSuggestedTask, acceptedTask as autoAcceptedTask, refusalFor as autoSuggestRefusal } from './automation-suggest.mjs'
+import { isSuggested as autoIsSuggested, suggestedTask as autoSuggestedTask, acceptedTask as autoAcceptedTask, refusalFor as autoSuggestRefusal, HOME_ID_RE as AUTO_HOME_ID_RE, runFrame as autoRunFrame } from './automation-suggest.mjs'
+import { mountAutomationTools } from './automation-tools.mjs'
 import { loadPacks as loadDomainPacks, domainOfProfil, mergePackSets, DOMAIN_POINT, DOMAIN_POINT_REF } from './domain-pack.mjs'
 const pluginDir = dirname(fileURLToPath(import.meta.url))
 // ── Le filet du compactage, sans retouche du moteur (23/09/2026) ────────────
@@ -422,6 +423,13 @@ const kbSanitizeTaskInput = (raw) => {
     approvals: r.approvals === 'auto' ? 'auto' : 'ask',
   }
   if (Array.isArray(r.notify) === true) out.notify = Array.from(new Set(r.notify.filter((x) => x === 'push' || x === 'email')))
+  // Where its runs happen: `home` = one session, reused (the chat it was made in, or one created at the first run); anything else = a new session each run, as before.
+  if (r.sessionMode !== undefined) out.sessionMode = r.sessionMode === 'home' ? 'home' : 'new'
+  if (r.homeSessionId !== undefined) {
+    if (r.homeSessionId === null || r.homeSessionId === '') out.homeSessionId = null
+    else if (typeof r.homeSessionId === 'string' && /^[A-Za-z0-9_.:@-]{1,160}$/.test(r.homeSessionId) === true) out.homeSessionId = r.homeSessionId
+    else return { ok: false, error: 'invalid session' }
+  }
   // The apps the automation asks for (Composio toolkit slugs): the Connectors row and page put the ones that are not connected first. Left out, an edit keeps what it has.
   if (Array.isArray(r.needs) === true) out.needs = Array.from(new Set(r.needs.filter((x) => typeof x === 'string' && /^[a-z0-9_-]{2,40}$/.test(x) === true))).slice(0, 6)
   // The workspace the runs land in (the id of one): sent only when the person chooses, `null` or '' goes back to « none » (the dedicated
@@ -2683,10 +2691,26 @@ function boot(ctx) {
         return typeof v[field] === 'string' ? v[field] : null
       }
       const requestId = 'kb-task-' + String(task.id) + '-' + Date.now().toString(36)
-      const workspaceId = await kbTaskWorkspaceId(task)
-      const created = await sc.create(workspaceId !== null ? { workspaceId } : {})
-      const sessionId = unwrap(created, 'sessionId')
-      if (sessionId === null) throw new Error('session.create returned no sessionId')
+      // `sessionMode: 'home'`: the runs happen in ONE session, posted as messages: the chat the automation was made in, or the session its first run created. A
+      // session that is gone (the person deleted it) is replaced by a new one, which becomes the home from then on.
+      const homeMode = task.sessionMode === 'home'
+      const homeId = homeMode === true && typeof task.homeSessionId === 'string' ? task.homeSessionId : ''
+      let sessionId = null
+      let reused = false
+      if (homeId !== '') {
+        try { const liveHome = ctx.get('sessions') !== undefined && ctx.get('sessions') !== null && typeof ctx.get('sessions').get === 'function' ? ctx.get('sessions').get(homeId) : null; if (liveHome !== undefined && liveHome !== null) { sessionId = homeId; reused = true } } catch (e) { sessionId = null; reused = false }
+      }
+      if (reused === false) {
+        const workspaceId = await kbTaskWorkspaceId(task)
+        const created = await sc.create(workspaceId !== null ? { workspaceId } : {})
+        sessionId = unwrap(created, 'sessionId')
+        if (sessionId === null) throw new Error('session.create returned no sessionId')
+        if (homeMode === true) {
+          await kbTasksMutate(async (tasks) => {
+            for (const t of tasks) { if (t !== null && typeof t === 'object' && t.id === task.id) { t.homeSessionId = sessionId; t.homeOwn = true } }
+          }).catch(() => null)
+        }
+      }
       // D3 (recette team 29/09) — honorer task.model : la sélection DOIT
       // précéder le prompt (sélection durable de la session). Format
       // attendu « provider/model » (ex. kybernos/free). Échec best-effort :
@@ -2694,7 +2718,7 @@ function boot(ctx) {
       // par défaut, comme avant ce correctif).
       const taskModel = typeof task.model === 'string' ? task.model.trim() : ''
       const slash = taskModel.indexOf('/')
-      if (slash > 0 && typeof sc.selectModel === 'function') {
+      if (reused === false && slash > 0 && typeof sc.selectModel === 'function') {
         try {
           const selRes = await sc.selectModel({
             sessionId,
@@ -2724,7 +2748,9 @@ function boot(ctx) {
         if (askPreset === null || liveSession === undefined || liveSession === null) {
           throw new Error('approvals "ask" could not be applied (' + (askPreset === null ? 'no permission preset asks for approval' : 'session not found') + '): the run was not started')
         }
-        presetsSvc.set(liveSession, askPreset)
+        // A chat the person made the automation in keeps its own permission preset (the run must not narrow what they are doing there); the gate that asks
+        // before an outside tool is called still covers it. A session made for the automation takes the asking preset as always.
+        if (reused === false || task.homeOwn === true) presetsSvc.set(liveSession, askPreset)
         kbRememberAskSession(sessionId)
       }
       // Laisse la sélection durable se propager avant l'assemblage du tour.
@@ -2734,7 +2760,7 @@ function boot(ctx) {
         requestId,
         sessionId,
         mode: 'queue',
-        content: [{ type: 'text', text: String(task.prompt || '') }],
+        content: [{ type: 'text', text: (homeMode === true ? autoRunFrame(task.name, new Date().toISOString()) + '\n\n' : '') + String(task.prompt || '') }],
       }, controller.signal)
       if (ack !== null && typeof ack === 'object' && ack.ok === false) throw new Error(ack.error !== null && ack.error !== undefined && ack.error.message !== undefined ? String(ack.error.message) : 'prompt refused')
       return { sessionId }
@@ -2878,6 +2904,20 @@ function boot(ctx) {
           }
         })
         return found === null ? { ok: false, error: 'not a suggestion' } : { ok: true, task: found }
+      }
+      // The chat an automation was made in becomes its home: from then on its runs are posted there.
+      if (action === 'bind-home') {
+        const id = str(body.id)
+        const sid = str(body.sessionId)
+        if (id === null) return { ok: false, error: 'id required' }
+        if (sid === null || AUTO_HOME_ID_RE.test(sid) !== true) return { ok: false, error: 'invalid session' }
+        let found = null
+        await kbTasksMutate(async (tasks) => {
+          for (const t of tasks) {
+            if (t !== null && typeof t === 'object' && t.id === id) { t.sessionMode = 'home'; t.homeSessionId = sid; t.homeOwn = false; t.updatedAt = new Date().toISOString(); found = t; break }
+          }
+        })
+        return found === null ? { ok: false, error: 'task not found' } : { ok: true, task: found }
       }
       if (action === 'update') {
         const id = str(body.id)
@@ -3078,6 +3118,8 @@ function boot(ctx) {
       setTimeout(() => { kbTasksTick().catch(() => null) }, 5000)
     }
     try { kbTasksStart() } catch (e) { try { console.error('[kybers] task timer unavailable:', errText(e)) } catch (e2) { /* console */ } }
+    // The agent tools that propose an automation and bind one to its chat; a seam that is missing drops only this.
+    try { mountAutomationTools(ctx, { tasks: kbTasksHandle }, (m) => { try { console.error('[kybernos] ' + m) } catch (e) { /* console */ } }) } catch (e) { /* never stop DSH from starting */ }
 
     // ── lire un namespace de réglages, 0.1.6 ET 0.1.7 ────────────────────────
     // 0.1.6 : `settings.get(ns)` rendait le document du namespace.

@@ -186,6 +186,47 @@ writeFileSync(file, good)
   writeFileSync(file, good)
 }
 
+/* ── Runs in a session of their own: the home of an automation ─────────────── */
+{
+  sessions.created = 0; sessions.prompts.length = 0; perm.log.length = 0
+  const mk = async (name, extra) => (await api({ action: 'create', task: task({ name, active: false, ...(extra || {}) }) })).json.task
+  const plain = await mk('Plain runs')
+  const r1 = (await api({ action: 'run-now', id: plain.id })).json.sessionId
+  const r2 = (await api({ action: 'run-now', id: plain.id })).json.sessionId
+  eq('an ordinary automation opens a new session at each run, as before', r1 !== r2 && sessions.created === 2, true)
+  eq('...and its prompt carries no frame', sessions.prompts[0].content[0].text, 'Write the report')
+  sessions.created = 0; sessions.prompts.length = 0; perm.log.length = 0
+  const home = await mk('Home runs', { sessionMode: 'home' })
+  eq('the mode is kept by the sanitizer', home.sessionMode, 'home')
+  const h1 = (await api({ action: 'run-now', id: home.id })).json.sessionId
+  const stored = onDisk().find((x) => x.id === home.id)
+  eq('the first run creates the home session and remembers it', sessions.created + ':' + stored.homeSessionId + ':' + stored.homeOwn, '1:' + h1 + ':true')
+  const h2 = (await api({ action: 'run-now', id: home.id })).json.sessionId
+  eq('the second run posts into the same session: no new one', h2 === h1 && sessions.created === 1, true)
+  eq('a run posted into a chat opens with the automation\'s name and the moment', /^\[Automation « Home runs » · run of \d{4}-\d{2}-\d{2}T/.test(sessions.prompts[1].content[0].text) && sessions.prompts[1].content[0].text.endsWith('Write the report') && sessions.prompts[1].sessionId === h1, true)
+  // a home that is gone is replaced
+  const all = onDisk(); all.find((x) => x.id === home.id).homeSessionId = 'gone-1'; writeFileSync(file, JSON.stringify(all, null, 2))
+  const h3 = (await api({ action: 'run-now', id: home.id })).json.sessionId
+  eq('a session the person deleted is replaced by a new home', h3 !== 'gone-1' && onDisk().find((x) => x.id === home.id).homeSessionId === h3 && sessions.created === 2, true)
+  // the chat the person made it in
+  sessions.created = 0; sessions.prompts.length = 0; perm.log.length = 0
+  const chat = await mk('Made in a chat')
+  eq('a session id that is not one is refused', (await api({ action: 'bind-home', id: chat.id, sessionId: 'bad id!' })).json.error, 'invalid session')
+  eq('binding an unknown automation is refused', (await api({ action: 'bind-home', id: 'nope', sessionId: 'sess-chat' })).json.error, 'task not found')
+  const bound = (await api({ action: 'bind-home', id: chat.id, sessionId: 'sess-chat' })).json
+  eq('the chat becomes the home, not owned by the automation', bound.ok + ':' + bound.task.sessionMode + ':' + bound.task.homeSessionId + ':' + bound.task.homeOwn, 'true:home:sess-chat:false')
+  const c1 = (await api({ action: 'run-now', id: chat.id })).json.sessionId
+  eq('its runs land in that chat, no session is created', c1 === 'sess-chat' && sessions.created === 0, true)
+  eq('Ask me first: the person\'s own chat keeps its permission preset', perm.log.filter((l) => l.indexOf('set:sess-chat') === 0).length === 0 && perm.log.indexOf('prompt:sess-chat') >= 0, true)
+  const own = await mk('Own home', { sessionMode: 'home', homeSessionId: 'sess-own' })
+  const all2 = onDisk(); all2.find((x) => x.id === own.id).homeOwn = true; writeFileSync(file, JSON.stringify(all2, null, 2))
+  await api({ action: 'run-now', id: own.id })
+  eq('a home session the automation made keeps the asking preset on every run', perm.log.filter((l) => l.indexOf('set:sess-own') === 0).length === 1, true)
+  for (const id of [plain.id, home.id, chat.id, own.id]) await api({ action: 'delete', id })
+  sessions.created = 0; sessions.prompts.length = 0; perm.log.length = 0
+  writeFileSync(file, good)
+}
+
 /* ── The tick, on the real code ───────────────────────────────────────────── */
 {
   const all = onDisk()
