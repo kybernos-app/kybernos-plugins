@@ -288,6 +288,26 @@ window.__ModuleLoader__.load({
   color:var(--dsw-alias-label-primary,#e8eaec);background:var(--dsw-alias-bg-layer-3,rgb(53,54,56));
   border:0;border-radius:18px;cursor:pointer}
 .kbr-select:disabled{opacity:.55;cursor:default}
+.kbr-pick{position:relative;flex:none;max-width:100%}
+.kbr-pick>button{display:flex;align-items:center;gap:8px;width:auto;min-width:240px;max-width:100%;border:0;font:inherit;font-size:14px;color:inherit;text-align:start;white-space:nowrap;cursor:pointer}
+.kbr-pick>button:disabled{opacity:.55;cursor:default}
+.kbr-pick-cur{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.kbr-pick-chev{flex:none;width:12px;height:12px;opacity:.7}
+.kbr-pick-pop{position:absolute;inset-inline-end:0;top:calc(100% + 6px);z-index:40;width:400px;max-width:calc(100vw - 48px);display:flex;flex-direction:column;border-radius:14px;
+  border:1px solid var(--dsw-alias-border-l2,rgba(255,255,255,.10));background:var(--dsw-alias-bg-layer-2,#2b2b2d);box-shadow:0 12px 32px rgba(0,0,0,.3);overflow:hidden}
+.kbr-pick-pop.up{top:auto;bottom:calc(100% + 6px)}
+.kbr-pick-q{padding:8px;border-bottom:.5px solid var(--dsw-alias-border-l2,rgba(255,255,255,.10))}
+.kbr-pick-in{box-sizing:border-box;width:100%;height:34px;padding:0 12px;border-radius:9px;border:1px solid var(--dsw-alias-border-l2,rgba(255,255,255,.10));background:var(--dsw-alias-bg-layer-1,#1c1c1e);
+  color:var(--dsw-alias-label-primary,#e8eaec);font:inherit;font-size:13px;outline:none}
+.kbr-pick-in:focus{border-color:var(--dsw-alias-button-primary-fill,#3b82f6)}
+.kbr-pick-list{list-style:none;margin:0;padding:4px;max-height:320px;overflow:auto}
+.kbr-pick-grp{padding:8px 10px 3px;font-size:11px;font-weight:600;color:var(--dsw-alias-label-tertiary,#8a9096)}
+.kbr-pick-opt{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:8px;font-size:13px;color:var(--dsw-alias-label-primary,#e8eaec);cursor:pointer}
+.kbr-pick-opt.cur{background:var(--dsw-alias-interactive-bg-hover,rgba(255,255,255,.06))}
+.kbr-pick-opt>span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kbr-pick-opt svg{flex:none;width:14px;height:14px;color:var(--dsw-alias-button-primary-fill,#3b82f6)}
+.kbr-pick-opt:not(.on) svg{visibility:hidden}
+.kbr-pick-none{padding:14px 10px;font-size:12.5px;color:var(--dsw-alias-label-secondary,#cfd3d6)}
 .kbr-select:focus-visible{outline:2px solid var(--dsw-alias-button-primary-fill,#3b82f6);outline-offset:1px}
 .kbr-note{margin:10px 0 0;font-size:12.5px;color:var(--dsw-alias-label-tertiary,#8a9096)}
 .kbr-versions{margin:14px 0 0;padding-block-start:12px;font-size:12.5px;
@@ -2552,6 +2572,76 @@ window.__ModuleLoader__.load({
       return { mode, valeur: brain, libelleAuto, introuvable, description }
     }
 
+    /** The items (`{ value, label, group? }`) whose label, group or value hold every word typed (case-insensitive): all of them for an empty query. */
+    const choixCorrespondants = (items, requete) => {
+      const mots = String(requete || '').trim().toLocaleLowerCase().split(/\s+/).filter((m) => m !== '')
+      if (mots.length === 0) return items
+      return items.filter((it) => { const foin = ((it.group || '') + ' ' + it.label + ' ' + it.value).toLocaleLowerCase(); return mots.every((m) => foin.indexOf(m) >= 0) })
+    }
+
+    // A choice with a search field: the harness lists dozens of models, which a native <select> scrolls through blindly. A button opens a short list
+    // (groups = the route); type to filter, ↑ ↓ to move, Enter to choose, Esc to close, a click outside closes it. It opens upward when there is more room above.
+    function ChoixRecherche (props) {
+      const [ouvert, setOuvert] = React.useState(false)
+      const [requete, setRequete] = React.useState('')
+      const [curseur, setCurseur] = React.useState(0)
+      const [haut, setHaut] = React.useState(false)
+      const racine = React.useRef(null)
+      const champ = React.useRef(null)
+      const liste = React.useRef(null)
+      const bouton = React.useRef(null)
+      const visibles = choixCorrespondants(props.items, requete)
+      const courant = props.items.find((it) => it.value === props.value)
+      const ouvrir = () => {
+        setRequete('')
+        setCurseur(Math.max(0, props.items.findIndex((it) => it.value === props.value)))
+        const b = bouton.current
+        if (b !== null) { const r = b.getBoundingClientRect(); setHaut(window.innerHeight - r.bottom < 380 && r.top > window.innerHeight - r.bottom) }
+        setOuvert(true)
+      }
+      const fermer = (rendre) => { setOuvert(false); if (rendre && bouton.current !== null) { try { bouton.current.focus() } catch (e) { /* gone */ } } }
+      const choisir = (it) => { props.onChange(it.value); fermer(true) }
+      React.useEffect(() => { if (ouvert && champ.current !== null) { try { champ.current.focus() } catch (e) { /* no focus */ } } }, [ouvert])
+      React.useEffect(() => {
+        if (!ouvert) return undefined
+        const dehors = (ev) => { if (racine.current !== null && !racine.current.contains(ev.target)) setOuvert(false) }
+        document.addEventListener('mousedown', dehors)
+        return () => document.removeEventListener('mousedown', dehors)
+      }, [ouvert])
+      React.useEffect(() => {
+        const li = liste.current !== null ? liste.current.querySelector('[data-curseur="1"]') : null
+        if (ouvert && li !== null) { try { li.scrollIntoView({ block: 'nearest' }) } catch (e) { /* no layout */ } }
+      }, [curseur, ouvert])
+      const touche = (e) => {
+        if (e.key === 'ArrowDown') { e.preventDefault(); setCurseur(visibles.length === 0 ? 0 : Math.min(visibles.length - 1, curseur + 1)) }
+        else if (e.key === 'ArrowUp') { e.preventDefault(); setCurseur(Math.max(0, curseur - 1)) }
+        else if (e.key === 'Enter') { e.preventDefault(); if (visibles[curseur] !== undefined) choisir(visibles[curseur]) }
+        else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); fermer(true) }
+        else if (e.key === 'Tab') setOuvert(false)
+      }
+      const lignes = []
+      let groupeVu = null
+      visibles.forEach((it, i) => {
+        if (it.group !== undefined && it.group !== groupeVu) { groupeVu = it.group; lignes.push(h('li', { key: 'g:' + it.group, className: 'kbr-pick-grp', role: 'presentation' }, it.group)) }
+        else if (it.group === undefined) groupeVu = null
+        lignes.push(h('li', { key: it.value === '' ? '__auto' : it.value, className: 'kbr-pick-opt' + (i === curseur ? ' cur' : '') + (it.value === props.value ? ' on' : ''), role: 'option', 'aria-selected': it.value === props.value ? 'true' : 'false',
+          'data-value': it.value, 'data-curseur': i === curseur ? '1' : undefined, onMouseMove: () => { if (curseur !== i) setCurseur(i) }, onClick: () => choisir(it) },
+          h('span', null, it.label), h('svg', { viewBox: '0 0 16 16', fill: 'none', stroke: 'currentColor', strokeWidth: 1.7, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true' }, h('path', { d: 'M3.5 8.5l3 3 6-6.5' }))))
+      })
+      return h('div', { className: 'kbr-pick', ref: racine },
+        h('button', {
+          ref: bouton, type: 'button', className: props.classe, disabled: props.disabled, 'aria-haspopup': 'listbox', 'aria-expanded': ouvert ? 'true' : 'false', 'aria-label': props.ariaLabel, title: props.title,
+          'data-kbr': props.dataKbr, 'data-value': props.value, onClick: () => { if (ouvert) fermer(false); else ouvrir() },
+        }, h('span', { className: 'kbr-pick-cur' }, courant !== undefined ? courant.label : props.value),
+        h('svg', { className: 'kbr-pick-chev', viewBox: '0 0 12 8', fill: 'none', stroke: 'currentColor', strokeWidth: 1.6, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true' }, h('path', { d: 'M1.5 1.75L6 6.25l4.5-4.5' }))),
+        ouvert ? h('div', { className: 'kbr-pick-pop' + (haut ? ' up' : ''), 'data-kbr': 'brain-pop' },
+          h('div', { className: 'kbr-pick-q' },
+            h('input', { ref: champ, className: 'kbr-pick-in', type: 'search', placeholder: props.recherche, 'aria-label': props.recherche, value: requete, onKeyDown: touche, onChange: (e) => { setRequete(e.target.value); setCurseur(0) } })),
+          visibles.length > 0
+            ? h('ul', { className: 'kbr-pick-list', role: 'listbox', 'aria-label': props.ariaLabel, ref: liste }, lignes)
+            : h('div', { className: 'kbr-pick-none', role: 'status' }, props.aucun)) : null)
+    }
+
     function ReglagesKybernos (...args) {
       try { return ReglagesCorps.apply(this, args) }
       catch (e) { window.__kbrPile = String((e && e.stack) || e).slice(0, 900); return h('div', { className: 'kbr-page', 'data-kbr': 'bloc' }, kt('Erreur : ', 'Error: ') + String(e).slice(0, 140)) }
@@ -2649,15 +2739,16 @@ window.__ModuleLoader__.load({
       // The Study model row: three states (Automatic, a pick, None), read by the pure `etudeVue`.
       const vue = etudeVue(reglages, etude, modeles)
       const brain = vue.valeur
-      const groupes = []
+      // Automatic first (the default, and it names the model it uses), then a saved pick that is NOT configured anymore (otherwise the list would show
+      // Automatic while the file says something else — the screen would lie about its own content), then the configured models by route, then None.
+      const choixEtude = [{ value: '', label: vue.libelleAuto }]
+      if (vue.introuvable) choixEtude.push({ value: brain, label: brain + kt(' — n’est plus configuré', ' — not configured anymore') })
       if (Array.isArray(modeles)) {
         const parRoute = {}
         for (const mo of modeles) { if (parRoute[mo.route] === undefined) parRoute[mo.route] = []; parRoute[mo.route].push(mo) }
-        for (const route of Object.keys(parRoute).sort()) {
-          groupes.push(h('optgroup', { key: route, label: route },
-            parRoute[route].map((mo) => h('option', { key: mo.cle, value: mo.cle }, mo.id))))
-        }
+        for (const route of Object.keys(parRoute).sort()) for (const mo of parRoute[route]) choixEtude.push({ value: mo.cle, label: mo.id, group: route })
       }
+      choixEtude.push({ value: 'none', label: kt('Aucun', 'None') })
       return h('div', { className: 'kbr-page', 'data-kbr': 'bloc' },
         // (28/09, audit) 26px page title like Theme/Maintenance/Tools —
         // the native h4 (16px) was the only small page title of the dialog.
@@ -2702,25 +2793,11 @@ window.__ModuleLoader__.load({
           h('div', { className: natif ? natif.rowText : 'kbr-txt', style: { flex: '1 1 260px' } },
             h('div', { className: natif ? natif.title : undefined }, kt('Modèle d’étude', 'Study model')),
             h('div', { className: natif ? natif.desc : undefined }, vue.description)),
-          h('select', {
-            className: natif && natif.sel ? natif.sel : 'kbr-select',
-            // Recette 2026-10 (C-13/B6): 160px truncated the model names
-            // (worse in RTL), and the title lived INSIDE style — never applied.
-            // title as an attribute (tooltip = full name), width raised.
-            style: { minWidth: '150px', maxWidth: '100%' }, 'data-kbr': 'brain-select', 'aria-label': kt('Modèle d’étude', 'Study model'),
-            title: brain === '' ? vue.libelleAuto : brain,
-            value: brain,
-            disabled: modeles === undefined,
-            onChange: (ev) => changerBrain(ev.target.value)
-          },
-            // Automatic first: it is the default, and it names the model it uses.
-            h('option', { value: '' }, vue.libelleAuto),
-            // A saved pick that is NOT configured anymore stays shown: otherwise the list would show Automatic while the file
-            // says something else — the screen would lie about its own content.
-            vue.introuvable ? h('option', { value: brain }, brain + kt(' — n’est plus configuré', ' — not configured anymore')) : null,
-            groupes.length > 0 ? h('option', { value: '__autre', disabled: true }, kt('Choisir un autre…', 'Choose another…')) : null,
-            groupes,
-            h('option', { value: 'none' }, kt('Aucun', 'None')))),
+          h(ChoixRecherche, {
+            items: choixEtude, value: brain, disabled: modeles === undefined, onChange: changerBrain, dataKbr: 'brain-select', classe: natif && natif.sel ? natif.sel : 'kbr-select',
+            ariaLabel: kt('Modèle d’étude', 'Study model'), title: brain === '' ? vue.libelleAuto : brain,
+            recherche: kt('Rechercher un modèle', 'Search a model'), aucun: kt('Aucun modèle ne correspond.', 'No model matches.'),
+          })),
         Array.isArray(modeles) && modeles.length === 0
           ? h('p', { className: 'kbr-note' }, kt('Aucun modèle n’est encore configuré dans Modèles : ajoute-en un là-bas et il apparaîtra dans cette liste.',
             'No model is configured in Models yet: add one there, and it will show up in this list.'))
@@ -2993,7 +3070,7 @@ window.__ModuleLoader__.load({
       // the entry stays « loading » (the same contract as kybernos/kybernos-theme).
       inject: ['slots'],
       // Pure pieces, exposed for test-journal.mjs, test-sante.mjs and test-language.mjs.
-      __test: { memoireDuJournal, santeVue, santeCause, suivreSante, faitsChangements, genreDeCode, descripteur, etudeVue, kt, direErreur, ERR_REGLAGES, motAffiche, CATEGORIE_PAR_SLUG, MOTS_FR, ReglagesKybernos, rgRenommerGeneral, Pills, PlanAction, Pop, Copier },
+      __test: { memoireDuJournal, santeVue, santeCause, suivreSante, faitsChangements, genreDeCode, descripteur, etudeVue, choixCorrespondants, kt, direErreur, ERR_REGLAGES, motAffiche, CATEGORIE_PAR_SLUG, MOTS_FR, ReglagesKybernos, rgRenommerGeneral, Pills, PlanAction, Pop, Copier },
       apply
     }
   }
