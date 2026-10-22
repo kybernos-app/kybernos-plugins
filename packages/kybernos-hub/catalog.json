@@ -316,39 +316,6 @@
               "en": "A local model never leaves your computer; a remote model receives the text of the conversation."
             }
           },
-          "appearance": {
-            "title": {
-              "fr": "Apparence",
-              "en": "Appearance"
-            },
-            "what": {
-              "fr": "L’allure de l’interface : thème clair, sombre ou système, et la taille du texte. Le fond et la police de Kybernos sont sur la page « Thème ».",
-              "en": "How the interface looks: light, dark or system theme, and the text size. Kybernos’ wallpaper and font are on the “Theme” page."
-            },
-            "steps": [
-              {
-                "fr": "Choisis Clair, Sombre ou Système : Système suit le réglage de ton ordinateur et bascule avec lui.",
-                "en": "Pick Light, Dark or System: System follows your computer’s setting and switches with it."
-              },
-              {
-                "fr": "La taille du texte change la densité du chat et des pages ; elle ne touche pas au contenu des fichiers.",
-                "en": "The text size changes how dense the chat and the pages are; it does not touch the content of files."
-              },
-              {
-                "fr": "L’animation de chargement et les libellés d’attente se règlent dans Thème › Animation.",
-                "en": "The loading animation and the waiting labels are set in Theme › Animation."
-              }
-            ],
-            "where": {
-              "fr": "Réglages › Apparence",
-              "en": "Settings › Appearance",
-              "page": true
-            },
-            "good": {
-              "fr": "L’apparence ne change que cette interface web, pas le terminal ni les réponses de l’assistant.",
-              "en": "The appearance changes this web interface only, not the terminal or the assistant’s replies."
-            }
-          },
           "plugins": {
             "title": {
               "fr": "Plugins intégrés",
@@ -501,8 +468,8 @@
         },
         "steps": [
           {
-            "fr": "Dans « Essentiel » (ouvert par défaut), choisis un mode, un thème (livré ou à toi), un accent, un fond et une police.",
-            "en": "In “Essentials” (open by default), pick a mode, a theme (shipped or your own), an accent color, a background and a font."
+            "fr": "Dans « Essentiel » (ouvert par défaut), choisis le mode (Clair, Sombre, Système), un thème, un accent, un fond et une police.",
+            "en": "In “Essentials” (open by default), pick the mode (Light, Dark, System), a theme, an accent color, a background and a font."
           },
           {
             "fr": "« Verre et fond » règle transparence et flou une fois un fond choisi ; « Couleurs », « Texte et forme » et « Accessibilité » affinent.",

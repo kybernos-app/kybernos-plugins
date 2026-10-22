@@ -49,7 +49,7 @@ check('Agents holds the presets, the workers, the automations and the commands',
 check('Skills & tools holds the skills, the tools, the connectors and the web search', inOrder(inGroup('tools'), ['skills', 'tools', 'connectors', 'web search']))
 check('Memory & context holds Memory & Lessons first, then what stays on this computer (Kybernos), then the Atlas', inOrder(inGroup('memory'), ['memory & lessons', 'kybernos', 'atlas']))
 check('Voice & calls holds Voice and Calls', inOrder(inGroup('voice'), ['voice', 'calls']))
-check('Interface holds Appearance, Theme and Language (the three pages that were drawn one step in under Appearance)', inOrder(inGroup('look'), ['appearance', 'theme', 'language']))
+check('Interface holds Theme (the mode, the look) and Language (the Appearance page is gone: the mode is on Theme)', inOrder(inGroup('look'), ['theme', 'language']) && inGroup('look').indexOf('appearance') < 0)
 check('Devices & cloud holds the servers, the code sandbox and the phone link', inOrder(inGroup('devices'), ['servers', 'code sandbox (e2b)', 'phone and channels']))
 check('System holds the Suite and the shell\'s Built-in plugins, and About closes it', inOrder(inGroup('system'), ['kybernos suite', 'built-in plugins', 'about']))
 check('every page of the menu has exactly one group (none is lost, none is twice)', [...PAGE_TITLES].every((t) => GROUPES.filter((g) => g.mots.indexOf(t) >= 0).length === 1), [...PAGE_TITLES].filter((t) => GROUPES.filter((g) => g.mots.indexOf(t) >= 0).length !== 1))

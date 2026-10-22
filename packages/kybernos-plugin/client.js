@@ -679,15 +679,6 @@ let kbLocaleRead = () => 'en'
       'settings.group.system': { kybernos: 'Système', en: 'System' },
       // « A short automatic state + a Customize fold »: the label of the fold every page shares (window.__KB_CUSTOMIZE__, audit N-08)
       'kbcz.customize': { kybernos: 'Personnaliser', en: 'Customize' },
-      'kbac.appearance': { kybernos: 'Apparence', en: 'Appearance' },
-      'kbac.appearance.sub': { kybernos: 'Choisis le thème de l\'interface.', en: 'Choose the interface theme.' },
-      'kbac.theme.light': { kybernos: 'Clair', en: 'Light' },
-      'kbac.theme.dark': { kybernos: 'Sombre', en: 'Dark' },
-      'kbac.theme.system': { kybernos: 'Système', en: 'System' },
-      'kbac.theme.current': { kybernos: 'actuel', en: 'current' },
-      'kbac.appearance.more': { kybernos: 'Palette, accent, fond et police : ', en: 'Palette, accent, background and font: ' },
-      'kbac.appearance.openTheme': { kybernos: 'Ouvrir Thème', en: 'Open Theme' },
-      'kbac.theme.hint': { kybernos: 'S\'applique à toute l\'interface DSH. « Système » suit le réglage de ton appareil.', en: 'Applies to the whole DSH interface. “System” follows your device setting.' },
       'menu.referral.share': { kybernos: 'Partager', en: 'Share' },
       'menu.referral.sharetext': { kybernos: 'Rejoins-moi sur Kybernos.', en: 'Join me on Kybernos.' },
       'menu.referral.sharetext.offer': { kybernos: 'Rejoins-moi sur Kybernos — chacun reçoit {amount} de crédit.', en: 'Join me on Kybernos — we each get {amount} in credit.' },
@@ -2936,11 +2927,10 @@ const kbt = (key) => {
 // The organiser below groups, orders and draws the icon of each Settings cell by its TITLE, normalised: it knows the French and English
 // titles and a few Spanish ones. Under any other translated language no title matched, so the menu lost its groups, its order and
 // its icons (« the language moves the menus »). Each cell is rendered by React with a KEY that is the id of the section it stands for
-// (« general », « kybernos-theme », « kbac-appearance »…), the same in every language: that key, read from the cell's fiber, names the
+// (« general », « kybernos-theme », « kybernos-language »…), the same in every language: that key, read from the cell's fiber, names the
 // title the organiser knows. A cell with no known key (a section added later, React internals that moved) keeps its drawn title.
 const KB_NAV_KEYS = {
   general: 'general', 'kybernos-theme': 'theme', 'kybernos-language': 'language', 'kybernos-memory': 'memory & lessons', models: 'models',
-  'kbac-appearance': 'appearance',
   'kybernos-maintenance': 'about', 'kybernos-servers': 'servers', 'kybernos-auto-page': 'auto routing', 'kybernos-websearch-page': 'web search',
   plugins: 'built-in plugins', 'kybernos-atlas': 'atlas', 'kybernos-models': 'ai provider and models',
   'agent-presets': 'agent presets', voice: 'voice', 'kybernos-slash': 'commands', 'kybernos-ollama': 'ollama local models',
@@ -3004,9 +2994,8 @@ const KB_SS_INDEX = [
   ['general', '', 'Performance & usage', 'Choose how much performance and usage information to show', 'compact', 'performance utilisation tokens compteur affichage rendimiento'],
   ['general', '', 'Upload Session Log when using the official model API', 'Help improve DeepSeek models and products.', '', 'telemetrie donnees confidentialite journal logs privacy envoyer partager'],
 
-  ['appearance', '', 'Mode', 'Choose the interface theme.', KB_SS_MODE, 'mode sombre mode clair nuit jour systeme apparence modo oscuro', 'mode', 'Choose the interface theme.'],
-  ['appearance', '', 'Palette, accent, background and font', '', 'open theme', 'palette couleurs fond police accent'],
 
+  ['theme', 'Essentials', 'Appearance', 'Pick the light or dark mode, then a ready-made theme.', KB_SS_MODE, 'mode sombre mode clair nuit jour systeme apparence modo oscuro', 'mode'],
   ['theme', 'Essentials', 'Theme', 'A theme sets the colors; it can also keep the font, the corners and the menu icons.', 'dsh default deep blue aurora nebula amber oled midnight paper clean light neutral violet rose ember', 'palette couleurs preset sombre noir oled nuit clair dark light papier tema'],
   ['theme', 'Essentials', 'Font', 'Choose the interface font; search filters the families.', '', 'police typographie caracteres letra'],
   ['theme', 'Glass and background', 'Glass blur', '', '', 'flou verre depoli transparence effet'],
@@ -3093,8 +3082,8 @@ const KB_SS_PAGE_KW = {
   connectors: 'integrations applications gmail slack email mcp composio', 'web search': 'recherche internet moteur navigateur browse brave duckduckgo',
   'memory & lessons': 'memoire memoria souvenirs lecons memories remember notes', kybernos: 'instructions consignes custom rules',
   atlas: 'carte graphe', voice: 'voix voz micro dictee audio speech sound speaker dictation tts read aloud',
-  calls: 'appels telephone visio call video sound camera speaker live', appearance: 'apparence aspecto mode sombre clair look dark light night system',
-  theme: 'couleurs palette fond police colors style skin import export share reset', language: 'langue idioma traduction translate locale french spanish',
+  calls: 'appels telephone visio call video sound camera speaker live',
+  theme: 'couleurs palette fond police colors style skin import export share reset apparence aspecto mode sombre clair look dark light night system', language: 'langue idioma traduction translate locale french spanish',
   servers: 'serveurs equipe reseau server team enterprise', 'code sandbox (e2b)': 'sandbox bac a sable e2b cloud computers ordinateurs cloud vm',
   'phone and channels': 'telephone mobile qr telecommande messagerie telegram whatsapp phone remote messaging', 'kybernos suite': 'plugins modules extensions install update restart',
   'built-in plugins': 'plugins integres', about: 'a propos version licence mise a jour update restart relaunch'
@@ -3107,8 +3096,7 @@ const KB_SS_FR = {
   'general|Name each chat when it ends': ['Nommer chaque conversation à sa fin', 'Activé : quand une session de travail se termine, la conversation reçoit un titre court qui dit ce qui a été fait, et une icône qui lui va.'],
   'general|Study model': ['Modèle d’étude', ''],
   'general|Language': ['Language', 'Gérer les langues et les traductions ici'],
-  'appearance|Mode': ['Mode', 'Choisis le thème de l’interface.', 'Choisis le thème de l’interface.'],
-  'appearance|Palette, accent, background and font': ['Palette, accent, fond et police', ''],
+  'theme|Appearance': ['Apparence', 'Choisis le mode clair ou sombre, puis un thème prêt à l’emploi.'],
   'theme|Theme': ['Thème', 'Un thème règle les couleurs ; il peut aussi retenir la police, les coins et les icônes du menu.'],
   'theme|Font': ['Police', 'Choisis la police de l’interface ; la recherche filtre les familles.'],
   'theme|Glass blur': ['Flou du verre', ''],
@@ -3289,7 +3277,7 @@ const kbSsSearch = (query, entries, titles) => {
     if (kbSsNorm(e.label).indexOf(full) !== -1) total += 8
     hits.push({ e, s: total, why })
   }
-  const canon = (e) => (e.dup === 'mode' ? e.page === 'appearance' : e.dup === 'fs' ? e.page === 'general' : true)
+  const canon = (e) => (e.dup === 'mode' ? e.page === 'theme' : e.dup === 'fs' ? e.page === 'general' : true)
   hits.sort((a, b) => b.s - a.s || (canon(b.e) ? 1 : 0) - (canon(a.e) ? 1 : 0) || a.e.i - b.e.i)
   const seen = new Map()
   const items = []
@@ -33851,21 +33839,10 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
       'nav[aria-label="Global panels"] > button[aria-label="Plugins"]{display:none !important;}'),
       'kybers: hides the native plugins line')
 
-    // ── Settings pages of the core plugin: Appearance and Automations ──────────────────────────────────────────
+    // ── Settings page of the core plugin: Automations (the light / dark mode is on the Theme page) ──────────────────────────────────────────
     // Same template as the native pages (title 18/600, sub-title 13, 720 px column, 1 px rows); DSH tokens only.
     // The pages of the ACCOUNT (Account, Referral, Security, Account data, Support & legal) are not in DSH's Settings any more: they are
     // the server's app and its embedded console (footer menu: Account, Referral).
-    // Ouvre une autre section des Réglages en cliquant sa cellule du nav (le shell reste maître du DOM).
-    const kbOpenSettingsSection = (noms) => {
-      try {
-        const norm = (s) => String(s === undefined || s === null ? '' : s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim()
-        const cells = Array.prototype.slice.call(document.querySelectorAll('nav button'))
-        for (let i = 0; i < cells.length; i++) {
-          if (noms.indexOf(norm(cells[i].textContent)) !== -1) { cells[i].click(); return true }
-        }
-      } catch (e) { /* nav indisponible */ }
-      return false
-    }
     const KbacHead = (props) => h('div', { className: 'kbac-head' },
       h('div', { className: 'kb6-titlerow kbac-titlerow' }, h('h2', { className: 'kb6-title' }, props.title), props.help === undefined ? null : kbPagePill(props.help)),
       h('p', { className: 'kb8-sub' }, props.sub))
@@ -33877,53 +33854,6 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
       (typeof props.href === 'string'
         ? h('a', { className: 'kbac-btn', href: props.href, target: '_blank', rel: 'noreferrer noopener' }, props.action, Icon('link', 13))
         : h('button', { type: 'button', className: 'kbac-btn', onClick: props.onClick }, props.action)))
-    const KbacAppearance = () => {
-      const [pref, setPref] = React.useState('system')
-      // Même service que le toggle soleil/lune du pied et que la section Thème : `theme`.
-      React.useEffect(() => {
-        const lire = () => {
-          try {
-            const tSvc = ctx.get('theme')
-            const snap = (tSvc !== null && tSvc !== undefined && typeof tSvc.getTheme === 'function') ? tSvc.getTheme() : null
-            if (snap !== null && snap !== undefined && typeof snap.preference === 'string') setPref(snap.preference)
-          } catch (e) { /* theme indisponible */ }
-        }
-        lire()
-        try {
-          const off = ctx.on('theme/change', lire)
-          return () => { try { if (typeof off === 'function') off() } catch (e) { /* déjà détaché */ } }
-        } catch (e) { return undefined }
-      }, [])
-      const choisir = (p) => {
-        setPref(p)
-        try {
-          const tSvc = ctx.get('theme')
-          if (tSvc !== null && tSvc !== undefined && typeof tSvc.setTheme === 'function') tSvc.setTheme(p)
-        } catch (e) { /* theme indisponible */ }
-      }
-      const cartes = [['light', kbt('kbac.theme.light')], ['dark', kbt('kbac.theme.dark')], ['system', kbt('kbac.theme.system')]]
-      return h('div', { className: 'kbac-page' },
-        // A-06: Appearance is THIS page (`kbac-appearance`), not one of DSH's own sections, so its help is the template of the
-        // neighbours — `KbacHead` already draws the pill when it is given a page of `kybernos-plugin/help.json`.
-        h(KbacHead, { title: kbt('kbac.appearance'), sub: kbt('kbac.appearance.sub'), help: 'appearance' }),
-        h('div', { className: 'kbac-themes', role: 'radiogroup', 'aria-label': kbt('kbac.appearance') },
-          cartes.map((c) => {
-            const on = pref === c[0]
-            return h('button', {
-              key: c[0], type: 'button', role: 'radio', 'aria-checked': on ? 'true' : 'false',
-              className: 'kbac-theme' + (on ? ' on' : ''), onClick: () => choisir(c[0]),
-            },
-              h('span', { className: 'kbac-pv kbac-pv-' + c[0], 'aria-hidden': 'true' },
-                (c[0] === 'system'
-                  ? [h('span', { key: 'l', className: 'kbac-pv-half kbac-pv-light' }, h('i', null)), h('span', { key: 'd', className: 'kbac-pv-half kbac-pv-dark' }, h('i', null))]
-                  : h('i', null))),
-              h('span', { className: 'kbac-theme-n' }, c[1],
-                (on ? h('span', { className: 'kbac-theme-cur' }, '● ' + kbt('kbac.theme.current')) : null)))
-          })),
-        h('p', { className: 'kbac-hint' }, kbt('kbac.theme.hint')),
-        h('p', { className: 'kbac-hint' }, kbt('kbac.appearance.more'),
-          h('button', { type: 'button', className: 'kbac-link-btn', onClick: () => { kbOpenSettingsSection(['theme']) } }, kbt('kbac.appearance.openTheme'))))
-    }
     // Settings > Automations: where automations live, and two switches (the rules are in automation-settings.mjs).
     // How many runs in a row without a failure make an automation stable (the same choices as automation-settings.mjs).
     const KB_STABLE_CHOICES = [3, 5, 10, 20]
@@ -33975,7 +33905,7 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
         st.unavailable === true ? h('p', { className: 'kb8-sub', role: 'status' }, kbt('kbauto.set.unavailable')) : null,
         st.error === true ? h('p', { className: 'kb8-sub', role: 'alert' }, kbt('kbauto.set.error')) : null)
     }
-    ;[['kybernos-automations', 28, 'kbui.automations.set', KbAutomationsSettings], ['kbac-appearance', 12, 'kbac.appearance', KbacAppearance]].forEach((s) => {
+    ;[['kybernos-automations', 28, 'kbui.automations.set', KbAutomationsSettings]].forEach((s) => {
       ctx.effect(() => slots.inject('settings.section', () => slots.register(
         { name: 'settings.section', id: s[0], order: s[1], label: kbt(s[2]) }, s[3])), 'kybers: settings section ' + s[0])
     })
@@ -33994,23 +33924,7 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
 .kbac-seg{display:inline-flex;gap:2px;padding:3px;border-radius:999px;background:var(--dsw-alias-bg-layer-2);border:1px solid var(--dsw-alias-border-l1);flex:none}
 .kbac-segb{border:0;background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:13px;font-weight:600;min-width:34px;height:28px;border-radius:999px;cursor:pointer}
 .kbac-segb.on{background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);box-shadow:0 1px 3px rgba(20,20,19,.14)}
-.kbac-hint{margin:0;font-size:13px;line-height:1.5;color:var(--dsw-alias-label-secondary)}
-.kbac-themes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
-.kbac-theme{display:flex;flex-direction:column;gap:12px;padding:12px;border-radius:14px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);font:inherit;text-align:start;cursor:pointer}
-.kbac-theme:hover{border-color:var(--dsw-alias-border-l4)}
-.kbac-theme.on{border-color:var(--dsw-alias-brand-primary)}
-.kbac-pv{display:flex;height:64px;border-radius:10px;overflow:hidden;align-items:center;justify-content:center}
-.kbac-pv i{display:block;width:60%;height:10px;border-radius:5px}
-.kbac-pv-light{background:var(--dsw-static-neutral-50)}
-.kbac-pv-light i{background:var(--dsw-static-neutral-900);opacity:.25}
-.kbac-pv-dark{background:var(--dsw-static-neutral-1000)}
-.kbac-pv-dark i{background:var(--dsw-static-neutral-100);opacity:.25}
-.kbac-pv-half{flex:1 1 0;height:100%;display:flex;align-items:center;justify-content:center}
-.kbac-pv-half i{width:56%}
-.kbac-theme-n{display:flex;align-items:center;flex-wrap:wrap;gap:8px;font-size:14px;font-weight:500}
-.kbac-theme-cur{font-size:12px;font-weight:400;color:var(--dsw-alias-state-success-primary)}
-body:not([data-ds-dark-theme]) .kbac-theme-cur{color:color-mix(in srgb,var(--dsw-alias-state-success-primary) 55%,var(--dsw-alias-label-primary))}
-@media (max-width:560px){.kbac-themes{grid-template-columns:1fr}.kbac-row{align-items:flex-start;flex-wrap:wrap}}
+@media (max-width:560px){.kbac-row{align-items:flex-start;flex-wrap:wrap}}
 `), 'kybers: account section styles')
 
     // ── Settings menu: sections, order, icons and the Advanced fold ──
@@ -34040,7 +33954,7 @@ body:not([data-ds-dark-theme]) .kbac-theme-cur{color:color-mix(in srgb,var(--dsw
         { id: 'tools', titre: kbt('settings.group.tools'), pliable: true, icone: 'tools', mots: ['skills', 'outils', 'tools', 'connectors', 'web search'] },
         { id: 'memory', titre: kbt('settings.group.memory'), pliable: true, icone: 'memory & lessons', mots: ['memory & lessons', 'learned skills', 'kybernos', 'atlas'] },
         { id: 'voice', titre: kbt('settings.group.voice'), pliable: true, icone: 'voice', mots: ['voix', 'voice', 'calls', 'appels'] },
-        { id: 'look', titre: kbt('settings.group.look'), pliable: true, icone: 'appearance', mots: ['apparence', 'appearance', 'theme', 'langue', 'language'] },
+        { id: 'look', titre: kbt('settings.group.look'), pliable: true, icone: 'appearance', mots: ['theme', 'langue', 'language'] },
         { id: 'devices', titre: kbt('settings.group.devices'), pliable: true, icone: 'servers', mots: ['serveurs', 'servers', 'code sandbox (e2b)', 'phone and channels'] },
         { id: 'system', titre: kbt('settings.group.system'), pliable: true, icone: 'kybernos suite', mots: ['kybernos suite', 'plugins', 'listing', 'built-in plugins', 'models', 'plugins kybernos', 'kybernos plugins', 'about', 'a propos'] }
       ]

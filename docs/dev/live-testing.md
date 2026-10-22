@@ -894,7 +894,7 @@ clicks:
   port the REAL host answers the same way (the check does not need it: `POST /kybernos-cloud/console/link` and `/kybernos-mobile/remote/pair` both come back with the server).
 - **DSH's Settings** (connected scene): the navigation lists none of the five account entries that used to be ours (Account, Referral,
   Account security, Account data, Support & legal; matched by the React key each cell is rendered with, and by title for the four that have
-  no namesake in DSH) while General, Appearance and Phone and channels are still listed and still open. The account's pages are the footer
+  no namesake in DSH) while General, Theme and Phone and channels are still listed and still open. The account's pages are the footer
   menu's embedded ones: nothing replaces the entries in Settings.
 - **The « Kybernos » section of Settings** (kybernos-cloud's `kybernos-local`: what stays on this computer): one group header « Kybernos »
   (no « Account » header any more) holding Servers (kept first), the section, then the Suite. Signed out the section is there, the two

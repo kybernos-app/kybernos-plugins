@@ -7,7 +7,7 @@
 //   source scripts/sandbox/env.sh && node scripts/audit-contrast-live.mjs --mode Light   # a sandbox only: set Light, measure, put the mode back
 //
 // The measuring is .claude/skills/ux-bug-hunter/contrast.js (read it for what it leaves out: drawings, disabled controls, text that is animating, text on
-// a gradient). On :3080 the walk only opens pages, like the other audits; `--mode` presses the Appearance page's cards and so refuses :3080.
+// a gradient). On :3080 the walk only opens pages, like the other audits; `--mode` presses the Theme page's mode cards and so refuses :3080.
 // The report groups the hits by the pair of colours: DSH's own pages share a few tokens, so « 22 hits, one pair » is one decision, not 22 defects.
 // A hit on a class with a hashed prefix (`oY77xG_desc`) belongs to the engine, the others to a plugin of this repo.
 import { readFileSync, writeFileSync } from 'node:fs'
@@ -34,12 +34,12 @@ const live = await openLivePage({ width: 1400, height: 900 }).catch((e) => { con
 const { page } = live
 const ev = async (js, ms = 20000) => (await page.evalJs(js, ms)).val
 const click = async (x, y) => { for (const type of ['mouseMoved', 'mousePressed', 'mouseReleased']) await page.send('Input.dispatchMouseEvent', { type, x, y, button: 'left', clickCount: 1 }) }
-/** Presses the Appearance card that starts with `name`; resolves the name of the card that was current before (so it can be put back). */
+/** Presses the Theme page's mode card that starts with `name`; resolves the name of the card that was current before (so it can be put back). */
 const pickMode = async (name) => {
-  await goToSettingsPage(page, 'Appearance', { settleMs: 1500 })
-  const before = await ev(`(() => { const c = Array.from(document.querySelectorAll('.kbac-theme')).find((x) => /current/i.test(x.innerText || '')); return c ? (c.innerText || '').trim().split('\\n')[0] : null })()`)
-  const at = await ev(`(() => { const e = Array.from(document.querySelectorAll('.kbac-theme')).find((x) => (x.innerText || '').trim().startsWith(${JSON.stringify(name)})); if (!e) return null; const r = e.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 } })()`)
-  if (at === null) throw new Error('the Appearance page has no « ' + name + ' » card')
+  await goToSettingsPage(page, 'Theme', { settleMs: 1500 })
+  const before = await ev(`(() => { const c = Array.from(document.querySelectorAll('.kbth-mode')).find((x) => /current/i.test(x.innerText || '')); return c ? (c.innerText || '').trim().split('\\n')[0] : null })()`)
+  const at = await ev(`(() => { const e = Array.from(document.querySelectorAll('.kbth-mode')).find((x) => (x.innerText || '').trim().startsWith(${JSON.stringify(name)})); if (!e) return null; const r = e.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 } })()`)
+  if (at === null) throw new Error('the Theme page has no « ' + name + ' » mode card')
   await click(at.x, at.y); await sleep(1500)
   return before
 }

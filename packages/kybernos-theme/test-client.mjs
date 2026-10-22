@@ -1336,27 +1336,14 @@ if (React === null) {
   const simple = render({ mode: 'dark', skin: 'bleu', acc: '#4176E6' })
   check('the page opens on Essentiel and renders the 18 shipped theme dots', (simple.match(/class="kbth-skin"/g) || []).length === 18, (simple.match(/class="kbth-skin"/g) || []).length)
   check('...marks exactly the current theme as pressed', (simple.match(/class="kbth-skin" aria-pressed="true"/g) || []).length === 1 && /aria-pressed="true"[^>]*title="Bleu profond/.test(simple))
-  // V1-24: Appearance and Theme both drew the System/Light/Dark selector. The mode is set on the Appearance page only; this page shows it and links there.
-  check('...the mode is shown as text (Sombre), not as a System/Light/Dark selector', /data-kb="theme-mode-is"[^>]*>Sombre</.test(simple) && !/aria-pressed="true">Sombre</.test(simple) && !/>Clair<\/button>/.test(simple) && !/>Système<\/button>/.test(simple))
-  check('...with a button that opens the Appearance page, and the description says where the mode is set', /data-kb="theme-mode-open"[^>]*>Changer dans Apparence</.test(simple) && /Le mode clair ou sombre se règle sur la page Apparence/.test(simple))
-  for (const [mode, shown] of [['light', 'Clair'], ['system', 'Système']]) check('...the mode line follows the setting (' + mode + ' -> ' + shown + ')', new RegExp('data-kb="theme-mode-is"[^>]*>' + shown + '<').test(render({ mode, skin: 'bleu', acc: '#4176E6' })))
-  {
-    // The button clicks the Settings nav cell of the Appearance page (names compared without accents or case).
-    const clicked = []
-    const cell = (label) => ({ textContent: label, click: () => clicked.push(label) })
-    const prevDoc = globalThis.document
-    globalThis.document = { querySelectorAll: (sel) => (sel === 'nav button' ? [cell('General'), cell('Apparence'), cell('Theme')] : []) }
-    check('ouvrirReglages clicks the Appearance cell of the nav, whatever the language and the accents', real.ouvrirReglages(['appearance', 'apparence']) === true && clicked.join() === 'Apparence', clicked.join())
-    // Under a translated language no title matches: the cell is found by the React key it is rendered with (the id of its section, the same in every language).
-    const keyed = (label, key) => Object.assign(cell(label), { ['__reactFiber$test']: { key } })
-    clicked.length = 0
-    globalThis.document = { querySelectorAll: (sel) => (sel === 'nav button' ? [keyed('Allgemein', 'general'), keyed('Erscheinungsbild', 'kbac-appearance'), keyed('Design', 'kybernos-theme')] : []) }
-    check('...found by its React key when the title is in another language (German Erscheinungsbild)', real.ouvrirReglages(['appearance', 'apparence'], ['kbac-appearance']) === true && clicked.join() === 'Erscheinungsbild', clicked.join())
-    clicked.length = 0
-    globalThis.document = { querySelectorAll: () => [cell('General')] }
-    check('...and says false, clicking nothing, when the nav has no such cell', real.ouvrirReglages(['appearance', 'apparence'], ['kbac-appearance']) === false && clicked.length === 0)
-    if (prevDoc === undefined) delete globalThis.document; else globalThis.document = prevDoc
-  }
+  // The mode is set HERE, on three cards (the Appearance page that held them is gone): Light, Dark, System; the current one is checked and says so.
+  const cards = (html) => [...html.matchAll(/<button[^>]*data-kb="theme-mode-card"[^>]*>/g)].map((m) => m[0])
+  check('the page has the three mode cards (Clair, Sombre, Système) as a radio group, in that order', (simple.match(/data-kb="theme-mode"[^>]*role="radiogroup"|role="radiogroup"[^>]*data-kb="theme-mode"/g) || []).length === 1 && cards(simple).map((c) => /data-mode="(\w+)"/.exec(c)[1]).join() === 'light,dark,system' && /Clair[\s\S]*Sombre[\s\S]*Système/.test(text(simple)))
+  check('...the current mode is the checked one and says « actuel » (dark here), the other two are not', cards(simple).filter((c) => /aria-checked="true"/.test(c)).length === 1 && /aria-checked="true"[^>]*data-mode="dark"/.test(simple) && (simple.match(/● actuel/g) || []).length === 1)
+  for (const [mode, shown] of [['light', 'light'], ['system', 'system']]) check('...the checked card follows the setting (' + mode + ')', new RegExp('aria-checked="true"[^>]*data-mode="' + shown + '"').test(render({ mode, skin: 'bleu', acc: '#4176E6' })))
+  check('...the system card previews both halves, the others one bar', /kbth-mode-pv kbth-mode-pv-system[^>]*>(<span[^>]*kbth-mode-half[^>]*><i><\/i><\/span>){2}/.test(simple) && (simple.match(/kbth-mode-half/g) || []).length === 2)
+  check('...no « Change in Appearance » button and no word about an Appearance page: the description says what the cards do', !/theme-mode-open|Changer dans Apparence|page Apparence/.test(simple) && /Choisis le mode clair ou sombre, puis un thème prêt à l’emploi/.test(simple))
+  check('pressing a card writes the mode through the page\'s own commit (setTheme), and the link to another page is gone with its helper', SOURCE.includes("onClick: () => commit({ mode: m[0] })") && !SOURCE.includes('ouvrirReglages') && !SOURCE.includes("'kbac-appearance'"))
   const natural = render({ mode: 'dark' })
   check('natural state: the pill says no theme is applied, in plain words', /Couleurs de DSH — aucun thème posé/.test(natural) && !/jeton|token|couche/i.test(natural.replace(/<[^>]+>/g, '|').split('kbth-foot')[1] || ''))
   check('themed state: the pill says a theme is applied (light and dark), without the word « token »', /Thème posé · clair et sombre/.test(simple) && !/17 jetons/.test(simple))
