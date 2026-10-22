@@ -1766,13 +1766,16 @@ window.__ModuleLoader__.load({
       const pvIsCustom = (route) => (kbPvIsObj(KBM.dir[route]) ? KBM.dir[route].declared === true : KB_CATALOGUE.every((p) => p.id !== route))
       const pvLabel = (route) => {
         const d = KBM.dir[route]
-        if (kbPvIsObj(d) && typeof d.name === 'string' && d.name.trim() !== '') return d.name
+        // The engine's directory often names a provider by its own id ("openrouter"): that is the id again, not a name, so it does not stop the search for one.
+        const engineName = kbPvIsObj(d) && typeof d.name === 'string' && d.name.trim() !== '' ? d.name : null
+        if (engineName !== null && engineName.trim().toLowerCase() !== String(route).toLowerCase()) return engineName
         const prof = kbMOBJ(KBM.userProviders)[route]
         if (kbPvIsObj(prof) && typeof prof.displayName === 'string' && prof.displayName.trim() !== '') return prof.displayName
         // A provider the catalogue knows is named as the catalogue names it ("OpenRouter", "Anthropic"), not by its id ("openrouter"): the list
         // mixed proper names and raw ids.
         const known = catDe(route)
-        return known !== null && typeof known.nom === 'string' && known.nom.trim() !== '' ? known.nom : route
+        if (known !== null && typeof known.nom === 'string' && known.nom.trim() !== '') return known.nom
+        return engineName !== null ? engineName : route
       }
       const pvEditDraft = (route) => {
         const prof = kbPvIsObj(kbMOBJ(KBM.userProviders)[route]) ? KBM.userProviders[route] : {}
