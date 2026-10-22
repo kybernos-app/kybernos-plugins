@@ -129,5 +129,13 @@ console.log('other languages: served from the translation pack, English when it 
   check('the search finds it by the Spanish label, and by the English words too', kbSsSearch('tamano de fuente', ES, TITLES).list[0].e.label === 'Tamaño de fuente' && kbSsSearch('font size', ES, TITLES).list[0].e.label === 'Tamaño de fuente')
 }
 
+
+console.log('the words an English reader types for a page that is not called that')
+// The related words of the pages were French and Spanish only, so « cost » found nothing on a Settings menu that has a Usage page (measured on the
+// real GUI: 34 of 98 everyday queries found nothing, among them cost, price, sound, export, reset, backup, restart, email, schedule).
+for (const [q, page] of [['cost', 'usage'], ['price', 'usage'], ['spending', 'usage'], ['sound', 'calls'], ['sound', 'voice'], ['speaker', 'voice'], ['camera', 'calls'], ['export', 'theme'], ['reset', 'theme'], ['backup', 'tools'], ['restart', 'kybernos suite'], ['restart', 'about'], ['email', 'connectors'], ['schedule', 'automations'], ['openrouter', 'ai provider and models'], ['translate', 'language'], ['memories', 'memory & lessons'], ['firewall', null]]) {
+  const found = pagesOf(run(q, Object.fromEntries([...PAGES, 'tools'].map((k) => [k, k]))))
+  check('« ' + q + ' » ' + (page === null ? 'still finds no page (a word that is nowhere stays nowhere)' : 'leads to the ' + page + ' page'), page === null ? found.length === 0 : found.indexOf(page) >= 0, found)
+}
 console.log('\n' + String(pass) + ' verifications, ' + String(fail) + ' failure(s)')
 process.exit(fail === 0 ? 0 : 1)
