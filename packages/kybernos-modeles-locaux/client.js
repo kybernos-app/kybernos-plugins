@@ -247,6 +247,9 @@ window.__ModuleLoader__.load({
         const r = /(?:^|[^A-Za-z])II\s+(\d+(?:[.,]\d+)?)/.exec(String(texte === undefined || texte === null ? '' : texte))
         return r === null ? null : Number(r[1].replace(',', '.'))
       }
+      /** What a catalogue line says once its intelligence index is taken out (« II 32 · MMMU-Pro 69 % · 6.6–7.6 GB » → « MMMU-Pro 69 % · 6.6–7.6 GB »):
+       *  the card already shows the index as its own badge, and the line under the name must not say it a second time. Pure. */
+      const kbScoreSansII = (texte) => String(texte === undefined || texte === null ? '' : texte).replace(/(^|·\s*)II\s+\d+(?:[.,]\d+)?\s*(?:·\s*)?/, '$1').replace(/\s*·\s*$/, '').trim()
       /** The order a person should read them in: the models that fit first (in the catalogue's own order of preference), then the tight
        *  ones, then those whose size is not known, the too-heavy ones last. Stable; `etatDe` answers compatible, juste, inconnu or lourd. Pure. */
       const kbOrdreAjuste = (liste, etatDe) => liste
@@ -841,7 +844,7 @@ window.__ModuleLoader__.load({
                 idsNouveaux.has(mod.id) ? h('span', { className: 'kbm-tag', 'data-tone': 'warning' }, m('kml.scan.tag')) : null,
                 mod.tailleGo !== null && mod.tailleGo <= 4 ? h('span', { className: 'kbm-tag', 'data-tone': 'quiet' }, m('kml.leger.tag')) : null,
                 kbScoreDe(mod.score) !== null ? h('span', { className: 'kbm-tag kml-score', 'data-tone': 'neutral', 'data-kml': 'score', title: m('kml.score.badge', { n: kbScoreDe(mod.score) }) }, 'II ' + String(kbScoreDe(mod.score))) : null),
-              h('span', { className: 'kml-mod-desc', title: descDe(mod) + (mod.score ? ' · ' + mod.score : '') }, descDe(mod) + (mod.score ? ' · ' + mod.score : '')),
+              h('span', { className: 'kml-mod-desc', title: descDe(mod) + (kbScoreSansII(mod.score) !== '' ? ' · ' + kbScoreSansII(mod.score) : '') }, descDe(mod) + (kbScoreSansII(mod.score) !== '' ? ' · ' + kbScoreSansII(mod.score) : '')),
               echec === undefined ? null : h('span', { className: 'kml-mod-echec', role: 'alert', 'data-kml': 'echec', title: echec.brut },
                 m('kml.echec.titre') + ' ' + (echec.cle !== null ? m(echec.cle) : echec.brut))),
             h('span', { className: 'kml-mod-etat' },
