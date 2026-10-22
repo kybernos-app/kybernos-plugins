@@ -183,6 +183,11 @@ All paths are under the DSH home, resolved like DSH does (`$DSH_HOME` when set, 
 
 ## DSH seams and network
 
+- **Seam published for the other bundles:** `window.__KB_APP_LOGOS__ = { version: 1, svg(slug) → string | null, subscribe(fn) → stop }`. `svg` answers the embedded SVG logo
+  of a Composio app from this bundle's catalogue (the same 98 logos as the Discover grid), or `null` while the catalogue is not loaded (the first call starts its one load, a failed
+  load is tried again after a minute, not on every render), for an app without a logo, or for an odd slug; `subscribe` is told when the catalogue lands. kybernos-plugin draws it on
+  the tile of every row of the Connectors tabs of a project and of a team, with the two first letters as the fallback when this bundle is not booted. Nothing here loads an address
+  of a third party: the SVGs are the host's own catalogue.
 - Host: `webServer`, `credentials` (`resolve` and `describe` of `COMPOSIO_API_KEY`, resolved on every request,
   never cached), `pluginInventory` and `tools` (read only, for each server's state), `ctx.effect`. Client:
   `inject: ['timer', 'slots', 'locale']`, slot `plugins.bundle.config` keyed `@local/kybernos-composio`, plus DOM

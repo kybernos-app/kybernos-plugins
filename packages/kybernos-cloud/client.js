@@ -751,8 +751,9 @@ body:not([data-ds-dark-theme]) :is(.kbf-root,.kbfp-menu,.kbfp-sub,.kbf-pop,.kbf-
 .kbfp-sub{position:fixed;width:248px;box-sizing:border-box;padding:6px;border-radius:16px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);box-shadow:var(--dsw-elevation-panel);color:var(--dsw-alias-label-primary);font-size:13px;line-height:1.3;animation:kbfp-menu-in .14s ease-out;z-index:63}
 .kbfp-menu-off{position:fixed;right:auto;bottom:auto;z-index:70}
 /* The row's chevron (the profile row and the signed-out button share it): it goes with the text in the collapsed rail. */
-.kbfp-chev{flex:none;display:flex;align-items:center;margin-inline-start:6px;color:var(--dsw-alias-label-tertiary)}
-.kbfp-cardmain:hover .kbfp-chev{color:var(--dsw-alias-label-secondary)}
+/* The « switch team » arrows are a hint, not a control to look at: small, thin, and half-faded until the card is pointed at. */
+.kbfp-chev{flex:none;display:flex;align-items:center;margin-inline-start:6px;color:var(--dsw-alias-label-tertiary);opacity:.65}
+.kbfp-cardmain:hover .kbfp-chev{color:var(--dsw-alias-label-secondary);opacity:1}
 .kbfp-tight2 .kbfp-chev,[class*="collapsed"] .kbfp-chev{display:none}
 /* A line above the footer for what could not be done (a page that did not open): it goes by itself. */
 .kbfp-flashact{display:block;margin:4px 0 0;padding:2px 0;border:0;background:transparent;color:var(--dsw-alias-label-primary);font:inherit;text-decoration:underline;cursor:pointer}
@@ -949,8 +950,8 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
       height: (props !== undefined && props !== null && typeof props.size === 'number') ? props.size : 15,
       viewBox: '0 0 24 24', fill: 'none', 'aria-hidden': 'true',
     },
-    h('path', { d: 'm7 15 5 5 5-5', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round' }),
-    h('path', { d: 'm7 9 5-5 5 5', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round' }))
+    h('path', { d: 'm7 15 5 5 5-5', stroke: 'currentColor', strokeWidth: 1.5, strokeLinecap: 'round', strokeLinejoin: 'round' }),
+    h('path', { d: 'm7 9 5-5 5 5', stroke: 'currentColor', strokeWidth: 1.5, strokeLinecap: 'round', strokeLinejoin: 'round' }))
 
     /** Gear (Lucide settings stroke) — mockup: the workspace page. */
     const GearIcon = (props) => h('svg', {
@@ -2895,7 +2896,7 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
                 h('span', { className: 'kbfp-mheadtxt' },
                   h('span', { className: 'kbfp-mheadname', title: vueEspace.name }, vueEspace.name),
                   h('span', { className: 'kbfp-mheadsub' }, t('wsSwitchTitle'))),
-                h(SwapIcon, { size: 18 })),
+                h(SwapIcon, { size: 14 })),
               mode === 'inline' ? h('div', { className: 'kbfp-msep' }) : null,
               planCard,
               upgradeEntry ? entree('upgrade', h(UpgradeIcon, { size: 18 }), t('menuPlanCta'), props.onUpgradePage, { ext: true }) : null,
@@ -3541,7 +3542,10 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
             const planEspace = planNameOf(state, user, t)
             // A personal space draws no gauge here: its allowance is the Kybernos plan's, which a person on a key of their own never touches. The composer's chip
             // (kybernos-usage) says it, only on a Kybernos model. A team keeps its meter: the pool is the team's to manage.
-            const personalQuota = spaceIsPersonal(shownEntry) || (quota !== null && quota !== undefined && quota.workspace !== null && typeof quota.workspace === 'object' && quota.workspace.personal === true)
+            // The space the card shows decides; the quota's own word only counts when the card has no entry for it (a quota fetched just before a switch still names the old space).
+            const personalQuota = shownEntry !== null && typeof shownEntry === 'object'
+              ? spaceIsPersonal(shownEntry)
+              : (quota !== null && quota !== undefined && quota.workspace !== null && typeof quota.workspace === 'object' && quota.workspace.personal === true)
             const meter = quota !== null && switching === null && personalQuota !== true ? quotaMeterOf(quota, t) : null
             // « Team settings », « Account » and « Referral » open the APP, in the person's browser, signed in (the single-use console link, section `plan`,
             // `overview` or `referral`, on the active workspace). They used to open a read-only copy of it in DSH's content zone, and every change in that copy sent the person
@@ -3582,7 +3586,7 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
                     h('span', { className: 'kbfp-usebar', 'aria-hidden': 'true' }, h('span', { className: 'kbfp-usefill', style: { width: meter.percent + '%' } })),
                     h('span', { className: 'kbfp-usepct' }, meter.percent + '%'))
                   : null),
-              h('span', { className: 'kbfp-chev', 'aria-hidden': 'true' }, h(SwapIcon, { size: 18 }))),
+              h('span', { className: 'kbfp-chev', 'aria-hidden': 'true' }, h(SwapIcon, { size: 14 }))),
               SHOW_BELL === true || notes.length > 0
                 ? h('span', { className: 'kbfp-bellwrap' },
                 h('button', {
@@ -3659,7 +3663,7 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
                     h('span', { className: 'kbfp-cardname' }, pairing ? t('pairingTitle') : (ended === true ? t('footSignInAgain') : t('footSignInUp'))),
                     h('span', { className: 'kbfp-cardsub', 'data-kb': pairNote !== null && pairing !== true ? 'foot-pair-note' : (ended === true && pairing !== true ? 'foot-ended' : undefined) },
                       pairing ? t('footPairingAction') : (pairNote !== null ? t(pairNote === 'denied' ? 'footPairDenied' : 'footPairExpired') : (ended === true ? t('footEnded') : (phase === 'loading' ? t('loading') : t('footSyncSub')))))),
-                  h('span', { className: 'kbfp-chev', 'aria-hidden': 'true' }, h(SwapIcon, { size: 18 }))))),
+                  h('span', { className: 'kbfp-chev', 'aria-hidden': 'true' }, h(SwapIcon, { size: 14 }))))),
               menuOpen === true
                 ? h(OffMenu, {
                   pairing: pairing,

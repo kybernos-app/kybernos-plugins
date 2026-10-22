@@ -65,6 +65,7 @@ const css = block.slice(cssStart + 'styles.insert(`'.length, block.lastIndexOf('
   assert.ok(!/[A-Za-z0-9]{5,7}_(headerActions|tabs|titleRow)/.test(css), 'no hashed class name of DSH in the hiding rules')
   assert.match(css, /@media \(min-width:701px\)\{[\s\S]*data-kb-chat-fold="1"\][^{]*header\.actions"\] > :not\(\.kbfold-root\):not\(:has\(\[data-act="hangup-header"\]\)\)\{display:none!important\}/, 'actions hidden, our root and a live call spared')
   assert.match(css, /header"\] > \[class\*="tabs"\]\{display:none!important\}/, 'tabs row hidden')
+  assert.match(css, /header"\] > \[class\*="titleRow"\]\{align-self:start\}/, 'the title row keeps its place when the tabs row goes (the title does not slide down)')
   assert.match(css, /composer\.dock"\] > :not\(\[data-kb="changes"\]\)\{display:none!important\}/, 'status chips hidden')
   assert.match(css, /\[data-kb="changes"\]\[data-state="ok"\],[^{]*\[data-kb="changes"\]\[data-state="unavailable"\]\{display:none!important\}/, 'a healthy save chip and the « tracking unavailable » chip (nothing to act on) hidden')
   assert.ok(!/\.kbch-|\.kbcl-/.test(css), 'no class of another bundle is named (the bundles share one class namespace)')
