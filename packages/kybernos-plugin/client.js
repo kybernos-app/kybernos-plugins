@@ -3653,7 +3653,7 @@ const KB_FR_EN = {
   'Composio n’est pas chargé (relance DSH une fois) : seuls les outils déclarés sont affichés.': 'Composio is not loaded (restart DSH once): only declared tools are listed.',
   'Renommé': 'Renamed',
   'Réponds à toutes les questions avant de corriger': 'Answer every question before grading',
-  'réponse inattendue de /kybernos/voice/config': 'unexpected response from /kybernos/voice/config',
+  'réponse inattendue du serveur': 'unexpected server response',
   'Résumé': 'Summary',
   'Résumé illisible : aucune section exploitable dans ': 'Unreadable summary: no usable section in ',
   'Sans clé': 'No key',
@@ -10855,7 +10855,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
             const members = kbRosterOf(liveTeam.view)
             if (members.length === 0) return h('div', { className: 'kbg-empty' }, kbt('ui.noliveteam'))
             return members.map((m, i) => h('div', { className: 'kbg-docrow', key: 'tm' + i },
-              h('span', { className: 'kbg-docico' }, m.role === 'lead' ? '👑' : '🤖'),
+              h('span', { className: 'kbg-docico' }, m.role === 'lead' ? Icon('star', 13) : Icon('bot', 13)),
               h('div', { style: { minWidth: 0 } },
                 h('div', { className: 'kbg-docname' }, m.name || '—'),
                 h('div', { className: 'kbg-dockey' }, (m.model || '') + (m.description ? ' · ' + m.description : ''))),
@@ -11037,7 +11037,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
           (live.state === 'ok' && live.members !== null && live.members.length > 0 ? h('div', { className: 'kb6-tinfosec' },
             h('div', { className: 'kb6-tinfolabel' }, kbt('ui.liveteam.head')),
             live.members.map((m, i) => h('div', { className: 'kbg-docrow', key: 'tm' + i },
-              h('span', { className: 'kbg-docico' }, m.role === 'lead' ? '👑' : '🤖'),
+              h('span', { className: 'kbg-docico' }, m.role === 'lead' ? Icon('star', 13) : Icon('bot', 13)),
               h('div', { style: { minWidth: 0 } },
                 h('div', { className: 'kbg-docname' }, m.name || '—'),
                 h('div', { className: 'kbg-dockey' }, m.model || '')),
@@ -19580,7 +19580,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         h('div', { className: 'kbs-slide' },
           h('div', { className: 'kbs-heading' }, slide.heading),
           h('div', { className: 'kbs-body' }, slide.body),
-          (slide.notes !== '' ? h('div', { className: 'kbs-notes' }, '📝 ' + slide.notes) : null)),
+          (slide.notes !== '' ? h('div', { className: 'kbs-notes' }, Icon('fileText', 12), ' ' + slide.notes) : null)),
         h('div', { className: 'kbq-bar' },
           h('span', { className: 'kbq-stat' }, (cur + 1) + ' / ' + items.length),
           h('span', { className: 'kbq-spacer' }),
@@ -19605,9 +19605,9 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       const scene = items[cur] || items[0]
       return h('div', { className: 'kbs-wrap', 'data-kb': 'media' },
         h('div', { className: 'kbs-slide' },
-          (scene.speaker !== '' ? h('div', { className: 'kbs-speaker' }, '🎙 ' + scene.speaker) : null),
+          (scene.speaker !== '' ? h('div', { className: 'kbs-speaker' }, Icon('mic', 12), ' ' + scene.speaker) : null),
           h('div', { className: 'kbs-heading' }, scene.narration),
-          (scene.visual !== '' ? h('div', { className: 'kbs-body' }, '🎬 ' + scene.visual) : null),
+          (scene.visual !== '' ? h('div', { className: 'kbs-body' }, Icon('play', 12), ' ' + scene.visual) : null),
           (scene.timing !== '' ? h('div', { className: 'kbs-timing' }, '⏱ ' + scene.timing) : null)),
         h('div', { className: 'kbq-bar' },
           h('span', { className: 'kbq-stat' }, kbe('Scene ') + (cur + 1) + ' / ' + items.length),
@@ -23795,7 +23795,7 @@ function renderFit(canvas, model, cam, opts){
 .kbw-prev-l .kbw-prev-card{right:auto;left:14px}
 .kbw-prev-head{padding:7px 10px;color:var(--dsw-alias-label-primary-inverted,#fff);font-size:12.5px;font-weight:600}
 .kbw-prev-body{padding:8px 10px 4px;font-size:11.5px;color:var(--dsw-alias-label-secondary);line-height:1.45}
-.kbw-prev-chip{display:inline-flex;margin:2px 10px 9px;padding:2px 8px;border-radius:999px;border:1px solid var(--dsw-alias-border-l1);font-size:10.5px;color:var(--dsw-alias-label-secondary)}
+.kbw-prev-chip{display:inline-flex;align-items:center;gap:4px;margin:2px 10px 9px;padding:2px 8px;border-radius:999px;border:1px solid var(--dsw-alias-border-l1);font-size:10.5px;color:var(--dsw-alias-label-secondary)}
 .kbw-prev-dot{position:absolute;right:14px;bottom:12px;width:28px;height:28px;border-radius:999px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(0,0,0,.18)}
 .kbw-prev-l .kbw-prev-dot{right:auto;left:14px}
 .kbw-embed{display:flex;align-items:center;gap:8px;border:1px solid var(--dsw-alias-border-l1);border-radius:10px;background:var(--dsw-alias-bg-layer-2);padding:8px 10px}
@@ -23931,7 +23931,7 @@ function renderFit(canvas, model, cam, opts){
         h('div', { className: 'kbw-prev-card' },
           h('div', { className: 'kbw-prev-head', style: { background: w.color } }, w.title !== '' ? w.title : w.slug),
           h('div', { className: 'kbw-prev-body' }, w.greeting !== '' ? w.greeting : kbt('kbw.prev.defgreet')),
-          h('span', { className: 'kbw-prev-chip' }, Icon('messageCircle', 12), ' ' + kbt('kbw.prev.chip'))),
+          h('span', { className: 'kbw-prev-chip' }, Icon('messageCircle', 12), kbt('kbw.prev.chip'))),
         h('span', { className: 'kbw-prev-dot', style: { background: w.color } },
           h('svg', { width: 15, height: 15, viewBox: '0 0 24 24', fill: 'none', stroke: '#fff', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' }, h('path', { d: 'M21 11.5a8.38 8.38 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.7a8.5 8.5 0 1 1 16.1-3.8z' }))))
       // ── ÉDITEUR (un widget) ──
@@ -24930,7 +24930,7 @@ function renderFit(canvas, model, cam, opts){
               // « refused » qui laisserait croire à un refus de contenu.
               const msg = (b !== null && typeof b.error === 'string')
                 ? b.error
-                : (out.status === 404 ? 'the host route /voice-sample is not loaded yet — relaunch DSH once' : ('the host refused the sample (' + String(out.status) + ')'))
+                : (out.status === 404 ? 'voice samples are not loaded yet: restart DSH once' : ('the server refused the sample (' + String(out.status) + ')'))
               setVm((old) => (old === null ? null : Object.assign({}, old, { busy: false, err: msg })))
               return
             }
@@ -27802,7 +27802,7 @@ body[data-ds-dark-theme] [data-phase="hero"]:has([data-kb="newchat"]){background
         let alive = true
         fetch('/kybernos/voice/config', { headers: { accept: 'application/json' } })
           .then((r) => r.json())
-          .then((j) => { if (alive === true) setCap((j !== null && j !== undefined && j.ok === true && j.asr !== undefined) ? j.asr : { ready: false, reason: kbe('unexpected response from /kybernos/voice/config') }) })
+          .then((j) => { if (alive === true) setCap((j !== null && j !== undefined && j.ok === true && j.asr !== undefined) ? j.asr : { ready: false, reason: kbe('unexpected server response') }) })
           .catch(() => { if (alive === true) setCap({ ready: false, reason: kbe('Voice is not available: restart DSH once') }) })
         return () => { alive = false }
       }, [])
