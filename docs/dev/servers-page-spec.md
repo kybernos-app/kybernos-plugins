@@ -120,7 +120,7 @@ A neutral banner above the list while the active server is not the built-in one,
   active, DSH goes back to the built-in server first (the previous server's model route is cleaned by the open half, unchanged).
 
 ### 4.6 Sign-in dialog
-Shows the code, an « Open the activation page » button, « Waiting for your approval… ». Polls `POST /kybernos-cloud/poll` every 3 s. **Later**
+Shows the code, an « Open the activation page » button (it also copies the code: the server's page asks for it typed or pasted, on purpose), « Waiting for your approval… ». Polls `POST /kybernos-cloud/poll` every 3 s. **Later**
 keeps the server added and not signed in (the row then offers **Sign in**). When the server's `expires_in` passes: « The code expired » and **Get a new code**.
 
 ### 4.7 Enterprise card

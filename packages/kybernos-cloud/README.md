@@ -11,7 +11,7 @@ A button in the bottom bar of the sidebar — in the slot
 | State | What you see |
 |---|---|
 | Disconnected | “Connect Kybernos Cloud” |
-| Pairing | the device code, “Open activation page”, “Copy code”, “Cancel request” |
+| Pairing | the device code, “Open activation page” (which also copies the code: the server's page shows nothing of it and asks for it to be pasted or typed, on purpose, and the link already carries the device and the code, which the page reads and removes from its address), “Copy code”, “Cancel request” |
 | Connected | email, plan, workspaces, “Disconnect” (the catalogue, the chats and the memory no longer have a button in this card) |
 
 ## Imported model catalogue (cloud feature no. 1)
