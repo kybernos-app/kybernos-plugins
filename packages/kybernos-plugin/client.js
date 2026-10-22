@@ -8854,6 +8854,8 @@ const kbPinsRow = (kind, id, titre) => {
   open.setAttribute('role', 'button')
   open.tabIndex = 0
   open.textContent = titre
+  // The icon rail has no room for a title: a pinned session there is a tile with the title's first letter (the tooltip below carries the title).
+  open.setAttribute('data-kbpin-initial', (Array.from(String(titre).trim())[0] || '•').toLocaleUpperCase())
   // The label is the resolved title; the tooltip carries the short id too, so two sessions with the same title stay tellable apart
   // and an unresolved row always has an identifier to go on (A-01).
   open.title = kind === 'session' ? titre + ' · ' + String(id).replace(/^session-/, '').slice(0, 8) : titre
@@ -9299,6 +9301,16 @@ const kbPinsEnsureCss = () => {
     '.kbpin_empty{padding:4px 12px;color:var(--dsw-alias-label-secondary);font:var(--dsw-font-xxs-12)}',
     // R-A5-02: in the 44 px icon rail the hint wrapped one word per line under the page icons.
     '[class*="collapsed"] .kbpin_empty{display:none}',
+    // The same rail used to clip the rows (padding for a 280 px column in a 56 px one): only fragments of the session icons showed. A row is a 36 px tile now.
+    '[class*="collapsed"] .kbpin_section{align-items:center}',
+    '[class*="collapsed"] .kbpin_header{width:36px;padding:0;justify-content:center}',
+    '[class*="collapsed"] .kbpin_label{display:none}',
+    '[class*="collapsed"] .kbpin_rows{margin-inline-end:0;align-items:center}',
+    '[class*="collapsed"] .kbpin_group{align-items:center}',
+    '[class*="collapsed"] .kbpin_row{width:36px}',
+    '[class*="collapsed"] .kbpin_open{display:flex;align-items:center;justify-content:center;width:36px;padding:0;font-size:0;line-height:0}',
+    '[class*="collapsed"] .kbpin_open::before{content:attr(data-kbpin-initial);display:flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:8px;font-size:var(--dsh-content-font-size,13px);font-weight:600;line-height:1;background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-secondary)}',
+    '[class*="collapsed"] .kbpin_open>*,[class*="collapsed"] .kbpin_actions{display:none!important}',
     '.kbpin_menuitem{display:flex;align-items:center;gap:8px;width:100%;padding:6px 10px;border:none;background:0 0;color:inherit;font:inherit;text-align:start;cursor:pointer;border-radius:6px}',
     '.kbpin_menuitem:hover{background:var(--dsw-alias-interactive-bg-hover)}',
   ].join('')

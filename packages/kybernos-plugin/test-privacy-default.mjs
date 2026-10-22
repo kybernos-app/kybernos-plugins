@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // The privacy default of the core plugin: DSH's `session-log-deepseek` row (it uploads the whole session log with every request to the OFFICIAL
-// DeepSeek API, `enabled: true` in the dsh-base bundle) is switched off by the bundle patch, and docs/privacy.md says so.
+// DeepSeek API, `enabled: true` in the dsh-base bundle) is switched off AND disabled by the bundle patch (so its switch under Settings › General is not
+// shown either), and docs/privacy.md says so.
 //
 //   node packages/kybernos-plugin/test-privacy-default.mjs
 //
@@ -23,10 +24,10 @@ const at = lines.findIndex((l) => /^- id: session-log-deepseek\s*$/.test(l))
 check('the patch addresses the row session-log-deepseek by id', at >= 0)
 const block = at >= 0 ? lines.slice(at, at + 4).join('\n') : ''
 check('…and sets enabled: false in its config', /config:\s*\n\s+enabled: false/.test(block), block)
-check('…without disabling the row itself (the switch of Settings › General stays available)', !/disabled:\s*true/.test(block))
+check('…and disables the row itself, so the switch of Settings › General is not served (nothing to switch on)', /disabled:\s*true/.test(block))
 const sl = privacy.search(/The session log\./)
 check('docs/privacy.md has a section on the session log', sl >= 0)
-check('…and says Kybernos ships it off', sl >= 0 && /\*\*off\*\*/.test(privacy.slice(sl, sl + 700)))
+check('…and says Kybernos ships it off and disabled, with no switch shown', sl >= 0 && /\*\*off and\s+disabled\*\*/.test(privacy.slice(sl, sl + 900)) && /is not shown/.test(privacy.slice(sl, sl + 900)))
 check('…and no longer calls the model provider « the one request » that carries your prompts', !/the one request that carries/.test(privacy))
 
 console.log('\n' + (fail === 0 ? 'PRIVACY DEFAULT GREEN' : 'PRIVACY DEFAULT RED') + ' — ' + pass + ' checks, ' + fail + ' failed')
