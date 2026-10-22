@@ -676,7 +676,7 @@ window.__ModuleLoader__.load({
 /* the browser's default placeholder is a mid grey: 2.6:1 on the dark field */
 .kbmem-field input::placeholder{color:var(--m-ink2)}
 .kbmem-modes{display:inline-flex;gap:2px;padding:2px;margin-inline-start:auto;border-radius:999px;background:var(--m-surf);flex:none}
-.kbmem-modes button{display:inline-flex;gap:4px;align-items:center;height:22px;padding:0 9px;border-radius:999px;font-size:11px;font-weight:600;color:var(--m-ink2);white-space:nowrap}
+.kbmem-modes button{display:inline-flex;gap:4px;align-items:center;height:24px;padding:0 9px;border-radius:999px;font-size:11px;font-weight:600;color:var(--m-ink2);white-space:nowrap}
 .kbmem-modes button.on{background:var(--m-primary);color:var(--m-primary-ink)}
 .kbmem-modes button.locked{color:var(--m-muted)}
 .kbmem-modes .kbmem-ico{width:11px;height:11px}
