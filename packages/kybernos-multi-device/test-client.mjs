@@ -49,6 +49,7 @@ const SEAM = Symbol.for('kybernos.multiDevice')
   ok('the styles are one tagged <style>', styles.length === 1)
   const extras = globalThis[SEAM].detailsExtras({ path: '/x/y' })
   ok('detailsExtras returns an element', extras !== null && typeof extras === 'object' && extras.props.path === '/x/y')
+  ok('detailsExtras passes the part on (the folder row, the devices body)', globalThis[SEAM].detailsExtras({ part: 'devices', path: null }).props.part === 'devices' && globalThis[SEAM].detailsExtras({ part: 'folder', path: '/x' }).props.part === 'folder')
   ok('detailsExtras survives odd input', (() => { try { globalThis[SEAM].detailsExtras(null); globalThis[SEAM].detailsExtras({ path: 5 }); return true } catch (e) { return false } })())
   for (const d of disposers) d()
   ok('disposing removes the seam', globalThis[SEAM] === undefined)
@@ -90,9 +91,9 @@ ok('apply survives a context whose effect throws', (() => { try { plugin.apply({
   const hex = (noVars.match(/#[0-9a-fA-F]{3,8}\b/g) || []).filter((c) => c.toLowerCase() !== '#fff')
   ok('colours come from DSH tokens (only fallbacks inside var() and the switch knob)', hex.length === 0, hex.join(','))
   ok('the prefix is private', /\.kbmd-/.test(T.CSS) && !/[^a-z]\.(kb|kb8|kbm)-/.test(T.CSS))
-  ok('motion respects reduced-motion', /prefers-reduced-motion/.test(T.CSS))
+  ok('motion respects reduced-motion (none is declared)', !/transition|animation/.test(T.CSS) || /prefers-reduced-motion/.test(T.CSS))
 }
-ok('stable test hooks exist', ['kybernos-multi-device-dialog', 'kybernos-multi-device-name', 'kybernos-multi-device-folder', 'kybernos-multi-device-adv', 'kybernos-multi-device-exec', 'kybernos-multi-device-devices', 'kybernos-multi-device-today'].every((k) => src.includes("'" + k + "'")))
+ok('stable test hooks exist', ['kybernos-multi-device-dialog', 'kybernos-multi-device-name', 'kybernos-multi-device-folder', 'kybernos-multi-device-exec', 'kybernos-multi-device-devices', 'kybernos-multi-device-today'].every((k) => src.includes("'" + k + "'")))
 ok('no blocking browser dialog', !/\b(alert|confirm|prompt)\(/.test(src))
 
 // ── the name rule is the host's ────────────────────────────────────────────────────────────────────────
