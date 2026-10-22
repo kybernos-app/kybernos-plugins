@@ -1180,6 +1180,16 @@ check('where the fonts draw no flag (no canvas here) the two letters stay', T.ba
   check('the settings are their own tab, not a block under the list', /role: 'tab'/.test(SOURCE) && /id: 'kbln-panel-settings'/.test(SOURCE) && !/kbln-adv/.test(SOURCE) && /const chooseModel = \(\) => \{ setTab\('settings'\); setFocusModel\(true\) \}/.test(SOURCE))
   check('« Add a language » sits in the toolbar, above the list', SOURCE.indexOf("'data-act': 'add-language'") < SOURCE.indexOf("h('div', { className: 'kbln-langs' }, langs.map(row))"))
 }
+// The translation model is chosen from a list with a search field (the catalogue runs to dozens of models).
+{
+  const ms = [{ id: 'a', name: 'DeepSeek V4.1 Flash (GMI)', provider: 'gmicloud' }, { id: 'b', name: 'Kimi K3 (GMI)', provider: 'gmicloud' }, { id: 'c', name: 'Claude Sonnet 4.5 (OpenRouter)', provider: 'openrouter' }, { id: 'd', name: 'DeepSeek V4 Pro (OpenRouter)', provider: 'openrouter' }]
+  const ids = (q) => T.modelMatches(ms, q).map((m) => m.id).join('')
+  check('an empty search keeps the whole list', T.modelMatches(ms, '') === ms && T.modelMatches(ms, '   ') === ms)
+  check('the search reads the name, the provider and the id, in any case', ids('kimi') === 'b' && ids('OPENROUTER') === 'cd' && ids('gmi') === 'ab' && ids('deepseek') === 'ad')
+  check('every word typed must match (any order), nothing matches nothing', ids('deepseek flash') === 'a' && ids('flash deepseek') === 'a' && ids('deepseek gmicloud') === 'a' && ids('zzz') === '')
+  check('the model is a button that opens a searchable listbox, not a native select', /h\(ModelPicker, \{ models, value: selectedModel/.test(SOURCE) && /role: 'listbox', 'aria-label': L\('modelLabel'\)/.test(SOURCE) && /type: 'search', placeholder: L\('searchModel'\)/.test(SOURCE) && !/h\('select'/.test(SOURCE))
+  check('the list is driven from the keyboard: ↑ ↓ move, Enter chooses, Esc closes and gives the focus back', /e\.key === 'ArrowDown'/.test(SOURCE) && /e\.key === 'ArrowUp'/.test(SOURCE) && /e\.key === 'Enter'/.test(SOURCE) && /e\.key === 'Escape'[^\n]*closeIt\(true\)/.test(SOURCE))
+}
 check('the internal read of DSH (dicts) is guarded by a shape test', /instanceof Map/.test(SOURCE))
 
 // ── WP-07: the page speaks the language it was resolved in, in the singular too, and « Show details » is English ──
