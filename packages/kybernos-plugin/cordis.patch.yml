@@ -3,9 +3,11 @@
       name: '@local/kybernos'
 
 # Privacy default. DSH uploads the whole session log (messages, tool inputs and outputs, up to 8 MiB per request) with every request to the
-# OFFICIAL DeepSeek API (row `session-log-deepseek` of the dsh-base bundle, `enabled: true` by default). Kybernos is local-first, so it is
-# off here; the person can switch it on under Settings › General (« Upload Session Log when using the official model API »).
+# OFFICIAL DeepSeek API (row `session-log-deepseek` of the dsh-base bundle, `enabled: true` by default). Kybernos is local-first, so the row is
+# switched off AND disabled here: nothing is uploaded, and the switch under Settings › General (« Upload Session Log when using the official model
+# API ») is gone, because that control only exists while the row is served (owner's call, 2026-10-22: a switch that Kybernos never wants on is noise).
 # A patch replaces the row's whole `config`, and `maxBytes` keeps its default (8 MiB). See docs/privacy.md.
 - id: session-log-deepseek
+  disabled: true
   config:
     enabled: false
