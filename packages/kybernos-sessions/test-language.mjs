@@ -83,10 +83,10 @@ for (const [nom, st] of Object.entries(STATES)) {
 }
 setLang('en'); const enAuto = render(STATES.auto)
 setLang('kybernos'); const frAuto = render(STATES.auto)
-check('the labels the help quotes: Réglages Kybernos, Premiers pas, Kit de départ, Nommer chaque conversation à sa fin, Modèle d’étude, Rejouer, Oui/Non',
-  ['Réglages Kybernos', 'Premiers pas', 'Kit de départ', 'Nommer chaque conversation à sa fin', 'Modèle d’étude', 'Rejouer', 'Oui', 'Non', 'Aucun', 'Automatique — kybernos/auto'].every((t) => frAuto.includes(t)), frAuto)
-check('…and in English: Kybernos Settings, Onboarding, Starter kit, Name each chat when it ends, Study model, Replay, Yes/No, None',
-  ['Kybernos Settings', 'Onboarding', 'Starter kit', 'Name each chat when it ends', 'Study model', 'Replay', 'Yes', 'No', 'None', 'Automatic — kybernos/auto'].every((t) => enAuto.includes(t)), enAuto)
+check('the labels the help quotes: Réglages Kybernos, Premiers pas, Nommer chaque conversation à sa fin, Modèle d’étude, Rejouer, Oui/Non',
+  ['Réglages Kybernos', 'Premiers pas', 'Nommer chaque conversation à sa fin', 'Modèle d’étude', 'Rejouer', 'Oui', 'Non', 'Aucun', 'Automatique — kybernos/auto'].every((t) => frAuto.includes(t)), frAuto)
+check('…and in English: Kybernos Settings, Onboarding, Name each chat when it ends, Study model, Replay, Yes/No, None',
+  ['Kybernos Settings', 'Onboarding', 'Name each chat when it ends', 'Study model', 'Replay', 'Yes', 'No', 'None', 'Automatic — kybernos/auto'].every((t) => enAuto.includes(t)), enAuto)
 setLang('es'); win.__KB_I18N_ACTIVE__ = { lang: 'es', dict: { 'Réglages Kybernos': 'Ajustes de Kybernos', Rejouer: 'Repetir' } }
 const esAuto = render(STATES.auto)
 check('a translated language gets its dictionary where it has a word, and English elsewhere', esAuto.includes('Ajustes de Kybernos') && esAuto.includes('Repetir') && esAuto.includes('Study model') && !esAuto.some((t) => ACCENT.test(t)), esAuto)

@@ -111,12 +111,12 @@ try {
     }
     const head = JSON.parse(await val(`(() => {
       const t = document.querySelector('[data-kbr="behaviour-title"]'); const intro = Array.from(document.querySelectorAll('[data-kbr="bloc"] > *')).find((e) => /Small switches/.test(e.textContent || ''))
-      const row = document.querySelector('[data-kbr="rename-after-recap"]'); const kit = document.querySelector('[data-kbr="starter-kit"]')
+      const row = document.querySelector('[data-kbr="rename-after-recap"]'); const onb = document.querySelector('[data-kbr="onboarding-replay"]')
       if (!t) return JSON.stringify(null)
       const before = (a, b) => !!(a && b && (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING))
-      return JSON.stringify({ text: t.textContent.trim(), tag: t.tagName, aboveIntro: before(t, intro), aboveSwitches: before(t, row), belowKit: before(kit, t), size: parseFloat(getComputedStyle(t).fontSize) })
+      return JSON.stringify({ text: t.textContent.trim(), tag: t.tagName, aboveIntro: before(t, intro), aboveSwitches: before(t, row), belowOnboarding: before(onb, t), size: parseFloat(getComputedStyle(t).fontSize) })
     })()`))
-    check('a heading « Behaviour » sits above the sentence that introduces the switches, below the starter kit', head !== null && head.text === 'Behaviour' && head.aboveIntro === true && head.aboveSwitches === true && head.belowKit === true, head)
+    check('a heading « Behaviour » sits above the sentence that introduces the switches, below the Onboarding row', head !== null && head.text === 'Behaviour' && head.aboveIntro === true && head.aboveSwitches === true && head.belowOnboarding === true, head)
     check('it reads as a heading (a title tag, larger than the 13 px sentences)', head !== null && /^H[1-6]$/.test(head.tag) && head.size >= 15, head)
     await move(5, 5)
     await shot('general-heading')
