@@ -24,7 +24,7 @@ const read = (...p) => readFileSync(join(REPO, ...p), 'utf8')
 
 // ── The nav, as it is drawn in English (the id of each section is the React key of its cell, the same in every language).
 const NAV = {
-  general: 'General', models: 'Models', 'kybernos-theme': 'Theme', 'kybernos-language': 'Language', 'kybernos-memory': 'Memory & Lessons', 'kbac-appearance': 'Appearance',
+  general: 'General', models: 'Models', 'kybernos-theme': 'Theme', 'kybernos-language': 'Language', 'kybernos-memory': 'Memory & Lessons',
   'kybernos-maintenance': 'About', 'kybernos-servers': 'Servers', 'kybernos-auto-page': 'Auto Routing', 'kybernos-websearch-page': 'Web Search',
   plugins: 'Built-in plugins', 'kybernos-atlas': 'Atlas', 'kybernos-models': 'AI provider and models', 'agent-presets': 'Agent presets', voice: 'Voice',
   'kybernos-slash': 'Commands', 'kybernos-ollama': 'Ollama local models', 'kybernos-suite': 'Kybernos Suite', 'kybernos-tools': 'Tools',
@@ -85,14 +85,12 @@ seen += 1
 if (card['kybernos-models'] !== NAV['kybernos-models']) odd.push('kybernos-models: the card says « ' + card['kybernos-models'] + ' », the nav « ' + NAV['kybernos-models'] + ' »')
 check('every module that is one Settings page carries the name of that page on its card', seen >= 14 && odd.length === 0, odd)
 
-console.log('the two places that set the mode say so')
-// Appearance (Light / Dark / System) and Theme › Mode both set the mode. Theme used to say it « replaces the Appearance block of the General
-// page — one place only » while an Appearance page exists beside it (audit A1-09); then said the two were the same setting (V1-24 made Appearance the only place).
+console.log('the one place that sets the mode')
+// The mode (Light / Dark / System) is set on the Theme page, on three cards. It used to be drawn by an Appearance page beside Theme (audit A1-09, then V1-24 made Appearance the
+// only place and Theme linked to it); the owner folded the page into Theme (2026-10-22): no Appearance page, no « set on the Appearance page » sentence.
 const theme = read('packages', 'kybernos-theme', 'client.js')
-check('Theme no longer claims to be the only place of the mode', !/replaces the “Appearance” block of the General page/.test(theme) && !/one place only/.test(theme))
-// V1-24: the mode is set on the Appearance page ONLY; the Theme page shows it and says where it is set (it used to say « change it in either place »).
-check('Theme says the mode is set on the Appearance page, in English and in French, and no longer offers it as a second place', /The light or dark mode is set on the Appearance page/.test(theme) && /Le mode clair ou sombre se règle sur la page Apparence/.test(theme) && !/change it in either place/.test(theme))
-check('and the Appearance page it points to exists and points back to Theme', /'kbac-appearance': 'Appearance'|'kbac-appearance': 'appearance'/.test(CORE) && /'kbac.appearance.openTheme'/.test(CORE))
+check('Theme no longer claims to be the only place of the mode through a block it replaces, and no longer points to another page', !/replaces the “Appearance” block of the General page/.test(theme) && !/one place only/.test(theme) && !/set on the Appearance page/.test(theme) && !/page Apparence/.test(theme) && !/change it in either place/.test(theme))
+check('Theme draws the three mode cards itself, and the Appearance page is gone from the menu and from the core plugin', /data-kb': 'theme-mode-card'/.test(theme) && !/'kbac-appearance'/.test(CORE) && !/KbacAppearance/.test(CORE) && !/'kbac\.appearance/.test(CORE))
 
 console.log(`\n${pass} ✓  ${fail} ✗`)
 process.exit(fail === 0 ? 0 : 1)

@@ -9,7 +9,7 @@ key is not in `DEF`, which is how 41 dead ones went unnoticed before.
 
 | Tab | What it really does, and how |
 |---|---|
-| Essentials | theme (shipped and yours), accent, wallpaper, font, text size → `overrideTokens` layer, a fixed wallpaper `<div>`, `--dsw-font-family`, `setFontSize` |
+| Essentials | mode (three cards: Light, Dark, System, through `commit({ mode })` → `setTheme`; there is no Appearance page any more), theme (shipped and yours), accent, wallpaper, font, text size → `overrideTokens` layer, a fixed wallpaper `<div>`, `--dsw-font-family`, `setFontSize` |
 | Glass and background | with a wallpaper: DSH's main surface (`--dsw-alias-bg-base`) becomes transparent so the wallpaper shows; sidebar, fields and menus get a chosen transparency (`--dsw-specific-sidebar-fill`, `-input-major`, `-menu`); frosted/liquid blur by `backdrop-filter` on DSH's stable hooks; wallpaper filters, fit and mirror |
 | Colors | the 17 pilotable tokens per scheme, accent ramp |
 | Text and shape | text size, ligatures, radii (`--dsw-radius-*` ×0.25 / ×1 / ×1.5), logo and name |

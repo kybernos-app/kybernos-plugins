@@ -273,7 +273,7 @@ const setColor = async (expr, hex) => {
 // ── page-side expressions ────────────────────────────────────────────────────────────
 const Q = {
   tabOn: `document.querySelector('.kbth-adv-tab.on')`,
-  // The Mode row: the three-button segment reading System / Light / Dark (either language). Nothing else looks like it.
+  // The three mode cards (Light / Dark / System) are not a segment: this finds a segment that reads System / Light / Dark, which must NOT exist any more.
   modeSeg: `Array.from(document.querySelectorAll('.kbth-seg')).find((s) => s.children.length === 3 && /^(system|système)$/i.test(s.children[0].textContent.trim()) && /^(light|clair)$/i.test(s.children[1].textContent.trim()) && /^(dark|sombre)$/i.test(s.children[2].textContent.trim())) || null`,
   skin: (i) => `document.querySelectorAll('.kbth-skin')[${i}]`,
   dot: (i) => `document.querySelectorAll('.kbth-dots .kbth-dot')[${i}]`,
@@ -331,19 +331,16 @@ const readPage = () => val(`JSON.stringify({
   current: (document.querySelector('.kbth-sum-n') || { textContent: '' }).textContent,
   summaryPills: Array.from(document.querySelectorAll('.kbth-sum-n .kbth-pill')).map((e) => e.textContent.trim()),
 })`).then((s) => JSON.parse(s))
-// V1-24: the Mode row is the mode as a word plus a button to the Appearance page (no selector any more): `idx` is read from the word, `has` says the row is there.
-const modeIndex = (t) => (/^(system|système)$/i.test(t) ? 0 : (/^(light|clair)$/i.test(t) ? 1 : (/^(dark|sombre)$/i.test(t) ? 2 : -1)))
+// The mode is set on the Theme page, on three cards (Light, Dark, System): `idx` is read from the checked card (system 0, light 1, dark 2), `has` says the cards are there.
+const modeIndex = (m) => (m === 'system' ? 0 : (m === 'light' ? 1 : (m === 'dark' ? 2 : -1)))
 const modeInfo = async () => {
-  const r = JSON.parse(await val(`(() => { const e = document.querySelector('[data-kb="theme-mode-is"]'); return JSON.stringify({ text: e ? e.textContent.trim() : null, has: !!e, source: document.documentElement.getAttribute('data-ds-theme-source') }) })()`))
-  return { idx: r.has ? modeIndex(r.text) : -2, has: r.has, source: r.source }
+  const r = JSON.parse(await val(`(() => { const on = document.querySelector('.kbth-mode.on'); return JSON.stringify({ mode: on ? on.getAttribute('data-mode') : null, has: document.querySelectorAll('.kbth-mode').length === 3, source: document.documentElement.getAttribute('data-ds-theme-source') }) })()`))
+  return { idx: r.has ? modeIndex(r.mode) : -2, has: r.has, source: r.source }
 }
-/** The mode is set on the Appearance page only: press its card there (System / Light / Dark, in English), then come back to the Theme page. */
+/** Presses the mode card that starts with `name` (System / Light / Dark, in English) on the Theme page, where the cards are. */
 const pressMode = async (name) => {
-  await clickEl(`Array.from(document.querySelectorAll('button[class*="navCell"]')).find((b) => /^appearance/i.test((b.innerText || '').trim()))`)
-  await until(async () => (await val(`document.querySelectorAll('.kbac-theme').length`)) > 0, 8000)
-  await clickEl(`Array.from(document.querySelectorAll('.kbac-theme')).find((c) => (c.innerText || '').trim().toLowerCase().startsWith(${JSON.stringify(name.toLowerCase())}))`)
+  await clickEl(`Array.from(document.querySelectorAll('.kbth-mode')).find((c) => (c.innerText || '').trim().toLowerCase().startsWith(${JSON.stringify(name.toLowerCase())}))`)
   await sleep(1200)
-  await openTheme({ fresh: false, settle: false })
 }
 /** Waits until the Mode row, DSH’s own report (html[data-ds-theme-source]) and — once known — the mode found at the start all agree. */
 const settleMode = async () => {
@@ -507,7 +504,7 @@ try {
       switchLike: !!document.querySelector('.kbth-head .kbth-seg') || Array.from(document.querySelectorAll('.kbth-page button')).some((b) => /^(simple|avanc[ée]e?|advanced)$/i.test(b.textContent.trim())),
       sub: (document.querySelector('.kbth-sub') || { textContent: '' }).textContent.trim(),
       tabs: Array.from(document.querySelectorAll('.kbth-adv-tab')).map((b) => { const r = b.getBoundingClientRect(); return { text: b.textContent.trim(), on: b.classList.contains('on'), pressed: b.getAttribute('aria-pressed'), x: Math.round(r.left), y: Math.round(r.top) } }),
-      mode: { text: (document.querySelector('[data-kb="theme-mode-is"]') || { textContent: null }).textContent, openButton: !!document.querySelector('[data-kb="theme-mode-open"]'), selector: !!(${Q.modeSeg}) },
+      mode: { cards: Array.from(document.querySelectorAll('.kbth-mode')).map((c) => c.getAttribute('data-mode')).join(), checked: Array.from(document.querySelectorAll('.kbth-mode[aria-checked="true"]')).map((c) => c.getAttribute('data-mode')).join(), openButton: !!document.querySelector('[data-kb="theme-mode-open"]'), selector: !!(${Q.modeSeg}) },
       skins: document.querySelectorAll('.kbth-skin:not(.kbth-skin-add)').length,
       skinNamed: Array.from(document.querySelectorAll('.kbth-skin:not(.kbth-skin-add)')).every((b) => (b.getAttribute('aria-label') || '').indexOf(' — ') > 0 && b.querySelector('.kbth-skin-dot') && b.querySelector('.kbth-skin-name')),
       dots: document.querySelectorAll('.kbth-dots .kbth-dot').length,
@@ -524,9 +521,8 @@ try {
     check('there is no Simple / Advanced switch any more (no button of that name, no segment in the header)', j.switchLike === false, j.switchLike)
     check('the tabs are stacked vertically on the left, « Essentiel » the one open (and the only one pressed)', j.tabs.length === TAB_IDS.length && j.tabs.every((t) => t.x === j.tabs[0].x) && j.tabs.every((t, i) => i === 0 || t.y > j.tabs[i - 1].y) && j.tabs[0].on === true && j.tabs[0].pressed === 'true' && j.tabs.filter((t) => t.on).length === 1, j.tabs)
     check('the header says the basic settings are in « Essentiel »', /essentiel|essentials?/i.test(j.sub), j.sub)
-    // V1-24: the mode is set on the Appearance page only. The Theme page's Mode row names the native mode as text and opens that page: it has no System / Light / Dark selector.
-    const modeWord = { system: /^(system|système)$/i, light: /^(light|clair)$/i, dark: /^(dark|sombre)$/i }[startMode]
-    check('Mode row: the native mode (' + startMode + ') as text and a button to the Appearance page, no selector', j.mode.selector === false && j.mode.openButton === true && j.mode.text !== null && modeWord.test(j.mode.text.trim()), j.mode)
+    // The mode is set on the Theme page, on three cards (Light, Dark, System), the native one checked; no segmented selector and no button to another page.
+    check('Mode cards: Light, Dark, System, the native mode (' + startMode + ') checked, no selector and no button to another page', j.mode.cards === 'light,dark,system' && j.mode.checked === startMode && j.mode.selector === false && j.mode.openButton === false, j.mode)
     check('18 shipped theme dots (and the add button next to « My themes »), each with a coloured disc, a name and « name — mode · accent » as label', j.skins === 18 && j.skinNamed === true, { n: j.skins, named: j.skinNamed })
     const labels = await skinLabels()
     check('every theme of the catalogue is there, under its name', SKINS.every((d) => findSkin(labels, d).idx >= 0), labels)
