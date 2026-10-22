@@ -13,8 +13,8 @@
 // It also exposes, READ-ONLY, the user's real connections on
 // GET /kybernos/composio/connections?toolkits=gmail,googlecalendar. Why on the host rather
 // than in the browser: the Connectors tab must show what Composio says without depending on
-// a key kept in localStorage, without PII (user_info is never copied) and without a network
-// failure breaking the page. The ACTIONS (add/remove) stay driven by the client through MCP.
+// a key kept in localStorage, without a network failure breaking the page, and without handing the page
+// anything of `user_info` but the one label that says WHICH account it is (see identityOf). The ACTIONS (add/remove) stay driven by the client through MCP.
 import { readFileSync, writeFileSync, existsSync, mkdirSync, statSync, chmodSync, readdirSync, realpathSync, renameSync, rmSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 import { createRequire } from 'node:module'
@@ -455,10 +455,41 @@ async function mcpManage(apiKey, toolkits) {
   return payload
 }
 
+const EMAIL_RE = /^[^\s@]{1,64}@[^\s@]{1,190}\.[^\s@]{2,}$/
+const IDENTITY_MAIL_KEYS = ['email', 'mail', 'emailaddress', 'user_principal_name', 'userprincipalname', 'upn']
+const IDENTITY_NAME_KEYS = ['display_name', 'displayname', 'name', 'login', 'username', 'preferred_username']
+
 /**
- * Projects the Composio answer onto the frozen contract of the Kybernos client. Hard no-PII
- * rule: only id, alias, status, accountType and isDefault leave here; user_info and any secret
- * value are deliberately left out.
+ * The one label that says WHICH account a connection is, read from the `user_info` Composio keeps per account: an e-mail address when
+ * there is one (Gmail `email`, Drive `user.emailAddress`, Outlook `mail`, Sheets `email`, Calendar `summary`, which is the address of the
+ * primary calendar), else a name (`display_name`, `login`...). Looked for in the strings of `user_info` and of its objects one level down.
+ * Nothing else of `user_info` is read or kept: its ids, picture links, tokens and paging cursors never leave.
+ */
+export function identityOf(info) {
+  if (info === null || info === undefined || typeof info !== 'object' || Array.isArray(info)) return null
+  const flat = []
+  const walk = (o, depth) => {
+    for (const k of Object.keys(o)) {
+      const v = o[k]
+      if (typeof v === 'string') flat.push([k.toLowerCase(), v.trim()])
+      else if (depth < 1 && v !== null && v !== undefined && typeof v === 'object' && Array.isArray(v) === false) walk(v, depth + 1)
+    }
+  }
+  walk(info, 0)
+  const pick = (keys, accept) => {
+    for (const want of keys) {
+      const hit = flat.find((e) => e[0] === want && e[1] !== '' && accept(e[1]) === true)
+      if (hit !== undefined) return hit[1]
+    }
+    return null
+  }
+  const found = pick(IDENTITY_MAIL_KEYS, (v) => EMAIL_RE.test(v)) || pick(['summary'], (v) => EMAIL_RE.test(v)) || pick(IDENTITY_NAME_KEYS, () => true)
+  return found === null ? null : found.slice(0, 120)
+}
+
+/**
+ * Projects the Composio answer onto the contract of the Kybernos client: id, alias, status, accountType, isDefault and `identity`
+ * (identityOf above). The rest of user_info and any secret value are deliberately left out.
  */
 function normalizeConnections(payload, slugs) {
   const root = payload !== null && payload !== undefined && typeof payload === 'object' ? payload : {}
@@ -487,6 +518,7 @@ function normalizeConnections(payload, slugs) {
         status: state,
         accountType: rawType === null ? null : rawType.toUpperCase(),
         isDefault: a.is_default === true || a.isDefault === true,
+        identity: identityOf(a.user_info),
       })
     }
     connections.push({ toolkit: slug, status: String(info.status !== undefined && info.status !== null ? info.status : '').toLowerCase(), accounts: mapped })
