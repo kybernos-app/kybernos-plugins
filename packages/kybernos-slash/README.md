@@ -16,8 +16,16 @@ Settings → *Commands*.
 - **Message actions** under assistant messages: icon buttons, right-click to edit or delete, a *More actions* menu
   for entries hidden from the toolbar, and a `+` to build one or start *Create with AI*. A template may use
   `{message}`, the text of the message acted on.
-- **Settings → *Commands*/*Commandes*** (slot order 27): two tabs, search, editor dialog, delete with a 5 s *Undo*
-  toast, and a viewer of the stored JSON.
+- **Settings → *Commands*/*Commandes*** (slot order 27): one toolbar (two tabs, search, *Create with AI*, *New command*) over
+  one list, a line each. *Edit*, *Duplicate* and *Delete* show on hover or focus (always on a touch screen); the delete asks
+  in the row and has a 5 s *Undo* toast. The sentence that says what each tab is for is the tab's tooltip and the text of an
+  empty list. The stored JSON is a link in the footer.
+- **The editor** is four sections, no numbered steps: *Identity* (icon picker with search, name, `/command`, description),
+  *Prompt* (a field that grows with its text, `{blanks}` coloured, *Insert a blank* drops the token at the cursor),
+  *Questions* (one compact row each, expandable) and *When it runs*. The window takes its content's height. The **preview**
+  is a panel opened with the button of the header (closed by default, the choice is kept in
+  `localStorage` `kybernos.slash.preview`). The footer names what blocks a save and goes to it; Ctrl/Cmd + S saves, Esc
+  closes a picker first and the editor next.
 - *Create with AI* starts a new chat pre-filled with `/skill-slash-msgaction-creator <text>`. That skill **is** shipped here
   (`skills/slash-msgaction-creator/SKILL.md`) and seeded into `<dsh home>/skills` at host start by `seed-skills.mjs` (the same
   rule as the other bundles: a skill the user edited is never overwritten). It is versioned because it carries the agent's

@@ -9307,7 +9307,7 @@ const kbPinsEnsureCss = () => {
     '[class*="collapsed"] .kbpin_group{align-items:center}',
     '[class*="collapsed"] .kbpin_row{width:36px}',
     '[class*="collapsed"] .kbpin_open{display:flex;align-items:center;justify-content:center;width:36px;padding:0;font-size:0;line-height:0}',
-    '[class*="collapsed"] .kbpin_open::before{content:attr(data-kbpin-initial);display:flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:8px;font-size:calc(var(--dsh-content-font-size,13px)*1.05);font-weight:600;line-height:1;background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-secondary)}',
+    '[class*="collapsed"] .kbpin_open::before{content:attr(data-kbpin-initial);display:flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:8px;font-size:var(--dsh-content-font-size,13px);font-weight:600;line-height:1;background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-secondary)}',
     '[class*="collapsed"] .kbpin_open>*,[class*="collapsed"] .kbpin_actions{display:none!important}',
     '.kbpin_menuitem{display:flex;align-items:center;gap:8px;width:100%;padding:6px 10px;border:none;background:0 0;color:inherit;font:inherit;text-align:start;cursor:pointer;border-radius:6px}',
     '.kbpin_menuitem:hover{background:var(--dsw-alias-interactive-bg-hover)}',

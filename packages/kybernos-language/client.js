@@ -384,10 +384,10 @@ html[dir="rtl"] .kbln-page{direction:rtl}
         } catch (e) { flagFontKnown = false }
         return flagFontKnown
       }
-      // Arabic's own emblem: a teal field, a sand line, the letter ʿayn that opens « عربي ». Drawn, so it shows everywhere.
+      // Arabic's own emblem: a teal field, a pale line, the letter ʿayn that opens « عربي ». Drawn, so it shows everywhere.
       const arabicEmblem = () => h('svg', { width: 24, height: 17, viewBox: '0 0 24 17', 'aria-hidden': 'true', focusable: 'false' },
         h('rect', { width: 24, height: 17, rx: 3, fill: '#0f766e' }),
-        h('rect', { y: 12.2, width: 24, height: 2.2, fill: '#d9a441' }),
+        h('rect', { y: 12.2, width: 24, height: 2.2, fill: '#c9d6d2' }),
         h('text', { x: 12, y: 11, textAnchor: 'middle', fontSize: 12.5, fontWeight: 700, fill: '#fff', fontFamily: 'system-ui, sans-serif' }, '\u0639'))
       /** What the round badge of a language holds: `{ flag: true, node }` (a flag or the Arabic emblem) or `{ flag: false, node }` (the two letters). */
       const badgeFor = (id) => {
