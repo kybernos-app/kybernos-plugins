@@ -56,7 +56,7 @@ const PLACES = {
   tools: ['outils', 'herramientas'],
   workers: [],
   connectors: ['connecteurs'],
-  'cloud computers': ['ordinateurs cloud'],
+  'code sandbox (e2b)': ['bac à sable de code (e2b)'],
   calls: ['appels'],
   usage: [],
   'phone and channels': ['téléphone et canaux'],

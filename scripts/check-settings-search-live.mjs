@@ -93,7 +93,7 @@ try {
   await clearBox()
   await type('clé api')
   names = await resultNames()
-  check('« clé api » finds every place an API key goes (providers, connectors, the web search engines, cloud computers)', ['Add provider', 'Composio key', 'Default engine', 'API key'].every((n) => names.indexOf(n) >= 0), names)
+  check('« clé api » finds every place an API key goes (providers, connectors, the web search engines, the code sandbox)', ['Add provider', 'Composio key', 'Default engine', 'API key'].every((n) => names.indexOf(n) >= 0), names)
   if (shotsDir !== null) await page.shot(shotsDir + '/search-2-apikey.png')
   await clearBox()
   await type('themme')

@@ -1742,7 +1742,7 @@ window.__ModuleLoader__.load({
                 h('dt', null, kt('Ton DSH', 'Your DSH')), h('dd', null, dsh),
                 h('dt', null, kt('Zone testée', 'Tested range')), h('dd', null, compatLue !== null ? (compatLue.min || '?') + kt(' à ', ' to ') + (compatLue.max || '?') : kt('inconnue', 'unknown')),
                 h('dt', null, kt('Verdict', 'Verdict')), h('dd', null, verdict === 'ok' ? h('span', { className: 'kbsu-chip ok' }, kt('Compatible', 'Works with your DSH')) : verdict === 'hors' ? chipCompat(true) : kt('Inconnu', 'Unknown'))),
-              h('p', null, kt('Cette zone est celle de toute la suite : elle vient de dsh-compat.json, le contrat que le testeur de compatibilité applique à chaque installation et mise à jour.', 'This range is the whole suite’s: it comes from dsh-compat.json, the contract the compatibility check applies to every install and update.')))
+              h('p', null, kt('Cette zone est celle de toute la suite : elle vient du contrat de compatibilité que le testeur applique à chaque installation et mise à jour.', 'This range is the whole suite’s: it comes from the compatibility contract the check applies to every install and update.')))
             : h('div', { className: 'kbsu-body', style: { '--c': p.fam.couleur } },
               h('p', null, texte),
               Array.isArray(m.points) && m.points.length > 0 ? h('div', null, h('h5', { style: { marginBottom: 10 } }, kt('Ce que ça fait', 'What it does')), h('ul', { className: 'kbsu-ticks' }, m.points.map((pt, i) => h('li', { key: i }, kt(pt.fr, pt.en))))) : null,

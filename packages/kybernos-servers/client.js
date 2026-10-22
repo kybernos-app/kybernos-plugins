@@ -70,6 +70,9 @@ window.__ModuleLoader__.load({
 .kbsv-tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:3px}
 .kbsv-tag{display:inline-flex;align-items:center;padding:1px 9px;border-radius:999px;font-size:11px;font-weight:600;background:var(--dsw-alias-interactive-bg-active,rgba(0,0,0,.08));color:var(--dsw-alias-label-secondary,inherit)}
 .kbsv-tag[data-tone="ok"]{background:var(--dsw-alias-state-success-tertiary,rgba(34,197,94,.14));color:var(--dsw-alias-state-success-primary,#22c55e)}
+/* Light theme: the engine's green is 2.1:1 on its own tint; a darker ink for the text only (6.3:1), the Enterprise kicker's blue too (5.2:1 on white). */
+body:not([data-ds-dark-theme]) .kbsv-tag[data-tone="ok"]{color:var(--kybernos-ok-ink,#166534)}
+body:not([data-ds-dark-theme]) .kbsv-ent-kick{color:var(--kybernos-brand-ink,#3566d9)}
 .kbsv-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .kbsv-det{border-top:1px solid var(--dsw-alias-border-l1,rgba(0,0,0,.06));padding:12px 16px 14px;display:grid;gap:10px;font-size:12px}
 .kbsv-addresses{margin:0;display:grid;grid-template-columns:84px 1fr;gap:4px 12px;font-size:12px}

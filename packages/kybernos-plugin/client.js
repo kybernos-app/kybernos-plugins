@@ -826,7 +826,7 @@ let kbLocaleRead = () => 'en'
       'status.ok': { kybernos: 'sondé OK', en: 'probe OK' },
       'status.fail': { kybernos: 'sonde en échec', en: 'probe failed' },
       'status.declared': { kybernos: 'déclaré, non sondé', en: 'declared, not probed' },
-      'status.absent': { kybernos: 'absent de settings.yaml', en: 'absent from settings.yaml' },
+      'status.absent': { kybernos: 'absent de tes réglages', en: 'absent from your settings' },
       'ui.declaredid': { kybernos: ': id declaré "', en: ': declared id "' },
       'ui.agenttask': { kybernos: 'Tâche de l’agent', en: 'Agent task' },
       'ui.ratesrefreshed': { kybernos: 'tarifs models.dev relus à ', en: 'models.dev pricing refreshed at ' },
@@ -850,7 +850,7 @@ let kbLocaleRead = () => 'en'
       'ui.probe.ok': { kybernos: 'sondé OK', en: 'probe OK' },
       'ui.probe.fail': { kybernos: 'sonde en échec', en: 'probe failed' },
       'ui.probe.declared': { kybernos: 'déclaré, non sondé', en: 'declared, not probed' },
-      'ui.probe.absent': { kybernos: 'absent de settings.yaml', en: 'absent from settings.yaml' },
+      'ui.probe.absent': { kybernos: 'absent de tes réglages', en: 'absent from your settings' },
       'ui.justnow': { kybernos: 'à l\'instant', en: 'just now' },
       // L'age d'une conversation existait en francais EN DUR (« il y a 4 min »)
       // alors que l'etat juste devant (« Running ») etait traduit : une meme
@@ -2937,7 +2937,7 @@ const KB_NAV_KEYS = {
   'kybernos-suite': 'kybernos suite', 'kybernos-tools': 'tools', 'kybernos-workers': 'workers', 'kybernos-call': 'calls',
   // The pages the Suite's bundles add (their section id is the cell's key in every language).
   'kybernos-usage': 'usage', 'kybernos-automations': 'automations', 'kybernos-skills': 'skills', 'kybernos-skills-learned': 'learned skills', 'kybernos-composio': 'connectors', 'kybernos-free-llms': 'free llms', 'kybernos-mobile': 'phone and channels',
-  'kybernos-computers': 'cloud computers',
+  'kybernos-computers': 'code sandbox (e2b)',
   // What stays on this computer (custom instructions, models re-import, DSH chats): kybernos-cloud's section.
   'kybernos-local': 'kybernos',
 }
@@ -3056,7 +3056,7 @@ const KB_SS_INDEX = [
   ['calls', '', 'Calls', 'Talk live to your assistant, or to a team member, out loud, from any session.', 'check everything', 'appel telephone vocal visio conversation orale llamada'],
 
   ['servers', '', 'Add a server', '', '', 'serveur servidor equipe team entreprise self hosted reseau adresse address ajouter connecter'],
-  ['cloud computers', '', 'API key', 'Stored on this machine, never shown again. Code and files the agent sends to a cloud computer go to E2B.', 'save', 'cle api api key e2b bac a sable sandbox execution cloud clave'],
+  ['code sandbox (e2b)', '', 'API key', 'Stored on this machine, never shown again. Code and files the agent sends to a cloud computer go to E2B.', 'save', 'cle api api key e2b bac a sable sandbox execution cloud clave'],
   ['phone and channels', '', 'Open my computer on my phone', '', 'add a phone show the qr allow', 'telephone mobile qr code telecommande smartphone movil remote control controle a distance'],
   ['phone and channels', '', 'Talk to Kaby on a messaging app', '', 'telegram whatsapp wechat imessage', 'messagerie canal bot kaby mensajeria'],
   ['phone and channels', '', 'Link a phone', '', '', 'appairer relier telephone scanner code qr smartphone movil', '', 'Link a phone in three steps'],
@@ -3086,7 +3086,7 @@ const KB_SS_PAGE_KW = {
   atlas: 'carte graphe', voice: 'voix voz micro dictee audio speech sound speaker dictation tts read aloud',
   calls: 'appels telephone visio call video sound camera speaker live', appearance: 'apparence aspecto mode sombre clair look dark light night system',
   theme: 'couleurs palette fond police colors style skin import export share reset', language: 'langue idioma traduction translate locale french spanish',
-  servers: 'serveurs equipe reseau server team enterprise', 'cloud computers': 'sandbox bac a sable e2b cloud vm',
+  servers: 'serveurs equipe reseau server team enterprise', 'code sandbox (e2b)': 'sandbox bac a sable e2b cloud computers ordinateurs cloud vm',
   'phone and channels': 'telephone mobile qr telecommande messagerie telegram whatsapp phone remote messaging', 'kybernos suite': 'plugins modules extensions install update restart',
   'built-in plugins': 'plugins integres', about: 'a propos version licence mise a jour update restart relaunch'
 }
@@ -3151,7 +3151,7 @@ const KB_SS_FR = {
   'voice|Voice engines': ['Moteurs de voix', '', 'Apple say'],
   'calls|Calls': ['Appels', 'Parler en direct à ton assistant ou à un membre de ton équipe, à voix haute, depuis n’importe quelle session.'],
   'servers|Add a server': ['Ajouter un serveur', ''],
-  'cloud computers|API key': ['Clé API', 'Stockée sur cette machine, jamais affichée de nouveau. Le code et les fichiers que l’agent envoie à un ordinateur cloud partent chez E2B.'],
+  'code sandbox (e2b)|API key': ['Clé API', 'Stockée sur cette machine, jamais affichée de nouveau. Le code et les fichiers que l’agent envoie à un ordinateur cloud partent chez E2B.'],
   'phone and channels|Open my computer on my phone': ['Ouvrir mon ordinateur sur mon téléphone', ''],
   'phone and channels|Talk to Kaby on a messaging app': ['Parler à Kaby sur une messagerie', ''],
   'phone and channels|Link a phone': ['Relier un téléphone', '', 'Relier un téléphone en trois étapes'],
@@ -33863,7 +33863,7 @@ body:not([data-ds-dark-theme]) .kbac-theme-cur{color:color-mix(in srgb,var(--dsw
         { id: 'memory', titre: kbt('settings.group.memory'), pliable: true, icone: 'memory & lessons', mots: ['memory & lessons', 'learned skills', 'kybernos', 'atlas'] },
         { id: 'voice', titre: kbt('settings.group.voice'), pliable: true, icone: 'voice', mots: ['voix', 'voice', 'calls', 'appels'] },
         { id: 'look', titre: kbt('settings.group.look'), pliable: true, icone: 'appearance', mots: ['apparence', 'appearance', 'theme', 'langue', 'language'] },
-        { id: 'devices', titre: kbt('settings.group.devices'), pliable: true, icone: 'servers', mots: ['serveurs', 'servers', 'cloud computers', 'phone and channels'] },
+        { id: 'devices', titre: kbt('settings.group.devices'), pliable: true, icone: 'servers', mots: ['serveurs', 'servers', 'code sandbox (e2b)', 'phone and channels'] },
         { id: 'system', titre: kbt('settings.group.system'), pliable: true, icone: 'kybernos suite', mots: ['kybernos suite', 'plugins', 'listing', 'built-in plugins', 'models', 'plugins kybernos', 'kybernos plugins', 'about', 'a propos'] }
       ]
       // The open group is remembered under one key of its own (the shared fold store keeps booleans, an accordion needs a name).
@@ -33928,7 +33928,7 @@ body:not([data-ds-dark-theme]) .kbac-theme-cur{color:color-mix(in srgb,var(--dsw
         'automations': '<path d="M13 2 4 14h7l-1 8 9-12h-7z" ' + trait + '/>',
         'skills': '<path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" ' + trait + '/><path d="M20 3v4M22 5h-4M4 17v2M5 18H3" ' + trait + '/>',
         'connectors': '<path d="M12 22v-5M9 8V2M15 8V2" ' + trait + '/><path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8z" ' + trait + '/>',
-        'cloud computers': '<path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z" ' + trait + '/>',
+        'code sandbox (e2b)': '<path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z" ' + trait + '/>',
         'free llms': '<path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2z" ' + trait + '/><path d="M13 5v2M13 11v2M13 17v2" ' + trait + '/>',
         'phone and channels': '<rect x="5" y="2" width="14" height="20" rx="2" ry="2" ' + trait + '/><path d="M12 18h.01" ' + trait + '/>',
         'calls': '<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z" ' + trait + '/>',

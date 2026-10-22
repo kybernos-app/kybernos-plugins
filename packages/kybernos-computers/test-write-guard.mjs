@@ -5,7 +5,7 @@
 //
 // A fake SDK counts every call it receives: a refused request must never reach it, and must leave the state file and the key store as they were.
 // For each write, in this order: no Origin and no cookie · a foreign Origin (even with the real cookie) · the right Origin and no cookie (what a
-// local program sends) · the right Origin and a forged cookie · the right Origin and the real cookie (the Cloud computers page).
+// local program sends) · the right Origin and a forged cookie · the right Origin and the real cookie (the Code sandbox page).
 //
 //   node packages/kybernos-computers/test-write-guard.mjs
 import assert from 'node:assert/strict'
