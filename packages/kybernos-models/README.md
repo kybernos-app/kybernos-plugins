@@ -28,8 +28,8 @@ The page opens short, and everything else is one click away:
 - **Kybernos Cloud** is one card, the first cell of the provider grid (before the first provider), with the anatomy of a
   provider card on a night blue that does not follow the theme: the logo tile, « Kybernos Cloud » with a green dot when
   connected, and one line under it (« N models included », or « Recommended » + « Start for free »). The action is on the
-  right: « Manage » when connected, « Connect » when not (the full names, « Manage Kybernos Cloud » and « Connect to
-  Kybernos Cloud », are the tooltip and the accessible name). The small « or add a key » link under it and the « Recommended »
+  right: nothing when connected (the account, its plan, its teams and the way out are in the account menu: a « Manage » button
+  only opened a copy of them), « Connect » when not (the full name, « Connect to Kybernos Cloud », is the tooltip and the accessible name). The small « or add a key » link under it and the « Recommended »
   tag are gone once connected on a paid account, which has nothing to paste; they stay while Kybernos Cloud is not connected,
   and on a Free account (the plan is read from `GET /kybernos-cloud/status`: `space_plan.key`, else `user.plan`). The card IS
   the `kybernos` provider: its plain card is not drawn beside it (it stays in a search result), and the name opens the Models

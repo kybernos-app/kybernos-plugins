@@ -459,9 +459,7 @@ window.__ModuleLoader__.load({
         'kb.hero.title.in': { kybernos: '{n} modèles inclus', en: '{n} models included' },
         'kb.hero.title.in.one': { kybernos: '1 modèle inclus', en: '1 model included' },
         'kb.hero.connect': { kybernos: 'Connecter Kybernos Cloud', en: 'Connect to Kybernos Cloud' },
-        'kb.hero.manage': { kybernos: 'Gérer Kybernos Cloud', en: 'Manage Kybernos Cloud' },
         'kb.hero.connect.short': { kybernos: 'Connecter', en: 'Connect' },
-        'kb.hero.manage.short': { kybernos: 'Gérer', en: 'Manage' },
         'kb.hero.addkey.short': { kybernos: 'ou ajouter une clé', en: 'or add a key' },
         'kb.hero.models.tip': { kybernos: 'Voir les modèles de Kybernos Cloud', en: 'See the Kybernos Cloud models' },
         'kb.hero.connect.tip': { kybernos: 'Ouvre la carte Kybernos Cloud (appairage, profil, import des modèles).', en: 'Opens the Kybernos Cloud card (pairing, profile, model import).' },
@@ -2545,7 +2543,7 @@ window.__ModuleLoader__.load({
       //   · discovered — the mock-up word for word (title « Start for free »);
       //   · connected  — the same template, but the model count is the one
       //                  that REALLY lives in settings.yaml (kybernos route), a « Connected » badge is added,
-      //                  the CTA becomes « Manage Kybernos Cloud », and « Recommended », « or » and
+      //                  the CTA goes (the account is in the account menu), and « Recommended », « or » and
       //                  « Add your API key » go (V-28: a connected paid account has no key; a Free one keeps it).
       // The card writes NOTHING: it reads /kybernos-cloud/status (same-origin,
       // read-only) and delegates the pairing to the kybernos-cloud plugin through
@@ -2597,7 +2595,7 @@ window.__ModuleLoader__.load({
           if (btn) btn.click()
         }
         // Mock-up A (2026-10-20): the anatomy of a provider card — logo tile, name + dot, one line under it, the action on the right — on the night blue.
-        // Connected: « Manage » (and « or add a key » on a Free account). Not connected: « Connect » and « or add a key ». The name opens the Models view
+        // Connected: no button (and « or add a key » on a Free account). Not connected: « Connect » and « or add a key ». The name opens the Models view
         // on its models once they exist; the card IS the « kybernos » provider (the plain card of that route is not drawn beside it).
         const voirModeles = () => { uiSet('prov', 'kybernos'); uiSet('tab', 'models') }
         const nom = connecte === true && mine.length > 0
@@ -2614,10 +2612,11 @@ window.__ModuleLoader__.load({
                 : [h('span', { key: 'tag', className: 'kbmh-hero-tag', 'data-kbmh': 'badge' }, m('kb.hero.badge')), ' ', m('kb.hero.title.free')])),
           // (The load error is told once, by the panel's banner right under the tab bar, which also has the Retry.)
           h('div', { className: 'kbmh-hero-side' },
-            h('button', {
-              type: 'button', className: 'kbmh-hero-btn' + (connecte === true ? ' kbmh-hero-btn-ghost' : ''), 'data-kbmh': 'connect',
-              title: connecte === true ? m('kb.hero.manage') : m('kb.hero.connect.tip'), 'aria-label': connecte === true ? m('kb.hero.manage') : m('kb.hero.connect'), onClick: ouvrirCloud,
-            }, connecte === true ? m('kb.hero.manage.short') : m('kb.hero.connect.short')),
+            // Connected, there is nothing to press here: the account (e-mail, plan, teams, disconnect) is in the account menu, which is where « Manage » used to lead.
+            connecte === true ? null : h('button', {
+              type: 'button', className: 'kbmh-hero-btn', 'data-kbmh': 'connect',
+              title: m('kb.hero.connect.tip'), 'aria-label': m('kb.hero.connect'), onClick: ouvrirCloud,
+            }, m('kb.hero.connect.short')),
             kbHeroShowKey(connecte, plan) ? h('button', {
               type: 'button', className: 'kbmh-hero-alt', 'data-kbmh': 'addkey',
               title: m('kb.hero.addkey.tip'), 'aria-label': m('kb.hero.addkey'), onClick: ajouterCle,
@@ -3217,8 +3216,6 @@ window.__ModuleLoader__.load({
         '.kbmh-hero-btn{display:inline-flex;align-items:center;justify-content:center;height:30px;padding:0 12px;border:none;border-radius:9px;background:#FFFFFF;color:#10182B;font-family:inherit;font-size:12.5px;font-weight:600;line-height:18px;white-space:nowrap;cursor:pointer}',
         '.kbmh-hero-btn:hover{background:#E8EDF9}',
         '.kbmh-hero-btn:focus-visible,.kbmh-hero-alt:focus-visible{outline:2px solid #FFFFFF;outline-offset:2px}',
-        '.kbmh-hero-btn-ghost{background:transparent;border:.5px solid rgba(255,255,255,.30);color:#FFFFFF}',
-        '.kbmh-hero-btn-ghost:hover{background:rgba(255,255,255,.10)}',
         '.kbmh-hero-alt{all:unset;box-sizing:border-box;font-size:11px;line-height:14px;color:#B9C4DE;text-decoration:underline;text-underline-offset:2px;white-space:nowrap;cursor:pointer}',
         '.kbmh-hero-alt:hover{color:#FFFFFF}',
         '.kbmh-hero-sr{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}',
