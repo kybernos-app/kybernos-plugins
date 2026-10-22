@@ -237,5 +237,11 @@ eq('a paused webhook test is explained', mod.kbTaskError('automation paused', en
   eq('the prompt field shows a counter near its 8000 characters', page.indexOf("'data-kb': 'prompt-count'") >= 0 && page.indexOf('maxLength: 8000') >= 0, true)
 }
 
+// The sessions hook of the menu watcher is called at every render: called only when there are runs to look at, it changed the hook count between two renders and React took the whole menu down (found live, after the first run of an automation)
+{
+  const w = src.slice(src.indexOf('const useKbTasksWatch = '), src.indexOf('const useKbTasksWatch = ') + 3000)
+  eq('the menu watcher calls the sessions hook unconditionally (the selector answers an empty string when there is nothing to look at)', /const runningKey = \(typeof uss === 'function'\)\n\s+\? uss\(\(st\) => \(pairs\.length === 0 \? '' : kbTasksRunningIds/.test(w) && !/typeof uss === 'function' && pairs\.length > 0/.test(w), true)
+}
+
 console.log(fails === 0 ? '\nALL PASS' : '\n' + fails + ' FAILURES')
 process.exit(fails === 0 ? 0 : 1)
