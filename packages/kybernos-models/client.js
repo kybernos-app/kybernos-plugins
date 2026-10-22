@@ -233,7 +233,7 @@ window.__ModuleLoader__.load({
         'kb.fetch.why.unreachable': { kybernos: 'le fournisseur est injoignable', en: 'the provider could not be reached' },
         'kb.fetch.why.bad': { kybernos: 'sa réponse n’est pas une liste de modèles', en: 'its answer is not a model list' },
         'kb.fetch.why.big': { kybernos: 'sa réponse est trop volumineuse', en: 'its answer is too large' },
-        'kb.fetch.why.host': { kybernos: 'ce DSH n’a pas encore la route de liste en direct (relance-le)', en: 'this DSH has no live-list route yet (restart it)' },
+        'kb.fetch.why.host': { kybernos: 'ce DSH ne sait pas encore lire la liste en direct (relance-le)', en: 'this DSH cannot read the live list yet (restart it)' },
         'kb.fetch.why.noaddr': { kybernos: 'aucune adresse connue pour ce fournisseur', en: 'no address is known for this provider' },
         'kb.pv.err.nobase': { kybernos: 'L’adresse de ce fournisseur est inconnue : renseigne l’« URL de base » dans « Paramètres personnalisés », puis réessaie.', en: 'This provider’s address is unknown: set the Base URL under Customized settings, then try again.' },
         'kb.pv.saved.custom': { kybernos: 'Appliqué. {n} modèle(s) personnalisé(s) ajouté(s) à {slug}.', en: 'Applied. {n} custom model(s) added to {slug}.' },

@@ -228,7 +228,7 @@ window.__ModuleLoader__.load({
           const r = await fetch(API, { headers: { accept: 'application/json' } })
           const body = await r.json()
           store.entries = (body !== null && Array.isArray(body.entries) === true) ? body.entries : []
-          store.error = (body !== null && body.ok === false) ? String(body.error || 'route indisponible') : null
+          store.error = (body !== null && body.ok === false) ? String(body.error || 'indisponible : relance DSH une fois') : null
           // The version comes from the ROUTE: the client does not redefine it, so
           // it cannot drift from the shared model.
           diag.version = (body !== null && body !== undefined && body.version !== undefined) ? body.version : null
