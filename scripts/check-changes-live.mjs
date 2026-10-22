@@ -267,7 +267,8 @@ try {
   await openSession()
   await sleep(4000)
   const p2 = await pills()
-  check('without the seam there is no chip, and the four pills are still there', (await val(`!document.querySelector('[data-kb="changes-chip"]')`)) === true && ['local', 'recap'].every((x) => p2.includes(x)) && p2.includes('notes'), p2)
+  // L2-07: with no facts for a chat that exists the chip says so, in a span that cannot be pressed (it used to vanish without a word).
+  check('without the seam the chip says tracking is unavailable and cannot be pressed, and the pills are still there', (await val(`(() => { const c = document.querySelector('[data-kb="changes-chip"]'); return c !== null && c.tagName === 'SPAN' && c.closest('[data-kb="changes"]').getAttribute('data-state') === 'unavailable' })()`)) === true && ['local', 'recap'].every((x) => p2.includes(x)) && p2.includes('notes'), p2)
   check('… and nobody was told to step aside', (await val(`window.__KB_CHANGES_ACTIVE__ !== true`)) === true)
 } catch (e) {
   fail += 1

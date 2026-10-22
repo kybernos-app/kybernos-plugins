@@ -8,8 +8,8 @@
     "fr": "Connecteurs de workers"
   },
   "description": {
-    "en": "The Workers connectors (OpenCode, Gemini, Qwen, Hermes) that the Workers page turns on.",
-    "fr": "Les connecteurs de workers (OpenCode, Gemini, Qwen, Hermes) que la page Workers allume."
+    "en": "OpenCode, Gemini, Qwen and Hermes: the agents the Workers page turns on.",
+    "fr": "OpenCode, Gemini, Qwen et Hermes : les agents que la page Workers allume."
   },
   "icon": "agent",
   "family": "connect",

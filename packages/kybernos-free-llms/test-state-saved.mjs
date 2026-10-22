@@ -90,5 +90,12 @@ assert.equal(JSON.parse(readFileSync(marker, 'utf8')).acknowledged, true, 'disab
 assert.equal(existsSync(marker + '.tmp-' + process.pid), false)
 ok('disable: saved, the acknowledgement is kept')
 
+// Two writes that overlap (a double click, the boot repair meeting a press) each get their own temporary name: they used to share `.tmp-<pid>`, so the second
+// rename found the file gone and answered « not saved » for a marker that was.
+const both = await Promise.all([post('/free-llms/disable', {}), post('/free-llms/disable', {}), post('/free-llms/disable', {})])
+assert.deepEqual(both.map((r) => r.status), [200, 200, 200], 'overlapping writes all succeed: ' + JSON.stringify(both.map((r) => r.status)))
+assert.deepEqual(readdirSync(join(GOOD_HOME, 'kybernos')), ['free-llms.json'], 'and no temporary file is left behind')
+ok('overlapping writes do not share a temporary file: all answer ok')
+
 console.log('\n' + pass + ' verifications OK')
 process.exit(0)

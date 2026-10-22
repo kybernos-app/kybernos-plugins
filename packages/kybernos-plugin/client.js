@@ -29346,7 +29346,8 @@ body:not([data-ds-dark-theme]) .kbs-search input::placeholder{color:var(--dsw-al
   html[data-kb-chat-fold="1"] [data-slot="conversation.session.header.actions"] > :not(.kbfold-root):not(:has([data-act="hangup-header"])){display:none!important}
   html[data-kb-chat-fold="1"] [data-slot="conversation.session.header"] > [class*="tabs"]{display:none!important}
   html[data-kb-chat-fold="1"] [data-slot="conversation.composer.dock"] > :not([data-kb="changes"]){display:none!important}
-  html[data-kb-chat-fold="1"] [data-slot="conversation.composer.dock"] > [data-kb="changes"][data-state="ok"]{display:none!important}
+  html[data-kb-chat-fold="1"] [data-slot="conversation.composer.dock"] > [data-kb="changes"][data-state="ok"],
+  html[data-kb-chat-fold="1"] [data-slot="conversation.composer.dock"] > [data-kb="changes"][data-state="unavailable"]{display:none!important}
 }
 @media (max-width:700px){.kbfold-root{display:none}}
 `), 'kybers: styles chat header toggle')

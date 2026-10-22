@@ -1599,8 +1599,8 @@
             "en": "Play it with ▶ and drag the cursor on the timeline. Change texts, colours or numbers under “Settings”: the chat sees your edits."
           },
           {
-            "fr": "« Exporter » donne une vidéo MP4, une page autonome ou un fichier de scène, rangé dans le dossier artifacts/ du projet.",
-            "en": "“Export” gives an MP4 video, a standalone page or a scene file, saved in the project’s artifacts/ folder."
+            "fr": "« Exporter » donne une vidéo MP4, une page autonome ou un fichier de scène, rangé avec ton projet.",
+            "en": "“Export” gives an MP4 video, a standalone page or a scene file, saved with your project."
           },
           {
             "fr": "Retrouve tes animations dans la page Créations, ou avec « Animations » en haut du panneau.",
@@ -1613,8 +1613,8 @@
           "page": false
         },
         "good": {
-          "fr": "Une animation est un simple fichier .miniapp.json du projet : copie-le, versionne-le, partage-le. L’export vidéo se fait dans ton navigateur, rien n’est envoyé ailleurs.",
-          "en": "An animation is a plain .miniapp.json file in the project: copy it, version it, share it. Video export happens in your browser, nothing is sent elsewhere."
+          "fr": "Une animation est un simple fichier du projet : copie-le, versionne-le, partage-le. L’export vidéo se fait dans ton navigateur, rien n’est envoyé ailleurs.",
+          "en": "An animation is a plain file in the project: copy it, version it, share it. Video export happens in your browser, nothing is sent elsewhere."
         },
         "url": "https://help.kybernos.app/{lang}/create-with-kybernos/make-an-animation/"
       }
@@ -1677,8 +1677,8 @@
       "defaut": "actif",
       "poids_ko": 128,
       "promesse": {
-        "fr": "Ordinateurs cloud pour les agents (ta clé E2B).",
-        "en": "Cloud computers for agents (your E2B key)."
+        "fr": "Un ordinateur dans le cloud où les agents exécutent du code (avec ta clé E2B).",
+        "en": "A computer in the cloud where the agents run code (with your E2B key)."
       },
       "aide": {
         "what": {
@@ -1727,8 +1727,8 @@
       "defaut": "actif",
       "poids_ko": 28,
       "promesse": {
-        "fr": "Les connecteurs de workers (OpenCode, Gemini, Qwen, Hermes) que la page Workers allume.",
-        "en": "The Workers connectors (OpenCode, Gemini, Qwen, Hermes) that the Workers page turns on."
+        "fr": "OpenCode, Gemini, Qwen et Hermes : les agents que la page Workers allume.",
+        "en": "OpenCode, Gemini, Qwen and Hermes: the agents the Workers page turns on."
       },
       "aide": {
         "what": {
@@ -1873,8 +1873,8 @@
       "defaut": "actif",
       "poids_ko": 28,
       "promesse": {
-        "fr": "Les liens des messages deviennent des pastilles de référence.",
-        "en": "Message links become reference chips."
+        "fr": "Les liens d’une réponse deviennent de petites pastilles, une par phrase, qui ouvrent leurs sources.",
+        "en": "Links in an answer become small chips, one per sentence, that open their sources."
       },
       "aide": {
         "what": {
@@ -1965,8 +1965,8 @@
       "defaut": "actif",
       "poids_ko": 60,
       "promesse": {
-        "fr": "La recherche web des agents, avec ou sans clé : des moteurs gratuits tout de suite, des moteurs à clé quand tu en ajoutes une, et le suivant prend le relais si l’un échoue.",
-        "en": "Web search for the agents, with or without a key: free engines right away, keyed engines when you add one, and the next one takes over when one fails."
+        "fr": "Les agents cherchent sur le web, avec ou sans clé : des moteurs gratuits tout de suite, des moteurs à clé quand tu en ajoutes une, et le suivant prend le relais si l’un échoue.",
+        "en": "Lets the agents search the web, with or without a key: free engines right away, keyed engines when you add one, and the next one takes over when one fails."
       },
       "aide": {
         "what": {
@@ -2691,8 +2691,8 @@
       "defaut": "actif",
       "poids_ko": 40,
       "promesse": {
-        "fr": "Une recherche partout : le contenu des chats, les skills, les mémoires, les leçons, les créations.",
-        "en": "Search everywhere: the content of your chats, skills, memories, lessons and creations."
+        "fr": "Cherche dans le contenu des chats, des skills, des mémoires, des leçons et des créations.",
+        "en": "Searches the content of your chats, skills, memories, lessons and creations."
       },
       "aide": {
         "what": {

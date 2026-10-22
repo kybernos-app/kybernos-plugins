@@ -41,6 +41,8 @@ const press = async (css, text) => {
   return true
 }
 const cell = (name) => press('button[class*="navCell"]', name)
+/** The mode (System / Light / Dark) is set on the Appearance page only (V1-24): the Theme page shows it and links there, it has no selector any more. */
+const setMode = async (name) => (await cell('Appearance')) && (await waitFor(page, `document.querySelector('.kbac-theme') !== null`, 10000)) !== null && (await press('.kbac-theme', name))
 
 /** In-page measurement: every colour is normalised to [r,g,b] through a canvas (so color-mix() and color() read as numbers), the background an element sits on is
  *  the first opaque ancestor fill, and a contrast is WCAG's. */
@@ -80,7 +82,7 @@ try {
   for (const sc of SCHEMES) {
     console.log('— ' + sc.id + ' (' + sc.skin + (sc.seg ? ', ' + sc.seg : '') + ')')
     check('the Theme page opens', await cell('Theme') && (await waitFor(page, `document.querySelector('.kbth-skin') !== null`, 10000)) !== null)
-    check('the look is picked', await press('.kbth-skin', sc.skin) && (sc.seg === null || (await sleep(900), await press('.kbth-seg button', sc.seg))))
+    check('the look is picked', await press('.kbth-skin', sc.skin) && (sc.seg === null || (await sleep(900), await setMode(sc.seg))))
     await sleep(1500)
     check('the Suite page opens on its Featured tab', await cell('Kybernos Suite') && (await waitFor(page, `document.querySelector('[data-kb="suite-card"] .kbsu-sw.on') !== null`, 15000)) !== null && await press('button', 'Featured') && (await waitFor(page, `document.querySelector('.kbsu-tag') !== null`, 8000)) !== null)
     await sleep(600)

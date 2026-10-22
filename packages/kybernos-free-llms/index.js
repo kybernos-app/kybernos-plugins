@@ -316,10 +316,14 @@ const readState = async () => {
  * Persist the marker, atomically (a temporary file renamed over it, like the hub's own files): a cut in the middle of the write leaves
  * the previous marker, never a truncated one. Returns whether it is on disk; callers must not tell the person it is saved when it is not.
  */
+let tmpCounter = 0
 const writeState = async (state) => {
   const path = stateFile()
   if (path === null) return false
-  const tmp = path + '.tmp-' + process.pid
+  // One temporary name per call: two overlapping writes (a double click, the boot repair meeting a press) shared `.tmp-<pid>`, the second rename found
+  // the file gone and reported a failure that had not happened.
+  tmpCounter += 1
+  const tmp = path + '.tmp-' + process.pid + '-' + tmpCounter
   try {
     const { mkdir, writeFile, rename } = await import('node:fs/promises')
     await mkdir(path.slice(0, path.lastIndexOf('/')), { recursive: true })

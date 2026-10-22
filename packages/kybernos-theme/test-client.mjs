@@ -1347,13 +1347,19 @@ if (React === null) {
     const prevDoc = globalThis.document
     globalThis.document = { querySelectorAll: (sel) => (sel === 'nav button' ? [cell('General'), cell('Apparence'), cell('Theme')] : []) }
     check('ouvrirReglages clicks the Appearance cell of the nav, whatever the language and the accents', real.ouvrirReglages(['appearance', 'apparence']) === true && clicked.join() === 'Apparence', clicked.join())
+    // Under a translated language no title matches: the cell is found by the React key it is rendered with (the id of its section, the same in every language).
+    const keyed = (label, key) => Object.assign(cell(label), { ['__reactFiber$test']: { key } })
+    clicked.length = 0
+    globalThis.document = { querySelectorAll: (sel) => (sel === 'nav button' ? [keyed('Allgemein', 'general'), keyed('Erscheinungsbild', 'kbac-appearance'), keyed('Design', 'kybernos-theme')] : []) }
+    check('...found by its React key when the title is in another language (German Erscheinungsbild)', real.ouvrirReglages(['appearance', 'apparence'], ['kbac-appearance']) === true && clicked.join() === 'Erscheinungsbild', clicked.join())
+    clicked.length = 0
     globalThis.document = { querySelectorAll: () => [cell('General')] }
-    check('...and says false, clicking nothing, when the nav has no such cell', real.ouvrirReglages(['appearance', 'apparence']) === false && clicked.length === 1)
+    check('...and says false, clicking nothing, when the nav has no such cell', real.ouvrirReglages(['appearance', 'apparence'], ['kbac-appearance']) === false && clicked.length === 0)
     if (prevDoc === undefined) delete globalThis.document; else globalThis.document = prevDoc
   }
   const natural = render({ mode: 'dark' })
-  check('natural state: the pill says no layer is posted', /DSH natif/.test(natural))
-  check('themed state: the pill announces the 17-token layer', /17 jetons/.test(simple))
+  check('natural state: the pill says no theme is applied, in plain words', /Couleurs de DSH — aucun thème posé/.test(natural) && !/jeton|token|couche/i.test(natural.replace(/<[^>]+>/g, '|').split('kbth-foot')[1] || ''))
+  check('themed state: the pill says a theme is applied (light and dark), without the word « token »', /Thème posé · clair et sombre/.test(simple) && !/17 jetons/.test(simple))
   check('the nine vertical tabs are always there (Icônes next to Animation), Essentiel pressed by default', (simple.match(/class="kbth-adv-tab[ "]/g) || []).length === 9 && />Icônes</.test(simple) && /kbth-adv-tab on" aria-pressed="true">Essentiel</.test(simple))
   check('there is no Simple / Avancé switch any more', !/>Simple</.test(simple) && !/>Avancé</.test(simple) && !/Besoin de plus de réglages/.test(simple))
   check('Essentiel carries appearance, colour, background and font', ['Apparence', 'Couleur', 'Arrière-plan', 'Police'].every((t) => simple.includes('>' + t + '<')))

@@ -33,6 +33,8 @@ ok('colonnes Model / Latency / Errors / Cache hit + badge warm cache', src.index
 ok('relecture automatique toutes les 60 s + « Check now » qui sonde pour de vrai (POST /kybernos-auto/probe)', src.indexOf('setInterval(lire, 60000)') !== -1 && src.indexOf("'Check now'") !== -1 && src.indexOf("'/kybernos-auto/probe'") !== -1)
 ok('un DSH démarré avant la route /probe (404) reçoit un message clair, pas une erreur de parse JSON', src.indexOf('r.status === 404 ? Promise.reject') !== -1)
 ok('l’état d’un modèle dit POURQUOI (cause, retour prévu, dernière erreur), dans la page et dans le composer', src.indexOf('const statutTxt') !== -1 && src.indexOf("'data-kb': 'auto-health-why'") !== -1 && (src.match(/statutTxt\(/g) || []).length === 2)
+// V1-21: the add field of the allowed list says what it does in the room it has (the placeholder was cut at « pick from the »); the whole hint is its tooltip.
+ok('the add field: a placeholder that fits (≤ 28 characters) and the full hint as its title', (() => { const m = /placeholder: kt\('([^']*)', '([^']*)'\),\s*title: kt\('([^']*)', '([^']*)'\)/.exec(src); return m !== null && m[1].length <= 28 && m[2].length <= 28 && m[4].length > m[2].length })())
 ok('un clic dans le panneau ne ferme pas le menu natif (pointerdown arrêté)', src.indexOf("'pointerdown'") !== -1 && src.indexOf('stopPropagation') !== -1)
 // What a person reads on the page is a sentence (audit 2026-10-16): no HTTP route inside a paragraph, no debug « scope: session » line,
 // and one spelling of the page's name, the one of the Settings menu.
