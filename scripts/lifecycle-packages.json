@@ -170,6 +170,10 @@
       "nom": "@local/kybernos-kyber"
     },
     {
+      "dir": "kybernos-kaby-customisation",
+      "nom": "@local/kybernos-kaby-customisation"
+    },
+    {
       "dir": "kybernos-search",
       "nom": "@local/kybernos-search"
     },

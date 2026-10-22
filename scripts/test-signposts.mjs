@@ -57,6 +57,7 @@ const PLACES = {
   connectors: ['connecteurs'],
   'code sandbox (e2b)': ['bac à sable de code (e2b)'],
   calls: ['appels'],
+  kaby: [],
   usage: [],
   'phone and channels': ['téléphone et canaux'],
 }
