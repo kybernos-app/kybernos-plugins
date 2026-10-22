@@ -47,8 +47,13 @@ const tick = () => new Promise((r) => setTimeout(r, 0))
   assert.equal(seam.svg('nologo'), null, 'an app without a logo answers null')
   assert.equal(seam.svg('constructor'), null, 'a name of Object.prototype is not an app')
   assert.equal(seam.svg(null), null)
+  assert.equal(seam.name('gmail'), 'Gmail', 'a known app answers its display name')
+  assert.equal(seam.name('GMail'), 'Gmail')
+  assert.equal(seam.name('nologo'), 'No logo', 'an app without a logo still has a name')
+  assert.equal(seam.name('constructor'), null, 'a name of Object.prototype is not an app')
+  assert.equal(seam.name(null), null)
   assert.equal(loads.length, 0, 'a loaded catalogue is never fetched again')
-  ok('seam: known app → its SVG, unknown / no logo / odd slug → null, nothing refetched')
+  ok('seam: known app → its SVG and its name, unknown / no logo / odd slug → null, nothing refetched')
 
   ctx.catOk = false
   assert.equal(seam.svg('gmail'), '<svg id="g"/>', 'the logo already held is still served')
@@ -115,6 +120,21 @@ if (renderToStaticMarkup !== null) {
   const hostile = make({ __KB_APP_LOGOS__: { svg: () => 42, subscribe: () => () => {} } })
   assert.ok(hostile({ slug: 'gmail', name: 'gmail' }).includes('>GM<'), 'a seam that answers a non-string: initials')
   ok('tile: no seam, a throwing seam, odd props → initials')
+
+  // the name of a connection: the catalogue's, or made from the slug
+  const makeName = (win) => {
+    const ctx = vm.createContext({ React, h: React.createElement, window: win, String, RegExp })
+    vm.runInContext(between(plugin, 'const kbPrettySlug', 'const kbConnRowsOf') + between(plugin, '// <conn-logo:begin>', '// <conn-logo:end>') + '\n;globalThis.Name = KbConnName', ctx)
+    return (props) => renderToStaticMarkup(React.createElement(ctx.Name, props))
+  }
+  const named = makeName({ __KB_APP_LOGOS__: { name: (s) => (s === 'googlecalendar' ? 'Google Calendar' : null), subscribe: () => () => {} } })
+  const cal = named({ slug: 'googlecalendar' })
+  assert.ok(cal.includes('>Google Calendar<') && cal.includes('data-slug="googlecalendar"'), 'a known app writes its display name: ' + cal)
+  assert.ok(named({ slug: 'microsoft_teams' }).includes('>Microsoft Teams<'), 'an unknown one is made from its slug')
+  assert.ok(makeName({})({ slug: 'gmail' }).includes('>Gmail<'), 'without kybernos-composio: made from the slug')
+  assert.ok(makeName({ __KB_APP_LOGOS__: { name: () => { throw new Error('boom') }, subscribe: () => { throw new Error('boom') } } })({ slug: 'gmail' }).includes('>Gmail<'), 'a seam that throws: made from the slug, never a failed render')
+  assert.ok(makeName({})({ slug: null }).includes('kb8-name'), 'no slug: an empty name, no crash')
+  ok('name: the catalogue\'s display name, made from the slug when the seam has none')
 
   for (const [label, needle] of [['project tab', "h(KbConnTile, { slug: c.slug, name: c.name })"], ['team tab, real rows', "h(KbConnTile, { slug: c.slug, name: c.name })"], ['team tab, declared rows', "h(KbConnTile, { slug: d.slug, name: d.name })"]]) {
     assert.ok(plugin.includes(needle), label + ' uses the tile')
