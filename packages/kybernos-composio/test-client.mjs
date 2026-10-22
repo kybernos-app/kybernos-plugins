@@ -530,6 +530,20 @@ ok('webUrl: a non-string is refused', webUrl(undefined) === null && webUrl(null)
   ok('an add that failed in a way that may have gone through offers to check the list, and never retries by itself', /checkFirst === true/.test(kcSrc) && !/setTimeout\([^)]*submit/.test(kcSrc))
 }
 
+// ── The apps the automations ask for: what the menu row and the page put first ───────────────────────────────────────────
+{
+  const { needView } = plugin.composio
+  const by = { gmail: ['New enquiry summary'], googlecalendar: ['Deadline reminders'] }
+  const none = needView({}, null, [])
+  ok('nothing is asked: nothing to connect', none.need === 0 && none.slugs.length === 0)
+  const all = needView(by, null, [])
+  ok('connections not read yet: every asked app counts as to connect', all.need === 2 && all.slugs.join() === 'gmail,googlecalendar' && all.by === by)
+  const some = needView(by, new Set(['gmail']), [])
+  ok('a connected app is not to connect any more', some.need === 1 && some.slugs.join() === 'googlecalendar')
+  const quiet = needView(by, new Set(), ['googlecalendar'])
+  ok('« Not now » silences the pulse and the number but the app stays listed', quiet.need === 1 && quiet.slugs.join() === 'gmail,googlecalendar')
+}
+
 // ── AGENTS.md rule 2: apply() cannot stop DSH from starting ─────────────────
 {
   const errors = console.error

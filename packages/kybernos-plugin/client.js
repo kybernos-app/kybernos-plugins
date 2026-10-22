@@ -553,6 +553,16 @@ let kbLocaleRead = () => 'en'
       'tasks.board.chip.failed': { kybernos: 'Échec', en: 'Failed' },
       'tasks.board.chip.ended': { kybernos: 'Terminée', en: 'Finished' },
       'tasks.board.chip.started': { kybernos: 'Lancée', en: 'Started' },
+      'tasks.sug.by': { kybernos: 'Suggérée par Kaby', en: 'Suggested by Kaby' },
+      'tasks.sug.chip': { kybernos: 'Suggérée', en: 'Suggested' },
+      'tasks.sug.add': { kybernos: 'Ajouter', en: 'Add' },
+      'tasks.sug.edit': { kybernos: 'Modifier', en: 'Edit' },
+      'tasks.sug.discard': { kybernos: 'Écarter', en: 'Discard' },
+      'tasks.sug.added': { kybernos: 'Ajoutée, éteinte. Tu l’allumes quand tu veux.', en: 'Added, switched off. Switch it on when you want.' },
+      'tasks.sug.title': { kybernos: 'Automations suggérées', en: 'Suggested automations' },
+      'menu.working': { kybernos: 'En cours', en: 'Working' },
+      'menu.review': { kybernos: 'À relire', en: 'To review' },
+      'menu.connect': { kybernos: 'À connecter', en: 'To connect' },
       'tasks.board.cal.prev': { kybernos: 'Précédent', en: 'Previous' },
       'tasks.board.cal.next': { kybernos: 'Suivant', en: 'Next' },
       'tasks.board.cal.today': { kybernos: 'Aujourd’hui', en: 'Today' },
@@ -2943,7 +2953,7 @@ const KB_NAV_KEYS = {
   'kybernos-maintenance': 'about', 'kybernos-servers': 'servers', 'kybernos-auto-page': 'auto routing', 'kybernos-websearch-page': 'web search',
   plugins: 'built-in plugins', 'kybernos-atlas': 'atlas', 'kybernos-models': 'ai provider and models',
   'agent-presets': 'agent presets', voice: 'voice', 'kybernos-slash': 'commands', 'kybernos-ollama': 'ollama local models',
-  'kybernos-suite': 'kybernos suite', 'kybernos-tools': 'tools', 'kybernos-workers': 'workers', 'kybernos-call': 'calls',
+  'kybernos-suite': 'kybernos suite', 'kybernos-tools': 'tools', 'kybernos-workers': 'workers', 'kybernos-call': 'calls', 'kybernos-kaby-customisation': 'kaby',
   // The pages the Suite's bundles add (their section id is the cell's key in every language).
   'kybernos-usage': 'usage', 'kybernos-automations': 'automations', 'kybernos-skills': 'skills', 'kybernos-skills-learned': 'learned skills', 'kybernos-composio': 'connectors', 'kybernos-free-llms': 'free llms', 'kybernos-mobile': 'phone and channels',
   'kybernos-computers': 'code sandbox (e2b)',
@@ -3044,6 +3054,7 @@ const KB_SS_INDEX = [
   ['usage', '', 'Your keys and local models', '', '', 'cout depenses tokens cles consommation'],
 
   ['agent presets', '', 'Standard mode', 'Work with code, files, and information.', 'ptc creator minimal', 'mode agent persona preajuste'],
+  ['kaby', '', 'Name, portrait and voice', 'Give your assistant a name, a portrait and a voice.', 'avatar face image picture', 'nom portrait voix visage image assistant avatar'],
   ['workers', '', 'Check all', 'Workers are the coding assistants installed on your computer.', '', 'claude code codex gemini cli assistants code delegation'],
   ['automations', '', 'Pause all automations', 'Nothing fires while this is on.', '', 'pause automatisations taches planifiees cron planificador'],
   ['automations', '', 'Show DSH’s own “Automation tasks” list', '', '', 'liste taches automatisation'],
@@ -3140,6 +3151,7 @@ const KB_SS_FR = {
   'ollama local models|Local engine': ['Moteur local', ''],
   'usage|Your Kybernos plan': ['Ton plan Kybernos', ''],
   'usage|Your keys and local models': ['Tes clés et modèles locaux', ''],
+  'kaby|Name, portrait and voice': ['Nom, portrait et voix', 'Donne à ton assistant un nom, un portrait et une voix.'],
   'workers|Check all': ['Tout vérifier', 'Les workers sont les assistants de code installés sur ton ordinateur.'],
   'automations|Pause all automations': ['Mettre toutes les automatisations en pause', 'Rien ne se déclenche tant que c’est activé.'],
   'automations|Show DSH’s own “Automation tasks” list': ['Afficher la liste « Automation tasks » de DSH', ''],
@@ -4700,10 +4712,18 @@ const KbLearnedDot = () => {
   if (!(pair[0] > 0)) return null
   const n = pair[0]
   const label = kbt(n === 1 ? 'kbui.skills.suggested.1' : 'kbui.skills.suggested').replace('{n}', String(n))
-  return h('span', { className: 'kb4-dot', role: 'img', 'aria-label': label, title: label, 'data-kb': 'learned-dot' })
+  return h('span', { className: 'kb4-dot kb-ping', role: 'img', 'aria-label': label, title: label, 'data-kb': 'learned-dot' })
 }
 const KB_MENU_ENTRY = { cloudcomputer: 'cloud', kyber: 'kyber', dashboards: 'dash', aiteams: 'teams', projects: 'ws', deliverables: 'creations', tasks: 'auto', skills: 'skills', connectors: 'plug' }
 const KB_MENU_CLASSIC = { cloud: 'monitor', kyber: 'bot', dash: 'layoutDashboard', teams: KB_DEFAULT_ICON, ws: 'folderOpen', creations: 'shapes', auto: 'zap', skills: 'sparkles', plug: 'plug' }
+/** What the person gave Kaby (the kybernos-kaby-customisation bundle): { name, portrait: { url } | null } or null when that bundle is not there. */
+const kbKabyMe = () => {
+  try {
+    const k = window.__KB_KABY__
+    const p = k !== undefined && k !== null && typeof k.profile === 'function' ? k.profile() : null
+    return p !== null && p !== undefined && typeof p.name === 'string' && p.name !== '' ? p : null
+  } catch (e) { return null }
+}
 const kbMenuIcon = (rowKey, fallback, on) => {
   try {
     const reg = (typeof window !== 'undefined') ? window.__KB_ICONSETS__ : null
@@ -6409,7 +6429,43 @@ const kbFmtWhen = (iso, tz) => {
   return p(d.getDate()) + '/' + p(d.getMonth() + 1) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes())
 }
 // A list from the host, without anything that is not an automation (a null entry used to crash the page).
-const kbTasksList = (raw) => (Array.isArray(raw) === true ? raw.filter((x) => x !== null && typeof x === 'object' && Array.isArray(x) === false) : [])
+// A suggestion (switched off and flagged by the host, waiting for Add) is not an automation of the list yet: `kbTasksList(raw)` leaves it out, `kbTasksList(raw, true)` is only the suggestions.
+const kbTasksList = (raw, suggested) => (Array.isArray(raw) === true ? raw.filter((x) => x !== null && typeof x === 'object' && Array.isArray(x) === false && (x.suggested === true) === (suggested === true)) : [])
+const kbSuggestedList = (raw) => kbTasksList(raw, true)
+// The session of the latest run of each automation: [{ id, sid }], to know which ones are working now.
+const kbTasksLastSessions = (raw) => {
+  const out = []
+  for (const t of kbTasksList(raw)) {
+    const hist = Array.isArray(t.history) === true ? t.history : []
+    const last = hist.length > 0 ? hist[hist.length - 1] : null
+    if (typeof t.id === 'string' && last !== null && typeof last === 'object' && typeof last.sessionId === 'string' && last.sessionId !== '') out.push({ id: t.id, sid: last.sessionId })
+  }
+  return out
+}
+// The ids of the automations whose latest run is working now (`byId`: the sessions list's rows, `running: true`).
+const kbTasksRunningIds = (pairs, byId) => (byId === null || typeof byId !== 'object' ? [] : (Array.isArray(pairs) === true ? pairs : []).filter((e) => Object.prototype.hasOwnProperty.call(byId, e.sid) === true && byId[e.sid] !== null && typeof byId[e.sid] === 'object' && byId[e.sid].running === true).map((e) => e.id))
+// The apps the automations ask for: { slug: [names of the automations] }, from the suggestions and from the ones that are switched on.
+const kbTasksNeeds = (raw) => {
+  const out = {}
+  for (const t of (Array.isArray(raw) === true ? raw : []).filter((x) => x !== null && typeof x === 'object' && Array.isArray(x) === false && (x.suggested === true || x.active === true))) {
+    for (const slug of (Array.isArray(t.needs) === true ? t.needs : [])) {
+      if (typeof slug !== 'string' || slug === '') continue
+      if (out[slug] === undefined) out[slug] = []
+      if (typeof t.name === 'string' && out[slug].indexOf(t.name) < 0) out[slug].push(t.name)
+    }
+  }
+  return out
+}
+// What a suggestion shows under its name: the proof the host kept (a count, a period, where it was seen) and its note.
+const kbSuggestionMeta = (t) => {
+  const pr = t !== null && typeof t === 'object' && t.origin !== null && typeof t.origin === 'object' && t.origin.proof !== null && typeof t.origin.proof === 'object' ? t.origin.proof : null
+  if (pr === null) return { line: '', note: '' }
+  const parts = []
+  if (Number.isFinite(pr.n) === true) parts.push(String(pr.n) + '\u00d7')
+  if (typeof pr.span === 'string' && pr.span !== '') parts.push(pr.span)
+  if (typeof pr.where === 'string' && pr.where !== '') parts.push(pr.where)
+  return { line: parts.join(' \u00b7 '), note: typeof pr.note === 'string' ? pr.note : '' }
+}
 // What an exported file holds: the definition of the automation, never its webhook secret or its history.
 const kbExportTask = (t) => {
   const out = {}
@@ -7852,6 +7908,7 @@ const CSS = `
 .kb4-ico{flex:none;width:1.25em;height:1.25em;display:flex;align-items:center;justify-content:center}
 .kb4-isvg{display:inline-flex;width:1.25em;height:1.25em;color:var(--dsw-alias-label-secondary)}
 .kb4-isvg svg{display:block}
+.kb4-kabyav{width:1.25em;height:1.25em;border-radius:50%;object-fit:cover;display:block}
 .kb4-lab{flex:1;text-align:left}
 .kb4-dot{width:8px;height:8px;border-radius:50%;flex:none;margin-inline-start:6px;background:var(--dsw-alias-brand-primary)}
 .kb4-badge{font-size:.95em;color:var(--dsw-alias-label-secondary);font-variant-numeric:tabular-nums}
@@ -21744,7 +21801,7 @@ function renderFit(canvas, model, cam, opts){
       // Keeps the badge of the Automations row in the sidebar up to date (silent when the host is absent).
       const kbLoadTasksCnt = () => {
         host.call('kybers/tasks', { action: 'list' }).then((res) => {
-          if (res !== null && res !== undefined && res.ok === true && Array.isArray(res.tasks) === true) KB_TASKS_COUNT = kbTasksList(res.tasks).length
+          if (res !== null && res !== undefined && res.ok === true && Array.isArray(res.tasks) === true) kbPublishTasks(res.tasks)
         }).catch(() => { /* old host without the route */ })
       }
       React.useEffect(() => { kbLoadTasksCnt(); return undefined }, [])
@@ -22299,6 +22356,29 @@ function renderFit(canvas, model, cam, opts){
     }
     // ── Automations : compte réel partagé (barre latérale + page) ───────────
     let KB_TASKS_COUNT = null
+    // What the sidebar rows show about the work around them: a ring that turns while something works, a dot that pulses while something waits for the person.
+    // Pages and background watchers publish, the rows draw. `window.__KB_MENU_STATE__` lets the other bundles publish too (Connectors, Dashboards).
+    const KB_MENU_STATE = (() => {
+      const vals = {}
+      const subs = new Set()
+      const api = {
+        get: (k) => (vals[k] !== undefined ? vals[k] : null),
+        set: (k, v) => {
+          if (JSON.stringify(vals[k]) === JSON.stringify(v)) return
+          vals[k] = v
+          subs.forEach((f) => { try { f() } catch (e) { /* a row that is gone */ } })
+        },
+        subscribe: (f) => { subs.add(f); return () => { subs.delete(f) } },
+      }
+      try { window.__KB_MENU_STATE__ = api } catch (e) { /* no window */ }
+      return api
+    })()
+    // The Automations count and the number of suggestions waiting, from the host's list.
+    const kbPublishTasks = (raw) => {
+      KB_TASKS_COUNT = kbTasksList(raw).length
+      const prev = KB_MENU_STATE.get('tasks')
+      KB_MENU_STATE.set('tasks', Object.assign({}, prev !== null ? prev : {}, { count: KB_TASKS_COUNT, review: kbSuggestedList(raw).length, needs: kbTasksNeeds(raw) }))
+    }
     // Requests in flight, so a double click never starts the same action twice.
     const kbActInflight = {}
     let kbHookBusy = false
@@ -23402,6 +23482,9 @@ function renderFit(canvas, model, cam, opts){
       const setGuide = guidePair[1]
       const deadRef = React.useRef(false)
       const msgTimer = React.useRef(null)
+      // Redraws when the menu's watcher learns that a run started or ended.
+      const menuBump = React.useState(0)[1]
+      React.useEffect(() => KB_MENU_STATE.subscribe(() => menuBump((n) => n + 1)), [])
       const toast = (m) => {
         setMsg(m)
         try { if (msgTimer.current !== null) clearTimeout(msgTimer.current) } catch (e) { /* timer */ }
@@ -23415,7 +23498,7 @@ function renderFit(canvas, model, cam, opts){
             const list = Array.isArray(r.tasks) === true ? r.tasks : []
             setTasks(list)
             setLoadErr(null)
-            KB_TASKS_COUNT = kbTasksList(list).length
+            kbPublishTasks(list)
           } else setLoadErr(r !== null && r !== undefined && typeof r.error === 'string' ? kbTaskError(r.error, kbt) : 'HTTP error')
         } catch (e) { setLoadErr(errText(e)) /* the next poll retries */ }
       }
@@ -23429,7 +23512,7 @@ function renderFit(canvas, model, cam, opts){
           if (r === null || r === undefined || r.ok !== true || Array.isArray(r.tasks) !== true) { setLoadErr(r !== null && r !== undefined && typeof r.error === 'string' ? kbTaskError(r.error, kbt) : 'HTTP error'); return }
           setTasks(r.tasks)
           setLoadErr(null)
-          KB_TASKS_COUNT = kbTasksList(r.tasks).length
+          kbPublishTasks(r.tasks)
           for (const t of r.tasks) {
             if (t === null || typeof t !== 'object' || t.pendingFire !== true) continue
             try {
@@ -23456,6 +23539,7 @@ function renderFit(canvas, model, cam, opts){
           if (r !== null && r !== undefined && r.ok === true) {
             if (action === 'run-now') toast(r.queued === true ? kbt('tasks.queued') : kbt('tasks.ran'))
             if (action === 'delete') toast(kbt('tasks.deleted'))
+            if (action === 'accept') toast(kbt('tasks.sug.added'))
             if (action === 'update') toast(kbt('tasks.interpreted'))
           } else if (r !== null && r !== undefined && typeof r.error === 'string') toast(kbTaskError(r.error, kbt))
         } catch (e) { toast(String((e !== null && typeof e === 'object' && e.message !== undefined) ? e.message : e)) }
@@ -23507,6 +23591,8 @@ function renderFit(canvas, model, cam, opts){
       }
 
       const list = kbTasksList(tasks)
+      const sug = kbSuggestedList(tasks)
+      const runIds = (KB_MENU_STATE.get('tasks') !== null && Array.isArray(KB_MENU_STATE.get('tasks').ids) === true) ? KB_MENU_STATE.get('tasks').ids : []
       const askDelete = (id, name) => setConfirm({
         title: kbt('tasks.delete.title').replace('{name}', String(name)),
         body: kbt('tasks.delete.body'),
@@ -23542,7 +23628,8 @@ function renderFit(canvas, model, cam, opts){
         const failed = last !== null && last.status === 'error'
         let lastLabel = kbt('tasks.no.session')
         let lastCls = ''
-        if (t.active === false) { lastLabel = kbt('tasks.paused'); lastCls = '' }
+        if (runIds.indexOf(t.id) >= 0) { lastLabel = kbt('tasks.board.chip.running'); lastCls = 'run' }
+        else if (t.active === false) { lastLabel = kbt('tasks.paused'); lastCls = '' }
         else if (failed) { lastLabel = kbt('tasks.failed.at').replace('{when}', kbWhenOf(last.at)); lastCls = 'fail' }
         else if (t.lastRun !== null && t.lastRun !== undefined) { lastLabel = kbWhenOf(t.lastRun) + ' \u00b7 ok'; lastCls = 'ok' }
         const parts = kbTriggerParts(t, kbt, kbBoardLocale(), kbMachineTz())
@@ -23551,6 +23638,20 @@ function renderFit(canvas, model, cam, opts){
           sessions: hist.length, succ: kbRunBars(t.history), lastLabel: lastLabel, lastCls: lastCls, failed: failed === true || t.pendingFire === true, _t: t,
         }
       })
+      // The suggestions waiting for Add, in a dashed card above the list, in every view: the same look as the suggested skills.
+      const sugRow = (t) => {
+        const meta = kbSuggestionMeta(t)
+        const trig = kbTriggerParts(t, kbt, kbBoardLocale(), kbMachineTz())
+        return h('div', { key: t.id, className: 'kba-sugrow', 'data-kb': 'suggested-row' },
+          h('div', { className: 'kba-sugmain' },
+            h('div', { className: 'kba-sugname' }, h('span', { className: 'kb-ping', 'aria-hidden': 'true' }), h('span', { className: 'kba-ell', title: t.name }, t.name), h('span', { className: 'kba-sugchip' }, kbt('tasks.sug.chip'))),
+            h('span', { className: 'kba-sugmeta', title: meta.note !== '' ? meta.note : undefined }, kbt('tasks.sug.by') + (meta.line !== '' ? ' \u00b7 ' + meta.line : '') + ' \u00b7 ' + trig.label)),
+          h('div', { className: 'kba-sugacts' },
+            h('button', { type: 'button', className: 'kb8-primary kba-sugbtn', 'data-kb': 'suggested-add', onClick: () => act('accept', t.id) }, kbt('tasks.sug.add')),
+            h('button', { type: 'button', className: 'kb-task-btn kba-sugbtn', 'data-kb': 'suggested-edit', onClick: () => { setDetail(t.id); setTab('flow'); setNodeSel(null) } }, kbt('tasks.sug.edit')),
+            h('button', { type: 'button', className: 'kb-task-btn kba-sugbtn', 'data-kb': 'suggested-discard', onClick: () => act('delete', t.id) }, kbt('tasks.sug.discard'))))
+      }
+      const sugEl = (section === 'yours' && sug.length > 0) ? h('div', { className: 'kba-card kba-lcard kba-sugcard', 'data-kb': 'suggested-block', role: 'region', 'aria-label': kbt('tasks.sug.title') }, sug.map(sugRow)) : null
       const activeCount = items.filter((a) => a.active === true).length
       const attentionCount = items.filter((a) => a.failed === true).length
       const auFavOf = (a) => kbFavOn(auFavs, 'automations', a.id) === true
@@ -23605,7 +23706,7 @@ function renderFit(canvas, model, cam, opts){
         return r * (autoDir === 'asc' ? 1 : -1)
       })
 
-      const t = (detail !== null) ? list.filter((x) => x === detail || x.id === detail)[0] || null : null
+      const t = (detail !== null) ? list.concat(sug).filter((x) => x === detail || x.id === detail)[0] || null : null
       const wfSums = kbUseRunSums(t !== null ? t.history : null, 5)
       const wfUses = kbRunUses(t !== null ? t.history : null, wfSums, 5)
       const appLogos = kbUseAppLogos()
@@ -23942,6 +24043,7 @@ function renderFit(canvas, model, cam, opts){
         // (compteurs sur la liste complète), Favoris devient l'étoile de la
         // barre. Trois vues (Colonnes, Calendrier, Liste) : la Liste est l'écran d'origine, inchangé ; les deux autres
         // sont le tableau (KbAutoBoard) et partagent la recherche, les facettes et les favoris de la barre.
+        sugEl,
         (section === 'discover' ? h(KbDiscover, { onUse: useTemplate }) : kbListState(tasks, loadErr) === 'loading' ? (boardView === 'list' ? kbaSkeleton() : kbBoardSkeleton(boardView)) : kbListState(tasks, loadErr) === 'error' ? kbaLoadError() : (list.length === 0 || filtered.length === 0)
           ? (list.length === 0
             ? kbaOnboard(false)
@@ -23952,7 +24054,7 @@ function renderFit(canvas, model, cam, opts){
               h('button', { type: 'button', className: 'kba-rowbtn', onClick: () => { setDetail(a.id); setTab('flow'); setNodeSel(null) } },
                 h('span', { className: 'kba-namecell' }, h('span', { className: 'kba-name', title: a.name }, a.name), h('span', { className: 'kba-team', title: a.team }, a.team)),
                 h('span', { className: 'kba-trgcell' }, h('span', { className: 'kba-trigger-icon' }, Icon('zap', 12)), h('span', { className: 'kba-trg-stack' }, h('span', { className: 'kba-ell', title: a.tip !== '' ? a.trigger + ' · ' + a.tip : a.trigger }, a.trigger), a.hooked === true ? h('span', { className: 'kba-team' }, kbt('tasks.trigger.plushook')) : null)),
-                h('span', { className: 'kba-last' + (a.lastCls !== '' ? ' ' + a.lastCls : '') }, h('span', { className: 'kba-kdot ' + a.lastCls }), h('span', { className: 'kba-ell', title: a.lastLabel }, a.lastLabel)),
+                h('span', { className: 'kba-last' + (a.lastCls !== '' ? ' ' + a.lastCls : '') }, a.lastCls === 'run' ? h('span', { className: 'kb-spin', role: 'status', 'aria-label': a.lastLabel }) : h('span', { className: 'kba-kdot ' + a.lastCls }), h('span', { className: 'kba-ell', title: a.lastLabel }, a.lastLabel)),
                 h('span', { className: 'kba-succ', 'data-kb': 'row-success' },
                   (a.succ.pct === null ? h('span', { className: 'kba-ell' }, '\u2014') : h('span', { className: 'kba-pct ' + (a.succ.pct >= 95 ? 'g' : (a.succ.pct >= 85 ? 'a' : 'r')) }, String(a.succ.pct) + '%')),
                   h('span', { className: 'kba-bars', 'aria-hidden': 'true' }, a.succ.bars.map((b, i) => h('i', { key: i, className: b === 'bad' ? 'x' : '' })))),
@@ -26976,6 +27078,48 @@ function renderFit(canvas, model, cam, opts){
       return 'panel'
     }
     // </kb-menu-active>
+    // The sign next to a menu row: a ring that turns while something works, a dot that pulses while something waits for the person (and a number for what is to connect).
+    const KbRowState = (props) => {
+      const bump = React.useState(0)[1]
+      React.useEffect(() => KB_MENU_STATE.subscribe(() => bump((n) => n + 1)), [])
+      const v = KB_MENU_STATE.get(props.k)
+      if (v === null || (v.running !== true && !(v.review > 0) && !(v.need > 0))) return null
+      return h('span', { className: 'kb-rowstate' },
+        v.running === true ? h('span', { className: 'kb-spin', role: 'status', 'aria-label': kbt('menu.working') }) : null,
+        v.review > 0 ? h('span', { className: 'kb-ping', role: 'img', 'aria-label': kbt('menu.review') }) : null,
+        v.need > 0 ? h('span', { className: 'kb-ping', role: 'img', 'aria-label': kbt('menu.connect') }) : null,
+        v.need > 0 ? h('span', { className: 'kb4-badge' }, String(v.need)) : null)
+    }
+    // Watches the automations from the menu, which is always on screen: their count, the suggestions waiting, and whether one is working now
+    // (the latest run's session, read from the sessions list the menu already follows). The Automations page reads the same state.
+    const useKbTasksWatch = (uss) => {
+      const pairsState = React.useState([])
+      const pairs = pairsState[0]
+      React.useEffect(() => {
+        let dead = false
+        const pull = () => {
+          try {
+            host.call('kybers/tasks', { action: 'list' }).then((res) => {
+              if (dead === true || res === null || res === undefined || res.ok !== true || Array.isArray(res.tasks) !== true) return
+              kbPublishTasks(res.tasks)
+              pairsState[1](kbTasksLastSessions(res.tasks))
+            }).catch(() => { /* an old host without the route */ })
+          } catch (e) { /* no host */ }
+        }
+        pull()
+        const iv = setInterval(pull, 20000)
+        return () => { dead = true; clearInterval(iv) }
+      }, [])
+      // The hook is called at EVERY render (a hook called only once there are runs to look at changes the hook count between two renders and React throws, which took the whole menu down):
+      // with nothing to look at, the selector answers an empty string.
+      const runningKey = (typeof uss === 'function')
+        ? uss((st) => (pairs.length === 0 ? '' : kbTasksRunningIds(pairs, st !== null && st !== undefined ? st.byId : null).join(',')))
+        : ''
+      React.useEffect(() => {
+        const prev = KB_MENU_STATE.get('tasks')
+        KB_MENU_STATE.set('tasks', Object.assign({}, prev !== null ? prev : {}, { running: runningKey !== '', ids: runningKey === '' ? [] : runningKey.split(',') }))
+      }, [runningKey])
+    }
     const SalesMenu = (p0) => {
       const s = useStore()
       // A change of menu icon set redraws the rows (the registry is read at render).
@@ -27003,12 +27147,14 @@ function renderFit(canvas, model, cam, opts){
       const kabyPair = React.useState(0)
       React.useEffect(() => {
         const onKaby = () => kabyPair[1]((n) => n + 1)
-        try { window.addEventListener('kb-kyby-session', onKaby) } catch (e) { return undefined }
-        return () => { try { window.removeEventListener('kb-kyby-session', onKaby) } catch (e) { /* gone */ } }
+        // `kb-kaby-profile`: the name or the portrait the person gave Kaby changed (kybernos-kaby-customisation).
+        try { window.addEventListener('kb-kyby-session', onKaby); window.addEventListener('kb-kaby-profile', onKaby) } catch (e) { return undefined }
+        return () => { try { window.removeEventListener('kb-kyby-session', onKaby); window.removeEventListener('kb-kaby-profile', onKaby) } catch (e) { /* gone */ } }
       }, [])
       let kabyChat = false
       try { kabyChat = typeof curSid === 'string' && window.__KB_KYBER__ !== undefined && typeof window.__KB_KYBER__.isKybySession === 'function' && window.__KB_KYBER__.isKybySession(curSid) === true } catch (e) { kabyChat = false }
       const shown = kbMenuShown(panelId, s.view, kabyChat)
+      const kabyMe = kbKabyMe()
       const canPanel = layoutSvc !== undefined && layoutSvc !== null && typeof layoutSvc.selectPanel === 'function'
       const teams = kbTeams(s.data)
       const sel = kbSelectedTeam(s.data)
@@ -27065,11 +27211,17 @@ function renderFit(canvas, model, cam, opts){
       }
       // In the icon rail the label is hidden: the row names itself (a screen reader, and a tooltip of its own, instead of the
       // group's « Kybernos » for all eight pages).
-      const row = (id, ico, dflt, badge, active, onClick, extra) => { const label = kbDomainLabel(id) !== null ? kbDomainLabel(id) : dflt; return h('button', { type: 'button', key: id, className: 'kb4-item' + (active === true ? ' on' : ''), 'aria-label': label, title: label, onClick },
-        h('span', { className: 'kb4-ico' }, kbMenuIcon(id, ico, active === true)), h('span', { className: 'kb4-lab' }, label),
+      const row = (id, ico, dflt, badge, active, onClick, extra) => {
+        // Kaby's row carries what the person gave it (kybernos-kaby-customisation): its name over the domain's word, its portrait over the icon.
+        const kabyOwn = id === 'kyber' && kabyMe !== null
+        const label = kabyOwn ? kabyMe.name : (kbDomainLabel(id) !== null ? kbDomainLabel(id) : dflt)
+        const iconNode = kabyOwn && kabyMe.portrait !== null ? h('img', { className: 'kb4-kabyav', src: kabyMe.portrait.url, alt: '', 'data-kb': 'kb-kaby-row-portrait' }) : kbMenuIcon(id, ico, active === true)
+        return h('button', { type: 'button', key: id, className: 'kb4-item' + (active === true ? ' on' : ''), 'aria-label': label, title: label, onClick },
+        h('span', { className: 'kb4-ico' }, iconNode), h('span', { className: 'kb4-lab' }, label),
         (badge !== null && badge !== undefined && badge > 0) ? h('span', { className: 'kb4-badge' }, String(badge)) : null,
         (extra === undefined ? null : extra)) }
       const ncCloud = useNcCloud()
+      useKbTasksWatch(uss)
       const openPage = (patch) => { set(patch); try { if (canPanel === true) layoutSvc.selectPanel('kybers') } catch (e) { } if (state.data === null && state.loading === false) load() }
       // Le popover recouvre le contenu : il se ferme au clic extérieur et à Échap.
       React.useEffect(() => {
@@ -27128,7 +27280,7 @@ function renderFit(canvas, model, cam, opts){
           if (opened === null || typeof opened.then !== 'function') { openPage({ view: 'kyber' }); return }
           opened.then((ok) => { if (ok !== true) openPage({ view: 'kyber' }) }).catch(() => openPage({ view: 'kyber' }))
         }) : null),
-        (KB_DB === true ? row('dashboards', Icon('layoutDashboard', 15), kbt('kbui.dashboards'), null, shown === 'dashboards', () => openPage({ view: 'dashboards' })) : null),
+        (KB_DB === true ? row('dashboards', Icon('layoutDashboard', 15), kbt('kbui.dashboards'), null, shown === 'dashboards', () => openPage({ view: 'dashboards' }), h(KbRowState, { k: 'dashboards' })) : null),
         // Search everywhere (kybernos-search) is no longer a menu row: its icon sits at the top of the sidebar, next to « Collapse », and ⌘K opens it.
         row('aiteams', Icon(KB_DEFAULT_ICON, 15), kbt('menu.aiteams'), c.kybers, shown === 'kybers' || shown === 'gallery' || shown === 'teamnew' || shown === 'teamedit' || shown === 'teaminfo' || shown === 'detail' || shown === 'marketplace' || shown === undefined || shown === null, () => openPage({ nav: 'kybers', view: 'gallery', detailPath: null, detailRoot: null })),
         // Runs n'est plus ici : c'est un onglet de conversation, à côté de
@@ -27137,9 +27289,9 @@ function renderFit(canvas, model, cam, opts){
         row('deliverables', Icon('shapes', 15), kbt('menu.deliverables'), arts.length, shown === 'artifacts' || shown === 'artview', () => openPage({ view: 'artifacts' })),
         // « Mon espace » retiré du menu (demande du 26/09/2026) : la page et sa
         // section Réglages restent en place, seule l'entrée de la barre disparaît.
-        row('tasks', Icon('zap', 15), kbt('menu.tasks'), (KB_TASKS_COUNT !== null && KB_TASKS_COUNT !== undefined) ? KB_TASKS_COUNT : 0, shown === 'tasks', () => openPage({ view: 'tasks' })),
+        row('tasks', Icon('zap', 15), kbt('menu.tasks'), (KB_TASKS_COUNT !== null && KB_TASKS_COUNT !== undefined) ? KB_TASKS_COUNT : 0, shown === 'tasks', () => openPage({ view: 'tasks' }), h(KbRowState, { k: 'tasks' })),
         row('skills', Icon('sparkles', 15), kbt('kbui.skills'), c.skills, shown === 'skills', () => openPage({ view: 'skills' }), h(KbLearnedDot)),
-        (KB_CP === true ? row('connectors', Icon('plug', 15), kbt('kbui.connecteurs'), 0, shown === 'connectors', () => openPage({ view: 'connectors' })) : null),
+        (KB_CP === true ? row('connectors', Icon('plug', 15), kbt('kbui.connecteurs'), 0, shown === 'connectors', () => openPage({ view: 'connectors' }), h(KbRowState, { k: 'connectors' })) : null),
         (KB_SHOW_DOCS === true && kbDomainHides('documents') === false ? row('documents', Icon('fileText', 15), kbt('kbui.documents'), c.docs, shown === 'documents', () => openPage({ view: 'documents' })) : null),
         // ── Barre de progression des objectifs ──────────────────────────
         h(KbProgressBar, null),
@@ -32161,6 +32313,26 @@ button.kbbd-chip:hover{background:var(--dsw-alias-interactive-bg-hover,#f0f0f0)}
 .kbbd-when{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--dsw-alias-label-tertiary,#777);font-variant-numeric:tabular-nums}
 .kbbd-pulse{width:7px;height:7px;border-radius:50%;background:var(--dsw-alias-state-business-primary,#175cd3);display:inline-block;animation:kbbdPulse 1.4s ease-in-out infinite}
 @keyframes kbbdPulse{50%{opacity:.35}}
+/* The two signs of the menu and the lists: a ring that turns while something works, a dot that pulses while something waits for a review. */
+.kb-spin{display:inline-block;width:13px;height:13px;border-radius:50%;border:2px solid var(--dsw-alias-border-l2,#ccc);border-top-color:var(--dsw-alias-state-business-primary,#175cd3);animation:kbSpin .9s linear infinite;flex:none;vertical-align:-2px}
+@keyframes kbSpin{to{transform:rotate(360deg)}}
+.kb-ping{position:relative;display:inline-block;width:8px;height:8px;margin:0 6px;border-radius:50%;background:var(--dsw-alias-state-business-primary,#175cd3);flex:none}
+.kb-ping::after{content:"";position:absolute;inset:-4px;border-radius:50%;border:2px solid var(--dsw-alias-state-business-primary,#175cd3);opacity:.7;animation:kbPing 1.6s ease-out infinite}
+@keyframes kbPing{0%{transform:scale(.55);opacity:.85}100%{transform:scale(1.5);opacity:0}}
+.kb-rowstate{display:inline-flex;align-items:center;gap:4px;margin-inline-start:6px}
+.kba-last.run{color:var(--dsw-alias-label-primary)}
+/* The suggested automations: a dashed card above the list, as the suggested skills. */
+.kba-card.kba-sugcard{border-style:dashed;border-color:color-mix(in srgb,var(--dsw-alias-brand-primary) 55%,var(--dsw-alias-border-l1));background:color-mix(in srgb,var(--dsw-alias-brand-primary) 4%,var(--dsw-alias-bg-layer-1))}
+.kba-sugrow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 14px;align-items:center;padding:12px 16px;border-top:1px dashed var(--dsw-alias-border-l1)}
+.kba-sugrow:first-child{border-top:0}
+.kba-sugmain{min-width:0}
+.kba-sugname{display:flex;align-items:center;gap:6px;font-weight:600;font-size:14px;min-width:0}
+.kba-sugname .kb-ping{margin:0 8px 0 2px}
+.kba-sugchip{font-size:11.5px;font-weight:600;padding:1px 8px;border-radius:99px;background:color-mix(in srgb,var(--dsw-alias-brand-primary) 12%,transparent);color:var(--dsw-alias-brand-primary);white-space:nowrap}
+.kba-sugmeta{display:block;margin-top:2px;font-size:12.5px;color:var(--dsw-alias-label-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kba-sugacts{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.kba-sugbtn{height:30px;padding:0 12px;font-size:12.5px;border-radius:9px}
+@media (max-width:640px){.kba-sugrow{grid-template-columns:minmax(0,1fr)}.kba-sugacts{justify-content:flex-start}.kba-sugmeta{white-space:normal}}
 .kbbd-emptycol{padding:14px 8px;text-align:center;font-size:12.5px;color:var(--dsw-alias-label-tertiary,#777)}
 .kbbd-note{display:flex;gap:6px;align-items:flex-start;padding:6px 8px;font-size:12px;color:var(--dsw-alias-state-warn-primary,#b54708)}
 .kbbd-note span{color:var(--dsw-alias-label-secondary,#555);min-width:0;overflow-wrap:anywhere}
@@ -32216,7 +32388,7 @@ button.kbbd-chip:hover{background:var(--dsw-alias-interactive-bg-hover,#f0f0f0)}
 .kbbd-detail-acts{display:flex;gap:6px;flex-wrap:wrap}
 .kb6-tb-vbtn.lab{width:auto;padding:0 12px;gap:6px;font:inherit;font-size:12.5px}
 .kb6-tb-vlab{white-space:nowrap}
-@media (prefers-reduced-motion:reduce){.kbbd-pulse{animation:none}}
+@media (prefers-reduced-motion:reduce){.kbbd-pulse{animation:none}.kb-spin{animation:none;border-color:var(--dsw-alias-state-business-primary,#175cd3) var(--dsw-alias-state-business-primary,#175cd3) var(--dsw-alias-border-l2,#ccc) var(--dsw-alias-border-l2,#ccc)}.kb-ping::after{animation:none;transform:none;opacity:.5}}
 @media (max-width:1000px){.kbbd-cols{grid-template-columns:repeat(2,minmax(0,1fr))}.kbbd-week{grid-template-columns:repeat(2,minmax(0,1fr))}.kbbd-day{min-height:0}}
 @media (max-width:640px){
   .kbbd-cols,.kbbd-week{grid-template-columns:minmax(0,1fr)}
@@ -32869,6 +33041,14 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
 .kbfc-th-at{--cv-bg:#FBF8F3;--cv-dot:#EADFD0;--nd-bg:#FFFFFF;--nd-line:#E2D8C8;--nd-ink:#2E2418;--nd-sub:#8A7C69;--wire:#8A7C69;--wire-dim:#E0D6C6;--chip:#F5EFE5;--lbl:#FBF8F3}
 .kbfc-th-jy{--cv-bg:#FAFAFA;--cv-dot:transparent;--nd-bg:#FFFFFF;--nd-line:#ECECEC;--nd-ink:#1F1F1F;--nd-sub:#777777;--wire:#4A4A4A;--wire-dim:#D4D4D4;--chip:#F4F4F4;--lbl:#FFFFFF}
 .kbfc-th-mx{--cv-bg:#E9EFF3;--cv-dot:#C7D2DA;--nd-bg:#FFFFFF;--nd-line:#E1E7EC;--nd-ink:#15191D;--nd-sub:#6B7680;--wire:#3FBF7F;--wire-dim:#BFD0C8;--chip:#F1F4F6;--lbl:#FFFFFF}
+/* The light styles keep their look in a dark app: each has a dark twin (same character, same wire colour where it carries the style), read from the app's own scheme. « bp » is dark already. */
+html[data-kb-theme="dark"] .kbfc-th-nr{--cv-bg:#17191C;--cv-dot:#2A2E33;--nd-bg:#222B35;--nd-line:#4A6078;--nd-ink:#E6EDF4;--nd-sub:#9AA8B7;--wire:#8A98A6;--wire-dim:#3A4350;--chip:rgba(255,255,255,.08);--lbl:#1B1E22}
+html[data-kb-theme="dark"] .kbfc-th-pp{--cv-bg:#1E1B15;--cv-dot:#38322A;--nd-bg:#27231B;--nd-line:#8C7F66;--nd-ink:#EFE7D6;--nd-sub:#B3A78E;--wire:#B8A98C;--wire-dim:#4A4333;--chip:#322C22;--lbl:#1E1B15}
+html[data-kb-theme="dark"] .kbfc-th-sf{--cv-bg:#17171B;--cv-dot:#2A2A32;--nd-bg:#202026;--nd-line:#33333D;--nd-ink:#ECECF2;--nd-sub:#9A98A8;--wire:#6C6A7C;--wire-dim:#3A3A45;--chip:#2A2A33;--lbl:#26262E}
+html[data-kb-theme="dark"] .kbfc-th-lg{--cv-bg:#14171C;--cv-dot:#262B34;--nd-bg:#1D2128;--nd-line:#2E3440;--nd-ink:#EAEDF3;--nd-sub:#8E98AB;--wire:#5B9BFF;--wire-dim:#2A4470;--chip:#262B35;--lbl:#1D2128}
+html[data-kb-theme="dark"] .kbfc-th-at{--cv-bg:#1D1A16;--cv-dot:#352F27;--nd-bg:#26221C;--nd-line:#4A4236;--nd-ink:#F1E9DC;--nd-sub:#A89A86;--wire:#A89A86;--wire-dim:#463F34;--chip:#312C24;--lbl:#1D1A16}
+html[data-kb-theme="dark"] .kbfc-th-jy{--cv-bg:#161616;--cv-dot:transparent;--nd-bg:#1F1F1F;--nd-line:#2E2E2E;--nd-ink:#F2F2F2;--nd-sub:#9A9A9A;--wire:#BDBDBD;--wire-dim:#3C3C3C;--chip:#2A2A2A;--lbl:#1F1F1F}
+html[data-kb-theme="dark"] .kbfc-th-mx{--cv-bg:#141A1E;--cv-dot:#27323A;--nd-bg:#1C242A;--nd-line:#2D3A43;--nd-ink:#E7EEF2;--nd-sub:#8A99A5;--wire:#3FBF7F;--wire-dim:#2F5446;--chip:#25303A;--lbl:#1C242A}
 .kbfc-k-trg{--k:var(--dsw-alias-state-warn-primary)}
 .kbfc-k-hook{--k:var(--dsw-alias-state-warn-primary)}
 .kbfc-k-act{--k:var(--dsw-alias-state-success-primary)}
@@ -34246,7 +34426,7 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
           'ollama local models',
           'usage'
         ] },
-        { id: 'agents', titre: kbt('settings.group.agents'), pliable: true, icone: 'agent presets', mots: ['agent presets', 'workers', 'automations', 'commandes', 'commands'] },
+        { id: 'agents', titre: kbt('settings.group.agents'), pliable: true, icone: 'agent presets', mots: ['agent presets', 'kaby', 'workers', 'automations', 'commandes', 'commands'] },
         { id: 'tools', titre: kbt('settings.group.tools'), pliable: true, icone: 'tools', mots: ['skills', 'outils', 'tools', 'connectors', 'web search'] },
         { id: 'memory', titre: kbt('settings.group.memory'), pliable: true, icone: 'memory & lessons', mots: ['memory & lessons', 'learned skills', 'kybernos', 'atlas'] },
         { id: 'voice', titre: kbt('settings.group.voice'), pliable: true, icone: 'voice', mots: ['voix', 'voice', 'calls', 'appels'] },
@@ -34312,6 +34492,7 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
         // The pages the Suite's plugins add under « Third party plugins »: each its own picture instead of the shell's gear.
         'auto routing': '<path d="M16 3h5v5" ' + trait + '/><path d="M8 3H3v5" ' + trait + '/><path d="M12 22v-8.3a4 4 0 0 0-1.17-2.87L3 3" ' + trait + '/><path d="m15 9 6-6" ' + trait + '/>',
         'kybernos suite': '<path d="M19.44 7.85c-.05.32.06.65.29.88l1.57 1.57c.47.47.7 1.09.7 1.7s-.23 1.23-.7 1.7l-1.61 1.61a.98.98 0 0 1-.84.28c-.47-.07-.8-.48-.97-.93a2.5 2.5 0 1 0-3.21 3.21c.45.17.86.5.93.97a.98.98 0 0 1-.28.84l-1.61 1.61a2.4 2.4 0 0 1-1.7.7 2.4 2.4 0 0 1-1.7-.7l-1.57-1.57a1.03 1.03 0 0 0-.88-.29c-.49.07-.84.5-1.02.97a2.5 2.5 0 1 1-3.24-3.24c.46-.18.89-.53.97-1.02a1.03 1.03 0 0 0-.29-.88l-1.57-1.57A2.4 2.4 0 0 1 2 12c0-.62.24-1.23.7-1.7l1.53-1.53c.24-.24.58-.35.92-.3.52.08.88.53 1.07 1.01a2.5 2.5 0 1 0 3.26-3.26c-.48-.2-.93-.56-1.01-1.07-.05-.34.06-.68.3-.92l1.53-1.53A2.4 2.4 0 0 1 12 2c.62 0 1.23.24 1.7.7l1.57 1.57c.23.23.56.34.88.29.49-.07.84-.5 1.02-.97a2.5 2.5 0 1 1 3.24 3.24c-.46.18-.89.53-.97 1.02z" ' + trait + '/>',
+        'kaby': '<circle cx="12" cy="8" r="4" ' + trait + '/><path d="M4 21c1-4.2 4-6.5 8-6.5s7 2.3 8 6.5" ' + trait + '/>',
         'workers': '<rect x="4" y="4" width="16" height="16" rx="2" ' + trait + '/><rect x="9" y="9" width="6" height="6" rx="1" ' + trait + '/><path d="M15 2v2M15 20v2M2 15h2M2 9h2M20 15h2M20 9h2M9 2v2M9 20v2" ' + trait + '/>',
         'automations': '<path d="M13 2 4 14h7l-1 8 9-12h-7z" ' + trait + '/>',
         'skills': '<path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" ' + trait + '/><path d="M20 3v4M22 5h-4M4 17v2M5 18H3" ' + trait + '/>',
@@ -35973,11 +36154,16 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       'pv.cap.other': ['This is the space you are setting up.', 'Voilà l’espace que tu es en train de préparer.', 'Este es el espacio que estás preparando.', 'هذه هي المساحة التي تجهّزها.'],
       'k.autos': ['Automations', 'Automatisations', 'Automatizaciones', 'الأتمتة'],
       'k.autos.note': ['Created switched off: you turn each one on when you want it.', 'Créées éteintes : tu allumes chacune quand tu veux.', 'Se crean apagadas: tú enciendes cada una cuando quieras.', 'تُنشأ متوقفة: تشغّل كل واحدة عندما تريد.'],
+      'k.learn.t': ['Learn my business', 'Apprendre mon métier', 'Aprender mi negocio', 'تعلم عملي'],
+      'k.learn.d': ['An automation that runs now, then every Monday at 07:00. It reads your site; with Gmail and Calendar connected, it reads them too. It only proposes: nothing is added or switched on without your click.', 'Une automation qui s’exécute maintenant, puis chaque lundi à 07 h. Elle lit ton site ; avec Gmail et Agenda connectés, elle les lit aussi. Elle ne fait que proposer : rien n’est ajouté ni activé sans ton clic.', 'Una automatización que se ejecuta ahora y luego cada lunes a las 07:00. Lee tu sitio; con Gmail y Calendar conectados, también los lee. Solo propone: nada se añade ni se activa sin tu clic.', 'أتمتة تعمل الآن ثم كل اثنين الساعة 07:00. تقرأ موقعك، ومع ربط Gmail والتقويم تقرأهما أيضا. تقترح فقط: لا يضاف شيء ولا يفعل بدون نقرتك.'],
+      'k.learn.d.s': ['An automation that runs now, then every Monday at 07:00. It reads your site and your public profile. In your field your mail and calendar are never read: that would need a model that stays on your computer. It only proposes: nothing is added or switched on without your click.', 'Une automation qui s’exécute maintenant, puis chaque lundi à 07 h. Elle lit ton site et ton profil public. Dans ton domaine, ton mail et ton agenda ne sont jamais lus : il faudrait un modèle qui reste sur ton ordinateur. Elle ne fait que proposer : rien n’est ajouté ni activé sans ton clic.', 'Una automatización que se ejecuta ahora y luego cada lunes a las 07:00. Lee tu sitio y tu perfil público. En tu campo tu correo y tu agenda nunca se leen: haría falta un modelo que se quede en tu ordenador. Solo propone: nada se añade ni se activa sin tu clic.', 'أتمتة تعمل الآن ثم كل اثنين الساعة 07:00. تقرأ موقعك وملفك العام. في مجالك لا يقرأ بريدك ولا تقويمك أبدا: يلزم نموذج يبقى على حاسوبك. تقترح فقط: لا يضاف شيء ولا يفعل بدون نقرتك.'],
+      'k.learn.better': ['Better with Gmail and Google Calendar: you will be asked later, in Connectors.', 'Plus utile avec Gmail et Google Agenda : on te le proposera plus tard, dans Connecteurs.', 'Mejor con Gmail y Google Calendar: te lo propondremos más tarde, en Conectores.', 'أفضل مع Gmail وتقويم Google: سنقترح ذلك لاحقا في الموصلات.'],
+      'k.learn.chip': ['proposes only', 'propose seulement', 'solo propone', 'يقترح فقط'],
+      'k.learn.note': ['« Learn my business » is the one exception: it starts now, then every Monday. Everything it proposes waits for your click on the page it belongs to.', '« Apprendre mon métier » est la seule exception : elle démarre maintenant, puis chaque lundi. Tout ce qu’elle propose attend ton clic, sur la page concernée.', '« Aprender mi negocio » es la única excepción: empieza ahora y luego cada lunes. Todo lo que propone espera tu clic en la página correspondiente.', 'تعلم عملي هي الاستثناء الوحيد: تبدأ الآن ثم كل اثنين. كل ما تقترحه ينتظر نقرتك في الصفحة المعنية.'],
+      'k.sum.learn': [' · Learn my business: on', ' · Apprendre mon métier : active', ' · Aprender mi negocio: activa', ' · تعلم عملي: مفعلة'],
       'k.src.kb': ['included with Kybernos', 'fourni avec Kybernos', 'incluido con Kybernos', 'مضمّن مع Kybernos'],
       'mode.code.t': ['Coding mode', 'Mode Code', 'Modo Código', 'وضع البرمجة'],
-      'mode.code.d': ['I want to see code, command output, and change details throughout the development process.', 'Je veux voir le code, les sorties de commandes et le détail des changements tout au long du chantier.', 'Quiero ver el código, la salida de los comandos y el detalle de los cambios durante todo el trabajo.', 'أريد رؤية الشيفرة ومخرجات الأوامر وتفاصيل التغييرات طوال العمل.'],
       'mode.bureau.t': ['Office mode', 'Mode Bureau', 'Modo Oficina', 'وضع المكتب'],
-      'mode.bureau.d': ['I focus on task progress and results, without technical details.', 'Je suis l’avancement et les résultats, sans les détails techniques.', 'Sigo el avance y los resultados, sin detalles técnicos.', 'أتابع التقدّم والنتائج دون التفاصيل التقنية.'],
       'v.local.t': ['A model on this computer', 'Un modèle sur cet ordinateur', 'Un modelo en este ordenador', 'نموذج على هذا الحاسوب'],
       'free.t': ['Free models, ready to use', 'Des modèles gratuits, prêts à l’emploi', 'Modelos gratis, listos para usar', 'نماذج مجانية، جاهزة للاستخدام'],
       'free.s': ['These models are free because OpenCode may keep the prompts you send to improve them. Tick below to say you understand, then start.', 'Ces modèles sont gratuits parce qu’OpenCode peut conserver les prompts que tu envoies pour les améliorer. Coche ci-dessous pour dire que tu comprends, puis commence.', 'Estos modelos son gratis porque OpenCode puede conservar los prompts que envías para mejorarlos. Marca abajo para confirmar que lo entiendes, luego empieza.', 'هذه النماذج مجانية لأن OpenCode قد يحتفظ بالرسائل التي ترسلها لتحسينها. ضع علامة أدناه لتؤكد أنك تفهم، ثم ابدأ.'],
@@ -36274,10 +36460,16 @@ html.wv2-actif [data-composer-seat]{display:none !important}
     const kbObModeOf = (pack) => (pack !== null && pack !== undefined && KB_OB_MODES.indexOf(pack.mode) >= 0 ? pack.mode : 'bureau')
     const kbObAgentsOf = (pack) => (pack !== null && pack !== undefined && pack.agents !== null && typeof pack.agents === 'object' && KB_OB_PRESETS.indexOf(pack.agents.preset) >= 0
       ? { preset: pack.agents.preset, why: pack.agents.why !== undefined ? pack.agents.why : null } : { preset: 'balanced', why: null })
+    /** « Learn my business » (host: learn-business.mjs): its id, its names, and the fields whose mail and calendar are never read. */
+    const KB_OB_LEARN_ID = 'learn-my-business'
+    const KB_OB_LEARN_NAMES = { en: 'Learn my business', fr: 'Apprendre mon métier' }
+    const KB_OB_SENSITIVE = ['droit', 'sante']
     /** The kit of a field for some goals: their skills and teams, each once, in the goals' order, and what is planned. Empty for no pack or no goal. */
     const kbObKitOf = (pack, goalIds) => {
-      const kit = { skills: [], teams: [], autos: [], soon: [] }
+      const kit = { skills: [], teams: [], autos: [], soon: [], learn: null }
       const seen = {}
+      // « Learn my business » is offered with every field once a goal is ticked: it is not one of the pack's own automations (those are created switched off).
+      if (pack !== null && pack !== undefined && kbObGoalsOf(pack, goalIds).length > 0) kit.learn = { id: KB_OB_LEARN_ID, sensitive: KB_OB_SENSITIVE.indexOf(pack.id) >= 0 }
       for (const g of kbObGoalsOf(pack, goalIds)) {
         for (const x of Array.isArray(g.skills) ? g.skills : []) if (seen['s ' + x.source + ' ' + x.name] !== true) { seen['s ' + x.source + ' ' + x.name] = true; kit.skills.push(x) }
         for (const id of Array.isArray(g.teams) ? g.teams : []) if (seen['t ' + id] !== true) { seen['t ' + id] = true; kit.teams.push(id) }
@@ -36405,6 +36597,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       return kit.skills.filter((s) => skills.indexOf(s.name) < 0).map((s) => 's:' + s.name)
         .concat(kit.teams.filter((id) => teams.indexOf(id) < 0).map((id) => 't:' + id))
         .concat((Array.isArray(kit.autos) ? kit.autos : []).filter((x) => !kbObAutoMade(x, have.autos)).map((x) => 'a:' + x.id))
+        .concat(kit.learn !== null && kit.learn !== undefined && !kbObAutoMade({ name: KB_OB_LEARN_NAMES }, have.autos) ? ['a:' + KB_OB_LEARN_ID] : [])
     }
     /** The sentence kept in the person's memory about the field, the goals and the display mode, or null when none is known. `domain` and `goals` are names. */
     const kbObMemoryText = (lang, domain, goals, mode, extra) => {
@@ -37180,6 +37373,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         for (const sk of kit.skills) if (sel.has('s:' + sk.name)) todo.push({ team: null, skill: sk })
         for (const id of kit.teams) if (sel.has('t:' + id)) todo.push({ team: id, skill: null })
         for (const x of kit.autos) if (sel.has('a:' + x.id)) todo.push({ team: null, skill: null, auto: x })
+        if (kit.learn !== null && sel.has('a:' + KB_OB_LEARN_ID)) todo.push({ team: null, skill: null, learn: kit.learn })
         if (todo.length === 0) { if (S.kitOnly) finish(); else afterKit(); return }
         S.kitBusy = { i: 0, n: todo.length }
         S.kitAdded = 0
@@ -37190,7 +37384,14 @@ html.wv2-actif [data-composer-seat]{display:none !important}
           S.kitBusy.i += 1
           render(false)
           let ok = false
-          if (item.auto !== undefined && item.auto !== null) {
+          if (item.learn !== undefined && item.learn !== null) {
+            // Made on, weekly, in its own session; the host finds it again if it exists. Started at once, so the first proposals wait on the pages by the time the person gets there.
+            let tz = ''
+            try { tz = new win.Intl.DateTimeFormat().resolvedOptions().timeZone || '' } catch (e) { tz = '' }
+            const r = await call('/kybernos/tasks', 'POST', { action: 'learn', lang: S.lang, tz: tz, fieldId: S.domain, field: packName(curPack()), goals: kbObGoalsOf(curPack(), S.goals).map((g) => kbObPackText(S.lang, g.name)), about: { site: S.site.trim(), profile: S.social.trim(), words: S.words.trim() } })
+            ok = r !== null && r.ok === true
+            if (ok && r.existed !== true && r.task !== null && typeof r.task === 'object' && typeof r.task.id === 'string') await call('/kybernos/tasks', 'POST', { action: 'run-now', id: r.task.id })
+          } else if (item.auto !== undefined && item.auto !== null) {
             // Created switched off, to run on the schedule the person turns on (approvals stay on « ask »).
             const r = await call('/kybernos/tasks', 'POST', { action: 'create', task: { name: kbObPackText(S.lang, item.auto.name), prompt: kbObPackText(S.lang, item.auto.prompt), schedule: { mode: 'cron', cron: item.auto.cron }, active: false, approvals: 'ask' } })
             ok = r !== null && r.ok === true
@@ -37624,28 +37825,14 @@ html.wv2-actif [data-composer-seat]{display:none !important}
           }
           const kit = curKit()
           const teams = kit.teams.map((id) => KB_MARKET_TEAMS.find((t) => t.id === id)).filter((t) => t !== undefined)
-          // First run: the display mode as one row (it follows the field), the kit as one line whose list is one tap away.
+          // First run: the kit as one line whose list is one tap away. The display mode is not asked here: the field decides it (Development opens in coding mode, every other
+          // field in office mode, see the pack's `mode`), and it stays one switch away in Settings.
           if (!S.kitOnly) {
             if (S.mode === null) S.mode = 'bureau'
-            const dr = h('div', 'kb-ob-rw')
-            dr.appendChild(h('span', 'kb-ob-rl', T('fin.mode')))
-            const seg = h('div', 'kb-ob-seg')
-            seg.setAttribute('role', 'radiogroup')
-            for (const id of KB_OB_MODES) {
-              const b = h('button', S.mode === id ? 'on' : null, T('mode.' + id + '.t'))
-              b.type = 'button'
-              b.setAttribute('role', 'radio')
-              b.setAttribute('aria-checked', S.mode === id ? 'true' : 'false')
-              b.title = T('mode.' + id + '.d')
-              b.addEventListener('click', () => { S.mode = id; S.modeTouched = true; render(false) })
-              seg.appendChild(b)
-            }
-            dr.appendChild(seg)
-            s.appendChild(dr)
             const sumBtn = h('button', 'kb-ob-sumrow')
             sumBtn.type = 'button'
             sumBtn.setAttribute('aria-expanded', S.kitOpen ? 'true' : 'false')
-            sumBtn.appendChild(h('span', null, T('k.sum', { a: kit.skills.length, b: teams.length, c: kit.autos.length })))
+            sumBtn.appendChild(h('span', null, T('k.sum', { a: kit.skills.length, b: teams.length, c: kit.autos.length }) + (kit.learn !== null && kitSelection().has('a:' + KB_OB_LEARN_ID) ? T('k.sum.learn') : '')))
             sumBtn.appendChild(h('span', 'kb-ob-sumtg', S.kitOpen ? T('k.sum.close') : T('k.sum.open')))
             sumBtn.addEventListener('click', () => { S.kitOpen = !S.kitOpen; render(false) })
             s.appendChild(sumBtn)
@@ -37673,6 +37860,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
             if (meta !== '') tx.appendChild(h('span', 'kb-ob-meta', meta))
             b.appendChild(tx)
             if (done || o.soon === true) b.appendChild(h('span', 'kb-ob-chip2', done ? T('k.done') : T('k.soon')))
+            else if (typeof o.chip === 'string') b.appendChild(h('span', 'kb-ob-chip2', o.chip))
             if (!off) b.addEventListener('click', () => { if (sel.has(key)) sel.delete(key); else sel.add(key); render(false) })
             return b
           }
@@ -37693,14 +37881,16 @@ html.wv2-actif [data-composer-seat]{display:none !important}
             for (const x of kit.soon) { const name = kbObPackText(S.lang, x); tb.appendChild(kitRow('x:' + name, name, '', '', { soon: true, initials: name.slice(0, 2).toUpperCase() })) }
             s.appendChild(tb)
           }
-          if (kit.autos.length > 0) {
+          if (kit.autos.length > 0 || kit.learn !== null) {
             const ab = h('div', 'kb-ob-kitbox')
-            ab.appendChild(group('k.autos', kit.autos.length))
+            ab.appendChild(group('k.autos', kit.autos.length + (kit.learn !== null ? 1 : 0)))
             for (const x of kit.autos) ab.appendChild(kitRow('a:' + x.id, kbObPackText(S.lang, x.name), kbObCronLabel(S.lang, x.cron), '', { done: have !== null && kbObAutoMade(x, have.autos) }))
+            if (kit.learn !== null) ab.appendChild(kitRow('a:' + KB_OB_LEARN_ID, T('k.learn.t'), T(kit.learn.sensitive ? 'k.learn.d.s' : 'k.learn.d'), kit.learn.sensitive ? '' : T('k.learn.better'), { done: have !== null && kbObAutoMade({ name: KB_OB_LEARN_NAMES }, have.autos), chip: T('k.learn.chip') }))
             s.appendChild(ab)
-            s.appendChild(note(T('k.autos.note'), 'info'))
+            if (kit.autos.length > 0) s.appendChild(note(T('k.autos.note'), 'info'))
+            if (kit.learn !== null) s.appendChild(note(T('k.learn.note'), 'info'))
           }
-          if (kit.skills.length === 0 && teams.length === 0 && kit.autos.length === 0 && kit.soon.length === 0) s.appendChild(h('p', 'kb-ob-sub', S.kitOnly && S.domain === null ? T('k.pick') : T('k.empty')))
+          if (kit.skills.length === 0 && teams.length === 0 && kit.autos.length === 0 && kit.learn === null && kit.soon.length === 0) s.appendChild(h('p', 'kb-ob-sub', S.kitOnly && S.domain === null ? T('k.pick') : T('k.empty')))
           s.appendChild(note(T('k.note'), 'info'))
           }
           if (S.kitDone) {
@@ -38361,11 +38551,6 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       '.kb-ob-sum p{margin:0}',
       '.kb-ob-sum p+p{margin-top:6px}',
       '.kb-ob-sumd{font-size:13px;color:var(--ink3)}',
-      '.kb-ob-rw{display:flex;align-items:center;gap:14px;margin-top:22px;padding:10px 16px;border-radius:14px;background:var(--bg2);border:1px solid var(--line);font-size:14.5px}',
-      '.kb-ob-rl{font-weight:600;min-width:84px}',
-      '.kb-ob-seg{display:inline-flex;margin-inline-start:auto;padding:3px;border-radius:99px;border:1px solid var(--line);background:var(--bg)}',
-      '.kb-ob-seg button{border:0;background:none;padding:7px 14px;border-radius:99px;font:inherit;font-size:13px;color:var(--ink2);cursor:pointer}',
-      '.kb-ob-seg button.on{background:var(--ob-a,var(--ink));color:var(--ob-on,var(--bg));font-weight:600}',
       '.kb-ob-sumrow{display:flex;align-items:center;gap:10px;width:100%;margin-top:12px;padding:13px 16px;text-align:start;border-radius:14px;background:var(--bg2);border:1px solid var(--line);color:var(--ink);font:inherit;font-size:14.5px;cursor:pointer}',
       '.kb-ob-sumtg{margin-inline-start:auto;font-size:13px;color:var(--ink3)}',
       '.kb-ob-plans{display:grid;grid-template-columns:1fr;gap:14px;margin-top:26px}',

@@ -7,6 +7,16 @@
 
 export const ASSISTANT_NAME = 'Kaby'
 
+/**
+ * What the person calls their assistant, when it is not the product's name (the kybernos-kaby-customisation page): a short name of letters, digits, spaces and a
+ * few marks. Anything else, or the product's own name, is no alias: this text is a prompt, so a name that could carry a second line or markup never gets in.
+ */
+export const aliasOf = (raw) => {
+  const v = typeof raw === 'string' ? raw.replace(/\s+/gu, ' ').trim() : ''
+  if (v === '' || [...v].length > 24 || !/^[\p{L}\p{N} '’.-]+$/u.test(v) || v.toLowerCase() === ASSISTANT_NAME.toLowerCase()) return null
+  return v
+}
+
 /** The rules that come first, whatever the voice, the channel or the person's words say. */
 export const CORE = [
   'You are Kaby, the person\'s own assistant: you work for them, not as them. You are one assistant in several places (their computer, a cloud computer, Telegram) with one memory: use it when it helps, never invent one.',
@@ -71,7 +81,8 @@ const clip = (s, n) => dataLine(s, n)
 
 /**
  * The block for one turn.
- * @param opts { channel: 'telegram'|'phone'|'chat', body: 'computer'|'cloud', nowText: the time as a sentence, personName?, thread?: lines of the shared conversation }
+ * @param opts { channel: 'telegram'|'phone'|'chat', body: 'computer'|'cloud', nowText: the time as a sentence, personName?, thread?: lines of the shared conversation,
+ *   assistantName?: the name the person gave their assistant (see aliasOf; the product stays Kaby) }
  */
 export function identityBlock (opts = {}) {
   const channel = CHANNELS[opts.channel] ?? CHANNELS.phone
@@ -79,5 +90,8 @@ export function identityBlock (opts = {}) {
   const who = clip(opts.personName, 60)
   const situation = `Now: you are talking with ${who === '' ? 'the person' : who} on ${channel}. You are running on ${body}. ${clip(opts.nowText, 200)}`.trim()
   const thread = dataBlock('Lately in this conversation (background: use it only if the message needs it)', opts.thread)
-  return [CORE.join('\n'), VOICE.join('\n'), situation, thread].filter((part) => part !== '').join('\n\n')
+  const alias = aliasOf(opts.assistantName)
+  // With a name of its own the assistant introduces itself by it, and still knows what the product is called.
+  const core = alias === null ? CORE : [CORE[0].replace('You are Kaby, ', 'You are ' + alias + ' (the product is called Kaby), '), ...CORE.slice(1)]
+  return [core.join('\n'), VOICE.join('\n'), situation, thread].filter((part) => part !== '').join('\n\n')
 }

@@ -698,6 +698,11 @@ window.__ModuleLoader__.load({
 .kbmem-chip.warn{color:var(--m-warn);background:var(--m-warn-bg);border-color:transparent}
 .kbmem-plan{display:inline-flex;gap:4px;align-items:center;height:20px;padding:0 8px;border-radius:999px;font-size:11px;font-weight:600;color:var(--m-acc);border:1px solid var(--m-acc);white-space:nowrap}
 .kbmem-plan .kbmem-ico{width:11px;height:11px}
+.kbmem-sug{margin:0 0 14px;padding:12px 16px;border-radius:var(--m-r-md);border:1px dashed var(--m-line3);background:var(--m-surf)}
+.kbmem-sug-h{display:flex;align-items:center;gap:4px;font-size:13px;margin-bottom:6px}.kbmem-sug-why{font-size:12px;color:var(--m-cap)}
+.kbmem-sug-row{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:8px 0;border-top:1px solid var(--m-line)}.kbmem-sug-row:first-of-type{border-top:0}
+.kbmem-sug-main{flex:1 1 280px;min-width:0}.kbmem-sug-text{font-size:13.5px;color:var(--m-ink);overflow-wrap:anywhere}.kbmem-sug-proof{font-size:12px;color:var(--m-cap);margin-top:2px}
+.kbmem-sug-act{display:flex;gap:6px;flex:none}
 .kbmem-note{display:flex;gap:12px;align-items:flex-start;margin:0 0 14px;padding:12px 16px;border-radius:var(--m-r-md);background:var(--m-surf);font-size:13px;color:var(--m-ink2)}
 .kbmem-note.warn{background:var(--m-warn-bg)}.kbmem-note a,.kbmem-link{color:var(--m-acc);font-weight:600;cursor:pointer}
 .kbmem-list{border-top:1px solid var(--m-line2)}
@@ -1003,6 +1008,42 @@ window.__ModuleLoader__.load({
           l.uses > 0 ? h('span', null, kt('Utilisée ' + l.uses + ' fois', 'Used ' + l.uses + '×')) : null,
           h('span', { style: { minWidth: 30, textAlign: 'end' } }, ageLabel(l.ageMinutes))))
 
+      /**
+       * What Kaby saw several times and suggests keeping (the ledger of the core plugin, kind « memory »): dashed rows above the list, Add / Edit / Discard on each. Nothing is
+       * kept before Add; Add goes through the ordinary add route (a memory lives in the account, so without one the button waits and says why). Edit opens the usual sheet.
+       */
+      const MemSuggest = ({ connected, refreshKey, onChanged, notify, onEdit }) => {
+        const [items, setItems] = useState([])
+        const [busy, setBusy] = useState('')
+        useEffect(() => {
+          let live = true
+          api('/kybernos/suggestions?kind=memory').then((r) => { if (live) setItems(r.ok === true && Array.isArray(r.items) ? r.items : []) })
+          return () => { live = false }
+        }, [refreshKey])
+        if (items.length === 0) return null
+        const resolve = (id) => api('/kybernos/suggestions', { action: 'resolve', id })
+        const drop = (id) => setItems((cur) => cur.filter((x) => x.id !== id))
+        const add = async (it) => {
+          if (busy !== '' || connected !== true) return
+          setBusy(it.id)
+          const r = await api('/kybernos-cloud/memory/add', { content: it.text, kind: 'fact', pinned: false, source: 'taught' })
+          setBusy('')
+          if (r.ok !== true) { notify(friendlyError(r.error)); return }
+          await resolve(it.id); drop(it.id); onChanged(); notify(kt('Souvenir ajouté', 'Memory added'))
+        }
+        const discard = async (it) => { drop(it.id); await resolve(it.id) }
+        const proofOf = (f) => (f !== undefined && f !== null && typeof f === 'object' ? [f.n !== null && f.n !== undefined ? String(f.n) + '×' : '', f.span, f.where].filter((x) => x !== undefined && x !== '').join(' · ') : '')
+        return h('div', { className: 'kbmem-sug', 'data-sug': 'block' },
+          h('div', { className: 'kbmem-sug-h' }, h('i', { className: 'kb-ping', 'aria-hidden': 'true' }), h('b', null, kt('Kaby suggère de retenir', 'Kaby suggests remembering')), h('span', { className: 'kbmem-grow' }),
+            connected === true ? null : h('span', { className: 'kbmem-sug-why', 'data-sug': 'account' }, kt('Connecte ton compte pour les garder', 'Connect your account to keep them'))),
+          items.map((it) => h('div', { key: it.id, className: 'kbmem-sug-row', 'data-sug': 'row' },
+            h('div', { className: 'kbmem-sug-main' }, h('div', { className: 'kbmem-sug-text' }, it.text), proofOf(it.from) === '' ? null : h('div', { className: 'kbmem-sug-proof' }, kt('Vu : ', 'Seen: ') + proofOf(it.from))),
+            h('div', { className: 'kbmem-sug-act' },
+              h('button', { type: 'button', className: 'kbmem-btn sm', 'data-sug': 'add', disabled: busy !== '' || connected !== true, onClick: () => { void add(it) } }, kt('Ajouter', 'Add')),
+              h('button', { type: 'button', className: 'kbmem-btn sm ghost', 'data-sug': 'edit', disabled: connected !== true, onClick: () => onEdit(it, () => { void resolve(it.id).then(() => drop(it.id)) }) }, kt('Modifier', 'Edit')),
+              h('button', { type: 'button', className: 'kbmem-btn sm ghost', 'data-sug': 'discard', onClick: () => { void discard(it) } }, kt('Écarter', 'Discard'))))))
+      }
+
       /** The side sheet: edit or add a memory, edit a lesson. Closes on Cancel; the page reloads after a save. */
       const Sheet = ({ sheet, onClose, onDone, notify, onPropose }) => {
         const mem = sheet.kind === 'mem'
@@ -1022,6 +1063,7 @@ window.__ModuleLoader__.load({
           if (mem && isNew) {
             const r = await api('/kybernos-cloud/memory/add', { content: text, kind, pinned, source: 'taught' })
             if (r.ok !== true) return fail(r)
+            if (typeof sheet.onSaved === 'function') sheet.onSaved() // a suggested memory edited then added: the ledger is told it was answered
             return onDone(kt('Souvenir ajouté', 'Memory added'))
           }
           if (mem) {
@@ -1547,7 +1589,7 @@ window.__ModuleLoader__.load({
             self.tone === 'wait' ? null : h('span', null, h('i'), self.text),
             self.skills > 0 ? h('button', { type: 'button', className: 'kbmem-btn sm', 'data-act': 'open-skills', onClick: openSkills }, kt('Voir dans Skills', 'See in Skills')) : null,
             self.connect ? h('button', { type: 'button', className: 'kbmem-btn sm', 'data-act': 'connect', onClick: connectAccount }, kt('Connecte ton compte', 'Connect your account')) : null),
-          tabs, teamMode || mapOn || noAccount ? null : tools, teamMode || mapOn || noAccount ? null : chips, teamMode ? h(TeamPane, { team: teamFull, kybers, notify, bump, refreshKey, openReview: openTeamReview }) : null, teamMode ? null : (ran !== null && ran !== undefined ? h(TidyRanNotice, { notice: ran, onUndo: onRanUndo, onHide: onRanHide }) : null), teamMode ? null : (tidy.loaded === true && tidySaves(tidy) > 0 && hiddenKey !== scanKey(tidy) ? h(TidyBanner, { tidy, onReview: openReview, onHide: hideBanner }) : null), teamMode ? null : notes, teamMode ? null : (mapOn ? h(MapPane, { ctxOn, refreshKey, openOptions, onOpen: (m) => setSheet({ kind: 'mem', item: m }), onReady: () => writeLayout('map'), onList: () => setLayout('list') }) : body),
+          tabs, teamMode || mapOn || noAccount ? null : tools, teamMode || mapOn || noAccount ? null : chips, teamMode ? h(TeamPane, { team: teamFull, kybers, notify, bump, refreshKey, openReview: openTeamReview }) : null, teamMode ? null : (ran !== null && ran !== undefined ? h(TidyRanNotice, { notice: ran, onUndo: onRanUndo, onHide: onRanHide }) : null), teamMode ? null : (tidy.loaded === true && tidySaves(tidy) > 0 && hiddenKey !== scanKey(tidy) ? h(TidyBanner, { tidy, onReview: openReview, onHide: hideBanner }) : null), teamMode ? null : notes, teamMode || !mems ? null : h(MemSuggest, { connected: !noAccount && connected === true, refreshKey, onChanged: bump, notify, onEdit: (it, done) => setSheet({ kind: 'mem', isNew: true, item: { content: it.text, kind: 'fact', pinned: false }, onSaved: done }) }), teamMode ? null : (mapOn ? h(MapPane, { ctxOn, refreshKey, openOptions, onOpen: (m) => setSheet({ kind: 'mem', item: m }), onReady: () => writeLayout('map'), onList: () => setLayout('list') }) : body),
           sheet !== null && sheet.kind !== 'propose' ? h(Sheet, { key: (sheet.item.id === undefined ? 'new' : sheet.item.id) + String(sheet.isNew), sheet, onClose: () => setSheet(null), onDone: (m, u) => (sheet.kind === 'mem' ? forgetUndo(m, u) : after(m)), notify,
             onPropose: teamAvail && team.settings.share === true ? (lesson) => setSheet({ kind: 'propose', initial: { text: lesson.text, kyber: lesson.kyber === 'default' ? null : lesson.kyber, tags: lesson.tags } }) : undefined }) : null,
           sheet !== null && sheet.kind === 'propose' ? h(ProposeSheet, { key: 'propose', initial: sheet.initial, kybers, admin: isTeamAdmin(teamInfo === null ? null : teamInfo.role), onClose: () => setSheet(null), onDone: (m) => { setSheet(null); bump(); notify(m) }, notify }) : null)

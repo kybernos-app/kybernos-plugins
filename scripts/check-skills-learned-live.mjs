@@ -125,10 +125,10 @@ try {
     if (on === true) break
     await sleep(250)
   }
-  await waitFor(page, `!!document.querySelector('[data-kb="learned-banner"]')`, 15000)
+  await waitFor(page, `document.querySelectorAll('[data-kb="learned-card"]').length >= 2`, 15000)
   await sleep(500)
   await shot('03-yours')
-  check('Yours shows the banner with the count, and says nothing is active before Accept', /2 skills suggested by Kaby/.test((await text('[data-kb="learned-banner"]')) || '') && /Nothing is active until you accept/.test((await text('[data-kb="learned-banner"]')) || ''))
+  check('Yours shows the two suggestions as dashed cards that pulse, no banner above them, each saying nothing is active before Accept', (await ev(`document.querySelectorAll('[data-kb="learned-card"] [data-kb="learned-ping"]').length`)) === 2 && (await ev(`!document.querySelector('[data-kb="learned-banner"]')`)) === true && /Not active\. Nothing changes until you accept/.test((await text('[data-kb="learned-card"]')) || ''))
   check('two dashed cards and a chip', (await count('[data-kb="learned-card"]')) === 2 && (await count('[data-kb="learned-chip"]')) === 1)
   check('the journal button is there', (await count('[data-kb="learned-journal-btn"]')) === 1)
 
@@ -156,6 +156,16 @@ try {
   console.log('Accept')
   await ev(`(() => { const c = Array.from(document.querySelectorAll('[data-kb="learned-card"]')).find((x) => x.textContent.includes('live-i18n-checklist')); const b = c && c.querySelector('[data-kb="learned-review"]'); if (b) b.click(); return !!b })()`)
   await waitFor(page, `!!document.querySelector('[data-kb="learned-accept"]')`, 8000)
+  // The three answers stay in view when the panel is longer than the window: a low window makes the panel scroll, and Accept / Edit / Discard are still on screen without scrolling.
+  await page.send('Emulation.setDeviceMetricsOverride', { width: 1400, height: 520, deviceScaleFactor: 1, mobile: false })
+  await sleep(600)
+  await ev(`(() => { const pn = document.querySelector('[data-kb="learned-panel"]'); if (pn) pn.scrollIntoView({ block: 'start' }) })()`)
+  await sleep(400)
+  const foot = await ev(`(() => { const f = document.querySelector('[data-kb="learned-foot"]'); const pn = document.querySelector('[data-kb="learned-panel"]'); if (!f || !pn) return null; pn.scrollIntoView({ block: 'start' }); pn.scrollTop = 0; const a = document.querySelector('[data-kb="learned-accept"]').getBoundingClientRect(); const d = document.querySelector('[data-kb="learned-discard"]').getBoundingClientRect(); return { sticky: getComputedStyle(f).position, scrolls: pn.scrollHeight > pn.clientHeight + 4, acceptBottom: a.bottom, discardBottom: d.bottom, vh: window.innerHeight } })()`)
+  await page.shot(join(process.env.KB_SHOT_DIR || '/tmp', 'learned-panel-sticky.png')).catch(() => null)
+  check('the answers sit in a sticky footer and stay on screen while the panel scrolls (Accept, Edit, Discard)', foot !== null && foot.sticky === 'sticky' && foot.acceptBottom <= foot.vh && foot.discardBottom <= foot.vh, JSON.stringify(foot))
+  await page.send('Emulation.clearDeviceMetricsOverride', {})
+  await sleep(400)
   await pressDom('[data-kb="learned-accept"]')
   await waitFor(page, `/is active\\./.test(document.body.innerText)`, 10000)
   await sleep(1500)

@@ -288,6 +288,11 @@ valid JSON" or "is not a list": then stop and tell the user their task file need
 
 ## 4. Afterwards
 
+**Its runs happen in this chat.** After you saved a NEW automation, call the `automation_home` tool
+with its `id` (the id of its entry in `tasks.json`) so that every run is posted into this chat
+instead of opening a new session each time. Say so in one sentence. If the tool is not available,
+skip this step and say nothing about it.
+
 Tell the user, in their language: the name, when it starts in plain words, and that the
 Automations page shows it with its next run within about half a minute (for a change: what
 changed, and that its history was kept). If there is a
