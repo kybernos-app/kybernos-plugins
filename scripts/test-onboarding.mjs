@@ -190,7 +190,7 @@ eq('the apps of a field: each once, the ticked goal\'s first, with the goal; at 
 eq('an unknown goal id is ignored and a skill shared by two goals shows once under the first', [mod.kbObFieldSkills(law, ['nope'], 'en').some((x) => x.ticked), mod.kbObFieldSkills(law, ['drafting', 'contracts'], 'en').filter((x) => x.name === 'docx').length], [false, 1])
 
 /* ── 5e. The new steps: « about you », the agents, the plan ──────────────── */
-const newStrings = ['about.t', 'about.s', 'about.site', 'about.site.ph', 'about.site.h', 'about.soc', 'about.soc.ph', 'about.free', 'about.free.ph', 'about.pass', 'about.guess', 'about.guess.go', 'ag.t', 'ag.s', 'ag.prudent.t', 'ag.prudent.d', 'ag.balanced.t', 'ag.balanced.d', 'ag.auto.t', 'ag.auto.d', 'ag.prudent.l', 'ag.balanced.l', 'ag.auto.l', 'ag.for', 'ag.why', 'ag.note', 'ag.learn', 'plan.t', 'plan.s', 'plan.team.t', 'plan.team.b1', 'plan.team.b2', 'plan.team.b3', 'plan.team.go', 'plan.team.note', 'plan.free.t', 'plan.free.b1', 'plan.free.b2', 'plan.free.b3', 'plan.free.go']
+const newStrings = ['about.t', 'about.s', 'about.site', 'about.site.ph', 'about.site.h', 'about.soc', 'about.soc.ph', 'about.free', 'about.free.ph', 'about.pass', 'about.guess', 'about.guess.go', 'ag.t', 'ag.s', 'ag.prudent.t', 'ag.prudent.d', 'ag.balanced.t', 'ag.balanced.d', 'ag.auto.t', 'ag.auto.d', 'ag.prudent.l', 'ag.balanced.l', 'ag.auto.l', 'ag.for', 'ag.why', 'ag.note', 'ag.learn', 'plan.t', 'plan.s', 'plan.wait', 'plan.per.y', 'plan.per.m', 'plan.alt', 'plan.b.credits', 'plan.b.more', 'plan.b.on', 'plan.go', 'plan.note', 'plan.free.t', 'plan.free.per', 'plan.free.b1', 'plan.free.b2', 'plan.free.go', 'fin.first', 'fin.first.prompt']
 eq('every string of the new steps exists in the four languages', newStrings.filter((k) => !(Array.isArray(mod.KB_OB_T[k]) && mod.KB_OB_T[k].length === 4 && mod.KB_OB_T[k].every((v) => typeof v === 'string' && v.length > 0))), [])
 eq('the display mode screen\'s own texts are gone, its modes keep theirs', [mod.KB_OB_T['mode.t'], mod.KB_OB_T['mode.s'], mod.KB_OB_T['mode.code.t'] !== undefined, mod.KB_OB_T['mode.bureau.d'] !== undefined], [undefined, undefined, true, true])
 eq('the sentence box is gone: its texts and its state are not left behind', [Object.keys(mod.KB_OB_T).filter((k) => /^job\.nl/.test(k)), /nlText|nlNote|kb-ob-nl/.test(ui[1] + src.slice(src.indexOf("'.kb-ob-main.kb-ob-split"), src.indexOf("'.kb-ob-chips{")))], [[], false])
@@ -342,6 +342,26 @@ const handedTo = new Set([...ui[1].matchAll(/finish\(\[([^\]]+)\]\)/g)].flatMap(
 eq('the wizard hands over to pages that exist in the Settings nav', [...handedTo].filter((k) => !known.has(k)), [])
 eq('and to the three it needs', [...handedTo].sort(), ['kybernos-models', 'kybernos-ollama', 'models'])
 eq('the two seams it reads are the ones the bundles publish', [/__KB_MODELS__/.test(ui[1]), /__KB_LOCAL__/.test(ui[1])], [true, true])
+
+/* ── 9. The end: a priced plan screen and the first task ──────────────────── */
+// The plan screen says what the dialog says: the next level, its price and what it gives come from the cloud bundle's seam (`pitch()`), never from words of its own, and the plan it offers
+// is the account's next level, not a fixed « Team solo ». Without anything to offer (the top plan, the catalogue out of reach) the screen is skipped.
+const cloudSrc = readFileSync(root + 'packages/kybernos-cloud/client.js', 'utf8')
+const planUi = ui[1].slice(ui[1].indexOf('        plan: () => {'), ui[1].indexOf('        model: () => {'))
+eq('the plan screen reads the offer from the Upgrade seam the cloud bundle publishes, and that seam has a pitch()',
+  [/win\.__KB_UPGRADE__/.test(ui[1]), /u\.pitch\(\)/.test(ui[1]), /pitch: \(\) => planPitchNow\(spacePlanRef\.current\)/.test(cloudSrc)], [true, true, true])
+eq('the plan screen names the account\'s next level and its price, never « Team solo »; Free carries its own price line',
+  [/offer\.name/.test(planUi), /offer\.price/.test(planUi), /offer\.zero/.test(planUi), /Team solo/.test(planUi), Object.values(mod.KB_OB_T).some((v) => v.some((t) => /Team solo/.test(t)))], [true, true, true, false, false])
+eq('what the next level gives is said only from the offer\'s own figures: credits, how many times more, always-on computers',
+  [/offer\.credits/.test(planUi), /offer\.times/.test(planUi), /offer\.alwaysOn === true/.test(planUi)], [true, true, true])
+eq('the two buttons of the plan screen have the same weight, and both go on to the end screen',
+  [(planUi.match(/button\('kb-ob-btn kb-ob-second'/g) || []).length, /primary\(/.test(planUi), (planUi.match(/go\('done'\)/g) || []).length], [2, false, 2])
+eq('the offer is asked once, while the kit is on screen; with nothing to offer (or after six seconds) the plan screen is skipped',
+  [/if \(screen === 'kit'\) \{ kitLoad\(\); askPitch\(\) \}/.test(ui[1]), /if \(screen === 'plan' && S\.pitch === null\) screen = 'done'/.test(ui[1]), /resolve\(null\), 6000\)/.test(ui[1]), /if \(S\.pitch !== undefined\) return/.test(ui[1])], [true, true, true, true])
+eq('the end screen offers the first task only when a model is already chosen, and the chat gets the sentence typed in for the person to send (never sent by the wizard)',
+  [/const handOver = !S\.standalone && \(S\.picked !== null \|\| S\.ready !== null\)/.test(ui[1]), /S\.firstTask = true; finish\(\)/.test(ui[1]), /__KB_OPEN__\.chat\(firstPrompt\)/.test(ui[1]), /__KB_OPEN__\.send|\.submit\(/.test(ui[1].slice(ui[1].indexOf('const firstPrompt')))], [true, true, true, false])
+eq('the first task\'s sentence asks questions and changes nothing, in the four languages', [mod.KB_OB_T['fin.first.prompt'].length, mod.KB_OB_T['fin.first.prompt'].every((t) => t.length > 20 && !/\b(delete|supprim|elimin|borra)/i.test(t))], [4, true])
+
 
 console.log(fails === 0 ? '\nall checks passed' : '\n' + fails + ' check(s) FAILED')
 process.exit(fails === 0 ? 0 : 1)

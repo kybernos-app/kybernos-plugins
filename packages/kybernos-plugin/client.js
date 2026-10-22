@@ -35755,6 +35755,9 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       'fin.cloud.n1': ['Kybernos Cloud · 1 model', 'Kybernos Cloud · 1 modèle', 'Kybernos Cloud · 1 modelo', 'Kybernos Cloud · نموذج واحد'],
       'fin.local': ['Local model', 'Modèle local', 'Modelo local', 'نموذج محلي'],
       'fin.open': ['Open Kybernos', 'Ouvrir Kybernos', 'Abrir Kybernos', 'افتح Kybernos'],
+      // the hand-over: a new chat with this sentence typed in (the person reads it and presses send), only when a model is already chosen
+      'fin.first': ['Try a first task', 'Essayer une première tâche', 'Probar una primera tarea', 'جرّب مهمة أولى'],
+      'fin.first.prompt': ['Ask me three questions to understand my work, then suggest the first thing you can do to help me.', 'Pose-moi trois questions pour comprendre mon travail, puis propose-moi la première chose que tu peux faire pour m’aider.', 'Hazme tres preguntas para entender mi trabajo y luego propón lo primero que puedes hacer para ayudarme.', 'اطرح عليّ ثلاثة أسئلة لتفهم عملي، ثم اقترح أول ما يمكنك فعله لمساعدتي.'],
       'key.paste': ['Paste your key here', 'Colle ta clé ici', 'Pega tu clave aquí', 'الصق مفتاحك هنا'],
       'key.ph': ['Paste your API key', 'Colle ta clé API', 'Pega tu clave API', 'الصق مفتاح API هنا'],
       'key.save': ['Check and save', 'Vérifier et enregistrer', 'Comprobar y guardar', 'تحقق واحفظ'],
@@ -35875,19 +35878,22 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       'ag.why': ['Why: {why}', 'Pourquoi : {why}', 'Por qué: {why}', 'السبب: {why}'],
       'ag.learn': ['Kaby learns from your work and proposes skills. You approve each one, whatever you choose here.', 'Kaby apprend de ton travail et propose des skills. Tu approuves chacun, quel que soit ton choix ici.', 'Kaby aprende de tu trabajo y propone skills. Tú apruebas cada uno, elijas lo que elijas aquí.', 'يتعلم Kaby من عملك ويقترح مهارات. توافق أنت على كل واحدة، مهما اخترت هنا.'],
       'ag.note': ['Agents read this choice; the settings that enforce it come later.', 'Les agents lisent ce choix ; les réglages qui l’imposent viennent ensuite.', 'Los agentes leen esta elección; los ajustes que la imponen llegan después.', 'يقرأ الوكلاء هذا الاختيار؛ أما الإعدادات التي تفرضه فتأتي لاحقًا.'],
-      // the plan, the last thing asked: the price and the payment page are the account's, nothing is typed here
+      // the plan, the last thing asked: the next level of the account's plan with its real price (from the catalogue, through the Upgrade seam) and Free beside it; the payment page is the account's, nothing is typed here
       'plan.t': ['So it keeps running without you', 'Pour que ça tourne sans toi', 'Para que siga funcionando sin ti', 'ليستمر العمل من دونك'],
-      'plan.s': ['Your space is ready. With Team, your automations run even when your computer is off.', 'Ton espace est prêt. Avec Team, tes automatisations tournent même quand ton ordinateur est éteint.', 'Tu espacio está listo. Con Team, tus automatizaciones funcionan incluso con el ordenador apagado.', 'مساحتك جاهزة. مع Team تعمل أتمتتك حتى عندما يكون حاسوبك مطفأً.'],
-      'plan.team.t': ['Team · solo', 'Team · solo', 'Team · solo', 'Team · solo'],
-      'plan.team.b1': ['Hosted automations: they run with your computer off', 'Automatisations hébergées : elles tournent ordinateur éteint', 'Automatizaciones alojadas: funcionan con el ordenador apagado', 'أتمتة مستضافة: تعمل والحاسوب مطفأ'],
-      'plan.team.b2': ['Credits for your agents every month', 'Des crédits chaque mois pour tes agents', 'Créditos cada mes para tus agentes', 'أرصدة شهرية لوكلائك'],
-      'plan.team.b3': ['One seat; invite your team any time', 'Un siège, tu invites ton équipe quand tu veux', 'Un puesto; invita a tu equipo cuando quieras', 'مقعد واحد؛ ادعُ فريقك متى شئت'],
-      'plan.team.go': ['Continue with Team solo', 'Continuer avec Team solo', 'Continuar con Team solo', 'المتابعة مع Team solo'],
-      'plan.team.note': ['The price and the secure payment page open on your account. Nothing is typed in Kybernos.', 'Le prix et la page de paiement sécurisée s’ouvrent sur ton compte. Rien n’est saisi dans Kybernos.', 'El precio y la página de pago seguro se abren en tu cuenta. No se escribe nada en Kybernos.', 'يُفتح السعر وصفحة الدفع الآمنة في حسابك. لا يُكتب شيء داخل Kybernos.'],
+      'plan.s': ['Your space is ready. Here is what each plan gives, with its price.', 'Ton espace est prêt. Voici ce que chaque formule donne, avec son prix.', 'Tu espacio está listo. Esto es lo que da cada plan, con su precio.', 'مساحتك جاهزة. هذا ما تقدمه كل خطة، مع سعرها.'],
+      'plan.wait': ['One moment…', 'Un instant…', 'Un momento…', 'لحظة…'],
+      'plan.per.y': ['a month, billed yearly', 'par mois, facturé à l’année', 'al mes, facturado al año', 'شهريًا، تُدفع سنويًا'],
+      'plan.per.m': ['a month', 'par mois', 'al mes', 'شهريًا'],
+      'plan.alt': ['{price} if you pay by the month', '{price} si tu paies au mois', '{price} si pagas mes a mes', '{price} عند الدفع شهريًا'],
+      'plan.b.credits': ['{n} credits a month', '{n} crédits par mois', '{n} créditos al mes', '{n} رصيد شهريًا'],
+      'plan.b.more': ['{n} times more usage than Free', '{n} fois plus d’usage que Free', '{n} veces más uso que Free', '{n} ضعف الاستخدام مقارنةً بـ Free'],
+      'plan.b.on': ['Always-on computers: your automations run with your computer off', 'Ordinateurs toujours actifs : tes automatisations tournent ordinateur éteint', 'Ordenadores siempre activos: tus automatizaciones funcionan con el ordenador apagado', 'حواسيب تعمل دائمًا: تعمل أتمتتك والحاسوب مطفأ'],
+      'plan.go': ['Continue with {name}', 'Continuer avec {name}', 'Continuar con {name}', 'المتابعة مع {name}'],
+      'plan.note': ['The secure payment page opens on your account. Nothing is typed in Kybernos.', 'La page de paiement sécurisée s’ouvre sur ton compte. Rien n’est saisi dans Kybernos.', 'La página de pago seguro se abre en tu cuenta. No se escribe nada en Kybernos.', 'تُفتح صفحة الدفع الآمن في حسابك. لا يُكتب شيء داخل Kybernos.'],
       'plan.free.t': ['Free', 'Gratuit', 'Gratis', 'مجاني'],
+      'plan.free.per': ['no card needed', 'sans carte bancaire', 'sin tarjeta', 'من دون بطاقة'],
       'plan.free.b1': ['Everything that was just set up', 'Tout ce qui vient d’être préparé', 'Todo lo que se acaba de preparar', 'كل ما تم إعداده للتو'],
       'plan.free.b2': ['The free models, or your own', 'Les modèles gratuits, ou les tiens', 'Los modelos gratuitos, o los tuyos', 'النماذج المجانية أو نماذجك'],
-      'plan.free.b3': ['Move to Team any time', 'Tu passes à Team quand tu veux', 'Pasas a Team cuando quieras', 'يمكنك الانتقال إلى Team متى شئت'],
       'plan.free.go': ['Continue for free', 'Continuer gratuitement', 'Continuar gratis', 'المتابعة مجانًا'],
       // the kit as one line (the list stays one tap away), and the end screen's agents row
       'k.sum': ['Skills: {a} · Teams: {b} · Automations (off): {c}', 'Skills : {a} · Équipes : {b} · Automatisations (éteintes) : {c}', 'Skills: {a} · Equipos: {b} · Automatizaciones (apagadas): {c}', 'المهارات: {a} · الفرق: {b} · الأتمتة (متوقفة): {c}'],
@@ -36268,8 +36274,10 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         setup: null,
         // the « about you » answers, the agents preset, and whether the person changed the two defaults the field gives (the display mode, the preset)
         site: '', social: '', words: '', aboutSaved: false, agents: null, modeTouched: false, agentsTouched: false,
-        // the kit shown as one line (its list one tap away), and « Continue with Team solo » on the plan screen (the upgrade view opens when the wizard closes)
+        // the kit shown as one line (its list one tap away), and « Continue with <plan> » on the plan screen (`wantsTeam`: the upgrade view opens when the wizard closes)
         kitOpen: false, wantsTeam: false,
+        // the next level of the account's plan for the plan screen (undefined: not asked · 'loading' · null: nothing to offer, the screen is skipped · the offer), and « Try a first task » on the end screen
+        pitch: undefined, firstTask: false,
       }
       let root = null
       let pollTimer = null
@@ -36405,11 +36413,17 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         if (!S.standalone && (S.model === 'free' || S.freeWire === true)) wireFreeModels()
         const connected = S.standalone && S.model !== null ? S.model : null
         const picked = S.picked
+        const firstPrompt = S.firstTask === true ? T('fin.first.prompt') : null
         close()
         // Handed over to Settings is not connected yet: only a way that finished tells the card.
         if (connected !== null && openSettingsNames === undefined && typeof env.onConnected === 'function') { try { env.onConnected(connected, picked) } catch (e) { /* the card is gone */ } }
+        // « Try a first task »: a new chat with the sentence typed in, for the person to read and send (never sent by itself). The chat may not be mounted for a moment after the wizard closes.
+        if (firstPrompt !== null && openSettingsNames === undefined) {
+          const open = () => { try { return win.__KB_OPEN__ !== undefined && win.__KB_OPEN__ !== null && typeof win.__KB_OPEN__.chat === 'function' && win.__KB_OPEN__.chat(firstPrompt) === true } catch (e) { return false } }
+          if (open() !== true) win.setTimeout(open, 700)
+        }
         if (openSettingsNames !== undefined) env.openSettings(openSettingsNames)
-        // « Continue with Team solo »: the account's own view (price, secure payment) opens once the wizard is out of the way. Nothing is typed here.
+        // « Continue with <plan> »: the account's own view (price, secure payment) opens once the wizard is out of the way. Nothing is typed here.
         else if (S.wantsTeam === true) { try { if (win.__KB_UPGRADE__ !== undefined && win.__KB_UPGRADE__ !== null && typeof win.__KB_UPGRADE__.open === 'function') win.__KB_UPGRADE__.open() } catch (e) { /* no upgrade view */ } }
       }
 
@@ -36460,12 +36474,27 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         go(back)
       }
       // ── the three ways of powering the agents ──
+      // The next level of the plan, asked once to the Upgrade seam (the same catalogue and the same words as the dialog). Asked while the kit is on screen so that the plan screen is ready.
+      const askPitch = () => {
+        if (S.pitch !== undefined) return
+        S.pitch = 'loading'
+        let ask = Promise.resolve(null)
+        try { const u = win.__KB_UPGRADE__; if (u !== undefined && u !== null && typeof u.pitch === 'function') ask = Promise.resolve(u.pitch()) } catch (e) { ask = Promise.resolve(null) }
+        // The catalogue may be out of reach: after six seconds the screen is skipped rather than left waiting.
+        Promise.race([ask.catch(() => null), new Promise((resolve) => win.setTimeout(() => resolve(null), 6000))]).then((v) => {
+          S.pitch = v !== null && v !== undefined && typeof v === 'object' ? v : null
+          if (root === null || S.screen !== 'plan') return
+          if (S.pitch === null) go('done'); else render(false)
+        })
+      }
       const go = (screen) => {
         stopPoll()
         if (jobTimer !== null) { win.clearTimeout(jobTimer); jobTimer = null }
+        // No next level to offer (the top plan, the catalogue out of reach): the plan screen has nothing to say, the recap comes next.
+        if (screen === 'plan' && S.pitch === null) screen = 'done'
         S.screen = screen
         render(true)
-        if (screen === 'kit') kitLoad()
+        if (screen === 'kit') { kitLoad(); askPitch() }
         if (screen === 'done') { memoryWrite(); setupLoad() }
       }
       // After a way is connected: the first run goes on to the starter kit; from the chat's card the wizard just closes.
@@ -37252,28 +37281,48 @@ html.wv2-actif [data-composer-seat]{display:none !important}
           s.appendChild(a)
           return s
         },
-        // the plan, the last thing asked (only where there is an account): the price and the payment page are the account's own, nothing is typed here
+        // the plan, the last thing asked (only where there is an account): the next level of the account's plan with its real price and what it gives, Free beside it, two buttons of the same weight.
+        // The figures come from the catalogue through the Upgrade seam; « Continue with <plan> » opens the account's own view once the wizard is out of the way. Nothing is typed here.
         plan: () => {
           const s = step()
           s.appendChild(h('h1', null, T('plan.t')))
+          if (S.pitch === undefined) askPitch()
+          const offer = S.pitch !== null && S.pitch !== undefined && typeof S.pitch === 'object' ? S.pitch : null
+          if (offer === null) { s.appendChild(h('p', 'kb-ob-sub', T('plan.wait'))); return s }
           s.appendChild(h('p', 'kb-ob-sub', T('plan.s')))
+          const digits = (n) => { try { return Number(n).toLocaleString(S.lang === 'ar' ? 'en' : S.lang) } catch (e) { return String(n) } }
           const cards = h('div', 'kb-ob-plans')
-          const card = (cls, titleKey, bullets) => {
+          const card = (cls, title, price, per, alt, bullets) => {
             const c = h('section', 'kb-ob-plan' + cls)
-            c.appendChild(h('h2', null, T(titleKey)))
+            c.appendChild(h('h2', null, title))
+            if (price !== null) {
+              const row = h('div', 'kb-ob-plan-price')
+              row.appendChild(h('b', null, price))
+              row.appendChild(h('span', null, per))
+              c.appendChild(row)
+              if (alt !== null) c.appendChild(h('p', 'kb-ob-plan-alt', alt))
+            }
             const ul = h('ul')
-            for (const k of bullets) { const li = h('li'); li.appendChild(icon(IC.check, 16)); li.appendChild(h('span', null, T(k))); ul.appendChild(li) }
+            for (const text of bullets) { const li = h('li'); li.appendChild(icon(IC.check, 16)); li.appendChild(h('span', null, text)); ul.appendChild(li) }
             c.appendChild(ul)
             return c
           }
-          const team = card(' main', 'plan.team.t', ['plan.team.b1', 'plan.team.b2', 'plan.team.b3'])
-          team.appendChild(primary(T('plan.team.go'), () => { S.wantsTeam = true; go('done') }))
-          team.appendChild(h('p', null, T('plan.team.note')))
-          const free = card('', 'plan.free.t', ['plan.free.b1', 'plan.free.b2', 'plan.free.b3'])
+          const more = []
+          if (offer.credits !== null && offer.credits !== undefined) more.push(T('plan.b.credits', { n: digits(offer.credits) }))
+          if (offer.times !== null && offer.times !== undefined) more.push(T('plan.b.more', { n: digits(offer.times) }))
+          if (offer.alwaysOn === true) more.push(T('plan.b.on'))
+          const paid = card(' main', offer.name, offer.price === undefined ? null : offer.price, T(offer.yearly === true ? 'plan.per.y' : 'plan.per.m'),
+            offer.yearly === true && typeof offer.monthPrice === 'string' ? T('plan.alt', { price: offer.monthPrice }) : null, more)
+          paid.appendChild(button('kb-ob-btn kb-ob-second', T('plan.go', { name: offer.name }), () => { S.wantsTeam = true; go('done') }))
+          const freeBullets = []
+          if (offer.fromCredits !== null && offer.fromCredits !== undefined) freeBullets.push(T('plan.b.credits', { n: digits(offer.fromCredits) }))
+          freeBullets.push(T('plan.free.b1'), T('plan.free.b2'))
+          const free = card('', T('plan.free.t'), typeof offer.zero === 'string' ? offer.zero : null, T('plan.free.per'), null, freeBullets)
           free.appendChild(button('kb-ob-btn kb-ob-second', T('plan.free.go'), () => { S.wantsTeam = false; go('done') }))
-          cards.appendChild(team)
+          cards.appendChild(paid)
           cards.appendChild(free)
           s.appendChild(cards)
+          s.appendChild(h('p', 'kb-ob-plan-note', T('plan.note')))
           return s
         },
         model: () => {
@@ -37688,7 +37737,13 @@ html.wv2-actif [data-composer-seat]{display:none !important}
           // The list above makes this screen tall: the way out stays in view at the foot of the window.
           const a = actions()
           a.classList.add('kb-ob-sticky')
-          a.appendChild(primary(T('fin.open'), () => finish()))
+          // A model is already chosen (the account's, a key's, a local one): the first task is one tap away, typed into a new chat for the person to read and send. Without one it would
+          // fail on the first message, so it is not offered.
+          const handOver = !S.standalone && (S.picked !== null || S.ready !== null)
+          if (handOver) {
+            a.appendChild(primary(T('fin.first'), () => { S.firstTask = true; finish() }))
+            a.appendChild(button('kb-ob-btn kb-ob-second', T('fin.open'), () => finish()))
+          } else a.appendChild(primary(T('fin.open'), () => finish()))
           s.appendChild(a)
           return s
         },
@@ -38091,6 +38146,10 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       '.kb-ob-plan li{display:flex;gap:9px;align-items:flex-start}',
       '.kb-ob-plan li svg{color:var(--green);margin-top:2px;flex:none}',
       '.kb-ob-plan p{margin:0;font-size:13px;line-height:1.5;color:var(--ink3)}',
+      '.kb-ob-plan-price{display:flex;align-items:baseline;flex-wrap:wrap;gap:6px}',
+      '.kb-ob-plan-price b{font-size:28px;line-height:1.1;font-weight:700;color:var(--ink)}',
+      '.kb-ob-plan-price span{font-size:13px;color:var(--ink3)}',
+      '.kb-ob-plan-note{margin:14px 0 0;font-size:13px;line-height:1.5;color:var(--ink3);text-align:center}',
       '.kb-ob-adds{display:flex;flex-wrap:wrap;gap:4px 6px;margin-top:5px}',
       '.kb-ob-adds span{font-size:11.5px;color:var(--ink3);padding:1px 8px;border-radius:99px;border:1px solid var(--line)}',
       // the live miniature beside the step

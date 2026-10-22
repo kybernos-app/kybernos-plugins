@@ -115,8 +115,18 @@ process.on('uncaughtException', (e) => { fails += 1; console.log('FAIL an except
 try {
   const fake = { keyVerdict: 'ok', installPolls: 0, calls: [], accountConnected: false, freeBody: null, statusConnected: false, skillsInstalled: [], skillInstalls: [], memoryBodies: [] }
   const json = (body) => Buffer.from(JSON.stringify(body), 'utf8').toString('base64')
+  // The public catalogue the plan screen reads through the cloud bundle's Upgrade seam (`pitch()`): Free, and two individual levels (Plus = 1, Pro = 2.5 times Plus).
+  const priced = (cur, year, month) => [{ currency: cur, interval: 'year', amount: String(year) }, { currency: cur, interval: 'month', amount: String(month) }]
+  const allowance = (credits) => [{ window_seconds: 18000, member_credits: credits / 4 }, { window_seconds: 2592000, member_credits: credits }]
+  const catalogue = [
+    { key: 'free', kind: 'free', components: [{ key: 'free', name: 'Free', display: { usage_multiple: 0.05 }, prices: [], allowances: allowance(1000), features: ['byok', 'connections'] }] },
+    { key: 'solo', kind: 'individual', currencies: ['USD'], intervals: ['year', 'month'], components: [
+      { key: 'solo', name: 'Plus', display: { usage_multiple: 1 }, prices: priced('USD', 19, 24), allowances: allowance(20000), features: ['byok', 'computers.always_on'] },
+      { key: 'studio', name: 'Pro', display: { usage_multiple: 2.5 }, prices: priced('USD', 39, 49), allowances: allowance(50000), features: ['byok', 'computers.always_on'] }] },
+  ]
   const answers = (url, method, postData) => {
     const path = new URL(url).pathname
+    if (path === '/kybernos-cloud/plans') return { ok: true, plans: catalogue, credits_per_usd: 4000, tax_basis: 'inclusive' }
     if (path === '/kybernos-cloud/start') { fake.calls.push('cloud-start'); return { ok: true, connected: false, status: 'pending', pairing: { user_code: 'KB4-7QX2', activation_url: 'https://server.example.test/cloud/cli/activate?deviceId=d1', expires_at: '2099-01-01T00:00:00Z' } } }
     if (path === '/kybernos-cloud/poll') {
       fake.calls.push('cloud-poll')
@@ -149,7 +159,7 @@ try {
       return { ok: true, switched: true, provider: 'opencode-free', model: 'mimo-v2.6-flash-free', scope: 'default' }
     }
     // A connected account, as the status route would say it (the model step shows who is connected and how many models).
-    if (path === '/kybernos-cloud/status' && fake.statusConnected) return { ok: true, connected: true, state: { connected: true, user: { email: 'amina@example.com', plan: 'plus' }, models: { count: 14 } } }
+    if (path === '/kybernos-cloud/status' && fake.statusConnected) return { ok: true, connected: true, state: { connected: true, user: { email: 'amina@example.com', plan: 'plus' }, models: { count: 14 }, space_plan: { workspace_id: 'w-1', key: 'free', level: 'free', label: 'Free', name: 'Free' } } }
     if (path === '/kybernos-skills/skills' && method === 'GET') return { ok: true, skills: fake.skillsInstalled.map((name) => ({ name })) }
     if (path === '/kybernos-skills/install') {
       let body = {}
@@ -197,7 +207,7 @@ try {
       else await page.send('Fetch.fulfillRequest', { requestId: p.requestId, responseCode: 200, responseHeaders: [{ name: 'content-type', value: 'application/json' }], body: json(body) })
     } catch (e) { /* the page moved on */ }
   })
-  await page.send('Fetch.enable', { patterns: ['kybernos-cloud/start', 'kybernos-cloud/poll', 'kybernos-cloud/disconnect', 'kybernos-cloud/status', 'kybernos-cloud/memory/', 'kybernos-models/key/check',
+  await page.send('Fetch.enable', { patterns: ['kybernos-cloud/plans', 'kybernos-cloud/start', 'kybernos-cloud/poll', 'kybernos-cloud/disconnect', 'kybernos-cloud/status', 'kybernos-cloud/memory/', 'kybernos-models/key/check',
     'kybernos-skills/skills', 'kybernos-skills/install',
     'modeles-locaux/installer', 'modeles-locaux/installation', 'free-llms/auto-enable', 'kybernos/model/auto'].map((x) => ({ urlPattern: '*/' + x + '*', requestStage: 'Request' }))
     .concat([{ urlPattern: '*/modeles-locaux/machine*', requestStage: 'Response' }]) })
@@ -501,7 +511,12 @@ try {
   await sleep(150)
   check('a skill can be unticked', /^Add 6 selected$/.test(String(await q(`document.querySelector('.kb-ob-primary').textContent`))))
   await press('Add 6 selected')
-  check('the plan is the last thing asked, with an account on the machine: Team solo, or free', (await seen('So it keeps running without you', 40000)) !== null && (await q(`[...document.querySelectorAll('.kb-ob button')].filter((b) => !b.disabled).map((b) => b.textContent.trim()).filter((t) => /^Continue (with|for)/.test(t)).join('|')`)) === 'Continue with Team solo|Continue for free' && !/\$|€/.test(String(await q(`document.querySelector('.kb-ob').innerText`))), String(await h1()))
+  const planText = (await seen('So it keeps running without you', 40000)) !== null ? String(await q(`document.querySelector('.kb-ob').innerText`)).replace(/\u00a0/g, ' ') : ''
+  check('the plan is the last thing asked, with an account on the machine: the next level and Free, two buttons of the same weight', planText !== '' && (await q(`[...document.querySelectorAll('.kb-ob button')].filter((b) => !b.disabled).map((b) => b.textContent.trim()).filter((t) => /^Continue (with|for)/.test(t)).join('|')`)) === 'Continue with Plus|Continue for free'
+    && (await q(`[...document.querySelectorAll('.kb-ob-plan button')].map((b) => b.className).every((c) => c === 'kb-ob-btn kb-ob-second')`)) === true, planText.slice(0, 200))
+  check('it says what the dialog says: the real price, the yearly billing and the monthly price, what it gives, and Free with its own price',
+    /\$19/.test(planText) && /a month, billed yearly/.test(planText) && /\$24 if you pay by the month/.test(planText) && /20,000 credits a month/.test(planText) && /20 times more usage than Free/.test(planText)
+    && /Always-on computers/.test(planText) && /\$0/.test(planText) && /1,000 credits a month/.test(planText) && /no card needed/.test(planText) && !/Team solo/.test(planText), planText.slice(0, 600))
   await page.shot(join(shotDir, 'plan.png'))
   await press('Continue for free')
   check('the recap follows the installation', (await seen('You’re all set', 40000)) !== null, String(await h1()))
@@ -576,18 +591,21 @@ try {
   await waitFor(page, `${selectedWs} === 'Web Search'`, 10000)
   const landedWs = await q(selectedWs)
   check('it landed on Web Search', landedWs === 'Web Search', JSON.stringify(landedWs))
-  // « Continue with Team solo »: the wizard ends as usual, then the account's own view opens (stood in for here: the cloud bundle's view is not the subject)
-  check('Replay reopens the wizard for the Team path', await replay())
+  // « Continue with Plus »: the wizard ends as usual, then the account's own view opens (stood in for here: the cloud bundle's view is not the subject; its `pitch()` says what the screen offers)
+  check('Replay reopens the wizard for the paid path', await replay())
   await goEnglish()
-  await q(`window.__upgradeCalls = 0; window.__KB_UPGRADE__ = { open: () => { window.__upgradeCalls += 1 } }`)
+  await q(`window.__upgradeCalls = 0; window.__KB_UPGRADE__ = { open: () => { window.__upgradeCalls += 1 }, pitch: () => Promise.resolve({ name: 'Plus', key: 'solo', price: '$19', monthPrice: '$24', zero: '$0', yearly: true, times: 20, credits: 20000, fromCredits: 1000, alwaysOn: true }) }`)
   await press('Get started'); await press('Continue'); await press('Continue'); await press('Keep as is'); await press('Continue'); await press('Continue')
   await seen('A starter kit for Education', 8000)
   await press('Not now')
   await seen('So it keeps running without you', 8000)
-  await press('Continue with Team solo')
-  check('the Team choice goes to the recap, and nothing is opened yet', (await seen('You’re all set', 8000)) !== null && (await q(`window.__upgradeCalls`)) === 0)
-  await press('Open Kybernos')
+  await press('Continue with Plus')
+  check('the paid choice goes to the recap, and nothing is opened yet', (await seen('You’re all set', 8000)) !== null && (await q(`window.__upgradeCalls`)) === 0)
+  // The model is already chosen (the replay keeps the connected one): the first task is offered beside « Open Kybernos », and it types its sentence into a new chat for the person to send.
+  check('the recap offers the first task beside Open Kybernos', (await q(`[...document.querySelectorAll('.kb-ob-actions button')].map((b) => b.textContent.trim()).join('|')`)) === 'Try a first task|Open Kybernos', String(await q(`[...document.querySelectorAll('.kb-ob button')].map((b) => b.textContent.trim()).join('|')`)))
+  await press('Try a first task')
   check('the account\'s own view (price, secure payment) opens once the wizard is closed', (await waitFor(page, `window.__upgradeCalls === 1 && document.querySelector('.kb-ob') === null`, 8000)) === true)
+  check('and the first task sentence is typed in the composer of a new chat, not sent', (await waitFor(page, `[...document.querySelectorAll('textarea,[contenteditable="true"]')].some((e) => String(e.value || e.textContent || '').includes('Ask me three questions to understand my work'))`, 8000)) === true)
   fake.statusConnected = false
   await backToTheStartingPoint()
 
