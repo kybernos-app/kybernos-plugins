@@ -8237,7 +8237,7 @@ function boot(ctx) {
     // pour une phrase courte, edge-tts 0,5-1,5 s selon le réseau.
     const KB_TTS_TIMEOUT = { say: 8000, piper: 20000, supertonic: 30000, edge: 15000 }
     const KB_TTS_CATALOG = [
-      { id: 'say', name: 'Apple « say »', kind: 'local', price: 'free', privacy: 'Stays on this Mac. Nothing leaves it.' },
+      { id: 'say', name: 'Apple say', kind: 'local', price: 'free', privacy: 'Stays on this Mac. Nothing leaves it.' },
       { id: 'piper', name: 'Piper', kind: 'local', price: 'free', privacy: 'Stays on this Mac. Nothing leaves it.' },
       { id: 'supertonic', name: 'Supertonic-3', kind: 'local', price: 'free', privacy: 'Stays on this Mac. Nothing leaves it.' },
       { id: 'edge', name: 'edge-tts', kind: 'cloud', price: 'free', privacy: 'The reply text is sent to Microsoft to be synthesised.' },
