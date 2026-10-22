@@ -211,6 +211,27 @@ panel beside the list with the SKILL.md exactly as it is on disk, the actions th
 confirmations (and only ever get Cancel), that two Discover cards have their own repository, folder and text, the publisher by
 repository, and the layout at 900 px.
 
+## The Theme page, simple view: `scripts/check-theme-studio-live.mjs`
+
+```bash
+source scripts/sandbox/env.sh && node scripts/check-theme-studio-live.mjs --shots /tmp/shots
+```
+
+Sandbox only (it refuses `:3080`, exit 3): a click on a mode card or a text size goes through `commit`, which writes DSH's own theme preference and
+text size into the profile of the DSH it talks to. It starts from an empty library and no own animation (disk and browser), then clicks the real
+page: the eleven parts of the small window and the thirteen panels (each opens inside the window, Escape and an outside press close it, the keyboard
+opens a part), the mode, a style, an accent, the sidebar tone, a wallpaper, your bubble and the frame of the agent's replies, icons, fonts (the
+long list, the search), the text colour, the three pills under the message box, the thinking animation (the 34 loops, the mix of four, your own words,
+an SVG of your own, a file over 200 KB refused), corners, shadows, glow, contrast, the five vibes (a vibe leaves nothing of the last one), Surprise me,
+Undo and Reset, Save / Export / Import / delete (the disk copy of « My themes » keeps the new keys), the folded Advanced editor, and a narrow page.
+
+No conversation is needed: the two markers DSH puts on a message (`data-chat-flow-kind="user"`, `data-chat-group-part="response"`) and the three
+chips of the composer dock are reproduced by a small probe in the page, painted with the variables DSH's own bubble uses. The real markers were read
+on a real conversation. **Not covered**: the bubble and the frame on a real conversation of the sandbox (it has none).
+
+The Theme page opens on this view; the editor of the nine tabs sits folded under it, so every other script that drives it (`check-theme-live`,
+`check-accent-live`, `check-display-live`, `audit-contrast-live`) calls `openThemeAdvanced(page)` from `live-page.mjs` first.
+
 ## Skills learned from experience: `scripts/check-skills-learned-live.mjs`
 
 ```bash

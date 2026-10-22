@@ -24,7 +24,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { openLivePage, openSettings, waitFor } from './live-page.mjs'
+import { openLivePage, openSettings, waitFor, openThemeAdvanced } from './live-page.mjs'
 
 const args = process.argv.slice(2)
 const argOf = (n, d) => { const i = args.indexOf(n); return i >= 0 && args[i + 1] !== undefined ? args[i + 1] : d }
@@ -491,6 +491,7 @@ async function setScheme(ctx, scheme) {
   await ctx.drawer()
   await ctx.click({ css: '[class*="navCell"]', text: 'Theme' })
   await sleep(1200)
+  await openThemeAdvanced(ctx.page) // the mode cards and the shipped themes sit in the Advanced editor, folded under the simple view
   // The mode is set on the Theme page itself, on three cards (the page is already open).
   const seg = async (name) => {
     await ctx.click({ css: '.kbth-mode', text: name })
@@ -593,6 +594,8 @@ const SCENARIOS = [
           if (alias === undefined || !(await c.click({ css: 'button[class*="navCell"]', text: alias }, { wait: 1200 }))) { missing.push({ size: c.size, scheme: c.scheme, scenario: 'settings.' + slug(name), why: 'the cell « ' + name + ' » was not found again (cells now: ' + now.join(' | ').slice(0, 120) + ')' }); continue }
         }
         await c.audit(slug(name), { wait: 1500 })
+        // The Theme page opens on its simple view: its Advanced editor (the nine tabs) is folded, so it is opened and audited too.
+        if (/^theme$/i.test(name) && (await openThemeAdvanced(c.page))) await c.audit(slug(name) + '.advanced', { wait: 900 })
         // The page's own tabs (role=tab, or the theme page's vertical tabs).
         const tabs = (await c.page.evalJs(`Array.from(document.querySelectorAll('[role="tab"], .kbth-adv-tab')).filter((e) => !e.closest('[class*="navList"]') && e.getBoundingClientRect().width > 4 && getComputedStyle(e).visibility === 'visible').map((e) => (e.innerText || e.getAttribute('aria-label') || '').trim()).filter(Boolean).slice(0, 10)`)).val || []
         for (const t of tabs) { if (await c.click({ css: '[role="tab"], .kbth-adv-tab', text: t }, { quiet: true, wait: 900 })) await c.audit(slug(name) + '.' + slug(t, 18), { wait: 900 }) }

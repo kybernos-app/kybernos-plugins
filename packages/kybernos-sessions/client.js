@@ -2264,7 +2264,8 @@ window.__ModuleLoader__.load({
         const lignes = tip.slice(0)
         if (lignes.length === 0) lignes.push(label)
         else if (lignes[0] !== label) lignes[0] = label + ' · ' + lignes[0]
-        return h('span', { className: 'kbs-popwrap' + (bordDroit ? ' kbs-bordDroit' : ''), key: id },
+        // `data-kb`: the hook the Theme page uses to hide the status pills (it may not write this bundle's classes)
+        return h('span', { className: 'kbs-popwrap' + (bordDroit ? ' kbs-bordDroit' : ''), key: id, 'data-kb': 'status-pill' },
           h('button', props,
             h('span', { className: 'kbs-ico' }, svg(icon, 15)),
             h('span', { className: 'kbs-lib' + (opts && opts.libelleVisible === true ? ' kbs-lib--vis' : '') }, label),
