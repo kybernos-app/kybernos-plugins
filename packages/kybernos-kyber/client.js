@@ -1027,7 +1027,7 @@ window.__ModuleLoader__.load({
         '.kbky-chip.warn{border-color:transparent;background:var(--dsw-alias-state-warn-bg,rgba(245,158,11,.18));color:color-mix(in srgb,var(--dsw-alias-state-warn-label,#a8530a) 55%,var(--dsw-alias-label-primary,#222))}',
         // the strip also sits in the chat's dock, which has no `.kbky` ancestor: it sets its own size and colour, like the page and the pane do
         // the strip: ONE line (2026-10-22): the name, three chips, « Set up… », and a small list that opens above it
-        '.kbky-strip{position:relative;display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:5px 10px 5px 12px;border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.25));border-radius:28px;background:var(--dsw-alias-bg-layer-1,rgba(127,127,127,.06));color:var(--dsw-alias-label-primary,#222);font-size:var(--dsh-content-font-size-secondary,13.5px);line-height:1.5}',
+        '.kbky-strip{box-sizing:border-box;width:100%;max-width:var(--dsh-composer-card-max-width,none);margin-inline:auto;position:relative;display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:5px 10px 5px 12px;border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.25));border-radius:28px;background:var(--dsw-alias-bg-layer-1,rgba(127,127,127,.06));color:var(--dsw-alias-label-primary,#222);font-size:var(--dsh-content-font-size-secondary,13.5px);line-height:1.5}',
         '.kbky-who{display:inline-flex;align-items:center;gap:8px;margin-inline-end:4px}',
         '.kbky-spacer{flex:1;min-width:0}',
         '.kbky-chipb{cursor:pointer;background:transparent;font:inherit;font-size:12px;padding-inline:8px}',
@@ -1063,10 +1063,10 @@ window.__ModuleLoader__.load({
         '.kbky-btn[disabled]{opacity:.6;cursor:default}',
         '.kbky-btn:focus-visible,.kbky-link:focus-visible,.kbky-sw:focus-visible,.kbky-fsel:focus-visible{outline:2px solid var(--dsw-alias-brand-primary,#4c6ef5);outline-offset:2px}',
         '.kbky-link{border:0;background:none;padding:0;font:inherit;font-size:13px;color:var(--dsw-alias-label-secondary,#666);text-decoration:underline;cursor:pointer;text-align:left}',
-        // In the chat's dock the strip lines up with the composer's card (the dock is 16 px wider on each side, measured) and takes its radius (28 px):
-        // the tiles inside have the radius that nests in it (28 minus the 12 px of padding).
-        '.kbky-dock{margin:0 0 8px;padding:0 16px}',
-        '.kbky-calm{display:flex;flex-direction:column;gap:12px}',
+        // In the chat's dock the strip is as wide as the composer's card and centred like it, with its radius (28 px). The card's own rule is `width:100%;max-width:var(--dsh-composer-card-max-width)`
+        // inside a root padded by `--dsh-composer-side-clearance` (measured on a chat 1213 px wide: the card is 813 px, and the strip used to run the full 1181 px). Both are the engine's own
+        // variables, inherited here; without them (an engine that has none) the strip keeps the full width, as before.
+        '.kbky-dock{margin:0 0 8px;padding:0 var(--dsh-composer-side-clearance,16px)}',
         '.kbky-chip.err{border-color:transparent;background:var(--dsw-alias-state-error-bg,rgba(236,19,19,.12));color:color-mix(in srgb,var(--dsw-alias-state-error-primary,#b91c1c) 55%,var(--dsw-alias-label-primary,#222))}',
         // the two tiles: one grid, one padding, one radius, one anatomy (mark and name on top, the body, one action at the bottom)
         '.kbky-tile{display:flex;flex-direction:column;gap:10px;min-width:0;padding:14px;border-radius:16px;background:var(--dsw-alias-bg-layer-2,rgba(127,127,127,.1));border:1px solid var(--dsw-alias-border-l1,rgba(127,127,127,.2))}',

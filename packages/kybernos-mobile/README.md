@@ -78,8 +78,8 @@ One screen, two blocks, shown in two places (decision of 2026-10-19; the old « 
   (`phone-remote-switch`, a `role="switch"` button), **ON by default, which means « ready to pair »**: no phone can reach the computer until one is linked (a QR code, a 4-digit check,
   the person's OK), and the card says so (« No phone is linked yet, so nothing can reach this computer »). Switched **off** it cuts every link, withdraws a pairing in progress and refuses a
   new one (`POST /kybernos-mobile/remote/enable { on }`; the host keeps the choice in `<remote dir>/settings.json`, 0600, and a restart keeps it; the linked phones stay listed, offline, and come back
-  when it is turned on); the card then says « Off. No phone can connect to this computer » with a « Turn on » button, and still lists the linked phones so they can be disconnected. While the
-  server does not offer the phone link the switch is greyed and the card says it will switch on by itself when it does. Below: the phone link in its states
+  when it is turned on); the card then says « Off. No phone can connect to this computer » with a « Turn on » button, and still lists the linked phones so they can be disconnected. The switch is this computer's own: it works whenever DSH's host half answers, also while the
+  server does not offer the phone link yet (the card then says, in the same box as every other state — a chip and one sentence —, that nothing can be linked for now; it is greyed only on a DSH that cannot do the phone link at all). Below: the phone link in its states
   (ready to pair, a code to scan, a phone asking for the 4-digit check, a code that ran out, a phone connected, a plan without the link) and the linked phones (when each was seen, disconnect one
   or all; no empty « Linked phones (0) » section). A chip says which state it is. When the plan does not include the link the block says « Not included in your plan » and offers the plans.
   At the foot, three short lines (the same look as Kaby's): **It does** (shows this computer's Kybernos on the phone through a relay that reads nothing), **It needs** (this computer on and online),
