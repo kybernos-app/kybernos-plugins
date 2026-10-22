@@ -53,7 +53,7 @@ JSON; the exact-origin guard answers `403` (an absent `Origin` passes). `POST` r
 | `GET /kybernos-auto/models` | the configured models, read-only: `{ok, models:[{cle, route, id, connecte, locale}]}` (feeds the picker of « My list ») |
 | `GET /kybernos-auto/state?sessionId=` | `{global, whitelist, scope, explicite, sondeMax, classifier, sessionOn, sante[], total, disponibles, chaud, failover:{enabled,last}, sondeEnCours, plafond, ttlSondeS, checkedAt, intervalS}`; each `sante` entry: `{modele, etat (jamais\|ok\|degrade\|down), disjoncteur (closed\|open\|half-open), jusqua, cause, consecutive, calls, errors, erreurPct, lastLatencyMs, cacheHitPct, lastError, sonde}` |
 | `POST /kybernos-auto/session` | `{sessionId, on}` turns Auto on or off for one session |
-| `POST /kybernos-auto/settings` | any of `autoWhitelist` (unique `provider/model` strings, 64 max; when the host can read the profile each must be a configured model, otherwise only the form is judged; a refusal answers `400` with a `code` — `liste-forme`, `liste-inconnu`, `liste` — and the entries at fault in `cles`), `autoScope` (`all`, `free` or `custom`), `autoRouting` (boolean), `autoFailover` (boolean), `autoClassifier` |
+| `POST /kybernos-auto/settings` | any of `autoWhitelist` (unique `provider/model` strings, 64 max; when the host can read the profile each must be a configured model, otherwise only the form is judged; a refusal answers `400` with a `code` — `liste-forme`, `liste-inconnu`, `liste-type` (not an array of strings), `liste` (over 64 or a duplicate) — and the entries at fault in `cles`), `autoScope` (`all`, `free` or `custom`), `autoRouting` (boolean), `autoFailover` (boolean), `autoClassifier` (a string, 200 characters at most). Every refusal of the route carries a `code` and an English `erreur`, and the page words the code in the person's language: `scope`, `routage`, `failover`, `classifieur`, `settings-illisible` and `ecriture` (`500`) join the `liste*` codes |
 | `POST /kybernos-auto/report` | `{modele, latenceMs?, erreur?, code?, message?, inputTokens?, cacheReadTokens?}` outcome of one delegation; an error keeps its reason and feeds the breaker |
 | `POST /kybernos-auto/router` | `{demande, sessionId?, exclure?[], sonde?}` returns `{actif, classe, via, modele, verifie, candidats[], chaine[], ecartes[], sondes, sonde, delai, plafond, raison}` |
 | `POST /kybernos-auto/probe` | `{models?[]}` probes the whitelist (or the whitelist models named; any other is ignored) for real, ignoring the verdict cache; a run that ended under 5 s ago is not repeated; 503 when the llm service is absent |
@@ -118,6 +118,7 @@ node test-host.mjs       # 33 checks: routes on a fake webServer, temp home, no 
 node test-resilience.mjs # 70 checks: breaker, triage, probe-first, router, routes with a fake llm; the probe copy matches sessions'
 node test-cli.mjs        # 10 checks: cli/auto-router.mjs against the real host module over HTTP
 node test-client.mjs     # 13 checks: static greps on client.js (data-kb hooks, tokens, menu wiring); it is not executed
+node test-refus.mjs      # 36 checks: every refusal of /settings carries a code, and the page words each one in French and English
 ```
 
 `npm test` runs them. The "classifier offline" case does not exercise the Ollama failure: the classifier was cleared earlier in

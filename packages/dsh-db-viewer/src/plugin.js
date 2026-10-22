@@ -518,9 +518,21 @@ function noteSql (d) {
 /** The size asked next: twice the last one, never more than the host would give. */
 function limiteSqlSuivante (limite) { return Math.min(limite * 2, PAGE_SQL_MAX) }
 
+/**
+ * The query the SQL tab starts on: the first table of THIS database, or nothing when it has none (the box then shows an example as a
+ * placeholder). It used to be a fixed query on `societes`, the table of the mini-CRM sample: on any other database the first « Run » came
+ * back as a red SQL error for a query nobody had written.
+ */
+function requeteDepart (schema) {
+  const tables = Array.isArray(schema && schema.tables) ? schema.tables : []
+  const premiere = tables.length > 0 ? tables[0].nom : null
+  if (typeof premiere !== 'string' || premiere === '') return ''
+  return 'SELECT * FROM "' + premiere.replace(/"/g, '""') + '" LIMIT 20'
+}
+
 /** SQL view: one SELECT query, its result. Nothing written gets through. */
 function Sql (props) {
-  const [sql, setSql] = React.useState('SELECT * FROM societes LIMIT 20')
+  const [sql, setSql] = React.useState(() => requeteDepart(props.schema))
   const [etat, setEtat] = React.useState({ lance: false, data: null, erreur: null, limite: PAGE_SQL })
   const lancer = (limite) => {
     // « Show more rows » keeps the rows already on screen until the larger answer arrives.
@@ -530,10 +542,10 @@ function Sql (props) {
       .catch((e) => setEtat({ lance: false, data: null, erreur: explain(e), limite }))
   }
   const corps = [h('textarea', {
-    key: 'sql', value: sql, spellCheck: false,
+    key: 'sql', value: sql, spellCheck: false, placeholder: 'SELECT * FROM table_name LIMIT 20',
     onChange: (e) => setSql(e.target.value),
   }),
-  h('button', { type: 'button', className: 'dshdb-run', key: 'run', onClick: () => lancer(PAGE_SQL) }, kt('Exécuter', 'Run'))]
+  h('button', { type: 'button', className: 'dshdb-run', key: 'run', disabled: sql.trim() === '', onClick: () => lancer(PAGE_SQL) }, kt('Exécuter', 'Run'))]
   if (etat.erreur !== null) corps.push(h('div', { className: 'dshdb-err', key: 'err' }, etat.erreur))
   if (etat.data !== null) {
     const d = etat.data
@@ -834,7 +846,9 @@ function TabBody () {
     if (onglet === 'diagramme') kids.push(h(Diagramme, { key: 'v', schema }))
     else if (onglet === 'graphiques') kids.push(h(Graphiques, { key: 'v', baseId, schema }))
     else if (onglet === 'donnees') kids.push(h(Donnees, { key: 'v', baseId, schema, packEntites }))
-    else kids.push(h(Sql, { key: 'v', baseId }))
+    // Keyed by database AND by the query it starts on: the query and the result on screen belong to the database they were written for,
+    // even when the schema of the next database arrives in the very render that changes the id (then no « Reading… » render comes between).
+    else kids.push(h(Sql, { key: 'v-sql-' + baseId + '|' + requeteDepart(schema), baseId, schema }))
   } else if (baseId !== null && erreur === null) {
     // Only while it is being read: a schema that failed to load is not « being read » any more (the error says so above).
     kids.push(h('div', { className: 'dshdb-note', key: 'load' }, kt('Lecture du schéma…', 'Reading the schema…')))

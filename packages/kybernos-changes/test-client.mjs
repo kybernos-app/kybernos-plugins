@@ -173,6 +173,88 @@ console.log('one is not « 1 updates »')
   setLang('en')
 }
 
+// ── the chip when there is nothing to read (audit L2-07) ───────────────────────────────────────────────────────────────
+// The chip used to vanish without a word when the Sessions seam was missing or did not answer, while the only help text of the bundle
+// describes it. The real component runs here on a small synchronous renderer (hooks, effects, async reads), against a scripted seam.
+console.log('the chip says it cannot say anything')
+{
+  let st = null
+  const sameDeps = (a, b) => Array.isArray(a) && Array.isArray(b) && a.length === b.length && a.every((v, i) => Object.is(v, b[i]))
+  const slot = () => { const k = st.i; st.i += 1; if (st.slots[k] === undefined) st.slots[k] = {}; return st.slots[k] }
+  const R = {
+    createElement: (type, props, ...children) => ({ type, props: props || {}, children: children.flat(Infinity) }),
+    Fragment: 'fragment',
+    useState: (init) => { const sl = slot(); if (!('v' in sl)) sl.v = typeof init === 'function' ? init() : init; return [sl.v, (n) => { const nv = typeof n === 'function' ? n(sl.v) : n; if (!Object.is(nv, sl.v)) { sl.v = nv; st.dirty = true } }] },
+    useRef: (init) => { const sl = slot(); if (!('r' in sl)) sl.r = { current: init }; return sl.r },
+    useCallback: (f, deps) => { const sl = slot(); if (!sameDeps(sl.deps, deps)) { sl.deps = deps; sl.f = f } return sl.f },
+    useEffect: (f, deps) => { const sl = slot(); if (sl.deps === undefined || !sameDeps(sl.deps, deps)) { sl.deps = deps; st.effects.push(() => { if (typeof sl.cleanup === 'function') sl.cleanup(); sl.cleanup = f() }) } },
+  }
+  const w2 = { addEventListener () {}, removeEventListener () {}, dispatchEvent () {}, innerWidth: 1200, __ModuleLoader__: { load: (def) => { d2 = def } } }
+  let d2 = null
+  new Function('window', SOURCE)(w2)
+  const m2 = d2.factory((spec) => { if (spec === 'react') return R; throw new Error('unexpected require ' + spec) })
+  let dock = null
+  m2.apply({ effect: (fn) => { fn() }, slots: { inject: (name, make) => { make() }, register: (def, comp) => { dock = comp; return () => {} } } })
+  const realSI = globalThis.setInterval
+  const realCI = globalThis.clearInterval
+  globalThis.setInterval = () => 0
+  globalThis.clearInterval = () => {}
+  const flat = (n, out = []) => { if (n === null || typeof n !== 'object') return out; out.push(n); for (const c of n.children || []) flat(c, out); return out }
+  const textOf = (n) => (n === null || n === undefined ? '' : typeof n === 'object' ? (n.children || []).map(textOf).join('') : String(n))
+  /** Mounts the chip for `sessionId` against `view` (undefined: the seam is not there) and settles; gives the tree and the first paint. */
+  const mount = async (sessionId, view) => {
+    if (view === undefined) delete w2.__KB_SESSIONS_VIEW__
+    else w2.__KB_SESSIONS_VIEW__ = view
+    delete w2.__KB_CHANGES_ACTIVE__
+    st = { slots: [], i: 0, dirty: false, effects: [] }
+    const el = dock({ sessionId })
+    let tree = null
+    const pass = () => { st.i = 0; st.effects = []; tree = el.type(el.props); for (const f of st.effects) f() }
+    pass()
+    const first = tree
+    for (let n = 0; n < 8; n += 1) { await new Promise((r) => setImmediate(r)); if (st.dirty) { st.dirty = false; pass() } }
+    return { tree, first }
+  }
+  const normal = base({ actions: A('closeCopy') })
+  const off = (r) => r.tree !== null && r.tree.props['data-state'] === 'unavailable'
+  const NONE = { type: null, props: {}, children: [] } // what a missing chip reads as, so that a failure is a ✗ and not a crash
+  const chipOf = (r) => flat(r.tree).find((n) => n.props && n.props['data-kb'] === 'changes-chip') || NONE
+
+  setLang('en')
+  let r = await mount('s1', undefined)
+  check('no Sessions seam, a chat: a chip that says tracking is unavailable (it no longer disappears)', off(r) && textOf(chipOf(r)) === 'Tracking unavailable', r.tree && r.tree.props)
+  check('...it cannot be pressed: not a button, no popup', r.tree !== null && chipOf(r).type === 'span' && chipOf(r).props['aria-haspopup'] === undefined && chipOf(r).props.onClick === undefined && flat(r.tree).every((n) => n.type !== 'button'))
+  check('...and its title says why: the Sessions module is not loaded', /Sessions module is not loaded/.test(String(chipOf(r).props.title)), chipOf(r).props.title)
+  check('...it is announced as a status, with the same hooks as the chip (data-kb, data-state)', chipOf(r).props.role === 'status' && r.tree !== null && r.tree.props['data-kb'] === 'changes')
+  check('...and the four git pills of Sessions are NOT told to step aside (the chip says nothing, they stay)', w2.__KB_CHANGES_ACTIVE__ !== true)
+
+  r = await mount(undefined, undefined)
+  check('no chat (no session id): nothing at all', r.tree === null)
+  r = await mount('', undefined)
+  check('an empty session id: nothing at all', r.tree === null)
+
+  r = await mount('s1', { version: 1, read: async () => { throw new Error('boom') } })
+  check('the seam is there but its read throws: unavailable, and the title says the module does not answer', off(r) && /not answering/.test(String(chipOf(r).props.title)) && !/not loaded/.test(String(chipOf(r).props.title)), r.tree && r.tree.props)
+  r = await mount('s1', { version: 1, read: async () => null })
+  check('the seam is there but its route is silent (null): the same', off(r) && /not answering/.test(String(chipOf(r).props.title)))
+  r = await mount('s1', { version: 1, read: () => new Promise(() => {}) })
+  check('before the first read has answered: nothing yet (no flash of « unavailable »)', r.tree === null && r.first === null)
+  r = await mount('s1', { version: 1, read: async () => ({ git: false }) })
+  check('a folder that is not a git project: nothing to say, still nothing', r.tree === null)
+  r = await mount('s1', { version: 1, read: async () => normal })
+  check('facts that mean something: the real chip, a button, announced to the pills — never the « unavailable » one', r.tree !== null && r.tree.props['data-state'] === 'ok' && chipOf(r).type === 'button' && w2.__KB_CHANGES_ACTIVE__ === true, r.tree && r.tree.props)
+
+  setLang('kybernos')
+  w2.__KB_LANG_RESOLVE__ = globalThis.window.__KB_LANG_RESOLVE__
+  r = await mount('s1', undefined)
+  check('in French: « Suivi indisponible » and the sentence in French', off(r) && textOf(chipOf(r)) === 'Suivi indisponible' && /n’est pas chargé/.test(String(chipOf(r).props.title)), chipOf(r).props.title)
+  setLang('en')
+  delete w2.__KB_LANG_RESOLVE__
+  check('every sentence of the chip has both sides (the table is checked pair by pair)', ['chipOff', 'tOffModule', 'tOffRead'].every((k) => Array.isArray(T.S[k]) && T.S[k].length === 2 && T.S[k][0] !== '' && T.S[k][1] !== '' && T.S[k][0] !== T.S[k][1]))
+  globalThis.setInterval = realSI
+  globalThis.clearInterval = realCI
+}
+
 // ── the preference ──────────────────────────────────────────────────────────────────────────────────────────────────
 console.log('the view preference')
 {

@@ -38,8 +38,8 @@ Nothing here talks to git or GitHub.
 | Actions, by role: `save`, `saveLocal`, `addToProject`, `push`, `fetch`, `sync`, `askReview`, `merge`, `isolate`, `closeCopy` | the same descriptors `PlanAction` receives (`url`, `body`) → `POST /kybernos-sessions/{commit,push,fetch,sync,pr,isolate,close}`, which keep their own origin guard and dry run |
 | Kind of each changed file | `fichiers` in `GET /kybernos-sessions/state` (additive: `git status --porcelain` codes). A DSH that was not restarted since the update sends none: the files are listed without their kind |
 
-If the seam is missing (an older sessions bundle) or the state route is silent, **this bundle shows nothing and the four
-pills stay**. The pills only step aside once the chip is on screen (`window.__KB_CHANGES_ACTIVE__` and the
+If the seam is missing (an older sessions bundle, or the bundle is off) or the state route is silent, **this bundle shows only a
+grey « Tracking unavailable » chip that cannot be pressed, and the four pills stay**. The pills only step aside once the real chip is on screen (`window.__KB_CHANGES_ACTIVE__` and the
 `kybernos-changes-active` event).
 
 ## Files and settings
@@ -69,6 +69,10 @@ See `docs/dev/live-testing.md`.
 
 ## Known limits
 
+- With no facts to read (the Sessions bundle is off or failed to load, its `__KB_SESSIONS_VIEW__` read throws, or its state route is
+  silent) and a chat open, the chip is a grey, non-clickable « Tracking unavailable » (`data-state="unavailable"`) whose title says
+  which of the two it is; it does not tell the four git pills of Sessions to step aside, so they stay. No chat, a read still pending,
+  or a folder that is not a git project: nothing is drawn.
 - The chip is as good as the facts of the sessions client: « the files of this chat » comes from the chat's journal, so a
   chat whose journal cannot be read shows the folder's count and no « other chat » tag.
 - « Undo these changes » is not offered: it would destroy work and needs its own host route with its own guards.
