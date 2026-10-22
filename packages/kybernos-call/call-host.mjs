@@ -287,10 +287,13 @@ export function createCall (deps = {}) {
     // What the user set in the settings fills in what the surface that opened the call did not say.
     const settings = store !== null ? await store.readSettings() : null
     const wanted = Object.assign({}, asked)
+    // `voice: { app: true }`: the app's own voice, asked for on purpose (Kaby, whose voice is its own and falls back on Settings › Voice, not on the default of Calls).
+    const appVoice = asked.voice !== null && typeof asked.voice === 'object' && asked.voice.app === true
     if (settings !== null) {
       if (str(asked.language) === null || asked.language === 'auto') wanted.language = settings.language
       if (asked.mode !== 'voice' && asked.mode !== 'video') wanted.mode = settings.mode
-      if ((asked.voice === null || asked.voice === undefined) && str(asked.roleId) === null && settings.defaultVoice !== null) wanted.voice = settings.defaultVoice
+      if (appVoice) wanted.voice = null
+      else if ((asked.voice === null || asked.voice === undefined) && str(asked.roleId) === null && settings.defaultVoice !== null) wanted.voice = settings.defaultVoice
     }
     if (settings !== null && settings.use.face === 'none') wanted.mode = 'voice' // "No face" is a choice: a camera click still gets a voice call
     const meta = callMetadata(wanted, { sessionBrain: feed !== null })

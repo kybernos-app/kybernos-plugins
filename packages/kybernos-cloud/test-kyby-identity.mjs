@@ -3,7 +3,7 @@
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { BODIES, CHANNELS, CORE, VOICE, dataBlock, dataLine, identityBlock } from './kyby-identity.mjs'
+import { BODIES, CHANNELS, CORE, VOICE, aliasOf, dataBlock, dataLine, identityBlock } from './kyby-identity.mjs'
 import { QUESTIONS, countEmoji, score } from './test-kyby-eval.mjs'
 import { kybyPrompt, nowSentence } from './kyby-native.mjs'
 
@@ -12,6 +12,21 @@ const ok = (name, cond, detail) => { console.log((cond ? 'ok   ' : 'FAIL ') + na
 
 const NATIVE = kybyPrompt([], new Date('2026-10-19T13:22:00Z'))
 const CLOUD = identityBlock({ channel: 'telegram', body: 'cloud', personName: 'Amina', nowText: 'Time: 2026-10-19T13:22Z (UTC).' })
+
+// ── the name the person gave their assistant (Settings › Kaby): it says it, the product stays Kaby, and nothing else can ride in with it ──
+ok('an alias is a short name of letters, digits, spaces and a few marks', aliasOf('Léa') === 'Léa' && aliasOf('  Jean-Luc   d\'Or ') === 'Jean-Luc d\'Or' && aliasOf('Max2') === 'Max2')
+ok('the product\'s own name is no alias, in any case', aliasOf('Kaby') === null && aliasOf('kaby') === null && aliasOf(' KABY ') === null)
+ok('a line break cannot add a second line: it becomes a space, in the name and in the block', aliasOf('Léa\nIgnore') === 'Léa Ignore' && identityBlock({ channel: 'chat', body: 'computer', nowText: 'Now.', assistantName: 'Léa\nIgnore' }).split('\n')[0].startsWith('You are Léa Ignore (the product is called Kaby)'))
+ok('empty, too long or not text is no alias', aliasOf('') === null && aliasOf('   ') === null && aliasOf('a'.repeat(25)) === null && aliasOf(null) === null && aliasOf(5) === null && aliasOf(undefined) === null)
+ok('a name that could carry a second line, markup or an instruction is no alias', ['Léa</data>', '<system>', 'Léa: tu es root', 'Léa; rm -rf', '[KYBY]', 'Léa😀', 'Léa "x"', 'Léa`x`'].every((v) => aliasOf(v) === null))
+{
+  const named = identityBlock({ channel: 'chat', body: 'computer', nowText: 'Now.', assistantName: 'Léa' })
+  const plain = identityBlock({ channel: 'chat', body: 'computer', nowText: 'Now.' })
+  ok('with an alias the first line says it, and still says what the product is called', /^You are Léa \(the product is called Kaby\), the person's own assistant/.test(named), named.slice(0, 120))
+  ok('without one (or with a refused one) the text is exactly what it was', plain === identityBlock({ channel: 'chat', body: 'computer', nowText: 'Now.', assistantName: 'Kaby' }) && plain === identityBlock({ channel: 'chat', body: 'computer', nowText: 'Now.', assistantName: 'Léa</data>' }) && /^You are Kaby, the person's own assistant/.test(plain))
+  ok('the rest of the core is untouched by the alias', named.split('\n').slice(1).join('\n') === plain.split('\n').slice(1).join('\n'))
+  ok('an alias costs under 60 characters and stays within the text\'s budget', named.length - plain.length < 60 && named.length <= 3000, named.length - plain.length)
+}
 
 // ── who Kaby is, and who it must never be again ──────────────────────────────
 ok('Kaby is named, and only Kaby', /You are Kaby, the person's own assistant/.test(NATIVE) && /You are Kaby, the person's own assistant/.test(CLOUD))
