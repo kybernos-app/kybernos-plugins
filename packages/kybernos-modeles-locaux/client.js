@@ -76,7 +76,7 @@ window.__ModuleLoader__.load({
       const KB_M_T = {
         'kml.soustitre': { fr: 'Un modèle qui tourne sur cette machine — détecté, recommandé, branché sur DSH.', en: 'A model running on this machine — detected, recommended, wired into DSH.' },
         'kml.machine': { fr: 'Machine :', en: 'Machine:' },
-        'kml.mesure': { fr: 'mesuré — sysctl', en: 'measured — sysctl' },
+        'kml.mesure': { fr: 'mesuré sur cette machine', en: 'measured on this machine' },
         'kml.ollama.absent': { fr: 'absent', en: 'not installed' },
         'kml.ollama.arrete': { fr: "serveur arrêté : ouvre l'app Ollama ou lance « ollama serve »", en: 'server not running: open the Ollama app or run “ollama serve”' },
         'kml.ollama.note': { fr: 'installé au 1ᵉʳ téléchargement', en: 'installed on first download' },
@@ -104,7 +104,7 @@ window.__ModuleLoader__.load({
         'kml.cat.source.signe': { fr: 'Liste : catalogue signé · {date}', en: 'List: signed catalogue · {date}' },
         'kml.cat.source.livre': { fr: 'Liste : livrée avec cette version · {date}', en: 'List: shipped with this version · {date}' },
         'kml.cat.source.embarque': { fr: 'Liste : intégrée à la page (DSH à redémarrer pour la recherche en ligne)', en: 'List: built into the page (restart DSH for the online search)' },
-        'kml.tuile.machine': { fr: 'Machine · mesuré (sysctl)', en: 'Machine · measured (sysctl)' },
+        'kml.tuile.machine': { fr: 'Machine · mesurée', en: 'Machine · measured' },
         'kml.tuile.budget': { fr: 'Budget mémoire modèle · estimé', en: 'Model memory budget · estimated' },
         'kml.budget.note': { fr: '≈ RAM − 5 Go, DSH + Chrome ouverts', en: '≈ RAM − 5 GB, DSH + Chrome open' },
         'kml.tuile.moteur': { fr: 'Moteur local', en: 'Local engine' },
