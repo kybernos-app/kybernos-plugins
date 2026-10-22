@@ -15,10 +15,11 @@ const check = (name, ok, detail) => { if (ok === true) { pass += 1; console.log(
 const a = src.indexOf('// KB-KML-PURE-BEGIN')
 const b = src.indexOf('// KB-KML-PURE-END')
 check('the pure block is delimited', a > 0 && b > a)
-const { KML_PAGE, kbScoreDe, kbOrdreAjuste, kbPagine, kbChercher, kbPaliers, kbEtatsAmarques } = new Function(src.slice(a, b) + '\nreturn { KML_PAGE, kbScoreDe, kbOrdreAjuste, kbPagine, kbChercher, kbPaliers, kbEtatsAmarques }')()
+const { KML_PAGE, kbScoreDe, kbScoreSansII, kbOrdreAjuste, kbPagine, kbChercher, kbPaliers, kbEtatsAmarques } = new Function(src.slice(a, b) + '\nreturn { KML_PAGE, kbScoreDe, kbScoreSansII, kbOrdreAjuste, kbPagine, kbChercher, kbPaliers, kbEtatsAmarques }')()
 
 console.log('\n── the score of a catalogue line ──')
 check('« II 32 · MMMU-Pro 69 % · 6.6–7.6 GB » reads 32', kbScoreDe('II 32 · MMMU-Pro 69 % · 6.6–7.6 GB') === 32 && kbScoreDe('II 16') === 16 && kbScoreDe('II 27.5') === 27.5 && kbScoreDe('II 27,5') === 27.5)
+check('the index is taken out of the line under the name (the badge shows it): « II 32 · MMMU-Pro 69 % · 6.6–7.6 GB » reads « MMMU-Pro 69 % · 6.6–7.6 GB »', kbScoreSansII('II 32 · MMMU-Pro 69 % · 6.6–7.6 GB') === 'MMMU-Pro 69 % · 6.6–7.6 GB' && kbScoreSansII('II 16 · 2.7–3.1 GB') === '2.7–3.1 GB' && kbScoreSansII('II 27') === '' && kbScoreSansII('Ollama library · 6.6 GB · 128K ctx') === 'Ollama library · 6.6 GB · 128K ctx' && kbScoreSansII('') === '' && kbScoreSansII(null) === '')
 check('a line that quotes none reads none (no number is made up)', kbScoreDe('Ollama library · 6.6–9.5 GB · 128K ctx') === null && kbScoreDe('MoE 30B-A3B · code') === null && kbScoreDe('') === null && kbScoreDe(null) === null && kbScoreDe(undefined) === null)
 check('« III », « WIKI 32 » or « II » with no number are not a score', kbScoreDe('III 32') === null && kbScoreDe('WIKI 32') === null && kbScoreDe('II') === null && kbScoreDe('II ·') === null)
 
@@ -63,6 +64,7 @@ check('the page orders by fit, pages the ones that fit, and folds the too-heavy 
 check('with the machine not measured yet nothing counts as too heavy (the list would fold while it is being read)', has("const etatListe = (mod) => (ramGo === null ? 'inconnu' : etatDe(mod))"))
 check('the search and the score steps sit in a bar that stays at the top of the list, and changing them goes back to page 1', has("className: 'kml-barre', 'data-kml': 'barre'") && has('position: sticky; top: 0') && has("'data-kml': 'recherche'") && has('setRecherche(e.target.value); setPage(1)') && has('setScoreMin(n); setPage(1)'))
 check('the score shows on the card as « II 32 » with its source in the tooltip', has("'data-kml': 'score'") && has("'II ' + String(kbScoreDe(mod.score))") && has("m('kml.score.badge', { n: kbScoreDe(mod.score) })"))
+check('the card draws the line without the index', has("kbScoreSansII(mod.score) !== '' ? ' · ' + kbScoreSansII(mod.score) : ''"))
 check('the pager reads « 1–8 of 21 models » with previous / next, only when there is more than a page', has("m('kml.page.info', { a: pageDe.debut + 1, b: pageDe.fin, n: pageDe.total })") && has('visibles.length > KML_PAGE') && has("'data-kml': 'page-prev'") && has("'data-kml': 'page-next'"))
 check('V-38: the install shows a bar and a percent; the command, the bytes and the last line open under a small chevron', has("'data-kml': 'detail-toggle'") && has("'aria-expanded': String(detailOuvert)") && has("'data-kml': 'detail'") && has("job.pct === null ? m('kml.en.cours') : job.pct + ' %'),") && has("m('kml.detail.cmd')") && has("m('kml.detail.recu')") && has("m('kml.detail.ligne')"))
 const ids = [...src.matchAll(/'(kml\.(?:search|score\.[a-z]+|page\.[a-z]+|lourd\.n|aucun|detail\.[a-z]+))': \{ fr: '((?:[^'\\]|\\.)*)', en: '((?:[^'\\]|\\.)*)' \}/g)]
