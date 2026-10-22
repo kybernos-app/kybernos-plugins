@@ -125,6 +125,21 @@ window.__ModuleLoader__.load({
         saved: ['Enregistré', 'Saved'],
         why: ['Pourquoi deux blocs. Le serveur ne voit que les appels qui passent par lui, et il les compte en pourcentage. Tes clés et tes modèles locaux ne passent pas par lui : seul cet ordinateur peut les chiffrer.', 'Why two blocks. The server only sees calls that go through it, and counts them as a percentage. Your keys and local models do not go through it: only this computer can count them.'],
         pageName: ['Usage', 'Usage'],
+        limitNear: ['{pct} de ta fenêtre de {window} est utilisée.', '{pct} of your {window} window is used.'],
+        limitPitch: ['{name} donne {n} fois plus.', '{name} gives you {n} times more.'],
+        limitPlans: ['Voir les plans', 'See the plans'],
+        limitHide: ['Masquer ce message', 'Hide this message'],
+        limitOut: ['Ta fenêtre de {window} est épuisée.', 'Your {window} window is used up.'],
+        limitBackAt: ['Retour à {at}.', 'Back at {at}.'],
+        limitBackTomorrow: ['Retour demain à {at}.', 'Back tomorrow at {at}.'],
+        limitBackOn: ['Retour {day} à {at}.', 'Back {day} at {at}.'],
+        limitUpgrade: ['Passer à {name}', 'Switch to {name}'],
+        limitUpgradeYear: ['{price} par mois, facturé à l’année', '{price} a month, billed yearly'],
+        limitUpgradeMonth: ['{price} par mois', '{price} a month'],
+        limitUpgradeMore: ['{price} · {n} fois plus', '{price} · {n} times more'],
+        limitOwn: ['Utiliser ma propre clé ou un modèle gratuit', 'Use my own key or a free model'],
+        limitOwnSub: ['Réglages › Fournisseur IA et modèles', 'Settings › AI provider and models'],
+        limitAsk: ['Demande à un administrateur de ton équipe de choisir un plan.', 'Ask an admin of your team to choose a plan.'],
         pageFor: ['Il couvre tous les modèles utilisés ici : un modèle du plan Kybernos, une clé à toi ou un modèle local. La console Kybernos garde le détail du plan par membre et par jour.', 'It covers every model you use here: a Kybernos plan model, a key of your own or a local model. The Kybernos console keeps the plan’s detail per member and per day.'],
       }
       const L = (key, p) => { const v = S[key]; return v === undefined ? key : fill(kt(v[0], v[1]), p) }
@@ -227,19 +242,83 @@ window.__ModuleLoader__.load({
         else label = L('windowHours', { n: Math.round(secs / 3600) })
         if (w.kind === 'pool') label = L('teamPool', { w: label })
         let back = null
+        let backAt = null
         if (w.exhausted === true && typeof w.resets_at === 'string') {
           const at = Date.parse(w.resets_at); const now = serverNow !== null && serverNow !== undefined ? Date.parse(serverNow) : Date.now()
-          if (Number.isFinite(at) && Number.isFinite(now) && at > now) back = duration(Math.max(1, Math.round((at - now) / 60000)))
+          if (Number.isFinite(at) && Number.isFinite(now) && at > now) {
+            back = duration(Math.max(1, Math.round((at - now) / 60000)))
+            // The server's clock minus this page's is taken out: the time of return is on THIS computer's clock.
+            backAt = Date.now() + (at - now)
+          }
         }
-        return { label, pct: Math.min(100, Math.max(0, pct)), back, kind: w.kind === 'pool' ? 'pool' : 'member', seconds: secs }
+        return { label, short: windowShort(secs), pct: Math.min(100, Math.max(0, pct)), back, backAt, exhausted: w.exhausted === true, kind: w.kind === 'pool' ? 'pool' : 'member', seconds: secs }
       }
+      /** A window named in a sentence: « 5 h », « 24 h », « 7 jours ». */
+      const windowShort = (secs) => (secs <= 48 * 3600 ? L('windowHours', { n: Math.round(secs / 3600) }) : L('windowDays', { n: Math.round(secs / 86400) }))
       /** Minutes as a short phrase: « 40 min », « 1 h 40 », « 3 jours ». */
       const duration = (min) => {
         if (min < 60) return min + NB + 'min'
         if (min < 2880) return Math.floor(min / 60) + NB + 'h' + (min % 60 > 0 ? ' ' + String(min % 60).padStart(2, '0') : '')
         return Math.round(min / 1440) + NB + (lang().slice(0, 2) === 'fr' || lang() === 'kybernos' ? 'jours' : 'days')
       }
-      const tone = (pct) => (pct >= 100 ? 'err' : (pct >= 80 ? 'warn' : 'ok'))
+      // From this share of a window on, the chip turns amber and the strip under the composer says so (the same 75 % as the account menu and the quota notice).
+      const LIMIT_NEAR = 75
+      const tone = (pct) => (pct >= 100 ? 'err' : (pct >= LIMIT_NEAR ? 'warn' : 'ok'))
+      /**
+       * The window that counts now. Calls are turned away until EVERY used-up window has room again, so among the used-up ones it is the one that opens LAST
+       * (the web console and the quota notice name it the same way); with none used up, the busiest (the longer on a tie).
+       */
+      const bindingWindow = (windows) => {
+        if (!Array.isArray(windows) || windows.length === 0) return null
+        const out = windows.filter((w) => w.exhausted === true).sort((a, b) => (b.backAt === null ? 0 : b.backAt) - (a.backAt === null ? 0 : a.backAt) || b.seconds - a.seconds)
+        if (out.length > 0) return out[0]
+        return windows.slice().sort((a, b) => b.pct - a.pct || b.seconds - a.seconds)[0]
+      }
+      /** 'out' while calls are turned away, 'near' from LIMIT_NEAR, 'ok' otherwise; null when there is nothing to say (signed out, no plan, payment, no figure). */
+      const limitState = (plan) => {
+        if (!isObj(plan) || plan.connected !== true || plan.noPlan === true || plan.blocked === true) return null
+        const w = bindingWindow(plan.windows)
+        if (w === null) return null
+        return w.exhausted === true ? 'out' : (w.pct >= LIMIT_NEAR ? 'near' : 'ok')
+      }
+      /** « 00 h 50 » in French, « 12:50 AM » in English; the day is named when it is not today. */
+      const clockAt = (ms, now) => {
+        const d = new Date(ms); const today = new Date(now === undefined ? Date.now() : now)
+        const fr = lang().slice(0, 2) === 'fr' || lang() === 'kybernos'
+        const hh = String(d.getHours()).padStart(2, '0'); const mm = String(d.getMinutes()).padStart(2, '0')
+        const at = fr ? hh + NB + 'h' + NB + mm : d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+        const key = (x) => x.getFullYear() * 400 + x.getMonth() * 32 + x.getDate()
+        const tomorrow = new Date(today.getTime()); tomorrow.setDate(today.getDate() + 1)
+        if (key(d) === key(today)) return { at, day: null }
+        if (key(d) === key(tomorrow)) return { at, day: 'tomorrow' }
+        let day = ''
+        try { day = d.toLocaleDateString(fr ? 'fr-FR' : 'en-US', { weekday: 'long' }) } catch (e) { day = '' }
+        return { at, day }
+      }
+      /** The sentence that says when the binding window opens, or null when the server gave no time. */
+      const backSentence = (w, now) => {
+        if (!isObj(w) || w.backAt === null || w.backAt === undefined) return null
+        const c = clockAt(w.backAt, now)
+        if (c.day === null) return L('limitBackAt', { at: c.at })
+        return c.day === 'tomorrow' ? L('limitBackTomorrow', { at: c.at }) : L('limitBackOn', { day: c.day, at: c.at })
+      }
+      // The « once per window » line at LIMIT_NEAR is hidden for good by its cross, until that window has gone back under LIMIT_NEAR. Remembered in this browser (the
+      // convenience of one person), with a copy in memory for when the browser refuses storage.
+      const DISMISS_KEY = 'kybernos-usage:limit-hidden'
+      const hidden = {}
+      const readHidden = () => {
+        try { const raw = window.localStorage.getItem(DISMISS_KEY); const j = raw === null ? null : JSON.parse(raw); if (isObj(j)) return Object.assign({}, j, hidden) } catch (e) { /* storage refused: the memory copy */ }
+        return Object.assign({}, hidden)
+      }
+      const writeHidden = (all) => { try { window.localStorage.setItem(DISMISS_KEY, JSON.stringify(all)) } catch (e) { /* storage refused: the memory copy holds */ } }
+      const isHidden = (seconds) => readHidden()[String(seconds)] === true
+      const hide = (seconds) => { hidden[String(seconds)] = true; writeHidden(readHidden()) }
+      /** A window that has room again earns its line back: forget the cross of every window under LIMIT_NEAR. */
+      const forgetHidden = (windows) => {
+        const all = readHidden(); let changed = false
+        for (const w of windows) { if (w.pct < LIMIT_NEAR && all[String(w.seconds)] === true) { delete all[String(w.seconds)]; delete hidden[String(w.seconds)]; changed = true } }
+        if (changed) writeHidden(all)
+      }
 
       // ── data (module scope: one cache for the chip and the page) ─────────────────────────────────────────────
       const getJson = (url) => fetch(url, { headers: { accept: 'application/json' } }).then((r) => (r.ok ? r.json() : null)).catch(() => null)
@@ -269,11 +348,18 @@ window.__ModuleLoader__.load({
           if (isObj(quota) && quota.ok === true) {
             const sp = isObj(status) && isObj(status.space_plan) ? status.space_plan : null
             const now = typeof quota.server_time === 'string' ? quota.server_time : null
+            const ws = isObj(quota.workspace) ? quota.workspace : {}
             v = {
               connected: true,
               name: sp !== null && typeof sp.label === 'string' ? sp.label : null,
               credits: sp !== null && Number.isFinite(Number(sp.credit_balance_credits)) ? Number(sp.credit_balance_credits) : null,
               blocked: quota.payment_blocked === true,
+              noPlan: quota.no_plan === true,
+              // Who is asking decides what the strip may offer: a person buys for a personal space, an admin for a team, a member of a team only asks.
+              personal: ws.personal !== false,
+              role: typeof ws.role === 'string' ? ws.role : null,
+              workspaceId: typeof ws.id === 'string' ? ws.id : null,
+              spacePlan: sp,
               windows: (Array.isArray(quota.usage) ? quota.usage : []).map((w) => windowView(w, now)).filter((w) => w !== null),
             }
           } else if (isObj(quota) && quota.connected === false) v = { connected: false, windows: [] }
@@ -281,6 +367,16 @@ window.__ModuleLoader__.load({
           return v
         })
         return planStore.inflight
+      }
+      // The next level of the plan (name, price per month, how many times more), asked to the cloud bundle that owns the Upgrade dialog so that the strip says what the dialog says:
+      // `window.__KB_UPGRADE__.pitch()`. undefined: not read · null: nothing to offer, or the cloud bundle is not there · the pitch.
+      const pitchStore = { value: undefined }
+      const loadPitch = () => {
+        try {
+          const u = window.__KB_UPGRADE__
+          if (isObj(u) && typeof u.pitch === 'function') return Promise.resolve(u.pitch()).then((v) => { pitchStore.value = isObj(v) ? v : null; return pitchStore.value }).catch(() => null)
+        } catch (e) { /* no cloud bundle: nothing to offer */ }
+        return Promise.resolve(null)
       }
       const summaryStore = { at: 0, value: null, inflight: null }
       const loadSummary = (days, force) => {
@@ -334,6 +430,32 @@ window.__ModuleLoader__.load({
 .kbus-link:hover{text-decoration:underline}
 @media (max-width:760px){.kbus-pop{position:fixed;left:16px;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));width:auto;max-height:calc(100vh - 120px)}}
 
+.kbus-pill .kbus-ico .kbus-ring{display:block;color:var(--dsw-alias-state-business-primary,#4176e6)}
+.kbus-pill.is-warn .kbus-ico .kbus-ring{color:var(--dsw-alias-state-warn-primary,#f59e0b)}
+.kbus-pill.is-err .kbus-ico .kbus-ring{color:var(--dsw-alias-state-error-primary,#f87171)}
+[data-composer-dock]:has(.kbus-strip){flex-wrap:wrap}
+.kbus-strip{flex:0 0 100%;box-sizing:border-box;display:flex;flex-direction:column;gap:10px;margin:2px 0 0;padding:9px 12px;border:1px solid var(--dsw-alias-border-l2,rgba(255,255,255,.10));border-radius:14px;background:var(--dsw-alias-bg-layer-2,transparent);font-size:13px;line-height:1.4;color:var(--dsw-alias-label-secondary,#cfd3d6);text-align:left}
+.kbus-strip.near{border-color:color-mix(in srgb,var(--dsw-alias-state-warn-primary,#f59e0b) 55%,transparent)}
+.kbus-strip.out{border-color:color-mix(in srgb,var(--dsw-alias-state-error-primary,#f87171) 60%,transparent)}
+.kbus-strip-row{display:flex;align-items:center;gap:10px;min-width:0}
+.kbus-strip .kbus-ring{flex:none;color:var(--dsw-alias-state-warn-primary,#f59e0b)}
+.kbus-strip.out .kbus-ring{color:var(--dsw-alias-state-error-primary,#f87171)}
+.kbus-strip-t{flex:1;min-width:0}
+.kbus-strip-t b{color:var(--dsw-alias-label-primary,#e8eaec);font-weight:600}
+.kbus-strip-act{flex:none;height:28px;padding:0 12px;border-radius:9px;border:1px solid var(--dsw-alias-border-l3,rgba(255,255,255,.16));background:transparent;color:var(--dsw-alias-label-primary,#e8eaec);font:inherit;font-size:12.5px;font-weight:500;cursor:pointer}
+.kbus-strip-act:hover{background:var(--dsw-alias-interactive-bg-hover,rgba(255,255,255,.06))}
+.kbus-strip-x{flex:none;width:24px;height:24px;padding:0;border:0;border-radius:8px;background:transparent;color:var(--dsw-alias-label-tertiary,#8a9096);cursor:pointer}
+.kbus-strip-x:hover{background:var(--dsw-alias-interactive-bg-hover,rgba(255,255,255,.06))}
+.kbus-strip :is(button):focus-visible{outline:2px solid var(--dsw-alias-state-business-primary,#4176e6);outline-offset:1px}
+.kbus-paths{display:grid;gap:8px}
+.kbus-path{display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;min-height:44px;padding:9px 12px;border-radius:12px;border:1px solid var(--dsw-alias-border-l3,rgba(255,255,255,.16));background:transparent;color:var(--dsw-alias-label-primary,#e8eaec);font:inherit;text-align:left;cursor:pointer}
+.kbus-path:hover{background:var(--dsw-alias-interactive-bg-hover,rgba(255,255,255,.06))}
+.kbus-path.primary{border-color:transparent;background:var(--dsw-alias-button-primary-fill,#f9fafb);color:var(--dsw-alias-label-primary-foreground,#0f1115)}
+.kbus-path.primary:hover{opacity:.92;background:var(--dsw-alias-button-primary-fill,#f9fafb)}
+.kbus-path b{font-weight:600;font-size:13.5px}
+.kbus-path small{font-size:12px;opacity:.75}
+.kbus-strip .kbus-lim{grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px 16px;margin:0}
+.kbus-strip-ask{margin:0;color:var(--dsw-alias-label-tertiary,#8a9096)}
 .kbus-page{padding:0 0 32px;max-width:860px;color:var(--dsw-alias-label-primary,#e8eaec)}
 /* Light schemes: label-tertiary is 3.7:1 on white. Inside this page it reads as label-secondary, 5.8:1 (audit A1-05); the dark scheme keeps its hierarchy. */
 body:not([data-ds-dark-theme]) .kbus-page{--dsw-alias-label-tertiary:var(--dsw-alias-label-secondary)}
@@ -457,6 +579,31 @@ body:not([data-ds-dark-theme]) .kbus-page{--dsw-alias-label-tertiary:var(--dsw-a
         }
       }
 
+      /** The plan's windows as the server counts them, read on mount and then every 90 s, and again as soon as the footer or a refused call asks (`kybernos-cloud:quota-read`). */
+      const usePlan = (active) => {
+        const [plan, setPlan] = React.useState(planStore.value)
+        React.useEffect(() => {
+          if (active !== true) return undefined
+          let alive = true
+          const apply = (v) => { if (alive) setPlan(v) }
+          const read = () => loadPlan(false).then(apply)
+          const again = () => loadPlan(true).then(apply)
+          read()
+          const timer = setInterval(read, 90000)
+          window.addEventListener('kybernos-cloud:quota-read', again)
+          return () => { alive = false; clearInterval(timer); window.removeEventListener('kybernos-cloud:quota-read', again) }
+        }, [active])
+        return plan
+      }
+      /** A ring that fills with the share of the binding window; amber from LIMIT_NEAR, red once calls are turned away (the colour comes from the chip's state). */
+      const Ring = ({ pct, size }) => {
+        const r = 6; const c = 2 * Math.PI * r
+        const filled = Math.min(100, Math.max(0, pct)) / 100 * c
+        return h('svg', { className: 'kbus-ring', width: size || 16, height: size || 16, viewBox: '0 0 16 16', fill: 'none', 'aria-hidden': 'true' },
+          h('circle', { cx: 8, cy: 8, r, stroke: 'currentColor', strokeWidth: 2, opacity: 0.25 }),
+          h('circle', { cx: 8, cy: 8, r, stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeDasharray: filled.toFixed(2) + ' ' + c.toFixed(2), transform: 'rotate(-90 8 8)' }))
+      }
+
       function Chip (props) {
         const sessionId = props.sessionId
         const up = typeof props.useProjection === 'function' ? props.useProjection : null
@@ -472,7 +619,6 @@ body:not([data-ds-dark-theme]) .kbus-page{--dsw-alias-label-tertiary:var(--dsw-a
           })
           : ''
         const [open, setOpen] = React.useState(false)
-        const [plan, setPlan] = React.useState(undefined) // undefined: not read · null: unavailable · object
         const [price, setPrice] = React.useState(undefined)
         const [month, setMonth] = React.useState(null)
         const wrap = React.useRef(null)
@@ -481,16 +627,10 @@ body:not([data-ds-dark-theme]) .kbus-page{--dsw-alias-label-tertiary:var(--dsw-a
         const model = isObj(selection) && isObj(selection.lastUsed) ? selection.lastUsed : null
         const key = model === null ? null : (String(model.provider || '') === '' ? String(model.model || '') : String(model.provider) + '/' + String(model.model))
         const onPlan = key !== null && splitKey(key).provider.toLowerCase() === 'kybernos'
+        const plan = usePlan(onPlan || open) // undefined: not read · null: unavailable · object
 
         React.useEffect(() => { placeCss() }, [])
         React.useEffect(() => { reportAll(latestStore.current); if (sessionId !== undefined && isObj(usage) && model !== null) reportOne(sessionId, usage, model, '') }, [storeSig, usage, key])
-        React.useEffect(() => {
-          let alive = true
-          const read = () => loadPlan(false).then((v) => { if (alive) setPlan(v) })
-          if (onPlan || open) read()
-          const t = (onPlan || open) ? setInterval(read, 90000) : null
-          return () => { alive = false; if (t !== null) clearInterval(t) }
-        }, [onPlan, open])
         React.useEffect(() => {
           let alive = true
           setPrice(undefined)
@@ -529,7 +669,7 @@ body:not([data-ds-dark-theme]) .kbus-page{--dsw-alias-label-tertiary:var(--dsw-a
 
         // What the chip says: the plan's busiest window on a Kybernos model, the session's cost on a key of one's own.
         let label = null; let cls = ''; let aria = ''
-        if (onPlan && worst !== null) { label = worst + NB + '%'; cls = worst >= 100 ? 'is-err' : (worst >= 80 ? 'is-warn' : ''); aria = L('pillPlan', { pct: label }) }
+        if (onPlan && worst !== null) { label = worst + NB + '%'; cls = limitState(plan) === 'out' ? 'is-err' : (worst >= LIMIT_NEAR ? 'is-warn' : ''); aria = L('pillPlan', { pct: label }) }
         else if (!onPlan && key !== null && tokens !== null) {
           if (kind === 'free') { label = L('gratis'); cls = 'is-muted'; aria = L('free') }
           else if (kind === 'unknown') { label = L('unknownChip'); cls = 'is-muted'; aria = L('priceUnknown') }
@@ -560,7 +700,7 @@ body:not([data-ds-dark-theme]) .kbus-page{--dsw-alias-label-tertiary:var(--dsw-a
 
         return h('span', { className: 'kbus-wrap', ref: wrap, 'data-kb': 'usage-chip' },
           h('button', { type: 'button', className: 'kbus-pill ' + cls, 'aria-expanded': open ? 'true' : 'false', 'aria-haspopup': 'dialog', 'data-kb': 'kybernos-usage-pill', 'data-act': 'toggle', title: aria, onClick: () => setOpen(!open) },
-            h('span', { className: 'kbus-ico' }, svg(onPlan ? ICON.gauge : ICON.coin)),
+            h('span', { className: 'kbus-ico' }, onPlan ? h(Ring, { pct: worst }) : svg(ICON.coin)),
             h('span', { className: 'kbus-n' }, label)),
           card)
       }
@@ -644,7 +784,7 @@ body:not([data-ds-dark-theme]) .kbus-page{--dsw-alias-label-tertiary:var(--dsw-a
           if (plan === null) return h('div', { className: 'kbus-card' }, h('p', { className: 'kbus-line', style: { margin: 0 } }, L('planUnavailable')))
           if (plan.connected === false) return h('div', { className: 'kbus-card' }, h('h4', null, L('planConnect')), h('p', { className: 'kbus-line' }, L('planConnectLine')))
           const worst = plan.windows.length > 0 ? Math.max.apply(null, plan.windows.map((w) => w.pct)) : 0
-          return h('div', { className: 'kbus-card ' + (worst >= 100 ? 'err' : (worst >= 80 ? 'warn' : '')), 'data-kb': 'kybernos-usage-plan' },
+          return h('div', { className: 'kbus-card ' + (limitState(plan) === 'out' ? 'err' : (worst >= LIMIT_NEAR ? 'warn' : '')), 'data-kb': 'kybernos-usage-plan' },
             h('div', { className: 'kbus-hd' }, h('h4', null, plan.name !== null ? L('planSolo', { name: plan.name }) : L('planSec'))),
             h(LimitRows, { windows: plan.windows }),
             plan.credits !== null ? h('div', null, h('div', { className: 'kbus-sep' }), h(CreditsRow, { credits: plan.credits })) : null,
@@ -743,10 +883,92 @@ body:not([data-ds-dark-theme]) .kbus-page{--dsw-alias-label-tertiary:var(--dsw-a
           h('p', { className: 'kbus-line' }, L('why')))
       }
 
+      // ── the limit strip: under the composer, only when the plan's busiest window is close or used up ────────────────────────────
+      // From LIMIT_NEAR: one line that says how much of which window is used (and what the next level of the plan gives), with a cross that hides it until that window has
+      // room again. Used up: a panel that says when it opens again and the ways on (the next level, a key of one's own or a free model) beside the four windows.
+      // It reads the same plan as the chip and asks the footer's meter to read again at the end of a turn (`kybernos-cloud:quota-read`), so neither lags behind the call.
+      const TURN_SETTLE_MS = 2000
+      const openPlans = (plan) => {
+        try { const u = window.__KB_UPGRADE__; if (isObj(u) && typeof u.open === 'function') { u.open(); return } } catch (e) { /* the dialog is not mounted: the account page is next */ }
+        try { window.dispatchEvent(new CustomEvent('kybernos-cloud:plan', { detail: { workspace_id: isObj(plan) ? plan.workspaceId : null } })) } catch (e) { /* no window events */ }
+      }
+      const openOwnKey = () => {
+        try { const u = window.__KB_UPGRADE__; if (isObj(u) && typeof u.settings === 'function' && u.settings() === true) return } catch (e) { /* the page is not reachable that way */ }
+        try { const f = window.__kbOpenDshSettings; if (typeof f === 'function') f() } catch (e) { /* the Settings dialog stays closed */ }
+      }
+      function LimitStrip (props) {
+        const up = typeof props.useProjection === 'function' ? props.useProjection : null
+        const selection = up !== null ? up('modelSelection') : undefined
+        const usage = up !== null ? up('tokenUsage') : undefined
+        const model = isObj(selection) && isObj(selection.lastUsed) ? selection.lastUsed : null
+        const onPlan = model !== null && String(model.provider || '').toLowerCase() === 'kybernos'
+        const plan = usePlan(onPlan)
+        const [, bump] = React.useState(0)
+        const [pitch, setPitch] = React.useState(pitchStore.value) // undefined: not read · null: nothing to offer · the next level
+        useLangTick()
+        const state = onPlan ? limitState(plan) : null
+        const shown = state === 'out' || state === 'near'
+        React.useEffect(() => { placeCss() }, [])
+        React.useEffect(() => { if (isObj(plan) && Array.isArray(plan.windows)) forgetHidden(plan.windows) }, [plan])
+        // The next level is asked for only when there is something to say, and again when the plan changes (a purchase moves the person up).
+        const planKey = isObj(plan) && isObj(plan.spacePlan) ? String(plan.spacePlan.key) + '|' + String(plan.spacePlan.label) : ''
+        React.useEffect(() => {
+          if (!shown) return undefined
+          let alive = true
+          loadPitch().then((v) => { if (alive) setPitch(v) })
+          return () => { alive = false }
+        }, [shown, planKey])
+        // The end of a turn: the counters of the chat stop moving. Not at mount, and only on a Kybernos model (an own key is not counted by the server).
+        const sig = isObj(usage) ? [usage.uncachedInputTokens, usage.outputTokens, usage.cacheReadTokens, usage.cacheWriteTokens].join('|') : ''
+        const seen = React.useRef(null)
+        React.useEffect(() => {
+          if (!onPlan) { seen.current = null; return undefined }
+          if (seen.current === null) { seen.current = sig; return undefined }
+          if (seen.current === sig) return undefined
+          seen.current = sig
+          const id = setTimeout(() => { try { window.dispatchEvent(new Event('kybernos-cloud:quota-read')) } catch (e) { /* no window events */ } }, TURN_SETTLE_MS)
+          return () => clearTimeout(id)
+        }, [sig, onPlan])
+        if (!shown) return null
+
+        const w = bindingWindow(plan.windows)
+        const canBuy = plan.personal === true || plan.role === 'owner' || plan.role === 'admin'
+        const offer = canBuy && isObj(pitch) ? pitch : null
+        const times = offer !== null && offer.times !== null ? decimal(String(offer.times)) : null
+
+        if (state === 'near') {
+          if (isHidden(w.seconds)) return null
+          const text = L('limitNear', { pct: w.pct + NB + '%', window: w.short }) + (times !== null ? ' ' + L('limitPitch', { name: offer.name, n: times }) : '')
+          return h('div', { className: 'kbus-strip near', role: 'status', 'data-kb': 'limit-strip', 'data-state': 'near' },
+            h('div', { className: 'kbus-strip-row' },
+              h(Ring, { pct: w.pct }),
+              h('span', { className: 'kbus-strip-t' }, text),
+              offer !== null ? h('button', { type: 'button', className: 'kbus-strip-act', 'data-kb': 'limit-plans', onClick: () => openPlans(plan) }, L('limitPlans')) : null,
+              h('button', { type: 'button', className: 'kbus-strip-x', 'data-kb': 'limit-hide', 'aria-label': L('limitHide'), title: L('limitHide'), onClick: () => { hide(w.seconds); bump((n) => n + 1) } }, svg(ICON.x, 12))))
+        }
+
+        const back = backSentence(w, Date.now())
+        const price = offer === null || offer.price === null ? null
+          : (offer.yearly ? L('limitUpgradeYear', { price: offer.price }) : L('limitUpgradeMonth', { price: offer.price }))
+        const upgradeSub = price === null ? null : (times !== null ? L('limitUpgradeMore', { price, n: times }) : price)
+        return h('div', { className: 'kbus-strip out', role: 'status', 'data-kb': 'limit-strip', 'data-state': 'out' },
+          h('div', { className: 'kbus-strip-row' },
+            h(Ring, { pct: 100 }),
+            h('span', { className: 'kbus-strip-t' }, h('b', null, L('limitOut', { window: w.short })), back !== null ? ' ' + back : '')),
+          h('div', { className: 'kbus-paths' },
+            offer !== null ? h('button', { type: 'button', className: 'kbus-path primary', 'data-kb': 'limit-upgrade', onClick: () => openPlans(plan) },
+              h('b', null, L('limitUpgrade', { name: offer.name })), upgradeSub !== null ? h('small', null, upgradeSub) : null) : null,
+            h('button', { type: 'button', className: 'kbus-path', 'data-kb': 'limit-own', onClick: openOwnKey },
+              h('b', null, L('limitOwn')), h('small', null, L('limitOwnSub')))),
+          canBuy ? null : h('p', { className: 'kbus-strip-ask', 'data-kb': 'limit-ask' }, L('limitAsk')),
+          // The four windows by their short names (« 5 h », « 24 h », « 7 jours »): the card's long « rolling window » label would wrap in the half-width columns.
+          h(LimitRows, { windows: plan.windows.map((x) => (x.kind === 'pool' ? x : Object.assign({}, x, { label: x.short }))) }))
+      }
+
       return {
         name: 'kybernos-usage',
         inject: ['slots'],
-        __test: { S, L, kt, fmtMoney, fmtTok, fmtPct, priceOf, costOf, saved, kindOf, aggregate, sessionCost, windowView, tone, splitKey, FREE_PROVIDERS, CSS, reportOne, storeSignature, OwnBlock },
+        __test: { S, L, kt, fmtMoney, fmtTok, fmtPct, priceOf, costOf, saved, kindOf, aggregate, sessionCost, windowView, tone, splitKey, FREE_PROVIDERS, CSS, reportOne, storeSignature, OwnBlock, LIMIT_NEAR, bindingWindow, limitState, clockAt, backSentence, isHidden, hide, forgetHidden, planStore, pitchStore, LimitStrip, TURN_SETTLE_MS },
         apply (ctx) {
           // After the sessions pills (order 5) and the changes chip (order 4). The id must NOT be `kybernos-usage`:
           // the core's usage probe already registers that id in this slot.
@@ -754,6 +976,11 @@ body:not([data-ds-dark-theme]) .kbus-page{--dsw-alias-label-tertiary:var(--dsw-a
             { name: 'conversation.composer.dock', id: 'kybernos-usage-chip', order: 6 },
             (props) => { try { return h(Chip, props || {}) } catch (e) { return null } }
           )), 'kybernos-usage: chip in the composer dock')
+          // The strip comes last in the row (after the pills of the other bundles, order 85 to 91) and takes a line of its own while it shows.
+          ctx.effect(() => ctx.slots.inject('conversation.composer.dock', () => ctx.slots.register(
+            { name: 'conversation.composer.dock', id: 'kybernos-usage-limit', order: 99 },
+            (props) => { try { return h(LimitStrip, props || {}) } catch (e) { return null } }
+          )), 'kybernos-usage: limit strip in the composer dock')
           ctx.effect(() => ctx.slots.inject('settings.section', () => ctx.slots.register(
             { name: 'settings.section', id: 'kybernos-usage', order: 32, label: 'Usage' },
             () => { try { return h(Page) } catch (e) { return null } }
