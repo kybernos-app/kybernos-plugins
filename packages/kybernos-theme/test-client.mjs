@@ -868,8 +868,45 @@ section('wired controls: the colour-blind palette really recolours success and e
     check(m + ': ...and stay legible: both ≥ 5:1 on layer 1', T.ratio(b.ok, b.l1) >= 5 && T.ratio(b.err, b.l1) >= 5, [T.ratio(b.ok, b.l1).toFixed(2), T.ratio(b.err, b.l1).toFixed(2)])
     check(m + ': ...success is a blue and error an orange (no green/red pair left): blue channel of ok > its red; red channel of err > its blue', T.HEX(b.ok)[2] > T.HEX(b.ok)[0] && T.HEX(b.err)[0] > T.HEX(b.err)[2])
   }
+  // L5-02: the palette exists to separate the pairs that red/green blindness merges. `warn` stayed amber (38°) while
+  // `err` moved to orange (24°): the error landed in the warning's family. Now all three states stay apart.
+  const hueOf = (hx) => { const [r, g, b] = T.HEX(hx).map((v) => v / 255); const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn; if (d === 0) return 0; const x = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; return (x * 60 + 360) % 360 }
+  const hueGap = (a, b) => { const d = Math.abs(hueOf(a) - hueOf(b)); return Math.min(d, 360 - d) }
+  // Machado et al. 2009 (severity 1.0) on linear sRGB, then CIE Lab (D65), distance = CIE76 ΔE.
+  const CVD = {
+    protan: [[0.152286, 1.052583, -0.204868], [0.114503, 0.786281, 0.099216], [-0.003882, -0.048116, 1.051998]],
+    deutan: [[0.367322, 0.860646, -0.227968], [0.280085, 0.672501, 0.047413], [-0.011820, 0.042940, 0.968881]]
+  }
+  const lin = (v) => { v /= 255; return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4) }
+  const labOf = (hx, kind) => {
+    const c = T.HEX(hx).map(lin), s = CVD[kind].map((r) => Math.min(1, Math.max(0, r[0] * c[0] + r[1] * c[1] + r[2] * c[2])))
+    const X = (0.4124564 * s[0] + 0.3575761 * s[1] + 0.1804375 * s[2]) / 0.95047, Y = 0.2126729 * s[0] + 0.7151522 * s[1] + 0.0721750 * s[2], Z = (0.0193339 * s[0] + 0.1191920 * s[1] + 0.9503041 * s[2]) / 1.08883
+    const f = (t) => (t > 216 / 24389 ? Math.cbrt(t) : (24389 / 27 * t + 16) / 116)
+    return [116 * f(Y) - 16, 500 * (f(X) - f(Y)), 200 * (f(Y) - f(Z))]
+  }
+  const dE = (a, b, kind) => { const p = labOf(a, kind), q = labOf(b, kind); return Math.hypot(p[0] - q[0], p[1] - q[1], p[2] - q[2]) }
+  for (const m of ['light', 'dark']) {
+    const a = plain(m, false), b = plain(m, true)
+    check(m + ': the warning ink changes too (it was amber in both palettes)', a.warn !== b.warn && b.warn !== b.ok && b.warn !== b.err, [a.warn, b.warn])
+    check(m + ': ...the error is at least 60° of hue away from the warning and from the success (was 14° from the warning)', hueGap(b.err, b.warn) >= 60 && hueGap(b.err, b.ok) >= 60, [hueGap(b.err, b.warn).toFixed(0), hueGap(b.err, b.ok).toFixed(0)])
+    check(m + ': ...the warning keeps ≥ 5:1 on layer 1 like the other two', T.ratio(b.warn, b.l1) >= 5, T.ratio(b.warn, b.l1).toFixed(2))
+    for (const kind of ['protan', 'deutan']) {
+      const d = [dE(b.ok, b.warn, kind), dE(b.warn, b.err, kind), dE(b.ok, b.err, kind)]
+      check(m + ': ' + kind + 'opia simulated, success / warning / error stay ≥ 30 ΔE apart (CIE76)', d.every((x) => x >= 30), d.map((x) => x.toFixed(0)))
+    }
+  }
   const mk = mkCtx({}); T.appliquerJetons(mk.ctx.theme, { ...T.DEF, cbSafe: true })
   const layer = mk.calls.overrideTokens[0] && mk.calls.overrideTokens[0].tokens
+  check('...and the applied layer carries the new warning token per scheme', layer['--dsw-alias-state-warn-primary'].dark === plain('dark', true).warn && layer['--dsw-alias-state-warn-primary'].light === plain('light', true).warn)
+  {
+    // The grade inks of the notes (.kbth-gr-*) are static CSS: under the palette each one must be the very token the layer applies.
+    const inks = {}
+    for (const m of SOURCE.matchAll(/^(body:not\(\[data-ds-dark-theme\]\) |html\[data-kbth-cb\] (?:body:not\(\[data-ds-dark-theme\]\) )?)?\.kbth-gr-(ok|warn|err)\{--kbth-ink:(#[0-9A-Fa-f]{6})\}/gm)) inks[(m[1] || 'dark').trim() + ' ' + m[2]] = m[3]
+    for (const [m, prefix] of [['dark', 'html[data-kbth-cb]'], ['light', 'html[data-kbth-cb] body:not([data-ds-dark-theme])']]) {
+      const t = plain(m, true), bad = ['ok', 'warn', 'err'].filter((k) => (inks[prefix + ' ' + k] || '').toUpperCase() !== t[k].toUpperCase())
+      check(m + ': under the palette, the success / warning / error note inks are the palette\'s tokens (none keeps its default ink)', bad.length === 0, bad.map((k) => [k, inks[prefix + ' ' + k], t[k]]))
+    }
+  }
   check('...and the switch alone is enough to post a layer (a state that only differs by this toggle is NOT natural)', mk.calls.overrideTokens.length === 1 && layer['--dsw-alias-state-success-primary'].dark === '#56B4E9' && layer['--dsw-alias-state-error-primary'].dark === '#FF8A3D' && layer['--dsw-alias-state-success-primary'].light === '#0072B2')
 }
 section('light scheme: small texts stay legible')
@@ -1403,11 +1440,12 @@ if (React === null) {
     const rows = Object.entries(inks).map(([k, ink]) => [k, ink, real.ratio(ink, /dark-theme/.test(k) || /cb body/.test(k) ? l1.light : (/^html\[data-kbth-cb\] \.kbth/.test(k) ? l1.dark : l1.dark))])
     const dark = ['dark ok', 'dark warn', 'dark err'].map((k) => real.ratio(inks[k], l1.dark))
     const light = ['body:not([data-ds-dark-theme]) ok', 'body:not([data-ds-dark-theme]) warn', 'body:not([data-ds-dark-theme]) err'].map((k) => real.ratio(inks[k], l1.light))
-    check('the grade inks exist for dark and light (6) plus the colour-blind pair (2)', Object.keys(inks).length === 8, Object.keys(inks))
+    check('the grade inks exist for dark and light (6) plus the colour-blind set, one per grade and scheme (6)', Object.keys(inks).length === 12, Object.keys(inks))
     check('dark: every grade ink is ≥ 4.5:1 on the dark layer 1', dark.length === 3 && dark.every((r) => r >= 4.5), dark.map((r) => r.toFixed(2)))
     check('light: every grade ink is ≥ 4.5:1 on white (DSH\'s green and orange were 2.2:1)', light.length === 3 && light.every((r) => r >= 4.5), light.map((r) => r.toFixed(2)))
     const cbKeys = Object.keys(inks).filter((k) => /kbth-cb/.test(k))
-    check('the colour-blind pair turns the passing grade blue in both schemes, ≥ 4.5:1', cbKeys.length === 2 && real.ratio(inks['html[data-kbth-cb] ok'] || inks[cbKeys[0]], l1.dark) >= 4.5 && real.ratio(inks[cbKeys.find((k) => /body/.test(k))], l1.light) >= 4.5)
+    check('the colour-blind set turns the passing grade blue in both schemes, ≥ 4.5:1', cbKeys.length === 6 && real.ratio(inks['html[data-kbth-cb] ok'], l1.dark) >= 4.5 && real.ratio(inks['html[data-kbth-cb] body:not([data-ds-dark-theme]) ok'], l1.light) >= 4.5)
+    check('...and every colour-blind grade ink (success, warning, error) is ≥ 4.5:1 in its scheme', ['ok', 'warn', 'err'].every((g) => real.ratio(inks['html[data-kbth-cb] ' + g], l1.dark) >= 4.5 && real.ratio(inks['html[data-kbth-cb] body:not([data-ds-dark-theme]) ' + g], l1.light) >= 4.5))
     const html = render({ mode: 'dark' }, 'accessibilite')
     check('the badges carry a grade class and no inline ink (nothing to go stale when the scheme changes)', (html.match(/class="kbth-a11y-badge kbth-gr-(ok|warn|err)"/g) || []).length === 6 && !/kbth-a11y-badge[^>]*style=/.test(html))
     check('the stylesheet applies the ink to both kinds of badge', /\.kbth-a11y-badge\[class\*="kbth-gr-"\],\.kbth-tok-badge\[class\*="kbth-gr-"\]\{color:var\(--kbth-ink\)/.test(SOURCE))

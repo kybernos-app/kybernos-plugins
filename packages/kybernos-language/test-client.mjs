@@ -661,6 +661,11 @@ console.log('\n── a run left behind by a closed tab ──')
   const r = await T.autoResume({ sleep: async () => { ticks += 1 }, now: () => 1000 + 60000 })
   check('no plan (nothing to translate from): it waits a bounded time, then gives up', r === false && ticks === 90 && T.getRun().state === 'idle', ticks)
 }
+{
+  // L3-02: the resume only starts from an idle page, so the page must have seen the host's own run BEFORE it decides.
+  const delay = (fn) => { const m = new RegExp('setTimeout\\(\\(\\) => \\{ ' + fn + '\\(\\)[^\\n]*?\\}, (\\d+)\\)').exec(SOURCE); return m === null ? null : Number(m[1]) }
+  check('at boot the host\'s own run is looked at before the automatic resume decides', delay('bootJobs') !== null && delay('autoResume') !== null && delay('bootJobs') < delay('autoResume'), [delay('bootJobs'), delay('autoResume')])
+}
 
 // ── activation + DSH language pack ────────────────────────────────────────
 console.log('\n── activation and DSH language ──')
@@ -884,6 +889,50 @@ console.log('\n── the run on the host (i18n-job): the page hands it over, wa
     await settle('running')
     check('another language is being translated: « failed » with a reason the person can act on', T.getRun().state === 'failed' && T.friendlyError(T.getRun().error) === 'errBusy' && /BUSY/.test(T.getRun().error), T.getRun())
     hang.cancel('de')
+  }
+
+  await fresh()
+  {
+    // L3-02: a tab closed mid-run left an intent, the load resumes it through the host and the host refuses (another language is
+    // being translated). The refusal settles the attempt: the intent used to stay and bring the same refusal back at every load.
+    T.resetRun()
+    const hang = mkRunner(() => new Promise(() => {}))
+    installJobHost(hang)
+    hang.start({ op: 'start', lang: 'de', langName: 'German', items: [{ wire: 'kb:k0', text: 'x', area: 'core' }], total: 1 })
+    delete globalThis.window.__KB_LANG_RUNTIME__; startRuntime()
+    T.registryAdd('es')
+    localStorage.setItem('kybernos.i18n.runstate', JSON.stringify({ lang: 'es', model: { provider: 'p', model: 'm' }, beat: 1000 }))
+    const resumed = await T.autoResume({ sleep: async () => {}, now: () => 1000 + 60000 })
+    await settle('running')
+    check('(setup) the automatic resume goes through the host, which is busy: « failed » with the busy reason', resumed === true && T.getRun().state === 'failed' && T.friendlyError(T.getRun().error) === 'errBusy', T.getRun())
+    check('a refused resume leaves no stale intent behind (it retried the same language at every load)', T.intentRead() === null, T.intentRead())
+    T.resetRun()
+    check('...so the next load has nothing to resume', await T.autoResume({ sleep: async () => {}, now: () => 1000 + 120000 }) === false && T.getRun().state === 'idle')
+    // the refusal of one language must not erase the intent of another one (a live tab still running it)
+    localStorage.setItem('kybernos.i18n.runstate', JSON.stringify({ lang: 'ar', model: null, beat: Date.now() }))
+    T.startRun('es', null)
+    await settle('running')
+    check('a refusal only drops the intent of ITS language', T.getRun().state === 'failed' && T.intentRead() !== null && T.intentRead().lang === 'ar', T.intentRead())
+    hang.cancel('de')
+  }
+
+  await fresh()
+  {
+    // L3-02: a resume the host accepts hands the run over: the intent of the closed tab is moot, and a failure of the host run
+    // (a dead key) must not be retried by the resume at every load either.
+    T.resetRun()
+    const runner = mkRunner(okTranslate)
+    installJobHost(runner)
+    delete globalThis.window.__KB_LANG_RUNTIME__; startRuntime()
+    await RT().disk.idle()
+    T.registryAdd('es')
+    localStorage.setItem('kybernos.i18n.runstate', JSON.stringify({ lang: 'es', model: { provider: 'p', model: 'm' }, beat: 1000 }))
+    check('(setup) the automatic resume starts the run on the host', await T.autoResume({ sleep: async () => {}, now: () => 1000 + 60000 }) === true)
+    for (let i = 0; i < 200 && runner.running().length === 0 && runner.status('es') === null; i += 1) await new Promise((r) => setTimeout(r, 5))
+    await runner.idle()
+    await T.watchOnce()
+    check('the host finished it', T.getRun().state === 'done', T.getRun())
+    check('the host owns the run: the intent of the closed tab is gone', T.intentRead() === null, T.intentRead())
   }
 
   await fresh()

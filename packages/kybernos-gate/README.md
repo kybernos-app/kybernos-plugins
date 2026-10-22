@@ -136,7 +136,10 @@ and let Coolify's proxy carry the domain and the TLS certificate. Do **not** als
 
 - **Login:** the password is checked with scrypt in constant time; the username and the password are both always checked, and
   the answer never says which one was wrong. Five failures lock the client for 45 s, each next lock twice as long (15 min at most);
-  a flood from many addresses locks everyone for a minute; one guess at a time per client.
+  a flood from many addresses locks everyone for a minute; one guess at a time per client. The page's script posts JSON; the form
+  also works without it (urlencoded post to the form's action, which carries `next`): `303` to `next` with the same cookies on
+  success, the sign-in page again with the reason on failure (the page keeps `Referrer-Policy: same-origin`, otherwise browsers
+  post `Origin: null`). The "starting" page also refreshes by itself with a `<meta>` tag.
 - **Session:** a signed cookie (`HttpOnly`, `SameSite=Strict`, `Secure` behind HTTPS), 30 days. The login and logout routes accept
   only a request whose `Origin` is the gate's own public host. The sign-in page carries a strict Content-Security-Policy.
 - **Everything else is behind it:** the page, its assets, `/api`, and the plugin routes that DSH serves before its own authentication.
