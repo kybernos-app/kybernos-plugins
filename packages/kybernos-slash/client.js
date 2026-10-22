@@ -2370,13 +2370,17 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
               return
             }
             if (ev.key !== 'Escape') return
+            // The key is ours while one of our panels is open: DSH's Settings dialog (behind the editor) must not close with it. The listener
+            // sits on window, in the capture phase, so it runs before any listener DSH put on the document.
+            const mine = ui.editor !== null || ui.palette === true || ui.addOpen === true || ui.menu !== null || ui.ctxId !== null
+            if (mine) { ev.preventDefault(); ev.stopImmediatePropagation() }
             // A picker or a menu of the editor closes first; the editor itself closes on the next press.
             if (ui.editor !== null && (ui.editor.iconOpen === true || ui.editor.insertOpen === true)) {
               ui.editor = Object.assign({}, ui.editor, { iconOpen: false, insertOpen: false })
               notify()
               return
             }
-            if (ui.editor !== null || ui.palette === true || ui.addOpen === true || ui.menu !== null || ui.ctxId !== null) {
+            if (mine) {
               ui.editor = null
               ui.palette = false
               ui.addOpen = false
@@ -2386,8 +2390,8 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
               notify()
             }
           }
-          document.addEventListener('keydown', onKey, true)
-          return () => document.removeEventListener('keydown', onKey, true)
+          window.addEventListener('keydown', onKey, true)
+          return () => window.removeEventListener('keydown', onKey, true)
         }, 'kybernos-slash: touche Echap')
 
         // The palette: we wait for the trigger pipeline in order to plug into it.
