@@ -39,6 +39,10 @@ const kbHostOK = (req) => {
     return ['127.0.0.1' + port, 'localhost' + port, '[::1]' + port].indexOf(host) >= 0 || kbTrusted(host)
   } catch (e) { return false }
 }
+// What `register` hands back takes the route off again. It is kept here and given to `ctx.effect` by `apply`, so that unloading the plugin removes every route it
+// added: without it a hot reload met « duplicate exact route », logged « routes not mounted » and went on serving the OLD handlers (audit L4-05, L6-04).
+const kbRetraits = []
+const kbRetirerRoutes = () => { for (const retrait of kbRetraits.splice(0).reverse()) { try { retrait() } catch (e) { /* already gone */ } } }
 const kbFenced = (service) => {
   if (service === null || service === undefined || typeof service.register !== 'function') return service
   const fence = (route) => (route !== null && typeof route === 'object' && typeof route.handler === 'function'
@@ -52,7 +56,7 @@ const kbFenced = (service) => {
       },
     })
     : route)
-  return new Proxy(service, { get: (target, key) => (key === 'register' ? (route) => target.register(fence(route)) : (typeof target[key] === 'function' ? target[key].bind(target) : target[key])) })
+  return new Proxy(service, { get: (target, key) => (key === 'register' ? (route) => { const retrait = target.register(fence(route)); if (typeof retrait === 'function') kbRetraits.push(retrait); return retrait } : (typeof target[key] === 'function' ? target[key].bind(target) : target[key])) })
 }
 
 export const name = 'kybernos-miniapps'
@@ -252,6 +256,7 @@ const repondreJson = async (res, travail) => {
 }
 
 export function apply (ctx) {
+  if (ctx !== null && ctx !== undefined && typeof ctx.effect === 'function') ctx.effect(() => kbRetirerRoutes, 'kybernos-miniapps: routes')
   const poser = (c) => {
     try {
       const webServerSvc = kbFenced(c.get('webServer'))
