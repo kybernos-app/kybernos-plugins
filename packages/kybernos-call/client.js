@@ -230,6 +230,22 @@ window.__ModuleLoader__.load({
         } catch (e) { return { kind: 'unreachable' } }
       }
       // Why a recording is not spoken in its own voice, said where the user looks (the panel).
+      /**
+       * A call from the header of Kaby's own conversation: the name the person gave it and the voice they chose for it (kybernos-kaby-customisation, through
+       * window.__KB_KABY__), else null (any other session, or no such bundle: the plain assistant, the default voice). A voice not chosen is the app's own voice,
+       * asked for on purpose ({ app: true }) so that the default of Settings › Calls does not take its place; a custom voice no engine speaks yet is the same.
+       */
+      const kabyCallOf = (sessionId) => {
+        try {
+          const kyby = window.__KB_KYBER__
+          const seam = window.__KB_KABY__
+          if (typeof sessionId !== 'string' || kyby === undefined || kyby === null || typeof kyby.isKybySession !== 'function' || kyby.isKybySession(sessionId) !== true) return null
+          const p = seam !== undefined && seam !== null && typeof seam.profile === 'function' ? seam.profile() : null
+          if (p === null || p === undefined || typeof p.name !== 'string' || p.name === '') return null
+          const v = p.voice !== null && typeof p.voice === 'object' ? p.voice : { pick: 'default' }
+          return { name: p.name, voice: v.pick === 'voice' && typeof v.engine === 'string' && typeof v.voice === 'string' ? { engine: v.engine, voice: v.voice, lang: typeof v.lang === 'string' ? v.lang : '' } : { app: true } }
+        } catch (e) { return null }
+      }
       const cloneNote = (c) => {
         const why = (c === null || c === undefined) ? kt('le service de clonage ne répond pas', 'the clone service did not answer')
           : c.code === 'upload-off' ? kt('l’envoi des enregistrements est désactivé (Réglages › Appels)', 'sending recordings is off (Settings › Calls)')
@@ -682,7 +698,7 @@ body:not([data-ds-dark-theme]) .kbcl-chip.kbcl-warn{color:color-mix(in srgb,${T.
         // A call that never started or already ended (the panel says « error » or « call ended », with its own « Close ») is nothing to hang up: only a call being set up or live is (A5-22).
         const active = current !== null && current.phase !== 'error' && current.phase !== 'ended'
         const sessionId = (props !== null && props !== undefined && typeof props.sessionId === 'string') ? props.sessionId : null
-        const start = (mode) => open({ sessionId: sessionId, kyberId: null, roleId: null, name: kt('Assistant', 'Assistant'), mode: mode, voice: null })
+        const start = (mode) => { const kaby = kabyCallOf(sessionId); return open({ sessionId: sessionId, kyberId: null, roleId: null, name: kaby !== null ? kaby.name : kt('Assistant', 'Assistant'), mode: mode, voice: kaby !== null ? kaby.voice : null }) }
         if (active) {
           return h('div', { className: 'kbcl-hdr', 'data-kb': 'kybernos-call-header' },
             h('button', { type: 'button', className: 'kbcl-hbtn kbcl-hlive', 'data-act': 'hangup-header', title: kt('Raccrocher l’appel en cours', 'Hang up the call in progress'), 'aria-label': kt('Raccrocher', 'Hang up'), onClick: () => hangUp() }, [PHONE(15), h('span', { key: 't' }, kt('Raccrocher', 'Hang up'))]))
@@ -1217,7 +1233,7 @@ body:not([data-ds-dark-theme]) .kbcl-chip.kbcl-warn{color:color-mix(in srgb,${T.
       return {
         name: 'kybernos-call',
         inject: ['slots'],
-        __test: { getGoto: () => settingsGoto, openCallSettings: openCallSettings, open: open, hangUp: hangUp, toggleMute: toggleMute, toggleSounds: toggleSounds, getState: () => state, setAudioHost: (el) => { audioHost = el }, switchMic: switchMic, CallHeader: CallHeader, SettingsPage: SettingsPage, CSS: CSS, cloneNote: cloneNote, sampleFor: sampleFor, kt: kt },
+        __test: { kabyCallOf, getGoto: () => settingsGoto, openCallSettings: openCallSettings, open: open, hangUp: hangUp, toggleMute: toggleMute, toggleSounds: toggleSounds, getState: () => state, setAudioHost: (el) => { audioHost = el }, switchMic: switchMic, CallHeader: CallHeader, SettingsPage: SettingsPage, CSS: CSS, cloneNote: cloneNote, sampleFor: sampleFor, kt: kt },
         apply (ctx) {
           try {
             const slots = ctx.slots

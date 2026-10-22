@@ -10,6 +10,7 @@ import { createServer } from 'node:http'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { callMetadata, createCall } from './call-host.mjs'
+import { createStore } from './call-store.mjs'
 import { createSpeechFeed } from './speech-feed.mjs'
 
 let pass = 0
@@ -160,6 +161,21 @@ try {
   assert.equal(spawnCalls.length, 1, 'the second call reuses the worker')
   assert.equal(m5b.agent.dispatched, true)
   ok('a second call to another session is its own room with its own identity, on the same worker (the first call\'s session is not kept)')
+  // The default voice of Settings › Calls fills a call that asks for none; Kaby asks for the app's own voice, or for its own, and the default is never applied over it.
+  {
+    const store = createStore({ dshHome: async () => home })
+    await store.writeSettings({ defaultVoice: { engine: 'edge', voice: 'fr-FR-DeniseNeural', lang: 'fr' } })
+    const withDefault = base({ store, execFile: fakeExec, spawn: fakeSpawn, fetch: fakeFetch })
+    const metaOf = async (asked) => { const before = twirpCalls.length; await withDefault.mint(Object.assign({ sessionId: 'session-cccccccc', room: 'room-' + before }, asked)); return JSON.parse(JSON.parse(twirpCalls[before].init.body).metadata) }
+    assert.deepEqual((await metaOf({})).voice, { engine: 'edge', voice: 'fr-FR-DeniseNeural', lang: 'fr' })
+    ok('a call that asks for no voice gets the default voice of Settings › Calls')
+    assert.equal((await metaOf({ voice: { app: true } })).voice, null)
+    ok('a call that asks for the app\'s own voice ({ app: true }) gets none: the worker uses the app\'s voice, and Calls\' default is not applied')
+    assert.deepEqual((await metaOf({ voice: { engine: 'say', voice: 'Amélie', lang: 'fr-FR' } })).voice, { engine: 'say', voice: 'Amélie', lang: 'fr' })
+    ok('a call that asks for a voice of its own keeps it over the default')
+    assert.equal((await metaOf({ roleId: 'm2' })).voice, null)
+    ok('a team member\'s call without a voice is not given the default (unchanged)')
+  }
   const bearer = decodeJwt(twirpCalls[0].init.headers.authorization.replace('Bearer ', ''), SECRET)
   assert.equal(bearer.signatureOk, true)
   assert.equal(bearer.payload.video.roomAdmin, true)
