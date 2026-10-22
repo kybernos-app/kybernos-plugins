@@ -215,6 +215,8 @@ eq('choosing a field takes its goals, display mode and agents preset but never m
   [/pickDomain\(pk\)/.test(tileClick), /syncTiles\(\)/.test(tileClick), /go\(|setTimeout|render\(/.test(tileClick), /S\.goals = pk\.goals\.slice\(0, 2\)/.test(ui[1]), /next\.disabled = S\.domain === null/.test(ui[1])], [true, true, false, true, true])
 eq('a redraw of the same screen does not replay the entrance animation, and the preview follows the pointer only once it rests on a tile',
   [/if \(S\.drawn === S\.screen\) body\.classList\.add\('kb-ob-still'\)/.test(ui[1]), /\.kb-ob-step\.kb-ob-still\{animation:none\}/.test(src), /win\.setTimeout\(\(\) => \{ hoverTimer = null; S\.hover = pk\.id; refreshPreview\(\) \}, 120\)/.test(ui[1])], [true, true, true])
+eq('the miniature starts level with the subtitle: the offset is the subtitle\'s position inside its own step (the step\'s slide-in moves both) and is set as the pane\'s top margin',
+  [/const align = \(\) => \{/.test(ui[1]), /sub\.getBoundingClientRect\(\)\.top - step\.getBoundingClientRect\(\)\.top/.test(ui[1]), /pane\.style\.marginTop = /.test(ui[1]), /const fit = \(\) => \{[^\n]*align\(\) \}/.test(ui[1])], [true, true, true, true])
 eq('the miniature\'s own text sits under it, never above', ui[1].indexOf("pane.appendChild(h('div', 'kb-ob-pv-box'))") < ui[1].indexOf('pane.appendChild(head)') && ui[1].indexOf('pane.appendChild(head)') < ui[1].indexOf("pane.appendChild(h('p', 'kb-ob-pv-cap'))"), true)
 eq('what the person typed goes to the host only in the complete answer, with the agents preset, and only when there is something to say (or to clear)', [/agents: S\.agents, \.\.\.\(aboutBody\(\) !== null \? \{ about: aboutBody\(\) \} : \{\}\)/.test(ui[1])], [true])
 
