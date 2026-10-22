@@ -524,12 +524,9 @@ await act(async () => {
 await act(async () => { await new Promise((r) => setTimeout(r, 20)) })
 const htmlCompteur = htmlDe(racineEl2)
 assert.ok(quotaLus >= 1, 'la carte lit le quota a l hote quand elle apparait')
-assert.ok(htmlCompteur.includes('data-kb="workspace-card-usage"') && htmlCompteur.includes('data-percent="82"') && htmlCompteur.includes('data-level="near"'), 'le compteur montre 82 % en ambre')
-assert.ok(htmlCompteur.includes('class="kbfp-usepct">82%<'), 'le chiffre est un pourcentage entier')
-assert.ok(htmlCompteur.includes('title="82% of your 24 hours allowance is used."'), 'la phrase derriere le compteur est son titre')
-assert.equal(/[$\u20ac]|token|_usd/i.test(htmlCompteur.slice(htmlCompteur.indexOf('workspace-card-usage'), htmlCompteur.indexOf('workspace-card-usage') + 400)), false, 'ni montant ni jeton sur la carte')
+assert.equal(htmlCompteur.includes('workspace-card-usage'), false, 'un espace personnel ne dessine aucune jauge sur la carte, meme quand l hote donne 82 % : c est le quota de l offre Kybernos, que la puce du compositeur montre sur un modele Kybernos')
 racine2.unmount()
-ok('carte : compteur d usage en pourcentage (lu a l hote, ambre des 75 %, phrase en titre, aucun montant)')
+ok('carte : l espace personnel n a plus de jauge de quota (lu a l hote, mais jamais dessine) ; l equipe garde son compteur (voir la carte du plan par role)')
 
 
 // ── The « Kybernos » section of Settings, rendered for real ─────────────────────────────────────────────────────────────────────────
@@ -1239,7 +1236,7 @@ ok('selecteur d equipe : route du choix, evenement d ouverture, message d equipe
       const { el, root } = await draw()
       await open(el)
       const menu = find(el, byClass('kbfp-menu'))
-      const out = { rows: findAll(menu, byKb('menu-plan-window')).map((r) => [r.attributes['data-win'], r.attributes['data-percent'], r.attributes['data-level']]), manage: find(menu, byKb('menu-plan-manage')) !== null, credits: find(menu, byKb('menu-plan-credits')) !== null, html: htmlDe(find(menu, byKb('menu-plan-card'))) }
+      const out = { rows: findAll(menu, byKb('menu-plan-window')).map((r) => [r.attributes['data-win'], r.attributes['data-percent'], r.attributes['data-level']]), manage: find(menu, byKb('menu-plan-manage')) !== null, credits: find(menu, byKb('menu-plan-credits')) !== null, html: htmlDe(find(menu, byKb('menu-plan-card'))), footer: htmlDe(el) }
       await act(async () => { root.unmount() })
       return out
     }
@@ -1250,6 +1247,7 @@ ok('selecteur d equipe : route du choix, evenement d ouverture, message d equipe
     assert.ok(member.html.includes('Last 30 days') && member.html.includes('Last 5 hours') && member.html.includes('Last 7 days'), 'each bar says how long its window is')
     assert.equal(/resets|back/i.test(member.html), false, 'nothing about a time of return while there is room')
     const admin = await run('admin', usage)
+    assert.ok(admin.footer.includes('data-kb="workspace-card-usage"') && admin.footer.includes('data-percent="40"'), 'a team keeps the meter of its pool on the footer card')
     assert.deepEqual([admin.manage, admin.credits], [true, false], 'an admin gets Manage, and not Add credits while the pool has room')
     const near = await run('admin', [win('pool', 2592000, 76), win('member', 18000, 12)])
     assert.equal(near.rows[0][2], 'near', 'the team bar turns amber from 75%')
@@ -1268,10 +1266,15 @@ ok('selecteur d equipe : route du choix, evenement d ouverture, message d equipe
     await open(free.el)
     const fm = find(free.el, byClass('kbfp-menu'))
     assert.ok(find(fm, byKb('menu-plan-cta')) !== null && find(fm, byKb('menu-plan-manage')) === null, 'a free personal space: Upgrade, no Manage')
-    assert.deepEqual(findAll(fm, byKb('menu-plan-window')).map((r) => [r.attributes['data-win'], r.attributes['data-percent']]), [['allowance', '7']], 'and ONE allowance bar')
+    assert.deepEqual(findAll(fm, byKb('menu-plan-window')), [], 'and NO allowance row: it is the Kybernos plan\'s number, which the composer\'s chip shows on a Kybernos model')
+    assert.equal(htmlDe(free.el).includes('workspace-card-usage'), false, 'nor a gauge on the footer card')
+    const menuHtml = htmlDe(fm)
+    const iAcc = menuHtml.indexOf('data-kb="menu-block-account"')
+    const iApp = menuHtml.indexOf('data-kb="menu-block-appearance"')
+    assert.ok(iAcc >= 0 && iApp > iAcc && menuHtml.slice(iAcc, iApp).includes('class="kbfp-msep"'), 'a rule sits between the account block (Account, Referral) and Appearance')
     await act(async () => { await press(find(fm, byKb('menu-plan-cta'))) })
     await act(async () => { free.root.unmount() })
-    ok('carte du plan par role : membre = barre Equipe + les siennes (5 h, 7 j), admin = + Manage, + Add credits quand le pot est plein ; perso gratuit = Upgrade + une barre ; ambre des 75 %, heure de retour seulement quand c\'est plein')
+    ok('carte du plan par role : membre = barre Equipe + les siennes (5 h, 7 j), admin = + Manage, + Add credits quand le pot est plein ; perso gratuit = Upgrade, ni ligne de quota ni jauge ; ambre des 75 %, heure de retour seulement quand c\'est plein')
   }
 
   // 3. A switch waits for DSH: the card says « Switching… » until the host reports the new route live, and the other outcomes are said.
