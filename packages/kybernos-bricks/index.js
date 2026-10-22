@@ -143,7 +143,9 @@ export function creerMagasin () {
         global: ++compteur,
         sessionId,
         t0: maintenant,
-        dureeMs: bornement(entree?.dureeMs),
+        // L1-07: the preview chips of the panel post `duree_ms` (the name of the tool's parameter), the host's own record says `dureeMs`:
+        // both are read, or the 9 s a chip asks for fell back to the 12 s default.
+        dureeMs: bornement(entree?.dureeMs ?? entree?.duree_ms),
         titre: texte(entree?.titre, 120) || 'Bricks',
         prompt: texte(entree?.prompt, 2000),
         mode: entree?.mode === 'modifier' ? 'modifier' : 'nouveau',
