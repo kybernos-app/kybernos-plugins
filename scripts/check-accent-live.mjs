@@ -41,8 +41,8 @@ const press = async (css, text) => {
   return true
 }
 const cell = (name) => press('button[class*="navCell"]', name)
-/** The mode (System / Light / Dark) is set on the Appearance page only (V1-24): the Theme page shows it and links there, it has no selector any more. */
-const setMode = async (name) => (await cell('Appearance')) && (await waitFor(page, `document.querySelector('.kbac-theme') !== null`, 10000)) !== null && (await press('.kbac-theme', name))
+/** The mode (System / Light / Dark) is set on the Theme page, on three cards. */
+const setMode = async (name) => (await cell('Theme')) && (await waitFor(page, `document.querySelector('.kbth-mode') !== null`, 10000)) !== null && (await press('.kbth-mode', name))
 
 /** In-page measurement: every colour is normalised to [r,g,b] through a canvas (so color-mix() and color() read as numbers), the background an element sits on is
  *  the first opaque ancestor fill, and a contrast is WCAG's. */

@@ -265,8 +265,7 @@ console.log('a page of DSH itself: the animation on the native Agent presets pag
   check('a second look finds the same host and makes none', again !== null && again.el === existing && d2.made.length === 0)
   check('another page of Settings: nothing', T.findNativeHost(docWith({ active: cell('general') })) === null && T.findNativeHost(docWith({ active: cell('account') })) === null)
   // A-06: the two DSH pages that had no help at all (Models, Built-in plugins) get the card of a page of the core bundle, and no
-  // animated introduction (none is written for them). Appearance is not one of them: the page under that name is the core plugin's
-  // own section (`kbac-appearance`), which draws its own pill — measured live on 2026-10-21.
+  // animated introduction (none is written for them). Appearance is not one of them (it is no page any more: the mode is on Theme).
   check('the DSH pages that lack help get their card, and no animation', ['models', 'plugins'].every((key) => { const c = T.nativeContent(key); return c !== null && c.help !== undefined && c.help.id === 'kybernos-plugin' && c.help.page === key && c.intro === undefined }) && T.nativeContent('general') === null && T.nativeContent('appearance') === null)
   check('a DSH page without an introduction paragraph gets the host at the top of its section (Built-in plugins)', (() => { const sec = node(); const d = docWith({ active: cell('plugins'), intro: null, section: sec }); const g = T.findNativeHost(d); return g !== null && g.key === 'plugins' && d.made.length === 1 && sec.inserted !== null && sec.inserted[0] === 'before-first' })())
   check('no open cell, an unreadable key, or no introduction on the page: nothing', T.findNativeHost(docWith({ active: null })) === null && T.findNativeHost(docWith({ active: node() })) === null && T.findNativeHost(docWith({ active: presets, intro: null })) === null)

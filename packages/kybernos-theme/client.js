@@ -2108,6 +2108,26 @@ body:not([data-ds-dark-theme]) { --dsw-alias-border-l1: #00000014; }
    for the active segment in a grey background any more. */
 .kbth-seg button{appearance:none;border:1px solid transparent;font:inherit;font-size:14px;font-weight:500;padding:8px 18px;border-radius:9px;cursor:pointer;background:transparent;color:var(--dsw-alias-label-secondary);transition:background .12s,color .12s,border-color .12s}
 .kbth-seg button:hover:not([aria-pressed="true"]){background:var(--dsw-alias-interactive-bg-hover)}
+.kbth-modes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.kbth-mode{display:flex;flex-direction:column;gap:12px;padding:12px;border-radius:14px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);font:inherit;text-align:start;cursor:pointer}
+.kbth-mode:hover{border-color:var(--dsw-alias-border-l4)}
+.kbth-mode.on{border-color:var(--dsw-alias-brand-primary)}
+.kbth-mode-pv{display:flex;height:64px;border-radius:10px;overflow:hidden;align-items:center;justify-content:center}
+.kbth-mode-pv i{display:block;width:60%;height:10px;border-radius:5px}
+.kbth-mode-light{background:var(--dsw-static-neutral-50)}
+.kbth-mode-light i{background:var(--dsw-static-neutral-900);opacity:.25}
+.kbth-mode-dark{background:var(--dsw-static-neutral-1000)}
+.kbth-mode-dark i{background:var(--dsw-static-neutral-100);opacity:.25}
+.kbth-mode-pv-light{background:var(--dsw-static-neutral-50)}
+.kbth-mode-pv-light i{background:var(--dsw-static-neutral-900);opacity:.25}
+.kbth-mode-pv-dark{background:var(--dsw-static-neutral-1000)}
+.kbth-mode-pv-dark i{background:var(--dsw-static-neutral-100);opacity:.25}
+.kbth-mode-half{flex:1 1 0;height:100%;display:flex;align-items:center;justify-content:center}
+.kbth-mode-half i{width:56%}
+.kbth-mode-n{display:flex;align-items:center;flex-wrap:wrap;gap:8px;font-size:14px;font-weight:500}
+.kbth-mode-cur{font-size:12px;font-weight:400;color:var(--dsw-alias-state-success-primary)}
+body:not([data-ds-dark-theme]) .kbth-mode-cur{color:color-mix(in srgb,var(--dsw-alias-state-success-primary) 55%,var(--dsw-alias-label-primary))}
+@media (max-width:560px){.kbth-modes{grid-template-columns:1fr}}
 .kbth-seg button[aria-pressed="true"]{background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-brand-primary);border-color:var(--dsw-alias-brand-primary);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.12)}
 /* (29/09) The native “Appearance” block of General is replaced by the
    Appearance section of this page (same preference via themeSvc.setTheme):
@@ -2527,29 +2547,6 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A0
 
 `
 
-      // V1-24: the mode (System / Light / Dark) is set on the Appearance page and only there; this page shows it and opens that page by clicking
-      // the cell of the Settings nav (the shell stays master of its DOM; same technique as the core plugin's, bundles share no code). A cell is found by
-      // the React key it is rendered with, the id of its section, the same in every language; its drawn title is the fallback (the shell's internals moved).
-      const ouvrirReglages = (noms, cles) => {
-        try {
-          const norm = (x) => String(x === undefined || x === null ? '' : x).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim()
-          const cleDe = (el) => {
-            try {
-              const nom = Object.keys(el).find((x) => x.indexOf('__reactFiber$') === 0)
-              const k = nom === undefined ? null : el[nom].key
-              return typeof k === 'string' ? k : null
-            } catch (e) { return null }
-          }
-          const cells = Array.prototype.slice.call(document.querySelectorAll('nav button'))
-          for (let i = 0; i < cells.length; i++) {
-            if (Array.isArray(cles) && cles.indexOf(cleDe(cells[i])) !== -1) { cells[i].click(); return true }
-          }
-          for (let i = 0; i < cells.length; i++) {
-            if (noms.indexOf(norm(cells[i].textContent)) !== -1) { cells[i].click(); return true }
-          }
-        } catch (e) { /* nav indisponible */ }
-        return false
-      }
       const seg = (opts) => h('div', { className: 'kbth-seg', role: 'group' },
         opts.items.map((it) => h('button', {
           key: it.id, type: 'button', 'aria-pressed': it.on === true ? 'true' : 'false',
@@ -3334,20 +3331,33 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A0
           themeSummary,
           S.skin === 'dsh' ? h('div', { className: 'kbth-hint' }, kt('« Défaut DSH » retire la couche de jetons : l’apparence native repasse telle quelle.', '“DSH default” removes the token layer: the native look comes back as is.')) : null)
 
+        // The mode (Light / Dark / System) is set HERE, on three cards (the Appearance page that used to hold them is gone). The same preference as the footer's sun/moon:
+        // `commit({ mode })` stores it in this page's state and writes it through `themeSvc.setTheme`. A third-party theme that takes the preference over is told below.
+        const modes = [['light', kt('Clair', 'Light')], ['dark', kt('Sombre', 'Dark')], ['system', kt('Système', 'System')]]
         const apparence = h('div', { className: 'kbth-sec' },
           h('div', { className: 'kbth-sec-h' },
             h('div', { className: 'kbth-sec-t' }, kt('Apparence', 'Appearance')),
-            h('div', { className: 'kbth-sec-d' }, kt('Choisis un thème prêt à l’emploi. Le mode clair ou sombre se règle sur la page Apparence.', 'Pick a ready-made theme. The light or dark mode is set on the Appearance page.'))),
+            h('div', { className: 'kbth-sec-d' }, kt('Choisis le mode clair ou sombre, puis un thème prêt à l’emploi.', 'Pick the light or dark mode, then a ready-made theme.'))),
+          h('div', { className: 'kbth-modes', 'data-kb': 'theme-mode', role: 'radiogroup', 'aria-label': kt('Mode', 'Mode') },
+            modes.map((m) => {
+              const on = S.mode === m[0]
+              return h('button', {
+                key: m[0], type: 'button', role: 'radio', 'aria-checked': on ? 'true' : 'false', 'data-kb': 'theme-mode-card', 'data-mode': m[0],
+                className: 'kbth-mode' + (on ? ' on' : ''), onClick: () => commit({ mode: m[0] }),
+              },
+                h('span', { className: 'kbth-mode-pv kbth-mode-pv-' + m[0], 'aria-hidden': 'true' },
+                  m[0] === 'system'
+                    ? [h('span', { key: 'l', className: 'kbth-mode-half kbth-mode-light' }, h('i', null)), h('span', { key: 'd', className: 'kbth-mode-half kbth-mode-dark' }, h('i', null))]
+                    : h('i', null)),
+                h('span', { className: 'kbth-mode-n' }, m[1], on ? h('span', { className: 'kbth-mode-cur' }, '● ' + kt('actuel', 'current')) : null))
+            })),
+          h('div', { className: 'kbth-hint' }, kt('S’applique à toute l’interface DSH. « Système » suit le réglage de ton appareil.', 'Applies to the whole DSH interface. “System” follows your device setting.')),
+          themeTiers !== null ? h('div', { className: 'kbth-conflict' },
+            h('strong', null, kt('Conflit de thème : ', 'Theme conflict: ')),
+            kt('Un autre plugin (« ' + themeTiers + ' ») contrôle le mode clair/sombre. ', 'Another plugin (“' + themeTiers + '”) controls the light/dark mode. '),
+            kt('Désactive-le dans son propre panneau pour que ce réglage s’applique.', 'Turn it off in its own panel for this setting to apply.')) : null,
           h('button', { className: 'kbth-btn', type: 'button', style: { width: 'max-content' },
             onClick: () => commit(surprendre()) }, kt('Me surprendre', 'Surprise me')),
-          h('div', { className: 'kbth-row' },
-            h('span', { className: 'kbth-lb' }, 'Mode'),
-            h('span', { className: 'kbth-sec-t', 'data-kb': 'theme-mode-is' }, S.mode === 'system' ? kt('Système', 'System') : (S.mode === 'light' ? kt('Clair', 'Light') : kt('Sombre', 'Dark'))),
-            h('button', { className: 'kbth-btn', type: 'button', 'data-kb': 'theme-mode-open', onClick: () => { ouvrirReglages(['appearance', 'apparence'], ['kbac-appearance']) } }, kt('Changer dans Apparence', 'Change in Appearance')),
-            themeTiers !== null ? h('div', { className: 'kbth-conflict' },
-              h('strong', null, kt('Conflit de thème : ', 'Theme conflict: ')),
-              kt('Un autre plugin (« ' + themeTiers + ' ») contrôle le mode clair/sombre. ', 'Another plugin (“' + themeTiers + '”) controls the light/dark mode. '),
-              kt('Désactive-le dans son propre panneau pour que ce réglage s’applique.', 'Turn it off in its own panel for this setting to apply.')) : null),
           themeBlock)
 
         // ── Simple : couleur ────────────────────────────────────────────────
@@ -4005,7 +4015,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A0
           appliquerBoot, appliquerTout, appliquerJetons, appliquerFond, appliquerPolice, Page, bootSnapshot, posterBoot, retirerFeuilleBoot, jetonsDe, BOOT_ID,
           PRESET_FORMAT, PRESET_GROUPS, PRESET_KEYS, PRESET_LIMIT, PRESET_ID, LIB_KEY, lib, libClean, libRead, libWrite, libSet, libAdd, libPatch, libRemove, libPull, libFreeName, libNameTaken,
           gal, galTheme, galClean, galLoad, galRefresh, galInstalled, galInstall, galUpdate, galOnlineText, kbLang,
-          presetSettings, presetRecord, presetFromState, presetFile, presetFromFileText, settingsDirty, skinSettings, presetAsSkin, groupsOf, fileSlug, ThemeModal, ouvrirReglages,
+          presetSettings, presetRecord, presetFromState, presetFile, presetFromFileText, settingsDirty, skinSettings, presetAsSkin, groupsOf, fileSlug, ThemeModal,
           ICON_ENTRIES, ICON_HUES, ICON_SETS, ICON_SET_IDS, iconInner, iconSvg, iconRegistry, appliquerIcones,
         },
         apply(ctx) {

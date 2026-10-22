@@ -764,8 +764,8 @@ try {
     check('the navigation is drawn (more than three cells)', cells.length > 3, cells)
     check('no cell is rendered with the key of a removed section', !cells.some((c) => REMOVED.includes(c.key)), cells.filter((c) => REMOVED.includes(c.key)))
     check('none is titled Referral, Account security, Account data or Support & legal', !cells.some((c) => /^(referral|account security|account data|support (&|and|&amp;) legal)$/i.test(c.t)), cells.map((c) => c.t))
-    check('DSH\'s own entries and the other bundles\' are still listed (General, Appearance, Phone and channels)',
-      cells.some((c) => c.key === 'general') && cells.some((c) => c.key === 'kbac-appearance') && cells.some((c) => c.key === 'kybernos-mobile'), cells.map((c) => c.key))
+    check('DSH\'s own entries and the other bundles\' are still listed (General, Theme, Phone and channels), and there is no Appearance page any more (the mode is on Theme)',
+      cells.some((c) => c.key === 'general') && cells.some((c) => c.key === 'kybernos-theme') && cells.some((c) => c.key === 'kybernos-mobile') && !cells.some((c) => c.key === 'kbac-appearance'), cells.map((c) => c.key))
     await shot('11-settings-without-account-entries')
     // General is a row of its own, then eight groups (folds, one open at a time). Every page is drawn here (data-kb-all-pages) and read from the layout
     // (the organiser orders by CSS), headers and cells together. The organiser (a debounced observer) draws the headers a moment after the cells: wait for them.
@@ -794,8 +794,8 @@ try {
     check('General still opens', general.length > 20, general.slice(0, 120))
     const remote = await openCell('kybernos-mobile')
     check('Phone and channels still opens, with its own page', /phone and channels|phone/i.test(remote) && remote.length > 20, remote.slice(0, 160))
-    const appearance = await openCell('kbac-appearance')
-    check('Appearance still opens (the shortcut to Theme)', /theme|appearance/i.test(appearance), appearance.slice(0, 160))
+    const themePage = await openCell('kybernos-theme')
+    check('Theme opens, with the three mode cards (Light, Dark, System)', /theme/i.test(themePage) && (await val(`document.querySelectorAll('.kbth-mode').length`)) === 3, themePage.slice(0, 160))
 
     // ── The « Kybernos » section: the custom instructions through the host's file routes, the model re-import, the DSH chats ─────────────────────────────────
     console.log('The Kybernos section of Settings — what stays on this computer')
