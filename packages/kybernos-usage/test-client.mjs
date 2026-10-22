@@ -138,6 +138,16 @@ ok('stable test hooks exist', ['kybernos-usage-pill', 'kybernos-usage-card', 'ky
   ok('a change inside the throttle window is deferred, not lost', posts.length === 1)
 }
 
+// ── L5-06: the store signature moves when ANY counter moves ────────────────────────────────────────────────────────────────────
+// It decides the re-render and the report; reportOne compares four counters, the signature compared three, so an update where only the
+// cache write advanced was neither drawn nor sent (the delta waited for the next update that moved something else).
+{
+  const store = (cw) => ({ byId: { 'session-abcd': { projectionValues: { tokenUsage: { uncachedInputTokens: 10, outputTokens: 2, cacheReadTokens: 100, cacheWriteTokens: cw } } } } })
+  ok('the same counters give the same signature', T.storeSignature(store(5)) === T.storeSignature(store(5)))
+  ok('only the cache write advancing changes the signature', T.storeSignature(store(5)) !== T.storeSignature(store(9)), T.storeSignature(store(5)))
+  ok('a store with no counters, or junk, gives an empty signature without throwing', T.storeSignature({ byId: {} }) === '' && T.storeSignature(null) === '' && T.storeSignature({ byId: { x: null } }) === '')
+}
+
 // ── the page says what it is for (V-31) and carries the shared « ? How it works » button (A5-19) ─────────────────────────────
 {
   const regs = []
