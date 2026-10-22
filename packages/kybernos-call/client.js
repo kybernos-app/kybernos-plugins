@@ -581,13 +581,26 @@ body:not([data-ds-dark-theme]) .kbcl-chip.kbcl-warn{color:color-mix(in srgb,${T.
 .kbcl-grip::before{content:"";position:absolute;top:5px;left:5px;width:9px;height:9px;border-top:2px solid ${T.faint};border-left:2px solid ${T.faint};border-radius:3px 0 0 0}
 .kbcl-grip:hover::before,.kbcl-grip:focus-visible::before{border-color:${T.text}}
 .kbcl-grip:focus-visible{outline:2px solid ${T.brand};outline-offset:1px}
-.kbcl-hdr{display:flex;align-items:center;gap:4px;margin-left:auto;order:99}
+.kbcl-hdr{position:relative;display:flex;align-items:center;gap:4px;margin-left:auto;order:99}
 [class*="_headerActions"]:has(.kbcl-hdr){flex:1 1 auto}
 .kbcl-hbtn{appearance:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:30px;min-width:30px;padding:0 6px;box-sizing:border-box;border:1px solid transparent;border-radius:9px;background:transparent;color:${T.mute};cursor:pointer;font:inherit;font-size:12.5px;transition:background .12s,color .12s}
 .kbcl-hbtn:hover:not(:disabled){background:${T.hover};color:${T.text}}
 .kbcl-hbtn:focus-visible{outline:2px solid ${T.brand};outline-offset:1px}
 .kbcl-hbtn:disabled{opacity:.4;cursor:default}
 .kbcl-hbtn.kbcl-hlive{background:#DC2626;color:#FFFFFF;padding:0 10px}
+/* The call is ONE button with a small arrow: the click is the voice call, the arrow opens voice / video / settings (2026-10-22, chat header variant B). */
+.kbcl-split{display:inline-flex;align-items:center}
+.kbcl-split .kbcl-hbtn:first-child{border-radius:9px 0 0 9px}
+.kbcl-split .kbcl-hbtn+.kbcl-hbtn{min-width:20px;width:20px;padding:0;border-radius:0 9px 9px 0}
+.kbcl-menu{position:absolute;top:calc(100% + 8px);right:0;z-index:60;min-width:250px;padding:6px;border:1px solid ${T.line};border-radius:14px;background:var(--dsw-alias-bg-layer-1,${T.layer});box-shadow:var(--dsw-elevation-prominent,0 12px 32px rgba(0,0,0,.35))}
+.kbcl-mitem{appearance:none;display:flex;align-items:center;gap:10px;width:100%;height:34px;box-sizing:border-box;padding:0 10px;border:0;border-radius:10px;background:transparent;color:${T.text};font:inherit;font-size:13.5px;text-align:start;white-space:nowrap;cursor:pointer}
+.kbcl-mitem:hover:not(:disabled),.kbcl-mitem:focus-visible{background:${T.hover};outline:none}
+.kbcl-mitem:disabled{opacity:.45;cursor:default}
+.kbcl-mitem svg{flex:none;color:${T.mute}}
+.kbcl-mitem i{font-style:normal}
+.kbcl-mitem .kbcl-mhint{margin-inline-start:auto;padding-inline-start:14px;font-size:11.5px;color:${T.faint}}
+.kbcl-msep{height:1px;margin:5px 4px;background:${T.line}}
+.kbcl-flat{display:none}
 @keyframes kbcl-spin{to{transform:rotate(360deg)}}
 .kbcl-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
 .kbcl-tt{min-width:0}
@@ -652,7 +665,20 @@ body:not([data-ds-dark-theme]) .kbcl-chip.kbcl-warn{color:color-mix(in srgb,${T.
       }
       const CallHeader = (props) => {
         const current = useCall()
+        const menuPair = React.useState(false)
+        const menuOpen = menuPair[0]
+        const setMenuOpen = menuPair[1]
+        const root = React.useRef(null)
         React.useEffect(() => { loadHeaderStatus() }, [])
+        // The menu closes on a click elsewhere (capture phase: before that click reaches another header button) and on Escape; both listeners live only while it is open.
+        React.useEffect(() => {
+          if (menuOpen !== true) return undefined
+          const away = (e) => { const r = root.current; if (r !== null && r !== undefined && typeof r.contains === 'function' && e !== null && e !== undefined && r.contains(e.target) === true) return; setMenuOpen(false) }
+          const key = (e) => { if (e !== null && e !== undefined && e.key === 'Escape') setMenuOpen(false) }
+          document.addEventListener('pointerdown', away, true)
+          document.addEventListener('keydown', key)
+          return () => { document.removeEventListener('pointerdown', away, true); document.removeEventListener('keydown', key) }
+        }, [menuOpen])
         // A call that never started or already ended (the panel says « error » or « call ended », with its own « Close ») is nothing to hang up: only a call being set up or live is (A5-22).
         const active = current !== null && current.phase !== 'error' && current.phase !== 'ended'
         const sessionId = (props !== null && props !== undefined && typeof props.sessionId === 'string') ? props.sessionId : null
@@ -662,10 +688,31 @@ body:not([data-ds-dark-theme]) .kbcl-chip.kbcl-warn{color:color-mix(in srgb,${T.
             h('button', { type: 'button', className: 'kbcl-hbtn kbcl-hlive', 'data-act': 'hangup-header', title: kt('Raccrocher l’appel en cours', 'Hang up the call in progress'), 'aria-label': kt('Raccrocher', 'Hang up'), onClick: () => hangUp() }, [PHONE(15), h('span', { key: 't' }, kt('Raccrocher', 'Hang up'))]))
         }
         const noFace = headerStatus.provider === 'none'
-        return h('div', { className: 'kbcl-hdr', 'data-kb': 'kybernos-call-header' }, [
-          h('button', { key: 'v', type: 'button', className: 'kbcl-hbtn', 'data-act': 'call-voice', title: kt('Appel vocal : parler à l’assistant de cette session', 'Voice call: talk to this session’s assistant'), 'aria-label': kt('Appel vocal', 'Voice call'), onClick: () => start('voice') }, PHONE(17)),
-          h('button', { key: 'c', type: 'button', className: 'kbcl-hbtn', 'data-act': 'call-video', disabled: noFace, title: noFace ? kt('Appel vidéo : ajoute une clé LiveAvatar (Réglages › Appels › Service)', 'Video call: add a LiveAvatar key (Settings › Calls › Service)') : kt('Appel vidéo : l’assistant a un visage', 'Video call: the assistant has a face'), 'aria-label': kt('Appel vidéo', 'Video call'), onClick: () => start('video') }, CAMERA(17)),
-          h('button', { key: 's', type: 'button', className: 'kbcl-hbtn', 'data-act': 'call-setup', title: kt('Réglages des appels : micro, voix, visage, clés', 'Call settings: microphone, voice, face, keys'), 'aria-label': kt('Réglages des appels', 'Call settings'), onClick: () => { openCallSettings({ tab: 'overview' }) } }, Ico('sliders', 17))
+        const videoTip = noFace ? kt('Appel vidéo : ajoute une clé LiveAvatar (Réglages › Appels › Service)', 'Video call: add a LiveAvatar key (Settings › Calls › Service)') : kt('Appel vidéo : l’assistant a un visage', 'Video call: the assistant has a face')
+        const setupTip = kt('Réglages des appels : micro, voix, visage, clés', 'Call settings: microphone, voice, face, keys')
+        const openSetup = () => { openCallSettings({ tab: 'overview' }) }
+        const choose = (fn) => () => { setMenuOpen(false); fn() }
+        const item = (act, icon, label, fn, o) => h('button', { key: act, type: 'button', role: 'menuitem', className: 'kbcl-mitem', 'data-act': act, disabled: o !== undefined && o.disabled === true, title: o !== undefined && o.title !== undefined ? o.title : undefined, onClick: choose(fn) },
+          [icon, h('i', { key: 'l' }, label), o !== undefined && o.hint !== undefined ? h('i', { key: 'h', className: 'kbcl-mhint' }, o.hint) : null])
+        return h('div', { className: 'kbcl-hdr', 'data-kb': 'kybernos-call-header', ref: root }, [
+          h('span', { key: 'sp', className: 'kbcl-split' }, [
+            h('button', { key: 'v', type: 'button', className: 'kbcl-hbtn', 'data-act': 'call-voice', title: kt('Appel vocal : parler à l’assistant de cette session', 'Voice call: talk to this session’s assistant'), 'aria-label': kt('Appel vocal', 'Voice call'), onClick: () => start('voice') }, PHONE(17)),
+            // `data-kb-sheet="skip"`: on a phone this arrow is parked and the « … » sheet lists the two buttons below instead.
+            h('button', { key: 'm', type: 'button', className: 'kbcl-hbtn', 'data-act': 'call-menu', 'data-kb-sheet': 'skip', 'aria-haspopup': 'menu', 'aria-expanded': menuOpen === true, title: kt('Autres choix : appel vidéo, réglages des appels', 'More: video call, call settings'), 'aria-label': kt('Options d’appel', 'Call options'), onClick: () => setMenuOpen(menuOpen !== true) }, Ico('chevron', 14))
+          ]),
+          menuOpen === true
+            ? h('div', { key: 'menu', className: 'kbcl-menu', role: 'menu', 'aria-label': kt('Appel', 'Call') }, [
+              item('call-menu-voice', PHONE(16), kt('Appel vocal', 'Voice call'), () => start('voice')),
+              item('call-menu-video', CAMERA(16), kt('Appel vidéo', 'Video call'), () => start('video'), { disabled: noFace, title: videoTip, hint: noFace ? kt('clé manquante', 'key missing') : undefined }),
+              h('div', { key: 'sep', className: 'kbcl-msep', role: 'separator' }),
+              item('call-menu-setup', Ico('sliders', 16), kt('Réglages des appels…', 'Call settings…'), openSetup, { title: setupTip })
+            ])
+            : null,
+          // The phone's « … » sheet lists the parked header buttons by label and clicks them: these two stay as buttons of their own there (mobile.css parks them), never shown on a wide screen.
+          h('span', { key: 'flat', className: 'kbcl-flat' }, [
+            h('button', { key: 'c', type: 'button', className: 'kbcl-hbtn', 'data-act': 'call-video', disabled: noFace, tabIndex: -1, title: videoTip, 'aria-label': kt('Appel vidéo', 'Video call'), onClick: () => start('video') }, CAMERA(17)),
+            h('button', { key: 's', type: 'button', className: 'kbcl-hbtn', 'data-act': 'call-setup', tabIndex: -1, title: setupTip, 'aria-label': kt('Réglages des appels', 'Call settings'), onClick: openSetup }, Ico('sliders', 17))
+          ])
         ])
       }
 
@@ -695,6 +742,7 @@ body:not([data-ds-dark-theme]) .kbcl-chip.kbcl-warn{color:color-mix(in srgb,${T.
         run: [['path', 'M21 12a9 9 0 1 1-6.219-8.56']],
         expand: [['path', 'M15 3h6v6'], ['path', 'M9 21H3v-6'], ['path', 'M21 3l-7 7'], ['path', 'M3 21l7-7']],
         shrink: [['path', 'M4 14h6v6'], ['path', 'M20 10h-6V4'], ['path', 'M14 10l7-7'], ['path', 'M3 21l7-7']],
+        chevron: [['path', 'm6 9 6 6 6-6']],
         sliders: [['path', 'M4 21v-7'], ['path', 'M4 10V3'], ['path', 'M12 21v-9'], ['path', 'M12 8V3'], ['path', 'M20 21v-5'], ['path', 'M20 12V3'], ['path', 'M1 14h6'], ['path', 'M9 8h6'], ['path', 'M17 16h6']]
       }
       const Ico = (name, size, cls) => h('svg', { width: size || 20, height: size || 20, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true', className: cls || undefined, style: { flex: 'none' } },

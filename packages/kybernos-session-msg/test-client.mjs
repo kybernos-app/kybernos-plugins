@@ -382,6 +382,30 @@ const remountForm = () => mount(T.SendForm, { sessionId: SID, form: T.formStore.
   ok('no session id: no button', (await mount(T.SendHeaderButton, {})) === null)
 }
 
+// ── the same entry in the chat tools menu of kybernos-plugin ──────────────────
+{
+  T.formStore.forms.clear()
+  gets.length = 0
+  const added = []
+  const removed = []
+  globalThis.window.__KB_CHAT_TOOLS__ = { version: 1, add: (t) => { added.push(t); return () => { removed.push(t.id) } }, list: () => added }
+  ok('with the menu there, the header draws no button of its own', (await mount(T.SendHeaderButton, { sessionId: 'session-menu' })) === null)
+  ok('and adds ONE entry to it, first in the menu, labelled and drawn with its own icon', added.length === 1 && added[0].id === 'send' && added[0].order === 10 && added[0].label() === 'Envoyer à une session…' && Array.isArray(added[0].icon.paths) && added[0].icon.viewBox === '0 0 16 16')
+  added[0].run({ sessionId: 'session-menu' })
+  await flush()
+  ok('running it opens the same empty form and loads the picker', T.formStore.get('session-menu').phase === 'open' && T.formStore.get('session-menu').kind === 'message' && gets.length > 0)
+  T.formStore.reset('session-menu')
+  T.bus.open({ targetSessionId: 'session-bbbb2222', targetTitle: 'Recette', replyTo: 'msg-3' })
+  ok('a received card\'s Reply still opens the form: the component stays mounted without a button', T.formStore.get('session-menu').phase === 'open' && T.formStore.get('session-menu').targetId === 'session-bbbb2222')
+  cleanups.splice(0).forEach((fn) => fn())
+  ok('the entry leaves the menu when the header goes', removed.length === 1 && removed[0] === 'send')
+  globalThis.window.__KB_CHAT_TOOLS__ = { version: 2, add () { throw new Error('not for this version') }, list: () => [] }
+  const own = await mount(T.SendHeaderButton, { sessionId: 'session-v2' })
+  ok('a menu of another version is not used: the button is back', own !== null && own.props['data-kb'] === 'session-msg-send')
+  delete globalThis.window.__KB_CHAT_TOOLS__
+  ok('no menu at all: the button, as before', (await mount(T.SendHeaderButton, { sessionId: 'session-none' })).props['data-kb'] === 'session-msg-send')
+}
+
 // ── strings and colours ─────────────────────────────────────────────────────
 {
   const keys = Object.keys(T.S)

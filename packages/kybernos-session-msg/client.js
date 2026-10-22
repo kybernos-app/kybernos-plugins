@@ -639,7 +639,16 @@ window.__ModuleLoader__.load({
         return h(React.Fragment, null, cards, formNode)
       }
 
-      // ── the header button: opens the form (also the target of a received card's Reply) ──────────────
+      // ── the header entry: opens the form (the component also stays mounted as the target of a received card's Reply) ──────────────
+      // Sending is an occasional action: it is ONE entry of the chat tools menu of the header (kybernos-plugin, `window.__KB_CHAT_TOOLS__`) when that menu is there, and the
+      // button below when it is not (this bundle never depends on it).
+      const chatTools = () => {
+        try {
+          const r = window.__KB_CHAT_TOOLS__
+          return r !== undefined && r !== null && r.version === 1 && typeof r.add === 'function' ? r : null
+        } catch (e) { return null }
+      }
+      const openSendForm = (sessionId) => { formStore.openForm(sessionId, {}); peerStore.load(sessionId, true).catch(() => {}); focusForm() }
       const SendHeaderButton = (props) => {
         const sessionId = props !== null && props !== undefined && typeof props.sessionId === 'string' ? props.sessionId : ''
         React.useEffect(() => bus.subscribe((payload) => {
@@ -647,14 +656,18 @@ window.__ModuleLoader__.load({
           formStore.openForm(sessionId, { kind: 'message', dest: 'other', targetId: payload.targetSessionId, targetTitle: String(payload.targetTitle || ''), replyTo: String(payload.replyTo || '') })
           focusForm()
         }), [sessionId])
-        if (sessionId === '') return null
+        const registry = sessionId === '' ? null : chatTools()
+        React.useEffect(() => (registry === null ? undefined : registry.add({
+          id: 'send', order: 10, icon: { viewBox: '0 0 16 16', paths: [ICON_SEND] }, label: () => T('send'), run: (o) => { openSendForm(o.sessionId) },
+        })), [registry])
+        if (sessionId === '' || registry !== null) return null
         return h('button', {
           type: 'button',
           className: 'kbmsg-hbtn',
           title: T('sendTip'),
           'aria-label': T('send'),
           'data-kb': 'session-msg-send',
-          onClick: () => { formStore.openForm(sessionId, {}); peerStore.load(sessionId, true).catch(() => {}); focusForm() },
+          onClick: () => openSendForm(sessionId),
         }, Icon(ICON_SEND))
       }
 
