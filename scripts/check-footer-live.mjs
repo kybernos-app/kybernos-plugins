@@ -1159,13 +1159,15 @@ try {
       if (['member · normal', 'admin · 75 %', 'admin · full', 'member · cap set by an admin'].includes(role + ' · ' + label)) await shot('t-plan-' + role + '-' + label.replace(/[^a-z0-9]+/g, '') + '-' + (await schemeNow2()))
       await clean()
     }
-    // The personal free card: « Free », Upgrade and ONE allowance bar.
+    // The personal free card: « Free » and Upgrade. No allowance row and no gauge on the footer card: the number is the Kybernos plan's, which the composer's chip shows
+    // on a Kybernos model; a rule sits between the account block (Account, Referral) and Appearance.
     setWorld(3, 'admin', W_PERSONAL, [win('member', 2592000, 7)])
     await reload()
     await openProfileMenu()
-    await until(async () => (await cardOf()) !== null && (await cardOf()).rows.length > 0, 4000)
+    await until(async () => (await cardOf()) !== null, 4000)
     const freeCard = await cardOf()
-    check('personal · free: « Free », an Upgrade button and ONE allowance bar (Last 30 days), no Manage', freeCard !== null && freeCard.title === 'Free' && freeCard.cta === true && freeCard.manage === false && freeCard.rows.length === 1 && freeCard.rows[0].win === 'allowance' && freeCard.rows[0].pct === '7' && /Last 30 days/.test(freeCard.rows[0].note), freeCard)
+    check('personal · free: « Free » and an Upgrade button, no Manage, NO allowance row and no gauge on the footer card', freeCard !== null && freeCard.title === 'Free' && freeCard.cta === true && freeCard.manage === false && freeCard.rows.length === 0 && !(await exists('[data-kb="workspace-card-usage"]')), freeCard)
+    check('a rule between the account block and Appearance', await val(`(() => { const a = document.querySelector('.kbfp-menu [data-kb="menu-block-account"]'); const n = a ? a.nextElementSibling : null; return !!n && n.classList.contains('kbfp-msep') && !!n.nextElementSibling && n.nextElementSibling.getAttribute('data-kb') === 'menu-block-appearance' })()`))
     await shot('t-plan-personal-free-' + (await schemeNow2()))
     await clean()
 
