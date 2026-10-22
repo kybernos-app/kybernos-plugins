@@ -18175,15 +18175,19 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         }).catch(() => { if (dead === false) setIconList(Object.keys(LUCIDE)) })
         return () => { dead = true }
       }, [])
+      // The drafts follow the saved values: when the project opens, and again when they arrive late (the page keeps the project open while its settings load)
+      // or change from elsewhere; never while the person has an edit that is not saved yet.
+      const savedSig = JSON.stringify([wsUi.name, wsUi.icon, wsUi.color, wsUi.desc])
       React.useEffect(() => {
         if (ws === null) return undefined
+        if (saveState === 'pending' || saveState === 'saving') return undefined
         const u = (wsUiAll[ws.workspaceId] !== null && wsUiAll[ws.workspaceId] !== undefined) ? wsUiAll[ws.workspaceId] : {}
         setNameDraft(typeof u.name === 'string' && u.name.length > 0 ? u.name : (ws.title || ws.workspaceId))
         setIconDraft(typeof u.icon === 'string' && u.icon.length > 0 ? u.icon : 'folder')
         setColorDraft(typeof u.color === 'string' && u.color.length > 0 ? u.color : '')
         setDescDraft(typeof u.desc === 'string' ? u.desc : '')
         return undefined
-      }, [s.projectId])
+      }, [s.projectId, savedSig])
       React.useEffect(() => () => { if (timerRef.current !== null) { try { clearTimeout(timerRef.current) } catch (e) { /* deja nettoye */ } } }, [])
       // A tab whose data is not read yet passes PROJ_LOADING instead of a sentence: bones in the box of the rows, not a line of text.
       const PROJ_LOADING = 'kb:project-loading'
@@ -18558,6 +18562,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       const TABS = ['Threads', kbt('kbui.details'), kbt('kbui.instructions'), kbt('kbui.documents'), kbt('kbui.objectifs'), 'Deliverables', kbt('kbui.skills'), kbt('kbui.connecteurs'), kbt('kbui.devices'), kbt('kbui.budget'), kbt('kbui.insight')].filter((t) => kbProjectTabHidden(t) === false && (t !== kbt('kbui.devices') || kbMdExtras('devices', ws) !== null))
       const rowStyle = { display: 'flex', alignItems: 'center', gap: '13px', padding: '14px 16px', borderBottom: '1px solid var(--dsw-alias-border-l1)' }
       const pillStyle = { fontFamily: 'ui-monospace,monospace', fontSize: '10px', letterSpacing: '.06em', borderRadius: '999px', padding: '4px 10px', border: '1px solid var(--dsw-alias-border-l1)', color: 'var(--dsw-alias-label-secondary)', whiteSpace: 'nowrap' }
+      const editing = saveState === 'pending' || saveState === 'saving'
       const saveLabel = saveState === 'saving' ? kbt('kbui.saving') : (saveState === 'pending' ? kbt('kbui.unsaved') : (saveState === 'ok' ? kbt('kbui.saved.check') : (saveState === 'err' ? kbt('kbui.retry.save') : kbt('kbui.autosave'))))
       const saveColor = saveState === 'err' ? 'var(--dsw-alias-state-error-primary)' : (saveState === 'ok' ? 'var(--dsw-alias-state-success-primary)' : 'var(--dsw-alias-label-secondary)')
       const pane = (() => {
@@ -19047,8 +19052,8 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       return h('div', { className: 'kb8-page' },
         h('button', { type: 'button', className: 'kb8-primary', style: { alignSelf: 'flex-start', background: 'transparent', border: '1px solid var(--dsw-alias-border-l1)', color: 'var(--dsw-alias-label-primary)' }, onClick: () => set({ view: 'projects' }) }, '‹ Back to projects'),
         h('div', { style: { display: 'flex', alignItems: 'flex-start', gap: '16px', flexWrap: 'wrap' } },
-          // The tile follows the draft while the Details tab is being edited (the icon and the colour are picked in that tab, which no longer draws a second tile).
-          kbCfIcon(colorDraft !== '' ? colorDraft : (typeof wsUi.color === 'string' ? wsUi.color : ''), iconDraft !== '' ? iconDraft : (typeof wsUi.icon === 'string' && wsUi.icon.length > 0 ? wsUi.icon : 'folder'), undefined, false, 56),
+          // The saved icon and colour; the draft while an edit of them is not saved yet (they are picked in the Details tab, which draws no second tile).
+          kbCfIcon(editing ? colorDraft : (typeof wsUi.color === 'string' ? wsUi.color : ''), editing ? (iconDraft || 'folder') : (typeof wsUi.icon === 'string' && wsUi.icon.length > 0 ? wsUi.icon : 'folder'), undefined, false, 56),
           h('div', { style: { display: 'flex', flexDirection: 'column', gap: '8px', flex: 1, minWidth: 220 } },
             h('h1', { className: 'kb8-h1 kb8-hd-h1' }, nameDraft || ws.title || ws.workspaceId),
             // La description du projet s'affiche ici, sur tous les onglets —
