@@ -149,6 +149,10 @@ window.__ModuleLoader__.load({
         while (ratio(at, t.l1) < 4.5 && i < 30) { at = mix(at, dark ? '#FFFFFF' : '#000000', 0.06); i++ }
         t.brand = acc; t.acc = acc; t.fill = fill; t.onAcc = on; t.accText = at
         t.accSoft = rgba(acc, dark ? 0.2 : 0.1); t.accRing = rgba(acc, 0.5)
+        // The tone of the sidebar, taken from the sidebar colour the scheme ended up with (a theme's own, or an edit): darker, lighter, or tinted by the accent.
+        if (o.sideTone === 'darker') t.side = mix(t.side, '#000000', dark ? 0.35 : 0.06)
+        else if (o.sideTone === 'lighter') t.side = mix(t.side, '#FFFFFF', dark ? 0.08 : 0.55)
+        else if (o.sideTone === 'tinted') t.side = mix(t.side, acc, dark ? 0.22 : 0.12)
         return t
       }
 
@@ -895,17 +899,28 @@ window.__ModuleLoader__.load({
         // Menu icons: the id of a set drawn by the block above ('classic' keeps the application's line icons)
         iconSet: 'classic',
         // Accessibility
-        reduceMotion: false, focusRing: 'accent', largeTargets: false, underlineLinks: false
+        reduceMotion: false, focusRing: 'accent', largeTargets: false, underlineLinks: false,
+        // Chat: the colour of your messages and its text, the frame of the agent's replies and their text
+        bubbleUser: 'auto', textUser: null, replyBg: 'none', replyColor: null, textReply: null,
+        // The tone of the sidebar, shadows, glow
+        sideTone: 'auto', shadow: 'none', glow: false,
+        // The pills under the message box: shown unless switched off here
+        wgSessions: true, wgChanges: true, wgUsage: true
       }
-      const ENUMS = { glassEffect: ['frosted', 'liquid'], bgFit: ['cover', 'fill', 'center', 'stretch'], radius: ['sharp', 'standard', 'soft'], focusRing: ['accent', 'double', 'thick'], iconSet: ICON_SET_IDS }
+      const ENUMS = { glassEffect: ['frosted', 'liquid'], bgFit: ['cover', 'fill', 'center', 'stretch'], radius: ['sharp', 'standard', 'soft'], focusRing: ['accent', 'double', 'thick'], iconSet: ICON_SET_IDS, sideTone: ['auto', 'darker', 'lighter', 'tinted'], shadow: ['none', 'soft'], replyBg: ['none', 'card', 'outline', 'tint'] }
+      /** Your bubble: one of DSH's own / the accent / a soft tone / a dark one, or any colour (a hex). The three text colours are a hex or null (= the colour of the app). */
+      const BUBBLE_CHOICES = ['auto', 'accent', 'soft', 'dark']
+      const HEX_KEYS = ['textUser', 'replyColor', 'textReply']
       const RANGES = { glassBlur: [0, 40], sidebarOpacity: [0, 100], fieldOpacity: [0, 100], floatOpacity: [0, 100], bgBrightness: [0, 200], bgContrast: [0, 200], bgSaturation: [0, 200], bgDarken: [0, 100] }
-      const BOOLS = ['cbSafe', 'sidebarLinked', 'bgMirror', 'ligatures', 'showBrand', 'reduceMotion', 'largeTargets', 'underlineLinks']
+      const BOOLS = ['cbSafe', 'sidebarLinked', 'bgMirror', 'ligatures', 'showBrand', 'reduceMotion', 'largeTargets', 'underlineLinks', 'glow', 'wgSessions', 'wgChanges', 'wgUsage']
       /** The choice, range or boolean settings of any object: only the VALID values come out. */
       const valeursValides = (raw) => {
         const out = {}
         Object.keys(ENUMS).forEach((k) => { if (ENUMS[k].indexOf(raw[k]) >= 0) out[k] = raw[k] })
         Object.keys(RANGES).forEach((k) => { if (typeof raw[k] === 'number' && Number.isFinite(raw[k])) out[k] = Math.max(RANGES[k][0], Math.min(RANGES[k][1], Math.round(raw[k]))) })
         BOOLS.forEach((k) => { if (typeof raw[k] === 'boolean') out[k] = raw[k] })
+        if (typeof raw.bubbleUser === 'string') { if (BUBBLE_CHOICES.indexOf(raw.bubbleUser) >= 0) out.bubbleUser = raw.bubbleUser; else if (validHex(raw.bubbleUser)) out.bubbleUser = toHex(HEX(raw.bubbleUser)) }
+        HEX_KEYS.forEach((k) => { if (raw[k] === null) out[k] = null; else if (typeof raw[k] === 'string' && validHex(raw[k])) out[k] = toHex(HEX(raw[k])) })
         return out
       }
       /** What an imported file is allowed to set: only known keys, of valid type and
@@ -953,9 +968,7 @@ window.__ModuleLoader__.load({
           return lines.join('\n')
         }
         // css: the 17 tokens, light then dark — a file to paste into a third-party theme
-        const wpo = WPS.find((w) => w.id === S.wp) || WPS[0]
-        const lvl = S.contrastMode === 'max' ? 2 : (S.contrastMode === 'plus' ? 1 : 0)
-        const o = { acc: S.acc, ov: S.ov, lvl, cb: S.cbSafe, tint: wpo.id !== 'none' ? S.tint : 0, dom: wpo.dom }
+        const o = optsDe(S)
         const bloc = (mode) => { const t = makeTheme(mode, o); return TOKMAP.map((e) => '  --dsw-' + e[2] + ': ' + t[e[0]] + ';').join('\n') }
         return kt('/* Kybernos · Thème (' + (S.skin || 'custom') + ') — jetons DSH, clair puis sombre */', '/* Kybernos · Theme (' + (S.skin || 'custom') + ') — DSH tokens, light then dark */') + '\n:root,\nbody:not([data-ds-dark-theme]) {\n' + bloc('light') + '\n}\nbody[data-ds-dark-theme] {\n' + bloc('dark') + '\n}'
       }
@@ -970,7 +983,7 @@ window.__ModuleLoader__.load({
           if (out.ov === null || typeof out.ov !== 'object') out.ov = {}
           // A damaged stored value (by hand, or by an older version) falls back to the default.
           const ok = valeursValides(s)
-          Object.keys(ENUMS).concat(Object.keys(RANGES), BOOLS).forEach((k) => { out[k] = ok[k] !== undefined ? ok[k] : DEF[k] })
+          Object.keys(ENUMS).concat(Object.keys(RANGES), BOOLS, HEX_KEYS, ['bubbleUser']).forEach((k) => { out[k] = ok[k] !== undefined ? ok[k] : DEF[k] })
           return out
         } catch (e) { return { ...DEF } }
       }
@@ -1003,6 +1016,7 @@ window.__ModuleLoader__.load({
 
       const estNaturel = (S) => S.skin === 'dsh' && S.acc === null && S.wp === 'none'
         && Object.keys(S.ov).length === 0 && S.contrastMode === 'standard' && S.radius === 'standard' && S.cbSafe === false
+        && S.sideTone === 'auto' && S.bubbleUser === 'auto'
 
       /** The schemes in which the look sets its OWN brand colour: an accent (every scheme) or a `<scheme>:brand` override (Ember, the Advanced editor). The
        *  Kybernos accent (kybernos-plugin, `--kybernos-accent`) is the brand orange unless the look says otherwise; this is how it says so (makeTheme: the same test). */
@@ -1029,17 +1043,39 @@ window.__ModuleLoader__.load({
       const RADIUS_DEF = { xs: 4, sm: 8, md: 12, lg: 16, xl: 20, panel: 28 }
       const RADIUS_ECHELLE = { sharp: 0.25, standard: 1, soft: 1.5 }
 
+      /** The options makeTheme takes, from a state: one place for the three that used to build them (the layer, the CSS export, the page). */
+      const optsDe = (S) => {
+        const wpo = WPS.find((w) => w.id === S.wp) || WPS[0]
+        return { acc: S.acc, ov: S.ov, lvl: S.contrastMode === 'max' ? 2 : (S.contrastMode === 'plus' ? 1 : 0), cb: S.cbSafe, tint: wpo.id !== 'none' ? S.tint : 0, dom: wpo.dom, sideTone: S.sideTone }
+      }
+      /** The text colour that reads best on a colour: white or the DSH ink. */
+      const encreSur = (bg) => (ratio('#FFFFFF', bg) >= ratio('#0F1115', bg) ? '#FFFFFF' : '#0F1115')
+      /** Your messages in ONE scheme (`t` = makeTheme of that scheme): the bubble colour (`bg`, null while DSH's own bubble stays) and the text colour
+       *  (`text`, null while the app's own stays). A bubble of our own colour gets a readable text unless one was chosen. */
+      const bulleDe = (S, t, dark) => {
+        const v = S.bubbleUser
+        let bg = null
+        if (v === 'accent') bg = t.fill
+        else if (v === 'soft') bg = mix(t.base, t.t1, 0.1)
+        else if (v === 'dark') bg = dark ? '#000000' : '#1D1F24'
+        else if (validHex(v)) bg = toHex(HEX(v))
+        const text = S.textUser !== null ? S.textUser : (bg !== null ? encreSur(bg) : null)
+        return { bg, text }
+      }
+
       /** The token layer: 17 variables, one {light, dark} pair each.
        *  In native configuration, the layer is removed — the original DSH
        *  then passes through as is, without even a redundancy on top. */
       const jetonsDe = (S) => {
         if (estNaturel(S)) return null
-        const lvl = S.contrastMode === 'max' ? 2 : (S.contrastMode === 'plus' ? 1 : 0)
         const wpo = WPS.find((w) => w.id === S.wp) || WPS[0]
-        const o = { acc: S.acc, ov: S.ov, lvl, cb: S.cbSafe, tint: wpo.id !== 'none' ? S.tint : 0, dom: wpo.dom }
+        const o = optsDe(S)
         const cl = makeTheme('light', o), cd = makeTheme('dark', o)
         const jetons = {}
         for (const [k, , css] of TOKMAP) jetons['--dsw-' + css] = { light: cl[k], dark: cd[k] }
+        // Your messages: DSH paints its bubble with this token (`body` and `body[data-ds-dark-theme]` declare it), so a colour here reaches it with no hook on the markup.
+        const bl = bulleDe(S, cl, false), bd = bulleDe(S, cd, true)
+        if (bl.bg !== null) jetons['--dsw-specific-bubble'] = { light: bl.bg, dark: bd.bg }
         // A background you cannot see is useless: DSH's main area (`bg-base`) paints an opaque flat fill
         // OVER it (measured: 375 points out of 375 covered). When a background is chosen, `bg-base`
         // becomes transparent — the “Visibility” slider then doses the background against the base colour.
@@ -1171,6 +1207,39 @@ window.__ModuleLoader__.load({
         if (S.focusRing === 'double') css.push(':focus-visible{outline:2px solid var(--dsw-alias-brand-primary)!important;outline-offset:2px!important;box-shadow:0 0 0 5px var(--dsw-alias-bg-layer-1)!important}')
         if (S.largeTargets) css.push('button,[role="button"],[role="tab"],[role="menuitem"],[role="option"],[role="switch"],select,summary,input:not([type="hidden"]):not([type="range"]):not([type="checkbox"]):not([type="radio"]){min-height:44px!important}')
         if (S.underlineLinks) css.push('a[href],[role="link"]{text-decoration:underline!important;text-underline-offset:2px!important}')
+        // Shadows and glow: layers of one box-shadow (a later rule replaces an earlier one, so the glass highlight is repeated when it is on).
+        const insets = S.wp !== 'none' && S.glassBlur > 0 && S.glassEffect === 'liquid' ? ['inset 0 0 0 .5px rgba(255,255,255,.18)', 'inset 0 1px 0 rgba(255,255,255,.22)'] : []
+        const lift = S.shadow === 'soft' ? ['0 4px 14px rgba(0,0,0,.2)'] : []
+        if (lift.length > 0) css.push('[role="menu"],[role="listbox"]{box-shadow:' + lift.concat(insets).join(',') + '}')
+        const halo = S.glow ? ['0 0 18px color-mix(in srgb,var(--dsw-alias-brand-primary) 55%,transparent)'] : []
+        if (lift.length + halo.length > 0) css.push('[data-composer-card]{box-shadow:' + lift.concat(halo, insets).join(',') + '}')
+        // Your messages: their text colour, inside your messages only (the markup says `data-chat-flow-kind="user"`); each scheme has its own readable ink
+        // when the bubble is our colour. The bubble colour itself is a token (see jetonsDe).
+        const o = optsDe(S)
+        const bl = bulleDe(S, makeTheme('light', o), false), bd = bulleDe(S, makeTheme('dark', o), true)
+        const ink = (t) => '[data-chat-flow-kind="user"]{--dsw-alias-label-primary:' + t + '}'
+        if (S.textUser !== null) css.push(ink(S.textUser))
+        else {
+          if (bl.text !== null) css.push('body:not([data-ds-dark-theme]) ' + ink(bl.text))
+          if (bd.text !== null) css.push('body[data-ds-dark-theme] ' + ink(bd.text))
+        }
+        // The agent's replies: DSH draws no bubble around them, so the frame is ours, on the container of the reply (`data-chat-group-part="response"`).
+        // If DSH renames that marker the frame stops showing and nothing else is touched.
+        const own = S.replyColor
+        const frame = []
+        if (S.replyBg === 'card') frame.push('background:' + (own !== null ? own : 'color-mix(in srgb,var(--dsw-alias-label-primary) 6%,transparent)'), 'border:1px solid var(--dsw-alias-border-l2)')
+        if (S.replyBg === 'outline') frame.push('border:1px solid ' + (own !== null ? own : 'var(--dsw-alias-border-l4)'))
+        if (S.replyBg === 'tint') frame.push('background:color-mix(in srgb,' + (own !== null ? own : 'var(--dsw-alias-brand-primary)') + ' 12%,transparent)')
+        if (S.replyBg !== 'none') frame.push('border-radius:var(--dsw-radius-lg,16px)', 'padding:10px 14px')
+        const replyInk = S.textReply !== null ? S.textReply : (S.replyBg === 'card' && own !== null ? encreSur(own) : null)
+        if (replyInk !== null) frame.push('color:' + replyInk, '--dsw-alias-label-primary:' + replyInk)
+        if (frame.length > 0) css.push('[data-chat-group-part="response"]{' + frame.join(';') + '}')
+        // The pills under the message box (the dock): the status pills, the changes chip and the usage chip, each switched off on its own. Each is found by the
+        // `data-kb` its own bundle puts on it (a bundle's classes are its own: test-prefix of kybernos-sessions).
+        const dock = '[data-slot="conversation.composer.dock"]'
+        if (!S.wgSessions) css.push(dock + ' [data-kb="status-pill"]{display:none!important}')
+        if (!S.wgChanges) css.push(dock + ' [data-kb="changes"]{display:none!important}')
+        if (!S.wgUsage) css.push(dock + ' [data-kb="usage-chip"]{display:none!important}')
         return css.join('\n')
       }
       let effetsDispose = null
@@ -1756,18 +1825,20 @@ window.__ModuleLoader__.load({
       const PRESET_FORMAT = 'kybernos-theme-preset'
       /** What a theme may retain. Mirrored by SETTINGS_KEYS in preset-store.mjs (test-client.mjs fails when they drift). */
       const PRESET_GROUPS = {
-        colors: ['mode', 'acc', 'ov'],
+        colors: ['mode', 'acc', 'ov', 'sideTone'],
         font: ['fontText', 'ligatures'],
-        radius: ['radius'],
+        radius: ['radius', 'shadow', 'glow'],
         icons: ['iconSet'],
+        chat: ['bubbleUser', 'textUser', 'replyBg', 'replyColor', 'textReply'],
         glass: ['wp', 'wpVis', 'wpBlur', 'tint', 'glassEffect', 'glassBlur', 'sidebarLinked', 'sidebarOpacity', 'fieldOpacity', 'floatOpacity', 'bgBrightness', 'bgContrast', 'bgSaturation', 'bgDarken', 'bgFit', 'bgMirror'],
         a11y: ['contrastMode', 'cbSafe', 'reduceMotion', 'focusRing', 'largeTargets', 'underlineLinks']
       }
       const PRESET_GROUP_NAMES = {
         colors: ['Couleurs et accent', 'Colors and accent'],
         font: ['Police', 'Font'],
-        radius: ['Coins', 'Corners'],
+        radius: ['Coins et ombres', 'Corners and shadows'],
         icons: ['Icônes du menu', 'Menu icons'],
+        chat: ['Bulles et réponses', 'Bubbles and replies'],
         glass: ['Verre et fond d’écran', 'Glass and wallpaper'],
         a11y: ['Accessibilité', 'Accessibility']
       }
@@ -2523,7 +2594,7 @@ html[data-kbth-reduced] .kb-ld *{animation:none!important}
    DSH colours its discreet texts with label-tertiary (#81858C, 3.7:1 on white) and label-caption
    (#ADB2B8, 2.1:1): below the AA threshold of 4.5:1. On THIS page, in light only, they take
    label-secondary (5.7:1). Dark gains nothing from it and keeps its hierarchy. Measured on the real GUI. */
-body:not([data-ds-dark-theme]) :is(.kbth-icset-r,.kbth-a11y-hex,.kbth-adv-css,.kbth-card-a,.kbth-card-m,.kbth-src,.kbth-adv-swatch-label,.kbth-disc-s,.kbth-drop,.kbth-empty,.kbth-export-bar,.kbth-fschev,.kbth-fsempty,.kbth-fsmeta,.kbth-fsopt-name,.kbth-grp,.kbth-hex span,.kbth-hint,.kbth-lcard-meta,.kbth-ldp-bar,.kbth-ldp-step,.kbth-lds-ord,.kbth-lds-x,.kbth-lds.empty,.kbth-mx,.kbth-note,.kbth-panel2 p,.kbth-pill,.kbth-ramp-label,.kbth-sec-d,.kbth-sl-vl,.kbth-sum-m,.kbth-toggle-hint,.kbth-tok-css,.kbth-tok-hex,.kbth-trow-m,.kbth-wchip button){color:var(--dsw-alias-label-secondary)}
+body:not([data-ds-dark-theme]) :is(.kbth-icset-r,.kbth-st-lbl,.kbth-st-hint,.kbth-st-sub,.kbth-st-cap,.kbth-st-grp,.kbth-st-x,.kbth-a11y-hex,.kbth-adv-css,.kbth-card-a,.kbth-card-m,.kbth-src,.kbth-adv-swatch-label,.kbth-disc-s,.kbth-drop,.kbth-empty,.kbth-export-bar,.kbth-fschev,.kbth-fsempty,.kbth-fsmeta,.kbth-fsopt-name,.kbth-grp,.kbth-hex span,.kbth-hint,.kbth-lcard-meta,.kbth-ldp-bar,.kbth-ldp-step,.kbth-lds-ord,.kbth-lds-x,.kbth-lds.empty,.kbth-mx,.kbth-note,.kbth-panel2 p,.kbth-pill,.kbth-ramp-label,.kbth-sec-d,.kbth-sl-vl,.kbth-sum-m,.kbth-toggle-hint,.kbth-tok-css,.kbth-tok-hex,.kbth-trow-m,.kbth-wchip button){color:var(--dsw-alias-label-secondary)}
 /* The "in use" pill is a brand fill with its own label pair: the grey of the rule above made it 3.3:1 (1.4:1 in Neutral violet). */
 body:not([data-ds-dark-theme]) .kbth-pill.ok{color:var(--dsw-alias-label-primary-foreground,#fff)}
 /* ── Ink of the grades (AAA / AA / large text / fail) ───────────────────────────────────────
@@ -2543,6 +2614,124 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
 html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-warn{--kbth-ink:#00785A}
 html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A00}
 .kbth-a11y-badge[class*="kbth-gr-"],.kbth-tok-badge[class*="kbth-gr-"]{color:var(--kbth-ink);border-color:var(--kbth-ink)}
+/* ── The look studio (the simple view): a small DSH drawn from the look in use, panels under the part you click ──
+   The window paints itself with the look's own colours (inline); everything around it speaks DSH's tokens. */
+.kbth-st{display:flex;flex-direction:column;gap:14px;min-width:0}
+.kbth-st-lbl{font-size:12px;color:var(--dsw-alias-label-tertiary);margin-right:2px}
+.kbth-st-vibes,.kbth-st-also,.kbth-st-looks,.kbth-st-chips,.kbth-st-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.kbth-st-chip{appearance:none;font:inherit;font-size:13px;display:inline-flex;align-items:center;gap:7px;padding:5px 12px;border-radius:999px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);cursor:pointer}
+.kbth-st-chip:hover{border-color:var(--dsw-alias-border-l4)}
+.kbth-st-chip[aria-pressed="true"]{border-color:var(--dsw-alias-brand-primary);box-shadow:0 0 0 1px var(--dsw-alias-brand-primary)}
+.kbth-st-chip i{width:9px;height:9px;border-radius:50%;display:inline-block}
+.kbth-st-chip.surprise{margin-left:auto}
+.kbth-st-hint{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--dsw-alias-label-tertiary)}
+.kbth-st-hint b{color:var(--dsw-alias-label-primary);font-weight:600}
+.kbth-st-also>span,.kbth-st-looks .kbth-link{font-size:12.5px}
+.kbth-st-stage{position:relative}
+.kbth-st-win{position:relative;display:grid;grid-template-columns:148px minmax(0,1fr);height:340px;overflow:hidden;border:1px solid;isolation:isolate;line-height:1.4}
+.kbth-st.narrow .kbth-st-win{grid-template-columns:104px minmax(0,1fr);height:auto;min-height:330px}
+.kbth-st-wpl{position:absolute;inset:0;z-index:0;pointer-events:none}
+.kbth-st-side{position:relative;z-index:1;display:flex;flex-direction:column;gap:12px;padding:12px 10px;border-right:1px solid}
+.kbth-st-main{position:relative;z-index:1;display:flex;flex-direction:column;min-width:0}
+.kbth-stz{position:relative;cursor:pointer;outline:none;transition:box-shadow .12s}
+.kbth-stz:hover:not(:has(.kbth-stz:hover)),.kbth-stz:focus-visible,.kbth-stz.open{box-shadow:0 0 0 2px var(--dsw-alias-brand-primary)}
+.kbth-stz-pen{position:absolute;top:-6px;right:-6px;z-index:2;width:16px;height:16px;border-radius:50%;display:grid;place-items:center;background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-foreground,#fff);opacity:.5;pointer-events:none;transition:opacity .12s}
+.kbth-stz.big>.kbth-stz-pen{top:4px;right:4px}
+.kbth-stz:hover:not(:has(.kbth-stz:hover))>.kbth-stz-pen,.kbth-stz:focus-visible>.kbth-stz-pen,.kbth-stz.open>.kbth-stz-pen{opacity:1}
+.kbth-st-brand{align-self:flex-start;padding:2px 5px;border-radius:6px;font-weight:700;font-size:1.15em;letter-spacing:-.01em}
+.kbth-st-logo b{font-weight:900}
+.kbth-st-rows{display:flex;flex-direction:column;gap:2px;border-radius:8px}
+.kbth-st-row1{display:flex;align-items:center;gap:8px;padding:5px 7px}
+.kbth-st-ico{display:inline-flex;width:16px;height:16px;flex:none}
+.kbth-st-rn{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kbth-st-top{display:flex;align-items:center;justify-content:space-between;padding:9px 14px;border-bottom:1px solid;font-weight:700}
+.kbth-st-title{padding:2px 5px;border-radius:6px}
+.kbth-st-moon{width:26px;height:26px;border-radius:50%;border:1px solid;display:grid;place-items:center}
+.kbth-st-chat{flex:1;display:flex;flex-direction:column;justify-content:center;gap:11px;padding:14px;min-height:0;overflow:hidden}
+.kbth-st-bub,.kbth-st-bub2{max-width:80%;padding:8px 13px;align-self:flex-end}
+.kbth-st-reply1{max-width:92%}
+.kbth-st-reply1 code{padding:0 4px;font-family:ui-monospace,Menlo,monospace}
+.kbth-st-think{display:flex;align-items:center;gap:8px;align-self:flex-start;padding:2px 5px;border-radius:6px}
+.kbth-st-ld{display:inline-flex;align-items:center;justify-content:center;min-width:14px}
+.kbth-st-comp{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 12px 6px;padding:8px 8px 8px 12px;border:1px solid}
+.kbth-st-ph{flex:1;padding:2px 5px;border-radius:6px}
+.kbth-st-send{width:26px;height:26px;display:grid;place-items:center}
+.kbth-st-dock{display:flex;flex-wrap:wrap;gap:6px;margin:0 12px 10px;padding:3px;min-height:24px;border-radius:8px}
+.kbth-st-pillw{padding:2px 9px;border-radius:999px;border:1px solid}
+.kbth-st-pillw.none{border-style:dashed}
+.kbth-st-pop{box-sizing:border-box;position:absolute;z-index:30;width:min(520px,calc(100% - 16px));max-height:min(560px,calc(100vh - 120px));overflow:auto;border:1px solid var(--dsw-alias-border-l3);border-radius:16px;background:var(--dsw-alias-bg-layer-1);box-shadow:0 12px 40px rgba(0,0,0,.22);padding:0 16px 16px;display:flex;flex-direction:column;gap:12px;opacity:0;outline:none}
+.kbth-st.narrow .kbth-st-pop{position:static;width:100%;max-height:none;margin-top:10px;opacity:1;box-shadow:none}
+.kbth-st-ph2{position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;padding:14px 0 8px;background:var(--dsw-alias-bg-layer-1)}
+.kbth-st-ph2 h3{margin:0;font-size:15px;font-weight:700;color:var(--dsw-alias-label-primary)}
+.kbth-st-pa{display:flex;align-items:center;gap:8px}
+.kbth-st-ic{appearance:none;width:30px;height:30px;border-radius:9px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-secondary);display:grid;place-items:center;cursor:pointer}
+.kbth-st-ic:hover{border-color:var(--dsw-alias-border-l4);color:var(--dsw-alias-label-primary)}
+.kbth-st-sub{font-size:12px;font-weight:600;color:var(--dsw-alias-label-secondary);margin-top:2px}
+.kbth-st-cap{margin:0;font-size:12px;line-height:1.5;color:var(--dsw-alias-label-tertiary)}
+.kbth-st-tiles{display:grid;gap:8px}
+.kbth-st-tiles.c3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.kbth-st-tiles.c4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.kbth-st-tiles.c5{grid-template-columns:repeat(5,minmax(0,1fr))}
+.kbth-st-tiles.scroll{max-height:210px;overflow:auto;padding:2px}
+.kbth-st-tiles.tall{max-height:270px}
+.kbth-st-tile{appearance:none;font:inherit;padding:0;border:1px solid var(--dsw-alias-border-l2);border-radius:12px;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);cursor:pointer;display:flex;flex-direction:column;overflow:hidden;text-align:center;min-width:0}
+.kbth-st-tile:hover{border-color:var(--dsw-alias-border-l4)}
+.kbth-st-tile[aria-pressed="true"]{border-color:var(--dsw-alias-brand-primary);box-shadow:0 0 0 1px var(--dsw-alias-brand-primary)}
+.kbth-st-mini{position:relative;height:52px;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.kbth-st-nm{font-size:11.5px;line-height:1.25;padding:6px 4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kbth-st-ms{position:absolute;left:0;top:0;bottom:0;width:30%}
+.kbth-st-ms.wide{width:38%}
+.kbth-st-ml{position:absolute;left:38%;top:13px;width:40%;height:4px;border-radius:2px;opacity:.7}
+.kbth-st-mbar{position:absolute;left:38%;bottom:11px;width:24%;height:9px;border-radius:5px}
+.kbth-st-wp,.kbth-st-wpfill{position:absolute;inset:0}
+.kbth-st-pill{display:block;width:62%;height:18px;border-radius:9px}
+.kbth-st-reply{display:block}
+.kbth-st-ic4{display:flex;gap:6px;align-items:center;color:var(--dsw-alias-label-secondary)}
+.kbth-st-ab{font-size:24px;font-weight:600;line-height:1}
+.kbth-st-sws{display:flex;flex-wrap:wrap;gap:9px;align-items:center}
+.kbth-st-sw{appearance:none;width:24px;height:24px;border-radius:50%;border:0;padding:0;box-shadow:0 0 0 1px var(--dsw-alias-border-l3);cursor:pointer}
+.kbth-st-sw[aria-pressed="true"]{box-shadow:0 0 0 2px var(--dsw-alias-bg-layer-1),0 0 0 4px var(--dsw-alias-brand-primary)}
+.kbth-st-sw.auto{background:linear-gradient(135deg,var(--dsw-alias-bg-layer-1) 50%,var(--dsw-alias-label-primary) 50%)}
+.kbth-st-own{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;padding:4px 10px;border-radius:999px;border:1px dashed var(--dsw-alias-border-l3);cursor:pointer;color:var(--dsw-alias-label-secondary)}
+.kbth-st-own.on{border-style:solid;border-color:var(--dsw-alias-brand-primary)}
+.kbth-st-own input{width:18px;height:18px;padding:0;border:0;background:none;cursor:pointer}
+.kbth-st-badge{font-size:11.5px;padding:3px 9px;border-radius:999px;border:1px solid var(--kbth-ink,var(--dsw-alias-border-l3));color:var(--kbth-ink,var(--dsw-alias-label-secondary))}
+.kbth-st-badge.ok{--kbth-ink:#15803D}
+.kbth-st-badge.low{--kbth-ink:#B45309}
+.kbth-st-more{border-top:1px solid var(--dsw-alias-border-l2);padding-top:8px}
+.kbth-st-more>summary{cursor:pointer;font-size:12.5px;color:var(--dsw-alias-label-secondary);padding:4px 0}
+.kbth-st-mb{display:flex;flex-direction:column;gap:12px;padding-top:10px}
+.kbth-st-sel{font:inherit;font-size:13px;padding:6px 10px;border-radius:9px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);min-width:180px}
+.kbth-st-lgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(46px,1fr));gap:6px;padding:4px 2px}
+.kbth-st-lt{position:relative;appearance:none;height:46px;padding:0;border-radius:12px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);display:grid;place-items:center;cursor:pointer;color:var(--dsw-alias-label-secondary)}
+.kbth-st-lt:hover{border-color:var(--dsw-alias-border-l4)}
+.kbth-st-lt[aria-pressed="true"]{border-color:var(--dsw-alias-brand-primary);box-shadow:0 0 0 1px var(--dsw-alias-brand-primary)}
+.kbth-st-lt.add{border-style:dashed}
+.kbth-st-lt::after{content:attr(data-name);position:absolute;bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);z-index:5;padding:3px 8px;border-radius:7px;background:var(--dsw-alias-label-primary);color:var(--dsw-alias-bg-layer-1);font-size:11px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .1s}
+.kbth-st-lt:hover::after,.kbth-st-lt:focus-visible::after{opacity:1}
+.kbth-st-fontlist{display:flex;flex-direction:column;gap:6px;max-height:210px;overflow:auto}
+.kbth-st-grp{font-size:11px;font-weight:600;color:var(--dsw-alias-label-tertiary);margin-top:4px}
+.kbth-st-ft{appearance:none;font:inherit;display:flex;align-items:baseline;gap:7px;padding:7px 9px;border-radius:10px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);cursor:pointer;min-width:0;text-align:start}
+.kbth-st-ft b{font-size:17px;font-weight:600}
+.kbth-st-ft span{font-size:11.5px;color:var(--dsw-alias-label-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kbth-st-ft[aria-pressed="true"]{border-color:var(--dsw-alias-brand-primary);box-shadow:0 0 0 1px var(--dsw-alias-brand-primary)}
+.kbth-st-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.kbth-st-actions .kbth-in{width:auto;flex:1;min-width:150px;max-width:260px}
+.kbth-st .kbth-in::placeholder{color:var(--dsw-alias-label-secondary);opacity:1}
+.kbth-st .kbth-in{box-sizing:border-box}
+.kbth-st-sp{flex:1}
+.kbth-st-look{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--dsw-alias-border-l2);border-radius:999px;background:var(--dsw-alias-bg-layer-1)}
+.kbth-st-look.on{border-color:var(--dsw-alias-brand-primary)}
+.kbth-st-look.del{padding:3px 10px;gap:8px;font-size:12.5px}
+.kbth-st-lookb{appearance:none;border:0;background:none;font:inherit;font-size:13px;color:var(--dsw-alias-label-primary);padding:4px 4px 4px 9px;display:inline-flex;align-items:center;gap:7px;cursor:pointer}
+.kbth-st-lookb i{width:14px;height:14px;border-radius:50%;box-shadow:0 0 0 1px var(--dsw-alias-border-l3)}
+.kbth-st-x{appearance:none;border:0;background:none;color:var(--dsw-alias-label-tertiary);font-size:15px;line-height:1;padding:4px 8px 4px 2px;cursor:pointer}
+.kbth-st-x:hover{color:var(--dsw-alias-state-error-primary)}
+.kbth-st-classic{border:1px solid var(--dsw-alias-border-l2);border-radius:14px}
+.kbth-st-classic>summary{cursor:pointer;padding:13px 16px;font-size:14px;font-weight:600;color:var(--dsw-alias-label-primary)}
+.kbth-st-classic>summary .kbth-hint{margin-left:6px;font-weight:400}
+.kbth-st-classic[open]>summary{border-bottom:1px solid var(--dsw-alias-border-l2)}
+.kbth-st-classic>.kbth-sec{padding:16px}
 [hidden]{display:none!important}
 
 `
@@ -3044,6 +3233,553 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A0
           h('div', { className: 'kbth-mdlg', style: { width: 'min(480px, calc(100vw - 32px))' }, role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': props.labelId, tabIndex: -1, ref: box, 'data-kb': props.kb, onKeyDown: (e) => e.stopPropagation() }, props.children)))
       }
 
+      // <look-studio:begin>
+      // ══════════════════════════════════════════════════════════════════════
+      // 5c. THE LOOK STUDIO — the simple view of the page.
+      //     A small DSH drawn from the look in use (the same palette function, wallpaper, icon sets and loops as the real
+      //     thing): a click on a part opens a short panel for it, a click on a choice changes the look at once. Everything
+      //     a click sets is a setting of this page (`S`, through `commit`) or of the animation store (`ld`, through `ldSet`):
+      //     the studio keeps no look of its own, only which panel is open. The editor of the nine tabs stays below it, whole.
+      // ══════════════════════════════════════════════════════════════════════
+
+      /** The six fonts of the first sight (the thirty of the page are under « More options »). */
+      const ST_FONTS = [['dsh', 'Standard', 'Standard'], ['avenir', 'Net', 'Clean'], ['nunito', 'Amical', 'Friendly'], ['georgia', 'Classique', 'Classic'], ['futura', 'Gras', 'Bold'], ['jetbrains-mono', 'Code', 'Code']]
+      /** Text size in three steps; the exact size is under « More options ». */
+      const ST_SIZES = [['s', 13, 'Petit', 'Small'], ['m', 15, 'Moyen', 'Medium'], ['l', 16, 'Grand', 'Large']]
+      const ST_SPEEDS = [['slow', 0.6, 'Lent', 'Slow'], ['normal', 1, 'Normal', 'Normal'], ['fast', 1.6, 'Rapide', 'Fast']]
+      /** Text colours on offer (« auto » is the colour of the app). */
+      const ST_INKS = ['#FFFFFF', '#E5E7EB', '#FDE68A', '#A7F3D0', '#BFDBFE', '#111111', '#374151']
+      const ST_ZONES = ['mood', 'style', 'accent', 'sidebar', 'wall', 'user', 'agent', 'icons', 'think', 'letters', 'widgets', 'effects', 'access']
+      /** The shipped themes of the first sight: the ten that are not the inherited packs. */
+      const ST_FIRST_SKINS = 10
+      const ST_SIZE_ID = (fs) => (fs <= 13 ? 's' : (fs >= 16 ? 'l' : 'm'))
+
+      /** The keys of a look (what a theme may keep, accessibility excluded: those are needs, not a style). A vibe starts from the defaults of these. */
+      const stLookKeys = () => PRESET_KEYS.filter((k) => PRESET_GROUPS.a11y.indexOf(k) < 0)
+      /** Five whole looks: a theme, an accent, a font, the tone of the sidebar, icons, how replies are framed, the pills under the message box and the thinking animation + words. */
+      const ST_VIBES = [
+        { id: 'work', fr: 'Travail', en: 'Work', dot: '#3B82F6', skin: 'clair', set: { acc: '#3B82F6', fontText: 'avenir', fs: 14, sideTone: 'lighter', iconSet: 'classic', wgSessions: false, wgChanges: false, wgUsage: true }, think: 'dots', pack: 'finance' },
+        { id: 'dev', fr: 'Dev', en: 'Dev', dot: '#22C55E', skin: 'oled', set: { acc: '#22C55E', fontText: 'jetbrains-mono', fs: 13, sideTone: 'darker', iconSet: 'matrice', replyBg: 'outline', bubbleUser: 'dark', wgSessions: true, wgChanges: true, wgUsage: true }, think: 'bars', pack: 'ingenierie' },
+        { id: 'study', fr: 'Études', en: 'Study', dot: '#F59E0B', skin: 'papier', set: { acc: '#F59E0B', fontText: 'nunito', fs: 16, iconSet: 'kawaii', replyBg: 'card', wgSessions: false, wgChanges: false, wgUsage: true }, think: 'bunny', pack: 'education' },
+        { id: 'chill', fr: 'Détente', en: 'Chill', dot: '#EC4899', skin: 'nebuleuse', set: { acc: '#EC4899', sideTone: 'tinted', iconSet: 'duotone', bubbleUser: 'accent', replyBg: 'tint', fs: 14, wgSessions: false, wgChanges: false, wgUsage: false }, think: 'jellyfish', pack: 'mer' },
+        { id: 'night', fr: 'Nuit', en: 'Night', dot: '#6366F1', skin: 'bleu', set: { acc: '#6366F1', wp: 'iespace', wpVis: 70, sideTone: 'darker', iconSet: 'aplat', fs: 13, wgSessions: false, wgChanges: false, wgUsage: true }, think: 'orbit', pack: 'science' }
+      ]
+      /** What a vibe changes in the page's state (everything of a look, so a vibe is a whole look) and in the animation store. */
+      const stVibePatch = (v) => {
+        const base = {}
+        stLookKeys().forEach((k) => { base[k] = DEF[k] })
+        const sk = SKINS.find((x) => x.id === v.skin)
+        return { state: { ...base, ...(sk !== undefined ? skinPatch(sk) : {}), ...v.set }, loop: { sel: [v.think], pack: v.pack } }
+      }
+      const stVibeOn = (S, v) => { const p = stVibePatch(v).state; return Object.keys(p).every((k) => settingText(S[k]) === settingText(p[k])) && ld.S.sel.length === 1 && ld.S.sel[0] === v.think && ld.S.pack === v.pack }
+
+      const stPick = (a) => a[Math.floor(Math.random() * a.length)]
+      /** A random choice for one panel: { state, loop }, both parts optional. Accessibility and the pills under the message box are never drawn at random. */
+      const ST_RAND = {
+        mood: () => ({ state: { mode: Math.random() < 0.6 ? 'dark' : 'light' } }),
+        style: () => ({ skin: stPick(SKINS) }),
+        accent: () => ({ state: { acc: stPick(ACCS) } }),
+        sidebar: () => ({ state: { sideTone: stPick(ENUMS.sideTone) } }),
+        wall: () => ({ state: { wp: stPick(WPS.filter((w) => w.id !== 'none')).id, wpVis: 50 + Math.floor(Math.random() * 50) } }),
+        user: () => ({ state: { bubbleUser: stPick(BUBBLE_CHOICES), textUser: null } }),
+        agent: () => ({ state: { replyBg: stPick(ENUMS.replyBg), replyColor: null, textReply: null } }),
+        icons: () => ({ state: { iconSet: stPick(ICON_SET_IDS) } }),
+        think: () => ({ loop: { sel: [stPick(LD_PRESETS).id], pack: stPick(LD_PACKS).id } }),
+        letters: () => ({ state: { fontText: stPick(ST_FONTS)[0], fs: stPick(ST_SIZES)[1] } }),
+        effects: () => ({ state: { radius: stPick(ENUMS.radius), shadow: stPick(ENUMS.shadow), glow: Math.random() < 0.3 } })
+      }
+      /** « Surprise me » of the studio: a coherent draw (the page's own, for mode, accent and wallpaper) and a draw for every other panel. */
+      const stSurprise = () => {
+        const state = { ...surprendre() }
+        const loop = {}
+        ;['icons', 'letters', 'sidebar', 'user', 'agent', 'think', 'effects'].forEach((z) => { const r = ST_RAND[z](); Object.assign(state, r.state || {}); Object.assign(loop, r.loop || {}) })
+        return { state, loop }
+      }
+      /** The colour DSH paints its own bubble with, in the scheme shown (read from the page when there is one). */
+      const stDshSeen = { light: '#EDF3FE', dark: '#2A3040' }
+      const stDshBubble = (dark, own) => {
+        const k = dark ? 'dark' : 'light'
+        if (own === true) return stDshSeen[k] // our token is on the page: what it holds is not DSH's
+        try {
+          const v = String(window.getComputedStyle(document.body).getPropertyValue('--dsw-specific-bubble')).trim()
+          if (validHex(v)) stDshSeen[k] = v
+        } catch (e) { /* no page to read */ }
+        return stDshSeen[k]
+      }
+
+      /** An SVG for one menu entry, in the set `setId` (the classic set is the application's own, lent through a seam). */
+      const stIcon = (setId, entry, on, size) => {
+        let svg = null
+        try { svg = setId === 'classic' ? (typeof window.__KB_MENU_CLASSIC__ === 'function' ? window.__KB_MENU_CLASSIC__(entry, size) : null) : iconSvg(setId, entry, on, size) } catch (e) { svg = null }
+        return typeof svg === 'string' ? svg : '<svg width="' + size + '" height="' + size + '" viewBox="0 0 16 16" fill="none" aria-hidden="true"><rect x="2.5" y="2.5" width="11" height="11" rx="2.5" stroke="currentColor" stroke-width="1.3"/></svg>'
+      }
+      const ST_PENCIL = 'M11.2 2.3a1.6 1.6 0 0 1 2.3 2.3L5.4 12.7 2 13.5l.8-3.4z'
+
+      /** If the studio ever fails to draw, the page says so and the editor of the nine tabs (always complete) takes over: a broken view must not leave a person with no way to change the look. */
+      const StBoundary = typeof React.Component === 'function'
+        ? class extends React.Component {
+          constructor(p) { super(p); this.state = { bad: false } }
+          static getDerivedStateFromError() { return { bad: true } }
+          componentDidCatch(e) {
+            try { console.error('[kybernos-theme] the look studio could not be drawn', e) } catch (e2) { /* no console */ }
+            try { if (typeof this.props.onFail === 'function') this.props.onFail() } catch (e3) { /* the page is gone */ }
+          }
+          render() { return this.state.bad ? h('div', { className: 'kbth-note', role: 'status', 'data-kb': 'theme-studio-failed' }, kt('La vue simple n’a pas pu s’afficher : l’éditeur avancé ci-dessous reste complet.', 'The simple view could not be drawn: the advanced editor below is still complete.')) : this.props.children }
+        }
+        : null
+
+      function Studio(props) {
+        const S = props.S, c = props.c, dark = props.dark, commit = props.commit
+        const [zoneOn, setZone] = React.useState(props.initialZone === undefined ? null : props.initialZone)
+        const [more, setMore] = React.useState({})
+        const [fq, setFq] = React.useState('')
+        const [wpCat, setWpCat] = React.useState('gradients')
+        const [allStyles, setAllStyles] = React.useState(false)
+        const [mixOn, setMixOn] = React.useState(ld.S.sel.length > 1)
+        const [lookName, setLookName] = React.useState('')
+        const [delId, setDelId] = React.useState(null)
+        const [note, setNote] = React.useState(null)
+        const [narrow, setNarrow] = React.useState(false)
+        const [hexDraft, setHexDraft] = React.useState(null)
+        const [wordsDraft, setWordsDraft] = React.useState(null)
+        const [, bump] = React.useReducer((x) => x + 1, 0)
+        const typedHex = React.useRef(null)
+        const stage = React.useRef(null)
+        const pop = React.useRef(null)
+        const lastZone = React.useRef(null)
+
+        // The hex field keeps what is being typed, but follows the accent when something else changed it (a vibe, Undo, Reset, the dice).
+        React.useEffect(() => { if (typedHex.current === null || S.acc === null || typedHex.current !== S.acc.toLowerCase()) { setHexDraft(null); typedHex.current = null } }, [S.acc])
+        React.useEffect(() => { setWordsDraft(null) }, [zoneOn])
+        // Undo can bring back a mix of several loops: the switch follows.
+        React.useEffect(() => { if (ld.S.sel.length > 1 && !mixOn) setMixOn(true) })
+        // The animation store: redrawn when it changes; my own animations come from the disk.
+        React.useEffect(() => { ld.subs.add(bump); ldPull(true); return () => { ld.subs.delete(bump) } }, [])
+        // The width of the stage: under 560 px the panel is not floated over the window, it is drawn under it.
+        React.useEffect(() => {
+          const el = stage.current
+          if (el === null || typeof ResizeObserver !== 'function') return undefined
+          const ro = new ResizeObserver(() => { try { setNarrow(el.getBoundingClientRect().width < 560) } catch (e) { /* gone */ } })
+          ro.observe(el)
+          return () => { try { ro.disconnect() } catch (e) { /* gone */ } }
+        }, [])
+        // The panel floats under the part that opened it, kept inside the window. Written straight on the element (no state: nothing redraws).
+        React.useEffect(() => {
+          const p = pop.current, st = stage.current
+          if (p === null || st === null) return
+          if (narrow) { p.style.left = ''; p.style.top = ''; p.style.opacity = ''; return }
+          const z = st.querySelector('[data-zone="' + zoneOn + '"]') || st.parentElement.querySelector('[data-chip="' + zoneOn + '"]')
+          const win = st.querySelector('.kbth-st-win')
+          if (z === null || win === null) return
+          const zr = z.getBoundingClientRect(), sr = st.getBoundingClientRect(), wr = win.getBoundingClientRect(), w = p.offsetWidth
+          const lo = wr.left - sr.left + 8, hi = wr.right - sr.left - w - 8
+          p.style.left = Math.max(lo, Math.min(zr.left - sr.left, hi)) + 'px'
+          p.style.top = Math.max(48, Math.min(zr.bottom - sr.top + 10, wr.bottom - sr.top - p.offsetHeight - 12)) + 'px'
+          p.style.opacity = '1'
+        })
+        // Escape closes the panel (and nothing else); a press outside it closes it too, a press on another part opens that one.
+        React.useEffect(() => {
+          if (zoneOn === null) return undefined
+          const key = (e) => { if (e.key === 'Escape') { e.stopPropagation(); setZone(null) } }
+          const down = (e) => {
+            const t = e.target
+            if (pop.current !== null && pop.current.contains(t)) return
+            if (t.closest && (t.closest('[data-zone]') || t.closest('[data-chip]'))) return
+            setZone(null)
+          }
+          document.addEventListener('keydown', key, true)
+          document.addEventListener('mousedown', down)
+          return () => { document.removeEventListener('keydown', key, true); document.removeEventListener('mousedown', down) }
+        }, [zoneOn])
+        // The focus goes into the panel when it opens and back to the part that opened it when it closes.
+        React.useEffect(() => {
+          if (zoneOn !== null) { lastZone.current = zoneOn; if (pop.current !== null && typeof pop.current.focus === 'function') pop.current.focus({ preventScroll: true }); return }
+          const z = lastZone.current
+          lastZone.current = null
+          try { const st = stage.current; const el = z === null || st === null ? null : (st.querySelector('[data-zone="' + z + '"]') || st.parentElement.querySelector('[data-chip="' + z + '"]')); if (el !== null && typeof el.focus === 'function' && document.activeElement === document.body) el.focus() } catch (e) { /* nothing to focus */ }
+        }, [zoneOn])
+
+        const o = optsDe(S)
+        const wpo = WPS.find((w) => w.id === S.wp) || WPS[0]
+        const wpOn = wpo.id !== 'none'
+        const lang = kbLang()
+        const say = (fr, en) => kt(fr, en)
+
+        // ── what a click does ─────────────────────────────────────────────
+        // The animation store has its own save; the step is recorded here so that Undo covers it too.
+        const loop = (p) => { props.pushHist(); ldSet(p) }
+        const setAcc = (v) => { setHexDraft(null); commit({ acc: v }) }
+        const applyLoop = (patch) => { if (patch !== undefined && patch !== null) loop(patch) }
+        const apply = (r) => {
+          if (r.skin !== undefined) props.applySkin(r.skin)
+          else if (r.state !== undefined) commit(r.state)
+          applyLoop(r.loop)
+        }
+        const applyVibe = (v) => { const p = stVibePatch(v); props.setLibNote(null); commit(p.state); applyLoop(p.loop); setMixOn(false) }
+        const dice = (z) => (ST_RAND[z] === undefined ? null : h('button', { type: 'button', className: 'kbth-st-ic', 'data-kb': 'theme-dice', 'aria-label': say('Tirer au sort pour ce panneau', 'Draw one at random for this panel'), title: say('Au hasard', 'Random'), onClick: () => apply(ST_RAND[z]()) },
+          h('svg', { width: 16, height: 16, viewBox: '0 0 16 16', fill: 'none', 'aria-hidden': 'true' }, h('rect', { x: 2, y: 2, width: 12, height: 12, rx: 3, stroke: 'currentColor', strokeWidth: 1.3 }), [[5.2, 5.2], [10.8, 5.2], [8, 8], [5.2, 10.8], [10.8, 10.8]].map((p, i) => h('circle', { key: i, cx: p[0], cy: p[1], r: 0.95, fill: 'currentColor' }))))
+        )
+
+        // ── small builders ────────────────────────────────────────────────
+        const sub = (t) => h('div', { className: 'kbth-st-sub' }, t)
+        const cap = (t) => h('p', { className: 'kbth-st-cap' }, t)
+        const tile = (t) => h('button', { key: t.id, type: 'button', className: 'kbth-st-tile', 'aria-pressed': t.on ? 'true' : 'false', title: t.title, onClick: t.tap, 'data-kb': t.kb, 'data-id': t.id },
+          h('div', { className: 'kbth-st-mini', style: t.bg !== undefined ? { background: t.bg } : undefined }, t.inner), h('span', { className: 'kbth-st-nm' }, t.label))
+        const tiles = (cols, list) => h('div', { className: 'kbth-st-tiles c' + cols }, list.map(tile))
+        const swatches = (list, cur, tap, autoLabel) => h('div', { className: 'kbth-st-sws' }, list.map((col) => {
+          const on = col === null ? cur === null : (cur !== null && String(cur).toLowerCase() === col.toLowerCase())
+          return h('button', { key: col === null ? 'auto' : col, type: 'button', className: 'kbth-st-sw' + (col === null ? ' auto' : ''), style: col === null ? undefined : { background: col }, 'aria-pressed': on ? 'true' : 'false', 'aria-label': col === null ? autoLabel : col, title: col === null ? autoLabel : col, onClick: () => tap(col) })
+        }))
+        const anyColor = (value, on, tap, label) => h('label', { className: 'kbth-st-own' + (on ? ' on' : '') },
+          h('input', { type: 'color', value: value, 'aria-label': label, onInput: (e) => tap(e.target.value) }), label)
+        const chip = (label, on, tap, kb) => h('button', { type: 'button', className: 'kbth-st-chip', 'aria-pressed': on ? 'true' : 'false', onClick: tap, 'data-kb': kb }, label)
+        const moreBox = (id, kids) => h('details', { className: 'kbth-st-more', 'data-kb': 'theme-more', open: more[id] === true, onToggle: (e) => { const open = e.currentTarget.open; setMore((m) => (m[id] === open ? m : { ...m, [id]: open })) } },
+          h('summary', null, say('Plus d’options', 'More options')), h('div', { className: 'kbth-st-mb' }, ...[kids].flat(Infinity)))
+        const sl = (label, min, max, value, text, tap, hint) => slider({ label, min, max, value, text, tap, hint })
+        const badge = (r) => h('span', { className: 'kbth-st-badge ' + (r >= 4.5 ? 'ok' : 'low'), 'data-kb': 'theme-badge' },
+          r >= 7 ? say('Facile à lire (' + knum(r, 1) + ':1)', 'Easy to read (' + knum(r, 1) + ':1)') : (r >= 4.5 ? say('Lisible (' + knum(r, 1) + ':1)', 'Readable (' + knum(r, 1) + ':1)') : say('Un peu faible (' + knum(r, 1) + ':1)', 'A bit low (' + knum(r, 1) + ':1)')))
+        const themeNeeds = say('Cet effet se voit dès qu’un arrière-plan est choisi.', 'This shows as soon as a wallpaper is chosen.')
+
+        // ── mood ──────────────────────────────────────────────────────────
+        const moodPanel = () => [
+          tiles(3, [['light', say('Clair', 'Light')], ['dark', say('Sombre', 'Dark')], ['system', say('Système', 'System')]].map((m) => ({
+            id: m[0], kb: 'theme-st-mood', on: S.mode === m[0], tap: () => commit({ mode: m[0] }), label: m[1],
+            bg: m[0] === 'system' ? 'linear-gradient(90deg,' + makeTheme('light', o).base + ' 50%,' + makeTheme('dark', o).base + ' 50%)' : makeTheme(m[0], o).base
+          }))),
+          cap(say('S’applique à toute l’interface. « Système » suit le réglage de ton appareil.', 'Applies to the whole interface. “System” follows your device setting.'))
+        ]
+
+        // ── style ─────────────────────────────────────────────────────────
+        const skinTheme = (sk) => makeTheme(sk.mode === null || sk.mode === undefined ? (dark ? 'dark' : 'light') : sk.mode, { acc: sk.acc, ov: sk.ov || {}, lvl: 0, cb: false, tint: 0, dom: '', sideTone: 'auto' })
+        const skinMini = (sk) => {
+          const t = skinTheme(sk)
+          const w = WPS.find((x) => x.id === sk.wp)
+          return [w !== undefined && w.id !== 'none' ? h('i', { key: 'w', className: 'kbth-st-wp', style: { background: w.css, opacity: (sk.vis || 60) / 100 } }) : null,
+            h('i', { key: 's', className: 'kbth-st-ms', style: { background: t.side } }), h('i', { key: 'l', className: 'kbth-st-ml', style: { background: t.t3 } }), h('i', { key: 'b', className: 'kbth-st-mbar', style: { background: t.fill } })]
+        }
+        const stylePanel = () => [
+          tiles(5, SKINS.filter((sk, i) => allStyles || i < ST_FIRST_SKINS).map((sk) => ({
+            id: sk.id, kb: 'theme-st-style', on: S.skin === sk.id, tap: () => props.applySkin(sk), label: sk.name, title: sk.name + ' — ' + props.skinMeta(sk),
+            bg: skinTheme(sk).base, inner: skinMini(sk)
+          }))),
+          h('div', { className: 'kbth-st-row' }, chip(allStyles ? say('Montrer ' + ST_FIRST_SKINS, 'Show ' + ST_FIRST_SKINS) : say('Les ' + SKINS.length + ' styles', 'All ' + SKINS.length + ' styles'), allStyles, () => setAllStyles(!allStyles), 'theme-st-allstyles'),
+            h('button', { type: 'button', className: 'kbth-link', onClick: () => props.openClassic('galerie') }, say('Plus de styles : la galerie', 'More looks: the gallery')))
+        ]
+
+        // ── accent ────────────────────────────────────────────────────────
+        const accentPanel = () => [
+          swatches(ACCS, S.acc, (col) => setAcc(col), say('Accent du thème', 'Theme accent')),
+          h('div', { className: 'kbth-st-row' }, anyColor(S.acc === null ? c.fill : S.acc, S.acc !== null && ACCS.every((a) => a.toLowerCase() !== S.acc.toLowerCase()), (v) => setAcc(v), say('Une autre couleur', 'Any color')),
+            S.acc !== null ? chip(say('Couleur du thème', 'Theme color'), false, () => setAcc(null), 'theme-st-accreset') : null,
+            badge(ratio(c.onAcc, c.fill))),
+          cap(say('Boutons, liens, bouton d’envoi et surlignages.', 'Buttons, links, the send button and highlights.')),
+          moreBox('accent', [
+            h('div', { key: 'hex', className: 'kbth-row' }, h('span', { className: 'kbth-lb' }, say('Code hexadécimal', 'Hex code')),
+              h('label', { className: 'kbth-hex' + (hexDraft !== null && !validHex(hexDraft) ? ' bad' : '') }, h('span', null, '#'),
+                h('input', { value: hexDraft !== null ? hexDraft : (S.acc === null ? c.fill : S.acc).replace('#', ''), maxLength: 7, spellCheck: false, 'aria-label': say('Code hexadécimal', 'Hex code'), 'data-kb': 'theme-st-hex',
+                  onInput: (e) => { const v = e.target.value; setHexDraft(v); const p = HEX(v); if (p !== null) { typedHex.current = toHex(p).toLowerCase(); commit({ acc: toHex(p) }) } } }))),
+            sl(say('Teinte des surfaces', 'Surface tint'), 0, 100, S.tint, S.tint + ' %', (v) => commit({ tint: v }), wpOn ? say('Tire les panneaux vers la couleur du fond.', 'Pulls the panels towards the wallpaper color.') : themeNeeds),
+            cap(say('Chaque couleur une par une : éditeur avancé › Couleurs.', 'Every single color: advanced editor › Colors.'))
+          ])
+        ]
+
+        // ── sidebar ───────────────────────────────────────────────────────
+        const sideNames = { auto: say('Auto', 'Auto'), darker: say('Plus sombre', 'Darker'), lighter: say('Plus clair', 'Lighter'), tinted: say('Teintée', 'Tinted') }
+        const sidebarPanel = () => [
+          tiles(4, ENUMS.sideTone.map((t) => ({ id: t, kb: 'theme-st-side', on: S.sideTone === t, tap: () => commit({ sideTone: t }), label: sideNames[t], bg: makeTheme(dark ? 'dark' : 'light', { ...o, sideTone: 'auto' }).base,
+            inner: h('i', { className: 'kbth-st-ms wide', style: { background: makeTheme(dark ? 'dark' : 'light', { ...o, sideTone: t }).side } }) }))),
+          wpOn ? sl(say('Transparence', 'See-through'), 0, 100, S.sidebarOpacity, S.sidebarOpacity + ' %', (v) => commit({ sidebarOpacity: v }), S.sidebarLinked ? undefined : say('Activé dans « Plus d’options ».', 'Switched on under “More options”.'))
+            : cap(say('Choisis un arrière-plan pour qu’il se voie à travers la barre latérale.', 'Pick a wallpaper to let it show through the sidebar.')),
+          moreBox('sidebar', [
+            ldToggle(say('Laisser voir le fond', 'Let the wallpaper show'), S.sidebarLinked, () => commit({ sidebarLinked: !S.sidebarLinked }), say('Désactivé, la barre latérale reste pleine.', 'When off, the sidebar stays solid.')),
+            sl(say('Flou derrière', 'Blur behind'), 0, 40, S.glassBlur, S.glassBlur + ' px', (v) => commit({ glassBlur: v }), wpOn ? undefined : themeNeeds),
+            ldToggle(say('Logo et nom', 'Logo and name'), S.showBrand, () => commit({ showBrand: !S.showBrand }), say('Dans la barre latérale et sur l’accueil.', 'In the sidebar and on the home screen.'))
+          ])
+        ]
+
+        // ── wallpaper ─────────────────────────────────────────────────────
+        const wallPanel = () => [
+          h('div', { className: 'kbth-st-chips' }, chip(say('Aucun', 'None'), S.wp === 'none', () => commit({ wp: 'none' }), 'theme-st-wpnone'),
+            WPCATS.map((cat) => h('button', { key: cat.id, type: 'button', className: 'kbth-st-chip', 'aria-pressed': S.wp !== 'none' && wpCat === cat.id ? 'true' : 'false', 'data-kb': 'theme-st-wpcat', 'data-id': cat.id, onClick: () => setWpCat(cat.id) }, cat.name))),
+          h('div', { className: 'kbth-st-tiles c4 scroll' }, WPS.filter((w) => w.cat === wpCat).map((w) => tile({ id: w.id, kb: 'theme-st-wp', on: S.wp === w.id, tap: () => commit({ wp: w.id }), label: w.name, inner: h('i', { className: 'kbth-st-wpfill', style: { background: w.css } }) }))),
+          moreBox('wall', [
+            sl(say('Visibilité', 'Visibility'), 0, 100, S.wpVis, S.wpVis + ' %', (v) => commit({ wpVis: v })),
+            sl(say('Flou de l’image', 'Image blur'), 0, 40, S.wpBlur, S.wpBlur + ' px', (v) => commit({ wpBlur: v })),
+            sl(say('Assombrissement', 'Darkening'), 0, 100, S.bgDarken, S.bgDarken + ' %', (v) => commit({ bgDarken: v })),
+            sl(say('Teinte des surfaces', 'Surface tint'), 0, 100, S.tint, S.tint + ' %', (v) => commit({ tint: v })),
+            sl(say('Flou du verre', 'Glass blur'), 0, 40, S.glassBlur, S.glassBlur + ' px', (v) => commit({ glassBlur: v })),
+            h('div', { key: 'fit', className: 'kbth-row' }, h('span', { className: 'kbth-lb' }, say('Ajustement', 'Fit')),
+              seg({ items: [['cover', say('Couvrir', 'Cover')], ['fill', say('Remplir', 'Fill')], ['center', say('Centrer', 'Center')], ['stretch', say('Étirer', 'Stretch')]].map((f) => ({ id: f[0], label: f[1], on: S.bgFit === f[0], tap: () => commit({ bgFit: f[0] }) })) })),
+            cap(say('Luminosité, contraste, saturation, miroir : éditeur avancé › Verre et fond.', 'Brightness, contrast, saturation, mirror: advanced editor › Glass and background.'))
+          ])
+        ]
+
+        // ── your messages / the agent's replies ───────────────────────────
+        const dshBubble = stDshBubble(dark, S.bubbleUser !== 'auto')
+        const bubbleNames = { auto: say('Auto (DSH)', 'Auto (DSH)'), accent: say('Accent', 'Accent'), soft: say('Doux', 'Soft'), dark: say('Sombre', 'Dark') }
+        const userPanel = () => [
+          sub(say('Couleur de la bulle', 'Bubble color')),
+          tiles(4, BUBBLE_CHOICES.map((b) => ({ id: b, kb: 'theme-st-bubble', on: S.bubbleUser === b, tap: () => commit({ bubbleUser: b }), label: bubbleNames[b], bg: c.base,
+            inner: h('i', { className: 'kbth-st-pill', style: { background: b === 'auto' ? dshBubble : bulleDe({ ...S, bubbleUser: b }, c, dark).bg } }) }))),
+          h('div', { className: 'kbth-st-row' }, anyColor(validHex(S.bubbleUser) ? S.bubbleUser : dshBubble, validHex(S.bubbleUser), (v) => commit({ bubbleUser: toHex(HEX(v)) }), say('Une autre couleur', 'Any color'))),
+          sub(say('Couleur du texte', 'Text color')),
+          swatches([null].concat(ST_INKS), S.textUser, (col) => commit({ textUser: col }), say('Auto (suit l’application)', 'Auto (follows the app)')),
+          moreBox('user', [cap(say('La bulle utilise le réglage de couleur propre à DSH. La couleur du texte ne s’applique qu’à tes messages : le reste de l’application garde la sienne.', 'The bubble uses DSH’s own color setting. The text color applies to your messages only: the rest of the app keeps its own.'))])
+        ]
+        const replyNames = { none: say('Aucun (DSH)', 'None (DSH)'), card: say('Carte', 'Card'), outline: say('Contour', 'Outline'), tint: say('Teinte', 'Tinted') }
+        const replyMini = (b) => {
+          const own = S.replyColor
+          const st = { width: '70%', height: 22, borderRadius: 7 }
+          if (b === 'card') { st.background = own !== null ? own : rgba(c.t1, 0.08); st.border = '1px solid ' + c.b2 }
+          if (b === 'outline') st.border = '1px solid ' + (own !== null ? own : c.b4)
+          if (b === 'tint') st.background = rgba(own !== null ? own : c.fill, 0.14)
+          return h('i', { className: 'kbth-st-reply', style: st })
+        }
+        const agentPanel = () => [
+          sub(say('Fond de la réponse', 'Reply background')),
+          tiles(4, ENUMS.replyBg.map((b) => ({ id: b, kb: 'theme-st-reply', on: S.replyBg === b, tap: () => commit({ replyBg: b }), label: replyNames[b], bg: c.base, inner: replyMini(b) }))),
+          S.replyBg !== 'none' ? [sub(say('Couleur de la réponse', 'Reply color')), swatches([null].concat(ACCS), S.replyColor, (col) => commit({ replyColor: col }), say('Auto', 'Auto'))] : null,
+          sub(say('Couleur du texte', 'Text color')),
+          swatches([null].concat(ST_INKS), S.textReply, (col) => commit({ textReply: col }), say('Auto (suit l’application)', 'Auto (follows the app)')),
+          moreBox('agent', [cap(say('DSH ne dessine aucune bulle autour des réponses de l’agent : un fond ou un contour est ajouté autour de chacune. Si DSH renomme le repère qui sert à les trouver, le cadre disparaît et le reste du thème continue de marcher.', 'DSH draws no bubble around the agent’s replies: a background or an outline is added around each one. If DSH renames the marker used to find them, the frame goes away and the rest of the theme keeps working.'))])
+        ]
+
+        // ── menu icons ────────────────────────────────────────────────────
+        const iconsPanel = () => [
+          h('div', { className: 'kbth-st-tiles c3 scroll tall' }, ICON_SETS.map((st) => tile({ id: st.id, kb: 'theme-st-icons', on: S.iconSet === st.id, tap: () => commit({ iconSet: st.id }), label: st[lang], title: st.hint[lang],
+            inner: h('div', { className: 'kbth-st-ic4' }, ['kyber', 'dash', 'ws', 'creations'].map((e, i) => h('span', { key: e, dangerouslySetInnerHTML: { __html: stIcon(st.id, e, i === 0, 17) } }))) }))),
+          cap(ICON_SETS.length + say(' jeux, dessinés par le code du plugin.', ' sets, drawn by the plugin’s own code.'))
+        ]
+
+        // ── thinking animation ────────────────────────────────────────────
+        const tAcc = S.acc !== null
+        const pickLoop = (id) => {
+          if (!mixOn) { loop({ sel: [id] }); return }
+          const sel = ld.S.sel
+          if (sel.indexOf(id) >= 0) loop({ sel: sel.filter((x) => x !== id) })
+          else if (sel.length < LD_MAX) loop({ sel: sel.concat([id]) })
+          else setNote({ ok: false, text: say('Quatre animations au plus.', 'Up to four animations.') })
+        }
+        const loopTile = (key, l, name, on) => h('button', { key, type: 'button', className: 'kbth-st-lt', 'aria-pressed': on ? 'true' : 'false', 'aria-label': name, title: name, 'data-name': name, 'data-kb': 'theme-st-loop', 'data-id': key, onClick: () => (l === null ? loop({ sel: [] }) : pickLoop(l.id)) },
+          l === null ? h('svg', { width: 26, height: 26, viewBox: '0 0 16 16', fill: 'none', 'aria-hidden': 'true' }, h('path', { d: LD_WHALE, stroke: 'currentColor', strokeWidth: 1 })) : h(LdView, { l, px: 26, spd: 1, tint: ld.S.tint && tAcc }))
+        const packs = LD_PACKS.concat(ld.words.length > 0 ? [{ id: 'perso', name: say('Mes mots', 'My words'), words: { fr: ld.words, en: ld.words } }] : [])
+        const importLoop = (file) => ldImport(file).then((r) => {
+          const full = r.t !== 'err' && mixOn && ld.S.sel.length >= LD_MAX
+          setNote({ ok: r.t !== 'err', text: r.text + (full ? ' ' + say('La rotation est pleine : retires-en une pour l’utiliser.', 'The mix is full: remove one to use it.') : '') })
+          if (r.t !== 'err' && ld.mine.length > 0 && !full) loop({ sel: mixOn ? ld.S.sel.concat([ld.mine[0].id]) : [ld.mine[0].id] })
+        })
+        const saveWords = (text) => {
+          const words = String(text).split(',').map((w) => w.trim()).filter((w) => w !== '')
+          setWordsDraft(null)
+          ldPutWords(words).then(() => { if (words.length > 0) loop({ pack: 'perso' }) })
+        }
+        const thinkPanel = () => {
+          const selNames = ld.S.sel.map(ldById).filter((x) => x !== null).map((l) => l.name)
+          const words = ldWordList(ld.S.pack)
+          return [
+            h('div', { className: 'kbth-st-lgrid' },
+              loopTile('dsh', null, say('Queue de baleine de DSH', 'DSH whale tail'), ld.S.sel.length === 0),
+              LD_PRESETS.map((l) => loopTile(l.id, l, l.name, ld.S.sel.indexOf(l.id) >= 0)),
+              ld.mine.map((l) => loopTile(l.id, l, l.name, ld.S.sel.indexOf(l.id) >= 0)),
+              h('label', { className: 'kbth-st-lt add', title: say('Ajouter la tienne (SVG, Lottie, GIF, WebP)', 'Add your own (SVG, Lottie, GIF, WebP)'), 'data-name': say('Ajouter la tienne (SVG, Lottie, GIF, WebP)', 'Add your own (SVG, Lottie, GIF, WebP)') },
+                h('svg', { width: 18, height: 18, viewBox: '0 0 16 16', fill: 'none', 'aria-hidden': 'true' }, h('path', { d: 'M8 3v10M3 8h10', stroke: 'currentColor', strokeWidth: 1.5, strokeLinecap: 'round' })),
+                h('input', { type: 'file', accept: '.svg,.json,.gif,.webp,.png', 'data-kb': 'theme-st-addloop', style: { display: 'none' }, 'aria-label': say('Ajouter ta propre animation', 'Add your own animation'), onChange: (e) => { const input = e.target; const f = input.files && input.files[0]; if (f) importLoop(f); input.value = '' } }))),
+            note !== null ? h('div', { className: note.ok ? 'kbth-ok kbth-gr-ok' : 'kbth-bad kbth-gr-err', role: 'status', 'data-kb': 'theme-st-note' }, note.text) : null,
+            cap(say('Choisie : ', 'Selected: ') + (selNames.length > 0 ? selNames.join(', ') : say('queue de baleine de DSH', 'DSH whale tail')) + say(' · survole une vignette pour son nom', ' · hover a tile for its name')),
+            h('div', { className: 'kbth-row' }, h('span', { className: 'kbth-lb' }, say('Mots affichés', 'Words it shows')),
+              h('select', { className: 'kbth-st-sel', 'data-kb': 'theme-st-pack', 'aria-label': say('Mots affichés', 'Words it shows'), value: packs.some((p) => p.id === ld.S.pack) ? ld.S.pack : 'dsh', onChange: (e) => loop({ pack: e.target.value }) },
+                packs.map((p) => h('option', { key: p.id, value: p.id }, p.name)))),
+            cap(words.length > 0 ? words.slice(0, 5).join(', ') + (words.length > 5 ? '…' : '') : say('La phrase de DSH (« Deep diving… »).', 'DSH’s own phrase (“Deep diving…”).')),
+            moreBox('think', [
+              h('div', { key: 'size', className: 'kbth-row' }, h('span', { className: 'kbth-lb' }, say('Taille', 'Size')), seg({ items: [['compact', '14 px'], ['standard', '24 px'], ['large', '40 px']].map((z) => ({ id: z[0], label: z[1], on: ld.S.size === z[0], tap: () => loop({ size: z[0] }) })) })),
+              h('div', { key: 'speed', className: 'kbth-row' }, h('span', { className: 'kbth-lb' }, say('Vitesse', 'Speed')), seg({ items: ST_SPEEDS.map((z) => ({ id: z[0], label: say(z[2], z[3]), on: Math.abs(ld.S.speed - z[1]) < 0.01, tap: () => loop({ speed: z[1] }) })) })),
+              ldToggle(say('Teinter avec ma couleur', 'Tint with my color'), ld.S.tint, () => loop({ tint: !ld.S.tint }), say('Seulement les animations d’une couleur.', 'Single-color animations only.')),
+              ldToggle(say('Montrer le temps', 'Show the time'), ld.S.dur, () => loop({ dur: !ld.S.dur }), say('« … 12s » à droite du mot.', '“… 12s” to the right of the word.')),
+              ldToggle(say('Garder le texte', 'Keep the words'), ld.S.keep, () => loop({ keep: !ld.S.keep }), say('Sans lui, seule l’animation reste.', 'Without it, only the animation stays.')),
+              h('div', { key: 'rot', className: 'kbth-row' }, h('span', { className: 'kbth-lb' }, say('Changer de mot', 'Change the word')), seg({ items: [['fixed', say('Jamais', 'Never')], ['8', '8 s'], ['15', '15 s']].map((z) => ({ id: z[0], label: z[1], on: ld.S.rot === z[0], tap: () => loop({ rot: z[0] }) })) })),
+              sl(say('Délai', 'Delay'), 0, 1000, ld.S.delay, ld.S.delay + ' ms', (v) => loop({ delay: Math.round(v / 50) * 50 }), say('Évite un clignotement sur les réponses très rapides.', 'Avoids a flicker on very quick replies.')),
+              ldToggle(say('Mélanger plusieurs animations', 'Mix several animations'), mixOn, () => { const next = !mixOn; setMixOn(next); if (!next && ld.S.sel.length > 1) loop({ sel: ld.S.sel.slice(0, 1) }) }, say('Jusqu’à quatre, jamais deux fois la même d’affilée.', 'Up to four, never the same twice in a row.')),
+              h('div', { key: 'words', className: 'kbth-row' }, h('span', { className: 'kbth-lb' }, say('Mes propres mots', 'My own words')),
+                h('input', { className: 'kbth-in', style: { flex: 1, minWidth: 160 }, 'data-kb': 'theme-st-words', value: wordsDraft !== null ? wordsDraft : ld.words.join(', '), placeholder: say('Réfléchir, Mijoter, Peaufiner…', 'Pondering, Brewing, Plotting…'), 'aria-label': say('Mes propres mots', 'My own words'),
+                  onInput: (e) => setWordsDraft(e.target.value), onBlur: (e) => { if (wordsDraft !== null) saveWords(e.target.value) }, onKeyDown: (e) => { if (e.key === 'Enter') { e.preventDefault(); saveWords(e.target.value) } } })),
+              cap(say('Séparés par des virgules. Plus de réglages : éditeur avancé › Animation.', 'Separated by commas. More settings: advanced editor › Animation.'))
+            ])
+          ]
+        }
+
+        // ── letters ───────────────────────────────────────────────────────
+        const inkKey = (dark ? 'dark' : 'light') + ':t1'
+        const setInk = (col) => { const ov = { ...S.ov }; if (col === null) delete ov[inkKey]; else ov[inkKey] = col; commit({ ov }) }
+        const lettersPanel = () => {
+          const fq2 = fq.trim().toLowerCase()
+          const grp = (name, list) => (list.length === 0 ? null : [h('div', { key: 'g' + name, className: 'kbth-st-grp' }, name), h('div', { key: 'l' + name, className: 'kbth-st-tiles c3' }, list.map((f) => h('button', { key: f.id, type: 'button', className: 'kbth-st-ft', 'aria-pressed': S.fontText === f.id ? 'true' : 'false', 'data-kb': 'theme-st-fontall', 'data-id': f.id, style: f.stack === null ? undefined : { fontFamily: f.stack }, onClick: () => commit({ fontText: f.id }) }, h('b', null, 'Aa'), h('span', null, f.name))))])
+          const part = (a, b) => FONTS.slice(a, b).filter((f) => fq2 === '' || f.name.toLowerCase().indexOf(fq2) >= 0)
+          const inkNow = S.ov[inkKey] === undefined ? null : S.ov[inkKey]
+          return [
+            tiles(3, ST_FONTS.map((f) => { const fo = FONTS.find((x) => x.id === f[0]) || FONTS[0]; return { id: f[0], kb: 'theme-st-font', on: S.fontText === f[0], tap: () => commit({ fontText: f[0] }), label: say(f[1], f[2]), inner: h('div', { className: 'kbth-st-ab', style: fo.stack === null ? undefined : { fontFamily: fo.stack } }, 'Aa') } })),
+            h('div', { className: 'kbth-row' }, h('span', { className: 'kbth-lb' }, say('Taille', 'Size')), seg({ items: ST_SIZES.map((z) => ({ id: z[0], label: say(z[2], z[3]), on: ST_SIZE_ID(S.fs) === z[0], tap: () => commit({ fs: z[1] }) })) })),
+            moreBox('letters', [
+              sub(say('Toutes les polices', 'All fonts')),
+              h('input', { key: 'q', className: 'kbth-in', 'data-kb': 'theme-st-fq', value: fq, placeholder: say('Chercher une police (Roboto, Open Sans, Lato…)', 'Search a font (Roboto, Open Sans, Lato…)'), 'aria-label': say('Chercher une police', 'Search a font'), onInput: (e) => setFq(e.target.value) }),
+              h('div', { key: 'fl', className: 'kbth-st-fontlist' }, grp(say('Sans empattement', 'Sans serif'), part(0, 15)), grp(say('Avec empattement', 'Serif'), part(15, 22)), grp(say('Chasse fixe', 'Monospace'), part(22, FONTS.length)),
+                FONTS.every((f) => fq2 !== '' && f.name.toLowerCase().indexOf(fq2) < 0) ? cap(say('Aucune police de ce nom.', 'No font with that name.')) : null),
+              cap(say('Une police ne s’affiche que si elle est installée sur ton ordinateur.', 'A font only shows if it is installed on your computer.')),
+              sl(say('Taille exacte', 'Exact size'), 12, 17, S.fs, S.fs + ' px', (v) => commit({ fs: v })),
+              sub(say('Couleur du texte de l’application', 'App text color')),
+              swatches([null].concat(ST_INKS), inkNow, (col) => setInk(col), say('Auto', 'Auto')),
+              h('div', { key: 'rb' }, badge(ratio(c.t1, c.l1))),
+              ldToggle(say('Ligatures', 'Ligatures'), S.ligatures, () => commit({ ligatures: !S.ligatures }), say('Lettres jointes dans les polices de code.', 'Joined letters in code fonts.'))
+            ])
+          ]
+        }
+
+        // ── the pills under the message box ───────────────────────────────
+        const widgetsPanel = () => [
+          ldToggle(say('Pastilles d’état', 'Status pills'), S.wgSessions, () => commit({ wgSessions: !S.wgSessions }), say('Enregistré, synchro, revue, mémoire, leçons.', 'Saved, sync, review, memory, lessons.')),
+          ldToggle(say('Changements', 'Changes'), S.wgChanges, () => commit({ wgChanges: !S.wgChanges }), say('Où en est le travail de cette conversation.', 'Where the work of this chat stands.')),
+          ldToggle(say('Usage', 'Usage'), S.wgUsage, () => commit({ wgUsage: !S.wgUsage }), say('Quelle part de ton forfait est utilisée, ou ce que coûte la session.', 'How much of your plan is used, or what the session costs.')),
+          cap(say('Ces pastilles sont dessinées par d’autres modules : ici tu les montres ou les caches.', 'Other modules draw these pills: here you show or hide them.'))
+        ]
+
+        // ── effects and shape · accessibility (chips under the window) ─────
+        const effectsPanel = () => [
+          h('div', { className: 'kbth-row' }, h('span', { className: 'kbth-lb' }, say('Coins', 'Corners')), seg({ items: [['sharp', say('Nets', 'Sharp')], ['standard', say('Standard', 'Standard')], ['soft', say('Doux', 'Soft')]].map((z) => ({ id: z[0], label: z[1], on: S.radius === z[0], tap: () => commit({ radius: z[0] }) })) })),
+          h('div', { className: 'kbth-row' }, h('span', { className: 'kbth-lb' }, say('Ombres', 'Shadows')), seg({ items: [['none', say('Aucune', 'None')], ['soft', say('Douces', 'Soft')]].map((z) => ({ id: z[0], label: z[1], on: S.shadow === z[0], tap: () => commit({ shadow: z[0] }) })) })),
+          ldToggle(say('Halo', 'Glow'), S.glow, () => commit({ glow: !S.glow }), say('Une lueur de ta couleur autour de la zone de message.', 'A soft light of your color around the message box.')),
+          h('div', { className: 'kbth-row' }, h('span', { className: 'kbth-lb' }, say('Verre', 'Glass')), seg({ items: [['frosted', say('Dépoli', 'Frosted')], ['liquid', 'Liquid glass']].map((z) => ({ id: z[0], label: z[1], on: S.glassEffect === z[0], tap: () => commit({ glassEffect: z[0] }) })) })),
+          sl(say('Flou du verre', 'Glass blur'), 0, 40, S.glassBlur, S.glassBlur + ' px', (v) => commit({ glassBlur: v }), wpOn ? undefined : themeNeeds)
+        ]
+        const accessPanel = () => [
+          h('div', { className: 'kbth-row' }, h('span', { className: 'kbth-lb' }, say('Contraste', 'Contrast')), seg({ items: [['standard', 'Standard'], ['plus', say('Renforcé', 'Enhanced')], ['max', say('Maximal', 'Maximum')]].map((z) => ({ id: z[0], label: z[1], on: S.contrastMode === z[0], tap: () => commit({ contrastMode: z[0] }) })) })),
+          ldToggle(say('Réduire les animations', 'Reduce animations'), S.reduceMotion, () => commit({ reduceMotion: !S.reduceMotion }), say('Coupe les boucles et les transitions.', 'Turns off loops and transitions.')),
+          h('div', { className: 'kbth-row' }, h('span', { className: 'kbth-lb' }, say('Anneau de focus', 'Focus ring')), seg({ items: [['accent', 'Accent'], ['double', 'Double'], ['thick', say('Épais', 'Thick')]].map((z) => ({ id: z[0], label: z[1], on: S.focusRing === z[0], tap: () => commit({ focusRing: z[0] }) })) })),
+          ldToggle(say('Cibles de 44 px', '44 px targets'), S.largeTargets, () => commit({ largeTargets: !S.largeTargets }), say('Boutons et champs plus grands.', 'Larger buttons and fields.')),
+          ldToggle(say('Liens soulignés', 'Underlined links'), S.underlineLinks, () => commit({ underlineLinks: !S.underlineLinks })),
+          ldToggle(say('Palette daltonisme', 'Color-blind palette'), S.cbSafe, () => commit({ cbSafe: !S.cbSafe }), say('Succès, alerte et erreur en couleurs plus sûres.', 'Success, warning and error in safer colors.'))
+        ]
+        const PANELS = {
+          mood: [say('Clair ou sombre ?', 'Light or dark?'), moodPanel], style: [say('Choisis un style', 'Pick a style'), stylePanel], accent: [say('Couleur d’accent', 'Accent color'), accentPanel],
+          sidebar: [say('Barre latérale', 'Sidebar'), sidebarPanel], wall: [say('Arrière-plan', 'Wallpaper'), wallPanel], user: [say('Tes messages', 'Your messages'), userPanel], agent: [say('Réponses de l’agent', 'Agent replies'), agentPanel],
+          icons: [say('Icônes du menu', 'Menu icons'), iconsPanel], think: [say('Animation de réflexion', 'Thinking animation'), thinkPanel], letters: [say('Lettres', 'Letters'), lettersPanel],
+          widgets: [say('Sous la zone de message', 'Under the message box'), widgetsPanel], effects: [say('Effets et formes', 'Effects and shape'), effectsPanel], access: [say('Accessibilité', 'Accessibility'), accessPanel]
+        }
+
+        // ══ the small DSH ═════════════════════════════════════════════════
+        const fontStack = (FONTS.find((f) => f.id === S.fontText) || FONTS[0]).stack
+        const k = S.fs / 15
+        const px = (n) => (Math.round(n * k * 10) / 10) + 'px'
+        const bub = bulleDe(S, c, dark)
+        const userBg = bub.bg !== null ? bub.bg : dshBubble
+        const userInk = bub.text !== null ? bub.text : c.t1
+        const ownReply = S.replyColor
+        const replyFrame = {}
+        if (S.replyBg === 'card') { replyFrame.background = ownReply !== null ? ownReply : rgba(c.t1, 0.06); replyFrame.border = '1px solid ' + c.b2 }
+        if (S.replyBg === 'outline') replyFrame.border = '1px solid ' + (ownReply !== null ? ownReply : c.b4)
+        if (S.replyBg === 'tint') replyFrame.background = rgba(ownReply !== null ? ownReply : c.fill, 0.12)
+        if (S.replyBg !== 'none') { replyFrame.borderRadius = 12 * (RADIUS_ECHELLE[S.radius] || 1); replyFrame.padding = '8px 11px' }
+        const replyInk = S.textReply !== null ? S.textReply : (S.replyBg === 'card' && ownReply !== null ? encreSur(ownReply) : c.t1)
+        const glass = wpOn ? 'blur(' + S.glassBlur + 'px)' : 'none'
+        const sideBg = wpOn && S.sidebarLinked ? rgba(c.side, 1 - S.sidebarOpacity / 100) : c.side
+        const inputBg = wpOn ? rgba(c.input, 1 - S.fieldOpacity / 100) : c.input
+        const aj = ajustementFond(S)
+        const flat = wpo.cat === 'patterns' || wpo.cat === 'colors'
+        const rad = (n) => Math.round(n * (RADIUS_ECHELLE[S.radius] || 1))
+        const sel0 = ld.S.sel.length > 0 ? ldById(ld.S.sel[0]) : null
+        const word = (() => { const w = ldWordList(ld.S.pack); return w.length > 0 ? w[0] : say('Plongée', 'Deep diving') })()
+        const dockOn = S.wgSessions || S.wgChanges || S.wgUsage
+        const names = [['kyber', 'Kaby'], ['dash', say('Tableaux de bord', 'Dashboards')], ['ws', say('Espaces', 'Workspaces')], ['creations', say('Créations', 'Creations')], ['auto', say('Automatisations', 'Automations')]]
+        const pencil = h('span', { className: 'kbth-stz-pen', 'aria-hidden': 'true' }, h('svg', { width: 10, height: 10, viewBox: '0 0 16 16', fill: 'currentColor' }, h('path', { d: ST_PENCIL })))
+        const Z = (id, label, cls, style, ...kids) => h('div', {
+          className: 'kbth-stz' + (zoneOn === id ? ' open' : '') + (cls ? ' ' + cls : ''), style, 'data-zone': id, 'data-kb': 'theme-zone', role: 'button', tabIndex: 0, 'aria-label': label, title: label,
+          onClick: (e) => { e.stopPropagation(); setZone(id) },
+          onKeyDown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); setZone(id) } }
+        }, ...kids, pencil)
+
+        const win = h('div', { className: 'kbth-st-win', 'data-kb': 'theme-st-window', style: { background: c.base, color: c.t1, fontFamily: fontStack === null ? undefined : fontStack, fontSize: px(12.5), borderColor: c.b2, borderRadius: rad(14) } },
+          wpOn ? h('div', { className: 'kbth-st-wpl', 'aria-hidden': 'true', style: { background: wpo.css, backgroundSize: flat ? undefined : aj.size, backgroundPosition: 'center', backgroundRepeat: flat ? undefined : aj.repeat, opacity: S.wpVis / 100, filter: filtreFond(S), transform: S.bgMirror ? 'scaleX(-1)' : 'none' } }) : null,
+          Z('sidebar', say('Changer la barre latérale', 'Change the sidebar'), 'kbth-st-side big', { background: sideBg, backdropFilter: wpOn && S.sidebarLinked ? glass : undefined, WebkitBackdropFilter: wpOn && S.sidebarLinked ? glass : undefined, borderRightColor: c.b1 },
+            Z('style', say('Changer le style', 'Change the style'), 'kbth-st-brand', { color: c.accText }, S.showBrand ? h('span', { className: 'kbth-st-logo' }, h('b', null, 'K'), 'ybernos') : h('span', { className: 'kbth-st-logo' }, h('b', null, 'K'))),
+            Z('icons', say('Changer les icônes du menu', 'Change the menu icons'), 'kbth-st-rows big', undefined,
+              names.map((n, i) => h('div', { key: n[0], className: 'kbth-st-row1' + (i === 0 ? ' on' : ''), style: i === 0 ? { background: c.navAct, borderRadius: rad(8) } : { borderRadius: rad(8) } },
+                h('span', { className: 'kbth-st-ico', style: { color: i === 0 ? c.accText : c.t3 }, dangerouslySetInnerHTML: { __html: stIcon(S.iconSet, n[0], i === 0, 16) } }),
+                h('span', { className: 'kbth-st-rn', style: { color: i === 0 ? c.t1 : c.t2 } }, n[1]))))),
+          h('div', { className: 'kbth-st-main' },
+            h('div', { className: 'kbth-st-top', style: { borderBottomColor: c.b1 } },
+              Z('letters', say('Changer les lettres', 'Change the letters'), 'kbth-st-title', undefined, say('Aide aux devoirs', 'Homework help')),
+              Z('mood', say('Clair ou sombre', 'Light or dark'), 'kbth-st-moon', { color: c.t3, borderColor: c.b2 }, h('svg', { width: 14, height: 14, viewBox: '0 0 16 16', fill: 'none', 'aria-hidden': 'true' }, dark ? h('path', { d: 'M13.5 9.5A5.5 5.5 0 0 1 6.5 2.5a5.5 5.5 0 1 0 7 7z', stroke: 'currentColor', strokeWidth: 1.3, strokeLinejoin: 'round' }) : [h('circle', { key: 'c', cx: 8, cy: 8, r: 3, stroke: 'currentColor', strokeWidth: 1.3 }), h('path', { key: 'r', d: 'M8 1.5v1.6M8 12.9v1.6M1.5 8h1.6M12.9 8h1.6M3.4 3.4l1.1 1.1M11.5 11.5l1.1 1.1M3.4 12.6l1.1-1.1M11.5 4.5l1.1-1.1', stroke: 'currentColor', strokeWidth: 1.3, strokeLinecap: 'round' })]))),
+            Z('wall', say('Changer l’arrière-plan', 'Change the wallpaper'), 'kbth-st-chat big', undefined,
+              Z('user', say('Changer tes messages', 'Change your messages'), 'kbth-st-bub', { background: userBg, color: userInk, borderRadius: rad(14), alignSelf: 'flex-end' }, say('Peux-tu m’expliquer les fractions avec une pizza ?', 'Can you explain fractions with a pizza?')),
+              Z('agent', say('Changer les réponses de l’agent', 'Change the agent’s replies'), 'kbth-st-reply1', { color: replyInk, ...replyFrame }, [say('Bien sûr ! Une pizza en 8 parts : si tu en manges 3, tu as mangé ', 'Sure! A pizza cut in 8 slices: if you eat 3, you ate '), h('code', { key: 'c', style: { background: c.code, borderRadius: rad(4), fontSize: px(11.5) } }, '3/8'), ' ', h('span', { key: 'l', style: { color: c.accText } }, say('Pourquoi ?', 'Why?'))]),
+              Z('user', say('Changer tes messages', 'Change your messages'), 'kbth-st-bub2', { background: userBg, color: userInk, borderRadius: rad(14), alignSelf: 'flex-end' }, say('Maintenant, un quiz !', 'Now give me a quiz!')),
+              Z('think', say('Changer l’animation de réflexion', 'Change the thinking animation'), 'kbth-st-think', { color: c.t2, fontSize: px(11.5) }, [
+                h('span', { key: 'a', className: 'kbth-st-ld', style: { '--kb-px': Math.min(LD_SIZES[ld.S.size], 28) + 'px' } },
+                  sel0 === null ? h('svg', { width: 14, height: 14, viewBox: '0 0 16 16', fill: 'none', 'aria-hidden': 'true' }, h('path', { d: LD_WHALE, stroke: 'currentColor', strokeWidth: 1 })) : h(LdView, { key: sel0.id, l: sel0, px: Math.min(LD_SIZES[ld.S.size], 28), spd: ld.S.speed, tint: ld.S.tint && tAcc })),
+                ld.S.keep ? h('span', { key: 't' }, word + (ld.S.dur ? ' · 12s' : '…')) : null])),
+            h('div', { className: 'kbth-st-comp', style: { background: inputBg, borderColor: c.b2, borderRadius: rad(14), backdropFilter: wpOn ? glass : undefined, WebkitBackdropFilter: wpOn ? glass : undefined, boxShadow: [S.shadow === 'soft' ? '0 4px 14px rgba(0,0,0,.2)' : null, S.glow ? '0 0 14px ' + rgba(c.fill, 0.55) : null].filter((x) => x !== null).join(',') || undefined } },
+              Z('letters', say('Changer les lettres', 'Change the letters'), 'kbth-st-ph', { color: c.t2 }, say('Écris ici…', 'Ask anything…')),
+              Z('accent', say('Changer la couleur d’accent', 'Change the accent color'), 'kbth-st-send', { background: c.fill, color: c.onAcc, borderRadius: rad(10) }, h('svg', { width: 12, height: 12, viewBox: '0 0 16 16', fill: 'none', 'aria-hidden': 'true' }, h('path', { d: 'M2.5 8h11M9 3.5 13.5 8 9 12.5', stroke: 'currentColor', strokeWidth: 1.7, strokeLinecap: 'round', strokeLinejoin: 'round' })))),
+            Z('widgets', say('Changer les pastilles sous la zone de message', 'Change the pills under the message box'), 'kbth-st-dock big', undefined, dockOn ? [
+              S.wgSessions ? h('span', { key: 's', className: 'kbth-st-pillw', style: { borderColor: c.b2, color: c.t2, fontSize: px(10.5) } }, say('Enregistré', 'Saved')) : null,
+              S.wgChanges ? h('span', { key: 'c', className: 'kbth-st-pillw', style: { borderColor: c.b2, color: c.t2, fontSize: px(10.5) } }, say('Changements', 'Changes')) : null,
+              S.wgUsage ? h('span', { key: 'u', className: 'kbth-st-pillw', style: { borderColor: c.b2, color: c.t2, fontSize: px(10.5) } }, say('Usage 8 %', 'Usage 8%')) : null
+            ] : h('span', { className: 'kbth-st-pillw none', style: { color: c.t4, fontSize: px(10.5) } }, say('Aucune pastille', 'No pills')))))
+
+        // ══ the panel ═════════════════════════════════════════════════════
+        const panel = zoneOn !== null && PANELS[zoneOn] !== undefined ? PANELS[zoneOn] : null
+        const popEl = panel === null ? null : h('div', { className: 'kbth-st-pop', ref: pop, role: 'dialog', 'aria-label': panel[0], tabIndex: -1, 'data-kb': 'theme-st-panel', 'data-panel': zoneOn },
+          h('div', { className: 'kbth-st-ph2' }, h('h3', null, panel[0]), h('div', { className: 'kbth-st-pa' }, dice(zoneOn), h('button', { type: 'button', className: 'kbth-btn', 'data-kb': 'theme-st-done', onClick: () => setZone(null) }, say('Terminé', 'Done')))),
+          ...[panel[1]()].flat(Infinity))
+
+        // ══ vibes, chips, actions, my looks ═══════════════════════════════
+        const doSurprise = () => { props.setLibNote(null); apply(stSurprise()) }
+        const vibes = h('div', { className: 'kbth-st-vibes', 'data-kb': 'theme-st-vibes' }, h('span', { className: 'kbth-st-lbl' }, say('Partir d’une ambiance', 'Start from a vibe')),
+          ST_VIBES.map((v) => h('button', { key: v.id, type: 'button', className: 'kbth-st-chip', 'aria-pressed': stVibeOn(S, v) ? 'true' : 'false', 'data-kb': 'theme-st-vibe', 'data-id': v.id, onClick: () => applyVibe(v) }, h('i', { style: { background: v.dot } }), say(v.fr, v.en))),
+          h('button', { type: 'button', className: 'kbth-st-chip surprise', 'data-kb': 'theme-st-surprise', onClick: doSurprise }, h('svg', { width: 14, height: 14, viewBox: '0 0 16 16', fill: 'none', 'aria-hidden': 'true' }, h('rect', { x: 2, y: 2, width: 12, height: 12, rx: 3, stroke: 'currentColor', strokeWidth: 1.3 }), [[5.2, 5.2], [10.8, 5.2], [8, 8], [5.2, 10.8], [10.8, 10.8]].map((p, i) => h('circle', { key: i, cx: p[0], cy: p[1], r: 0.95, fill: 'currentColor' }))), say('Me surprendre', 'Surprise me')))
+        const also = h('div', { className: 'kbth-st-also' }, h('span', { className: 'kbth-st-lbl' }, say('Aussi :', 'Also:')),
+          [['accent', say('Couleur d’accent', 'Accent color')], ['effects', say('Effets et formes', 'Effects and shape')], ['access', say('Accessibilité', 'Accessibility')]].map((z) => h('button', { key: z[0], type: 'button', className: 'kbth-st-chip', 'data-chip': z[0], 'data-kb': 'theme-st-chip', 'aria-pressed': zoneOn === z[0] ? 'true' : 'false', onClick: (e) => { e.stopPropagation(); setZone(zoneOn === z[0] ? null : z[0]) } }, z[1])))
+        const saveLook = () => {
+          const name = presetName(lookName) === '' ? libFreeName(say('Mon thème', 'My theme')) : presetName(lookName)
+          if (libNameTaken(name)) { props.setLibNote({ ok: false, text: say('Ce nom existe déjà. Choisis-en un autre.', 'That name already exists. Pick another one.') }); return }
+          const rec = libAdd(name, 'me', presetFromState(S, { font: true, radius: true, icons: true, chat: true, glass: true, a11y: false }))
+          if (rec === null) { props.setLibNote({ ok: false, text: say('La bibliothèque est pleine (' + PRESET_LIMIT + ' thèmes). Supprime-en un dans l’éditeur avancé › Partage.', 'The library is full (' + PRESET_LIMIT + ' themes). Delete one in the advanced editor › Sharing.') }); return }
+          setLookName(''); commit({ skin: rec.id }); props.setLibNote({ ok: true, text: say('« ' + rec.name + ' » est enregistré dans Mes thèmes.', '“' + rec.name + '” is saved in My themes.') })
+        }
+        const exportLook = () => {
+          const name = presetName(lookName) === '' ? say('Mon thème', 'My theme') : presetName(lookName)
+          const file = presetFile({ name, settings: presetFromState(S, { font: true, radius: true, icons: true, chat: true, glass: true, a11y: false }) })
+          props.setLibNote(downloadText('theme-' + fileSlug(name) + '.json', file) ? { ok: true, text: say('« ' + name + ' » est téléchargé en fichier .json.', '“' + name + '” is downloaded as a .json file.') } : { ok: false, text: say('Le téléchargement a échoué.', 'The download failed.') })
+        }
+        const actions = h('div', { className: 'kbth-st-actions' },
+          h('button', { type: 'button', className: 'kbth-btn', 'data-kb': 'theme-st-undo', disabled: !props.canUndo(), onClick: () => { props.setLibNote(null); props.undo() } }, say('Annuler', 'Undo')),
+          h('button', { type: 'button', className: 'kbth-btn', 'data-kb': 'theme-st-reset', onClick: () => { props.setLibNote(null); props.reset() } }, say('Réinitialiser', 'Reset')),
+          h('span', { className: 'kbth-st-sp' }),
+          h('input', { className: 'kbth-in', 'data-kb': 'theme-st-name', value: lookName, maxLength: PRESET_NAME_MAX, placeholder: say('Donne un nom à ce thème…', 'Name this look…'), 'aria-label': say('Nom du thème', 'Name of the look'), onInput: (e) => setLookName(e.target.value), onKeyDown: (e) => { if (e.key === 'Enter') { e.preventDefault(); saveLook() } } }),
+          h('button', { type: 'button', className: 'kbth-btn kbth-ldpri', 'data-kb': 'theme-st-save', onClick: saveLook }, say('Enregistrer', 'Save')),
+          h('button', { type: 'button', className: 'kbth-btn', 'data-kb': 'theme-st-export', onClick: exportLook }, say('Exporter', 'Export')),
+          h('label', { className: 'kbth-btn', style: { cursor: 'pointer' } }, say('Importer', 'Import'), h('input', { type: 'file', accept: '.json,application/json', 'data-kb': 'theme-st-import', style: { display: 'none' }, onChange: (e) => { const input = e.target; const f = input.files && input.files[0]; if (f) props.importFile(f); input.value = '' } })))
+        const mine = h('div', { className: 'kbth-st-looks', 'data-kb': 'theme-st-looks' }, h('span', { className: 'kbth-st-lbl' }, say('Mes thèmes', 'My looks')),
+          lib.presets.length === 0 ? h('span', { className: 'kbth-hint' }, say('Aucun pour l’instant : règle ton thème, donne-lui un nom, puis Enregistrer.', 'None yet: set your look, name it, then Save.')) : null,
+          lib.presets.map((rec) => (delId === rec.id
+            ? h('span', { key: rec.id, className: 'kbth-st-look del' }, say('Supprimer « ' + rec.name + ' » ?', 'Delete “' + rec.name + '”?'),
+              h('button', { type: 'button', className: 'kbth-btn kbth-danger kbth-gr-err', 'data-kb': 'theme-st-delyes', onClick: () => { libRemove(rec.id); setDelId(null); props.setLibNote({ ok: true, text: say('« ' + rec.name + ' » supprimé.', '“' + rec.name + '” deleted.') }) } }, say('Supprimer', 'Delete')),
+              h('button', { type: 'button', className: 'kbth-btn', onClick: () => setDelId(null) }, say('Garder', 'Keep')))
+            : h('span', { key: rec.id, className: 'kbth-st-look' + (S.skin === rec.id ? ' on' : '') },
+              h('button', { type: 'button', className: 'kbth-st-lookb', 'data-kb': 'theme-st-look', 'data-id': rec.id, 'aria-pressed': S.skin === rec.id ? 'true' : 'false', onClick: () => { props.setLibNote(null); props.applyMine(rec) } },
+                h('i', { style: { background: 'radial-gradient(circle at 50% 50%,' + (rec.settings.acc || '#808080') + ' 0 3.5px,' + makeTheme(rec.settings.mode === 'light' ? 'light' : 'dark', { acc: rec.settings.acc === undefined ? null : rec.settings.acc, ov: rec.settings.ov || {}, lvl: 0, cb: false, tint: 0, dom: '' }).base + ' 4px 100%)' } }), rec.name),
+              h('button', { type: 'button', className: 'kbth-st-x', 'aria-label': say('Supprimer ', 'Delete ') + rec.name, onClick: () => setDelId(rec.id) }, '×')))),
+          h('button', { type: 'button', className: 'kbth-link', onClick: () => props.openClassic('galerie') }, say('Trouver d’autres thèmes (galerie)', 'Find more looks (gallery)')))
+        const status = props.libNote
+        const hint = h('div', { className: 'kbth-st-hint' }, h('svg', { width: 12, height: 12, viewBox: '0 0 16 16', fill: 'currentColor', 'aria-hidden': 'true' }, h('path', { d: ST_PENCIL })), h('b', null, say('Clique sur ce que tu veux changer', 'Click anything in the window')), say(' dans la fenêtre.', ' to change it.'))
+
+        return h('div', { className: 'kbth-st' + (narrow ? ' narrow' : ''), 'data-kb': 'theme-studio' },
+          vibes, hint,
+          h('div', { className: 'kbth-st-stage', ref: stage, 'data-kb': 'theme-st-stage' }, win, popEl),
+          also, actions,
+          status !== null && status !== undefined ? h('div', { className: status.ok ? 'kbth-ok kbth-gr-ok' : 'kbth-bad kbth-gr-err', role: 'status', 'data-kb': 'theme-st-status' }, status.text) : null,
+          mine)
+      }
+      // <look-studio:end>
+
       function Page(props) {
         const ctxRef = props.ctx
         const themeSvc = (ctxRef && ctxRef.theme) ? ctxRef.theme : null
@@ -3070,6 +3806,18 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A0
         trialRef.current = trial
         const [exportFmt, setExportFmt] = React.useState('yaml')  // displayed export format (not stored)
         const [advTab, setAdvTab] = React.useState('essentiel') // open tab: Essentials = the basic settings
+        const [classicOpen, setClassicOpen] = React.useState(false) // the editor of the nine tabs sits folded under the simple view
+        // Undo: the looks before each change (the page's state and the animation store), at most 40; a burst of changes (a slider drag) is one step.
+        const histRef = React.useRef([])
+        const histAt = React.useRef(0)
+        const pushHist = (cur) => {
+          const now = Date.now()
+          const gap = now - histAt.current
+          histAt.current = now // the window slides: a drag that lasts three seconds is still one step
+          if (gap < 700) return
+          histRef.current.push(JSON.stringify({ s: cur === undefined ? readState() : cur, l: ld.S }))
+          if (histRef.current.length > 40) histRef.current.shift()
+        }
 
         // ── Font picker ────────────────────────────────────────────
         // The state lives here, with the other controls: rendering outside a browser
@@ -3183,10 +3931,11 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A0
 
         // `transient`: drawn but NOT stored, so a reload (or closing Settings) gives the previous look back: that is a trial.
         // Any other change made during a trial ends it: the person is editing the look they see.
-        const commit = (patch, replace, transient) => {
+        const commit = (patch, replace, transient, noHist) => {
           if (transient !== true && trialRef.current !== null) { trialRef.current = null; setTrial(null) }
           setS((cur) => {
             const next = replace === true ? { ...patch } : { ...cur, ...patch }
+            if (transient !== true && noHist !== true) pushHist(cur)
             if (transient !== true) writeState(next)
             if (themeSvc !== null) appliquerTout(themeSvc, next)
             return next
@@ -3215,8 +3964,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A0
         }, [advTab])
 
         const wpo = WPS.find((w) => w.id === S.wp) || WPS[0]
-        const lvl = S.contrastMode === 'max' ? 2 : (S.contrastMode === 'plus' ? 1 : 0)
-        const o = { acc: S.acc, ov: S.ov, lvl, cb: S.cbSafe, tint: wpo.id !== 'none' ? S.tint : 0, dom: wpo.dom }
+        const o = optsDe(S)
         const dark = schemeSombre(S)
         const c = makeTheme(dark ? 'dark' : 'light', o)
         const cl = makeTheme('light', o)
@@ -3256,7 +4004,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A0
           const { mode, ...rest } = full
           setHexDraft(null); commit(rest)
         }
-        const openSave = () => { setLibNote(null); setSaveDlg({ name: libFreeName(kt('Mon thème', 'My theme')), groups: { font: true, radius: true, icons: true, glass: true, a11y: false }, error: '' }) }
+        const openSave = () => { setLibNote(null); setSaveDlg({ name: libFreeName(kt('Mon thème', 'My theme')), groups: { font: true, radius: true, icons: true, chat: true, glass: true, a11y: false }, error: '' }) }
         const doSave = () => {
           if (saveDlg === null) return
           const name = presetName(saveDlg.name)
@@ -3334,6 +4082,10 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A0
         // The mode (Light / Dark / System) is set HERE, on three cards (the Appearance page that used to hold them is gone). The same preference as the footer's sun/moon:
         // `commit({ mode })` stores it in this page's state and writes it through `themeSvc.setTheme`. A third-party theme that takes the preference over is told below.
         const modes = [['light', kt('Clair', 'Light')], ['dark', kt('Sombre', 'Dark')], ['system', kt('Système', 'System')]]
+        const conflictNote = themeTiers === null ? null : h('div', { className: 'kbth-conflict' },
+          h('strong', null, kt('Conflit de thème : ', 'Theme conflict: ')),
+          kt('Un autre plugin (« ' + themeTiers + ' ») contrôle le mode clair/sombre. ', 'Another plugin (“' + themeTiers + '”) controls the light/dark mode. '),
+          kt('Désactive-le dans son propre panneau pour que ce réglage s’applique.', 'Turn it off in its own panel for this setting to apply.'))
         const apparence = h('div', { className: 'kbth-sec' },
           h('div', { className: 'kbth-sec-h' },
             h('div', { className: 'kbth-sec-t' }, kt('Apparence', 'Appearance')),
@@ -3352,10 +4104,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A0
                 h('span', { className: 'kbth-mode-n' }, m[1], on ? h('span', { className: 'kbth-mode-cur' }, '● ' + kt('actuel', 'current')) : null))
             })),
           h('div', { className: 'kbth-hint' }, kt('S’applique à toute l’interface DSH. « Système » suit le réglage de ton appareil.', 'Applies to the whole DSH interface. “System” follows your device setting.')),
-          themeTiers !== null ? h('div', { className: 'kbth-conflict' },
-            h('strong', null, kt('Conflit de thème : ', 'Theme conflict: ')),
-            kt('Un autre plugin (« ' + themeTiers + ' ») contrôle le mode clair/sombre. ', 'Another plugin (“' + themeTiers + '”) controls the light/dark mode. '),
-            kt('Désactive-le dans son propre panneau pour que ce réglage s’applique.', 'Turn it off in its own panel for this setting to apply.')) : null,
+          conflictNote,
           h('button', { className: 'kbth-btn', type: 'button', style: { width: 'max-content' },
             onClick: () => commit(surprendre()) }, kt('Me surprendre', 'Surprise me')),
           themeBlock)
@@ -3956,7 +4705,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A0
             h('div', { className: 'kbth-sec', style: { gap: 4 } },
               h('div', { className: 'kbth-sec-t' }, kt('Ce que le thème retient', 'What the theme keeps')),
               h('div', { className: 'kbth-hint' }, kt('Les couleurs et l’accent sont toujours retenus.', 'Colors and accent are always kept.')),
-              groupToggle('font'), groupToggle('radius'), groupToggle('icons'), groupToggle('glass'),
+              groupToggle('font'), groupToggle('radius'), groupToggle('icons'), groupToggle('chat'), groupToggle('glass'),
               groupToggle('a11y', kt('Contraste, palette daltonien, cibles larges : ce sont tes besoins, pas un style. Décoché, un thème ne les change jamais.', 'Contrast, color-blind palette, large targets: these are your needs, not a style. Switched off, a theme never changes them.')))),
           h('div', { className: 'kbth-mft' },
             h('button', { type: 'button', className: 'kbth-btn', onClick: () => setSaveDlg(null) }, kt('Annuler', 'Cancel')),
@@ -3975,6 +4724,22 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A0
               trialBar,
               ADV_CONTENT[advTab] || advCouleurs)))
 
+        // ── The simple view: the studio, guarded (see StBoundary) ─────────────────
+        const studioProps = {
+          S, c, dark, commit: (patch, replace, transient) => { setHexDraft(null); commit(patch, replace, transient) },
+          applySkin: (sk) => { setLibNote(null); setHexDraft(null); commit(skinPatch(sk)) }, applyMine, skinMeta,
+          openClassic: (tab) => { setClassicOpen(true); setAdvTab(tab) }, importFile: importThemeFile, libNote, setLibNote,
+          canUndo: () => histRef.current.length > 0, pushHist: () => pushHist(S),
+          undo: () => {
+            const snap = histRef.current.pop()
+            if (snap === undefined) return
+            histAt.current = 0 // the next change is a new step, however soon it comes
+            try { const p = JSON.parse(snap); setHexDraft(null); commit(p.s, true, false, true); ldSet({ ...p.l }) } catch (e) { /* a damaged step is dropped */ }
+          },
+          reset: () => { setHexDraft(null); commit({ ...DEF }, true) }
+        }
+        const studioEl = StBoundary !== null ? h(StBoundary, { onFail: () => setClassicOpen(true) }, h(Studio, studioProps)) : h(Studio, studioProps)
+
         // ── assembly — a single column (the side preview has been removed) ────────
         return h(React.Fragment, null,
           saveModal,
@@ -3985,8 +4750,12 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A0
                 h('div', { className: 'kbhp-row', style: { '--kbhp-gap': '6px' } }, (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-theme' }) : null)),
                 h('div', { className: 'kbth-title' }, kt('Thème', 'Theme')),
                 h('div', { className: 'kbth-sub' },
-                  kt('Personnalise l’apparence de Kybernos. Les réglages de base sont dans Essentiel.', 'Customize the look of Kybernos. The basic settings are in Essentials.'))),
-              h('div', null, reglages),
+                  kt('Personnalise l’apparence de Kybernos : clique sur ce que tu veux changer dans la fenêtre ci-dessous. Tous les réglages restent dans l’éditeur avancé.', 'Customize the look of Kybernos: click what you want to change in the window below. Every setting stays in the advanced editor.'))),
+              conflictNote,
+              studioEl,
+              h('details', { className: 'kbth-st-classic', 'data-kb': 'theme-classic', open: classicOpen, onToggle: (e) => { const open = e.currentTarget.open; setClassicOpen((was) => (was === open ? was : open)) } },
+                h('summary', null, kt('Éditeur avancé', 'Advanced editor'), h('span', { className: 'kbth-hint' }, kt(' · toutes les options, les jetons, la galerie, le partage', ' · every option, the tokens, the gallery, sharing'))),
+                reglages),
               h('div', { className: 'kbth-foot' },
                 h('span', { className: 'kbth-pill' }, estNaturel(S) ? kt('Couleurs de DSH — aucun thème posé', 'DSH colours — no theme applied') : kt('Thème posé · clair et sombre', 'Theme applied · light and dark')),
                 h('span', { className: 'kbth-pill' }, (jetonsRetouches(S.ov) === 1 ? kt('1 couleur retouchée', '1 colour adjusted') : kt(jetonsRetouches(S.ov) + ' couleurs retouchées', jetonsRetouches(S.ov) + ' colours adjusted'))),
@@ -4017,6 +4786,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A0
           gal, galTheme, galClean, galLoad, galRefresh, galInstalled, galInstall, galUpdate, galOnlineText, kbLang,
           presetSettings, presetRecord, presetFromState, presetFile, presetFromFileText, settingsDirty, skinSettings, presetAsSkin, groupsOf, fileSlug, ThemeModal,
           ICON_ENTRIES, ICON_HUES, ICON_SETS, ICON_SET_IDS, iconInner, iconSvg, iconRegistry, appliquerIcones,
+          optsDe, bulleDe, encreSur, BUBBLE_CHOICES, HEX_KEYS, Studio, StBoundary, ST_VIBES, ST_FONTS, ST_SIZES, ST_SPEEDS, ST_INKS, ST_ZONES, ST_RAND, stVibePatch, stLookKeys, stSurprise, stDshBubble,
         },
         apply(ctx) {
           // (01/10) Label according to the current language state. The language is

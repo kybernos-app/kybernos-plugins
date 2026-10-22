@@ -230,6 +230,14 @@ export async function goToSettingsPage(page, label, opts = {}) {
   return false
 }
 
+/** The Theme page opens on its simple view (the look studio); the editor of the nine tabs, with the mode cards, the shipped themes and the tabs, sits folded under it.
+ *  Opens that editor and waits until its tabs are drawn, so a script can reach them. Resolves true when they are. */
+export async function openThemeAdvanced(page) {
+  await page.evalJs(`(() => { const d = document.querySelector('[data-kb="theme-classic"]'); if (d && !d.open) { d.open = true; d.dispatchEvent(new Event('toggle')) } })()`, 5000)
+  return (await waitFor(page, `(() => { const d = document.querySelector('[data-kb="theme-classic"]'); const t = d && d.querySelector('.kbth-adv-tab'); return !!d && d.open && !!t && t.getBoundingClientRect().width > 0 })()`, 8000)) !== null
+}
+
+
 /**
  * Serve the working tree's `file` in place of the browser half of plugin `id` in the page's combined /plugins/??…
  * bundle (the response is rewritten in this throw-away browser; nothing on disk or on the server changes). The page
