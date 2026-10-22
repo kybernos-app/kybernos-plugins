@@ -66,20 +66,28 @@ time changes); a change to the host half (`index.js`) still needs a restart.
 
 ### Phone and channels (one screen)
 
-One screen, two columns, shown in two places (decision of 2026-10-19; the old « Remote control » entry, its popover and the duplicated panel are gone):
+One screen, two blocks, shown in two places (decision of 2026-10-19; the old « Remote control » entry, its popover and the duplicated panel are gone; reorganised on 2026-10-22: the remote control is walled off from Kaby, which now holds its messaging apps AND its computer):
 
-- **A window**, from the account menu's **« Phone and channels »** entry (just before « Settings ») or from the button of Kaby's strip. It opens itself:
+- **A window**, from the account menu's **« Phone and channels »** entry (just before « Settings ») or from the **« Set up… »** button of Kaby's strip. It opens itself:
   `window.__KB_MOBILE__.open()` draws it in a React root of its own on `<body>` (`react-dom/client`, else `react-dom` when it still has `createRoot`; one window at a time;
   `false` when there is no root to draw in), so it depends on neither the account menu nor the footer nor the phone layout's sliding drawer (a fixed box inside that drawer sits
   off-screen). `kybernos-cloud` only offers the entry while `open` is published. Escape, the dim, the cross and any request for Settings › Servers close it; closing withdraws a
   code nobody scanned (never one a phone is waiting on). It asks for no code by itself: « Add a phone » does.
-- **Settings › Phone and channels** (section id `kybernos-mobile`), the same two columns with the animated help and the plan chip above them.
-- **Left, « Open my computer on my phone »** (this bundle): a sentence that says it gives **full control of this computer**, then the phone link in its states
-  (nothing linked, a code to scan, a phone asking for the 4-digit check, a code that ran out, a phone connected, a plan without the link, a server without it)
-  and the linked phones (when each was seen, disconnect one or all). A chip says which state it is. When the account's plan does not include the link the column says « Not included in your plan » and offers the plans.
-- **Right, « Talk to Kaby on a messaging app »** (drawn by `kybernos-kyber`, which publishes `window.__KB_KYBER__.ChannelsColumn`; without that bundle the card says the messaging apps are not there):
-  Telegram (the real switch and pairing code), WhatsApp (a beta that says « not available on this server yet » until a server announces it), WeChat and iMessage (« soon »).
-  A messaging app reaches Kaby only, never this computer: the column says so.
+- **Settings › Phone and channels** (section id `kybernos-mobile`), the same two blocks with the animated help and the plan chip above them.
+- **Left, « Remote control »** (this bundle), tagged **« Full control »**: the only thing on the screen that gives a phone control of this computer. It has **one switch**
+  (`phone-remote-switch`, a `role="switch"` button), **ON by default, which means « ready to pair »**: no phone can reach the computer until one is linked (a QR code, a 4-digit check,
+  the person's OK), and the card says so (« No phone is linked yet, so nothing can reach this computer »). Switched **off** it cuts every link, withdraws a pairing in progress and refuses a
+  new one (`POST /kybernos-mobile/remote/enable { on }`; the host keeps the choice in `<remote dir>/settings.json`, 0600, and a restart keeps it; the linked phones stay listed, offline, and come back
+  when it is turned on); the card then says « Off. No phone can connect to this computer » with a « Turn on » button, and still lists the linked phones so they can be disconnected. While the
+  server does not offer the phone link the switch is greyed and the card says it will switch on by itself when it does. Below: the phone link in its states
+  (ready to pair, a code to scan, a phone asking for the 4-digit check, a code that ran out, a phone connected, a plan without the link) and the linked phones (when each was seen, disconnect one
+  or all; no empty « Linked phones (0) » section). A chip says which state it is. When the plan does not include the link the block says « Not included in your plan » and offers the plans.
+  At the foot, three short lines (the same look as Kaby's): **It does** (shows this computer's Kybernos on the phone through a relay that reads nothing), **It needs** (this computer on and online),
+  **Be careful** (full control of this computer, named; only on a phone that is yours). Every gesture tells the rest of the page with a `kybernos-mobile:changed` window event (Kaby's strip listens).
+- **Right, « Kaby »** (drawn by `kybernos-kyber`, which publishes `window.__KB_KYBER__.ChannelsColumn`; without that bundle the card says the Kaby module is not active), tagged **« Always asks first »**,
+  in two sub-blocks: **Messaging apps** (Telegram with the real switch and pairing code, WhatsApp a beta that says « not available on this server yet » until a server announces it, WeChat and
+  iMessage « soon »; « It does / Never »: a messaging app reaches Kaby only, never this computer) and **Kaby's computer** (this computer or a cloud computer, with its state; it used to be set
+  only in the chat's strip).
 - On the phone: scan, open the link, a 4-digit code appears; on the computer the same code and an **Allow** button.
   Nothing is served to the phone before that. From then on the phone reconnects by itself.
 - Everything the person does is a gesture on the computer: a phone can never add, approve or remove a phone.
@@ -107,7 +115,7 @@ The full protocol, the server's contract and the security model are in [`docs/de
   seam of `kybernos-cloud` (`globalThis[Symbol.for('kybernos.cloud')]`, authenticated calls limited to `/v1/remote/`; the
   account token never leaves `kybernos-cloud`).
 - Files, under `<DSH home>/kybernos/mobile-remote/` (mode 0600): `identity.json` (this computer's long-term key, which
-  the QR code carries the public half of) and `devices.json` (the paired phones' public keys). Nothing is written until
+  the QR code carries the public half of) and `devices.json` (the paired phones' public keys) and `settings.json` (`{ v: 1, enabled }`: the screen's one switch, written only when it is switched; a damaged file reads as the default, ON). Nothing is written until
   the first pairing. No `localStorage` here; the phone page keeps its own key in the phone's IndexedDB, not extractable.
 
 ## Limits

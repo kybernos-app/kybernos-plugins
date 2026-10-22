@@ -85,7 +85,7 @@ export function serveSheet (req, res, file = CSS_FILE) {
 // and inside its own try/catch: a failure there can never reach the phone layout above or stop DSH from starting.
 export const REMOTE_PREFIX = '/kybernos-mobile/remote/'
 export const REMOTE_ROUTES = Object.freeze({
-  status: 'GET', pair: 'POST', 'pair/approve': 'POST', 'pair/deny': 'POST', 'pair/cancel': 'POST', 'devices/revoke': 'POST', 'devices/revoke-all': 'POST',
+  status: 'GET', enable: 'POST', pair: 'POST', 'pair/approve': 'POST', 'pair/deny': 'POST', 'pair/cancel': 'POST', 'devices/revoke': 'POST', 'devices/revoke-all': 'POST',
 })
 export const TUNNEL_HEADER = 'x-kybernos-tunnel'
 

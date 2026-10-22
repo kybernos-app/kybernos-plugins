@@ -102,8 +102,12 @@ export function createRemote (deps) {
   const now = typeof deps.now === 'function' ? deps.now : () => Date.now()
   const identityFile = () => join(deps.dir, 'identity.json')
   const devicesFile = () => join(deps.dir, 'devices.json')
+  const settingsFile = () => join(deps.dir, 'settings.json')
 
   let running = false
+  // The one switch of the screen (decision of 2026-10-22): ON by default, which means « ready to pair » and nothing more. No phone can reach this computer until one is linked
+  // (a QR code, a 4-digit check, the person's OK), and OFF cuts every link and refuses new pairings. It is kept on disk, so a restart keeps it.
+  let enabled = true
   let hostId = null
   let devices = []
   let pairing = null // the link of a pairing in progress
@@ -171,6 +175,11 @@ export function createRemote (deps) {
     const f = readJson(devicesFile(), { devices: [] })
     devices = Array.isArray(f.devices) ? f.devices.filter((d) => d !== null && typeof d === 'object' && typeof d.id === 'string' && typeof d.sid === 'string' && typeof d.phoneId === 'string') : []
   }
+  const loadSettings = () => {
+    const f = readJson(settingsFile(), {})
+    enabled = f === null || typeof f !== 'object' || f.enabled !== false
+  }
+  const saveSettings = () => { try { mkdirSync(deps.dir, { recursive: true, mode: 0o700 }); writeJson(settingsFile(), { v: 1, enabled }) } catch (e) { log('settings not saved: ' + e.message) } }
   const saveDevices = () => { try { mkdirSync(deps.dir, { recursive: true, mode: 0o700 }); writeJson(devicesFile(), { v: 1, devices }) } catch (e) { log('devices not saved: ' + e.message) } }
 
   // ── sending ──
@@ -448,6 +457,7 @@ export function createRemote (deps) {
   // ── the person's gestures ──
   async function pair () {
     if (!running) return { ok: false, error: 'off' }
+    if (!enabled) return { ok: false, error: 'disabled' }
     await loadIdentity()
     // The server's number is the authority (it answers 429); the local one is only a sanity bound, so that a stale answer of the last minute cannot refuse a plan that changed.
     if (devices.length >= T.maxDevices) return { ok: false, error: 'device_limit' }
@@ -540,20 +550,45 @@ export function createRemote (deps) {
   }
 
   // ── life cycle and view ──
+  /** One link per linked phone, each reopening by itself: what makes a linked phone reachable. Nothing is opened for a phone twice. */
+  async function openDeviceLinks () {
+    if (devices.length > 0) await loadIdentity()
+    for (const d of devices) {
+      if (links.has(d.sid)) continue
+      const link = newLink({ sid: d.sid, deviceId: d.id, state: 'connecting' })
+      links.set(link.sid, link)
+      void reopen(link)
+    }
+  }
   async function start () {
     if (running) return
     running = true
     try {
-      // Nothing is written until the first pairing: a computer with no paired phone only reads one file.
+      // Nothing is written until the first pairing: a computer with no paired phone only reads two files.
+      loadSettings()
       loadDevices()
-      if (devices.length > 0) await loadIdentity()
-      for (const d of devices) {
-        const link = newLink({ sid: d.sid, deviceId: d.id, state: 'connecting' })
-        links.set(link.sid, link)
-        void reopen(link)
-      }
+      if (enabled) await openDeviceLinks()
     } catch (e) { lastError = String((e && e.message) || e); log('start failed: ' + lastError) }
     changed()
+  }
+  /** The switch. Off: the pairing in progress is withdrawn and every link is closed (the linked phones stay listed, offline, and come back when it is turned on). */
+  async function setEnabled (on) {
+    if (!running) return { ok: false, error: 'off' }
+    const next = on === true
+    if (next === enabled) return { ok: true, enabled }
+    enabled = next
+    saveSettings()
+    try {
+      if (enabled) await openDeviceLinks()
+      else {
+        if (pairing !== null) await cancelPairing()
+        for (const link of [...links.values()]) closeLink(link, 'disabled')
+        links.clear()
+        pairing = null
+      }
+    } catch (e) { lastError = String((e && e.message) || e); log('switch failed: ' + lastError) }
+    changed()
+    return { ok: true, enabled }
   }
   function stop () {
     running = false
@@ -576,6 +611,7 @@ export function createRemote (deps) {
       ok: true,
       available: typeof deps.WebSocket === 'function',
       running,
+      enabled,
       connected: signedIn,
       configured: serverConfigured,
       entitled,
@@ -606,7 +642,7 @@ export function createRemote (deps) {
   }
 
   return {
-    start, stop, status, pair, approve: approvePairing, deny: () => denyPairing('denied'), cancel: cancelPairing, revoke, revokeAll,
+    start, stop, status, setEnabled, pair, approve: approvePairing, deny: () => denyPairing('denied'), cancel: cancelPairing, revoke, revokeAll,
     onChange: (f) => { listeners.add(f); return () => listeners.delete(f) },
     __test: { links: () => links, devices: () => devices, hostId: () => hostId },
   }
