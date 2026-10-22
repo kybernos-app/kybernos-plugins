@@ -9,7 +9,7 @@
 //        · DSH's own "add a workspace" flow (the sidebar "+" and the empty-chat picker), by sitting in front of
 //          its two `directoryFlow` slots at priority -1. If this bundle fails, the native picker takes over.
 //   2. The seam `globalThis[Symbol.for('kybernos.multiDevice')]` the core bundle reads: `choose()` and
-//      `detailsExtras()` (the "Dossier de travail" card and the folded "Avancé" preview of the Details tab).
+//      `detailsExtras()` (the "Dossier de travail" row of the Details tab, and the body of the "Appareils" tab).
 //   3. A preview, greyed on purpose, of what the next versions will let a person choose: where commands run, and
 //      which devices see a project. Nothing in the preview changes anything.
 //
@@ -68,9 +68,7 @@ window.__ModuleLoader__.load({
         dossierHintReal: ["L'IA lit et modifie les fichiers de ce dossier.", 'The AI reads and edits the files in this folder.'],
         dossierHintPrivate: ["Aucun dossier de ton ordinateur : l'IA travaille dans un dossier privé, créé dans {root}. Tu peux y déposer tes fichiers.", 'No folder of your computer: the AI works in a private folder, created in {root}. You can drop your own files there.'],
         dossierFixed: ['Le dossier est choisi à la création. Pour travailler dans un autre dossier, crée un autre workspace.', 'The folder is chosen at creation. To work in another folder, create another workspace.'],
-        // details: the folded preview
-        advTitle: ['Avancé', 'Advanced'],
-        advSub: ["Exécution et appareils : un aperçu des prochaines versions", 'Execution and devices: a preview of the next versions'],
+        // the Devices tab
         todayCap: ["Aujourd'hui : le téléphone", 'Today: the phone'],
         todayFlag: ['Existe déjà', 'Exists today'],
         todayTitle: ["Accès direct à l'ordinateur", 'Direct access to the computer'],
@@ -315,10 +313,9 @@ window.__ModuleLoader__.load({
         return store.hosts[0] === id && store.open ? h(Dialog, null) : null
       }
 
-      // ── the Details extras: the folder card, and the folded preview ──────────────────────────────────────
+      // ── the extras of the project page: the folder row of the Details tab, and the body of the Devices tab ──
       const Extras = (props) => {
         const [st, setSt] = React.useState(statusCache)
-        const [adv, setAdv] = React.useState(false)
         React.useEffect(() => { let alive = true; loadStatus().then((s) => { if (alive) setSt(s) }); return () => { alive = false } }, [])
         const part = props && typeof props.part === 'string' ? props.part : null
         const path = props && typeof props.path === 'string' ? props.path : null
@@ -326,15 +323,15 @@ window.__ModuleLoader__.load({
         const rootShown = st !== null && st !== undefined ? st.rootDisplay : '~/Documents/Kybernos'
         const icon = (d) => h('svg', { width: 18, height: 18, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true' }, h('path', { d }))
         const FOLDER = 'M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z'
-        const CHEV = 'm6 9 6 6 6-6'
 
-        const folderCard = path === null ? null : h('div', { className: 'kbmd-card', 'data-kb': 'kybernos-multi-device-folder' },
+        // One row, no card of its own: the core wraps it in the Details card, next to the name and the look.
+        const folderCard = path === null ? null : h('div', { className: 'kbmd-folder', 'data-kb': 'kybernos-multi-device-folder' },
           h('span', { className: 'kbmd-cap' }, L('dossierCap'),
             (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-multi-device' }) : null)),
-          h('div', { className: 'kbmd-where' },
+          h('div', { className: 'kbmd-where kbmd-row1' },
             h('span', { className: 'kbmd-ico' + (priv ? ' kbmd-priv' : '') }, icon(FOLDER)),
-            h('span', { className: 'kbmd-txt' }, h('b', null, priv ? L('dossierPrivate') : L('dossierReal')), h('span', { className: 'kbmd-path' }, showPath(path, st)))),
-          h('div', { className: 'kbmd-info' }, (priv ? L('dossierHintPrivate', { root: rootShown }) : L('dossierHintReal')) + ' ' + L('dossierFixed')))
+            h('span', { className: 'kbmd-txt' }, h('b', null, priv ? L('dossierPrivate') : L('dossierReal')), h('span', { className: 'kbmd-path' }, showPath(path, st))),
+            h('span', { className: 'kbmd-hint' }, (priv ? L('dossierHintPrivate', { root: rootShown }) : L('dossierHintReal')) + ' ' + L('dossierFixed'))))
 
         const lvl = (items, on) => h('span', { className: 'kbmd-lvl' }, items.map((it, i) => h('span', { key: i, className: i === on ? 'kbmd-on' : null }, it)))
         const opt = (title, sub, on) => h('div', { className: 'kbmd-ropt' + (on ? ' kbmd-ron' : '') },
@@ -342,10 +339,11 @@ window.__ModuleLoader__.load({
         const dev = (title, sub, right) => h('div', { className: 'kbmd-dev' },
           h('span', { className: 'kbmd-ot' }, h('b', null, title), h('span', { className: 'kbmd-sub' }, sub)), right)
 
-        const today = h('div', { className: 'kbmd-card', 'data-kb': 'kybernos-multi-device-today' },
-          h('span', { className: 'kbmd-cap' }, L('todayCap'), ' ', h('span', { className: 'kbmd-flag kbmd-okflag' }, L('todayFlag'))),
-          h('b', null, L('todayTitle')),
-          h('span', { className: 'kbmd-sub' }, L('todayBody')),
+        const today = h('div', { className: 'kbmd-card kbmd-today', 'data-kb': 'kybernos-multi-device-today' },
+          h('div', { className: 'kbmd-todaytxt' },
+            h('span', { className: 'kbmd-cap' }, L('todayCap'), ' ', h('span', { className: 'kbmd-flag kbmd-okflag' }, L('todayFlag'))),
+            h('b', null, L('todayTitle')),
+            h('span', { className: 'kbmd-sub' }, L('todayBody'))),
           h('div', { className: 'kbmd-info' }, L('todayNote')))
         const exec = h('div', { className: 'kbmd-card kbmd-locked', 'aria-disabled': 'true', 'data-kb': 'kybernos-multi-device-exec' },
           h('span', { className: 'kbmd-cap' }, L('execCap'), ' ', h('span', { className: 'kbmd-flag' }, L('soon'))),
@@ -368,16 +366,11 @@ window.__ModuleLoader__.load({
             h('div', { className: 'kbmd-info' }, L('devGuard')),
             h('div', { className: 'kbmd-info' }, L('devFiles'))))
 
-        // `part` lets the core place the folder card after the description and the folded preview after the colour.
-        const advanced = h(React.Fragment, null,
-          h('button', {
-            type: 'button', className: 'kbmd-adv', 'aria-expanded': adv ? 'true' : 'false', 'data-kb': 'kybernos-multi-device-adv', 'data-act': 'toggle-advanced',
-            onClick: () => setAdv(!adv),
-          }, icon(CHEV), h('b', null, L('advTitle')), h('span', { className: 'kbmd-sub' }, L('advSub'))),
-          (adv ? h('div', { className: 'kbmd-advbox' }, today, exec, devices) : null))
+        // `part`: 'folder' is the row of the Details tab, 'devices' the body of the Devices tab (today's phone card, then the two previews side by side).
+        const devicesBody = h('div', { className: 'kbmd-root', 'data-kb': 'kybernos-multi-device-extras' }, today, h('div', { className: 'kbmd-pair' }, exec, devices))
         if (part === 'folder') return folderCard
-        if (part === 'advanced') return h('div', { className: 'kbmd-root', 'data-kb': 'kybernos-multi-device-extras' }, advanced)
-        return h('div', { className: 'kbmd-root', 'data-kb': 'kybernos-multi-device-extras' }, folderCard, advanced)
+        if (part === 'devices') return devicesBody
+        return h('div', { className: 'kbmd-root', 'data-kb': 'kybernos-multi-device-extras' }, folderCard, devicesBody)
       }
 
       const CSS = `
@@ -394,10 +387,14 @@ window.__ModuleLoader__.load({
 .kbmd-txt{display:flex;flex-direction:column;min-width:0;flex:1}
 .kbmd-txt b{color:var(--dsw-alias-label-primary,inherit);font-weight:600}
 .kbmd-path{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13px;overflow-wrap:anywhere;color:var(--dsw-alias-label-primary,inherit)}
-.kbmd-adv{display:flex;align-items:center;gap:8px;width:100%;text-align:start;border:1px dashed var(--dsw-alias-border-l2,rgba(127,127,127,.35));background:transparent;color:var(--dsw-alias-label-primary,inherit);border-radius:14px;padding:12px 14px;cursor:pointer;flex-wrap:wrap;font:inherit}
-.kbmd-adv svg{transition:transform .15s;flex:0 0 auto}
-.kbmd-adv[aria-expanded='true'] svg{transform:rotate(180deg)}
-.kbmd-advbox{display:flex;flex-direction:column;gap:14px}
+.kbmd-folder{display:flex;flex-direction:column;gap:6px;min-width:0}
+.kbmd-row1{padding:10px 12px;border-radius:12px;background:var(--dsw-alias-bg-layer-2,rgba(127,127,127,.12));border:1px solid var(--dsw-alias-border-l1,rgba(127,127,127,.25))}
+.kbmd-row1 .kbmd-ico{width:36px;height:36px;flex-basis:36px;border-radius:10px}
+.kbmd-row1 .kbmd-txt{flex:1 1 180px}
+.kbmd-hint{font-size:12px;line-height:1.45;color:var(--dsw-alias-label-tertiary,#8a8a93);flex:1 1 240px;max-width:380px;min-width:0;margin-inline-start:auto}
+.kbmd-today{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;align-items:start}
+.kbmd-todaytxt{display:flex;flex-direction:column;gap:8px;min-width:0}
+.kbmd-pair{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;align-items:start}
 .kbmd-locked{border-style:dashed}
 .kbmd-locked .kbmd-body{opacity:.55;pointer-events:none;user-select:none;display:flex;flex-direction:column;gap:11px}
 .kbmd-ropt{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.35));border-radius:12px;padding:12px}
@@ -433,8 +430,7 @@ body:not([data-ds-dark-theme]) .kbmd-input::placeholder{color:var(--dsw-alias-la
 .kbmd-btn{border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.35));background:transparent;color:inherit;border-radius:10px;padding:8px 14px;font:inherit;font-weight:500;cursor:pointer}
 .kbmd-primary{background:var(--dsw-alias-brand-primary,#6a4fd8);color:var(--dsw-alias-label-primary-foreground,#fff);border-color:transparent}
 .kbmd-btn:disabled{opacity:.45;cursor:not-allowed}
-.kbmd-btn:focus-visible,.kbmd-opt:focus-visible,.kbmd-adv:focus-visible,.kbmd-input:focus-visible{outline:2px solid var(--dsw-alias-brand-primary,currentColor);outline-offset:2px}
-@media (prefers-reduced-motion:reduce){.kbmd-adv svg{transition:none}}
+.kbmd-btn:focus-visible,.kbmd-opt:focus-visible,.kbmd-input:focus-visible{outline:2px solid var(--dsw-alias-brand-primary,currentColor);outline-offset:2px}
 `
 
       // ── the seam the core bundle reads ───────────────────────────────────────────────────────────────────
