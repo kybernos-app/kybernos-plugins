@@ -36158,9 +36158,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       'k.sum.learn': [' · Learn my business: on', ' · Apprendre mon métier : active', ' · Aprender mi negocio: activa', ' · تعلم عملي: مفعلة'],
       'k.src.kb': ['included with Kybernos', 'fourni avec Kybernos', 'incluido con Kybernos', 'مضمّن مع Kybernos'],
       'mode.code.t': ['Coding mode', 'Mode Code', 'Modo Código', 'وضع البرمجة'],
-      'mode.code.d': ['I want to see code, command output, and change details throughout the development process.', 'Je veux voir le code, les sorties de commandes et le détail des changements tout au long du chantier.', 'Quiero ver el código, la salida de los comandos y el detalle de los cambios durante todo el trabajo.', 'أريد رؤية الشيفرة ومخرجات الأوامر وتفاصيل التغييرات طوال العمل.'],
       'mode.bureau.t': ['Office mode', 'Mode Bureau', 'Modo Oficina', 'وضع المكتب'],
-      'mode.bureau.d': ['I focus on task progress and results, without technical details.', 'Je suis l’avancement et les résultats, sans les détails techniques.', 'Sigo el avance y los resultados, sin detalles técnicos.', 'أتابع التقدّم والنتائج دون التفاصيل التقنية.'],
       'v.local.t': ['A model on this computer', 'Un modèle sur cet ordinateur', 'Un modelo en este ordenador', 'نموذج على هذا الحاسوب'],
       'free.t': ['Free models, ready to use', 'Des modèles gratuits, prêts à l’emploi', 'Modelos gratis, listos para usar', 'نماذج مجانية، جاهزة للاستخدام'],
       'free.s': ['These models are free because OpenCode may keep the prompts you send to improve them. Tick below to say you understand, then start.', 'Ces modèles sont gratuits parce qu’OpenCode peut conserver les prompts que tu envoies pour les améliorer. Coche ci-dessous pour dire que tu comprends, puis commence.', 'Estos modelos son gratis porque OpenCode puede conservar los prompts que envías para mejorarlos. Marca abajo para confirmar que lo entiendes, luego empieza.', 'هذه النماذج مجانية لأن OpenCode قد يحتفظ بالرسائل التي ترسلها لتحسينها. ضع علامة أدناه لتؤكد أنك تفهم، ثم ابدأ.'],
@@ -37822,24 +37820,10 @@ html.wv2-actif [data-composer-seat]{display:none !important}
           }
           const kit = curKit()
           const teams = kit.teams.map((id) => KB_MARKET_TEAMS.find((t) => t.id === id)).filter((t) => t !== undefined)
-          // First run: the display mode as one row (it follows the field), the kit as one line whose list is one tap away.
+          // First run: the kit as one line whose list is one tap away. The display mode is not asked here: the field decides it (Development opens in coding mode, every other
+          // field in office mode, see the pack's `mode`), and it stays one switch away in Settings.
           if (!S.kitOnly) {
             if (S.mode === null) S.mode = 'bureau'
-            const dr = h('div', 'kb-ob-rw')
-            dr.appendChild(h('span', 'kb-ob-rl', T('fin.mode')))
-            const seg = h('div', 'kb-ob-seg')
-            seg.setAttribute('role', 'radiogroup')
-            for (const id of KB_OB_MODES) {
-              const b = h('button', S.mode === id ? 'on' : null, T('mode.' + id + '.t'))
-              b.type = 'button'
-              b.setAttribute('role', 'radio')
-              b.setAttribute('aria-checked', S.mode === id ? 'true' : 'false')
-              b.title = T('mode.' + id + '.d')
-              b.addEventListener('click', () => { S.mode = id; S.modeTouched = true; render(false) })
-              seg.appendChild(b)
-            }
-            dr.appendChild(seg)
-            s.appendChild(dr)
             const sumBtn = h('button', 'kb-ob-sumrow')
             sumBtn.type = 'button'
             sumBtn.setAttribute('aria-expanded', S.kitOpen ? 'true' : 'false')
@@ -38562,11 +38546,6 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       '.kb-ob-sum p{margin:0}',
       '.kb-ob-sum p+p{margin-top:6px}',
       '.kb-ob-sumd{font-size:13px;color:var(--ink3)}',
-      '.kb-ob-rw{display:flex;align-items:center;gap:14px;margin-top:22px;padding:10px 16px;border-radius:14px;background:var(--bg2);border:1px solid var(--line);font-size:14.5px}',
-      '.kb-ob-rl{font-weight:600;min-width:84px}',
-      '.kb-ob-seg{display:inline-flex;margin-inline-start:auto;padding:3px;border-radius:99px;border:1px solid var(--line);background:var(--bg)}',
-      '.kb-ob-seg button{border:0;background:none;padding:7px 14px;border-radius:99px;font:inherit;font-size:13px;color:var(--ink2);cursor:pointer}',
-      '.kb-ob-seg button.on{background:var(--ob-a,var(--ink));color:var(--ob-on,var(--bg));font-weight:600}',
       '.kb-ob-sumrow{display:flex;align-items:center;gap:10px;width:100%;margin-top:12px;padding:13px 16px;text-align:start;border-radius:14px;background:var(--bg2);border:1px solid var(--line);color:var(--ink);font:inherit;font-size:14.5px;cursor:pointer}',
       '.kb-ob-sumtg{margin-inline-start:auto;font-size:13px;color:var(--ink3)}',
       '.kb-ob-plans{display:grid;grid-template-columns:1fr;gap:14px;margin-top:26px}',
