@@ -8,8 +8,8 @@
     "fr": "Ordinateurs cloud"
   },
   "description": {
-    "en": "Cloud computers for agents (your E2B key).",
-    "fr": "Ordinateurs cloud pour les agents (ta clé E2B)."
+    "en": "A computer in the cloud where the agents run code (with your E2B key).",
+    "fr": "Un ordinateur dans le cloud où les agents exécutent du code (avec ta clé E2B)."
   },
   "icon": "pc",
   "family": "connect",
