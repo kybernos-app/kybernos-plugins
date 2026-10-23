@@ -343,7 +343,7 @@ try {
     effect (fn) { return fn() }
   }
   A.mountLearned(ctx, deps)
-  assert.deepEqual(registered, ['skill_propose', 'skill_improve'])
+  assert.deepEqual(registered, ['skill_propose', 'skill_improve', 'skill_scout'])
   assert.equal(chunks.length, 1)
   assert.equal(chunks[0].name, 'kybernos:learned-skills')
   assert.ok(chunks[0].text().includes('skill_propose') && chunks[0].text().includes('Never put in a skill') && chunks[0].text().length < 1100)

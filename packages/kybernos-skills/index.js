@@ -49,6 +49,8 @@ import { createHash } from 'node:crypto'
 import { validateTeamSkill, skillVersion, frontmatterOfText, TEAM_SKILL_LIMITS } from './team-skills.mjs'
 import { LEARNED_SEAM, listLearned, readAudit, proposeFromLessons, proposeFromAutomation, acceptProposal, editProposal, discardProposal, restoreProposal, undoAccept, getSettings, patchSettings, keepChange, stopAll, sessionView, markShared, isSensitive, readSettings } from './learned.mjs'
 import { mountLearned } from './learned-tools.mjs'
+import { coverState, requestCovers, setAuto as setCoversAuto } from './cover-maker.mjs'
+import { SCOUT_LIMITS, dismissFound, goalsOf, runScout, scanning, viewScout } from './scout.mjs'
 import { answerNotice, forgetNotice, listNotices, noticeFor } from './learned-repeat.mjs'
 import { hideWeek, weekView } from './learned-week.mjs'
 import { readPicks } from './featured-picks.mjs'
@@ -1442,7 +1444,9 @@ const skillFilesOf = async (source) => {
 
 // A path comes from the repository's listing, but it is still a path in a URL: plain characters only, no `..`.
 const SAFE_PATH_RE = /^[A-Za-z0-9._ @+-]+(?:\/[A-Za-z0-9._ @+-]+)*$/
-const previewSkill = async (source, name) => {
+// `textChars` (the scout's) asks for more than the usual start of the file; `size` is always the whole file's length.
+const previewSkill = async (source, name, textChars) => {
+  const cut = Number.isInteger(textChars) && textChars > PREVIEW_TEXT_CHARS ? Math.min(textChars, MAX_PREVIEW_FILE_BYTES) : PREVIEW_TEXT_CHARS
   if (typeof source !== 'string' || SOURCE_RE.test(source) === false) {
     return { ok: false, error: DOMAIN_RE.test(String(source)) ? 'not_github' : 'invalid_source', source: typeof source === 'string' ? source : undefined }
   }
@@ -1477,8 +1481,9 @@ const previewSkill = async (source, name) => {
       folder,
       file: path,
       description: typeof fm.description === 'string' ? fm.description : '',
-      text: text.length > PREVIEW_TEXT_CHARS ? text.slice(0, PREVIEW_TEXT_CHARS) : text,
-      truncated: text.length > PREVIEW_TEXT_CHARS,
+      text: text.length > cut ? text.slice(0, cut) : text,
+      size: text.length,
+      truncated: text.length > cut,
       url: 'https://github.com/' + source + (folder === '' ? '' : '/tree/HEAD/' + folder.split('/').map(encodeURIComponent).join('/'))
     }
   }
@@ -1681,6 +1686,12 @@ const deleteSkill = async ({ ctx, root, name, config, sessionId }) => {
   return { ok: true, name: entry.name, root: entry.root, deleted: true }
 }
 
+// ── The skill scout (docs/dev/learned-skills.md): the scan the weekly automation's tool and the page's « Scan now » share ──
+const scoutDeps = { search: searchSkills, audit: auditSkill, preview: previewSkill }
+const scoutScan = ({ dsh, installed, by, force, gapHours }) => runScout({
+  dsh, deps: scoutDeps, installed, goals: goalsOf(dsh), by, force, limits: gapHours === undefined ? SCOUT_LIMITS : { ...SCOUT_LIMITS, gapHours }
+})
+
 // ── mounting the routes (mirror of :2728-2729 and :2873-2874, base daed42e) ──────────────────────────────────────
 const mountWebRoutes = (ctx, webServerSvc) => {
   webServerSvc = kbFenced(webServerSvc)
@@ -1856,6 +1867,25 @@ const mountWebRoutes = (ctx, webServerSvc) => {
     if (done.ok === true) invalidateSkills(ctx, body.sessionId)
     return done
   })
+  // The skill scout: what it found for the person, « Scan now » (the scan runs in the background, the page asks again while `scanning`; not before ten minutes after the last
+  // one) and « Not interested ». Nothing here installs: a find is installed through /install, with its confirmation.
+  GET('/kybernos-skills/scout', 'kybernos-skills: route scout', async () => viewScout({ dsh: configOf().dsh, installed: await existingOf('') }))
+  POST('/kybernos-skills/scout/run', 'kybernos-skills: route scout run', async () => {
+    const dsh = configOf().dsh
+    if (scanning(dsh) === true) return { ok: true, started: false, scanning: true }
+    const job = scoutScan({ dsh, installed: await existingOf(''), by: 'you', force: false, gapHours: 1 / 6 }).catch(() => ({ ok: false, error: 'index_unreachable' }))
+    // A refusal that is known at once (nothing to look for, a scan under ten minutes old) is the answer; a real scan goes on in the background and the page asks again.
+    let timer = null
+    const early = await Promise.race([job, new Promise((resolve) => { timer = setTimeout(() => resolve(null), 1500) })])
+    clearTimeout(timer)
+    return early === null ? { ok: true, started: true } : { ok: early.ok === true, state: early.state, error: early.error }
+  })
+  // The covers: a card without a picture gets one made like the shipped ones (cover-maker.mjs, docs/dev/skills-featured-covers.md). `state` says what each name has, `make` queues
+  // the missing ones (at most eight a day, one at a time, only with a key and the switch on), `auto` is the person's switch. The picture itself is served by /cover/<name>.
+  GET('/kybernos-skills/covers/state', 'kybernos-skills: route covers state', async (req) => coverState({ dsh: configOf().dsh, names: queryParam(req, 'names').split(',').filter((n) => n !== '') }))
+  POST('/kybernos-skills/covers/make', 'kybernos-skills: route covers make', async (body) => requestCovers({ dsh: configOf().dsh, items: Array.isArray(body.items) ? body.items.filter((i) => i !== null && typeof i === 'object' && typeof i.name === 'string').map((i) => ({ name: i.name, description: typeof i.description === 'string' ? i.description : '' })) : [] }))
+  POST('/kybernos-skills/covers/auto', 'kybernos-skills: route covers auto', async (body) => setCoversAuto(configOf().dsh, body.on === true))
+  POST('/kybernos-skills/scout/dismiss', 'kybernos-skills: route scout dismiss', async (body) => dismissFound({ dsh: configOf().dsh, id: body.id }))
   // The automations half of Kybernos is another bundle and cannot import this one: it finds this seam at call time (a frozen `{ version, propose }` on
   // globalThis, read the way kybernos-memory reads the space seam) and hands over the parts of the skill it built. Without this bundle there is no seam
   // and no skill is made.
@@ -1957,7 +1987,14 @@ export function apply(ctx) {
     mountLearned(ctx, {
       dsh: () => configOf().dsh,
       existing: async (sid) => { try { return (await catalogueOf(ctx, configOf(), sid)).skills.map((x) => ({ name: x.name, description: x.description })) } catch (e) { return [] } },
-      invalidate: () => invalidateSkills(ctx, undefined)
+      invalidate: () => invalidateSkills(ctx, undefined),
+      scout: async (by) => {
+        const dsh = configOf().dsh
+        const installed = await (async () => { try { return (await catalogueOf(ctx, configOf(), '')).skills.map((x) => ({ name: x.name, description: x.description })) } catch (e) { return [] } })()
+        const done = await scoutScan({ dsh, installed, by, force: false })
+        // a scan that did not run (one ran in the last hours) still tells what waits
+        return done.state === 'recent' ? { ...done, found: viewScout({ dsh, installed }).found } : done
+      }
     }, (m) => { try { console.error('[kybernos-skills] ' + m) } catch (e) { /* console gone */ } })
   } catch (kbLearnedError) {
     try { console.error('[kybernos-skills] learned skills not mounted', kbLearnedError) } catch (e2) { /* console gone */ }

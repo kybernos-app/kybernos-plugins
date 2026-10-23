@@ -257,11 +257,11 @@ try {
   ok('Discover: 20 rows by default, no pager above the table, sortable columns, and each row says Installed or offers Install')
 
   // The field of work (window.__KB_DOMAIN__, published by kybernos-plugin): the Featured tab opens on its skills, and the page's title is the menu's word
-  const fieldSrc = src.slice(src.indexOf('const renderFieldRows'), src.indexOf('const renderFeatured'))
+  const fieldSrc = src.slice(src.indexOf('const firstGroup = '), src.indexOf('const renderFeatured'))
   assert.match(src, /window\.__KB_DOMAIN__/, 'the page reads the seam the core plugin publishes')
-  assert.match(fieldSrc, /pcat !== 'all' \|\| q\.featured\.trim\(\) !== ''\) return null/, 'the field rows show on the whole Featured tab only: a category or a search is left alone')
-  assert.match(fieldSrc, /f === null \|\| list\.length === 0\) return null/, 'no field, or none of its skills: nothing is drawn')
-  assert.match(src, /renderFieldRows\(\),\n\s+h\('div', \{ className: 'kbsf-chips' \}/, 'the field rows come first, above the categories')
+  assert.match(fieldSrc, /pcat !== 'all' \|\| q\.featured\.trim\(\) !== ''\) return \[\]/, 'the first group shows on the whole Featured tab only: a category or a search is left alone')
+  assert.match(fieldSrc, /list\.length === 0\) return null/, 'no field and no find: nothing is drawn')
+  assert.match(src, /renderFirstRows\(\),\n\s+h\('div', \{ className: 'kbsf-chips' \}/, 'the first group comes first, above the categories')
   assert.doesNotMatch(src, /kbsf-fhead|fld\.title/, 'no frame and no title around them')
   assert.match(src, /h\('i', \{ className: 'kbsf-fdot'/, 'each row carries a small dot in the field\'s colour')
   assert.match(src, /if \(sk\.shipped === true\) installShipped\(sk\.name\); else \{ setAskInstall\(x\)/, 'a skill from GitHub asks the usual confirmation, one that ships with Kybernos is a plain copy')

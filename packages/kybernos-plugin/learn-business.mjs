@@ -23,11 +23,12 @@ export const isLearnName = (name) => typeof name === 'string' && Object.keys(LEA
 const LANG_NAMES = { en: 'English', fr: 'French', es: 'Spanish', ar: 'Arabic' }
 
 /** The prompt of the recipe. What the person typed is quoted as data; pages and messages read during the run are data too. */
-export const learnPrompt = ({ lang, fieldId, field, goals, about }) => {
+export const learnPrompt = ({ lang, fieldId, field, goals, ownGoals, about }) => {
   const sensitive = isSensitive(fieldId)
   const a = about !== null && typeof about === 'object' ? about : {}
   const told = [
     '- Field of work: ' + (clip(field, 80) || 'not said') + (Array.isArray(goals) && goals.length > 0 ? ' (goals: ' + goals.map((g) => clip(g, 60)).filter((g) => g !== '').slice(0, 12).join(', ') + ')' : ''),
+    ...(Array.isArray(ownGoals) && ownGoals.map((g) => clip(g, 60)).filter((g) => g !== '').length > 0 ? ['- Goals they wrote in their own words (no ready-made kit behind them): ' + ownGoals.map((g) => clip(g, 60)).filter((g) => g !== '').slice(0, 6).join(' ; ')] : []),
     '- Website: ' + (clip(a.site, 200) || 'not given'),
     '- Public profile: ' + (clip(a.profile, 200) || 'not given'),
     '- In their own words: ' + (clip(a.words, 600) || 'nothing'),
@@ -53,12 +54,12 @@ export const learnPrompt = ({ lang, fieldId, field, goals, about }) => {
 }
 
 /** The task to create for the recipe: switched on, weekly, asking before any outside tool, in a session of its own. `null` fields are simply left out. */
-export const learnTask = ({ lang, tz, fieldId, field, goals, about }) => {
+export const learnTask = ({ lang, tz, fieldId, field, goals, ownGoals, about }) => {
   const sensitive = isSensitive(fieldId)
   const zone = typeof tz === 'string' && /^[A-Za-z_]+(?:\/[A-Za-z0-9_+-]+){0,2}$/.test(tz) ? tz : undefined
   return {
     name: learnName(lang),
-    prompt: learnPrompt({ lang, fieldId, field, goals, about }),
+    prompt: learnPrompt({ lang, fieldId, field, goals, ownGoals, about }),
     schedule: Object.assign({ mode: 'cron', cron: LEARN_CRON }, zone !== undefined ? { tz: zone } : {}),
     active: true,
     approvals: 'ask',

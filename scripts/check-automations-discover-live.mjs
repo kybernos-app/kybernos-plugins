@@ -114,7 +114,7 @@ try {
   console.log('\n── Discover ──')
   check('the page has two sections, Yours and Discover, and Yours is the one open', (await val(`Array.from(document.querySelectorAll('[data-kb^="section-"]')).map((b) => b.dataset.kb.slice(8) + (b.getAttribute('aria-selected') === 'true' ? '*' : '')).join()`)) === 'yours*,discover')
   await click('[data-kb="section-discover"]')
-  check('Discover lists ten templates', (await poll(() => q('[data-kb="tpl-card"]'), 5000)) === 10)
+  check('Discover lists eleven templates', (await poll(() => q('[data-kb="tpl-card"]'), 5000)) === 11)
   check('...in three families (3 + 3 + 4) that the chips filter', await (async () => {
     const out = []
     for (const c of ['social', 'prospecting', 'support', 'all']) { await click('[data-kb="tpl-cat-' + c + '"]'); await sleep(200); out.push(await q('[data-kb="tpl-card"]')) }
@@ -123,7 +123,7 @@ try {
   await val(`(() => { const i = document.querySelector('.kbtd-search'); const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set; set.call(i, 'whatsapp'); i.dispatchEvent(new Event('input', { bubbles: true })) })()`)
   check('...and the search finds a word in the title, the text, the tags or the apps', (await poll(async () => (await q('[data-kb="tpl-card"]')) === 2, 4000)) === true)
   await val(`(() => { const i = document.querySelector('.kbtd-search'); const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set; set.call(i, ''); i.dispatchEvent(new Event('input', { bubbles: true })) })()`)
-  await poll(async () => (await q('[data-kb="tpl-card"]')) === 10, 3000)
+  await poll(async () => (await q('[data-kb="tpl-card"]')) === 11, 3000)
   check('a card is compact: no image, no cover, an « Import » button', (await q('[data-kb="tpl-card"] img, [data-kb="tpl-card"] svg.kbtd-cover-svg')) === 0 && (await q('[data-kb="tpl-card"] [data-kb="tpl-import"]')) === 10)
   check('the apps of a card show the real logos of the connectors catalogue, and the initial of the one it does not know', (await poll(async () => (await q('[data-tpl="prosp-calls"] .kbtd-app.logo svg')) === 2, 8000)) === true && (await q('[data-tpl="prosp-calls"] .kbtd-app:not(.logo)')) === 1)
   check('...on a white tile, whatever the theme', (await val(`getComputedStyle(document.querySelector('[data-tpl="prosp-calls"] .kbtd-app.logo')).backgroundColor`)) === 'rgb(255, 255, 255)')
@@ -313,7 +313,7 @@ try {
   const overflow = () => val(`document.documentElement.scrollWidth > document.documentElement.clientWidth + 1`)
   check('...and is still there at 390 px, as wide as the phone', (await val(`(() => { const e = document.querySelector('[data-kb="page-automations"]'); const r = e ? e.getBoundingClientRect() : null; return !!r && r.width > 300 && r.width <= innerWidth })()`)) === true)
   await click('[data-kb="section-discover"]')
-  check('Discover shows its ten templates at 390 px without scrolling sideways', (await poll(async () => (await q('[data-kb="tpl-card"]')) === 10, 5000)) === true && (await shown('[data-kb="tpl-card"]')) === true && (await overflow()) === false)
+  check('Discover shows its eleven templates at 390 px without scrolling sideways', (await poll(async () => (await q('[data-kb="tpl-card"]')) === 11, 5000)) === true && (await shown('[data-kb="tpl-card"]')) === true && (await overflow()) === false)
   await click('[data-tpl="cs-calls"]')
   check('a template page does not scroll sideways', (await poll(() => q('[data-kb="tpl-detail"]'), 4000)) === 1 && (await q('.kbtd-sec')) === 5 && (await shown('[data-kb="tpl-use"]')) === true && (await overflow()) === false)
   await shot('phone-template')

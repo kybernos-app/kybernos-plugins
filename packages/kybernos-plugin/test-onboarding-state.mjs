@@ -3,7 +3,7 @@
 //
 //   node packages/kybernos-plugin/test-onboarding-state.mjs
 import assert from 'node:assert/strict'
-import { ONBOARDING_VERSION, MODEL_CHOICES, GOALS_MAX, AGENT_PRESETS, ABOUT_MAX, aboutView, defaultState, publicView, complete, replay, chooseDomain } from './onboarding-state.mjs'
+import { ONBOARDING_VERSION, MODEL_CHOICES, GOALS_MAX, AGENT_PRESETS, ABOUT_MAX, OWN_GOALS_MAX, OWN_GOAL_CHARS, aboutView, ownGoalsView, defaultState, publicView, complete, replay, chooseDomain } from './onboarding-state.mjs'
 
 const NOW = new Date('2026-10-10T09:00:00.000Z')
 let count = 0
@@ -144,6 +144,20 @@ ok('what the person said about themselves is bounded, cleaned, kept across a rep
   for (const bad of ['text', 3, null, [], { site: 4 }, { site: '  ' }]) assert.equal(complete(defaultState(NOW), { about: bad }, NOW).about, null)
   assert.deepEqual(aboutView(first), first.about, 'the wizard\'s own replay reads it back through aboutView')
   assert.deepEqual([aboutView(defaultState(NOW)), aboutView(null), aboutView({ about: 'x' })], [null, null, null])
+})
+
+ok('the goals the person wrote themselves are a few short lines, cleaned, kept across a replay, never in the public view', () => {
+  const first = complete(defaultState(NOW), { profil: 'edu', goals: ['exams'], customGoals: ['Prepare my thesis defence', '  prepare   my THESIS defence ', 'Teach  a  class', '', 3, null, 'a\u0000b'] }, NOW)
+  assert.deepEqual(first.customGoals, ['Prepare my thesis defence', 'Teach a class', 'ab'], 'trimmed, one space, no control character, no duplicate in another case, only strings')
+  assert.equal('customGoals' in publicView(first), false, 'GET is served before the sign-in: it never carries what was typed')
+  assert.deepEqual(ownGoalsView(first), first.customGoals)
+  assert.deepEqual(complete(replay(first), { profil: 'edu' }, NOW).customGoals, first.customGoals, 'a client that sends none keeps the saved ones')
+  assert.deepEqual(complete(first, { customGoals: [] }, NOW).customGoals, [], 'an empty list clears them')
+  assert.deepEqual(chooseDomain(first, { profil: 'edu', goals: ['exams'] }).customGoals, first.customGoals, 'choosing a field later does not erase them')
+  assert.equal(complete(defaultState(NOW), { customGoals: Array.from({ length: 20 }, (_, i) => 'goal ' + i) }, NOW).customGoals.length, OWN_GOALS_MAX)
+  assert.equal(complete(defaultState(NOW), { customGoals: ['x'.repeat(200)] }, NOW).customGoals[0].length, OWN_GOAL_CHARS)
+  assert.deepEqual([ownGoalsView(defaultState(NOW)), ownGoalsView(null), ownGoalsView({ customGoals: 'x' })], [[], [], []])
+  assert.deepEqual(defaultState(NOW).customGoals, [])
 })
 
 console.log(count + ' checks passed')
