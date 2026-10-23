@@ -26,6 +26,9 @@
 #
 # Nothing secret goes in this file. Keep ~/.dsh on a volume: it holds the profile, the settings and the sessions.
 # The agent works in ~/workspace (created at start and offered as the first workspace).
+# The plugins of a TEST image come from a folder given as the build context `kbsrc` (see KB_LOCAL below); the stage is empty otherwise.
+FROM scratch AS kbsrc
+
 FROM node:22-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -59,8 +62,17 @@ USER root
 RUN mkdir -p /opt/kybernos-plugins && chown node:node /opt/kybernos-plugins
 USER node
 ARG KB_REF=main
-RUN git clone --depth 1 --branch "${KB_REF}" https://github.com/kybernos-app/kybernos-plugins.git /opt/kybernos-plugins \
-    && cd /opt/kybernos-plugins && git log --oneline -1
+# KB_LOCAL=1 takes the plugins from the build context `kbsrc` (a folder made by `git archive <commit> | tar -x -C <folder>`) instead of a release tag:
+#   docker buildx build --build-context kbsrc=<folder> --build-arg KB_LOCAL=1 ...
+# It is for a TEST image that must not publish anything (a release tag publishes every commit origin lacks). Never for an image that is shipped: a shipped image names its tag.
+ARG KB_LOCAL=0
+RUN --mount=type=bind,from=kbsrc,target=/kbsrc \
+    if [ "${KB_LOCAL}" = "1" ]; then \
+      cp -a /kbsrc/. /opt/kybernos-plugins/ && test -f /opt/kybernos-plugins/VERSION && echo "local source: $(cat /opt/kybernos-plugins/VERSION)"; \
+    else \
+      git clone --depth 1 --branch "${KB_REF}" https://github.com/kybernos-app/kybernos-plugins.git /opt/kybernos-plugins \
+      && cd /opt/kybernos-plugins && git log --oneline -1; \
+    fi
 RUN cd /opt/kybernos-plugins && ./kybernos-install
 
 # A volume mounted over ~/.dsh starts empty: the entrypoint seeds it from this copy of the installed profile.
