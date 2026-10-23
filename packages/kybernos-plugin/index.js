@@ -3184,6 +3184,8 @@ function boot(ctx) {
               if (frequentUpdate !== null) break
               const merged = Object.assign({}, t, clean.task, { id, createdAt: t.createdAt, updatedAt: new Date().toISOString(), history: Array.isArray(t.history) === true ? t.history : [] })
               if (t.suggested === true) merged.active = false
+              // While it lives on a cloud computer the copy here stays paused, whatever the form says.
+              if (t.cloud !== null && typeof t.cloud === 'object') { merged.active = false; merged.nextRun = null }
               const nx = kbComputeNextRun(merged, Date.now())
               if (kbNeverRuns(merged, nx) === true) { refusal = kbNoNextRunError(merged); break }
               merged.nextRun = nx === null ? null : new Date(nx).toISOString()
@@ -3197,6 +3199,41 @@ function boot(ctx) {
         if (refusal !== null) return { ok: false, error: refusal }
         return updated === null ? { ok: false, error: 'task not found' } : { ok: true, task: updated }
       }
+      // The person published this automation to a cloud computer, or brought it back: the copy on this computer is paused while the automation lives there (two
+      // owners of one trigger would run it twice), and comes back as it was. `cloud: null` brings it back. The page does the publishing (the cloud plugin's routes);
+      // this only keeps the link, so that the list and the tab know where the automation runs.
+      if (action === 'cloud-link') {
+        const id = str(body.id)
+        if (id === null) return { ok: false, error: 'id required' }
+        const link = body.cloud
+        if (link !== null && (typeof link !== 'object' || Array.isArray(link) === true || typeof link.computerId !== 'string' || /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu.test(link.computerId) !== true || typeof link.name !== 'string' || link.name.trim().length === 0)) return { ok: false, error: 'invalid cloud link' }
+        let found = null
+        await kbTasksMutate(async (tasks) => {
+          for (const t of tasks) {
+            if (t !== null && typeof t === 'object' && t.id === id) {
+              const now = new Date().toISOString()
+              const had = t.cloud !== null && typeof t.cloud === 'object' ? t.cloud : null
+              // Bringing back what is not linked is nothing to do.
+              if (link === null && had === null) { found = t; break }
+              if (link === null) {
+                const back = had !== null && had.wasActive === true
+                delete t.cloud
+                const nx = back === true ? kbComputeNextRun(Object.assign({}, t, { active: true }), Date.now()) : null
+                t.active = back === true && kbNeverRuns(Object.assign({}, t, { active: true }), nx) !== true
+                t.nextRun = t.active === true && nx !== null ? new Date(nx).toISOString() : null
+              } else {
+                t.cloud = { computerId: link.computerId, name: kbClip(link.name.trim(), 60), at: now, wasActive: had !== null ? had.wasActive === true : t.active !== false }
+                t.active = false
+                t.nextRun = null
+              }
+              t.updatedAt = now
+              found = t
+              break
+            }
+          }
+        })
+        return found === null ? { ok: false, error: 'task not found' } : { ok: true, task: found }
+      }
       if (action === 'toggle') {
         const id = str(body.id)
         if (id === null) return { ok: false, error: 'id required' }
@@ -3207,6 +3244,7 @@ function boot(ctx) {
           for (const t of tasks) {
             if (t !== null && typeof t === 'object' && t.id === id) {
               if (autoIsSuggested(t) === true) { refusal = 'suggested: add it first'; break }
+              if (body.active === true && t.cloud !== null && typeof t.cloud === 'object') { refusal = 'runs in the cloud'; break }
               const nx = kbComputeNextRun(Object.assign({}, t, { active: body.active }), Date.now())
               if (kbNeverRuns(Object.assign({}, t, { active: body.active }), nx) === true) { refusal = kbNoNextRunError(t); break }
               t.active = body.active
