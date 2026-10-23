@@ -1,7 +1,7 @@
 // A cloud computer's reporter (ADR 0052 §§ 10 and 13). A separate process next to DSH, with no dependency and no access to anything of the
-// platform but its own restricted token: it says that the computer is up, that it is busy, what automations it has, and which runs ended.
+// platform but its own restricted token: it says that the computer is up, that it is busy and how loaded it is, what automations it has, and which runs ended.
 // It reads what DSH and the Kybernos plugin already keep on the volume and writes nothing there but its own small list of what it has
-// reported; it changes nothing about how a run is made. What it sends is ids, labels, times and outcome codes, never a prompt or a result.
+// reported; it changes nothing about how a run is made. What it sends is ids, labels, times, outcome codes and a few load figures, never a prompt or a result.
 //
 //   KYBERNOS_API             the platform's address       KYBERNOS_COMPUTER_TOKEN   its restricted token
 //   DSH_HOME                 the profile on the volume    DSH_PORT                  DSH's loopback port (3081)
@@ -174,6 +174,70 @@ function openSessions () {
   return n
 }
 
+// ── how loaded the computer is ──────────────────────────────────────────────────────────────────
+// The Kybernos plugin keeps the one reading of the machine (a level, the room for runs, the runs going). The reporter asks it on the loopback,
+// as the claimer does, and passes a short summary on in the beat: numbers and ids, never a prompt.
+const whole = (v, max) => { const n = Number(v); return Number.isFinite(n) ? Math.max(0, Math.min(max, Math.round(n))) : 0 }
+
+/** MemAvailable and MemTotal in MB, from the text of /proc/meminfo; null when they are not there. Never MemFree: the page cache makes it read near zero on a healthy machine. */
+export function memoryOf (text) {
+  const kb = (name) => { const m = new RegExp('^' + name + ':\\s+(\\d+)\\s*kB', 'mu').exec(String(text)); return m === null ? null : Number(m[1]) }
+  const avail = kb('MemAvailable')
+  const total = kb('MemTotal')
+  if (avail === null || total === null || total <= 0) return null
+  return { availMb: Math.round(avail / 1024), totalMb: Math.round(total / 1024) }
+}
+
+/** The `load` of a beat, from what the plugin answered (`GET /kybernos/automation-load`) and the memory just read; null when there is nothing true to say. */
+export function loadOf (view, memory) {
+  if (view === null || typeof view !== 'object' || view.ok !== true) return null
+  if (view.level !== 'ok' && view.level !== 'busy' && view.level !== 'high') return null
+  // With the machine's reading switched off or forced the plugin has no pressure: that is not the machine's load, so nothing is said.
+  if (typeof view.pressure !== 'number' || !Number.isFinite(view.pressure)) return null
+  if (memory === null || typeof memory !== 'object') return null
+  return {
+    level: view.level,
+    pressure: whole(view.pressure, 100),
+    cpu_per_core: typeof view.loadPerCpu === 'number' && Number.isFinite(view.loadPerCpu) ? Math.max(0, Math.min(64, Math.round(view.loadPerCpu * 100) / 100)) : 0,
+    mem_avail_mb: whole(memory.availMb, 1_048_576),
+    mem_total_mb: Math.max(1, whole(memory.totalMb, 1_048_576)),
+    running: whole(view.inFlight, 64),
+    waiting: whole(view.waiting, 64),
+    allowed: whole(view.allowed, 64)
+  }
+}
+
+/** The automations that have a run going, by their own id, with the moment the run started (at most eight). */
+export function runningTasksOf (view, nowMs) {
+  const runs = view !== null && typeof view === 'object' && Array.isArray(view.runs) ? view.runs : []
+  const out = []
+  for (const r of runs) {
+    if (r === null || typeof r !== 'object' || !idOk(r.taskId)) continue
+    const ms = Number(r.elapsedMs)
+    out.push({ task_ref: String(r.taskId), started_at: new Date(nowMs - (Number.isFinite(ms) && ms > 0 ? ms : 0)).toISOString() })
+    if (out.length >= 8) break
+  }
+  return out
+}
+
+/** The body of a beat: what it always said (sessions open, memory in use), and the load when the plugin could say it. An older platform ignores the added keys. */
+export function beatOf (sessions, usedMb, view, memory, nowMs) {
+  const body = { sessions, rss_mb: usedMb }
+  const load = loadOf(view, memory)
+  if (load !== null) { body.load = load; body.running_tasks = runningTasksOf(view, nowMs) }
+  return body
+}
+
+async function readLoadView () {
+  try {
+    const local = `http://127.0.0.1:${DSH_PORT}`
+    const r = await fetch(local + '/kybernos/automation-load', { headers: { origin: local }, signal: AbortSignal.timeout(2000) })
+    if (r.status !== 200) return null
+    return JSON.parse(await r.text())
+  } catch (e) { return null }
+}
+const readMemory = () => { try { return memoryOf(readFileSync('/proc/meminfo', 'utf8')) } catch (e) { return null } }
+
 async function dshAnswers () {
   try {
     const r = await fetch(`http://127.0.0.1:${DSH_PORT}/`, { signal: AbortSignal.timeout(2500) })
@@ -221,9 +285,10 @@ async function main () {
         log(`reported ${runs.length} run(s)`)
       }
     }
-    // A beat: sessions open and memory in use.
+    // A beat: sessions open, memory in use, and how loaded the machine is (the plugin's own reading, asked on the loopback with a short timeout).
     const used = Math.max(0, Math.round((os.totalmem() - os.freemem()) / 1048576))
-    const beat = await call('POST', '/v1/computer/heartbeat', { sessions: openSessions(), rss_mb: used }, HEARTBEAT_TIMEOUT_MS)
+    const body = beatOf(openSessions(), used, await readLoadView(), readMemory(), Date.now())
+    const beat = await call('POST', '/v1/computer/heartbeat', body, HEARTBEAT_TIMEOUT_MS)
     if (beat.status === 401 || beat.status === 404) await sleep(300_000)
     await sleep(BEAT_MS)
   }
