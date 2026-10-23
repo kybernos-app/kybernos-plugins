@@ -252,7 +252,7 @@ is now **on by default**, since nothing activates without the person.
 - **Skills › Yours**: a banner (« N skills suggested by Kaby », Hide is a per-browser choice) and, above it, the one for what Kaby did
   alone; dashed cards with Review, a chip and an Origin filter (Suggested by Kaby / Learned / Mine), a **Learned** badge with its
   version, « applied by Kaby · not reviewed » and « Not used for N days » (with Switch off), and its provenance on accepted skills, a
-  Journal button. Review opens a panel beside the list: why, the text (or the paragraph an improvement adds, as a diff), the rules
+  Journal button. Review opens a window over the page (every panel of this screen is a window: nothing is drawn beside the list); each suggestion also carries **Review, Edit, Discard and Accept** on its card (cards view) or its row (list view), so a suggestion can be answered without opening it (Accept locked exactly as in the window; Edit opens the window in edit mode): why, the text (or the paragraph an improvement adds, as a diff), the rules
   block, the **confidence with its parts and why Kaby may not act alone with the person's settings**, the checks,
   Accept / Edit / Discard.
 - **The chat**: at the end of the last answer, a card for what Kaby suggested or applied from **this** chat (`conversation.chat.turnTail`,

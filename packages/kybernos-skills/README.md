@@ -24,9 +24,9 @@ It is part of the **socle** (`socle: true` in `packages/kybernos-hub/catalog.jso
   switch: a skill comes from someone else and the raw file is where a hidden line would show (`test-markdown.mjs`).
   The first cards are the skills of the person's field and what the **skill scout** found; a card with no picture gets one made in the shipped style (`docs/dev/learned-skills.md`).
   The data is `featured-picks.json` (below); with a host that does not have the route the tab is hidden and Yours is the landing tab.
-- **Yours**: skills of this profile, with a banner for **what Kaby suggests** (dashed cards, a Review panel with the checks, Accept / Edit / Discard, a Journal button, an Origin filter and a **Learned** badge on what was accepted), search, state / source filters, sorting, an active toggle on each card (read-only rows
-  when the folder is not writable) and a Featured row kept by a star. A click on a card opens a **panel on the right** (the list
-  stays): the skill's real `SKILL.md` as it is on disk, its folder (copyable), and the actions the host says it can do for that
+- **Yours**: skills of this profile, with a banner for **what Kaby suggests** (dashed cards in the cards view and dashed rows in the list view, never both: a list holds rows and a grid holds cards; each carries **Review, Edit, Discard and Accept** without opening it, Accept locked as in the review window; Review opens a window with the checks; a Journal button, an Origin filter and a **Learned** badge on what was accepted), search, state / source filters, sorting, an active toggle on each card (read-only rows
+  when the folder is not writable) and a Featured row kept by a star. A click on a card opens **a window over the page** (the list
+  stays; there is no panel beside the list any more, for Kaby's review and journal either): the skill's real `SKILL.md` as it is on disk, its folder (copyable), and the actions the host says it can do for that
   skill — *Open folder*, *Edit* (opens `SKILL.md` in the text editor of this machine), *Duplicate* (a copy in your own skills
   folder under a free name, its `name:` renamed) and *Delete* (a confirmation that names the folder first; permanent, writable
   roots only). A copy of the invocation to paste in the composer is on the card.
