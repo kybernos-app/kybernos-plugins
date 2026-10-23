@@ -5323,6 +5323,7 @@ const ROUTES = [
   // Sends (or takes away) automations on a computer: it writes on the person's behalf, so same origin strictly AND DSH's signed browser session.
   { path: '/kybernos-cloud/computers/publish', method: 'POST', guarded: true, strict: true, session: true, body: true, cap: 100000, run: (req, body) => computersPublish.publish(body) },
   { path: '/kybernos-cloud/computers/tasks', method: 'GET', guarded: true, run: (req) => computersPublish.states(queryOf(req)) },
+  { path: '/kybernos-cloud/computers/runs', method: 'GET', guarded: true, run: (req) => computersPublish.runs(queryOf(req)) },
   { path: '/kybernos-cloud/start', method: 'POST', guarded: true, session: true, run: startPairing },
   { path: '/kybernos-cloud/poll', method: 'POST', guarded: true, session: true, run: pollPairing },
   { path: '/kybernos-cloud/status', method: 'GET', guarded: false, run: statusRoute },
