@@ -35,12 +35,14 @@ const mod = definition.factory((spec) => { if (spec === 'react') return React; t
 const T = mod.__test
 const setLang = (l) => { win.__KB_LANG_RESOLVE__ = typeof l === 'function' ? l : () => l }
 
-// Every text the tree shows: the children that are strings, and the labels of the attributes a person reads.
+// Every text the tree shows: the children that are strings, the labels of the attributes a person reads, and the options of a list.
 const texts = (node, out = []) => {
   if (typeof node === 'string') { out.push(node); return out }
   if (node === null || node === undefined || typeof node !== 'object') return out
   for (const k of ['aria-label', 'title']) if (typeof node.props[k] === 'string') out.push(node.props[k])
   if (node.props.label !== undefined && typeof node.props.label === 'string') out.push(node.props.label)
+  // The Study model is a searchable list (a component): the options it offers are its `items`, drawn only when the list is open.
+  if (Array.isArray(node.props.items)) for (const it of node.props.items) if (it !== null && typeof it === 'object' && typeof it.label === 'string') out.push(it.label)
   for (const c of node.children) texts(c, out)
   return out
 }

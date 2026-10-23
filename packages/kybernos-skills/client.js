@@ -581,7 +581,7 @@ window.__ModuleLoader__.load({
         'he.not_github': { fr: 'Source non GitHub ({source}) : cette route n’installe que depuis un dépôt GitHub.', en: 'Not a GitHub source ({source}): this route only installs from a GitHub repository.' },
         'he.github_rate_limited': { fr: 'GitHub limite les lectures anonymes (HTTP {http}) : réessaie plus tard.', en: 'GitHub is limiting anonymous reads (HTTP {http}): try again later.' },
         'he.not_found': { fr: 'Ce skill n\'est plus dans le catalogue : recharge la liste.', en: 'That skill is no longer in the catalogue: reload the list.' },
-        'he.no_interests': { fr: 'Rien à chercher pour l’instant : coche des objectifs (Paramètres › Profil) ou installe quelques skills.', en: 'Nothing to look for yet: tick some goals (Settings › Profile) or install a few skills.' },
+        'he.no_interests': { fr: 'Rien à chercher pour l’instant : coche des objectifs (Paramètres › Général › Premiers pas › Rejouer) ou installe quelques skills.', en: 'Nothing to look for yet: tick some goals (Settings › General › Onboarding › Replay) or install a few skills.' },
         'he.index_unreachable': { fr: 'L’index public n’a pas répondu : réessaie plus tard.', en: 'The public index did not answer: try again later.' },
         'he.bad_id': { fr: 'Cette proposition n’est plus valide : recharge la liste.', en: 'That find is no longer valid: reload the list.' },
         'he.not_writable': { fr: 'Ce skill n\'est pas dans l\'un de tes dossiers de skills modifiables : il n\'est pas supprimé.', en: 'That skill is not in one of your writable skills folders: it is not deleted.' },
