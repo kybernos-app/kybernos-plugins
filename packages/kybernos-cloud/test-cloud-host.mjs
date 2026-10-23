@@ -727,6 +727,8 @@ try {
     // WhatsApp, the beta bridge (ADR 0053 § 13.8): the same four calls.
     '/kybernos-cloud/whatsapp/pairing', '/kybernos-cloud/whatsapp/pairing/state', '/kybernos-cloud/whatsapp/pairing/cancel', '/kybernos-cloud/whatsapp/unlink',
     '/kybernos-cloud/computer/resume', '/kybernos-cloud/computer/suspend', '/kybernos-cloud/computer/open',
+    // The person's cloud computers and their load, read-only, for the strip of the Automations page (test-computers-view.mjs holds its rules).
+    '/kybernos-cloud/computers',
     // A pooled computer has just been handed its identity (loopback, nothing in the request): see 6f.
     '/kybernos-cloud/computer/claimed', '/kybernos-cloud/computer/route',
     // The Upgrade dialog: the plans and their quotes, the payment page and the billing portal (test-billing-proxy.mjs holds their rules).

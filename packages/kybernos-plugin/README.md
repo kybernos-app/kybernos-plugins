@@ -322,6 +322,13 @@ the run holds (slots, sub-agents, time) and what it does (tool calls). The machi
 for five minutes, which is where the curves come from, and the page reads them every ten seconds. With the reading switched off or a level forced, there is
 no gauge (the figure would not be the machine's).
 
+**With cloud computers.** The page also asks `GET /kybernos-cloud/computers` (the cloud plugin; every ten seconds, once a minute while there is nothing to show). When
+the person has cloud computers, the detail gets one tab per machine (this one, then each computer, Home first) and the strip follows the one picked: a computer's
+level, pressure, memory (in MB: busy under 400, red under 200 of what is available), runs going and waiting are what it said in its last beat (the reporter's
+`load`, `docs/dev/computers.md`). A computer that is asleep, waking or silent has a word and no gauge. When another awake computer is busy, the strip says so
+on its second line ("Home busy"). The platform keeps the last beat, not a history: the curves of a cloud computer are the readings the page has gathered since it was
+opened. A cloud computer has no settings link here. With no cloud computer (or no cloud plugin, or nobody connected) nothing of this shows.
+
 ### Lighter runs: fewer sub-agents while the machine is busy
 
 The engine caps the depth of sub-agents (`subagent.maxDepth`), not their number: the model decides how many to start. So when the level is
