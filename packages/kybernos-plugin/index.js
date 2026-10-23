@@ -394,6 +394,9 @@ const kbClip = (value, max) => {
   const last = out.charCodeAt(out.length - 1)
   return last >= 0xd800 && last <= 0xdbff ? out.slice(0, -1) : out
 }
+// A timer of this plugin is never what keeps a process alive: `dsh web` has its server for that, and `dsh headless "task"` must be able to end once it has
+// answered (with a referenced 30 s scheduler timer it never did: the answer was printed at once and the process ran until it was killed).
+const kbUnref = (t) => { try { if (t !== null && typeof t === 'object' && typeof t.unref === 'function') t.unref() } catch (e) { /* a timer that cannot be detached is only a timer */ } return t }
 // Validates a form entry from the client: a storable task, or an error. Every field must be of
 // the right type: a JSON object where a string is expected is refused, never coerced.
 const kbSanitizeTaskInput = (raw) => {
@@ -3393,16 +3396,16 @@ function boot(ctx) {
     const kbTasksStart = () => {
       if (kbTasksTimer !== null) return
       const loop = () => {
-        kbTasksTimer = setTimeout(() => {
+        kbTasksTimer = kbUnref(setTimeout(() => {
           kbTasksTick().then((r) => {
             if (r !== null && typeof r === 'object' && r.fired > 0) {
               try { console.log('[kybers] scheduled tasks: ' + r.fired + ' declenchement(s)') } catch (e) { /* console */ }
             }
           }).catch(() => null).finally(() => { kbTasksTimer = null; loop() })
-        }, 30000)
+        }, 30000))
       }
       loop()
-      setTimeout(() => { kbTasksTick().catch(() => null) }, 5000)
+      kbUnref(setTimeout(() => { kbTasksTick().catch(() => null) }, 5000))
     }
     try { kbTasksStart() } catch (e) { try { console.error('[kybers] task timer unavailable:', errText(e)) } catch (e2) { /* console */ } }
     // The agent tools that propose an automation and bind one to its chat; a seam that is missing drops only this.
@@ -5104,7 +5107,7 @@ function boot(ctx) {
     // Boot: an interrupted run goes on by itself unless the automatic resume is switched off (settings.json `i18nAutoResume: false`).
     // Late and guarded: the model catalogue and the keys must be there, and nothing here may stop the boot.
     const resumeI18nJobs = () => {
-      setTimeout(() => {
+      kbUnref(setTimeout(() => {
         Promise.resolve().then(async () => {
           const runner = await i18nJobRunner()
           if (runner === null) return
@@ -5112,7 +5115,7 @@ function boot(ctx) {
           const r = runner.resumeInterrupted({ auto })
           for (const j of r) console.log('[kybers] i18n job ' + j.lang + (j.resumed ? ' resumed after a restart' : ' left paused (interrupted)'))
         }).catch((e) => { try { console.log('[kybers] i18n job resume: ' + errText(e)) } catch (e2) { /* console */ } })
-      }, 8000)
+      }, 8000))
     }
     // Index complet (sans filtre ni limite): seules les sessions a runCount >= 1 sont gardees.
     const buildRunsIndex = async () => {
@@ -11754,7 +11757,7 @@ function boot(ctx) {
       } }), 'kybernos: route hooks (webhooks automations)')
 
       // Le cache est plafonne une fois au demarrage : lent, jamais bloquant.
-      try { setTimeout(() => { kbTtsCacheTrim().catch(() => null) }, 8000) } catch (e) { /* pas de minuterie : sans importance */ }
+      try { kbUnref(setTimeout(() => { kbTtsCacheTrim().catch(() => null) }, 8000)) } catch (e) { /* pas de minuterie : sans importance */ }
       console.log('[kybers] webServer routes /kybernos/* registered (read + framed write + icons + avatar + runs + runs-index + team-cap + voice/* + tts/* + yml-proposer + yml-appliquer)')
     }
     // Every bundle's route guard reads this predicate: it is what lets a hosted instance behind a reverse
