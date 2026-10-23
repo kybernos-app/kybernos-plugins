@@ -197,6 +197,16 @@ export const opaqueShare = (buf) => {
   return opaque / (img.width * img.height)
 }
 
+/** Does what was cut out reach the edge of the picture? Then the frame cropped the tile (the first real cover of a ticket desk had its legs cut at the bottom). `null` when unreadable. */
+export const touchesEdge = (buf) => {
+  const img = decodePng(buf)
+  if (img === null) return null
+  const { width, height, rgba } = img
+  for (let x = 0; x < width; x += 1) if (rgba[x * 4 + 3] > 10 || rgba[((height - 1) * width + x) * 4 + 3] > 10) return true
+  for (let y = 0; y < height; y += 1) if (rgba[y * width * 4 + 3] > 10 || rgba[(y * width + width - 1) * 4 + 3] > 10) return true
+  return false
+}
+
 // ── what is made, what waits, what failed ─────────────────────────────────────────────────────────────────────
 const readSettings = (dsh) => {
   try {
@@ -263,11 +273,14 @@ export const makeCover = async ({ dsh, name, description, net, now = Date.now() 
     let cut = null
     for (let again = 0; again < 2 && cut === null; again += 1) { try { cut = await net.cutout(picture) } catch (e) { cut = null } }
     if (cut === null) { failure = 'cutout_failed'; continue }
+    const cropped = touchesEdge(cut) === true
     const final = trimPng(cut)
     const share = opaqueShare(final)
-    if (share === null || share <= COVER_LIMITS.shareGood && share >= COVER_LIMITS.shareMin) { best = { final, share }; break }
+    if (share === null || (share <= COVER_LIMITS.shareGood && share >= COVER_LIMITS.shareMin && cropped === false)) { best = { final, share }; break }
     failure = 'not_a_tile'
-    if (share >= COVER_LIMITS.shareMin && share <= COVER_LIMITS.shareMax && (best === null || Math.abs(share - 0.5) < Math.abs(best.share - 0.5))) best = { final, share }
+    // A tile cropped by the frame, or too heavy, is kept only when no better one comes: the closest to a tile, an uncropped one first.
+    const score = Math.abs(share - 0.5) + (cropped ? 1 : 0)
+    if (share >= COVER_LIMITS.shareMin && share <= COVER_LIMITS.shareMax && (best === null || score < best.score)) best = { final, share, score }
   }
   if (best === null) return { ok: false, error: failure, images }
   const dir = coversDir(dsh)

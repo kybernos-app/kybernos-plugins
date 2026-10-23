@@ -49,4 +49,14 @@ const clash = readdirSync(join(here, '..')).filter((d) => d !== 'kybernos-skills
 assert.deepEqual(clash, [], 'the window\'s class names are used by no other bundle: ' + clash.join(', '))
 ok('the window\'s class names belong to this bundle alone (a global rule of the same name elsewhere moved it out of view once)')
 
+// One layout for the three kinds of window: a pick, an entry of Discover (or a find), a skill of Yours are all drawn by the same sheet
+const sheetUsers = [...src.matchAll(/h\(SkillSheet, \{\s*kb: '([a-z-]+)'/g)].map((m) => m[1]).sort()
+assert.deepEqual(sheetUsers, ['disc-panel', 'pick-detail', 'skill-panel'])
+const sheet = src.slice(src.indexOf('function SkillSheet(props) {'), src.indexOf('const sheetRow = '))
+for (const part of ['kbs-panel-top', 'kbsf-dhero', 'kbsf-dpic kbsf-t', 'kbsf-dtitle', 'kbsf-dcols', 'kbsf-dcard kbs-audit', 'kbs-panel-acts kbsf-dacts']) assert.ok(sheet.includes(part), 'the sheet has ' + part)
+const twoPanels = src.slice(src.indexOf('function SkillPanel(props) {'), src.indexOf('// Escape closes a confirmation'))
+assert.ok(twoPanels.includes('props.art !== undefined ? props.art') && (twoPanels.match(/making: props\.making === true/g) || []).length === 2, 'both take the picture and its state from the page')
+assert.ok(!twoPanels.includes('kb-detail-head') && !twoPanels.includes("className: 'kbs-panel'"), 'neither draws its own header or frame any more')
+ok('a pick, an entry of Discover or a find, and a skill of Yours are drawn by ONE sheet: top bar, hero with the picture, facts beside audits, SKILL.md, sticky actions')
+
 console.log(pass + ' tests passed')

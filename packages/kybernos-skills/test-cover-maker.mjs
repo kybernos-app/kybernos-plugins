@@ -6,7 +6,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, wri
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { deflateSync, crc32 } from 'node:zlib'
-import { COVER_EXAMPLES, COVER_LIMITS, COVER_MODELS, COVER_STYLE, COVER_TAIL, coverState, coversDir, decodePng, encodePng, fallbackScene, hasCover, idle, keyOf, makeCover, realNet, requestCovers, scenePrompt, setAuto, settingsPath, trimPng } from './cover-maker.mjs'
+import { touchesEdge, COVER_EXAMPLES, COVER_LIMITS, COVER_MODELS, COVER_STYLE, COVER_TAIL, coverState, coversDir, decodePng, encodePng, fallbackScene, hasCover, idle, keyOf, makeCover, realNet, requestCovers, scenePrompt, setAuto, settingsPath, trimPng } from './cover-maker.mjs'
 
 let pass = 0
 const ok = (label) => { pass += 1; console.log('  ✓ ' + label) }
@@ -145,6 +145,8 @@ const jsonRes = (v, status = 200) => ({ ok: status === 200, status, json: async 
 // A cut-out that looks like a floating tile (a quarter of the box is see-through) and one that kept its whole background.
 const tilePng = () => { const w = 60; const h = 40; const rgba = picture(w, h, [10, 5, 49, 34]).rgba; for (let y = 0; y < h; y += 1) for (let x = 0; x < w; x += 1) if (x % 2 === 1 && y % 2 === 1) rgba[(y * w + x) * 4 + 3] = 0; return encodePng(w, h, rgba) }
 const roomPng = () => picture(60, 40, [0, 0, 59, 39]).png
+// a tile that reaches the bottom edge of the picture (the frame cropped it)
+const croppedPng = () => { const w = 60; const h = 40; const rgba = picture(w, h, [10, 5, 49, 39]).rgba; for (let y = 0; y < h; y += 1) for (let x = 0; x < w; x += 1) if (x % 2 === 1 && y % 2 === 1) rgba[(y * w + x) * 4 + 3] = 0; return encodePng(w, h, rgba) }
 const goodNet = (calls) => ({
   scene: async (n, d) => { calls.push(['scene', n, d]); return 'tiny people sorting support tickets into trays while one stamps urgent ones' },
   image: async (p) => { calls.push(['image', p]); return tilePng() },
@@ -179,6 +181,14 @@ const goodNet = (calls) => ({
   assert.deepEqual(await makeCover({ dsh, name: 'second-try', description: 'x', net: secondNet, now: NOW }), { ok: true, name: 'second-try', state: 'made', images: 2 })
   const sceneCall = (name) => JSON.parse(readFileSync(join(coversDir(dsh), name + '.cover.json'), 'utf8'))
   assert.equal(sceneCall('second-try').pictures, 2)
+  // a tile cropped by the frame is worth less than one that floats: the second try wins, and with only cropped ones the card still gets the best of them
+  let c = 0
+  const cropNet = { scene: async () => 'a harbour with tiny crane drivers and crates on a long pier', image: async () => (c += 1) === 1 ? croppedPng() : tilePng(), cutout: async (b) => b }
+  assert.deepEqual(await makeCover({ dsh, name: 'uncropped-second', description: 'x', net: cropNet, now: NOW }), { ok: true, name: 'uncropped-second', state: 'made', images: 2 })
+  assert.equal(touchesEdge(readFileSync(join(coversDir(dsh), 'uncropped-second.png'))), false)
+  const allCropped = { scene: async () => 'a harbour with tiny crane drivers and crates on a long pier', image: async () => croppedPng(), cutout: async (b) => b }
+  const lastResort = await makeCover({ dsh, name: 'only-cropped', description: 'x', net: allCropped, now: NOW })
+  assert.deepEqual([lastResort.ok, lastResort.images], [true, COVER_LIMITS.attempts])
   // a cut-out that fails once is tried again on the same picture (one picture paid for); two failures pay for a new picture
   let cuts = 0
   const flakyNet = { scene: async () => 'tiny chefs around a long table of dishes', image: async () => tilePng(), cutout: async (b) => { cuts += 1; if (cuts === 1) throw new Error('down'); return b } }

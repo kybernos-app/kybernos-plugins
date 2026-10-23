@@ -14,7 +14,8 @@ It is part of the **socle** (`socle: true` in `packages/kybernos-hub/catalog.jso
   sign-in). *Install* and *Details* appear on hover and on focus (always on touch); *Install* opens the usual confirmation and the page
   stays on Featured; *Use* copies `/name`. Categories, search and order come from the shared bar, which also switches **cards or list** (the list is one
   row per pick: a square thumbnail, the outcome, creator, count, verdicts and the same two actions, always visible); « Cover background » is
-  Tint or Plain. Both choices are kept per browser. A skill, **wherever it is clicked** (a pick, a card or row of the field, a find, Yours, Discover), opens in **a window over the page** and never switches tab: its name and ✕
+  Tint or Plain. Both choices are kept per browser. One layout for all of them: a pick, an entry of Discover or a find, and a skill of Yours are drawn by the same sheet (top bar, hero with the picture, facts beside the audits, `SKILL.md`, actions), and a skill that has no picture gets one made.
+  A skill, **wherever it is clicked** (a pick, a card or row of the field, a find, Yours, Discover), opens in **a window over the page** and never switches tab: its name and ✕
   stay at the top, its actions (Install / Use, View on GitHub, the star; Open folder, Edit, Duplicate, Delete for an installed one) stay at the foot, both sticky, so nothing
   needs a scroll. For a pick it is the picture and title as on the card, then the facts, the live audits and the start of the repository's real `SKILL.md`; Escape, a click
   outside and ✕ close it, and installing from there keeps it open (it flips to *Installed*). The categories (and the cover background) are the very top of the Featured tab.
