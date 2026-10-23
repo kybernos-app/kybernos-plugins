@@ -23641,10 +23641,14 @@ function renderFit(canvas, model, cam, opts){
         const t = byId.get(g.taskId)
         const nm = nameOf(g.taskId) + (g.n > 1 ? ' ×' + String(g.n) : '')
         const hm = kbBoardHm(g.atMs, zone)
-        return h('button', { key: g.key, type: 'button', className: 'kbbd-ev ' + (g.state === 'mixed' ? 'planned' : g.state) + (cal.sel === g.key ? ' sel' : ''), 'data-kb': 'board-event', 'data-state': g.state, 'data-task': g.taskId, 'aria-pressed': cal.sel === g.key ? 'true' : 'false',
-          'aria-label': nm + ', ' + hm + ', ' + kbt(CHIP[g.state] || 'tasks.board.chip.started'), title: nm + (t !== undefined ? ' · ' + kbTriggerParts(t, kbt, locale, zone).label : ''),
+        // What a run going weighs (slots, sub-agents, lighter): in the tooltip, and a leaf under the sign when the machine has it work lighter.
+        const wt = g.state === 'running' && t !== undefined ? kbLdRowWeight(props.load, t, true, nowMs) : null
+        const wtip = wt !== null && wt.kind === 'run' ? [wt.run.sessions > 1 ? kbt('kbld.chip.slots').replace('{n}', String(wt.run.sessions)) : kbt('kbld.chip.slot'), wt.run.subagents > 0 ? kbLdSubs(wt.run.subagents) : '', wt.run.lighter === true ? kbt('kbld.chip.lighter') : ''].filter((x) => x !== '').join(' · ') : ''
+        return h('button', { key: g.key, type: 'button', className: 'kbbd-ev ' + (g.state === 'mixed' ? 'planned' : g.state) + (cal.sel === g.key ? ' sel' : ''), 'data-kb': 'board-event', 'data-state': g.state, 'data-task': g.taskId, 'aria-pressed': cal.sel === g.key ? 'true' : 'false', 'data-kbld-level': wt !== null ? wt.level : undefined,
+          'aria-label': nm + ', ' + hm + ', ' + kbt(CHIP[g.state] || 'tasks.board.chip.started') + (wtip !== '' ? ', ' + wtip : ''), title: nm + (t !== undefined ? ' · ' + kbTriggerParts(t, kbt, locale, zone).label : '') + (wtip !== '' ? ' · ' + wtip : ''),
           onClick: () => setCal((c) => Object.assign({}, c, { sel: c.sel === g.key ? null : g.key })) },
-          (g.n > 1 ? null : h('span', { className: 'kbbd-tm' }, hm)), h('span', { className: 'kbbd-nm' }, nm), sign(g.state === 'mixed' ? 'planned' : g.state))
+          (g.n > 1 ? null : h('span', { className: 'kbbd-tm' }, hm)), h('span', { className: 'kbbd-nm' }, nm), sign(g.state === 'mixed' ? 'planned' : g.state),
+          wt !== null && wt.kind === 'run' && wt.run.lighter === true ? h('span', { className: 'kbbd-lt', 'data-kb': 'event-lighter', 'aria-hidden': 'true' }, kbLdIcon('leaf', 'currentColor')) : null)
       }
       let body = null
       let title = ''
@@ -23697,11 +23701,16 @@ function renderFit(canvas, model, cam, opts){
         const taz = t !== undefined && t.schedule !== null && typeof t.schedule === 'object' && typeof t.schedule.tz === 'string' && t.schedule.tz !== '' && t.schedule.tz !== zone ? t.schedule.tz : ''
         detail = h('div', { className: 'kbbd-detail', 'data-kb': 'board-detail' },
           h('div', { className: 'kbbd-detail-head' }, h('h4', null, nameOf(selected.taskId)), (selected.n > 1 ? h('span', { className: 'kbbd-when' }, kbt('tasks.board.cal.runs').replace('{n}', String(selected.n))) : null)),
-          selected.items.map((it) => h('div', { key: it.key, className: 'kbbd-detail-row' },
-            h('span', { className: 'kbbd-detail-when' }, kbBoardWhen(it.atMs, nowMs, zone, locale) + (taz !== '' ? ' · ' + kbt('tasks.board.cal.inzone').replace('{time}', kbBoardHm(it.atMs, taz)).replace('{zone}', taz) : '')),
-            stateChip(it.state),
-            h('span', { className: 'kbbd-detail-why' }, whyOf(it) + (it.via === 'webhook' ? ' · ' + kbt('tasks.trigger.webhook') : '')),
-            h('span', { className: 'kbbd-detail-acts' }, actionsOf(it)))))
+          selected.items.map((it) => {
+            const row = h('div', { key: it.key, className: 'kbbd-detail-row' },
+              h('span', { className: 'kbbd-detail-when' }, kbBoardWhen(it.atMs, nowMs, zone, locale) + (taz !== '' ? ' · ' + kbt('tasks.board.cal.inzone').replace('{time}', kbBoardHm(it.atMs, taz)).replace('{zone}', taz) : '')),
+              stateChip(it.state),
+              h('span', { className: 'kbbd-detail-why' }, whyOf(it) + (it.via === 'webhook' ? ' · ' + kbt('tasks.trigger.webhook') : '')),
+              h('span', { className: 'kbbd-detail-acts' }, actionsOf(it)))
+            // A run going weighs something; a run that is due and held back by the machine says so, with its place in line.
+            const w = t !== undefined && (it.state === 'running' || (it.state === 'planned' && it.atMs <= nowMs)) ? kbLdRowWeight(props.load, t, it.state === 'running', nowMs) : null
+            return h(React.Fragment, { key: it.key }, row, w !== null ? kbLdBlock(w, kbt('tasks.board.chip.running')) : null)
+          }))
       }
       const truncated = plan !== null && Array.isArray(plan.truncated) === true && plan.truncated.length > 0
       return h('div', { className: 'kbbd-root', 'data-kb': 'board-calendar' },
@@ -32713,6 +32722,8 @@ button.kbbd-chip:hover{background:var(--dsw-alias-interactive-bg-hover,#f0f0f0)}
 .kbbd-detail{border:1px solid var(--dsw-alias-border-l2,#dcdcdc);border-radius:14px;background:var(--dsw-alias-bg-layer-2,#f6f6f6);padding:12px 14px;display:flex;flex-direction:column;gap:8px;min-width:0}
 .kbbd-detail-head{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
 .kbbd-detail h4{margin:0;font-size:14px;color:var(--dsw-alias-label-primary,#111)}
+.kbbd-detail .kbld-block{margin:0}
+.kbbd-lt{position:absolute;top:22px;inset-inline-end:6px;width:14px;display:inline-flex;justify-content:center;color:var(--kbld-t)}
 .kbbd-detail-row{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;font-size:12.5px;min-width:0}
 .kbbd-detail-when{font-variant-numeric:tabular-nums;color:var(--dsw-alias-label-secondary,#555)}
 .kbbd-detail-why{flex:1 1 220px;min-width:0;color:var(--dsw-alias-label-tertiary,#777);overflow-wrap:anywhere}
