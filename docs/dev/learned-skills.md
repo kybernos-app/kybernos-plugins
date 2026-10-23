@@ -186,9 +186,14 @@ what fits the person, **filters what it finds in code (never by a model)** and k
 (0600, atomic, one writer at a time per home; at most 12 listed, a find leaves after 60 days). **It installs nothing.** A find is drawn on the Featured tab as one
 of the picks (« Found for you »); Install goes through the same confirmation as any Discover entry, and a skill that comes from outside never applies itself.
 
-- **What it asks.** The goals the person ticked (`kybernos/onboarding.json › goals`, a hyphen is a space), then, from six installed skills up, the words that
-  three to four in ten of their descriptions share (a word every skill holds is filler: `description`, `asks`, `tool`, `plugin`… are left out). At most eight questions,
-  ten answers each.
+- **What it asks.** Each ticked goal (`kybernos/onboarding.json › goals`) is asked with the **search phrases its domain pack gives it** (`goals[].search`, one or two
+  lowercase English words such as `support ticket triage` or `inventory management`; `docs/dev/domain-packs.md`): the first phrase of every goal, then the second ones;
+  a goal whose pack gives none is asked with its id as words. The index matches words, not sentences (measured on the real index: « Sort customer requests » finds one
+  unrelated skill, « support ticket triage » finds the right ones, and a bare « stock » finds the stock market). The words of the person's own skills are asked **only
+  when no goal is ticked** (from six skills up, the words that three to four in ten of their descriptions share): next to goals they were noise (« kyber », « asks »,
+  « description »). At most eight questions, ten answers each. The index is thin for some fields (real estate, health, education: little above 1,000 installs): those
+  scans find little, and say so.
+  The relay of the index rate-limits a burst (HTTP 429, then 403 for a while): a scan is eight questions and a few dozen lookups, never a loop.
 - **The filter, in this order** (`filterCandidates`; each refusal is counted by reason in the run record): a skill that is not on GitHub (it cannot be installed), a bad
   name, one already installed, one the person said « Not interested » to (180 days), one already found, fewer than 1,000 installs, **a match that answers no goal and
   only one word of the person's skills** (`weak_match`), then 24 audit lookups shared out between the questions (the goals first, so a broad word cannot use them
@@ -200,7 +205,7 @@ of the picks (« Found for you »); Install goes through the same confirmation a
 - **The agent tool.** `skill_scout` (no parameters; `learned-tools.mjs`) runs the same scan for the automation and answers with the names and why; the prompt chunk
   tells the agent to call it only when asked or by the schedule.
 - **On the screen.** The finds come after the field's skills, as the same cards and rows as the picks, with the audits as pills, `Not interested` (leaves at once) and
-  Details (Discover). A foot line says when it last scanned, how many are new and how many the filter refused, with **Scan now** and **Make it weekly** (a chat that
+  Details (the skill's window, on the same tab). A foot line says when it last scanned, how many are new and how many the filter refused, with **Scan now** and **Make it weekly** (a chat that
   starts the template, through `window.__KB_OPEN__.template('skill-scout')`).
 - **Measured.** A first real scan on the sandbox (goals tickets, stock, letters, outreach): 70 answers, most refused by the audit rule (18 of the 70 had a warning),
   which is the filter doing its job, and the single-word matches were noise (« harness », « description »), hence `weak_match` and the filler rule above. Relevance is
@@ -211,11 +216,16 @@ of the picks (« Found for you »); Install goes through the same confirmation a
 A Featured card with no picture (a skill of the field, a find, a pick whose picture cannot be read) gets one made **the way the shipped ones were**
 (`docs/dev/skills-featured-covers.md`): the same style sheet and tail, a scene written by `meta-llama/Llama-3.3-70B-Instruct-Turbo` from the skill's name and description (a
 plain scene when it does not answer), `FLUX-2-pro` for the picture, `Bria/remove_background` for the cut-out, trimmed to its alpha box. The file is
-`<DSH home>/kybernos/skills-featured/<name>.png` with a `.cover.json` that keeps the scene. It costs about 0.035 USD a picture: at most **eight a day**, one at a time,
-only with `DEEPINFRA_API_KEY` (the environment, else `<DSH home>/.credentials.yaml`), a failed one is not retried for an hour, and the person's switch
+`<DSH home>/kybernos/skills-featured/<name>.png` with a `.cover.json` that keeps the scene. It costs about 0.035 USD a picture: at most **sixteen a day** (every picture paid for counts, a failed card's too), one at a time,
+only with `DEEPINFRA_API_KEY` (the environment, else `<DSH home>/.credentials.yaml`), a failed one is not retried for a quarter of an hour, and the person's switch
 (`skills-covers.json › auto`, on by default; « Turn off » on the Featured foot line) stops it. Routes: `GET covers/state?names=`, `POST covers/make {items}`, `POST covers/auto {on}`.
 The page asks once per card, looks again every four seconds while pictures are made, and shows the new file; a tile pulses meanwhile. Network: `api.deepinfra.com`, and
 `temp.bria.ai` for the cut-out Bria hands back (https only, no redirect, nothing else is fetched).
+
+**The cover must be a floating tile.** A first real run made a library with its walls (85 % of the trimmed picture opaque; the shipped covers are 40 to 55 %). The scene
+prompt now asks for ONE compact miniature, and the cut-out is checked: up to three pictures are tried until the opaque part is at most 72 % (at least 12 %), the closest to a
+tile is kept, none is written above 80 %. A cut-out call that fails is tried twice on the same picture before a new picture is paid for; a picture call that fails is not
+repeated (the card waits). The sidecar `<name>.cover.json` keeps `opaqueShare` and the number of pictures.
 
 ## The seam for automations
 

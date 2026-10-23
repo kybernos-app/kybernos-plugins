@@ -31,7 +31,8 @@ and logged, it never stops the host).
 | `legacyJobs` | ids the old 12-profession step stored (`soft`, `etudes`…): a saved `profil` of that id reads as this field |
 | `menu.labels`, `menu.hide` | rename our menu rows (`kyber dashboards aiteams projects deliverables tasks skills connectors documents`); hide only `documents` |
 | `mode`, `agents` | the display mode the field starts from (`bureau`, or `code` for Development) and how much its agents may do alone by default: `{ preset: prudent / balanced / auto, why: text }` (the reason is shown under the choice) |
-| `goals[]` | `id`, `name`, `title`, `desc`, `skills`, `teams`, `connectors`, `automations`, `soon`, `starter` |
+| `goals[]` | `id`, `search`, `name`, `title`, `desc`, `skills`, `teams`, `connectors`, `automations`, `soon`, `starter` |
+| `goals[].search` | one or two **search phrases** for the skill scout (`docs/dev/learned-skills.md`): lowercase English words, 2 to 32 characters (`support ticket triage`, `inventory management`), none twice inside a pack. The public index matches words, not sentences, so a title such as « Sort customer requests » finds nothing useful: write what a skill would be called. Checked in `test-domain-pack.mjs`; measured against the real index on 2026-10-23 (some fields have little above 1,000 installs) |
 | `goals[].skills` | `{ source, name, d }`. `source` is a GitHub `owner/repo` (installed through `/kybernos-skills/install`, which refuses a pair that does not exist) or `kybernos` for a skill this plugin ships in `domains/skills/<name>/SKILL.md` |
 | `goals[].teams` | ids of the Agent Teams of the marketplace (`studencik`, `research-desk`, `inbound-closer`), created through `kybers/create` |
 | `goals[].connectors` | slugs of apps of the Connectors catalogue (`packages/kybernos-composio/catalog.js`, at most 4, a test checks each exists): **suggested**, never connected for the person (each needs their own authorisation) |

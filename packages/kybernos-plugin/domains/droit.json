@@ -71,6 +71,7 @@
   "goals": [
     {
       "id": "contracts",
+      "search": ["contract review", "legal risk"],
       "name": {
         "en": "Contracts",
         "fr": "Contrats"
@@ -119,6 +120,7 @@
     },
     {
       "id": "deadlines",
+      "search": ["legal deadlines", "deadline reminders"],
       "name": {
         "en": "Deadlines",
         "fr": "Échéances"
@@ -166,6 +168,7 @@
     },
     {
       "id": "watch",
+      "search": ["legal research", "case law"],
       "name": {
         "en": "Watch",
         "fr": "Veille"
@@ -216,6 +219,7 @@
     },
     {
       "id": "time",
+      "search": ["time tracking", "timesheet"],
       "name": {
         "en": "Time",
         "fr": "Temps"
@@ -263,6 +267,7 @@
     },
     {
       "id": "drafting",
+      "search": ["legal drafting", "legal writing"],
       "name": {
         "en": "Drafting",
         "fr": "Rédaction"

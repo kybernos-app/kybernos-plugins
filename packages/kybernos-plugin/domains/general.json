@@ -31,6 +31,7 @@
   "goals": [
     {
       "id": "documents",
+      "search": ["document editing", "pdf"],
       "name": {
         "en": "Documents",
         "fr": "Documents"
@@ -72,6 +73,7 @@
     },
     {
       "id": "sheets",
+      "search": ["spreadsheet", "data cleaning"],
       "name": {
         "en": "Spreadsheets",
         "fr": "Tableurs"
@@ -104,6 +106,7 @@
     },
     {
       "id": "slides",
+      "search": ["slide deck", "presentation"],
       "name": {
         "en": "Slides",
         "fr": "Présentations"
@@ -136,6 +139,7 @@
     },
     {
       "id": "research",
+      "search": ["deep research", "literature review"],
       "name": {
         "en": "Research",
         "fr": "Recherche"

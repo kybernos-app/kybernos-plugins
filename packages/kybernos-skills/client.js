@@ -1370,6 +1370,18 @@ window.__ModuleLoader__.load({
 .kbs-root .kbs-list{min-width:0}
 .kbs-root .kbs-panel{position:sticky;top:12px;display:flex;flex-direction:column;gap:12px;min-width:0;box-sizing:border-box;padding:16px 18px;border:1px solid var(--dsw-alias-border-l1);border-radius:16px;background:var(--dsw-alias-bg-layer-1);max-height:calc(100vh - 32px);overflow:auto}
 .kbs-root .kbs-panel>*{flex:0 0 auto}
+/* A skill opened: the panel's own content inside a window. The window scrolls; the name and ✕ are sticky at its top, the actions sticky at its foot. */
+.kbs-root .kbs-win{width:min(1000px,96vw);max-height:92vh;overflow:auto;box-sizing:border-box;padding:0 22px;background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l2);border-radius:18px;box-shadow:0 24px 60px rgba(0,0,0,.6);outline:none;display:flex;flex-direction:column}
+.kbs-root .kbs-win>.kbs-panel,.kbs-root .kbs-win>.kbsf-detail{flex:1 0 auto}
+.kbs-root .kbs-win .kbs-panel{position:static;max-height:none;overflow:visible;border:0;border-radius:0;background:transparent;padding:0;min-height:100%}
+.kbs-root .kbs-win .kbs-panel-top{position:sticky;top:0;z-index:3;margin:0 -22px;padding:14px 22px 10px;background:var(--dsw-alias-bg-layer-1);border-bottom:1px solid var(--dsw-alias-border-l1)}
+.kbs-root .kbs-win .kbs-panel-acts,.kbs-root .kbs-win .kbs-panel-foot{bottom:0;margin:auto -22px 0;padding:12px 22px 14px}
+.kbs-root .kbs-win .kbs-panel-foot .kbs-panel-acts{margin:0;padding:0}
+.kbs-root .kbs-win .kbsf-detail{display:flex;flex-direction:column;gap:16px;min-height:100%;margin:0}
+.kbs-root .kbs-win .kb-local-body,.kbs-root .kbs-win .kbs-panel .kb-local-body{max-height:none;overflow:visible}
+.kbs-root .kbs-win .kbsf-dpic{min-height:300px}
+.kbs-root .kbs-win .kbsf-dtx{padding:24px 28px}
+.kbs-root .kbs-win .kbsf-dacts{margin:0}
 .kbs-root .kbs-panel-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .kbs-root .kbs-panel-top .kb-tool{width:30px;height:30px;border-radius:9px;flex:0 0 auto}
 .kbs-root .kbs-panel .kb-detail-head .kb8-tile.lg{width:44px;height:44px;border-radius:14px;flex:0 0 auto}
@@ -3042,8 +3054,8 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
           const noDetails = curated !== true && own === undefined && sk.shipped === true
           const openIt = () => {
             if (curated === true) { setDetail(x); setLocal(null); setModal(null); setAudit(null); return }
-            if (own !== undefined) { setMode('yours'); setDetail(null); setModal(null); setReview(null); setJournalOpen(false); setLocal(own); return }
-            if (sk.shipped !== true) { setMode('discover'); setDetail(x); setLocal(null); setModal(null); setAudit(null) }
+            if (own !== undefined) { setDetail(null); setModal(null); setReview(null); setJournalOpen(false); setLocal(own); return }
+            if (sk.shipped !== true) { setDetail(x); setLocal(null); setModal(null); setAudit(null) }
           }
           return {
             kb: 'field-skill', isIn, openIt, noDetails, ticked: sk.ticked === true, busy: shipBusy[sk.name] === true,
@@ -3064,7 +3076,7 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
           return {
             kb: 'scout-find', isIn: skills.some((y) => y.name === f.name), ticked: false, dot: null, onSkip: () => skipFind(f),
             why: Array.isArray(f.why) && f.why.length > 0 ? t('scout.why', { what: f.why.join(', ') }) : undefined,
-            openIt: () => { setMode('discover'); setDetail(x); setLocal(null); setModal(null); setAudit(null) },
+            openIt: () => { setDetail(x); setLocal(null); setModal(null); setAudit(null) },
           }
         }
         // What the first group holds: the skills the saved field puts forward (each with a small dot in the field's colour), then the scout's finds. Same cards and rows as the picks below.
@@ -3141,8 +3153,10 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
             const ask = j.can === true ? want.filter((n) => items[n] === 'none' && coverAsked.current.has(n) === false) : []
             const pending = want.some((n) => items[n] === 'making' || items[n] === 'queued')
             if (ask.length > 0) {
-              ask.forEach((n) => coverAsked.current.add(n))
-              postJson('/kybernos-skills/covers/make', { items: wantedCovers.filter((w) => ask.indexOf(w.name) >= 0).slice(0, 12) }).then((r) => {
+              // The host takes twelve names a request: the others are asked for on the next look.
+              const batch = ask.slice(0, 12)
+              batch.forEach((n) => coverAsked.current.add(n))
+              postJson('/kybernos-skills/covers/make', { items: wantedCovers.filter((w) => batch.indexOf(w.name) >= 0) }).then((r) => {
                 if (stop || alive.current !== true) return
                 if (r !== null && typeof r === 'object' && r.ok === true && r.items !== null && typeof r.items === 'object') setCovers((m) => ({ ...m, items: { ...m.items, ...r.items } }))
                 clearTimeout(coverTimer.current); coverTimer.current = setTimeout(look, 4000)
@@ -3156,8 +3170,8 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
           if (picks.phase === 'loading') return skeletonOf('cards', 6) || h('div', { className: 'kb-empty' }, h('span', { className: 'kb8-mono' }, t('pick.loading')))
           const counts = pickCounts()
           const list = pickList()
+          // The categories (and the cover background) are the top of the tab, above everything it lists.
           return h('div', null,
-            renderFirstRows(),
             h('div', { className: 'kbsf-chips' },
               chip(t('pick.all') + ' ' + picks.items.length, pcat === 'all', () => setPcat('all'), 'all'),
               PICK_CATS.filter((c) => counts[c] > 0).map((c) => chip(t('pcat.' + c) + ' ' + counts[c], pcat === c, () => setPcat(c), c)),
@@ -3166,6 +3180,7 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
               h('span', { className: 'kbsf-seg', role: 'group', 'aria-label': t('pick.bg') },
                 h('button', { type: 'button', className: coverBg === 'tint' ? 'on' : '', 'aria-pressed': coverBg === 'tint' ? 'true' : 'false', title: t('pick.bg') + sep() + t('pick.bg.tint'), 'aria-label': t('pick.bg') + sep() + t('pick.bg.tint'), 'data-kb': 'pick-bg-tint', onClick: () => setCoverBg('tint') }, h('i', { className: 'sw tint' })),
                 h('button', { type: 'button', className: coverBg === 'plain' ? 'on' : '', 'aria-pressed': coverBg === 'plain' ? 'true' : 'false', title: t('pick.bg') + sep() + t('pick.bg.plain'), 'aria-label': t('pick.bg') + sep() + t('pick.bg.plain'), 'data-kb': 'pick-bg-plain', onClick: () => setCoverBg('plain') }, h('i', { className: 'sw plain' })))),
+            renderFirstRows(),
             list.length === 0
               ? empty(t('pick.none'), t('pick.nonehint'))
               : (views.featured === 'list'
@@ -3318,9 +3333,7 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
         // ── Featured: a pick, opened. It uses the width of the page instead of a side panel: the picture and the title as on the card, big, then
         // the facts, the audits and the start of SKILL.md side by side. The data is what the Discover panel already reads (the repository's
         // real SKILL.md, the live audits); only the arrangement is new.
-        const renderPickDetail = () => {
-          const p = picks.items.find((it) => detail !== null && it.source === detail.source && it.id === detail.name)
-          if (p === undefined) return renderFeatured()
+        const renderPickDetail = (p) => {
           const x = pickAsEntry(p)
           const isIn = installed(x)
           const pv = preview.state === 'ready' && preview.data !== null ? preview.data : null
@@ -3345,7 +3358,9 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
                   h('span', null, a.provider + (a.summary !== '' ? ' — ' + a.summary : ''))))))
           const title = pickText(p.title)
           return h('article', { className: 'kbsf-detail' + (coverBg === 'plain' ? ' kbsf-plain' : ''), 'data-kb': 'pick-detail', 'aria-label': title },
-            h('button', { type: 'button', className: 'kbs-link kbsf-dback', 'data-kb': 'pick-back', onClick: () => setDetail(null) }, icon('back', 14), ' ' + t('pick.back')),
+            h('div', { className: 'kbs-panel-top' },
+              h('span', { className: 'kb8-mono kbs-nowrap' }, 'Featured › ' + title),
+              h('button', { type: 'button', className: 'kb-tool', 'data-kb': 'pick-back', 'aria-label': t('panel.close'), title: t('panel.close'), onClick: () => setDetail(null) }, '✕')),
             h('div', { className: 'kbsf-dhero' },
               h('div', { className: 'kbsf-dpic kbsf-t', 'data-cat': p.category },
                 pickCover(p),
@@ -3355,12 +3370,6 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
                 h('div', { className: 'kbsf-meta' }, pickBy(p), pickCnt(p), h('span', { className: 'kb8-mono' }, '/' + p.id)),
                 h('p', { className: 'kbsf-dout' }, pickText(p.outcome)),
                 pickPills(p, isIn),
-                h('div', { className: 'kbsf-dacts' },
-                  isIn === true
-                    ? h('button', { type: 'button', className: 'kb8-primary', 'data-kb': 'pick-use', onClick: () => copy('/' + p.id) }, icon('code', 15), h('span', null, t('pick.use')))
-                    : h('button', { type: 'button', className: 'kb8-primary', 'data-kb': 'pick-install', onClick: () => { setAskInstall(x); setErrors((m) => { const n = { ...m }; delete n.__modal; return n }) } }, icon('dl', 15), h('span', null, t('btn.install'))),
-                  h('a', { href: ghUrl, target: '_blank', rel: 'noreferrer', className: 'kb8-ghost', 'data-kb': 'act-github' }, icon('github', 15), h('span', null, t('dp.viewgh'))),
-                  pickStar(p, isIn, 'kbsf-rstar')),
                 h('div', { className: 'kbsf-try' },
                   h('span', { className: 'kb-section-label' }, t('pick.try')),
                   h('span', { className: 'kbsf-trytxt' }, pickText(p.prompt)),
@@ -3381,7 +3390,14 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
                 h('span', { className: 'kb8-mono' }, t('det.thirdParty')))),
             h('section', { className: 'kbsf-dcard' },
               h('span', { className: 'kb-section-label' }, t('dp.start')),
-              skillText))
+              skillText),
+            // The actions are the window's foot: always in view, whatever the scroll.
+            h('div', { className: 'kbs-panel-acts kbsf-dacts', 'data-kb': 'pick-acts' },
+              isIn === true
+                ? h('button', { type: 'button', className: 'kb8-primary', 'data-kb': 'pick-use', onClick: () => copy('/' + p.id) }, icon('code', 15), h('span', null, t('pick.use')))
+                : h('button', { type: 'button', className: 'kb8-primary', 'data-kb': 'pick-install', onClick: () => { setAskInstall(x); setErrors((m) => { const n = { ...m }; delete n.__modal; return n }) } }, icon('dl', 15), h('span', null, t('btn.install'))),
+              h('a', { href: ghUrl, target: '_blank', rel: 'noreferrer', className: 'kb8-ghost', 'data-kb': 'act-github' }, icon('github', 15), h('span', null, t('dp.viewgh'))),
+              pickStar(p, isIn, 'kbsf-rstar')))
         }
 
         const renderPanel = () => {
@@ -3397,24 +3413,34 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
               })
             }
           }
-          if (mode === 'yours' && local !== null) {
+          return null
+        }
+
+        // A skill opened, wherever it was clicked (a pick, a card or row of the field, a find, Yours, Discover): a window over the page, never a switch of tab. What it holds
+        // is what each place already showed (the pick's page, the skill's own panel, the install panel); only the frame is shared.
+        const renderPopup = () => {
+          if (local !== null) {
             const s = skills.find((x) => skillKey(x) === skillKey(local)) || local
-            return h(SkillPanel, {
-              s, read: localRead, err: errors[skillKey(s)],
-              busyKind: ['reveal', 'edit', 'duplicate', 'delete'].find((kd) => busy['act:' + kd + ':' + skillKey(s)] === true) || '',
-              learned: learnedByName.get(s.name) || null, shareLocked: learnedByName.has(s.name) && learned.sensitive === true && learned.settings !== null && learned.settings.teamPriv !== true, onShare: () => openShare(s.name),
-              onClose: () => setLocal(null), onAct: (kind) => { if (kind === 'delete') setAskDelete(s); else skillAct(kind, s) }, onCopy: copy
-            })
+            return h(SkillPopup, { label: s.name, onClose: () => setLocal(null) },
+              h(SkillPanel, {
+                s, read: localRead, err: errors[skillKey(s)],
+                busyKind: ['reveal', 'edit', 'duplicate', 'delete'].find((kd) => busy['act:' + kd + ':' + skillKey(s)] === true) || '',
+                learned: learnedByName.get(s.name) || null, shareLocked: learnedByName.has(s.name) && learned.sensitive === true && learned.settings !== null && learned.settings.teamPriv !== true, onShare: () => openShare(s.name),
+                onClose: () => setLocal(null), onAct: (kind) => { if (kind === 'delete') setAskDelete(s); else skillAct(kind, s) }, onCopy: copy
+              }))
           }
-          if (mode === 'discover' && detail !== null) {
+          if (detail !== null) {
             const x = detail
+            const p = picks.items.find((it) => it.source === x.source && it.id === x.name)
+            if (p !== undefined) return h(SkillPopup, { label: pickText(p.title), onClose: () => setDetail(null) }, renderPickDetail(p))
             const c = curatedOf(x)
-            return h(DiscoverPanel, {
-              x, preview, audit, dest: installDest, crumb: 'Discover', owner: c.owner, curated: c.curated, installed: skills.some((s) => s.name === x.name),
-              starred: featNames.has(x.name), onClose: () => setDetail(null),
-              onInstall: () => { setAskInstall(x); setErrors((m) => { const n = { ...m }; delete n.__modal; return n }) },
-              onStar: () => toggleFeatured(x.name)
-            })
+            return h(SkillPopup, { label: x.name, onClose: () => setDetail(null) },
+              h(DiscoverPanel, {
+                x, preview, audit, dest: installDest, crumb: mode === 'featured' ? 'Featured' : 'Discover', owner: c.owner, curated: c.curated, installed: skills.some((s) => s.name === x.name),
+                starred: featNames.has(x.name), onClose: () => setDetail(null),
+                onInstall: () => { setAskInstall(x); setErrors((m) => { const n = { ...m }; delete n.__modal; return n }) },
+                onStar: () => toggleFeatured(x.name)
+              }))
           }
           return null
         }
@@ -3494,7 +3520,7 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
         }
 
         const panel = renderPanel()
-        const list = h('div', null, mode === 'featured' ? (detail !== null ? renderPickDetail() : renderFeatured()) : (mode === 'yours' ? renderYours() : (mode === 'team' ? renderTeam() : renderDiscover())))
+        const list = h('div', null, mode === 'featured' ? renderFeatured() : (mode === 'yours' ? renderYours() : (mode === 'team' ? renderTeam() : renderDiscover())))
         const body = panel === null
           ? list
           : h('div', { className: 'kbs-split open' }, h('div', { className: 'kbs-list' }, list), panel)
@@ -3653,6 +3679,7 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
               : null,
             KbBar !== null ? null : (mode === 'team' ? (tsum.phase === 'ready' && teamOpen === null ? renderTeamToolbar() : null) : renderToolbar())),
           h('div', { className: 'kb8-page' }, body),
+          renderPopup(),
           renderModal(),
           notice !== null ? h('div', { className: 'kbs-toast' + (notice.kind === 'err' ? ' err' : '') },
             icon(notice.kind === 'err' ? 'info' : 'check', 15), h('span', null, notice.text),
@@ -4235,6 +4262,25 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
           document.addEventListener('keydown', onKey, true)
           return () => document.removeEventListener('keydown', onKey, true)
         }, [])
+      }
+
+      // A skill, opened, is a window over the page: its name and ✕ stay at the top and its actions at the foot (both sticky inside the window), so nothing needs a scroll to be
+      // reached. Escape, a click outside and ✕ close it; a confirmation drawn above it (Install, Delete) takes Escape first; focus goes in and comes back where it was.
+      function SkillPopup(props) {
+        const box = React.useRef(null)
+        React.useEffect(() => {
+          const before = document.activeElement
+          try { if (box.current !== null) box.current.focus() } catch (e) { /* a window that cannot take focus still works with the mouse */ }
+          const onKey = (e) => {
+            if (e === null || e.key !== 'Escape') return
+            if (document.querySelector('[data-kb="install-confirm"], [data-kb="delete-confirm"]') !== null) return
+            e.stopPropagation(); props.onClose()
+          }
+          document.addEventListener('keydown', onKey, true)
+          return () => { document.removeEventListener('keydown', onKey, true); try { if (before !== null && before !== undefined && typeof before.focus === 'function' && document.body.contains(before)) before.focus() } catch (e) { /* gone */ } }
+        }, [])
+        return h('div', { className: 'kb-overlay kbs-win-back', onClick: props.onClose },
+          h('div', { className: 'kbs-win', ref: box, tabIndex: -1, role: 'dialog', 'aria-modal': 'true', 'aria-label': props.label, 'data-kb': 'skill-popup', onClick: (e) => e.stopPropagation() }, props.children))
       }
 
       // « Install ? » — before anything is downloaded or written, what the button will do, for THIS skill: its repository, the folder it

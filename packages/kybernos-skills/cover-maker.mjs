@@ -24,7 +24,9 @@ export const COVER_EXAMPLES = {
   "gws-gmail-triage": "an overflowing inbox of envelopes being sorted by tiny people into three coloured trays, a calm person at the centre holding a checklist, the pile getting smaller",
   "seo-audit": "tiny inspectors with magnifying glasses and ladders examining a giant web page as if it were a landmark, one climbing a tall ladder to fix a signpost at the top, a golden star placed at the very top of a ranked list of results"
 }
-export const COVER_LIMITS = Object.freeze({ perDay: 8, failedMs: 3600 * 1000, sceneMax: 480, descriptionMax: 400, timeoutMs: 90000, imageMax: 12 * 1024 * 1024 })
+// `attempts`: pictures tried for one card when the cut-out is not a floating tile (a room that kept its walls); `perDay` counts every picture paid for, a failed one included;
+// `shareMin` / `shareMax`: the part of the trimmed picture that is opaque (the shipped covers are 40 to 55 %, a room that was not cut out is 85 %).
+export const COVER_LIMITS = Object.freeze({ perDay: 16, attempts: 3, shareMin: 0.12, shareMax: 0.8, shareGood: 0.72, failedMs: 15 * 60 * 1000, sceneMax: 480, descriptionMax: 400, timeoutMs: 90000, imageMax: 12 * 1024 * 1024 })
 export const COVER_MODELS = Object.freeze({ chat: 'meta-llama/Llama-3.3-70B-Instruct-Turbo', image: 'black-forest-labs/FLUX-2-pro', cutout: 'Bria/remove_background' })
 const DEEPINFRA = 'https://api.deepinfra.com'
 
@@ -55,7 +57,8 @@ export const fallbackScene = (name, description) => {
 
 export const scenePrompt = (name, description) => ({
   system: 'You write ONE scene for an illustrated cover of a skill, in the same register as these examples (tiny people at work in a miniature isometric world, many small props, one clear idea). '
-    + 'At most 55 words, one sentence or two, no title, no quotation marks. Never put any text, letters, numbers or logos in the scene. Examples:\n' + Object.keys(COVER_EXAMPLES).map((k) => '- ' + k + ': ' + COVER_EXAMPLES[k]).join('\n'),
+    + 'At most 55 words, one sentence or two, no title, no quotation marks. Never put any text, letters, numbers or logos in the scene. '
+    + 'It is ONE compact miniature that can float alone on a small tile: never a whole room, street or landscape, nothing that needs a wall or a backdrop. Examples:\n' + Object.keys(COVER_EXAMPLES).map((k) => '- ' + k + ': ' + COVER_EXAMPLES[k]).join('\n'),
   user: 'Skill: ' + name.replace(/-/g, ' ') + '\nWhat it does: ' + clean(description, COVER_LIMITS.descriptionMax) + '\nScene:'
 })
 
@@ -185,6 +188,15 @@ export const trimPng = (buf) => {
   return encodePng(w, h, out)
 }
 
+/** The part of a PNG's pixels that are opaque (alpha above 245), or null when the picture cannot be read. A floating tile is 40 to 55 %; 85 % is a room that was not cut out. */
+export const opaqueShare = (buf) => {
+  const img = decodePng(buf)
+  if (img === null) return null
+  let opaque = 0
+  for (let i = 3; i < img.rgba.length; i += 4) if (img.rgba[i] > 245) opaque += 1
+  return opaque / (img.width * img.height)
+}
+
 // ── what is made, what waits, what failed ─────────────────────────────────────────────────────────────────────
 const readSettings = (dsh) => {
   try {
@@ -225,29 +237,47 @@ export const coverState = ({ dsh, names, now = Date.now(), env = process.env }) 
   return { ok: true, can: s.auto === true && keyOf(dsh, env) !== '', auto: s.auto, key: keyOf(dsh, env) !== '', left, items }
 }
 
-/** Makes one cover now: scene, picture, cut-out, trim, write. Returns `{ ok, name }` or `{ ok: false, error }`. `net` is replaceable (tests). */
+/**
+ * Makes one cover now: scene, picture, cut-out, trim, check, write. Up to `attempts` pictures are tried until the cut-out is a floating tile (the opaque part of the
+ * trimmed picture between `shareMin` and `shareMax`; the first one under `shareGood` is taken at once, otherwise the closest to a tile); a cut-out that fails is tried
+ * twice on the same picture before a new one is paid for. Returns `{ ok, name, images }` (`images`: how many pictures were paid for) or `{ ok: false, error, images }`.
+ * `net` is replaceable (tests).
+ */
 export const makeCover = async ({ dsh, name, description, net, now = Date.now() }) => {
-  if (SKILL_NAME_RE.test(name) === false) return { ok: false, error: 'bad_name' }
-  if (hasCover(dsh, name)) return { ok: true, name, state: 'have' }
+  if (SKILL_NAME_RE.test(name) === false) return { ok: false, error: 'bad_name', images: 0 }
+  if (hasCover(dsh, name)) return { ok: true, name, state: 'have', images: 0 }
   let scene = ''
   try { scene = await net.scene(name, description) } catch (e) { scene = '' }
   const usedFallback = scene === ''
   if (usedFallback) scene = fallbackScene(name, description)
-  const prompt = scene + '. ' + COVER_STYLE + '. ' + COVER_TAIL
-  let picture = null; let cut = null
-  try { picture = await net.image(prompt) } catch (e) { picture = null }
-  if (picture === null) return { ok: false, error: 'image_failed' }
-  try { cut = await net.cutout(picture) } catch (e) { cut = null }
-  if (cut === null) return { ok: false, error: 'cutout_failed' }
-  const final = trimPng(cut)
+  let images = 0
+  let best = null
+  let failure = 'image_failed'
+  for (let attempt = 0; attempt < COVER_LIMITS.attempts; attempt += 1) {
+    const prompt = scene + '. ' + COVER_STYLE + '. ' + COVER_TAIL + (attempt > 0 ? ' The whole scene is one compact tile with clear empty white space all around it.' : '')
+    let picture = null
+    try { picture = await net.image(prompt) } catch (e) { picture = null }
+    // A picture that did not come back was not paid for and a second call would meet the same fault: the card waits (`failedMs`) instead.
+    if (picture === null) { failure = 'image_failed'; break }
+    images += 1
+    let cut = null
+    for (let again = 0; again < 2 && cut === null; again += 1) { try { cut = await net.cutout(picture) } catch (e) { cut = null } }
+    if (cut === null) { failure = 'cutout_failed'; continue }
+    const final = trimPng(cut)
+    const share = opaqueShare(final)
+    if (share === null || share <= COVER_LIMITS.shareGood && share >= COVER_LIMITS.shareMin) { best = { final, share }; break }
+    failure = 'not_a_tile'
+    if (share >= COVER_LIMITS.shareMin && share <= COVER_LIMITS.shareMax && (best === null || Math.abs(share - 0.5) < Math.abs(best.share - 0.5))) best = { final, share }
+  }
+  if (best === null) return { ok: false, error: failure, images }
   const dir = coversDir(dsh)
   mkdirSync(dir, { recursive: true })
   const file = join(dir, name + '.png')
   const temp = join(dir, '.' + name + '.' + String(process.pid) + '.tmp')
-  writeFileSync(temp, final)
+  writeFileSync(temp, best.final)
   renameSync(temp, file)
-  writeFileSync(join(dir, name + '.cover.json'), JSON.stringify({ scene, fallbackScene: usedFallback, style: 'COVER_STYLE', models: COVER_MODELS, madeAt: new Date(now).toISOString() }, null, 2) + '\n', { mode: 0o600 })
-  return { ok: true, name, state: 'made' }
+  writeFileSync(join(dir, name + '.cover.json'), JSON.stringify({ scene, fallbackScene: usedFallback, style: 'COVER_STYLE', models: COVER_MODELS, opaqueShare: best.share, pictures: images, madeAt: new Date(now).toISOString() }, null, 2) + '\n', { mode: 0o600 })
+  return { ok: true, name, state: 'made', images }
 }
 
 /**
@@ -277,7 +307,8 @@ export const requestCovers = ({ dsh, items, net, now = Date.now(), env = process
           making.delete(job.dsh)
           try {
             const s = readSettings(job.dsh); const today = dayOf(Date.now())
-            if (res.ok === true && res.state === 'made') { if (s.day !== today) { s.day = today; s.made = 0 } s.made += 1 }
+            // every picture paid for counts toward the day, a failed card's too
+            if (res.images > 0) { if (s.day !== today) { s.day = today; s.made = 0 } s.made += res.images }
             if (res.ok !== true) s.failed[job.name] = Date.now()
             else delete s.failed[job.name]
             writeSettings(job.dsh, { auto: s.auto, day: s.day, made: s.made, failed: s.failed })

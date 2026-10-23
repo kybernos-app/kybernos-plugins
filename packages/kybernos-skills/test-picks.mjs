@@ -233,18 +233,22 @@ try {
   assert.ok(!/'\/' \+ p\.id\)\s*\)/.test(row.replace(/copy\('\/' \+ p\.id\)/g, '')), 'no /name link in the row either')
   ok('the list view: a row per pick with the creator, the count, the verdicts and the same actions; the shared bar switches it, per browser')
 
-  // the opened pick, on the width of the page (not the side panel) -------------------------------------
+  // the opened pick, in a window over the page (not a side panel, not a page that replaces the grid) -----------------
   const det = src.slice(src.indexOf('const renderPickDetail = '), src.indexOf('const renderPanel = '))
   assert.ok(det.length > 500, 'the detail view exists')
-  assert.match(det, /className: 'kbsf-detail'[\s\S]*'data-kb': 'pick-detail'/, 'a page of its own')
+  assert.match(det, /className: 'kbsf-detail'[\s\S]*'data-kb': 'pick-detail'/, 'the pick\'s own content')
   assert.match(det, /className: 'kbsf-dpic kbsf-t', 'data-cat': p\.category \},\s*pickCover\(p\)/, 'the picture of the card, big, at the top')
   assert.match(det, /h\('h2', \{ className: 'kbsf-dtitle' \}, title\)/, 'and the title beside it')
-  assert.match(det, /'data-kb': 'pick-back'[\s\S]*setDetail\(null\)/, 'a way back to the grid')
-  assert.match(src, /mode === 'featured' \? \(detail !== null \? renderPickDetail\(\) : renderFeatured\(\)\)/, 'in Featured the opened pick replaces the grid')
-  assert.match(src, /if \(mode === 'discover' && detail !== null\) \{/, 'the side panel is for Discover only')
+  assert.match(det, /'data-kb': 'pick-back'[\s\S]*setDetail\(null\)/, 'a ✕ at the top that closes it')
+  assert.match(det, /className: 'kbs-panel-acts kbsf-dacts', 'data-kb': 'pick-acts'[\s\S]*'data-kb': 'pick-install'[\s\S]*'data-kb': 'act-github'/, 'the actions are the foot of the window (sticky), not a row in the middle of the page')
+  assert.match(src, /mode === 'featured' \? renderFeatured\(\) : \(mode === 'yours'/, 'the grid stays where it is: opening a pick does not replace it')
+  const pop = src.slice(src.indexOf('const renderPopup = '), src.indexOf('const renderModal = '))
+  assert.match(pop, /if \(local !== null\)[\s\S]*h\(SkillPanel[\s\S]*if \(detail !== null\)[\s\S]*renderPickDetail\(p\)[\s\S]*h\(DiscoverPanel/, 'a pick, an installed skill and a Discover entry all open in the same window')
+  assert.ok(!/mode === 'discover' && detail !== null|mode === 'yours' && local !== null/.test(src), 'which tab the click came from does not matter')
+  assert.match(src, /renderPopup\(\),\n\s+renderModal\(\),/, 'the window is under the confirmations (Install, Delete), which draw above it')
   assert.match(src, /@container \(max-width:760px\)\{\s*\.kbs-root \.kbsf-dhero\{grid-template-columns:1fr\}/, 'one column when the page is narrow')
   assert.match(src, /if \(fromFeatured !== true\) setDetail\(null\)/, 'after an install from Featured the opened pick stays open (it flips to Installed)')
-  ok('Featured: an opened pick takes the page width, with its picture and title at the top like the card; the side panel stays for Discover')
+  ok('Featured: an opened pick is a window over the grid, with its picture and title at the top like the card, ✕ at the top and the actions at the foot, sticky')
 
   // Discover's table ------------------------------------------------------------------------------------
   assert.match(src, /const DISC_PER = 20/, '20 rows by default')
@@ -261,7 +265,7 @@ try {
   assert.match(src, /window\.__KB_DOMAIN__/, 'the page reads the seam the core plugin publishes')
   assert.match(fieldSrc, /pcat !== 'all' \|\| q\.featured\.trim\(\) !== ''\) return \[\]/, 'the first group shows on the whole Featured tab only: a category or a search is left alone')
   assert.match(fieldSrc, /list\.length === 0\) return null/, 'no field and no find: nothing is drawn')
-  assert.match(src, /renderFirstRows\(\),\n\s+h\('div', \{ className: 'kbsf-chips' \}/, 'the first group comes first, above the categories')
+  assert.match(src, /h\('div', \{ className: 'kbsf-chips' \},[\s\S]*\n\s+renderFirstRows\(\),\n\s+list\.length === 0/, 'the categories are the top of the tab, then the first group, then the picks')
   assert.doesNotMatch(src, /kbsf-fhead|fld\.title/, 'no frame and no title around them')
   assert.match(src, /h\('i', \{ className: 'kbsf-fdot'/, 'each row carries a small dot in the field\'s colour')
   assert.match(src, /if \(sk\.shipped === true\) installShipped\(sk\.name\); else \{ setAskInstall\(x\)/, 'a skill from GitHub asks the usual confirmation, one that ships with Kybernos is a plain copy')

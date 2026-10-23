@@ -72,6 +72,7 @@
   "goals": [
     {
       "id": "reconcile",
+      "search": ["bank reconciliation", "reconciliation"],
       "name": {
         "en": "Reconciliation",
         "fr": "Rapprochement"
@@ -133,6 +134,7 @@
     },
     {
       "id": "closing",
+      "search": ["month end close", "financial statements"],
       "name": {
         "en": "Closing",
         "fr": "Clôture"
@@ -166,6 +168,7 @@
     },
     {
       "id": "variances",
+      "search": ["variance analysis", "budget variance"],
       "name": {
         "en": "Variances",
         "fr": "Écarts"
@@ -213,6 +216,7 @@
     },
     {
       "id": "dunning",
+      "search": ["invoicing", "billing automation"],
       "name": {
         "en": "Reminders",
         "fr": "Relances"
@@ -269,6 +273,7 @@
     },
     {
       "id": "cash",
+      "search": ["cash flow", "financial forecast"],
       "name": {
         "en": "Cash",
         "fr": "Trésorerie"
