@@ -2704,7 +2704,11 @@ function boot(ctx) {
     // own `agent/status`. Memory is "still available to programs", never `os.freemem()` on macOS (it reads ~10 % on a healthy Mac
     // because it leaves out inactive pages; `kern.memorystatus_level` is the system's own figure).
     const kbLoadInflight = autoLoadInflight()
-    const kbLoadMaxParallel = autoLoadMaxParallel(process.env)
+    const kbLoadMaxParallel = (() => {
+      let mb = null
+      try { mb = Math.round(osTotalmem() / 1048576) } catch (e) { mb = null }
+      return autoLoadMaxParallel(process.env, mb)
+    })()
     let kbLoadCache = null
     let kbLoadHeld = 0
     // The level of the last reading (`{ at, level }`): what lightens a run. It is refreshed by every tick, paused or not, and ignored once
