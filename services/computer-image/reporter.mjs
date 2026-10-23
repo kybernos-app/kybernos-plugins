@@ -1,7 +1,7 @@
 // A cloud computer's reporter (ADR 0052 §§ 10 and 13). A separate process next to DSH, with no dependency and no access to anything of the
 // platform but its own restricted token: it says that the computer is up, that it is busy and how loaded it is, what automations it has, and which runs ended.
 // It reads what DSH and the Kybernos plugin already keep on the volume and writes nothing there but its own small list of what it has
-// reported; it changes nothing about how a run is made. What it sends is ids, labels, times, outcome codes and a few load figures, never a prompt or a result.
+// reported and the token it gives the plugin's apply door (see « what the person's laptop published here »); it changes nothing about how a run is made. What it sends is ids, labels, times, outcome codes and a few load figures, never a prompt or a result.
 //
 //   KYBERNOS_API             the platform's address       KYBERNOS_COMPUTER_TOKEN   its restricted token
 //   DSH_HOME                 the profile on the volume    DSH_PORT                  DSH's loopback port (3081)
@@ -12,6 +12,7 @@
 import { mkdirSync, readdirSync, readFileSync, renameSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import os from 'node:os'
+import { randomBytes } from 'node:crypto'
 
 const API = String(process.env.KYBERNOS_API || '').replace(/\/+$/u, '')
 const TOKEN = String(process.env.KYBERNOS_COMPUTER_TOKEN || '')
@@ -71,6 +72,8 @@ const HIDDEN = new RegExp('[' + [[0, 0x1f], [0x7f, 0x7f], [0x200b, 0x200f], [0x2
 export const cleanLabel = (v) => String(v ?? '').replace(HIDDEN, ' ').replace(/\s+/gu, ' ').trim().slice(0, 80) || 'Automation'
 const isoOrNull = (v) => { const t = Date.parse(String(v ?? '')); return Number.isFinite(t) ? new Date(t).toISOString() : null }
 const idOk = (v) => /^[A-Za-z0-9_.:-]{1,64}$/u.test(String(v))
+/** The id a task is known by outside this computer: the laptop's id when it was published here (the plugin's `published.ref`), else its own. */
+export const externalIdOf = (t) => (t !== null && typeof t === 'object' && t.published !== null && typeof t.published === 'object' && idOk(t.published.ref) ? String(t.published.ref) : String(t.id))
 
 /** The projection of a session: closed (its turn ended) and when it last changed. */
 export function sessionState (sessionId) {
@@ -102,7 +105,7 @@ export function scheduleOf (tasks) {
     const mode = t.schedule && typeof t.schedule === 'object' ? t.schedule.mode : null
     const o = lastOutcome(t)
     out.push({
-      id: String(t.id),
+      id: externalIdOf(t),
       label: cleanLabel(t.name),
       kind: mode === 'cron' || mode === 'once' || mode === 'webhook' ? mode : 'manual',
       enabled: t.active !== false,
@@ -145,13 +148,13 @@ export function endedRuns (tasks, reported) {
       if (!idOk(runId) || reported.has(runId)) continue
       if (h.status === 'error' || !hasSession) {
         if (h.status !== 'error') continue
-        runs.push({ run_id: runId, task_id: String(t.id), via, outcome: 'error', reason: 'run_failed', started_at: started, ended_at: started })
+        runs.push({ run_id: runId, task_id: externalIdOf(t), via, outcome: 'error', reason: 'run_failed', started_at: started, ended_at: started })
         continue
       }
       const s = sessionState(h.sessionId)
       if (s === null || !s.closed) continue
       const ended = Date.parse(s.at) >= Date.parse(started) ? s.at : started
-      runs.push({ run_id: h.sessionId, task_id: String(t.id), via, outcome: 'completed', reason: null, started_at: started, ended_at: ended })
+      runs.push({ run_id: h.sessionId, task_id: externalIdOf(t), via, outcome: 'completed', reason: null, started_at: started, ended_at: ended })
     }
   }
   return runs.slice(0, 100)
@@ -207,24 +210,26 @@ export function loadOf (view, memory) {
   }
 }
 
-/** The automations that have a run going, by their own id, with the moment the run started (at most eight). */
-export function runningTasksOf (view, nowMs) {
+/** The automations that have a run going, by the id they are known by outside this computer (`ids` maps the plugin's id to it), with the moment the run started (at most eight). */
+export function runningTasksOf (view, nowMs, ids) {
   const runs = view !== null && typeof view === 'object' && Array.isArray(view.runs) ? view.runs : []
   const out = []
   for (const r of runs) {
     if (r === null || typeof r !== 'object' || !idOk(r.taskId)) continue
+    const ref = ids instanceof Map && ids.has(String(r.taskId)) ? ids.get(String(r.taskId)) : String(r.taskId)
+    if (!idOk(ref)) continue
     const ms = Number(r.elapsedMs)
-    out.push({ task_ref: String(r.taskId), started_at: new Date(nowMs - (Number.isFinite(ms) && ms > 0 ? ms : 0)).toISOString() })
+    out.push({ task_ref: ref, started_at: new Date(nowMs - (Number.isFinite(ms) && ms > 0 ? ms : 0)).toISOString() })
     if (out.length >= 8) break
   }
   return out
 }
 
 /** The body of a beat: what it always said (sessions open, memory in use), and the load when the plugin could say it. An older platform ignores the added keys. */
-export function beatOf (sessions, usedMb, view, memory, nowMs) {
+export function beatOf (sessions, usedMb, view, memory, nowMs, ids) {
   const body = { sessions, rss_mb: usedMb }
   const load = loadOf(view, memory)
-  if (load !== null) { body.load = load; body.running_tasks = runningTasksOf(view, nowMs) }
+  if (load !== null) { body.load = load; body.running_tasks = runningTasksOf(view, nowMs, ids) }
   return body
 }
 
@@ -237,6 +242,71 @@ async function readLoadView () {
   } catch (e) { return null }
 }
 const readMemory = () => { try { return memoryOf(readFileSync('/proc/meminfo', 'utf8')) } catch (e) { return null } }
+
+// ── what the person's laptop published here ─────────────────────────────────────────────────────
+// The platform says in its answers how many definitions wait (`pending_tasks`). The reporter fetches them, hands each to the plugin on the loopback
+// (`POST /kybernos/tasks/apply`: the plugin's own rules and its own serialized write) and tells the platform how it went. It never writes the task list
+// itself. The plugin takes the call only with the token kept in the profile (0600, made here): a laptop's DSH has no such file, so no such door.
+const applyTokenFile = () => join(HOME, 'kybernos', 'apply-token')
+export function ensureApplyToken () {
+  try {
+    const have = readFileSync(applyTokenFile(), 'utf8').trim()
+    if (/^[0-9a-f]{64}$/u.test(have)) return have
+  } catch (e) { /* none yet */ }
+  const token = randomBytes(32).toString('hex')
+  try {
+    mkdirSync(join(HOME, 'kybernos'), { recursive: true })
+    writeFileSync(applyTokenFile() + '.tmp', token, { mode: 0o600 })
+    renameSync(applyTokenFile() + '.tmp', applyTokenFile())
+    return token
+  } catch (e) { return null }
+}
+
+/** One op of the platform's list as the plugin's apply call; null when it is not one this computer can read (it is answered `error`, never guessed at). */
+export function applyBodyOf (op) {
+  if (op === null || typeof op !== 'object') return null
+  if (op.op !== 'put' && op.op !== 'delete') return null
+  if (!idOk(op.task_ref)) return null
+  if (op.op === 'delete') return { op: 'delete', ref: String(op.task_ref) }
+  if (op.body === null || typeof op.body !== 'object' || Array.isArray(op.body)) return null
+  return { op: 'put', ref: String(op.task_ref), task: op.body }
+}
+
+/** What to tell the platform of the plugin's answer: `{ status: 'applied' }` or `{ status: 'error', code }` with a code the platform accepts. */
+export function ackOf (answer) {
+  if (answer !== null && typeof answer === 'object' && answer.ok === true) return { status: 'applied' }
+  const code = answer !== null && typeof answer === 'object' ? String(answer.code ?? '') : ''
+  return { status: 'error', code: /^[a-z0-9_]{1,64}$/u.test(code) ? code : 'apply_failed' }
+}
+
+async function postApply (body, token) {
+  const local = `http://127.0.0.1:${DSH_PORT}`
+  try {
+    const r = await fetch(local + '/kybernos/tasks/apply', { method: 'POST', headers: { origin: local, 'content-type': 'application/json', 'x-kybernos-apply-token': token }, body: JSON.stringify(body), signal: AbortSignal.timeout(10_000) })
+    const text = await r.text()
+    if (r.status === 401 || r.status === 403) return { ok: false, code: 'apply_refused' }
+    try { return JSON.parse(text) } catch (e) { return { ok: false, code: 'apply_failed' } }
+  } catch (e) { return null } // DSH did not answer: nothing is acknowledged, the platform offers it again
+}
+
+/** Fetches what waits, applies each op and acknowledges it. Returns how many the platform has now heard of. */
+export async function applyPending () {
+  const token = ensureApplyToken()
+  if (token === null) return 0
+  const r = await call('GET', '/v1/computer/tasks/pending')
+  if (r.status !== 200 || r.json === null || !Array.isArray(r.json.ops)) return 0
+  let answered = 0
+  for (const op of r.json.ops.slice(0, 20)) {
+    if (op === null || typeof op !== 'object' || !/^[0-9a-f-]{36}$/iu.test(String(op.op_id))) continue
+    const body = applyBodyOf(op)
+    const answer = body === null ? { ok: false, code: 'invalid_op' } : await postApply(body, token)
+    if (answer === null) break
+    const a = await call('POST', '/v1/computer/tasks/' + encodeURIComponent(String(op.op_id)) + '/ack', ackOf(answer))
+    if (a.status === 200) answered += 1
+  }
+  if (answered > 0) log(`applied ${answered} definition(s) published from the account`)
+  return answered
+}
 
 async function dshAnswers () {
   try {
@@ -287,9 +357,12 @@ async function main () {
     }
     // A beat: sessions open, memory in use, and how loaded the machine is (the plugin's own reading, asked on the loopback with a short timeout).
     const used = Math.max(0, Math.round((os.totalmem() - os.freemem()) / 1048576))
-    const body = beatOf(openSessions(), used, await readLoadView(), readMemory(), Date.now())
+    const body = beatOf(openSessions(), used, await readLoadView(), readMemory(), Date.now(), new Map(tasks.map((t) => [String(t.id), externalIdOf(t)])))
     const beat = await call('POST', '/v1/computer/heartbeat', body, HEARTBEAT_TIMEOUT_MS)
     if (beat.status === 401 || beat.status === 404) await sleep(300_000)
+    // What the person's laptop published since: fetched, applied by the plugin, acknowledged. The schedule is told again at once (the top of the loop), so that
+    // the laptop sees the automation will fire.
+    if (beat.status === 200 && beat.json !== null && Number(beat.json.pending_tasks) > 0 && (await applyPending()) > 0) { lastSchedule = ''; continue }
     await sleep(BEAT_MS)
   }
 }

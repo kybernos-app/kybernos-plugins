@@ -13,6 +13,7 @@ import { createWorkspaceInstructions } from './workspace-instructions.mjs'
 import { selectAfterConnect } from './default-model.mjs'
 import { normalize as autoSettingsNormalize, publicView as autoSettingsView, apply as autoSettingsApply, isPaused as autoSettingsPaused } from './automation-settings.mjs'
 import { levelOf as autoLoadLevel, allowedAt as autoLoadAllowed, admit as autoLoadAdmit, createInflight as autoLoadInflight, maxParallelFrom as autoLoadMaxParallel, parseMeminfo as autoLoadMeminfo, guardOff as autoLoadGuardOff, forcedLevel as autoLoadForced, isSubagentTool as autoLoadIsSubagent, createSubagentGate as autoLoadSubagentGate, noteAt as autoLoadNote, refusalReason as autoLoadRefusal, freshLevel as autoLoadFresh, pressureOf as autoLoadPressure, pressureParts as autoLoadPressureParts, createHistory as autoLoadHistory, createActivity as autoLoadActivity, publicView as autoLoadView } from './automation-load.mjs'
+import { applyOp as autoApplyPublished } from './automation-published.mjs'
 import { stableStreak as autoSkillStreak, skillSlug as autoSkillSlug, skillParts as autoSkillParts, normalizeRecords as autoSkillsNormalize, dueTasks as autoSkillsDue, lessonOf as autoSkillLesson } from './automation-skills.mjs'
 import { chooseWorkspace as autoWsChoose, idOf as autoWsIdOf, DEDICATED_TITLE as AUTO_WS_TITLE, DEDICATED_DIR as AUTO_WS_DIR } from './automation-workspace.mjs'
 import { recordFeedback, exportFeedback, relayReportOf } from './feedback-box.mjs'
@@ -11078,6 +11079,43 @@ function boot(ctx) {
           sendJson(res, 500, { ok: false, error: 'internal error' })
         }
       } }), 'kybernos: route tasks')
+      // ── An automation published to this computer from the person's laptop: POST /kybernos/tasks/apply ───────────────────────────────────
+      // Only the computer's own reporter calls it, on the loopback, with the token it keeps in <dsh home>/kybernos/apply-token (0600, made by the reporter:
+      // a laptop has no such file, so the route refuses everything there). The same origin rule as the other task routes; the signed browser session is not
+      // asked, the reporter has none. One op per call, `{ op: 'put' | 'delete', ref, task }`; what is read of the definition, and what is refused, is
+      // automation-published.mjs's. A task that was made on this computer is never touched.
+      const kbApplyToken = async () => {
+        try {
+          const home = await dshHome()
+          if (home === null || home.length === 0) return null
+          const text = readFileSync(joinPath(home, 'kybernos/apply-token'), 'utf8').trim()
+          return /^[0-9a-f]{32,128}$/u.test(text) === true ? text : null
+        } catch (e) { return null }
+      }
+      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/tasks/apply', handler: async (req, res) => {
+        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        const want = await kbApplyToken()
+        const given = typeof req.headers['x-kybernos-apply-token'] === 'string' ? req.headers['x-kybernos-apply-token'] : ''
+        const a = Buffer.from(given)
+        const b = Buffer.from(want === null ? '' : want)
+        if (want === null || a.length !== b.length || timingSafeEqual(a, b) !== true) return sendJson(res, 401, { ok: false, error: 'not allowed' })
+        let body = null
+        try { body = await readJsonBody(req, 40000) } catch (e) { return sendJson(res, 413, { ok: false, error: 'request body too large' }) }
+        if (body === null || typeof body !== 'object' || Array.isArray(body) === true) return sendJson(res, 400, { ok: false, error: 'a JSON object is expected' })
+        let result = { ok: false, code: 'invalid_op' }
+        try {
+          await kbTasksMutate(async (tasks) => {
+            result = autoApplyPublished(tasks, body.op, body.ref, body.task, { sanitize: kbSanitizeTaskInput, frequent: kbFrequentRefusal, nextRun: kbComputeNextRun, neverRuns: kbNeverRuns, newId: kbTaskId, nowMs: () => Date.now() })
+          })
+        } catch (e) {
+          const code = e !== null && typeof e === 'object' ? e.code : undefined
+          if (code === 'tasks-corrupt' || code === 'tasks-unreadable') return sendJson(res, 200, { ok: false, code: 'store_unreadable' })
+          try { console.error('[kybers] tasks apply route:', errText(e)) } catch (e2) { /* console unavailable */ }
+          return sendJson(res, 500, { ok: false, error: 'internal error' })
+        }
+        sendJson(res, 200, result)
+      } }), 'kybernos: route tasks apply')
       // ── The suggestions that wait for a click on a page (memory, instructions): GET ?kind= lists, POST { action: 'resolve', id } removes one once the page has dealt with it ──
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/suggestions', handler: async (req, res) => {
         if (req.method !== 'GET' && req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'GET or POST expected' })
