@@ -211,6 +211,22 @@ panel beside the list with the SKILL.md exactly as it is on disk, the actions th
 confirmations (and only ever get Cancel), that two Discover cards have their own repository, folder and text, the publisher by
 repository, and the layout at 900 px.
 
+## The Featured tab: `scripts/check-skills-featured-live.mjs`
+
+```bash
+node scripts/check-skills-featured-live.mjs --shots /tmp/shots                                  # the real :3080, read-only
+source scripts/sandbox/env.sh && KB_SHARED_TREE=$PWD node scripts/check-skills-featured-live.mjs # a sandbox (no installed skill: the star is not pressed)
+```
+
+The client of `kybernos-skills` is swapped in; every write the page tries (the star's pin, the request for a picture) is answered 403 inside the
+check and listed, and the only POST let through is the read of a SKILL.md. It presses **each of the 24 cards and rows with a real mouse event**
+(on the description, on Details, Enter and Space on the focused card), then the star, Install and the confirmation, and reads which window opens:
+it must carry that pick's title. Then the failure states, by rewriting the host's answers in the throw-away browser: picks slow / refused / empty
+(an empty list is « no picks »: the tab disappears, the page lands on Yours), covers that do not load, SKILL.md or GitHub's preview refused or slow,
+a 760 and a 400 px window. Trap met on 2026-10-23: `list.map(pickCard)` hands the array to the card as its third argument (`opts`, meant for the field's
+skills), so no card opened anything, Details threw, every star was off and every card said Install. Tests that read the source had pinned the call;
+`packages/kybernos-skills/test-ui.mjs` now renders Featured (cards and rows) and clicks the card, Details, Enter, the star and Install.
+
 ## The Theme page, simple view: `scripts/check-theme-studio-live.mjs`
 
 ```bash
