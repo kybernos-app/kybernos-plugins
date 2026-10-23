@@ -17,7 +17,7 @@ import { stableStreak as autoSkillStreak, skillSlug as autoSkillSlug, skillParts
 import { chooseWorkspace as autoWsChoose, idOf as autoWsIdOf, DEDICATED_TITLE as AUTO_WS_TITLE, DEDICATED_DIR as AUTO_WS_DIR } from './automation-workspace.mjs'
 import { recordFeedback, exportFeedback, relayReportOf } from './feedback-box.mjs'
 import { writeGuard } from './session-guard.mjs'
-import { defaultState as onboardingDefault, publicView as onboardingView, complete as onboardingComplete, replay as onboardingReplay, chooseDomain as onboardingChooseDomain, aboutView as onboardingAbout } from './onboarding-state.mjs'
+import { defaultState as onboardingDefault, publicView as onboardingView, complete as onboardingComplete, replay as onboardingReplay, chooseDomain as onboardingChooseDomain, aboutView as onboardingAbout, ownGoalsView as onboardingOwnGoals } from './onboarding-state.mjs'
 import { isSuggested as autoIsSuggested, suggestedTask as autoSuggestedTask, acceptedTask as autoAcceptedTask, refusalFor as autoSuggestRefusal, HOME_ID_RE as AUTO_HOME_ID_RE, runFrame as autoRunFrame } from './automation-suggest.mjs'
 import { learnTask as autoLearnTask, isLearnName as autoIsLearnName, LEARN_ID as AUTO_LEARN_ID } from './learn-business.mjs'
 import { mountAutomationTools } from './automation-tools.mjs'
@@ -2994,7 +2994,7 @@ function boot(ctx) {
       // « Learn my business »: made once (found again by its name in any language), switched on, weekly, in a session of its own. The onboarding step calls it; it only ever proposes.
       if (action === 'learn') {
         const about = body.about !== null && typeof body.about === 'object' ? body.about : {}
-        const built = autoLearnTask({ lang: str(body.lang) || 'en', tz: str(body.tz), fieldId: str(body.fieldId) || '', field: str(body.field) || '', goals: Array.isArray(body.goals) ? body.goals.filter((g) => typeof g === 'string') : [], about })
+        const built = autoLearnTask({ lang: str(body.lang) || 'en', tz: str(body.tz), fieldId: str(body.fieldId) || '', field: str(body.field) || '', goals: Array.isArray(body.goals) ? body.goals.filter((g) => typeof g === 'string') : [], ownGoals: Array.isArray(body.ownGoals) ? body.ownGoals.filter((g) => typeof g === 'string') : [], about })
         const clean = kbSanitizeTaskInput(built)
         if (clean.ok !== true) return { ok: false, error: clean.error }
         const now = new Date().toISOString()
@@ -10351,7 +10351,7 @@ function boot(ctx) {
           const view = onboardingView(state)
           // What the person typed about themselves comes back only to this page (strict same origin), so a replay can show it; the route is served before DSH's own sign-in.
           const about = sameOriginStrict(req) === true ? onboardingAbout(state) : undefined
-          return sendJson(res, 200, { ok: true, ...view, domain: domainOfProfil(domainPacks().packs, view.profil), ...(about !== undefined ? { about: about } : {}) })
+          return sendJson(res, 200, { ok: true, ...view, domain: domainOfProfil(domainPacks().packs, view.profil), ...(about !== undefined ? { about: about, customGoals: onboardingOwnGoals(state) } : {}) })
         }
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'GET or POST expected' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
