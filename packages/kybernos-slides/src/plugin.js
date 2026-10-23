@@ -163,7 +163,7 @@
     function normaliserDeck (slides) {
       return (Array.isArray(slides) ? slides : [])
         .slice(0, 60)
-        .map(normaliserSlide)
+        .map((brut, k) => normaliserSlide(brut, k))
         .filter(Boolean)
     }
 
