@@ -1,0 +1,4 @@
+{
+  "about": "Presses that do nothing ON PURPOSE, for scripts/check-dead-clicks-live.mjs. One entry per press: `page` (the sidebar row, « Settings › Page », or * for any), then `dk` (its data-kb) or `match` (the start of its label), and `why`. A dead click that is a bug is fixed, not listed here.",
+  "allow": []
+}

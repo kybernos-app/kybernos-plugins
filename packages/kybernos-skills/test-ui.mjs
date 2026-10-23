@@ -1103,5 +1103,102 @@ console.log('Learned skills V2: the notice under a finished answer, the weekly c
   }
 }
 
+// ── Featured ─────────────────────────────────────────────────────────────────────────────────────────────
+// Regression of 2026-10-23: the grid and the list were drawn with `list.map(pickCard)`, so the ARRAY arrived as the card's third argument (`opts`, meant for the
+// field's skills) and every card lost its click, its Details, its star and its Installed state. Source-level tests had pinned the call; only a render sees it.
+console.log('Featured: a card or a row opens the skill window, like Details does')
+{
+  const pick = (id, category, installs) => ({
+    id, source: 'anthropics/skills', category, title: { en: 'Title of ' + id, fr: 'Titre de ' + id }, outcome: { en: 'Outcome of ' + id, fr: 'Résultat de ' + id },
+    prompt: { en: 'Try ' + id, fr: 'Essaie ' + id }, needs: null, installs, audits: [['Socket', 'pass', 'SAFE']], cover: null
+  })
+  const picksWorld = () => {
+    const w = world()
+    // « sql-queries » is installed in the world; the two others are not.
+    w.answers['GET /kybernos-skills/picks'] = { ok: true, asOf: '2026-10-15', categories: ['Data', 'Design'], items: [pick('sql-queries', 'Data', 5000), pick('frontend-design', 'Design', 990500), pick('canvas-design', 'Design', 117600)] }
+    return w
+  }
+  const featuredOpen = async (w, view) => {
+    store.set('kybernos.skills.views', JSON.stringify({ featured: view }))
+    return open(w)
+  }
+  const window_ = (root) => kb(root, 'skill-popup')
+  const key = async (root, node, k) => {
+    node.props.onKeyDown({ target: node, currentTarget: node, key: k, preventDefault () {}, stopPropagation () {} })
+    await root.settle()
+  }
+  for (const view of ['cards', 'list']) {
+    const hook = view === 'cards' ? 'pick-card' : 'pick-row'
+    const w = picksWorld()
+    const root = await featuredOpen(w, view)
+    check(view + ': Featured is the landing tab and draws one ' + hook + ' per pick, each carrying its test hook', kb(root, hook).length === 3 && kb(root, hook).every((n) => typeof n.props['data-skill'] === 'string'), kb(root, hook).length)
+    check(view + ': no window before a click', window_(root).length === 0)
+
+    const first = () => kb(root, hook).find((n) => n.props['data-skill'] === 'frontend-design')
+    check(view + ': every card has a click handler and a keyboard one', kb(root, hook).every((n) => typeof n.props.onClick === 'function' && typeof n.props.onKeyDown === 'function'))
+    await click(root, first())
+    check(view + ': a click on the card opens the window with this pick', window_(root).length === 1 && kb(root, 'pick-detail').length === 1 && part(root, 'pick-detail').includes('Title of frontend-design'), page(root).slice(0, 200))
+    check(view + ': the card shows it is the open one', hasClass(first(), 'sel'))
+    await click(root, kb(root, 'pick-back')[0])
+    check(view + ': the ✕ closes it', window_(root).length === 0)
+
+    await key(root, first(), 'Enter')
+    check(view + ': Enter on the focused card opens it', window_(root).length === 1 && part(root, 'pick-detail').includes('Title of frontend-design'))
+    await click(root, kb(root, 'pick-back')[0])
+    await key(root, first(), ' ')
+    check(view + ': Space opens it too', window_(root).length === 1)
+    await click(root, kb(root, 'pick-back')[0])
+
+    const detailsOf = (name) => all(kb(root, hook).find((n) => n.props['data-skill'] === name), (n) => n.props['data-kb'] === 'pick-details')[0]
+    await click(root, detailsOf('canvas-design'))
+    check(view + ': Details opens the window of THAT pick (the one a click on the card opens)', window_(root).length === 1 && part(root, 'pick-detail').includes('Title of canvas-design') && !part(root, 'pick-detail').includes('Title of frontend-design'))
+    await click(root, kb(root, 'pick-back')[0])
+
+    // what the card says of the pick: installed or not
+    const sql = kb(root, hook).find((n) => n.props['data-skill'] === 'sql-queries')
+    const frontend = first()
+    check(view + ': an installed pick says so and offers Use, not Install', textOf(sql).includes('Installed') && all(sql, (n) => n.props['data-kb'] === 'pick-use').length === 1 && all(sql, (n) => n.props['data-kb'] === 'pick-install').length === 0, textOf(sql).slice(0, 200))
+    check(view + ': a pick that is not installed offers Install, no Installed pill', all(frontend, (n) => n.props['data-kb'] === 'pick-install').length === 1 && !textOf(frontend).includes('Installed'))
+    const star = (n) => all(n, (x) => x.tag === 'button' && typeof x.props.className === 'string' && x.props.className.includes('kbs-star-btn'))[0]
+    check(view + ': the star works for an installed pick and is off for one that is not', star(sql).props.disabled === false && star(frontend).props.disabled === true)
+
+    // the buttons inside the card do their own job and never open the window
+    const before = w.calls.length
+    const ev = await click(root, star(sql))
+    check(view + ': the star toggles through the host and does not open the window', ev.stopped === true && window_(root).length === 0 && w.calls.slice(before).some((c) => c.method === 'POST' && c.path === '/kybernos-skills/featured/toggle' && c.body.name === 'sql-queries'), w.calls.slice(before).map((c) => c.method + ' ' + c.path))
+    await click(root, all(frontend, (n) => n.props['data-kb'] === 'pick-install')[0])
+    check(view + ': Install asks first (the confirmation), writes nothing, and does not open the window', kb(root, 'install-confirm').length === 1 && window_(root).length === 0 && posted(w, '/kybernos-skills/install').length === 0)
+    check(view + ': and the confirmation is for THIS pick', part(root, 'install-confirm').includes('frontend-design'), part(root, 'install-confirm').slice(0, 200))
+    await click(root, kb(root, 'install-confirm-no')[0])
+    check(view + ': Cancel leaves everything as it was', kb(root, 'install-confirm').length === 0 && window_(root).length === 0 && posted(w, '/kybernos-skills/install').length === 0)
+  }
+}
+
+// A picture the browser cannot read must not leave an empty tint: the card draws its tile, and an address tried since (a picture made meanwhile) is read again.
+console.log('Featured: a picture that cannot be read gives way to the tile')
+{
+  const pick = (id, cover) => ({
+    id, source: 'anthropics/skills', category: 'Design', title: { en: 'Title of ' + id, fr: 'Titre de ' + id }, outcome: { en: 'Outcome of ' + id, fr: 'Résultat de ' + id },
+    prompt: { en: 'Try ' + id, fr: 'Essaie ' + id }, needs: null, installs: 10, audits: [['Socket', 'pass', 'SAFE']], cover
+  })
+  const w = world()
+  w.answers['GET /kybernos-skills/picks'] = { ok: true, asOf: '2026-10-15', categories: ['Design'], items: [pick('frontend-design', '/kybernos-skills/cover/frontend-design'), pick('canvas-design', '/kybernos-skills/cover/canvas-design')] }
+  // The host holds a picture for the first pick only once the page asks which pictures exist (it asks for the cards that have none: the one that just failed).
+  w.answers['GET /kybernos-skills/covers/state'] = () => ({ ok: true, can: false, auto: true, key: false, left: 0, items: { 'frontend-design': 'have' } })
+  store.set('kybernos.skills.views', JSON.stringify({ featured: 'cards' }))
+  const root = await open(w)
+  const card = (id) => kb(root, 'pick-card').find((n) => n.props['data-skill'] === id)
+  const img = (id) => all(card(id), (n) => n.tag === 'img')[0]
+  const tiles = (id) => all(card(id), (n) => typeof n.props.className === 'string' && n.props.className.startsWith('kb8-tile'))
+  const unreadable = async (id) => { const el = img(id); const style = {}; el.props.onError({ target: { style, getAttribute: (a) => (a === 'src' ? el.props.src : null) } }); await root.settle(); return style }
+  check('each card draws the picture of its pick', img('frontend-design') !== undefined && img('frontend-design').props.src === '/kybernos-skills/cover/frontend-design' && tiles('frontend-design').length === 0)
+  const hid = await unreadable('frontend-design')
+  check('a picture that cannot be read is hidden, and the host is asked which pictures it holds', hid.display === 'none' && w.calls.some((c) => c.path === '/kybernos-skills/covers/state' && c.query.names === 'frontend-design'), w.calls.filter((c) => c.path === '/kybernos-skills/covers/state').map((c) => c.query))
+  check('the host holds one: it is tried again at its own address (the version is in it), on that card only', img('frontend-design') !== undefined && /^\/kybernos-skills\/cover\/frontend-design\?v=\d+$/.test(img('frontend-design').props.src) && img('canvas-design') !== undefined && img('canvas-design').props.src === '/kybernos-skills/cover/canvas-design', img('frontend-design') === undefined ? 'no picture' : img('frontend-design').props.src)
+  await unreadable('frontend-design')
+  check('if that one cannot be read either, the tile is drawn (the old state kept the dead address: an empty tint)', img('frontend-design') === undefined && tiles('frontend-design').length === 1)
+  check('the other card is untouched and the card with the tile still opens its window', img('canvas-design') !== undefined && await (async () => { await click(root, card('frontend-design')); const ok = kb(root, 'skill-popup').length === 1 && part(root, 'pick-detail').includes('Title of frontend-design') && all(kb(root, 'pick-detail')[0], (n) => n.tag === 'img').length === 0; await click(root, kb(root, 'pick-back')[0]); return ok })())
+}
+
 console.log('\n' + pass + ' passed' + (fail > 0 ? ', ' + fail + ' FAILED' : ''))
 process.exit(fail > 0 ? 1 : 0)
