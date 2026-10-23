@@ -256,6 +256,104 @@ try {
   forced = null
   check('no exception in the page', exceptions.length === 0, exceptions)
 
+  console.log('\n── the strip and the weight of the runs (the page\'s reads of the load are answered by the check) ──')
+  await val(`(() => { const b = document.querySelector('[data-kb="view-list"]'); if (b) b.click(); return !!b })()`)
+  await poll(() => val(`document.querySelectorAll('.kba-rowline').length > 2`), 15000)
+  // A and B are really running in the sandbox (the model never answers), C D E really are due: the page draws their weight from what the check says.
+  const wave = (k, f) => Array.from({ length: k }, (_, i) => f(i / (k - 1), i))
+  const fixture = (level) => {
+    const o = {
+      ok: { pressure: 34, cpuP: 17, load: 0.51, used: 44, kyb: 12, inFlight: 2, allowed: 3, waiting: 0, subLimit: null, kids: 2, refused: 0, waitingIds: [], held: false },
+      busy: { pressure: 71, cpuP: 71, load: 1.92, used: 66, kyb: 14, inFlight: 1, allowed: 1, waiting: 1, subLimit: 1, kids: 1, refused: 0, waitingIds: ['st-load-c'], held: true },
+      high: { pressure: 100, cpuP: 100, load: 3.1, used: 83, kyb: 17, inFlight: 1, allowed: 0, waiting: 2, subLimit: 0, kids: 0, refused: 3, waitingIds: ['st-load-c', 'st-load-d'], held: true },
+    }[level]
+    const total = wave(30, (t, i) => Math.round(level === 'high' ? 58 + 42 * Math.min(1, t * 2.2) : level === 'busy' ? 30 + 41 * t : 24 + 6 * Math.sin(t * 9) + (i % 3)))
+    return {
+      level, pressure: o.pressure, reasons: level === 'ok' ? [] : ['cpu'], inFlight: o.inFlight, allowed: o.allowed, maxParallel: 3, waiting: o.waiting, held: o.held, waitingIds: o.waitingIds,
+      memAvailablePct: 100 - o.used, loadPerCpu: o.load, subagents: { limit: o.subLimit, active: o.kids, refused: o.refused },
+      series: { total, cpu: total.map((v) => Math.max(0, v - 10)), mem: wave(30, (t) => o.used - 3 + Math.round(3 * t)), runs: wave(30, (t) => (t < 0.4 ? Math.min(2, o.inFlight + 1) : o.inFlight)) },
+      cpu: { pressure: o.cpuP, loadPerCpu: o.load },
+      mem: { pressure: o.used > 80 ? 65 : 41, availPct: 100 - o.used, usedPct: o.used, kybernosPct: o.kyb, otherPct: o.used - o.kyb },
+      runs: [{ taskId: 'st-load-a', sessions: 1, elapsedMs: 390000, subagents: o.kids, lighter: level !== 'ok', activity: wave(20, (t, i) => (i % 4 === 0 ? 0 : 1 + (i % 3))) }],
+    }
+  }
+  const stripFacts = () => val(`(() => {
+    const st = document.querySelector('[data-kb="load-strip"]'); if (!st) return null
+    const tabs = document.querySelector('[data-kb="automations-sections"]')
+    const b = st.getBoundingClientRect(); const t = tabs ? tabs.getBoundingClientRect() : null
+    const row = (id) => { const r = Array.from(document.querySelectorAll('.kba-rowline')).find((x) => x.innerText.indexOf(id) >= 0); return r || null }
+    const cell = (name) => { const r = row(name); return r ? r.querySelector('[data-kb="row-weight"], [data-kb="row-waiting"]') : null }
+    const A = cell('Load A'); const C = cell('Load C'); const D = cell('Load D')
+    return {
+      level: st.getAttribute('data-kbld-level'), ticks: st.querySelectorAll('.kbld-ticks i').length, on: st.querySelectorAll('.kbld-ticks i.on').length,
+      pct: (st.querySelector('.kbld-pct') || {}).innerText, word: (st.querySelector('.kbld-word') || {}).innerText, meta: (st.querySelector('[data-kb="load-meta"]') || {}).innerText,
+      miniPath: st.querySelectorAll('.kbld-mini path').length, right: !!t && b.left >= t.right - 1, sameRow: !!t && Math.abs(b.top - t.top) < 80, w: Math.round(b.width), fitsScreen: b.right <= innerWidth + 1,
+      A: A ? A.innerText.replace(/\\s+/g, ' ').trim() : null, Akind: A ? A.getAttribute('data-kb') : null, Aact: A ? A.querySelectorAll('.kbld-act path').length : 0,
+      C: C ? C.innerText.replace(/\\s+/g, ' ').trim() : null, D: D ? D.innerText.replace(/\\s+/g, ' ').trim() : null,
+    } })()`)
+  const popFacts = () => val(`(() => {
+    const p = document.querySelector('[data-kb="load-pop"]'); if (!p) return null
+    const b = p.getBoundingClientRect()
+    return { cards: p.querySelectorAll('.kbld-card').length, rings: p.querySelectorAll('svg[role="img"]').length, sparks: p.querySelectorAll('.kbld-spark path').length, pips: p.querySelectorAll('.kbld-pip').length, busyPips: p.querySelectorAll('.kbld-pip.busy').length, lockedPips: p.querySelectorAll('.kbld-pip.locked').length,
+      bar: p.querySelectorAll('.kbld-bar span').length, foot: (p.querySelector('.kbld-foot') || {}).innerText, text: p.innerText.replace(/\\s+/g, ' '), inside: b.left >= -1 && b.right <= innerWidth + 1, role: p.getAttribute('role') } })()`)
+  const clickStrip = () => val(`(() => { const b = document.querySelector('[data-kb="load-strip-btn"]'); if (!b) return false; b.click(); return true })()`)
+  for (const level of ['ok', 'busy', 'high']) {
+    forced = fixture(level)
+    const f = await poll(async () => { const x = await stripFacts(); return x !== null && x !== undefined && x.level === level ? x : null }, 16000)
+    const pressure = { ok: 34, busy: 71, high: 100 }[level]
+    check('the strip is on the tabs row, to the right of Yours / Discover (' + level + ')', f !== null && f.right === true && f.sameRow === true && f.fitsScreen === true, f)
+    check('the strip at ' + level + ': 24 ticks, ' + Math.max(1, Math.round(pressure / 100 * 24)) + ' filled, the figure, the level word, a curve', f !== null && f.ticks === 24 && f.on === Math.max(1, Math.round(pressure / 100 * 24)) && f.pct === pressure + '%' && f.word === { ok: 'Light', busy: 'Busy', high: 'Very busy' }[level] && f.miniPath >= 1, f)
+    check('the line under it says what the automations hold (' + level + ')', f !== null && (level === 'ok' ? /2 of 3 runs going · 2 sub-agent\(s\)|2 of 3 runs going/.test(f.meta) && /nothing waiting/.test(f.meta) : level === 'busy' ? /1 of 1 runs going · 1 waiting · sub-agents 1 of 1/.test(f.meta) : /1 run going · 2 waiting · no new sub-agents/.test(f.meta)), f && f.meta)
+    check('Load A, really running, shows its weight: time, activity curve, slot' + (level === 'ok' ? ', 2 sub-agents' : level === 'busy' ? ', 1 sub-agent, lighter' : ', lighter, no sub-agent'), f !== null && f.Akind === 'row-weight' && /\d\d:\d\d/.test(f.A) && f.Aact >= 1 && /1 slot/.test(f.A)
+      && (level === 'ok' ? /2 sub-agent\(s\)/.test(f.A) && !/Lighter run/.test(f.A) : level === 'busy' ? /1 sub-agent\(s\)/.test(f.A) && /Lighter run/.test(f.A) : !/sub-agent/.test(f.A) && /Lighter run/.test(f.A)), f && f.A)
+    if (level === 'ok') check('a due automation is not "waiting for the computer" while the machine has room', f !== null && (f.C === null || !/Waiting for the computer/.test(f.C)), f && f.C)
+    if (level !== 'ok') check('Load C waits for the computer, next in line', f !== null && /Waiting for the computer/.test(f.C || '') && /Next in line · waiting \d+ min/.test(f.C || ''), f && f.C)
+    if (level === 'high') check('Load D waits behind it: #2 in line', f !== null && /#2 in line · waiting \d+ min/.test(f.D || ''), f && f.D)
+    await shot('list-' + level)
+    // the detail: three cards in the style of the reference, the footer says what the level does
+    await clickStrip()
+    const pop = await poll(async () => { const x = await popFacts(); return x !== null && x !== undefined ? x : null }, 6000)
+    check('the detail opens: three cards, two rings, curves, three pips, inside the screen (' + level + ')', pop !== null && pop.role === 'dialog' && pop.cards === 3 && pop.rings === 2 && pop.sparks >= 5 && pop.pips === 3 && pop.inside === true, pop)
+    check('the memory card has the segmented bar Kybernos / other apps / free', pop !== null && pop.bar === 3 && /Kybernos/.test(pop.text) && /Other apps/.test(pop.text) && /Free/.test(pop.text), pop && pop.bar)
+    check('the footer says what ' + level + ' does', pop !== null && (level === 'ok' ? /up to 3 runs at once/.test(pop.foot) : level === 'busy' ? /one run at a time, one sub-agent at a time/.test(pop.foot) : /never more than 10 min/.test(pop.foot)), pop && pop.foot)
+    check('the pips: ' + (level === 'ok' ? 'two running, one free' : level === 'busy' ? 'one running, two locked' : 'one running, two locked'), pop !== null && (level === 'ok' ? pop.busyPips === 2 && pop.lockedPips === 0 : pop.busyPips === 1 && pop.lockedPips === 2), pop && [pop.busyPips, pop.lockedPips])
+    await shot('detail-' + level)
+    if (level === 'busy') {
+      await page.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 })
+      check('Escape closes the detail', await poll(async () => (await popFacts()) === null, 3000) === true)
+      await clickStrip()
+      await poll(async () => (await popFacts()) !== null, 3000)
+      await val(`(() => { const t = document.querySelector('[data-kb="page-automations"]'); const b = t ? t.querySelector('h1, h2, [class*="title"]') : null; (b || document.body).dispatchEvent(new MouseEvent('mousedown', { bubbles: true })); return true })()`)
+      check('a click outside closes it', await poll(async () => (await popFacts()) === null, 3000) === true)
+    } else {
+      await clickStrip()
+      check('a second click on the strip closes it (' + level + ')', await poll(async () => (await popFacts()) === null, 3000) === true)
+    }
+  }
+  // dark, and a narrow window: nothing wider than the screen, the detail under the strip
+  forced = fixture('busy')
+  await val(`document.body.setAttribute('data-ds-dark-theme', '')`)
+  await sleep(600)
+  await clickStrip()
+  await poll(async () => (await popFacts()) !== null, 3000)
+  await shot('detail-busy-dark')
+  check('dark: the level word is the amber of the theme, not a white-on-white', (await val(`getComputedStyle(document.querySelector('.kbld-word')).color`)) !== (await val(`getComputedStyle(document.querySelector('.kbld-btn')).backgroundColor`)))
+  await clickStrip()
+  await val(`document.body.removeAttribute('data-ds-dark-theme')`)
+  await page.send('Emulation.setDeviceMetricsOverride', { width: 420, height: 900, deviceScaleFactor: 2, mobile: false })
+  await sleep(1200)
+  const narrow = await stripFacts()
+  check('420 px: the strip is a full-width card and fits the screen', narrow !== null && narrow.fitsScreen === true && narrow.w >= 300, narrow)
+  await clickStrip()
+  const narrowPop = await poll(async () => { const x = await popFacts(); return x !== null && x !== undefined ? x : null }, 4000)
+  check('420 px: the detail opens in the flow, one card under the other, inside the screen', narrowPop !== null && narrowPop.cards === 3 && narrowPop.inside === true, narrowPop)
+  await shot('detail-busy-420')
+  check('420 px: nothing is wider than the screen', (await val(`document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1`)) === true)
+  await clickStrip()
+  await page.send('Emulation.clearDeviceMetricsOverride', {})
+  forced = null
+  check('no exception in the page (strip and detail)', exceptions.length === 0, exceptions)
+
   console.log('\n── the model answers: the engine reports the sessions idle, room opens ──')
   answering = true
   for (const res of pending.splice(0)) { try { sse(res, 'OK') } catch (e) { /* the request went away */ } }
@@ -265,6 +363,30 @@ try {
   check('then the last one (E): nothing was lost', five === true && started().join() === 'st-load-a,st-load-b,st-load-c,st-load-d,st-load-e', started())
   const end = await loadRoute()
   check('nothing waits any more', end.json !== null && end.json.waiting === 0, end.json)
+
+  console.log('\n── the strip with the machine\'s own reading (nothing is answered by the check) ──')
+  answering = true
+  for (const res of pending.splice(0)) { try { sse(res, 'OK') } catch (e) { /* the request went away */ } }
+  mode = 'text'
+  writeAtomic(JSON.stringify(seed().map((t) => Object.assign(t, { nextRun: new Date(Date.now() + 86400000).toISOString() })), null, 2) + '\n') // nothing due
+  check('the sandbox restarts with the real reading (no guard off, no forced level)', restart({ KB_STUB_KEY: 'stub' }) === true)
+  await sleep(36000) // a few readings, so there is a curve to draw
+  const real = (await loadRoute()).json
+  check('the host kept readings for the curves', real !== null && real.series.total.length >= 3 && real.series.cpu.length >= 3 && real.series.mem.length >= 3, real && real.series && real.series.total.length)
+  check('memory: Kybernos is part of what is used (the real size of this DSH process)', real !== null && typeof real.mem.kybernosPct === 'number' && real.mem.kybernosPct >= 0 && real.mem.kybernosPct <= real.mem.usedPct && real.mem.kybernosPct + real.mem.otherPct === real.mem.usedPct, real && real.mem)
+  await page.send('Page.reload', { ignoreCache: true })
+  await sleep(3500)
+  for (let i = 0; i < 4; i += 1) { await clickText(page, 'Automations'); if (await poll(() => val(`!!document.querySelector('[data-kb="page-automations"]')`), 6000)) break }
+  await val(`(() => { const b = document.querySelector('[data-kb="view-list"]'); if (b) b.click(); return !!b })()`)
+  const live2 = await poll(async () => { const x = await stripFacts(); return x !== null && x !== undefined && /%$/.test(x.pct || '') ? x : null }, 25000)
+  check('the strip draws the machine\'s real figure, its ticks and its curve', live2 !== null && live2.ticks === 24 && live2.miniPath >= 1 && Number.parseInt(live2.pct, 10) >= 0 && Number.parseInt(live2.pct, 10) <= 100, live2)
+  check('nothing is running: the line says so', live2 !== null && /No run going/.test(live2.meta), live2 && live2.meta)
+  await clickStrip()
+  const pop2 = await poll(async () => { const x = await popFacts(); return x !== null && x !== undefined ? x : null }, 5000)
+  check('the detail with real figures: three cards, the memory bar, the curves', pop2 !== null && pop2.cards === 3 && pop2.bar === 3 && pop2.sparks >= 5 && pop2.inside === true, pop2)
+  await shot('real-detail')
+  await clickStrip()
+  check('no exception in the page (real reading)', exceptions.length === 0, exceptions)
 } catch (e) {
   if (!/^only-lighter/.test(String((e && e.message) || e))) fail += 1
   console.log((/^only-lighter/.test(String((e && e.message) || e)) ? '  ○ ' : '  ✗ the check stopped: ') + String((e && e.message) || e))
