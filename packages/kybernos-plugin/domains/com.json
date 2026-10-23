@@ -1,0 +1,269 @@
+{
+  "v": 1,
+  "id": "com",
+  "order": 60,
+  "accent": "#C25E0A",
+  "icon": "bag",
+  "name": {
+    "en": "Commerce",
+    "fr": "Commerce"
+  },
+  "tagline": {
+    "en": "Shops, operations, customer service, freelancers",
+    "fr": "Boutiques, opérations, service client, indépendants"
+  },
+  "keywords": [
+    "boutique",
+    "shop",
+    "magasin",
+    "store",
+    "commerce",
+    "e-commerce",
+    "ecommerce",
+    "vente",
+    "retail",
+    "service client",
+    "customer service",
+    "support",
+    "stock",
+    "restaurant",
+    "artisan",
+    "commercant",
+    "entrepreneur",
+    "freelance",
+    "independant"
+  ],
+  "home": [
+    "sheet",
+    "dashboard",
+    "automation"
+  ],
+  "legacyJobs": [
+    "commerce",
+    "entre"
+  ],
+  "menu": {
+    "labels": {
+      "dashboards": {
+        "en": "Sales and stock",
+        "fr": "Ventes et stock"
+      },
+      "aiteams": {
+        "en": "Shop team",
+        "fr": "Équipe boutique"
+      }
+    },
+    "hide": [
+      "documents"
+    ]
+  },
+  "agents": {
+    "preset": "balanced",
+    "why": {
+      "en": "Replies to customers are reviewed at first; spending is approved.",
+      "fr": "Les réponses aux clients sont relues au début ; les dépenses sont validées."
+    }
+  },
+  "goals": [
+    {
+      "id": "tickets",
+      "name": {
+        "en": "Support",
+        "fr": "Support"
+      },
+      "title": {
+        "en": "Sort customer requests",
+        "fr": "Trier les demandes clients"
+      },
+      "desc": {
+        "en": "Tickets sorted and prioritised",
+        "fr": "Des tickets triés et priorisés"
+      },
+      "skills": [
+        {
+          "source": "anthropics/knowledge-work-plugins",
+          "name": "ticket-triage",
+          "d": {
+            "en": "Sort and prioritise support tickets",
+            "fr": "Trie et priorise les tickets"
+          }
+        }
+      ],
+      "connectors": [
+        "zendesk",
+        "freshdesk",
+        "gorgias"
+      ],
+      "automations": [
+        {
+          "id": "morning-triage",
+          "name": {
+            "en": "Morning ticket triage",
+            "fr": "Tri des tickets du matin"
+          },
+          "prompt": {
+            "en": "Every weekday at 08:30: if my support inbox or helpdesk is connected, sort the open tickets with the ticket-triage skill (urgent, today, later) and draft a reply for the urgent ones. Never send. If nothing is connected, say so.",
+            "fr": "Chaque jour de semaine à 8 h 30 : si ma boîte support ou mon helpdesk est connecté, trie les tickets ouverts avec le skill ticket-triage (urgent, aujourd’hui, plus tard) et rédige une réponse pour les urgents. N’envoie jamais. Si rien n’est connecté, dis-le."
+          },
+          "cron": "30 8 * * 1-5"
+        }
+      ],
+      "soon": [
+        {
+          "en": "Support Concierge team",
+          "fr": "Équipe Support Concierge"
+        }
+      ],
+      "starter": {
+        "en": "Sort today’s tickets",
+        "fr": "Trie les tickets du jour"
+      }
+    },
+    {
+      "id": "stock",
+      "name": {
+        "en": "Stock",
+        "fr": "Stock"
+      },
+      "title": {
+        "en": "Keep stock and orders under control",
+        "fr": "Garder stocks et commandes sous contrôle"
+      },
+      "desc": {
+        "en": "Stock, orders and reports",
+        "fr": "Stocks, commandes et rapports"
+      },
+      "skills": [
+        {
+          "source": "anthropics/skills",
+          "name": "xlsx",
+          "d": {
+            "en": "Track stock and sales in a sheet",
+            "fr": "Suit stocks et ventes dans un tableur"
+          }
+        },
+        {
+          "source": "kybernos",
+          "name": "stock-check",
+          "d": {
+            "en": "Low, out and overstocked items, with a reorder proposal",
+            "fr": "Articles bas, en rupture ou en surstock, avec une proposition de réapprovisionnement"
+          }
+        }
+      ],
+      "connectors": [
+        "shopify",
+        "googlesheets",
+        "airtable"
+      ],
+      "automations": [
+        {
+          "id": "daily-stock",
+          "name": {
+            "en": "Daily stock check",
+            "fr": "Contrôle de stock quotidien"
+          },
+          "prompt": {
+            "en": "Every day at 08:00: run the stock-check skill on the stock file or the shop I use and list what is out, low or about to run out, with a reorder proposal. Never order.",
+            "fr": "Chaque jour à 8 h : lance le skill stock-check sur le fichier de stock ou la boutique que j’utilise et liste ce qui est en rupture, bas ou sur le point de manquer, avec une proposition de réapprovisionnement. Ne commande jamais."
+          },
+          "cron": "0 8 * * *"
+        }
+      ],
+      "soon": [
+        {
+          "en": "E-commerce Operator team",
+          "fr": "Équipe E-commerce Operator"
+        }
+      ],
+      "starter": {
+        "en": "Which items are about to run out?",
+        "fr": "Quels articles vont manquer ?"
+      }
+    },
+    {
+      "id": "letters",
+      "name": {
+        "en": "Letters",
+        "fr": "Courriers"
+      },
+      "title": {
+        "en": "Write to my customers",
+        "fr": "Écrire à mes clients"
+      },
+      "desc": {
+        "en": "Procedures and customer letters",
+        "fr": "Procédures et courriers clients"
+      },
+      "skills": [
+        {
+          "source": "anthropics/skills",
+          "name": "docx",
+          "d": {
+            "en": "Write and format letters to customers",
+            "fr": "Rédige et met en forme tes courriers clients"
+          }
+        }
+      ],
+      "connectors": [
+        "gmail",
+        "googledocs"
+      ],
+      "starter": {
+        "en": "Write a letter to a customer",
+        "fr": "Rédige un courrier client"
+      }
+    },
+    {
+      "id": "outreach",
+      "name": {
+        "en": "Outreach",
+        "fr": "Prospection"
+      },
+      "title": {
+        "en": "Find new customers",
+        "fr": "Trouver des clients"
+      },
+      "desc": {
+        "en": "Outreach people answer",
+        "fr": "Une prospection qui obtient des réponses"
+      },
+      "skills": [
+        {
+          "source": "anthropics/knowledge-work-plugins",
+          "name": "draft-outreach",
+          "d": {
+            "en": "Write outreach people answer",
+            "fr": "Écrit des messages de prospection qui obtiennent une réponse"
+          }
+        },
+        {
+          "source": "anthropics/knowledge-work-plugins",
+          "name": "campaign-plan",
+          "d": {
+            "en": "Plan a campaign end to end",
+            "fr": "Planifie une campagne de bout en bout"
+          }
+        }
+      ],
+      "teams": [
+        "inbound-closer"
+      ],
+      "connectors": [
+        "mailchimp",
+        "klaviyo",
+        "hubspot"
+      ],
+      "soon": [
+        {
+          "en": "Back-office Finance team",
+          "fr": "Équipe Back-office Finance"
+        }
+      ],
+      "starter": {
+        "en": "Write an outreach message",
+        "fr": "Écris un message de prospection"
+      }
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "contract": 1,
+  "id": "kybernos/refs",
+  "kind": "code",
+  "version": "0.1.0",
+  "name": {
+    "en": "Reference chips",
+    "fr": "Pastilles de référence"
+  },
+  "description": {
+    "en": "Links in an answer become small chips, one per sentence, that open their sources.",
+    "fr": "Les liens d’une réponse deviennent de petites pastilles, une par phrase, qui ouvrent leurs sources."
+  },
+  "icon": "link",
+  "family": "create",
+  "author": {
+    "id": "kybernos",
+    "name": "Kybernos"
+  },
+  "license": "Apache-2.0",
+  "pricing": "free",
+  "package": "@local/kybernos-refs",
+  "entry": {
+    "host": "index.js",
+    "client": "client.js"
+  },
+  "requires": {
+    "kybernos": ">=0.1.0"
+  },
+  "permissions": [
+    "ui.dom"
+  ],
+  "help": "help.json",
+  "suite": {
+    "default": "on"
+  }
+}

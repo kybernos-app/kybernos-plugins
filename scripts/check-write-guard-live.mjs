@@ -208,15 +208,15 @@ try {
     const on = await readJson('/kybernos-memory/settings')
     check('Memory & Lessons: the host stored context = true again', on !== null && on.settings && on.settings.context === true, on)
 
-    // Cloud computers: a key that is not an E2B key (POST /kybernos-computers/key/set answers cle_invalide; nothing is stored).
-    await gotoNav('Cloud computers')
-    check('Cloud computers: the key field is there', await typeInto('input[type=password][placeholder="Paste your E2B key"]', 'not-an-e2b-key') === true)
+    // Code sandbox (E2B): a key that is not an E2B key (POST /kybernos-computers/key/set answers cle_invalide; nothing is stored).
+    await gotoNav('Code sandbox (E2B)')
+    check('Code sandbox (E2B): the key field is there', await typeInto('input[type=password][placeholder="Paste your E2B key"]', 'not-an-e2b-key') === true)
     await sleep(300)
-    check('Cloud computers: "Save" is clicked', await clickButton('Save') === true)
+    check('Code sandbox (E2B): "Save" is clicked', await clickButton('Save') === true)
     await sleep(1500)
-    check('Cloud computers: the browser\'s own POST to /kybernos-computers/key/set was answered 200 (the route ran, and said no on its own rule)', lastStatus('/kybernos-computers/key/set') === 200, lastStatus('/kybernos-computers/key/set'))
+    check('Code sandbox (E2B): the browser\'s own POST to /kybernos-computers/key/set was answered 200 (the route ran, and said no on its own rule)', lastStatus('/kybernos-computers/key/set') === 200, lastStatus('/kybernos-computers/key/set'))
     const status = await readJson('/kybernos-computers/status')
-    check('Cloud computers: the host refused the key on its own rule (keyPresent stays false), not the guard\'s', status !== null && status.keyPresent === false, status)
+    check('Code sandbox (E2B): the host refused the key on its own rule (keyPresent stays false), not the guard\'s', status !== null && status.keyPresent === false, status)
     await shot('write-guard-cloud-computers')
   }
 } finally {

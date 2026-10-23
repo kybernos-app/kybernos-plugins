@@ -76,26 +76,42 @@ assert.equal((clientSource.match(/callLocal\('\/console\/link'/g) || []).length,
 assert.equal((clientSource.match(/callLocal\('\/console\/link', 'POST', [^\n]*open: true/g) || []).length, 2, 'le lien de la console est ouvert par l hote (open: true), jamais par un onglet de la page')
 assert.ok(/const ouvrirAppli = \(section\) => \(\) => \{\s*setMenuOpen\(false\)\s*openAccountPage\(section, actif\)/.test(clientSource) && /section: section, open: true/.test(clientSource), 'les entrees du menu demandent un lien de console, ouvert par l hote')
 assert.ok(clientSource.includes("onSpace: ouvrirAppli('plan')"), 'Team settings ouvre la page du plan de l equipe dans le navigateur')
+  // V1-05 (video review): the space name is drawn at least twice (footer card, menu head) and CSS ellipsises it; with no
+  // title a long name was unreadable in both places (measured live: title and aria-label empty).
+  assert.ok(/className: 'kbfp-cardname', title: nomEspace \}/.test(clientSource) && /className: 'kbfp-mheadname', title: vueEspace\.name \}/.test(clientSource), 'le nom de l espace porte son infobulle là où le CSS le coupe (V1-05)')
 assert.ok(clientSource.includes("onAccount: ouvrirAppli('overview')") && clientSource.includes("onReferral: ouvrirAppli('referral')"), 'Account ouvre la vue d ensemble et Referral sa propre page (2026-10-18), dans le navigateur')
-// « Remote control »: the phone link is ONE entry of the connected menu (right after Referral), offered only when the phone link's own status route says the
-// feature is there; the footer's separate phone button is gone. The panel is the same bridge and fallback as the old button's (MobilePanel).
+// « Phone and channels » (decision of 2026-10-19): ONE entry of the connected menu, just before « Settings », that opens kybernos-mobile's window (the phone link on the left,
+// Kaby's messaging apps on the right). It replaced « Remote control », its popover (MobilePanel, with its fake QR code) and the 60-second poll of the phone link's status the
+// old entry needed to decide whether to show itself: the window says by itself what this server and this plan allow. The window draws itself in a root of its own
+// (`window.__KB_MOBILE__.open()`): this footer mounts nothing (a window drawn inside the footer slides away with a phone's drawer, which moves with a transform).
 {
-  assert.ok(/entree\('referral'[^\n]*\n\s*\/\/[^\n]*\n\s*props\.remote !== null && props\.remote !== undefined\s*\? entree\('remote', h\(PhoneIcon/.test(clientSource), 'l entree Remote control vient juste apres Referral')
-  assert.ok(clientSource.includes("'kybernos-mobile/remote/status'"), 'la disponibilite se lit sur la route de kybernos-mobile')
-  assert.ok(!clientSource.includes("title: t('mobTitle') + ' — ' + t('mobHelp')"), 'le bouton telephone autonome du pied n existe plus')
-  assert.equal((clientSource.match(/h\(MobilePanel, \{/g) || []).length, 1, 'un seul panneau telephone')
-  assert.ok(/menuRemote: 'Remote control'/.test(clientSource) && /menuRemote: 'Contrôle à distance'/.test(clientSource), 'fr/en')
-  const m = clientSource.match(/const remoteOffer = \(j\) => \{[\s\S]*?\n        \}\n/)
-  assert.ok(m !== null, 'remoteOffer est la ou le test l attend')
-  const remoteOffer = new Function('return ' + m[0].replace('const remoteOffer = ', '').trim())()
-  const on = { ok: true, available: true, connected: true, configured: true, entitled: true, devices: [{ id: 'a' }, { id: 'b' }] }
-  assert.deepEqual(remoteOffer(on), { devices: 2 }, 'offered, with the phones already linked')
-  assert.deepEqual(remoteOffer(Object.assign({}, on, { devices: undefined })), { devices: 0 })
-  assert.deepEqual(remoteOffer(Object.assign({}, on, { configured: null, entitled: null, connected: null })), { devices: 2 }, 'not told it is off: offered')
-  for (const off of [{ configured: false }, { entitled: false }, { available: false }, { connected: false }, { ok: false }])
-    assert.equal(remoteOffer(Object.assign({}, on, off)), null, 'hidden: ' + JSON.stringify(off))
-  for (const odd of [null, undefined, 'x', 7, []]) assert.equal(remoteOffer(odd), null, 'an answer that is not a status offers nothing')
-  sok('Remote control : une entree apres Referral, lue sur le statut du lien telephone (cachee si non offert, hors forfait, ou illisible), plus de bouton telephone')
+  // V1-07 (video review): the menu was one block mixing three families, and the entries that OPEN THE SERVER'S CONSOLE
+  // (Account, Referral, Team settings) had no arrow while Upgrade/Website/Help did. Now: three blocks in that order
+  // (account · appearance · console), the console block keeping « Phone and channels » right before « Settings ».
+  assert.ok(
+    clientSource.indexOf("'data-kb': 'menu-block-account'") > 0 &&
+    clientSource.indexOf("'data-kb': 'menu-block-account'") < clientSource.indexOf("'data-kb': 'menu-block-appearance'") &&
+    clientSource.indexOf("'data-kb': 'menu-block-appearance'") < clientSource.indexOf("'data-kb': 'menu-block-console'") &&
+    /'data-kb': 'menu-block-console'[\s\S]{0,900}?entree\('phone'[\s\S]{0,420}?entree\('settings'/.test(clientSource),
+    'trois blocs (compte · apparence · console), « Phone and channels » juste avant Settings')
+  assert.ok(/entree\('account'[^\n]*props\.onAccount, \{ ext: true \}\)/.test(clientSource) && /entree\('referral'[^\n]*props\.onReferral, \{ amber: true, ext: true \}\)/.test(clientSource) && /entree\('space-settings'[^\n]*props\.onSpace, \{ ext: true \}\)/.test(clientSource), 'les entrées qui ouvrent la console web portent la flèche, comme Upgrade (V1-07)')
+  assert.ok(/menuPhone: 'Phone and channels'/.test(clientSource) && /menuPhone: 'Téléphone et canaux'/.test(clientSource), 'fr/en')
+  assert.ok(!/MobilePanel|menuRemote|menu-remote|remoteOffer|kbf-qr|kbf-popcenter|mobTitle|mobScan|mobSoon|mobHelp|setMobileOpen|mobileOpen|\\bphoneOpen\\b|setPhoneOpen|phoneDialog/.test(clientSource), 'plus de panneau telephone, de faux QR code, de sondage du statut du lien, ni de fenetre montee dans le pied')
+  assert.ok(!clientSource.includes("'kybernos-mobile/remote/status'"), 'le pied ne lit plus le statut du lien telephone : la fenetre le dit elle-meme')
+  assert.ok(/phone: phoneOpener\(\) !== null,\s*onPhone: \(\) => \{ setMenuOpen\(false\); setNotifOpen\(false\); const open = phoneOpener\(\); if \(open !== null\) open\(\) \}/.test(clientSource), 'le menu se ferme et demande la fenetre quand le paquet qui la dessine est la')
+  assert.ok(/const ouvrirServeurs = \(\) => \{ setMenuOpen\(false\); setNotifOpen\(false\); openServersPage\(\) \}/.test(clientSource), 'Switch server ouvre Settings › Servers')
+  const m = clientSource.match(/const phoneOpener = \(\) => \{[\s\S]*?\n        \}\n/)
+  assert.ok(m !== null, 'phoneOpener est la ou le test l attend')
+  const phoneOpener = (win) => new Function('window', 'return ' + m[0].replace('const phoneOpener = ', '').trim())(win)()
+  const asked = []
+  const open = phoneOpener({ __KB_MOBILE__: { version: 3, open () { asked.push('open'); return true } } })
+  assert.equal(typeof open, 'function', 'the bundle publishes open: the entry is offered')
+  open()
+  assert.deepEqual(asked, ['open'], 'and it asks that bundle for the window')
+  for (const none of [{}, { __KB_MOBILE__: null }, { __KB_MOBILE__: { version: 2, Dialog () {} } }, { __KB_MOBILE__: { open: 'x' } }])
+    assert.equal(phoneOpener(none), null, 'no window to open, no entry: ' + JSON.stringify(none))
+  assert.equal(phoneOpener({ get __KB_MOBILE__ () { throw new Error('frozen') } }), null, 'a seam that throws offers nothing')
+  sok('Phone and channels : une entree avant Settings, qui demande sa fenetre a kybernos-mobile (open) quand elle existe ; le pied ne monte plus rien, plus de panneau telephone ni de sondage')
 }
 // A1-29: both footer menus (signed out, and the profile's) work with the keyboard. The focus moves INTO the menu when it opens, ArrowUp/ArrowDown (round the ends), Home and
 // End move between its buttons, Tab and Escape close it and give the focus back to the button that opened it. The signed-out menu is a portal on <body> (the last thing the
@@ -469,7 +485,7 @@ const htmlConnecte = htmlDe(racineEl)
 // The unified card (04/10): ONE card carries the active space, "who · plan", the phone and the bell; a click opens the
 // account menu. No gear inside the row (DSH shows its own right beside it) and no menu until it is opened.
 assert.ok(htmlConnecte.includes('data-kb="workspace-card"'), 'la carte unifiee est la (un clic ouvre le menu)')
-assert.ok(htmlConnecte.includes('kbfp-cardname">Personal<'), 'la carte montre l espace ACTIF (le personnel s affiche Personal)')
+assert.ok(htmlConnecte.includes('kbfp-cardname" title="Personal">Personal<'), 'la carte montre l espace ACTIF (le personnel s affiche Personal)')
 assert.ok(htmlConnecte.includes('kbfp-tile') && htmlConnecte.includes('>PE<'), 'tuile d initiales de l espace (celles du nom affiche : Personal, pas My workspace)')
 assert.ok(htmlConnecte.includes('dev · Free'), 'sous-titre : qui · formule (partie locale de l email, pas un « — » muet)')
 assert.ok(htmlConnecte.includes('aria-haspopup="menu"') && htmlConnecte.includes('aria-expanded="false"'), 'la carte ouvre un menu, ferme au premier rendu')
@@ -508,12 +524,9 @@ await act(async () => {
 await act(async () => { await new Promise((r) => setTimeout(r, 20)) })
 const htmlCompteur = htmlDe(racineEl2)
 assert.ok(quotaLus >= 1, 'la carte lit le quota a l hote quand elle apparait')
-assert.ok(htmlCompteur.includes('data-kb="workspace-card-usage"') && htmlCompteur.includes('data-percent="82"') && htmlCompteur.includes('data-level="near"'), 'le compteur montre 82 % en ambre')
-assert.ok(htmlCompteur.includes('class="kbfp-usepct">82%<'), 'le chiffre est un pourcentage entier')
-assert.ok(htmlCompteur.includes('title="82% of your 24 hours allowance is used."'), 'la phrase derriere le compteur est son titre')
-assert.equal(/[$\u20ac]|token|_usd/i.test(htmlCompteur.slice(htmlCompteur.indexOf('workspace-card-usage'), htmlCompteur.indexOf('workspace-card-usage') + 400)), false, 'ni montant ni jeton sur la carte')
+assert.equal(htmlCompteur.includes('workspace-card-usage'), false, 'un espace personnel ne dessine aucune jauge sur la carte, meme quand l hote donne 82 % : c est le quota de l offre Kybernos, que la puce du compositeur montre sur un modele Kybernos')
 racine2.unmount()
-ok('carte : compteur d usage en pourcentage (lu a l hote, ambre des 75 %, phrase en titre, aucun montant)')
+ok('carte : l espace personnel n a plus de jauge de quota (lu a l hote, mais jamais dessine) ; l equipe garde son compteur (voir la carte du plan par role)')
 
 
 // ── The « Kybernos » section of Settings, rendered for real ─────────────────────────────────────────────────────────────────────────
@@ -542,7 +555,8 @@ ok('carte : compteur d usage en pourcentage (lu a l hote, ambre des 75 %, phrase
   await act(async () => { r.render(createElement(Section, null)); await new Promise((res) => setTimeout(res, 30)) })
   let html = htmlDe(root)
   assert.ok(html.includes('data-kb="ky-section"') && html.includes('data-kb="ky-instructions"') && html.includes('data-kb="ky-models"') && html.includes('data-kb="ky-advanced"') && !html.includes('data-kb="ky-chats"'), 'the instructions, the models and a folded Advanced')
-  assert.ok(html.includes('Kept on this computer, in /home/dev/.dsh/AGENTS.md'), 'la page dit ou sont gardees les instructions : sur cet ordinateur')
+  // ux: the sentence no longer shows the file's path (a person reads "Kept on this computer"); the path is the tooltip of that line.
+  assert.ok(html.includes('Kept on this computer: every agent reads them, in new chats.') && !/Kept on this computer, in /.test(html) && html.includes('title="/home/dev/.dsh/AGENTS.md"'), 'la page dit ou sont gardees les instructions : sur cet ordinateur, le chemin en infobulle')
   assert.ok(html.includes('data-kb="ky-signed-out"'), 'deconnecte : les actions qui demandent un serveur le disent')
   const tag = (h, k) => { const i = h.indexOf('data-kb="' + k + '"'); return i < 0 ? '' : h.slice(h.lastIndexOf('<', i), h.indexOf('>', i)) }
   // N-07: the two developer actions (re-import the models, send the DSH chats) are not on the page a newcomer reads: they sit under a folded « Advanced ».
@@ -589,9 +603,80 @@ ok('carte : compteur d usage en pourcentage (lu a l hote, ambre des 75 %, phrase
 }
 ok('section Kybernos : instructions lues sur l hote, deconnecte (actions serveur desactivees et dites) puis connecte (dernier import, dernier envoi)')
 
+// Kaby's suggested section of the custom instructions (the ledger of the core plugin): a dashed block under the instructions, Add / Edit / Discard, nothing saved before a click.
+{
+  const Section = settingsSections[0].component
+  const propsOf = (n) => n[Object.keys(n).find((k) => k.indexOf('__reactProps$') === 0)]
+  const find = (n, pred) => {
+    if (n.nodeType === 1 && pred(n)) return n
+    for (const c of (n.childNodes || [])) { const r = find(c, pred); if (r !== null) return r }
+    return null
+  }
+  const byKb = (name) => (n) => n.attributes !== undefined && n.attributes['data-kb'] === name
+  const play = async (items, steps) => {
+    const calls = []
+    let current = 'Be direct.'
+    const realFetch = globalThis.fetch
+    globalThis.fetch = async (url, init) => {
+      const u = new URL(String(url), 'http://localhost')
+      const method = init && init.method ? init.method : 'GET'
+      calls.push(method + ' ' + u.pathname.replace(/^.*\/kybernos-cloud/, '') + (u.search || '') + (init && init.body ? ' ' + init.body : ''))
+      const path = u.pathname.replace(/^.*\/kybernos-cloud/, '')
+      let body = { ok: false, error: 'inconnu' }
+      if (u.pathname === '/kybernos/suggestions') body = method === 'GET' ? { ok: true, items } : { ok: true }
+      else if (path === '/status') body = { ok: true, connected: false }
+      else if (path === '/instructions') body = { ok: true, present: true, text: current, file: '/home/dev/.dsh/AGENTS.md' }
+      else if (path === '/instructions/save') { current = JSON.parse(init.body).text; body = { ok: true, present: true, changed: true, file: '/home/dev/.dsh/AGENTS.md' } }
+      return { ok: true, status: 200, json: async () => body }
+    }
+    const root = element(doc)
+    const r = ReactClient.createRoot(root)
+    await act(async () => { r.render(createElement(Section, null)); await new Promise((res) => setTimeout(res, 40)) })
+    const out = await steps({ root, calls, press: async (kb) => { await act(async () => { propsOf(find(root, byKb(kb))).onClick({ preventDefault () {}, stopPropagation () {} }); await new Promise((res) => setTimeout(res, 30)) }) } })
+    r.unmount()
+    globalThis.fetch = realFetch
+    return out
+  }
+  const item = { id: 's_1', kind: 'instructions', text: 'Write short, plain sentences. Never promise a date you cannot keep.', from: { n: null, span: '', where: '' }, at: '2026-10-22T08:00:00Z' }
+  // Nothing waits: no block, and the page asked the ledger for instructions only.
+  await play([], async ({ root, calls }) => {
+    assert.equal(find(root, byKb('ky-instr-suggested')), null, 'no suggestion: no dashed block')
+    assert.ok(calls.some((c) => c === 'GET /kybernos/suggestions?kind=instructions'), 'the page asks the ledger for the instructions kind')
+  })
+  // A suggestion waits: the dashed block shows the text with the three actions, and nothing was saved.
+  await play([item], async ({ root, calls, press }) => {
+    const block = find(root, byKb('ky-instr-suggested'))
+    assert.ok(block !== null && htmlDe(block).includes('Kaby suggests adding this') && htmlDe(block).includes('Never promise a date'), 'the block shows who suggests and the text')
+    assert.ok(htmlDe(block).includes('kb-ping'), 'the block carries the pulsing dot')
+    for (const k of ['ky-sug-add', 'ky-sug-edit', 'ky-sug-discard']) assert.ok(find(root, byKb(k)) !== null, k + ' is there')
+    assert.equal(calls.some((c) => c.startsWith('POST /instructions/save')), false, 'nothing is saved before a click')
+    await press('ky-sug-add')
+    const save = calls.find((c) => c.startsWith('POST /instructions/save '))
+    assert.ok(save !== undefined, 'Add saves through the ordinary Save route')
+    const saved = JSON.parse(save.slice('POST /instructions/save '.length)).text
+    assert.ok(saved.startsWith('Be direct.\n\n# Learned from your work (') && saved.includes('Never promise a date you cannot keep.'), 'the section is appended under a heading and the date, the typed text kept')
+    assert.ok(calls.some((c) => c.startsWith('POST /kybernos/suggestions ') && c.includes('"action":"resolve"') && c.includes('"id":"s_1"')), 'the ledger is told it was answered')
+    assert.equal(find(root, byKb('ky-instr-suggested')), null, 'the block goes after Add')
+  })
+  // Discard resolves without saving.
+  await play([item], async ({ root, calls, press }) => {
+    await press('ky-sug-discard')
+    assert.equal(calls.some((c) => c.startsWith('POST /instructions/save')), false, 'Discard saves nothing')
+    assert.ok(calls.some((c) => c.startsWith('POST /kybernos/suggestions ') && c.includes('"id":"s_1"')), 'Discard resolves the suggestion')
+    assert.equal(find(root, byKb('ky-instr-suggested')), null, 'the block goes after Discard')
+  })
+  // Edit opens the text in a box; too long for the 2000 characters, Add refuses and keeps the block.
+  await play([Object.assign({}, item, { text: 'x'.repeat(1500) })], async ({ root, calls, press }) => {
+    await press('ky-sug-edit')
+    assert.ok(find(root, byKb('ky-sug-field')) !== null, 'Edit shows the text in a box')
+  })
+  assert.ok(/kySugTitle:[^\n]*\n[\s\S]*kySugTitle:/.test(source) || (source.match(/kySugTitle:/g) || []).length === 2, 'the block speaks both languages')
+}
+ok('instructions suggerees : bloc en pointilles sous les instructions, Ajouter (a la suite, sous un titre et la date, par le Save ordinaire) / Modifier / Ecarter, rien de sauve avant un clic')
+
 // « Teams settings » is a NAMED entry of the account menu. It opens the app's plan page for the active team in the person's browser, signed in (the console link,
 // asked of the host, which opens the system browser). No frame, no bridge to the core, no local page.
-assert.ok(source.includes("entree('space-settings', h(BuildingIcon, { size: 18 }), t('menuTeamsSettings'), props.onSpace)"),
+assert.ok(source.includes("entree('space-settings', h(BuildingIcon, { size: 18 }), t('menuTeamsSettings'), props.onSpace, { ext: true })"),
   'le menu doit porter une entree nommee pour les reglages de la team')
 assert.ok(source.includes("onSpace: ouvrirAppli('plan')"), 'Teams settings ouvre la page du plan dans le navigateur')
 for (const needle of ['window.__kbOpenWsConsole', 'window.__kbOpenWorkspace']) {
@@ -1222,7 +1307,7 @@ ok('selecteur d equipe : route du choix, evenement d ouverture, message d equipe
       const { el, root } = await draw()
       await open(el)
       const menu = find(el, byClass('kbfp-menu'))
-      const out = { rows: findAll(menu, byKb('menu-plan-window')).map((r) => [r.attributes['data-win'], r.attributes['data-percent'], r.attributes['data-level']]), manage: find(menu, byKb('menu-plan-manage')) !== null, credits: find(menu, byKb('menu-plan-credits')) !== null, html: htmlDe(find(menu, byKb('menu-plan-card'))) }
+      const out = { rows: findAll(menu, byKb('menu-plan-window')).map((r) => [r.attributes['data-win'], r.attributes['data-percent'], r.attributes['data-level']]), manage: find(menu, byKb('menu-plan-manage')) !== null, credits: find(menu, byKb('menu-plan-credits')) !== null, html: htmlDe(find(menu, byKb('menu-plan-card'))), footer: htmlDe(el) }
       await act(async () => { root.unmount() })
       return out
     }
@@ -1233,6 +1318,7 @@ ok('selecteur d equipe : route du choix, evenement d ouverture, message d equipe
     assert.ok(member.html.includes('Last 30 days') && member.html.includes('Last 5 hours') && member.html.includes('Last 7 days'), 'each bar says how long its window is')
     assert.equal(/resets|back/i.test(member.html), false, 'nothing about a time of return while there is room')
     const admin = await run('admin', usage)
+    assert.ok(admin.footer.includes('data-kb="workspace-card-usage"') && admin.footer.includes('data-percent="40"'), 'a team keeps the meter of its pool on the footer card')
     assert.deepEqual([admin.manage, admin.credits], [true, false], 'an admin gets Manage, and not Add credits while the pool has room')
     const near = await run('admin', [win('pool', 2592000, 76), win('member', 18000, 12)])
     assert.equal(near.rows[0][2], 'near', 'the team bar turns amber from 75%')
@@ -1251,10 +1337,15 @@ ok('selecteur d equipe : route du choix, evenement d ouverture, message d equipe
     await open(free.el)
     const fm = find(free.el, byClass('kbfp-menu'))
     assert.ok(find(fm, byKb('menu-plan-cta')) !== null && find(fm, byKb('menu-plan-manage')) === null, 'a free personal space: Upgrade, no Manage')
-    assert.deepEqual(findAll(fm, byKb('menu-plan-window')).map((r) => [r.attributes['data-win'], r.attributes['data-percent']]), [['allowance', '7']], 'and ONE allowance bar')
+    assert.deepEqual(findAll(fm, byKb('menu-plan-window')), [], 'and NO allowance row: it is the Kybernos plan\'s number, which the composer\'s chip shows on a Kybernos model')
+    assert.equal(htmlDe(free.el).includes('workspace-card-usage'), false, 'nor a gauge on the footer card')
+    const menuHtml = htmlDe(fm)
+    const iAcc = menuHtml.indexOf('data-kb="menu-block-account"')
+    const iApp = menuHtml.indexOf('data-kb="menu-block-appearance"')
+    assert.ok(iAcc >= 0 && iApp > iAcc && menuHtml.slice(iAcc, iApp).includes('class="kbfp-msep"'), 'a rule sits between the account block (Account, Referral) and Appearance')
     await act(async () => { await press(find(fm, byKb('menu-plan-cta'))) })
     await act(async () => { free.root.unmount() })
-    ok('carte du plan par role : membre = barre Equipe + les siennes (5 h, 7 j), admin = + Manage, + Add credits quand le pot est plein ; perso gratuit = Upgrade + une barre ; ambre des 75 %, heure de retour seulement quand c\'est plein')
+    ok('carte du plan par role : membre = barre Equipe + les siennes (5 h, 7 j), admin = + Manage, + Add credits quand le pot est plein ; perso gratuit = Upgrade, ni ligne de quota ni jauge ; ambre des 75 %, heure de retour seulement quand c\'est plein')
   }
 
   // 3. A switch waits for DSH: the card says « Switching… » until the host reports the new route live, and the other outcomes are said.
@@ -1274,13 +1365,13 @@ ok('selecteur d equipe : route du choix, evenement d ouverture, message d equipe
     await act(async () => { await new Promise((r) => setTimeout(r, 120)) })
     const during = htmlDe(el)
     assert.ok(during.includes('data-kb="workspace-card-switching"') && during.includes('>Switching…<'), 'while DSH has not applied the route: « Switching… » on the card: ' + during.slice(0, 400))
-    assert.ok(during.includes('kbfp-cardname">Acme<'), 'with the team that was chosen')
+    assert.ok(during.includes('kbfp-cardname" title="Acme">Acme<'), 'with the team that was chosen')
     assert.equal(during.includes('workspace-card-usage'), false, 'and no meter of another team\'s allowance')
     assert.equal(find(el, byClass('kbfp-menu')), null, 'the menu is closed')
     await act(async () => { await new Promise((r) => setTimeout(r, 900)) })
     const after = htmlDe(el)
     assert.equal(after.includes('workspace-card-switching'), false, 'once the route is applied the card is back to normal')
-    assert.ok(after.includes('kbfp-cardname">Acme<'))
+    assert.ok(after.includes('kbfp-cardname" title="Acme">Acme<'))
     const asked = world.calls.filter((c) => c.indexOf('/space/') >= 0)
     assert.equal(asked[0], 'POST /space/active')
     assert.equal(asked.filter((c) => c === 'POST /space/applied').length, 3, 'it asked the host whether the route is applied until it said yes: ' + JSON.stringify(asked))
@@ -1447,7 +1538,7 @@ ok('selecteur d equipe : route du choix, evenement d ouverture, message d equipe
     assert.equal(find(foot.el, byKb('join-team')), null, 'the dialog is closed')
     await settle(900)
     assert.ok(order.indexOf('POST /space/applied') >= 0 || world.calls.indexOf('POST /space/applied') >= 0, 'with the same wait on the model route as any switch')
-    assert.ok(htmlDe(foot.el).includes('kbfp-cardname">Studio B<'), 'the card shows the new team')
+    assert.ok(htmlDe(foot.el).includes('kbfp-cardname" title="Studio B">Studio B<'), 'the card shows the new team')
     await act(async () => { foot.root.unmount() })
 
     // A team that has no plan: the person stays where they are and is told.
@@ -1464,7 +1555,7 @@ ok('selecteur d equipe : route du choix, evenement d ouverture, message d equipe
     const flash = htmlDe(foot.el)
     assert.ok(flash.includes('data-kb="foot-flash"') && flash.includes('You joined “Acme”, which has no plan yet. You are still in “Personal”.'), 'and the person is told: ' + flash.slice(Math.max(0, flash.indexOf('foot-flash') - 40), flash.indexOf('foot-flash') + 300) + ' / ' + flash.length)
     assert.equal(flash.includes('foot-flash-action'), false, 'a member has no plan to choose')
-    assert.ok(flash.includes('kbfp-cardname">Personal<'), 'they stay where they were')
+    assert.ok(flash.includes('kbfp-cardname" title="Personal">Personal<'), 'they stay where they were')
     await act(async () => { foot.root.unmount() })
 
     // Each refusal has its own sentence; the dialog stays so the person can go on.
@@ -1597,7 +1688,7 @@ ok('selecteur d equipe : route du choix, evenement d ouverture, message d equipe
     foot = await draw()
     await pick(foot.el, 't1')
     await settle(900)
-    assert.ok(htmlDe(foot.el).includes('kbfp-cardname">Acme<'), 'with no DSH services the switch itself still works')
+    assert.ok(htmlDe(foot.el).includes('kbfp-cardname" title="Acme">Acme<'), 'with no DSH services the switch itself still works')
     await act(async () => { foot.root.unmount() })
 
     // A route that could not be rewritten still opens the chat in the team's folder (the choice is kept), after the notice.
@@ -1701,6 +1792,14 @@ ok('selecteur d equipe : route du choix, evenement d ouverture, message d equipe
   doc.createElement = realCreate
   globalThis.window.addEventListener = realAdd
   globalThis.window.removeEventListener = realRemove
+}
+
+// « Open activation page » also copies the code: the page asks for it typed (it shows nothing of it, on purpose), so what is left there is to paste it.
+{
+  const open = clientSource.slice(clientSource.indexOf('const openPage = () => {'), clientSource.indexOf('const header = h(\'div\', { className: \'kbc-head\' }'))
+  assert.ok(open.includes('copy()') && open.indexOf('copy()') < open.indexOf('window.open('), 'the page opens after the code is copied, in the same click')
+  assert.ok(clientSource.includes('the code is copied, paste it there to confirm') && clientSource.includes('le code est copié, colle-le là-bas'), 'the card says so, in both languages')
+  ok('Open activation page copies the code in the same click and the card says it is copied (both languages)')
 }
 
 console.log('\n' + pass + ' verifications OK')

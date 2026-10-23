@@ -70,6 +70,9 @@ window.__ModuleLoader__.load({
 .kbsv-tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:3px}
 .kbsv-tag{display:inline-flex;align-items:center;padding:1px 9px;border-radius:999px;font-size:11px;font-weight:600;background:var(--dsw-alias-interactive-bg-active,rgba(0,0,0,.08));color:var(--dsw-alias-label-secondary,inherit)}
 .kbsv-tag[data-tone="ok"]{background:var(--dsw-alias-state-success-tertiary,rgba(34,197,94,.14));color:var(--dsw-alias-state-success-primary,#22c55e)}
+/* Light theme: the engine's green is 2.1:1 on its own tint; a darker ink for the text only (6.3:1), the Enterprise kicker's blue too (5.2:1 on white). */
+body:not([data-ds-dark-theme]) .kbsv-tag[data-tone="ok"]{color:var(--kybernos-ok-ink,#166534)}
+body:not([data-ds-dark-theme]) .kbsv-ent-kick{color:var(--kybernos-brand-ink,#3566d9)}
 .kbsv-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .kbsv-det{border-top:1px solid var(--dsw-alias-border-l1,rgba(0,0,0,.06));padding:12px 16px 14px;display:grid;gap:10px;font-size:12px}
 .kbsv-addresses{margin:0;display:grid;grid-template-columns:84px 1fr;gap:4px 12px;font-size:12px}
@@ -81,7 +84,7 @@ window.__ModuleLoader__.load({
 [aria-expanded="true"]>.kbsv-chev{transform:rotate(180deg)}
 .kbsv-note{margin:0;font-size:12px;color:var(--dsw-alias-label-secondary,inherit)}
 .kbsv-ent{border:1px solid var(--dsw-alias-border-l2,rgba(0,0,0,.1));border-radius:16px;padding:20px 22px;background:var(--dsw-alias-bg-layer-1,transparent);display:grid;gap:16px}
-.kbsv-ent-kick{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--dsw-alias-brand-primary-new-colorprimary-new-color,#4176e6)}
+.kbsv-ent-kick{font-size:11px;font-weight:700;color:var(--dsw-alias-brand-primary-new-colorprimary-new-color,#4176e6)}
 .kbsv-ent h3{margin:2px 0 0;font-size:19px;line-height:1.3;letter-spacing:-.01em}
 .kbsv-ent-lead{margin:6px 0 0;max-width:56ch;color:var(--dsw-alias-label-secondary,inherit)}
 .kbsv-feat{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 22px}
@@ -105,7 +108,7 @@ window.__ModuleLoader__.load({
 .kbsv-error{margin:0;font-size:13px;color:var(--dsw-alias-state-error-primary,#ec1313)}
 .kbsv-two{display:grid;grid-template-columns:1fr 1fr;gap:20px}
 .kbsv-two ul{margin:6px 0 0;padding-inline-start:18px;font-size:13px;display:grid;gap:2px}
-.kbsv-kick{font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--dsw-alias-label-secondary,inherit)}
+.kbsv-kick{font-size:11px;font-weight:700;color:var(--dsw-alias-label-secondary,inherit)}
 .kbsv-code{font-family:var(--ds-font-family-code,ui-monospace,Menlo,monospace);font-size:22px;font-weight:700;letter-spacing:.1em}
 .kbsv-toast{position:fixed;inset-inline:0;bottom:20px;display:flex;justify-content:center;z-index:2147483001;pointer-events:none;padding:0 16px}
 .kbsv-toast>div{background:var(--dsw-alias-label-primary,#111);color:var(--dsw-alias-label-primary-inverted,#fff);border-radius:14px;padding:9px 16px;font-size:13px;max-width:520px;box-shadow:0 8px 24px rgba(0,0,0,.25)}
@@ -134,6 +137,11 @@ window.__ModuleLoader__.load({
         pairing_failed: ['Impossible de joindre ce serveur pour la connexion.', 'Cannot reach this server to sign in.'],
         code_expired: ['Le code a expiré. Si tu ne peux pas créer de compte sur ce serveur, demande à son administrateur.', 'The code expired. If you cannot create an account on this server, ask its administrator.'],
       }
+      // What the person is told once a switch or a removal went through. Removing the ACTIVE server switches back to Kybernos Cloud first (the host does it), so the
+      // account, the models and the team change: it says so and asks for the reload, as « Switch to this server » does (it used to say only « X was removed »).
+      const doneMessage = (kind, server) => (kind === 'switch'
+        ? kt('Tu es sur ', 'You are on ') + server.name + '. ' + kt('Recharge DSH pour rafraîchir la liste des modèles.', 'Reload DSH to refresh the model list.')
+        : server.name + kt(' a été retiré.', ' was removed.') + (server.active === true ? ' ' + kt('Tu es revenu sur Kybernos Cloud. Recharge DSH pour rafraîchir la liste des modèles.', 'You are back on Kybernos Cloud. Reload DSH to refresh the model list.') : ''))
       const say = (code) => { const e = ERR[code]; return e === undefined ? kt('Une erreur est survenue.', 'Something went wrong.') : kt(e[0], e[1]) }
       const STEP = {
         reach: ['Le serveur répond', 'The server answers'],
@@ -267,10 +275,10 @@ window.__ModuleLoader__.load({
         h('div', { className: 'kbsv-dlg', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'kbsv-signin-t', 'data-kb': 'servers-signin-dialog' },
           h('h3', { id: 'kbsv-signin-t' }, kt('Connexion à ', 'Signing in to ') + (server !== undefined ? server.name : '')),
           signin.error !== undefined ? h('p', { className: 'kbsv-error', role: 'alert', 'data-kb': 'servers-signin-error' }, signin.error) : h(React.Fragment, null,
-            h('p', { className: 'kbsv-note', style: { fontSize: '13px' } }, kt('Ouvre la page d’activation de ce serveur, connecte-toi avec ton compte et confirme ce code.', 'Open this server’s activation page, sign in with your account and confirm this code.')),
+            h('p', { className: 'kbsv-note', style: { fontSize: '13px' } }, kt('Ouvre la page d’activation de ce serveur, connecte-toi avec ton compte et confirme ce code : il est copié, colle-le là-bas.', 'Open this server’s activation page, sign in with your account and confirm this code: it is copied, paste it there.')),
             h('div', { style: { display: 'flex', gap: '14px', alignItems: 'center', flexWrap: 'wrap' } },
               h('span', { className: 'kbsv-code', 'data-kb': 'servers-code' }, signin.code),
-              signin.url ? h('a', { className: 'kbsv-btn', 'data-primary': 'true', 'data-kb': 'servers-activation', href: signin.url, target: '_blank', rel: 'noopener noreferrer' }, kt('Ouvrir la page d’activation', 'Open the activation page')) : null),
+              signin.url ? h('a', { className: 'kbsv-btn', 'data-primary': 'true', 'data-kb': 'servers-activation', href: signin.url, target: '_blank', rel: 'noopener noreferrer', onClick: () => { try { navigator.clipboard.writeText(String(signin.code)).catch(() => {}) } catch (e) { /* clipboard refused: the code is on the screen */ } } }, kt('Ouvrir la page d’activation', 'Open the activation page')) : null),
             h('p', { className: 'kbsv-note', role: 'status' }, h('span', { className: 'kbsv-wait' }), kt('En attente de ta validation…', 'Waiting for your approval…'))),
           h('div', { className: 'kbsv-foot' },
             h('span', { className: 'kbsv-note', style: { marginInlineEnd: 'auto' } }, kt('Plus tard : le serveur reste ajouté, non connecté.', 'Later: the server stays added, not signed in.')),
@@ -284,7 +292,7 @@ window.__ModuleLoader__.load({
           h('div', { className: 'kbsv-dlg', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'kbsv-confirm-t', 'data-kb': 'servers-dialog' },
             h('h3', { id: 'kbsv-confirm-t' }, (leaving ? kt('Retirer ', 'Remove ') : kt('Passer à ', 'Switch to ')) + s.name + kt(' ?', '?')),
             leaving
-              ? h('p', { className: 'kbsv-note', style: { fontSize: '13px' } }, kt('Ta connexion à ce serveur est oubliée sur cet appareil. Rien n’est supprimé sur le serveur. ', 'Your sign-in to this server is forgotten on this device. Nothing is deleted on the server. ') + (s.active ? kt('Tu reviendras à Kybernos Cloud.', 'You will go back to Kybernos Cloud.') : ''))
+              ? h('p', { className: 'kbsv-note', style: { fontSize: '13px' } }, kt('Ta connexion à ce serveur est oubliée sur cet appareil. Rien n’est supprimé sur le serveur. ', 'Your sign-in to this server is forgotten on this device. Nothing is deleted on the server. ') + (s.active ? kt('C’est le serveur actif : Kybernos rebascule d’abord sur Kybernos Cloud, et si la bascule échoue, rien ne change.', 'This is the active server: Kybernos switches back to Kybernos Cloud first, and if that switch fails, nothing changes.') : ''))
               : h('div', { className: 'kbsv-two' },
                 h('div', null, h('div', { className: 'kbsv-kick' }, kt('Change', 'Changes')), h('ul', null, h('li', null, kt('Compte et connexion', 'Account and sign-in')), h('li', null, kt('Liste des modèles', 'Model list')), h('li', null, kt('Équipe et leçons partagées', 'Team and shared lessons')), h('li', null, kt('Pages d’équipe et facturation', 'Team settings and billing pages')))),
                 h('div', null, h('div', { className: 'kbsv-kick' }, kt('Reste', 'Stays')), h('ul', null, h('li', null, kt('Conversations et fichiers locaux', 'Local chats and files')), h('li', null, kt('Mémoire personnelle', 'Personal memory')), h('li', null, kt('Thème, langue, réglages', 'Theme, language, settings'))))),
@@ -430,7 +438,7 @@ window.__ModuleLoader__.load({
             if (!alive.current) return
             if (r.ok === true) {
               setConfirm(null)
-              notify(c.kind === 'switch' ? kt('Tu es sur ', 'You are on ') + c.server.name + '. ' + kt('Recharge DSH pour rafraîchir la liste des modèles.', 'Reload DSH to refresh the model list.') : c.server.name + kt(' a été retiré.', ' was removed.'))
+              notify(doneMessage(c.kind, c.server))
               void load()
             } else setConfirm(Object.assign({}, c, { busy: false, error: say(r.error) }))
           },
@@ -459,7 +467,7 @@ window.__ModuleLoader__.load({
               () => h(Conteneur)))
           } catch (e) { try { console.error('[kybernos-servers] page not registered: ' + String((e && e.message) || e)) } catch (e2) { /* console */ } }
         },
-        __test: { View, AddDialog, SigninDialog, Confirm, Enterprise, Row, Steps, addressesOf, say, hostOf, ERR, ENTERPRISE, BUILTIN_ID, EMPTY, NEW_ADD, CSS }
+        __test: { View, AddDialog, SigninDialog, Confirm, Enterprise, Row, Steps, addressesOf, say, doneMessage, hostOf, ERR, ENTERPRISE, BUILTIN_ID, EMPTY, NEW_ADD, CSS }
       }
     } catch (e) {
       try { console.warn('[kybernos-servers] disabled:', e) } catch (e2) { /* console */ }

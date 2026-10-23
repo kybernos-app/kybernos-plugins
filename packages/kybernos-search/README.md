@@ -16,6 +16,12 @@ agent teams. The native search of the Workspaces list (a title filter) is not to
 - Memories (the account's, through `/kybernos-cloud/memory`) and creations (through `/kybernos/load`, the files the agents produced, by workspace) are read by the page from routes
   it already uses, so they need an account / the state load and are searched in the page.
 
+## A read-only seam for other bundles
+
+`globalThis[Symbol.for('kybernos.chat-index')]` is a frozen `{ version: 1, asks(sinceMs), refresh() }`, looked up at call time by whoever reads it (the way the learned-skills seam works).
+`asks(sinceMs)` returns `[{ id, at, text, cwd }]`: the first message the person typed in each chat since that moment, cut at 1,000 characters, nothing else of the chat. `refresh()`
+reads again the journals that changed. kybernos-skills compares those first messages to notice a task the person asks for again (`docs/dev/learned-skills.md`); nothing leaves the computer.
+
 ## What it reads, and where it keeps it
 
 | Source | Read from | Notes |
@@ -37,6 +43,11 @@ chats is what a drive-by page would want, `POST` with an Origin from this machin
 
 `GET status` (counts only) · `POST start` (build or refresh, idempotent, 202) · `POST reindex` (read everything again, 202) ·
 `POST query { q, scopes }` (q capped at 200 characters, only known scopes pass).
+
+`status.state` is `idle`, `building`, `ready` or `partial`. `partial` means some journals could not be read (cut short, a zstd frame
+the reader does not handle, a permission): `errors` counts them and `failed` lists the first 20 as `{ id, code }` (`no-frame`, a system
+code such as `EACCES`, or `run-failed` when a whole run fell over). The dialog shows "N chats could not be read" with a Retry button
+(`POST start` reads again what changed or failed).
 
 ## Design notes
 

@@ -13,8 +13,8 @@
       "en": "The same choice appears when you add a workspace from the sidebar or from a new chat."
     },
     {
-      "fr": "Ouvre un workspace, onglet Détails : le dossier de travail y est affiché, et « Avancé » montre un aperçu de ce qui viendra.",
-      "en": "Open a workspace, Details tab: its working folder is shown there, and “Advanced” previews what is coming."
+      "fr": "Ouvre un workspace, onglet Détails : le dossier de travail y est affiché ; l'onglet Appareils montre un aperçu de ce qui viendra.",
+      "en": "Open a workspace, Details tab: its working folder is shown there; the Devices tab previews what is coming."
     }
   ],
   "where": {

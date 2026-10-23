@@ -13,7 +13,7 @@
 // Exit 0 all good, 1 a check failed, 3 not run (no GUI).
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { openLivePage, waitFor, clickText, openSettings } from './live-page.mjs'
+import { openLivePage, waitFor, clickText, openSettings, openThemeAdvanced } from './live-page.mjs'
 import { swapBundles } from './lib-bundle-swap.mjs'
 
 const shotsDir = process.argv.includes('--shots') ? process.argv[process.argv.indexOf('--shots') + 1] : null
@@ -74,7 +74,8 @@ try {
       const on = document.querySelector('.kb4-menu .kb4-item.on .kb4-isvg')
       return { rows: ico.length, drawn: drawn.length, attr: document.documentElement.getAttribute('data-kb-icons'),
         on: on ? on.innerHTML : null, rest: drawn.filter((i) => !i.classList.contains('on')).every((i) => !/#[0-9a-f]{6}/i.test(i.querySelector('.kb4-isvg').innerHTML.replace(/#fff\\b/g, ''))),
-        box: (() => { const s = document.querySelector('.kb4-menu .kb4-isvg'); const r = s ? s.getBoundingClientRect() : null; return r ? [Math.round(r.width), Math.round(r.height)] : null })() }
+        // The kb4-isvg wrapper is a 19 px box around a 16 px glyph (measured 2026-10-21): measure the SVG, not its seat.
+        box: (() => { const s = document.querySelector('.kb4-menu .kb4-isvg svg') || document.querySelector('.kb4-menu .kb4-isvg'); const r = s ? s.getBoundingClientRect() : null; return r ? [Math.round(r.width), Math.round(r.height)] : null })() }
     })()`)
     check(id + ': every row that has an entry is redrawn (' + st.drawn + ' of ' + st.rows + '), 16 px', st.drawn >= 4 && st.attr === id && st.box !== null && st.box[0] === 16 && st.box[1] === 16, st)
     check(id + ': the open page (Skills) is in its colour, the others are not coloured', st.on !== null && /#10b981/i.test(st.on) && st.rest === true, { on: st.on && st.on.slice(0, 120), rest: st.rest })
@@ -90,6 +91,7 @@ try {
   if (opened === true) {
     await clickText(page, 'Theme')
     await sleep(1500)
+    await openThemeAdvanced(page) // the tabs sit in the Advanced editor, folded under the simple view
     // Essentiel (the default tab) only names the set in use; the sets are in the « Icons » tab, next to Animation.
     check('Essentiel has the icons summary, with a button to the tab', await ev(`!!document.querySelector('[data-kb="icons-summary"] [data-kb="icons-open"]')`))
     const tab2 = (await clickText(page, 'Icons')) || (await clickText(page, 'Icônes'))

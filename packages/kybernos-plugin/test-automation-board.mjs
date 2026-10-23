@@ -27,7 +27,7 @@ const NOW = Z(2026, 10, 12, 9, 20) // Monday 12 October 2026, 09:20 UTC
 /* ── The view that was stored ────────────────────────────────────────────── */
 eq('columns and calendar are kept', [m.kbBoardView('columns'), m.kbBoardView('calendar')], ['columns', 'calendar'])
 eq('list is the list', m.kbBoardView('list'), 'list')
-eq('`cards`, what the toolbar stored before, reads as the list', m.kbBoardView('cards'), 'list')
+eq('`cards` is a view of its own: the cards of the automations', m.kbBoardView('cards'), 'cards')
 eq('anything unknown is the list (the old screen is the safe one)', [m.kbBoardView(undefined), m.kbBoardView(null), m.kbBoardView('kanban'), m.kbBoardView(7)], ['list', 'list', 'list', 'list'])
 
 /* ── Days, weeks, months ─────────────────────────────────────────────────── */
@@ -243,8 +243,8 @@ eq('nothing at all is an empty string', [m.kbBoardReason(null, 'en'), m.kbBoardR
   eq('Launch now reuses the existing run-now action', /props\.act\('run-now'/.test(page), true)
   eq('no cost anywhere (a separate plugin will own it)', /cost|coût|\$|€/i.test(page.replace(/\$\{/g, '')) , false)
   eq('the board is wrapped in a boundary: a failing view must not take the page down', /class KbBoardBoundary extends React\.Component/.test(src) && /h\(KbBoardBoundary/.test(src), true)
-  eq('the toolbar offers the three views, labelled', /views: \['columns', 'calendar', 'list'\]/.test(src) && /viewLabels: true/.test(src), true)
-  eq('a stored `cards` is moved to `list` once', /viewMode === 'cards'/.test(src.slice(src.indexOf('const ScheduledTasksPage = '))), true)
+  eq('the toolbar offers the four views, labelled', /views: \['columns', 'calendar', 'cards', 'list'\]/.test(src) && /viewLabels: true/.test(src), true)
+  eq('a stored `cards` is a choice now, not something to move to `list`', /viewMode === 'cards'/.test(src.slice(src.indexOf('const ScheduledTasksPage = '), src.indexOf('const KB_MOCK_SKILLS = '))), false)
 }
 
 /* ── Every text of the board exists in French and English ─────────────────── */

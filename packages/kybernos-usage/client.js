@@ -55,6 +55,7 @@ window.__ModuleLoader__.load({
         cacheLine: ['{tokens} tokens, dont {pct} lus dans le cache (environ {saved} évités).', '{tokens} tokens, {pct} of them read from the cache (about {saved} saved).'],
         entryNew: ['Entrée neuve', 'New input'],
         cacheRead: ['Cache lu', 'Cache read'],
+        cacheWrite: ['Cache écrit', 'Cache write'],
         output: ['Sortie', 'Output'],
         free: ['Gratuit', 'Free'],
         freeLine: ['{model} tourne {where}. {tokens} tokens, sans frais.', '{model} runs {where}. {tokens} tokens, free of charge.'],
@@ -76,7 +77,7 @@ window.__ModuleLoader__.load({
         pillPlan: ['Usage du plan : {pct}', 'Plan usage: {pct}'],
         pillOwn: ['Coût de cette session avec ta clé : {cost}', 'This session’s cost on your key: {cost}'],
 
-        pageLead: ['Deux sources, séparées. Ton plan Kybernos : le serveur compte, en pourcentage. Tes propres clés et tes modèles locaux : calculé sur cette machine, rien n’est envoyé.', 'Two separate sources. Your Kybernos plan: the server counts, as a percentage. Your own keys and local models: worked out on this machine, nothing is sent.'],
+        pageLead: ['Le serveur compte ton plan Kybernos, en pourcentage. Tes propres clés et tes modèles locaux sont calculés sur cet ordinateur : rien n’est envoyé.', 'The server counts your Kybernos plan, as a percentage. Your own keys and local models are worked out on this computer: nothing is sent.'],
         planSec: ['Ton plan Kybernos', 'Your Kybernos plan'],
         planSecSub: ['vu par le serveur', 'as the server sees it'],
         planSolo: ['Plan {name}', '{name} plan'],
@@ -124,7 +125,7 @@ window.__ModuleLoader__.load({
         saved: ['Enregistré', 'Saved'],
         why: ['Pourquoi deux blocs. Le serveur ne voit que les appels qui passent par lui, et il les compte en pourcentage. Tes clés et tes modèles locaux ne passent pas par lui : seul cet ordinateur peut les chiffrer.', 'Why two blocks. The server only sees calls that go through it, and counts them as a percentage. Your keys and local models do not go through it: only this computer can count them.'],
         pageName: ['Usage', 'Usage'],
-        pageFor: ['Il couvre tous les modèles utilisés ici : un modèle du plan Kybernos (compté par le serveur), une clé à toi ou un modèle local (compté sur cet ordinateur). La console Kybernos garde le détail du plan par membre et par jour.', 'It covers every model you use here: a Kybernos plan model (counted by the server), a key of your own or a local model (counted on this computer). The Kybernos console keeps the plan’s detail per member and per day.'],
+        pageFor: ['Il couvre tous les modèles utilisés ici : un modèle du plan Kybernos, une clé à toi ou un modèle local. La console Kybernos garde le détail du plan par membre et par jour.', 'It covers every model you use here: a Kybernos plan model, a key of your own or a local model. The Kybernos console keeps the plan’s detail per member and per day.'],
       }
       const L = (key, p) => { const v = S[key]; return v === undefined ? key : fill(kt(v[0], v[1]), p) }
 
@@ -333,7 +334,7 @@ window.__ModuleLoader__.load({
 .kbus-link:hover{text-decoration:underline}
 @media (max-width:760px){.kbus-pop{position:fixed;left:16px;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));width:auto;max-height:calc(100vh - 120px)}}
 
-.kbus-page{padding:22px 28px 32px;max-width:860px;color:var(--dsw-alias-label-primary,#e8eaec)}
+.kbus-page{padding:0 0 32px;max-width:860px;color:var(--dsw-alias-label-primary,#e8eaec)}
 /* Light schemes: label-tertiary is 3.7:1 on white. Inside this page it reads as label-secondary, 5.8:1 (audit A1-05); the dark scheme keeps its hierarchy. */
 body:not([data-ds-dark-theme]) .kbus-page{--dsw-alias-label-tertiary:var(--dsw-alias-label-secondary)}
 .kbus-page h2{margin:0;font-size:22px;line-height:1.25;font-weight:700}
@@ -387,7 +388,7 @@ body:not([data-ds-dark-theme]) .kbus-page{--dsw-alias-label-tertiary:var(--dsw-a
 .kbus-sw[aria-checked="true"]{background:var(--dsw-alias-state-business-primary,#4176e6)}
 .kbus-sw[aria-checked="true"]::after{transform:translateX(16px);background:#fff}
 @media (prefers-reduced-motion:reduce){.kbus-sw::after{transition:none}}
-@media (max-width:760px){.kbus-page{padding:18px 16px 24px}.kbus-kpis{grid-template-columns:minmax(0,1fr)}.kbus-row{grid-template-columns:minmax(0,1fr) auto}.kbus-row .sh{display:none}}
+@media (max-width:760px){.kbus-page{padding:0 0 24px}.kbus-kpis{grid-template-columns:minmax(0,1fr)}.kbus-row{grid-template-columns:minmax(0,1fr) auto}.kbus-row .sh{display:none}}
 `
       const placeCss = () => {
         if (document.querySelector('style[data-plugin="@local/kybernos-usage"]') !== null) return
@@ -430,6 +431,15 @@ body:not([data-ds-dark-theme]) .kbus-page{--dsw-alias-label-tertiary:var(--dsw-a
           }
         } catch (e) { /* the store is not ours to break */ }
       }
+      /**
+       * What changes in the store when any session's counters move. It decides the re-render AND the report, so it must carry every counter
+       * `reportOne` compares (L5-06): it left out `cacheWriteTokens`, so an update where only the cache write advanced was neither drawn nor sent.
+       */
+      const storeSignature = (st) => {
+        let sig = ''
+        try { for (const id of Object.keys(st.byId)) { const pv = st.byId[id].projectionValues; if (pv && pv.tokenUsage) { const u = pv.tokenUsage; sig += id.slice(-4) + (u.uncachedInputTokens | 0) + ':' + (u.outputTokens | 0) + ':' + (u.cacheReadTokens | 0) + ':' + (u.cacheWriteTokens | 0) + ';' } } } catch (e) { /* unexpected store */ }
+        return sig
+      }
       const reportOne = (sid, usage, model, title) => {
         const sig = [usage.uncachedInputTokens, usage.outputTokens, usage.cacheReadTokens, usage.cacheWriteTokens, model.provider, model.model].join('|')
         const prev = sent.get(sid)
@@ -457,10 +467,8 @@ body:not([data-ds-dark-theme]) .kbus-page{--dsw-alias-label-tertiary:var(--dsw-a
         // Re-render (and report) when any session of the store gets new counters: the sub-agents live there.
         const storeSig = typeof props.useSessions === 'function'
           ? props.useSessions((st) => {
-            let sig = ''
-            try { for (const id of Object.keys(st.byId)) { const pv = st.byId[id].projectionValues; if (pv && pv.tokenUsage) { const u = pv.tokenUsage; sig += id.slice(-4) + (u.uncachedInputTokens | 0) + ':' + (u.outputTokens | 0) + ':' + (u.cacheReadTokens | 0) + ';' } } } catch (e) { /* unexpected store */ }
             latestStore.current = st
-            return sig
+            return storeSignature(st)
           })
           : ''
         const [open, setOpen] = React.useState(false)
@@ -550,7 +558,7 @@ body:not([data-ds-dark-theme]) .kbus-page{--dsw-alias-label-tertiary:var(--dsw-a
           onPlan ? h('p', { className: 'kbus-line' }, L('viaPlan')) : null,
           h('p', { className: 'kbus-line' }, L('detailHint')))
 
-        return h('span', { className: 'kbus-wrap', ref: wrap },
+        return h('span', { className: 'kbus-wrap', ref: wrap, 'data-kb': 'usage-chip' },
           h('button', { type: 'button', className: 'kbus-pill ' + cls, 'aria-expanded': open ? 'true' : 'false', 'aria-haspopup': 'dialog', 'data-kb': 'kybernos-usage-pill', 'data-act': 'toggle', title: aria, onClick: () => setOpen(!open) },
             h('span', { className: 'kbus-ico' }, svg(onPlan ? ICON.gauge : ICON.coin)),
             h('span', { className: 'kbus-n' }, label)),
@@ -565,18 +573,24 @@ body:not([data-ds-dark-theme]) .kbus-page{--dsw-alias-label-tertiary:var(--dsw-a
         if (kind === 'unknown') return h('div', null, h('h3', null, L('priceUnknown')), h('p', null, L('priceUnknownLine', { model, tokens: fmtTok(all) })))
         if (kind !== 'priced') return h('div', null, h('h3', null, L('noCostTitle')), h('p', null, L('noCostLine')))
         const cu = tokens.u * price.in / 1e6; const cc = tokens.cr * (price.cr === null ? price.in : price.cr) / 1e6; const co = tokens.o * price.out / 1e6
+        // L5-01: the title counts the tokens written to the cache (`tsum`, `costOf`), so the lines under it must too, or they do not add up to it.
+        const cw = tokens.cw * (price.cw === null ? price.in : price.cw) / 1e6
+        const wrote = tokens.cw > 0
         const total = costOf(tokens, price)
         const over = month !== null && month.budget && month.budget.usd !== null
         return h('div', null,
           h('div', { className: 'kbus-hd' }, h('span', null, L('sessionOwn', { model }))),
           h('h3', { style: { marginTop: 6 } }, fmtMoney(total)),
-          h('p', null, L('cacheLine', { tokens: fmtTok(all), pct: fmtPct(tokens.cr / Math.max(1, tokens.u + tokens.cr)), saved: fmtMoney(saved(tokens, price)) })),
+          h('p', null, L('cacheLine', { tokens: fmtTok(all), pct: fmtPct(tokens.cr / Math.max(1, tokens.u + tokens.cr + tokens.cw)), saved: fmtMoney(saved(tokens, price)) })),
           h('div', { className: 'kbus-split', 'aria-hidden': 'true' },
             h('i', { style: { flex: Math.max(1, tokens.u), background: 'var(--dsw-static-deepseek-500,#4176e6)' } }),
             h('i', { style: { flex: Math.max(1, tokens.cr), background: 'var(--dsw-static-green-500,#22c55e)' } }),
+            wrote ? h('i', { style: { flex: Math.max(1, tokens.cw), background: 'var(--dsw-static-neutral-500,#8a9096)' } }) : null,
             h('i', { style: { flex: Math.max(1, tokens.o * 6), background: 'var(--dsw-static-amber-500,#f59e0b)' } })),
           h('ul', { className: 'kbus-leg' },
-            [[L('entryNew'), tokens.u, cu, 'var(--dsw-static-deepseek-500,#4176e6)'], [L('cacheRead'), tokens.cr, cc, 'var(--dsw-static-green-500,#22c55e)'], [L('output'), tokens.o, co, 'var(--dsw-static-amber-500,#f59e0b)']]
+            [[L('entryNew'), tokens.u, cu, 'var(--dsw-static-deepseek-500,#4176e6)'], [L('cacheRead'), tokens.cr, cc, 'var(--dsw-static-green-500,#22c55e)']]
+              .concat(wrote ? [[L('cacheWrite'), tokens.cw, cw, 'var(--dsw-static-neutral-500,#8a9096)']] : [])
+              .concat([[L('output'), tokens.o, co, 'var(--dsw-static-amber-500,#f59e0b)']])
               .map((r, i) => h('li', { key: i }, h('span', { className: 'd', style: { background: r[3] } }), h('span', null, r[0]), h('span', { className: 't' }, fmtTok(r[1])), h('span', { className: 'c' }, fmtMoney(r[2]))))),
           over && month.spent >= month.budget.usd ? h('p', { className: 'kbus-line' }, L('budgetOver', { spent: fmtMoney(month.spent), b: fmtMoney(month.budget.usd) })) : null)
       }
@@ -732,7 +746,7 @@ body:not([data-ds-dark-theme]) .kbus-page{--dsw-alias-label-tertiary:var(--dsw-a
       return {
         name: 'kybernos-usage',
         inject: ['slots'],
-        __test: { S, L, kt, fmtMoney, fmtTok, fmtPct, priceOf, costOf, saved, kindOf, aggregate, sessionCost, windowView, tone, splitKey, FREE_PROVIDERS, CSS, reportOne },
+        __test: { S, L, kt, fmtMoney, fmtTok, fmtPct, priceOf, costOf, saved, kindOf, aggregate, sessionCost, windowView, tone, splitKey, FREE_PROVIDERS, CSS, reportOne, storeSignature, OwnBlock },
         apply (ctx) {
           // After the sessions pills (order 5) and the changes chip (order 4). The id must NOT be `kybernos-usage`:
           // the core's usage probe already registers that id in this slot.

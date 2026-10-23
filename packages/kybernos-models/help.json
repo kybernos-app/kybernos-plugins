@@ -22,8 +22,8 @@
     }
   ],
   "where": {
-    "fr": "Réglages › Fournisseur IA & modèles",
-    "en": "Settings › AI Provider & Models",
+    "fr": "Réglages › Fournisseur IA et modèles",
+    "en": "Settings › AI provider and models",
     "page": true
   },
   "good": {

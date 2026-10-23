@@ -40,6 +40,12 @@ export const maxParallelFrom = (env) => {
 }
 
 /**
+ * `KYBERNOS_AUTOMATION_LOAD_GUARD=off`: the machine is not consulted (the level is always `ok`); the cap on runs going at once still
+ * applies. For a machine whose reading is wrong or whose owner has decided, and for tests that must not depend on the load of the box.
+ */
+export const guardOff = (env) => env !== null && typeof env === 'object' && typeof env.KYBERNOS_AUTOMATION_LOAD_GUARD === 'string' && env.KYBERNOS_AUTOMATION_LOAD_GUARD.trim().toLowerCase() === 'off'
+
+/**
  * The memory still available on Linux, from the text of /proc/meminfo (`MemAvailable`, which counts reclaimable cache; `MemFree`
  * does not, and reads as "full" on a healthy machine). Null when the text has no such line.
  */

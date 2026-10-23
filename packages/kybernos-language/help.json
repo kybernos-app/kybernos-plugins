@@ -27,8 +27,8 @@
     "page": true
   },
   "good": {
-    "fr": "Seuls des textes d’interface partent chez le fournisseur du modèle choisi dans « Avancé », pas le contenu de tes conversations. Ce qui n’est pas encore traduit s’affiche en anglais.",
-    "en": "Only interface texts go to the provider of the model chosen in “Advanced”, not the content of your chats. Anything not translated yet shows in English."
+    "fr": "Seuls des textes d’interface partent chez le fournisseur du modèle choisi dans l’onglet « Réglages », pas le contenu de tes conversations. Ce qui n’est pas encore traduit s’affiche en anglais.",
+    "en": "Only interface texts go to the provider of the model chosen in the “Settings” tab, not the content of your chats. Anything not translated yet shows in English."
   },
   "url": "https://help.kybernos.app/{lang}/agents-and-tools/small-tools-of-the-chat/"
 }

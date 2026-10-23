@@ -1,12 +1,12 @@
 {
   "what": {
-    "fr": "Le panneau qui liste les modules Kybernos pour les activer, les installer ou les mettre à jour. En coulisse, une garde repère les démarrages ratés.",
-    "en": "The panel that lists the Kybernos modules so you can switch, install or update them. Behind the scenes, a guard spots failed starts."
+    "fr": "Le panneau qui liste les modules Kybernos pour les activer, les installer ou les mettre à jour, et les plugins d’autres auteurs. En coulisse, une garde repère les démarrages ratés.",
+    "en": "The panel that lists the Kybernos modules so you can switch, install or update them, and the plugins made by other people. Behind the scenes, a guard spots failed starts."
   },
   "steps": [
     {
-      "fr": "Ouvre « Kybernos Suite » : l’onglet « À la une » montre les modules phares, « Tous » les liste tous.",
-      "en": "Open “Kybernos Suite”: the “Featured” tab shows the main modules, “All” lists every one."
+      "fr": "Ouvre « Kybernos Suite » : « À la une » montre les modules phares, « Tous » les liste, « Plugins » ceux d’autres auteurs.",
+      "en": "Open “Kybernos Suite”: “Featured” shows the main modules, “All” lists them, “Plugins” the ones made by other people."
     },
     {
       "fr": "Cherche avec « Rechercher un module… », filtre par « Installés » ou « Mises à jour », puis clique sur une carte pour lire sa page.",

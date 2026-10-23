@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url'
 const src = readFileSync(fileURLToPath(new URL('./client.js', import.meta.url)), 'utf8')
 const m = src.match(/\/\/ KB-TASKS-CLIENT-BEGIN([\s\S]*?)\/\/ KB-TASKS-CLIENT-END/)
 if (m === null) { console.error('KB-TASKS-CLIENT block not found in client.js'); process.exit(1) }
-const mod = await import('data:text/javascript,' + encodeURIComponent(m[1] + '\nexport { KB_ROUTES_WITH_LOCAL_FALLBACK, kbRemoteOutcome, kbMachineTz, kbCronHuman, kbCronTime, kbCronAt, kbCronOnDays, kbOnceLabel, kbZoneLabel, kbEditChatText, kbTaskWho, kbFmtWhen, kbTasksList, kbExportTask, kbCloneDefinition, kbTaskError, kbTaskTriggerCode, kbTriggerParts, kbListState, KB_TASK_ERRORS }'))
+const mod = await import('data:text/javascript,' + encodeURIComponent(m[1] + '\nexport { kbTasksNeeds, kbSuggestedList, kbTasksLastSessions, kbTasksRunningIds, kbSuggestionMeta, KB_ROUTES_WITH_LOCAL_FALLBACK, kbRemoteOutcome, kbMachineTz, kbCronHuman, kbCronTime, kbCronAt, kbCronOnDays, kbOnceLabel, kbZoneLabel, kbEditChatText, kbTaskWho, kbFmtWhen, kbTasksList, kbExportTask, kbCloneDefinition, kbTaskError, kbTaskTriggerCode, kbTriggerParts, kbListState, KB_TASK_ERRORS }'))
 
 let fails = 0
 const eq = (label, got, want) => { const ok = got === want; if (!ok) { fails++; console.log('FAIL', label, '| got', got, '| want', want) } else console.log('ok  ', label) }
@@ -100,6 +100,15 @@ eq('the machine zone is a real zone', Intl.supportedValuesOf('timeZone').include
 /* ── List, export, clone, messages ───────────────────────────────────────── */
 eq('a null entry in the list is dropped (it crashed the whole page)', mod.kbTasksList([null, { id: 'a' }, 'x', [], undefined, 5, { id: 'b' }]).map((t) => t.id).join(','), 'a,b')
 eq('not an array: empty', mod.kbTasksList(undefined).length + mod.kbTasksList({}).length, 0)
+eq('a suggestion is not an automation of the list', mod.kbTasksList([{ id: 'a' }, { id: 's', suggested: true }, { id: 'b', suggested: false }]).map((t) => t.id).join(','), 'a,b')
+eq('...and is the only thing in the suggested list', mod.kbSuggestedList([{ id: 'a' }, { id: 's', suggested: true }]).map((t) => t.id).join(','), 's')
+eq('the latest run of each automation names its session', JSON.stringify(mod.kbTasksLastSessions([{ id: 'a', history: [{ sessionId: 's1' }, { sessionId: 's2' }] }, { id: 'b', history: [] }, { id: 'c', history: [{ status: 'error', sessionId: null }] }, { id: 'd', suggested: true, history: [{ sessionId: 's9' }] }])), '[{"id":"a","sid":"s2"}]')
+eq('an automation is working when its latest session is running', mod.kbTasksRunningIds([{ id: 'a', sid: 's1' }, { id: 'b', sid: 's2' }, { id: 'c', sid: 'gone' }], { s1: { running: true }, s2: { running: false } }).join(','), 'a')
+eq('no sessions list: nothing is said to run', mod.kbTasksRunningIds([{ id: 'a', sid: 's1' }], null).length, 0)
+eq('a suggestion shows its proof: count, period, place', mod.kbSuggestionMeta({ origin: { proof: { n: 14, span: '60 days', where: 'Gmail', note: 'same request' } } }).line, '14\u00d7 \u00b7 60 days \u00b7 Gmail')
+eq('...and its note as the tooltip', mod.kbSuggestionMeta({ origin: { proof: { n: 14, note: 'same request' } } }).note, 'same request')
+eq('the apps asked for come from the suggestions and the automations that are on, with who asks', JSON.stringify(mod.kbTasksNeeds([{ name: 'A', suggested: true, needs: ['gmail', 'googlecalendar'] }, { name: 'B', active: true, needs: ['gmail'] }, { name: 'C', active: false, needs: ['slack'] }, { name: 'D', active: true }, null])), '{"gmail":["A","B"],"googlecalendar":["A"]}')
+eq('a suggestion with no proof shows nothing', JSON.stringify(mod.kbSuggestionMeta({ name: 'x' })), '{"line":"","note":""}')
 {
   const t = { id: 'st-1', name: 'N', prompt: 'P', schedule: { mode: 'cron', cron: '0 8 * * *', tz: 'UTC' }, runsOn: 'local', active: true, approvals: 'auto', notify: ['push'], nextRun: 'x', lastRun: 'y', history: [{ at: 'z' }], trigger: { type: 'webhook', hookId: 'hk_aaaaaaaaaaaa', secret: 'SECRET0123456789' }, pendingFires: ['an event'] }
   const exported = JSON.stringify(mod.kbExportTask(t))
@@ -197,9 +206,9 @@ eq('a paused webhook test is explained', mod.kbTaskError('automation paused', en
   eq('regenerating and revoking a webhook ask first', page.indexOf('tasks.hook.regen.title') >= 0 && page.indexOf('tasks.hook.revoke.title') >= 0 && page.indexOf('onClick: genHook }, kbt(\'tasks.hook.regen\')') < 0 && page.indexOf('onClick: revokeHook }') < 0, true)
   eq('the list has a loading state and an error state with a retry', page.indexOf('kbaSkeleton()') >= 0 && page.indexOf('kbaLoadError()') >= 0 && page.indexOf('tasks-retry') >= 0, true)
   eq('the form offers a webhook-only choice and opens the webhook tab after saving it', page.indexOf('pr.id === \'webhook\'') >= 0 && page.indexOf('openWebhookOf') >= 0, true)
-  eq('a failed run shows its reason', page.indexOf('className: \'kba-reason\'') >= 0, true)
+  eq('a failed run shows its reason, in the run pane', page.indexOf('className: \'kbrn-xerr\'') >= 0 && page.indexOf('KbRunsPane, {') >= 0, true)
   eq('the confirmation closes on Escape without closing what is behind it', /KbConfirm = [\s\S]{0,700}e\.key === \'Escape\'\) \{ e\.stopPropagation\(\)/.test(page), true)
-  eq('the on/off switches are reachable with the keyboard', (page.match(/className: 'kba-toggle'[^\n]*tabIndex: 0/g) || []).length, 2)
+  eq('the on/off switches (list, detail, cards) are reachable with the keyboard', (src.match(/className: 'kba-toggle'[^\n]*tabIndex: 0/g) || []).length, 3)
   // A5-10: no date of the page is written by a hard-coded locale; they all go through kbWhenOf (the board's formatter) or the helpers above.
   const tasksPage = src.slice(src.indexOf('const kbScheduleLabel = '), src.indexOf('const KB_MOCK_SKILLS = '))
   eq('no hard-coded en-GB in the page of the Automations', tasksPage.indexOf('en-GB') < 0 && tasksPage.indexOf('const kbWhenOf = (iso) =>') >= 0 && tasksPage.indexOf('kbBoardWhen(ms, Date.now(), kbMachineTz(), kbBoardLocale())') >= 0, true)
@@ -209,7 +218,7 @@ eq('a paused webhook test is explained', mod.kbTaskError('automation paused', en
   eq('the header is built once for the skeleton and the list', (page.match(/kbaListHead\(\)/g) || []).length === 2, true)
   eq('the row actions come after the name button and are not nested in it', page.indexOf("className: 'kba-rowbtn'") < page.indexOf("className: 'kba-lacts'") && page.indexOf("className: 'kba-lacts'") < page.indexOf("role: 'switch', 'aria-checked': a.active"), true)
   // V-19: Edit in chat from the row and from the page of an automation, through the channel « Create » uses.
-  eq('« Edit in chat » is on the row and on the page of an automation', page.indexOf("'data-kb': 'action-edit-chat'") >= 0 && page.indexOf("'data-kb': 'detail-edit-chat'") >= 0 && (page.match(/editInChat\(/g) || []).length >= 2, true)
+  eq('« Edit in chat » is on the row and, in the « more » menu, on the page of an automation', page.indexOf("'data-kb': 'action-edit-chat'") >= 0 && page.indexOf("kb: 'detail-edit-chat'") >= 0 && page.indexOf("'data-kb': 'detail-more'") >= 0 && (page.match(/editInChat\(/g) || []).length >= 2, true)
   eq('...it opens the chat the way « Create » does (kbStartChatText) and falls back to the form', /const editInChat = \(t\) => \{\s*try \{ kbStartChatText\(kbEditChatText\(t, kbt, kbBoardLocale\(\)\)\) \} catch \(e\) \{ setModal\(t\) \}/.test(page), true)
   eq('...and the row\x27s button is named for its row', page.indexOf("kbt('tasks.edit.chat.aria').replace('{name}', () => a.name)") >= 0, true)
   // A5-21: a screen-reader list of controls must tell the rows apart: every control of a row carries the automation's name.
@@ -226,6 +235,21 @@ eq('a paused webhook test is explained', mod.kbTaskError('automation paused', en
   // A5-31: presets keep the time, a time field edits it, the prompt says where it stops.
   eq('a preset sets the days and keeps the time, and the form has a time field', page.indexOf('kbCronOnDays(cron, pr.days)') >= 0 && page.indexOf("type: 'time'") >= 0 && page.indexOf('kbCronAt(cron, Number(m[1]), Number(m[2]))') >= 0, true)
   eq('the prompt field shows a counter near its 8000 characters', page.indexOf("'data-kb': 'prompt-count'") >= 0 && page.indexOf('maxLength: 8000') >= 0, true)
+}
+
+// The sessions hook of the menu watcher is called at every render: called only when there are runs to look at, it changed the hook count between two renders and React took the whole menu down (found live, after the first run of an automation)
+{
+  const w = src.slice(src.indexOf('const useKbTasksWatch = '), src.indexOf('const useKbTasksWatch = ') + 3000)
+  eq('the menu watcher calls the sessions hook unconditionally (the selector answers an empty string when there is nothing to look at)', /const runningKey = \(typeof uss === 'function'\)\n\s+\? uss\(\(st\) => \(pairs\.length === 0 \? '' : kbTasksRunningIds/.test(w) && !/typeof uss === 'function' && pairs\.length > 0/.test(w), true)
+}
+
+// The canvas styles that are light keep their character in a dark app: each has a dark twin read from the app's own scheme (the style « bp » is dark already, « auto » follows the app)
+{
+  const ids = ['nr', 'pp', 'sf', 'lg', 'at', 'jy', 'mx']
+  eq('every light canvas style has a dark twin under data-kb-theme="dark", with all the colours the canvas reads', ids.every((id) => {
+    const m = new RegExp('html\\[data-kb-theme="dark"\\] \\.kbfc-th-' + id + '\\{([^}]*)\\}').exec(src)
+    return m !== null && ['--cv-bg', '--cv-dot', '--nd-bg', '--nd-line', '--nd-ink', '--nd-sub', '--wire', '--wire-dim', '--chip', '--lbl'].every((v) => m[1].indexOf(v + ':') >= 0)
+  }), true)
 }
 
 console.log(fails === 0 ? '\nALL PASS' : '\n' + fails + ' FAILURES')

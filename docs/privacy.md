@@ -36,8 +36,20 @@ model name, a key you pasted for that provider) and nothing else.
   browse or install a skill.
 - **Web search**: the engine you chose, when an agent searches the web.
 - **Your Kybernos account** (`api.kybernos.app`): only once you sign in, for what the account gives you.
-- **Your model providers**: the provider of the model you chat with, as in any DSH. That is the one request that carries your
+- **Your model providers**: the provider of the model you chat with, as in any DSH. That is the request that carries your
   prompts.
+
+## Sent to DeepSeek only if you switch it on
+
+- **The session log.** DSH can attach the log of the session (your messages, the tool calls and what they returned, up to 8 MiB
+  per request) to the requests it sends to DeepSeek's **official** API. DSH switches it on by default; Kybernos ships it **off and
+  disabled** (the bundle patch of the core plugin, `packages/kybernos-plugin/cordis.patch.yml`): nothing is uploaded, and DSH's own
+  switch under **Settings › General** (« Upload Session Log when using the official model API ») is not shown, since that control
+  exists only while the row is served. It concerned only the official DeepSeek API: a model reached through a Kybernos route, an
+  OpenAI-compatible endpoint or another provider was never asked for it.
+- **Feedback on a message.** DSH's own telemetry sends a prefix of a session to `dsh-otel-collector.deepseeksvc.com`, with a random
+  anonymous identifier, only after you send feedback on a message, never for ordinary activity (mode `FEEDBACK_ONLY`, from DSH's own
+  notes on that row). A non-empty `DSH_TELEMETRY_DISABLED` in DSH's environment opts the process out.
 
 DSH itself, and any connector or MCP server you configured, make their own requests: they are outside these plugins.
 

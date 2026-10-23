@@ -359,8 +359,8 @@
       get slides () {
         return [
           { layout: 'titre', kicker: kt('La démo', 'The demo'), titre: 'Rain is a given.', sous: kt('Slides écrites en direct par le chat — modifie-les pendant qu\'il tape.', 'Slides written live by the chat — edit them while it types.') },
-          { layout: 'statement', kicker: 'The premise', titre: 'Shells should come prepared.' },
-          { layout: 'puces', kicker: 'How it works', titre: kt('Trois gestes', 'Three gestures'), points: [kt('Le chat écrit : machine à écrire, slide après slide.', 'The chat writes: typewriter style, slide after slide.'), kt('Tu corriges : retape un texte, dessine au pinceau.', 'You correct: retype a text, draw with the brush.'), kt('Le chat relit : tes annotations, puis corrige en soulignant.', 'The chat reads back: your annotations, then corrects with underlines.')] },
+          { layout: 'statement', kicker: kt('Le principe', 'The premise'), titre: 'Shells should come prepared.' },
+          { layout: 'puces', kicker: kt('Comment ça marche', 'How it works'), titre: kt('Trois gestes', 'Three gestures'), points: [kt('Le chat écrit : machine à écrire, slide après slide.', 'The chat writes: typewriter style, slide after slide.'), kt('Tu corriges : retape un texte, dessine au pinceau.', 'You correct: retype a text, draw with the brush.'), kt('Le chat relit : tes annotations, puis corrige en soulignant.', 'The chat reads back: your annotations, then corrects with underlines.')] },
           { layout: 'chiffre', kicker: 'Tempo', grand: '12 s', legende: kt('pour un deck complet, tempo réglable', 'for a whole deck, adjustable pace') },
           { layout: 'fin', titre: kt('À toi.', 'Your turn.'), sous: kt('Demande une correction : l\'agent relit tes retouches et les intègre.', 'Ask for a correction: the agent reads your edits back and works them in.') },
         ]
@@ -382,6 +382,12 @@
       }
       if (!SERVICE_SIDEBAR || typeof SERVICE_SIDEBAR.openTab !== 'function') return false
       try { SERVICE_SIDEBAR.openTab(KIND, {}); return true } catch { return false /* no session mounted */ }
+    }
+
+    /** The /state URL of a session, or null while its key is not known yet (L4-02): a request WITHOUT a session makes the host answer
+     *  with the last deck of ANOTHER conversation — so neither the panel nor the opening probe reads /state before the first key. */
+    function urlEtat (sessionId) {
+      return typeof sessionId === 'string' && sessionId !== '' ? ROUTE_STATE + '?session=' + encodeURIComponent(sessionId) : null
     }
 
     /** One step of the opening probe: `etat` = { versionVue, dejaOuvert }, `data` = the host's answer (null when
@@ -424,9 +430,12 @@
       React.useEffect(() => {
         let vivant = true
         const interroger = async () => {
+          // L4-02: no session key yet (first paint): urlEtat is null — never read /state without one (the host answers with the last
+          // deck of ANOTHER conversation and the panel would show it). The interval below learns the key and the next tick reads.
+          const url = urlEtat(SESSION_ID)
+          if (url === null) return
           let data = null
           try {
-            const url = ROUTE_STATE + (SESSION_ID ? `?session=${encodeURIComponent(SESSION_ID)}` : '')
             const r = await fetch(url)
             if (r.ok) data = await r.json()
           } catch { /* l'hôte reviendra */ }
@@ -861,8 +870,12 @@
       return h('div', { className: 'kbsd-root', ref: racineRef },
         h('div', { className: 'kbsd-head' },
           h('div', { className: 'kbsd-title' }, S.deck !== null ? S.deck.titre : 'Slides'),
+          h('span', { style: { flex: 1 } }),
           correctionsRecentes ? h('div', { className: 'kbsd-badge ia' }, kt(`IA · ${S.corrections.length} correction${S.corrections.length > 1 ? 's' : ''}`, `AI · ${S.corrections.length} correction${S.corrections.length === 1 ? '' : 's'}`)) : null,
           S.deck === null ? h('div', { className: 'kbsd-badge' }, kt('vide', 'empty')) : null,
+          // A-14/N-02: the « ? How it works » pill of the Suite, in the panel's header (this bundle has no page of its own). Guarded:
+          // without the hub (window.__KB_HELP__ absent) the factory renders exactly what it did before.
+          (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h('span', { style: { flex: 'none', display: 'flex', alignItems: 'center' } }, h(window.__KB_HELP__.Help, { id: 'kybernos-slides' })) : null),
         ),
         h('div', { className: 'kbsd-scene', ref: sceneRef },
           S.deck === null
@@ -1094,9 +1107,11 @@
       let sonde = { versionVue: null, dejaOuvert: false }
       ctx.effect(() => {
         const sonder = async () => {
+          // L4-02: no session key yet: the host would answer with another conversation's deck and the tab would open on it.
+          const url = urlEtat(SESSION_ID)
+          if (url === null) return
           let data = null
           try {
-            const url = ROUTE_STATE + (SESSION_ID ? `?session=${encodeURIComponent(SESSION_ID)}` : '')
             const r = await fetch(url)
             if (r.ok) data = await r.json()
           } catch { /* l'hôte reviendra */ }
@@ -1117,6 +1132,6 @@
       __test: {
         normaliserDeck, normaliserSlide, budget, segments, texteVisible,
         slideActive, diffSlides, hitStroke, dessinerTraits, cleChamp,
-        progression, appliquerAnnotations, THEMES, DEMOS, poidsSlide, pasSonde, miniature, placerEditeur,
+        progression, appliquerAnnotations, THEMES, DEMOS, poidsSlide, pasSonde, miniature, placerEditeur, urlEtat,
       },
     }

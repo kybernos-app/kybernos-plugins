@@ -1,0 +1,298 @@
+{
+  "v": 1,
+  "id": "droit",
+  "order": 40,
+  "accent": "#7A2236",
+  "icon": "scales",
+  "name": {
+    "en": "Law",
+    "fr": "Droit"
+  },
+  "tagline": {
+    "en": "Lawyers, in-house counsel, law students",
+    "fr": "Avocats, juristes, étudiants en droit"
+  },
+  "keywords": [
+    "avocat",
+    "lawyer",
+    "attorney",
+    "juriste",
+    "legal",
+    "notaire",
+    "notary",
+    "huissier",
+    "contrat",
+    "contract",
+    "droit",
+    "law",
+    "paralegal",
+    "juridique",
+    "tribunal",
+    "court"
+  ],
+  "home": [
+    "doc",
+    "automation",
+    "sheet"
+  ],
+  "legacyJobs": [
+    "legal"
+  ],
+  "menu": {
+    "labels": {
+      "dashboards": {
+        "en": "My firm",
+        "fr": "Mon cabinet"
+      },
+      "aiteams": {
+        "en": "Legal team",
+        "fr": "Équipe juridique"
+      },
+      "deliverables": {
+        "en": "Deeds and notes",
+        "fr": "Actes et notes"
+      },
+      "tasks": {
+        "en": "Deadlines",
+        "fr": "Échéances"
+      }
+    },
+    "hide": [
+      "documents"
+    ]
+  },
+  "agents": {
+    "preset": "prudent",
+    "why": {
+      "en": "Professional secrecy: the agent prepares, you send. Client files stay on your computer.",
+      "fr": "Secret professionnel : l’agent prépare, tu envoies. Les dossiers restent sur ton ordinateur."
+    }
+  },
+  "goals": [
+    {
+      "id": "contracts",
+      "name": {
+        "en": "Contracts",
+        "fr": "Contrats"
+      },
+      "title": {
+        "en": "Review contracts faster",
+        "fr": "Relire les contrats plus vite"
+      },
+      "desc": {
+        "en": "A first pass on every contract received",
+        "fr": "Une première relecture de chaque contrat reçu"
+      },
+      "skills": [
+        {
+          "source": "anthropics/knowledge-work-plugins",
+          "name": "review-contract",
+          "d": {
+            "en": "Review a contract against your playbook",
+            "fr": "Relit un contrat selon ta grille"
+          }
+        },
+        {
+          "source": "anthropics/knowledge-work-plugins",
+          "name": "compliance-check",
+          "d": {
+            "en": "Check a document against a policy",
+            "fr": "Vérifie un document au regard d’une politique"
+          }
+        }
+      ],
+      "connectors": [
+        "docusign",
+        "googledrive",
+        "dropbox"
+      ],
+      "soon": [
+        {
+          "en": "Legal Compliance team",
+          "fr": "Équipe Legal Compliance"
+        }
+      ],
+      "starter": {
+        "en": "Review this contract and list the risks",
+        "fr": "Relis ce contrat et liste les risques"
+      }
+    },
+    {
+      "id": "deadlines",
+      "name": {
+        "en": "Deadlines",
+        "fr": "Échéances"
+      },
+      "title": {
+        "en": "Never miss a deadline",
+        "fr": "Ne plus rater une échéance"
+      },
+      "desc": {
+        "en": "An alert before each due date",
+        "fr": "Une alerte avant chaque date limite"
+      },
+      "skills": [
+        {
+          "source": "kybernos",
+          "name": "deadline-check",
+          "d": {
+            "en": "The deadlines due soon, with the date computation shown",
+            "fr": "Les échéances proches, avec le calcul des dates"
+          }
+        }
+      ],
+      "connectors": [
+        "googlecalendar",
+        "outlook"
+      ],
+      "automations": [
+        {
+          "id": "deadline-sweep",
+          "name": {
+            "en": "Deadlines of the week",
+            "fr": "Échéances de la semaine"
+          },
+          "prompt": {
+            "en": "Every Monday at 08:00: run the deadline-check skill on the matters and the calendar in this workspace for the next 7 days. Return the list sorted by date and the items to verify.",
+            "fr": "Chaque lundi à 8 h : lance le skill deadline-check sur les dossiers et l’agenda de ce workspace pour les 7 prochains jours. Renvoie la liste triée par date et les points à vérifier."
+          },
+          "cron": "0 8 * * 1"
+        }
+      ],
+      "starter": {
+        "en": "Which deadlines this week?",
+        "fr": "Quelles échéances cette semaine ?"
+      }
+    },
+    {
+      "id": "watch",
+      "name": {
+        "en": "Watch",
+        "fr": "Veille"
+      },
+      "title": {
+        "en": "Keep a legal watch",
+        "fr": "Faire ma veille juridique"
+      },
+      "desc": {
+        "en": "What is new on my cases’ subjects",
+        "fr": "Les nouveautés qui touchent mes dossiers"
+      },
+      "skills": [
+        {
+          "source": "kybernos",
+          "name": "case-law-watch",
+          "d": {
+            "en": "New decisions and texts on your subjects, with citations",
+            "fr": "Les nouvelles décisions et textes sur tes sujets, avec les références"
+          }
+        }
+      ],
+      "teams": [
+        "research-desk"
+      ],
+      "connectors": [
+        "gmail",
+        "notion"
+      ],
+      "automations": [
+        {
+          "id": "case-law-sweep",
+          "name": {
+            "en": "Weekly case-law watch",
+            "fr": "Veille de jurisprudence hebdomadaire"
+          },
+          "prompt": {
+            "en": "Every Monday at 07:30: run the case-law-watch skill on the topics and jurisdictions listed in my watch file in this workspace (ask me once if there is none). Return the digest only.",
+            "fr": "Chaque lundi à 7 h 30 : lance le skill case-law-watch sur les sujets et juridictions listés dans mon fichier de veille de ce workspace (demande-moi une fois s’il n’y en a pas). Renvoie seulement le digest."
+          },
+          "cron": "30 7 * * 1"
+        }
+      ],
+      "starter": {
+        "en": "Summarise this week’s news",
+        "fr": "Résume les nouveautés de la semaine"
+      }
+    },
+    {
+      "id": "time",
+      "name": {
+        "en": "Time",
+        "fr": "Temps"
+      },
+      "title": {
+        "en": "Track my billable time",
+        "fr": "Suivre mon temps facturable"
+      },
+      "desc": {
+        "en": "A summary every Friday",
+        "fr": "Un récapitulatif chaque vendredi"
+      },
+      "skills": [
+        {
+          "source": "anthropics/skills",
+          "name": "xlsx",
+          "d": {
+            "en": "Track time and billing by case",
+            "fr": "Suit le temps passé et la facturation par dossier"
+          }
+        }
+      ],
+      "connectors": [
+        "googlesheets",
+        "quickbooks"
+      ],
+      "automations": [
+        {
+          "id": "time-summary",
+          "name": {
+            "en": "Weekly billable time",
+            "fr": "Temps facturable de la semaine"
+          },
+          "prompt": {
+            "en": "Every Friday at 17:00: add up my billable time for the week from the time sheet in this workspace, by matter, and flag the matters with no time recorded. One table.",
+            "fr": "Chaque vendredi à 17 h : additionne mon temps facturable de la semaine à partir de la feuille de temps de ce workspace, par dossier, et signale les dossiers sans temps enregistré. Un seul tableau."
+          },
+          "cron": "0 17 * * 5"
+        }
+      ],
+      "starter": {
+        "en": "Add up my hours this week",
+        "fr": "Récapitule mes heures de la semaine"
+      }
+    },
+    {
+      "id": "drafting",
+      "name": {
+        "en": "Drafting",
+        "fr": "Rédaction"
+      },
+      "title": {
+        "en": "Draft deeds and notes",
+        "fr": "Rédiger actes et notes"
+      },
+      "desc": {
+        "en": "Drafts in your format",
+        "fr": "Des brouillons à ton format"
+      },
+      "skills": [
+        {
+          "source": "anthropics/skills",
+          "name": "docx",
+          "d": {
+            "en": "Draft and format letters, notices and notes",
+            "fr": "Rédige et met en forme courriers, mises en demeure et notes"
+          }
+        }
+      ],
+      "connectors": [
+        "googledocs",
+        "googledrive"
+      ],
+      "starter": {
+        "en": "Prepare a summary note",
+        "fr": "Prépare une note de synthèse"
+      }
+    }
+  ]
+}

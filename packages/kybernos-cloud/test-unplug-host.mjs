@@ -14,6 +14,7 @@ import { createServer } from 'node:http'
 import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { asBrowser } from './lib-session-routes-test.mjs'
 
 let failed = 0
 const check = (name, ok, detail) => {
@@ -88,7 +89,7 @@ const hit = async (path, method, body) => {
   const handler = routes.get(path.split('?')[0])
   assert.ok(handler !== undefined, 'route missing: ' + path)
   const res = fakeRes()
-  const req = { method, url: path, headers: { host: '127.0.0.1:3080', origin: 'http://127.0.0.1:3080' }, async *[Symbol.asyncIterator]() { if (body !== undefined) yield Buffer.from(JSON.stringify(body)) } }
+  const req = asBrowser(path, { method, url: path, headers: { host: '127.0.0.1:3080', origin: 'http://127.0.0.1:3080' }, socket: { localPort: 3080, remoteAddress: '127.0.0.1' }, async *[Symbol.asyncIterator]() { if (body !== undefined) yield Buffer.from(JSON.stringify(body)) } })
   await handler(req, res)
   return res
 }

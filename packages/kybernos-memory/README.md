@@ -7,7 +7,7 @@ page reaches it through that plugin's routes; the account token never leaves the
 
 ## The page
 
-Settings → **Memory & Lessons** (one of the essentials at the top of the menu, after AI Provider & Models). It opens as **« Memory looks after itself »**: the
+Settings → **Memory & Lessons** (one of the essentials at the top of the menu, after AI provider and models). It opens as **« Memory looks after itself »**: the
 defaults below are already on, so the first screen is one line of status and the data, and every switch is folded under one
 **Customize** button.
 
@@ -16,6 +16,11 @@ defaults below are already on, so the first screen is one line of status and the
   account the lessons still do (« Lessons are on and stay on this computer · Memories need your account »). The only word « off » on the
   page is what the person switched off themselves (« Memory is off » when both halves are). `selfStatus` in `client.js` is the pure
   function (tested), the line is empty until the status, the switches and the tidy-up state are read, so it never flashes a wrong word.
+- **Skills made from experience.** Once the person has accepted a skill Kaby suggested, the status line says « N skills made from experience »
+  and a **See in Skills** button opens the Skills page. On a lesson, **Make a skill** (next to « Propose to team ») hands that lesson to the
+  Skills page (`POST /kybernos-skills/learned/from-lessons`) as a **suggestion**: a checklist of pitfalls in the lesson's own words, fixed rules, no
+  model, no cost, active only when the person accepts it there. When three lessons of the page share a tag (not `default`), a hint offers one
+  skill for all of them. See `docs/dev/learned-skills.md`.
 - **The one step: the account.** With no account the status line carries a **Connect your account** button (it opens the cloud card
   through the `kybernos-cloud:open` window event, the same one the Models page sends) and the Memories tab says why instead of
   drawing a toolbar nobody can use. Nothing else is asked.

@@ -39,6 +39,10 @@ const kbHostOK = (req) => {
     return ['127.0.0.1' + port, 'localhost' + port, '[::1]' + port].indexOf(host) >= 0 || kbTrusted(host)
   } catch (e) { return false }
 }
+// What `register` hands back takes the route off again. It is kept here and given to `ctx.effect` by `apply`, so that unloading the plugin removes every route it
+// added: without it a hot reload met « duplicate exact route », logged « routes not mounted » and went on serving the OLD handlers (audit L4-05, L6-04).
+const kbRetraits = []
+const kbRetirerRoutes = () => { for (const retrait of kbRetraits.splice(0).reverse()) { try { retrait() } catch (e) { /* already gone */ } } }
 const kbFenced = (service) => {
   if (service === null || service === undefined || typeof service.register !== 'function') return service
   const fence = (route) => (route !== null && typeof route === 'object' && typeof route.handler === 'function'
@@ -52,7 +56,7 @@ const kbFenced = (service) => {
       },
     })
     : route)
-  return new Proxy(service, { get: (target, key) => (key === 'register' ? (route) => target.register(fence(route)) : (typeof target[key] === 'function' ? target[key].bind(target) : target[key])) })
+  return new Proxy(service, { get: (target, key) => (key === 'register' ? (route) => { const retrait = target.register(fence(route)); if (typeof retrait === 'function') kbRetraits.push(retrait); return retrait } : (typeof target[key] === 'function' ? target[key].bind(target) : target[key])) })
 }
 
 /** A route that WRITES (the switches, the whitelist, a probe that spends tokens) needs DSH's signed session as well as the right Origin (session-guard.mjs,
@@ -406,6 +410,13 @@ const envoyer = (res, code, obj) => {
   res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8' })
   res.end(JSON.stringify(obj))
 }
+/** The strict variant for a route that answers every method alike: a WRITE on it (any method but GET/HEAD) must NAME this listener's
+ *  Origin, the way docs/dev/route-origin-rule.md asks; an absent header is refused. Reads keep the rule of `origineOK` (the Host fence
+ *  is what stops a rebound page there, and a browser sends no Origin on a same-origin GET). A-16 of the platform audit, 2026-10-20. */
+const origineStricte = (req) => {
+  const source = String(req.headers.origin || req.headers.referer || '')
+  return source !== '' && origineOK(req)
+}
 const origineOK = (req) => {
   // 2026-10 acceptance (M-02/S-03): the EXACT host of the socket's real listener,
   // never a prefix (« localhost.evil.example » used to pass).
@@ -505,12 +516,16 @@ export function monterRoutes (webServerSvc, opts = {}) {
 
   webServerSvc.register({ kind: 'exact', path: '/kybernos-auto/state', handler: async (req, res) => {
     if (!origineOK(req)) { res.writeHead(403); res.end('origin refused'); return }
+    // A-16: this route answers every method, but only a READ is open behind the Host fence; a write must name this listener.
+    if (req.method !== 'GET' && req.method !== 'HEAD' && !origineStricte(req)) { res.writeHead(403); res.end('origin refused'); return }
     envoyer(res, 200, await etatComplet(new URL(req.url, 'http://x').searchParams.get('sessionId') || ''))
   } })
 
   // The configured models, for the picker of the typed list (read-only: `route/id` and whether the provider is connected).
   webServerSvc.register({ kind: 'exact', path: '/kybernos-auto/models', handler: async (req, res) => {
     if (!origineOK(req)) { res.writeHead(403); res.end('origin refused'); return }
+    // A-16: same rule as /state above (the picker only reads; a local program with no Origin may not drive any other method).
+    if (req.method !== 'GET' && req.method !== 'HEAD' && !origineStricte(req)) { res.writeHead(403); res.end('origin refused'); return }
     univers.oublier()
     const connus = await univers.lire()
     envoyer(res, 200, { ok: true, models: (connus === null ? [] : connus).map((x) => ({ cle: x.cle, route: x.route, id: x.id, connecte: x.connecte === true, locale: x.locale === true })) })
@@ -535,12 +550,16 @@ export function monterRoutes (webServerSvc, opts = {}) {
     // Whitelist and classifier: the same global keys as settings.json — the
     // dedicated page is their main writer. Validate first, touch the disk after.
     const maj = {}
+    // Every refusal of this route carries a CODE: the host keeps the code and an English sentence, the page words the code in the
+    // person's language (client.js, refusTxt). A refusal without a code reaches the page as English text in a French interface.
     if (corps.autoWhitelist !== undefined) {
-      const valide = Array.isArray(corps.autoWhitelist) && corps.autoWhitelist.length <= 64 &&
-        corps.autoWhitelist.every((x) => typeof x === 'string' && x.length <= 200) &&
-        new Set(corps.autoWhitelist).size === corps.autoWhitelist.length
-      if (valide !== true) {
-        envoyer(res, 400, { ok: false, code: 'liste', erreur: 'autoWhitelist: an array of unique ids was expected' }); return
+      // The shape (an array of strings) and the count (64 at most, no duplicate) are two causes, so two codes.
+      const forme = Array.isArray(corps.autoWhitelist) && corps.autoWhitelist.every((x) => typeof x === 'string' && x.length <= 200)
+      if (forme !== true) {
+        envoyer(res, 400, { ok: false, code: 'liste-type', erreur: 'autoWhitelist: an array of strings (200 characters at most each) was expected' }); return
+      }
+      if (corps.autoWhitelist.length > 64 || new Set(corps.autoWhitelist).size !== corps.autoWhitelist.length) {
+        envoyer(res, 400, { ok: false, code: 'liste', erreur: 'autoWhitelist: at most 64 unique ids were expected' }); return
       }
       // A list of models is a list of `provider/model` the profile knows (A3-24): « model-only », « a b/c d » or « <script>/x »
       // used to be saved and then « really asked » by the health check. The existence is judged only when the host can read the
@@ -561,27 +580,27 @@ export function monterRoutes (webServerSvc, opts = {}) {
     }
     if (corps.autoRouting !== undefined) {
       // Inherited GLOBAL breaker: true forces Auto on every session.
-      if (typeof corps.autoRouting !== 'boolean') { envoyer(res, 400, { ok: false, erreur: 'autoRouting: a boolean was expected' }); return }
+      if (typeof corps.autoRouting !== 'boolean') { envoyer(res, 400, { ok: false, code: 'routage', erreur: 'autoRouting: a boolean was expected' }); return }
       maj.autoRouting = corps.autoRouting
     }
     if (corps.autoFailover !== undefined) {
-      if (typeof corps.autoFailover !== 'boolean') { envoyer(res, 400, { ok: false, erreur: 'autoFailover: a boolean was expected' }); return }
+      if (typeof corps.autoFailover !== 'boolean') { envoyer(res, 400, { ok: false, code: 'failover', erreur: 'autoFailover: a boolean was expected' }); return }
       maj.autoFailover = corps.autoFailover
     }
     if (corps.autoClassifier !== undefined) {
       if (typeof corps.autoClassifier !== 'string' || corps.autoClassifier.length > 200) {
-        envoyer(res, 400, { ok: false, erreur: 'autoClassifier: a string was expected' }); return
+        envoyer(res, 400, { ok: false, code: 'classifieur', erreur: 'autoClassifier: a string (200 characters at most) was expected' }); return
       }
       maj.autoClassifier = corps.autoClassifier
     }
     const lu = readRawSettings(reglagesFichier)
     const bloque = settingsFileBlocked(lu, reglagesFichier)
-    if (bloque !== null) { envoyer(res, 500, { ok: false, erreur: bloque }); return }
+    if (bloque !== null) { envoyer(res, 500, { ok: false, code: 'settings-illisible', erreur: bloque }); return }
     try {
       writeFileAtomically(reglagesFichier, JSON.stringify({ ...lu.raw, ...maj }, null, 2) + '\n')
       envoyer(res, 200, await etatComplet(''))
     } catch (e) {
-      envoyer(res, 500, { ok: false, erreur: String(e && e.message ? e.message : e) })
+      envoyer(res, 500, { ok: false, code: 'ecriture', erreur: String(e && e.message ? e.message : e) })
     }
   } })
 
@@ -611,7 +630,7 @@ export function monterRoutes (webServerSvc, opts = {}) {
     if (req.method !== 'POST') { res.writeHead(405); res.end('POST expected'); return }
     if (!ecritureAutorisee(req, res)) return
     const corps = await lireCorps(req)
-    if (!llmDispo()) { envoyer(res, 503, { ok: false, erreur: 'llm service unavailable: nothing can be probed' }); return }
+    if (!llmDispo()) { envoyer(res, 503, { ok: false, code: 'llm-indisponible', erreur: 'llm service unavailable: nothing can be probed' }); return }
     const reg = await reglagesEffectifs()
     // Only whitelist models are ever probed: these routes need no login (DSH serves plugin routes before its own
     // authentication), so they must not become a way to make the server call arbitrary models.
@@ -689,6 +708,7 @@ export function mountFailover (ctx, failover) {
 }
 
 export function apply (ctx) {
+  if (ctx !== null && ctx !== undefined && typeof ctx.effect === 'function') ctx.effect(() => kbRetirerRoutes, 'kybernos-auto: routes')
   // The failover needs no web server: its hooks are mounted first, and guarded on their own.
   let failover = null
   // One reading of the configured models for the failover and the routes: « all models » means what is connected NOW.

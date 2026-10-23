@@ -27,6 +27,7 @@ check('2 to 4 steps', throwsWith(() => { const g = good(); g.steps = [g.steps[0]
 check('the lengths are bounded (it has to fit a card)', throwsWith(() => { const g = good(); g.what.fr = 'x'.repeat(201); validerAide('x', g) }, /limit is 200/) && throwsWith(() => { const g = good(); g.steps[0].en = 'x'.repeat(141); validerAide('x', g) }, /limit is 140/))
 check('where.page must be a boolean', throwsWith(() => { const g = good(); g.where.page = 'yes'; validerAide('x', g) }, /where\.page/))
 check('a word the user does not know is refused', throwsWith(() => { const g = good(); g.steps[0].en = 'Register a slot.'; validerAide('x', g) }, /does not know \(slot\)/))
+check('a file name or a project folder is refused too', throwsWith(() => { const g = good(); g.good.en = 'It is a plain .miniapp.json file.'; validerAide('x', g) }, /does not know \(\.json\)/) && throwsWith(() => { const g = good(); g.steps[0].fr = 'Rangé dans artifacts/ du projet.'; validerAide('x', g) }, /does not know \(artifacts\/\)/))
 check('no emoji', throwsWith(() => { const g = good(); g.what.fr = 'Super 🎉'; validerAide('x', g) }, /emoji/))
 check('the error names the bundle', throwsWith(() => validerAide('kybernos-zz', null), /"kybernos-zz"/))
 
@@ -60,10 +61,10 @@ check('the catalogue builds: every bundle of the lifecycle list has a valid help
 if (catalogue !== null) {
   check('the catalogue carries the help of every module', catalogue.modules.length === lifecycle.length && catalogue.modules.every((m) => m.aide !== undefined && m.aide.steps.length >= 2))
   // V-06: every card links to its article. These five have none because the help site has no article that is theirs yet (the Suite panel, the core's several
-  // pages, the restart helper, the search, the Servers page): writing one on the site is the way to remove a name from this list, never an address that does not exist.
-  const NO_ARTICLE_YET = ['kybernos-hub', 'kybernos-plugin', 'kybernos-relance', 'kybernos-search', 'kybernos-servers']
+  // pages, the restart helper, the search, the Servers page, the plugin registry): writing one on the site is the way to remove a name from this list, never an address that does not exist.
+  const NO_ARTICLE_YET = ['kybernos-hub', 'kybernos-kaby-customisation', 'kybernos-plugin', 'kybernos-registry', 'kybernos-relance', 'kybernos-search', 'kybernos-servers', 'kybernos-session-msg']
   const without = catalogue.modules.filter((m) => m.aide.url === undefined).map((m) => m.id).sort()
-  check('every module links to an article of the help site, but the five that have none yet', JSON.stringify(without) === JSON.stringify(NO_ARTICLE_YET), without)
+  check('every module links to an article of the help site, but the eight that have none yet (their card in the product carries the words)', JSON.stringify(without) === JSON.stringify(NO_ARTICLE_YET), without)
   // Where the site's own build is at hand (KB_HELP_SITE=<kybernos-help>/dist-site), each link is an article that exists there, in English.
   const site = process.env.KB_HELP_SITE
   if (typeof site === 'string' && site !== '') {
@@ -91,6 +92,13 @@ if (catalogue !== null) {
   const core = catalogue.modules.find((m) => m.id === 'kybernos-plugin')
   check('the Agent presets page (a page of DSH itself, drawn by no plugin) has its own card in the core bundle, and the hub asks for exactly that one', core !== undefined && core.aide.pages.presets !== undefined && /preset/i.test(core.aide.pages.presets.title.en) && /Settings › Agent presets/.test(core.aide.pages.presets.where.en) && /id: 'kybernos-plugin', page: 'presets'/.test(readFileSync(join(REPO, 'packages', 'kybernos-hub', 'client.js'), 'utf8')))
   check('the Voice page has its own card (it is a page of the core bundle, whose general help is about Agent Teams)', core !== undefined && core.aide.pages !== undefined && core.aide.pages.voice !== undefined && /voice/i.test(core.aide.pages.voice.title.en))
+  // L6-08: a page card nothing asks for is written, translated and never shown. Every card of a `pages` block is requested by a page:
+  // `kbPagePill('key')`, the `help: 'key'` of a settings header, `{ id, page: 'key' }` for a Help, or the hub's CARD map of native pages.
+  const clients = readdirSync(join(REPO, 'packages')).filter((d) => existsSync(join(REPO, 'packages', d, 'client.js'))).map((d) => readFileSync(join(REPO, 'packages', d, 'client.js'), 'utf8')).join('\n')
+  const asked = (key) => new RegExp("(?:kbPagePill\\('" + key + "'|\\bhelp: '" + key + "'|\\bpage: '" + key + "'|\\bCARD = \\{[^}]*'" + key + "')").test(clients)
+  const unasked = catalogue.modules.flatMap((m) => Object.keys(m.aide.pages ?? {}).filter((k) => !asked(k)).map((k) => m.id + ' / ' + k))
+  check('every page card of a help.json is asked for by a page (none is written and never shown)', unasked.length === 0, unasked)
+  check('...and the check can tell: a card nobody asks for is found', asked('ghost-page') === false && asked('voice') === true)
 }
 
 console.log('the « ? How it works » buttons')

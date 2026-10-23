@@ -1,0 +1,304 @@
+{
+  "v": 1,
+  "id": "fin",
+  "order": 50,
+  "accent": "#1E6B4A",
+  "icon": "trend",
+  "name": {
+    "en": "Finance",
+    "fr": "Finance"
+  },
+  "tagline": {
+    "en": "Accounting, management control, freelancers",
+    "fr": "Compta, contrôle de gestion, indépendants"
+  },
+  "keywords": [
+    "comptable",
+    "accountant",
+    "compta",
+    "accounting",
+    "finance",
+    "daf",
+    "cfo",
+    "controleur de gestion",
+    "tresorerie",
+    "treasury",
+    "facturation",
+    "invoicing",
+    "tva",
+    "vat",
+    "audit",
+    "expert-comptable",
+    "bookkeeping"
+  ],
+  "home": [
+    "sheet",
+    "dashboard",
+    "doc"
+  ],
+  "legacyJobs": [
+    "finance"
+  ],
+  "menu": {
+    "labels": {
+      "dashboards": {
+        "en": "Reports",
+        "fr": "Rapports"
+      },
+      "aiteams": {
+        "en": "Back-office team",
+        "fr": "Équipe back-office"
+      },
+      "deliverables": {
+        "en": "Statements and reports",
+        "fr": "États et rapports"
+      },
+      "tasks": {
+        "en": "Closings and reminders",
+        "fr": "Clôtures et relances"
+      }
+    },
+    "hide": [
+      "documents"
+    ]
+  },
+  "agents": {
+    "preset": "prudent",
+    "why": {
+      "en": "Figures and reminders: nothing goes out without your approval.",
+      "fr": "Chiffres et relances : rien ne part sans ton accord."
+    }
+  },
+  "goals": [
+    {
+      "id": "reconcile",
+      "name": {
+        "en": "Reconciliation",
+        "fr": "Rapprochement"
+      },
+      "title": {
+        "en": "Reconcile faster",
+        "fr": "Rapprocher plus vite"
+      },
+      "desc": {
+        "en": "Fewer entries to match by hand",
+        "fr": "Moins d’écritures à pointer à la main"
+      },
+      "skills": [
+        {
+          "source": "anthropics/knowledge-work-plugins",
+          "name": "reconciliation",
+          "d": {
+            "en": "Match two sets of records",
+            "fr": "Rapproche deux jeux d’écritures"
+          }
+        },
+        {
+          "source": "anthropics/skills",
+          "name": "xlsx",
+          "d": {
+            "en": "Check and compute figures in a sheet",
+            "fr": "Contrôle et calcule des chiffres dans un tableur"
+          }
+        }
+      ],
+      "connectors": [
+        "quickbooks",
+        "googlesheets"
+      ],
+      "automations": [
+        {
+          "id": "morning-reconcile",
+          "name": {
+            "en": "Morning reconciliation check",
+            "fr": "Contrôle de rapprochement du matin"
+          },
+          "prompt": {
+            "en": "Every weekday at 08:00: if my accounting app or the bank export in this workspace has new lines since yesterday, list the unmatched ones and propose matches with the reconciliation skill. Never post entries. If there is no new data, say so in one line.",
+            "fr": "Chaque jour de semaine à 8 h : si mon outil de compta ou l’export bancaire de ce workspace a de nouvelles lignes depuis hier, liste celles qui ne sont pas rapprochées et propose des rapprochements avec le skill reconciliation. Ne passe jamais d’écriture. S’il n’y a rien de nouveau, dis-le en une ligne."
+          },
+          "cron": "0 8 * * 1-5"
+        }
+      ],
+      "soon": [
+        {
+          "en": "Back-office Finance team",
+          "fr": "Équipe Back-office Finance"
+        }
+      ],
+      "starter": {
+        "en": "Reconcile these two statements",
+        "fr": "Rapproche ces deux relevés"
+      }
+    },
+    {
+      "id": "closing",
+      "name": {
+        "en": "Closing",
+        "fr": "Clôture"
+      },
+      "title": {
+        "en": "Keep my closings on time",
+        "fr": "Tenir mes clôtures"
+      },
+      "desc": {
+        "en": "Read and explain the statements",
+        "fr": "Lire et expliquer les états financiers"
+      },
+      "skills": [
+        {
+          "source": "anthropics/knowledge-work-plugins",
+          "name": "financial-statements",
+          "d": {
+            "en": "Read and explain statements",
+            "fr": "Lit et explique des états financiers"
+          }
+        }
+      ],
+      "connectors": [
+        "quickbooks",
+        "googledrive"
+      ],
+      "starter": {
+        "en": "Prepare this month’s closing",
+        "fr": "Prépare la clôture du mois"
+      }
+    },
+    {
+      "id": "variances",
+      "name": {
+        "en": "Variances",
+        "fr": "Écarts"
+      },
+      "title": {
+        "en": "Explain the variances",
+        "fr": "Expliquer les écarts"
+      },
+      "desc": {
+        "en": "What moved against the plan",
+        "fr": "Ce qui a bougé par rapport au plan"
+      },
+      "skills": [
+        {
+          "source": "anthropics/knowledge-work-plugins",
+          "name": "variance-analysis",
+          "d": {
+            "en": "Explain what moved versus plan",
+            "fr": "Explique les écarts par rapport au plan"
+          }
+        }
+      ],
+      "connectors": [
+        "googlesheets",
+        "airtable"
+      ],
+      "automations": [
+        {
+          "id": "monthly-variances",
+          "name": {
+            "en": "Monthly variance report",
+            "fr": "Rapport d’écarts mensuel"
+          },
+          "prompt": {
+            "en": "On the 1st of each month at 09:00: compare last month’s actuals with the plan in this workspace using the variance-analysis skill and explain the five largest variances. One page.",
+            "fr": "Le 1er de chaque mois à 9 h : compare le réalisé du mois dernier au plan de ce workspace avec le skill variance-analysis et explique les cinq écarts les plus importants. Une page."
+          },
+          "cron": "0 9 1 * *"
+        }
+      ],
+      "starter": {
+        "en": "Explain this month’s variances",
+        "fr": "Explique les écarts du mois"
+      }
+    },
+    {
+      "id": "dunning",
+      "name": {
+        "en": "Reminders",
+        "fr": "Relances"
+      },
+      "title": {
+        "en": "Chase late invoices",
+        "fr": "Relancer les factures"
+      },
+      "desc": {
+        "en": "Polite reminders, on time",
+        "fr": "Des relances polies et à temps"
+      },
+      "skills": [
+        {
+          "source": "anthropics/skills",
+          "name": "docx",
+          "d": {
+            "en": "Reminder letters",
+            "fr": "Courriers de relance"
+          }
+        },
+        {
+          "source": "kybernos",
+          "name": "invoice-reminders",
+          "d": {
+            "en": "Reminders for overdue invoices, in escalating tones",
+            "fr": "Des relances de factures en retard, de plus en plus fermes"
+          }
+        }
+      ],
+      "connectors": [
+        "gmail",
+        "stripe",
+        "quickbooks"
+      ],
+      "automations": [
+        {
+          "id": "late-invoices",
+          "name": {
+            "en": "Late-invoice reminders",
+            "fr": "Relances de factures en retard"
+          },
+          "prompt": {
+            "en": "Every Monday at 09:00: list the overdue invoices from the file or app I use and draft reminders with the invoice-reminders skill. Never send. Give me the summary table first.",
+            "fr": "Chaque lundi à 9 h : liste les factures en retard du fichier ou de l’outil que j’utilise et rédige les relances avec le skill invoice-reminders. N’envoie jamais. Donne-moi d’abord le tableau récapitulatif."
+          },
+          "cron": "0 9 * * 1"
+        }
+      ],
+      "starter": {
+        "en": "Chase the late invoices",
+        "fr": "Relance les factures en retard"
+      }
+    },
+    {
+      "id": "cash",
+      "name": {
+        "en": "Cash",
+        "fr": "Trésorerie"
+      },
+      "title": {
+        "en": "Follow my cash",
+        "fr": "Suivre ma trésorerie"
+      },
+      "desc": {
+        "en": "The balance and the next due dates",
+        "fr": "Le solde et les prochaines échéances"
+      },
+      "skills": [
+        {
+          "source": "anthropics/skills",
+          "name": "xlsx",
+          "d": {
+            "en": "Track cash in and out",
+            "fr": "Suit les entrées et sorties de trésorerie"
+          }
+        }
+      ],
+      "connectors": [
+        "stripe",
+        "googlesheets"
+      ],
+      "starter": {
+        "en": "Where does my cash stand?",
+        "fr": "Où en est ma trésorerie ?"
+      }
+    }
+  ]
+}

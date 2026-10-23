@@ -1,5 +1,5 @@
 // Host half tests: apply(), the tool and every route over real HTTP. `cd packages/kybernos-motion && node test-host.mjs`
-import { mkdirSync, mkdtempSync, readFileSync, realpathSync, writeFileSync, existsSync } from 'node:fs'
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, writeFileSync, existsSync } from 'node:fs'
 import { rm } from 'node:fs/promises'
 import http from 'node:http'
 import { tmpdir } from 'node:os'
@@ -7,6 +7,10 @@ import { join } from 'node:path'
 
 let fail = 0
 let n = 0
+// L4-01: a ReadStream whose 'error' has no listener becomes an uncaughtException, which ends the DSH host. Collected here instead
+// of killing the test process, so the assertion is `nothing was raised`.
+const uncaught = []
+process.on('uncaughtException', (e) => { uncaught.push(e) })
 const ok = (name, cond, detail) => {
   n++
   if (cond) return
@@ -28,6 +32,12 @@ globalThis[Symbol.for('kybernos.workspace')] = {
   pathAllowed: async (real) => [project, project2].some((p) => real === p || real.startsWith(p + '/')),
 }
 const M = await import('./index.js')
+const { sessionSource } = await import('./session-guard.mjs')
+const { SESSION_SECRET, sessionCookie } = await import('./lib-session-test.mjs')
+
+// A-16: /frame and /export need DSH's signed session besides the strict Origin. The test plays the panel, which fetches same-origin and
+// so carries the cookie; the `call` helper below adds it unless the case names its own Origin (the refusal cases do).
+sessionSource.secret = () => SESSION_SECRET
 
 // ── apply() ─────────────────────────────────────────────────────────────────
 {
@@ -62,7 +72,10 @@ const server = http.createServer((req, res) => {
 await new Promise((r) => server.listen(0, '127.0.0.1', r))
 const port = server.address().port
 const call = async (method, path, { body, headers, raw } = {}) => {
-  const r = await fetch(`http://127.0.0.1:${port}${path}`, { method, headers: { ...(raw ? {} : body ? { 'content-type': 'application/json' } : {}), ...headers }, body: raw ? raw : body ? JSON.stringify(body) : undefined })
+  // The page's own headers: its Origin and DSH's signed cookie (a same-origin fetch carries it). A case that names another Origin
+  // overrides the first; a case that must be refused is the one that does.
+  const page = { origin: `http://127.0.0.1:${port}`, cookie: sessionCookie('127.0.0.1:' + port) }
+  const r = await fetch(`http://127.0.0.1:${port}${path}`, { method, headers: { ...(raw ? {} : body ? { 'content-type': 'application/json' } : {}), ...page, ...headers }, body: raw ? raw : body ? JSON.stringify(body) : undefined })
   const ct = r.headers.get('content-type') || ''
   return { status: r.status, json: ct.includes('json') ? await r.json() : null, buf: ct.includes('json') ? null : Buffer.from(await r.arrayBuffer()), type: ct }
 }
@@ -167,6 +180,18 @@ ok('tool: creates the scene in the session folder', made.ok && made.chemin === j
   ok('asset: an image is served with its type and bytes', a.status === 200 && a.type === 'image/png' && a.buf.length === 8 && a.buf[1] === 0x50, a)
   const esc = await call('GET', `/kybernos-motion/asset?session=s1&scene=${encodeURIComponent(made.chemin)}&src=${encodeURIComponent('../../../elsewhere/secret.png')}`)
   ok('asset: an escape attempt is 404', esc.status === 404)
+  // L4-01: the file was stat-able but cannot be OPENED (EACCES here; a deletion or an I/O error in real life — resolveAsset only does
+  // realpath + stat). A ReadStream 'error' with no listener used to be an uncaughtException, ending the DSH host.
+  const raised = uncaught.length
+  const locked = join(project, 'artifacts', 'img', 'locked.png')
+  writeFileSync(locked, Buffer.from([0x89, 0x50, 0x4e, 0x47, 9]))
+  chmodSync(locked, 0o000)
+  try { await call('GET', `/kybernos-motion/asset?session=s1&scene=${encodeURIComponent(made.chemin)}&src=${encodeURIComponent('img/locked.png')}`) } catch { /* the answer is closed, not the host */ }
+  await new Promise((r) => setTimeout(r, 100))
+  ok('asset: an unreadable file is closed cleanly, it raises no uncaughtException', uncaught.length === raised, uncaught.slice(raised).map((e) => String(e && e.message)))
+  const alive = await call('GET', `/kybernos-motion/asset?session=s1&scene=${encodeURIComponent(made.chemin)}&src=${encodeURIComponent('img/logo.png')}`)
+  ok('asset: the host still serves the next asset (the process survived)', alive.status === 200 && alive.buf.length === 8)
+  chmodSync(locked, 0o600)
 }
 
 // ── the agent looks at a frame ──────────────────────────────────────────────

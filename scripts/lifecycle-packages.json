@@ -10,6 +10,10 @@
       "nom": "@local/kybernos-hub"
     },
     {
+      "dir": "kybernos-registry",
+      "nom": "@local/kybernos-registry"
+    },
+    {
       "dir": "kybernos-theme",
       "nom": "@local/kybernos-theme"
     },
@@ -28,6 +32,10 @@
     {
       "dir": "kybernos-slash",
       "nom": "@local/kybernos-slash"
+    },
+    {
+      "dir": "kybernos-session-msg",
+      "nom": "@local/kybernos-session-msg"
     },
     {
       "dir": "kybernos-sessions",
@@ -145,11 +153,33 @@
       "dir": "kybernos-usage",
       "nom": "@local/kybernos-usage"
     },
-    { "dir": "kybernos-multi-device", "nom": "@local/kybernos-multi-device" },
-    { "dir": "kybernos-dashboards", "nom": "@local/kybernos-dashboards" },
-    { "dir": "kybernos-summary", "nom": "@local/kybernos-summary" },
-    { "dir": "kybernos-kyber", "nom": "@local/kybernos-kyber" },
-    { "dir": "kybernos-search", "nom": "@local/kybernos-search" },
-    { "dir": "kybernos-servers", "nom": "@local/kybernos-servers" }
+    {
+      "dir": "kybernos-multi-device",
+      "nom": "@local/kybernos-multi-device"
+    },
+    {
+      "dir": "kybernos-dashboards",
+      "nom": "@local/kybernos-dashboards"
+    },
+    {
+      "dir": "kybernos-summary",
+      "nom": "@local/kybernos-summary"
+    },
+    {
+      "dir": "kybernos-kyber",
+      "nom": "@local/kybernos-kyber"
+    },
+    {
+      "dir": "kybernos-kaby-customisation",
+      "nom": "@local/kybernos-kaby-customisation"
+    },
+    {
+      "dir": "kybernos-search",
+      "nom": "@local/kybernos-search"
+    },
+    {
+      "dir": "kybernos-servers",
+      "nom": "@local/kybernos-servers"
+    }
   ]
 }

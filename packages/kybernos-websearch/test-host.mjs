@@ -11,7 +11,7 @@ const HERE = dirname(fileURLToPath(import.meta.url))
 const home = mkdtempSync(join(tmpdir(), 'kb-websearch-'))
 process.env.DSH_HOME = home
 
-const { createWebSearch, mountRoutes, ROUTES, PROVIDER_ID, sameOriginStrict } = await import('./host.mjs')
+const { createWebSearch, mountRoutes, ROUTES, PROVIDER_ID, sameOriginStrict, pinnedProvider } = await import('./host.mjs')
 const { apply, settingsFile } = await import('./index.js')
 
 let fail = 0
@@ -186,6 +186,16 @@ ok('the bundle patch inserts the plugin and pins the seam to its provider, resta
 ok('the pin value is the provider id the code registers', new RegExp('searchProvider: ' + PROVIDER_ID).test(patch))
 ok('the host code imports nothing from @deepseek-ai/*', !/from '@deepseek-ai\//.test(['index.js', 'host.mjs', 'router.mjs', 'engines.mjs', 'parse.mjs', 'net.mjs', 'settings.mjs'].map((f) => readFileSync(join(HERE, f), 'utf8')).join('\n')))
 ok('no personal path in the sources', !/\/Users\/[a-z]/i.test(['index.js', 'host.mjs', 'router.mjs', 'engines.mjs', 'parse.mjs', 'net.mjs', 'settings.mjs', 'client.js'].filter((f) => existsSync(join(HERE, f))).map((f) => readFileSync(join(HERE, f), 'utf8')).join('\n')))
+
+// The provider DSH's web seam is set to, in both shapes of the seam: a string fixed at construction (0.2.1-alpha.4) and a live config value (0.2.1-rc.2).
+ok('pinnedProvider: no seam, nothing pinned', pinnedProvider(undefined) === null && pinnedProvider(null) === null && pinnedProvider({}) === null)
+ok('pinnedProvider reads the alpha.4 string `searchProviderId`', pinnedProvider({ searchProviderId: 'deepseek-official' }) === 'deepseek-official')
+ok('pinnedProvider reads the rc.2 live value `config.searchProvider.get()`', pinnedProvider({ config: { searchProvider: { get: () => PROVIDER_ID } } }) === PROVIDER_ID)
+ok('the live value wins over the env fallback', pinnedProvider({ config: { searchProvider: { get: () => 'deepseek-search-api' } }, searchProviderEnv: 'http' }) === 'deepseek-search-api')
+ok('rc.2 with nothing configured falls back to the env value', pinnedProvider({ config: { searchProvider: { get: () => undefined } }, searchProviderEnv: 'brave' }) === 'brave')
+ok('an empty or non-string value is not a pin', pinnedProvider({ config: { searchProvider: { get: () => '' } }, searchProviderId: 42 }) === null)
+ok('a config accessor that throws reads as « not set »', pinnedProvider({ config: { searchProvider: { get: () => { throw new Error('gone') } } }, searchProviderEnv: 'x' }) === 'x')
+ok('index.js reads the pin through pinnedProvider (not the removed property)', /pinnedProvider\(ctx\.get\('web'\)\)/.test(readFileSync(join(HERE, 'index.js'), 'utf8')) && !/web\.searchProviderId/.test(readFileSync(join(HERE, 'index.js'), 'utf8')))
 
 console.log('\n' + (fail === 0 ? 'ALL CHECKS OK' : fail + ' check(s) FAILED'))
 process.exit(fail === 0 ? 0 : 1)

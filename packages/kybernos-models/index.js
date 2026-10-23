@@ -29,6 +29,7 @@ import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { checkKey } from './key-check.mjs'
+import { liveModels, probeModel } from './live-models.mjs'
 import { origineOK, writeGuard } from './session-guard.mjs'
 // Hosted instance: also accept the authorities declared to DSH with --trusted-host. The core bundle publishes the predicate
 // (kybernos-plugin/trusted-authority.mjs); absent or failing, it answers false and the guard stays loopback-only.
@@ -321,6 +322,45 @@ export const kbKeyMount = (register, options = {}) => {
     const out = await checkKey(body.provider, body.key, options)
     if (out.ok !== true) { sendJson(res, 400, { ok: false, error: out.error }); return }
     sendJson(res, 200, { ok: true, result: out.result })
+  } })
+}
+
+// The shipped provider catalogue (models.dev: id, name, env, url), read once: the address and key reference of a provider whose profile
+// names neither (a catalog route such as `opencode-go` is saved with a key reference and models only).
+let providerCatalogCache = null
+const kbCatalogEntry = (route) => {
+  try {
+    if (providerCatalogCache === null) providerCatalogCache = JSON.parse(readFileSync(join(pluginDir, 'provider-catalog.json'), 'utf8'))
+    const list = isPlainObject(providerCatalogCache) && Array.isArray(providerCatalogCache.providers) ? providerCatalogCache.providers : []
+    return list.find((p) => isPlainObject(p) && p.id === route) || null
+  } catch (e) { return null }
+}
+
+/** Mount the live model list (and the protocol probe of a model outside the catalog) on a webServer-like `{ register }`: « Fetch available models » asks the provider's own endpoint, from here, with the
+ *  key its profile names (live-models.mjs). A POST of the signed-in page only (it spends a call to the provider). Answers the list, or one word
+ *  that says why there is none (the page then falls back to the engine's answer and says so); never the key or the provider's raw body.
+ *  `services()` gives the host's `{ settings, credentials }`, read at the time of the request: either may be missing. */
+export const kbLiveMount = (register, services = () => ({}), options = {}) => {
+  register({ kind: 'exact', path: '/kybernos-models/models/live', handler: async (req, res) => {
+    if (req.method !== 'POST') { sendJson(res, 405, { ok: false, error: 'method' }); return }
+    if (kbRefused(req, res)) return
+    const body = await readBody(req)
+    if (!isPlainObject(body)) { sendJson(res, 400, { ok: false, error: 'bad-json' }); return }
+    let svc = {}
+    try { svc = services() || {} } catch (e) { svc = {} }
+    const out = await liveModels(body, { settings: svc.settings, credentials: svc.credentials, entry: kbCatalogEntry(typeof body.route === 'string' ? body.route : ''), ...options })
+    if (out.ok !== true) { sendJson(res, ['bad-route', 'bad-key', 'bad-endpoint'].indexOf(out.error) >= 0 ? 400 : 200, out); return }
+    sendJson(res, 200, { ok: true, source: 'live', url: out.url, models: out.models })
+  } })
+  register({ kind: 'exact', path: '/kybernos-models/models/probe', handler: async (req, res) => {
+    if (req.method !== 'POST') { sendJson(res, 405, { ok: false, error: 'method' }); return }
+    if (kbRefused(req, res)) return
+    const body = await readBody(req)
+    if (!isPlainObject(body)) { sendJson(res, 400, { ok: false, error: 'bad-json' }); return }
+    let svc = {}
+    try { svc = services() || {} } catch (e) { svc = {} }
+    const out = await probeModel(body, { settings: svc.settings, credentials: svc.credentials, entry: kbCatalogEntry(typeof body.route === 'string' ? body.route : ''), ...options })
+    sendJson(res, ['bad-route', 'bad-model', 'bad-key', 'bad-endpoint'].indexOf(out.error) >= 0 ? 400 : 200, out)
   } })
 }
 
@@ -944,6 +984,8 @@ export function apply(ctx) {
       kbPkMount((route) => hostCtx.effect(() => webServer.register(route), 'kybernos-models: ' + route.path))
       // The first-run wizard asks the provider whether a pasted key is accepted, before saving it.
       kbKeyMount((route) => hostCtx.effect(() => webServer.register(route), 'kybernos-models: ' + route.path))
+      // « Fetch available models »: the provider's own list, live, with the key its profile names (no engine patch, no engine web.fetch).
+      kbLiveMount((route) => hostCtx.effect(() => webServer.register(route), 'kybernos-models: ' + route.path), () => ({ settings: hostCtx.get('settings'), credentials: hostCtx.get('credentials') }))
 
             // Journal of the writes: every attempt of the panel (real field or
             // annotation) leaves a line there, with the harness's answer. It is the

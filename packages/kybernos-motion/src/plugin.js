@@ -795,7 +795,10 @@ function MotionPanel () {
   if (!doc) {
     return h('div', { className: 'kbmt-root kbmt-panel', 'data-kb': 'motion-panel' },
       h('div', { className: 'kbmt-head' }, h('div', { className: 'kbmt-title' }, h('strong', null, 'Motion')),
-        h('div', { className: 'kbmt-actions' }, h('button', { type: 'button', className: 'kbmt-btn', 'data-act': 'list', onClick: openList }, Ic('list', 14), kt('Mes animations', 'My animations')))),
+        h('div', { className: 'kbmt-actions' }, h('button', { type: 'button', className: 'kbmt-btn', 'data-act': 'list', onClick: openList }, Ic('list', 14), kt('Mes animations', 'My animations')),
+          // A-14/N-02: the « ? How it works » pill of the Suite, in the panel's header (this bundle has no page of its own). Guarded:
+          // without the hub (window.__KB_HELP__ absent) the factory renders exactly what it did before.
+          (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-motion' }) : null))),
       pop === 'list' ? ListPop({ list, onPick: async (p) => { await api('POST', 'open', { path: p }); setPop(null); await load(p) } }) : null,
       h('div', { className: 'kbmt-empty', 'data-kb': 'motion-empty' }, loadErr ? h('p', { className: 'kbmt-err' }, loadErr) : null,
         h('b', null, kt('Aucune animation ouverte', 'No animation open')),
@@ -810,7 +813,9 @@ function MotionPanel () {
           status ? [Ic('check', 13), status] : [Ic('hist', 13), kt('Enregistré · r', 'Saved · r') + doc.rev])),
       h('div', { className: 'kbmt-actions' },
         h('button', { type: 'button', className: 'kbmt-btn', 'data-act': 'list', onClick: openList }, Ic('list', 14), kt('Animations', 'Animations')),
-        h('button', { type: 'button', className: 'kbmt-btn pri', 'data-act': 'export', onClick: () => { setPop(null); setModal(true) } }, Ic('up', 14), kt('Exporter', 'Export')))),
+        h('button', { type: 'button', className: 'kbmt-btn pri', 'data-act': 'export', onClick: () => { setPop(null); setModal(true) } }, Ic('up', 14), kt('Exporter', 'Export')),
+        // A-14/N-02: the Suite's « ? How it works » pill, same guard: a missing hub never breaks the factory.
+        (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-motion' }) : null))),
     h('div', { className: 'kbmt-stage' }, h('canvas', { ref: player.canvasRef, 'data-kb': 'motion-canvas', 'aria-label': kt('Aperçu de l\'animation', 'Animation preview'), onClick: () => player.play() })),
     h(Transport, { scene, player }),
     h(Timeline, { scene, player }),
@@ -895,7 +900,7 @@ const CSS = `
 .kbmt-ph{position:absolute;top:0;bottom:0;width:2px;margin-left:-1px;background:var(--k-t1);pointer-events:none}
 .kbmt-ph::before{content:"";position:absolute;top:0;left:-4px;width:10px;height:7px;background:var(--k-t1);clip-path:polygon(0 0,100% 0,50% 100%)}
 .kbmt-params{flex:1;min-height:0;overflow:auto;padding:14px 12px;display:grid;gap:13px;align-content:start}
-.kbmt-params h3,.kbmt-pop h3{margin:0 0 -4px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--k-t3)}
+.kbmt-params h3,.kbmt-pop h3{margin:0 0 -4px;font-size:11px;font-weight:600;color:var(--k-t3)}
 .kbmt-fld{display:grid;gap:5px;min-width:0}
 .kbmt-fld label,.kbmt-lbl{font-size:12px;color:var(--k-t2)}
 .kbmt-fld input[type="text"],.kbmt-fld input[type="number"]{height:30px;border:1px solid var(--k-line2);border-radius:7px;background:var(--k-l1);color:var(--k-t1);padding:0 9px;width:100%;font:inherit}

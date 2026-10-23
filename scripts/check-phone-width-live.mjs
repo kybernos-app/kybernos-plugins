@@ -11,7 +11,7 @@
 //   - A3-20 / A3-23  a switch keeps its pill (34-40 x 20-22 px, never a 40 px square) in Web Search, Auto Routing, General, About, Kybernos
 //                    Suite and Usage; the radios of Connectors are round dots; the segmented options of Auto Routing keep 40 px;
 //   - A3-19 / Tools  Workers and Tools (and Web Search, AI Provider, Commands) do not scroll sideways; the Workers chevron is on screen;
-//   - A3-18          the « Kybernos Cloud » banner of AI Provider & Models is about 190 px, not 390;
+//   - A3-18          the « Kybernos Cloud » banner of AI provider and models is about 190 px, not 390;
 //   - A3-22          a command's name keeps 100 px or more; the search field takes the page's width; the tabs fit;
 //   - A5-05          the four tabs of the Skills page are all on screen, no strip to slide;
 //   - A4-10 / A4-31  the Creations tiles are one strip (92 px high) that slides sideways and the first card starts above 700 px;
@@ -105,7 +105,7 @@ try {
     check('Connectors: the provider radios are round dots (18 x 18, not 40 px squares)', rad.length >= 2 && rad.every(([w, h]) => w === h && w <= 24), rad)
     await shot('phone-connectors')
   }
-  for (const label of ['Workers', 'Tools', 'AI Provider & Models', 'Commands']) {
+  for (const label of ['Workers', 'Tools', 'AI provider and models', 'Commands']) {
     if (!(await settingsPage(label))) { console.log('  ○ ' + label + ' did not open'); continue }
     check(label + ': the page does not scroll sideways', (await sideways()) === null, await sideways())
     if (label === 'Workers') {
@@ -113,10 +113,10 @@ try {
       check('Workers: the chevron of every row is on screen (it ended at 409)', chev.length > 0 && chev.every((r) => r <= 390), chev)
       await shot('phone-workers')
     }
-    if (label === 'AI Provider & Models') {
+    if (label === 'AI provider and models') {
       const hero = await ev(`(() => { const h = document.querySelector('.kbmh-hero'); return h ? Math.round(h.getBoundingClientRect().height) : null })()`)
-      if (hero === null) console.log('  ○ no « Kybernos Cloud » banner in this instance')
-      else check('AI Provider & Models: the banner is 260 px or less (it was ~390)', hero <= 260, hero)
+      if (hero === null) console.log('  ○ no « Kybernos Cloud » card in this instance')
+      else check('AI provider and models: the Cloud card is one card tall, 110 px or less (the banner it replaces was ~390)', hero <= 110, hero)
       await shot('phone-ai-provider')
     }
   }

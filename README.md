@@ -18,8 +18,8 @@ dsh web --port 3080        # opens your browser, already signed in
 No browser opened (a server, a window you closed)? Open the address that `dsh web` prints: it looks like `http://127.0.0.1:3080/?token=…`
 and carries your sign-in. The bare `http://127.0.0.1:3080/` answers 401 on purpose.
 
-Needs Node.js 22 or later. The first run opens a few welcome pages (your profession, display mode, which models to use, a
-starter kit of skills and agent teams for your profession); each can be skipped and replayed from Settings. What leaves your machine, and the one switch for it: [`docs/privacy.md`](docs/privacy.md).
+Needs Node.js 22 or later. The first run opens a few welcome pages (your field, your goals, which models to use, what Kaby should know about you, how much your agents may do alone, a
+starter kit of skills and agent teams for your field); each can be skipped and replayed from Settings. What leaves your machine, and the one switch for it: [`docs/privacy.md`](docs/privacy.md).
 The full guide (Windows, update, rollback, safe mode, the welcome pages) is [`docs/install.md`](docs/install.md).
 
 ## Install on a server or with Docker
@@ -76,6 +76,8 @@ Each folder under [`packages/`](packages) is an independent DSH bundle (`package
 | [`kybernos-usage`](packages/kybernos-usage/README.md) | Usage and cost: a chip under the composer and a Settings page: how much of your plan's window is used (as the server counts it) and what your own keys and local models cost |
 | [`kybernos-dashboards`](packages/kybernos-dashboards/README.md) | Dashboards: a page before Agent Teams, built and changed by chat with the `dashboard-builder` skill (cards, animated charts, calendar, list, kanban, notes, carousel, flow, sankey), your own sources read on this computer, and the dashboard live in the right sidebar |
 | [`kybernos-summary`](packages/kybernos-summary/README.md) | Summary: a tab in the chat's right-hand panel with the agents, the task list, the skills and tools used and the files written, read in the browser from what the chat already holds |
+| [`kybernos-session-msg`](packages/kybernos-session-msg/README.md) | Message between chats: the agent proposes an inline form (a message or an instruction, to another chat, to a new one or to this one) that the person edits and sends, with the sent trail, the received card and a local journal — no engine patch |
+| [`kybernos-kaby-customisation`](packages/kybernos-kaby-customisation/README.md) | The Kaby page in Settings: the assistant's name, portrait and voice, and the face of its video calls with its own keys (face providers listed as soon) |
 | [`kybernos-kyber`](packages/kybernos-kyber/README.md) | Kaby: your assistant as a real DSH chat with your account's memory, Telegram connected by QR code or link, and the cloud computer it works on |
 | [`kybernos-multi-device`](packages/kybernos-multi-device/README.md) | Workspaces with or without a folder: Create offers a private folder in Documents/Kybernos, and Details shows where a workspace works, with a greyed preview of execution and devices |
 | [`kybernos-changes`](packages/kybernos-changes/README.md) | One chip under the composer: where this chat's work stands (changed, saved, on GitHub, in the project) and what to do next; Simple / Developer view |
@@ -86,6 +88,7 @@ Each folder under [`packages/`](packages) is an independent DSH bundle (`package
 | [`kybernos-modeles-locaux`](packages/kybernos-modeles-locaux/README.md) | Local models panel: detects the machine, installs an Ollama model |
 | [`kybernos-refs`](packages/kybernos-refs/README.md) | Markdown links become compact reference chips |
 | [`kybernos-search`](packages/kybernos-search/README.md) | Search everywhere: the content of the chats, skills, memories, lessons, creations, automations and agent teams (⌘K) |
+| [`kybernos-registry`](packages/kybernos-registry/README.md) | The registry of plugins: reads the data plugins installed on this computer, checks them, publishes the one versioned seam `window.__KB__` other bundles use, and feeds the Plugins tab of the Suite (add, read and accept, switch and remove, all through DSH's own manager); ships the `plugin-creator` skill |
 | [`kybernos-servers`](packages/kybernos-servers/README.md) | The Servers page: add a Kybernos server from its address, switch between servers, rename and remove them; nothing to buy and no key to paste |
 | [`kybernos-mobile`](packages/kybernos-mobile/README.md) | The phone: DSH usable on a narrow screen (drawer, stacked Settings), and on a paid plan a QR code that links a phone to this computer, end to end encrypted |
 | [`kybernos-websearch`](packages/kybernos-websearch/README.md) | Web search for the agents with or without an API key: free engines out of the box, keyed engines when you add one, one fallback chain |
@@ -118,3 +121,4 @@ Neither is a DSH bundle: each is a separate process, with its own tests (`node -
 ## Contributing
 
 Read [`AGENTS.md`](AGENTS.md) first. Licence: [Apache-2.0](LICENSE). The "Kybernos" name is covered by the [trademark policy](TRADEMARK.md).
+A draft of the plugin contract (manifest, extension points, permissions, free and paid, trust and catalogues) is in [`docs/dev/plugin-contract.md`](docs/dev/plugin-contract.md); it is a specification, nothing in it is built yet.

@@ -10,12 +10,17 @@
 // is refused makes it quiet (one try every five minutes), and a turn that cannot finish is acknowledged `failed` with a code, never with a word of the person's.
 import { join } from 'node:path'
 import { sessionState } from './reporter.mjs'
+import { identityBlock } from './kyby-identity.mjs'
 
 const API = String(process.env.KYBERNOS_API || '').replace(/\/+$/u, '')
 const TOKEN = String(process.env.KYBERNOS_COMPUTER_TOKEN || '')
 const HOME = String(process.env.DSH_HOME || '')
 const DSH_PORT = Number(process.env.DSH_PORT || 3081)
 const IDLE_MS = Number(process.env.KYBERNOS_RUNNER_IDLE_MS || 2000)
+// The idle poll answers in a few hundred milliseconds. A computer is suspended between two turns, and a poll that was in flight when it froze never completes: its timeout counts only the time the
+// machine RAN, so a 15 s timeout kept the runner blind for the 12 s that were left after the wake (measured on dev, 2026-10-20: a message that woke a Home started its turn 18.8 s after it was
+// queued, 7 to 10 s on an awake one; the machine's log says « POST /v1/runner/claim could not be sent (TimeoutError) » 12 s after the wake). Short, so that the stall is a few seconds.
+export const CLAIM_TIMEOUT_MS = Number(process.env.KYBERNOS_RUNNER_CLAIM_TIMEOUT_MS || 4000)
 const LEASE_SECONDS = Number(process.env.KYBERNOS_RUNNER_LEASE_SECONDS || 120)
 const TURN_TIMEOUT_MS = Number(process.env.KYBERNOS_RUNNER_TURN_TIMEOUT_MS || 10 * 60_000)
 
@@ -28,35 +33,46 @@ const EARLIER_MESSAGES = 10
 const clip = (s) => String(s ?? '').slice(0, MESSAGE_CHARS)
 
 /**
- * The prompt of a turn, from what the platform says of it (the crew and the thread's recent messages). The last message of the person is what to do; the ones before are background.
- * The answer is one message in a chat on a phone, so it is asked to be short and plain.
+ * The prompt of a turn, from what the platform says of it (the person and the thread's recent messages). The last message of the person is what to do; the ones before are background, given
+ * as data. Who Kaby is comes from kyby-identity.mjs, never from the platform: the name a kyber carries on the server is not the assistant's.
  */
+/** Where a message came from, as a closed word: the channel line of the prompt and the journal both say it. Anything that is not a known channel is a phone. */
+export function channelOf (context) {
+  return context && (context.source === 'telegram' || context.source === 'whatsapp') ? context.source : 'phone'
+}
+
 export function buildPrompt (context) {
-  const name = clip(context && context.kyber && context.kyber.name).trim() || 'Kyber'
   const messages = Array.isArray(context && context.messages) ? context.messages.filter((m) => m && typeof m.content === 'string') : []
   let at = -1
   messages.forEach((m, i) => { if (m.role === 'user') at = i })
   if (at < 0) return null
   const earlier = messages.slice(Math.max(0, at - EARLIER_MESSAGES), at)
-  const history = earlier.map((m) => `[${m.role === 'user' ? 'person' : 'assistant'}]\n${clip(m.content)}`).join('\n\n')
+  const history = earlier.map((m) => `${m.role === 'user' ? 'Person' : 'Kaby'}: ${clip(m.content)}`)
   const person = clip(context && context.person && context.person.name).trim().slice(0, 60)
-  const via = context && context.source === 'telegram' ? 'a Telegram chat on their phone' : 'a chat on their phone'
+  const now = new Date()
+  const head = identityBlock({
+    channel: channelOf(context),
+    body: 'cloud',
+    personName: person,
+    nowText: 'Time: ' + now.toISOString().slice(0, 16) + 'Z (UTC). The person\'s own timezone is not known here: if it matters, ask once and remember the answer.',
+    thread: history
+  })
   return [
-    `You are ${name}, the personal assistant of ${person === '' ? 'a person' : person}, working on their own cloud computer. They wrote to you from ${via}. Answer in the language they write in, briefly and in plain text: your answer is sent back to that chat as one message. When they ask you to do something, do it with your tools, then say what you did and what came back.`,
-    history === '' ? '' : `The conversation so far, oldest first:\n\n${history}`,
+    head,
+    'Your answer is sent back to that chat as one message. When they ask you to do something, do it with your tools, then say what you did and what came back.',
     `Their message:\n\n${clip(messages[at].content)}`
-  ].filter((part) => part !== '').join('\n\n')
+  ].join('\n\n')
 }
 
 // ── the platform ─────────────────────────────────────────────────────────────────────────────
 const said = new Set()
 const sayOnce = (key, line) => { if (!said.has(key)) { said.add(key); log(line) } }
 
-async function platform (method, path, body, timeoutMs = 15_000) {
+async function platform (method, path, body, timeoutMs = 15_000, extraHeaders = {}) {
   try {
     const r = await fetch(API + path, {
       method,
-      headers: { authorization: 'Bearer ' + TOKEN, 'content-type': 'application/json' },
+      headers: { authorization: 'Bearer ' + TOKEN, 'content-type': 'application/json', ...extraHeaders },
       body: body === undefined ? undefined : JSON.stringify(body),
       signal: AbortSignal.timeout(timeoutMs)
     })
@@ -71,6 +87,16 @@ async function platform (method, path, body, timeoutMs = 15_000) {
     sayOnce(`${path}:net:${code}`, `${method} ${path} could not be sent (${code})`)
     return { status: 0, json: null }
   }
+}
+
+/**
+ * One poll of the idle loop. A poll that fails (a status of 0: nothing came back in time) is followed by one on a connection of its own, since the one it used may be a socket that died
+ * with the suspend; the polls that work reuse their connection as before.
+ */
+export async function claimOnce (state, options = {}) {
+  const r = await platform('POST', '/v1/runner/claim', { kinds: ['agent_turn'], limit: 1, lease_seconds: LEASE_SECONDS }, options.timeoutMs ?? CLAIM_TIMEOUT_MS, state.fresh ? { connection: 'close' } : {})
+  state.fresh = r.status === 0
+  return r
 }
 
 // ── the computer's DSH, through the cloud plugin's routes ────────────────────────────────────
@@ -103,6 +129,9 @@ async function ack (jobId, body) {
   }
   return false
 }
+
+/** The reasons the cloud plugin gives for a model that could not be reached (`model_429` is a rate limit): asking such a turn for words again only waits through the same retries once more. */
+const MODEL_DOWN = /^model_[a-z0-9]{1,20}$/u
 
 /** What a turn with no words is asked once: the words, now. */
 const NUDGE = 'Your last turn ended without a message to the person. Reply now, in one short message: what you did and what you found, or why you could not do it.'
@@ -156,7 +185,8 @@ export async function runOne (job, options = {}) {
       return 'no_message'
     }
     await emit('started')
-    const started = await dsh('/kybernos-cloud/turn', { prompt, jobId: job.id })
+    // `budgetMs`: how long the turn may last, so that the computer never waits for the person's answer to a question past the end of the turn.
+    const started = await dsh('/kybernos-cloud/turn', { prompt, jobId: job.id, channel: channelOf(ctx.json), budgetMs: timeout })
     const sessionId = started.json && started.json.ok === true ? started.json.sessionId : null
     if (started.status !== 200 || typeof sessionId !== 'string') {
       await ack(job.id, { status: 'failed', error: 'dsh_failed' })
@@ -169,7 +199,7 @@ export async function runOne (job, options = {}) {
     if (waited === 'timeout') { await ack(job.id, { status: 'failed', error: 'run_timeout' }); return 'run_timeout' }
     let answer = await readText(sessionId)
     // A turn that ended with no words is asked for them once, in the same session: a model that only thought, or only called a tool, says what it found.
-    if (answer.text === '') {
+    if (answer.text === '' && !MODEL_DOWN.test(answer.why)) {
       const before = sessionState(sessionId)
       const more = await dsh('/kybernos-cloud/turn/continue', { sessionId, prompt: NUDGE })
       if (more.json && more.json.ok === true) {
@@ -192,7 +222,8 @@ export async function runOne (job, options = {}) {
     }
     if (answer.text === '') {
       // A turn that ended with no words says why when DSH said so: a code, never a message. That is what an owner reads in the platform's journal of the job.
-      const error = answer.why === '' ? 'empty_answer' : failCode(('empty_answer.' + answer.why).slice(0, 100))
+      // A rate-limited model is `model_429`, as the platform's own model route reports it: the door says « busy » for it. Anything else keeps the no-words family, with the cause after it.
+      const error = answer.why === '' ? 'empty_answer' : answer.why === 'model_429' ? 'model_429' : failCode(('empty_answer.' + answer.why).slice(0, 100))
       await ack(job.id, { status: 'failed', error })
       return error
     }
@@ -224,8 +255,9 @@ async function main () {
   log('started')
   while (!(await dshAnswers())) await sleep(2000)
   log(`waiting for turns addressed to this computer (${join(HOME, 'kybernos')})`)
+  const claimState = { fresh: false }
   for (;;) {
-    const r = await platform('POST', '/v1/runner/claim', { kinds: ['agent_turn'], limit: 1, lease_seconds: LEASE_SECONDS })
+    const r = await claimOnce(claimState)
     if (r.status === 401 || r.status === 403 || r.status === 404) { await sleep(300_000); continue }
     const jobs = r.status === 200 && r.json && Array.isArray(r.json.jobs) ? r.json.jobs : []
     if (jobs.length === 0) { await sleep(IDLE_MS); continue }

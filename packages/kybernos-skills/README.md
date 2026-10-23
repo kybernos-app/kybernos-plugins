@@ -18,7 +18,7 @@ It is part of the **socle** (`socle: true` in `packages/kybernos-hub/catalog.jso
   title at the top as on the card, then the facts, the live audits and the start of the repository's real `SKILL.md` side by side; *Back*
   returns to the grid or the list, and installing from there keeps the pick open (it flips to *Installed*).
   The data is `featured-picks.json` (below); with a host that does not have the route the tab is hidden and Yours is the landing tab.
-- **Yours**: skills of this profile, with search, state / source filters, sorting, an active toggle on each card (read-only rows
+- **Yours**: skills of this profile, with a banner for **what Kaby suggests** (dashed cards, a Review panel with the checks, Accept / Edit / Discard, a Journal button, an Origin filter and a **Learned** badge on what was accepted), search, state / source filters, sorting, an active toggle on each card (read-only rows
   when the folder is not writable) and a Featured row kept by a star. A click on a card opens a **panel on the right** (the list
   stays): the skill's real `SKILL.md` as it is on disk, its folder (copyable), and the actions the host says it can do for that
   skill — *Open folder*, *Edit* (opens `SKILL.md` in the text editor of this machine), *Duplicate* (a copy in your own skills
@@ -61,6 +61,10 @@ All under `/kybernos-skills/`, JSON; refusals come back as HTTP 200 `{ok:false, 
 | `POST skill/reveal {root,name,target}` | `target` `folder` or `file`: opens it on this machine (`open`, `open -t`, `xdg-open`, `explorer`; one argument, no shell); refused from another address |
 | `POST skill/duplicate {root,name}` | copies a listed skill (a read-only one too) into `<DSH home>/skills/<name>-copy[-n]`, renames `name:` in the frontmatter, leaves links, `.git`, `node_modules` and the Team mark behind |
 | `POST skill/delete {root,name}` | removes the folder of a skill whose real path is inside a writable root; refuses a link, a root, a folder with no `SKILL.md` |
+| `GET learned` · `GET learned/journal?limit=` | the suggestions Kaby made (with their checks), the skills accepted from them, and the journal with whether its hash chain holds (`docs/dev/learned-skills.md`) |
+| `POST learned/from-lessons {lessons}` · `learned/accept {id,description?,body?}` · `learned/edit` · `learned/discard {id}` · `learned/restore {id}` · `learned/undo {name}` | a suggestion waits in a ledger, **not in the skills folder**; Accept writes the skill (never over an existing folder), keeps version 1 and journals; Discard keeps 30 days; Undo works only while `SKILL.md` is still the text that was written |
+| `GET learned/settings` · `POST learned/settings/set {mode?,threshold?,cap?,notify?,privOk?}` · `GET learned/session?sessionId=` · `POST learned/keep {name}` · `POST learned/stop` | V1: what Kaby may do alone (**Settings › Learned skills**, `ask` by default), what happened to skills in one chat, « I read it, keep it », and the kill switch (every automatic change of the last 7 days goes back) |
+| `GET learned/notice?sessionId=` · `POST learned/notice/answer` · `GET learned/notice/list` · `POST learned/notice/forget` · `GET learned/week?sessionId=` · `POST learned/week/hide` · `POST learned/shared {name}` | V2: a task the person asks again is noticed (rules on the chat index of Search everywhere, once a day at most), the weekly card of a blank chat, and « I proposed it to the team » (`docs/dev/learned-skills.md`) |
 | `GET picks` | the picks Kybernos proposes (`featured-picks.json`, checked by `featured-picks.mjs`), each with a cover URL only when its file exists |
 | `GET featured` · `POST featured/toggle` · `GET cover/<name>` | Featured list and cover images |
 | `GET index-source` · `POST index-source/set {url}` | which relay the Discover index is read from (`origin`: `default`, `setting` or `env`; `editable: false` while the variable decides), and the setting that names another one (an empty `url` puts the default back) |
@@ -68,6 +72,15 @@ All under `/kybernos-skills/`, JSON; refusals come back as HTTP 200 `{ok:false, 
 | `POST team/install {root?,name,version,files,teamId?,replace?}` | writes a Team skill (checks every path and the version first), atomically, **never over an existing folder** — except `replace: true` over a team skill whose files still hash to the version it was installed at |
 
 ## Files, settings, env
+
+- `<DSH home>/kybernos/skills-learned.json` (the ledger of suggestions and of what was accepted, 0600), `skills-learned.audit.jsonl` (the journal,
+  append-only, each line hashed with the one before) and `skills-learned-versions/<name>/<n>.md` (the text as accepted, last 10 per skill, 90 days).
+  V1 adds `skills-learned-settings.json` (the person's level, line, weekly limit, notice, Law/Health unlock; `breaker` is the host's) and
+  `skills-learned-sessions.json` (per chat: did it reach the outside world, names only). `learned-score.mjs` (the score by rules and the hard stops),
+  `learned-settings.mjs`, `learned-taint.mjs`, `learned-tools.mjs`, and for V2 `learned-repeat.mjs` (the detector and what it remembers, in `skills-learned-notices.json`) and `learned-week.mjs` (the agent tools `skill_propose` / `skill_improve`, the prompt chunk and the two
+  watchers) are the V1 host half, mounted guarded part by part from `apply(ctx)`.
+  `learned.mjs` is the host half; `globalThis[Symbol.for('kybernos.learned-skills')]` is the frozen seam the automations half (kybernos-plugin) reads at
+  call time; `window.__KB_LEARNED__` (`count`, `subscribe`, `refresh`) is what the menu dot and the lessons page read from the page half.
 
 - Reads the roots DSH's registry resolves (project, custom, user, bundled). **Writes only** `~/.dsh/skills` and
   `~/.agents/skills`; writability is judged on the real path (a symlink leaving the root stays visible but read-only).

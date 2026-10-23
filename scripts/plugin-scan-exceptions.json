@@ -1,0 +1,8 @@
+{
+  "kybernos-modeleur": [
+    { "file": "rendre-preuve.mjs", "categories": ["fsWrite"], "why": "A developer script that renders a proof image to the OS temp folder; it is not part of the bundle's exports and never runs inside DSH." }
+  ],
+  "kybernos-atlas": [
+    { "file": "client.js", "categories": ["dom"], "why": "The only MutationObserver watches the map's own container to recolour its own nodes; it never reads or changes an element Atlas does not own." }
+  ]
+}

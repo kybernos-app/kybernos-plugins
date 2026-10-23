@@ -411,6 +411,53 @@ console.log('looks after itself')
   check('the segmented pills have a minimum height, never a fixed one', seg !== null && /min-height:38px/.test(seg) && !/(^|;)height:/.test(seg) && segSm !== null && /min-height:32px/.test(segSm) && !/(^|;)height:/.test(segSm), { seg, segSm })
   check('the search field has a minimum height, never a fixed one, and its modes wrap under the input instead of over the next control', field !== null && /min-height:36px/.test(field) && !/(^|;)height:/.test(field) && /flex-wrap:wrap/.test(field) && modes !== null, { field })
   check('the search field asks for room (a flex basis) so the toolbar wraps instead of squeezing it', /flex:1 1 \d+px/.test(field || ''), field)
+
+  // A status every row shares carries nothing (UX audit 2, pass-1 leftover): the « Sent » chip is
+  // kept for the rows that differ from the majority, and goes away when the list says one truth.
+  const rows = (flags) => flags.map((sent) => ({ sent }))
+  check('a list where every row is sent shows no « Sent » chip at all', T.sentMarks(rows([true, true, true, true])).every((x) => x === false) && T.sentMarks(rows([false, false])).every((x) => x === false))
+  check('a mixed list marks the minority only', JSON.stringify(T.sentMarks(rows([true, true, true, false, false, false, false]))) === JSON.stringify([true, true, true, false, false, false, false]) && JSON.stringify(T.sentMarks(rows([false, false, true]))) === JSON.stringify([false, false, true]))
+  check('an even split marks nothing (either side would be noise)', T.sentMarks(rows([true, false, true, false])).every((x) => x === false))
+  check('an empty list is safe', T.sentMarks([]).length === 0 && T.sentMarks(rows([undefined, null])).every((x) => x === false))
+}
+
+// ── skills made from experience: the status line, the grouping hint, « Make a skill »
+console.log('skills from lessons')
+{
+  const now = Date.parse('2026-10-21T12:00:00Z')
+  const base = { status: { loaded: true, connected: true }, settings: { loaded: true, memory: { memories: true, context: true }, lessons: { lessons: true, context: true } }, tidy: { loaded: true, mem: null, les: null }, now }
+  check('the status line counts the skills made from experience, once there is one', T.selfStatus({ ...base, skills: 3 }).text.includes('3 skills made from experience') && T.selfStatus({ ...base, skills: 1 }).text.includes('1 skill made from experience'))
+  check('and says nothing about them before that', !/made from experience/.test(T.selfStatus({ ...base, skills: 0 }).text) && !/made from experience/.test(T.selfStatus({ ...base }).text) && !/made from experience/.test(T.selfStatus({ ...base, skills: null }).text))
+  const L = (id, tags) => ({ id, text: 'Lesson ' + id, tags, kyber: 'default' })
+  const c = T.lessonCluster([L(1, ['i18n', 'x']), L(2, ['i18n']), L(3, ['sandbox']), L(4, ['i18n', 'default']), L(5, ['x'])])
+  check('three lessons that share a tag make a group, the most shared tag first', c !== null && c.tag === 'i18n' && c.items.map((l) => l.id).join() === '1,2,4', c)
+  check('two are not a group, and the « default » tag is never one', T.lessonCluster([L(1, ['a']), L(2, ['a'])]) === null && T.lessonCluster([L(1, ['default']), L(2, ['default']), L(3, ['default'])]) === null)
+  check('never more than eight lessons go into one skill', T.lessonCluster(Array.from({ length: 12 }, (_, i) => L(i, ['t']))).items.length === 8)
+  check('garbage in, nothing out (never throws)', T.lessonCluster(null) === null && T.lessonCluster([null, {}, { tags: 'x' }]) === null)
+  const sent = []
+  fetchImpl = async (url, init) => { sent.push({ url, init }); return { status: 200, json: async () => ({ ok: true, proposal: { name: 'i18n-checklist' } }) } }
+  let refreshed = 0
+  globalThis.window.__KB_LEARNED__ = { refresh: () => { refreshed += 1 } }
+  const r = await T.suggestSkill([L(1, ['i18n']), L(2, ['i18n'])])
+  check('« Make a skill » posts the lessons to the Skills page (text, tags, agent team), and nothing else', r.ok === true && sent.length === 1 && sent[0].url === '/kybernos-skills/learned/from-lessons' && sent[0].init.method === 'POST' && JSON.parse(sent[0].init.body).lessons.length === 2 && JSON.parse(sent[0].init.body).lessons[0].kyber === 'default', sent)
+  check('and tells the menu dot to look again', refreshed === 1)
+  fetchImpl = async () => ({ status: 404, json: async () => { throw new Error('not json') } })
+  check('a host without the Skills page answers « unavailable », in words', (await T.suggestSkill([L(1, ['i18n'])])).error === 'indisponible' && T.friendlyError('indisponible').length > 10)
+  check('the refusals of the Skills page have a sentence in both languages', ['already_proposed', 'too_many_pending', 'no_free_name', 'no_lessons'].every((k) => T.friendlyError(k) !== k && T.friendlyError(k).length > 10))
+  check('the lesson sheet carries the button, next to « Propose to team »', SOURCE.includes("'data-act': 'make-skill'") && SOURCE.indexOf("'data-act': 'make-skill'") > SOURCE.indexOf("'data-act': 'propose-team'"))
+  check('and the page carries the grouping hint and the link to Skills', SOURCE.includes("'data-note': 'cluster'") && SOURCE.includes("'data-act': 'cluster-skill'") && SOURCE.includes("'data-act': 'open-skills'"))
+  delete globalThis.window.__KB_LEARNED__
+}
+
+// ── Kaby's suggested memories (the ledger of the core plugin, kind « memory »)
+console.log('suggested memories')
+{
+  check('the page asks the ledger for the memory kind and draws a dashed block above the list, after the notes', SOURCE.includes("'/kybernos/suggestions?kind=memory'") && SOURCE.includes("'data-sug': 'block'") && SOURCE.indexOf('h(MemSuggest,') > SOURCE.indexOf('teamMode ? null : notes'))
+  check('the block shows on the Memories tab only, never in team mode', SOURCE.includes('teamMode || !mems ? null : h(MemSuggest,'))
+  check('Add keeps the text through the ordinary add route (a fact, not pinned, taught), then tells the ledger and the list', SOURCE.includes("api('/kybernos-cloud/memory/add', { content: it.text, kind: 'fact', pinned: false, source: 'taught' })") && SOURCE.includes("await resolve(it.id); drop(it.id); onChanged()"))
+  check('without an account Add and Edit wait (disabled) and the block says why, in both languages', SOURCE.includes("disabled: busy !== '' || connected !== true") && SOURCE.includes("'data-sug': 'account'") && SOURCE.includes('Connect your account to keep them') && SOURCE.includes('Connecte ton compte pour les garder'))
+  check('Discard asks nothing of the account: it only resolves the suggestion', /discard = async \(it\) => \{ drop\(it\.id\); await resolve\(it\.id\) \}/.test(SOURCE))
+  check('Edit opens the usual sheet with the text, and the ledger is told only once the memory is saved', SOURCE.includes("onSaved: done }) }), teamMode") && SOURCE.includes("typeof sheet.onSaved === 'function'"))
 }
 
 console.error = realError

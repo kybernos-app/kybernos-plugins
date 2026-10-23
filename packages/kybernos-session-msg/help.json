@@ -1,0 +1,29 @@
+{
+  "what": {
+    "fr": "Envoyer un message ou une instruction d’une session à une autre, à une nouvelle session ou à celle-ci. L’agent préremplit un formulaire en ligne : tu modifies, tu fermes ou tu envoies.",
+    "en": "Send a message or an instruction from one session to another, to a new session or to this one. The agent prefills an inline form: you edit it, close it or send it."
+  },
+  "steps": [
+    {
+      "fr": "Demande à l’agent de prévenir une session ou de lui confier un travail : un formulaire prérempli apparaît sous sa réponse.",
+      "en": "Ask the agent to tell a session something or hand it some work: a prefilled form appears under its answer."
+    },
+    {
+      "fr": "Choisis Message (une info, rien ne part) ou Instruction (l’autre session agit), corrige le texte, choisis la destination, puis Envoie.",
+      "en": "Choose Message (information, nothing is started) or Instruction (the other session acts), fix the text, pick the destination, then Send."
+    },
+    {
+      "fr": "Sous le formulaire, chaque envoi dit où il en est : Envoyé, Reçu, Réponse. « Voir la réponse » ouvre la session qui a répondu.",
+      "en": "Under the form, each send says where it stands: Sent, Received, Answer. “See the answer” opens the session that replied."
+    }
+  ],
+  "where": {
+    "fr": "Dans un chat : en-tête, sous la dernière réponse, et messages reçus",
+    "en": "In a chat: header, under the last answer, and received messages",
+    "page": false
+  },
+  "good": {
+    "fr": "L’hôte ajoute lui-même le cadrage (information venue d’une autre conversation, ou instruction de l’utilisateur) : la page ne peut pas le retirer. L’agent ne fait que proposer : rien ne part sans ton clic.",
+    "en": "The host adds the framing itself (information from another conversation, or an instruction from the user): the page cannot remove it. The agent only proposes: nothing is sent without your click."
+  }
+}

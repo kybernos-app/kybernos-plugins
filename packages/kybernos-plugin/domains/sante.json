@@ -1,0 +1,325 @@
+{
+  "v": 1,
+  "id": "sante",
+  "order": 20,
+  "accent": "#1B7F76",
+  "icon": "heart",
+  "name": {
+    "en": "Health",
+    "fr": "Santé"
+  },
+  "tagline": {
+    "en": "Practices, clinics, health students",
+    "fr": "Cabinets, cliniques, étudiants en santé"
+  },
+  "keywords": [
+    "kine",
+    "physio",
+    "medecin",
+    "doctor",
+    "dentiste",
+    "dentist",
+    "infirmier",
+    "infirmiere",
+    "nurse",
+    "patient",
+    "clinique",
+    "clinic",
+    "sante",
+    "health",
+    "pharmacie",
+    "pharmacist",
+    "osteo",
+    "psy",
+    "psychologue",
+    "therapist",
+    "sage-femme",
+    "midwife",
+    "veterinaire",
+    "vet"
+  ],
+  "home": [
+    "doc",
+    "automation",
+    "sheet"
+  ],
+  "legacyJobs": [],
+  "menu": {
+    "labels": {
+      "dashboards": {
+        "en": "My activity",
+        "fr": "Mon activité"
+      },
+      "aiteams": {
+        "en": "Practice team",
+        "fr": "Équipe du cabinet"
+      },
+      "deliverables": {
+        "en": "Reports",
+        "fr": "Comptes rendus"
+      },
+      "tasks": {
+        "en": "Reminders and follow-ups",
+        "fr": "Rappels et suivis"
+      }
+    },
+    "hide": [
+      "documents"
+    ]
+  },
+  "agents": {
+    "preset": "prudent",
+    "why": {
+      "en": "Patient data: you read everything, nothing leaves your computer without you.",
+      "fr": "Données de patients : tu relis tout, rien ne quitte ton ordinateur sans toi."
+    }
+  },
+  "goals": [
+    {
+      "id": "notes",
+      "name": {
+        "en": "Notes",
+        "fr": "Comptes rendus"
+      },
+      "title": {
+        "en": "Save time on consultation notes",
+        "fr": "Gagner du temps sur les comptes rendus"
+      },
+      "desc": {
+        "en": "Read a file, write the report in your format",
+        "fr": "Lire un dossier, rédiger le compte rendu dans ton format"
+      },
+      "skills": [
+        {
+          "source": "anthropics/skills",
+          "name": "pdf",
+          "d": {
+            "en": "Read and fill reports and forms in PDF",
+            "fr": "Lit et remplit comptes rendus et formulaires PDF"
+          }
+        },
+        {
+          "source": "anthropics/skills",
+          "name": "docx",
+          "d": {
+            "en": "Write and format reports and letters",
+            "fr": "Rédige et met en forme comptes rendus et courriers"
+          }
+        },
+        {
+          "source": "kybernos",
+          "name": "consult-notes",
+          "d": {
+            "en": "Turn consultation notes into a structured report",
+            "fr": "Transforme des notes de consultation en compte rendu structuré"
+          }
+        }
+      ],
+      "connectors": [
+        "googledocs",
+        "googledrive"
+      ],
+      "automations": [
+        {
+          "id": "day-reports",
+          "name": {
+            "en": "Draft the day’s reports",
+            "fr": "Rédiger les comptes rendus du jour"
+          },
+          "prompt": {
+            "en": "Every weekday at 18:30: look in this workspace for consultation notes saved today and draft a report for each one with the consult-notes skill, in the practice’s format. Save each draft next to its notes, marked DRAFT. Never send anything and keep patient data in this workspace.",
+            "fr": "Chaque jour de semaine à 18 h 30 : cherche dans ce workspace les notes de consultation enregistrées aujourd’hui et rédige un compte rendu pour chacune avec le skill consult-notes, au format du cabinet. Enregistre chaque brouillon à côté des notes, marqué BROUILLON. N’envoie rien et garde les données patients dans ce workspace."
+          },
+          "cron": "30 18 * * 1-5"
+        }
+      ],
+      "soon": [
+        {
+          "en": "Cabinet Assistant team",
+          "fr": "Équipe Cabinet Assistant"
+        }
+      ],
+      "starter": {
+        "en": "Write the report of the 2 pm consultation",
+        "fr": "Rédige le compte rendu de la consultation de 14 h"
+      }
+    },
+    {
+      "id": "appointments",
+      "name": {
+        "en": "Appointments",
+        "fr": "Rendez-vous"
+      },
+      "title": {
+        "en": "Cut missed appointments",
+        "fr": "Réduire les rendez-vous manqués"
+      },
+      "desc": {
+        "en": "Reminders the day before",
+        "fr": "Des rappels la veille"
+      },
+      "skills": [
+        {
+          "source": "kybernos",
+          "name": "patient-reminders",
+          "d": {
+            "en": "Draft clear, reassuring appointment reminders",
+            "fr": "Rédige des rappels de rendez-vous clairs et rassurants"
+          }
+        }
+      ],
+      "connectors": [
+        "googlecalendar",
+        "calendly",
+        "outlook"
+      ],
+      "automations": [
+        {
+          "id": "tomorrow-reminders",
+          "name": {
+            "en": "Tomorrow’s appointment reminders",
+            "fr": "Rappels des rendez-vous de demain"
+          },
+          "prompt": {
+            "en": "Every weekday at 17:00: read tomorrow’s appointments from my calendar if it is connected, or from the file I keep in this workspace. Draft one reminder per patient with the patient-reminders skill. Never send them: list them for me to check. If no source is available, say what is missing.",
+            "fr": "Chaque jour de semaine à 17 h : lis les rendez-vous de demain dans mon agenda s’il est connecté, ou dans le fichier que je garde dans ce workspace. Rédige un rappel par patient avec le skill patient-reminders. Ne les envoie jamais : liste-les pour que je les vérifie. Si aucune source n’est disponible, dis ce qui manque."
+          },
+          "cron": "0 17 * * 1-5"
+        }
+      ],
+      "starter": {
+        "en": "Prepare tomorrow’s reminders",
+        "fr": "Prépare les rappels de demain"
+      }
+    },
+    {
+      "id": "messages",
+      "name": {
+        "en": "Messages",
+        "fr": "Messages"
+      },
+      "title": {
+        "en": "Answer patients faster",
+        "fr": "Répondre plus vite aux patients"
+      },
+      "desc": {
+        "en": "Draft replies to validate each morning",
+        "fr": "Des réponses à valider chaque matin"
+      },
+      "skills": [
+        {
+          "source": "anthropics/skills",
+          "name": "docx",
+          "d": {
+            "en": "Letters and replies in your format",
+            "fr": "Courriers et réponses dans ton format"
+          }
+        }
+      ],
+      "connectors": [
+        "gmail",
+        "whatsapp"
+      ],
+      "starter": {
+        "en": "Draft replies to this morning’s messages",
+        "fr": "Prépare les réponses aux messages de ce matin"
+      }
+    },
+    {
+      "id": "activity",
+      "name": {
+        "en": "Activity",
+        "fr": "Activité"
+      },
+      "title": {
+        "en": "Follow my activity",
+        "fr": "Suivre mon activité"
+      },
+      "desc": {
+        "en": "My consultations and time at a glance",
+        "fr": "Mes consultations et mon temps d’un coup d’œil"
+      },
+      "skills": [
+        {
+          "source": "anthropics/skills",
+          "name": "xlsx",
+          "d": {
+            "en": "Track appointments and activity in a sheet",
+            "fr": "Suit rendez-vous et activité dans un tableur"
+          }
+        }
+      ],
+      "connectors": [
+        "googlesheets",
+        "quickbooks"
+      ],
+      "automations": [
+        {
+          "id": "week-summary",
+          "name": {
+            "en": "Weekly summary",
+            "fr": "Résumé de la semaine"
+          },
+          "prompt": {
+            "en": "Every Friday at 17:00: summarise my week from the files in this workspace: consultations done, reports still to finish, follow-ups to plan next week. One page, no patient name in the title.",
+            "fr": "Chaque vendredi à 17 h : résume ma semaine à partir des fichiers de ce workspace : consultations faites, comptes rendus à finir, suivis à planifier la semaine prochaine. Une page, aucun nom de patient dans le titre."
+          },
+          "cron": "0 17 * * 5"
+        }
+      ],
+      "starter": {
+        "en": "Summarise my week",
+        "fr": "Résume ma semaine"
+      }
+    },
+    {
+      "id": "learning",
+      "name": {
+        "en": "Learning",
+        "fr": "Formation"
+      },
+      "title": {
+        "en": "Keep up to date",
+        "fr": "Me former, rester à jour"
+      },
+      "desc": {
+        "en": "A watch on my subjects",
+        "fr": "Une veille sur mes sujets"
+      },
+      "skills": [
+        {
+          "source": "kybernos",
+          "name": "literature-watch",
+          "d": {
+            "en": "A digest of recent publications on your topics, with sources",
+            "fr": "Un digest des publications récentes sur tes sujets, avec les sources"
+          }
+        }
+      ],
+      "teams": [
+        "research-desk"
+      ],
+      "connectors": [
+        "notion"
+      ],
+      "automations": [
+        {
+          "id": "literature-digest",
+          "name": {
+            "en": "Weekly literature digest",
+            "fr": "Digest de littérature hebdomadaire"
+          },
+          "prompt": {
+            "en": "Every Monday at 08:00: run the literature-watch skill on the topics listed in the file named topics in this workspace (ask me once if there is none). Return the digest only.",
+            "fr": "Chaque lundi à 8 h : lance le skill literature-watch sur les sujets listés dans le fichier topics de ce workspace (demande-moi une fois s’il n’y en a pas). Renvoie seulement le digest."
+          },
+          "cron": "0 8 * * 1"
+        }
+      ],
+      "starter": {
+        "en": "What is new on this subject this week?",
+        "fr": "Quoi de neuf sur ce sujet cette semaine ?"
+      }
+    }
+  ]
+}

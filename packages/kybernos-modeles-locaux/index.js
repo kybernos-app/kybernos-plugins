@@ -276,7 +276,14 @@ export function apply(ctx) {
 
       // The catalogue of models the page recommends: the one shipped with this bundle, or the signed online one (verified,
       // cached, never believed without its signature). GET reads the disk only; POST { op: 'refresh' } asks the network.
-      hostCtx.effect(() => webServer.register({ kind: 'exact', path: '/modeles-locaux/catalogue', handler: (req, res) => serveCatalogue(req, res, {
+      // A-16: the READ keeps the strict same-origin rule; the WRITE needs DSH's signed session too (a local program can forge an
+      // Origin but cannot sign the cookie). Its caller is the Local models page, which fetches same-origin and sends both.
+      hostCtx.effect(() => webServer.register({ kind: 'exact', path: '/modeles-locaux/catalogue', handler: (req, res) => {
+        if (req.method === 'POST') {
+          const refus = writeGuard(req)
+          if (refus !== null) { sendJson(res, refus.status, { ok: false, error: refus.error }); return }
+        }
+        return serveCatalogue(req, res, {
         home: async () => resolveDshHome(),
         sameOriginStrict: sameOrigin,
         sameOriginLax: sameOrigin,
@@ -284,13 +291,16 @@ export function apply(ctx) {
         send: sendJson,
         shipped: () => loadShipped(CATALOGUE_FILE),
         keys: () => loadKeys(KEYS_FILE),
-      }) }), 'modeles-locaux: catalogue (signed)')
+        }) } }), 'modeles-locaux: catalogue (signed)')
 
       // Scan for newly installed compatible models (the "Re-check" button):
       // interrogate /api/tags, diff against the ids seen last time.
+      // A-16: it writes the ids seen last time, so it needs the signed session as well as the right Origin; the page sends both.
       hostCtx.effect(() => webServer.register({ kind: 'exact', path: '/modeles-locaux/decouvrir', handler: async (req, res) => {
         if (req.method !== 'POST') { sendJson(res, 405, { ok: false, error: 'method' }); return }
         if (sameOrigin(req) !== true) { sendJson(res, 403, { ok: false, error: 'origin' }); return }
+        const refus = writeGuard(req)
+        if (refus !== null) { sendJson(res, refus.status, { ok: false, error: refus.error }); return }
         try {
           const modeles = await listerTagsOllama()
           if (modeles === null) { sendJson(res, 200, { ok: false, error: 'serveur-ollama-inaccessible' }); return }

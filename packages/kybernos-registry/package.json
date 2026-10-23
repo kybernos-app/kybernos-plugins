@@ -1,0 +1,26 @@
+{
+  "name": "@local/kybernos-registry",
+  "version": "0.1.0",
+  "description": "The registry of plugins: reads the data plugins installed on this computer, checks them, and lets the pages use what they add. One versioned seam, window.__KB__.",
+  "license": "Apache-2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node test-version.mjs && node test-registry.mjs && node test-host.mjs && node test-write-guard.mjs && node test-skill.mjs && node test-client.mjs"
+  },
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true
+    }
+  }
+}

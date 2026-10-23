@@ -36,6 +36,11 @@ const missing = [...used].filter((k) => !dict.has(k))
 assert.deepEqual(missing, [], 'keys asked for and not defined: ' + missing.join(', '))
 ok('every t(\'…\') of the client names a defined key (' + used.size + ' used)')
 
+// 2a. the weekly card's third figure is « 12× » (how many times skills were used) with the number of DIFFERENT skills in brackets: its label says so
+// ("0× skills used (0)" read as two contradictory counts of the same thing).
+assert.ok(/uses/.test(dict.get('ln2.w.used').en) && /different/.test(dict.get('ln2.w.used').en) && /utilisations/.test(dict.get('ln2.w.used').fr) && /différentes/.test(dict.get('ln2.w.used').fr), 'the "used" figure names uses and how many different skills')
+ok('the weekly card says « N× skill uses (M different) »: the times and the number of skills are not two counts of the same thing')
+
 // 2b. the create dialog says a bad name while it is typed (A3-27): the same rule as the host, a sentence for each refusal
 assert.ok(dict.has('he.name_too_long') && dict.has('he.invalid_name'), 'the two name refusals have a sentence')
 assert.ok(/const nameRule = name === '' \? null : \(\/\^\[a-z0-9\]\+\(\?:-\[a-z0-9\]\+\)\*\$\/\.test\(name\) \? \(name\.length > 64 \? 'name_too_long' : null\) : 'invalid_name'\)/.test(src), 'the dialog applies the host rule')
@@ -84,14 +89,39 @@ assert.deepEqual([...outsideTeam.matchAll(/\berror: '[a-z_]+' \+/g)].map((m) => 
 // Codes the host builds without writing `error: '…'` (a ternary, a thrown word): named here, and checked to be in the source.
 const built = ['timeout', 'network_unavailable', 'not_github', 'body_too_large']
 for (const w of built) assert.ok(host.includes("'" + w + "'"), w + ' is no longer in the host: drop it from this list')
-const codes = new Set([...literal, ...built])
+// The learned-skills half (learned.mjs) answers in codes too, and its journal has families of words built at run time.
+const learnedHost = readFileSync(join(here, 'learned.mjs'), 'utf8')
+const learnedCodes = [...learnedHost.matchAll(/\berror: '([a-z_]+)'/g)].map((m) => m[1])
+assert.ok(learnedCodes.length >= 8, 'the codes of learned.mjs were read (' + learnedCodes.length + ')')
+for (const w of learnedHost.matchAll(/'(edited_before_accepting|taken_back|folder_gone|undid_auto|two_undos|stopped|kept_unused)'/g)) assert.ok(dict.has('ln.j.note.' + w[1]), 'no sentence for the journal note ' + w[1])
+for (const a of ['proposed', 'accepted', 'created', 'improved', 'discarded', 'restored', 'reverted', 'reviewed', 'expired', 'adopted', 'removed', 'settings', 'paused', 'shared', 'other']) assert.ok(dict.has('ln.j.act.' + a), 'no sentence for the journal act ' + a)
+// V1: the settings (codes of learned-settings.mjs), the hard stops and the parts of the score (learned-score.mjs) are worded; so are the three levels.
+const settingsHost = readFileSync(join(here, 'learned-settings.mjs'), 'utf8')
+const settingsCodes = [...settingsHost.matchAll(/\berror: '([a-z_]+)'/g)].map((m) => m[1])
+assert.ok(settingsCodes.length >= 2, 'the codes of learned-settings.mjs were read (' + settingsCodes.length + ')')
+const scoreHost = readFileSync(join(here, 'learned-score.mjs'), 'utf8')
+const stopCodes = [...scoreHost.matchAll(/out\.push\('([a-z_]+)'\)/g)].map((m) => m[1])
+const signalIds = [...scoreHost.matchAll(/\{ id: '([a-z]+)', v:/g)].map((m) => m[1])
+assert.ok(stopCodes.length >= 10 && signalIds.length === 6, 'the stops and the signals of learned-score.mjs were read (' + stopCodes.length + ', ' + signalIds.length + ')')
+for (const c of stopCodes) assert.ok(dict.has('ln.stop.' + c), 'no sentence for the hard stop ' + c)
+for (const id of signalIds) assert.ok(dict.has('ln.sig.' + id), 'no sentence for the score part ' + id)
+for (const m of ['ask', 'improve', 'auto']) assert.ok(dict.has('ln.mode.' + m) && dict.has('ls.level.' + m), 'no sentence for the level ' + m)
+for (const k of ['ln.j.mode.manual', 'ln.j.mode.legacy', 'ln.j.mode.auto', 'ln.j.by.you', 'ln.j.by.kaby', 'ln.kind.lessons', 'ln.kind.lesson', 'ln.kind.auto']) assert.ok(dict.has(k), 'no sentence for ' + k)
+const actsInHost = [...learnedHost.matchAll(/act: '([a-z]+)'/g)].map((m) => m[1])
+assert.deepEqual(actsInHost.filter((a) => !dict.has('ln.j.act.' + a)), [], 'a journal act the host writes has no sentence')
+// V2: the answers of what Kaby notices (learned-repeat.mjs) are worded, and so are the states a pattern can be in
+const repeatHost = readFileSync(join(here, 'learned-repeat.mjs'), 'utf8')
+const repeatCodes = [...repeatHost.matchAll(/\berror: '([a-z_]+)'/g)].map((m) => m[1])
+assert.ok(repeatCodes.length >= 2, 'the codes of learned-repeat.mjs were read (' + repeatCodes.length + ')')
+for (const st of ['later', 'never', 'done']) assert.ok(dict.has('ls2.rep.s.' + st), 'no sentence for the pattern state ' + st)
+const codes = new Set([...literal, ...built, ...learnedCodes, ...settingsCodes, ...repeatCodes])
 // Nobody reads these on the screen: an image route, a method guard of a route the page never gets wrong, a note the page does not show.
 const unseen = new Set(['get_required', 'post_required', 'no_cover', 'cover_unreadable', 'bad_name', 'bad_root', 'bad_path', 'bad_target'])
 const noHe = [...codes].filter((w) => !unseen.has(w) && !dict.has('he.' + w))
 assert.deepEqual(noHe, [], 'host codes with no sentence on the screen: ' + noHe.join(', '))
 const orphan = [...dict.keys()].filter((k) => k.startsWith('he.') && !codes.has(k.slice(3)))
 assert.deepEqual(orphan, [], 'sentences for a code the host never sends: ' + orphan.join(', '))
-ok('the older routes answer in codes (' + codes.size + '), and every one the page can show has a French and an English sentence')
+ok('the routes answer in codes (' + codes.size + ', learned skills included), and every one the page can show has a French and an English sentence; the journal acts, modes and notes are worded too')
 
 // 2. The "Yours" card opens its local sheet (UB-13) without hijacking its inner buttons:
 //    the switch and the star must stop propagation, and the keyboard handler must ignore keys
@@ -100,5 +130,9 @@ assert.ok(/onClick: \(e\) => \{ e\.stopPropagation\(\); toggle\(s\) \}/.test(src
 assert.ok(/onClick: \(e\) => \{ e\.stopPropagation\(\); toggleFeatured\(s\.name\) \}/.test(src), 'the Featured star stops propagation before toggling')
 assert.ok(/onKeyDown: \(e\) => \{ if \(e\.target !== e\.currentTarget\) return;/.test(src), 'the card keyboard handler ignores keys from inner buttons')
 ok('the Yours card opens its sheet without hijacking the inner switch/star (mouse + keyboard)')
+
+// Light theme: the engine's green is 2.3:1 on white for the « default » pill of the learned skills (measured, scripts/audit-contrast-live.mjs): a darker ink (7.1:1) in the light theme only.
+assert.ok(/body:not\(\[data-ds-dark-theme\]\) \.kbss-page \.kbl-pill\.ok\{color:var\(--kybernos-ok-ink,#166534\)\}/.test(src), 'the ok pill has a darker ink in the light theme')
+ok('light theme: the learned skills’ ok pill has a readable ink (7.1:1), the dark theme keeps the engine’s')
 
 console.log('\n' + pass + ' verifications OK')

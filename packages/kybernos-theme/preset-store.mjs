@@ -37,14 +37,15 @@ export const LIMITS = {
 export const MAX_BODY_BYTES = 640 * 1024
 /**
  * The settings a preset may carry. Mirrors PRESET_GROUPS in client.js (test-preset-store.mjs
- * fails when the two lists drift): colours always, then font, corners, menu icons, glass and wallpaper,
- * accessibility.
+ * fails when the two lists drift): colours always, then font, corners and shadows, menu icons, the chat (your
+ * bubble, the frame of the agent's replies), glass and wallpaper, accessibility.
  */
 export const SETTINGS_KEYS = Object.freeze([
-  'mode', 'acc', 'ov',
+  'mode', 'acc', 'ov', 'sideTone',
   'fontText', 'ligatures',
-  'radius',
+  'radius', 'shadow', 'glow',
   'iconSet',
+  'bubbleUser', 'textUser', 'replyBg', 'replyColor', 'textReply',
   'wp', 'wpVis', 'wpBlur', 'tint', 'glassEffect', 'glassBlur', 'sidebarLinked', 'sidebarOpacity', 'fieldOpacity', 'floatOpacity',
   'bgBrightness', 'bgContrast', 'bgSaturation', 'bgDarken', 'bgFit', 'bgMirror',
   'contrastMode', 'cbSafe', 'reduceMotion', 'focusRing', 'largeTargets', 'underlineLinks',
@@ -62,6 +63,7 @@ const clean = tidyText
 const HEX6 = /^#[0-9a-fA-F]{6}$/
 const OV_KEY = /^(?:light|dark):[a-z0-9]{1,12}$/
 const TOKEN = /^[A-Za-z0-9_-]{1,40}$/
+const HEX_OR_NULL = Object.freeze(['acc', 'textUser', 'replyColor', 'textReply'])
 
 /** One settings value: a boolean, a finite number, a short token or a hex colour, or null (accent: "the theme's own"). */
 const settingValue = (key, v) => {
@@ -76,7 +78,10 @@ const settingValue = (key, v) => {
     }
     return out
   }
-  if (key === 'acc') return v === null ? null : (typeof v === 'string' && HEX6.test(v) ? v : undefined)
+  // The accent and the three text / reply colours of the chat: a hex colour, or null (= the theme's own, or the colour of the app).
+  if (HEX_OR_NULL.indexOf(key) >= 0) return v === null ? null : (typeof v === 'string' && HEX6.test(v) ? v : undefined)
+  // Your bubble: one of DSH's own choices (a token) or any colour.
+  if (key === 'bubbleUser') return typeof v === 'string' && (HEX6.test(v) || TOKEN.test(v)) ? v : undefined
   if (typeof v === 'boolean') return v
   if (isNum(v)) return v
   if (typeof v === 'string' && v.length <= LIMITS.string && TOKEN.test(v)) return v

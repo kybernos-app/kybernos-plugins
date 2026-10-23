@@ -3,7 +3,7 @@
  *
  *  Usage: node packages/kybernos-composio/test-openapi.mjs   (exit 0 = all pass) */
 import assert from 'node:assert/strict'
-import { mkdtempSync, readFileSync, statSync, rmSync, existsSync, writeFileSync, mkdirSync } from 'node:fs'
+import { mkdtempSync, readFileSync, readdirSync, statSync, rmSync, existsSync, writeFileSync, mkdirSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { parseSpec, operationsOf, baseUrlOf, buildRequest, callOperation, toolFor, safeUrl, createOpenapi, MAX_RESPONSE_BYTES } from './openapi.mjs'
@@ -212,6 +212,49 @@ const SPEC_URL = 'https://api.acme-invoices.com/openapi.json'
     assert.equal(seen[0].redirect, 'manual', 'the spec address is fetched with redirect: manual, like the API calls')
     assert.deepEqual([got.ok, got.error, got.status], [false, 'spec_http', 302], 'a redirect answers as the spec address answering with an error')
     ok('the spec address: no redirect is followed (A6-21), a 3xx reads as an error answer')
+  } finally { rmSync(home, { recursive: true, force: true }) }
+}
+
+// 7c. L2-01: an openapi-connectors.json that cannot be read is never taken for an empty store, never written over, and its
+//     content is kept in a <name>.corrupt-<ts> copy — the same contract as the sidecar (connecteurs.json) of this bundle.
+{
+  const home = mkdtempSync(join(tmpdir(), 'kb-openapi-corrupt-'))
+  try {
+    const folder = join(home, 'kybernos')
+    const file = join(folder, 'openapi-connectors.json')
+    const copies = () => readdirSync(folder).filter((n) => n.startsWith('openapi-connectors.json.corrupt-'))
+    mkdirSync(folder, { recursive: true })
+    const abime = '{\n  "v": 1,\n  "items": {\n    "acme": { "title": "Acme Invoices", "baseUrl": "https://api.acme-invoices.com/v2"\n' // a write interrupted: truncated JSON
+    writeFileSync(file, abime)
+    const fetchFn = async () => ({ ok: true, status: 200, text: async () => JSON.stringify(SPEC), body: null })
+    const api = createOpenapi({ home, fetchFn })
+
+    const listed = api.list()
+    assert.equal(listed.ok, false, 'a corrupt store is not listed as an empty one')
+    assert.equal(listed.error, 'store_corrupt')
+    assert.match(listed.message, /a copy is kept as openapi-connectors\.json\.corrupt-/, listed.message)
+    assert.equal(readFileSync(file, 'utf8'), abime, 'a plain read never rewrites the file')
+    assert.equal(copies().length, 1, 'list() keeps one copy')
+    assert.equal(readFileSync(join(folder, copies()[0]), 'utf8'), abime, 'the copy holds the corrupt content, unchanged')
+
+    const added = await api.add({ name: 'acme', url: SPEC_URL, auth: { type: 'none' }, operations: ['listInvoices'] })
+    assert.equal(added.ok, false, 'adding a connector over a corrupt store is refused')
+    assert.equal(added.error, 'store_corrupt')
+    assert.match(added.message, /so nothing was saved/, added.message)
+    assert.equal(readFileSync(file, 'utf8'), abime, 'the corrupt file is left exactly as it was: its connectors are still recoverable')
+    assert.equal(copies().length, 1, 'a second attempt reuses the copy of the same content')
+
+    const removed = api.remove({ name: 'acme' })
+    assert.equal(removed.ok, false, 'removing over a corrupt store is refused too')
+    assert.equal(readFileSync(file, 'utf8'), abime)
+    assert.equal(api.sync(), undefined, 'sync() on a corrupt store does not throw')
+    assert.equal(copies().length, 1, 'no copy piles up per attempt')
+
+    // the person fixes (or removes) the file: the page lists again and writes work
+    writeFileSync(file, JSON.stringify({ v: 1, items: {} }))
+    assert.deepEqual(api.list(), { ok: true, items: [] })
+    assert.equal((await api.add({ name: 'acme', url: SPEC_URL, auth: { type: 'none' }, operations: ['listInvoices'] })).ok, true)
+    ok('a corrupt API-connector store: listed as corrupt (never empty), declared copy kept, never overwritten, usable again once fixed')
   } finally { rmSync(home, { recursive: true, force: true }) }
 }
 

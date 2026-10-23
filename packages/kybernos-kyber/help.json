@@ -5,16 +5,16 @@
   },
   "steps": [
     {
-      "fr": "Ouvre « Kaby » dans le menu : une conversation DSH ordinaire, avec deux tuiles au-dessus de la saisie, les canaux et l'ordinateur.",
-      "en": "Open “Kaby” in the menu: an ordinary DSH chat, with two tiles above the composer: the channels and the computer."
+      "fr": "Ouvre « Kaby » dans le menu : une conversation DSH, et une ligne au-dessus de la saisie : contrôle à distance, Telegram, ordinateur.",
+      "en": "Open “Kaby” in the menu: a DSH chat, and one line above the composer: remote control, Telegram, computer."
     },
     {
-      "fr": "Active Telegram dans la tuile des canaux : scanne le code (ou touche « Ouvrir Telegram »), touche Démarrer, puis « Oui, c'est moi ».",
-      "en": "Turn Telegram on in the channels tile: scan the code (or tap “Open Telegram”), tap Start, then “Yes, it's me”."
+      "fr": "Touche « Régler… », puis active Telegram : scanne le code, Démarrer, « Oui, c’est moi ».",
+      "en": "Tap “Set up…”, then turn Telegram on: scan the code, tap Start, then “Yes, it’s me”."
     },
     {
-      "fr": "La tuile Ordinateur dit où Kaby travaille : cet ordinateur, ou un ordinateur dans le cloud. Ton choix est retenu.",
-      "en": "The computer tile says where Kaby works: this computer, or a cloud computer. Your choice is remembered."
+      "fr": "Dans « Ordinateur de Kaby », même fenêtre, choisis où Kaby travaille : cet ordinateur, ou un ordinateur dans le cloud. Ton choix est retenu.",
+      "en": "In “Kaby’s computer”, same window, choose where Kaby works: this computer, or a cloud computer. Your choice is remembered."
     }
   ],
   "where": {

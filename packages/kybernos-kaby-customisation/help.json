@@ -1,0 +1,29 @@
+{
+  "what": {
+    "fr": "La page où tu donnes à Kaby son allure : un nom, un portrait et une voix. Elle règle aussi le visage qu'il montrera en appel vidéo, avec ses propres clés, à part des Appels.",
+    "en": "The page where you give Kaby its look: a name, a portrait and a voice. It also sets the face it will show on video calls, with its own keys, apart from Calls."
+  },
+  "steps": [
+    {
+      "fr": "Ouvre Réglages › Kaby, ou clique le portrait de Kaby au-dessus de sa conversation.",
+      "en": "Open Settings › Kaby, or click Kaby's portrait above its conversation."
+    },
+    {
+      "fr": "Choisis un nom, décris son allure et génère un portrait, ou importe une image dont tu as le droit.",
+      "en": "Pick a name, describe how it looks and generate a portrait, or import a picture you have the right to use."
+    },
+    {
+      "fr": "Choisis une voix et écoute-la. Tu peux aussi enregistrer ou importer une voix perso, avec ton consentement.",
+      "en": "Pick a voice and listen to it. You can also record or upload a custom voice, with your consent."
+    }
+  ],
+  "where": {
+    "fr": "Réglages › Kaby",
+    "en": "Settings › Kaby",
+    "page": true
+  },
+  "good": {
+    "fr": "Rien ne change à ce que Kaby sait faire, à ses règles ni à sa mémoire. Le portrait reste sur cet ordinateur ; il ne part chez un fournisseur que si tu choisis un visage en appel vidéo.",
+    "en": "Nothing changes in what Kaby can do, its rules or its memory. The portrait stays on this computer; it goes to a provider only if you choose a face for video calls."
+  }
+}

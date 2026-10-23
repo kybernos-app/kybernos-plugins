@@ -70,10 +70,13 @@ export function createGate (config, { limiter = createLimiter(), log = (line) =>
     res.writeHead(status, { ...baseHeaders, 'content-type': 'text/plain; charset=utf-8', ...extra })
     res.end(text)
   }
-  const redirect = (res, location) => { res.writeHead(303, { ...baseHeaders, location }); res.end() }
+  // A header value must be latin-1: a character above it (a hand-written `next`) is sent percent-encoded instead of throwing.
+  const redirect = (res, location, extra = {}) => { res.writeHead(303, { ...baseHeaders, location: String(location).replace(/[^\x20-\x7e]/gu, (c) => encodeURIComponent(c)), ...extra }); res.end() }
   const nonce = () => randomBytes(16).toString('base64')
+  // The sign-in page sends its own origin with the form post (no-referrer would make browsers send `Origin: null` there).
+  const LOGIN_PAGE_HEADERS = { 'referrer-policy': 'same-origin' }
 
-  const readJson = (req) => new Promise((resolve) => {
+  const readBody = (req) => new Promise((resolve) => {
     let size = 0
     const chunks = []
     req.on('data', (chunk) => {
@@ -81,9 +84,22 @@ export function createGate (config, { limiter = createLimiter(), log = (line) =>
       if (size > MAX_BODY) { resolve(null); req.destroy(); return }
       chunks.push(chunk)
     })
-    req.on('end', () => { try { const v = JSON.parse(Buffer.concat(chunks).toString('utf8')); resolve(v !== null && typeof v === 'object' ? v : null) } catch (e) { resolve(null) } })
+    req.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')))
     req.on('error', () => resolve(null))
   })
+  const readJson = async (req) => {
+    const raw = await readBody(req)
+    try { const v = JSON.parse(raw); return v !== null && typeof v === 'object' ? v : null } catch (e) { return null }
+  }
+  /** A plain form post (no script): `user` (or `username`) and `password`, the same shape the script sends as JSON. */
+  const readForm = async (req) => {
+    const raw = await readBody(req)
+    if (raw === null) return null
+    const form = new URLSearchParams(raw)
+    // Trimmed like the page's script does (a phone keyboard often adds a trailing space after a user name).
+    const user = form.get('user') ?? form.get('username')
+    return { user: typeof user === 'string' ? user.trim() : user, password: form.get('password') }
+  }
 
   /** The cookies of a signed-in browser: the gate's own session and, once, DSH's (one sign-in). */
   const signedInCookies = (req) => {
@@ -142,22 +158,39 @@ export function createGate (config, { limiter = createLimiter(), log = (line) =>
     return sendHtml(res, 200, html, n, { 'set-cookie': signedInCookies(req) })
   }
 
-  async function login (req, res) {
+  async function login (req, res, url) {
     if (config.verifier === null) return sendJson(res, 404, { ok: false, error: 'disabled' })
     if (!originOk(req)) return sendJson(res, 403, { ok: false, error: 'origin' })
-    if (!/^application\/json\b/iu.test(String(req.headers['content-type'] ?? ''))) return sendJson(res, 415, { ok: false, error: 'content-type' })
+    const contentType = String(req.headers['content-type'] ?? '')
+    const asForm = /^application\/x-www-form-urlencoded\b/iu.test(contentType)
+    if (!asForm && !/^application\/json\b/iu.test(contentType)) return sendJson(res, 415, { ok: false, error: 'content-type' })
+    // The page's script sends JSON and reads the answer. A plain form post (no script, a policy that forbids it, a text-mode
+    // reader) is answered like a page: a redirect when it worked, the sign-in page with the reason when it did not. Where it
+    // goes next travels in the form's action, so even a refusal before the body is read can keep it.
+    const next = asForm ? safeNext(url.searchParams.get('next') ?? '/') : '/'
+    let typedUser = ''
+    const reply = (status, payload, extra = {}) => {
+      if (!asForm) return sendJson(res, status, payload, extra)
+      const n = nonce()
+      return sendHtml(res, status, renderLogin({ lang: pickLanguage(req.headers['accept-language']), nonce: n, next, sessionDays: config.sessionDays, user: typedUser, error: payload }), n, { ...LOGIN_PAGE_HEADERS, ...extra })
+    }
     const key = clientIp(req)
     const state = limiter.check(key)
-    if (state.locked) return sendJson(res, 429, { ok: false, error: 'locked', retryAfter: state.retryAfter }, { 'retry-after': String(state.retryAfter) })
+    if (state.locked) return reply(429, { ok: false, error: 'locked', retryAfter: state.retryAfter }, { 'retry-after': String(state.retryAfter) })
     // One guess at a time per client, and a cap overall: scrypt is deliberately expensive.
-    if (attemptsInFlight.has(key)) return sendJson(res, 429, { ok: false, error: 'busy', retryAfter: 1 }, { 'retry-after': '1' })
-    if (activeLogins >= MAX_CONCURRENT_LOGINS) return sendJson(res, 503, { ok: false, error: 'busy' }, { 'retry-after': '2' })
+    if (attemptsInFlight.has(key)) return reply(429, { ok: false, error: 'busy', retryAfter: 1 }, { 'retry-after': '1' })
+    if (activeLogins >= MAX_CONCURRENT_LOGINS) return reply(503, { ok: false, error: 'busy' }, { 'retry-after': '2' })
     attemptsInFlight.add(key)
     activeLogins += 1
     try {
-      const body = await readJson(req)
+      const body = asForm ? await readForm(req) : await readJson(req)
       if (body === null || typeof body.user !== 'string' || typeof body.password !== 'string' || body.user.length > 256 || body.password.length > 1024) {
-        return sendJson(res, 400, { ok: false, error: 'bad-request' })
+        return reply(400, { ok: false, error: 'bad-request' })
+      }
+      if (asForm) {
+        typedUser = body.user
+        // Without the script nothing stops an empty form: say so, and do not spend one of the five tries on it.
+        if (body.user.trim() === '' || body.password === '') return reply(400, { ok: false, error: 'empty' })
       }
       // Both checks always run, so the answer does not tell which of the two was wrong.
       const userOk = timingSafeEqual(sha256(body.user), userDigest)
@@ -166,12 +199,13 @@ export function createGate (config, { limiter = createLimiter(), log = (line) =>
         limiter.succeed(key)
         const cookies = signedInCookies(req)
         log(`[gate] login ok from ${key}`)
+        if (asForm) return redirect(res, next, { 'set-cookie': cookies })
         return sendJson(res, 200, { ok: true, next: safeNext(body.next) }, { 'set-cookie': cookies })
       }
       const after = limiter.fail(key)
       log(`[gate] login failed from ${key}${after.locked ? ` (locked ${after.retryAfter}s)` : ''}`)
-      if (after.locked) return sendJson(res, 429, { ok: false, error: 'locked', retryAfter: after.retryAfter }, { 'retry-after': String(after.retryAfter) })
-      return sendJson(res, 401, { ok: false, error: 'invalid', triesLeft: after.triesLeft })
+      if (after.locked) return reply(429, { ok: false, error: 'locked', retryAfter: after.retryAfter }, { 'retry-after': String(after.retryAfter) })
+      return reply(401, { ok: false, error: 'invalid', triesLeft: after.triesLeft })
     } finally {
       attemptsInFlight.delete(key)
       activeLogins -= 1
@@ -193,12 +227,12 @@ export function createGate (config, { limiter = createLimiter(), log = (line) =>
     if (route === 'ticket') return ticket(req, res, url)
     if (route === 'login') {
       if (config.verifier === null) return sendText(res, 403, 'This computer is opened from the Kybernos console: use its Open button.')
-      if (req.method === 'POST') return login(req, res)
+      if (req.method === 'POST') return login(req, res, url)
       if (req.method !== 'GET' && req.method !== 'HEAD') return sendText(res, 405, 'method not allowed', { allow: 'GET, HEAD, POST' })
       const next = safeNext(url.searchParams.get('next') ?? '/')
       if (isAuthed(req)) return redirect(res, next)
       const n = nonce()
-      return sendHtml(res, 200, renderLogin({ lang: pickLanguage(req.headers['accept-language']), nonce: n, next, sessionDays: config.sessionDays }), n)
+      return sendHtml(res, 200, renderLogin({ lang: pickLanguage(req.headers['accept-language']), nonce: n, next, sessionDays: config.sessionDays }), n, LOGIN_PAGE_HEADERS)
     }
     if (route === 'logout') return req.method === 'POST' ? logout(req, res) : sendText(res, 405, 'method not allowed', { allow: 'POST' })
     return sendText(res, 404, 'not found')

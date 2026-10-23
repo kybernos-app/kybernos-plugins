@@ -72,6 +72,10 @@ const loginBody = (user, password, next) => JSON.stringify({ user, password, nex
 const post = (port, body, headers = {}) => request(port, 'POST', '/__gate/login', {
   headers: { origin: `http://127.0.0.1:${port}`, 'content-type': 'application/json', ...headers }, body
 })
+// A plain form post, as a browser sends it with scripts off: urlencoded, to the form's action (which carries `next`).
+const postForm = (port, fields, { next, headers = {} } = {}) => request(port, 'POST', '/__gate/login' + (next === undefined ? '' : '?next=' + encodeURIComponent(next)), {
+  headers: { origin: `http://127.0.0.1:${port}`, 'content-type': 'application/x-www-form-urlencoded', accept: 'text/html', 'accept-language': 'en-US', ...headers }, body: new URLSearchParams(fields).toString()
+})
 const cookiePair = (setCookie, name) => (Array.isArray(setCookie) ? setCookie : [setCookie]).map((c) => c.split(';')[0]).find((c) => c.startsWith(name + '='))
 
 async function signedIn (port, extraHeaders = {}) {
@@ -173,6 +177,116 @@ test('a wrong login says how many tries are left and a good one sets both cookie
   assert.ok(cookies.some((c) => c.startsWith('dsh-auth-') && /HttpOnly; SameSite=Strict/.test(c)), 'DSH session cookie')
   assert.ok(logs.every((l) => !l.includes(PASSWORD)), 'the password is never logged')
   await gate.close()
+})
+
+// ── L2-06: the sign-in has a path without JavaScript ──
+test('a plain form post signs in without any script: a redirect to where the person was going, both cookies set', async () => {
+  const { gate, port, logs } = await startGate()
+  const ok = await postForm(port, { username: 'kybernos', password: PASSWORD }, { next: '/settings/models' })
+  assert.equal(ok.status, 303, 'a redirect, not the JSON the browser would print raw')
+  assert.equal(ok.headers.location, '/settings/models')
+  const cookies = [].concat(ok.headers['set-cookie'])
+  assert.equal(cookies.length, 2)
+  assert.ok(cookies.some((c) => c.startsWith('kybernos_gate=') && /HttpOnly/.test(c) && /SameSite=Strict/.test(c)))
+  assert.ok(cookies.some((c) => c.startsWith('dsh-auth-')), 'one sign-in: DSH\'s cookie too')
+  const jar = cookies.map((c) => c.split(';')[0]).join('; ')
+  assert.equal((await request(port, 'GET', '/', { headers: { ...NAV, cookie: jar } })).status, 200, 'the cookie opens DSH')
+  // `user` works as well as `username`, and a missing next means the home page.
+  const alt = await postForm(port, { user: 'kybernos', password: PASSWORD })
+  assert.equal(alt.status, 303)
+  assert.equal(alt.headers.location, '/')
+  assert.ok(logs.every((l) => !l.includes(PASSWORD)))
+  await gate.close()
+})
+
+test('a form post trims the user name like the page does, and a next with a character above latin-1 still signs in', async () => {
+  const { gate, port } = await startGate()
+  // A phone keyboard often appends a space to the user name: the script trims it, so does the plain form (it used to burn a try and say "wrong").
+  const spaced = await postForm(port, { username: ' kybernos ', password: PASSWORD }, { next: '/ok' })
+  assert.equal(spaced.status, 303, 'the trimmed name is the right name: ' + spaced.status)
+  assert.ok([].concat(spaced.headers['set-cookie'] || []).some((c) => c.startsWith('kybernos_gate=')), 'and it set the cookie')
+  // A hand-written next with a euro sign: a Location header must be latin-1, it used to throw after the limiter had counted a success (500, no cookie).
+  const euro = await postForm(port, { username: 'kybernos', password: PASSWORD }, { next: '/€' })
+  assert.equal(euro.status, 303, 'a redirect, not a 500: ' + euro.status)
+  assert.equal(euro.headers.location, '/%E2%82%AC', 'sent percent-encoded')
+  assert.ok([].concat(euro.headers['set-cookie'] || []).some((c) => c.startsWith('kybernos_gate=')), 'with its cookie')
+  await gate.close()
+})
+
+test('a plain form post cannot send the person to another site, and still needs this site as its origin', async () => {
+  const { gate, port } = await startGate()
+  for (const next of ['https://evil.example/x', '//evil.example', '/\\evil.example']) {
+    const r = await postForm(port, { username: 'kybernos', password: PASSWORD }, { next })
+    assert.equal(r.status, 303)
+    assert.equal(r.headers.location, '/', next)
+  }
+  const noOrigin = await request(port, 'POST', '/__gate/login', { headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: 'username=kybernos&password=' + encodeURIComponent(PASSWORD) })
+  assert.equal(noOrigin.status, 403)
+  const foreign = await postForm(port, { username: 'kybernos', password: PASSWORD }, { headers: { origin: 'https://evil.example' } })
+  assert.equal(foreign.status, 403)
+  assert.ok(!foreign.headers['set-cookie'])
+  const cross = await postForm(port, { username: 'kybernos', password: PASSWORD }, { headers: { 'sec-fetch-site': 'cross-site' } })
+  assert.equal(cross.status, 403)
+  await gate.close()
+})
+
+test('a wrong password on a plain form post gives the sign-in page with the reason, not JSON', async () => {
+  const { gate, port } = await startGate()
+  const bad = await postForm(port, { username: 'kybernos', password: 'nope nope nope' }, { next: '/settings' })
+  assert.equal(bad.status, 401)
+  assert.match(bad.headers['content-type'], /^text\/html/)
+  assert.ok(!bad.text.trimStart().startsWith('{'), 'no raw JSON')
+  assert.ok(bad.text.includes('Wrong username or password. 4 attempts left.'), 'the reason, in the page\'s language')
+  assert.ok(bad.text.includes('value="kybernos"'), 'the user name that was typed is kept')
+  assert.ok(!bad.text.includes('nope nope nope'), 'the password never comes back')
+  assert.ok(bad.text.includes('action="/__gate/login?next=%2Fsettings"'), 'where the person was going is kept')
+  assert.ok(!bad.headers['set-cookie'])
+  assert.match(bad.headers['content-security-policy'], /script-src 'nonce-/)
+  const fr = await postForm(port, { username: 'kybernos', password: 'nope nope nope' }, { headers: { 'accept-language': 'fr-FR,fr;q=0.9' } })
+  assert.ok(fr.text.includes('Identifiant ou mot de passe incorrect. 3 essais restants.'))
+  await gate.close()
+})
+
+test('an empty form post is told so and does not use up one of the tries', async () => {
+  const { gate, port } = await startGate()
+  const empty = await postForm(port, { username: '', password: '' })
+  assert.equal(empty.status, 400)
+  assert.ok(empty.text.includes('Enter the username and the password.'))
+  const half = await postForm(port, { username: 'kybernos', password: '' })
+  assert.equal(half.status, 400)
+  assert.ok(half.text.includes('value="kybernos"'))
+  const bad = await postForm(port, { username: 'kybernos', password: 'nope nope nope' })
+  assert.ok(bad.text.includes('4 attempts left'), 'the two empty posts were not counted')
+  assert.equal((await postForm(port, {})).status, 400, 'no fields at all')
+  await gate.close()
+})
+
+test('five wrong form posts lock the client, and the page says for how long', async () => {
+  const { gate, port } = await startGate()
+  let last
+  for (let i = 0; i < 5; i++) last = await postForm(port, { username: 'kybernos', password: 'wrong wrong ' + i })
+  assert.equal(last.status, 429)
+  assert.equal(last.headers['retry-after'], '45')
+  assert.match(last.headers['content-type'], /^text\/html/)
+  assert.ok(last.text.includes('<b>0:45</b>'), 'the wait is written in the page')
+  const right = await postForm(port, { username: 'kybernos', password: PASSWORD })
+  assert.equal(right.status, 429, 'locked means locked, for a form as for the script')
+  assert.ok(!right.headers['set-cookie'])
+  await gate.close()
+})
+
+test('the sign-in page keeps its own address in the referrer, so the browser can send its Origin with the form', async () => {
+  const { gate, port } = await startGate()
+  const page = await request(port, 'GET', '/__gate/login?next=%2Fsettings', { headers: NAV })
+  assert.equal(page.headers['referrer-policy'], 'same-origin', 'no-referrer makes browsers post `Origin: null`, which the gate refuses')
+  assert.ok(page.text.includes('action="/__gate/login?next=%2Fsettings"'))
+  assert.ok(page.text.includes('method="post"'))
+  await gate.close()
+})
+
+test('the starting page reloads by itself even without a script', async () => {
+  const { renderStarting } = await import('../core/page.mjs')
+  for (const lang of ['fr', 'en']) assert.ok(renderStarting({ lang, nonce: 'n' }).includes('<meta http-equiv="refresh" content="3">'), lang)
 })
 
 test('after signing in, requests reach DSH with the gate cookie removed and the Host kept', async () => {

@@ -5,20 +5,20 @@
   },
   "steps": [
     {
-      "fr": "Dans « Essentiel » (ouvert par défaut), choisis un mode, un thème (livré ou à toi), un accent, un fond et une police.",
-      "en": "In “Essentials” (open by default), pick a mode, a theme (shipped or your own), an accent color, a background and a font."
+      "fr": "Clique sur ce que tu veux changer dans la fenêtre, ou pars d’une ambiance (Travail, Dev, Études, Détente, Nuit).",
+      "en": "Click what you want to change in the window, or start from a vibe (Work, Dev, Study, Chill, Night)."
     },
     {
-      "fr": "« Verre et fond » règle transparence et flou une fois un fond choisi ; « Couleurs », « Texte et forme » et « Accessibilité » affinent.",
-      "en": "“Glass and background” sets transparency and blur once a background is chosen; “Colors”, “Text and shape” and “Accessibility” refine."
+      "fr": "« Plus d’options » garde le reste ; « Aussi » ouvre l’accent, les effets et l’accessibilité.",
+      "en": "“More options” keeps the rest; “Also” opens the accent, effects and accessibility."
     },
     {
-      "fr": "« Animation » : choisis le dessin et les mots affichés en bas du chat pendant que l’agent travaille.",
-      "en": "“Animation”: choose the drawing and the words shown at the bottom of the chat while the agent works."
+      "fr": "« Enregistrer » garde ton thème ; « Exporter », « Importer » et « Annuler » font le reste.",
+      "en": "“Save” keeps your look; “Export”, “Import” and “Undo” do the rest."
     },
     {
-      "fr": "« Partage » garde tes thèmes (enregistrer, importer, exporter) ; « Galerie » en propose d’autres à essayer et installer.",
-      "en": "“Sharing” keeps your themes (save, import, export); “Gallery” offers more to try and install."
+      "fr": "« Éditeur avancé », replié dessous, garde tous les réglages, le partage et la galerie.",
+      "en": "“Advanced editor”, folded below, keeps every setting, sharing and the gallery."
     }
   ],
   "where": {

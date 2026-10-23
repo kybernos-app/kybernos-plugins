@@ -37,6 +37,7 @@
     "kybernos-auto": [],
     "kybernos-bricks": [],
     "kybernos-call": [],
+    "kybernos-kaby-customisation": [],
     "kybernos-changes": [],
     "kybernos-cloud": [],
     "kybernos-composio": [
@@ -63,14 +64,8 @@
       "Hola. Soy la voz de Kybernos, tu asistente.",
       "fermé",
       "[^a-zà-ÿ]",
-      "fournisseur ia & modeles",
-      "modeles fournisseurs cle api openai",
-      "routage routeur choix modele secours",
-      "planification taches cron",
-      "outils mcp",
+      "modeles fournisseurs cle api openai provider providers key keys llm gpt claude anthropic openrouter",
       "carte graphe",
-      "langue idioma traduction",
-      "serveurs equipe reseau",
       "  - id: equipe",
       "?category=equipes&after=",
       "cordis.patch.yml.bak-outils-"
@@ -78,6 +73,8 @@
     "kybernos-refs": [],
     "kybernos-relance": [],
     "kybernos-search": [],
+    "kybernos-session-msg": [],
+    "kybernos-registry": [],
     "kybernos-servers": [],
     "kybernos-sessions": [
       "cle api",

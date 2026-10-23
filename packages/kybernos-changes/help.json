@@ -27,8 +27,8 @@
     "page": false
   },
   "good": {
-    "fr": "Elle ne s’affiche que dans un dossier de projet suivi par git, et remplace les quatre pastilles de suivi de Sessions ; désactivée, elles reviennent.",
-    "en": "It only shows in a project folder tracked by git, and replaces the four tracking pills of Sessions; switch it off and they come back."
+    "fr": "Elle ne s’affiche que dans un dossier de projet suivi par git, et remplace les quatre pastilles de suivi de Sessions ; désactivée, elles reviennent. Sans le module Sessions : pastille grise « Suivi indisponible ».",
+    "en": "It only shows in a project folder tracked by git, and replaces the four tracking pills of Sessions; switch it off and they come back. Without the Sessions module: a grey “Tracking unavailable” chip."
   },
   "url": "https://help.kybernos.app/{lang}/agents-and-tools/small-tools-of-the-chat/"
 }

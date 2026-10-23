@@ -208,7 +208,7 @@ window.__ModuleLoader__.load({
       const hostFailure = (down) => ({
         ok: false, down: down,
         error: down === 'absent'
-          ? kt('les routes d’appel ne sont pas chargées — relance DSH une fois', 'the call routes are not loaded — relaunch DSH once')
+          ? kt('Les appels ne sont pas encore chargés : relance DSH une fois', 'Calls are not loaded yet: restart DSH once')
           : kt('Impossible de joindre le service d’appel — réessaie', 'Cannot reach the call service — try again')
       })
       // A POST to the host: its JSON answer, or a hostFailure (ok:false, down:'absent'|'unreachable', error: the sentence).
@@ -230,6 +230,22 @@ window.__ModuleLoader__.load({
         } catch (e) { return { kind: 'unreachable' } }
       }
       // Why a recording is not spoken in its own voice, said where the user looks (the panel).
+      /**
+       * A call from the header of Kaby's own conversation: the name the person gave it and the voice they chose for it (kybernos-kaby-customisation, through
+       * window.__KB_KABY__), else null (any other session, or no such bundle: the plain assistant, the default voice). A voice not chosen is the app's own voice,
+       * asked for on purpose ({ app: true }) so that the default of Settings › Calls does not take its place; a custom voice no engine speaks yet is the same.
+       */
+      const kabyCallOf = (sessionId) => {
+        try {
+          const kyby = window.__KB_KYBER__
+          const seam = window.__KB_KABY__
+          if (typeof sessionId !== 'string' || kyby === undefined || kyby === null || typeof kyby.isKybySession !== 'function' || kyby.isKybySession(sessionId) !== true) return null
+          const p = seam !== undefined && seam !== null && typeof seam.profile === 'function' ? seam.profile() : null
+          if (p === null || p === undefined || typeof p.name !== 'string' || p.name === '') return null
+          const v = p.voice !== null && typeof p.voice === 'object' ? p.voice : { pick: 'default' }
+          return { name: p.name, voice: v.pick === 'voice' && typeof v.engine === 'string' && typeof v.voice === 'string' ? { engine: v.engine, voice: v.voice, lang: typeof v.lang === 'string' ? v.lang : '' } : { app: true } }
+        } catch (e) { return null }
+      }
       const cloneNote = (c) => {
         const why = (c === null || c === undefined) ? kt('le service de clonage ne répond pas', 'the clone service did not answer')
           : c.code === 'upload-off' ? kt('l’envoi des enregistrements est désactivé (Réglages › Appels)', 'sending recordings is off (Settings › Calls)')
@@ -479,6 +495,7 @@ window.__ModuleLoader__.load({
               h('span', { key: 'n', style: css.name }, s.name),
               h('span', { key: 'p', className: 'kbcl-status', 'data-state': mood[0], role: 'status', 'aria-live': 'polite' }, [h('i', { key: 'd', className: 'kbcl-dot' }), mood[1] + (isLive ? ' · ' + clock(seconds(s)) : '')])
             ]),
+            (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { key: 'help', id: 'kybernos-call' }) : null),
             video ? h('button', { key: 'full', type: 'button', className: 'kbcl-hbtn', 'data-act': 'panel-full', 'aria-pressed': full ? 'true' : 'false', 'aria-label': full ? kt('Réduire la fenêtre', 'Make the window smaller') : kt('Plein écran', 'Full screen'), title: full ? kt('Réduire la fenêtre (Échap)', 'Make the window smaller (Esc)') : kt('Plein écran', 'Full screen'), onClick: toggleFull }, Ico(full ? 'shrink' : 'expand', 16)) : null,
             // A call that never started has nothing to hang up: the same button closes the panel, and says so.
             h('button', { key: 'hang', type: 'button', 'data-act': 'hangup', 'aria-label': s.phase === 'error' ? kt('Fermer', 'Close') : kt('Raccrocher', 'Hang up'), onClick: () => hangUp(), style: css.hangUp }, s.phase === 'error' ? kt('Fermer', 'Close') : kt('Raccrocher', 'Hang up'))
@@ -580,13 +597,26 @@ body:not([data-ds-dark-theme]) .kbcl-chip.kbcl-warn{color:color-mix(in srgb,${T.
 .kbcl-grip::before{content:"";position:absolute;top:5px;left:5px;width:9px;height:9px;border-top:2px solid ${T.faint};border-left:2px solid ${T.faint};border-radius:3px 0 0 0}
 .kbcl-grip:hover::before,.kbcl-grip:focus-visible::before{border-color:${T.text}}
 .kbcl-grip:focus-visible{outline:2px solid ${T.brand};outline-offset:1px}
-.kbcl-hdr{display:flex;align-items:center;gap:4px;margin-left:auto;order:99}
+.kbcl-hdr{position:relative;display:flex;align-items:center;gap:4px;margin-left:auto;order:99}
 [class*="_headerActions"]:has(.kbcl-hdr){flex:1 1 auto}
 .kbcl-hbtn{appearance:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:30px;min-width:30px;padding:0 6px;box-sizing:border-box;border:1px solid transparent;border-radius:9px;background:transparent;color:${T.mute};cursor:pointer;font:inherit;font-size:12.5px;transition:background .12s,color .12s}
 .kbcl-hbtn:hover:not(:disabled){background:${T.hover};color:${T.text}}
 .kbcl-hbtn:focus-visible{outline:2px solid ${T.brand};outline-offset:1px}
 .kbcl-hbtn:disabled{opacity:.4;cursor:default}
 .kbcl-hbtn.kbcl-hlive{background:#DC2626;color:#FFFFFF;padding:0 10px}
+/* The call is ONE button with a small arrow: the click is the voice call, the arrow opens voice / video / settings (2026-10-22, chat header variant B). */
+.kbcl-split{display:inline-flex;align-items:center}
+.kbcl-split .kbcl-hbtn:first-child{border-radius:9px 0 0 9px}
+.kbcl-split .kbcl-hbtn+.kbcl-hbtn{min-width:20px;width:20px;padding:0;border-radius:0 9px 9px 0}
+.kbcl-menu{position:absolute;top:calc(100% + 8px);right:0;z-index:60;min-width:250px;padding:6px;border:1px solid ${T.line};border-radius:14px;background:var(--dsw-alias-bg-layer-1,${T.layer});box-shadow:var(--dsw-elevation-prominent,0 12px 32px rgba(0,0,0,.35))}
+.kbcl-mitem{appearance:none;display:flex;align-items:center;gap:10px;width:100%;height:34px;box-sizing:border-box;padding:0 10px;border:0;border-radius:10px;background:transparent;color:${T.text};font:inherit;font-size:13.5px;text-align:start;white-space:nowrap;cursor:pointer}
+.kbcl-mitem:hover:not(:disabled),.kbcl-mitem:focus-visible{background:${T.hover};outline:none}
+.kbcl-mitem:disabled{opacity:.45;cursor:default}
+.kbcl-mitem svg{flex:none;color:${T.mute}}
+.kbcl-mitem i{font-style:normal}
+.kbcl-mitem .kbcl-mhint{margin-inline-start:auto;padding-inline-start:14px;font-size:11.5px;color:${T.faint}}
+.kbcl-msep{height:1px;margin:5px 4px;background:${T.line}}
+.kbcl-flat{display:none}
 @keyframes kbcl-spin{to{transform:rotate(360deg)}}
 .kbcl-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
 .kbcl-tt{min-width:0}
@@ -651,20 +681,54 @@ body:not([data-ds-dark-theme]) .kbcl-chip.kbcl-warn{color:color-mix(in srgb,${T.
       }
       const CallHeader = (props) => {
         const current = useCall()
+        const menuPair = React.useState(false)
+        const menuOpen = menuPair[0]
+        const setMenuOpen = menuPair[1]
+        const root = React.useRef(null)
         React.useEffect(() => { loadHeaderStatus() }, [])
+        // The menu closes on a click elsewhere (capture phase: before that click reaches another header button) and on Escape; both listeners live only while it is open.
+        React.useEffect(() => {
+          if (menuOpen !== true) return undefined
+          const away = (e) => { const r = root.current; if (r !== null && r !== undefined && typeof r.contains === 'function' && e !== null && e !== undefined && r.contains(e.target) === true) return; setMenuOpen(false) }
+          const key = (e) => { if (e !== null && e !== undefined && e.key === 'Escape') setMenuOpen(false) }
+          document.addEventListener('pointerdown', away, true)
+          document.addEventListener('keydown', key)
+          return () => { document.removeEventListener('pointerdown', away, true); document.removeEventListener('keydown', key) }
+        }, [menuOpen])
         // A call that never started or already ended (the panel says « error » or « call ended », with its own « Close ») is nothing to hang up: only a call being set up or live is (A5-22).
         const active = current !== null && current.phase !== 'error' && current.phase !== 'ended'
         const sessionId = (props !== null && props !== undefined && typeof props.sessionId === 'string') ? props.sessionId : null
-        const start = (mode) => open({ sessionId: sessionId, kyberId: null, roleId: null, name: kt('Assistant', 'Assistant'), mode: mode, voice: null })
+        const start = (mode) => { const kaby = kabyCallOf(sessionId); return open({ sessionId: sessionId, kyberId: null, roleId: null, name: kaby !== null ? kaby.name : kt('Assistant', 'Assistant'), mode: mode, voice: kaby !== null ? kaby.voice : null }) }
         if (active) {
           return h('div', { className: 'kbcl-hdr', 'data-kb': 'kybernos-call-header' },
             h('button', { type: 'button', className: 'kbcl-hbtn kbcl-hlive', 'data-act': 'hangup-header', title: kt('Raccrocher l’appel en cours', 'Hang up the call in progress'), 'aria-label': kt('Raccrocher', 'Hang up'), onClick: () => hangUp() }, [PHONE(15), h('span', { key: 't' }, kt('Raccrocher', 'Hang up'))]))
         }
         const noFace = headerStatus.provider === 'none'
-        return h('div', { className: 'kbcl-hdr', 'data-kb': 'kybernos-call-header' }, [
-          h('button', { key: 'v', type: 'button', className: 'kbcl-hbtn', 'data-act': 'call-voice', title: kt('Appel vocal : parler à l’assistant de cette session', 'Voice call: talk to this session’s assistant'), 'aria-label': kt('Appel vocal', 'Voice call'), onClick: () => start('voice') }, PHONE(17)),
-          h('button', { key: 'c', type: 'button', className: 'kbcl-hbtn', 'data-act': 'call-video', disabled: noFace, title: noFace ? kt('Appel vidéo : ajoute une clé LiveAvatar (Réglages › Appels › Service)', 'Video call: add a LiveAvatar key (Settings › Calls › Service)') : kt('Appel vidéo : l’assistant a un visage', 'Video call: the assistant has a face'), 'aria-label': kt('Appel vidéo', 'Video call'), onClick: () => start('video') }, CAMERA(17)),
-          h('button', { key: 's', type: 'button', className: 'kbcl-hbtn', 'data-act': 'call-setup', title: kt('Réglages des appels : micro, voix, visage, clés', 'Call settings: microphone, voice, face, keys'), 'aria-label': kt('Réglages des appels', 'Call settings'), onClick: () => { openCallSettings({ tab: 'overview' }) } }, Ico('sliders', 17))
+        const videoTip = noFace ? kt('Appel vidéo : ajoute une clé LiveAvatar (Réglages › Appels › Service)', 'Video call: add a LiveAvatar key (Settings › Calls › Service)') : kt('Appel vidéo : l’assistant a un visage', 'Video call: the assistant has a face')
+        const setupTip = kt('Réglages des appels : micro, voix, visage, clés', 'Call settings: microphone, voice, face, keys')
+        const openSetup = () => { openCallSettings({ tab: 'overview' }) }
+        const choose = (fn) => () => { setMenuOpen(false); fn() }
+        const item = (act, icon, label, fn, o) => h('button', { key: act, type: 'button', role: 'menuitem', className: 'kbcl-mitem', 'data-act': act, disabled: o !== undefined && o.disabled === true, title: o !== undefined && o.title !== undefined ? o.title : undefined, onClick: choose(fn) },
+          [icon, h('i', { key: 'l' }, label), o !== undefined && o.hint !== undefined ? h('i', { key: 'h', className: 'kbcl-mhint' }, o.hint) : null])
+        return h('div', { className: 'kbcl-hdr', 'data-kb': 'kybernos-call-header', ref: root }, [
+          h('span', { key: 'sp', className: 'kbcl-split' }, [
+            h('button', { key: 'v', type: 'button', className: 'kbcl-hbtn', 'data-act': 'call-voice', title: kt('Appel vocal : parler à l’assistant de cette session', 'Voice call: talk to this session’s assistant'), 'aria-label': kt('Appel vocal', 'Voice call'), onClick: () => start('voice') }, PHONE(17)),
+            // `data-kb-sheet="skip"`: on a phone this arrow is parked and the « … » sheet lists the two buttons below instead.
+            h('button', { key: 'm', type: 'button', className: 'kbcl-hbtn', 'data-act': 'call-menu', 'data-kb-sheet': 'skip', 'aria-haspopup': 'menu', 'aria-expanded': menuOpen === true, title: kt('Autres choix : appel vidéo, réglages des appels', 'More: video call, call settings'), 'aria-label': kt('Options d’appel', 'Call options'), onClick: () => setMenuOpen(menuOpen !== true) }, Ico('chevron', 14))
+          ]),
+          menuOpen === true
+            ? h('div', { key: 'menu', className: 'kbcl-menu', role: 'menu', 'aria-label': kt('Appel', 'Call') }, [
+              item('call-menu-voice', PHONE(16), kt('Appel vocal', 'Voice call'), () => start('voice')),
+              item('call-menu-video', CAMERA(16), kt('Appel vidéo', 'Video call'), () => start('video'), { disabled: noFace, title: videoTip, hint: noFace ? kt('clé manquante', 'key missing') : undefined }),
+              h('div', { key: 'sep', className: 'kbcl-msep', role: 'separator' }),
+              item('call-menu-setup', Ico('sliders', 16), kt('Réglages des appels…', 'Call settings…'), openSetup, { title: setupTip })
+            ])
+            : null,
+          // The phone's « … » sheet lists the parked header buttons by label and clicks them: these two stay as buttons of their own there (mobile.css parks them), never shown on a wide screen.
+          h('span', { key: 'flat', className: 'kbcl-flat' }, [
+            h('button', { key: 'c', type: 'button', className: 'kbcl-hbtn', 'data-act': 'call-video', disabled: noFace, tabIndex: -1, title: videoTip, 'aria-label': kt('Appel vidéo', 'Video call'), onClick: () => start('video') }, CAMERA(17)),
+            h('button', { key: 's', type: 'button', className: 'kbcl-hbtn', 'data-act': 'call-setup', tabIndex: -1, title: setupTip, 'aria-label': kt('Réglages des appels', 'Call settings'), onClick: openSetup }, Ico('sliders', 17))
+          ])
         ])
       }
 
@@ -694,6 +758,7 @@ body:not([data-ds-dark-theme]) .kbcl-chip.kbcl-warn{color:color-mix(in srgb,${T.
         run: [['path', 'M21 12a9 9 0 1 1-6.219-8.56']],
         expand: [['path', 'M15 3h6v6'], ['path', 'M9 21H3v-6'], ['path', 'M21 3l-7 7'], ['path', 'M3 21l7-7']],
         shrink: [['path', 'M4 14h6v6'], ['path', 'M20 10h-6V4'], ['path', 'M14 10l7-7'], ['path', 'M3 21l7-7']],
+        chevron: [['path', 'm6 9 6 6 6-6']],
         sliders: [['path', 'M4 21v-7'], ['path', 'M4 10V3'], ['path', 'M12 21v-9'], ['path', 'M12 8V3'], ['path', 'M20 21v-5'], ['path', 'M20 12V3'], ['path', 'M1 14h6'], ['path', 'M9 8h6'], ['path', 'M17 16h6']]
       }
       const Ico = (name, size, cls) => h('svg', { width: size || 20, height: size || 20, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true', className: cls || undefined, style: { flex: 'none' } },
@@ -863,7 +928,7 @@ body:not([data-ds-dark-theme]) .kbcl-chip.kbcl-warn{color:color-mix(in srgb,${T.
             const cur = (p.config || {})[f.name] || ''
             const inList = list.some((m) => m.provider + ':' + m.id === cur)
             return h('div', { key: f.name, className: 'kbcl-f' }, [label, list.length === 0
-              ? h('div', { key: 'n', className: 'kbcl-notice', 'data-kb': 'kybernos-call-no-models' }, kt('Aucun modèle de ce genre dans tes fournisseurs. Ajoutes-en un dans Réglages › Fournisseur IA & modèles.', 'No model of this kind in your providers. Add one in Settings › AI Provider & Models.'))
+              ? h('div', { key: 'n', className: 'kbcl-notice', 'data-kb': 'kybernos-call-no-models' }, kt('Aucun modèle de ce genre dans tes fournisseurs. Ajoutes-en un dans Réglages › Fournisseur IA et modèles.', 'No model of this kind in your providers. Add one in Settings › AI provider and models.'))
               : h('select', { key: 's', id: 'kbcl-f-' + f.name, 'data-field': f.name, className: 'kbcl-in', value: inList ? cur : '', disabled: c.busy, onChange: (e) => c.save({ providers: { [p.id]: { [f.name]: e.target.value } } }) }, [h('option', { key: '', value: '' }, kt('Choisir un modèle…', 'Choose a model…'))].concat(list.map((m) => h('option', { key: m.provider + ':' + m.id, value: m.provider + ':' + m.id }, m.id + ' · ' + m.provider))))])
           }
           if (f.kind === 'switch') {
@@ -880,7 +945,7 @@ body:not([data-ds-dark-theme]) .kbcl-chip.kbcl-warn{color:color-mix(in srgb,${T.
           ]),
           f.avatars && keys.LIVEAVATAR_API_KEY && keys.LIVEAVATAR_API_KEY.set ? h('div', { key: 'av', className: 'kbcl-row' }, [
             h('button', { key: 'b', type: 'button', className: 'kbcl-btn', 'data-act': 'list-avatars', disabled: c.busy, onClick: async () => { const r = await post('/avatars', {}); if (r !== null && r.ok === true) setAvatars(r.avatars); else c.say(true, (r && r.error) || kt('liste indisponible', 'list unavailable')) } }, kt('Choisir un visage', 'Choose a face')),
-            avatars !== null ? h('select', { key: 's', className: 'kbcl-in kbcl-grow', 'data-field': 'avatar-pick', value: st.value || '', onChange: (e) => { if (e.target.value !== '') c.saveKeys({ LIVEAVATAR_AVATAR_ID: e.target.value }) } }, [h('option', { key: '', value: '' }, kt('Choisir…', 'Choose…'))].concat(avatars.map((a) => h('option', { key: a.id, value: a.id }, a.name + (a.source === 'yours' ? kt(' · à toi', ' · yours') : '') + (a.type === 'IMAGE' ? kt(' · photo', ' · photo') : ''))))) : null
+            avatars !== null ? h('select', { key: 's', className: 'kbcl-in kbcl-grow', 'data-field': 'avatar-pick', value: st.value || '', onChange: (e) => { if (e.target.value !== '') c.saveKeys({ LIVEAVATAR_AVATAR_ID: e.target.value }) } }, [h('option', { key: '', value: '' }, kt('Choisir…', 'Choose…'))].concat(avatars.map((a) => h('option', { key: a.id, value: a.id }, a.name + (a.source === 'yours' ? kt(' · à toi', ' · yours') : '') + (a.type === 'Image' ? kt(' · photo', ' · photo') : ''))))) : null
           ]) : null])
         }
         const clones = Array.isArray(d.clones) ? d.clones : []
@@ -1168,7 +1233,7 @@ body:not([data-ds-dark-theme]) .kbcl-chip.kbcl-warn{color:color-mix(in srgb,${T.
       return {
         name: 'kybernos-call',
         inject: ['slots'],
-        __test: { getGoto: () => settingsGoto, openCallSettings: openCallSettings, open: open, hangUp: hangUp, toggleMute: toggleMute, toggleSounds: toggleSounds, getState: () => state, setAudioHost: (el) => { audioHost = el }, switchMic: switchMic, CallHeader: CallHeader, SettingsPage: SettingsPage, CSS: CSS, cloneNote: cloneNote, sampleFor: sampleFor, kt: kt },
+        __test: { kabyCallOf, getGoto: () => settingsGoto, openCallSettings: openCallSettings, open: open, hangUp: hangUp, toggleMute: toggleMute, toggleSounds: toggleSounds, getState: () => state, setAudioHost: (el) => { audioHost = el }, switchMic: switchMic, CallHeader: CallHeader, SettingsPage: SettingsPage, CSS: CSS, cloneNote: cloneNote, sampleFor: sampleFor, kt: kt },
         apply (ctx) {
           try {
             const slots = ctx.slots

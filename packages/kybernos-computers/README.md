@@ -11,7 +11,7 @@ an exported **Config** (schemastery: `apiKey` role secret, `apiKeyEnv` credentia
 that makes the host serve the settings namespace `kybernos-computers`. The **client half**
 gives the key two doors:
 
-- **Settings › Cloud computers**: the page the help, the composer menu and the agent's
+- **Settings › Code sandbox (E2B)**: the page the help, the composer menu and the agent's
   error message point to. An « API key » field (stored through the host route
   `/kybernos-computers/key/set`, never read back: only a « configured or not » badge comes
   out), « Save », « Remove the key ».

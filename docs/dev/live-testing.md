@@ -211,6 +211,67 @@ panel beside the list with the SKILL.md exactly as it is on disk, the actions th
 confirmations (and only ever get Cancel), that two Discover cards have their own repository, folder and text, the publisher by
 repository, and the layout at 900 px.
 
+## The Theme page, simple view: `scripts/check-theme-studio-live.mjs`
+
+```bash
+source scripts/sandbox/env.sh && node scripts/check-theme-studio-live.mjs --shots /tmp/shots
+```
+
+Sandbox only (it refuses `:3080`, exit 3): a click on a mode card or a text size goes through `commit`, which writes DSH's own theme preference and
+text size into the profile of the DSH it talks to. It starts from an empty library and no own animation (disk and browser), then clicks the real
+page: the eleven parts of the small window and the thirteen panels (each opens inside the window, Escape and an outside press close it, the keyboard
+opens a part), the mode, a style, an accent, the sidebar tone, a wallpaper, your bubble and the frame of the agent's replies, icons, fonts (the
+long list, the search), the text colour, the three pills under the message box, the thinking animation (the 34 loops, the mix of four, your own words,
+an SVG of your own, a file over 200 KB refused), corners, shadows, glow, contrast, the five vibes (a vibe leaves nothing of the last one), Surprise me,
+Undo and Reset, Save / Export / Import / delete (the disk copy of « My themes » keeps the new keys), the folded Advanced editor, and a narrow page.
+
+No conversation is needed: the two markers DSH puts on a message (`data-chat-flow-kind="user"`, `data-chat-group-part="response"`) and the three
+chips of the composer dock are reproduced by a small probe in the page, painted with the variables DSH's own bubble uses. The real markers were read
+on a real conversation. **Not covered**: the bubble and the frame on a real conversation of the sandbox (it has none).
+
+The Theme page opens on this view; the editor of the nine tabs sits folded under it, so every other script that drives it (`check-theme-live`,
+`check-accent-live`, `check-display-live`, `audit-contrast-live`) calls `openThemeAdvanced(page)` from `live-page.mjs` first.
+
+## Skills learned from experience: `scripts/check-skills-learned-live.mjs`
+
+```bash
+source scripts/sandbox/env.sh && node scripts/check-skills-learned-live.mjs --shots /tmp/shots
+```
+
+Sandbox only (it refuses `:3080`, exit 3; the sandbox serves this checkout, so nothing is swapped, and host code needs `stop` then `start`). It
+starts by clearing the learned-skills files of the sandbox's own home, adds three lessons that share a tag through the real lessons route (to the
+first agent team the sandbox has: a sandbox has no `default` one), and drives the real GUI: the grouping hint on Memory & Lessons, **Make a skill**,
+the dot on the Skills row, the banner and the dashed cards on Skills › Yours, Review, Discard and its Undo, **Accept** (the skill file is read
+back from the sandbox's skills folder), the Learned badge, the journal (and the hash chain of the file on disk), then Undo. It cleans up after
+itself. `docs/dev/learned-skills.md` says what the feature is.
+
+### What Kaby does on its own: `scripts/check-skills-learned-auto-live.mjs`
+
+```bash
+source scripts/sandbox/env.sh && node scripts/check-skills-learned-auto-live.mjs --shots /tmp/shots
+```
+
+Same rules (sandbox only, exit 3 elsewhere; it clears its own files first and cleans up after itself). It sets the level and the line through the
+real settings route, then hands a stable automation to the host the way the automations half does (the host module is called on the sandbox's own
+home, so no automation has to run), and the page must say it: the dot on the Skills row (« 1 skill is waiting for you »), the banner « Kaby changed 1
+skill on its own », the card chip, the journal with « Created by Kaby », its score and Undo, **Keep**, **Settings › Learned skills** (the levels, the
+slider that saves once the person stops, every change in the journal), and the kill switch (two presses, the skills go back, the level returns to
+« Ask me », the chain still verifies). **Not covered**: the card at the end of a chat answer and the agent tools: they need a model turn (the unit
+tests play them). A port held by another worktree's sandbox is skipped by `start.sh` (it says which port it took); `env.sh` follows `sandbox.port`.
+
+### What Kaby notices and tells: `scripts/check-skills-learned-v2-live.mjs`
+
+```bash
+source scripts/sandbox/env.sh && node scripts/check-skills-learned-v2-live.mjs --shots /tmp/shots
+```
+
+Same rules (sandbox only; clears and cleans its own files). It writes three synthetic chats with the same kind of ask on three days (zstd journals the chat index
+reads), has the GUI create a real conversation, appends the person's message to its journal (with no model DSH never journals a turn that fails), and checks the
+host end to end through the real Search everywhere seam: the notice (4th chat, 4 days, three words), what is kept on disk, the answer. Then the weekly card on a blank
+chat (numbers, rows, **Keep**, **Hide**), « ready to share » on the Skills page and the panel's button, and the three new cards of Settings › Learned skills (switch,
+number, Forget). **Not covered live:** the « you ask for this again » card under a finished answer. With no model the turn of that chat never completes, DSH keeps
+calling the session `blank` (measured) and the card speaks only in a chat that has begun: `test-ui.mjs` plays it with the real prop names of the dock entry.
+
 ## A bundle the user's DSH does not list yet: a second instance (`scripts/sandbox/*.sh`)
 
 A **new** bundle, or any **host** code, cannot be tried on the user's `dsh web`: it is not in their profile and a host change
@@ -230,6 +291,10 @@ Host code is not hot-reloaded: `stop` then `start` after editing an `index.js`; 
 page load. DSH's own « Get started » dialog (sign in to a DeepSeek account / add an API key) no longer opens: the core replaces that step
 (`settings.onboarding` › `deepseek-official`), and `live-page.mjs` still presses its Close cross on an engine that shows it. A chat for a git folder only exists once a first message
 was sent (the turn then fails for lack of a key, which is fine): `check-changes-live.mjs` does both by itself.
+
+`start.sh` hands the sandbox DSH the **real pnpm store** (`pnpm_config_store_dir`, read with the real HOME): the profile is a clone, its dependencies are linked from that store, and without it an install made from the GUI
+(the Suite's Plugins page, DSH's own manager) stops with `ERR_PNPM_UNEXPECTED_STORE` because the sandbox HOME names another store (pnpm 11 reads `pnpm_config_store_dir`, not `npm_config_store_dir`). The store is a content-addressed cache; the real profile is not touched.
+`scripts/check-plugins-live.mjs` is the check that installs, switches and removes plugins through it.
 
 ## The new-chat page: `scripts/check-newchat-live.mjs`
 
@@ -385,7 +450,7 @@ KB_HELP_SITE=<kybernos-help>/dist-site node scripts/test-help.mjs   # ...and eac
 source scripts/sandbox/env.sh && node scripts/check-help-live.mjs --shots /tmp/shots
 ```
 
-The live check opens each page that carries the button (Theme, AI Provider & Models, Commands, Workers, About, Ollama Local Models,
+The live check opens each page that carries the button (Theme, AI provider and models, Commands, Workers, About, Ollama local models,
 Memory & Lessons, General, Kybernos Suite, Skills), opens the card, checks it holds the text **read from the file**, that Escape closes
 the card and not the Settings dialog behind it, then French, a module's page in the Suite, and that Atlas, Language and Auto Routing
 (which already had a help) do not get a second button. Two traps: the Settings dialog closes on Escape with a capture listener, so
@@ -419,10 +484,10 @@ source scripts/sandbox/env.sh && node scripts/check-help-intro-live.mjs --shots 
 ```
 
 The live check starts from a throw-away browser, so its empty localStorage **is** the first visit: it checks the animation opens
-on Skills, Connectors and Remote Control, runs (CSS animations counted; the three steps light in turn, sampled on the loop's own
+on Skills, Connectors and Phone and channels, runs (CSS animations counted; the three steps light in turn, sampled on the loop's own
 clock, not the test's), is marked `seen` after 8 s and does not come back, comes back from the card, and closes for good; the
 article links; one button of the same size and shape on sixteen pages (among them the ones whose own CSS restyles every button); reduced motion (no animation at all, the end of the story
-shown); the lines that say what Usage, Tools, Workers and Commands are for; and French on Remote Control.
+shown); the lines that say what Usage, Tools, Workers and Commands are for; and French on Phone and channels.
 Two traps: the first click on a sidebar entry right after the shell loaded can open nothing (the check clicks again until the page's
 own text is there), and the page behind the Settings dialog stays in the document, so a button is counted only where it is the
 topmost element (`elementFromPoint`).
@@ -445,6 +510,21 @@ Both need a sandbox that serves this checkout and refuse `:3080`; neither writes
   answer is « not active yet »; the signed path is played against a local server by
   `packages/kybernos-modeles-locaux/test-modeles-catalogue.mjs`. Trap: the button is in the machine tile, which is drawn only
   once the machine is measured (a few seconds when Ollama is installed but not serving): wait for it.
+
+## The Commands page and editor: `scripts/check-slash-live.mjs`
+
+```bash
+source scripts/sandbox/env.sh && node scripts/check-slash-live.mjs [--shots /tmp/shots]
+```
+
+Sandbox only (it writes commands and sends one message; it refuses `:3080`, exit 3). It creates a slash command with three questions
+(a choice, a long text shown only for one choice), orders them with the arrow and by drag and drop, picks « Send right away », saves
+with Ctrl/Cmd + S and reads back what the host kept; edits, duplicates, deletes with the in-row question and Undo; creates a message
+action; leaves Settings and runs the command from the `/` menu (the conditional question appears, the answers are in the text, Send
+sends it); and empties the sandbox's list at the end. Trap: a drag is `dragstart`, `dragover`, `drop` with a pause between them,
+because the editor keeps the dragged index in React state (events fired in one tick drop on nothing). **Not covered:** running an
+action on a reply, since a sandbox has no assistant reply; do it on a real conversation, read-only: the action inserts its text in the
+composer (delivery « insert ») and sends nothing.
 
 ## The Study model: `scripts/check-study-model-live.mjs`
 
@@ -831,11 +911,11 @@ clicks:
   drawn: no `[data-kb="ws-console"]` after Team settings, Account or Referral. The menu's Account entry asks the host for the console link itself, a refusal is said above
   the footer, and a host that could not open a browser hands the address back for the page to open. The notification bell is hidden behind `SHOW_BELL` in the cloud client
   and the check asserts it is absent.
-- **Remote control** (the phone link's status route, `kybernos-mobile/remote/status`, is answered in the page): the entry sits right after
-  Referral with the number of phones already linked, opens kybernos-mobile's own panel, and is absent when the server does not offer the
-  feature (`configured: false`), the plan does not include it (`entitled: false`), DSH cannot (`available: false`) or the status cannot be
-  read. The footer has no phone button of its own any more: `check-mobile-remote-live.mjs`, `check-mobile-remote-pages.mjs` and
-  `check-display-live.mjs` open the panel through this entry.
+- **Phone and channels** (the phone link's status route, `kybernos-mobile/remote/status`, is answered in the page): the entry sits between Appearance and Settings and is there
+  whatever the server and the plan say (nothing is a dead entry: the window says what is possible). It opens kybernos-mobile's window (phone link on the left, Kaby's messaging
+  apps on the right); with the feature off (`configured: false`), not in the plan (`entitled: false`) or unreadable the left column says so (`mobile-not-offered`,
+  `mobile-paywall`, `mobile-poll-error`). The footer has no phone button of its own: `check-mobile-remote-live.mjs`, `check-mobile-remote-pages.mjs` and
+  `check-display-live.mjs` open the window through this entry. `check-phone-channels-live.mjs` plays the screen itself (see below).
 - **Upgrade and « See plans »** (every answer is in the page; nothing is bought and no server is called): connected on Plus the menu has « Upgrade »
   right after the plan and before Team settings, with the arrow that leaves DSH; on Free there is the pill and no entry (it opens the dialog), on Pro (the
   top level) and on a paid Team plan there is none, and when the catalogue cannot be read the entry stays. Pressing it asks the host for the console link on the
@@ -850,7 +930,7 @@ clicks:
   port the REAL host answers the same way (the check does not need it: `POST /kybernos-cloud/console/link` and `/kybernos-mobile/remote/pair` both come back with the server).
 - **DSH's Settings** (connected scene): the navigation lists none of the five account entries that used to be ours (Account, Referral,
   Account security, Account data, Support & legal; matched by the React key each cell is rendered with, and by title for the four that have
-  no namesake in DSH) while General, Appearance and Remote Control are still listed and still open. The account's pages are the footer
+  no namesake in DSH) while General, Theme and Phone and channels are still listed and still open. The account's pages are the footer
   menu's embedded ones: nothing replaces the entries in Settings.
 - **The « Kybernos » section of Settings** (kybernos-cloud's `kybernos-local`: what stays on this computer): one group header « Kybernos »
   (no « Account » header any more) holding Servers (kept first), the section, then the Suite. Signed out the section is there, the two
@@ -1098,8 +1178,8 @@ a summary line (`… 0 assertions run, SKIPPED`). The CI keeps the output of its
 list, so a green run states what it did not cover. `scripts/test-live-checks.mjs` fails on a test that prints « skipped » without it.
 `check-display-live.mjs` lists every view it could not measure the same way, and `--strict` fails on them. At 390 px the profile card lives in
 the closed drawer: the check opens the drawer with the card on screen (`drawer(CARD)`, reloading and retrying when a late redraw closed it) and
-reports a view it still cannot reach; the phone panel's paywall is measured in Settings › Remote Control, because the profile menu offers
-Remote control only to a plan that includes it.
+reports a view it still cannot reach; the window of « Phone and channels » is measured in each state the phone link can be in (the paywall included), and the same
+screen as a page in Settings › Phone and channels.
 
 `scripts/check-opencode-probe-live.mjs` asks the REAL OpenCode CLI of the machine whether it is signed in. It reports a fact about the
 machine and is not a gate: the logic of that probe is tested hermetically (a stand-in CLI in both states) by
@@ -1115,7 +1195,7 @@ node scripts/check-display-live.mjs --out <dir> [--sizes desktop,narrow] [--sche
 A sweep, not a gate (exit 0; `--strict` makes any finding exit 1; 3 when it could not run; it **refuses `:3080`**). It walks the
 home page and its menus, the sidebar pages and their tabs, every Settings section and its tabs and help card, the right pane's panels (`--only panels`:
 Slides empty, with its demo deck and its text editor open, Bricks and Modeleur empty), the account card
-(menu, switcher, update reminder, the phone panel in each of its five states, Settings › Remote Control) and the first-run wizard, with
+(menu, switcher, update reminder, the Phone and channels window in each of its five states, Settings › Phone and channels) and the first-run wizard, with
 real clicks, on a 1400 px window and at 390 px (the width `kybernos-mobile` lays out for), in DSH's dark theme, its light theme
 and the shipped *Neutral violet*. The account, the phone link and the wizard are answered **inside the page** (CDP Fetch on
 `/kybernos-cloud/status`, `/kybernos-mobile/remote/*`, `/kybernos/onboarding`): no server is called, nothing is written.
@@ -1214,3 +1294,20 @@ and not when accepting (so « a full team » is built by lowering the seats afte
 (and a row at the bottom of the list sits under the account card unless it is scrolled into view); DSH re-reads the account's teams every five minutes, so a team added on the server is
 shown at once only after `POST /kybernos-cloud/refresh`; the footer meter re-reads the quota every two minutes (measured: 120 s after a turn), so a headless page, which never gets the
 « window comes back into view » signal, is nudged with the page's own `kybernos-cloud:quota-read` event; chat titles are the stand-in's reply, so each run sets a unique reply text to find its chat in the sidebar.
+
+## Phone and channels (`scripts/check-phone-channels-live.mjs`)
+
+The screen that joins the remote control (kybernos-mobile: the phone link, with its on/off switch) and Kaby (kybernos-kyber: its messaging apps and its computer), shown as a window from the account menu and as Settings › Phone and channels.
+Run it against the sandbox, never the real DSH (it exits 3 on `127.0.0.1:3080`):
+
+```bash
+scripts/sandbox/setup.sh && scripts/sandbox/start.sh
+source scripts/sandbox/env.sh && node scripts/check-phone-channels-live.mjs [--shots <dir>]
+```
+
+The page's `fetch` is replaced for `/kybernos-cloud/*` and `/kybernos-mobile/remote/*` before any script runs (the account, what the phone link and Telegram say, the pairing
+gestures); nothing is paired and nothing leaves the machine. It plays the entry (between Appearance and Settings), both blocks in every state (nothing linked = ready to pair, the switch off and on, a code, a phone
+asking for the check, a code that ran out, a phone connected, a plan without the link, a server without it; Telegram not linked, a code, scanned, linked, no bot; WhatsApp not
+available on this server, WeChat and iMessage soon), light, dark and a 390 px phone (the account menu is in the drawer there; the window opens itself in a root of its own on `<body>`, also with the drawer closed, which is how Kaby's strip opens it), Escape / the
+dim / the cross, the code withdrawn when the window closes, and the Settings page. Traps met writing it: the window theme must be set explicitly (the sandbox starts dark), a window
+drawn inside the drawer would sit 354 px off-screen (it draws itself in a root of its own on `<body>`), and the sandbox's « Get started » dialog covers the page after every load (Escape).

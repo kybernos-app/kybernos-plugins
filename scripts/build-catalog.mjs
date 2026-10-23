@@ -3,12 +3,13 @@
 //   node scripts/build-catalog.mjs --check   # exit 1 if the file is stale (CI / guard)
 //
 // The catalogue is DERIVED, never hand-edited: which modules exist comes from
-// scripts/lifecycle-packages.json, socle/tier/default-state from docs/beta/satellites.json,
-// the version from each package.json. Only the family and the one-line promise (fr/en)
-// are written here, once, because nothing else knows them.
+// scripts/lifecycle-packages.json, socle/tier/default-state from docs/beta/satellites.json, and the
+// rest (version, title, glyph, family, one-line promise in fr/en) from each module's plugin.json
+// (docs/dev/plugin-contract.md). The featured cards (VEDETTES) are still written here.
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { manifestErrors } from './plugin-manifest.mjs'
 
 const ICI = dirname(fileURLToPath(import.meta.url))
 const REPO = resolve(ICI, '..')
@@ -23,71 +24,6 @@ export const FAMILLES = [
   { id: 'connect', fr: 'Connexions', en: 'Connections', couleur: '#d6458a' },
   { id: 'cloud', fr: 'Cloud', en: 'Cloud', couleur: '#3b8be0' }
 ]
-
-// dir → [family, promise fr, promise en]
-const FICHE = {
-  'kybernos-plugin': ['base', 'Le cœur : Agent Teams, ressources, réglages et préréglages.', 'The core: Agent Teams, resources, settings and presets.'],
-  'kybernos-hub': ['base', 'Ce panneau, la garde de démarrage et le mode sans échec.', 'This panel, the boot guard and safe mode.'],
-  'kybernos-theme': ['base', 'Thème, palettes, fond, police et animation de réflexion.', 'Theme, palettes, background, font and thinking animation.'],
-  'kybernos-language': ['base', 'Langue de l’interface : toutes les langues ISO, traduction de Kybernos et de DSH, sens de lecture.', 'Interface language: every ISO language, translation of Kybernos and DSH, reading direction.'],
-  'kybernos-sessions': ['base', 'Sessions qui se nomment et se classent seules.', 'Sessions that name and sort themselves.'],
-  'kybernos-maintenance': ['base', 'Page À propos : version, compatibilité avec DSH, journal des mises à jour.', 'About page: version, DSH compatibility, update log.'],
-  'kybernos-skills': ['base', 'Compétences locales, créées par chat.', 'Local skills, created by chat.'],
-  'kybernos-slash': ['base', 'Commandes / et actions de message, créées par chat.', 'Slash commands and message actions, created by chat.'],
-  'kybernos-relance': ['base', 'Relancer DSH sans couper l’agent qui travaille.', 'Restart DSH without cutting the working agent.'],
-  'kybernos-models': ['models', 'Catalogue de modèles : recherche, comparaison, prix.', 'Model catalogue: search, compare, prices.'],
-  'kybernos-modeles-locaux': ['models', 'Modèles locaux détectés et installés depuis les Réglages.', 'Local models detected and installed from Settings.'],
-  'kybernos-auto': ['models', 'Routage Auto : choisit un modèle de ta liste selon la classe de la demande.', 'Auto routing: picks a model from your list by request class.'],
-  'kybernos-free-llms': ['models', 'Modèles gratuits, sans compte ni clé API.', 'Free models, no account or API key.'],
-  'kybernos-flow': ['teams', 'Reprise des tours coupés et file d’attente réordonnable.', 'Resume cut turns and a reorderable queue.'],
-  'kybernos-call': ['base', 'Parle à ton assistant ou à un membre de l’équipe, depuis n’importe quelle session : il répond comme dans le chat, dans ta langue, avec sa voix.', 'Talk to your assistant or a team member from any session: it answers as in the chat, in your language, in its own voice.'],
-  'kybernos-usage': ['base', 'Ce que ton plan a consommé, et ce que tes propres clés coûtent : une pastille sous la saisie et une page de détail.', 'What your plan has used, and what your own keys cost: a chip under the message box and a detail page.'],
-  'kybernos-multi-device': ['base', 'Des workspaces avec ou sans dossier : Create propose un dossier privé, et Détails montre où le workspace travaille.', 'Workspaces with or without a folder: Create offers a private folder, and Details shows where the workspace works.'],
-  'kybernos-dashboards': ['teams', 'Des dashboards construits par chat, pour suivre tes Agent Teams, automations, usage et livrables : cartes, graphiques animés, calendrier, kanban, notes.', 'Dashboards built by chat to follow your Agent Teams, automations, usage and deliverables: cards, animated charts, calendar, kanban, notes.'],
-  'kybernos-summary': ['base', 'Un onglet Résumé dans le panneau de droite du chat : agents, progression, compétences et outils utilisés, fichiers écrits.', 'A Summary tab in the chat\'s right-hand panel: agents, progress, skills and tools used, files written.'],
-  'kybernos-kyber': ['base', 'Kaby, ton assistant : une vraie conversation DSH avec la mémoire de ton compte, Telegram connecté d\'un geste par QR code ou lien, et l\'ordinateur cloud sur lequel il travaille.', 'Kaby, your assistant: a real DSH chat with your account\'s memory, Telegram connected in one move by QR code or link, and the cloud computer it works on.'],
-  'kybernos-changes': ['base', 'Où en est ton travail (modifié, sauvegardé, sur GitHub, dans le projet) et quoi faire ensuite.', 'Where your work stands (changed, saved, on GitHub, in the project) and what to do next.'],
-  'kybernos-atlas': ['teams', 'La carte de ton espace : projets, Agent Teams, skills, mémoire, et ce qui est cassé.', 'A map of your workspace: projects, agent teams, skills, memory, and what is broken.'],
-  'kybernos-slides': ['create', 'Decks écrits en direct dans la barre latérale.', 'Decks written live in the sidebar.'],
-  'kybernos-bricks': ['create', 'Maquettes en briques, animées brique par brique.', 'Brick mockups, animated brick by brick.'],
-  'kybernos-modeleur': ['create', 'Modèles 2D et 3D pilotés par le chat.', '2D and 3D models driven by the chat.'],
-  'kybernos-motion': ['create', 'Des animations (titres, graphiques, 3D, personnages, son) créées par le chat et exportées en vidéo.', 'Animations (titles, charts, 3D, characters, sound) made by the chat and exported as video.'],
-  'kybernos-miniapps': ['create', '« Install as app » : un panneau devient une app native.', '"Install as app": a panel becomes a native app.'],
-  'kybernos-refs': ['create', 'Les liens des messages deviennent des pastilles de référence.', 'Message links become reference chips.'],
-  'kybernos-servers': ['cloud', 'Ajoute le serveur de ton entreprise avec son adresse, et passe de l’un à l’autre.', 'Add your company’s server with its address, and switch between servers.'],
-  'kybernos-search': ['base', 'Une recherche partout : le contenu des chats, les skills, les mémoires, les leçons, les créations.', 'Search everywhere: the content of your chats, skills, memories, lessons and creations.'],
-  'kybernos-mobile': ['base', 'DSH sur ton téléphone : l’écran s’adapte, et un code QR relie le téléphone à cet ordinateur, chiffré de bout en bout.', 'DSH on your phone: the screen adapts, and a QR code links the phone to this computer, end-to-end encrypted.'],
-  'kybernos-websearch': ['connect', 'La recherche web des agents, avec ou sans clé : des moteurs gratuits tout de suite, des moteurs à clé quand tu en ajoutes une, et le suivant prend le relais si l’un échoue.', 'Web search for the agents, with or without a key: free engines right away, keyed engines when you add one, and the next one takes over when one fails.'],
-  'dsh-mermaid': ['create', 'Diagrammes Mermaid rendus en SVG dans le chat.', 'Mermaid diagrams rendered as SVG in the chat.'],
-  'dsh-db-viewer': ['data', 'Visionneuse SQLite en lecture seule, avec graphiques.', 'Read-only SQLite viewer, with charts.'],
-  'dsh-media-player': ['create', 'Lecteur audio et vidéo dans la barre latérale.', 'Audio and video player in the sidebar.'],
-  'kybernos-terminal': ['create', 'Les blocs de commandes du chat en fenêtres de terminal, avec un bouton pour les lancer.', 'Command blocks in the chat as terminal windows, with a button to run them.'],
-  'kybernos-composio': ['connect', 'Des centaines de connecteurs en cartes prêtes pour l’agent.', 'Hundreds of connectors as ready-made cards for the agent.'],
-  'kybernos-computers': ['connect', 'Ordinateurs cloud pour les agents (ta clé E2B).', 'Cloud computers for agents (your E2B key).'],
-  'dsh-subagent-maison': ['connect', 'Les connecteurs de workers (OpenCode, Gemini, Qwen, Hermes) que la page Workers allume.', 'The Workers connectors (OpenCode, Gemini, Qwen, Hermes) that the Workers page turns on.'],
-  'kybernos-workers': ['connect', 'Installe, vérifie et expose à l’agent principal Claude Code, Codex, Gemini, OpenCode, Qwen, Hermes et ZCode.', 'Installs, checks and exposes to the main agent Claude Code, Codex, Gemini, OpenCode, Qwen, Hermes and ZCode.'],
-  'kybernos-cloud': ['cloud', 'Compte Kybernos, modèles du proxy, mémoire du compte.', 'Kybernos account, proxy models, account memory.'],
-  'kybernos-memory': ['cloud', 'La page Memory & Lessons : mémoire du compte et leçons par Agent Team, filtres, interrupteurs.', 'The Memory & Lessons page: account memory and lessons per agent team, filters, on/off switches.']
-}
-
-// dir → human title (the id stays visible under it) and the glyph the client draws for it.
-const TITRES = {
-  'kybernos-plugin': 'Kybernos Core', 'kybernos-hub': 'Suite', 'kybernos-theme': 'Theme', 'kybernos-language': 'Language',
-  'kybernos-sessions': 'Sessions', 'kybernos-maintenance': 'About', 'kybernos-skills': 'Skills', 'kybernos-slash': 'Commands',
-  'kybernos-relance': 'Relaunch', 'kybernos-models': 'AI Provider & Models', 'kybernos-modeles-locaux': 'Ollama Local Models', 'kybernos-auto': 'Auto Routing',
-  'kybernos-flow': 'Flow', 'kybernos-free-llms': 'Free LLMs', 'kybernos-slides': 'Slides', 'kybernos-bricks': 'Bricks', 'kybernos-modeleur': '3D modeller',
-  'kybernos-motion': 'Motion', 'kybernos-miniapps': 'Mini-apps', 'kybernos-refs': 'Reference chips', 'kybernos-search': 'Search everywhere', 'kybernos-servers': 'Servers', 'kybernos-mobile': 'Remote Control', 'kybernos-websearch': 'Web Search', 'dsh-mermaid': 'Mermaid', 'dsh-db-viewer': 'Databases',
-  'dsh-media-player': 'Media player', 'kybernos-composio': 'Connectors', 'kybernos-computers': 'Cloud computers', 'kybernos-workers': 'Workers', 'dsh-subagent-maison': 'Workers connectors',
-  'kybernos-cloud': 'Kybernos Cloud', 'kybernos-memory': 'Memory & Lessons', 'kybernos-atlas': 'Atlas', 'kybernos-changes': 'Changes', 'kybernos-usage': 'Usage', 'kybernos-multi-device': 'Workspaces & devices', 'kybernos-call': 'Calls', 'kybernos-terminal': 'Terminal', 'kybernos-dashboards': 'Dashboards', 'kybernos-summary': 'Summary', 'kybernos-kyber': 'Kaby'
-}
-const GLYPHES = {
-  'kybernos-plugin': 'cube', 'kybernos-hub': 'suite', 'kybernos-theme': 'palette', 'kybernos-language': 'lang', 'kybernos-sessions': 'chat',
-  'kybernos-maintenance': 'info', 'kybernos-skills': 'bolt', 'kybernos-slash': 'slash', 'kybernos-relance': 'refresh', 'kybernos-models': 'cpu',
-  'kybernos-modeles-locaux': 'home', 'kybernos-auto': 'route', 'kybernos-flow': 'flow', 'kybernos-free-llms': 'doc', 'kybernos-slides': 'slides', 'kybernos-bricks': 'bricks',
-  'kybernos-modeleur': 'box3d', 'kybernos-motion': 'motion', 'kybernos-miniapps': 'app', 'kybernos-refs': 'link', 'kybernos-search': 'lens', 'kybernos-servers': 'server', 'kybernos-mobile': 'mobile', 'kybernos-websearch': 'search', 'dsh-mermaid': 'flowc', 'dsh-db-viewer': 'db',
-  'dsh-media-player': 'play', 'kybernos-composio': 'plug', 'kybernos-computers': 'pc', 'kybernos-workers': 'wrench', 'dsh-subagent-maison': 'agent', 'kybernos-cloud': 'cloud',
-  'kybernos-memory': 'brain', 'kybernos-atlas': 'map', 'kybernos-changes': 'branch', 'kybernos-usage': 'gauge', 'kybernos-multi-device': 'devices', 'kybernos-call': 'phone', 'kybernos-terminal': 'term', 'kybernos-dashboards': 'dash', 'kybernos-summary': 'summary', 'kybernos-kyber': 'kyber'
-}
 
 // Featured = the most advanced modules; `vedette` is the rank in this list. Each one carries a tagline, a description and the points of what it does, written
 // from the module's own README (nothing here is a promise the module does not keep).
@@ -182,8 +118,8 @@ const AIDE_LIMITES = { what: 200, step: 140, good: 220, where: 120, title: 40 }
 // lower-case words; « {lang} » as its first part stands for the language of the reader (en, fr, ar, zh-cn), the way the site
 // addresses its articles (https://help.kybernos.app/<lang>/<category>/<article>/); a bare https://help.kybernos.app/<slug> passes too.
 const AIDE_ADRESSE = /^https:\/\/help\.kybernos\.app\/(\{lang\}\/)?[a-z0-9]+(-[a-z0-9]+)*(\/[a-z0-9]+(-[a-z0-9]+)*){0,3}\/?$/
-// Words a person who is not a developer does not know: the help is for them.
-const JARGON = /\b(slot|bundle|endpoint|DOM|settings\.section|webServer)\b/i
+// Words a person who is not a developer does not know: the help is for them. A file name or a folder of the project (« .miniapp.json », « artifacts/ ») is one too.
+const JARGON = /\b(slot|bundle|endpoint|DOM|settings\.section|webServer)\b|\.(?:json|ya?ml|mjs|js|toml)\b|\bartifacts\//i
 
 /** Pure: one help card ({ what, steps, where, good?, url? }, plus a title for a page card), checked. */
 function validerFiche (dir, brut, champ, { titre }) {
@@ -240,40 +176,36 @@ export function validerAide (dir, brut) {
   return out
 }
 
-/** Pure: assemble the catalogue from the sources of truth. `aides` = { <dir>: help.json parsed }. */
-export function construireCatalogue ({ lifecycle, satellites, versions, aides }) {
+/** Pure: assemble the catalogue from the sources of truth. `manifests` = { <dir>: plugin.json parsed }, `aides` = { <dir>: help.json parsed }. */
+export function construireCatalogue ({ lifecycle, satellites, manifests, aides }) {
   const parNom = new Map()
   for (const b of satellites?.socle?.bundles ?? []) parNom.set(b.nom, { ...b, socle: true })
   for (const b of satellites?.satellites?.bundles ?? []) parNom.set(b.nom, { ...b, socle: false })
   const modules = (lifecycle?.packages ?? []).map((p) => {
-    const f = FICHE[p.dir]
-    if (f === undefined) throw new Error('catalog: no family/promise for "' + p.dir + '" — add it to FICHE in scripts/build-catalog.mjs')
+    const mf = manifests?.[p.dir]
+    if (mf === undefined) throw new Error('catalog: "' + p.dir + '" has no plugin.json — write packages/' + p.dir + '/plugin.json (docs/dev/plugin-contract.md)')
     const s = parNom.get(p.nom)
     if (s === undefined) throw new Error('catalog: "' + p.nom + '" is in lifecycle-packages.json but not in docs/beta/satellites.json')
-    const version = versions?.[p.dir]
-    if (typeof version !== 'string') throw new Error('catalog: no version for "' + p.dir + '"')
     const v = VEDETTES[p.dir]
     if (aides !== undefined && aides[p.dir] === undefined) throw new Error('catalog: "' + p.dir + '" has no help.json — write packages/' + p.dir + '/help.json (see validerAide in scripts/build-catalog.mjs for the shape)')
     return {
       id: p.dir,
       nom: p.nom,
-      titre: TITRES[p.dir],
-      glyphe: GLYPHES[p.dir],
-      famille: f[0],
+      titre: mf.name.en,
+      glyphe: mf.icon,
+      famille: mf.family,
       palier: 'core',
-      version,
+      version: mf.version,
       socle: s.socle === true,
       defaut: s.defaut === 'actif' ? 'actif' : null,
       poids_ko: typeof s.poids_ko === 'number' ? s.poids_ko : null,
-      promesse: { fr: f[1], en: f[2] },
+      promesse: { fr: mf.description.fr, en: mf.description.en },
       ...(aides === undefined ? {} : { aide: validerAide(p.dir, aides[p.dir]) }),
       ...(v === undefined ? {} : { vedette: Object.keys(VEDETTES).indexOf(p.dir) + 1, accroche: v.accroche, description: v.description, points: v.points })
     }
   })
   const dirs = new Set((lifecycle?.packages ?? []).map((p) => p.dir))
-  for (const d of dirs) if (typeof TITRES[d] !== 'string' || typeof GLYPHES[d] !== 'string') throw new Error('catalog: "' + d + '" has no title or glyph — add it to TITRES and GLYPHES in scripts/build-catalog.mjs')
   for (const d of Object.keys(VEDETTES)) if (!dirs.has(d)) throw new Error('catalog: VEDETTES lists "' + d + '" which is not in lifecycle-packages.json')
-  for (const d of Object.keys(FICHE)) if (!dirs.has(d)) throw new Error('catalog: FICHE lists "' + d + '" which is not in lifecycle-packages.json')
   return { schema: 1, familles: FAMILLES, modules }
 }
 
@@ -281,11 +213,17 @@ const lire = (...chemin) => JSON.parse(readFileSync(join(REPO, ...chemin), 'utf8
 
 export function catalogueDuDepot () {
   const lifecycle = lire('scripts', 'lifecycle-packages.json')
-  const versions = {}
-  for (const p of lifecycle.packages) versions[p.dir] = lire('packages', p.dir, 'package.json').version
+  const manifests = {}
+  for (const p of lifecycle.packages) {
+    const fichier = join(REPO, 'packages', p.dir, 'plugin.json')
+    if (!existsSync(fichier)) throw new Error('catalog: "' + p.dir + '" has no plugin.json — write packages/' + p.dir + '/plugin.json (docs/dev/plugin-contract.md)')
+    manifests[p.dir] = lire('packages', p.dir, 'plugin.json')
+    const fautes = manifestErrors(manifests[p.dir], { firstParty: true, dir: p.dir, packageJson: lire('packages', p.dir, 'package.json'), suiteZone: lire('dsh-compat.json').dsh, fileExists: (rel) => existsSync(join(REPO, 'packages', p.dir, rel)) })
+    if (fautes.length > 0) throw new Error('catalog: packages/' + p.dir + '/plugin.json is not valid — ' + fautes.join('; '))
+  }
   const aides = {}
   for (const p of lifecycle.packages) if (existsSync(join(REPO, 'packages', p.dir, 'help.json'))) aides[p.dir] = lire('packages', p.dir, 'help.json')
-  return construireCatalogue({ lifecycle, satellites: lire('docs', 'beta', 'satellites.json'), versions, aides })
+  return construireCatalogue({ lifecycle, satellites: lire('docs', 'beta', 'satellites.json'), manifests, aides })
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

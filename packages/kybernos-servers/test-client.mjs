@@ -82,7 +82,7 @@ const load = (contact) => {
   return def.factory((name) => { if (name === 'react') return React; throw new Error('unexpected require ' + name) })
 }
 const mod = load()
-const { View, AddDialog, SigninDialog, Confirm, say, ERR, NEW_ADD, addressesOf } = mod.__test
+const { View, AddDialog, SigninDialog, Confirm, say, doneMessage, ERR, NEW_ADD, addressesOf } = mod.__test
 const lang = (l) => { globalThis.window.__KB_LANG_RESOLVE__ = () => l }
 const noop = () => {}
 const act = new Proxy({}, { get: () => noop })
@@ -163,13 +163,24 @@ console.log('the sign-in, switch and remove dialogs')
 {
   const code = renderToStaticMarkup(React.createElement(SigninDialog, { signin: { id: 'acme-corp', code: 'KB-4829', url: 'https://kb.acme.corp/cloud/cli/activate?code=KB-4829' }, server: ACME, act }))
   check('the code, the link to the server\'s own activation page (opens a new tab safely), the waiting line and « Later »', code.includes('KB-4829') && /href="https:\/\/kb\.acme\.corp\/cloud\/cli\/activate/.test(code) && code.includes('rel="noopener noreferrer"') && code.includes('Waiting for your approval') && code.includes('data-kb="servers-signin-later"') && !code.includes('servers-newcode'))
+  check('opening the activation page also copies the code (the page asks for it typed): the link copies it on click, and the note says it is copied', read('client.js').includes("onClick: () => { try { navigator.clipboard.writeText(String(signin.code))") && code.includes('it is copied, paste it there'))
   const expired = renderToStaticMarkup(React.createElement(SigninDialog, { signin: { id: 'acme-corp', code: 'KB-4829', url: null, expired: true, error: say('code_expired') }, server: ACME, act }))
   check('an expired code says so, never mentions a licence, and offers a new one', expired.includes('The code expired. If you cannot create an account on this server, ask its administrator.') && expired.includes('data-kb="servers-newcode"') && !/licen/i.test(expired))
   const sw = renderToStaticMarkup(React.createElement(Confirm, { confirm: { kind: 'switch', server: ACME, busy: false }, act }))
   check('switch: what changes and what stays, before it happens; a server not signed in says you will sign in next', sw.includes('Switch to Acme Corp?') && sw.includes('Model list') && sw.includes('Personal memory') && sw.includes('you will sign in next'))
   const rm = renderToStaticMarkup(React.createElement(Confirm, { confirm: { kind: 'remove', server: Object.assign({}, ACME, { active: true }), busy: false, error: say('registry_unreadable') }, act }))
-  check('remove: the sign-in is forgotten on this device, nothing deleted on the server, you go back to Kybernos Cloud; an error shows inside', rm.includes('forgotten on this device') && rm.includes('Nothing is deleted on the server') && rm.includes('go back to Kybernos Cloud') && rm.includes('The servers file is unreadable'))
+  check('remove: the sign-in is forgotten on this device, nothing deleted on the server, you go back to Kybernos Cloud; an error shows inside', rm.includes('forgotten on this device') && rm.includes('Nothing is deleted on the server') && rm.includes('switches back to Kybernos Cloud') && rm.includes('The servers file is unreadable'))
 }
+
+// L5-05: removing the ACTIVE server switches back to Kybernos Cloud, so the account and the models change: the message says so and asks for the reload,
+// as « Switch to this server » does. Removing a server that is not active changes nothing else and says only that it was removed.
+check('removing the active server says it was removed, that you are back on Kybernos Cloud, and to reload DSH', doneMessage('remove', Object.assign({}, ACME, { active: true })) === 'Acme Corp was removed. You are back on Kybernos Cloud. Reload DSH to refresh the model list.', doneMessage('remove', Object.assign({}, ACME, { active: true })))
+check('removing a server that is not active says only that it was removed', doneMessage('remove', Object.assign({}, ACME, { active: false })) === 'Acme Corp was removed.', doneMessage('remove', ACME))
+check('switching still asks for the reload', doneMessage('switch', ACME) === 'You are on Acme Corp. Reload DSH to refresh the model list.', doneMessage('switch', ACME))
+
+// Light theme: the engine's success green is 2.1:1 on its own tint and the Enterprise blue 4.2:1 on white (measured, scripts/audit-contrast-live.mjs); both texts get a darker ink in the
+// light theme only (6.3:1 and 5.2:1; a token with the ink as its fallback, so a theme may set it), and the dark theme keeps the engine's colours.
+check('light theme: the Active tag and the Enterprise kicker carry a darker ink, the dark theme is left to the engine', /body:not\(\[data-ds-dark-theme\]\) \.kbsv-tag\[data-tone="ok"\]\{color:var\(--kybernos-ok-ink,#166534\)\}/.test(mod.__test.CSS) && /body:not\(\[data-ds-dark-theme\]\) \.kbsv-ent-kick\{color:var\(--kybernos-brand-ink,#3566d9\)\}/.test(mod.__test.CSS))
 
 console.log('SRV-02 every host error is a sentence, in both languages, never a raw code')
 {

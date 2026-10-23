@@ -420,6 +420,19 @@ ok('webUrl: a non-string is refused', webUrl(undefined) === null && webUrl(null)
   ok('a list: the rows that are rows, the limit, the count and the stale flag', listed.offered === true && listed.connected === true && listed.connections.length === 2 && listed.limit === 3 && listed.count === 2 && listed.stale === true && listed.error === null)
   const bare = view(200, { ok: true, offered: true, connected: true, connections: [row()] })
   ok('without a limit or a count: no limit, and the count is what was read', bare.limit === null && bare.count === 1 && bare.stale === false)
+  // V1-13 (video review): « Connected · 0 of 3 » next to four connections — the answer carried count 0 AND four rows.
+  const menteur = view(200, { ok: true, offered: true, connected: true, limit: 3, count: 0, connections: [row(), row({ id: 'c2' }), row({ id: 'c3' }), row({ id: 'c4' })] })
+  ok('V1-13: a server count BELOW the list it just sent is the list that wins (0 + 4 rows → 4)', menteur.count === 4, menteur.count)
+  const pagine = view(200, { ok: true, offered: true, connected: true, limit: 9, count: 7, connections: [row()] })
+  ok('V1-13: a count ABOVE the list (a server that pages) is kept as is', pagine.count === 7, pagine.count)
+  // V1-12 (video review): card and row descriptions are clamped by CSS (2 lines / ellipsis) — without a title the rest was
+  // unreachable. Read the file the way this harness already does elsewhere (`await import('node:fs')`).
+  {
+    const { readFileSync } = await import('node:fs')
+    const SRC12 = readFileSync(new URL('./client.js', import.meta.url), 'utf8')
+    ok('V1-12: the connector descriptions carry their full text in a title (card and row)',
+      /className: 'kb7-desc', title: a\.d \|\| undefined/.test(SRC12) && /className: 'kb7-rowdesc', title: a\.d \|\| undefined/.test(SRC12))
+  }
   // `entitled`: whether the plan includes connecting apps. Only a boolean counts; an older server says nothing and a limit is then only a limit.
   ok('entitled: false and true are kept, anything else (or nothing) is null', [false, true].every((b) => view(200, { ok: true, offered: true, connected: true, entitled: b, limit: 0, connections: [] }).entitled === b) && [undefined, null, 'false', 0, 1].every((x) => view(200, { ok: true, offered: true, connected: true, entitled: x, limit: 0, connections: [] }).entitled === null))
   ok('web: the address the cloud half gave, or null (an empty or non-text one is not an address)', view(200, { ok: true, offered: true, connected: true, web: 'https://kb.example', connections: [] }).web === 'https://kb.example' && [undefined, null, '', 5].every((x) => view(200, { ok: true, offered: true, connected: true, web: x, connections: [] }).web === null))
@@ -515,6 +528,20 @@ ok('webUrl: a non-string is refused', webUrl(undefined) === null && webUrl(null)
   ok('the full app catalogue is read from the server this machine is signed in to, through the cloud half: no address of a deployed service is written in the page', /kbCpCloud\('\/connections\/apps'\)/.test(src.slice(src.indexOf('const loadAll'), src.indexOf('const connect = async'))) && !/railway\.app|fetch\(\s*['"`]https?:/.test(src.slice(src.indexOf('const loadAll'), src.indexOf('const connect = async'))))
   ok('the address the person is sent to goes through the one URL rule', /kbCpWebUrl\(res\.redirectUrl\)/.test(kcSrc) && /rel: 'noopener noreferrer'/.test(kcSrc))
   ok('an add that failed in a way that may have gone through offers to check the list, and never retries by itself', /checkFirst === true/.test(kcSrc) && !/setTimeout\([^)]*submit/.test(kcSrc))
+}
+
+// ── The apps the automations ask for: what the menu row and the page put first ───────────────────────────────────────────
+{
+  const { needView } = plugin.composio
+  const by = { gmail: ['New enquiry summary'], googlecalendar: ['Deadline reminders'] }
+  const none = needView({}, null, [])
+  ok('nothing is asked: nothing to connect', none.need === 0 && none.slugs.length === 0)
+  const all = needView(by, null, [])
+  ok('connections not read yet: every asked app counts as to connect', all.need === 2 && all.slugs.join() === 'gmail,googlecalendar' && all.by === by)
+  const some = needView(by, new Set(['gmail']), [])
+  ok('a connected app is not to connect any more', some.need === 1 && some.slugs.join() === 'googlecalendar')
+  const quiet = needView(by, new Set(), ['googlecalendar'])
+  ok('« Not now » silences the pulse and the number but the app stays listed', quiet.need === 1 && quiet.slugs.join() === 'gmail,googlecalendar')
 }
 
 // ── AGENTS.md rule 2: apply() cannot stop DSH from starting ─────────────────

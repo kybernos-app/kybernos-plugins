@@ -64,6 +64,8 @@ const GUARDED = [
   ['POST', '/kybernos-models/annotations/save', { key: 'groq/llama-3.3-70b', fields: { family: 'guard' } }],
   ['POST', '/kybernos-models/journal', { niveau: 'annotation', champ: 'x' }],
   ['POST', '/kybernos-models/key/check', { provider: 'openai', key: 'sk-test-0123456789abcdef' }],
+  ['POST', '/kybernos-models/models/live', { route: 'opencode-go' }],
+  ['POST', '/kybernos-models/models/probe', { route: 'opencode-go', model: 'm-1' }],
   ['POST', '/kybernos-models/providers/park', { slug: 'acme', profile: PROFILE, models: ['a-1'] }],
   ['POST', '/kybernos-models/providers/take', { slug: 'acme' }],
   ['POST', '/kybernos-models/providers/forget', { slug: 'acme' }],

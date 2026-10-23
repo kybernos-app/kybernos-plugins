@@ -27,6 +27,7 @@
 import { existsSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
+import { writeGuard } from './session-guard.mjs'
 // Hosted instance: also accept the authorities declared to DSH with --trusted-host. The core bundle publishes the predicate
 // (kybernos-plugin/trusted-authority.mjs); absent or failing, it answers false and the guard stays loopback-only.
 const kbTrusted = (host) => { try { const f = globalThis[Symbol.for('kybernos.trustedAuthority')]; return typeof f === 'function' && f(host) === true } catch (e) { return false } }
@@ -43,6 +44,10 @@ const kbHostOK = (req) => {
     return ['127.0.0.1' + port, 'localhost' + port, '[::1]' + port].indexOf(host) >= 0 || kbTrusted(host)
   } catch (e) { return false }
 }
+// What `register` hands back takes the route off again. It is kept here and given to `ctx.effect` by `apply`, so that unloading the plugin removes every route it
+// added: without it a hot reload met « duplicate exact route », logged « routes not mounted » and went on serving the OLD handlers (audit L4-05, L6-04).
+const kbRetraits = []
+const kbRetirerRoutes = () => { for (const retrait of kbRetraits.splice(0).reverse()) { try { retrait() } catch (e) { /* already gone */ } } }
 const kbFenced = (service) => {
   if (service === null || service === undefined || typeof service.register !== 'function') return service
   const fence = (route) => (route !== null && typeof route === 'object' && typeof route.handler === 'function'
@@ -56,7 +61,7 @@ const kbFenced = (service) => {
       },
     })
     : route)
-  return new Proxy(service, { get: (target, key) => (key === 'register' ? (route) => target.register(fence(route)) : (typeof target[key] === 'function' ? target[key].bind(target) : target[key])) })
+  return new Proxy(service, { get: (target, key) => (key === 'register' ? (route) => { const retrait = target.register(fence(route)); if (typeof retrait === 'function') kbRetraits.push(retrait); return retrait } : (typeof target[key] === 'function' ? target[key].bind(target) : target[key])) })
 }
 
 export const name = 'kybernos-modeleur'
@@ -378,6 +383,10 @@ export function monterRoutes (webServerSvc, magasin) {
   webServerSvc.register({ kind: 'exact', path: ROUTE_PUSH, handler: async (req, res) => {
     if (req.method !== 'POST') { res.writeHead(405); res.end('POST only'); return }
     if (!origineOK(req)) { res.writeHead(403); res.end('origin refused'); return }
+    // A-16: a push WRITES the model of a session. The panel fetches same-origin (the browser sends its cookie); a local program that
+    // forges an Origin is refused here. The agent's tool writes the store directly, never through this route.
+    const refus = writeGuard(req)
+    if (refus !== null) { envoyer(res, refus.status, { ok: false, error: refus.error }); return }
     const corps = await lireCorps(req)
     // An unreadable body must not leave an empty model behind: it would become "the last model" for a panel that
     // does not name its session.
@@ -392,6 +401,9 @@ export function monterRoutes (webServerSvc, magasin) {
   webServerSvc.register({ kind: 'exact', path: ROUTE_ANNOTE, handler: async (req, res) => {
     if (req.method !== 'POST') { res.writeHead(405); res.end('POST only'); return }
     if (!origineOK(req)) { res.writeHead(403); res.end('origin refused'); return }
+    // A-16: the brush's strokes are written on the person's disk state, with the same rule as the push above.
+    const refus = writeGuard(req)
+    if (refus !== null) { envoyer(res, refus.status, { ok: false, error: refus.error }); return }
     const corps = await lireCorps(req)
     const sessionId = typeof corps?.sessionId === 'string' ? corps.sessionId : ''
     const etat = magasin.annoter(sessionId, traitsPropres(corps?.strokes))
@@ -405,6 +417,7 @@ export function monterRoutes (webServerSvc, magasin) {
 // ── le plugin hôte ──────────────────────────────────────────────────────────
 
 export function apply (ctx) {
+  if (ctx !== null && ctx !== undefined && typeof ctx.effect === 'function') ctx.effect(() => kbRetirerRoutes, 'kybernos-modeleur: routes')
   const magasin = creerMagasin()
   // Les services sont lus par `ctx.get` (jamais `ctx.<nom>` avant que l'inject
   // n'ait résolu) : c'est la forme qui marche aussi bien dans cordis que dans

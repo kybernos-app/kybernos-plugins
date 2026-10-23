@@ -14,7 +14,7 @@ routes and the same relay, and the stand-in is kept in step with the server.
 | the computer's half: pairing, paired phones, the relay connection, the replay against DSH | the `/v1/remote/*` routes, the relay, serving `phone/*` from the phone origin, the plan feature `remote`, the owner's number of phones | the phone origin's host name and certificate (the owner's, infrastructure) |
 | the end-to-end channel and its tests | pinned copies of the phone page's files | push notifications, more than one relay replica, a native app |
 | the phone page and its service worker | | |
-| the sidebar panel and Settings › Remote Control | | |
+| the « Phone and channels » screen: the account menu's window and Settings › Phone and channels | | |
 | a stand-in relay and server for tests | | |
 
 ## Who has it
@@ -103,6 +103,8 @@ settings writes, plugin install/remove/enable, the dynamic runner's invoke, term
 sign-in/out, creating or changing a schedule, `/kybernos-cloud/disconnect`, `/kybernos-cloud/server/apply`,
 `/kybernos-cloud/start`, and every `/kybernos-mobile/remote/` route. The list is data in that file; the live check
 counts refusals during normal use (`refused` in the status).
+The phone page recognises the answer (a 403 whose small JSON body says `refused_on_phone`, or a `refused` frame) and shows one line
+over the DSH page, `refusedPhone` in `phone/phone.mjs` (`test-phone-refusal.mjs`), as the computer's screen explains the same refusals.
 
 Responses are gzip-compressed when textual; the phone's service worker decompresses and caches hashed files
 (`/assets/<name>-<hash>.<ext>`, `…&rev=<hex>`), so only the first load is heavy (measured: 26 MB decompressed for the DSH
@@ -136,6 +138,9 @@ The phone page files the web origin must serve (all from `packages/kybernos-mobi
 | `/__kb/phone.mjs` | `phone/phone.mjs` |
 | `/__kb/remote-e2e.mjs` | `remote-e2e.mjs` |
 | `/__kb/manifest.webmanifest`, `/__kb/icon.svg` | `phone/manifest.webmanifest`, `phone/icon.svg` |
+| `/__kb/kaby/` | `phone/kaby.html` |
+| `/__kb/kaby.webmanifest`, `/__kb/kaby-icon.svg` | `phone/kaby.webmanifest`, `phone/kaby-icon.svg` |
+| `/__kb/icon-{180,192,512}.png`, `/__kb/kaby-{180,192,512}.png` | **no file**: the server draws them from the Kybernos K's geometry (`src/modules/remote/icons.ts`; the plugins repository forbids tracked `.png`) |
 | `/sw.js` (with `Service-Worker-Allowed: /`) | `phone/sw.js` |
 
 Serve them with `Cache-Control: no-store` (or content-hashed names) so a fix reaches phones at once, and keep the page
@@ -143,6 +148,16 @@ free of third-party scripts: it is the one piece of code the end-to-end promise 
 phone page itself fits it (`default-src 'self'; connect-src 'self' wss:; style-src 'self' 'unsafe-inline'; frame-src 'self';
 base-uri 'none'; form-action 'none'`); it must not be applied to the DSH page the service worker serves in the iframe, which
 keeps whatever headers DSH sends (the computer's own `Content-Security-Policy` and `X-Frame-Options` are dropped on the way).
+
+## Two installable apps (2026-10-19)
+
+The phone page is also two installable apps of one origin: « Kybernos à distance » (`/__kb/`, scope `/`) and « Kaby » (`/__kb/kaby/`, scope `/__kb/kaby/`). Each page links its own manifest (own `id`, `start_url`, `scope`, icons); the **service worker is the same one** (scope `/`, it lets `/__kb*` through and treats any page of that shell as the phone page). Measured in Chrome 155: the two manifests give two app ids; both pages are controlled by the single registration.
+
+- **The offer** (`phone.mjs`): after a pairing, on a touch device that is not already running the app, two cards (the app's own page installs with the browser's prompt; the other card opens the other page with `?install=1`, which makes its own offer without connecting). « Later » is remembered 7 days in `localStorage` (`kb-install-later`). Not made on a desktop, nor inside an app.
+- **iPhone**: Apple gives a Home Screen app cookies and storage separate from Safari (WWDC 2023, session 10120), so the key in IndexedDB does not follow an install. A pairing link opened in Safari therefore offers to install first and copies the link; the app, which the camera cannot open, links itself by **pasting** it (`e2e.parsePairingFragment` on the pasted URL's fragment, a text field as the fallback for a refused clipboard). Two icons are two pairings on an iPhone if the two apps do not share storage (to measure: `docs/etudes/…`, step 0).
+- **Kaby's page opens Kaby's conversation**: DSH has no address for a conversation (the URL stays `/`; the current session is `localStorage['dsh.sessions.current']`; the call is `uiWorkspace.openSession(id)` in the page). `kybernos-kyber` reads `window.parent.location.pathname` (same origin) and, when it is `/__kb/kaby/`, calls the sidebar row's own `openChat()` once DSH lists its sessions, after its own startup restoration.
+- **One address, one phone connection**: the relay keeps one phone connection per address and replaces the older one. Two apps open at the same time on one pairing replace each other (measured on a desktop with a stand-in relay); a pairing per app is the fall-back (decision D5 of the study).
+- **Pinned**: `index.html`, `kaby.html`, `phone.mjs`, the two manifests and the two SVGs are pinned by the server like the others; `sw.js` and `remote-e2e.mjs` are unchanged by this.
 
 ## Honest limits
 

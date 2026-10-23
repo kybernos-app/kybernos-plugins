@@ -2,8 +2,9 @@
 // Qwen (Token Plan Alibaba, endpoint OpenAI-compatible) exige :
 //   -y                      : exécute écriture/shell sans confirmation (yolo)
 //   --auth-type openai      : mode clé API (pas OAuth navigateur)
-//   --openai-api-key …      : la clé, fournie par le config du provider (env)
 //   --openai-base-url …     : endpoint Token Plan (région ap-southeast-1)
+// The API key never travels on the command line (`ps -ax` would read it): the factory puts it back in the environment
+// (varEnvCle in dsh-subagent-qwen/index.js), under the variable the CLI reads in `--auth-type openai`.
 // Aucune clé ni aucun modèle en dur : la clé vient de l'env (DASHSCOPE_API_KEY
 // ou QWEN_TOKEN_PLAN_API_KEY) via le config du provider ; le modèle se règle
 // dans le produit natif.
@@ -11,7 +12,6 @@ export const BASE_URL_DEFAUT = 'https://token-plan.ap-southeast-1.maas.aliyuncs.
 
 export const argv = (bin, model, taches, opts = {}) => {
   const a = [bin, '-y', '--auth-type', 'openai']
-  if (opts.apiKey != null && opts.apiKey !== '') a.push('--openai-api-key', opts.apiKey)
   a.push('--openai-base-url', opts.baseUrl ?? BASE_URL_DEFAUT)
   if (model != null && model !== '') a.push('-m', model)
   a.push('-p', taches.join('\n\n'))

@@ -25,6 +25,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { existsSync } from 'node:fs'
+import { writeGuard } from './session-guard.mjs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 // Hosted instance: also accept the authorities declared to DSH with --trusted-host. The core bundle publishes the predicate
@@ -43,6 +44,10 @@ const kbHostOK = (req) => {
     return ['127.0.0.1' + port, 'localhost' + port, '[::1]' + port].indexOf(host) >= 0 || kbTrusted(host)
   } catch (e) { return false }
 }
+// What `register` hands back takes the route off again. It is kept here and given to `ctx.effect` by `apply`, so that unloading the plugin removes every route it
+// added: without it a hot reload met « duplicate exact route », logged « routes not mounted » and went on serving the OLD handlers (audit L4-05, L6-04).
+const kbRetraits = []
+const kbRetirerRoutes = () => { for (const retrait of kbRetraits.splice(0).reverse()) { try { retrait() } catch (e) { /* already gone */ } } }
 const kbFenced = (service) => {
   if (service === null || service === undefined || typeof service.register !== 'function') return service
   const fence = (route) => (route !== null && typeof route === 'object' && typeof route.handler === 'function'
@@ -56,7 +61,7 @@ const kbFenced = (service) => {
       },
     })
     : route)
-  return new Proxy(service, { get: (target, key) => (key === 'register' ? (route) => target.register(fence(route)) : (typeof target[key] === 'function' ? target[key].bind(target) : target[key])) })
+  return new Proxy(service, { get: (target, key) => (key === 'register' ? (route) => { const retrait = target.register(fence(route)); if (typeof retrait === 'function') kbRetraits.push(retrait); return retrait } : (typeof target[key] === 'function' ? target[key].bind(target) : target[key])) })
 }
 
 export const name = 'kybernos-bricks'
@@ -142,7 +147,9 @@ export function creerMagasin () {
         global: ++compteur,
         sessionId,
         t0: maintenant,
-        dureeMs: bornement(entree?.dureeMs),
+        // L1-07: the preview chips of the panel post `duree_ms` (the name of the tool's parameter), the host's own record says `dureeMs`:
+        // both are read, or the 9 s a chip asks for fell back to the 12 s default.
+        dureeMs: bornement(entree?.dureeMs ?? entree?.duree_ms),
         titre: texte(entree?.titre, 120) || 'Bricks',
         prompt: texte(entree?.prompt, 2000),
         mode: entree?.mode === 'modifier' ? 'modifier' : 'nouveau',
@@ -308,6 +315,10 @@ export function monterRoutes (webServerSvc, magasin) {
   webServerSvc.register({ kind: 'exact', path: ROUTE_PUSH, handler: async (req, res) => {
     if (req.method !== 'POST') { res.writeHead(405); res.end('POST only'); return }
     if (!origineOK(req)) { res.writeHead(403); res.end('origin refused'); return }
+    // A-16: a push WRITES the model a panel replays. Its caller is the panel in the person's page (same-origin fetch, so the browser
+    // sends its cookie); the agent's `animer_briques` tool writes the store in-process and never goes through this route.
+    const refus = writeGuard(req)
+    if (refus !== null) { envoyer(res, refus.status, { ok: false, error: refus.error }); return }
     // Recette 2026-10 (M-02) : un POST qui écrit l'état exige du JSON —
     // text/plain multipart etc. sont refusés.
     const ct = String(req.headers['content-type'] || '')
@@ -329,6 +340,7 @@ export function monterRoutes (webServerSvc, magasin) {
 // ── le plugin hôte ──────────────────────────────────────────────────────────
 
 export function apply (ctx) {
+  if (ctx !== null && ctx !== undefined && typeof ctx.effect === 'function') ctx.effect(() => kbRetirerRoutes, 'kybernos-bricks: routes')
   const magasin = creerMagasin()
   // Les services sont lus par `ctx.get` (jamais `ctx.<nom>` avant que l'inject
   // n'ait résolu) : c'est la forme qui marche aussi bien dans cordis que dans

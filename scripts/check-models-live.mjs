@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// The AI Provider & Models page on a REAL GUI: its short first view, the key button that goes away once Kybernos Cloud is connected, the
+// The AI provider and models page on a REAL GUI: its short first view, the key button that goes away once Kybernos Cloud is connected, the
 // models that do not answer folded away with a reason each, the count behind a context size, the refusal shown under its field, a provider
 // added without its key, and the keyboard kept inside the Add provider panel.
 //
@@ -62,7 +62,7 @@ const openPage = async () => {
   await sleep(3500)
   await val(`document.querySelector('[class*="settingsArea"] button[class*="trigger"]').click()`)
   await waitFor(page, `/Back to workspace/.test(document.body.innerText)`, 8000)
-  await val(`(() => { const b = Array.from(document.querySelectorAll('button[class*="navCell"]')).find((x) => x.innerText.trim().split('\\n')[0] === 'AI Provider & Models'); if (b) b.click() })()`)
+  await val(`(() => { const b = Array.from(document.querySelectorAll('button[class*="navCell"]')).find((x) => x.innerText.trim().split('\\n')[0] === 'AI provider and models'); if (b) b.click() })()`)
   return (await waitFor(page, `!!document.querySelector('[data-kbmh="block"]')`, 15000)) !== null
 }
 
@@ -88,7 +88,8 @@ try {
   const hero = await val(`(document.querySelector('[data-kbmh="block"]') || {innerText: ''}).innerText`)
   check('one line says it: connected, N models included', /Connected/.test(hero) && /\d+ models? included/.test(hero), hero)
   check('no key button, no « or », no « Recommended » pill once connected', (await val(`!document.querySelector('[data-kbmh="addkey"]') && !document.querySelector('[data-kbmh="badge"]') && !document.querySelector('.kbmh-hero-or')`)) === true)
-  check('« Manage Kybernos Cloud » stays', /Manage Kybernos Cloud/.test(hero))
+  check('« Manage » stays (its full name is the tooltip and the accessible name)', (await val(`(document.querySelector('[data-kbmh="connect"]') || { getAttribute: () => '' }).getAttribute('aria-label')`)) === 'Manage Kybernos Cloud')
+  check('the Cloud card is the first cell of the provider grid, and the plain « kybernos » card is not drawn beside it', (await val(`document.querySelector('[data-kbm="prov-cards"]').firstElementChild.getAttribute('data-kbmh') === 'block' && !document.querySelector('[data-kbm="prov-card"][data-prov="kybernos"]')`)) === true)
   await shot('models-2-connected')
   await page.send('Page.addScriptToEvaluateOnNewDocument', { source: `window.__KB_FAKE_CLOUD__ = { plan: 'free' }` })
   await openPage()

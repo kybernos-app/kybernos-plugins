@@ -86,5 +86,5 @@ crashes on `JSON.parse`. CI only globs `packages/*/test*.mjs`, so the two files 
 - SQLite only; no Postgres code in this bundle.
 - Tables whose name is not a plain identifier are listed but cannot be opened in the Data view.
 - The single-statement guard refuses any `;` followed by text, even inside a string literal.
-- The SQL tab starts with `SELECT * FROM societes LIMIT 20` (the mini-CRM sample).
+- The SQL tab starts on `SELECT * FROM "<first table>" LIMIT 20` for the database chosen (an empty box with an example when it has no table); the query is not kept when you leave the tab.
 - How the user opens the tab is not verified (the code registers a tab type and a guide entry only).

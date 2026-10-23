@@ -89,8 +89,7 @@ window.__ModuleLoader__.load({
    replaces the two old ones, the content is intact. */
 .kbs-memwrap{display:flex;flex-direction:column;gap:12px}
 .kbs-note-sec{display:flex;flex-direction:column;gap:6px}
-.kbs-note-t{margin:0;font-size:11px;font-weight:600;letter-spacing:.3px;text-transform:uppercase;
-  color:var(--dsw-alias-label-tertiary,#8a9096)}
+.kbs-note-t{margin:0;font-size:11px;font-weight:600;color:var(--dsw-alias-label-tertiary,#8a9096)}
 /* The CARD of the last two pills follows the same rule (same cause, two
    surfaces): centred, it left the window at 900 px — 902 px for
    memory, 960 px for lessons. */
@@ -248,8 +247,7 @@ window.__ModuleLoader__.load({
 .kbs-recap-row{display:flex;gap:10px;align-items:baseline;padding:7px 0;
   border-top:1px solid var(--dsw-alias-border-l1,rgba(255,255,255,.07))}
 .kbs-recap-row:first-child{border-top:0}
-.kbs-recap-k{flex:none;width:74px;font-size:11px;font-weight:600;letter-spacing:.3px;
-  text-transform:uppercase;color:var(--dsw-alias-label-tertiary,#8a9096)}
+.kbs-recap-k{flex:none;width:74px;font-size:11px;font-weight:600;color:var(--dsw-alias-label-tertiary,#8a9096)}
 .kbs-recap-v{flex:1;min-width:0;font-size:13px;line-height:1.45;color:var(--dsw-alias-label-primary,#e8eaec)}
 .kbs-recap-v b{font-weight:600}
 .kbs-recap-att{color:var(--dsw-alias-label-tertiary,#8a9096);font-size:12px}
@@ -290,6 +288,26 @@ window.__ModuleLoader__.load({
   color:var(--dsw-alias-label-primary,#e8eaec);background:var(--dsw-alias-bg-layer-3,rgb(53,54,56));
   border:0;border-radius:18px;cursor:pointer}
 .kbr-select:disabled{opacity:.55;cursor:default}
+.kbr-pick{position:relative;flex:none;max-width:100%}
+.kbr-pick>button{display:flex;align-items:center;gap:8px;width:auto;min-width:240px;max-width:100%;border:0;font:inherit;font-size:14px;color:inherit;text-align:start;white-space:nowrap;cursor:pointer}
+.kbr-pick>button:disabled{opacity:.55;cursor:default}
+.kbr-pick-cur{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.kbr-pick-chev{flex:none;width:12px;height:12px;opacity:.7}
+.kbr-pick-pop{position:absolute;inset-inline-end:0;top:calc(100% + 6px);z-index:40;width:400px;max-width:calc(100vw - 48px);display:flex;flex-direction:column;border-radius:14px;
+  border:1px solid var(--dsw-alias-border-l2,rgba(255,255,255,.10));background:var(--dsw-alias-bg-layer-2,#2b2b2d);box-shadow:0 12px 32px rgba(0,0,0,.3);overflow:hidden}
+.kbr-pick-pop.up{top:auto;bottom:calc(100% + 6px)}
+.kbr-pick-q{padding:8px;border-bottom:.5px solid var(--dsw-alias-border-l2,rgba(255,255,255,.10))}
+.kbr-pick-in{box-sizing:border-box;width:100%;height:34px;padding:0 12px;border-radius:9px;border:1px solid var(--dsw-alias-border-l2,rgba(255,255,255,.10));background:var(--dsw-alias-bg-layer-1,#1c1c1e);
+  color:var(--dsw-alias-label-primary,#e8eaec);font:inherit;font-size:13px;outline:none}
+.kbr-pick-in:focus{border-color:var(--dsw-alias-button-primary-fill,#3b82f6)}
+.kbr-pick-list{list-style:none;margin:0;padding:4px;max-height:320px;overflow:auto}
+.kbr-pick-grp{padding:8px 10px 3px;font-size:11px;font-weight:600;color:var(--dsw-alias-label-tertiary,#8a9096)}
+.kbr-pick-opt{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:8px;font-size:13px;color:var(--dsw-alias-label-primary,#e8eaec);cursor:pointer}
+.kbr-pick-opt.cur{background:var(--dsw-alias-interactive-bg-hover,rgba(255,255,255,.06))}
+.kbr-pick-opt>span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kbr-pick-opt svg{flex:none;width:14px;height:14px;color:var(--dsw-alias-button-primary-fill,#3b82f6)}
+.kbr-pick-opt:not(.on) svg{visibility:hidden}
+.kbr-pick-none{padding:14px 10px;font-size:12.5px;color:var(--dsw-alias-label-secondary,#cfd3d6)}
 .kbr-select:focus-visible{outline:2px solid var(--dsw-alias-button-primary-fill,#3b82f6);outline-offset:1px}
 .kbr-note{margin:10px 0 0;font-size:12.5px;color:var(--dsw-alias-label-tertiary,#8a9096)}
 .kbr-versions{margin:14px 0 0;padding-block-start:12px;font-size:12.5px;
@@ -1387,13 +1405,13 @@ window.__ModuleLoader__.load({
         st === null || echec
           ? h('button', { className: 'kbs-btn', onClick: () => lancer(false) }, label)
           : null,
-        echec ? h('p', { className: 'kbs-erreur' }, st.erreur || 'refused') : null,
+        echec ? h('p', { className: 'kbs-erreur' }, st.erreur || kt('refusé', 'refused')) : null,
         sec
           ? h('div', { className: 'kbs-plan' },
               (st.commandes || []).map((c, i) => h('code', { className: 'kbs-cmd', key: i }, c)),
-              h('button', { className: 'kbs-btn', onClick: () => lancer(true) }, 'Confirm & run'))
+              h('button', { className: 'kbs-btn', onClick: () => lancer(true) }, kt('Confirmer et lancer', 'Confirm & run')))
           : null,
-        fait ? h('p', { className: 'kbs-done' }, 'Done ✓ — ' + (st.message || 'ok')) : null,
+        fait ? h('p', { className: 'kbs-done' }, kt('Terminé ✓ — ', 'Done ✓ — ') + (st.message || 'ok')) : null,
         st === null && hint ? h('p', { className: 'kbs-hint' }, hint) : null)
     }
 
@@ -1427,7 +1445,7 @@ window.__ModuleLoader__.load({
         style: { '--acc': accent }, role: 'dialog', 'aria-label': name },
         h('div', { className: 'kbs-pop-head' },
           h('span', { className: 'kbs-pop-name' }, svg(icon, 15), name),
-          h('button', { className: 'kbs-x', 'aria-label': 'Close', onClick: onClose }, svg('close', 15))),
+          h('button', { className: 'kbs-x', 'aria-label': kt('Fermer', 'Close'), onClick: onClose }, svg('close', 15))),
         h('h3', { className: 'kbs-cartetitre' }, titre),
         texte ? h('p', { className: 'kbs-text' }, texte) : null,
         nav || null,
@@ -1436,7 +1454,7 @@ window.__ModuleLoader__.load({
         details
           ? h('div', { className: 'kbs-pied' },
               h('button', { className: 'kbs-more', 'aria-expanded': String(det), onClick: () => setDet(!det) },
-                'Details', svg('chev', 14)))
+                kt('Détails', 'Details'), svg('chev', 14)))
           : null,
         det && details ? h('div', { className: 'kbs-detail' }, details) : null)
     }
@@ -1458,8 +1476,8 @@ window.__ModuleLoader__.load({
         else repli()
       }
       return h('div', { className: 'kbs-minirow' },
-        h('button', { className: 'kbs-minibtn', onClick: faire }, 'Copy as text'),
-        copie ? h('span', { className: 'kbs-copie' }, 'copied ✓') : null)
+        h('button', { className: 'kbs-minibtn', onClick: faire }, kt('Copier en texte', 'Copy as text')),
+        copie ? h('span', { className: 'kbs-copie' }, kt('copié ✓', 'copied ✓')) : null)
     }
 
     // ── local pill → state of THIS session (the other chats of the folder
@@ -1548,7 +1566,7 @@ window.__ModuleLoader__.load({
           titre: 'This chat has work that isn’t saved',
           texte: phrase + ' Save to avoid losing anything.',
           steps: ['next', 'todo'],
-          action: h(PlanAction, { url: '/kybernos-sessions/commit', corps: { session: sessionId, chemins: mesChemins },
+          action: h(PlanAction, { url: '/kybernos-sessions/commit', corps: { session: sessionId, chemins: mesChemins, push: true },
             label: 'Save my work',
             hint: 'Saves only the files this chat wrote, then pushes. Other chats’ files are left alone.' }),
           details: detailCommun }
@@ -1567,7 +1585,7 @@ window.__ModuleLoader__.load({
           titre: 'Saved, but not in the project yet',
           texte: 'Your separate copy is safe, but other sessions can’t see it yet.',
           steps: ['done', 'next'],
-          action: h(PlanAction, { url: '/kybernos-sessions/commit', corps: { session: sessionId },
+          action: h(PlanAction, { url: '/kybernos-sessions/commit', corps: { session: sessionId, push: true },
             label: 'Add to project',
             hint: 'Your copy gets combined with the main version. Dry-run first.' }),
           details: detailCommun }
@@ -2113,22 +2131,23 @@ window.__ModuleLoader__.load({
       // do not read the memory files, we read the gestures of the journal.
       const entKyber = kyber === null ? [] : memoire.entrees.filter((x) => x.kyber === kyber)
       const memFaites = entKyber.filter((x) => x.ok === true)
-      const libelleMemo = (x) => x.type === 'record' ? 'run recorded' : (x.type === 'lesson' ? 'lesson written' : 'lesson reused')
+      const libelleMemo = (x) => x.type === 'record' ? kt('exécution enregistrée', 'run recorded') : (x.type === 'lesson' ? kt('leçon écrite', 'lesson written') : kt('leçon réutilisée', 'lesson reused'))
+      const texteReutilisee = (x) => kt('leçon n° ' + x.index + ' — son compteur d’utilisations a été augmenté', 'lesson #' + x.index + ' — its uses counter was raised')
       const texteMemo = (x) => x.type === 'record'
         ? [x.role, x.outcome, x.note].filter((z) => z !== '' && z !== null).join(' · ')
-        : (x.type === 'lesson' ? x.text : 'lesson #' + x.index + ' — its uses counter was raised')
+        : (x.type === 'lesson' ? x.text : texteReutilisee(x))
       const ligneMemo = (x, i) => h('div', { className: 'kbs-memo-row', key: i },
         h('div', { className: 'kbs-memo-head' },
           h('span', { className: 'kbs-memo-kind' }, libelleMemo(x)),
           h('span', null, (x.kyber || '?') + (x.ts ? ' · ' + court(x.ts) : '')),
-          x.ok === true ? null : h('span', { className: 'kbs-memo-kind', style: { color: 'var(--dsw-alias-state-error-primary,#ef4444)' } }, 'failed')),
+          x.ok === true ? null : h('span', { className: 'kbs-memo-kind', style: { color: 'var(--dsw-alias-state-error-primary,#ef4444)' } }, kt('échec', 'failed'))),
         h('p', null, texteMemo(x) || '—'))
       // ── lessons: written or reused INSIDE this session ───────────────
       // (the definition followed its consumer: the Notes block reads both.)
       const leconsSession = entKyber.filter((x) => (x.type === 'lesson' || x.type === 'used') && x.ok === true)
       const ligneLecon = (l, i) => h('div', { className: 'kbs-lesson', key: i },
         h('time', null, libelleMemo(l) + (l.ts ? ' · ' + court(l.ts) : '')),
-        h('p', null, l.type === 'lesson' ? l.text : 'lesson #' + l.index + ' — its uses counter was raised'),
+        h('p', null, l.type === 'lesson' ? l.text : texteReutilisee(l)),
         (l.tags && l.tags.length) ? h('div', { className: 'kbs-tags' },
           l.tags.map((t, j) => h('span', { className: 'kbs-tag', key: j }, t))) : null)
 
@@ -2144,58 +2163,75 @@ window.__ModuleLoader__.load({
       const rien = ecritsMem === 0 && nbLecons === 0 && memFaites.length === 0
       const notesAccent = ecritsMem > 0 || memFaites.length > 0 ? ACC.teal : (nbLecons > 0 ? ACC.pink : ACC.idle)
       const memBadge = memInfo !== null ? memInfo.sent : (memFaites.length > 0 ? memFaites.length : null)
-      const memDit = memInfo !== null ? memInfo.sent + ' of ' + memInfo.total + ' memories sent to the model' : 'Account memory unavailable (connect Kybernos Cloud)'
-      const lesDit = nbLecons === 0 ? 'no lesson in this chat' : nbLecons + ' lesson' + pl(nbLecons, '', 's') + ' in this chat'
-      const notesTip = ['Memory', memDit, lesDit, delta > 0 ? delta + ' written by this chat' : 'Nothing written by this chat yet']
+      // The panel speaks the language of the page (kt: French for French, English for every other language); the plural stays in the words.
+      const memDit = memInfo !== null
+        ? kt(memInfo.sent + ' sur ' + memInfo.total + ' ' + (memInfo.total > 1 ? 'souvenirs' : 'souvenir') + ' ' + (memInfo.sent > 1 ? 'envoyés' : 'envoyé') + ' au modèle', memInfo.sent + ' of ' + memInfo.total + ' memories sent to the model')
+        : kt('Mémoire du compte indisponible (connecte Kybernos Cloud)', 'Account memory unavailable (connect Kybernos Cloud)')
+      const lesDit = nbLecons === 0
+        ? kt('aucune leçon dans cette conversation', 'no lesson in this chat')
+        : kt(nbLecons + ' ' + (nbLecons === 1 ? 'leçon' : 'leçons') + ' dans cette conversation', nbLecons + ' lesson' + pl(nbLecons, '', 's') + ' in this chat')
+      const libMemoire = kt('Mémoire', 'Memory')
+      const notesTip = [libMemoire, memDit, lesDit, delta > 0 ? kt(delta + ' ' + (delta === 1 ? 'écrit' : 'écrits') + ' par cette conversation', delta + ' written by this chat') : kt('Rien d’écrit par cette conversation pour l’instant', 'Nothing written by this chat yet')]
       const sectionNote = (titre, corps) => h('section', { className: 'kbs-note-sec', key: titre },
         h('h4', { className: 'kbs-note-t' }, titre), corps)
-      const MOTS_CAPTURE = { jamais: 'has not run since DSH started', hors_connexion: 'not connected', desactivee: 'switched off', espace_equipe: 'off in a team space', sans_session: 'no session',
-        tour_trop_court: 'turn too short', llm_indisponible: 'no model available', rien_a_retenir: 'nothing worth keeping', deja_connu: 'already known', erreur: 'failed' }
+      const MOTS_CAPTURE = { jamais: ['n’a pas tourné depuis le démarrage de DSH', 'has not run since DSH started'], hors_connexion: ['non connecté', 'not connected'], desactivee: ['désactivée', 'switched off'],
+        espace_equipe: ['désactivée dans un espace d’équipe', 'off in a team space'], sans_session: ['aucune session', 'no session'], tour_trop_court: ['tour trop court', 'turn too short'],
+        llm_indisponible: ['aucun modèle disponible', 'no model available'], rien_a_retenir: ['rien à retenir', 'nothing worth keeping'], deja_connu: ['déjà connu', 'already known'], erreur: ['a échoué', 'failed'] }
       const ditCapture = (c) => c === null || c === undefined || c.status === undefined ? null
-        : (c.status === 'ecrit' ? 'wrote ' + c.facts + (c.facts === 1 ? ' memory' : ' memories') : (MOTS_CAPTURE[c.status] || String(c.status)))
+        : (c.status === 'ecrit'
+          ? kt('a écrit ' + c.facts + ' ' + (c.facts > 1 ? 'souvenirs' : 'souvenir'), 'wrote ' + c.facts + (c.facts === 1 ? ' memory' : ' memories'))
+          : (MOTS_CAPTURE[c.status] !== undefined ? kt(MOTS_CAPTURE[c.status][0], MOTS_CAPTURE[c.status][1]) : String(c.status)))
       const ligneSouvenir = (x, i) => h('div', { className: 'kbs-memo-row', key: 'sv' + i },
-        h('div', { className: 'kbs-memo-head' }, h('span', { className: 'kbs-memo-kind' }, 'memory saved'), h('span', null, (x.kind || '?') + (x.pinned ? ' · pinned' : '') + (x.ts ? ' · ' + court(x.ts) : ''))),
+        h('div', { className: 'kbs-memo-head' }, h('span', { className: 'kbs-memo-kind' }, kt('souvenir enregistré', 'memory saved')), h('span', null, (x.kind || '?') + (x.pinned ? kt(' · épinglé', ' · pinned') : '') + (x.ts ? ' · ' + court(x.ts) : ''))),
         h('p', null, x.text || '—'))
       const pct = memInfo !== null && memInfo.total > 0 ? Math.max(2, Math.round(memInfo.sent / memInfo.total * 100)) : 0
       const visuelMem = h('div', { className: 'kbs-memwrap' },
         memInfo === null
-          ? h('div', { className: 'kbs-vide' }, 'The account memory is not available here: connect Kybernos Cloud, or switch its plugin on.')
+          ? h('div', { className: 'kbs-vide' }, kt('La mémoire du compte n’est pas disponible ici : connecte Kybernos Cloud, ou active son plugin.', 'The account memory is not available here: connect Kybernos Cloud, or switch its plugin on.'))
           : h('div', null,
-              h('div', { className: 'kbs-meter', role: 'img', 'aria-label': memInfo.sent + ' of ' + memInfo.total }, h('i', { style: { width: pct + '%' } })),
+              h('div', { className: 'kbs-meter', role: 'img', 'aria-label': kt(memInfo.sent + ' sur ' + memInfo.total, memInfo.sent + ' of ' + memInfo.total) }, h('i', { style: { width: pct + '%' } })),
               h('p', { className: 'kbs-note-line' }, memInfo.actif === false
-                ? 'Memory is switched off: nothing is sent to the model.'
-                : memInfo.sent + ' of ' + memInfo.total + ' · ' + memInfo.used + ' / ' + memInfo.cap + ' characters · newest first, pinned ones reserved a share'),
-              memInfo.picked > 0 && memInfo.actif !== false ? h('p', { className: 'kbs-note-line', 'data-kbs': 'picked' }, 'Picked for your latest message: ' + memInfo.picked + (memInfo.picked === 1 ? ' memory' : ' memories') + ' that match it') : null,
-              ditCapture(memInfo.capture) !== null ? h('p', { className: 'kbs-note-line' }, 'Auto-capture: ' + ditCapture(memInfo.capture)) : null),
-        sectionNote('Written by this chat', ecritsMem === 0 && memFaites.length === 0
-          ? h('div', { className: 'kbs-vide' }, 'Nothing yet. Memories are captured at the end of a turn, or saved by the agent.')
+                ? kt('La mémoire est désactivée : rien n’est envoyé au modèle.', 'Memory is switched off: nothing is sent to the model.')
+                : kt(memInfo.sent + ' sur ' + memInfo.total + ' · ' + memInfo.used + ' / ' + memInfo.cap + ' caractères · les plus récents d’abord, une part réservée aux épinglés',
+                  memInfo.sent + ' of ' + memInfo.total + ' · ' + memInfo.used + ' / ' + memInfo.cap + ' characters · newest first, pinned ones reserved a share')),
+              memInfo.picked > 0 && memInfo.actif !== false ? h('p', { className: 'kbs-note-line', 'data-kbs': 'picked' },
+                kt((memInfo.picked > 1 ? 'Retenus' : 'Retenu') + ' pour ton dernier message : ' + memInfo.picked + ' ' + (memInfo.picked > 1 ? 'souvenirs' : 'souvenir') + ' qui y ' + (memInfo.picked > 1 ? 'correspondent' : 'correspond'),
+                  'Picked for your latest message: ' + memInfo.picked + (memInfo.picked === 1 ? ' memory' : ' memories') + ' that match it')) : null,
+              ditCapture(memInfo.capture) !== null ? h('p', { className: 'kbs-note-line' }, kt('Capture automatique : ', 'Auto-capture: ') + ditCapture(memInfo.capture)) : null),
+        sectionNote(kt('Écrit par cette conversation', 'Written by this chat'), ecritsMem === 0 && memFaites.length === 0
+          ? h('div', { className: 'kbs-vide' }, kt('Rien pour l’instant. Les souvenirs sont capturés à la fin d’un tour, ou enregistrés par l’agent.', 'Nothing yet. Memories are captured at the end of a turn, or saved by the agent.'))
           : h('div', { className: 'kbs-memo' }, memoire.souvenirs.slice(-3).map(ligneSouvenir).concat(memFaites.slice(-3).map(ligneMemo)))))
       const visuelLecons = h('div', { className: 'kbs-memwrap' },
-        lesPicked > 0 ? h('p', { className: 'kbs-note-line', 'data-kbs': 'picked-lessons' }, 'Picked for your latest message: ' + lesPicked + (lesPicked === 1 ? ' lesson' : ' lessons') + ' that match it') : null,
-        teamSent !== null ? h('p', { className: 'kbs-note-line', 'data-kbs': 'team-lessons' }, 'From your team: ' + teamSent.count + (teamSent.count === 1 ? ' lesson' : ' lessons') + ' sent' + (teamSent.picked > 0 ? ' (' + teamSent.picked + ' that match your latest message)' : '')) : null,
-        sectionNote('Lessons in this chat', nbLecons === 0
-          ? h('div', { className: 'kbs-vide' }, 'Nothing learned or reused in this chat yet.')
+        lesPicked > 0 ? h('p', { className: 'kbs-note-line', 'data-kbs': 'picked-lessons' }, kt((lesPicked > 1 ? 'Retenues' : 'Retenue') + ' pour ton dernier message : ' + lesPicked + ' ' + (lesPicked === 1 ? 'leçon' : 'leçons') + ' qui y ' + (lesPicked > 1 ? 'correspondent' : 'correspond'),
+          'Picked for your latest message: ' + lesPicked + (lesPicked === 1 ? ' lesson' : ' lessons') + ' that match it')) : null,
+        teamSent !== null ? h('p', { className: 'kbs-note-line', 'data-kbs': 'team-lessons' },
+          kt('De ton équipe : ' + teamSent.count + ' ' + (teamSent.count === 1 ? 'leçon envoyée' : 'leçons envoyées') + (teamSent.picked > 0 ? ' (' + teamSent.picked + ' qui ' + (teamSent.picked > 1 ? 'correspondent' : 'correspond') + ' à ton dernier message)' : ''),
+            'From your team: ' + teamSent.count + (teamSent.count === 1 ? ' lesson' : ' lessons') + ' sent' + (teamSent.picked > 0 ? ' (' + teamSent.picked + ' that match your latest message)' : ''))) : null,
+        sectionNote(kt('Leçons de cette conversation', 'Lessons in this chat'), nbLecons === 0
+          ? h('div', { className: 'kbs-vide' }, kt('Rien d’appris ni de réutilisé dans cette conversation pour l’instant.', 'Nothing learned or reused in this chat yet.'))
           : h('div', { className: 'kbs-lessons' }, leconsSession.slice(0, 3).map(ligneLecon))))
-      const notesPop = h(Pop, { idCarte: 'notes', name: 'Memory & Lessons', icon: 'brain', accent: notesAccent,
+      const titreMemLecons = kt('Mémoire & Leçons', 'Memory & Lessons') // the name of the Settings page (kybernos-memory words it the same way)
+      const notesPop = h(Pop, { idCarte: 'notes', name: titreMemLecons, icon: 'brain', accent: notesAccent,
         titre: onglet === 'mem' ? memDit : lesDit.charAt(0).toUpperCase() + lesDit.slice(1),
         texte: onglet === 'mem'
-          ? 'What the account remembers about you, and what reaches the model on each turn. Only what THIS chat wrote is listed — other chats never appear here.'
-          : 'Lessons are written by an agent when an expectation was contradicted. Only this chat’s are listed.',
-        nav: h('div', { className: 'kbs-kybers', role: 'tablist', 'aria-label': 'Memory and lessons' },
-          [['mem', 'Memory'], ['les', 'Lessons']].map((t) => h('button', { key: t[0], role: 'tab', 'aria-selected': String(onglet === t[0]), 'data-kbs-tab': t[0],
+          ? kt('Ce que le compte retient sur toi, et ce qui arrive au modèle à chaque tour. Seul ce qu’a écrit CETTE conversation est listé — les autres conversations n’apparaissent jamais ici.',
+            'What the account remembers about you, and what reaches the model on each turn. Only what THIS chat wrote is listed — other chats never appear here.')
+          : kt('Les leçons sont écrites par un agent quand une attente a été contredite. Seules celles de cette conversation sont listées.', 'Lessons are written by an agent when an expectation was contradicted. Only this chat’s are listed.'),
+        nav: h('div', { className: 'kbs-kybers', role: 'tablist', 'aria-label': kt('Mémoire et leçons', 'Memory and lessons') },
+          [['mem', libMemoire], ['les', kt('Leçons', 'Lessons')]].map((t) => h('button', { key: t[0], role: 'tab', 'aria-selected': String(onglet === t[0]), 'data-kbs-tab': t[0],
             className: 'kbs-kyb' + (onglet === t[0] ? ' on' : ''), onClick: () => setOnglet(t[0]) }, t[1]))),
         visuel: h('div', null, onglet === 'mem' ? visuelMem : visuelLecons, onglet === 'les' ? switcher : null),
         action: h('div', { className: 'kbs-minirow' },
-          h('button', { className: 'kbs-minibtn', 'data-kbs-act': 'open-memory', onClick: () => { fermer('notes'); ouvrirReglagesSection('Memory & Lessons') } }, 'Open Memory & Lessons ›')),
+          h('button', { className: 'kbs-minibtn', 'data-kbs-act': 'open-memory', onClick: () => { fermer('notes'); ouvrirReglagesSection(titreMemLecons) } }, kt('Ouvrir Mémoire & Leçons ›', 'Open Memory & Lessons ›'))),
         onClose: () => fermer('notes'),
         details: h('div', null,
-          sectionNote('Agent Team ledger', h('div', { className: 'kbs-memo' }, memFaites.map(ligneMemo))),
+          sectionNote(kt('Registre de l’Agent Team', 'Agent Team ledger'), h('div', { className: 'kbs-memo' }, memFaites.map(ligneMemo))),
           h('dl', { style: { margin: '10px 0 0', display: 'flex', flexDirection: 'column', gap: 9 } },
-            Ligne('Runs recorded', String(memoire.records.length), 'rb'),
-            Ligne('Lessons written', String(memoire.lessons.length), 'lb'),
-            Ligne('Lessons reused', String(memoire.used.length), 'ub'),
-            Ligne('Memories saved', String(memoire.souvenirs.length), 'mb'),
-            Ligne('Storage', h('code', { className: 'kbs-code-in' }, '~/.dsh/kybers/' + (kyber || '<kyber>') + '/memory'), 'st')),
+            Ligne(kt('Exécutions enregistrées', 'Runs recorded'), String(memoire.records.length), 'rb'),
+            Ligne(kt('Leçons écrites', 'Lessons written'), String(memoire.lessons.length), 'lb'),
+            Ligne(kt('Leçons réutilisées', 'Lessons reused'), String(memoire.used.length), 'ub'),
+            Ligne(kt('Souvenirs enregistrés', 'Memories saved'), String(memoire.souvenirs.length), 'mb'),
+            Ligne(kt('Stockage', 'Storage'), h('code', { className: 'kbs-code-in' }, '~/.dsh/kybers/' + (kyber || '<kyber>') + '/memory'), 'st')),
           h(Copier, { key: 'cpm', texte: 'memory written in this chat\n' + memoire.souvenirs.map((x) => '- memory saved [' + (x.kind || '?') + '] ' + x.text).concat(memFaites.map((x) => '- ' + libelleMemo(x) + ' [' + (x.kyber || '?') + '] ' + (texteMemo(x) || ''))).join('\n') }),
           h(Copier, { key: 'cpl', texte: (kyber || 'agent team') + ' — lessons from this chat\n' + leconsSession.map((l) => '- ' + libelleMemo(l) + ' ' + (l.type === 'lesson' ? l.text : 'lesson #' + l.index)).join('\n') })) })
 
@@ -2248,7 +2284,8 @@ window.__ModuleLoader__.load({
         const lignes = tip.slice(0)
         if (lignes.length === 0) lignes.push(label)
         else if (lignes[0] !== label) lignes[0] = label + ' · ' + lignes[0]
-        return h('span', { className: 'kbs-popwrap' + (bordDroit ? ' kbs-bordDroit' : ''), key: id },
+        // `data-kb`: the hook the Theme page uses to hide the status pills (it may not write this bundle's classes)
+        return h('span', { className: 'kbs-popwrap' + (bordDroit ? ' kbs-bordDroit' : ''), key: id, 'data-kb': 'status-pill' },
           h('button', props,
             h('span', { className: 'kbs-ico' }, svg(icon, 15)),
             h('span', { className: 'kbs-lib' + (opts && opts.libelleVisible === true ? ' kbs-lib--vis' : '') }, label),
@@ -2272,7 +2309,7 @@ window.__ModuleLoader__.load({
         changesOn ? null : pill('recap', 'merge', rec.accent, rec.label, null, rec.tip, rec.act, calme(rec, null)),
         !changesOn && v ? pill('sync', 'cloud', v.accent, v.label, vBadge, vTip, false, calme(v, vBadge)) : null,
         !changesOn && r ? pill('pr', 'pr', r.accent, r.label, null, rTip, false, calme(r, null)) : null,
-        pill('notes', 'brain', notesAccent, 'Memory', memBadge, notesTip, false, rien,
+        pill('notes', 'brain', notesAccent, libMemoire, memBadge, notesTip, false, rien,
           { libelleVisible: true, extra: h(React.Fragment, null, h('span', { className: 'kbs-pillsep' }), svg('bulb', 15), h('span', { className: 'kbs-n' }, String(nbLecons)),
             delta > 0 ? h('span', { className: 'kbs-d' }, '+' + delta) : null) }))
     }
@@ -2365,7 +2402,7 @@ window.__ModuleLoader__.load({
       if (document.getElementById(RG_STYLE_ID) !== null) return
       const el = document.createElement('style')
       el.id = RG_STYLE_ID
-      el.textContent = '.kb-rg-groupe{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;opacity:.55;padding-block:14px 4px;padding-inline:12px;text-align:start;user-select:none;pointer-events:none}[dir="rtl"] .kb-rg-groupe{letter-spacing:0}'
+      el.textContent = '.kb-rg-groupe{font-size:11px;font-weight:600;opacity:.55;padding-block:14px 4px;padding-inline:12px;text-align:start;user-select:none;pointer-events:none}[dir="rtl"] .kb-rg-groupe{letter-spacing:0}'
       document.head.appendChild(el)
     }
 
@@ -2535,6 +2572,76 @@ window.__ModuleLoader__.load({
       return { mode, valeur: brain, libelleAuto, introuvable, description }
     }
 
+    /** The items (`{ value, label, group? }`) whose label, group or value hold every word typed (case-insensitive): all of them for an empty query. */
+    const choixCorrespondants = (items, requete) => {
+      const mots = String(requete || '').trim().toLocaleLowerCase().split(/\s+/).filter((m) => m !== '')
+      if (mots.length === 0) return items
+      return items.filter((it) => { const foin = ((it.group || '') + ' ' + it.label + ' ' + it.value).toLocaleLowerCase(); return mots.every((m) => foin.indexOf(m) >= 0) })
+    }
+
+    // A choice with a search field: the harness lists dozens of models, which a native <select> scrolls through blindly. A button opens a short list
+    // (groups = the route); type to filter, ↑ ↓ to move, Enter to choose, Esc to close, a click outside closes it. It opens upward when there is more room above.
+    function ChoixRecherche (props) {
+      const [ouvert, setOuvert] = React.useState(false)
+      const [requete, setRequete] = React.useState('')
+      const [curseur, setCurseur] = React.useState(0)
+      const [haut, setHaut] = React.useState(false)
+      const racine = React.useRef(null)
+      const champ = React.useRef(null)
+      const liste = React.useRef(null)
+      const bouton = React.useRef(null)
+      const visibles = choixCorrespondants(props.items, requete)
+      const courant = props.items.find((it) => it.value === props.value)
+      const ouvrir = () => {
+        setRequete('')
+        setCurseur(Math.max(0, props.items.findIndex((it) => it.value === props.value)))
+        const b = bouton.current
+        if (b !== null) { const r = b.getBoundingClientRect(); setHaut(window.innerHeight - r.bottom < 380 && r.top > window.innerHeight - r.bottom) }
+        setOuvert(true)
+      }
+      const fermer = (rendre) => { setOuvert(false); if (rendre && bouton.current !== null) { try { bouton.current.focus() } catch (e) { /* gone */ } } }
+      const choisir = (it) => { props.onChange(it.value); fermer(true) }
+      React.useEffect(() => { if (ouvert && champ.current !== null) { try { champ.current.focus() } catch (e) { /* no focus */ } } }, [ouvert])
+      React.useEffect(() => {
+        if (!ouvert) return undefined
+        const dehors = (ev) => { if (racine.current !== null && !racine.current.contains(ev.target)) setOuvert(false) }
+        document.addEventListener('mousedown', dehors)
+        return () => document.removeEventListener('mousedown', dehors)
+      }, [ouvert])
+      React.useEffect(() => {
+        const li = liste.current !== null ? liste.current.querySelector('[data-curseur="1"]') : null
+        if (ouvert && li !== null) { try { li.scrollIntoView({ block: 'nearest' }) } catch (e) { /* no layout */ } }
+      }, [curseur, ouvert])
+      const touche = (e) => {
+        if (e.key === 'ArrowDown') { e.preventDefault(); setCurseur(visibles.length === 0 ? 0 : Math.min(visibles.length - 1, curseur + 1)) }
+        else if (e.key === 'ArrowUp') { e.preventDefault(); setCurseur(Math.max(0, curseur - 1)) }
+        else if (e.key === 'Enter') { e.preventDefault(); if (visibles[curseur] !== undefined) choisir(visibles[curseur]) }
+        else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); fermer(true) }
+        else if (e.key === 'Tab') setOuvert(false)
+      }
+      const lignes = []
+      let groupeVu = null
+      visibles.forEach((it, i) => {
+        if (it.group !== undefined && it.group !== groupeVu) { groupeVu = it.group; lignes.push(h('li', { key: 'g:' + it.group, className: 'kbr-pick-grp', role: 'presentation' }, it.group)) }
+        else if (it.group === undefined) groupeVu = null
+        lignes.push(h('li', { key: it.value === '' ? '__auto' : it.value, className: 'kbr-pick-opt' + (i === curseur ? ' cur' : '') + (it.value === props.value ? ' on' : ''), role: 'option', 'aria-selected': it.value === props.value ? 'true' : 'false',
+          'data-value': it.value, 'data-curseur': i === curseur ? '1' : undefined, onMouseMove: () => { if (curseur !== i) setCurseur(i) }, onClick: () => choisir(it) },
+          h('span', null, it.label), h('svg', { viewBox: '0 0 16 16', fill: 'none', stroke: 'currentColor', strokeWidth: 1.7, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true' }, h('path', { d: 'M3.5 8.5l3 3 6-6.5' }))))
+      })
+      return h('div', { className: 'kbr-pick', ref: racine },
+        h('button', {
+          ref: bouton, type: 'button', className: props.classe, disabled: props.disabled, 'aria-haspopup': 'listbox', 'aria-expanded': ouvert ? 'true' : 'false', 'aria-label': props.ariaLabel, title: props.title,
+          'data-kbr': props.dataKbr, 'data-value': props.value, onClick: () => { if (ouvert) fermer(false); else ouvrir() },
+        }, h('span', { className: 'kbr-pick-cur' }, courant !== undefined ? courant.label : props.value),
+        h('svg', { className: 'kbr-pick-chev', viewBox: '0 0 12 8', fill: 'none', stroke: 'currentColor', strokeWidth: 1.6, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true' }, h('path', { d: 'M1.5 1.75L6 6.25l4.5-4.5' }))),
+        ouvert ? h('div', { className: 'kbr-pick-pop' + (haut ? ' up' : ''), 'data-kbr': 'brain-pop' },
+          h('div', { className: 'kbr-pick-q' },
+            h('input', { ref: champ, className: 'kbr-pick-in', type: 'search', placeholder: props.recherche, 'aria-label': props.recherche, value: requete, onKeyDown: touche, onChange: (e) => { setRequete(e.target.value); setCurseur(0) } })),
+          visibles.length > 0
+            ? h('ul', { className: 'kbr-pick-list', role: 'listbox', 'aria-label': props.ariaLabel, ref: liste }, lignes)
+            : h('div', { className: 'kbr-pick-none', role: 'status' }, props.aucun)) : null)
+    }
+
     function ReglagesKybernos (...args) {
       try { return ReglagesCorps.apply(this, args) }
       catch (e) { window.__kbrPile = String((e && e.stack) || e).slice(0, 900); return h('div', { className: 'kbr-page', 'data-kbr': 'bloc' }, kt('Erreur : ', 'Error: ') + String(e).slice(0, 140)) }
@@ -2562,7 +2669,7 @@ window.__ModuleLoader__.load({
             setReglages(j && j.reglages && typeof j.reglages === 'object' ? j.reglages : autoDefauts())
             setEtude(j && j.etude && typeof j.etude === 'object' ? j.etude : null)
           })
-          .catch(() => { setReglages(autoDefauts()); setErreur(kt('Route des réglages injoignable — la valeur affichée est celle par défaut.', 'Settings route unreachable — the value shown is the default.')) })
+          .catch(() => { setReglages(autoDefauts()); setErreur(kt('Les réglages n’ont pas répondu : la valeur affichée est celle par défaut.', 'The settings did not answer: the value shown is the default.')) })
         kbModeles().then((l) => setModeles(l))
       }, [])
       // NATIVE classes of the shell, copied live from a neighbouring row of the
@@ -2632,19 +2739,20 @@ window.__ModuleLoader__.load({
       // The Study model row: three states (Automatic, a pick, None), read by the pure `etudeVue`.
       const vue = etudeVue(reglages, etude, modeles)
       const brain = vue.valeur
-      const groupes = []
+      // Automatic first (the default, and it names the model it uses), then a saved pick that is NOT configured anymore (otherwise the list would show
+      // Automatic while the file says something else — the screen would lie about its own content), then the configured models by route, then None.
+      const choixEtude = [{ value: '', label: vue.libelleAuto }]
+      if (vue.introuvable) choixEtude.push({ value: brain, label: brain + kt(' — n’est plus configuré', ' — not configured anymore') })
       if (Array.isArray(modeles)) {
         const parRoute = {}
         for (const mo of modeles) { if (parRoute[mo.route] === undefined) parRoute[mo.route] = []; parRoute[mo.route].push(mo) }
-        for (const route of Object.keys(parRoute).sort()) {
-          groupes.push(h('optgroup', { key: route, label: route },
-            parRoute[route].map((mo) => h('option', { key: mo.cle, value: mo.cle }, mo.id))))
-        }
+        for (const route of Object.keys(parRoute).sort()) for (const mo of parRoute[route]) choixEtude.push({ value: mo.cle, label: mo.id, group: route })
       }
+      choixEtude.push({ value: 'none', label: kt('Aucun', 'None') })
       return h('div', { className: 'kbr-page', 'data-kbr': 'bloc' },
         // (28/09, audit) 26px page title like Theme/Maintenance/Tools —
         // the native h4 (16px) was the only small page title of the dialog.
-        h('div', { style: { display: 'flex', justifyContent: 'flex-end', width: '100%', marginBottom: 6 } }, (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-sessions' }) : null)),
+        h('div', { className: 'kbhp-row' }, (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-sessions' }) : null)),
         h('h4', { className: 'kb6-title', style: { fontSize: natif ? undefined : '26px' } }, kt('Réglages Kybernos', 'Kybernos Settings')),
         // ── at the very top: replay the onboarding ───────────────────────────
         // The wizard lives in the @local/kybernos bundle: we only emit the
@@ -2660,16 +2768,6 @@ window.__ModuleLoader__.load({
             type: 'button', className: 'kbr-choix on', 'data-kbr': 'onboarding-replay-btn',
             onClick: () => { try { window.dispatchEvent(new CustomEvent('kybernos:onboarding', { detail: { action: 'replay' } })) } catch (e) { /* context without a window */ } }
           }, kt('Rejouer', 'Replay'))),
-        // The kit alone, later: the wizard's own page opens on the profession saved at the first run.
-        h('div', { className: natif ? natif.row : 'kbr-row', 'data-kbr': 'starter-kit' },
-          h('div', { className: natif ? natif.rowText : 'kbr-txt' },
-            h('div', { className: natif ? natif.title : undefined }, kt('Kit de départ', 'Starter kit')),
-            h('div', { className: natif ? natif.desc : undefined }, kt('Des skills et des équipes d’agents qui vont avec ton métier. Ouvre-le quand tu veux pour en ajouter, ou si tu changes de travail.',
-              'Skills and agent teams that fit your profession. Open it any time to add more, or after a change of work.'))),
-          h('button', {
-            type: 'button', className: 'kbr-choix on', 'data-kbr': 'starter-kit-btn',
-            onClick: () => { try { window.dispatchEvent(new CustomEvent('kybernos:onboarding', { detail: { action: 'kit' } })) } catch (e) { /* context without a window */ } }
-          }, kt('Ouvrir', 'Open'))),
         // The block of switches has its own heading (audit C-06): the sentence below used to introduce Name each chat… / Study model /
         // Permission / Language / Font size with nothing above it to say what the block is.
         h('h5', { className: 'kbr-sub', 'data-kbr': 'behaviour-title' }, kt('Comportement', 'Behaviour')),
@@ -2695,25 +2793,11 @@ window.__ModuleLoader__.load({
           h('div', { className: natif ? natif.rowText : 'kbr-txt', style: { flex: '1 1 260px' } },
             h('div', { className: natif ? natif.title : undefined }, kt('Modèle d’étude', 'Study model')),
             h('div', { className: natif ? natif.desc : undefined }, vue.description)),
-          h('select', {
-            className: natif && natif.sel ? natif.sel : 'kbr-select',
-            // Recette 2026-10 (C-13/B6): 160px truncated the model names
-            // (worse in RTL), and the title lived INSIDE style — never applied.
-            // title as an attribute (tooltip = full name), width raised.
-            style: { minWidth: '150px', maxWidth: '100%' }, 'data-kbr': 'brain-select', 'aria-label': kt('Modèle d’étude', 'Study model'),
-            title: brain === '' ? vue.libelleAuto : brain,
-            value: brain,
-            disabled: modeles === undefined,
-            onChange: (ev) => changerBrain(ev.target.value)
-          },
-            // Automatic first: it is the default, and it names the model it uses.
-            h('option', { value: '' }, vue.libelleAuto),
-            // A saved pick that is NOT configured anymore stays shown: otherwise the list would show Automatic while the file
-            // says something else — the screen would lie about its own content.
-            vue.introuvable ? h('option', { value: brain }, brain + kt(' — n’est plus configuré', ' — not configured anymore')) : null,
-            groupes.length > 0 ? h('option', { value: '__autre', disabled: true }, kt('Choisir un autre…', 'Choose another…')) : null,
-            groupes,
-            h('option', { value: 'none' }, kt('Aucun', 'None')))),
+          h(ChoixRecherche, {
+            items: choixEtude, value: brain, disabled: modeles === undefined, onChange: changerBrain, dataKbr: 'brain-select', classe: natif && natif.sel ? natif.sel : 'kbr-select',
+            ariaLabel: kt('Modèle d’étude', 'Study model'), title: brain === '' ? vue.libelleAuto : brain,
+            recherche: kt('Rechercher un modèle', 'Search a model'), aucun: kt('Aucun modèle ne correspond.', 'No model matches.'),
+          })),
         Array.isArray(modeles) && modeles.length === 0
           ? h('p', { className: 'kbr-note' }, kt('Aucun modèle n’est encore configuré dans Modèles : ajoute-en un là-bas et il apparaîtra dans cette liste.',
             'No model is configured in Models yet: add one there, and it will show up in this list.'))
@@ -2735,7 +2819,7 @@ window.__ModuleLoader__.load({
     // probed on the host (one real, tiny call each); a model that no longer answers is reported. Setting empty =
     // nobody is watching: no alert, even when the host is silent — we do not shout about a watch nobody asked for.
     //
-    // This bundle owns the PROBE and the state, and draws nothing. The alert lives in the AI Provider & Models tab
+    // This bundle owns the PROBE and the state, and draws nothing. The alert lives in the AI provider and models tab
     // only (user rule, 26/09/2026): kybernos-models renders it there, as a chip on the tab bar. The two bundles
     // meet on a small public contract, so neither imports the other:
     //   · `window.__kybernosHealth` = { version: 1, get(), recheck(), hide() } — `get()` is the view below, or
@@ -2986,7 +3070,7 @@ window.__ModuleLoader__.load({
       // the entry stays « loading » (the same contract as kybernos/kybernos-theme).
       inject: ['slots'],
       // Pure pieces, exposed for test-journal.mjs, test-sante.mjs and test-language.mjs.
-      __test: { memoireDuJournal, santeVue, santeCause, suivreSante, faitsChangements, genreDeCode, descripteur, etudeVue, kt, direErreur, ERR_REGLAGES, motAffiche, CATEGORIE_PAR_SLUG, MOTS_FR, ReglagesKybernos, rgRenommerGeneral },
+      __test: { memoireDuJournal, santeVue, santeCause, suivreSante, faitsChangements, genreDeCode, descripteur, etudeVue, choixCorrespondants, kt, direErreur, ERR_REGLAGES, motAffiche, CATEGORIE_PAR_SLUG, MOTS_FR, ReglagesKybernos, rgRenommerGeneral, Pills, PlanAction, Pop, Copier },
       apply
     }
   }

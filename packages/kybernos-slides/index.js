@@ -25,6 +25,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { existsSync } from 'node:fs'
+import { writeGuard } from './session-guard.mjs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 // Hosted instance: also accept the authorities declared to DSH with --trusted-host. The core bundle publishes the predicate
@@ -43,6 +44,10 @@ const kbHostOK = (req) => {
     return ['127.0.0.1' + port, 'localhost' + port, '[::1]' + port].indexOf(host) >= 0 || kbTrusted(host)
   } catch (e) { return false }
 }
+// What `register` hands back takes the route off again. It is kept here and given to `ctx.effect` by `apply`, so that unloading the plugin removes every route it
+// added: without it a hot reload met « duplicate exact route », logged « routes not mounted » and went on serving the OLD handlers (audit L4-05, L6-04).
+const kbRetraits = []
+const kbRetirerRoutes = () => { for (const retrait of kbRetraits.splice(0).reverse()) { try { retrait() } catch (e) { /* already gone */ } } }
 const kbFenced = (service) => {
   if (service === null || service === undefined || typeof service.register !== 'function') return service
   const fence = (route) => (route !== null && typeof route === 'object' && typeof route.handler === 'function'
@@ -56,7 +61,7 @@ const kbFenced = (service) => {
       },
     })
     : route)
-  return new Proxy(service, { get: (target, key) => (key === 'register' ? (route) => target.register(fence(route)) : (typeof target[key] === 'function' ? target[key].bind(target) : target[key])) })
+  return new Proxy(service, { get: (target, key) => (key === 'register' ? (route) => { const retrait = target.register(fence(route)); if (typeof retrait === 'function') kbRetraits.push(retrait); return retrait } : (typeof target[key] === 'function' ? target[key].bind(target) : target[key])) })
 }
 
 export const name = 'kybernos-slides'
@@ -70,6 +75,9 @@ const DUREE_MIN_MS = 2_000
 const DUREE_MAX_MS = 120_000
 const SLIDES_MAX = 60
 const EDITS_MAX = 400
+// A deck is bounded to SLIDES_MAX slides and EDITS_MAX edits: a bigger body is refused before it is read into memory (a 20 MB
+// POST used to be loaded whole, then normalized down to 60 slides).
+const CORPS_MAX = 1_000_000
 
 const dire = (msg) => console.log(`[kybernos-slides] ${msg}`)
 
@@ -243,15 +251,14 @@ export function creerMagasin () {
       return { ...a }
     },
     deck (sessionId) {
-      if (typeof sessionId === 'string' && sessionId.length > 0 && decks.has(sessionId)) {
-        return decks.get(sessionId)
-      }
+      // The last deck of ANY session is only a fallback for a request that names no session (Creations, a first paint).
+      // With a session id supplied, an unknown one means « this chat has no deck yet »: never another chat's deck.
+      if (typeof sessionId === 'string' && sessionId.length > 0) return decks.get(sessionId) ?? null
       return derniere(decks)
     },
     annotations (sessionId) {
-      const cle = (typeof sessionId === 'string' && sessionId.length > 0 && annotations.has(sessionId))
-        ? sessionId
-        : derniereCle(annotations, decks)
+      if (typeof sessionId === 'string' && sessionId.length > 0) return annotations.get(sessionId) || null
+      const cle = derniereCle(annotations, decks)
       if (cle === null) return null
       return annotations.get(cle) || null
     },
@@ -388,17 +395,44 @@ const origineOK = (req) => {
   } catch { return false }
 }
 
-const lireCorps = (req) => new Promise((res) => {
-  let corps = ''
-  req.on('data', (d) => { corps += d })
-  req.on('end', () => { try { res(JSON.parse(corps || '{}')) } catch { res({}) } })
-})
+/** The body, capped: a body over `limite` bytes raises TOO_LARGE instead of being concatenated whole (motion's readBody). */
+const lireCorps = async (req, limite) => {
+  const morceaux = []
+  let taille = 0
+  for await (const c of req) {
+    taille += c.length
+    if (taille > limite) { const e = new Error('too large'); e.code = 'TOO_LARGE'; throw e }
+    morceaux.push(c)
+  }
+  try { return JSON.parse(Buffer.concat(morceaux).toString('utf8') || '{}') } catch { return {} }
+}
 
 export function monterRoutes (webServerSvc, magasin) {
   webServerSvc = kbFenced(webServerSvc)
-  webServerSvc.register({ kind: 'exact', path: ROUTE_STATE, handler: async (req, res) => {
-    if (req.method !== 'GET') { res.writeHead(405); res.end('GET only'); return }
-    if (!origineOK(req)) { res.writeHead(403); res.end('origin refused'); return }
+  // Same template as kybernos-motion: a throwing store used to reject the async handler, and the engine answers by destroying the
+  // socket — the panel then saw a network failure instead of a message. Here it gets a 500 JSON (413 for an oversized body).
+  const route = (chemin, methodes, handler) => webServerSvc.register({
+    kind: 'exact',
+    path: chemin,
+    handler: async (req, res) => {
+      try {
+        if (!methodes.includes(req.method)) { res.writeHead(405); res.end(`${methodes.join(' or ')} only`); return }
+        if (!origineOK(req)) { res.writeHead(403); res.end('origin refused'); return }
+        await handler(req, res)
+      } catch (e) {
+        if (e && e.code === 'TOO_LARGE') {
+          if (res.headersSent) res.destroy()
+          else envoyer(res, 413, { ok: false, raison: 'corps_trop_gros', message: 'The body is too large.' })
+          return
+        }
+        dire(`${chemin}: ${e?.message ?? e}`)
+        if (res.headersSent) res.destroy()
+        else envoyer(res, 500, { ok: false, raison: 'erreur_hote', message: 'Something went wrong on the host.' })
+      }
+    },
+  })
+
+  route(ROUTE_STATE, ['GET'], async (req, res) => {
     const u = new URL(req.url, 'http://127.0.0.1')
     const session = u.searchParams.get('session')
     const deck = magasin.deck(session)
@@ -424,12 +458,14 @@ export function monterRoutes (webServerSvc, magasin) {
       },
       serveur: Date.now(),
     })
-  } })
+  })
 
-  webServerSvc.register({ kind: 'exact', path: ROUTE_PUSH, handler: async (req, res) => {
-    if (req.method !== 'POST') { res.writeHead(405); res.end('POST only'); return }
-    if (!origineOK(req)) { res.writeHead(403); res.end('origin refused'); return }
-    const corps = await lireCorps(req)
+  route(ROUTE_PUSH, ['POST'], async (req, res) => {
+    // A-16: a push WRITES the deck (and the annotations) a panel replays. Its caller is the panel in the person's page — a same-origin
+    // fetch, so the browser sends its cookie; the agent's tool writes the store in-process and never goes through this route.
+    const refus = writeGuard(req)
+    if (refus !== null) { envoyer(res, refus.status, { ok: false, error: refus.error }); return }
+    const corps = await lireCorps(req, CORPS_MAX)
     if (corps && typeof corps === 'object' && (Array.isArray(corps.edits) || (corps.strokes && typeof corps.strokes === 'object'))) {
       const a = magasin.pousserAnnotations(corps)
       envoyer(res, 200, { ok: true, annotations: { version: a.version, edits: a.edits.length, strokes: a.strokes.length } })
@@ -443,7 +479,7 @@ export function monterRoutes (webServerSvc, magasin) {
     }
     const deck = magasin.pousserDeck(corps)
     envoyer(res, 200, { ok: true, version: deck.version, titre: deck.titre, dureeMs: deck.dureeMs })
-  } })
+  })
 
   dire(`routes ${ROUTE_STATE} and ${ROUTE_PUSH} registered`)
 }
@@ -451,6 +487,7 @@ export function monterRoutes (webServerSvc, magasin) {
 // ── le plugin hôte ──────────────────────────────────────────────────────────
 
 export function apply (ctx) {
+  if (ctx !== null && ctx !== undefined && typeof ctx.effect === 'function') ctx.effect(() => kbRetirerRoutes, 'kybernos-slides: routes')
   const magasin = creerMagasin()
   // Les services sont lus par `ctx.get` (jamais `ctx.<nom>` avant que l'inject
   // n'ait résolu) : c'est la forme qui marche aussi bien dans cordis que dans

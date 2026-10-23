@@ -244,5 +244,23 @@ const finite = (s) => !/NaN|Infinity|undefined/.test(s)
   ok('gallery header: the core plugin\'s primary button keeps its colours inside the page', /\.kbdb \.kb8-primary\{color:var\(--dsw-alias-label-primary-foreground\)\}/.test(plugin))
 }
 
+{
+  // L2-08: the gallery says which dashboard files could not be read (they used to vanish from the page without a word)
+  const plugin = text('./src/plugin.js')
+  const flat = (n) => (n === null || n === undefined || typeof n === 'boolean' ? '' : (typeof n === 'string' || typeof n === 'number' ? String(n) : (Array.isArray(n) ? n.map(flat).join('') : flat(n.c))))
+  const one = T.UnreadableNotice({ items: [{ id: 'broken', code: 'invalid-json', message: 'The dashboard file is not valid JSON.' }] })
+  ok('unreadable notice: names the file and the reason, with a hook for the checks', one !== null && one.p['data-kb'] === 'dashboards-unreadable' && flat(one) === 'Dashboard that cannot be read: broken.miniapp.json (invalid JSON)', flat(one))
+  const many = T.UnreadableNotice({ items: ['a', 'b', 'c', 'd', 'e', 'f'].map((id) => ({ id, code: 'too-large' })) })
+  ok('unreadable notice: several files are listed, the list is cut after five', /^Dashboards that cannot be read: a\.miniapp\.json \(file too large\), b\./.test(flat(many)) && !flat(many).includes('f.miniapp.json') && flat(many).endsWith('…'), flat(many))
+  ok('unreadable notice: nothing to say, nothing drawn', T.UnreadableNotice({ items: [] }) === null && T.UnreadableNotice({ items: undefined }) === null)
+  ok('the gallery draws it above the dashboards and the page keeps the host\'s list', plugin.indexOf("h(UnreadableNotice, { items: list === null ? [] : list.unreadable }),") > 0 && plugin.indexOf("h(UnreadableNotice, { items: list === null ? [] : list.unreadable }),") < plugin.indexOf("kt('Mes dashboards'") && /unreadable: Array\.isArray\(l\.json\.unreadable\)/.test(plugin))
+  // Kaby's suggestions: a dashed block above « My dashboards », Add / Preview / Discard, the menu row pulses on the count
+  ok('suggested dashboards: a dashed block above My dashboards, not in the list, not counted as hidden', plugin.indexOf("'data-kb': 'suggested-block'") > plugin.indexOf('h(UnreadableNotice,') && plugin.indexOf("'data-kb': 'suggested-block'") < plugin.indexOf("kt('Mes dashboards'") && /const mine = items\.filter\(\(d\) => !d\.archived && d\.suggested !== true/.test(plugin) && /hiddenCount = items\.filter\(\(d\) => d\.hidden && !d\.archived && d\.suggested !== true\)/.test(plugin))
+  ok('suggested dashboards: never opened by itself, not even as the only dashboard', plugin.includes("filter((d) => !d.archived && d.suggested !== true)\n      const want = WANT_OPEN_ID"))
+  ok('suggested dashboards: a waiting suggestion keeps the only dashboard from opening by itself, and the way back to the gallery pulses', plugin.includes("live.length === 1 && !(l.dashboards || []).some((d) => d.suggested === true && !d.archived)") && plugin.includes("'data-kb': 'crumb-gallery'") && plugin.includes('sug.length > 0 ? h(\'i\', { className: \'kb-ping\''))
+  ok('suggested dashboards: Add clears the flag, Discard asks the discard route, Preview opens it', plugin.includes("act('flags', { id: d.id, suggested: false }") && plugin.includes("act('discard', { id: d.id }") && plugin.includes("'data-kb': 'suggested-view', onClick: () => open(d.id)"))
+  ok('suggested dashboards: the menu row is told how many wait, from the list and from the 1.5 s probe', plugin.includes("set('dashboards', { review:") && plugin.includes('publishWaiting((l.json.dashboards') && plugin.includes('publishWaiting(s.json.suggested)'))
+}
+
 console.log(fail === 0 ? 'client: ok (' + passed + ' checks)' : fail + ' failed of ' + (passed + fail))
 process.exit(fail ? 1 : 0)

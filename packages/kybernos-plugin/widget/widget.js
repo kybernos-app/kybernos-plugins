@@ -52,6 +52,8 @@
   var K_VID = 'kbw:' + team + ':vid'
   var K_EMAIL = 'kbw:' + team + ':email'
   var K_CONVS = 'kbw:' + team + ':convs'
+  // Per-conversation deletion tokens, minted by the host with the conversation ({id: token}). The id alone no longer deletes.
+  var K_TOKENS = 'kbw:' + team + ':tokens'
   var lisVal = function (k) { try { return localStorage.getItem(k) } catch (e) { return null } }
   var ecritVal = function (k, v) { try { if (v) localStorage.setItem(k, v); else localStorage.removeItem(k) } catch (e) { /* navigation privée */ } }
   var alea = function () {
@@ -327,6 +329,8 @@
       }).then(function (r) { return r.json().catch(function () { return {} }) }).then(function (rep) {
         if (rep && rep.ok === true && rep.conversationId) {
           convId = rep.conversationId
+          // The host hands the deletion token back ONCE, when it creates the conversation: keep it for My history → Delete.
+          if (typeof rep.token === 'string' && rep.token !== '') retenirJeton(convId, rep.token)
           try {
             localStorage.setItem(convKey, convId)
             var liste = []
@@ -370,6 +374,16 @@
     var listeConvs = function () {
       try { return JSON.parse(localStorage.getItem(K_CONVS) || '[]') } catch (e) { return [] }
     }
+    // Tokens of the conversations this browser created; a conversation from before this rule has none (it cannot be deleted).
+    var jetonsConvs = function () {
+      try { var m = JSON.parse(localStorage.getItem(K_TOKENS) || '{}'); return m !== null && typeof m === 'object' ? m : {} } catch (e) { return {} }
+    }
+    var retenirJeton = function (idc, tok) {
+      try { var m = jetonsConvs(); m[idc] = tok; localStorage.setItem(K_TOKENS, JSON.stringify(m)) } catch (e) { /* navigation privée */ }
+    }
+    var oublierJeton = function (idc) {
+      try { var m = jetonsConvs(); delete m[idc]; localStorage.setItem(K_TOKENS, JSON.stringify(m)) } catch (e) { /* rien */ }
+    }
     bascule.addEventListener('click', function () {
       var vieux = hist.querySelector('.kbwgt-hist')
       if (vieux !== null) { vieux.remove(); return }
@@ -389,9 +403,12 @@
         eff.style.cssText = 'background:none;border:0;padding:0;cursor:pointer;font:inherit;text-decoration:underline;color:#b3261e'
         eff.textContent = 'Delete'
         eff.addEventListener('click', function () {
-          fetch(apiBase + '/history-delete', { method: 'POST', body: JSON.stringify({ team: team, conversation: idc }) }).catch(function () { /* le serveur rattrapera */ })
+          // The host refuses a delete without the conversation's token; the local list is cleared either way.
+          var jeton = jetonsConvs()[idc]
+          fetch(apiBase + '/history-delete', { method: 'POST', body: JSON.stringify({ team: team, conversation: idc, token: typeof jeton === 'string' ? jeton : '' }) }).catch(function () { /* le serveur rattrapera */ })
           var reste = listeConvs().filter(function (x) { return x !== idc })
           try { localStorage.setItem(K_CONVS, JSON.stringify(reste)) } catch (e2) { /* rien */ }
+          oublierJeton(idc)
           if (idc === convId) {
             convId = null
             vus = 0

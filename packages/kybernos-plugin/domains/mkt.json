@@ -1,0 +1,295 @@
+{
+  "v": 1,
+  "id": "mkt",
+  "order": 70,
+  "accent": "#C2255C",
+  "icon": "mega",
+  "name": {
+    "en": "Marketing",
+    "fr": "Marketing"
+  },
+  "tagline": {
+    "en": "Campaigns, content, SEO, communication",
+    "fr": "Campagnes, contenu, SEO, communication"
+  },
+  "keywords": [
+    "marketing",
+    "seo",
+    "community manager",
+    "communication",
+    "contenu",
+    "content",
+    "newsletter",
+    "growth",
+    "publicite",
+    "advertising",
+    "reseaux sociaux",
+    "social media",
+    "brand",
+    "marque",
+    "copywriter",
+    "redacteur"
+  ],
+  "home": [
+    "slides",
+    "image",
+    "doc"
+  ],
+  "legacyJobs": [
+    "marketing",
+    "medias"
+  ],
+  "menu": {
+    "labels": {
+      "dashboards": {
+        "en": "Performance",
+        "fr": "Performance"
+      },
+      "aiteams": {
+        "en": "Content team",
+        "fr": "Équipe contenu"
+      },
+      "deliverables": {
+        "en": "Content",
+        "fr": "Contenus"
+      },
+      "tasks": {
+        "en": "Calendar",
+        "fr": "Calendrier"
+      }
+    },
+    "hide": [
+      "documents"
+    ]
+  },
+  "agents": {
+    "preset": "balanced",
+    "why": {
+      "en": "Every post is reviewed; content can be edited freely.",
+      "fr": "Chaque publication est relue ; les contenus se retouchent librement."
+    }
+  },
+  "goals": [
+    {
+      "id": "content",
+      "name": {
+        "en": "Content",
+        "fr": "Contenu"
+      },
+      "title": {
+        "en": "Produce more content",
+        "fr": "Produire plus de contenu"
+      },
+      "desc": {
+        "en": "Posts and articles in your voice",
+        "fr": "Des posts et des articles dans ta voix"
+      },
+      "skills": [
+        {
+          "source": "anthropics/knowledge-work-plugins",
+          "name": "content-creation",
+          "d": {
+            "en": "Draft posts, scripts and pages",
+            "fr": "Rédige posts, scripts et pages"
+          }
+        },
+        {
+          "source": "anthropics/knowledge-work-plugins",
+          "name": "brand-voice-enforcement",
+          "d": {
+            "en": "Keep a consistent voice",
+            "fr": "Garde une voix cohérente"
+          }
+        }
+      ],
+      "connectors": [
+        "canva",
+        "notion",
+        "linkedin"
+      ],
+      "automations": [
+        {
+          "id": "weekly-content-plan",
+          "name": {
+            "en": "Weekly content plan",
+            "fr": "Plan de contenu de la semaine"
+          },
+          "prompt": {
+            "en": "Every Monday at 09:00: propose this week’s content (three posts and one article idea) from the latest article or announcement in this workspace, in our brand voice (use the brand-voice-enforcement skill). Drafts only.",
+            "fr": "Chaque lundi à 9 h : propose le contenu de la semaine (trois posts et une idée d’article) à partir du dernier article ou de la dernière annonce de ce workspace, dans la voix de notre marque (utilise le skill brand-voice-enforcement). Brouillons seulement."
+          },
+          "cron": "0 9 * * 1"
+        }
+      ],
+      "soon": [
+        {
+          "en": "Content Studio team",
+          "fr": "Équipe Content Studio"
+        },
+        {
+          "en": "Community Manager team",
+          "fr": "Équipe Community Manager"
+        }
+      ],
+      "starter": {
+        "en": "Write three posts in my voice",
+        "fr": "Écris trois posts dans ma voix"
+      }
+    },
+    {
+      "id": "campaigns",
+      "name": {
+        "en": "Campaigns",
+        "fr": "Campagnes"
+      },
+      "title": {
+        "en": "Run campaigns end to end",
+        "fr": "Mener mes campagnes de bout en bout"
+      },
+      "desc": {
+        "en": "Plan, launch and follow",
+        "fr": "Planifier, lancer, suivre"
+      },
+      "skills": [
+        {
+          "source": "anthropics/knowledge-work-plugins",
+          "name": "campaign-plan",
+          "d": {
+            "en": "Plan a campaign end to end",
+            "fr": "Planifie une campagne de bout en bout"
+          }
+        }
+      ],
+      "teams": [
+        "inbound-closer"
+      ],
+      "connectors": [
+        "mailchimp",
+        "klaviyo",
+        "hubspot"
+      ],
+      "automations": [
+        {
+          "id": "campaign-report",
+          "name": {
+            "en": "Weekly campaign report",
+            "fr": "Rapport de campagne hebdomadaire"
+          },
+          "prompt": {
+            "en": "Every Monday at 09:00: if my marketing apps are connected, summarise last week’s campaigns: what ran, the results, what to change. Otherwise use the report files in this workspace. Say what data is missing.",
+            "fr": "Chaque lundi à 9 h : si mes apps marketing sont connectées, résume les campagnes de la semaine dernière : ce qui a tourné, les résultats, ce qu’il faut changer. Sinon utilise les fichiers de rapport de ce workspace. Dis quelles données manquent."
+          },
+          "cron": "0 9 * * 1"
+        }
+      ],
+      "soon": [
+        {
+          "en": "Growth Hacker team",
+          "fr": "Équipe Growth Hacker"
+        }
+      ],
+      "starter": {
+        "en": "Plan the May campaign",
+        "fr": "Planifie la campagne de mai"
+      }
+    },
+    {
+      "id": "seo",
+      "name": {
+        "en": "SEO",
+        "fr": "SEO"
+      },
+      "title": {
+        "en": "Rank better in search",
+        "fr": "Gagner en SEO"
+      },
+      "desc": {
+        "en": "Audit a page or a site",
+        "fr": "Auditer une page ou un site"
+      },
+      "skills": [
+        {
+          "source": "anthropics/knowledge-work-plugins",
+          "name": "seo-audit",
+          "d": {
+            "en": "Audit a page or a site for search",
+            "fr": "Audite une page ou un site pour le SEO"
+          }
+        }
+      ],
+      "connectors": [
+        "ahrefs",
+        "googlesheets"
+      ],
+      "starter": {
+        "en": "Audit this page for SEO",
+        "fr": "Audite cette page pour le SEO"
+      }
+    },
+    {
+      "id": "voice",
+      "name": {
+        "en": "Brand voice",
+        "fr": "Voix de marque"
+      },
+      "title": {
+        "en": "Keep one brand voice",
+        "fr": "Garder une voix de marque"
+      },
+      "desc": {
+        "en": "Every text read with the same voice",
+        "fr": "Tous les textes relus avec la même voix"
+      },
+      "skills": [
+        {
+          "source": "anthropics/knowledge-work-plugins",
+          "name": "brand-voice-enforcement",
+          "d": {
+            "en": "Keep a consistent voice",
+            "fr": "Garde une voix cohérente"
+          }
+        }
+      ],
+      "connectors": [
+        "notion"
+      ],
+      "starter": {
+        "en": "Re-read this text in our brand voice",
+        "fr": "Relis ce texte avec notre voix de marque"
+      }
+    },
+    {
+      "id": "decks",
+      "name": {
+        "en": "Decks",
+        "fr": "Présentations"
+      },
+      "title": {
+        "en": "Build my presentations",
+        "fr": "Construire mes présentations"
+      },
+      "desc": {
+        "en": "Slide decks from a brief",
+        "fr": "Des présentations à partir d’un brief"
+      },
+      "skills": [
+        {
+          "source": "anthropics/skills",
+          "name": "pptx",
+          "d": {
+            "en": "Build slide decks",
+            "fr": "Construit des présentations"
+          }
+        }
+      ],
+      "connectors": [
+        "canva",
+        "figma"
+      ],
+      "starter": {
+        "en": "Build a five-slide deck on this brief",
+        "fr": "Construis une présentation de cinq slides sur ce brief"
+      }
+    }
+  ]
+}

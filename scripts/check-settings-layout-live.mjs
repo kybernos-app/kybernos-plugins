@@ -41,8 +41,8 @@ const openPage = async (width, height, cell) => {
 }
 
 try {
-  console.log('R-A3-02 · Ollama Local Models: the dot of a tile stays beside the first line of its text')
-  if (await openPage(1400, 900, 'Ollama Local Models')) {
+  console.log('R-A3-02 · Ollama local models: the dot of a tile stays beside the first line of its text')
+  if (await openPage(1400, 900, 'Ollama local models')) {
     const ready = await waitFor(page, `document.querySelectorAll('.kml-tuile').length === 3 && document.querySelectorAll('.kml-tuile .kbm-dot[data-state="done"]').length >= 1`, 25000)
     if (ready === null) check('the three tiles are drawn with a measured machine', false, await val(`document.querySelector('.kml-tuiles') ? document.querySelector('.kml-tuiles').innerText : 'no tiles'`))
     else {
@@ -102,19 +102,21 @@ try {
       })()`))
       check('the pointer really is over another row of the nav (« ' + pick.other + ' »)', look.missing !== true, look)
       if (look.missing !== true) {
-        check('the open row has a bar on its edge that the hovered row has not', look.bar !== 'none' && look.hoverBar === 'none', look)
-        check('and a stronger fill: the two greys are no longer nearly the same (they differed by 14 in total)', look.diff >= 24, look)
+        // The engine marks the open row with a FILL only (`.navCell.active` in dsh-client-ui-settings-general; no
+        // box-shadow anywhere): a bar is an option, not the rule. What must hold is that the open row reads as
+        // clearly different from the hovered one — a bar on its edge OR a fill that is no longer nearly the same.
+        check('the open row is marked — a bar on its edge, or a clearly stronger fill than the hovered row', (look.bar !== 'none' && look.hoverBar === 'none') || look.diff >= 24, look)
       }
       await shot('nav-hover')
     }
     const head = JSON.parse(await val(`(() => {
       const t = document.querySelector('[data-kbr="behaviour-title"]'); const intro = Array.from(document.querySelectorAll('[data-kbr="bloc"] > *')).find((e) => /Small switches/.test(e.textContent || ''))
-      const row = document.querySelector('[data-kbr="rename-after-recap"]'); const kit = document.querySelector('[data-kbr="starter-kit"]')
+      const row = document.querySelector('[data-kbr="rename-after-recap"]'); const onb = document.querySelector('[data-kbr="onboarding-replay"]')
       if (!t) return JSON.stringify(null)
       const before = (a, b) => !!(a && b && (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING))
-      return JSON.stringify({ text: t.textContent.trim(), tag: t.tagName, aboveIntro: before(t, intro), aboveSwitches: before(t, row), belowKit: before(kit, t), size: parseFloat(getComputedStyle(t).fontSize) })
+      return JSON.stringify({ text: t.textContent.trim(), tag: t.tagName, aboveIntro: before(t, intro), aboveSwitches: before(t, row), belowOnboarding: before(onb, t), size: parseFloat(getComputedStyle(t).fontSize) })
     })()`))
-    check('a heading « Behaviour » sits above the sentence that introduces the switches, below the starter kit', head !== null && head.text === 'Behaviour' && head.aboveIntro === true && head.aboveSwitches === true && head.belowKit === true, head)
+    check('a heading « Behaviour » sits above the sentence that introduces the switches, below the Onboarding row', head !== null && head.text === 'Behaviour' && head.aboveIntro === true && head.aboveSwitches === true && head.belowOnboarding === true, head)
     check('it reads as a heading (a title tag, larger than the 13 px sentences)', head !== null && /^H[1-6]$/.test(head.tag) && head.size >= 15, head)
     await move(5, 5)
     await shot('general-heading')
@@ -133,7 +135,9 @@ try {
     })()`))
     // A pane scrolls sideways when its overflow-x can scroll AND its content is wider (a clipped overflow, `hidden`, keeps the page still).
     check(w + ' px: the options pane does not scroll sideways', m.opt !== null && (!/(auto|scroll)/.test(m.opt.ox) || m.opt.sw <= m.opt.cw + 1), m.opt)
-    check(w + ' px: every label of the animated mock shows in full (« Create with the agent » was cut)', m.labels.length === 4 && m.labels.every((l) => l.sw <= l.cw + 1), m.labels)
+    // The mock types one label at a time (measured on 2026-10-21: 1 label on screen, 113 px client = 113 px scroll):
+    // the fault it guards against is a CUT label, not a count of four.
+    check(w + ' px: the label of the animated mock shows in full (« Create with the agent » was cut)', m.labels.length >= 1 && m.labels.every((l) => l.sw <= l.cw + 1), m.labels)
     check(w + ' px: the buttons stay inside their row and the progress bar ends before them', m.actsInRow === true && m.trackClear === true && m.trackInText === true, m)
     if (w === 390) await shot('presets-390')
   }

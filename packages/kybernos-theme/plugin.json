@@ -1,0 +1,47 @@
+{
+  "contract": 1,
+  "id": "kybernos/theme",
+  "kind": "code",
+  "version": "0.1.0",
+  "name": {
+    "en": "Theme",
+    "fr": "Thème"
+  },
+  "description": {
+    "en": "Theme, palettes, background, font and thinking animation.",
+    "fr": "Thème, palettes, fond, police et animation de réflexion."
+  },
+  "icon": "palette",
+  "family": "base",
+  "author": {
+    "id": "kybernos",
+    "name": "Kybernos"
+  },
+  "license": "Apache-2.0",
+  "pricing": "free",
+  "package": "@local/kybernos-theme",
+  "entry": {
+    "host": "index.js",
+    "client": "client.js"
+  },
+  "requires": {
+    "kybernos": ">=0.1.0"
+  },
+  "permissions": [
+    "ui.slot:settings.section",
+    "ui.dom",
+    "host.routes:/kybernos-theme:write",
+    "fs.write:dsh-home",
+    "net:raw.githubusercontent.com"
+  ],
+  "claims": {
+    "routePrefixes": [
+      "/kybernos-theme"
+    ]
+  },
+  "help": "help.json",
+  "suite": {
+    "core": true,
+    "default": "on"
+  }
+}

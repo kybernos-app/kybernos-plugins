@@ -22,12 +22,12 @@ if (a < 0 || b < a) { console.log('  ✗ cannot cut the nav title helpers out of
 const { KB_NAV_KEYS, kbNavKeyOf, kbNavTitles } = new Function(SRC.slice(a, b) + '\nreturn { KB_NAV_KEYS, kbNavKeyOf, kbNavTitles }')()
 
 // What the organiser knows by title (its GROUPES and ICONES, in normalised form): every key must lead to a title it can place.
-const ORGANISER = new Set(readFileSync(new URL('./client.js', import.meta.url), 'utf8').match(/'[a-z0-9 &.-]+'/g).map((x) => x.slice(1, -1)))
+const ORGANISER = new Set(readFileSync(new URL('./client.js', import.meta.url), 'utf8').match(/'[a-z0-9 &.()-]+'/g).map((x) => x.slice(1, -1)))
 const cell = (key) => ({ ['__reactFiber$abc']: { key } })
 
 console.log('a cell is named by its React key')
 {
-  check('the key of a core cell is read from its fiber', kbNavKeyOf(cell('kbac-appearance')) === 'kbac-appearance')
+  check('the key of a core cell is read from its fiber', kbNavKeyOf(cell('kybernos-theme')) === 'kybernos-theme')
   check('a cell with no fiber has no key (null, not an error)', kbNavKeyOf({}) === null)
   check('a fiber that throws is not an error either', kbNavKeyOf(new Proxy({}, { ownKeys() { throw new Error('boom') } })) === null)
   check('a fiber whose key is not a string (a numeric key, null) has none', kbNavKeyOf(cell(7)) === null && kbNavKeyOf(cell(null)) === null)
@@ -35,11 +35,11 @@ console.log('a cell is named by its React key')
 
 console.log('the title is the one the organiser knows, in any language')
 {
-  const keys = ['general', 'kybernos-theme', 'kybernos-language', 'kybernos-servers', 'kbac-appearance', 'kybernos-slash', 'kybernos-maintenance']
-  const german = ['allgemein', 'design', 'sprache', 'server', 'erscheinungsbild', 'befehle', 'uber']
-  check('German titles nobody knows become the known ones, cell by cell', JSON.stringify(kbNavTitles(german, keys)) === JSON.stringify(['general', 'theme', 'language', 'servers', 'appearance', 'commands', 'about']))
-  check('the same cells in English come out the same', JSON.stringify(kbNavTitles(['general', 'theme', 'language', 'servers', 'appearance', 'commands', 'about'], keys)) === JSON.stringify(['general', 'theme', 'language', 'servers', 'appearance', 'commands', 'about']))
-  check('the same cells in French come out the same', JSON.stringify(kbNavTitles(['general', 'theme', 'langue', 'serveurs', 'apparence', 'commandes', 'a propos'], keys)) === JSON.stringify(['general', 'theme', 'language', 'servers', 'appearance', 'commands', 'about']))
+  const keys = ['general', 'kybernos-theme', 'kybernos-language', 'kybernos-servers', 'kybernos-slash', 'kybernos-maintenance']
+  const german = ['allgemein', 'design', 'sprache', 'server', 'befehle', 'uber']
+  check('German titles nobody knows become the known ones, cell by cell', JSON.stringify(kbNavTitles(german, keys)) === JSON.stringify(['general', 'theme', 'language', 'servers', 'commands', 'about']))
+  check('the same cells in English come out the same', JSON.stringify(kbNavTitles(['general', 'theme', 'language', 'servers', 'commands', 'about'], keys)) === JSON.stringify(['general', 'theme', 'language', 'servers', 'commands', 'about']))
+  check('the same cells in French come out the same', JSON.stringify(kbNavTitles(['general', 'theme', 'langue', 'serveurs', 'commandes', 'a propos'], keys)) === JSON.stringify(['general', 'theme', 'language', 'servers', 'commands', 'about']))
 }
 
 console.log('what has no known key keeps what is drawn')

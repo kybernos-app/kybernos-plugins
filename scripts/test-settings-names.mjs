@@ -4,10 +4,10 @@
 //
 //   node scripts/test-settings-names.mjs
 //
-// Born from the audit of 2026-10-16: the nav said « Ollama Local Models », « Skills », « Commands » and « Memory & Lessons » while the
+// Born from the audit of 2026-10-16: the nav said « Ollama local models », « Skills », « Commands » and « Memory & Lessons » while the
 // pages said « Local models », « Skills — catalogue », « Commands & actions » and « Memory & Lessons learned », and the Suite had a
-// fifth spelling (« Slash commands », « About & Maintenance », « Web search »). The capitalisation of the nav is the one the menu
-// already had (Title Case for the pages of ours, sentence case for DSH's own: « Agent presets »): it is kept, the titles follow it.
+// fifth spelling (« Slash commands », « About & Maintenance », « Web search »). Sentence case everywhere (UX audit 2): the pages of
+// ours follow the menu's own house style, so « AI provider and models » and « Ollama local models » read like « Agent presets ».
 import { readFileSync, readdirSync, existsSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -24,12 +24,12 @@ const read = (...p) => readFileSync(join(REPO, ...p), 'utf8')
 
 // ── The nav, as it is drawn in English (the id of each section is the React key of its cell, the same in every language).
 const NAV = {
-  general: 'General', models: 'Models', 'kybernos-theme': 'Theme', 'kybernos-language': 'Language', 'kybernos-memory': 'Memory & Lessons', 'kbac-appearance': 'Appearance',
+  general: 'General', models: 'Models', 'kybernos-theme': 'Theme', 'kybernos-language': 'Language', 'kybernos-memory': 'Memory & Lessons',
   'kybernos-maintenance': 'About', 'kybernos-servers': 'Servers', 'kybernos-auto-page': 'Auto Routing', 'kybernos-websearch-page': 'Web Search',
-  plugins: 'Built-in plugins', 'kybernos-atlas': 'Atlas', 'kybernos-models': 'AI Provider & Models', 'agent-presets': 'Agent presets', voice: 'Voice',
-  'kybernos-slash': 'Commands', 'kybernos-ollama': 'Ollama Local Models', 'kybernos-suite': 'Kybernos Suite', 'kybernos-tools': 'Tools',
-  'kybernos-workers': 'Workers', 'kybernos-call': 'Calls', 'kybernos-usage': 'Usage', 'kybernos-automations': 'Automations', 'kybernos-skills': 'Skills',
-  'kybernos-composio': 'Connectors', 'kybernos-free-llms': 'Free LLMs', 'kybernos-mobile': 'Remote Control', 'kybernos-computers': 'Cloud computers',
+  plugins: 'Built-in plugins', 'kybernos-atlas': 'Atlas', 'kybernos-models': 'AI provider and models', 'agent-presets': 'Agent presets', voice: 'Voice',
+  'kybernos-slash': 'Commands', 'kybernos-ollama': 'Ollama local models', 'kybernos-suite': 'Kybernos Suite', 'kybernos-tools': 'Tools',
+  'kybernos-workers': 'Workers', 'kybernos-call': 'Calls', 'kybernos-kaby-customisation': 'Kaby', 'kybernos-usage': 'Usage', 'kybernos-automations': 'Automations', 'kybernos-skills': 'Skills', 'kybernos-skills-learned': 'Learned skills',
+  'kybernos-composio': 'Connectors', 'kybernos-free-llms': 'Free LLMs', 'kybernos-mobile': 'Phone and channels', 'kybernos-computers': 'Code sandbox (E2B)',
   'kybernos-local': 'Kybernos',
 }
 
@@ -57,7 +57,7 @@ const slNav = /label: kbslLabel\('([^']+)', '([^']+)'\)/.exec(slash)
 check('Commands: the title of its page is the nav entry, in both languages (not « Commands & actions »)', slTitle !== null && slNav !== null && slTitle[1] === slNav[1] && slTitle[2] === slNav[2] && slTitle[2] === NAV['kybernos-slash'], [slTitle && slTitle[0], slNav && slNav[0]])
 
 const ollama = read('packages', 'kybernos-modeles-locaux', 'client.js')
-check('Ollama Local Models: the page draws its heading from the key the nav label comes from (not from « Local models »)', /h\('h2', \{ className: 'kml-titre' \}, m\('kml\.page\.titre'\)\)/.test(ollama) && /label: m\('kml\.page\.titre'\)/.test(ollama) && !/'kml\.titre'/.test(ollama))
+check('Ollama local models: the page draws its heading from the key the nav label comes from (not from « Local models »)', /h\('h2', \{ className: 'kml-titre' \}, m\('kml\.page\.titre'\)\)/.test(ollama) && /label: m\('kml\.page\.titre'\)/.test(ollama) && !/'kml\.titre'/.test(ollama))
 const ollamaEn = /'kml\.page\.titre': \{ fr: '[^']+', en: '([^']+)' \}/.exec(ollama)
 check('and that string is the nav entry', ollamaEn !== null && ollamaEn[1] === NAV['kybernos-ollama'], ollamaEn && ollamaEn[1])
 
@@ -85,13 +85,12 @@ seen += 1
 if (card['kybernos-models'] !== NAV['kybernos-models']) odd.push('kybernos-models: the card says « ' + card['kybernos-models'] + ' », the nav « ' + NAV['kybernos-models'] + ' »')
 check('every module that is one Settings page carries the name of that page on its card', seen >= 14 && odd.length === 0, odd)
 
-console.log('the two places that set the mode say so')
-// Appearance (Light / Dark / System) and Theme › Mode both set the mode. Theme used to say it « replaces the Appearance block of the General
-// page — one place only » while an Appearance page exists beside it (audit A1-09): it now says the two are the same setting.
+console.log('the one place that sets the mode')
+// The mode (Light / Dark / System) is set on the Theme page, on three cards. It used to be drawn by an Appearance page beside Theme (audit A1-09, then V1-24 made Appearance the
+// only place and Theme linked to it); the owner folded the page into Theme (2026-10-22): no Appearance page, no « set on the Appearance page » sentence.
 const theme = read('packages', 'kybernos-theme', 'client.js')
-check('Theme no longer claims to be the only place of the mode', !/replaces the “Appearance” block of the General page/.test(theme) && !/one place only/.test(theme))
-check('Theme says the mode is the same setting as the Appearance page, in English and in French', /The mode is the same setting as on the Appearance page/.test(theme) && /Le mode est le même réglage que sur la page Apparence/.test(theme))
-check('and the Appearance page it points to exists and points back to Theme', /'kbac-appearance': 'Appearance'|'kbac-appearance': 'appearance'/.test(CORE) && /'kbac.appearance.openTheme'/.test(CORE))
+check('Theme no longer claims to be the only place of the mode through a block it replaces, and no longer points to another page', !/replaces the “Appearance” block of the General page/.test(theme) && !/one place only/.test(theme) && !/set on the Appearance page/.test(theme) && !/page Apparence/.test(theme) && !/change it in either place/.test(theme))
+check('Theme draws the three mode cards itself, and the Appearance page is gone from the menu and from the core plugin', /data-kb': 'theme-mode-card'/.test(theme) && !/'kbac-appearance'/.test(CORE) && !/KbacAppearance/.test(CORE) && !/'kbac\.appearance/.test(CORE))
 
 console.log(`\n${pass} ✓  ${fail} ✗`)
 process.exit(fail === 0 ? 0 : 1)

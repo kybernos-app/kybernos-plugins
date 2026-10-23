@@ -14,19 +14,20 @@ Socle = `kybernos-plugin`, `kybernos-hub`, `kybernos-theme`, `kybernos-sessions`
 
 - Sidebar entry **Kybernos** (`sidebar.panellist`) opening a main panel: **Agent Teams** (gallery and Marketplace tabs, create / edit / info pages,
   Insight, Quality Score), **Workspaces**, **Creations**, **Automations** (cron, one-time and webhook tasks, as **Columns**, **Calendar** or **List**) and **Resources**
-  (Connectors tab only when `@local/kybernos-composio` is booted, Skills tab, Documents tab off via `KB_SHOW_DOCS`). "Kybernos
-  Hosted" is off via `KB_SHOW_HOSTED`. The Skills tab mounts the slot `main.kybernos-skills`, with a core page as fallback.
-- In the chat: a **Journal** tab (`conversation.view`, runs derived from session events), team-call cards,
+  (Connectors tab only when `@local/kybernos-composio` is booted, with each app's real logo on its row through that bundle's `window.__KB_APP_LOGOS__` seam and the two first letters when it is absent, Skills tab, Documents tab off via `KB_SHOW_DOCS`). "Kybernos
+  Hosted" is off via `KB_SHOW_HOSTED`. The Skills tab mounts the slot `main.kybernos-skills`, with a core page as fallback. On the project page the Details tab is one card laid out like the Identity tab of an Agent Team (name and description side by side, the working folder row of `kybernos-multi-device`, icon and colour side by side, a one-line danger zone; Auto-save and Save now sit in the page header), and the old folded « Advanced » block is the **Devices** tab (drawn only when `kybernos-multi-device` is there). The Goals tab lists the goals of the project's chats: the ones running in this DSH and the ones the engine kept in the session logs (`goal/change` events, read by `project-goals.mjs`; the log is the engine's only store of a goal, so a goal survives a restart), each with its phase, round count, chat and, when blocked, why; its empty state says to type `/goal` in a chat. The Skills sheet (i) shows what the Skills page knows of a skill (description, when to use it, origin, folder, date, instructions on demand), and the Connectors tab lets the owner tick the apps the project works with (saved by `/kybernos/workspace-connectors` under `connectors` in `.kyber-workspaces.json`, next to the skills; by app, not by account). Ticked apps and those the project's agent teams declare (ticked and locked, with « Used by <team> ») come first under « Selected for this project », then the rest of the account. Apps are named as the Composio catalogue names them (« Google Calendar », through `window.__KB_APP_LOGOS__.name`), made from the slug when it does not know them. Removing an account is armed in words (« Disconnect everywhere? ») because it is global.
+- In the chat: a **Journal** tab (`conversation.view`, runs derived from session events), team-call cards
+  (a board task that belongs to no team of ours, with no `[team]` tag and no call the host knows, is one line, its state and its subject, not a card),
   composer extras (token usage, starters, widget chip, voice dictation, artifact selector), read-aloud
   buttons, share / chat-id actions. Also pinned conversations, the Kybernos brand mark and sidebar footer tools.
-- Settings sections **Tools**, **Voice** and Appearance (shortcut to Theme); a first-run **onboarding** wizard (see
+- Settings sections **Tools** and **Voice** (there is no Appearance page: the light / dark / system mode is on three cards at the top of the **Theme** page); a first-run **onboarding** wizard (see
   « First-run onboarding » below). The account's own pages (Account, Referral, Security, Data, Support & legal) are not in
   Settings: they are reached from the sidebar footer menu (kybernos-cloud).
 - **The Settings menu is grouped, and ordered for everyone** (`GROUPES` in `client.js`, by the section id each cell carries, so it holds in every
-  language). **General** is a row of its own; eight **folds** follow, one open at a time (an accordion): **Models & routing** (AI Provider & Models,
-  Auto Routing, Free LLMs, Ollama Local Models, Usage), **Agents** (Agent presets, Workers, Automations, Commands), **Skills & tools** (Skills, Tools,
-  Connectors, Web Search), **Memory & context** (Memory & Lessons, Kybernos, Atlas), **Voice & calls**, **Interface** (Appearance, Theme, Language),
-  **Devices & cloud** (Servers, Cloud computers, Remote Control), **System** (Kybernos Suite, Built-in plugins, About, which closes the list). A group
+  language). **General** is a row of its own; eight **folds** follow, one open at a time (an accordion): **Models & routing** (AI provider and models,
+  Auto Routing, Free LLMs, Ollama local models, Usage), **Agents** (Agent presets, Workers, Automations, Commands), **Skills & tools** (Skills, Tools,
+  Connectors, Web Search), **Memory & context** (Memory & Lessons, Kybernos, Atlas), **Voice & calls**, **Interface** (Theme, Language),
+  **Devices & cloud** (Servers, Code sandbox (E2B), Phone and channels), **System** (Kybernos Suite, Built-in plugins, About, which closes the list). A group
   opens by itself when the person lands on a page inside it (a deep link, a help pointer, a search result, a click on a row of the Suite) and the open
   one is remembered (`kybernos.settings.open-group` in the browser). To move a page, move its title inside `mots`; a page not listed falls to the tail,
   before About. One icon table (`ICONES`, keyed by the page's title) draws every entry and every group header, and `test-settings-icons.mjs` checks that
@@ -55,6 +56,9 @@ Socle = `kybernos-plugin`, `kybernos-hub`, `kybernos-theme`, `kybernos-sessions`
   what already runs by itself (one sentence, one status dot) and keeps its knobs under one fold that is shut until the person opens it and that remembers the
   choice. `h(window.__KB_CUSTOMIZE__.Fold, { id: 'memory', state: 'Memory is on and tidies itself.', tone: 'on' }, …the knobs…)`;
   `read(id)` / `write(id, open)` are its store. A page of another bundle falls back to its own markup when the helper is not there.
+- **The person's field of work on the pages** (`window.__KB_DOMAIN__`, read-only, see `docs/dev/domain-packs.md`): `field()`, `label(rowId)` (the menu's word for a row),
+  `skills()` and `connectors()` (what the saved field and goals put forward), `installSkill(name)` (a skill this plugin ships), `openKit()`, `subscribe(fn)`.
+  The Skills, Connectors and Dashboards bundles read it at each draw; without it, or with no saved field, their pages are unchanged.
 
 ## Host routes
 
@@ -63,10 +67,10 @@ All under `/kybernos/` (plus `/kybernos-technique/{renderer,vendor/three}.js`). 
 
 | Family | Routes |
 | --- | --- |
-| Teams, projects | `load` `yaml` `save` `create` `ui-save` `menu-save` `active-set` `project-data` `workspace-ui-save` `workspace-skills` `pins` `share` `avatar*` `member-*` `team-portraits` `team-cap` `yml-proposer` `yml-appliquer` |
+| Teams, projects | `load` `yaml` `save` `create` `ui-save` `menu-save` `active-set` `project-data` `workspace-ui-save` `workspace-skills` `workspace-connectors` `pins` `share` `avatar*` `member-*` `team-portraits` `team-cap` `yml-proposer` `yml-appliquer` |
 | Runs, insight | `runs` `runs-index` `calls` `calls-index` `search-content` `insight` `insight-save` `quality*` `aa` `starters-suggest` `salary-detect` (purpose not verified) |
 | Deliverables | `art-origin\|read\|previews\|reveal\|raw\|action\|progress\|load` `doc-raw` |
-| Automations | `tasks` (POST; scheduler ticks every 30 s), `tasks/occurrences` (GET `?from=&to=`, read-only: when the active scheduled automations will run, see "The Automations board"), `hooks` (public webhook: secret + 60/h default limit) |
+| Automations | `tasks` (POST; scheduler ticks every 30 s), `automation-load` (GET: how loaded the machine is and how many runs may start, see "The cap on runs started at once"), `tasks/occurrences` (GET `?from=&to=`, read-only: when the active scheduled automations will run, see "The Automations board"), `tasks/runs` (GET `?ids=&detail=1`, read-only: what each run did, read from the engine's session journals, see "The runs of an automation"), `automation-skills` (GET `?id=`: how far an automation is from becoming a skill; POST `{id}`: write it, see "Stable automations become skills"), `hooks` (public webhook: secret + 60/h default limit) |
 | Tools catalog | `tools/state`, `tools/apply` (dry run, dated backup of the profile patch, restore) |
 | Voice, TTS | `voice/{config,transcribe,save}` `voice-sample*` `tts/{config,voices,speak,cache,cache-trim}` (engines: `say`, `piper`, `supertonic`, `edge`, and `models`, the speaking models of the user's own providers) `models/audio` `models/audio/{probe,speak,listen}` (the audio models of the providers set up in Models, how each is asked, and using it) `image-models` (live calls moved to `@local/kybernos-call`, which speaks through `tts/speak`) |
 | Widget, gateway | `widget.js` `widget/api/{config,conversations,message,account,history-delete,reply}` `gateway/{status,approvals,approvals/decision}` |
@@ -75,9 +79,16 @@ All under `/kybernos/` (plus `/kybernos-technique/{renderer,vendor/three}.js`). 
 
 ## The Automations board
 
-The Automations page has three views behind one switch in the shared toolbar: **Columns**, **Calendar** and **List**. The List is the
-screen that was there before and is still the default; the choice is kept per browser (`kybernos.toolbar.automations`), and an older
-stored `cards` reads as `list`. Search, facets and favourites of the toolbar apply to all three.
+The Automations page has four views behind one switch in the shared toolbar: **Columns**, **Calendar**, **Cards** and **List**. The List is the
+screen that was there before and is still the default; the choice is kept per browser (`kybernos.toolbar.automations`). Search, facets
+and favourites of the toolbar apply to all four; the sort applies to the List and to the Cards.
+
+- **Cards**: one card per automation with its name, what starts it, its mode, an on/off switch and four figures: **Last run** (relative
+  time), **Success** (the share of the last 20 runs that are not recorded as failed), **Runs**, **Duration** of the last run; and the
+  **Tools** the last run used. The first three come from `tasks.json`; duration and tools come from the journal of the NEWEST run of each
+  automation only (one journal per card, through `GET /kybernos/tasks/runs`). A failed last run puts an orange outline and « To review »
+  on the card. There is no token and no budget figure: the journals hold no token count and nothing here spends money (the Usage plugin
+  owns tokens, and only for what a browser watched).
 
 - **Columns** are states of RUNS, not a ranking (nothing is draggable): *Upcoming* (the stored next run of each active scheduled
   automation), *Running*, *To approve* (a run the engine holds for a person, then the last run of an automation when it failed, 7
@@ -110,6 +121,129 @@ reported as truncated with the instant the list stops. It reads `tasks.json` and
 (same origin, signed browser session) and the Host fence of every route of the bundle. Pure logic: `automation-occurrences.mjs`
 (host) and the `KB-AUTOBOARD` block of `client.js` (browser).
 
+## The Flow of an automation, and what a node says
+
+The Flow view of the Workflow tab is the text read as steps (numbered lines), drawn as nodes you can drag. A node shows its title on two
+lines (never overflowing) and its step number; a click opens a panel beside the canvas: the type (Trigger, AI, Action, Flow), the title,
+the **whole instruction** (the title is cut at 84 characters), **how it runs** (a model step is `ai.run`, an action is `tools.call`, the
+same rule as the Code view), a « Guard » mark when the step starts with PREFLIGHT, Previous / Next to walk the steps, and « Edit in Text ».
+Nothing in the panel is written: the text stays the source.
+
+## Where the runs of an automation land (its workspace)
+
+A DSH workspace is a folder the engine adopted (the page calls it a project), and a session lives in one: it is where the run's agents
+work and where the files they write stay. Each automation has **one workspace choice** (the **Workspace** field of its form, where the dedicated workspace is the first option and is not listed a second time; the id is kept
+as `workspaceHint` in `tasks.json`; the detail page says « Workspace: X »):
+
+- **A workspace of the person's own**: every run lands in it.
+- **No choice** (the default, and what the automation-creator skill and the templates produce): the runs land in ONE dedicated workspace,
+  **« Automations »**. The host makes it on first use: it creates `<dsh home>/kybernos/automations` and asks the engine's registry to adopt it
+  (`workspaceRegistry.create(path, 'Automations')` returns the workspace it already has for a folder it owns, so asking at every run is safe).
+  Before this, a run with no choice landed in whichever workspace was first in the list, which was the assistant's own.
+- **A workspace that was deleted** after the choice: the runs go to the dedicated one (never to a guess), and the page says so.
+- **The engine cannot make a workspace** (an older registry, an unwritable folder): the first workspace of the list, as before. A run is
+  never lost for this.
+
+The rule is `automation-workspace.mjs` (pure) and `kbTaskWorkspaceId` in `index.js`; the route refuses an id that is not a plain id
+(`invalid workspace`), keeps the choice when an edit does not send one, and clears it with `null` or an empty string. A copy keeps the
+choice; an export does not (an id means nothing on another machine).
+
+## Discover: templates
+
+The **Discover** tab of the Automations page (next to **Yours**) lists ready-made starting points: ten templates in three families
+(Social media, Prospecting, Customer service), as compact cards (icon, title, two lines, cadence, a tag and « +N », the apps involved,
+« Import » on hover). A card opens the page of its template: a cover, what it does (the steps, model step or action), the questions the
+chat will ask, what you will need, and the rules written into the steps. The data and the text of the chat are the pure `KB-AUTOTPL`
+block of `client.js` (every text is an English / French pair; the other languages read the French as a key like the rest of the page).
+
+- **A template is a starting point, not an automation.** « Import » and « Use this template » open a NEW chat (the same call as
+  « Create » and « Edit in chat ») whose draft names the `automation-creator` skill, carries the template (what starts it, the draft
+  steps, the questions with their options, what to connect, the rules) and asks for a real task that stays **OFF** until everything is
+  connected. Nothing is created by clicking the card. The first line of the draft is « Follow this conversation in my language: French
+  (fr) »: the page's language, read at the click (so it follows a change of language in DSH), named in English with its code for the model
+  (`kybernos` is the French of the page); no language, no line.
+- **Nothing the engine cannot do is promised.** A cap, a hand-over or a memory check in a template is an instruction written into the
+  steps, not a mechanism of the engine; the scheduler has schedules, one date and webhooks, so a template that « starts on a message »
+  says a webhook calls it. No template speaks of a budget or a payment: there is no runtime for them (test-automation-templates.mjs fails
+  on those words).
+- **The integrations show their real logos.** The apps of a template (the round tiles of a card, the **Integrations** list of its page) use the
+  logos of the connectors catalogue, the one the Connections page draws: one GET of `/kybernos/composio/catalog` (the connectors plugin's
+  host route), kept for the session, each SVG filtered when it is read (a plain `<svg>`, no script, handler, foreign object or external
+  link) and put on a white tile. An app the catalogue does not know (Twilio) keeps its initial in a round tile, and so does every app when
+  the connectors plugin is off or the host does not answer.
+- **No image file is shipped.** The repository holds no media (`garde-depot.mjs`), so the cover of a template page is drawn in code (two inks on
+  paper, halftone dots, a misregistered glyph), the compact cards carry no cover at all, and the logos come from the catalogue at run time.
+
+## The page of one automation: Workflow and Sessions
+
+The page has two tabs (the same segmented control as Yours / Discover), **Workflow** (the one it opens on) and **Sessions**. Its header keeps
+**Run now** and the switch; Edit in chat, Schedule and Delete are in a « more » menu (`detail-more`). There is no Webhook tab and no Journal tab any more: the webhook
+is a card of the workflow, and what the Journal said is under the run in Sessions.
+
+### Workflow
+
+The workflow is the numbered steps of the automation's text (`kbTaskSteps`); a text with no numbered step is one card, its whole instruction.
+Flow (the cards), Text (the source, editable) and Code (read-only) are three quiet icons in the toolbar of the frame (the canvas, or the box that
+holds the text or the code), Flow first, with the style button beside them; « Text is the source » is a note at the bottom of the frame.
+The frame is as tall as its cards need (`fitHeight`), not a fixed height, and one step lighter than the page.
+
+- **The cards.** A trigger (the schedule; the webhook too when the automation has one), the steps, and the record of the run. A card is told
+  by its id (`schedule`, `hook`, `s1`…, `log`), so adding a webhook moves none of the others. A click opens the panel of the card: what it
+  is, the whole instruction, how it runs, a guard mark for a check that must pass first, Previous / Next.
+- **The webhook is the settings of its card.** Its panel has the address (hidden until « Reveal »; « Copy » copies the whole address), « Test »,
+  « Regenerate » and « Revoke » (both ask first). An automation with no webhook offers « Create webhook » in the schedule's panel; creating
+  it draws the card and opens its panel. The host routes are the same as before (`hook-generate`, `hook-revoke` of `kybers/tasks`).
+- **What the runs used.** A strip above the canvas says, from the newest five runs whose journal was read, which model answered (and whether
+  it was chosen or the profile's default), the teammates of the Agent Team with their models, the skills, the apps (connectors, with the
+  logos of the connectors catalogue) and the tools, each with how many times it was seen. A step card carries the model, plus one skill, app or
+  teammate its own text names; its panel has a **Uses** section (model, Agent Team, what the step names). Nothing is guessed: before a
+  journal is read the strip says what it will show, and a step is never tied to a tool call it cannot be tied to. The host says it:
+  `summarizeRun` (`automation-runs.mjs`) gives each call a `ref` (`skill` by its name, `app` by the server of an `mcp__<server>__…` tool, or
+  the first word of Composio's tool slugs, `agent` for `spawn_teammate` / `team/member` events with the model of the spawn result, else
+  `tool`) and a bounded `uses` for the whole turn. Host code: it needs a DSH restart (an older host gives the model alone).
+- **The cards move.** Drag any card: the wires follow and stay at right angles. The arrangement is kept per automation, in this browser
+  (`kybernos.flowpos2.<wf|run>.<id>`, an offset from the default place, so it survives a change of style); « Tidy up » puts the cards back.
+- **Nine styles.** Kybernos (follows the app), Node-RED, Blueprint, Paper, Soft, Ledger, Atelier, Journey and Metrics, in a menu on the
+  canvas. A style changes the cards, the wires (right angles, curves, dashes, dots), the arrowheads and what a card shows; it is one choice
+  for the whole page (`kybernos.flowstyle`), shared by the workflow and the graph of a run. All of it is CSS and custom properties
+  (`kbfc-*`): no library, no image.
+- **Where the code is.** The layout, the routing of a wire, the offsets and the scale are the pure `KB-AUTOFLOW` block of `client.js`
+  (`test-automation-flow.mjs`: no right-angle wire goes through a card of the default layout, for every style); `KbFlowCanvas` draws them.
+  React Flow (`@xyflow/react`, shipped for the team view) is not used here: the wires wrap around rows, which its built-in edges do not do.
+
+### Sessions (executions, graph, logs, and what the Journal said)
+
+Nothing is written, nothing is guessed from what a model said.
+
+- A line of figures (runs, failed, median duration, slowest), then the list of executions: a dot, the date, how it ended and how many tool
+  calls (the newest eight, the chosen run whatever its age, then « N more »). On the right the open run: its date and a badge (how it
+  ended), a line that says who ran (the model and why), how long, how many calls and whether anything asked for an approval, then its
+  **graph**, drawn on the same canvas as the workflow (a card per tool call: title, duration, what it stands for, status, and on each wire the
+  size of what the step handed on; more than seven tool calls show the first six and a "+N more steps" card). A card opens an
+  **inspector** at its right (this run: status, think and run time, output size; what it did; what it got and gave, one line each and « Show
+  raw data » for the 420 characters; what it used), and a failed run opens on the step that failed.
+- Under it: what that run used (Agent Team, skills, connectors, tools; each card of the graph says what its call stands for), the
+  **approvals** that were asked (nothing when none was), and the **Lessons** card: how many runs in a row the
+  automation has had since its last failure, and, once that reaches the number chosen in Settings › Automations, a **Create skill** button
+  (see « Stable automations become skills » below).
+- A **run** is one session. `tasks.json` also keeps, for a failed run, a line the run wrote about itself afterwards (it has no session
+  id): that line is a note on the run it follows (within 10 minutes, one note per run), not a run of its own. The tab counts runs.
+- **The list** (the page that lists the automations) has a **Success** column: a percentage and the last ten runs as bars, from the history
+  alone (the journals are not read for a list).
+
+The Sessions tab only reads, but for that one button. Where the runs come from: `GET /kybernos/tasks/runs?ids=a,b` (at most 20 plain session ids) opens each session with the engine's own
+`sessionPersistence` (`open(id, 'read')`) and summarises its **first turn** with `automation-runs.mjs`: the turn's clock, the engine's
+`turn/end` reason (read as `session-outcome.mjs` does), the models the requests were routed to, whether a model was chosen on purpose,
+each tool call with its think time, run time and output size, and the approvals asked and decided. `detail=1` (one id only) adds the
+Input and Output of each step: control characters out, one line, 420 characters, long token-like strings and e-mail addresses masked.
+Later turns of the chat are a person's, not the automation's: they are counted, not summarised. The route has the guard of `tasks`
+(GET only, same origin, signed browser session) and the Host fence of every route of the bundle.
+
+What it does not know it says: a run whose journal cannot be read (route absent on an older host, journal deleted) is "Not read",
+never "Completed", and the list still shows its time and the status `tasks.json` recorded. The page asks with its own `fetch`, not
+`host.call`: a 404 from `host.call` would switch every other route of the page off until it is reloaded. Pure logic: `automation-runs.mjs`
+(host) and the `KB-AUTORUNS` block of `client.js` (browser).
+
 ## The List, readable schedules, and « Edit in chat »
 
 - **The List** is one grid: the header and the button of each row share ONE column declaration (`.kba-rowhead`, `.kba-rowbtn`), the
@@ -138,16 +272,64 @@ reported as truncated with the instant the list stops. It reads `tasks.json` and
 
 ## Automations settings, and DSH's own « Automation tasks »
 
-Settings › Automations has two switches, kept in `$DSH_HOME/kybernos/automation-settings.json` (rules in `automation-settings.mjs`):
+Settings › Automations has three switches and one choice, kept in `$DSH_HOME/kybernos/automation-settings.json` (rules in `automation-settings.mjs`):
 
 - **Pause all automations**: the scheduler's tick does nothing while it is on. What came due fires once at the first tick after it is
   turned off (the scheduler's own catch-up); nothing is lost or skipped.
 - **Show DSH's own « Automation tasks » list**: off by default. DSH's own scheduled-tasks entry overlaps the Automations page, so the
   menu hides it (the row is found by the React key `schedules`, the same in every language). It is a separate store: the tasks it
   lists are not the ones of this page, and they are one switch away.
+- **Suggest skills from stable automations** (on by default: a suggestion is not active before the person accepts it; the key is still `autoSkill`) and **Stable after** (3, 5, 10 or 20 runs in a row without a failure, default 5; the
+  history keeps the last 20 runs, so 20 is the most it can see): see the next section.
+
+### The cap on runs started at once
+
+The tick used to start every due task together. It now asks `automation-load.mjs` how many automation runs there is room for, and claims only
+those, oldest first; the others are left untouched, still due on the next tick (late, never lost). Two facts decide:
+
+- **The level of the machine** (`ok`, `busy`, `high`): memory still available to programs (below 20 % or 400 MB busy, below 10 % or 200 MB high) and
+  the one-minute load average per core (1.5 busy, 2.5 high). Room is the maximum (3) at `ok`, one run at `busy`, none at `high`. macOS memory is
+  `kern.memorystatus_level` (what Activity Monitor calls pressure), never `os.freemem()`, which reads about 10 % on a healthy Mac; Linux is
+  `MemAvailable`. A fact that cannot be read is treated as free. The thresholds are a first guess, not calibrated on a fleet.
+- **The runs going**: the sessions the scheduler created, followed through the engine's `agent/status` (running or idle) and `agent/disposed`. A
+  run that never started stops counting after 2 minutes and any run after 2 hours, so a lost event cannot hold a slot for ever.
+
+A run held for more than 10 minutes starts anyway (the cap slows the automations down, it never stops them), and any failure to measure means no
+limit. **Not capped, only counted:** a webhook event and "Run now" (an event cannot be queued, and a click is a person's wish). **Not limited
+at all:** the sub-agents a model spawns inside a run (the engine caps their depth, `subagent.maxDepth`, not their number).
+
+`GET /kybernos/automation-load` (same origin, read-only) answers the level, the reasons (`memory`, `cpu`), the runs going, the room, the maximum
+and the number of due runs waiting. Settings › Automations shows it as one row, and the board says "Waiting for the computer" instead of "The
+scheduler seems to be stopped" when the cap is what holds the overdue runs.
+
+Env: `KYBERNOS_AUTOMATION_MAX_PARALLEL` (1 to 20, default 3) sets the maximum; `KYBERNOS_AUTOMATION_LOAD_GUARD=off` stops consulting the machine
+(the level is always `ok`; the maximum still applies). A container with a memory limit is not seen (the host's memory is read).
+
+### Stable automations are suggested as skills
+
+An automation that has run N times in a row without a failure is a procedure that works; it can be suggested as a skill to use by
+hand in any chat. **A fixed rule, no model**: `automation-skills.mjs` counts the runs of `tasks.json` since the newest failure (a history
+line with a session id is a run; a line with the status `error`, the history's own or the note a run writes about itself, is a failure).
+The skill is the text of the automation (`skillParts`: description with a « Use when… », `whenToUse`, the steps), without the webhook, the history or
+any secret. This half **writes no skill**: it hands the parts to the Skills page through the seam `kybernos-skills` publishes
+(`globalThis[Symbol.for('kybernos.learned-skills')]`, read at call time; `docs/dev/learned-skills.md`), where they wait as a **suggestion**
+until the person accepts (nothing is active before). Accepting writes `$DSH_HOME/skills/<name>/SKILL.md`, **never over an existing skill**, and the
+file is the person's own afterwards. What was suggested is kept in `$DSH_HOME/kybernos/automation-skills.json` (`state`: `pending` or `made`), so
+none is suggested twice. Without the Skills bundle there is no seam: nothing is written and the route says `the skills page is not loaded`.
+
+- With the switch on (the default), the scheduler's tick suggests the stable ones by itself: at most every 5 minutes, at most three per pass,
+  never in the way of a tick (a failure is logged and the tick goes on), and not at all while « Pause all automations » is on. A refusal
+  (five suggestions already wait) writes no record, so it is tried again later.
+- With it off, the Sessions tab still offers the button; it works only for a stable automation (the host checks the rule, the page sends the id and
+  nothing else, never the text to be written). That click is the person's own acceptance: the skill is written at once and the card says so.
+- `GET /kybernos/automation-skills?id=` (same origin) says how far an automation is and which skill was made or suggested; `POST {id}` (same
+  origin and a signed session) makes it now. Host code: it needs a DSH restart.
+- The menu has a **dot on the Skills row** when something waits (a suggestion, or a change Kaby made alone that nobody read) (`KbLearnedDot`, reading `window.__KB_LEARNED__` from the Skills bundle), and the
+  agents step of the onboarding says in one line that Kaby learns and the person approves each skill (`ag.learn`).
 
 `GET/POST /kybernos/automation-settings` has the guards of `tasks` (same origin, and a signed session to change). The route is host
-code: it needs a DSH restart; until then the page says so and the native entry stays hidden.
+code: it needs a DSH restart; until then the page says so and the native entry stays hidden. It takes one key at a time
+(`paused`, `showNativeTasks`, `autoSkill`: booleans; `stableAfter`: one of the choices) and refuses anything else whole.
 
 ## The new-chat page
 
@@ -216,7 +398,7 @@ section in `<workspace folder>/AGENTS.md` (the folder is that table's too; off o
 
 ## Chat header toggle
 
-A chat's header is busy: tags (Agent Team, Teams, link, ID), call and video buttons, Journal / Trajectory tabs and a
+A chat's header is busy: tags (Agent Team, Teams), the call button, the **Chat tools** menu, Journal / Trajectory tabs and a
 status line under the composer. Three buttons now sit right after the title: **pin / unpin**, **rename** and a
 **toggle** that folds all of that away. Folded (the default) shows the title, those three buttons, the header menu and
 the sidebar button; unfolded is DSH's own header. The state is kept per browser (`localStorage`, key
@@ -226,6 +408,21 @@ the sidebar button; unfolded is DSH's own header. The state is kept per browser 
 - Folding from the Journal or Trajectory tab goes back to Chat first.
 - Never hidden: a call in progress (hang-up button) and a save problem (the « not saved » chip).
 - Wide screens only: on a phone the header actions are parked by `kybernos-mobile`.
+
+### Chat tools (the « + » of the header)
+
+The occasional actions of a chat are entries of ONE menu at the right end of the header actions (chat header variant B, mockup of 2026-10-22), not a button each:
+**send to another session** (kybernos-session-msg), **copy public link**, **copy chat ID** and **full screen** (this bundle; no Fullscreen API, no entry). The call is one
+split button (kybernos-call), and the « Teams » chip is drawn only while the chat has a team or a call to validate (`.kbtg-root[data-empty="1"]{display:none}`).
+
+- **Seam:** `window.__KB_CHAT_TOOLS__ = { version: 1, add(tool) → remove, list(), subscribe(fn) }`, published by this bundle. A tool is
+  `{ id, order, icon, label, hint, working, available, run({ sessionId, title }) }`; `label`, `hint`, `working` and `icon` are a value or a function (read when the menu opens);
+  `icon` is a name of this bundle's icon set, a list of 24-grid path strings, or `{ viewBox, paths }`. `run` may answer `{ ok, note }` or a promise of it: the note is said in a toast
+  (`working` is the toast while a promise is pending). A bundle that finds no registry draws its own button (session-msg does), so none depends on this one.
+- **Phone:** the root of the menu has no `data-kb` and no `span`, so `mobile.css` parks it like the roots it replaces; each entry is also a hidden button (`.kbct-flat`) that the
+  « … » sheet lists by its label, and the « + » itself carries `data-kb-sheet="skip"` (kybernos-mobile leaves it out of the sheet).
+- Tests: `test-chat-tools.mjs` (the registry and the running of an entry are cut out of the bundle and played; the wiring), `kybernos-session-msg/test-client.mjs` (the entry and the fallback),
+  `kybernos-call/test-client.mjs` (the split button).
 - No engine patch: a `conversation.session.header.actions` slot entry plus CSS keyed on `[data-slot]` hooks.
 
 ## The feedback box
@@ -261,10 +458,10 @@ Under `$DSH_HOME` (else `~/.dsh`): `kybers/<id>/{kyber.yml,.kyber-ui.json,.kyber
 `kybernos-widget/{configs.json,conversations/,accounts/,bridge-state.json}` (accounts hold visitor emails), `beta-reports/`,
 `profiles/<profile>/cordis.patch.yml` (+ `.bak-outils-*`, Tools tab only) and `AGENTS.md`. Reads `kybernos-cloud.json` (token, API
 base) and `.credentials.yaml` (browser-session secret). The quiz and cards score registry is `kybernos/progress.json`. Env: `DSH_HOME`, `HOME`, `DSH_WEB_PORT` (3080), `DSH_PROFILE`, `DSH_VERSION`,
-`KYBERNOS_CLOUD_STATE`, `AA_API_KEY`, `KB_RETRY_PLAFOND`.
+`KYBERNOS_CLOUD_STATE`, `AA_API_KEY`, `KB_RETRY_PLAFOND`, `KYBERNOS_AUTOMATION_MAX_PARALLEL`, `KYBERNOS_AUTOMATION_LOAD_GUARD`.
 
 **At boot, unasked** (each step guarded, none blocks the start): registers `kybernos-standard` as a plain copy of the Standard preset
-(« Kybernos compact (legacy) »: DSH compacts natively now, and stored sessions still carry that id, which the registry rejects when
+(« Standard mode (older chats) »: DSH compacts natively now, and stored sessions still carry that id, which the registry rejects when
 it is missing) and puts the default of new chats back on Standard when it still pointed at it; turns on the
 `subagent_claude_code` row of every preset definition (in memory); lowers any retry policy above 10 attempts (`settings.update`,
 only on a violation); appends a marked "initiative" section (English, v3) to `~/.dsh/AGENTS.md` once (the French v1 and v2 it laid in earlier versions are replaced by it unless the person edited them; their text is data in `agents-proposition-legacy.json`); writes the `report-feedback`
@@ -294,7 +491,7 @@ A full-screen wizard (plain DOM, `KB-OB-*` blocks of `client.js`) opens once on 
 « Replay » button at the top of Kybernos Settings (`kybernos-sessions` fires the window event `kybernos:onboarding`).
 It is a single column in the look of dev.kybernos.app (light or dark, whichever the page behind it is) with the K logo.
 
-- **Screens:** welcome, profession, display mode, **« Which models should Kybernos use? »**, then **a starter kit**.
+- **Screens:** welcome, field (choose a tile, then Continue), goals, **« Which models should Kybernos use? »**, about you (a website, a profile, a free word: optional), the agents (three presets), **a starter kit** (the display mode as one row), then the plan (only with an account) and the recap. See `docs/dev/domain-packs.md`.
   Numbered steps: `job`, `mode`, `model`, `kit`. **No step is skipped**, whatever already works: a replay is where an
   account or a key is added later (before, a connected account or a pulled model skipped the model step and with it the
   account offer, so a replay could never create one).
@@ -323,8 +520,8 @@ It is a single column in the look of dev.kybernos.app (light or dark, whichever 
   was checked to exist exactly once in its repository (an ambiguous name is refused by the route). A **team** is an id of
   `KB_MARKET_TEAMS` and goes through the same `kybers/create` as the Agent Teams marketplace (so it lands in the
   workspace root, like a marketplace install). The server's templates that the plugin does not have yet are listed greyed
-  (`soon`), never installed. The kit also opens on its own: **Settings › General › Kybernos Settings › Starter kit › Open**
-  (`kybernos:onboarding` with `action: 'kit'`, the profession saved at the first run, another one can be looked at).
+  (`soon`), never installed. The kit also opens on its own, from the pages that suggest it (`window.__KB_DOMAIN__.openKit()`, `kybernos:onboarding` with
+  `action: 'kit'`, the profession saved at the first run, another one can be looked at); Settings has no row for it: **Onboarding › Replay** goes through it as its last page.
 - **What we set up for you** (the end screen, `kbObSetupRows`): under the recap, one row per area, each with a **Change** link that ends the wizard and opens that area's page of Settings (the section id, so it works in every language): Memory (`kybernos-memory`), Auto routing (`kybernos-auto-page`), Connectors (`kybernos-composio`), Web search (`kybernos-websearch-page`) and the Study model (`general`, where the Kybernos Settings block is). What a row says is what the bundle's own read route answered (`/kybernos-memory/settings`, `/kybernos-cloud/status`, `/kybernos-auto/state`, `/kybernos/composio/provider`, `/kybernos-websearch/state`, `/kybernos-sessions/settings`), read once when the screen opens and each on its own: a route that does not answer leaves its row out, and nothing here turns anything on (Auto routing reads « Off » unless the person switched it on).
 - **The profession in memory:** with a Kybernos account, the recap writes ONE pinned `fact` memory (« Works as: … Prefers: … »,
   source `taught`) through `/kybernos-cloud/memory/add`; its id is kept in `onboarding.json` (`memoryId`) so a replay updates
@@ -368,7 +565,7 @@ soon as the person sends again; it comes back if that new turn fails the same wa
 catalog (`ctx.get('modelDirectories').catalog.store`, the one the picker draws from) is loaded and holds no model (`kbObNoModel`): the picker
 then says « No models available. » with nothing to do about it, and that sentence is the engine's, with no seam for an action. The card says what
 is wrong and offers two actions: *Sign in to Kybernos* (the window event `kybernos-cloud:open`, as the Models page does) and *Add a model*
-(Settings › AI Provider & Models, `kbOpenSettingsPage`). A person who is already signed in gets only *Add a model*. It shows on the new-chat page
+(Settings › AI provider and models, `kbOpenSettingsPage`). A person who is already signed in gets only *Add a model*. It shows on the new-chat page
 and in a chat, never beside the key card above (that one wins when a turn failed), is dismissed for the rest of the page, and is simply absent when
 an engine does not expose the catalog. The engine's red « This turn failed » row, with its raw sentence, is the engine's and stays in the
 transcript: the card under it is the plain-language version.
@@ -404,10 +601,19 @@ node scripts/test-scheduled-tasks-host.mjs             # KB-TASKS-CORE block: cr
 node packages/kybernos-plugin/test-automation-creator.mjs  # 64: the shipped skill's script, run with sh on a temp DSH_HOME (lock, stale lock, ten writers at once)
 node packages/kybernos-plugin/test-automation-occurrences.mjs  # the future runs: the same instants as the scheduler's matcher, bounds, what cannot fire
 node packages/kybernos-plugin/test-automation-board.mjs  # the KB-AUTOBOARD block: columns, week and month grids, what the page refuses to claim, texts in both languages
-node packages/kybernos-plugin/test-automation-settings.mjs  # the two switches, the guard of the route, the held tick
+node packages/kybernos-plugin/test-automation-runs.mjs   # the run summary: clock, outcome, models, tool calls, approvals, scrubbing, the guards and bounds of tasks/runs
+node packages/kybernos-plugin/test-automation-runs-client.mjs  # the KB-AUTORUNS block: history lines → runs, figures, bars, graph; the pane stays read-only
+node packages/kybernos-plugin/test-automation-flow.mjs  # the KB-AUTOFLOW block: layout, wires (none through a card, 9 styles), drag offsets, scale
+node packages/kybernos-plugin/test-automation-load.mjs  # the level, the room, which due runs start, the runs going, the off switch, the wiring in index.js and client.js
+node packages/kybernos-plugin/test-automation-settings.mjs  # the three switches and the choice, the guard of the route, the held tick
+node packages/kybernos-plugin/test-automation-skills.mjs  # the stable-run rule, the skill parts, the route and the tick suggesting a skill by itself (real apply() on a throw-away DSH home, a stand-in for the Skills seam)
+node packages/kybernos-plugin/test-learned-dot.mjs         # the dot on the Skills row of the menu
+node packages/kybernos-plugin/test-automation-workspace.mjs  # where a run lands: the rule, the real host with a fake registry (chosen, none, deleted, no create), the route, the form and the detail line
+node packages/kybernos-plugin/test-automation-templates.mjs  # Discover: the ten templates in both languages, what they never promise, the filter, the chat text
 node packages/kybernos-plugin/test-newchat.mjs         # the cards, the Cloud Computer state, the hidden native entry, the starters pinned
 node scripts/test-tasks-route.mjs                      # the tasks route, the tick, webhooks, and tasks/occurrences (guards, bounds, corrupt store)
-node scripts/check-automations-board-live.mjs [--stub-model]  # live GUI, on a sandbox only: the three views, Run now, banner, French, 375 px; with a stub model: running, waiting, Approve / Refuse
+node scripts/check-automations-board-live.mjs [--stub-model]  # live GUI, on a sandbox only: the four views, Run now, banner, French, 375 px; with a stub model: running, waiting, Approve / Refuse
+node scripts/check-automations-discover-live.mjs [--shots <dir>]  # live GUI, on a sandbox only (restart it first: host routes): Discover with its logos and the chat it opens (language line first), Cards, the Flow panel, the Journal lessons and the skill file, the workspace of the runs (a real Run now), the settings, 390 px
 node packages/kybernos-plugin/test-seed-skills.mjs     # 27: skill seeding (a user's own skill is never overwritten)
 node scripts/test-shipped-skills-wiring.mjs            # the real index.js seeds under DSH_HOME, not under the other HOME
 node scripts/test-automation-creator-parity.mjs        # the skill validates crons and zones exactly like the scheduler

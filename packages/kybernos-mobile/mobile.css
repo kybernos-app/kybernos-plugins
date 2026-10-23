@@ -125,7 +125,9 @@
 
   /* 3. The conversation's header: the title and the page-level actions first. Agent Team, share, chat ID, video call
    *    and call settings are PARKED: out of the header but still rendered, so DSH's popovers keep an anchor and the
-   *    "..." sheet (client.js) can list and click them. "Open in Finder" is of no use on a phone and is dropped.
+   *    "..." sheet (client.js) can list and click them. The chat tools "+" and its entries (send, public link, chat ID, full
+   *    screen) are parked with their root; the call arrow too (its video and settings buttons are the sheet's). "Open in
+   *    Finder" is of no use on a phone and is dropped.
    *    The tab row (Chat, Journal, Trajectory) is parked while the first tab (Chat) is the one shown: it comes back
    *    on the other views, and the sheet lists the views. */
   /* DSH gives the header 76 px for its two rows (actions, tabs): one row is 56 px, in line with the menu button. */
@@ -140,6 +142,7 @@
   [data-slot="conversation.session.header.actions"] > div:not([data-kb]):not([data-team-action]):not(:has(span)),
   [data-slot="conversation.session.header.actions"] [data-act="call-video"],
   [data-slot="conversation.session.header.actions"] [data-act="call-setup"],
+  [data-slot="conversation.session.header.actions"] [data-act="call-menu"],
   [data-slot="conversation.session.header.actions"] .kbtg-root[data-empty="1"],
   [role="tablist"][data-conversation-tabs]:has(> [role="tab"]:first-child[aria-selected="true"]) {
     position: fixed !important;

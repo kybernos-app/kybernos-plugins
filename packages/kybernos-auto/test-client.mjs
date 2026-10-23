@@ -24,7 +24,8 @@ ok('la rangée Auto est un enfant du menu natif (sous Model/Effort), pas un over
   src.indexOf('m.appendChild(panneau)') !== -1 && src.indexOf('z-index:1200') === -1 && src.indexOf('document.body.appendChild') === -1)
 ok('Model/Effort (menuitem) verrouillés tant qu’Auto est actif, la rangée Auto reste active',
   src.indexOf("querySelectorAll('[role=\"menuitem\"]')") !== -1 && src.indexOf("it.style.pointerEvents = on ? 'none'") !== -1)
-ok('le menu est remonté du hauteur de la rangée (ancré par le haut)', src.indexOf("translateY(") !== -1)
+ok('le menu est remonté seulement de ce qui recouvre encore le sélecteur (mesuré, pas la hauteur de la rangée: DSH 0.2.1-rc.2 le replace seul)',
+  src.indexOf("translateY(") !== -1 && src.indexOf('button[aria-label^="Select model"]') !== -1 && src.indexOf('const recouvre = m.top < b.top ? m.bottom - b.top + 8 : 0') !== -1)
 ok('id de session lu dans localStorage « dsh.sessions.current » (pas seulement l’URL)', src.indexOf("'dsh.sessions.current'") !== -1)
 ok('état PAR SESSION : POST /kybernos-auto/session avec sessionId courant', src.indexOf("'/kybernos-auto/session'") !== -1 && src.indexOf('sessionId: sessionIdCourante()') !== -1)
 ok('pastille « N of M models available » alimentée par disponibles/total', src.indexOf('etat.disponibles') !== -1 && src.indexOf('etat.total') !== -1)
@@ -32,6 +33,8 @@ ok('colonnes Model / Latency / Errors / Cache hit + badge warm cache', src.index
 ok('relecture automatique toutes les 60 s + « Check now » qui sonde pour de vrai (POST /kybernos-auto/probe)', src.indexOf('setInterval(lire, 60000)') !== -1 && src.indexOf("'Check now'") !== -1 && src.indexOf("'/kybernos-auto/probe'") !== -1)
 ok('un DSH démarré avant la route /probe (404) reçoit un message clair, pas une erreur de parse JSON', src.indexOf('r.status === 404 ? Promise.reject') !== -1)
 ok('l’état d’un modèle dit POURQUOI (cause, retour prévu, dernière erreur), dans la page et dans le composer', src.indexOf('const statutTxt') !== -1 && src.indexOf("'data-kb': 'auto-health-why'") !== -1 && (src.match(/statutTxt\(/g) || []).length === 2)
+// V1-21: the add field of the allowed list says what it does in the room it has (the placeholder was cut at « pick from the »); the whole hint is its tooltip.
+ok('the add field: a placeholder that fits (≤ 28 characters) and the full hint as its title', (() => { const m = /placeholder: kt\('([^']*)', '([^']*)'\),\s*title: kt\('([^']*)', '([^']*)'\)/.exec(src); return m !== null && m[1].length <= 28 && m[2].length <= 28 && m[4].length > m[2].length })())
 ok('un clic dans le panneau ne ferme pas le menu natif (pointerdown arrêté)', src.indexOf("'pointerdown'") !== -1 && src.indexOf('stopPropagation') !== -1)
 // What a person reads on the page is a sentence (audit 2026-10-16): no HTTP route inside a paragraph, no debug « scope: session » line,
 // and one spelling of the page's name, the one of the Settings menu.

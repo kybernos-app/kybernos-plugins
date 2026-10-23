@@ -40,7 +40,8 @@ read at each turn end (default 3; `0`, a negative or a non-numeric value disable
 - Queue move: `webServer` and `agent.inbox.mutate(target, start, deleteCount, inserted, false)`. That method
   is internal to the engine and not part of the public inbox contract: a runtime canary (method present,
   arity 5, `nextTurn` and `nextStep` arrays) turns the route into 501 if the engine changes it. The comments
-  record it as measured on 0.2.0-rc.2 and 0.2.1-alpha.1; `dsh-compat.json` stops at 0.2.0-rc.2.
+  record it as measured on 0.2.0-rc.2 and 0.2.1-alpha.1 only. The DSH range of the repository (`dsh-compat.json`, the one
+  the install gate reads) is wider than that: on any other engine version in it the canary alone decides.
 - Client: `inject: ['uiWorkspace']` (session id from `mainReference` or `selection`). The handle is DOM
   decoration on `[data-queue-dock]` and the `_pendingRow` / `_preview` class suffixes.
 - Patch debt: `scripts/patches.json` retires the legacy `queue-move` patch from engine 0.2.0-rc.2 because this
@@ -52,7 +53,7 @@ read at each turn end (default 3; `0`, a negative or a non-numeric value disable
 
 ```bash
 node test-host.mjs     # 77 checks; add --engine <path to dsh-agent-loop/lib/index.js> for the real inbox pass
-node test-client.mjs   # 25 checks; the DOM gesture pass runs only if jsdom resolves (KYBERNOS_JSDOM)
+node test-client.mjs   # 28 checks; the DOM gesture pass runs only if jsdom resolves (KYBERNOS_JSDOM)
 ```
 
 Host: cap parsing, message shape, the continue state machine, the canary, the move gesture, the route and
@@ -64,5 +65,6 @@ match). Without the two optional inputs those passes are reported "non jouée", 
 - The client reconciles only the `next-turn` lane with what is on screen; a stale or mismatched queue sends
   nothing.
 - Only a live session is movable: otherwise the probe says `supported: false` and no handle appears.
-- Client strings are French unless the language resolves to `en`. `index.js` points to
+- Client strings are English unless the language resolves to French (`kybernos`, or a `fr` base); every other language
+  reads English too. `index.js` points to
   `docs/handoff/zero-patch-moteur.md`, which is not in this repo.

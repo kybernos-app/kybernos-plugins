@@ -661,6 +661,11 @@ console.log('\n── a run left behind by a closed tab ──')
   const r = await T.autoResume({ sleep: async () => { ticks += 1 }, now: () => 1000 + 60000 })
   check('no plan (nothing to translate from): it waits a bounded time, then gives up', r === false && ticks === 90 && T.getRun().state === 'idle', ticks)
 }
+{
+  // L3-02: the resume only starts from an idle page, so the page must have seen the host's own run BEFORE it decides.
+  const delay = (fn) => { const m = new RegExp('setTimeout\\(\\(\\) => \\{ ' + fn + '\\(\\)[^\\n]*?\\}, (\\d+)\\)').exec(SOURCE); return m === null ? null : Number(m[1]) }
+  check('at boot the host\'s own run is looked at before the automatic resume decides', delay('bootJobs') !== null && delay('autoResume') !== null && delay('bootJobs') < delay('autoResume'), [delay('bootJobs'), delay('autoResume')])
+}
 
 // ── activation + DSH language pack ────────────────────────────────────────
 console.log('\n── activation and DSH language ──')
@@ -888,6 +893,50 @@ console.log('\n── the run on the host (i18n-job): the page hands it over, wa
 
   await fresh()
   {
+    // L3-02: a tab closed mid-run left an intent, the load resumes it through the host and the host refuses (another language is
+    // being translated). The refusal settles the attempt: the intent used to stay and bring the same refusal back at every load.
+    T.resetRun()
+    const hang = mkRunner(() => new Promise(() => {}))
+    installJobHost(hang)
+    hang.start({ op: 'start', lang: 'de', langName: 'German', items: [{ wire: 'kb:k0', text: 'x', area: 'core' }], total: 1 })
+    delete globalThis.window.__KB_LANG_RUNTIME__; startRuntime()
+    T.registryAdd('es')
+    localStorage.setItem('kybernos.i18n.runstate', JSON.stringify({ lang: 'es', model: { provider: 'p', model: 'm' }, beat: 1000 }))
+    const resumed = await T.autoResume({ sleep: async () => {}, now: () => 1000 + 60000 })
+    await settle('running')
+    check('(setup) the automatic resume goes through the host, which is busy: « failed » with the busy reason', resumed === true && T.getRun().state === 'failed' && T.friendlyError(T.getRun().error) === 'errBusy', T.getRun())
+    check('a refused resume leaves no stale intent behind (it retried the same language at every load)', T.intentRead() === null, T.intentRead())
+    T.resetRun()
+    check('...so the next load has nothing to resume', await T.autoResume({ sleep: async () => {}, now: () => 1000 + 120000 }) === false && T.getRun().state === 'idle')
+    // the refusal of one language must not erase the intent of another one (a live tab still running it)
+    localStorage.setItem('kybernos.i18n.runstate', JSON.stringify({ lang: 'ar', model: null, beat: Date.now() }))
+    T.startRun('es', null)
+    await settle('running')
+    check('a refusal only drops the intent of ITS language', T.getRun().state === 'failed' && T.intentRead() !== null && T.intentRead().lang === 'ar', T.intentRead())
+    hang.cancel('de')
+  }
+
+  await fresh()
+  {
+    // L3-02: a resume the host accepts hands the run over: the intent of the closed tab is moot, and a failure of the host run
+    // (a dead key) must not be retried by the resume at every load either.
+    T.resetRun()
+    const runner = mkRunner(okTranslate)
+    installJobHost(runner)
+    delete globalThis.window.__KB_LANG_RUNTIME__; startRuntime()
+    await RT().disk.idle()
+    T.registryAdd('es')
+    localStorage.setItem('kybernos.i18n.runstate', JSON.stringify({ lang: 'es', model: { provider: 'p', model: 'm' }, beat: 1000 }))
+    check('(setup) the automatic resume starts the run on the host', await T.autoResume({ sleep: async () => {}, now: () => 1000 + 60000 }) === true)
+    for (let i = 0; i < 200 && runner.running().length === 0 && runner.status('es') === null; i += 1) await new Promise((r) => setTimeout(r, 5))
+    await runner.idle()
+    await T.watchOnce()
+    check('the host finished it', T.getRun().state === 'done', T.getRun())
+    check('the host owns the run: the intent of the closed tab is gone', T.intentRead() === null, T.intentRead())
+  }
+
+  await fresh()
+  {
     // pause from the page, then the run continues from what the disk holds
     let gate
     const held = new Promise((r) => { gate = r })
@@ -1102,7 +1151,7 @@ console.log('\n── help and tooltips ──')
   check('the mockup uses no data-lang attribute (it must not pass for a real row)', !/kbln-mm[^\n]*'data-lang'/.test(SOURCE))
   check('the help button is a real collapse/expand button (aria-expanded, aria-controls)', /'data-act': 'help', 'aria-expanded'[^\n]*'aria-controls': 'kbln-help'/.test(SOURCE))
   check('help opens by itself only while nothing is translated, then respects the choice', /managedIds\(\)\.length === 0/.test(SOURCE) && /I18N_HELP_KEY/.test(SOURCE))
-  const titled = ['tipHelp', 'tipStart', 'tipResume', 'tipRetry', 'tipPause', 'tipUse', 'tipUseNow', 'tipInUse', 'tipRtl', 'tipProgress', 'tipAreaCore', 'tipAreaMore', 'tipAreaPhrases', 'tipEstimate', 'tipAdd', 'tipAddLang', 'tipModel', 'tipAdvanced', 'tipAgain', 'tipRemove', 'tipChooseModel', 'tipDetails']
+  const titled = ['tipHelp', 'tipStart', 'tipResume', 'tipRetry', 'tipPause', 'tipUse', 'tipUseNow', 'tipInUse', 'tipRtl', 'tipProgress', 'tipAreaCore', 'tipAreaMore', 'tipAreaPhrases', 'tipEstimate', 'tipAdd', 'tipAddLang', 'tipModel', 'tipAgain', 'tipRemove', 'tipChooseModel', 'tipDetails']
   const code = SOURCE.replace(/^\s{8}\w+: \[.*$/gm, '') // the code, without the text catalogue
   check('every defined tooltip is actually set on a control', titled.every((k) => code.includes("'" + k + "'")), titled.filter((k) => !code.includes("'" + k + "'")))
 }
@@ -1113,7 +1162,34 @@ check('no more scraping of the main plugin source', !/performance\.getEntriesByT
 check('inject: slots + locale only', JSON.stringify(modele.inject) === JSON.stringify(['slots', 'locale']), modele.inject)
 check('the plugin no longer keeps its own DSH registry: everything goes through the core runtime', !/loc\.addLanguage|loc\.register\(/.test(SOURCE) && !/\bfollowDshSelector\b/.test(SOURCE) && /__KB_LANG_RUNTIME__/.test(SOURCE))
 check('the link under General › Language is a slot item (order 1, between Language=0 and Appearance=10)', /id: 'kybernos-language-link', order: 1/.test(SOURCE) && /settings\.general\.item/.test(SOURCE))
-check('no flag emoji (a language is not a country)', !/[\u{1F1E6}-\u{1F1FF}]/u.test(SOURCE))
+// Flags (owner's call, 2026-10-22; the page used to draw none): a language is not a country, so a flag is only drawn where one country stands for the language,
+// it is built from a table of two-letter regions (no emoji in the source), Arabic gets an emblem of its own, and the code stays where there is nothing to point at.
+check('no flag emoji written in the source: they are built from the region table', !/[\u{1F1E6}-\u{1F1FF}]/u.test(SOURCE))
+check('a flag is the regional-indicator pair of its region', T.flagEmoji('fr') === String.fromCodePoint(0x1F1EB, 0x1F1F7) && T.flagEmoji('en') === String.fromCodePoint(0x1F1EC, 0x1F1E7) && T.flagEmoji('kybernos') === T.flagEmoji('fr'))
+check('a language that is no country\'s (Catalan, Esperanto) and Arabic have no country flag', T.flagEmoji('ca') === null && T.flagEmoji('eo') === null && T.flagEmoji('ar') === null)
+check('every region of the table is two capital letters', Object.values(T.FLAG_REGION).every((r) => /^[A-Z]{2}$/.test(r)))
+check('Arabic gets its own drawn emblem, whatever the fonts (an svg, the letter ʿayn)', T.badgeFor('ar').flag === true && /const arabicEmblem = \(\) => h\('svg'/.test(SOURCE) && /'\\u0639'\)\)/.test(SOURCE))
+check('where the fonts draw no flag (no canvas here) the two letters stay', T.badgeFor('fr').flag === false && T.badgeFor('fr').node === 'FR' && T.badgeFor('kybernos').node === 'FR' && T.badgeFor('de').node === 'DE')
+// The page (owner's list, 2026-10-22): actions on hover, one button shape, a warning is a dot with its words in the row's details, the settings are their own tab.
+{
+  const css2 = SOURCE.slice(SOURCE.indexOf('const css = `'), SOURCE.indexOf('\n`', SOURCE.indexOf('const css = `')))
+  check('the actions of a row show on hover or focus, and stay for a run, a stop, a menu or a touch screen', /\.kbln-tools\{[^}]*opacity:0/.test(css2) && /\.kbln-lang:hover \.kbln-tools,\.kbln-lang:focus-within \.kbln-tools,\.kbln-lang\.tools \.kbln-tools,\.kbln-lang\.open \.kbln-tools\{opacity:1\}/.test(css2) && /@media \(hover:none\)\{\.kbln-tools,\.kbln-tgl\{opacity:1\}\}/.test(css2) && /const toolsOn = running \|\| st === 'paused' \|\| st === 'failed' \|\| menuFor === id \|\| askRemove === id/.test(SOURCE))
+  check('every button of the page has one height and one shape (30 px, 8 px radius), the ⋯ and the chevron are square', /\.kbln-btn\{[^}]*height:30px[^}]*border-radius:8px/.test(css2) && /\.kbln-btn\.icon\{width:30px;padding:0\}/.test(css2) && !/\.kbln-btn\.(sm|lg|small|large)\b/.test(css2))
+  check('a warning is a dot on the row and its words live in the row\'s details (no banner, no <details> fold left)', /alerts\.push\(/.test(SOURCE) && /className: 'kbln-dot ' \+ alertLevel/.test(SOURCE) && !/kbln-banner|kbln-fold|h\('details'/.test(SOURCE))
+  check('the details open with a real button (aria-expanded, aria-controls) that names the warning', /'data-act': 'toggle', 'aria-expanded': open \? 'true' : 'false', 'aria-controls': 'kbln-d-' \+ id/.test(SOURCE))
+  check('the settings are their own tab, not a block under the list', /role: 'tab'/.test(SOURCE) && /id: 'kbln-panel-settings'/.test(SOURCE) && !/kbln-adv/.test(SOURCE) && /const chooseModel = \(\) => \{ setTab\('settings'\); setFocusModel\(true\) \}/.test(SOURCE))
+  check('« Add a language » sits in the toolbar, above the list', SOURCE.indexOf("'data-act': 'add-language'") < SOURCE.indexOf("h('div', { className: 'kbln-langs' }, langs.map(row))"))
+}
+// The translation model is chosen from a list with a search field (the catalogue runs to dozens of models).
+{
+  const ms = [{ id: 'a', name: 'DeepSeek V4.1 Flash (GMI)', provider: 'gmicloud' }, { id: 'b', name: 'Kimi K3 (GMI)', provider: 'gmicloud' }, { id: 'c', name: 'Claude Sonnet 4.5 (OpenRouter)', provider: 'openrouter' }, { id: 'd', name: 'DeepSeek V4 Pro (OpenRouter)', provider: 'openrouter' }]
+  const ids = (q) => T.modelMatches(ms, q).map((m) => m.id).join('')
+  check('an empty search keeps the whole list', T.modelMatches(ms, '') === ms && T.modelMatches(ms, '   ') === ms)
+  check('the search reads the name, the provider and the id, in any case', ids('kimi') === 'b' && ids('OPENROUTER') === 'cd' && ids('gmi') === 'ab' && ids('deepseek') === 'ad')
+  check('every word typed must match (any order), nothing matches nothing', ids('deepseek flash') === 'a' && ids('flash deepseek') === 'a' && ids('deepseek gmicloud') === 'a' && ids('zzz') === '')
+  check('the model is a button that opens a searchable listbox, not a native select', /h\(ModelPicker, \{ models, value: selectedModel/.test(SOURCE) && /role: 'listbox', 'aria-label': L\('modelLabel'\)/.test(SOURCE) && /type: 'search', placeholder: L\('searchModel'\)/.test(SOURCE) && !/h\('select'/.test(SOURCE))
+  check('the list is driven from the keyboard: ↑ ↓ move, Enter chooses, Esc closes and gives the focus back', /e\.key === 'ArrowDown'/.test(SOURCE) && /e\.key === 'ArrowUp'/.test(SOURCE) && /e\.key === 'Enter'/.test(SOURCE) && /e\.key === 'Escape'[^\n]*closeIt\(true\)/.test(SOURCE))
+}
 check('the internal read of DSH (dicts) is guarded by a shape test', /instanceof Map/.test(SOURCE))
 
 // ── WP-07: the page speaks the language it was resolved in, in the singular too, and « Show details » is English ──
@@ -1136,6 +1212,18 @@ check('the internal read of DSH (dicts) is guarded by a shape test', /instanceof
   const code = SOURCE.replace(/\/\*[\s\S]*?\*\//g, '').split('\n').filter((l) => !/^\s*\/\//.test(l)).join('\n')
   check('the French of the page speaks « tu »: no « vous », « votre », « vos »', !/(?<![A-Za-zÀ-ÿ])(vous|votre|vos)(?![A-Za-zÀ-ÿ])/i.test(code), (code.match(/.{30}(?<![A-Za-zÀ-ÿ])(vous|votre|vos)(?![A-Za-zÀ-ÿ]).{20}/i) || [''])[0])
 }
+
+// The count lines (Language page, 2026-10-21): a stored count can exceed the current total after the product's string
+// set changes (« 7 455 of 6 342 texts », at 100 %, next to « Resume translation »). The page clamps it once, and a
+// language that covers its whole set is COMPLETE, so it shows « Use » and never « Resume » with nothing left.
+check('a count never shows more done than there is to do', /const done = total > 0 \? Math\.min\(doneRaw, total\) : doneRaw/.test(SOURCE) && /const doneRaw = isRun \? snap\.done : staticDone/.test(SOURCE))
+check('a language that covers its whole set is complete, whatever the stored meta says', /const complete = isComplete\(id\) \|\| \(total > 0 && done >= total\)/.test(SOURCE))
+check('one label for the use-it-now action, the nuance in the tooltip only', (SOURCE.match(/L\('useNow'\)/g) || []).length === 3 && !/L\('useAnyway'\)/.test(SOURCE) && /title: L\(st === 'partial' \? 'tipUseAnyway' : 'tipUseNow'\)/.test(SOURCE))
+
+// A translation whose source changed is out of date: the card must offer the act that fixes it (update the changed
+// texts only) as its MAIN action, not only « Use » — and not hide it in a collapsed fold.
+check('a translation with changed texts offers Update as its main action, Use beside it', /const staleN = !isBuiltIn\(id\) && !running && complete/.test(SOURCE) && /if \(staleN > 0\) \{/.test(SOURCE) && /'data-act': 'update', disabled: models\.length === 0/.test(SOURCE) && SOURCE.indexOf("if (staleN > 0) {") < SOURCE.indexOf("'data-act': 'use', title: L('tipUse')"))
+check('a translation with changed texts has its Update button on the row (shown while its details are open), and the details only explain', /key: 'stale', level: 'warn'/.test(SOURCE) && /\.kbln-lang\.open \.kbln-tools\{opacity:1\}|\.kbln-lang\.open \.kbln-tools,/.test(SOURCE) && (SOURCE.match(/L\('staleUpdate'\)/g) || []).length === 1)
 
 console.log('\n' + pass + ' ✓  ' + fail + ' ✗')
 process.exit(fail === 0 ? 0 : 1)
