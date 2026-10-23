@@ -112,7 +112,34 @@ export const statesOf = (body) => {
   return out
 }
 
-/** The two calls of the page, against the platform with the account's token (nothing is called when nobody is connected). */
+const VIAS = Object.freeze(['cron', 'once', 'webhook', 'run_now'])
+
+/**
+ * The runs a computer reported ended, as the page reads them (the platform's `GET …/runs`): newest first, at most 100. A run is its id, the automation's id, how
+ * it was started, how it ended (one of five words) and when; the one reason it may carry is a short code. The platform keeps nothing else of a run, and neither does this.
+ */
+export const runsOf = (body) => {
+  const list = body !== null && typeof body === 'object' && Array.isArray(body.runs) ? body.runs : []
+  const out = []
+  for (const r of list) {
+    if (r === null || typeof r !== 'object' || typeof r.task_ref !== 'string' || REF.test(r.task_ref) !== true) continue
+    const endedAt = isoOrNull(r.ended_at)
+    if (endedAt === null || STATUSES.indexOf(r.outcome) < 0) continue
+    out.push({
+      key: typeof r.run_key === 'string' && REF.test(r.run_key) === true ? r.run_key : endedAt + ':' + r.task_ref,
+      ref: r.task_ref,
+      via: VIAS.indexOf(r.via) >= 0 ? r.via : null,
+      outcome: r.outcome,
+      reason: typeof r.reason === 'string' && /^[a-z0-9_]{1,64}$/u.test(r.reason) ? r.reason : null,
+      startedAt: isoOrNull(r.started_at) ?? endedAt,
+      endedAt,
+    })
+    if (out.length >= 100) break
+  }
+  return out
+}
+
+/** The calls of the page, against the platform with the account's token (nothing is called when nobody is connected). */
 export function createPublish ({ readState, isConnected, apiCall }) {
   const personalWorkspace = async (token) => {
     const ws = await apiCall('/v1/workspaces', { method: 'GET', token, timeoutMs: 15000 })
@@ -120,7 +147,7 @@ export function createPublish ({ readState, isConnected, apiCall }) {
     const personal = list.find((w) => w !== null && typeof w === 'object' && w.personal === true && typeof w.id === 'string')
     return personal === undefined ? null : personal.id
   }
-  const pathOf = (workspaceId, computerId) => '/v1/workspaces/' + encodeURIComponent(workspaceId) + '/computers/' + encodeURIComponent(computerId) + '/tasks'
+  const pathOf = (workspaceId, computerId, leaf = 'tasks') => '/v1/workspaces/' + encodeURIComponent(workspaceId) + '/computers/' + encodeURIComponent(computerId) + '/' + leaf
 
   /** `{ computerId, ops: [{ op, ref, task? }] }` → `{ ok: true, ops: [{ ref, state }] }` or `{ ok: false, error, index? }`. */
   const publish = async (body) => {
@@ -150,5 +177,20 @@ export function createPublish ({ readState, isConnected, apiCall }) {
     return { ok: true, tasks: statesOf(res.body) }
   }
 
-  return { publish, states }
+  /** `computerId` and, for one automation's runs, `ref` → `{ ok: true, runs: [{ key, ref, via, outcome, reason, startedAt, endedAt }] }` or `{ ok: false, error }`. */
+  const runs = async (query) => {
+    const state = readState()
+    if (!isConnected(state)) return { ok: false, error: 'not_connected' }
+    const get = (name) => (query !== null && query !== undefined && typeof query.get === 'function' ? String(query.get(name) || '') : '')
+    const id = get('computerId')
+    const ref = get('ref')
+    if (UUID.test(id) !== true || (ref !== '' && REF.test(ref) !== true)) return { ok: false, error: 'invalid_request' }
+    const ws = await personalWorkspace(state.token)
+    if (ws === null) return { ok: false, error: 'no_computer' }
+    const res = await apiCall(pathOf(ws, id, 'runs') + (ref === '' ? '?limit=100' : '?limit=50&task_ref=' + encodeURIComponent(ref)), { method: 'GET', token: state.token, timeoutMs: 15000 })
+    if (res.status !== 200) return { ok: false, error: codeOf(res.status, res.body), status: res.status }
+    return { ok: true, runs: runsOf(res.body) }
+  }
+
+  return { publish, states, runs }
 }
