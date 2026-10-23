@@ -63,6 +63,8 @@ export const computerOf = (row, nowMs) => {
     memoryMb: SHAPE_MB[String(row.shape)] ?? null,
     mode: row.mode === 'always' ? 'always' : 'sleep',
     paused: typeof row.paused_reason === 'string' && /^[a-z_]{1,40}$/u.test(row.paused_reason) ? row.paused_reason : null,
+    // What the computer said it can do (a closed list, from its last `ready`): the page sends it an automation that asks first only when `ask_approvals` is there.
+    capabilities: Array.isArray(row.capabilities) ? Array.from(new Set(row.capabilities.filter((c) => typeof c === 'string' && /^[a-z_]{1,32}$/u.test(c)))).slice(0, 8) : [],
     // An asleep computer has no live reading: what it last said is of no use to a gauge.
     load: state === 'awake' ? loadOf(row, nowMs) : null,
   }
