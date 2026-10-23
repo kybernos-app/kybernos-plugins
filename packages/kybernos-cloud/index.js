@@ -52,6 +52,7 @@ import { zstdDecompressSync } from 'node:zlib'
 import { activeServer, stateFileName, llmBase, publicProfile } from './server-profile.mjs'
 import { agentsFile, readInstructions, writeInstructions } from './instructions.mjs'
 import { createKybyRoutes, pairingSupport } from './kyby.mjs'
+import { computersOf } from './computers-view.mjs'
 import { identityOf } from './computer-identity.mjs'
 import { writeGuard } from './session-guard.mjs'
 import { createKybyNative, isSessionId, readPointer, writePointer } from './kyby-native.mjs'
@@ -5226,6 +5227,28 @@ const computerAction = async (verb) => {
   return { ok: true, state: String(c.state || ''), desired: String(c.desired || '') }
 }
 
+// The person's cloud computers and how loaded each one is, for the strip on the Automations page (read-only). The list is the personal space's, as the
+// Home actions above; the load of each is what the computer said in its last beat (computers-view.mjs cuts the rows down to a closed set of fields).
+// One answer is shared for 8 seconds, the page asks every 10; a failure is an empty list with a short code, never the server's words.
+const computersAnswer = { at: 0, token: null, body: null }
+const computersRoute = async () => {
+  const state = readState()
+  if (!isConnected(state)) return { ok: true, connected: false, computers: [] }
+  if (computersAnswer.body !== null && computersAnswer.token === state.token && Date.now() - computersAnswer.at < 8000) return computersAnswer.body
+  const get = (p) => apiCall(p, { method: 'GET', token: state.token, timeoutMs: 8000 })
+  const ws = await get('/v1/workspaces')
+  const list = ws.status === 200 && ws.body !== null && Array.isArray(ws.body.workspaces) ? ws.body.workspaces : []
+  const personal = list.find((w) => w !== null && typeof w === 'object' && w.personal === true && typeof w.id === 'string')
+  if (personal === undefined) return { ok: true, connected: true, computers: [], error: ws.status === 200 ? undefined : 'unavailable' }
+  const c = await get('/v1/workspaces/' + encodeURIComponent(personal.id) + '/computers')
+  if (c.status !== 200 || c.body === null || typeof c.body !== 'object' || Array.isArray(c.body.computers) !== true) return { ok: true, connected: true, computers: [], error: 'unavailable' }
+  const body = { ok: true, connected: true, computers: computersOf(c.body.computers, Date.now()) }
+  computersAnswer.at = Date.now()
+  computersAnswer.token = state.token
+  computersAnswer.body = body
+  return body
+}
+
 // Kaby (ADR 0053): the Telegram pairing by QR code or link, where a message runs, and the person's own conversation with their Kaby.
 // The pure half, and what each answer means, is kyby.mjs; the calls are made here with the account's token.
 const kyby = createKybyRoutes({ readState, isConnected, apiCall, deviceLabel })
@@ -5291,6 +5314,7 @@ const ROUTES = [
   { path: '/kybernos-cloud/computer/resume', method: 'POST', guarded: true, strict: true, run: () => computerAction('resume') },
   { path: '/kybernos-cloud/computer/suspend', method: 'POST', guarded: true, strict: true, run: () => computerAction('suspend') },
   { path: '/kybernos-cloud/computer/open', method: 'POST', guarded: true, strict: true, run: () => computerAction('open') },
+  { path: '/kybernos-cloud/computers', method: 'GET', guarded: true, run: computersRoute },
   { path: '/kybernos-cloud/start', method: 'POST', guarded: true, session: true, run: startPairing },
   { path: '/kybernos-cloud/poll', method: 'POST', guarded: true, session: true, run: pollPairing },
   { path: '/kybernos-cloud/status', method: 'GET', guarded: false, run: statusRoute },
