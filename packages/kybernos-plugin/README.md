@@ -70,7 +70,7 @@ All under `/kybernos/` (plus `/kybernos-technique/{renderer,vendor/three}.js`). 
 | Teams, projects | `load` `yaml` `save` `create` `ui-save` `menu-save` `active-set` `project-data` `workspace-ui-save` `workspace-skills` `workspace-connectors` `pins` `share` `avatar*` `member-*` `team-portraits` `team-cap` `yml-proposer` `yml-appliquer` |
 | Runs, insight | `runs` `runs-index` `calls` `calls-index` `search-content` `insight` `insight-save` `quality*` `aa` `starters-suggest` `salary-detect` (purpose not verified) |
 | Deliverables | `art-origin\|read\|previews\|reveal\|raw\|action\|progress\|load` `doc-raw` |
-| Automations | `tasks` (POST; scheduler ticks every 30 s), `tasks/occurrences` (GET `?from=&to=`, read-only: when the active scheduled automations will run, see "The Automations board"), `tasks/runs` (GET `?ids=&detail=1`, read-only: what each run did, read from the engine's session journals, see "The runs of an automation"), `automation-skills` (GET `?id=`: how far an automation is from becoming a skill; POST `{id}`: write it, see "Stable automations become skills"), `hooks` (public webhook: secret + 60/h default limit) |
+| Automations | `tasks` (POST; scheduler ticks every 30 s), `automation-load` (GET: how loaded the machine is and how many runs may start, see "The cap on runs started at once"), `tasks/occurrences` (GET `?from=&to=`, read-only: when the active scheduled automations will run, see "The Automations board"), `tasks/runs` (GET `?ids=&detail=1`, read-only: what each run did, read from the engine's session journals, see "The runs of an automation"), `automation-skills` (GET `?id=`: how far an automation is from becoming a skill; POST `{id}`: write it, see "Stable automations become skills"), `hooks` (public webhook: secret + 60/h default limit) |
 | Tools catalog | `tools/state`, `tools/apply` (dry run, dated backup of the profile patch, restore) |
 | Voice, TTS | `voice/{config,transcribe,save}` `voice-sample*` `tts/{config,voices,speak,cache,cache-trim}` (engines: `say`, `piper`, `supertonic`, `edge`, and `models`, the speaking models of the user's own providers) `models/audio` `models/audio/{probe,speak,listen}` (the audio models of the providers set up in Models, how each is asked, and using it) `image-models` (live calls moved to `@local/kybernos-call`, which speaks through `tts/speak`) |
 | Widget, gateway | `widget.js` `widget/api/{config,conversations,message,account,history-delete,reply}` `gateway/{status,approvals,approvals/decision}` |
@@ -282,6 +282,29 @@ Settings › Automations has three switches and one choice, kept in `$DSH_HOME/k
 - **Suggest skills from stable automations** (on by default: a suggestion is not active before the person accepts it; the key is still `autoSkill`) and **Stable after** (3, 5, 10 or 20 runs in a row without a failure, default 5; the
   history keeps the last 20 runs, so 20 is the most it can see): see the next section.
 
+### The cap on runs started at once
+
+The tick used to start every due task together. It now asks `automation-load.mjs` how many automation runs there is room for, and claims only
+those, oldest first; the others are left untouched, still due on the next tick (late, never lost). Two facts decide:
+
+- **The level of the machine** (`ok`, `busy`, `high`): memory still available to programs (below 20 % or 400 MB busy, 10 % or 200 MB and under high) and
+  the one-minute load average per core (1.5 busy, 2.5 high). Room is the maximum (3) at `ok`, one run at `busy`, none at `high`. macOS memory is
+  `kern.memorystatus_level` (what Activity Monitor calls pressure), never `os.freemem()`, which reads about 10 % on a healthy Mac; Linux is
+  `MemAvailable`. A fact that cannot be read is treated as free. The thresholds are a first guess, not calibrated on a fleet.
+- **The runs going**: the sessions the scheduler created, followed through the engine's `agent/status` (running or idle) and `agent/disposed`. A
+  run that never started stops counting after 2 minutes and any run after 2 hours, so a lost event cannot hold a slot for ever.
+
+A run held for more than 10 minutes starts anyway (the cap slows the automations down, it never stops them), and any failure to measure means no
+limit. **Not capped, only counted:** a webhook event and "Run now" (an event cannot be queued, and a click is a person's wish). **Not limited
+at all:** the sub-agents a model spawns inside a run (the engine caps their depth, `subagent.maxDepth`, not their number).
+
+`GET /kybernos/automation-load` (same origin, read-only) answers the level, the reasons (`memory`, `cpu`), the runs going, the room, the maximum
+and the number of due runs waiting. Settings › Automations shows it as one row, and the board says "Waiting for the computer" instead of "The
+scheduler seems to be stopped" when the cap is what holds the overdue runs.
+
+Env: `KYBERNOS_AUTOMATION_MAX_PARALLEL` (1 to 20, default 3) sets the maximum; `KYBERNOS_AUTOMATION_LOAD_GUARD=off` stops consulting the machine
+(the level is always `ok`; the maximum still applies). A container with a memory limit is not seen (the host's memory is read).
+
 ### Stable automations are suggested as skills
 
 An automation that has run N times in a row without a failure is a procedure that works; it can be suggested as a skill to use by
@@ -435,7 +458,7 @@ Under `$DSH_HOME` (else `~/.dsh`): `kybers/<id>/{kyber.yml,.kyber-ui.json,.kyber
 `kybernos-widget/{configs.json,conversations/,accounts/,bridge-state.json}` (accounts hold visitor emails), `beta-reports/`,
 `profiles/<profile>/cordis.patch.yml` (+ `.bak-outils-*`, Tools tab only) and `AGENTS.md`. Reads `kybernos-cloud.json` (token, API
 base) and `.credentials.yaml` (browser-session secret). The quiz and cards score registry is `kybernos/progress.json`. Env: `DSH_HOME`, `HOME`, `DSH_WEB_PORT` (3080), `DSH_PROFILE`, `DSH_VERSION`,
-`KYBERNOS_CLOUD_STATE`, `AA_API_KEY`, `KB_RETRY_PLAFOND`.
+`KYBERNOS_CLOUD_STATE`, `AA_API_KEY`, `KB_RETRY_PLAFOND`, `KYBERNOS_AUTOMATION_MAX_PARALLEL`, `KYBERNOS_AUTOMATION_LOAD_GUARD`.
 
 **At boot, unasked** (each step guarded, none blocks the start): registers `kybernos-standard` as a plain copy of the Standard preset
 (« Standard mode (older chats) »: DSH compacts natively now, and stored sessions still carry that id, which the registry rejects when
@@ -581,6 +604,7 @@ node packages/kybernos-plugin/test-automation-board.mjs  # the KB-AUTOBOARD bloc
 node packages/kybernos-plugin/test-automation-runs.mjs   # the run summary: clock, outcome, models, tool calls, approvals, scrubbing, the guards and bounds of tasks/runs
 node packages/kybernos-plugin/test-automation-runs-client.mjs  # the KB-AUTORUNS block: history lines → runs, figures, bars, graph; the pane stays read-only
 node packages/kybernos-plugin/test-automation-flow.mjs  # the KB-AUTOFLOW block: layout, wires (none through a card, 9 styles), drag offsets, scale
+node packages/kybernos-plugin/test-automation-load.mjs  # the level, the room, which due runs start, the runs going, the off switch, the wiring in index.js and client.js
 node packages/kybernos-plugin/test-automation-settings.mjs  # the three switches and the choice, the guard of the route, the held tick
 node packages/kybernos-plugin/test-automation-skills.mjs  # the stable-run rule, the skill parts, the route and the tick suggesting a skill by itself (real apply() on a throw-away DSH home, a stand-in for the Skills seam)
 node packages/kybernos-plugin/test-learned-dot.mjs         # the dot on the Skills row of the menu
