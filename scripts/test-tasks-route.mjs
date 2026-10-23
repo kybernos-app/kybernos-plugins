@@ -40,9 +40,11 @@ globalThis.setTimeout = (fn, ms, ...a) => {
 let fails = 0
 const eq = (label, got, want) => { const ok = got === want; if (!ok) { fails++; console.log('FAIL', label, '| got', got, '| want', want) } else console.log('ok  ', label) }
 
+process.env.KYBERNOS_AUTOMATION_LOAD_GUARD = 'off' // the box running this test must not decide what the tick does
 const mod = await import(root + 'packages/kybernos-plugin/index.js')
 const routes = {}
-const sessions = { created: 0, prompts: [], failCreate: false }
+const sessions = { created: 0, prompts: [], failCreate: false, holdOpen: false }
+const listeners = {}
 // The two engine services the fire path uses to make "Ask me first" real. `log` is the order of events
 // across the session service and the permission service, to prove the preset lands BEFORE the prompt.
 const perm = { log: [], failSet: false, table: { 'workspace-write': { sandbox: 'workspace-write', approval: 'ask' }, 'danger-full-access': { sandbox: 'danger-full-access', approval: 'never' } } }
@@ -61,14 +63,18 @@ const services = {
   sessions: liveSessions,
   sessionController: {
     async create() { sessions.created += 1; if (sessions.failCreate === true) throw new Error('session service refused'); return { ok: true, value: { sessionId: 'sess-' + sessions.created } } },
-    async prompt(a) { sessions.prompts.push(a); perm.log.push('prompt:' + a.sessionId); return { ok: true } },
+    // The engine reports the session running, then idle once the turn is over (`holdOpen` keeps it running).
+    async prompt(a) {
+      sessions.prompts.push(a); perm.log.push('prompt:' + a.sessionId)
+      for (const fn of listeners['agent/status'] || []) { fn({ agent: { session: { id: a.sessionId } }, status: 'running' }); if (sessions.holdOpen !== true) fn({ agent: { session: { id: a.sessionId } }, status: 'idle' }) }
+      return { ok: true }
+    },
     async selectModel() { return { ok: true } },
   },
 }
 const quiet = []
 const realErr = console.error; const realLog = console.log
 console.error = (...a) => quiet.push(a.join(' ')); console.log = (...a) => quiet.push(a.join(' '))
-const listeners = {}
 mod.apply({ get: (n) => services[n], inject: () => {}, effect: (fn) => { try { return fn() } catch (e) { return undefined } }, on: (name, fn) => { (listeners[name] = listeners[name] || []).push(fn); return () => {} }, scope: {} })
 await new Promise((r) => realSetTimeout(r, 50))
 console.error = realErr; console.log = realLog
@@ -289,6 +295,34 @@ writeFileSync(file, good)
   await tick()
   const failed = onDisk().find((x) => x.id === created.task.id)
   eq('a failed start is recorded, not retried every 30 s', failed.history[failed.history.length - 1].status + ':' + (Date.parse(failed.nextRun) > Date.now()), 'error:true')
+}
+
+/* ── The cap, on the real code: runs going are followed through the engine's agent/status ─────────────────────────────── */
+{
+  sessions.failCreate = false
+  sessions.holdOpen = true // the sessions stay running until the test says so
+  const emit = (n, status) => { for (const fn of listeners['agent/status'] || []) fn({ agent: { session: { id: 'sess-' + n } }, status }) }
+  const base = sessions.created
+  const ids = []
+  for (const name of ['cap A', 'cap B', 'cap C', 'cap D']) ids.push((await api({ action: 'create', task: task({ name }) })).json.task.id)
+  const all = onDisk()
+  ids.forEach((id, i) => { all.find((x) => x.id === id).nextRun = new Date(Date.now() - 9000 + i * 1000).toISOString() })
+  writeFileSync(file, JSON.stringify(all, null, 2))
+  await tick()
+  eq('three runs may go at once: three start, the fourth waits', sessions.created - base, 3)
+  const load = (await call('GET', undefined, {}, '/kybernos/automation-load')).json
+  eq('the page is told: 3 going, room for 3, 1 waiting', load.ok + ':' + load.inFlight + '/' + load.allowed + '/' + load.waiting, 'true:3/3/1')
+  eq('the oldest three started, the newest waits', onDisk().filter((x) => ids.indexOf(x.id) >= 0 && x.history.length > 0).map((x) => x.name).sort().join(), 'cap A,cap B,cap C')
+  eq('the held one is still due, not lost', Date.parse(onDisk().find((x) => x.id === ids[3]).nextRun) < Date.now(), true)
+  await tick()
+  eq('still no room: the fourth keeps waiting', sessions.created - base, 3)
+  eq('the load route is read-only', (await call('POST', '{}', {}, '/kybernos/automation-load')).status, 405)
+  emit(base + 1, 'idle') // the engine says the first run ended
+  await tick()
+  eq('a run that ended makes room: the fourth starts', sessions.created - base, 4)
+  for (let n = 1; n <= 4; n += 1) emit(base + n, 'idle')
+  for (const id of ids) await api({ action: 'delete', id })
+  sessions.holdOpen = false
 }
 
 /* ── Webhooks ────────────────────────────────────────────────────────────── */

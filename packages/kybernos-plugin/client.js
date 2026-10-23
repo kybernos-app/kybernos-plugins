@@ -538,6 +538,7 @@ let kbLocaleRead = () => 'en'
       'tasks.board.act.approve': { kybernos: 'Approuver', en: 'Approve' },
       'tasks.board.act.refuse': { kybernos: 'Refuser', en: 'Refuse' },
       'tasks.board.act.retry': { kybernos: 'Relancer', en: 'Retry' },
+      'tasks.board.st.load': { kybernos: 'Prête : elle attend que l’ordinateur soit moins chargé.', en: 'Due: waiting for the computer to be less busy.' },
       'tasks.board.st.due': { kybernos: 'Prête : le planificateur la lance à son prochain passage.', en: 'Due: the scheduler starts it on its next pass.' },
       'tasks.board.st.running': { kybernos: 'Session en cours.', en: 'Session running.' },
       'tasks.board.st.approval': { kybernos: 'Attend ton accord.', en: 'Waiting for your approval.' },
@@ -580,6 +581,8 @@ let kbLocaleRead = () => 'en'
       'tasks.board.banner.title': { kybernos: 'Le planificateur ne répond pas.', en: 'The scheduler is not answering.' },
       'tasks.board.banner.body': { kybernos: 'Aucune automation ne se lance tant qu’il est arrêté. Ce que tu vois date de {when}.', en: 'No automation starts while it is stopped. What you see is from {when}.' },
       'tasks.board.overdue.title': { kybernos: 'Le planificateur semble arrêté.', en: 'The scheduler seems to be stopped.' },
+      'tasks.board.load.title': { kybernos: 'En attente de l’ordinateur.', en: 'Waiting for the computer.' },
+      'tasks.board.load.body': { kybernos: '{n} automation(s) attendent que l’ordinateur soit moins chargé. Elles partent d’elles-mêmes, la plus ancienne d’abord.', en: '{n} automation(s) are waiting for this computer to be less busy. They start on their own, oldest first.' },
       'tasks.board.overdue.body': { kybernos: '{n} automation(s) devaient partir il y a plus de trois minutes. Elles ne partent que tant que DSH tourne.', en: '{n} automation(s) should have started more than three minutes ago. They only start while DSH is running.' },
       'tasks.board.approved': { kybernos: 'Approuvé. La session reprend.', en: 'Approved. The session continues.' },
       'tasks.board.refused': { kybernos: 'Refusé. L’agent voit que l’action a été refusée.', en: 'Refused. The agent sees that the action was refused.' },
@@ -1689,6 +1692,14 @@ let kbLocaleRead = () => 'en'
       'tasks.lesson.err': { kybernos: 'Le skill n’a pas pu être créé : {why}', en: 'The skill could not be created: {why}' },
       'kbauto.set.where': { kybernos: 'Les automatisations tournent sur cet ordinateur, tant que DSH est ouvert.', en: 'Automations run on this computer, while DSH is open.' },
       'kbauto.set.error': { kybernos: 'Réglage non enregistré. Réessaie.', en: 'Setting not saved. Try again.' },
+      'kbauto.set.load': { kybernos: 'Charge de l’ordinateur', en: 'Computer load' },
+      'kbauto.set.load.ok': { kybernos: 'Légère : jusqu’à {max} automations à la fois.', en: 'Light: up to {max} automations at once.' },
+      'kbauto.set.load.busy': { kybernos: 'Chargé : une seule automation à la fois, les autres attendent.', en: 'Busy: one automation at a time, the others wait.' },
+      'kbauto.set.load.high': { kybernos: 'Très chargé : les automations attendent et partent d’elles-mêmes dès que ça se calme.', en: 'Very busy: automations wait and start on their own as soon as it calms down.' },
+      'kbauto.set.load.off': { kybernos: 'Mesure désactivée', en: 'Reading off' },
+      'kbauto.set.load.why.memory': { kybernos: 'mémoire presque pleine', en: 'memory nearly full' },
+      'kbauto.set.load.why.cpu': { kybernos: 'processeur très sollicité', en: 'processor heavily used' },
+      'kbauto.set.load.count': { kybernos: '{n} en cours · {w} en attente', en: '{n} running · {w} waiting' },
       'kbauto.set.unavailable': { kybernos: 'Ces réglages ne sont pas encore disponibles : DSH doit être redémarré pour les charger.', en: 'These settings are not available yet: DSH needs a restart to load them.' },
       'kbui.kyber.off': { kybernos: 'Le module Kaby n’est pas actif. Active-le dans la Suite.', en: 'The Kaby module is not active. Switch it on in the Suite.' },
       'kbui.dashboards.off': { kybernos: 'Le module Dashboards n’est pas actif. Active-le dans la Suite.', en: 'The Dashboards module is not active. Switch it on in the Suite.' },
@@ -4681,6 +4692,9 @@ const kbWsCatOf = (slug) => {
 const KB_DEFAULT_ICON = 'waypoints'
 const KB_DEFAULT_ICONS = [KB_DEFAULT_ICON, 'sparkles', 'rocket', 'zap', 'target', 'chart-bar', 'users', 'folder', 'file-text', 'settings', 'search', 'star', 'heart', 'bell', 'cloud', 'globe', 'mail', 'calendar', 'clock', 'camera', 'image', 'music', 'video', 'book', 'tag', 'key', 'lock', 'shield', 'wand-sparkles', 'brain', 'bot', 'cpu', 'database', 'terminal', 'code', 'git-branch', 'compass', 'flag', 'briefcase', 'lightbulb', 'palette']
 const kbIconCache = {}
+// The set of icons (the nodes of every icon) is fetched once. While that is under way, or waiting for a retry, an icon the page does not carry
+// itself is drawn blank: drawing the default glyph there made the picker a grid of the same icon, until the page was reloaded.
+let kbIconsPending = true
 const KbDynIcon = (props) => {
   const name = (props !== null && props !== undefined && typeof props.name === 'string') ? props.name : ''
   const size = (props !== null && props !== undefined && typeof props.size === 'number') ? props.size : 16
@@ -4689,7 +4703,10 @@ const KbDynIcon = (props) => {
     return h('svg', { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true', style: { flex: 'none' } },
       nodes.map((el, i) => h(el[0], Object.assign({ key: i }, el[1]))))
   }
-  return Icon(name, size) || Icon(KB_DEFAULT_ICON, size)
+  const own = Icon(name, size)
+  if (own !== null) return own
+  if (kbIconsPending === true) return h('span', { 'aria-hidden': 'true', style: { display: 'inline-block', width: size, height: size, flex: 'none' } })
+  return Icon(KB_DEFAULT_ICON, size)
 }
 // Menu icon sets (kybernos-theme). The set the person chose draws the menu entries — grey at rest, in the entry's colour on the
 // open page; « classic », or no registry yet, keeps the line icons above. The theme plugin announces a change with `kb-icons-change`.
@@ -4953,23 +4970,33 @@ const kbUseIconsRev = () => {
   return pair[0]
 }
 let kbCatalogLoaded = false
+const KB_ICON_RETRY_MS = [1500, 4000, 10000, 30000]
+let kbIconTries = 0
 const kbLoadIconNodes = (names) => {
-  if (kbCatalogLoaded === true || kbRemoteOk !== true) return
+  if (kbCatalogLoaded === true) return
+  // No host to ask (yet): nothing is on its way, an icon the page does not carry is drawn as the default.
+  if (kbRemoteOk !== true) { kbIconsPending = false; return }
   kbCatalogLoaded = true
+  kbIconsPending = true
+  // A refusal (the host restarting, a gateway error), an empty answer or a network error is a failure: the next attempt is scheduled, and after the last one the
+  // pending state ends so the default glyph shows (an unknown icon name is then drawn as the default, never left blank).
+  const failed = () => {
+    kbCatalogLoaded = false
+    if (kbIconTries < KB_ICON_RETRY_MS.length) { const wait = KB_ICON_RETRY_MS[kbIconTries]; kbIconTries += 1; setTimeout(() => kbLoadIconNodes(), wait) } else { kbIconsPending = false; kbBumpIcons() }
+  }
   try {
     fetch(kbApiBase() + '/icons?nodes=1', { cache: 'force-cache' })
       .then((r) => (r.ok ? r.json() : null))
       .then((body) => {
-        if (body !== null && body !== undefined && body.nodes !== null && typeof body.nodes === 'object') {
-          let got = 0
-          for (const n of Object.keys(body.nodes)) {
-            if (kbIconCache[n] === undefined) { kbIconCache[n] = body.nodes[n]; got += 1 }
-          }
-          if (got > 0) kbBumpIcons()
+        if (body === null || body === undefined || body.nodes === null || typeof body.nodes !== 'object' || Object.keys(body.nodes).length === 0) { failed(); return }
+        for (const n of Object.keys(body.nodes)) {
+          if (kbIconCache[n] === undefined) kbIconCache[n] = body.nodes[n]
         }
+        kbIconsPending = false
+        kbBumpIcons()
       })
-      .catch(() => { kbCatalogLoaded = false })
-  } catch (e) { kbCatalogLoaded = false }
+      .catch(() => { failed() })
+  } catch (e) { failed() }
 }
 // ── Donnees propres a un projet : cache module, une requete par liste ───────
 // Meme contrat que les icones : la lecture est synchrone (cache) et un abonne
@@ -6513,6 +6540,21 @@ const kbEditChatText = (t, tr, locale) => {
 // What the list shows. Only a list the host actually answered can be "empty": while it loads there is a
 // skeleton, and when the host could not answer there is the reason with a retry (both used to show
 // "create your first automation", as if the user had none).
+// The computer's load as a row of ticks and a percentage (GET /kybernos/automation-load). The colour is the LEVEL (green, amber, red), the length is how
+// close the machine is to red. No figure to show (the reading is switched off, or nothing could be measured): nothing is drawn.
+const KB_GAUGE_TICKS = 24
+const KbLoadGauge = (props) => {
+  const v = props.load
+  if (v === null || v === undefined || typeof v !== 'object' || typeof v.pressure !== 'number' || Number.isFinite(v.pressure) !== true) return null
+  const level = v.level === 'busy' || v.level === 'high' ? v.level : 'ok'
+  const pressure = Math.max(0, Math.min(100, Math.round(v.pressure)))
+  const filled = pressure === 0 ? 0 : Math.max(1, Math.round((pressure / 100) * KB_GAUGE_TICKS))
+  const ticks = []
+  for (let i = 0; i < KB_GAUGE_TICKS; i += 1) ticks.push(h('i', { key: i, className: i < filled ? (i === filled - 1 ? 'on head' : 'on') : '' }))
+  return h('span', { className: 'kbac-gauge kbac-gauge-' + level, role: 'meter', 'data-kb': 'load-gauge', 'data-level': level, 'aria-valuemin': 0, 'aria-valuemax': 100, 'aria-valuenow': pressure, 'aria-label': kbt('kbauto.set.load') },
+    h('span', { className: 'kbac-gauge-ticks', 'aria-hidden': 'true' }, ticks),
+    h('b', { className: 'kbac-gauge-n' }, String(pressure) + '%'))
+}
 const kbListState = (tasks, loadError) => {
   if (tasks === null || tasks === undefined) return loadError !== null && loadError !== undefined ? 'error' : 'loading'
   return kbTasksList(tasks).length === 0 ? 'empty' : 'list'
@@ -7204,6 +7246,7 @@ const KB_TPL_CATS = [
   { id: 'social', title: ['Social media', 'Réseaux sociaux'], color: 'var(--dsw-alias-state-warn-primary)' },
   { id: 'prospecting', title: ['Prospecting', 'Prospection'], color: 'var(--dsw-alias-state-business-primary)' },
   { id: 'support', title: ['Customer service', 'Service client'], color: 'var(--dsw-alias-state-success-primary)' },
+  { id: 'skills', title: ['Skills', 'Skills'], color: 'var(--dsw-alias-state-business-primary)' },
 ]
 const KB_TPLS = [
   { id: 'social-daily', cat: 'social', icon: 'image', title: ['Daily post pack', 'Pack de posts quotidien'],
@@ -7356,6 +7399,18 @@ const KB_TPLS = [
     ask: [
       { q: ['Which shop?', 'Quelle boutique ?'], o: [['I will connect it now', 'Je la connecte maintenant'], ['To confirm: read-only access', 'À confirmer : accès en lecture seule']] },
       { q: ['Which channel answers?', 'Quel canal répond ?'], o: [['WhatsApp', 'WhatsApp'], ['Website widget', 'Widget du site'], ['Email', 'E-mail']] }] },
+  { id: 'skill-scout', cat: 'skills', icon: 'search', title: ['Skill scout', 'Éclaireur de skills'],
+    cadence: ['Every Monday, 09:00', 'Chaque lundi, 09:00'], cron: '0 9 * * 1',
+    desc: ['Looks the public skills index over for skills that fit your goals, filters them in code and lists the few worth a look in Skills › Featured. Installs nothing.', 'Parcourt l’index public des skills pour trouver ceux qui collent à tes objectifs, les filtre dans le code et range les rares qui valent un coup d’œil dans Skills › Featured. N’installe rien.'],
+    tags: [['Skills', 'Skills'], ['Filtered in code', 'Filtré dans le code'], ['Proposes only', 'Propose seulement']], apps: ['GitHub'],
+    steps: [
+      ['act', ['Call the skill_scout tool once: it scans the index, filters what it finds and keeps the few that pass.', 'Appeler l’outil skill_scout une seule fois : il parcourt l’index, filtre ce qu’il trouve et garde le peu qui passe.']],
+      ['ai', ['Tell me in three lines at most the names it found and why each one fits; say so plainly when it found nothing.', 'Me dire en trois lignes au plus les noms trouvés et pourquoi chacun convient ; le dire franchement quand il n’a rien trouvé.']]],
+    needs: [['Some goals ticked in your profile, or a few skills installed', 'Quelques objectifs cochés dans ton profil, ou quelques skills installés']],
+    guard: [['Nothing is installed: a find waits in Skills › Featured until you install it yourself, with the usual confirmation.', 'Rien n’est installé : une trouvaille attend dans Skills › Featured jusqu’à ce que tu l’installes toi-même, avec la confirmation habituelle.'], ['A find needs a clean audit, a small file with no secret and no hidden instruction, and must not copy a skill you already have.', 'Une trouvaille demande un audit propre, un petit fichier sans secret ni consigne cachée, et ne doit pas copier un skill que tu as déjà.']],
+    ask: [
+      { q: ['Which day should it look?', 'Quel jour doit-il chercher ?'], o: [['Monday', 'Lundi'], ['Friday', 'Vendredi'], ['The first of the month', 'Le premier du mois']] },
+      { q: ['Where should the three lines go?', 'Où envoyer les trois lignes ?'], o: [['In the chat', 'Dans le chat'], ['A message on my phone', 'Un message sur mon téléphone'], ['Nowhere: I will look in Skills', 'Nulle part : je regarderai dans Skills']] }] },
 ]
 
 /** The pair `[en, fr]` read in the page's language: `pick` is the page's rule, English when none is given. */
@@ -18159,15 +18214,19 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         }).catch(() => { if (dead === false) setIconList(Object.keys(LUCIDE)) })
         return () => { dead = true }
       }, [])
+      // The drafts follow the saved values: when the project opens, and again when they arrive late (the page keeps the project open while its settings load)
+      // or change from elsewhere; never while the person has an edit that is not saved yet.
+      const savedSig = JSON.stringify([wsUi.name, wsUi.icon, wsUi.color, wsUi.desc])
       React.useEffect(() => {
         if (ws === null) return undefined
+        if (saveState === 'pending' || saveState === 'saving') return undefined
         const u = (wsUiAll[ws.workspaceId] !== null && wsUiAll[ws.workspaceId] !== undefined) ? wsUiAll[ws.workspaceId] : {}
         setNameDraft(typeof u.name === 'string' && u.name.length > 0 ? u.name : (ws.title || ws.workspaceId))
         setIconDraft(typeof u.icon === 'string' && u.icon.length > 0 ? u.icon : 'folder')
         setColorDraft(typeof u.color === 'string' && u.color.length > 0 ? u.color : '')
         setDescDraft(typeof u.desc === 'string' ? u.desc : '')
         return undefined
-      }, [s.projectId])
+      }, [s.projectId, savedSig])
       React.useEffect(() => () => { if (timerRef.current !== null) { try { clearTimeout(timerRef.current) } catch (e) { /* deja nettoye */ } } }, [])
       // A tab whose data is not read yet passes PROJ_LOADING instead of a sentence: bones in the box of the rows, not a line of text.
       const PROJ_LOADING = 'kb:project-loading'
@@ -18542,6 +18601,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       const TABS = ['Threads', kbt('kbui.details'), kbt('kbui.instructions'), kbt('kbui.documents'), kbt('kbui.objectifs'), 'Deliverables', kbt('kbui.skills'), kbt('kbui.connecteurs'), kbt('kbui.devices'), kbt('kbui.budget'), kbt('kbui.insight')].filter((t) => kbProjectTabHidden(t) === false && (t !== kbt('kbui.devices') || kbMdExtras('devices', ws) !== null))
       const rowStyle = { display: 'flex', alignItems: 'center', gap: '13px', padding: '14px 16px', borderBottom: '1px solid var(--dsw-alias-border-l1)' }
       const pillStyle = { fontFamily: 'ui-monospace,monospace', fontSize: '10px', letterSpacing: '.06em', borderRadius: '999px', padding: '4px 10px', border: '1px solid var(--dsw-alias-border-l1)', color: 'var(--dsw-alias-label-secondary)', whiteSpace: 'nowrap' }
+      const editing = saveState === 'pending' || saveState === 'saving'
       const saveLabel = saveState === 'saving' ? kbt('kbui.saving') : (saveState === 'pending' ? kbt('kbui.unsaved') : (saveState === 'ok' ? kbt('kbui.saved.check') : (saveState === 'err' ? kbt('kbui.retry.save') : kbt('kbui.autosave'))))
       const saveColor = saveState === 'err' ? 'var(--dsw-alias-state-error-primary)' : (saveState === 'ok' ? 'var(--dsw-alias-state-success-primary)' : 'var(--dsw-alias-label-secondary)')
       const pane = (() => {
@@ -18552,31 +18612,26 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
           const field = { height: '44px', border: '1px solid var(--dsw-alias-border-l1)', borderRadius: '12px', background: 'var(--dsw-alias-bg-base, var(--dsw-alias-bg-layer-1))', padding: '0 14px', fontSize: '14px', color: 'var(--dsw-alias-label-primary)', outline: 'none', width: '100%', boxSizing: 'border-box' }
           const allIcons = iconList !== null ? iconList : Object.keys(LUCIDE)
           return h('div', { style: { display: 'flex', flexDirection: 'column', gap: '14px' } },
+            // The same card and the same rhythm as the Identity tab of an Agent Team: fields stacked, the icon grid and the colours across the full width.
             h('div', { className: 'kbpd-card', 'data-kb': 'project-details-card' },
-              h('div', { className: 'kbpd-top' },
-                h('label', { className: 'kbpd-col' },
-                  h('span', { className: 'kb8-parent' }, kbt('kbui.col.name')),
-                  h('input', { value: nameDraft, onChange: (e) => updateDetails({ name: e.target.value }), style: field }),
-                  h('span', { className: 'kb8-sub' }, kbt('kbui.shown.project'))),
-                // Short description: the project card only shows its start, the whole text is set and read here.
-                h('label', { className: 'kbpd-col kbpd-wide', 'data-kb': 'project-description' },
-                  h('span', { className: 'kbpd-lh' }, h('span', { className: 'kb8-parent' }, kbt('ui.description')), h('span', { className: 'kb8-parent' }, String(descDraft.length) + ' / 280')),
-                  h('textarea', {
-                    value: descDraft, rows: 3, maxLength: 280,
-                    'aria-label': kbt('ui.description'),
-                    onChange: (e) => updateDetails({ desc: e.target.value }),
-                    placeholder: kbt('ui.description.ph'),
-                    style: Object.assign({}, field, { height: 'auto', minHeight: '76px', padding: '11px 14px', lineHeight: '1.5', resize: 'vertical', fontFamily: 'inherit' }),
-                  }))),
+              h('span', { className: 'kb8-parent' }, kbt('kbui.col.name')),
+              h('input', { value: nameDraft, onChange: (e) => updateDetails({ name: e.target.value }), style: field }),
+              h('span', { className: 'kb8-sub' }, kbt('kbui.shown.project')),
+              // Short description: the project card only shows its start, the whole text is set and read here.
+              h('span', { className: 'kbpd-lh' }, h('span', { className: 'kb8-parent' }, kbt('ui.description')), h('span', { className: 'kb8-parent' }, String(descDraft.length) + ' / 280')),
+              h('textarea', {
+                value: descDraft, rows: 3, maxLength: 280, 'data-kb': 'project-description',
+                'aria-label': kbt('ui.description'),
+                onChange: (e) => updateDetails({ desc: e.target.value }),
+                placeholder: kbt('ui.description.ph'),
+                style: Object.assign({}, field, { height: 'auto', minHeight: '76px', padding: '11px 14px', lineHeight: '1.5', resize: 'vertical', fontFamily: 'inherit' }),
+              }),
               // The working folder row of the multi-device satellite (nothing when it is off).
               kbMdExtras('folder', ws),
-              h('div', { className: 'kbpd-look' },
-                h('div', { className: 'kb8-look' },
-                  h('span', { className: 'kb8-parent' }, kbe('Icon', 'Icône')),
-                  kbLookIcon({ icons: allIcons, query: iconQ, words: iconTags, onQuery: setIconQ, icon: iconDraft, color: colorDraft, onPick: (n) => updateDetails({ icon: n }) })),
-                h('div', { className: 'kb8-look' },
-                  h('span', { className: 'kb8-parent' }, kbe('Colour', 'Couleur')),
-                  kbLookColor(colorDraft, (c) => updateDetails({ color: c }))))),
+              h('span', { className: 'kb8-parent' }, kbe('Icon', 'Icône')),
+              kbLookIcon({ icons: allIcons, query: iconQ, words: iconTags, onQuery: setIconQ, icon: iconDraft, color: colorDraft, onPick: (n) => updateDetails({ icon: n }) }),
+              h('span', { className: 'kb8-parent' }, kbe('Colour', 'Couleur')),
+              kbLookColor(colorDraft, (c) => updateDetails({ color: c }))),
             // Danger zone: one line. Deleting takes two clicks; the folder on disk and the session logs are kept (see wsDelete above).
             h('div', { className: 'kbpd-danger', 'data-kb': 'ws-danger-zone' },
               h('span', { className: 'kb8-sub', style: { flex: 1, minWidth: '220px', maxWidth: 'none' } },
@@ -19036,8 +19091,8 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       return h('div', { className: 'kb8-page' },
         h('button', { type: 'button', className: 'kb8-primary', style: { alignSelf: 'flex-start', background: 'transparent', border: '1px solid var(--dsw-alias-border-l1)', color: 'var(--dsw-alias-label-primary)' }, onClick: () => set({ view: 'projects' }) }, '‹ Back to projects'),
         h('div', { style: { display: 'flex', alignItems: 'flex-start', gap: '16px', flexWrap: 'wrap' } },
-          // The tile follows the draft while the Details tab is being edited (the icon and the colour are picked in that tab, which no longer draws a second tile).
-          kbCfIcon(colorDraft !== '' ? colorDraft : (typeof wsUi.color === 'string' ? wsUi.color : ''), iconDraft !== '' ? iconDraft : (typeof wsUi.icon === 'string' && wsUi.icon.length > 0 ? wsUi.icon : 'folder'), undefined, false, 56),
+          // The saved icon and colour; the draft while an edit of them is not saved yet (they are picked in the Details tab, which draws no second tile).
+          kbCfIcon(editing ? colorDraft : (typeof wsUi.color === 'string' ? wsUi.color : ''), editing ? (iconDraft || 'folder') : (typeof wsUi.icon === 'string' && wsUi.icon.length > 0 ? wsUi.icon : 'folder'), undefined, false, 56),
           h('div', { style: { display: 'flex', flexDirection: 'column', gap: '8px', flex: 1, minWidth: 220 } },
             h('h1', { className: 'kb8-h1 kb8-hd-h1' }, nameDraft || ws.title || ws.workspaceId),
             // La description du projet s'affiche ici, sur tous les onglets —
@@ -23246,6 +23301,10 @@ function renderFit(canvas, model, cam, opts){
         return h('span', { className: 'kbbd-chip', title: p.tip !== '' ? label + ' · ' + p.tip : label }, Icon(hook === true ? 'zap' : 'clock', 11), h('span', { className: 'kbbd-chip-t' }, label))
       }
       const whoOf = (t, it) => (t.approvals === 'auto' ? kbt('tasks.auto') : kbt('tasks.ask')) + (it !== null && it.via === 'webhook' ? ' · ' + kbt('tasks.trigger.webhook') : '')
+      // The cap (automation-load.mjs) is what holds the due runs: the computer is busy, or every slot is taken. Then « due » must not say
+      // that the scheduler will start the run on its next pass.
+      const ml = props.load
+      const heldByLoad = ml !== null && ml !== undefined && typeof ml === 'object' && ml.waiting > 0 && (ml.level === 'busy' || ml.level === 'high' || ml.inFlight >= ml.allowed)
       // One card. `col` is the column; `it` a run, or { taskId, atMs, due } for the upcoming column.
       const card = (col, it) => {
         const t = byId.get(it.taskId)
@@ -23255,7 +23314,7 @@ function renderFit(canvas, model, cam, opts){
         let acts = []
         let top = null
         if (col === 'upcoming') {
-          status = it.due === true ? kbt('tasks.board.st.due') : kbBoardIn(it.atMs, nowMs, locale)
+          status = it.due === true ? kbt(heldByLoad === true ? 'tasks.board.st.load' : 'tasks.board.st.due') : kbBoardIn(it.atMs, nowMs, locale)
           acts = actionsOf({ state: 'planned', taskId: it.taskId, sessionId: null, live: null })
         } else {
           status = whyOf(it)
@@ -23280,6 +23339,13 @@ function renderFit(canvas, model, cam, opts){
             h('button', { type: 'button', className: 'kba-btn', 'data-kb': 'board-retry', onClick: () => { try { props.onRetry() } catch (e) { /* the next poll retries */ } } }, kbt('tasks.retry')))
         }
         if (C.overdue.length > 0) {
+          // Held by the cap: the scheduler is running, say what it waits for.
+          if (heldByLoad === true) {
+            return h('div', { className: 'kbbd-banner warn', role: 'status', 'data-kb': 'board-banner', 'data-reason': 'load' },
+              Icon('clock', 16),
+              h('div', { className: 'kbbd-bt' }, h('b', null, kbt('tasks.board.load.title')), h('span', null, kbt('tasks.board.load.body').replace('{n}', String(C.overdue.length)))),
+              h(KbLoadGauge, { load: ml }))
+          }
           return h('div', { className: 'kbbd-banner warn', role: 'status', 'data-kb': 'board-banner' },
             Icon('triangleAlert', 16),
             h('div', { className: 'kbbd-bt' }, h('b', null, kbt('tasks.board.overdue.title')), h('span', null, kbt('tasks.board.overdue.body').replace('{n}', String(C.overdue.length)))))
@@ -23437,6 +23503,17 @@ function renderFit(canvas, model, cam, opts){
       const loadErrPair = React.useState(null)
       const loadErr = loadErrPair[0]
       const setLoadErr = loadErrPair[1]
+      // The computer's load, for the banner: an automation held back by the cap is not a stopped scheduler.
+      const machineLoadPair = React.useState(null)
+      React.useEffect(() => {
+        let alive = true
+        const read = () => fetch('/kybernos/automation-load', { cache: 'no-store', credentials: 'same-origin' }).then((r) => (r.ok ? r.json() : null)).then((j) => {
+          if (alive === true) machineLoadPair[1](j !== null && typeof j === 'object' && j.ok === true ? j : null)
+        }).catch(() => { if (alive === true) machineLoadPair[1](null) })
+        read()
+        const timer = setInterval(read, 15000)
+        return () => { alive = false; clearInterval(timer) }
+      }, [])
       const tabPair = React.useState('flow')
       const tab = tabPair[0]
       const setTab = tabPair[1]
@@ -23985,7 +24062,7 @@ function renderFit(canvas, model, cam, opts){
         boardView === 'cards'
           ? h(KbAutoCards, { tasks: filtered.map((a) => a._t), onOpen: (id) => { setDetail(id); setTab('flow'); setNodeSel(null) }, onToggle: (t) => act('toggle', t.id, { active: t.active === false }) })
           : h(KbAutoBoard, {
-          view: boardView, tasks: filtered.map((a) => a._t), rawTasks: tasks, loadErr: loadErr,
+          view: boardView, tasks: filtered.map((a) => a._t), rawTasks: tasks, loadErr: loadErr, load: machineLoadPair[0],
           onRetry: () => { setLoadErr(null); refresh() },
           act: act, toast: toast,
           openSession: (sid) => { try { uiWorkspaceSvc.openSession(sid) } catch (er) { /* navigation indisponible */ } },
@@ -26999,6 +27076,15 @@ function renderFit(canvas, model, cam, opts){
       try {
         if (typeof text !== 'string' || text.trim() === '' || text.length > 4000 || typeof kbOpenFeedbackChat !== 'function') return false
         kbOpenFeedbackChat(text)
+        return true
+      } catch (e) { return false }
+    }
+    // window.__KB_OPEN__.template(id): a new chat that starts the Discover template `id` (the Skills page asks for « skill-scout »). False when there is no such template or no chat.
+    kbOpenPage.template = (id) => {
+      try {
+        const tpl = KB_TPLS.filter((x) => x.id === id)[0]
+        if (tpl === undefined || typeof kbOpenFeedbackChat !== 'function') return false
+        kbOpenFeedbackChat(kbTplChatText(tpl, kbt, kbTplPick, kbTplLangName(kbLangResolve())))
         return true
       } catch (e) { return false }
     }
@@ -32656,14 +32742,8 @@ button.kbbd-chip:hover{background:var(--dsw-alias-interactive-bg-hover,#f0f0f0)}
    suggestions) : une seule mise en page, héritée des classes ci-dessus. */
 .kb8-look{display:flex;flex-direction:column;gap:10px}
 /* Details tab of a project: one card like the Identity tab of an Agent Team. */
-.kbpd-card{background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l1);border-radius:16px;padding:20px 22px;display:flex;flex-direction:column;gap:20px}
-.kbpd-top{display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start}
-.kbpd-col{display:flex;flex-direction:column;gap:6px;flex:1 1 260px;min-width:0}
-.kbpd-wide{flex-grow:1.5;flex-basis:320px}
+.kbpd-card{background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l1);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:11px}
 .kbpd-lh{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
-.kbpd-look{display:flex;gap:28px;flex-wrap:wrap;align-items:flex-start;border-top:1px solid var(--dsw-alias-border-l1);padding-top:18px}
-.kbpd-look>:first-child{flex:1.4 1 360px;min-width:0}
-.kbpd-look>:last-child{flex:1 1 320px;min-width:0}
 .kbpd-danger{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:10px 14px;border-radius:14px;border:1px dashed var(--dsw-alias-state-error-primary)}
 .kbpd-save{display:flex;align-items:center;gap:12px;flex:none}
 .kb8-look-chips{display:flex;gap:8px;flex-wrap:wrap}
@@ -34332,6 +34412,18 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
     const KbAutomationsSettings = () => {
       const pair = React.useState({ loaded: false, showNativeTasks: false, paused: false, autoSkill: false, stableAfter: 5, error: false, unavailable: false })
       const st = pair[0]
+      // How loaded the computer is and how many automations may run at once (read-only; a host without the route shows no row).
+      const loadPair = React.useState(null)
+      const ld = loadPair[0]
+      React.useEffect(() => {
+        let alive = true
+        const read = () => fetch('/kybernos/automation-load', { cache: 'no-store', credentials: 'same-origin' }).then((r) => (r.ok ? r.json() : null)).then((j) => {
+          if (alive === true && j !== null && typeof j === 'object' && j.ok === true && typeof j.level === 'string') loadPair[1](j)
+        }).catch(() => null)
+        read()
+        const timer = setInterval(read, 10000)
+        return () => { alive = false; clearInterval(timer) }
+      }, [])
       React.useEffect(() => {
         let alive = true
         // A host that predates the route answers 404: the page says so instead of offering switches that cannot save.
@@ -34372,6 +34464,13 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
             h('div', { className: 'kbac-row-txt' }, h('span', { className: 'kbac-row-l' }, kbt('kbauto.set.stable')), h('span', { className: 'kbac-row-d' }, kbt('kbauto.set.stable.d'))),
             h('span', { className: 'kbac-seg', role: 'group', 'aria-label': kbt('kbauto.set.stable') }, KB_STABLE_CHOICES.map((n) => h('button', { key: n, type: 'button', className: 'kbac-segb' + (st.stableAfter === n ? ' on' : ''), 'aria-pressed': st.stableAfter === n ? 'true' : 'false', 'data-kb': 'stable-' + n,
               onClick: () => { if (st.unavailable !== true && st.stableAfter !== n) change('stableAfter', n) } }, String(n))))),
+          ld === null ? null : h('div', { className: 'kbac-row', key: 'load', 'data-kb': 'automation-load', 'data-level': ld.level },
+            h('div', { className: 'kbac-row-txt' },
+              h('span', { className: 'kbac-row-l' }, kbt('kbauto.set.load')),
+              h('span', { className: 'kbac-row-d' }, kbt('kbauto.set.load.' + (ld.level === 'busy' || ld.level === 'high' ? ld.level : 'ok')).replace('{max}', String(ld.maxParallel)) +
+                (Array.isArray(ld.reasons) === true && ld.reasons.length > 0 ? ' (' + ld.reasons.map((x) => kbt('kbauto.set.load.why.' + x)).join(', ') + ')' : '')),
+              h('span', { className: 'kbac-row-d' }, kbt('kbauto.set.load.count').replace('{n}', String(ld.inFlight)).replace('{w}', String(ld.waiting)))),
+            h(KbLoadGauge, { load: ld }) || h('span', { className: 'kbac-load kbac-load-ok' }, kbt('kbauto.set.load.off'))),
           h('div', { className: 'kbac-row', key: 'where' }, h('div', { className: 'kbac-row-txt' }, h('span', { className: 'kbac-row-d' }, kbt('kbauto.set.where'))))),
         st.unavailable === true ? h('p', { className: 'kb8-sub', role: 'status' }, kbt('kbauto.set.unavailable')) : null,
         st.error === true ? h('p', { className: 'kb8-sub', role: 'alert' }, kbt('kbauto.set.error')) : null)
@@ -34390,6 +34489,16 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
 .kbac-row-txt{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1 1 auto}
 .kbac-row-l{font-size:14px;font-weight:500;color:var(--dsw-alias-label-primary)}
 .kbac-row-d{font-size:13px;line-height:1.45;color:var(--dsw-alias-label-secondary)}
+.kbac-load{flex:0 0 auto;display:inline-flex;align-items:center;height:24px;padding:0 10px;border-radius:12px;border:1px solid var(--dsw-alias-border-l2);font-size:12px;font-weight:500;color:var(--dsw-alias-label-secondary)}
+.kbac-gauge{--kbg:var(--dsw-alias-state-success-primary);flex:0 0 auto;display:inline-flex;align-items:center;gap:10px}
+.kbac-gauge-busy{--kbg:var(--dsw-alias-state-warn-primary)}
+.kbac-gauge-high{--kbg:var(--dsw-alias-state-error-primary)}
+.kbac-gauge-ticks{display:inline-flex;align-items:center;gap:2px;height:28px}
+.kbac-gauge-ticks i{display:block;width:2px;height:18px;border-radius:1px;background:var(--dsw-alias-border-l2)}
+.kbac-gauge-ticks i.on{background:var(--kbg)}
+.kbac-gauge-ticks i.head{height:26px}
+@media (max-width:560px){.kbac-gauge-ticks{display:none}}
+.kbac-gauge-n{min-width:38px;text-align:end;font-size:14px;font-weight:500;font-variant-numeric:tabular-nums;color:var(--dsw-alias-label-secondary)}
 .kbac-btn{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:32px;padding:0 12px;border-radius:10px;border:1px solid var(--dsw-alias-border-l2);background:transparent;color:var(--dsw-alias-label-primary);font:inherit;font-size:13px;text-decoration:none;cursor:pointer;white-space:nowrap}
 .kbac-btn:hover{background:var(--dsw-alias-interactive-bg-hover)}
 .kbac-seg{display:inline-flex;gap:2px;padding:3px;border-radius:999px;background:var(--dsw-alias-bg-layer-2);border:1px solid var(--dsw-alias-border-l1);flex:none}

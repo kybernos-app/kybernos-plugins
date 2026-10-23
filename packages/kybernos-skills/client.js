@@ -59,6 +59,7 @@ window.__ModuleLoader__.load({
         file: ['M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z', 'M14 3v5h5'],
         alert: ['M12 9v4', 'M12 17h.01', 'M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z'],
         refresh: ['M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8', 'M21 3v5h-5'],
+        close: ['M18 6 6 18', 'm6 6 12 12'],
         globe: ['M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z', 'M2 12h20', 'M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z']
       }
       const icon = (name, size) => h('svg', {
@@ -91,6 +92,142 @@ window.__ModuleLoader__.load({
         return String(v)
       }
       const today = (iso) => { try { return new Date(iso).toLocaleDateString(isEn() ? 'en-GB' : 'fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }) } catch (e) { return '' } }
+      // ── SKILL.md as a person reads it (a safe subset of Markdown, drawn as React elements: no HTML is ever injected, an image is never loaded) ──
+      // The start of a SKILL.md is shown formatted (front matter as a small properties box, headings, lists, tables, code, quotes, links) with a switch back to the
+      // file as it is: a skill comes from someone else, and the raw text is where a hidden line would show.
+      const mdInline = (s, depth) => {
+        const out = []
+        const re = /`([^`\n]+)`|\*\*([^\n]+?)\*\*|(?<![\w*])\*([^*\s][^*\n]*?)\*(?![\w*])|(?<!\w)_([^_\s][^_\n]*?)_(?!\w)|(!?)\[([^\]\n]*)\]\(\s*([^)\s]+)(?:\s+"[^"]*")?\s*\)/g
+        let last = 0
+        let k = 0
+        let m
+        while ((m = re.exec(s)) !== null) {
+          if (m.index > last) out.push(s.slice(last, m.index))
+          if (m[1] !== undefined) out.push(h('code', { key: k++ }, m[1]))
+          else if (m[2] !== undefined) out.push(h('strong', { key: k++ }, depth < 3 ? mdInline(m[2], depth + 1) : m[2]))
+          else if (m[3] !== undefined || m[4] !== undefined) { const body = m[3] !== undefined ? m[3] : m[4]; out.push(h('em', { key: k++ }, depth < 3 ? mdInline(body, depth + 1) : body)) }
+          else if (m[5] === '!') out.push(m[6])
+          else if (/^https?:\/\//i.test(m[7])) out.push(h('a', { key: k++, href: m[7], target: '_blank', rel: 'noopener noreferrer', title: m[7], onClick: (e) => e.stopPropagation() }, m[6] !== '' ? m[6] : m[7]))
+          else out.push(m[6] !== '' ? m[6] : m[7])
+          last = re.lastIndex
+        }
+        if (last < s.length) out.push(s.slice(last))
+        return out
+      }
+      const MD_ROW = /^\s*\|?.*\|.*$/
+      const MD_SEP = /^\s*\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\|?\s*$/
+      const MD_LIST = /^(\s*)([-*+]|\d{1,3}[.)])\s+(.*)$/
+      const MD_FENCE = /^\s*(```+|~~~+)/
+      const MD_HR = /^\s*([-*_])(\s*\1){2,}\s*$/
+      const mdCells = (line) => {
+        const parts = line.trim().replace(/^\|/, '').replace(/\|$/, '').split(/(?<!\\)\|/)
+        return parts.map((c) => c.trim().replace(/\\\|/g, '|'))
+      }
+      const mdBlocks = (lines, depth) => {
+        const out = []
+        let i = 0
+        let key = 0
+        const isBlockStart = (l) => MD_FENCE.test(l) || /^\s{0,3}#{1,6}\s/.test(l) || MD_HR.test(l) || /^\s*>/.test(l) || MD_LIST.test(l)
+        while (i < lines.length) {
+          const line = lines[i]
+          if (line.trim() === '') { i += 1; continue }
+          const fence = MD_FENCE.exec(line)
+          if (fence !== null) {
+            const code = []
+            i += 1
+            while (i < lines.length && lines[i].trim().indexOf(fence[1].slice(0, 3)) !== 0) { code.push(lines[i]); i += 1 }
+            i += 1
+            out.push(h('pre', { key: key++ }, h('code', null, code.join('\n'))))
+            continue
+          }
+          const head = /^\s{0,3}(#{1,6})\s+(.*?)\s*#*\s*$/.exec(line)
+          if (head !== null) { out.push(h('div', { key: key++, className: 'h h' + Math.min(3, head[1].length), role: 'heading', 'aria-level': head[1].length + 2 }, mdInline(head[2], 0))); i += 1; continue }
+          if (MD_HR.test(line)) { out.push(h('hr', { key: key++ })); i += 1; continue }
+          if (/^\s*>/.test(line) && depth < 3) {
+            const q = []
+            while (i < lines.length && /^\s*>/.test(lines[i])) { q.push(lines[i].replace(/^\s*>\s?/, '')); i += 1 }
+            out.push(h('blockquote', { key: key++ }, mdBlocks(q, depth + 1)))
+            continue
+          }
+          if (MD_ROW.test(line) && line.indexOf('|') >= 0 && i + 1 < lines.length && MD_SEP.test(lines[i + 1]) && lines[i + 1].indexOf('-') >= 0) {
+            const head = mdCells(line)
+            i += 2
+            const rows = []
+            while (i < lines.length && lines[i].trim() !== '' && lines[i].indexOf('|') >= 0 && rows.length < 200) { rows.push(mdCells(lines[i])); i += 1 }
+            out.push(h('div', { key: key++, className: 'tw' }, h('table', null,
+              h('thead', null, h('tr', null, head.map((c, j) => h('th', { key: j }, mdInline(c, 0))))),
+              h('tbody', null, rows.map((r, j) => h('tr', { key: j }, head.map((c, n) => h('td', { key: n }, mdInline(r[n] === undefined ? '' : r[n], 0)))))))))
+            continue
+          }
+          if (MD_LIST.test(line)) {
+            const items = []
+            while (i < lines.length && items.length < 300) {
+              const li = MD_LIST.exec(lines[i])
+              if (li !== null) { items.push({ indent: li[1].replace(/\t/g, '  ').length, ordered: /\d/.test(li[2]), text: li[3] }); i += 1; continue }
+              if (lines[i].trim() !== '' && /^\s+\S/.test(lines[i]) && items.length > 0) { items[items.length - 1].text += ' ' + lines[i].trim(); i += 1; continue }
+              break
+            }
+            // Nested by indentation: an item deeper than the one above it is that item's sub-list.
+            const build = (from, level, k) => {
+              const base = items[from].indent
+              const nodes = []
+              let n = from
+              while (n < items.length && items[n].indent >= base && (n === from || items[n].indent > base || items[n].ordered === items[from].ordered)) {
+                const mine = items[n]
+                n += 1
+                let kids = null
+                if (n < items.length && items[n].indent > mine.indent && level < 4) { const sub = build(n, level + 1, 'k' + n); kids = sub.el; n = sub.next }
+                nodes.push(h('li', { key: 'l' + n }, mdInline(mine.text.replace(/^\[[ xX]\]\s+/, (x) => (/x/i.test(x) ? '☑ ' : '☐ ')), 0), kids))
+              }
+              return { el: h(items[from].ordered ? 'ol' : 'ul', { key: k }, nodes), next: n }
+            }
+            let at = 0
+            while (at < items.length) { const built = build(at, 0, key++); out.push(built.el); at = built.next }
+            continue
+          }
+          const para = [line.trim()]
+          i += 1
+          while (i < lines.length && lines[i].trim() !== '' && isBlockStart(lines[i]) === false && !(lines[i].indexOf('|') >= 0 && i + 1 < lines.length && MD_SEP.test(lines[i + 1]))) { para.push(lines[i].trim()); i += 1 }
+          out.push(h('p', { key: key++ }, mdInline(para.join(' '), 0)))
+        }
+        return out
+      }
+      // The front matter (`---` … `---` at the very top) as « name · description · license » rows; a block that never closes is left to the body.
+      const mdFront = (lines) => {
+        let first = 0
+        while (first < lines.length && lines[first].trim() === '') first += 1
+        if (first >= lines.length || lines[first].trim() !== '---') return { rows: null, rest: lines }
+        let end = -1
+        for (let j = first + 1; j < lines.length && j < first + 60; j++) if (lines[j].trim() === '---') { end = j; break }
+        if (end < 0) return { rows: null, rest: lines }
+        const rows = []
+        for (let j = first + 1; j < end; j++) {
+          const kv = /^([A-Za-z0-9_-]+):\s*(.*)$/.exec(lines[j])
+          if (kv !== null) rows.push({ k: kv[1], v: kv[2].replace(/^(["'])([\s\S]*)\1$/, (all, q, inner) => (q === '"' ? inner.replace(/\\(["\\])/g, '$1') : inner)) })
+          else if (rows.length > 0 && lines[j].trim() !== '') rows[rows.length - 1].v += ' ' + lines[j].trim()
+        }
+        return { rows, rest: lines.slice(end + 1) }
+      }
+      const mdRender = (text) => {
+        const lines = String(text).replace(/\r\n?/g, '\n').split('\n')
+        const fm = mdFront(lines)
+        return [
+          fm.rows !== null && fm.rows.length > 0
+            ? h('dl', { key: 'fm', className: 'fm', 'data-kb': 'md-front' }, fm.rows.map((r, j) => [h('dt', { key: 'k' + j }, r.k), h('dd', { key: 'v' + j }, r.v)]))
+            : null
+        ].concat(mdBlocks(fm.rest, 0))
+      }
+      // `kb` is the test hook the raw block always had. The choice is kept for the session of the page only.
+      const SkillText = (props) => {
+        const [raw, setRaw] = React.useState(false)
+        const text = String(props.text) + (props.truncated === true ? '\n…' : '')
+        let body = null
+        if (raw === true) body = h('pre', { className: 'kb-local-body', 'data-kb': props.kb }, text)
+        else { try { body = h('div', { className: 'kb-local-body kbs-md', 'data-kb': props.kb, 'data-rendered': 'true' }, mdRender(text)) } catch (e) { body = h('pre', { className: 'kb-local-body', 'data-kb': props.kb }, text) } }
+        return h('div', { className: 'kbs-mdwrap' },
+          h('div', { className: 'kbs-mdbar' }, h('button', { type: 'button', className: 'kbs-link', 'data-kb': 'md-switch', 'aria-pressed': raw ? 'true' : 'false', title: t('md.tip'), onClick: (e) => { e.stopPropagation(); setRaw((v) => !v) } }, raw ? t('md.rendered') : t('md.raw'))),
+          body)
+      }
       const STR = {
         // ── skills learned from experience (docs/dev/learned-skills.md) ──
         'ln.cap': { fr: '{n} suggérés par Kaby', en: '{n} suggested by Kaby' },
@@ -407,6 +544,9 @@ window.__ModuleLoader__.load({
         'he.not_github': { fr: 'Source non GitHub ({source}) : cette route n’installe que depuis un dépôt GitHub.', en: 'Not a GitHub source ({source}): this route only installs from a GitHub repository.' },
         'he.github_rate_limited': { fr: 'GitHub limite les lectures anonymes (HTTP {http}) : réessaie plus tard.', en: 'GitHub is limiting anonymous reads (HTTP {http}): try again later.' },
         'he.not_found': { fr: 'Ce skill n\'est plus dans le catalogue : recharge la liste.', en: 'That skill is no longer in the catalogue: reload the list.' },
+        'he.no_interests': { fr: 'Rien à chercher pour l’instant : coche des objectifs (Paramètres › Profil) ou installe quelques skills.', en: 'Nothing to look for yet: tick some goals (Settings › Profile) or install a few skills.' },
+        'he.index_unreachable': { fr: 'L’index public n’a pas répondu : réessaie plus tard.', en: 'The public index did not answer: try again later.' },
+        'he.bad_id': { fr: 'Cette proposition n’est plus valide : recharge la liste.', en: 'That find is no longer valid: reload the list.' },
         'he.not_writable': { fr: 'Ce skill n\'est pas dans l\'un de tes dossiers de skills modifiables : il n\'est pas supprimé.', en: 'That skill is not in one of your writable skills folders: it is not deleted.' },
         'he.not_a_folder': { fr: 'Ce skill n\'est pas un dossier (un simple fichier .md) : cette action ne s\'applique pas.', en: 'That skill is not a folder (a single .md file): this action does not apply.' },
         'he.is_link': { fr: 'Ce dossier est un lien : le registre de DSH ignore les liens, et rien n\'est touché.', en: 'That folder is a link: the DSH registry ignores links, and nothing was touched.' },
@@ -519,9 +659,34 @@ window.__ModuleLoader__.load({
         'need.firecrawl': { fr: 'Demande une clé Firecrawl', en: 'Needs a Firecrawl key' },
         'need.tavily': { fr: 'Demande un compte Tavily', en: 'Needs a Tavily account' },
         'need.google': { fr: 'Demande une connexion Google', en: 'Needs a Google sign-in' },
+        'need.commands': { fr: 'Peut lancer des commandes', en: 'Can run commands' },
+        'md.raw': { fr: 'Texte brut', en: 'Raw text' },
+        'md.rendered': { fr: 'Mis en forme', en: 'Formatted' },
+        'md.tip': { fr: 'Passer du texte mis en forme au fichier tel quel (rien n’est caché dans le brut).', en: 'Switch between the formatted text and the file as it is (nothing hides in the raw one).' },
+        // The skill scout (docs/dev/learned-skills.md): the finds sit among the picks, the foot line says what it did and lets the person ask again.
+        'scout.tag': { fr: 'Trouvé pour toi', en: 'Found for you' },
+        'scout.why': { fr: 'Trouvé pour : {what}', en: 'Found for: {what}' },
+        'scout.skip': { fr: 'Pas intéressé', en: 'Not interested' },
+        'scout.skipped': { fr: '« {name} » ne te sera plus proposé.', en: '“{name}” will not be offered again.' },
+        'scout.name': { fr: 'Éclaireur de skills', en: 'Skill scout' },
+        'scout.never': { fr: 'Il cherche dans l’index public des skills qui collent à tes objectifs, filtre ce qu’il trouve et n’installe jamais rien.', en: 'It looks the public index over for skills that fit your goals, filters what it finds and never installs anything.' },
+        'scout.last': { fr: 'Dernière recherche : {when}. Nouveaux : {kept}. Écartés par le filtre : {skipped}.', en: 'Last scan: {when}. New: {kept}. Filtered out: {skipped}.' },
+        'scout.now': { fr: 'Chercher maintenant', en: 'Scan now' },
+        'scout.scanning': { fr: 'Recherche en cours…', en: 'Scanning…' },
+        'scout.weekly': { fr: 'Chaque semaine', en: 'Make it weekly' },
+        'scout.weeklyTip': { fr: 'Ouvre un chat qui crée l’automation, visible dans Automations et éteinte tant que tu ne l’as pas relue.', en: 'Opens a chat that creates the automation, visible in Automations and off until you have read it.' },
+        'scout.weeklyFail': { fr: 'Le chat ne s’est pas ouvert : cherche « Skill scout » dans Automations › Découvrir.', en: 'The chat did not open: look for “Skill scout” in Automations › Discover.' },
+        'scout.done': { fr: 'Recherche terminée : {kept} nouveau(x).', en: 'Scan done: {kept} new.' },
+        'scout.recent': { fr: 'La dernière recherche date de moins de dix minutes.', en: 'The last scan is less than ten minutes old.' },
+        'cover.making': { fr: 'L’image se prépare…', en: 'The picture is being made…' },
+        'cover.line': { fr: 'Les images qui manquent se font toutes seules ({left} restantes aujourd’hui).', en: 'Missing pictures are made automatically ({left} left today).' },
+        'cover.off': { fr: 'Arrêter', en: 'Turn off' },
+        'cover.on': { fr: 'Les images qui manquent ne se font pas toutes seules.', en: 'Missing pictures are not made automatically.' },
+        'cover.turnOn': { fr: 'Réactiver', en: 'Turn on' },
         'pick.installed': { fr: 'Installé', en: 'Installed' },
         'pick.use': { fr: 'Utiliser', en: 'Use' },
         'pick.details': { fr: 'Détails', en: 'Details' },
+        'pick.copied': { fr: 'Copié', en: 'Copied' },
         'pick.by': { fr: 'Créé par {who}', en: 'Created by {who}' },
         'pick.count': { fr: '{n} installations', en: '{n} installs' },
         'pick.count.1': { fr: '1 installation', en: '1 install' },
@@ -1125,6 +1290,31 @@ window.__ModuleLoader__.load({
 .kbs-root .kb-local-rows{display:flex;flex-direction:column;gap:10px}
 .kbs-root .kb-local-rows .row{display:flex;gap:14px;align-items:baseline;font-size:13.5px;line-height:1.5;color:var(--dsw-alias-label-secondary);border-top:1px solid var(--dsw-alias-border-l1);padding-top:10px}
 .kbs-root .kb-local-rows .row>span:first-child{min-width:120px;color:var(--dsw-alias-label-caption);flex:none}
+.kbs-root .kbs-mdbar{display:flex;justify-content:flex-end;margin:-2px 0 4px}
+.kbs-root .kb-local-body.kbs-md{font-family:inherit;font-size:13px;line-height:1.55;white-space:normal;color:var(--dsw-alias-label-primary);overflow-wrap:anywhere}
+.kbs-root .kbs-md>:first-child{margin-top:0}
+.kbs-root .kbs-md>:last-child{margin-bottom:0}
+.kbs-root .kbs-md p{margin:0 0 .7em}
+.kbs-root .kbs-md .h{font-weight:600;line-height:1.3;margin:1.15em 0 .45em;color:var(--dsw-alias-label-primary)}
+.kbs-root .kbs-md .h1{font-size:16px}
+.kbs-root .kbs-md .h2{font-size:14px}
+.kbs-root .kbs-md .h3{font-size:13px}
+.kbs-root .kbs-md ul,.kbs-root .kbs-md ol{margin:0 0 .7em;padding-inline-start:1.35em}
+.kbs-root .kbs-md li{margin:.2em 0}
+.kbs-root .kbs-md li>ul,.kbs-root .kbs-md li>ol{margin:.2em 0 0}
+.kbs-root .kbs-md code{font-family:ui-monospace,monospace;font-size:12px;background:var(--dsw-alias-bg-layer-2);border:1px solid var(--dsw-alias-border-l1);border-radius:5px;padding:1px 5px}
+.kbs-root .kbs-md pre{margin:0 0 .8em;background:var(--dsw-alias-bg-layer-2);border:1px solid var(--dsw-alias-border-l1);border-radius:8px;padding:9px 12px;overflow:auto;white-space:pre}
+.kbs-root .kbs-md pre code{border:0;background:none;padding:0;font-size:12px}
+.kbs-root .kbs-md blockquote{margin:0 0 .8em;padding:2px 0 2px 12px;border-inline-start:3px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-label-secondary)}
+.kbs-root .kbs-md a{color:var(--dsw-alias-brand-primary);text-decoration:underline}
+.kbs-root .kbs-md hr{border:0;border-top:1px solid var(--dsw-alias-border-l1);margin:1em 0}
+.kbs-root .kbs-md .tw{overflow:auto;margin:0 0 .8em}
+.kbs-root .kbs-md table{border-collapse:collapse;font-size:12px;min-width:50%}
+.kbs-root .kbs-md th,.kbs-root .kbs-md td{border:1px solid var(--dsw-alias-border-l1);padding:5px 9px;text-align:start;vertical-align:top}
+.kbs-root .kbs-md th{background:var(--dsw-alias-bg-layer-2);font-weight:600}
+.kbs-root .kbs-md .fm{display:grid;grid-template-columns:auto minmax(0,1fr);gap:5px 14px;margin:0 0 1em;padding:9px 12px;border:1px solid var(--dsw-alias-border-l1);border-radius:8px;background:var(--dsw-alias-bg-layer-2);font-size:12px}
+.kbs-root .kbs-md .fm dt{font-family:ui-monospace,monospace;color:var(--dsw-alias-label-secondary)}
+.kbs-root .kbs-md .fm dd{margin:0;color:var(--dsw-alias-label-primary)}
 .kbs-root .kb-local-body{margin:0;background:var(--dsw-alias-bg-base);border:1px solid var(--dsw-alias-border-l1);border-radius:10px;padding:12px 14px;font-family:ui-monospace,monospace;font-size:12.5px;line-height:1.6;color:var(--dsw-alias-label-secondary);white-space:pre-wrap;overflow:auto;max-height:60vh}
 /* A card that opens a sheet says so: pointer and hover, instead of the skeleton's static class (cursor:default). */
 .kbs-root .kb8-card{cursor:pointer}
@@ -1189,7 +1379,8 @@ window.__ModuleLoader__.load({
 .kbs-root .kbs-panel .kb-local-body{max-height:300px}
 .kbs-root .kbs-panel .kbs-path{display:flex;align-items:flex-start;gap:8px;overflow-wrap:anywhere}
 .kbs-root .kbs-panel .kbs-desc{margin:0;font-size:13.5px;line-height:1.5;color:var(--dsw-alias-label-secondary)}
-.kbs-root .kbs-panel-acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:auto;padding-top:4px}
+/* The actions stay in view at the foot of the panel while its content scrolls (the panel's padding is 16px 18px: the bar bleeds to its edges). */
+.kbs-root .kbs-panel-acts{position:sticky;bottom:-16px;z-index:1;display:flex;flex-wrap:wrap;gap:8px;margin:auto -18px -16px;padding:12px 18px 16px;background:var(--dsw-alias-bg-layer-1);border-top:1px solid var(--dsw-alias-border-l1)}
 .kbs-root .kbs-panel-acts a.kb8-ghost{text-decoration:none}
 .kbs-root .kbs-panel-foot{position:sticky;bottom:-16px;z-index:1;display:flex;flex-direction:column;gap:6px;margin:auto -18px -16px;padding:10px 18px 14px;background:var(--dsw-alias-bg-layer-1);border-top:1px solid var(--dsw-alias-border-l1);border-radius:0 0 16px 16px}
 .kbs-root .kbs-panel-foot .kbs-panel-acts{margin-top:0;padding-top:0}
@@ -1418,17 +1609,16 @@ body:not([data-ds-dark-theme]) .kbs-root .kb8-pill.warn{color:color-mix(in srgb,
 .kbs-root .kbsf-foot{margin-top:18px;font-size:12px;color:var(--dsw-alias-label-secondary)}
 /* « For your field »: the field's colour (--kbsf-fld, set from the pack) is the rail and the dot; everything else is the page's own surfaces and text. */
 .kbs-root .kbsf-fdot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--kbsf-fld);flex:none;margin-inline-end:8px;vertical-align:1px}
-.kbs-root .kbsf-flat{display:flex;flex-direction:column;gap:8px;margin:0 0 16px}
-.kbs-root .kbsf-frow{display:flex;align-items:center;gap:12px;min-width:0;padding:10px 12px;border:1px solid var(--dsw-alias-border-l1);border-radius:12px;background:var(--dsw-alias-bg-layer-2)}
-.kbs-root .kbsf-fmain{flex:1;min-width:0}
-.kbs-root .kbsf-ftop{display:flex;align-items:center;gap:8px;min-width:0}
-.kbs-root .kbsf-ftitle{font-size:13.5px;font-weight:600;color:var(--dsw-alias-label-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.kbs-root .kbsf-ftag{flex:none;font-size:11px;line-height:1;padding:4px 8px;border-radius:999px;border:1px solid var(--dsw-alias-border-l1);color:var(--dsw-alias-label-secondary)}
-.kbs-root .kbsf-ftag.on{border-color:var(--kbsf-fld);color:var(--dsw-alias-label-primary)}
-.kbs-root .kbsf-fout{margin:3px 0 0;font-size:12.5px;line-height:1.4;color:var(--dsw-alias-label-secondary);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.kbs-root .kbsf-facts{display:flex;align-items:center;gap:8px;flex:none}
-.kbs-root .kbsf-frow .kb8-primary,.kbs-root .kbsf-frow .kb8-ghost{height:32px;padding:0 12px;font-size:13px;border-radius:10px;gap:6px}
-@media (max-width:640px){.kbs-root .kbsf-frow{flex-wrap:wrap}.kbs-root .kbsf-facts{margin-inline-start:auto}}
+.kbs-root .kbsf-flat{margin:0 0 16px}
+/* The first cards (the field's skills and what the scout found) are the picks' own cards: nothing here re-tints or shrinks them. A picture still being made pulses gently. */
+@keyframes kbsf-wait{0%,100%{opacity:.55}50%{opacity:1}}
+.kbs-root .kbsf-making .kb8-tile{animation:kbsf-wait 1.6s ease-in-out infinite}
+@media (prefers-reduced-motion:reduce){.kbs-root .kbsf-making .kb8-tile{animation:none}}
+.kbs-root .kbsf-scoutline{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin-top:18px;font-size:12px;color:var(--dsw-alias-label-secondary)}
+.kbs-root .kbsf-scoutline .nm{font-weight:600;color:var(--dsw-alias-label-primary)}
+.kbs-root .kbsf-scoutline .kbs-link:disabled{opacity:.55;cursor:default}
+.kbs-root .kbs-did{color:var(--dsw-alias-state-success-primary)}
+.kbs-root .kbsf-tagtx{display:inline-flex;align-items:center;gap:4px}
 /* — Settings page « Skills » (catalogue): its own scope (.kbss-page), not .kbs-root, so nothing
    here can reach the Skills panel; the shared input/link/note vocabulary is re-stated here because
    the kbs-* rules above are scoped to .kbs-root — */
@@ -1686,6 +1876,14 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
         // The picks Kybernos proposes (GET /kybernos-skills/picks): `absent` = a host that does not have the route, or an empty file.
         const [picks, setPicks] = React.useState({ phase: 'loading', items: [], asOf: '' })
         const [pcat, setPcat] = React.useState('all')                            // all | one of the picks' categories
+        // The skill scout's finds (GET /kybernos-skills/scout): drawn among the picks. `scanning` makes the page ask again every three seconds.
+        const [scout, setScout] = React.useState({ phase: 'loading', found: [], runs: [], scanning: false })
+        const scoutSent = React.useRef(0)                                          // when « Scan now » was pressed: the next finished scan is its answer
+        const scoutTimer = React.useRef(null)
+        // The pictures the host made for cards that had none (POST /kybernos-skills/covers/make): `items` says where each name is, `ver` makes the browser read a new file.
+        const [covers, setCovers] = React.useState({ can: false, auto: true, key: false, left: 0, items: {}, ver: {}, broken: {} })
+        const coverAsked = React.useRef(new Set())
+        const coverTimer = React.useRef(null)
         // The field of work the person chose (`window.__KB_DOMAIN__`, published by kybernos-plugin): its skills open the Featured tab and its word
         // for this page is the title. Read at each draw; a change of the saved field redraws the page. Absent seam or no field: nothing changes.
         const setDomTick = React.useState(0)[1]
@@ -1694,6 +1892,7 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
           try { if (window.__KB_DOMAIN__ && typeof window.__KB_DOMAIN__.subscribe === 'function') stop = window.__KB_DOMAIN__.subscribe(() => setDomTick((n) => n + 1)) } catch (e) { stop = null }
           return () => { try { if (typeof stop === 'function') stop() } catch (e2) { /* gone */ } }
         }, [])
+        const [copied, setCopied] = React.useState('')                            // the invocation just copied (`/name`), shown on its button for a moment
         const [shipBusy, setShipBusy] = React.useState({})                        // a shipped skill being installed: name → true
         const [shipDone, setShipDone] = React.useState({})                        // one the route has just installed: shown as installed before the registry has re-read the folder
         // The cover background (the category tint, or the plain card surface), kept in this browser.
@@ -1864,6 +2063,57 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
         }, [])
         React.useEffect(() => { if (picks.phase === 'absent') setMode((m) => (m === 'featured' ? 'yours' : m)) }, [picks.phase])
 
+        // The scout: read what it found; while a scan runs, read again every three seconds. A « Scan now » is answered when the scan that follows it is over.
+        const loadScout = React.useCallback(() => {
+          getJson('/kybernos-skills/scout').then((j) => {
+            if (alive.current !== true) return
+            if (j === null || typeof j !== 'object' || j.ok !== true || Array.isArray(j.found) === false) { setScout({ phase: 'absent', found: [], runs: [], scanning: false }); return }
+            const runs = Array.isArray(j.runs) ? j.runs : []
+            setScout({ phase: 'ready', found: j.found, runs, scanning: j.scanning === true })
+            clearTimeout(scoutTimer.current)
+            if (j.scanning === true) { scoutTimer.current = setTimeout(loadScout, 3000); return }
+            if (scoutSent.current > 0) {
+              const last = runs.length > 0 ? runs[0] : null
+              const fresh = last !== null && Date.parse(last.at) >= scoutSent.current - 2000
+              scoutSent.current = 0
+              if (fresh && last.error) setNotice({ kind: 'err', text: why({ error: last.error }, t('err.unavail', { r: 'scout' })) })
+              else if (fresh) setNotice({ kind: 'ok', text: t('scout.done', { kept: last.kept }) })
+              else setNotice({ kind: 'ok', text: t('scout.recent') })
+            }
+          }).catch(() => { if (alive.current === true) setScout({ phase: 'absent', found: [], runs: [], scanning: false }) })
+        }, [])
+        const scanNow = () => {
+          if (scout.scanning === true) return
+          scoutSent.current = Date.now()
+          setScout((m) => ({ ...m, scanning: true }))
+          postJson('/kybernos-skills/scout/run', {}).then((j) => {
+            if (alive.current !== true) return
+            if (j !== null && typeof j === 'object' && j.ok === false) { scoutSent.current = 0; setScout((m) => ({ ...m, scanning: false })); setNotice({ kind: 'err', text: why(j, t('err.unavail', { r: 'scout' })) }); return }
+            loadScout()
+          }).catch(() => { if (alive.current === true) { scoutSent.current = 0; setScout((m) => ({ ...m, scanning: false })); setNotice({ kind: 'err', text: t('err.unavail', { r: 'scout' }) }) } })
+        }
+        // « Not interested »: the card leaves at once, the host remembers it for six months.
+        const skipFind = (f) => {
+          setScout((m) => ({ ...m, found: m.found.filter((x) => x.id !== f.id) }))
+          postJson('/kybernos-skills/scout/dismiss', { id: f.id }).then((j) => {
+            if (alive.current !== true) return
+            if (j !== null && typeof j === 'object' && j.ok === true) setNotice({ kind: 'ok', text: t('scout.skipped', { name: f.name }) })
+            else { setNotice({ kind: 'err', text: why(j, t('err.unavail', { r: 'scout' })) }); loadScout() }
+          }).catch(() => { if (alive.current === true) { setNotice({ kind: 'err', text: t('err.unavail', { r: 'scout' }) }); loadScout() } })
+        }
+        // « Make it weekly »: the Kybernos page opens a chat whose first line asks the automation-creator skill for the « Skill scout » template (the task is saved OFF).
+        const scoutWeekly = () => {
+          let ok = false
+          try { const o = window.__KB_OPEN__; ok = o !== undefined && o !== null && typeof o.template === 'function' && o.template('skill-scout') === true } catch (e) { ok = false }
+          if (ok !== true) setNotice({ kind: 'err', text: t('scout.weeklyFail') })
+        }
+        const switchCovers = (on) => {
+          postJson('/kybernos-skills/covers/auto', { on }).then((j) => {
+            if (alive.current !== true) return
+            if (j !== null && typeof j === 'object' && j.ok === true) { setCovers((m) => ({ ...m, auto: j.auto === true, can: j.auto === true && m.key })); coverAsked.current = new Set() }
+          }).catch(() => { /* the switch stays as it was */ })
+        }
+
         // Star = feature / unfeature. The response carries the up-to-date list: we follow it as is,
         // without reloading — one round trip less, and the displayed order stays the file's.
         // POST on /featured/toggle (and not /featured): the webServer's exact table is indexed
@@ -1929,6 +2179,7 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
           loadCatalogue()
           loadFeatured()
           loadPicks()
+          loadScout()
           loadTeam()
           loadSource()
           loadCuratedOwners()
@@ -1938,7 +2189,7 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
               setRoots(j.roots.filter((r) => r !== null && typeof r.path === 'string'))
             }
           }).catch(() => { /* without roots, the modals fall back on the host, which revalidates everything */ })
-        }, [loadCatalogue, loadFeatured, loadTeam, loadSource, loadCuratedOwners])
+        }, [loadCatalogue, loadFeatured, loadScout, loadTeam, loadSource, loadCuratedOwners])
 
         // One request for the three paginated views, another for the search, one for the curated
         // set. The server announces `total` and `hasMore`: pagination guesses nothing, and that is
@@ -2144,7 +2395,12 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
           try {
             if (navigator !== undefined && navigator.clipboard !== undefined && typeof navigator.clipboard.writeText === 'function') {
               navigator.clipboard.writeText(text).then(
-                () => { if (alive.current === true) setNotice({ kind: 'ok', text: t('copy.ok', { text }) }) },
+                () => {
+                  if (alive.current !== true) return
+                  setNotice({ kind: 'ok', text: t('copy.ok', { text }) })
+                  setCopied(text)
+                  setTimeout(() => { if (alive.current === true) setCopied((c) => (c === text ? '' : c)) }, 1800)
+                },
                 () => { if (alive.current === true) setNotice({ kind: 'err', text: t('copy.denied') }) })
               return
             }
@@ -2365,9 +2621,9 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
           },
             h('div', { className: 'kb-row' },
               tile(s.name, 'pkg'),
+              // The card says what the skill is and does. Where it lives (its source, its folder) and when it was last changed are in its panel.
               h('span', { style: { display: 'flex', flexDirection: 'column', minWidth: 0, gap: '2px', flex: '1' } },
-                h('span', { className: 'kb8-name' }, s.name),
-                h('span', { className: 'kb8-parent kbs-nowrap' }, (s.source || '') + ' · ' + String(s.root || ''))),
+                h('span', { className: 'kb8-name' }, s.name)),
               s.writable === true
                 ? h('button', {
                     type: 'button', className: 'kb-sw' + (on ? ' on' : ''), title: on ? t('card.disable') : t('card.enable'),
@@ -2395,9 +2651,6 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
                   on ? h('button', { type: 'button', className: 'kbs-link', 'data-kb': 'learned-stale-off', onClick: (e) => { e.stopPropagation(); toggle(s) } }, t('ln.stale.off')) : null)
               : null,
             h('div', { className: 'foot' },
-              icon('shield', 13),
-              h('span', null, s.modifiedAt !== '' ? t('mod.on', { d: today(s.modifiedAt) }) : t('mod.unknown')),
-              h('span', { className: 'grow' }),
               h('button', {
                 type: 'button', className: 'kbs-copy', title: t('card.copyTitle'),
                 onClick: (e) => { e.stopPropagation(); copy('/' + s.name) }
@@ -2615,8 +2868,13 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
           return a.filter((p) => featNames.has(p.id)).concat(a.filter((p) => !featNames.has(p.id)))
         }
         // The pieces a pick shows, shared by its card and its row.
-        const pickCover = (p) => (p.cover !== null && p.cover !== undefined && p.cover !== ''
-          ? h('img', { className: 'kbsf-cut', src: p.cover, alt: '', loading: 'lazy', onError: (e) => { try { e.target.style.display = 'none' } catch (e2) { /* the tint is enough */ } } })
+        // A pick without a picture of its own shows the one the host made for it (covers.ver says it exists), else the tile while it is made, or for good when it cannot be.
+        // A picture the browser could not read counts as missing (`broken`): the host is asked for one, like for a card that never had any.
+        const coverSrc = (p) => (covers.ver[p.id] !== undefined ? '/kybernos-skills/cover/' + encodeURIComponent(p.id) + '?v=' + covers.ver[p.id]
+          : (covers.broken[p.id] !== true && p.cover !== null && p.cover !== undefined && p.cover !== '' ? p.cover : ''))
+        const coverBusy = (p) => coverSrc(p) === '' && (covers.items[p.id] === 'making' || covers.items[p.id] === 'queued')
+        const pickCover = (p) => (coverSrc(p) !== ''
+          ? h('img', { className: 'kbsf-cut', src: coverSrc(p), alt: '', loading: 'lazy', onError: (e) => { try { e.target.style.display = 'none' } catch (e2) { /* the tint is enough */ } setCovers((m) => (m.broken[p.id] === true ? m : { ...m, broken: { ...m.broken, [p.id]: true } })) } })
           : tile(p.id, 'pkg'))
         const pickBy = (p) => {
           const owner = String(p.source).split('/')[0]
@@ -2625,6 +2883,7 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
             h('span', { className: 'nm' }, owner))
         }
         const pickCnt = (p) => {
+          if (typeof p.installs !== 'number') return null
           const full = t('pick.count', { n: p.installs.toLocaleString(isEn() ? 'en-US' : 'fr-FR') })
           return h('span', { className: 'kbsf-cnt', title: full, 'aria-label': full }, icon('dl', 13), nf(p.installs))
         }
@@ -2638,14 +2897,20 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
             p.needs !== null && p.needs !== undefined ? h('span', { key: 'nd', className: 'kbsf-pill need' }, icon('info', 12), t('need.' + p.needs)) : null)
         }
         // Install (or Use when it is already there) and Details: the same two gestures in the card and in the row.
-        const pickButtons = (p, x, isIn, openIt) => [
+        // `opts` (the field's picks): `onInstall` replaces the confirmation (a skill that ships with Kybernos is a plain copy), `busy` greys Install, `noDetails` hides
+        // Details when there is nothing to open.
+        const pickButtons = (p, x, isIn, openIt, opts) => [
           isIn === true
-            ? h('button', { key: 'use', type: 'button', className: 'kb8-ghost', 'data-kb': 'pick-use', onClick: (e) => { e.stopPropagation(); copy('/' + p.id) } }, icon('code', 14), h('span', null, t('pick.use')))
+            ? h('button', { key: 'use', type: 'button', className: 'kb8-ghost' + (copied === '/' + p.id ? ' kbs-did' : ''), 'data-kb': 'pick-use', onClick: (e) => { e.stopPropagation(); copy('/' + p.id) } },
+              icon(copied === '/' + p.id ? 'check' : 'code', 14), h('span', null, copied === '/' + p.id ? t('pick.copied') : t('pick.use')))
             : h('button', {
-              key: 'ins', type: 'button', className: 'kb8-primary', 'data-kb': 'pick-install',
-              onClick: (e) => { e.stopPropagation(); setAskInstall(x); setErrors((m) => { const n = { ...m }; delete n.__modal; return n }) }
-            }, icon('dl', 14), h('span', null, t('btn.install'))),
-          h('button', { key: 'det', type: 'button', className: 'kb8-ghost', 'data-kb': 'pick-details', onClick: (e) => { e.stopPropagation(); openIt() } }, h('span', null, t('pick.details')))
+              key: 'ins', type: 'button', className: 'kb8-primary', 'data-kb': 'pick-install', disabled: opts !== undefined && opts.busy === true,
+              onClick: (e) => { e.stopPropagation(); if (opts !== undefined && typeof opts.onInstall === 'function') opts.onInstall(); else { setAskInstall(x); setErrors((m) => { const n = { ...m }; delete n.__modal; return n }) } }
+            }, icon('dl', 14), h('span', null, opts !== undefined && opts.busy === true ? t('fld.installing') : t('btn.install'))),
+          opts !== undefined && opts.noDetails === true ? null : h('button', { key: 'det', type: 'button', className: 'kb8-ghost', 'data-kb': 'pick-details', onClick: (e) => { e.stopPropagation(); openIt() } }, h('span', null, t('pick.details'))),
+          opts !== undefined && typeof opts.onSkip === 'function'
+            ? h('button', { key: 'skip', type: 'button', className: 'kb8-ghost', 'data-kb': 'scout-skip', title: t('scout.skip'), 'aria-label': t('scout.skip') + ' — ' + pickText(p.title), onClick: (e) => { e.stopPropagation(); opts.onSkip() } }, icon('close', 14))
+            : null
         ]
         const pickStar = (p, isIn, cls) => {
           const pinned = featNames.has(p.id)
@@ -2656,52 +2921,58 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
             onClick: (e) => { e.stopPropagation(); toggleFeatured(p.id) }
           }, icon('star', 14))
         }
-        const pickCard = (p, i) => {
+        // `opts` is set for the skills of « For your field »: `isIn`, `openIt`, `kb` (the test hook) and what pickButtons takes. A pick of the field has no
+        // category (its tag is the goal it serves) and no install count.
+        const pickTag = (p, opts) => (typeof p.tag === 'string'
+          ? h('span', { className: 'kbsf-tagtx' + (opts !== undefined && opts.ticked === true ? ' on' : ''), title: opts !== undefined && typeof opts.why === 'string' ? opts.why : undefined }, opts !== undefined && opts.ticked === true ? icon('check', 10) : null, p.tag)
+          : t('pcat.' + p.category))
+        const pickHint = (p) => (pickText(p.prompt) !== '' ? t('pick.try') + sep() + pickText(p.prompt) : undefined)
+        const pickCard = (p, i, opts) => {
           const x = pickAsEntry(p)
-          const isIn = installed(x)
-          const openIt = () => { setDetail(x); setLocal(null); setModal(null); setAudit(null) }
+          const isIn = opts !== undefined ? opts.isIn : installed(x)
+          const openIt = opts !== undefined ? opts.openIt : () => { setDetail(x); setLocal(null); setModal(null); setAudit(null) }
           const title = pickText(p.title)
           return h('article', {
-            key: 'pk:' + p.id, role: 'button', tabIndex: 0, 'data-kb': 'pick-card',
+            key: 'pk:' + p.id, role: 'button', tabIndex: 0, 'data-kb': opts !== undefined ? opts.kb : 'pick-card', 'data-skill': p.id,
             className: 'kbsf-card' + (detail !== null && detail.source === p.source && detail.name === p.id ? ' sel' : '') + appear(i),
-            title: t('pick.try') + sep() + pickText(p.prompt), 'aria-label': title + ' — ' + t('cap.detail'),
+            title: pickHint(p), 'aria-label': title + ' — ' + t('cap.detail'),
             onClick: openIt,
             onKeyDown: (e) => { if (e.target !== e.currentTarget) return; if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openIt() } }
           },
-            h('div', { className: 'kbsf-pic kbsf-t', 'data-cat': p.category },
+            h('div', { className: 'kbsf-pic kbsf-t' + (coverBusy(p) ? ' kbsf-making' : ''), 'data-cat': p.category, title: coverBusy(p) ? t('cover.making') : undefined },
               pickCover(p),
-              h('span', { className: 'kbsf-tag' }, t('pcat.' + p.category)),
+              h('span', { className: 'kbsf-tag' }, pickTag(p, opts)),
               pickStar(p, isIn, 'kbsf-star')),
             h('div', { className: 'kbsf-body' },
               h('div', { className: 'kbsf-trow' },
-                h('div', { className: 'kbsf-title' }, title),
+                h('div', { className: 'kbsf-title' }, opts !== undefined ? opts.dot : null, title),
                 h('div', { className: 'kbsf-side' }, pickBy(p), pickCnt(p))),
               h('p', { className: 'kbsf-out' }, pickText(p.outcome)),
               pickPills(p, isIn),
               // The actions show on hover and on keyboard focus (always on a touch screen); their place is reserved, so the card does not jump.
-              h('div', { className: 'kbsf-acts' }, pickButtons(p, x, isIn, openIt))))
+              h('div', { className: 'kbsf-acts' }, pickButtons(p, x, isIn, openIt, opts))))
         }
         // The same pick as a row (the list view): a square thumbnail, the title with its outcome and its facts, the verdicts, the actions.
         // Rows are dense and scanned: their actions are always there, not on hover.
-        const pickRow = (p, i) => {
+        const pickRow = (p, i, opts) => {
           const x = pickAsEntry(p)
-          const isIn = installed(x)
-          const openIt = () => { setDetail(x); setLocal(null); setModal(null); setAudit(null) }
+          const isIn = opts !== undefined ? opts.isIn : installed(x)
+          const openIt = opts !== undefined ? opts.openIt : () => { setDetail(x); setLocal(null); setModal(null); setAudit(null) }
           const title = pickText(p.title)
           return h('div', {
-            key: 'pr:' + p.id, role: 'button', tabIndex: 0, 'data-kb': 'pick-row',
+            key: 'pr:' + p.id, role: 'button', tabIndex: 0, 'data-kb': opts !== undefined ? opts.kb : 'pick-row', 'data-skill': p.id,
             className: 'kbsf-row' + (detail !== null && detail.source === p.source && detail.name === p.id ? ' sel' : '') + appear(i),
-            title: t('pick.try') + sep() + pickText(p.prompt), 'aria-label': title + ' — ' + t('cap.detail'),
+            title: pickHint(p), 'aria-label': title + ' — ' + t('cap.detail'),
             onClick: openIt,
             onKeyDown: (e) => { if (e.target !== e.currentTarget) return; if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openIt() } }
           },
-            h('div', { className: 'kbsf-th kbsf-t', 'data-cat': p.category }, pickCover(p)),
+            h('div', { className: 'kbsf-th kbsf-t' + (coverBusy(p) ? ' kbsf-making' : ''), 'data-cat': p.category, title: coverBusy(p) ? t('cover.making') : undefined }, pickCover(p)),
             h('div', { className: 'kbsf-mn' },
-              h('div', { className: 'kbsf-title' }, title),
+              h('div', { className: 'kbsf-title' }, opts !== undefined ? opts.dot : null, title),
               h('p', { className: 'kbsf-out' }, pickText(p.outcome)),
-              h('div', { className: 'kbsf-meta' }, h('span', null, t('pcat.' + p.category)), pickBy(p), pickCnt(p))),
+              h('div', { className: 'kbsf-meta' }, h('span', null, pickTag(p, opts)), pickBy(p), pickCnt(p))),
             pickPills(p, isIn),
-            h('div', { className: 'kbsf-racts' }, pickStar(p, isIn, 'kbsf-rstar'), pickButtons(p, x, isIn, openIt)))
+            h('div', { className: 'kbsf-racts' }, pickStar(p, isIn, 'kbsf-rstar'), pickButtons(p, x, isIn, openIt, opts)))
         }
 
         // Pager based on the SERVER `total`. We no longer load "a bit more" at the bottom of a growing list:
@@ -2753,43 +3024,140 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
             if (ok === true) { setShipDone((m) => ({ ...m, [name]: true })); loadCatalogue(); setNotice({ kind: 'ok', text: t('notice.installed', { name }) }) } else setNotice({ kind: 'err', text: t('err.unavail', { r: 'install' }) })
           })
         }
-        const fieldRow = (sk, f) => {
+        // A skill of the field is drawn as a pick (the card or the row of the Featured tab, whichever view is on): the same family as the picks below it,
+        // with a Details button and the same Use / Install. Not a curated pick, it has no cover, no audit and no install count: its tag is the goal it serves.
+        const fieldAsPick = (sk) => {
+          const curated = picks.items.find((it) => it.source === sk.source && it.id === sk.name)
+          if (curated !== undefined) return curated
+          const name = humanName(sk.name)
+          return { id: sk.name, source: sk.source, category: undefined, tag: sk.goal, title: { fr: name, en: name }, outcome: { fr: sk.d, en: sk.d }, prompt: { fr: '', en: '' }, installs: null, audits: [], cover: null, needs: null }
+        }
+        const fieldOpts = (sk, f) => {
           const x = { id: sk.source + '/' + sk.name, source: sk.source, name: sk.name, installed: false, installable: true, official: false, sourceType: 'github', url: '' }
           const isIn = skills.some((y) => y.name === sk.name) || shipDone[sk.name] === true
-          const busyNow = shipBusy[sk.name] === true
-          const curated = picks.items.find((it) => it.source === sk.source && it.id === sk.name)
-          return h('div', { key: 'fld:' + sk.name, className: 'kbsf-frow' + (isIn ? ' has' : ''), 'data-kb': 'field-skill', 'data-skill': sk.name },
-            tile(sk.name, 'pkg'),
-            h('div', { className: 'kbsf-fmain' },
-              h('div', { className: 'kbsf-ftop' }, h('span', { className: 'kbsf-ftitle' }, h('i', { className: 'kbsf-fdot', 'aria-hidden': 'true', title: f !== undefined && f !== null ? f.name : undefined }), curated !== undefined ? pickText(curated.title) : humanName(sk.name)),
-                h('span', { className: 'kbsf-ftag' + (sk.ticked ? ' on' : ''), title: sk.shipped ? t('fld.shipped') : sk.source }, sk.goal)),
-              h('p', { className: 'kbsf-fout' }, sk.d)),
-            isIn
-              ? h('span', { className: 'kbsf-facts' },
-                h('span', { className: 'kbsf-pill ok' }, icon('check', 12), t('pick.installed')),
-                h('button', { type: 'button', className: 'kb8-ghost', 'data-kb': 'field-use', onClick: () => copy('/' + sk.name) }, icon('code', 14), h('span', null, t('pick.use'))))
-              : h('span', { className: 'kbsf-facts' },
-                h('button', {
-                  type: 'button', className: 'kb8-primary', 'data-kb': 'field-install', disabled: busyNow,
-                  onClick: () => { if (sk.shipped === true) installShipped(sk.name); else { setAskInstall(x); setErrors((m) => { const n = { ...m }; delete n.__modal; return n }) } }
-                }, icon('dl', 14), h('span', null, busyNow ? t('fld.installing') : t('btn.install')))))
+          const own = skills.find((y) => y.name === sk.name)
+          const curated = picks.items.some((it) => it.source === sk.source && it.id === sk.name)
+          // Details: a curated pick opens its page, an installed skill opens its own panel (in Yours), a skill still on GitHub the install panel of Discover.
+          // A skill that ships with Kybernos and is not installed has nothing more to show than the card.
+          const noDetails = curated !== true && own === undefined && sk.shipped === true
+          const openIt = () => {
+            if (curated === true) { setDetail(x); setLocal(null); setModal(null); setAudit(null); return }
+            if (own !== undefined) { setMode('yours'); setDetail(null); setModal(null); setReview(null); setJournalOpen(false); setLocal(own); return }
+            if (sk.shipped !== true) { setMode('discover'); setDetail(x); setLocal(null); setModal(null); setAudit(null) }
+          }
+          return {
+            kb: 'field-skill', isIn, openIt, noDetails, ticked: sk.ticked === true, busy: shipBusy[sk.name] === true,
+            dot: h('i', { className: 'kbsf-fdot', 'aria-hidden': 'true', title: f !== undefined && f !== null ? f.name : undefined }),
+            onInstall: () => { if (sk.shipped === true) installShipped(sk.name); else { setAskInstall(x); setErrors((m) => { const n = { ...m }; delete n.__modal; return n }) } },
+          }
         }
-        // The skills the saved field puts forward come first in the Featured list, each with a small dot in the field's colour: no frame, no title, nothing more to read.
-        const renderFieldRows = () => {
+        // A find of the scout, drawn as a pick: its tag says where it comes from, the audits it passed are its pills, a skill that may run commands says so (needs).
+        const scoutAsPick = (f) => {
+          const curated = picks.items.find((it) => it.source === f.source && it.id === f.name)
+          if (curated !== undefined) return { ...curated, tag: t('scout.tag') }
+          const name = humanName(f.name)
+          return { id: f.name, source: f.source, category: undefined, tag: t('scout.tag'), title: { fr: name, en: name }, outcome: { fr: f.description, en: f.description }, prompt: { fr: '', en: '' }, installs: f.installs, audits: (Array.isArray(f.audits) ? f.audits : []).map((a) => [a.provider, a.status]), cover: null, needs: f.risky === true ? 'commands' : null }
+        }
+        const scoutOpts = (f) => {
+          const p = scoutAsPick(f)
+          const x = pickAsEntry(p)
+          return {
+            kb: 'scout-find', isIn: skills.some((y) => y.name === f.name), ticked: false, dot: null, onSkip: () => skipFind(f),
+            why: Array.isArray(f.why) && f.why.length > 0 ? t('scout.why', { what: f.why.join(', ') }) : undefined,
+            openIt: () => { setMode('discover'); setDetail(x); setLocal(null); setModal(null); setAudit(null) },
+          }
+        }
+        // What the first group holds: the skills the saved field puts forward (each with a small dot in the field's colour), then the scout's finds. Same cards and rows as the picks below.
+        const firstGroup = () => {
+          if (pcat !== 'all' || q.featured.trim() !== '') return []
+          const out = []
           const d = domainSeam()
-          if (d === null || pcat !== 'all' || q.featured.trim() !== '') return null
-          let f = null
-          let list = []
-          try { f = d.field(); list = f === null ? [] : d.skills() } catch (e) { return null }
-          if (f === null || list.length === 0) return null
-          return h('div', { className: 'kbsf-flat', 'data-kb': 'field-rows', style: { '--kbsf-fld': f.accent } }, list.map((sk) => fieldRow(sk, f)))
+          if (d !== null) {
+            try {
+              const f = d.field()
+              if (f !== null) d.skills().forEach((sk) => out.push({ pick: fieldAsPick(sk), opts: fieldOpts(sk, f), key: 'f:' + sk.name }))
+            } catch (e) { /* no field: only the finds */ }
+          }
+          scout.found.filter((f) => skills.some((y) => y.name === f.name) === false && out.some((o) => o.pick.id === f.name) === false)
+            .forEach((f) => out.push({ pick: scoutAsPick(f), opts: scoutOpts(f), key: 's:' + f.id }))
+          return out
         }
+        const renderFirstRows = () => {
+          const list = firstGroup()
+          if (list.length === 0) return null
+          const f = (() => { try { const d = domainSeam(); return d !== null ? d.field() : null } catch (e) { return null } })()
+          return h('div', { className: 'kbsf-flat' + (coverBg === 'plain' ? ' kbsf-plain' : ''), 'data-kb': f !== null ? 'field-rows' : 'first-rows', style: f !== null ? { '--kbsf-fld': f.accent } : undefined },
+            views.featured === 'list'
+              ? h('div', { className: 'kbsf-list', 'data-kb': 'field-list' }, list.map((it, i) => pickRow(it.pick, i, it.opts)))
+              : h('div', { className: 'kbsf-grid', 'data-kb': 'field-grid' }, list.map((it, i) => pickCard(it.pick, i, it.opts))))
+        }
+        // The scout's line under the list: what it did last, « Scan now », and the way to make it weekly. Pictures: the switch of the covers maker, only when it can work at all.
+        const renderScoutLine = () => {
+          if (scout.phase !== 'ready') return null
+          const last = scout.runs.length > 0 ? scout.runs[0] : null
+          // « Filtered out » counts what the filter refused, not what it never looked at (not_checked) or what was already known.
+          const skipped = last === null ? 0 : Object.keys(last.rejected || {}).filter((k) => ['not_checked', 'already_found', 'dismissed', 'installed'].indexOf(k) < 0).reduce((n, k) => n + last.rejected[k], 0)
+          const scoutAt = (iso) => { try { return new Date(iso).toLocaleString(isEn() ? 'en-GB' : 'fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) } catch (e) { return '' } }
+          const weekly = scout.runs.some((r) => r.by === 'automation')
+          return h('div', { className: 'kbsf-scoutline', 'data-kb': 'scout-line' },
+            icon('search', 13),
+            h('span', { className: 'nm' }, t('scout.name')),
+            h('span', null, last === null ? t('scout.never') : t('scout.last', { when: scoutAt(last.at), kept: last.kept, skipped })),
+            h('button', { type: 'button', className: 'kbs-link', 'data-kb': 'scout-now', disabled: scout.scanning, onClick: scanNow }, scout.scanning ? t('scout.scanning') : t('scout.now')),
+            weekly ? null : h('button', { type: 'button', className: 'kbs-link', 'data-kb': 'scout-weekly', title: t('scout.weeklyTip'), onClick: scoutWeekly }, t('scout.weekly')))
+        }
+        const renderCoverLine = () => {
+          if (covers.key !== true) return null
+          return h('div', { className: 'kbsf-scoutline', 'data-kb': 'cover-line' },
+            icon('info', 13),
+            h('span', null, covers.auto ? t('cover.line', { left: covers.left }) : t('cover.on')),
+            h('button', { type: 'button', className: 'kbs-link', 'data-kb': 'cover-switch', onClick: () => switchCovers(covers.auto !== true) }, covers.auto ? t('cover.off') : t('cover.turnOn')))
+        }
+        // The cards that have no picture yet (the first group and the picks on show): ask the host which exist and which can be made, ask for the missing ones once, then look
+        // again every four seconds while some are being made. Nothing is asked for off the Featured tab.
+        const coverWanted = () => {
+          if (mode !== 'featured' || picks.phase !== 'ready') return []
+          const out = []
+          const add = (p) => { if (coverSrc(p) === '' && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(p.id) && out.some((o) => o.name === p.id) === false) out.push({ name: p.id, description: pickText(p.outcome).slice(0, 400) }) }
+          firstGroup().forEach((it) => add(it.pick))
+          pickList().forEach(add)
+          return out.slice(0, 24)
+        }
+        const wantedCovers = coverWanted()
+        const wantedSig = wantedCovers.map((w) => w.name).join(',')
+        React.useEffect(() => {
+          if (wantedSig === '') return undefined
+          const want = wantedSig.split(',')
+          let stop = false
+          const look = () => getJson('/kybernos-skills/covers/state?names=' + encodeURIComponent(wantedSig)).then((j) => {
+            if (stop || alive.current !== true || j === null || typeof j !== 'object' || j.ok !== true || j.items === null || typeof j.items !== 'object') return
+            const now = Date.now()
+            const items = j.items
+            setCovers((m) => {
+              const ver = { ...m.ver }
+              want.forEach((n) => { if (items[n] === 'have' && ver[n] === undefined) ver[n] = now })
+              return { ...m, can: j.can === true, auto: j.auto !== false, key: j.key === true, left: Number.isInteger(j.left) ? j.left : 0, items: { ...m.items, ...items }, ver }
+            })
+            const ask = j.can === true ? want.filter((n) => items[n] === 'none' && coverAsked.current.has(n) === false) : []
+            const pending = want.some((n) => items[n] === 'making' || items[n] === 'queued')
+            if (ask.length > 0) {
+              ask.forEach((n) => coverAsked.current.add(n))
+              postJson('/kybernos-skills/covers/make', { items: wantedCovers.filter((w) => ask.indexOf(w.name) >= 0).slice(0, 12) }).then((r) => {
+                if (stop || alive.current !== true) return
+                if (r !== null && typeof r === 'object' && r.ok === true && r.items !== null && typeof r.items === 'object') setCovers((m) => ({ ...m, items: { ...m.items, ...r.items } }))
+                clearTimeout(coverTimer.current); coverTimer.current = setTimeout(look, 4000)
+              }).catch(() => { /* the tiles stay */ })
+            } else if (pending) { clearTimeout(coverTimer.current); coverTimer.current = setTimeout(look, 4000) }
+          }).catch(() => { /* no covers route (an older host): the tiles stay */ })
+          look()
+          return () => { stop = true; clearTimeout(coverTimer.current) }
+        }, [wantedSig])
         const renderFeatured = () => {
           if (picks.phase === 'loading') return skeletonOf('cards', 6) || h('div', { className: 'kb-empty' }, h('span', { className: 'kb8-mono' }, t('pick.loading')))
           const counts = pickCounts()
           const list = pickList()
           return h('div', null,
-            renderFieldRows(),
+            renderFirstRows(),
             h('div', { className: 'kbsf-chips' },
               chip(t('pick.all') + ' ' + picks.items.length, pcat === 'all', () => setPcat('all'), 'all'),
               PICK_CATS.filter((c) => counts[c] > 0).map((c) => chip(t('pcat.' + c) + ' ' + counts[c], pcat === c, () => setPcat(c), c)),
@@ -2803,7 +3171,9 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
               : (views.featured === 'list'
                 ? h('div', { className: 'kbsf-list' + (coverBg === 'plain' ? ' kbsf-plain' : ''), 'data-kb': 'picks-list' }, list.map(pickRow))
                 : h('div', { className: 'kbsf-grid' + (coverBg === 'plain' ? ' kbsf-plain' : ''), 'data-kb': 'picks-grid' }, list.map(pickCard))),
-            picks.asOf !== '' ? h('div', { className: 'kbsf-foot' }, t('pick.asof', { d: today(picks.asOf) })) : null)
+            picks.asOf !== '' ? h('div', { className: 'kbsf-foot' }, t('pick.asof', { d: today(picks.asOf) })) : null,
+            renderScoutLine(),
+            renderCoverLine())
         }
 
         const renderYours = () => {
@@ -2961,7 +3331,7 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
           const folderText = pv !== null ? (pv.folder !== '' ? pv.folder : t('dp.root')) : (preview.state === 'loading' ? t('dp.loading') : t('dp.folderUnknown'))
           let skillText = null
           if (preview.state === 'loading') skillText = h('pre', { className: 'kb-local-body', 'data-kb': 'preview-text' }, t('dp.loading'))
-          else if (pv !== null) skillText = h('pre', { className: 'kb-local-body', 'data-kb': 'preview-text' }, pv.text + (pv.truncated === true ? '\n…' : ''))
+          else if (pv !== null) skillText = h(SkillText, { text: pv.text, truncated: pv.truncated, kb: 'preview-text' })
           else if (preview.state === 'missing') skillText = h('div', { className: 'kb-note', 'data-kb': 'preview-missing' }, icon('info', 14), h('span', null, t('dp.notfound', { name: p.id })))
           else if (preview.state === 'error') skillText = h('div', { className: 'kb-note', 'data-kb': 'preview-error' }, icon('info', 14), h('span', null, t('dp.nopreview', { why: preview.error })))
           const auditLines = audit === null || audit === undefined || audit.phase === 'loading'
@@ -3767,7 +4137,7 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
           h('span', { className: 'kb-section-label' }, 'SKILL.md'),
           r.state === 'error'
             ? h('div', { className: 'kbs-err', role: 'alert' }, r.error)
-            : h('pre', { className: 'kb-local-body', 'data-kb': 'skill-text' }, ready ? r.data.text : t('det.local.loading')),
+            : (ready ? h(SkillText, { text: r.data.text, truncated: false, kb: 'skill-text' }) : h('pre', { className: 'kb-local-body', 'data-kb': 'skill-text' }, t('det.local.loading'))),
           ready && r.data.truncated === true ? h('span', { className: 'kb8-mono' }, t('panel.truncated')) : null,
           ready && r.data.files > 0 ? h('span', { className: 'kb8-mono' }, t('panel.files', { n: r.data.files + (r.data.filesMore === true ? '+' : '') })) : null,
           props.learned !== null && props.learned !== undefined && (props.learned.shared === true || props.shareLocked === true || props.learned.shareReady === true)
@@ -3801,7 +4171,7 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
           : (p.state === 'loading' ? t('dp.loading') : t('dp.folderUnknown'))
         let text = null
         if (p.state === 'loading') text = h('pre', { className: 'kb-local-body', 'data-kb': 'preview-text' }, t('dp.loading'))
-        else if (pv !== null) text = h('pre', { className: 'kb-local-body', 'data-kb': 'preview-text' }, pv.text + (pv.truncated === true ? '\n…' : ''))
+        else if (pv !== null) text = h(SkillText, { text: pv.text, truncated: pv.truncated, kb: 'preview-text' })
         else if (p.state === 'missing') text = h('div', { className: 'kb-note', 'data-kb': 'preview-missing' }, icon('info', 14), h('span', null, t('dp.notfound', { name: x.name })))
         else if (p.state === 'error') text = h('div', { className: 'kb-note', 'data-kb': 'preview-error' }, icon('info', 14), h('span', null, t('dp.nopreview', { why: p.error })))
         else if (p.state === 'none') text = h('div', { className: 'kb-note', 'data-kb': 'preview-none' }, icon('info', 14), h('span', null, x.sourceType === 'well-known' ? t('row.cantInstall.wk') : t('row.cantInstall.ng')))

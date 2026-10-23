@@ -3,7 +3,7 @@ import { existsSync, readFileSync, readdirSync, statSync, writeFileSync, mkdirSy
 import { execFile } from 'node:child_process'
 import { realpath } from 'node:fs/promises'
 import { createHash, createHmac, randomUUID, timingSafeEqual } from 'node:crypto'
-import { tmpdir, homedir, platform as osPlatform, release as osRelease } from 'node:os'
+import { tmpdir, homedir, platform as osPlatform, release as osRelease, totalmem as osTotalmem, freemem as osFreemem, loadavg as osLoadavg, cpus as osCpus } from 'node:os'
 import { zstdDecompressSync } from 'node:zlib'
 import { fileURLToPath } from 'node:url'
 import { dirname, normalize as nodePathNormalize, isAbsolute as nodePathIsAbsolute, join as nodePathJoin } from 'node:path'
@@ -12,6 +12,7 @@ import { kyberTarget } from './kyber-root.mjs'
 import { createWorkspaceInstructions } from './workspace-instructions.mjs'
 import { selectAfterConnect } from './default-model.mjs'
 import { normalize as autoSettingsNormalize, publicView as autoSettingsView, apply as autoSettingsApply, isPaused as autoSettingsPaused } from './automation-settings.mjs'
+import { levelOf as autoLoadLevel, allowedAt as autoLoadAllowed, admit as autoLoadAdmit, createInflight as autoLoadInflight, maxParallelFrom as autoLoadMaxParallel, parseMeminfo as autoLoadMeminfo, guardOff as autoLoadGuardOff, publicView as autoLoadView } from './automation-load.mjs'
 import { stableStreak as autoSkillStreak, skillSlug as autoSkillSlug, skillParts as autoSkillParts, normalizeRecords as autoSkillsNormalize, dueTasks as autoSkillsDue, lessonOf as autoSkillLesson } from './automation-skills.mjs'
 import { chooseWorkspace as autoWsChoose, idOf as autoWsIdOf, DEDICATED_TITLE as AUTO_WS_TITLE, DEDICATED_DIR as AUTO_WS_DIR } from './automation-workspace.mjs'
 import { recordFeedback, exportFeedback, relayReportOf } from './feedback-box.mjs'
@@ -503,6 +504,9 @@ const kbMakeTaskStore = (io) => {
 //     deleted or rescheduled a moment ago is not fired), is moved to its next slot (cron) or
 //     deactivated (one-time), and that is written BEFORE anything starts. If the write fails
 //     nothing fires; a later bookkeeping failure can no longer start the same run every 30 s.
+//     The cap (automation-load.mjs, injected as `capacity` and `admit`) is applied here: only the
+//     due runs it admits are claimed, oldest first; the others are not touched and are still due
+//     on the next tick. No answer from `capacity` means no limit.
 //  2. fire: one session per claimed task, each bounded by fireTimeoutMs, so a session service
 //     that never answers cannot freeze every automation until the next restart.
 //  3. record: history and lastRun are merged into the fresh task, never its schedule or trigger.
@@ -525,10 +529,17 @@ const kbMakeTrigger = (deps) => {
     busy = true
     let fired = 0
     let failed = 0
+    let held = 0
     try {
+      // How much room the machine has: asked BEFORE the store lock (it may read the machine), and never fatal. No answer means no
+      // limit, which is what the tick did before the cap existed.
+      let capacity = null
+      if (typeof deps.capacity === 'function') {
+        try { capacity = await deps.capacity() } catch (e) { capacity = null }
+      }
       const claimed = await store.mutate(async (tasks) => {
         const nowMs = now()
-        const out = []
+        const dueList = []
         for (const t of tasks) {
           if (t === null || typeof t !== 'object' || t.active !== true || t.suggested === true) continue
           // A task written without a next run (the automation-creator skill edits the file directly)
@@ -540,6 +551,23 @@ const kbMakeTrigger = (deps) => {
           }
           const due = Date.parse(t.nextRun)
           if (due > nowMs) continue
+          dueList.push({ t, dueMs: due })
+        }
+        // The cap: `admit` names which due runs may start now, oldest first. The others are not touched, so they are still due on the
+        // next tick (a deferred run is late, never lost); only the ones that start are moved to their next slot.
+        let pick = dueList
+        if (capacity !== null && typeof deps.admit === 'function') {
+          let ids = null
+          try { ids = deps.admit(capacity, dueList.map((x) => ({ id: x.t.id, dueMs: x.dueMs })), nowMs) } catch (e) { ids = null }
+          if (Array.isArray(ids) === true) {
+            const rank = new Map(ids.map((id, i) => [id, i]))
+            pick = dueList.filter((x) => rank.has(x.t.id) === true).sort((a, b) => rank.get(a.t.id) - rank.get(b.t.id))
+          }
+        }
+        held = dueList.length - pick.length
+        const out = []
+        for (const x of pick) {
+          const t = x.t
           out.push(Object.assign({}, t))
           if (t.schedule !== null && typeof t.schedule === 'object' && t.schedule.mode === 'once') { t.active = false; t.nextRun = null }
           else {
@@ -594,7 +622,7 @@ const kbMakeTrigger = (deps) => {
     } finally {
       busy = false
     }
-    return { fired, failed }
+    return { fired, failed, held }
   }
   return { tick }
 }
@@ -2670,6 +2698,66 @@ function boot(ctx) {
         })
       }
     } catch (e) { console.error('[kybers] automations: MCP approval gate not installed (' + String((e && e.message) || e) + ')') }
+    // ── Machine load and the cap on automation runs (rules: automation-load.mjs) ──────────────────────────────────────────────
+    // The tick asks how loaded the machine is and how many automation runs are going; only that many due runs start. The runs going
+    // are the sessions this host created for a task (a webhook and "Run now" are counted, not capped), followed through the engine's
+    // own `agent/status`. Memory is "still available to programs", never `os.freemem()` on macOS (it reads ~10 % on a healthy Mac
+    // because it leaves out inactive pages; `kern.memorystatus_level` is the system's own figure).
+    const kbLoadInflight = autoLoadInflight()
+    const kbLoadMaxParallel = autoLoadMaxParallel(process.env)
+    let kbLoadCache = null
+    let kbLoadHeld = 0
+    const kbLoadReadMemory = () => new Promise((resolve) => {
+      let total = 0
+      try { total = osTotalmem() } catch (e) { total = 0 }
+      const share = (mb) => (total > 0 && Number.isFinite(mb) === true ? { pct: Math.min(100, (mb * 1048576 * 100) / total), mb } : { pct: null, mb: null })
+      const plat = osPlatform()
+      if (plat === 'darwin') {
+        execFile('/usr/sbin/sysctl', ['-n', 'kern.memorystatus_level'], { timeout: 2000 }, (err, out) => {
+          const pct = Number(String(out === undefined ? '' : out).trim())
+          if (err || Number.isFinite(pct) === false || pct < 0 || pct > 100 || total <= 0) return resolve({ pct: null, mb: null })
+          resolve({ pct, mb: Math.round((total / 1048576) * (pct / 100)) })
+        })
+        return
+      }
+      if (plat === 'linux') {
+        try {
+          const mb = autoLoadMeminfo(readFileSync('/proc/meminfo', 'utf8'))
+          if (mb !== null) return resolve(share(mb))
+        } catch (e) { /* fall through to os.freemem */ }
+      }
+      try { resolve(share(Math.round(osFreemem() / 1048576))) } catch (e) { resolve({ pct: null, mb: null }) }
+    })
+    // One reading is shared by the tick and the page for ten seconds (the page polls; a reading may spawn `sysctl`).
+    const kbLoadSample = async () => {
+      const t = Date.now()
+      if (kbLoadCache !== null && t - kbLoadCache.at < 10000) return kbLoadCache.sample
+      const mem = await kbLoadReadMemory()
+      let load = null
+      try {
+        const n = osCpus().length
+        const one = osLoadavg()[0]
+        load = n > 0 && Number.isFinite(one) === true ? one / n : null
+      } catch (e) { load = null }
+      const sample = { memAvailablePct: mem.pct, memAvailableMb: mem.mb, loadPerCpu: load }
+      kbLoadCache = { at: t, sample }
+      return sample
+    }
+    const kbLoadCapacity = async () => {
+      const sample = await kbLoadSample()
+      const lv = autoLoadGuardOff(process.env) === true ? { level: 'ok', reasons: [] } : autoLoadLevel(sample)
+      return { level: lv.level, reasons: lv.reasons, guard: autoLoadGuardOff(process.env) === true ? 'off' : 'on', allowed: autoLoadAllowed(lv.level, kbLoadMaxParallel), inFlight: kbLoadInflight.count(), maxParallel: kbLoadMaxParallel }
+    }
+    try {
+      if (typeof ctx.on === 'function') {
+        ctx.on('agent/status', ({ agent, status }) => {
+          try { const id = agent !== null && typeof agent === 'object' ? (agent.session !== undefined && agent.session !== null ? agent.session.id : agent.id) : undefined; kbLoadInflight.status(id, status === 'running') } catch (e) { /* never break a turn */ }
+        })
+        ctx.on('agent/disposed', ({ agent }) => {
+          try { const id = agent !== null && typeof agent === 'object' ? (agent.session !== undefined && agent.session !== null ? agent.session.id : agent.id) : undefined; kbLoadInflight.end(id) } catch (e) { /* gone */ }
+        })
+      }
+    } catch (e) { console.error('[kybers] automations: load follow not installed (' + String((e && e.message) || e) + ')') }
     const kbFireTask = async (task) => {
       const sc = ctx.get('sessionController')
       if (sc === undefined || sc === null || typeof sc.create !== 'function' || typeof sc.prompt !== 'function') {
@@ -2714,6 +2802,7 @@ function boot(ctx) {
           }).catch(() => null)
         }
       }
+      kbLoadInflight.start(sessionId)
       // D3 (recette team 29/09) — honorer task.model : la sélection DOIT
       // précéder le prompt (sélection durable de la session). Format
       // attendu « provider/model » (ex. kybernos/free). Échec best-effort :
@@ -2773,6 +2862,8 @@ function boot(ctx) {
     const kbTasksTrigger = kbMakeTrigger({
       store: kbTasksStore,
       fire: (task) => kbFireTask(task),
+      capacity: kbLoadCapacity,
+      admit: autoLoadAdmit,
       onError: (m) => { try { console.error('[kybers] scheduled tasks: ' + m) } catch (e) { /* console unavailable */ } },
     })
     // The Automations settings (automation-settings.mjs): ~/.dsh/kybernos/automation-settings.json, next to tasks.json.
@@ -2855,9 +2946,13 @@ function boot(ctx) {
     // « Pause all » holds the tick, not the store: nothing is lost, and what came due fires once at the first tick after it is off.
     const kbTasksTick = async () => {
       if (autoSettingsPaused(await kbAutoSettingsRead()) === true) return { fired: 0, paused: true }
-      const fired = await kbTasksTrigger.tick()
+      const r = await kbTasksTrigger.tick()
+      if (r !== null && typeof r === 'object' && Number.isSafeInteger(r.held) === true) {
+        if (r.held > 0 && r.held !== kbLoadHeld) { try { console.log('[kybers] scheduled tasks: ' + r.held + ' run(s) waiting for the machine') } catch (e) { /* console */ } }
+        kbLoadHeld = r.held
+      }
       kbAutoSkillsPass().catch(() => null)
-      return fired
+      return r
     }
     // CRUD exposé au client (route unique /kybernos/tasks, action dans le corps).
     const kbTasksHandle = async (body) => {
@@ -10883,6 +10978,28 @@ function boot(ctx) {
         try { await kbAutoSettingsWrite(next.state) } catch (e) { return sendJson(res, 500, { ok: false, error: 'write failed' }) }
         sendJson(res, 200, Object.assign({ ok: true }, autoSettingsView(next.state)))
       } }), 'kybernos: route automation-settings')
+      // ── How loaded the machine is and how many automation runs may start: GET /kybernos/automation-load ──────────────────────────────
+      // Read-only, for the Automations page. The level, why, the runs going, the room, and how many due runs are waiting for it; no id, path
+      // or prompt. Same origin rule as the settings route; nothing here changes anything, so no signed session is asked.
+      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/automation-load', handler: async (req, res) => {
+        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        try {
+          const capacity = await kbLoadCapacity()
+          const sample = await kbLoadSample()
+          let waiting = 0
+          try {
+            const nowMs = Date.now()
+            for (const t of await kbTasksRead()) {
+              if (t !== null && typeof t === 'object' && t.active === true && typeof t.nextRun === 'string' && Date.parse(t.nextRun) <= nowMs) waiting += 1
+            }
+          } catch (e) { waiting = 0 }
+          sendJson(res, 200, Object.assign({ ok: true }, autoLoadView(capacity, sample, waiting)))
+        } catch (e) {
+          try { console.error('[kybers] automation-load route:', errText(e)) } catch (e2) { /* console unavailable */ }
+          sendJson(res, 500, { ok: false, error: 'internal error' })
+        }
+      } }), 'kybernos: route automation-load')
       // ── Stable automations as skills: GET ?id= (how far it is, the rule, the skill if there is one) / POST { id } (write it now) ──
       // The rule is fixed (automation-skills.mjs): the button works only when the automation is stable. The skill is written from the stored
       // automation, never from text sent by the page, and never over a skill that exists.
