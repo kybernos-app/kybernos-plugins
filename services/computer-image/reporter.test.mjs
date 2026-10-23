@@ -9,7 +9,7 @@ const home = mkdtempSync(join(tmpdir(), 'kb-reporter-'))
 process.env.DSH_HOME = home
 process.env.KYBERNOS_API = 'https://api.example.test'
 process.env.KYBERNOS_COMPUTER_TOKEN = 'kyd_test'
-const { scheduleOf, endedRuns, cleanLabel, sessionState } = await import('./reporter.mjs')
+const { scheduleOf, endedRuns, cleanLabel, sessionState, memoryOf, loadOf, runningTasksOf, beatOf } = await import('./reporter.mjs')
 
 const projection = (sid, { closed, at }) => {
   const dir = join(home, 'storages', 'session_projcache', 'sessions')
@@ -65,4 +65,49 @@ test('a run is reported once its turn is closed, by its session id, with the doo
   assert.deepEqual(endedRuns(tasks, new Set(['session-cccccccc-3', 'st-1:2026-10-14T13:00:00.000Z', 'session-aaaaaaaa-1'])), [])
   assert.equal(sessionState('session-bbbbbbbb-2').closed, false)
   assert.equal(sessionState('session-nope'), null)
+})
+
+// ── the load in the beat ──────────────────────────────────────────────────────────────────────────
+// What the plugin answers on GET /kybernos/automation-load, trimmed to what the reporter reads.
+const view = (extra = {}) => ({ ok: true, level: 'busy', pressure: 71, inFlight: 1, allowed: 1, waiting: 1, loadPerCpu: 1.12345, memAvailablePct: 31, runs: [{ taskId: 'st-1', sessions: 1, elapsedMs: 90_000, subagents: 1, lighter: true, activity: [1, 2] }], series: { total: [1] }, waitingIds: ['st-9'], ...extra })
+const memory = { availMb: 310, totalMb: 980 }
+
+test('memory is MemAvailable and MemTotal in MB, never MemFree', () => {
+  const text = 'MemTotal:         1003520 kB\nMemFree:            25600 kB\nMemAvailable:      317440 kB\nBuffers:             100 kB\n'
+  assert.deepEqual(memoryOf(text), { availMb: 310, totalMb: 980 })
+  for (const none of ['', 'MemTotal: 1000 kB\nMemFree: 5 kB\n', 'MemAvailable: 5 kB\n', 'MemTotal: 0 kB\nMemAvailable: 0 kB\n', null, undefined]) assert.equal(memoryOf(none), null, String(none))
+})
+
+test('the load is numbers from a closed list; a figure that is not the machine\'s is not sent', () => {
+  assert.deepEqual(loadOf(view(), memory), { level: 'busy', pressure: 71, cpu_per_core: 1.12, mem_avail_mb: 310, mem_total_mb: 980, running: 1, waiting: 1, allowed: 1 })
+  for (const level of ['ok', 'high']) assert.equal(loadOf(view({ level }), memory).level, level)
+  for (const bad of [null, undefined, 'x', {}, { ok: false }, view({ level: 'weird' }), view({ level: 'ok\nrm' }), view({ pressure: null }), view({ pressure: 'high' }), view({ pressure: NaN })]) assert.equal(loadOf(bad, memory), null, JSON.stringify(bad))
+  assert.equal(loadOf(view(), null), null, 'no memory reading, no load')
+  // everything is clamped to what the platform accepts
+  const wild = loadOf(view({ pressure: 900, loadPerCpu: 500, inFlight: 9999, waiting: -3, allowed: 'x' }), { availMb: -5, totalMb: 0 })
+  assert.deepEqual(wild, { level: 'busy', pressure: 100, cpu_per_core: 64, mem_avail_mb: 0, mem_total_mb: 1, running: 64, waiting: 0, allowed: 0 })
+  assert.equal(loadOf(view({ loadPerCpu: null }), memory).cpu_per_core, 0, 'an unmeasured processor reads as free, as in the plugin')
+  const text = JSON.stringify(loadOf(view(), memory))
+  for (const never of ['st-1', 'st-9', 'activity', 'series']) assert.ok(!text.includes(never), never)
+})
+
+test('the runs going are the automations\' ids with the moment they started, at most eight', () => {
+  const now = Date.parse('2026-10-23T12:00:00Z')
+  assert.deepEqual(runningTasksOf(view(), now), [{ task_ref: 'st-1', started_at: '2026-10-23T11:58:30.000Z' }])
+  const many = view({ runs: [...Array(12).keys()].map((i) => ({ taskId: 'st-' + i, elapsedMs: 1000 })).concat([{ taskId: 'bad id', elapsedMs: 1 }, { taskId: 'x'.repeat(65), elapsedMs: 1 }, null]) })
+  assert.equal(runningTasksOf(many, now).length, 8)
+  assert.ok(!runningTasksOf(many, now).some((r) => r.task_ref === 'bad id'))
+  assert.deepEqual(runningTasksOf(view({ runs: [{ taskId: 'st-2', elapsedMs: 'soon' }] }), now), [{ task_ref: 'st-2', started_at: '2026-10-23T12:00:00.000Z' }])
+  for (const none of [null, undefined, {}, { runs: 'x' }]) assert.deepEqual(runningTasksOf(none, now), [])
+})
+
+test('a beat keeps what it always said and adds the load only when there is one; an older platform loses nothing', () => {
+  const now = Date.parse('2026-10-23T12:00:00Z')
+  const full = beatOf(2, 388, view(), memory, now)
+  assert.deepEqual(Object.keys(full), ['sessions', 'rss_mb', 'load', 'running_tasks'])
+  assert.equal(full.sessions, 2)
+  assert.equal(full.rss_mb, 388)
+  assert.deepEqual(beatOf(0, 120, null, memory, now), { sessions: 0, rss_mb: 120 }, 'the plugin did not answer: the old beat')
+  assert.deepEqual(beatOf(0, 120, view({ pressure: null }), memory, now), { sessions: 0, rss_mb: 120 }, 'a forced or switched-off reading is not sent')
+  assert.ok(JSON.stringify(beatOf(1, 1, view({ runs: [...Array(8).keys()].map((i) => ({ taskId: 'x'.repeat(64), elapsedMs: 1 })) }), memory, now)).length < 2048, 'a full beat stays far under the platform\'s 2048-byte bound')
 })

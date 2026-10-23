@@ -83,6 +83,22 @@ claim to the computer saying `ready` in 3.6 s (about 2.5 s of it the hot reload)
 **Measured at Fly** (2026-10-20, one slot, `ams`, `1x1g`, image pool1, a throw-away platform behind a tunnel; the server repository's `scripts/computers-pool-live.ts`): the slot booted and said it was up 5.1 s after the machine was created, was put to sleep in 1.7 s; a computer taking it was woken by a 0.70 s resume call, was handed its identity 1.0 s later and said **ready 10.8 s** after it was asked for (against 25 to 41 s for a create and a boot); the model route was live on the machine (asked from inside it). Nine of those seconds were DSH reloading its profile to take the route written at the claim, on a small shared CPU: the route is now rendered at the slot's boot (`render-profile.sh` renders it for a slot with no token, writes the file only when it changes, and `pool-hold.sh` runs it before DSH starts), the slot is made with the model of the day, and the claim's model wins if it changed. That change was checked locally (claim to ready 1.6 s against 3.6 s) and then **at Fly with image pool2 (a second slot): the computer said ready 4.7 s after it was asked for** (resume call 2.4 s, identity 3.6 s after the ask, ready 1.1 s after the resume returned; on the machine, from « claimed » to the reporter's « ready », 1.15 s), the model route live, the woken runner polling 0.9 s after the resume, no timeout in the log. Fly's own calls varied between the two runs (create 33.1 and 36.5 s, sleep 1.7 and 5.4 s, resume 0.7 and 2.4 s). A computer asleep 40 s and woken: its runner polled 1.4 s after the resume call returned and the log holds no timeout (the 12 s stall of dev is the timeout fixed in `runner.mjs`).
 **Not checked:** a first answer through the whole chain with a real model at Fly (the live check stops at the computer saying ready and its runner polling).
 
+## What the beat says
+
+`reporter.mjs` beats every 30 s (`KYBERNOS_REPORT_EVERY_MS`) with `{sessions, rss_mb}` and, when the Kybernos plugin can say it, two more keys: `load` and
+`running_tasks`. They are the plugin's own reading of the machine (`GET /kybernos/automation-load` on the loopback, asked with `Origin: http://127.0.0.1:<port>` as
+the claimer does, 2 s timeout), cut down to numbers and ids:
+
+| Key | What it holds |
+|---|---|
+| `load` | `level` (`ok`, `busy`, `high`), `pressure` 0 to 100, `cpu_per_core`, `mem_avail_mb` (**MemAvailable**, never MemFree: the page cache makes MemFree read near zero on a healthy machine), `mem_total_mb`, `running`, `waiting`, `allowed` |
+| `running_tasks` | up to eight `{task_ref, started_at}`: the automations that have a run going, by their own id |
+
+Nothing is sent when the plugin does not answer, or when its reading is switched off or forced (`KYBERNOS_AUTOMATION_LOAD_GUARD=off`, `_FORCE`): that figure is not
+the machine's. An older platform ignores the added keys (its schema strips them). The runs the plugin may start at once follow the machine's memory: one under
+1.5 GB, two under 3 GB, three above (`KYBERNOS_AUTOMATION_MAX_PARALLEL` overrides; a first guess, not yet measured on a real computer). No prompt, name or result is in
+a beat. The platform's half (one jsonb with a size bound, `load: null` after two minutes) is in the server's spec of 2026-10-23.
+
 ## What it was checked to do
 
 On the real platform (Fly.io, `ams`, `shared-cpu-1x` 2 GB, one 2 GB volume, 2026-10-14; one sample each, direction and not a guarantee),
