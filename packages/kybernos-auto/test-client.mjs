@@ -113,5 +113,8 @@ ok('un champ de saisie a ses états ARIA (invalide, décrit par son message)', s
   ok('a readable state still renders the whole page, head included', normal !== null && walk(normal, (nd) => nd.type === 'h4').length === 1 && walk(normal, (nd) => nd.props && nd.props.className === 'kaa-intro').length === 1 && walk(normal, (nd) => nd.props && nd.props['data-kb'] === 'auto-down').length === 0)
 }
 
+// Found by the dead-click probe (2026-10-23): « Add » of the allowed list did nothing, in silence, with an empty field.
+ok('Add is greyed with its reason while the field is empty (it used to look pressable and do nothing)', /className: 'kaa-ajout-btn', 'data-kb': 'auto-whitelist-add-btn', onClick: ajouterModele, disabled: ajouter\.trim\(\) === '',\s*title: ajouter\.trim\(\) === '' \? kt\('Choisis ou tape un modèle d’abord', 'Pick or type a model first'\) : undefined/.test(src) && src.indexOf("'.kaa-ajout-btn:disabled{opacity:.5;cursor:default}'") !== -1)
+
 console.log('\n' + (ko === 0 ? 'HARNAIS CLIENT VERT — ' + ok0 + ' contrôles ✓' : ko + ' échec(s)'))
 process.exit(ko === 0 ? 0 : 1)

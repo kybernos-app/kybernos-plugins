@@ -1,6 +1,6 @@
 // Dead clicks, on the REAL GUI: press everything a person could press on each page, and list what does nothing or throws.
 //
-//   node scripts/check-dead-clicks-live.mjs [--pages "Skills,Connectors"] [--settings [--settings-pages "General,Skills"]] [--max 120] [--settle 700] [--shots <dir>] [--verbose]
+//   node scripts/check-dead-clicks-live.mjs [--pages "Skills,Connectors" (default: every row of the sidebar's Kybernos menu)] [--settings [--settings-pages "General,Skills"]] [--max 120] [--settle 700] [--shots <dir>] [--verbose]
 //                                            [--swap kybernos-skills,kybernos-plugin [--mine <root>]]   (try this checkout's client, or the one under <root>, before it is merged)
 //
 // The method and its limits are in scripts/lib-dead-clicks.mjs (proved against a fixture page by scripts/test-dead-clicks.mjs). Here it is pointed at the pages
@@ -26,11 +26,14 @@ const here = dirname(fileURLToPath(import.meta.url))
 const arg = (name, dflt) => { const i = process.argv.indexOf('--' + name); return i >= 0 && i + 1 < process.argv.length ? process.argv[i + 1] : dflt }
 const flag = (name) => process.argv.includes('--' + name)
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
-const PAGES = arg('pages', 'Kaby,Dashboards,Agent Teams,Workspaces,Creations,Automations,Skills,Connectors').split(',').map((s) => s.trim()).filter((s) => s !== '')
+// `--pages` names the sidebar rows to walk; without it, every row of the Kybernos menu is read from the sidebar (the rows carry the owner's own names: a renamed Agent Teams, a Dashboards).
+const PAGES_ARG = arg('pages', null)
 const MAX = Number(arg('max', '120'))
 const SETTLE = Number(arg('settle', '700'))
 const shotsDir = arg('shots', null)
 const MAIN = '[class*="centerCol"]'   // the main column of the DSH shell (a CSS-module name with a hashed prefix)
+// The content of the Settings dialog, without its menu: the sibling of the nav's branch (pressing a menu cell is the walk of Settings itself, not a thing to test on each page).
+const SETTINGS_CONTENT = `js:(() => { const d = document.querySelector('[role="dialog"]'); const cell = d && d.querySelector('button[class*="navCell"]'); if (!cell) return null; for (let n = cell; n.parentElement; n = n.parentElement) { const sib = Array.from(n.parentElement.children).find((c) => c !== n && !c.contains(cell) && c.getBoundingClientRect().width > 300); if (sib) return sib; if (n.parentElement === d) break } return d })()`
 let allow = []
 try { allow = JSON.parse(readFileSync(join(here, 'dead-clicks-allow.json'), 'utf8')).allow } catch (e) { allow = [] }
 const allowed = (page, row) => allow.some((a) => (a.page === page || a.page === '*') && ((typeof a.dk === 'string' && a.dk === row.dk) || (typeof a.match === 'string' && row.label.startsWith(a.match))))
@@ -62,11 +65,14 @@ try {
   await shell()
   const js = async (e) => (await page.evalJs(e, 15000)).val
 
-  const walk = async (name, { enter, scope }) => {
+  const walk = async (name, { enter, scope, soft }) => {
     process.stdout.write('· ' + name + ' … ')
     if (!(await enter(true))) { console.log('not in this GUI (skipped)'); return }
     const t0 = Date.now()
-    const out = await probePage(page, { max: MAX, settleMs: SETTLE, scope, onResult: (r) => { if (flag('verbose')) console.log('      ' + r.verdict.padEnd(6) + ' ' + r.label.slice(0, 40).padEnd(40) + ' <' + r.tag + (r.dk !== '' ? ' ' + r.dk : '') + '> ' + r.why) }, restore: async () => { await page.send('Page.reload', { ignoreCache: true }); await shell(); await enter(false) } })
+    const out = await probePage(page, { max: MAX, settleMs: SETTLE, scope, onResult: (r) => { if (flag('verbose')) console.log('      ' + r.verdict.padEnd(6) + ' ' + r.label.slice(0, 40).padEnd(40) + ' <' + r.tag + (r.dk !== '' ? ' ' + r.dk : '') + '> ' + r.why) }, restore: async () => {
+      if (soft !== undefined) { try { await soft(); if (await enter(false)) return } catch (e) { /* reload below */ } }
+      await page.send('Page.reload', { ignoreCache: true }); await shell(); await enter(false)
+    } })
     const bad = out.results.filter((r) => r.verdict !== 'ok')
     const real = bad.filter((r) => !allowed(name, r))
     console.log(out.results.length + ' pressed in ' + Math.round((Date.now() - t0) / 1000) + ' s: ' + (out.results.length - bad.length) + ' ok, ' + real.length + ' to fix' + (bad.length > real.length ? ', ' + (bad.length - real.length) + ' allowed' : '') + '; ' + out.skipped.length + ' skipped, ' + out.covered.length + ' covered, page reopened ' + out.restores + '×')
@@ -77,6 +83,9 @@ try {
     report.push({ page: name, pressed: out.results.length, dead: bad.filter((r) => r.verdict === 'dead').map((r) => r.label), broken: bad.filter((r) => r.verdict === 'broken').map((r) => r.label + ': ' + r.why), skipped: out.skipped.length, covered: out.covered })
   }
 
+  const PAGES = PAGES_ARG !== null ? PAGES_ARG.split(',').map((x) => x.trim()).filter((x) => x !== '')
+    : (await js(`Array.from(document.querySelectorAll('.kb4-menu .kb4-item .kb4-lab')).map((e) => (e.innerText || '').trim()).filter((t) => t !== '')`)) || []
+  console.log('sidebar rows: ' + (PAGES.length > 0 ? PAGES.join(', ') : '(none found)'))
   for (const name of PAGES) {
     await walk(name, {
       scope: MAIN,
@@ -95,7 +104,9 @@ try {
       const only = arg('settings-pages', '').split(',').map((x) => x.trim().toLowerCase()).filter((x) => x !== '')
       for (const label of (Array.isArray(cells) ? cells : []).filter((c) => only.length === 0 || only.includes(c.toLowerCase()))) {
         await walk('Settings › ' + label, {
-          scope: '[role="dialog"]',
+          scope: SETTINGS_CONTENT,
+          // Opening Settings again resets a page (it is mounted anew): no need to reload the whole GUI between two presses.
+          soft: async () => { await page.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 }); await page.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 }); await sleep(500) },
           enter: async () => { if (!(await openSettings(page, { tries: 2 }))) return false; return goToSettingsPage(page, label, { settleMs: 800 }) }
         })
       }

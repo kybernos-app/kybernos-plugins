@@ -496,7 +496,11 @@ window.__ModuleLoader__.load({
                     onKeyDown: (ev) => { if (ev.key === 'Enter') ajouterModele() }
                   }),
                   h('datalist', { id: 'kaa-modeles' }, (Array.isArray(modeles) ? modeles : []).filter((x) => typee.indexOf(x.cle) === -1).map((x) => h('option', { key: x.cle, value: x.cle }))),
-                  h('button', { type: 'button', className: 'kaa-ajout-btn', onClick: ajouterModele }, kt('Ajouter', 'Add'))),
+                  // Add does nothing with an empty field: it says so (greyed, with the reason) instead of looking pressable and staying silent.
+                  h('button', {
+                    type: 'button', className: 'kaa-ajout-btn', 'data-kb': 'auto-whitelist-add-btn', onClick: ajouterModele, disabled: ajouter.trim() === '',
+                    title: ajouter.trim() === '' ? kt('Choisis ou tape un modèle d’abord', 'Pick or type a model first') : undefined
+                  }, kt('Ajouter', 'Add'))),
                 refus !== '' ? h('p', { className: 'kaa-refus', id: 'kaa-refus', role: 'alert', 'data-kb': 'auto-whitelist-error' }, refus) : null)
               : null)),
         h('button', {
@@ -640,6 +644,7 @@ window.__ModuleLoader__.load({
       'background:var(--dsw-alias-bg-layer-1);border:0.5px solid var(--dsw-alias-border-l2);border-radius:8px}',
       '.kaa-ajout-btn{flex:none;height:30px;padding:0 12px;border:0;border-radius:8px;cursor:pointer;font:inherit;font-size:12.5px;font-weight:600;',
       'background:var(--dsw-alias-button-primary-fill);color:var(--dsw-alias-label-primary-foreground)}',
+      '.kaa-ajout-btn:disabled{opacity:.5;cursor:default}',
       '.kaa-classifier{flex:none;width:280px;height:34px;padding:0 12px;font:500 13px ui-monospace,Menlo,monospace;color:var(--dsw-alias-label-primary);',
       'background:var(--dsw-alias-bg-layer-1);border:0.5px solid var(--dsw-alias-border-l2);border-radius:10px}',
       // the browser's default placeholder is a mid grey: 3.4:1 on the dark layer
