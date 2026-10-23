@@ -28,6 +28,7 @@ const dshHome = process.env.DSH_HOME
 if (!dshHome) { console.error('DSH_HOME is not set: source scripts/sandbox/env.sh'); process.exit(3) }
 
 let fails = 0
+const fitLog = []
 const check = (label, ok, detail) => {
   if (!ok) fails += 1
   console.log((ok ? 'ok   ' : 'FAIL ') + label + (detail !== undefined && !ok ? ' | ' + detail : ''))
@@ -98,7 +99,9 @@ const onboardingBackup = (() => {
 writeFileSync(join(dshHome, 'kybernos/onboarding.json'), JSON.stringify({ version: 1, completed: false, installedAt: '2026-01-01T00:00:00.000Z', completedAt: null, profil: null, uiMode: null }) + '\n')
 
 // keepKeyDialog: this check must SEE DSH's own « Get started » dialog if it ever comes back over the wizard (A5-34, A6-01); the helper would press it away.
-const live = await openLivePage({ keepKeyDialog: true })
+// KB_VIEW=1000x561 plays the whole check in a smaller (or a phone-sized) window: the fit report at the end says which screens scroll there.
+const VIEW = /^(\d+)x(\d+)$/.exec(process.env.KB_VIEW || '')
+const live = await openLivePage(Object.assign({ keepKeyDialog: true }, VIEW !== null ? { width: Number(VIEW[1]), height: Number(VIEW[2]) } : {}))
 const page = live.page
 // Back to what the sandbox had: the credentials, the profile's settings, the onboarding state and the teams the kit installed. Run at the end AND when the run is cut.
 const restoreSandbox = () => {
@@ -213,7 +216,16 @@ try {
     return ok === true
   }
   const h1 = async () => q(`(document.querySelector('.kb-ob h1') || {}).textContent`)
-  const seen = (text, ms = 8000) => waitFor(page, `[...document.querySelectorAll('.kb-ob h1')].some((e) => e.textContent.trim() === ${JSON.stringify(text)})`, ms)
+  // Every screen the check reaches is measured once it is drawn: does the wizard scroll as a page, and is its main action on screen?
+  const fit = async (label) => {
+    const m = await q(`(() => { const r = document.querySelector('.kb-ob'); if (!r) return null; const a = document.querySelector('.kb-ob-primary, .kb-ob-go'); const ar = a ? a.getBoundingClientRect() : null; return { over: r.scrollHeight - r.clientHeight, vh: innerHeight, vw: innerWidth, wide: document.documentElement.scrollWidth - innerWidth, action: ar ? Math.round(ar.bottom) : null } })()`)
+    if (m !== null && m !== undefined && m.over !== undefined) fitLog.push(Object.assign({ screen: label }, m))
+  }
+  const seen = async (text, ms = 8000) => {
+    const r = await waitFor(page, `[...document.querySelectorAll('.kb-ob h1')].some((e) => e.textContent.trim() === ${JSON.stringify(text)})`, ms)
+    if (r !== null) { await sleep(450); await fit(text) }
+    return r
+  }
   // A connected model becomes the default a few seconds later: the route is hot-applied, the wizard asks again meanwhile.
   const nowTheModel = (id) => waitFor(page, `((document.querySelector('.kb-ob') || {}).innerText || '').includes(${JSON.stringify(id + ' is now the model of your chats')})`, 20000)
   const goEnglish = async () => {
@@ -419,7 +431,7 @@ try {
   const pvName = () => q(`(() => { const n = document.querySelector('.kb-ob-pv-name'); return n && n.style.display !== 'none' ? n.textContent : null })()`)
   const pvMenu = () => q(`[...document.querySelectorAll('.kb-ob-pv .kb-ob-pw-mi span:last-child')].map((e) => e.textContent.trim())`)
   check('a live miniature of Kybernos sits beside the step, neutral until a field is shown', (await q(`!!document.querySelector('.kb-ob-split .kb-ob-pv .kb-ob-pw')`)) === true && (await pvName()) === null && (await q(`document.querySelector('.kb-ob').classList.contains('kb-ob-tint')`)) === false)
-  check('the miniature starts level with the subtitle, within 2 px', (await q(`(() => { const s = document.querySelector('.kb-ob-split .kb-ob-step .kb-ob-sub'); const p = document.querySelector('.kb-ob-pv'); return !!s && !!p && Math.abs(s.getBoundingClientRect().top - p.getBoundingClientRect().top) <= 2 })()`)) === true)
+  check('the miniature starts level with the subtitle, within 2 px', (await q(`(() => { const s = document.querySelector('.kb-ob-split .kb-ob-step .kb-ob-sub'); const p = document.querySelector('.kb-ob-pv'); return !!s && !!p && (getComputedStyle(p).display === 'none' /* a narrow or short window hides the picture */ || Math.abs(s.getBoundingClientRect().top - p.getBoundingClientRect().top) <= 2) })()`)) === true)
   await page.shot(join(shotDir, 'field-neutral.png'))
   await q(`document.querySelectorAll('.kb-ob-tile')[1].dispatchEvent(new Event('mouseenter'))`)
   await sleep(300)
@@ -451,12 +463,19 @@ try {
   check('a redraw of the same screen (the language menu opened) does not replay its entrance animation', (await q(`(() => { const e = document.querySelector('.kb-ob-step'); return e.classList.contains('kb-ob-still') && getComputedStyle(e).animationName === 'none' })()`)) === true)
   await q(`document.querySelector('.kb-ob-lang-btn').click()`); await sleep(250)
   await press('Continue')
-  check('Continue moves on to the goals, the first two ticked and Continue there', (await seen('What do you want Kybernos to do for you?')) !== null && (await q(`document.querySelectorAll('.kb-ob-rows .kb-ob-row').length`)) === 5 && (await q(`document.querySelectorAll('.kb-ob-rows .kb-ob-row.on').length`)) === 2 && (await q(`document.querySelector('[data-kb-ob-primary]').disabled`)) === false)
-  check('the goals are checkboxes, each saying what it adds', (await q(`[...document.querySelectorAll('.kb-ob-rows .kb-ob-row')].every((b) => b.getAttribute('role') === 'checkbox' && b.querySelector('.kb-ob-adds span'))`)) === true)
-  check('the first goal says what it adds: skills, an automation, a team', /2 skills.*1 automation.*team Studencik/.test(String(await q(`document.querySelector('.kb-ob-rows .kb-ob-row .kb-ob-adds').textContent`))), String(await q(`document.querySelector('.kb-ob-rows .kb-ob-row .kb-ob-adds').textContent`)))
+  check('Continue moves on to the goals: five tags, the first two ticked, and Continue there', (await seen('What do you want Kybernos to do for you?')) !== null && (await q(`document.querySelectorAll('.kb-ob-gtags .kb-ob-chip').length`)) === 5 && (await q(`document.querySelectorAll('.kb-ob-gtags .kb-ob-chip.on').length`)) === 2 && (await q(`document.querySelector('[data-kb-ob-primary]').disabled`)) === false)
+  check('the goals are tags you tick (checkboxes), not tall cards', (await q(`[...document.querySelectorAll('.kb-ob-gtags .kb-ob-chip')].every((b) => b.getAttribute('role') === 'checkbox')`)) === true && (await q(`document.querySelectorAll('.kb-ob-rows .kb-ob-row').length`)) === 0)
+  check('the line under the tags says what the goal in focus is and what it adds: skills, an automation, a team', /Pass my exams.*2 skills.*1 automation.*team Studencik/.test(String(await q(`document.querySelector('.kb-ob-gfocus').textContent`))), String(await q(`document.querySelector('.kb-ob-gfocus').textContent`)))
+  await q(`document.querySelectorAll('.kb-ob-gtags .kb-ob-chip')[3].dispatchEvent(new MouseEvent('mouseenter'))`)
+  check('pointing at another tag shows that one, and leaving it brings the first back', /Prepare my classes/.test(String(await q(`document.querySelector('.kb-ob-gfocus').textContent`))) && (await (async () => { await q(`document.querySelectorAll('.kb-ob-gtags .kb-ob-chip')[3].dispatchEvent(new MouseEvent('mouseleave'))`); return /Pass my exams/.test(String(await q(`document.querySelector('.kb-ob-gfocus').textContent`))) })()))
   check('the primary button follows the colour of the field (Education)', (await q(`getComputedStyle(document.querySelector('[data-kb-ob-primary]')).backgroundColor`)) === (tinted.dark === true ? 'rgb(152, 130, 249)' : 'rgb(108, 77, 246)'))
   check('the miniature shows the example of the field before a goal is ticked', (await q(`document.querySelectorAll('.kb-ob-pv .kb-ob-pw-sc:not(.empty)').length`)) === 2)
-  check('two goals ticked, Continue is there', (await q(`document.querySelectorAll('.kb-ob-rows .kb-ob-row.on').length`)) === 2 && (await q(`document.querySelector('[data-kb-ob-primary]').disabled`)) === false)
+  check('two goals ticked, Continue is there', (await q(`document.querySelectorAll('.kb-ob-gtags .kb-ob-chip.on').length`)) === 2 && (await q(`document.querySelector('[data-kb-ob-primary]').disabled`)) === false)
+  // The free field: a goal in the person's own words becomes a dashed tag with its cross, has no kit, and travels to the memory line and to Learn my business
+  await q(`(() => { const i = document.querySelector('#kb-ob-f-own'); const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set; set.call(i, '  Prepare   my thesis defence '); i.dispatchEvent(new Event('input', { bubbles: true })); i.focus(); i.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })) })()`)
+  await sleep(500)
+  check('the free field adds a tag of its own (cleaned, dashed, with a cross), says it has no kit, and the field is ready for the next one', (await q(`document.querySelectorAll('.kb-ob-gown').length`)) === 1 && /^Prepare my thesis defence/.test(String(await q(`document.querySelector('.kb-ob-gown-t').textContent`))) && (await q(`getComputedStyle(document.querySelector('.kb-ob-gown')).borderTopStyle`)) === 'dashed' && /No ready-made kit/.test(String(await q(`document.querySelector('.kb-ob-gfocus').textContent`))) && (await q(`document.activeElement && document.activeElement.id`)) === 'kb-ob-f-own' && (await q(`document.querySelector('#kb-ob-f-own').value`)) === '')
+  check('typing the same goal again (in another case) adds nothing', await (async () => { await q(`(() => { const i = document.querySelector('#kb-ob-f-own'); const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set; set.call(i, 'PREPARE MY THESIS DEFENCE'); i.dispatchEvent(new Event('input', { bubbles: true })); document.querySelector('.kb-ob-gadd').click() })()`); await sleep(300); return (await q(`document.querySelectorAll('.kb-ob-gown').length`)) === 1 })())
   check('the miniature follows the ticks: their first questions, their skills, their automation, their team', (await q(`document.querySelectorAll('.kb-ob-pv .kb-ob-pw-sc:not(.empty)').length`)) === 2 && (await q(`[...document.querySelectorAll('.kb-ob-pv .kb-ob-pw-skl span')].map((e) => e.textContent).join()`)).includes('study-plan') && /Refresh my revision plan/.test(String(await q(`document.querySelector('.kb-ob-pv').textContent`))) && /Studencik/.test(String(await q(`document.querySelector('.kb-ob-pv').textContent`))))
   await page.shot(join(shotDir, 'goals.png'))
   await press('Continue')
@@ -518,11 +537,11 @@ try {
   check('the automation was created switched OFF, on its schedule, asking before it acts, and its prompt names a skill that is installed', made !== undefined && made.active === false && made.schedule.cron === '0 18 * * 0' && made.approvals === 'ask' && /study-plan skill/.test(made.prompt) && made.nextRun === null, JSON.stringify(made))
   // « Learn my business »: offered in the same list, ticked, said to propose only; it is the one automation the kit switches ON, weekly, in a session of its own
   const learn = madeTasks.find((t) => t && t.name === 'Learn my business')
-  check('Learn my business was made: switched ON, Mondays 07:00, asking first, in a session of its own, from what the person said', learn !== undefined && learn.active === true && learn.schedule.cron === '0 7 * * 1' && learn.approvals === 'ask' && learn.sessionMode === 'home' && learn.origin && learn.origin.recipe === 'learn-my-business' && /svt-lemaire\.example/.test(learn.prompt) && /Education/.test(learn.prompt), JSON.stringify(learn).slice(0, 300))
+  check('Learn my business was made: switched ON, Mondays 07:00, asking first, in a session of its own, from what the person said', learn !== undefined && learn.active === true && learn.schedule.cron === '0 7 * * 1' && learn.approvals === 'ask' && learn.sessionMode === 'home' && learn.origin && learn.origin.recipe === 'learn-my-business' && /svt-lemaire\.example/.test(learn.prompt) && /Education/.test(learn.prompt) && /Goals they wrote in their own words \(no ready-made kit behind them\): Prepare my thesis defence/.test(learn.prompt), JSON.stringify(learn).slice(0, 300))
   check('...and it asks for the two mail apps (Education is not a sensitive field)', learn !== undefined && JSON.stringify(learn.needs) === '["gmail","googlecalendar"]')
   check('and only that one: the kit made no other task', madeTasks.filter((t) => t && /revision|Refresh/i.test(t.name)).length === 1)
   check('and none was written into the project the instance was started in', process.env.KB_WORKTREE === undefined || (!existsSync(join(process.env.KB_WORKTREE, 'kybers/studencik')) && !existsSync(join(process.env.KB_WORKTREE, 'kybers/research-desk'))))
-  check('the field, the goals, the display mode, what was said and the agents preset were written to memory, once, pinned', fake.memoryBodies.length === 1 && fake.memoryBodies[0].path === '/kybernos-cloud/memory/add' && fake.memoryBodies[0].body.pinned === true && fake.memoryBodies[0].body.kind === 'fact' && /^Field of work: Education\. Wants help with: Exams, Courses\. Prefers: Office mode\. Website: svt-lemaire\.example\. Profile: linkedin\.com\/in\/sofia-lemaire\. In their own words: Years 10 and 11, a quiz every week\. Agents: autonomous/.test(fake.memoryBodies[0].body.content), JSON.stringify(fake.memoryBodies))
+  check('the field, the goals, the display mode, what was said and the agents preset were written to memory, once, pinned', fake.memoryBodies.length === 1 && fake.memoryBodies[0].path === '/kybernos-cloud/memory/add' && fake.memoryBodies[0].body.pinned === true && fake.memoryBodies[0].body.kind === 'fact' && /^Field of work: Education\. Wants help with: Exams, Courses, Prepare my thesis defence\. Prefers: Office mode\. Website: svt-lemaire\.example\. Profile: linkedin\.com\/in\/sofia-lemaire\. In their own words: Years 10 and 11, a quiz every week\. Agents: autonomous/.test(fake.memoryBodies[0].body.content), JSON.stringify(fake.memoryBodies))
   check('and the recap says so', (await waitFor(page, `document.querySelector('.kb-ob-mem') !== null`, 4000)) === true)
   // N-09: the end screen lists what is set up, read from the host's own routes, one row per area, each with a Change link
   check('the end screen lists what we set up: five areas', (await waitFor(page, `document.querySelectorAll('.kb-ob-setup .kb-ob-srow').length === 5`, 8000)) === true, String(await q(`document.querySelectorAll('.kb-ob-setup .kb-ob-srow').length`)))
@@ -547,10 +566,11 @@ try {
   let st6 = null
   try { st6 = JSON.parse(read('kybernos/onboarding.json')) } catch (e) { st6 = null }
   check('the memory id is kept in the onboarding file, so the next replay updates it', st6 !== null && st6.memoryId === 'mem_test_1' && st6.profil === 'edu' && JSON.stringify(st6.goals) === JSON.stringify(['exams', 'courses']) && st6.agents === 'auto' && st6.about !== undefined && st6.about !== null && st6.about.site === 'svt-lemaire.example' && st6.about.words === 'Years 10 and 11, a quiz every week.', JSON.stringify(st6))
-  const publicState = await q(`fetch('/kybernos/onboarding', { cache: 'no-store' }).then((r) => r.json()).then((j) => ({ agents: j.agents, aboutHere: j.about }))`)
-  check('the agents preset is public, and what was said comes back to this page only (the route is served before DSH\'s sign-in)', publicState !== undefined && publicState.agents === 'auto' && publicState.aboutHere !== undefined && publicState.aboutHere.site === 'svt-lemaire.example')
+  const publicState = await q(`fetch('/kybernos/onboarding', { cache: 'no-store' }).then((r) => r.json()).then((j) => ({ agents: j.agents, aboutHere: j.about, ownHere: j.customGoals }))`)
+  check('the goal the person wrote is kept in the local onboarding file, and comes back to this page only, never in the public answer', st6 !== null && JSON.stringify(st6.customGoals) === '["Prepare my thesis defence"]', JSON.stringify(st6 && st6.customGoals))
+  check('the agents preset is public, and what was said comes back to this page only (the route is served before DSH\'s sign-in)', publicState !== undefined && publicState.agents === 'auto' && publicState.aboutHere !== undefined && publicState.aboutHere.site === 'svt-lemaire.example' && JSON.stringify(publicState.ownHere) === '["Prepare my thesis defence"]')
   const outside = await new Promise((resolve) => import('node:http').then(({ default: http }) => http.get({ host: '127.0.0.1', port: Number(authority.split(':')[1]), path: '/kybernos/onboarding' }, (r) => { let b = ''; r.on('data', (c) => { b += c }); r.on('end', () => resolve(b)) }).on('error', () => resolve('')))).catch(() => '')
-  check('a plain request with no origin never gets what was said', !/svt-lemaire|sofia-lemaire|quiz every week/.test(outside), outside.slice(0, 120))
+  check('a plain request with no origin never gets what was said', !/svt-lemaire|sofia-lemaire|quiz every week|thesis defence/.test(outside), outside.slice(0, 120))
   // the second replay updates the same memory instead of adding another
   fake.memoryBodies.length = 0
   check('a second replay opens', await replay())
@@ -822,6 +842,9 @@ try {
   await sleep(6000)
   // The host may write the file once more after the page is gone (a request on its way when the browser closed): what is on disk must be the finished first run.
   if (read('kybernos/onboarding.json') !== onboardingBackup) restoreSandbox()
+  // The fit report: one line per screen reached. `over` = how far the wizard is taller than the window (it scrolls as a page when > 1), `action` = where the bottom of its main button is.
+  const tall = fitLog.filter((m) => m.over > 1 || m.wide > 1 || (m.action !== null && m.action > m.vh))
+  console.log('FIT ' + String(fitLog.length) + ' screens at ' + (fitLog[0] ? fitLog[0].vw + 'x' + fitLog[0].vh : '?') + ': ' + (tall.length === 0 ? 'none scrolls' : tall.map((m) => m.screen + ' (over ' + m.over + ', wide ' + m.wide + ', action ' + m.action + '/' + m.vh + ')').join(' | ')))
   verdict() // in the finally: whatever happened above, the run ends with its verdict
 }
 process.exit(fails === 0 ? 0 : 1)

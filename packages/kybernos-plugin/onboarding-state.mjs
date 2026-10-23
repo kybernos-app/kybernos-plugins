@@ -62,6 +62,26 @@ const aboutOf = (value) => {
   return out.site === null && out.profile === null && out.words === null ? null : out
 }
 
+/**
+ * The goals the person wrote in their own words (the « something else » field of the goals step): a few short lines, no ready-made kit behind them. Like `about`, they are
+ * personal text: kept in this local file, returned only to the wizard's own page, never part of the public view.
+ */
+export const OWN_GOALS_MAX = 6
+export const OWN_GOAL_CHARS = 60
+const ownGoalList = (value) => {
+  if (!Array.isArray(value)) return []
+  const out = []
+  for (const v of value) {
+    const g = line(typeof v === 'string' ? v.replace(/\s+/g, ' ') : v, OWN_GOAL_CHARS)
+    if (g !== null && out.every((x) => x.toLowerCase() !== g.toLowerCase())) out.push(g)
+    if (out.length >= OWN_GOALS_MAX) break
+  }
+  return out
+}
+
+/** The goals the person wrote themselves, as stored: for the wizard's own replay, never for the public view. */
+export const ownGoalsView = (state) => ownGoalList(state !== null && typeof state === 'object' ? state.customGoals : null)
+
 /** What the person said about themselves, as stored (null when nothing): for the wizard's own replay, never for the public view. */
 export const aboutView = (state) => aboutOf(state !== null && typeof state === 'object' ? state.about : null)
 
@@ -80,6 +100,7 @@ export const defaultState = (now = new Date()) => ({
   lang: null,
   memoryId: null,
   goals: [],
+  customGoals: [],
   agents: null,
   about: null,
 })
@@ -115,6 +136,8 @@ export const complete = (state, body, now = new Date()) => {
     memoryId: memoryId(input.memoryId) || memoryId(state.memoryId),
     // `profil` is the domain (an id of domains/*.json) and `goals` the ones ticked; a client that sends no `goals` keeps the saved ones.
     goals: Array.isArray(input.goals) ? goalList(input.goals) : goalList(state.goals),
+    // The goals the person wrote in their own words; a client that sends none keeps the saved ones.
+    customGoals: Array.isArray(input.customGoals) ? ownGoalList(input.customGoals) : ownGoalList(state.customGoals),
     // The autonomy the person picked for the agents, and what they said about themselves; a client that sends neither keeps what is saved.
     agents: agentPreset(input.agents) || agentPreset(state.agents),
     about: input.about !== undefined ? aboutOf(input.about) : aboutOf(state.about),
