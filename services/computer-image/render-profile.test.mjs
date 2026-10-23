@@ -70,3 +70,16 @@ test('no platform address, or a machine that is neither a computer nor a slot, g
   // No profile yet: nothing to do, and no failure.
   assert.equal(spawnSync('sh', [script], { env: { PATH: process.env.PATH, DSH_HOME: join(home, 'nowhere') }, encoding: 'utf8' }).status, 0)
 })
+
+test('a profile that starts with `[]` (DSH 0.2.1-rc.2 writes one in an empty profile) does not keep it before the list items', () => {
+  const home = mkdtempSync(join(tmpdir(), 'kb-render-'))
+  mkdirSync(join(home, 'profiles', 'web'), { recursive: true })
+  writeFileSync(join(home, 'profiles', 'web', 'cordis.patch.yml'), '[]\n')
+  const out = run(home, { KYBERNOS_API: API, KYBERNOS_COMPUTER_TOKEN: 'kyd_token_0123456789abcdef', KYBERNOS_COMPUTER_MODEL: 'glm-5.3' })
+  assert.equal(out.status, 0)
+  const text = readFileSync(file(home), 'utf8')
+  assert.equal(text.split('\n').some((l) => l === '[]'), false, 'no `[]` line before the items')
+  assert.ok(text.startsWith('# kybernos-computer:begin\n- id: llm-pi-ai'), 'the block is the first thing in the file')
+  assert.equal(run(home, { KYBERNOS_API: API, KYBERNOS_COMPUTER_TOKEN: 'kyd_token_0123456789abcdef', KYBERNOS_COMPUTER_MODEL: 'glm-5.3' }).status, 0)
+  assert.equal(readFileSync(file(home), 'utf8'), text, 'a second render changes nothing')
+})
