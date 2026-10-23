@@ -10117,6 +10117,7 @@ return {
         const d = (ev !== null && ev !== undefined) ? ev.detail : null
         const tab = (d !== null && d !== undefined && typeof d.tab === 'string' && d.tab.length > 0) ? d.tab : 'composio'
         const view = /^(skills?|comp[eé]tences)$/i.test(tab) ? 'skills' : (/^(docs?|documents?)$/i.test(tab) ? 'documents' : 'connectors')
+        try { kbLeaveSettings() } catch (e2) { /* not ready: the page opens behind Settings, as before */ }
         try { set({ view }) } catch (e2) { /* store unavailable */ }
         try { if (layoutSvc !== undefined && layoutSvc !== null && typeof layoutSvc.selectPanel === 'function') layoutSvc.selectPanel('kybers') } catch (e2) { /* panneau indisponible */ }
       })
@@ -27324,8 +27325,21 @@ function renderFit(canvas, model, cam, opts){
       }, [])
       return pair[0]
     }
+    // KB-LEAVE-SETTINGS-BEGIN
+    // A button on a Settings page that opens another page of the app (the journal of the learned skills, Connectors, the Skills page) used to open it BEHIND the Settings screen, which
+    // is full-window and stays on top: the person saw nothing happen. Every way in (window.__KB_OPEN__, the kb-open-resources bridge) leaves Settings first, by the path of
+    // « Back to workspace » (the shell closes it on Escape). Nothing is sent when Settings is not open, so a chat card never touches an Escape of the chat.
+    const kbSettingsOpen = () => {
+      try { const c = document.querySelector('button[class*="navCell"]'); return c !== null && c !== undefined && c.getClientRects().length > 0 } catch (e) { return false }
+    }
+    const kbLeaveSettings = () => {
+      if (!kbSettingsOpen()) return false
+      try { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); return true } catch (e) { return false }
+    }
+    // KB-LEAVE-SETTINGS-END
     const kbOpenPage = (patch) => {
       try {
+        kbLeaveSettings()
         set(patch)
         if (layoutSvc !== undefined && layoutSvc !== null && typeof layoutSvc.selectPanel === 'function') layoutSvc.selectPanel('kybers')
         if (state.data === null && state.loading === false) load()

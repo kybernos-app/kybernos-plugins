@@ -5,10 +5,12 @@
 //
 //   import { INSTALL_JS, verdictOf, probePage } from './lib-dead-clicks.mjs'
 //
+// (`scope`: only what sits inside a selector or a `js:` expression is pressed; a page with a menu beside its content is pressed on its content only.)
 // A target is anything that claims to be pressable: a button, a link of the app, an element with a pressable role (button, link, tab, menuitem, option, switch,
 // checkbox, radio, treeitem), a tab stop that is not a form control, or the outermost element whose cursor is a hand (a card with an onClick and no role).
 // Each is scrolled into view, pressed where nothing nested sits on top of it, and watched for ~0.7 s. The **effects** that count are what a handler can really do:
-//   a change in the page (any DOM mutation, but those of nodes that were already moving by themselves before the click are not counted: spinners, clocks),
+//   a change in the page (a DOM mutation inside the scope or in a layer drawn on top; not those of nodes that were already moving by themselves before the click: spinners, clocks;
+//   not a change out of sight, behind a full-window screen),
 //   a request (fetch, XHR, beacon), a navigation (location, history, window.open), a copy to the clipboard, a native dialog (alert, confirm, prompt),
 //   a reload of the page.
 // The verdicts: `ok` (an effect), `dead` (no effect at all), `broken` (an uncaught error, whatever else happened).
@@ -20,13 +22,30 @@ export const DESTRUCTIVE = /\b(sign ?out|log ?out|delete|remove|disconnect|unlin
 export const INSTALL_JS = `(() => {
   if (window.__DC) return true
   const dc = window.__DC = { mut: 0, reqs: 0, nav: 0, clip: 0, dialogs: 0, errs: [], learn: false, guard: false, scope: '', noisy: new WeakSet(), seen: new Set() }
+  // What is pressed lives in a scope (the main column, the content of a dialog): a change anywhere else that is not a layer drawn on top (a dialog, a menu, a popover) happens out of the
+  // person's sight, or is the menu's own state, and is not the press's effect (a button on a full-window Settings screen that opens a page BEHIND it looked alive for months).
+  const LAYER = '[role="dialog"],[aria-modal="true"],[role="menu"],[role="listbox"],[role="tooltip"],[popover],.kb-overlay,.kb-modal'
+  const scopeRoot = () => {
+    if (dc.scope === '') return undefined
+    try { return dc.scope.indexOf('js:') === 0 ? (new Function('return (' + dc.scope.slice(3) + ')'))() : document.querySelector(dc.scope) } catch (e) { return null }
+  }
+  const visibleEffect = (t, root, added) => {
+    if (root === undefined || root === null) return true   // no scope, or the scoped container itself is gone (the dialog closed: seen)
+    const el = t.nodeType === 1 ? t : t.parentElement
+    if (el === null) return true
+    if (root.contains(el) || el.contains(root)) return true
+    if ((el === document.body || el === document.documentElement) && added > 0) return true
+    return el.closest(LAYER) !== null
+  }
   new MutationObserver((list) => {
+    const root = dc.learn ? undefined : scopeRoot()
     for (const r of list) {
       if (dc.learn) { dc.noisy.add(r.target); if (r.type === 'characterData' && r.target.parentNode) dc.noisy.add(r.target.parentNode); continue }
       const t = r.target
       // The shell marks <html> with how the last input came (keyboard or pointer): Escape, which this probe uses to close a layer, makes the NEXT mouse press flip it. Not the press's doing.
       if (r.type === 'attributes' && (t === document.documentElement || t === document.body) && /^data-(input|focus|modality|interaction)/.test(r.attributeName || '')) continue
       if (dc.noisy.has(t) || (t.nodeType === 3 && dc.noisy.has(t.parentNode))) continue
+      if (!visibleEffect(t, root, r.addedNodes ? r.addedNodes.length : 0)) continue
       dc.mut += 1
     }
   }).observe(document, { subtree: true, childList: true, attributes: true, characterData: true })
@@ -92,13 +111,26 @@ export const INSTALL_JS = `(() => {
     if (/(^|\\s)(?:[a-z0-9_]+-)*(on|active|selected|current)(\\s|$)/i.test(cls) && el.getAttribute('role') !== 'switch' && !/(^|[\\s_-])(sw|switch|toggle)([\\s_-]|$)/i.test(cls)) return 'looks like the current one'
     if (el.tagName === 'A' && (external(el) || el.hasAttribute('download'))) return 'leaves the app'
     if (el.hasAttribute('data-dc-skip')) return 'marked data-dc-skip'
+    // A label around (or for) a file field opens the system's file chooser: nothing the page can show, and nothing a probe may answer.
+    if (el.tagName === 'LABEL') {
+      const f = el.querySelector('input') || (el.htmlFor ? document.getElementById(el.htmlFor) : null)
+      if (f && f.type === 'file') return 'opens the file chooser'
+      // A label around a checkbox or a radio toggles that field: a property of the field, not a change of the page a probe can see.
+      if (f && (f.type === 'checkbox' || f.type === 'radio')) return 'toggles its field'
+    }
+    if ((el.getAttribute('role') === 'radio' || el.getAttribute('role') === 'menuitemradio') && el.getAttribute('aria-checked') === 'true') return 'already checked'
     if (${DESTRUCTIVE}.test(label)) return 'reads as destructive'
     return ''
   }
   const list = () => {
     const out = []
     const seen = {}
-    const root = (dc.scope !== '' && document.querySelector(dc.scope)) || document.body
+    // The scope is a selector, or the prefix js: and an expression that gives the element (the content of a dialog without its menu): a scope that is not on screen (the dialog closed) lists nothing.
+    let root = document.body
+    if (dc.scope !== '') {
+      try { root = dc.scope.indexOf('js:') === 0 ? (new Function('return (' + dc.scope.slice(3) + ')'))() : document.querySelector(dc.scope) } catch (e) { root = null }
+      if (!root) return []
+    }
     const all = root.querySelectorAll('*')
     for (const el of all) {
       if (!isTarget(el) || !visible(el)) continue
@@ -175,6 +207,7 @@ export async function probePage (page, { max = 120, settleMs = 700, scope = '', 
   const skipped = []
   const covered = []
   let restores = 0
+  let empties = 0
   const quiet = async () => {
     for (let i = 0; i < 8; i++) {
       const before = await ev('window.__DC_API.peek()')
@@ -193,7 +226,8 @@ export async function probePage (page, { max = 120, settleMs = 700, scope = '', 
   }
   while (results.length < max) {
     const keys = await ev('window.__DC_API.keys()')
-    if (keys === undefined || keys === null) { await back(); continue }
+    if (keys === undefined || keys === null || keys.length === 0) { if (++empties > 3) break; await back(); continue }
+    empties = 0
     const next = keys.find((t) => !tested.has(t.key))
     if (next === undefined) break
     tested.add(next.key)
