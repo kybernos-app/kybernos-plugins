@@ -53,6 +53,7 @@ import { activeServer, stateFileName, llmBase, publicProfile } from './server-pr
 import { agentsFile, readInstructions, writeInstructions } from './instructions.mjs'
 import { createKybyRoutes, pairingSupport } from './kyby.mjs'
 import { computersOf } from './computers-view.mjs'
+import { createPublish } from './computers-publish.mjs'
 import { identityOf } from './computer-identity.mjs'
 import { writeGuard } from './session-guard.mjs'
 import { createKybyNative, isSessionId, readPointer, writePointer } from './kyby-native.mjs'
@@ -5249,6 +5250,10 @@ const computersRoute = async () => {
   return body
 }
 
+// Publishing an automation to one of those computers, and reading how it went (computers-publish.mjs): the page sends the definition, the platform keeps it
+// encrypted until the computer fetches it, nothing of it is kept or logged here.
+const computersPublish = createPublish({ readState, isConnected, apiCall })
+
 // Kaby (ADR 0053): the Telegram pairing by QR code or link, where a message runs, and the person's own conversation with their Kaby.
 // The pure half, and what each answer means, is kyby.mjs; the calls are made here with the account's token.
 const kyby = createKybyRoutes({ readState, isConnected, apiCall, deviceLabel })
@@ -5315,6 +5320,9 @@ const ROUTES = [
   { path: '/kybernos-cloud/computer/suspend', method: 'POST', guarded: true, strict: true, run: () => computerAction('suspend') },
   { path: '/kybernos-cloud/computer/open', method: 'POST', guarded: true, strict: true, run: () => computerAction('open') },
   { path: '/kybernos-cloud/computers', method: 'GET', guarded: true, run: computersRoute },
+  // Sends (or takes away) automations on a computer: it writes on the person's behalf, so same origin strictly AND DSH's signed browser session.
+  { path: '/kybernos-cloud/computers/publish', method: 'POST', guarded: true, strict: true, session: true, body: true, cap: 100000, run: (req, body) => computersPublish.publish(body) },
+  { path: '/kybernos-cloud/computers/tasks', method: 'GET', guarded: true, run: (req) => computersPublish.states(queryOf(req)) },
   { path: '/kybernos-cloud/start', method: 'POST', guarded: true, session: true, run: startPairing },
   { path: '/kybernos-cloud/poll', method: 'POST', guarded: true, session: true, run: pollPairing },
   { path: '/kybernos-cloud/status', method: 'GET', guarded: false, run: statusRoute },
