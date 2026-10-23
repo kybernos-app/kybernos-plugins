@@ -1437,7 +1437,6 @@ window.__ModuleLoader__.load({
 .kbs-root .kbs-row.sel{background:var(--dsw-alias-interactive-bg-hover);box-shadow:inset 2px 0 0 var(--dsw-alias-brand-primary)}
 .kbs-root .kbs-nowrap{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* — Featured: the same rows as the ranking below it (same grid, same height); the cover, when there is one, is the row's tile. */
-.kbs-root .kbs-feat{display:flex;flex-direction:column;gap:12px;margin-bottom:20px}
 .kbs-root .kbs-row .who .kb8-name{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .kbs-root .kbs-row.feat .kbs-fdesc{flex:1 1 0;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12.5px;color:var(--dsw-alias-label-secondary)}
 .kbs-root .kbs-row.feat .rank{display:flex;justify-content:flex-end}
@@ -1584,7 +1583,6 @@ body:not([data-ds-dark-theme]) .kbs-root .kb8-pill.warn{color:color-mix(in srgb,
 .kbs-root .kbsf-acts .kb8-ghost{height:32px;padding:0 12px;font-size:13px;gap:6px}
 /* — Featured, a pick opened: the page's width, not a side panel — */
 .kbs-root .kbsf-detail{container-type:inline-size;display:flex;flex-direction:column;gap:18px}
-.kbs-root .kbsf-dback{align-self:flex-start;display:inline-flex;align-items:center;gap:4px}
 .kbs-root .kbsf-dhero{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);border:1px solid var(--dsw-alias-border-l1);border-radius:22px;overflow:hidden;background:var(--dsw-alias-bg-layer-1)}
 .kbs-root .kbsf-dpic{position:relative;min-height:380px;background:linear-gradient(135deg,var(--cv-bg),var(--cv-bg2))}
 .kbs-root .kbsf-plain .kbsf-dpic{background:var(--dsw-alias-bg-layer-2)}
@@ -2994,7 +2992,7 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
           }, icon('star', 14))
         }
         // `opts` is set for the skills of « For your field »: `isIn`, `openIt`, `kb` (the test hook) and what pickButtons takes. A pick of the field has no
-        // category (its tag is the goal it serves) and no install count.
+        // category (its tag is the goal it serves) and no install count. Never hand pickCard / pickRow straight to `.map`: its third argument (the array) would be taken for `opts`.
         const pickTag = (p, opts) => (typeof p.tag === 'string'
           ? h('span', { className: 'kbsf-tagtx' + (opts !== undefined && opts.ticked === true ? ' on' : ''), title: opts !== undefined && typeof opts.why === 'string' ? opts.why : undefined }, opts !== undefined && opts.ticked === true ? icon('check', 10) : null, p.tag)
           : t('pcat.' + p.category))
@@ -3244,8 +3242,8 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
             list.length === 0
               ? empty(t('pick.none'), t('pick.nonehint'))
               : (views.featured === 'list'
-                ? h('div', { className: 'kbsf-list' + (coverBg === 'plain' ? ' kbsf-plain' : ''), 'data-kb': 'picks-list' }, list.map(pickRow))
-                : h('div', { className: 'kbsf-grid' + (coverBg === 'plain' ? ' kbsf-plain' : ''), 'data-kb': 'picks-grid' }, list.map(pickCard))),
+                ? h('div', { className: 'kbsf-list' + (coverBg === 'plain' ? ' kbsf-plain' : ''), 'data-kb': 'picks-list' }, list.map((p, i) => pickRow(p, i)))
+                : h('div', { className: 'kbsf-grid' + (coverBg === 'plain' ? ' kbsf-plain' : ''), 'data-kb': 'picks-grid' }, list.map((p, i) => pickCard(p, i)))),
             picks.asOf !== '' ? h('div', { className: 'kbsf-foot' }, t('pick.asof', { d: today(picks.asOf) })) : null,
             renderScoutLine(),
             renderCoverLine())
