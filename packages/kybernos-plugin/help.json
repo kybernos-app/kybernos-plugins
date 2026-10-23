@@ -199,8 +199,8 @@
       },
       "steps": [
         {
-          "fr": "Les automatisations tournent sur cet ordinateur, tant que DSH est ouvert.",
-          "en": "Automations run on this computer, while DSH is open."
+          "fr": "Elles tournent sur cet ordinateur, tant que DSH est ouvert. S’il est chargé, elles attendent leur tour, puis partent seules.",
+          "en": "They run on this computer, while DSH is open. When it is busy, they wait their turn, then start on their own."
         },
         {
           "fr": "Active la pause pour que rien ne se déclenche ; ce qui est arrivé à échéance se déclenche une fois à la reprise.",

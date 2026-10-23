@@ -287,7 +287,7 @@ Settings › Automations has three switches and one choice, kept in `$DSH_HOME/k
 The tick used to start every due task together. It now asks `automation-load.mjs` how many automation runs there is room for, and claims only
 those, oldest first; the others are left untouched, still due on the next tick (late, never lost). Two facts decide:
 
-- **The level of the machine** (`ok`, `busy`, `high`): memory still available to programs (below 20 % or 400 MB busy, below 10 % or 200 MB high) and
+- **The level of the machine** (`ok`, `busy`, `high`): memory still available to programs (below 20 % or 400 MB busy, 10 % or 200 MB and under high) and
   the one-minute load average per core (1.5 busy, 2.5 high). Room is the maximum (3) at `ok`, one run at `busy`, none at `high`. macOS memory is
   `kern.memorystatus_level` (what Activity Monitor calls pressure), never `os.freemem()`, which reads about 10 % on a healthy Mac; Linux is
   `MemAvailable`. A fact that cannot be read is treated as free. The thresholds are a first guess, not calibrated on a fleet.

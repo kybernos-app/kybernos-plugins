@@ -2746,7 +2746,7 @@ function boot(ctx) {
     const kbLoadCapacity = async () => {
       const sample = await kbLoadSample()
       const lv = autoLoadGuardOff(process.env) === true ? { level: 'ok', reasons: [] } : autoLoadLevel(sample)
-      return { level: lv.level, reasons: lv.reasons, allowed: autoLoadAllowed(lv.level, kbLoadMaxParallel), inFlight: kbLoadInflight.count(), maxParallel: kbLoadMaxParallel }
+      return { level: lv.level, reasons: lv.reasons, guard: autoLoadGuardOff(process.env) === true ? 'off' : 'on', allowed: autoLoadAllowed(lv.level, kbLoadMaxParallel), inFlight: kbLoadInflight.count(), maxParallel: kbLoadMaxParallel }
     }
     try {
       if (typeof ctx.on === 'function') {
