@@ -7,7 +7,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
   DEFAULT_MAX_PARALLEL, MAX_PARALLEL_CEILING, HOLD_LIMIT_MS, START_GRACE_MS, RUN_MAX_MS, LEVELS,
-  maxParallelFrom, guardOff, parseMeminfo, levelOf, allowedAt, admit, createInflight, publicView,
+  maxParallelFrom, guardOff, parseMeminfo, levelOf, pressureOf, allowedAt, admit, createInflight, publicView,
 } from './automation-load.mjs'
 
 let pass = 0
@@ -25,6 +25,35 @@ assert.deepEqual(levelOf({ loadPerCpu: 3 }), { level: 'high', reasons: ['cpu'] }
 assert.deepEqual(levelOf({ memAvailablePct: 15, loadPerCpu: 3 }), { level: 'high', reasons: ['memory', 'cpu'] }, 'the worse level wins and both reasons are kept')
 for (const bad of [null, undefined, 'x', 7, [], {}, { memAvailablePct: null, loadPerCpu: null }, { memAvailablePct: 'low', loadPerCpu: NaN }]) assert.deepEqual(levelOf(bad), { level: 'ok', reasons: [] }, 'an unmeasured machine is treated as free')
 ok('level: memory and cpu, the worse one wins, unknown is free')
+
+// 1b. the gauge: 0 to 100, 50 at the busy thresholds, 100 at the high ones, and always in step with the level
+assert.equal(pressureOf({ memAvailablePct: 100 }), 0)
+assert.equal(pressureOf({ memAvailablePct: 20 }), 50)
+assert.equal(pressureOf({ memAvailablePct: 10 }), 100)
+assert.equal(pressureOf({ memAvailablePct: 60 }), 25)
+assert.equal(pressureOf({ memAvailableMb: 400 }), 50)
+assert.equal(pressureOf({ memAvailableMb: 200 }), 100)
+assert.equal(pressureOf({ loadPerCpu: 1.5 }), 50)
+assert.equal(pressureOf({ loadPerCpu: 2.5 }), 100)
+assert.equal(pressureOf({ loadPerCpu: 0.75 }), 25)
+assert.equal(pressureOf({ memAvailablePct: 77, memAvailableMb: 12000, loadPerCpu: 0.4 }), 14, 'a healthy 16 GB Mac reads low')
+assert.equal(pressureOf({ memAvailablePct: 60, memAvailableMb: 150 }), 100, 'a small machine out of room is at the top whatever its share')
+assert.equal(pressureOf({ memAvailablePct: 15, loadPerCpu: 3 }), 100, 'the worst signal wins')
+for (const none of [null, undefined, 'x', {}, { memAvailablePct: null, loadPerCpu: NaN }]) assert.equal(pressureOf(none), null, 'nothing measured, nothing to draw')
+{
+  let checked = 0
+  for (let pct = 0; pct <= 100; pct += 1.5) for (const mb of [null, 50, 150, 199, 200, 399, 400, 600, 799, 800, 4000]) for (const cpu of [null, 0, 0.7, 1.49, 1.5, 2, 2.49, 2.5, 6]) {
+    const sample = { memAvailablePct: pct, memAvailableMb: mb, loadPerCpu: cpu }
+    const level = levelOf(sample).level
+    const g = pressureOf(sample)
+    if (level === 'high') assert.equal(g, 100, JSON.stringify(sample))
+    else if (level === 'busy') assert.ok(g >= 50 && g <= 99, JSON.stringify(sample) + ' -> ' + g)
+    else assert.ok(g <= 50, JSON.stringify(sample) + ' -> ' + g)
+    checked += 1
+  }
+  assert.ok(checked > 1500)
+}
+ok('gauge: 50 at busy, 100 at high, never out of step with the level (over a grid)')
 
 // 2. the room at each level
 assert.equal(allowedAt('ok', 3), 3)
@@ -114,7 +143,9 @@ ok('meminfo: MemAvailable in MB, never MemFree')
 // 8. the page's view carries figures and nothing else
 {
   const v = publicView({ level: 'busy', reasons: ['memory', 'cpu', '/Users/x/secret'], inFlight: 1, allowed: 1, maxParallel: 3 }, { memAvailablePct: 15.4, loadPerCpu: 1.2345, path: '/x' }, 4)
-  assert.deepEqual(v, { level: 'busy', reasons: ['memory', 'cpu'], inFlight: 1, allowed: 1, maxParallel: 3, waiting: 4, memAvailablePct: 15, loadPerCpu: 1.23 })
+  assert.deepEqual(v, { level: 'busy', pressure: 73, reasons: ['memory', 'cpu'], inFlight: 1, allowed: 1, maxParallel: 3, waiting: 4, memAvailablePct: 15, loadPerCpu: 1.23 })
+  assert.equal(publicView({ level: 'ok', guard: 'off' }, { memAvailablePct: 1, loadPerCpu: 9 }, 0).pressure, null, 'a switched-off reading draws no gauge that would contradict the level')
+  assert.equal(publicView({ level: 'ok' }, {}, 0).pressure, null, 'nothing measured, no gauge')
   assert.equal(publicView({ level: 'weird' }, null, -3).level, 'ok')
   assert.equal(publicView({}, {}, undefined).waiting, 0)
   assert.equal(publicView({}, {}, 0).memAvailablePct, null)
@@ -138,6 +169,10 @@ ok('meminfo: MemAvailable in MB, never MemFree')
   assert.ok(/autoLoadView\(/.test(route[0]), 'the answer goes through the public view')
   const cli = readFileSync(join(here, 'client.js'), 'utf8')
   assert.ok(/fetch\('\/kybernos\/automation-load'/.test(cli), 'the page reads the load')
+  assert.ok(/const KbLoadGauge = [\s\S]{0,1400}role: 'meter'[\s\S]{0,400}aria-valuenow/.test(cli), 'the gauge is a meter with its value')
+  assert.ok(/h\(KbLoadGauge, \{ load: ld \}\)/.test(cli) && /h\(KbLoadGauge, \{ load: ml \}\)/.test(cli), 'the gauge is on the settings row and in the board banner')
+  assert.ok(/const heldByLoad = [\s\S]{0,260}ml\.inFlight >= ml\.allowed/.test(cli) && /heldByLoad === true \? 'tasks\.board\.st\.load' : 'tasks\.board\.st\.due'/.test(cli), 'a due card held by the cap says so, not "the scheduler starts it"')
+  assert.ok(/if \(heldByLoad === true\) \{[\s\S]{0,260}tasks\.board\.load\.title/.test(cli), 'the banner says "waiting for the computer" when the cap holds the runs')
   ok('host wiring: asked before firing, followed through agent/status, read-only route; the page reads it')
 }
 

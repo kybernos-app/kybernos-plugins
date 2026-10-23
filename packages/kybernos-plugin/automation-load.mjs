@@ -22,7 +22,7 @@ export const START_GRACE_MS = 2 * 60000
 /** A run still reported as running after this long stops being counted (an end event was missed): the cap fails open. */
 export const RUN_MAX_MS = 2 * 3600000
 
-/** Memory still available to programs, as a share of the machine and in MB: below either bound the level rises. */
+/** Memory still available to programs, as a share of the machine and in MB: below either `busy` bound the level is busy, at or below either `high` bound it is high. */
 export const MEMORY = Object.freeze({ busyPct: 20, highPct: 10, busyMb: 400, highMb: 200 })
 /** One-minute load average per core. */
 export const CPU = Object.freeze({ busy: 1.5, high: 2.5 })
@@ -70,11 +70,42 @@ export const levelOf = (sample) => {
     if (RANK[to] > RANK[level]) level = to
     if (reasons.indexOf(reason) < 0) reasons.push(reason)
   }
-  if ((pct !== null && pct < MEMORY.highPct) || (mb !== null && mb < MEMORY.highMb)) raise('high', 'memory')
+  if ((pct !== null && pct <= MEMORY.highPct) || (mb !== null && mb <= MEMORY.highMb)) raise('high', 'memory')
   else if ((pct !== null && pct < MEMORY.busyPct) || (mb !== null && mb < MEMORY.busyMb)) raise('busy', 'memory')
   if (cpu !== null && cpu >= CPU.high) raise('high', 'cpu')
   else if (cpu !== null && cpu >= CPU.busy) raise('busy', 'cpu')
   return { level, reasons }
+}
+
+/** Memory in MB at which a small machine starts to count as pressured: twice the busy bound, so the gauge rises before the level does. */
+const MEMORY_ZERO_MB = 800
+
+// 0 at `zero`, 0.5 at `busy`, 1 at `high`, straight lines between, whichever way the metric runs (memory falls, load rises).
+const ramp = (v, zero, busy, high) => {
+  const t1 = (v - zero) / (busy - zero)
+  if (t1 <= 0) return 0
+  if (t1 < 1) return 0.5 * t1
+  const t2 = (v - busy) / (high - busy)
+  return t2 >= 1 ? 1 : 0.5 + 0.5 * t2
+}
+
+/**
+ * How close the machine is to `high`, as a whole number from 0 to 100, for a gauge: 50 at the `busy` thresholds, 100 at the `high` ones, in
+ * memory (share and MB) and in load; the worst of them. `high` is always 100, `busy` is 50 to 99, `ok` is 50 at most. Null when nothing could
+ * be measured (a gauge with nothing to show).
+ */
+export const pressureOf = (sample) => {
+  const s = sample !== null && typeof sample === 'object' ? sample : {}
+  const pct = num(s.memAvailablePct)
+  const mb = num(s.memAvailableMb)
+  const cpu = num(s.loadPerCpu)
+  const parts = []
+  if (pct !== null) parts.push(ramp(pct, 100, MEMORY.busyPct, MEMORY.highPct))
+  if (mb !== null) parts.push(ramp(mb, MEMORY_ZERO_MB, MEMORY.busyMb, MEMORY.highMb))
+  if (cpu !== null) parts.push(ramp(cpu, 0, CPU.busy, CPU.high))
+  if (parts.length === 0) return null
+  const worst = Math.max(...parts)
+  return worst >= 1 ? 100 : Math.min(99, Math.round(worst * 100))
 }
 
 /** How many automation runs may be going at once at this level. */
@@ -138,9 +169,11 @@ export const createInflight = (opts) => {
   }
 }
 
-/** What the page shows: the level, why, the room, and the runs waiting. Never a path, an id or a prompt. */
+/** What the page shows: the level, how close it is to the top, why, the room, and the runs waiting. Never a path, an id or a prompt. */
 export const publicView = (capacity, sample, waiting) => ({
   level: LEVELS.indexOf(capacity.level) >= 0 ? capacity.level : 'ok',
+  // With the machine reading switched off the level is always `ok`: a gauge that still climbed would contradict it, so there is none.
+  pressure: capacity.guard === 'off' ? null : pressureOf(sample),
   reasons: Array.isArray(capacity.reasons) ? capacity.reasons.filter((r) => r === 'memory' || r === 'cpu') : [],
   inFlight: Number.isSafeInteger(capacity.inFlight) ? capacity.inFlight : 0,
   allowed: Number.isSafeInteger(capacity.allowed) ? capacity.allowed : 0,
