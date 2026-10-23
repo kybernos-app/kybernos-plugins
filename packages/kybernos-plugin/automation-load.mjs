@@ -5,8 +5,12 @@
 // machine (a level), and how many automation runs are already going. The answer is the number of runs that may start now. The
 // rest stay due and start on a later tick, oldest first: a deferred run is late, never lost.
 //
-// What it does NOT do: it does not limit the sub-agents a model spawns inside a run (the engine caps their depth, not their
-// number), and it does not hold a webhook event or a "run now" click (those are counted, not capped).
+// Lighter runs: while the machine is busy or very busy, the runs it starts (and the ones already going, at their next step) are told to work
+// alone, and a sub-agent call from an automation run is refused beyond what the level allows (none when very busy, one at a time when busy).
+// The engine caps the DEPTH of sub-agents, not their number, so the number is limited here, by the plugin's own `tools/pre-execute` listener.
+//
+// What it does NOT do: it does not hold a webhook event or a "run now" click (those are counted, not capped, but they are lightened like any
+// other automation run), it does not touch a chat a person opened, and it does not see the agent-team tool (a different tool).
 //
 // The thresholds below are a first guess, not calibrated on a fleet: they are named so a measurement can move them.
 
@@ -44,6 +48,15 @@ export const maxParallelFrom = (env) => {
  * applies. For a machine whose reading is wrong or whose owner has decided, and for tests that must not depend on the load of the box.
  */
 export const guardOff = (env) => env !== null && typeof env === 'object' && typeof env.KYBERNOS_AUTOMATION_LOAD_GUARD === 'string' && env.KYBERNOS_AUTOMATION_LOAD_GUARD.trim().toLowerCase() === 'off'
+
+/**
+ * `KYBERNOS_AUTOMATION_LOAD_FORCE=busy|high`: pretend the machine is at that level (a drill, a maintenance window, a test that must see the
+ * lighter run). Anything else is no override. Wins over the reading; `KYBERNOS_AUTOMATION_LOAD_GUARD=off` is the other way round.
+ */
+export const forcedLevel = (env) => {
+  const raw = env !== null && typeof env === 'object' && typeof env.KYBERNOS_AUTOMATION_LOAD_FORCE === 'string' ? env.KYBERNOS_AUTOMATION_LOAD_FORCE.trim().toLowerCase() : ''
+  return raw === 'busy' || raw === 'high' ? raw : null
+}
 
 /**
  * The memory still available on Linux, from the text of /proc/meminfo (`MemAvailable`, which counts reclaimable cache; `MemFree`
@@ -169,11 +182,67 @@ export const createInflight = (opts) => {
   }
 }
 
+// ── Lighter runs ────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+/** A reading older than this is not trusted to lighten a run (nothing refreshed it: the scheduler is paused, say): the run is left alone. */
+export const LEVEL_FRESH_MS = 2 * 60000
+/** A sub-agent call that was let through counts as going for this long, unless the engine says its child ended first. */
+export const SUBAGENT_LEASE_MS = 2 * 60000
+
+/** The model-facing names of the sub-agent tools: `subagent` and `subagent_<worker>` (claude_code, codex, gemini...). */
+export const isSubagentTool = (name) => typeof name === 'string' && /^subagent(_[a-z0-9_]+)?$/.test(name)
+
+/** How many sub-agents the automation runs may have going at once: `null` is no limit, 0 is none. */
+export const subagentLimitAt = (level) => (level === 'high' ? 0 : level === 'busy' ? 1 : null)
+
+const NOTES = Object.freeze({
+  busy: 'The computer is busy right now. Do the work yourself in this session wherever you can. If you do start a sub-agent, start only one at a time and wait for its result before starting another.',
+  high: 'The computer is very busy right now. Do not start sub-agents: do the work yourself in this session, one step after the other.',
+})
+/** The line added to the instructions of an automation run at this level; empty when the machine is not loaded. */
+export const noteAt = (level) => (level === 'busy' || level === 'high' ? NOTES[level] : '')
+
+/** What the model reads when a sub-agent call is refused (the tool result of the refused call). */
+export const refusalReason = (level) => (level === 'high'
+  ? 'Sub-agent not started: this computer is very busy right now. Do this work yourself in this session.'
+  : 'Sub-agent not started: this computer is busy and a sub-agent is already going. Wait for its result, or do this work yourself in this session.')
+
+/** The level of the last reading, when it is recent enough to act on, else null. `last` is `{ at, level }`. */
+export const freshLevel = (last, nowMs) => (last !== null && typeof last === 'object' && num(last.at) !== null && num(nowMs) !== null && nowMs - last.at <= LEVEL_FRESH_MS && LEVELS.indexOf(last.level) >= 0 ? last.level : null)
+
+/**
+ * The sub-agents the automation runs have going, as leases: one per call let through, ending after SUBAGENT_LEASE_MS or when
+ * `release()` is told a child ended (the oldest lease goes). `decide(level)` says whether one more call may start now.
+ * Soft by design: a lease that is never released only lasts two minutes, and an unknown level lets everything through.
+ */
+export const createSubagentGate = (opts) => {
+  const o = opts !== null && typeof opts === 'object' ? opts : {}
+  const now = typeof o.now === 'function' ? o.now : () => Date.now()
+  let leases = []
+  const live = () => { const t = now(); leases = leases.filter((at) => t - at < SUBAGENT_LEASE_MS); return leases.length }
+  return {
+    active: live,
+    grant() { live(); leases.push(now()); if (leases.length > 200) leases.shift() },
+    release() { live(); leases.shift() },
+    decide(level) {
+      const limit = subagentLimitAt(level)
+      const active = live()
+      return { allow: limit === null || active < limit, limit, active }
+    },
+  }
+}
+
 /** What the page shows: the level, how close it is to the top, why, the room, and the runs waiting. Never a path, an id or a prompt. */
-export const publicView = (capacity, sample, waiting) => ({
+export const publicView = (capacity, sample, waiting, subagents) => ({
   level: LEVELS.indexOf(capacity.level) >= 0 ? capacity.level : 'ok',
   // With the machine reading switched off the level is always `ok`: a gauge that still climbed would contradict it, so there is none.
-  pressure: capacity.guard === 'off' ? null : pressureOf(sample),
+  pressure: capacity.guard === undefined || capacity.guard === 'on' ? pressureOf(sample) : null,
+  // Sub-agents: how many the runs may have going at this level (null = no limit), how many go, and how many calls were refused since the start.
+  subagents: {
+    limit: subagentLimitAt(capacity.level),
+    active: subagents !== null && typeof subagents === 'object' && Number.isSafeInteger(subagents.active) && subagents.active >= 0 ? subagents.active : 0,
+    refused: subagents !== null && typeof subagents === 'object' && Number.isSafeInteger(subagents.refused) && subagents.refused >= 0 ? subagents.refused : 0,
+  },
   reasons: Array.isArray(capacity.reasons) ? capacity.reasons.filter((r) => r === 'memory' || r === 'cpu') : [],
   inFlight: Number.isSafeInteger(capacity.inFlight) ? capacity.inFlight : 0,
   allowed: Number.isSafeInteger(capacity.allowed) ? capacity.allowed : 0,

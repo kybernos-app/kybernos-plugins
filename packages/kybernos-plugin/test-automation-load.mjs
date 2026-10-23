@@ -7,7 +7,8 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
   DEFAULT_MAX_PARALLEL, MAX_PARALLEL_CEILING, HOLD_LIMIT_MS, START_GRACE_MS, RUN_MAX_MS, LEVELS,
-  maxParallelFrom, guardOff, parseMeminfo, levelOf, pressureOf, allowedAt, admit, createInflight, publicView,
+  maxParallelFrom, guardOff, forcedLevel, parseMeminfo, levelOf, pressureOf,
+  LEVEL_FRESH_MS, SUBAGENT_LEASE_MS, isSubagentTool, subagentLimitAt, noteAt, refusalReason, freshLevel, createSubagentGate, allowedAt, admit, createInflight, publicView,
 } from './automation-load.mjs'
 
 let pass = 0
@@ -79,6 +80,11 @@ assert.equal(guardOff({ KYBERNOS_AUTOMATION_LOAD_GUARD: ' OFF ' }), true)
 for (const v of [{}, null, undefined, { KYBERNOS_AUTOMATION_LOAD_GUARD: 'on' }, { KYBERNOS_AUTOMATION_LOAD_GUARD: '' }, { KYBERNOS_AUTOMATION_LOAD_GUARD: 0 }]) assert.equal(guardOff(v), false)
 ok('guard: only an explicit "off" turns the machine reading off')
 
+assert.equal(forcedLevel({ KYBERNOS_AUTOMATION_LOAD_FORCE: 'high' }), 'high')
+assert.equal(forcedLevel({ KYBERNOS_AUTOMATION_LOAD_FORCE: ' Busy ' }), 'busy')
+for (const v of [{}, null, undefined, { KYBERNOS_AUTOMATION_LOAD_FORCE: 'ok' }, { KYBERNOS_AUTOMATION_LOAD_FORCE: 'low' }, { KYBERNOS_AUTOMATION_LOAD_FORCE: '' }, { KYBERNOS_AUTOMATION_LOAD_FORCE: 3 }]) assert.equal(forcedLevel(v), null, 'only busy and high can be forced')
+ok('force: only busy or high can be forced; ok is the machine\'s own business')
+
 // 4. /proc/meminfo
 assert.equal(parseMeminfo('MemTotal:       16384000 kB\nMemFree:          123456 kB\nMemAvailable:    8192000 kB\nBuffers: 1 kB\n'), 8000)
 assert.equal(parseMeminfo('MemTotal: 1 kB\nMemFree: 2 kB\n'), null, 'no MemAvailable line (a very old kernel): unknown, not MemFree')
@@ -140,10 +146,61 @@ ok('meminfo: MemAvailable in MB, never MemFree')
   ok('in flight: counted from creation, ends on idle or disposed, every doubt resolves to not counted')
 }
 
+// 7b. lighter runs: which tools, how many, what the model reads, how the going ones are counted
+{
+  for (const name of ['subagent', 'subagent_claude_code', 'subagent_codex', 'subagent_gemini', 'subagent_opencode', 'subagent_qwen', 'subagent_hermes']) assert.equal(isSubagentTool(name), true, name)
+  for (const name of ['bash', 'subagents', 'subagent-claude', 'Subagent', 'mcp__x__subagent', 'subagent_', 'my_subagent', '', null, undefined, 7]) assert.equal(isSubagentTool(name), false, String(name))
+  assert.equal(subagentLimitAt('ok'), null)
+  assert.equal(subagentLimitAt('busy'), 1)
+  assert.equal(subagentLimitAt('high'), 0)
+  assert.equal(subagentLimitAt('weird'), null, 'an unknown level limits nothing')
+  assert.equal(noteAt('ok'), '')
+  assert.equal(noteAt(null), '')
+  assert.ok(/busy/.test(noteAt('busy')) && /one at a time/.test(noteAt('busy')))
+  assert.ok(/very busy/.test(noteAt('high')) && /Do not start sub-agents/.test(noteAt('high')))
+  assert.ok(/very busy/.test(refusalReason('high')) && /already going/.test(refusalReason('busy')))
+  for (const text of [noteAt('busy'), noteAt('high'), refusalReason('busy'), refusalReason('high')]) assert.ok(text.length < 300 && !/[\r\n]/.test(text), 'one short line')
+
+  const t0 = 1000000
+  assert.equal(freshLevel({ at: t0, level: 'busy' }, t0 + LEVEL_FRESH_MS), 'busy')
+  assert.equal(freshLevel({ at: t0, level: 'busy' }, t0 + LEVEL_FRESH_MS + 1), null, 'a reading nobody refreshed is not acted on')
+  for (const bad of [null, undefined, {}, { at: t0 }, { at: t0, level: 'purple' }, { at: 'x', level: 'ok' }, 'busy']) assert.equal(freshLevel(bad, t0), null)
+  assert.equal(freshLevel({ at: t0, level: 'ok' }, t0), 'ok')
+
+  let t = t0
+  const g = createSubagentGate({ now: () => t })
+  assert.deepEqual(g.decide('ok'), { allow: true, limit: null, active: 0 })
+  assert.deepEqual(g.decide(null), { allow: true, limit: null, active: 0 }, 'unknown level: let through')
+  assert.equal(g.decide('high').allow, false, 'very busy: none, even the first')
+  assert.deepEqual(g.decide('busy'), { allow: true, limit: 1, active: 0 })
+  g.grant()
+  assert.deepEqual(g.decide('busy'), { allow: false, limit: 1, active: 1 }, 'busy: the second waits')
+  assert.equal(g.decide('ok').allow, true, 'a free machine limits nothing even with one going')
+  g.release()
+  assert.equal(g.decide('busy').allow, true, 'a child that ended makes room')
+  g.release(); g.release()
+  assert.equal(g.active(), 0, 'releasing with nothing going is harmless')
+  g.grant(); g.grant()
+  assert.equal(g.active(), 2)
+  t += SUBAGENT_LEASE_MS - 1
+  assert.equal(g.active(), 2, 'a lease holds for two minutes')
+  t += 2
+  assert.equal(g.active(), 0, 'a lease nobody released does not hold for ever')
+  g.grant(); t += 1000; g.grant()
+  g.release()
+  assert.equal(g.active(), 1, 'the oldest lease goes first')
+  for (let i = 0; i < 300; i += 1) g.grant()
+  assert.ok(g.active() <= 200, 'bounded')
+  ok('lighter runs: the tools, the limit per level, the note, the leases, and every doubt lets the call through')
+}
+
 // 8. the page's view carries figures and nothing else
 {
   const v = publicView({ level: 'busy', reasons: ['memory', 'cpu', '/Users/x/secret'], inFlight: 1, allowed: 1, maxParallel: 3 }, { memAvailablePct: 15.4, loadPerCpu: 1.2345, path: '/x' }, 4)
-  assert.deepEqual(v, { level: 'busy', pressure: 73, reasons: ['memory', 'cpu'], inFlight: 1, allowed: 1, maxParallel: 3, waiting: 4, memAvailablePct: 15, loadPerCpu: 1.23 })
+  assert.deepEqual(v, { level: 'busy', pressure: 73, subagents: { limit: 1, active: 0, refused: 0 }, reasons: ['memory', 'cpu'], inFlight: 1, allowed: 1, maxParallel: 3, waiting: 4, memAvailablePct: 15, loadPerCpu: 1.23 })
+  assert.deepEqual(publicView({ level: 'high' }, {}, 0, { active: 2, refused: 5, secret: 'x' }).subagents, { limit: 0, active: 2, refused: 5 })
+  assert.deepEqual(publicView({ level: 'ok' }, {}, 0, { active: -1, refused: 'many' }).subagents, { limit: null, active: 0, refused: 0 })
+  assert.equal(publicView({ level: 'busy', guard: 'forced' }, { memAvailablePct: 1 }, 0).pressure, null, 'a forced level draws no gauge: the figure would not be the machine\'s')
   assert.equal(publicView({ level: 'ok', guard: 'off' }, { memAvailablePct: 1, loadPerCpu: 9 }, 0).pressure, null, 'a switched-off reading draws no gauge that would contradict the level')
   assert.equal(publicView({ level: 'ok' }, {}, 0).pressure, null, 'nothing measured, no gauge')
   assert.equal(publicView({ level: 'weird' }, null, -3).level, 'ok')
@@ -161,6 +218,11 @@ ok('meminfo: MemAvailable in MB, never MemFree')
   assert.ok(/ctx\.on\('agent\/status'[\s\S]{0,300}kbLoadInflight\.status\(/.test(idx), 'the engine\'s status ends a run')
   assert.ok(/ctx\.on\('agent\/disposed'[\s\S]{0,300}kbLoadInflight\.end\(/.test(idx), 'a disposed session ends a run')
   assert.ok(/autoLoadGuardOff\(process\.env\)/.test(idx), 'the off switch is honoured')
+  assert.ok(/ctx\.on\('tools\/pre-execute', async \(exec, next\) => \{[\s\S]{0,500}autoLoadIsSubagent\(exec\.name\) === true && kbRunDepth\(exec\.agent\) > 0[\s\S]{0,500}kind: 'deny', reason: autoLoadRefusal\(level\)/.test(idx), 'a sub-agent call from an automation run is refused beyond the level\'s limit')
+  assert.ok(/kbRememberRunSession\(sessionId\)/.test(idx), 'every run is remembered as a run')
+  assert.ok(/scope\.systemPrompt\.context\(\{[\s\S]{0,200}name: 'kybernos:automation-load'[\s\S]{0,300}kbRunDepth\(context\.agent\) > 0 \? autoLoadNote\(autoLoadFresh\(kbLoadLast, Date\.now\(\)\)\)/.test(idx), 'only a run gets the note, and only from a fresh reading')
+  assert.ok(/autoSettingsPaused\(await kbAutoSettingsRead\(\)\) === true\) \{ kbLoadCapacity\(\)/.test(idx), 'a paused scheduler still refreshes the reading')
+  assert.ok(/forced !== null \? \{ level: forced/.test(idx), 'the forced level wins over the reading')
   assert.ok(/kern\.memorystatus_level/.test(idx), 'macOS memory is the system\'s pressure figure')
   assert.ok(/plat === 'darwin'[\s\S]{0,700}resolve\(\{ pct: null, mb: null \}\)/.test(idx), 'macOS never falls back to os.freemem (it reads ~10 % on a healthy Mac)')
   const route = /path: '\/kybernos\/automation-load'[\s\S]{0,1600}/.exec(idx)

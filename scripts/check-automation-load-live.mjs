@@ -14,7 +14,10 @@
 //   - GET /kybernos/automation-load tells the same (2 going, room for 2, 3 waiting), and refuses a write;
 //   - Settings › Automations shows the row, and the board says "Waiting for the computer", not "The scheduler seems to be stopped";
 //   - when the model answers, the engine reports the sessions idle, room opens, and the next due runs start, oldest first;
-//   - with the guard on (not off), the machine's own reading is a sane figure on this machine (memory pressure, not os.freemem()).
+//   - with the guard on (not off), the machine's own reading is a sane figure on this machine (memory pressure, not os.freemem());
+//   - lighter runs, with the level FORCED (the machine is not made busy for real): very busy, the run's real request to the model carries the line
+//     "do not start sub-agents", a run held more than ten minutes still starts, and a real `subagent` call from the model comes back to it as
+//     an error that says the computer is very busy; with the machine free, the prompt carries no such line.
 // Exit code 0 / 1 / 3 (3 = inconclusive: no sandbox).
 import { copyFileSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { spawnSync } from 'node:child_process'
@@ -25,6 +28,7 @@ import { openLivePage, openSettings, goToSettingsPage, clickText } from './live-
 
 const args = process.argv.slice(2)
 const shotDir = args.includes('--shots') ? args[args.indexOf('--shots') + 1] : null
+const onlyLighter = args.includes('--only-lighter') // stop after the lighter-run phases (the GUI part takes five more minutes)
 const here = dirname(fileURLToPath(import.meta.url))
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 let pass = 0
@@ -54,6 +58,18 @@ const poll = async (fn, ms = 10000) => { const end = Date.now() + ms; for (;;) {
 // A model that never answers (the sessions stay running) until the check lets it: then every waiting request is answered at once.
 const pending = []
 let answering = false
+// 'cap': the phase of the cap (every request hangs until released). 'call' / 'text': the lighter-run phases (the model calls the sub-agent tool / answers).
+let mode = 'cap'
+const probe = { systems: [], toolNames: null, called: null, toolResult: null, where: [], keys: null }
+const systemOf = (j) => (Array.isArray(j.messages) ? j.messages.filter((m) => m.role === 'system').map((m) => (typeof m.content === 'string' ? m.content : JSON.stringify(m.content))).join('\n') : '')
+const toolCall = (res, name, args) => {
+  const base = { id: 'chatcmpl-stub', object: 'chat.completion.chunk', created: 1, model: 'stub-1' }
+  res.writeHead(200, { 'content-type': 'text/event-stream' })
+  res.write('data: ' + JSON.stringify(Object.assign({}, base, { choices: [{ index: 0, delta: { role: 'assistant', content: null, tool_calls: [{ index: 0, id: 'call_probe_1', type: 'function', function: { name, arguments: '' } }] }, finish_reason: null }] })) + '\n\n')
+  res.write('data: ' + JSON.stringify(Object.assign({}, base, { choices: [{ index: 0, delta: { tool_calls: [{ index: 0, function: { arguments: JSON.stringify(args) } }] }, finish_reason: null }] })) + '\n\n')
+  res.write('data: ' + JSON.stringify(Object.assign({}, base, { choices: [{ index: 0, delta: {}, finish_reason: 'tool_calls' }] })) + '\n\n')
+  res.end('data: [DONE]\n\n')
+}
 const sse = (res, content) => {
   res.writeHead(200, { 'content-type': 'text/event-stream' })
   const base = { id: 'chatcmpl-stub', object: 'chat.completion.chunk', created: 1, model: 'stub-1' }
@@ -69,6 +85,26 @@ const server = createServer((req, res) => {
     try { j = JSON.parse(body) } catch (e) { j = {} }
     if (String(req.url).indexOf('/chat/completions') < 0) { res.writeHead(200, { 'content-type': 'application/json' }); res.end(JSON.stringify({ data: [{ id: 'kbstub/stub-1', object: 'model' }] })); return }
     if (!Array.isArray(j.tools) || j.tools.length === 0) { sse(res, 'Stub'); return } // the engine's side calls (a title)
+    if (mode !== 'cap') {
+      const msgs = Array.isArray(j.messages) ? j.messages : []
+      const tool = msgs.filter((m) => m.role === 'tool').pop()
+      probe.systems.push(systemOf(j))
+      probe.keys = Object.keys(j)
+      probe.where.push((Array.isArray(j.messages) ? j.messages : []).map((m) => (m.role + ':' + (typeof m.content === 'string' ? m.content : JSON.stringify(m.content)).length + (/Do not start sub-agents|The computer is busy/.test(typeof m.content === 'string' ? m.content : JSON.stringify(m.content)) ? ':NOTE' : ''))).join(' '))
+      probe.toolNames = j.tools.map((t) => (t.function ? t.function.name : ''))
+      if (tool !== undefined) { probe.toolResult = typeof tool.content === 'string' ? tool.content : JSON.stringify(tool.content); sse(res, 'OK'); return }
+      const sub = j.tools.find((t) => t.function && /^subagent(_[a-z0-9_]+)?$/.test(t.function.name || ''))
+      if (mode === 'call' && sub !== undefined) {
+        const params = sub.function.parameters || {}
+        const args = {}
+        for (const k of params.required || []) { const def = (params.properties || {})[k] || {}; args[k] = Array.isArray(def.enum) ? def.enum[0] : def.type === 'boolean' ? false : def.type === 'number' || def.type === 'integer' ? 1 : 'Reply with the single word OK.' }
+        probe.called = sub.function.name
+        toolCall(res, sub.function.name, args)
+        return
+      }
+      sse(res, 'OK')
+      return
+    }
     if (answering === true) { sse(res, 'OK'); return }
     pending.push(res)
   })
@@ -127,6 +163,39 @@ try {
   const held = readTasks().filter((t) => ['st-load-c', 'st-load-d', 'st-load-e'].indexOf(t.id) >= 0)
   check('the held ones are still due, with their own due time (late, not lost)', held.length === 3 && held.every((t) => Date.parse(t.nextRun) < Date.now() - 3 * 60000), held.map((t) => t.nextRun))
 
+  // ── lighter runs, level forced ───────────────────────────────────────────────────────────────────────────────────────────────
+  console.log('\n── lighter runs: the level is forced, the machine is not made busy for real ──')
+  for (const res of pending.splice(0)) { try { sse(res, 'OK') } catch (e) { /* the request went away */ } }
+  answering = true
+  mode = 'call'
+  // Overdue by eleven minutes: a very busy machine has no room, but a run held more than ten minutes starts anyway.
+  const lone = (id, name) => Object.assign(seed()[0], { id, name, history: [], lastRun: null, nextRun: new Date(Date.now() - 11 * 60000).toISOString() })
+  writeAtomic(JSON.stringify([lone('st-load-hot', 'Load hot')], null, 2) + '\n')
+  check('the sandbox restarts with the level forced to very busy', restart({ KB_STUB_KEY: 'stub', KYBERNOS_AUTOMATION_LOAD_FORCE: 'high' }) === true)
+  const hot = await poll(() => probe.toolResult !== null || (probe.systems.length > 0 && probe.called === null), 90000)
+  check('a run held more than ten minutes started anyway, though a very busy machine has no room', started().join() === 'st-load-hot', started())
+  // The engine puts the plugins' `systemPrompt.context` blocks in a user-role context message, not in the `system` one: look in every message.
+  check('the real request to the model carries the line: do not start sub-agents (in the context message, on every step)', probe.where.length >= 1 && probe.where.every((w) => /:NOTE/.test(w)), probe.where)
+  check('the model had a sub-agent tool to call (otherwise the next check proves nothing)', probe.called !== null, probe.toolNames)
+  check('the call came back to the model as an error that says the computer is very busy', hot && probe.toolResult !== null && /Sub-agent not started/.test(probe.toolResult) && /very busy/.test(probe.toolResult), probe.toolResult)
+  const hotView = (await loadRoute()).json
+  check('the page is told: a refusal was counted, no sub-agent allowed', hotView !== null && hotView.level === 'high' && hotView.subagents.limit === 0 && hotView.subagents.refused >= 1, hotView)
+
+  mode = 'text'
+  probe.systems.length = 0; probe.where.length = 0; probe.toolResult = null; probe.called = null
+  writeAtomic(JSON.stringify([lone('st-load-free', 'Load free')], null, 2) + '\n')
+  check('the sandbox restarts with the machine\'s own reading, guard off (free)', restart({ KB_STUB_KEY: 'stub', KYBERNOS_AUTOMATION_LOAD_GUARD: 'off' }) === true)
+  const free = await poll(() => probe.systems.length > 0, 90000)
+  check('a run started on a free machine', free === true && started().join() === 'st-load-free', started())
+  check('the real request to the model carries no line about the machine being busy (every message looked at)', probe.where.length > 0 && probe.where.every((w) => !/:NOTE/.test(w)), probe.where)
+
+  if (onlyLighter === true) throw new Error('only-lighter: stopped before the GUI part')
+  // Back to the phase the GUI part needs: the cap at 2, a model that never answers, five due automations.
+  mode = 'cap'; answering = false
+  writeAtomic(JSON.stringify(seed(), null, 2) + '\n')
+  check('the sandbox restarts for the GUI part (maximum 2, hanging model)', restart({ KB_STUB_KEY: 'stub', KYBERNOS_AUTOMATION_MAX_PARALLEL: '2', KYBERNOS_AUTOMATION_LOAD_GUARD: 'off' }) === true)
+  check('two start again, the other three wait', await poll(() => started().length >= 2, 60000) === true && (await loadRoute()).json.waiting === 3, started())
+
   live = await openLivePage({ width: 1400, height: 950 })
   const page = live.page
   const val = async (expr, ms) => (await page.evalJs(expr, ms)).val
@@ -155,10 +224,13 @@ try {
   const STATES = [['ok', 22], ['busy', 70], ['high', 100]]
   const colours = {}
   for (const [level, pressure] of STATES) {
-    forced = { level, pressure, reasons: level === 'ok' ? [] : ['memory'] }
+    forced = { level, pressure, reasons: level === 'ok' ? [] : ['memory'], subagents: { limit: level === 'high' ? 0 : level === 'busy' ? 1 : null, active: 0, refused: level === 'high' ? 4 : 0 } }
     const g = await poll(() => val(`(() => { const g = document.querySelector('[data-kb="automation-load"] [data-kb="load-gauge"]'); if (!g || g.getAttribute('data-level') !== ${JSON.stringify(level)}) return null; const on = g.querySelectorAll('i.on'); const last = on[on.length - 1]; return { now: g.getAttribute('aria-valuenow'), on: on.length, ticks: g.querySelectorAll('i').length, head: g.querySelectorAll('i.head').length, text: g.innerText.trim(), colour: last ? getComputedStyle(last).backgroundColor : null, role: g.getAttribute('role') } })()`), 16000)
     check('the gauge shows ' + level + ' at ' + pressure + ' %: a meter, ' + Math.max(1, Math.round(pressure / 100 * 24)) + ' of 24 ticks filled, one head, the figure', g !== null && g !== undefined && g.role === 'meter' && g.now === String(pressure) && g.ticks === 24 && g.on === Math.max(1, Math.round(pressure / 100 * 24)) && g.head === 1 && g.text === pressure + '%', g)
     if (g) colours[level] = g.colour
+    const rowText = await val(`(document.querySelector('[data-kb="automation-load"]') || { innerText: '' }).innerText.replace(/\\s+/g, ' ')`)
+    if (level === 'high') check('the row says what very busy does to sub-agents, and counts the calls held back', /start no sub-agents/.test(rowText) && /4 sub-agent call\(s\) held back/.test(rowText), rowText)
+    if (level === 'busy') check('the row says what busy does to sub-agents, and counts none', /at most one sub-agent at a time/.test(rowText) && !/held back/.test(rowText), rowText)
     await shot('settings-gauge-' + level)
   }
   const rgb = (c) => (String(c).match(/\d+(\.\d+)?/g) || []).slice(0, 3).map(Number)
@@ -194,8 +266,8 @@ try {
   const end = await loadRoute()
   check('nothing waits any more', end.json !== null && end.json.waiting === 0, end.json)
 } catch (e) {
-  fail += 1
-  console.log('  ✗ the check stopped: ' + String((e && e.message) || e))
+  if (!/^only-lighter/.test(String((e && e.message) || e))) fail += 1
+  console.log((/^only-lighter/.test(String((e && e.message) || e)) ? '  ○ ' : '  ✗ the check stopped: ') + String((e && e.message) || e))
 } finally {
   try { if (live !== null) await live.close() } catch (e) { /* closed */ }
   try { copyFileSync(backup, profile); rmSync(backup, { force: true }) } catch (e) { /* no backup was made */ }
