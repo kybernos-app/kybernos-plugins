@@ -7247,6 +7247,7 @@ const KB_TPL_CATS = [
   { id: 'social', title: ['Social media', 'Réseaux sociaux'], color: 'var(--dsw-alias-state-warn-primary)' },
   { id: 'prospecting', title: ['Prospecting', 'Prospection'], color: 'var(--dsw-alias-state-business-primary)' },
   { id: 'support', title: ['Customer service', 'Service client'], color: 'var(--dsw-alias-state-success-primary)' },
+  { id: 'skills', title: ['Skills', 'Skills'], color: 'var(--dsw-alias-state-business-primary)' },
 ]
 const KB_TPLS = [
   { id: 'social-daily', cat: 'social', icon: 'image', title: ['Daily post pack', 'Pack de posts quotidien'],
@@ -7399,6 +7400,18 @@ const KB_TPLS = [
     ask: [
       { q: ['Which shop?', 'Quelle boutique ?'], o: [['I will connect it now', 'Je la connecte maintenant'], ['To confirm: read-only access', 'À confirmer : accès en lecture seule']] },
       { q: ['Which channel answers?', 'Quel canal répond ?'], o: [['WhatsApp', 'WhatsApp'], ['Website widget', 'Widget du site'], ['Email', 'E-mail']] }] },
+  { id: 'skill-scout', cat: 'skills', icon: 'search', title: ['Skill scout', 'Éclaireur de skills'],
+    cadence: ['Every Monday, 09:00', 'Chaque lundi, 09:00'], cron: '0 9 * * 1',
+    desc: ['Looks the public skills index over for skills that fit your goals, filters them in code and lists the few worth a look in Skills › Featured. Installs nothing.', 'Parcourt l’index public des skills pour trouver ceux qui collent à tes objectifs, les filtre dans le code et range les rares qui valent un coup d’œil dans Skills › Featured. N’installe rien.'],
+    tags: [['Skills', 'Skills'], ['Filtered in code', 'Filtré dans le code'], ['Proposes only', 'Propose seulement']], apps: ['GitHub'],
+    steps: [
+      ['act', ['Call the skill_scout tool once: it scans the index, filters what it finds and keeps the few that pass.', 'Appeler l’outil skill_scout une seule fois : il parcourt l’index, filtre ce qu’il trouve et garde le peu qui passe.']],
+      ['ai', ['Tell me in three lines at most the names it found and why each one fits; say so plainly when it found nothing.', 'Me dire en trois lignes au plus les noms trouvés et pourquoi chacun convient ; le dire franchement quand il n’a rien trouvé.']]],
+    needs: [['Some goals ticked in your profile, or a few skills installed', 'Quelques objectifs cochés dans ton profil, ou quelques skills installés']],
+    guard: [['Nothing is installed: a find waits in Skills › Featured until you install it yourself, with the usual confirmation.', 'Rien n’est installé : une trouvaille attend dans Skills › Featured jusqu’à ce que tu l’installes toi-même, avec la confirmation habituelle.'], ['A find needs a clean audit, a small file with no secret and no hidden instruction, and must not copy a skill you already have.', 'Une trouvaille demande un audit propre, un petit fichier sans secret ni consigne cachée, et ne doit pas copier un skill que tu as déjà.']],
+    ask: [
+      { q: ['Which day should it look?', 'Quel jour doit-il chercher ?'], o: [['Monday', 'Lundi'], ['Friday', 'Vendredi'], ['The first of the month', 'Le premier du mois']] },
+      { q: ['Where should the three lines go?', 'Où envoyer les trois lignes ?'], o: [['In the chat', 'Dans le chat'], ['A message on my phone', 'Un message sur mon téléphone'], ['Nowhere: I will look in Skills', 'Nulle part : je regarderai dans Skills']] }] },
 ]
 
 /** The pair `[en, fr]` read in the page's language: `pick` is the page's rule, English when none is given. */
@@ -27067,6 +27080,15 @@ function renderFit(canvas, model, cam, opts){
         return true
       } catch (e) { return false }
     }
+    // window.__KB_OPEN__.template(id): a new chat that starts the Discover template `id` (the Skills page asks for « skill-scout »). False when there is no such template or no chat.
+    kbOpenPage.template = (id) => {
+      try {
+        const tpl = KB_TPLS.filter((x) => x.id === id)[0]
+        if (tpl === undefined || typeof kbOpenFeedbackChat !== 'function') return false
+        kbOpenFeedbackChat(kbTplChatText(tpl, kbt, kbTplPick, kbTplLangName(kbLangResolve())))
+        return true
+      } catch (e) { return false }
+    }
     try { if (typeof window !== 'undefined') window.__KB_OPEN__ = kbOpenPage } catch (e) { /* outside a browser */ }
     // <kb-domain-menu>
     // The wording of the Kybernos menu follows the person's field of work (docs/dev/domain-packs.md): the labels the domain pack gives and the rows
@@ -36214,7 +36236,12 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       'job.s': ['Kybernos sets up its menu and its starter kit for it.', 'Kybernos règle son menu et son kit de départ en conséquence.', 'Kybernos ajusta su menú y su kit inicial en consecuencia.', 'يضبط Kybernos قائمته وحزمة البداية وفقًا لذلك.'],
       'goals.t': ['What do you want Kybernos to do for you?', 'Qu’est-ce que tu veux que Kybernos fasse pour toi ?', '¿Qué quieres que Kybernos haga por ti?', 'ماذا تريد أن يفعل Kybernos من أجلك؟'],
       'goals.s': ['Tick what matters. Kybernos sets up only that, and you can change it later.', 'Coche ce qui compte. Kybernos prépare seulement ça, et tu pourras le changer plus tard.', 'Marca lo que importa. Kybernos prepara solo eso, y podrás cambiarlo más tarde.', 'حدّد ما يهمك. يجهّز Kybernos ذلك فقط، ويمكنك تغييره لاحقًا.'],
-      'goals.pick': ['Pick at least one goal to continue.', 'Choisis au moins un objectif pour continuer.', 'Elige al menos un objetivo para continuar.', 'اختر هدفًا واحدًا على الأقل للمتابعة.'],
+      'goals.pick': ['Pick at least one goal, or write your own, to continue.', 'Choisis au moins un objectif, ou écris le tien, pour continuer.', 'Elige al menos un objetivo, o escribe el tuyo, para continuar.', 'اختر هدفا واحدا على الأقل، أو اكتب هدفك، للمتابعة.'],
+      'goals.free.ph': ['Something else? Say it in your own words', 'Autre chose ? Dis-le avec tes mots', '¿Algo más? Dilo con tus palabras', 'شيء آخر؟ قله بكلماتك'],
+      'goals.free.add': ['Add', 'Ajouter', 'Añadir', 'إضافة'],
+      'goals.free.note': ['Your own goals have no ready-made kit: Kaby reads them in “Learn my business” and proposes what fits.', 'Tes propres objectifs n’ont pas de kit prêt à l’emploi : Kaby les lit dans « Apprendre mon métier » et propose ce qui convient.', 'Tus propios objetivos no tienen un kit listo: Kaby los lee en «Aprender mi negocio» y propone lo que encaja.', 'ليس لأهدافك الخاصة حزمة جاهزة: يقرؤها Kaby في «تعلم عملي» ويقترح ما يناسب.'],
+      'goals.own.line': ['Your own goal. No ready-made kit: Kaby proposes what fits.', 'Ton propre objectif. Pas de kit prêt à l’emploi : Kaby propose ce qui convient.', 'Tu propio objetivo. Sin kit listo: Kaby propone lo que encaja.', 'هدفك الخاص. بلا حزمة جاهزة: يقترح Kaby ما يناسب.'],
+      'goals.own.remove': ['Remove “{name}”', 'Retirer « {name} »', 'Quitar «{name}»', 'إزالة «{name}»'],
       'adds.sk': ['{n} skills', '{n} skills', '{n} skills', '{n} مهارات'],
       'adds.sk1': ['1 skill', '1 skill', '1 skill', 'مهارة واحدة'],
       'adds.au': ['{n} automations', '{n} automatisations', '{n} automatizaciones', '{n} أتمتة'],
@@ -36549,11 +36576,11 @@ html.wv2-actif [data-composer-seat]{display:none !important}
     const KB_OB_LEARN_NAMES = { en: 'Learn my business', fr: 'Apprendre mon métier' }
     const KB_OB_SENSITIVE = ['droit', 'sante']
     /** The kit of a field for some goals: their skills and teams, each once, in the goals' order, and what is planned. Empty for no pack or no goal. */
-    const kbObKitOf = (pack, goalIds) => {
+    const kbObKitOf = (pack, goalIds, hasOwnGoal) => {
       const kit = { skills: [], teams: [], autos: [], soon: [], learn: null }
       const seen = {}
       // « Learn my business » is offered with every field once a goal is ticked: it is not one of the pack's own automations (those are created switched off).
-      if (pack !== null && pack !== undefined && kbObGoalsOf(pack, goalIds).length > 0) kit.learn = { id: KB_OB_LEARN_ID, sensitive: KB_OB_SENSITIVE.indexOf(pack.id) >= 0 }
+      if (pack !== null && pack !== undefined && (kbObGoalsOf(pack, goalIds).length > 0 || hasOwnGoal === true)) kit.learn = { id: KB_OB_LEARN_ID, sensitive: KB_OB_SENSITIVE.indexOf(pack.id) >= 0 }
       for (const g of kbObGoalsOf(pack, goalIds)) {
         for (const x of Array.isArray(g.skills) ? g.skills : []) if (seen['s ' + x.source + ' ' + x.name] !== true) { seen['s ' + x.source + ' ' + x.name] = true; kit.skills.push(x) }
         for (const id of Array.isArray(g.teams) ? g.teams : []) if (seen['t ' + id] !== true) { seen['t ' + id] = true; kit.teams.push(id) }
@@ -36829,7 +36856,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         // « What we set up for you » on the end screen: null until read, then the rows (kbObSetupRows)
         setup: null,
         // the « about you » answers, the agents preset, and whether the person changed the two defaults the field gives (the display mode, the preset)
-        site: '', social: '', words: '', aboutSaved: false, agents: null, modeTouched: false, agentsTouched: false,
+        site: '', social: '', words: '', aboutSaved: false, custom: [], goalFocus: null, agents: null, modeTouched: false, agentsTouched: false,
         // the kit shown as one line (its list one tap away), and « Continue with Team solo » on the plan screen (the upgrade view opens when the wizard closes)
         kitOpen: false, wantsTeam: false,
       }
@@ -36960,7 +36987,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         if (S.screen === 'local-install' && S.localId !== null) { S.model = 'local'; watchInstall(S.localId) }
         // Opened from the chat's card or from a page that suggests the kit (standalone), the wizard is not the first run: the
         // onboarding file is left alone.
-        if (!S.standalone) reloadDomain(env.post({ action: 'complete', profil: S.domain, goals: S.goals, uiMode: S.mode, model: model, lang: S.lang, memoryId: S.memoryId, agents: S.agents, ...(aboutBody() !== null ? { about: aboutBody() } : {}) }))
+        if (!S.standalone) reloadDomain(env.post({ action: 'complete', profil: S.domain, goals: S.goals, customGoals: S.custom, uiMode: S.mode, model: model, lang: S.lang, memoryId: S.memoryId, agents: S.agents, ...(aboutBody() !== null ? { about: aboutBody() } : {}) }))
         // Free models (no account): wire them in on the first run, but only when the person brings no
         // working model of their own AND acknowledged the prompt-retention notice (S.freeAck). The host
         // re-checks both guardrails before writing the route, so a stale client can never force it.
@@ -37415,7 +37442,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         fit()
         if (typeof win.ResizeObserver === 'function' && pane.__ro === undefined) { pane.__ro = new win.ResizeObserver(fit); pane.__ro.observe(box) }
       }
-      const curKit = () => kbObKitOf(curPack(), S.goals)
+      const curKit = () => kbObKitOf(curPack(), S.goals, S.custom.length > 0)
       const packName = (pack) => (pack === null ? '' : kbObPackText(S.lang, pack.name))
       // The saved field and goals move the menu wording: once the host has the answer, the menu reads it again.
       const reloadDomain = (posted) => {
@@ -37472,7 +37499,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
             // Made on, weekly, in its own session; the host finds it again if it exists. Started at once, so the first proposals wait on the pages by the time the person gets there.
             let tz = ''
             try { tz = new win.Intl.DateTimeFormat().resolvedOptions().timeZone || '' } catch (e) { tz = '' }
-            const r = await call('/kybernos/tasks', 'POST', { action: 'learn', lang: S.lang, tz: tz, fieldId: S.domain, field: packName(curPack()), goals: kbObGoalsOf(curPack(), S.goals).map((g) => kbObPackText(S.lang, g.name)), about: { site: S.site.trim(), profile: S.social.trim(), words: S.words.trim() } })
+            const r = await call('/kybernos/tasks', 'POST', { action: 'learn', lang: S.lang, tz: tz, fieldId: S.domain, field: packName(curPack()), goals: kbObGoalsOf(curPack(), S.goals).map((g) => kbObPackText(S.lang, g.name)), ownGoals: S.custom, about: { site: S.site.trim(), profile: S.social.trim(), words: S.words.trim() } })
             ok = r !== null && r.ok === true
             if (ok && r.existed !== true && r.task !== null && typeof r.task === 'object' && typeof r.task.id === 'string') await call('/kybernos/tasks', 'POST', { action: 'run-now', id: r.task.id })
           } else if (item.auto !== undefined && item.auto !== null) {
@@ -37517,7 +37544,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         if (S.standalone || S.memState !== null) return
         if (!(S.ready === 'cloud' || S.model === 'cloud')) return
         const pack = curPack()
-        const text = kbObMemoryText(S.lang, packName(pack), kbObGoalsOf(pack, S.goals).map((g) => kbObPackText(S.lang, g.name)), S.mode, { site: S.site.trim(), profile: S.social.trim(), words: S.words.trim(), agents: S.agents })
+        const text = kbObMemoryText(S.lang, packName(pack), kbObGoalsOf(pack, S.goals).map((g) => kbObPackText(S.lang, g.name)).concat(S.custom), S.mode, { site: S.site.trim(), profile: S.social.trim(), words: S.words.trim(), agents: S.agents })
         if (text === null) return
         S.memState = 'saving'
         let r = null
@@ -37608,11 +37635,6 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         return b
       }
       // A row you tick among others (the goals): the same row as the radio ones, announced as a checkbox.
-      const checkRow = (title, desc, on, onClick) => {
-        const b = radioRow(title, desc, on, onClick)
-        b.setAttribute('role', 'checkbox')
-        return b
-      }
       // A chip you tick among others (the goals in the starter kit opened on its own).
       const checkChip = (label, on, onClick) => {
         const b = chip(label, on, onClick)
@@ -37712,38 +37734,105 @@ html.wv2-actif [data-composer-seat]{display:none !important}
           s.appendChild(a)
           return s
         },
+        // The goals are tags to tick, a line under them says what the tag in focus is and what it adds, and a free field adds the person's own (a dashed tag with its cross).
+        // An own goal has no kit: it goes to the memory line and to « Learn my business », which proposes what fits.
         goals: () => {
           const s = step()
           const pack = curPack()
           s.appendChild(eyebrow('goals'))
           s.appendChild(h('h1', null, T('goals.t')))
           s.appendChild(h('p', 'kb-ob-sub', T('goals.s')))
-          const g = h('div', 'kb-ob-rows')
-          g.setAttribute('role', 'group')
-          for (const goal of pack !== null ? pack.goals : []) {
-            const on = S.goals.indexOf(goal.id) >= 0
-            const b = checkRow(kbObPackText(S.lang, goal.title), kbObPackText(S.lang, goal.desc), on, () => {
-              const i = S.goals.indexOf(goal.id)
-              if (i >= 0) S.goals.splice(i, 1); else S.goals.push(goal.id)
-              S.kitSel = null
-              render(false)
-            })
+          const goalsOf = pack !== null ? pack.goals : []
+          const infoOf = (goal) => {
             const adds = []
             if (goal.skills.length > 0) adds.push(T('adds.sk', { n: goal.skills.length }))
             if (goal.automations.length > 0) adds.push(T('adds.au', { n: goal.automations.length }))
             for (const id of goal.teams.slice(0, 1)) { const tpl = KB_MARKET_TEAMS.find((t) => t.id === id); if (tpl !== undefined) adds.push(T('adds.tm', { name: tpl.name })) }
-            if (adds.length > 0) {
-              const line = h('span', 'kb-ob-adds')
-              for (const x of adds) line.appendChild(h('span', null, x))
-              b.querySelector('.kb-ob-tx').appendChild(line)
-            }
-            g.appendChild(b)
+            return { title: kbObPackText(S.lang, goal.title), line: [kbObPackText(S.lang, goal.desc)].concat(adds).filter((x) => x !== '').join(' · ') }
           }
-          s.appendChild(g)
-          if (S.goals.length === 0) s.appendChild(h('p', 'kb-ob-sub kb-ob-hint', T('goals.pick')))
+          const ownInfo = (text) => ({ title: text, line: T('goals.own.line') })
+          // The tag in focus: the last one touched, else the first one ticked, else the first one.
+          const focusInfo = () => {
+            if (typeof S.goalFocus === 'string' && S.goalFocus.indexOf('own:') === 0 && S.custom.indexOf(S.goalFocus.slice(4)) >= 0) return ownInfo(S.goalFocus.slice(4))
+            const g = goalsOf.find((x) => x.id === S.goalFocus) || goalsOf.find((x) => S.goals.indexOf(x.id) >= 0) || goalsOf[0]
+            return g !== undefined ? infoOf(g) : null
+          }
+          const focusEl = h('div', 'kb-ob-gfocus')
+          focusEl.setAttribute('aria-live', 'polite')
+          const showFocus = (info) => {
+            while (focusEl.firstChild !== null) focusEl.removeChild(focusEl.firstChild)
+            if (info === null) return
+            focusEl.appendChild(h('b', null, info.title))
+            focusEl.appendChild(h('span', null, info.line))
+          }
+          const tags = h('div', 'kb-ob-gtags')
+          tags.setAttribute('role', 'group')
+          for (const goal of goalsOf) {
+            const b = checkChip(kbObPackText(S.lang, goal.title), S.goals.indexOf(goal.id) >= 0, () => {
+              const i = S.goals.indexOf(goal.id)
+              if (i >= 0) S.goals.splice(i, 1); else S.goals.push(goal.id)
+              S.goalFocus = goal.id
+              S.kitSel = null
+              render(false)
+            })
+            b.addEventListener('mouseenter', () => showFocus(infoOf(goal)))
+            b.addEventListener('focus', () => showFocus(infoOf(goal)))
+            b.addEventListener('mouseleave', () => showFocus(focusInfo()))
+            b.addEventListener('blur', () => showFocus(focusInfo()))
+            tags.appendChild(b)
+          }
+          for (const text of S.custom) {
+            const t = h('span', 'kb-ob-gown')
+            const label = button('kb-ob-gown-t', text, () => { S.goalFocus = 'own:' + text; showFocus(ownInfo(text)) })
+            label.addEventListener('mouseenter', () => showFocus(ownInfo(text)))
+            label.addEventListener('mouseleave', () => showFocus(focusInfo()))
+            const x = button('kb-ob-gown-x', '×', () => { S.custom = S.custom.filter((v) => v !== text); if (S.goalFocus === 'own:' + text) S.goalFocus = null; S.kitSel = null; render(false) })
+            x.setAttribute('aria-label', T('goals.own.remove', { name: text }))
+            t.appendChild(label)
+            t.appendChild(x)
+            tags.appendChild(t)
+          }
+          s.appendChild(tags)
+          showFocus(focusInfo())
+          s.appendChild(focusEl)
+          const free = h('div', 'kb-ob-gfree')
+          const input = h('input', 'kb-ob-in')
+          input.id = 'kb-ob-f-own'
+          input.type = 'text'
+          input.maxLength = 60
+          input.setAttribute('autocomplete', 'off')
+          input.placeholder = T('goals.free.ph')
+          input.setAttribute('aria-label', T('goals.free.ph'))
+          const typed = () => input.value.replace(/\s+/g, ' ').trim().slice(0, 60)
+          const room = () => S.custom.length < 6
+          // Adds what is typed as a tag of its own (once per text, six at most); returns whether it did.
+          const addOwn = () => {
+            const v = typed()
+            if (v === '' || !room() || S.custom.some((x) => x.toLowerCase() === v.toLowerCase())) return false
+            S.custom.push(v)
+            S.goalFocus = 'own:' + v
+            S.kitSel = null
+            return true
+          }
+          const addBtn = button('kb-ob-btn kb-ob-second kb-ob-gadd', T('goals.free.add'), () => {
+            if (!addOwn()) return
+            render(false)
+            const again = root !== null ? root.querySelector('#kb-ob-f-own') : null
+            if (again !== null) again.focus()
+          })
+          addBtn.disabled = !room()
+          input.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') { ev.preventDefault(); addBtn.click() } })
+          free.appendChild(input)
+          free.appendChild(addBtn)
+          s.appendChild(free)
+          s.appendChild(h('p', 'kb-ob-gnote', T('goals.free.note')))
+          const none = () => S.goals.length === 0 && S.custom.length === 0 && typed() === ''
+          if (none()) s.appendChild(h('p', 'kb-ob-sub kb-ob-hint', T('goals.pick')))
           const a = actions()
-          const next = primary(T('cont'), () => go('model'))
-          next.disabled = S.goals.length === 0
+          // What is typed and not added yet is not lost: Continue adds it first.
+          const next = primary(T('cont'), () => { addOwn(); go('model') })
+          next.disabled = none()
+          input.addEventListener('input', () => { next.disabled = none() })
           a.appendChild(next)
           s.appendChild(a)
           return s
@@ -38223,7 +38312,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
           s.appendChild(h('p', 'kb-ob-sub', noModel ? T('fin0.s') : T('fin.s')))
           s.appendChild(recap([
             [T('fin.job'), curPack() !== null ? packName(curPack()) : T('fin.none')],
-            [T('fin.goals'), kbObGoalsOf(curPack(), S.goals).length > 0 ? kbObGoalsOf(curPack(), S.goals).map((g) => kbObPackText(S.lang, g.name)).join(', ') : T('fin.none')],
+            [T('fin.goals'), kbObGoalsOf(curPack(), S.goals).length + S.custom.length > 0 ? kbObGoalsOf(curPack(), S.goals).map((g) => kbObPackText(S.lang, g.name)).concat(S.custom).join(', ') : T('fin.none')],
             [T('fin.mode'), S.mode !== null ? T('mode.' + S.mode + '.t') : T('fin.none')],
             [T('fin.agents'), S.agents !== null ? T('ag.' + S.agents + '.t') : T('fin.none')],
             [T('fin.model'), modelLabel()],
@@ -38353,6 +38442,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         S.dark = init.dark === true
         S.domain = typeof init.domain === 'string' ? init.domain : null
         S.goals = Array.isArray(init.goals) ? init.goals.slice() : []
+        S.custom = Array.isArray(init.customGoals) ? init.customGoals.filter((g) => typeof g === 'string' && g.trim() !== '').slice(0, 6) : []
         S.packs = Array.isArray(init.packs) ? init.packs : []
         S.mode = init.mode
         S.modeTouched = init.mode !== null && init.mode !== undefined
@@ -38486,6 +38576,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
             mode: known(KB_OB_MODES, saved.uiMode),
             agents: known(KB_OB_PRESETS, saved.agents),
             about: saved.about !== undefined && saved.about !== null && typeof saved.about === 'object' ? saved.about : null,
+            customGoals: Array.isArray(saved.customGoals) ? saved.customGoals.filter((g) => typeof g === 'string') : [],
             accountEmail: probe.accountEmail,
             accountModels: probe.accountModels,
             memoryId: typeof saved.memoryId === 'string' ? saved.memoryId : null,
@@ -38609,7 +38700,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       '.kb-ob-row[role="checkbox"] .kb-ob-dot{border-radius:5px}',
       // the colour of the field the page is showing
       '.kb-ob{transition:background-color .5s ease}',
-      '.kb-ob-tint{background:color-mix(in srgb,var(--ob-a) 5%,var(--bg))}',
+      '.kb-ob-tint{--ob-page:color-mix(in srgb,var(--ob-a) 5%,var(--bg));background:var(--ob-page)}',
       '.kb-ob-tint .kb-ob-primary{background:var(--ob-a);color:var(--ob-on)}',
       '.kb-ob-tint .kb-ob-bar i{background:var(--ob-a)}',
       '.kb-ob-tint .kb-ob-row.on{border-color:var(--ob-a);box-shadow:inset 0 0 0 1px var(--ob-a)}',
@@ -38645,8 +38736,19 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       '.kb-ob-plan li{display:flex;gap:9px;align-items:flex-start}',
       '.kb-ob-plan li svg{color:var(--green);margin-top:2px;flex:none}',
       '.kb-ob-plan p{margin:0;font-size:13px;line-height:1.5;color:var(--ink3)}',
-      '.kb-ob-adds{display:flex;flex-wrap:wrap;gap:4px 6px;margin-top:5px}',
-      '.kb-ob-adds span{font-size:11.5px;color:var(--ink3);padding:1px 8px;border-radius:99px;border:1px solid var(--line)}',
+      // the goals as tags, the line of the one in focus, the free field
+      '.kb-ob-gtags{display:flex;flex-wrap:wrap;gap:8px;margin-top:clamp(12px,2.6vh,22px)}',
+      '.kb-ob-gown{display:inline-flex;align-items:center;border-radius:99px;border:1px dashed var(--ink3);background:var(--bg2);color:var(--ink);font-size:14px}',
+      '.kb-ob-gown button{border:0;background:none;color:inherit;font:inherit;cursor:pointer}',
+      '.kb-ob-gown-t{padding:8px 4px 8px 15px}',
+      '.kb-ob-gown-x{padding:4px 11px 4px 6px;font-size:16px;line-height:1;color:var(--ink3)}',
+      '.kb-ob-gown-x:hover{color:var(--ink)}',
+      '.kb-ob-gfocus{display:flex;flex-direction:column;gap:2px;margin-top:12px;padding:10px 14px;min-height:60px;border-radius:12px;border:1px solid var(--line);background:var(--bg2);font-size:13.5px;line-height:1.45;color:var(--ink2)}',
+      '.kb-ob-gfocus b{font-weight:500;font-size:14.5px;color:var(--ink)}',
+      '.kb-ob-gfree{display:flex;gap:8px;margin-top:12px}',
+      '.kb-ob-gfree .kb-ob-in{flex:1;height:44px;padding:0 16px;resize:none}',
+      '.kb-ob-gadd{height:44px;min-width:92px;padding:0 18px;font-size:14.5px}',
+      '.kb-ob-gnote{margin:8px 2px 0;font-size:12.5px;line-height:1.5;color:var(--ink3)}',
       // the live miniature beside the step
       '.kb-ob-main.kb-ob-split{display:grid;grid-template-columns:minmax(0,520px) minmax(0,1fr);gap:clamp(28px,4.5vw,72px);align-items:start;width:100%;max-width:1480px;margin:0 auto}',
       '.kb-ob-split .kb-ob-step{justify-self:end}',
@@ -38756,6 +38858,42 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       '.kb-ob-actions-row .kb-ob-ghost{align-self:center}',
       '.kb-ob-kitbox{margin-top:24px}',
       '.kb-ob-sticky{position:sticky;bottom:0;margin-top:12px;padding:14px 0;background:var(--bg);z-index:2}',
+      // Fit: every screen is meant to fit one window. The spacing follows the window's height, the actions stay in view (sticky) when a screen is still taller, and the live
+      // preview, which is only a picture, gives way when the window is narrow or short (it was squeezing the column to 330 px at 1000 px wide).
+      '.kb-ob-main{padding:clamp(34px,6vh,56px) clamp(20px,5vw,48px) clamp(10px,3vh,9vh)}',
+      '.kb-ob-eyebrow{margin-bottom:clamp(6px,1.4vh,14px)}',
+      '.kb-ob h1{margin-bottom:clamp(6px,1.1vh,10px)}',
+      '.kb-ob-sub{line-height:1.5}',
+      '@media (max-height:700px){.kb-ob-sub{font-size:14px}}',
+      '.kb-ob-rows,.kb-ob-chips,.kb-ob-recap,.kb-ob-code{margin-top:clamp(12px,2.6vh,26px)}',
+      '.kb-ob-chips-tight{margin-top:clamp(10px,2.2vh,20px)}',
+      '.kb-ob-row{padding:clamp(10px,1.8vh,16px) 18px}',
+      '.kb-ob-recap div{padding:clamp(7px,1.5vh,15px) 18px}',
+      '.kb-ob-srow{padding:clamp(7px,1.3vh,12px) 18px}',
+      '.kb-ob-mem{padding:clamp(8px,1.4vh,13px) 15px}',
+      '.kb-ob-actions{position:sticky;bottom:0;z-index:2;margin-top:clamp(12px,3vh,30px);padding:10px 0 clamp(6px,1.5vh,14px);background:var(--ob-page,var(--bg))}',
+      '.kb-ob-sticky{margin-top:clamp(8px,1.5vh,12px);background:var(--ob-page,var(--bg))}',
+      '@media (max-width:1100px),(max-height:640px){.kb-ob-main.kb-ob-split{display:flex}.kb-ob-pv{display:none}}',
+      '@media (min-width:900px){',
+      // the two plans side by side
+      '.kb-ob-step:has(.kb-ob-plans){max-width:880px}',
+      '.kb-ob-plans{grid-template-columns:1fr 1fr;align-items:stretch}',
+      // the recap on the left, what was set up on the right
+      '.kb-ob-step:has(.kb-ob-recap):has(.kb-ob-setup){max-width:900px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:24px;align-items:start}',
+      '.kb-ob-step:has(.kb-ob-recap):has(.kb-ob-setup)>*{grid-column:1/-1}',
+      '.kb-ob-step:has(.kb-ob-recap):has(.kb-ob-setup)>.kb-ob-recap{grid-column:1;grid-row:3}',
+      '.kb-ob-step:has(.kb-ob-recap):has(.kb-ob-setup)>.kb-ob-setup{grid-column:2;grid-row:3 / span 2;margin-top:clamp(12px,2.6vh,26px)}',
+      '.kb-ob-step:has(.kb-ob-recap):has(.kb-ob-setup)>.kb-ob-mem{grid-column:1;grid-row:4;margin-top:clamp(10px,2vh,18px)}',
+      // the three levels of autonomy side by side, the reason under them
+      '.kb-ob-step:has(.kb-ob-sum){max-width:880px}',
+      '.kb-ob-step:has(.kb-ob-sum) .kb-ob-rows{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:stretch}',
+      // the website and the profile on one line
+      '.kb-ob-step:has(#kb-ob-f-site){max-width:720px;display:grid;grid-template-columns:1fr 1fr;column-gap:16px}',
+      '.kb-ob-step:has(#kb-ob-f-site)>*{grid-column:1/-1}',
+      '.kb-ob-step:has(#kb-ob-f-site)>.kb-ob-fgrp:has(#kb-ob-f-site),.kb-ob-step:has(#kb-ob-f-site)>.kb-ob-fgrp:has(#kb-ob-f-social){grid-column:auto}',
+      '}',
+      // a very short window: the fields and the options are a little tighter
+      '@media (max-height:640px){.kb-ob-in{padding:8px 14px}textarea.kb-ob-in{height:58px;resize:none}.kb-ob-row{padding:9px 16px}.kb-ob-field{height:44px}.kb-ob-btn{height:46px}}',
       '.kb-ob-kitgrp{margin:0 0 10px;font-size:12px;font-weight:500;color:var(--ink3);display:flex;justify-content:space-between;align-items:baseline}',
       '.kb-ob-kitgrp em{font-style:normal;letter-spacing:0;text-transform:none;font-weight:400}',
       '.kb-ob-kit{display:flex;gap:12px;align-items:flex-start;width:100%;padding:13px 16px;margin:0 0 8px;text-align:start;color:var(--ink);background:var(--bg2);border:1px solid var(--line);border-radius:14px;cursor:pointer}',
