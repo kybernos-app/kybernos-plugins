@@ -36,11 +36,26 @@ const RANK = Object.freeze({ ok: 0, busy: 1, high: 2 })
 
 const num = (v) => (typeof v === 'number' && Number.isFinite(v) ? v : null)
 
-/** `KYBERNOS_AUTOMATION_MAX_PARALLEL` → a whole number from 1 to the ceiling, else the default. */
-export const maxParallelFrom = (env) => {
+/**
+ * The default maximum for a machine of a given size, when nothing else says: a 1 GB cloud computer runs one automation at a time, a 2 GB one two,
+ * anything bigger the usual three. A first guess, like the thresholds above. The bounds sit between the sizes, not on them, because a machine sold
+ * as 1 GB reports a little under 1 GB of memory (expected, not yet measured on a real computer: that is step 0 of the cloud plan).
+ */
+export const SIZE_TIERS = Object.freeze([{ underMb: 1536, runs: 1 }, { underMb: 3072, runs: 2 }])
+
+/** The maximum for a machine with this much memory (MB); an unknown size gets the usual default. */
+export const defaultMaxParallel = (totalMb) => {
+  const mb = num(totalMb)
+  if (mb === null || mb <= 0) return DEFAULT_MAX_PARALLEL
+  for (const tier of SIZE_TIERS) if (mb < tier.underMb) return tier.runs
+  return DEFAULT_MAX_PARALLEL
+}
+
+/** `KYBERNOS_AUTOMATION_MAX_PARALLEL` → a whole number from 1 to the ceiling, else the default for the machine's size (`totalMb`, when known). */
+export const maxParallelFrom = (env, totalMb) => {
   const raw = env !== null && typeof env === 'object' ? env.KYBERNOS_AUTOMATION_MAX_PARALLEL : undefined
   const n = typeof raw === 'string' && /^\d{1,3}$/.test(raw.trim()) ? Number(raw.trim()) : NaN
-  return Number.isSafeInteger(n) && n >= 1 ? Math.min(n, MAX_PARALLEL_CEILING) : DEFAULT_MAX_PARALLEL
+  return Number.isSafeInteger(n) && n >= 1 ? Math.min(n, MAX_PARALLEL_CEILING) : defaultMaxParallel(totalMb)
 }
 
 /**

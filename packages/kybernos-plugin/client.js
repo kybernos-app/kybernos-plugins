@@ -1694,6 +1694,7 @@ let kbLocaleRead = () => 'en'
       'kbauto.set.error': { kybernos: 'Réglage non enregistré. Réessaie.', en: 'Setting not saved. Try again.' },
       'kbauto.set.load': { kybernos: 'Charge de l’ordinateur', en: 'Computer load' },
       'kbauto.set.load.ok': { kybernos: 'Légère : jusqu’à {max} automations à la fois.', en: 'Light: up to {max} automations at once.' },
+      'kbauto.set.load.ok1': { kybernos: 'Légère : une automation à la fois sur cette machine.', en: 'Light: one automation at a time on this machine.' },
       'kbauto.set.load.busy': { kybernos: 'Chargé : une seule automation à la fois, qui lance au plus un subagent à la fois ; les autres attendent.', en: 'Busy: one automation at a time, starting at most one sub-agent at a time; the others wait.' },
       'kbauto.set.load.high': { kybernos: 'Très chargé : les automations attendent et partent d’elles-mêmes dès que ça se calme ; celles en cours ne lancent plus de subagents.', en: 'Very busy: automations wait and start on their own as soon as it calms down; the ones going start no sub-agents.' },
       'kbld.title': { kybernos: 'Charge de l’ordinateur', en: 'Computer load' },
@@ -1720,6 +1721,7 @@ let kbLocaleRead = () => 'en'
       'kbld.sub.zero': { kybernos: 'Aucun autorisé', en: 'None allowed' },
       'kbld.sub.of': { kybernos: '{n} sur {max} autorisé', en: '{n} of {max} allowed' },
       'kbld.m.idle': { kybernos: 'Aucun run en cours · jusqu’à {max} à la fois', en: 'No run going · up to {max} at once' },
+      'kbld.m.idle1': { kybernos: 'Aucun run en cours · un à la fois', en: 'No run going · one at a time' },
       'kbld.m.runs': { kybernos: '{n} sur {a} runs en cours', en: '{n} of {a} runs going' },
       'kbld.m.runs0': { kybernos: 'Aucun run en cours', en: 'No run going' },
       'kbld.m.runsOf1': { kybernos: '{n} sur 1 run en cours', en: '{n} of 1 run going' },
@@ -1732,6 +1734,7 @@ let kbLocaleRead = () => 'en'
       'kbld.m.subof': { kybernos: 'subagents {n} sur {max}', en: 'sub-agents {n} of {max}' },
       'kbld.m.nosub': { kybernos: 'plus de nouveaux subagents', en: 'no new sub-agents' },
       'kbld.foot.ok': { kybernos: 'Légère : jusqu’à {max} runs à la fois. Les subagents ne sont pas limités.', en: 'Light: up to {max} runs at once. Sub-agents are not limited.' },
+      'kbld.foot.ok1': { kybernos: 'Légère : un run à la fois sur cette machine. Les subagents ne sont pas limités.', en: 'Light: one run at a time on this machine. Sub-agents are not limited.' },
       'kbld.foot.busy': { kybernos: 'Chargé : un run à la fois, un subagent à la fois. Les autres attendent, le plus ancien d’abord.', en: 'Busy: one run at a time, one sub-agent at a time. The others wait, oldest first.' },
       'kbld.foot.high': { kybernos: 'Très chargé : les nouveaux runs attendent (jamais plus de 10 min) et ceux en cours ne lancent plus de subagents.', en: 'Very busy: new runs wait (never more than 10 min) and running ones start no sub-agents.' },
       'kbld.settings': { kybernos: 'Réglages ›', en: 'Settings ›' },
@@ -6668,7 +6671,7 @@ const kbLdMeta = (v) => {
   const w = typeof v.waiting === 'number' ? v.waiting : 0
   const kids = kbLdKids(v)
   const level = kbLdLevel(v)
-  if (n === 0 && w === 0 && level === 'ok') return kbt('kbld.m.idle').replace('{max}', String(max))
+  if (n === 0 && w === 0 && level === 'ok') return kbt(max === 1 ? 'kbld.m.idle1' : 'kbld.m.idle').replace('{max}', String(max))
   const parts = []
   parts.push(n === 0 ? kbt('kbld.m.runs0') : (typeof v.allowed === 'number' && v.allowed > 0
     ? (v.allowed === 1 ? kbt('kbld.m.runsOf1').replace('{n}', String(n)) : kbt('kbld.m.runs').replace('{n}', String(n)).replace('{a}', String(v.allowed)))
@@ -6764,7 +6767,7 @@ const KbLoadStrip = (props) => {
             line(kbt('kbld.auto.refused'), String(typeof subs.refused === 'number' ? subs.refused : 0))),
           kbLdSpark(kbLdSteps(series.runs, 160, 30, Math.max(1, max), KB_LD_POINTS), 30, 'var(--dsw-alias-state-success-primary)'))),
       h('div', { className: 'kbld-foot' },
-        h('span', { className: 'kbld-sp' }, kbt('kbld.foot.' + level).replace('{max}', String(max))),
+        h('span', { className: 'kbld-sp' }, kbt('kbld.foot.' + level + (level === 'ok' && max === 1 ? '1' : '')).replace('{max}', String(max))),
         h('button', { type: 'button', className: 'kbld-link', 'data-kb': 'load-settings', onClick: () => { openPair[1](false); kbOpenSettingsPage(['kybernos-automations']) } }, kbt('kbld.settings')))) : null)
 }
 // What a row of the List says about a run: its weight (time, activity, slot, sub-agents, lighter) or that it waits for the machine.
@@ -34734,7 +34737,7 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
           ld === null ? null : h('div', { className: 'kbac-row', key: 'load', 'data-kb': 'automation-load', 'data-level': ld.level },
             h('div', { className: 'kbac-row-txt' },
               h('span', { className: 'kbac-row-l' }, kbt('kbauto.set.load')),
-              h('span', { className: 'kbac-row-d' }, kbt('kbauto.set.load.' + (ld.level === 'busy' || ld.level === 'high' ? ld.level : 'ok')).replace('{max}', String(ld.maxParallel)) +
+              h('span', { className: 'kbac-row-d' }, kbt('kbauto.set.load.' + (ld.level === 'busy' || ld.level === 'high' ? ld.level : (ld.maxParallel === 1 ? 'ok1' : 'ok'))).replace('{max}', String(ld.maxParallel)) +
                 (Array.isArray(ld.reasons) === true && ld.reasons.length > 0 ? ' (' + ld.reasons.map((x) => kbt('kbauto.set.load.why.' + x)).join(', ') + ')' : '')),
               h('span', { className: 'kbac-row-d' }, kbt('kbauto.set.load.count').replace('{n}', String(ld.inFlight)).replace('{w}', String(ld.waiting)) +
                 (ld.subagents !== null && typeof ld.subagents === 'object' && ld.subagents.refused > 0 ? ' · ' + kbt('kbauto.set.load.refused').replace('{n}', String(ld.subagents.refused)) : ''))),
