@@ -261,8 +261,8 @@
             },
             "steps": [
               {
-                "fr": "Les automatisations tournent sur cet ordinateur, tant que DSH est ouvert.",
-                "en": "Automations run on this computer, while DSH is open."
+                "fr": "Elles tournent sur cet ordinateur, tant que DSH est ouvert. S’il est chargé, elles attendent leur tour et lancent moins de subagents.",
+                "en": "They run on this computer, while DSH is open. When it is busy, they wait their turn and start fewer sub-agents."
               },
               {
                 "fr": "Active la pause pour que rien ne se déclenche ; ce qui est arrivé à échéance se déclenche une fois à la reprise.",
@@ -2488,8 +2488,8 @@
             "en": "The same choice appears when you add a workspace from the sidebar or from a new chat."
           },
           {
-            "fr": "Ouvre un workspace, onglet Détails : le dossier de travail y est affiché, et « Avancé » montre un aperçu de ce qui viendra.",
-            "en": "Open a workspace, Details tab: its working folder is shown there, and “Advanced” previews what is coming."
+            "fr": "Ouvre un workspace, onglet Détails : le dossier de travail y est affiché ; l'onglet Appareils montre un aperçu de ce qui viendra.",
+            "en": "Open a workspace, Details tab: its working folder is shown there; the Devices tab previews what is coming."
           }
         ],
         "where": {

@@ -112,6 +112,8 @@ export const problemsOfLine = (line) => {
   const out = []
   const settings = new RegExp(NOT_THE_MENU + '\\b(?:Settings|Réglages|Reglages|Paramètres|Parametres|Ajustes)\\s*' + ARROW + '\\s*', 'gu')
   for (let m = settings.exec(line); m !== null; m = settings.exec(line)) {
+    // « Settings › » closing a string is the label of a link with its chevron (the button that opens the page): there is no page to name after it.
+    if (/^['"`]/.test(line.slice(m.index + m[0].length))) continue
     const rest = line.slice(m.index + m[0].length).replace(LEAD, '')
     const head = rest.slice(0, 40)
     if (EXTERNAL.some((x) => fold(head).startsWith(x))) continue
@@ -145,6 +147,7 @@ console.log('the checker')
   check('it refuses a sidebar that has a Kybernos level', bad('Sidebar › Kybernos › Skills') && bad('Barre latérale › Kybernos'))
   check('it accepts the pages of the menu, at any depth and in a sentence', !bad('Settings › Connectors') && !bad('Settings › Calls › Voice marks the online engines') && !bad('Réglages › Général › Langue') && !bad('Settings › General › Kybernos Settings') && !bad('Réglages › Fournisseur IA et modèles') && !bad('Settings → **Memory & Lessons** (in the Kybernos group)') && !bad('Settings ▸ Phone and channels and the sidebar') && !bad('Sidebar › Skills'))
   check('it leaves System Settings and the Composio dashboard alone', !bad('Screen Recording (System Settings > Privacy)') && !bad('Menu Settings ▸ API Keys, then Generate new key.') && !bad('Right sidebar › Files tab'))
+  check('it leaves the label of a link that ends with its chevron alone, and still refuses a signpost that names nothing real', !bad("'kbld.settings': { kybernos: 'Réglages ›', en: 'Settings ›' },") && bad('Open Settings › and tick the goals') && bad("tick some goals (Settings › Profile) or install"))
   check('it names the places that do not exist', goneOfLine('Kybernos menu › Dashboards').length > 0 && goneOfLine('Phone button at the bottom of the sidebar').length > 0 && goneOfLine('Menu › Search everywhere').length > 0 && goneOfLine('Sidebar › Skills').length === 0)
 }
 
