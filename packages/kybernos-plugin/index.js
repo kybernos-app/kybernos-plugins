@@ -2749,6 +2749,40 @@ function boot(ctx) {
       return { depth: 0, root: null }
     }
     const kbRunDepth = (agent) => kbRunWalk(agent).depth
+    // ── Automations that ask first, on a cloud computer ───────────────────────────────────────────────────────────────────────
+    // DSH's own question card has nobody in front of it on a computer, so a run of an automation published here that asks first is not given the asking preset: the cloud plugin's gate
+    // (kybernos-cloud, `tools/pre-execute`) asks the platform and refuses the call with « stop and wait ». This plugin tells it which sessions are such runs (`of`), and marks the run
+    // in the task list while it waits (`wait`: the reporter does not report a waiting run as ended, and the schedule row says `waiting_approval`). The gate says it is there through
+    // `Symbol.for('kybernos.computerGate')`; absent, such a run is not started and such an automation is not accepted.
+    const kbComputerGateOn = () => { try { const f = globalThis[Symbol.for('kybernos.computerGate')]; return typeof f === 'function' && f() === true } catch (e) { return false } }
+    const kbComputerRuns = new Map()
+    const kbRememberComputerRun = (id, taskId, ref) => { kbComputerRuns.set(id, { taskId, ref }); if (kbComputerRuns.size > 500) kbComputerRuns.delete(kbComputerRuns.keys().next().value) }
+    try {
+      globalThis[Symbol.for('kybernos.automationRuns')] = Object.freeze({
+        /** The run an agent belongs to (itself or a session it was started under): `{ root, taskId, ref }`, or null. */
+        of: (agent) => {
+          const store = ctx.get('sessions')
+          let id = kbAgentId(agent)
+          for (let i = 0; i < 8 && typeof id === 'string'; i += 1) {
+            const hit = kbComputerRuns.get(id)
+            if (hit !== undefined) return { root: id, taskId: hit.taskId, ref: hit.ref }
+            const session = store !== undefined && store !== null && typeof store.get === 'function' ? store.get(id) : undefined
+            id = session !== undefined && session !== null && session.header !== undefined && session.header !== null ? session.header.parentSession : undefined
+          }
+          return null
+        },
+        /** Marks the run of this session as waiting for its person's answer (or as going on again). */
+        wait: async (sessionId, on) => {
+          if (typeof sessionId !== 'string') return
+          await kbTasksMutate(async (tasks) => {
+            for (const t of tasks) {
+              if (t === null || typeof t !== 'object' || Array.isArray(t.history) !== true) continue
+              for (const h of t.history) if (h !== null && typeof h === 'object' && h.sessionId === sessionId) h.status = on === true ? 'waiting_approval' : 'fired'
+            }
+          })
+        },
+      })
+    } catch (e) { try { console.error('[kybers] automations: the runs seam could not be published (' + errText(e) + ')') } catch (e2) { /* console unavailable */ } }
     const kbLoadReadMemory = () => new Promise((resolve) => {
       let total = 0
       try { total = osTotalmem() } catch (e) { total = 0 }
@@ -2965,7 +2999,12 @@ function boot(ctx) {
       // session otherwise keeps the profile's default permission: this never widens what a
       // session may do. If the host cannot apply it, the run does not start: the prompt is not
       // sent, and the failure is recorded on the run like any other.
-      if (task.approvals !== 'auto') {
+      const kbOnComputer = task.approvals !== 'auto' && task.published !== null && task.published !== undefined && typeof task.published === 'object'
+      if (kbOnComputer === true) {
+        // Published to this computer and asking first: the cloud plugin's gate asks, never DSH's own card. Without it the run does not start (it would act without asking).
+        if (kbComputerGateOn() !== true) throw new Error('approvals "ask" cannot be asked on this computer (the gate that asks the person is not there): the run was not started')
+        kbRememberComputerRun(sessionId, typeof task.id === 'string' ? task.id : '', String(task.published.ref))
+      } else if (task.approvals !== 'auto') {
         const presetsSvc = ctx.get('permissionPresets')
         const sessionsSvc = ctx.get('sessions')
         if (presetsSvc === undefined || presetsSvc === null || typeof presetsSvc.set !== 'function' || sessionsSvc === undefined || sessionsSvc === null || typeof sessionsSvc.get !== 'function') {
@@ -11147,7 +11186,7 @@ function boot(ctx) {
         let result = { ok: false, code: 'invalid_op' }
         try {
           await kbTasksMutate(async (tasks) => {
-            result = autoApplyPublished(tasks, body.op, body.ref, body.task, { sanitize: kbSanitizeTaskInput, frequent: kbFrequentRefusal, nextRun: kbComputeNextRun, neverRuns: kbNeverRuns, newId: kbTaskId, nowMs: () => Date.now() })
+            result = autoApplyPublished(tasks, body.op, body.ref, body.task, { sanitize: kbSanitizeTaskInput, frequent: kbFrequentRefusal, nextRun: kbComputeNextRun, neverRuns: kbNeverRuns, newId: kbTaskId, nowMs: () => Date.now(), askAllowed: kbComputerGateOn })
           })
         } catch (e) {
           const code = e !== null && typeof e === 'object' ? e.code : undefined
