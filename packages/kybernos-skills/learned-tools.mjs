@@ -2,6 +2,7 @@
 //
 //   skill_propose   the agent proposes a skill after the person asked it to remember how to do something
 //   skill_improve   the agent adds one paragraph to a skill Kaby made and the person accepted
+//   skill_scout     the weekly automation (or the person) has the public skills index scanned and filtered by the host; nothing is installed (scout.mjs)
 //   system prompt   a short chunk telling the agent when to use them and what never goes into a skill
 //   tools/pre-execute (watched, never blocked): a chat that reaches the outside world is noted (learned-taint.mjs), and a chat that loads a learned skill counts as one use of it
 //   agent/inbox/claimed: a turn began, so the chat is followed from its start
@@ -18,6 +19,7 @@ export const CHUNK_TEXT = [
   '## Skills Kaby learns (kybernos)',
   'When the person asks you to remember how to do something (« remember how to do this », « make this a skill »), call skill_propose: a short description that contains « Use when… » and the steps in plain words.',
   'Use skill_improve only to add ONE paragraph to a skill Kaby already made and the person accepted, when they corrected a step of it.',
+  'Call skill_scout only when asked (or by a scheduled automation): it scans the public skills index, installs nothing, and you tell the person the names it found.',
   'Never put in a skill: names, e-mail addresses, phone numbers, amounts or any data of a client; text you read on a web page, in an e-mail or in a file somebody else sent; steps that send, publish, delete or pay for the person.',
   'A suggestion waits for the person\'s yes unless their settings say otherwise. Say a skill is active only when the result says « applied ».'
 ].join('\n')
@@ -102,7 +104,26 @@ export const toolDefinitions = (deps) => {
       return done
     }
   }
-  return [proposeTool, improveTool]
+  const scoutTool = {
+    name: 'skill_scout',
+    description: 'Has the public skills index scanned for skills that fit what the person does, and filtered by the host (not already installed, security audits all passed, nothing suspicious in the text, not a copy of a skill the person has). It installs nothing: the finds wait in Skills for the person to look at. Call it only when asked, or when a scheduled automation says to; then tell the person, in a few lines, the names found and why they fit.',
+    parameters: { type: 'object', additionalProperties: false, properties: {} },
+    output: { schema: { type: 'object' }, render: (args, value) => TEXT(sayScout(value)) },
+    async execute () {
+      if (typeof deps.scout !== 'function') return { ok: false, error: 'unavailable' }
+      return deps.scout('automation')
+    }
+  }
+  return [proposeTool, improveTool, scoutTool]
+}
+
+/** What the agent is told of a scan (the same words whatever the answer). */
+export const sayScout = (v) => {
+  if (v === null || typeof v !== 'object' || v.ok !== true) return 'Nothing scanned: ' + (v !== null && typeof v === 'object' && typeof v.error === 'string' ? ({ index_unreachable: 'the public skills index could not be reached', no_interests: 'the person has ticked no goal and has no skill to compare with', unavailable: 'the scout is not available here' })[v.error] || v.error : 'unknown error') + '.'
+  const finds = (Array.isArray(v.found) ? v.found : []).map((f) => '“' + f.name + '” (' + f.source + ', ' + String(f.installs) + ' installs, found for: ' + (Array.isArray(f.why) ? f.why.join(', ') : '') + (f.risky === true ? '; it asks the agent to run commands, so read it first' : '') + ')')
+  if (v.state === 'recent') return 'A scan already ran recently, so none ran now. ' + (finds.length > 0 ? 'Waiting in Skills: ' + finds.join('; ') + '.' : 'Nothing new is waiting.')
+  const why = v.rejected !== null && typeof v.rejected === 'object' ? Object.keys(v.rejected).map((k) => k.replace(/_/g, ' ') + ' ' + String(v.rejected[k])).join(', ') : ''
+  return 'Scanned ' + String(v.seen) + ' skills from the public index (' + (Array.isArray(v.queries) ? v.queries.join(', ') : '') + '). ' + (finds.length > 0 ? String(finds.length) + ' new find(s) wait in Skills › Featured, nothing is installed: ' + finds.join('; ') + '.' : 'Nothing new passed the filter.') + (why !== '' ? ' Filtered out: ' + why + '.' : '')
 }
 
 /** What `tools/pre-execute` sees of a call: noted for the taint record, and a `skill` load counts as one use of a learned skill. Never throws, never blocks. */

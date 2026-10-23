@@ -114,7 +114,11 @@ const repeatHost = readFileSync(join(here, 'learned-repeat.mjs'), 'utf8')
 const repeatCodes = [...repeatHost.matchAll(/\berror: '([a-z_]+)'/g)].map((m) => m[1])
 assert.ok(repeatCodes.length >= 2, 'the codes of learned-repeat.mjs were read (' + repeatCodes.length + ')')
 for (const st of ['later', 'never', 'done']) assert.ok(dict.has('ls2.rep.s.' + st), 'no sentence for the pattern state ' + st)
-const codes = new Set([...literal, ...built, ...learnedCodes, ...settingsCodes, ...repeatCodes])
+// The skill scout (scout.mjs) and the covers maker (cover-maker.mjs): the scout's refusals are shown (a notice under « Scan now », « Not interested »); the maker's never are.
+const scoutHost = readFileSync(join(here, 'scout.mjs'), 'utf8')
+const scoutCodes = [...scoutHost.matchAll(/\berror: '([a-z_]+)'/g)].map((m) => m[1])
+assert.ok(scoutCodes.length >= 3, 'the codes of scout.mjs were read (' + scoutCodes.length + ')')
+const codes = new Set([...literal, ...built, ...learnedCodes, ...settingsCodes, ...repeatCodes, ...scoutCodes])
 // Nobody reads these on the screen: an image route, a method guard of a route the page never gets wrong, a note the page does not show.
 const unseen = new Set(['get_required', 'post_required', 'no_cover', 'cover_unreadable', 'bad_name', 'bad_root', 'bad_path', 'bad_target'])
 const noHe = [...codes].filter((w) => !unseen.has(w) && !dict.has('he.' + w))

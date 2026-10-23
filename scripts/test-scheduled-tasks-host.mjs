@@ -589,5 +589,59 @@ eq('binary content is not dumped into the prompt', pl('\u0000\u0001abc', 'applic
   eq('gate: never throws on hostile arguments', (() => { const o = {}; Object.defineProperty(o, 'tools', { get() { throw new Error('boom') } }); return g(composio, o) !== null })(), true)
 }
 
+/* ── 7. The cap: only the runs the machine has room for are claimed, oldest first, the rest stay due ───────────────────────── */
+{
+  const { admit } = await import(new URL('../packages/kybernos-plugin/automation-load.mjs', import.meta.url).href)
+  const five = () => ['a', 'b', 'c', 'd', 'e'].map((id, i) => dueTask({ id, nextRun: new Date(T0 - 5000 + i * 1000).toISOString() }))
+  const withCap = (cap, extra) => Object.assign({ capacity: async () => cap, admit }, extra || {})
+  const nextRuns = (r) => JSON.parse(r.m.st.text).map((t) => t.id + '=' + t.nextRun.slice(11, 19)).join(' ')
+
+  const r = rig(five(), withCap({ level: 'ok', allowed: 2, inFlight: 0 }))
+  const a = await r.trigger.tick()
+  eq('cap 2: two start, three are held', a.fired + '/' + a.held, '2/3')
+  eq('cap 2: the two oldest start', r.fired.join(','), 'a,b')
+  eq('cap 2: the held ones keep their due time (late, not lost)', nextRuns(r), 'a=08:00:00 b=08:00:00 c=07:59:57 d=07:59:58 e=07:59:59')
+  const b = await r.trigger.tick()
+  eq('next tick: the next two oldest start', b.fired + '/' + b.held + ' ' + r.fired.join(','), '2/1 a,b,c,d')
+  const c = await r.trigger.tick()
+  eq('last tick: the last one starts', c.fired + '/' + c.held + ' ' + r.fired.join(','), '1/0 a,b,c,d,e')
+  eq('nothing is left waiting', (await r.trigger.tick()).fired, 0)
+}
+{ // the room is what is left after the runs going
+  const r = rig(['a', 'b', 'c'].map((id) => dueTask({ id })), { capacity: async () => ({ level: 'ok', allowed: 3, inFlight: 2 }), admit: (await import(new URL('../packages/kybernos-plugin/automation-load.mjs', import.meta.url).href)).admit })
+  const a = await r.trigger.tick()
+  eq('3 allowed, 2 going: one starts', a.fired + '/' + a.held, '1/2')
+}
+{ // a loaded machine starts nothing, and writes nothing
+  const { admit } = await import(new URL('../packages/kybernos-plugin/automation-load.mjs', import.meta.url).href)
+  const r = rig([dueTask({ id: 'a' }), dueTask({ id: 'b', schedule: { mode: 'once', at: new Date(T0 - 1000).toISOString() } })], { capacity: async () => ({ level: 'high', allowed: 0, inFlight: 0 }), admit })
+  const before = r.m.st.writes
+  const a = await r.trigger.tick()
+  eq('high load: nothing starts', a.fired + '/' + a.held, '0/2')
+  eq('high load: nothing is written', r.m.st.writes, before)
+  const saved = JSON.parse(r.m.st.text)
+  eq('a held one-time run is still active, not spent', saved.find((t) => t.id === 'b').active, true)
+}
+{ // never frozen: a run held for more than ten minutes starts anyway
+  const { admit } = await import(new URL('../packages/kybernos-plugin/automation-load.mjs', import.meta.url).href)
+  const old = dueTask({ id: 'old', nextRun: new Date(T0 - 11 * 60000).toISOString() })
+  const fresh = dueTask({ id: 'fresh', nextRun: new Date(T0 - 1000).toISOString() })
+  const r = rig([fresh, old], { capacity: async () => ({ level: 'high', allowed: 0, inFlight: 0 }), admit })
+  const a = await r.trigger.tick()
+  eq('a run held over ten minutes starts alone, the oldest first', a.fired + '/' + a.held + ' ' + r.fired.join(','), '1/1 old')
+}
+{ // fail-open: no answer from the machine means no limit
+  const { admit } = await import(new URL('../packages/kybernos-plugin/automation-load.mjs', import.meta.url).href)
+  const three = () => ['a', 'b', 'c'].map((id) => dueTask({ id }))
+  const r1 = rig(three(), { capacity: async () => { throw new Error('sysctl missing') }, admit })
+  eq('capacity throws: everything starts', (await r1.trigger.tick()).fired, 3)
+  const r2 = rig(three(), { capacity: async () => ({ level: 'ok', allowed: 1, inFlight: 0 }), admit: () => { throw new Error('boom') } })
+  eq('admit throws: everything starts', (await r2.trigger.tick()).fired, 3)
+  const r3 = rig(three(), { capacity: async () => ({ level: 'ok', allowed: 1, inFlight: 0 }), admit: () => 'not a list' })
+  eq('admit answers nonsense: everything starts', (await r3.trigger.tick()).fired, 3)
+  const r4 = rig(three(), { capacity: async () => null, admit })
+  eq('capacity answers nothing: everything starts', (await r4.trigger.tick()).fired, 3)
+}
+
 console.log(fails === 0 ? '\nALL PASS' : '\n' + fails + ' FAILURES')
 process.exit(fails === 0 ? 0 : 1)

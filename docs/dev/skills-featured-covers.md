@@ -53,6 +53,13 @@ The key is the one DSH holds for DeepInfra (`DEEPINFRA_API_KEY` in its credentia
 | `systematic-debugging` | a team tracing a bug: a large insect under a giant microscope, a tangle of cables being untangled, a board of clues linked with red string, a light bulb above |
 | `mcp-builder` | tiny engineers building a connector between two machines, plugging a big cable plug into a socket, toolboxes, blueprints on a table, a bridge of pipes |
 
+## Made on the fly
+
+The same pipeline now runs inside the plugin for a card that has no picture (`cover-maker.mjs`, `docs/dev/learned-skills.md`): `COVER_STYLE`, `COVER_TAIL` and the example
+scenes are the strings of this document, verbatim (`test-cover-maker.mjs` reads this file and fails when they drift), so a picture made later looks like the shipped ones.
+Measured on a real run: scene 2.5 s, picture 14 s, cut-out 2.5 s. Bria's answer is `images[0]` as an https address on `temp.bria.ai`, not on DeepInfra. The made
+pictures are not in the repository (no media in git): they live in `<DSH home>/kybernos/skills-featured/`.
+
 ## Rules and open points
 
 - A skill is featured only if **no skills.sh audit provider says `fail`** (`test-picks.mjs` guards it) and only if the host's own install

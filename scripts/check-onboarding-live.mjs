@@ -682,16 +682,16 @@ try {
   const fieldDots = await q(`document.querySelectorAll('[data-kb="field-rows"] [data-kb="field-skill"] .kbsf-fdot').length`)
   const fieldFrame = await q(`!!document.querySelector('.kbsf-field, .kbsf-fhead')`)
   const fieldNames = await q(`[...document.querySelectorAll('[data-kb="field-skill"]')].map((e) => e.getAttribute('data-skill'))`)
-  const fieldTags = await q(`[...document.querySelectorAll('[data-kb="field-skill"] .kbsf-ftag')].map((e) => e.textContent.trim() + (e.classList.contains('on') ? '*' : ''))`)
+  const fieldTags = await q(`[...document.querySelectorAll('[data-kb="field-skill"] .kbsf-tagtx')].map((e) => e.textContent.trim() + (e.classList.contains('on') ? '*' : ''))`)
   check('Skills opens on the Law skills, flat in the list: a dot each, no frame, no title', fieldDots === 6 && fieldFrame === false, JSON.stringify([fieldDots, fieldFrame]))
   check('with the skills of the ticked goals first (marked), then the others of the field, each once', JSON.stringify(fieldNames) === JSON.stringify(['review-contract', 'compliance-check', 'deadline-check', 'case-law-watch', 'xlsx', 'docx']) && JSON.stringify(fieldTags) === JSON.stringify(['Contracts*', 'Contracts*', 'Deadlines*', 'Watch', 'Time', 'Drafting']), JSON.stringify([fieldNames, fieldTags]))
-  check('the curated skills carry the page\'s own title, not the folder name', (await q(`[...document.querySelectorAll('[data-skill="docx"] .kbsf-ftitle, [data-skill="xlsx"] .kbsf-ftitle')].map((e) => e.textContent.trim()).join('|')`)) !== 'Xlsx|Docx')
-  check('a skill from GitHub asks the usual confirmation before anything is installed', (await q(`(() => { const b = document.querySelector('[data-skill="docx"] [data-kb="field-install"]'); if (!b) return false; b.click(); return true })()`)) === true && (await waitFor(page, `!!document.querySelector('[data-kb="install-confirm"]') && /anthropics\\/skills/.test(document.querySelector('[data-kb="install-confirm"]').innerText)`, 6000)) === true)
+  check('the curated skills carry the page\'s own title, not the folder name', (await q(`[...document.querySelectorAll('[data-skill="docx"] .kbsf-title, [data-skill="xlsx"] .kbsf-title')].map((e) => e.textContent.trim()).join('|')`)) !== 'Xlsx|Docx')
+  check('a skill from GitHub asks the usual confirmation before anything is installed', (await q(`(() => { const b = document.querySelector('[data-skill="docx"] [data-kb="pick-install"]'); if (!b) return false; b.click(); return true })()`)) === true && (await waitFor(page, `!!document.querySelector('[data-kb="install-confirm"]') && /anthropics\\/skills/.test(document.querySelector('[data-kb="install-confirm"]').innerText)`, 6000)) === true)
   await q(`(() => { const b = document.querySelector('[data-kb="install-confirm-no"]'); if (b) b.click() })()`)
   await sleep(500)
   await page.shot(join(shotDir, 'pages-skills-law.png'))
-  check('a skill that ships with Kybernos installs in one click, with no download', (await q(`(() => { const b = document.querySelector('[data-skill="deadline-check"] [data-kb="field-install"]'); if (!b) return false; b.click(); return true })()`)) === true &&
-    (await waitFor(page, `!!document.querySelector('[data-skill="deadline-check"] [data-kb="field-use"]')`, 15000)) === true && existsSync(join(dshHome, 'skills', 'deadline-check', 'SKILL.md')))
+  check('a skill that ships with Kybernos installs in one click, with no download', (await q(`(() => { const b = document.querySelector('[data-skill="deadline-check"] [data-kb="pick-install"]'); if (!b) return false; b.click(); return true })()`)) === true &&
+    (await waitFor(page, `!!document.querySelector('[data-skill="deadline-check"] [data-kb="pick-use"]')`, 15000)) === true && existsSync(join(dshHome, 'skills', 'deadline-check', 'SKILL.md')))
   try { rmSync(join(dshHome, 'skills', 'deadline-check'), { recursive: true, force: true }) } catch (e) { /* none */ }
   try { const f = join(dshHome, 'kybernos/seeded-skills.json'); if (existsSync(f)) { const j = JSON.parse(readFileSync(f, 'utf8')); if (j && j.skills) { delete j.skills['deadline-check']; writeFileSync(f, JSON.stringify(j, null, 2)) } } } catch (e) { /* none */ }
   await openView({ view: 'connectors' })

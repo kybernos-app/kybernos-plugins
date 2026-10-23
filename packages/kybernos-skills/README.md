@@ -17,6 +17,10 @@ It is part of the **socle** (`socle: true` in `packages/kybernos-hub/catalog.jso
   Tint or Plain. Both choices are kept per browser. *Details* opens the pick **on the width of the page** (not in a side panel): its picture and
   title at the top as on the card, then the facts, the live audits and the start of the repository's real `SKILL.md` side by side; *Back*
   returns to the grid or the list, and installing from there keeps the pick open (it flips to *Installed*).
+  A `SKILL.md` is shown **formatted** wherever the page shows one (a pick's page, a Discover panel, an installed skill's panel): the front matter as a small properties
+  box, headings, lists, tables, code, quotes, links. A safe subset drawn as React elements (HTML stays text, no image is loaded, only https links), with a **Raw text**
+  switch: a skill comes from someone else and the raw file is where a hidden line would show (`test-markdown.mjs`).
+  The first cards are the skills of the person's field and what the **skill scout** found; a card with no picture gets one made in the shipped style (`docs/dev/learned-skills.md`).
   The data is `featured-picks.json` (below); with a host that does not have the route the tab is hidden and Yours is the landing tab.
 - **Yours**: skills of this profile, with a banner for **what Kaby suggests** (dashed cards, a Review panel with the checks, Accept / Edit / Discard, a Journal button, an Origin filter and a **Learned** badge on what was accepted), search, state / source filters, sorting, an active toggle on each card (read-only rows
   when the folder is not writable) and a Featured row kept by a star. A click on a card opens a **panel on the right** (the list
@@ -65,6 +69,8 @@ All under `/kybernos-skills/`, JSON; refusals come back as HTTP 200 `{ok:false, 
 | `POST learned/from-lessons {lessons}` · `learned/accept {id,description?,body?}` · `learned/edit` · `learned/discard {id}` · `learned/restore {id}` · `learned/undo {name}` | a suggestion waits in a ledger, **not in the skills folder**; Accept writes the skill (never over an existing folder), keeps version 1 and journals; Discard keeps 30 days; Undo works only while `SKILL.md` is still the text that was written |
 | `GET learned/settings` · `POST learned/settings/set {mode?,threshold?,cap?,notify?,privOk?}` · `GET learned/session?sessionId=` · `POST learned/keep {name}` · `POST learned/stop` | V1: what Kaby may do alone (**Settings › Learned skills**, `ask` by default), what happened to skills in one chat, « I read it, keep it », and the kill switch (every automatic change of the last 7 days goes back) |
 | `GET learned/notice?sessionId=` · `POST learned/notice/answer` · `GET learned/notice/list` · `POST learned/notice/forget` · `GET learned/week?sessionId=` · `POST learned/week/hide` · `POST learned/shared {name}` | V2: a task the person asks again is noticed (rules on the chat index of Search everywhere, once a day at most), the weekly card of a blank chat, and « I proposed it to the team » (`docs/dev/learned-skills.md`) |
+| `GET scout` · `POST scout/run` · `POST scout/dismiss {id}` | the skill scout (`docs/dev/learned-skills.md`): what it found for the person, a background scan (not within ten minutes of the last), « Not interested ». It never installs |
+| `GET covers/state?names=` · `POST covers/make {items}` · `POST covers/auto {on}` | pictures made for cards that have none (eight a day, with a key, switch on by default): where each name is, queue the missing ones, the person's switch |
 | `GET picks` | the picks Kybernos proposes (`featured-picks.json`, checked by `featured-picks.mjs`), each with a cover URL only when its file exists |
 | `GET featured` · `POST featured/toggle` · `GET cover/<name>` | Featured list and cover images |
 | `GET index-source` · `POST index-source/set {url}` | which relay the Discover index is read from (`origin`: `default`, `setting` or `env`; `editable: false` while the variable decides), and the setting that names another one (an empty `url` puts the default back) |
@@ -104,7 +110,7 @@ All under `/kybernos-skills/`, JSON; refusals come back as HTTP 200 `{ok:false, 
   hard dependency; optional `agents.roots()` and `agentPresets` (`standingKeyFor`, `serviceFor(agent,'skills')`) pick the right
   project view. Not verified on the oldest DSH of `dsh-compat.json`. Client: slot `main.kybernos-skills`, services `slots` and
   `locale`; no `ctx.remote` use. `package.json` injects seven DSH client services, only those two are used.
-- Network, four fixed hosts, no caller URL followed: `https://codeload.github.com` (install; `source` must match `owner/repo`),
+- Network, fixed hosts, no caller URL followed (`api.deepinfra.com` and `temp.bria.ai` are used only to make a missing picture, `docs/dev/learned-skills.md`): `https://codeload.github.com` (install; `source` must match `owner/repo`),
   `https://api.github.com` and `https://raw.githubusercontent.com` (the preview of a Discover card: the listing of one repository's
   files, then one `SKILL.md` of it; anonymous, read-only, answers kept five minutes, the 60-an-hour anonymous limit is reported
   as such and never retried; the file path comes from that listing) and
