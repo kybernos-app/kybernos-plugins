@@ -1721,10 +1721,14 @@ let kbLocaleRead = () => 'en'
       'kbld.sub.of': { kybernos: '{n} sur {max} autorisé', en: '{n} of {max} allowed' },
       'kbld.m.idle': { kybernos: 'Aucun run en cours · jusqu’à {max} à la fois', en: 'No run going · up to {max} at once' },
       'kbld.m.runs': { kybernos: '{n} sur {a} runs en cours', en: '{n} of {a} runs going' },
+      'kbld.m.runs0': { kybernos: 'Aucun run en cours', en: 'No run going' },
+      'kbld.m.runsOf1': { kybernos: '{n} sur 1 run en cours', en: '{n} of 1 run going' },
       'kbld.m.runs1': { kybernos: '{n} run en cours', en: '{n} run going' },
+      'kbld.m.runsN': { kybernos: '{n} runs en cours', en: '{n} runs going' },
       'kbld.m.waiting': { kybernos: '{n} en attente', en: '{n} waiting' },
       'kbld.m.nowait': { kybernos: 'rien en attente', en: 'nothing waiting' },
-      'kbld.m.sub': { kybernos: '{n} subagent(s)', en: '{n} sub-agent(s)' },
+      'kbld.sub1': { kybernos: '1 subagent', en: '1 sub-agent' },
+      'kbld.subN': { kybernos: '{n} subagents', en: '{n} sub-agents' },
       'kbld.m.subof': { kybernos: 'subagents {n} sur {max}', en: 'sub-agents {n} of {max}' },
       'kbld.m.nosub': { kybernos: 'plus de nouveaux subagents', en: 'no new sub-agents' },
       'kbld.foot.ok': { kybernos: 'Légère : jusqu’à {max} runs à la fois. Les subagents ne sont pas limités.', en: 'Light: up to {max} runs at once. Sub-agents are not limited.' },
@@ -1732,6 +1736,7 @@ let kbLocaleRead = () => 'en'
       'kbld.foot.high': { kybernos: 'Très chargé : les nouveaux runs attendent (jamais plus de 10 min) et ceux en cours ne lancent plus de subagents.', en: 'Very busy: new runs wait (never more than 10 min) and running ones start no sub-agents.' },
       'kbld.settings': { kybernos: 'Réglages ›', en: 'Settings ›' },
       'kbld.chip.slot': { kybernos: '1 emplacement', en: '1 slot' },
+      'kbld.chip.slots': { kybernos: '{n} emplacements', en: '{n} slots' },
       'kbld.chip.lighter': { kybernos: 'Run allégé', en: 'Lighter run' },
       'kbld.wait': { kybernos: 'En attente de l’ordinateur', en: 'Waiting for the computer' },
       'kbld.q.first': { kybernos: 'Prochaine dans la file · attend depuis {w}', en: 'Next in line · waiting {w}' },
@@ -6654,6 +6659,7 @@ const kbLdRingSvg = (pct, label, tone, aria) => h('svg', { width: 58, height: 58
   h('circle', { cx: 30, cy: 30, r: 24, fill: 'none', stroke: 'var(--dsw-alias-border-l2)', strokeWidth: 6 }),
   typeof pct === 'number' ? h('circle', { cx: 30, cy: 30, r: 24, fill: 'none', stroke: tone, strokeWidth: 6, strokeLinecap: 'round', strokeDasharray: kbLdRing(pct), transform: 'rotate(-90 30 30)' }) : null,
   h('text', { x: 30, y: 34, textAnchor: 'middle', fontSize: 12, fontWeight: 700, fill: 'var(--dsw-alias-label-primary)' }, label))
+const kbLdSubs = (n) => kbt(n === 1 ? 'kbld.sub1' : 'kbld.subN').replace('{n}', String(n))
 const kbLdKids = (v) => (Array.isArray(v.runs) ? v.runs.reduce((n, r) => n + (typeof r.subagents === 'number' ? r.subagents : 0), 0) : 0)
 // The one line under the gauge: what the automations hold and what waits.
 const kbLdMeta = (v) => {
@@ -6664,11 +6670,13 @@ const kbLdMeta = (v) => {
   const level = kbLdLevel(v)
   if (n === 0 && w === 0 && level === 'ok') return kbt('kbld.m.idle').replace('{max}', String(max))
   const parts = []
-  parts.push(n === 0 ? kbt('kbld.m.runs1').replace('{n}', '0') : (typeof v.allowed === 'number' && v.allowed > 0 ? kbt('kbld.m.runs').replace('{n}', String(n)).replace('{a}', String(v.allowed)) : kbt('kbld.m.runs1').replace('{n}', String(n))))
+  parts.push(n === 0 ? kbt('kbld.m.runs0') : (typeof v.allowed === 'number' && v.allowed > 0
+    ? (v.allowed === 1 ? kbt('kbld.m.runsOf1').replace('{n}', String(n)) : kbt('kbld.m.runs').replace('{n}', String(n)).replace('{a}', String(v.allowed)))
+    : kbt(n === 1 ? 'kbld.m.runs1' : 'kbld.m.runsN').replace('{n}', String(n))))
   parts.push(w > 0 ? kbt('kbld.m.waiting').replace('{n}', String(w)) : kbt('kbld.m.nowait'))
   if (level === 'high') parts.push(kbt('kbld.m.nosub'))
   else if (level === 'busy') parts.push(kbt('kbld.m.subof').replace('{n}', String(kids)).replace('{max}', '1'))
-  else if (kids > 0) parts.push(kbt('kbld.m.sub').replace('{n}', String(kids)))
+  else if (kids > 0) parts.push(kbLdSubs(kids))
   return parts.join(' · ')
 }
 const KbLoadStrip = (props) => {
@@ -6773,23 +6781,28 @@ const kbLdRowWeight = (load, task, running, nowMs) => {
   const mins = Number.isFinite(due) ? Math.max(1, Math.round((nowMs - due) / 60000)) : 1
   return { kind: 'wait', rank: rank + 1, waited: kbt('kbld.minutes').replace('{n}', String(mins)), level }
 }
-const kbLdStateCell = (a) => {
-  const w = a.weight
+// The weight of a run (time, curve of its activity, slots, sub-agents, lighter) or its wait for the machine, as two lines: shared by the List (a cell of
+// the State column), and by the Columns and Cards views (a block in the card).
+const kbLdInner = (w, label) => {
   const chip = (key, cls, kids) => h('span', { key, className: 'kbld-chip' + (cls === '' ? '' : ' ' + cls) }, kids)
   if (w.kind === 'run') {
     const act = kbLdPath(w.run.activity, 64, 18, 0, Math.max(1, ...w.run.activity), Math.max(2, w.run.activity.length))
-    return h('span', { className: 'kba-last run kbld-w', 'data-kbld-level': w.level, 'data-kb': 'row-weight' },
-      h('span', { className: 'kbld-w1' }, h('span', { className: 'kb-spin', role: 'status', 'aria-label': a.lastLabel }), h('span', { className: 'kba-ell', title: a.lastLabel }, a.lastLabel), h('span', { className: 'kbld-time' }, kbLdClock(w.run.elapsedMs))),
-      h('span', { className: 'kbld-w2' },
+    return [
+      h('span', { key: 'l1', className: 'kbld-w1' }, h('span', { className: 'kb-spin', role: 'status', 'aria-label': label }), h('span', { className: 'kba-ell', title: label }, label), h('span', { className: 'kbld-time' }, kbLdClock(w.run.elapsedMs))),
+      h('span', { key: 'l2', className: 'kbld-w2' },
         h('svg', { className: 'kbld-act', width: 64, height: 18, viewBox: '0 0 64 18', 'aria-hidden': 'true' }, act.line !== '' ? h('path', { d: act.line, fill: 'none', stroke: 'var(--kbld-c)', strokeWidth: 1.5, strokeLinejoin: 'round', strokeLinecap: 'round' }) : null),
-        chip('slot', '', [h('i', { key: 'd', className: 'kbld-dot' }), kbt('kbld.chip.slot')]),
-        w.run.subagents > 0 ? chip('sub', '', [kbLdIcon('branch', 'currentColor'), kbt('kbld.m.sub').replace('{n}', String(w.run.subagents))]) : null,
-        w.run.lighter === true ? chip('light', 'lvl', [kbLdIcon('leaf', 'currentColor'), kbt('kbld.chip.lighter')]) : null))
+        chip('slot', '', [h('i', { key: 'd', className: 'kbld-dot' }), w.run.sessions > 1 ? kbt('kbld.chip.slots').replace('{n}', String(w.run.sessions)) : kbt('kbld.chip.slot')]),
+        w.run.subagents > 0 ? chip('sub', '', [kbLdIcon('branch', 'currentColor'), kbLdSubs(w.run.subagents)]) : null,
+        w.run.lighter === true ? chip('light', 'lvl', [kbLdIcon('leaf', 'currentColor'), kbt('kbld.chip.lighter')]) : null),
+    ]
   }
-  return h('span', { className: 'kba-last kbld-w', 'data-kbld-level': w.level, 'data-kb': 'row-waiting' },
-    h('span', { className: 'kbld-w1 kbld-waitword' }, Icon('clock', 14), h('span', { className: 'kba-ell' }, kbt('kbld.wait'))),
-    h('span', { className: 'kbld-q' }, kbt(w.rank === 1 ? 'kbld.q.first' : 'kbld.q.n').replace('{r}', String(w.rank)).replace('{w}', w.waited)))
+  return [
+    h('span', { key: 'l1', className: 'kbld-w1 kbld-waitword' }, Icon('clock', 14), h('span', { className: 'kba-ell' }, kbt('kbld.wait'))),
+    h('span', { key: 'l2', className: 'kbld-q' }, kbt(w.rank === 1 ? 'kbld.q.first' : 'kbld.q.n').replace('{r}', String(w.rank)).replace('{w}', w.waited)),
+  ]
 }
+const kbLdStateCell = (a) => h('span', { className: 'kba-last' + (a.weight.kind === 'run' ? ' run' : '') + ' kbld-w', 'data-kbld-level': a.weight.level, 'data-kb': a.weight.kind === 'run' ? 'row-weight' : 'row-waiting' }, kbLdInner(a.weight, a.lastLabel))
+const kbLdBlock = (w, label) => h('div', { className: 'kbld-w kbld-block', 'data-kbld-level': w.level, 'data-kb': w.kind === 'run' ? 'card-weight' : 'card-waiting' }, kbLdInner(w, label))
 const kbListState = (tasks, loadError) => {
   if (tasks === null || tasks === undefined) return loadError !== null && loadError !== undefined ? 'error' : 'loading'
   return kbTasksList(tasks).length === 0 ? 'empty' : 'list'
@@ -23343,10 +23356,12 @@ function renderFit(canvas, model, cam, opts){
       const idsKey = lastIds.join(',')
       React.useEffect(() => kbRunsRead(lastIds, (add) => sumPair[1]((prev) => Object.assign({}, prev, add))), [idsKey])
       const now = Date.now()
+      const runIds = (KB_MENU_STATE.get('tasks') !== null && Array.isArray(KB_MENU_STATE.get('tasks').ids) === true) ? KB_MENU_STATE.get('tasks').ids : []
       return h('div', { className: 'kbcc', 'data-kb': 'cards-view' },
         h('div', { className: 'kbcc-grid' }, tasks.map((t) => {
           const f = kbRunCardFigures(t.history, sums)
           const attn = f.lastState === 'failed'
+          const weight = kbLdRowWeight(props.load, t, runIds.indexOf(t.id) >= 0, now)
           const fig = (k, v, bad) => h('div', { key: k, className: 'kbcc-fig' + (bad === true ? ' bad' : '') }, h('span', { className: 'kbcc-fk' }, kbt('tasks.cards.' + k)), h('span', { className: 'kbcc-fv' }, v))
           return h('article', { key: t.id, className: 'kbcc-card' + (attn ? ' attn' : '') + (t.active === false ? ' off' : ''), tabIndex: 0, role: 'button', 'data-kb': 'auto-card', 'data-id': t.id, 'aria-label': t.name || t.id,
             onClick: () => props.onOpen(t.id), onKeyDown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); props.onOpen(t.id) } } },
@@ -23357,6 +23372,7 @@ function renderFit(canvas, model, cam, opts){
                 onKeyDown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); props.onToggle(t) } },
                 onClick: (e) => { e.stopPropagation(); props.onToggle(t) } }, h('span', { className: 'kba-toggle-knob' }))),
             (attn || t.active === false ? h('div', { className: 'kbcc-badges' }, attn ? h('span', { className: 'kbcc-badge warn' }, kbt('tasks.cards.toreview')) : null, t.active === false ? h('span', { className: 'kbcc-badge' }, kbt('tasks.cards.paused')) : null) : null),
+            weight !== null ? kbLdBlock(weight, kbt('tasks.board.chip.running')) : null,
             h('div', { className: 'kbcc-figs' },
               fig('last', f.lastMs !== null ? (kbRunAgo(f.lastMs, now, locale) || kbWhenOf(f.lastAt)) : kbt('tasks.cards.never')),
               fig('success', f.success === null ? '—' : f.success + ' %', f.success !== null && f.success < 70),
@@ -23548,6 +23564,8 @@ function renderFit(canvas, model, cam, opts){
         let status = ''
         let acts = []
         let top = null
+        // The weight of a run going, or the place in line of a due run the machine holds back: instead of the plain status line.
+        const weight = (col === 'upcoming' && it.due === true) || (col !== 'upcoming' && it.state === 'running') ? kbLdRowWeight(props.load, t, col !== 'upcoming', nowMs) : null
         if (col === 'upcoming') {
           status = it.due === true ? kbt(heldByLoad === true ? 'tasks.board.st.load' : 'tasks.board.st.due') : kbBoardIn(it.atMs, nowMs, locale)
           acts = actionsOf({ state: 'planned', taskId: it.taskId, sessionId: null, live: null })
@@ -23562,7 +23580,7 @@ function renderFit(canvas, model, cam, opts){
           h('div', { className: 'kbbd-top' }, cadence(t), h('span', { className: 'kbbd-when' }, top, kbBoardWhen(it.atMs, nowMs, zone, locale))),
           h('h4', null, nameOf(it.taskId)),
           h('div', { className: 'kbbd-who' }, whoOf(t, col === 'upcoming' ? null : it)),
-          (status !== '' ? h('p', { className: 'kbbd-st' }, status) : null),
+          (weight !== null ? kbLdBlock(weight, kbt('tasks.board.chip.running')) : (status !== '' ? h('p', { className: 'kbbd-st' }, status) : null)),
           (acts.length > 0 ? h('div', { className: 'kbbd-acts' }, acts) : null))
       }
       // The banner: the host stopped answering, or the scheduler is behind (an automation overdue by more than 3 minutes).
@@ -24296,7 +24314,7 @@ function renderFit(canvas, model, cam, opts){
       // `.kb6-headacts` sinon (liste vide → pas de barre) — même position.
       const boardEl = boardView === 'list' ? null : h(KbBoardBoundary, { key: boardView, onList: () => tbAuto[1]({ viewMode: 'list' }) },
         boardView === 'cards'
-          ? h(KbAutoCards, { tasks: filtered.map((a) => a._t), onOpen: (id) => { setDetail(id); setTab('flow'); setNodeSel(null) }, onToggle: (t) => act('toggle', t.id, { active: t.active === false }) })
+          ? h(KbAutoCards, { load: machineLoadPair[0], tasks: filtered.map((a) => a._t), onOpen: (id) => { setDetail(id); setTab('flow'); setNodeSel(null) }, onToggle: (t) => act('toggle', t.id, { active: t.active === false }) })
           : h(KbAutoBoard, {
           view: boardView, tasks: filtered.map((a) => a._t), rawTasks: tasks, loadErr: loadErr, load: machineLoadPair[0],
           onRetry: () => { setLoadErr(null); refresh() },
@@ -34783,6 +34801,7 @@ body:not([data-ds-dark-theme]) [data-kbld-level]{--kbld-t:color-mix(in srgb,var(
 .kbld-foot{display:flex;align-items:center;gap:12px;margin-top:14px;padding-top:12px;border-top:1px solid var(--dsw-alias-border-l1);font-size:12px;color:var(--dsw-alias-label-secondary)}
 .kbld-link{border:0;background:transparent;padding:0;font:inherit;font-weight:600;color:var(--dsw-alias-label-primary);cursor:pointer;white-space:nowrap}
 .kba-last.kbld-w{flex-direction:column;align-items:flex-start;gap:5px}
+.kbld-block{display:flex;flex-direction:column;align-items:flex-start;gap:5px;min-width:0;margin:6px 0 0;font-size:12px;line-height:1.4}
 .kbld-w1{display:flex;align-items:center;gap:8px;min-width:0;max-width:100%}
 .kbld-w2{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .kbld-time{font-size:11px;font-variant-numeric:tabular-nums;color:var(--dsw-alias-label-secondary)}
