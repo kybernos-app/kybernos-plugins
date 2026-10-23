@@ -75,7 +75,8 @@ const services = {
 const quiet = []
 const realErr = console.error; const realLog = console.log
 console.error = (...a) => quiet.push(a.join(' ')); console.log = (...a) => quiet.push(a.join(' '))
-mod.apply({ get: (n) => services[n], inject: () => {}, effect: (fn) => { try { return fn() } catch (e) { return undefined } }, on: (name, fn) => { (listeners[name] = listeners[name] || []).push(fn); return () => {} }, scope: {} })
+const contexts = [] // the blocks the plugin adds to the system prompt (`systemPrompt.context`)
+mod.apply({ get: (n) => services[n], inject: (deps, fn) => { if (Array.isArray(deps) && deps[0] === 'systemPrompt') { try { fn({ systemPrompt: { context: (c) => { contexts.push(c) } } }) } catch (e) { /* not this one */ } } }, effect: (fn) => { try { return fn() } catch (e) { return undefined } }, on: (name, fn) => { (listeners[name] = listeners[name] || []).push(fn); return () => {} }, scope: {} })
 await new Promise((r) => realSetTimeout(r, 50))
 console.error = realErr; console.log = realLog
 
@@ -322,6 +323,69 @@ writeFileSync(file, good)
   sessions.holdOpen = false
 }
 
+/* ── Lighter runs, on the real code: a busy machine tells a run to work alone and refuses its sub-agents ─────────────────── */
+{
+  sessions.failCreate = false
+  sessions.holdOpen = true
+  const emit = (id, status) => { for (const fn of listeners['agent/status'] || []) fn({ agent: { session: { id } }, status }) }
+  // The tools/pre-execute listeners, chained the way the engine chains them.
+  const callTool = async (name, agentId) => {
+    const list = listeners['tools/pre-execute'] || []
+    const exec = { name, agent: { id: agentId, session: { id: agentId } }, arguments: {} }
+    let i = 0
+    const next = async () => (i < list.length ? list[i++](exec, next) : { kind: 'allow' })
+    return next()
+  }
+  const noteFor = (agentId) => contexts.filter((c) => c.name === 'kybernos:automation-load').map((c) => c.text({ agent: { session: { id: agentId } } })).join('')
+  const view = async () => (await call('GET', undefined, {}, '/kybernos/automation-load')).json // also refreshes the reading
+  const base = sessions.created
+  const id = (await api({ action: 'create', task: task({ name: 'light run' }) })).json.task.id
+  const all = onDisk(); all.find((x) => x.id === id).nextRun = new Date(Date.now() - 5000).toISOString()
+  writeFileSync(file, JSON.stringify(all, null, 2))
+  await tick()
+  const run = 'sess-' + (base + 1)
+  eq('a run was started to lighten', sessions.created - base, 1)
+  eq('the plugin put a block in the system prompt', contexts.filter((c) => c.name === 'kybernos:automation-load').length, 1)
+
+  eq('machine free: no note', (await view(), noteFor(run)), '')
+  eq('machine free: a sub-agent is let through', (await callTool('subagent', run)).kind, 'allow')
+  eq('machine free: another worker too, and the view says no limit', (await callTool('subagent_claude_code', run)).kind + ':' + (await view()).subagents.limit, 'allow:null')
+
+  process.env.KYBERNOS_AUTOMATION_LOAD_FORCE = 'busy'
+  const busy = await view()
+  eq('busy: the view says one sub-agent at a time, two going (leases of the calls let through)', busy.level + ':' + busy.subagents.limit + ':' + busy.subagents.active, 'busy:1:2')
+  eq('busy: the run is told to work alone', /busy/.test(noteFor(run)) && /one at a time/.test(noteFor(run)), true)
+  const refused = await callTool('subagent', run)
+  eq('busy and one already going: the call is refused with a reason', refused.kind + ':' + /already going/.test(refused.reason || ''), 'deny:true')
+  eq('busy: other tools are untouched', (await callTool('bash', run)).kind, 'allow')
+  eq('busy: the refusal is counted for the page', (await view()).subagents.refused, 1)
+
+  // The engine says the two children ended (they were seen running, below the run): room again for one.
+  parents['sess-kid-1'] = run; parents['sess-kid-2'] = run
+  emit('sess-kid-1', 'running'); emit('sess-kid-2', 'running')
+  emit('sess-kid-1', 'idle'); emit('sess-kid-2', 'idle')
+  eq('busy and none going: one is let through', (await callTool('subagent', run)).kind, 'allow')
+  eq('...and the second is refused', (await callTool('subagent', run)).kind, 'deny')
+
+  process.env.KYBERNOS_AUTOMATION_LOAD_FORCE = 'high'
+  await view()
+  const high = await callTool('subagent', run)
+  eq('very busy: none, with a reason that says so', high.kind + ':' + /very busy/.test(high.reason || ''), 'deny:true')
+  eq('very busy: the run is told not to start sub-agents', /Do not start sub-agents/.test(noteFor(run)), true)
+  parents['sess-kid-3'] = run
+  eq('very busy: a sub-agent of the run may not start sub-agents either', (await callTool('subagent', 'sess-kid-3')).kind, 'deny')
+  eq('very busy: a chat a person opened is never touched, tool or note', (await callTool('subagent', 'chat-of-a-person')).kind + ':' + noteFor('chat-of-a-person'), 'allow:')
+  eq('very busy: every subagent_<worker> name is refused like the plain one', (await callTool('subagent_codex', run)).kind, 'deny')
+  eq('very busy: a tool that only looks like one is untouched', (await callTool('my_subagent', run)).kind, 'allow')
+
+  delete process.env.KYBERNOS_AUTOMATION_LOAD_FORCE
+  const calm = await view()
+  eq('calm again: no note, a call goes through', calm.level + ':' + noteFor(run) + ':' + (await callTool('subagent', run)).kind, 'ok::allow')
+  emit(run, 'idle')
+  await api({ action: 'delete', id })
+  sessions.holdOpen = false
+}
+
 /* ── Webhooks ────────────────────────────────────────────────────────────── */
 {
   sessions.failCreate = false // the previous section left the stub failing
@@ -497,7 +561,7 @@ writeFileSync(file, good)
 
 /* ── The MCP gate: only the sessions of an ask automation, and their sub-agents ── */
 {
-  eq('the plugin installs one tools/pre-execute listener', (listeners['tools/pre-execute'] || []).length, 1)
+  eq('the plugin installs two tools/pre-execute listeners: the MCP gate first, then the sub-agent limit', (listeners['tools/pre-execute'] || []).length, 2)
   const gate = listeners['tools/pre-execute'][0]
   const ALLOW = { kind: 'allow' }
   const run = (agent, name, args) => gate({ name, arguments: args, agent, callId: 'c1' }, async () => ALLOW)
