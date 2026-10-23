@@ -30,6 +30,9 @@ assert.deepEqual({ ...wild, runningTasks: wild.runningTasks.length }, { level: '
 assert.equal(loadOf(row({ load_at: '2026-10-23T11:58:00Z' }), NOW) === null, false, '2 minutes old is shown')
 assert.equal(loadOf(row({ load_at: new Date(NOW - LOAD_FRESH_MS - 1000).toISOString() }), NOW), null, 'older than 150 s is not shown')
 assert.equal(loadOf(row({ load_at: 'yesterday' }), NOW), null, 'an unreadable date is not trusted')
+assert.equal(loadOf(row({ heartbeat_at: new Date(NOW - 60_000).toISOString() }), NOW) === null, false, 'the server names the beat\'s date: a minute old is shown')
+assert.equal(loadOf(row({ heartbeat_at: new Date(NOW - LOAD_FRESH_MS - 1000).toISOString() }), NOW), null, 'a beat older than 150 s, whatever `load` says, is not shown')
+assert.equal(loadOf(row({ heartbeat_at: null }), NOW) === null, false, 'no date at all: the server\'s own 2-minute rule is trusted')
 ok('load: closed levels, clamped numbers, running tasks by id, stale or odd readings not shown')
 
 // 3. one computer

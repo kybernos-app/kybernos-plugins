@@ -31,7 +31,9 @@ export const loadOf = (row, nowMs) => {
   if (l === null) return null
   if (LEVELS.indexOf(l.level) < 0) return null
   if (num(l.pressure) === null) return null
-  const at = row.load_at === undefined || row.load_at === null ? null : Date.parse(String(row.load_at))
+  // The server dates a reading with the computer's last beat (`heartbeat_at`; `load_at` when it names one) and answers null itself after two minutes.
+  const stamp = row.load_at !== undefined && row.load_at !== null ? row.load_at : row.heartbeat_at
+  const at = stamp === undefined || stamp === null ? null : Date.parse(String(stamp))
   if (at !== null && (!Number.isFinite(at) || (Number.isFinite(nowMs) && nowMs - at > LOAD_FRESH_MS))) return null
   const tasks = (Array.isArray(l.running_tasks) ? l.running_tasks : Array.isArray(row.running_tasks) ? row.running_tasks : [])
     .filter((t) => t !== null && typeof t === 'object' && ID.test(String(t.task_ref)) && isoOrNull(t.started_at) !== null)
