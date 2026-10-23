@@ -1782,6 +1782,21 @@ let kbLocaleRead = () => 'en'
       'kbwr.row.sub': { kybernos: 'Cloud · {name}', en: 'Cloud · {name}' },
       'kbwr.row.mark': { kybernos: 'Tourne dans le cloud', en: 'Runs in the cloud' },
       'kbwr.row.cloudDirty': { kybernos: '{name} · mise à jour à publier', en: '{name} · update to publish' },
+      'kbwr.row.cloudFailed': { kybernos: '{name} · dernière exécution en échec', en: '{name} · last run failed' },
+      'kbwr.runs.title': { kybernos: 'Dernières exécutions, rapportées par {name}', en: 'Latest runs, reported by {name}' },
+      'kbwr.runs.note': { kybernos: 'Le détail de chaque exécution reste sur {name}. Kybernos ne garde que l’heure et le résultat.', en: 'The details of each run stay on {name}. Kybernos only keeps the time and the outcome.' },
+      'kbwr.runs.empty': { kybernos: '{name} n’a pas encore rapporté d’exécution. Elle les rapporte une fois terminées.', en: '{name} has not reported a run yet. It reports each one when it ends.' },
+      'kbwr.runs.running': { kybernos: 'En cours depuis {time}', en: 'Running for {time}' },
+      'kbwr.runs.err': { kybernos: 'La liste n’a pas pu être lue pour le moment.', en: 'The list could not be read just now.' },
+      'kbwr.runs.out.completed': { kybernos: 'Terminée', en: 'Completed' },
+      'kbwr.runs.out.error': { kybernos: 'Échec', en: 'Failed' },
+      'kbwr.runs.out.capped': { kybernos: 'Plafond atteint', en: 'Hit a limit' },
+      'kbwr.runs.out.timeout': { kybernos: 'Trop longue', en: 'Timed out' },
+      'kbwr.runs.out.waiting_approval': { kybernos: 'Attend ton accord', en: 'Waiting for your OK' },
+      'kbwr.runs.via.cron': { kybernos: 'Planifiée', en: 'By schedule' },
+      'kbwr.runs.via.once': { kybernos: 'Une seule fois', en: 'Once' },
+      'kbwr.runs.via.webhook': { kybernos: 'Par webhook', en: 'By webhook' },
+      'kbwr.runs.via.run_now': { kybernos: 'Lancée à la main', en: 'Run by hand' },
       'kbwr.err.other': { kybernos: 'Refusé ({code}).', en: 'Refused ({code}).' },
       'kbld.aria': { kybernos: '{title} : {pct} %, {word}. {meta}', en: '{title}: {pct} percent, {word}. {meta}' },
       'kbld.last5': { kybernos: 'Les 5 dernières minutes · toutes les 10 s', en: 'Last 5 minutes · every 10 s' },
@@ -6969,6 +6984,35 @@ const kbwDefinition = (t, wasOn) => {
   if (Array.isArray(t.needs) && t.needs.length > 0) d.needs = t.needs
   return d
 }
+/** The computers an automation is linked to, as one sorted, comma-separated string (a stable key for an effect); '' when none. */
+const kbwLinkedIds = (tasks) => {
+  const ids = new Set()
+  for (const x of Array.isArray(tasks) ? tasks : []) if (x !== null && typeof x === 'object' && x.cloud !== null && typeof x.cloud === 'object' && typeof x.cloud.computerId === 'string' && x.cloud.computerId !== '') ids.add(x.cloud.computerId)
+  return Array.from(ids).sort().join(',')
+}
+/** The runs a computer reported for one automation, newest first (by the time they ended, whatever order they came in). */
+const kbwRunsFor = (runs, ref) => (Array.isArray(runs) ? runs.filter((r) => r !== null && typeof r === 'object' && r.ref === ref && Number.isFinite(Date.parse(r.endedAt))).sort((a, b) => Date.parse(b.endedAt) - Date.parse(a.endedAt)) : [])
+/** The newest run of an automation among the runs of its computer, or null. */
+const kbwRunLast = (runs, ref) => { const mine = kbwRunsFor(runs, ref); return mine.length > 0 ? mine[0] : null }
+/** True when a run ended badly: it failed, ran out of time or hit a limit. */
+const kbwRunBad = (r) => r !== null && r !== undefined && typeof r === 'object' && (r.outcome === 'error' || r.outcome === 'timeout' || r.outcome === 'capped')
+/** How long a run took, in words that cannot be read as a time of day: « 45 s », « 4 min », « 1 min 10 s », « 1 h 05 min » (the same letters in both languages). */
+const kbwSpan = (seconds) => {
+  const sec = Math.max(0, Math.round(typeof seconds === 'number' && Number.isFinite(seconds) ? seconds : 0))
+  if (sec < 60) return String(sec) + ' s'
+  const min = Math.floor(sec / 60)
+  if (min < 60) return String(min) + ' min' + (min < 10 && sec % 60 > 0 ? ' ' + String(sec % 60) + ' s' : '')
+  const rest = min % 60
+  return String(Math.floor(min / 60)) + ' h' + (rest > 0 ? ' ' + (rest < 10 ? '0' : '') + String(rest) + ' min' : '')
+}
+/** The runs of a computer as the list's history: what the Sessions column counts and the success bars draw (a run that ended badly is an error). */
+const kbwHistoryOf = (runs, ref) => kbwRunsFor(runs, ref).map((r) => ({ at: r.endedAt, status: kbwRunBad(r) === true ? 'error' : 'ok', via: r.via === null ? '' : r.via }))
+/** The run an automation is running now on its computer, from the beat's `running_tasks` (`{ taskRef, startedAt }`), or null. */
+const kbwRunningNow = (computer, ref) => {
+  const l = computer !== null && computer !== undefined && typeof computer === 'object' && computer.load !== null && typeof computer.load === 'object' ? computer.load : null
+  const x = l !== null && Array.isArray(l.runningTasks) ? l.runningTasks.find((r) => r !== null && typeof r === 'object' && r.taskRef === ref) : undefined
+  return x !== undefined && Number.isFinite(Date.parse(x.startedAt)) ? x : null
+}
 // </kbwr-core>
 // When a run will happen, in the person's zone and language, as the board writes it.
 const kbwWhen = (iso) => {
@@ -7119,6 +7163,63 @@ const KbWhereTab = (props) => {
         h('span', { className: 'kbwr-d' }, moving === true && linked !== null ? kbt('kbwr.move.note').replace('{name}', linked.name) : kbt('kbwr.publish.note'))))
   }
   return h('div', { className: 'kbwr', 'data-kb': 'where-tab' }, h('div', { className: 'kbwr-h' }, kbt('kbwr.where')), seg, body, err)
+}
+const kbwDot = (cls) => h('i', { className: 'kbwr-dot ' + cls })
+// The runs of an automation that runs in the cloud: what its computer reported of them (GET /kybernos-cloud/computers/runs), and the run it is doing now.
+// The details of a run stay on the computer: the platform only keeps its time and how it ended, and so does this.
+const KbCloudRuns = (props) => {
+  const t = props.task
+  const computerId = t.cloud.computerId
+  const pair = React.useState({ runs: null, error: null })
+  React.useEffect(() => {
+    let alive = true
+    let timer = null
+    const read = () => fetch('/kybernos-cloud/computers/runs?computerId=' + encodeURIComponent(computerId) + '&ref=' + encodeURIComponent(t.id), { cache: 'no-store', credentials: 'same-origin' }).then((r) => r.json()).then((j) => {
+      if (alive !== true) return
+      const good = j !== null && typeof j === 'object' && j.ok === true && Array.isArray(j.runs)
+      pair[1]((prev) => ({ runs: good ? j.runs : prev.runs, error: good ? null : (j !== null && typeof j === 'object' && typeof j.error === 'string' ? j.error : 'unreachable') }))
+      timer = setTimeout(read, good ? 15000 : 60000)
+    }).catch(() => { if (alive === true) { pair[1]((prev) => ({ runs: prev.runs, error: 'unreachable' })); timer = setTimeout(read, 60000) } })
+    read()
+    return () => { alive = false; if (timer !== null) clearTimeout(timer) }
+  }, [computerId, t.id])
+  const computers = Array.isArray(props.computers) ? props.computers : []
+  const live = computers.find((c) => c.id === computerId)
+  const name = live !== undefined ? live.name : String(t.cloud.name)
+  const now = kbwRunningNow(live, t.id)
+  const runs = kbwRunsFor(pair[0].runs, t.id)
+  const word = live === undefined ? null : live.state === 'awake' ? kbt('kbwr.awake') : kbt('kbld.st.' + live.state)
+  const row = (r) => {
+    const bad = kbwRunBad(r)
+    const secs = Math.round((Date.parse(r.endedAt) - Date.parse(r.startedAt)) / 1000)
+    const bits = [r.via === null ? null : kbt('kbwr.runs.via.' + r.via), secs >= 1 ? kbwSpan(secs) : null].filter((x) => x !== null)
+    return h('div', { key: r.key, className: 'kbwr-run', 'data-kb': 'cloud-run', 'data-outcome': r.outcome },
+      kbwDot(bad ? 'err' : r.outcome === 'completed' ? 'ok' : 'warn'),
+      h('span', { className: 'kbwr-rwhen' }, kbwWhen(r.endedAt)),
+      h('b', { className: 'kbwr-rout' + (bad ? ' err' : '') }, kbt('kbwr.runs.out.' + r.outcome)),
+      h('span', { className: 'kbwr-d kbwr-rdet' }, bits.join(' · ')))
+  }
+  return h('div', { className: 'kbwr', 'data-kb': 'cloud-runs' },
+    h('div', { className: 'kbwr-runbar' },
+      h('span', { className: 'kbld-chip', 'data-kbld-level': live !== undefined && live.state === 'awake' ? 'ok' : 'asleep' }, h('i', { className: 'kbld-dot' }), word === null ? name : name + ' \u00b7 ' + word)),
+    now === null ? null : h('div', { className: 'kbwr-card kbwr-ok', 'data-kb': 'cloud-running-now' }, kbwDot('spin'), h('b', null, kbt('kbwr.runs.running').replace('{time}', kbwSpan((Date.now() - Date.parse(now.startedAt)) / 1000)))),
+    pair[0].error !== null ? h('div', { className: 'kbwr-card kbwr-warn', role: 'status', 'data-kb': 'cloud-runs-error' }, kbwDot('warn'), h('div', null, h('b', null, kbt('kbwr.runs.err')), h('div', { className: 'kbwr-d' }, kbwErrText(pair[0].error)))) : null,
+    h('div', null,
+      h('div', { className: 'kbwr-h' }, kbt('kbwr.runs.title').replace('{name}', name)),
+      h('div', { className: 'kbwr-d' }, kbt('kbwr.runs.note').replace('{name}', name))),
+    pair[0].runs === null ? null : runs.length === 0
+      ? h('p', { className: 'kbwr-note', 'data-kb': 'cloud-runs-empty' }, kbt('kbwr.runs.empty').replace('{name}', name))
+      : h('div', { className: 'kbwr-runs' }, runs.map(row)))
+}
+// The tab Sessions of an automation that runs in the cloud: the runs its computer reported, and, when it also ran here before it was sent, the sessions from then.
+const KbCloudSessions = (props) => {
+  const viewPair = React.useState('cloud')
+  const n = props.localCount
+  const view = n > 0 ? viewPair[0] : 'cloud'
+  const btn = (id, icon, label) => h('button', { type: 'button', 'data-kb': 'sessions-' + id, 'aria-pressed': view === id ? 'true' : 'false', onClick: () => viewPair[1](id) }, Icon(icon, 14), label)
+  return h('div', { className: 'kbwr-sw', 'data-kb': 'cloud-sessions' },
+    n > 0 ? h('div', { className: 'kbwr-seg', role: 'group', 'aria-label': kbt('kbwr.where') }, btn('cloud', 'cloud', props.task.cloud.name), btn('local', 'monitor', kbt('kbld.here') + ' \u00b7 ' + String(n))) : null,
+    view === 'cloud' ? h(KbCloudRuns, { key: props.task.id, task: props.task, computers: props.computers }) : props.local)
 }
 // What a row of the List says about a run: its weight (time, activity, slot, sub-agents, lighter) or that it waits for the machine.
 const kbLdRowWeight = (load, task, running, nowMs) => {
@@ -24143,6 +24244,24 @@ function renderFit(canvas, model, cam, opts){
         read()
         return () => { alive = false; if (timer !== null) clearTimeout(timer) }
       }, [])
+      // What each cloud computer reported of its runs (every automation of the computer, newest first): the List says « last run failed » from it and the tab Sessions counts
+      // from it. One call per computer that has an automation linked to it, every 30 s; none while nothing is linked.
+      const cloudRunsPair = React.useState({})
+      const cloudIds = kbwLinkedIds(tasks)
+      React.useEffect(() => {
+        const ids = cloudIds === '' ? [] : cloudIds.split(',')
+        if (ids.length === 0) { cloudRunsPair[1]({}); return undefined }
+        let alive = true
+        let timer = null
+        const one = (id) => fetch('/kybernos-cloud/computers/runs?computerId=' + encodeURIComponent(id), { cache: 'no-store', credentials: 'same-origin' }).then((r) => r.json()).then((j) => [id, j !== null && typeof j === 'object' && j.ok === true && Array.isArray(j.runs) ? j.runs : null]).catch(() => [id, null])
+        const read = () => Promise.all(ids.map(one)).then((got) => {
+          if (alive !== true) return
+          cloudRunsPair[1]((prev) => { const next = {}; for (const g of got) next[g[0]] = g[1] !== null ? g[1] : (prev[g[0]] || null); return next })
+          timer = setTimeout(read, 30000)
+        })
+        read()
+        return () => { alive = false; if (timer !== null) clearTimeout(timer) }
+      }, [cloudIds])
       const tabPair = React.useState('flow')
       const tab = tabPair[0]
       const setTab = tabPair[1]
@@ -24320,18 +24439,21 @@ function renderFit(canvas, model, cam, opts){
       const items = list.map((t) => {
         const hist = Array.isArray(t.history) === true ? t.history : []
         const last = hist.length > 0 ? hist[hist.length - 1] : null
-        const failed = last !== null && last.status === 'error'
+        const cloudLinked = t.cloud !== null && t.cloud !== undefined && typeof t.cloud === 'object'
+        const cloudBad = cloudLinked === true && kbwRunBad(kbwRunLast(cloudRunsPair[0][t.cloud.computerId], t.id)) === true
+        const cloudHist = cloudLinked === true ? kbwHistoryOf(cloudRunsPair[0][t.cloud.computerId], t.id) : null
+        const failed = (last !== null && last.status === 'error') || cloudBad === true
         let lastLabel = kbt('tasks.no.session')
         let lastCls = ''
         if (runIds.indexOf(t.id) >= 0) { lastLabel = kbt('tasks.board.chip.running'); lastCls = 'run' }
-        else if (t.cloud !== null && t.cloud !== undefined && typeof t.cloud === 'object') { lastLabel = kbt(kbwDirty(t) === true ? 'kbwr.row.cloudDirty' : 'kbwr.row.cloud').replace('{name}', () => String(t.cloud.name)); lastCls = kbwDirty(t) === true ? 'cloudwarn' : 'cloud' }
+        else if (cloudLinked === true) { lastLabel = kbt(kbwDirty(t) === true ? 'kbwr.row.cloudDirty' : cloudBad === true ? 'kbwr.row.cloudFailed' : 'kbwr.row.cloud').replace('{name}', () => String(t.cloud.name)); lastCls = kbwDirty(t) === true ? 'cloudwarn' : cloudBad === true ? 'fail' : 'cloud' }
         else if (t.active === false) { lastLabel = kbt('tasks.paused'); lastCls = '' }
         else if (failed) { lastLabel = kbt('tasks.failed.at').replace('{when}', kbWhenOf(last.at)); lastCls = 'fail' }
         else if (t.lastRun !== null && t.lastRun !== undefined) { lastLabel = kbWhenOf(t.lastRun) + ' \u00b7 ok'; lastCls = 'ok' }
         const parts = kbTriggerParts(t, kbt, kbBoardLocale(), kbMachineTz())
         return {
           id: t.id, name: t.name || t.id, team: kbTaskWho(t, kbt) + (t.cloud !== null && t.cloud !== undefined && typeof t.cloud === 'object' ? ' \u00b7 ' + kbt('kbwr.row.sub').replace('{name}', () => String(t.cloud.name)) : ''), trigger: parts.label, tip: parts.tip, hooked: parts.hooked, active: t.active !== false,
-          sessions: hist.length, succ: kbRunBars(t.history), lastLabel: lastLabel, lastCls: lastCls, failed: failed === true || t.pendingFire === true, _t: t,
+          sessions: cloudHist !== null ? cloudHist.length : hist.length, succ: kbRunBars(cloudHist !== null ? cloudHist : t.history), lastLabel: lastLabel, lastCls: lastCls, failed: failed === true || t.pendingFire === true, _t: t,
           weight: kbLdRowWeight(machineLoadPair[0], t, runIds.indexOf(t.id) >= 0, Date.now()),
         }
       })
@@ -24508,16 +24630,21 @@ function renderFit(canvas, model, cam, opts){
             link: async (cloud) => { let r = null; try { r = await host.call('kybers/tasks', { action: 'cloud-link', id: t.id, cloud }) } catch (e) { r = null } return r !== null && r !== undefined && r.ok === true },
             onChanged: refresh })
           : tab === 'sessions'
-          ? h(KbRunsPane, {
-            key: t.id,
-            runs: kbRunsOf(t.history),
-            sel: typeof runSel[t.id] === 'string' ? runSel[t.id] : null,
-            onSelect: (key) => setRunSel(Object.assign({}, runSel, { [t.id]: key })),
-            onOpenChat: (id) => { try { uiWorkspaceSvc.openSession(id) } catch (er) { /* navigation unavailable */ } },
-            approvalLabel: t.approvals === 'auto' ? kbt('tasks.auto') : kbt('tasks.ask'),
-            taskId: t.id,
-            emptyText: kbt('tasks.sessions.empty').replace('{trigger}', kbScheduleLabel(t)),
-          })
+          ? (() => {
+            const localPane = h(KbRunsPane, {
+              key: t.id,
+              runs: kbRunsOf(t.history),
+              sel: typeof runSel[t.id] === 'string' ? runSel[t.id] : null,
+              onSelect: (key) => setRunSel(Object.assign({}, runSel, { [t.id]: key })),
+              onOpenChat: (id) => { try { uiWorkspaceSvc.openSession(id) } catch (er) { /* navigation unavailable */ } },
+              approvalLabel: t.approvals === 'auto' ? kbt('tasks.auto') : kbt('tasks.ask'),
+              taskId: t.id,
+              emptyText: kbt('tasks.sessions.empty').replace('{trigger}', kbScheduleLabel(t)),
+            })
+            return t.cloud !== null && t.cloud !== undefined && typeof t.cloud === 'object'
+              ? h(KbCloudSessions, { key: t.id, task: t, computers: computersPair[0].list, localCount: kbRunsOf(t.history).length, local: localPane })
+              : localPane
+          })()
           : h('div', { className: 'kba-flowwrap' }, kbUsesStrip(wfUses, appLogos),
             (view === 'text' ? frame(h('div', { style: { display: 'flex', flexDirection: 'column', gap: 10, flex: 1, minHeight: 0 } },
                   (dirty === true ? h('div', { className: 'kba-dirty' },
@@ -24566,7 +24693,7 @@ function renderFit(canvas, model, cam, opts){
               { kb: 'detail-delete', icon: Icon('trash', 14), label: kbt('tasks.delete'), danger: true, run: () => askDelete(t.id, t.name || t.id) }] })),
           h('div', { className: 'kba-sub', role: 'tablist', 'data-kb': 'detail-tabs' },
             h('button', { type: 'button', role: 'tab', 'aria-selected': tab === 'flow' ? 'true' : 'false', className: tab === 'flow' ? 'on' : '', 'data-kb': 'tab-flow', onClick: () => setTab('flow') }, kbt('tasks.tab.workflow')),
-            h('button', { type: 'button', role: 'tab', 'aria-selected': tab === 'sessions' ? 'true' : 'false', className: tab === 'sessions' ? 'on' : '', 'data-kb': 'tab-sessions', onClick: () => setTab('sessions') }, kbt('tasks.tab.sessions').replace('{n}', String(kbRunsOf(t.history).length))),
+            h('button', { type: 'button', role: 'tab', 'aria-selected': tab === 'sessions' ? 'true' : 'false', className: tab === 'sessions' ? 'on' : '', 'data-kb': 'tab-sessions', onClick: () => setTab('sessions') }, kbt('tasks.tab.sessions').replace('{n}', String(t.cloud !== null && t.cloud !== undefined && typeof t.cloud === 'object' ? kbwRunsFor(cloudRunsPair[0][t.cloud.computerId], t.id).length : kbRunsOf(t.history).length))),
             h('button', { type: 'button', role: 'tab', 'aria-selected': tab === 'where' ? 'true' : 'false', className: tab === 'where' ? 'on' : '', 'data-kb': 'tab-where', onClick: () => setTab('where') }, kbt('tasks.tab.where'))),
           h('div', { className: 'kba-body' }, bodyEl),
           (msg !== null ? h('div', { className: 'kba-toast', role: 'status' }, h('span', { className: 'kba-kdot ok' }), h('span', { style: { flex: 1 } }, msg), h('button', { type: 'button', 'aria-label': kbt('tasks.dismiss'), onClick: () => setMsg(null) }, '\u2715')) : null),
@@ -35211,6 +35338,15 @@ body:not([data-ds-dark-theme]) [data-kbld-level]{--kbld-t:color-mix(in srgb,var(
 .kbwr-mark{display:inline-flex;vertical-align:-2px;margin-inline-start:7px;color:var(--dsw-alias-state-business-primary)}
 .kba-kdot.cloud{background:var(--dsw-alias-state-business-primary)}
 .kba-kdot.cloudwarn{background:var(--dsw-alias-state-warn-primary)}
+.kbwr-sw{display:flex;flex-direction:column;gap:12px;flex:1;min-height:0}
+.kbwr-runbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.kbwr-runs{display:flex;flex-direction:column}
+.kbwr-run{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 0;border-top:1px solid var(--dsw-alias-border-l1);font-size:13px}
+.kbwr-run .kbwr-dot{margin-top:0}
+.kbwr-rwhen{flex:none;min-width:128px;font-size:12px;font-variant-numeric:tabular-nums;color:var(--dsw-alias-label-secondary)}
+.kbwr-rout{flex:none;min-width:104px;font-size:12px}
+.kbwr-rout.err{color:var(--dsw-alias-state-error-primary)}
+.kbwr-rdet{flex:1;min-width:0}
 .kbwr-seg{display:inline-flex;gap:2px;padding:3px;border-radius:12px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-2);align-self:flex-start}
 .kbwr-seg button{display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 14px;border:0;border-radius:9px;background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:13px;font-weight:600;cursor:pointer}
 .kbwr-seg button[aria-pressed="true"]{background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);box-shadow:0 1px 3px rgba(0,0,0,.25)}
