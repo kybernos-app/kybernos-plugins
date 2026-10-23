@@ -234,7 +234,7 @@ try {
   ok('the list view: a row per pick with the creator, the count, the verdicts and the same actions; the shared bar switches it, per browser')
 
   // the opened pick, in a window over the page (not a side panel, not a page that replaces the grid) -----------------
-  const det = src.slice(src.indexOf('const renderPickDetail = '), src.indexOf('const renderPanel = '))
+  const det = src.slice(src.indexOf('const renderPickDetail = '), src.indexOf('const renderPopup = '))
   assert.ok(det.length > 500, 'the detail view exists')
   assert.match(det, /h\(SkillSheet, \{\s*kb: 'pick-detail', closeKb: 'pick-back', actsKb: 'pick-acts'/, 'the pick is drawn by the sheet every skill window shares')
   assert.match(det, /art: pickCover\(p\)[\s\S]*cat: p\.category/, 'the picture of the card, big, at the top')
