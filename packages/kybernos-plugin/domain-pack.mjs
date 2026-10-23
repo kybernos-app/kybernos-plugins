@@ -25,7 +25,7 @@ export const ICONS = ['cap', 'heart', 'house', 'scales', 'trend', 'bag', 'mega',
 export const HOME_IDS = ['slides', 'doc', 'sheet', 'dashboard', 'image', 'video', 'website', 'miniapp', 'model3d', 'automation', 'team', 'skill', 'plugin']
 /** The `source` of a skill the plugin itself ships (domains/skills/<name>/SKILL.md), installed by `POST /kybernos/domain/skill`. */
 export const BUNDLED_SOURCE = 'kybernos'
-export const LIMITS = { goals: 12, skills: 8, teams: 3, soon: 4, automations: 3, connectors: 4, text: 160, prompt: 900, keywords: 40, keyword: 24, home: 6, legacy: 8 }
+export const LIMITS = { goals: 12, skills: 8, teams: 3, soon: 4, automations: 3, connectors: 4, search: 2, text: 160, prompt: 900, keywords: 40, keyword: 24, home: 6, legacy: 8 }
 
 const ID_RE = /^[a-z][a-z0-9-]{1,23}$/
 const SKILL_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
@@ -38,6 +38,8 @@ const COLOR_RE = /^#[0-9a-fA-F]{6}$/
 // Five cron fields made of digits, `*`, `/`, `,` and `-`: the host's own parser has the last word when the automation is created.
 const CRON_RE = /^[0-9*/,-]+( [0-9*/,-]+){4}$/
 const KEYWORD_RE = /^[a-z0-9][a-z0-9 .'-]*$/
+// What the skill scout asks the public index for a goal: a few lowercase English words that name what the goal is about (the index matches words, not sentences).
+const SEARCH_RE = /^[a-z0-9][a-z0-9 .'-]{1,31}$/
 
 const plain = (v) => v !== null && typeof v === 'object' && !Array.isArray(v)
 const only = (obj, keys, where, errors) => { for (const k of Object.keys(obj)) if (keys.indexOf(k) < 0) errors.push(where + ': unknown key "' + k + '"') }
@@ -131,11 +133,15 @@ export const validatePack = (raw, fileId) => {
   rawGoals.forEach((g, i) => {
     const where = 'goals[' + i + ']'
     if (!plain(g)) { errors.push(where + ': an object'); return }
-    only(g, ['id', 'name', 'title', 'desc', 'skills', 'teams', 'connectors', 'automations', 'soon', 'starter'], where, errors)
+    only(g, ['id', 'search', 'name', 'title', 'desc', 'skills', 'teams', 'connectors', 'automations', 'soon', 'starter'], where, errors)
     if (typeof g.id !== 'string' || !ID_RE.test(g.id)) errors.push(where + '.id: not a valid id')
     else if (seenGoal[g.id] === true) errors.push(where + '.id: "' + g.id + '" appears twice')
     else seenGoal[g.id] = true
-    const goal = { id: g.id, name: textOf(g.name, where + '.name', errors), title: textOf(g.title, where + '.title', errors), desc: textOf(g.desc, where + '.desc', errors), skills: [], teams: [], connectors: [], automations: [], soon: [], starter: null }
+    const goal = { id: g.id, name: textOf(g.name, where + '.name', errors), title: textOf(g.title, where + '.title', errors), desc: textOf(g.desc, where + '.desc', errors), search: [], skills: [], teams: [], connectors: [], automations: [], soon: [], starter: null }
+    for (const x of listOf(g.search, LIMITS.search, where + '.search', errors)) {
+      if (typeof x !== 'string' || !SEARCH_RE.test(x)) errors.push(where + '.search: "' + String(x) + '" is not a search phrase (lower case English words, 2 to 32 characters)')
+      else if (goal.search.indexOf(x) < 0) goal.search.push(x)
+    }
     const seenSkill = {}
     for (const [j, s] of listOf(g.skills, LIMITS.skills, where + '.skills', errors).entries()) {
       const sw = where + '.skills[' + j + ']'

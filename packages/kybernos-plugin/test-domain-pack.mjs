@@ -17,7 +17,7 @@ const T = (en, fr) => ({ en, fr })
 const good = () => ({
   v: 1, id: 'demo', order: 40, accent: '#1B7F76', icon: 'heart', name: T('Demo', 'Démo'), tagline: T('A demo', 'Une démo'), keywords: ['demo', 'test case'], home: ['doc', 'sheet'], legacyJobs: ['old'],
   menu: { labels: { dashboards: T('Numbers', 'Chiffres') }, hide: ['documents'] }, mode: 'code', agents: { preset: 'prudent', why: T('Careful here', 'Prudent ici') },
-  goals: [{ id: 'one', name: T('One', 'Un'), title: T('Do one', 'Faire un'), desc: T('One thing', 'Une chose'), skills: [{ source: 'anthropics/skills', name: 'pdf', d: T('Read PDFs', 'Lit des PDF') }], teams: ['studencik'], connectors: ['gmail', 'googlecalendar'], automations: [{ id: 'weekly', name: T('Weekly', 'Hebdo'), prompt: T('Every Friday: summarise the week.\nOne page.', 'Chaque vendredi : résume la semaine.'), cron: '0 17 * * 5' }], soon: [T('Later', 'Plus tard')], starter: T('Start', 'Commence') }]
+  goals: [{ id: 'one', search: ['one thing', 'do one'], name: T('One', 'Un'), title: T('Do one', 'Faire un'), desc: T('One thing', 'Une chose'), skills: [{ source: 'anthropics/skills', name: 'pdf', d: T('Read PDFs', 'Lit des PDF') }], teams: ['studencik'], connectors: ['gmail', 'googlecalendar'], automations: [{ id: 'weekly', name: T('Weekly', 'Hebdo'), prompt: T('Every Friday: summarise the week.\nOne page.', 'Chaque vendredi : résume la semaine.'), cron: '0 17 * * 5' }], soon: [T('Later', 'Plus tard')], starter: T('Start', 'Commence') }]
 })
 const bad = (mutate, fileId = 'demo') => { const p = good(); mutate(p); return validatePack(p, fileId) }
 
@@ -167,8 +167,27 @@ ok('a saved profession reads as its domain', () => {
   for (const v of ['nope', '', null, undefined, 4]) assert.equal(domainOfProfil(packs, v), null)
 })
 
+/* ── the search phrases of a goal (what the skill scout asks the index) ───── */
+ok('a goal may carry up to two search phrases: lower case English words, 2 to 32 characters, each once', () => {
+  assert.equal(LIMITS.search, 2)
+  assert.equal(bad((p) => { p.goals[0].search = ['one thing', 'one thing'] }).pack.goals[0].search.length, 1)
+  assert.equal(bad((p) => { delete p.goals[0].search }).pack.goals[0].search.length, 0)
+  for (const x of ['Upper Case', 'a', 'x'.repeat(33), '', 12, 'semi;colon', '<b>']) assert.equal(bad((p) => { p.goals[0].search = [x] }).ok, false, String(x))
+  assert.equal(bad((p) => { p.goals[0].search = ['one', 'two', 'three'] }).ok, false)
+  assert.equal(bad((p) => { p.goals[0].search = 'one thing' }).ok, false)
+})
+
 /* ── the packs this repository ships ─────────────────────────────────────── */
 const shipped = loadPacks(join(here, 'domains'))
+ok('every goal of every shipped pack gives the scout one or two search phrases, none twice inside a pack', () => {
+  for (const pk of shipped.packs) {
+    const seen = new Set()
+    for (const g of pk.goals) {
+      assert.ok(g.search.length >= 1 && g.search.length <= 2, pk.id + '/' + g.id + ' has ' + g.search.length + ' search phrases')
+      for (const x of g.search) { assert.ok(!seen.has(x), pk.id + ': « ' + x + ' » is asked twice'); seen.add(x) }
+    }
+  }
+})
 // The skill pairs the starter kits verified on 2026-10-14: each exists exactly once in its GitHub repository, which is what the install
 // route needs. Add a pair here only after checking it the same way.
 const VERIFIED = [

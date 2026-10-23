@@ -67,6 +67,7 @@
   "goals": [
     {
       "id": "tickets",
+      "search": ["support ticket triage", "customer support"],
       "name": {
         "en": "Support",
         "fr": "Support"
@@ -121,6 +122,7 @@
     },
     {
       "id": "stock",
+      "search": ["inventory management", "order management"],
       "name": {
         "en": "Stock",
         "fr": "Stock"
@@ -183,6 +185,7 @@
     },
     {
       "id": "letters",
+      "search": ["business letter", "letter template"],
       "name": {
         "en": "Letters",
         "fr": "Courriers"
@@ -216,6 +219,7 @@
     },
     {
       "id": "outreach",
+      "search": ["sales outreach", "cold email"],
       "name": {
         "en": "Outreach",
         "fr": "Prospection"

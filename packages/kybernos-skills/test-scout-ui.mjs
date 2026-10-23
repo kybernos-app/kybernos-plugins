@@ -34,11 +34,11 @@ ok('the first cards are the picks\' own cards and rows: no tint, no smaller pict
 const scoutAsPick = between('const scoutAsPick = ', 'const scoutOpts = ')
 assert.ok(scoutAsPick.includes("needs: f.risky === true ? 'commands' : null") && scoutAsPick.includes("t('scout.tag')") && scoutAsPick.includes('f.audits'))
 const scoutOpts = between('const scoutOpts = ', 'const firstGroup = ')
-assert.ok(scoutOpts.includes('onSkip: () => skipFind(f)') && scoutOpts.includes("setMode('discover'); setDetail(x)") && scoutOpts.includes("t('scout.why'"))
+assert.ok(scoutOpts.includes('onSkip: () => skipFind(f)') && scoutOpts.includes('setDetail(x)') && !scoutOpts.includes("setMode('discover')") && scoutOpts.includes("t('scout.why'"))
 const buttons = between('const pickButtons = ', 'const pickStar = ')
 assert.ok(buttons.includes("'data-kb': 'scout-skip'") && buttons.includes('opts.onSkip()') && buttons.includes("icon('close', 14)") && buttons.includes("t('scout.skip') + ' — '"))
 assert.ok(buttons.includes('setAskInstall(x)'), 'Install goes through the usual confirmation')
-ok('a find is a pick: audits as pills, « can run commands » for a risky one, Install with the usual confirmation, Details in Discover, a labelled « Not interested »')
+ok('a find is a pick: audits as pills, « can run commands » for a risky one, Install with the usual confirmation, Details in a window over Featured, a labelled « Not interested »')
 
 const skip = between('const skipFind = ', 'const scoutWeekly = ')
 assert.ok(skip.includes("setScout((m) => ({ ...m, found: m.found.filter((x) => x.id !== f.id) }))") && skip.includes("postJson('/kybernos-skills/scout/dismiss', { id: f.id })") && skip.includes('loadScout()'))
@@ -55,7 +55,8 @@ ok('« Scan now » asks again every three seconds while it scans and answers (do
 // 4. covers
 const covers = between('const coverWanted = ', 'const renderFeatured = ')
 assert.ok(covers.includes("getJson('/kybernos-skills/covers/state?names='") && covers.includes("postJson('/kybernos-skills/covers/make'") && covers.includes('coverAsked.current'))
-assert.ok(covers.includes('setTimeout(look, 4000)') && covers.includes("mode !== 'featured'"), 'it looks again every four seconds while pictures are made, and only on the Featured tab')
+assert.ok(covers.includes('setTimeout(look, 4000)') && covers.includes("mode === 'featured' && picks.phase === 'ready'"), 'it looks again every four seconds while pictures are made; the grid\'s pictures are asked for on the Featured tab only')
+assert.ok(covers.includes('if (local !== null) add(') && covers.includes('else if (detail !== null)'), 'the skill open in the window gets its picture too, on any tab')
 assert.ok(covers.includes('return { ...m, can: j.can === true'), 'the answer is merged into the state, never replaces it (it lost `broken` once and the page crashed: Cannot read properties of undefined)')
 assert.ok(covers.includes("items[n] === 'none'") && covers.includes('j.can === true'), 'only what can be made, only what is missing')
 const cover = between('const coverSrc = ', 'const pickBy = ')

@@ -2,8 +2,9 @@
 // and leave them as a short list to look at. Nothing is installed, nothing is written to the skills folder: installing goes through the same confirmation as
 // any skill of Discover. The model never decides what passes; it only tells the person the result.
 //
-// Where candidates come from (queries sent to the index): the goals the person ticked at first run (`kybernos/onboarding.json`), and the commonest words of the
-// skills the person already has. What a candidate must pass, in this order, cheapest first (the reason of every refusal is counted and shown):
+// Where candidates come from (queries sent to the index): the goals the person ticked at first run (`kybernos/onboarding.json`), each asked with the search
+// phrases its domain pack gives it (`goals[].search`: two or three English words that name what the goal is about, because the index matches words, not
+// sentences); the words of the skills the person already has only when no goal is ticked (measured: « kyber », « asks », « description » were noise). What a candidate must pass, in this order, cheapest first (the reason of every refusal is counted and shown):
 //   not_github · bad_name · installed · dismissed · already_found · few_installs      from the index entry alone
 //   not_checked · audit_unreachable · unaudited · audit_warning                       the security audits of skills.sh: at least one, all of them « pass »
 //   no_skill_file · too_big · unsafe_text · similar                                    the SKILL.md itself: size, secrets, instructions that look like an injection, a copy of a skill the person has
@@ -11,7 +12,8 @@
 //
 // Pure where it can be: `filterCandidates` and `runScout` take the network as `deps` ({ search, audit, preview }), so the tests need no network.
 import { mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { randomBytes } from 'node:crypto'
 import { kyDir, likeness, SKILL_NAME_RE } from './learned.mjs'
 import { isRisky } from './learned-score.mjs'
@@ -35,11 +37,26 @@ export const SCOUT_LIMITS = Object.freeze({
 
 export const scoutPath = (dsh) => join(kyDir(dsh), 'skills-scout.json')
 
-/** The goals the person ticked at first run (`kybernos/onboarding.json` › `goals`): plain ids only. */
-export const goalsOf = (dsh) => {
+// The packs of the fields of work sit in the core plugin, next to this bundle. They are read as plain data and checked again here (a bundle never imports another).
+const PACK_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'kybernos-plugin', 'domains')
+const PHRASE_RE = /^[a-z0-9][a-z0-9 .'-]{1,31}$/
+
+/** The search phrases a pack gives one goal: at most two, each a few lowercase English words. `[]` when the pack, the goal or the key is not there. */
+const phrasesOf = (profil, goal, packDir) => {
   try {
-    const goals = JSON.parse(readFileSync(join(kyDir(dsh), 'onboarding.json'), 'utf8')).goals
-    return (Array.isArray(goals) ? goals : []).filter((g) => typeof g === 'string' && /^[a-z0-9][a-z0-9_-]{1,39}$/.test(g)).slice(0, 8)
+    if (/^[a-z][a-z0-9-]{1,23}$/.test(String(profil)) === false) return []
+    const pack = JSON.parse(readFileSync(join(packDir, profil + '.json'), 'utf8'))
+    const g = (Array.isArray(pack.goals) ? pack.goals : []).find((x) => plain(x) && x.id === goal)
+    return g === undefined || Array.isArray(g.search) === false ? [] : g.search.filter((x) => typeof x === 'string' && PHRASE_RE.test(x)).slice(0, 2)
+  } catch (e) { return [] }
+}
+
+/** The goals the person ticked at first run (`kybernos/onboarding.json` › `goals`), as `{ id, search }`: plain ids only, `search` from the person's domain pack. */
+export const goalsOf = (dsh, packDir = PACK_DIR) => {
+  try {
+    const file = JSON.parse(readFileSync(join(kyDir(dsh), 'onboarding.json'), 'utf8'))
+    const goals = (Array.isArray(file.goals) ? file.goals : []).filter((g) => typeof g === 'string' && /^[a-z0-9][a-z0-9_-]{1,39}$/.test(g)).slice(0, 8)
+    return goals.map((id) => ({ id, search: phrasesOf(file.profil, id, packDir) }))
   } catch (e) { return [] }
 }
 
@@ -102,17 +119,22 @@ const SKILL_WORDS = new Set(['tool', 'tools', 'plugin', 'plugins', 'kybernos', '
 const contentWords = (text) => fold(text).split(/[^a-z0-9]+/).filter((w) => w.length > 3 && STOPWORDS.has(w) === false && SKILL_WORDS.has(w) === false)
 
 /**
- * The questions put to the index: the goals the person ticked first, then the commonest words of the skills they already have. `[{ q, from }]`, at most `queries`.
- * @param goals     ids such as `tickets` or `case-law-watch`
+ * The questions put to the index: for each ticked goal the first search phrase its pack gives (the goal's id as words when it gives none), then the second phrases;
+ * the commonest words of the person's skills only when no goal is ticked. `[{ q, from }]`, at most `queries`.
+ * @param goals     `{ id, search }` (an id string is read as `{ id, search: [] }`)
  * @param installed `[{ name, description }]`
  */
 export const interestsOf = ({ goals, installed }, limits = SCOUT_LIMITS) => {
   const out = []
   const seen = new Set()
   const add = (q, from) => { const t = oneLine(q, 40).toLowerCase(); if (t.length >= 3 && seen.has(t) === false && out.length < limits.queries) { seen.add(t); out.push({ q: t, from }) } }
-  for (const g of Array.isArray(goals) ? goals : []) add(String(g).replace(/[-_]+/g, ' '), 'goal')
-  // The words of the person's skills say something only when there are enough skills to tell a theme from filler: a word that three skills share is a theme,
-  // one that more than two in five hold is the filler of every description (« description », « asks », « harness » on a real scan).
+  const asked = (Array.isArray(goals) ? goals : []).map((g) => (typeof g === 'string' ? { id: g, search: [] } : g)).filter((g) => plain(g) && typeof g.id === 'string')
+  const phrases = (g) => (Array.isArray(g.search) ? g.search : [])
+  for (const g of asked) add(phrases(g).length > 0 ? phrases(g)[0] : String(g.id).replace(/[-_]+/g, ' '), 'goal')
+  for (const g of asked) if (phrases(g).length > 1) add(phrases(g)[1], 'goal')
+  if (out.length > 0) return out
+  // No goal: what the person's skills have in common. The words of their descriptions say something only when there are enough skills to tell a theme from filler:
+  // a word that three skills share is a theme, one that more than two in five hold is the filler of every description.
   const mine = Array.isArray(installed) ? installed : []
   const count = new Map()
   for (const s of mine) for (const w of new Set(contentWords(String(s.description || '')))) count.set(w, (count.get(w) || 0) + 1)

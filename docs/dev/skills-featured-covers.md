@@ -57,7 +57,7 @@ The key is the one DSH holds for DeepInfra (`DEEPINFRA_API_KEY` in its credentia
 
 The same pipeline now runs inside the plugin for a card that has no picture (`cover-maker.mjs`, `docs/dev/learned-skills.md`): `COVER_STYLE`, `COVER_TAIL` and the example
 scenes are the strings of this document, verbatim (`test-cover-maker.mjs` reads this file and fails when they drift), so a picture made later looks like the shipped ones.
-Measured on a real run: scene 2.5 s, picture 14 s, cut-out 2.5 s. Bria's answer is `images[0]` as an https address on `temp.bria.ai`, not on DeepInfra. The made
+Measured on a real run: scene 2.5 s, picture 14 s, cut-out 2.5 s. The cut-out is checked: a picture that kept its room (more than 72 % of the trimmed picture opaque, the shipped covers are 40 to 55 %) is replaced by a new one, up to three. Bria's answer is `images[0]` as an https address on `temp.bria.ai`, not on DeepInfra. The made
 pictures are not in the repository (no media in git): they live in `<DSH home>/kybernos/skills-featured/`.
 
 ## Rules and open points

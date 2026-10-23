@@ -14,17 +14,19 @@ It is part of the **socle** (`socle: true` in `packages/kybernos-hub/catalog.jso
   sign-in). *Install* and *Details* appear on hover and on focus (always on touch); *Install* opens the usual confirmation and the page
   stays on Featured; *Use* copies `/name`. Categories, search and order come from the shared bar, which also switches **cards or list** (the list is one
   row per pick: a square thumbnail, the outcome, creator, count, verdicts and the same two actions, always visible); « Cover background » is
-  Tint or Plain. Both choices are kept per browser. *Details* opens the pick **on the width of the page** (not in a side panel): its picture and
-  title at the top as on the card, then the facts, the live audits and the start of the repository's real `SKILL.md` side by side; *Back*
-  returns to the grid or the list, and installing from there keeps the pick open (it flips to *Installed*).
+  Tint or Plain. Both choices are kept per browser. One layout for all of them: a pick, an entry of Discover or a find, and a skill of Yours are drawn by the same sheet (top bar, hero with the picture, facts beside the audits, `SKILL.md`, actions), and a skill that has no picture gets one made.
+  A skill, **wherever it is clicked** (a pick, a card or row of the field, a find, Yours, Discover), opens in **a window over the page** and never switches tab: its name and ✕
+  stay at the top, its actions (Install / Use, View on GitHub, the star; Open folder, Edit, Duplicate, Delete for an installed one) stay at the foot, both sticky, so nothing
+  needs a scroll. For a pick it is the picture and title as on the card, then the facts, the live audits and the start of the repository's real `SKILL.md`; Escape, a click
+  outside and ✕ close it, and installing from there keeps it open (it flips to *Installed*). The categories (and the cover background) are the very top of the Featured tab.
   A `SKILL.md` is shown **formatted** wherever the page shows one (a pick's page, a Discover panel, an installed skill's panel): the front matter as a small properties
   box, headings, lists, tables, code, quotes, links. A safe subset drawn as React elements (HTML stays text, no image is loaded, only https links), with a **Raw text**
   switch: a skill comes from someone else and the raw file is where a hidden line would show (`test-markdown.mjs`).
   The first cards are the skills of the person's field and what the **skill scout** found; a card with no picture gets one made in the shipped style (`docs/dev/learned-skills.md`).
   The data is `featured-picks.json` (below); with a host that does not have the route the tab is hidden and Yours is the landing tab.
-- **Yours**: skills of this profile, with a banner for **what Kaby suggests** (dashed cards, a Review panel with the checks, Accept / Edit / Discard, a Journal button, an Origin filter and a **Learned** badge on what was accepted), search, state / source filters, sorting, an active toggle on each card (read-only rows
-  when the folder is not writable) and a Featured row kept by a star. A click on a card opens a **panel on the right** (the list
-  stays): the skill's real `SKILL.md` as it is on disk, its folder (copyable), and the actions the host says it can do for that
+- **Yours**: skills of this profile, with a banner for **what Kaby suggests** (dashed cards in the cards view and dashed rows in the list view, never both: a list holds rows and a grid holds cards; each carries **Review, Edit, Discard and Accept** without opening it, Accept locked as in the review window; Review opens a window with the checks; a Journal button, an Origin filter and a **Learned** badge on what was accepted), search, state / source filters, sorting, an active toggle on each card (read-only rows
+  when the folder is not writable) and a Featured row kept by a star. A click on a card opens **a window over the page** (the list
+  stays; there is no panel beside the list any more, for Kaby's review and journal either): the skill's real `SKILL.md` as it is on disk, its folder (copyable), and the actions the host says it can do for that
   skill — *Open folder*, *Edit* (opens `SKILL.md` in the text editor of this machine), *Duplicate* (a copy in your own skills
   folder under a free name, its `name:` renamed) and *Delete* (a confirmation that names the folder first; permanent, writable
   roots only). A copy of the invocation to paste in the composer is on the card.

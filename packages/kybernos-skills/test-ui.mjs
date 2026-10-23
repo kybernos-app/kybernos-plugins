@@ -521,13 +521,13 @@ console.log('Yours: what Kaby suggests waits, and nothing is active before Accep
     await click(root, kb(root, 'learned-chip')[0])
     check('and a second click puts everything back', cardOf(root, 'sql-queries') !== undefined && kb(root, 'learned-card').length === 2)
 
-    // Review opens a panel; the list stays
+    // Review opens a window over the page; the list stays
     await click(root, kb(root, 'learned-review')[0])
     const panel = part(root, 'learned-panel')
-    check('Review opens the suggestion on the right, the list stays', kb(root, 'learned-panel').length === 1 && cardOf(root, 'sql-queries') !== undefined)
+    check('Review opens the suggestion in a window over the page, the list stays', kb(root, 'skill-popup').length === 1 && kb(root, 'learned-panel').length === 1 && cardOf(root, 'sql-queries') !== undefined)
     check('the panel says why, shows the text, the rules every learned skill ends with, and the checks', panel.includes('Kaby found 3 of your lessons') && panel.includes('Prove the UI language first.') && panel.includes('Draft only: never send') && panel.includes('Valid name') && panel.includes('Nothing changes until you accept'), panel.slice(0, 200))
     check('nothing was written by opening it', posted(w, '/kybernos-skills/learned/accept').length === 0)
-    check('the three answers and their note are in ONE sticky footer, so they stay in view when the panel scrolls', kb(root, 'learned-foot').length === 1 && part(root, 'learned-foot').includes('Nothing changes until you accept.') && /\.kbs-root \.kbs-panel-foot\{position:sticky;bottom:-16px/.test(SOURCE) && /\.kbs-split\.open \.kbs-panel \.kbs-panel-foot\{bottom:0\}/.test(SOURCE))
+    check('the three answers and their note are in ONE sticky footer, so they stay in view when the window scrolls', kb(root, 'learned-foot').length === 1 && part(root, 'learned-foot').includes('Nothing changes until you accept.') && /\.kbs-root \.kbs-panel-foot\{position:sticky;bottom:-16px/.test(SOURCE) && /\.kbs-win \.kbs-panel-acts,\.kbs-root \.kbs-win \.kbs-panel-foot\{bottom:0;/.test(SOURCE))
 
     // Accept
     await click(root, kb(root, 'learned-accept')[0])
@@ -547,6 +547,13 @@ console.log('Yours: what Kaby suggests waits, and nothing is active before Accep
     await click(root, kb(root, 'notice-undo')[0])
     check('Undo asks the host to restore it', posted(w, '/kybernos-skills/learned/restore').length === 1 && posted(w, '/kybernos-skills/learned/restore')[0].body.id === 'p_aaaa1111')
 
+    // The answers on the card itself, without opening it: Review, Edit, Discard, Accept (and no bare ✕ any more)
+    const cards = kb(root, 'learned-card').length
+    check('each card carries Review, Edit, Discard and Accept', ['learned-review', 'learned-edit-quick', 'learned-discard-quick', 'learned-accept-quick'].every((k) => kb(root, k).length === cards) && all(kb(root, 'learned-card')[0], (n) => n.tag === 'button' && n.props.children === '✕').length === 0)
+    check('Accept on a card is a primary button and Discard the warning one', kb(root, 'learned-accept-quick')[0].props.className === 'kb8-primary' && kb(root, 'learned-discard-quick')[0].props.className === 'kb8-ghost warn')
+    await click(root, kb(root, 'learned-edit-quick')[0])
+    check('Edit on a card opens the suggestion in edit mode, in the window (two fields)', kb(root, 'skill-popup').length === 1 && kb(root, 'learned-panel').length === 1 && all(root, (n) => n.tag === 'textarea').length === 2)
+
     // Edit, then Save
     await click(root, kb(root, 'learned-review')[0])
     await click(root, kb(root, 'learned-edit')[0])
@@ -556,6 +563,10 @@ console.log('Yours: what Kaby suggests waits, and nothing is active before Accep
     await click(root, kb(root, 'learned-save')[0])
     const ed = posted(w, '/kybernos-skills/learned/edit')
     check('Save sends the person’s own words, still nothing active', ed.length === 1 && ed[0].body.body === '# Mine\n- my words' && ed[0].body.id === 'p_aaaa1111' && posted(w, '/kybernos-skills/learned/accept').length === 1, ed)
+    // Accept from the card, without reading the window
+    await click(root, kb(root, 'learned-accept-quick')[0])
+    const quickAcc = posted(w, '/kybernos-skills/learned/accept')
+    check('Accept on a card asks the host to accept THAT suggestion', quickAcc.length === 2 && quickAcc[1].body.id === 'p_aaaa1111', quickAcc)
   }
   {
     // client data: Accept is locked and the flagged text is shown
@@ -573,6 +584,7 @@ console.log('Yours: what Kaby suggests waits, and nothing is active before Accep
     check('the panel names the client data and says it blocks Accept in this field', panel.includes('1 piece of client data to remove') && panel.includes('cannot be accepted until they are gone') && panel.includes('local only'), panel.slice(0, 300))
     check('the flagged text is marked', all(root, (n) => n.tag === 'mark' && hasClass(n, 'kbl-flag')).length === 1 && textOf(all(root, (n) => n.tag === 'mark')[0]).includes('marie.roux@cabinet.example'))
     check('Accept is disabled and says why', kb(root, 'learned-accept')[0].props.disabled === true && panel.includes('Accept is locked: remove the client data first.'))
+    check('on the card too, Accept is locked and its tooltip says why', kb(root, 'learned-accept-quick')[0].props.disabled === true && kb(root, 'learned-accept-quick')[0].props.title === 'Accept is locked: remove the client data first.')
     await click(root, kb(root, 'learned-fix')[0])
     const fx = posted(w, '/kybernos-skills/learned/edit')
     check('“Replace with placeholders” saves the text with the data replaced, and nothing else', fx.length === 1 && fx[0].body.body === '# Clause table\n- Mail [email]' && fx[0].body.description === desc, fx)

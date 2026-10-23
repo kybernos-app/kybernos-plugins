@@ -92,6 +92,43 @@ window.__ModuleLoader__.load({
         return String(v)
       }
       const today = (iso) => { try { return new Date(iso).toLocaleDateString(isEn() ? 'en-GB' : 'fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }) } catch (e) { return '' } }
+      // « ticket-triage » as a title: « Ticket triage ».
+      const humanName = (n) => { const w = String(n).replace(/-/g, ' '); return w.charAt(0).toUpperCase() + w.slice(1) }
+
+      // ── a cover takes the same share of its frame, whatever its shape ──
+      // The pictures are cut-outs of different shapes (a wide desk, a tall tower) and different weights (44 to 67 % of the picture is opaque). Fitted by their box they looked unequal:
+      // the wide, heavy ones filled the frame, the others floated in it. Each is drawn so that its OPAQUE part covers COVER_INK of the frame (0.29: what the shipped covers average),
+      // within 92 % of the width and 90 % of the height. The opaque part is read from a 48-pixel copy of the picture; without it (a canvas that cannot be read) the CSS fit stays.
+      const COVER_INK = 0.29
+      const fitCover = (img) => {
+        try {
+          if (img === null || img === undefined || !img.naturalWidth || !img.naturalHeight || !img.parentElement) return
+          if (img.dataset.fitted === img.currentSrc) return
+          const bw = img.parentElement.clientWidth
+          const bh = img.parentElement.clientHeight
+          if (!bw || !bh) return
+          const cw = 48
+          const ch = Math.max(8, Math.round(cw * img.naturalHeight / img.naturalWidth))
+          const canvas = document.createElement('canvas')
+          canvas.width = cw; canvas.height = ch
+          const g = canvas.getContext('2d', { willReadFrequently: true })
+          g.drawImage(img, 0, 0, cw, ch)
+          const px = g.getImageData(0, 0, cw, ch).data
+          let n = 0
+          for (let i = 3; i < px.length; i += 4) if (px[i] > 200) n += 1
+          const share = Math.max(0.2, Math.min(0.9, n / (cw * ch)))
+          const aspect = img.naturalWidth / img.naturalHeight
+          let w = Math.sqrt(COVER_INK * bw * bh / share * aspect)
+          let hh = w / aspect
+          const k = Math.min(1, 0.92 * bw / w, 0.9 * bh / hh)
+          w *= k; hh *= k
+          const st = img.style
+          st.inset = 'auto'; st.left = '50%'; st.top = '50%'; st.transform = 'translate(-50%,-50%)'
+          st.width = (100 * w / bw).toFixed(1) + '%'; st.height = (100 * hh / bh).toFixed(1) + '%'
+          img.dataset.fitted = img.currentSrc
+        } catch (e) { /* the CSS fit stays */ }
+      }
+
       // ── SKILL.md as a person reads it (a safe subset of Markdown, drawn as React elements: no HTML is ever injected, an image is never loaded) ──
       // The start of a SKILL.md is shown formatted (front matter as a small properties box, headings, lists, tables, code, quotes, links) with a switch back to the
       // file as it is: a skill comes from someone else, and the raw text is where a hidden line would show.
@@ -1364,12 +1401,23 @@ window.__ModuleLoader__.load({
 .kbs-root .kbs-toast.err{border-color:color-mix(in srgb,var(--dsw-alias-state-error-primary) 55%,transparent)}
 .kbs-root .kbs-copy{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-caption);border-radius:999px;padding:3px 9px;font-family:ui-monospace,monospace;font-size:11px;cursor:pointer}
 .kbs-root .kbs-copy:hover{color:var(--dsw-alias-label-primary);border-color:var(--dsw-alias-border-l2)}
-/* The panel on the right of Yours and Discover: the list stays, the panel sits next to it and follows the scroll. Under 1100 px it goes
-   above the list instead, where it is the first thing seen. */
-.kbs-root .kbs-split.open{display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:20px;align-items:start}
-.kbs-root .kbs-list{min-width:0}
+/* A panel is only ever drawn inside the skill window (.kbs-win below): the list is never narrowed to make room for one. */
 .kbs-root .kbs-panel{position:sticky;top:12px;display:flex;flex-direction:column;gap:12px;min-width:0;box-sizing:border-box;padding:16px 18px;border:1px solid var(--dsw-alias-border-l1);border-radius:16px;background:var(--dsw-alias-bg-layer-1);max-height:calc(100vh - 32px);overflow:auto}
 .kbs-root .kbs-panel>*{flex:0 0 auto}
+/* A skill opened: the panel's own content inside a window. The window scrolls; the name and ✕ are sticky at its top, the actions sticky at its foot. */
+.kbs-root .kbs-win{width:min(1000px,96vw);max-height:92vh;overflow:auto;box-sizing:border-box;padding:0 22px;background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l2);border-radius:18px;box-shadow:0 24px 60px rgba(0,0,0,.6);outline:none;display:flex;flex-direction:column}
+.kbs-root .kbs-win.narrow{width:min(760px,96vw)}
+.kbs-root .kbs-win>.kbs-panel,.kbs-root .kbs-win>.kbsf-detail{flex:1 0 auto}
+.kbs-root .kbs-win .kbs-panel{position:static;max-height:none;overflow:visible;border:0;border-radius:0;background:transparent;padding:0;min-height:100%}
+.kbs-root .kbs-win .kbs-panel-top{position:sticky;top:0;z-index:3;margin:0 -22px;padding:14px 22px 10px;background:var(--dsw-alias-bg-layer-1);border-bottom:1px solid var(--dsw-alias-border-l1)}
+.kbs-root .kbs-win .kbs-panel-acts,.kbs-root .kbs-win .kbs-panel-foot{bottom:0;margin:auto -22px 0;padding:12px 22px 14px}
+.kbs-root .kbs-win .kbs-panel-foot .kbs-panel-acts{margin:0;padding:0}
+.kbs-root .kbs-win .kbsf-detail{display:flex;flex-direction:column;gap:16px;min-height:100%;margin:0}
+.kbs-root .kbs-win .kb-local-body,.kbs-root .kbs-win .kbs-panel .kb-local-body{max-height:none;overflow:visible}
+.kbs-root .kbs-win .kbsf-dpic{min-height:300px}
+.kbs-root .kbs-win .kbsf-dtx{padding:24px 28px}
+.kbs-root .kbs-win .kbsf-dacts{margin:0}
+.kbs-root .kbsf-dcols.one{grid-template-columns:minmax(0,1fr)}
 .kbs-root .kbs-panel-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .kbs-root .kbs-panel-top .kb-tool{width:30px;height:30px;border-radius:9px;flex:0 0 auto}
 .kbs-root .kbs-panel .kb-detail-head .kb8-tile.lg{width:44px;height:44px;border-radius:14px;flex:0 0 auto}
@@ -1387,14 +1435,6 @@ window.__ModuleLoader__.load({
 .kbs-root .kb8-ghost.warn{color:var(--dsw-alias-state-error-primary);border-color:color-mix(in srgb,var(--dsw-alias-state-error-primary) 45%,transparent)}
 .kbs-root .kb8-card.sel{border-color:var(--dsw-alias-brand-primary);box-shadow:0 0 0 1px var(--dsw-alias-brand-primary)}
 .kbs-root .kbs-row.sel{background:var(--dsw-alias-interactive-bg-hover);box-shadow:inset 2px 0 0 var(--dsw-alias-brand-primary)}
-/* With the panel open the ranking is narrower: the repository and the badges columns give way (they are in the panel). */
-.kbs-root .kbs-split.open .kbs-head,.kbs-root .kbs-split.open .kbs-row{grid-template-columns:36px minmax(0,1fr) 84px;gap:10px;padding:8px 14px}
-.kbs-root .kbs-split.open .kbs-head .src,.kbs-root .kbs-split.open .kbs-head .badges,.kbs-root .kbs-split.open .kbs-row .src,.kbs-root .kbs-split.open .kbs-row .badges{display:none}
-@media (max-width:1100px){
-  .kbs-root .kbs-split.open{grid-template-columns:minmax(0,1fr)}
-  .kbs-root .kbs-split.open .kbs-panel{order:-1;position:static;max-height:none}
-  .kbs-root .kbs-split.open .kbs-panel .kbs-panel-foot{bottom:0}
-}
 .kbs-root .kbs-nowrap{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* — Featured: the same rows as the ranking below it (same grid, same height); the cover, when there is one, is the row's tile. */
 .kbs-root .kbs-feat{display:flex;flex-direction:column;gap:12px;margin-bottom:20px}
@@ -1659,6 +1699,10 @@ body:not([data-ds-dark-theme]) .kbs-root .kb8-pill.warn{color:color-mix(in srgb,
 .kbs-root .kbl-how{font-size:12.5px;line-height:1.45;color:var(--dsw-alias-label-secondary)}
 .kbs-root .kbl-acts{display:flex;gap:8px;align-items:center;justify-content:flex-end;flex-wrap:wrap}
 .kbs-root .kbl-bfoot{padding:9px 18px 13px;font-size:12.5px;color:var(--dsw-alias-label-caption);border-top:1px solid color-mix(in srgb,var(--dsw-alias-brand-primary) 18%,var(--dsw-alias-border-l1))}
+.kbs-root .kbl-pfoot{flex-direction:column;align-items:stretch;gap:8px}
+.kbs-root .kbl-quick{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;align-items:center}
+.kbs-root .kbl-quick button{height:30px;padding:0 12px;font-size:13px}
+.kbs-root .kbs-yrow.kbl-pend .kb8-pills{flex:none;display:flex;gap:6px;flex-wrap:nowrap}
 .kbs-root .kbl-pend{border-style:dashed;border-color:color-mix(in srgb,var(--dsw-alias-brand-primary) 55%,var(--dsw-alias-border-l1));background:color-mix(in srgb,var(--dsw-alias-brand-primary) 4%,var(--dsw-alias-bg-layer-1))}
 .kbs-root .kbl-sug,.kbs-root .kbl-lrn{display:inline-flex;align-items:center;gap:4px;color:var(--dsw-alias-brand-primary);background:color-mix(in srgb,var(--dsw-alias-brand-primary) 13%,transparent)}
 .kbs-root .kbl-from{font-size:12.5px;color:var(--dsw-alias-label-caption)}
@@ -1956,7 +2000,7 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
             return j
           }).catch(() => { if (alive.current === true) { setLBusy(false); setNotice({ kind: 'err', text: t('err.unavail', { r: 'learned/' + path }) }) } })
         }
-        const openReview = (p) => { setReview({ id: p.id, edit: false, description: p.description, body: p.body, add: typeof p.add === 'string' ? p.add : '', err: '' }); setLocal(null); setDetail(null); setModal(null); setJournalOpen(false) }
+        const openReview = (p, edit) => { setReview({ id: p.id, edit: edit === true, description: p.description, body: p.body, add: typeof p.add === 'string' ? p.add : '', err: '' }); setLocal(null); setDetail(null); setModal(null); setJournalOpen(false) }
         const acceptLearned = (p) => {
           learnedAct('accept', { id: p.id }, (j) => {
             setReview(null)
@@ -2658,7 +2702,16 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
             err ? h('div', { className: 'kbs-err' }, err) : null)
         }
 
-        // A suggestion of Kaby as a card in the grid of Yours: dashed, not active, and one button, Review.
+        // The answers of a suggestion, on its card or its row, without opening it: Accept, Edit (opens it in edit mode), Discard, and Review to read why first. Accept is locked
+        // exactly as it is in the review window (a suggestion that holds client data in Law and Health).
+        const quickActs = (p) => [
+          h('button', { key: 'rv', type: 'button', className: 'kb8-ghost', 'data-kb': 'learned-review', onClick: (e) => { e.stopPropagation(); openReview(p) } }, t('ln.review')),
+          h('button', { key: 'ed', type: 'button', className: 'kb8-ghost', 'data-kb': 'learned-edit-quick', title: t('ln.edit'), disabled: lBusy, onClick: (e) => { e.stopPropagation(); openReview(p, true) } }, t('ln.edit')),
+          h('button', { key: 'di', type: 'button', className: 'kb8-ghost warn', 'data-kb': 'learned-discard-quick', title: t('ln.discard'), disabled: lBusy, onClick: (e) => { e.stopPropagation(); discardLearned(p) } }, t('ln.discard')),
+          h('button', { key: 'ac', type: 'button', className: 'kb8-primary', 'data-kb': 'learned-accept-quick', title: p.blocking === true ? t('ln.accept.locked') : t('ln.accept'), disabled: lBusy || p.blocking === true, onClick: (e) => { e.stopPropagation(); acceptLearned(p) } }, t('ln.accept'))
+        ]
+
+        // A suggestion of Kaby as a card in the grid of Yours: dashed, not active, with its four answers.
         const pendingCard = (p, i) => h('div', {
           key: 'sg-' + p.id, className: 'kb8-card kbl-pend' + (review !== null && review.id === p.id ? ' sel' : '') + appear(i), role: 'button', tabIndex: 0,
           'aria-label': p.name + ' — ' + t('ln.badge.suggested'), 'data-kb': 'learned-card',
@@ -2670,11 +2723,24 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
             h('span', { style: { display: 'flex', flexDirection: 'column', minWidth: 0, gap: '2px', flex: '1' } },
               h('span', { className: 'kb8-name' }, h('span', { className: 'kb-ping', 'aria-hidden': 'true', 'data-kb': 'learned-ping' }), p.name),
               h('span', { className: 'kb8-parent kbs-nowrap' }, fromText(p.from))),
-            h('button', { type: 'button', className: 'kbs-star-btn', title: t('ln.discard'), 'aria-label': t('ln.discard') + ' ' + p.name, disabled: lBusy, onClick: (e) => { e.stopPropagation(); discardLearned(p) } }, '✕')),
+            ),
           h('div', { className: 'desc' }, p.kind === 'improve' ? t('ln.card.imp', { add: p.add }) : p.description),
           h('div', { className: 'kb8-pills' }, h('span', { key: 'sg', className: 'kb8-pill kbl-sug' }, icon('wand', 11), t(p.kind === 'improve' ? 'ln.badge.improve' : 'ln.badge.suggested')), p.score !== undefined ? h('span', { key: 'sc', className: 'kb8-pill', 'data-kb': 'learned-score' }, t('ln.card.score', { s: p.score.total })) : null, p.source !== null && p.source !== undefined && p.source.tainted !== false && (p.kind === 'asked' || p.kind === 'improve') ? h('span', { key: 'ut', className: 'kb8-pill warn' }, t('ln.chip.untrusted')) : null, learned.sensitive ? h('span', { key: 'lo', className: 'kb8-pill' }, t('ln.p.local')) : null),
-          h('div', { className: 'foot' }, h('span', null, learned.sensitive ? icon('lock', 12) : null, learned.sensitive ? ' ' + t('ln.b.local') : t('ln.card.note')), h('span', { className: 'grow' }),
-            h('button', { type: 'button', className: 'kb8-primary', 'data-kb': 'learned-review', onClick: (e) => { e.stopPropagation(); openReview(p) } }, t('ln.review'))))
+          h('div', { className: 'foot kbl-pfoot' },
+            h('span', null, learned.sensitive ? icon('lock', 12) : null, learned.sensitive ? ' ' + t('ln.b.local') : t('ln.card.note')),
+            h('div', { className: 'kbl-quick' }, quickActs(p))))
+        // The same suggestion as a ROW, for the list view: a list holds rows only, never cards (the dashed cards above a list of rows were two layouts on one page).
+        const pendingRow = (p, i) => h('div', {
+          key: 'sgr-' + p.id, className: 'kbs-yrow kbl-pend' + (review !== null && review.id === p.id ? ' sel' : '') + appear(i), role: 'button', tabIndex: 0,
+          'aria-label': p.name + ' — ' + t('ln.badge.suggested'), 'data-kb': 'learned-row', title: learned.sensitive ? t('ln.b.local') : t('ln.card.note'),
+          onClick: () => openReview(p),
+          onKeyDown: (e) => { if (e.target !== e.currentTarget) return; if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openReview(p) } }
+        },
+          tile(p.name, 'pkg', 'kbs-sm'),
+          h('span', { className: 'who' }, h('span', { className: 'kb8-name' }, h('span', { className: 'kb-ping', 'aria-hidden': 'true', 'data-kb': 'learned-ping' }), p.name), h('span', { className: 'kb8-parent kbs-nowrap' }, fromText(p.from))),
+          h('span', { className: 'desc', title: p.description }, p.kind === 'improve' ? t('ln.card.imp', { add: p.add }) : p.description),
+          h('span', { className: 'kb8-pills' }, h('span', { key: 'sg', className: 'kb8-pill kbl-sug' }, icon('wand', 11), t(p.kind === 'improve' ? 'ln.badge.improve' : 'ln.badge.suggested')), p.score !== undefined ? h('span', { key: 'sc', className: 'kb8-pill', 'data-kb': 'learned-score' }, t('ln.card.score', { s: p.score.total })) : null, p.source !== null && p.source !== undefined && p.source.tainted !== false && (p.kind === 'asked' || p.kind === 'improve') ? h('span', { key: 'ut', className: 'kb8-pill warn' }, t('ln.chip.untrusted')) : null, learned.sensitive ? h('span', { key: 'lo', className: 'kb8-pill' }, t('ln.p.local')) : null),
+          h('span', { className: 'acts kbl-quick' }, quickActs(p)))
         const pendingShown = () => {
           if ((originFilter !== 'all' && originFilter !== 'kaby') || stateFilter !== 'all' || sourceFilter !== 'all') return []
           const needle = q.yours.trim().toLowerCase()
@@ -2874,7 +2940,7 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
           : (covers.broken[p.id] !== true && p.cover !== null && p.cover !== undefined && p.cover !== '' ? p.cover : ''))
         const coverBusy = (p) => coverSrc(p) === '' && (covers.items[p.id] === 'making' || covers.items[p.id] === 'queued')
         const pickCover = (p) => (coverSrc(p) !== ''
-          ? h('img', { className: 'kbsf-cut', src: coverSrc(p), alt: '', loading: 'lazy', onError: (e) => { try { e.target.style.display = 'none' } catch (e2) { /* the tint is enough */ } setCovers((m) => (m.broken[p.id] === true ? m : { ...m, broken: { ...m.broken, [p.id]: true } })) } })
+          ? h('img', { className: 'kbsf-cut', src: coverSrc(p), alt: '', loading: 'lazy', ref: (el) => { if (el !== null && el.complete) fitCover(el) }, onLoad: (e) => fitCover(e.target), onError: (e) => { try { e.target.style.display = 'none' } catch (e2) { /* the tint is enough */ } setCovers((m) => (m.broken[p.id] === true ? m : { ...m, broken: { ...m.broken, [p.id]: true } })) } })
           : tile(p.id, 'pkg'))
         const pickBy = (p) => {
           const owner = String(p.source).split('/')[0]
@@ -3013,7 +3079,6 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
         // and the one gesture. A skill from GitHub goes through the same confirmation as any install; one that ships with Kybernos is a plain copy.
         const domainSeam = () => { try { const d = window.__KB_DOMAIN__; return d !== null && d !== undefined && typeof d.field === 'function' ? d : null } catch (e) { return null } }
         const pageTitle = () => { try { const d = domainSeam(); const l = d !== null ? d.label('skills') : null; return typeof l === 'string' && l.trim() !== '' ? l : 'Skills' } catch (e) { return 'Skills' } }
-        const humanName = (n) => { const w = String(n).replace(/-/g, ' '); return w.charAt(0).toUpperCase() + w.slice(1) }
         const installShipped = (name) => {
           const d = domainSeam()
           if (d === null || typeof d.installSkill !== 'function') return
@@ -3042,8 +3107,8 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
           const noDetails = curated !== true && own === undefined && sk.shipped === true
           const openIt = () => {
             if (curated === true) { setDetail(x); setLocal(null); setModal(null); setAudit(null); return }
-            if (own !== undefined) { setMode('yours'); setDetail(null); setModal(null); setReview(null); setJournalOpen(false); setLocal(own); return }
-            if (sk.shipped !== true) { setMode('discover'); setDetail(x); setLocal(null); setModal(null); setAudit(null) }
+            if (own !== undefined) { setDetail(null); setModal(null); setReview(null); setJournalOpen(false); setLocal(own); return }
+            if (sk.shipped !== true) { setDetail(x); setLocal(null); setModal(null); setAudit(null) }
           }
           return {
             kb: 'field-skill', isIn, openIt, noDetails, ticked: sk.ticked === true, busy: shipBusy[sk.name] === true,
@@ -3064,7 +3129,7 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
           return {
             kb: 'scout-find', isIn: skills.some((y) => y.name === f.name), ticked: false, dot: null, onSkip: () => skipFind(f),
             why: Array.isArray(f.why) && f.why.length > 0 ? t('scout.why', { what: f.why.join(', ') }) : undefined,
-            openIt: () => { setMode('discover'); setDetail(x); setLocal(null); setModal(null); setAudit(null) },
+            openIt: () => { setDetail(x); setLocal(null); setModal(null); setAudit(null) },
           }
         }
         // What the first group holds: the skills the saved field puts forward (each with a small dot in the field's colour), then the scout's finds. Same cards and rows as the picks below.
@@ -3116,11 +3181,12 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
         // The cards that have no picture yet (the first group and the picks on show): ask the host which exist and which can be made, ask for the missing ones once, then look
         // again every four seconds while some are being made. Nothing is asked for off the Featured tab.
         const coverWanted = () => {
-          if (mode !== 'featured' || picks.phase !== 'ready') return []
           const out = []
           const add = (p) => { if (coverSrc(p) === '' && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(p.id) && out.some((o) => o.name === p.id) === false) out.push({ name: p.id, description: pickText(p.outcome).slice(0, 400) }) }
-          firstGroup().forEach((it) => add(it.pick))
-          pickList().forEach(add)
+          // The skill that is open in the window first (its picture is the hero), then, on the Featured tab, the first group and the picks on show.
+          if (local !== null) add({ id: local.name, cover: '', outcome: { fr: String(local.description || ''), en: String(local.description || '') } })
+          else if (detail !== null) { const d = preview.state === 'ready' && preview.data !== null && typeof preview.data.description === 'string' ? preview.data.description : ''; add({ id: detail.name, cover: '', outcome: { fr: d, en: d } }) }
+          if (mode === 'featured' && picks.phase === 'ready') { firstGroup().forEach((it) => add(it.pick)); pickList().forEach(add) }
           return out.slice(0, 24)
         }
         const wantedCovers = coverWanted()
@@ -3141,8 +3207,10 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
             const ask = j.can === true ? want.filter((n) => items[n] === 'none' && coverAsked.current.has(n) === false) : []
             const pending = want.some((n) => items[n] === 'making' || items[n] === 'queued')
             if (ask.length > 0) {
-              ask.forEach((n) => coverAsked.current.add(n))
-              postJson('/kybernos-skills/covers/make', { items: wantedCovers.filter((w) => ask.indexOf(w.name) >= 0).slice(0, 12) }).then((r) => {
+              // The host takes twelve names a request: the others are asked for on the next look.
+              const batch = ask.slice(0, 12)
+              batch.forEach((n) => coverAsked.current.add(n))
+              postJson('/kybernos-skills/covers/make', { items: wantedCovers.filter((w) => batch.indexOf(w.name) >= 0) }).then((r) => {
                 if (stop || alive.current !== true) return
                 if (r !== null && typeof r === 'object' && r.ok === true && r.items !== null && typeof r.items === 'object') setCovers((m) => ({ ...m, items: { ...m.items, ...r.items } }))
                 clearTimeout(coverTimer.current); coverTimer.current = setTimeout(look, 4000)
@@ -3156,8 +3224,8 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
           if (picks.phase === 'loading') return skeletonOf('cards', 6) || h('div', { className: 'kb-empty' }, h('span', { className: 'kb8-mono' }, t('pick.loading')))
           const counts = pickCounts()
           const list = pickList()
+          // The categories (and the cover background) are the top of the tab, above everything it lists.
           return h('div', null,
-            renderFirstRows(),
             h('div', { className: 'kbsf-chips' },
               chip(t('pick.all') + ' ' + picks.items.length, pcat === 'all', () => setPcat('all'), 'all'),
               PICK_CATS.filter((c) => counts[c] > 0).map((c) => chip(t('pcat.' + c) + ' ' + counts[c], pcat === c, () => setPcat(c), c)),
@@ -3166,6 +3234,7 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
               h('span', { className: 'kbsf-seg', role: 'group', 'aria-label': t('pick.bg') },
                 h('button', { type: 'button', className: coverBg === 'tint' ? 'on' : '', 'aria-pressed': coverBg === 'tint' ? 'true' : 'false', title: t('pick.bg') + sep() + t('pick.bg.tint'), 'aria-label': t('pick.bg') + sep() + t('pick.bg.tint'), 'data-kb': 'pick-bg-tint', onClick: () => setCoverBg('tint') }, h('i', { className: 'sw tint' })),
                 h('button', { type: 'button', className: coverBg === 'plain' ? 'on' : '', 'aria-pressed': coverBg === 'plain' ? 'true' : 'false', title: t('pick.bg') + sep() + t('pick.bg.plain'), 'aria-label': t('pick.bg') + sep() + t('pick.bg.plain'), 'data-kb': 'pick-bg-plain', onClick: () => setCoverBg('plain') }, h('i', { className: 'sw plain' })))),
+            renderFirstRows(),
             list.length === 0
               ? empty(t('pick.none'), t('pick.nonehint'))
               : (views.featured === 'list'
@@ -3190,7 +3259,7 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
           return h('div', null,
             autoBanner(),
             views.yours === 'list'
-              ? h('div', null, pend.length > 0 ? h('div', { className: 'kb8-grid', style: { marginBottom: '14px' } }, pend.map(pendingCard)) : null, h('div', { className: 'kbs-ylist', 'data-kb': 'yours-list' }, shownYours.map(yourRow)))
+              ? h('div', { className: 'kbs-ylist', 'data-kb': 'yours-list' }, pend.map(pendingRow).concat(shownYours.map(yourRow)))
               : h('div', { className: 'kb8-grid' }, pend.map(pendingCard).concat(shownYours.map(yourCard))),
             pagerYours(shownYours.length, filtered.length))
         }
@@ -3318,103 +3387,89 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
         // ── Featured: a pick, opened. It uses the width of the page instead of a side panel: the picture and the title as on the card, big, then
         // the facts, the audits and the start of SKILL.md side by side. The data is what the Discover panel already reads (the repository's
         // real SKILL.md, the live audits); only the arrangement is new.
-        const renderPickDetail = () => {
-          const p = picks.items.find((it) => detail !== null && it.source === detail.source && it.id === detail.name)
-          if (p === undefined) return renderFeatured()
+        const renderPickDetail = (p) => {
           const x = pickAsEntry(p)
           const isIn = installed(x)
           const pv = preview.state === 'ready' && preview.data !== null ? preview.data : null
           const ghUrl = pv !== null && typeof pv.url === 'string' && pv.url !== '' ? pv.url : 'https://github.com/' + p.source
           const c = curatedOf(x)
           const publisher = c.owner !== undefined && c.owner !== '' ? c.owner : String(p.source).split('/')[0]
-          const row = (label, value, key) => h('div', { key, className: 'row' }, h('span', null, label), h('span', { className: 'kb8-mono', style: { overflowWrap: 'anywhere' } }, value))
           const folderText = pv !== null ? (pv.folder !== '' ? pv.folder : t('dp.root')) : (preview.state === 'loading' ? t('dp.loading') : t('dp.folderUnknown'))
           let skillText = null
           if (preview.state === 'loading') skillText = h('pre', { className: 'kb-local-body', 'data-kb': 'preview-text' }, t('dp.loading'))
           else if (pv !== null) skillText = h(SkillText, { text: pv.text, truncated: pv.truncated, kb: 'preview-text' })
           else if (preview.state === 'missing') skillText = h('div', { className: 'kb-note', 'data-kb': 'preview-missing' }, icon('info', 14), h('span', null, t('dp.notfound', { name: p.id })))
           else if (preview.state === 'error') skillText = h('div', { className: 'kb-note', 'data-kb': 'preview-error' }, icon('info', 14), h('span', null, t('dp.nopreview', { why: preview.error })))
-          const auditLines = audit === null || audit === undefined || audit.phase === 'loading'
-            ? h('span', { className: 'kb8-mono' }, t('det.auditLoading'))
-            : (audit.phase === 'error'
-              ? h('span', { className: 'ligne' }, audit.error)
-              : (audit.audits.length === 0
-                ? h('span', { className: 'kb8-mono' }, t('det.auditNone'))
-                : audit.audits.map((a, i) => h('div', { key: 'a' + i, className: 'ligne' },
-                  h('span', { className: 'kb8-pill ' + (a.status === 'pass' ? 'ok' : 'warn') }, a.status === 'pass' ? t('det.audited') : (a.status !== '' ? a.status : t('det.unknown'))),
-                  h('span', null, a.provider + (a.summary !== '' ? ' — ' + a.summary : ''))))))
           const title = pickText(p.title)
-          return h('article', { className: 'kbsf-detail' + (coverBg === 'plain' ? ' kbsf-plain' : ''), 'data-kb': 'pick-detail', 'aria-label': title },
-            h('button', { type: 'button', className: 'kbs-link kbsf-dback', 'data-kb': 'pick-back', onClick: () => setDetail(null) }, icon('back', 14), ' ' + t('pick.back')),
-            h('div', { className: 'kbsf-dhero' },
-              h('div', { className: 'kbsf-dpic kbsf-t', 'data-cat': p.category },
-                pickCover(p),
-                h('span', { className: 'kbsf-tag' }, t('pcat.' + p.category))),
-              h('div', { className: 'kbsf-dtx' },
-                h('h2', { className: 'kbsf-dtitle' }, title),
-                h('div', { className: 'kbsf-meta' }, pickBy(p), pickCnt(p), h('span', { className: 'kb8-mono' }, '/' + p.id)),
-                h('p', { className: 'kbsf-dout' }, pickText(p.outcome)),
-                pickPills(p, isIn),
-                h('div', { className: 'kbsf-dacts' },
-                  isIn === true
-                    ? h('button', { type: 'button', className: 'kb8-primary', 'data-kb': 'pick-use', onClick: () => copy('/' + p.id) }, icon('code', 15), h('span', null, t('pick.use')))
-                    : h('button', { type: 'button', className: 'kb8-primary', 'data-kb': 'pick-install', onClick: () => { setAskInstall(x); setErrors((m) => { const n = { ...m }; delete n.__modal; return n }) } }, icon('dl', 15), h('span', null, t('btn.install'))),
-                  h('a', { href: ghUrl, target: '_blank', rel: 'noreferrer', className: 'kb8-ghost', 'data-kb': 'act-github' }, icon('github', 15), h('span', null, t('dp.viewgh'))),
-                  pickStar(p, isIn, 'kbsf-rstar')),
-                h('div', { className: 'kbsf-try' },
-                  h('span', { className: 'kb-section-label' }, t('pick.try')),
-                  h('span', { className: 'kbsf-trytxt' }, pickText(p.prompt)),
-                  h('button', { type: 'button', className: 'kbs-link', 'data-kb': 'pick-copyprompt', onClick: () => copy('/' + p.id + ' ' + pickText(p.prompt)) }, icon('code', 13), ' ' + t('pick.copyPrompt'))))),
-            h('div', { className: 'kbsf-dcols' },
-              h('section', { className: 'kbsf-dcard' },
-                h('span', { className: 'kb-section-label' }, t('pick.facts')),
-                pv !== null && pv.description !== '' ? h('p', { className: 'kbs-desc', 'data-kb': 'preview-desc' }, pv.description) : null,
-                h('div', { className: 'kb-local-rows' },
-                  row(t('det.row.repo'), 'github.com/' + p.source, 'repo'),
-                  row(t('dp.folder'), folderText, 'folder'),
-                  row(t('det.row.owner'), publisher, 'owner'),
-                  row(t('det.row.installs'), nf(p.installs), 'installs'),
-                  row(t('det.row.type'), 'github', 'type'))),
-              h('section', { className: 'kbsf-dcard kbs-audit' },
-                h('span', { className: 'kb8-mono' }, icon('shield', 14), ' ' + t('det.audits')),
-                auditLines,
-                h('span', { className: 'kb8-mono' }, t('det.thirdParty')))),
-            h('section', { className: 'kbsf-dcard' },
-              h('span', { className: 'kb-section-label' }, t('dp.start')),
-              skillText))
+          return h(SkillSheet, {
+            kb: 'pick-detail', closeKb: 'pick-back', actsKb: 'pick-acts', label: title, crumb: 'Featured › ' + title, onClose: () => setDetail(null),
+            plain: coverBg === 'plain', art: pickCover(p), making: coverBusy(p), cat: p.category, tag: t('pcat.' + p.category),
+            title, meta: [pickBy(p), pickCnt(p), h('span', { key: 'n', className: 'kb8-mono' }, '/' + p.id)], outcome: pickText(p.outcome),
+            pills: pickPills(p, isIn),
+            aside: h('div', { className: 'kbsf-try' },
+              h('span', { className: 'kb-section-label' }, t('pick.try')),
+              h('span', { className: 'kbsf-trytxt' }, pickText(p.prompt)),
+              h('button', { type: 'button', className: 'kbs-link', 'data-kb': 'pick-copyprompt', onClick: () => copy('/' + p.id + ' ' + pickText(p.prompt)) }, icon('code', 13), ' ' + t('pick.copyPrompt'))),
+            factsTitle: t('pick.facts'),
+            lead: pv !== null && pv.description !== '' ? h('p', { className: 'kbs-desc', 'data-kb': 'preview-desc' }, pv.description) : null,
+            facts: [
+              sheetRow(t('det.row.repo'), 'github.com/' + p.source, 'repo'),
+              sheetRow(t('dp.folder'), folderText, 'folder'),
+              sheetRow(t('det.row.owner'), publisher, 'owner'),
+              sheetRow(t('det.row.installs'), nf(p.installs), 'installs'),
+              sheetRow(t('det.row.type'), 'github', 'type')
+            ],
+            audits: auditCard(audit),
+            textTitle: t('dp.start'), text: skillText,
+            acts: [
+              isIn === true
+                ? h('button', { key: 'use', type: 'button', className: 'kb8-primary', 'data-kb': 'pick-use', onClick: () => copy('/' + p.id) }, icon('code', 15), h('span', null, t('pick.use')))
+                : h('button', { key: 'ins', type: 'button', className: 'kb8-primary', 'data-kb': 'pick-install', onClick: () => { setAskInstall(x); setErrors((m) => { const n = { ...m }; delete n.__modal; return n }) } }, icon('dl', 15), h('span', null, t('btn.install'))),
+              h('a', { key: 'gh', href: ghUrl, target: '_blank', rel: 'noreferrer', className: 'kb8-ghost', 'data-kb': 'act-github' }, icon('github', 15), h('span', null, t('dp.viewgh'))),
+              pickStar(p, isIn, 'kbsf-rstar')
+            ]
+          })
         }
 
-        const renderPanel = () => {
-          if (mode === 'yours' && journalOpen === true) return h(JournalPanel, { tick: lTick, onClose: () => setJournalOpen(false), onUndo: (name) => undoLearned(name) })
+        // Whatever is opened, a skill (a pick, a card or row of the field, a find, Yours, Discover) or one of Kaby's suggestions or its journal, is a window over the page: never a
+        // panel beside the list, never a switch of tab. What it holds is what each place already showed; only the frame is shared.
+        const renderPopup = () => {
+          if (mode === 'yours' && journalOpen === true) return h(SkillPopup, { label: t('ln.j.title'), narrow: true, onClose: () => setJournalOpen(false) }, h(JournalPanel, { tick: lTick, onClose: () => setJournalOpen(false), onUndo: (name) => undoLearned(name) }))
           if (mode === 'yours' && review !== null) {
             const p = learned.proposals.find((x) => x.id === review.id)
             if (p !== undefined) {
-              return h(LearnedPanel, {
+              return h(SkillPopup, { label: p.name + ' — ' + t('ln.badge.suggested'), narrow: true, onClose: () => setReview(null) }, h(LearnedPanel, {
                 p, st: review, sensitive: learned.sensitive, rules: learned.rules, busy: lBusy, err: review.err, line: learned.settings !== null ? learned.settings.threshold : null,
                 onClose: () => setReview(null), onEdit: () => setReview((r) => ({ ...r, edit: true, description: p.description, body: p.body, add: typeof p.add === 'string' ? p.add : '', err: '' })),
                 onCancel: () => setReview((r) => ({ ...r, edit: false, err: '' })), onChange: (patch) => setReview((r) => ({ ...r, ...patch })),
                 onSave: () => saveLearned(p), onAccept: () => acceptLearned(p), onDiscard: () => discardLearned(p), onFix: () => fixLearned(p)
-              })
+              }))
             }
           }
-          if (mode === 'yours' && local !== null) {
+          if (local !== null) {
             const s = skills.find((x) => skillKey(x) === skillKey(local)) || local
-            return h(SkillPanel, {
-              s, read: localRead, err: errors[skillKey(s)],
-              busyKind: ['reveal', 'edit', 'duplicate', 'delete'].find((kd) => busy['act:' + kd + ':' + skillKey(s)] === true) || '',
-              learned: learnedByName.get(s.name) || null, shareLocked: learnedByName.has(s.name) && learned.sensitive === true && learned.settings !== null && learned.settings.teamPriv !== true, onShare: () => openShare(s.name),
-              onClose: () => setLocal(null), onAct: (kind) => { if (kind === 'delete') setAskDelete(s); else skillAct(kind, s) }, onCopy: copy
-            })
+            const lp = { id: s.name, cover: '' }
+            return h(SkillPopup, { label: s.name, onClose: () => setLocal(null) },
+              h(SkillPanel, {
+                s, read: localRead, err: errors[skillKey(s)], art: pickCover(lp), making: coverBusy(lp),
+                busyKind: ['reveal', 'edit', 'duplicate', 'delete'].find((kd) => busy['act:' + kd + ':' + skillKey(s)] === true) || '',
+                learned: learnedByName.get(s.name) || null, shareLocked: learnedByName.has(s.name) && learned.sensitive === true && learned.settings !== null && learned.settings.teamPriv !== true, onShare: () => openShare(s.name),
+                onClose: () => setLocal(null), onAct: (kind) => { if (kind === 'delete') setAskDelete(s); else skillAct(kind, s) }, onCopy: copy
+              }))
           }
-          if (mode === 'discover' && detail !== null) {
+          if (detail !== null) {
             const x = detail
+            const p = picks.items.find((it) => it.source === x.source && it.id === x.name)
+            if (p !== undefined) return h(SkillPopup, { label: pickText(p.title), onClose: () => setDetail(null) }, renderPickDetail(p))
             const c = curatedOf(x)
-            return h(DiscoverPanel, {
-              x, preview, audit, dest: installDest, crumb: 'Discover', owner: c.owner, curated: c.curated, installed: skills.some((s) => s.name === x.name),
-              starred: featNames.has(x.name), onClose: () => setDetail(null),
-              onInstall: () => { setAskInstall(x); setErrors((m) => { const n = { ...m }; delete n.__modal; return n }) },
-              onStar: () => toggleFeatured(x.name)
-            })
+            const dp = { id: x.name, cover: '' }
+            return h(SkillPopup, { label: x.name, onClose: () => setDetail(null) },
+              h(DiscoverPanel, {
+                x, art: pickCover(dp), making: coverBusy(dp), tag: scout.found.some((f) => f.id === x.id || (f.source === x.source && f.name === x.name)) ? t('scout.tag') : null, preview, audit, dest: installDest, crumb: mode === 'featured' ? 'Featured' : 'Discover', owner: c.owner, curated: c.curated, installed: skills.some((s) => s.name === x.name),
+                starred: featNames.has(x.name), onClose: () => setDetail(null),
+                onInstall: () => { setAskInstall(x); setErrors((m) => { const n = { ...m }; delete n.__modal; return n }) },
+                onStar: () => toggleFeatured(x.name)
+              }))
           }
           return null
         }
@@ -3493,11 +3548,7 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
           return null
         }
 
-        const panel = renderPanel()
-        const list = h('div', null, mode === 'featured' ? (detail !== null ? renderPickDetail() : renderFeatured()) : (mode === 'yours' ? renderYours() : (mode === 'team' ? renderTeam() : renderDiscover())))
-        const body = panel === null
-          ? list
-          : h('div', { className: 'kbs-split open' }, h('div', { className: 'kbs-list' }, list), panel)
+        const body = h('div', null, mode === 'featured' ? renderFeatured() : (mode === 'yours' ? renderYours() : (mode === 'team' ? renderTeam() : renderDiscover())))
 
         // (1 Oct) Same header as "Connections": title + subtitle on the left, main action on the right, then a
         // control row (sub-tabs on the left, search / filter / sort on the right).
@@ -3653,6 +3704,7 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
               : null,
             KbBar !== null ? null : (mode === 'team' ? (tsum.phase === 'ready' && teamOpen === null ? renderTeamToolbar() : null) : renderToolbar())),
           h('div', { className: 'kb8-page' }, body),
+          renderPopup(),
           renderModal(),
           notice !== null ? h('div', { className: 'kbs-toast' + (notice.kind === 'err' ? ' err' : '') },
             icon(notice.kind === 'err' ? 'info' : 'check', 15), h('span', null, notice.text),
@@ -4100,6 +4152,58 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
           err !== '' ? h('div', { className: 'kbss-err', role: 'alert' }, err) : (saved ? h('p', { className: 'kbss-sub', 'data-kb': 'learned-saved' }, t('ls.saved')) : null))
       }
 
+      // One layout for every skill that is opened, whatever it is (a pick, an entry of Discover, a find, a skill of Yours): the name and ✕ at the top, a hero (its picture, its name,
+      // who made it, what it does, its state), the facts beside the audits, the start of its SKILL.md, and its actions at the foot. Only what the places know differs; the frame
+      // is this one, so the three kinds of window look like one family. The pieces are given by the caller (the cover and the lines of facts come from closures of the page).
+      function SkillSheet(props) {
+        const audits = props.audits !== null && props.audits !== undefined
+        return h('article', { className: 'kbsf-detail' + (props.plain === true ? ' kbsf-plain' : ''), 'data-kb': props.kb, 'aria-label': props.label },
+          h('div', { className: 'kbs-panel-top' },
+            h('span', { className: 'kb8-mono kbs-nowrap' }, props.crumb),
+            h('button', { type: 'button', className: 'kb-tool', 'data-kb': props.closeKb, 'aria-label': t('panel.close'), title: t('panel.close'), onClick: props.onClose }, '✕')),
+          h('div', { className: 'kbsf-dhero' },
+            h('div', { className: 'kbsf-dpic kbsf-t' + (props.making === true ? ' kbsf-making' : ''), 'data-cat': props.cat, title: props.making === true ? t('cover.making') : undefined },
+              props.art,
+              props.tag !== null && props.tag !== undefined && props.tag !== '' ? h('span', { className: 'kbsf-tag' }, props.tag) : null),
+            h('div', { className: 'kbsf-dtx' },
+              h('h2', { className: 'kbsf-dtitle' }, props.title),
+              h('div', { className: 'kbsf-meta' }, ...[].concat(props.meta)),
+              props.outcome !== undefined && props.outcome !== null && props.outcome !== '' ? h('p', { className: 'kbsf-dout' }, props.outcome) : null,
+              props.pills,
+              props.aside !== undefined ? props.aside : null)),
+          h('div', { className: 'kbsf-dcols' + (audits ? '' : ' one') },
+            h('section', { className: 'kbsf-dcard' },
+              h('span', { className: 'kb-section-label' }, props.factsTitle),
+              props.lead !== undefined ? props.lead : null,
+              h('div', { className: 'kb-local-rows' }, ...[].concat(props.facts))),
+            audits ? h('section', { className: 'kbsf-dcard kbs-audit' }, props.audits) : null),
+          h('section', { className: 'kbsf-dcard' },
+            h('span', { className: 'kb-section-label' }, props.textTitle),
+            props.text),
+          ...[].concat(props.extra === undefined ? [] : props.extra),
+          h('div', { className: 'kbs-panel-acts kbsf-dacts', 'data-kb': props.actsKb }, ...[].concat(props.acts)))
+      }
+      const sheetRow = (label, value, key) => h('div', { key, className: 'row' }, h('span', null, label), h('span', { className: 'kb8-mono', style: { overflowWrap: 'anywhere' } }, value))
+      // The audits of skills.sh as the sheet's second card (a pick and an entry of Discover read the same live audits).
+      const auditCard = (audit) => [
+        h('span', { key: 'h', className: 'kb8-mono' }, icon('shield', 14), ' ' + t('det.audits')),
+        audit === null || audit === undefined || audit.phase === 'loading'
+          ? h('span', { key: 'b', className: 'kb8-mono' }, t('det.auditLoading'))
+          : (audit.phase === 'error'
+            ? h('span', { key: 'b', className: 'ligne' }, audit.error)
+            : (audit.audits.length === 0
+              ? h('span', { key: 'b', className: 'kb8-mono' }, t('det.auditNone'))
+              : audit.audits.map((a, i) => h('div', { key: 'a' + i, className: 'ligne' },
+                h('span', { className: 'kb8-pill ' + (a.status === 'pass' ? 'ok' : 'warn') }, a.status === 'pass' ? t('det.audited') : (a.status !== '' ? a.status : t('det.unknown'))),
+                h('span', null, a.provider + (a.summary !== '' ? ' — ' + a.summary : '')))))),
+        h('span', { key: 'f', className: 'kb8-mono' }, t('det.thirdParty'))
+      ]
+      // The creator and the count, in the same two small pieces as on a card.
+      const ownerBy = (owner) => h('span', { className: 'kbsf-by', title: t('pick.by', { who: owner }) },
+        h('span', { className: 'kbsf-av', style: { background: 'hsl(' + hue(owner) + ' 45% 32%)' }, 'aria-hidden': 'true' }, owner.charAt(0).toUpperCase()),
+        h('span', { className: 'nm' }, owner))
+      const countOf = (n) => (typeof n === 'number' ? h('span', { className: 'kbsf-cnt', title: t('pick.count', { n: n.toLocaleString(isEn() ? 'en-US' : 'fr-FR') }) }, icon('dl', 13), nf(n)) : null)
+
       // A skill of Yours, opened: the real SKILL.md, where it lives, and what the host will let the screen do with it. The actions are only
       // the ones the host's answer lists (`read.data.actions`): a host that has not been restarted lists none, and none is drawn.
       function SkillPanel(props) {
@@ -4113,48 +4217,49 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
         const act = (kind, label, tip, cls) => acts[kind] === true
           ? h('button', { key: kind, type: 'button', className: cls, 'data-kb': 'act-' + kind, title: tip, disabled: busy, onClick: () => props.onAct(kind) }, label)
           : null
-        return h('aside', { className: 'kbs-panel', 'aria-label': s.name + ' — ' + t('cap.detail'), 'data-kb': 'skill-panel' },
-          h('div', { className: 'kbs-panel-top' },
-            h('span', { className: 'kb8-mono kbs-nowrap' }, 'Yours › ' + s.name),
-            h('button', { type: 'button', className: 'kb-tool', 'aria-label': t('panel.close'), title: t('panel.close'), onClick: props.onClose }, '✕')),
-          h('div', { className: 'kb-detail-head' },
-            tile(s.name, 'pkg', 'lg'),
-            h('div', { className: 'meta' },
-              h('span', { className: 'kb8-h1', style: { fontSize: '19px', overflowWrap: 'anywhere' } }, s.name),
-              h('div', { className: 'kb8-pills' },
-                on ? h('span', { key: 'st', className: 'kb8-pill ok' }, t('card.active')) : h('span', { key: 'st', className: 'kb8-pill warn' }, t('card.disabled')),
-                s.collision === true ? h('span', { key: 'co', className: 'kb8-pill warn' }, t('card.dup')) : null,
-                s.writable !== true ? h('span', { key: 'ro', className: 'kb8-pill' }, t('card.readonly')) : null))),
-          h('div', { className: 'kb-local-rows' },
-            h('div', { className: 'row' }, h('span', null, t('det.root')),
+        const when = s.whenToUse !== undefined && s.whenToUse !== null ? String(s.whenToUse).trim() : ''
+        return h(SkillSheet, {
+          kb: 'skill-panel', label: s.name + ' — ' + t('cap.detail'), crumb: 'Yours › ' + s.name, onClose: props.onClose,
+          art: props.art !== undefined ? props.art : tile(s.name, 'pkg'), making: props.making === true, tag: t('pick.installed'),
+          title: humanName(s.name), meta: h('span', { className: 'kb8-mono' }, '/' + s.name),
+          outcome: s.description,
+          pills: h('div', { className: 'kbsf-pills' },
+            on ? h('span', { key: 'st', className: 'kbsf-pill ok' }, icon('check', 12), t('card.active')) : h('span', { key: 'st', className: 'kbsf-pill warn' }, t('card.disabled')),
+            s.collision === true ? h('span', { key: 'co', className: 'kbsf-pill warn' }, t('card.dup')) : null,
+            s.writable !== true ? h('span', { key: 'ro', className: 'kbsf-pill' }, t('card.readonly')) : null),
+          factsTitle: t('pick.facts'),
+          facts: [
+            h('div', { key: 'root', className: 'row' }, h('span', null, t('det.root')),
               h('span', { className: 'kb8-mono kbs-path', title: folder }, folder !== '' ? folder : String(s.root || ''),
                 folder !== '' ? h('button', { type: 'button', className: 'kbs-copy', title: t('panel.copyPath'), onClick: () => props.onCopy(folder) }, icon('code', 12)) : null)),
-            h('div', { className: 'row' }, h('span', null, t('det.modified')), h('span', { className: 'kb8-mono' }, s.modifiedAt !== '' ? today(s.modifiedAt) : t('det.unknownDate'))),
-            s.description !== '' ? h('div', { className: 'row' }, h('span', null, t('det.local.what')), h('span', null, s.description)) : null,
-            s.whenToUse !== undefined && s.whenToUse !== null && String(s.whenToUse).trim() !== ''
-              ? h('div', { className: 'row' }, h('span', null, t('det.local.when')), h('span', null, String(s.whenToUse).trim()))
-              : null),
-          h('span', { className: 'kb-section-label' }, 'SKILL.md'),
-          r.state === 'error'
+            sheetRow(t('det.modified'), s.modifiedAt !== '' ? today(s.modifiedAt) : t('det.unknownDate'), 'mod'),
+            when !== '' ? h('div', { key: 'when', className: 'row' }, h('span', null, t('det.local.when')), h('span', null, when)) : null
+          ],
+          textTitle: 'SKILL.md',
+          text: r.state === 'error'
             ? h('div', { className: 'kbs-err', role: 'alert' }, r.error)
             : (ready ? h(SkillText, { text: r.data.text, truncated: false, kb: 'skill-text' }) : h('pre', { className: 'kb-local-body', 'data-kb': 'skill-text' }, t('det.local.loading'))),
-          ready && r.data.truncated === true ? h('span', { className: 'kb8-mono' }, t('panel.truncated')) : null,
-          ready && r.data.files > 0 ? h('span', { className: 'kb8-mono' }, t('panel.files', { n: r.data.files + (r.data.filesMore === true ? '+' : '') })) : null,
-          props.learned !== null && props.learned !== undefined && (props.learned.shared === true || props.shareLocked === true || props.learned.shareReady === true)
-            ? h('div', { className: 'kbl-share', 'data-kb': 'learned-share' },
-              h('span', { className: 'kb-section-label' }, t('ln2.s.h')),
-              props.learned.shared === true ? h('p', { className: 'kbl-p' }, icon('check', 12), ' ' + t('ln2.s.done'))
-                : (props.shareLocked === true ? h('p', { className: 'kbl-p' }, icon('lock', 12), ' ' + t('ln2.s.priv'))
-                  : [h('p', { key: 't', className: 'kbl-p' }, t('ln2.s.text', { n: props.learned.chats })),
-                    h('div', { key: 'b' }, h('button', { type: 'button', className: 'kb8-primary', 'data-kb': 'learned-share-btn', onClick: props.onShare }, t('ln2.s.btn')))]))
-            : null,
-          props.err ? h('div', { className: 'kbs-err' }, props.err) : null,
-          h('div', { className: 'kbs-panel-acts' },
+          extra: [
+            ready && r.data.truncated === true ? h('span', { key: 'tr', className: 'kb8-mono' }, t('panel.truncated')) : null,
+            ready && r.data.files > 0 ? h('span', { key: 'fi', className: 'kb8-mono' }, t('panel.files', { n: r.data.files + (r.data.filesMore === true ? '+' : '') })) : null,
+            props.learned !== null && props.learned !== undefined && (props.learned.shared === true || props.shareLocked === true || props.learned.shareReady === true)
+              ? h('div', { key: 'sh', className: 'kbl-share', 'data-kb': 'learned-share' },
+                h('span', { className: 'kb-section-label' }, t('ln2.s.h')),
+                props.learned.shared === true ? h('p', { className: 'kbl-p' }, icon('check', 12), ' ' + t('ln2.s.done'))
+                  : (props.shareLocked === true ? h('p', { className: 'kbl-p' }, icon('lock', 12), ' ' + t('ln2.s.priv'))
+                    : [h('p', { key: 't', className: 'kbl-p' }, t('ln2.s.text', { n: props.learned.chats })),
+                      h('div', { key: 'b' }, h('button', { type: 'button', className: 'kb8-primary', 'data-kb': 'learned-share-btn', onClick: props.onShare }, t('ln2.s.btn')))]))
+              : null,
+            props.err ? h('div', { key: 'er', className: 'kbs-err' }, props.err) : null,
+            ready && s.writable !== true ? h('span', { key: 'ro', className: 'kb8-mono' }, t('act.readonly')) : null
+          ],
+          acts: [
             act('reveal', h('span', null, t('act.reveal')), t('act.reveal.tip'), 'kb8-primary'),
             act('edit', h('span', null, t('act.edit')), t('act.edit.tip'), 'kb8-ghost'),
             act('duplicate', h('span', null, t('act.duplicate')), t('act.duplicate.tip'), 'kb8-ghost'),
-            act('delete', h('span', null, t('act.delete')), t('act.delete.tip'), 'kb8-ghost warn')),
-          ready && s.writable !== true ? h('span', { className: 'kb8-mono' }, t('act.readonly')) : null)
+            act('delete', h('span', null, t('act.delete')), t('act.delete.tip'), 'kb8-ghost warn')
+          ]
+        })
       }
 
       // A Discover card, opened: its own repository, folder, description and the start of its SKILL.md (read from the repository by the
@@ -4164,9 +4269,7 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
         const p = props.preview
         const pv = p.state === 'ready' && p.data !== null ? p.data : null
         const publisher = props.owner !== undefined && props.owner !== '' ? props.owner : String(x.source || '').split('/')[0]
-        const audit = props.audit
         const ghUrl = pv !== null && typeof pv.url === 'string' && pv.url !== '' ? pv.url : 'https://github.com/' + x.source
-        const row = (label, value, key) => h('div', { key, className: 'row' }, h('span', null, label), h('span', { className: 'kb8-mono', style: { overflowWrap: 'anywhere' } }, value))
         const folderText = pv !== null ? (pv.folder !== '' ? pv.folder : t('dp.root'))
           : (p.state === 'loading' ? t('dp.loading') : t('dp.folderUnknown'))
         let text = null
@@ -4175,57 +4278,45 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
         else if (p.state === 'missing') text = h('div', { className: 'kb-note', 'data-kb': 'preview-missing' }, icon('info', 14), h('span', null, t('dp.notfound', { name: x.name })))
         else if (p.state === 'error') text = h('div', { className: 'kb-note', 'data-kb': 'preview-error' }, icon('info', 14), h('span', null, t('dp.nopreview', { why: p.error })))
         else if (p.state === 'none') text = h('div', { className: 'kb-note', 'data-kb': 'preview-none' }, icon('info', 14), h('span', null, x.sourceType === 'well-known' ? t('row.cantInstall.wk') : t('row.cantInstall.ng')))
-        return h('aside', { className: 'kbs-panel', 'aria-label': x.name + ' — ' + t('cap.detail'), 'data-kb': 'disc-panel' },
-          h('div', { className: 'kbs-panel-top' },
-            h('span', { className: 'kb8-mono kbs-nowrap' }, (props.crumb || 'Discover') + ' › ' + x.name),
-            h('button', { type: 'button', className: 'kb-tool', 'aria-label': t('panel.close'), title: t('panel.close'), onClick: props.onClose }, '✕')),
-          h('div', { className: 'kb-detail-head' },
-            tile(x.name, 'pkg', 'lg'),
-            h('div', { className: 'meta' },
-              h('span', { className: 'kb8-h1', style: { fontSize: '19px', overflowWrap: 'anywhere' } }, x.name),
-              h('div', { className: 'kb8-pills' },
-                props.curated === true ? h('span', { key: 'o', className: 'kb8-pill ok' }, 'curated') : h('span', { key: 'o', className: 'kb8-pill' }, t('row.community')),
-                props.installed === true ? h('span', { key: 'i', className: 'kb8-pill' }, t('row.already')) : null))),
-          pv !== null && pv.description !== '' ? h('p', { className: 'kbs-desc', 'data-kb': 'preview-desc' }, pv.description) : null,
-          h('div', { className: 'kb-local-rows' },
-            row(t('det.row.repo'), 'github.com/' + x.source, 'repo'),
-            row(t('dp.folder'), folderText, 'folder'),
-            row(t('det.row.owner'), publisher, 'owner'),
-            row(t('det.row.installs'), nf(x.installs), 'installs'),
-            row(t('det.row.type'), x.sourceType !== '' && x.sourceType !== undefined ? String(x.sourceType) : t('det.unknownSrc'), 'type'),
+        return h(SkillSheet, {
+          kb: 'disc-panel', label: x.name + ' — ' + t('cap.detail'), crumb: (props.crumb || 'Discover') + ' › ' + x.name, onClose: props.onClose,
+          art: props.art !== undefined ? props.art : tile(x.name, 'pkg'), making: props.making === true, tag: props.tag,
+          title: humanName(x.name), meta: [ownerBy(publisher), countOf(x.installs), h('span', { key: 'n', className: 'kb8-mono' }, '/' + x.name)],
+          outcome: pv !== null ? pv.description : '',
+          pills: h('div', { className: 'kbsf-pills' },
+            props.curated === true ? h('span', { key: 'o', className: 'kbsf-pill ok' }, 'curated') : h('span', { key: 'o', className: 'kbsf-pill' }, t('row.community')),
+            props.installed === true ? h('span', { key: 'i', className: 'kbsf-pill ok' }, icon('check', 12), t('row.already')) : null),
+          factsTitle: t('pick.facts'),
+          facts: [
+            sheetRow(t('det.row.repo'), 'github.com/' + x.source, 'repo'),
+            sheetRow(t('dp.folder'), folderText, 'folder'),
+            sheetRow(t('det.row.owner'), publisher, 'owner'),
+            sheetRow(t('det.row.installs'), nf(x.installs), 'installs'),
+            sheetRow(t('det.row.type'), x.sourceType !== '' && x.sourceType !== undefined ? String(x.sourceType) : t('det.unknownSrc'), 'type'),
             x.url !== '' && x.url !== undefined && x.url !== null
               ? h('div', { key: 'page', className: 'row' }, h('span', null, t('det.row.page')),
-                  h('a', { href: String(x.url), target: '_blank', rel: 'noreferrer', className: 'kb8-mono', style: { overflowWrap: 'anywhere', color: 'var(--dsw-alias-brand-primary,#4f8cff)' } }, String(x.url)))
-              : null),
-          h('span', { className: 'kb-section-label' }, t('dp.start')),
-          text,
-          h('div', { className: 'kbs-audit', style: { borderTop: '1px solid var(--dsw-alias-border-l1)', paddingTop: '11px' } },
-            h('span', { className: 'kb8-mono' }, icon('shield', 14), ' ' + t('det.audits')),
-            audit === null || audit === undefined || audit.phase === 'loading'
-              ? h('span', { className: 'kb8-mono' }, t('det.auditLoading'))
-              : (audit.phase === 'error'
-                ? h('span', { className: 'ligne' }, audit.error)
-                : (audit.audits.length === 0
-                  ? h('span', { className: 'kb8-mono' }, t('det.auditNone'))
-                  : audit.audits.map((a, i) => h('div', { key: 'a' + i, className: 'ligne' },
-                      h('span', { className: 'kb8-pill ' + (a.status === 'pass' ? 'ok' : 'warn') }, a.status === 'pass' ? t('det.audited') : (a.status !== '' ? a.status : t('det.unknown'))),
-                      h('span', null, a.provider + (a.summary !== '' ? ' — ' + a.summary : '')))))),
-            h('span', { className: 'kb8-mono' }, t('det.thirdParty'))),
-          h('div', { className: 'kbs-panel-acts' },
+                h('a', { href: String(x.url), target: '_blank', rel: 'noreferrer', className: 'kb8-mono', style: { overflowWrap: 'anywhere', color: 'var(--dsw-alias-brand-primary,#4f8cff)' } }, String(x.url)))
+              : null
+          ],
+          audits: auditCard(props.audit),
+          textTitle: t('dp.start'), text,
+          acts: [
             x.installable === true && props.installed !== true
               ? h('button', {
-                  type: 'button', className: 'kb8-primary', 'data-kb': 'act-install',
-                  title: t('det.installTip', { source: x.source, name: x.name, dest: props.dest }), onClick: props.onInstall
-                }, icon('plus', 15), h('span', null, t('btn.install')))
+                key: 'ins', type: 'button', className: 'kb8-primary', 'data-kb': 'act-install',
+                title: t('det.installTip', { source: x.source, name: x.name, dest: props.dest }), onClick: props.onInstall
+              }, icon('plus', 15), h('span', null, t('btn.install')))
               : (x.installable === true
                 ? h('button', {
-                    type: 'button', className: 'kbs-star-btn' + (props.starred ? ' on' : ''),
-                    title: props.starred ? t('feat.remove') : t('feat.add'), onClick: props.onStar
-                  }, icon('star', 14))
-                : h('span', { className: 'kb8-pill warn', title: x.sourceType === 'well-known' ? t('row.cantInstall.wk') : t('row.cantInstall.ng') }, t('row.cantInstall'))),
+                  key: 'star', type: 'button', className: 'kbs-star-btn' + (props.starred ? ' on' : ''),
+                  title: props.starred ? t('feat.remove') : t('feat.add'), onClick: props.onStar
+                }, icon('star', 14))
+                : h('span', { key: 'no', className: 'kb8-pill warn', title: x.sourceType === 'well-known' ? t('row.cantInstall.wk') : t('row.cantInstall.ng') }, t('row.cantInstall'))),
             x.installable === true
-              ? h('a', { href: ghUrl, target: '_blank', rel: 'noreferrer', className: 'kb8-ghost', 'data-kb': 'act-github' }, icon('github', 15), h('span', null, t('dp.viewgh')))
-              : null))
+              ? h('a', { key: 'gh', href: ghUrl, target: '_blank', rel: 'noreferrer', className: 'kb8-ghost', 'data-kb': 'act-github' }, icon('github', 15), h('span', null, t('dp.viewgh')))
+              : null
+          ]
+        })
       }
 
       // Escape closes a confirmation, in the capture phase so the page behind never sees it.
@@ -4235,6 +4326,25 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
           document.addEventListener('keydown', onKey, true)
           return () => document.removeEventListener('keydown', onKey, true)
         }, [])
+      }
+
+      // A skill, opened, is a window over the page: its name and ✕ stay at the top and its actions at the foot (both sticky inside the window), so nothing needs a scroll to be
+      // reached. Escape, a click outside and ✕ close it; a confirmation drawn above it (Install, Delete) takes Escape first; focus goes in and comes back where it was.
+      function SkillPopup(props) {
+        const box = React.useRef(null)
+        React.useEffect(() => {
+          const before = document.activeElement
+          try { if (box.current !== null) box.current.focus() } catch (e) { /* a window that cannot take focus still works with the mouse */ }
+          const onKey = (e) => {
+            if (e === null || e.key !== 'Escape') return
+            if (document.querySelector('[data-kb="install-confirm"], [data-kb="delete-confirm"]') !== null) return
+            e.stopPropagation(); props.onClose()
+          }
+          document.addEventListener('keydown', onKey, true)
+          return () => { document.removeEventListener('keydown', onKey, true); try { if (before !== null && before !== undefined && typeof before.focus === 'function' && document.body.contains(before)) before.focus() } catch (e) { /* gone */ } }
+        }, [])
+        return h('div', { className: 'kb-overlay kbs-win-back', onClick: props.onClose },
+          h('div', { className: 'kbs-win' + (props.narrow === true ? ' narrow' : ''), ref: box, tabIndex: -1, role: 'dialog', 'aria-modal': 'true', 'aria-label': props.label, 'data-kb': 'skill-popup', onClick: (e) => e.stopPropagation() }, props.children))
       }
 
       // « Install ? » — before anything is downloaded or written, what the button will do, for THIS skill: its repository, the folder it
