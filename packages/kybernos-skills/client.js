@@ -2939,12 +2939,16 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
         }
         // The pieces a pick shows, shared by its card and its row.
         // A pick without a picture of its own shows the one the host made for it (covers.ver says it exists), else the tile while it is made, or for good when it cannot be.
-        // A picture the browser could not read counts as missing (`broken`): the host is asked for one, like for a card that never had any.
-        const coverSrc = (p) => (covers.ver[p.id] !== undefined ? '/kybernos-skills/cover/' + encodeURIComponent(p.id) + '?v=' + covers.ver[p.id]
-          : (covers.broken[p.id] !== true && p.cover !== null && p.cover !== undefined && p.cover !== '' ? p.cover : ''))
+        // A picture the browser could not read counts as missing (`broken` keeps the address that failed): the tile is drawn and the host is asked for one, like for a card that
+        // never had any. A new address (a picture made since) is tried again.
+        const coverSrc = (p) => {
+          const src = covers.ver[p.id] !== undefined ? '/kybernos-skills/cover/' + encodeURIComponent(p.id) + '?v=' + covers.ver[p.id]
+            : (p.cover !== null && p.cover !== undefined && p.cover !== '' ? p.cover : '')
+          return covers.broken[p.id] === src ? '' : src
+        }
         const coverBusy = (p) => coverSrc(p) === '' && (covers.items[p.id] === 'making' || covers.items[p.id] === 'queued')
         const pickCover = (p) => (coverSrc(p) !== ''
-          ? h('img', { className: 'kbsf-cut', src: coverSrc(p), alt: '', loading: 'lazy', ref: (el) => { if (el !== null && el.complete) fitCover(el) }, onLoad: (e) => fitCover(e.target), onError: (e) => { try { e.target.style.display = 'none' } catch (e2) { /* the tint is enough */ } setCovers((m) => (m.broken[p.id] === true ? m : { ...m, broken: { ...m.broken, [p.id]: true } })) } })
+          ? h('img', { className: 'kbsf-cut', src: coverSrc(p), alt: '', loading: 'lazy', ref: (el) => { if (el !== null && el.complete) fitCover(el) }, onLoad: (e) => fitCover(e.target), onError: (e) => { try { e.target.style.display = 'none' } catch (e2) { /* the tint is enough */ } const bad = e.target.getAttribute('src'); setCovers((m) => (m.broken[p.id] === bad ? m : { ...m, broken: { ...m.broken, [p.id]: bad } })) } })
           : tile(p.id, 'pkg'))
         const pickBy = (p) => {
           const owner = String(p.source).split('/')[0]
