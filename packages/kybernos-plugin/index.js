@@ -12,7 +12,7 @@ import { kyberTarget } from './kyber-root.mjs'
 import { createWorkspaceInstructions } from './workspace-instructions.mjs'
 import { selectAfterConnect } from './default-model.mjs'
 import { normalize as autoSettingsNormalize, publicView as autoSettingsView, apply as autoSettingsApply, isPaused as autoSettingsPaused } from './automation-settings.mjs'
-import { levelOf as autoLoadLevel, allowedAt as autoLoadAllowed, admit as autoLoadAdmit, createInflight as autoLoadInflight, maxParallelFrom as autoLoadMaxParallel, parseMeminfo as autoLoadMeminfo, guardOff as autoLoadGuardOff, forcedLevel as autoLoadForced, isSubagentTool as autoLoadIsSubagent, createSubagentGate as autoLoadSubagentGate, noteAt as autoLoadNote, refusalReason as autoLoadRefusal, freshLevel as autoLoadFresh, publicView as autoLoadView } from './automation-load.mjs'
+import { levelOf as autoLoadLevel, allowedAt as autoLoadAllowed, admit as autoLoadAdmit, createInflight as autoLoadInflight, maxParallelFrom as autoLoadMaxParallel, parseMeminfo as autoLoadMeminfo, guardOff as autoLoadGuardOff, forcedLevel as autoLoadForced, isSubagentTool as autoLoadIsSubagent, createSubagentGate as autoLoadSubagentGate, noteAt as autoLoadNote, refusalReason as autoLoadRefusal, freshLevel as autoLoadFresh, pressureOf as autoLoadPressure, pressureParts as autoLoadPressureParts, createHistory as autoLoadHistory, createActivity as autoLoadActivity, publicView as autoLoadView } from './automation-load.mjs'
 import { stableStreak as autoSkillStreak, skillSlug as autoSkillSlug, skillParts as autoSkillParts, normalizeRecords as autoSkillsNormalize, dueTasks as autoSkillsDue, lessonOf as autoSkillLesson } from './automation-skills.mjs'
 import { chooseWorkspace as autoWsChoose, idOf as autoWsIdOf, DEDICATED_TITLE as AUTO_WS_TITLE, DEDICATED_DIR as AUTO_WS_DIR } from './automation-workspace.mjs'
 import { recordFeedback, exportFeedback, relayReportOf } from './feedback-box.mjs'
@@ -2713,22 +2713,34 @@ function boot(ctx) {
     // The sessions the scheduler created for a run (a webhook and "Run now" go through the same door), kept to tell an automation run, and
     // its sub-agents, from a chat a person opened. Bounded like `kbAskSessions`. `kbRunKids` are the sub-agent sessions seen running.
     const kbRunSessions = new Set()
-    const kbRememberRunSession = (id) => { kbRunSessions.add(id); if (kbRunSessions.size > 500) kbRunSessions.delete(kbRunSessions.values().next().value) }
-    const kbRunKids = new Set()
+    // What the page shows of a run: which automation, since when (`kbRunInfo`), how busy it was (`kbRunActivity`, one count per tool call of the run
+    // or of its sub-agents), and, for each sub-agent seen running, which run it belongs to (`kbRunKids`: child id -> run id).
+    const kbRunInfo = new Map()
+    const kbRunActivity = autoLoadActivity()
+    const kbLoadHistory = autoLoadHistory()
+    const kbRememberRunSession = (id, taskId) => {
+      kbRunSessions.add(id)
+      if (typeof taskId === 'string') { kbRunInfo.delete(id); kbRunInfo.set(id, { taskId, startedAt: Date.now() }) }
+      if (kbRunSessions.size > 500) kbRunSessions.delete(kbRunSessions.values().next().value)
+      if (kbRunInfo.size > 500) kbRunInfo.delete(kbRunInfo.keys().next().value)
+    }
+    const kbRunKids = new Map()
     const kbSubagentGate = autoLoadSubagentGate()
     let kbSubagentRefused = 0
     const kbAgentId = (agent) => (agent !== null && typeof agent === 'object' ? (agent.session !== undefined && agent.session !== null && typeof agent.session.id === 'string' ? agent.session.id : (typeof agent.id === 'string' ? agent.id : undefined)) : undefined)
-    // 0 = not part of an automation run, 1 = a run itself, 2 = a session below one (a sub-agent): by `header.parentSession`, like the ask gate.
-    const kbRunDepth = (agent) => {
+    // `depth`: 0 = not part of an automation run, 1 = a run itself, 2 = a session below one (a sub-agent), by `header.parentSession` like the ask
+    // gate; `root` is the id of the run it belongs to.
+    const kbRunWalk = (agent) => {
       let id = kbAgentId(agent)
       const store = ctx.get('sessions')
       for (let i = 0; i < 8 && typeof id === 'string'; i += 1) {
-        if (kbRunSessions.has(id) === true) return i === 0 ? 1 : 2
+        if (kbRunSessions.has(id) === true) return { depth: i === 0 ? 1 : 2, root: id }
         const session = store !== undefined && store !== null && typeof store.get === 'function' ? store.get(id) : undefined
         id = session !== undefined && session !== null && session.header !== undefined && session.header !== null ? session.header.parentSession : undefined
       }
-      return 0
+      return { depth: 0, root: null }
     }
+    const kbRunDepth = (agent) => kbRunWalk(agent).depth
     const kbLoadReadMemory = () => new Promise((resolve) => {
       let total = 0
       try { total = osTotalmem() } catch (e) { total = 0 }
@@ -2780,7 +2792,7 @@ function boot(ctx) {
             const id = kbAgentId(agent)
             kbLoadInflight.status(id, status === 'running')
             // A sub-agent of a run: seen running, then idle = it ended, and its place in the sub-agent count is free again.
-            if (status === 'running') { if (kbRunKids.has(id) !== true && kbRunDepth(agent) === 2) kbRunKids.add(id) }
+            if (status === 'running') { if (kbRunKids.has(id) !== true) { const w = kbRunWalk(agent); if (w.depth === 2) kbRunKids.set(id, w.root) } }
             else if (kbRunKids.delete(id) === true) kbSubagentGate.release()
           } catch (e) { /* never break a turn */ }
         })
@@ -2792,7 +2804,9 @@ function boot(ctx) {
         // touched, and a reading older than two minutes lets everything through.
         ctx.on('tools/pre-execute', async (exec, next) => {
           try {
-            if (exec !== null && typeof exec === 'object' && autoLoadIsSubagent(exec.name) === true && kbRunDepth(exec.agent) > 0) {
+            const walk = exec !== null && typeof exec === 'object' ? kbRunWalk(exec.agent) : { depth: 0, root: null }
+            if (walk.depth > 0) kbRunActivity.hit(walk.root)
+            if (walk.depth > 0 && autoLoadIsSubagent(exec.name) === true) {
               const level = autoLoadFresh(kbLoadLast, Date.now())
               const verdict = kbSubagentGate.decide(level)
               if (level !== null && verdict.allow !== true) { kbSubagentRefused += 1; return { kind: 'deny', reason: autoLoadRefusal(level) } }
@@ -2817,6 +2831,60 @@ function boot(ctx) {
         } catch (e) { console.log('[kybers] automation load note not injected: ' + String((e && e.message) || e)) }
       })
     } catch (e) { /* no system prompt seam on this engine: the refusal above still holds */ }
+    // The micro-graphs: one reading every ten seconds, kept for five minutes. It also keeps `kbLoadLast` fresh when nobody is looking at the page.
+    const kbLoadRecord = async () => {
+      try {
+        const capacity = await kbLoadCapacity()
+        const sample = await kbLoadSample()
+        const parts = autoLoadPressureParts(sample)
+        kbLoadHistory.push({ total: autoLoadPressure(sample), cpu: parts.cpu, mem: sample.memAvailablePct === null ? null : 100 - sample.memAvailablePct, runs: capacity.inFlight })
+      } catch (e) { /* the next reading */ }
+    }
+    try {
+      ctx.effect(() => {
+        const timer = setInterval(() => { kbLoadRecord() }, 10000)
+        if (timer !== null && typeof timer === 'object' && typeof timer.unref === 'function') timer.unref()
+        kbLoadRecord()
+        return () => clearInterval(timer)
+      }, 'kybers: machine load readings')
+    } catch (e) { console.error('[kybers] automations: load readings not started (' + String((e && e.message) || e) + ')') }
+    // What the Automations page asks for (GET /kybernos/automation-load): the level and the room, the last five minutes, the memory split, the runs
+    // going (per automation: sessions, time, sub-agents, activity) and who waits for the machine, oldest first. Nothing is waiting while the scheduler is paused.
+    const kbLoadViewOf = async () => {
+      const capacity = await kbLoadCapacity()
+      const sample = await kbLoadSample()
+      const nowMs = Date.now()
+      let due = []
+      try {
+        if (autoSettingsPaused(await kbAutoSettingsRead()) !== true) {
+          for (const t of await kbTasksRead()) {
+            if (t !== null && typeof t === 'object' && t.active === true && typeof t.nextRun === 'string' && Date.parse(t.nextRun) <= nowMs) due.push({ id: t.id, at: Date.parse(t.nextRun) })
+          }
+        }
+      } catch (e) { due = [] }
+      due.sort((a, b) => a.at - b.at)
+      const byTask = new Map()
+      for (const id of kbLoadInflight.ids()) {
+        const info = kbRunInfo.get(id)
+        if (info === undefined) continue
+        const cur = byTask.get(info.taskId) || { taskId: info.taskId, sessions: 0, elapsedMs: 0, subagents: 0, activity: [] }
+        cur.sessions += 1
+        cur.elapsedMs = Math.max(cur.elapsedMs, nowMs - info.startedAt)
+        for (const root of kbRunKids.values()) if (root === id) cur.subagents += 1
+        const a = kbRunActivity.series(id)
+        cur.activity = a.map((v, i) => v + (cur.activity[i] || 0))
+        byTask.set(info.taskId, cur)
+      }
+      let kybernosPct = null
+      try { const total = osTotalmem(); if (total > 0) kybernosPct = (process.memoryUsage().rss / total) * 100 } catch (e) { kybernosPct = null }
+      return autoLoadView(capacity, sample, due.length, { active: kbSubagentGate.active(), refused: kbSubagentRefused }, {
+        held: due.length > 0 && (capacity.level !== 'ok' || capacity.inFlight >= capacity.allowed),
+        waitingIds: due.map((d) => d.id),
+        memory: { kybernosPct },
+        points: { total: kbLoadHistory.series('total'), cpu: kbLoadHistory.series('cpu'), mem: kbLoadHistory.series('mem'), runs: kbLoadHistory.series('runs') },
+        runs: Array.from(byTask.values()),
+      })
+    }
     const kbFireTask = async (task) => {
       const sc = ctx.get('sessionController')
       if (sc === undefined || sc === null || typeof sc.create !== 'function' || typeof sc.prompt !== 'function') {
@@ -2862,7 +2930,7 @@ function boot(ctx) {
         }
       }
       kbLoadInflight.start(sessionId)
-      kbRememberRunSession(sessionId)
+      kbRememberRunSession(sessionId, typeof task.id === 'string' ? task.id : null)
       // D3 (recette team 29/09) — honorer task.model : la sélection DOIT
       // précéder le prompt (sélection durable de la session). Format
       // attendu « provider/model » (ex. kybernos/free). Échec best-effort :
@@ -11045,16 +11113,7 @@ function boot(ctx) {
         if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
         try {
-          const capacity = await kbLoadCapacity()
-          const sample = await kbLoadSample()
-          let waiting = 0
-          try {
-            const nowMs = Date.now()
-            for (const t of await kbTasksRead()) {
-              if (t !== null && typeof t === 'object' && t.active === true && typeof t.nextRun === 'string' && Date.parse(t.nextRun) <= nowMs) waiting += 1
-            }
-          } catch (e) { waiting = 0 }
-          sendJson(res, 200, Object.assign({ ok: true }, autoLoadView(capacity, sample, waiting, { active: kbSubagentGate.active(), refused: kbSubagentRefused })))
+          sendJson(res, 200, Object.assign({ ok: true }, await kbLoadViewOf()))
         } catch (e) {
           try { console.error('[kybers] automation-load route:', errText(e)) } catch (e2) { /* console unavailable */ }
           sendJson(res, 500, { ok: false, error: 'internal error' })
