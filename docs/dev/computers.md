@@ -99,6 +99,26 @@ the machine's. An older platform ignores the added keys (its schema strips them)
 1.5 GB, two under 3 GB, three above (`KYBERNOS_AUTOMATION_MAX_PARALLEL` overrides; a first guess, not yet measured on a real computer). No prompt, name or result is in
 a beat. The platform's half (one jsonb with a size bound, `load: null` after two minutes) is in the server's spec of 2026-10-23.
 
+## What the person's laptop publishes here
+
+A definition made on the person's laptop reaches the computer through the platform's outbox (the server's spec of 2026-10-23: the definition waits there encrypted, for
+seven days at most, and is erased at the acknowledgement). Nothing dials in: the computer fetches it.
+
+1. The platform says in its answers (`ready`, `heartbeat`, `schedule`) how many definitions wait: `pending_tasks`.
+2. The reporter fetches them (`GET /v1/computer/tasks/pending`, at most 20), hands each to the plugin on the loopback (`POST /kybernos/tasks/apply`, one op per call: `{op: put | delete, ref, task}`)
+   and acknowledges it (`POST /v1/computer/tasks/{op_id}/ack`: `applied`, or `error` with a code). DSH did not answer: nothing is acknowledged, the platform offers it again.
+3. The plugin does the work, with its own rules and its own serialized write (`automation-published.mjs`): only six fields of the definition are read (name, prompt, schedule, active,
+   approvals, needs), the task gets an id of its own and `published: { ref, at }` where `ref` is the laptop's id. A put for a ref that is there replaces it (the id, the history and the
+   creation date are kept); a delete removes only a task with that ref, and removing what is not there is still `applied`. A task made on this computer is never touched.
+4. Refusals, as codes the platform stores: `approval_path_missing` (only `auto` can be published: there is no approval prompt on a computer and no path yet to ask a person),
+   `too_frequent` (a cron more often than every five minutes), `invalid_task`, `never_runs`, `invalid_op`, `invalid_ref`, `store_unreadable`.
+5. The reporter then says the schedule again at once, so that the laptop sees the automation will fire. A published task is reported (schedule rows, runs, running tasks in the beat)
+   by the laptop's id, not by its own.
+
+The door is the plugin's `/kybernos/tasks/apply`: the same origin rule as the other task routes, but no signed browser session (the reporter has none); instead a token the reporter
+keeps in `<DSH home>/kybernos/apply-token` (32 random bytes in hex, 0600, made at the first apply). A laptop has no such file, so the route refuses everything there. Tests:
+`scripts/test-tasks-apply.mjs` (the real plugin), `services/computer-image/reporter-apply.test.mjs` (the reporter against a stand-in platform and DSH).
+
 ## What it was checked to do
 
 On the real platform (Fly.io, `ams`, `shared-cpu-1x` 2 GB, one 2 GB volume, 2026-10-14; one sample each, direction and not a guarantee),
