@@ -9,7 +9,7 @@ const home = mkdtempSync(join(tmpdir(), 'kb-reporter-'))
 process.env.DSH_HOME = home
 process.env.KYBERNOS_API = 'https://api.example.test'
 process.env.KYBERNOS_COMPUTER_TOKEN = 'kyd_test'
-const { scheduleOf, endedRuns, cleanLabel, sessionState, memoryOf, loadOf, runningTasksOf, beatOf } = await import('./reporter.mjs')
+const { scheduleOf, endedRuns, cleanLabel, sessionState, memoryOf, loadOf, runningTasksOf, beatOf, externalIdOf } = await import('./reporter.mjs')
 
 const projection = (sid, { closed, at }) => {
   const dir = join(home, 'storages', 'session_projcache', 'sessions')
@@ -110,4 +110,26 @@ test('a beat keeps what it always said and adds the load only when there is one;
   assert.deepEqual(beatOf(0, 120, null, memory, now), { sessions: 0, rss_mb: 120 }, 'the plugin did not answer: the old beat')
   assert.deepEqual(beatOf(0, 120, view({ pressure: null }), memory, now), { sessions: 0, rss_mb: 120 }, 'a forced or switched-off reading is not sent')
   assert.ok(JSON.stringify(beatOf(1, 1, view({ runs: [...Array(8).keys()].map((i) => ({ taskId: 'x'.repeat(64), elapsedMs: 1 })) }), memory, now)).length < 2048, 'a full beat stays far under the platform\'s 2048-byte bound')
+})
+
+// ── a task published from the account is known by the laptop's id ──────────────────────────────────
+test('a published task is reported, in the schedule, in its runs and in the beat, by the id the laptop gave it', () => {
+  projection('session-dddddddd-4', { closed: true, at: '2026-10-23T03:00:40Z' })
+  const tasks = [
+    { id: 'st-local-1', name: 'Made here', active: true, schedule: { mode: 'cron' }, history: [] },
+    { id: 'st-moon-2', name: 'Published', active: true, schedule: { mode: 'cron' }, published: { ref: 'task-laptop-9', at: '2026-10-23T02:00:00Z' }, nextRun: '2026-10-24T03:00:00Z', history: [{ at: '2026-10-23T03:00:00Z', sessionId: 'session-dddddddd-4', status: 'fired' }] },
+    { id: 'st-moon-3', name: 'Odd ref', active: true, schedule: { mode: 'cron' }, published: { ref: 'a b', at: 'x' }, history: [] }
+  ]
+  assert.equal(externalIdOf(tasks[0]), 'st-local-1')
+  assert.equal(externalIdOf(tasks[1]), 'task-laptop-9')
+  assert.equal(externalIdOf(tasks[2]), 'st-moon-3', 'a ref that is not an id is not used')
+  assert.deepEqual(scheduleOf(tasks).map((t) => t.id), ['st-local-1', 'task-laptop-9', 'st-moon-3'])
+  const runs = endedRuns(tasks, new Set())
+  assert.deepEqual(runs.map((r) => [r.run_id, r.task_id]), [['session-dddddddd-4', 'task-laptop-9']])
+  const ids = new Map(tasks.map((t) => [String(t.id), externalIdOf(t)]))
+  const now = Date.parse('2026-10-23T12:00:00Z')
+  const v = { ok: true, level: 'ok', pressure: 10, inFlight: 2, allowed: 3, waiting: 0, loadPerCpu: 0.2, runs: [{ taskId: 'st-moon-2', elapsedMs: 1000 }, { taskId: 'st-local-1', elapsedMs: 2000 }] }
+  assert.deepEqual(runningTasksOf(v, now, ids).map((r) => r.task_ref), ['task-laptop-9', 'st-local-1'])
+  assert.deepEqual(beatOf(1, 100, v, { availMb: 500, totalMb: 1000 }, now, ids).running_tasks.map((r) => r.task_ref), ['task-laptop-9', 'st-local-1'])
+  assert.deepEqual(runningTasksOf(v, now).map((r) => r.task_ref), ['st-moon-2', 'st-local-1'], 'without a map the plugin\'s ids are kept')
 })
