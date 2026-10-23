@@ -1,11 +1,14 @@
-// The Featured tab of the Skills page, on the REAL GUI: the cards, what shows on hover, the install confirmation, the panel, the filters.
+// The Featured tab of the Skills page, on the REAL GUI: the cards, what shows on hover, the install confirmation, the window, the filters.
+// Every one of the 24 cards and rows is pressed with a real mouse event (a click on the card, on Details, Enter / Space), the star and Install are pressed
+// too, then the failure states are played: picks slow / refused / empty, covers that do not load, SKILL.md or GitHub not answering, a 760 and a 400 px window.
 //
 //   node scripts/check-skills-featured-live.mjs [--shots <dir>]
 //
 // What is real: the DSH page, the Skills panel in the sidebar, the language the GUI is in, the cover route (the covers are the files in the
 // user's DSH home). What is swapped: the client of kybernos-skills (this checkout's, in a throw-away Chrome, scripts/lib-bundle-swap.mjs).
 // What is answered here, only when the running host does not have it yet (host code loads when `dsh web` restarts): ONE route,
-// GET /kybernos-skills/picks, from this checkout's featured-picks.json. Install is opened and CANCELLED: nothing is written anywhere.
+// GET /kybernos-skills/picks, from this checkout's featured-picks.json. Install is opened and CANCELLED: nothing is written anywhere. Every write the page
+// tries (the star's pin, the request for a picture) is refused with a 403 inside the check and listed; the only POST let through is the read of a SKILL.md.
 //
 // On a sandbox (which serves THIS checkout, not the shared tree) say so, or the client swap finds nothing to replace:
 //   source scripts/sandbox/env.sh && KB_SHARED_TREE=$PWD node scripts/check-skills-featured-live.mjs
@@ -51,21 +54,44 @@ try {
   page.on('Runtime.exceptionThrown', (p) => errors.push(String((p.exceptionDetails && p.exceptionDetails.exception && p.exceptionDetails.exception.description) || 'exception').slice(0, 200)))
   // Fail closed (incident of 2026-10-16): this check presses Install and Cancel. Nothing but a GET may reach the skills routes of the host, so a click that
   // went through would install nothing: every other request to /kybernos-skills/ is answered here, recorded, and the check fails on it.
+  // `blocked` holds every write the page tried; the star is the one write this check provokes on purpose (it asserts the request, then takes it out with `takeBlocked`).
+  // The read of an installed skill's SKILL.md is a POST too, but it only reads: it goes through to the host.
   const blocked = []
+  const takeBlocked = () => blocked.splice(0, blocked.length)
+  // What the host is made to do, per scenario (the failure states at the end): the picks route, the cover route, SKILL.md of an installed skill, GitHub's preview.
+  const scenario = { picks: 'host', covers: 'host', read: 'host', preview: 'host' }
   page.on('Fetch.requestPaused', (p) => {
     if (p.responseStatusCode !== undefined) return   // the bundle swap's business
     const path = p.request.url.split('?')[0]
-    if (p.request.method !== 'GET' && path.includes('/kybernos-skills/')) {
-      blocked.push(p.request.method + ' ' + path)
-      page.send('Fetch.fulfillRequest', { requestId: p.requestId, responseCode: 403, responseHeaders: [{ name: 'content-type', value: 'application/json' }], body: Buffer.from(JSON.stringify({ ok: false, error: 'refused_by_the_check' }), 'utf8').toString('base64') }).catch(() => {})
+    const isGet = p.request.method === 'GET'
+    const go = () => page.send('Fetch.continueRequest', { requestId: p.requestId }).catch(() => {})
+    const reply = (code, json) => page.send('Fetch.fulfillRequest', { requestId: p.requestId, responseCode: code, responseHeaders: [{ name: 'content-type', value: 'application/json' }], body: Buffer.from(JSON.stringify(json), 'utf8').toString('base64') }).catch(() => {})
+    const slowly = (fn) => { setTimeout(fn, 4000) }
+    if (!isGet && path.endsWith('/kybernos-skills/skill/read')) {
+      if (scenario.read === 'refused') reply(500, { ok: false, error: 'unreachable' })
+      else if (scenario.read === 'slow') slowly(go)
+      else go()
       return
     }
-    if (hostHasPicks === true || !path.endsWith('/kybernos-skills/picks')) { page.send('Fetch.continueRequest', { requestId: p.requestId }).catch(() => {}); return }
-    page.send('Fetch.fulfillRequest', {
-      requestId: p.requestId, responseCode: 200,
-      responseHeaders: [{ name: 'content-type', value: 'application/json' }],
-      body: Buffer.from(JSON.stringify(picksAnswer), 'utf8').toString('base64')
-    }).catch(() => {})
+    if (!isGet && path.includes('/kybernos-skills/')) { blocked.push(p.request.method + ' ' + path + (typeof p.request.postData === 'string' ? ' ' + p.request.postData : '')); reply(403, { ok: false, error: 'refused_by_the_check' }); return }
+    if (isGet && path.includes('/kybernos-skills/cover/') && scenario.covers === 'refused') { reply(500, { ok: false, error: 'refused' }); return }
+    if (isGet && path.endsWith('/kybernos-skills/preview')) {
+      if (scenario.preview === 'refused') reply(200, { ok: false, error: 'github_rate_limited', http: 403 })
+      else if (scenario.preview === 'slow') slowly(go)
+      else go()
+      return
+    }
+    if (isGet && path.endsWith('/kybernos-skills/picks')) {
+      const answer = () => {
+        if (scenario.picks === 'refused') reply(500, { ok: false, error: 'unreachable' })
+        else if (scenario.picks === 'empty') reply(200, { ok: true, asOf: picksFile.asOf, categories: picksFile.categories, items: [] })
+        else if (hostHasPicks === true) go()
+        else reply(200, picksAnswer)
+      }
+      if (scenario.picks === 'slow') slowly(answer); else answer()
+      return
+    }
+    go()
   })
   const swap = await swapBundles(page, [{ name: 'kybernos-skills' }], { extraPatterns: [{ urlPattern: '*kybernos-skills/*', requestStage: 'Request' }] })
 
@@ -104,7 +130,7 @@ try {
   // hover: the actions are there but hidden, then shown
   const rest = await js("getComputedStyle(document.querySelector('[data-kb=pick-card] .kbsf-acts')).opacity")
   check('at rest the actions are hidden (but their place is kept)', rest === '0' && await js("document.querySelector('[data-kb=pick-card] .kbsf-acts').getBoundingClientRect().height") >= 28, rest)
-  const rect = await js("(() => { const r = document.querySelector('[data-kb=pick-card] .kbsf-pic').getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2] })()")
+  const rect = await js("(() => { const c = document.querySelector('[data-kb=pick-card]'); c.scrollIntoView({ block: 'center' }); const r = c.querySelector('.kbsf-pic').getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2] })()")
   await page.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: rect[0], y: rect[1] })
   await sleep(500)
   const hover = await js("getComputedStyle(document.querySelector('[data-kb=pick-card] .kbsf-acts')).opacity")
@@ -113,7 +139,7 @@ try {
   await page.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: 5, y: 5 })
 
   // install: the usual confirmation opens, and is cancelled
-  const installable = await js("(() => { const b = Array.from(document.querySelectorAll('[data-kb=pick-install]'))[0]; if (!b) return false; b.click(); return true })()")
+  const installable = await js("(() => { const b = document.querySelector('[data-kb=picks-grid] [data-kb=pick-install]'); if (!b) return false; b.click(); return true })()")
   check('a card that is not installed offers Install', installable === true)
   await sleep(500)
   check('Install opens the confirmation before anything is written', await js("!!document.querySelector('.kbs-modal, [role=dialog], .kbs-confirm') || document.body.innerText.includes('Install ?') || document.body.innerText.includes('Installer ?')"))
@@ -121,9 +147,103 @@ try {
   await js("(() => { const e = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }); document.dispatchEvent(e); return true })()")
   await sleep(400)
 
+  // Every card, by a REAL mouse event on its description (not `.click()`: a layer over the card would be missed), then Details, then the keyboard. Regression of 2026-10-23:
+  // `list.map(pickCard)` handed the array to the card as its `opts`, so no card of the grid opened anything and Details threw. The window must show THIS pick's title.
+  const realClick = async (x, y) => {
+    await page.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x, y })
+    await sleep(100)
+    await page.send('Input.dispatchMouseEvent', { type: 'mousePressed', x, y, button: 'left', clickCount: 1 })
+    await page.send('Input.dispatchMouseEvent', { type: 'mouseReleased', x, y, button: 'left', clickCount: 1 })
+  }
+  const pressKey = async (key, code, vk) => {
+    await page.send('Input.dispatchKeyEvent', { type: 'keyDown', key, code, windowsVirtualKeyCode: vk, text: key === 'Enter' ? '\r' : (key === ' ' ? ' ' : undefined) })
+    await page.send('Input.dispatchKeyEvent', { type: 'keyUp', key, code, windowsVirtualKeyCode: vk })
+  }
+  const popupUp = () => js("!!document.querySelector('[data-kb=skill-popup] [data-kb=pick-detail]')")
+  const popupTitle = () => js("(() => { const t = document.querySelector('[data-kb=skill-popup] .kbsf-dtitle'); return t ? t.innerText.trim() : null })()")
+  const popupGone = async () => { try { await waitFor(page, "!document.querySelector('[data-kb=skill-popup]')", 3000); return true } catch (e) { return false } }
+  const popupAppears = async () => { try { await waitFor(page, "!!document.querySelector('[data-kb=skill-popup] [data-kb=pick-detail]')", 4000); return true } catch (e) { return false } }
+  const closeWithEscape = async () => { await pressKey('Escape', 'Escape', 27); return popupGone() }
+  // The point to press on one piece of the i-th card (or row) of a grid / list, after bringing it to the middle of the screen.
+  const pointOf = (box, hook, i, piece) => js(`(() => { const c = document.querySelectorAll('[data-kb=${box}] > [data-kb=${hook}]')[${i}]; if (!c) return null; c.scrollIntoView({ block: 'center' }); const e = c.querySelector('${piece}'); if (!e) return null; const r = e.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2, id: c.getAttribute('data-skill'), title: c.querySelector('.kbsf-title').innerText.trim() } })()`)
+  const everyOne = async (box, hook, label) => {
+    const total = await js(`document.querySelectorAll('[data-kb=${box}] > [data-kb=${hook}]').length`)
+    const wrong = { body: [], details: [], gone: [] }
+    for (let i = 0; i < total; i++) {
+      let at = await pointOf(box, hook, i, '.kbsf-out')
+      await sleep(120)
+      at = await pointOf(box, hook, i, '.kbsf-out')
+      await realClick(at.x, at.y)
+      if (!(await popupAppears()) || (await popupTitle()) !== at.title) wrong.body.push(at.id)
+      if (!(await closeWithEscape())) wrong.gone.push(at.id)
+      const d = await pointOf(box, hook, i, '[data-kb=pick-details]')
+      await sleep(120)
+      await realClick(d.x, d.y)
+      if (!(await popupAppears()) || (await popupTitle()) !== at.title) wrong.details.push(at.id)
+      if (!(await closeWithEscape())) wrong.gone.push(at.id)
+    }
+    check(label + ': a real click on each of the ' + total + ' opens the window of ITS pick', total === 24 && wrong.body.length === 0, wrong.body)
+    check(label + ': Details on each of the ' + total + ' opens the same window', wrong.details.length === 0, wrong.details)
+    check(label + ': Escape closes the window every time', wrong.gone.length === 0, wrong.gone)
+  }
+  console.log('Every card and every row, by a real click')
+  await everyOne('picks-grid', 'pick-card', 'cards')
+  {
+    const at = await pointOf('picks-grid', 'pick-card', 0, '.kbsf-pic')
+    await realClick(at.x, at.y)
+    check('a click on the picture opens it too, and the card shows it is the open one', (await popupAppears()) && await js("document.querySelectorAll('[data-kb=picks-grid] > .sel').length") === 1)
+    await shot('featured-window')
+    const x = await js("(() => { const b = document.querySelector('[data-kb=pick-back]'); const r = b.getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2] })()")
+    await realClick(x[0], x[1])
+    check('the ✕ closes it and the card is no longer marked', (await popupGone()) && await js("document.querySelectorAll('[data-kb=picks-grid] > .sel').length") === 0)
+    await realClick(at.x, at.y)
+    await popupAppears()
+    await realClick(6, 6)   // outside the window: the dark backdrop
+    check('a click outside the window closes it', await popupGone())
+    // keyboard: Enter and Space on the focused card
+    await js("document.querySelector('[data-kb=picks-grid] > [data-kb=pick-card]').focus()")
+    await pressKey('Enter', 'Enter', 13)
+    check('Enter on the focused card opens it', await popupAppears())
+    await closeWithEscape()
+    await js("document.querySelector('[data-kb=picks-grid] > [data-kb=pick-card]').focus()")
+    await pressKey(' ', 'Space', 32)
+    check('Space on the focused card opens it', await popupAppears())
+    check('focus goes back to the card after Escape', (await closeWithEscape()) && await js("document.activeElement && document.activeElement.getAttribute('data-kb') === 'pick-card'"))
+  }
+  {
+    // the star: off for a pick that is not installed, a real toggle request for one that is (answered 403 here: the owner's pins are never touched), and it never opens the window
+    const star = await js(`(() => { const cs = Array.from(document.querySelectorAll('[data-kb=picks-grid] > [data-kb=pick-card]')); const has = cs.filter((c) => !!c.querySelector('[data-kb=pick-use]')); const not = cs.filter((c) => !!c.querySelector('[data-kb=pick-install]')); return { inst: has.length, notInst: not.length, offOnNot: not.every((c) => c.querySelector('.kbsf-star').disabled === true), onOnHas: has.every((c) => c.querySelector('.kbsf-star').disabled === false), pills: has.every((c) => /Installed/.test(c.innerText)) && not.every((c) => !/Installed/.test(c.innerText)) } })()`)
+    check('every card is either Installed (Use + a live star) or not (Install + a star that waits for it)', star.inst + star.notInst === 24 && star.offOnNot && star.onOnHas && star.pills, star)
+    console.log('    (' + star.inst + ' installed, ' + star.notInst + ' not installed on this machine)')
+    if (star.inst > 0) {
+      const at = await js(`(() => { const c = Array.from(document.querySelectorAll('[data-kb=picks-grid] > [data-kb=pick-card]')).find((x) => !!x.querySelector('[data-kb=pick-use]')); c.scrollIntoView({ block: 'center' }); const r = c.querySelector('.kbsf-star').getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2, id: c.getAttribute('data-skill') } })()`)
+      takeBlocked()
+      await realClick(at.x, at.y)
+      await sleep(600)
+      const wrote = takeBlocked()
+      check('the star of an installed card asks the host to (un)pin THAT skill, and does not open the window', wrote.length === 1 && wrote[0].startsWith('POST') && wrote[0].includes('/kybernos-skills/featured/toggle') && wrote[0].includes('"' + at.id + '"') && !(await popupUp()), wrote)
+    }
+    const dead = await js(`(() => { const c = Array.from(document.querySelectorAll('[data-kb=picks-grid] > [data-kb=pick-card]')).find((x) => !!x.querySelector('[data-kb=pick-install]')); if (!c) return null; c.scrollIntoView({ block: 'center' }); const r = c.querySelector('.kbsf-star').getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2, tip: c.querySelector('.kbsf-star').title } })()`)
+    if (dead !== null) {
+      await realClick(dead.x, dead.y)
+      await sleep(500)
+      check('the star of a pick that is not installed does nothing, and says why', !(await popupUp()) && takeBlocked().length === 0 && dead.tip.length > 5, dead)
+    }
+    // Install of a card: the confirmation names THIS pick, nothing is written, the window stays shut; Cancel leaves it all as it was
+    const inst = await js(`(() => { const c = Array.from(document.querySelectorAll('[data-kb=picks-grid] > [data-kb=pick-card]')).find((x) => !!x.querySelector('[data-kb=pick-install]')); if (!c) return null; c.scrollIntoView({ block: 'center' }); const b = c.querySelector('[data-kb=pick-install]'); const r = b.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2, id: c.getAttribute('data-skill') } })()`)
+    if (inst !== null) {
+      await realClick(inst.x, inst.y)   // the mouse moves onto the card first (the actions show on hover), then presses the button itself
+      await sleep(500)
+      check('Install on a card opens the confirmation for THAT pick, and not the window', await js("!!document.querySelector('[data-kb=install-confirm]')") && (await js("document.querySelector('[data-kb=install-confirm]').innerText")).includes(inst.id) && !(await popupUp()))
+      await pressKey('Escape', 'Escape', 27)
+      await sleep(400)
+      check('Cancel (Escape) closes the confirmation and nothing was written', await js("!document.querySelector('[data-kb=install-confirm]')") && takeBlocked().length === 0)
+    }
+  }
+
   // details: the pick opens in a window over the grid (✕ at the top, Install / Use / GitHub sticky at the foot), its picture and its title at the top like the card
   const gridW = await js("document.querySelector('[data-kb=picks-grid]').getBoundingClientRect().width")
-  await js("document.querySelector('[data-kb=pick-details]').click()")
+  await js("document.querySelector('[data-kb=picks-grid] [data-kb=pick-details]').click()")
   await waitFor(page, "!!document.querySelector('[data-kb=pick-detail]')", 8000)
   await sleep(1200)
   check('Details opens the pick in a window over the grid, not in a side panel and not instead of the grid', await js("!!document.querySelector('[data-kb=skill-popup] [data-kb=pick-detail]') && !document.querySelector('[data-kb=disc-panel]') && !!document.querySelector('[data-kb=picks-grid]')"))
@@ -170,7 +290,8 @@ try {
   check('the row is the same pick as the card (installed flag and figure)', await js("(() => { const r = document.querySelector('[data-kb=pick-row]'); return /211\\.2k/.test(r.innerText) })()"))
   check('the choice is kept in this browser', await js("JSON.parse(window.localStorage.getItem('kybernos.skills.views')).featured === 'list'"))
   await shot('featured-list')
-  await js("document.querySelector('[data-kb=pick-details]').click()")
+  await everyOne('picks-list', 'pick-row', 'rows')
+  await js("document.querySelector('[data-kb=picks-list] [data-kb=pick-details]').click()")
   await waitFor(page, "!!document.querySelector('[data-kb=pick-detail]')", 8000)
   check('Details from a row opens the same window', await js("!!document.querySelector('[data-kb=skill-popup] [data-kb=pick-detail] .kbsf-dpic') && !!document.querySelector('[data-kb=pick-row]')"))
   await shot('featured-list-detail')
@@ -218,6 +339,125 @@ try {
   await sleep(600)
   check('Yours still opens, with its own cards', await js("document.querySelectorAll('[data-kb^=skill-card-], [data-kb^=skill-row-]').length >= 0 && !document.querySelector('[data-kb=picks-grid]')"))
 
+  // ── the failure states: the host slow, refusing, empty; a cover that does not load; SKILL.md or GitHub not answering; a narrow window ─────────────────────────────
+  console.log('Failure states')
+  const reopenSkills = async (hold) => {
+    await page.send('Page.reload', { ignoreCache: true })
+    await sleep(2500)
+    await waitFor(page, 'document.body && document.body.innerText.length > 80', 30000)
+    await clickText(page, 'Skills')
+    await waitFor(page, "!!document.querySelector('.kbs-root')", 20000)
+    if (hold !== true) await sleep(1500)
+  }
+  const cardsNow = () => js("document.querySelectorAll('[data-kb=picks-grid] > [data-kb=pick-card]').length")
+  const firstCardOpens = async () => {
+    const at = await pointOf('picks-grid', 'pick-card', 0, '.kbsf-out')
+    await sleep(150)
+    const again = await pointOf('picks-grid', 'pick-card', 0, '.kbsf-out')
+    await realClick(again.x, again.y)
+    return { opened: await popupAppears(), title: await popupTitle(), want: at.title }
+  }
+  const errorsBefore = errors.length
+
+  scenario.picks = 'slow'
+  await reopenSkills(true)
+  await sleep(1200)
+  check('slow picks: while they load, no card and no error, the Featured count shows a dash', (await cardsNow()) === 0 && await js("(() => { const s = document.querySelector('[data-kb=seg-featured]'); return !!s && s.innerText.includes('—') })()") && errors.length === errorsBefore)
+  await shot('failure-slow')
+  await waitFor(page, "document.querySelectorAll('[data-kb=picks-grid] > [data-kb=pick-card]').length === 24", 20000).catch(() => {})
+  const slow = await firstCardOpens()
+  check('slow picks: when they arrive the 24 cards are there and the first one opens its window', (await cardsNow()) === 24 && slow.opened === true && slow.title === slow.want, slow)
+  await closeWithEscape()
+  scenario.picks = 'host'
+
+  scenario.picks = 'refused'
+  await reopenSkills()
+  check('refused picks: no Featured tab, no card, the page lands on Yours', (await js("!document.querySelector('[data-kb=seg-featured]') && !document.querySelector('[data-kb=picks-grid]')")) && await js("(() => { const t = Array.from(document.querySelectorAll('.kbsub-group [role=tab]')).find((b) => b.getAttribute('aria-selected') === 'true'); return !!t && t.innerText.startsWith('Yours') })()"))
+  await shot('failure-refused')
+  scenario.picks = 'empty'
+  await reopenSkills()
+  check('an empty list of picks is the same as no picks: no Featured tab, no card, the page lands on Yours', (await cardsNow()) === 0 && await js("!document.querySelector('[data-kb=seg-featured]')") && await js("(() => { const t = Array.from(document.querySelectorAll('.kbsub-group [role=tab]')).find((b) => b.getAttribute('aria-selected') === 'true'); return !!t && t.innerText.startsWith('Yours') })()"))
+  await shot('failure-empty')
+  scenario.picks = 'host'
+
+  await reopenSkills()
+  await js("document.querySelector('[data-kb=toggle-search]').click()")
+  await sleep(400)
+  await js("(() => { const i = document.querySelector('.kbs-root .kb6-toolbar input'); if (i) i.focus(); return !!i })()")
+  await page.send('Input.insertText', { text: 'zzzqqq' })
+  await sleep(600)
+  check('a search that matches nothing: the empty message, no card, and the window cannot be opened by mistake', (await cardsNow()) === 0 && await js("!!document.querySelector('.kbs-root .kb-empty') && !document.querySelector('[data-kb=skill-popup]')"))
+  await shot('failure-nomatch')
+
+  scenario.covers = 'refused'
+  takeBlocked()
+  await reopenSkills()
+  await sleep(1500)
+  // Lazy pictures are only asked for when near the screen: walk the grid once so every one fails, then look at what each card shows.
+  await js("(async () => { for (const c of document.querySelectorAll('[data-kb=picks-grid] > [data-kb=pick-card]')) { c.scrollIntoView({ block: 'center' }); await new Promise((r) => setTimeout(r, 80)) } return true })()")
+  await sleep(2500)
+  const pics = await js("Array.from(document.querySelectorAll('[data-kb=picks-grid] > [data-kb=pick-card] .kbsf-pic')).map((p) => { const i = p.querySelector('img.kbsf-cut'); return { tile: !!p.querySelector('.kb8-tile'), img: !!i && i.style.display !== 'none' && i.naturalWidth > 0 } })")
+  check('covers that cannot be loaded: none of the 24 pictures is an empty tint, each card draws its tile', pics.length === 24 && pics.every((p) => p.tile === true && p.img === false), pics.filter((p) => p.tile !== true).length + ' cards without a tile')
+  const noCovers = await firstCardOpens()
+  check('covers that cannot be loaded: a card still opens its window, with the tile as its picture', (await cardsNow()) === 24 && noCovers.opened === true && noCovers.title === noCovers.want && await js("!!document.querySelector('[data-kb=skill-popup] .kbsf-dpic .kb8-tile') && !document.querySelector('[data-kb=skill-popup] .kbsf-dpic img.kbsf-cut')"), noCovers)
+  await shot('failure-covers')
+  await closeWithEscape()
+  const asked = takeBlocked()
+  check('the only write the page tried was to ask the host for a picture (refused here: nothing is generated on this machine)', asked.every((w) => w.includes('/kybernos-skills/covers/make')), asked)
+  scenario.covers = 'host'
+
+  // SKILL.md of an installed skill (a read through the host) that is slow, then refused; GitHub's preview of one that is not installed, slow then refused
+  const installedCard = async () => js("Array.from(document.querySelectorAll('[data-kb=picks-grid] > [data-kb=pick-card]')).findIndex((c) => !!c.querySelector('[data-kb=pick-use]'))")
+  const notInstalledCard = async () => js("Array.from(document.querySelectorAll('[data-kb=picks-grid] > [data-kb=pick-card]')).findIndex((c) => !!c.querySelector('[data-kb=pick-install]'))")
+  const open = async (i) => { const at = await pointOf('picks-grid', 'pick-card', i, '.kbsf-out'); await sleep(150); const a2 = await pointOf('picks-grid', 'pick-card', i, '.kbsf-out'); await realClick(a2.x, a2.y); return { opened: await popupAppears(), title: await popupTitle(), want: at.title } }
+  const windowFits = () => js("(() => { const w = document.querySelector('[data-kb=skill-popup]').getBoundingClientRect(); const x = document.querySelector('[data-kb=pick-back]').getBoundingClientRect(); return w.left >= 0 && w.right <= innerWidth + 1 && w.top >= 0 && w.bottom <= innerHeight + 1 && x.width > 0 && x.right <= innerWidth && x.bottom <= innerHeight })()")
+  scenario.read = 'refused'; scenario.preview = 'refused'
+  await reopenSkills()
+  {
+    const ii = await installedCard()
+    const ni = await notInstalledCard()
+    if (ii >= 0) {
+      const r = await open(ii)
+      await shot('failure-read-refused')
+      await waitFor(page, "!!document.querySelector('[data-kb=pick-detail] [data-kb=preview-error]')", 8000).catch(() => {})
+      check('an installed pick whose SKILL.md cannot be fetched: the window opens, says so in a sentence, and the ✕ still closes it', r.opened && r.title === r.want && await js("(() => { const n = document.querySelector('[data-kb=pick-detail] [data-kb=preview-error]'); return !!n && n.innerText.trim().length > 20 })()") && (await closeWithEscape()), r)
+    }
+    if (ni >= 0) {
+      const r = await open(ni)
+      await shot('failure-preview-refused')
+      await waitFor(page, "!!document.querySelector('[data-kb=pick-detail] [data-kb=preview-error]')", 8000).catch(() => {})
+      check('a pick that is not installed whose GitHub preview is refused: the window opens and says so in a sentence, the facts and the actions are there, ✕ closes it', r.opened && r.title === r.want && await js("(() => { const d = document.querySelector('[data-kb=pick-detail]'); const n = d.querySelector('[data-kb=preview-error]'); return !!n && n.innerText.trim().length > 20 && !!d.querySelector('[data-kb=pick-install]') && !!d.querySelector('[data-kb=pick-acts]') })()") && (await closeWithEscape()), r)
+    }
+  }
+  scenario.read = 'slow'; scenario.preview = 'slow'
+  await reopenSkills()
+  {
+    const ni = await notInstalledCard()
+    if (ni >= 0) {
+      const r = await open(ni)
+      await shot('failure-preview-slow')
+      check('a slow GitHub preview: the window is already there (the page does not wait for it), with the title, the facts and the actions', r.opened && r.title === r.want && await js("!!document.querySelector('[data-kb=pick-detail] [data-kb=pick-acts]')"), r)
+      await closeWithEscape()
+    }
+  }
+  scenario.read = 'host'; scenario.preview = 'host'
+
+  // a narrow window: 400 px and 760 px (phone and half a screen). The page is on Skills already; only the size changes.
+  await reopenSkills()
+  for (const [w, h] of [[760, 900], [400, 860]]) {
+    await page.send('Emulation.setDeviceMetricsOverride', { width: w, height: h, deviceScaleFactor: 1, mobile: false })
+    await sleep(800)
+    const r = await open(0)
+    check(w + ' px: a card opens its window, and the window and its ✕ stay inside the screen', r.opened && r.title === r.want && await windowFits(), r)
+    await shot('narrow-' + w)
+    const x = await js("(() => { const b = document.querySelector('[data-kb=pick-back]'); const r = b.getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2] })()")
+    await realClick(x[0], x[1])
+    check(w + ' px: the ✕ closes it', await popupGone())
+    check(w + ' px: no horizontal scroll on the page', await js("document.documentElement.scrollWidth <= innerWidth + 1"))
+  }
+  await page.send('Emulation.clearDeviceMetricsOverride', {})
+
+  check('no script error was thrown during the failure states', errors.length === errorsBefore, errors.slice(errorsBefore))
   check('no script error was thrown during the run', errors.length === 0, errors)
   check('nothing but a GET reached the skills routes (a write was refused inside the check)', blocked.length === 0, blocked)
 } finally {

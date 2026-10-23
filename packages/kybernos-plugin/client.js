@@ -19231,7 +19231,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
               connNodes.push(h('div', {
                 key: 'grp/' + (c.selected === true ? 'sel' : 'acc'), className: 'kb8-parent', 'data-kb': 'project-conn-group', 'data-group': c.selected === true ? 'selected' : 'account',
                 style: { padding: '12px 16px 6px', fontWeight: 600, borderBottom: '1px solid var(--dsw-alias-border-l1)' },
-              }, (c.selected === true ? kbe('Selected for this project', 'Sélectionnés pour ce projet') : (connAnySel === true ? kbe('Also connected on your account', 'Aussi connectés sur votre compte') : kbe('Connected on your account', 'Connectés sur votre compte'))) + ' · ' + n))
+              }, (c.selected === true ? kbe('Selected for this project', 'Sélectionnés pour ce projet') : (connAnySel === true ? kbe('Also connected on your account', 'Aussi connectés sur ton compte') : kbe('Connected on your account', 'Connectés sur ton compte'))) + ' · ' + n))
             }
             const isReal = c.real === true && c.account !== null && c.account !== undefined && c.account !== ''
             const armed = connArm === c.key
@@ -19263,7 +19263,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
                 ? h('span', { style: { display: 'inline-flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' } },
                   h('button', {
                     type: 'button', className: 'kb8-chip', 'data-kb': 'project-conn-toggle', 'data-arm': '1',
-                    title: kbe('Removes this account from your whole Composio account, for every project.', 'Retire ce compte de tout votre compte Composio, pour tous les projets.'),
+                    title: kbe('Removes this account from your whole Composio account, for every project.', 'Retire ce compte de tout ton compte Composio, pour tous les projets.'),
                     'aria-label': kbt('kbui.conn.confirm') + kbfSep() + appName,
                     onClick: (e) => { if (e !== undefined && e.stopPropagation !== undefined) e.stopPropagation(); connAgir(c) },
                     style: { padding: '5px 12px', borderColor: 'var(--dsw-alias-state-error-primary)', color: 'var(--dsw-alias-state-error-primary)' },
@@ -19275,7 +19275,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
                   }, kbe('Cancel', 'Annuler')))
                 : h('button', {
                   type: 'button', className: 'kb8-iconbtn', 'data-kb': 'project-conn-toggle', 'data-arm': '0',
-                  title: isReal === true ? kbe('Disconnect from your account (every project)', 'Déconnecter de votre compte (tous les projets)') : kbt('kbui.conn.enable'),
+                  title: isReal === true ? kbe('Disconnect from your account (every project)', 'Déconnecter de ton compte (tous les projets)') : kbt('kbui.conn.enable'),
                   'aria-label': (isReal === true ? kbt('kbui.conn.disable') : kbt('kbui.conn.enable')) + kbfSep() + appName,
                   onClick: (e) => { if (e !== undefined && e.stopPropagation !== undefined) e.stopPropagation(); connAgir(c) },
                   // 28 px au lieu des 40 px de la classe : cette ligne est dense.
