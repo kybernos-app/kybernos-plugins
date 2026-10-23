@@ -7,8 +7,9 @@
 // definition is never trusted whole: only six fields are read, everything else of a task (a home session, a workspace, a webhook, who is told) is
 // the computer's own and keeps its defaults.
 //
-// Only `auto` automations can be published for now: the computer runs with no approval prompt and has no path yet to ask a person (the server refuses
-// `ask` too, 422 `approval_path_missing`). A task that was made on this computer is never touched: only a task whose `published.ref` matches is replaced or removed.
+// An automation that asks first (`ask`) is accepted only when this computer can ask its person: the cloud plugin's gate is there (`deps.askAllowed()`). The computer runs with no approval
+// prompt of its own (DSH's question card has nobody in front of it), so without that gate such a run would act without asking: it is refused, `approval_path_missing`, and the platform
+// is told so. A task that was made on this computer is never touched: only a task whose `published.ref` matches is replaced or removed.
 
 export const REF = /^[A-Za-z0-9_.:-]{1,64}$/u
 
@@ -29,7 +30,7 @@ const inputOf = (raw) => {
  * Applies one op to the task list.
  *   tasks: the stored array (changed in place)   op: 'put' | 'delete'   ref: the laptop's id for the automation   raw: the definition (put)
  *   deps:  { sanitize(input) -> {ok, task, error}, frequent(clean, input, previous) -> null | refusal, nextRun(task, nowMs) -> ms | null,
- *            neverRuns(task, nextMs) -> bool, newId() -> string, nowMs() -> number }
+ *            neverRuns(task, nextMs) -> bool, newId() -> string, nowMs() -> number, askAllowed() -> bool (this computer can ask its person; absent = no) }
  * Returns { ok: true, state: 'applied', created? | removed? } or { ok: false, code } with a code from a closed list (it is sent to the platform as is):
  * invalid_op, invalid_ref, invalid_task, approval_path_missing, too_frequent, never_runs.
  */
@@ -44,7 +45,7 @@ export const applyOp = (tasks, op, ref, raw, deps) => {
   }
   const input = inputOf(raw)
   if (input === null) return fail('invalid_task')
-  if (input.approvals !== 'auto') return fail('approval_path_missing')
+  if (input.approvals !== 'auto' && (input.approvals !== 'ask' || typeof deps.askAllowed !== 'function' || deps.askAllowed() !== true)) return fail('approval_path_missing')
   const clean = deps.sanitize(input)
   if (clean === null || typeof clean !== 'object' || clean.ok !== true) return fail('invalid_task')
   const at = tasks.findIndex((t) => refOf(t) === ref)

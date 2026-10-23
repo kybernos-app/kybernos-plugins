@@ -133,6 +133,34 @@ The runs the computer reports ended (`POST /v1/computer/runs`: id, automation, h
 
 Not shown yet: why a run failed (the reporter sends only `run_failed`), the output of a run, and runs of an automation that was made on the computer itself and never published.
 
+### An automation that asks first
+
+The platform's spec of step 6 (the server half, on `feature/computers-task-outbox`'s successor): a published automation set to `ask` can stop before a sensitive action and ask its person.
+DSH's own question card has nobody in front of it on a computer, so these runs are never given the asking permission preset; the gate is the cloud plugin's (`automationGate`, a
+`tools/pre-execute` hook, next to the one for the turns that come from a messenger). The core plugin tells it which sessions are such runs through `Symbol.for('kybernos.automationRuns')`
+(`of`, `wait`), the cloud plugin tells the core it is there through `Symbol.for('kybernos.computerGate')`; either missing, such an automation is refused at the apply door
+(`approval_path_missing`) and such a run does not start.
+
+1. A call that only reads (`TURN_GATE_SAFE_TOOLS`) passes. Any other call of the run, or of a sub-agent of the run, is put to the platform (`POST /v1/computer/approvals` with the automation's
+   id, the run's id (its session), the kind and what the action will do) **and refused at once** with words that make the model stop: the run does not wait inside, because a person may take
+   hours and a machine kept awake for it costs their run hours. The run is marked `waiting_approval` in the task list (so the reporter does not report it as ended; the schedule row says
+   `waiting_approval`, reason `approval_pending`), and the question is written on the volume (`<DSH home>/kybernos/approvals.json`, 0600, three days).
+2. While a question of the run is open nothing else is asked (two calls of one step, a sub-agent). A refused action is not asked again. A run asks at most three times.
+3. The answer is fetched later: the plugin looks at `GET /v1/computer/approvals/decided` every 15 s while a question is open (every two minutes otherwise; the platform wakes a sleeping
+   computer for a decision). Under the same lock as a question being put, each answer is matched to its record, the record is marked continued **before** anything is sent (a crash cannot
+   make an action run twice), the run goes back to `fired`, and the SAME session is continued with one message: what was allowed (« allow once » passes that very action, kind and text with
+   the spaces collapsed, once; « allow for this run » passes the rest of the run) or that it was refused or ran out. The answer is then acknowledged (`POST …/approvals/{id}/ack`); one that
+   matches nothing here is acknowledged too.
+4. The run is reported once, when it really ends.
+5. At `ready` the reporter says `capabilities: ["ask_approvals"]` (the platform lets an `ask` definition through only for a computer that said so). It is the image's own claim: the plugin's
+   door checks again, so a plugin older than the reporter refuses it and the laptop is told.
+
+On the laptop the page draws it: « Waiting for your OK » on the Sessions tab of the automation (what it wants to do, three buttons: allow once, allow for this run, refuse; « also sent to
+your phone » only when the platform says a message went), « Home · waiting for your OK » in the List, and the Where-it-runs tab offers `ask` only on a computer that can ask. Not built: « always
+allow this » (a standing rule per automation, to be kept on the computer, shown and revocable on the laptop), an e-mail digest.
+Tests: `scripts/test-computer-approvals.mjs` (the two real plugins and a stand-in platform), `packages/kybernos-cloud/test-automation-approvals.mjs` (the rules),
+`test-computers-publish.mjs`, `test-computers-view.mjs`, `packages/kybernos-plugin/test-where-it-runs.mjs`, `services/computer-image/reporter.test.mjs`.
+
 ## What it was checked to do
 
 On the real platform (Fly.io, `ams`, `shared-cpu-1x` 2 GB, one 2 GB volume, 2026-10-14; one sample each, direction and not a guarantee),

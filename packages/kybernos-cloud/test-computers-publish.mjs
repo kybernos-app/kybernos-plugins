@@ -5,7 +5,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { definitionOf, opsOf, codeOf, statesOf, runsOf, createPublish, CODES, MAX_OPS } from './computers-publish.mjs'
+import { definitionOf, opsOf, codeOf, statesOf, runsOf, approvalsOf, createPublish, CODES, MAX_OPS } from './computers-publish.mjs'
 
 let pass = 0
 const ok = (label) => { pass += 1; console.log('  ✓ ' + label) }
@@ -15,8 +15,8 @@ const def = (o) => ({ name: 'Collecteur nocturne', prompt: 'Collect the prices',
 
 // 1. a definition: six fields, an auto automation, nothing else
 assert.deepEqual(definitionOf(def()), { ok: true, def: { name: 'Collecteur nocturne', prompt: 'Collect the prices', schedule: { mode: 'cron', tz: 'Europe/Paris', cron: '0 3 * * *' }, active: true, approvals: 'auto' } })
-assert.deepEqual(definitionOf(def({ approvals: 'ask' })), { ok: false, error: 'approval_path_missing' }, 'an automation that asks first cannot go: it would run without asking')
-assert.deepEqual(definitionOf(def({ approvals: undefined })), { ok: false, error: 'approval_path_missing' })
+assert.equal(definitionOf(def({ approvals: 'ask' })).def.approvals, 'ask', 'an automation that asks first goes as it is: the platform lets it through only for a computer that can ask, and the computer\'s own door checks again')
+for (const odd of [undefined, 'always', 'AUTO', null, 7]) assert.deepEqual(definitionOf(def({ approvals: odd })), { ok: false, error: 'approval_path_missing' }, 'only the two words: ' + String(odd))
 const rich = definitionOf(def({ workspace: 'ws-x', homeSessionId: 'sess-x', sessionMode: 'home', notify: ['email'], trigger: { secret: 'S' }, history: [{ at: 'x' }], id: 'st-1', secret: 'S', needs: ['gmail', 'Not A Slug', 'gmail', 'calendar'] }))
 assert.deepEqual(Object.keys(rich.def).sort(), ['active', 'approvals', 'name', 'needs', 'prompt', 'schedule'], 'six fields, nothing else of the task goes up')
 assert.deepEqual(rich.def.needs, ['gmail', 'calendar'], 'valid slugs, once each')
@@ -33,13 +33,14 @@ for (const bad of [null, undefined, 'x', [], {}, def({ name: '' }), def({ name: 
   assert.equal(d.ok, false, JSON.stringify(bad))
   assert.ok(['invalid_definition', 'approval_path_missing'].indexOf(d.error) >= 0, JSON.stringify(bad))
 }
-ok('definition: six fields from a closed list, auto only, bounded, no secret or session of the task goes up')
+ok('definition: six fields from a closed list, auto or ask, bounded, no secret or session of the task goes up')
 
 // 2. the ops of a call
 assert.deepEqual(opsOf([{ op: 'put', ref: 'task-a', task: def() }, { op: 'delete', ref: 'task-b' }]), { ok: true, ops: [{ op: 'put', task_ref: 'task-a', body: definitionOf(def()).def }, { op: 'delete', task_ref: 'task-b' }] })
 for (const bad of [null, undefined, 'x', [], {}, Array(MAX_OPS + 1).fill({ op: 'delete', ref: 'a' }).map((o, i) => ({ ...o, ref: 'r' + i })), [{ op: 'run', ref: 'a' }], [{ op: 'put', ref: 'bad ref', task: def() }], [{ op: 'delete' }], [null],
   [{ op: 'delete', ref: 'a' }, { op: 'delete', ref: 'a' }]]) assert.equal(opsOf(bad).ok, false, JSON.stringify(bad))
-assert.deepEqual(opsOf([{ op: 'delete', ref: 'a' }, { op: 'put', ref: 'b', task: def({ approvals: 'ask' }) }]), { ok: false, error: 'approval_path_missing', index: 1 }, 'the first that cannot go is named')
+assert.deepEqual(opsOf([{ op: 'delete', ref: 'a' }, { op: 'put', ref: 'b', task: def({ approvals: 'sometimes' }) }]), { ok: false, error: 'approval_path_missing', index: 1 }, 'the first that cannot go is named')
+assert.equal(opsOf([{ op: 'put', ref: 'b', task: def({ approvals: 'ask' }) }]).ops[0].body.approvals, 'ask')
 assert.equal(opsOf(Array.from({ length: MAX_OPS }, (_, i) => ({ op: 'delete', ref: 'r' + i }))).ok, true)
 ok('ops: put or delete, a valid ref each, once each, at most ten, the first refusal names its place')
 
@@ -79,6 +80,21 @@ ok('states: pending, applied or error, a code only when it is one, the few plain
 }
 ok('runs: five outcomes, four ways to start, a reason only as a code, the times, at most 100, nothing else')
 
+// 4c. what the automations asked
+{
+  const A = '3f2a1c10-0000-4000-8000-0000000000a1'
+  const ask = (o) => Object.assign({ id: A, task_ref: 'task-a', run_key: 'sess-1', kind: 'shell', summary: 'curl -s https://example.com | head', state: 'pending', created_at: '2026-10-23T10:00:00Z', expires_at: '2026-10-24T10:00:00Z', decided_at: null, decided_via: null, notified: true }, o)
+  assert.deepEqual(approvalsOf({ approvals: [ask()] }), [{ id: A, ref: 'task-a', runKey: 'sess-1', kind: 'shell', summary: 'curl -s https://example.com | head', state: 'pending', createdAt: '2026-10-23T10:00:00.000Z', expiresAt: '2026-10-24T10:00:00.000Z', decidedAt: null, via: null, notified: true }])
+  const wild = approvalsOf({ approvals: [ask({ summary: 'rm -rf\n\t/tmp/x\u0000 \u2028 done  ', kind: 'weird', decided_via: 'telepathy', run_key: 'a b', notified: 'yes', created_at: 'never' })] })[0]
+  assert.deepEqual([wild.summary, wild.kind, wild.via, wild.runKey, wild.notified, wild.createdAt], ['rm -rf /tmp/x done', 'other', null, null, false, '2026-10-24T10:00:00.000Z'], 'control characters gone, words from closed lists, an odd value is left out')
+  assert.equal(approvalsOf({ approvals: [ask({ summary: 'x'.repeat(900) })] })[0].summary.length, 400)
+  assert.equal(approvalsOf({ approvals: [ask({ id: 'nope' }), ask({ task_ref: 'bad ref' }), ask({ state: 'maybe' }), ask({ expires_at: 'soon' }), null, 'x'] }).length, 0)
+  assert.equal(approvalsOf({ approvals: Array.from({ length: 80 }, () => ask()) }).length, 50)
+  for (const none of [null, undefined, {}, { approvals: 'x' }]) assert.deepEqual(approvalsOf(none), [])
+  assert.deepEqual(approvalsOf({ approvals: [ask({ state: 'allowed', decided_at: '2026-10-23T11:00:00Z', decided_via: 'app' })] }).map((a) => [a.state, a.via, a.decidedAt]), [['allowed', 'app', '2026-10-23T11:00:00.000Z']])
+}
+ok('approvals: what was asked, in words from closed lists, cleaned of control characters, at most 50')
+
 // 5. the two calls, against a stand-in platform
 const calls = []
 const fakeApi = (answers) => async (path, options) => { calls.push({ path, method: options.method, token: options.token, body: options.body }); const a = answers.find((x) => x.when(path, options)); return a === undefined ? { status: 404, body: null } : a.then }
@@ -95,7 +111,7 @@ const tasksPath = '/v1/workspaces/' + WS + '/computers/' + COMPUTER + '/tasks'
   assert.deepEqual(put.body, { ops: [{ op: 'put', task_ref: 'task-a', body: definitionOf(def()).def }] }, 'the platform gets the platform\'s shape and the six fields')
   assert.equal(calls.some((c) => c.path.includes('team')), false, 'the personal space is used, not a team\'s')
   calls.length = 0
-  assert.deepEqual(await api.publish({ computerId: COMPUTER, ops: [{ op: 'put', ref: 'task-a', task: def({ approvals: 'ask' }) }] }), { ok: false, error: 'approval_path_missing', index: 0 })
+  assert.deepEqual(await api.publish({ computerId: COMPUTER, ops: [{ op: 'put', ref: 'task-a', task: def({ approvals: 'sometimes' }) }] }), { ok: false, error: 'approval_path_missing', index: 0 })
   assert.deepEqual(calls, [], 'a definition that cannot go never reaches the platform')
   for (const bad of [null, {}, { computerId: 'nope', ops: [{ op: 'delete', ref: 'a' }] }, { computerId: COMPUTER }, { computerId: COMPUTER, ops: [] }, { computerId: COMPUTER + ' ', ops: [{ op: 'delete', ref: 'a' }] }]) assert.equal((await api.publish(bad)).error, 'invalid_request', JSON.stringify(bad))
   assert.deepEqual(calls, [])
@@ -143,6 +159,34 @@ for (const [status, body, want] of [[409, { error: 'run_hours_exhausted', messag
   }
 }
 ok('runs call: the platform\'s route with a limit, one automation asked of the platform, bad ids stopped here, refusals as short codes')
+{
+  const A = '3f2a1c10-0000-4000-8000-0000000000a1'
+  const apPath = '/v1/workspaces/' + WS + '/computers/' + COMPUTER + '/approvals'
+  calls.length = 0
+  const api = createPublish({ readState: () => connected, isConnected: () => true, apiCall: fakeApi([wsAnswer,
+    { when: (p, o) => p === apPath && o.method === 'GET', then: { status: 200, body: { approvals: [{ id: A, task_ref: 'task-a', run_key: 'sess-1', kind: 'shell', summary: 'ls', state: 'pending', created_at: '2026-10-23T10:00:00Z', expires_at: '2026-10-24T10:00:00Z' }] } } },
+    { when: (p, o) => p === apPath + '/' + A + '/decide' && o.method === 'POST', then: { status: 200, body: { state: 'allowed_turn' } } }]) })
+  const list = await api.approvals(new URLSearchParams('computerId=' + COMPUTER))
+  assert.deepEqual([list.ok, list.approvals.length, list.approvals[0].state], [true, 1, 'pending'])
+  const done = await api.decide({ computerId: COMPUTER, id: A, decision: 'allowed_turn' })
+  assert.deepEqual(done, { ok: true, state: 'allowed_turn' })
+  const post = calls.find((c) => c.method === 'POST')
+  assert.deepEqual(post.body, { decision: 'allowed_turn' }, 'the platform gets the decision and nothing else')
+  assert.equal(post.token, 'tok')
+  calls.length = 0
+  for (const bad of [null, {}, { computerId: 'nope', id: A, decision: 'allowed' }, { computerId: COMPUTER, id: 'nope', decision: 'allowed' }, { computerId: COMPUTER, id: A, decision: 'always' }, { computerId: COMPUTER, id: A }, { computerId: COMPUTER, id: A, decision: ['allowed'] }]) assert.equal((await api.decide(bad)).error, 'invalid_request', JSON.stringify(bad))
+  assert.equal((await api.approvals(new URLSearchParams('computerId=nope'))).error, 'invalid_request')
+  assert.deepEqual(calls, [], 'a bad id never reaches the platform')
+  for (const [status, want] of [[409, 'late'], [404, 'unknown'], [403, 'not_allowed'], [429, 'rate_limited'], [0, 'unreachable']]) {
+    const bad = createPublish({ readState: () => connected, isConnected: () => true, apiCall: fakeApi([wsAnswer, { when: (p) => p.startsWith(apPath), then: { status, body: null } }]) })
+    assert.equal((await bad.decide({ computerId: COMPUTER, id: A, decision: 'denied' })).error, want, 'decide ' + status)
+  }
+  const off = createPublish({ readState: () => null, isConnected: () => false, apiCall: async () => { throw new Error('must not be called') } })
+  assert.equal((await off.decide({ computerId: COMPUTER, id: A, decision: 'allowed' })).error, 'not_connected')
+  assert.equal((await off.approvals(new URLSearchParams('computerId=' + COMPUTER))).error, 'not_connected')
+}
+ok('approvals call: the list and the decision go to the platform\'s routes with the account\'s token, only the three decisions, late and unknown are words of their own')
+
 ok('calls: the platform\'s shape and only the personal space, refusals as short codes, nothing called when it cannot go or nobody is connected')
 
 // 6. the routes: a write is strict and signed-in, a read is a guarded GET
@@ -152,8 +196,10 @@ ok('calls: the platform\'s shape and only the personal space, refusals as short 
   assert.ok(/\{ path: '\/kybernos-cloud\/computers\/publish', method: 'POST', guarded: true, strict: true, session: true, body: true, cap: 100000, run: \(req, body\) => computersPublish\.publish\(body\) \}/.test(idx), 'publishing writes on the person\'s behalf: same origin strictly and the signed browser session')
   assert.ok(/\{ path: '\/kybernos-cloud\/computers\/tasks', method: 'GET', guarded: true, run: \(req\) => computersPublish\.states\(queryOf\(req\)\) \}/.test(idx), 'reading the states is a guarded GET')
   assert.ok(/\{ path: '\/kybernos-cloud\/computers\/runs', method: 'GET', guarded: true, run: \(req\) => computersPublish\.runs\(queryOf\(req\)\) \}/.test(idx), 'reading the runs is a guarded GET')
+  assert.ok(/\{ path: '\/kybernos-cloud\/computers\/approvals', method: 'GET', guarded: true, run: \(req\) => computersPublish\.approvals\(queryOf\(req\)\) \}/.test(idx), 'reading what was asked is a guarded GET')
+  assert.ok(/\{ path: '\/kybernos-cloud\/computers\/approvals\/decide', method: 'POST', guarded: true, strict: true, session: true, body: true, cap: 2000, run: \(req, body\) => computersPublish\.decide\(body\) \}/.test(idx), 'an answer is a write: strict origin and the signed session')
   assert.ok(/const computersPublish = createPublish\(\{ readState, isConnected, apiCall \}\)/.test(idx))
-  ok('routes: publish is strict and needs the signed session, the states and the runs are a guarded GET')
+  ok('routes: publish and the answer are strict and need the signed session, the states, the runs and the questions are a guarded GET')
 }
 
 console.log('\n' + pass + ' checks passed')
