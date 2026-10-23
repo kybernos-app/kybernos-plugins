@@ -298,6 +298,25 @@ A run held for more than 10 minutes starts anyway (the cap slows the automations
 limit. **Not capped, only counted:** a webhook event and "Run now" (an event cannot be queued, and a click is a person's wish). (They are still
 lightened, below.)
 
+### The strip, its detail, and the weight of a run
+
+On the Automations page, to the right of the Yours / Discover tabs, a strip shows the machine's load: 24 ticks, the figure, the level, a curve of the
+last five minutes and one line (« 2 of 3 runs going · nothing waiting · 2 sub-agent(s) »). A click opens the detail (a click outside or Escape closes it):
+three cards, in the manner of a system monitor.
+
+- **Processor** and **Memory**: a ring and a curve each; the memory card also has a segmented bar, Kybernos / other apps / free. « Kybernos » is the size
+  of the DSH process itself (its resident memory), not of the tools it launched.
+- **Automations**: one pip per slot (running, free, or locked at this level), who waits, the sub-agents going and allowed, the calls held back, and the
+  runs going over time.
+- In the **List**, a run that is going shows its weight under « Running »: time, a curve of its activity (its tool calls and its sub-agents', in
+  fifteen-second buckets), « 1 slot », « N sub-agents » and « Lighter run » while the machine is busy; a run held by the cap says « Waiting for the
+  computer » with its place in line. A task the host did not start (before a restart) shows a plain « Running ».
+
+**What is measured, and what is not.** DSH is one process for all its sessions, so a run's CPU or memory cannot be told from another's: the weight is what
+the run holds (slots, sub-agents, time) and what it does (tool calls). The machine's own figures are measured; the host keeps a reading every ten seconds
+for five minutes, which is where the curves come from, and the page reads them every ten seconds. With the reading switched off or a level forced, there is
+no gauge (the figure would not be the machine's).
+
 ### Lighter runs: fewer sub-agents while the machine is busy
 
 The engine caps the depth of sub-agents (`subagent.maxDepth`), not their number: the model decides how many to start. So when the level is
