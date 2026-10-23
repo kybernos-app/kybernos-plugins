@@ -246,8 +246,8 @@ try {
   await val(`(() => { const b = document.querySelector('[data-kb="view-columns"]'); if (b) b.click(); return !!b })()`)
   const banner = await poll(() => val(`(() => { const b = document.querySelector('[data-kb="board-banner"]'); return b ? { reason: b.getAttribute('data-reason'), text: b.innerText.replace(/\\s+/g, ' ').trim() } : null })()`), 30000)
   check('the board banner says the cap holds the runs, not that the scheduler is stopped', banner !== null && banner.reason === 'load' && /Waiting for the computer/.test(banner.text) && !/scheduler seems/i.test(banner.text), banner)
-  const dueCards = await val(`Array.from(document.querySelectorAll('[data-kb="board-card"][data-col="upcoming"]')).filter((c) => /Load [CDE]/.test(c.innerText)).map((c) => c.querySelector('.kbbd-st') ? c.querySelector('.kbbd-st').innerText.trim() : '')`)
-  check('the three held cards say they wait for the computer, not that the scheduler starts them next pass', Array.isArray(dueCards) && dueCards.length === 3 && dueCards.every((t) => /waiting for the computer/.test(t)), dueCards)
+  const dueCards = await val(`Array.from(document.querySelectorAll('[data-kb="board-card"][data-col="upcoming"]')).filter((c) => /Load [CDE]/.test(c.innerText)).map((c) => c.querySelector('.kbbd-st, [data-kb="card-waiting"]') ? c.querySelector('.kbbd-st, [data-kb="card-waiting"]').innerText.trim() : '')`)
+  check('the three held cards say they wait for the computer (with their place in line), not that the scheduler starts them next pass', Array.isArray(dueCards) && dueCards.length === 3 && dueCards.every((t) => /waiting for the computer/i.test(t)), dueCards)
   await shot('board-load-banner')
   forced = { level: 'high', pressure: 100, reasons: ['memory'], inFlight: 2, allowed: 0, waiting: 3 }
   const bg = await poll(() => val(`(() => { const g = document.querySelector('[data-kb="board-banner"] [data-kb="load-gauge"]'); return g ? { level: g.getAttribute('data-level'), now: g.getAttribute('aria-valuenow') } : null })()`), 20000)
@@ -303,9 +303,9 @@ try {
     const pressure = { ok: 34, busy: 71, high: 100 }[level]
     check('the strip is on the tabs row, to the right of Yours / Discover (' + level + ')', f !== null && f.right === true && f.sameRow === true && f.fitsScreen === true, f)
     check('the strip at ' + level + ': 24 ticks, ' + Math.max(1, Math.round(pressure / 100 * 24)) + ' filled, the figure, the level word, a curve', f !== null && f.ticks === 24 && f.on === Math.max(1, Math.round(pressure / 100 * 24)) && f.pct === pressure + '%' && f.word === { ok: 'Light', busy: 'Busy', high: 'Very busy' }[level] && f.miniPath >= 1, f)
-    check('the line under it says what the automations hold (' + level + ')', f !== null && (level === 'ok' ? /2 of 3 runs going · 2 sub-agent\(s\)|2 of 3 runs going/.test(f.meta) && /nothing waiting/.test(f.meta) : level === 'busy' ? /1 of 1 runs going · 1 waiting · sub-agents 1 of 1/.test(f.meta) : /1 run going · 2 waiting · no new sub-agents/.test(f.meta)), f && f.meta)
+    check('the line under it says what the automations hold (' + level + ')', f !== null && (level === 'ok' ? /2 of 3 runs going · nothing waiting · 2 sub-agents/.test(f.meta) && /nothing waiting/.test(f.meta) : level === 'busy' ? /1 of 1 run going · 1 waiting · sub-agents 1 of 1/.test(f.meta) : /1 run going · 2 waiting · no new sub-agents/.test(f.meta)), f && f.meta)
     check('Load A, really running, shows its weight: time, activity curve, slot' + (level === 'ok' ? ', 2 sub-agents' : level === 'busy' ? ', 1 sub-agent, lighter' : ', lighter, no sub-agent'), f !== null && f.Akind === 'row-weight' && /\d\d:\d\d/.test(f.A) && f.Aact >= 1 && /1 slot/.test(f.A)
-      && (level === 'ok' ? /2 sub-agent\(s\)/.test(f.A) && !/Lighter run/.test(f.A) : level === 'busy' ? /1 sub-agent\(s\)/.test(f.A) && /Lighter run/.test(f.A) : !/sub-agent/.test(f.A) && /Lighter run/.test(f.A)), f && f.A)
+      && (level === 'ok' ? /2 sub-agents/.test(f.A) && !/Lighter run/.test(f.A) : level === 'busy' ? /1 sub-agent(?!s)/.test(f.A) && /Lighter run/.test(f.A) : !/sub-agent/.test(f.A) && /Lighter run/.test(f.A)), f && f.A)
     if (level === 'ok') check('a due automation is not "waiting for the computer" while the machine has room', f !== null && (f.C === null || !/Waiting for the computer/.test(f.C)), f && f.C)
     if (level !== 'ok') check('Load C waits for the computer, next in line', f !== null && /Waiting for the computer/.test(f.C || '') && /Next in line · waiting \d+ min/.test(f.C || ''), f && f.C)
     if (level === 'high') check('Load D waits behind it: #2 in line', f !== null && /#2 in line · waiting \d+ min/.test(f.D || ''), f && f.D)
@@ -330,6 +330,48 @@ try {
       check('a second click on the strip closes it (' + level + ')', await poll(async () => (await popFacts()) === null, 3000) === true)
     }
   }
+  // the same weight in the Columns and Cards views
+  const blockText = (sel) => val(`(() => { const e = document.querySelector(${JSON.stringify(sel)}); return e ? e.innerText.replace(/\\s+/g, ' ').trim() : null })()`)
+  const goView = async (v) => { await val(`(() => { const b = document.querySelector('[data-kb="view-${v}"]'); if (b) b.click(); return !!b })()`); await sleep(1200) }
+  await goView('columns')
+  for (const level of ['ok', 'busy', 'high']) {
+    forced = fixture(level)
+    await poll(async () => { const x = await stripFacts(); return x !== null && x !== undefined && x.level === level })
+    await sleep(800)
+    const run = await poll(() => blockText('[data-kb="board-card"][data-task="st-load-a"][data-col="running"] [data-kb="card-weight"]'), 14000)
+    check('Columns (' + level + '): the card of Load A, running, shows its weight: time, slot' + (level === 'ok' ? ', 2 sub-agents' : level === 'busy' ? ', 1 sub-agent, lighter' : ', lighter'),
+      run !== null && run !== undefined && /\d\d:\d\d/.test(run) && /1 slot/.test(run) && (level === 'ok' ? /2 sub-agents/.test(run) && !/Lighter run/.test(run) : level === 'busy' ? /1 sub-agent(?!s)/.test(run) && /Lighter run/.test(run) : !/sub-agent/.test(run) && /Lighter run/.test(run)), run)
+    const act = await val(`document.querySelectorAll('[data-kb="board-card"][data-task="st-load-a"][data-col="running"] [data-kb="card-weight"] .kbld-act path').length`)
+    check('Columns (' + level + '): its activity curve is drawn', act >= 1, act)
+    const dueC = await blockText('[data-kb="board-card"][data-task="st-load-c"][data-col="upcoming"] [data-kb="card-waiting"]')
+    if (level === 'ok') check('Columns (ok): a due card is not "waiting for the computer" while the machine has room', dueC === null, dueC)
+    else check('Columns (' + level + '): Load C, due, says it waits for the computer, next in line', dueC !== null && /Waiting for the computer/.test(dueC) && /Next in line · waiting \d+ min/.test(dueC), dueC)
+    if (level === 'high') check('Columns (high): Load D is #2 in line', /#2 in line/.test((await blockText('[data-kb="board-card"][data-task="st-load-d"][data-col="upcoming"] [data-kb="card-waiting"]')) || ''))
+    await shot('columns-' + level)
+  }
+  await goView('cards')
+  for (const level of ['ok', 'busy', 'high']) {
+    forced = fixture(level)
+    await poll(async () => { const x = await stripFacts(); return x !== null && x !== undefined && x.level === level })
+    await sleep(800)
+    const run = await poll(() => blockText('[data-kb="auto-card"][data-id="st-load-a"] [data-kb="card-weight"]'), 14000)
+    check('Cards (' + level + '): Load A shows its weight under its title', run !== null && run !== undefined && /\d\d:\d\d/.test(run) && /1 slot/.test(run) && (level === 'ok' ? /2 sub-agents/.test(run) : level === 'busy' ? /1 sub-agent(?!s)/.test(run) && /Lighter run/.test(run) : /Lighter run/.test(run)), run)
+    const waitC = await blockText('[data-kb="auto-card"][data-id="st-load-c"] [data-kb="card-waiting"]')
+    check('Cards (' + level + '): ' + (level === 'ok' ? 'Load C does not claim to wait' : 'Load C says it waits for the computer'), level === 'ok' ? waitC === null : waitC !== null && /Waiting for the computer/.test(waitC), waitC)
+    const clipped = await val(`(() => { const c = document.querySelector('[data-kb="auto-card"][data-id="st-load-a"]'); if (!c) return null; const w = c.querySelector('[data-kb="card-weight"]'); if (!w) return null; const a = c.getBoundingClientRect(); const b = w.getBoundingClientRect(); return b.right <= a.right + 1 && b.left >= a.left - 1 })()`)
+    check('Cards (' + level + '): the block stays inside the card', clipped === true, clipped)
+    if (level === 'busy') {
+      // a click on the card still opens the automation, as before
+      await val(`(() => { const c = document.querySelector('[data-kb="auto-card"][data-id="st-load-a"]'); if (c) c.click(); return !!c })()`)
+      check('Cards: a click on a card with a weight still opens the automation', (await poll(() => val(`!!document.querySelector('[data-kb="tab-flow"], [data-kb="tab-sessions"]')`), 6000)) === true)
+      await page.send('Page.reload', { ignoreCache: true })
+      await sleep(3500)
+      for (let k = 0; k < 4; k += 1) { await clickText(page, 'Automations'); if (await poll(() => val(`!!document.querySelector('[data-kb="page-automations"]')`), 6000)) break }
+      await goView('cards')
+    }
+    await shot('cards-' + level)
+  }
+  await goView('list')
   // dark, and a narrow window: nothing wider than the screen, the detail under the strip
   forced = fixture('busy')
   await val(`document.body.setAttribute('data-ds-dark-theme', '')`)

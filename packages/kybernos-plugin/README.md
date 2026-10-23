@@ -308,9 +308,11 @@ three cards, in the manner of a system monitor.
   of the DSH process itself (its resident memory), not of the tools it launched.
 - **Automations**: one pip per slot (running, free, or locked at this level), who waits, the sub-agents going and allowed, the calls held back, and the
   runs going over time.
-- In the **List**, a run that is going shows its weight under « Running »: time, a curve of its activity (its tool calls and its sub-agents', in
-  fifteen-second buckets), « 1 slot », « N sub-agents » and « Lighter run » while the machine is busy; a run held by the cap says « Waiting for the
-  computer » with its place in line. A task the host did not start (before a restart) shows a plain « Running ».
+- In the **List**, the **Columns** and the **Cards**, a run that is going shows its weight under « Running »: time, a curve of its activity (its tool
+  calls and its sub-agents', in fifteen-second buckets), « 1 slot » (« N slots » when the automation has several runs going), « N sub-agents » and
+  « Lighter run » while the machine is busy; a run held by the cap says « Waiting for the computer » with its place in line (in Columns, only a card of
+  the Upcoming column that is due). A card is the same block in both views (`kbLdBlock`), the List draws it as a cell (`kbLdStateCell`); a task the host
+  did not start (before a restart) shows a plain « Running ».
 
 **What is measured, and what is not.** DSH is one process for all its sessions, so a run's CPU or memory cannot be told from another's: the weight is what
 the run holds (slots, sub-agents, time) and what it does (tool calls). The machine's own figures are measured; the host keeps a reading every ten seconds
