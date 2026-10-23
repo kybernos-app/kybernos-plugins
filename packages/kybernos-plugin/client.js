@@ -1694,8 +1694,9 @@ let kbLocaleRead = () => 'en'
       'kbauto.set.error': { kybernos: 'Réglage non enregistré. Réessaie.', en: 'Setting not saved. Try again.' },
       'kbauto.set.load': { kybernos: 'Charge de l’ordinateur', en: 'Computer load' },
       'kbauto.set.load.ok': { kybernos: 'Légère : jusqu’à {max} automations à la fois.', en: 'Light: up to {max} automations at once.' },
-      'kbauto.set.load.busy': { kybernos: 'Chargé : une seule automation à la fois, les autres attendent.', en: 'Busy: one automation at a time, the others wait.' },
-      'kbauto.set.load.high': { kybernos: 'Très chargé : les automations attendent et partent d’elles-mêmes dès que ça se calme.', en: 'Very busy: automations wait and start on their own as soon as it calms down.' },
+      'kbauto.set.load.busy': { kybernos: 'Chargé : une seule automation à la fois, qui lance au plus un subagent à la fois ; les autres attendent.', en: 'Busy: one automation at a time, starting at most one sub-agent at a time; the others wait.' },
+      'kbauto.set.load.high': { kybernos: 'Très chargé : les automations attendent et partent d’elles-mêmes dès que ça se calme ; celles en cours ne lancent plus de subagents.', en: 'Very busy: automations wait and start on their own as soon as it calms down; the ones going start no sub-agents.' },
+      'kbauto.set.load.refused': { kybernos: '{n} appel(s) de subagent refusé(s)', en: '{n} sub-agent call(s) held back' },
       'kbauto.set.load.off': { kybernos: 'Mesure désactivée', en: 'Reading off' },
       'kbauto.set.load.why.memory': { kybernos: 'mémoire presque pleine', en: 'memory nearly full' },
       'kbauto.set.load.why.cpu': { kybernos: 'processeur très sollicité', en: 'processor heavily used' },
@@ -34469,7 +34470,8 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
               h('span', { className: 'kbac-row-l' }, kbt('kbauto.set.load')),
               h('span', { className: 'kbac-row-d' }, kbt('kbauto.set.load.' + (ld.level === 'busy' || ld.level === 'high' ? ld.level : 'ok')).replace('{max}', String(ld.maxParallel)) +
                 (Array.isArray(ld.reasons) === true && ld.reasons.length > 0 ? ' (' + ld.reasons.map((x) => kbt('kbauto.set.load.why.' + x)).join(', ') + ')' : '')),
-              h('span', { className: 'kbac-row-d' }, kbt('kbauto.set.load.count').replace('{n}', String(ld.inFlight)).replace('{w}', String(ld.waiting)))),
+              h('span', { className: 'kbac-row-d' }, kbt('kbauto.set.load.count').replace('{n}', String(ld.inFlight)).replace('{w}', String(ld.waiting)) +
+                (ld.subagents !== null && typeof ld.subagents === 'object' && ld.subagents.refused > 0 ? ' · ' + kbt('kbauto.set.load.refused').replace('{n}', String(ld.subagents.refused)) : ''))),
             h(KbLoadGauge, { load: ld }) || h('span', { className: 'kbac-load kbac-load-ok' }, kbt('kbauto.set.load.off'))),
           h('div', { className: 'kbac-row', key: 'where' }, h('div', { className: 'kbac-row-txt' }, h('span', { className: 'kbac-row-d' }, kbt('kbauto.set.where'))))),
         st.unavailable === true ? h('p', { className: 'kb8-sub', role: 'status' }, kbt('kbauto.set.unavailable')) : null,

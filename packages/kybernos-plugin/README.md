@@ -295,15 +295,36 @@ those, oldest first; the others are left untouched, still due on the next tick (
   run that never started stops counting after 2 minutes and any run after 2 hours, so a lost event cannot hold a slot for ever.
 
 A run held for more than 10 minutes starts anyway (the cap slows the automations down, it never stops them), and any failure to measure means no
-limit. **Not capped, only counted:** a webhook event and "Run now" (an event cannot be queued, and a click is a person's wish). **Not limited
-at all:** the sub-agents a model spawns inside a run (the engine caps their depth, `subagent.maxDepth`, not their number).
+limit. **Not capped, only counted:** a webhook event and "Run now" (an event cannot be queued, and a click is a person's wish). (They are still
+lightened, below.)
+
+### Lighter runs: fewer sub-agents while the machine is busy
+
+The engine caps the depth of sub-agents (`subagent.maxDepth`), not their number: the model decides how many to start. So when the level is
+`busy` or `high` the plugin lightens the automation runs in two ways, both without an engine patch:
+
+- **A line in the instructions** (`systemPrompt.context`, block `kybernos:automation-load`, called at each step): « do the work yourself, at most one
+  sub-agent at a time » when busy, « do not start sub-agents » when very busy. It only reaches an automation run (the sessions the scheduler
+  created, found by `header.parentSession` for their sub-agents), never a chat a person opened, and it appears at the next step of a run that
+  started when the machine was free, and goes away when it calms down.
+- **A refusal** (a second `tools/pre-execute` listener, after the MCP gate): a call to `subagent` or `subagent_<worker>` from an automation run is
+  answered `{ kind: 'deny', reason }` beyond the limit (none when very busy, one going at a time when busy). The reason is the tool result the
+  model reads (« Sub-agent not started: this computer is very busy right now. Do this work yourself in this session. »). It is not queued and not
+  asked about: nobody is at the screen of an unattended run. A call let through counts as going for two minutes, or until the engine says its child
+  session went idle or was disposed.
+
+Both use the level of the last reading, refreshed by every tick (paused or not) and ignored once older than two minutes: an unknown level lightens
+nothing. Not covered: the agent-team tool (a different tool), a sub-agent whose child never appears as a session (its slot frees after two minutes),
+and a run's own heavy tools. The page shows « N sub-agent call(s) held back » on the Settings row.
+
+`KYBERNOS_AUTOMATION_LOAD_FORCE=busy|high` pretends the machine is at that level (a drill, a test): the figure of the gauge is then hidden.
 
 `GET /kybernos/automation-load` (same origin, read-only) answers the level, the reasons (`memory`, `cpu`), the runs going, the room, the maximum
 and the number of due runs waiting. Settings › Automations shows it as one row, and the board says "Waiting for the computer" instead of "The
 scheduler seems to be stopped" when the cap is what holds the overdue runs.
 
 Env: `KYBERNOS_AUTOMATION_MAX_PARALLEL` (1 to 20, default 3) sets the maximum; `KYBERNOS_AUTOMATION_LOAD_GUARD=off` stops consulting the machine
-(the level is always `ok`; the maximum still applies). A container with a memory limit is not seen (the host's memory is read).
+(the level is always `ok`; the maximum still applies); `KYBERNOS_AUTOMATION_LOAD_FORCE=busy|high` forces a level. A container with a memory limit is not seen (the host's memory is read).
 
 ### Stable automations are suggested as skills
 
@@ -458,7 +479,7 @@ Under `$DSH_HOME` (else `~/.dsh`): `kybers/<id>/{kyber.yml,.kyber-ui.json,.kyber
 `kybernos-widget/{configs.json,conversations/,accounts/,bridge-state.json}` (accounts hold visitor emails), `beta-reports/`,
 `profiles/<profile>/cordis.patch.yml` (+ `.bak-outils-*`, Tools tab only) and `AGENTS.md`. Reads `kybernos-cloud.json` (token, API
 base) and `.credentials.yaml` (browser-session secret). The quiz and cards score registry is `kybernos/progress.json`. Env: `DSH_HOME`, `HOME`, `DSH_WEB_PORT` (3080), `DSH_PROFILE`, `DSH_VERSION`,
-`KYBERNOS_CLOUD_STATE`, `AA_API_KEY`, `KB_RETRY_PLAFOND`, `KYBERNOS_AUTOMATION_MAX_PARALLEL`, `KYBERNOS_AUTOMATION_LOAD_GUARD`.
+`KYBERNOS_CLOUD_STATE`, `AA_API_KEY`, `KB_RETRY_PLAFOND`, `KYBERNOS_AUTOMATION_MAX_PARALLEL`, `KYBERNOS_AUTOMATION_LOAD_GUARD`, `KYBERNOS_AUTOMATION_LOAD_FORCE`.
 
 **At boot, unasked** (each step guarded, none blocks the start): registers `kybernos-standard` as a plain copy of the Standard preset
 (« Standard mode (older chats) »: DSH compacts natively now, and stored sessions still carry that id, which the registry rejects when
