@@ -230,7 +230,7 @@ machine's DNS survives), and a machine running longer than 5 minutes (see the tr
 
 - **DSH 0.2.1-rc.2 writes `[]` as the first line of an empty profile's `cordis.patch.yml`.** The block the image appends (permission presets, the model route) made the file invalid YAML ("end of the stream or a document separator is expected") and DSH stopped at every boot ("dsh stopped, restarting in 2 s", for ever, `ready` never sent). The Dockerfile and `render-profile.sh` now drop a lone `[]` line first (found 2026-10-24 by playing the image: no image had been built on rc.2 before).
 - **The gate refuses a platform address that is not https unless it is loopback** (`KYBERNOS_GATE_TICKET_URL must be https`): a local run against an http stand-in platform passes a loopback ticket address of its own, or the container exits at once.
-- **Size:** the image on rc.2 is 2.55 GB (the engine tree alone is 834 MB), not the 563 MB written for alpha.2: it matters for a machine's first pull at Fly.
+- **Size (measured 2026-10-24, rc.2):** 590 MB compressed (what a machine pulls: `docker image inspect` says 587 to 592 MB, the 563 MB written for alpha.2 is the same kind of figure) and 1.82 GB unpacked on disk. Docker Desktop's image list showed 2.55 GB for the arm64 build and 592 MB for the amd64 one: it counts differently from image to image, do not read a size off that list.
 
 - **A trial organisation stops every machine after 5 minutes** (`Trial machine stopping. To run for longer than 5m0s, add a credit
   card`): the machine goes `stopped`, whatever the platform wants. A real test of anything longer needs a card on the organisation.
