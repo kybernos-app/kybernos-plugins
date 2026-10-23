@@ -1777,7 +1777,7 @@ let kbLocaleRead = () => 'en'
       'kbwr.err.too_frequent': { kybernos: 'Elle se déclenche plus souvent que toutes les 5 minutes.', en: 'It starts more often than every 5 minutes.' },
       'kbwr.err.never_runs': { kybernos: 'Son planning ne se déclenchera jamais.', en: 'Its schedule will never fire.' },
       'kbwr.err.expired': { kybernos: 'L’ordinateur ne l’a pas récupérée à temps.', en: 'The computer did not pick it up in time.' },
-      'kbwr.err.runsincloud': { kybernos: 'Elle tourne dans le cloud : ramène-la sur cet ordinateur avant de la rallumer ici.', en: 'It runs in the cloud: bring it back here before switching it on.' },
+      'tasks.err.cloud': { kybernos: 'Elle tourne dans le cloud : ramène-la sur cet ordinateur avant de la rallumer ici.', en: 'It runs in the cloud: bring it back here before switching it on.' },
       'kbwr.err.other': { kybernos: 'Refusé ({code}).', en: 'Refused ({code}).' },
       'kbld.aria': { kybernos: '{title} : {pct} %, {word}. {meta}', en: '{title}: {pct} percent, {word}. {meta}' },
       'kbld.last5': { kybernos: 'Les 5 dernières minutes · toutes les 10 s', en: 'Last 5 minutes · every 10 s' },
@@ -7162,7 +7162,7 @@ const KB_TASK_ERRORS = {
   'invalid one-off date': 'tasks.err.date', 'unknown time zone': 'tasks.err.tz', 'that date is in the past': 'tasks.err.past',
   'this schedule never fires': 'tasks.err.never', 'sign-in required': 'tasks.err.signin', 'request body too large': 'tasks.err.large',
   'task not found': 'tasks.err.notfound', 'active must be true or false': 'tasks.err.active', 'automation paused': 'tasks.err.paused',
-  'frequent schedule': 'tasks.err.frequent', 'invalid workspace': 'tasks.err.workspace', 'runs in the cloud': 'kbwr.err.runsincloud',
+  'frequent schedule': 'tasks.err.frequent', 'invalid workspace': 'tasks.err.workspace', 'runs in the cloud': 'tasks.err.cloud',
 }
 const kbTaskError = (message, tr) => (Object.prototype.hasOwnProperty.call(KB_TASK_ERRORS, message) === true ? tr(KB_TASK_ERRORS[message]) : String(message))
 // KB-TASKS-CLIENT-END
