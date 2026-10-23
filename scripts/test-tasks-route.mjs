@@ -389,6 +389,63 @@ writeFileSync(file, good)
   sessions.holdOpen = false
 }
 
+/* ── What the page draws: the readings, who waits for the machine, the weight of each run ─────────────────────────────── */
+{
+  sessions.failCreate = false
+  sessions.holdOpen = true
+  const view = async () => (await call('GET', undefined, {}, '/kybernos/automation-load')).json
+  const emit = (id, status) => { for (const fn of listeners['agent/status'] || []) fn({ agent: { session: { id } }, status }) }
+  const callTool = async (name, agentId) => {
+    const list = listeners['tools/pre-execute'] || []
+    const exec = { name, agent: { id: agentId, session: { id: agentId } }, arguments: {} }
+    let i = 0
+    const next = async () => (i < list.length ? list[i++](exec, next) : { kind: 'allow' })
+    return next()
+  }
+  const make = async (name, agoMs) => {
+    const id = (await api({ action: 'create', task: task({ name }) })).json.task.id
+    const all = onDisk(); all.find((x) => x.id === id).nextRun = new Date(Date.now() - agoMs).toISOString()
+    writeFileSync(file, JSON.stringify(all, null, 2))
+    return id
+  }
+  const idA = await make('weight A', 300000)
+  const idB = await make('weight B', 120000)
+
+  process.env.KYBERNOS_AUTOMATION_LOAD_FORCE = 'high'
+  const held = await view()
+  eq('very busy: the two due automations wait, the oldest first', held.waitingIds.join(), idA + ',' + idB)
+  eq('very busy: the page is told the runs are held by the computer', held.held === true && held.waiting === 2, true)
+  eq('the machine\'s readings are kept for the graphs (at least the first one)', held.series.total.length >= 1 && Array.isArray(held.series.cpu) && Array.isArray(held.series.mem) && Array.isArray(held.series.runs), true)
+  eq('memory: Kybernos is part of what is used, never more', typeof held.mem.kybernosPct === 'number' ? held.mem.kybernosPct + held.mem.otherPct === held.mem.usedPct : held.mem.kybernosPct === null, true)
+
+  await call('POST', JSON.stringify({ paused: true }), {}, '/kybernos/automation-settings')
+  const paused = await view()
+  eq('paused: nothing waits for the computer, it is the pause', paused.waiting + ':' + paused.waitingIds.length + ':' + paused.held, '0:0:false')
+  await call('POST', JSON.stringify({ paused: false }), {}, '/kybernos/automation-settings')
+
+  delete process.env.KYBERNOS_AUTOMATION_LOAD_FORCE
+  const base = sessions.created
+  await tick()
+  eq('free: both start', sessions.created - base, 2)
+  const runA = 'sess-' + (base + 1)
+  const running = await view()
+  eq('nobody waits any more', running.waiting + ':' + running.held, '0:false')
+  eq('the view lists the two runs by automation', running.runs.map((r) => r.taskId).sort().join(), [idA, idB].sort().join())
+  parents['sess-weight-kid'] = runA
+  emit('sess-weight-kid', 'running')
+  await callTool('bash', runA); await callTool('bash', runA); await callTool('bash', 'sess-weight-kid')
+  const weighed = (await view()).runs.find((r) => r.taskId === idA)
+  eq('a run: one session, one sub-agent going, its tool calls and its sub-agent\'s counted as activity', weighed.sessions + ':' + weighed.subagents + ':' + weighed.activity.reduce((a, b) => a + b, 0) + ':' + weighed.activity.length, '1:1:3:20')
+  eq('a run has a time since it started', typeof weighed.elapsedMs === 'number' && weighed.elapsedMs >= 0, true)
+  eq('a chat a person opened is not a run, and its calls are not counted', (await callTool('bash', 'chat-of-a-person')).kind + ':' + (await view()).runs.reduce((a, r) => a + r.activity.reduce((x, y) => x + y, 0), 0), 'allow:3')
+  emit('sess-weight-kid', 'idle')
+  eq('the sub-agent ended: the run has none going', (await view()).runs.find((r) => r.taskId === idA).subagents, 0)
+  emit(runA, 'idle'); emit('sess-' + (base + 2), 'idle')
+  eq('the runs ended: none is listed', (await view()).runs.length, 0)
+  for (const id of [idA, idB]) await api({ action: 'delete', id })
+  sessions.holdOpen = false
+}
+
 /* ── Webhooks ────────────────────────────────────────────────────────────── */
 {
   sessions.failCreate = false // the previous section left the stub failing

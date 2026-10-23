@@ -103,22 +103,26 @@ const ramp = (v, zero, busy, high) => {
 }
 
 /**
- * How close the machine is to `high`, as a whole number from 0 to 100, for a gauge: 50 at the `busy` thresholds, 100 at the `high` ones, in
- * memory (share and MB) and in load; the worst of them. `high` is always 100, `busy` is 50 to 99, `ok` is 50 at most. Null when nothing could
- * be measured (a gauge with nothing to show).
+ * How close the machine is to `high`, as whole numbers from 0 to 100, for a gauge: 50 at the `busy` thresholds, 100 at the `high` ones.
+ * `pressureParts` gives the two signals apart, `{ cpu, mem }` (memory counts its share and its MB, the worse of the two); `pressureOf` is the
+ * worst of them. `high` is always 100, `busy` is 50 to 99, `ok` is 50 at most. Null where nothing could be measured (nothing to draw).
  */
-export const pressureOf = (sample) => {
+export const pressureParts = (sample) => {
   const s = sample !== null && typeof sample === 'object' ? sample : {}
   const pct = num(s.memAvailablePct)
   const mb = num(s.memAvailableMb)
   const cpu = num(s.loadPerCpu)
-  const parts = []
-  if (pct !== null) parts.push(ramp(pct, 100, MEMORY.busyPct, MEMORY.highPct))
-  if (mb !== null) parts.push(ramp(mb, MEMORY_ZERO_MB, MEMORY.busyMb, MEMORY.highMb))
-  if (cpu !== null) parts.push(ramp(cpu, 0, CPU.busy, CPU.high))
-  if (parts.length === 0) return null
-  const worst = Math.max(...parts)
-  return worst >= 1 ? 100 : Math.min(99, Math.round(worst * 100))
+  const toInt = (p) => (p >= 1 ? 100 : Math.min(99, Math.round(p * 100)))
+  const mem = []
+  if (pct !== null) mem.push(ramp(pct, 100, MEMORY.busyPct, MEMORY.highPct))
+  if (mb !== null) mem.push(ramp(mb, MEMORY_ZERO_MB, MEMORY.busyMb, MEMORY.highMb))
+  return { cpu: cpu === null ? null : toInt(ramp(cpu, 0, CPU.busy, CPU.high)), mem: mem.length === 0 ? null : toInt(Math.max(...mem)) }
+}
+
+export const pressureOf = (sample) => {
+  const parts = pressureParts(sample)
+  const known = [parts.cpu, parts.mem].filter((x) => x !== null)
+  return known.length === 0 ? null : Math.max(...known)
 }
 
 /** How many automation runs may be going at once at this level. */
@@ -179,6 +183,8 @@ export const createInflight = (opts) => {
     },
     end(id) { runs.delete(id) },
     count() { prune(); return runs.size },
+    /** The ids of the runs counted now (what `count` counts). */
+    ids() { prune(); return Array.from(runs.keys()) },
   }
 }
 
@@ -232,22 +238,119 @@ export const createSubagentGate = (opts) => {
   }
 }
 
+// ── What the page draws over time ───────────────────────────────────────────────────────────────────────────────────────────
+
+/** Readings kept for the micro-graphs: every ten seconds for five minutes. */
+export const HISTORY_POINTS = 30
+const KEYS = Object.freeze(['total', 'cpu', 'mem', 'runs'])
+
+/**
+ * The last readings, newest last: `{ total, cpu, mem, runs }` each a whole number or null (null = not measured at that moment).
+ * `series(key)` gives one of them as an array, the shape the page draws.
+ */
+export const createHistory = (opts) => {
+  const o = opts !== null && typeof opts === 'object' ? opts : {}
+  const max = Number.isSafeInteger(o.max) && o.max >= 2 ? o.max : HISTORY_POINTS
+  const points = []
+  const clean = (v) => (num(v) === null ? null : Math.max(0, Math.round(v)))
+  return {
+    push(p) {
+      const src = p !== null && typeof p === 'object' ? p : {}
+      const point = {}
+      for (const k of KEYS) point[k] = clean(src[k])
+      points.push(point)
+      while (points.length > max) points.shift()
+    },
+    series(key) { return KEYS.indexOf(key) < 0 ? [] : points.map((p) => p[key]) },
+    size() { return points.length },
+  }
+}
+
+/** Activity of a run is counted in buckets of this many ms, over this many buckets (five minutes). */
+export const ACTIVITY_BUCKET_MS = 15000
+export const ACTIVITY_BUCKETS = 20
+
+/**
+ * How busy each automation run has been: one count per tool call it (or its sub-agents) made, in buckets of fifteen seconds over the last five
+ * minutes. `hit(root)` counts one; `series(root)` gives the buckets, oldest first, the newest being the current one. A run that made no call
+ * reads all zeros. Bounded: old calls are dropped and so are the oldest runs.
+ */
+export const createActivity = (opts) => {
+  const o = opts !== null && typeof opts === 'object' ? opts : {}
+  const now = typeof o.now === 'function' ? o.now : () => Date.now()
+  const keepMs = ACTIVITY_BUCKET_MS * ACTIVITY_BUCKETS
+  const roots = new Map()
+  const fresh = (list, t) => list.filter((at) => t - at < keepMs)
+  return {
+    hit(root) {
+      if (typeof root !== 'string' || root.length === 0) return
+      const t = now()
+      const list = fresh(roots.get(root) || [], t)
+      list.push(t)
+      if (list.length > 2000) list.shift()
+      roots.delete(root)
+      roots.set(root, list)
+      if (roots.size > 200) roots.delete(roots.keys().next().value)
+    },
+    series(root) {
+      const t = now()
+      const out = new Array(ACTIVITY_BUCKETS).fill(0)
+      for (const at of fresh(roots.get(root) || [], t)) {
+        const back = Math.floor((t - at) / ACTIVITY_BUCKET_MS)
+        if (back >= 0 && back < ACTIVITY_BUCKETS) out[ACTIVITY_BUCKETS - 1 - back] += 1
+      }
+      return out
+    },
+  }
+}
+
+const ID = /^[A-Za-z0-9_.-]{1,80}$/
+const wholeAtLeast = (v, min) => (Number.isSafeInteger(v) && v >= min ? v : min)
+const seriesOf = (list, n) => (Array.isArray(list) ? list.slice(-n).map((v) => (num(v) === null ? null : Math.max(0, Math.min(100, Math.round(v))))) : [])
+
 /** What the page shows: the level, how close it is to the top, why, the room, and the runs waiting. Never a path, an id or a prompt. */
-export const publicView = (capacity, sample, waiting, subagents) => ({
-  level: LEVELS.indexOf(capacity.level) >= 0 ? capacity.level : 'ok',
-  // With the machine reading switched off the level is always `ok`: a gauge that still climbed would contradict it, so there is none.
-  pressure: capacity.guard === undefined || capacity.guard === 'on' ? pressureOf(sample) : null,
-  // Sub-agents: how many the runs may have going at this level (null = no limit), how many go, and how many calls were refused since the start.
-  subagents: {
-    limit: subagentLimitAt(capacity.level),
-    active: subagents !== null && typeof subagents === 'object' && Number.isSafeInteger(subagents.active) && subagents.active >= 0 ? subagents.active : 0,
-    refused: subagents !== null && typeof subagents === 'object' && Number.isSafeInteger(subagents.refused) && subagents.refused >= 0 ? subagents.refused : 0,
-  },
-  reasons: Array.isArray(capacity.reasons) ? capacity.reasons.filter((r) => r === 'memory' || r === 'cpu') : [],
-  inFlight: Number.isSafeInteger(capacity.inFlight) ? capacity.inFlight : 0,
-  allowed: Number.isSafeInteger(capacity.allowed) ? capacity.allowed : 0,
-  maxParallel: Number.isSafeInteger(capacity.maxParallel) ? capacity.maxParallel : DEFAULT_MAX_PARALLEL,
-  waiting: Number.isSafeInteger(waiting) && waiting > 0 ? waiting : 0,
-  memAvailablePct: num(sample && sample.memAvailablePct) === null ? null : Math.round(sample.memAvailablePct),
-  loadPerCpu: num(sample && sample.loadPerCpu) === null ? null : Math.round(sample.loadPerCpu * 100) / 100,
-})
+export const publicView = (capacity, sample, waiting, subagents, extra) => viewOf(capacity, sample, waiting, subagents, extra)
+
+const viewOf = (capacity, sample, waiting, subagents, extra) => {
+  const x = extra !== null && typeof extra === 'object' ? extra : {}
+  const pts = x.points !== null && typeof x.points === 'object' ? x.points : {}
+  const parts = pressureParts(sample)
+  const availPct = num(sample && sample.memAvailablePct) === null ? null : Math.max(0, Math.min(100, Math.round(sample.memAvailablePct)))
+  const memory = x.memory !== null && typeof x.memory === 'object' ? x.memory : {}
+  const kybernosPct = num(memory.kybernosPct) === null ? null : Math.max(0, Math.min(100, Math.round(memory.kybernosPct)))
+  const usedPct = availPct === null ? null : 100 - availPct
+  const lighter = capacity.level === 'busy' || capacity.level === 'high'
+  const runs = (Array.isArray(x.runs) ? x.runs : []).filter((r) => r !== null && typeof r === 'object' && typeof r.taskId === 'string' && ID.test(r.taskId)).slice(0, 50).map((r) => ({
+    taskId: r.taskId,
+    sessions: wholeAtLeast(r.sessions, 1),
+    elapsedMs: wholeAtLeast(r.elapsedMs, 0),
+    subagents: wholeAtLeast(r.subagents, 0),
+    lighter,
+    activity: (Array.isArray(r.activity) ? r.activity : []).slice(-ACTIVITY_BUCKETS).map((v) => wholeAtLeast(v, 0)),
+  }))
+  return {
+    level: LEVELS.indexOf(capacity.level) >= 0 ? capacity.level : 'ok',
+    // With the machine reading switched off or forced the figure is not the machine's: a gauge that still climbed would contradict the level.
+    pressure: capacity.guard === undefined || capacity.guard === 'on' ? pressureOf(sample) : null,
+    // Sub-agents: how many the runs may have going at this level (null = no limit), how many go, and how many calls were refused since the start.
+    subagents: {
+      limit: subagentLimitAt(capacity.level),
+      active: subagents !== null && typeof subagents === 'object' && Number.isSafeInteger(subagents.active) && subagents.active >= 0 ? subagents.active : 0,
+      refused: subagents !== null && typeof subagents === 'object' && Number.isSafeInteger(subagents.refused) && subagents.refused >= 0 ? subagents.refused : 0,
+    },
+    reasons: Array.isArray(capacity.reasons) ? capacity.reasons.filter((r) => r === 'memory' || r === 'cpu') : [],
+    inFlight: Number.isSafeInteger(capacity.inFlight) ? capacity.inFlight : 0,
+    allowed: Number.isSafeInteger(capacity.allowed) ? capacity.allowed : 0,
+    maxParallel: Number.isSafeInteger(capacity.maxParallel) ? capacity.maxParallel : DEFAULT_MAX_PARALLEL,
+    waiting: Number.isSafeInteger(waiting) && waiting > 0 ? waiting : 0,
+    memAvailablePct: availPct,
+    loadPerCpu: num(sample && sample.loadPerCpu) === null ? null : Math.round(sample.loadPerCpu * 100) / 100,
+    // What the micro-graphs and the rows draw: the last readings, the two signals apart, the memory split, the runs going, who waits.
+    held: x.held === true,
+    waitingIds: (Array.isArray(x.waitingIds) ? x.waitingIds : []).filter((id) => typeof id === 'string' && ID.test(id)).slice(0, 100),
+    series: { total: seriesOf(pts.total, HISTORY_POINTS), cpu: seriesOf(pts.cpu, HISTORY_POINTS), mem: seriesOf(pts.mem, HISTORY_POINTS), runs: (Array.isArray(pts.runs) ? pts.runs : []).slice(-HISTORY_POINTS).map((v) => (num(v) === null ? null : wholeAtLeast(Math.round(v), 0))) },
+    cpu: { pressure: parts.cpu, loadPerCpu: num(sample && sample.loadPerCpu) === null ? null : Math.round(sample.loadPerCpu * 100) / 100 },
+    mem: { pressure: parts.mem, availPct, usedPct, kybernosPct: usedPct === null || kybernosPct === null ? null : Math.min(kybernosPct, usedPct), otherPct: usedPct === null || kybernosPct === null ? null : Math.max(0, usedPct - Math.min(kybernosPct, usedPct)) },
+    runs,
+  }
+}
