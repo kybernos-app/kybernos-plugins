@@ -1,4 +1,15 @@
 {
   "about": "Presses that do nothing ON PURPOSE, for scripts/check-dead-clicks-live.mjs. One entry per press: `page` (the sidebar row, « Settings › Page », or * for any), then `dk` (its data-kb) or `match` (the start of its label), and `why`. A dead click that is a bug is fixed, not listed here.",
-  "allow": []
+  "allow": [
+    {
+      "page": "Settings › Theme",
+      "match": "Refresh the mode",
+      "why": "re-reads the colour scheme (it bumps a revision counter): nothing to show when the scheme did not change"
+    },
+    {
+      "page": "Settings › Connectors",
+      "match": "Kybernos Cloud Included in your plan",
+      "why": "the header of the provider card that is already the selected one: choosing it again changes nothing"
+    }
+  ]
 }

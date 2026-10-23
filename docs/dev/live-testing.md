@@ -243,6 +243,11 @@ tab, a filter) makes the page open again. What it cannot see: a handler that wor
 on purpose. The method is proved by `scripts/test-dead-clicks.mjs` (a fixture page in a real Chrome, skipped when there is none) and was proved on the bug it was written for: on the Skills client of before
 the fix it reports the dead rows and the throwing « Details ». Traps met: the shell marks `<html data-input-modality>` when the input changes from keyboard (Escape closes a layer) to mouse, which looked
 like an effect of the next press; lazy pictures that load when a target is scrolled into view and a hover state also look like effects: the target is scrolled to, hovered and waited on before the count starts.
+A change that happens out of sight is not an effect either: only what changes inside the scope of the page (the main column, the content of a Settings page) or in a layer drawn on top (a dialog, a menu) counts. That rule found what the
+first pass missed: the Settings screen is full-window, and a button on it that opened another page opened it BEHIND Settings (« Open the journal » on Learned skills, « Open Connectors »), so the person saw nothing. Both ways in
+(`window.__KB_OPEN__`, the `kb-open-resources` bridge) now leave Settings first (`kbLeaveSettings`, `packages/kybernos-plugin/test-leave-settings.mjs`). First complete pass, 2026-10-23: 8 sidebar rows (Skills with 149 presses) and 35 Settings
+pages; found and fixed: those two buttons and the « Add » of Auto Routing's list (silent with an empty field: now greyed with its reason); allowed on purpose: « Refresh the mode » and the header of the selected provider card.
+Not pressed on purpose: a file chooser's label, a label around a checkbox, a radio that is already on, the current tab or segment.
 
 ## The Theme page, simple view: `scripts/check-theme-studio-live.mjs`
 

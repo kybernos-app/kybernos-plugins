@@ -44,7 +44,7 @@ const FIXTURE = `<!doctype html><meta charset="utf-8"><title>fixture</title><sty
   .hov{opacity:0} article:hover .hov{opacity:1}
   .row{margin:6px 0}
 </style>
-<aside><button onclick="document.getElementById('log').append('side')">Menu row outside the scope</button></aside>
+<aside><button onclick="document.getElementById('log').append('side')">Menu row outside the scope</button><div id="elsewhere"></div></aside>
 <main id="main">
 <div id="log"></div>
 <div class="row"><button onclick="document.getElementById('log').append('x')">Works</button></div>
@@ -57,6 +57,7 @@ const FIXTURE = `<!doctype html><meta charset="utf-8"><title>fixture</title><sty
 <div class="row"><button disabled>Switched off</button></div>
 <div class="row"><button role="tab" aria-selected="true">Current tab</button></div>
 <div class="row"><button class="seg on">Current segment</button> <button aria-pressed="true">Pressed segment</button> <button class="chip chip-on">Current chip</button> <button class="kb-sw kb-sw-on">A switch with an on class</button></div>
+<div class="row"><label style="cursor:pointer">Import a file<input type="file" style="display:none"></label></div>
 <div class="row"><a href="https://example.com/x">Leaves the app</a></div>
 <div class="row"><button>Delete everything</button></div>
 <div class="row"><button onclick="window.open('/y')">Opens a tab</button></div>
@@ -66,9 +67,12 @@ const FIXTURE = `<!doctype html><meta charset="utf-8"><title>fixture</title><sty
 <div class="row"><span id="clock"></span> <button>Dead beside a clock</button> <button onclick="document.getElementById('log').append('c')">Works beside a clock</button></div>
 <div class="row" onmouseenter="document.getElementById('log').append('hover')"><button>Dead with a hover effect</button></div>
 <div class="row"><button onmousedown="document.documentElement.setAttribute('data-input-modality', 'pointer' + Date.now())">Dead, but the shell marks the input</button></div>
+<div class="row"><button onclick="document.getElementById('elsewhere').append('behind')">Changes only what is behind (outside the scope)</button> <button onclick="const d = document.createElement('div'); d.setAttribute('role', 'dialog'); d.textContent = 'layer'; document.body.append(d)">Opens a layer on top</button></div>
+<div class="row"><label style="cursor:pointer">Tick me <input type="checkbox"></label> <button role="radio" aria-checked="true">The radio that is on</button></div>
 <div class="row"><button>Dead beside a poll</button> <button onclick="fetch('/other').catch(() => {})">Fetches something new</button></div>
 </main>
-<script>setInterval(() => { document.getElementById('clock').textContent = String(Date.now()) }, 100); setInterval(() => { fetch('/poll').catch(() => {}) }, 120)</script>`
+<script>document.addEventListener('keydown', (e) => { if (e.key === 'Escape') document.querySelectorAll('[role=dialog]').forEach((d) => d.remove()) })
+setInterval(() => { document.getElementById('clock').textContent = String(Date.now()) }, 100); setInterval(() => { fetch('/poll').catch(() => {}) }, 120)</script>`
 
 const freePort = (from) => new Promise((resolve) => {
   const tryPort = (p) => { const s = createServer(); s.once('error', () => tryPort(p + 1)); s.listen(p, '127.0.0.1', () => s.close(() => resolve(p))) }
@@ -108,11 +112,12 @@ try {
   check('a request the page was already making by itself is no effect (dead stays dead), a new one is', verdict('Dead beside a poll') === 'dead' && verdict('Fetches something new') === 'ok')
   check('what the HOVER changes is not the press: a dead button on a row that reacts to the mouse stays dead', verdict('Dead with a hover effect') === 'dead')
   check('the mark the shell puts on <html> for the kind of input (pointer, keyboard) is not an effect of the press', verdict('Dead, but the shell marks') === 'dead')
+  check('a change out of sight (outside the scope, no layer) is not an effect; a layer drawn on top is', verdict('Changes only what is behind') === 'dead' && verdict('Opens a layer on top') === 'ok', [verdict('Changes only what is behind'), verdict('Opens a layer on top')])
   check('what is outside the scope is not pressed', by('Menu row') === undefined && !res.skipped.some((s) => s.label.startsWith('Menu row')))
   const why = (label) => (res.skipped.find((s) => s.label.startsWith(label)) || {}).why
-  check('disabled, already selected, leaving the app and destructive are skipped, with the reason', why('Switched off') === 'disabled' && why('Current tab') === 'already selected' && why('Leaves the app') === 'leaves the app' && why('Current segment') === 'looks like the current one' && why('Pressed segment') === 'already pressed' && why('Current chip') === 'looks like the current one' && why('A switch with an on class') === undefined && why('Delete everything') === 'reads as destructive', res.skipped)
+  check('disabled, already selected, leaving the app and destructive are skipped, with the reason', why('Switched off') === 'disabled' && why('Current tab') === 'already selected' && why('Leaves the app') === 'leaves the app' && why('Import a file') === 'opens the file chooser' && why('Tick me') === 'toggles its field' && why('The radio that is on') === 'already checked' && why('Current segment') === 'looks like the current one' && why('Pressed segment') === 'already pressed' && why('Current chip') === 'looks like the current one' && why('A switch with an on class') === undefined && why('Delete everything') === 'reads as destructive', res.skipped)
   check('they were not pressed, and a form field is not a target at all', ['Switched off', 'Current tab', 'Leaves the app', 'Delete everything'].every((l) => by(l) === undefined) && !res.results.concat(res.skipped).some((r) => /checkbox|a field/.test(r.label)))
-  check('exactly the dead and the broken ones are reported', res.results.filter((r) => r.verdict !== 'ok').map((r) => r.label).sort().join('|') === ['A switch that is on and dead', 'Dead beside a clock', 'A switch with an on class', 'Dead beside a poll', 'Dead with a hover effect', 'Dead, but the shell marks the input', 'Does nothing', 'Dead card text Throws', 'Pointer dead', 'Throws'].sort().join('|'), res.results.filter((r) => r.verdict !== 'ok').map((r) => r.label))
+  check('exactly the dead and the broken ones are reported', res.results.filter((r) => r.verdict !== 'ok').map((r) => r.label).sort().join('|') === ['A switch that is on and dead', 'Dead beside a clock', 'A switch with an on class', 'Changes only what is behind (outside the scope)', 'Dead beside a poll', 'Dead with a hover effect', 'Dead, but the shell marks the input', 'Does nothing', 'Dead card text Throws', 'Pointer dead', 'Throws'].sort().join('|'), res.results.filter((r) => r.verdict !== 'ok').map((r) => r.label))
   check('the page was never reopened: nothing here changes what the page is', res.restores === 0 && restored === 0, res.restores)
 } finally {
   try { if (page !== null) { await Promise.race([page.send('Browser.close', {}), sleep(2000)]); page.close() } } catch (e) { /* gone */ }
