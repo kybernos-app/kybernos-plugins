@@ -58,6 +58,7 @@ import { identityOf } from './computer-identity.mjs'
 import { writeGuard } from './session-guard.mjs'
 import { createKybyNative, isSessionId, readPointer, writePointer } from './kyby-native.mjs'
 import { appendEntry as journalAppend, journalTool, toolsOfTurn, turnEntry as journalEntry } from './kyby-journal.mjs'
+import { actionKey, readItems as askRead, writeItems as askWrite, verdict as askVerdict, denyReason as askDeny, continuationText as askContinuation, ofRun as askOfRun, toContinue as askToContinue } from './automation-approvals.mjs'
 import { knowledgeTool } from './kyby-knowledge.mjs'
 import { accountTool } from './kyby-account.mjs'
 import { UNREADABLE, spaceKind, publishSpaceSeam } from './team-space.mjs'
@@ -4979,10 +4980,124 @@ const nativeGate = (ctx) => async (exec, next) => {
   } catch (e) { outcome = 'unavailable' }
   return outcome === 'allowed-once' ? next() : refuse(outcome === 'denied' ? 'they refused it' : 'it could not be asked')
 }
+// ── An automation that asks first, on a cloud computer (ADR 0052 § 15) ──────────────────────────────────────────
+// The core plugin (kybernos) publishes which sessions are runs of an automation published to this computer that asks first (`Symbol.for('kybernos.automationRuns')`); this gate asks the
+// platform about them. It does not wait for the answer: the person may take hours and the machine must be able to sleep. It refuses the call with « stop and wait », the run ends, and
+// the answer is fetched later (the platform wakes the machine for it): the same session is then continued with one message. The rules and the messages are automation-approvals.mjs's.
+const automationRuns = () => {
+  try {
+    const r = globalThis[Symbol.for('kybernos.automationRuns')]
+    return r !== null && typeof r === 'object' && typeof r.of === 'function' && typeof r.wait === 'function' ? r : null
+  } catch (e) { return null }
+}
+const approvalsFile = () => join(dshHome(), 'kybernos', 'approvals.json')
+// One writer at a time: the gate and the poller both change the file.
+let approvalsLock = Promise.resolve()
+const withApprovals = (fn) => {
+  const run = approvalsLock.then(() => fn(askRead(approvalsFile())))
+  approvalsLock = run.catch(() => null)
+  return run
+}
+const automationGate = () => async (exec, next) => {
+  if (computerSelf().id === '') return next()
+  const runs = automationRuns()
+  if (runs === null) return next()
+  let run = null
+  try { run = runs.of(exec && exec.agent ? exec.agent : undefined) } catch (e) { run = null }
+  if (run === null || run === undefined) return next()
+  const name = String((exec && exec.name) || '')
+  // DSH's own question card has nobody in front of it on a computer.
+  if (name === 'ask_user_question') return { kind: 'deny', reason: askDeny('nobody') }
+  if (TURN_GATE_SAFE_TOOLS.has(name)) return next()
+  const subject = turnApprovalSubject(exec)
+  const key = actionKey(subject.kind, subject.summary)
+  // The verdict, and the question to the platform when it is one, under the same lock: two calls of the same step must not put two questions.
+  let waited = false
+  const decision = await withApprovals(async (items) => {
+    const v = askVerdict(askOfRun(items, run.root), key)
+    if (v.kind === 'pass' && v.use !== undefined) {
+      const rec = items.find((r) => r.id === v.use)
+      if (rec !== undefined) { rec.used = true; askWrite(approvalsFile(), items) }
+    }
+    if (v.kind !== 'ask') return v
+    const made = await turnPlatform('POST', '/v1/computer/approvals', { task_ref: run.ref, run_key: run.root, kind: subject.kind, summary: subject.summary.slice(0, 2000) })
+    if (made.status !== 200 || made.json === null || typeof made.json.id !== 'string') return { kind: 'deny', why: 'failed' }
+    items.push({ id: made.json.id, sessionId: run.root, taskId: run.taskId, ref: run.ref, kind: subject.kind, summary: subject.summary.slice(0, 400), key, askedAt: new Date().toISOString(), state: 'pending' })
+    askWrite(approvalsFile(), items)
+    waited = true
+    return { kind: 'deny', why: 'waiting' }
+  }).catch(() => ({ kind: 'deny', why: 'failed' }))
+  if (decision.kind === 'pass') return next()
+  if (waited === true) {
+    // The run ends here, waiting: its record in the task list says so (so that it is not reported as ended), and the poller starts looking for the answer.
+    try { await runs.wait(run.root, true) } catch (e) { /* the call is refused anyway: the next beat shows the run as it is */ }
+    approvalPollSoon()
+  }
+  return { kind: 'deny', reason: askDeny(decision.why) }
+}
+// What was answered since: asked of the platform while a question of this computer is open (every 15 s), else now and then (every two minutes: a decision whose record is gone is still
+// taken off the platform's list). Each answer continues its session once, at most: the record is marked before the message goes, so a crash cannot make an action run twice.
+let approvalPollTimer = null
+/** How often an open question is looked at, in ms (the test shortens it); an idle computer looks eight times less often. */
+const approvalPollMs = () => { const v = Number(process.env.KYBERNOS_APPROVAL_POLL_MS); return Number.isFinite(v) && v >= 10 ? v : 15_000 }
+const approvalPollSoon = () => {
+  if (approvalPollTimer !== null) clearTimeout(approvalPollTimer)
+  approvalPollTimer = setTimeout(() => { approvalPollTick().catch(() => null) }, Math.min(2000, approvalPollMs()))
+  if (typeof approvalPollTimer.unref === 'function') approvalPollTimer.unref()
+}
+let approvalPollRunning = false
+const approvalPollTick = async () => {
+  if (approvalPollRunning === true) return
+  approvalPollRunning = true
+  let again = approvalPollMs() * 8
+  try {
+    if (computerSelf().id !== '') {
+      if (askRead(approvalsFile()).some((r) => r.continued !== true)) again = approvalPollMs()
+      const got = await turnPlatform('GET', '/v1/computer/approvals/decided')
+      if (got.status === 200 && got.json !== null && Array.isArray(got.json.approvals)) {
+        // Matched against the volume as it is NOW and under the same lock as a question being put (a person can answer between the platform's reply and the record being written): an answer
+        // that matches nothing here is then really one for nothing here. Each record is marked as continued before anything is sent, so a crash cannot make an action run twice.
+        const todo = await withApprovals(async (cur) => {
+          const out = askToContinue(cur, got.json.approvals)
+          for (const t of out) if (t.record !== null) { t.record.state = t.state; t.record.continued = true }
+          if (out.some((t) => t.record !== null)) askWrite(approvalsFile(), cur)
+          return out
+        })
+        for (const t of todo) {
+          if (t.record !== null) {
+            const runs = automationRuns()
+            try { if (runs !== null) await runs.wait(t.record.sessionId, false) } catch (e) { /* the run is continued all the same */ }
+            await continueRun(t.record.sessionId, askContinuation(t.state, t.record.summary))
+          }
+          // Taken off the platform's list: the answer was acted on, or there was nothing here to act on.
+          await turnPlatform('POST', '/v1/computer/approvals/' + encodeURIComponent(t.id) + '/ack')
+        }
+      }
+    }
+  } catch (e) { /* the next tick tries again */ }
+  approvalPollRunning = false
+  approvalPollTimer = setTimeout(() => { approvalPollTick().catch(() => null) }, again)
+  if (typeof approvalPollTimer.unref === 'function') approvalPollTimer.unref()
+}
+/** One more prompt in the session of a run that waited for its answer; false when the session is not there any more. */
+const continueRun = async (sessionId, text) => {
+  const sc = hostCtx !== null && hostCtx !== undefined ? hostCtx.get('sessionController') : undefined
+  if (sc === undefined || sc === null || typeof sc.prompt !== 'function') return false
+  try {
+    const ack = await sc.prompt({ requestId: 'kb-answer-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8), sessionId, mode: 'queue', content: [{ type: 'text', text: text.slice(0, 4000) }] }, new AbortController().signal)
+    return !(ack !== null && typeof ack === 'object' && ack.ok === false)
+  } catch (e) { return false }
+}
+const mountAutomationApprovals = () => {
+  // The core plugin asks this before it accepts an automation that asks first, and before it starts one: without this gate, such a run would wait for DSH's own question card, which nobody sees.
+  try { globalThis[Symbol.for('kybernos.computerGate')] = () => computerSelf().id !== '' } catch (e) { /* a frozen global: the core plugin refuses such automations */ }
+  approvalPollSoon()
+}
 const toolGate = (ctx) => {
   const cloud = turnGate(ctx)
+  const auto = automationGate()
   const native = nativeGate(ctx)
-  return (exec, next) => (computerSelf().id === '' ? native(exec, next) : cloud(exec, next))
+  return (exec, next) => (computerSelf().id === '' ? native(exec, next) : cloud(exec, () => auto(exec, next)))
 }
 const mountTurnGate = (ctx) => { ctx.on('tools/pre-execute', toolGate(ctx)) }
 const turnStart = async (req, body) => {
@@ -5324,6 +5439,8 @@ const ROUTES = [
   { path: '/kybernos-cloud/computers/publish', method: 'POST', guarded: true, strict: true, session: true, body: true, cap: 100000, run: (req, body) => computersPublish.publish(body) },
   { path: '/kybernos-cloud/computers/tasks', method: 'GET', guarded: true, run: (req) => computersPublish.states(queryOf(req)) },
   { path: '/kybernos-cloud/computers/runs', method: 'GET', guarded: true, run: (req) => computersPublish.runs(queryOf(req)) },
+  { path: '/kybernos-cloud/computers/approvals', method: 'GET', guarded: true, run: (req) => computersPublish.approvals(queryOf(req)) },
+  { path: '/kybernos-cloud/computers/approvals/decide', method: 'POST', guarded: true, strict: true, session: true, body: true, cap: 2000, run: (req, body) => computersPublish.decide(body) },
   { path: '/kybernos-cloud/start', method: 'POST', guarded: true, session: true, run: startPairing },
   { path: '/kybernos-cloud/poll', method: 'POST', guarded: true, session: true, run: pollPairing },
   { path: '/kybernos-cloud/status', method: 'GET', guarded: false, run: statusRoute },
@@ -5533,6 +5650,7 @@ export function apply(ctx) {
   // Memory: the chunk in the prompt, the two tools, the end-of-turn
   // capture. Each mount is independent and tolerates the absence of its service.
   try { mountTurnGate(ctx) } catch (e) { console.error('[kybernos-cloud] turn gate: ' + String((e && e.message) || e)) }
+  try { mountAutomationApprovals() } catch (e) { console.error('[kybernos-cloud] automation approvals: ' + String((e && e.message) || e)) }
   try { mountMemoryPrompt(ctx) } catch (e) { console.error('[kybernos-cloud] memory prompt: ' + String((e && e.message) || e)) }
   try { mountChatSpace(ctx) } catch (e) { console.error('[kybernos-cloud] active team follows the chat: ' + String((e && e.message) || e)) }
   try { mountKybyNative(ctx) } catch (e) { console.error('[kybernos-cloud] native Kaby: ' + String((e && e.message) || e)) }

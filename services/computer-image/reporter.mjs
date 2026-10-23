@@ -19,6 +19,9 @@ const TOKEN = String(process.env.KYBERNOS_COMPUTER_TOKEN || '')
 const HOME = String(process.env.DSH_HOME || '')
 const DSH_PORT = Number(process.env.DSH_PORT || 3081)
 const VERSION = String(process.env.KYBERNOS_IMAGE_VERSION || '').replace(/[^A-Za-z0-9._+-]/gu, '').slice(0, 40)
+// What this computer says it can do, once, at `ready`: the platform sends it an automation that asks first only if `ask_approvals` is there. It is the image's own claim; the plugin's door
+// checks again (it refuses such an automation unless the cloud plugin's gate is present), so a plugin older than this reporter refuses it and the person is told, never run unasked.
+export const CAPABILITIES = Object.freeze(['ask_approvals'])
 const BEAT_MS = Number(process.env.KYBERNOS_REPORT_EVERY_MS || 30_000)
 // A beat answers at once; one that was in flight when the machine was suspended never does, and its timeout counts only the time the machine ran (see runner.mjs, CLAIM_TIMEOUT_MS).
 export const HEARTBEAT_TIMEOUT_MS = Number(process.env.KYBERNOS_REPORT_BEAT_TIMEOUT_MS || 6000)
@@ -90,6 +93,8 @@ const lastOutcome = (task) => {
   const h = Array.isArray(task.history) ? task.history : []
   const last = h[h.length - 1]
   if (last === undefined || last === null) return { status: null, reason: null }
+  // Its run stopped to ask the person and has not been answered: the platform's schedule row says so (the run itself is reported once, when it really ends).
+  if (last.status === 'waiting_approval') return { status: 'waiting_approval', reason: 'approval_pending' }
   if (last.status === 'error') return { status: 'error', reason: 'run_failed' }
   if (typeof last.sessionId === 'string') {
     const s = sessionState(last.sessionId)
@@ -140,6 +145,8 @@ export function endedRuns (tasks, reported) {
     const via = t.schedule && t.schedule.mode === 'webhook' ? 'webhook' : t.schedule && t.schedule.mode === 'cron' ? 'cron' : 'once'
     for (const h of Array.isArray(t.history) ? t.history : []) {
       if (h === null || typeof h !== 'object') continue
+      // A run that stopped to ask its person is not over: it is reported once, when it ends after the answer.
+      if (h.status === 'waiting_approval') continue
       const started = isoOrNull(h.at)
       if (started === null) continue
       const hasSession = typeof h.sessionId === 'string' && idOk(h.sessionId)
@@ -328,7 +335,7 @@ async function main () {
   // Ready. A token the platform has not written yet (the machine can be faster than the row) answers 401: try again for a while.
   let said = false
   for (let attempt = 0; !said; attempt += 1) {
-    const r = await call('POST', '/v1/computer/ready', VERSION === '' ? {} : { version: VERSION })
+    const r = await call('POST', '/v1/computer/ready', Object.assign(VERSION === '' ? {} : { version: VERSION }, { capabilities: CAPABILITIES }))
     if (r.status === 200) { said = true; log('ready: the platform knows this computer is up'); break }
     await sleep(Math.min(300_000, 5000 * (attempt + 1)))
   }

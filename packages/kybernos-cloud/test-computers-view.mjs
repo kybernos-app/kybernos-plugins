@@ -20,6 +20,12 @@ const row = (extra = {}) => ({ id: UUID_A, name: 'Home', kind: 'cloud', state: '
 for (const [state, word] of [['running', 'awake'], ['suspended', 'asleep'], ['creating', 'waking'], ['resuming', 'waking'], ['suspending', 'winding_down'], ['stopped', 'off'], ['failed', 'off'], ['deleting', 'off']]) assert.equal(stateOf({ state }), word, state)
 for (const odd of [null, undefined, {}, { state: 'weird' }, { state: 3 }, 'running']) assert.equal(stateOf(odd), 'off', JSON.stringify(odd))
 ok('states: awake, asleep, waking, winding down, off; anything else is off')
+// what the computer said it can do
+assert.deepEqual(computerOf(row({ capabilities: ['ask_approvals', 'ask_approvals', 'Bad Cap', 7, 'x'.repeat(40), 'other_thing'] }), NOW).capabilities, ['ask_approvals', 'other_thing'], 'a closed list of short words, once each')
+assert.deepEqual(computerOf(row(), NOW).capabilities, [], 'a computer that said nothing can do nothing more')
+assert.deepEqual(computerOf(row({ capabilities: 'ask_approvals' }), NOW).capabilities, [])
+assert.equal(computerOf(row({ capabilities: Array.from({ length: 20 }, (_, i) => 'cap_' + String.fromCharCode(97 + i)) }), NOW).capabilities.length, 8)
+ok('capabilities: a closed list of short words, at most eight')
 
 // 2. the load: numbers from a closed list, a running task is an id and a moment
 assert.deepEqual(loadOf(row(), NOW), { level: 'busy', pressure: 71, cpuPerCore: 1.12, memAvailMb: 310, memTotalMb: 980, running: 1, waiting: 1, allowed: 1, runningTasks: [{ taskRef: 'st-1', startedAt: '2026-10-23T11:58:30.000Z' }] })
@@ -37,7 +43,7 @@ ok('load: closed levels, clamped numbers, running tasks by id, stale or odd read
 
 // 3. one computer
 const home = computerOf(row(), NOW)
-assert.deepEqual({ ...home, load: home.load === null ? null : 'load' }, { id: UUID_A, name: 'Home', isHome: true, state: 'awake', memoryMb: 1024, mode: 'sleep', paused: null, load: 'load' })
+assert.deepEqual({ ...home, load: home.load === null ? null : 'load' }, { id: UUID_A, name: 'Home', isHome: true, state: 'awake', memoryMb: 1024, mode: 'sleep', paused: null, capabilities: [], load: 'load' })
 assert.equal(computerOf(row({ shape: '1x2g' }), NOW).memoryMb, 2048)
 assert.equal(computerOf(row({ shape: '2x4g' }), NOW).memoryMb, null, 'a size the page does not know is not guessed')
 assert.equal(computerOf(row({ state: 'suspended' }), NOW).load, null, 'an asleep computer has no live reading')
@@ -48,7 +54,7 @@ assert.equal(computerOf(row({ name: '   ' }), NOW).name, 'Computer')
 assert.equal(computerOf(row({ mode: 'always' }), NOW).mode, 'always')
 assert.equal(computerOf(row({ paused_reason: 'hours' }), NOW).paused, 'hours')
 assert.equal(computerOf(row({ paused_reason: 'x'.repeat(80) }), NOW).paused, null)
-assert.deepEqual(Object.keys(home).sort(), ['id', 'isHome', 'load', 'memoryMb', 'mode', 'name', 'paused', 'state'], 'a closed set of fields')
+assert.deepEqual(Object.keys(home).sort(), ['capabilities', 'id', 'isHome', 'load', 'memoryMb', 'mode', 'name', 'paused', 'state'], 'a closed set of fields')
 const text = JSON.stringify(computerOf(row({ origin_host: 'home-3f2a.computers.kybernos.app', image_ref: 'secret-image', schedule: [{ id: 'st-1', label: 'My private label' }], network: { allow: ['x.test'] } }), NOW))
 for (const never of ['computers.kybernos.app', 'secret-image', 'My private label', 'x.test', 'owner', 'workspace']) assert.ok(!text.includes(never), never)
 ok('one computer: a closed set of fields, a clipped clean name, a size only when known, no host, image or schedule')

@@ -16,7 +16,7 @@ export const MAX_OPS = 10
 export const CODES = Object.freeze([
   'not_connected', 'invalid_request', 'invalid_tasks', 'invalid_definition', 'no_computer', 'not_allowed',
   'approval_path_missing', 'computer_deleting', 'owner_left', 'run_hours_exhausted', 'budget', 'failed_runs', 'owner_locked',
-  'too_many_pending', 'rate_limited', 'tasks_unavailable', 'unreachable', 'refused',
+  'too_many_pending', 'rate_limited', 'tasks_unavailable', 'unreachable', 'refused', 'late', 'unknown',
 ])
 
 const clip = (value, max) => {
@@ -26,12 +26,12 @@ const clip = (value, max) => {
 }
 
 /**
- * The six fields of an automation a computer needs, from what the page holds; or the reason it cannot be sent. Only an `auto` automation can go for now: a
- * computer has no approval prompt and no path yet to ask a person, so an automation that asks first would run without asking.
+ * The six fields of an automation a computer needs, from what the page holds; or the reason it cannot be sent. An automation that asks first (`ask`) goes too: the platform
+ * accepts it only for a computer that said it can ask (`ask_approvals`), and the computer's own door accepts it only when its gate is there. Anything else is not sent.
  */
 export const definitionOf = (raw) => {
   if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) return { ok: false, error: 'invalid_definition' }
-  if (raw.approvals !== 'auto') return { ok: false, error: 'approval_path_missing' }
+  if (raw.approvals !== 'auto' && raw.approvals !== 'ask') return { ok: false, error: 'approval_path_missing' }
   const name = typeof raw.name === 'string' ? clip(raw.name.trim(), 120) : ''
   const prompt = typeof raw.prompt === 'string' ? clip(raw.prompt.trim(), 8000) : ''
   if (name.replace(/[​-‏⁠﻿]/gu, '').length === 0 || prompt.length === 0) return { ok: false, error: 'invalid_definition' }
@@ -47,7 +47,7 @@ export const definitionOf = (raw) => {
     if (typeof sc.at !== 'string' || sc.at.trim().length === 0) return { ok: false, error: 'invalid_definition' }
     schedule.at = clip(sc.at.trim(), 40)
   }
-  const def = { name, prompt, schedule, active: raw.active !== false, approvals: 'auto' }
+  const def = { name, prompt, schedule, active: raw.active !== false, approvals: raw.approvals }
   if (Array.isArray(raw.needs)) def.needs = Array.from(new Set(raw.needs.filter((x) => typeof x === 'string' && SLUG.test(x)))).slice(0, 6)
   return { ok: true, def }
 }
@@ -113,6 +113,11 @@ export const statesOf = (body) => {
 }
 
 const VIAS = Object.freeze(['cron', 'once', 'webhook', 'run_now'])
+const KINDS = Object.freeze(['shell', 'write', 'edit', 'connector', 'other'])
+const APPROVAL_STATES = Object.freeze(['pending', 'allowed', 'allowed_turn', 'denied', 'expired'])
+const DECISIONS = Object.freeze(['allowed', 'allowed_turn', 'denied'])
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu
+const CONTROL = /[\u0000-\u001f\u007f\u2028\u2029]/gu
 
 /**
  * The runs a computer reported ended, as the page reads them (the platform's `GET …/runs`): newest first, at most 100. A run is its id, the automation's id, how
@@ -135,6 +140,38 @@ export const runsOf = (body) => {
       endedAt,
     })
     if (out.length >= 100) break
+  }
+  return out
+}
+
+/**
+ * What the computer's automations asked their person before acting, as the page reads it (the platform's `GET …/approvals`): pending first, then what was answered or ran out
+ * in the last day, at most 50. `summary` is what the action will do (a command line, a path, a connector's call): it is shown to its owner and nowhere else, and it is
+ * clipped and cleaned of control characters here. The kind, the state and who answered are words from closed lists.
+ */
+export const approvalsOf = (body) => {
+  const list = body !== null && typeof body === 'object' && Array.isArray(body.approvals) ? body.approvals : []
+  const out = []
+  for (const a of list) {
+    if (a === null || typeof a !== 'object' || typeof a.id !== 'string' || UUID_RE.test(a.id) !== true) continue
+    if (typeof a.task_ref !== 'string' || REF.test(a.task_ref) !== true) continue
+    if (APPROVAL_STATES.indexOf(a.state) < 0) continue
+    const expiresAt = isoOrNull(a.expires_at)
+    if (expiresAt === null) continue
+    out.push({
+      id: a.id,
+      ref: a.task_ref,
+      runKey: typeof a.run_key === 'string' && REF.test(a.run_key) === true ? a.run_key : null,
+      kind: KINDS.indexOf(a.kind) >= 0 ? a.kind : 'other',
+      summary: clip(String(a.summary ?? '').replace(CONTROL, ' ').replace(/\s+/gu, ' ').trim(), 400),
+      state: a.state,
+      createdAt: isoOrNull(a.created_at) ?? expiresAt,
+      expiresAt,
+      decidedAt: isoOrNull(a.decided_at),
+      via: a.decided_via === 'app' || a.decided_via === 'channel' ? a.decided_via : null,
+      notified: a.notified === true,
+    })
+    if (out.length >= 50) break
   }
   return out
 }
@@ -192,5 +229,34 @@ export function createPublish ({ readState, isConnected, apiCall }) {
     return { ok: true, runs: runsOf(res.body) }
   }
 
-  return { publish, states, runs }
+  /** `computerId` → `{ ok: true, approvals: [...] }` (what its automations asked) or `{ ok: false, error }`. */
+  const approvals = async (query) => {
+    const state = readState()
+    if (!isConnected(state)) return { ok: false, error: 'not_connected' }
+    const id = query !== null && query !== undefined && typeof query.get === 'function' ? String(query.get('computerId') || '') : ''
+    if (UUID.test(id) !== true) return { ok: false, error: 'invalid_request' }
+    const ws = await personalWorkspace(state.token)
+    if (ws === null) return { ok: false, error: 'no_computer' }
+    const res = await apiCall(pathOf(ws, id, 'approvals'), { method: 'GET', token: state.token, timeoutMs: 15000 })
+    if (res.status !== 200) return { ok: false, error: codeOf(res.status, res.body), status: res.status }
+    return { ok: true, approvals: approvalsOf(res.body) }
+  }
+
+  /** `{ computerId, id, decision }` → `{ ok: true, state }` or `{ ok: false, error }` (`late`: it was answered, or ran out; `unknown`: it is not there). */
+  const decide = async (body) => {
+    const state = readState()
+    if (!isConnected(state)) return { ok: false, error: 'not_connected' }
+    if (body === null || typeof body !== 'object' || typeof body.computerId !== 'string' || UUID.test(body.computerId) !== true) return { ok: false, error: 'invalid_request' }
+    if (typeof body.id !== 'string' || UUID_RE.test(body.id) !== true || DECISIONS.indexOf(body.decision) < 0) return { ok: false, error: 'invalid_request' }
+    const ws = await personalWorkspace(state.token)
+    if (ws === null) return { ok: false, error: 'no_computer' }
+    const res = await apiCall(pathOf(ws, body.computerId, 'approvals/' + encodeURIComponent(body.id) + '/decide'), { method: 'POST', token: state.token, body: { decision: body.decision }, timeoutMs: 15000 })
+    if (res.status === 409) return { ok: false, error: 'late', status: 409 }
+    if (res.status === 404) return { ok: false, error: 'unknown', status: 404 }
+    if (res.status !== 200) return { ok: false, error: codeOf(res.status, res.body), status: res.status }
+    const said = res.body !== null && typeof res.body === 'object' && APPROVAL_STATES.indexOf(res.body.state) >= 0 ? res.body.state : body.decision
+    return { ok: true, state: said }
+  }
+
+  return { publish, states, runs, approvals, decide }
 }

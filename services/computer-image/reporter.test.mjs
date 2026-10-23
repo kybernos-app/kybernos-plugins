@@ -9,7 +9,7 @@ const home = mkdtempSync(join(tmpdir(), 'kb-reporter-'))
 process.env.DSH_HOME = home
 process.env.KYBERNOS_API = 'https://api.example.test'
 process.env.KYBERNOS_COMPUTER_TOKEN = 'kyd_test'
-const { scheduleOf, endedRuns, cleanLabel, sessionState, memoryOf, loadOf, runningTasksOf, beatOf, externalIdOf } = await import('./reporter.mjs')
+const { scheduleOf, endedRuns, cleanLabel, sessionState, memoryOf, loadOf, runningTasksOf, beatOf, externalIdOf, CAPABILITIES } = await import('./reporter.mjs')
 
 const projection = (sid, { closed, at }) => {
   const dir = join(home, 'storages', 'session_projcache', 'sessions')
@@ -65,6 +65,24 @@ test('a run is reported once its turn is closed, by its session id, with the doo
   assert.deepEqual(endedRuns(tasks, new Set(['session-cccccccc-3', 'st-1:2026-10-14T13:00:00.000Z', 'session-aaaaaaaa-1'])), [])
   assert.equal(sessionState('session-bbbbbbbb-2').closed, false)
   assert.equal(sessionState('session-nope'), null)
+})
+
+test('a run that stopped to ask its person is not over: not reported as ended, and the schedule row says it waits', () => {
+  projection('session-dddddddd-4', { closed: true, at: '2026-10-14T15:00:30Z' })
+  const tasks = [{ id: 'st-9', schedule: { mode: 'cron' }, history: [{ at: '2026-10-14T15:00:00Z', sessionId: 'session-dddddddd-4', status: 'waiting_approval' }] }]
+  assert.deepEqual(endedRuns(tasks, new Set()), [], 'the session is closed (the model stopped when it was refused) but the run is not over')
+  const row = scheduleOf(tasks)[0]
+  assert.deepEqual([row.last_status, row.last_reason], ['waiting_approval', 'approval_pending'])
+  tasks[0].history[0].status = 'fired'
+  assert.deepEqual(endedRuns(tasks, new Set()).map((r) => [r.run_id, r.outcome]), [['session-dddddddd-4', 'completed']], 'once it went on and ended, it is reported, once')
+  assert.equal(scheduleOf(tasks)[0].last_status, 'completed')
+})
+
+test('the computer says at ready that it can ask its person, and the call carries it', async () => {
+  assert.deepEqual(CAPABILITIES, ['ask_approvals'])
+  const { readFileSync } = await import('node:fs')
+  const src = readFileSync(new URL('./reporter.mjs', import.meta.url), 'utf8')
+  assert.ok(src.indexOf("await call('POST', '/v1/computer/ready', Object.assign(VERSION === '' ? {} : { version: VERSION }, { capabilities: CAPABILITIES }))") >= 0, 'the capabilities ride the ready call')
 })
 
 // ── the load in the beat ──────────────────────────────────────────────────────────────────────────

@@ -729,7 +729,7 @@ try {
     '/kybernos-cloud/computer/resume', '/kybernos-cloud/computer/suspend', '/kybernos-cloud/computer/open',
     // The person's cloud computers and their load, read-only, for the strip of the Automations page (test-computers-view.mjs holds its rules).
     '/kybernos-cloud/computers',
-    '/kybernos-cloud/computers/publish', '/kybernos-cloud/computers/tasks', '/kybernos-cloud/computers/runs',
+    '/kybernos-cloud/computers/publish', '/kybernos-cloud/computers/tasks', '/kybernos-cloud/computers/runs', '/kybernos-cloud/computers/approvals', '/kybernos-cloud/computers/approvals/decide',
     // A pooled computer has just been handed its identity (loopback, nothing in the request): see 6f.
     '/kybernos-cloud/computer/claimed', '/kybernos-cloud/computer/route',
     // The Upgrade dialog: the plans and their quotes, the payment page and the billing portal (test-billing-proxy.mjs holds their rules).
