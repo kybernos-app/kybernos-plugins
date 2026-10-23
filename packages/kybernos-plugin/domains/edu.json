@@ -78,6 +78,7 @@
   "goals": [
     {
       "id": "exams",
+      "search": ["study plan", "revision"],
       "name": {
         "en": "Exams",
         "fr": "Examens"
@@ -136,6 +137,7 @@
     },
     {
       "id": "courses",
+      "search": ["study notes"],
       "name": {
         "en": "Courses",
         "fr": "Cours"
@@ -189,6 +191,7 @@
     },
     {
       "id": "papers",
+      "search": ["academic writing", "essay writing"],
       "name": {
         "en": "Papers",
         "fr": "Devoirs"
@@ -236,6 +239,7 @@
     },
     {
       "id": "teaching",
+      "search": ["lesson plan", "curriculum"],
       "name": {
         "en": "Teaching",
         "fr": "Enseignement"
@@ -285,6 +289,7 @@
     },
     {
       "id": "class",
+      "search": ["grading rubric", "gradebook"],
       "name": {
         "en": "Class follow-up",
         "fr": "Suivi de classe"

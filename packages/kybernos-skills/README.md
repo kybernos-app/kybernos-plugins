@@ -14,9 +14,10 @@ It is part of the **socle** (`socle: true` in `packages/kybernos-hub/catalog.jso
   sign-in). *Install* and *Details* appear on hover and on focus (always on touch); *Install* opens the usual confirmation and the page
   stays on Featured; *Use* copies `/name`. Categories, search and order come from the shared bar, which also switches **cards or list** (the list is one
   row per pick: a square thumbnail, the outcome, creator, count, verdicts and the same two actions, always visible); « Cover background » is
-  Tint or Plain. Both choices are kept per browser. *Details* opens the pick **on the width of the page** (not in a side panel): its picture and
-  title at the top as on the card, then the facts, the live audits and the start of the repository's real `SKILL.md` side by side; *Back*
-  returns to the grid or the list, and installing from there keeps the pick open (it flips to *Installed*).
+  Tint or Plain. Both choices are kept per browser. A skill, **wherever it is clicked** (a pick, a card or row of the field, a find, Yours, Discover), opens in **a window over the page** and never switches tab: its name and ✕
+  stay at the top, its actions (Install / Use, View on GitHub, the star; Open folder, Edit, Duplicate, Delete for an installed one) stay at the foot, both sticky, so nothing
+  needs a scroll. For a pick it is the picture and title as on the card, then the facts, the live audits and the start of the repository's real `SKILL.md`; Escape, a click
+  outside and ✕ close it, and installing from there keeps it open (it flips to *Installed*). The categories (and the cover background) are the very top of the Featured tab.
   A `SKILL.md` is shown **formatted** wherever the page shows one (a pick's page, a Discover panel, an installed skill's panel): the front matter as a small properties
   box, headings, lists, tables, code, quotes, links. A safe subset drawn as React elements (HTML stays text, no image is loaded, only https links), with a **Raw text**
   switch: a skill comes from someone else and the raw file is where a hidden line would show (`test-markdown.mjs`).

@@ -142,15 +142,18 @@ const jsonRes = (v, status = 200) => ({ ok: status === 200, status, json: async 
 }
 
 // ── one cover ────────────────────────────────────────────────────────────────────────────────────
+// A cut-out that looks like a floating tile (a quarter of the box is see-through) and one that kept its whole background.
+const tilePng = () => { const w = 60; const h = 40; const rgba = picture(w, h, [10, 5, 49, 34]).rgba; for (let y = 0; y < h; y += 1) for (let x = 0; x < w; x += 1) if (x % 2 === 1 && y % 2 === 1) rgba[(y * w + x) * 4 + 3] = 0; return encodePng(w, h, rgba) }
+const roomPng = () => picture(60, 40, [0, 0, 59, 39]).png
 const goodNet = (calls) => ({
   scene: async (n, d) => { calls.push(['scene', n, d]); return 'tiny people sorting support tickets into trays while one stamps urgent ones' },
-  image: async (p) => { calls.push(['image', p]); return picture(60, 40, [10, 5, 49, 34]).png },
+  image: async (p) => { calls.push(['image', p]); return tilePng() },
   cutout: async (b) => { calls.push(['cutout']); return b }
 })
 {
   const calls = []
   const res = await makeCover({ dsh, name: 'ticket-triage', description: 'Triage tickets', net: goodNet(calls), now: NOW })
-  assert.deepEqual(res, { ok: true, name: 'ticket-triage', state: 'made' })
+  assert.deepEqual(res, { ok: true, name: 'ticket-triage', state: 'made', images: 1 })
   const prompt = calls.find((c) => c[0] === 'image')[1]
   assert.equal(prompt, 'tiny people sorting support tickets into trays while one stamps urgent ones. ' + COVER_STYLE + '. ' + COVER_TAIL)
   const file = join(coversDir(dsh), 'ticket-triage.png')
@@ -160,17 +163,38 @@ const goodNet = (calls) => ({
   assert.equal(info.scene, 'tiny people sorting support tickets into trays while one stamps urgent ones')
   assert.equal(info.fallbackScene, false)
   assert.equal(hasCover(dsh, 'ticket-triage'), true)
-  assert.deepEqual(await makeCover({ dsh, name: 'ticket-triage', description: '', net: goodNet([]), now: NOW }), { ok: true, name: 'ticket-triage', state: 'have' })
+  assert.deepEqual(await makeCover({ dsh, name: 'ticket-triage', description: '', net: goodNet([]), now: NOW }), { ok: true, name: 'ticket-triage', state: 'have', images: 0 })
+  assert.ok(info.opaqueShare > 0.5 && info.opaqueShare < 0.72 && info.pictures === 1)
   ok('a cover is made from « scene. style. tail », cut out, trimmed and written next to the scene that made it; one that exists is not made again')
+
+  // The cover must be a floating tile: a cut-out that kept its room is tried again (a new picture, told to be one compact tile), the best is kept, and a card whose every try is a room has none.
+  const roomCalls = []
+  const roomNet = { scene: async () => 'a library with ladders and desks all around', image: async (p) => { roomCalls.push(p); return roomPng() }, cutout: async (b) => b }
+  const none = await makeCover({ dsh, name: 'always-a-room', description: 'x', net: roomNet, now: NOW })
+  assert.deepEqual(none, { ok: false, error: 'not_a_tile', images: COVER_LIMITS.attempts })
+  assert.equal(hasCover(dsh, 'always-a-room'), false)
+  assert.ok(!roomCalls[0].endsWith('around it.') && roomCalls[1].endsWith('The whole scene is one compact tile with clear empty white space all around it.'))
+  let n = 0
+  const secondNet = { scene: async () => 'a map table with tiny surveyors and flags', image: async () => (n += 1) === 1 ? roomPng() : tilePng(), cutout: async (b) => b }
+  assert.deepEqual(await makeCover({ dsh, name: 'second-try', description: 'x', net: secondNet, now: NOW }), { ok: true, name: 'second-try', state: 'made', images: 2 })
+  const sceneCall = (name) => JSON.parse(readFileSync(join(coversDir(dsh), name + '.cover.json'), 'utf8'))
+  assert.equal(sceneCall('second-try').pictures, 2)
+  // a cut-out that fails once is tried again on the same picture (one picture paid for); two failures pay for a new picture
+  let cuts = 0
+  const flakyNet = { scene: async () => 'tiny chefs around a long table of dishes', image: async () => tilePng(), cutout: async (b) => { cuts += 1; if (cuts === 1) throw new Error('down'); return b } }
+  assert.deepEqual(await makeCover({ dsh, name: 'flaky-cut', description: 'x', net: flakyNet, now: NOW }), { ok: true, name: 'flaky-cut', state: 'made', images: 1 })
+  const deadNet = { scene: async () => 'tiny chefs around a long table of dishes', image: async () => tilePng(), cutout: async () => null }
+  assert.deepEqual(await makeCover({ dsh, name: 'dead-cut', description: 'x', net: deadNet, now: NOW }), { ok: false, error: 'cutout_failed', images: COVER_LIMITS.attempts })
+  ok('a cut-out that kept its room is tried again with a new picture, the best tile is kept, none is written when every try is a room; a failing cut-out is tried twice on the same picture before a new one is paid for')
 
   const calls2 = []
   const net2 = { ...goodNet(calls2), scene: async () => '' }
   await makeCover({ dsh, name: 'stock-check', description: 'Reads a stock file. Use when asked.', net: net2, now: NOW })
   assert.ok(calls2.find((c) => c[0] === 'image')[1].startsWith('tiny people at work on a miniature workshop table around this task: Reads a stock file'))
   assert.equal(JSON.parse(readFileSync(join(coversDir(dsh), 'stock-check.cover.json'), 'utf8')).fallbackScene, true)
-  assert.deepEqual(await makeCover({ dsh, name: 'bad-1', description: '', net: { ...goodNet([]), image: async () => null }, now: NOW }), { ok: false, error: 'image_failed' })
-  assert.deepEqual(await makeCover({ dsh, name: 'bad-2', description: '', net: { ...goodNet([]), cutout: async () => null }, now: NOW }), { ok: false, error: 'cutout_failed' })
-  assert.deepEqual(await makeCover({ dsh, name: 'Bad Name', description: '', net: goodNet([]), now: NOW }), { ok: false, error: 'bad_name' })
+  assert.deepEqual(await makeCover({ dsh, name: 'bad-1', description: '', net: { ...goodNet([]), image: async () => null }, now: NOW }), { ok: false, error: 'image_failed', images: 0 })
+  assert.deepEqual(await makeCover({ dsh, name: 'bad-2', description: '', net: { ...goodNet([]), cutout: async () => null }, now: NOW }), { ok: false, error: 'cutout_failed', images: COVER_LIMITS.attempts })
+  assert.deepEqual(await makeCover({ dsh, name: 'Bad Name', description: '', net: goodNet([]), now: NOW }), { ok: false, error: 'bad_name', images: 0 })
   assert.equal(hasCover(dsh, 'bad-1'), false)
   ok('a model that does not answer gives the plain scene; a failed picture or cut-out writes nothing; a bad name is refused')
 }
@@ -184,30 +208,35 @@ const goodNet = (calls) => ({
 
   const env = { DEEPINFRA_API_KEY: 'k' }
   const order = []
-  const slow = { scene: async (n) => { order.push('start ' + n); await new Promise((r) => setTimeout(r, 15)); return 'tiny people doing a thing with many props and a long scene for ' + n }, image: async () => picture(30, 20, [3, 3, 26, 16]).png, cutout: async (b) => b }
-  const names = Array.from({ length: 12 }, (_, i) => 'skill-' + String(i).padStart(2, '0'))
+  const slow = { scene: async (n) => { order.push('start ' + n); await new Promise((r) => setTimeout(r, 15)); return 'tiny people doing a thing with many props and a long scene for ' + n }, image: async () => tilePng(), cutout: async (b) => b }
+  const names = Array.from({ length: 20 }, (_, i) => 'skill-' + String(i).padStart(2, '0'))
   const first = requestCovers({ dsh: root, items: names.map((n) => ({ name: n, description: 'x' })), net: slow, now: NOW, env })
   assert.equal(first.can, true)
-  assert.equal(Object.values(first.items).filter((v) => v === 'queued').length, COVER_LIMITS.perDay)
-  assert.equal(Object.values(first.items).filter((v) => v === 'none').length, 12 - COVER_LIMITS.perDay)
+  // one request takes at most twelve names; the day's sixteen are spent over two of them
+  assert.equal(Object.values(first.items).filter((v) => v === 'queued').length, 12)
+  assert.equal(Object.values(first.items).filter((v) => v === 'none').length, names.length - 12)
   const mid = coverState({ dsh: root, names: names.slice(0, 2), now: NOW, env })
   assert.ok(['making', 'queued'].includes(mid.items['skill-00']))
+  await idle()
+  const second = requestCovers({ dsh: root, items: names.slice(12).map((n) => ({ name: n, description: 'x' })), net: slow, now: NOW, env })
+  assert.equal(second.left, COVER_LIMITS.perDay - 12)
+  assert.equal(Object.values(second.items).filter((v) => v === 'queued').length, COVER_LIMITS.perDay - 12)
   await idle()
   assert.deepEqual(order.slice(0, 3), ['start skill-00', 'start skill-01', 'start skill-02'])
   assert.equal(order.length, COVER_LIMITS.perDay)
   assert.ok(names.slice(0, COVER_LIMITS.perDay).every((n) => hasCover(root, n)))
   const after = coverState({ dsh: root, names, now: Date.now(), env })
   assert.equal(after.left, 0)
-  assert.equal(after.items['skill-09'], 'limit')
-  ok('covers are made one at a time, at most eight a day; the rest says « limit »')
+  assert.equal(after.items[names[names.length - 1]], 'limit')
+  ok('covers are made one at a time, at most sixteen a day (every picture paid for counts); the rest says « limit »')
 
   const flopRoot = mkdtempSync(join(tmpdir(), 'kb-cover-f-'))
   const flop = { scene: async () => '', image: async () => null, cutout: async (b) => b }
   requestCovers({ dsh: flopRoot, items: [{ name: 'skill-09', description: 'x' }], net: flop, env })
   await idle()
   assert.equal(coverState({ dsh: flopRoot, names: ['skill-09'], env }).items['skill-09'], 'failed')
-  assert.equal(coverState({ dsh: flopRoot, names: ['skill-09'], now: Date.now() + 2 * 3600 * 1000, env }).items['skill-09'], 'none')
-  ok('a failure waits an hour before the cover is tried again')
+  assert.equal(coverState({ dsh: flopRoot, names: ['skill-09'], now: Date.now() + 30 * 60 * 1000, env }).items['skill-09'], 'none')
+  ok('a failure waits a quarter of an hour before the cover is tried again')
   rmSync(flopRoot, { recursive: true, force: true })
   setAuto(root, false)
   assert.equal(coverState({ dsh: root, names: [], now: NOW, env }).can, false)

@@ -58,6 +58,7 @@
   "goals": [
     {
       "id": "review",
+      "search": ["code review", "pull request review"],
       "name": {
         "en": "Code review",
         "fr": "Revue de code"
@@ -113,6 +114,7 @@
     },
     {
       "id": "quality",
+      "search": ["test strategy", "incident response"],
       "name": {
         "en": "Quality",
         "fr": "Qualité"
@@ -162,6 +164,7 @@
     },
     {
       "id": "data",
+      "search": ["sql queries", "data analysis"],
       "name": {
         "en": "Data",
         "fr": "Données"
@@ -209,6 +212,7 @@
     },
     {
       "id": "product",
+      "search": ["product spec", "roadmap planning"],
       "name": {
         "en": "Product",
         "fr": "Produit"
@@ -287,6 +291,7 @@
     },
     {
       "id": "design",
+      "search": ["design critique", "ux copy"],
       "name": {
         "en": "Design",
         "fr": "Design"

@@ -70,6 +70,7 @@
   "goals": [
     {
       "id": "leads",
+      "search": ["lead follow up", "email follow up"],
       "name": {
         "en": "Prospects",
         "fr": "Prospects"
@@ -121,6 +122,7 @@
     },
     {
       "id": "listings",
+      "search": ["real estate", "property listing"],
       "name": {
         "en": "Listings",
         "fr": "Annonces"
@@ -171,6 +173,7 @@
     },
     {
       "id": "visits",
+      "search": ["calendar scheduling", "property viewing"],
       "name": {
         "en": "Visits",
         "fr": "Visites"
@@ -218,6 +221,7 @@
     },
     {
       "id": "valuation",
+      "search": ["real estate pricing", "property valuation"],
       "name": {
         "en": "Valuation",
         "fr": "Estimation"
@@ -258,6 +262,7 @@
     },
     {
       "id": "tenants",
+      "search": ["tenant management", "rent reminder"],
       "name": {
         "en": "Tenants",
         "fr": "Locataires"

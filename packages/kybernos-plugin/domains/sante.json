@@ -77,6 +77,7 @@
   "goals": [
     {
       "id": "notes",
+      "search": ["clinical", "medical"],
       "name": {
         "en": "Notes",
         "fr": "Comptes rendus"
@@ -146,6 +147,7 @@
     },
     {
       "id": "appointments",
+      "search": ["calendar scheduling", "patient reminder"],
       "name": {
         "en": "Appointments",
         "fr": "Rendez-vous"
@@ -194,6 +196,7 @@
     },
     {
       "id": "messages",
+      "search": ["patient", "healthcare"],
       "name": {
         "en": "Messages",
         "fr": "Messages"
@@ -227,6 +230,7 @@
     },
     {
       "id": "activity",
+      "search": ["activity report", "status report"],
       "name": {
         "en": "Activity",
         "fr": "Activité"
@@ -274,6 +278,7 @@
     },
     {
       "id": "learning",
+      "search": ["literature review"],
       "name": {
         "en": "Learning",
         "fr": "Formation"

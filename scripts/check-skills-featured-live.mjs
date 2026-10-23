@@ -121,14 +121,15 @@ try {
   await js("(() => { const e = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }); document.dispatchEvent(e); return true })()")
   await sleep(400)
 
-  // details: the pick opens on the width of the page, its picture and its title at the top like the card
+  // details: the pick opens in a window over the grid (✕ at the top, Install / Use / GitHub sticky at the foot), its picture and its title at the top like the card
   const gridW = await js("document.querySelector('[data-kb=picks-grid]').getBoundingClientRect().width")
   await js("document.querySelector('[data-kb=pick-details]').click()")
   await waitFor(page, "!!document.querySelector('[data-kb=pick-detail]')", 8000)
   await sleep(1200)
-  check('Details opens the pick on the page, not in a side panel', await js("!!document.querySelector('[data-kb=pick-detail]') && !document.querySelector('[data-kb=disc-panel]') && !document.querySelector('[data-kb=picks-grid]')"))
-  const dw = await js("document.querySelector('[data-kb=pick-detail]').getBoundingClientRect().width")
-  check('it uses the desktop width (as wide as the grid was)', dw >= gridW - 4 && dw > 900, { dw, gridW })
+  check('Details opens the pick in a window over the grid, not in a side panel and not instead of the grid', await js("!!document.querySelector('[data-kb=skill-popup] [data-kb=pick-detail]') && !document.querySelector('[data-kb=disc-panel]') && !!document.querySelector('[data-kb=picks-grid]')"))
+  const dw = await js("document.querySelector('[data-kb=skill-popup]').getBoundingClientRect().width")
+  check('the window is wide enough for the two columns and stays inside the screen', dw > 600 && dw <= 1010, { dw, gridW })
+  check('its actions are in view without a scroll (sticky at the foot of the window)', await js("(() => { const w = document.querySelector('[data-kb=skill-popup]').getBoundingClientRect(); const a = document.querySelector('[data-kb=pick-acts]').getBoundingClientRect(); return a.bottom <= w.bottom + 1 && a.top >= w.top && a.bottom <= innerHeight })()"))
   check('the picture is at the top, left of the title, and loaded', await js("(() => { const d = document.querySelector('[data-kb=pick-detail]'); const i = d.querySelector('.kbsf-dpic img.kbsf-cut'); const t = d.querySelector('.kbsf-dtitle'); return !!i && i.complete && i.naturalWidth > 0 && !!t && i.getBoundingClientRect().left < t.getBoundingClientRect().left && i.getBoundingClientRect().height > 200 })()"))
   check('the title is the card\'s title and is big', await js("(() => { const d = document.querySelector('[data-kb=pick-detail]'); const t = d.querySelector('.kbsf-dtitle'); return t.innerText.trim().length > 1 && parseFloat(getComputedStyle(t).fontSize) >= 24 })()"))
   check('the creator, the count and a way to use or install it are there', await js("(() => { const d = document.querySelector('[data-kb=pick-detail]'); return !!d.querySelector('.kbsf-by') && !!d.querySelector('.kbsf-cnt svg') && (!!d.querySelector('[data-kb=pick-install]') || !!d.querySelector('[data-kb=pick-use]')) })()"))
@@ -171,7 +172,7 @@ try {
   await shot('featured-list')
   await js("document.querySelector('[data-kb=pick-details]').click()")
   await waitFor(page, "!!document.querySelector('[data-kb=pick-detail]')", 8000)
-  check('Details from a row opens the same page', await js("!!document.querySelector('[data-kb=pick-detail] .kbsf-dpic') && !document.querySelector('[data-kb=pick-row]')"))
+  check('Details from a row opens the same window', await js("!!document.querySelector('[data-kb=skill-popup] [data-kb=pick-detail] .kbsf-dpic') && !!document.querySelector('[data-kb=pick-row]')"))
   await shot('featured-list-detail')
   await js("document.querySelector('[data-kb=pick-back]').click()")
   await sleep(300)

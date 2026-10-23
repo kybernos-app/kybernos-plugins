@@ -72,6 +72,7 @@
   "goals": [
     {
       "id": "content",
+      "search": ["content creation", "content calendar"],
       "name": {
         "en": "Content",
         "fr": "Contenu"
@@ -138,6 +139,7 @@
     },
     {
       "id": "campaigns",
+      "search": ["marketing campaign", "campaign plan"],
       "name": {
         "en": "Campaigns",
         "fr": "Campagnes"
@@ -195,6 +197,7 @@
     },
     {
       "id": "seo",
+      "search": ["seo audit", "keyword research"],
       "name": {
         "en": "SEO",
         "fr": "SEO"
@@ -228,6 +231,7 @@
     },
     {
       "id": "voice",
+      "search": ["brand voice", "tone of voice"],
       "name": {
         "en": "Brand voice",
         "fr": "Voix de marque"
@@ -260,6 +264,7 @@
     },
     {
       "id": "decks",
+      "search": ["pitch deck", "presentation"],
       "name": {
         "en": "Decks",
         "fr": "Présentations"

@@ -34,11 +34,11 @@ ok('the first cards are the picks\' own cards and rows: no tint, no smaller pict
 const scoutAsPick = between('const scoutAsPick = ', 'const scoutOpts = ')
 assert.ok(scoutAsPick.includes("needs: f.risky === true ? 'commands' : null") && scoutAsPick.includes("t('scout.tag')") && scoutAsPick.includes('f.audits'))
 const scoutOpts = between('const scoutOpts = ', 'const firstGroup = ')
-assert.ok(scoutOpts.includes('onSkip: () => skipFind(f)') && scoutOpts.includes("setMode('discover'); setDetail(x)") && scoutOpts.includes("t('scout.why'"))
+assert.ok(scoutOpts.includes('onSkip: () => skipFind(f)') && scoutOpts.includes('setDetail(x)') && !scoutOpts.includes("setMode('discover')") && scoutOpts.includes("t('scout.why'"))
 const buttons = between('const pickButtons = ', 'const pickStar = ')
 assert.ok(buttons.includes("'data-kb': 'scout-skip'") && buttons.includes('opts.onSkip()') && buttons.includes("icon('close', 14)") && buttons.includes("t('scout.skip') + ' — '"))
 assert.ok(buttons.includes('setAskInstall(x)'), 'Install goes through the usual confirmation')
-ok('a find is a pick: audits as pills, « can run commands » for a risky one, Install with the usual confirmation, Details in Discover, a labelled « Not interested »')
+ok('a find is a pick: audits as pills, « can run commands » for a risky one, Install with the usual confirmation, Details in a window over Featured, a labelled « Not interested »')
 
 const skip = between('const skipFind = ', 'const scoutWeekly = ')
 assert.ok(skip.includes("setScout((m) => ({ ...m, found: m.found.filter((x) => x.id !== f.id) }))") && skip.includes("postJson('/kybernos-skills/scout/dismiss', { id: f.id })") && skip.includes('loadScout()'))
