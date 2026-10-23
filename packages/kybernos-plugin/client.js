@@ -1701,6 +1701,23 @@ let kbLocaleRead = () => 'en'
       'kbld.level.ok': { kybernos: 'Légère', en: 'Light' },
       'kbld.level.busy': { kybernos: 'Chargé', en: 'Busy' },
       'kbld.level.high': { kybernos: 'Très chargé', en: 'Very busy' },
+      'kbld.here': { kybernos: 'Cet ordinateur', en: 'This computer' },
+      'kbld.tabs': { kybernos: 'Ordinateur', en: 'Computer' },
+      'kbld.st.asleep': { kybernos: 'En veille', en: 'Asleep' },
+      'kbld.st.waking': { kybernos: 'Réveil', en: 'Waking up' },
+      'kbld.st.winding_down': { kybernos: 'Mise en veille', en: 'Falling asleep' },
+      'kbld.st.off': { kybernos: 'Arrêté', en: 'Off' },
+      'kbld.st.noreading': { kybernos: 'Pas de mesure', en: 'No reading' },
+      'kbld.else1': { kybernos: '{name} : {level}', en: '{name} {level}' },
+      'kbld.elseN': { kybernos: '{n} chargés ailleurs', en: '{n} busy elsewhere' },
+      'kbld.note.asleep': { kybernos: '{name} est en veille. Rien n’y tourne, donc pas de mesure en direct.', en: '{name} is asleep. Nothing runs there, so there is no live reading.' },
+      'kbld.note.waking': { kybernos: '{name} se réveille. La mesure arrive dans quelques secondes.', en: '{name} is waking up. A reading comes in a few seconds.' },
+      'kbld.note.winding_down': { kybernos: '{name} se met en veille.', en: '{name} is falling asleep.' },
+      'kbld.note.off': { kybernos: '{name} est arrêté.', en: '{name} is off.' },
+      'kbld.note.noreading': { kybernos: '{name} est réveillé mais n’a pas encore envoyé sa charge.', en: '{name} is awake but has not sent its load yet.' },
+      'kbld.sinceOpen': { kybernos: 'Mesures depuis l’ouverture de la page · toutes les 10 s', en: 'Readings since you opened this page · every 10 s' },
+      'kbld.unit.mb': { kybernos: 'Mo', en: 'MB' },
+      'kbld.unit.gb': { kybernos: 'Go', en: 'GB' },
       'kbld.aria': { kybernos: '{title} : {pct} %, {word}. {meta}', en: '{title}: {pct} percent, {word}. {meta}' },
       'kbld.last5': { kybernos: 'Les 5 dernières minutes · toutes les 10 s', en: 'Last 5 minutes · every 10 s' },
       'kbld.cpu': { kybernos: 'Processeur', en: 'Processor' },
@@ -6649,6 +6666,39 @@ const kbLdClock = (ms) => {
   const two = (n) => (n < 10 ? '0' : '') + String(n)
   return (hh > 0 ? String(hh) + ':' + two(Math.floor((sec % 3600) / 60)) : two(Math.floor(sec / 60))) + ':' + two(sec % 60)
 }
+// The same rule as automation-load.mjs `pressureParts` (the page imports no host module; a test holds the two together): 0 at `zero`, 0.5 at `busy`, 1 at `high`.
+const kbLdRamp = (v, zero, busy, high) => {
+  const t1 = (v - zero) / (busy - zero)
+  if (t1 <= 0) return 0
+  if (t1 < 1) return 0.5 * t1
+  const t2 = (v - busy) / (high - busy)
+  return t2 >= 1 ? 1 : 0.5 + 0.5 * t2
+}
+const kbLdInt = (p) => (p >= 1 ? 100 : Math.min(99, Math.round(p * 100)))
+// What a cloud computer said in its last beat (GET /kybernos-cloud/computers → `load`), as the kind of reading the strip draws; null when it has none to give
+// (asleep, waking, off, or awake but silent). The curves are not in it: the platform keeps the last beat, not a history (see kbLdPush).
+const kbLdCloudView = (c, nowMs) => {
+  const l = c !== null && typeof c === 'object' && c.state === 'awake' && c.load !== null && typeof c.load === 'object' ? c.load : null
+  if (l === null) return null
+  const availPct = Math.max(0, Math.min(100, Math.round((l.memAvailMb / Math.max(1, l.memTotalMb)) * 100)))
+  const cpu = kbLdInt(kbLdRamp(l.cpuPerCore, 0, 1.5, 2.5))
+  const mem = kbLdInt(Math.max(kbLdRamp(availPct, 100, 20, 10), kbLdRamp(l.memAvailMb, 800, 400, 200)))
+  const runs = (Array.isArray(l.runningTasks) ? l.runningTasks : []).map((t) => ({ taskId: t.taskRef, sessions: 1, elapsedMs: Math.max(0, nowMs - Date.parse(t.startedAt)), subagents: 0, lighter: l.level !== 'ok', activity: [] }))
+  return {
+    ok: true, cloud: true, level: l.level, pressure: l.pressure, inFlight: l.running, allowed: l.allowed, waiting: l.waiting,
+    maxParallel: Math.max(1, l.allowed, l.running), subagents: { limit: l.level === 'high' ? 0 : l.level === 'busy' ? 1 : null, active: 0, refused: 0 },
+    reasons: [], loadPerCpu: l.cpuPerCore, memAvailablePct: availPct, held: false, waitingIds: [],
+    cpu: { pressure: cpu, loadPerCpu: l.cpuPerCore },
+    mem: { pressure: mem, availPct, usedPct: 100 - availPct, kybernosPct: null, otherPct: null, availMb: l.memAvailMb, totalMb: l.memTotalMb },
+    series: { total: [], cpu: [], mem: [], runs: [] }, runs,
+  }
+}
+// The readings of a cloud computer kept while the page is open: thirty at most, one per poll.
+const kbLdPush = (hist, v) => {
+  const base = hist !== null && typeof hist === 'object' ? hist : {}
+  const add = (list, x) => (Array.isArray(list) ? list : []).concat([x]).slice(-KB_LD_POINTS)
+  return { total: add(base.total, v.pressure), cpu: add(base.cpu, v.cpu.pressure), mem: add(base.mem, v.mem.pressure), runs: add(base.runs, v.inFlight) }
+}
 const kbLdIcon = (kind, tone) => h('svg', { width: 14, height: 14, viewBox: '0 0 24 24', fill: 'none', stroke: tone, strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true' },
   kind === 'cpu' ? [h('rect', { key: 'a', x: 7, y: 7, width: 10, height: 10, rx: 1.5 }), h('path', { key: 'b', d: 'M9 3v3M15 3v3M9 18v3M15 18v3M3 9h3M3 15h3M18 9h3M18 15h3' })]
     : kind === 'mem' ? [h('rect', { key: 'a', x: 3, y: 8, width: 18, height: 8, rx: 2 }), h('path', { key: 'b', d: 'M7 8v8M12 8v8M17 8v8' })]
@@ -6683,10 +6733,13 @@ const kbLdMeta = (v) => {
   return parts.join(' · ')
 }
 const KbLoadStrip = (props) => {
-  const v = props.load
+  const local = props.load
+  const computers = Array.isArray(props.computers) ? props.computers : []
   const openPair = React.useState(false)
   const open = openPair[0]
+  const selPair = React.useState('here')
   const box = React.useRef(null)
+  const keep = React.useRef({ at: null, byId: {} })
   React.useEffect(() => {
     if (open !== true) return undefined
     const away = (ev) => { try { if (box.current !== null && box.current.contains(ev.target) !== true) openPair[1](false) } catch (e) { /* gone */ } }
@@ -6695,27 +6748,52 @@ const KbLoadStrip = (props) => {
     document.addEventListener('keydown', esc)
     return () => { document.removeEventListener('mousedown', away); document.removeEventListener('keydown', esc) }
   }, [open])
-  if (v === null || v === undefined || typeof v !== 'object' || typeof v.level !== 'string') return null
-  const level = kbLdLevel(v)
-  const word = kbt('kbld.level.' + level)
-  // The reading is switched off or forced: the figure would not be the machine's, so there is no gauge, only the level.
-  if (typeof v.pressure !== 'number') return h('div', { className: 'kbld', 'data-kb': 'load-strip', 'data-kbld-level': level }, h('span', { className: 'kbld-off' }, kbt('kbld.title') + ' · ' + word))
-  const meta = kbLdMeta(v)
-  const filled = v.pressure <= 0 ? 0 : Math.max(1, Math.round((v.pressure / 100) * 24))
+  const nowMs = Date.now()
+  // What each cloud computer said, kept while the page is open (once per answer of the host): the platform gives the last beat, not a history.
+  if (keep.current.at !== props.computersAt) {
+    keep.current.at = props.computersAt
+    for (const c of computers) { const cv = kbLdCloudView(c, nowMs); if (cv !== null) keep.current.byId[c.id] = kbLdPush(keep.current.byId[c.id], cv) }
+  }
+  const hasLocal = local !== null && local !== undefined && typeof local === 'object' && typeof local.level === 'string'
+  const sel = selPair[0] !== 'here' && computers.some((c) => c.id === selPair[0]) ? selPair[0] : 'here'
+  const cloud = sel === 'here' ? null : computers.find((c) => c.id === sel)
+  if (cloud === null && hasLocal !== true) return null
+  const many = computers.length > 0
+  const cv = cloud === null ? null : kbLdCloudView(cloud, nowMs)
+  if (cv !== null) cv.series = Object.assign({ total: [], cpu: [], mem: [], runs: [] }, keep.current.byId[cloud.id])
+  const v = cloud === null ? local : cv
+  // A computer with no reading to give (asleep, waking, off, silent) has a word of its own and no gauge.
+  const stateKey = cloud === null ? null : cloud.state === 'awake' ? 'noreading' : cloud.state
+  const level = v === null ? 'asleep' : kbLdLevel(v)
+  const word = v === null ? kbt('kbld.st.' + stateKey) : kbt('kbld.level.' + level)
+  // The reading is switched off or forced: the figure would not be the machine's, so there is no gauge, only the level (and no strip at all when there is one machine).
+  if (v !== null && typeof v.pressure !== 'number' && many !== true) return h('div', { className: 'kbld', 'data-kb': 'load-strip', 'data-kbld-level': level }, h('span', { className: 'kbld-off' }, kbt('kbld.title') + ' · ' + word))
+  const pressure = v !== null && typeof v.pressure === 'number' ? v.pressure : null
+  const name = cloud === null ? kbt('kbld.here') : cloud.name
+  const meta = (many === true ? name + ' · ' : '') + (v === null ? word : kbLdMeta(v))
+  const filled = pressure === null || pressure <= 0 ? 0 : Math.max(1, Math.round((pressure / 100) * 24))
   const ticks = []
   for (let i = 0; i < 24; i += 1) ticks.push(h('i', { key: i, className: i < filled ? (i === filled - 1 ? 'on head' : 'on') : '' }))
-  const series = v.series !== null && typeof v.series === 'object' ? v.series : {}
+  const series = v !== null && v.series !== null && typeof v.series === 'object' ? v.series : {}
   const total = kbLdPath(series.total, 92, 26, 0, 100, KB_LD_POINTS)
   const tone = 'var(--kbld-c)'
-  const cpu = v.cpu !== null && typeof v.cpu === 'object' ? v.cpu : {}
-  const mem = v.mem !== null && typeof v.mem === 'object' ? v.mem : {}
-  const max = typeof v.maxParallel === 'number' ? v.maxParallel : 3
-  const kids = kbLdKids(v)
-  const subs = v.subagents !== null && typeof v.subagents === 'object' ? v.subagents : { limit: null, refused: 0 }
+  // Another computer that is busy while this one is looked at: said on the strip, so that nobody has to open the detail to find out.
+  const elsewhere = []
+  if (many === true) {
+    if (cloud !== null && hasLocal === true && kbLdLevel(local) !== 'ok') elsewhere.push({ name: kbt('kbld.here'), level: kbLdLevel(local) })
+    for (const c of computers) if (c.id !== sel && c.state === 'awake' && c.load !== null && typeof c.load === 'object' && c.load.level !== 'ok') elsewhere.push({ name: c.name, level: kbLdLevel(c.load) })
+  }
+  const worst = elsewhere.some((e) => e.level === 'high') ? 'high' : 'busy'
+  const elseText = elsewhere.length === 1 ? kbt('kbld.else1').replace('{name}', elsewhere[0].name).replace('{level}', kbt('kbld.level.' + elsewhere[0].level).toLowerCase()) : kbt('kbld.elseN').replace('{n}', String(elsewhere.length))
+  const cpu = v !== null && v.cpu !== null && typeof v.cpu === 'object' ? v.cpu : {}
+  const mem = v !== null && v.mem !== null && typeof v.mem === 'object' ? v.mem : {}
+  const max = v !== null && typeof v.maxParallel === 'number' ? v.maxParallel : 3
+  const kids = v === null ? 0 : kbLdKids(v)
+  const subs = v !== null && v.subagents !== null && typeof v.subagents === 'object' ? v.subagents : { limit: null, refused: 0 }
   const line = (label, value) => h('span', { className: 'kbld-kv' }, h('span', null, label), h('b', null, value))
   const pips = []
   // Drawn as SVG: the shell rounds the corners of its boxes its own way, and a `border-radius: 50%` comes out as a squircle.
-  for (let i = 0; i < max; i += 1) {
+  for (let i = 0; v !== null && i < max; i += 1) {
     const kind = i < v.inFlight ? 'busy' : i < v.allowed ? 'free' : 'locked'
     pips.push(h('svg', { key: i, className: 'kbld-pip ' + kind, width: 36, height: 36, viewBox: '0 0 36 36', 'aria-hidden': 'true' },
       kind === 'busy' ? h('circle', { cx: 18, cy: 18, r: 17, fill: 'var(--kbld-c)' })
@@ -6724,26 +6802,41 @@ const KbLoadStrip = (props) => {
   }
   const bar = typeof mem.availPct === 'number' && typeof mem.kybernosPct === 'number'
     ? [['kyb', mem.kybernosPct, 'var(--dsw-alias-state-business-primary)'], ['other', mem.otherPct, 'var(--dsw-alias-state-idle-primary)'], ['free', mem.availPct, 'var(--dsw-alias-state-success-primary)']] : []
+  const isCloudView = v !== null && v.cloud === true
+  const gb = cloud !== null && typeof cloud.memoryMb === 'number' ? String(cloud.memoryMb / 1024) + ' ' + kbt('kbld.unit.gb') : (isCloudView === true && typeof mem.totalMb === 'number' ? String(mem.totalMb) + ' ' + kbt('kbld.unit.mb') : '')
+  const tabs = many === true ? h('div', { className: 'kbld-tabs', role: 'tablist', 'aria-label': kbt('kbld.tabs'), 'data-kb': 'load-tabs' },
+    [{ id: 'here', name: kbt('kbld.here'), lvl: hasLocal === true ? kbLdLevel(local) : 'ok', sub: hasLocal === true ? kbt('kbld.level.' + kbLdLevel(local)) : '' }].concat(computers.map((c) => {
+      const live = kbLdCloudView(c, nowMs)
+      return { id: c.id, name: c.name, lvl: live === null ? 'asleep' : kbLdLevel(live), sub: live === null ? kbt('kbld.st.' + (c.state === 'awake' ? 'noreading' : c.state)) : kbt('kbld.level.' + kbLdLevel(live)) }
+    })).map((t) => h('button', { key: t.id, type: 'button', role: 'tab', className: 'kbld-tab', 'aria-selected': t.id === sel ? 'true' : 'false', 'data-kb': 'load-tab', 'data-kb-id': t.id, 'data-kbld-level': t.lvl, onClick: () => selPair[1](t.id) },
+      h('span', { className: 'kbld-tl' }, h('i', { className: 'kbld-dot' }), h('span', { className: 'kbld-name' }, t.name)), h('span', { className: 'kbld-sub' }, t.sub)))) : null
+  const memLines = isCloudView === true
+    ? [line(kbt('kbld.mem.avail'), mem.availMb + ' ' + kbt('kbld.unit.mb')), line(kbt('kbld.busyAt'), '400 ' + kbt('kbld.unit.mb')), line(kbt('kbld.redAt'), '200 ' + kbt('kbld.unit.mb'))]
+    : [line(kbt('kbld.mem.avail'), typeof mem.availPct === 'number' ? mem.availPct + ' %' : '—'), line(kbt('kbld.busyAt'), '20 %'), line(kbt('kbld.redAt'), '10 %')]
   return h('div', { className: 'kbld', ref: box, 'data-kb': 'load-strip', 'data-kbld-level': level },
     h('button', { type: 'button', className: 'kbld-btn', 'data-kb': 'load-strip-btn', 'aria-expanded': open === true ? 'true' : 'false', 'aria-haspopup': 'dialog', onClick: () => openPair[1](!open),
-      'aria-label': kbt('kbld.aria').replace('{title}', kbt('kbld.title')).replace('{pct}', String(v.pressure)).replace('{word}', word).replace('{meta}', meta) },
+      'aria-label': kbt('kbld.aria').replace('{title}', many === true ? name : kbt('kbld.title')).replace('{pct}', pressure === null ? '—' : String(pressure)).replace('{word}', word).replace('{meta}', meta + (elsewhere.length > 0 ? '. ' + elseText : '')) },
       h('span', { className: 'kbld-l1' },
         h('span', { className: 'kbld-ticks', 'aria-hidden': 'true' }, ticks),
-        h('span', { className: 'kbld-pct' }, String(v.pressure) + '%'),
+        h('span', { className: 'kbld-pct' }, pressure === null ? '—' : String(pressure) + '%'),
         h('span', { className: 'kbld-word' }, word),
         h('span', { className: 'kbld-sp' }),
         h('svg', { className: 'kbld-mini', width: 92, height: 26, viewBox: '0 0 92 26', 'aria-hidden': 'true' },
           total.area !== '' ? h('path', { d: total.area, fill: tone, fillOpacity: 0.16 }) : null,
           total.line !== '' ? h('path', { d: total.line, fill: 'none', stroke: tone, strokeWidth: 1.6, strokeLinejoin: 'round', strokeLinecap: 'round' }) : null),
         h('svg', { width: 14, height: 14, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true', className: 'kbld-chev' }, h('path', { d: 'm6 9 6 6 6-6' }))),
-      h('span', { className: 'kbld-l2', 'data-kb': 'load-meta' }, meta)),
+      h('span', { className: 'kbld-l2row' },
+        h('span', { className: 'kbld-l2', 'data-kb': 'load-meta' }, meta),
+        h('span', { className: 'kbld-sp' }),
+        elsewhere.length > 0 ? h('span', { className: 'kbld-chip lvl kbld-else', 'data-kb': 'load-else', 'data-kbld-level': worst }, h('i', { className: 'kbld-dot' }), elseText) : null)),
     open === true ? h('div', { className: 'kbld-pop', role: 'dialog', 'aria-label': kbt('kbld.title'), 'data-kb': 'load-pop' },
       h('div', { className: 'kbld-ph' },
         h('b', null, kbt('kbld.title')),
-        h('span', { className: 'kbld-chip lvl' }, word),
+        v === null ? null : h('span', { className: 'kbld-chip lvl' }, word),
         h('span', { className: 'kbld-sp' }),
-        h('span', { className: 'kbld-l2' }, kbt('kbld.last5'))),
-      h('div', { className: 'kbld-cards' },
+        h('span', { className: 'kbld-l2' }, isCloudView === true ? kbt('kbld.sinceOpen') : (v === null ? '' : kbt('kbld.last5')))),
+      tabs,
+      v === null ? h('div', { className: 'kbld-note', 'data-kb': 'load-note' }, kbt('kbld.note.' + stateKey).replace('{name}', name)) : h('div', { className: 'kbld-cards' },
         h('div', { className: 'kbld-card', 'data-kb': 'load-card-cpu' },
           h('div', { className: 'kbld-ct' }, kbLdIcon('cpu', 'var(--dsw-alias-state-business-primary)'), kbt('kbld.cpu')),
           h('div', { className: 'kbld-cm' },
@@ -6751,10 +6844,10 @@ const KbLoadStrip = (props) => {
             h('div', { className: 'kbld-kvs' }, line(kbt('kbld.cpu.load'), typeof cpu.loadPerCpu === 'number' ? cpu.loadPerCpu.toFixed(2) : '—'), line(kbt('kbld.busyAt'), '1.5'), line(kbt('kbld.redAt'), '2.5'))),
           kbLdSpark(kbLdPath(series.cpu, 160, 44, 0, 100, KB_LD_POINTS), 44, kbLdTone(cpu.pressure))),
         h('div', { className: 'kbld-card', 'data-kb': 'load-card-mem' },
-          h('div', { className: 'kbld-ct' }, kbLdIcon('mem', 'var(--dsw-alias-state-warn-primary)'), kbt('kbld.mem')),
+          h('div', { className: 'kbld-ct' }, kbLdIcon('mem', 'var(--dsw-alias-state-warn-primary)'), kbt('kbld.mem') + (gb === '' ? '' : ' · ' + gb)),
           h('div', { className: 'kbld-cm' },
             kbLdRingSvg(typeof mem.usedPct === 'number' ? mem.usedPct : null, typeof mem.usedPct === 'number' ? mem.usedPct + '%' : '—', kbLdTone(mem.pressure), kbt('kbld.mem')),
-            h('div', { className: 'kbld-kvs' }, line(kbt('kbld.mem.avail'), typeof mem.availPct === 'number' ? mem.availPct + ' %' : '—'), line(kbt('kbld.busyAt'), '20 %'), line(kbt('kbld.redAt'), '10 %'))),
+            h('div', { className: 'kbld-kvs' }, memLines)),
           bar.length > 0 ? h('div', { className: 'kbld-bar', role: 'img', 'aria-label': bar.map((b) => b[1] + ' %').join(' · ') }, bar.map((b) => h('span', { key: b[0], style: { width: b[1] + '%', background: b[2] } }))) : null,
           bar.length > 0 ? h('div', { className: 'kbld-legend' }, [['kyb', 'kbld.mem.kyb'], ['other', 'kbld.mem.other'], ['free', 'kbld.mem.free']].map((l, i) => h('span', { key: l[0] }, h('i', { style: { background: bar[i][2] } }), kbt(l[1])))) : null,
           kbLdSpark(kbLdPath(series.mem, 160, 30, 0, 100, KB_LD_POINTS), 30, kbLdTone(mem.pressure))),
@@ -6766,9 +6859,10 @@ const KbLoadStrip = (props) => {
             line(kbt('kbld.auto.sub'), subs.limit === null ? (kids > 0 ? kbt('kbld.sub.going').replace('{n}', String(kids)) : kbt('kbld.sub.none')) : subs.limit === 0 ? kbt('kbld.sub.zero') : kbt('kbld.sub.of').replace('{n}', String(kids)).replace('{max}', String(subs.limit))),
             line(kbt('kbld.auto.refused'), String(typeof subs.refused === 'number' ? subs.refused : 0))),
           kbLdSpark(kbLdSteps(series.runs, 160, 30, Math.max(1, max), KB_LD_POINTS), 30, 'var(--dsw-alias-state-success-primary)'))),
-      h('div', { className: 'kbld-foot' },
-        h('span', { className: 'kbld-sp' }, kbt('kbld.foot.' + level + (level === 'ok' && max === 1 ? '1' : '')).replace('{max}', String(max))),
-        h('button', { type: 'button', className: 'kbld-link', 'data-kb': 'load-settings', onClick: () => { openPair[1](false); kbOpenSettingsPage(['kybernos-automations']) } }, kbt('kbld.settings')))) : null)
+      v === null && cloud !== null ? null : h('div', { className: 'kbld-foot' },
+        h('span', { className: 'kbld-sp' }, v === null ? '' : kbt('kbld.foot.' + level + (level === 'ok' && max === 1 ? '1' : '')).replace('{max}', String(max))),
+        // Only this machine has a settings page: a computer in the cloud has no link here (its own page is opened from the account).
+        cloud === null ? h('button', { type: 'button', className: 'kbld-link', 'data-kb': 'load-settings', onClick: () => { openPair[1](false); kbOpenSettingsPage(['kybernos-automations']) } }, kbt('kbld.settings')) : null)) : null)
 }
 // What a row of the List says about a run: its weight (time, activity, slot, sub-agents, lighter) or that it waits for the machine.
 const kbLdRowWeight = (load, task, running, nowMs) => {
@@ -23780,6 +23874,19 @@ function renderFit(canvas, model, cam, opts){
         const timer = setInterval(read, 10000)
         return () => { alive = false; clearInterval(timer) }
       }, [])
+      // The cloud computers and how loaded each one is (GET /kybernos-cloud/computers, the account's own list). Without the cloud plugin, or when nobody is connected,
+      // the answer is empty and the strip is the one of this machine alone; with none to show it asks once a minute, not every ten seconds.
+      const computersPair = React.useState({ at: 0, list: [] })
+      React.useEffect(() => {
+        let alive = true
+        let timer = null
+        const read = () => fetch('/kybernos-cloud/computers', { cache: 'no-store', credentials: 'same-origin' }).then((r) => (r.ok ? r.json() : null)).then((j) => {
+          const list = j !== null && typeof j === 'object' && j.ok === true && Array.isArray(j.computers) ? j.computers : []
+          if (alive === true) { computersPair[1]({ at: Date.now(), list }); timer = setTimeout(read, list.length > 0 ? 10000 : 60000) }
+        }).catch(() => { if (alive === true) { computersPair[1]({ at: Date.now(), list: [] }); timer = setTimeout(read, 60000) } })
+        read()
+        return () => { alive = false; if (timer !== null) clearTimeout(timer) }
+      }, [])
       const tabPair = React.useState('flow')
       const tab = tabPair[0]
       const setTab = tabPair[1]
@@ -24372,7 +24479,7 @@ function renderFit(canvas, model, cam, opts){
         h('div', { className: 'kbld-row' },
           h('div', { className: 'kba-sub', role: 'tablist', 'data-kb': 'automations-sections' },
             ['yours', 'discover'].map((id) => h('button', { key: id, type: 'button', role: 'tab', 'aria-selected': section === id ? 'true' : 'false', className: section === id ? 'on' : '', 'data-kb': 'section-' + id, onClick: () => setSection(id) }, kbt('tasks.tab.' + id)))),
-          h(KbLoadStrip, { load: machineLoadPair[0] })),
+          h(KbLoadStrip, { load: machineLoadPair[0], computers: computersPair[0].list, computersAt: computersPair[0].at })),
         // Barre unifiée (comme Projets et Kybers) : les anciens chips
         // Toutes / Actives / Attention requise deviennent la facette `type`
         // (compteurs sur la liste complète), Favoris devient l'étoile de la
@@ -34787,6 +34894,7 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
 [data-kbld-level]{--kbld-c:var(--dsw-alias-state-success-primary)}
 [data-kbld-level="busy"]{--kbld-c:var(--dsw-alias-state-warn-primary)}
 [data-kbld-level="high"]{--kbld-c:var(--dsw-alias-state-error-primary)}
+[data-kbld-level="asleep"]{--kbld-c:var(--dsw-alias-state-business-primary)}
 body[data-ds-dark-theme] [data-kbld-level]{--kbld-t:var(--kbld-c)}
 body:not([data-ds-dark-theme]) [data-kbld-level]{--kbld-t:color-mix(in srgb,var(--kbld-c) 55%,var(--dsw-alias-label-primary))}
 .kbld-row{display:flex;align-items:flex-start;justify-content:space-between;gap:12px 16px;flex-wrap:wrap;margin:0 0 14px}
@@ -34836,6 +34944,18 @@ body:not([data-ds-dark-theme]) [data-kbld-level]{--kbld-t:color-mix(in srgb,var(
 .kbld-dot{display:block;width:8px;height:8px;border-radius:50%;background:var(--kbld-c)}
 .kbld-waitword{color:var(--kbld-t);font-weight:600}
 .kbld-q{font-size:11px;color:var(--dsw-alias-label-secondary)}
+.kbld-l2row{display:flex;align-items:center;gap:8px;width:100%}
+.kbld-l2row .kbld-l2{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kbld-else{flex:none}
+.kbld-tabs{display:flex;gap:4px;margin-top:12px;padding:4px;border-radius:12px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-2)}
+.kbld-tab{display:flex;flex:1 1 0;flex-direction:column;align-items:center;justify-content:center;gap:1px;min-width:0;padding:6px 8px;border:0;border-radius:10px;background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12px;font-weight:600;cursor:pointer}
+.kbld-tab:hover{background:var(--dsw-alias-interactive-bg-hover)}
+.kbld-tab[aria-selected="true"]{background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);box-shadow:0 1px 3px rgba(0,0,0,.25)}
+.kbld-tl{display:flex;align-items:center;gap:6px;max-width:100%}
+.kbld-tab .kbld-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kbld-tab .kbld-sub{font-size:11px;font-weight:500;color:var(--kbld-t);white-space:nowrap;line-height:1.3}
+.kbld-tab .kbld-dot{flex:none}
+.kbld-note{display:flex;align-items:center;gap:12px;margin-top:12px;padding:12px 14px;border-radius:12px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-2);font-size:12px;color:var(--dsw-alias-label-secondary)}
 @media (max-width:560px){.kbld{width:100%}.kbld-btn{width:100%}.kbld-ticks{flex:1 1 auto;justify-content:space-between}.kbld-ticks i{width:3px}.kbld-pop{position:static;width:auto;max-width:none;margin-top:8px}.kbld-cards{grid-template-columns:1fr}}
 @media (max-width:400px){.kbld-mini{display:none}}
 .kbac-btn{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:32px;padding:0 12px;border-radius:10px;border:1px solid var(--dsw-alias-border-l2);background:transparent;color:var(--dsw-alias-label-primary);font:inherit;font-size:13px;text-decoration:none;cursor:pointer;white-space:nowrap}
