@@ -9,7 +9,8 @@ f="${DSH_HOME:?}/profiles/web/cordis.patch.yml"
 [ -f "$f" ] || exit 0
 begin="# kybernos-computer:begin"
 end="# kybernos-computer:end"
-awk -v b="$begin" -v e="$end" '$0==b{skip=1} !skip{print} $0==e{skip=0}' "$f" > "$f.tmp"
+# A lone `[]` (what DSH 0.2.1-rc.2 writes into an empty profile) would sit before the list items below and make the file invalid: it is left out.
+awk -v b="$begin" -v e="$end" '$0=="[]"{next} $0==b{skip=1} !skip{print} $0==e{skip=0}' "$f" > "$f.tmp"
 
 api="${KYBERNOS_API:-}"
 api="${api%/}"

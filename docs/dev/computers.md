@@ -158,6 +158,12 @@ DSH's own question card has nobody in front of it on a computer, so these runs a
 On the laptop the page draws it: « Waiting for your OK » on the Sessions tab of the automation (what it wants to do, three buttons: allow once, allow for this run, refuse; « also sent to
 your phone » only when the platform says a message went), « Home · waiting for your OK » in the List, and the Where-it-runs tab offers `ask` only on a computer that can ask. Not built: « always
 allow this » (a standing rule per automation, to be kept on the computer, shown and revocable on the laptop), an e-mail digest.
+**Played on the real image** (2026-10-24, arm64 container, DSH 0.2.1-rc.2, a stand-in platform on the Mac and a stand-in model; the image built from the checkout with `KB_LOCAL`, nothing published):
+`node services/computer-image/play-ask.mjs <image>` (and `DECISION=denied`) does the whole path in about two minutes and checks ten things: ready with `ask_approvals`, the definition applied, the
+gate's question (the command, kind shell) put once, the run refused at once and not reported as ended, the schedule row `waiting_approval`, the answer taken, the SAME session continued with what was
+decided, the action run once (or not at all when refused: no file), the run reported once. 10/10 for allowed and for denied. Not played: the real platform, Fly (amd64), a real model, a real tap.
+To build the image from the checkout without a release: `git archive <commit> | tar -x -C <folder>`, then `docker buildx build --build-context kbsrc=<folder> --build-arg KB_LOCAL=1 --build-arg DSH_VER=0.2.1-rc.2 -t kybernos-computer-base:<tag> packages/kybernos-gate/docker`
+and the computer image as above (`-f services/computer-image/Dockerfile --build-arg BASE=...`, context the repository root).
 Tests: `scripts/test-computer-approvals.mjs` (the two real plugins and a stand-in platform), `packages/kybernos-cloud/test-automation-approvals.mjs` (the rules),
 `test-computers-publish.mjs`, `test-computers-view.mjs`, `packages/kybernos-plugin/test-where-it-runs.mjs`, `services/computer-image/reporter.test.mjs`.
 
@@ -221,6 +227,10 @@ The server repository's `scripts/computers-play.ts` serves a platform behind a t
 machine's DNS survives), and a machine running longer than 5 minutes (see the trial trap below).
 
 ## Traps met
+
+- **DSH 0.2.1-rc.2 writes `[]` as the first line of an empty profile's `cordis.patch.yml`.** The block the image appends (permission presets, the model route) made the file invalid YAML ("end of the stream or a document separator is expected") and DSH stopped at every boot ("dsh stopped, restarting in 2 s", for ever, `ready` never sent). The Dockerfile and `render-profile.sh` now drop a lone `[]` line first (found 2026-10-24 by playing the image: no image had been built on rc.2 before).
+- **The gate refuses a platform address that is not https unless it is loopback** (`KYBERNOS_GATE_TICKET_URL must be https`): a local run against an http stand-in platform passes a loopback ticket address of its own, or the container exits at once.
+- **Size:** the image on rc.2 is 2.55 GB (the engine tree alone is 834 MB), not the 563 MB written for alpha.2: it matters for a machine's first pull at Fly.
 
 - **A trial organisation stops every machine after 5 minutes** (`Trial machine stopping. To run for longer than 5m0s, add a credit
   card`): the machine goes `stopped`, whatever the platform wants. A real test of anything longer needs a card on the organisation.
