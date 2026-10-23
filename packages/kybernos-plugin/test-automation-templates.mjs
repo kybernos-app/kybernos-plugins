@@ -26,8 +26,8 @@ const trEn = (k) => (pairs[k] !== undefined ? pairs[k].en : 'MISSING:' + k)
 const trFr = (k) => (pairs[k] !== undefined ? pairs[k].fr : 'MISSING:' + k)
 
 /* ── The catalogue ───────────────────────────────────────────────────────── */
-eq('three categories, each with a title in both languages and a colour of the theme (no literal hex)', m.KB_TPL_CATS.map((c) => [c.id, c.title.length, /^var\(--dsw-alias-state-(warn|business|success)-primary\)$/.test(c.color)]), [['social', 2, true], ['prospecting', 2, true], ['support', 2, true]])
-eq('ten templates, none twice', [m.KB_TPLS.length, new Set(m.KB_TPLS.map((t) => t.id)).size], [10, 10])
+eq('four categories, each with a title in both languages and a colour of the theme (no literal hex)', m.KB_TPL_CATS.map((c) => [c.id, c.title.length, /^var\(--dsw-alias-state-(warn|business|success)-primary\)$/.test(c.color)]), [['social', 2, true], ['prospecting', 2, true], ['support', 2, true], ['skills', 2, true]])
+eq('eleven templates, none twice', [m.KB_TPLS.length, new Set(m.KB_TPLS.map((t) => t.id)).size], [11, 11])
 eq('every template belongs to a category', m.KB_TPLS.every((t) => m.KB_TPL_CATS.some((c) => c.id === t.cat)), true)
 {
   const pairOk = (p) => Array.isArray(p) === true && p.length === 2 && typeof p[0] === 'string' && typeof p[1] === 'string' && p[0].trim().length > 0 && p[1].trim().length > 0
@@ -53,15 +53,25 @@ eq('the first memory check of a heavy template is a step of its own, written PRE
 }
 eq('the icons are ones the page draws', m.KB_TPLS.map((t) => t.icon).filter((i) => new RegExp('^  ' + i + ': \\[', 'm').test(src.slice(src.indexOf('const LUCIDE = {'), src.indexOf('const Icon = '))) !== true), [])
 
+{
+  // The skill scout (docs/dev/learned-skills.md): the Skills page starts it through `window.__KB_OPEN__.template('skill-scout')`.
+  const t = m.KB_TPLS.find((x) => x.id === 'skill-scout')
+  eq('the skill scout template exists, on a weekly schedule, in its own category', [t !== undefined, t.cat, t.cron], [true, 'skills', '0 9 * * 1'])
+  eq('it calls the host tool once and installs nothing', [t.steps.some((s) => /skill_scout/.test(en(s[1]))), t.guard.some((g) => /Nothing is installed/.test(en(g)) && /Rien n’est installé/.test(fr(g)))], [true, true])
+  eq('its chat text names the tool and keeps the task OFF', [/skill_scout/.test(m.kbTplChatText(t, trEn, en)), /active: false/.test(m.kbTplChatText(t, trEn, en))], [true, true])
+  const seam = src.slice(src.indexOf('kbOpenPage.template = '), src.indexOf('kbOpenPage.template = ') + 700)
+  eq('the seam builds the same chat text as the Discover card, and answers false without a template or a chat', [/KB_TPLS\.filter\(\(x\) => x\.id === id\)\[0\]/.test(seam), /kbTplChatText\(tpl, kbt, kbTplPick, kbTplLangName\(kbLangResolve\(\)\)\)/.test(seam), /return false/.test(seam)], [true, true, true])
+}
+
 /* ── Words and filters ───────────────────────────────────────────────────── */
 eq('a pair is read in the language `pick` chooses, English by default', [m.kbTplText(['a', 'b'], en), m.kbTplText(['a', 'b'], fr), m.kbTplText(['a', 'b']), m.kbTplText(null, en)], ['a', 'b', 'a', ''])
-eq('all templates when no category and no words', m.kbTplFilter(m.KB_TPLS, 'all', '', en).length, 10)
+eq('all templates when no category and no words', m.kbTplFilter(m.KB_TPLS, 'all', '', en).length, 11)
 eq('a category keeps its own', [m.kbTplFilter(m.KB_TPLS, 'social', '', en).length, m.kbTplFilter(m.KB_TPLS, 'prospecting', '', en).length, m.kbTplFilter(m.KB_TPLS, 'support', '', en).length], [3, 3, 4])
 eq('words are looked for in the title, the text, the tags and the apps', [m.kbTplFilter(m.KB_TPLS, 'all', 'whatsapp', en).map((t) => t.id), m.kbTplFilter(m.KB_TPLS, 'all', 'shopify', en).map((t) => t.id)], [['cs-whatsapp', 'cs-shopify'], ['cs-shopify']])
 eq('every word must match, in any order, whatever the case', m.kbTplFilter(m.KB_TPLS, 'all', 'CALL  outbound', en).map((t) => t.id), ['prosp-calls'])
 eq('the filter reads the page’s language: a French word finds the French text', [m.kbTplFilter(m.KB_TPLS, 'all', 'appels sortants', fr).map((t) => t.id), m.kbTplFilter(m.KB_TPLS, 'all', 'appels sortants', en).length], [['prosp-calls'], 0])
 eq('a category and words together', m.kbTplFilter(m.KB_TPLS, 'support', 'whatsapp', en).map((t) => t.id), ['cs-whatsapp', 'cs-shopify'])
-eq('nothing matches, nothing breaks', [m.kbTplFilter(m.KB_TPLS, 'all', 'zzzz', en), m.kbTplFilter(null, 'all', '', en), m.kbTplFilter(m.KB_TPLS, 'all', undefined, en).length], [[], [], 10])
+eq('nothing matches, nothing breaks', [m.kbTplFilter(m.KB_TPLS, 'all', 'zzzz', en), m.kbTplFilter(null, 'all', '', en), m.kbTplFilter(m.KB_TPLS, 'all', undefined, en).length], [[], [], 11])
 eq('a step kind is ai or act, act when unknown', [m.kbTplStepKind(['ai', ['x', 'y']]), m.kbTplStepKind(['act', ['x', 'y']]), m.kbTplStepKind(null), m.kbTplStepKind(['?'])], ['ai', 'act', 'act', 'act'])
 
 /* ── Logos and the page's language ──────────────────────────────────────── */
