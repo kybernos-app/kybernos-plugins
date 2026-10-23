@@ -225,7 +225,12 @@ The page asks once per card, looks again every four seconds while pictures are m
 **The cover must be a floating tile.** A first real run made a library with its walls (85 % of the trimmed picture opaque; the shipped covers are 40 to 55 %). The scene
 prompt now asks for ONE compact miniature, and the cut-out is checked: up to three pictures are tried until the opaque part is at most 72 % (at least 12 %), the closest to a
 tile is kept, none is written above 80 %. A cut-out call that fails is tried twice on the same picture before a new picture is paid for; a picture call that fails is not
-repeated (the card waits). The sidecar `<name>.cover.json` keeps `opaqueShare` and the number of pictures.
+repeated (the card waits). A cut-out that reaches the edge of the picture was cropped by the frame (a desk with its legs cut): it is kept only when no uncropped one comes.
+The sidecar `<name>.cover.json` keeps `opaqueShare` and the number of pictures.
+
+**Equal weight on screen.** The pictures differ in shape (aspect 0.98 to 1.75) and weight (39 to 67 % opaque); fitted by their box, the wide heavy ones filled the card and the
+others floated in it. The page draws each so that its OPAQUE part covers 0.29 of its frame (what the shipped covers average), within 92 % of the width and 90 % of the height
+(`fitCover` in the client reads the opaque part from a 48-pixel copy; measured on the sandbox: 0.28 to 0.30 on 10 covers, one clamped by the height at 0.23).
 
 ## The seam for automations
 
