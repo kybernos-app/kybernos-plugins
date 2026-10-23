@@ -1778,6 +1778,10 @@ let kbLocaleRead = () => 'en'
       'kbwr.err.never_runs': { kybernos: 'Son planning ne se déclenchera jamais.', en: 'Its schedule will never fire.' },
       'kbwr.err.expired': { kybernos: 'L’ordinateur ne l’a pas récupérée à temps.', en: 'The computer did not pick it up in time.' },
       'tasks.err.cloud': { kybernos: 'Elle tourne dans le cloud : ramène-la sur cet ordinateur avant de la rallumer ici.', en: 'It runs in the cloud: bring it back here before switching it on.' },
+      'kbwr.row.cloud': { kybernos: 'Dans le cloud · {name}', en: 'In the cloud · {name}' },
+      'kbwr.row.sub': { kybernos: 'Cloud · {name}', en: 'Cloud · {name}' },
+      'kbwr.row.mark': { kybernos: 'Tourne dans le cloud', en: 'Runs in the cloud' },
+      'kbwr.row.cloudDirty': { kybernos: '{name} · mise à jour à publier', en: '{name} · update to publish' },
       'kbwr.err.other': { kybernos: 'Refusé ({code}).', en: 'Refused ({code}).' },
       'kbld.aria': { kybernos: '{title} : {pct} %, {word}. {meta}', en: '{title}: {pct} percent, {word}. {meta}' },
       'kbld.last5': { kybernos: 'Les 5 dernières minutes · toutes les 10 s', en: 'Last 5 minutes · every 10 s' },
@@ -24320,12 +24324,13 @@ function renderFit(canvas, model, cam, opts){
         let lastLabel = kbt('tasks.no.session')
         let lastCls = ''
         if (runIds.indexOf(t.id) >= 0) { lastLabel = kbt('tasks.board.chip.running'); lastCls = 'run' }
+        else if (t.cloud !== null && t.cloud !== undefined && typeof t.cloud === 'object') { lastLabel = kbt(kbwDirty(t) === true ? 'kbwr.row.cloudDirty' : 'kbwr.row.cloud').replace('{name}', () => String(t.cloud.name)); lastCls = kbwDirty(t) === true ? 'cloudwarn' : 'cloud' }
         else if (t.active === false) { lastLabel = kbt('tasks.paused'); lastCls = '' }
         else if (failed) { lastLabel = kbt('tasks.failed.at').replace('{when}', kbWhenOf(last.at)); lastCls = 'fail' }
         else if (t.lastRun !== null && t.lastRun !== undefined) { lastLabel = kbWhenOf(t.lastRun) + ' \u00b7 ok'; lastCls = 'ok' }
         const parts = kbTriggerParts(t, kbt, kbBoardLocale(), kbMachineTz())
         return {
-          id: t.id, name: t.name || t.id, team: kbTaskWho(t, kbt), trigger: parts.label, tip: parts.tip, hooked: parts.hooked, active: t.active !== false,
+          id: t.id, name: t.name || t.id, team: kbTaskWho(t, kbt) + (t.cloud !== null && t.cloud !== undefined && typeof t.cloud === 'object' ? ' \u00b7 ' + kbt('kbwr.row.sub').replace('{name}', () => String(t.cloud.name)) : ''), trigger: parts.label, tip: parts.tip, hooked: parts.hooked, active: t.active !== false,
           sessions: hist.length, succ: kbRunBars(t.history), lastLabel: lastLabel, lastCls: lastCls, failed: failed === true || t.pendingFire === true, _t: t,
           weight: kbLdRowWeight(machineLoadPair[0], t, runIds.indexOf(t.id) >= 0, Date.now()),
         }
@@ -24751,7 +24756,7 @@ function renderFit(canvas, model, cam, opts){
             kbaListHead(),
             filtered.map((a, i) => h('div', { key: a.id, className: 'kba-rowline' + kbIn(i) },
               h('button', { type: 'button', className: 'kba-rowbtn', onClick: () => { setDetail(a.id); setTab('flow'); setNodeSel(null) } },
-                h('span', { className: 'kba-namecell' }, h('span', { className: 'kba-name', title: a.name }, a.name), h('span', { className: 'kba-team', title: a.team }, a.team)),
+                h('span', { className: 'kba-namecell' }, h('span', { className: 'kba-name', title: a.name }, a.name, a._t.cloud !== null && a._t.cloud !== undefined && typeof a._t.cloud === 'object' ? h('span', { className: 'kbwr-mark', 'data-kb': 'row-cloud', title: kbt('kbwr.row.mark'), role: 'img', 'aria-label': kbt('kbwr.row.mark') }, Icon('cloud', 13)) : null), h('span', { className: 'kba-team', title: a.team }, a.team)),
                 h('span', { className: 'kba-trgcell' }, h('span', { className: 'kba-trigger-icon' }, Icon('zap', 12)), h('span', { className: 'kba-trg-stack' }, h('span', { className: 'kba-ell', title: a.tip !== '' ? a.trigger + ' · ' + a.tip : a.trigger }, a.trigger), a.hooked === true ? h('span', { className: 'kba-team' }, kbt('tasks.trigger.plushook')) : null)),
                 a.weight !== null ? kbLdStateCell(a) : h('span', { className: 'kba-last' + (a.lastCls !== '' ? ' ' + a.lastCls : '') }, a.lastCls === 'run' ? h('span', { className: 'kb-spin', role: 'status', 'aria-label': a.lastLabel }) : h('span', { className: 'kba-kdot ' + a.lastCls }), h('span', { className: 'kba-ell', title: a.lastLabel }, a.lastLabel)),
                 h('span', { className: 'kba-succ', 'data-kb': 'row-success' },
@@ -35203,6 +35208,9 @@ body:not([data-ds-dark-theme]) [data-kbld-level]{--kbld-t:color-mix(in srgb,var(
 .kbld-q{font-size:11px;color:var(--dsw-alias-label-secondary)}
 .kbwr{display:flex;flex-direction:column;gap:14px;max-width:760px;padding:4px 2px 24px}
 .kbwr-h{font-size:12px;font-weight:600;color:var(--dsw-alias-label-secondary)}
+.kbwr-mark{display:inline-flex;vertical-align:-2px;margin-inline-start:7px;color:var(--dsw-alias-state-business-primary)}
+.kba-kdot.cloud{background:var(--dsw-alias-state-business-primary)}
+.kba-kdot.cloudwarn{background:var(--dsw-alias-state-warn-primary)}
 .kbwr-seg{display:inline-flex;gap:2px;padding:3px;border-radius:12px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-2);align-self:flex-start}
 .kbwr-seg button{display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 14px;border:0;border-radius:9px;background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:13px;font-weight:600;cursor:pointer}
 .kbwr-seg button[aria-pressed="true"]{background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);box-shadow:0 1px 3px rgba(0,0,0,.25)}

@@ -90,6 +90,8 @@ assert.ok(/kbt\('kbwr\.runson'\)\.replace\('\{name\}', \(\) => String\(t\.cloud\
 assert.ok(/fetch\('\/kybernos-cloud\/computers\/publish', \{ method: 'POST', credentials: 'same-origin'/.test(cli), 'publishing goes through the cloud plugin, with the browser session')
 assert.ok(!/className: '[^']*\bkbw-/.test(comp) && !/'kbw\.[a-z]/.test(comp), 'the tab uses no class and no string key under the name another page already uses (kbw)')
 assert.ok(/\.kbwr-seg\{/.test(cli) && /\.kbwr-opt\{/.test(cli), 'its styles are under kbwr-')
+assert.ok(/lastLabel = kbt\(kbwDirty\(t\) === true \? 'kbwr\.row\.cloudDirty' : 'kbwr\.row\.cloud'\)\.replace\('\{name\}', \(\) => String\(t\.cloud\.name\)\); lastCls = kbwDirty\(t\) === true \? 'cloudwarn' : 'cloud' \}\s+else if \(t\.active === false\) \{ lastLabel = kbt\('tasks\.paused'\)/.test(cli), 'in the list, an automation that lives in the cloud is not « Paused »: it says where it is, and when it was changed since')
+assert.ok(/'data-kb': 'row-cloud'/.test(cli) && /kbt\('kbwr\.row\.sub'\)/.test(cli), 'the list marks it with a cloud and « Cloud · Home » under the name')
 ok('page: a tab, the computers and tasks handed over, the link through the task store, the header, the session on the write')
 
 console.log('\n' + pass + ' checks passed')
