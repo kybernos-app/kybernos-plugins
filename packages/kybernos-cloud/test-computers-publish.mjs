@@ -5,7 +5,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { definitionOf, opsOf, codeOf, statesOf, createPublish, CODES, MAX_OPS } from './computers-publish.mjs'
+import { definitionOf, opsOf, codeOf, statesOf, runsOf, createPublish, CODES, MAX_OPS } from './computers-publish.mjs'
 
 let pass = 0
 const ok = (label) => { pass += 1; console.log('  ✓ ' + label) }
@@ -63,6 +63,22 @@ assert.equal(statesOf({ tasks: Array.from({ length: 80 }, (_, i) => ({ task_ref:
 assert.ok(!JSON.stringify(statesOf({ tasks: [{ task_ref: 'task-a', state: 'applied', schedule: { ...row, label: 'PRIVATE LABEL' } }] })).includes('PRIVATE'), 'the label of a schedule row is not passed on')
 ok('states: pending, applied or error, a code only when it is one, the few plain fields of the schedule row')
 
+// 4b. the runs
+{
+  const run = (o) => Object.assign({ run_key: 'sess-1', task_ref: 'task-a', via: 'cron', outcome: 'completed', reason: null, started_at: '2026-10-23T03:00:00.000Z', ended_at: '2026-10-23T03:04:10Z' }, o)
+  assert.deepEqual(runsOf({ runs: [run()] }), [{ key: 'sess-1', ref: 'task-a', via: 'cron', outcome: 'completed', reason: null, startedAt: '2026-10-23T03:00:00.000Z', endedAt: '2026-10-23T03:04:10.000Z' }])
+  assert.equal(runsOf({ runs: [run({ outcome: 'exploded' })] }).length, 0, 'an outcome that is not one of the five words is not a run')
+  assert.equal(runsOf({ runs: [run({ ended_at: 'later' })] }).length, 0, 'a run with no end time is dropped')
+  assert.equal(runsOf({ runs: [run({ task_ref: 'bad ref' }), null, 'x', run({ task_ref: 7 })] }).length, 0)
+  const odd = runsOf({ runs: [run({ via: 'carrier-pigeon', reason: 'Run failed: <b>x</b>', started_at: 'x', run_key: 'a b' })] })[0]
+  assert.deepEqual([odd.via, odd.reason, odd.startedAt, odd.key], [null, null, '2026-10-23T03:04:10.000Z', '2026-10-23T03:04:10.000Z:task-a'], 'a via that is not known, a reason that is not a code, a start that is not a time: kept out, the key made from the end')
+  assert.equal(runsOf({ runs: [run({ reason: 'run_failed', outcome: 'error' })] })[0].reason, 'run_failed')
+  assert.equal(runsOf({ runs: Array.from({ length: 150 }, (_, i) => run({ run_key: 'k' + i })) }).length, 100)
+  for (const none of [null, undefined, {}, { runs: 'x' }]) assert.deepEqual(runsOf(none), [])
+  assert.ok(!JSON.stringify(runsOf({ runs: [run({ prompt: 'secret', result: 'secret', body: { prompt: 'secret' } })] })).includes('secret'), 'nothing outside the closed list goes through')
+}
+ok('runs: five outcomes, four ways to start, a reason only as a code, the times, at most 100, nothing else')
+
 // 5. the two calls, against a stand-in platform
 const calls = []
 const fakeApi = (answers) => async (path, options) => { calls.push({ path, method: options.method, token: options.token, body: options.body }); const a = answers.find((x) => x.when(path, options)); return a === undefined ? { status: 404, body: null } : a.then }
@@ -105,6 +121,28 @@ for (const [status, body, want] of [[409, { error: 'run_hours_exhausted', messag
   const gone = createPublish({ readState: () => connected, isConnected: () => true, apiCall: fakeApi([wsAnswer, { when: (p) => p === tasksPath, then: { status: 404, body: null } }]) })
   assert.equal((await gone.states(new URLSearchParams('computerId=' + COMPUTER))).error, 'no_computer')
 }
+{
+  const runsPath = '/v1/workspaces/' + WS + '/computers/' + COMPUTER + '/runs'
+  const answer = { runs: [{ run_key: 'r1', task_ref: 'task-a', via: 'run_now', outcome: 'error', reason: 'run_failed', started_at: '2026-10-23T03:00:00Z', ended_at: '2026-10-23T03:01:00Z' }] }
+  calls.length = 0
+  const api = createPublish({ readState: () => connected, isConnected: () => true, apiCall: fakeApi([wsAnswer, { when: (p) => p.startsWith(runsPath + '?'), then: { status: 200, body: answer } }]) })
+  const all = await api.runs(new URLSearchParams('computerId=' + COMPUTER))
+  assert.deepEqual([all.ok, all.runs.length, all.runs[0].outcome, all.runs[0].via], [true, 1, 'error', 'run_now'])
+  assert.equal(calls[calls.length - 1].path, runsPath + '?limit=100', 'every automation of the computer, at most a hundred')
+  assert.equal(calls[calls.length - 1].token, 'tok')
+  await api.runs(new URLSearchParams('computerId=' + COMPUTER + '&ref=task-a'))
+  assert.equal(calls[calls.length - 1].path, runsPath + '?limit=50&task_ref=task-a', 'one automation: asked of the platform, not cut here')
+  calls.length = 0
+  for (const bad of [new URLSearchParams('computerId=nope'), new URLSearchParams(''), new URLSearchParams('computerId=' + COMPUTER + '&ref=a%20b'), new URLSearchParams('computerId=' + COMPUTER + '&ref=' + 'x'.repeat(65)), null]) assert.equal((await api.runs(bad)).error, 'invalid_request')
+  assert.deepEqual(calls, [], 'a bad id never reaches the platform')
+  const off = createPublish({ readState: () => null, isConnected: () => false, apiCall: async () => { throw new Error('must not be called') } })
+  assert.deepEqual(await off.runs(new URLSearchParams('computerId=' + COMPUTER)), { ok: false, error: 'not_connected' })
+  for (const [status, want] of [[404, 'no_computer'], [429, 'rate_limited'], [503, 'tasks_unavailable'], [0, 'unreachable']]) {
+    const bad = createPublish({ readState: () => connected, isConnected: () => true, apiCall: fakeApi([wsAnswer, { when: (p) => p.startsWith(runsPath), then: { status, body: null } }]) })
+    assert.equal((await bad.runs(new URLSearchParams('computerId=' + COMPUTER))).error, want, String(status))
+  }
+}
+ok('runs call: the platform\'s route with a limit, one automation asked of the platform, bad ids stopped here, refusals as short codes')
 ok('calls: the platform\'s shape and only the personal space, refusals as short codes, nothing called when it cannot go or nobody is connected')
 
 // 6. the routes: a write is strict and signed-in, a read is a guarded GET
@@ -113,8 +151,9 @@ ok('calls: the platform\'s shape and only the personal space, refusals as short 
   assert.ok(/import \{ createPublish \} from '\.\/computers-publish\.mjs'/.test(idx))
   assert.ok(/\{ path: '\/kybernos-cloud\/computers\/publish', method: 'POST', guarded: true, strict: true, session: true, body: true, cap: 100000, run: \(req, body\) => computersPublish\.publish\(body\) \}/.test(idx), 'publishing writes on the person\'s behalf: same origin strictly and the signed browser session')
   assert.ok(/\{ path: '\/kybernos-cloud\/computers\/tasks', method: 'GET', guarded: true, run: \(req\) => computersPublish\.states\(queryOf\(req\)\) \}/.test(idx), 'reading the states is a guarded GET')
+  assert.ok(/\{ path: '\/kybernos-cloud\/computers\/runs', method: 'GET', guarded: true, run: \(req\) => computersPublish\.runs\(queryOf\(req\)\) \}/.test(idx), 'reading the runs is a guarded GET')
   assert.ok(/const computersPublish = createPublish\(\{ readState, isConnected, apiCall \}\)/.test(idx))
-  ok('routes: publish is strict and needs the signed session, the states are a guarded GET')
+  ok('routes: publish is strict and needs the signed session, the states and the runs are a guarded GET')
 }
 
 console.log('\n' + pass + ' checks passed')

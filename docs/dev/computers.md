@@ -119,6 +119,20 @@ The door is the plugin's `/kybernos/tasks/apply`: the same origin rule as the ot
 keeps in `<DSH home>/kybernos/apply-token` (32 random bytes in hex, 0600, made at the first apply). A laptop has no such file, so the route refuses everything there. Tests:
 `scripts/test-tasks-apply.mjs` (the real plugin), `services/computer-image/reporter-apply.test.mjs` (the reporter against a stand-in platform and DSH).
 
+### What comes back to the laptop
+
+The runs the computer reports ended (`POST /v1/computer/runs`: id, automation, how it started, how it ended, two times) are read back through the cloud plugin
+(`GET /kybernos-cloud/computers/runs`, from the platform's `GET …/computers/{id}/runs`) and drawn by the page in three places, all from the same closed list of fields:
+
+- the **Sessions** tab of an automation that runs in the cloud shows « Latest runs, reported by Home » (time, outcome, how it started, how long) and, while the beat says it is
+  running (`running_tasks`), a « Running for … » card. The details of a run never leave the computer: this pane has no prompt and no result to show. When the automation also ran
+  here before it was sent, a switch keeps the sessions from then one click away;
+- the **tab count** and the **List** (Sessions column, success bars) count the cloud runs for such an automation, and the State column says « Home · last run failed » when the
+  newest run ended in `error`, `timeout` or `capped`;
+- the page asks the platform once per computer that has an automation linked to it, every 30 s (the tab asks for its own automation every 15 s, 60 s after a failure).
+
+Not shown yet: why a run failed (the reporter sends only `run_failed`), the output of a run, and runs of an automation that was made on the computer itself and never published.
+
 ## What it was checked to do
 
 On the real platform (Fly.io, `ams`, `shared-cpu-1x` 2 GB, one 2 GB volume, 2026-10-14; one sample each, direction and not a guarantee),

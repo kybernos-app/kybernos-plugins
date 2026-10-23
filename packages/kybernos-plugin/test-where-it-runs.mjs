@@ -15,7 +15,7 @@ const cli = readFileSync(join(here, 'client.js'), 'utf8')
 const from = cli.indexOf('// <kbwr-core>')
 const to = cli.indexOf('// </kbwr-core>')
 assert.ok(from > 0 && to > from, 'the rules are where the test looks for them')
-const mod = await import('data:text/javascript,' + encodeURIComponent(cli.slice(from, to) + '\nexport { kbwDirty, kbwCount, kbwBlock, kbwPhase, kbwDefaultPick, kbwDefinition }'))
+const mod = await import('data:text/javascript,' + encodeURIComponent(cli.slice(from, to) + '\nexport { kbwDirty, kbwCount, kbwBlock, kbwPhase, kbwDefaultPick, kbwDefinition, kbwLinkedIds, kbwRunsFor, kbwRunLast, kbwRunBad, kbwRunningNow, kbwSpan, kbwHistoryOf }'))
 const HOME = '3f2a1c10-0000-4000-8000-000000000001'
 const PROS = '3f2a1c10-0000-4000-8000-000000000002'
 const linkedTask = (o) => ({ id: 'st-1', name: 'Collecteur', prompt: 'Collect', schedule: { mode: 'cron', cron: '0 3 * * *', tz: 'UTC' }, approvals: 'auto', active: false, updatedAt: '2026-10-23T10:00:00.000Z', cloud: { computerId: HOME, name: 'Home', at: '2026-10-23T10:00:00.000Z', wasActive: true }, ...(o || {}) })
@@ -48,7 +48,26 @@ assert.equal(mod.kbwDefaultPick(null), null)
 assert.deepEqual(mod.kbwDefinition(linkedTask({ workspaceHint: 'ws', homeSessionId: 's', notify: ['email'], needs: ['gmail'], id: 'st-1' }), true), { name: 'Collecteur', prompt: 'Collect', schedule: { mode: 'cron', cron: '0 3 * * *', tz: 'UTC' }, active: true, approvals: 'auto', needs: ['gmail'] }, 'six fields, and active is what it was before it was linked')
 assert.equal(mod.kbwDefinition(linkedTask(), false).active, false)
 assert.equal('needs' in mod.kbwDefinition(linkedTask({ needs: [] }), true), false)
-ok('rules: dirty, count, why it cannot go, the phase of what was sent, the default computer, the six fields')
+// the runs a computer reported
+const runOf = (o) => Object.assign({ key: 'r1', ref: 'st-1', via: 'cron', outcome: 'completed', reason: null, startedAt: '2026-10-23T03:00:00.000Z', endedAt: '2026-10-23T03:04:10.000Z' }, o)
+assert.equal(mod.kbwLinkedIds([linkedTask(), linkedTask({ id: 'st-2' }), linkedTask({ id: 'st-3', cloud: { computerId: PROS, name: 'P', at: 'x' } }), { id: 'st-4' }, null, 'x', linkedTask({ id: 'st-5', cloud: { computerId: '', name: 'P', at: 'x' } })]), [HOME, PROS].sort().join(','), 'each computer once, sorted: a stable key')
+for (const none of [null, undefined, [], 'x', [{ id: 'a' }]]) assert.equal(mod.kbwLinkedIds(none), '')
+const runs = [runOf({ key: 'old', endedAt: '2026-10-22T03:04:10.000Z' }), runOf({ key: 'new', endedAt: '2026-10-23T03:04:10.000Z' }), runOf({ key: 'other', ref: 'st-2' }), runOf({ key: 'odd', endedAt: 'never' }), null, 'x']
+assert.deepEqual(mod.kbwRunsFor(runs, 'st-1').map((r) => r.key), ['new', 'old'], 'one automation\'s runs, newest first whatever the order they came in')
+assert.equal(mod.kbwRunLast(runs, 'st-1').key, 'new')
+assert.equal(mod.kbwRunLast(runs, 'st-9'), null)
+assert.equal(mod.kbwRunLast(null, 'st-1'), null)
+assert.deepEqual(mod.kbwRunsFor('x', 'st-1'), [])
+for (const [outcome, bad] of [['completed', false], ['waiting_approval', false], ['error', true], ['timeout', true], ['capped', true]]) assert.equal(mod.kbwRunBad(runOf({ outcome })), bad, outcome)
+for (const odd of [null, undefined, 'x', {}]) assert.equal(mod.kbwRunBad(odd), false)
+const awake = { id: HOME, load: { runningTasks: [{ taskRef: 'st-1', startedAt: '2026-10-23T03:00:00.000Z' }, { taskRef: 'st-2', startedAt: 'never' }] } }
+assert.equal(mod.kbwRunningNow(awake, 'st-1').taskRef, 'st-1', 'the beat says it is running now')
+assert.equal(mod.kbwRunningNow(awake, 'st-2'), null, 'a start that is not a time is not a run')
+assert.equal(mod.kbwRunningNow(awake, 'st-3'), null)
+for (const none of [null, undefined, {}, { load: null }, { load: {} }, { load: { runningTasks: 'x' } }]) assert.equal(mod.kbwRunningNow(none, 'st-1'), null)
+for (const [sec, want] of [[0, '0 s'], [45, '45 s'], [59.6, '1 min'], [60, '1 min'], [70, '1 min 10 s'], [240, '4 min'], [605, '10 min'], [3600, '1 h'], [3900, '1 h 05 min'], [7260, '2 h 01 min'], [-5, '0 s'], [NaN, '0 s'], [undefined, '0 s']]) assert.equal(mod.kbwSpan(sec), want, String(sec))
+assert.deepEqual(mod.kbwHistoryOf([runOf({ key: 'a', endedAt: '2026-10-22T03:00:00.000Z', outcome: 'error' }), runOf({ key: 'b', endedAt: '2026-10-23T03:00:00.000Z', via: null }), runOf({ ref: 'st-2' })], 'st-1'), [{ at: '2026-10-23T03:00:00.000Z', status: 'ok', via: '' }, { at: '2026-10-22T03:00:00.000Z', status: 'error', via: 'cron' }], 'the list reads the cloud runs as a history: newest first, a bad end is an error')
+ok('rules: dirty, count, why it cannot go, the phase of what was sent, the default computer, the six fields, the runs that came back')
 
 // 2. the words: both languages, no key defined twice anywhere, every key used is defined
 const keys = Array.from(cli.matchAll(/^      '([A-Za-z0-9_.\-]+)': \{ kybernos: '((?:[^'\\]|\\.)*)', en: '((?:[^'\\]|\\.)*)' \},?$/gm)).map((m) => m[1])
@@ -61,6 +80,8 @@ const used = new Set(Array.from(cli.matchAll(/'(kbwr\.[A-Za-z0-9_.]+)'/g)).map((
 for (const k of used) assert.ok(seen.has(k), 'used but not defined: ' + k)
 for (const code of ['approval_path_missing', 'run_hours_exhausted', 'owner_left', 'budget', 'failed_runs', 'owner_locked', 'computer_deleting', 'too_many_pending', 'rate_limited', 'tasks_unavailable', 'not_allowed', 'no_computer', 'unreachable', 'not_connected', 'invalid_definition', 'too_frequent', 'never_runs', 'expired']) assert.ok(seen.has('kbwr.err.' + code), 'a refusal with no words: ' + code)
 for (const reason of ['ask', 'none', 'off']) assert.ok(seen.has('kbwr.block.' + reason), reason)
+for (const k of ['completed', 'error', 'capped', 'timeout', 'waiting_approval']) assert.ok(seen.has('kbwr.runs.out.' + k), 'outcome ' + k)
+for (const k of ['cron', 'once', 'webhook', 'run_now']) assert.ok(seen.has('kbwr.runs.via.' + k), 'via ' + k)
 assert.ok(/'tasks\.tab\.where': \{ kybernos: 'Où ça tourne', en: 'Where it runs' \}/.test(cli))
 ok('words: both languages, nothing defined twice, every key used is defined, every refusal has words')
 
@@ -90,8 +111,19 @@ assert.ok(/kbt\('kbwr\.runson'\)\.replace\('\{name\}', \(\) => String\(t\.cloud\
 assert.ok(/fetch\('\/kybernos-cloud\/computers\/publish', \{ method: 'POST', credentials: 'same-origin'/.test(cli), 'publishing goes through the cloud plugin, with the browser session')
 assert.ok(!/className: '[^']*\bkbw-/.test(comp) && !/'kbw\.[a-z]/.test(comp), 'the tab uses no class and no string key under the name another page already uses (kbw)')
 assert.ok(/\.kbwr-seg\{/.test(cli) && /\.kbwr-opt\{/.test(cli), 'its styles are under kbwr-')
-assert.ok(/lastLabel = kbt\(kbwDirty\(t\) === true \? 'kbwr\.row\.cloudDirty' : 'kbwr\.row\.cloud'\)\.replace\('\{name\}', \(\) => String\(t\.cloud\.name\)\); lastCls = kbwDirty\(t\) === true \? 'cloudwarn' : 'cloud' \}\s+else if \(t\.active === false\) \{ lastLabel = kbt\('tasks\.paused'\)/.test(cli), 'in the list, an automation that lives in the cloud is not « Paused »: it says where it is, and when it was changed since')
+assert.ok(/else if \(cloudLinked === true\) \{ lastLabel = kbt\(kbwDirty\(t\) === true \? 'kbwr\.row\.cloudDirty' : cloudBad === true \? 'kbwr\.row\.cloudFailed' : 'kbwr\.row\.cloud'\)\.replace\('\{name\}', \(\) => String\(t\.cloud\.name\)\); lastCls = kbwDirty\(t\) === true \? 'cloudwarn' : cloudBad === true \? 'fail' : 'cloud' \}\s+else if \(t\.active === false\) \{ lastLabel = kbt\('tasks\.paused'\)/.test(cli), 'in the list, an automation that lives in the cloud is not « Paused »: it says where it is, that it was changed since, or that its last run failed')
 assert.ok(/'data-kb': 'row-cloud'/.test(cli) && /kbt\('kbwr\.row\.sub'\)/.test(cli), 'the list marks it with a cloud and « Cloud · Home » under the name')
 ok('page: a tab, the computers and tasks handed over, the link through the task store, the header, the session on the write')
+
+// 5. the runs are on the page
+assert.ok(/fetch\('\/kybernos-cloud\/computers\/runs\?computerId=' \+ encodeURIComponent\(computerId\) \+ '&ref=' \+ encodeURIComponent\(t\.id\)/.test(cli), 'the tab asks for the runs of one automation')
+assert.ok(/fetch\('\/kybernos-cloud\/computers\/runs\?computerId=' \+ encodeURIComponent\(id\), \{ cache: 'no-store'/.test(cli), 'the page asks once per computer for the list and the count')
+assert.ok(/h\(KbCloudSessions, \{ key: t\.id, task: t, computers: computersPair\[0\]\.list, localCount: kbRunsOf\(t\.history\)\.length, local: localPane \}\)\s+: localPane/.test(cli), 'the tab Sessions of a linked automation shows the cloud runs, and the sessions from here when it ran here before')
+assert.ok(/kbwRunsFor\(cloudRunsPair\[0\]\[t\.cloud\.computerId\], t\.id\)\.length : kbRunsOf\(t\.history\)\.length/.test(cli), 'the tab counts the runs it shows')
+assert.ok(/sessions: cloudHist !== null \? cloudHist\.length : hist\.length, succ: kbRunBars\(cloudHist !== null \? cloudHist : t\.history\)/.test(cli), 'the list counts and draws the cloud runs for an automation that runs there, not the sessions from before it was sent')
+const cloudRuns = cli.slice(cli.indexOf('const KbCloudRuns = '), cli.indexOf('const KbCloudSessions = '))
+assert.ok(cloudRuns.indexOf('prompt') < 0 && cloudRuns.indexOf('result') < 0, 'the runs pane knows no prompt and no result: only the time and how it ended')
+assert.ok(/\.kbwr-run\{/.test(cli) && /\.kbwr-rout\.err\{/.test(cli), 'its styles are under kbwr-')
+ok('runs on the page: the tab, the count and the list label read what the computer reported; no prompt, no result')
 
 console.log('\n' + pass + ' checks passed')
