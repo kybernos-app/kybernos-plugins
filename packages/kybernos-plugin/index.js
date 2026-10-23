@@ -12,12 +12,12 @@ import { kyberTarget } from './kyber-root.mjs'
 import { createWorkspaceInstructions } from './workspace-instructions.mjs'
 import { selectAfterConnect } from './default-model.mjs'
 import { normalize as autoSettingsNormalize, publicView as autoSettingsView, apply as autoSettingsApply, isPaused as autoSettingsPaused } from './automation-settings.mjs'
-import { levelOf as autoLoadLevel, allowedAt as autoLoadAllowed, admit as autoLoadAdmit, createInflight as autoLoadInflight, maxParallelFrom as autoLoadMaxParallel, parseMeminfo as autoLoadMeminfo, guardOff as autoLoadGuardOff, publicView as autoLoadView } from './automation-load.mjs'
+import { levelOf as autoLoadLevel, allowedAt as autoLoadAllowed, admit as autoLoadAdmit, createInflight as autoLoadInflight, maxParallelFrom as autoLoadMaxParallel, parseMeminfo as autoLoadMeminfo, guardOff as autoLoadGuardOff, forcedLevel as autoLoadForced, isSubagentTool as autoLoadIsSubagent, createSubagentGate as autoLoadSubagentGate, noteAt as autoLoadNote, refusalReason as autoLoadRefusal, freshLevel as autoLoadFresh, publicView as autoLoadView } from './automation-load.mjs'
 import { stableStreak as autoSkillStreak, skillSlug as autoSkillSlug, skillParts as autoSkillParts, normalizeRecords as autoSkillsNormalize, dueTasks as autoSkillsDue, lessonOf as autoSkillLesson } from './automation-skills.mjs'
 import { chooseWorkspace as autoWsChoose, idOf as autoWsIdOf, DEDICATED_TITLE as AUTO_WS_TITLE, DEDICATED_DIR as AUTO_WS_DIR } from './automation-workspace.mjs'
 import { recordFeedback, exportFeedback, relayReportOf } from './feedback-box.mjs'
 import { writeGuard } from './session-guard.mjs'
-import { defaultState as onboardingDefault, publicView as onboardingView, complete as onboardingComplete, replay as onboardingReplay, chooseDomain as onboardingChooseDomain, aboutView as onboardingAbout } from './onboarding-state.mjs'
+import { defaultState as onboardingDefault, publicView as onboardingView, complete as onboardingComplete, replay as onboardingReplay, chooseDomain as onboardingChooseDomain, aboutView as onboardingAbout, ownGoalsView as onboardingOwnGoals } from './onboarding-state.mjs'
 import { isSuggested as autoIsSuggested, suggestedTask as autoSuggestedTask, acceptedTask as autoAcceptedTask, refusalFor as autoSuggestRefusal, HOME_ID_RE as AUTO_HOME_ID_RE, runFrame as autoRunFrame } from './automation-suggest.mjs'
 import { learnTask as autoLearnTask, isLearnName as autoIsLearnName, LEARN_ID as AUTO_LEARN_ID } from './learn-business.mjs'
 import { mountAutomationTools } from './automation-tools.mjs'
@@ -2707,6 +2707,28 @@ function boot(ctx) {
     const kbLoadMaxParallel = autoLoadMaxParallel(process.env)
     let kbLoadCache = null
     let kbLoadHeld = 0
+    // The level of the last reading (`{ at, level }`): what lightens a run. It is refreshed by every tick, paused or not, and ignored once
+    // it is older than two minutes (`freshLevel`): an unknown level never lightens anything.
+    let kbLoadLast = null
+    // The sessions the scheduler created for a run (a webhook and "Run now" go through the same door), kept to tell an automation run, and
+    // its sub-agents, from a chat a person opened. Bounded like `kbAskSessions`. `kbRunKids` are the sub-agent sessions seen running.
+    const kbRunSessions = new Set()
+    const kbRememberRunSession = (id) => { kbRunSessions.add(id); if (kbRunSessions.size > 500) kbRunSessions.delete(kbRunSessions.values().next().value) }
+    const kbRunKids = new Set()
+    const kbSubagentGate = autoLoadSubagentGate()
+    let kbSubagentRefused = 0
+    const kbAgentId = (agent) => (agent !== null && typeof agent === 'object' ? (agent.session !== undefined && agent.session !== null && typeof agent.session.id === 'string' ? agent.session.id : (typeof agent.id === 'string' ? agent.id : undefined)) : undefined)
+    // 0 = not part of an automation run, 1 = a run itself, 2 = a session below one (a sub-agent): by `header.parentSession`, like the ask gate.
+    const kbRunDepth = (agent) => {
+      let id = kbAgentId(agent)
+      const store = ctx.get('sessions')
+      for (let i = 0; i < 8 && typeof id === 'string'; i += 1) {
+        if (kbRunSessions.has(id) === true) return i === 0 ? 1 : 2
+        const session = store !== undefined && store !== null && typeof store.get === 'function' ? store.get(id) : undefined
+        id = session !== undefined && session !== null && session.header !== undefined && session.header !== null ? session.header.parentSession : undefined
+      }
+      return 0
+    }
     const kbLoadReadMemory = () => new Promise((resolve) => {
       let total = 0
       try { total = osTotalmem() } catch (e) { total = 0 }
@@ -2745,19 +2767,56 @@ function boot(ctx) {
     }
     const kbLoadCapacity = async () => {
       const sample = await kbLoadSample()
-      const lv = autoLoadGuardOff(process.env) === true ? { level: 'ok', reasons: [] } : autoLoadLevel(sample)
-      return { level: lv.level, reasons: lv.reasons, guard: autoLoadGuardOff(process.env) === true ? 'off' : 'on', allowed: autoLoadAllowed(lv.level, kbLoadMaxParallel), inFlight: kbLoadInflight.count(), maxParallel: kbLoadMaxParallel }
+      const forced = autoLoadForced(process.env)
+      const off = autoLoadGuardOff(process.env) === true
+      const lv = forced !== null ? { level: forced, reasons: [] } : off === true ? { level: 'ok', reasons: [] } : autoLoadLevel(sample)
+      kbLoadLast = { at: Date.now(), level: lv.level }
+      return { level: lv.level, reasons: lv.reasons, guard: forced !== null ? 'forced' : off === true ? 'off' : 'on', allowed: autoLoadAllowed(lv.level, kbLoadMaxParallel), inFlight: kbLoadInflight.count(), maxParallel: kbLoadMaxParallel }
     }
     try {
       if (typeof ctx.on === 'function') {
         ctx.on('agent/status', ({ agent, status }) => {
-          try { const id = agent !== null && typeof agent === 'object' ? (agent.session !== undefined && agent.session !== null ? agent.session.id : agent.id) : undefined; kbLoadInflight.status(id, status === 'running') } catch (e) { /* never break a turn */ }
+          try {
+            const id = kbAgentId(agent)
+            kbLoadInflight.status(id, status === 'running')
+            // A sub-agent of a run: seen running, then idle = it ended, and its place in the sub-agent count is free again.
+            if (status === 'running') { if (kbRunKids.has(id) !== true && kbRunDepth(agent) === 2) kbRunKids.add(id) }
+            else if (kbRunKids.delete(id) === true) kbSubagentGate.release()
+          } catch (e) { /* never break a turn */ }
         })
         ctx.on('agent/disposed', ({ agent }) => {
-          try { const id = agent !== null && typeof agent === 'object' ? (agent.session !== undefined && agent.session !== null ? agent.session.id : agent.id) : undefined; kbLoadInflight.end(id) } catch (e) { /* gone */ }
+          try { const id = kbAgentId(agent); kbLoadInflight.end(id); if (kbRunKids.delete(id) === true) kbSubagentGate.release() } catch (e) { /* gone */ }
+        })
+        // Lighter runs: while the machine is busy (very busy), an automation run may have one (no) sub-agent going. The call is refused with a
+        // reason the model reads, not queued and not asked about: nobody is at the screen of an unattended run. A chat a person opened is never
+        // touched, and a reading older than two minutes lets everything through.
+        ctx.on('tools/pre-execute', async (exec, next) => {
+          try {
+            if (exec !== null && typeof exec === 'object' && autoLoadIsSubagent(exec.name) === true && kbRunDepth(exec.agent) > 0) {
+              const level = autoLoadFresh(kbLoadLast, Date.now())
+              const verdict = kbSubagentGate.decide(level)
+              if (level !== null && verdict.allow !== true) { kbSubagentRefused += 1; return { kind: 'deny', reason: autoLoadRefusal(level) } }
+              kbSubagentGate.grant()
+            }
+          } catch (e) { /* never break a call */ }
+          return next()
         })
       }
     } catch (e) { console.error('[kybers] automations: load follow not installed (' + String((e && e.message) || e) + ')') }
+    // The same, said in advance: a run is told to work alone while the machine is busy. `systemPrompt.context` is synchronous and called at each
+    // step, so the line appears at the next step of a run that was started when the machine was free, and goes away when it calms down.
+    try {
+      ctx.inject(['systemPrompt'], (scope) => {
+        try {
+          scope.systemPrompt.context({
+            name: 'kybernos:automation-load',
+            order: 160,
+            interpolate: false,
+            text: (context) => { try { return kbRunDepth(context.agent) > 0 ? autoLoadNote(autoLoadFresh(kbLoadLast, Date.now())) : '' } catch (e) { return '' } },
+          })
+        } catch (e) { console.log('[kybers] automation load note not injected: ' + String((e && e.message) || e)) }
+      })
+    } catch (e) { /* no system prompt seam on this engine: the refusal above still holds */ }
     const kbFireTask = async (task) => {
       const sc = ctx.get('sessionController')
       if (sc === undefined || sc === null || typeof sc.create !== 'function' || typeof sc.prompt !== 'function') {
@@ -2803,6 +2862,7 @@ function boot(ctx) {
         }
       }
       kbLoadInflight.start(sessionId)
+      kbRememberRunSession(sessionId)
       // D3 (recette team 29/09) — honorer task.model : la sélection DOIT
       // précéder le prompt (sélection durable de la session). Format
       // attendu « provider/model » (ex. kybernos/free). Échec best-effort :
@@ -2945,7 +3005,7 @@ function boot(ctx) {
     }
     // « Pause all » holds the tick, not the store: nothing is lost, and what came due fires once at the first tick after it is off.
     const kbTasksTick = async () => {
-      if (autoSettingsPaused(await kbAutoSettingsRead()) === true) return { fired: 0, paused: true }
+      if (autoSettingsPaused(await kbAutoSettingsRead()) === true) { kbLoadCapacity().catch(() => null); return { fired: 0, paused: true } }
       const r = await kbTasksTrigger.tick()
       if (r !== null && typeof r === 'object' && Number.isSafeInteger(r.held) === true) {
         if (r.held > 0 && r.held !== kbLoadHeld) { try { console.log('[kybers] scheduled tasks: ' + r.held + ' run(s) waiting for the machine') } catch (e) { /* console */ } }
@@ -2994,7 +3054,7 @@ function boot(ctx) {
       // « Learn my business »: made once (found again by its name in any language), switched on, weekly, in a session of its own. The onboarding step calls it; it only ever proposes.
       if (action === 'learn') {
         const about = body.about !== null && typeof body.about === 'object' ? body.about : {}
-        const built = autoLearnTask({ lang: str(body.lang) || 'en', tz: str(body.tz), fieldId: str(body.fieldId) || '', field: str(body.field) || '', goals: Array.isArray(body.goals) ? body.goals.filter((g) => typeof g === 'string') : [], about })
+        const built = autoLearnTask({ lang: str(body.lang) || 'en', tz: str(body.tz), fieldId: str(body.fieldId) || '', field: str(body.field) || '', goals: Array.isArray(body.goals) ? body.goals.filter((g) => typeof g === 'string') : [], ownGoals: Array.isArray(body.ownGoals) ? body.ownGoals.filter((g) => typeof g === 'string') : [], about })
         const clean = kbSanitizeTaskInput(built)
         if (clean.ok !== true) return { ok: false, error: clean.error }
         const now = new Date().toISOString()
@@ -10351,7 +10411,7 @@ function boot(ctx) {
           const view = onboardingView(state)
           // What the person typed about themselves comes back only to this page (strict same origin), so a replay can show it; the route is served before DSH's own sign-in.
           const about = sameOriginStrict(req) === true ? onboardingAbout(state) : undefined
-          return sendJson(res, 200, { ok: true, ...view, domain: domainOfProfil(domainPacks().packs, view.profil), ...(about !== undefined ? { about: about } : {}) })
+          return sendJson(res, 200, { ok: true, ...view, domain: domainOfProfil(domainPacks().packs, view.profil), ...(about !== undefined ? { about: about, customGoals: onboardingOwnGoals(state) } : {}) })
         }
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'GET or POST expected' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
@@ -10994,7 +11054,7 @@ function boot(ctx) {
               if (t !== null && typeof t === 'object' && t.active === true && typeof t.nextRun === 'string' && Date.parse(t.nextRun) <= nowMs) waiting += 1
             }
           } catch (e) { waiting = 0 }
-          sendJson(res, 200, Object.assign({ ok: true }, autoLoadView(capacity, sample, waiting)))
+          sendJson(res, 200, Object.assign({ ok: true }, autoLoadView(capacity, sample, waiting, { active: kbSubagentGate.active(), refused: kbSubagentRefused })))
         } catch (e) {
           try { console.error('[kybers] automation-load route:', errText(e)) } catch (e2) { /* console unavailable */ }
           sendJson(res, 500, { ok: false, error: 'internal error' })
