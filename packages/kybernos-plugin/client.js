@@ -538,6 +538,7 @@ let kbLocaleRead = () => 'en'
       'tasks.board.act.approve': { kybernos: 'Approuver', en: 'Approve' },
       'tasks.board.act.refuse': { kybernos: 'Refuser', en: 'Refuse' },
       'tasks.board.act.retry': { kybernos: 'Relancer', en: 'Retry' },
+      'tasks.board.st.load': { kybernos: 'Prête : elle attend que l’ordinateur soit moins chargé.', en: 'Due: waiting for the computer to be less busy.' },
       'tasks.board.st.due': { kybernos: 'Prête : le planificateur la lance à son prochain passage.', en: 'Due: the scheduler starts it on its next pass.' },
       'tasks.board.st.running': { kybernos: 'Session en cours.', en: 'Session running.' },
       'tasks.board.st.approval': { kybernos: 'Attend ton accord.', en: 'Waiting for your approval.' },
@@ -580,6 +581,8 @@ let kbLocaleRead = () => 'en'
       'tasks.board.banner.title': { kybernos: 'Le planificateur ne répond pas.', en: 'The scheduler is not answering.' },
       'tasks.board.banner.body': { kybernos: 'Aucune automation ne se lance tant qu’il est arrêté. Ce que tu vois date de {when}.', en: 'No automation starts while it is stopped. What you see is from {when}.' },
       'tasks.board.overdue.title': { kybernos: 'Le planificateur semble arrêté.', en: 'The scheduler seems to be stopped.' },
+      'tasks.board.load.title': { kybernos: 'En attente de l’ordinateur.', en: 'Waiting for the computer.' },
+      'tasks.board.load.body': { kybernos: '{n} automation(s) attendent que l’ordinateur soit moins chargé. Elles partent d’elles-mêmes, la plus ancienne d’abord.', en: '{n} automation(s) are waiting for this computer to be less busy. They start on their own, oldest first.' },
       'tasks.board.overdue.body': { kybernos: '{n} automation(s) devaient partir il y a plus de trois minutes. Elles ne partent que tant que DSH tourne.', en: '{n} automation(s) should have started more than three minutes ago. They only start while DSH is running.' },
       'tasks.board.approved': { kybernos: 'Approuvé. La session reprend.', en: 'Approved. The session continues.' },
       'tasks.board.refused': { kybernos: 'Refusé. L’agent voit que l’action a été refusée.', en: 'Refused. The agent sees that the action was refused.' },
@@ -1689,6 +1692,14 @@ let kbLocaleRead = () => 'en'
       'tasks.lesson.err': { kybernos: 'Le skill n’a pas pu être créé : {why}', en: 'The skill could not be created: {why}' },
       'kbauto.set.where': { kybernos: 'Les automatisations tournent sur cet ordinateur, tant que DSH est ouvert.', en: 'Automations run on this computer, while DSH is open.' },
       'kbauto.set.error': { kybernos: 'Réglage non enregistré. Réessaie.', en: 'Setting not saved. Try again.' },
+      'kbauto.set.load': { kybernos: 'Charge de l’ordinateur', en: 'Computer load' },
+      'kbauto.set.load.ok': { kybernos: 'Légère : jusqu’à {max} automations à la fois.', en: 'Light: up to {max} automations at once.' },
+      'kbauto.set.load.busy': { kybernos: 'Chargé : une seule automation à la fois, les autres attendent.', en: 'Busy: one automation at a time, the others wait.' },
+      'kbauto.set.load.high': { kybernos: 'Très chargé : les automations attendent et partent d’elles-mêmes dès que ça se calme.', en: 'Very busy: automations wait and start on their own as soon as it calms down.' },
+      'kbauto.set.load.off': { kybernos: 'Mesure désactivée', en: 'Reading off' },
+      'kbauto.set.load.why.memory': { kybernos: 'mémoire presque pleine', en: 'memory nearly full' },
+      'kbauto.set.load.why.cpu': { kybernos: 'processeur très sollicité', en: 'processor heavily used' },
+      'kbauto.set.load.count': { kybernos: '{n} en cours · {w} en attente', en: '{n} running · {w} waiting' },
       'kbauto.set.unavailable': { kybernos: 'Ces réglages ne sont pas encore disponibles : DSH doit être redémarré pour les charger.', en: 'These settings are not available yet: DSH needs a restart to load them.' },
       'kbui.kyber.off': { kybernos: 'Le module Kaby n’est pas actif. Active-le dans la Suite.', en: 'The Kaby module is not active. Switch it on in the Suite.' },
       'kbui.dashboards.off': { kybernos: 'Le module Dashboards n’est pas actif. Active-le dans la Suite.', en: 'The Dashboards module is not active. Switch it on in the Suite.' },
@@ -6529,6 +6540,21 @@ const kbEditChatText = (t, tr, locale) => {
 // What the list shows. Only a list the host actually answered can be "empty": while it loads there is a
 // skeleton, and when the host could not answer there is the reason with a retry (both used to show
 // "create your first automation", as if the user had none).
+// The computer's load as a row of ticks and a percentage (GET /kybernos/automation-load). The colour is the LEVEL (green, amber, red), the length is how
+// close the machine is to red. No figure to show (the reading is switched off, or nothing could be measured): nothing is drawn.
+const KB_GAUGE_TICKS = 24
+const KbLoadGauge = (props) => {
+  const v = props.load
+  if (v === null || v === undefined || typeof v !== 'object' || typeof v.pressure !== 'number' || Number.isFinite(v.pressure) !== true) return null
+  const level = v.level === 'busy' || v.level === 'high' ? v.level : 'ok'
+  const pressure = Math.max(0, Math.min(100, Math.round(v.pressure)))
+  const filled = pressure === 0 ? 0 : Math.max(1, Math.round((pressure / 100) * KB_GAUGE_TICKS))
+  const ticks = []
+  for (let i = 0; i < KB_GAUGE_TICKS; i += 1) ticks.push(h('i', { key: i, className: i < filled ? (i === filled - 1 ? 'on head' : 'on') : '' }))
+  return h('span', { className: 'kbac-gauge kbac-gauge-' + level, role: 'meter', 'data-kb': 'load-gauge', 'data-level': level, 'aria-valuemin': 0, 'aria-valuemax': 100, 'aria-valuenow': pressure, 'aria-label': kbt('kbauto.set.load') },
+    h('span', { className: 'kbac-gauge-ticks', 'aria-hidden': 'true' }, ticks),
+    h('b', { className: 'kbac-gauge-n' }, String(pressure) + '%'))
+}
 const kbListState = (tasks, loadError) => {
   if (tasks === null || tasks === undefined) return loadError !== null && loadError !== undefined ? 'error' : 'loading'
   return kbTasksList(tasks).length === 0 ? 'empty' : 'list'
@@ -23262,6 +23288,10 @@ function renderFit(canvas, model, cam, opts){
         return h('span', { className: 'kbbd-chip', title: p.tip !== '' ? label + ' · ' + p.tip : label }, Icon(hook === true ? 'zap' : 'clock', 11), h('span', { className: 'kbbd-chip-t' }, label))
       }
       const whoOf = (t, it) => (t.approvals === 'auto' ? kbt('tasks.auto') : kbt('tasks.ask')) + (it !== null && it.via === 'webhook' ? ' · ' + kbt('tasks.trigger.webhook') : '')
+      // The cap (automation-load.mjs) is what holds the due runs: the computer is busy, or every slot is taken. Then « due » must not say
+      // that the scheduler will start the run on its next pass.
+      const ml = props.load
+      const heldByLoad = ml !== null && ml !== undefined && typeof ml === 'object' && ml.waiting > 0 && (ml.level === 'busy' || ml.level === 'high' || ml.inFlight >= ml.allowed)
       // One card. `col` is the column; `it` a run, or { taskId, atMs, due } for the upcoming column.
       const card = (col, it) => {
         const t = byId.get(it.taskId)
@@ -23271,7 +23301,7 @@ function renderFit(canvas, model, cam, opts){
         let acts = []
         let top = null
         if (col === 'upcoming') {
-          status = it.due === true ? kbt('tasks.board.st.due') : kbBoardIn(it.atMs, nowMs, locale)
+          status = it.due === true ? kbt(heldByLoad === true ? 'tasks.board.st.load' : 'tasks.board.st.due') : kbBoardIn(it.atMs, nowMs, locale)
           acts = actionsOf({ state: 'planned', taskId: it.taskId, sessionId: null, live: null })
         } else {
           status = whyOf(it)
@@ -23296,6 +23326,13 @@ function renderFit(canvas, model, cam, opts){
             h('button', { type: 'button', className: 'kba-btn', 'data-kb': 'board-retry', onClick: () => { try { props.onRetry() } catch (e) { /* the next poll retries */ } } }, kbt('tasks.retry')))
         }
         if (C.overdue.length > 0) {
+          // Held by the cap: the scheduler is running, say what it waits for.
+          if (heldByLoad === true) {
+            return h('div', { className: 'kbbd-banner warn', role: 'status', 'data-kb': 'board-banner', 'data-reason': 'load' },
+              Icon('clock', 16),
+              h('div', { className: 'kbbd-bt' }, h('b', null, kbt('tasks.board.load.title')), h('span', null, kbt('tasks.board.load.body').replace('{n}', String(C.overdue.length)))),
+              h(KbLoadGauge, { load: ml }))
+          }
           return h('div', { className: 'kbbd-banner warn', role: 'status', 'data-kb': 'board-banner' },
             Icon('triangleAlert', 16),
             h('div', { className: 'kbbd-bt' }, h('b', null, kbt('tasks.board.overdue.title')), h('span', null, kbt('tasks.board.overdue.body').replace('{n}', String(C.overdue.length)))))
@@ -23453,6 +23490,17 @@ function renderFit(canvas, model, cam, opts){
       const loadErrPair = React.useState(null)
       const loadErr = loadErrPair[0]
       const setLoadErr = loadErrPair[1]
+      // The computer's load, for the banner: an automation held back by the cap is not a stopped scheduler.
+      const machineLoadPair = React.useState(null)
+      React.useEffect(() => {
+        let alive = true
+        const read = () => fetch('/kybernos/automation-load', { cache: 'no-store', credentials: 'same-origin' }).then((r) => (r.ok ? r.json() : null)).then((j) => {
+          if (alive === true) machineLoadPair[1](j !== null && typeof j === 'object' && j.ok === true ? j : null)
+        }).catch(() => { if (alive === true) machineLoadPair[1](null) })
+        read()
+        const timer = setInterval(read, 15000)
+        return () => { alive = false; clearInterval(timer) }
+      }, [])
       const tabPair = React.useState('flow')
       const tab = tabPair[0]
       const setTab = tabPair[1]
@@ -24001,7 +24049,7 @@ function renderFit(canvas, model, cam, opts){
         boardView === 'cards'
           ? h(KbAutoCards, { tasks: filtered.map((a) => a._t), onOpen: (id) => { setDetail(id); setTab('flow'); setNodeSel(null) }, onToggle: (t) => act('toggle', t.id, { active: t.active === false }) })
           : h(KbAutoBoard, {
-          view: boardView, tasks: filtered.map((a) => a._t), rawTasks: tasks, loadErr: loadErr,
+          view: boardView, tasks: filtered.map((a) => a._t), rawTasks: tasks, loadErr: loadErr, load: machineLoadPair[0],
           onRetry: () => { setLoadErr(null); refresh() },
           act: act, toast: toast,
           openSession: (sid) => { try { uiWorkspaceSvc.openSession(sid) } catch (er) { /* navigation indisponible */ } },
@@ -34342,6 +34390,18 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
     const KbAutomationsSettings = () => {
       const pair = React.useState({ loaded: false, showNativeTasks: false, paused: false, autoSkill: false, stableAfter: 5, error: false, unavailable: false })
       const st = pair[0]
+      // How loaded the computer is and how many automations may run at once (read-only; a host without the route shows no row).
+      const loadPair = React.useState(null)
+      const ld = loadPair[0]
+      React.useEffect(() => {
+        let alive = true
+        const read = () => fetch('/kybernos/automation-load', { cache: 'no-store', credentials: 'same-origin' }).then((r) => (r.ok ? r.json() : null)).then((j) => {
+          if (alive === true && j !== null && typeof j === 'object' && j.ok === true && typeof j.level === 'string') loadPair[1](j)
+        }).catch(() => null)
+        read()
+        const timer = setInterval(read, 10000)
+        return () => { alive = false; clearInterval(timer) }
+      }, [])
       React.useEffect(() => {
         let alive = true
         // A host that predates the route answers 404: the page says so instead of offering switches that cannot save.
@@ -34382,6 +34442,13 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
             h('div', { className: 'kbac-row-txt' }, h('span', { className: 'kbac-row-l' }, kbt('kbauto.set.stable')), h('span', { className: 'kbac-row-d' }, kbt('kbauto.set.stable.d'))),
             h('span', { className: 'kbac-seg', role: 'group', 'aria-label': kbt('kbauto.set.stable') }, KB_STABLE_CHOICES.map((n) => h('button', { key: n, type: 'button', className: 'kbac-segb' + (st.stableAfter === n ? ' on' : ''), 'aria-pressed': st.stableAfter === n ? 'true' : 'false', 'data-kb': 'stable-' + n,
               onClick: () => { if (st.unavailable !== true && st.stableAfter !== n) change('stableAfter', n) } }, String(n))))),
+          ld === null ? null : h('div', { className: 'kbac-row', key: 'load', 'data-kb': 'automation-load', 'data-level': ld.level },
+            h('div', { className: 'kbac-row-txt' },
+              h('span', { className: 'kbac-row-l' }, kbt('kbauto.set.load')),
+              h('span', { className: 'kbac-row-d' }, kbt('kbauto.set.load.' + (ld.level === 'busy' || ld.level === 'high' ? ld.level : 'ok')).replace('{max}', String(ld.maxParallel)) +
+                (Array.isArray(ld.reasons) === true && ld.reasons.length > 0 ? ' (' + ld.reasons.map((x) => kbt('kbauto.set.load.why.' + x)).join(', ') + ')' : '')),
+              h('span', { className: 'kbac-row-d' }, kbt('kbauto.set.load.count').replace('{n}', String(ld.inFlight)).replace('{w}', String(ld.waiting)))),
+            h(KbLoadGauge, { load: ld }) || h('span', { className: 'kbac-load kbac-load-ok' }, kbt('kbauto.set.load.off'))),
           h('div', { className: 'kbac-row', key: 'where' }, h('div', { className: 'kbac-row-txt' }, h('span', { className: 'kbac-row-d' }, kbt('kbauto.set.where'))))),
         st.unavailable === true ? h('p', { className: 'kb8-sub', role: 'status' }, kbt('kbauto.set.unavailable')) : null,
         st.error === true ? h('p', { className: 'kb8-sub', role: 'alert' }, kbt('kbauto.set.error')) : null)
@@ -34400,6 +34467,16 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
 .kbac-row-txt{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1 1 auto}
 .kbac-row-l{font-size:14px;font-weight:500;color:var(--dsw-alias-label-primary)}
 .kbac-row-d{font-size:13px;line-height:1.45;color:var(--dsw-alias-label-secondary)}
+.kbac-load{flex:0 0 auto;display:inline-flex;align-items:center;height:24px;padding:0 10px;border-radius:12px;border:1px solid var(--dsw-alias-border-l2);font-size:12px;font-weight:500;color:var(--dsw-alias-label-secondary)}
+.kbac-gauge{--kbg:var(--dsw-alias-state-success-primary);flex:0 0 auto;display:inline-flex;align-items:center;gap:10px}
+.kbac-gauge-busy{--kbg:var(--dsw-alias-state-warn-primary)}
+.kbac-gauge-high{--kbg:var(--dsw-alias-state-error-primary)}
+.kbac-gauge-ticks{display:inline-flex;align-items:center;gap:2px;height:28px}
+.kbac-gauge-ticks i{display:block;width:2px;height:18px;border-radius:1px;background:var(--dsw-alias-border-l2)}
+.kbac-gauge-ticks i.on{background:var(--kbg)}
+.kbac-gauge-ticks i.head{height:26px}
+@media (max-width:560px){.kbac-gauge-ticks{display:none}}
+.kbac-gauge-n{min-width:38px;text-align:end;font-size:14px;font-weight:500;font-variant-numeric:tabular-nums;color:var(--dsw-alias-label-secondary)}
 .kbac-btn{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:32px;padding:0 12px;border-radius:10px;border:1px solid var(--dsw-alias-border-l2);background:transparent;color:var(--dsw-alias-label-primary);font:inherit;font-size:13px;text-decoration:none;cursor:pointer;white-space:nowrap}
 .kbac-btn:hover{background:var(--dsw-alias-interactive-bg-hover)}
 .kbac-seg{display:inline-flex;gap:2px;padding:3px;border-radius:999px;background:var(--dsw-alias-bg-layer-2);border:1px solid var(--dsw-alias-border-l1);flex:none}
