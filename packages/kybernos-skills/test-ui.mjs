@@ -1103,5 +1103,76 @@ console.log('Learned skills V2: the notice under a finished answer, the weekly c
   }
 }
 
+// ── Featured ─────────────────────────────────────────────────────────────────────────────────────────────
+// Regression of 2026-10-23: the grid and the list were drawn with `list.map(pickCard)`, so the ARRAY arrived as the card's third argument (`opts`, meant for the
+// field's skills) and every card lost its click, its Details, its star and its Installed state. Source-level tests had pinned the call; only a render sees it.
+console.log('Featured: a card or a row opens the skill window, like Details does')
+{
+  const pick = (id, category, installs) => ({
+    id, source: 'anthropics/skills', category, title: { en: 'Title of ' + id, fr: 'Titre de ' + id }, outcome: { en: 'Outcome of ' + id, fr: 'Résultat de ' + id },
+    prompt: { en: 'Try ' + id, fr: 'Essaie ' + id }, needs: null, installs, audits: [['Socket', 'pass', 'SAFE']], cover: null
+  })
+  const picksWorld = () => {
+    const w = world()
+    // « sql-queries » is installed in the world; the two others are not.
+    w.answers['GET /kybernos-skills/picks'] = { ok: true, asOf: '2026-10-15', categories: ['Data', 'Design'], items: [pick('sql-queries', 'Data', 5000), pick('frontend-design', 'Design', 990500), pick('canvas-design', 'Design', 117600)] }
+    return w
+  }
+  const featuredOpen = async (w, view) => {
+    store.set('kybernos.skills.views', JSON.stringify({ featured: view }))
+    return open(w)
+  }
+  const window_ = (root) => kb(root, 'skill-popup')
+  const key = async (root, node, k) => {
+    node.props.onKeyDown({ target: node, currentTarget: node, key: k, preventDefault () {}, stopPropagation () {} })
+    await root.settle()
+  }
+  for (const view of ['cards', 'list']) {
+    const hook = view === 'cards' ? 'pick-card' : 'pick-row'
+    const w = picksWorld()
+    const root = await featuredOpen(w, view)
+    check(view + ': Featured is the landing tab and draws one ' + hook + ' per pick, each carrying its test hook', kb(root, hook).length === 3 && kb(root, hook).every((n) => typeof n.props['data-skill'] === 'string'), kb(root, hook).length)
+    check(view + ': no window before a click', window_(root).length === 0)
+
+    const first = () => kb(root, hook).find((n) => n.props['data-skill'] === 'frontend-design')
+    check(view + ': every card has a click handler and a keyboard one', kb(root, hook).every((n) => typeof n.props.onClick === 'function' && typeof n.props.onKeyDown === 'function'))
+    await click(root, first())
+    check(view + ': a click on the card opens the window with this pick', window_(root).length === 1 && kb(root, 'pick-detail').length === 1 && part(root, 'pick-detail').includes('Title of frontend-design'), page(root).slice(0, 200))
+    check(view + ': the card shows it is the open one', hasClass(first(), 'sel'))
+    await click(root, kb(root, 'pick-back')[0])
+    check(view + ': the ✕ closes it', window_(root).length === 0)
+
+    await key(root, first(), 'Enter')
+    check(view + ': Enter on the focused card opens it', window_(root).length === 1 && part(root, 'pick-detail').includes('Title of frontend-design'))
+    await click(root, kb(root, 'pick-back')[0])
+    await key(root, first(), ' ')
+    check(view + ': Space opens it too', window_(root).length === 1)
+    await click(root, kb(root, 'pick-back')[0])
+
+    const detailsOf = (name) => all(kb(root, hook).find((n) => n.props['data-skill'] === name), (n) => n.props['data-kb'] === 'pick-details')[0]
+    await click(root, detailsOf('canvas-design'))
+    check(view + ': Details opens the window of THAT pick (the one a click on the card opens)', window_(root).length === 1 && part(root, 'pick-detail').includes('Title of canvas-design') && !part(root, 'pick-detail').includes('Title of frontend-design'))
+    await click(root, kb(root, 'pick-back')[0])
+
+    // what the card says of the pick: installed or not
+    const sql = kb(root, hook).find((n) => n.props['data-skill'] === 'sql-queries')
+    const frontend = first()
+    check(view + ': an installed pick says so and offers Use, not Install', textOf(sql).includes('Installed') && all(sql, (n) => n.props['data-kb'] === 'pick-use').length === 1 && all(sql, (n) => n.props['data-kb'] === 'pick-install').length === 0, textOf(sql).slice(0, 200))
+    check(view + ': a pick that is not installed offers Install, no Installed pill', all(frontend, (n) => n.props['data-kb'] === 'pick-install').length === 1 && !textOf(frontend).includes('Installed'))
+    const star = (n) => all(n, (x) => x.tag === 'button' && typeof x.props.className === 'string' && x.props.className.includes('kbs-star-btn'))[0]
+    check(view + ': the star works for an installed pick and is off for one that is not', star(sql).props.disabled === false && star(frontend).props.disabled === true)
+
+    // the buttons inside the card do their own job and never open the window
+    const before = w.calls.length
+    const ev = await click(root, star(sql))
+    check(view + ': the star toggles through the host and does not open the window', ev.stopped === true && window_(root).length === 0 && w.calls.slice(before).some((c) => c.method === 'POST' && c.path === '/kybernos-skills/featured/toggle' && c.body.name === 'sql-queries'), w.calls.slice(before).map((c) => c.method + ' ' + c.path))
+    await click(root, all(frontend, (n) => n.props['data-kb'] === 'pick-install')[0])
+    check(view + ': Install asks first (the confirmation), writes nothing, and does not open the window', kb(root, 'install-confirm').length === 1 && window_(root).length === 0 && posted(w, '/kybernos-skills/install').length === 0)
+    check(view + ': and the confirmation is for THIS pick', part(root, 'install-confirm').includes('frontend-design'), part(root, 'install-confirm').slice(0, 200))
+    await click(root, kb(root, 'install-confirm-no')[0])
+    check(view + ': Cancel leaves everything as it was', kb(root, 'install-confirm').length === 0 && window_(root).length === 0 && posted(w, '/kybernos-skills/install').length === 0)
+  }
+}
+
 console.log('\n' + pass + ' passed' + (fail > 0 ? ', ' + fail + ' FAILED' : ''))
 process.exit(fail > 0 ? 1 : 0)
