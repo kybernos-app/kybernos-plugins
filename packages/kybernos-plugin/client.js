@@ -1696,6 +1696,47 @@ let kbLocaleRead = () => 'en'
       'kbauto.set.load.ok': { kybernos: 'Légère : jusqu’à {max} automations à la fois.', en: 'Light: up to {max} automations at once.' },
       'kbauto.set.load.busy': { kybernos: 'Chargé : une seule automation à la fois, qui lance au plus un subagent à la fois ; les autres attendent.', en: 'Busy: one automation at a time, starting at most one sub-agent at a time; the others wait.' },
       'kbauto.set.load.high': { kybernos: 'Très chargé : les automations attendent et partent d’elles-mêmes dès que ça se calme ; celles en cours ne lancent plus de subagents.', en: 'Very busy: automations wait and start on their own as soon as it calms down; the ones going start no sub-agents.' },
+      'kbld.title': { kybernos: 'Charge de l’ordinateur', en: 'Computer load' },
+      'kbld.level.ok': { kybernos: 'Légère', en: 'Light' },
+      'kbld.level.busy': { kybernos: 'Chargé', en: 'Busy' },
+      'kbld.level.high': { kybernos: 'Très chargé', en: 'Very busy' },
+      'kbld.aria': { kybernos: '{title} : {pct} %, {word}. {meta}', en: '{title}: {pct} percent, {word}. {meta}' },
+      'kbld.last5': { kybernos: 'Les 5 dernières minutes · toutes les 10 s', en: 'Last 5 minutes · every 10 s' },
+      'kbld.cpu': { kybernos: 'Processeur', en: 'Processor' },
+      'kbld.cpu.load': { kybernos: 'Charge / cœur', en: 'Load / core' },
+      'kbld.busyAt': { kybernos: 'Chargé à', en: 'Busy at' },
+      'kbld.redAt': { kybernos: 'Rouge à', en: 'Red at' },
+      'kbld.mem': { kybernos: 'Mémoire', en: 'Memory' },
+      'kbld.mem.avail': { kybernos: 'Disponible', en: 'Available' },
+      'kbld.mem.kyb': { kybernos: 'Kybernos', en: 'Kybernos' },
+      'kbld.mem.other': { kybernos: 'Autres apps', en: 'Other apps' },
+      'kbld.mem.free': { kybernos: 'Libre', en: 'Free' },
+      'kbld.auto': { kybernos: 'Automatisations', en: 'Automations' },
+      'kbld.auto.waiting': { kybernos: 'En attente', en: 'Waiting' },
+      'kbld.auto.sub': { kybernos: 'Subagents', en: 'Sub-agents' },
+      'kbld.auto.refused': { kybernos: 'Appels retenus', en: 'Calls held back' },
+      'kbld.sub.none': { kybernos: 'Pas de limite', en: 'No limit' },
+      'kbld.sub.going': { kybernos: '{n} en cours · pas de limite', en: '{n} going · no limit' },
+      'kbld.sub.zero': { kybernos: 'Aucun autorisé', en: 'None allowed' },
+      'kbld.sub.of': { kybernos: '{n} sur {max} autorisé', en: '{n} of {max} allowed' },
+      'kbld.m.idle': { kybernos: 'Aucun run en cours · jusqu’à {max} à la fois', en: 'No run going · up to {max} at once' },
+      'kbld.m.runs': { kybernos: '{n} sur {a} runs en cours', en: '{n} of {a} runs going' },
+      'kbld.m.runs1': { kybernos: '{n} run en cours', en: '{n} run going' },
+      'kbld.m.waiting': { kybernos: '{n} en attente', en: '{n} waiting' },
+      'kbld.m.nowait': { kybernos: 'rien en attente', en: 'nothing waiting' },
+      'kbld.m.sub': { kybernos: '{n} subagent(s)', en: '{n} sub-agent(s)' },
+      'kbld.m.subof': { kybernos: 'subagents {n} sur {max}', en: 'sub-agents {n} of {max}' },
+      'kbld.m.nosub': { kybernos: 'plus de nouveaux subagents', en: 'no new sub-agents' },
+      'kbld.foot.ok': { kybernos: 'Légère : jusqu’à {max} runs à la fois. Les subagents ne sont pas limités.', en: 'Light: up to {max} runs at once. Sub-agents are not limited.' },
+      'kbld.foot.busy': { kybernos: 'Chargé : un run à la fois, un subagent à la fois. Les autres attendent, le plus ancien d’abord.', en: 'Busy: one run at a time, one sub-agent at a time. The others wait, oldest first.' },
+      'kbld.foot.high': { kybernos: 'Très chargé : les nouveaux runs attendent (jamais plus de 10 min) et ceux en cours ne lancent plus de subagents.', en: 'Very busy: new runs wait (never more than 10 min) and running ones start no sub-agents.' },
+      'kbld.settings': { kybernos: 'Réglages ›', en: 'Settings ›' },
+      'kbld.chip.slot': { kybernos: '1 emplacement', en: '1 slot' },
+      'kbld.chip.lighter': { kybernos: 'Run allégé', en: 'Lighter run' },
+      'kbld.wait': { kybernos: 'En attente de l’ordinateur', en: 'Waiting for the computer' },
+      'kbld.q.first': { kybernos: 'Prochaine dans la file · attend depuis {w}', en: 'Next in line · waiting {w}' },
+      'kbld.q.n': { kybernos: 'N° {r} dans la file · attend depuis {w}', en: '#{r} in line · waiting {w}' },
+      'kbld.minutes': { kybernos: '{n} min', en: '{n} min' },
       'kbauto.set.load.refused': { kybernos: '{n} appel(s) de subagent refusé(s)', en: '{n} sub-agent call(s) held back' },
       'kbauto.set.load.off': { kybernos: 'Mesure désactivée', en: 'Reading off' },
       'kbauto.set.load.why.memory': { kybernos: 'mémoire presque pleine', en: 'memory nearly full' },
@@ -6555,6 +6596,199 @@ const KbLoadGauge = (props) => {
   return h('span', { className: 'kbac-gauge kbac-gauge-' + level, role: 'meter', 'data-kb': 'load-gauge', 'data-level': level, 'aria-valuemin': 0, 'aria-valuemax': 100, 'aria-valuenow': pressure, 'aria-label': kbt('kbauto.set.load') },
     h('span', { className: 'kbac-gauge-ticks', 'aria-hidden': 'true' }, ticks),
     h('b', { className: 'kbac-gauge-n' }, String(pressure) + '%'))
+}
+// ── The computer's load over time: the strip right of the tabs, its detail, and the weight of a run in the list ─────────────────────────────
+// Fed by GET /kybernos/automation-load (automation-load.mjs): the level and the room, the last five minutes, the memory split, the runs going and who
+// waits. Nothing is invented here: a figure the host did not give is not drawn.
+const KB_LD_POINTS = 30
+const kbLdLevel = (v) => (v !== null && v !== undefined && typeof v === 'object' && (v.level === 'busy' || v.level === 'high') ? v.level : 'ok')
+const kbLdTone = (pct) => 'var(--dsw-alias-state-' + (typeof pct === 'number' && pct >= 100 ? 'error' : typeof pct === 'number' && pct >= 50 ? 'warn' : 'success') + '-primary)'
+// A reading as a line and the area under it; the newest point sits at the right edge, a gap (null) lifts the pen.
+const kbLdPath = (vals, w, ht, lo, hi, max) => {
+  const list = Array.isArray(vals) ? vals : []
+  let d = ''
+  let pen = false
+  let x0 = null
+  let x1 = 0
+  list.forEach((v, i) => {
+    if (typeof v !== 'number' || Number.isFinite(v) !== true) { pen = false; return }
+    const x = ((max - list.length + i) / (max - 1)) * w
+    const y = ht - ((Math.min(Math.max(v, lo), hi) - lo) / (hi - lo)) * (ht - 3) - 1.5
+    d += (pen ? ' L' : (d === '' ? 'M' : ' M')) + x.toFixed(1) + ' ' + y.toFixed(1)
+    pen = true
+    if (x0 === null) x0 = x
+    x1 = x
+  })
+  return { line: d, area: x0 === null ? '' : d + ' L' + x1.toFixed(1) + ' ' + ht + ' L' + x0.toFixed(1) + ' ' + ht + ' Z' }
+}
+// A count over time as stairs (runs going).
+const kbLdSteps = (vals, w, ht, hi, max) => {
+  const list = (Array.isArray(vals) ? vals : []).filter((v) => typeof v === 'number' && Number.isFinite(v) === true)
+  let d = ''
+  let py = 0
+  list.forEach((v, i) => {
+    const x = ((max - list.length + i) / (max - 1)) * w
+    const y = ht - (Math.min(Math.max(v, 0), hi) / hi) * (ht - 3) - 1.5
+    d += i === 0 ? 'M' + x.toFixed(1) + ' ' + y.toFixed(1) : ' L' + x.toFixed(1) + ' ' + py.toFixed(1) + ' L' + x.toFixed(1) + ' ' + y.toFixed(1)
+    py = y
+  })
+  return { line: d, area: '' }
+}
+const kbLdRing = (pct) => { const c = 2 * Math.PI * 24; const p = Math.max(0, Math.min(100, typeof pct === 'number' ? pct : 0)); return (c * p / 100).toFixed(1) + ' ' + c.toFixed(1) }
+const kbLdClock = (ms) => {
+  const sec = Math.max(0, Math.floor((typeof ms === 'number' ? ms : 0) / 1000))
+  const hh = Math.floor(sec / 3600)
+  const two = (n) => (n < 10 ? '0' : '') + String(n)
+  return (hh > 0 ? String(hh) + ':' + two(Math.floor((sec % 3600) / 60)) : two(Math.floor(sec / 60))) + ':' + two(sec % 60)
+}
+const kbLdIcon = (kind, tone) => h('svg', { width: 14, height: 14, viewBox: '0 0 24 24', fill: 'none', stroke: tone, strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true' },
+  kind === 'cpu' ? [h('rect', { key: 'a', x: 7, y: 7, width: 10, height: 10, rx: 1.5 }), h('path', { key: 'b', d: 'M9 3v3M15 3v3M9 18v3M15 18v3M3 9h3M3 15h3M18 9h3M18 15h3' })]
+    : kind === 'mem' ? [h('rect', { key: 'a', x: 3, y: 8, width: 18, height: 8, rx: 2 }), h('path', { key: 'b', d: 'M7 8v8M12 8v8M17 8v8' })]
+      : kind === 'branch' ? [h('circle', { key: 'a', cx: 6, cy: 6, r: 2.2 }), h('circle', { key: 'b', cx: 6, cy: 18, r: 2.2 }), h('circle', { key: 'c', cx: 18, cy: 9, r: 2.2 }), h('path', { key: 'd', d: 'M6 8.2v7.6M18 11.2v1c0 2-2 3-6 3' })]
+        : kind === 'leaf' ? [h('path', { key: 'a', d: 'M5 19c0-8 5-13 14-14 0 9-5 14-13 14z' }), h('path', { key: 'b', d: 'M5 19c3-5 6-8 10-10' })]
+          : [h('rect', { key: 'a', x: 4, y: 5, width: 16, height: 4, rx: 1 }), h('rect', { key: 'b', x: 4, y: 10, width: 16, height: 4, rx: 1 }), h('rect', { key: 'c', x: 4, y: 15, width: 16, height: 4, rx: 1 })])
+const kbLdSpark = (paths, ht, tone, key) => h('svg', { key, className: 'kbld-spark', width: '100%', height: ht, viewBox: '0 0 160 ' + ht, preserveAspectRatio: 'none', 'aria-hidden': 'true' },
+  paths.area !== '' ? h('path', { d: paths.area, fill: tone, fillOpacity: 0.18 }) : null,
+  paths.line !== '' ? h('path', { d: paths.line, fill: 'none', stroke: tone, strokeWidth: 1.5, strokeLinejoin: 'round', strokeLinecap: 'round', vectorEffect: 'non-scaling-stroke' }) : null)
+const kbLdRingSvg = (pct, label, tone, aria) => h('svg', { width: 58, height: 58, viewBox: '0 0 60 60', role: 'img', 'aria-label': aria },
+  h('circle', { cx: 30, cy: 30, r: 24, fill: 'none', stroke: 'var(--dsw-alias-border-l2)', strokeWidth: 6 }),
+  typeof pct === 'number' ? h('circle', { cx: 30, cy: 30, r: 24, fill: 'none', stroke: tone, strokeWidth: 6, strokeLinecap: 'round', strokeDasharray: kbLdRing(pct), transform: 'rotate(-90 30 30)' }) : null,
+  h('text', { x: 30, y: 34, textAnchor: 'middle', fontSize: 12, fontWeight: 700, fill: 'var(--dsw-alias-label-primary)' }, label))
+const kbLdKids = (v) => (Array.isArray(v.runs) ? v.runs.reduce((n, r) => n + (typeof r.subagents === 'number' ? r.subagents : 0), 0) : 0)
+// The one line under the gauge: what the automations hold and what waits.
+const kbLdMeta = (v) => {
+  const max = typeof v.maxParallel === 'number' ? v.maxParallel : 3
+  const n = typeof v.inFlight === 'number' ? v.inFlight : 0
+  const w = typeof v.waiting === 'number' ? v.waiting : 0
+  const kids = kbLdKids(v)
+  const level = kbLdLevel(v)
+  if (n === 0 && w === 0 && level === 'ok') return kbt('kbld.m.idle').replace('{max}', String(max))
+  const parts = []
+  parts.push(n === 0 ? kbt('kbld.m.runs1').replace('{n}', '0') : (typeof v.allowed === 'number' && v.allowed > 0 ? kbt('kbld.m.runs').replace('{n}', String(n)).replace('{a}', String(v.allowed)) : kbt('kbld.m.runs1').replace('{n}', String(n))))
+  parts.push(w > 0 ? kbt('kbld.m.waiting').replace('{n}', String(w)) : kbt('kbld.m.nowait'))
+  if (level === 'high') parts.push(kbt('kbld.m.nosub'))
+  else if (level === 'busy') parts.push(kbt('kbld.m.subof').replace('{n}', String(kids)).replace('{max}', '1'))
+  else if (kids > 0) parts.push(kbt('kbld.m.sub').replace('{n}', String(kids)))
+  return parts.join(' · ')
+}
+const KbLoadStrip = (props) => {
+  const v = props.load
+  const openPair = React.useState(false)
+  const open = openPair[0]
+  const box = React.useRef(null)
+  React.useEffect(() => {
+    if (open !== true) return undefined
+    const away = (ev) => { try { if (box.current !== null && box.current.contains(ev.target) !== true) openPair[1](false) } catch (e) { /* gone */ } }
+    const esc = (ev) => { if (ev.key === 'Escape') openPair[1](false) }
+    document.addEventListener('mousedown', away)
+    document.addEventListener('keydown', esc)
+    return () => { document.removeEventListener('mousedown', away); document.removeEventListener('keydown', esc) }
+  }, [open])
+  if (v === null || v === undefined || typeof v !== 'object' || typeof v.level !== 'string') return null
+  const level = kbLdLevel(v)
+  const word = kbt('kbld.level.' + level)
+  // The reading is switched off or forced: the figure would not be the machine's, so there is no gauge, only the level.
+  if (typeof v.pressure !== 'number') return h('div', { className: 'kbld', 'data-kb': 'load-strip', 'data-kbld-level': level }, h('span', { className: 'kbld-off' }, kbt('kbld.title') + ' · ' + word))
+  const meta = kbLdMeta(v)
+  const filled = v.pressure <= 0 ? 0 : Math.max(1, Math.round((v.pressure / 100) * 24))
+  const ticks = []
+  for (let i = 0; i < 24; i += 1) ticks.push(h('i', { key: i, className: i < filled ? (i === filled - 1 ? 'on head' : 'on') : '' }))
+  const series = v.series !== null && typeof v.series === 'object' ? v.series : {}
+  const total = kbLdPath(series.total, 92, 26, 0, 100, KB_LD_POINTS)
+  const tone = 'var(--kbld-c)'
+  const cpu = v.cpu !== null && typeof v.cpu === 'object' ? v.cpu : {}
+  const mem = v.mem !== null && typeof v.mem === 'object' ? v.mem : {}
+  const max = typeof v.maxParallel === 'number' ? v.maxParallel : 3
+  const kids = kbLdKids(v)
+  const subs = v.subagents !== null && typeof v.subagents === 'object' ? v.subagents : { limit: null, refused: 0 }
+  const line = (label, value) => h('span', { className: 'kbld-kv' }, h('span', null, label), h('b', null, value))
+  const pips = []
+  // Drawn as SVG: the shell rounds the corners of its boxes its own way, and a `border-radius: 50%` comes out as a squircle.
+  for (let i = 0; i < max; i += 1) {
+    const kind = i < v.inFlight ? 'busy' : i < v.allowed ? 'free' : 'locked'
+    pips.push(h('svg', { key: i, className: 'kbld-pip ' + kind, width: 36, height: 36, viewBox: '0 0 36 36', 'aria-hidden': 'true' },
+      kind === 'busy' ? h('circle', { cx: 18, cy: 18, r: 17, fill: 'var(--kbld-c)' })
+        : kind === 'free' ? h('circle', { cx: 18, cy: 18, r: 15, fill: 'none', stroke: 'var(--dsw-alias-state-success-primary)', strokeWidth: 2 })
+          : h('circle', { cx: 18, cy: 18, r: 15, fill: 'none', stroke: 'var(--dsw-alias-state-idle-primary)', strokeWidth: 2, strokeDasharray: '4 3' })))
+  }
+  const bar = typeof mem.availPct === 'number' && typeof mem.kybernosPct === 'number'
+    ? [['kyb', mem.kybernosPct, 'var(--dsw-alias-state-business-primary)'], ['other', mem.otherPct, 'var(--dsw-alias-state-idle-primary)'], ['free', mem.availPct, 'var(--dsw-alias-state-success-primary)']] : []
+  return h('div', { className: 'kbld', ref: box, 'data-kb': 'load-strip', 'data-kbld-level': level },
+    h('button', { type: 'button', className: 'kbld-btn', 'data-kb': 'load-strip-btn', 'aria-expanded': open === true ? 'true' : 'false', 'aria-haspopup': 'dialog', onClick: () => openPair[1](!open),
+      'aria-label': kbt('kbld.aria').replace('{title}', kbt('kbld.title')).replace('{pct}', String(v.pressure)).replace('{word}', word).replace('{meta}', meta) },
+      h('span', { className: 'kbld-l1' },
+        h('span', { className: 'kbld-ticks', 'aria-hidden': 'true' }, ticks),
+        h('span', { className: 'kbld-pct' }, String(v.pressure) + '%'),
+        h('span', { className: 'kbld-word' }, word),
+        h('span', { className: 'kbld-sp' }),
+        h('svg', { className: 'kbld-mini', width: 92, height: 26, viewBox: '0 0 92 26', 'aria-hidden': 'true' },
+          total.area !== '' ? h('path', { d: total.area, fill: tone, fillOpacity: 0.16 }) : null,
+          total.line !== '' ? h('path', { d: total.line, fill: 'none', stroke: tone, strokeWidth: 1.6, strokeLinejoin: 'round', strokeLinecap: 'round' }) : null),
+        h('svg', { width: 14, height: 14, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true', className: 'kbld-chev' }, h('path', { d: 'm6 9 6 6 6-6' }))),
+      h('span', { className: 'kbld-l2', 'data-kb': 'load-meta' }, meta)),
+    open === true ? h('div', { className: 'kbld-pop', role: 'dialog', 'aria-label': kbt('kbld.title'), 'data-kb': 'load-pop' },
+      h('div', { className: 'kbld-ph' },
+        h('b', null, kbt('kbld.title')),
+        h('span', { className: 'kbld-chip lvl' }, word),
+        h('span', { className: 'kbld-sp' }),
+        h('span', { className: 'kbld-l2' }, kbt('kbld.last5'))),
+      h('div', { className: 'kbld-cards' },
+        h('div', { className: 'kbld-card', 'data-kb': 'load-card-cpu' },
+          h('div', { className: 'kbld-ct' }, kbLdIcon('cpu', 'var(--dsw-alias-state-business-primary)'), kbt('kbld.cpu')),
+          h('div', { className: 'kbld-cm' },
+            kbLdRingSvg(typeof cpu.pressure === 'number' ? cpu.pressure : null, typeof cpu.pressure === 'number' ? cpu.pressure + '%' : '—', kbLdTone(cpu.pressure), kbt('kbld.cpu')),
+            h('div', { className: 'kbld-kvs' }, line(kbt('kbld.cpu.load'), typeof cpu.loadPerCpu === 'number' ? cpu.loadPerCpu.toFixed(2) : '—'), line(kbt('kbld.busyAt'), '1.5'), line(kbt('kbld.redAt'), '2.5'))),
+          kbLdSpark(kbLdPath(series.cpu, 160, 44, 0, 100, KB_LD_POINTS), 44, kbLdTone(cpu.pressure))),
+        h('div', { className: 'kbld-card', 'data-kb': 'load-card-mem' },
+          h('div', { className: 'kbld-ct' }, kbLdIcon('mem', 'var(--dsw-alias-state-warn-primary)'), kbt('kbld.mem')),
+          h('div', { className: 'kbld-cm' },
+            kbLdRingSvg(typeof mem.usedPct === 'number' ? mem.usedPct : null, typeof mem.usedPct === 'number' ? mem.usedPct + '%' : '—', kbLdTone(mem.pressure), kbt('kbld.mem')),
+            h('div', { className: 'kbld-kvs' }, line(kbt('kbld.mem.avail'), typeof mem.availPct === 'number' ? mem.availPct + ' %' : '—'), line(kbt('kbld.busyAt'), '20 %'), line(kbt('kbld.redAt'), '10 %'))),
+          bar.length > 0 ? h('div', { className: 'kbld-bar', role: 'img', 'aria-label': bar.map((b) => b[1] + ' %').join(' · ') }, bar.map((b) => h('span', { key: b[0], style: { width: b[1] + '%', background: b[2] } }))) : null,
+          bar.length > 0 ? h('div', { className: 'kbld-legend' }, [['kyb', 'kbld.mem.kyb'], ['other', 'kbld.mem.other'], ['free', 'kbld.mem.free']].map((l, i) => h('span', { key: l[0] }, h('i', { style: { background: bar[i][2] } }), kbt(l[1])))) : null,
+          kbLdSpark(kbLdPath(series.mem, 160, 30, 0, 100, KB_LD_POINTS), 30, kbLdTone(mem.pressure))),
+        h('div', { className: 'kbld-card', 'data-kb': 'load-card-auto' },
+          h('div', { className: 'kbld-ct' }, kbLdIcon('auto', 'var(--dsw-alias-state-success-primary)'), kbt('kbld.auto')),
+          h('div', { className: 'kbld-pips' }, pips),
+          h('div', { className: 'kbld-kvs' },
+            line(kbt('kbld.auto.waiting'), String(v.waiting)),
+            line(kbt('kbld.auto.sub'), subs.limit === null ? (kids > 0 ? kbt('kbld.sub.going').replace('{n}', String(kids)) : kbt('kbld.sub.none')) : subs.limit === 0 ? kbt('kbld.sub.zero') : kbt('kbld.sub.of').replace('{n}', String(kids)).replace('{max}', String(subs.limit))),
+            line(kbt('kbld.auto.refused'), String(typeof subs.refused === 'number' ? subs.refused : 0))),
+          kbLdSpark(kbLdSteps(series.runs, 160, 30, Math.max(1, max), KB_LD_POINTS), 30, 'var(--dsw-alias-state-success-primary)'))),
+      h('div', { className: 'kbld-foot' },
+        h('span', { className: 'kbld-sp' }, kbt('kbld.foot.' + level).replace('{max}', String(max))),
+        h('button', { type: 'button', className: 'kbld-link', 'data-kb': 'load-settings', onClick: () => { openPair[1](false); kbOpenSettingsPage(['kybernos-automations']) } }, kbt('kbld.settings')))) : null)
+}
+// What a row of the List says about a run: its weight (time, activity, slot, sub-agents, lighter) or that it waits for the machine.
+const kbLdRowWeight = (load, task, running, nowMs) => {
+  if (load === null || load === undefined || typeof load !== 'object') return null
+  const level = kbLdLevel(load)
+  if (running === true) {
+    const run = Array.isArray(load.runs) ? load.runs.find((r) => r.taskId === task.id) : undefined
+    return run === undefined ? null : { kind: 'run', run, level }
+  }
+  const rank = load.held === true && Array.isArray(load.waitingIds) ? load.waitingIds.indexOf(task.id) : -1
+  if (rank < 0) return null
+  const due = typeof task.nextRun === 'string' ? Date.parse(task.nextRun) : NaN
+  const mins = Number.isFinite(due) ? Math.max(1, Math.round((nowMs - due) / 60000)) : 1
+  return { kind: 'wait', rank: rank + 1, waited: kbt('kbld.minutes').replace('{n}', String(mins)), level }
+}
+const kbLdStateCell = (a) => {
+  const w = a.weight
+  const chip = (key, cls, kids) => h('span', { key, className: 'kbld-chip' + (cls === '' ? '' : ' ' + cls) }, kids)
+  if (w.kind === 'run') {
+    const act = kbLdPath(w.run.activity, 64, 18, 0, Math.max(1, ...w.run.activity), Math.max(2, w.run.activity.length))
+    return h('span', { className: 'kba-last run kbld-w', 'data-kbld-level': w.level, 'data-kb': 'row-weight' },
+      h('span', { className: 'kbld-w1' }, h('span', { className: 'kb-spin', role: 'status', 'aria-label': a.lastLabel }), h('span', { className: 'kba-ell', title: a.lastLabel }, a.lastLabel), h('span', { className: 'kbld-time' }, kbLdClock(w.run.elapsedMs))),
+      h('span', { className: 'kbld-w2' },
+        h('svg', { className: 'kbld-act', width: 64, height: 18, viewBox: '0 0 64 18', 'aria-hidden': 'true' }, act.line !== '' ? h('path', { d: act.line, fill: 'none', stroke: 'var(--kbld-c)', strokeWidth: 1.5, strokeLinejoin: 'round', strokeLinecap: 'round' }) : null),
+        chip('slot', '', [h('i', { key: 'd', className: 'kbld-dot' }), kbt('kbld.chip.slot')]),
+        w.run.subagents > 0 ? chip('sub', '', [kbLdIcon('branch', 'currentColor'), kbt('kbld.m.sub').replace('{n}', String(w.run.subagents))]) : null,
+        w.run.lighter === true ? chip('light', 'lvl', [kbLdIcon('leaf', 'currentColor'), kbt('kbld.chip.lighter')]) : null))
+  }
+  return h('span', { className: 'kba-last kbld-w', 'data-kbld-level': w.level, 'data-kb': 'row-waiting' },
+    h('span', { className: 'kbld-w1 kbld-waitword' }, Icon('clock', 14), h('span', { className: 'kba-ell' }, kbt('kbld.wait'))),
+    h('span', { className: 'kbld-q' }, kbt(w.rank === 1 ? 'kbld.q.first' : 'kbld.q.n').replace('{r}', String(w.rank)).replace('{w}', w.waited)))
 }
 const kbListState = (tasks, loadError) => {
   if (tasks === null || tasks === undefined) return loadError !== null && loadError !== undefined ? 'error' : 'loading'
@@ -23512,7 +23746,7 @@ function renderFit(canvas, model, cam, opts){
           if (alive === true) machineLoadPair[1](j !== null && typeof j === 'object' && j.ok === true ? j : null)
         }).catch(() => { if (alive === true) machineLoadPair[1](null) })
         read()
-        const timer = setInterval(read, 15000)
+        const timer = setInterval(read, 10000)
         return () => { alive = false; clearInterval(timer) }
       }, [])
       const tabPair = React.useState('flow')
@@ -23703,6 +23937,7 @@ function renderFit(canvas, model, cam, opts){
         return {
           id: t.id, name: t.name || t.id, team: kbTaskWho(t, kbt), trigger: parts.label, tip: parts.tip, hooked: parts.hooked, active: t.active !== false,
           sessions: hist.length, succ: kbRunBars(t.history), lastLabel: lastLabel, lastCls: lastCls, failed: failed === true || t.pendingFire === true, _t: t,
+          weight: kbLdRowWeight(machineLoadPair[0], t, runIds.indexOf(t.id) >= 0, Date.now()),
         }
       })
       // The suggestions waiting for Add, in a dashed card above the list, in every view: the same look as the suggested skills.
@@ -24103,8 +24338,10 @@ function renderFit(canvas, model, cam, opts){
         // des automations existent déjà (quand la liste est vide, il est déjà
         // à l'écran).
         (guide === true && list.length > 0 && section === 'yours' ? kbaOnboard(true) : null),
-        h('div', { className: 'kba-sub', role: 'tablist', 'data-kb': 'automations-sections' },
-          ['yours', 'discover'].map((id) => h('button', { key: id, type: 'button', role: 'tab', 'aria-selected': section === id ? 'true' : 'false', className: section === id ? 'on' : '', 'data-kb': 'section-' + id, onClick: () => setSection(id) }, kbt('tasks.tab.' + id)))),
+        h('div', { className: 'kbld-row' },
+          h('div', { className: 'kba-sub', role: 'tablist', 'data-kb': 'automations-sections' },
+            ['yours', 'discover'].map((id) => h('button', { key: id, type: 'button', role: 'tab', 'aria-selected': section === id ? 'true' : 'false', className: section === id ? 'on' : '', 'data-kb': 'section-' + id, onClick: () => setSection(id) }, kbt('tasks.tab.' + id)))),
+          h(KbLoadStrip, { load: machineLoadPair[0] })),
         // Barre unifiée (comme Projets et Kybers) : les anciens chips
         // Toutes / Actives / Attention requise deviennent la facette `type`
         // (compteurs sur la liste complète), Favoris devient l'étoile de la
@@ -24121,7 +24358,7 @@ function renderFit(canvas, model, cam, opts){
               h('button', { type: 'button', className: 'kba-rowbtn', onClick: () => { setDetail(a.id); setTab('flow'); setNodeSel(null) } },
                 h('span', { className: 'kba-namecell' }, h('span', { className: 'kba-name', title: a.name }, a.name), h('span', { className: 'kba-team', title: a.team }, a.team)),
                 h('span', { className: 'kba-trgcell' }, h('span', { className: 'kba-trigger-icon' }, Icon('zap', 12)), h('span', { className: 'kba-trg-stack' }, h('span', { className: 'kba-ell', title: a.tip !== '' ? a.trigger + ' · ' + a.tip : a.trigger }, a.trigger), a.hooked === true ? h('span', { className: 'kba-team' }, kbt('tasks.trigger.plushook')) : null)),
-                h('span', { className: 'kba-last' + (a.lastCls !== '' ? ' ' + a.lastCls : '') }, a.lastCls === 'run' ? h('span', { className: 'kb-spin', role: 'status', 'aria-label': a.lastLabel }) : h('span', { className: 'kba-kdot ' + a.lastCls }), h('span', { className: 'kba-ell', title: a.lastLabel }, a.lastLabel)),
+                a.weight !== null ? kbLdStateCell(a) : h('span', { className: 'kba-last' + (a.lastCls !== '' ? ' ' + a.lastCls : '') }, a.lastCls === 'run' ? h('span', { className: 'kb-spin', role: 'status', 'aria-label': a.lastLabel }) : h('span', { className: 'kba-kdot ' + a.lastCls }), h('span', { className: 'kba-ell', title: a.lastLabel }, a.lastLabel)),
                 h('span', { className: 'kba-succ', 'data-kb': 'row-success' },
                   (a.succ.pct === null ? h('span', { className: 'kba-ell' }, '\u2014') : h('span', { className: 'kba-pct ' + (a.succ.pct >= 95 ? 'g' : (a.succ.pct >= 85 ? 'a' : 'r')) }, String(a.succ.pct) + '%')),
                   h('span', { className: 'kba-bars', 'aria-hidden': 'true' }, a.succ.bars.map((b, i) => h('i', { key: i, className: b === 'bad' ? 'x' : '' })))),
@@ -32263,7 +32500,7 @@ body[data-ds-dark-theme] .kb8-iconbtn.on.col{border-color:var(--kb8-pgd);color:v
 .kba-rowline:hover,.kba-rowline:focus-within{background:var(--dsw-alias-interactive-bg-hover)}
 .kba-rowline-head{cursor:default;border-top:0;padding-top:11px;padding-bottom:11px}
 .kba-rowline-head:hover{background:transparent}
-.kba-rowbtn,.kba-rowhead{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1.3fr) 150px 112px 64px;column-gap:14px;align-items:center;min-width:0}
+.kba-rowbtn,.kba-rowhead{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1.2fr) minmax(150px,236px) 112px 64px;column-gap:14px;align-items:center;min-width:0}
 .kba-oncol{display:flex;align-items:center;justify-content:center}
 .kba-namecell{display:flex;flex-direction:column;min-width:0}
 /* The row's actions: at the right, on hover and on focus; always on a touch screen. A starred row keeps its star. */
@@ -34501,6 +34738,59 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
 .kbac-gauge-ticks i.head{height:26px}
 @media (max-width:560px){.kbac-gauge-ticks{display:none}}
 .kbac-gauge-n{min-width:38px;text-align:end;font-size:14px;font-weight:500;font-variant-numeric:tabular-nums;color:var(--dsw-alias-label-secondary)}
+[data-kbld-level]{--kbld-c:var(--dsw-alias-state-success-primary)}
+[data-kbld-level="busy"]{--kbld-c:var(--dsw-alias-state-warn-primary)}
+[data-kbld-level="high"]{--kbld-c:var(--dsw-alias-state-error-primary)}
+body[data-ds-dark-theme] [data-kbld-level]{--kbld-t:var(--kbld-c)}
+body:not([data-ds-dark-theme]) [data-kbld-level]{--kbld-t:color-mix(in srgb,var(--kbld-c) 55%,var(--dsw-alias-label-primary))}
+.kbld-row{display:flex;align-items:flex-start;justify-content:space-between;gap:12px 16px;flex-wrap:wrap;margin:0 0 14px}
+.kbld-row .kba-sub{margin:0}
+.kbld{position:relative;max-width:100%}
+.kbld-btn{display:flex;flex-direction:column;gap:5px;box-sizing:border-box;width:460px;max-width:100%;padding:8px 12px 8px 14px;border-radius:14px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);font:inherit;text-align:start;cursor:pointer}
+.kbld-btn:hover{background:var(--dsw-alias-interactive-bg-hover)}
+.kbld-l1{display:flex;align-items:center;gap:10px}
+.kbld-ticks{display:inline-flex;align-items:center;gap:2px;height:26px}
+.kbld-ticks i{display:block;width:2px;height:16px;border-radius:1px;background:var(--dsw-alias-border-l2)}
+.kbld-ticks i.on{background:var(--kbld-c)}
+.kbld-ticks i.head{height:24px}
+.kbld-pct{font-size:15px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--kbld-t)}
+.kbld-word{font-size:12px;font-weight:600;color:var(--kbld-t)}
+.kbld-sp{flex:1 1 auto}
+.kbld-l2{font-size:11px;line-height:1.4;color:var(--dsw-alias-label-secondary)}
+.kbld-chev{color:var(--dsw-alias-label-secondary);flex:none}
+.kbld-off{display:inline-flex;align-items:center;height:28px;padding:0 12px;border-radius:14px;border:1px solid var(--dsw-alias-border-l2);font-size:12px;color:var(--dsw-alias-label-secondary)}
+.kbld-pop{position:absolute;z-index:30;top:calc(100% + 8px);right:0;box-sizing:border-box;width:640px;max-width:calc(100vw - 32px);padding:16px;border-radius:16px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);box-shadow:0 18px 48px rgba(0,0,0,.35)}
+.kbld-ph{display:flex;align-items:center;flex-wrap:wrap;gap:6px 10px;font-size:14px}
+.kbld-chip{display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 8px;border-radius:10px;border:1px solid var(--dsw-alias-border-l2);font-size:11px;color:var(--dsw-alias-label-secondary);white-space:nowrap}
+.kbld-chip.lvl{border-color:var(--kbld-c);color:var(--kbld-t);font-weight:600}
+.kbld-ph .kbld-chip.lvl{height:22px;padding:0 10px;border-radius:11px}
+.kbld-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:14px}
+.kbld-card{box-sizing:border-box;min-width:0;padding:12px;border-radius:12px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-2)}
+.kbld-ct{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600}
+.kbld-cm{display:flex;align-items:center;gap:12px;margin-top:10px}
+.kbld-kvs{display:flex;flex-direction:column;gap:3px;flex:1 1 auto;min-width:0;font-size:11px;color:var(--dsw-alias-label-secondary)}
+.kbld-card>.kbld-kvs{margin-top:10px}
+.kbld-kv{display:flex;justify-content:space-between;gap:8px}
+.kbld-kv b{color:var(--dsw-alias-label-primary);font-weight:600;font-variant-numeric:tabular-nums;text-align:end}
+.kbld-spark{display:block;margin-top:10px;width:100%}
+.kbld-bar{display:flex;height:8px;border-radius:4px;overflow:hidden;margin-top:10px;background:var(--dsw-alias-border-l2)}
+.kbld-bar span{display:block;height:8px}
+.kbld-legend{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px;font-size:10px;color:var(--dsw-alias-label-secondary)}
+.kbld-legend span{display:inline-flex;align-items:center;gap:4px}
+.kbld-legend i{display:block;width:7px;height:7px;border-radius:50%}
+.kbld-pips{display:flex;align-items:center;gap:8px;margin-top:10px;height:58px}
+.kbld-pip{display:block;flex:none}
+.kbld-foot{display:flex;align-items:center;gap:12px;margin-top:14px;padding-top:12px;border-top:1px solid var(--dsw-alias-border-l1);font-size:12px;color:var(--dsw-alias-label-secondary)}
+.kbld-link{border:0;background:transparent;padding:0;font:inherit;font-weight:600;color:var(--dsw-alias-label-primary);cursor:pointer;white-space:nowrap}
+.kba-last.kbld-w{flex-direction:column;align-items:flex-start;gap:5px}
+.kbld-w1{display:flex;align-items:center;gap:8px;min-width:0;max-width:100%}
+.kbld-w2{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.kbld-time{font-size:11px;font-variant-numeric:tabular-nums;color:var(--dsw-alias-label-secondary)}
+.kbld-dot{display:block;width:8px;height:8px;border-radius:50%;background:var(--kbld-c)}
+.kbld-waitword{color:var(--kbld-t);font-weight:600}
+.kbld-q{font-size:11px;color:var(--dsw-alias-label-secondary)}
+@media (max-width:560px){.kbld{width:100%}.kbld-btn{width:100%}.kbld-ticks{flex:1 1 auto;justify-content:space-between}.kbld-ticks i{width:3px}.kbld-pop{position:static;width:auto;max-width:none;margin-top:8px}.kbld-cards{grid-template-columns:1fr}}
+@media (max-width:400px){.kbld-mini{display:none}}
 .kbac-btn{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:32px;padding:0 12px;border-radius:10px;border:1px solid var(--dsw-alias-border-l2);background:transparent;color:var(--dsw-alias-label-primary);font:inherit;font-size:13px;text-decoration:none;cursor:pointer;white-space:nowrap}
 .kbac-btn:hover{background:var(--dsw-alias-interactive-bg-hover)}
 .kbac-seg{display:inline-flex;gap:2px;padding:3px;border-radius:999px;background:var(--dsw-alias-bg-layer-2);border:1px solid var(--dsw-alias-border-l1);flex:none}
