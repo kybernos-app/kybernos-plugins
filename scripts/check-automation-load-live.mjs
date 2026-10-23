@@ -371,6 +371,26 @@ try {
     }
     await shot('cards-' + level)
   }
+  // the Calendar: the run going has its weight in its tooltip, a leaf when it works lighter, and the full block in the detail
+  await goView('calendar')
+  for (const level of ['ok', 'busy', 'high']) {
+    forced = fixture(level)
+    await poll(async () => { const x = await stripFacts(); return x !== null && x !== undefined && x.level === level })
+    await sleep(800)
+    const chip = await poll(() => val(`(() => { const e = document.querySelector('[data-kb="board-event"][data-task="st-load-a"][data-state="running"]'); if (!e) return null; return { title: e.getAttribute('title'), label: e.getAttribute('aria-label'), leaf: !!e.querySelector('[data-kb="event-lighter"]'), level: e.getAttribute('data-kbld-level') } })()`), 14000)
+    check('Calendar (' + level + '): the chip of the run going carries its weight in its tooltip and its label', chip !== null && chip !== undefined && /1 slot/.test(chip.title) && /1 slot/.test(chip.label) && (level === 'ok' ? /2 sub-agents/.test(chip.title) : level === 'busy' ? /1 sub-agent(?!s)/.test(chip.title) && /Lighter run/.test(chip.title) : /Lighter run/.test(chip.title) && !/sub-agent/.test(chip.title)), chip)
+    check('Calendar (' + level + '): ' + (level === 'ok' ? 'no leaf while the machine has room' : 'a leaf on the chip while the run works lighter'), chip !== null && chip !== undefined && chip.leaf === (level !== 'ok'), chip)
+    await val(`(() => { const e = document.querySelector('[data-kb="board-event"][data-task="st-load-a"][data-state="running"]'); if (e) e.click(); return !!e })()`)
+    const det = await poll(() => blockText('[data-kb="board-detail"] [data-kb="card-weight"]'), 6000)
+    check('Calendar (' + level + '): its detail shows the weight block under the run', det !== null && det !== undefined && /\d\d:\d\d/.test(det) && /1 slot/.test(det) && (level === 'ok' ? /2 sub-agents/.test(det) && !/Lighter run/.test(det) : /Lighter run/.test(det)), det)
+    const act = await val(`document.querySelectorAll('[data-kb="board-detail"] .kbld-act path').length`)
+    check('Calendar (' + level + '): the activity curve is drawn in the detail', act >= 1, act)
+    await shot('calendar-' + level)
+    await val(`(() => { const e = document.querySelector('[data-kb="board-event"][data-task="st-load-a"][data-state="running"]'); if (e) e.click(); return !!e })()`)
+    await sleep(400)
+  }
+  check('Calendar: the month still opens with its dots', await (async () => { await val(`(() => { const b = document.querySelector('[data-kb="board-mode"][data-v="month"]'); if (b) b.click(); return !!b })()`); await sleep(800); return (await val(`document.querySelectorAll('[data-kb="board-mcell"]').length`)) >= 28 })() === true)
+  await shot('calendar-month')
   await goView('list')
   // dark, and a narrow window: nothing wider than the screen, the detail under the strip
   forced = fixture('busy')
