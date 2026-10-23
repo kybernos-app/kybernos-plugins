@@ -288,7 +288,7 @@ The tick used to start every due task together. It now asks `automation-load.mjs
 those, oldest first; the others are left untouched, still due on the next tick (late, never lost). Two facts decide:
 
 - **The level of the machine** (`ok`, `busy`, `high`): memory still available to programs (below 20 % or 400 MB busy, 10 % or 200 MB and under high) and
-  the one-minute load average per core (1.5 busy, 2.5 high). Room is the maximum (3) at `ok`, one run at `busy`, none at `high`. macOS memory is
+  the one-minute load average per core (1.5 busy, 2.5 high). Room is the maximum at `ok` (3, or fewer on a small machine, see below), one run at `busy`, none at `high`. macOS memory is
   `kern.memorystatus_level` (what Activity Monitor calls pressure), never `os.freemem()`, which reads about 10 % on a healthy Mac; Linux is
   `MemAvailable`. A fact that cannot be read is treated as free. The thresholds are a first guess, not calibrated on a fleet.
 - **The runs going**: the sessions the scheduler created, followed through the engine's `agent/status` (running or idle) and `agent/disposed`. A
@@ -347,7 +347,7 @@ and a run's own heavy tools. The page shows « N sub-agent call(s) held back » 
 and the number of due runs waiting. Settings › Automations shows it as one row, and the board says "Waiting for the computer" instead of "The
 scheduler seems to be stopped" when the cap is what holds the overdue runs.
 
-Env: `KYBERNOS_AUTOMATION_MAX_PARALLEL` (1 to 20, default 3) sets the maximum; `KYBERNOS_AUTOMATION_LOAD_GUARD=off` stops consulting the machine
+Env: `KYBERNOS_AUTOMATION_MAX_PARALLEL` (1 to 20) sets the maximum; unset, it depends on the machine's memory: one run at a time under 1.5 GB (a 1 GB cloud computer), two under 3 GB (2 GB), three above (a first guess, `SIZE_TIERS`, to be moved by a measurement on a real computer); `KYBERNOS_AUTOMATION_LOAD_GUARD=off` stops consulting the machine
 (the level is always `ok`; the maximum still applies); `KYBERNOS_AUTOMATION_LOAD_FORCE=busy|high` forces a level. A container with a memory limit is not seen (the host's memory is read).
 
 ### Stable automations are suggested as skills
@@ -649,7 +649,7 @@ node packages/kybernos-plugin/test-automation-board.mjs  # the KB-AUTOBOARD bloc
 node packages/kybernos-plugin/test-automation-runs.mjs   # the run summary: clock, outcome, models, tool calls, approvals, scrubbing, the guards and bounds of tasks/runs
 node packages/kybernos-plugin/test-automation-runs-client.mjs  # the KB-AUTORUNS block: history lines → runs, figures, bars, graph; the pane stays read-only
 node packages/kybernos-plugin/test-automation-flow.mjs  # the KB-AUTOFLOW block: layout, wires (none through a card, 9 styles), drag offsets, scale
-node packages/kybernos-plugin/test-automation-load.mjs  # the level, the room, which due runs start, the runs going, the off switch, the wiring in index.js and client.js
+node packages/kybernos-plugin/test-automation-load.mjs  # the level, the room, the maximum by machine size, which due runs start, the runs going, the off switch, the wiring in index.js and client.js
 node packages/kybernos-plugin/test-automation-settings.mjs  # the three switches and the choice, the guard of the route, the held tick
 node packages/kybernos-plugin/test-automation-skills.mjs  # the stable-run rule, the skill parts, the route and the tick suggesting a skill by itself (real apply() on a throw-away DSH home, a stand-in for the Skills seam)
 node packages/kybernos-plugin/test-learned-dot.mjs         # the dot on the Skills row of the menu

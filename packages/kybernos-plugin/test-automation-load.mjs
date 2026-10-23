@@ -7,7 +7,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
   DEFAULT_MAX_PARALLEL, MAX_PARALLEL_CEILING, HOLD_LIMIT_MS, START_GRACE_MS, RUN_MAX_MS, LEVELS,
-  maxParallelFrom, guardOff, forcedLevel, parseMeminfo, levelOf, pressureOf,
+  maxParallelFrom, defaultMaxParallel, SIZE_TIERS, guardOff, forcedLevel, parseMeminfo, levelOf, pressureOf,
   pressureParts, createHistory, createActivity, HISTORY_POINTS, ACTIVITY_BUCKET_MS, ACTIVITY_BUCKETS,
   LEVEL_FRESH_MS, SUBAGENT_LEASE_MS, isSubagentTool, subagentLimitAt, noteAt, refusalReason, freshLevel, createSubagentGate, allowedAt, admit, createInflight, publicView,
 } from './automation-load.mjs'
@@ -75,6 +75,19 @@ assert.equal(maxParallelFrom({ KYBERNOS_AUTOMATION_MAX_PARALLEL: '999' }), MAX_P
 for (const bad of ['0', '-1', '2.5', 'many', '', '1e3']) assert.equal(maxParallelFrom({ KYBERNOS_AUTOMATION_MAX_PARALLEL: bad }), DEFAULT_MAX_PARALLEL, JSON.stringify(bad))
 assert.equal(maxParallelFrom(null), DEFAULT_MAX_PARALLEL)
 ok('maximum: a whole number from 1 to the ceiling, else the default')
+
+// 3b. the default by the machine's size: one run on a 1 GB computer, two on 2 GB, three above; the variable still wins
+assert.deepEqual(SIZE_TIERS.map((t) => t.runs), [1, 2], 'two tiers below the usual default')
+for (const [mb, runs] of [[256, 1], [980, 1], [1024, 1], [1535, 1], [1536, 2], [1900, 2], [2048, 2], [3071, 2], [3072, DEFAULT_MAX_PARALLEL], [8192, DEFAULT_MAX_PARALLEL], [16384, DEFAULT_MAX_PARALLEL]]) {
+  assert.equal(defaultMaxParallel(mb), runs, mb + ' MB')
+  assert.equal(maxParallelFrom({}, mb), runs, mb + ' MB, no variable')
+}
+for (const unknown of [undefined, null, NaN, 0, -5, 'big', {}, []]) assert.equal(defaultMaxParallel(unknown), DEFAULT_MAX_PARALLEL, 'an unknown size is the usual default')
+assert.equal(maxParallelFrom({ KYBERNOS_AUTOMATION_MAX_PARALLEL: '4' }, 1024), 4, 'the variable wins over the size')
+assert.equal(maxParallelFrom({ KYBERNOS_AUTOMATION_MAX_PARALLEL: 'many' }, 1024), 1, 'a bad variable falls back to the size, not to the usual default')
+assert.equal(maxParallelFrom({}), DEFAULT_MAX_PARALLEL, 'without a size nothing changes')
+assert.ok(allowedAt('ok', maxParallelFrom({}, 1024)) === 1 && allowedAt('busy', maxParallelFrom({}, 1024)) === 1 && allowedAt('high', maxParallelFrom({}, 1024)) === 0, 'a 1 GB computer: one run when light or busy, none when very busy')
+ok('size: 1 GB runs one at a time, 2 GB two, bigger three; the variable wins; unknown size is unchanged')
 
 assert.equal(guardOff({ KYBERNOS_AUTOMATION_LOAD_GUARD: 'off' }), true)
 assert.equal(guardOff({ KYBERNOS_AUTOMATION_LOAD_GUARD: ' OFF ' }), true)
@@ -307,6 +320,14 @@ ok('meminfo: MemAvailable in MB, never MemFree')
   assert.ok(/const heldByLoad = [\s\S]{0,260}ml\.inFlight >= ml\.allowed/.test(cli) && /heldByLoad === true \? 'tasks\.board\.st\.load' : 'tasks\.board\.st\.due'/.test(cli), 'a due card held by the cap says so, not "the scheduler starts it"')
   assert.ok(/if \(heldByLoad === true\) \{[\s\S]{0,260}tasks\.board\.load\.title/.test(cli), 'the banner says "waiting for the computer" when the cap holds the runs')
   ok('host wiring: asked before firing, followed through agent/status, read-only route; the page reads it')
+
+  // the size of the machine reaches the maximum, and a maximum of one is said in the singular
+  assert.ok(/const kbLoadMaxParallel = \(\(\) => \{[\s\S]{0,200}osTotalmem\(\) \/ 1048576[\s\S]{0,200}return autoLoadMaxParallel\(process\.env, mb\)/.test(idx), 'the host gives the total memory to the maximum')
+  assert.ok(/kbt\(max === 1 \? 'kbld\.m\.idle1' : 'kbld\.m\.idle'\)/.test(cli), 'the strip says "one at a time" when the maximum is one')
+  assert.ok(/'kbld\.foot\.' \+ level \+ \(level === 'ok' && max === 1 \? '1' : ''\)/.test(cli), 'the detail footer says it in the singular')
+  assert.ok(/ld\.maxParallel === 1 \? 'ok1' : 'ok'/.test(cli), 'the settings row says it in the singular')
+  for (const k of ['kbld.m.idle1', 'kbld.foot.ok1', 'kbauto.set.load.ok1']) assert.ok(new RegExp("'" + k.replace(/\./g, '\\.') + "': \\{ kybernos: '[^']+', en: '[^']+' \\}").test(cli), k + ' has both languages')
+  ok('size wiring: the memory reaches the maximum; one at a time is said in the singular, in both languages')
 }
 
 // 10. the page's drawing helpers (the pure part of client.js, run as they are) and the way the strip, the detail and the rows are wired
