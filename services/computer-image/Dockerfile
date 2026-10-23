@@ -46,7 +46,8 @@ RUN node /tmp/patch-console.mjs /opt/kybernos-plugins/packages/kybernos-plugin/c
 # machine is the boundary (ADR 0052 § 11: assume model-written code is hostile; the VM, not DSH's file jail, is what holds it), so fresh
 # sessions start on the preset that never asks. The asking presets stay in the table; an automation that wants a person's OK is the
 # approval inbox's job (ADR 0052 § 15), not a prompt nobody sees.
-RUN cat >> /opt/dsh-seed/profiles/web/cordis.patch.yml <<'YAML'
+# DSH 0.2.1-rc.2 starts the file with `[]` (an empty list); items appended after it make it invalid YAML and DSH stops at boot. Older engines wrote nothing there: the line goes first.
+RUN sed -i '/^\[\]$/d' /opt/dsh-seed/profiles/web/cordis.patch.yml && cat >> /opt/dsh-seed/profiles/web/cordis.patch.yml <<'YAML'
 - id: permission
   name: "@deepseek-ai/dsh-permission-presets"
   config:
