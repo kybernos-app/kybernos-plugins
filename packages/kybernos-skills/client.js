@@ -1702,6 +1702,12 @@ body:not([data-ds-dark-theme]) .kbs-root .kb8-pill.warn{color:color-mix(in srgb,
 .kbs-root .kbl-pfoot{flex-direction:column;align-items:stretch;gap:8px}
 .kbs-root .kbl-quick{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;align-items:center}
 .kbs-root .kbl-quick button{height:30px;padding:0 12px;font-size:13px}
+/* The answers appear on hover and on keyboard focus (always there on a touch screen); their place is reserved, so nothing jumps. */
+.kbs-root .kbl-quick{transition:opacity .14s ease}
+@media (hover:hover){
+.kbs-root .kbl-pend .kbl-quick{opacity:0}
+.kbs-root .kbl-pend:hover .kbl-quick,.kbs-root .kbl-pend:focus-within .kbl-quick,.kbs-root .kbl-pend.sel .kbl-quick{opacity:1}
+}
 .kbs-root .kbs-yrow.kbl-pend .kb8-pills{flex:none;display:flex;gap:6px;flex-wrap:nowrap}
 .kbs-root .kbl-pend{border-style:dashed;border-color:color-mix(in srgb,var(--dsw-alias-brand-primary) 55%,var(--dsw-alias-border-l1));background:color-mix(in srgb,var(--dsw-alias-brand-primary) 4%,var(--dsw-alias-bg-layer-1))}
 .kbs-root .kbl-sug,.kbs-root .kbl-lrn{display:inline-flex;align-items:center;gap:4px;color:var(--dsw-alias-brand-primary);background:color-mix(in srgb,var(--dsw-alias-brand-primary) 13%,transparent)}

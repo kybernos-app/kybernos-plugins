@@ -71,6 +71,7 @@ for (const k of ['learned-review', 'learned-edit-quick', 'learned-discard-quick'
 assert.ok(quick.includes('p.blocking === true') && quick.includes('openReview(p, true)') && quick.includes('acceptLearned(p)') && quick.includes('discardLearned(p)'), 'Accept, Edit and Discard are the review window\'s own handlers, Accept locked the same way')
 const rowSrc = between('const pendingRow = ', 'const pendingShown = ')
 assert.ok(rowSrc.includes('quickActs(p)') && rowSrc.includes("'data-kb': 'learned-row'"), 'a row carries the same four answers')
+assert.ok(/@media \(hover:hover\)\{\s*\.kbs-root \.kbl-pend \.kbl-quick\{opacity:0\}\s*\.kbs-root \.kbl-pend:hover \.kbl-quick,\.kbs-root \.kbl-pend:focus-within \.kbl-quick,\.kbs-root \.kbl-pend\.sel \.kbl-quick\{opacity:1\}/.test(src), 'the answers show on hover, on keyboard focus and on the selected one, and always on a touch screen')
 ok('cards and rows are never mixed: the suggestions are rows in the list view and cards in the cards view, with Review, Edit, Discard and Accept on each')
 
 console.log(pass + ' tests passed')
