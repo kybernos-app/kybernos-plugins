@@ -199,6 +199,9 @@ writeFileSync(file, good)
   eq('learn twice finds the first one again, whatever the language', again.ok + ':' + again.existed + ':' + again.task.id, 'true:true:' + l.task.id)
   eq('...and there is one in the list', (await api({ action: 'list' })).json.tasks.filter((t) => t.name === 'Apprendre mon métier' || t.name === 'Learn my business').length, 1)
   await api({ action: 'delete', id: l.task.id })
+  const withOwn = (await api({ ...body, ownGoals: ['Prepare my thesis defence', 'Teach a class'] })).json
+  eq('learn carries the goals the person wrote, as having no kit', withOwn.ok + ':' + /Goals they wrote in their own words \(no ready-made kit behind them\): Prepare my thesis defence ; Teach a class/.test(withOwn.task.prompt), 'true:true')
+  await api({ action: 'delete', id: withOwn.task.id })
   const law = (await api({ ...body, lang: 'en', fieldId: 'droit', field: 'Law' })).json
   eq('Law: no mail app is asked for and the prompt says mail is not read', law.task.needs.length + ':' + /NOT read in this run/.test(law.task.prompt), '0:true')
   await api({ action: 'delete', id: law.task.id })
