@@ -31,7 +31,7 @@ Translations are saved on the user's disk (`~/.dsh/kybernos/i18n/<lang>.json`), 
   percentage appears in the sidebar footer (`sidebar.footer.action`, order 19) from every page; clicking it opens Settings
   on this page. A host that does not know the job route yet (DSH not restarted since the update) is not a failure: the page
   runs the same engine in the tab, as it always did (with its heartbeat: if the tab is closed mid-run, the next Kybernos tab
-  takes the run over once the heartbeat is 20 s old; Settings → « Resume an interrupted translation automatically » turns
+  takes the run over once the heartbeat is 20 s old; Settings › Language → « Resume an interrupted translation automatically » turns
   that off). A language that holds progress but is not running shows a grey bar with its count, also after a reload.
 - Texts wrapped in `⟦…⟧` are pseudo-translations written by a test run, never real ones: they are not counted as translated,
   « Use » and « Use anyway » are not offered while they are there, a dot says how many there are, and « Translate these
