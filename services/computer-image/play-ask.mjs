@@ -6,6 +6,7 @@
 //   DECISION=denied node services/computer-image/play-ask.mjs <image>      the person refuses (the action must NOT run)
 //   DECISION=allowed_turn ...                                              the person allows the rest of the run
 //   KEEP=1 ...                                                             leaves the container (name kbc-play) for a look at its log
+//   PLAY_SLOW=3 ...                                                        every wait and the due time are three times longer (an amd64 image run on an arm64 Mac is emulated)
 //
 // The image is built as in docs/dev/computers.md (`--build-arg KB_LOCAL=1 --build-context kbsrc=<git archive folder>` builds it from the checkout, publishing nothing).
 // It takes about three minutes: the automation is due a minute and a quarter after the start, and the scheduler looks every 30 s. Needs docker; exit 0 = everything holds.
@@ -23,9 +24,10 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
 const COMPUTER = randomUUID()
 const decision = process.env.DECISION || 'allowed'
+const K = Math.max(1, Number(process.env.PLAY_SLOW || 1))
 const P = { ready: [], schedules: [], runs: [], asks: [], decided: [], approvalAcks: [], chats: [], opAcked: false, decideAfterMs: Number(process.env.DECIDE_AFTER_MS || 12000) }
 const COMMAND = 'echo kb-approval-proof > /data/work/proof.txt'
-const at = new Date(Date.now() + 75_000).toISOString().slice(0, 16)
+const at = new Date(Date.now() + 75_000 * K).toISOString().slice(0, 16)
 const op = { op_id: randomUUID(), op: 'put', task_ref: 'task-ask', body: { name: 'Proof of asking', prompt: 'Run this exact command with the bash tool and then say done: ' + COMMAND, schedule: { mode: 'once', at, tz: 'UTC' }, active: true, approvals: 'ask' } }
 const self = () => ({ computer_id: COMPUTER, name: 'Home', mode: 'sleep', desired: 'running', state: 'running', paused_reason: null, idle_suspend_seconds: 300, pending_tasks: P.opAcked ? 0 : 1, decided_approvals: P.decided.filter((d) => !d.taken).length, server_time: new Date().toISOString() })
 
@@ -106,7 +108,7 @@ const run = sh('docker', 'run', '-d', '--name', NAME, '-v', NAME + '-data:/data'
 log('container', run.status === 0 ? run.stdout.trim().slice(0, 12) : 'NOT STARTED: ' + run.stderr.slice(0, 300))
 if (run.status !== 0) process.exit(2)
 
-const until = async (label, fn, ms) => { const end = Date.now() + ms; while (Date.now() < end) { if (fn()) return true; await sleep(500) } log('TIMEOUT waiting for', label); return false }
+const until = async (label, fn, ms) => { const end = Date.now() + ms * K; while (Date.now() < end) { if (fn()) return true; await sleep(500) } log('TIMEOUT waiting for', label); return false }
 const results = []
 const check = (label, ok) => { results.push([label, ok]); log(ok ? 'ok  ' : 'FAIL', label) }
 const lastStatusOf = (ref) => { for (let i = P.schedules.length - 1; i >= 0; i -= 1) { const row = (P.schedules[i].body.tasks || []).find((t) => t.id === ref); if (row) return row.last_status } return undefined }
