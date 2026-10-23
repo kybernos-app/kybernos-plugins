@@ -60,7 +60,7 @@ assert.ok(covers.includes('if (local !== null) add(') && covers.includes('else i
 assert.ok(covers.includes('return { ...m, can: j.can === true'), 'the answer is merged into the state, never replaces it (it lost `broken` once and the page crashed: Cannot read properties of undefined)')
 assert.ok(covers.includes("items[n] === 'none'") && covers.includes('j.can === true'), 'only what can be made, only what is missing')
 const cover = between('const coverSrc = ', 'const pickBy = ')
-assert.ok(cover.includes('covers.ver[p.id]') && cover.includes('covers.broken[p.id]') && cover.includes('setCovers((m) => (m.broken[p.id] === true'))
+assert.ok(cover.includes('covers.ver[p.id]') && cover.includes('covers.broken[p.id] === src ? \'\' : src') && cover.includes('setCovers((m) => (m.broken[p.id] === bad'), 'a picture that failed is remembered by its address: the tile is drawn, a new address is tried again')
 ok('a card with no picture asks the host for one (once, only when it can), looks again while it is made, shows it; a picture that cannot be read counts as missing')
 assert.ok(src.includes('.kbs-root .kbsf-making .kb8-tile{animation:kbsf-wait') && src.includes('prefers-reduced-motion:reduce'))
 ok('a picture being made pulses gently, and not for a person who asked for less motion')
