@@ -21,6 +21,9 @@ eq('empty answers say so instead of leaving a hole', /Website: not given/.test(l
 eq('control characters and long texts are cut', learnPrompt({ lang: 'en', fieldId: 'immo', about: { words: 'a\u0000b\nc' + 'x'.repeat(2000) } }).split('\n').filter((l) => l.startsWith('- In their own words: ')).length, 1)
 eq('the prompt stays far under the 8000 characters a task may hold', learnPrompt({ lang: 'en', fieldId: 'immo', field: 'x'.repeat(500), goals: Array(30).fill('g'.repeat(100)), about: { site: 'a'.repeat(900), profile: 'b'.repeat(900), words: 'c'.repeat(3000) } }).length < 4000, true)
 
+const own = learnPrompt({ lang: 'en', fieldId: 'edu', field: 'Education', goals: ['Exams'], ownGoals: ['Prepare my thesis defence', '', 'Teach a class'], about })
+eq('the goals the person wrote are listed apart, as having no kit', /Goals they wrote in their own words \(no ready-made kit behind them\): Prepare my thesis defence ; Teach a class/.test(own), true)
+eq('none written, no line', /own words \(no ready-made kit/.test(learnPrompt({ lang: 'en', fieldId: 'edu', goals: ['Exams'], ownGoals: [], about })) || /own words \(no ready-made kit/.test(learnPrompt({ lang: 'en', fieldId: 'edu', about })), false)
 const t = learnTask({ lang: 'fr', tz: 'Europe/Paris', fieldId: 'immo', field: 'Immobilier', goals: [], about })
 eq('the task: weekly, on, asking first, in its own session', t.schedule.cron + ':' + t.schedule.tz + ':' + t.active + ':' + t.approvals + ':' + t.sessionMode, LEARN_CRON + ':Europe/Paris:true:ask:home')
 eq('the task asks for the two mail apps, none in Law', t.needs.join(',') + '|' + learnTask({ lang: 'en', fieldId: 'sante', about }).needs.length, MAIL_APPS.join(',') + '|0')

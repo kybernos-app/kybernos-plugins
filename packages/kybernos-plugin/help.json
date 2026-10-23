@@ -199,8 +199,8 @@
       },
       "steps": [
         {
-          "fr": "Elles tournent sur cet ordinateur, tant que DSH est ouvert. S’il est chargé, elles attendent leur tour, puis partent seules.",
-          "en": "They run on this computer, while DSH is open. When it is busy, they wait their turn, then start on their own."
+          "fr": "Elles tournent sur cet ordinateur, tant que DSH est ouvert. S’il est chargé, elles attendent leur tour et lancent moins de subagents.",
+          "en": "They run on this computer, while DSH is open. When it is busy, they wait their turn and start fewer sub-agents."
         },
         {
           "fr": "Active la pause pour que rien ne se déclenche ; ce qui est arrivé à échéance se déclenche une fois à la reprise.",
