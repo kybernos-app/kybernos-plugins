@@ -1,0 +1,42 @@
+{
+  "name": "@local/kybernos-session-msg",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "A message or an instruction from one chat session to another, to a new one or to this one: an inline form prefilled by the agent, the sent trail, the received card, guarded host routes on sessionController.prompt, a proposal tool for the agent and a local metadata journal.",
+  "license": "Apache-2.0",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "session-guard.mjs",
+    "cordis.patch.yml",
+    "help.json",
+    "test-host.mjs",
+    "test-client.mjs"
+  ],
+  "scripts": {
+    "check": "node --check client.js && node --check index.js && node --check session-guard.mjs",
+    "test": "node test-host.mjs && node test-client.mjs",
+    "test:host": "node test-host.mjs",
+    "test:client": "node test-client.mjs"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-conversation"
+      ]
+    }
+  }
+}

@@ -13,8 +13,8 @@
       "en": "Play it with ▶ and drag the cursor on the timeline. Change texts, colours or numbers under “Settings”: the chat sees your edits."
     },
     {
-      "fr": "« Exporter » donne une vidéo MP4, une page autonome ou un fichier de scène, rangé dans le dossier artifacts/ du projet.",
-      "en": "“Export” gives an MP4 video, a standalone page or a scene file, saved in the project’s artifacts/ folder."
+      "fr": "« Exporter » donne une vidéo MP4, une page autonome ou un fichier de scène, rangé avec ton projet.",
+      "en": "“Export” gives an MP4 video, a standalone page or a scene file, saved with your project."
     },
     {
       "fr": "Retrouve tes animations dans la page Créations, ou avec « Animations » en haut du panneau.",
@@ -27,8 +27,8 @@
     "page": false
   },
   "good": {
-    "fr": "Une animation est un simple fichier .miniapp.json du projet : copie-le, versionne-le, partage-le. L’export vidéo se fait dans ton navigateur, rien n’est envoyé ailleurs.",
-    "en": "An animation is a plain .miniapp.json file in the project: copy it, version it, share it. Video export happens in your browser, nothing is sent elsewhere."
+    "fr": "Une animation est un simple fichier du projet : copie-le, versionne-le, partage-le. L’export vidéo se fait dans ton navigateur, rien n’est envoyé ailleurs.",
+    "en": "An animation is a plain file in the project: copy it, version it, share it. Video export happens in your browser, nothing is sent elsewhere."
   },
   "url": "https://help.kybernos.app/{lang}/create-with-kybernos/make-an-animation/"
 }

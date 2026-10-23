@@ -186,13 +186,16 @@ worktree started from an old `main` reads stale ones. Work from `dev`.)
 2. `docs/beta/satellites.json` — add an entry to `satellites.bundles`
    (`dir`, `nom`, `tier: 2`, `obligatoire: false`, `defaut: "actif"` if it should start switched on,
    `role`, `poids_ko`, `lib_vendor: null`) **and** add `"@local/<dir>"` to `ordre_montage.satellites`.
-3. `scripts/build-catalog.mjs` — three small tables, all keyed by `<dir>`; the build throws and says which one is missing:
-   - `FICHE`: `'<dir>': ['<family>', '<French promise>', '<English promise>']`. Families: `base`, `models`, `teams`, `create`, `data`, `connect`, `cloud`.
-   - `TITRES`: the human title shown in the Suite (`'Reference chips'`).
-   - `GLYPHES`: the glyph the Suite draws for it (reuse one already in the table).
-   - Optional `VEDETTES`: a tagline, a description and bullet points, only for a module that deserves the featured card.
-   Then regenerate the Suite catalogue: `node scripts/build-catalog.mjs` (never edit
-   `packages/kybernos-hub/catalog.json` by hand).
+3. `packages/<dir>/plugin.json` — the plugin's manifest (`docs/dev/plugin-contract.md`, section 4; the shape is
+   `docs/dev/schemas/plugin.schema.json`). Copy the one of the closest bundle. For a module of this repository it holds: `id` (`kybernos/<name>`),
+   `version` and `package` (the same as `package.json`), `name` and `description` in `en` and `fr` (the description is the one-line promise the Suite
+   shows), `icon` (a glyph the hub draws, none shared with another module), `family` (`base`, `models`, `teams`, `create`, `data`, `connect`, `cloud`),
+   `entry`, `help: "help.json"`, `suite` (`default: "on"` if it starts switched on, as in `satellites.json`), and its **`permissions`**
+   (section 7 of the contract) and `claims.routePrefixes`. Write the permissions by reading your own code, then `node scripts/plugin-scan.mjs <dir>`
+   shows what the code does: `node scripts/test-plugin-scan.mjs` fails when a manifest declares less than the code shows.
+   `node scripts/test-layout.mjs` validates the manifest. Then regenerate the Suite catalogue: `node scripts/build-catalog.mjs` (never edit
+   `packages/kybernos-hub/catalog.json` by hand). An optional `VEDETTES` entry in `scripts/build-catalog.mjs` (a tagline, a description and bullet
+   points) is only for a module that deserves the featured card.
 4. `packages/kybernos-sessions/garde.mjs` — add `'packages/<dir>/client.js'` to `FICHIERS_CHAUDS`
    (otherwise the hot-file guard answers "not a known hot file" and nobody can reserve it).
 5. `README.md` — one row in the bundles table.

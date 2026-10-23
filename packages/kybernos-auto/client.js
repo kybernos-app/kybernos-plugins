@@ -100,9 +100,18 @@ window.__ModuleLoader__.load({
       }
     }
 
+    // Lift the menu only as far as it still covers the model picker. Until DSH 0.2.1-alpha.4 the menu kept its top edge when the panel made it
+    // taller, so it was lifted by the panel's height; from 0.2.1-rc.2 the engine re-places it when its size changes, and lifting it again left a
+    // gap of the panel's height above the picker (measured on the real GUI). The offset is measured, not assumed.
     const decaler = (menu) => {
       if (panneau === null || panneau.parentElement !== menu) return
-      menu.style.transform = 'translateY(' + (-Math.round(panneau.offsetHeight)) + 'px)'
+      const bouton = document.querySelector('button[aria-label^="Select model"]')
+      menu.style.transform = ''
+      if (bouton === null) { menu.style.transform = 'translateY(' + (-Math.round(panneau.offsetHeight)) + 'px)'; return }
+      const m = menu.getBoundingClientRect()
+      const b = bouton.getBoundingClientRect()
+      const recouvre = m.top < b.top ? m.bottom - b.top + 8 : 0
+      if (recouvre > 0) menu.style.transform = 'translateY(' + (-Math.round(recouvre)) + 'px)'
     }
 
     const construirePanneau = () => {
@@ -211,7 +220,7 @@ window.__ModuleLoader__.load({
       } else {
         const entete = document.createElement('div')
         entete.className = 'kaa-sm-head'
-        entete.textContent = kt('MODÈLE', 'MODEL') + '   ' + kt('LATENCE', 'LATENCY') + '   ' + kt('ERREURS', 'ERRORS')
+        entete.textContent = kt('Modèle', 'Model') + '   ' + kt('Latence', 'Latency') + '   ' + kt('Erreurs', 'Errors')
         refs.sante.append(entete)
         for (const v of sante) {
           const ligneS = document.createElement('div')
@@ -266,7 +275,9 @@ window.__ModuleLoader__.load({
       refs = null
     }
 
-    setInterval(() => {
+    // L1-03: one tick of the composer, started (and stopped) by `apply`; it used to run from the load of the module with no way to stop it,
+    // so every hot reload of the client left one more tick running and one more panel fighting over the menu.
+    const tictacComposer = () => {
       try {
         if (etatPanneau !== null) appliquerChipAuto(actif(etatPanneau))
         const menu = menuOuvert()
@@ -294,7 +305,7 @@ window.__ModuleLoader__.load({
           decaler(menu)
         }
       } catch (e) { /* DOM en transition : réessai au prochain tick */ }
-    }, 300)
+    }
 
         // ── 2. the dedicated Settings section ───────────────────────────────
     // The page shows the first rows of the health table and folds the rest (« all models » can list a hundred).
@@ -305,9 +316,19 @@ window.__ModuleLoader__.load({
       const brut = j !== null && typeof j === 'object' && Array.isArray(j.cles) && j.cles.length > 0 ? String(j.cles[0]) : ''
       const x = brut.length > 60 ? brut.slice(0, 57) + '…' : brut
       if (code === 'liste-forme') return kt('« ' + x + ' » n’est pas de la forme fournisseur/modèle (par exemple openrouter/anthropic/claude-sonnet-4.5).', '“' + x + '” is not a provider/model name (for example openrouter/anthropic/claude-sonnet-4.5).')
-      if (code === 'liste-inconnu') return kt('« ' + x + ' » n’est pas un modèle que tu as configuré. Choisis-en un dans la liste, ou ajoute-le d’abord dans Fournisseur IA & modèles.', '“' + x + '” is not a model you have configured. Pick one from the list, or add it first in AI Provider & Models.')
+      if (code === 'liste-inconnu') return kt('« ' + x + ' » n’est pas un modèle que tu as configuré. Choisis-en un dans la liste, ou ajoute-le d’abord dans Fournisseur IA et modèles.', '“' + x + '” is not a model you have configured. Pick one from the list, or add it first in AI provider and models.')
       if (code === 'liste') return kt('La liste est trop longue (64 au plus) ou contient un doublon.', 'The list is too long (64 at most) or has a duplicate.')
-      return j !== null && typeof j === 'object' && j.erreur ? String(j.erreur) : 'Rejected.'
+      if (code === 'liste-type') return kt('La liste doit être une suite de noms de modèles (200 caractères au plus chacun).', 'The list must be a series of model names (200 characters at most each).')
+      // The other refusals of the settings route: the host sends a code and an English sentence, the page words the code (L1-06).
+      if (code === 'scope') return kt('Ce choix n’existe pas : prends « Tous les modèles », « Modèles gratuits » ou « Ma liste ».', 'That choice does not exist: pick “All models”, “Free models” or “My list”.')
+      if (code === 'routage') return kt('Le routage automatique attend « activé » ou « désactivé ».', 'Automatic routing expects on or off.')
+      if (code === 'failover') return kt('Le repli du chat attend « activé » ou « désactivé ».', 'Chat fallback expects on or off.')
+      if (code === 'classifieur') return kt('Le classifieur attend un nom de modèle de 200 caractères au plus.', 'The classifier expects a model name of 200 characters at most.')
+      if (code === 'settings-illisible') return kt('Rien n’a été enregistré : settings.json est illisible ou n’est pas un objet JSON valide. Répare-le ou supprime-le (une copie du fichier abîmé est gardée à côté quand c’est possible), puis enregistre à nouveau.', 'Nothing was saved: settings.json cannot be read or is not a valid JSON object. Fix or remove it (a copy of the damaged file is kept next to it when possible), then save again.')
+      if (code === 'ecriture') return kt('Réglage non enregistré : ', 'Setting not saved: ') + (typeof j.erreur === 'string' ? j.erreur : '')
+      if (code === 'llm-indisponible') return kt('Le service de modèles de DSH n’est pas disponible : rien à vérifier pour l’instant.', 'DSH’s model service is not available: nothing can be checked right now.')
+      // A code this page does not know (a newer host) keeps the host's own sentence; no sentence at all is a plain refusal.
+      return j !== null && typeof j === 'object' && j.erreur ? String(j.erreur) : kt('Refusé.', 'Rejected.')
     }
     const KbAutoSettings = () => {
       const etatPair = React.useState(null)
@@ -379,7 +400,7 @@ window.__ModuleLoader__.load({
         fetch('/kybernos-auto/settings', {
           method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patch)
         }).then((r) => r.json()).then((j) => {
-          if (j && j.ok === true) { setEtat(j); setMsg('') } else setMsg(j && j.erreur ? String(j.erreur) : 'Rejected.')
+          if (j && j.ok === true) { setEtat(j); setMsg('') } else setMsg(refusTxt(j))
         }).catch((e) => setMsg(String(e && e.message ? e.message : e)))
       }
       // The typed list: the answer comes back to the field that asked, with the host's reason in the person's language.
@@ -398,7 +419,7 @@ window.__ModuleLoader__.load({
         fetch('/kybernos-auto/probe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })
           // A DSH started before the probe route existed answers 404: say what to do instead of a JSON parse error.
           .then((r) => (r.status === 404 ? Promise.reject(new Error(kt('Le serveur DSH n’a pas encore chargé cette version : redémarre-le.', 'The DSH server has not loaded this version yet: restart it.'))) : r.json()))
-          .then((j) => { setSondage(false); if (j && j.ok === true) setEtat(j); else setMsg(j && j.erreur ? String(j.erreur) : 'Rejected.') })
+          .then((j) => { setSondage(false); if (j && j.ok === true) setEtat(j); else setMsg(refusTxt(j)) })
           .catch((e) => { setSondage(false); setMsg(String(e && e.message ? e.message : e)) })
       }
       const scope = etat.scope === 'free' || etat.scope === 'custom' ? etat.scope : 'all'
@@ -431,7 +452,7 @@ window.__ModuleLoader__.load({
         custom: kt('Seulement les modèles que tu choisis ci-dessous. L’ordre de la liste est l’ordre de repli.', 'Only the models you pick below. The list order is the fallback order.')
       }
       const etatCourt = scope !== 'custom' && total === 0
-        ? kt('Aucun modèle connecté pour l’instant : connecte Kybernos Cloud ou ajoute un fournisseur (Fournisseur IA & modèles), Auto s’en servira.', 'No model is connected yet: connect Kybernos Cloud or add a provider (AI Provider & Models) and Auto will use it.')
+        ? kt('Aucun modèle connecté pour l’instant : connecte Kybernos Cloud ou ajoute un fournisseur (Fournisseur IA et modèles), Auto s’en servira.', 'No model is connected yet: connect Kybernos Cloud or add a provider (AI provider and models) and Auto will use it.')
         : (total === 0
           ? kt('Ta liste est vide : le modèle de la session sera utilisé.', 'Your list is empty: the session model will be used.')
           : total + (total > 1 ? kt(' modèles autorisés', ' models allowed') : kt(' modèle autorisé', ' model allowed')) + ' · ' + disponibles + kt(' répondent', ' answering'))
@@ -468,7 +489,9 @@ window.__ModuleLoader__.load({
                   h('input', {
                     className: 'kaa-ajout-in', 'data-kb': 'auto-whitelist-add', type: 'text', list: 'kaa-modeles', autoComplete: 'off', spellCheck: false,
                     'aria-invalid': refus !== '' ? 'true' : 'false', 'aria-describedby': refus !== '' ? 'kaa-refus' : undefined,
-                    placeholder: kt('fournisseur/modèle — choisis dans la liste', 'provider/model — pick from the list'), value: ajouter,
+                    // Short enough for the field (the old text was cut after "pick from the"); the whole hint is the tooltip.
+                    placeholder: kt('fournisseur/modèle — cherche', 'provider/model — search'),
+                    title: kt('Tape pour chercher parmi tes modèles configurés, ou écris fournisseur/modèle.', 'Type to search your configured models, or write provider/model.'), value: ajouter,
                     onChange: (ev) => { setAjouter(ev.target.value); if (refus !== '') setRefus('') },
                     onKeyDown: (ev) => { if (ev.key === 'Enter') ajouterModele() }
                   }),
@@ -558,10 +581,11 @@ window.__ModuleLoader__.load({
       '.kaa-pop-row b{display:flex;align-items:center;gap:6px;font-weight:500;font-size:13.5px;color:var(--dsw-alias-label-primary)}',
       '.kaa-pop-row small{display:block;color:var(--dsw-alias-label-tertiary);font-size:12px;margin-top:2px}',
       '.kaa-switch-btn{width:34px;height:20px;border:0;border-radius:999px;cursor:pointer;position:relative;flex:none;background:var(--dsw-alias-border-l3)}',
+      '.kaa-switch-btn::before{content:"";position:absolute;inset:-2px 0}',
       '.kaa-switch-btn:disabled{cursor:default;opacity:.7}',
       '.kaa-switch-btn.on{background:var(--dsw-alias-state-warn-primary)}',
       '.kaa-sante-mini{margin-top:8px;border-top:0.5px solid var(--dsw-alias-border-l2);padding-top:6px;width:100%}',
-      '.kaa-sm-head{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--dsw-alias-label-tertiary);padding:0 0 4px}',
+      '.kaa-sm-head{font-size:10px;color:var(--dsw-alias-label-tertiary);padding:0 0 4px}',
       '.kaa-sm-row{display:grid;grid-template-columns:minmax(0,1fr) 52px 44px;gap:6px;align-items:center;padding:5px 0;font-size:12.5px;color:var(--dsw-alias-label-primary)}',
       '.kaa-sm-row.out{opacity:.55}',
       '.kaa-sm-nom{display:flex;align-items:center;gap:6px;min-width:0;font-weight:500;flex-wrap:wrap}',
@@ -598,6 +622,8 @@ window.__ModuleLoader__.load({
       '.kaa-vide{font-size:12.5px;color:var(--dsw-alias-label-tertiary)}',
       '.kaa-chip{font-size:12px;font-family:ui-monospace,Menlo,monospace;display:inline-flex;align-items:center;gap:6px;padding:2px 4px 2px 8px;border-radius:6px;background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-primary)}',
       '.kaa-chip button{border:0;background:none;color:var(--dsw-alias-label-tertiary);cursor:pointer;font-size:14px;padding:0 4px;line-height:1}',
+      '.kaa-chip button{position:relative}',
+      '.kaa-chip button::before{content:"";position:absolute;inset:-5px -4px}',
       '.kaa-chip button:hover{color:var(--dsw-alias-label-primary)}',
       '.kaa-ajout{display:flex;gap:6px}',
       '.kaa-seg{display:flex;gap:2px;padding:2px;border:0.5px solid var(--dsw-alias-border-l2);border-radius:10px;background:var(--dsw-alias-bg-layer-1)}',
@@ -625,7 +651,7 @@ window.__ModuleLoader__.load({
       '.kaa-recheck:disabled{opacity:.6;cursor:default}',
       '.kaa-table small.kaa-why{font-family:ui-monospace,Menlo,monospace;font-size:11px;max-width:420px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
       '.kaa-table{width:100%;border-collapse:collapse;font-size:13px}',
-      '.kaa-table th{text-align:start;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--dsw-alias-label-tertiary);',
+      '.kaa-table th{text-align:start;font-size:11px;color:var(--dsw-alias-label-tertiary);',
       'padding:0 8px 6px 0;border-bottom:0.5px solid var(--dsw-alias-border-l2);font-weight:500}',
       '.kaa-table td{padding:9px 8px 9px 0;border-bottom:0.5px solid var(--dsw-alias-border-l2);font-variant-numeric:tabular-nums}',
       '.kaa-table tr.out td{opacity:.55}',
@@ -647,14 +673,27 @@ window.__ModuleLoader__.load({
           try { console.error('[kybernos-auto] service slots indisponible : pas d interface') } catch (e) { /* */ }
           return
         }
+        // L1-03: what the client starts, it stops. The stylesheet and the two timers are effects of the plugin: when DSH unmounts it (or hot
+        // reloads the client) the tag goes, the timers stop, and the panel this instance put in the menu goes with them.
+        const effet = (fn, label) => { try { if (typeof ctx.effect === 'function') ctx.effect(fn, label); else fn() } catch (e) { /* un effet ne doit pas empêcher le montage */ } }
                 // CSS: a dedicated tag (no styles service required — same technique as
                 // the other bundles that own their stylesheet).
-        try {
+        effet(() => {
           const tag = document.createElement('style')
           tag.dataset.plugin = '@local/kybernos-auto'
           tag.textContent = CSS
           document.head.append(tag)
-        } catch (e) { /* hors navigateur */ }
+          return () => { tag.remove() }
+        }, 'kybernos-auto: styles')
+        effet(() => {
+          const tic = setInterval(tictacComposer, 300)
+          return () => {
+            clearInterval(tic)
+            // A menu left open keeps what this instance did to it: the greyed-out rows and the lift. Give them back before the panel goes.
+            try { const m = menuOuvert(); if (m !== null) { verrouiller(m, false); m.style.transform = '' } } catch (e) { /* the menu is gone with its DOM */ }
+            retirerPanneau(); appliquerChipAuto(false)
+          }
+        }, 'kybernos-auto: composer tick')
         try {
             slots.inject('settings.section', () => slots.register(
             { name: 'settings.section', id: 'kybernos-auto-page', order: 14, label: kt('Routage Auto', 'Auto Routing') },
@@ -673,8 +712,11 @@ window.__ModuleLoader__.load({
               .then((st) => { if (st && st.ok === true) appliquerChipAuto(st.sessionOn === true || st.global === true) })
               .catch(() => { /* hors ligne : réessai au prochain tick */ })
           }
-          appliquerAuMontage()
-          setInterval(appliquerAuMontage, 5000)
+          effet(() => {
+            appliquerAuMontage()
+            const tic = setInterval(appliquerAuMontage, 5000)
+            return () => { clearInterval(tic) }
+          }, 'kybernos-auto: mount state')
         } catch (e3) { /* sans DOM */ }
         } catch (e) { console.error('[kybernos-auto] montage client impossible', e) }
       }

@@ -18,11 +18,11 @@ It is part of the **socle** (`socle: true` in `packages/kybernos-hub/catalog.jso
   without calling any model. Only when the words say nothing is the **Study model** asked (see below); its answer is kept only if
   it is one of the eight categories (`motif: 'choisi'`), otherwise the row keeps its neutral speech bubble. A row whose title
   changes after an automatic classification is judged again (« Greeting » becomes the real subject).
-- **Settings ▸ General ▸ Kybernos Settings** (slot `settings.general.item`, order -30): replay onboarding, *Name each chat when it ends*,
+- **Settings ▸ General ▸ Kybernos Settings** (slot `settings.general.item`, order -30): replay onboarding (its last page is the starter kit: no row of its own), *Name each chat when it ends*,
   *Study model*. The bundle also reorders the native Settings navigation into a
   "Kybernos" and a "DSH" group and hides the native Appearance and Font-size rows and the version footer, by position.
   **Language.** English is the base of every text; the block has a French twin (`Réglages Kybernos`, `Premiers pas`,
-  `Kit de départ`, `Nommer chaque conversation à sa fin`, `Modèle d’étude`; the French speaks « tu »). One pair helper
+  `Nommer chaque conversation à sa fin`, `Modèle d’étude`; the French speaks « tu »). One pair helper
   `kt(fr, en)` says which: French for `window.__KB_LANG_RESOLVE__()` = `kybernos` or an `fr*` tag, **English for every other
   language**, and English when the resolver throws or is absent; a translated language (es, ar…) is looked up by the French text
   in the dictionary the language layer serves. The same helper words the category icons (aria-label and tooltip) and the
@@ -36,7 +36,7 @@ It is part of the **socle** (`socle: true` in `packages/kybernos-hub/catalog.jso
   (`decisionBrain`, the gateway's evaluation model) is gone: an old page that still posts the key is not refused, the key is
   ignored and leaves `settings.json` at the next write.
 - **Model-health alert** while a Study model is in force (Automatic included): this bundle probes and publishes the verdict
-  (`window.__kybernosHealth` and a `kybernos-health` event); `kybernos-models` draws it as a chip on the AI Provider & Models tab
+  (`window.__kybernosHealth` and a `kybernos-health` event); `kybernos-models` draws it as a chip on the AI provider and models tab
   bar. "Hide" silences it for 1 h. With the Study model on None, nothing is probed; on Automatic the probe watches the models whose
   provider is connected (a key is set), so an unused provider of the profile does not make noise; with a model you picked, it
   watches every model of your list.
@@ -49,7 +49,7 @@ Under `/kybernos-sessions/`. Every action route is a **dry run unless the body h
 | --- | --- |
 | `GET state?session=<id>&window=<hours>` | `{session:{git, sync, pr, worktrees, etat…}, kybers:[memory]}` |
 | `POST isolate` · `reclaim` | create or reuse `<project>/.worktrees/<slug>` on `feature/<slug>`; remove clean ones |
-| `POST commit` | add only this chat's files, commit, push (not with `local:true`), merge if in a worktree |
+| `POST commit` | add only this chat's files, commit, merge if in a worktree; **sends to GitHub only with `push:true`** (a bare POST stays local; the page's « Save my work » and « Add to project » say it, after the dry run shows the `git push`) |
 | `POST close-check` · `close` | can the worktree be closed; merge then remove it |
 | `POST push` · `fetch` · `sync` · `pr` | `git push` / `fetch` / both; `gh pr create`, or `{action:'merge'}` |
 | `GET\|POST settings` · `GET\|POST categories` | the two JSON files below |
@@ -128,6 +128,9 @@ automatic Study model (the order, what is skipped, reading the host's services, 
 sentence, the `detail` apart, the plurals, and that the table `GIT_TEXTS` has no dead entry. `node packages/kybernos-sessions/test-language.mjs`
 renders the Kybernos Settings block in French, English and a translated language, and checks the pair helper, the words of the
 category icons and of the settings refusals, and that the « General » tab is renamed in French only.
+`node packages/kybernos-sessions/test-panels-language.mjs` renders the Memory & Lessons card (both tabs, the empty states, the capture status, the
+ledger, the singular and plural forms) and the action card (« Confirm & run », « Copy as text », « Details », « Close ») in French, English and a language
+with no table of ours, and checks that « Open Memory & Lessons » looks the Settings page up under the same words the memory plugin gives it.
 `test-sante.mjs`, `test-dsh-home.mjs`, `test-changes-facts.mjs`, `test-journal.mjs`, `test-prefix.mjs` and `test-wording.mjs`
 cover the health bus and the Study model row, `$DSH_HOME`, and small pure parts of the page. `node scripts/test-layout.mjs` checks that the hot-file list of `garde.mjs` points at existing files
 and that its LaunchAgent path is right; `node packages/kybernos-sessions/garde.mjs --check` parses every hot client file

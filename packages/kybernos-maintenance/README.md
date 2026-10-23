@@ -41,6 +41,8 @@ About page, ON by default): `{ autoCheck: boolean }` in `$DSH_HOME/kybernos/upda
 A POST needs the browser's `Origin`. OFF, a scheduled check (`auto=1`) answers `{ ok: true, desactive: true }` without asking
 anybody and the page then skips the Suite's catalogue refresh too; **Check now** and the Suite's own button always ask. What leaves
 the machine, and when: [`docs/privacy.md`](../../docs/privacy.md).
+When a press does not go through (a refusal, no answer, an answer that is not JSON) the switch goes back to what it was and a
+`role="alert"` under the card says "Setting not saved: <reason>" (the host's own `erreur`, else what the page saw); the next press clears it.
 
 ## Files it reads
 

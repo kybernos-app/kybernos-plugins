@@ -94,4 +94,52 @@ const rule = (sel) => {
   ok('a pinned session row gives the same session id as its native row')
 }
 
+// 5. the status dots (2026-10-22): a running chat showed no spinner in this section while its native row did. The choice of the dot is cut out of the bundle and run as it is.
+{
+  const a = plugin.indexOf('// <pins-status:begin>')
+  const b = plugin.indexOf('// <pins-status:end>')
+  assert.ok(a >= 0 && b > a, 'the pure block of the status dots was found')
+  const ctx = vm.createContext({})
+  vm.runInContext(plugin.slice(a, b) + '\n;globalThis.kbPinsStateOf = kbPinsStateOf; globalThis.kbPinsSubagentsRunning = kbPinsSubagentsRunning; globalThis.kbPinsPick = kbPinsPick', ctx)
+  const { kbPinsStateOf, kbPinsSubagentsRunning, kbPinsPick } = ctx
+  const state = (...args) => { const r = kbPinsStateOf(...args); return r === null ? null : r.state + ':' + r.label }
+  assert.equal(state(undefined, undefined, 0), null, 'an idle chat shows nothing')
+  assert.equal(state({ running: false }, true, 0), null, 'the status Map wins over the sessions store')
+  assert.equal(state({ running: true }, false, 0), 'ongoing:Running', 'a running chat: the spinner')
+  assert.equal(state(undefined, true, 0), 'ongoing:Running', 'the sessions store\'s flag is used when the Map has no entry')
+  assert.equal(state({ completionUnread: true }, undefined, 0), 'done:Completed', 'a finished chat nobody has read: the green dot')
+  assert.equal(state({ pendingInteraction: { kind: 'approval' } }, undefined, 0), 'warning:Waiting for approval')
+  assert.equal(state({ pendingInteraction: { kind: 'plan-review' } }, undefined, 0), 'warning:Plan awaiting review')
+  assert.equal(state({ pendingInteraction: { kind: 'question' } }, undefined, 0), 'warning:Waiting for answer')
+  assert.equal(state({ pendingInteraction: { kind: 'approval' }, running: true, completionUnread: true }, true, 2), 'warning:Waiting for approval', 'a pending interaction outranks everything')
+  assert.equal(state({ running: true, completionUnread: true }, true, 0), 'ongoing:Running', 'activity outranks the completion reminder')
+  assert.equal(state({ pendingInteraction: { kind: 'something-new' } }, undefined, 0), null, 'a kind DSH does not show shows nothing')
+  assert.equal(state({ running: false }, undefined, 2), 'ongoing:Subagents running', 'a chat idle itself but with sub-agents running is still ongoing')
+  assert.equal(state({ running: false, completionUnread: true }, undefined, 1), 'ongoing:Subagents running', 'and that outranks the completion reminder')
+  assert.equal(state(null, null, 0), null, 'nulls are idle')
+  // ids: the stores hold the bare uuid and the prefixed form.
+  assert.equal(kbPinsPick(new Map([['session-abc', 1]]), 'abc'), 1, 'a bare id finds the prefixed key')
+  assert.equal(kbPinsPick(new Map([['abc', 2]]), 'session-abc'), 2, 'a prefixed id finds the bare key')
+  assert.equal(kbPinsPick({ 'session-abc': 3 }, 'session-abc'), 3, 'a plain object works too')
+  assert.equal(kbPinsPick(null, 'abc'), undefined)
+  // sub-agents: the catalogue's children, by the status Map first, else by the sessions store.
+  const list = { projectionsBySession: { 'session-p': { values: { subagentCatalog: [{ id: 'c1' }, { id: 'c2' }, { id: 'c3' }, null] } } }, byId: { c2: { running: true }, c3: { running: false } } }
+  const statuses = new Map([['c1', { running: true }], ['c3', { running: true }]])
+  assert.equal(kbPinsSubagentsRunning(list, statuses, 'session-p'), 3, 'c1 and c3 by the Map, c2 by the store')
+  assert.equal(kbPinsSubagentsRunning(list, statuses, 'session-none'), 0, 'no catalogue, none running')
+  assert.equal(kbPinsSubagentsRunning(null, statuses, 'x'), 0, 'a missing store is zero, never a throw')
+  ok('the status dot of a pinned row follows DSH\'s own order (pending, running or sub-agents, completed, idle) and finds the session under either id form')
+}
+{
+  assert.ok(/kbPinsCtx\.get\('uiSession'\)/.test(plugin) && /svc\.sessionStatus/.test(plugin), 'the source is DSH\'s session-status service')
+  assert.ok(/src\.subscribe\(\(\) => kbPinsEmit\(\)\)/.test(plugin) && /kbPinsWatchStatus\(\)\n  for \(const el of/.test(plugin), 'a status change refreshes the section, subscribed on each scan until the service is there')
+  assert.ok(/data-kbpin-sig'\) === sig\) \{ kbPinsStatusApply\(section\); return \}/.test(plugin), 'the dots are updated in place even when the rows did not change (no rebuild under the user\'s fingers)')
+  assert.ok(/section\.appendChild\(rows\)\n  kbPinsStatusApply\(section\)/.test(plugin), 'and after a rebuild')
+  assert.match(rule('.kbpin_state'), /position:absolute;inset-inline-start:8px;[^']*pointer-events:none/, 'the dot sits in the free 28px at the row\'s start and takes no click')
+  assert.ok(/appendChild\(kbPinsDot\(st\)\)/.test(plugin) && /class', 'kbm-dot-spinner'/.test(plugin) && /className = 'kbm-dot'/.test(plugin), 'the spinner and the dot are the shared design-system classes')
+  assert.ok(!/\.kbpin_state[^']*\{[^}]*animation/.test(plugin), 'no animation of its own: the shared spinner animates itself')
+  for (const k of ['En cours', 'En attente d’approbation', 'Plan à relire', 'En attente de réponse', 'Conversation terminée', 'Sous-agents en cours']) assert.ok(plugin.includes("'" + k + "': '"), 'the French twin « ' + k + ' » exists')
+  ok('the dots are wired to DSH\'s status, updated in place, drawn in the free left slot with the shared classes, and have their French twins')
+}
+
 console.log('\n' + pass + ' checks passed')

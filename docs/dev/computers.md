@@ -41,6 +41,48 @@ docker buildx build --platform linux/amd64 -t kybernos-computer:<tag> \
 
 A computer's page must not open on the first-run wizard: its sign-in tries the built-in server, which the machine's network policy does not let out (« We couldn't reach Kybernos »). The entrypoint therefore (`link-account.mjs`) writes the cloud plugin's connection file (`<DSH home>/kybernos-cloud.json`) with the computer's own restricted token, points the plugin at `KYBERNOS_API` (`KYBERNOS_CLOUD_API`) and marks the wizard done once (`kybernos/onboarding.json`; a replay from the settings stays possible). What the plugin learns afterwards (the name, the plan, the workspaces) is kept across boots. The platform's token list allows the three reads the suite makes for that (`GET /v1/me`, `GET /v1/workspaces`, the plan of its own workspace), and the plugin reads a restricted token's `403 computer_route_not_allowed` as « not on the list », not as a revoked sign-in (a release before this one signs the computer out on it: the platform must be a version that has the reads).
 
+## A computer made ahead of need (the pool)
+
+A computer made for one person costs the person a wait: on dev, 25 to 41 s from the row to the machine saying `ready` (15 to 33 s for the provider to make the app, the
+volume and the machine, then 8 to 9.5 s of boot), and the first answer came 52 to 55 s after the message. This half of the image lets the platform make machines **before** anybody
+needs one, put them to sleep, and hand one to the next person: the claim is a wake (about a second on Fly) and a few seconds of wiring, not a creation. The platform's half (the
+pool, the claim, the routes below) is in the private server repository; nothing here changes a machine that is made the old way.
+
+**A pool slot** is given `KYBERNOS_API`, `KYBERNOS_PUBLIC_HOST`, the egress mode, `KYBERNOS_POOL_SLOT` (its id, not secret) and `KYBERNOS_POOL_TOKEN` (a token that opens the two pool routes
+and nothing else), and **no** `KYBERNOS_COMPUTER_ID`, `_TOKEN` or `_MODEL`. `entrypoint.sh` sees a pool token, a slot id and no computer token and runs `pool-hold.sh` as the unprivileged user
+before anything else:
+
+| Step | What happens |
+|---|---|
+| 1 | the machine boots like any other (outbound policy, volume, profile seeded from the image); DSH starts **without** the pool token in its environment, so that nothing it runs can read it |
+| 2 | `claimer.mjs` waits for DSH, says `POST /v1/pool/ready` (« booted and unclaimed: put me to sleep when you like »), then polls `POST /v1/pool/claim` every 500 ms. The platform suspends the machine meanwhile (memory kept) |
+| 3 | the platform wakes it and has the next poll answer `{claimed: true, computer_id, token, model}`. Every poll is on a connection of its own (a socket open at suspend is dead at wake) and short-timed |
+| 4 | the claimer checks the identity against closed alphabets (`computer-identity.mjs`), writes it to `<DSH home>/kybernos/computer-identity.json` (0600, fsynced, atomic), and asks DSH (`POST /kybernos-cloud/computer/claimed`, loopback, same origin, nothing in the request) to put the token in its credential store: the model route (`apiKeyEnv: KYBERNOS_COMPUTER_TOKEN`) resolves it there, so nothing restarts. The file holds the id, the token and the model, **not the address**: that stays the machine's environment (`KYBERNOS_API`), which the agent cannot change |
+| 5 | `post-claim.sh`, the steps every computer does, now with the identity read from the volume: the model route rendered into the profile (DSH hot-reloads it, about 2.5 s), the account link, the gate's ticket service, **a wait until DSH says the model route is live** (`GET /kybernos-cloud/computer/route`, read-only), then the reporter and the runner (a turn taken before that finds no model: measured, it ends `empty_answer.ended_turn_end`), then the gate |
+
+A machine made the old way runs `post-claim.sh` directly: same steps, identity in its environment, no DSH up yet. A claimed pool slot that cold-boots finds its identity on the volume
+and skips steps 1 to 4. If DSH does not take the token or the route never comes up, DSH is restarted and reads the identity at its start.
+
+What the platform serves, for the server's half to build (the proposal is in the maintainer's notes; this is the contract the image keeps):
+
+| Route (bearer: the pool token) | Answer |
+|---|---|
+| `POST /v1/pool/ready` `{version}` | 200 when it has recorded that the slot is up and unclaimed |
+| `POST /v1/pool/claim` `{}` | 200 `{claimed: false}`, or 200 `{claimed: true, computer_id, token, model}`. A claimed slot is answered **again, with a fresh token (the previous one revoked), until its computer says `ready`** with it: an answer lost on the way is not a lost computer. 401/403/404 once the slot is retired (the claimer then polls every 5 s) |
+
+Rules the image keeps: a slot holds **nothing of a person** before the claim (no token, no id, no model, no account link; the volume is the seeded profile); root never reads or
+evaluates the identity (the volume is the agent's to write: `entrypoint.sh` has no `eval`, follows no link it finds there (a dangling `.owned` used to make root create and hand over a
+file anywhere), and the identity is read by the unprivileged user); the pool token is stripped from the environment of everything that runs after the claim (`exec env -u
+KYBERNOS_POOL_TOKEN`); the identity file is the only place a claimed slot keeps its token, and the plugin honours it **only where `KYBERNOS_POOL_SLOT` is set** (a laptop's plugin ignores
+such a file) and never takes the platform's address from it (`packages/kybernos-cloud/computer-identity.mjs`, byte-copied here like `kyby-identity.mjs`). A slot that was claimed (its
+account link is on the volume) but lost its identity file does not wait for a second claim: it goes on, and the gate does not start, which is visible.
+
+Checked locally (the real DSH and the suite of image p17 under amd64 emulation on a Mac, a stand-in platform over TLS, nothing left the machine): unclaimed boot to `ready` in 6 to 15 s;
+claim to the computer saying `ready` in 3.6 s (about 2.5 s of it the hot reload); a queued turn taken right after, its model call signed with the **claimed** token and its answer acknowledged
+(5.6 s from the claim to the acknowledgement with an instant model); a cold restart of a claimed slot reads the volume and calls no pool route; a machine made the old way is unchanged.
+**Measured at Fly** (2026-10-20, one slot, `ams`, `1x1g`, image pool1, a throw-away platform behind a tunnel; the server repository's `scripts/computers-pool-live.ts`): the slot booted and said it was up 5.1 s after the machine was created, was put to sleep in 1.7 s; a computer taking it was woken by a 0.70 s resume call, was handed its identity 1.0 s later and said **ready 10.8 s** after it was asked for (against 25 to 41 s for a create and a boot); the model route was live on the machine (asked from inside it). Nine of those seconds were DSH reloading its profile to take the route written at the claim, on a small shared CPU: the route is now rendered at the slot's boot (`render-profile.sh` renders it for a slot with no token, writes the file only when it changes, and `pool-hold.sh` runs it before DSH starts), the slot is made with the model of the day, and the claim's model wins if it changed. That change was checked locally (claim to ready 1.6 s against 3.6 s) and then **at Fly with image pool2 (a second slot): the computer said ready 4.7 s after it was asked for** (resume call 2.4 s, identity 3.6 s after the ask, ready 1.1 s after the resume returned; on the machine, from « claimed » to the reporter's « ready », 1.15 s), the model route live, the woken runner polling 0.9 s after the resume, no timeout in the log. Fly's own calls varied between the two runs (create 33.1 and 36.5 s, sleep 1.7 and 5.4 s, resume 0.7 and 2.4 s). A computer asleep 40 s and woken: its runner polled 1.4 s after the resume call returned and the log holds no timeout (the 12 s stall of dev is the timeout fixed in `runner.mjs`).
+**Not checked:** a first answer through the whole chain with a real model at Fly (the live check stops at the computer saying ready and its runner polling).
+
 ## What it was checked to do
 
 On the real platform (Fly.io, `ams`, `shared-cpu-1x` 2 GB, one 2 GB volume, 2026-10-14; one sample each, direction and not a guarantee),
@@ -111,6 +153,11 @@ machine's DNS survives), and a machine running longer than 5 minutes (see the tr
 - **amd64.** An image built on Apple Silicon without `--platform linux/amd64` does not start on Fly.
 - **The machine creation call is slow the first time**: Fly answers it once the image is there (more than 20 s for an image it has not
   seen), and its `wait` call is a long poll. A client timeout of 20 s reports an unreachable platform for a machine that was made.
+- **A request in flight when the machine is suspended never comes back, and its timeout only counts the time the machine ran.** Measured on dev (2026-10-20): a message that woke a sleeping
+  Home started its turn 18.8 s after it was queued, against 7 to 10 s on an awake one; the machine's own log, 12 s after the wake, says `[runner] POST /v1/runner/claim could not be sent
+  (TimeoutError)` and one second later the same for the reporter's heartbeat: the loops were waiting out what was left of a 15 s timeout. The idle poll (`CLAIM_TIMEOUT_MS`, 4 s) and the beat
+  (`HEARTBEAT_TIMEOUT_MS`, 6 s) are short, and the call after a failed one goes on a connection of its own (`wake.test.mjs`, real sockets). The price of a short poll timeout: a claim the platform
+  processed but whose answer arrives late leaves its job leased to the runner until the lease ends (120 s); an answer takes tens of milliseconds, the timeout is a hundred times that.
 - **A `start` right after a `suspend` can answer 409** (the machine still holds its lease for a moment): ask again a second or two later.
 - **The gate's sign-in and the plugins' routes refuse a request with no `Origin`, or with another one**: a client sends
   `Origin: https://<its host>`, exactly the host the machine was told in `KYBERNOS_PUBLIC_HOST`.

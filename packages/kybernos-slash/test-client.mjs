@@ -130,16 +130,41 @@ console.log('the animated help of the Commands page (V-36)')
   check('it sits under the header and above the tabs', src.indexOf('introNode,') > src.indexOf("className: 'kbsl-head'") && src.indexOf('introNode,') < src.indexOf("className: 'kbsl-tabs'"))
 }
 
-console.log('the page says what each tab is for (V-36)')
+console.log('the page says what each tab is for (V-36), without a permanent line')
 {
-  const line = src.match(/className: 'kbsl-sub kbsl-tabfor'[^\n]*\n?/)
-  const where = line === null ? '' : line[0] + src.slice(line.index + line[0].length, line.index + line[0].length + 900)
-  check('a line under the tabs follows the tab that is open', line !== null && /tab === 'action'/.test(where.slice(0, 200)))
+  // 2026-10-22: the sentence is the tooltip of the tab and the text of an empty list (where a person needs it), not a line under the toolbar.
+  const at = src.indexOf('const tabFor = (k) => (k === ')
+  const where = at < 0 ? '' : src.slice(at, at + 900)
+  check('the sentence follows the tab (tabFor), and is the tooltip of each tab and the text of an empty list', at > 0 && /title: tabFor\(k\)/.test(src) && /: tabFor\(tab\)\)/.test(src) && !/kbsl-tabfor/.test(src))
   check('slash tab: it says what a slash command is, in both languages', /fr: 'Une commande slash est un prompt enregistré/.test(where) && /en: 'A slash command is a saved prompt/.test(where))
   check('message actions tab: it says what an action is and where it shows, in both languages', /fr: 'Une action de message est un bouton sous/.test(where) && /en: 'A message action is a button under/.test(where))
   check('it explains how to run a slash command (the « / » key) and what an action works on (that reply)', /“\/”/.test(where) && /that reply/.test(where) && /cette réponse/.test(where))
   const pairs = [...src.matchAll(/L\(\s*\{\s*fr:\s*'([^']*)'\s*,\s*en:\s*'([^']*)'\s*\}\)/g)]
   check('the new sentences are among the L({fr, en}) pairs, none empty', pairs.filter((p) => /commande slash est un prompt|action de message est un bouton/.test(p[1])).length === 2)
+}
+
+console.log('the Commands page and its editor (owner\'s redesign, 2026-10-22)')
+{
+  const css = src.slice(src.indexOf('const CSS = `'), src.indexOf('\n`', src.indexOf('const CSS = `')))
+  check('a row shows its actions on hover or focus, and always on a touch screen', /\.kbsl-lacts\{[^}]*opacity:0/.test(css) && /\.kbsl-lrow:hover \.kbsl-lacts,\.kbsl-lrow:focus-within \.kbsl-lacts[^{]*\{opacity:1\}/.test(css) && /@media \(hover:none\)\{\.kbsl-lacts\{opacity:1\}\}/.test(css))
+  check('« New command » and « Create with AI » are in the toolbar, above the list, and the old bottom buttons and the details fold are gone', src.indexOf("className: 'kbsl-btn kbsl-primary sm', onClick: () => kbOpenEditor('create'") < src.indexOf("className: 'kbsl-list'") && !/kbsl-dashed/.test(src) && !/h\('details', \{ className: 'kbsl-json'/.test(src))
+  check('the stored JSON is a link in the footer that opens it', /kbsl-jsonbtn/.test(src) && /View stored JSON/.test(src))
+  check('« Create with AI » wears the wand, not the sparkles, on the page and in the editor', (src.match(/name: 'wand-sparkles', size: 1[56], weight: 2 \}\), (L\(\{ fr: 'Créer avec l’IA'|'Create with AI')/g) || []).length === 2 && !/name: 'sparkles', size: 16, weight: 2 \}\), 'Create with AI'/.test(src))
+  check('the editor is four sections with no numbered steps', /'Identity'|kbsl-idrow/.test(src) && /h\('h3', \{ className: 'kbsl-steph' \}, 'Prompt'\)/.test(src) && /'Questions'/.test(src) && /'When it runs'/.test(src) && !/kbsl-stepn|stepN\(/.test(src))
+  check('the prompt grows with its text: a mirror gives the height and the field sits on it, the blanks coloured', /className: 'kbsl-edm'/.test(src) && /\.kbsl-edta\{position:absolute[^}]*overflow:hidden/.test(css) && /\.kbsl-var\{/.test(css))
+  check('the preview is a panel opened from the header, kept between visits, closed by default', /KB_PREVIEW_KEY = 'kybernos\.slash\.preview'/.test(src) && /getItem\(KB_PREVIEW_KEY\) === 'on'/.test(src) && /'aria-pressed': pv/.test(src) && /const aside = pv \? h\('aside'/.test(src))
+  check('the window takes its content\'s height (a ceiling, no fixed height), and widens when the preview opens', /\.kbsl-modal\{width:min\(760px,100%\);max-height:min\(840px/.test(css) && !/\.kbsl-modal\{[^}]*[^-]height:min\(780px/.test(css) && /\.kbsl-modal\.pv\{width:min\(1100px/.test(css))
+  check('« Insert a blank » drops the token at the cursor, the footer names what blocks a save and goes to it, unsaved changes are said', /kbInsertAtCaret/.test(src) && /kbFocusProblem\(problem\.go\)/.test(src) && /Unsaved changes/.test(src))
+  check('the icon picker searches, shows a ring on the chosen icon and says when nothing matches', /'aria-label': 'Search icons'/.test(src) && /'aria-pressed': n === d\.icon/.test(src) && /No icon matches/.test(src))
+  check('Escape belongs to the editor while it is open: the listener is on window (capture) and stops the event, so DSH\'s Settings dialog behind it stays open', /window\.addEventListener\('keydown', onKey, true\)/.test(src) && /window\.removeEventListener\('keydown', onKey, true\)/.test(src) && /if \(mine\) \{ ev\.preventDefault\(\); ev\.stopImmediatePropagation\(\) \}/.test(src) && !/document\.addEventListener\('keydown', onKey, true\)/.test(src))
+  check('Ctrl/Cmd + S saves the open editor', /String\(ev\.key\)\.toLowerCase\(\) === 's' && ui\.editor !== null/.test(src) && /kbSaveEditor\(\)/.test(src))
+}
+
+{
+  // UX audit 2026-10-20: the icon search split the query on the LETTER s (`/s+/`, the backslash lost), so « sport » looked for « port ».
+  const at = src.indexOf('const kbIconSearch = (q) => {')
+  const body = src.slice(at, at + 700)
+  check('the icon search splits the typed words on spaces, not on the letter s', at > 0 && body.includes('s.split(/\\s+/)') && !body.includes('s.split(/s+/)'))
 }
 
 console.log(failed === 0 ? '\nOK' : `\n${failed} failure(s)`)

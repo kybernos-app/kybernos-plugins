@@ -71,6 +71,7 @@ export async function route (name, req, res) {
     if (name === 'status') return json(res, 200, await remote.status())
     const body = await readBody(req).catch(() => null)
     if (body === null) return json(res, 400, { ok: false, error: 'bad_body' })
+    if (name === 'enable') return json(res, 200, typeof body.on === 'boolean' ? await remote.setEnabled(body.on) : { ok: false, error: 'bad_body' })
     if (name === 'pair') return json(res, 200, await remote.pair())
     if (name === 'pair/approve') return json(res, 200, await remote.approve())
     if (name === 'pair/deny') return json(res, 200, await remote.deny())

@@ -194,8 +194,8 @@
         "en": "Automation settings"
       },
       "what": {
-        "fr": "Où vivent tes automatisations, et deux réglages : tout mettre en pause, ou réafficher la liste de tâches de DSH.",
-        "en": "Where your automations live, and two switches: pause everything, or show DSH’s own task list again."
+        "fr": "Où vivent tes automatisations, et leurs réglages : tout mettre en pause, réafficher la liste de tâches de DSH, ou écrire en skill les automatisations qui tournent sans échec.",
+        "en": "Where your automations live, and their settings: pause everything, show DSH’s own task list again, or write down as skills the automations that run without failing."
       },
       "steps": [
         {
@@ -209,12 +209,82 @@
         {
           "fr": "Réaffiche la liste « Automation tasks » de DSH si tu la veux de nouveau dans le menu.",
           "en": "Show DSH’s “Automation tasks” list if you want it back in the menu."
+        },
+        {
+          "fr": "« Créer des skills » : une automatisation stable (3, 5, 10 ou 20 exécutions sans échec) devient un skill. Sinon : bouton dans Sessions.",
+          "en": "“Create skills”: a stable automation (3, 5, 10 or 20 runs without a failure) becomes a skill. Otherwise: a button in its Sessions tab."
         }
       ],
       "where": {
         "fr": "Réglages › Automatisations",
         "en": "Settings › Automations",
         "page": true
+      }
+    },
+    "models": {
+      "title": {
+        "fr": "Modèles",
+        "en": "Models"
+      },
+      "what": {
+        "fr": "Le modèle par défaut de DSH et les modèles proposés : chaque fournisseur, son état, et ce que les nouvelles tâches utilisent.",
+        "en": "DSH’s default model and the models on offer: each provider, its state, and what new tasks use."
+      },
+      "steps": [
+        {
+          "fr": "« Modèle par défaut » décide de ce que les nouvelles tâches utilisent ; un changement s’applique au tour suivant.",
+          "en": "“Default model” decides what new tasks use; a change applies from the next turn."
+        },
+        {
+          "fr": "Chaque ligne est un fournisseur ; un modèle sans clé ou hors ligne est marqué, et se corrige dans Fournisseur IA et modèles.",
+          "en": "Each row is a provider; a model without a key or offline is marked, and is fixed in AI provider and models."
+        },
+        {
+          "fr": "Le menu du chat change le modèle d’une seule tâche, sans toucher au défaut.",
+          "en": "The chat menu changes the model for one task only, without touching the default."
+        }
+      ],
+      "where": {
+        "fr": "Réglages › Models",
+        "en": "Settings › Models",
+        "page": true
+      },
+      "good": {
+        "fr": "Un modèle local ne quitte pas ton ordinateur ; un modèle distant reçoit le texte de la conversation.",
+        "en": "A local model never leaves your computer; a remote model receives the text of the conversation."
+      }
+    },
+    "plugins": {
+      "title": {
+        "fr": "Plugins intégrés",
+        "en": "Built-in plugins"
+      },
+      "what": {
+        "fr": "Les modules installés sur ce poste : ce qui est activé, la version, et ce que DSH charge au démarrage. Kybernos en ajoute quelques-uns.",
+        "en": "The modules installed on this machine: what is on, the version, and what DSH loads at start-up. Kybernos adds a few."
+      },
+      "steps": [
+        {
+          "fr": "Un interrupteur désactive un module sans le désinstaller : il quitte l’interface au rechargement.",
+          "en": "A switch turns a module off without uninstalling it: it leaves the interface on reload."
+        },
+        {
+          "fr": "La version et la source disent d’où vient le module ; une mise à jour se fait depuis sa propre page.",
+          "en": "The version and the source say where the module comes from; an update is done from its own page."
+        },
+        {
+          "fr": "Les modules Kybernos (Atlas, Compétences, Connecteurs…) ont chacun leur page ; la Suite les liste tous.",
+          "en": "The Kybernos modules (Atlas, Skills, Connectors…) each have their own page; the Suite lists them all."
+        }
+      ],
+      "where": {
+        "fr": "Réglages › Built-in plugins",
+        "en": "Settings › Built-in plugins",
+        "page": true
+      },
+      "good": {
+        "fr": "Désactiver n’efface rien : les fichiers, réglages et données du module restent sur ce poste.",
+        "en": "Turning off erases nothing: the module’s files, settings and data stay on this machine."
       }
     }
   }

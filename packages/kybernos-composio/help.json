@@ -30,5 +30,40 @@
     "fr": "Un seul service à la fois côté agents : Kybernos Cloud ou ta clé. Ta clé reste sur ta machine ; une clé changée n'atteint les agents qu'après un redémarrage de DSH.",
     "en": "One service at a time for the agents: Kybernos Cloud or your key. Your key stays on your machine; a changed key reaches the agents only after DSH restarts."
   },
-  "url": "https://help.kybernos.app/{lang}/features/what-are-app-connections/"
+  "url": "https://help.kybernos.app/{lang}/features/what-are-app-connections/",
+  "pages": {
+    "connectors": {
+      "title": {
+        "fr": "Réglages › Connecteurs",
+        "en": "Settings › Connectors"
+      },
+      "what": {
+        "fr": "Brancher tes apps au chat : la clé Composio, les connexions actives (Gmail, Slack…), et qui assemble les outils de chaque app.",
+        "en": "Connecting your apps to the chat: the Composio key, the active connections (Gmail, Slack…), and who assembles each app’s tools."
+      },
+      "steps": [
+        {
+          "fr": "La clé Composio vient de l’environnement ou de ce champ : sans clé, aucune connexion ne peut s’ouvrir.",
+          "en": "The Composio key comes from the environment or from this field: without a key, no connection can open."
+        },
+        {
+          "fr": "« Connecter une app » ouvre la page Composio : autorise le compte, la connexion apparaît ici avec son nom.",
+          "en": "“Connect an app” opens the Composio page: authorise the account, and the connection appears here with its name."
+        },
+        {
+          "fr": "La composition choisit qui assemble les outils ; en mode Kybernos, c’est le compte Kybernos qui s’en charge.",
+          "en": "Composition picks who assembles the tools; in Kybernos mode, the Kybernos account does it."
+        }
+      ],
+      "where": {
+        "fr": "Réglages › Connecteurs",
+        "en": "Settings › Connectors",
+        "page": true
+      },
+      "good": {
+        "fr": "La clé est un secret : elle n’est jamais affichée en clair, et rien ne part vers une app que tu n’as pas branchée.",
+        "en": "The key is a secret: it is never shown in clear, and nothing goes to an app you have not connected."
+      }
+    }
+  }
 }

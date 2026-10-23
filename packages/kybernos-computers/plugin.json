@@ -1,0 +1,55 @@
+{
+  "contract": 1,
+  "id": "kybernos/computers",
+  "kind": "code",
+  "version": "0.1.0",
+  "name": {
+    "en": "Code sandbox (E2B)",
+    "fr": "Bac à sable de code (E2B)"
+  },
+  "description": {
+    "en": "A computer in the cloud where the agents run code (with your E2B key).",
+    "fr": "Un ordinateur dans le cloud où les agents exécutent du code (avec ta clé E2B)."
+  },
+  "icon": "pc",
+  "family": "connect",
+  "author": {
+    "id": "kybernos",
+    "name": "Kybernos"
+  },
+  "license": "Apache-2.0",
+  "pricing": "free",
+  "package": "@local/kybernos-computers",
+  "entry": {
+    "host": "index.js",
+    "client": "client.js"
+  },
+  "requires": {
+    "kybernos": ">=0.1.0"
+  },
+  "permissions": [
+    "ui.slot:conversation.input.left",
+    "ui.slot:plugins.item",
+    "ui.slot:settings.section",
+    "host.routes:/kybernos-computers:write",
+    "fs.write:dsh-home",
+    "net:*.e2b.app",
+    "net:api.e2b.app",
+    "net:registry.npmjs.org",
+    "exec:npm",
+    "secrets.own",
+    "secrets.read",
+    "account",
+    "agent.prompt",
+    "agent.tools"
+  ],
+  "claims": {
+    "routePrefixes": [
+      "/kybernos-computers"
+    ]
+  },
+  "help": "help.json",
+  "suite": {
+    "default": "on"
+  }
+}

@@ -1,9 +1,14 @@
 // kybernos-call: the HTTP routes of a call, testable with a fake web server.
 //
 // DSH serves plugin routes BEFORE its own authentication, so every route that acts (a token, the
-// agent, a turn in a session) checks that the request comes from the page's own origin.
+// agent, a turn in a session) checks that the request comes from the page's own origin. The routes
+// that WRITE (keys, engine, clone, test, preset — and the avatars list, which costs a provider call)
+// need both halves of the repo's rule: the strict same-origin request AND DSH's signed session
+// cookie (`writeGuard`, session-guard.mjs). An Origin header alone is forgeable by any local
+// program, so it is not a login: L1-01 of the audit measured exactly that.
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { writeGuard } from './session-guard.mjs'
 
 const errText = (e) => (e && e.message ? String(e.message) : String(e))
 const str = (v) => (typeof v === 'string' ? v : null)
@@ -164,6 +169,8 @@ export function mountCallRoutes (webServer, call, pluginDir, effect, feed = null
     const post = (path, label, run) => reg(path, async (req, res) => {
       if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
       if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+      const refused = writeGuard(req)
+      if (refused !== null) return sendJson(res, refused.status, { ok: false, error: refused.error })
       let body = null
       try { body = await readJsonBody(req, 32768) } catch (e) { return sendJson(res, 400, { ok: false, error: errText(e) }) }
       try { const out = await run(body !== null && typeof body === 'object' ? body : {}); return sendJson(res, out.ok === true ? 200 : 400, out) } catch (e) { return sendJson(res, 500, { ok: false, error: errText(e) }) }

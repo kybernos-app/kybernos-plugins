@@ -1,6 +1,7 @@
 // ── Host plugin "kybernos-slash" ────────────────────────────────────────────
-// Makes the "slash commands & actions" REAL: a CRUD route that the client reads
-// and that the `slash-msgaction-creator` skill writes.
+// Makes the "slash commands & actions" REAL: a CRUD route the client reads and writes (guarded write,
+// A-16), plus the `enregistrer_entree` host tool the `slash-msgaction-creator` skill calls — the agent has
+// no session, so it never goes through the route.
 //
 //   GET  /kybernos/slash/entries   → { ok, version, path, entries }
 //   POST /kybernos/slash/entries   → upsert / delete / replace, reply { ok, ... }
@@ -25,8 +26,14 @@ import { homedir } from 'node:os'
 import { basename, dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { MODEL_VERSION, normalize, runOf, hasForm, visibleFields, validate, render } from './model.js'
+import { TOOL_NAME, enregistrerOutil } from './tool.mjs'
+import { writeGuard } from './session-guard.mjs'
+import { seedSkills } from './seed-skills.mjs'
 
 const pluginDir = dirname(fileURLToPath(import.meta.url))
+/** The skills this bundle ships (`<bundle>/skills/<name>/SKILL.md`), seeded into the DSH home at host start. */
+export const SKILLS_DIR = join(pluginDir, 'skills')
+export const SEEDED_SKILLS = ['slash-msgaction-creator']
 
 // ── HTTP: same guards as kybernos-skills/index.js (method, then origin) ──────
 const sendJson = (res, status, payload) => {
@@ -405,11 +412,13 @@ const mountWebRoutes = (ctx, webServerSvc) => {
       })
     }
     if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'GET ou POST attendu' })
-    // Guards in this order: method first, origin next. No POST request touches
-    // the disk before both.
-    // LEFT OPEN ON PURPOSE (no session cookie, no required Origin): the `slash-msgaction-creator` skill, run by the agent, writes entries through this
-    // route (README: "Create with AI"), a Node-or-curl caller with no browser session. A foreign Origin is still refused.
-    if (sameOrigin(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
+    // Guards in this order: method first, then the write guard. No POST request touches the disk before both.
+    // A-16: this route serves the PAGE (Settings ▸ Commands, whose same-origin fetch carries the signed session
+    // cookie). The agent's path is NOT this route — the `slash-msgaction-creator` skill calls the host tool
+    // `enregistrer_entree` (tool.mjs), which applies the same mutation in process. A route that accepted "a
+    // cookie, or no Origin at all" would be bypassed by omitting a header, so there is no such path here.
+    const refus = writeGuard(req)
+    if (refus !== null) return sendJson(res, refus.status, { ok: false, error: refus.error })
     let body = null
     try { body = await readJsonBody(req) } catch (e) { return sendJson(res, 400, { ok: false, error: 'corps JSON invalide' }) }
     const p = storePath()
@@ -525,6 +534,40 @@ export function apply(ctx) {
     try {
       console.error('[kybernos-slash] demarrage impossible — routes /kybernos/slash/* non montees', ksBootError)
     } catch (e2) { /* console unavailable */ }
+  }
+  // The agent's path is a TOOL, not the route: the route serves the page (signed session cookie), the skill
+  // has no session. Two trust domains, two paths — never one route that accepts either. Registered on its
+  // own injection, so a host without the tools service still gets the routes.
+  try {
+    ctx.inject(['tools'], (toolCtx) => {
+      enregistrerOutil(toolCtx.get('tools'), {
+        path: storePath,
+        read: readStoreState,
+        problem: storeProblem,
+        mutate: applyMutation,
+        write: writeStore,
+      }).catch((e) => {
+        try { console.error('[kybernos-slash] outil non enregistre', e) } catch (e2) { /* console unavailable */ }
+      })
+    })
+  } catch (ksToolError) {
+    try {
+      console.error('[kybernos-slash] service tools indisponible — outil ' + TOOL_NAME + ' non enregistre', ksToolError)
+    } catch (e2) { /* console unavailable */ }
+  }
+  // The skill that creates an entry is SHIPPED here and seeded into <dsh home>/skills, like the other bundles'
+  // skills (a skill the user edited is never overwritten). Versioned on purpose: the agent's write path moved off
+  // the route, and an instruction that lives only on one machine cannot follow that change.
+  try {
+    for (const r of seedSkills({ home: dshHome(), sourceDir: SKILLS_DIR, names: SEEDED_SKILLS })) {
+      if (r.action === 'created' || r.action === 'updated') {
+        try { console.log('[kybernos-slash] skill ' + r.name + ' ' + r.action) } catch (e) { /* console unavailable */ }
+      } else if (r.action === 'error' || r.action === 'no-source' || r.action === 'invalid-name') {
+        try { console.error('[kybernos-slash] skill ' + r.name + ' not installed: ' + (r.error !== undefined ? r.error : r.action)) } catch (e) { /* console unavailable */ }
+      }
+    }
+  } catch (ksSeedError) {
+    try { console.error('[kybernos-slash] skills non installees', ksSeedError) } catch (e2) { /* console unavailable */ }
   }
 }
 

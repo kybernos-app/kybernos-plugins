@@ -256,8 +256,8 @@
               "en": "Automation settings"
             },
             "what": {
-              "fr": "Où vivent tes automatisations, et deux réglages : tout mettre en pause, ou réafficher la liste de tâches de DSH.",
-              "en": "Where your automations live, and two switches: pause everything, or show DSH’s own task list again."
+              "fr": "Où vivent tes automatisations, et leurs réglages : tout mettre en pause, réafficher la liste de tâches de DSH, ou écrire en skill les automatisations qui tournent sans échec.",
+              "en": "Where your automations live, and their settings: pause everything, show DSH’s own task list again, or write down as skills the automations that run without failing."
             },
             "steps": [
               {
@@ -271,12 +271,82 @@
               {
                 "fr": "Réaffiche la liste « Automation tasks » de DSH si tu la veux de nouveau dans le menu.",
                 "en": "Show DSH’s “Automation tasks” list if you want it back in the menu."
+              },
+              {
+                "fr": "« Créer des skills » : une automatisation stable (3, 5, 10 ou 20 exécutions sans échec) devient un skill. Sinon : bouton dans Sessions.",
+                "en": "“Create skills”: a stable automation (3, 5, 10 or 20 runs without a failure) becomes a skill. Otherwise: a button in its Sessions tab."
               }
             ],
             "where": {
               "fr": "Réglages › Automatisations",
               "en": "Settings › Automations",
               "page": true
+            }
+          },
+          "models": {
+            "title": {
+              "fr": "Modèles",
+              "en": "Models"
+            },
+            "what": {
+              "fr": "Le modèle par défaut de DSH et les modèles proposés : chaque fournisseur, son état, et ce que les nouvelles tâches utilisent.",
+              "en": "DSH’s default model and the models on offer: each provider, its state, and what new tasks use."
+            },
+            "steps": [
+              {
+                "fr": "« Modèle par défaut » décide de ce que les nouvelles tâches utilisent ; un changement s’applique au tour suivant.",
+                "en": "“Default model” decides what new tasks use; a change applies from the next turn."
+              },
+              {
+                "fr": "Chaque ligne est un fournisseur ; un modèle sans clé ou hors ligne est marqué, et se corrige dans Fournisseur IA et modèles.",
+                "en": "Each row is a provider; a model without a key or offline is marked, and is fixed in AI provider and models."
+              },
+              {
+                "fr": "Le menu du chat change le modèle d’une seule tâche, sans toucher au défaut.",
+                "en": "The chat menu changes the model for one task only, without touching the default."
+              }
+            ],
+            "where": {
+              "fr": "Réglages › Models",
+              "en": "Settings › Models",
+              "page": true
+            },
+            "good": {
+              "fr": "Un modèle local ne quitte pas ton ordinateur ; un modèle distant reçoit le texte de la conversation.",
+              "en": "A local model never leaves your computer; a remote model receives the text of the conversation."
+            }
+          },
+          "plugins": {
+            "title": {
+              "fr": "Plugins intégrés",
+              "en": "Built-in plugins"
+            },
+            "what": {
+              "fr": "Les modules installés sur ce poste : ce qui est activé, la version, et ce que DSH charge au démarrage. Kybernos en ajoute quelques-uns.",
+              "en": "The modules installed on this machine: what is on, the version, and what DSH loads at start-up. Kybernos adds a few."
+            },
+            "steps": [
+              {
+                "fr": "Un interrupteur désactive un module sans le désinstaller : il quitte l’interface au rechargement.",
+                "en": "A switch turns a module off without uninstalling it: it leaves the interface on reload."
+              },
+              {
+                "fr": "La version et la source disent d’où vient le module ; une mise à jour se fait depuis sa propre page.",
+                "en": "The version and the source say where the module comes from; an update is done from its own page."
+              },
+              {
+                "fr": "Les modules Kybernos (Atlas, Compétences, Connecteurs…) ont chacun leur page ; la Suite les liste tous.",
+                "en": "The Kybernos modules (Atlas, Skills, Connectors…) each have their own page; the Suite lists them all."
+              }
+            ],
+            "where": {
+              "fr": "Réglages › Built-in plugins",
+              "en": "Settings › Built-in plugins",
+              "page": true
+            },
+            "good": {
+              "fr": "Désactiver n’efface rien : les fichiers, réglages et données du module restent sur ce poste.",
+              "en": "Turning off erases nothing: the module’s files, settings and data stay on this machine."
             }
           }
         }
@@ -299,13 +369,13 @@
       },
       "aide": {
         "what": {
-          "fr": "Le panneau qui liste les modules Kybernos pour les activer, les installer ou les mettre à jour. En coulisse, une garde repère les démarrages ratés.",
-          "en": "The panel that lists the Kybernos modules so you can switch, install or update them. Behind the scenes, a guard spots failed starts."
+          "fr": "Le panneau qui liste les modules Kybernos pour les activer, les installer ou les mettre à jour, et les plugins d’autres auteurs. En coulisse, une garde repère les démarrages ratés.",
+          "en": "The panel that lists the Kybernos modules so you can switch, install or update them, and the plugins made by other people. Behind the scenes, a guard spots failed starts."
         },
         "steps": [
           {
-            "fr": "Ouvre « Kybernos Suite » : l’onglet « À la une » montre les modules phares, « Tous » les liste tous.",
-            "en": "Open “Kybernos Suite”: the “Featured” tab shows the main modules, “All” lists every one."
+            "fr": "Ouvre « Kybernos Suite » : « À la une » montre les modules phares, « Tous » les liste, « Plugins » ceux d’autres auteurs.",
+            "en": "Open “Kybernos Suite”: “Featured” shows the main modules, “All” lists them, “Plugins” the ones made by other people."
           },
           {
             "fr": "Cherche avec « Rechercher un module… », filtre par « Installés » ou « Mises à jour », puis clique sur une carte pour lire sa page.",
@@ -332,6 +402,51 @@
       }
     },
     {
+      "id": "kybernos-registry",
+      "nom": "@local/kybernos-registry",
+      "titre": "Plugin registry",
+      "glyphe": "puzzle",
+      "famille": "base",
+      "palier": "core",
+      "version": "0.1.0",
+      "socle": true,
+      "defaut": null,
+      "poids_ko": 60,
+      "promesse": {
+        "fr": "Lit les plugins faits par d’autres, vérifie que ce sont des données simples et laisse les pages utiliser ce qu’ils ajoutent.",
+        "en": "Reads the plugins other people made, checks that they are plain data, and lets the pages use what they add."
+      },
+      "aide": {
+        "what": {
+          "fr": "Lit les plugins Kybernos installés avec le gestionnaire de DSH, vérifie que ce sont des données simples et alimente la page Plugins de la Suite. Un plugin refusé est écarté.",
+          "en": "Reads the Kybernos plugins installed with DSH’s plugin manager, checks that they are plain data and feeds the Plugins page of the Suite. A plugin that fails the check is left out."
+        },
+        "steps": [
+          {
+            "fr": "Ouvre « Kybernos Suite », l’onglet « Plugins », puis « Ajouter un plugin » : GitHub ou npm, un fichier ou un dossier, ou l’IA.",
+            "en": "Open “Kybernos Suite”, the “Plugins” tab, then “Add a plugin”: GitHub or npm, a file or a folder, or AI."
+          },
+          {
+            "fr": "DSH installe ; Kybernos lit le plugin et te demande ton accord (« Lire et accepter ») avant que des instructions n’atteignent tes agents.",
+            "en": "DSH installs it; Kybernos reads the plugin and asks for your OK (“Read and accept”) before any instruction reaches your agents."
+          },
+          {
+            "fr": "L’interrupteur de la carte est celui de DSH ; « Retirer le plugin » passe aussi par DSH.",
+            "en": "The switch on a card is DSH’s own; “Remove plugin” goes through DSH too."
+          }
+        ],
+        "where": {
+          "fr": "Réglages › Kybernos Suite › onglet Plugins (c’est la page de la Suite qui l’affiche)",
+          "en": "Settings › Kybernos Suite › Plugins tab (the Suite page shows it)",
+          "page": false
+        },
+        "good": {
+          "fr": "Seules des données simples se chargent ainsi : un plugin ne peut pas exécuter de code sur ton ordinateur.",
+          "en": "Only plain data loads this way: a plugin cannot run code on your computer."
+        }
+      }
+    },
+    {
       "id": "kybernos-theme",
       "nom": "@local/kybernos-theme",
       "titre": "Theme",
@@ -353,20 +468,20 @@
         },
         "steps": [
           {
-            "fr": "Dans « Essentiel » (ouvert par défaut), choisis un mode, un thème (livré ou à toi), un accent, un fond et une police.",
-            "en": "In “Essentials” (open by default), pick a mode, a theme (shipped or your own), an accent color, a background and a font."
+            "fr": "Clique sur ce que tu veux changer dans la fenêtre, ou pars d’une ambiance (Travail, Dev, Études, Détente, Nuit).",
+            "en": "Click what you want to change in the window, or start from a vibe (Work, Dev, Study, Chill, Night)."
           },
           {
-            "fr": "« Verre et fond » règle transparence et flou une fois un fond choisi ; « Couleurs », « Texte et forme » et « Accessibilité » affinent.",
-            "en": "“Glass and background” sets transparency and blur once a background is chosen; “Colors”, “Text and shape” and “Accessibility” refine."
+            "fr": "« Plus d’options » garde le reste ; « Aussi » ouvre l’accent, les effets et l’accessibilité.",
+            "en": "“More options” keeps the rest; “Also” opens the accent, effects and accessibility."
           },
           {
-            "fr": "« Animation » : choisis le dessin et les mots affichés en bas du chat pendant que l’agent travaille.",
-            "en": "“Animation”: choose the drawing and the words shown at the bottom of the chat while the agent works."
+            "fr": "« Enregistrer » garde ton thème ; « Exporter », « Importer » et « Annuler » font le reste.",
+            "en": "“Save” keeps your look; “Export”, “Import” and “Undo” do the rest."
           },
           {
-            "fr": "« Partage » garde tes thèmes (enregistrer, importer, exporter) ; « Galerie » en propose d’autres à essayer et installer.",
-            "en": "“Sharing” keeps your themes (save, import, export); “Gallery” offers more to try and install."
+            "fr": "« Éditeur avancé », replié dessous, garde tous les réglages, le partage et la galerie.",
+            "en": "“Advanced editor”, folded below, keeps every setting, sharing and the gallery."
           }
         ],
         "where": {
@@ -425,8 +540,8 @@
           "page": true
         },
         "good": {
-          "fr": "Seuls des textes d’interface partent chez le fournisseur du modèle choisi dans « Avancé », pas le contenu de tes conversations. Ce qui n’est pas encore traduit s’affiche en anglais.",
-          "en": "Only interface texts go to the provider of the model chosen in “Advanced”, not the content of your chats. Anything not translated yet shows in English."
+          "fr": "Seuls des textes d’interface partent chez le fournisseur du modèle choisi dans l’onglet « Réglages », pas le contenu de tes conversations. Ce qui n’est pas encore traduit s’affiche en anglais.",
+          "en": "Only interface texts go to the provider of the model chosen in the “Settings” tab, not the content of your chats. Anything not translated yet shows in English."
         },
         "url": "https://help.kybernos.app/{lang}/agents-and-tools/small-tools-of-the-chat/"
       }
@@ -434,7 +549,7 @@
     {
       "id": "kybernos-models",
       "nom": "@local/kybernos-models",
-      "titre": "AI Provider & Models",
+      "titre": "AI provider and models",
       "glyphe": "cpu",
       "famille": "models",
       "palier": "core",
@@ -470,8 +585,8 @@
           }
         ],
         "where": {
-          "fr": "Réglages › Fournisseur IA & modèles",
-          "en": "Settings › AI Provider & Models",
+          "fr": "Réglages › Fournisseur IA et modèles",
+          "en": "Settings › AI provider and models",
           "page": true
         },
         "good": {
@@ -559,7 +674,75 @@
           "fr": "Un skill vient d’un tiers ou d’un collègue : DSH ne le vérifie pas, lis ses fichiers et ses audits avant de l’installer ou de l’approuver.",
           "en": "A skill comes from a third party or a colleague: DSH does not check it, so read its files and audits before you install or approve it."
         },
-        "url": "https://help.kybernos.app/{lang}/features/what-are-skills-and-memory/"
+        "url": "https://help.kybernos.app/{lang}/features/what-are-skills-and-memory/",
+        "pages": {
+          "skills": {
+            "title": {
+              "fr": "Réglages › Compétences",
+              "en": "Settings › Skills"
+            },
+            "what": {
+              "fr": "D’où viennent les skills de ce profil : la source de l’index public, les dossiers où une installation s’écrit, et ce que ton profil compte.",
+              "en": "Where this profile’s skills come from: the source of the public index, the folders an install is written to, and what your profile counts."
+            },
+            "steps": [
+              {
+                "fr": "La carte « Source » dit d’où vient l’index : un dossier local ou un dépôt GitHub. Change-la, puis recharge.",
+                "en": "The “Source” card says where the index comes from: a local folder or a GitHub repository. Change it, then reload."
+              },
+              {
+                "fr": "« Dossiers d’installation » montre où chaque skill est écrite ; la liste des skills elle-même reste dans la barre latérale › Compétences.",
+                "en": "“Install folders” shows where each skill is written; the skills list itself stays in the sidebar › Skills."
+              },
+              {
+                "fr": "Une skill importée n’est pas relue par DSH : ouvre ses fichiers avant de l’activer, et retire-la si elle ne te dit rien.",
+                "en": "DSH does not review an imported skill: open its files before switching it on, and remove it if it says nothing to you."
+              }
+            ],
+            "where": {
+              "fr": "Réglages › Compétences",
+              "en": "Settings › Skills",
+              "page": true
+            },
+            "good": {
+              "fr": "Ce que compte ce profil ne quitte pas cet ordinateur : la source de l’index et les dossiers sont locaux.",
+              "en": "What this profile counts never leaves this computer: the index source and the folders are local."
+            }
+          },
+          "learned": {
+            "title": {
+              "fr": "Réglages › Compétences apprises",
+              "en": "Settings › Learned skills"
+            },
+            "what": {
+              "fr": "Ce que Kaby peut faire seule avec les skills qu’elle apprend : trois niveaux, un seuil de confiance, et un journal de chaque proposition.",
+              "en": "What Kaby may do on its own with the skills it learns: three levels, a confidence threshold, and a log of every proposal."
+            },
+            "steps": [
+              {
+                "fr": "Choisis le niveau : « Demander » ne fait rien sans toi, « Améliorer » retouche une skill existante, « Automatique » l’écrit seule.",
+                "en": "Pick the level: “Ask” does nothing without you, “Improve” reworks an existing skill, “Automatic” writes it on its own."
+              },
+              {
+                "fr": "« Me prévenir » règle où tu vois ce qui a été appris : dans le chat, en carte hebdomadaire, ou les deux.",
+                "en": "“Tell me” sets where you see what was learned: in the chat, as a weekly card, or both."
+              },
+              {
+                "fr": "« Voir le journal » montre chaque proposition avec son diff et son verdict : c’est là qu’on comprend ce qui a été retenu.",
+                "en": "“See the log” shows every proposal with its diff and its verdict: that is where you see what was kept."
+              }
+            ],
+            "where": {
+              "fr": "Réglages › Compétences apprises",
+              "en": "Settings › Learned skills",
+              "page": true
+            },
+            "good": {
+              "fr": "Rien n’est appris depuis tes fichiers privés tant que tu ne l’as pas déverrouillé, et tout reste sur cet ordinateur.",
+              "en": "Nothing is learned from your private files until you unlock it, and everything stays on this computer."
+            }
+          }
+        }
       }
     },
     {
@@ -610,6 +793,51 @@
           "en": "Your commands stay on this computer. “Create with AI” opens a new chat that relies on a dedicated skill: if it is not installed, create the command by hand."
         },
         "url": "https://help.kybernos.app/{lang}/agents-and-tools/small-tools-of-the-chat/"
+      }
+    },
+    {
+      "id": "kybernos-session-msg",
+      "nom": "@local/kybernos-session-msg",
+      "titre": "Messages between chats",
+      "glyphe": "send",
+      "famille": "base",
+      "palier": "core",
+      "version": "0.1.0",
+      "socle": false,
+      "defaut": null,
+      "poids_ko": 228,
+      "promesse": {
+        "fr": "Un message ou une instruction d’un chat à un autre, à un nouveau ou à celui-ci : l’agent propose un formulaire en ligne, tu le modifies et tu l’envoies, avec la trace des envois et la carte reçue.",
+        "en": "A message or an instruction from one chat to another, to a new one or to this one: the agent proposes an inline form, the person edits and sends it, with the sent trail and the received card."
+      },
+      "aide": {
+        "what": {
+          "fr": "Envoyer un message ou une instruction d’une session à une autre, à une nouvelle session ou à celle-ci. L’agent préremplit un formulaire en ligne : tu modifies, tu fermes ou tu envoies.",
+          "en": "Send a message or an instruction from one session to another, to a new session or to this one. The agent prefills an inline form: you edit it, close it or send it."
+        },
+        "steps": [
+          {
+            "fr": "Demande à l’agent de prévenir une session ou de lui confier un travail : un formulaire prérempli apparaît sous sa réponse.",
+            "en": "Ask the agent to tell a session something or hand it some work: a prefilled form appears under its answer."
+          },
+          {
+            "fr": "Choisis Message (une info, rien ne part) ou Instruction (l’autre session agit), corrige le texte, choisis la destination, puis Envoie.",
+            "en": "Choose Message (information, nothing is started) or Instruction (the other session acts), fix the text, pick the destination, then Send."
+          },
+          {
+            "fr": "Sous le formulaire, chaque envoi dit où il en est : Envoyé, Reçu, Réponse. « Voir la réponse » ouvre la session qui a répondu.",
+            "en": "Under the form, each send says where it stands: Sent, Received, Answer. “See the answer” opens the session that replied."
+          }
+        ],
+        "where": {
+          "fr": "Dans un chat : en-tête, sous la dernière réponse, et messages reçus",
+          "en": "In a chat: header, under the last answer, and received messages",
+          "page": false
+        },
+        "good": {
+          "fr": "L’hôte ajoute lui-même le cadrage (information venue d’une autre conversation, ou instruction de l’utilisateur) : la page ne peut pas le retirer. L’agent ne fait que proposer : rien ne part sans ton clic.",
+          "en": "The host adds the framing itself (information from another conversation, or an instruction from the user): the page cannot remove it. The agent only proposes: nothing is sent without your click."
+        }
       }
     },
     {
@@ -935,7 +1163,42 @@
           "fr": "Un seul service à la fois côté agents : Kybernos Cloud ou ta clé. Ta clé reste sur ta machine ; une clé changée n'atteint les agents qu'après un redémarrage de DSH.",
           "en": "One service at a time for the agents: Kybernos Cloud or your key. Your key stays on your machine; a changed key reaches the agents only after DSH restarts."
         },
-        "url": "https://help.kybernos.app/{lang}/features/what-are-app-connections/"
+        "url": "https://help.kybernos.app/{lang}/features/what-are-app-connections/",
+        "pages": {
+          "connectors": {
+            "title": {
+              "fr": "Réglages › Connecteurs",
+              "en": "Settings › Connectors"
+            },
+            "what": {
+              "fr": "Brancher tes apps au chat : la clé Composio, les connexions actives (Gmail, Slack…), et qui assemble les outils de chaque app.",
+              "en": "Connecting your apps to the chat: the Composio key, the active connections (Gmail, Slack…), and who assembles each app’s tools."
+            },
+            "steps": [
+              {
+                "fr": "La clé Composio vient de l’environnement ou de ce champ : sans clé, aucune connexion ne peut s’ouvrir.",
+                "en": "The Composio key comes from the environment or from this field: without a key, no connection can open."
+              },
+              {
+                "fr": "« Connecter une app » ouvre la page Composio : autorise le compte, la connexion apparaît ici avec son nom.",
+                "en": "“Connect an app” opens the Composio page: authorise the account, and the connection appears here with its name."
+              },
+              {
+                "fr": "La composition choisit qui assemble les outils ; en mode Kybernos, c’est le compte Kybernos qui s’en charge.",
+                "en": "Composition picks who assembles the tools; in Kybernos mode, the Kybernos account does it."
+              }
+            ],
+            "where": {
+              "fr": "Réglages › Connecteurs",
+              "en": "Settings › Connectors",
+              "page": true
+            },
+            "good": {
+              "fr": "La clé est un secret : elle n’est jamais affichée en clair, et rien ne part vers une app que tu n’as pas branchée.",
+              "en": "The key is a secret: it is never shown in clear, and nothing goes to an app you have not connected."
+            }
+          }
+        }
       }
     },
     {
@@ -964,8 +1227,8 @@
             "en": "Click “Sign in / Sign up” at the bottom of the sidebar, then “Sign in”, and confirm the code in your browser."
           },
           {
-            "fr": "Une fois connecté, tes modèles Kybernos s'ajoutent d'eux-mêmes dans Réglages › Fournisseur IA & modèles, selon ta formule.",
-            "en": "Once connected, your Kybernos models add themselves in Settings › AI Provider & Models, according to your plan."
+            "fr": "Une fois connecté, tes modèles Kybernos s'ajoutent d'eux-mêmes dans Réglages › Fournisseur IA et modèles, selon ta formule.",
+            "en": "Once connected, your Kybernos models add themselves in Settings › AI provider and models, according to your plan."
           },
           {
             "fr": "Le bas de la barre latérale montre ton espace et ta formule ; clique-le pour « Compte », « Réglages » ou « Se déconnecter ».",
@@ -985,7 +1248,42 @@
           "fr": "Les modèles Kybernos passent par les serveurs de Kybernos. Tes souvenirs y sont gardés et, par défaut, ajoutés à ce que lit le modèle à chaque tour, quel qu'il soit. Rien de tout cela sans connexion.",
           "en": "Kybernos models go through Kybernos servers. Your memories are kept there and, by default, added to what the model reads each turn, whichever model it is. None of this happens without signing in."
         },
-        "url": "https://help.kybernos.app/{lang}/get-started/connect-your-computer/"
+        "url": "https://help.kybernos.app/{lang}/get-started/connect-your-computer/",
+        "pages": {
+          "kybernos": {
+            "title": {
+              "fr": "Réglages › Kybernos",
+              "en": "Settings › Kybernos"
+            },
+            "what": {
+              "fr": "Ce qui reste sur cet ordinateur : les instructions que tes agents lisent à chaque conversation, l’import de tes modèles Kybernos, et l’envoi de tes chats DSH vers ton compte.",
+              "en": "What stays on this computer: the instructions your agents read in every conversation, the import of your Kybernos models, and the sending of your DSH chats to your account."
+            },
+            "steps": [
+              {
+                "fr": "Écris tes instructions dans le cadre, puis « Enregistrer » : elles sont gardées dans un fichier local que l’agent lit à chaque conversation.",
+                "en": "Write your instructions in the box, then “Save”: they are kept in a local file the agent reads at the start of every conversation."
+              },
+              {
+                "fr": "Ouvre « Avancé » : « Réimporter les modèles » remet à jour la liste de ta formule sans changer de compte.",
+                "en": "Open “Advanced”: “Re-import models” refreshes your plan’s list without changing account."
+              },
+              {
+                "fr": "« Envoyer les chats » demande d’abord confirmation : la page annonce ce qui part, et un refus ne touche à rien.",
+                "en": "“Send chats” asks for confirmation first: the page says what goes, and refusing changes nothing."
+              }
+            ],
+            "where": {
+              "fr": "Réglages › Kybernos",
+              "en": "Settings › Kybernos",
+              "page": true
+            },
+            "good": {
+              "fr": "Tes instructions restent sur cet ordinateur : seule une action d’envoi, que tu lances et confirmes, fait partir quelque chose.",
+              "en": "Your instructions stay on this computer: only a send action, which you start and confirm, makes anything leave it."
+            }
+          }
+        }
       }
     },
     {
@@ -1268,8 +1566,8 @@
             "en": "Play it with ▶ and drag the cursor on the timeline. Change texts, colours or numbers under “Settings”: the chat sees your edits."
           },
           {
-            "fr": "« Exporter » donne une vidéo MP4, une page autonome ou un fichier de scène, rangé dans le dossier artifacts/ du projet.",
-            "en": "“Export” gives an MP4 video, a standalone page or a scene file, saved in the project’s artifacts/ folder."
+            "fr": "« Exporter » donne une vidéo MP4, une page autonome ou un fichier de scène, rangé avec ton projet.",
+            "en": "“Export” gives an MP4 video, a standalone page or a scene file, saved with your project."
           },
           {
             "fr": "Retrouve tes animations dans la page Créations, ou avec « Animations » en haut du panneau.",
@@ -1282,8 +1580,8 @@
           "page": false
         },
         "good": {
-          "fr": "Une animation est un simple fichier .miniapp.json du projet : copie-le, versionne-le, partage-le. L’export vidéo se fait dans ton navigateur, rien n’est envoyé ailleurs.",
-          "en": "An animation is a plain .miniapp.json file in the project: copy it, version it, share it. Video export happens in your browser, nothing is sent elsewhere."
+          "fr": "Une animation est un simple fichier du projet : copie-le, versionne-le, partage-le. L’export vidéo se fait dans ton navigateur, rien n’est envoyé ailleurs.",
+          "en": "An animation is a plain file in the project: copy it, version it, share it. Video export happens in your browser, nothing is sent elsewhere."
         },
         "url": "https://help.kybernos.app/{lang}/create-with-kybernos/make-an-animation/"
       }
@@ -1337,7 +1635,7 @@
     {
       "id": "kybernos-computers",
       "nom": "@local/kybernos-computers",
-      "titre": "Cloud computers",
+      "titre": "Code sandbox (E2B)",
       "glyphe": "pc",
       "famille": "connect",
       "palier": "core",
@@ -1346,8 +1644,8 @@
       "defaut": "actif",
       "poids_ko": 128,
       "promesse": {
-        "fr": "Ordinateurs cloud pour les agents (ta clé E2B).",
-        "en": "Cloud computers for agents (your E2B key)."
+        "fr": "Un ordinateur dans le cloud où les agents exécutent du code (avec ta clé E2B).",
+        "en": "A computer in the cloud where the agents run code (with your E2B key)."
       },
       "aide": {
         "what": {
@@ -1360,8 +1658,8 @@
             "en": "Create an account on e2b.dev and copy your API key."
           },
           {
-            "fr": "Colle-la dans Réglages › Ordinateurs cloud (champ « Clé API »), puis « Enregistrer ».",
-            "en": "Paste it in Settings › Cloud computers (“API key” field), then click “Save”."
+            "fr": "Colle-la dans Réglages › Bac à sable de code (E2B) (champ « Clé API »), puis « Enregistrer ».",
+            "en": "Paste it in Settings › Code sandbox (E2B) (“API key” field), then click “Save”."
           },
           {
             "fr": "Dans le chat, ouvre le menu « Ce poste ▾ » à gauche de la zone de saisie et choisis « E2B ».",
@@ -1373,8 +1671,8 @@
           }
         ],
         "where": {
-          "fr": "Réglages › Ordinateurs cloud ; le choix « E2B » est dans le chat, près de la zone de saisie",
-          "en": "Settings › Cloud computers; the “E2B” choice is in the chat, next to the message box",
+          "fr": "Réglages › Bac à sable de code (E2B) ; le choix « E2B » est dans le chat, près de la zone de saisie",
+          "en": "Settings › Code sandbox (E2B); the “E2B” choice is in the chat, next to the message box",
           "page": true
         },
         "good": {
@@ -1396,8 +1694,8 @@
       "defaut": "actif",
       "poids_ko": 28,
       "promesse": {
-        "fr": "Les connecteurs de workers (OpenCode, Gemini, Qwen, Hermes) que la page Workers allume.",
-        "en": "The Workers connectors (OpenCode, Gemini, Qwen, Hermes) that the Workers page turns on."
+        "fr": "OpenCode, Gemini, Qwen et Hermes : les agents que la page Workers allume.",
+        "en": "OpenCode, Gemini, Qwen and Hermes: the agents the Workers page turns on."
       },
       "aide": {
         "what": {
@@ -1483,7 +1781,7 @@
     {
       "id": "kybernos-modeles-locaux",
       "nom": "@local/kybernos-modeles-locaux",
-      "titre": "Ollama Local Models",
+      "titre": "Ollama local models",
       "glyphe": "home",
       "famille": "models",
       "palier": "core",
@@ -1520,7 +1818,7 @@
         ],
         "where": {
           "fr": "Réglages › Modèles locaux Ollama",
-          "en": "Settings › Ollama Local Models",
+          "en": "Settings › Ollama local models",
           "page": true
         },
         "good": {
@@ -1542,8 +1840,8 @@
       "defaut": "actif",
       "poids_ko": 28,
       "promesse": {
-        "fr": "Les liens des messages deviennent des pastilles de référence.",
-        "en": "Message links become reference chips."
+        "fr": "Les liens d’une réponse deviennent de petites pastilles, une par phrase, qui ouvrent leurs sources.",
+        "en": "Links in an answer become small chips, one per sentence, that open their sources."
       },
       "aide": {
         "what": {
@@ -1579,7 +1877,7 @@
     {
       "id": "kybernos-mobile",
       "nom": "@local/kybernos-mobile",
-      "titre": "Remote Control",
+      "titre": "Phone and channels",
       "glyphe": "mobile",
       "famille": "base",
       "palier": "core",
@@ -1593,13 +1891,13 @@
       },
       "aide": {
         "what": {
-          "fr": "Ton téléphone ouvre une application web qui parle à ton ordinateur par un relais qui ne lit rien : tout est chiffré de bout en bout.",
-          "en": "Your phone opens a web app that talks to your computer through a relay that reads nothing: everything is end-to-end encrypted."
+          "fr": "Ton téléphone ouvre une application web qui parle à ton ordinateur par un relais qui ne lit rien (chiffré de bout en bout). Rien n’est accessible sans téléphone relié. Le même écran relie Telegram.",
+          "en": "Your phone opens a web app that talks to your computer through a relay that reads nothing (end-to-end encrypted). Nothing is reachable without a linked phone. The same screen links Telegram."
         },
         "steps": [
           {
-            "fr": "Sur l’ordinateur, ouvre le menu du compte (en bas de la barre latérale) › « Contrôle à distance » : un code QR s’affiche.",
-            "en": "On the computer, open the account menu (bottom of the sidebar) › “Remote control”: a QR code appears."
+            "fr": "Sur l’ordinateur, menu du compte (bas de la barre latérale) › « Téléphone et canaux », puis « Ajouter un téléphone » : un code QR s’affiche.",
+            "en": "On the computer, account menu (bottom of the sidebar) › “Phone and channels”, then “Add a phone”: a QR code appears."
           },
           {
             "fr": "Sur le téléphone, scanne le code avec l’appareil photo et ouvre le lien. Un code à 4 chiffres s’affiche.",
@@ -1611,8 +1909,8 @@
           }
         ],
         "where": {
-          "fr": "Menu du compte (bas de la barre latérale) › Contrôle à distance ; Réglages › Remote Control pour retirer un téléphone",
-          "en": "Account menu (bottom of the sidebar) › Remote control; Settings › Remote Control to remove a phone",
+          "fr": "Menu du compte (bas de la barre latérale) › Téléphone et canaux ; la même page dans Réglages › Téléphone et canaux",
+          "en": "Account menu (bottom of the sidebar) › Phone and channels; the same page in Settings › Phone and channels",
           "page": true
         },
         "good": {
@@ -1634,8 +1932,8 @@
       "defaut": "actif",
       "poids_ko": 60,
       "promesse": {
-        "fr": "La recherche web des agents, avec ou sans clé : des moteurs gratuits tout de suite, des moteurs à clé quand tu en ajoutes une, et le suivant prend le relais si l’un échoue.",
-        "en": "Web search for the agents, with or without a key: free engines right away, keyed engines when you add one, and the next one takes over when one fails."
+        "fr": "Les agents cherchent sur le web, avec ou sans clé : des moteurs gratuits tout de suite, des moteurs à clé quand tu en ajoutes une, et le suivant prend le relais si l’un échoue.",
+        "en": "Lets the agents search the web, with or without a key: free engines right away, keyed engines when you add one, and the next one takes over when one fails."
       },
       "aide": {
         "what": {
@@ -1839,8 +2137,8 @@
           "page": false
         },
         "good": {
-          "fr": "Elle ne s’affiche que dans un dossier de projet suivi par git, et remplace les quatre pastilles de suivi de Sessions ; désactivée, elles reviennent.",
-          "en": "It only shows in a project folder tracked by git, and replaces the four tracking pills of Sessions; switch it off and they come back."
+          "fr": "Elle ne s’affiche que dans un dossier de projet suivi par git, et remplace les quatre pastilles de suivi de Sessions ; désactivée, elles reviennent. Sans le module Sessions : pastille grise « Suivi indisponible ».",
+          "en": "It only shows in a project folder tracked by git, and replaces the four tracking pills of Sessions; switch it off and they come back. Without the Sessions module: a grey “Tracking unavailable” chip."
         },
         "url": "https://help.kybernos.app/{lang}/agents-and-tools/small-tools-of-the-chat/"
       }
@@ -2324,16 +2622,16 @@
         },
         "steps": [
           {
-            "fr": "Ouvre « Kaby » dans le menu : une conversation DSH ordinaire, avec deux tuiles au-dessus de la saisie, les canaux et l'ordinateur.",
-            "en": "Open “Kaby” in the menu: an ordinary DSH chat, with two tiles above the composer: the channels and the computer."
+            "fr": "Ouvre « Kaby » dans le menu : une conversation DSH, et une ligne au-dessus de la saisie : contrôle à distance, Telegram, ordinateur.",
+            "en": "Open “Kaby” in the menu: a DSH chat, and one line above the composer: remote control, Telegram, computer."
           },
           {
-            "fr": "Active Telegram dans la tuile des canaux : scanne le code (ou touche « Ouvrir Telegram »), touche Démarrer, puis « Oui, c'est moi ».",
-            "en": "Turn Telegram on in the channels tile: scan the code (or tap “Open Telegram”), tap Start, then “Yes, it's me”."
+            "fr": "Touche « Régler… », puis active Telegram : scanne le code, Démarrer, « Oui, c’est moi ».",
+            "en": "Tap “Set up…”, then turn Telegram on: scan the code, tap Start, then “Yes, it’s me”."
           },
           {
-            "fr": "La tuile Ordinateur dit où Kaby travaille : cet ordinateur, ou un ordinateur dans le cloud. Ton choix est retenu.",
-            "en": "The computer tile says where Kaby works: this computer, or a cloud computer. Your choice is remembered."
+            "fr": "Dans « Ordinateur de Kaby », même fenêtre, choisis où Kaby travaille : cet ordinateur, ou un ordinateur dans le cloud. Ton choix est retenu.",
+            "en": "In “Kaby’s computer”, same window, choose where Kaby works: this computer, or a cloud computer. Your choice is remembered."
           }
         ],
         "where": {
@@ -2349,6 +2647,51 @@
       }
     },
     {
+      "id": "kybernos-kaby-customisation",
+      "nom": "@local/kybernos-kaby-customisation",
+      "titre": "Kaby, yours",
+      "glyphe": "face",
+      "famille": "teams",
+      "palier": "core",
+      "version": "0.1.0",
+      "socle": false,
+      "defaut": "actif",
+      "poids_ko": 60,
+      "promesse": {
+        "fr": "Donne à Kaby un nom, un portrait et une voix, et choisis le visage qu'il montre en appel vidéo, avec ses propres clés.",
+        "en": "Give Kaby a name, a portrait and a voice, and choose the face it shows on video calls, with its own keys."
+      },
+      "aide": {
+        "what": {
+          "fr": "La page où tu donnes à Kaby son allure : un nom, un portrait et une voix. Elle règle aussi le visage qu'il montrera en appel vidéo, avec ses propres clés, à part des Appels.",
+          "en": "The page where you give Kaby its look: a name, a portrait and a voice. It also sets the face it will show on video calls, with its own keys, apart from Calls."
+        },
+        "steps": [
+          {
+            "fr": "Ouvre Réglages › Kaby, ou clique le portrait de Kaby au-dessus de sa conversation.",
+            "en": "Open Settings › Kaby, or click Kaby's portrait above its conversation."
+          },
+          {
+            "fr": "Choisis un nom, décris son allure et génère un portrait, ou importe une image dont tu as le droit.",
+            "en": "Pick a name, describe how it looks and generate a portrait, or import a picture you have the right to use."
+          },
+          {
+            "fr": "Choisis une voix et écoute-la. Tu peux aussi enregistrer ou importer une voix perso, avec ton consentement.",
+            "en": "Pick a voice and listen to it. You can also record or upload a custom voice, with your consent."
+          }
+        ],
+        "where": {
+          "fr": "Réglages › Kaby",
+          "en": "Settings › Kaby",
+          "page": true
+        },
+        "good": {
+          "fr": "Rien ne change à ce que Kaby sait faire, à ses règles ni à sa mémoire. Le portrait reste sur cet ordinateur ; il ne part chez un fournisseur que si tu choisis un visage en appel vidéo.",
+          "en": "Nothing changes in what Kaby can do, its rules or its memory. The portrait stays on this computer; it goes to a provider only if you choose a face for video calls."
+        }
+      }
+    },
+    {
       "id": "kybernos-search",
       "nom": "@local/kybernos-search",
       "titre": "Search everywhere",
@@ -2360,8 +2703,8 @@
       "defaut": "actif",
       "poids_ko": 40,
       "promesse": {
-        "fr": "Une recherche partout : le contenu des chats, les skills, les mémoires, les leçons, les créations.",
-        "en": "Search everywhere: the content of your chats, skills, memories, lessons and creations."
+        "fr": "Cherche dans le contenu des chats, des skills, des mémoires, des leçons et des créations.",
+        "en": "Searches the content of your chats, skills, memories, lessons and creations."
       },
       "aide": {
         "what": {

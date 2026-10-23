@@ -50,6 +50,7 @@ window.__ModuleLoader__.load({
         'kfl.relance': { fr: 'Si un modèle n’apparaît pas dans le sélecteur : relance DSH.', en: 'If a model does not show in the picker: restart DSH.' },
         'kfl.auto': { fr: 'Activé automatiquement au premier lancement.', en: 'Enabled automatically at first run.' },
         'kfl.erreur': { fr: 'Erreur', en: 'Error' },
+        'kfl.nonsauve': { fr: 'Ton choix n’a pas pu être enregistré sur ce disque. Réessaie, ou vérifie qu’il reste de la place.', en: 'Your choice could not be saved on this disk. Try again, or check that there is room left.' },
         // The page's host half does not answer (DSH not restarted after an update, a failing route): the same sentence as the other settings pages.
         'kfl.hote': { fr: 'L’assistant de cette page ne répond pas. Si DSH vient d’être mis à jour, redémarre DSH, puis appuie sur Réessayer.', en: 'This page’s helper is not answering. If DSH was just updated, restart DSH, then press Retry.' },
         'kfl.reessayer': { fr: 'Réessayer', en: 'Retry' },
@@ -131,7 +132,7 @@ window.__ModuleLoader__.load({
         ".kbm-dot[data-state='idle'] { color: var(--dsw-alias-state-idle-primary); }\n"
 
       const KFL_CSS = "/* kfl-* : the Free LLMs panel layout (this bundle only — DSH tokens) */\n" +
-        ".kfl-root { border: 1px solid var(--dsw-alias-border-l2); border-radius: 14px; background: var(--dsw-alias-bg-layer-2); padding: 16px; max-width: 720px; margin-bottom: 16px; }\n" +
+        ".kfl-root { max-width: 720px; margin-bottom: 16px; }\n" +
         "/* Light schemes: label-tertiary is 3.7:1 on white. Inside this page it reads as label-secondary, 5.8:1 (audit A1-05); the dark scheme keeps its hierarchy. */\n" +
         "body:not([data-ds-dark-theme]) .kfl-root{--dsw-alias-label-tertiary:var(--dsw-alias-label-secondary)}\n" +
         ".kfl-titre { margin: 0; font-size: 18px; line-height: 1.3; font-weight: 600; letter-spacing: -.01em; color: var(--dsw-alias-label-primary); }\n" +
@@ -144,7 +145,7 @@ window.__ModuleLoader__.load({
         ".kfl-verifie { font-size: 12px; line-height: 18px; color: var(--dsw-alias-label-tertiary); white-space: nowrap; }\n" +
         "@media (pointer: coarse) { .kfl-tete .kbm-btn-sm { height: 40px; } }\n" +
         "@media (max-width: 520px) { .kfl-tete .kfl-section { flex-basis: 100%; } .kfl-verifie { flex: 1; } }\n" +
-        ".kfl-section { margin: 0 0 8px; font-size: 12px; line-height: 18px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--dsw-alias-label-tertiary); }\n" +
+        ".kfl-section { margin: 0 0 8px; font-size: 12px; line-height: 18px; font-weight: 600; color: var(--dsw-alias-label-tertiary); }\n" +
         ".kfl-liste { display: flex; flex-direction: column; gap: 6px; margin: 0 0 12px; }\n" +
         ".kfl-mod { display: flex; align-items: center; gap: 12px; border: 1px solid var(--dsw-alias-border-l2); border-radius: 10px; background: var(--dsw-alias-bg-layer-1); padding: 10px 12px; }\n" +
         ".kfl-mod-nom { flex: 1; min-width: 0; font-family: var(--ds-font-family-code, monospace); font-size: 13px; color: var(--dsw-alias-label-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }\n" +
@@ -176,7 +177,7 @@ window.__ModuleLoader__.load({
         } catch (e) { return { ok: false, error: 'hote' } }
       }
       // What a failed call says: the sentence for a host that does not answer, « Error: <reason> » otherwise.
-      const erreurDe = (r, repli) => (r && r.error === 'hote' ? m('kfl.hote') : m('kfl.erreur') + sep() + String((r && r.error) || repli))
+      const erreurDe = (r, repli) => (r && r.error === 'hote' ? m('kfl.hote') : (r && r.error === 'state-not-saved' ? m('kfl.nonsauve') : m('kfl.erreur') + sep() + String((r && r.error) || repli)))
 
       const skelHelper = () => {
         try {
@@ -236,9 +237,11 @@ window.__ModuleLoader__.load({
         }
         const deconnecter = async () => {
           setErreur(null); setBusy('connect')
-          await jsonPost('/free-llms/disable', {})
+          const r = await jsonPost('/free-llms/disable', {})
           setBusy(null)
           await refresh()
+          // The host says when it could not keep the choice (state-not-saved): the person is told, not left looking at a page that changed back.
+          if (r && r.ok !== true && r.error === 'state-not-saved') setErreur(erreurDe(r, 'refused'))
         }
         const sonder = async () => {
           setErreur(null); setProbe(null); setBusy('probe')
@@ -256,7 +259,7 @@ window.__ModuleLoader__.load({
         const checkedTime = tier !== null && typeof tier.checkedAt === 'string' ? timeOf(tier.checkedAt) : null
 
         return h('div', { className: 'kfl-root', 'data-kfl': 'panneau' },
-          h('div', { style: { display: 'flex', justifyContent: 'flex-end', width: '100%', marginBottom: 6 } },
+          h('div', { className: 'kbhp-row' },
             (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-free-llms' }) : null)),
           h('h2', { className: 'kfl-titre' }, m('kfl.titre')),
           h('p', { className: 'kfl-soustitre' }, m('kfl.soustitre')),
@@ -283,15 +286,14 @@ window.__ModuleLoader__.load({
               h('button', { className: 'kbm-btn kbm-btn-sm kbm-btn-outline', 'data-kfl': 'reessayer', onClick: () => { setErreur(null); refresh() } }, m('kfl.reessayer')))
             : (status === null && erreur === null && skelHelper() !== null)
             ? skelHelper().wrap(m('kfl.liste'), 'kfl-liste', [0, 1, 2].map((i) => h('div', { className: 'kfl-mod kb-sk-row', key: 'sk' + i },
-              skelHelper().bone(10, 10, 'round'), skelHelper().bone(i % 2 === 0 ? '46%' : '36%', 13), skelHelper().bone(34, 18, 'pill'))))
+              skelHelper().bone(10, 10, 'round'), skelHelper().bone(i % 2 === 0 ? '46%' : '36%', 13))))
             : models.length === 0
             ? h('p', { className: 'kfl-note' }, catalogOk === false && status !== null && status.catalogError
               ? m('kfl.catalogue.err', { err: String(status.catalogError) })
               : m('kfl.vide'))
             : h('div', { className: 'kfl-liste' }, models.map((id) => h('div', { className: 'kfl-mod', key: id },
               h('span', { className: 'kbm-dot', 'data-state': locked ? 'error' : 'done' }),
-              h('span', { className: 'kfl-mod-nom', title: id }, id),
-              h('span', { className: 'kbm-tag', 'data-tone': 'neutral' }, 'free')))),
+              h('span', { className: 'kfl-mod-nom', title: id }, id)))),
 
           h('label', { className: 'kfl-accuse' },
             h('input', { type: 'checkbox', checked: ack, onChange: (e) => setAck(e.target.checked) }),

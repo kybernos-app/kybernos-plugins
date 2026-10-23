@@ -748,7 +748,7 @@ function t(t,e,s){if(t&&t.length){const[n,o]=e,a=Math.PI/180*s,h=Math.cos(a),r=M
     const PINCEAU = { on: false, coul: '#E1502A', outil: 'trait', trait: null, texte: null, texteEnAttente: null }
     const COULEURS_PEN = ['#E1502A', '#2A6FD6', '#F2C31A']
     const OUTILS_PEN = [
-      { id: 'trait', label: '✏', get titre () { return kt('Trait libre', 'Freehand') } },
+      { id: 'trait', label: '✎', get titre () { return kt('Trait libre', 'Freehand') } },
       { id: 'rect', label: '▭', get titre () { return kt('Rectangle', 'Rectangle') } },
       { id: 'ellipse', label: '◯', get titre () { return kt('Ellipse', 'Ellipse') } },
       { id: 'fleche', label: '➔', get titre () { return kt('Flèche', 'Arrow') } },
@@ -1185,8 +1185,8 @@ function t(t,e,s){if(t&&t.length){const[n,o]=e,a=Math.PI/180*s,h=Math.cos(a),r=M
         ANN.traits.length > 0
           ? h('div', { className: 'kbmo-note' },
               ANN.traits.length === 1
-                ? kt('✏️ 1 trait dessiné par-dessus — demande au chat : « réajuste d\'après mes traits »', '✏️ 1 stroke drawn on top — ask the chat: “readjust from my strokes”')
-                : kt(`✏️ ${ANN.traits.length} traits dessinés par-dessus — demande au chat : « réajuste d'après mes traits »`, `✏️ ${ANN.traits.length} strokes drawn on top — ask the chat: “readjust from my strokes”`))
+                ? kt('1 trait dessiné par-dessus — demande au chat : « réajuste d\'après mes traits »', '1 stroke drawn on top — ask the chat: “readjust from my strokes”')
+                : kt(`${ANN.traits.length} traits dessinés par-dessus — demande au chat : « réajuste d'après mes traits »`, `${ANN.traits.length} strokes drawn on top — ask the chat: “readjust from my strokes”`))
           : null,
       )
 
@@ -1201,7 +1201,8 @@ function t(t,e,s){if(t&&t.length){const[n,o]=e,a=Math.PI/180*s,h=Math.cos(a),r=M
       return h('div', { className: 'kbmo-root kbmo' },
         h('div', { className: 'kbmo-head' },
           h('span', { className: 'kbmo-title', title: titleOf(ETAT.titre) }, titleOf(ETAT.titre)),
-          h('span', { className: 'kbmo-badge' }, en2d ? '2D' : '3D')),
+          h('span', { className: 'kbmo-badge' }, en2d ? '2D' : '3D'),
+          (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-modeleur' }) : null)),
         h('div', { className: 'kbmo-view' },
           h('canvas', {
             ref: cvRef,
@@ -1233,7 +1234,7 @@ function t(t,e,s){if(t&&t.length){const[n,o]=e,a=Math.PI/180*s,h=Math.cos(a),r=M
               className: 'kbmo-tool' + (PINCEAU.on ? ' on' : ''),
               title: kt('Dessiner par-dessus — le chat relit tes traits et réajuste', 'Draw on top — the chat reads your strokes and adjusts the model'),
               onClick: () => { PINCEAU.on = !PINCEAU.on; PINCEAU.trait = null; maj() },
-            }, '✏'),
+            }, '✎'),
             PINCEAU.on
               ? [
                   ...OUTILS_PEN.map((o) => h('button', {

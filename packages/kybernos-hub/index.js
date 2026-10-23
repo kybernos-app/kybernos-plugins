@@ -25,6 +25,7 @@ import { creerHub, monterRoutes, monterSuite } from './hub-host.mjs'
 import { URL_PAR_DEFAUT } from './catalogue-distant.mjs'
 import { detecterHebergement, plateformeDe } from './suite-host.mjs'
 import { creerTelechargeurs } from './telechargement.mjs'
+import { ecrirePaire, lirePaire } from './cache-paire.mjs'
 
 export const name = 'kybernos-hub'
 
@@ -38,12 +39,6 @@ function suiteDeps (dshHome, hub) {
   const racineDepot = join(ici, '..', '..')
   const dossierKb = join(dshHome, 'kybernos')
   const cache = join(dossierKb, FICHIER_CATALOGUE_DISTANT)
-  const ecrireAtomique = (fichier, contenu) => {
-    mkdirSync(dirname(fichier), { recursive: true })
-    const tmp = fichier + '.tmp-' + process.pid
-    writeFileSync(tmp, contenu)
-    renameSync(tmp, fichier)
-  }
   const telechargeurs = creerTelechargeurs()
   const catalogue = JSON.parse(readFileSync(join(ici, 'catalog.json'), 'utf8'))
   const fichier = join(dshHome, 'kybernos', FICHIER_ACTIVATION)
@@ -65,10 +60,9 @@ function suiteDeps (dshHome, hub) {
       } catch { /* the default applies */ }
       return URL_PAR_DEFAUT
     },
-    lireCache: () => {
-      try { return { octets: readFileSync(cache), signature: readFileSync(cache + '.sig', 'utf8') } } catch { return null }
-    },
-    ecrireCache: ({ octets, signature }) => { ecrireAtomique(cache, octets); ecrireAtomique(cache + '.sig', signature) },
+    lireCache: () => lirePaire(cache),
+    // The bytes and their signature only mean something together: written as a pair that can never be left half-replaced (cache-paire.mjs).
+    ecrireCache: (paire) => ecrirePaire(cache, paire),
     telecharger: telechargeurs.telecharger,
     telechargerVers: telechargeurs.telechargerVers,
     extraire: telechargeurs.extraire,

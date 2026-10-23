@@ -1,0 +1,50 @@
+{
+  "contract": 1,
+  "id": "kybernos/maintenance",
+  "kind": "code",
+  "version": "0.1.0",
+  "name": {
+    "en": "About",
+    "fr": "À propos"
+  },
+  "description": {
+    "en": "About page: version, DSH compatibility, update log.",
+    "fr": "Page À propos : version, compatibilité avec DSH, journal des mises à jour."
+  },
+  "icon": "info",
+  "family": "base",
+  "author": {
+    "id": "kybernos",
+    "name": "Kybernos"
+  },
+  "license": "Apache-2.0",
+  "pricing": "free",
+  "package": "@local/kybernos-maintenance",
+  "entry": {
+    "host": "index.js",
+    "client": "client.js"
+  },
+  "requires": {
+    "kybernos": ">=0.1.0"
+  },
+  "permissions": [
+    "ui.slot:settings.section",
+    "host.routes:/kybernos-maintenance:write",
+    "fs.read:home",
+    "fs.write:dsh-home",
+    "net:raw.githubusercontent.com",
+    "net:registry.npmjs.org",
+    "exec:dsh",
+    "exec:git",
+    "exec:npm"
+  ],
+  "claims": {
+    "routePrefixes": [
+      "/kybernos-maintenance"
+    ]
+  },
+  "help": "help.json",
+  "suite": {
+    "default": "off"
+  }
+}

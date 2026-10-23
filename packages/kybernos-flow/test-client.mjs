@@ -35,6 +35,19 @@ check('declares the uiWorkspace service', Array.isArray(modele.inject) && modele
   check('apply outside a browser (no document): no effect, does not throw', leve === false)
 }
 
+console.log('\n── docs: the README says what dsh-compat.json and the client say (L2-05) ──')
+{
+  const README = readFileSync(new URL('./README.md', import.meta.url), 'utf8')
+  const compat = JSON.parse(readFileSync(new URL('../../dsh-compat.json', import.meta.url), 'utf8'))
+  // Any limit the README gives for the DSH range ("dsh-compat.json stops at X", "max X", "up to X") must be the file's own max:
+  // it said 0.2.0-rc.2 while the file went up to a later version, and a reader concluded the bundle was not covered.
+  const claimed = [...README.matchAll(/dsh-compat\.json`?\s+(?:stops at|ends at|max(?:imum)?(?: is| =)?|goes up to|up to)\s+`?(\d[\w.-]*)/g)].map((m) => m[1].replace(/[.,;]+$/, ''))
+  check('the README names no DSH range limit other than the max of dsh-compat.json (' + compat.dsh.max + ')', README.includes('dsh-compat.json') && claimed.every((v) => v === compat.dsh.max), claimed)
+  // lang(): French only when the language resolves to French, English for everything else (and while it is not known).
+  check('the README gives the language rule of lang(): English unless the language is French', /Client strings are English unless the language resolves to French/.test(README) && !/French unless/.test(README))
+  check('...which is what the client does: French only for `kybernos` or a `fr` base, English in every other case', /s === 'kybernos' \|\| s\.split\(\/\[-_\]\/\)\[0\] === 'fr'\) \? 'fr' : 'en'/.test(SOURCE) && /catch \{ return 'en' \}/.test(SOURCE))
+}
+
 console.log('\n── client: pure functions ──')
 check('same preview', T.memeApercu('Bonjour  le monde', 'bonjour le monde') === true)
 check('preview: 12-character prefix', T.memeApercu('message numéro 1 — suite tronquée…', 'message numéro 1') === true)

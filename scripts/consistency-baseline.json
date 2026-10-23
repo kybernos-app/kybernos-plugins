@@ -28,12 +28,15 @@
     ],
     "kbf": [
       "kybernos-cloud",
-      "kybernos-mobile",
       "kybernos-plugin"
     ],
     "kbfp": [
       "kybernos-cloud",
       "kybernos-plugin"
+    ],
+    "kbl": [
+      "kybernos-cloud",
+      "kybernos-skills"
     ],
     "kbln": [
       "kybernos-language",
@@ -142,7 +145,8 @@
     ],
     "kybernos-kyber": [
       "#07c160",
-      "#25d366"
+      "#25d366",
+      "#34c759"
     ],
     "kybernos-maintenance": [
       "#2fae52",
@@ -166,8 +170,7 @@
     ],
     "kybernos-models": [
       "#0b7a3b",
-      "#34c759",
-      "#7ce3a4"
+      "#34c759"
     ],
     "kybernos-motion": [
       "#1f8f5f",
@@ -259,7 +262,6 @@
     "22px",
     "23px",
     "24px",
-    "25px",
     "26px",
     "28px",
     "30px",

@@ -31,13 +31,19 @@ source "$HERE/env.sh"
 [ -d "$DSH_HOME/profiles/web/node_modules/@local" ] || "$HERE/setup.sh"
 [ -f "$DSH_HOME/kybernos/onboarding.json" ] || "$HERE/setup.sh"
 
+# The profile was cloned from the real one, so its dependencies are linked from the REAL pnpm store: tell pnpm so, or an install made from the GUI
+# (the Plugins page of the Suite, DSH's own manager) stops with ERR_PNPM_UNEXPECTED_STORE because the sandbox HOME names another store.
+env_extra=()
+store="$(cd "$DSH_HOME/profiles/web" && HOME="$KB_REAL_HOME" pnpm store path 2>/dev/null | tail -n 1 || true)"
+[ -n "$store" ] && [ -d "$store" ] && env_extra=("pnpm_config_store_dir=$store")
+
 umask 077
 LOG="$KB_SANDBOX_STATE/sandbox.log"
 : > "$LOG"
 # perl setsid: its own session/process group, so killing the sandbox never touches this shell's group
 # and closing this shell does not kill the sandbox.
 nohup perl -MPOSIX -e 'POSIX::setsid(); exec @ARGV' -- \
-  env HOME="$HOME" DSH_HOME="$DSH_HOME" DSH_WEB_PORT="$port" \
+  env HOME="$HOME" DSH_HOME="$DSH_HOME" DSH_WEB_PORT="$port" ${env_extra[@]+"${env_extra[@]}"} \
   dsh --profile web --host 127.0.0.1 --port "$port" --no-open \
   >> "$LOG" 2>&1 < /dev/null &
 pid=$!

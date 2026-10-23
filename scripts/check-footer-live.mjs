@@ -282,7 +282,7 @@ try {
     await until(async () => JSON.stringify(await entriesNow('[data-kb="off-menu"]')) === JSON.stringify(WANTED_OFF), 10000)
     const list = await entries('[data-kb="off-menu"]')
     check('the menu: Sign in, Create an account, See plans, Appearance, Settings, Website, Help, Send feedback — in that order', JSON.stringify(list) === JSON.stringify(['connect', 'signup', 'plans', 'appearance', 'settings', 'website', 'help', 'feedback']), list)
-    check('no plan row, team, account, referral, remote control or log out', (await val(`!document.querySelector('[data-kb="off-menu"] [data-kb="menu-plan-cta"], [data-kb="off-menu"] [data-kb="menu-switch"], [data-kb="off-menu"] [data-kb="menu-account"], [data-kb="off-menu"] [data-kb="menu-referral"], [data-kb="off-menu"] [data-kb="menu-logout"], [data-kb="off-menu"] [data-kb="menu-space-settings"], [data-kb="off-menu"] [data-kb="menu-remote"]')`)) === true)
+    check('no plan row, team, account, referral, phone and channels or log out', (await val(`!document.querySelector('[data-kb="off-menu"] [data-kb="menu-plan-cta"], [data-kb="off-menu"] [data-kb="menu-switch"], [data-kb="off-menu"] [data-kb="menu-account"], [data-kb="off-menu"] [data-kb="menu-referral"], [data-kb="off-menu"] [data-kb="menu-logout"], [data-kb="off-menu"] [data-kb="menu-space-settings"], [data-kb="off-menu"] [data-kb="menu-phone"]')`)) === true)
     const fits = await val(`(() => { const m = document.querySelector('[data-kb="off-menu"]'); const r = m.getBoundingClientRect(); return r.left >= 0 && r.right <= innerWidth && r.top >= 0 && r.bottom <= innerHeight })()`)
     check('it fits the window and the button says it is open', fits === true && (await val(`document.querySelector('[data-kb="foot-signin"]').getAttribute('aria-expanded')`)) === 'true')
     check('no native popover (Settings ⌥⌘, / Feedback / Sign in) is on screen', (await nativeSeen()).length === 0, await nativeSeen())
@@ -441,8 +441,8 @@ try {
     await openProfileMenu()
     const list = await entries('.kbfp-menu')
     // Two spaces here, so the list is the top of the menu itself (its rows are `space-row`, not entries); from four spaces the top row is the `switch` entry (« Teams menu » below).
-    check('the menu keeps its skeleton: the spaces, plan, Team settings, Account, Referral, Remote control, Appearance, Settings, Website, Help, Feedback, Log out',
-      JSON.stringify(list.filter((k) => k !== 'update')) === JSON.stringify(['plan-card', 'plan-cta', 'space-settings', 'account', 'referral', 'remote', 'appearance', 'settings', 'website', 'help', 'feedback', 'logout']) && (await val(`document.querySelectorAll('.kbfp-menu [data-kb="space-row"]').length`)) === 2, list)
+    check('the menu keeps its skeleton: the spaces, plan, Team settings, Account, Referral, Appearance, Phone and channels, Settings, Website, Help, Feedback, Log out',
+      JSON.stringify(list.filter((k) => k !== 'update')) === JSON.stringify(['plan-card', 'plan-cta', 'space-settings', 'account', 'referral', 'appearance', 'phone', 'settings', 'website', 'help', 'feedback', 'logout']) && (await val(`document.querySelectorAll('.kbfp-menu [data-kb="space-row"]').length`)) === 2, list)
     check('the plan row shows « Free » and Upgrade', /Free/.test((await text('.kbfp-mplan')) || '') && (await exists('[data-kb="menu-plan-cta"]')))
     await sleep(300)
     await shot('7-connected-menu')
@@ -450,30 +450,28 @@ try {
     await keyboardMenu('Connected', '[data-kb="workspace-card"] .kbfp-cardmain', '.kbfp-menu')
     await openProfileMenu()
 
-    // Remote control: the phone link's own panel, from the menu — and the footer's separate phone button is gone.
+    // Phone and channels: kybernos-mobile's window, from the menu — and the footer's separate phone button is gone.
     check('the footer has no phone button and no bell: the profile row is the card\'s only button (the bell is hidden behind one flag, not deleted)', (await val(`document.querySelectorAll('[data-kb="workspace-card"] .kbfp-card > button').length`)) === 1 && !(await exists('.kbfp-bellwrap')) && !(await exists('[data-kb="workspace-card"] [title="Notifications"]')))
-    check('the entry shows how many phones are already linked', /Remote control\s*2/.test((await text('[data-kb="menu-remote"]')) || ''), await text('[data-kb="menu-remote"]'))
-    await press('[data-kb="menu-remote"]')
-    check('Remote control opens the phone link\'s own panel (kybernos-mobile\'s), and closes the menu', (await waitFor(page, `document.querySelector('[data-kb="mobile-panel"]') !== null`, 5000)) !== null && !(await exists('.kbfp-menu')))
-    check('the panel is the bundle\'s (its « Add a phone » button), not the preview', (await waitFor(page, `document.querySelector('[data-kb="mobile-panel"] [data-kb="mobile-pair"], [data-kb="mobile-panel"] [data-kb="mobile-qr"]') !== null`, 5000)) !== null && (await text('.kbf-qrnote')) === null)
-    await shot('7b-remote-panel')
+    check('the entry is « Phone and channels », and there is no « Remote control » entry', /Phone and channels/.test((await text('[data-kb="menu-phone"]')) || '') && !(await exists('[data-kb="menu-remote"]')), await text('[data-kb="menu-phone"]'))
+    await press('[data-kb="menu-phone"]')
+    check('Phone and channels opens the window kybernos-mobile draws, and closes the menu', (await waitFor(page, `document.querySelector('[data-kb="phone-channels"]') !== null`, 5000)) !== null && !(await exists('.kbfp-menu')))
+    check('the window is the bundle\'s: the phone link on the left (its « Add a phone » button, the phones already linked), no preview', (await waitFor(page, `document.querySelector('[data-kb="phone-channels"] [data-kb="mobile-pair"]') !== null`, 5000)) !== null && /Pixel 9/.test((await text('[data-kb="mobile-devices"]')) || '') && (await text('.kbf-qrnote')) === null)
+    await shot('7b-phone-and-channels-window')
     await key('Escape', 'Escape')
-    // Not offered: the entry is absent, not dead.
-    for (const [label, remote] of [
-      ['the server does not offer the phone link (configured: false)', Object.assign({}, REMOTE_OFFERED, { configured: false })],
-      ['the plan does not include it (entitled: false)', Object.assign({}, REMOTE_OFFERED, { entitled: false })],
-      ['this DSH cannot (available: false)', Object.assign({}, REMOTE_OFFERED, { available: false })],
-      ['the status cannot be read (a refusal)', { ok: false, error: 'network' }],
+    check('Escape closes the window', (await waitFor(page, `document.querySelector('[data-kb="phone-channels"]') === null`, 4000)) !== null)
+    // Whatever the server and the plan say, the entry is there and the window says what is possible: nothing is a dead entry any more.
+    for (const [label, remote, marker] of [
+      ['the server does not offer the phone link (configured: false)', Object.assign({}, REMOTE_OFFERED, { configured: false }), 'mobile-not-offered'],
+      ['the plan does not include it (entitled: false)', Object.assign({}, REMOTE_OFFERED, { entitled: false }), 'mobile-paywall'],
+      ['the status cannot be read (a refusal)', { ok: false, error: 'network' }, 'mobile-poll-error'],
     ]) {
       fake.remote = remote
-      const asked = fake.calls.filter((c) => c === 'remote-status').length
       await reload()
-      // The footer reads the phone link's status once it is connected: wait until the page has asked (and drawn the answer), or « no entry » would
-      // be true for the wrong reason (not read yet) and the menu could still be changing under the check.
-      await until(() => fake.calls.filter((c) => c === 'remote-status').length > asked, 8000)
-      await settle()
       await openProfileMenu()
-      check(label + ': no « Remote control » entry', !(await exists('[data-kb="menu-remote"]')) && (await exists('[data-kb="menu-account"]')), await entries('.kbfp-menu'))
+      check(label + ': the entry is still there', await exists('[data-kb="menu-phone"]'), await entries('.kbfp-menu'))
+      await press('[data-kb="menu-phone"]')
+      check(label + ': the left column says so, the messaging column is still there', (await waitFor(page, `document.querySelector('[data-kb="phone-channels"] [data-kb="${marker}"]') !== null && document.querySelector('[data-kb="phone-channels-card"], [data-kb="phone-channels-off"]') !== null`, 6000)) !== null)
+      await key('Escape', 'Escape')
     }
     fake.remote = REMOTE_OFFERED
     await reload()
@@ -644,19 +642,21 @@ try {
     check('the only server: it is named, and there is nothing to switch to (no action)', /“Kybernos Cloud”/.test(said) && /api\.kybernos\.app/.test(said) && !(await exists('[data-kb="foot-switch-server"]')), said)
     fake.link = null
 
-    // The phone link's panel says the same words, and its « Switch server » closes the panel and asks the footer for Settings › Servers.
+    // The phone link's window says the same words, and its « Switch server » closes the window and asks the footer for Settings › Servers.
     fake.pair = { ok: false, error: 'server_unavailable', server: { name: 'Kybernos (local)', host: 'localhost:8791', can_switch: true } }
     await reload()
     await openProfileMenu()
-    await press('[data-kb="menu-remote"]')
-    await until(() => exists('[data-kb="mobile-panel"] [role="alert"]'), 6000)
-    said = (await text('[data-kb="mobile-panel"] [role="alert"]')) || ''
-    check('Remote control: the panel names the server that does not answer (label, host)', /“Kybernos \(local\)”/.test(said) && /localhost:8791/.test(said) && /does not answer/.test(said) && !/The Kybernos server does not answer/.test(said), said)
+    await press('[data-kb="menu-phone"]')
+    await until(() => exists('[data-kb="phone-channels"] [data-kb="mobile-pair"]'), 6000)
+    await press('[data-kb="mobile-pair"]')
+    await until(() => exists('[data-kb="phone-channels"] [role="alert"]'), 6000)
+    said = (await text('[data-kb="phone-channels"] [data-kb="mobile-state"] ~ [role="alert"], [data-kb="phone-channels"] .kbmr-error[role="alert"]')) || ''
+    check('Phone and channels: the window names the server that does not answer (label, host)', /“Kybernos \(local\)”/.test(said) && /localhost:8791/.test(said) && /does not answer/.test(said) && !/The Kybernos server does not answer/.test(said), said)
     check('and offers « Switch server »', await exists('[data-kb="mobile-switch-server"]'), said)
     await sleep(300)
     await shot('v41-remote-server-down')
     await press('[data-kb="mobile-switch-server"]')
-    check('« Switch server » closes the panel and opens Settings', (await settingsOpen()) && !(await exists('[data-kb="mobile-panel"]')))
+    check('« Switch server » closes the window and opens Settings', (await settingsOpen()) && !(await exists('[data-kb="phone-channels"]')))
     if (await serversCell()) {
       await until(async () => /where your account/i.test(await settingsText()), 15000)
       check('on the Servers page', /where your account/i.test(await settingsText()), (await settingsText()).slice(0, 120))
@@ -764,8 +764,8 @@ try {
     check('the navigation is drawn (more than three cells)', cells.length > 3, cells)
     check('no cell is rendered with the key of a removed section', !cells.some((c) => REMOVED.includes(c.key)), cells.filter((c) => REMOVED.includes(c.key)))
     check('none is titled Referral, Account security, Account data or Support & legal', !cells.some((c) => /^(referral|account security|account data|support (&|and|&amp;) legal)$/i.test(c.t)), cells.map((c) => c.t))
-    check('DSH\'s own entries and the other bundles\' are still listed (General, Appearance, Remote Control)',
-      cells.some((c) => c.key === 'general') && cells.some((c) => c.key === 'kbac-appearance') && cells.some((c) => c.key === 'kybernos-mobile'), cells.map((c) => c.key))
+    check('DSH\'s own entries and the other bundles\' are still listed (General, Theme, Phone and channels), and there is no Appearance page any more (the mode is on Theme)',
+      cells.some((c) => c.key === 'general') && cells.some((c) => c.key === 'kybernos-theme') && cells.some((c) => c.key === 'kybernos-mobile') && !cells.some((c) => c.key === 'kbac-appearance'), cells.map((c) => c.key))
     await shot('11-settings-without-account-entries')
     // General is a row of its own, then eight groups (folds, one open at a time). Every page is drawn here (data-kb-all-pages) and read from the layout
     // (the organiser orders by CSS), headers and cells together. The organiser (a debounced observer) draws the headers a moment after the cells: wait for them.
@@ -778,8 +778,10 @@ try {
     const at = flow.findIndex((x) => x.head && x.t === 'Devices & cloud')
     check('Servers (kept where it was) is first under Devices & cloud', at >= 0 && flow[at + 1] && flow[at + 1].key === 'kybernos-servers', flow.slice(at, at + 3))
     const mem = flow.findIndex((x) => x.head && x.t === 'Memory & context')
-    check('the section of what stays on this computer is under Memory & context, after Memory & Lessons', mem >= 0 && flow[mem + 1] && flow[mem + 1].key === 'kybernos-memory' && flow[mem + 2] && flow[mem + 2].key === 'kybernos-local', flow.slice(mem, mem + 4))
-    // Each of the remaining ones still opens: pick General and Remote Control by key and read the page that comes up.
+    const memEnd = flow.findIndex((x, i) => i > mem && x.head)
+    const memGroup = flow.slice(mem + 1, memEnd < 0 ? flow.length : memEnd).map((x) => x.key)
+    check('the section of what stays on this computer is under Memory & context, after Memory & Lessons', mem >= 0 && memGroup[0] === 'kybernos-memory' && memGroup.indexOf('kybernos-local') > 0, memGroup)
+    // Each of the remaining ones still opens: pick General and Phone and channels by key and read the page that comes up.
     const pageText = async () => (await val(`(document.querySelector('[data-slot="settings.section"]') || document.querySelector('[class*="settingsContent"]') || { innerText: '' }).innerText`)) || ''
     const openCell = async (cellKey) => {
       const was = await pageText()
@@ -791,9 +793,9 @@ try {
     const general = await openCell('general')
     check('General still opens', general.length > 20, general.slice(0, 120))
     const remote = await openCell('kybernos-mobile')
-    check('Remote Control still opens, with its own page', /remote control|phone/i.test(remote) && remote.length > 20, remote.slice(0, 160))
-    const appearance = await openCell('kbac-appearance')
-    check('Appearance still opens (the shortcut to Theme)', /theme|appearance/i.test(appearance), appearance.slice(0, 160))
+    check('Phone and channels still opens, with its own page', /phone and channels|phone/i.test(remote) && remote.length > 20, remote.slice(0, 160))
+    const themePage = await openCell('kybernos-theme')
+    check('Theme opens, with the three mode cards (Light, Dark, System)', /theme/i.test(themePage) && (await val(`document.querySelectorAll('.kbth-mode').length`)) === 3, themePage.slice(0, 160))
 
     // ── The « Kybernos » section: the custom instructions through the host's file routes, the model re-import, the DSH chats ─────────────────────────────────
     console.log('The Kybernos section of Settings — what stays on this computer')
@@ -802,7 +804,9 @@ try {
     check('the section opens: instructions and models are there, and a folded Advanced', (await exists('[data-kb="ky-instructions"]')) && (await exists('[data-kb="ky-models"]')) && (await exists('[data-kb="ky-advanced"]')) && !(await exists('[data-kb="ky-chats"]')))
     const AGENTS = join(DSH_HOME, 'AGENTS.md')
     const note = (await text('[data-kb="ky-instr-note"]')) || ''
-    check('it says the instructions are kept on this computer, and in which file (the sandbox\'s own AGENTS.md)', /on this computer/i.test(note) && note.includes(AGENTS), note)
+    // The file is the note's tooltip (title), not part of its text.
+    const noteTitle = (await val(`(document.querySelector('[data-kb="ky-instr-note"]') || { title: '' }).title || ''`)) || ''
+    check('it says the instructions are kept on this computer, and in which file (the sandbox\'s own AGENTS.md, in its tooltip)', /on this computer/i.test(note) && noteTitle.includes(AGENTS), { note, noteTitle })
     const setField = (value) => val(`(() => { const t = document.querySelector('[data-kb="ky-instr-field"]'); const set = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set; set.call(t, ${JSON.stringify(value)}); t.dispatchEvent(new Event('input', { bubbles: true })) })()`)
     const field = () => val(`document.querySelector('[data-kb="ky-instr-field"]').value`)
     const INSTR = 'Answer in short sentences. Say what you checked.'
@@ -1074,7 +1078,7 @@ try {
       if (inline) {
         const rows = await rowsOf('.kbfp-menu')
         check(count + ': one row each, the personal one active (check mark), in the order of the account', rows.length === count && rows[0].current === true && rows.slice(1).every((r) => r.current === false) && JSON.stringify(rows.map((r) => r.name)) === JSON.stringify(T_NAMES.slice(0, count)), rows)
-        check(count + ': the personal row says « you · plan », a team its role and head count (« Admin · 6 members »)', rows[0].sub === 'Dev Person · Free' && (count === 1 || (rows[1].sub === 'Admin · 6 members' && rows[1].pct === '84')), rows)
+        check(count + ': the personal row says « Personal · you · plan », a team « Team · role · head count » (« Team · Admin · 6 members »)', rows[0].sub === 'Personal · Dev Person · Free' && (count === 1 || (rows[1].sub === 'Team · Admin · 6 members' && rows[1].pct === '84')), rows)
         check(count + ': no « Switch team » row while the list is in the menu, and « Create a team » then « Join with an invitation link » are under it (scripts/check-join-live.mjs plays the dialog)', !(await exists('.kbfp-menu [data-kb="menu-switch"]')) && (await exists('.kbfp-menu [data-kb="space-create"]')) && (await exists('.kbfp-menu [data-kb="space-join"]')))
         if (count === 3) {
           check('3: each team row carries its own colour, two different ones, the personal tile none', rows[1].hue !== null && rows[2].hue !== null && rows[1].hue !== rows[2].hue && rows[0].hue === null, rows.map((r) => r.hue))
@@ -1092,7 +1096,7 @@ try {
         await sleep(300)
         const rows = await rowsOf('.kbfp-sub')
         check(count + ': it opens the full list next to the menu, with every space, « Create a team » and « Join with an invitation link »', rows.length === count && (await exists('.kbfp-sub [data-kb="space-create"]')) && (await exists('.kbfp-sub [data-kb="space-join"]')), rows.length)
-        check(count + ': the rows carry the same role and head count', rows[1].sub === 'Admin · 6 members', rows[1])
+        check(count + ': the rows carry the same role and head count', rows[1].sub === 'Team · Admin · 6 members', rows[1])
         const sub = await rect('.kbfp-sub')
         check(count + ': the list fits the window', sub !== null && sub.x >= 0 && sub.y >= 0 && sub.x + sub.w <= 1400 && sub.y + sub.h <= 860, sub)
         await shot('t-list-' + count + '-' + (await schemeNow2()))
@@ -1159,13 +1163,15 @@ try {
       if (['member · normal', 'admin · 75 %', 'admin · full', 'member · cap set by an admin'].includes(role + ' · ' + label)) await shot('t-plan-' + role + '-' + label.replace(/[^a-z0-9]+/g, '') + '-' + (await schemeNow2()))
       await clean()
     }
-    // The personal free card: « Free », Upgrade and ONE allowance bar.
+    // The personal free card: « Free » and Upgrade. No allowance row and no gauge on the footer card: the number is the Kybernos plan's, which the composer's chip shows
+    // on a Kybernos model; a rule sits between the account block (Account, Referral) and Appearance.
     setWorld(3, 'admin', W_PERSONAL, [win('member', 2592000, 7)])
     await reload()
     await openProfileMenu()
-    await until(async () => (await cardOf()) !== null && (await cardOf()).rows.length > 0, 4000)
+    await until(async () => (await cardOf()) !== null, 4000)
     const freeCard = await cardOf()
-    check('personal · free: « Free », an Upgrade button and ONE allowance bar (Last 30 days), no Manage', freeCard !== null && freeCard.title === 'Free' && freeCard.cta === true && freeCard.manage === false && freeCard.rows.length === 1 && freeCard.rows[0].win === 'allowance' && freeCard.rows[0].pct === '7' && /Last 30 days/.test(freeCard.rows[0].note), freeCard)
+    check('personal · free: « Free » and an Upgrade button, no Manage, NO allowance row and no gauge on the footer card', freeCard !== null && freeCard.title === 'Free' && freeCard.cta === true && freeCard.manage === false && freeCard.rows.length === 0 && !(await exists('[data-kb="workspace-card-usage"]')), freeCard)
+    check('a rule between the account block and Appearance', await val(`(() => { const a = document.querySelector('.kbfp-menu [data-kb="menu-block-account"]'); const n = a ? a.nextElementSibling : null; return !!n && n.classList.contains('kbfp-msep') && !!n.nextElementSibling && n.nextElementSibling.getAttribute('data-kb') === 'menu-block-appearance' })()`))
     await shot('t-plan-personal-free-' + (await schemeNow2()))
     await clean()
 
@@ -1260,7 +1266,7 @@ try {
     const frCard = await cardOf()
     const frRows = await rowsOf('.kbfp-menu')
     check('French: the card says « Équipe », « Toi », « Sur 5 heures », « Revient dans environ 3 h » and has « Gérer » and « Ajouter des crédits »', frCard !== null && frCard.rows[0].label === 'Équipe' && frCard.rows[1].label === 'Toi' && /Sur 5 heures/.test(frCard.rows[1].note) && /Revient dans environ 3.h/.test(frCard.rows[0].note) && /Gérer/.test(frCard.text) && /Ajouter des crédits/.test(frCard.text), frCard)
-    check('French: the rows say « Admin · 6 membres »', frRows.some((r) => r.sub === 'Admin · 6 membres'), frRows)
+    check('French: the rows say « Équipe · Admin · 6 membres »', frRows.some((r) => r.sub === 'Équipe · Admin · 6 membres'), frRows)
     await shot('t-fr-plan-full')
     await val(`(() => { window.__KB_LANG_RESOLVE__ = window.__kbLangBefore; delete window.__kbLangBefore })()`)
     await clean()

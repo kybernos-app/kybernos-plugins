@@ -17,5 +17,8 @@ export const { name, inject, Config, apply } = fabriquerProvider({
   bin: 'qwen',
   argv,
   envCle: ['QWEN_TOKEN_PLAN_API_KEY', 'DASHSCOPE_API_KEY'],
+  // The key reaches the child through its environment only (never argv, which `ps -ax` shows): in `--auth-type openai`
+  // the CLI reads OPENAI_API_KEY, and the factory already puts the key there (same shape as the Gemini connector).
+  varEnvCle: 'OPENAI_API_KEY',
   baseUrlDefaut: BASE_URL_DEFAUT
 })

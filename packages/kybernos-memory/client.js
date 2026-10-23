@@ -54,6 +54,20 @@ window.__ModuleLoader__.load({
       const retentions = () => [[30, kt('30 jours', '30 days')], [90, kt('90 jours', '90 days')], [180, kt('180 jours', '180 days')], [365, kt('1 an', '1 year')]]
       const addedOpts = () => [['any', kt('À tout moment', 'Any time')], ['1m', kt('Dernière minute', 'Last minute')], ['1h', kt('Dernière heure', 'Last hour')], ['today', kt('Aujourd’hui', 'Today')], ['7d', kt('7 derniers jours', 'Last 7 days')]]
 
+      /** A status that every row shares says nothing: `sentMarks` keeps the « Sent » chip only for
+       *  the rows that differ from the majority of the page (the details sheet always shows it). */
+      const sentMarks = (items) => {
+        const flags = (items || []).map((m) => m !== null && m !== undefined && m.sent === true)
+        const yes = flags.filter(Boolean).length
+        const no = flags.length - yes
+        // One truth on the whole page: the chip carries nothing, so no row gets it. Mixed: the
+        // minority is marked (if half the rows are sent, marking the unsent ones is noise too —
+        // nothing is marked then, and the list reads as one state).
+        if (flags.length === 0 || yes === 0 || no === 0 || yes === no) return flags.map(() => false)
+        const mark = yes < no
+        return flags.map((f) => f === mark)
+      }
+
       /** The plan as the page talks about it: Free, Solo or Team (anything paid that is not a team seat is « Solo »). */
       const planOf = (status) => {
         const raw = status !== null && status !== undefined && status.state !== undefined && status.state !== null && status.state.user !== null && status.state.user !== undefined
@@ -251,6 +265,11 @@ window.__ModuleLoader__.load({
         if (c === 'aucun_espace') return kt('Aucun espace d’équipe n’est sélectionné.', 'No team workspace is selected.')
         if (c === 'partage_desactive') return kt('Le partage des leçons avec ton équipe est désactivé dans Personnaliser.', 'Sharing lessons with your team is switched off in Customize.')
         if (c === 'texte_invalide') return kt('Écris d’abord la leçon (500 caractères au maximum).', 'Write the lesson first (500 characters at most).')
+        // the answers of the Skills page when a lesson is turned into a skill suggestion (kybernos-skills/learned.mjs)
+        if (c === 'already_proposed') return kt('Ces leçons ont déjà donné une suggestion de skill.', 'These lessons already made a skill suggestion.')
+        if (c === 'too_many_pending') return kt('5 suggestions de skills attendent déjà : réponds à l’une d’elles dans Skills d’abord.', '5 skill suggestions are already waiting: answer one in Skills first.')
+        if (c === 'no_free_name') return kt('Aucun nom libre pour ce skill.', 'No free name for this skill.')
+        if (c === 'no_lessons') return kt('Aucune leçon à transformer en skill.', 'No lesson to turn into a skill.')
         if (c === 'requete_invalide') return kt('Cette requête a été refusée comme invalide.', 'That request was refused as invalid.')
         if (c === 'a_change') return kt('Ça a changé depuis l’analyse : analyse à nouveau.', 'It changed since the scan: look again.')
         if (c === 'groupe_inconnu') return kt('Cette suggestion est périmée : analyse à nouveau.', 'That suggestion is out of date: look again.')
@@ -430,6 +449,25 @@ window.__ModuleLoader__.load({
       const LESSONS_NEAR = 40   // LESSONS_NEAR_COUNT: from here the host tidies the agent team by itself (index.js, tidyTick)
       const tidyEvery = () => ({ start: kt('au démarrage de DSH', 'when DSH starts'), daily: kt('chaque jour', 'every day'), weekly: kt('chaque semaine', 'every week'), n50: kt('tous les 50 nouveaux éléments', 'every 50 new items') })
 
+      /** The tag three lessons of the list share (the pitfalls of one topic make one checklist), with those lessons: `{ tag, items }`, or null. */
+      const lessonCluster = (items) => {
+        const by = new Map()
+        for (const l of Array.isArray(items) ? items : []) {
+          if (l === null || typeof l !== 'object') continue
+          for (const tag of Array.isArray(l.tags) ? l.tags : []) { const k = String(tag); if (k !== '' && k !== 'default') by.set(k, (by.get(k) || []).concat([l])) }
+        }
+        let best = null
+        for (const [tag, ls] of by) if (ls.length >= 3 && (best === null || ls.length > best.items.length)) best = { tag, items: ls.slice(0, 8) }
+        return best
+      }
+      /** Hand lessons to the Skills page as a SUGGESTION: nothing is active before the person accepts it there. Fixed rules, no model, no cost. */
+      const suggestSkill = async (lessons) => {
+        const r = await api('/kybernos-skills/learned/from-lessons', { lessons: lessons.map((l) => ({ text: l.text, tags: Array.isArray(l.tags) ? l.tags : [], kyber: l.kyber })) })
+        try { if (r.ok === true && window.__KB_LEARNED__ !== undefined && typeof window.__KB_LEARNED__.refresh === 'function') window.__KB_LEARNED__.refresh() } catch (e) { /* the menu dot catches up at its next look */ }
+        return r
+      }
+      const openSkills = () => { try { if (typeof window.__KB_OPEN__ === 'function') window.__KB_OPEN__({ view: 'skills' }) } catch (e) { /* the menu is the other way in */ } }
+
       /**
        * The one line under the title: what looks after itself, in words, and whether the one step left is the account.
        * `tone` is 'wait' (still reading: no line, never a flash of « Off »), 'ok', 'step' (it works and the account is the one thing
@@ -438,7 +476,7 @@ window.__ModuleLoader__.load({
        */
       const selfStatus = (input) => {
         try {
-          const { status, settings, tidy, now } = input === null || input === undefined ? {} : input
+          const { status, settings, tidy, now, skills } = input === null || input === undefined ? {} : input
           const wait = { tone: 'wait', text: '', connect: false }
           if (status === undefined || settings === undefined || tidy === undefined || status === null || settings === null || tidy === null) return wait
           if (status.loaded !== true || settings.loaded !== true || tidy.loaded !== true) return wait
@@ -463,7 +501,9 @@ window.__ModuleLoader__.load({
               else { const every = tidyEvery()[cfg.schedule] === undefined ? kt('chaque semaine', 'every week') : tidyEvery()[cfg.schedule]; parts.push(kt('Se range tout seul ' + every, 'Tidies itself ' + every)) }
             }
           } catch (e) { /* the tidy-up part is a bonus: the line stands without it */ }
-          return { tone: !connected ? 'step' : 'ok', text: parts.join(' · '), connect: !connected }
+          // Skills the person accepted from Kaby's suggestions (the Skills page's ledger): a count, only once there is one.
+          if (Number.isInteger(skills) && skills > 0) parts.push(kt(skills === 1 ? '1 skill fait par l’expérience' : skills + ' skills faits par l’expérience', skills === 1 ? '1 skill made from experience' : skills + ' skills made from experience'))
+          return { tone: !connected ? 'step' : 'ok', text: parts.join(' · '), connect: !connected, skills: Number.isInteger(skills) ? skills : 0 }
         } catch (e) { return { tone: 'wait', text: '', connect: false } }
       }
 
@@ -636,7 +676,7 @@ window.__ModuleLoader__.load({
 /* the browser's default placeholder is a mid grey: 2.6:1 on the dark field */
 .kbmem-field input::placeholder{color:var(--m-ink2)}
 .kbmem-modes{display:inline-flex;gap:2px;padding:2px;margin-inline-start:auto;border-radius:999px;background:var(--m-surf);flex:none}
-.kbmem-modes button{display:inline-flex;gap:4px;align-items:center;height:22px;padding:0 9px;border-radius:999px;font-size:11px;font-weight:600;color:var(--m-ink2);white-space:nowrap}
+.kbmem-modes button{display:inline-flex;gap:4px;align-items:center;height:24px;padding:0 9px;border-radius:999px;font-size:11px;font-weight:600;color:var(--m-ink2);white-space:nowrap}
 .kbmem-modes button.on{background:var(--m-primary);color:var(--m-primary-ink)}
 .kbmem-modes button.locked{color:var(--m-muted)}
 .kbmem-modes .kbmem-ico{width:11px;height:11px}
@@ -646,7 +686,7 @@ window.__ModuleLoader__.load({
 .kbmem-menuwrap{position:relative}
 .kbmem-menu{position:absolute;top:calc(100% + 6px);inset-inline-end:0;min-width:240px;max-height:70vh;overflow:auto;padding:6px;border-radius:var(--m-r-md);background:var(--m-toast);box-shadow:var(--kb-elev,0 8px 24px rgba(0,0,0,.35));z-index:30}
 .kbmem-menu button{display:flex;gap:8px;align-items:center;width:100%;height:34px;padding:0 12px;border-radius:var(--m-r-sm);font-size:13px}.kbmem-menu button:hover{background:var(--m-hover)}
-.kbmem-mg{padding:8px 12px 2px;font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--m-cap)}
+.kbmem-mg{padding:8px 12px 2px;font-size:11px;font-weight:600;color:var(--m-cap)}
 .kbmem-msep{height:1px;margin:6px 0;background:var(--m-line2)}
 .kbmem-ck{width:15px}
 .kbmem-badge{display:inline-grid;place-items:center;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:var(--m-acc);color:#151517;font-size:10px;font-weight:700}
@@ -658,6 +698,11 @@ window.__ModuleLoader__.load({
 .kbmem-chip.warn{color:var(--m-warn);background:var(--m-warn-bg);border-color:transparent}
 .kbmem-plan{display:inline-flex;gap:4px;align-items:center;height:20px;padding:0 8px;border-radius:999px;font-size:11px;font-weight:600;color:var(--m-acc);border:1px solid var(--m-acc);white-space:nowrap}
 .kbmem-plan .kbmem-ico{width:11px;height:11px}
+.kbmem-sug{margin:0 0 14px;padding:12px 16px;border-radius:var(--m-r-md);border:1px dashed var(--m-line3);background:var(--m-surf)}
+.kbmem-sug-h{display:flex;align-items:center;gap:4px;font-size:13px;margin-bottom:6px}.kbmem-sug-why{font-size:12px;color:var(--m-cap)}
+.kbmem-sug-row{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:8px 0;border-top:1px solid var(--m-line)}.kbmem-sug-row:first-of-type{border-top:0}
+.kbmem-sug-main{flex:1 1 280px;min-width:0}.kbmem-sug-text{font-size:13.5px;color:var(--m-ink);overflow-wrap:anywhere}.kbmem-sug-proof{font-size:12px;color:var(--m-cap);margin-top:2px}
+.kbmem-sug-act{display:flex;gap:6px;flex:none}
 .kbmem-note{display:flex;gap:12px;align-items:flex-start;margin:0 0 14px;padding:12px 16px;border-radius:var(--m-r-md);background:var(--m-surf);font-size:13px;color:var(--m-ink2)}
 .kbmem-note.warn{background:var(--m-warn-bg)}.kbmem-note a,.kbmem-link{color:var(--m-acc);font-weight:600;cursor:pointer}
 .kbmem-list{border-top:1px solid var(--m-line2)}
@@ -730,7 +775,7 @@ window.__ModuleLoader__.load({
 .kbmem-nd{cursor:pointer;outline:none}.kbmem-nd .kbmem-dot{fill:var(--m-cap)}.kbmem-nd.fact .kbmem-dot{fill:var(--m-acc)}.kbmem-nd.preference .kbmem-dot{fill:var(--m-ok)}.kbmem-nd.policy .kbmem-dot{fill:var(--m-warn)}
 .kbmem-ring{fill:none;stroke:var(--m-ok);stroke-width:1.5;vector-effect:non-scaling-stroke;opacity:.85}
 .kbmem-nd.dim{opacity:.2}.kbmem-nd.sel .kbmem-dot,.kbmem-nd:focus-visible .kbmem-dot{stroke:var(--m-ink);stroke-width:2;vector-effect:non-scaling-stroke}
-.kbmem-cl{fill:var(--m-cap);font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;pointer-events:none}
+.kbmem-cl{fill:var(--m-cap);font-size:12px;font-weight:600;pointer-events:none}
 .kbmem-maphud{position:absolute;inset-inline-start:12px;top:12px;display:flex;gap:10px;align-items:center;max-width:calc(100% - 24px)}
 .kbmem-maphud .kbmem-field{flex:0 1 230px;width:230px;max-width:100%;min-height:32px;background:var(--m-surf2)}
 .kbmem-legend{position:absolute;inset-inline-start:12px;bottom:12px;display:flex;gap:12px;flex-wrap:wrap;max-width:calc(100% - 70px);padding:6px 10px;border-radius:10px;background:var(--m-surf2);font-size:11.5px;color:var(--m-muted)}
@@ -751,6 +796,7 @@ window.__ModuleLoader__.load({
       // ═══════════════════════════════════════════════════════════════
       const ICONS = {
         brain: '<path d="M9.5 3A3.5 3.5 0 0 0 6 6.5c0 .4.1.8.2 1.1A3.5 3.5 0 0 0 4 10.8c0 1 .5 2 1.2 2.6A3.5 3.5 0 0 0 7 19a3 3 0 0 0 5-1V4.5A1.5 1.5 0 0 0 9.5 3z"/><path d="M14.5 3A3.5 3.5 0 0 1 18 6.5c0 .4-.1.8-.2 1.1A3.5 3.5 0 0 1 20 10.8c0 1-.5 2-1.2 2.6A3.5 3.5 0 0 1 17 19a3 3 0 0 1-5-1V4.5A1.5 1.5 0 0 1 14.5 3z"/>',
+        wand: '<path d="M15 4V2M15 16v-2M8 9h2M20 9h2M17.8 11.8 19 13M17.8 6.2 19 5M3 21l9-9M12.2 6.2 11 5"/>',
         pin: '<path d="M12 17v5M9 3h6l-1 6 3 3H7l3-3z"/>', search: '<circle cx="11" cy="11" r="6"/><path d="m20 20-4-4"/>', plus: '<path d="M12 5v14M5 12h14"/>',
         check: '<path d="m5 12 5 5 9-10"/>', x: '<path d="M6 6l12 12M18 6 6 18"/>', trash: '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>',
         cloud: '<path d="M7 18a4.5 4.5 0 0 1-.6-8.96A6 6 0 0 1 18 9.5a4 4 0 0 1-.5 8.5z"/>', lock: '<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
@@ -942,11 +988,11 @@ window.__ModuleLoader__.load({
           h('span', { className: 'kbmem-mt' }, k.bone(96, 12)))))
       }
 
-      const MemoryRow = ({ m, selected, onOpen, ctxOn, i }) => h('button', { type: 'button', className: 'kbmem-r' + (selected ? ' sel' : '') + appear(i), 'data-id': m.id, onClick: () => onOpen(m) },
+      const MemoryRow = ({ m, selected, onOpen, ctxOn, markSent, i }) => h('button', { type: 'button', className: 'kbmem-r' + (selected ? ' sel' : '') + appear(i), 'data-id': m.id, onClick: () => onOpen(m) },
         h('span', { className: 'kbmem-kd ' + m.kind, title: kindLabels()[m.kind] || m.kind }),
         h('span', { className: 'kbmem-tx' }, m.content),
         h('span', { className: 'kbmem-mt' },
-          m.sent && ctxOn ? h('span', { className: 'kbmem-chip ok' }, kt('Envoyé', 'Sent')) : null,
+          m.sent && ctxOn && markSent === true ? h('span', { className: 'kbmem-chip ok', 'data-chip': 'sent' }, kt('Envoyé', 'Sent')) : null,
           closenessLabel(m.closeness) !== null ? h('span', { className: 'kbmem-chip close', title: kt('À quel point ce souvenir est proche de ta recherche, par le sens', 'How close this memory is to your search, by meaning') }, closenessLabel(m.closeness)) : null,
           wordsLabel(m.matched, m.of) !== null ? h('span', { className: 'kbmem-chip', 'data-chip': 'words', title: kt('Combien des mots que tu as tapés ce souvenir contient', 'How many of the words you typed this memory has') }, wordsLabel(m.matched, m.of)) : null,
           m.pinned ? h('span', { title: kt('Épinglé', 'Pinned') }, Ico('pin')) : null,
@@ -961,6 +1007,42 @@ window.__ModuleLoader__.load({
           h('span', null, l.kyber),
           l.uses > 0 ? h('span', null, kt('Utilisée ' + l.uses + ' fois', 'Used ' + l.uses + '×')) : null,
           h('span', { style: { minWidth: 30, textAlign: 'end' } }, ageLabel(l.ageMinutes))))
+
+      /**
+       * What Kaby saw several times and suggests keeping (the ledger of the core plugin, kind « memory »): dashed rows above the list, Add / Edit / Discard on each. Nothing is
+       * kept before Add; Add goes through the ordinary add route (a memory lives in the account, so without one the button waits and says why). Edit opens the usual sheet.
+       */
+      const MemSuggest = ({ connected, refreshKey, onChanged, notify, onEdit }) => {
+        const [items, setItems] = useState([])
+        const [busy, setBusy] = useState('')
+        useEffect(() => {
+          let live = true
+          api('/kybernos/suggestions?kind=memory').then((r) => { if (live) setItems(r.ok === true && Array.isArray(r.items) ? r.items : []) })
+          return () => { live = false }
+        }, [refreshKey])
+        if (items.length === 0) return null
+        const resolve = (id) => api('/kybernos/suggestions', { action: 'resolve', id })
+        const drop = (id) => setItems((cur) => cur.filter((x) => x.id !== id))
+        const add = async (it) => {
+          if (busy !== '' || connected !== true) return
+          setBusy(it.id)
+          const r = await api('/kybernos-cloud/memory/add', { content: it.text, kind: 'fact', pinned: false, source: 'taught' })
+          setBusy('')
+          if (r.ok !== true) { notify(friendlyError(r.error)); return }
+          await resolve(it.id); drop(it.id); onChanged(); notify(kt('Souvenir ajouté', 'Memory added'))
+        }
+        const discard = async (it) => { drop(it.id); await resolve(it.id) }
+        const proofOf = (f) => (f !== undefined && f !== null && typeof f === 'object' ? [f.n !== null && f.n !== undefined ? String(f.n) + '×' : '', f.span, f.where].filter((x) => x !== undefined && x !== '').join(' · ') : '')
+        return h('div', { className: 'kbmem-sug', 'data-sug': 'block' },
+          h('div', { className: 'kbmem-sug-h' }, h('i', { className: 'kb-ping', 'aria-hidden': 'true' }), h('b', null, kt('Kaby suggère de retenir', 'Kaby suggests remembering')), h('span', { className: 'kbmem-grow' }),
+            connected === true ? null : h('span', { className: 'kbmem-sug-why', 'data-sug': 'account' }, kt('Connecte ton compte pour les garder', 'Connect your account to keep them'))),
+          items.map((it) => h('div', { key: it.id, className: 'kbmem-sug-row', 'data-sug': 'row' },
+            h('div', { className: 'kbmem-sug-main' }, h('div', { className: 'kbmem-sug-text' }, it.text), proofOf(it.from) === '' ? null : h('div', { className: 'kbmem-sug-proof' }, kt('Vu : ', 'Seen: ') + proofOf(it.from))),
+            h('div', { className: 'kbmem-sug-act' },
+              h('button', { type: 'button', className: 'kbmem-btn sm', 'data-sug': 'add', disabled: busy !== '' || connected !== true, onClick: () => { void add(it) } }, kt('Ajouter', 'Add')),
+              h('button', { type: 'button', className: 'kbmem-btn sm ghost', 'data-sug': 'edit', disabled: connected !== true, onClick: () => onEdit(it, () => { void resolve(it.id).then(() => drop(it.id)) }) }, kt('Modifier', 'Edit')),
+              h('button', { type: 'button', className: 'kbmem-btn sm ghost', 'data-sug': 'discard', onClick: () => { void discard(it) } }, kt('Écarter', 'Discard'))))))
+      }
 
       /** The side sheet: edit or add a memory, edit a lesson. Closes on Cancel; the page reloads after a save. */
       const Sheet = ({ sheet, onClose, onDone, notify, onPropose }) => {
@@ -981,6 +1063,7 @@ window.__ModuleLoader__.load({
           if (mem && isNew) {
             const r = await api('/kybernos-cloud/memory/add', { content: text, kind, pinned, source: 'taught' })
             if (r.ok !== true) return fail(r)
+            if (typeof sheet.onSaved === 'function') sheet.onSaved() // a suggested memory edited then added: the ledger is told it was answered
             return onDone(kt('Souvenir ajouté', 'Memory added'))
           }
           if (mem) {
@@ -1001,6 +1084,14 @@ window.__ModuleLoader__.load({
           const r = await api('/kybernos-memory/lessons/update', body)
           if (r.ok !== true) return fail(r)
           return onDone(kt('Enregistré', 'Saved'))
+        }
+
+        // « Make a skill »: this lesson, word for word, as a checklist of pitfalls waiting in Skills for the person's yes (fixed rules, no model).
+        const makeSkill = async () => {
+          setBusy(true)
+          const r = await suggestSkill([item])
+          if (r.ok !== true) return fail(r)
+          return onDone(kt('Skill suggéré : « ' + r.proposal.name + ' ». Il attend ton accord dans Skills.', 'Skill suggested: “' + r.proposal.name + '”. It waits for your yes in Skills.'))
         }
 
         const remove = async () => {
@@ -1034,11 +1125,12 @@ window.__ModuleLoader__.load({
             h('button', { type: 'button', className: 'kbmem-btn', 'data-act': 'save', disabled: busy || text.trim() === '', onClick: save }, isNew ? kt('Enregistrer le souvenir', 'Save memory') : kt('Enregistrer', 'Save')),
             h('button', { type: 'button', className: 'kbmem-btn ghost', onClick: onClose }, kt('Annuler', 'Cancel')),
             !mem && !isNew && typeof onPropose === 'function' ? h('button', { type: 'button', className: 'kbmem-btn ghost', 'data-act': 'propose-team', disabled: busy, onClick: () => onPropose(item) }, Ico('share'), kt('Proposer à l’équipe', 'Propose to team')) : null,
+            !mem && !isNew ? h('button', { type: 'button', className: 'kbmem-btn ghost', 'data-act': 'make-skill', disabled: busy, title: kt('Une liste de pièges avec les mots de cette leçon, qui attend ton accord dans Skills. Aucun modèle, aucun coût.', 'A checklist of pitfalls in this lesson’s own words, waiting for your yes in Skills. No model, no cost.'), onClick: makeSkill }, Ico('wand'), kt('Faire un skill', 'Make a skill')) : null,
             h('span', { className: 'kbmem-grow' }),
             isNew ? null : (confirm
               ? h('button', { type: 'button', className: 'kbmem-btn danger', 'data-act': 'confirm-remove', disabled: busy, onClick: remove }, mem ? kt('Confirmer : oublier', 'Confirm: forget') : kt('Confirmer : supprimer', 'Confirm: delete'))
               : h('button', { type: 'button', className: 'kbmem-btn danger', 'data-act': 'remove', disabled: busy, onClick: () => setConfirm(true) }, Ico('trash'), mem ? kt('Oublier', 'Forget') : kt('Supprimer', 'Delete')))),
-          !mem && !isNew ? h('div', { className: 'kbmem-tiny' }, kt('Une leçon supprimée va dans le fichier lessons.archive.jsonl de l’Agent Team : elle n’est pas détruite.', 'A deleted lesson goes to the agent team\'s lessons.archive.jsonl — it is not destroyed.')) : null)
+          !mem && !isNew ? h('div', { className: 'kbmem-tiny' }, kt('Une leçon supprimée va dans les archives de l’Agent Team : elle n’est pas détruite.', 'A deleted lesson goes to the agent team\'s archive — it is not destroyed.')) : null)
       }
 
       // ── Team lessons: the Team tab, proposing, reviewing ─────────────────────────────────────────────────
@@ -1369,6 +1461,9 @@ window.__ModuleLoader__.load({
         const list = useList(tab, { f, q: qd, page, size, mode }, refreshKey)
         const [kybers, setKybers] = useState([])
         useEffect(() => { let live = true; api('/kybernos-memory/kybers').then((r) => { if (live && r.ok === true) setKybers(r.kybers) }); return () => { live = false } }, [refreshKey])
+        // Skills made from experience (the Skills page's ledger): read when the page opens and again when a sheet closes, so « Make a skill » shows at once.
+        const [skillsMade, setSkillsMade] = useState(null)
+        useEffect(() => { let live = true; api('/kybernos-skills/learned').then((r) => { if (live && r.ok === true && Array.isArray(r.learned)) setSkillsMade(r.learned.length) }); return () => { live = false } }, [sheet === null])
         const [otherCount, setOtherCount] = useState(null)
         useEffect(() => {
           let live = true
@@ -1392,7 +1487,7 @@ window.__ModuleLoader__.load({
         const memCount = mems ? (list.ok ? list.total : null) : otherCount
         const lesCount = mems ? otherCount : (list.ok ? list.total : null)
         // The line under the title, and the one step (the account) when it is the only thing left. No account is not « Off »: the lessons work.
-        const self = selfStatus({ status, settings, tidy, now: Date.now() })
+        const self = selfStatus({ status, settings, tidy, now: Date.now(), skills: skillsMade })
         const noAccount = mems && status.loaded === true && !connected
         // Team lessons: the Team scope of the Lessons tab, available on a Team workspace only.
         const teamInfo = team !== undefined && team.ok === true && team.team !== null ? team.team : null
@@ -1453,6 +1548,13 @@ window.__ModuleLoader__.load({
         // An agent team that nears its cap: it is tidied by itself; the note says which one and what happens at 50.
         const cap = mems ? null : capNote(kybers, tidySettingsOf(tidy))
         if (cap !== null) notes.push(h('div', { key: 'ncap', className: 'kbmem-note', 'data-note': 'cap' }, Ico('bulb'), h('div', null, cap)))
+        // Three lessons of this list share a topic (a tag): together they make a checklist. A hint, one click; nothing is active before the person accepts it in Skills.
+        const cluster = mems || teamMode ? null : lessonCluster(list.ok ? list.items : [])
+        if (cluster !== null) {
+          notes.push(h('div', { key: 'ncl', className: 'kbmem-note', 'data-note': 'cluster' }, Ico('wand'),
+            h('div', { className: 'kbmem-grow' }, kt(cluster.items.length + ' leçons parlent de « ' + cluster.tag + ' ». Ce ne sont pas des doublons : ensemble elles font une liste de contrôle.', cluster.items.length + ' lessons are about “' + cluster.tag + '”. They are not duplicates: together they make a checklist.')),
+            h('button', { type: 'button', className: 'kbmem-btn sm', 'data-act': 'cluster-skill', onClick: () => { suggestSkill(cluster.items).then((r) => { if (r.ok === true) { notify(kt('Skill suggéré : « ' + r.proposal.name + ' ». Il attend ton accord dans Skills.', 'Skill suggested: “' + r.proposal.name + '”. It waits for your yes in Skills.')) } else notify(friendlyError(r.error)) }) } }, kt('En faire un skill', 'Make a skill from them'))))
+        }
 
         // A meaning search that could not be done shows word matches instead — and says why, with the way to fix it.
         const sr = mems && mode === 'meaning' && String(qd).trim() !== '' && list.ok && list.extra !== null && list.extra.search !== undefined ? list.extra.search : null
@@ -1476,7 +1578,7 @@ window.__ModuleLoader__.load({
               : [h('h3', { key: 'h' }, kt('Aucune leçon pour l’instant', 'No lesson yet')), h('div', { key: 'd' }, kt('Une leçon est écrite quand un agent constate qu’une attente a été contredite. Elles sont stockées par Agent Team, sur cet ordinateur.', 'A lesson is written when an agent finds an expectation was contradicted. They are stored per agent team, on this machine.'))]))
         else body = h('div', null,
           h('div', { className: 'kbmem-list', style: list.loading ? { opacity: .6 } : null }, list.items.map((it, i) => mems
-            ? h(MemoryRow, { key: it.id, i, m: it, ctxOn, selected: sheet !== null && sheet.item !== undefined && sheet.item.id === it.id, onOpen: (m) => setSheet({ kind: 'mem', item: m }) })
+            ? h(MemoryRow, { key: it.id, i, m: it, ctxOn, markSent: sentMarks(list.items)[i] === true, selected: sheet !== null && sheet.item !== undefined && sheet.item.id === it.id, onOpen: (m) => setSheet({ kind: 'mem', item: m }) })
             : h(LessonRow, { key: it.id, i, l: it, selected: sheet !== null && sheet.item !== undefined && sheet.item.id === it.id, onOpen: (l) => setSheet({ kind: 'les', item: l }) }))),
           h(Pager, { total: list.total, page, size, onPage: setPage, onSize: (n) => { setSize(n); setPage(1) } }))
 
@@ -1485,8 +1587,9 @@ window.__ModuleLoader__.load({
             h('button', { type: 'button', className: 'kbmem-btn ghost', 'data-act': 'customize', title: kt('Ce qui est gardé, ce qui est envoyé au modèle, quand ça se range', 'What is kept, what is sent to the model, when it tidies up'), onClick: openOptions }, Ico('gear'), kt('Personnaliser', 'Customize'))),
           h('div', { className: 'kbmem-st', 'data-st': self.tone, 'aria-live': 'polite' },
             self.tone === 'wait' ? null : h('span', null, h('i'), self.text),
+            self.skills > 0 ? h('button', { type: 'button', className: 'kbmem-btn sm', 'data-act': 'open-skills', onClick: openSkills }, kt('Voir dans Skills', 'See in Skills')) : null,
             self.connect ? h('button', { type: 'button', className: 'kbmem-btn sm', 'data-act': 'connect', onClick: connectAccount }, kt('Connecte ton compte', 'Connect your account')) : null),
-          tabs, teamMode || mapOn || noAccount ? null : tools, teamMode || mapOn || noAccount ? null : chips, teamMode ? h(TeamPane, { team: teamFull, kybers, notify, bump, refreshKey, openReview: openTeamReview }) : null, teamMode ? null : (ran !== null && ran !== undefined ? h(TidyRanNotice, { notice: ran, onUndo: onRanUndo, onHide: onRanHide }) : null), teamMode ? null : (tidy.loaded === true && tidySaves(tidy) > 0 && hiddenKey !== scanKey(tidy) ? h(TidyBanner, { tidy, onReview: openReview, onHide: hideBanner }) : null), teamMode ? null : notes, teamMode ? null : (mapOn ? h(MapPane, { ctxOn, refreshKey, openOptions, onOpen: (m) => setSheet({ kind: 'mem', item: m }), onReady: () => writeLayout('map'), onList: () => setLayout('list') }) : body),
+          tabs, teamMode || mapOn || noAccount ? null : tools, teamMode || mapOn || noAccount ? null : chips, teamMode ? h(TeamPane, { team: teamFull, kybers, notify, bump, refreshKey, openReview: openTeamReview }) : null, teamMode ? null : (ran !== null && ran !== undefined ? h(TidyRanNotice, { notice: ran, onUndo: onRanUndo, onHide: onRanHide }) : null), teamMode ? null : (tidy.loaded === true && tidySaves(tidy) > 0 && hiddenKey !== scanKey(tidy) ? h(TidyBanner, { tidy, onReview: openReview, onHide: hideBanner }) : null), teamMode ? null : notes, teamMode || !mems ? null : h(MemSuggest, { connected: !noAccount && connected === true, refreshKey, onChanged: bump, notify, onEdit: (it, done) => setSheet({ kind: 'mem', isNew: true, item: { content: it.text, kind: 'fact', pinned: false }, onSaved: done }) }), teamMode ? null : (mapOn ? h(MapPane, { ctxOn, refreshKey, openOptions, onOpen: (m) => setSheet({ kind: 'mem', item: m }), onReady: () => writeLayout('map'), onList: () => setLayout('list') }) : body),
           sheet !== null && sheet.kind !== 'propose' ? h(Sheet, { key: (sheet.item.id === undefined ? 'new' : sheet.item.id) + String(sheet.isNew), sheet, onClose: () => setSheet(null), onDone: (m, u) => (sheet.kind === 'mem' ? forgetUndo(m, u) : after(m)), notify,
             onPropose: teamAvail && team.settings.share === true ? (lesson) => setSheet({ kind: 'propose', initial: { text: lesson.text, kyber: lesson.kyber === 'default' ? null : lesson.kyber, tags: lesson.tags } }) : undefined }) : null,
           sheet !== null && sheet.kind === 'propose' ? h(ProposeSheet, { key: 'propose', initial: sheet.initial, kybers, admin: isTeamAdmin(teamInfo === null ? null : teamInfo.role), onClose: () => setSheet(null), onDone: (m) => { setSheet(null); bump(); notify(m) }, notify }) : null)
@@ -1785,7 +1888,7 @@ window.__ModuleLoader__.load({
               desc: kt('Un lancement est une analyse, puis ce que le réglage ci-dessus permet. Il n’a lieu que si DSH est lancé. ', 'A run is a look, then what the setting above allows. It only happens while DSH is running. ') + nextWords(tidyNextOf(tidy)),
               control: h(Seg, { value: cfg.schedule, label: kt('Lancer automatiquement', 'Run automatically'), onChange: (v) => set({ schedule: v }), items: tidySchedules().map(([v, l]) => ({ v, l })) }) }),
             h(SettingRow, { label: kt('Le modèle d’étude juge les cas douteux', 'Study model judges the unclear cases'), act: 'tidy-brain', locked: brainWhy !== null && !(cfg.brain === true), why: brainWhy,
-              desc: kt('Des paires qui se ressemblent sans être des doublons (« port 3000 » puis « port 3080 », « fais » puis « ne fais pas ») : le modèle d’étude dit si l’une remplace l’autre, si elles sont identiques ou si elles diffèrent. Seul le texte de ces paires lui est envoyé, jamais ta liste entière, et il ne fait que suggérer : c’est toi qui décides.', 'Pairs that look alike but are not duplicates (« port 3000 » then « port 3080 », « do » then « do not »): the Study model says whether one replaces the other, they are the same or they differ. Only the text of those pairs is sent to it, never your whole list, and it only suggests: you decide.'),
+              desc: kt('Des paires qui se ressemblent sans être des doublons (« port 3000 » puis « port 3080 », « fais » puis « ne fais pas ») : le modèle d’étude dit si l’une remplace l’autre, si elles sont identiques ou si elles diffèrent. Seul le texte de ces paires lui est envoyé, jamais ta liste entière, et il ne fait que suggérer : c’est toi qui décides.', 'Pairs that look alike but are not duplicates (“port 3000” then “port 3080”, “do” then “do not”): the Study model says whether one replaces the other, they are the same or they differ. Only the text of those pairs is sent to it, never your whole list, and it only suggests: you decide.'),
               live: words.using !== null || brain.unclear > 0 ? h('div', null,
                 words.using !== null ? h('div', { className: 'kbmem-tiny', style: { marginTop: 6 }, 'data-live': 'study-model' }, words.using) : null,
                 brain.unclear > 0 ? h('div', { className: 'kbmem-tiny', style: { marginTop: 6 }, 'data-live': 'unclear' }, kt(brain.unclear + ' paire' + sfx(brain.unclear) + ' similaire' + sfx(brain.unclear), plural(brain.unclear, 'look-alike pair')) + (cfg.brain === true ? kt(' trouvée' + sfx(brain.unclear) + ' au dernier lancement.', ' found at the last run.') : (brain.unclear === 1 ? kt(' trouvée : active ceci pour la faire juger.', ' found: turn this on to have them judged.') : kt(' trouvées : active ceci pour les faire juger.', ' found: turn this on to have them judged.')))) : null) : null,
@@ -1824,7 +1927,7 @@ window.__ModuleLoader__.load({
             desc: kt('Tes agents lisent aussi les leçons que ton équipe a approuvées : celles de l’Agent Team du chat et les générales, jusqu’à un quart du bloc de leçons. Celles qui correspondent à ce que tu viens de demander passent en premier.', 'Your agents also read the lessons your team approved: the ones for the agent team of the chat and the general ones, up to a quarter of the lessons block. The ones that match what you just asked come first.'),
             control: h(YesNo, { name: kt('Utiliser les leçons de ton équipe', 'Use your team’s lessons'), value: !off && mem.team_use === true, onChange: (v) => onToggle({ team_use: v }) }) }),
           h(SettingRow, { key: 'share', label: kt('Partager des leçons avec ton équipe', 'Share lessons with your team'), act: 'team-share', locked: off, chip, why: reason,
-            desc: kt('Affiche « Proposer à l’équipe » sur tes leçons et le bouton Proposer de l’onglet Équipe. Une proposition n’est lue que par les propriétaires et les admins jusqu’à ce que l’un d’eux l’approuve.', 'Show « Propose to team » on your lessons and the Propose button of the Team tab. A proposal is only read by owners and admins until one approves it.'),
+            desc: kt('Affiche « Proposer à l’équipe » sur tes leçons et le bouton Proposer de l’onglet Équipe. Une proposition n’est lue que par les propriétaires et les admins jusqu’à ce que l’un d’eux l’approuve.', 'Show “Propose to team” on your lessons and the Propose button of the Team tab. A proposal is only read by owners and admins until one approves it.'),
             control: h(YesNo, { name: kt('Partager des leçons avec ton équipe', 'Share lessons with your team'), value: !off && mem.team_share === true, onChange: (v) => onToggle({ team_share: v }) }) }),
           h(SettingRow, { key: 'who', label: kt('Qui approuve', 'Who approves'), desc: kt('Défini par les rôles de l’espace, pas ici.', 'Set by the workspace roles, not here.'), control: h('span', { className: 'kbmem-chip' }, kt('Propriétaires et admins', 'Owners and admins')) }),
         ]
@@ -1961,7 +2064,7 @@ window.__ModuleLoader__.load({
       return {
         inject: ['slots'],
         // Pure pieces and the page, exposed for test-client.mjs and the live check.
-        __test: { selfStatus, connectAccount, capNote, LESSONS_CAP, LESSONS_NEAR, PAGE_TITLE, studyWords, mapMatches, mapZoom, mapPan, mapClamp, mapLabelSpots, mapWords, MAP_FIT, teamLockedWords, teamReasonOf, isTeamAdmin, minutesSince, teamStatusChip, teamMatches, teamMeta, tidyRanNotice, TIDY_MODES: tidyModes(), TIDY_SCHEDULES: tidySchedules(), whenAhead, tidySettingsOf, nextWords, tidyNextOf, tidyLast, lastWords, tidyBrain, logWho, TIDY_SHOWN, visibleItems, TIDY_MAX_REMOVALS, TIDY_SOURCES, plural, whenLabel, groupRemovals, tidyChunks, keeperOf, tidyBody, asTidyView, tidySaves, scanKey, logWords, tidyLog, onEscape, meaningWhy, closenessLabel, wordsLabel, readMode, writeMode, planOf, ageLabel, pagerPages, listUrl, activeFilters, defaultFilters, friendlyError, captureWords, api, GROUPS, Page, css, PAGE_SIZES },
+        __test: { lessonCluster, suggestSkill, sentMarks, selfStatus, connectAccount, capNote, LESSONS_CAP, LESSONS_NEAR, PAGE_TITLE, studyWords, mapMatches, mapZoom, mapPan, mapClamp, mapLabelSpots, mapWords, MAP_FIT, teamLockedWords, teamReasonOf, isTeamAdmin, minutesSince, teamStatusChip, teamMatches, teamMeta, tidyRanNotice, TIDY_MODES: tidyModes(), TIDY_SCHEDULES: tidySchedules(), whenAhead, tidySettingsOf, nextWords, tidyNextOf, tidyLast, lastWords, tidyBrain, logWho, TIDY_SHOWN, visibleItems, TIDY_MAX_REMOVALS, TIDY_SOURCES, plural, whenLabel, groupRemovals, tidyChunks, keeperOf, tidyBody, asTidyView, tidySaves, scanKey, logWords, tidyLog, onEscape, meaningWhy, closenessLabel, wordsLabel, readMode, writeMode, planOf, ageLabel, pagerPages, listUrl, activeFilters, defaultFilters, friendlyError, captureWords, api, GROUPS, Page, css, PAGE_SIZES },
         apply(ctx) {
           if (ctx === null || ctx === undefined || ctx.slots === null || ctx.slots === undefined) return
           ctx.effect(() => styles.insert(css), 'kybernos-memory: styles')

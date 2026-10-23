@@ -66,7 +66,12 @@ run it (Python, outside the `packages/*/test*.mjs` glob).
 
 ```bash
 node packages/dsh-mermaid/test-detect.mjs      # no browser: which first lines count as a diagram header; CI runs it
+node packages/dsh-mermaid/test-source-release.mjs   # a fence that fails, then draws: the source goes back under the diagram
 ```
+
+The second one drives the built `client.js` in a real browser through `test/harness.html`. It needs Playwright and a Chromium
+(`KB_BENCH_DEPS=<folder with node_modules/playwright>` or `NODE_PATH`, `KB_CHROMIUM=<browser binary>` when the one Playwright
+expects is not installed); without them it prints `SKIPPED` and exits 0, so CI (which installs neither) does not run its assertions.
 
 ## Language
 
@@ -81,9 +86,6 @@ or changes after a card was drawn.
   measured 57 s and 9 s; not reproduced, also not with 160 000 extra DOM nodes or a 6x CPU throttle), so only
   mermaid's 50 000-character limit is enforced.
   If a freeze is ever measured, the place for a budget is `diagramProblem()` in `src/plugin.js`.
-- Reading the code (not reproduced): after a render error the source is shown through a CSS class that only
-  the toggle button removes, so a later successful redraw (for example once a streamed fence is complete)
-  keeps the source visible next to the diagram (the button label follows the state).
 - Only blocks with non-empty source are drawn. Diagram types depend on what mermaid 11.14.0 supports.
 - On DSH 0.2 a fence is recognised by its first line, so a diagram that opens with something else (a multi-line
   `%%{init}%%` directive, a header this plugin does not list) is left as plain code.

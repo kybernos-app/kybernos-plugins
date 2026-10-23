@@ -39,6 +39,10 @@ const kbHostOK = (req) => {
     return ['127.0.0.1' + port, 'localhost' + port, '[::1]' + port].indexOf(host) >= 0 || kbTrusted(host)
   } catch (e) { return false }
 }
+// What `register` hands back takes the route off again. It is kept here and given to `ctx.effect` by `apply`, so that unloading the plugin removes every route it
+// added: without it a hot reload met « duplicate exact route », logged « routes not mounted » and went on serving the OLD handlers (audit L4-05, L6-04).
+const kbRetraits = []
+const kbRetirerRoutes = () => { for (const retrait of kbRetraits.splice(0).reverse()) { try { retrait() } catch (e) { /* already gone */ } } }
 const kbFenced = (service) => {
   if (service === null || service === undefined || typeof service.register !== 'function') return service
   const fence = (route) => (route !== null && typeof route === 'object' && typeof route.handler === 'function'
@@ -52,7 +56,7 @@ const kbFenced = (service) => {
       },
     })
     : route)
-  return new Proxy(service, { get: (target, key) => (key === 'register' ? (route) => target.register(fence(route)) : (typeof target[key] === 'function' ? target[key].bind(target) : target[key])) })
+  return new Proxy(service, { get: (target, key) => (key === 'register' ? (route) => { const retrait = target.register(fence(route)); if (typeof retrait === 'function') kbRetraits.push(retrait); return retrait } : (typeof target[key] === 'function' ? target[key].bind(target) : target[key])) })
 }
 
 export const name = 'kybernos-miniapps'
@@ -100,18 +104,19 @@ const nomAppSur = (nomApp) => {
 
 // ── install ─────────────────────────────────────────────────────────────────
 async function installer (corps) {
-  if (!MACOS) return { ok: false, erreur: 'Installing a widget app is macOS only.' }
+  // `erreur` is the host's own sentence (English, for the log); `code` is what the page words in the person's language.
+  if (!MACOS) return { ok: false, code: 'macos-only', erreur: 'Installing a widget app is macOS only.' }
   const id = slug(corps.id)
   const titre = String(corps.titre || 'MiniApp Kybernos').slice(0, 60)
   const html = String(corps.html || '')
-  if (html.length < 10) return { ok: false, erreur: 'HTML too short.' }
-  if (html.length > 4_000_000) return { ok: false, erreur: 'HTML too large.' }
+  if (html.length < 10) return { ok: false, code: 'html-short', erreur: 'HTML too short.' }
+  if (html.length > 4_000_000) return { ok: false, code: 'html-long', erreur: 'HTML too large.' }
   const largeur = Math.max(180, Math.min(600, Number(corps.largeur) || 260))
   const hauteur = Math.max(180, Math.min(800, Number(corps.hauteur) || 340))
 
   mkdirSync(DEST_ROOT, { recursive: true })
   const nomApp = `${titre.replace(/[^\p{L}\p{N} .-]/gu, '').trim() || 'MiniApp'} ${id}`.slice(0, 80)
-  if (!nomAppSur(nomApp)) return { ok: false, erreur: 'app name refused (outside the install folder).' }
+  if (!nomAppSur(nomApp)) return { ok: false, code: 'name-refused', erreur: 'app name refused (outside the install folder).' }
   const appDir = join(DEST_ROOT, `${nomApp}.app`)
 
   // start from scratch on a reinstall
@@ -146,7 +151,7 @@ async function installer (corps) {
   const signature = await executer('/usr/bin/codesign', ['-f', '-s', '-', appDir])
   if (signature.err) {
     dire(`codesign failed: ${signature.err.message ?? signature.err}`)
-    return { ok: false, erreur: 'Cannot sign the app (codesign).' }
+    return { ok: false, code: 'codesign', erreur: 'Cannot sign the app (codesign).' }
   }
 
   // optional LaunchAgent — « Launch automatically »
@@ -234,7 +239,24 @@ const lireCorps = (req) => new Promise((res) => {
   req.on('end', () => { try { res(JSON.parse(corps || '{}')) } catch { res({}) } })
 })
 
+/** Answers a handler's JSON result. A disk or codesign failure used to reject the async handler: the engine answers with a
+ *  bodyless 400, so the page got no reason at all. It is now a 500 JSON carrying the reason (same shape as maintenance). */
+const repondreJson = async (res, travail) => {
+  try {
+    const r = await travail()
+    res.setHeader('Content-Type', 'application/json')
+    res.end(JSON.stringify(r))
+  } catch (e) {
+    const motif = String((e && e.message) || e).slice(0, 300)
+    dire(`route failed: ${motif}`)
+    if (res.headersSent) { try { res.destroy() } catch { /* closed */ } return }
+    res.writeHead(500, { 'Content-Type': 'application/json' })
+    res.end(JSON.stringify({ ok: false, error: motif }))
+  }
+}
+
 export function apply (ctx) {
+  if (ctx !== null && ctx !== undefined && typeof ctx.effect === 'function') ctx.effect(() => kbRetirerRoutes, 'kybernos-miniapps: routes')
   const poser = (c) => {
     try {
       const webServerSvc = kbFenced(c.get('webServer'))
@@ -244,22 +266,16 @@ export function apply (ctx) {
         const refus = writeGuard(req)
         if (refus !== null) { res.writeHead(refus.status, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ ok: false, error: refus.error })); return }
         if (!jsonSeulement(req)) { res.writeHead(415); res.end('application/json content-type expected'); return }
-        const r = await installer(await lireCorps(req))
-        res.setHeader('Content-Type', 'application/json')
-        res.end(JSON.stringify(r))
+        await repondreJson(res, async () => installer(await lireCorps(req)))
       } })
       webServerSvc.register({ kind: 'exact', path: '/kybernos-miniapps/uninstall', handler: async (req, res) => {
         const refus = writeGuard(req)
         if (refus !== null) { res.writeHead(refus.status, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ ok: false, error: refus.error })); return }
         if (!jsonSeulement(req)) { res.writeHead(415); res.end('application/json content-type expected'); return }
-        const r = await desinstaller(await lireCorps(req))
-        res.setHeader('Content-Type', 'application/json')
-        res.end(JSON.stringify(r))
+        await repondreJson(res, async () => desinstaller(await lireCorps(req)))
       } })
       webServerSvc.register({ kind: 'exact', path: '/kybernos-miniapps/list', handler: async (_req, res) => {
-        const r = await lister()
-        res.setHeader('Content-Type', 'application/json')
-        res.end(JSON.stringify(r))
+        await repondreJson(res, lister)
       } })
       dire('routes install / uninstall / list mounted')
     } catch (e) {

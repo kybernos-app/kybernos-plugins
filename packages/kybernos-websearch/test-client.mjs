@@ -59,7 +59,7 @@ ok('status: switched off, key missing, paused, answered, ready', [
   statusOf({ ...base, health: { lastOkAt: Date.now(), lastCount: 5, lastMs: 800 } }).cls === 'ok',
   statusOf(base).txt === 'Ready'
 ].every(Boolean))
-ok('badge: free engines say NO KEY, keyed ones KEY', accessBadge({ access: 'free' }).txt === 'NO KEY' && accessBadge({ access: 'key' }).txt === 'KEY')
+ok('badge: free engines say No key, keyed ones Key (sentence case, not capitals)', accessBadge({ access: 'free' }).txt === 'No key' && accessBadge({ access: 'key' }).txt === 'Key')
 
 // ── an address that cannot be saved says so; a failed test says why (A3-26) ──────────────────────────────
 const { addressProblem, testDetail } = plugin.__test
@@ -141,6 +141,7 @@ ok('stable data-kb hooks for tests and live scripts', ['websearch-page', 'websea
 ok('no six-digit hard-coded colour (theme tokens with a fallback only)', !/#[0-9a-fA-F]{6}\b/.test(src), (src.match(/#[0-9a-fA-F]{6}\b/g) || []).slice(0, 3))
 ok('no French in a title or aria-label that does not go through kt()', !/(title|aria-label)'?:\s*'[^']*[éèàêçù][^']*'/.test(src))
 ok('the key is typed in a password field and never rendered back', /type: 'password'/.test(src) && !/value: secretRef/.test(src))
+ok('the banner names DSH\'s « Use the new Web Search API » switch when the pin is a DeepSeek provider, in French and in English', /\^deepseek\/\.test\(state\.pinned\)/.test(src) && src.indexOf('Use the new Web Search API') !== -1 && (src.match(/Use the new Web Search API/g) || []).length >= 2)
 ok('external links carry noopener', /rel: 'noopener noreferrer'/.test(src))
 ok('only this plugin\'s own routes are called', (src.match(/'\/[a-z-]+\/[a-z]+'/g) || []).every((p) => p.startsWith("'/kybernos-websearch/")))
 ok('the style tag is removed with the plugin', /tag\.remove\(\)/.test(src))

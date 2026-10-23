@@ -7,7 +7,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
   DEFAULT_MAX_PARALLEL, MAX_PARALLEL_CEILING, HOLD_LIMIT_MS, START_GRACE_MS, RUN_MAX_MS, LEVELS,
-  maxParallelFrom, parseMeminfo, levelOf, allowedAt, admit, createInflight, publicView,
+  maxParallelFrom, guardOff, parseMeminfo, levelOf, allowedAt, admit, createInflight, publicView,
 } from './automation-load.mjs'
 
 let pass = 0
@@ -44,6 +44,11 @@ assert.equal(maxParallelFrom({ KYBERNOS_AUTOMATION_MAX_PARALLEL: '999' }), MAX_P
 for (const bad of ['0', '-1', '2.5', 'many', '', '1e3']) assert.equal(maxParallelFrom({ KYBERNOS_AUTOMATION_MAX_PARALLEL: bad }), DEFAULT_MAX_PARALLEL, JSON.stringify(bad))
 assert.equal(maxParallelFrom(null), DEFAULT_MAX_PARALLEL)
 ok('maximum: a whole number from 1 to the ceiling, else the default')
+
+assert.equal(guardOff({ KYBERNOS_AUTOMATION_LOAD_GUARD: 'off' }), true)
+assert.equal(guardOff({ KYBERNOS_AUTOMATION_LOAD_GUARD: ' OFF ' }), true)
+for (const v of [{}, null, undefined, { KYBERNOS_AUTOMATION_LOAD_GUARD: 'on' }, { KYBERNOS_AUTOMATION_LOAD_GUARD: '' }, { KYBERNOS_AUTOMATION_LOAD_GUARD: 0 }]) assert.equal(guardOff(v), false)
+ok('guard: only an explicit "off" turns the machine reading off')
 
 // 4. /proc/meminfo
 assert.equal(parseMeminfo('MemTotal:       16384000 kB\nMemFree:          123456 kB\nMemAvailable:    8192000 kB\nBuffers: 1 kB\n'), 8000)
@@ -124,6 +129,7 @@ ok('meminfo: MemAvailable in MB, never MemFree')
   assert.ok(/kbLoadInflight\.start\(sessionId\)/.test(idx), 'a run is counted when its session is created')
   assert.ok(/ctx\.on\('agent\/status'[\s\S]{0,300}kbLoadInflight\.status\(/.test(idx), 'the engine\'s status ends a run')
   assert.ok(/ctx\.on\('agent\/disposed'[\s\S]{0,300}kbLoadInflight\.end\(/.test(idx), 'a disposed session ends a run')
+  assert.ok(/autoLoadGuardOff\(process\.env\)/.test(idx), 'the off switch is honoured')
   assert.ok(/kern\.memorystatus_level/.test(idx), 'macOS memory is the system\'s pressure figure')
   assert.ok(/plat === 'darwin'[\s\S]{0,700}resolve\(\{ pct: null, mb: null \}\)/.test(idx), 'macOS never falls back to os.freemem (it reads ~10 % on a healthy Mac)')
   const route = /path: '\/kybernos\/automation-load'[\s\S]{0,1600}/.exec(idx)

@@ -11,7 +11,8 @@
 //
 // Pure functions first (tested without a network), then `createOpenapi` which owns the private store and the registered tools.
 import { chmodSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
-import { dirname, join } from 'node:path'
+import { basename, dirname, join } from 'node:path'
+import { keepCorruptCopy } from './corrupt-copy.mjs'
 
 export const MAX_SPEC_BYTES = 5 * 1024 * 1024
 export const MAX_RESPONSE_BYTES = 100 * 1024
@@ -266,20 +267,55 @@ export const toolFor = (connector, op, { fetchFn = fetch } = {}) => {
 
 const storePath = (home) => join(home, 'kybernos', 'openapi-connectors.json')
 
+/**
+ * The store on disk, in one of three shapes:
+ *   - `{ v, items }`           the store; a MISSING or blank file is an empty one
+ *   - `{ corrupt: true, text }` present but not such a store (truncated, hand-edited)
+ *   - `{ unreadable: code }`   present but cannot be read (permissions, a directory…)
+ * Only the first shape may be written over: the other two would lose every API connector the person added (it used to be read
+ * as an empty store and overwritten by the next add). Same contract as the sidecar of this bundle (index.js).
+ */
 const readStore = (home) => {
-  try {
-    const v = JSON.parse(readFileSync(storePath(home), 'utf8'))
-    return v !== null && typeof v === 'object' && isObj(v.items) ? v : { v: 1, items: {} }
-  } catch (e) { return { v: 1, items: {} } }
+  const file = storePath(home)
+  let text = null
+  try { text = readFileSync(file, 'utf8') } catch (e) {
+    if (e !== null && e !== undefined && e.code === 'ENOENT') return { v: 1, items: {} }
+    return { corrupt: true, unreadable: e && e.code ? String(e.code) : 'unknown error' }
+  }
+  if (text.trim() === '') return { v: 1, items: {} }
+  let v = null
+  try { v = JSON.parse(text) } catch (e) { return { corrupt: true, text } }
+  return v !== null && typeof v === 'object' && isObj(v.items) ? v : { corrupt: true, text }
 }
 
+/**
+ * Why the store must NOT be used (listed as empty, or written over), or null when it can. The copy of a corrupt file is kept
+ * as soon as the corruption is noticed — read or write — so the connectors are recoverable even when the person only opens
+ * the page; the same content reuses the same copy.
+ * `saving` only changes the wording: a write is refused, a read cannot list.
+ */
+const storeProblem = (state, home, saving) => {
+  const name = basename(storePath(home))
+  const tail = saving === true ? 'so nothing was saved' : 'so the saved API connectors cannot be listed from it'
+  if (state.unreadable !== undefined) return name + ' cannot be read (' + state.unreadable + '), ' + tail + '. Check its permissions, then try again.'
+  const copy = keepCorruptCopy(storePath(home), state.text)
+  return name + ' is not a valid list of API connectors, ' + tail + (copy === null ? '' : ' (a copy is kept as ' + basename(copy) + ')') + '. Fix or remove the file, then try again.'
+}
+
+/** The corrupt answer every method gives instead of an empty store. */
+const corrupt = (state, home, saving) => ({ ok: false, error: 'store_corrupt', corrupt: true, message: storeProblem(state, home, saving) })
+
+/** Writes the store atomically; refuses to write over a file that is declared corrupt. */
 const writeStore = (home, store) => {
   const file = storePath(home)
+  const current = readStore(home)
+  if (current.items === undefined) return corrupt(current, home, true)
   mkdirSync(dirname(file), { recursive: true })
   const tmp = file + '.tmp-' + process.pid
   writeFileSync(tmp, JSON.stringify(store, null, 2) + '\n', { mode: 0o600 })
   try { chmodSync(tmp, 0o600) } catch (e) { /* best effort */ }
   renameSync(tmp, file)
+  return { ok: true }
 }
 
 /**
@@ -335,6 +371,7 @@ export const createOpenapi = ({ home, fetchFn = fetch, log = () => {} }) => {
   const sync = () => {
     if (tools === null) return
     const store = readStore(home)
+    if (store.items === undefined) { log(storeProblem(store, home, false)); return }
     const wanted = new Map()
     for (const [name, item] of Object.entries(store.items)) {
       if (!NAME_RE.test(name) || !isObj(item) || safeUrl(item.baseUrl) === null || !Array.isArray(item.operations)) continue
@@ -368,6 +405,7 @@ export const createOpenapi = ({ home, fetchFn = fetch, log = () => {} }) => {
     const chosen = all.filter((o) => operations.includes(o.id))
     if (chosen.length === 0) return { ok: false, error: 'bad_operations' }
     const store = readStore(home)
+    if (store.items === undefined) return corrupt(store, home, true)
     const info = isObj(parsed.doc.info) ? parsed.doc.info : {}
     store.items[name] = {
       title: typeof info.title === 'string' && info.title.trim() !== '' ? info.title.trim().slice(0, 80) : base.hostname,
@@ -378,13 +416,17 @@ export const createOpenapi = ({ home, fetchFn = fetch, log = () => {} }) => {
       operations: chosen,
       createdAt: new Date().toISOString(),
     }
-    try { writeStore(home, store) } catch (e) { return { ok: false, error: 'store_write_failed' } }
+    try {
+      const written = writeStore(home, store)
+      if (written.ok !== true) return written
+    } catch (e) { return { ok: false, error: 'store_write_failed' } }
     sync()
     return { ok: true, name, tools: chosen.map((o) => toolFor(connectorOf(name, store.items[name]), o).name) }
   }
 
   const list = () => {
     const store = readStore(home)
+    if (store.items === undefined) return corrupt(store, home, false)
     return {
       ok: true,
       items: Object.entries(store.items).filter(([n, i]) => NAME_RE.test(n) && isObj(i)).map(([name, i]) => ({
@@ -402,9 +444,13 @@ export const createOpenapi = ({ home, fetchFn = fetch, log = () => {} }) => {
   const remove = ({ name }) => {
     if (typeof name !== 'string' || !NAME_RE.test(name)) return { ok: false, error: 'bad_name' }
     const store = readStore(home)
+    if (store.items === undefined) return corrupt(store, home, true)
     if (store.items[name] === undefined) return { ok: false, error: 'not_found' }
     delete store.items[name]
-    try { writeStore(home, store) } catch (e) { return { ok: false, error: 'store_write_failed' } }
+    try {
+      const written = writeStore(home, store)
+      if (written.ok !== true) return written
+    } catch (e) { return { ok: false, error: 'store_write_failed' } }
     sync()
     return { ok: true }
   }
@@ -412,7 +458,9 @@ export const createOpenapi = ({ home, fetchFn = fetch, log = () => {} }) => {
   /** Runs one READ operation of a saved connector, so the page can say « it works ». Writes are never run from here. */
   const test = async ({ name, operationId, args }) => {
     if (typeof name !== 'string' || !NAME_RE.test(name)) return { ok: false, error: 'bad_name' }
-    const item = readStore(home).items[name]
+    const store = readStore(home)
+    if (store.items === undefined) return corrupt(store, home, false)
+    const item = store.items[name]
     if (!isObj(item)) return { ok: false, error: 'not_found' }
     const op = (Array.isArray(item.operations) ? item.operations : []).find((o) => o.id === operationId)
     if (op === undefined) return { ok: false, error: 'bad_operations' }

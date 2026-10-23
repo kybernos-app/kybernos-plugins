@@ -72,7 +72,11 @@ const makeEnv = ({ lang = 'en' } = {}) => {
   const React = {
     createElement: (type, props, children) => ({ type, props: props || {}, children }),
     useReducer: () => [0, () => {}],
-    useEffect: () => {}
+    useEffect: () => {},
+    // `forceState` stands for the one boolean the call header keeps (the menu open): a test sets it to see the open menu.
+    forceState: undefined,
+    useState: (init) => [React.forceState !== undefined ? React.forceState : init, () => {}],
+    useRef: () => ({ current: null })
   }
   const ctx = vm.createContext({ window: win, document: doc, fetch: fetchFake, console, setInterval, clearInterval, setImmediate, Date, Promise, String, Number, Math, JSON, Object, Array, Set, Error, undefined })
   const run = () => {
@@ -267,7 +271,7 @@ console.log('kybernos-call: what goes wrong is said, never invented over')
     { name: 'status not ok', responses: [{ ok: false }], expect: UNREACHABLE, retry: true },
     { name: 'HTTP 500', responses: [{ __http: 500, __body: { ok: false, error: 'boom' } }], expect: UNREACHABLE, retry: true },
     { name: 'an HTML page instead of JSON', responses: [{ __http: 200, __html: true }], expect: UNREACHABLE, retry: true },
-    { name: 'HTTP 404: the routes are not mounted', responses: [{ __http: 404, __html: true }], expect: /call routes are not loaded — relaunch DSH once/, retry: false },
+    { name: 'HTTP 404: the routes are not mounted', responses: [{ __http: 404, __html: true }], expect: /Calls are not loaded yet: restart DSH once$/, retry: false },
     { name: 'token refused', responses: [{ ok: true, secrets: 'posee' }, { ok: false, error: 'LiveKit secrets missing' }], expect: /LiveKit secrets missing/, retry: false },
     { name: 'token without an error text', responses: [{ ok: true, secrets: 'posee' }, new Error('network')], expect: /Cannot reach the call service/, retry: true }
   ]
@@ -402,15 +406,35 @@ console.log('kybernos-call: the call buttons at the top right of a chat')
   const hooks = []
   e.React.useReducer = () => [0, () => {}]
   e.React.useEffect = (fn) => { hooks.push(fn) }
+  const find = (node, act) => {
+    if (node === null || node === undefined || typeof node !== 'object') return null
+    if (node.props && node.props['data-act'] === act) return node
+    const kids = Array.isArray(node.children) ? node.children : [node.children]
+    for (const k of kids) { const f = find(k, act); if (f !== null) return f }
+    return null
+  }
   const header = t.CallHeader({ sessionId: 'session-aaaaaaaa' })
   assert.equal(header.props['data-kb'], 'kybernos-call-header')
-  const [voiceButton, videoButton] = header.children
+  const voiceButton = find(header, 'call-voice')
+  const videoButton = find(header, 'call-video')
   assert.equal(voiceButton.props['data-act'], 'call-voice')
   assert.equal(videoButton.props['data-act'], 'call-video')
   assert.equal(voiceButton.props['aria-label'], 'Voice call')
   assert.equal(videoButton.props['aria-label'], 'Video call')
   assert.equal(videoButton.props.disabled, false)
-  ok('the chat header carries a voice button and a video button, each with a name for screen readers')
+  ok('the chat header carries a voice button and a video button, each with a name for screen readers (the video one is the phone sheet\'s: hidden on a wide screen)')
+
+  // The call is ONE button with an arrow: the arrow opens voice / video / settings; closed, no menu is drawn.
+  const arrow = find(header, 'call-menu')
+  assert.ok(arrow !== null && arrow.props['aria-haspopup'] === 'menu' && arrow.props['aria-expanded'] === false && arrow.props['data-kb-sheet'] === 'skip', 'the arrow announces a menu, closed, and keeps itself out of the phone sheet')
+  assert.equal(find(header, 'call-menu-voice'), null, 'closed: no menu in the tree')
+  assert.ok(JSON.stringify(header).includes('kbcl-split'), 'the phone and the arrow are one split button')
+  e.React.forceState = true
+  const openHeader = t.CallHeader({ sessionId: 'session-aaaaaaaa' })
+  e.React.forceState = undefined
+  assert.deepEqual(['call-menu-voice', 'call-menu-video', 'call-menu-setup'].map((a) => find(openHeader, a) !== null), [true, true, true], 'open: voice, video and call settings')
+  assert.equal(find(openHeader, 'call-menu-video').props.disabled, false, 'video is on while a face exists')
+  ok('the arrow of the call button opens a menu: voice call, video call, call settings')
 
   e.responses.push({ ok: true, secrets: 'posee' }, { ok: true, url: 'wss://x', token: 'T', room: 'r', agent: { dispatched: true }, meta: { mode: 'voice' } })
   await voiceButton.props.onClick()
@@ -418,6 +442,44 @@ console.log('kybernos-call: the call buttons at the top right of a chat')
   assert.equal(t.getState().name, 'Assistant')
   assert.equal(t.getState().phase, 'live')
   ok('the voice button calls the session\'s assistant (no team, no member) as a voice call: the session is asked, the host picks voice and language from the settings')
+
+  // Kaby's own conversation: the name and the voice the person gave it (kybernos-kaby-customisation), asked for on purpose.
+  {
+    const w = e.win
+    const seen = { kyby: w.__KB_KYBER__, kaby: w.__KB_KABY__ }
+    const J = (v) => JSON.parse(JSON.stringify(v)) // the code runs in its own realm: compare by value
+    const profile = (voice, name = 'Léa') => ({ profile: () => ({ name, voice }) })
+    w.__KB_KYBER__ = { isKybySession: (s) => s === 'session-kkkkkkkk' }
+    w.__KB_KABY__ = profile({ pick: 'voice', engine: 'edge', voice: 'fr-FR-DeniseNeural', lang: 'fr-FR' })
+    assert.deepEqual(J(t.kabyCallOf('session-kkkkkkkk')), { name: 'Léa', voice: { engine: 'edge', voice: 'fr-FR-DeniseNeural', lang: 'fr-FR' } })
+    w.__KB_KABY__ = profile({ pick: 'default' })
+    assert.deepEqual(J(t.kabyCallOf('session-kkkkkkkk')), { name: 'Léa', voice: { app: true } })
+    w.__KB_KABY__ = profile({ pick: 'custom' })
+    assert.deepEqual(J(t.kabyCallOf('session-kkkkkkkk')), { name: 'Léa', voice: { app: true } })
+    w.__KB_KABY__ = profile(undefined)
+    assert.deepEqual(J(t.kabyCallOf('session-kkkkkkkk').voice), { app: true })
+    ok('in Kaby\'s own conversation a call carries Kaby\'s name and the voice it was given; a voice not chosen, or a custom one no engine speaks, is the app\'s own voice on purpose')
+    assert.equal(t.kabyCallOf('session-aaaaaaaa'), null)
+    assert.equal(t.kabyCallOf(null), null)
+    assert.equal(t.kabyCallOf(undefined), null)
+    ok('any other session is the plain assistant with the default voice (unchanged)')
+    w.__KB_KABY__ = undefined
+    assert.equal(t.kabyCallOf('session-kkkkkkkk'), null)
+    w.__KB_KABY__ = { profile: () => null }
+    assert.equal(t.kabyCallOf('session-kkkkkkkk'), null)
+    w.__KB_KABY__ = { profile: () => { throw new Error('x') } }
+    assert.equal(t.kabyCallOf('session-kkkkkkkk'), null)
+    w.__KB_KABY__ = profile({ pick: 'default' }, '')
+    assert.equal(t.kabyCallOf('session-kkkkkkkk'), null)
+    w.__KB_KYBER__ = undefined
+    w.__KB_KABY__ = profile({ pick: 'default' })
+    assert.equal(t.kabyCallOf('session-kkkkkkkk'), null)
+    ok('without the customisation bundle, with a profile not read yet, a seam that throws, or without Kaby\'s chat bundle, nothing changes')
+    w.__KB_KYBER__ = seen.kyby
+    w.__KB_KABY__ = seen.kaby
+    assert.ok(/const kaby = kabyCallOf\(sessionId\); return open\(\{ sessionId: sessionId, kyberId: null, roleId: null, name: kaby !== null \? kaby\.name : kt\('Assistant', 'Assistant'\), mode: mode, voice: kaby !== null \? kaby\.voice : null \}\)/.test(readFileSync(new URL('./client.js', import.meta.url), 'utf8')))
+    ok('the header\'s button starts the call through that reader')
+  }
   const active = t.CallHeader({ sessionId: 'session-aaaaaaaa' })
   assert.equal(active.children.props['data-act'], 'hangup-header')
   assert.ok(JSON.stringify(active.children.children).includes('Hang up'))
@@ -433,7 +495,7 @@ console.log('kybernos-call: the call buttons at the top right of a chat')
   await t.hangUp()
   ok('the video button asks for a video call')
 
-  const none = t.CallHeader({}).children[0]
+  const none = find(t.CallHeader({}), 'call-voice')
   e.responses.push({ ok: true, secrets: 'absente' })
   await none.props.onClick()
   assert.equal(t.getState().phase, 'error')
@@ -443,16 +505,9 @@ console.log('kybernos-call: the call buttons at the top right of a chat')
   // A5-22: a call that never started (the panel says « error ») is not a call to hang up: the header shows the call buttons again, the panel keeps its « Close »
   assert.equal(t.getState().phase, 'error')
   const afterError = t.CallHeader({})
-  assert.ok(Array.isArray(afterError.children) && afterError.children[0].props['data-act'] === 'call-voice', 'the header is back to the voice / video / settings buttons')
+  assert.ok(find(afterError, 'call-voice') !== null && find(afterError, 'call-video') !== null, 'the header is back to the call buttons')
   assert.ok(!JSON.stringify(afterError).includes('hangup-header') && !JSON.stringify(afterError).includes('Hang up the call in progress'), 'no red Hang up on a call that never started')
   ok('a call that never started (error panel) does not leave a red « Hang up » in the chat header')
-  const find = (node, act) => {
-    if (node === null || node === undefined || typeof node !== 'object') return null
-    if (node.props && node.props['data-act'] === act) return node
-    const kids = Array.isArray(node.children) ? node.children : [node.children]
-    for (const k of kids) { const f = find(k, act); if (f !== null) return f }
-    return null
-  }
   const apply2 = makeEnv()
   const p2 = apply2.run()
   let Panel2 = null
@@ -472,12 +527,17 @@ console.log('kybernos-call: the call buttons at the top right of a chat')
   ok('a call the host refuses for want of a setting says so the same way')
 
   await t.hangUp()
-  const gear = t.CallHeader({}).children[2]
+  const gear = find(t.CallHeader({}), 'call-setup')
   assert.equal(gear.props['data-act'], 'call-setup')
   assert.match(gear.props.title, /Call settings/)
   await gear.props.onClick()
   assert.deepEqual(plain(t.getGoto()), { tab: 'overview' })
-  ok('a gear next to the phone and camera at the top right of a chat goes to the same page')
+  ok('the call settings (phone sheet button) go to the same page')
+  e.React.forceState = true
+  await find(t.CallHeader({}), 'call-menu-setup').props.onClick()
+  e.React.forceState = undefined
+  assert.deepEqual(plain(t.getGoto()), { tab: 'overview' })
+  ok('and so does the menu entry « Call settings… »')
 
   // A face needs a provider: without one the video button is off and says why.
   const f = makeEnv()
@@ -490,11 +550,17 @@ console.log('kybernos-call: the call buttons at the top right of a chat')
   fhooks.forEach((fn) => fn())
   await new Promise((resolve) => setImmediate(resolve))
   await new Promise((resolve) => setImmediate(resolve))
-  const noFace = ft2.CallHeader({ sessionId: 'session-aaaaaaaa' }).children
-  assert.equal(noFace[1].props.disabled, true)
-  assert.match(noFace[1].props.title, /LiveAvatar/)
-  assert.equal(noFace[0].props.disabled === true, false)
-  ok('with no face provider the video button is disabled and says to add a LiveAvatar key; the voice button stays')
+  const noFaceHeader = ft2.CallHeader({ sessionId: 'session-aaaaaaaa' })
+  assert.equal(find(noFaceHeader, 'call-video').props.disabled, true)
+  assert.match(find(noFaceHeader, 'call-video').props.title, /LiveAvatar/)
+  assert.equal(find(noFaceHeader, 'call-voice').props.disabled === true, false)
+  f.React.forceState = true
+  const noFaceOpen = ft2.CallHeader({ sessionId: 'session-aaaaaaaa' })
+  assert.equal(find(noFaceOpen, 'call-menu-video').props.disabled, true)
+  assert.match(find(noFaceOpen, 'call-menu-video').props.title, /LiveAvatar/)
+  assert.ok(JSON.stringify(find(noFaceOpen, 'call-menu-video')).includes('key missing'), 'the menu entry says why, in words')
+  assert.equal(find(noFaceOpen, 'call-menu-voice').props.disabled === true, false)
+  ok('with no face provider the video entries are disabled and say to add a LiveAvatar key; the voice call stays')
 }
 
 console.log('kybernos-call: the indicators, and the sounds')

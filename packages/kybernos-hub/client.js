@@ -126,6 +126,25 @@ window.__ModuleLoader__.load({
      * ends at the sidebar), `r` the button's rectangle, `w` the card's width.
      */
     const coteDeLaCarte = (r, box, w, rtl) => ((rtl ? r.left + w <= box.right - 16 : r.right - w >= box.left + 16) ? 'end' : 'start')
+    /**
+     * Pure. Whether the card is DOCKED in the free margin beside the page instead of hanging from its button (V1-23: the popover lay on the very controls it explains).
+     * `col` is the rectangle of the page's own column (the Settings pages are 720 px wide and leave a margin on their right, whatever the place of the button in them), or
+     * null for a button that is not on a Settings page (a title row of the main views: its margin is the page, it hangs as before). Docked only in a window of 1400 px or
+     * more, and when the 340 px card, 28 px from the column, fits in the visible box with 16 px to spare. Right to left mirrors it.
+     */
+    const CARTE_AMARREE = { largeur: 340, ecart: 28, fenetre: 1400 }
+    const carteAmarree = (col, box, rtl, fenetre) => col !== null && col !== undefined && fenetre >= CARTE_AMARREE.fenetre &&
+      (rtl ? col.left - CARTE_AMARREE.ecart - CARTE_AMARREE.largeur >= box.left + 16 : col.right + CARTE_AMARREE.ecart + CARTE_AMARREE.largeur <= box.right - 16)
+    /** The rectangle of the column of the Settings page a button sits in (the direct child of the section DSH draws the page in), or null. */
+    const colonneDeLaPage = (el) => {
+      try {
+        const section = el.closest('[data-slot="settings.section"]')
+        if (section === null) return null
+        let col = el
+        while (col.parentElement !== null && col.parentElement !== section) col = col.parentElement
+        return col.parentElement === section ? col.getBoundingClientRect() : null
+      } catch (e) { return null }
+    }
     /** The part of the window an element can show in: the window, narrowed by each ancestor that clips its overflow. */
     const boiteVisible = (el) => {
       let box = { left: 0, right: window.innerWidth }
@@ -141,8 +160,12 @@ window.__ModuleLoader__.load({
     // drawn into a host node made right after the page's introduction paragraph, through a portal, when the open Settings cell is that
     // page. The page is known by the React key of the cell (« agent-presets »), the same in every language, never by its words. Nothing
     // here may throw: a shell that no longer looks like this simply gets no animation.
-    const NATIVE_SEL = { cell: 'button[class*="navCell"][aria-current="true"]', intro: '[data-slot="settings.section"] p[class*="_intro"]', host: '[data-kb="native-intro-host"]' }
-    const NATIVE_PAGES = ['agent-presets']
+    const NATIVE_SEL = { cell: 'button[class*="navCell"][aria-current="true"]', intro: '[data-slot="settings.section"] p[class*="_intro"]', section: '[data-slot="settings.section"]', host: '[data-kb="native-intro-host"]' }
+    // DSH's own Settings pages that carry the help. The key is the React key of the nav cell (the section id, the same in every
+    // language), measured in the engine's client bundles on 2026-10-21: models, plugins (Built-in plugins), plus Agent presets,
+    // which also has an animated introduction. A page whose markup changes simply gets no pill: never a broken button.
+    // Appearance is NOT here (and is no page any more: the light / dark mode is on the Theme page, which draws its own pill).
+    const NATIVE_PAGES = ['agent-presets', 'models', 'plugins']
     /** The React key of a DOM node (the id of the Settings section a cell stands for), or null. */
     const nativeKeyOf = (el) => {
       try {
@@ -159,16 +182,26 @@ window.__ModuleLoader__.load({
         const have = doc.querySelector(NATIVE_SEL.host)
         if (have !== null && have.getAttribute('data-native') === key) return { el: have, key }
         const intro = doc.querySelector(NATIVE_SEL.intro)
-        if (intro === null) return null
         const el = doc.createElement('div')
         el.setAttribute('data-kb', 'native-intro-host')
         el.setAttribute('data-native', key)
-        intro.insertAdjacentElement('afterend', el)
+        // After the page's introduction paragraph when it has one (Agent presets, Models, Built-in plugins); otherwise at the top of
+        // the section (Appearance has no intro paragraph), where the row is right-aligned by CSS like the others.
+        if (intro !== null) intro.insertAdjacentElement('afterend', el)
+        else {
+          const section = doc.querySelector(NATIVE_SEL.section)
+          if (section === null) return null
+          section.insertBefore(el, section.firstChild)
+        }
         return { el, key }
       } catch (e) { return null }
     }
     /** What the animation of a native page says: the card of its button (a page of the core bundle) and its own animation. */
     const nativeContent = (key) => {
+      // The two DSH pages that carry a help card only (their animated introduction is not written): the card itself is a page of
+      // `kybernos-plugin/help.json`, published with the catalogue like the others (see construireAide).
+      const CARD = { models: 'models', plugins: 'plugins' }
+      if (CARD[key] !== undefined) return { help: { id: 'kybernos-plugin', page: CARD[key] } }
       if (key !== 'agent-presets') return null
       return {
         help: { id: 'kybernos-plugin', page: 'presets' },
@@ -255,6 +288,179 @@ window.__ModuleLoader__.load({
       })
       return filtre === 'featured' ? out.slice().sort((x, y) => x.vedette - y.vedette) : out
     }
+
+    // ── Plugins made by other people: the Plugins segment of the Suite page ──────────────────────────────────────────────
+    // What the registry (packages/kybernos-registry) reads from what DSH's own plugin manager installed. Nothing here installs or
+    // switches anything: the switch, the install and the removal are DSH's (scope.remote.pluginManager); the page only asks for them.
+    // KB-PLUGINS-PURE-BEGIN
+    /** What each extension point is called to a person; a point nobody here knows is shown by its id. [fr, en]. */
+    const POINTS_PLUGIN = { 'kybernos/core#domain-pack': pair('Domaine de travail', 'Field of work') }
+    const NIVEAUX_PLUGIN = { local: pair('Local', 'Local'), unlisted: pair('Non listé', 'Unlisted'), community: pair('Communauté', 'Community') }
+    const NIVEAUX_AIDE = {
+      local: pair('Un dossier de cet ordinateur. Kybernos ne le met jamais à jour.', 'A folder on this computer. Kybernos never updates it.'),
+      unlisted: pair('Installé par DSH depuis npm ou GitHub : pas de signature, pas relu par Kybernos.', 'Installed by DSH from npm or GitHub: no signature, not reviewed by Kybernos.'),
+      community: pair('Signé par son auteur. Pas relu par Kybernos.', 'Signed by its author. Not reviewed by Kybernos.')
+    }
+    /** Pure. What a plugin is, in a word: the field of work it adds, else data or code. [fr, en]. */
+    const genrePlugin = (p) => {
+      for (const e of (Array.isArray(p.extends) ? p.extends : [])) if (POINTS_PLUGIN[e.point] !== undefined) return POINTS_PLUGIN[e.point]
+      return p.kind === 'code' ? pair('Code', 'Code') : pair('Données', 'Data')
+    }
+    const niveauPlugin = (p) => NIVEAUX_PLUGIN[p.level] || NIVEAUX_PLUGIN.unlisted
+    const niveauAide = (p) => NIVEAUX_AIDE[p.level] || NIVEAUX_AIDE.unlisted
+    const ETATS_PLUGIN = {
+      ok: ['ok', pair('Actif', 'Active'), false],
+      disabled: ['off', pair('Désactivé', 'Off'), false],
+      'needs-consent': ['warn', pair('Attend ton accord', 'Needs your OK'), true],
+      'needs-kybernos': ['off', pair('Demande une Kybernos plus récente', 'Needs a newer Kybernos'), true],
+      'needs-dsh': ['off', pair('Demande un autre DSH', 'Needs another DSH'), true],
+      'missing-dependency': ['off', pair('Demande un autre plugin', 'Needs another plugin'), true],
+      'incompatible-point': ['bad', pair('Incompatible', 'Incompatible'), true],
+      revoked: ['bad', pair('Désactivé par Kybernos', 'Disabled by Kybernos'), true],
+      invalid: ['bad', pair('Illisible', 'Can’t be read'), true]
+    }
+    /**
+     * Pure. The state a plugin's card shows: `ton` (ok | warn | off | bad), `libelle` [fr, en], `attention` (listed under « Needs attention »),
+     * `interrupteur` (DSH lists it as a bundle, so its switch is DSH's and works) and `actif` (the switch's position).
+     */
+    const etatPlugin = (p, bundle) => {
+      const e = ETATS_PLUGIN[p.status] || ['off', pair(String(p.status), String(p.status)), true]
+      return { ton: e[0], libelle: e[1], attention: e[2], interrupteur: bundle !== undefined && bundle !== null, actif: p.enabled === true }
+    }
+    /** Pure. The kinds present in the list (English label as the key), in a stable order. [{ cle, libelle: [fr, en] }]. */
+    const genresPlugins = (plugins) => {
+      const vus = new Map()
+      for (const p of plugins) { const g = genrePlugin(p); if (!vus.has(g[1])) vus.set(g[1], g) }
+      return [...vus.entries()].sort((a, b) => (a[0] < b[0] ? -1 : 1)).map(([cle, libelle]) => ({ cle, libelle }))
+    }
+    /** Pure. Search and the kind / « Needs attention » chips. `installes` is a Map package name → DSH bundle. */
+    const filtrerPlugins = ({ plugins, requete, genre, attention, installes }) => {
+      const q = String(requete || '').trim().toLowerCase()
+      return plugins.filter((p) => {
+        if (attention === true && !etatPlugin(p, installes.get(p.package)).attention) return false
+        if (genre !== undefined && genre !== '' && genrePlugin(p)[1] !== genre) return false
+        if (q === '') return true
+        return (p.id + ' ' + p.name + ' ' + (p.description || '') + ' ' + (p.author && p.author.name ? p.author.name : '')).toLowerCase().indexOf(q) >= 0
+      })
+    }
+    /** Pure. The counts the sub-bar says. */
+    const compterPlugins = (plugins, installes) => ({
+      total: plugins.length,
+      actifs: plugins.filter((p) => p.enabled === true && p.status === 'ok').length,
+      attention: plugins.filter((p) => etatPlugin(p, installes.get(p.package)).attention).length
+    })
+    /** Pure. The rows of the Permissions tab: what the plugin can do, in plain words. `points` are the registry's points (their `class` says whether text reaches the agents). */
+    const permissionsPlugin = (p, points) => {
+      const rows = []
+      const perms = Array.isArray(p.permissions) ? p.permissions : []
+      rows.push({ cle: 'code', libelle: pair('Exécute du code sur ton ordinateur', 'Runs code on your computer'), valeur: p.kind === 'data' ? pair('Non : des données seulement', 'No: data only') : pair('Oui : DSH charge son code', 'Yes: DSH loads its code'), ton: p.kind === 'data' ? 'ok' : 'warn' })
+      const hotes = perms.filter((x) => /^net:/.test(x)).map((x) => x.slice(4))
+      rows.push({ cle: 'net', libelle: pair('Envoie des requêtes à', 'Sends requests to'), valeur: hotes.length > 0 ? hotes : pair('Aucun site', 'No site'), ton: hotes.length > 0 ? 'warn' : 'ok', hotes: hotes.length > 0 })
+      rows.push({ cle: 'secret', libelle: pair('Garde', 'Keeps'), valeur: perms.indexOf('secrets.own') >= 0 ? pair('une clé API, sur cet ordinateur', 'one API key, on this computer') : pair('Rien', 'Nothing'), ton: perms.indexOf('secrets.own') >= 0 ? 'warn' : 'ok' })
+      const classes = new Set((Array.isArray(p.extends) ? p.extends : []).map((e) => ((Array.isArray(points) ? points : []).find((x) => x.id === e.point) || {}).class))
+      rows.push({ cle: 'instr', libelle: pair('Donne des instructions à tes agents', 'Gives instructions to your agents'), valeur: classes.has('instruction') ? pair('Oui : à lire avant d’accepter', 'Yes: read them before you accept') : pair('Non', 'No'), ton: classes.has('instruction') ? 'warn' : 'ok' })
+      return rows
+    }
+    /** Pure. What the plugin adds, one line per extension point it feeds: [{ libelle: [fr, en], n }]. `apercu` is GET /kybernos-registry/preview's answer when known (counts what was read). */
+    const ajoutePlugin = (p, apercu) => (Array.isArray(p.extends) ? p.extends : []).map((e) => {
+      const etiquette = POINTS_PLUGIN[e.point] || pair(e.point, e.point)
+      const lu = Array.isArray(apercu) ? apercu.find((x) => x.point === e.point) : undefined
+      return { libelle: etiquette, point: e.point, n: lu !== undefined ? lu.files.length : (typeof e.contributions === 'number' ? e.contributions : 0), refuses: lu !== undefined ? lu.rejected : e.rejected || [] }
+    })
+    /** Pure. A text in several languages ({ en, fr… }) in the page's language, falling back to English. */
+    const texteLu = (t, code) => (t !== null && typeof t === 'object' ? String(t[code] !== undefined ? t[code] : (t.en !== undefined ? t.en : '')) : '')
+    /**
+     * Pure. What the person reads before accepting, from GET /kybernos-registry/preview: one section per file the plugin brings. A field-of-work pack is
+     * laid out (goals, the skills and teams it names, every automation prompt in full); any other file is shown as the plain text it is.
+     * `code` is the page's language code. Returns [{ file, point, titre, accroche, objectifs: [...], brut }], and `brut` is the checked file as JSON.
+     */
+    const lecturePlugin = (apercu, code) => {
+      const out = []
+      for (const pt of (Array.isArray(apercu) ? apercu : [])) {
+        for (const f of (Array.isArray(pt.files) ? pt.files : [])) {
+          const v = f.value
+          const brut = (() => { try { return JSON.stringify(v, null, 2) } catch (e) { return '' } })()
+          if (pt.point === 'kybernos/core#domain-pack' && v !== null && typeof v === 'object' && Array.isArray(v.goals)) {
+            out.push({
+              file: f.file, point: pt.point, titre: texteLu(v.name, code), accroche: texteLu(v.tagline, code), brut,
+              objectifs: v.goals.map((g) => ({
+                titre: texteLu(g.title, code) || texteLu(g.name, code), desc: texteLu(g.desc, code), starter: texteLu(g.starter, code),
+                skills: (g.skills || []).map((s) => ({ nom: String(s.name), source: String(s.source), d: texteLu(s.d, code) })),
+                teams: (g.teams || []).map(String), connecteurs: (g.connectors || []).map(String),
+                automations: (g.automations || []).map((a) => ({ nom: texteLu(a.name, code), cron: String(a.cron), prompt: texteLu(a.prompt, code) })),
+                bientot: (g.soon || []).map((t) => texteLu(t, code))
+              }))
+            })
+          } else out.push({ file: f.file, point: pt.point, titre: String(f.file), accroche: '', objectifs: [], brut })
+        }
+      }
+      return out
+    }
+    /**
+     * Pure. What the person typed to add a plugin, as the spec DSH's manager takes: a package name, `github:owner/repo`, a git or tarball address, or an
+     * absolute path. `owner/repo` alone is read as GitHub. Returns { ok: true, spec } or { ok: false, raison: [fr, en] }.
+     */
+    const specInstall = (saisie) => {
+      const t = String(saisie === null || saisie === undefined ? '' : saisie).trim()
+      if (t === '') return { ok: false, raison: pair('Écris un nom de paquet, une adresse GitHub ou le chemin d’un dossier.', 'Type a package name, a GitHub address or the path of a folder.') }
+      // A folder of this computer: any path that starts at the root, spaces included (DSH checks it is a package).
+      if (/^(file:)?\//.test(t)) return t.length > 1024 || /[\u0000-\u001f]/.test(t) ? { ok: false, raison: pair('Ce chemin est trop long ou illisible.', 'This path is too long or unreadable.') } : { ok: true, spec: t }
+      if (/^~/.test(t) || /^\.\.?(\/|$)/.test(t)) return { ok: false, raison: pair('Donne le chemin complet, qui commence par /.', 'Give the full path, starting with /.') }
+      if (t.length > 300 || /[\s"'`<>|;&$]/.test(t)) return { ok: false, raison: pair('Cette adresse contient des caractères que DSH n’accepte pas.', 'This address has characters DSH does not accept.') }
+      if (/^[A-Za-z0-9][A-Za-z0-9_.-]*\/[A-Za-z0-9][A-Za-z0-9_.-]*$/.test(t)) return { ok: true, spec: 'github:' + t }
+      return { ok: true, spec: t }
+    }
+    /** Pure. Why DSH's manager refused to look at a spec (`problem` of an inspection), or null when it accepted it. [fr, en]. */
+    const refusInspection = (insp) => {
+      if (insp === null || typeof insp !== 'object') return pair('DSH n’a pas répondu.', 'DSH did not answer.')
+      if (insp.status === 'accepted') return insp.bundle === false ? pair('Ce paquet n’est pas un bundle : DSH ne peut pas l’installer comme plugin.', 'This package is not a bundle, so DSH cannot install it as a plugin.') : null
+      const t = {
+        'invalid-spec': pair('DSH ne comprend pas cette adresse.', 'DSH does not understand this address.'),
+        'already-installed': pair('Ce plugin est déjà installé.', 'This plugin is already installed.'),
+        'not-found': pair('DSH ne trouve rien à cette adresse.', 'DSH finds nothing at this address.'),
+        'not-a-package': pair('Ce n’est pas un paquet.', 'This is not a package.'),
+        'not-a-bundle': pair('Ce paquet n’est pas un bundle : DSH ne peut pas l’installer comme plugin.', 'This package is not a bundle, so DSH cannot install it as a plugin.'),
+        network: pair('DSH n’a pas pu joindre le site. Vérifie ta connexion.', 'DSH could not reach the site. Check your connection.')
+      }
+      return t[insp.problem] || pair('DSH a refusé cette adresse.', 'DSH refused this address.')
+    }
+    /**
+     * Pure. The outcome of a call to DSH's manager (install, remove, switch), whether it came as a RemoteResult ({ ok, value }) or as the bare result:
+     * { ok, restart, raison: [fr, en] | null }. DSH's own codes get a sentence; none is shown raw.
+     */
+    const issueGestionnaire = (r) => {
+      const v = r !== null && typeof r === 'object' && r.ok === true && r.value !== undefined ? r.value : r
+      if (v === null || typeof v !== 'object') return { ok: false, restart: false, raison: pair('DSH n’a pas répondu.', 'DSH did not answer.') }
+      if (v.ok === false) return { ok: false, restart: false, raison: pair('DSH a refusé.', 'DSH refused.') }
+      const code = v.error && v.error.code ? v.error.code : null
+      const t = {
+        'not-bundle': pair('Ce paquet n’est pas un bundle : DSH ne peut pas le gérer d’ici. Utilise le gestionnaire natif.', 'This package is not a bundle, so DSH cannot manage it from here. Use the native manager.'),
+        'not-removable': pair('DSH ne peut pas retirer ce plugin.', 'DSH cannot remove this plugin.'),
+        'unknown-plugin': pair('DSH ne connaît pas ce plugin.', 'DSH does not know this plugin.'),
+        'invalid-spec': pair('DSH ne comprend pas cette adresse.', 'DSH does not understand this address.'),
+        'bundle-in-use': pair('Un autre plugin en dépend.', 'Another plugin depends on it.'),
+        'stop-profile': pair('Arrête le profil avant de changer cela.', 'Stop the profile before changing this.')
+      }
+      const kind = v.packageResult && v.packageResult.kind
+      const k = { network: pair('DSH n’a pas pu joindre le site.', 'DSH could not reach the site.'), 'not-found': pair('DSH ne trouve pas ce paquet.', 'DSH cannot find this package.'), 'no-matching-version': pair('Aucune version ne convient.', 'No version matches.'), permission: pair('Autorisation refusée sur le disque.', 'Permission denied on the disk.'), 'disk-full': pair('Le disque est plein.', 'The disk is full.'), 'build-blocked': pair('Le paquet demande de lancer un script, ce que DSH n’autorise pas ici.', 'The package asks to run a script, which DSH does not allow here.') }
+      const echec = k[kind] || pair('L’installation a échoué. Rien n’a été changé.', 'The install failed. Nothing was changed.')
+      if (code !== null) return { ok: false, restart: false, raison: t[code] || (v.application === 'failed' ? echec : pair('DSH n’a pas pu terminer.', 'DSH could not finish.')) }
+      if (v.application === 'failed') return { ok: false, restart: false, raison: echec }
+      if (v.application === 'cancelled') return { ok: false, restart: false, raison: pair('Installation annulée.', 'Install cancelled.') }
+      return { ok: true, restart: v.application === 'restart-required', raison: null }
+    }
+    /** Pure. The first message of « Create with AI »: it names the skill, so the AI loads it and starts the interview. */
+    const promptCreation = (fr) => {
+      const p = pair('Utilise la compétence plugin-creator : je veux créer un plugin Kybernos. Pose-moi tes questions une par une.', 'Use the plugin-creator skill: I want to create a Kybernos plugin. Ask me your questions one at a time.')
+      return fr ? p[0] : p[1]
+    }
+    /** Pure. The message that sends a draft the page found faults in back to the AI: the faults, and nothing else to guess from. */
+    const promptBrouillon = (d, fr) => {
+      const fautes = (Array.isArray(d.errors) ? d.errors : []).slice(0, 8).map((e) => '- ' + String(e)).join('\n')
+      const p = pair('Utilise la compétence plugin-creator : le brouillon « {n} » (dossier plugin-drafts/{n}) a ces défauts. Corrige seulement ce qu’il faut.', 'Use the plugin-creator skill: the draft “{n}” (folder plugin-drafts/{n}) has these faults. Fix only what is needed.')
+      return (fr ? p[0] : p[1]).replace(/\{n\}/g, () => String(d.name)) + '\n' + fautes
+    }
+    // KB-PLUGINS-PURE-END
 
     /** Pure. What to say about the answer of POST /kybernos-hub/catalogue/refresh. [fr, en]. */
     const messageCatalogue = (r) => {
@@ -415,7 +621,7 @@ window.__ModuleLoader__.load({
     const CSS = [
       '.kbsu{position:relative;display:flex;flex-direction:column;gap:16px;max-width:980px;font-size:13.5px;color:var(--dsw-alias-label-primary)}',
       '/* Light schemes: label-tertiary is 3.7:1 on white. Inside this page it reads as label-secondary, 5.8:1 (audit A1-05); the dark scheme keeps its hierarchy. */',
-      'body:not([data-ds-dark-theme]) :is(.kbsu,.kbhp-pop){--dsw-alias-label-tertiary:var(--dsw-alias-label-secondary)}',
+      'body:not([data-ds-dark-theme]) :is(.kbsu,.kbhp-pop,.kbhi){--dsw-alias-label-tertiary:var(--dsw-alias-label-secondary)}',
       '.kbsu button{font:inherit;cursor:pointer}',
       '.kbsu button:disabled{opacity:.5;cursor:default}',
       '.kbsu-head{display:flex;flex-wrap:wrap;gap:10px 24px;justify-content:space-between;align-items:flex-start}',
@@ -486,7 +692,7 @@ window.__ModuleLoader__.load({
       // Featured: the same cards, larger, with the tagline and the full description
       '.kbsu-fgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:12px}',
       '.kbsu-vedette{padding:16px;gap:12px}',
-      '.kbsu-tag{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--kybernos-accent,var(--dsw-alias-brand-primary));font-weight:700}',
+      '.kbsu-tag{font-size:11px;color:var(--kybernos-accent,var(--dsw-alias-brand-primary));font-weight:700}',
       '.kbsu-vedette .kbsu-promise{font-size:13.5px;color:var(--dsw-alias-label-secondary);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}',
       '.kbsu-promise{margin:0;color:var(--dsw-alias-label-secondary);font-size:13px}',
       '.kbsu-card .kbsu-promise{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;line-height:1.45;min-height:4.35em}',
@@ -507,15 +713,20 @@ window.__ModuleLoader__.load({
       '.kbsu-good{padding-inline-start:12px;border-inline-start:2px solid var(--dsw-alias-border-l3)}',
       // The « ? How it works » button of any plugin page, and the card it opens (window.__KB_HELP__.Help).
       '.kbhp-wrap{position:relative;display:inline-block;max-width:100%}',
+      // The button's own row, put first in a page: it takes no height, so the page's title starts where it does on a page that holds the button in its title row (x 272, y 54). Narrow: back in the flow, above the title.
+      '.kbhp-row{display:flex;justify-content:flex-end;width:100%;height:0;overflow:visible;position:relative;z-index:1;margin-bottom:calc(-1 * var(--kbhp-gap,0px))}',
+      '@media (max-width:760px){.kbhp-row{height:auto;margin-bottom:6px}}',
       '.kbhp-wrap .kbhp-btn{appearance:none;display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 12px 0 6px;border-radius:16px;border:1px solid var(--dsw-alias-border-l3);background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12.5px;cursor:pointer;white-space:nowrap}',
       '.kbhp-wrap .kbhp-btn:hover,.kbhp-wrap .kbhp-btn[aria-expanded="true"]{border-color:var(--dsw-alias-label-tertiary);color:var(--dsw-alias-label-primary)}',
       '.kbhp-wrap .kbhp-btn:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px}',
       '.kbhp-q{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700;background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-primary)}',
       '.kbhp-pop{box-sizing:border-box;position:absolute;inset-inline-end:0;top:calc(100% + 8px);z-index:60;width:min(420px,calc(100vw - 32px));max-height:min(70vh,560px);overflow-y:auto;padding:16px 18px;border-radius:18px;border:1px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-label-primary);text-align:start;white-space:normal;font-size:14px;line-height:1.5;background:linear-gradient(var(--dsw-specific-menu,#1c1c1f),var(--dsw-specific-menu,#1c1c1f)),var(--dsw-alias-bg-base,#151517);box-shadow:0 16px 44px rgba(0,0,0,.42);display:flex;flex-direction:column;gap:12px}',
       '.kbhp-pop h4{margin:0;font-size:17px;font-weight:700}',
-      '.kbhp-pop h5{margin:0 0 8px;font-size:11.5px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;color:var(--dsw-alias-label-tertiary)}',
+      '.kbhp-pop h5{margin:0 0 8px;font-size:11.5px;font-weight:600;color:var(--dsw-alias-label-tertiary)}',
       '.kbhp-pop p{margin:0;color:var(--dsw-alias-label-secondary)}',
       '.kbhp-pop.start{inset-inline-end:auto;inset-inline-start:0}',
+      // Docked (V1-23): in the free margin beside the page column (its start is set from the column, inline), level with the button, flat (nothing covered, nothing moves, no popover shadow).
+      '.kbhp-pop.dock{inset-inline-end:auto;top:0;width:340px;max-height:min(80vh,560px);box-shadow:none;background:var(--dsw-alias-bg-layer-1,#151517)}',
       '.kbhp-x{position:absolute;inset-inline-end:10px;top:10px;width:26px;height:26px;border:0;border-radius:8px;background:transparent;color:var(--dsw-alias-label-tertiary);cursor:pointer;font-size:14px}',
       '.kbhp-x:hover{background:var(--dsw-alias-interactive-bg-hover)}',
       '.kbhp-act{appearance:none;align-self:flex-start;display:inline-flex;align-items:center;height:30px;padding:0 14px;border-radius:9px;border:0;font:inherit;font-size:13px;font-weight:600;cursor:pointer;background:var(--dsw-alias-button-primary-fill);color:var(--dsw-alias-label-primary-foreground)}',
@@ -590,6 +801,7 @@ window.__ModuleLoader__.load({
       '.kbni .kbhi{margin:0}',
       '.kbsu-right{display:inline-flex;flex-wrap:wrap;gap:8px;align-items:center}',
       '.kbsu-sw{position:relative;flex:none;width:36px;height:20px;border-radius:999px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);padding:0}',
+      '.kbsu-sw::before{content:"";position:absolute;inset:-3px 0}',
       '.kbsu-sw i{position:absolute;inset-inline-start:2px;top:2px;width:14px;height:14px;border-radius:999px;background:var(--dsw-alias-label-secondary);transition:inset-inline-start .15s ease}',
       '.kbsu-sw.on{background:var(--kybernos-accent,var(--dsw-alias-brand-primary));border-color:var(--kybernos-accent,var(--dsw-alias-brand-primary))}.kbsu-sw.on i{inset-inline-start:18px;background:var(--kybernos-on-accent,var(--dsw-alias-label-primary-foreground))}',
       '.kbsu-note{margin:0;font-size:12.5px;color:var(--dsw-alias-label-tertiary);overflow-wrap:anywhere;white-space:pre-line}',
@@ -647,12 +859,47 @@ window.__ModuleLoader__.load({
       // family, status and actions (an empty ::after forces the break).
       '.kbsu-list{container-type:inline-size}',
       '@container (max-width:860px){.kbsu-rowmain{row-gap:4px}.kbsu-rowmain::after{content:"";order:1;flex:0 0 100%;height:0}.kbsu-rowname{flex-basis:120px}.kbsu-mv{order:1}.kbsu-famcol{order:2;flex:0 1 auto}.kbsu-row .kbsu-st{order:2;flex:1 1 auto}.kbsu-rowact{order:2;min-width:0}}',
-      '@media (max-width:520px){.kbsu-headr{align-items:flex-start}.kbsu-meta{justify-content:flex-start}}'
+      '@media (max-width:520px){.kbsu-headr{align-items:flex-start}.kbsu-meta{justify-content:flex-start}}',
+      // ── Plugins made by other people ──
+      '.kbsu-grid.one{grid-template-columns:minmax(0,1fr)}',
+      '.kbsu-pcard.dim{opacity:.9}',
+      '.kbsu-chip.fam{white-space:nowrap}',
+      '.kbsu-drafts{display:flex;flex-direction:column;gap:8px;padding:12px 14px;border-radius:14px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1)}',
+      '.kbsu-draft{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:space-between}',
+      '.kbsu-dname{display:flex;flex-direction:column;min-width:0}.kbsu-dname small{color:var(--dsw-alias-label-tertiary);font-size:12px}',
+      '.kbsu-pnotes{display:flex;flex-direction:column;gap:8px}',
+      '.kbsu-pempty{display:flex;flex-direction:column;align-items:center;gap:10px}.kbsu-pempty p{margin:0;max-width:60ch}',
+      '.kbsu-li{display:flex;gap:12px;align-items:baseline;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--dsw-alias-border-l1)}',
+      '.kbsu-m{color:var(--dsw-alias-label-secondary);text-align:end;display:flex;flex-wrap:wrap;gap:4px 6px;justify-content:flex-end}',
+      '.kbsu-confirm{display:flex;flex-direction:column;gap:8px;margin-top:14px}',
+      '.kbsu-banner.soft{border-color:var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2)}',
+      '.kbsu-portal{display:contents}',
+      '.kbsu-ov{position:fixed;inset:0;z-index:2147483000;display:grid;place-items:center;padding:16px;background:rgba(0,0,0,.45)}',
+      '.kbsu-dlg{display:flex;flex-direction:column;gap:12px;width:min(520px,100%);max-height:calc(100vh - 32px);overflow:auto;padding:20px;border-radius:16px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);box-shadow:0 20px 60px rgba(0,0,0,.35);outline:0}',
+      '.kbsu-dlg.large{width:min(760px,100%)}',
+      '.kbsu-dlg h5{margin:0;font-size:17px;font-weight:700}',
+      '.kbsu-dlg p{margin:0}',
+      '.kbsu-dft{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;margin-top:4px}',
+      // A long text (Read and accept) scrolls inside the dialog: its buttons stay in view.
+      '.kbsu-dlg.large .kbsu-dft{position:sticky;bottom:-20px;padding:12px 0 0;margin-top:0;background:var(--dsw-alias-bg-layer-1)}',
+      '.kbsu-addrow{display:flex;gap:12px;align-items:center;width:100%;text-align:start;padding:12px;border:1px solid var(--dsw-alias-border-l1);border-radius:12px;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary)}',
+      '.kbsu-addrow:hover:not(:disabled){border-color:var(--dsw-alias-label-tertiary)}',
+      '.kbsu-addrow>span:nth-child(2){flex:1;min-width:0}.kbsu-addrow b{display:block}.kbsu-addrow small{display:block;color:var(--dsw-alias-label-secondary);margin-top:2px}',
+      '.kbsu-aico{flex:none;width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:var(--dsw-alias-bg-layer-3)}',
+      '.kbsu-keyrow{display:flex;gap:8px}',
+      '.kbsu-keyrow input,.kbsu-dlg textarea{flex:1;min-width:0;height:34px;padding:0 10px;border-radius:9px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);font:13px ui-monospace,Menlo,monospace}',
+      '.kbsu-dlg textarea{height:auto;padding:8px 10px;width:100%;box-sizing:border-box;resize:vertical}',
+      '.kbsu-drop{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:14px;border:1px dashed var(--dsw-alias-border-l2);border-radius:12px}',
+      '.kbsu-read{display:flex;flex-direction:column;gap:10px}.kbsu-read h6{margin:0;font-size:15px}.kbsu-read small{color:var(--dsw-alias-label-secondary);font-weight:400}',
+      '.kbsu-goal{display:flex;flex-direction:column;gap:4px;padding:10px 12px;border-radius:12px;background:var(--dsw-alias-bg-layer-2)}',
+      '.kbsu-pre{margin:0;padding:10px;border-radius:9px;background:var(--dsw-alias-bg-layer-3);font:12px/1.5 ui-monospace,Menlo,monospace;white-space:pre-wrap;overflow-wrap:anywhere;max-height:260px;overflow:auto}'
     ].join('\n')
 
     // The artwork of a module: a 32px glyph in three tones (a / b translucent fills, l strokes, w solid, d shade), drawn on a
     // tile coloured by the module's family. The catalogue names the glyph (`glyphe`); an unknown name falls back to the cube.
     const GLYPHES = {
+      // A paper plane: a message or an instruction handed to another chat (kybernos-session-msg).
+      send:'<path class="a" d="M3.5 15L28.5 4.5l-9 23.5-3.8-9.2z"/><path class="b" d="M28.5 4.5L15.7 18.8l3.8 9.2z"/><path class="l" d="M3.5 15L28.5 4.5l-9 23.5-3.8-9.2zM15.7 18.8L28.5 4.5"/><circle class="w" cx="18.5" cy="13.5" r="1.5"/>',
       cube:'<path class="a" d="M16 3.5l11.5 6.5v12L16 28.5 4.5 22V10z"/><path class="b" d="M16 16l11.5-6v12L16 28.5z"/><path class="l" d="M16 3.5l11.5 6.5v12L16 28.5 4.5 22V10zM4.5 10L16 16l11.5-6M16 16v12.5"/><circle class="w" cx="16" cy="16" r="1.8"/>',
       palette:'<path class="a" d="M16 3a13 13 0 1 0 0 26c2 0 3-1.2 3-2.6 0-1.9-1.6-2.2-1.6-3.8 0-1.4 1.1-2.2 2.6-2.2H23a6 6 0 0 0 6-6C29 8 23.5 3 16 3z"/><path class="l" d="M16 3a13 13 0 1 0 0 26c2 0 3-1.2 3-2.6 0-1.9-1.6-2.2-1.6-3.8 0-1.4 1.1-2.2 2.6-2.2H23a6 6 0 0 0 6-6C29 8 23.5 3 16 3z"/><circle class="w" cx="9.5" cy="14" r="2"/><circle class="w" cx="14" cy="8.5" r="2"/><circle class="w" cx="20.5" cy="9" r="2"/><circle class="b" cx="9" cy="20" r="2"/>',
       lang:'<rect class="a" x="3" y="4" width="17" height="14" rx="4"/><path class="d" d="M9 18l-1 5 5-4z"/><path class="l" d="M7.5 13.5L11.5 7l4 6.5M9 11.5h5"/><rect class="b" x="12" y="13" width="17" height="14" rx="4"/><path class="l" d="M17.5 17.5h8M21.5 16v1.5M18.5 24c3-1.5 4.5-3.5 5.2-6.5M24.5 24c-3-1-4.5-3-5-6.5"/>',
@@ -687,6 +934,7 @@ window.__ModuleLoader__.load({
       cal:'<rect class="a" x="3" y="6" width="26" height="22" rx="4"/><path class="b" d="M3 10a4 4 0 0 1 4-4h18a4 4 0 0 1 4 4v3H3z"/><path class="l" d="M3 13h26M10 3v6M22 3v6"/><path class="l" d="M10 21l3 3 6-7"/>',
       summary:'<rect class="a" x="4" y="3" width="24" height="26" rx="4"/><path class="b" d="M4 7a4 4 0 0 1 4-4h16a4 4 0 0 1 4 4v3H4z"/><path class="l" d="M9.5 16.5l1.8 1.8 3.2-3.6M17.5 16.5h6M9.5 23l1.8 1.8 3.2-3.6M17.5 23h6"/>',
       kyber:'<circle class="a" cx="16" cy="16" r="12"/><path class="l" d="M12 9v14M12 16l8-7M14.5 15l6.5 8"/>',
+      face:'<circle class="a" cx="16" cy="11.5" r="6"/><path class="a" d="M5 28c1-6 5.5-9 11-9s10 3 11 9z"/><circle class="l" cx="16" cy="11.5" r="6"/><path class="l" d="M5 28c1-6 5.5-9 11-9s10 3 11 9z"/><circle class="w" cx="14" cy="11" r="1.1"/><circle class="w" cx="18" cy="11" r="1.1"/>',
       phone:'<path class="a" d="M8 4h5l2.5 6.5-3.2 2a16 16 0 0 0 7.2 7.2l2-3.2 6.5 2.5v5a3 3 0 0 1-3 3A21 21 0 0 1 5 7a3 3 0 0 1 3-3z"/><path class="l" d="M8 4h5l2.5 6.5-3.2 2a16 16 0 0 0 7.2 7.2l2-3.2 6.5 2.5v5a3 3 0 0 1-3 3A21 21 0 0 1 5 7a3 3 0 0 1 3-3zM20 5.5a7.5 7.5 0 0 1 6.5 6.5M20 10a3 3 0 0 1 2 2"/>',
       mobile:'<rect class="a" x="9" y="3" width="14" height="26" rx="4"/><rect class="l" x="9" y="3" width="14" height="26" rx="4"/><path class="l" d="M14 7h4"/><path class="w" d="M16 24.5h.01"/>',
       search:'<circle class="a" cx="13.5" cy="13.5" r="10"/><circle class="l" cx="13.5" cy="13.5" r="10"/><path class="b" d="M8 11.5a6 6 0 0 1 6-5"/><path class="l" d="M21 21l8 8"/><path class="l" d="M3.5 13.5h20M13.5 3.5c3 3 4 6 4 10s-1 7-4 10"/>',
@@ -694,6 +942,7 @@ window.__ModuleLoader__.load({
       term:'<rect class="a" x="3" y="5" width="26" height="22" rx="4"/><path class="b" d="M3 9a4 4 0 0 1 4-4h18a4 4 0 0 1 4 4v3H3z"/><rect class="l" x="3" y="5" width="26" height="22" rx="4"/><circle class="w" cx="7.5" cy="8.5" r="1.1"/><circle class="w" cx="11" cy="8.5" r="1.1"/><circle class="w" cx="14.5" cy="8.5" r="1.1"/><path class="l" d="M8 17l4 3-4 3M15 23h7"/>',
       dash:'<rect class="a" x="3" y="4" width="12" height="15" rx="3"/><rect class="b" x="19" y="4" width="10" height="8" rx="3"/><rect class="b" x="3" y="23" width="12" height="6" rx="3"/><rect class="a" x="19" y="16" width="10" height="13" rx="3"/><path class="l" d="M7 14l2.5-3 2 2 2.5-4M22.5 24l2-3 2.5 2"/>',
       gauge:'<circle class="a" cx="16" cy="16" r="13"/><path class="b" d="M5 18a11 11 0 0 1 22 0z"/><circle class="l" cx="16" cy="16" r="13"/><path class="l" d="M16 18l5.5-6.5M9 23h14"/><circle class="w" cx="16" cy="18" r="1.8"/>',
+      puzzle:'<path class="a" d="M5 9h7.5a3.5 3.5 0 0 1 7 0H27v7.5a3.5 3.5 0 0 0 0 7V27H5z"/><path class="l" d="M5 9h7.5a3.5 3.5 0 0 1 7 0H27v7.5a3.5 3.5 0 0 0 0 7V27H5z"/><circle class="w" cx="16" cy="19" r="1.6"/>',
       devices:'<rect class="a" x="3" y="7" width="20" height="14" rx="2.5"/><rect class="l" x="3" y="7" width="20" height="14" rx="2.5"/><path class="l" d="M1.5 25h23"/><rect class="b" x="19" y="13" width="9" height="15" rx="2.5"/><rect class="l" x="19" y="13" width="9" height="15" rx="2.5"/><path class="w" d="M23.5 25.5h.01"/>',
       server:'<rect class="a" x="4" y="5" width="24" height="9" rx="3"/><rect class="l" x="4" y="5" width="24" height="9" rx="3"/><path class="l" d="M9 9.5h.01M14 9.5h10"/><rect class="b" x="4" y="18" width="24" height="9" rx="3"/><rect class="l" x="4" y="18" width="24" height="9" rx="3"/><path class="w" d="M9 22.5h.01"/><path class="l" d="M14 22.5h10"/>'
 }
@@ -755,7 +1004,407 @@ window.__ModuleLoader__.load({
       back: 'm15 18-6-6 6-6'
     }
 
-    const construirePanneau = (React, scope, ctx) => {
+    // ── The Plugins segment: the list, a plugin's page, and the dialogs of « Add a plugin » ──────────────────────────────
+    // `outils` comes from the panel: { ic, artwork, lireJson, rechargerLe, relance } and the manager getter `gestionnaire`. Every call into DSH goes through
+    // the manager (install, remove, switch): this code reads the registry and asks, it changes nothing itself except the person's acceptance.
+    const construirePlugins = (React, outils) => {
+      const h = React.createElement
+      const { ic, artwork, lireJson, ReactDOM } = outils
+      const T = (pr) => kt(pr[0], pr[1])
+      const codeLangue = () => (lang() === 'fr' ? 'fr' : (String(rawLang()).split(/[-_]/)[0] || 'en'))
+      const tuile = (p, taille) => artwork({ id: p.id, glyphe: 'puzzle' }, { couleur: '#7a5bd6' }, taille)
+      const auteurDe = (p) => (p.author && p.author.name ? p.author.name : (p.author && p.author.id ? p.author.id : ''))
+      const prix = (p) => (p.pricing === 'free' ? kt('Gratuit', 'Free') : kt('Payant, chez son auteur', 'Paid, by its author'))
+      const sansEvent = (e) => e.target.closest('button,a,input,select,textarea,[role="switch"]') !== null
+
+      const interrupteur = (p, e, occupe, basculer) => h('button', {
+        type: 'button', className: 'kbsu-sw' + (e.actif ? ' on' : ''), role: 'switch', 'aria-checked': e.actif ? 'true' : 'false', 'data-kb': 'plugin-switch',
+        'aria-label': (e.actif ? kt('Désactiver ', 'Turn off ') : kt('Activer ', 'Turn on ')) + p.name,
+        title: e.interrupteur ? '' : kt('DSH n’a pas d’interrupteur pour ce plugin.', 'DSH has no switch for this plugin.'),
+        disabled: !e.interrupteur || occupe, onClick: (ev) => { ev.stopPropagation(); basculer(p) }
+      }, h('i'))
+
+      // ── One plugin, as a card ─────────────────────────────────────────────────────────────────────────────────────
+      const Carte = ({ p, bundle, occupe, ouvrir, basculer }) => {
+        const e = etatPlugin(p, bundle)
+        return h('article', {
+          className: 'kbsu-card kbsu-pcard' + (p.enabled ? '' : ' dim'), 'data-kb': 'plugin-card', 'data-id': p.id, 'data-etat': p.status, tabIndex: 0,
+          'aria-label': p.name + ', ' + kt('ouvrir sa page', 'open its page'),
+          onClick: (ev) => { if (!sansEvent(ev)) ouvrir(p.id) },
+          onKeyDown: (ev) => { if ((ev.key === 'Enter' || ev.key === ' ') && ev.target === ev.currentTarget) { ev.preventDefault(); ouvrir(p.id) } }
+        },
+        h('div', { className: 'kbsu-top' }, tuile(p, 'card'), h('div', { className: 'kbsu-name' }, h('b', null, p.name), h('small', { title: p.id }, kt('par ', 'by ') + auteurDe(p) + (p.version ? ' · v' + p.version : '')))),
+        h('p', { className: 'kbsu-promise' }, p.description || p.reason || ''),
+        h('div', { className: 'kbsu-badges' }, h('span', { className: 'kbsu-chip fam', 'data-kb': 'plugin-level' }, T(niveauPlugin(p))), h('span', { className: 'kbsu-chip fam' }, T(genrePlugin(p))), h('span', { className: 'kbsu-b' }, prix(p))),
+        h('div', { className: 'kbsu-foot' }, h('span', { className: 'kbsu-st ' + (e.ton === 'ok' ? 'ok' : e.ton === 'off' ? '' : 'warn'), 'data-kb': 'plugin-state' }, e.ton === 'ok' ? ic('check') : (e.attention ? ic('alert') : null), T(e.libelle)),
+          h('span', { className: 'kbsu-right' }, interrupteur(p, e, occupe, basculer))))
+      }
+
+      // ── The list ───────────────────────────────────────────────────────────────────────────────────────────────────
+      const Liste = ({ registre, brouillons, installes, requete, vue, mgr, ouvrir, ouvrirDlg, rechargerLe, relance }) => {
+        const [genre, setGenre] = React.useState('')
+        const [attention, setAttention] = React.useState(false)
+        const [occupes, setOccupes] = React.useState({})
+        const [note, setNote] = React.useState('')
+        const plugins = registre.plugins
+        const n = compterPlugins(plugins, installes)
+        const genres = genresPlugins(plugins)
+        const visibles = filtrerPlugins({ plugins, requete, genre, attention, installes })
+        const nouveaux = brouillons.filter((d) => d.installed !== true)
+        const basculer = async (p) => {
+          if (mgr === null) return
+          setNote(''); setOccupes((o) => ({ ...o, [p.id]: true }))
+          let r = null
+          try { r = await mgr.setBundleEnabled(p.package, p.enabled !== true) } catch (e) { r = null }
+          const issue = issueGestionnaire(r)
+          if (!issue.ok) setNote(T(issue.raison))
+          else if (issue.restart) relance(p.id)
+          setOccupes((o) => { const c = { ...o }; delete c[p.id]; return c })
+          rechargerLe()
+        }
+        const puce = (cle, libelle, actif, clic, extra) => h('button', { key: cle || 'tous', type: 'button', className: 'kbsu-fb', 'data-kb': 'plugins-chip-' + (cle || 'all'), 'aria-pressed': actif ? 'true' : 'false', onClick: clic }, extra || null, libelle)
+        const puces = plugins.length === 0 ? null : h('div', { className: 'kbsu-fams', role: 'group', 'aria-label': kt('Type', 'Kind') },
+          puce('', kt('Tous les types', 'All kinds'), genre === '' && !attention, () => { setGenre(''); setAttention(false) }),
+          genres.length > 1 ? genres.map((g) => puce(g.cle, T(g.libelle), genre === g.cle && !attention, () => { setGenre(g.cle); setAttention(false) })) : null,
+          n.attention > 0 ? puce('attention', kt('À surveiller ', 'Needs attention ') + n.attention, attention, () => { setAttention(true); setGenre('') }, h('i', { style: { '--c': 'var(--dsw-alias-state-warn-primary)' } })) : null)
+        const brouillonsBloc = nouveaux.length === 0 ? null : h('section', { className: 'kbsu-drafts', 'data-kb': 'plugins-drafts' },
+          h('b', null, nouveaux.length === 1 ? kt('1 brouillon fait avec l’IA', '1 draft made with AI') : nouveaux.length + kt(' brouillons faits avec l’IA', ' drafts made with AI')),
+          nouveaux.map((d) => h('div', { key: d.name, className: 'kbsu-draft', 'data-kb': 'plugins-draft', 'data-name': d.name },
+            h('span', { className: 'kbsu-dname' }, h('b', null, d.title), h('small', null, d.ok ? kt('Prêt à installer', 'Ready to install') + (d.version ? ' · v' + d.version : '') : kt('À corriger avant de l’installer', 'Needs a fix before it can be installed'))),
+            h('button', { type: 'button', className: 'kbsu-btn sm' + (d.ok ? ' accent' : ' ghost'), 'data-kb': 'plugins-draft-open', onClick: () => ouvrirDlg({ type: 'brouillon', d }) }, d.ok ? kt('Installer', 'Install') : kt('Voir', 'See')))))
+        const problemes = !attention ? null : h('div', { className: 'kbsu-pnotes', 'data-kb': 'plugins-problems' }, plugins.filter((p) => etatPlugin(p, installes.get(p.package)).attention).map((p) => h('div', { key: p.id, className: 'kbsu-banner', role: 'status' },
+          h('strong', null, ic('alert'), p.name),
+          h('span', null, p.status === 'needs-consent' ? kt('Il apporte des instructions pour tes agents : rien ne leur parvient avant que tu les aies lues et acceptées.', 'It brings instructions for your agents: nothing reaches them until you have read and accepted it.') : (p.reason || (p.errors && p.errors[0]) || '')),
+          h('span', null, p.status === 'needs-consent' ? h('button', { type: 'button', className: 'kbsu-btn sm accent', 'data-kb': 'plugin-read', onClick: () => ouvrirDlg({ type: 'lecture', id: p.id }) }, kt('Lire et accepter', 'Read and accept')) : h('button', { type: 'button', className: 'kbsu-btn sm ghost', onClick: () => ouvrir(p.id) }, kt('Ouvrir sa page', 'Open its page'))))))
+        if (plugins.length === 0 && nouveaux.length === 0) {
+          return h('div', { className: 'kbsu-empty kbsu-pempty', 'data-kb': 'plugins-empty' },
+            h('b', null, kt('Aucun plugin pour l’instant', 'No plugins yet')),
+            h('p', null, kt('Un plugin ajoute un domaine de travail, des sources, des compétences ou des équipes d’agents. C’est un dossier de données simples : il ne peut pas exécuter de code sur ton ordinateur.', 'A plugin adds a field of work, sources, skills or agent teams. It is a folder of plain data: it cannot run code on your computer.')),
+            h('button', { type: 'button', className: 'kbsu-btn accent', 'data-kb': 'plugins-add-empty', onClick: () => ouvrirDlg({ type: 'ajout' }) }, ic('plug'), kt('Ajouter un plugin', 'Add a plugin')))
+        }
+        return h('div', { className: 'kbsu-plugins', 'data-kb': 'plugins', style: { display: 'flex', flexDirection: 'column', gap: 16 } },
+          puces,
+          note !== '' ? h('p', { className: 'kbsu-note', role: 'status' }, note) : null,
+          visibles.length > 0
+            ? h('div', { className: 'kbsu-grid' + (vue === 'list' ? ' one' : ''), 'data-kb': 'plugins-grid' }, visibles.map((p) => h(Carte, { key: p.id, p, bundle: installes.get(p.package), occupe: occupes[p.id] === true, ouvrir, basculer })))
+            : (plugins.length > 0 ? h('div', { className: 'kbsu-empty' }, kt('Aucun plugin ne correspond.', 'No plugin matches.')) : null),
+          problemes, brouillonsBloc)
+      }
+
+      // ── A plugin's own page ────────────────────────────────────────────────────────────────────────────────────────
+      const Fiche = ({ id, registre, installes, mgr, retour, ouvrirDlg, rechargerLe, relance }) => {
+        const p = registre.plugins.find((x) => x.id === id)
+        const [onglet, setOnglet] = React.useState('description')
+        const [apercu, setApercu] = React.useState(null)
+        const [note, setNote] = React.useState('')
+        const [confirmer, setConfirmer] = React.useState(false)
+        const [occupe, setOccupe] = React.useState(false)
+        const statut = p === undefined ? '' : p.status
+        React.useEffect(() => {
+          if (p === undefined || statut === 'invalid') return undefined
+          let fini = false
+          lireJson('/kybernos-registry/preview?id=' + encodeURIComponent(id)).then((r) => { if (!fini && r !== null && r.ok === true) setApercu(r.preview) })
+          return () => { fini = true }
+        }, [id, statut])
+        if (p === undefined) {
+          return h('div', { className: 'kbsu-fiche', style: { display: 'flex', flexDirection: 'column', gap: 14 } },
+            h('div', { className: 'kbsu-crumb' }, h('button', { type: 'button', className: 'kbsu-btn ghost sm', onClick: retour }, ic('back'), 'Kybernos Suite')),
+            h('div', { className: 'kbsu-empty' }, kt('Ce plugin n’est plus installé.', 'This plugin is no longer installed.')))
+        }
+        const bundle = installes.get(p.package)
+        const e = etatPlugin(p, bundle)
+        const basculer = async () => {
+          if (mgr === null) return
+          setNote(''); setOccupe(true)
+          let r = null
+          try { r = await mgr.setBundleEnabled(p.package, p.enabled !== true) } catch (er) { r = null }
+          const issue = issueGestionnaire(r)
+          if (!issue.ok) setNote(T(issue.raison)); else if (issue.restart) relance(p.id)
+          setOccupe(false); rechargerLe()
+        }
+        const retirer = async () => {
+          setNote(''); setOccupe(true)
+          let r = null
+          try { r = await mgr.removeBundle(p.package) } catch (er) { r = null }
+          const issue = issueGestionnaire(r)
+          setOccupe(false); setConfirmer(false)
+          if (!issue.ok) { setNote(T(issue.raison)); return }
+          await rechargerLe(); retour()
+        }
+        const retirerOk = mgr !== null && typeof mgr.removeBundle === 'function' && bundle !== undefined
+        const retirerAccord = async () => {
+          setOccupe(true)
+          const r = await post('/kybernos-registry/consent', { id: p.id, accepted: false })
+          setOccupe(false)
+          if (r.ok !== true) { setNote(kt('Impossible d’enregistrer ton choix. Recharge la page et réessaie.', 'Could not save your choice. Reload the page and try again.')); return }
+          rechargerLe()
+        }
+        const onglets = [['description', kt('Description', 'Description')], ['permissions', kt('Permissions', 'Permissions')], ['compat', kt('Compatibilité', 'Compatibility')]]
+        const ligne = (cle, gauche, droite) => h('div', { key: cle, className: 'kbsu-li' }, h('span', null, gauche), h('span', { className: 'kbsu-m' }, droite))
+        const ajoute = ajoutePlugin(p, apercu)
+        const colonne = { display: 'flex', flexDirection: 'column', gap: 14 }
+        let corps
+        if (onglet === 'permissions') {
+          corps = h('div', { 'data-kb': 'plugin-permissions', style: colonne }, h('h5', null, kt('Ce qu’il peut faire', 'What it can do')),
+            permissionsPlugin(p, registre.points).map((r) => ligne(r.cle, T(r.libelle), r.hotes ? r.valeur.map((x) => h('code', { key: x }, x)) : T(r.valeur))),
+            h('p', { className: 'kbsu-st' }, kt('Kybernos lit cette liste avant de charger quoi que ce soit : un plugin ne peut atteindre que ce qu’elle nomme.', 'Kybernos reads this list before it loads anything: a plugin can only reach what it names.')))
+        } else if (onglet === 'compat') {
+          const rq = p.requires || {}
+          corps = h('div', { 'data-kb': 'plugin-compat', style: colonne }, h('h5', null, kt('Fonctionne avec', 'Works with')),
+            rq.kybernos ? ligne('k', 'Kybernos', rq.kybernos) : null,
+            rq.dsh ? ligne('d', 'DSH', rq.dsh.min + ' – ' + rq.dsh.max) : null,
+            Object.keys(rq.plugins || {}).map((k) => ligne(k, k, rq.plugins[k])),
+            p.reason && (p.status === 'needs-kybernos' || p.status === 'needs-dsh' || p.status === 'missing-dependency' || p.status === 'incompatible-point') ? h('div', { className: 'kbsu-banner', role: 'status' }, h('span', null, p.reason)) : null,
+            h('h5', null, kt('Étend', 'Extends')), ajoute.length === 0 ? h('p', { className: 'kbsu-st' }, kt('Rien.', 'Nothing.')) : ajoute.map((a) => ligne(a.point, T(a.libelle), a.point)))
+        } else {
+          corps = h('div', { 'data-kb': 'plugin-description', style: colonne },
+            h('p', null, p.description || p.reason || ''),
+            p.status === 'needs-consent' ? h('div', { className: 'kbsu-banner', role: 'status', 'data-kb': 'plugin-consent' },
+              h('strong', null, ic('alert'), kt('Il apporte des instructions que tes agents suivront.', 'It brings instructions your agents will follow.')),
+              h('span', null, kt('Les compétences et les automatisations sont du texte. DSH l’a installé ; rien n’atteint tes agents avant que tu l’aies lu et accepté.', 'Skills and automations are text. DSH has installed it; nothing reaches your agents until you have read it and said OK.')),
+              h('span', null, h('button', { type: 'button', className: 'kbsu-btn sm accent', 'data-kb': 'plugin-read', onClick: () => ouvrirDlg({ type: 'lecture', id: p.id }) }, kt('Lire et accepter', 'Read and accept'))))
+              : null,
+            p.status !== 'ok' && p.status !== 'disabled' && p.status !== 'needs-consent' && (p.reason || (p.errors && p.errors.length > 0)) ? h('div', { className: 'kbsu-banner', role: 'status', 'data-kb': 'plugin-problem' }, h('strong', null, ic('alert'), T(e.libelle)), h('span', null, p.reason || p.errors[0]), (p.errors || []).slice(1, 6).map((x, i) => h('span', { key: i }, x))) : null,
+            ajoute.length > 0 ? h('div', null, h('h5', null, kt('Ce qu’il ajoute', 'What it adds')),
+              ajoute.map((a) => ligne(a.point, T(a.libelle), p.status === 'ok' || apercu !== null ? String(a.n) : '')),
+              ajoute.map((a) => a.refuses.length === 0 ? null : h('div', { key: 'r' + a.point, className: 'kbsu-banner', role: 'status', 'data-kb': 'plugin-rejected' },
+                h('strong', null, ic('alert'), kt('Fichiers laissés de côté', 'Files left out')),
+                a.refuses.map((r) => h('span', { key: r.file }, h('code', null, r.file), ' ', r.errors.slice(0, 2).join(' · ')))))) : null,
+            p.status === 'ok' && p.consented ? h('p', { className: 'kbsu-st', 'data-kb': 'plugin-accepted' }, ic('check'), kt('Tu as accepté ce qu’il apporte. ', 'You accepted what it brings. '), h('button', { type: 'button', className: 'kbsu-btn ghost sm', disabled: occupe, onClick: retirerAccord }, kt('Retirer mon accord', 'Withdraw my OK'))) : null)
+        }
+        return h('div', { className: 'kbsu-fiche', 'data-kb': 'plugin-fiche', 'data-id': p.id, style: { display: 'flex', flexDirection: 'column', gap: 14 } },
+          h('div', { className: 'kbsu-crumb' }, h('button', { type: 'button', className: 'kbsu-btn ghost sm', 'data-kb': 'plugin-retour', onClick: retour }, ic('back'), 'Kybernos Suite'), h('span', null, '/'), h('span', null, p.name)),
+          h('section', { className: 'kbsu-hero' }, tuile(p, 'big'),
+            h('div', { className: 'kbsu-htitle' }, h('h4', null, p.name), h('p', null, p.description || p.reason || ''),
+              h('div', { className: 'kbsu-badges' }, h('span', { className: 'kbsu-chip fam' }, T(niveauPlugin(p))), h('span', { className: 'kbsu-chip fam' }, T(genrePlugin(p))), h('span', { className: 'kbsu-b' }, prix(p)),
+                h('span', { className: 'kbsu-st ' + (e.ton === 'ok' ? 'ok' : e.ton === 'off' ? '' : 'warn') }, e.ton === 'ok' ? ic('check') : (e.attention ? ic('alert') : null), T(e.libelle)))),
+            h('div', { className: 'kbsu-hact' }, interrupteur(p, e, occupe, basculer))),
+          note !== '' ? h('p', { className: 'kbsu-note', role: 'status' }, note) : null,
+          h('div', { className: 'kbsu-cols' },
+            h('main', { className: 'kbsu-panel' }, h('div', { className: 'kbsu-tabs', role: 'tablist' }, onglets.map(([k, l]) => h('button', { key: k, type: 'button', role: 'tab', 'aria-selected': onglet === k ? 'true' : 'false', 'data-kb': 'plugin-tab-' + k, onClick: () => setOnglet(k) }, l))), h('div', { className: 'kbsu-body' }, corps)),
+            h('aside', { className: 'kbsu-panel kbsu-side' }, h('b', null, kt('Détails', 'Details')),
+              h('dl', { className: 'kbsu-dl' },
+                h('dt', null, 'Version'), h('dd', null, p.version || '—'),
+                h('dt', null, kt('Type', 'Kind')), h('dd', null, T(genrePlugin(p))),
+                h('dt', null, kt('Auteur', 'Author')), h('dd', null, auteurDe(p) || '—'),
+                h('dt', null, kt('Licence', 'Licence')), h('dd', null, p.license || '—'),
+                h('dt', null, kt('Confiance', 'Trust')), h('dd', null, h('b', null, T(niveauPlugin(p)) + '. '), T(niveauAide(p))),
+                h('dt', null, 'Id'), h('dd', null, h('code', null, p.id)),
+                h('dt', null, 'Source'), h('dd', { title: p.spec || p.package }, p.level === 'local' ? kt('Un dossier de cet ordinateur', 'A folder on this computer') : h('code', null, p.spec || p.package))),
+              retirerOk ? (confirmer
+                ? h('div', { className: 'kbsu-confirm', 'data-kb': 'plugin-remove-confirm' }, h('span', { className: 'kbsu-st warn' }, kt('DSH retire ce plugin de ton profil. Tes fichiers ne sont pas touchés.', 'DSH removes this plugin from your profile. Your files are not touched.')),
+                  h('div', { className: 'kbsu-right' }, h('button', { type: 'button', className: 'kbsu-btn sm accent', 'data-kb': 'plugin-remove-go', disabled: occupe, onClick: retirer }, kt('Retirer', 'Remove')), h('button', { type: 'button', className: 'kbsu-btn sm ghost', onClick: () => setConfirmer(false) }, kt('Annuler', 'Cancel'))))
+                : h('button', { type: 'button', className: 'kbsu-btn ghost sm', 'data-kb': 'plugin-remove', onClick: () => setConfirmer(true) }, kt('Retirer le plugin', 'Remove plugin'))) : null)))
+      }
+
+      // ── Dialogs ────────────────────────────────────────────────────────────────────────────────────────────────────
+      const Cadre = ({ titre, fermer, children, large }) => {
+        const ref = React.useRef(null)
+        React.useEffect(() => {
+          const avant = document.activeElement
+          try { if (ref.current !== null) ref.current.focus() } catch (e) { /* focus is a courtesy */ }
+          // Settings closes on Escape with a listener of its own: this one runs first, in capture, and only while the dialog is open.
+          const esc = (ev) => { if (ev.key === 'Escape') { ev.stopPropagation(); fermer() } }
+          window.addEventListener('keydown', esc, true)
+          return () => { window.removeEventListener('keydown', esc, true); try { if (avant && typeof avant.focus === 'function') avant.focus() } catch (e) { /* gone */ } }
+        }, [])
+        // Settings is a modal of its own (it may transform its content): the dialog goes to the end of the body, inside a `.kbsu` root so the page's styles reach it.
+        const contenu = h('div', { className: 'kbsu kbsu-portal' }, h('div', { className: 'kbsu-ov', onMouseDown: (ev) => { if (ev.target === ev.currentTarget) fermer() } },
+          h('div', { className: 'kbsu-dlg' + (large ? ' large' : ''), role: 'dialog', 'aria-modal': 'true', 'aria-label': titre, tabIndex: -1, ref, 'data-kb': 'plugins-dialog' }, h('h5', null, titre), children)))
+        return ReactDOM !== null && ReactDOM !== undefined && typeof ReactDOM.createPortal === 'function' && typeof document !== 'undefined' && document.body ? ReactDOM.createPortal(contenu, document.body) : contenu
+      }
+      const Pied = (...boutons) => h('div', { className: 'kbsu-dft' }, boutons)
+
+      // « Add a plugin »: the four ways in
+      const DlgAjout = ({ ouvrirDlg, fermer }) => {
+        const ligneAjout = (cle, icone, titre, texte, clic, bientot) => h('button', { key: cle, type: 'button', className: 'kbsu-addrow', 'data-kb': 'plugins-add-' + cle, disabled: bientot === true, onClick: clic },
+          h('span', { className: 'kbsu-aico' }, ic(icone)), h('span', null, h('b', null, titre), h('small', null, texte)), bientot ? h('span', { className: 'kbsu-b' }, kt('Bientôt', 'Soon')) : null)
+        return h(Cadre, { titre: kt('Ajouter un plugin', 'Add a plugin'), fermer },
+          ligneAjout('catalogue', 'search', kt('Depuis le catalogue', 'From the catalogue'), kt('Parcourir les plugins listés et signés.', 'Browse plugins that are listed and signed.'), null, true),
+          ligneAjout('spec', 'plug', kt('Depuis GitHub ou npm', 'From GitHub or npm'), kt('Une adresse ou un nom de paquet. DSH l’installe, Kybernos le lit.', 'An address or a package name. DSH installs it, Kybernos reads it.'), () => ouvrirDlg({ type: 'spec', mode: 'spec' })),
+          ligneAjout('file', 'box', kt('Depuis un fichier ou un dossier', 'From a file or a folder'), kt('Une archive .tgz ou le chemin d’un dossier de cet ordinateur.', 'A .tgz archive or the path of a folder on this computer.'), () => ouvrirDlg({ type: 'spec', mode: 'file' })),
+          ligneAjout('ia', 'refresh', kt('Créer avec l’IA', 'Create with AI'), kt('Une conversation avec la compétence plugin-creator. Elle écrit un brouillon ; tu l’installes ici.', 'A chat with the plugin-creator skill. It writes a draft; you install it here.'), () => ouvrirDlg({ type: 'ia' })),
+          Pied(h('button', { type: 'button', className: 'kbsu-btn ghost', onClick: fermer }, kt('Fermer', 'Close'))))
+      }
+
+      // GitHub / npm / a folder / a .tgz / a draft: ask DSH what it is, then let DSH install it
+      const DlgInstall = ({ mode, depart, brouillon, mgr, fermer, rechargerLe, relance, ouvrirPlugin, ouvrirDlg }) => {
+        const [saisie, setSaisie] = React.useState(depart || '')
+        const [phase, setPhase] = React.useState('repos') // repos | verifie | pret | refus | installe | echec | fini
+        const [info, setInfo] = React.useState(null)
+        const [msg, setMsg] = React.useState(null)
+        const requete = React.useRef(null)
+        const verifier = async (texte) => {
+          const s = specInstall(texte)
+          if (!s.ok) { setPhase('refus'); setMsg(s.raison); return }
+          if (mgr === null) { setPhase('refus'); setMsg(pair('Le gestionnaire de DSH n’est pas disponible sur cette version.', 'DSH’s manager is not available on this version.')); return }
+          if (typeof mgr.inspect !== 'function') { setInfo({ spec: s.spec }); setPhase('pret'); return }
+          setPhase('verifie'); setMsg(null)
+          let r = null
+          // DSH's page-side client checks the argument count: the options object is passed even when empty.
+          try { r = await mgr.inspect(s.spec, {}) } catch (e) { r = null; console.warn('[kybernos-hub] DSH could not inspect a plugin spec:', e) }
+          const v = r !== null && typeof r === 'object' && r.ok === true && r.value !== undefined ? r.value : r
+          const refus = refusInspection(v)
+          if (refus !== null) { setPhase('refus'); setMsg(refus); return }
+          setInfo({ ...v, spec: s.spec }); setPhase('pret')
+        }
+        React.useEffect(() => { if (depart) verifier(depart) }, [])
+        const installer = async () => {
+          setPhase('installe'); setMsg(null)
+          const id = 'kb-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8)
+          requete.current = id
+          let r = null
+          try { r = await mgr.installBundle(info.spec, { requestId: id }) } catch (e) { r = null }
+          const issue = issueGestionnaire(r)
+          if (!issue.ok) { try { console.warn('[kybernos-hub] DSH did not install a plugin: ' + JSON.stringify(r).slice(0, 800)) } catch (e2) { /* nothing to log */ } setPhase('echec'); setMsg(issue.raison); return }
+          const nom = r !== null && typeof r === 'object' ? ((r.value || r).bundle || null) : null
+          await rechargerLe()
+          setPhase('fini')
+          if (issue.restart) relance(nom || info.spec)
+          setInfo((i) => ({ ...i, nom }))
+        }
+        const annuler = async () => { try { if (requete.current !== null && typeof mgr.cancelInstall === 'function') await mgr.cancelInstall(requete.current) } catch (e) { /* too late or gone */ } }
+        const importer = async (fichier) => {
+          setMsg(null)
+          if (!fichier) return
+          if (!/\.(tgz|tar\.gz)$/i.test(fichier.name) || fichier.size > 8 * 1024 * 1024) { setPhase('refus'); setMsg(pair('Choisis une archive .tgz de 8 Mo au plus.', 'Choose a .tgz archive of 8 MB or less.')); return }
+          setPhase('verifie')
+          let res = null
+          let rep = null
+          try { res = await fetch('/kybernos-registry/import', { method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/octet-stream', 'x-filename': fichier.name }, body: fichier }); rep = await res.json().catch(() => null) } catch (e) { rep = null }
+          if (rep === null || rep.ok !== true || typeof rep.path !== 'string') {
+            setPhase('refus')
+            setMsg(res !== null && (res.status === 401 || res.status === 403) ? pair('Recharge la page : ta session n’est plus reconnue.', 'Reload the page: your session is no longer recognised.') : pair('Ce fichier n’a pas été accepté. Il doit être une archive .tgz de 8 Mo au plus.', 'This file was not accepted. It should be a .tgz archive of 8 MB or less.'))
+            return
+          }
+          setSaisie(rep.path); await verifier(rep.path)
+        }
+        const titre = brouillon ? kt('Installer le brouillon « ', 'Install the draft “') + brouillon.title + kt(' » ?', '”?') : mode === 'file' ? kt('Ajouter depuis un fichier ou un dossier', 'Add from a file or a folder') : kt('Ajouter depuis GitHub ou npm', 'Add from GitHub or npm')
+        const occupe = phase === 'verifie' || phase === 'installe'
+        const champ = brouillon ? null : h('div', { className: 'kbsu-keyrow' },
+          h('input', { type: 'text', value: saisie, 'data-kb': 'plugins-spec', autoComplete: 'off', spellCheck: false, 'aria-label': mode === 'file' ? kt('Chemin d’un dossier', 'Folder path') : kt('Paquet ou adresse', 'Package or address'),
+            placeholder: mode === 'file' ? '/Users/…/mon-plugin' : 'github:owner/repo · kybernos-plugin-…', disabled: occupe || phase === 'fini',
+            onChange: (ev) => { setSaisie(ev.target.value); if (phase !== 'repos') { setPhase('repos'); setInfo(null); setMsg(null) } },
+            onKeyDown: (ev) => { if (ev.key === 'Enter' && !occupe) verifier(saisie) } }),
+          h('button', { type: 'button', className: 'kbsu-btn sm', 'data-kb': 'plugins-spec-check', disabled: occupe || phase === 'fini', onClick: () => verifier(saisie) }, kt('Vérifier', 'Check')))
+        const fichier = mode !== 'file' || brouillon ? null : h('div', { className: 'kbsu-drop' },
+          h('p', null, kt('Dépose une archive .tgz (8 Mo au plus), ou ', 'Drop a .tgz archive (8 MB at most), or ')),
+          h('label', { className: 'kbsu-btn sm ghost' }, kt('Choisir un fichier…', 'Choose a file…'), h('input', { type: 'file', accept: '.tgz,.tar.gz,application/gzip', 'data-kb': 'plugins-file', style: { display: 'none' }, disabled: occupe, onChange: (ev) => { const f = ev.target.files && ev.target.files[0]; ev.target.value = ''; importer(f) } })))
+        const carte = info === null ? null : h('div', { className: 'kbsu-banner soft', role: 'status', 'data-kb': 'plugins-inspected' },
+          h('strong', null, info.name ? info.name + (info.version ? ' ' + info.version : '') : (brouillon ? brouillon.title : info.spec)),
+          info.description ? h('span', null, info.description) : null,
+          h('span', null, kt('DSH l’installera comme bundle', 'DSH will install it as a bundle') + (info.host ? kt(', depuis ', ', from ') + info.host : '') + '.'))
+        return h(Cadre, { titre, fermer: occupe ? () => {} : fermer },
+          brouillon ? h('p', { className: 'kbsu-st' }, kt('Fait avec l’IA dans le dossier de brouillons de cet ordinateur. Local : Kybernos ne le met jamais à jour.', 'Made with AI in this computer’s drafts folder. Local: Kybernos never updates it.'), ' ', brouillon.description) : h('p', { className: 'kbsu-st' }, mode === 'file' ? kt('Une archive faite avec npm pack, ou le chemin complet d’un dossier de cet ordinateur.', 'An archive made with npm pack, or the full path of a folder on this computer.') : kt('Un nom de paquet ou une adresse. Kybernos demande à DSH ce que c’est avant d’installer quoi que ce soit.', 'A package name or an address. Kybernos asks DSH what it is before anything is installed.')),
+          fichier, champ,
+          phase === 'verifie' ? h('p', { className: 'kbsu-st' }, ic('refresh', 'spin'), kt('Vérification…', 'Checking…')) : null,
+          carte,
+          msg !== null ? h('div', { className: 'kbsu-banner', role: 'alert', 'data-kb': 'plugins-install-error' }, h('span', null, T(msg))) : null,
+          phase === 'pret' ? h('div', { className: 'kbsu-banner', role: 'status' }, h('strong', null, ic('alert'), kt('N’installe que ce en quoi tu as confiance.', 'Install only what you trust.')),
+            h('span', null, kt('DSH l’installe avec tes droits. Un plugin de données a un patch vide : DSH ne charge aucun code, et Kybernos te dit ce qu’il apporte avant qu’il serve.', 'DSH installs it with your permissions. A data plugin has an empty patch: DSH loads no code, and Kybernos tells you what it brings before it is used.'))) : null,
+          phase === 'installe' ? h('p', { className: 'kbsu-st' }, ic('refresh', 'spin'), kt('Installation par DSH…', 'DSH is installing…')) : null,
+          phase === 'fini' ? h('p', { className: 'kbsu-st ok', role: 'status', 'data-kb': 'plugins-installed' }, ic('check'), kt('Installé. Il apparaît dans Plugins ; s’il apporte des instructions, il attend ton accord.', 'Installed. It is listed in Plugins; if it brings instructions, it waits for your OK.')) : null,
+          Pied(
+            phase === 'installe' ? h('button', { type: 'button', className: 'kbsu-btn ghost', onClick: annuler }, kt('Annuler l’installation', 'Cancel the install')) : h('button', { type: 'button', className: 'kbsu-btn ghost', onClick: fermer }, phase === 'fini' ? kt('Fermer', 'Close') : kt('Annuler', 'Cancel')),
+            (phase === 'pret' || phase === 'echec') && info !== null && info.spec ? h('button', { type: 'button', className: 'kbsu-btn accent', 'data-kb': 'plugins-install-go', onClick: installer }, phase === 'echec' ? kt('Réessayer', 'Try again') : kt('Installer avec DSH', 'Install with DSH')) : null,
+            phase === 'fini' && info !== null && info.nom ? h('button', { type: 'button', className: 'kbsu-btn accent', 'data-kb': 'plugins-open-installed', onClick: () => ouvrirPlugin(info.nom) }, kt('Ouvrir sa page', 'Open its page')) : null,
+            brouillon && !brouillon.ok && phase === 'repos' ? h('button', { type: 'button', className: 'kbsu-btn accent', onClick: () => ouvrirDlg({ type: 'ia', brouillon }) }, kt('Demander à l’IA de le corriger', 'Ask the AI to fix it')) : null))
+      }
+
+      // A draft that cannot be read yet: the faults, and a way to send them back to the AI
+      const DlgBrouillon = (props) => {
+        const d = props.d
+        if (d.ok) return h(DlgInstall, { ...props, mode: 'file', depart: d.path, brouillon: d })
+        return h(Cadre, { titre: kt('Le brouillon « ', 'The draft “') + d.title + kt(' » est à corriger', '” needs a fix'), fermer: props.fermer },
+          h('p', { className: 'kbsu-st' }, kt('Kybernos l’a lu : il n’est pas encore valide. Rien n’est installé.', 'Kybernos read it: it is not valid yet. Nothing is installed.')),
+          h('div', { className: 'kbsu-banner', role: 'status', 'data-kb': 'plugins-draft-errors' }, d.errors.slice(0, 8).map((x, i) => h('span', { key: i }, x))),
+          Pied(h('button', { type: 'button', className: 'kbsu-btn ghost', onClick: props.fermer }, kt('Fermer', 'Close')),
+            h('button', { type: 'button', className: 'kbsu-btn accent', 'data-kb': 'plugins-draft-fix', onClick: () => props.ouvrirDlg({ type: 'ia', brouillon: d }) }, kt('Demander à l’IA de le corriger', 'Ask the AI to fix it'))))
+      }
+
+      // « Create with AI »: a chat with the plugin-creator skill, the first message already typed
+      const DlgIA = ({ brouillon, fermer }) => {
+        const [secours, setSecours] = React.useState(false)
+        const texte = brouillon ? promptBrouillon(brouillon, lang() === 'fr') : promptCreation(lang() === 'fr')
+        const ouvrir = () => {
+          let ok = false
+          try { const o = window.__KB_OPEN__; ok = o !== undefined && o !== null && typeof o.chat === 'function' && o.chat(texte) === true } catch (e) { ok = false }
+          if (!ok) { setSecours(true); return }
+          // The chat is open behind Settings: close the dialog, then Settings the way its own Back button does.
+          fermer()
+          setTimeout(() => { try { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })) } catch (e) { /* no document */ } }, 60)
+        }
+        return h(Cadre, { titre: brouillon ? kt('Corriger « ', 'Fix “') + brouillon.title + kt(' » avec l’IA', '” with AI') : kt('Créer un plugin avec l’IA', 'Create a plugin with AI'), fermer },
+          h('p', { className: 'kbsu-st' }, kt('Une conversation s’ouvre avec la compétence ', 'A chat opens with the '), h('b', null, 'plugin-creator'), kt('. Dis-lui ce que tu veux : un domaine de travail, des compétences, des objectifs.', ' skill. Tell it what you want: a field of work, skills, goals.')),
+          h('div', { className: 'kbsu-li' }, h('span', null, kt('Elle écrit un plugin de données simples', 'It writes a plain-data plugin')), h('span', { className: 'kbsu-m' }, kt('aucun code', 'no code'))),
+          h('div', { className: 'kbsu-li' }, h('span', null, kt('Elle l’enregistre comme brouillon', 'It saves it as a draft')), h('span', { className: 'kbsu-m' }, kt('rien n’est installé', 'nothing is installed'))),
+          h('div', { className: 'kbsu-li' }, h('span', null, kt('Tu le lis, puis tu l’installes', 'You read it, then install it')), h('span', { className: 'kbsu-m' }, kt('depuis « Brouillons » ici', 'from “Drafts” here'))),
+          secours ? h('div', { className: 'kbsu-banner', role: 'status', 'data-kb': 'plugins-ia-secours' }, h('span', null, kt('Le chat ne s’ouvre pas d’ici. Colle ce message dans une nouvelle conversation :', 'The chat does not open from here. Paste this message into a new conversation:')), h('textarea', { readOnly: true, rows: 4, value: texte, onFocus: (ev) => ev.target.select(), 'aria-label': kt('Message à coller', 'Message to paste') })) : null,
+          Pied(h('button', { type: 'button', className: 'kbsu-btn ghost', onClick: fermer }, kt('Annuler', 'Cancel')),
+            secours ? null : h('button', { type: 'button', className: 'kbsu-btn accent', 'data-kb': 'plugins-ia-go', onClick: ouvrir }, kt('Ouvrir la conversation', 'Open the chat'))))
+      }
+
+      // « Read and accept »: what the plugin brings, in full, before it reaches an agent
+      const DlgLecture = ({ id, registre, fermer, rechargerLe }) => {
+        const p = registre.plugins.find((x) => x.id === id)
+        const [etat, setEtat] = React.useState({ phase: 'charge', sections: [] })
+        const [occupe, setOccupe] = React.useState(false)
+        const [msg, setMsg] = React.useState('')
+        React.useEffect(() => {
+          let fini = false
+          lireJson('/kybernos-registry/preview?id=' + encodeURIComponent(id)).then((r) => {
+            if (fini) return
+            if (r === null || r.ok !== true) setEtat({ phase: 'erreur', sections: [] })
+            else setEtat({ phase: 'ok', sections: lecturePlugin(r.preview, codeLangue()), refuses: r.preview.reduce((a, pt) => a.concat(pt.rejected || []), []) })
+          })
+          return () => { fini = true }
+        }, [id])
+        const accepter = async () => {
+          setOccupe(true); setMsg('')
+          const r = await post('/kybernos-registry/consent', { id, accepted: true })
+          setOccupe(false)
+          if (r.ok !== true) { setMsg(kt('Impossible d’enregistrer ton accord. Recharge la page et réessaie.', 'Could not save your OK. Reload the page and try again.')); return }
+          await rechargerLe(); fermer()
+        }
+        const texteDe = (s) => h('section', { key: s.file, className: 'kbsu-read', 'data-kb': 'plugins-read-section' },
+          h('h6', null, s.titre, s.accroche ? h('small', null, ' · ' + s.accroche) : null),
+          s.objectifs.map((g, i) => h('div', { key: i, className: 'kbsu-goal' },
+            h('b', null, g.titre), g.desc ? h('p', null, g.desc) : null,
+            g.starter ? h('p', { className: 'kbsu-st' }, kt('Première question : ', 'First question: ') + g.starter) : null,
+            g.skills.length > 0 ? h('p', { className: 'kbsu-st' }, kt('Compétences nommées : ', 'Skills it names: ') + g.skills.map((x) => x.nom + ' (' + x.source + ')').join(', ')) : null,
+            g.teams.length > 0 ? h('p', { className: 'kbsu-st' }, kt('Équipes d’agents : ', 'Agent teams: ') + g.teams.join(', ')) : null,
+            g.connecteurs.length > 0 ? h('p', { className: 'kbsu-st' }, kt('Connecteurs suggérés (tu les connectes toi-même) : ', 'Suggested connectors (you connect each yourself): ') + g.connecteurs.join(', ')) : null,
+            g.automations.map((a, j) => h('div', { key: j }, h('p', { className: 'kbsu-st' }, kt('Automatisation créée désactivée : ', 'Automation, created switched off: ') + a.nom + ' · ' + a.cron), h('pre', { className: 'kbsu-pre' }, a.prompt))),
+            g.bientot.length > 0 ? h('p', { className: 'kbsu-st' }, kt('Annoncé, pas encore disponible : ', 'Planned, not available yet: ') + g.bientot.join(' · ')) : null)),
+          h('details', null, h('summary', null, kt('Voir le fichier tel quel', 'Show the file as it is')), h('pre', { className: 'kbsu-pre' }, s.brut)))
+        return h(Cadre, { titre: kt('À lire avant que tes agents le suivent', 'Read before your agents follow it'), fermer, large: true },
+          h('p', { className: 'kbsu-st' }, (p ? p.name + ' · ' : '') + kt('Ce texte est ce que tes agents suivront. Rien ne leur parvient avant ton accord.', 'This text is what your agents will follow. Nothing reaches them before you say OK.')),
+          etat.phase === 'charge' ? h('p', { className: 'kbsu-st' }, ic('refresh', 'spin'), kt('Lecture…', 'Reading…')) : null,
+          etat.phase === 'erreur' ? h('div', { className: 'kbsu-banner', role: 'alert' }, h('span', null, kt('Kybernos n’arrive pas à lire ce plugin.', 'Kybernos cannot read this plugin.'))) : null,
+          etat.phase === 'ok' && etat.sections.length === 0 ? h('p', { className: 'kbsu-st' }, kt('Rien à lire : aucun fichier valide.', 'Nothing to read: no valid file.')) : null,
+          etat.phase === 'ok' ? etat.sections.map(texteDe) : null,
+          etat.phase === 'ok' && etat.refuses.length > 0 ? h('div', { className: 'kbsu-banner', role: 'status' }, h('strong', null, ic('alert'), kt('Fichiers laissés de côté', 'Files left out')), etat.refuses.map((r) => h('span', { key: r.file }, h('code', null, r.file), ' ', r.errors.slice(0, 2).join(' · ')))) : null,
+          msg !== '' ? h('div', { className: 'kbsu-banner', role: 'alert' }, h('span', null, msg)) : null,
+          Pied(h('button', { type: 'button', className: 'kbsu-btn ghost', onClick: fermer }, kt('Fermer', 'Close')),
+            h('button', { type: 'button', className: 'kbsu-btn accent', 'data-kb': 'plugins-accept', disabled: occupe || etat.phase !== 'ok' || etat.sections.length === 0, onClick: accepter }, kt('Accepter et utiliser', 'Accept and use'))))
+      }
+
+      const Dialogues = (props) => {
+        const dlg = props.dlg
+        if (dlg === null) return null
+        const commun = { ...props, mgr: props.mgr }
+        if (dlg.type === 'ajout') return h(DlgAjout, commun)
+        if (dlg.type === 'spec') return h(DlgInstall, { ...commun, mode: dlg.mode })
+        if (dlg.type === 'brouillon') return h(DlgBrouillon, { ...commun, d: dlg.d })
+        if (dlg.type === 'ia') return h(DlgIA, { ...commun, brouillon: dlg.brouillon })
+        if (dlg.type === 'lecture') return h(DlgLecture, { ...commun, id: dlg.id })
+        return null
+      }
+
+      return { Liste, Fiche, Dialogues }
+    }
+
+    const construirePanneau = (React, scope, ctx, ReactDOM) => {
       const h = React.createElement
       const ic = (nom, extra) => h('svg', { className: 'i' + (extra ? ' ' + extra : ''), viewBox: '0 0 24 24', 'aria-hidden': 'true' }, h('path', { d: ICONES[nom] || ICONES.box }))
       // The module's artwork: its glyph on a tile coloured by its family. `taille` = '' | 'mid' | 'big'.
@@ -811,8 +1460,11 @@ window.__ModuleLoader__.load({
       const ouvrirReglages = (id) => { const c = celluleReglages(id); if (c !== null) { try { c.click() } catch (e) { /* the app's markup moved: nothing to open */ } } }
       const lireJson = (url) => fetch(url, { headers: { accept: 'application/json' } }).then((r) => (r.ok ? r.json() : null)).catch(() => null)
 
+      let Plugins = null
+      try { Plugins = construirePlugins(React, { ic, artwork, lireJson, ReactDOM: ReactDOM || null }) } catch (e) { Plugins = null } // the segment is optional: a failure here must not take the Suite page with it
       const Panneau = () => {
-        const [charge, setCharge] = React.useState({ etat: 'loading', suite: null, bundles: null, maint: null })
+        const [charge, setCharge] = React.useState({ etat: 'loading', suite: null, bundles: null, maint: null, registre: null, brouillons: [] })
+        const [dlg, setDlg] = React.useState(null)
         const [filtreChoisi, setFiltre] = React.useState('all')
         const [famille, setFamille] = React.useState('')
         const [detail, setDetail] = React.useState(null)
@@ -858,14 +1510,19 @@ window.__ModuleLoader__.load({
 
         const recharger = React.useCallback(async () => {
           const mgr = gestionnaire()
-          const [suite, maint, rep] = await Promise.all([
+          const [suite, maint, rep, reg, brou] = await Promise.all([
             lireJson('/kybernos-hub/suite'),
             lireJson('/kybernos-maintenance/state'),
-            mgr !== null ? Promise.resolve().then(() => mgr.listBundles()).catch(() => null) : Promise.resolve(null)
+            mgr !== null ? Promise.resolve().then(() => mgr.listBundles()).catch(() => null) : Promise.resolve(null),
+            // The plugin registry may be absent (an install that predates it): the Plugins segment then simply is not there. `fresh` reads the profile again now.
+            lireJson('/kybernos-registry/state?fresh=1'),
+            lireJson('/kybernos-registry/drafts?fresh=1')
           ])
           const bundles = deballer(rep)
-          if (suite === null || suite.ok !== true) { setCharge({ etat: 'error', suite: null, bundles, maint }); return }
-          setCharge({ etat: 'ok', suite, bundles, maint })
+          const registre = reg !== null && reg.ok === true && Array.isArray(reg.plugins) && Array.isArray(reg.points) ? reg : null
+          const brouillons = registre !== null && brou !== null && brou.ok === true && Array.isArray(brou.drafts) ? brou.drafts : []
+          if (suite === null || suite.ok !== true) { setCharge({ etat: 'error', suite: null, bundles, maint, registre: null, brouillons: [] }); return }
+          setCharge({ etat: 'ok', suite, bundles, maint, registre, brouillons })
         }, [])
 
         React.useEffect(() => {
@@ -904,8 +1561,8 @@ window.__ModuleLoader__.load({
           return h('div', { className: 'kbsu' },
             h('div', { className: 'kbsu-head' }, h('div', null, h('h4', null, 'Kybernos Suite'))),
             h('div', { className: 'kbsu-banner', role: 'alert' }, h('strong', null, ic('alert'), kt('Le catalogue de la suite est injoignable.', 'The suite catalogue cannot be reached.')),
-              h('span', null, kt('Le serveur DSH ne répond pas sur /kybernos-hub/suite. Relance DSH, ou utilise le gestionnaire de plugins natif de DSH.', 'The DSH server does not answer on /kybernos-hub/suite. Restart DSH, or use DSH’s native plugin manager.'))),
-            h('div', null, h('button', { type: 'button', className: 'kbsu-btn ghost', onClick: () => { setCharge({ etat: 'loading', suite: null, bundles: null, maint: null }); recharger() } }, ic('refresh'), kt('Réessayer', 'Retry'))))
+              h('span', null, kt('Le serveur DSH ne répond pas. Relance DSH, ou utilise le gestionnaire de plugins natif de DSH.', 'The DSH server does not answer. Restart DSH, or use DSH’s native plugin manager.'))),
+            h('div', null, h('button', { type: 'button', className: 'kbsu-btn ghost', onClick: () => { setCharge({ etat: 'loading', suite: null, bundles: null, maint: null, registre: null, brouillons: [] }); recharger() } }, ic('refresh'), kt('Réessayer', 'Retry'))))
         }
 
         const suite = charge.suite
@@ -918,7 +1575,9 @@ window.__ModuleLoader__.load({
         const compat = charge.maint && charge.maint.compat ? charge.maint.compat : null
         const horsZone = compat !== null && compat.horsZone === true
         // A host that predates the featured sheets serves a catalogue with none: Featured would be an empty page, so the panel opens on All.
-        const filtre = filtreChoisi === 'featured' && !modules.some((m) => typeof m.vedette === 'number') ? 'all' : filtreChoisi
+        const registre = Plugins !== null && charge.registre !== undefined ? charge.registre : null
+        const brouillons = Array.isArray(charge.brouillons) ? charge.brouillons : []
+        const filtre = filtreChoisi === 'plugins' ? (registre !== null ? 'plugins' : 'all') : (filtreChoisi === 'featured' && !modules.some((m) => typeof m.vedette === 'number') ? 'all' : filtreChoisi)
         const fullOrder = effectiveOrder(modules, order)
         const custom = isCustomOrder(modules, order)
         const visibles = filtrer({ modules: applyOrder(modules, order), filtre, requete, installes, famille })
@@ -926,6 +1585,13 @@ window.__ModuleLoader__.load({
         const nbVedettes = modules.filter((m) => typeof m.vedette === 'number').length
         const nbMaj = modules.filter((m) => { const b = installes.get(m.nom); return b !== undefined && typeof b.version === 'string' && comparerVersions(b.version, m.version) < 0 }).length
         const nbEnAttente = Object.keys(enAttente).length
+        const idPlugin = typeof detail === 'string' && detail.indexOf('plugin:') === 0 ? detail.slice(7) : null
+        const enPlugins = filtre === 'plugins'
+        const cptPlugins = registre !== null ? compterPlugins(registre.plugins, installes) : null
+        const ouvrirPlugin = (id) => { setDetail('plugin:' + id) }
+        // A package DSH has just installed: its page, once the registry has read it.
+        const ouvrirPluginParPaquet = (nom) => { const q = registre !== null ? registre.plugins.find((x) => x.package === nom) : undefined; setDlg(null); if (q !== undefined) setDetail('plugin:' + q.id); else setFiltre('plugins') }
+        const relancePlugin = (cle) => setEnAttente((a) => ({ ...a, ['plugin:' + cle]: true }))
 
         const note = (id, texte) => setNotes((n) => ({ ...n, [id]: texte }))
         const occuper = (id, v) => setOccupes((o) => { const c = { ...o }; if (v) c[id] = true; else delete c[id]; return c })
@@ -1076,7 +1742,7 @@ window.__ModuleLoader__.load({
                 h('dt', null, kt('Ton DSH', 'Your DSH')), h('dd', null, dsh),
                 h('dt', null, kt('Zone testée', 'Tested range')), h('dd', null, compatLue !== null ? (compatLue.min || '?') + kt(' à ', ' to ') + (compatLue.max || '?') : kt('inconnue', 'unknown')),
                 h('dt', null, kt('Verdict', 'Verdict')), h('dd', null, verdict === 'ok' ? h('span', { className: 'kbsu-chip ok' }, kt('Compatible', 'Works with your DSH')) : verdict === 'hors' ? chipCompat(true) : kt('Inconnu', 'Unknown'))),
-              h('p', null, kt('Cette zone est celle de toute la suite : elle vient de dsh-compat.json, le contrat que le testeur de compatibilité applique à chaque installation et mise à jour.', 'This range is the whole suite’s: it comes from dsh-compat.json, the contract the compatibility check applies to every install and update.')))
+              h('p', null, kt('Cette zone est celle de toute la suite : elle vient du contrat de compatibilité que le testeur applique à chaque installation et mise à jour.', 'This range is the whole suite’s: it comes from the compatibility contract the check applies to every install and update.')))
             : h('div', { className: 'kbsu-body', style: { '--c': p.fam.couleur } },
               h('p', null, texte),
               Array.isArray(m.points) && m.points.length > 0 ? h('div', null, h('h5', { style: { marginBottom: 10 } }, kt('Ce que ça fait', 'What it does')), h('ul', { className: 'kbsu-ticks' }, m.points.map((pt, i) => h('li', { key: i }, kt(pt.fr, pt.en))))) : null,
@@ -1190,6 +1856,7 @@ window.__ModuleLoader__.load({
             h('div', { className: 'kbsu-headr' },
               h('span', { className: 'kbsu-right' },
                 typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-hub' }) : null,
+                enPlugins ? h('button', { type: 'button', className: 'kbsu-btn accent', 'data-kb': 'plugins-add', onClick: () => setDlg({ type: 'ajout' }) }, ic('plug'), kt('Ajouter un plugin', 'Add a plugin'), h('span', { 'aria-hidden': 'true', style: { opacity: 0.6 } }, '▾')) : null,
                 ouvrirGestionnaire !== null ? h('button', { type: 'button', className: 'kbsu-btn ghost', 'data-kb': 'suite-native', onClick: ouvrirGestionnaire }, ic('plug'), kt('Gestionnaire natif', 'Native manager')) : null,
                 h('button', { type: 'button', className: 'kbsu-btn', 'data-kb': 'suite-verifier', disabled: verifie, onClick: verifier }, ic('refresh', verifie ? 'spin' : ''), verifie ? kt('Vérification…', 'Checking…') : kt('Rechercher des mises à jour', 'Check for updates'))),
               h('div', { className: 'kbsu-meta' },
@@ -1217,21 +1884,26 @@ window.__ModuleLoader__.load({
           mgr === null ? h('div', { className: 'kbsu-banner', role: 'status' }, h('strong', null, ic('alert'), kt('Gestionnaire de plugins indisponible.', 'Plugin manager unavailable.')), h('span', null, kt('Le catalogue s’affiche, mais l’état installé et les interrupteurs ne sont pas disponibles sur cette version de DSH.', 'The catalogue shows, but installed state and switches are unavailable on this DSH version.'))) : null,
           detail !== null ? null : h('div', { className: 'kbsu-bar' },
             h('div', { className: 'kbsu-seg', role: 'group', 'aria-label': kt('Filtre', 'Filter') },
-              segment('featured', kt('À la une', 'Featured'), nbVedettes), segment('all', kt('Tous', 'All'), modules.length), segment('installed', kt('Installés', 'Installed'), nbInstalles), segment('available', kt('Disponibles', 'Available'), modules.length - nbInstalles), segment('updates', kt('Mises à jour', 'Updates'), nbMaj)),
-            h('label', { className: 'kbsu-search' }, ic('search'), h('input', { type: 'search', value: requete, placeholder: kt('Rechercher un module…', 'Search a module…'), 'aria-label': kt('Rechercher un module', 'Search a module'), onChange: (e) => { setRequete(e.target.value); setResume('') } })),
+              segment('featured', kt('À la une', 'Featured'), nbVedettes), segment('all', kt('Tous', 'All'), modules.length), segment('installed', kt('Installés', 'Installed'), nbInstalles), segment('available', kt('Disponibles', 'Available'), modules.length - nbInstalles), segment('updates', kt('Mises à jour', 'Updates'), nbMaj), registre !== null ? segment('plugins', 'Plugins', registre.plugins.length) : null),
+            h('label', { className: 'kbsu-search' }, ic('search'), h('input', { type: 'search', value: requete, placeholder: enPlugins ? kt('Rechercher dans tes plugins…', 'Search your plugins…') : kt('Rechercher un module…', 'Search a module…'), 'aria-label': enPlugins ? kt('Rechercher dans tes plugins', 'Search your plugins') : kt('Rechercher un module', 'Search a module'), onChange: (e) => { setRequete(e.target.value); setResume('') } })),
             h('span', { className: 'kbsu-right' },
               filtre === 'featured' ? null : h('div', { className: 'kbsu-seg view', role: 'group', 'aria-label': kt('Affichage', 'View') },
                 viewButton('grid', kt('Vue en grille', 'Grid view'), kt('Grille', 'Grid'), 'grid'), viewButton('list', kt('Vue en liste', 'List view'), kt('Liste', 'List'), 'list')),
-              custom ? h('button', { type: 'button', className: 'kbsu-btn ghost sm', 'data-kb': 'suite-order-reset', onClick: resetOrder }, ic('reset'), kt('Réinitialiser l’ordre', 'Reset order')) : null)),
-          detail !== null ? null : h('div', { className: 'kbsu-fams', role: 'group', 'aria-label': kt('Famille', 'Family') }, familleBtn('', kt('Toutes les familles', 'All families'), null), suite.catalogue.familles.map((f) => familleBtn(f.id, kt(f.fr, f.en), f.couleur))),
-          detail !== null ? null : h('div', { className: 'kbsu-subbar' },
+              custom && !enPlugins ? h('button', { type: 'button', className: 'kbsu-btn ghost sm', 'data-kb': 'suite-order-reset', onClick: resetOrder }, ic('reset'), kt('Réinitialiser l’ordre', 'Reset order')) : null)),
+          detail !== null || enPlugins ? null : h('div', { className: 'kbsu-fams', role: 'group', 'aria-label': kt('Famille', 'Family') }, familleBtn('', kt('Toutes les familles', 'All families'), null), suite.catalogue.familles.map((f) => familleBtn(f.id, kt(f.fr, f.en), f.couleur))),
+          detail !== null ? null : (enPlugins ? h('div', { className: 'kbsu-subbar' },
+            h('div', { className: 'kbsu-summary', role: 'status', 'aria-live': 'polite', 'data-kb': 'plugins-summary' }, cptPlugins.total + (cptPlugins.total === 1 ? kt(' plugin · ', ' plugin · ') : kt(' plugins · ', ' plugins · ')) + cptPlugins.actifs + kt(' actif(s) · faits par d’autres, des données seulement', ' on · made by other people, data only')),
+            h('span', { className: 'kbsu-st' }, kt('Aucun ne peut empêcher Kybernos de démarrer.', 'None of them can stop Kybernos from starting.'))) : h('div', { className: 'kbsu-subbar' },
             h('div', { className: 'kbsu-summary', role: 'status', 'aria-live': 'polite' }, resume || (nbInstalles + kt(' installés · ', ' installed · ') + (modules.length - nbInstalles) + kt(' disponibles', ' available') + (nbMaj > 0 ? ' · ' + nbMaj + kt(' mise(s) à jour', ' update(s)') : ''))),
-            h('span', { className: 'kbsu-st' + (custom && !orderSaved ? ' warn' : ''), 'data-kb': 'suite-order-status' }, orderLine)),
+            h('span', { className: 'kbsu-st' + (custom && !orderSaved ? ' warn' : ''), 'data-kb': 'suite-order-status' }, orderLine))),
           h('div', { className: 'kbsu-sr', role: 'status', 'aria-live': 'polite' }, announce),
-          detail !== null ? null : h('div', { style: { display: 'flex', flexDirection: 'column', gap: 22 } }, view === 'list' && filtre !== 'featured'
+          detail === null && enPlugins ? h(Plugins.Liste, { registre, brouillons, installes, requete, vue: view, mgr, ouvrir: ouvrirPlugin, ouvrirDlg: setDlg, rechargerLe: recharger, relance: relancePlugin }) : null,
+          detail !== null || enPlugins ? null : h('div', { style: { display: 'flex', flexDirection: 'column', gap: 22 } }, view === 'list' && filtre !== 'featured'
             ? (visibles.length > 0 ? h('ul', { className: 'kbsu-list', role: 'list', 'data-kb': 'suite-list' }, visibles.map((m, i) => row(m, i, visibles.length))) : aucun)
             : (visibles.length > 0 ? h('div', { className: filtre === 'featured' ? 'kbsu-fgrid' : 'kbsu-grid', 'data-kb': 'suite-grid' }, visibles.map((m) => carte(m, filtre === 'featured'))) : aucun)),
-          detail !== null ? (modules.filter((m) => m.id === detail)[0] !== undefined ? fiche(modules.filter((m) => m.id === detail)[0]) : null) : null)
+          detail !== null && idPlugin !== null && registre !== null ? h(Plugins.Fiche, { id: idPlugin, registre, installes, mgr, retour: () => setDetail(null), ouvrirDlg: setDlg, rechargerLe: recharger, relance: relancePlugin }) : null,
+          detail !== null && idPlugin === null ? (modules.filter((m) => m.id === detail)[0] !== undefined ? fiche(modules.filter((m) => m.id === detail)[0]) : null) : null,
+          Plugins !== null && dlg !== null && registre !== null ? h(Plugins.Dialogues, { dlg, fermer: () => setDlg(null), mgr, registre, rechargerLe: recharger, relance: relancePlugin, ouvrirPlugin: ouvrirPluginParPaquet, ouvrirDlg: setDlg }) : null)
       }
       return Panneau
     }
@@ -1269,6 +1941,7 @@ window.__ModuleLoader__.load({
         const [mod, setMod] = React.useState(null)
         const [side, setSide] = React.useState('end') // which edge of the button the card hangs from, so it stays on screen
         const wrap = React.useRef(null)
+        const dockX = React.useRef(0) // where a docked card starts, measured when it opens or when the window changes
         React.useEffect(() => {
           let off = false
           lireAides().then((map) => { if (!off) setMod(map[id] !== undefined ? map[id] : null) })
@@ -1278,18 +1951,32 @@ window.__ModuleLoader__.load({
           if (!open) return undefined
           // The Settings dialog closes on Escape with a capture listener of its own: this one runs first, in capture, and only
           // when the card is open, so Escape closes the card and leaves the page behind it alone.
-          if (wrap.current !== null) {
+          // Where the card goes: docked in the margin beside the page (wide window, the button of a page's row), else hanging from the button. Measured again when the
+          // window is resized, so the card moves between the two as the room changes.
+          const place = () => {
+            if (wrap.current === null) return
             const r = wrap.current.getBoundingClientRect()
             const w = Math.min(420, window.innerWidth - 32)
             const rtl = document.documentElement.dir === 'rtl'
-            // Hang from the end edge (toward the right) unless the card would run out of the window, or of the page that clips it, there.
-            setSide(coteDeLaCarte(r, boiteVisible(wrap.current), w, rtl))
+            const box = boiteVisible(wrap.current)
+            const col = colonneDeLaPage(wrap.current)
+            if (carteAmarree(col, box, rtl, window.innerWidth)) {
+              // Distance from the button's start edge to the card's start edge: the card stands 28 px beyond the column, whatever the place of the button in it.
+              dockX.current = Math.round(rtl ? (r.right - col.left) + CARTE_AMARREE.ecart : (col.right - r.left) + CARTE_AMARREE.ecart)
+              setSide('dock')
+            } else {
+              // Hang from the end edge (toward the right) unless the card would run out of the window, or of the page that clips it, there.
+              setSide(coteDeLaCarte(r, box, w, rtl))
+            }
           }
+          place()
           const esc = (e) => { if (e.key === 'Escape') { e.stopPropagation(); setOpen(false) } }
-          const away = (e) => { if (wrap.current !== null && !wrap.current.contains(e.target)) setOpen(false) }
+          // A docked card stays while the person uses the page it explains (that is its point): a click outside closes the hanging card only. Esc, ✕ and the button close both.
+          const away = (e) => { if (wrap.current !== null && !wrap.current.contains(e.target) && wrap.current.querySelector('.kbhp-pop.dock') === null) setOpen(false) }
           window.addEventListener('keydown', esc, true)
+          window.addEventListener('resize', place)
           document.addEventListener('mousedown', away)
-          return () => { window.removeEventListener('keydown', esc, true); document.removeEventListener('mousedown', away) }
+          return () => { window.removeEventListener('keydown', esc, true); window.removeEventListener('resize', place); document.removeEventListener('mousedown', away) }
         }, [open])
         if (mod === null || mod.aide === undefined || mod.aide === null) return null
         const card = page === undefined ? null : (mod.aide.pages != null && mod.aide.pages[page] != null ? mod.aide.pages[page] : undefined)
@@ -1306,7 +1993,7 @@ window.__ModuleLoader__.load({
         return h('span', { className: 'kbhp-wrap', ref: wrap, 'data-kb': 'help', 'data-id': id, 'data-page': page },
           h('button', { type: 'button', className: 'kbhp-btn', 'data-kb': 'help-button', 'data-id': id, 'data-page': page, 'aria-expanded': open ? 'true' : 'false', 'aria-controls': 'kbhp-' + key, title: kt('Comment ça marche', 'How it works'), onClick: () => setOpen(!open) },
             h('span', { className: 'kbhp-q', 'aria-hidden': 'true' }, '?'), kt('Comment ça marche', 'How it works')),
-          open ? h('section', { className: 'kbhp-pop' + (side === 'start' ? ' start' : ''), id: 'kbhp-' + key, role: 'dialog', 'aria-label': titre + ' — ' + kt('Comment ça marche', 'How it works'), 'data-kb': 'help-panel' },
+          open ? h('section', { className: 'kbhp-pop' + (side === 'start' ? ' start' : '') + (side === 'dock' ? ' dock' : ''), style: side === 'dock' ? { insetInlineStart: dockX.current + 'px' } : undefined, id: 'kbhp-' + key, role: 'dialog', 'aria-label': titre + ' — ' + kt('Comment ça marche', 'How it works'), 'data-kb': 'help-panel' },
             h('button', { type: 'button', className: 'kbhp-x', 'aria-label': kt('Fermer', 'Close'), onClick: () => setOpen(false) }, '✕'),
             h('h4', null, titre),
             h('p', null, kt(a.what.fr, a.what.en)),
@@ -1387,7 +2074,7 @@ window.__ModuleLoader__.load({
         if (host === null) return null
         const c = nativeContent(host.key)
         if (c === null) return null
-        return ReactDOM.createPortal(h('div', { className: 'kbni', 'data-kb': 'native-intro' }, h('div', { className: 'kbni-row' }, h(api.Help, c.help)), h(api.Intro, c.intro)), host.el)
+        return ReactDOM.createPortal(h('div', { className: 'kbni', 'data-kb': 'native-intro' }, h('div', { className: 'kbni-row' }, h(api.Help, c.help)), c.intro !== undefined && c.intro !== null ? h(api.Intro, c.intro) : null), host.el)
       }
     }
 
@@ -1400,10 +2087,11 @@ window.__ModuleLoader__.load({
         let aide = null
         try { aide = construireAide(React); window.__KB_HELP__ = aide } catch (e) { /* the pages then simply have no help button */ }
         ctx.effect(() => { const s = document.createElement('style'); s.dataset.plugin = '@local/kybernos-hub'; s.textContent = CSS; document.head.appendChild(s); return () => s.remove() }, 'kybernos-hub: suite styles')
-        const Panneau = construirePanneau(React, scope, ctx)
+        let ReactDOM = null
+        try { ReactDOM = typeof require === 'function' ? require('react-dom') : null } catch (e) { ReactDOM = null }
+        const Panneau = construirePanneau(React, scope, ctx, ReactDOM)
         // The animation on the pages of DSH itself (Agent presets): a portal into a node made on the page, from an always-mounted overlay.
         try {
-          const ReactDOM = typeof require === 'function' ? require('react-dom') : null
           if (aide !== null && ReactDOM !== null && typeof ReactDOM.createPortal === 'function') {
             const Natifs = construireNatifs(React, ReactDOM, aide)
             ctx.effect(() => slots.inject('shell.overlay', () => slots.register({ name: 'shell.overlay', id: 'kybernos-hub-native-intro', order: 40 }, Natifs)), 'kybernos-hub: animation on DSH pages')
@@ -1430,6 +2118,6 @@ window.__ModuleLoader__.load({
 
     const demarrer = (ctx) => { apply(ctx); try { appliquerSuite(ctx) } catch (e) { /* optional */ } }
 
-    return { name: NAME, inject: [], apply: demarrer, __test: { lang, kt, pair, messageCatalogue, raisonMiseAJour, messageMiseAJour, ROUTE, ALIVE_AFTER_MS, TICK_MS, lireEchec, comparerVersions, deballer, etatCarte, filtrer, titreDe, libelleInterrupteur, verdictCompat, GLYPHES, ORDER_KEY, VIEW_KEY, parseOrder, effectiveOrder, applyOrder, isCustomOrder, storableOrder, moveTo, moveBy, browserStore, readOrder, writeOrder, readView, writeView, construireAide, construireNatifs, NATIVE_SEL, nativeKeyOf, findNativeHost, nativeContent, coteDeLaCarte, adresseAide, langueDuSite, introKey, introOuverte, INTRO_SEEN_MS } }
+    return { name: NAME, inject: [], apply: demarrer, __test: { carteAmarree, colonneDeLaPage, lang, kt, pair, messageCatalogue, raisonMiseAJour, messageMiseAJour, ROUTE, ALIVE_AFTER_MS, TICK_MS, lireEchec, comparerVersions, deballer, etatCarte, filtrer, titreDe, libelleInterrupteur, verdictCompat, GLYPHES, ORDER_KEY, VIEW_KEY, parseOrder, effectiveOrder, applyOrder, isCustomOrder, storableOrder, moveTo, moveBy, browserStore, readOrder, writeOrder, readView, writeView, POINTS_PLUGIN, genrePlugin, niveauPlugin, niveauAide, etatPlugin, genresPlugins, filtrerPlugins, compterPlugins, permissionsPlugin, ajoutePlugin, texteLu, lecturePlugin, specInstall, refusInspection, issueGestionnaire, promptCreation, promptBrouillon, construirePlugins, construireAide, construireNatifs, NATIVE_SEL, nativeKeyOf, findNativeHost, nativeContent, coteDeLaCarte, adresseAide, langueDuSite, introKey, introOuverte, INTRO_SEEN_MS } }
   }
 })

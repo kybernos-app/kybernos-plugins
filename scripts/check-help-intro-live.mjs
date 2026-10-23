@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // The help that explains and links, in a real GUI: the animated help that opens the first time a page is visited (Skills, Connectors,
-// Remote Control), the one « ? How it works » button on every page, the article link on a card, and the lines that say what Usage,
+// Phone and channels), the one « ? How it works » button on every page, the article link on a card, and the lines that say what Usage,
 // Tools, Workers and Commands are for.
 //
 //   source scripts/sandbox/env.sh && node scripts/check-help-intro-live.mjs [--shots <dir>]
@@ -156,7 +156,7 @@ try {
   await shot('pill-calls')
   await looks('Usage', await goTo('Usage'), pills)
   await looks('Memory & Lessons', await goTo('Memory & Lessons'), pills)
-  await looks('Remote Control', await goTo('Remote Control'), pills)
+  await looks('Phone and channels', await goTo('Phone and channels'), pills)
   await looks('Agent presets', await goTo('Agent presets'), pills)
   await looks('Language', await goTo('Language'), pills)
   await looks('Atlas', await goTo('Atlas'), pills)
@@ -165,16 +165,16 @@ try {
   const shapes = new Set(forms.map((f) => f.split(':')[1]))
   check('the same size, round ends, border and font on all of them (' + forms.length + ' pages)', forms.length >= 15 && shapes.size === 1 && [...shapes][0].startsWith('30/16px/1px/12.5px'), forms)
 
-  // ═══ Remote Control ═══
-  console.log('\n── Remote Control ──')
-  await goTo('Remote Control')
+  // ═══ Phone and channels ═══
+  console.log('\n── Phone and channels ──')
+  await goTo('Phone and channels')
   check('an animated help opens at the first visit', (await poll(() => hasIntro('kybernos-mobile'), 8000)) === true)
   const rt = await introText('kybernos-mobile')
   check('with the words of the screen: the QR, the 4-digit code, Allow', /QR/.test(rt) && /4-digit code/.test(rt) && /Allow/.test(rt), rt)
   await shot('intro-remote-control')
   await press('[data-kb="help-button"][data-id="kybernos-mobile"]')
   const rl = await val(`(() => { const a = document.querySelector('[data-kb="help-panel"] [data-kb="help-link"]'); return a ? a.href : null })()`)
-  check('its card links to the Remote Control article', rl === 'https://help.kybernos.app/en/features/what-is-remote-control/', rl)
+  check('its card links to the help article about the phone link', rl === 'https://help.kybernos.app/en/features/what-is-remote-control/', rl)
   await press('[data-kb="help-button"][data-id="kybernos-mobile"]')
 
   // ═══ Agent presets: a page of DSH itself ═══
@@ -209,8 +209,8 @@ try {
 
   // Reduced motion: no animation at all, and the end of the story is what stays on screen.
   console.log('\n── reduced motion ──')
-  // Back on Remote Control, where the animation was seen once: the card plays it again.
-  await goTo('Remote Control')
+  // Back on Phone and channels, where the animation was seen once: the card plays it again.
+  await goTo('Phone and channels')
   await sleep(800)
   if ((await hasIntro('kybernos-mobile')) !== true) { await press('[data-kb="help-button"][data-id="kybernos-mobile"]'); await press('[data-kb="help-panel"] [data-kb="help-replay"]'); await sleep(500) }
   await page.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] })
@@ -246,11 +246,12 @@ try {
   await shot('intro-commands')
   const cpills = await pills()
   check('Commands: one « ? How it works » button', Array.isArray(cpills) && cpills.length === 1, cpills)
-  const c1 = await val(`(() => { const e = document.querySelector('.kbsl-tabfor'); return e ? e.innerText : null })()`)
-  check('Commands: the slash tab says what a slash command is', c1 !== null && /A slash command is a saved prompt/.test(c1), c1)
+  // The sentence of each tab is its tooltip (the page keeps no permanent line for it).
+  const c1 = await val(`(() => { const e = document.querySelectorAll('.kbsl-tab')[0]; return e ? e.title : null })()`)
+  check('Commands: the slash tab (its tooltip) says what a slash command is', c1 !== null && /A slash command is a saved prompt/.test(c1), c1)
   await press('.kbsl-tabs button:nth-of-type(2)')
   await sleep(500)
-  const c2 = await val(`(() => { const e = document.querySelector('.kbsl-tabfor'); return e ? e.innerText : null })()`)
+  const c2 = await val(`(() => { const e = document.querySelectorAll('.kbsl-tab')[1]; return e ? e.title : null })()`)
   check('…and the Message actions tab says what an action is', c2 !== null && /A message action is a button under each assistant reply/.test(c2), c2)
   await shot('commands')
 
@@ -258,10 +259,10 @@ try {
   console.log('\n── French ──')
   await val(`window.__kbOrig = window.__KB_LANG_RESOLVE__; window.__kbLang = document.documentElement.lang; window.__KB_LANG_RESOLVE__ = () => 'kybernos'; document.documentElement.lang = 'fr'; localStorage.removeItem('kybernos.help.intro.kybernos-mobile')`)
   await goTo('Usage')
-  await goTo('Remote Control')
+  await goTo('Phone and channels')
   await poll(() => hasIntro('kybernos-mobile'), 8000)
   const ft = await introText('kybernos-mobile')
-  check('the Remote Control animation speaks French', /Relier un téléphone en trois étapes/.test(ft) && /Affiche le code/.test(ft) && /Autoriser/.test(ft), ft)
+  check('the Phone and channels animation speaks French', /Relier un téléphone en trois étapes/.test(ft) && /Affiche le code/.test(ft) && /Autoriser/.test(ft), ft)
   await press('[data-kb="help-button"][data-id="kybernos-mobile"]')
   const fl = await val(`(() => { const a = document.querySelector('[data-kb="help-panel"] [data-kb="help-link"]'); return a ? { href: a.href, text: a.innerText.trim() } : null })()`)
   check('the card’s link says « Lire l’article » and goes to the French article', fl !== null && /Lire l’article/.test(fl.text) && fl.href === 'https://help.kybernos.app/fr/features/what-is-remote-control/', fl)

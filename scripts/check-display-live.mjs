@@ -24,7 +24,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { openLivePage, openSettings, waitFor } from './live-page.mjs'
+import { openLivePage, openSettings, waitFor, openThemeAdvanced } from './live-page.mjs'
 
 const args = process.argv.slice(2)
 const argOf = (n, d) => { const i = args.indexOf(n); return i >= 0 && args[i + 1] !== undefined ? args[i + 1] : d }
@@ -491,7 +491,12 @@ async function setScheme(ctx, scheme) {
   await ctx.drawer()
   await ctx.click({ css: '[class*="navCell"]', text: 'Theme' })
   await sleep(1200)
-  const seg = (name) => ctx.click({ css: '.kbth-seg button', text: name })
+  await openThemeAdvanced(ctx.page) // the mode cards and the shipped themes sit in the Advanced editor, folded under the simple view
+  // The mode is set on the Theme page itself, on three cards (the page is already open).
+  const seg = async (name) => {
+    await ctx.click({ css: '.kbth-mode', text: name })
+    await sleep(900)
+  }
   const skin = (name) => ctx.click({ css: '.kbth-skin', text: name })
   if (scheme === 'dark') { await skin('DSH default'); await seg('Dark') }
   else if (scheme === 'light') { await skin('DSH default'); await seg('Light') }
@@ -573,9 +578,9 @@ const SCENARIOS = [
     async run(c) {
       if (!(await openSettings(c.page, { tries: 3 }))) { missing.push({ size: c.size, scheme: c.scheme, scenario: 'settings', why: 'did not open' }); return }
       await c.drawer()
-      // Only the cells a person can see: DSH's own « Models » cell is hidden by the Kybernos « AI Provider & Models » page that replaces it (there is nothing to click).
+      // Only the cells a person can see: DSH's own « Models » cell is hidden by the Kybernos « AI provider and models » page that replaces it (there is nothing to click).
       const readCells = async () => (await c.page.evalJs(`Array.from(document.querySelectorAll('button[class*="navCell"]')).filter((b) => { const r = b.getBoundingClientRect(); return r.width > 4 && r.height > 4 && getComputedStyle(b).visibility === 'visible' }).map((b) => (b.innerText || '').trim())`)).val || []
-      // Plugins retitle some cells a moment after the dialog opens (« Models » becomes « AI Provider & Models »): take the list once it has stopped moving.
+      // Plugins retitle some cells a moment after the dialog opens (« Models » becomes « AI provider and models »): take the list once it has stopped moving.
       let cells = await readCells()
       for (let i = 0; i < 12; i += 1) { await sleep(500); const again = await readCells(); if (JSON.stringify(again) === JSON.stringify(cells)) break; cells = again }
       for (const name of cells) {
@@ -589,6 +594,8 @@ const SCENARIOS = [
           if (alias === undefined || !(await c.click({ css: 'button[class*="navCell"]', text: alias }, { wait: 1200 }))) { missing.push({ size: c.size, scheme: c.scheme, scenario: 'settings.' + slug(name), why: 'the cell « ' + name + ' » was not found again (cells now: ' + now.join(' | ').slice(0, 120) + ')' }); continue }
         }
         await c.audit(slug(name), { wait: 1500 })
+        // The Theme page opens on its simple view: its Advanced editor (the nine tabs) is folded, so it is opened and audited too.
+        if (/^theme$/i.test(name) && (await openThemeAdvanced(c.page))) await c.audit(slug(name) + '.advanced', { wait: 900 })
         // The page's own tabs (role=tab, or the theme page's vertical tabs).
         const tabs = (await c.page.evalJs(`Array.from(document.querySelectorAll('[role="tab"], .kbth-adv-tab')).filter((e) => !e.closest('[class*="navList"]') && e.getBoundingClientRect().width > 4 && getComputedStyle(e).visibility === 'visible').map((e) => (e.innerText || e.getAttribute('aria-label') || '').trim()).filter(Boolean).slice(0, 10)`)).val || []
         for (const t of tabs) { if (await c.click({ css: '[role="tab"], .kbth-adv-tab', text: t }, { quiet: true, wait: 900 })) await c.audit(slug(name) + '.' + slug(t, 18), { wait: 900 }) }
@@ -659,35 +666,31 @@ const SCENARIOS = [
         if (await c.click({ css: '[data-kb="menu-switch"]' }, { patience: 3000 })) await c.audit('switcher', { shot: true })
       }
       await reload(c.page)
-      // The phone panel, in each state the host can answer.
+      // The « Phone and channels » window, in each state the host can answer.
       for (const [name, remote] of [['idle', REMOTE.idle], ['qr', REMOTE.qr], ['verify', REMOTE.verify], ['devices', REMOTE.devices], ['paywall', REMOTE.paywall]]) {
         fake.remote = remote
         await reload(c.page)
         await c.drawer(CARD)
-        // The phone link is the « Remote control » entry of the profile menu (the footer's own phone button is gone). The entry is there only for a plan that
-        // includes the link (kybernos-cloud): for the plan that does not, its absence is what is expected and the paywall is measured in Settings instead.
+        // The phone link and Kaby's messaging apps are the « Phone and channels » entry of the profile menu (the footer's own phone button is gone). The entry is there
+        // whatever the plan says: the window itself says « Not included in your plan » in its left column.
         const opened = await c.click({ css: CARD }, { patience: 8000 })
-        if (name === 'paywall') {
-          const entry = opened && (await c.page.evalJs(`document.querySelector('[data-kb="menu-remote"]') !== null`)).val === true
-          if (entry) missing.push({ size: c.size, scheme: c.scheme, scenario: 'account:phone-paywall', why: 'the profile menu offers Remote control to a plan that does not include it' })
-          continue
-        }
-        if (opened && await c.click({ css: '[data-kb="menu-remote"]' }, { patience: 3000 })) await c.audit('phone-' + name, { shot: true, wait: 1500 })
+        if (opened && await c.click({ css: '[data-kb="menu-phone"]' }, { patience: 3000 })) await c.audit('phone-' + name, { shot: true, wait: 1500 })
+        else missing.push({ size: c.size, scheme: c.scheme, scenario: 'account:phone-' + name, why: 'the profile menu has no Phone and channels entry' })
       }
-      // The paywall of the phone link is where a plan without it meets it: Settings › Remote Control.
+      // The same screen as a Settings page: Settings › Phone and channels.
       fake.remote = REMOTE.paywall
       await reload(c.page)
       await c.drawer() // at 390 px the Settings trigger is in the drawer
       if (await openSettings(c.page, { tries: 3 })) {
         await c.drawer()
-        if (await c.click({ css: 'button[class*="navCell"]', text: 'Remote Control' })) await c.audit('settings-mobile-paywall', { shot: true, wait: 1500 })
+        if (await c.click({ css: 'button[class*="navCell"]', text: 'Phone and channels' })) await c.audit('settings-mobile-paywall', { shot: true, wait: 1500 })
       } else missing.push({ size: c.size, scheme: c.scheme, scenario: 'account:settings-mobile-paywall', why: 'settings did not open' })
       fake.remote = REMOTE.devices
       await reload(c.page)
       await c.drawer()
       if (await openSettings(c.page, { tries: 3 })) {
         await c.drawer()
-        if (await c.click({ css: 'button[class*="navCell"]', text: 'Remote Control' })) await c.audit('settings-mobile', { shot: true, wait: 1500 })
+        if (await c.click({ css: 'button[class*="navCell"]', text: 'Phone and channels' })) await c.audit('settings-mobile', { shot: true, wait: 1500 })
       } else missing.push({ size: c.size, scheme: c.scheme, scenario: 'account:settings-mobile', why: 'settings did not open' })
       fake.cloud = null
       fake.remote = null

@@ -9,8 +9,8 @@
       "en": "Click “Sign in / Sign up” at the bottom of the sidebar, then “Sign in”, and confirm the code in your browser."
     },
     {
-      "fr": "Une fois connecté, tes modèles Kybernos s'ajoutent d'eux-mêmes dans Réglages › Fournisseur IA & modèles, selon ta formule.",
-      "en": "Once connected, your Kybernos models add themselves in Settings › AI Provider & Models, according to your plan."
+      "fr": "Une fois connecté, tes modèles Kybernos s'ajoutent d'eux-mêmes dans Réglages › Fournisseur IA et modèles, selon ta formule.",
+      "en": "Once connected, your Kybernos models add themselves in Settings › AI provider and models, according to your plan."
     },
     {
       "fr": "Le bas de la barre latérale montre ton espace et ta formule ; clique-le pour « Compte », « Réglages » ou « Se déconnecter ».",
@@ -30,5 +30,40 @@
     "fr": "Les modèles Kybernos passent par les serveurs de Kybernos. Tes souvenirs y sont gardés et, par défaut, ajoutés à ce que lit le modèle à chaque tour, quel qu'il soit. Rien de tout cela sans connexion.",
     "en": "Kybernos models go through Kybernos servers. Your memories are kept there and, by default, added to what the model reads each turn, whichever model it is. None of this happens without signing in."
   },
-  "url": "https://help.kybernos.app/{lang}/get-started/connect-your-computer/"
+  "url": "https://help.kybernos.app/{lang}/get-started/connect-your-computer/",
+  "pages": {
+    "kybernos": {
+      "title": {
+        "fr": "Réglages › Kybernos",
+        "en": "Settings › Kybernos"
+      },
+      "what": {
+        "fr": "Ce qui reste sur cet ordinateur : les instructions que tes agents lisent à chaque conversation, l’import de tes modèles Kybernos, et l’envoi de tes chats DSH vers ton compte.",
+        "en": "What stays on this computer: the instructions your agents read in every conversation, the import of your Kybernos models, and the sending of your DSH chats to your account."
+      },
+      "steps": [
+        {
+          "fr": "Écris tes instructions dans le cadre, puis « Enregistrer » : elles sont gardées dans un fichier local que l’agent lit à chaque conversation.",
+          "en": "Write your instructions in the box, then “Save”: they are kept in a local file the agent reads at the start of every conversation."
+        },
+        {
+          "fr": "Ouvre « Avancé » : « Réimporter les modèles » remet à jour la liste de ta formule sans changer de compte.",
+          "en": "Open “Advanced”: “Re-import models” refreshes your plan’s list without changing account."
+        },
+        {
+          "fr": "« Envoyer les chats » demande d’abord confirmation : la page annonce ce qui part, et un refus ne touche à rien.",
+          "en": "“Send chats” asks for confirmation first: the page says what goes, and refusing changes nothing."
+        }
+      ],
+      "where": {
+        "fr": "Réglages › Kybernos",
+        "en": "Settings › Kybernos",
+        "page": true
+      },
+      "good": {
+        "fr": "Tes instructions restent sur cet ordinateur : seule une action d’envoi, que tu lances et confirmes, fait partir quelque chose.",
+        "en": "Your instructions stay on this computer: only a send action, which you start and confirm, makes anything leave it."
+      }
+    }
+  }
 }

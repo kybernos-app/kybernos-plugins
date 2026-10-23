@@ -142,7 +142,7 @@ body:not([data-ds-dark-theme]) .kbmz-page{--dsw-alias-label-tertiary:var(--dsw-a
 .kbmz-status{display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap;padding:12px 16px;border-radius:12px;border:1px solid var(--kbmz-tone);background:linear-gradient(0deg,var(--kbmz-tbg,transparent),var(--kbmz-tbg,transparent)),var(--dsw-alias-bg-layer-1)}
 .kbmz-dot{width:10px;height:10px;border-radius:5px;flex:none;margin-top:5px;background:var(--kbmz-tdot)}
 .kbmz-status-txt{display:flex;flex-direction:column;gap:3px;flex:1;min-width:200px}
-.kbmz-kicker{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--kbmz-tc)}
+.kbmz-kicker{font-size:12px;font-weight:700;color:var(--kbmz-tc)}
 /* Light scheme: the tone colours are fills-grade (amber 2.6:1, green 2.6:1 on the pale tint); mixed toward the text colour. */
 body:not([data-ds-dark-theme]) .kbmz-kicker{color:color-mix(in srgb,var(--kbmz-tc) 55%,var(--dsw-alias-label-primary))}
 .kbmz-verdict{font-size:14px;line-height:1.45;color:var(--dsw-alias-label-primary)}
@@ -165,6 +165,8 @@ body[data-ds-dark-theme] .kbmz-status[data-tone="warn"]{--kbmz-tc:#f5a524}
 .kbmz-auto-txt{display:flex;flex-direction:column;gap:3px;min-width:0}
 .kbmz-auto-t{font-size:13.5px;font-weight:600;color:var(--dsw-alias-label-primary)}
 .kbmz-auto-d{font-size:12.5px;line-height:1.5;color:var(--dsw-alias-label-secondary)}
+.kbmz-sw::before{content:"";position:absolute;inset:-3px 0}
+.kbmz-auto-err{font-size:12.5px;line-height:1.5;margin-top:2px;color:var(--dsw-alias-state-error-primary,currentColor)}
 .kbmz-sw{position:relative;flex:none;width:36px;height:20px;margin-top:1px;padding:0;border-radius:999px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);cursor:pointer}
 .kbmz-sw i{position:absolute;inset-inline-start:2px;top:2px;width:14px;height:14px;border-radius:999px;background:var(--dsw-alias-label-secondary);transition:inset-inline-start .15s ease}
 .kbmz-sw.on{background:var(--dsw-alias-brand-primary);border-color:var(--dsw-alias-brand-primary)}.kbmz-sw.on i{inset-inline-start:18px;background:var(--dsw-alias-label-primary-foreground)}
@@ -219,7 +221,7 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
 .kbmz-cmd button:hover{color:var(--dsw-alias-label-primary);background:var(--dsw-alias-interactive-bg-hover)}
 /* Compatibility matrix */
 .kbmz-mat-tete,.kbmz-mat-ligne{display:grid;grid-template-columns:150px 120px minmax(0,1fr) 150px;gap:12px;align-items:center}
-.kbmz-mat-tete{padding:0 12px 6px;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--dsw-alias-label-tertiary)}
+.kbmz-mat-tete{padding:0 12px 6px;font-size:11px;font-weight:700;color:var(--dsw-alias-label-tertiary)}
 .kbmz-mat-ligne{padding:11px 12px;border-radius:10px;border:1px solid var(--dsw-alias-border-l1);margin-top:6px;font-size:13px;background:var(--dsw-alias-bg-layer-1)}
 .kbmz-mat-ligne[data-here="true"]{border-color:var(--dsw-alias-brand-primary);box-shadow:0 0 0 1px var(--dsw-alias-brand-primary)}
 .kbmz-mat-v{font-family:ui-monospace,Menlo,monospace;font-size:14px;font-weight:600;color:var(--dsw-alias-label-primary)}
@@ -509,7 +511,11 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
           h('span', { className: 'kbmz-auto-t' }, titreAuto),
           h('span', { className: 'kbmz-auto-d' }, kt(
             'Kybernos demande à GitHub la version courante de la suite, au registre npm celle de DSH, puis à GitHub encore le catalogue signé de la Suite (un fichier de la version publiée), 15 secondes après l’ouverture puis toutes les 6 heures. Rien de ton travail n’est envoyé : ces serveurs voient ton adresse IP et les en-têtes habituels d’une requête web. Désactivé, aucune des trois demandes n’est faite tant que tu n’appuies pas sur « Vérifier maintenant ».',
-            'Kybernos asks GitHub which suite version is current, the npm registry which DSH version is, and GitHub again for the signed catalogue of the Suite (a release file), 15 seconds after it opens and then every 6 hours. Nothing about your work is sent: those servers see your IP address and the usual headers of a web request. Switched off, none of the three is asked until you press « Check now ».'))),
+            'Kybernos asks GitHub which suite version is current, the npm registry which DSH version is, and GitHub again for the signed catalogue of the Suite (a release file), 15 seconds after it opens and then every 6 hours. Nothing about your work is sent: those servers see your IP address and the usual headers of a web request. Switched off, none of the three is asked until you press “Check now”.')),
+          // Why the last press did not take (the switch has gone back to where it was).
+          typeof auto.erreur === 'string' && auto.erreur !== ''
+            ? h('span', { className: 'kbmz-auto-err', role: 'alert', 'data-kb': 'maintenance-settings-error' }, kt('Réglage non enregistré : ', 'Setting not saved: ') + auto.erreur)
+            : null),
         h('button', { type: 'button', role: 'switch', className: 'kbmz-sw' + (auto.autoCheck ? ' on' : ''), 'aria-checked': auto.autoCheck ? 'true' : 'false', 'aria-label': titreAuto, 'data-kb': 'maintenance-auto-switch', disabled: auto.occupe === true, onClick: () => { if (typeof onReglage === 'function') onReglage(!auto.autoCheck) } }, h('i', null)))
 
       // ── technical details: the four stat cards ─────────────────────────────
@@ -571,14 +577,18 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
           h('path', { d: 'M6 3.5 10.5 8 6 12.5', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round' })),
         h('span', null, t('details')),
         h('span', { className: 'kbmz-toggle-h' }, t('detailsAide')))
+      // A line whose « from » equals its « to » changed nothing: printing it as an update is a false record (this machine
+      // shows « 0.2.0-rc.2 → 0.2.0-rc.2 ✓ succeeded » on 2026-10-21, from a run started while already up to date). A
+      // same-version line that CARRIES a reason is a re-touch, and stays. Filtered once, before « last operation ».
+      const journalReel = journal.filter((e) => !(e.de !== undefined && e.de === e.vers && !e.raison))
       const panneau = h('div', { id: ID_DETAILS, className: 'kbmz-panel', hidden: !ouvert, 'data-kb': 'maintenance-details' },
         h('div', { className: 'kbmz-cartes' }, carteMoteur, cartePlugin, carteCompat, carteMaj),
         h('div', { className: 'kbmz-carte', 'data-kb': 'maintenance-last-op' },
           h('div', { className: 'kbmz-sec' }, t('derniere')),
-          journal.length === 0 ? h('div', { className: 'kbmz-vide' }, t('rien')) : ligneJournal(journal[0], 0)),
-        journal.length > 1 ? h('div', { className: 'kbmz-carte', 'data-kb': 'maintenance-journal' },
+          journalReel.length === 0 ? h('div', { className: 'kbmz-vide' }, t('rien')) : ligneJournal(journalReel[0], 0)),
+        journalReel.length > 1 ? h('div', { className: 'kbmz-carte', 'data-kb': 'maintenance-journal' },
           h('div', { className: 'kbmz-sec' }, t('majPrecedentes')),
-          journal.slice(1).map((e, i) => ligneJournal(e, i))) : null,
+          journalReel.slice(1).map((e, i) => ligneJournal(e, i))) : null,
         h('div', { className: 'kbmz-carte' },
           h('div', { className: 'kbmz-sec' }, t('procTitre')),
           h('div', { className: 'kbmz-proc' },
@@ -627,17 +637,30 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
       React.useEffect(() => {
         try {
           fetch('/kybernos-maintenance/settings', { cache: 'no-store' }).then((r) => r.json())
-            .then((j) => { if (j !== null && typeof j === 'object' && j.ok === true && typeof j.autoCheck === 'boolean') setReglage({ autoCheck: j.autoCheck, occupe: false }) })
+            .then((j) => { if (j !== null && typeof j === 'object' && j.ok === true && typeof j.autoCheck === 'boolean') setReglage({ autoCheck: j.autoCheck, occupe: false, erreur: null }) })
             .catch(() => { /* an older host: no card */ })
         } catch (e) { /* no fetch (a test) */ }
       }, [])
       const changerReglage = React.useCallback((voulu) => {
-        setReglage({ autoCheck: voulu, occupe: true })
+        // A press clears the last reason. When the write does not go through, the switch goes back to what it was AND the person is told why
+        // (the host's own reason when it gave one, else what the page itself saw): it used to move back alone, and « refused »,
+        // « lost » and « bug » looked the same.
+        const echoue = (motif) => setReglage({ autoCheck: !voulu, occupe: false, erreur: motif })
+        const sansReponse = () => kt('le serveur DSH ne répond pas', 'the DSH server did not answer')
+        setReglage({ autoCheck: voulu, occupe: true, erreur: null })
         try {
-          fetch('/kybernos-maintenance/settings', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ autoCheck: voulu }), cache: 'no-store' }).then((r) => r.json())
-            .then((j) => setReglage(j !== null && typeof j === 'object' && j.ok === true && typeof j.autoCheck === 'boolean' ? { autoCheck: j.autoCheck, occupe: false } : { autoCheck: !voulu, occupe: false }))
-            .catch(() => setReglage({ autoCheck: !voulu, occupe: false }))
-        } catch (e) { setReglage({ autoCheck: !voulu, occupe: false }) }
+          fetch('/kybernos-maintenance/settings', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ autoCheck: voulu }), cache: 'no-store' })
+            // An answer that is not JSON (the host refuses an origin with an empty body) is still an answer: its status is the reason.
+            .then((r) => r.json().then((j) => ({ j, statut: r.status }), () => ({ j: null, statut: r.status })))
+            .then(({ j, statut }) => {
+              if (j !== null && typeof j === 'object' && j.ok === true && typeof j.autoCheck === 'boolean') { setReglage({ autoCheck: j.autoCheck, occupe: false, erreur: null }); return }
+              const motif = j !== null && typeof j === 'object' && typeof j.erreur === 'string' && j.erreur !== ''
+                ? j.erreur
+                : (typeof statut === 'number' ? kt('réponse inattendue du serveur (HTTP ' + statut + ')', 'unexpected answer from the server (HTTP ' + statut + ')') : kt('réponse inattendue du serveur', 'unexpected answer from the server'))
+              echoue(motif)
+            })
+            .catch(() => echoue(sansReponse()))
+        } catch (e) { echoue(sansReponse()) }
       }, [])
       if (etat === null && echec) {
         return h('div', { className: 'kbmz-page' },

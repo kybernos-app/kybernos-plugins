@@ -27,7 +27,6 @@ const TITLES = Object.fromEntries(PAGES.map((k) => [k, k]))
 TITLES.general = 'General'
 TITLES['memory & lessons'] = 'Memory & Lessons'
 TITLES.theme = 'Theme'
-TITLES.appearance = 'Appearance'
 TITLES.language = 'Language'
 TITLES.voice = 'Voice'
 const run = (q, titles) => kbSsSearch(q, ENTRIES, titles || TITLES).list
@@ -45,16 +44,17 @@ check('no two rows are the same setting by accident: label and page are unique',
 console.log('what people type')
 {
   const dark = run('dark')
-  check('« dark » finds the mode first, one result for the setting three pages show, and says where else it is', labels(dark)[0] === 'appearance/Mode' && dark[0].also.length === 2 && labels(dark).filter((l) => /\/Mode$/.test(l)).length === 1, labels(dark))
+  // The mode is set on the Theme page (three cards); the same setting is also drawn by DSH's own General block, which the Theme page hides.
+  check('« dark » finds the mode first, one result for the setting two pages draw (Theme, and DSH\'s own General block), and says where else it is', labels(dark)[0] === 'theme/Appearance' && dark[0].also.length === 1 && labels(dark).filter((l) => /\/Appearance$/.test(l)).length === 1, labels(dark))
   const police = run('police')
   check('« police » (French) finds the text size, shown on two pages as one setting, then the font', labels(police)[0] === 'general/Font size' && police[0].also.length === 1 && labels(police).indexOf('theme/Font') > 0, labels(police))
   check('« police » also offers the Theme page, but only after the settings', pagesOf(police).join() === 'theme' && police[police.length - 1].kind === 'page', police.map((x) => x.kind))
   check('« font size » finds the same setting; the words of the label come first', labels(run('font size'))[0] === 'general/Font size')
   const key = run('clé api')
-  check('« clé api » (French, with the accent) finds every place an API key goes', ['cloud computers/API key', 'connectors/Composio key', 'ai provider & models/Add provider', 'web search/Default engine'].every((l) => labels(key).indexOf(l) >= 0), labels(key))
+  check('« clé api » (French, with the accent) finds every place an API key goes', ['code sandbox (e2b)/API key', 'connectors/Composio key', 'ai provider and models/Add provider', 'web search/Default engine'].every((l) => labels(key).indexOf(l) >= 0), labels(key))
   check('« API KEY » in capitals finds the same rows as « api key »', labels(run('API KEY')).join() === labels(run('api key')).join())
   check('« mémoire » finds the memory page\'s rows and the settings that talk about memory', labels(run('mémoire')).indexOf('memory & lessons/Memories') >= 0 && labels(run('mémoire')).indexOf('general/Study model') >= 0)
-  check('« mode sombre » finds the mode', labels(run('mode sombre'))[0] === 'appearance/Mode')
+  check('« mode sombre » finds the mode', labels(run('mode sombre'))[0] === 'theme/Appearance')
   check('« voix » finds the Voice page and its rows', pagesOf(run('voix')).indexOf('voice') >= 0 && labels(run('voix')).some((l) => /^voice\//.test(l)))
 }
 
@@ -75,7 +75,7 @@ console.log('a menu without a page')
   const without = Object.assign({}, TITLES)
   delete without.theme
   const r = run('dark', without)
-  check('the rows of a page the menu has not (a module switched off) are not offered', labels(r).every((l) => !/^theme\//.test(l)) && labels(r).indexOf('appearance/Mode') === 0, labels(r))
+  check('the rows of a page the menu has not (a module switched off) are not offered', labels(r).every((l) => !/^theme\//.test(l)) && labels(r).indexOf('general/Appearance') === 0, labels(r))
   check('the same setting shown on a page that is not there is not listed as « also in »', r[0].also.every((x) => x.page !== 'theme'), r[0].also.map((x) => x.page))
   check('a page the index does not know (a plugin added later) is still found by its title', kbSsSearch('widgets', ENTRIES, Object.assign({ 'my widgets': 'My Widgets' }, TITLES)).list.some((x) => x.kind === 'page' && x.key === 'my widgets'))
 }
@@ -101,12 +101,10 @@ console.log('French: the results read as the French pages do')
   const frLabels = (list) => list.filter((x) => x.kind === 'item').map((x) => x.e.page + '/' + x.e.label)
   check('the result is drawn with the French label and tab of the page', frLabels(frRun('rayons')).indexOf('theme/Rayons') === 0 && frRun('rayons')[0].e.sec === 'Texte et forme', frLabels(frRun('rayons')))
   check('« taille du texte » finds the row that is called that on its French page first, and the same setting on General (English there) as « also in »', frRun('taille du texte')[0].e.label === 'Taille du texte' && frRun('taille du texte')[0].also.length === 1 && frRun('taille du texte')[0].also[0].label === 'Font size', frLabels(frRun('taille du texte')))
-  check('a French reader can still type the English words: « font size », « api key »', frLabels(frRun('font size'))[0] === 'general/Font size' && frLabels(frRun('api key')).indexOf('cloud computers/Clé API') >= 0, frLabels(frRun('api key')))
+  check('a French reader can still type the English words: « font size », « api key »', frLabels(frRun('font size'))[0] === 'general/Font size' && frLabels(frRun('api key')).indexOf('code sandbox (e2b)/Clé API') >= 0, frLabels(frRun('api key')))
   check('« nommer conversation » finds the French label', frLabels(frRun('nommer conversation'))[0] === 'general/Nommer chaque conversation à sa fin', frLabels(frRun('nommer conversation')))
-  check('a typo is forgiven in French too: « apparance »', frRun('apparance').some((x) => x.kind === 'page' && x.key === 'appearance') || frLabels(frRun('apparance')).length > 0)
-  const ap = FR.find((e) => e.key === 'appearance|Mode')
-  check('the row whose page does not draw its label goes to the description the French page draws', ap.at === 'Choisis le thème de l’interface.' && ap.label === 'Mode', ap.at)
-  check('a row with its own target keeps it in French (the plan of the phone link, the engine of the version)', FR.find((e) => e.key === 'remote control|Link a phone').at === 'Relier un téléphone en trois étapes' && FR.find((e) => e.key === 'about|Version').at === 'Moteur DSH')
+  check('a typo is forgiven in French too: « apparance » finds the mode on the Theme page', frLabels(frRun('apparance')).indexOf('theme/Apparence') >= 0, frLabels(frRun('apparance')))
+  check('a row with its own target keeps it in French (the plan of the phone link, the engine of the version)', FR.find((e) => e.key === 'phone and channels|Link a phone').at === 'Relier un téléphone en trois étapes' && FR.find((e) => e.key === 'about|Version').at === 'Moteur DSH')
   check('English stays as it was: no French in the English index', kbSsBuild(KB_SS_INDEX).every((e) => e.label === KB_SS_INDEX.find((r) => key(r) === e.key)[2]))
   check('« fr » and « fr-CA » take the French too (the shell may say either)', kbSsLocalise(KB_SS_INDEX[0], 'fr', null).label === 'Premiers pas' && kbSsLocalise(KB_SS_INDEX[0], 'fr-CA', null).label === 'Premiers pas')
 }
@@ -117,7 +115,7 @@ console.log('other languages: served from the translation pack, English when it 
   check('the pack has a key per label, in the shape the Language page reads ({ fr, en }, both non-empty)', Object.keys(keys).length > KB_SS_INDEX.length && Object.values(keys).every((v) => typeof v.fr === 'string' && v.fr !== '' && typeof v.en === 'string' && v.en !== ''))
   check('the keys are stable and unique: from the page and the label, not from the position', new Set(KB_SS_INDEX.map((r) => kbSsSlug(r[0], r[2]))).size === KB_SS_INDEX.length && kbSsSlug('general', 'Font size') === 'general-font-size')
   check('the French half of the pack is the French twin, the English half the English row', keys['general-onboarding.l'].fr === 'Premiers pas' && keys['general-onboarding.l'].en === 'Onboarding' && keys['sec.behaviour'].fr === 'Comportement')
-  check('a row with a text to go to publishes it too', keys['remote-control-link-a-phone.a'].fr === 'Relier un téléphone en trois étapes' && keys['remote-control-link-a-phone.a'].en === 'Link a phone in three steps')
+  check('a row with a text to go to publishes it too', keys['phone-and-channels-link-a-phone.a'].fr === 'Relier un téléphone en trois étapes' && keys['phone-and-channels-link-a-phone.a'].en === 'Link a phone in three steps')
   const es = { 'settingsidx.general-font-size.l': 'Tamaño de fuente', 'settingsidx.general-font-size.d': 'Solo afecta al contenido de la conversación', 'settingsidx.sec.behaviour': 'Comportamiento' }
   const row = KB_SS_INDEX.find((r) => r[2] === 'Font size')
   const L = kbSsLocalise(row, 'es', es)
@@ -128,5 +126,13 @@ console.log('other languages: served from the translation pack, English when it 
   check('the search finds it by the Spanish label, and by the English words too', kbSsSearch('tamano de fuente', ES, TITLES).list[0].e.label === 'Tamaño de fuente' && kbSsSearch('font size', ES, TITLES).list[0].e.label === 'Tamaño de fuente')
 }
 
+
+console.log('the words an English reader types for a page that is not called that')
+// The related words of the pages were French and Spanish only, so « cost » found nothing on a Settings menu that has a Usage page (measured on the
+// real GUI: 34 of 98 everyday queries found nothing, among them cost, price, sound, export, reset, backup, restart, email, schedule).
+for (const [q, page] of [['cost', 'usage'], ['price', 'usage'], ['spending', 'usage'], ['sound', 'calls'], ['sound', 'voice'], ['speaker', 'voice'], ['camera', 'calls'], ['export', 'theme'], ['reset', 'theme'], ['backup', 'tools'], ['restart', 'kybernos suite'], ['restart', 'about'], ['email', 'connectors'], ['schedule', 'automations'], ['openrouter', 'ai provider and models'], ['translate', 'language'], ['memories', 'memory & lessons'], ['firewall', null]]) {
+  const found = pagesOf(run(q, Object.fromEntries([...PAGES, 'tools'].map((k) => [k, k]))))
+  check('« ' + q + ' » ' + (page === null ? 'still finds no page (a word that is nowhere stays nowhere)' : 'leads to the ' + page + ' page'), page === null ? found.length === 0 : found.indexOf(page) >= 0, found)
+}
 console.log('\n' + String(pass) + ' verifications, ' + String(fail) + ' failure(s)')
 process.exit(fail === 0 ? 0 : 1)

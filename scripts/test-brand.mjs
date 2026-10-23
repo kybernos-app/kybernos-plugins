@@ -123,11 +123,11 @@ eq('it stops its timers when disposed', /clearTimeout\(first\); clearInterval\(t
 // brand's on that page, in the French source and the English pair of the page and in the core's table.
 {
   const theme = readFileSync(root + 'packages/kybernos-theme/client.js', 'utf8')
-  const line = theme.split('\n').find((l) => /Les réglages de base sont dans Essentiel/.test(l)) || ''
+  const line = theme.split('\n').find((l) => /Personnalise l’apparence de Kybernos/.test(l)) || ''
   eq('the Theme page subtitle is found', line !== '', true)
-  eq('the Theme page subtitle names Kybernos in French and in English', /Personnalise l’apparence de Kybernos\./.test(line) && /Customize the look of Kybernos\./.test(line), true)
+  eq('the Theme page subtitle names Kybernos in French and in English', /Personnalise l’apparence de Kybernos[ :.]/.test(line) && /Customize the look of Kybernos[:.]/.test(line), true)
   eq('…and never the engine', /DeepSeek Harness/.test(line), false)
-  const row = src.split('\n').find((l) => /Les réglages de base sont dans Essentiel/.test(l)) || ''
+  const row = src.split('\n').find((l) => /Personnalise l’apparence de Kybernos/.test(l)) || ''
   // the core no longer rewrites the Theme page (that page writes its own English and French, WP-07): the row is gone, and if one ever comes back it must not name the engine
   eq('the core has no table row that names the engine for this sentence', !/DeepSeek Harness/.test(row), true)
 }

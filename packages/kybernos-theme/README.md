@@ -3,18 +3,57 @@
 Settings › **Theme**: ready-made themes, **your own themes**, a **gallery** of themes to install, accent, wallpaper, font, colour tokens,
 contrast, and the **thinking animation** (the loader and the words DSH shows while the agent works).
 
-One page, nine vertical tabs, « Essentials » open by default (there is no Simple/Advanced switch).
+One page with two layers. The **simple view** (the look studio, below) is what opens: a small DSH drawn from the look in use, that you
+click to change. Under it, folded, the **Advanced editor** keeps everything the page ever had: nine vertical tabs, « Essentials » open by
+default (there is no Simple/Advanced switch inside it).
 Every control stores a value (`DEF`) and something reads it: `test-client.mjs` refuses a control whose
 key is not in `DEF`, which is how 41 dead ones went unnoticed before.
 
+## The simple view (look studio)
+
+A 700 px window drawn with the colours, wallpaper, font, icon set and loop of the look in use (the same `makeTheme`, `iconSvg` and loop code as
+the real application), with eleven parts to click: the brand → *Style*, the sidebar → *Sidebar*, a menu row → *Menu icons*, the sun/moon →
+*Light or dark*, the empty chat → *Wallpaper*, your bubble → *Your messages*, the agent's reply → *Agent replies*, the status line →
+*Thinking animation*, the title and the message box text → *Letters*, the send button → *Accent color*, the pills under the message
+box → *Under the message box*. Three chips under the window hold what cannot be pointed at: *Accent color*, *Effects and shape*,
+*Accessibility*. A click opens a short panel UNDER the window, never over it (what you change must stay in view while you change it); the window sticks to the
+top while the panel scrolls under it. A click on a choice changes the look at once; « More options » in a panel holds the rest of what the nine tabs have for it.
+
+- It has **no state of its own** but which panel is open. A choice is a setting of the page (`S`, through `commit`) or of the animation store
+  (`ld`, through `ldSet`); the classic editor below sees the same state.
+- **Vibes** (Work, Dev, Study, Chill, Night) are whole looks: they start from the defaults of every key a theme may keep, so no bubble or font of
+  the last one stays. They never touch accessibility. **Surprise me** and the dice of a panel draw at random, never accessibility or the pills.
+- **Undo** goes back up to 40 steps (the page's state and the animation store; a burst, such as a slider drag, is one step). **Reset** puts the
+  defaults back (the animation store keeps its own words and files, as « Reset all » always did).
+- **Save / Export / Import / My looks** are the theme library below: *Save* adds the current look (font, corners and shadows, icons, the chat,
+  glass and wallpaper; never accessibility) to *My themes*; *Export* downloads the same `kybernos-theme-preset` file; *Import* adds a file to
+  *My themes* without applying it; a look is deleted after a confirmation.
+- Added settings (`DEF`): `bubbleUser` (`auto`, `accent`, `soft`, `dark` or any hex), `textUser`, `replyBg` (`none`, `card`, `outline`, `tint`),
+  `replyColor`, `textReply`, `sideTone` (`auto`, `darker`, `lighter`, `tinted`), `shadow`, `glow`, `wgSessions`, `wgChanges`, `wgUsage`, `autoHideBars`.
+  - `autoHideBars` (*Sidebar* panel, « Bars on hover », ON by default since 2026-10-22, owner's call; personal like the pills: never in a theme, a vibe or the dice): the collapsed
+    rail and the top bar of a chat slide out to an 8 px / 6 px sliver and come back when the pointer or the keyboard is in them, or while a popup
+    they opened is open (an open section of the rail is `aria-expanded` too, so only a popup trigger counts). Only under a pointer that can hover.
+    The three columns of the shell grid are placed by hand while it is on so the chat takes the rail's column back without a reflow; no engine patch.
+  - Your bubble is DSH's own token `--dsw-specific-bubble` (declared on `body` and `body[data-ds-dark-theme]`), through the same token layer
+    as the sidebar: no hook on the markup. Its text colour is `--dsw-alias-label-primary`, set inside `[data-chat-flow-kind="user"]` only,
+    per scheme when it is automatic (white or ink, whichever reads at 4.5:1 on the bubble).
+  - DSH draws **no bubble around the agent's replies**; the frame (card, outline, tint, colour, text colour) is ours, on
+    `[data-chat-group-part="response"]` (read on a real conversation, 2026-10-22). If DSH renames that marker the frame stops showing and nothing
+    else is affected; the page says so in the panel.
+  - The pills under the message box are drawn by other modules (`[data-kb="status-pill"]` sessions, `[data-kb="changes"]`, `[data-kb="usage-chip"]` usage, inside
+    `[data-slot="conversation.composer.dock"]`): this page only hides them.
+  - `sideTone` is taken from the sidebar colour the scheme ended with (a theme's own, or an edit), in `makeTheme`.
+- If the studio ever fails to draw, `StBoundary` shows a note and opens the Advanced editor: a broken view never leaves a person without a way
+  to change the look.
+
 | Tab | What it really does, and how |
 |---|---|
-| Essentials | theme (shipped and yours), accent, wallpaper, font, text size → `overrideTokens` layer, a fixed wallpaper `<div>`, `--dsw-font-family`, `setFontSize` |
+| Essentials | mode (three cards: Light, Dark, System, through `commit({ mode })` → `setTheme`; there is no Appearance page any more), theme (shipped and yours), accent, wallpaper, font, text size → `overrideTokens` layer, a fixed wallpaper `<div>`, `--dsw-font-family`, `setFontSize` |
 | Glass and background | with a wallpaper: DSH's main surface (`--dsw-alias-bg-base`) becomes transparent so the wallpaper shows; sidebar, fields and menus get a chosen transparency (`--dsw-specific-sidebar-fill`, `-input-major`, `-menu`); frosted/liquid blur by `backdrop-filter` on DSH's stable hooks; wallpaper filters, fit and mirror |
 | Colors | the 17 pilotable tokens per scheme, accent ramp |
 | Text and shape | text size, ligatures, radii (`--dsw-radius-*` ×0.25 / ×1 / ×1.5), logo and name |
 | Animation | the thinking animation (below) |
-| Accessibility | contrast level, reduce animations, focus ring, 44 px targets, underlined links, colour-blind palette (success/error → blue/vermillion) |
+| Accessibility | contrast level, reduce animations, focus ring, 44 px targets, underlined links, colour-blind palette (success/warning/error → blue/bluish green/vermilion, Okabe-Ito) |
 | Sharing | **My themes** (save, apply, rename, export, delete), import a theme file, export of the current look (YAML / JSON / CSS), reset |
 | Gallery | themes to **try** and **install** (shipped with Kybernos, plus a signed online catalogue), search, light/dark filter, updates |
 
@@ -43,7 +82,9 @@ Tests (all pure node, CI runs them): `test-client.mjs`, `test-loader-store.mjs`,
 `test-preset-store.mjs`, `test-boot-store.mjs`, `test-themes-catalogue.mjs`, `test-themes-gallery.mjs`, `test-seed-skills.mjs`
 (and `scripts/test-themes-catalogue.mjs` for the publishing side). `test-client.mjs` renders the page with `react-dom/server` when react is
 resolvable (`NODE_PATH=<a node_modules with react + react-dom>`) and skips that stage otherwise.
-The page on the real GUI is covered by `scripts/check-theme-live.mjs` (see `docs/dev/live-testing.md`).
+The page on the real GUI is covered by `scripts/check-theme-live.mjs` (the Advanced editor) and `scripts/check-theme-studio-live.mjs` (the simple
+view; it must run on the sandbox, because a click on the mode or the size is written into the profile of the DSH it talks to). See
+`docs/dev/live-testing.md`.
 
 ## First paint (the boot sheet)
 
@@ -76,7 +117,8 @@ token layer, removed with it): the accent is then the brand token. OLED, Clair a
 ## My themes
 
 A **theme** is a name plus the settings it retains, grouped so that the person chooses what travels
-with it: colours and accent (always), font, corners, menu icons, glass and wallpaper, accessibility. Accessibility
+with it: colours, accent and sidebar tone (always), font, corners and shadows, menu icons, bubbles and replies (the *chat* group), glass and
+wallpaper, accessibility. Accessibility
 is off by default when saving: contrast, the colour-blind palette and big targets are a need of the
 person, not a style, so a theme never changes them unless it was saved with them.
 

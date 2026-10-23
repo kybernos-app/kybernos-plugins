@@ -228,7 +228,7 @@ window.__ModuleLoader__.load({
           const r = await fetch(API, { headers: { accept: 'application/json' } })
           const body = await r.json()
           store.entries = (body !== null && Array.isArray(body.entries) === true) ? body.entries : []
-          store.error = (body !== null && body.ok === false) ? String(body.error || 'route indisponible') : null
+          store.error = (body !== null && body.ok === false) ? String(body.error || 'indisponible : relance DSH une fois') : null
           // The version comes from the ROUTE: the client does not redefine it, so
           // it cannot drift from the shared model.
           diag.version = (body !== null && body !== undefined && body.version !== undefined) ? body.version : null
@@ -584,7 +584,7 @@ window.__ModuleLoader__.load({
         if (s === '') return KB_ICON_NAMES.slice(0, 56)
         const starts = []
         const holds = []
-        const words = s.split(/s+/)
+        const words = s.split(/\s+/)
         for (let i = 0; i < KB_ICON_NAMES.length; i++) {
           const n = KB_ICON_NAMES[i]
           const hay = n.replace(/-/g, ' ') + ' ' + (KB_ICON_TAGS[n] || '')
@@ -602,6 +602,8 @@ window.__ModuleLoader__.load({
           strokeWidth: p.weight || 1.9, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true', className: p.className || undefined },
           segs.map((d, i) => h('path', { key: i, d: d })))
       }
+      // The key that saves the open editor, as a person reads it on their keyboard.
+      const kbSaveKeyLabel = (typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(String(navigator.platform || navigator.userAgent || ''))) ? '⌘S' : 'Ctrl S'
       // ── Stylesheet: values from the « Commands and actions CRUD » mockup ─────────
       // Surfaces and text go through the DSH tokens (light/dark theme),
       // the brand values (accent, alert) are those of the mockup.
@@ -641,20 +643,11 @@ window.__ModuleLoader__.load({
 /* Light schemes: label-tertiary is 3.7:1 on white and the link blue 4.1:1 where it writes text; the muted inks of this palette (and of the pages that read them, Memory among them) are label-secondary there, the accent is pulled toward the text colour (audit A1-05). */
 body:not([data-ds-dark-theme]){--kb-muted:var(--dsw-alias-label-secondary,#333);--kb-caption:var(--dsw-alias-label-secondary,#333);--kb-accent:color-mix(in srgb,var(--dsw-alias-link,#36c) 75%,var(--dsw-alias-label-primary))}
 .kbsl-help{font-size:var(--kb-fs-12,12px);color:var(--kb-muted);line-height:1.45}
-.kbsl-sec{font-size:12px;font-weight:500;letter-spacing:0;text-transform:none;color:var(--kb-caption)}
-.kbsl-lbl{font-size:14px;font-weight:500}
 .kbsl-lblsm{font-size:var(--kb-fs-12,12px);font-weight:600;color:var(--kb-ink2)}
 .kbsl-err{font-size:13px;color:var(--kb-danger)}
 .kbsl-clip{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .kbsl-anim{animation:kbsl-rise .18s ease-out}
 @keyframes kbsl-rise{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
-.kbsl-spin{animation:kbsl-spin .9s linear infinite}
-@keyframes kbsl-spin{to{transform:rotate(360deg)}}
-.kbsl-caret{display:inline-block;width:2px;height:1.1em;margin-left:1px;background:var(--kb-ink);vertical-align:text-bottom;animation:kbsl-blink 1s steps(1) infinite}
-@keyframes kbsl-blink{50%{opacity:0}}
-.kbsl-live{gap:6px;background:var(--kb-ok-bg);color:var(--kb-ok)}
-.kbsl-live i{width:6px;height:6px;border-radius:50%;background:var(--kb-ok);display:inline-block;animation:kbsl-livedot 1.4s ease-in-out infinite}
-@keyframes kbsl-livedot{0%,100%{opacity:1}50%{opacity:.3}}
 .kbsl-flash{animation:kbsl-pulse 1.1s ease-out 3;background:color-mix(in srgb,var(--kb-accent) 14%,transparent)!important;border-color:var(--kb-accent)!important;color:var(--kb-ink)!important}
 @keyframes kbsl-pulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--kb-accent) 45%,transparent)}100%{box-shadow:0 0 0 12px transparent}}
 
@@ -678,8 +671,6 @@ textarea.kbsl-field.sm{padding:10px 12px;min-height:64px;font-size:13px}
 .kbsl-danger{background:var(--kb-danger);color:var(--kb-primary-ink)}
 .kbsl-danger:hover{background:color-mix(in srgb,var(--kb-danger) 84%,#000)}
 .kbsl-danger.sm{height:34px;padding:0 12px;border-radius:9px;font-size:13px}
-.kbsl-dashed{border:1px dashed var(--kb-line3);background:transparent;color:var(--kb-ink);font-weight:500}
-.kbsl-dashed:hover{background:var(--kb-hover);border-color:var(--kb-accent);color:var(--kb-accent)}
 .kbsl-link{border:0;background:transparent;padding:0;font-size:13px;font-weight:600;color:var(--kb-muted);text-align:left}
 .kbsl-link:hover{color:var(--kb-ink);text-decoration:underline}
 .kbsl-ibtn{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;padding:0;border:0;border-radius:10px;background:transparent;color:var(--kb-muted)}
@@ -711,7 +702,6 @@ textarea.kbsl-field.sm{padding:10px 12px;min-height:64px;font-size:13px}
 .kbsl-tile.lg{width:64px;height:64px;border-radius:16px;background:var(--kb-surface);box-shadow:0 1px 2px color-mix(in srgb,#000 10%,transparent)}
 button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
 .kbsl-opt{display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:7px;background:var(--kb-hover);color:var(--kb-ink2);font-size:12px;font-weight:600}
-.kbsl-kbd{padding:1px 6px;border-radius:6px;background:var(--kb-hover);font-size:13px;color:var(--kb-ink2)}
 
 /* interrupteur */
 .kbsl-tgl{position:relative;flex:none;width:44px;height:26px;padding:0;border:0;border-radius:999px;background:var(--kb-line3);transition:background .15s}
@@ -753,7 +743,7 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
    ecraser par le repli flex des que la liste est longue. */
 .kbsl-pop>*{flex:none}
 .kbsl-rows{flex:1 1 auto;display:flex;flex-direction:column;gap:2px;min-height:0;overflow:auto;overscroll-behavior:contain}
-.kbsl-pop-h{font-size:var(--kb-fs-11,11px);font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--kb-caption)}
+.kbsl-pop-h{font-size:var(--kb-fs-11,11px);font-weight:600;color:var(--kb-caption)}
 .kbsl-pop-f{margin-top:2px;padding:5px 10px 3px;border-top:1px solid var(--kb-sep);font-size:var(--kb-fs-11,11px);color:var(--kb-caption)}
 .kbsl-pwrap{position:relative;display:flex;align-items:center;gap:4px;padding-right:6px;border-radius:10px}
 .kbsl-pwrap:hover,.kbsl-pwrap.on{background:var(--kb-hover)}
@@ -822,78 +812,108 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
 .kbsl-ctxitem.danger:hover{background:color-mix(in srgb,var(--kb-danger) 12%,transparent)}
 .kbsl-menu{position:absolute;z-index:12;width:320px;display:flex;flex-direction:column;gap:2px}
 
-/* étapes de l'éditeur */
-/* étapes : le chiffre devient une pastille discrète (maquette .block-label) */
-.kbsl-step{display:flex;gap:12px}
-.kbsl-stepn{flex:none;display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;margin-top:1px;border:1px solid var(--kb-line3);border-radius:7px;background:transparent;color:var(--kb-muted);font-size:12px;font-weight:600}
-.kbsl-stepn.done{background:var(--kb-ok-bg);color:var(--kb-ok);border-color:color-mix(in srgb,var(--kb-ok) 30%,transparent)}
-.kbsl-stepn.opt{background:transparent;color:var(--kb-caption);border:1px dashed var(--kb-line3)}
-.kbsl-steph{margin:0;font-size:14px;font-weight:600;letter-spacing:0}
-.kbsl-info{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;padding:0;border:0;border-radius:50%;background:transparent;color:var(--kb-caption);cursor:help}
-.kbsl-info:hover{background:var(--kb-hover);color:var(--kb-ink)}
+.kbsl-steph{margin:0;font-size:13.5px;font-weight:650;letter-spacing:0}
 
-/* variables du gabarit */
-.kbsl-vchip{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border:1px solid transparent;border-radius:8px;font-family:var(--kb-mono);font-size:13px}
-.kbsl-vchip.ok{background:var(--kb-ok-bg);color:var(--kb-ok);border-color:color-mix(in srgb,var(--kb-ok) 26%,transparent)}
-.kbsl-vchip.ok:hover{background:color-mix(in srgb,var(--kb-ok) 18%,transparent)}
-.kbsl-vchip.missing{background:var(--kb-warn-bg);color:var(--kb-warn-ink);border-color:color-mix(in srgb,var(--kb-warn) 34%,transparent)}
-.kbsl-vchip.unused{background:var(--kb-surface);color:var(--kb-muted);border:1px dashed var(--kb-line3)}
+/* variables du gabarit : un rond d'état et des mots, pas de pavé de couleur */
+.kbsl-chips{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.kbsl-vchip{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border:1px solid var(--kb-line2);border-radius:999px;background:var(--kb-surface);color:var(--kb-ink2);font-family:var(--kb-mono);font-size:12px}
+.kbsl-vchip.ok{color:var(--kb-accent)}
+.kbsl-vchip.ok:hover{border-color:var(--kb-accent)}
+.kbsl-vchip.missing{background:transparent;color:var(--kb-warn-ink);border-color:var(--kb-warn)}
+.kbsl-vchip.unused{background:transparent;color:var(--kb-muted);border:1px dashed var(--kb-line3)}
 .kbsl-vchip.unused:hover{border-color:var(--kb-accent);color:var(--kb-accent)}
-.kbsl-vistag{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:7px;background:var(--kb-warn-bg);color:var(--kb-warn-ink);font-size:12px;font-weight:600}
+.kbsl-vadd{font-family:var(--kb-font);font-size:11.5px}
+.kbsl-stat{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--kb-ink2);white-space:nowrap}
+.kbsl-stat.warn{color:var(--kb-warn-ink)}
+.kbsl-sdot{display:inline-block;flex:none;width:7px;height:7px;border-radius:50%;background:var(--kb-ok)}
+.kbsl-sdot.warn{background:var(--kb-warn)}
 
 /* fiches de champ */
-.kbsl-fcard{background:var(--kb-surface);border:1px solid var(--kb-line2);border-radius:14px;transition:box-shadow .12s,border-color .12s}
-.kbsl-fcard.open{border-color:var(--kb-line3);box-shadow:var(--kb-elev)}
+.kbsl-fcard{background:var(--kb-surface2);border:1px solid var(--kb-line2);border-radius:12px;transition:border-color .12s}
+.kbsl-fcard.open{border-color:var(--kb-line3)}
 .kbsl-fcard.drag{opacity:.4}
 .kbsl-fcard.up{box-shadow:0 -3px 0 0 var(--kb-accent)}
 .kbsl-fcard.down{box-shadow:0 3px 0 0 var(--kb-accent)}
-.kbsl-fhead{display:flex;align-items:center;gap:4px;padding:6px 8px 6px 4px;border-radius:14px;cursor:grab}
-.kbsl-grip{display:inline-flex;align-items:center;justify-content:center;width:30px;height:36px;padding:0;border:0;border-radius:8px;background:transparent;color:var(--kb-caption);cursor:grab}
+.kbsl-fhead{display:flex;align-items:center;gap:4px;padding:3px 6px 3px 2px;border-radius:12px;cursor:grab}
+.kbsl-grip{display:inline-flex;align-items:center;justify-content:center;width:26px;height:36px;padding:0;border:0;border-radius:8px;background:transparent;color:var(--kb-caption);cursor:grab}
 .kbsl-grip:hover{background:var(--kb-hover);color:var(--kb-ink2)}
-.kbsl-fmain{flex:1;min-width:0;display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:6px 4px;border:0;background:transparent;text-align:left;font-size:14px;font-weight:600}
+.kbsl-fmain{flex:1;min-width:0;display:flex;align-items:center;gap:10px;min-height:38px;padding:0 4px;border:0;background:transparent;text-align:left;font-size:14px;font-weight:550}
+.kbsl-fmain>.kbsl-clip{flex:1;min-width:0}
 .kbsl-chev{display:inline-flex;color:var(--kb-caption);transition:transform .15s}
 .kbsl-chev.open{transform:rotate(180deg)}
-.kbsl-fbody{display:flex;flex-direction:column;gap:16px;padding:16px 18px 18px;border-top:1px solid var(--kb-sep);animation:kbsl-rise .18s ease-out}
+.kbsl-fbody{display:flex;flex-direction:column;gap:16px;padding:6px 18px 18px 32px;animation:kbsl-rise .18s ease-out}
 
-/* éditeur : fenêtre — langage de la maquette kybernos-app.html (en-tête 15 px
-   + segment, corps à deux colonnes, blocs étiquetés, aperçu en cartes). */
+/* éditeur : une colonne de sections, un aperçu qu'on ouvre. La fenêtre prend la hauteur de son contenu (le défilement ne vient que s'il déborde). */
 .kbsl-backdrop{position:fixed;inset:0;z-index:1100;display:flex;align-items:center;justify-content:center;background:var(--kb-mask);padding:16px}
-.kbsl-modal{width:min(1040px,100%);height:min(780px,calc(100% - 32px));display:flex;flex-direction:column;background:var(--kb-surface);color:var(--kb-ink);
-  border:1px solid var(--kb-stroke);border-radius:16px;box-shadow:var(--kb-elev);overflow:hidden}
-.kbsl-ehead{flex:none;display:flex;align-items:center;gap:8px;padding:10px 10px 10px 14px;border-bottom:1px solid var(--kb-line2)}
-.kbsl-eh{margin:0 auto 0 4px;font-size:14px;font-weight:600;letter-spacing:0}
-.kbsl-ehead .kbsl-ibtn{width:32px;height:32px;border-radius:7px}
+.kbsl-modal{width:min(760px,100%);max-height:min(840px,calc(100% - 32px));display:flex;flex-direction:column;background:var(--kb-surface);color:var(--kb-ink);
+  border:1px solid var(--kb-stroke);border-radius:16px;box-shadow:var(--kb-elev);overflow:hidden;transition:width .2s ease}
+.kbsl-modal.pv{width:min(1100px,100%)}
+.kbsl-ehead{flex:none;display:flex;align-items:center;gap:8px;padding:8px 8px 8px 18px;min-height:52px;border-bottom:1px solid var(--kb-line2)}
+.kbsl-eh{margin:0 auto 0 4px;font-size:15px;font-weight:650;letter-spacing:0}
+.kbsl-ehead .kbsl-ibtn{width:32px;height:32px;border-radius:8px}
+.kbsl-ehead .kbsl-ibtn[aria-pressed="true"]{background:var(--kb-hover);color:var(--kb-ink)}
 .kbsl-ehead .kbsl-aibtn{height:32px;padding:0 10px;font-size:13px;font-weight:500;background:transparent;border-color:var(--kb-line2)}
 .kbsl-ehead .kbsl-aibtn:hover{background:var(--kb-hover)}
-.kbsl-seg{display:inline-flex;background:var(--kb-surface2);border-radius:8px;padding:2px;gap:2px}
-.kbsl-seg .kbsl-pill{height:26px;padding:0 10px;border:0;border-radius:6px;background:transparent;color:var(--kb-muted);font-size:13px;font-weight:500}
+.kbsl-seg{display:inline-flex;flex-wrap:wrap;background:var(--kb-surface2);border-radius:10px;padding:3px;gap:2px}
+.kbsl-seg .kbsl-pill{height:30px;padding:0 12px;border:0;border-radius:7px;background:transparent;color:var(--kb-muted);font-size:12.5px;font-weight:500}
 .kbsl-seg .kbsl-pill:hover{border:0;background:transparent;color:var(--kb-ink)}
-.kbsl-seg .kbsl-pill.on{background:var(--kb-surface);color:var(--kb-ink);box-shadow:0 1px 2px color-mix(in srgb,#000 8%,transparent)}
-.kbsl-ebody{flex:1;min-height:0;display:grid;grid-template-columns:1fr 330px}
-.kbsl-esteps{min-width:0;overflow:auto;display:flex;flex-direction:column;gap:22px;padding:16px 18px 24px}
-.kbsl-easide{min-width:0;display:flex;flex-direction:column;gap:10px;padding:14px;border-left:1px solid var(--kb-line2);background:var(--kb-fill);overflow:auto}
-.kbsl-efoot{flex:none;display:flex;align-items:center;gap:8px;padding:10px 12px;border-top:1px solid var(--kb-line2)}
-.kbsl-efoot .kbsl-btn{height:34px;padding:0 12px;border-radius:7px;font-size:14px;font-weight:500}
-.kbsl-pvcard{display:flex;flex-direction:column;gap:8px;padding:10px;border:1px solid var(--kb-line2);border-radius:10px;background:var(--kb-surface)}
-.kbsl-pvlabel{font-size:12px;font-weight:500;letter-spacing:0;text-transform:none;color:var(--kb-caption)}
-.kbsl-slugbox{display:inline-flex;align-items:center;gap:2px;height:36px;padding:0 4px 0 10px;border:1px solid var(--kb-line);border-radius:7px;background:var(--kb-surface)}
+.kbsl-seg .kbsl-pill.on{background:var(--kb-surface);color:var(--kb-ink);box-shadow:0 1px 2px color-mix(in srgb,#000 14%,transparent)}
+.kbsl-ebody{flex:0 1 auto;min-height:0;display:flex}
+.kbsl-esteps{flex:1;min-width:0;overflow:auto;display:flex;flex-direction:column;gap:20px;padding:20px 28px 22px}
+.kbsl-easide{flex:none;width:340px;min-width:0;display:flex;flex-direction:column;gap:18px;padding:20px 22px;border-left:1px solid var(--kb-line2);background:var(--kb-fill);overflow:auto}
+.kbsl-efoot{flex:none;display:flex;align-items:center;gap:8px;padding:10px 14px;border-top:1px solid var(--kb-line2)}
+.kbsl-efoot .kbsl-btn{height:34px;padding:0 14px;border-radius:9px;font-size:13px;font-weight:500}
+.kbsl-sec2{display:flex;flex-direction:column;gap:10px}
+.kbsl-sech{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.kbsl-sect{display:flex;align-items:center;gap:10px;min-width:0}
+.kbsl-sect2{display:flex;flex-direction:column;gap:3px;min-width:0;flex:1}
+.kbsl-run{flex-direction:row;align-items:center;justify-content:space-between;gap:20px;padding-top:16px;border-top:.5px solid var(--kb-line2)}
+.kbsl-fl{display:flex;flex-direction:column;gap:6px;min-width:0}
+.kbsl-idrow{display:grid;grid-template-columns:38px minmax(0,1fr) 210px;gap:12px;align-items:end}
+.kbsl-idrow.act{grid-template-columns:38px minmax(0,1fr)}
+.kbsl-idrow .kbsl-tile.lg{width:38px;height:38px;border-radius:10px;background:var(--kb-surface)}
+.kbsl-field{height:38px;border-radius:10px}
+.kbsl-slugbox{display:flex;align-items:center;gap:2px;height:38px;padding:0 4px 0 12px;border:1px solid var(--kb-line);border-radius:10px;background:var(--kb-surface)}
 .kbsl-slugbox:focus-within{border-color:var(--kb-accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--kb-accent) 18%,transparent)}
-.kbsl-slugin{width:150px;height:32px;border:0;outline:0;background:transparent;font-size:13px;font-family:var(--kb-mono);color:var(--kb-accent)}
-.kbsl-icopick{display:flex;align-items:center;justify-content:center;width:34px;height:34px;padding:0;border:1px solid transparent;border-radius:8px;background:transparent;color:var(--kb-muted)}
+.kbsl-slugin{flex:1;min-width:0;height:34px;border:0;outline:0;background:transparent;font-size:13.5px;font-family:var(--kb-mono);color:var(--kb-accent)}
+/* le prompt : un champ qui s'allonge avec le texte (le miroir donne la hauteur, le champ est posé dessus) */
+.kbsl-ed{position:relative;min-height:96px;border-radius:12px;border:1px solid var(--kb-line);background:var(--kb-surface2)}
+.kbsl-ed:focus-within{border-color:var(--kb-accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--kb-accent) 18%,transparent)}
+.kbsl-edm,.kbsl-edta{box-sizing:border-box;margin:0;padding:14px 16px;font-family:inherit;font-size:14px;line-height:1.65;letter-spacing:0;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word}
+.kbsl-edm{min-height:96px;color:var(--kb-ink)}
+.kbsl-edta{position:absolute;left:0;top:0;width:100%;height:100%;border:0;outline:0;resize:none;overflow:hidden;background:transparent;color:transparent;caret-color:var(--kb-ink)}
+.kbsl-edta::placeholder{color:var(--kb-caption)}
+.kbsl-edta::selection{background:color-mix(in srgb,var(--kb-accent) 30%,transparent)}
+.kbsl-var{color:var(--kb-accent);background:color-mix(in srgb,var(--kb-accent) 14%,transparent);border-radius:4px}
+.kbsl-pop2{position:absolute;z-index:9;right:0;top:calc(100% + 6px);width:260px;display:flex;flex-direction:column;gap:2px;padding:6px;background:var(--kb-surface3);border:1px solid var(--kb-stroke);border-radius:12px;box-shadow:var(--kb-elev)}
+.kbsl-pit{display:flex;align-items:center;gap:10px;width:100%;height:34px;padding:0 10px;border:0;border-radius:8px;background:transparent;font-size:13px;text-align:left}
+.kbsl-pit:hover{background:var(--kb-hover)}
+.kbsl-pit.new{margin-top:4px;border-top:.5px solid var(--kb-line2);border-radius:0 0 8px 8px;color:var(--kb-ink2)}
+.kbsl-qempty{padding:16px 18px;border-radius:12px;border:1px dashed var(--kb-line3);color:var(--kb-ink2);font-size:13.5px}
+.kbsl-pvh{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.kbsl-pvb{display:flex;flex-direction:column;gap:7px}
+.kbsl-pvlabel{font-size:11.5px;font-weight:600;color:var(--kb-caption)}
+.kbsl-pvb .kbsl-result{padding:12px 14px;border:1px solid var(--kb-line2);border-radius:12px;background:var(--kb-surface);font-size:13px;line-height:1.6;max-height:none;overflow-wrap:anywhere}
+.kbsl-dirty{flex:1;display:inline-flex;align-items:center;gap:8px;font-size:12.5px;color:var(--kb-muted)}
+.kbsl-problem{flex:1;display:inline-flex;align-items:center;gap:8px;color:var(--kb-warn-ink)}
+.kbsl-kbd2{margin-left:4px;padding:1px 6px;border:1px solid currentColor;border-radius:5px;font-size:11px;font-weight:500;opacity:.65}
+.kbsl-icoquery{position:absolute;z-index:8;top:calc(100% + 6px);left:0;width:316px;max-height:320px;overflow:hidden;display:flex;flex-direction:column;gap:10px;padding:10px;background:var(--kb-surface3);border:1px solid var(--kb-stroke);border-radius:14px;box-shadow:var(--kb-elev)}
+.kbsl-isearch{display:flex;align-items:center;gap:8px;height:36px;padding:0 10px;border-radius:9px;border:1px solid var(--kb-line2);background:var(--kb-surface);color:var(--kb-muted)}
+.kbsl-isearch:focus-within{border-color:var(--kb-accent)}
+.kbsl-isearch input{flex:1;min-width:0;border:0;outline:0;background:transparent;font:inherit;font-size:13px;color:var(--kb-ink)}
+.kbsl-isearch input::placeholder{color:var(--kb-ink2)}
+.kbsl-igrid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:4px;overflow:auto;min-height:0}
+.kbsl-icopick{display:flex;align-items:center;justify-content:center;height:42px;padding:0;border:1px solid transparent;border-radius:9px;background:transparent;color:var(--kb-ink2)}
 .kbsl-icopick:hover{background:var(--kb-hover);color:var(--kb-ink)}
-.kbsl-icopick.on{border-color:var(--kb-accent);background:var(--kb-hover);color:var(--kb-ink)}
-.kbsl-icoquery{width:340px;max-height:330px;overflow:auto;display:flex;flex-direction:column;gap:8px;padding:10px;background:var(--kb-menu);border:1px solid var(--kb-stroke);border-radius:14px;box-shadow:var(--kb-elev)}
-.kbsl-idrow{display:grid;grid-template-columns:40px minmax(0,1fr) 200px;gap:8px;align-items:center}
-.kbsl-idrow .kbsl-idname{grid-column:2 / 3}
-.kbsl-idrow .kbsl-idslug{grid-column:3 / 4}
-.kbsl-idrow .kbsl-iddesc{grid-column:2 / -1}
-.kbsl-idrow .kbsl-tile.lg{width:38px;height:38px;border-radius:10px}
+.kbsl-icopick.on{border-color:var(--kb-accent);background:var(--kb-hover);color:var(--kb-accent)}
 @media (max-width:820px){
-  .kbsl-ebody{grid-template-columns:1fr;overflow:auto}
+  .kbsl-modal.pv{width:min(760px,100%)}
+  .kbsl-ebody{flex-direction:column;overflow:auto}
   .kbsl-esteps,.kbsl-easide{overflow:visible}
-  .kbsl-easide{border-left:0;border-top:1px solid var(--kb-line2)}
-  .kbsl-idrow{grid-template-columns:40px minmax(0,1fr)}
-  .kbsl-idrow .kbsl-idslug,.kbsl-idrow .kbsl-iddesc{grid-column:1 / -1}
+  .kbsl-easide{width:auto;border-left:0;border-top:1px solid var(--kb-line2)}
+  .kbsl-idrow{grid-template-columns:38px minmax(0,1fr)}
+  .kbsl-idrow>.kbsl-fl:last-child:not(:nth-child(2)){grid-column:1 / -1}
+  .kbsl-run{flex-direction:column;align-items:flex-start}
 }
 
 /* réglages */
@@ -901,18 +921,43 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
 .kbsl-head{display:flex;flex-direction:column;gap:5px}
 .kbsl-h1{margin:0;font-size:26px;line-height:32px;font-weight:800;letter-spacing:-.01em}
 .kbsl-sub{font-size:14px;line-height:1.55;color:var(--kb-muted);max-width:640px}
-.kbsl-tabs{display:flex;gap:4px;align-items:center;border-bottom:1px solid var(--kb-line);padding-bottom:6px}
-.kbsl-search{height:32px;padding:0 10px;border-radius:8px;border:1px solid var(--kb-line);background:transparent;color:inherit;font:inherit;font-size:13px}
+.kbsl-tabs{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.kbsl-segtabs{display:inline-flex;gap:2px;padding:3px;border-radius:10px;background:var(--kb-surface2)}
+.kbsl-tab{display:inline-flex;align-items:center;gap:8px;height:28px;padding:0 14px;border-radius:7px;font-size:13px;font-weight:500;color:var(--kb-muted);background:none;border:0;white-space:nowrap}
+.kbsl-tab:hover{color:var(--kb-ink)}
+.kbsl-tab.on{background:var(--kb-surface);color:var(--kb-ink);box-shadow:0 1px 2px color-mix(in srgb,#000 14%,transparent)}
+.kbsl-cnt{font-size:11.5px;color:var(--kb-muted);font-variant-numeric:tabular-nums}
+.kbsl-search{display:flex;align-items:center;gap:8px;height:34px;padding:0 12px;border-radius:9px;border:1px solid var(--kb-line2);background:var(--kb-surface);color:var(--kb-muted)}
+.kbsl-search:focus-within{border-color:var(--kb-accent)}
+.kbsl-searchin{flex:1;min-width:0;border:0;outline:0;background:transparent;font:inherit;font-size:13px;color:var(--kb-ink)}
 /* the browser's default placeholder is a mid grey: 3.0:1 on the dark fill */
-.kbsl-search::placeholder{color:var(--kb-ink2)}
-.kbsl-tab{padding:5px 11px;border-radius:8px;font-size:13px;color:var(--kb-muted);background:none;border:0}
-.kbsl-tab.on{background:var(--kb-hover);color:var(--kb-ink)}
-.kbsl-lrow{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:12px;border:1px solid transparent;flex-wrap:nowrap;min-width:0}
+.kbsl-searchin::placeholder{color:var(--kb-ink2)}
+.kbsl-outline{background:transparent;border:1px solid var(--kb-line2);color:var(--kb-ink);font-weight:500}
+.kbsl-outline:hover{background:var(--kb-hover)}
+.kbsl-list{display:flex;flex-direction:column;border-radius:14px;border:.5px solid var(--kb-line2);background:var(--kb-surface2)}
+.kbsl-lrow{position:relative;display:flex;align-items:center;gap:12px;min-height:64px;padding:8px 10px 8px 14px;border-radius:0;flex-wrap:nowrap;min-width:0}
+.kbsl-lrow+.kbsl-lrow{border-top:.5px solid var(--kb-line2)}
+.kbsl-lrow:first-child{border-radius:14px 14px 0 0}
+.kbsl-lrow:last-child{border-radius:0 0 14px 14px}
+.kbsl-lrow:only-child{border-radius:14px}
 .kbsl-lrow:hover{background:var(--kb-hover)}
-.kbsl-lrow>.kbsl-chip,.kbsl-lrow>.kbsl-tile,.kbsl-lrow>.kbsl-ibtn{flex:none}
-.kbsl-lmain{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;text-align:left;border:0;background:transparent;padding:0;overflow:hidden}
-.kbsl-ltitle{display:flex;align-items:baseline;gap:8px;font-size:14px;font-weight:600;min-width:0;white-space:nowrap;overflow:hidden}
+.kbsl-lrow>.kbsl-meta,.kbsl-lrow>.kbsl-tile,.kbsl-lrow>.kbsl-lacts{flex:none}
+.kbsl-lrow .kbsl-tile.sm{width:36px;height:36px;border-radius:10px;background:var(--kb-surface)}
+.kbsl-lmain{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;text-align:left;border:0;background:transparent;padding:0;overflow:hidden}
+.kbsl-ltitle{display:flex;align-items:baseline;gap:10px;font-size:14px;font-weight:600;min-width:0;white-space:nowrap;overflow:hidden}
 .kbsl-ltitle>span{overflow:hidden;text-overflow:ellipsis}
+.kbsl-ltitle>.kbsl-slug{flex:none;overflow:visible}
+.kbsl-slug{font-family:var(--kb-mono);font-size:13px;font-weight:500;color:var(--kb-accent);white-space:nowrap}
+.kbsl-lmain .kbsl-desc{font-size:12.5px;color:var(--kb-ink2)}
+.kbsl-meta{display:inline-flex;align-items:center;justify-content:flex-end;gap:6px;min-width:96px;height:auto;padding:0 6px 0 0;background:transparent;font-size:12px;font-weight:400;color:var(--kb-ink2)}
+.kbsl-lacts{display:flex;gap:2px;opacity:0;transition:opacity .12s}
+.kbsl-lrow:hover .kbsl-lacts,.kbsl-lrow:focus-within .kbsl-lacts,.kbsl-lrow.kbsl-flash .kbsl-lacts{opacity:1}
+@media (hover:none){.kbsl-lacts{opacity:1}}
+.kbsl-lrow-ask{background:color-mix(in srgb,var(--kb-danger) 10%,transparent)}
+.kbsl-ask{flex:1;font-size:13.5px}
+.kbsl-empty{display:flex;flex-direction:column;align-items:center;gap:12px;padding:44px 24px;text-align:center;color:var(--kb-ink2);font-size:13.5px;line-height:1.5}
+.kbsl-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:12.5px;color:var(--kb-muted)}
+.kbsl-jsonbtn{display:inline-flex;align-items:center;gap:6px;font-weight:500;font-size:12.5px}
 /* A phone (A3-22): the row's name kept about 50 px between the tile and the chip and three icon buttons (« / w… »), and the
    search field, 220 px wide at the end of the tab line, was cut by the page. The chip and the actions go on a line under the name,
    the tabs wrap, and the search takes its own line. */
@@ -922,11 +967,11 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
 .kbsl-lrow{flex-wrap:wrap;row-gap:4px}
 .kbsl-lrow>.kbsl-lmain{flex:1 1 calc(100% - 40px)}
 .kbsl-lrow>.kbsl-chip{margin-inline-start:40px}
-.kbsl-lrow>.kbsl-chip+.kbsl-ibtn{margin-inline-start:auto}
+.kbsl-lrow>.kbsl-chip+.kbsl-lacts{margin-inline-start:auto;opacity:1}
+.kbsl-lrow>.kbsl-meta{min-width:0;justify-content:flex-start}
 }
-.kbsl-jrow{display:flex;align-items:center;gap:8px}
-.kbsl-json summary{cursor:pointer;color:var(--kb-muted);font-size:12px}
-.kbsl-json pre{margin:6px 0 0;padding:10px;background:var(--kb-surface2);border-radius:10px;font-size:12px;overflow:auto;max-height:260px}
+.kbsl-json{display:flex;flex-direction:column;gap:6px}
+.kbsl-json pre{margin:0;padding:10px;background:var(--kb-surface2);border-radius:10px;font-size:12px;overflow:auto;max-height:260px}
 
 /* ancrage au-dessus du composeur */
 /* Plan volontairement BAS : le menu natif du composeur (declencheur « / ») doit
@@ -942,8 +987,6 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
 
 /* editeur et notification : au-dessus de la couche la plus haute de l'application (1000) */
 /* démonstration */
-.kbsl-demo{display:flex;flex-direction:column;gap:8px;border:0;border-radius:0;background:transparent;overflow:visible}
-.kbsl-demo-stage{display:flex;flex-direction:column;justify-content:flex-end;gap:8px;height:auto;padding:0;background:transparent;border:0;border-radius:0;overflow:visible}
 
 /* fiches de champ : flèches visibles au survol */
 .kbsl-fcard .kbsl-ibtn.mv{opacity:0;transition:opacity .12s}
@@ -957,8 +1000,8 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
 /* barres de défilement discrètes, comme le menu natif */
 .kbsl-scope *,.kbsl-backdrop *{scrollbar-width:thin;scrollbar-color:var(--dsw-alias-scrollbar-bg-l2,var(--kb-line3)) transparent}
 
-/* Reduced motion (audit A1-15): the caret, the live dot, the spinner, the flash and the rise stop. Last in the sheet: .kbsl-fbody re-declares its animation above. */
-@media (prefers-reduced-motion:reduce){.kbsl-anim,.kbsl-spin,.kbsl-caret,.kbsl-live i,.kbsl-flash,.kbsl-fbody{animation:none}}
+/* Reduced motion (audit A1-15): the flash and the rise stop. Last in the sheet: .kbsl-fbody re-declares its animation above. */
+@media (prefers-reduced-motion:reduce){.kbsl-anim,.kbsl-flash,.kbsl-fbody{animation:none}}
 `
 
       // ══════════════════════════════════════════════════════════════════════
@@ -1190,13 +1233,18 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
         const s = seed || {}
         const base = entry ? kbToDraft(entry) : Object.assign(kbBlankDraft(kind), s.title !== undefined ? { title: s.title } : {}, s.template !== undefined ? { template: s.template } : {})
         ui.editor = {
-          mode: mode, kind: base.kind, draft: base, step: 0, iconOpen: false, iconQuery: '',
+          mode: mode, kind: base.kind, draft: base, step: 0, iconOpen: false, iconQuery: '', insertOpen: false,
+          preview: kbPreviewPref(), base: JSON.stringify(base),
           openField: null, confirmDel: false, drag: null, over: null, error: null, saving: false,
         }
         ui.palette = false
         ui.confirmId = null
         notify()
       }
+      // The preview is a panel the person opens (the button of the editor's header), and it stays as it was left.
+      const KB_PREVIEW_KEY = 'kybernos.slash.preview'
+      const kbPreviewPref = () => { try { return window.localStorage.getItem(KB_PREVIEW_KEY) === 'on' } catch (e) { return false } }
+      const kbSetPreviewPref = (on) => { try { window.localStorage.setItem(KB_PREVIEW_KEY, on ? 'on' : 'off') } catch (e) { /* private mode: it stays for this editor only */ } }
       function kbCloseEditor() { ui.editor = null; notify() }
       function kbPatchEditor(patch) { if (ui.editor === null) return; ui.editor = Object.assign({}, ui.editor, patch); notify() }
       function kbPatchDraft(patch, edPatch) { if (ui.editor === null) return; ui.editor = Object.assign({}, ui.editor, { draft: Object.assign({}, ui.editor.draft, patch) }, edPatch || {}); notify() }
@@ -1671,6 +1719,31 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
         ui.editor = Object.assign({}, ui.editor, { draft: Object.assign({}, ui.editor.draft, { fields: list }), drag: null, over: null })
         notify()
       }
+      // « Insert a blank »: the token goes where the cursor is in the prompt (at the end when the field has not been used yet).
+      const kbInsertAtCaret = (name) => {
+        if (ui.editor === null) return
+        const t = String(ui.editor.draft.template || '')
+        const ta = typeof document !== 'undefined' ? document.querySelector('[data-kb-template]') : null
+        const at = ta !== null && typeof ta.selectionStart === 'number' ? ta.selectionStart : t.length
+        const end = ta !== null && typeof ta.selectionEnd === 'number' ? ta.selectionEnd : at
+        const tok = '{' + name + '}'
+        kbPatchDraft({ template: t.slice(0, at) + tok + t.slice(end) }, { insertOpen: false })
+        setTimeout(() => {
+          const el = document.querySelector('[data-kb-template]')
+          if (el !== null) { try { el.focus(); el.setSelectionRange(at + tok.length, at + tok.length) } catch (e) { /* no selection API */ } }
+        }, 20)
+      }
+      // The footer names what stops a save: a click goes to that field.
+      const kbFocusProblem = (go) => {
+        if (go !== '' && go.indexOf('f') === 0) kbPatchEditor({ openField: go })
+        setTimeout(() => {
+          try {
+            const sel = go === 'title' ? '[data-kb-ed="title"]' : (go === 'slug' ? '[data-kb-ed="slug"]' : (go === 'tpl' ? '[data-kb-template]' : '[data-kb-field="' + go + '"]'))
+            const el = document.querySelector(sel)
+            if (el !== null) { if (typeof el.focus === 'function') el.focus(); el.scrollIntoView({ block: 'nearest' }) }
+          } catch (e) { /* no layout */ }
+        }, 30)
+      }
       const kbInsertVar = (name) => {
         if (ui.editor === null) return
         const t = String(ui.editor.draft.template || '')
@@ -1687,40 +1760,41 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
         const isAction = d.kind === 'action'
         const vars = kbVarsOf(d.template)
         const names = d.fields.map((f) => f.name).filter((n) => n !== '')
-        const missing = vars.filter((v) => v !== 'message' && names.indexOf(v) < 0)
         const unused = names.filter((n) => vars.indexOf(n) < 0)
         const problem = kbProblem(ed)
         const finalText = kbPreviewText(d)
         const heading = ed.mode === 'create'
           ? (isAction ? 'New message action' : 'New slash command')
           : (isAction ? 'Edit message action' : 'Edit slash command')
-        const s1Done = String(d.title).trim() !== ''
-        const s2Done = String(d.template).trim() !== ''
-        const s3Done = d.fields.length > 0
+        const pv = ed.preview === true
+        const dirty = ed.base !== undefined && ed.base !== JSON.stringify(d)
+        const lab = (text, node, cls) => h('div', { className: 'kbsl-fl' + (cls ? ' ' + cls : '') }, h('span', { className: 'kbsl-lblsm' }, text), node)
 
-        const stepN = (n, done, optional) => h('span', { className: 'kbsl-stepn' + (done ? ' done' : (optional ? ' opt' : '')) },
-          done ? h(KbIcon, { name: 'check', size: 15, weight: 3 }) : String(n))
-
-        // ── step 1: naming ──────────────────────────────────────────────────
-        const iconPicker = ed.iconOpen ? h('div', { className: 'kbsl-icoquery kbsl-anim', style: { position: 'absolute', top: '72px', left: 0, zIndex: 8 } },
-          h('div', { style: { position: 'relative' } },
-            h('span', { style: { position: 'absolute', left: '12px', top: '11px', display: 'inline-flex', color: 'var(--kb-muted)' } }, h(KbIcon, { name: 'search', size: 18, weight: 2 })),
+        // ── identity: icon, name, command, description ─────────────────────
+        const iconList = ed.iconOpen ? kbIconSearch(ed.iconQuery) : []
+        const iconPicker = ed.iconOpen ? h('div', { className: 'kbsl-icoquery kbsl-anim' },
+          h('label', { className: 'kbsl-isearch' },
+            h(KbIcon, { name: 'search', size: 15, weight: 2 }),
             h('input', {
-              className: 'kbsl-field sm', style: { paddingLeft: '38px' }, 'aria-label': 'Search icons',
-              placeholder: 'Search icons, e.g. mail, translate, code', value: ed.iconQuery,
+              'aria-label': 'Search icons', placeholder: 'Search icons, e.g. mail, translate, code', value: ed.iconQuery, autoFocus: true,
               onChange: (ev) => kbPatchEditor({ iconQuery: ev.target.value }),
             })),
-          h('span', { className: 'kbsl-help', style: { padding: '0 2px' } }, 'Pick the picture that will show up next to your command.'),
-          h('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: '4px' } },
-            kbIconSearch(ed.iconQuery).map((n) => h('button', {
-              key: n, type: 'button', className: 'kbsl-icopick' + (n === d.icon ? ' on' : ''), 'aria-label': n,
-              // The icon belongs to the DRAFT: kbPatchEditor only touches
-              // the editor state, passing it there changed nothing on the entry.
+          h('div', { className: 'kbsl-igrid' },
+            iconList.map((n) => h('button', {
+              key: n, type: 'button', className: 'kbsl-icopick' + (n === d.icon ? ' on' : ''), 'aria-label': n, 'aria-pressed': n === d.icon, title: n,
+              // The icon belongs to the DRAFT: kbPatchEditor only touches the editor state, passing it there changed nothing on the entry.
               onClick: () => kbPatchDraft({ icon: n }, { iconOpen: false }),
-            }, h(KbIcon, { name: n, size: 18 }))))) : null
-
+            }, h(KbIcon, { name: n, size: 19 }))),
+            iconList.length === 0 ? h('span', { className: 'kbsl-help', style: { gridColumn: '1 / -1', padding: '10px 6px' } }, 'No icon matches “' + ed.iconQuery + '”.') : null)) : null
+        const iconTile = h('div', { className: 'kbsl-fl', style: { position: 'relative', flex: 'none' } },
+          h('span', { className: 'kbsl-lblsm' }, 'Icon'),
+          h('button', {
+            type: 'button', className: 'kbsl-tile lg' + (ed.iconOpen ? '' : ' kbsl-tt b l'), 'data-tip': ed.iconOpen ? undefined : 'Change the icon', 'aria-label': 'Change icon',
+            'aria-expanded': ed.iconOpen, onClick: () => kbPatchEditor({ iconOpen: !ed.iconOpen, iconQuery: '' }),
+          }, h(KbIcon, { name: d.icon, size: 20, weight: 1.8 })),
+          iconPicker)
         const nameInput = h('input', {
-          className: 'kbsl-field lg kbsl-idname',
+          className: 'kbsl-field lg', 'data-kb-ed': 'title',
           'aria-label': 'Name', placeholder: isAction ? 'e.g. Explain simply' : 'e.g. Code Refactor', value: d.title,
           onChange: (ev) => {
             const t = ev.target.value
@@ -1729,113 +1803,91 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
             kbPatchDraft(patch)
           },
         })
-
-        const slugBox = isAction ? null : h('label', { className: 'kbsl-slugbox kbsl-idslug', title: 'What you type to run it' },
+        const slugBox = isAction ? null : h('label', { className: 'kbsl-slugbox', title: 'What you type to run it' },
           h('span', { className: 'kbsl-mono', style: { fontSize: '13px', color: 'var(--kb-accent)' } }, '/'),
-          h('input', { className: 'kbsl-slugin', 'aria-label': 'Slash name', placeholder: 'shortcut', value: d.slug, onChange: (ev) => kbPatchDraft({ slug: kbCleanSlug(ev.target.value) }) }))
-
+          h('input', { className: 'kbsl-slugin', 'data-kb-ed': 'slug', 'aria-label': 'Slash name', placeholder: 'shortcut', value: d.slug, onChange: (ev) => kbPatchDraft({ slug: kbCleanSlug(ev.target.value) }) }))
         const descInput = h('input', {
-          className: 'kbsl-field kbsl-iddesc', 'aria-label': 'Description', placeholder: 'One line shown in the palette (optional)',
+          className: 'kbsl-field', 'aria-label': 'Description', placeholder: 'One line shown in the list and in the / menu',
           value: d.desc, onChange: (ev) => kbPatchDraft({ desc: ev.target.value }),
         })
-
-        const placementPicker = isAction ? h('div', { className: 'kbsl-iddesc', style: { display: 'flex', flexDirection: 'column', gap: '8px' } },
+        const placementPicker = isAction ? h('div', { className: 'kbsl-fl' },
           h('span', { className: 'kbsl-lblsm' }, 'Where should the button appear?'),
-          h('span', { className: 'kbsl-help' }, 'Under your assistant messages.'),
-          h('div', { style: { display: 'flex', flexWrap: 'wrap', gap: '6px' } },
+          h('div', { className: 'kbsl-seg', role: 'group', 'aria-label': 'Where should the button appear?' },
             ['toolbar', 'menu'].map((pl) => h('button', {
               key: pl, type: 'button', className: 'kbsl-pill' + (d.placement === pl ? ' on' : ''),
               'aria-pressed': d.placement === pl, onClick: () => kbPatchDraft({ placement: pl }),
             }, pl === 'toolbar' ? 'In the action bar' : 'In the ⋯ menu')))) : null
+        const identity = h('section', { className: 'kbsl-sec2' },
+          h('div', { className: 'kbsl-idrow' + (isAction ? ' act' : '') }, iconTile, lab('Name', nameInput), slugBox === null ? null : lab('Command', slugBox)),
+          lab('Description (optional)', descInput),
+          placementPicker)
 
-        const step1 = h('section', { className: 'kbsl-step' }, stepN(1, s1Done, false),
-          h('div', { style: { flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '10px' } },
-            h('div', { style: { display: 'flex', flexDirection: 'column', gap: '4px' } },
-              h('h3', { className: 'kbsl-steph' }, 'Name it'),
-              h('span', { className: 'kbsl-help' }, isAction
-                ? 'Pick an icon and the label of the button that will appear under messages.'
-                : 'Pick an icon and a name people will recognise. The word after / is what you type to run it.')),
-            h('div', { className: 'kbsl-idrow' },
-              h('div', { style: { position: 'relative', flex: 'none' } },
-                h('button', {
-                  type: 'button', className: 'kbsl-tile lg kbsl-tt b l', 'data-tip': 'Change the icon', 'aria-label': 'Change icon',
-                  'aria-expanded': ed.iconOpen, onClick: () => kbPatchEditor({ iconOpen: !ed.iconOpen }),
-                }, h(KbIcon, { name: d.icon, size: 22, weight: 1.8 })),
-                iconPicker),
-              h('div', { style: { display: 'contents' } },
-                nameInput, slugBox, descInput, placementPicker))))
-
-        // ── step 2: the prompt ──────────────────────────────────────────────
-        const step2 = h('section', { className: 'kbsl-step' }, stepN(2, s2Done, false),
-          h('div', { style: { flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '14px' } },
-            h('div', { style: { display: 'flex', flexDirection: 'column', gap: '4px' } },
-              h('span', { style: { display: 'inline-flex', alignItems: 'center', gap: '8px' } },
-                h('h3', { className: 'kbsl-steph' }, 'Write the prompt'),
-                h('span', { className: 'kbsl-info kbsl-tt b l', tabIndex: 0, 'aria-label': 'About the prompt',
-                  'data-tip': 'This is the text sent to the AI when you run it. Anything in curly braces is a blank that gets filled in first.' }, h(KbIcon, { name: 'info', size: 14 }))),
-              h('span', { className: 'kbsl-help' }, isAction
-                ? 'This is what gets sent to the AI. Use {message} to include the text of the message you click on.'
-                : 'This is what gets sent to the AI. Leave blanks for the form to fill, like the language to translate into.')),
+        // ── prompt: a field that grows with the text, its blanks coloured ──
+        const insertItems = (isAction ? [{ name: 'message', label: 'The text of the reply you click' }] : []).concat(d.fields.filter((f) => f.name !== '').map((f) => ({ name: f.name, label: f.label || 'Untitled' })))
+        const insertMenu = ed.insertOpen ? h('div', { className: 'kbsl-pop2 kbsl-anim', role: 'menu' },
+          insertItems.map((it) => h('button', { key: it.name, type: 'button', role: 'menuitem', className: 'kbsl-pit', onClick: () => kbInsertAtCaret(it.name) },
+            h('span', { className: 'kbsl-mono', style: { color: 'var(--kb-accent)' } }, '{' + it.name + '}'), h('span', { className: 'kbsl-clip' }, it.label))),
+          isAction ? null : h('button', { type: 'button', role: 'menuitem', className: 'kbsl-pit new', onClick: () => { kbPatchEditor({ insertOpen: false }); kbAddField() } }, h(KbIcon, { name: 'plus', size: 14, weight: 2.2 }), 'New question…')) : null
+        const pieces = String(d.template).split(/(\{\{?\s*[a-zA-Z_][a-zA-Z0-9_]*\s*\}?\})/)
+        const mirror = pieces.map((t, i) => (i % 2 === 1 ? h('span', { key: i, className: 'kbsl-var' }, t) : h('span', { key: i }, t)))
+        const promptSec = h('section', { className: 'kbsl-sec2' },
+          h('div', { className: 'kbsl-sech' },
+            h('div', { className: 'kbsl-sect' },
+              h('h3', { className: 'kbsl-steph' }, 'Prompt'),
+              h('span', { className: 'kbsl-help kbsl-clip' }, isAction ? 'Sent to the AI. Use {message} for the text of the reply you click.' : 'Sent to the AI. Use {blank} where the form fills something in.')),
+            h('div', { style: { position: 'relative', flex: 'none' } },
+              h('button', { type: 'button', className: 'kbsl-btn kbsl-outline sm', 'aria-haspopup': 'menu', 'aria-expanded': ed.insertOpen === true, onClick: () => kbPatchEditor({ insertOpen: ed.insertOpen !== true, iconOpen: false }) },
+                h(KbIcon, { name: 'code', size: 14, weight: 2 }), 'Insert a blank', h(KbIcon, { name: 'chevron-down', size: 13, weight: 2 })),
+              insertMenu)),
+          h('div', { className: 'kbsl-ed' },
+            h('div', { className: 'kbsl-edm', 'aria-hidden': 'true' }, mirror, String.fromCharCode(8203)),
             h('textarea', {
-              className: 'kbsl-field', rows: 6, 'data-kb-template': '1', 'aria-label': 'Prompt',
+              className: 'kbsl-edta', 'data-kb-template': '1', 'aria-label': 'Prompt', spellCheck: false,
               placeholder: isAction ? 'Explain this more simply:\n\n{message}' : 'Refactor the following code, focus on {focus}:\n\n{code}',
               value: d.template, onChange: (ev) => kbPatchDraft({ template: ev.target.value }),
+            })),
+          h('div', { className: 'kbsl-chips' },
+            vars.map((v) => {
+              const field = d.fields.filter((f) => f.name === v)[0]
+              const isMessage = v === 'message'
+              const cls = isMessage || field !== undefined ? ' ok' : ' missing'
+              return h('button', {
+                key: 'v' + v, type: 'button', className: 'kbsl-vchip' + cls,
+                onClick: () => { if (!isMessage && field === undefined) kbAddField(v); if (field !== undefined) kbPatchEditor({ openField: field.id, step: 2 }) },
+                title: isMessage ? 'Filled with the message you clicked' : (field !== undefined ? 'Answered by "' + field.label + '"' : 'No question asks for this yet — click to add one'),
+              }, '{' + v + '}', isMessage || field !== undefined ? h(KbIcon, { name: 'check', size: 12, weight: 2.6 }) : h('span', { className: 'kbsl-vadd' }, 'add a question'))
             }),
-            (vars.length > 0 || unused.length > 0) ? h('div', { style: { display: 'flex', flexDirection: 'column', gap: '8px' } },
-              h('span', { className: 'kbsl-lblsm' }, 'Click to drop into the prompt:'),
-              h('div', { style: { display: 'flex', flexWrap: 'wrap', gap: '6px' } },
-                vars.map((v) => {
-                  const field = d.fields.filter((f) => f.name === v)[0]
-                  const isMessage = v === 'message'
-                  const cls = isMessage || field !== undefined ? ' ok' : ' missing'
-                  return h('button', {
-                    key: 'v' + v, type: 'button', className: 'kbsl-vchip' + cls,
-                    onClick: () => { if (!isMessage && field === undefined) kbAddField(v); if (field !== undefined) kbPatchEditor({ openField: field.id, step: 2 }) },
-                    title: isMessage ? 'Filled with the message you clicked' : (field !== undefined ? 'Answered by "' + field.label + '"' : 'No question asks for this yet — click to add one'),
-                  }, '{' + v + '}', isMessage ? null : h(KbIcon, { name: field !== undefined ? 'check' : 'plus', size: 13, weight: 2.4 }))
-                }),
-                unused.map((n) => {
-                  const field = d.fields.filter((f) => f.name === n)[0]
-                  return h('button', {
-                    key: 'u' + n, type: 'button', className: 'kbsl-vchip unused',
-                    onClick: () => kbInsertVar(n), title: 'Click to drop it in.',
-                  }, '{' + n + '}', h(KbIcon, { name: 'plus', size: 13, weight: 2.4 }))
-                }))) : h('span', { className: 'kbsl-help' }, 'Fields you add in step 3 will show up here.')))
+            unused.map((n) => h('button', {
+              key: 'u' + n, type: 'button', className: 'kbsl-vchip unused', onClick: () => kbInsertVar(n), title: 'Not in the prompt yet: click to drop it in.',
+            }, '{' + n + '}', h(KbIcon, { name: 'plus', size: 12, weight: 2.6 }))),
+            vars.length === 0 && unused.length === 0 ? h('span', { className: 'kbsl-help' }, 'No blanks yet: the prompt is sent as written.') : null))
 
-        // ── step 3: the questions ──────────────────────────────────────────
-        const step3 = h('section', { className: 'kbsl-step' }, stepN(3, s3Done, true),
-          h('div', { style: { flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '14px' } },
-            h('div', { style: { display: 'flex', flexDirection: 'column', gap: '4px' } },
-              h('span', { style: { display: 'inline-flex', alignItems: 'center', gap: '8px' } },
-                h('h3', { className: 'kbsl-steph' }, 'Ask something first'),
-                h('span', { className: 'kbsl-opt kbsl-tt b', 'data-tip': 'You can save without adding any question' }, 'Optional'),
-                h('span', { className: 'kbsl-info kbsl-tt b l', tabIndex: 0, 'aria-label': 'About the questions',
-                  'data-tip': 'A small form shown before it runs, for example a language or a tone. Skip it and the prompt runs instantly.' }, h(KbIcon, { name: 'info', size: 14 }))),
-              h('span', { className: 'kbsl-help' }, isAction
-                ? 'Each field becomes a question in the form.'
-                : 'Each field becomes a question in the form. Drag the grip on the left to reorder them.')),
-            h('div', { style: { display: 'flex', flexDirection: 'column', gap: '10px' } },
-              d.fields.map((f, i) => h(KbFieldCard, { key: f.id, d: d, f: f, index: i, count: d.fields.length, ed: ed }))),
-            h('button', { type: 'button', className: 'kbsl-btn kbsl-dashed sm', style: { alignSelf: 'flex-start' }, onClick: kbAddField },
-              h(KbIcon, { name: 'plus', size: 16, weight: 2.2 }), 'Add a question')))
+        // ── questions ───────────────────────────────────────────────────────
+        const questionsSec = h('section', { className: 'kbsl-sec2' },
+          h('div', { className: 'kbsl-sech' },
+            h('div', { className: 'kbsl-sect' },
+              h('h3', { className: 'kbsl-steph' }, 'Questions'),
+              h('span', { className: 'kbsl-opt kbsl-tt b', 'data-tip': 'You can save without adding any question' }, 'Optional'),
+              h('span', { className: 'kbsl-help kbsl-clip' }, 'A small form shown before it runs.')),
+            h('button', { type: 'button', className: 'kbsl-btn kbsl-outline sm', style: { flex: 'none' }, onClick: () => kbAddField() }, h(KbIcon, { name: 'plus', size: 14, weight: 2.2 }), 'Add a question')),
+          d.fields.length > 0
+            ? h('div', { style: { display: 'flex', flexDirection: 'column', gap: '8px' } },
+              d.fields.map((f, i) => h(KbFieldCard, { key: f.id, d: d, f: f, index: i, count: d.fields.length, ed: ed })))
+            : h('div', { className: 'kbsl-qempty' }, isAction ? 'No question: the action runs as soon as it is clicked.' : 'No question: this command runs as soon as it is picked.'))
 
-        // ── step 4: what comes next ────────────────────────────────────────
-        const step4 = h('section', { className: 'kbsl-step' }, stepN(4, false, false),
-          h('div', { style: { flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '14px' } },
-            h('div', { style: { display: 'flex', flexDirection: 'column', gap: '4px' } },
-              h('h3', { className: 'kbsl-steph' }, 'Then what?'),
-              h('span', { className: 'kbsl-help' }, 'What happens once the answers are in.')),
-            h('div', { style: { display: 'flex', flexWrap: 'wrap', gap: '6px' } },
-              ['insert', 'send'].map((m) => h('button', {
-                key: m, type: 'button', className: 'kbsl-pill' + (d.delivery === m ? ' on' : ''), 'aria-pressed': d.delivery === m,
-                onClick: () => kbPatchDraft({ delivery: m }),
-              }, m === 'insert' ? 'Insert it in my message' : 'Send it right away'))),
-            h('span', { className: 'kbsl-help' }, d.delivery === 'send'
-              ? 'The message is sent for you — nothing to click.'
-              : 'The text lands in the composer, at your cursor, so you can edit it first.')))
+        // ── when it runs ────────────────────────────────────────────────────
+        const runSec = h('section', { className: 'kbsl-sec2 kbsl-run' },
+          h('div', { className: 'kbsl-sect2' },
+            h('h3', { className: 'kbsl-steph' }, 'When it runs'),
+            h('span', { className: 'kbsl-help' }, d.delivery === 'send' ? 'Goes out on its own once the form is answered.' : 'Lands in the message box, at your cursor, to edit first.')),
+          h('div', { className: 'kbsl-seg', role: 'group', 'aria-label': 'When it runs' },
+            ['insert', 'send'].map((m) => h('button', {
+              key: m, type: 'button', className: 'kbsl-pill' + (d.delivery === m ? ' on' : ''), 'aria-pressed': d.delivery === m,
+              onClick: () => kbPatchDraft({ delivery: m }),
+            }, h(KbIcon, { name: m === 'insert' ? 'message-square' : 'zap', size: 14, weight: 2 }), m === 'insert' ? 'Insert in my message' : 'Send right away'))))
 
-        // ── right column: the preview ──────────────────────────────────────
-        const demoFields = d.fields.slice(0, 3).map((f, i) => h('div', { key: f.id, style: { display: 'flex', flexDirection: 'column', gap: '4px' } },
+        // ── the preview: a panel the header's button opens ──────────────────
+        const demoFields = d.fields.slice(0, 3).map((f) => h('div', { key: f.id, style: { display: 'flex', flexDirection: 'column', gap: '4px' } },
           h('span', { style: { fontSize: '11.5px', fontWeight: 600, color: 'var(--kb-ink2)' } }, f.label || 'Untitled'),
           f.type === 'select'
             ? h('div', { style: { display: 'flex', flexWrap: 'wrap', gap: '5px' } },
@@ -1843,34 +1895,30 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
             : f.type === 'toggle'
               ? h('span', { className: 'kbsl-tgl' + (f.def === 'true' ? ' on' : ''), style: { display: 'block', transform: 'scale(.8)', transformOrigin: 'left center' } })
               : h('div', { style: { minHeight: '34px', padding: '7px 10px', border: '1px solid var(--kb-line)', borderRadius: '9px', background: 'var(--kb-surface2)', fontSize: '12.5px' } }, kbSampleFor(f))))
-        const aside = h('aside', { className: 'kbsl-easide' },
-          h('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' } },
-            h('span', { style: { display: 'inline-flex', alignItems: 'center', gap: '10px' } },
-              h('span', { className: 'kbsl-sec' }, 'See it in action'),
-              h('span', { className: 'kbsl-chip kbsl-live' }, h('i', null), 'Live'))),
-          h('span', { className: 'kbsl-help' }, 'Exactly what people will see. It follows your edits as you make them.'),
-          h('div', { className: 'kbsl-demo' },
-            h('div', { className: 'kbsl-demo-stage' },
-              h('div', { className: 'kbsl-pop', style: { padding: '4px', display: 'flex', flexDirection: 'column', gap: '2px' } },
-                h('div', { className: 'kbsl-pwrap on' },
-                  h('span', { className: 'kbsl-tile xs' }, h(KbIcon, { name: d.icon, size: 15 })),
-                  h('span', { style: { flex: 1, minWidth: 0, display: 'flex', alignItems: 'baseline', gap: '8px' } },
-                    h('span', { className: 'kbsl-mono', style: { fontSize: '12px', color: 'var(--kb-accent)' } }, isAction ? '' : '/' + (kbCleanSlug(d.slug) || '…')),
-                    h('span', { className: 'kbsl-clip', style: { fontSize: '12.5px', fontWeight: 600 } }, d.title || 'Untitled')))),
-              d.fields.length > 0 ? h('div', { className: 'kbsl-pop', style: { padding: '12px', display: 'flex', flexDirection: 'column', gap: '10px' } },
-                h('div', { style: { display: 'flex', alignItems: 'center', gap: '8px' } }, h(KbIcon, { name: d.icon, size: 16 }), h('span', { style: { fontSize: '13px', fontWeight: 700 } }, d.title || 'Untitled')),
-                demoFields) : null,
-              h('div', { style: { minHeight: '50px', padding: '10px 12px', border: '1px solid var(--kb-line)', borderRadius: '14px', background: 'var(--kb-surface)', fontSize: '12.5px', lineHeight: 1.5, whiteSpace: 'pre-wrap', wordBreak: 'break-word' } },
-                finalText === '' ? h('span', { style: { color: 'var(--kb-muted)' } }, 'Message or run a task, / commands') : finalText)),
-          h('div', { className: 'kbsl-pvcard' },
+        const aside = pv ? h('aside', { className: 'kbsl-easide', 'aria-label': 'Preview' },
+          h('div', { className: 'kbsl-pvh' }, h('h3', { className: 'kbsl-steph' }, 'Preview'), h('span', { className: 'kbsl-help' }, 'Follows your edits')),
+          h('div', { className: 'kbsl-pvb' },
+            h('span', { className: 'kbsl-pvlabel' }, isAction ? 'Under a reply' : 'In the / menu'),
+            h('div', { className: 'kbsl-pop', style: { padding: '4px', display: 'flex', flexDirection: 'column', gap: '2px' } },
+              h('div', { className: 'kbsl-pwrap on' },
+                h('span', { className: 'kbsl-tile xs' }, h(KbIcon, { name: d.icon, size: 15 })),
+                h('span', { style: { flex: 1, minWidth: 0, display: 'flex', alignItems: 'baseline', gap: '8px' } },
+                  h('span', { className: 'kbsl-mono', style: { fontSize: '12px', color: 'var(--kb-accent)' } }, isAction ? '' : '/' + (kbCleanSlug(d.slug) || '…')),
+                  h('span', { className: 'kbsl-clip', style: { fontSize: '12.5px', fontWeight: 600 } }, d.title || 'Untitled'))))),
+          d.fields.length > 0 ? h('div', { className: 'kbsl-pvb' },
+            h('span', { className: 'kbsl-pvlabel' }, 'Then the form'),
+            h('div', { className: 'kbsl-pop', style: { padding: '12px', display: 'flex', flexDirection: 'column', gap: '10px' } },
+              h('div', { style: { display: 'flex', alignItems: 'center', gap: '8px' } }, h(KbIcon, { name: d.icon, size: 16 }), h('span', { style: { fontSize: '13px', fontWeight: 700 } }, d.title || 'Untitled')),
+              demoFields)) : null,
+          h('div', { className: 'kbsl-pvb' },
             h('span', { className: 'kbsl-pvlabel' }, 'What gets sent'),
             h('div', { className: 'kbsl-result kbsl-mono' }, finalText || '—'),
-            h('span', { className: 'kbsl-help' }, 'Filled with sample values, so you can check the wording.'))))
+            h('span', { className: 'kbsl-help' }, d.delivery === 'send' ? 'Sent right away, as a message from you.' : 'Placed in the message box, at your cursor.'))) : null
 
         return h('div', { className: 'kbsl-scope kbsl-backdrop', 'data-kb-editor': '1', onMouseDown: (ev) => { if (ev.target === ev.currentTarget) kbCloseEditor() } },
-          h('div', { className: 'kbsl-modal', role: 'dialog', 'aria-modal': 'true', 'aria-label': heading },
+          h('div', { className: 'kbsl-modal' + (pv ? ' pv' : ''), role: 'dialog', 'aria-modal': 'true', 'aria-label': heading },
             h('div', { className: 'kbsl-ehead' },
-              h('span', { style: { display: 'inline-flex', flex: 'none', color: 'var(--kb-accent)' } }, h(KbIcon, { name: isAction ? 'sparkles' : 'terminal', size: 18, weight: 2 })),
+              h('span', { style: { display: 'inline-flex', flex: 'none', color: 'var(--kb-accent)' } }, h(KbIcon, { name: isAction ? 'wand-sparkles' : 'terminal', size: 18, weight: 2 })),
               h('h2', { className: 'kbsl-eh' }, heading),
               h('div', { style: { display: 'flex', alignItems: 'center', gap: '8px' } },
                 ed.mode === 'create' ? h('div', { className: 'kbsl-seg', role: 'group', 'aria-label': 'Type' },
@@ -1882,19 +1930,25 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
                     'aria-pressed': d.kind === k[0], onClick: () => kbPatchDraft(Object.assign({}, kbBlankDraft(k[0]), d, { kind: k[0] })),
                   }, k[1]))) : null,
                 h('button', { type: 'button', className: 'kbsl-aibtn kbsl-tt b r', 'data-tip': 'Opens a new chat where a skill helps you build it.', onClick: () => { kbCloseEditor(); kbStartWithAI('') } },
-                  h(KbIcon, { name: 'sparkles', size: 16, weight: 2 }), 'Create with AI'),
+                  h(KbIcon, { name: 'wand-sparkles', size: 16, weight: 2 }), 'Create with AI'),
+                h('button', {
+                  type: 'button', className: 'kbsl-ibtn kbsl-ptg kbsl-tt b r', 'data-tip': pv ? 'Hide the preview' : 'Show the preview', 'aria-label': 'Preview', 'aria-pressed': pv,
+                  onClick: () => { kbSetPreviewPref(!pv); kbPatchEditor({ preview: !pv }) },
+                }, h(KbIcon, { name: 'panel-right', size: 18, weight: 2 })),
                 h('button', { type: 'button', className: 'kbsl-ibtn kbsl-tt b r', 'data-tip': 'Close (Esc)', 'aria-label': 'Close', onClick: kbCloseEditor }, h(KbIcon, { name: 'x', size: 20, weight: 2 })))),
             h('div', { className: 'kbsl-ebody' },
-              h('div', { className: 'kbsl-esteps' }, step1, step2, step3, step4),
+              h('div', { className: 'kbsl-esteps' }, identity, promptSec, questionsSec, runSec),
               aside),
             h('div', { className: 'kbsl-efoot' },
               ed.mode === 'edit' ? h('button', { type: 'button', className: 'kbsl-btn kbsl-ghost', style: { color: 'var(--kb-danger)' }, onClick: () => kbPatchEditor({ confirmDel: true }) }, h(KbIcon, { name: 'trash', size: 16 }), 'Delete') : null,
-              ed.confirmDel ? h('span', { style: { flex: 1, fontSize: '14px' } }, 'Delete ', h('strong', null, d.title || 'this'), ' for good?') : (problem.msg !== '' ? h('button', { type: 'button', className: 'kbsl-link', style: { flex: 1 }, onClick: () => kbPatchEditor({ step: problem.go === 'tpl' ? 1 : (problem.go === 'title' || problem.go === 'slug' ? 0 : 2), openField: problem.go.indexOf('f') === 0 ? problem.go : null }) }, problem.msg, ' →') : h('span', { style: { flex: 1 } })),
+              ed.confirmDel ? h('span', { style: { flex: 1, fontSize: '14px' } }, 'Delete ', h('strong', null, d.title || 'this'), ' for good?')
+                : (problem.msg !== '' ? h('button', { type: 'button', className: 'kbsl-link kbsl-problem', onClick: () => kbFocusProblem(problem.go) }, h('i', { className: 'kbsl-sdot warn' }), problem.msg, ' →')
+                  : (dirty ? h('span', { className: 'kbsl-dirty' }, h('i', { className: 'kbsl-sdot warn' }), 'Unsaved changes') : h('span', { style: { flex: 1 } }))),
               ed.confirmDel ? h('button', { type: 'button', className: 'kbsl-btn kbsl-ghost', onClick: () => kbPatchEditor({ confirmDel: false }) }, 'Keep it') : null,
               ed.confirmDel ? h('button', { type: 'button', className: 'kbsl-btn kbsl-danger', onClick: () => kbDeleteEntry(entryOf(d.id) || { id: d.id, label: d.title, kind: d.kind, template: d.template, fields: [] }) }, 'Delete') : null,
               ed.confirmDel ? null : h('button', { type: 'button', className: 'kbsl-btn kbsl-ghost kbsl-tt b', 'data-tip': 'Discard your changes (Esc)', onClick: kbCloseEditor }, 'Cancel'),
               ed.confirmDel ? null : h('button', { type: 'button', className: 'kbsl-btn kbsl-primary', disabled: problem.msg !== '' || ed.saving === true, onClick: kbSaveEditor },
-                ed.saving === true ? 'Saving…' : h(React.Fragment, null, h(KbIcon, { name: 'check', size: 16 }), ed.mode === 'create' ? (isAction ? 'Create action' : 'Create command') : 'Save Changes')),
+                ed.saving === true ? 'Saving…' : h(React.Fragment, null, h(KbIcon, { name: 'check', size: 16 }), ed.mode === 'create' ? (isAction ? 'Create action' : 'Create command') : 'Save Changes', h('span', { className: 'kbsl-kbd2' }, kbSaveKeyLabel))),
               ed.error !== null && ed.error !== undefined ? h('span', { className: 'kbsl-err' }, String(ed.error)) : null)))
       }
 
@@ -1921,8 +1975,8 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
             h('span', { className: 'kbsl-chip cmd' }, '{' + (f.name || '…') + '}'),
             h('span', { className: 'kbsl-clip' }, f.label || 'Untitled'),
             h('span', { className: 'kbsl-chip' }, kbTypeLabel(f.type)),
-            f.name !== '' && inPrompt ? h('span', { className: 'kbsl-chip kbsl-live kbsl-tt b', 'data-tip': 'The prompt uses {' + f.name + '}, so this answer is sent to the AI' }, h('i', null), 'in the prompt') : null,
-            f.name !== '' && !inPrompt ? h('span', { className: 'kbsl-vistag kbsl-tt b', 'data-tip': 'Nothing in the prompt uses {' + f.name + '} yet: this question is asked but its answer is ignored' }, 'not in the prompt yet') : null,
+            f.name !== '' && inPrompt ? h('span', { className: 'kbsl-stat kbsl-tt b', 'data-tip': 'The prompt uses {' + f.name + '}, so this answer is sent to the AI' }, h('i', { className: 'kbsl-sdot' }), 'In the prompt') : null,
+            f.name !== '' && !inPrompt ? h('span', { className: 'kbsl-stat warn kbsl-tt b', 'data-tip': 'Nothing in the prompt uses {' + f.name + '} yet: this question is asked but its answer is ignored' }, h('i', { className: 'kbsl-sdot warn' }), 'Not in the prompt') : null,
             f.vis !== undefined && f.vis.on === true ? h('span', { className: 'kbsl-vistag kbsl-tt b', 'data-tip': 'This question only appears when the condition above is met' }, 'Visible in some cases') : null,
             h('span', { className: 'kbsl-chev' + (open ? ' open' : '') }, h(KbIcon, { name: 'chevron-down', size: 16, weight: 2 }))),
           h('button', { type: 'button', className: 'kbsl-ibtn sm mv kbsl-tt lf', 'data-tip': 'Move up', disabled: props.index === 0, onClick: () => kbMoveField(props.index, props.index - 1) }, h(KbIcon, { name: 'arrow-up', size: 15 })),
@@ -1934,7 +1988,7 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
             h('input', { className: 'kbsl-field sm', 'aria-label': 'Question', placeholder: 'e.g. Language', value: f.label, onChange: (ev) => kbPatchField(f.id, { label: ev.target.value }) })),
           h('div', { style: { display: 'flex', flexDirection: 'column', gap: '8px' } },
             h('span', { className: 'kbsl-lblsm' }, 'How do they answer?'),
-            h('div', { style: { display: 'flex', flexWrap: 'wrap', gap: '6px' } },
+            h('div', { className: 'kbsl-seg', role: 'group', 'aria-label': 'How do they answer?' },
               KB_TYPE_PILLS.map((t) => h('button', {
                 key: t, type: 'button', className: 'kbsl-pill kbsl-tt b' + (f.type === t ? ' on' : ''),
                 'aria-pressed': f.type === t, 'aria-label': kbTypeLabel(t), 'data-tip': KB_TYPE_TIP[t],
@@ -2100,6 +2154,7 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
         const qState = React.useState('')
         const q = qState[0]
         const setQ = qState[1]
+        const jsonState = React.useState(false)
         React.useEffect(() => { if (store.loaded === false) kbLoad() }, [])
         const plat = (s2) => String(s2 === null || s2 === undefined ? '' : s2).toLowerCase()
         const rowsAll = listOf(tab === 'action' ? 'action' : 'slash')
@@ -2127,31 +2182,53 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
             }
           })
           : null)
+        const nSlash = listOf('slash').length
+        const nAction = listOf('action').length
+        // What each tab is for: a slash command is called from the message box, an action works on a reply. It is the tooltip of the tab and the
+        // sentence of an empty list, where a person needs it; the page keeps no permanent line for it.
+        const tabFor = (k) => (k === 'action'
+          ? L({ fr: 'Une action de message est un bouton sous chaque réponse de l’assistant : il applique un prompt enregistré à cette réponse.', en: 'A message action is a button under each assistant reply: it applies a saved prompt to that reply.' })
+          : L({ fr: 'Une commande slash est un prompt enregistré : tape “/” dans la zone de message et choisis-la. Son texte est inséré, ou un petit formulaire s’ouvre d’abord.', en: 'A slash command is a saved prompt: type “/” in the message box and pick it. Its text is inserted, or a small form opens first.' }))
+        const tabBtn = (k, label, n) => h('button', { type: 'button', className: 'kbsl-tab' + (tab === k ? ' on' : ''), 'aria-pressed': tab === k, title: tabFor(k), onClick: () => { setTab(k); setQ('') } },
+          label, n > 0 ? h('span', { className: 'kbsl-cnt' }, String(n)) : null)
+        const newLabel = tab === 'action' ? L({ fr: 'Nouvelle action', en: 'New action' }) : L({ fr: 'Nouvelle commande', en: 'New command' })
+        const total = rowsAll.length
+        const countText = needle === ''
+          ? kbslCount(total, tab === 'action' ? { fr: 'action', en: 'action' } : { fr: 'commande', en: 'command' }, tab === 'action' ? { fr: 'actions', en: 'actions' } : { fr: 'commandes', en: 'commands' })
+          : String(rows.length) + ' / ' + String(total)
+        const emptyNode = h('div', { className: 'kbsl-empty' },
+          h(KbIcon, { name: needle !== '' ? 'search' : (tab === 'action' ? 'wand-sparkles' : 'terminal'), size: 26 }),
+          h('span', null, needle !== '' ? L({ fr: 'Aucune commande ne correspond à « ' + q + ' ».', en: 'No command matches “' + q + '”.' }) : tabFor(tab)),
+          needle !== ''
+            ? h('button', { type: 'button', className: 'kbsl-btn kbsl-outline sm', onClick: () => setQ('') }, L({ fr: 'Effacer la recherche', en: 'Clear the search' }))
+            : h('button', { type: 'button', className: 'kbsl-btn kbsl-primary sm', onClick: () => kbOpenEditor('create', tab === 'action' ? 'action' : 'slash', null, {}) }, h(KbIcon, { name: 'plus', size: 15, weight: 2.2 }), newLabel))
         return h('div', { className: 'kbsl-scope kbsl-page' },
           h('div', { className: 'kbsl-head' },
-            h('div', { style: { display: 'flex', justifyContent: 'flex-end', width: '100%', marginBottom: 6 } }, (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-slash' }) : null)),
+            h('div', { className: 'kbhp-row' }, (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-slash' }) : null)),
             h('span', { className: 'kbsl-h1' }, L({ fr: 'Commandes', en: 'Commands' })),
-            h('span', { className: 'kbsl-sub' }, L({ fr: 'Un même modèle : du texte inséré, ou un formulaire en ligne. Tape / pour lancer une commande, ou utilise le bouton sous un message.', en: 'One template: inserted text, or an inline form. Type / to run a command, or use the button under a message.' }))),
+            h('span', { className: 'kbsl-sub' }, L({ fr: 'Des prompts enregistrés. Tape / dans la zone de message pour en lancer un, ou utilise le bouton sous une réponse.', en: 'Saved prompts. Type / in the message box to run one, or use the button under a reply.' }))),
           introNode,
           h('div', { className: 'kbsl-tabs' },
-            h('button', { type: 'button', className: 'kbsl-tab' + (tab === 'slash' ? ' on' : ''), onClick: () => { setTab('slash'); setQ('') } }, L({ fr: 'Commandes slash', en: 'Slash commands' }) + (listOf('slash').length > 0 ? ' · ' + String(listOf('slash').length) : '')),
-            h('button', { type: 'button', className: 'kbsl-tab' + (tab === 'action' ? ' on' : ''), onClick: () => { setTab('action'); setQ('') } }, L({ fr: 'Actions de message', en: 'Message actions' }) + (listOf('action').length > 0 ? ' · ' + String(listOf('action').length) : '')),
-            h('input', { className: 'kbsl-search', type: 'search', value: q, placeholder: L({ fr: 'Rechercher une commande…', en: 'Search for a command…' }), 'aria-label': L({ fr: 'Rechercher une commande', en: 'Search for a command' }), style: { marginInlineStart: 'auto', width: '220px' }, onChange: (e) => setQ(e.target.value) })),
-          // What the open tab is for, in one line: a slash command is called from the message box, an action works on a reply.
-          h('span', { className: 'kbsl-sub kbsl-tabfor' }, tab === 'action'
-            ? L({ fr: 'Une action de message est un bouton sous chaque réponse de l’assistant : il applique un prompt enregistré à cette réponse.', en: 'A message action is a button under each assistant reply: it applies a saved prompt to that reply.' })
-            : L({ fr: 'Une commande slash est un prompt enregistré : tape “/” dans la zone de message et choisis-la. Son texte est inséré, ou un petit formulaire s’ouvre d’abord.', en: 'A slash command is a saved prompt: type “/” in the message box and pick it. Its text is inserted, or a small form opens first.' })),
-          h('div', { style: { display: 'flex', flexDirection: 'column', gap: '2px' } },
-            rows.length === 0 ? h('span', { className: 'kbsl-help' }, needle !== '' ? L({ fr: 'Aucune commande ne correspond à « ' + q + ' ».', en: 'No command matches “' + q + '”.' }) : (tab === 'slash' ? L({ fr: 'Aucune commande slash pour l’instant.', en: 'No slash command yet.' }) : L({ fr: 'Aucune action de message pour l’instant.', en: 'No message action yet.' }))) : null,
+            h('div', { className: 'kbsl-segtabs', role: 'group', 'aria-label': L({ fr: 'Type de commande', en: 'Kind of command' }) },
+              tabBtn('slash', L({ fr: 'Commandes slash', en: 'Slash commands' }), nSlash),
+              tabBtn('action', L({ fr: 'Actions de message', en: 'Message actions' }), nAction)),
+            h('label', { className: 'kbsl-search', style: { marginInlineStart: 'auto', flex: '1 1 150px', minWidth: '150px', maxWidth: '260px' } },
+              h(KbIcon, { name: 'search', size: 15, weight: 2 }),
+              h('input', { className: 'kbsl-searchin', type: 'search', value: q, placeholder: L({ fr: 'Rechercher une commande…', en: 'Search for a command…' }), 'aria-label': L({ fr: 'Rechercher une commande', en: 'Search for a command' }), onChange: (e) => setQ(e.target.value) })),
+            h('button', { type: 'button', className: 'kbsl-btn kbsl-outline sm', onClick: () => kbStartWithAI('') },
+              h(KbIcon, { name: 'wand-sparkles', size: 15, weight: 2 }), L({ fr: 'Créer avec l’IA', en: 'Create with AI' })),
+            h('button', { type: 'button', className: 'kbsl-btn kbsl-primary sm', onClick: () => kbOpenEditor('create', tab === 'action' ? 'action' : 'slash', null, {}) },
+              h(KbIcon, { name: 'plus', size: 15, weight: 2.2 }), newLabel)),
+          h('div', { className: 'kbsl-list' },
+            rows.length === 0 ? emptyNode : null,
             rows.map((e) => h(KbSettingsRow, { key: idOf(e), entry: e }))),
-          h('div', { style: { display: 'flex', gap: '8px', flexWrap: 'wrap' } },
-            h('button', { type: 'button', className: 'kbsl-btn kbsl-dashed sm', onClick: () => kbOpenEditor('create', tab === 'action' ? 'action' : 'slash', null, {}) },
-              h(KbIcon, { name: 'plus', size: 16, weight: 2.2 }), tab === 'action' ? L({ fr: 'Nouvelle action', en: 'New action' }) : L({ fr: 'Nouvelle commande', en: 'New command' })),
-            h('button', { type: 'button', className: 'kbsl-aibtn', onClick: () => kbStartWithAI('') },
-              h(KbIcon, { name: 'sparkles', size: 16, weight: 2 }), L({ fr: 'Créer avec l’IA', en: 'Create with AI' }))),
-          h('details', { className: 'kbsl-json' },
-            h('summary', null, L({ fr: 'JSON stocké — ce que l’hôte garde vraiment', en: 'Stored JSON — what the host actually keeps' })),
-            h('pre', { className: 'kbsl-mono' }, JSON.stringify(store.entries, null, 2))),
+          h('div', { className: 'kbsl-foot' },
+            h('span', null, countText),
+            h('button', { type: 'button', className: 'kbsl-link kbsl-jsonbtn', 'aria-expanded': jsonState[0], onClick: () => jsonState[1](!jsonState[0]) },
+              h(KbIcon, { name: 'file-code', size: 14, weight: 2 }), jsonState[0] ? L({ fr: 'Masquer le JSON stocké', en: 'Hide the stored JSON' }) : L({ fr: 'Voir le JSON stocké', en: 'View stored JSON' }))),
+          jsonState[0] ? h('div', { className: 'kbsl-json' },
+            h('span', { className: 'kbsl-help' }, L({ fr: 'Ce que l’hôte garde vraiment.', en: 'What the host actually keeps.' })),
+            h('pre', { className: 'kbsl-mono' }, JSON.stringify(store.entries, null, 2))) : null,
           store.error !== null ? h('span', { className: 'kbsl-err' }, String(store.error)) : null)
       }
 
@@ -2160,23 +2237,28 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
         const id = idOf(e)
         const title = L(e.label) || nameOf(e)
         if (ui.confirmId === id) {
-          return h('div', { className: 'kbsl-lrow', style: { background: 'color-mix(in srgb,var(--kb-danger) 14%,transparent)' } },
-            h('span', { style: { flex: 1, fontSize: '13.5px' } }, L({ fr: 'Supprimer ', en: 'Delete ' }), h('strong', null, title), L({ fr: ' ? Annulable juste après.', en: '? Can be undone right after.' })),
+          return h('div', { className: 'kbsl-lrow kbsl-lrow-ask' },
+            h('span', { className: 'kbsl-ask' }, L({ fr: 'Supprimer ', en: 'Delete ' }), h('strong', null, title), L({ fr: ' ? Annulable juste après.', en: '? Can be undone right after.' })),
             h('button', { type: 'button', className: 'kbsl-btn kbsl-ghost sm', onClick: () => { ui.confirmId = null; notify() } }, L({ fr: 'Garder', en: 'Keep' })),
             h('button', { type: 'button', className: 'kbsl-btn kbsl-danger sm', onClick: () => kbDeleteEntry(e) }, L({ fr: 'Supprimer', en: 'Delete' })))
         }
+        const form = runOf(e) === 'form'
+        const n = (e.fields || []).length
         return h('div', { className: 'kbsl-lrow' + (ui.flashId === id ? ' kbsl-flash' : '') },
-          h('span', { className: 'kbsl-tile sm' }, h(KbIcon, { name: e.icon || 'terminal', size: 16 })),
+          h('span', { className: 'kbsl-tile sm' }, h(KbIcon, { name: e.icon || 'terminal', size: 18 })),
           // The row cuts its name and description with an ellipsis (the whole line at 390 px): the title is the way to read them.
           h('button', { type: 'button', className: 'kbsl-lmain', title: (e.kind === 'action' ? '' : '/' + nameOf(e) + ' · ') + title + (L(e.description) ? ' — ' + L(e.description) : ''), onClick: () => kbOpenEditor('edit', e.kind === 'action' ? 'action' : 'slash', e) },
             h('span', { className: 'kbsl-ltitle' },
-              e.kind === 'action' ? null : h('span', { className: 'kbsl-mono', style: { color: 'var(--kb-accent)', fontWeight: 500, fontSize: '13.5px' } }, '/' + nameOf(e)),
+              e.kind === 'action' ? null : h('span', { className: 'kbsl-slug' }, '/' + nameOf(e)),
               h('span', null, title)),
-            h('span', { className: 'kbsl-desc kbsl-clip', style: { fontSize: '12.5px', color: 'var(--kb-muted)' } }, L(e.description))),
-          h('span', { className: 'kbsl-chip kbsl-tt b', 'data-tip': runOf(e) === 'form' ? L({ fr: 'Demande', en: 'Asks for' }) + ' ' + kbslCount((e.fields || []).length, { fr: 'réponse', en: 'answer' }, { fr: 'réponses', en: 'answers' }) + ' ' + L({ fr: 'via un formulaire avant de lancer', en: 'in a form before running' }) : L({ fr: 'Se lance directement, sans formulaire', en: 'Runs directly, no form' }) }, runOf(e) === 'form' ? kbslCount((e.fields || []).length, { fr: 'champ', en: 'field' }, { fr: 'champs', en: 'fields' }) : L({ fr: 'direct', en: 'direct' })),
-          h('button', { type: 'button', 'data-kb-edit': id, className: 'kbsl-ibtn sm kbsl-tt lf', 'data-tip': L({ fr: 'Modifier', en: 'Edit' }), 'aria-label': L({ fr: 'Modifier', en: 'Edit' }) + ' ' + title, onClick: () => kbOpenEditor('edit', e.kind === 'action' ? 'action' : 'slash', e) }, h(KbIcon, { name: 'square-pen', size: 15 })),
-          h('button', { type: 'button', className: 'kbsl-ibtn sm kbsl-tt lf', 'data-tip': L({ fr: 'Dupliquer', en: 'Duplicate' }), 'aria-label': L({ fr: 'Dupliquer', en: 'Duplicate' }) + ' ' + title, onClick: () => kbDuplicate(e) }, h(KbIcon, { name: 'copy', size: 15 })),
-          h('button', { type: 'button', className: 'kbsl-ibtn sm danger kbsl-tt lf', 'data-tip': L({ fr: 'Supprimer', en: 'Delete' }), 'aria-label': L({ fr: 'Supprimer', en: 'Delete' }) + ' ' + title, onClick: () => { ui.confirmId = id; notify() } }, h(KbIcon, { name: 'trash', size: 15 })))
+            h('span', { className: 'kbsl-desc kbsl-clip' }, L(e.description))),
+          h('span', { className: 'kbsl-chip kbsl-meta kbsl-tt b', 'data-tip': form ? L({ fr: 'Demande', en: 'Asks for' }) + ' ' + kbslCount(n, { fr: 'réponse', en: 'answer' }, { fr: 'réponses', en: 'answers' }) + ' ' + L({ fr: 'via un formulaire avant de lancer', en: 'in a form before running' }) : L({ fr: 'Se lance directement, sans formulaire', en: 'Runs directly, no form' }) },
+            h(KbIcon, { name: form ? 'list' : 'zap', size: 13, weight: 2 }),
+            form ? kbslCount(n, { fr: 'question', en: 'question' }, { fr: 'questions', en: 'questions' }) : L({ fr: 'direct', en: 'direct' })),
+          h('div', { className: 'kbsl-lacts' },
+            h('button', { type: 'button', 'data-kb-edit': id, className: 'kbsl-ibtn sm kbsl-tt lf', 'data-tip': L({ fr: 'Modifier', en: 'Edit' }), 'aria-label': L({ fr: 'Modifier', en: 'Edit' }) + ' ' + title, onClick: () => kbOpenEditor('edit', e.kind === 'action' ? 'action' : 'slash', e) }, h(KbIcon, { name: 'square-pen', size: 15 })),
+            h('button', { type: 'button', className: 'kbsl-ibtn sm kbsl-tt lf', 'data-tip': L({ fr: 'Dupliquer', en: 'Duplicate' }), 'aria-label': L({ fr: 'Dupliquer', en: 'Duplicate' }) + ' ' + title, onClick: () => kbDuplicate(e) }, h(KbIcon, { name: 'copy', size: 15 })),
+            h('button', { type: 'button', className: 'kbsl-ibtn sm danger kbsl-tt lf', 'data-tip': L({ fr: 'Supprimer', en: 'Delete' }), 'aria-label': L({ fr: 'Supprimer', en: 'Delete' }) + ' ' + title, onClick: () => { ui.confirmId = id; notify() } }, h(KbIcon, { name: 'trash', size: 15 }))))
       }
 
       // ══════════════════════════════════════════════════════════════════════
@@ -2280,8 +2362,25 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
                 return
               }
             }
+            // Ctrl/Cmd + S saves the open editor (the browser's own « save page » has nothing to do there).
+            if ((ev.metaKey === true || ev.ctrlKey === true) && String(ev.key).toLowerCase() === 's' && ui.editor !== null) {
+              ev.preventDefault()
+              ev.stopPropagation()
+              kbSaveEditor()
+              return
+            }
             if (ev.key !== 'Escape') return
-            if (ui.editor !== null || ui.palette === true || ui.addOpen === true || ui.menu !== null || ui.ctxId !== null) {
+            // The key is ours while one of our panels is open: DSH's Settings dialog (behind the editor) must not close with it. The listener
+            // sits on window, in the capture phase, so it runs before any listener DSH put on the document.
+            const mine = ui.editor !== null || ui.palette === true || ui.addOpen === true || ui.menu !== null || ui.ctxId !== null
+            if (mine) { ev.preventDefault(); ev.stopImmediatePropagation() }
+            // A picker or a menu of the editor closes first; the editor itself closes on the next press.
+            if (ui.editor !== null && (ui.editor.iconOpen === true || ui.editor.insertOpen === true)) {
+              ui.editor = Object.assign({}, ui.editor, { iconOpen: false, insertOpen: false })
+              notify()
+              return
+            }
+            if (mine) {
               ui.editor = null
               ui.palette = false
               ui.addOpen = false
@@ -2291,8 +2390,8 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
               notify()
             }
           }
-          document.addEventListener('keydown', onKey, true)
-          return () => document.removeEventListener('keydown', onKey, true)
+          window.addEventListener('keydown', onKey, true)
+          return () => window.removeEventListener('keydown', onKey, true)
         }, 'kybernos-slash: touche Echap')
 
         // The palette: we wait for the trigger pipeline in order to plug into it.

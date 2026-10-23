@@ -1,6 +1,7 @@
 # Design note: a message from one chat session to another (V-11)
 
-Status: design only, nothing built. Asked by the owner (audit 2026-10-16, V-11): « Send to session X » from the chat; the message
+Status: **built** as `packages/kybernos-session-msg` (2026-10-20; read its README for what ships). The build kept this note's security model
+and added two kinds (a message, an instruction), an inline form prefilled by the agent's proposal tool, and a sent trail. Asked by the owner (audit 2026-10-16, V-11): « Send to session X » from the chat; the message
 reaches the target at its next step, like the intra-team `send_message`. Confirmed in code: no route of `kybernos-sessions` carries a
 message (`state close close-check commit decision isolate reclaim settings categories brain/health`).
 

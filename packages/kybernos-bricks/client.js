@@ -1068,7 +1068,8 @@ function renderFit(canvas, model, cam, opts){
       return h('div', { className: 'kbb-root' },
         h('div', { className: 'kbb-head' },
           h('span', { className: 'kbb-title', title: titleOf(ETAT.titre) }, titleOf(ETAT.titre)),
-          h('span', { className: 'kbb-badge' }, ETAT.source === 'ops' ? 'ops' : (ETAT.cle || kt('arch\u00E9type', 'archetype')))),
+          h('span', { className: 'kbb-badge' }, ETAT.source === 'ops' ? 'ops' : (ETAT.cle || kt('arch\u00E9type', 'archetype'))),
+          (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-bricks' }) : null)),
         h('div', { className: 'kbb-view' },
           h('canvas', {
             ref: cvRef,

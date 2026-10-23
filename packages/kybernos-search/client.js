@@ -184,6 +184,20 @@ window.__ModuleLoader__.load({
 .kbsr-in{flex:1;min-width:0;height:34px;border:0;outline:0;background:transparent;font:inherit;font-size:16px;color:inherit}
 .kbsr-in::placeholder{color:var(--dsw-alias-label-tertiary,#888)}
 .kbsr-kbd{font-size:11px;padding:1px 6px;border-radius:6px;border:1px solid var(--dsw-alias-border-l2,rgba(128,128,128,.3));color:var(--dsw-alias-label-tertiary,#888)}
+.kbsr-hh{position:relative;flex:none;display:inline-flex}
+.kbsr-hh-btn{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px 0 5px;border-radius:13px;border:1px solid var(--dsw-alias-border-l3,rgba(128,128,128,.35));background:transparent;color:var(--dsw-alias-label-secondary,#555);font:inherit;font-size:12px;cursor:pointer;white-space:nowrap}
+.kbsr-hh-btn:hover,.kbsr-hh-btn[aria-expanded="true"]{border-color:var(--dsw-alias-label-tertiary,#888);color:var(--dsw-alias-label-primary,#111)}
+.kbsr-hh-btn:focus-visible{outline:2px solid var(--dsw-alias-brand-primary,#4f8cff);outline-offset:2px}
+.kbsr-hh-q{display:grid;place-items:center;width:16px;height:16px;border-radius:50%;font-size:10px;font-weight:700;background:var(--dsw-alias-bg-layer-3,rgba(128,128,128,.18));color:var(--dsw-alias-label-primary,#111)}
+.kbsr-hh-pop{position:absolute;top:calc(100% + 8px);right:0;z-index:5;width:min(420px,calc(100vw - 48px));max-height:60vh;overflow:auto;display:flex;flex-direction:column;gap:8px;padding:14px;border-radius:14px;border:1px solid var(--dsw-alias-border-l2,rgba(128,128,128,.3));background:var(--dsw-alias-bg-layer-1,#fff);color:var(--dsw-alias-label-primary,#111);box-shadow:var(--dsw-shadow-lv3,0 18px 40px rgba(0,0,0,.22));font-size:13px;line-height:1.5}
+.kbsr-hh-pop h4{margin:0;font-size:14px;font-weight:600}
+.kbsr-hh-pop h5{margin:2px 0 0;font-size:12px;font-weight:600;color:var(--dsw-alias-label-secondary,#555)}
+.kbsr-hh-pop p,.kbsr-hh-pop ol{margin:0}
+.kbsr-hh-pop ol{padding-left:18px;display:flex;flex-direction:column;gap:6px}
+.kbsr-hh-where{color:var(--dsw-alias-label-secondary,#555)}
+.kbsr-hh-good{color:var(--dsw-alias-label-tertiary,#888)}
+.kbsr-hh-link{color:var(--dsw-alias-link,var(--dsw-alias-brand-primary,#4f8cff));font-weight:500;text-decoration:none}
+.kbsr-hh-link:hover{text-decoration:underline dotted}
 .kbsr-scopes{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--dsw-alias-border-l1,rgba(128,128,128,.2))}
 .kbsr-chip{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px 0 8px;border-radius:999px;border:1px solid var(--dsw-alias-border-l2,rgba(128,128,128,.3));background:transparent;color:var(--dsw-alias-label-secondary,#666);cursor:pointer;font:inherit;font-size:13px;opacity:.75}
 .kbsr-chip[aria-pressed=true]{opacity:1;color:var(--dsw-alias-label-primary,#111);border-color:color-mix(in srgb,var(--h) 55%,transparent);background:color-mix(in srgb,var(--h) 13%,transparent)}
@@ -202,7 +216,7 @@ window.__ModuleLoader__.load({
 .kbsr-body.one{grid-template-columns:1fr}
 .kbsr-list{overflow:auto;padding:6px 8px 10px;min-height:260px;border-inline-end:1px solid var(--dsw-alias-border-l1,rgba(128,128,128,.2))}
 .kbsr-body.one .kbsr-list{border:0}
-.kbsr-grp{padding:10px 8px 4px;font-size:11.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--h);display:flex;gap:6px;align-items:center}
+.kbsr-grp{padding:10px 8px 4px;font-size:11.5px;font-weight:600;color:var(--h);display:flex;gap:6px;align-items:center}
 .kbsr-it{display:flex;gap:10px;padding:9px 8px;border-radius:12px;cursor:pointer;border:0;background:transparent;width:100%;text-align:start;color:inherit;font:inherit}
 .kbsr-it:hover,.kbsr-it[aria-selected=true]{background:var(--dsw-alias-interactive-bg-hover,rgba(128,128,128,.14))}
 .kbsr-it[aria-selected=true]{box-shadow:inset 0 0 0 1px var(--dsw-alias-border-l2,rgba(128,128,128,.3))}
@@ -216,7 +230,7 @@ window.__ModuleLoader__.load({
 .kbsr-prev h3{margin:0;font-size:15px;overflow-wrap:anywhere}
 .kbsr-msg{padding:10px 12px;border-radius:12px;background:var(--dsw-alias-bg-layer-2,#f4f4f5);font-size:13px;color:var(--dsw-alias-label-secondary,#666);overflow-wrap:anywhere}
 .kbsr-msg.hit{border:1px solid var(--dsw-alias-border-l2,rgba(128,128,128,.3));color:var(--dsw-alias-label-primary,#111)}
-.kbsr-msg b{display:block;font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--dsw-alias-label-tertiary,#888);margin-bottom:3px}
+.kbsr-msg b{display:block;font-size:11px;color:var(--dsw-alias-label-tertiary,#888);margin-bottom:3px}
 .kbsr-act{display:flex;gap:8px;margin-top:auto}
 .kbsr-empty{padding:26px 18px;color:var(--dsw-alias-label-secondary,#666);display:flex;flex-direction:column;gap:12px}
 .kbsr-empty h3{margin:0;font-size:15px;color:var(--dsw-alias-label-primary,#111)}
@@ -224,6 +238,8 @@ window.__ModuleLoader__.load({
 .kbsr-bar i{display:block;height:100%;background:#4f8cff;border-radius:3px}
 .kbsr-foot{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;padding:9px 14px;border-top:1px solid var(--dsw-alias-border-l1,rgba(128,128,128,.2));font-size:12px;color:var(--dsw-alias-label-tertiary,#888)}
 .kbsr-foot .sp{flex:1}
+.kbsr-warn{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;padding:8px 14px;border-top:1px solid var(--dsw-alias-border-l1,rgba(128,128,128,.2));font-size:12px;color:var(--dsw-alias-label-secondary,#666)}
+.kbsr-warn[hidden]{display:none}
 .kbsr-hdr{color:var(--dsw-alias-brand-primary,#4f8cff)}
 .kbsr-hdr-own{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:8px;border:0;background:transparent;cursor:pointer}
 .kbsr-hdr-own:hover{background:var(--dsw-alias-interactive-bg-hover,rgba(128,128,128,.14))}
@@ -291,6 +307,71 @@ window.__ModuleLoader__.load({
 
       const closeDialog = () => { if (dlg !== null) { try { dlg.close() } catch (e) { /* gone */ } } }
 
+      // ── « ? How it works » on a page with no React tree ─────────────────────────────────────────────
+      // A React page mounts `window.__KB_HELP__.Help`; this one is plain DOM, so the SAME card is drawn here from the same data:
+      // GET /kybernos-hub/suite publishes every module's help (what / steps / where / good / url). The classes carry this bundle's
+      // own prefix — `kbhp-` belongs to the hub (scripts/test-help.mjs). A failed fetch draws no button at all, never a broken one.
+      const KB_HELP_ID = 'kybernos-search'
+      let kbHelpPending = null
+      const kbHelpFetch = () => {
+        if (kbHelpPending === null) {
+          kbHelpPending = fetch('/kybernos-hub/suite', { credentials: 'same-origin' }).then((r) => r.json()).then((j) => {
+            const mods = j !== null && typeof j === 'object' && Array.isArray(j.modules) ? j.modules : []
+            const m = mods.filter((x) => x !== null && typeof x === 'object' && x.id === KB_HELP_ID)[0]
+            return m !== undefined && m.aide !== undefined && m.aide !== null ? m : null
+          }).catch(() => null)
+        }
+        return kbHelpPending
+      }
+      const kbHelpCard = () => {
+        if (typeof window !== 'undefined' && window.__KB_HELP__) {
+          let lang = 'en'
+          try { lang = String((typeof window.__KB_LANG_RESOLVE__ === 'function' ? window.__KB_LANG_RESOLVE__() : '') || document.documentElement.lang || 'en') } catch (e) { lang = 'en' }
+          const fr = lang.slice(0, 2) === 'fr'
+          const txt = (pair) => (pair !== null && typeof pair === 'object' ? (fr ? pair.fr : pair.en) : '')
+          const wrap = el('span', 'kbsr-hh')
+          const btn = el('button', 'kbsr-hh-btn')
+          btn.type = 'button'
+          btn.setAttribute('aria-expanded', 'false')
+          btn.title = kt('Comment ça marche', 'How it works')
+          btn.appendChild(el('span', 'kbsr-hh-q', '?'))
+          btn.appendChild(document.createTextNode(kt('Comment ça marche', 'How it works')))
+          wrap.appendChild(btn)
+          let card = null
+          const close = () => { if (card !== null) { card.remove(); card = null } btn.setAttribute('aria-expanded', 'false') }
+          btn.addEventListener('click', (ev) => {
+            ev.stopPropagation()
+            if (card !== null) { close(); return }
+            kbHelpFetch().then((m) => {
+              if (m === null || wrap.isConnected !== true || card !== null) return
+              const a = m.aide
+              card = el('div', 'kbsr-hh-pop')
+              card.setAttribute('role', 'dialog')
+              card.setAttribute('aria-label', String(m.titre || KB_HELP_ID))
+              card.appendChild(el('h4', null, String(m.titre || KB_HELP_ID)))
+              if (a.what !== undefined) card.appendChild(el('p', null, txt(a.what)))
+              card.appendChild(el('h5', null, kt('Comment l’utiliser', 'How to use it')))
+              const ol = el('ol')
+              for (const st of (Array.isArray(a.steps) ? a.steps : [])) ol.appendChild(el('li', null, txt(st)))
+              card.appendChild(ol)
+              if (a.where !== undefined) card.appendChild(el('p', 'kbsr-hh-where', kt('Où le trouver : ', 'Where to find it: ') + txt(a.where)))
+              if (a.good !== undefined) card.appendChild(el('p', 'kbsr-hh-good', txt(a.good)))
+              if (typeof a.url === 'string' && a.url !== '') {
+                const link = el('a', 'kbsr-hh-link', kt('Lire l’article', 'Read the article'))
+                link.href = a.url.replace('{lang}', fr ? 'fr' : 'en')
+                link.target = '_blank'
+                link.rel = 'noopener noreferrer'
+                card.appendChild(link)
+              }
+              wrap.appendChild(card)
+              btn.setAttribute('aria-expanded', 'true')
+            })
+          })
+          return wrap
+        }
+        return null
+      }
+
       const openDialog = () => {
         if (dlg !== null) { try { dlg.focus() } catch (e) { /* gone */ } return }
         const previous = document.activeElement
@@ -313,12 +394,19 @@ window.__ModuleLoader__.load({
         input.placeholder = kt('Chercher dans les chats, skills, mémoires…', 'Search chats, skills, memories…')
         top.appendChild(input)
         top.appendChild(el('span', 'kbsr-kbd', 'Esc'))
+        // A-14: the page's own help, in the row that already carries its actions (the pill is drawn only when the host publishes help).
+        const helpCard = kbHelpCard()
+        if (helpCard !== null) top.appendChild(helpCard)
         const scopesBar = el('div', 'kbsr-scopes')
         const pop = el('div', 'kbsr-pop')
         pop.hidden = true
         const body = el('div', 'kbsr-body')
+        // The index missed some chats (a journal that could not be read): said here, with a way to try again. Hidden when nothing was missed.
+        const warn = el('div', 'kbsr-warn')
+        warn.setAttribute('data-kb', 'search-partial')
+        warn.hidden = true
         const foot = el('div', 'kbsr-foot')
-        box.append(top, scopesBar, pop, body, foot)
+        box.append(top, scopesBar, pop, body, warn, foot)
         scrim.appendChild(box)
 
         const flat = () => S.results
@@ -484,6 +572,19 @@ window.__ModuleLoader__.load({
               prev.appendChild(act)
             }
             body.appendChild(prev)
+          }
+
+          // the chats the index could not read
+          const missed = typeof S.host.errors === 'number' && S.host.state !== 'building' ? S.host.errors : 0
+          warn.textContent = ''
+          warn.hidden = missed <= 0
+          if (missed > 0) {
+            warn.appendChild(el('span', null, missed + ' ' + (missed === 1 ? kt('chat illisible, absent des résultats.', 'chat could not be read and is missing from the results.') : kt('chats illisibles, absents des résultats.', 'chats could not be read and are missing from the results.'))))
+            const retry = el('button', 'kbsr-btn', kt('Réessayer', 'Retry'))
+            retry.type = 'button'
+            retry.setAttribute('data-act', 'retry')
+            retry.addEventListener('click', async () => { try { await post('/kybernos-search/start', {}) } catch (e) { /* offline */ } poll(); render() })
+            warn.appendChild(retry)
           }
 
           // footer

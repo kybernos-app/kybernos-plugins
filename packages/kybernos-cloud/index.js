@@ -41,8 +41,8 @@ import { chmodSync, mkdirSync, readFileSync, readdirSync, realpathSync, renameSy
 import { homedir, hostname, platform } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { lireCatalogue, resoudreItem, slugSur, ymlDuKyber, verdictInstallation } from './marketplace-kyber.mjs'
-import { rank as rankByRelevance } from './relevance.mjs'
-import { findDuplicateGroups, unclearPairs } from './dedupe.mjs'
+import { rank as rankByRelevance, tokens as relevanceTokens } from './relevance.mjs'
+import { findDuplicateGroups, unclearPairs, likeness, negates, numbersOf } from './dedupe.mjs'
 import { MAP_TUNING, textHash, packVector, unpackVector, buildMap } from './mapproj.mjs'
 import { TEAM_CHUNK_NAME, TEAM_CHUNK_ORDER, TEAM_TUNING, teamWorkspace, displayName, asTeamLesson, teamFailure, teamPlan, renderTeamChunk, applicable } from './team-lessons.mjs'
 import { teamSkillsBase, isSkillId, teamSkillsFailure, asTeamSkill } from './team-skills.mjs'
@@ -52,8 +52,12 @@ import { zstdDecompressSync } from 'node:zlib'
 import { activeServer, stateFileName, llmBase, publicProfile } from './server-profile.mjs'
 import { agentsFile, readInstructions, writeInstructions } from './instructions.mjs'
 import { createKybyRoutes, pairingSupport } from './kyby.mjs'
+import { identityOf } from './computer-identity.mjs'
 import { writeGuard } from './session-guard.mjs'
 import { createKybyNative, isSessionId, readPointer, writePointer } from './kyby-native.mjs'
+import { appendEntry as journalAppend, journalTool, toolsOfTurn, turnEntry as journalEntry } from './kyby-journal.mjs'
+import { knowledgeTool } from './kyby-knowledge.mjs'
+import { accountTool } from './kyby-account.mjs'
 import { UNREADABLE, spaceKind, publishSpaceSeam } from './team-space.mjs'
 import { documentsDir, ensureTeamFolder, isChildOf, rootOf } from './team-folder.mjs'
 import { createSightings, createTurnWatch, spaceOfFolder } from './chat-space.mjs'
@@ -73,6 +77,9 @@ const dshHome = (env = process.env, osHome = homedir) => {
   if (raw === '~') return osHome()
   return resolve(raw.startsWith('~/') || raw.startsWith('~\\') ? join(osHome(), raw.slice(2)) : raw)
 }
+
+/** Who this machine is as a cloud computer: its environment, or the identity a pooled computer was handed at its claim (computer-identity.mjs). `id` and `token` are '' on a machine that is not one. */
+const computerSelf = () => identityOf(process.env, dshHome())
 const serversFile = () => {
   const raw = typeof process.env.KYBERNOS_SERVERS_FILE === 'string' ? process.env.KYBERNOS_SERVERS_FILE.trim() : ''
   return raw === '' ? join(dshHome(), 'kybernos', 'servers.json') : raw
@@ -1468,7 +1475,7 @@ const serverRoute = async () => {
   return { ok: true, server: publicProfile(active.profile), source: active.source, error: active.error, servers: active.servers.map((x) => Object.assign({ active: x.id === active.profile.id, connected: connectedTo(x.id) }, x)), rejected: active.rejected,
     // A cloud computer (the platform names it in the machine's environment). The page of this checkout no longer reads it: only the page bundle of a release that still frames
     // the server's console does, and the computer image patches that one (services/computer-image/patch-console.mjs). It goes with that patch.
-    computer: typeof process.env.KYBERNOS_COMPUTER_ID === 'string' && process.env.KYBERNOS_COMPUTER_ID !== '' }
+    computer: computerSelf().id !== '' }
 }
 
 /** POST /kybernos-cloud/server/apply: the registry changed (the Servers page wrote it): make DSH follow. What the
@@ -2939,7 +2946,7 @@ const renderMemoryChunk = (state, info) => {
     // The proxy looks for this exact token to avoid adding its own copy: it must lead every non-empty chunk,
     // including one that only carries kyber memories.
     if (parts[0].indexOf(MEMORY_MARKER) !== 0) parts.unshift(MEMORY_MARKER + ' The user\'s Kybernos account memory:')
-    parts.push('', 'These memories come from the user\'s account. Never make any up: call memory_write to add one (kind fact|preference|event|policy), memory_search to look one up.')
+    parts.push('', 'These memories come from the user\'s account. Use them only when they help with the person\'s message; never bring one up on your own. Never make any up: call memory_write to add one (kind fact|preference|event|policy), memory_search to look one up.')
     return parts.join('\n')
   } catch (e) {
     return ''
@@ -4308,14 +4315,62 @@ const lastTurnText = (messages) => {
   // tell what the user taught from what the agent asserted —
   // and the instruction « extract only what the user taught » becomes
   // inapplicable (observed risk: the agent quotes itself).
-  const both = (left === '' ? '' : 'USER:\n' + left + '\n\n') + (right === '' ? '' : 'AGENT:\n' + right)
+  // The agent's words come with the turn only as the context of a SHORT reply (« yes, Paris » answers the agent's question). After a question, or a message long enough to
+  // stand alone, they are an answer or a recap (often of the person's own memory read back): measured live, « what do you know about me? » made the capture write three
+  // memories it had just read, so they are not submitted.
+  const withAgent = left === '' || (left.length <= CAPTURE_REPLY_MAX && /\?\s*$/u.test(left) === false)
+  const both = (left === '' ? '' : 'USER:\n' + left + '\n\n') + (right === '' || withAgent === false ? '' : 'AGENT:\n' + right)
   return both.trim() === '' ? null : both.trim().slice(0, 6000)
 }
+
+/**
+ * Is this fact, in other words, already in the account? The exact-text check does not see it, and an automation's turns wrote ten reworded copies of the same facts each
+ * (measured on dev: 31 memories of one subject in an evening; every pair at 0.55 to 1.0 word overlap was the same fact). A little looser than the tidy-up's own merge rule
+ * (0.8), which asks a person before it acts: here the cost of a wrong guess is one fact not written twice. A negation, or a number the other lacks, makes it a different fact.
+ */
+const CAPTURE_SAME = { jaccard: 0.6, containment: 0.9, containmentJaccard: 0.5, containmentMinWords: 5, minWords: 3 }
+const numberSet = (text) => new Set(numbersOf(text).split(',').filter((n) => n !== ''))
+const subsetOf = (a, b) => { for (const x of a) if (b.has(x) === false) return false; return true }
+const nearKnown = (content, known) => {
+  const mine = new Set(relevanceTokens(content))
+  if (mine.size < CAPTURE_SAME.minWords) return false
+  const myNumbers = numberSet(content)
+  for (const other of known) {
+    const theirs = new Set(relevanceTokens(other))
+    if (theirs.size < CAPTURE_SAME.minWords) continue
+    const l = likeness(mine, theirs)
+    const same = l.jaccard >= CAPTURE_SAME.jaccard || (l.contained >= CAPTURE_SAME.containment && l.jaccard >= CAPTURE_SAME.containmentJaccard && l.small >= CAPTURE_SAME.containmentMinWords)
+    if (same === false || negates(content) !== negates(other)) continue
+    const theirNumbers = numberSet(other)
+    if (myNumbers.size > 0 && theirNumbers.size > 0 && subsetOf(myNumbers, theirNumbers) === false && subsetOf(theirNumbers, myNumbers) === false) continue
+    return true
+  }
+  return false
+}
+
+/** The person's own words of the last turn, with the same filters as the turn text (what `isLasting` reads). */
+const lastUserWords = (messages) => {
+  const user = messages.filter((m) => m.role === 'user' && !(m.source !== null && typeof m.source === 'object' && typeof m.source.kind === 'string' && m.source.kind !== 'user')).slice(-1)[0]
+  if (user === undefined || Array.isArray(user.content) === false) return ''
+  return stripMemoryBlock(user.content.filter((b) => b !== null && typeof b === 'object' && b.type === 'text' && typeof b.text === 'string').map((b) => b.text).join('\n'))
+}
+
+/** A message this short, and not a question, is a reply: the agent's question before it is its context. */
+const CAPTURE_REPLY_MAX = 80
+const foldWords = (value) => String(value).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[’']/g, ' ')
+const LASTING_MARKER = /\b(always|never|from now on|going forward|by default|in future|prefer|preference|toujours|jamais|desormais|dorenavant|par defaut|a l avenir|prefere|preferes|preference|siempre|nunca|por defecto|prefiero)\b/
+/** Does the person say this lasts? « Answer in Spanish » is about one answer; « I prefer Spanish », « always » and « from now on » are about the future. */
+const isLasting = (userWords) => LASTING_MARKER.test(foldWords(userWords))
+/** A preference or a rule is kept only when the person said it lasts; a fact or an event is what it is. */
+const keepCaptured = (facts, userWords) => facts.filter((f) => (f.kind !== 'preference' && f.kind !== 'policy') || isLasting(userWords))
 
 const CAPTURE_PROMPT = 'You read the end of a conversation turn between a user and their coding agent. '
   + 'Extract ONLY what the user taught about themselves, their environment or their lasting preferences '
   + '(for example “I live in Paris”, “I prefer answers in French”, “this project deploys on Fly.io”). '
   + 'Extract nothing that is a detail of the current task, a temporary file path or a guess. '
+  + 'The AGENT part, when there is one, is context only: never extract something that only the AGENT said, or that it read back from the user\'s memory. '
+  + 'A request about this answer only (its language, length or format, “answer in Spanish”, “translate this”) is not a preference: '
+  + 'keep a preference only if the user says it lasts (“always”, “from now on”, “by default”, “I prefer”). '
   + 'Answer in strict JSON: {"memories":[{"content":"…","kind":"fact|preference|event|policy"},…]} '
   + 'or {"memories":[]} if there is nothing. No text around the JSON.'
 
@@ -4380,6 +4435,10 @@ const captureTurn = async (ctx, agent, signal) => {
     const sid = agent !== null && agent !== undefined && agent.session !== undefined ? agent.session.id : undefined
     const straddled = typeof sid === 'string' && teamTurns.delete(sid)
     if (teamTurns.size > 200) teamTurns.delete(teamTurns.values().next().value)
+    // The person said no to a write of memory in this turn: the capture is no way round it (it would write the same fact a second later).
+    const said = typeof sid === 'string' ? refusedTools.get(sid) : undefined
+    if (typeof sid === 'string') refusedTools.delete(sid)
+    if (said !== undefined && (said.has('memory_write') || said.has('lesson_write'))) return noteCapture('refusee', 0)
     if (straddled || spaceOf(readStateForSpace()) === 'team') return noteCapture('espace_equipe', 0)
     const state = readState()
     if (isConnected(state) !== true) return noteCapture('hors_connexion', 0)
@@ -4392,7 +4451,7 @@ const captureTurn = async (ctx, agent, signal) => {
     const text = lastTurnText(messages)
     if (text === null || text.length < CAPTURE_MIN_CHARS) return noteCapture('tour_trop_court', 0)
     if (ctx.get('llm') === undefined) return noteCapture('llm_indisponible', 0)
-    const facts = await extractFacts(ctx, agent, text, signal)
+    const facts = keepCaptured(await extractFacts(ctx, agent, text, signal), lastUserWords(messages))
     if (facts.length === 0) return noteCapture('rien_a_retenir', 0)
     // Idempotence: a fact already present in the account is not rewritten. Without
     // this guard, the same fact is written on every turn that carries it — the account
@@ -4401,13 +4460,16 @@ const captureTurn = async (ctx, agent, signal) => {
     // block remains the first rampart).
     const existing = await listMemories(state, 'account')
     const known = new Set(existing.ok === true ? existing.items.map((m) => normalizeMemory(m.content)) : [])
+    // The contents the account already holds (and what this batch writes), for the near-duplicate check.
+    const pool = existing.ok === true ? existing.items.map((m) => String(m.content)) : []
     let written = 0
     let skipped = 0
     let failed = 0
     for (const fact of facts) {
       const key = normalizeMemory(fact.content)
-      if (key === '' || known.has(key) === true) { skipped += 1; continue }
+      if (key === '' || known.has(key) === true || nearKnown(fact.content, pool) === true) { skipped += 1; continue }
       known.add(key)
+      pool.push(fact.content)
       const made = await createMemory(state, { scope: 'account', kind: fact.kind, content: fact.content, source: 'conversation' }, 'capture')
       if (made.ok === true) written += 1
       else failed += 1
@@ -4621,6 +4683,30 @@ const connections = createConnections({ apiCall, readState, isConnected, server,
 const instructionsRead = async () => readInstructions(agentsFile(dshHome()))
 const instructionsSave = async (req, body) => writeInstructions(agentsFile(dshHome()), body !== null && typeof body === 'object' ? body.text : undefined)
 
+// ── A pooled computer was just handed its identity ──────────────────────────────────────────────
+// A computer made ahead of need (services/computer-image, « pool ») boots with no token: DSH is already running when the platform hands it one, and a process cannot be given a new
+// environment. The claim step writes the identity to the volume (computer-identity.mjs) and then asks this route, over loopback, to put the token where the model route looks for it:
+// DSH's credential store (`apiKeyEnv: KYBERNOS_COMPUTER_TOKEN` resolves there first), so the next model call is signed with it and nothing restarts. The request carries nothing: the
+// identity is read from the volume, and only on a machine the platform made as a pool slot (computer-identity.mjs): a laptop's plugin ignores that file. A machine made the old way
+// (identity in its environment) has nothing to do.
+const computerClaimed = async () => {
+  const me = computerSelf()
+  if (me.token === '') return { ok: false, error: 'unclaimed' }
+  if (me.source === 'env') return { ok: true, source: 'env' }
+  const cred = service('credentials')
+  if (cred === null || typeof cred.set !== 'function') return { ok: false, error: 'credentials_unavailable' }
+  try { await cred.set('KYBERNOS_COMPUTER_TOKEN', me.token) } catch (e) { return { ok: false, error: 'credentials_refused' } }
+  return { ok: true, source: 'volume' }
+}
+// Whether the model route the entrypoint renders into the profile (`kybernos`) is live: that is a hot reload of the profile, about two seconds after the file is written, and the
+// entrypoint holds the reporter and the runner back until it is (a turn taken before it would find no model to call). Read-only, so that it can be asked every few hundred milliseconds.
+const computerRoute = async () => {
+  const llm = tidyLlm()
+  let route = false
+  try { route = llm !== undefined && typeof llm.listProviders === 'function' && llm.listProviders().some((p) => p !== null && typeof p === 'object' && p.id === 'kybernos') } catch (e) { route = false }
+  return { ok: true, route }
+}
+
 // ── A turn handed to this computer by the platform (ADR 0053 § 13.4) ───────────────────────────────
 // A message the person wrote in a chat on their phone arrives as a turn addressed to THIS computer. The computer's runner (services/computer-image/runner.mjs, a process next to DSH) claims
 // it with the computer's token and asks DSH to answer through these two routes, over loopback: `POST /kybernos-cloud/turn { prompt }` starts a session and queues the prompt,
@@ -4628,8 +4714,7 @@ const instructionsSave = async (req, body) => writeInstructions(agentsFile(dshHo
 // same-origin call: on a machine that is not a cloud computer they answer `unavailable`. The session keeps the profile's permission, as an automation set to `auto` does: nobody is there
 // to answer an approval, so what lets a chat message reach this is the platform owner's own switch for it.
 const turnAuthorized = (req) => {
-  const id = String(process.env.KYBERNOS_COMPUTER_ID || '')
-  const token = String(process.env.KYBERNOS_COMPUTER_TOKEN || '')
+  const { id, token } = computerSelf()
   if (id === '' || token === '') return false
   const given = String((req && req.headers && req.headers.authorization) || '')
   const want = 'Bearer ' + token
@@ -4640,17 +4725,24 @@ const turnAuthorized = (req) => {
 const turnSessions = new Set()
 /** The platform's turn (a runner job) each of those sessions belongs to: what a question to the person is asked ABOUT. */
 const turnJobs = new Map()
+/** When each turn session started and how long the runner lets it last: a question is never waited for past that. */
+const turnBudgets = new Map()
+/** How many questions each turn session has put to the person. */
+const turnAsks = new Map()
 /** Sessions whose person said « for the rest of this task »: the gate does not ask again in them. */
 const turnAllowAll = new Set()
 const TURN_JOB_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
-const rememberTurnSession = (id, jobId) => {
+const rememberTurnSession = (id, jobId, budgetMs) => {
   turnSessions.add(id)
   if (typeof jobId === 'string' && TURN_JOB_RE.test(jobId)) turnJobs.set(id, jobId)
+  if (Number.isFinite(budgetMs) && budgetMs > 0 && budgetMs <= 3_600_000) turnBudgets.set(id, { at: Date.now(), ms: budgetMs })
   if (turnSessions.size > 200) {
     const old = turnSessions.values().next().value
     turnSessions.delete(old)
     turnJobs.delete(old)
     turnAllowAll.delete(old)
+    turnBudgets.delete(old)
+    turnAsks.delete(old)
   }
 }
 
@@ -4658,8 +4750,21 @@ const rememberTurnSession = (id, jobId) => {
 // A session made for a turn is gated: the tools that can change something (a command, a file, a connector) wait for the person's tap in their chat, asked through the platform. The gate
 // is the plugin's own (`tools/pre-execute`, which DSH awaits as long as it takes): the profile stays `danger-full-access` for everything else on the machine, and DSH's own approval card
 // is never raised. Whatever goes wrong (no job, the platform unreachable, no answer in time) is a refusal, never a pass.
-const TURN_GATE_SAFE_TOOLS = new Set(['read', 'read_image', 'web_search', 'web_fetch'])
-const TURN_GATE_WAIT_MS = 10 * 60_000 + 15_000
+// What reads and changes nothing passes without a question. `memory_search` is the person's own memory read back to them: asking before it made every « what do you know about me » a question
+// and, when it was refused, a turn with no answer (measured on dev, step 0 of the Kaby baseline). `memory_write` changes something and still asks.
+// Audit of 2026-10-20, every tool a computer can have, by what it does. READS (listed here): the engine's `read`, `read_image`, `web_search`, `web_fetch`, `job_list`, `schedule_list` and
+// `todo_write` (the plan the model keeps for itself: one session event, nothing outside the chat); the plugins' `memory_search`, `connections_list`, `connections_search_tools` (the catalogue
+// of a connected app's actions), `kaby_journal`, `kaby_knowledge`, `kaby_account`, `computer_list` (the sandboxes this machine tracks: a file on its own disk, no call out; it is NOT the
+// person's list of cloud computers, which is what the model took it for) and `computer_read` (a file of a sandbox the person already allowed to start). ASKED (not listed): the engine's
+// `bash`, `write`, `edit`; `memory_write`, `lesson_write` and `lesson_search` (which counts the lessons it returns as used: a write), `connections_execute`, `computer_start/exec/write/stop/pause/
+// resume/task`, `relancer_dsh`, `kybernos_report_feedback` (it sends), `creer_slides`, `animer_briques`, `modeliser` and the motion and dashboards tools (they write files), and every `mcp__` tool.
+export const TURN_GATE_SAFE_TOOLS = new Set(['read', 'read_image', 'web_search', 'web_fetch', 'memory_search', 'job_list', 'schedule_list', 'connections_list', 'connections_search_tools', 'todo_write', 'kaby_journal', 'kaby_knowledge', 'kaby_account', 'computer_list', 'computer_read'])
+// How long one unanswered question is waited for. The person is on a chat, not at a desk: five minutes, and never past the end of the turn (the runner says how long the turn may last), so that
+// the model still has time to answer with what it knows (measured on WhatsApp: a question put at minute 4 outlived the 10-minute turn, which ended with no words at all).
+const turnGateWaitMs = () => { const v = Number(process.env.KYBERNOS_TURN_GATE_WAIT_MS); return Number.isFinite(v) && v > 0 ? v : 5 * 60_000 }
+const turnGateGraceMs = () => { const v = Number(process.env.KYBERNOS_TURN_GATE_GRACE_MS); return Number.isFinite(v) && v >= 0 ? v : 90_000 }
+/** The most questions one turn puts to the person. From the next one it is told to answer with what it has and to say what it would need (« Allow for this task » is one tap). */
+const TURN_GATE_MAX_ASKS = 3
 const turnRootOf = (ctx, id) => {
   // A sub-agent's call is its root session's.
   let current = id
@@ -4672,6 +4777,108 @@ const turnRootOf = (ctx, id) => {
   }
   return null
 }
+/** Where each turn session's message came from (the runner says so when it starts the turn). */
+const turnChannels = new Map()
+/** The actions the person refused in a session since its last journal line (the gates count them). */
+const turnRefusals = new Map()
+/** The tools whose call the person refused, per session, until the end of the turn: a refused write of memory is not done by the capture either. */
+const refusedTools = new Map()
+const noteRefusal = (sessionId, toolName, byPerson = true) => {
+  // The journal counts what the PERSON refused; an action the gate itself turned away (too many questions, no time left) was not done either, but was not their no.
+  if (byPerson) turnRefusals.set(sessionId, (turnRefusals.get(sessionId) || 0) + 1)
+  if (turnRefusals.size > 200) turnRefusals.delete(turnRefusals.keys().next().value)
+  if (typeof toolName === 'string') {
+    const set = refusedTools.get(sessionId) || new Set()
+    set.add(toolName)
+    refusedTools.set(sessionId, set)
+    if (refusedTools.size > 200) refusedTools.delete(refusedTools.keys().next().value)
+  }
+}
+
+// ── Kaby's journal: one line per turn of its own, written at the end of the turn ─────────────────────────────────
+// Kaby's turns are the ones of a cloud computer (a message that came by Telegram or the phone) and the ones of its own chat on the person's computer. Another session of the same DSH
+// (an automation, a coding chat) is not Kaby's doing and is not written. The tool kaby_journal reads the lines back (kyby-journal.mjs).
+const kabyJournalDir = () => join(dshHome(), 'kybernos', 'kaby-journal')
+const journalTurn = (agent) => {
+  const sid = agent !== null && agent !== undefined && agent.session !== undefined ? agent.session.id : undefined
+  if (typeof sid !== 'string') return
+  const onComputer = computerSelf().id !== ''
+  const mine = onComputer ? turnSessions.has(sid) : readPointer(kybyPointerFile()) === sid
+  if (!mine) return
+  const messages = typeof agent.session.deriveMessages === 'function' ? agent.session.deriveMessages() : []
+  const entry = journalEntry({
+    asked: lastUserWords(messages),
+    tools: toolsOfTurn(messages),
+    channel: onComputer ? (turnChannels.get(sid) || 'phone') : 'chat',
+    body: onComputer ? 'cloud' : 'computer',
+    refused: turnRefusals.get(sid) || 0,
+    now: new Date(),
+  })
+  turnRefusals.delete(sid)
+  if (entry !== null) journalAppend(kabyJournalDir(), entry)
+}
+const localZone = () => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC' } catch (e) { return 'UTC' } }
+const mountKabyJournal = (ctx) => {
+  ctx.inject(['tools'], (scope) => {
+    scope.tools.register(journalTool({ dir: kabyJournalDir, now: () => new Date(), zone: localZone }))
+  })
+  ctx.on('agent/turn-stopping', ({ agent }) => {
+    try { journalTurn(agent) } catch (e) { /* the journal never breaks a turn */ }
+  })
+}
+
+// ── Kaby's knowledge folder: the documents the person put in a folder of Kaby's own, read by the tool kaby_knowledge (kyby-knowledge.mjs) ────────────────
+// It is a folder of Kaby's chat workspace (`knowledge` in Kaby's folder), so that on the person's computer it shows in the chat's files; on a cloud computer it is the one of that computer's
+// volume. Read-only: the tool lists, searches and reads, nothing else, and never leaves the folder.
+const kabyKnowledgeDir = () => join(kybyFolder(), 'knowledge')
+const mountKabyKnowledge = (ctx) => {
+  try { mkdirSync(kabyKnowledgeDir(), { recursive: true, mode: 0o700 }) } catch (e) { /* the tool then says the folder is empty */ }
+  ctx.inject(['tools'], (scope) => {
+    scope.tools.register(knowledgeTool({ dir: kabyKnowledgeDir }))
+  })
+}
+
+// ── Kaby's account tool: the person's workspaces, the plan of the active one and their cloud computers, read-only (kyby-account.mjs) ──────────────────
+// A question such as « what is the list of my workspaces? » has an answer here, so Kaby does not go looking for it with the shell (which asks the person, each time). On a cloud computer the
+// server shows the computer's token its own workspace only (ADR 0052 § 10) and refuses the list of computers (counted there as a possible leak): so no call is made for it, and the answer says so.
+const accountRead = async () => {
+  const state = readState()
+  if (state === null || state === UNREADABLE || isConnected(state) !== true) return { connected: false }
+  const onComputer = String(process.env.KYBERNOS_COMPUTER_ID || '') !== ''
+  const get = (p) => apiCall(p, { method: 'GET', token: state.token, timeoutMs: 12000 })
+  const ws = await get('/v1/workspaces')
+  const rows = ws.status === 200 && ws.body !== null && Array.isArray(ws.body.workspaces) ? ws.body.workspaces : (Array.isArray(state.workspaces) ? state.workspaces : [])
+  const workspaces = rows.filter((w) => w !== null && typeof w === 'object' && typeof w.id === 'string').map((w) => ({ id: w.id, name: String(w.name || ''), personal: w.personal === true, role: String(w.role || '') }))
+  const activeId = espaceActif(Object.assign({}, state, { workspaces }))
+  const active = workspaces.find((w) => w.id === activeId)
+  const plan = activeId === null ? null : await readSpacePlan(state, activeId)
+  let computers
+  let computersIn
+  if (onComputer) computers = null
+  else if (active !== undefined) {
+    const c = await get('/v1/workspaces/' + encodeURIComponent(active.id) + '/computers')
+    if (c.status === 200 && c.body !== null && Array.isArray(c.body.computers)) {
+      computersIn = active.name
+      computers = c.body.computers.filter((r) => r !== null && typeof r === 'object' && (r.kind === undefined || r.kind === 'cloud')).map((r) => ({ name: String(r.name || ''), state: String(r.state || ''), mode: r.mode === 'always' ? 'always' : 'sleep' }))
+    }
+  }
+  return {
+    connected: true,
+    onComputer,
+    person: state.user !== null && typeof state.user === 'object' && typeof state.user.name === 'string' ? state.user.name : '',
+    workspaces,
+    activeId,
+    plan: plan !== null && active !== undefined ? { workspace: active.name, label: plan.label || '', status: plan.status || '' } : null,
+    computers,
+    computersIn,
+  }
+}
+const mountKabyAccount = (ctx) => {
+  ctx.inject(['tools'], (scope) => {
+    scope.tools.register(accountTool({ read: accountRead }))
+  })
+}
+
 const turnApprovalSubject = (exec) => {
   const name = String((exec && exec.name) || '')
   const args = exec && exec.arguments !== null && typeof exec.arguments === 'object' ? exec.arguments : {}
@@ -4685,8 +4892,7 @@ const turnApprovalSubject = (exec) => {
   return { kind: name.startsWith('mcp__') ? 'connector' : 'other', summary }
 }
 const turnPlatform = async (method, path, body) => {
-  const api = String(process.env.KYBERNOS_API || '').replace(/\/+$/u, '')
-  const token = String(process.env.KYBERNOS_COMPUTER_TOKEN || '')
+  const { api, token } = computerSelf()
   if (api === '' || token === '') return { status: 0, json: null }
   try {
     const r = await fetch(api + path, {
@@ -4701,19 +4907,32 @@ const turnPlatform = async (method, path, body) => {
   } catch (e) { return { status: 0, json: null } }
 }
 const turnGate = (ctx) => async (exec, next) => {
-  if (String(process.env.KYBERNOS_COMPUTER_ID || '') === '') return next()
+  if (computerSelf().id === '') return next()
   const root = turnRootOf(ctx, exec && exec.agent ? exec.agent.id : undefined)
   if (root === null) return next()
   const name = String((exec && exec.name) || '')
+  // DSH's own question card has nobody in front of it on a computer: waiting for it would hold the turn until it times out. The question goes in the reply instead.
+  if (name === 'ask_user_question') return { kind: 'deny', reason: 'Nobody can answer here: ask the question in your reply to the person, in one short message, and stop.' }
   if (TURN_GATE_SAFE_TOOLS.has(name) || turnAllowAll.has(root)) return next()
-  const refuse = (why) => ({ kind: 'deny', reason: 'The person did not allow this action (' + why + '). Do not try it again: say so in your answer.' })
+  const refuse = (why, byPerson = true) => { noteRefusal(root, name, byPerson); return { kind: 'deny', reason: 'The person did not allow this action (' + why + '). Do not try it again: say so in your answer.' } }
   const jobId = turnJobs.get(root)
   if (jobId === undefined) return refuse('it could not be asked')
+  const asked = turnAsks.get(root) || 0
+  if (asked >= TURN_GATE_MAX_ASKS) {
+    noteRefusal(root, name, false)
+    return { kind: 'deny', reason: `You have already asked the person ${TURN_GATE_MAX_ASKS} times in this task. Do not ask again: say what you could not do and what you would need them to allow (they can tap "Allow for this task").` }
+  }
+  // Never wait past the turn's own end: the model needs the time after a refusal to answer.
+  const budget = turnBudgets.get(root)
+  const stop = Math.min(Date.now() + turnGateWaitMs(), budget === undefined ? Infinity : budget.at + budget.ms - turnGateGraceMs())
+  if (stop <= Date.now()) return refuse('there was no time left to ask', false)
   const subject = turnApprovalSubject(exec)
-  const made = await turnPlatform('POST', '/v1/computer/approvals', { job_id: jobId, kind: subject.kind, summary: subject.summary.slice(0, 2000) })
+  const summary = (asked === 0 ? '' : `Question ${asked + 1} in this task: `) + subject.summary
+  const made = await turnPlatform('POST', '/v1/computer/approvals', { job_id: jobId, kind: subject.kind, summary: summary.slice(0, 2000) })
   if (made.status !== 200 || made.json === null || typeof made.json.id !== 'string') return refuse('it could not be asked')
+  turnAsks.set(root, asked + 1)
+  if (turnAsks.size > 200) turnAsks.delete(turnAsks.keys().next().value)
   const id = made.json.id
-  const stop = Date.now() + TURN_GATE_WAIT_MS
   while (Date.now() < stop) {
     if (exec && exec.signal && exec.signal.aborted === true) return refuse('the task was stopped')
     await new Promise((resolve) => setTimeout(resolve, Number(process.env.KYBERNOS_TURN_GATE_POLL_MS || 2000)))
@@ -4722,11 +4941,48 @@ const turnGate = (ctx) => async (exec, next) => {
     if (state === 'allowed') return next()
     if (state === 'allowed_turn') { turnAllowAll.add(root); return next() }
     if (state === 'denied') return refuse('they refused it')
-    if (state === 'expired') return refuse('they did not answer in time')
+    if (state === 'expired') return refuse('they did not answer in time', false)
   }
-  return refuse('they did not answer in time')
+  return refuse('they did not answer in time', false)
 }
-const mountTurnGate = (ctx) => { ctx.on('tools/pre-execute', turnGate(ctx)) }
+// ── Kaby's own chat on the person's computer (step 3 of the plan) ───────────────────────────────────────────────
+// The tools of our plugins that change something outside the chat (a memory or a lesson, a connected app, a cloud sandbox, DSH itself) ask the person through DSH's own approval card
+// (`approval.request`, the same one the engine uses for a command), in Kaby's chat only. The engine's tools (a command, a file) keep DSH's own policy, which the chat is set to
+// « ask » when it is made, so they are not asked twice here. What only reads is not asked. With no way to ask, or a failed ask, the answer is no.
+const NATIVE_ASK_TOOLS = new Set(['memory_write', 'lesson_write', 'connections_execute', 'computer_exec', 'computer_write', 'computer_start', 'computer_stop', 'computer_pause', 'computer_resume', 'computer_task', 'relancer_dsh'])
+const nativeRootOf = (ctx, id) => {
+  const pointer = readPointer(kybyPointerFile())
+  if (pointer === null) return null
+  let current = id
+  for (let depth = 0; depth < 6 && typeof current === 'string'; depth += 1) {
+    if (current === pointer) return current
+    const sessions = ctx.get('sessions')
+    const live = sessions !== undefined && sessions !== null && typeof sessions.get === 'function' ? sessions.get(current) : undefined
+    const parent = live && live.header ? live.header.parentSession : undefined
+    current = typeof parent === 'string' && parent !== '' ? parent : undefined
+  }
+  return null
+}
+const nativeGate = (ctx) => async (exec, next) => {
+  const name = String((exec && exec.name) || '')
+  if (!NATIVE_ASK_TOOLS.has(name)) return next()
+  const root = nativeRootOf(ctx, exec && exec.agent ? exec.agent.id : undefined)
+  if (root === null) return next()
+  const refuse = (why) => { noteRefusal(root, name); return { kind: 'deny', reason: 'The person did not allow this action (' + why + '). Do not try it again: say so in your answer.' } }
+  const approval = ctx.get('approval')
+  if (approval === undefined || approval === null || typeof approval.request !== 'function') return refuse('it could not be asked')
+  let outcome = 'unavailable'
+  try {
+    outcome = await approval.request({ agent: exec.agent, toolName: name, reason: turnApprovalSubject(exec).summary.slice(0, 500), signal: exec.signal })
+  } catch (e) { outcome = 'unavailable' }
+  return outcome === 'allowed-once' ? next() : refuse(outcome === 'denied' ? 'they refused it' : 'it could not be asked')
+}
+const toolGate = (ctx) => {
+  const cloud = turnGate(ctx)
+  const native = nativeGate(ctx)
+  return (exec, next) => (computerSelf().id === '' ? native(exec, next) : cloud(exec, next))
+}
+const mountTurnGate = (ctx) => { ctx.on('tools/pre-execute', toolGate(ctx)) }
 const turnStart = async (req, body) => {
   if (turnAuthorized(req) !== true) return { ok: false, error: 'unavailable' }
   const prompt = body !== null && typeof body === 'object' && typeof body.prompt === 'string' ? body.prompt.trim() : ''
@@ -4742,7 +4998,9 @@ const turnStart = async (req, body) => {
   const sessionId = unwrap(await sc.create({}))
   if (sessionId === null) return { ok: false, error: 'no_session' }
   // Known to the gate BEFORE the prompt is queued: the first tool call must already find it gated.
-  rememberTurnSession(sessionId, body.jobId)
+  rememberTurnSession(sessionId, body.jobId, Number(body.budgetMs))
+  // Where the message came from, as the runner knows it (a closed word, for the journal); anything else is a phone.
+  turnChannels.set(sessionId, typeof body.channel === 'string' && /^[a-z]{2,20}$/u.test(body.channel) ? body.channel : 'phone')
   // Lets the session settle before the turn is assembled, as an automation's fire does.
   await new Promise((resolve) => setTimeout(resolve, 750))
   const controller = new AbortController()
@@ -4793,10 +5051,19 @@ const turnAnswer = async (req, body) => {
   // person's words or a provider's): the runner passes this to the platform as the reason of a failed turn, where an owner can read it.
   let failure = ''
   let lastBlocks = ''
+  // A model that could not be reached: the engine logs each retry as `llm/retry` with the failure's code (RATE_LIMIT, SERVER, TIMEOUT, TRANSPORT, EMPTY_RESPONSE). The last cause, when the model
+  // never answered after it, is the reason of the turn. `model_429` is the code the platform's door already reads as « busy ».
+  let modelFailure = ''
+  const MODEL_FAILURES = { rate_limit: 'model_429', server: 'model_server', timeout: 'model_timeout', transport: 'model_transport', empty_response: 'model_empty' }
   const codeOf = (v) => (typeof v === 'string' && /^[A-Za-z0-9_.:-]{1,60}$/.test(v) ? v.toLowerCase() : '')
   for (const ev of events) {
     if (ev === null || ev === undefined) continue
     if (typeof ev.type === 'string' && ev.type.startsWith('tool/')) tools += 1
+    if (ev.type === 'llm/retry') {
+      const f = ev.data !== null && ev.data !== undefined && typeof ev.data === 'object' ? ev.data.failure : null
+      modelFailure = MODEL_FAILURES[codeOf(f !== null && f !== undefined && typeof f === 'object' ? f.code : '')] || 'model_error'
+      continue
+    }
     if (typeof ev.type === 'string' && /error|fail|refus/i.test(ev.type)) {
       const data = ev.data !== null && ev.data !== undefined && typeof ev.data === 'object' ? ev.data : {}
       failure = [codeOf(ev.type.replace(/[\/]/g, '_')), codeOf(data.code)].filter((x) => x !== '').join('.').slice(0, 80)
@@ -4804,6 +5071,7 @@ const turnAnswer = async (req, body) => {
     if (ev.type !== 'assistant/message') continue
     const message = ev.data !== null && ev.data !== undefined && typeof ev.data === 'object' ? ev.data.message : null
     if (message === null || message === undefined || Array.isArray(message.content) !== true) continue
+    modelFailure = ''
     const parts = []
     const kinds = []
     for (const block of message.content) {
@@ -4814,6 +5082,7 @@ const turnAnswer = async (req, body) => {
     // The last message that has words is the answer: a message that only called a tool has none.
     if (parts.join('').trim() !== '') text = parts.join('\n')
   }
+  if (text === '' && modelFailure !== '') return { ok: true, text, tools, failure: modelFailure }
   // No error event: how the session ended, by the type of its last event (`ended_turn_end`), so that « no words » is never a mystery.
   if (text === '' && failure === '' && events.length > 0) {
     const last = events[events.length - 1]
@@ -4847,7 +5116,7 @@ const kyberRoute = async () => {
     kybyChosen.status = r.status
     return { id, status: r.status }
   }
-  const [tg, ws, kyby0] = await Promise.all([get('/v1/me/telegram'), get('/v1/workspaces'), chosen()])
+  const [tg, wa, ws, kyby0] = await Promise.all([get('/v1/me/telegram'), get('/v1/me/whatsapp'), get('/v1/workspaces'), chosen()])
   const pick = kyby0.id
   const list = ws.status === 200 && ws.body !== null && Array.isArray(ws.body.workspaces) ? ws.body.workspaces : []
   const personal = list.find((w) => w !== null && typeof w === 'object' && w.personal === true)
@@ -4879,6 +5148,8 @@ const kyberRoute = async () => {
     }
   }
   const t = tg.status === 200 && tg.body !== null && typeof tg.body === 'object' ? tg.body : null
+  // WhatsApp, the beta bridge (ADR 0053 § 13.8): the same shape as Telegram's, plus whether a bridge is open right now; a server with no such door says nothing of it.
+  const w = wa.status === 200 && wa.body !== null && typeof wa.body === 'object' ? wa.body : null
   return {
     ok: true,
     connected: true,
@@ -4888,6 +5159,14 @@ const kyberRoute = async () => {
       bot: typeof t.bot_username === 'string' ? t.bot_username : null,
       linked: t.linked !== null && typeof t.linked === 'object'
         ? { display: String(t.linked.display || ''), linked_at: String(t.linked.linked_at || ''), paused: t.linked.paused === true, blocked: t.linked.blocked === true }
+        : null,
+    },
+    whatsapp: w === null ? null : {
+      configured: w.configured === true,
+      enabled: w.enabled === true,
+      available: w.available === true,
+      linked: w.linked !== null && typeof w.linked === 'object'
+        ? { display: String(w.linked.display || ''), linked_at: String(w.linked.linked_at || ''), paused: w.linked.paused === true, blocked: w.linked.blocked === true }
         : null,
     },
     computers,
@@ -4953,7 +5232,10 @@ const kyby = createKybyRoutes({ readState, isConnected, apiCall, deviceLabel })
 // Kaby's own chat is a native DSH conversation (kyby-native.mjs): which session it is, who Kaby is there, and the end of its turns written
 // on the person's thread. The hooks are mounted below (mountKybyNative); the page asks for the session through the two routes under /kyby/native.
 const kybyPointerFile = () => join(dshHome(), 'kybernos-kyby.json')
-const kybyNative = createKybyNative({ pointerFile: kybyPointerFile, readState, isConnected, apiCall })
+// The name the person gave Kaby: kybernos-kaby-customisation publishes its profile under this symbol (no bundle imports another). It is validated again
+// where it is used (aliasOf), because it ends up in a prompt.
+const kabyGivenName = () => { try { const read = globalThis[Symbol.for('kybernos.kabyProfile')]; const p = typeof read === 'function' ? read() : null; return p !== null && typeof p === 'object' ? p.name : null } catch (e) { return null } }
+const kybyNative = createKybyNative({ pointerFile: kybyPointerFile, readState, isConnected, apiCall, assistantName: kabyGivenName })
 // Kaby's own folder: its chat lives in a workspace of its own, so that DSH's « New chat » never reuses it (a chat with no message yet is a
 // blank, and a blank is taken back by the next new chat of its workspace) and it has a home on this machine.
 const kybyFolder = () => join(dshHome(), 'kybernos', 'kyby')
@@ -4984,12 +5266,13 @@ const mountKybyNative = (ctx) => {
   })
 }
 
-// `session: true` is a route that DELETES the person's data (a memory, a team lesson or skill, a connection, a member): besides the same-origin rule it needs DSH's
-// signed browser-session cookie (session-guard.mjs, the terminal's rule). Plugin routes are served before DSH's own login and an Origin header is forgeable by any
-// local program, so before this a `curl -X POST .../memory/delete` with no header at all deleted a memory. Their callers are pages (Memory, Skills, Connectors,
-// the Share card). The same rule now covers what a model with a shell could otherwise do by a bare curl against the personal memory and the space: write or edit a memory,
-// push the lessons, choose the active space, propose to the team, make a session Kaby's. The other writes keep the rule of their row: they are not named by the origin-rule audit
-// (docs/dev/route-origin-rule.md says what is next).
+// `session: true` is a route that WRITES on the person's behalf: besides the same-origin rule it needs DSH's signed browser-session cookie
+// (session-guard.mjs, the terminal's rule). Plugin routes are served before DSH's own login and an Origin header is forgeable by any local
+// program, so a `curl -X POST ...` with no header at all used to reach them. A-16 (audit 2026-10-20) counted 31 of them here: they are all
+// under the rule now, because their caller is a page (Memory, Skills, Connectors, Team console, Share card, the servers page, the phone link
+// — the phone's tunnel replays the machine's Origin and cookie). Two POST families keep less, and only for a caller that is not a browser:
+// `server/apply` is strict (kybernos-servers' host calls it over loopback with an Origin and no cookie) and `turn*` is strict (the computer's
+// own runner). docs/dev/route-origin-rule.md carries the table and the exceptions.
 const ROUTES = [
   { path: '/kybernos-cloud/kyber', method: 'GET', guarded: true, run: kyberRoute },
   // A pairing creates a link that, once opened in Telegram and confirmed there, connects the chat: same origin, strictly.
@@ -4998,45 +5281,53 @@ const ROUTES = [
   { path: '/kybernos-cloud/telegram/pairing/cancel', method: 'POST', guarded: true, strict: true, body: true, cap: 1024, run: (req, body) => kyby.pairingCancel(req, body) },
   { path: '/kybernos-cloud/kyby/computer', method: 'POST', guarded: true, strict: true, body: true, cap: 1024, run: async (req, body) => { kybyChosen.at = 0; return kyby.computer(req, body) } },
   { path: '/kybernos-cloud/telegram/unlink', method: 'POST', guarded: true, strict: true, body: true, cap: 1024, run: () => kyby.unlink() },
+  // WhatsApp, the beta bridge (ADR 0053 § 13.8): the same four calls on the other channel.
+  { path: '/kybernos-cloud/whatsapp/pairing', method: 'POST', guarded: true, strict: true, run: () => kyby.pairingStart('whatsapp') },
+  { path: '/kybernos-cloud/whatsapp/pairing/state', method: 'GET', guarded: true, run: (req) => kyby.pairingState(req, 'whatsapp') },
+  { path: '/kybernos-cloud/whatsapp/pairing/cancel', method: 'POST', guarded: true, strict: true, body: true, cap: 1024, run: (req, body) => kyby.pairingCancel(req, body, 'whatsapp') },
+  { path: '/kybernos-cloud/whatsapp/unlink', method: 'POST', guarded: true, strict: true, body: true, cap: 1024, run: () => kyby.unlink('whatsapp') },
   { path: '/kybernos-cloud/kyby/native', method: 'GET', guarded: true, run: kybySessionRoute },
   { path: '/kybernos-cloud/kyby/native/set', method: 'POST', guarded: true, strict: true, session: true, body: true, cap: 1024, run: kybySessionSet },
   { path: '/kybernos-cloud/computer/resume', method: 'POST', guarded: true, strict: true, run: () => computerAction('resume') },
   { path: '/kybernos-cloud/computer/suspend', method: 'POST', guarded: true, strict: true, run: () => computerAction('suspend') },
   { path: '/kybernos-cloud/computer/open', method: 'POST', guarded: true, strict: true, run: () => computerAction('open') },
-  { path: '/kybernos-cloud/start', method: 'POST', guarded: true, run: startPairing },
-  { path: '/kybernos-cloud/poll', method: 'POST', guarded: true, run: pollPairing },
+  { path: '/kybernos-cloud/start', method: 'POST', guarded: true, session: true, run: startPairing },
+  { path: '/kybernos-cloud/poll', method: 'POST', guarded: true, session: true, run: pollPairing },
   { path: '/kybernos-cloud/status', method: 'GET', guarded: false, run: statusRoute },
   { path: '/kybernos-cloud/space/active', method: 'POST', guarded: true, session: true, body: true, run: setActiveSpace },
-  { path: '/kybernos-cloud/space/applied', method: 'POST', guarded: true, body: true, run: spaceApplied },
-  { path: '/kybernos-cloud/space/for-folder', method: 'POST', guarded: true, body: true, cap: 8192, run: spaceForFolder },
+  { path: '/kybernos-cloud/space/applied', method: 'POST', guarded: true, session: true, body: true, run: spaceApplied },
+  { path: '/kybernos-cloud/space/for-folder', method: 'POST', guarded: true, session: true, body: true, cap: 8192, run: spaceForFolder },
   { path: '/kybernos-cloud/space/busy', method: 'GET', guarded: true, run: spaceBusy },
   // The folder of a team: makes a directory on the person's disk, so strict same-origin and the signed session.
   { path: '/kybernos-cloud/space/folder', method: 'POST', guarded: true, strict: true, session: true, body: true, cap: 1024, run: spaceFolder },
   { path: '/kybernos-cloud/spaces/summary', method: 'GET', guarded: true, run: spacesSummary },
-  { path: '/kybernos-cloud/space/create', method: 'POST', guarded: true, body: true, run: createSpace },
+  { path: '/kybernos-cloud/space/create', method: 'POST', guarded: true, session: true, body: true, run: createSpace },
   // Joining with an invitation link: the token is the credential. Both are strict same-origin; `accept` also needs the signed session (it makes the person a member of a team).
   { path: '/kybernos-cloud/invitation/preview', method: 'POST', guarded: true, strict: true, body: true, cap: 1024, run: invitationPreview },
   { path: '/kybernos-cloud/invitation/accept', method: 'POST', guarded: true, strict: true, session: true, body: true, cap: 1024, run: invitationAccept },
-  { path: '/kybernos-cloud/refresh', method: 'POST', guarded: true, run: refreshProfile },
+  { path: '/kybernos-cloud/refresh', method: 'POST', guarded: true, session: true, run: refreshProfile },
   // `disconnect` revokes the session on the server side: irreversible. A bare POST
   // (campaign finding: `curl -X POST /kybernos-cloud/disconnect`) was enough to
   // trigger it. It now needs an EXPLICIT body `{confirm:true}`.
-  { path: '/kybernos-cloud/disconnect', method: 'POST', guarded: true, confirm: true, run: disconnect },
+  { path: '/kybernos-cloud/disconnect', method: 'POST', guarded: true, session: true, confirm: true, run: disconnect },
   // Imported LiteLLM catalogue: detailed state + manual resynchronisation.
   // Catalogue of kybers published on kybernos.app (read only, no token
   // required for the local route: the link is verified plugin-side).
   { path: '/kybernos-cloud/marketplace', method: 'GET', guarded: false, run: marketplaceRoute },
-  { path: '/kybernos-cloud/marketplace/install', method: 'POST', guarded: true, body: true, cap: 32768, run: marketplaceInstallRoute },
+  { path: '/kybernos-cloud/marketplace/install', method: 'POST', guarded: true, session: true, body: true, cap: 32768, run: marketplaceInstallRoute },
   { path: '/kybernos-cloud/server', method: 'GET', guarded: false, run: serverRoute },
   // A turn the platform addressed to this computer (ADR 0053 § 13.4): started, then read, by the computer's own runner (token and same origin).
+  // A pooled computer has just been handed its identity (see computerClaimed): loopback, same origin, nothing in the request.
+  { path: '/kybernos-cloud/computer/claimed', method: 'POST', strict: true, run: computerClaimed },
+  { path: '/kybernos-cloud/computer/route', method: 'GET', guarded: true, run: computerRoute },
   { path: '/kybernos-cloud/turn', method: 'POST', strict: true, body: true, cap: 200000, run: turnStart },
   { path: '/kybernos-cloud/turn/answer', method: 'POST', strict: true, body: true, cap: 4096, run: turnAnswer },
   { path: '/kybernos-cloud/turn/continue', method: 'POST', strict: true, body: true, cap: 8192, run: turnContinue },
   // The terms and privacy addresses of the active server (public document, no token).
   { path: '/kybernos-cloud/legal', method: 'GET', guarded: true, run: legalRoute },
-  { path: '/kybernos-cloud/server/apply', method: 'POST', guarded: true, run: serverApply },
+  { path: '/kybernos-cloud/server/apply', method: 'POST', guarded: true, strict: true, run: serverApply },
   { path: '/kybernos-cloud/models', method: 'GET', guarded: false, run: modelsRoute },
-  { path: '/kybernos-cloud/models/sync', method: 'POST', guarded: true, run: modelsSyncRoute },
+  { path: '/kybernos-cloud/models/sync', method: 'POST', guarded: true, session: true, run: modelsSyncRoute },
   // Referral code of the linked account (sidebar footer invitation card):
   // the card is served by the same origin, hence `guarded` — a third-party tab
   // has no business reading the account's code.
@@ -5044,8 +5335,8 @@ const ROUTES = [
   // Artifacts (phase A). `body: true` → the JSON body is read (bounded by `cap`)
   // and passed to the handler; the content can be a whole artifact in base64.
   { path: '/kybernos-cloud/artifacts', method: 'GET', guarded: true, run: artifactList },
-  { path: '/kybernos-cloud/artifacts/push', method: 'POST', guarded: true, body: true, cap: ARTIFACT_CONTENT_MAX + 131072, run: artifactPush },
-  { path: '/kybernos-cloud/artifacts/detail', method: 'POST', guarded: true, body: true, run: artifactDetail },
+  { path: '/kybernos-cloud/artifacts/push', method: 'POST', guarded: true, session: true, body: true, cap: ARTIFACT_CONTENT_MAX + 131072, run: artifactPush },
+  { path: '/kybernos-cloud/artifacts/detail', method: 'POST', guarded: true, session: true, body: true, run: artifactDetail },
   // DSH chats → webapp: pushes the DIRECTORY of local sessions (metadata
   // only) to /v1/dsh/sessions; GET = state of the last push.
   // DSH chat detail: full content read IN PLACE, served only to the local
@@ -5053,13 +5344,13 @@ const ROUTES = [
   // would refuse the dev webapp on :8081).
   { path: '/kybernos-cloud/chats/detail', method: 'GET', guarded: false, cors: true, run: chatsDetail },
   { path: '/kybernos-cloud/chats', method: 'GET', guarded: true, run: chatsStatusRoute },
-  { path: '/kybernos-cloud/chats/push', method: 'POST', guarded: true, run: chatsPushRoute },
+  { path: '/kybernos-cloud/chats/push', method: 'POST', guarded: true, session: true, run: chatsPushRoute },
   // Share of an artifact or a chat (core.shares). Three distinct paths.
   // Local chat → hosted session (prerequisite of sharing a chat).
-  { path: '/kybernos-cloud/chat/ensure', method: 'POST', guarded: true, body: true, cap: 4194304, run: chatEnsure },
+  { path: '/kybernos-cloud/chat/ensure', method: 'POST', guarded: true, session: true, body: true, cap: 4194304, run: chatEnsure },
   { path: '/kybernos-cloud/shares', method: 'GET', guarded: true, run: shareGet },
-  { path: '/kybernos-cloud/shares/set', method: 'POST', guarded: true, body: true, run: shareSet },
-  { path: '/kybernos-cloud/shares/revoke', method: 'POST', guarded: true, body: true, run: shareRevoke },
+  { path: '/kybernos-cloud/shares/set', method: 'POST', guarded: true, session: true, body: true, run: shareSet },
+  { path: '/kybernos-cloud/shares/revoke', method: 'POST', guarded: true, session: true, body: true, run: shareRevoke },
   // Members of a space: real read; invitation and removal return
   // {ok:false,error:'indisponible'} as long as the server reserves them to the master key.
   { path: '/kybernos-cloud/members', method: 'GET', guarded: true, run: membersGet },
@@ -5076,7 +5367,7 @@ const ROUTES = [
   // names no origin is refused): it changes a file the agents read.
   { path: '/kybernos-cloud/instructions', method: 'GET', guarded: true, run: instructionsRead },
   { path: '/kybernos-cloud/instructions/save', method: 'POST', guarded: true, strict: true, body: true, cap: 16384, run: instructionsSave },
-  { path: '/kybernos-cloud/members/invite', method: 'POST', guarded: true, body: true, cap: 8192, run: membersInvite },
+  { path: '/kybernos-cloud/members/invite', method: 'POST', guarded: true, session: true, body: true, cap: 8192, run: membersInvite },
   { path: '/kybernos-cloud/members/remove', method: 'POST', guarded: true, session: true, body: true, cap: 8192, run: membersRemove },
   // Account memory (cloud feature no. 2): read, write, search,
   // matching of local ↔ cloud kybers, and pushing of lessons.
@@ -5087,7 +5378,7 @@ const ROUTES = [
   { path: '/kybernos-cloud/memory/update', method: 'POST', guarded: true, session: true, body: true, run: memoryUpdateRoute },
   { path: '/kybernos-cloud/memory/delete', method: 'POST', guarded: true, session: true, body: true, run: memoryDeleteRoute },
   { path: '/kybernos-cloud/memory/search', method: 'GET', guarded: true, run: memorySearchRoute },
-  { path: '/kybernos-cloud/memory/map', method: 'POST', guarded: true, body: true, run: memoryMapRoute },
+  { path: '/kybernos-cloud/memory/map', method: 'POST', guarded: true, session: true, body: true, run: memoryMapRoute },
   // `dryRun` by default: pushing the lessons writes into the account, it
   // never goes out without a body that explicitly says `{"dryRun":false}`.
   { path: '/kybernos-cloud/memory/lessons', method: 'POST', guarded: true, session: true, body: true, run: memoryLessonsRoute },
@@ -5095,38 +5386,38 @@ const ROUTES = [
   // Distinct paths (GET and POST cannot share a path).
   { path: '/kybernos-cloud/memory/list', method: 'GET', guarded: true, run: memoryListRoute },
   { path: '/kybernos-cloud/memory/settings', method: 'GET', guarded: true, run: memorySettingsRoute },
-  { path: '/kybernos-cloud/memory/settings/set', method: 'POST', guarded: true, body: true, run: memorySettingsSetRoute },
+  { path: '/kybernos-cloud/memory/settings/set', method: 'POST', guarded: true, session: true, body: true, run: memorySettingsSetRoute },
   // Search by meaning (off by default): status, then one indexing batch per POST — each batch calls the embeddings route.
   { path: '/kybernos-cloud/memory/index', method: 'GET', guarded: true, run: memoryIndexStatusRoute },
-  { path: '/kybernos-cloud/memory/index/run', method: 'POST', guarded: true, body: true, cap: 4096, run: memoryIndexRunRoute },
+  { path: '/kybernos-cloud/memory/index/run', method: 'POST', guarded: true, session: true, body: true, cap: 4096, run: memoryIndexRunRoute },
   { path: '/kybernos-cloud/memory/meaning-map', method: 'GET', guarded: true, run: memoryMeaningMapRoute },
   // Tidy up (near-duplicates): the last scan and the log, a scan (it only looks), what to apply / keep apart / undo.
   { path: '/kybernos-cloud/team/status', method: 'GET', guarded: true, run: teamStatusRoute },
   { path: '/kybernos-cloud/team/lessons', method: 'GET', guarded: true, run: teamListRoute },
   { path: '/kybernos-cloud/team/lessons/add', method: 'POST', guarded: true, session: true, body: true, cap: 16384, run: teamAddRoute },
-  { path: '/kybernos-cloud/team/lessons/review', method: 'POST', guarded: true, body: true, cap: 16384, run: teamReviewRoute },
-  { path: '/kybernos-cloud/team/lessons/retire', method: 'POST', guarded: true, body: true, cap: 4096, run: teamRetireRoute },
+  { path: '/kybernos-cloud/team/lessons/review', method: 'POST', guarded: true, session: true, body: true, cap: 16384, run: teamReviewRoute },
+  { path: '/kybernos-cloud/team/lessons/retire', method: 'POST', guarded: true, session: true, body: true, cap: 4096, run: teamRetireRoute },
   { path: '/kybernos-cloud/team/lessons/delete', method: 'POST', guarded: true, session: true, body: true, cap: 4096, run: teamDeleteRoute },
   // Team skills: the server half only (files are read and written by kybernos-skills). A proposal carries up to 1 MiB of files.
   { path: '/kybernos-cloud/team/skills', method: 'GET', guarded: true, run: teamSkillsListRoute },
   { path: '/kybernos-cloud/team/skills/item', method: 'GET', guarded: true, run: teamSkillsItemRoute },
-  { path: '/kybernos-cloud/team/skills/add', method: 'POST', guarded: true, body: true, cap: 4 * 1024 * 1024, run: teamSkillsAddRoute },
-  { path: '/kybernos-cloud/team/skills/review', method: 'POST', guarded: true, body: true, cap: 4096, run: teamSkillsReviewRoute },
-  { path: '/kybernos-cloud/team/skills/retire', method: 'POST', guarded: true, body: true, cap: 4096, run: teamSkillsRetireRoute },
+  { path: '/kybernos-cloud/team/skills/add', method: 'POST', guarded: true, session: true, body: true, cap: 4 * 1024 * 1024, run: teamSkillsAddRoute },
+  { path: '/kybernos-cloud/team/skills/review', method: 'POST', guarded: true, session: true, body: true, cap: 4096, run: teamSkillsReviewRoute },
+  { path: '/kybernos-cloud/team/skills/retire', method: 'POST', guarded: true, session: true, body: true, cap: 4096, run: teamSkillsRetireRoute },
   { path: '/kybernos-cloud/team/skills/delete', method: 'POST', guarded: true, session: true, body: true, cap: 4096, run: teamSkillsDeleteRoute },
   // Kybernos connections: the account's connected apps. The routes sit here (the token does) and the connectors page calls them. A
   // link may carry the API key of a toolkit that has no OAuth, so its body is small and its handler never logs or echoes it.
   { path: '/kybernos-cloud/connections', method: 'GET', guarded: true, run: connections.listRoute },
   { path: '/kybernos-cloud/connections/apps', method: 'GET', guarded: true, run: connections.appsRoute },
   { path: '/kybernos-cloud/connections/item', method: 'GET', guarded: true, run: connections.itemRoute },
-  { path: '/kybernos-cloud/connections/link', method: 'POST', guarded: true, body: true, cap: 16384, run: connections.linkRoute },
+  { path: '/kybernos-cloud/connections/link', method: 'POST', guarded: true, session: true, body: true, cap: 16384, run: connections.linkRoute },
   { path: '/kybernos-cloud/connections/delete', method: 'POST', guarded: true, session: true, body: true, cap: 4096, run: connections.deleteRoute },
   { path: '/kybernos-cloud/memory/tidy', method: 'GET', guarded: true, run: memoryTidyRoute },
-  { path: '/kybernos-cloud/memory/tidy/scan', method: 'POST', guarded: true, run: memoryTidyScanRoute },
-  { path: '/kybernos-cloud/memory/tidy/apply', method: 'POST', guarded: true, body: true, cap: 65536, run: memoryTidyApplyRoute },
-  { path: '/kybernos-cloud/memory/tidy/dismiss', method: 'POST', guarded: true, body: true, cap: 16384, run: memoryTidyDismissRoute },
-  { path: '/kybernos-cloud/memory/tidy/undo', method: 'POST', guarded: true, body: true, cap: 4096, run: memoryTidyUndoRoute },
-  { path: '/kybernos-cloud/memory/tidy/settings', method: 'POST', guarded: true, body: true, cap: 4096, run: memoryTidySettingsRoute },
+  { path: '/kybernos-cloud/memory/tidy/scan', method: 'POST', guarded: true, session: true, run: memoryTidyScanRoute },
+  { path: '/kybernos-cloud/memory/tidy/apply', method: 'POST', guarded: true, session: true, body: true, cap: 65536, run: memoryTidyApplyRoute },
+  { path: '/kybernos-cloud/memory/tidy/dismiss', method: 'POST', guarded: true, session: true, body: true, cap: 16384, run: memoryTidyDismissRoute },
+  { path: '/kybernos-cloud/memory/tidy/undo', method: 'POST', guarded: true, session: true, body: true, cap: 4096, run: memoryTidyUndoRoute },
+  { path: '/kybernos-cloud/memory/tidy/settings', method: 'POST', guarded: true, session: true, body: true, cap: 4096, run: memoryTidySettingsRoute },
 ]
 
 const mountWebRoutes = (ctx, webServer) => {
@@ -5212,6 +5503,9 @@ export function apply(ctx) {
   try { mountMemoryPrompt(ctx) } catch (e) { console.error('[kybernos-cloud] memory prompt: ' + String((e && e.message) || e)) }
   try { mountChatSpace(ctx) } catch (e) { console.error('[kybernos-cloud] active team follows the chat: ' + String((e && e.message) || e)) }
   try { mountKybyNative(ctx) } catch (e) { console.error('[kybernos-cloud] native Kaby: ' + String((e && e.message) || e)) }
+  try { mountKabyJournal(ctx) } catch (e) { console.error('[kybernos-cloud] Kaby journal: ' + String((e && e.message) || e)) }
+  try { mountKabyKnowledge(ctx) } catch (e) { console.error('[kybernos-cloud] Kaby knowledge: ' + String((e && e.message) || e)) }
+  try { mountKabyAccount(ctx) } catch (e) { console.error('[kybernos-cloud] Kaby account: ' + String((e && e.message) || e)) }
   try { mountMemoryTools(ctx) } catch (e) { console.error('[kybernos-cloud] memory tools: ' + String((e && e.message) || e)) }
   try { connections.mount(ctx) } catch (e) { console.error('[kybernos-cloud] connections: ' + String((e && e.message) || e)) }
   try { mountMemoryCapture(ctx) } catch (e) { console.error('[kybernos-cloud] memory capture: ' + String((e && e.message) || e)) }
@@ -5239,7 +5533,7 @@ export {
   tidyScan, tidyRun, tidyApply, tidyUndo, tidyDismiss, tidySettings, tidyTick, tidyView, tidyFlags, TIDY_TUNING, TIDY_MAX_REMOVALS, studyModel,
   refreshMemoryCache, memoryCache,
   emptyMemoryCache, bumpMemoryCache, pushLessons, localLessons, localKybers, stateKyberMap,
-  listMemories, lastTurnText, memoryWriteTool, memorySearchTool, MEMORY_KINDS, MEMORY_SOURCES,
+  listMemories, lastTurnText, isLasting, keepCaptured, nearKnown, CAPTURE_PROMPT, memoryWriteTool, memorySearchTool, MEMORY_KINDS, MEMORY_SOURCES,
   captureTurn, lastCapture, extractFacts, stripMemoryBlock, normalizeMemory,
   MEMORY_MAX_CONTENT, MEMORY_MAX_INJECT_CHARS, MEMORY_TUNING,
   selectForPrompt, planInjection, readMemorySettings, noteOrigins, originOf, scheduleMemoryRefresh, parseWhen,

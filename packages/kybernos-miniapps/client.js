@@ -60,7 +60,7 @@ window.__ModuleLoader__.load({
     const PANNEAUX = [
       { racine: '.kbb-root', id: 'briques', tete: '.kbb-head', get defaut () { return kt('Briques', 'Bricks') }, l: 260, h: 380 },
       // The Modeleur has its own prefix: `.kbm-root` is the root of kybernos-models' Settings page (`.kbm-root.kbmp`) and of the core's Models page, and
-      // the button once landed twice on AI Provider & Models.
+      // the button once landed twice on AI provider and models.
       { racine: '.kbmo-root', id: 'modeleur', tete: '.kbmo-head', get defaut () { return kt('Modeleur', '3D modeller') }, l: 320, h: 420 },
       // Slides renders `.kbsd-root` / `.kbsd-head`. This entry used to say `.kbs-root`, which is the root of the SKILLS page (and `.kbs-` is also
       // the prefix of the sessions and cloud bundles): the button landed on Skills, and Slides, whose classes had been renamed, got none.
@@ -346,12 +346,28 @@ window.__ModuleLoader__.load({
     }
     try { window.__KB_MINIAPPS__ = interfaceExterne } catch { /* no window */ }
 
-    function toast (texte) {
+    // `marque` (optional) is a data-kb hook on the toast, for the checks that read what the person was told.
+    function toast (texte, marque) {
       const t = window.document.createElement('div')
       t.className = 'kbmini-toast'
       t.textContent = texte
+      if (marque !== undefined) t.setAttribute('data-kb', marque)
       window.document.body.appendChild(t)
       setTimeout(() => t.remove(), 3800)
+    }
+
+    // Why the host refused an install, in the person's language: the host's own sentence is English and for the log, its `code` is stable.
+    // An answer without a known code (or no answer) keeps the generic sentence.
+    const CAUSES_INSTALLATION = {
+      'macos-only': () => kt('cette fonction n’existe que sur macOS.', 'this only works on macOS.'),
+      'html-short': () => kt('la page est vide.', 'the page is empty.'),
+      'html-long': () => kt('la page est trop lourde.', 'the page is too large.'),
+      'name-refused': () => kt('ce titre ne peut pas servir de nom d’app : change-le et réessaie.', 'this title cannot be used as an app name: change it and try again.'),
+      codesign: () => kt('la signature de l’app a échoué (codesign) : vérifie que les outils de développement Apple sont installés.', 'signing the app failed (codesign): check that the Apple command line tools are installed.'),
+    }
+    function messageEchecInstallation (r) {
+      const cause = r !== null && typeof r === 'object' && typeof r.code === 'string' && Object.prototype.hasOwnProperty.call(CAUSES_INSTALLATION, r.code) ? CAUSES_INSTALLATION[r.code] : null
+      return cause === null ? kt('L’installation a échoué.', 'Installation failed.') : kt('Installation impossible : ', 'Cannot install: ') + cause()
     }
 
     // ── menu après installation ────────────────────────────────────────────────
@@ -447,8 +463,8 @@ window.__ModuleLoader__.load({
           const html = ex.html
           const r = await post('/kybernos-miniapps/install', { id: conf.id, titre: ex.titre, html, largeur: conf.l, hauteur: conf.h, auto: false })
           if (r && r.ok === true) { installe.set(conf.id, { auto: false }); toast(kt('Mini-app installée — elle vit hors de DSH.', 'Mini-app installed — it lives outside DSH.')) }
-          else toast(kt('L’installation a échoué.', 'Installation failed.'))
-        } catch { toast(kt('L’installation a échoué.', 'Installation failed.')) }
+          else toast(messageEchecInstallation(r), 'miniapps-install-error')
+        } catch { toast(messageEchecInstallation(null), 'miniapps-install-error') }
         btn.disabled = false
         majBouton(conf)
       }
@@ -512,7 +528,7 @@ window.__ModuleLoader__.load({
     return {
       apply,
       inject: [],
-      __test: { majBouton, kt, serialiser, reglesApplicables, PANNEAUX, escTitre, jsonPourScript, sourceModule, placerMenu, pageExport, exporterExterne, interfaceExterne },
+      __test: { majBouton, messageEchecInstallation, kt, serialiser, reglesApplicables, PANNEAUX, escTitre, jsonPourScript, sourceModule, placerMenu, pageExport, exporterExterne, interfaceExterne },
     }
   },
 })

@@ -12,10 +12,17 @@ import { kyberTarget } from './kyber-root.mjs'
 import { createWorkspaceInstructions } from './workspace-instructions.mjs'
 import { selectAfterConnect } from './default-model.mjs'
 import { normalize as autoSettingsNormalize, publicView as autoSettingsView, apply as autoSettingsApply, isPaused as autoSettingsPaused } from './automation-settings.mjs'
-import { levelOf as autoLoadLevel, allowedAt as autoLoadAllowed, admit as autoLoadAdmit, createInflight as autoLoadInflight, maxParallelFrom as autoLoadMaxParallel, parseMeminfo as autoLoadMeminfo, publicView as autoLoadView } from './automation-load.mjs'
+import { levelOf as autoLoadLevel, allowedAt as autoLoadAllowed, admit as autoLoadAdmit, createInflight as autoLoadInflight, maxParallelFrom as autoLoadMaxParallel, parseMeminfo as autoLoadMeminfo, guardOff as autoLoadGuardOff, publicView as autoLoadView } from './automation-load.mjs'
+import { stableStreak as autoSkillStreak, skillSlug as autoSkillSlug, skillParts as autoSkillParts, normalizeRecords as autoSkillsNormalize, dueTasks as autoSkillsDue, lessonOf as autoSkillLesson } from './automation-skills.mjs'
+import { chooseWorkspace as autoWsChoose, idOf as autoWsIdOf, DEDICATED_TITLE as AUTO_WS_TITLE, DEDICATED_DIR as AUTO_WS_DIR } from './automation-workspace.mjs'
 import { recordFeedback, exportFeedback, relayReportOf } from './feedback-box.mjs'
 import { writeGuard } from './session-guard.mjs'
-import { defaultState as onboardingDefault, publicView as onboardingView, complete as onboardingComplete, replay as onboardingReplay } from './onboarding-state.mjs'
+import { defaultState as onboardingDefault, publicView as onboardingView, complete as onboardingComplete, replay as onboardingReplay, chooseDomain as onboardingChooseDomain, aboutView as onboardingAbout } from './onboarding-state.mjs'
+import { isSuggested as autoIsSuggested, suggestedTask as autoSuggestedTask, acceptedTask as autoAcceptedTask, refusalFor as autoSuggestRefusal, HOME_ID_RE as AUTO_HOME_ID_RE, runFrame as autoRunFrame } from './automation-suggest.mjs'
+import { learnTask as autoLearnTask, isLearnName as autoIsLearnName, LEARN_ID as AUTO_LEARN_ID } from './learn-business.mjs'
+import { mountAutomationTools } from './automation-tools.mjs'
+import { makeLedger as makeSuggestionLedger } from './suggestions.mjs'
+import { loadPacks as loadDomainPacks, domainOfProfil, mergePackSets, DOMAIN_POINT, DOMAIN_POINT_REF } from './domain-pack.mjs'
 const pluginDir = dirname(fileURLToPath(import.meta.url))
 // ── Le filet du compactage, sans retouche du moteur (23/09/2026) ────────────
 // Mesuré : notre bundle monte APRÈS `dsh-web-app`, donc les enfants de preset
@@ -51,6 +58,8 @@ import { createProbe } from './audio-probe.mjs'
 import { createModelsAudio } from './models-audio.mjs'
 import { expandOccurrences, parseOccurrenceRange } from './automation-occurrences.mjs'
 import { lastTurnOutcome } from './session-outcome.mjs'
+import { goalFromEvents, sortGoals } from './project-goals.mjs'
+import { summarizeRun } from './automation-runs.mjs'
 // Hosted instance: also accept the authorities declared to DSH with --trusted-host. The core bundle publishes the predicate
 // (kybernos-plugin/trusted-authority.mjs); absent or failing, it answers false and the guard stays loopback-only.
 const kbTrusted = (host) => { try { const f = globalThis[Symbol.for('kybernos.trustedAuthority')]; return typeof f === 'function' && f(host) === true } catch (e) { return false } }
@@ -67,6 +76,21 @@ const kbHostOK = (req) => {
     return ['127.0.0.1' + port, 'localhost' + port, '[::1]' + port].indexOf(host) >= 0 || kbTrusted(host)
   } catch (e) { return false }
 }
+// L6-06: a handler that throws — a body past its cap above all, `readJsonBody` raises past 64 KB — used to reach the engine, which answers a bare 400 with
+// no body: the page had no `{ok:false,error}` to show. The fence is the one place every route of this bundle passes through, so it answers for them all:
+// 413 for the body too large (same words as /ui-save), a plain 500 for anything else (the reason goes to the log, not to the page: an fs error carries an
+// absolute path). The engine logged a handler's failure; the fence swallows it first, so it logs it here. A reply already begun cannot take a status any more:
+// the connection is dropped, as the engine did, so the client does not wait for a body that will never end.
+const kbHandlerFailed = (res, e, path) => {
+  const big = e instanceof Error && e.message === 'request body too large'
+  if (big !== true) { try { console.warn('[kybernos] route ' + String(path) + ' failed: ' + (e && e.message ? String(e.message) : String(e))) } catch (err) { /* no console */ } }
+  if (res.headersSent === true || res.writableEnded === true) { try { if (res.writableEnded !== true) res.destroy() } catch (err) { /* closed */ } return undefined }
+  try {
+    res.writeHead(big ? 413 : 500, { 'content-type': 'application/json; charset=utf-8' })
+    res.end(JSON.stringify({ ok: false, error: big ? 'request body too large' : 'request failed' }))
+  } catch (err) { /* closed */ }
+  return undefined
+}
 // `isOpen(route)` names the routes that are PUBLIC BY DESIGN (a website's widget, a webhook receiver called by another service): their own secret or
 // scope is their fence, and they are reached through a tunnel under any name.
 const kbFenced = (service, isOpen = () => false) => {
@@ -78,7 +102,10 @@ const kbFenced = (service, isOpen = () => false) => {
           try { res.writeHead(403, { 'content-type': 'application/json; charset=utf-8' }); res.end('{"ok":false,"error":"origin refused"}') } catch (e) { /* closed */ }
           return undefined
         }
-        return route.handler(req, res, ...rest)
+        try {
+          const out = route.handler(req, res, ...rest)
+          return out !== null && out !== undefined && typeof out.then === 'function' ? out.catch((e) => kbHandlerFailed(res, e, route.path)) : out
+        } catch (e) { return kbHandlerFailed(res, e, route.path) }
       },
     })
     : route)
@@ -88,6 +115,19 @@ let iconsCatalog = null
 try {
   iconsCatalog = JSON.parse(readFileSync(pluginDir + '/icons.json', 'utf8'))
 } catch (e) { iconsCatalog = null }
+// The search words of the icons (Lucide's tags, see scripts/build-icon-tags.mjs): a string of words per icon name. Absent or unreadable: the
+// pickers search the names only, as before.
+let iconTags = null
+let iconConcepts = []
+try {
+  const parsed = JSON.parse(readFileSync(pluginDir + '/icon-tags.json', 'utf8'))
+  iconTags = (parsed !== null && typeof parsed === 'object' && parsed.tags !== null && typeof parsed.tags === 'object') ? parsed.tags : null
+} catch (e) { iconTags = null }
+// ...and the table of concepts people type (French and English) that stand for those words: `lines`, « words typed | words the icons carry ».
+try {
+  const parsed = JSON.parse(readFileSync(pluginDir + '/icon-concepts.json', 'utf8'))
+  iconConcepts = (parsed !== null && typeof parsed === 'object' && Array.isArray(parsed.lines) === true) ? parsed.lines.filter((l) => typeof l === 'string') : []
+} catch (e) { iconConcepts = [] }
 const joinPath = (dir, name) => {
   const d = String(dir)
   return d.length > 0 && d.charAt(d.length - 1) === '/' ? d + name : d + '/' + name
@@ -330,7 +370,7 @@ const kbFrequentRefusal = (cleanTask, requestTask, previous) => {
 // Generic nextRun (ms epoch): a one-time date that has passed never comes back.
 const kbComputeNextRun = (task, afterMs, tzFallback) => {
   if (task === null || typeof task !== 'object') return null
-  if (task.active !== true) return null
+  if (task.active !== true || task.suggested === true) return null // (inline: this block is read on its own by the tests and has no imports)
   const sc = task.schedule
   if (sc === null || typeof sc !== 'object') return null
   const nowMs = typeof afterMs === 'number' && Number.isFinite(afterMs) ? afterMs : Date.now()
@@ -387,6 +427,22 @@ const kbSanitizeTaskInput = (raw) => {
     approvals: r.approvals === 'auto' ? 'auto' : 'ask',
   }
   if (Array.isArray(r.notify) === true) out.notify = Array.from(new Set(r.notify.filter((x) => x === 'push' || x === 'email')))
+  // Where its runs happen: `home` = one session, reused (the chat it was made in, or one created at the first run); anything else = a new session each run, as before.
+  if (r.sessionMode !== undefined) out.sessionMode = r.sessionMode === 'home' ? 'home' : 'new'
+  if (r.homeSessionId !== undefined) {
+    if (r.homeSessionId === null || r.homeSessionId === '') out.homeSessionId = null
+    else if (typeof r.homeSessionId === 'string' && /^[A-Za-z0-9_.:@-]{1,160}$/.test(r.homeSessionId) === true) out.homeSessionId = r.homeSessionId
+    else return { ok: false, error: 'invalid session' }
+  }
+  // The apps the automation asks for (Composio toolkit slugs): the Connectors row and page put the ones that are not connected first. Left out, an edit keeps what it has.
+  if (Array.isArray(r.needs) === true) out.needs = Array.from(new Set(r.needs.filter((x) => typeof x === 'string' && /^[a-z0-9_-]{2,40}$/.test(x) === true))).slice(0, 6)
+  // The workspace the runs land in (the id of one): sent only when the person chooses, `null` or '' goes back to « none » (the dedicated
+  // workspace). Left out, an edit keeps what the automation already has. The rule is the same as automation-workspace.mjs (this block takes no import).
+  if (r.workspaceHint !== undefined) {
+    if (r.workspaceHint === null || r.workspaceHint === '') out.workspaceHint = null
+    else if (typeof r.workspaceHint === 'string' && /^[A-Za-z0-9_.:@-]{1,160}$/.test(r.workspaceHint) === true) out.workspaceHint = r.workspaceHint
+    else return { ok: false, error: 'invalid workspace' }
+  }
   return { ok: true, task: out }
 }
 // ── Task store + trigger: pure, every side effect is injected, so the tests drive the code
@@ -485,7 +541,7 @@ const kbMakeTrigger = (deps) => {
         const nowMs = now()
         const dueList = []
         for (const t of tasks) {
-          if (t === null || typeof t !== 'object' || t.active !== true) continue
+          if (t === null || typeof t !== 'object' || t.active !== true || t.suggested === true) continue
           // A task written without a next run (the automation-creator skill edits the file directly)
           // is adopted here: its next run is computed now instead of waiting for an edit in the page.
           if (typeof t.nextRun !== 'string' || Number.isFinite(Date.parse(t.nextRun)) === false) {
@@ -529,7 +585,7 @@ const kbMakeTrigger = (deps) => {
           // tasks of this tick take about a second each) is left alone, and the run uses its
           // latest definition. A one-time task is already inactive by its own claim.
           const current = (await store.read()).find((x) => x !== null && typeof x === 'object' && x.id === claim.id)
-          if (current === undefined) continue
+          if (current === undefined || current.suggested === true) continue
           const once = current.schedule !== null && typeof current.schedule === 'object' && current.schedule.mode === 'once'
           if (once === false && current.active !== true) continue
           const res = await withTimeout(Promise.resolve().then(() => fire(Object.assign({}, current))))
@@ -2580,17 +2636,34 @@ function boot(ctx) {
     // Le tir : session neuve + prompt via le service sessionController quand il
     // est monté (create + prompt sideaux). Repli honnête : pendingFire consommé
     // par le client (startSession + prefill draft) à son prochain poll.
+    // Where a run lands (automation-workspace.mjs): the workspace the automation names, else ONE dedicated workspace, « Automations »,
+    // which adopts <dsh home>/kybernos/automations (created on first use; `create` returns the existing workspace for a folder it
+    // already owns, so asking every time is safe). Only when the engine cannot create one (an older registry, an unwritable folder)
+    // does it keep what it always did: the first workspace of the list.
+    const kbDedicatedWorkspaceId = async (w) => {
+      if (typeof w.create !== 'function') return null
+      try {
+        const home = await dshHome()
+        if (home === null || home.length === 0) return null
+        const dir = joinPath(home, 'kybernos/' + AUTO_WS_DIR)
+        mkdirSync(dir, { recursive: true })
+        return autoWsIdOf(await w.create(dir, AUTO_WS_TITLE))
+      } catch (e) {
+        try { console.error('[kybers] automations: the dedicated workspace could not be made (' + errText(e) + ')') } catch (e2) { /* console unavailable */ }
+        return null
+      }
+    }
     const kbTaskWorkspaceId = async (task) => {
       const w = workspacesAt()
       if (w === undefined || typeof w.list !== 'function') return null
       try {
         const list = w.list()
+        const pick = autoWsChoose(task.workspaceHint, list)
+        if (pick.id !== null) return pick.id
+        const dedicated = await kbDedicatedWorkspaceId(w)
+        if (dedicated !== null) return dedicated
         if (Array.isArray(list) === false || list.length === 0) return null
-        for (const ws of list) {
-          if (ws !== null && typeof ws === 'object' && str(task.workspaceHint) !== null && String((ws.id || ws.workspaceId || '')) === String(task.workspaceHint)) return str(ws.id) || str(ws.workspaceId)
-        }
-        const first = list[0]
-        return first !== null && typeof first === 'object' ? (str(first.id) || str(first.workspaceId)) : null
+        return autoWsIdOf(list[0])
       } catch (e) { return null }
     }
     // The sessions this plugin started for an automation set to `ask`: the MCP gate below applies to them
@@ -2672,7 +2745,7 @@ function boot(ctx) {
     }
     const kbLoadCapacity = async () => {
       const sample = await kbLoadSample()
-      const lv = autoLoadLevel(sample)
+      const lv = autoLoadGuardOff(process.env) === true ? { level: 'ok', reasons: [] } : autoLoadLevel(sample)
       return { level: lv.level, reasons: lv.reasons, allowed: autoLoadAllowed(lv.level, kbLoadMaxParallel), inFlight: kbLoadInflight.count(), maxParallel: kbLoadMaxParallel }
     }
     try {
@@ -2709,10 +2782,26 @@ function boot(ctx) {
         return typeof v[field] === 'string' ? v[field] : null
       }
       const requestId = 'kb-task-' + String(task.id) + '-' + Date.now().toString(36)
-      const workspaceId = await kbTaskWorkspaceId(task)
-      const created = await sc.create(workspaceId !== null ? { workspaceId } : {})
-      const sessionId = unwrap(created, 'sessionId')
-      if (sessionId === null) throw new Error('session.create returned no sessionId')
+      // `sessionMode: 'home'`: the runs happen in ONE session, posted as messages: the chat the automation was made in, or the session its first run created. A
+      // session that is gone (the person deleted it) is replaced by a new one, which becomes the home from then on.
+      const homeMode = task.sessionMode === 'home'
+      const homeId = homeMode === true && typeof task.homeSessionId === 'string' ? task.homeSessionId : ''
+      let sessionId = null
+      let reused = false
+      if (homeId !== '') {
+        try { const liveHome = ctx.get('sessions') !== undefined && ctx.get('sessions') !== null && typeof ctx.get('sessions').get === 'function' ? ctx.get('sessions').get(homeId) : null; if (liveHome !== undefined && liveHome !== null) { sessionId = homeId; reused = true } } catch (e) { sessionId = null; reused = false }
+      }
+      if (reused === false) {
+        const workspaceId = await kbTaskWorkspaceId(task)
+        const created = await sc.create(workspaceId !== null ? { workspaceId } : {})
+        sessionId = unwrap(created, 'sessionId')
+        if (sessionId === null) throw new Error('session.create returned no sessionId')
+        if (homeMode === true) {
+          await kbTasksMutate(async (tasks) => {
+            for (const t of tasks) { if (t !== null && typeof t === 'object' && t.id === task.id) { t.homeSessionId = sessionId; t.homeOwn = true } }
+          }).catch(() => null)
+        }
+      }
       kbLoadInflight.start(sessionId)
       // D3 (recette team 29/09) — honorer task.model : la sélection DOIT
       // précéder le prompt (sélection durable de la session). Format
@@ -2721,7 +2810,7 @@ function boot(ctx) {
       // par défaut, comme avant ce correctif).
       const taskModel = typeof task.model === 'string' ? task.model.trim() : ''
       const slash = taskModel.indexOf('/')
-      if (slash > 0 && typeof sc.selectModel === 'function') {
+      if (reused === false && slash > 0 && typeof sc.selectModel === 'function') {
         try {
           const selRes = await sc.selectModel({
             sessionId,
@@ -2751,7 +2840,9 @@ function boot(ctx) {
         if (askPreset === null || liveSession === undefined || liveSession === null) {
           throw new Error('approvals "ask" could not be applied (' + (askPreset === null ? 'no permission preset asks for approval' : 'session not found') + '): the run was not started')
         }
-        presetsSvc.set(liveSession, askPreset)
+        // A chat the person made the automation in keeps its own permission preset (the run must not narrow what they are doing there); the gate that asks
+        // before an outside tool is called still covers it. A session made for the automation takes the asking preset as always.
+        if (reused === false || task.homeOwn === true) presetsSvc.set(liveSession, askPreset)
         kbRememberAskSession(sessionId)
       }
       // Laisse la sélection durable se propager avant l'assemblage du tour.
@@ -2761,7 +2852,7 @@ function boot(ctx) {
         requestId,
         sessionId,
         mode: 'queue',
-        content: [{ type: 'text', text: String(task.prompt || '') }],
+        content: [{ type: 'text', text: (homeMode === true ? autoRunFrame(task.name, new Date().toISOString()) + '\n\n' : '') + String(task.prompt || '') }],
       }, controller.signal)
       if (ack !== null && typeof ack === 'object' && ack.ok === false) throw new Error(ack.error !== null && ack.error !== undefined && ack.error.message !== undefined ? String(ack.error.message) : 'prompt refused')
       return { sessionId }
@@ -2796,6 +2887,62 @@ function boot(ctx) {
         throw e
       }
     }
+    // ── A stable automation becomes a skill (automation-skills.mjs) ────────────────────────────────────────────────────────────────
+    // The record of what was written lives in <dsh home>/kybernos/automation-skills.json, next to tasks.json. The skill itself goes to
+    // <dsh home>/skills/<name>/SKILL.md, where DSH looks for the person's skills.
+    const kbAutoSkillsFileOf = async () => {
+      const t = await kbTasksFileOf()
+      return t.slice(0, t.lastIndexOf('/')) + '/automation-skills.json'
+    }
+    const kbAutoSkillsRead = async () => {
+      try { return autoSkillsNormalize(JSON.parse(readFileSync(await kbAutoSkillsFileOf(), 'utf8'))) } catch (e) { return autoSkillsNormalize(null) }
+    }
+    const kbAutoSkillsWrite = async (state) => {
+      const p = await kbAutoSkillsFileOf()
+      try { mkdirSync(p.slice(0, p.lastIndexOf('/')), { recursive: true }) } catch (e) { /* already there */ }
+      const temp = p + '.tmp-' + String(process.pid) + '-' + Date.now().toString(36)
+      try {
+        writeFileSync(temp, JSON.stringify(state, null, 2) + String.fromCharCode(10), { encoding: 'utf8', mode: 0o600 })
+        renameSync(temp, p)
+      } catch (e) {
+        try { unlinkSync(temp) } catch (e2) { /* nothing to clean */ }
+        throw e
+      }
+    }
+    // The skill goes to the Skills page as a PROPOSAL, through the seam its host publishes (kybernos-skills/learned.mjs; bundles cannot import each other, so it is
+    // read at call time, like the space seam of the memory bundle). Nothing is active before the person accepts it there. `how: 'manual'` is the person pressing
+    // « Create skill »: that click is the acceptance, so the skills page writes it at once. The record is kept after the proposal: a crash in between leaves a
+    // proposal without a record (the next pass proposes again and finds the name taken), never the reverse. A refusal writes no record, so it is tried again later.
+    const kbLearnedSeam = () => { try { const s = globalThis[Symbol.for('kybernos.learned-skills')]; return s !== undefined && s !== null && typeof s.propose === 'function' ? s : null } catch (e) { return null } }
+    const kbAutoSkillWrite = async (task, how, streak) => {
+      const seam = kbLearnedSeam()
+      if (seam === null) return { ok: false, error: 'the skills page is not loaded' }
+      const slug = autoSkillSlug(str(task.name), () => false)
+      const parts = autoSkillParts(task, slug, streak)
+      const made = await seam.propose({ name: slug, description: parts.description, whenToUse: parts.whenToUse, body: parts.body, automation: { id: str(task.id), name: str(task.name), runs: streak }, acceptNow: how === 'manual' })
+      if (made === null || typeof made !== 'object' || made.ok !== true) return { ok: false, error: made !== null && typeof made === 'object' && typeof made.error === 'string' ? made.error : 'refused' }
+      const recs = await kbAutoSkillsRead()
+      recs.skills[task.id] = { skill: made.name, at: new Date().toISOString(), how, runs: streak, state: made.pending === true ? 'pending' : 'made' }
+      await kbAutoSkillsWrite(recs)
+      return { ok: true, skill: made.name, pending: made.pending === true }
+    }
+    // The automatic pass: only when the switch is on, at most every 5 minutes, at most three proposals at a time, and never in the way of the tick.
+    let kbAutoSkillsLast = 0
+    let kbAutoSkillsBusy = false
+    const kbAutoSkillsPass = async () => {
+      if (kbAutoSkillsBusy === true || Date.now() - kbAutoSkillsLast < 300000) return
+      kbAutoSkillsBusy = true
+      kbAutoSkillsLast = Date.now()
+      try {
+        const settings = await kbAutoSettingsRead()
+        if (settings.autoSkill !== true) return
+        const tasks = await kbTasksRead()
+        const due = autoSkillsDue(Array.isArray(tasks) === true ? tasks : [], await kbAutoSkillsRead(), settings).slice(0, 3)
+        for (const t of due) await kbAutoSkillWrite(t, 'auto', autoSkillStreak(t.history))
+      } catch (e) {
+        try { console.error('[kybers] automation skills: ' + errText(e)) } catch (e2) { /* console unavailable */ }
+      } finally { kbAutoSkillsBusy = false }
+    }
     // « Pause all » holds the tick, not the store: nothing is lost, and what came due fires once at the first tick after it is off.
     const kbTasksTick = async () => {
       if (autoSettingsPaused(await kbAutoSettingsRead()) === true) return { fired: 0, paused: true }
@@ -2804,6 +2951,7 @@ function boot(ctx) {
         if (r.held > 0 && r.held !== kbLoadHeld) { try { console.log('[kybers] scheduled tasks: ' + r.held + ' run(s) waiting for the machine') } catch (e) { /* console */ } }
         kbLoadHeld = r.held
       }
+      kbAutoSkillsPass().catch(() => null)
       return r
     }
     // CRUD exposé au client (route unique /kybernos/tasks, action dans le corps).
@@ -2827,6 +2975,66 @@ function boot(ctx) {
         await kbTasksMutate(async (tasks) => { tasks.push(task) })
         return { ok: true, task }
       }
+      // Kaby proposes an automation: stored switched off and flagged, never scheduled before Add. `accept` is Add (it stays off), Discard is `delete`.
+      if (action === 'suggest') {
+        const raw = body.task !== null && typeof body.task === 'object' ? body.task : {}
+        const clean = kbSanitizeTaskInput(Object.assign({}, raw, { active: false }))
+        if (clean.ok !== true) return { ok: false, error: clean.error }
+        const frequent = kbFrequentRefusal(clean.task, raw, null)
+        if (frequent !== null) return frequent
+        const now = new Date().toISOString()
+        const task = Object.assign({ id: kbTaskId(), createdAt: now, updatedAt: now, history: [], lastRun: null, nextRun: null }, autoSuggestedTask(clean.task, body.proof, now))
+        let refused = null
+        await kbTasksMutate(async (tasks) => {
+          refused = autoSuggestRefusal(tasks, task.name)
+          if (refused === null) tasks.push(task)
+        })
+        return refused !== null ? refused : { ok: true, task }
+      }
+      // « Learn my business »: made once (found again by its name in any language), switched on, weekly, in a session of its own. The onboarding step calls it; it only ever proposes.
+      if (action === 'learn') {
+        const about = body.about !== null && typeof body.about === 'object' ? body.about : {}
+        const built = autoLearnTask({ lang: str(body.lang) || 'en', tz: str(body.tz), fieldId: str(body.fieldId) || '', field: str(body.field) || '', goals: Array.isArray(body.goals) ? body.goals.filter((g) => typeof g === 'string') : [], about })
+        const clean = kbSanitizeTaskInput(built)
+        if (clean.ok !== true) return { ok: false, error: clean.error }
+        const now = new Date().toISOString()
+        const task = Object.assign({ id: kbTaskId(), createdAt: now, updatedAt: now, history: [], lastRun: null }, clean.task, { origin: { by: 'kaby', recipe: AUTO_LEARN_ID, at: now } })
+        const nx = kbComputeNextRun(task, Date.now())
+        if (kbNeverRuns(task, nx) === true) return { ok: false, error: kbNoNextRunError(task) }
+        task.nextRun = nx === null ? null : new Date(nx).toISOString()
+        let existing = null
+        await kbTasksMutate(async (tasks) => {
+          existing = tasks.find((t) => t !== null && typeof t === 'object' && ((t.origin !== null && typeof t.origin === 'object' && t.origin.recipe === AUTO_LEARN_ID) || autoIsLearnName(t.name))) || null
+          if (existing === null) tasks.push(task)
+        })
+        return existing !== null ? { ok: true, task: existing, existed: true } : { ok: true, task, existed: false }
+      }
+      if (action === 'accept') {
+        const id = str(body.id)
+        if (id === null) return { ok: false, error: 'id required' }
+        let found = null
+        await kbTasksMutate(async (tasks) => {
+          for (let i = 0; i < tasks.length; i += 1) {
+            const t = tasks[i]
+            if (t !== null && typeof t === 'object' && t.id === id && autoIsSuggested(t) === true) { tasks[i] = autoAcceptedTask(t, new Date().toISOString()); found = tasks[i]; break }
+          }
+        })
+        return found === null ? { ok: false, error: 'not a suggestion' } : { ok: true, task: found }
+      }
+      // The chat an automation was made in becomes its home: from then on its runs are posted there.
+      if (action === 'bind-home') {
+        const id = str(body.id)
+        const sid = str(body.sessionId)
+        if (id === null) return { ok: false, error: 'id required' }
+        if (sid === null || AUTO_HOME_ID_RE.test(sid) !== true) return { ok: false, error: 'invalid session' }
+        let found = null
+        await kbTasksMutate(async (tasks) => {
+          for (const t of tasks) {
+            if (t !== null && typeof t === 'object' && t.id === id) { t.sessionMode = 'home'; t.homeSessionId = sid; t.homeOwn = false; t.updatedAt = new Date().toISOString(); found = t; break }
+          }
+        })
+        return found === null ? { ok: false, error: 'task not found' } : { ok: true, task: found }
+      }
       if (action === 'update') {
         const id = str(body.id)
         if (id === null) return { ok: false, error: 'id required' }
@@ -2842,6 +3050,7 @@ function boot(ctx) {
               frequentUpdate = kbFrequentRefusal(clean.task, body.task, t)
               if (frequentUpdate !== null) break
               const merged = Object.assign({}, t, clean.task, { id, createdAt: t.createdAt, updatedAt: new Date().toISOString(), history: Array.isArray(t.history) === true ? t.history : [] })
+              if (t.suggested === true) merged.active = false
               const nx = kbComputeNextRun(merged, Date.now())
               if (kbNeverRuns(merged, nx) === true) { refusal = kbNoNextRunError(merged); break }
               merged.nextRun = nx === null ? null : new Date(nx).toISOString()
@@ -2864,6 +3073,7 @@ function boot(ctx) {
         await kbTasksMutate(async (tasks) => {
           for (const t of tasks) {
             if (t !== null && typeof t === 'object' && t.id === id) {
+              if (autoIsSuggested(t) === true) { refusal = 'suggested: add it first'; break }
               const nx = kbComputeNextRun(Object.assign({}, t, { active: body.active }), Date.now())
               if (kbNeverRuns(Object.assign({}, t, { active: body.active }), nx) === true) { refusal = kbNoNextRunError(t); break }
               t.active = body.active
@@ -2917,6 +3127,7 @@ function boot(ctx) {
         const tasks = await kbTasksRead()
         const t = tasks.find((x) => x !== null && typeof x === 'object' && x.id === id)
         if (t === undefined) return { ok: false, error: 'task not found' }
+        if (autoIsSuggested(t) === true) return { ok: false, error: 'suggested: add it first' }
         try {
           const res = await kbFireTask(t)
           await kbTasksMutate(async (fresh) => {
@@ -2949,6 +3160,7 @@ function boot(ctx) {
         // l'ancienne URL (Make fait pareil).
         const id = str(body.id)
         if (id === null) return { ok: false, error: 'id required' }
+        if (autoIsSuggested((await kbTasksRead()).find((x) => x !== null && typeof x === 'object' && x.id === id)) === true) return { ok: false, error: 'suggested: add it first' }
         const crypto2 = await import('node:crypto')
         const hookId = 'hk_' + crypto2.randomBytes(6).toString('hex')
         const secret = crypto2.randomBytes(16).toString('hex')
@@ -3022,6 +3234,14 @@ function boot(ctx) {
       setTimeout(() => { kbTasksTick().catch(() => null) }, 5000)
     }
     try { kbTasksStart() } catch (e) { try { console.error('[kybers] task timer unavailable:', errText(e)) } catch (e2) { /* console */ } }
+    // The agent tools that propose an automation and bind one to its chat; a seam that is missing drops only this.
+    // The ledger of the suggestions that wait for a click on a page (a memory, a section of the custom instructions), next to tasks.json; made on first use.
+    let kbSuggLedger = null
+    const kbSugg = async () => {
+      if (kbSuggLedger === null) kbSuggLedger = makeSuggestionLedger({ file: joinPath(dirname(await kbTasksFileOf()), 'suggestions.json') })
+      return kbSuggLedger
+    }
+    try { mountAutomationTools(ctx, { tasks: kbTasksHandle, ledger: { add: async (kind, raw) => (await kbSugg()).add(kind, raw) } }, (m) => { try { console.error('[kybernos] ' + m) } catch (e) { /* console */ } }) } catch (e) { /* never stop DSH from starting */ }
 
     // ── lire un namespace de réglages, 0.1.6 ET 0.1.7 ────────────────────────
     // 0.1.6 : `settings.get(ns)` rendait le document du namespace.
@@ -6279,6 +6499,8 @@ function boot(ctx) {
         return (parsed !== null && typeof parsed === 'object') ? parsed : {}
       } catch (e) { return {} }
     }
+    // An entry of the store is dropped when every field is empty (name, icon, color, desc, and the two selections: skills, connectors).
+    const workspaceEntryEmpty = (entry) => Object.keys(entry).every((k) => entry[k] === null || entry[k] === undefined)
     const saveWorkspaceUi = async (args) => {
       try {
         const req = args !== null && args !== undefined && typeof args === 'object' ? args : {}
@@ -6301,14 +6523,42 @@ function boot(ctx) {
         next.icon = icon === '' ? null : icon
         next.color = color === '' ? null : color
         next.desc = desc === '' ? null : desc
-        // `skills` (sélection de l'onglet Skills du projet) appartient à
-        // saveWorkspaceSkills : ici on ne fait que la PRÉSERVER — une sauvegarde
-        // des détails (nom/icône/couleur/desc) ne doit jamais effacer la
-        // sélection, ni supprimer l'entrée tant qu'une sélection existe.
-        if (next.name === null && next.icon === null && next.color === null && next.desc === null && (next.skills === null || next.skills === undefined)) delete data[workspaceId]
+        // `skills` and `connectors` (the selections of the project's Skills and Connectors tabs) belong to saveWorkspaceSkills and
+        // saveWorkspaceConnectors: here they are only PRESERVED — saving the details (name/icon/color/desc) never erases a selection,
+        // nor drops the entry while one exists.
+        if (workspaceEntryEmpty(next) === true) delete data[workspaceId]
         else data[workspaceId] = next
         await writeTextScoped(home, path, JSON.stringify(data, null, 2) + String.fromCharCode(10))
         return { ok: true, path: path, ui: data[workspaceId] === undefined ? null : data[workspaceId] }
+      } catch (e) { return { ok: false, error: errText(e) } }
+    }
+
+    // ── Suppression d'un workspace (recette 20/10/2026 : écart E1) ─────────
+    // Le registre DSH (`workspaceRegistry.delete`) retire l'enregistrement en
+    // CONSERVANT le dossier sur disque et les journaux de sessions — aucun
+    // fichier n'est détruit. On purge aussi l'entrée UI (nom/icône/couleur/
+    // desc/skills) du magasin `.kyber-workspaces.json`.
+    const deleteWorkspace = async (args) => {
+      try {
+        const req = args !== null && args !== undefined && typeof args === 'object' ? args : {}
+        const workspaceId = str(req.workspaceId)
+        if (workspaceId === null || workspaceId.length === 0 || workspaceId.length > 120) return { ok: false, error: 'workspaceId required' }
+        if (/^[A-Za-z0-9][A-Za-z0-9 ._:-]*$/.test(workspaceId) === false) return { ok: false, error: 'invalid workspaceId' }
+        const wsSvc = workspacesAt()
+        if (wsSvc === undefined || wsSvc === null || typeof wsSvc.delete !== 'function') return { ok: false, error: 'workspace registry unavailable' }
+        const removed = await wsSvc.delete(workspaceId)
+        try {
+          const home = await dshHome()
+          if (home !== null) {
+            const path = joinPath(home, '.kyber-workspaces.json')
+            const data = await readWorkspaceUi()
+            if (data[workspaceId] !== undefined) {
+              delete data[workspaceId]
+              await writeTextScoped(home, path, JSON.stringify(data, null, 2) + String.fromCharCode(10))
+            }
+          }
+        } catch (e) { /* purge UI best-effort : l'entrée orpheline est inerte */ }
+        return { ok: true, removed }
       } catch (e) { return { ok: false, error: errText(e) } }
     }
 
@@ -6343,33 +6593,78 @@ function boot(ctx) {
     const readWorkspaceSkills = async (args) => {
       try {
         const req = args !== null && args !== undefined && typeof args === 'object' ? args : {}
-        const workspaceId = str(req.workspaceId)
-        if (workspaceId === null || workspaceId.length === 0 || workspaceId.length > 120) return { ok: false, error: 'workspaceId required' }
-        if (/^[A-Za-z0-9][A-Za-z0-9 ._:-]*$/.test(workspaceId) === false) return { ok: false, error: 'invalid workspaceId' }
-        const data = await readWorkspaceUi()
-        return { ok: true, workspaceId: workspaceId, skills: workspaceSkillsOf(data, workspaceId) }
+        const w = workspaceIdOf(req)
+        if (w.id === undefined) return { ok: false, error: w.error }
+        return { ok: true, workspaceId: w.id, skills: workspaceSkillsOf(await readWorkspaceUi(), w.id) }
       } catch (e) { return { ok: false, error: errText(e) } }
+    }
+    // Writes one selection (`skills` or `connectors`) of a workspace entry, leaving the other fields as they are.
+    const writeWorkspaceSelection = async (workspaceId, key, list) => {
+      const home = await dshHome()
+      if (home === null) return { ok: false, error: 'DSH home not found' }
+      const path = joinPath(home, '.kyber-workspaces.json')
+      const data = await readWorkspaceUi()
+      const prev = (data[workspaceId] !== null && data[workspaceId] !== undefined && typeof data[workspaceId] === 'object') ? data[workspaceId] : {}
+      const next = Object.assign({}, prev)
+      next[key] = list.length > 0 ? list : null
+      if (workspaceEntryEmpty(next) === true) delete data[workspaceId]
+      else data[workspaceId] = next
+      await writeTextScoped(home, path, JSON.stringify(data, null, 2) + String.fromCharCode(10))
+      return { ok: true, path: path }
+    }
+    const workspaceIdOf = (req) => {
+      const workspaceId = str(req.workspaceId)
+      if (workspaceId === null || workspaceId.length === 0 || workspaceId.length > 120) return { error: 'workspaceId required' }
+      if (/^[A-Za-z0-9][A-Za-z0-9 ._:-]*$/.test(workspaceId) === false) return { error: 'invalid workspaceId' }
+      return { id: workspaceId }
     }
     const saveWorkspaceSkills = async (args) => {
       try {
         const req = args !== null && args !== undefined && typeof args === 'object' ? args : {}
-        const workspaceId = str(req.workspaceId)
-        if (workspaceId === null || workspaceId.length === 0 || workspaceId.length > 120) return { ok: false, error: 'workspaceId required' }
-        if (/^[A-Za-z0-9][A-Za-z0-9 ._:-]*$/.test(workspaceId) === false) return { ok: false, error: 'invalid workspaceId' }
+        const w = workspaceIdOf(req)
+        if (w.id === undefined) return { ok: false, error: w.error }
         const skills = sanitizeSkillList(req.skills)
         if (skills === null) return { ok: false, error: 'skills required (list of strings)' }
-        const home = await dshHome()
-        if (home === null) return { ok: false, error: 'DSH home not found' }
-        const path = joinPath(home, '.kyber-workspaces.json')
-        const data = await readWorkspaceUi()
-        const prev = (data[workspaceId] !== null && data[workspaceId] !== undefined && typeof data[workspaceId] === 'object') ? data[workspaceId] : {}
-        const next = Object.assign({}, prev)
-        next.skills = skills.length > 0 ? skills : null
-        const absent = (v) => v === null || v === undefined
-        if (absent(next.name) === true && absent(next.icon) === true && absent(next.color) === true && absent(next.desc) === true && absent(next.skills) === true) delete data[workspaceId]
-        else data[workspaceId] = next
-        await writeTextScoped(home, path, JSON.stringify(data, null, 2) + String.fromCharCode(10))
-        return { ok: true, path: path, workspaceId: workspaceId, skills: skills }
+        const res = await writeWorkspaceSelection(w.id, 'skills', skills)
+        return res.ok === true ? { ok: true, path: res.path, workspaceId: w.id, skills: skills } : res
+      } catch (e) { return { ok: false, error: errText(e) } }
+    }
+
+    // ── Connectors a project uses (Connectors tab of the project page) ──────
+    // Same store and same shape as the skills: the toolkit slugs under the `connectors` key of the workspace entry. It is the owner's
+    // choice of which apps this project works with (the page shows them first); the Composio account itself stays account-wide.
+    const WORKSPACE_CONNECTORS_MAX = 100
+    const sanitizeConnectorList = (raw) => {
+      const list = sanitizeSkillList(raw, WORKSPACE_CONNECTORS_MAX)
+      if (list === null) return null
+      const out = []
+      for (const item of list) {
+        const slug = item.toLowerCase()
+        if (/^[a-z0-9][a-z0-9_.-]{0,62}$/.test(slug) === true && out.indexOf(slug) < 0) out.push(slug)
+      }
+      return out
+    }
+    const workspaceConnectorsOf = (data, workspaceId) => {
+      const entry = (data[workspaceId] !== null && data[workspaceId] !== undefined && typeof data[workspaceId] === 'object') ? data[workspaceId] : {}
+      return Array.isArray(entry.connectors) === true ? entry.connectors.filter((c) => typeof c === 'string') : []
+    }
+    const readWorkspaceConnectors = async (args) => {
+      try {
+        const req = args !== null && args !== undefined && typeof args === 'object' ? args : {}
+        const w = workspaceIdOf(req)
+        if (w.id === undefined) return { ok: false, error: w.error }
+        return { ok: true, workspaceId: w.id, connectors: workspaceConnectorsOf(await readWorkspaceUi(), w.id) }
+      } catch (e) { return { ok: false, error: errText(e) } }
+    }
+    const saveWorkspaceConnectors = async (args) => {
+      try {
+        const req = args !== null && args !== undefined && typeof args === 'object' ? args : {}
+        const w = workspaceIdOf(req)
+        if (w.id === undefined) return { ok: false, error: w.error }
+        const connectors = sanitizeConnectorList(req.connectors)
+        if (connectors === null) return { ok: false, error: 'connectors required (list of toolkit slugs)' }
+        const res = await writeWorkspaceSelection(w.id, 'connectors', connectors)
+        return res.ok === true ? { ok: true, path: res.path, workspaceId: w.id, connectors: connectors } : res
       } catch (e) { return { ok: false, error: errText(e) } }
     }
 
@@ -6569,6 +6864,14 @@ function boot(ctx) {
     // chargement `/load` reste rapide et n'attend jamais `goals`.
     const KB_PROJECT_MAX_SESSIONS = 40
     const KB_PROJECT_MAX_GOALS = 20
+    // The goal read from a session's log, kept by the log's size: a session that did not grow is not read again (the page asks at every visit).
+    const goalCache = new Map()
+    const GOAL_CACHE_MAX = 200
+    const rememberGoal = (sid, size, goal) => {
+      goalCache.delete(sid)
+      goalCache.set(sid, { size: size, goal: goal })
+      if (goalCache.size > GOAL_CACHE_MAX) goalCache.delete(goalCache.keys().next().value)
+    }
     // ── Documents envoyes par l'utilisateur dans un thread ──────────────────
     // Un document « envoye par l'utilisateur » vit dans le TRANSCRIPT
     // (`user/message` de source `user`), pas sur le disque : sur cette machine
@@ -6661,6 +6964,7 @@ function boot(ctx) {
       const warnings = []
       const active = {}
       const goals = []
+      const liveGoal = {}
       for (let i = 0; i < ids.length; i += 1) {
         const sid = ids[i]
         try {
@@ -6677,12 +6981,16 @@ function boot(ctx) {
           if (lead === null || lead === undefined) continue
           const g = goalsSvc.get(lead)
           if (g === null || g === undefined || typeof g !== 'object') continue
+          liveGoal[sid] = true
           goals.push({
             sessionId: sid,
             objective: typeof g.objective === 'string' ? g.objective : null,
             phase: typeof g.phase === 'string' ? g.phase : null,
             roundsStarted: typeof g.roundsStarted === 'number' ? g.roundsStarted : null,
             maxGoalRounds: typeof g.maxGoalRounds === 'number' ? g.maxGoalRounds : null,
+            blockedReason: g.blockedReason !== null && typeof g.blockedReason === 'object' && typeof g.blockedReason.message === 'string' ? g.blockedReason.message : null,
+            updatedAt: null,
+            live: true,
           })
         } catch (e) { warnings.push('goal unreadable') }
       }
@@ -6690,21 +6998,20 @@ function boot(ctx) {
       // cette machine : ~435 ms pour 15,8 Mo / 6 sessions). Un thread illisible
       // est note, jamais fatal : le reste du projet reste affichable.
       const docs = []
+      let home = null
+      try { home = await dshHome() } catch (e) { home = null }
+      const storagesDir = home === null ? null : joinPath(joinPath(home, 'storages'), 'session_projcache/sessions')
+      const titleOf = (sid) => {
+        if (storagesDir === null) return null
+        const t = indexTitleOf(joinPath(storagesDir, sid + '.json'))
+        return t !== null && t.length > 0 ? t : null
+      }
+      const threadOf = (sid) => { const t = titleOf(sid); return t !== null ? t : sid.slice(0, 8) }
       const readIds = ids.slice(0, KB_DOCS_MAX_READ_SESSIONS)
       if (ids.length > readIds.length) warnings.push('documents: ' + readIds.length + ' threads out of ' + ids.length + ' read (capped)')
       if (persistence === undefined || persistence === null || typeof persistence.open !== 'function') {
         if (ids.length > 0) warnings.push('documents: sessionPersistence service unavailable')
       } else {
-        let home = null
-        try { home = await dshHome() } catch (e) { home = null }
-        const storagesDir = home === null ? null : joinPath(joinPath(home, 'storages'), 'session_projcache/sessions')
-        const threadOf = (sid) => {
-          if (storagesDir !== null) {
-            const t = indexTitleOf(joinPath(storagesDir, sid + '.json'))
-            if (t !== null && t.length > 0) return t
-          }
-          return sid.slice(0, 8)
-        }
         let totalBytes = 0
         let readCount = 0
         for (const sid of readIds) {
@@ -6741,7 +7048,7 @@ function boot(ctx) {
           // Un thread de sous-agent herite des messages du parent : ses pieces
           // jointes seraient des doublons (mesure : 12/12 sur cette machine).
           if (header !== null && header !== undefined && ((typeof header.delegationDepth === 'number' && header.delegationDepth > 0) || header.origin === 'subagent')) continue
-          if (size !== null) totalBytes += size
+          if (size !== null) { totalBytes += size; rememberGoal(sid, size, goalFromEvents(events)) }
           readCount += 1
           for (const row of userDocumentsFromEvents(events, { sessionId: sid, thread: threadOf(sid), since: inherited })) {
             if (docs.length >= KB_DOCS_MAX) break
@@ -6752,7 +7059,48 @@ function boot(ctx) {
         if (readIds.length > 0 && readCount === 0 && docs.length === 0) warnings.push('documents: no readable thread')
       }
       docs.sort((a, b) => ((b.at === null ? 0 : b.at) - (a.at === null ? 0 : a.at)))
-      return { ok: true, sessionIds: ids, active: active, goals: goals, docs: docs, warnings: warnings }
+      // Goals kept in the session logs: the live service above only knows the agents that run in THIS DSH, so a goal set in a chat that is not
+      // open (after a restart, a resume, a fork) was invisible although the engine keeps it. The log is the engine's only store of a goal.
+      if (persistence !== undefined && persistence !== null && typeof persistence.open === 'function') {
+        let goalBytes = 0
+        for (let i = 0; i < ids.length && i < KB_PROJECT_MAX_GOALS; i += 1) {
+          const sid = ids[i]
+          if (liveGoal[sid] === true) continue
+          let size = null
+          try {
+            const st = await persistence.stat(sid)
+            if (st !== null && st !== undefined && typeof st.size === 'number') size = st.size
+          } catch (e) { size = null }
+          let saved = null
+          const kept = goalCache.get(sid)
+          if (size !== null && kept !== undefined && kept.size === size) saved = kept.goal
+          else {
+            if (size !== null && (size > KB_DOCS_MAX_SESSION_BYTES || goalBytes + size > KB_DOCS_MAX_TOTAL_BYTES)) continue
+            try {
+              const handle = await persistence.open(sid, 'read')
+              let header = null
+              let events = []
+              try {
+                header = handle.header
+                const read = await handle.read()
+                events = read !== null && read !== undefined && Array.isArray(read.events) === true ? read.events : []
+              } finally {
+                try { if (handle !== null && handle !== undefined && typeof handle.close === 'function') await handle.close() } catch (e) { /* already closed */ }
+              }
+              if (header !== null && header !== undefined && ((typeof header.delegationDepth === 'number' && header.delegationDepth > 0) || header.origin === 'subagent')) continue
+              saved = goalFromEvents(events)
+              if (size !== null) { goalBytes += size; rememberGoal(sid, size, saved) }
+            } catch (e) { warnings.push('goal unreadable'); continue }
+          }
+          if (saved === null) continue
+          goals.push({
+            sessionId: sid, objective: saved.objective, phase: saved.phase, roundsStarted: saved.roundsStarted, maxGoalRounds: saved.maxGoalRounds,
+            blockedReason: saved.blockedReason, updatedAt: saved.updatedAt, live: false,
+          })
+        }
+      }
+      for (const g of goals) g.thread = titleOf(g.sessionId)
+      return { ok: true, sessionIds: ids, active: active, goals: sortGoals(goals), docs: docs, warnings: warnings }
     }
     const setActiveKyber = async (args) => {
       try {
@@ -8190,7 +8538,7 @@ function boot(ctx) {
     // pour une phrase courte, edge-tts 0,5-1,5 s selon le réseau.
     const KB_TTS_TIMEOUT = { say: 8000, piper: 20000, supertonic: 30000, edge: 15000 }
     const KB_TTS_CATALOG = [
-      { id: 'say', name: 'Apple « say »', kind: 'local', price: 'free', privacy: 'Stays on this Mac. Nothing leaves it.' },
+      { id: 'say', name: 'Apple say', kind: 'local', price: 'free', privacy: 'Stays on this Mac. Nothing leaves it.' },
       { id: 'piper', name: 'Piper', kind: 'local', price: 'free', privacy: 'Stays on this Mac. Nothing leaves it.' },
       { id: 'supertonic', name: 'Supertonic-3', kind: 'local', price: 'free', privacy: 'Stays on this Mac. Nothing leaves it.' },
       { id: 'edge', name: 'edge-tts', kind: 'cloud', price: 'free', privacy: 'The reply text is sent to Microsoft to be synthesised.' },
@@ -8962,12 +9310,18 @@ function boot(ctx) {
       } }), 'kybernos: route yaml')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/save', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
-        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+                if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        // L6-02: a socle write needs DSH's signed session too (the page sends it), not only a strict Origin.
+        const refused = writeGuard(req)
+        if (refused !== null) return sendJson(res, refused.status, { ok: false, error: refused.error })
         sendJson(res, 200, await saveKyber(await readJsonBody(req)))
       } }), 'kybernos: route save')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/create', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
-        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+                if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        // L6-02: a socle write needs DSH's signed session too (the page sends it), not only a strict Origin.
+        const refused = writeGuard(req)
+        if (refused !== null) return sendJson(res, refused.status, { ok: false, error: refused.error })
         sendJson(res, 200, await createKyber(await readJsonBody(req)))
       } }), 'kybernos: route create')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/ui-save', handler: async (req, res) => {
@@ -9093,6 +9447,8 @@ function boot(ctx) {
       // Un JSONL par conversation : chaque ligne {role, text, at}. `visitor`
       // écrit depuis n'importe quel site (CORS ouvert) ; `kyber` (réponse du
       // créateur, puis de l'IA) n'écrit qu'en same-origin. Lecture publique.
+      // PUBLIC BY DESIGN (A-15): the visitor's message route is the widget's front door, reached from any site with no session; the
+      // conversation's own token (minted here, required by /history-delete) is what protects deletion, not a session cookie.
       const kyberSlugSafe = (v) => String(v === null || v === undefined ? '' : v).replace(/[^A-Za-z0-9._-]/g, '').slice(0, 60) || 'inconnu'
       const widgetConvPath = async (conversation) => {
         const home = await dshHome()
@@ -9113,6 +9469,31 @@ function boot(ctx) {
           try { out.push(JSON.parse(l)) } catch (e) { /* ligne torn : ignorée */ }
         }
         return out
+      }
+      // The conversation's own record, beside its JSONL: the visitor's token, minted once when the conversation is created. It is
+      // what makes /history-delete safe: the conversation id alone is not a credential (32 random bits and a readable timestamp, and
+      // the visitor's own page also prints it). The record is never read back by the GET listing, so the token never leaves by a read.
+      const widgetConvRecordPath = async (conversation) => {
+        const home = await dshHome()
+        return nodePathJoin(home, 'kybernos-widget', 'conversations', kyberSlugSafe(conversation.kyberId), conversation.id + '.json')
+      }
+      const widgetConvRecordRead = async (conversation) => {
+        try {
+          const rec = JSON.parse(readFileSync(await widgetConvRecordPath(conversation), 'utf8'))
+          return rec !== null && typeof rec === 'object' ? rec : null
+        } catch (e) { return null }
+      }
+      const widgetConvRecordWrite = async (conversation, record) => {
+        const p = await widgetConvRecordPath(conversation)
+        mkdirSync(nodePathJoin(p, '..'), { recursive: true })
+        writeFileSync(p, JSON.stringify(record, null, 2) + '\n')
+      }
+      // A token compared without leaking its position: same length first (timingSafeEqual throws on different lengths).
+      const widgetTokenMatches = (given, stored) => {
+        if (typeof given !== 'string' || typeof stored !== 'string' || given === '' || stored === '') return false
+        const a = Buffer.from(given, 'utf8')
+        const b = Buffer.from(stored, 'utf8')
+        return a.length === b.length && timingSafeEqual(a, b)
       }
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/widget/api/message', handler: async (req, res) => {
         // Un POST `application/json` depuis un site tiers déclenche un
@@ -9139,13 +9520,21 @@ function boot(ctx) {
           if (kyberId === null) return sendJsonPublic(res, 404, { ok: false, error: 'widget unknown or paused' })
           const id = typeof body.conversationId === 'string' && /^[A-Za-z0-9][A-Za-z0-9._-]{0,80}$/.test(body.conversationId) ? body.conversationId : ('c-' + Date.now().toString(36) + '-' + randomUUID().replace(/-/g, '').slice(0, 8))
           const conv = { kyberId: kyberId, id: id }
+          // The visitor's token is minted WITH the conversation and handed back once, in this answer only: a conversation that
+          // already has a record keeps its token, so knowing its id never reveals it (a later append cannot ask for it either).
+          const recordExistant = await widgetConvRecordRead(conv)
+          let jeton = null
+          if (recordExistant === null) {
+            jeton = randomUUID().replace(/-/g, '')
+            try { await widgetConvRecordWrite(conv, { kyberId: kyberId, id: id, token: jeton, at: new Date().toISOString() }) } catch (e) { jeton = null }
+          }
           const visiteur = {
             role: 'visitor', text: text, at: new Date().toISOString(),
             vid: typeof body.vid === 'string' ? body.vid.slice(0, 40) : '',
             email: typeof body.email === 'string' ? body.email.slice(0, 120) : '',
           }
           await widgetConvAppend(conv, visiteur)
-          return sendJsonPublic(res, 200, { ok: true, conversationId: id })
+          return sendJsonPublic(res, 200, Object.assign({ ok: true, conversationId: id }, jeton === null ? {} : { token: jeton }))
         }
         if (req.method !== 'GET') return sendJsonPublic(res, 405, { ok: false, error: 'GET or POST expected' })
         const q = queryOf(req)
@@ -9166,6 +9555,8 @@ function boot(ctx) {
       // Compte visiteur : un email → une identité stable (vid) enregistrée
       // localement. Le backend cloud de kybernos.app prendra le relais avec la
       // même forme de réponse — le widget n'a pas à changer.
+      // PUBLIC BY DESIGN (A-15): a visitor is on ANOTHER site, with no DSH session. The route only mints/returns the visitor's own vid
+      // (a hash of what they typed) and never reads the host's data: it stays out of the origin rule with the widget's other public routes.
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/widget/api/account', handler: async (req, res) => {
         if (req.method === 'OPTIONS') {
           res.writeHead(204, { 'access-control-allow-origin': '*', 'access-control-allow-methods': 'POST, OPTIONS', 'access-control-allow-headers': 'content-type', 'access-control-max-age': '86400' })
@@ -9192,8 +9583,9 @@ function boot(ctx) {
         } catch (e) { return sendJsonPublic(res, 500, { ok: false, error: 'cannot write' }) }
         return sendJsonPublic(res, 200, { ok: true, vid: compte.vid, created: Array.isArray(compte.teams) === false || compte.teams.length <= 1 })
       } }), 'kybernos: route widget api account')
-      // Effacement par le visiteur de sa propre conversation (l'id de
-      // conversation est le secret porteur : le connaître permet de l'effacer).
+      // The visitor deletes their own conversation. The team + conversation id are NOT a credential (32 random bits, a readable
+      // timestamp, and the page itself prints the id): the conversation's record holds a token minted when it was created, handed
+      // to the visitor's page once by /message, and this route refuses (403) without it — nothing on disk moves on a refusal.
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/widget/api/history-delete', handler: async (req, res) => {
         if (req.method === 'OPTIONS') {
           res.writeHead(204, { 'access-control-allow-origin': '*', 'access-control-allow-methods': 'POST, OPTIONS', 'access-control-allow-headers': 'content-type', 'access-control-max-age': '86400' })
@@ -9204,6 +9596,10 @@ function boot(ctx) {
         try { body = await readJsonBody(req) } catch (e) { return sendJsonPublic(res, 400, { ok: false, error: 'invalid JSON body' }) }
         const team = body && typeof body.team === 'string' ? body.team.slice(0, 60) : ''
         const id = body && typeof body.conversation === 'string' ? body.conversation : ''
+        const token = body && typeof body.token === 'string' ? body.token.slice(0, 200) : ''
+        // The token is checked FIRST: a request that names no conversation and no token is refused, never answered with a 400
+        // that would tell a bare probe what the route expects (and it keeps the route out of the audit's "open" level).
+        if (token === '') return sendJsonPublic(res, 403, { ok: false, error: 'token required' })
         if (team === '' || /^[A-Za-z0-9][A-Za-z0-9._-]{0,80}$/.test(id) === false) return sendJsonPublic(res, 400, { ok: false, error: 'team and conversation expected' })
         const store = await readWidgetStore()
         let kyberId = null
@@ -9212,9 +9608,14 @@ function boot(ctx) {
           if (items.some((x) => x && x.slug === team)) { kyberId = k; break }
         }
         if (kyberId === null) return sendJsonPublic(res, 404, { ok: false, error: 'unknown widget' })
-        const cible = await widgetConvPath({ kyberId: kyberId, id: id })
+        const conv = { kyberId: kyberId, id: id }
+        // A conversation created before the token existed has no record: it cannot be deleted from here (its visitor had no token).
+        const record = await widgetConvRecordRead(conv)
+        if (record === null || widgetTokenMatches(token, record.token) !== true) return sendJsonPublic(res, 403, { ok: false, error: 'token required' })
+        const cible = await widgetConvPath(conv)
         let parti = false
         try { unlinkSync(cible); parti = true } catch (e) { if (e && e.code !== 'ENOENT') throw e }
+        try { unlinkSync(await widgetConvRecordPath(conv)) } catch (e) { if (e && e.code !== 'ENOENT') throw e }
         return sendJsonPublic(res, 200, { ok: true, deleted: id, parti: parti })
       } }), 'kybernos: route widget api history-delete')
       // Réponse du créateur (ou du kyber) depuis la fiche : same-origin, append.
@@ -9771,9 +10172,22 @@ function boot(ctx) {
       } }), 'kybernos: route art-load')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/workspace-ui-save', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
-        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+                if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        // L6-02: a socle write needs DSH's signed session too (the page sends it), not only a strict Origin.
+        const refused = writeGuard(req)
+        if (refused !== null) return sendJson(res, refused.status, { ok: false, error: refused.error })
         sendJson(res, 200, await saveWorkspaceUiQueuee(await readJsonBody(req)))
       } }), 'kybernos: route workspace-ui-save')
+      // Suppression d'un workspace : POST { workspaceId } — le registre retire
+      // l'enregistrement (dossier et journaux conservés), le magasin UI est purgé.
+      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/workspace-delete', handler: async (req, res) => {
+        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
+                if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        // L6-02: a socle write needs DSH's signed session too (the page sends it), not only a strict Origin.
+        const refused = writeGuard(req)
+        if (refused !== null) return sendJson(res, refused.status, { ok: false, error: refused.error })
+        sendJson(res, 200, await deleteWorkspace(await readJsonBody(req)))
+      } }), 'kybernos: route workspace-delete')
       // ── Skills rattachées à un projet : GET lit, POST écrit la sélection ──
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/workspace-skills', handler: async (req, res) => {
         if (req.method === 'GET') {
@@ -9784,6 +10198,16 @@ function boot(ctx) {
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
         sendJson(res, 200, await saveWorkspaceSkills(await readJsonBody(req)))
       } }), 'kybernos: route workspace-skills')
+      // ── Connectors used by a project: GET reads, POST writes the selection ──
+      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/workspace-connectors', handler: async (req, res) => {
+        if (req.method === 'GET') {
+          const wid = str(queryOf(req).get('workspaceId'))
+          return sendJson(res, 200, await readWorkspaceConnectors({ workspaceId: wid }))
+        }
+        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'GET or POST expected' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        sendJson(res, 200, await saveWorkspaceConnectors(await readJsonBody(req)))
+      } }), 'kybernos: route workspace-connectors')
       // ── Instructions of a workspace: a text sent with the prompt of its sessions (private store, optional AGENTS.md section) ──
       const wsInstructions = createWorkspaceInstructions({ home: dshHomeSync() })
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/workspace-instructions', handler: async (req, res) => {
@@ -9811,18 +10235,27 @@ function boot(ctx) {
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/pins', handler: async (req, res) => {
         if (req.method === 'GET') return sendJson(res, 200, { ok: true, pins: pinsPayload(await readPins(), pinnedNatives()) })
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'GET or POST expected' })
-        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+                if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        // L6-02: a socle write needs DSH's signed session too (the page sends it), not only a strict Origin.
+        const refused = writeGuard(req)
+        if (refused !== null) return sendJson(res, refused.status, { ok: false, error: refused.error })
         sendJson(res, 200, await savePin(await readJsonBody(req)))
       } }), 'kybernos: route pins')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/share', handler: async (req, res) => {
         if (req.method === 'GET') return sendJson(res, 200, { ok: true, shares: await readShares() })
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'GET or POST expected' })
-        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+                if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        // L6-02: a socle write needs DSH's signed session too (the page sends it), not only a strict Origin.
+        const refused = writeGuard(req)
+        if (refused !== null) return sendJson(res, refused.status, { ok: false, error: refused.error })
         sendJson(res, 200, await saveShare(await readJsonBody(req)))
       } }), 'kybernos: route share')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/active-set', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
-        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+                if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        // L6-02: a socle write needs DSH's signed session too (the page sends it), not only a strict Origin.
+        const refused = writeGuard(req)
+        if (refused !== null) return sendJson(res, refused.status, { ok: false, error: refused.error })
         sendJson(res, 200, await setActiveKyber(await readJsonBody(req)))
       } }), 'kybernos: route active-set')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/project-data', handler: async (req, res) => {
@@ -9865,11 +10298,60 @@ function boot(ctx) {
           return (read !== null && typeof read === 'object') ? read : null
         } catch (e) { return null }
       }
+      // The domain packs (docs/dev/domain-packs.md): read and checked once from domains/*.json, served as data. A file that fails the check is
+      // left out and counted, never an error: the wizard then simply offers fewer fields of work.
+      let packsLoaded = null
+      const shippedPacks = () => {
+        if (packsLoaded === null) {
+          packsLoaded = loadDomainPacks(pluginDir + '/domains')
+          for (const r of packsLoaded.rejected) console.warn('[kybernos] domain pack left out: ' + r.file + ' (' + r.errors.join('; ') + ')')
+        }
+        return packsLoaded
+      }
+      // The plugin registry (kybernos-registry, docs/dev/plugin-contract.md) is reached through a global, never imported: without it the packs are the shipped ones, as before.
+      // This plugin owns the point `kybernos/core#domain-pack`; it tells the registry at boot and again at each question (the registry may mount after this plugin).
+      const registrySeam = () => { try { const r = globalThis[Symbol.for('kybernos.registry')]; return r !== undefined && r !== null && r.version === 1 ? r : null } catch (e) { return null } }
+      const domainPacks = () => {
+        const shipped = shippedPacks()
+        const registry = registrySeam()
+        if (registry === null) return shipped
+        try {
+          registry.definePoint(DOMAIN_POINT)
+          return mergePackSets(shipped, registry.contributions(DOMAIN_POINT_REF))
+        } catch (e) { return shipped }
+      }
+      try { const registry = registrySeam(); if (registry !== null) registry.definePoint(DOMAIN_POINT) } catch (e) { /* the point is told again at the first question */ }
+      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/domains', handler: async (req, res) => {
+        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
+        const r = domainPacks()
+        sendJson(res, 200, { ok: true, packs: r.packs, rejected: r.rejected.length })
+      } }), 'kybernos: route domains')
+      // A skill a domain pack ships (domains/skills/<name>/SKILL.md): written into <DSH home>/skills by the same careful seeding as every skill this
+      // plugin ships (never over a skill the person wrote or edited, never back over one they switched off). Only a name some pack lists as
+      // bundled is accepted, so the route cannot write anything else.
+      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/domain/skill', handler: async (req, res) => {
+        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        let body = null
+        try { body = await readJsonBody(req, 2000) } catch (e) { return sendJson(res, 413, { ok: false, error: 'request body too large' }) }
+        const name = body !== null && typeof body === 'object' ? str(body.name) : null
+        const listed = name !== null && domainPacks().packs.some((p) => p.goals.some((g) => g.skills.some((s) => s.source === 'kybernos' && s.name === name)))
+        if (listed !== true) return sendJson(res, 400, { ok: false, error: 'unknown skill' })
+        try {
+          const r = seedSkills({ home: String(dshHomeSync()), sourceDir: pluginDir + '/domains/skills', names: [name] })[0]
+          const action = r !== undefined ? r.action : 'error'
+          sendJson(res, 200, { ok: action === 'created' || action === 'current' || action === 'updated' || action === 'kept' || action === 'disabled', action })
+        } catch (e) { sendJson(res, 200, { ok: false, action: 'error' }) }
+      } }), 'kybernos: route domain skill')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/onboarding', handler: async (req, res) => {
         if (req.method === 'GET') {
           const state = await onboardingRead()
           if (state === null) return sendJson(res, 200, { ok: false, error: 'onboarding state unreadable' })
-          return sendJson(res, 200, { ok: true, ...onboardingView(state) })
+          // `domain` is the pack the saved `profil` stands for (the previous wizard stored one of twelve professions): null when none.
+          const view = onboardingView(state)
+          // What the person typed about themselves comes back only to this page (strict same origin), so a replay can show it; the route is served before DSH's own sign-in.
+          const about = sameOriginStrict(req) === true ? onboardingAbout(state) : undefined
+          return sendJson(res, 200, { ok: true, ...view, domain: domainOfProfil(domainPacks().packs, view.profil), ...(about !== undefined ? { about: about } : {}) })
         }
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'GET or POST expected' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
@@ -9880,11 +10362,21 @@ function boot(ctx) {
           const written = await onboardingWrite(onboardingReplay(state))
           return sendJson(res, 200, written === true ? { ok: true, completed: false } : { ok: false, error: 'write failed' })
         }
-        if (action !== 'complete') return sendJson(res, 400, { ok: false, error: 'action complete or replay expected' })
+        if (action === 'domain') {
+          // A domain and goals chosen later (the starter kit opened on its own). Only a pack's own id and the goals of that pack are kept.
+          const pack = domainPacks().packs.find((p) => p.id === str(body.profil))
+          if (pack === undefined) return sendJson(res, 400, { ok: false, error: 'unknown domain' })
+          const known = pack.goals.map((g) => g.id)
+          const goals = Array.isArray(body.goals) ? body.goals.filter((g) => known.indexOf(g) >= 0) : []
+          const chosen = onboardingChooseDomain(state, { profil: pack.id, goals: goals })
+          const written = await onboardingWrite(chosen)
+          return sendJson(res, 200, written === true ? { ok: true, profil: chosen.profil, goals: chosen.goals } : { ok: false, error: 'write failed' })
+        }
+        if (action !== 'complete') return sendJson(res, 400, { ok: false, error: 'action complete, replay or domain expected' })
         const next = onboardingComplete(state, body)
         const written = await onboardingWrite(next)
         sendJson(res, 200, written === true
-          ? { ok: true, completed: true, profil: next.profil, uiMode: next.uiMode, model: next.model, lang: next.lang }
+          ? { ok: true, completed: true, profil: next.profil, uiMode: next.uiMode, model: next.model, lang: next.lang, goals: next.goals, agents: next.agents }
           : { ok: false, error: 'write failed' })
       } }), 'kybernos: onboarding route')
       // After a way to a model is connected (the first-run wizard, the chat's card): make that model the one the next
@@ -9922,6 +10414,11 @@ function boot(ctx) {
         const nodes = name !== null && Object.prototype.hasOwnProperty.call(catalog, name) === true ? catalog[name] : null
         sendJson(res, 200, { ok: nodes !== null, name: name, nodes: nodes === undefined ? null : nodes })
       } }), 'kybernos: route icon')
+      // The search words of the icons and the table of concepts, fetched when the person types in a picker (about 150 KB: not worth sending with the list).
+      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/icon-tags', handler: (req, res) => {
+        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
+        sendJson(res, 200, { ok: iconTags !== null, tags: iconTags === null ? {} : iconTags, concepts: iconConcepts })
+      } }), 'kybernos: route icon-tags')
       // ── librairie React Flow (@xyflow/react 12.11.6, MIT) ──────────────────
       // Ce dépôt n'a ni bundler ni node_modules : on sert le build UMD et sa
       // feuille de style tels quels, et le client les charge à la demande. Le
@@ -9968,7 +10465,10 @@ function boot(ctx) {
         } }), 'kybernos: route kb-places')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/avatar-save', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
-        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+                if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        // L6-02: a socle write needs DSH's signed session too (the page sends it), not only a strict Origin.
+        const refused = writeGuard(req)
+        if (refused !== null) return sendJson(res, refused.status, { ok: false, error: refused.error })
         sendJson(res, 200, await saveAvatar(await readJsonBody(req, 6291456)))
       } }), 'kybernos: route avatar-save')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/avatar', handler: async (req, res) => {
@@ -10033,6 +10533,24 @@ function boot(ctx) {
         const probe = (rootPath !== null) ? await readProbe(rootPath) : null
         sendJson(res, 200, { ok: true, default: kbTeamImageModel(), models: kbImageModels(probe) })
       } }), 'kybernos: route image-models')
+      // One picture from the image model of the person's Models, for a bundle that needs one (Settings › Kaby asks for a portrait).
+      // The same call as the team portraits (kbImageGen): there is no second way to the provider's key.
+      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/image/generate', handler: async (req, res) => {
+        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        let body = {}
+        try { body = await readJsonBody(req, 16384) } catch (e) { return sendJson(res, 413, { ok: false, error: errText(e) }) }
+        const prompt = str(body !== null && body !== undefined ? body.prompt : null)
+        if (prompt === null || prompt.length > 1500) return sendJson(res, 400, { ok: false, error: 'a prompt of 1 to 1500 characters is expected' })
+        const asked = str(body.model)
+        const model = (asked !== null && kbImageModels(null).some((m) => m.id === asked)) ? asked : kbTeamImageModel()
+        const size = ['1024*1024', '768*1024', '1024*768'].indexOf(str(body.size)) >= 0 ? body.size : '1024*1024'
+        const gen = await kbImageGen(prompt, model, size, 180000)
+        if (gen.ok !== true) return sendJson(res, 200, { ok: false, error: gen.error || 'generation failed' })
+        const b = gen.bytes
+        const mime = (b.length > 3 && b[0] === 0xff && b[1] === 0xd8) ? 'image/jpeg' : 'image/png'
+        sendJson(res, 200, { ok: true, model: model, ms: gen.ms, price: (KB_IMAGE_PRIX[model] !== undefined ? KB_IMAGE_PRIX[model] : null), image: 'data:' + mime + ';base64,' + b.toString('base64') })
+      } }), 'kybernos: route image/generate')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/runs', handler: async (req, res) => {
         if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
         const query = queryOf(req)
@@ -10428,6 +10946,25 @@ function boot(ctx) {
           sendJson(res, 500, { ok: false, error: 'internal error' })
         }
       } }), 'kybernos: route tasks')
+      // ── The suggestions that wait for a click on a page (memory, instructions): GET ?kind= lists, POST { action: 'resolve', id } removes one once the page has dealt with it ──
+      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/suggestions', handler: async (req, res) => {
+        if (req.method !== 'GET' && req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'GET or POST expected' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        if (await kbTasksAuthorized(req) !== true) return sendJson(res, 401, { ok: false, error: 'sign-in required' })
+        try {
+          if (req.method === 'GET') {
+            const kind = queryOf(req).get('kind')
+            return sendJson(res, 200, { ok: true, items: (await kbSugg()).list(kind === null || kind === '' ? undefined : kind) })
+          }
+          let body = null
+          try { body = await readJsonBody(req, 20000) } catch (e) { return sendJson(res, 413, { ok: false, error: 'request body too large' }) }
+          if (body === null || typeof body !== 'object' || Array.isArray(body) === true || body.action !== 'resolve' || typeof body.id !== 'string') return sendJson(res, 400, { ok: false, error: 'resolve with an id is expected' })
+          sendJson(res, 200, await (await kbSugg()).resolve(body.id))
+        } catch (e) {
+          try { console.error('[kybernos] suggestions route:', errText(e)) } catch (e2) { /* console unavailable */ }
+          sendJson(res, 500, { ok: false, error: 'internal error' })
+        }
+      } }), 'kybernos: route suggestions')
       // ── The Automations settings page: GET (what the sidebar and the page read) / POST { showNativeTasks?, paused? } ──
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/automation-settings', handler: async (req, res) => {
         if (req.method !== 'GET' && req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'GET or POST expected' })
@@ -10463,6 +11000,39 @@ function boot(ctx) {
           sendJson(res, 500, { ok: false, error: 'internal error' })
         }
       } }), 'kybernos: route automation-load')
+      // ── Stable automations as skills: GET ?id= (how far it is, the rule, the skill if there is one) / POST { id } (write it now) ──
+      // The rule is fixed (automation-skills.mjs): the button works only when the automation is stable. The skill is written from the stored
+      // automation, never from text sent by the page, and never over a skill that exists.
+      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/automation-skills', handler: async (req, res) => {
+        if (req.method !== 'GET' && req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'GET or POST expected' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        if (req.method === 'POST' && await kbTasksAuthorized(req) !== true) return sendJson(res, 401, { ok: false, error: 'sign-in required' })
+        try {
+          let id = ''
+          if (req.method === 'GET') id = String(queryOf(req).get('id') || '')
+          else {
+            let body = null
+            try { body = await readJsonBody(req, 2000) } catch (e) { return sendJson(res, 413, { ok: false, error: 'request body too large' }) }
+            id = body !== null && typeof body === 'object' ? String(body.id || '') : ''
+          }
+          if (/^[A-Za-z0-9_.-]{1,80}$/.test(id) !== true) return sendJson(res, 400, { ok: false, error: 'id required' })
+          const tasks = await kbTasksRead()
+          const task = (Array.isArray(tasks) === true ? tasks : []).find((t) => t !== null && typeof t === 'object' && t.id === id)
+          if (task === undefined) return sendJson(res, 404, { ok: false, error: 'task not found' })
+          const settings = await kbAutoSettingsRead()
+          if (req.method === 'POST') {
+            const now = autoSkillLesson(task, await kbAutoSkillsRead(), settings)
+            if (now.skill !== null) return sendJson(res, 200, { ok: false, error: 'a skill was already written', lesson: now })
+            if (now.streak < now.stableAfter) return sendJson(res, 200, { ok: false, error: 'not stable yet', lesson: now })
+            const done = await kbAutoSkillWrite(task, 'manual', now.streak)
+            if (done.ok !== true) return sendJson(res, 200, { ok: false, error: done.error, lesson: now })
+          }
+          sendJson(res, 200, { ok: true, lesson: autoSkillLesson(task, await kbAutoSkillsRead(), settings) })
+        } catch (e) {
+          try { console.error('[kybers] automation-skills route: ' + errText(e)) } catch (e2) { /* console unavailable */ }
+          sendJson(res, 500, { ok: false, error: 'internal error' })
+        }
+      } }), 'kybernos: route automation-skills')
       // ── The feedback box (V-10): POST saves one line in <DSH home>/kybernos/feedback.jsonl, GET …/export returns the file ──
       // Nothing leaves the machine. Both need the strict write guard (same-origin AND DSH's signed browser session, session-guard.mjs):
       // the box holds what a person wrote, and a local program must neither fill it nor read it. One method per path.
@@ -10567,6 +11137,44 @@ function boot(ctx) {
           sendJson(res, 500, { ok: false, error: 'internal error' })
         }
       } }), 'kybernos: route tasks/outcomes')
+      // ── What some automation runs did: GET /kybernos/tasks/runs?ids=a,b[&detail=1] ────────────────────────
+      // Read-only, for the Sessions and Journal views of an automation's detail page: how long a run took, which model
+      // answered, which tools it called and for how long, what asked for an approval, how its first turn ended. All of it
+      // is the engine's own journal (automation-runs.mjs); nothing is guessed. Same guard as the routes above. At most 20
+      // sessions per call, one journal read each. `detail=1`, for ONE session, adds the input and output of each step,
+      // scrubbed and bounded. A session that cannot be read is simply absent from the answer.
+      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/tasks/runs', handler: async (req, res) => {
+        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        if (await kbTasksAuthorized(req) !== true) return sendJson(res, 401, { ok: false, error: 'sign-in required' })
+        try {
+          const q = queryOf(req)
+          const ids = []
+          for (const raw of String(q.get('ids') || '').split(',')) {
+            const id = raw.trim()
+            if (/^[A-Za-z0-9_.-]{1,80}$/.test(id) === true && ids.indexOf(id) < 0 && ids.length < 20) ids.push(id)
+          }
+          const detail = q.get('detail') === '1' && ids.length === 1
+          const runs = {}
+          if (persistence !== undefined && persistence !== null && typeof persistence.open === 'function') {
+            for (const id of ids) {
+              let handle = null
+              try {
+                handle = await persistence.open(id, 'read')
+                const read = await handle.read()
+                const summary = summarizeRun(read !== null && read !== undefined ? read.events : null, { detail })
+                if (summary !== null) runs[id] = summary
+              } catch (e) { /* unreadable or gone: nothing is claimed */ } finally {
+                try { if (handle !== null && handle !== undefined && typeof handle.close === 'function') await handle.close() } catch (e) { /* already closed */ }
+              }
+            }
+          }
+          sendJson(res, 200, { ok: true, runs })
+        } catch (e) {
+          try { console.error('[kybers] tasks/runs route:', errText(e)) } catch (e2) { /* console unavailable */ }
+          sendJson(res, 500, { ok: false, error: 'internal error' })
+        }
+      } }), 'kybernos: route tasks/runs')
       // ══════════════════════════════════════════════════════════════════════
       // OUTILS (onglet « Outils ») — etat reel et activation cadree.
       //
@@ -10611,7 +11219,8 @@ function boot(ctx) {
           // la page annoncait « aucun profil lisible » (mesure du 22/09).
           const list = readdirSync(dir, { withFileTypes: true })
             .filter((d) => d !== undefined && d !== null && typeof d.isDirectory === 'function' && d.isDirectory() === true)
-            .map((d) => d.name).sort()
+            // `profiles/node_modules` holds the packages the profiles share, and a dot folder is a cache: neither is a profile a person can pick.
+            .map((d) => d.name).filter((n) => n !== 'node_modules' && n.charAt(0) !== '.').sort()
           kbToolsProfilesError = null
           return list
         } catch (e) { kbToolsProfilesError = errText(e); return [] }
@@ -10894,6 +11503,9 @@ function boot(ctx) {
         }
         return { tooLarge: false, buffer: Buffer.concat(chunks) }
       }
+      // PUBLIC BY DESIGN (A-15): the webhook receiver is called by another service, from another machine, with no DSH session. Its own
+      // secret — each task's hook secret, checked below — is its fence; that is why this one write stays out of the origin rule
+      // (docs/dev/route-origin-rule.md, « Public by design »).
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/hooks', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJsonPublic(res, 405, { ok: false, error: 'POST expected' }, { allow: 'POST' })
         try {
@@ -10908,7 +11520,7 @@ function boot(ctx) {
           const timingSafe = (a, b) => { if (a.length !== b.length) return false; let d = 0; for (let i = 0; i < a.length; i += 1) d |= a.charCodeAt(i) ^ b.charCodeAt(i); return d === 0 }
           // A secret that is missing or too short (hand-edited file) never matches anything.
           if (expected.length < 8 || timingSafe(given, expected) !== true) return sendJsonPublic(res, 401, { ok: false, error: 'invalid secret' })
-          if (task.active !== true) return sendJsonPublic(res, 409, { ok: false, error: 'automation paused' })
+          if (task.active !== true || task.suggested === true) return sendJsonPublic(res, 409, { ok: false, error: 'automation paused' })
           const body = await kbHookReadBody(req, 262144)
           // An event that is too large is refused, not delivered as an empty one.
           if (body.tooLarge === true) return sendJsonPublic(res, 413, { ok: false, error: 'body too large (256 KB maximum)' }, { connection: 'close' })

@@ -77,7 +77,11 @@ try {
   await type('dark')
   let names = await resultNames()
   check('« dark » finds the mode first, and says it matched a value', names[0] === 'Mode' && /matches a value/.test(await panelText()), names)
-  check('the panel says where else the same setting is shown', /also in General, Theme › Essentials/.test(await panelText()))
+  {
+    // V1-24: the Mode lives on Appearance only (Theme › Essentials shows it as text and links there), so the only other place to name is General.
+    const where = await panelText()
+    check('the panel says where else the same setting is shown (Appearance, also in General; no longer Theme › Essentials)', /Mode\s*\n\s*Appearance · also in General\s*\n/.test(where), where.slice(0, 300))
+  }
   let m = await menu()
   check('the menu shows where the matches are: Interface is open with a count, the other groups are shut and quiet', m.find((r) => r.head && r.t === 'Interface').open === true && m.find((r) => r.head && r.t === 'Interface').hits === '3' && m.find((r) => r.head && r.t === 'Agents').open === false && m.find((r) => r.head && r.t === 'Agents').dim === true, m.filter((r) => r.head))
   if (shotsDir !== null) await page.shot(shotsDir + '/search-1-dark.png')
@@ -89,7 +93,7 @@ try {
   await clearBox()
   await type('clé api')
   names = await resultNames()
-  check('« clé api » finds every place an API key goes (providers, connectors, the web search engines, cloud computers)', ['Add provider', 'Composio key', 'Default engine', 'API key'].every((n) => names.indexOf(n) >= 0), names)
+  check('« clé api » finds every place an API key goes (providers, connectors, the web search engines, the code sandbox)', ['Add provider', 'Composio key', 'Default engine', 'API key'].every((n) => names.indexOf(n) >= 0), names)
   if (shotsDir !== null) await page.shot(shotsDir + '/search-2-apikey.png')
   await clearBox()
   await type('themme')

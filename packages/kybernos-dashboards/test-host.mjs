@@ -103,6 +103,29 @@ const CHART = { type: 'chart', title: 'Per day', kind: 'columns', x: 'day', y: '
   await fsp.writeFile(join(home, 'kybernos', 'dashboards', 'files', 'big.miniapp.json'), 'x'.repeat(500000), 'utf8')
   ok('read: damaged, foreign and oversized files are refused politely', (await host.readDoc('broken')).ok === false && (await host.readDoc('other')).ok === false && (await host.readDoc('big')).ok === false)
   ok('list: skips them, does not throw', (await host.list()).dashboards.every((d) => !['broken', 'other', 'big'].includes(d.id)))
+  // L2-08: a file the host cannot read is named with its reason, not dropped without a word.
+  const lst = await host.list()
+  ok('list: the unreadable files are named, each with a stable code and the host\'s reason', same(lst.unreadable, [
+    { id: 'big', code: 'too-large', message: 'The dashboard file is too large.' },
+    { id: 'broken', code: 'invalid-json', message: 'The dashboard file is not valid JSON.' },
+    { id: 'other', code: 'not-dashboard', message: 'This file is not a dashboard (kind must be "dashboard").' },
+  ]), lst.unreadable)
+  ok('list: readable dashboards are not in the unreadable list, and a clean store has an empty one', lst.unreadable.every((u) => !lst.dashboards.some((d) => d.id === u.id)) && same((await mkHost(tmp()).list()).unreadable, []))
+  // L2-08 (the rest): saving over a file that cannot be read keeps the damaged original beside it, and the list does not mistake that copy for a dashboard.
+  await fsp.writeFile(join(home, 'kybernos', 'dashboards', 'files', 'torn.miniapp.json'), '{"kind":"dashboard","na', 'utf8')
+  const repaired = await host.save({ id: 'torn', raw: { name: 'Repaired', widgets: [] }, by: 'agent', what: 'Rewrite' })
+  ok('save over an unreadable file succeeds and says where the damaged original went', repaired.ok === true && typeof repaired.damagedCopy === 'string' && repaired.damagedCopy.startsWith('torn.miniapp.json.damaged-'), repaired.damagedCopy)
+  ok('...the copy holds the damaged text, untouched', (await fsp.readFile(join(home, 'kybernos', 'dashboards', 'files', repaired.damagedCopy), 'utf8')) === '{"kind":"dashboard","na')
+  ok('...the dashboard now reads, and neither the copy nor a clean save is listed as unreadable', (await host.readDoc('torn')).ok === true && (await host.list()).unreadable.every((u) => u.id !== 'torn' && !String(u.id).includes('damaged')))
+  const clean = await host.save({ id: 'torn', raw: { name: 'Repaired again', widgets: [] }, by: 'agent', what: 'Edit' })
+  ok('a save over a readable file keeps no copy', clean.ok === true && clean.damagedCopy === undefined)
+  // A save the host refuses (too large) changes nothing, so it keeps no copy either ("A refused write changes nothing").
+  await fsp.writeFile(join(home, 'kybernos', 'dashboards', 'files', 'torn2.miniapp.json'), '{"kind":"dashboard","na', 'utf8')
+  // 24 manual kanbans of 6 columns of 40 cards pass validation and are past the 400 000-character cap once written.
+  const kanban = () => ({ type: 'kanban', manual: true, title: 'Board', cols: Array.from({ length: 6 }, (_, c) => ({ t: 'Col ' + c, c: Array.from({ length: 40 }, (_, k) => ['card ' + c + '-' + k + ' ' + 'x'.repeat(120), 'sub ' + 'y'.repeat(60)]) })) })
+  const huge = await host.save({ id: 'torn2', raw: { name: 'Huge', widgets: Array.from({ length: 24 }, kanban) }, by: 'agent', what: 'Too big' })
+  const after = (await fsp.readdir(join(home, 'kybernos', 'dashboards', 'files'))).filter((n) => n.startsWith('torn2.miniapp.json.damaged-'))
+  ok('a refused save (too large) keeps no damaged copy and leaves the torn file as it was', huge.ok === false && after.length === 0 && (await fsp.readFile(join(home, 'kybernos', 'dashboards', 'files', 'torn2.miniapp.json'), 'utf8')) === '{"kind":"dashboard","na', JSON.stringify({ huge: huge.message, after }))
   await fsp.writeFile(join(home, 'kybernos', 'dashboards', 'index.json'), 'garbage', 'utf8')
   ok('index: a damaged index is an empty one', same(await host.readIndex(), { version: 1, default: null, flags: {} }))
   ok('doc helpers round-trip', dashboardOfDoc(makeDoc({ name: 'x', widgets: [] }, { rev: 1 })).name === 'x' && dashboardOfDoc({ kind: 'motion' }) === null && dashboardOfDoc(null) === null && dashboardOfDoc({ kind: 'dashboard', data: [{ payload: { name: 'wrapped' } }] }).name === 'wrapped')
@@ -118,6 +141,12 @@ const CHART = { type: 'chart', title: 'Per day', kind: 'columns', x: 'day', y: '
   const run = (a) => runTool(host, 'sess-1', a)
   const empty = await run({})
   ok('tool: nothing yet says how to start', empty.ok && empty.dashboards.length === 0 && /preset/.test(empty.message))
+  // L2-08: the agent is told about a damaged file too (writing its id would replace it).
+  await fsp.mkdir(join(home, 'kybernos', 'dashboards', 'files'), { recursive: true })
+  await fsp.writeFile(join(home, 'kybernos', 'dashboards', 'files', 'cut.miniapp.json'), '{"kind":"dashb', 'utf8')
+  const damaged = await run({})
+  ok('tool: a listing names the unreadable files and tells the agent to ask first', damaged.ok && same(damaged.unreadable.map((u) => u.id), ['cut']) && /cannot be read/.test(damaged.message) && /preset/.test(damaged.message), damaged)
+  await fsp.rm(join(home, 'kybernos', 'dashboards', 'files', 'cut.miniapp.json'))
   const cat = await run({ catalogue: true })
   ok('tool: catalogue lists providers, widgets and presets', cat.ok && cat.providers.includes('automations.timeline') && cat.widgets.includes('kanban') && cat.presets.length >= 4)
 
@@ -168,7 +197,7 @@ const webServer = { register: (r) => { routes.set(r.path, r) } }
     return out
   }
   const page = { origin: 'http://127.0.0.1:3080' }
-  const expected = ['state', 'list', 'presets', 'dashboard', 'revisions', 'save', 'preset', 'clone', 'flags', 'open', 'restore']
+  const expected = ['state', 'list', 'presets', 'dashboard', 'revisions', 'save', 'preset', 'clone', 'flags', 'discard', 'open', 'restore']
   ok('routes: every route is mounted exactly under /kybernos-dashboards/', expected.every((e) => routes.has('/kybernos-dashboards/' + e)) && routes.size === expected.length, [...routes.keys()])
 
   ok('GET list: empty at first', same((await call('GET', 'list')).body.dashboards, []))
@@ -203,6 +232,23 @@ const webServer = { register: (r) => { routes.set(r.path, r) } }
   ok('guard: a huge body is 413', (await call('POST', 'flags', { body: { id: 'teams', pad: 'x'.repeat(9000) }, headers: page })).status === 413)
   ok('guard: a body that is not JSON is a 400', (await call('POST', 'flags', { body: 'not json', headers: page })).status === 400 && (await call('POST', 'flags', { body: '[1,2]', headers: page })).status === 400)
   ok('guard: a path in an id never reaches the disk', (await call('GET', 'dashboard', { query: '?id=../../etc/passwd' })).status === 404 && !existsSync(join(home, 'etc')))
+  // Kaby's suggestions: a dashboard written with `suggested: true` waits for the person's Add.
+  const sess = 'sess-sug'
+  const sg = await runTool(host, sess, { dashboard: { name: 'Weekly enquiries', widgets: [{ type: 'card', title: 'Tokens', source: { provider: 'usage.daily', params: { days: 7 } }, metric: { agg: 'sum', field: 'tokens' } }] }, suggested: true, proof: 'Seen in 14 enquiries over 60 days' })
+  ok('suggested: the tool says it waits for Add and does not open it', sg.ok === true && sg.suggested === true && /waits for the person/.test(sg.message) && host.getCurrent(sess, true) === null, sg)
+  const lsg = (await call('GET', 'list')).body.dashboards.find((d) => d.id === sg.id)
+  ok('suggested: the list carries the flag and the proof', lsg !== undefined && lsg.suggested === true && lsg.proof === 'Seen in 14 enquiries over 60 days', lsg)
+  ok('suggested: it cannot be made default or hidden before Add', (await call('POST', 'flags', { body: { id: sg.id, default: true }, headers: page })).status === 404 && (await host.readIndex()).default !== sg.id)
+  ok('suggested: the page cannot make a dashboard a suggestion (only Add exists)', (await call('POST', 'flags', { body: { id: 'teams', suggested: true }, headers: page })).body.suggested !== true)
+  const add = await call('POST', 'flags', { body: { id: sg.id, suggested: false }, headers: page })
+  ok('suggested: Add clears the flag', add.status === 200 && (await call('GET', 'list')).body.dashboards.find((d) => d.id === sg.id).suggested === false)
+  const sg2 = await runTool(host, sess, { dashboard: { name: 'Quiet one', widgets: [] }, suggested: true })
+  ok('suggested: Discard removes a suggestion (file, history, flag)', (await call('POST', 'discard', { body: { id: sg2.id }, headers: page })).status === 200 && !existsSync(join(home, 'kybernos', 'dashboards', 'files', sg2.id + '.miniapp.json')) && (await host.readIndex()).flags[sg2.id] === undefined)
+  ok('suggested: Discard refuses a dashboard of the person (never deletes theirs)', (await call('POST', 'discard', { body: { id: sg.id }, headers: page })).status === 404 && existsSync(join(home, 'kybernos', 'dashboards', 'files', sg.id + '.miniapp.json')))
+  for (let i = 0; i < 8; i++) await runTool(host, sess, { dashboard: { name: 'Idea ' + i, widgets: [] }, suggested: true })
+  const full = await runTool(host, sess, { dashboard: { name: 'One too many', widgets: [] }, suggested: true })
+  ok('suggested: at most eight wait at once', full.ok === false && /Eight suggestions/.test(full.message), full)
+  ok('suggested: with an id it is a normal write, never a suggestion', (await runTool(host, sess, { id: 'plain', dashboard: { name: 'Plain', widgets: [] }, suggested: true })).suggested !== true)
 }
 
 // ── apply ────────────────────────────────────────────────────────────────────

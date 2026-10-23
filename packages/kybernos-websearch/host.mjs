@@ -12,6 +12,25 @@ import { applyPatch, normalizeSettings } from './settings.mjs'
 
 export const PROVIDER_ID = 'kybernos-search'
 
+/**
+ * The search provider DSH's web seam is set to RIGHT NOW, or null when it cannot be read.
+ * DSH 0.2.1-alpha.4 kept it in `web.searchProviderId` (a string fixed at construction). From 0.2.1-rc.2 that property is gone: the choice is a live
+ * config value, `web.config.searchProvider.get()`, then the env fallback `web.searchProviderEnv` (the Settings switch « Use the new Web Search API »
+ * writes this value at run time: `deepseek-search-api`, or `deepseek-official` when it is put back off). Both shapes are read, newest first.
+ */
+export function pinnedProvider (web) {
+  if (web === undefined || web === null) return null
+  const text = (v) => (typeof v === 'string' && v !== '' ? v : null)
+  try {
+    const live = web.config && web.config.searchProvider
+    if (live && typeof live.get === 'function') {
+      const v = text(live.get())
+      if (v !== null) return v
+    }
+  } catch (e) { /* a config accessor that throws is read as « not set » */ }
+  return text(web.searchProviderId) || text(web.searchProviderEnv)
+}
+
 export const ROUTES = {
   state: '/kybernos-websearch/state',
   settings: '/kybernos-websearch/settings',

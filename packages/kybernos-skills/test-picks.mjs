@@ -204,8 +204,8 @@ try {
   assert.match(src, /'seg-featured'/, 'the segment')
   ok('Featured is the first tab and the landing one; a host without picks falls back to Yours')
 
-  assert.match(src, /h\('div', \{ className: 'kbsf-trow' \},\s*h\('div', \{ className: 'kbsf-title' \}, title\),\s*h\('div', \{ className: 'kbsf-side' \}/, 'the creator and the count sit on the right of the title')
-  const card = src.slice(src.indexOf('const pickCard = '), src.indexOf('const renderFeatured = '))
+  assert.match(src, /h\('div', \{ className: 'kbsf-trow' \},\s*h\('div', \{ className: 'kbsf-title' \}, opts !== undefined \? opts\.dot : null, title\),\s*h\('div', \{ className: 'kbsf-side' \}/, 'the creator and the count sit on the right of the title')
+  const card = src.slice(src.indexOf('const pickCard = '), src.indexOf('const pickRow = '))
   assert.ok(!/'\/' \+ p\.id\s*\)\s*\)\s*,\s*h\('p'/.test(card) && !/className: 'kbs-copy'/.test(card), 'no /name link on the card')
   const parts = src.slice(src.indexOf('const pickCover = '), src.indexOf('const pickCard = '))
   assert.match(parts, /icon\('dl', 13\), nf\(p\.installs\)/, 'the count is an icon and a figure')
@@ -229,7 +229,7 @@ try {
   assert.match(src, /views\.featured === 'list'\s*\? h\('div', \{ className: 'kbsf-list'[\s\S]*list\.map\(pickRow\)/, 'the list view draws a row per pick')
   const row = src.slice(src.indexOf('const pickRow = '), src.indexOf('// Pager based on the SERVER'))
   assert.match(row, /pickBy\(p\), pickCnt\(p\)/, 'the row has the creator and the count')
-  assert.match(row, /pickButtons\(p, x, isIn, openIt\)/, 'and the same two gestures as the card')
+  assert.match(row, /pickButtons\(p, x, isIn, openIt, opts\)/, 'and the same two gestures as the card')
   assert.ok(!/'\/' \+ p\.id\)\s*\)/.test(row.replace(/copy\('\/' \+ p\.id\)/g, '')), 'no /name link in the row either')
   ok('the list view: a row per pick with the creator, the count, the verdicts and the same actions; the shared bar switches it, per browser')
 
@@ -255,6 +255,20 @@ try {
   assert.match(src, /'data-kb': 'row-install'/, 'a row that is not installed offers Install')
   assert.match(src, /kbs-instpill/, 'a row that is installed says so')
   ok('Discover: 20 rows by default, no pager above the table, sortable columns, and each row says Installed or offers Install')
+
+  // The field of work (window.__KB_DOMAIN__, published by kybernos-plugin): the Featured tab opens on its skills, and the page's title is the menu's word
+  const fieldSrc = src.slice(src.indexOf('const renderFieldRows'), src.indexOf('const renderFeatured'))
+  assert.match(src, /window\.__KB_DOMAIN__/, 'the page reads the seam the core plugin publishes')
+  assert.match(fieldSrc, /pcat !== 'all' \|\| q\.featured\.trim\(\) !== ''\) return null/, 'the field rows show on the whole Featured tab only: a category or a search is left alone')
+  assert.match(fieldSrc, /f === null \|\| list\.length === 0\) return null/, 'no field, or none of its skills: nothing is drawn')
+  assert.match(src, /renderFieldRows\(\),\n\s+h\('div', \{ className: 'kbsf-chips' \}/, 'the field rows come first, above the categories')
+  assert.doesNotMatch(src, /kbsf-fhead|fld\.title/, 'no frame and no title around them')
+  assert.match(src, /h\('i', \{ className: 'kbsf-fdot'/, 'each row carries a small dot in the field\'s colour')
+  assert.match(src, /if \(sk\.shipped === true\) installShipped\(sk\.name\); else \{ setAskInstall\(x\)/, 'a skill from GitHub asks the usual confirmation, one that ships with Kybernos is a plain copy')
+  assert.match(src, /setShipDone\(\(m\) => \(\{ \.\.\.m, \[name\]: true \}\)\); loadCatalogue\(\)/, 'a shipped skill shows as installed at once, then the registry is read again')
+  assert.match(src, /h\('h1', \{ className: 'kb6-title' \}, pageTitle\(\)\), helpBtn\)/, 'the title is the menu\'s word for the row when the field gives one')
+  for (const key of ['fld.shipped', 'fld.installing']) assert.match(src, new RegExp("'" + key.replace(/\./g, '\\.') + "': \\{ fr: '[^']+', en: '[^']+' \\}"), key + ' has both languages')
+  ok('Featured: the saved field\'s skills first, flat in the list with a dot (confirmation for GitHub, plain copy for shipped), nothing without a field, the title follows the menu')
 
   console.log('\n' + pass + ' verifications OK')
 } finally {

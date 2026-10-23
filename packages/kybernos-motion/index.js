@@ -1,6 +1,7 @@
 // @local/kybernos-motion, host half: the `creer_motion` tool and the routes the panel talks to.
 // The logic lives in motion-host.mjs (pure, tested); this file only wires DSH services to it.
 import { createHash } from 'node:crypto'
+import { writeGuard } from './session-guard.mjs'
 import { createWriteStream, existsSync, readFileSync } from 'node:fs'
 import * as fsp from 'node:fs/promises'
 import { homedir } from 'node:os'
@@ -28,6 +29,10 @@ const kbHostOK = (req) => {
     return ['127.0.0.1' + port, 'localhost' + port, '[::1]' + port].indexOf(host) >= 0 || kbTrusted(host)
   } catch (e) { return false }
 }
+// What `register` hands back takes the route off again. It is kept here and given to `ctx.effect` by `apply`, so that unloading the plugin removes every route it
+// added: without it a hot reload met « duplicate exact route », logged « routes not mounted » and went on serving the OLD handlers (audit L4-05, L6-04).
+const kbRetraits = []
+const kbRetirerRoutes = () => { for (const retrait of kbRetraits.splice(0).reverse()) { try { retrait() } catch (e) { /* already gone */ } } }
 const kbFenced = (service) => {
   if (service === null || service === undefined || typeof service.register !== 'function') return service
   const fence = (route) => (route !== null && typeof route === 'object' && typeof route.handler === 'function'
@@ -41,7 +46,7 @@ const kbFenced = (service) => {
       },
     })
     : route)
-  return new Proxy(service, { get: (target, key) => (key === 'register' ? (route) => target.register(fence(route)) : (typeof target[key] === 'function' ? target[key].bind(target) : target[key])) })
+  return new Proxy(service, { get: (target, key) => (key === 'register' ? (route) => { const retrait = target.register(fence(route)); if (typeof retrait === 'function') kbRetraits.push(retrait); return retrait } : (typeof target[key] === 'function' ? target[key].bind(target) : target[key])) })
 }
 
 // The core plugin publishes how to find a session's folder and whether a path is one a session may use.
@@ -215,7 +220,16 @@ export function mountRoutes (webServer, host) {
     if (!a.ok) { send(res, 404, a); return }
     res.writeHead(200, { 'Content-Type': a.type, 'Content-Length': a.size, 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' })
     const { createReadStream } = await import('node:fs')
-    createReadStream(a.path).pipe(res)
+    // The file could be stat-ed a moment ago but may not be openable now (deleted, EACCES, an I/O error): a ReadStream with no
+    // 'error' listener raises an uncaughtException, which ends the DSH host. Close this answer cleanly instead.
+    const flux = createReadStream(a.path)
+    flux.on('error', () => {
+      try {
+        if (res.headersSent) { res.destroy(); return }
+        send(res, 500, { ok: false, error: 'asset-unreadable' })
+      } catch { try { res.destroy() } catch { /* already closed */ } }
+    })
+    flux.pipe(res)
   })
 
   for (const name of Object.keys(VENDOR)) {
@@ -228,6 +242,10 @@ export function mountRoutes (webServer, host) {
   }
 
   route('frame', ['POST'], async (req, res) => {
+    // A-16: the panel POSTs the rendered PNG back for the waiting agent: that is a write on the person's disk, so it needs DSH's signed
+    // session on top of the strict Origin. The page answers the agent's own `frame` request, same-origin, so its cookie rides along.
+    const refus = writeGuard(req)
+    if (refus !== null) { send(res, refus.status, { ok: false, error: refus.error }); return }
     const p = q(req)
     const body = await readBody(req, LIMITS.png)
     const r = await host.deliverFrame(str(p.get('session')), str(p.get('id')), new Uint8Array(body))
@@ -236,6 +254,9 @@ export function mountRoutes (webServer, host) {
 
   // An exported video, written next to its scene (artifacts/ is where Creations lists media).
   route('export', ['POST'], async (req, res) => {
+    // A-16: an export WRITES a video file next to the scene: the page sends it after encoding, same-origin, with its cookie.
+    const refus = writeGuard(req)
+    if (refus !== null) { send(res, refus.status, { ok: false, error: refus.error }); return }
     const p = q(req)
     const ext = { mp4: '.mp4', webm: '.webm' }[p.get('format')]
     if (ext === undefined) { send(res, 400, { ok: false, message: 'format must be mp4 or webm.' }); return }
@@ -275,6 +296,7 @@ export function mountRoutes (webServer, host) {
 // ── the bundle ──────────────────────────────────────────────────────────────
 
 export function apply (ctx) {
+  if (ctx !== null && ctx !== undefined && typeof ctx.effect === 'function') ctx.effect(() => kbRetirerRoutes, 'kybernos-motion: routes')
   try {
     const host = createHost({ fs: fsp, home: DSH_HOME, workspace, log: dire })
     const start = (c) => {

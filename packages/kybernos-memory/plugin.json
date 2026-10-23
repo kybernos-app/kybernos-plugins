@@ -1,0 +1,49 @@
+{
+  "contract": 1,
+  "id": "kybernos/memory",
+  "kind": "code",
+  "version": "0.1.0",
+  "name": {
+    "en": "Memory & Lessons",
+    "fr": "Mémoire et leçons"
+  },
+  "description": {
+    "en": "The Memory & Lessons page: account memory and lessons per agent team, filters, on/off switches.",
+    "fr": "La page Memory & Lessons : mémoire du compte et leçons par Agent Team, filtres, interrupteurs."
+  },
+  "icon": "brain",
+  "family": "cloud",
+  "author": {
+    "id": "kybernos",
+    "name": "Kybernos"
+  },
+  "license": "Apache-2.0",
+  "pricing": "free",
+  "package": "@local/kybernos-memory",
+  "entry": {
+    "host": "index.js",
+    "client": "client.js"
+  },
+  "requires": {
+    "kybernos": ">=0.1.0"
+  },
+  "permissions": [
+    "ui.slot:settings.section",
+    "host.routes:/kybernos-memory:write",
+    "fs.write:dsh-home",
+    "agent.prompt",
+    "agent.tools",
+    "memory.read",
+    "memory.write",
+    "sessions.read"
+  ],
+  "claims": {
+    "routePrefixes": [
+      "/kybernos-memory"
+    ]
+  },
+  "help": "help.json",
+  "suite": {
+    "default": "on"
+  }
+}

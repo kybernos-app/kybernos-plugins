@@ -47,6 +47,10 @@ import { execFileSync, spawn } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { createHash } from 'node:crypto'
 import { validateTeamSkill, skillVersion, frontmatterOfText, TEAM_SKILL_LIMITS } from './team-skills.mjs'
+import { LEARNED_SEAM, listLearned, readAudit, proposeFromLessons, proposeFromAutomation, acceptProposal, editProposal, discardProposal, restoreProposal, undoAccept, getSettings, patchSettings, keepChange, stopAll, sessionView, markShared, isSensitive, readSettings } from './learned.mjs'
+import { mountLearned } from './learned-tools.mjs'
+import { answerNotice, forgetNotice, listNotices, noticeFor } from './learned-repeat.mjs'
+import { hideWeek, weekView } from './learned-week.mjs'
 import { readPicks } from './featured-picks.mjs'
 // Hosted instance: also accept the authorities declared to DSH with --trusted-host. The core bundle publishes the predicate
 // (kybernos-plugin/trusted-authority.mjs); absent or failing, it answers false and the guard stays loopback-only.
@@ -1810,6 +1814,65 @@ const mountWebRoutes = (ctx, webServerSvc) => {
     sessionId: body.sessionId
   }), 4 * 1024 * 1024)
 
+  // ── Skills learned from experience (docs/dev/learned-skills.md): proposals wait in a ledger, nothing is active before Accept ──
+  // `existing` is what the person already has, so a proposal that copies a skill is flagged. Every answer is HTTP 200 { ok, ... } with a snake_case `error`.
+  const existingOf = async (sessionId) => {
+    try { return (await catalogueOf(ctx, configOf(), sessionId)).skills.map((s) => ({ name: s.name, description: s.description })) } catch (e) { return [] }
+  }
+  GET('/kybernos-skills/learned', 'kybernos-skills: route learned', async (req) => listLearned({ dsh: configOf().dsh, existing: await existingOf(queryParam(req, 'sessionId')) }))
+  GET('/kybernos-skills/learned/journal', 'kybernos-skills: route learned journal', async (req) => {
+    const limit = Number(queryParam(req, 'limit'))
+    return { ok: true, ...readAudit(configOf().dsh, Number.isFinite(limit) && limit > 0 ? limit : 200) }
+  })
+  POST('/kybernos-skills/learned/from-lessons', 'kybernos-skills: route learned from lessons', async (body) => proposeFromLessons({ dsh: configOf().dsh, lessons: body.lessons, existing: await existingOf(body.sessionId) }))
+  POST('/kybernos-skills/learned/accept', 'kybernos-skills: route learned accept', async (body) => {
+    const done = await acceptProposal({ dsh: configOf().dsh, id: body.id, description: body.description, body: body.body, existing: await existingOf(body.sessionId) })
+    if (done.ok === true) invalidateSkills(ctx, body.sessionId)
+    return done
+  })
+  POST('/kybernos-skills/learned/edit', 'kybernos-skills: route learned edit', async (body) => editProposal({ dsh: configOf().dsh, id: body.id, description: body.description, body: body.body, add: body.add, existing: await existingOf(body.sessionId) }))
+  POST('/kybernos-skills/learned/discard', 'kybernos-skills: route learned discard', async (body) => discardProposal({ dsh: configOf().dsh, id: body.id }))
+  POST('/kybernos-skills/learned/restore', 'kybernos-skills: route learned restore', async (body) => restoreProposal({ dsh: configOf().dsh, id: body.id }))
+  POST('/kybernos-skills/learned/undo', 'kybernos-skills: route learned undo', async (body) => {
+    const done = await undoAccept({ dsh: configOf().dsh, name: body.name })
+    if (done.ok === true) invalidateSkills(ctx, body.sessionId)
+    return done
+  })
+  // How much Kaby may do on its own (level, line, limits), what a chat did with skills, Keep and the kill switch. The settings answer `bad_settings` or `locked_field` (Law and Health).
+  GET('/kybernos-skills/learned/settings', 'kybernos-skills: route learned settings', async () => getSettings({ dsh: configOf().dsh }))
+  POST('/kybernos-skills/learned/settings/set', 'kybernos-skills: route learned settings set', async (body) => patchSettings({ dsh: configOf().dsh, patch: body !== null && typeof body === 'object' ? Object.fromEntries(Object.entries(body).filter(([k]) => k !== 'sessionId')) : body }))
+  GET('/kybernos-skills/learned/session', 'kybernos-skills: route learned session', async (req) => sessionView({ dsh: configOf().dsh, sessionId: queryParam(req, 'sessionId') || '', existing: await existingOf(queryParam(req, 'sessionId')) }))
+  POST('/kybernos-skills/learned/keep', 'kybernos-skills: route learned keep', async (body) => keepChange({ dsh: configOf().dsh, name: body.name }))
+  // V2: what Kaby notices (a task that comes back), the weekly card, and « I proposed it to the team ». The chat index is Search everywhere's, read through its seam: without it there is no notice.
+  GET('/kybernos-skills/learned/notice', 'kybernos-skills: route learned notice', async (req) => { const dsh = configOf().dsh; return noticeFor({ dsh, sessionId: queryParam(req, 'sessionId') || '', settings: readSettings(dsh), sensitive: isSensitive(dsh) }) })
+  POST('/kybernos-skills/learned/notice/answer', 'kybernos-skills: route learned notice answer', async (body) => answerNotice({ dsh: configOf().dsh, id: body.id, answer: body.answer }))
+  GET('/kybernos-skills/learned/notice/list', 'kybernos-skills: route learned notice list', async () => { const dsh = configOf().dsh; return listNotices({ dsh, sensitive: isSensitive(dsh) }) })
+  POST('/kybernos-skills/learned/notice/forget', 'kybernos-skills: route learned notice forget', async (body) => forgetNotice({ dsh: configOf().dsh, id: body.id }))
+  GET('/kybernos-skills/learned/week', 'kybernos-skills: route learned week', async (req) => weekView({ dsh: configOf().dsh, sessionId: queryParam(req, 'sessionId') || '' }))
+  POST('/kybernos-skills/learned/week/hide', 'kybernos-skills: route learned week hide', async () => hideWeek({ dsh: configOf().dsh }))
+  POST('/kybernos-skills/learned/shared', 'kybernos-skills: route learned shared', async (body) => markShared({ dsh: configOf().dsh, name: body.name }))
+  POST('/kybernos-skills/learned/stop', 'kybernos-skills: route learned stop', async (body) => {
+    const done = await stopAll({ dsh: configOf().dsh })
+    if (done.ok === true) invalidateSkills(ctx, body.sessionId)
+    return done
+  })
+  // The automations half of Kybernos is another bundle and cannot import this one: it finds this seam at call time (a frozen `{ version, propose }` on
+  // globalThis, read the way kybernos-memory reads the space seam) and hands over the parts of the skill it built. Without this bundle there is no seam
+  // and no skill is made.
+  ctx.effect(() => {
+    const seam = Object.freeze({
+      version: 1,
+      propose: async (input) => {
+        const i = input !== null && typeof input === 'object' ? input : {}
+        const made = await proposeFromAutomation({ dsh: configOf().dsh, name: i.name, description: i.description, whenToUse: i.whenToUse, body: i.body, automation: i.automation, acceptNow: i.acceptNow === true, existing: await existingOf(undefined) })
+        if (made.ok === true && made.pending === false) invalidateSkills(ctx, undefined)
+        return made
+      }
+    })
+    globalThis[LEARNED_SEAM] = seam
+    return () => { if (globalThis[LEARNED_SEAM] === seam) delete globalThis[LEARNED_SEAM] }
+  }, 'kybernos-skills: learned skills seam')
+
   // ── Featured: the highlighted list, controlled by the user ──────────────────────────
   GET('/kybernos-skills/featured', 'kybernos-skills: route featured', async (req) => {
     const cfg = configOf()
@@ -1889,6 +1952,16 @@ const mountWebRoutes = (ctx, webServerSvc) => {
 export { ensureCover, dshHome, catalogueOf, toggleSkill, createSkill, installSkill, readSkill, revealSkill, duplicateSkill, deleteSkill, previewSkill, openLocal, indexSkills, searchSkills, curatedSkills, auditSkill, packSkill, installTeamSkill, resetDiscoverCache, configOf, journalPath, resolveInRoot, writableRootFor, layoutOf, SOURCE_RANK, sameOrigin, checkIndexUrl, describeIndexSource, setIndexSource }
 
 export function apply(ctx) {
+  // The agent's two tools, their prompt chunk and the watchers of the tool calls (learned-tools.mjs). Guarded part by part: a missing seam drops that part only.
+  try {
+    mountLearned(ctx, {
+      dsh: () => configOf().dsh,
+      existing: async (sid) => { try { return (await catalogueOf(ctx, configOf(), sid)).skills.map((x) => ({ name: x.name, description: x.description })) } catch (e) { return [] } },
+      invalidate: () => invalidateSkills(ctx, undefined)
+    }, (m) => { try { console.error('[kybernos-skills] ' + m) } catch (e) { /* console gone */ } })
+  } catch (kbLearnedError) {
+    try { console.error('[kybernos-skills] learned skills not mounted', kbLearnedError) } catch (e2) { /* console gone */ }
+  }
   // Safety net mirroring kybernos-plugin/index.js:2876-2884 (base): a mount error must not
   // cut off the GUI — only the routes drop, the error is logged for fixing.
   try {

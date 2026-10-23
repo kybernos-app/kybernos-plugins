@@ -1,0 +1,178 @@
+{
+  "v": 1,
+  "id": "general",
+  "order": 99,
+  "accent": "#68655C",
+  "icon": "wand",
+  "name": {
+    "en": "Something else",
+    "fr": "Autre chose"
+  },
+  "tagline": {
+    "en": "Documents, spreadsheets, research",
+    "fr": "Documents, tableurs, recherche"
+  },
+  "keywords": [],
+  "home": [
+    "doc",
+    "sheet",
+    "slides"
+  ],
+  "legacyJobs": [
+    "autres"
+  ],
+  "agents": {
+    "preset": "balanced",
+    "why": {
+      "en": "One simple setting: the agent prepares, you approve what goes out.",
+      "fr": "Un réglage simple : l’agent prépare, tu valides les envois."
+    }
+  },
+  "goals": [
+    {
+      "id": "documents",
+      "name": {
+        "en": "Documents",
+        "fr": "Documents"
+      },
+      "title": {
+        "en": "Read and write documents",
+        "fr": "Lire et rédiger des documents"
+      },
+      "desc": {
+        "en": "PDFs in, documents out",
+        "fr": "Des PDF en entrée, des documents en sortie"
+      },
+      "skills": [
+        {
+          "source": "anthropics/skills",
+          "name": "pdf",
+          "d": {
+            "en": "Read, fill and merge PDFs",
+            "fr": "Lit, remplit et fusionne des PDF"
+          }
+        },
+        {
+          "source": "anthropics/skills",
+          "name": "docx",
+          "d": {
+            "en": "Write and format documents",
+            "fr": "Rédige et met en forme des documents"
+          }
+        }
+      ],
+      "connectors": [
+        "googledocs",
+        "googledrive"
+      ],
+      "starter": {
+        "en": "Summarise this document",
+        "fr": "Résume ce document"
+      }
+    },
+    {
+      "id": "sheets",
+      "name": {
+        "en": "Spreadsheets",
+        "fr": "Tableurs"
+      },
+      "title": {
+        "en": "Work with spreadsheets",
+        "fr": "Travailler avec des tableurs"
+      },
+      "desc": {
+        "en": "Build and fix spreadsheets",
+        "fr": "Construire et corriger des tableurs"
+      },
+      "skills": [
+        {
+          "source": "anthropics/skills",
+          "name": "xlsx",
+          "d": {
+            "en": "Build and check spreadsheets",
+            "fr": "Construit et vérifie des tableurs"
+          }
+        }
+      ],
+      "connectors": [
+        "googlesheets"
+      ],
+      "starter": {
+        "en": "Fix this spreadsheet",
+        "fr": "Corrige ce tableur"
+      }
+    },
+    {
+      "id": "slides",
+      "name": {
+        "en": "Slides",
+        "fr": "Présentations"
+      },
+      "title": {
+        "en": "Build slide decks",
+        "fr": "Construire des présentations"
+      },
+      "desc": {
+        "en": "Slide decks from a brief",
+        "fr": "Des présentations à partir d’un brief"
+      },
+      "skills": [
+        {
+          "source": "anthropics/skills",
+          "name": "pptx",
+          "d": {
+            "en": "Build slide decks",
+            "fr": "Construit des présentations"
+          }
+        }
+      ],
+      "connectors": [
+        "canva"
+      ],
+      "starter": {
+        "en": "Build a deck on this subject",
+        "fr": "Construis une présentation sur ce sujet"
+      }
+    },
+    {
+      "id": "research",
+      "name": {
+        "en": "Research",
+        "fr": "Recherche"
+      },
+      "title": {
+        "en": "Research a subject",
+        "fr": "Faire des recherches"
+      },
+      "desc": {
+        "en": "Sources read, one briefing",
+        "fr": "Des sources lues, un seul compte rendu"
+      },
+      "teams": [
+        "research-desk"
+      ],
+      "connectors": [
+        "notion",
+        "gmail"
+      ],
+      "automations": [
+        {
+          "id": "weekly-briefing",
+          "name": {
+            "en": "Weekly briefing",
+            "fr": "Point de la semaine"
+          },
+          "prompt": {
+            "en": "Every Friday at 16:00: summarise what I worked on this week from the files of this workspace, in ten lines, and list three things to do next week.",
+            "fr": "Chaque vendredi à 16 h : résume ce sur quoi j’ai travaillé cette semaine à partir des fichiers de ce workspace, en dix lignes, et liste trois choses à faire la semaine prochaine."
+          },
+          "cron": "0 16 * * 5"
+        }
+      ],
+      "starter": {
+        "en": "Research this subject and brief me",
+        "fr": "Cherche sur ce sujet et fais-moi un point"
+      }
+    }
+  ]
+}

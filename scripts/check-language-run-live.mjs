@@ -84,12 +84,12 @@ for (const sig of ['SIGINT', 'SIGTERM']) process.on(sig, async () => { await cle
 
 const marksIn = (key) => val(`(() => { try { const o = JSON.parse(localStorage.getItem(${JSON.stringify(key)}) || '{}'); const v = Object.values(o); return JSON.stringify({ n: v.length, marks: v.filter((t) => typeof t === 'string' && t.charAt(0) === '⟦').length }) } catch (e) { return JSON.stringify({ n: -1, marks: -1 }) } })()`).then((x) => JSON.parse(x))
 const rowText = (id) => flow.rowText(id)
-// The test-marks banner is a collapsed <details data-note="pseudo">: one summary line with the count, and, once opened, the sentence, the button
-// « Translate these texts again » and the examples. A real click on the summary opens it (a button inside a closed fold has no box to click).
+// The test marks are a warning dot on the row (its aria-label carries the count); the sentence, the button « Translate these texts again » and the examples are in
+// the row's details, opened with the chevron (data-act="toggle"). A real click on the chevron opens them (a button in a closed row does not exist).
 const PSEUDO = '[data-lang="es"] [data-note="pseudo"]'
-const pseudoOpen = () => val(`(() => { const d = document.querySelector(${JSON.stringify(PSEUDO)}); return d ? d.open === true : null })()`)
+const pseudoOpen = () => val(`!!document.querySelector(${JSON.stringify(PSEUDO)})`)
 const openPseudoFold = async () => {
-  if ((await pseudoOpen()) === false) await clickSel(PSEUDO + ' > summary')
+  if ((await pseudoOpen()) === false) await clickSel('[data-lang="es"] [data-act="toggle"]')
   return poll(() => pseudoOpen(), 5000)
 }
 const ring = () => val(`(() => { const r = document.querySelector('[data-act="run-ring"]'); return r ? JSON.stringify({ label: r.getAttribute('aria-label'), pct: r.style.getPropertyValue('--p'), shown: r.getBoundingClientRect().width > 0 }) : null })()`).then((x) => (x === null || x === undefined ? null : JSON.parse(x)))
@@ -142,9 +142,9 @@ try {
   await sleep(2500)
   await shot('B-marks-detected')
   const rowB = await rowText('es')
-  const closedSummary = await val(`(() => { const d = document.querySelector(${JSON.stringify(PSEUDO)}); return d ? JSON.stringify({ open: d.open, text: d.querySelector('summary').innerText.replace(/\\s+/g, ' ') }) : null })()`)
+  const closedSummary = await val(`(() => { const d = document.querySelector('[data-lang="es"] .kbln-dot[data-alert="warn"]'); return d && !document.querySelector(${JSON.stringify(PSEUDO)}) ? JSON.stringify({ open: false, text: (d.getAttribute('aria-label') || '').replace(/\\s+/g, ' ') }) : null })()`)
   const folded = closedSummary === null ? null : JSON.parse(closedSummary)
-  check('a banner folded on one line says how many texts are to check, and that they are test marks', folded !== null && folded.open === false && /\d[\d,.\s]*\s+texts to check · test marks/.test(folded.text), folded)
+  check('a warning dot on the row says how many texts are to check, and that they are test marks', folded !== null && folded.open === false && /\d[\d,.\s]*\s+texts to check · test marks/.test(folded.text), folded)
   const unfolded = await openPseudoFold()
   const banner = await val(`(() => { const b = document.querySelector(${JSON.stringify(PSEUDO)}); return b ? b.innerText.replace(/\\s+/g, ' ') : null })()`)
   check('opened, the banner says that texts look like test marks, with their number', unfolded === true && typeof banner === 'string' && /\d[\d,.\s]*\s+texts look like test marks/.test(banner), banner)
@@ -243,12 +243,15 @@ try {
   await openSettings(LANGUAGE)
   await sleep(6500)
   check('automatic resume switched off: the load leaves the run alone', (await ring()) === null)
+  await clickSel('[data-lang="es"] [data-act="toggle"]'); await sleep(400)
   const cutBanner = await val(`(() => { const b = document.querySelector('[data-lang="es"] [data-note="cut"]'); return b ? b.innerText.replace(/\\s+/g, ' ') : null })()`)
   check('… and the page says the translation stopped with the tab, and how to go on', typeof cutBanner === 'string' && /stopped with the tab/.test(cutBanner), cutBanner)
-  check('the option is in "Advanced", unticked, and it can be ticked again', (await val(`(() => { const c = document.querySelector('[data-act="autoresume"]'); return !!c && c.checked === false })()`)) === true)
+  await clickSel('[data-act="tab-settings"]'); await sleep(400)
+  check('the option is in the Settings tab, unticked, and it can be ticked again', (await val(`(() => { const c = document.querySelector('[data-act="autoresume"]'); return !!c && c.checked === false })()`)) === true)
   await val(`document.querySelector('[data-act="autoresume"]').click()`)
   await sleep(500)
   check('… and ticking it again forgets the switch', (await val(`localStorage.getItem('kybernos.i18n.autoresume')`)) === null)
+  await clickSel('[data-act="tab-langs"]'); await sleep(400)
   check('no stray language was created by the new keys (only es, plus the two built-ins)', JSON.stringify(await val(`Array.from(document.querySelectorAll('[data-lang]')).map((e) => e.getAttribute('data-lang')).sort()`)) === JSON.stringify(['en', 'es', 'kybernos']))
   check('the user’s DSH language was never touched', storedLocale() === storedBefore, storedLocale())
 } catch (e) {

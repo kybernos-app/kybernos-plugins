@@ -28,7 +28,7 @@ const teamsSrc = block('// <teams-menu:begin>', '// <teams-menu:end>')
 check('the three blocks are where the test expects them', faceSrc !== null && quotaSrc !== null && teamsSrc !== null)
 const lib = new Function(faceSrc + '\n' + quotaSrc + '\n' + teamsSrc + `
 return { INLINE_SPACES_MAX, spacesMenuMode, spaceIsPersonal, spaceIsAdmin, spaceHue, SPACE_HUES, SWITCH_WAIT_MIN_MS, SWITCH_WAIT_MAX_MS, switchPlan, switchState,
-  planCardModel, spaceRowOf, spaceCueOf, PERSONAL_MEMORY_CUT, placeholderNext, quotaMeterOf, planDeEspace, subPanelBox, SUB_PANEL_WIDTH }`)()
+  planCardModel, spaceRowOf, spaceCueOf, PERSONAL_MEMORY_CUT, placeholderNext, quotaMeterOf, planDeEspace, subPanelBox, SUB_PANEL_WIDTH, railMenuBox, RAIL_MENU_WIDTH }`)()
 
 // The dictionary of one language, read from the source (the strings the page uses): French is the first block of client.js, English the last.
 const frFrom = source.indexOf('      fr: {')
@@ -78,12 +78,12 @@ console.log('the rows of the list')
 {
   const row = (w, o = {}) => lib.spaceRowOf(w, { t, activeId: 'p', userName: 'Local test', planLabel: 'Free', facts: null, ...o })
   const acme = row(team('admin'), { facts: { members: 6, usage: [win('member', 18000, 12), win('pool', 2592000, 84)] } })
-  check('a team: « Admin · 6 members »', acme.sub === 'Admin · 6 members', acme.sub)
-  check('the owner is an Owner, a member a Member', row(team('owner'), { facts: { members: 2 } }).sub === 'Owner · 2 members' && row(team('member'), { facts: { members: 3 } }).sub === 'Member · 3 members')
-  check('one member is « 1 member », not « 1 members »', row(team('admin'), { facts: { members: 1 } }).sub === 'Admin · 1 member')
-  check('the head count not known (menu just opened): the role alone', row(team('member')).sub === 'Member' && row(team('member'), { facts: { members: null, usage: null } }).sub === 'Member')
-  check('the personal space: « you · plan »', row(personalSpace).sub === 'Local test · Free', row(personalSpace).sub)
-  check('the personal space with no plan name known: just the name; with neither: nothing', row(personalSpace, { planLabel: '' }).sub === 'Local test' && row(personalSpace, { planLabel: '', userName: '' }).sub === '')
+  check('a team: the kind leads, then the role, then the count (« Team · Admin · 6 members »)', acme.sub === 'Team · Admin · 6 members', acme.sub)
+  check('the owner is an Owner, a member a Member', row(team('owner'), { facts: { members: 2 } }).sub === 'Team · Owner · 2 members' && row(team('member'), { facts: { members: 3 } }).sub === 'Team · Member · 3 members')
+  check('one member is « 1 member », not « 1 members »', row(team('admin'), { facts: { members: 1 } }).sub === 'Team · Admin · 1 member')
+  check('the head count not known (menu just opened): the kind and the role alone', row(team('member')).sub === 'Team · Member' && row(team('member'), { facts: { members: null, usage: null } }).sub === 'Team · Member')
+  check('the personal space: the kind, then the name, then the plan', row(personalSpace).sub === 'Personal · Local test · Free', row(personalSpace).sub)
+  check('the personal space with no plan name known: kind and name; with neither: the kind alone', row(personalSpace, { planLabel: '' }).sub === 'Personal · Local test' && row(personalSpace, { planLabel: '', userName: '' }).sub === 'Personal')
   check('the usage of an admin is the team\'s pool, as the card says (84%, near)', acme.percent === 84 && acme.level === 'near', acme)
   const mine = row(team('member'), { facts: { members: 6, usage: [win('member', 18000, 12), win('pool', 2592000, 84)] } })
   check('the usage of a member is their own window (12%, ok)', mine.percent === 12 && mine.level === 'ok', mine)
@@ -94,7 +94,7 @@ console.log('the rows of the list')
   check('the active one is marked, the others are not', row(personalSpace).current === true && acme.current === false)
   check('a team carries its colour, the personal space none', acme.hue !== null && row(personalSpace).hue === null)
   const frRow = lib.spaceRowOf(team('admin'), { t: fr, activeId: 'p', facts: { members: 6 } })
-  check('in French', frRow.sub === 'Admin · 6 membres', frRow.sub)
+  check('in French: the kind leads too (Équipe · Admin · 6 membres)', frRow.sub === 'Équipe · Admin · 6 membres', frRow.sub)
   const text = JSON.stringify([acme, mine, out])
   check('no money anywhere in a row', !/[$€]|usd|credit/i.test(text), text)
 }
@@ -116,9 +116,11 @@ console.log('the plan card by role')
   check('a member of that team gets neither, and the card says when it is back', same(memberFull.actions, []) && memberFull.rows[0].full === true && plain(memberFull.rows[0].note) === 'Back in about 3 h', memberFull.rows[0])
   check('Add credits is never offered while the pool has room', !card({ space: team('admin'), facts: facts(base) }).actions.includes('credits'))
   const free = card({ space: personalSpace, title: 'Free', planInfo: FREE_PLAN, facts: facts([win('member', 2592000, 5), win('member', 18000, 1)]) })
-  check('a free personal space: Upgrade and ONE allowance bar (the one closest to full)', same(free.actions, ['upgrade']) && free.rows.length === 1 && free.rows[0].percent === 5 && free.rows[0].key === 'allowance' && free.rows[0].note === 'Last 30 days', free)
+  check('a free personal space: Upgrade and NO allowance row (it is the Kybernos plan\'s number; the composer\'s chip shows it on a Kybernos model)', same(free.actions, ['upgrade']) && free.rows.length === 0, free)
   const paid = card({ space: personalSpace, title: 'Solo Plus', planInfo: { none: false, free: false }, facts: facts([win('member', 18000, 40)]) })
-  check('a paid personal space: the bar, no action in the card', same(paid.actions, []) && paid.rows.length === 1 && paid.rows[0].percent === 40, paid)
+  check('a paid personal space: no row, no action in the card', same(paid.actions, []) && paid.rows.length === 0, paid)
+  const personalBlocked = card({ space: personalSpace, title: 'Free', planInfo: FREE_PLAN, facts: { ok: true, payment_blocked: true, usage: [] } })
+  check('a personal space whose payment is blocked still says so, with no bar', personalBlocked.rows.length === 1 && personalBlocked.rows[0].full === true && personalBlocked.rows[0].key === 'allowance', personalBlocked)
   const none = card({ space: team('admin'), title: 'No plan', planInfo: NO_PLAN, facts: facts([]) })
   check('a team nobody bought a plan for: « Choose a plan », no bar', same(none.actions, ['choose']) && none.rows.length === 0, none)
   const unread = card({ space: team('admin'), facts: null })
@@ -153,8 +155,8 @@ console.log('percent and bars only: the sentence of a window')
   check('minutes when it is under an hour', plain(mins.note) === 'Back in about 25 min', mins.note)
   const capped = card({ space: team('member', 't9', 'Acme'), facts: facts([win('member', 604800, 30, { scope: 'team' })]) }).rows[0]
   check('a cap an admin set says where it was set', capped.note === 'Last 7 days (a cap set in Acme)', capped.note)
-  const personalCap = card({ space: personalSpace, planInfo: FREE_PLAN, facts: facts([win('member', 604800, 30, { scope: 'team' })]) }).rows[0]
-  check('the cap wording follows the space\'s name', personalCap.note.includes('(a cap set in this team)') || personalCap.note.includes('(a cap set in'), personalCap.note)
+  const otherCap = card({ space: team('member', 't8', 'Beta'), facts: facts([win('member', 604800, 30, { scope: 'team' })]) }).rows[0]
+  check('the cap wording follows the team\'s name', otherCap.note === 'Last 7 days (a cap set in Beta)', otherCap.note)
   const skewed = lib.planCardModel({ t, title: 'Team', planInfo: TEAM_PLAN, space: team('member'), facts: { ok: true, skew_ms: 3 * 3600000, usage: [full('member', 18000, { resets_at: new Date(Date.now() + 6 * 3600000).toISOString() })] } }).rows[0]
   check('a clock that is hours off is corrected by the server\'s own stamp', plain(skewed.note) === 'Back in about 3 h', skewed.note)
   void row
@@ -257,6 +259,22 @@ console.log('the box of the « Switch team » list')
   check('a 320 px phone: still inside the window, and never above it', small.left === 8 && small.width === 304 && small.top === 8, small)
   check('a tablet\'s width (521 px) keeps the beside-the-menu panel', lib.subPanelBox(menu, 521).width === 248 && lib.subPanelBox(menu, 520).width === 504)
   check('the footer places the list through this rule and sets its width', /setSubPos\(subPanelBox\(r, window\.innerWidth\)\)/.test(source) && /width: subPos\.width \+ 'px'/.test(source))
+}
+
+console.log('the box of the account menu in a collapsed rail')
+{
+  const card = { left: 10, top: 662, width: 36 }
+  const box = lib.railMenuBox(card, 1000, 800)
+  check('a 36 px card gives a ' + lib.RAIL_MENU_WIDTH + ' px menu, not a 36 px strip', box.width === lib.RAIL_MENU_WIDTH && box.left === 10, box)
+  check('the menu sits 10 px above the card and may not grow past the window\'s top', box.bottom === 148 && box.maxHeight === 800 - 148 - 8, box)
+  check('a wide card (an expanded rail) keeps its own width', lib.railMenuBox({ left: 12, top: 700, width: 300 }, 1400, 900).width === 300)
+  const edge = lib.railMenuBox({ left: 900, top: 500, width: 36 }, 1000, 800)
+  check('a card near the right edge pushes the menu back inside the window', edge.left + edge.width + 8 <= 1000 && edge.left >= 8, edge)
+  const phone = lib.railMenuBox({ left: 10, top: 700, width: 36 }, 390, 700)
+  check('a 390 px phone: the menu keeps its ' + lib.RAIL_MENU_WIDTH + ' px, inside the window', phone.width === lib.RAIL_MENU_WIDTH && phone.left === 10, phone)
+  const tiny = lib.railMenuBox({ left: 10, top: 700, width: 36 }, 240, 700)
+  check('a window narrower than the menu: the window\'s width less 16, never wider', tiny.width === 224 && tiny.left === 8, tiny)
+  check('the menu is drawn through this rule, fixed on <body>, only when the card is narrow', /railMenuBox\(anchor\.getBoundingClientRect\(\), window\.innerWidth, window\.innerHeight\)/.test(source) && /narrow: etroit === true/.test(source) && /railBox !== null \? ReactDOM\.createPortal\(menu, document\.body\)/.test(source))
 }
 
 if (failed > 0) { console.error('\n' + failed + ' check(s) failed'); process.exit(1) }

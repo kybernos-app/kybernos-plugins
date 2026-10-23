@@ -126,10 +126,13 @@ export function mountRoutes (webServer, host) {
     } catch (e) { dire(`${suffix}: ${e?.message ?? e}`); return send(res, 500, { ok: false, error: 'host-error' }) }
   } })
 
-  get('state', (req, res) => {
+  get('state', async (req, res) => {
     // strict: only the dashboard this chat's own tool wrote (the tab opens by itself on that), never a page edit
     const cur = host.getCurrent(str(q(req).get('session')), q(req).get('strict') === '1')
-    send(res, 200, { ok: true, current: cur ? { id: cur.id, name: cur.name, at: cur.at } : null, now: Date.now() })
+    // `suggested`: how many of Kaby's suggestions wait (the menu row pulses on it); read from the small index, never from the dashboards
+    let suggested = 0
+    try { suggested = await host.suggestedCount() } catch (e) { suggested = 0 }
+    send(res, 200, { ok: true, current: cur ? { id: cur.id, name: cur.name, at: cur.at } : null, now: Date.now(), suggested })
   })
   get('list', async (req, res) => { send(res, 200, { ok: true, ...(await host.list()) }) })
   get('presets', (req, res) => { send(res, 200, { ok: true, presets: presetSummary() }) })
@@ -158,7 +161,12 @@ export function mountRoutes (webServer, host) {
   post('flags', 4000, async (b, req, res) => {
     const patch = {}
     for (const k of ['hidden', 'archived', 'default']) if (typeof b[k] === 'boolean') patch[k] = b[k]
+    if (b.suggested === false) patch.suggested = false // Add: the only direction the page may move a suggestion (it is never made one from here)
     const r = await host.setFlags(str(b.id), patch)
+    return send(res, r.ok ? 200 : 404, r)
+  })
+  post('discard', 4000, async (b, req, res) => {
+    const r = await host.discardSuggested(str(b.id))
     return send(res, r.ok ? 200 : 404, r)
   })
   post('open', 4000, async (b, req, res) => {
@@ -176,7 +184,17 @@ export function mountRoutes (webServer, host) {
 
 // ── the bundle ───────────────────────────────────────────────────────────────
 
+// What `register` hands back takes the route off again. It is kept here and given to `ctx.effect` by `apply`, so that unloading the plugin removes every route it
+// added: without it a hot reload met « duplicate exact route », logged « routes not mounted » and went on serving the OLD handlers (audit L4-05, L6-04).
+const kbRetraits = []
+const kbRetirerRoutes = () => { for (const retrait of kbRetraits.splice(0).reverse()) { try { retrait() } catch (e) { /* already gone */ } } }
+/** `service` with a `register` that keeps the way to remove each route it adds (see kbRetirerRoutes). */
+const kbSuivi = (service) => (service === null || service === undefined || typeof service.register !== 'function'
+  ? service
+  : new Proxy(service, { get: (target, key) => (key === 'register' ? (route) => { const retrait = target.register(route); if (typeof retrait === 'function') kbRetraits.push(retrait); return retrait } : (typeof target[key] === 'function' ? target[key].bind(target) : target[key])) }))
+
 export function apply (ctx) {
+  if (ctx !== null && ctx !== undefined && typeof ctx.effect === 'function') ctx.effect(() => kbRetirerRoutes, 'kybernos-dashboards: routes')
   try {
     const host = createHost({ fs: fsp, home: DSH_HOME, log: dire })
     try {
@@ -189,7 +207,7 @@ export function apply (ctx) {
       const webServer = c.get('webServer')
       if (tools !== undefined) registerTool(tools, host).catch((e) => dire(`tool not registered: ${e?.message ?? e}`))
       if (webServer !== undefined) {
-        try { mountRoutes(webServer, host) } catch (e) { dire(`routes not mounted: ${e?.message ?? e}`) }
+        try { mountRoutes(kbSuivi(webServer), host) } catch (e) { dire(`routes not mounted: ${e?.message ?? e}`) }
       }
     }
     if (ctx.get('tools') !== undefined && ctx.get('webServer') !== undefined) start(ctx)

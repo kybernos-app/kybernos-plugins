@@ -1,0 +1,316 @@
+{
+  "v": 1,
+  "id": "immo",
+  "order": 30,
+  "accent": "#B4532A",
+  "icon": "house",
+  "name": {
+    "en": "Real estate",
+    "fr": "Immobilier"
+  },
+  "tagline": {
+    "en": "Agents, agencies, property managers",
+    "fr": "Agents, agences, gestionnaires"
+  },
+  "keywords": [
+    "immobilier",
+    "real estate",
+    "agent immobilier",
+    "agence",
+    "mandat",
+    "locataire",
+    "tenant",
+    "bailleur",
+    "landlord",
+    "syndic",
+    "copropriete",
+    "promoteur",
+    "property",
+    "broker",
+    "appartement",
+    "realtor",
+    "gestion locative"
+  ],
+  "home": [
+    "doc",
+    "image",
+    "website"
+  ],
+  "legacyJobs": [],
+  "menu": {
+    "labels": {
+      "dashboards": {
+        "en": "My activity",
+        "fr": "Mon activité"
+      },
+      "aiteams": {
+        "en": "Agency team",
+        "fr": "Équipe agence"
+      },
+      "deliverables": {
+        "en": "Listings and documents",
+        "fr": "Annonces et documents"
+      },
+      "tasks": {
+        "en": "Follow-ups",
+        "fr": "Relances"
+      }
+    },
+    "hide": [
+      "documents"
+    ]
+  },
+  "agents": {
+    "preset": "balanced",
+    "why": {
+      "en": "Messages to prospects are reviewed; you are notified before any spending.",
+      "fr": "Les messages aux prospects sont relus ; tu es prévenu·e avant une dépense."
+    }
+  },
+  "goals": [
+    {
+      "id": "leads",
+      "name": {
+        "en": "Prospects",
+        "fr": "Prospects"
+      },
+      "title": {
+        "en": "Answer prospects fast",
+        "fr": "Répondre vite aux prospects"
+      },
+      "desc": {
+        "en": "A first reply within the hour",
+        "fr": "Une première réponse en moins d’une heure"
+      },
+      "skills": [
+        {
+          "source": "anthropics/knowledge-work-plugins",
+          "name": "draft-outreach",
+          "d": {
+            "en": "Write outreach people answer",
+            "fr": "Écrit des messages de prospection qui obtiennent une réponse"
+          }
+        }
+      ],
+      "teams": [
+        "inbound-closer"
+      ],
+      "connectors": [
+        "hubspot",
+        "pipedrive",
+        "gmail"
+      ],
+      "automations": [
+        {
+          "id": "prospect-replies",
+          "name": {
+            "en": "Draft replies to new prospects",
+            "fr": "Brouillons de réponses aux prospects"
+          },
+          "prompt": {
+            "en": "Every weekday at 09:00: if my mailbox or my CRM is connected, find the prospects who wrote since yesterday and draft a first reply for each one (use the draft-outreach skill): thank them, answer what they asked, propose two visit slots. Never send. List the prospects and the drafts. If no app is connected, say so and stop.",
+            "fr": "Chaque jour de semaine à 9 h : si ma messagerie ou mon CRM est connecté, trouve les prospects qui ont écrit depuis hier et rédige une première réponse pour chacun (utilise le skill draft-outreach) : remercie, réponds à sa question, propose deux créneaux de visite. N’envoie jamais. Liste les prospects et les brouillons. Si aucune app n’est connectée, dis-le et arrête-toi."
+          },
+          "cron": "0 9 * * 1-5"
+        }
+      ],
+      "starter": {
+        "en": "Reply to the new prospects",
+        "fr": "Réponds aux nouveaux prospects"
+      }
+    },
+    {
+      "id": "listings",
+      "name": {
+        "en": "Listings",
+        "fr": "Annonces"
+      },
+      "title": {
+        "en": "Write my listings",
+        "fr": "Rédiger mes annonces"
+      },
+      "desc": {
+        "en": "From the property sheet to the listing",
+        "fr": "De la fiche du bien à l’annonce"
+      },
+      "skills": [
+        {
+          "source": "anthropics/knowledge-work-plugins",
+          "name": "content-creation",
+          "d": {
+            "en": "Draft posts, scripts and pages",
+            "fr": "Rédige posts, scripts et pages"
+          }
+        },
+        {
+          "source": "anthropics/skills",
+          "name": "docx",
+          "d": {
+            "en": "Mandates, sale agreements, letters",
+            "fr": "Mandats, compromis, courriers"
+          }
+        },
+        {
+          "source": "kybernos",
+          "name": "listing-writer",
+          "d": {
+            "en": "Write a listing from a property sheet, in three lengths",
+            "fr": "Rédige une annonce à partir d’une fiche de bien, en trois formats"
+          }
+        }
+      ],
+      "connectors": [
+        "googledrive",
+        "instagram",
+        "facebook"
+      ],
+      "starter": {
+        "en": "Write the listing for this property",
+        "fr": "Rédige l’annonce de ce bien"
+      }
+    },
+    {
+      "id": "visits",
+      "name": {
+        "en": "Visits",
+        "fr": "Visites"
+      },
+      "title": {
+        "en": "Plan my visits",
+        "fr": "Planifier mes visites"
+      },
+      "desc": {
+        "en": "Visits confirmed the day before",
+        "fr": "Des visites confirmées la veille"
+      },
+      "skills": [
+        {
+          "source": "anthropics/skills",
+          "name": "docx",
+          "d": {
+            "en": "Write visit reports and forms",
+            "fr": "Rédige comptes rendus et fiches de visite"
+          }
+        }
+      ],
+      "connectors": [
+        "googlecalendar",
+        "calendly"
+      ],
+      "automations": [
+        {
+          "id": "visit-confirmations",
+          "name": {
+            "en": "Confirm tomorrow’s visits",
+            "fr": "Confirmer les visites de demain"
+          },
+          "prompt": {
+            "en": "Every weekday at 17:00: read tomorrow’s visits from my calendar if it is connected, or from my visits file. Draft a short confirmation for each visitor with the address, the time and how to reach me. Never send. If there is no source, say what is missing.",
+            "fr": "Chaque jour de semaine à 17 h : lis les visites de demain dans mon agenda s’il est connecté, ou dans mon fichier de visites. Rédige une confirmation courte pour chaque visiteur avec l’adresse, l’heure et comment me joindre. N’envoie jamais. S’il n’y a pas de source, dis ce qui manque."
+          },
+          "cron": "0 17 * * 1-5"
+        }
+      ],
+      "starter": {
+        "en": "Plan this week’s visits",
+        "fr": "Planifie les visites de la semaine"
+      }
+    },
+    {
+      "id": "valuation",
+      "name": {
+        "en": "Valuation",
+        "fr": "Estimation"
+      },
+      "title": {
+        "en": "Price and sell right",
+        "fr": "Estimer et vendre au bon prix"
+      },
+      "desc": {
+        "en": "Comparables and an argued price",
+        "fr": "Des comparables et un prix argumenté"
+      },
+      "skills": [
+        {
+          "source": "anthropics/skills",
+          "name": "xlsx",
+          "d": {
+            "en": "Compare prices and compute a valuation in a sheet",
+            "fr": "Compare des prix et calcule une estimation dans un tableur"
+          }
+        },
+        {
+          "source": "kybernos",
+          "name": "property-valuation",
+          "d": {
+            "en": "A price range from comparables, with the method shown",
+            "fr": "Une fourchette de prix à partir de comparables, méthode à l’appui"
+          }
+        }
+      ],
+      "connectors": [
+        "googlesheets"
+      ],
+      "starter": {
+        "en": "Value this property with comparables",
+        "fr": "Estime ce bien avec des comparables"
+      }
+    },
+    {
+      "id": "tenants",
+      "name": {
+        "en": "Tenants",
+        "fr": "Locataires"
+      },
+      "title": {
+        "en": "Follow my tenants",
+        "fr": "Suivre mes locataires"
+      },
+      "desc": {
+        "en": "Rents, reminders and works",
+        "fr": "Loyers, relances et travaux"
+      },
+      "skills": [
+        {
+          "source": "anthropics/skills",
+          "name": "docx",
+          "d": {
+            "en": "Write and format leases and notices",
+            "fr": "Rédige et met en forme baux et avis"
+          }
+        },
+        {
+          "source": "kybernos",
+          "name": "rent-reminders",
+          "d": {
+            "en": "Polite reminders for unpaid rents, in escalating steps",
+            "fr": "Des relances de loyers impayés, courtoises puis plus fermes"
+          }
+        }
+      ],
+      "connectors": [
+        "gmail",
+        "docusign",
+        "quickbooks"
+      ],
+      "automations": [
+        {
+          "id": "rent-run",
+          "name": {
+            "en": "Monthly rent reminders",
+            "fr": "Relances de loyers du mois"
+          },
+          "prompt": {
+            "en": "On the 5th of each month at 09:00: open the rent tracking file in this workspace, find the unpaid rents and draft reminders with the rent-reminders skill at the right step. Never send. Give me the summary table first.",
+            "fr": "Le 5 de chaque mois à 9 h : ouvre le fichier de suivi des loyers de ce workspace, trouve les loyers impayés et rédige les relances avec le skill rent-reminders au bon niveau. N’envoie jamais. Donne-moi d’abord le tableau récapitulatif."
+          },
+          "cron": "0 9 5 * *"
+        }
+      ],
+      "starter": {
+        "en": "Prepare the reminder for unpaid rents",
+        "fr": "Prépare la relance des loyers impayés"
+      }
+    }
+  ]
+}

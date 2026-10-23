@@ -1,5 +1,6 @@
 // Test des fabriques d'argv des providers maison — sans DSH (argv.js est pur).
 //   node test-providers.mjs
+import { readFileSync } from 'node:fs'
 import { argv as gemini } from './dsh-subagent-gemini/argv.js'
 import { argv as qwen } from './dsh-subagent-qwen/argv.js'
 import { argv as opencode } from './dsh-subagent-opencode/argv.js'
@@ -13,7 +14,16 @@ try {
   console.log('── argv par CLI ──')
   ok('gemini --skip-trust -y -p (clé API, pas de compte)', (() => { const a = gemini('gemini', undefined, ['t']); return a[1] === '--skip-trust' && a[2] === '-y' && a.includes('-p') && a[a.length - 1] === 't' })())
   ok('gemini -m quand fourni', gemini('gemini', 'm', ['t']).includes('m'))
-  ok('qwen -y --auth-type openai + endpoint token plan', (() => { const a = qwen('qwen', undefined, ['t'], { apiKey: 'K', baseUrl: 'https://x/v1' }); return a[1] === '-y' && a[2] === '--auth-type' && a[3] === 'openai' && a.includes('https://x/v1') && a.includes('K') })())
+  ok('qwen -y --auth-type openai + endpoint token plan', (() => { const a = qwen('qwen', undefined, ['t'], { apiKey: 'K', baseUrl: 'https://x/v1' }); return a[1] === '-y' && a[2] === '--auth-type' && a[3] === 'openai' && a.includes('https://x/v1') && a.includes('K') === false })())
+  // The key is a secret: it must never reach argv (`ps -ax` shows it), only the child's environment (varEnvCle).
+  ok('qwen: the API key never travels on the command line (no --openai-api-key, no key value)', (() => {
+    const a = qwen('qwen', '', ['x'], { apiKey: 'sk-test' })
+    return a.includes('sk-test') === false && a.includes('--openai-api-key') === false && a.join(' ').indexOf('sk-test') < 0
+  })())
+  ok('qwen: the key goes to the child\'s environment under OPENAI_API_KEY', (() => {
+    const src = readFileSync(new URL('./dsh-subagent-qwen/index.js', import.meta.url), 'utf8')
+    return /varEnvCle:\s*'OPENAI_API_KEY'/.test(src)
+  })())
   ok('opencode run + skip-permissions', eq(opencode('opencode', undefined, ['t']), ['opencode', 'run', '--dangerously-skip-permissions', 't']))
   ok('opencode joint les tâches', opencode('opencode', undefined, ['a', 'b']).pop() === 'a\n\nb')
   ok('aucun modèle en dur (defaut = pas de -m)', !gemini('gemini', undefined, ['t']).includes('-m'))

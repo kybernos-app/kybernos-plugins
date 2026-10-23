@@ -58,6 +58,10 @@ of the source, a number asked of a text column, a widget too small to read).
 Also under `<dsh home>/kybernos/dashboards/`: `index.json` (default, hidden, archived) and `history/` (the last 20
 revisions of each dashboard).
 
+A file the host cannot read (truncated JSON, not a dashboard, too large) is not dropped silently: `list` returns it in
+`unreadable: [{ id, code, message }]`, the gallery names it in a notice above "My dashboards", and the agent's listing
+carries it too. (Writing that id still replaces the file.)
+
 ## Host routes
 
 All under `/kybernos-dashboards/`, served before DSH's own authentication, so each one fences the Host and the Origin

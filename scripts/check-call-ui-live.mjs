@@ -116,10 +116,16 @@ try {
     await val(`(() => { const t = document.querySelector('[data-kb="chat-fold"] [data-act="toggle"]'); if (t && t.getAttribute('aria-pressed') !== 'true') t.click() })()`)
   }
   await poll(() => val(`(() => { const v = document.querySelector('[data-act="call-voice"]'); return !!v && v.getBoundingClientRect().width > 0 })()`), 8000)
-  const geo = JSON.parse((await val(`(() => { const v = document.querySelector('[data-act="call-voice"]'); const c = document.querySelector('[data-act="call-video"]'); if (!v || !c) return 'null'; const a = v.getBoundingClientRect(); const b = c.getBoundingClientRect(); const own = Array.from(document.querySelectorAll('header button')).filter((x) => !x.closest('[data-kb="kybernos-call-header"]')).map((x) => x.getBoundingClientRect()).filter((r) => r.width > 0 && r.y < 60); const right = own.length ? Math.min(...own.filter((r) => r.x > b.x).map((r) => r.x)) : null; return JSON.stringify({ vx: a.x, vy: a.y, cx: b.x, cw: b.width, w: innerWidth, nextRight: Number.isFinite(right) ? right : null, label: v.getAttribute('aria-label'), video: c.getAttribute('aria-label') }) })()`)) || 'null')
+  const geo = JSON.parse((await val(`(() => { const v = document.querySelector('[data-act="call-voice"]'); const c = document.querySelector('[data-act="call-menu"]'); if (!v || !c) return 'null'; const a = v.getBoundingClientRect(); const b = c.getBoundingClientRect(); const own = Array.from(document.querySelectorAll('header button')).filter((x) => !x.closest('[data-kb="kybernos-call-header"]')).map((x) => x.getBoundingClientRect()).filter((r) => r.width > 0 && r.y < 60); const right = own.length ? Math.min(...own.filter((r) => r.x > b.x).map((r) => r.x)) : null; return JSON.stringify({ vx: a.x, vy: a.y, cx: b.x, cw: b.width, w: innerWidth, nextRight: Number.isFinite(right) ? right : null, label: v.getAttribute('aria-label'), video: c.getAttribute('aria-label') }) })()`)) || 'null')
   await shot('call-header')
   check('once the chat tools are shown they sit in the top bar of the chat, on the right side of the window, left of the app\'s own right-hand controls', geo !== null && geo.vy < 60 && geo.cx > geo.w * 0.55 && (geo.nextRight === null || geo.cx + geo.cw <= geo.nextRight + 1), geo)
-  check('named for screen readers: "Voice call" and "Video call"', geo !== null && geo.label === 'Voice call' && geo.video === 'Video call', geo)
+  check('named for screen readers: "Voice call" and the arrow\'s "Call options"', geo !== null && geo.label === 'Voice call' && geo.video === 'Call options', geo)
+  // The call is ONE button with an arrow (chat header variant B, 2026-10-22): the arrow opens voice / video / call settings; the video and settings buttons of the phone sheet are hidden here.
+  await click('[data-act="call-menu"]')
+  const menuEntries = await poll(() => val(`(() => { const m = Array.from(document.querySelectorAll('.kbcl-menu [data-act]')).map((x) => x.getAttribute('data-act')); return m.length === 3 ? m.join() : null })()`), 4000)
+  check('the arrow opens a menu: voice call, video call, call settings', menuEntries === 'call-menu-voice,call-menu-video,call-menu-setup', menuEntries)
+  await val(`document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))`)
+  check('Escape closes it', (await poll(() => val(`!document.querySelector('.kbcl-menu')`), 3000)) === true)
   check('the old pill in the composer is gone', (await val(`!document.querySelector('[data-kb="kybernos-call-pill"]')`)) === true)
   // Whether a face exists is read once from the host's status when the header mounts: until it has answered, the video button is on (« the assistant has a face »).
   // On a slow host that is a second or more after the buttons appear, so the button is read once the status has been drawn, not at a fixed time.
@@ -165,7 +171,8 @@ try {
   console.log('1d. the call panel and the gear lead to Settings › Calls')
   const settingsShown = () => val(`!!document.querySelector('[data-kb="kybernos-call-settings"]')`)
   const closeSettings = async () => { for (const type of ['keyDown', 'keyUp']) await page.send('Input.dispatchKeyEvent', { type, key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 }); return (await poll(async () => (await settingsShown()) === false, 6000)) === true }
-  check('the gear next to the phone and camera opens the Calls page of the Settings', (await click('[data-act="call-setup"]')) === true && (await poll(settingsShown, 12000)) === true)
+  await click('[data-act="call-menu"]')
+  check('« Call settings… » in the arrow\'s menu opens the Calls page of the Settings', (await click('[data-act="call-menu-setup"]')) === true && (await poll(settingsShown, 12000)) === true)
   check('Escape closes the Settings again (so the next check starts from the chat)', (await closeSettings()) === true)
   const blockedBefore1d = blocked.length
   await click('[data-act="call-voice"]')

@@ -9,7 +9,7 @@ reach this bundle through one seam.
 
 ## Where to find it
 
-- **The phone and camera buttons in the chat header** of every session (next to the app's own controls; when the chat header is folded, open « Show chat tools » first): the call belongs to the session, not to a team.
+- **The call button in the chat header** of every session (next to the app's own controls; when the chat header is folded, open « Show chat tools » first): ONE button, a phone with a small arrow. The click is the voice call; the arrow opens a menu: voice call, video call (off, with « key missing » and the reason, while no face provider is set), call settings. The call belongs to the session, not to a team. On a phone the arrow is parked and the « … » sheet lists the video and settings buttons (hidden on a wide screen, `.kbcl-flat`).
   The phone starts a voice call, the camera a video call (off, with the reason, until a LiveAvatar key is set). During a call they become one red "Hang up".
   It calls the session's assistant, with the voice, language and mode of Settings › Calls.
 - **Call / Video on a team member's card** (the crew view of `@local/kybernos`): that member, with its own voice. These two buttons
@@ -52,7 +52,7 @@ once if it stops working.
 
 ## First call
 
-1. Click the phone in the chat header (open « Show chat tools » first if the header is folded). On a machine with nothing set up the panel says so and opens Settings › Calls: the Overview lists what is missing, each with a "Set up" button.
+1. Click the phone in the chat header (open « Show chat tools » first if the header is folded; the arrow beside it is for the video call and the call settings). On a machine with nothing set up the panel says so and opens Settings › Calls: the Overview lists what is missing, each with a "Set up" button.
    By hand, the same things are in Settings › Calls › Providers: the LiveKit address, key and secret (a free LiveKit Cloud project is
    enough), and the Groq key (listening). Each has a **Test** button. Keys are written to `kybernos/livekit.env` (private file) and are
    never shown again.
@@ -63,7 +63,7 @@ once if it stops working.
 
 When the host half does not answer, the panel tells the two cases apart. A refused connection (DSH restarting), a 500, a page that is
 not JSON or `ok:false` say "Cannot reach the call service — try again" with a **Try again** button that re-runs the same call; only a
-404 (the routes are not mounted: DSH was not restarted after an update) says "the call routes are not loaded — relaunch DSH once". The
+404 (the routes are not mounted: DSH was not restarted after an update) says "Calls are not loaded yet: restart DSH once". The
 panel of a call that never started closes with "Close", not "Hang up". Settings › Calls saves say the same instead of "refused".
 
 A face (a `video` call) needs the LiveAvatar provider chosen, with its key and avatar id (Providers › Face); without them, or with "No face", the call stays voice only. A member's own voice
@@ -131,13 +131,13 @@ needs nothing: it is the one chosen on its card. A voice made from a recording n
 | `utterance` | POST | same origin only; `{ sessionId, text, mode: 'queue' \| 'steer' }` |
 | `speech` | GET | same origin only (it is the session's own text); `?room=&after=&wait=` a long poll; `known: false` once the room is released |
 | `settings` | GET, POST | GET: the settings, which secrets are set, the clones, the five slots, the provider catalogue with each provider's state and settings, the presets. POST (same origin): `{ patch }`, all or nothing |
-| `keys` | POST | same origin only; `{ patch: { NAME: value } }` (`''` removes); all or nothing; the answer never repeats a value |
-| `test` | POST | same origin only; `{ service: 'livekit' \| 'groq' \| 'elevenlabs' \| 'liveavatar' }`: one read-only call, on this click only |
-| `clone` | POST | same origin only; `{ rootId, voiceId, name }` creates, `{ action: 'delete', voiceId }` deletes |
-| `preset` | POST | same origin only; `{ id }` fills the slots at once (a preset that is not available is 400) |
-| `avatars` | POST | same origin only; the faces the face provider offers (names and ids; the account's own first) |
+| `keys` | POST | same origin **and the signed session cookie** (an Origin alone is forgeable: L1-01); `{ patch: { NAME: value } }` (`''` removes); all or nothing; the answer never repeats a value |
+| `test` | POST | same origin **and the signed session cookie**; `{ service: 'livekit' \| 'groq' \| 'elevenlabs' \| 'liveavatar' }`: one read-only call, on this click only |
+| `clone` | POST | same origin **and the signed session cookie**; `{ rootId, voiceId, name }` creates, `{ action: 'delete', voiceId }` deletes |
+| `preset` | POST | same origin **and the signed session cookie**; `{ id }` fills the slots at once (a preset that is not available is 400) |
+| `avatars` | POST | same origin **and the signed session cookie** (it asks the face provider); the faces it offers (names and ids; the account's own first) |
 | `health` | POST | same origin only; checks every slot and answers `{ checks: [{ id, status, code, detail?, ms }] }`; the voice is asked through this DSH's own engine, at the socket's address |
-| `engine` | POST | same origin only; `{ action: 'status' \| 'install' }`: the one-click install of the call engine, read back from its own log |
+| `engine` | POST | same origin **and the signed session cookie** (it installs software); `{ action: 'status' \| 'install' }`: the one-click install of the call engine, read back from its own log |
 | `vendor/livekit-client.js` | GET, HEAD | the SDK, served as is |
 
 DSH serves plugin routes before its own sign-in, so every POST, and the GET that returns session text, refuse any request that does not

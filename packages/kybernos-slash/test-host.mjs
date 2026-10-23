@@ -15,6 +15,10 @@ import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, readdirSync, statS
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { apply, readStoreState, storeProblem, writeStore, storePath } from './index.js'
+import { sessionSource } from './session-guard.mjs'
+import { SESSION_SECRET, sessionCookie } from './lib-session-test.mjs'
+
+sessionSource.secret = () => SESSION_SECRET
 
 let ok0 = 0
 let ko = 0
@@ -53,10 +57,16 @@ const routes = {}
 }
 const ENTRIES = '/kybernos/slash/entries'
 const STATUS = '/kybernos/slash/status'
+// A-16: POST /entries now takes the signed session, like every other write a page makes. The default headers
+// below are therefore the browser's own pair (this listener's Origin + the signed cookie), which is exactly
+// what the Settings ▸ Commands page sends; a caller with no cookie is refused and writes nothing.
 const request = (method, url, body, headers) => ({
   method,
   url,
-  headers: headers !== undefined ? headers : { origin: 'http://127.0.0.1:3080', host: '127.0.0.1:3080' },
+  headers: headers !== undefined ? headers : { origin: 'http://127.0.0.1:3080', host: '127.0.0.1:3080', cookie: sessionCookie('127.0.0.1:3080') },
+  // The guard reads the listener's own port from the socket (`autorites`): a fake request must carry it, or the
+  // right Origin looks foreign and the cookie names another authority.
+  socket: { localPort: 3080 },
   async * [Symbol.asyncIterator] () { if (body !== undefined) yield Buffer.from(typeof body === 'string' ? body : JSON.stringify(body)) }
 })
 const response = () => { const r = { code: null, body: null, writeHead (c) { r.code = c }, end (s) { try { r.body = JSON.parse(s) } catch (e) { r.body = s } } }; return r }

@@ -97,9 +97,11 @@ const catalog = readFileSync(new URL('./catalog.js', import.meta.url), 'utf8')
   const pop = /const POPULAR = \[([^\]]+)\]/.exec(src)
   const slugs = pop === null ? [] : pop[1].split(',').map((x) => x.trim().replace(/['"]/g, ''))
   ok('discover: twelve known apps, each one in the catalogue', slugs.length === 12 && slugs.every((s) => catalog.includes('"' + s + '"') || catalog.includes("'" + s + "'")), slugs.join(','))
-  ok('discover: the known apps are drawn with the SAME card as the catalogue', /popList\.map\(\(a\) => appItem\(a, true\)\)/.test(src) && /shown\.map\(\(a\) => appItem\(a\)\)/.test(src) && /const appItem = \(a, inPop\) => \(viewMode === 'list' \? appRow\(a, inPop\) : appCard\(a, inPop\)\)/.test(src))
+  ok('discover: the known apps are drawn with the SAME card as the catalogue', /popList\.map\(\(a\) => appItem\(a, true\)\)/.test(src) && /shown\.map\(\(a\) => appItem\(a\)\)/.test(src) && /const appItem = \(a, inPop, tag\) => \(viewMode === 'list' \? appRow\(a, inPop, tag\) : appCard\(a, inPop, tag\)\)/.test(src))
   ok('discover: the section only exists with no search and no filter', /const popSplit = qn\.length === 0 && chip === 'all'/.test(src))
-  ok('discover: the catalogue below leaves out what the section shows', /const mainList = popList\.length > 0 \? list\.filter\(\(a\) => POPULAR\.indexOf\(a\.s\) < 0\)/.test(src))
+  ok('discover: the catalogue below leaves out what the head of the list already shows (needed, field, known apps)', /const mainList = popSplit \? list\.filter\(\(a\) => POPULAR\.indexOf\(a\.s\) < 0 && !inField\(a\.s\) && !inNeed\(a\.s\)\) : list/.test(src))
+  ok('discover: the field\'s apps (the seam window.__KB_DOMAIN__) use the same card, tagged with their goal and a dot, in the one flat list, under the same condition as the known apps', /fieldList\.map\(\(x\) => appItem\(x\.a, true, /.test(src) && /const fieldList = popSplit \? fieldWant\.map/.test(src) && /window\.__KB_DOMAIN__/.test(src) && /data-kb': 'discover-grid'/.test(src))
+  ok('the title is the menu\'s word for the row when the field gives one', /fieldSeam\.label\('connectors'\)/.test(src))
 
   // one block on every tab: search, filter, order, view
   ok('toolbar: the same bar on the three tabs (it was missing on MCP servers)', /\(kbTb !== null && barShown === true \? h\(kbTb\.KbToolbar, \{/.test(src) && !/kbTb !== null && vtab !== 'mcp'/.test(src))

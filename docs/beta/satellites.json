@@ -21,6 +21,14 @@
         "poids_ko": 28
       },
       {
+        "dir": "kybernos-registry",
+        "nom": "@local/kybernos-registry",
+        "tier": 1,
+        "obligatoire": false,
+        "role": "registry of plugins: reads the data plugins installed on this computer, checks them, publishes window.__KB__ and the host seam",
+        "poids_ko": 60
+      },
+      {
         "dir": "kybernos-theme",
         "nom": "@local/kybernos-theme",
         "tier": 1,
@@ -101,6 +109,15 @@
         "obligatoire": false,
         "role": "slash (/) commands",
         "poids_ko": 248,
+        "lib_vendor": null
+      },
+      {
+        "dir": "kybernos-session-msg",
+        "nom": "@local/kybernos-session-msg",
+        "tier": 2,
+        "obligatoire": false,
+        "role": "message between chats: the agent proposes an inline form (a message or an instruction, to another chat, to a new one or to this one), the person edits and sends it, with the sent trail and the received card",
+        "poids_ko": 228,
         "lib_vendor": null
       },
       {
@@ -396,6 +413,16 @@
         "lib_vendor": null
       },
       {
+        "dir": "kybernos-kaby-customisation",
+        "nom": "@local/kybernos-kaby-customisation",
+        "tier": 2,
+        "obligatoire": false,
+        "defaut": "actif",
+        "role": "the Kaby page in Settings: the assistant's name, portrait and voice, and the face of its video calls with its own keys",
+        "poids_ko": 60,
+        "lib_vendor": null
+      },
+      {
         "dir": "kybernos-search",
         "nom": "@local/kybernos-search",
         "tier": 2,
@@ -419,6 +446,7 @@
   "ordre_montage": {
     "commentaire": "Order of dsh.profile.bundles. The base first, then the satellites activated in that order. A deactivated satellite is simply left out of the list.",
     "socle": [
+      "@local/kybernos-registry",
       "@local/kybernos-theme",
       "@local/kybernos-models",
       "@local/kybernos-skills",
@@ -460,8 +488,10 @@
       "@local/kybernos-dashboards",
       "@local/kybernos-summary",
       "@local/kybernos-kyber",
+      "@local/kybernos-kaby-customisation",
       "@local/kybernos-search",
-      "@local/kybernos-servers"
+      "@local/kybernos-servers",
+      "@local/kybernos-session-msg"
     ]
   }
 }

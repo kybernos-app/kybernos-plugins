@@ -55,8 +55,8 @@ console.log('\n── through the real routes (apply on a fake context) ──')
 const routes = {}
 const webServer = { register: (r) => { routes[r.path] = { kind: r.kind, handler: r.handler } } }
 apply({ inject (deps, fn) { fn({ get: (nom) => (nom === 'webServer' ? webServer : {}), effect: (f) => f() }) } })
-const POSTS = ['toggle', 'create', 'install', 'featured/toggle', 'team/pack', 'team/install', 'index-source/set', 'skill/read', 'skill/reveal', 'skill/duplicate', 'skill/delete'].map((n) => '/kybernos-skills/' + n)
-ok('the eleven POST routes are registered', POSTS.every((p) => routes[p] !== undefined), Object.keys(routes))
+const POSTS = ['toggle', 'create', 'install', 'featured/toggle', 'team/pack', 'team/install', 'index-source/set', 'skill/read', 'skill/reveal', 'skill/duplicate', 'skill/delete', 'learned/from-lessons', 'learned/accept', 'learned/edit', 'learned/discard', 'learned/restore', 'learned/undo', 'learned/settings/set', 'learned/keep', 'learned/stop', 'learned/notice/answer', 'learned/notice/forget', 'learned/week/hide', 'learned/shared'].map((n) => '/kybernos-skills/' + n)
+ok('the twenty POST routes are registered', POSTS.every((p) => routes[p] !== undefined), Object.keys(routes))
 const requete = (method, headers, corps) => ({
   method, headers: headers || {}, socket: { localPort: PORT },
   async * [Symbol.asyncIterator] () { if (corps !== undefined) yield Buffer.from(JSON.stringify(corps)) }
