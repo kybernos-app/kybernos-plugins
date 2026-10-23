@@ -36,6 +36,8 @@
     "fs.read:workspace",
     "fs.write:dsh-home",
     "fs.write:home",
+    "net:api.deepinfra.com",
+    "net:temp.bria.ai",
     "net:api.github.com",
     "net:codeload.github.com",
     "net:raw.githubusercontent.com",

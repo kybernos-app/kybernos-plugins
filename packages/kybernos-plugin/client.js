@@ -7220,6 +7220,7 @@ const KB_TPL_CATS = [
   { id: 'social', title: ['Social media', 'Réseaux sociaux'], color: 'var(--dsw-alias-state-warn-primary)' },
   { id: 'prospecting', title: ['Prospecting', 'Prospection'], color: 'var(--dsw-alias-state-business-primary)' },
   { id: 'support', title: ['Customer service', 'Service client'], color: 'var(--dsw-alias-state-success-primary)' },
+  { id: 'skills', title: ['Skills', 'Skills'], color: 'var(--dsw-alias-state-business-primary)' },
 ]
 const KB_TPLS = [
   { id: 'social-daily', cat: 'social', icon: 'image', title: ['Daily post pack', 'Pack de posts quotidien'],
@@ -7372,6 +7373,18 @@ const KB_TPLS = [
     ask: [
       { q: ['Which shop?', 'Quelle boutique ?'], o: [['I will connect it now', 'Je la connecte maintenant'], ['To confirm: read-only access', 'À confirmer : accès en lecture seule']] },
       { q: ['Which channel answers?', 'Quel canal répond ?'], o: [['WhatsApp', 'WhatsApp'], ['Website widget', 'Widget du site'], ['Email', 'E-mail']] }] },
+  { id: 'skill-scout', cat: 'skills', icon: 'search', title: ['Skill scout', 'Éclaireur de skills'],
+    cadence: ['Every Monday, 09:00', 'Chaque lundi, 09:00'], cron: '0 9 * * 1',
+    desc: ['Looks the public skills index over for skills that fit your goals, filters them in code and lists the few worth a look in Skills › Featured. Installs nothing.', 'Parcourt l’index public des skills pour trouver ceux qui collent à tes objectifs, les filtre dans le code et range les rares qui valent un coup d’œil dans Skills › Featured. N’installe rien.'],
+    tags: [['Skills', 'Skills'], ['Filtered in code', 'Filtré dans le code'], ['Proposes only', 'Propose seulement']], apps: ['GitHub'],
+    steps: [
+      ['act', ['Call the skill_scout tool once: it scans the index, filters what it finds and keeps the few that pass.', 'Appeler l’outil skill_scout une seule fois : il parcourt l’index, filtre ce qu’il trouve et garde le peu qui passe.']],
+      ['ai', ['Tell me in three lines at most the names it found and why each one fits; say so plainly when it found nothing.', 'Me dire en trois lignes au plus les noms trouvés et pourquoi chacun convient ; le dire franchement quand il n’a rien trouvé.']]],
+    needs: [['Some goals ticked in your profile, or a few skills installed', 'Quelques objectifs cochés dans ton profil, ou quelques skills installés']],
+    guard: [['Nothing is installed: a find waits in Skills › Featured until you install it yourself, with the usual confirmation.', 'Rien n’est installé : une trouvaille attend dans Skills › Featured jusqu’à ce que tu l’installes toi-même, avec la confirmation habituelle.'], ['A find needs a clean audit, a small file with no secret and no hidden instruction, and must not copy a skill you already have.', 'Une trouvaille demande un audit propre, un petit fichier sans secret ni consigne cachée, et ne doit pas copier un skill que tu as déjà.']],
+    ask: [
+      { q: ['Which day should it look?', 'Quel jour doit-il chercher ?'], o: [['Monday', 'Lundi'], ['Friday', 'Vendredi'], ['The first of the month', 'Le premier du mois']] },
+      { q: ['Where should the three lines go?', 'Où envoyer les trois lignes ?'], o: [['In the chat', 'Dans le chat'], ['A message on my phone', 'Un message sur mon téléphone'], ['Nowhere: I will look in Skills', 'Nulle part : je regarderai dans Skills']] }] },
 ]
 
 /** The pair `[en, fr]` read in the page's language: `pick` is the page's rule, English when none is given. */
@@ -27015,6 +27028,15 @@ function renderFit(canvas, model, cam, opts){
       try {
         if (typeof text !== 'string' || text.trim() === '' || text.length > 4000 || typeof kbOpenFeedbackChat !== 'function') return false
         kbOpenFeedbackChat(text)
+        return true
+      } catch (e) { return false }
+    }
+    // window.__KB_OPEN__.template(id): a new chat that starts the Discover template `id` (the Skills page asks for « skill-scout »). False when there is no such template or no chat.
+    kbOpenPage.template = (id) => {
+      try {
+        const tpl = KB_TPLS.filter((x) => x.id === id)[0]
+        if (tpl === undefined || typeof kbOpenFeedbackChat !== 'function') return false
+        kbOpenFeedbackChat(kbTplChatText(tpl, kbt, kbTplPick, kbTplLangName(kbLangResolve())))
         return true
       } catch (e) { return false }
     }

@@ -125,13 +125,20 @@ try {
   const entry = catalogue.skills.find((s) => s.name === first)
   const real = fileOf(entry.root, entry.name)
   const onDisk = real === null ? null : readFileSync(real, 'utf8')
-  const shown = await js("(document.querySelector('[data-kb=\"skill-text\"]') || { innerText: '' }).innerText")
+  // The panel shows the SKILL.md formatted; « Raw text » is the file as it is, which is what is compared with the disk.
+  const rawSkillText = async () => {
+    await js("(() => { const e = document.querySelector('[data-kb=\"skill-text\"]'); if (e && e.tagName !== 'PRE') { const b = document.querySelector('[data-kb=\"md-switch\"]'); if (b) b.click() } })()")
+    await sleep(300)
+    return js("(document.querySelector('[data-kb=\"skill-text\"]') || { innerText: '' }).innerText")
+  }
+  check('the SKILL.md is shown formatted first, with a Raw text switch', await js("(() => { const e = document.querySelector('[data-kb=\"skill-text\"]'); return !!e && e.getAttribute('data-rendered') === 'true' && !!document.querySelector('[data-kb=\"md-switch\"]') })()"))
+  const shown = await rawSkillText()
   check('the panel shows the SKILL.md exactly as it is on disk (' + first + ')', onDisk !== null && norm(shown) === norm(onDisk), { shown: norm(shown).slice(0, 80), disk: norm(onDisk).slice(0, 80) })
   check('it says where the skill lives', real !== null && p1.includes(real.replace(/\/SKILL\.md$/, '')), p1.slice(0, 200))
   await shot('yours-panel')
   await open(second)
   const p2 = await panelText('skill-panel')
-  const shown2 = await js("(document.querySelector('[data-kb=\"skill-text\"]') || { innerText: '' }).innerText")
+  const shown2 = await rawSkillText()
   const entry2 = catalogue.skills.find((s) => s.name === second)
   const real2 = fileOf(entry2.root, entry2.name)
   check('another card shows its own SKILL.md (' + second + ')', p2.includes(second) && real2 !== null && norm(shown2) === norm(readFileSync(real2, 'utf8')) && norm(shown2) !== norm(shown))

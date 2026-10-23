@@ -178,6 +178,45 @@ chats. It is a hint: a chip « ready to share » on the card, a block in the ski
 that skill (only the text leaves, secret scan, admin approval: unchanged); when the proposal goes through, the client tells `learned/shared`, which journals
 `shared` once. Without a team on the account the button says so.
 
+## The skill scout (`scout.mjs`)
+
+Kaby learns from the person's own work; the scout looks at what others have published. Once a week (a visible automation, template « Skill scout » in
+Automations › Discover, Mondays 09:00, saved OFF until the person has read it) or on « Scan now » on Skills › Featured, the host asks the public skills index
+what fits the person, **filters what it finds in code (never by a model)** and keeps at most five new finds in `<DSH home>/kybernos/skills-scout.json`
+(0600, atomic, one writer at a time per home; at most 12 listed, a find leaves after 60 days). **It installs nothing.** A find is drawn on the Featured tab as one
+of the picks (« Found for you »); Install goes through the same confirmation as any Discover entry, and a skill that comes from outside never applies itself.
+
+- **What it asks.** The goals the person ticked (`kybernos/onboarding.json › goals`, a hyphen is a space), then, from six installed skills up, the words that
+  three to four in ten of their descriptions share (a word every skill holds is filler: `description`, `asks`, `tool`, `plugin`… are left out). At most eight questions,
+  ten answers each.
+- **The filter, in this order** (`filterCandidates`; each refusal is counted by reason in the run record): a skill that is not on GitHub (it cannot be installed), a bad
+  name, one already installed, one the person said « Not interested » to (180 days), one already found, fewer than 1,000 installs, **a match that answers no goal and
+  only one word of the person's skills** (`weak_match`), then 24 audit lookups shared out between the questions (the goals first, so a broad word cannot use them
+  all): **at least one audit and every verdict `pass`**; then the `SKILL.md` itself (12 reads): at most 24 KB, **no secret and no injection pattern** (`textFlags`),
+  **not a copy of a skill the person has** (likeness ≥ 0.6). A skill that asks to run commands, delete, send or pay is **flagged, not refused** (`risky`): the card says
+  « Can run commands » and the person reads it first. What answers a goal is listed before what only matches the words of their skills.
+- **Routes.** `GET scout` (the finds not installed since, the last six runs, whether a scan is under way), `POST scout/run` (a scan in the background, not before ten
+  minutes after the last one; a refusal known at once, such as nothing to look for or a scan under ten minutes old, is the answer), `POST scout/dismiss {id}`.
+- **The agent tool.** `skill_scout` (no parameters; `learned-tools.mjs`) runs the same scan for the automation and answers with the names and why; the prompt chunk
+  tells the agent to call it only when asked or by the schedule.
+- **On the screen.** The finds come after the field's skills, as the same cards and rows as the picks, with the audits as pills, `Not interested` (leaves at once) and
+  Details (Discover). A foot line says when it last scanned, how many are new and how many the filter refused, with **Scan now** and **Make it weekly** (a chat that
+  starts the template, through `window.__KB_OPEN__.template('skill-scout')`).
+- **Measured.** A first real scan on the sandbox (goals tickets, stock, letters, outreach): 70 answers, most refused by the audit rule (18 of the 70 had a warning),
+  which is the filter doing its job, and the single-word matches were noise (« harness », « description »), hence `weak_match` and the filler rule above. Relevance is
+  bounded by the index's own search; the finds are proposals, never actions.
+
+## Pictures made on the fly (`cover-maker.mjs`)
+
+A Featured card with no picture (a skill of the field, a find, a pick whose picture cannot be read) gets one made **the way the shipped ones were**
+(`docs/dev/skills-featured-covers.md`): the same style sheet and tail, a scene written by `meta-llama/Llama-3.3-70B-Instruct-Turbo` from the skill's name and description (a
+plain scene when it does not answer), `FLUX-2-pro` for the picture, `Bria/remove_background` for the cut-out, trimmed to its alpha box. The file is
+`<DSH home>/kybernos/skills-featured/<name>.png` with a `.cover.json` that keeps the scene. It costs about 0.035 USD a picture: at most **eight a day**, one at a time,
+only with `DEEPINFRA_API_KEY` (the environment, else `<DSH home>/.credentials.yaml`), a failed one is not retried for an hour, and the person's switch
+(`skills-covers.json › auto`, on by default; « Turn off » on the Featured foot line) stops it. Routes: `GET covers/state?names=`, `POST covers/make {items}`, `POST covers/auto {on}`.
+The page asks once per card, looks again every four seconds while pictures are made, and shows the new file; a tile pulses meanwhile. Network: `api.deepinfra.com`, and
+`temp.bria.ai` for the cut-out Bria hands back (https only, no redirect, nothing else is fetched).
+
 ## The seam for automations
 
 The automations half of Kybernos is another bundle and cannot import this one. `kybernos-skills` publishes a frozen
@@ -193,6 +232,8 @@ is now **on by default**, since nothing activates without the person.
 
 ## What the person sees
 
+- **Skills › Featured**: the first cards (the skills of the person's field with a dot, then the scout's finds) are the picks' own cards and rows; a card with no
+  picture gets one made in the same style; the foot line speaks for the scout and the pictures.
 - **Skills › Yours**: a banner (« N skills suggested by Kaby », Hide is a per-browser choice) and, above it, the one for what Kaby did
   alone; dashed cards with Review, a chip and an Origin filter (Suggested by Kaby / Learned / Mine), a **Learned** badge with its
   version, « applied by Kaby · not reviewed » and « Not used for N days » (with Switch off), and its provenance on accepted skills, a
@@ -229,6 +270,7 @@ Host routes, one `globalThis` seam, existing slots. Nothing in `scripts/patches.
 `node packages/kybernos-skills/test-learned.mjs` (ledger, checks, Accept, Undo, expiry, adoption, the journal chain, the routes and the
 seam on a throw-away home), `test-learned-auto.mjs` (settings, score, hard stops, taint, automatic apply, improve, undo, breaker, kill
 switch, use counter, tools, mounting, routes), `test-ui.mjs` (banner, cards, panel, journal, filter, settings page, chat card, French),
+`test-scout.mjs` (the scout's interests, filter, scan, file and tool text, no network), `test-cover-maker.mjs` (the style sheet kept verbatim, the scene, the three calls on a stub, the PNG trim, the daily limit and the backoff), `test-scout-ui.mjs` and `test-markdown.mjs` (source level),
 `test-learned-v2.mjs` (the V2 settings, the detector, the notice and its rate limits, repeats as evidence, ready to share, the weekly card, the routes),
 `test-client-strings.mjs` (also reads `learned-settings.mjs`, `learned-score.mjs` and `learned-repeat.mjs`), `test-origin.mjs`; `packages/kybernos-memory/test-client.mjs` (Make a skill, hint, status line); `packages/kybernos-plugin/test-automation-skills.mjs`
 and `test-learned-dot.mjs`; the real GUI: `scripts/check-skills-learned-live.mjs` (sandbox only, see `live-testing.md`).
