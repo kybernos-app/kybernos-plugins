@@ -16,4 +16,6 @@ Kybernos plugins for DSH. Open core: this repo is Apache-2.0; paid modules live 
 
 Before pushing: `node scripts/garde-depot.mjs && node scripts/test-lifecycle-engine.mjs && node scripts/test-paquet.mjs`.
 
+**Before a merge into `dev`: `node scripts/run-all-tests.mjs`** (every test file CI runs, four at a time, under two minutes; `--only <text>` for a subset while you work, never as the final word). It must end with 0 red. CI only runs on a push to `main` or a pull request, and `dev` is merged here, so without this the suite never ran before a merge and four files sat red for a day (2026-10-23). There is no « known red »: a red file you did not break is still red on your merge, so it is fixed in the same session or ticketed that day, and the merge message says which.
+
 Testing what a user sees (a page, a translation, a layout) needs the real GUI: `docs/dev/live-testing.md` explains the sign-in (signed session cookie, not the stale token URL) and the helpers (`scripts/live-page.mjs`, `scripts/audit-i18n-live.mjs`).

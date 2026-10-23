@@ -113,7 +113,7 @@ Text that does not fit is cut with an ellipsis and a title, never silently.
 
 **Controls and keyboard.** Click targets of at least 24 px (32 comfortable, 44 on touch). A drawing smaller than that keeps its size and gets an invisible `::before` that reaches 24 px (placed from the padding box: a border takes more off); a bare text link keeps its line's height, the standard exempts it. `scripts/check-hit-targets-live.mjs [--worktree]` measures it. Tab reaches everything in a
 sensible order, focus is visible, Escape closes what opened, Enter confirms. The current page is marked in its menu.
-Nothing important lives only in a hover. Nothing covered by another layer (`elementFromPoint`). No dead link or button.
+Nothing important lives only in a hover. Nothing covered by another layer (`elementFromPoint`). No dead link or button (`scripts/check-dead-clicks-live.mjs` presses them all, section 3).
 
 **The house.** Colours from the DSH tokens with a fallback, never a hard-coded theme colour; one icon family and one stroke;
 the brand as in `docs/dev/brand.md`; both themes legible (text contrast at least 4.5:1: `scripts/audit-contrast-live.mjs` measures
@@ -154,6 +154,12 @@ mode is put back) measures the other theme. It leaves out drawings (`aria-hidden
 hit is a real one; a class with a hashed prefix belongs to the engine, which is a report, not a fix. Pale text is a bug (class C) when it is ours; a new
 ink for a status colour is a colour change, so class B.
 
+**Dead clicks** are found by pressing, not by reading: `scripts/check-dead-clicks-live.mjs [--pages "Skills,Connectors"] [--settings] [--real]` presses every button, link, role=button,
+tab stop and hand-cursor element of each sidebar page (and of each Settings page) with a real mouse event and lists the ones that do **nothing** (`DEAD`: a card with a hand cursor and no
+handler) or **throw** (`BROKEN`: `openIt is not a function`). Run it after building or changing any page that has cards, rows or buttons, and before a release. A hit is a class C bug; a press
+that does nothing on purpose goes in `scripts/dead-clicks-allow.json` with its reason. Its method and what it cannot see are at the top of `scripts/lib-dead-clicks.mjs`; `scripts/test-dead-clicks.mjs`
+proves it on a fixture page (in the suite). It is why the Featured cards of the Skills page, dead for a day on 2026-10-23, would have been caught.
+
 `level` is `bug`, `ux` or `check`; `check` means look at it. A probe cannot know a list is meant to have no logos or that a
 repeated label is deliberate: you decide, then classify. Read the screenshot of every flagged screen.
 
@@ -161,7 +167,9 @@ repeated label is deliberate: you decide, then classify. Read the screenshot of 
 
 - On `:3080` you **look**. Press only what opens or moves (menus, tabs, dialogs). Never Save, Install, Delete, Send, Sign out, Use a
   language. Never restart `dsh web`: host code loads on restart, so write « restart needed » instead.
-- Anything that changes data or settings runs in the sandbox, and whatever it touched is put back in the same script.
+- Anything that changes data or settings runs in the sandbox, and whatever it touched is put back in the same script. The one script that presses everything,
+  `check-dead-clicks-live.mjs`, may run on `:3080` only with `--real`, because there every HTTP write is answered 403 inside its throw-away browser, nothing is sent on a socket
+  while a press is watched, and what reads as destructive is never pressed.
 - Never print the session cookie, the token or a secret, in output, a commit or a report.
 
 ## 5. Making a class A fix
