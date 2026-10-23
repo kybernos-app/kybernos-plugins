@@ -29,9 +29,9 @@ assert.ok(field.includes("views.featured === 'list'"))
 assert.ok(!src.includes('const fieldRow ') && !src.includes('kbsf-frow') && !src.includes('kbsf-fgrid'), 'the old field rows are gone (dead code)')
 ok('the field skills are the same cards and rows as the picks, in the view the page is on; the old rows are gone')
 
-assert.ok(field.includes('noDetails') && field.includes("setMode('yours')") && field.includes("setMode('discover')"))
+assert.ok(field.includes('noDetails') && !field.includes("setMode('yours')") && !field.includes("setMode('discover')"), 'Details stays on the tab it was clicked on')
 assert.ok(/const noDetails = curated !== true && own === undefined && sk\.shipped === true/.test(field))
-ok('Details opens a curated pick, an installed skill (its panel in Yours) or the install panel; a shipped skill that is not installed has none')
+ok('Details opens a curated pick, an installed skill or the install panel, in a window over the tab (no switch of tab); a shipped skill that is not installed has none')
 
 const buttons = between('const pickButtons = ', 'const pickStar = ')
 assert.ok(buttons.includes("copied === '/' + p.id ? t('pick.copied') : t('pick.use')"))
