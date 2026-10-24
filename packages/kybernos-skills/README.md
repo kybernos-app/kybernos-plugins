@@ -125,8 +125,6 @@ All under `/kybernos-skills/`, JSON; refusals come back as HTTP 200 `{ok:false, 
   credential is sent whatever the relay, and what one relay answered is never served for another. It also runs `tar`. If the
   relay is down, *Yours* and GitHub import still work and *Discover* says so, with **Try again** (one automatic second attempt
   first, for a 5xx or a network blink) and **Change** (the source).
-- `generer-pochettes.mjs` (manual, optional) draws Featured covers through an Alibaba image endpoint, with a `qwen-token-plan`
-  key read from `~/.dsh/kybernos-models/providers.json`.
 
 ## Tests
 
@@ -156,4 +154,3 @@ harness is in this repo.
   cannot show (folder, description, text) is not shown; Install still searches the whole archive.
 - Install copies with `dereference: true`: a symlink inside a downloaded repo would be followed (not tested). Skill content is
   third party; DSH does not audit it, the skills.sh verdicts are shown.
-- `generer-pochettes.mjs` reads `providers.json`, which no bundle here writes.

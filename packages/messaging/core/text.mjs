@@ -17,7 +17,6 @@ export function splitMessage(text, limit = TELEGRAM_TEXT_LIMIT) {
 
   const chunks = [];
   let rest = value;
-  const fence = /^\s*```/;
   let openFence = false;
 
   while (rest.length > limit) {
