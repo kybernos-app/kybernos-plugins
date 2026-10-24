@@ -77,7 +77,7 @@ const GUARDED = [
   ['POST', '/kybernos-computers/sandboxes/exec', {}], ['POST', '/kybernos-computers/sandboxes/write', {}], ['POST', '/kybernos-computers/sandboxes/stop', {}],
   ['POST', '/kybernos-computers/sandboxes/pause', {}], ['POST', '/kybernos-computers/sandboxes/resume', {}], ['POST', '/kybernos-computers/env/set', { env: 'nope' }],
   ['POST', '/kybernos-cloud/memory/delete', { id: 'zz' }], ['POST', '/kybernos-cloud/members/remove', {}], ['POST', '/kybernos-cloud/team/lessons/delete', { id: 1 }],
-  ['POST', '/kybernos-cloud/team/skills/delete', { id: 'zz' }], ['POST', '/kybernos-cloud/connections/delete', { id: 'zz' }],
+  ['POST', '/kybernos-cloud/team/skills/delete', { id: 'zz' }], ['POST', '/kybernos-cloud/team/automations/delete', { id: 'zz' }], ['POST', '/kybernos-cloud/connections/delete', { id: 'zz' }],
   ['POST', '/kybernos-miniapps/install', { id: 'zz-guard-live', html: '<b>x</b>' }], ['POST', '/kybernos-miniapps/uninstall', { id: 'zz-guard-live' }],
 ]
 
