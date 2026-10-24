@@ -28,7 +28,7 @@ falling back to `node ~/.dsh/tools/dsh-relance.mjs actives --json`. The tool the
 
 ## Files and settings
 
-- Reads `~/.dsh/tools/dsh-relance.mjs` (the source is `scripts/dsh-relance.mjs` in this repo). Env: `DSH_HOME`;
+- Reads `~/.dsh/tools/dsh-relance.mjs` when it exists, else `scripts/dsh-relance.mjs` of the suite (the source in this repo). Env: `DSH_HOME`;
   `DSH_PORT` only when `webServer` gives no port (default 3080).
 - `defineTool` is resolved lazily from `@deepseek-ai/dsh-tools` under `~/.dsh/profiles/web/node_modules`, then two
   Homebrew/global paths; otherwise a literal definition of the same shape is registered.
@@ -57,8 +57,8 @@ node packages/kybernos-relance/test-host.mjs     # fake script, sessionControlle
 
 ## Known limits
 
-- Nothing in this repository copies `dsh-relance.mjs` to `~/.dsh/tools/` (not verified how it gets there); without
-  it the tool answers `script_absent`.
+- The script is `~/.dsh/tools/dsh-relance.mjs` when the person has put one there (found first), else `scripts/dsh-relance.mjs` of the suite, which the release
+  archive carries (`outilRelance`). Nothing copies it into `tools/`; without either the tool answers `script_absent`.
 - The fallback shape was checked against `dsh-tools` 0.1.7-alpha.1 only (per the source comment).
 - The stop/start mechanics of the script on each OS are not verified here.
 - The tool description and results are French, as agent-facing text.

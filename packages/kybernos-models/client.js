@@ -2590,8 +2590,8 @@ window.__ModuleLoader__.load({
           // rows: the card first switches to the Providers tab (which alone
           // shows the native UX), then clicks — a single write path.
           uiSet('tab', 'providers')
-          const btn = Array.from(document.querySelectorAll('button'))
-            .filter((b) => /^add provider$/i.test((b.innerText || '').trim()))[0]
+          // Found by the attribute the button carries in every language (its label is translated: in French the old text match never found it and the click opened nothing).
+          const btn = document.querySelector('[data-kbm="prov-add"]')
           if (btn) btn.click()
         }
         // Mock-up A (2026-10-20): the anatomy of a provider card — logo tile, name + dot, one line under it, the action on the right — on the night blue.

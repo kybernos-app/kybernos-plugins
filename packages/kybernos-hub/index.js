@@ -34,6 +34,18 @@ const FICHIER_ACTIVATION = 'satellites-actives.json'
 // The real I/O of the Suite panel. Kept here (not in suite-host.mjs) so the logic stays testable.
 const FICHIER_CATALOGUE_DISTANT = 'catalogue-distant.json'
 
+/**
+ * Where the relaunch tool is: `<DSH home>/tools/dsh-relance.mjs` when it exists (the person's own copy, found first), else `scripts/dsh-relance.mjs` of the suite
+ * (`racine`), which the release archive carries (scripts/paquet.mjs) but nothing copies into `tools/`; `null` when neither exists.
+ */
+export const outilRelance = (dshHome, racine, existe = existsSync) => {
+  const chezLaPersonne = join(dshHome, 'tools', 'dsh-relance.mjs')
+  if (existe(chezLaPersonne)) return chezLaPersonne
+  const livre = join(racine, 'scripts', 'dsh-relance.mjs')
+  return existe(livre) ? livre : null
+}
+
+
 function suiteDeps (dshHome, hub) {
   const ici = dirname(fileURLToPath(import.meta.url))
   const racineDepot = join(ici, '..', '..')
@@ -43,7 +55,8 @@ function suiteDeps (dshHome, hub) {
   const catalogue = JSON.parse(readFileSync(join(ici, 'catalog.json'), 'utf8'))
   const fichier = join(dshHome, 'kybernos', FICHIER_ACTIVATION)
   const robot = join(ici, '..', '..', 'scripts', 'dsh-lifecycle.mjs')
-  const relance = join(dshHome, 'tools', 'dsh-relance.mjs')
+  // The relaunch tool: the copy under <DSH home>/tools if the person has one (an older hand-made copy keeps working), else the one the suite carries.
+  const outilDeRelance = () => outilRelance(dshHome, racineDepot)
   return {
     catalogue,
     hub,
@@ -99,7 +112,8 @@ function suiteDeps (dshHome, hub) {
     // The tool restarts the instance on the port it is given (3080 when none): the page's own port is passed, so a DSH that listens elsewhere
     // restarts itself and not whatever sits on 3080. The route reads it from the socket; DSH_PORT is the fallback (as in kybernos-relance).
     relancer: async (instance) => {
-      if (!existsSync(relance)) return { ok: false, error: 'relaunch-tool-missing' }
+      const relance = outilDeRelance()
+      if (relance === null) return { ok: false, error: 'relaunch-tool-missing' }
       const envPort = Number(process.env.DSH_PORT)
       const port = Number.isInteger(instance?.port) && instance.port > 0 ? instance.port : (Number.isInteger(envPort) && envPort > 0 ? envPort : null)
       const argv = [relance, 'relance', '--avec-autres', ...(port !== null ? ['--port', String(port)] : [])]

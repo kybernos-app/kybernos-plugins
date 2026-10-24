@@ -18,6 +18,7 @@ import { stableStreak as autoSkillStreak, skillSlug as autoSkillSlug, skillParts
 import { chooseWorkspace as autoWsChoose, idOf as autoWsIdOf, DEDICATED_TITLE as AUTO_WS_TITLE, DEDICATED_DIR as AUTO_WS_DIR } from './automation-workspace.mjs'
 import { recordFeedback, exportFeedback, relayReportOf } from './feedback-box.mjs'
 import { writeGuard } from './session-guard.mjs'
+import { kbArtKeepExt, kbArtNameOk } from './art-names.mjs'
 import { defaultState as onboardingDefault, publicView as onboardingView, complete as onboardingComplete, replay as onboardingReplay, chooseDomain as onboardingChooseDomain, aboutView as onboardingAbout, ownGoalsView as onboardingOwnGoals } from './onboarding-state.mjs'
 import { isSuggested as autoIsSuggested, suggestedTask as autoSuggestedTask, acceptedTask as autoAcceptedTask, refusalFor as autoSuggestRefusal, HOME_ID_RE as AUTO_HOME_ID_RE, runFrame as autoRunFrame } from './automation-suggest.mjs'
 import { learnTask as autoLearnTask, isLearnName as autoIsLearnName, LEARN_ID as AUTO_LEARN_ID } from './learn-business.mjs'
@@ -7488,7 +7489,9 @@ function boot(ctx) {
           } else {
             newName = base + ' copy' + ext
           }
-          if (/^[A-Za-z0-9][A-Za-z0-9 ._-]{0,119}$/.test(newName) === false) return { ok: false, error: 'invalid name (letters, digits, space, . _ -)' }
+          // A name typed without its extension keeps the old one (a file with no listed extension would vanish from Creations); the length is checked after.
+          if (action === 'rename') newName = kbArtKeepExt(newName, ext, (nm) => ARTIFACT_EXTS.has(kbArtifactExtOf(nm)))
+          if (kbArtNameOk(newName) === false) return { ok: false, error: 'invalid name (letters, digits, space, . _ - ( ) [ ] & \' + ,)' }
           let target2 = dir + '/' + newName
           let n = 2
           while (true) {
@@ -10327,6 +10330,9 @@ function boot(ctx) {
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/art-action', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        // Audit 2026-10-24: delete (`rm -f`), rename (`mv`) and duplicate (`cp`) of a person's file need DSH's signed session too, not only a strict Origin that any local program can forge.
+        const refused = writeGuard(req)
+        if (refused !== null) return sendJson(res, refused.status, { ok: false, error: refused.error })
         sendJson(res, 200, await artifactAction(await readJsonBody(req)))
       } }), 'kybernos: route art-action')
       // ── Registre de progression des artifacts (.progress.json) ─────────

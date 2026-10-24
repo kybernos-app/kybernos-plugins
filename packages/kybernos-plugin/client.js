@@ -1745,6 +1745,7 @@ let kbLocaleRead = () => 'en'
       'kbwr.cancel': { kybernos: 'Annuler', en: 'Cancel' },
       'kbwr.block.old': { kybernos: 'Cette automatisation demande avant d’agir, et aucun de tes ordinateurs cloud ne sait encore demander : il doit être mis à jour. Passe-la en mode auto pour la publier maintenant.', en: 'This automation asks before acting, and none of your cloud computers can ask yet: it has to be updated. Switch it to auto to publish it now.' },
       'kbwr.opt.old': { kybernos: 'À mettre à jour pour demander', en: 'Needs an update to ask' },
+      'kbwr.block.webhook': { kybernos: 'Cette automatisation démarre par un webhook, et un ordinateur cloud ne peut pas encore en recevoir. Elle reste sur cet ordinateur.', en: 'This automation starts from a webhook, and a cloud computer cannot receive webhooks yet. It stays on this computer.' },
       'kbwr.block.none': { kybernos: 'Tu n’as pas encore d’ordinateur cloud. Ouvre la page de ton compte pour en créer un.', en: 'You have no cloud computer yet. Open your account page to create one.' },
       'kbwr.block.off': { kybernos: 'Connecte ton compte Kybernos pour publier sur un ordinateur cloud.', en: 'Connect your Kybernos account to publish to a cloud computer.' },
       'kbwr.step.send': { kybernos: 'Envoi de l’automatisation', en: 'Sending the automation' },
@@ -6986,6 +6987,8 @@ const kbwCanAsk = (c) => c !== null && c !== undefined && typeof c === 'object' 
 /** Why an automation cannot be published now (a key of the closed list off, none, old), or null. An automation that asks first needs a computer that can ask. */
 const kbwBlock = (t, computers, connected) => {
   if (t === null || t === undefined || typeof t !== 'object') return 'none'
+  // Said before anything else: a cloud computer has no door for a webhook yet (the platform serves no `POST /v1/hooks/{id}`), so the automation would be paused here and never start there.
+  if (t.schedule !== null && t.schedule !== undefined && typeof t.schedule === 'object' && t.schedule.mode === 'webhook') return 'webhook'
   if (connected !== true) return 'off'
   if (!Array.isArray(computers) || computers.length === 0) return 'none'
   if (t.approvals !== 'auto' && computers.some(kbwCanAsk) !== true) return 'old'
@@ -12639,7 +12642,8 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         const roleSelect = (valeur, onChange, disabled, mark) => h('select', { className: 'kbsp-sel', value: valeur, disabled: disabled === true || busy === true, 'data-kb': mark, onChange: (e) => onChange(e.target.value) },
           h('option', { value: 'edit' }, T('kbsd.role.edit')),
           h('option', { value: 'view' }, T('kbsd.role.view')))
-        const nomMembre = (m) => (m.user_id === moi.id ? (moi.name || moi.email || T('kbsd.you')) : T('kbsd.member') + ' ' + String(m.user_id).slice(0, 8))
+        // The server names its members (`name`, `email`); the id is only the last resort, for one it names no further.
+        const nomMembre = (m) => (m.user_id === moi.id ? (moi.name || moi.email || T('kbsd.you')) : (m.name || m.email || T('kbsd.member') + ' ' + String(m.user_id).slice(0, 8)))
         const tri = liste.slice().sort((x, y) => (x.role === 'owner' ? 0 : 1) - (y.role === 'owner' ? 0 : 1))
         const accesEquipe = acc.access === 'team' ? (acc.role === 'edit' ? 'edit' : 'view') : 'off'
         const equipeOk = equipe === true
@@ -18454,7 +18458,8 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         }
       }, [sidFromStore])
       const inner = (() => {
-        if (s.view === 'gallery' || s.view === 'marketplace' || s.view === undefined) return h(TeamsHub, props)
+        // 'kybers' is the name Search everywhere gives the Agent Teams page (kybernos-search/sources.mjs): without it here a team result opened the old read-only panel below.
+        if (s.view === 'gallery' || s.view === 'marketplace' || s.view === 'kybers' || s.view === undefined) return h(TeamsHub, props)
         if (s.view === 'artifacts') return h(ArtifactsPage, props)
         if (s.view === 'skills') return h(KbSkillsView, props)
         if (s.view === 'dashboards') return h(KbDashboardsView, props)

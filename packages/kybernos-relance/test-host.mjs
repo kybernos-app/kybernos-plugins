@@ -38,7 +38,7 @@ if (argv[0] === 'actives') {
 process.env.DSH_HOME = FAUX_HOME
 
 const module = await import(join(ICI, 'index.js'))
-const { optionsOutil, definitionLiteral, specDefineTool, filtrerActives, enregistrer, name } = module
+const { optionsOutil, definitionLiteral, specDefineTool, filtrerActives, enregistrer, name, outilRelance } = module
 
 const SESS_ME = 'session-me'
 const SESS_A = 'session-a'
@@ -105,6 +105,16 @@ async function attendreArgv (attendu, timeoutMs = 5000) {
 
 async function main () {
   console.log(`kybernos-relance · hôte · faux DSH_HOME=${FAUX_HOME}\n`)
+
+  console.log('0. où est le script de relance (2026-10-24 : rien ne le copie dans ~/.dsh/tools)')
+  {
+    const h = '/dsh-home'; const racine = '/suite'
+    const chez = h + '/tools/dsh-relance.mjs'; const livre = racine + '/scripts/dsh-relance.mjs'
+    const avec = (...presents) => (p) => presents.includes(p)
+    check('la copie de la personne passe en premier', outilRelance(h, racine, avec(chez, livre)) === chez)
+    check('sans elle, le script que la suite embarque', outilRelance(h, racine, avec(livre)) === livre)
+    check('sans aucun des deux, le chemin de la personne (le message le nomme)', outilRelance(h, racine, avec()) === chez)
+  }
 
   console.log('1. filtrage des sessions (natif `running`)')
   const items = [

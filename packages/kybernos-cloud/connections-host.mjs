@@ -29,6 +29,7 @@ const SAYS = {
   too_many_requests: 'Too many calls in a short time. Wait a little before the next one.',
   invalid_params: 'The server refused the arguments. Check them against the tool description.',
   not_on_this_server: 'This server does not offer connected apps.',
+  connections_disabled: 'This server does not offer connected apps right now.',
   invalid_response: 'The server answered with something unexpected.',
   tool_error: 'The call failed.',
 }
@@ -52,6 +53,9 @@ export const createConnections = ({ apiCall, readState, isConnected, server, pro
     return { endpoint, state }
   }
 
+  /** This server has no connections at all: Composio is not configured on it (503 `connections_disabled`) or it is an older one without the routes (404 on a route that names no connection). */
+  const notOffered = (made) => made.ok !== true && (made.error === 'connections_disabled' || made.error === 'not_on_this_server')
+
   const rest = async (g, path, { method = 'GET', body, named = false } = {}) => {
     const res = await apiCall(path, { method, token: g.state.token, ...(body === undefined ? {} : { body }) })
     const failure = connectionsFailure(res.status, res.body, { named })
@@ -62,6 +66,9 @@ export const createConnections = ({ apiCall, readState, isConnected, server, pro
     const g = gate()
     if (g.done !== undefined) return g.done
     const made = await rest(g, connectionsPaths.list + (queryOf(req).get('refresh') === '1' ? '?refresh=1' : ''))
+    // The profile of the built-in server says « connections » without asking: the server is the one that knows. Told « not here », the page does not offer the Kybernos mode (and does not make it
+    // the default of a person with no key of their own), as it does for a server whose discovery says so.
+    if (notOffered(made)) return { ok: true, offered: false, connected: true }
     if (made.ok !== true) return made
     const list = asConnectionList(made.body)
     // `web`: the active server's web app, where the plans are: the page offers it when the plan does not include connections. The profile's address is
@@ -74,6 +81,7 @@ export const createConnections = ({ apiCall, readState, isConnected, server, pro
     const g = gate()
     if (g.done !== undefined) return g.done
     const made = await rest(g, connectionsPaths.apps)
+    if (notOffered(made)) return { ok: true, offered: false, connected: true }
     if (made.ok !== true) return made
     const list = asAppList(made.body)
     return list === null ? { ok: false, offered: true, connected: true, error: 'invalid_response' } : { ok: true, offered: true, connected: true, ...list }

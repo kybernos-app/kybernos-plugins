@@ -131,8 +131,9 @@ let embedStatus = 200
 let embedShape = 'ok'
 const failDelete = new Set()   // ids whose DELETE answers 500 (a failure half way through a tidy-up)
 let onDelete = null            // called with the memory right before its DELETE is served
-let embedPlanBody = true
+let embedPlanBody = true // true: the LiteLLM-era body, 'openai': the plain OpenAI envelope of the server without LiteLLM, false: another 403
 // Ce que la vraie route repond a une cle `free` (mesure sur le tier dev, 2026-10-05).
+const PLAN_REFUSED_OPENAI = { error: { message: 'This model is not in your plan.', type: 'permission_error', param: 'model', code: 'model_not_in_plan' } }
 const PLAN_REFUSED = { error: { message: 'model-not-available-plan', type: 'permission_error', param: null, code: '403', provider_specific_fields: { error: 'model-not-available-plan', model: 'kybernos/embed', required_tier: 'solo', plan: 'free' } } }
 const embeddings = new Map()
 // Un « embedding » deterministe : sac de mots haches sur 1024 dimensions, norme 1.
@@ -366,7 +367,7 @@ const api = createServer((req, res) => {
       const a = req.headers.authorization
       seen.embedCalls.push({ auth: a, model: body === null ? null : body.model, n: body !== null && Array.isArray(body.input) ? body.input.length : -1, input: body === null ? null : body.input })
       if (tokenValid !== true || a !== 'Bearer ' + TOKEN) return send(401, { error: 'invalid session' })
-      if (embedStatus !== 200) return send(embedStatus, embedStatus === 403 && embedPlanBody ? PLAN_REFUSED : { error: 'refused' })
+      if (embedStatus !== 200) return send(embedStatus, embedStatus === 403 && embedPlanBody === 'openai' ? PLAN_REFUSED_OPENAI : (embedStatus === 403 && embedPlanBody ? PLAN_REFUSED : { error: 'refused' }))
       return send(200, { object: 'list', data: body.input.map((t, i) => ({ object: 'embedding', index: i, embedding: embedShape === 'short' ? [1, 2, 3] : vec(t) })) })
     }
     // ── Mémoire du compte (contrat relevé sur l'API le 22/09/2026) ──────────
@@ -3302,6 +3303,8 @@ try {
   assert.deepEqual(noCredit, { ok: false, error: 'credits_epuises' })
   embedStatus = 403
   assert.deepEqual(await mod.embedTexts(readState(), ['x']), { ok: false, error: 'offre_requise', requiredTier: 'solo', plan: 'free' }, 'la vraie route de dev : model-not-available-plan, il faut Solo')
+  embedPlanBody = 'openai'
+  assert.deepEqual(await mod.embedTexts(readState(), ['x']), { ok: false, error: 'offre_requise', requiredTier: null, plan: null }, 'le serveur sans LiteLLM : model_not_in_plan dans l enveloppe OpenAI, aucun palier nomme')
   embedPlanBody = false
   assert.deepEqual(await mod.embedTexts(readState(), ['x']), { ok: false, error: 'refus_403' }, 'un autre 403 garde ses mots generiques')
   embedPlanBody = true
@@ -3757,6 +3760,13 @@ try {
     const invSaved = readFileSync(statePath, 'utf8')
     writeFileSync(statePath, JSON.stringify({ ...JSON.parse(invSaved), workspaces: [{ id: 'ws-1', name: 'My workspace' }], active_workspace_id: 'ws-1' }, null, 2), { mode: 0o600 })
     invites.calls.length = 0
+
+    // (0) the members the Share panel lists keep the name and the e-mail the server sends (T1-5, 2026-10-24): it kept the id and role only, so every member but the person was « Member 3f2a91c0 ».
+    const roster = await hit('/kybernos-cloud/members?workspace_id=ws-1', 'GET')
+    assert.equal(roster.body.ok, true, JSON.stringify(roster.body))
+    assert.deepEqual(roster.body.members.map((m) => [m.user_id, m.name, m.email]), [['u-0', 'Member 0', 'm0@example.test']], 'the host keeps what the server names')
+    assert.equal(leaks(roster.body), false)
+    ok('members read: the name and the e-mail of each member survive (the panel names people, not ids)')
 
     // (1) an e-mail goes to /invitations with exactly { email, role } and the account token; the host says ok
     const sent = await invite({ email: '  Ada@Example.TEST ', role: 'member' })

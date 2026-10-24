@@ -33,7 +33,17 @@ import { fileURLToPath } from 'node:url'
 export const name = 'kybernos-relance'
 
 const DSH_HOME = process.env.DSH_HOME || join(homedir(), '.dsh')
-const SCRIPT_RELANCE = join(DSH_HOME, 'tools', 'dsh-relance.mjs')
+/**
+ * Where the relaunch script is: `<DSH home>/tools/dsh-relance.mjs` when it exists (the person's own copy, found first), else `scripts/dsh-relance.mjs` of the suite, which the
+ * release archive carries (scripts/paquet.mjs) but nothing copies into `tools/`. When neither exists the first path is returned, so a message can name it.
+ */
+export const outilRelance = (dshHome, racine, existe = existsSync) => {
+  const chezLaPersonne = join(dshHome, 'tools', 'dsh-relance.mjs')
+  if (existe(chezLaPersonne)) return chezLaPersonne
+  const livre = join(racine, 'scripts', 'dsh-relance.mjs')
+  return existe(livre) ? livre : chezLaPersonne
+}
+const scriptRelance = () => outilRelance(DSH_HOME, join(dirname(fileURLToPath(import.meta.url)), '..', '..'))
 const DELAI_DEFAUT_S = 20
 const OUTIL = 'relancer_dsh'
 
@@ -101,7 +111,7 @@ function sessionsActives (ctx, sessionId) {
 /** Repli quand `sessionController` n'est pas monté : la CLI dit exactement la même chose. */
 function sessionsActivesParScript (port) {
   return new Promise((resolve) => {
-    execFile(process.execPath, [SCRIPT_RELANCE, 'actives', '--json', '--port', String(port)], {
+    execFile(process.execPath, [scriptRelance(), 'actives', '--json', '--port', String(port)], {
       encoding: 'utf8',
       timeout: 20_000,
       env: { ...process.env, DSH_HOME },
@@ -165,8 +175,8 @@ export function optionsOutil (ctx) {
       const options = brut && typeof brut === 'object' ? brut : {}
       const sessionId = exec?.agent?.id
       const port = portCourant(ctx)
-      if (!existsSync(SCRIPT_RELANCE)) {
-        return { coupe: false, raison: 'script_absent', message: `script not found: ${SCRIPT_RELANCE}` }
+      if (!existsSync(scriptRelance())) {
+        return { coupe: false, raison: 'script_absent', message: `script not found: ${scriptRelance()}` }
       }
       if (typeof sessionId !== 'string' || sessionId.length === 0) {
         return { coupe: false, raison: 'agent_inconnu', message: 'cannot identify the current session (called outside a turn?)' }
@@ -236,7 +246,7 @@ export function optionsOutil (ctx) {
 
       // 3. Accord obtenu (ou aucune autre session) : relance détachée.
       const delai = Math.min(300, Math.max(5, Number.isFinite(Number(options.delai)) && Number(options.delai) > 0 ? Number(options.delai) : DELAI_DEFAUT_S))
-      const argv = [SCRIPT_RELANCE, 'relance', '--avec-autres', '--session', sessionId, '--delay', String(delai), '--port', String(port)]
+      const argv = [scriptRelance(), 'relance', '--avec-autres', '--session', sessionId, '--delay', String(delai), '--port', String(port)]
       if (typeof options.motif === 'string' && options.motif.length > 0) argv.push('--motif', options.motif)
       try {
         const enfant = spawn(process.execPath, argv, { detached: true, stdio: 'ignore', env: { ...process.env, DSH_HOME } })

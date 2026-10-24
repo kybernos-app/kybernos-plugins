@@ -184,9 +184,23 @@ const archive = (kyber, rows, reason) => {
   appendFileSync(join(memoryDir(kyber), ARCHIVE), rows.map((r) => JSON.stringify({ ...r, archivedAt: stamp, archivedBecause: reason })).join('\n') + '\n')
 }
 
-/** Adds a lesson. The kyber folder must exist (a typo must not invent a kyber). */
+/**
+ * Does this kyber exist? Its folder must (a typo must not invent a kyber), with one exception: `default`, the team of every chat that has none (the agent's
+ * `lesson_write` uses it when it is given no kyber). Nobody creates that folder, so on a fresh install the first lesson found no team and every lesson was refused;
+ * it is created here, once, and only for that name.
+ */
+const kyberExiste = (kyber) => {
+  if (!isKyberId(kyber)) return false
+  const dir = join(kybersRoot(), kyber)
+  if (isDir(dir)) return true
+  if (kyber !== 'default') return false
+  try { mkdirSync(dir, { recursive: true }) } catch (e) { return false }
+  return isDir(dir)
+}
+
+/** Adds a lesson. The kyber folder must exist (a typo must not invent a kyber; `default` is made on first use). */
 export const addLesson = (kyber, input) => {
-  if (!isKyberId(kyber) || !isDir(join(kybersRoot(), kyber))) return { ok: false, error: 'kyber_inconnu', kybers: listKybers() }
+  if (!kyberExiste(kyber)) return { ok: false, error: 'kyber_inconnu', kybers: listKybers() }
   const text = input !== null && typeof input === 'object' && typeof input.text === 'string' ? input.text.trim() : ''
   if (text === '') return { ok: false, error: 'texte_vide' }
   const lessons = readLessons(kyber)
@@ -288,7 +302,7 @@ export const activeKyber = (sessionId) => {
  * could not hold them (the cap), nothing is written and the caller says so. A lesson whose text is already there is skipped.
  */
 export const restoreLessons = (kyber, rows) => {
-  if (!isKyberId(kyber) || !isDir(join(kybersRoot(), kyber))) return { ok: false, error: 'kyber_inconnu' }
+  if (!kyberExiste(kyber)) return { ok: false, error: 'kyber_inconnu' }
   const lessons = readLessons(kyber)
   const have = new Set(lessons.map((l) => normalize(l.text)))
   const add = (Array.isArray(rows) ? rows : []).filter((r) => r !== null && typeof r === 'object' && typeof r.text === 'string' && r.text.trim() !== '' && !have.has(normalize(r.text))).map(cleanRow)
