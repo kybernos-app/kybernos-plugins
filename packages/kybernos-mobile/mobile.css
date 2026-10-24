@@ -75,6 +75,8 @@
     box-shadow: 0 0 32px rgba(0, 0, 0, .35);
     overflow: hidden;
     padding-top: env(safe-area-inset-top, 0px);
+    /* The home indicator: the account card at the foot of the drawer must stand above it (an installed copy has no browser bar to push it up). */
+    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
   [data-slot="root"] > div:has(> [data-shell-overlay]):not([data-sidebar-collapsed]) > div:has(> [data-slot="sidebar"]) {
     transform: none;

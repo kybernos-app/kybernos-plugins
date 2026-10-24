@@ -64,6 +64,26 @@ drew under the iPhone's home indicator.
 A style edit reaches the next page load without restarting DSH (the host re-reads `mobile.css` when its modification
 time changes); a change to the host half (`index.js`) still needs a restart.
 
+### Installing it on the home screen (iPhone and Android)
+
+DSH's own manifest names the app « DeepSeek Harness », asks for `display: fullscreen` (iOS has no such mode), has one SVG
+icon and no iOS tag: measured on an iPhone simulator (2026-10-24), « Add to Home Screen » gave the engine's identity.
+`pwa.mjs` gives the page the product's own, through plugin seams only (no engine patch):
+
+- **Head tags**, injected with the stylesheet (`webserver/index-inject`): the Kybernos manifest (placed before the engine's, the
+  first one in the document wins), `apple-touch-icon`, `apple-mobile-web-app-capable`, the app title, a black status bar,
+  and a `theme-color` for the dark and the light scheme. Every link is relative, so a DSH served under a path prefix works.
+- **`GET /kybernos-mobile/pwa/<file>`**: the manifest (`name` Kybernos, `display: standalone` with a `minimal-ui` fallback,
+  `start_url` and `scope` at the page root) and four PNG icons (192, 512, a maskable 512 whose K stays inside the central
+  80 %, and the 180 px home-screen icon). The icons are **drawn in code** (the K of the brand mark, anti-aliased, PNG
+  encoded with `zlib`, kept in memory after the first request): the repository tracks no media (`scripts/garde-depot.mjs`).
+  The routes sit behind the stylesheet's Host and Origin fences.
+- **Home indicator**: the drawer pads `env(safe-area-inset-bottom)` as it pads the top, so its account card stands above it in an
+  installed copy (`viewport-fit=cover` is added by `client.js`).
+- `KYBERNOS_MOBILE_PWA=0` turns the tags and the routes off (the layout stays).
+
+Not covered: a real iPhone, notifications, a service worker for the main app (the phone-link PWAs have their own).
+
 ### Phone and channels (one screen)
 
 One screen, two blocks, shown in two places (decision of 2026-10-19; the old « Remote control » entry, its popover and the duplicated panel are gone; reorganised on 2026-10-22: the remote control is walled off from Kaby, which now holds its messaging apps AND its computer):
@@ -132,7 +152,7 @@ The full protocol, the server's contract and the security model are in [`docs/de
 
 ## Tests
 
-`test-phone-refusal.mjs` (the phone page, run with a fake DOM: a request the computer refuses for a phone shows one line, « This cannot be done from the phone — do it on the computer. »),
+`test-pwa.mjs` (the manifest, the four PNGs decoded and measured: valid chunks and CRCs, brand colours, the maskable K inside the safe circle, the head tags, the route and its fences, the mounting and a refused route), `test-phone-refusal.mjs` (the phone page, run with a fake DOM: a request the computer refuses for a phone shows one line, « This cannot be done from the phone — do it on the computer. »),
 `test-phone-apps.mjs` (the two manifests, the two pages, the strings, the service worker both apps share), `test-host.mjs` (the row, the routes and their fences, the stylesheet's promises), `test-client.mjs` (the contract, the
 tap and swipe decisions, the sheet, the page measures, Settings), `test-remote-ui.mjs` (the screen's states, the window, a failed poll), `test-help.mjs`, `test-remote-e2e.mjs` (the handshake and its attacks), `test-remote-host.mjs` (a real pairing,
 replay and revocation through a stand-in relay and a stand-in DSH), `test-qr.mjs`, `test-dsh-home.mjs`; and on the real

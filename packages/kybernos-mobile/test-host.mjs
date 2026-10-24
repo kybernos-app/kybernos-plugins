@@ -7,6 +7,9 @@ import { join } from 'node:path'
 process.env.KYBERNOS_MOBILE_REMOTE = '0'
 const { CSS_FILE, ROUTE, SHEET_ID, REMOTE_PREFIX, REMOTE_ROUTES, apply, resetCache, serveRemote, serveSheet, sheetCss, sheetRows } = await import('./index.js')
 const REMOTE_COUNT = Object.keys(REMOTE_ROUTES).length
+// The web-app layer's own routes (the manifest and the icons) sit between the stylesheet's route and the remote half's (test-pwa.mjs covers them).
+const { FILES: PWA_FILES, PWA_PREFIX } = await import('./pwa.mjs')
+const PWA_COUNT = PWA_FILES.length
 
 let failed = 0
 const check = (name, ok, detail) => {
@@ -55,6 +58,14 @@ console.log('the stylesheet')
   check('the stats strip under the card is hidden on a phone', /\[data-composer-dock\]\s*\{\s*display:\s*none !important/.test(withoutComments))
   check('the right bar covers the screen in DSH\'s own full-screen state (left alone it is 0 px high under the chat)', /\[data-rightbar-fullscreen\] > \[data-rightbar-col\]/.test(withoutComments))
   check('the drawer and the menu button respect the safe areas', /env\(safe-area-inset-top/.test(withoutComments) && /env\(safe-area-inset-bottom/.test(withoutComments))
+  // Measured on an iPhone 18 Pro simulator (installed copy, 2026-10-24): the account card at the foot of the drawer touched the bottom edge, under the home indicator.
+  check('the drawer itself pads both the notch and the home indicator', (() => {
+    const at = withoutComments.indexOf('translateX(-105%)')
+    if (at < 0) return false
+    const open = withoutComments.lastIndexOf('{', at)
+    const body = withoutComments.slice(open, withoutComments.indexOf('}', at))
+    return /padding-top:\s*env\(safe-area-inset-top,\s*0px\)/.test(body) && /padding-bottom:\s*env\(safe-area-inset-bottom,\s*0px\)/.test(body)
+  })())
   check('the browser scales text up on a phone (the app was too small): text-size-adjust, not zoom', /text-size-adjust:\s*118%/.test(withoutComments) && !/\bzoom\s*:/.test(withoutComments))
   check('the drawer leaves part of the chat to tap (never the full width)', /width:\s*min\(84vw,\s*330px\)/.test(withoutComments))
   check('what the browser half marks as too wide has its rule: a grid, a wrapping toolbar, tabs that slide, a squeezed item, a setting', ['grid', 'wrap', 'scroll', 'keep', 'stack'].every((k) => new RegExp('\\[data-kbmob-fit~="' + k + '"\\]').test(withoutComments)))
@@ -119,10 +130,11 @@ console.log('mounting')
   try { apply(ctx) } catch (e) { threw = e }
   check('apply does not throw', threw === null)
   check('it listens to index-inject and mounts the stylesheet route first', handlers.has('webserver/index-inject') && routes.length >= 1 && routes[0].path === ROUTE && routes[0].kind === 'exact', routes)
-  check('and the remote half\'s routes after it, all exact', routes.length === 1 + REMOTE_COUNT && routes.slice(1).every((r) => r.kind === 'exact' && r.path.startsWith(REMOTE_PREFIX)), routes.map((r) => r.path))
+  check('then the web-app layer\'s routes, all exact', routes.slice(1, 1 + PWA_COUNT).length === PWA_COUNT && routes.slice(1, 1 + PWA_COUNT).every((r) => r.kind === 'exact' && r.path.startsWith(PWA_PREFIX)), routes.map((r) => r.path))
+  check('and the remote half\'s routes after them, all exact', routes.length === 1 + PWA_COUNT + REMOTE_COUNT && routes.slice(1 + PWA_COUNT).every((r) => r.kind === 'exact' && r.path.startsWith(REMOTE_PREFIX)), routes.map((r) => r.path))
   const table = []
   handlers.get('webserver/index-inject')(table)
-  check('the handler adds the row', table.length === 1 && table[0].html.includes('@media (max-width: 700px)'))
+  check('the handler adds the web-app tags, then the stylesheet row', table.length === 2 && table[0].html.includes('rel="manifest"') && table[1].html.includes('@media (max-width: 700px)'))
   const throwingTable = { push: () => { throw new Error('table closed') } }
   const realError = console.error; console.error = () => {}
   let escaped = null
@@ -134,7 +146,7 @@ console.log('mounting')
   const late = []
   const lateCtx = { effect: (fn) => fn(), on: () => () => {}, get: () => undefined, inject: (names, fn) => { late.push(names); fn({ webServer: svc }) } }
   apply(lateCtx)
-  check('without the service yet it waits for it, then mounts the route', JSON.stringify(late) === JSON.stringify([['webServer']]) && routes.length === 2 * (1 + REMOTE_COUNT))
+  check('without the service yet it waits for it, then mounts the route', JSON.stringify(late) === JSON.stringify([['webServer']]) && routes.length === 2 * (1 + PWA_COUNT + REMOTE_COUNT))
   // a DSH without ctx.on (or whose effect throws) must still start
   const broken = { effect: () => { throw new Error('no effect') }, on: () => () => {}, get: () => undefined, inject: () => { throw new Error('no inject') } }
   console.error = () => {}
