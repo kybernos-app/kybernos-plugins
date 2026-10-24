@@ -5,7 +5,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { definitionOf, opsOf, codeOf, statesOf, runsOf, approvalsOf, createPublish, CODES, MAX_OPS } from './computers-publish.mjs'
+import { definitionOf, opsOf, codeOf, routeAbsent, statesOf, runsOf, approvalsOf, createPublish, CODES, MAX_OPS } from './computers-publish.mjs'
 
 let pass = 0
 const ok = (label) => { pass += 1; console.log('  ✓ ' + label) }
@@ -49,6 +49,14 @@ for (const code of CODES.filter((c) => c !== 'refused' && c !== 'unreachable')) 
 assert.equal(codeOf(409, { error: 'something_new' }), 'refused', 'a code that is not on the list is not passed on')
 assert.equal(codeOf(409, { error: '<script>', message: 'words' }), 'refused')
 assert.deepEqual([0, 400, 403, 404, 422, 429, 503, 500, 409].map((s) => codeOf(s, null)), ['unreachable', 'invalid_tasks', 'not_allowed', 'no_computer', 'approval_path_missing', 'rate_limited', 'tasks_unavailable', 'refused', 'refused'])
+// A server that has no outbox route answers its generic 404 for an unknown path: that is « this server cannot keep automations », never « your computer is gone ».
+const NO_ROUTE = { error: 'not_found', message: 'No such route.', request_id: 'r1' }
+assert.equal(routeAbsent(404, NO_ROUTE), true)
+assert.equal(routeAbsent(404, { error: 'not_found', message: 'no such route' }), true, 'the words are read without case')
+for (const [status, body] of [[404, null], [404, {}], [404, { error: 'not_found' }], [404, { error: 'not_found', message: 'Computer not found.' }], [404, { error: 'no_computer' }], [403, NO_ROUTE], [500, NO_ROUTE], [200, NO_ROUTE], [404, 'No such route.']]) assert.equal(routeAbsent(status, body), false, status + ' ' + JSON.stringify(body))
+assert.equal(codeOf(404, NO_ROUTE), 'tasks_unavailable', 'an absent route is told as the server not keeping automations')
+assert.equal(codeOf(404, { error: 'not_found', message: 'Computer not found.' }), 'no_computer', 'a 404 about a computer stays « no computer »')
+assert.equal(codeOf(404, { error: 'no_computer' }), 'no_computer')
 ok('codes: the platform\'s own when it is on the list, else one from the status, never its words')
 
 // 4. the states
@@ -122,6 +130,26 @@ for (const [status, body, want] of [[409, { error: 'run_hours_exhausted', messag
   assert.deepEqual([r.ok, r.error], [false, want], status + ' ' + JSON.stringify(body))
   assert.equal(JSON.stringify(r).includes('words'), false, 'the platform\'s words are not passed on')
 }
+// A server that does not have the outbox routes (origin/dev before the computers-outbox branch): the generic 404 of an unknown path, on every call.
+{
+  const gone = createPublish({ readState: () => connected, isConnected: () => true, apiCall: fakeApi([wsAnswer, { when: (p) => p.startsWith('/v1/workspaces/' + WS + '/computers/'), then: { status: 404, body: NO_ROUTE } }]) })
+  const q = new URLSearchParams('computerId=' + COMPUTER)
+  const A = '3f2a1c10-0000-4000-8000-0000000000a1'
+  const said = [
+    (await gone.publish({ computerId: COMPUTER, ops: [{ op: 'delete', ref: 'task-a' }] })).error,
+    (await gone.states(q)).error,
+    (await gone.runs(q)).error,
+    (await gone.approvals(q)).error,
+    (await gone.decide({ computerId: COMPUTER, id: A, decision: 'denied' })).error,
+  ]
+  assert.deepEqual(said, ['tasks_unavailable', 'tasks_unavailable', 'tasks_unavailable', 'tasks_unavailable', 'tasks_unavailable'], 'no call tells the person their computer is gone when the server just lacks the route')
+  // the same 404 about the thing itself is still said as before
+  const about = createPublish({ readState: () => connected, isConnected: () => true, apiCall: fakeApi([wsAnswer, { when: (p) => p.startsWith('/v1/workspaces/' + WS + '/computers/'), then: { status: 404, body: { error: 'not_found', message: 'No such computer.' } } }]) })
+  assert.equal((await about.publish({ computerId: COMPUTER, ops: [{ op: 'delete', ref: 'task-a' }] })).error, 'no_computer')
+  assert.equal((await about.states(q)).error, 'no_computer')
+  assert.equal((await about.decide({ computerId: COMPUTER, id: A, decision: 'denied' })).error, 'unknown', 'an approval that is not there is still « unknown »')
+}
+ok('a server without the outbox routes: every call says « the server cannot keep automations », while a 404 about the computer or the approval keeps its word')
 {
   const off = createPublish({ readState: () => null, isConnected: () => false, apiCall: async () => { throw new Error('must not be called') } })
   assert.deepEqual(await off.publish({ computerId: COMPUTER, ops: [{ op: 'delete', ref: 'a' }] }), { ok: false, error: 'not_connected' })
