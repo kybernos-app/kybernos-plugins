@@ -174,6 +174,48 @@ block of `client.js` (every text is an English / French pair; the other language
 - **No image file is shipped.** The repository holds no media (`garde-depot.mjs`), so the cover of a template page is drawn in code (two inks on
   paper, halftone dots, a misregistered glyph), the compact cards carry no cover at all, and the logos come from the catalogue at run time.
 
+## Team: automations a team shares (the « Team » segment)
+
+A third segment, **Team**, next to **Yours** and **Discover** (the team's initial and, for an owner or admin, the count of proposals waiting). A Team keeps a private
+catalogue of automations: a member proposes one of theirs, an owner or admin approves it, every member installs it as a **paused copy that belongs to them**. The
+contract with the server is `docs/dev/team-automations-contract.md`; this page is its third piece. The block is `Team automations` in `client.js` (the pure rules between
+`<kbta-core>` markers, then the screens, then `kybers: team automations styles`), every text a `kbta.*` key in both languages.
+
+- **Three halves that do not import each other; the page moves the data.** The relay `/kybernos-cloud/team/automations*` (kybernos-cloud: list, `item`, `check`, `add`,
+  `review`, `retire`, `delete`) gives the shared catalogue; the local routes `/kybernos/automation/team-{pack,copies,install,update}` (this plugin's host) read and write
+  the person's own automations. The server never sees a local id, and a prompt never goes anywhere but to the relay (to propose) or to the host (to install).
+- **The segment says why it cannot be used, in words.** The summary call is `…?view=approved&limit=1`. A page that is not JSON means kybernos-cloud is not loaded: the
+  segment is not drawn. Otherwise: signed out (`non connecte`, `non_connecte`, `connected: false`), no plan (`plan_required`, `offre_requise`), a personal space (the same
+  answers, told apart by `/kybernos-cloud/status`: the active space is `personal`), no team space (`aucun_espace`), a server without the routes (`not_on_this_server`),
+  a session that ended (`reconnect_required`) or a dropped connection (`network`) each have a screen with one way out (open the account sheet, the page of the plans of the
+  active server, Settings › Servers, Try again). A word nobody planned is a screen too, with its code. Every word of the relay or of the host has a sentence
+  (`kbta.e.*`), and a refusal never leaves a sheet on « Sending… ».
+- **Approved / Mine / To review** (owners and admins only), a search over the name, the description, the author and the apps. A row says When (the page's own words for a
+  schedule: no zone in a Team definition, each member reads it in theirs), Needs (an app that is not connected says so), the version and the author, and one button:
+  **Install**, **Update to vN** (the copy is of another version) or **Installed** (off). That is decided by `kbtaRelation` from `team-copies`, never by the server.
+  An owner or admin also has **Retire** (after a confirmation: members keep their copy).
+- **Propose** (the row action « Propose to team… » of Yours, the page of an automation's ⋯ menu, or the button of the tab): choose one, the host packs it (`team-pack`),
+  the sheet shows what the team will see, a **short description** (pre-filled from the host's sentence, editable, 1 to 500 characters once trimmed) and what never travels,
+  then a **dry run** on the server (`…/check`) says « Checked » or shows the secret by field and line (the line itself, with anything that looks like a secret hidden). The
+  note is limited to 2 000 characters, never cut for the person: Send stays off and says why. Name, description and prompt go trimmed. An owner or admin **adds**: the
+  sheet says it is available right away.
+- **Review**: the proposal and, for an update, the approved version it replaces are downloaded (the only prompts the tab fetches); « Changes since vN » is a line diff
+  plus what changed in the name, the time and the apps. Refusing needs a reason (2 000 characters at most).
+- **Install**: where it runs (this computer, or the cloud computer **only** when the tab « Where it runs » would allow it, `kbwBlock`, otherwise off with that reason),
+  how it asks (**Ask me first** by default), and the switch « Turn it on after installing ». **The page, not the host, knows which apps are connected** (the Connectors
+  state the project pages read): while an app the automation needs is missing, or cannot be told, the switch is off and the host is sent `turnOn: false`. A copy for the cloud is
+  installed paused here, linked to the computer (`cloud-link`) and sent with the person's zone; if the computer refuses, the link is undone and the copy stays here.
+  An every-minute rhythm (the host answers `frequent schedule`) is a question to the person; `confirmFrequent: true` goes only after their yes.
+- **Update**: what changed since the version the copy was made from is computed from the mark's `base` (read from the automation list: `team-copies` does not carry it);
+  an untouched copy is simply replaced; an edited one asks (**Keep my copy**, **Save mine as a separate automation, then update**, **Replace**) and **starts on the choice that
+  loses nothing**. « Keep » asks the host nothing.
+- **What the contract leaves open, and what the page does.** The version has no number in the contract: the page says « v4 » when the row carries `revision`, else `#` and the
+  first seven characters of the hash. The relay's list is read as `automations` and an item as `automation` (or the row itself), in the server's spelling (`proposed_by_name`)
+  or the relay's (`proposedName`). A member has no « Delete » on a proposal that is not waiting (the server only lets them withdraw one that is).
+- **Tests.** `test-team-automations-client.mjs` (the rules, every string in both languages, the screens rendered from fixtures against a fake relay and a fake host, every
+  refusal), `scripts/test-help-button-names.mjs` (the Team step of the help card); the real GUI, on a sandbox, with the relay and the host faked:
+  `source scripts/sandbox/env.sh && node scripts/check-automations-team-live.mjs --shots /tmp/shots`.
+
 ## The page of one automation: Workflow and Sessions
 
 The page has two tabs (the same segmented control as Yours / Discover), **Workflow** (the one it opens on) and **Sessions**. Its header keeps
@@ -627,6 +669,8 @@ transcript: the card under it is the plain-language version.
 ```bash
 node scripts/test-onboarding.mjs                       # KB-OB-CORE block: texts in 4 languages, language choice, steps, theme probe, K artwork
 node packages/kybernos-plugin/test-onboarding-state.mjs  # the state file: version, answers, replay, older files
+node packages/kybernos-plugin/test-team-automations-client.mjs  # 234: the Team segment of Automations: rules, both languages, the lock of every word, the four sheets, every refusal (jsdom optional: KYBERNOS_JSDOM)
+source scripts/sandbox/env.sh && node scripts/check-automations-team-live.mjs   # the Team segment on the sandbox, relay and host faked (refuses :3080)
 node packages/kybernos-plugin/test-feedback-box.mjs    # 38: the feedback box: the file, masking, the technical context off by default, the routes and their strict write guard, and Send to the relay (fake relay)
 node packages/kybernos-plugin/test-feedback-form.mjs   # 32: what the form tells a person who sends, fails or is signed out; Save and Copy say nothing was sent
 node packages/kybernos-plugin/test-referral-card.mjs   # 32: the referral card says the server's offer, or nothing about money; its page link goes through the footer's console link

@@ -231,7 +231,8 @@ eq('nothing at all is an empty string', [m.kbBoardReason(null, 'en'), m.kbBoardR
   const pure = block
   eq('the pure block touches no React, DOM, host call or translation', /\b(React|document|window|fetch|kbt|kbf|host\.call|localStorage)\b/.test(pure.replace(/\/\/[^\n]*/g, '')), false)
   eq('the board never marks a past slot as done by itself: no run is made from a cron', /kbNextCronAfter|parseCron/.test(pure), false)
-  const page = src.slice(src.indexOf('const KbAutoBoard = '), src.indexOf('const ScheduledTasksPage = '))
+  // (the Team tab sits between the board and the page: its block is tested by test-team-automations-client.mjs, not by the board's rules)
+  const page = src.slice(src.indexOf('const KbAutoBoard = '), src.indexOf('const ScheduledTasksPage = ')).replace(/\n    \/\/ <kbta-block>[\s\S]*?\n    \/\/ <\/kbta-block>\n/, '')
   eq('the board component exists, before the page', page.length > 1000, true)
   eq('the occurrences route is read with its own fetch: a 404 must not switch the other routes off', /fetch\(kbApiBase\(\) \+ '\/tasks\/occurrences\?from='/.test(src) && /res\.status === 404\) return \{ ok: false, error: 'unavailable' \}/.test(src), true)
   eq('the route is not in the host.call route map (a 404 there sets kbRemoteOk = false)', /'kybers\/tasks-occurrences'/.test(src), false)
