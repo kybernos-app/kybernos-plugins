@@ -226,7 +226,6 @@ let kbLocaleRead = () => 'en'
       'tasks.toggle.aria': { kybernos: 'Activer l\u2019automation', en: 'Enable automation' },
       'tasks.runnow': { kybernos: 'Lancer maintenant', en: 'Run now' },
       'tasks.editsched': { kybernos: 'Planning', en: 'Schedule' },
-      'tasks.wiz.title': { kybernos: 'Nouvelle automation', en: 'New automation' },
       'tasks.wiz.chat.launch': { kybernos: 'Skill automation-creator — crée une automation : interviewe-moi (déclencheur, étapes, approbation), rédige le texte du workflow, fais-le-moi valider, puis enregistre la tâche planifiée réelle.', en: 'Skill automation-creator — create an automation: interview me (trigger, steps, approval), draft the workflow text, have me validate it, then save the real scheduled task.' },
       'tasks.tab.hook': { kybernos: 'Webhook', en: 'Webhook' },
       'tasks.hook.intro': { kybernos: 'Cette automation peut être déclenchée par un service externe (Stripe, GitHub, un formulaire…) qui POSTe sur son URL dédiée.', en: 'This automation can be triggered by an external service (Stripe, GitHub, a form…) POSTing to its dedicated URL.' },
@@ -244,67 +243,6 @@ let kbLocaleRead = () => 'en'
       'tasks.hook.tested': { kybernos: 'Webhook testé — session en cours.', en: 'Webhook tested — session in progress.' },
       'tasks.hook.err': { kybernos: 'Erreur webhook.', en: 'Webhook error.' },
       'tasks.trigger.webhook': { kybernos: 'Webhook externe', en: 'External webhook' },
-      'tasks.wiz.guided': { kybernos: 'ou l\u2019assistant guidé →', en: 'or the guided assistant →' },
-      'tasks.wiz.intro': { kybernos: 'Décris ce qui doit déclencher l’automation et ce que l’équipe doit faire. Je rédige le texte du workflow, tu le testes, puis tu choisis le plan de déclenchement réel.', en: 'Describe what should start the automation and what the team should do. I draft the workflow text, you test it, then pick the real trigger schedule.' },
-      'tasks.wiz.sug1': { kybernos: 'Quand un client écrit à support@, trie la demande et prépare une réponse — rien n\u2019est envoyé sans moi.', en: 'When a customer writes to support@, triage the request and draft a reply — nothing is sent without me.' },
-      'tasks.wiz.sug2': { kybernos: 'Chaque lundi à 8h, résume les PR mergées de la semaine dans un doc.', en: 'Every Monday at 8am, summarize the week\u2019s merged PRs into a doc.' },
-      'tasks.wiz.sug3': { kybernos: 'Quand un paiement Stripe échoue, prépare une relance au client.', en: 'When a Stripe payment fails, draft a customer follow-up.' },
-      'tasks.wiz.draft.intro': { kybernos: 'Voici le brouillon. Chaque ligne cite les mots d\u2019où elle vient.', en: 'Here is the draft. Each line quotes the words it comes from.' },
-      'tasks.wiz.draft.tag': { kybernos: 'Brouillon · inactif', en: 'Draft · not active' },
-      'tasks.wiz.draft.name': { kybernos: 'Tri des demandes clients', en: 'Customer request triage' },
-      'tasks.wiz.draft.fields': { kybernos: '5 / 5 champs', en: '5 / 5 fields' },
-      'tasks.wiz.f.when': { kybernos: 'Déclencheur', en: 'When' },
-      'tasks.wiz.f.do': { kybernos: 'Faire', en: 'Do' },
-      'tasks.wiz.f.then': { kybernos: 'Ensuite', en: 'Then' },
-      'tasks.wiz.f.approval': { kybernos: 'Approbation', en: 'Approval' },
-      'tasks.wiz.f.team': { kybernos: 'Agent Team', en: 'Agent Team' },
-      'tasks.wiz.v.when': { kybernos: 'Le déclencheur réel sera choisi à l\u2019activation (planning)', en: 'The real trigger is picked at activation (schedule)' },
-      'tasks.wiz.v.do': { kybernos: 'Classer (urgent · billing · other), puis router', en: 'Classify (urgent · billing · other), then route' },
-      'tasks.wiz.v.then': { kybernos: 'Rédiger une réponse dans le fil', en: 'Draft a reply in the thread' },
-      'tasks.wiz.v.approval': { kybernos: 'Me demander d’abord — l’Agent Team n’envoie jamais seule', en: 'Ask me first — the Agent Team never sends alone' },
-      'tasks.wiz.v.team': { kybernos: 'Support-Team · DOER + CHECKER', en: 'Support-Team · DOER + CHECKER' },
-      'tasks.wiz.q.when': { kybernos: '« planning »', en: '“schedule”' },
-      'tasks.wiz.q.do': { kybernos: '« trie la demande »', en: '“triage the request”' },
-      'tasks.wiz.q.then': { kybernos: '« prépare une réponse »', en: '“draft a reply”' },
-      'tasks.wiz.q.approval': { kybernos: '« rien n\u2019est envoyé sans moi »', en: '“nothing is sent without me”' },
-      'tasks.wiz.q.assumed': { kybernos: 'supposé', en: 'assumed' },
-      'tasks.wiz.q.tag': { kybernos: '1 question', en: '1 question' },
-      'tasks.wiz.q.text': { kybernos: 'Si je ne suis pas sûr de la catégorie, que dois-je faire ?', en: 'If I am not sure of the category, what should I do?' },
-      'tasks.wiz.q.ask': { kybernos: 'Me demander', en: 'Ask me' },
-      'tasks.wiz.q.other': { kybernos: 'Classer en « other »', en: 'File it as “other”' },
-      'tasks.wiz.test': { kybernos: 'Tester sur 30 jours', en: 'Test on last 30 days' },
-      'tasks.wiz.test.intro': { kybernos: 'Rejoué sur 30 jours : 214 emails, 9 auraient ouvert une session. Rien n\u2019a été envoyé — rejeu de démonstration.', en: 'Replayed over 30 days: 214 emails, 9 would have opened a session. Nothing was sent — demonstration replay.' },
-      'tasks.wiz.hint.answer': { kybernos: 'Réponds à la question d\u2019abord', en: 'Answer the question first' },
-      'tasks.wiz.hint.test': { kybernos: 'Teste avant d\u2019activer', en: 'Test before activating' },
-      'tasks.wiz.hint.ready': { kybernos: 'Prêt', en: 'Ready' },
-      'tasks.wiz.activate': { kybernos: 'Activer', en: 'Activate' },
-      'tasks.wiz.go': { kybernos: 'Essayer le gabarit', en: 'Try the template' },
-      'tasks.wiz.placeholder': { kybernos: 'Décris l\u2019automation…', en: 'Describe the automation…' },
-      'tasks.wiz.r.res': { kybernos: 'Résultat', en: 'Result' },
-      'tasks.wiz.r.mail': { kybernos: 'Email', en: 'Email' },
-      'tasks.wiz.r.team': { kybernos: 'L’Agent Team ferait…', en: 'The Agent Team would…' },
-      'tasks.wiz.r.ok': { kybernos: 'Run', en: 'Run' },
-      'tasks.wiz.r.wait': { kybernos: 'Ask', en: 'Ask' },
-      'tasks.wiz.r.skip': { kybernos: 'Skip', en: 'Skip' },
-      'tasks.wiz.r.1': { kybernos: '« Remboursement abonnement » · Amel B.', en: '“Refund subscription” · Amel B.' },
-      'tasks.wiz.r.1d': { kybernos: 'billing → brouillon de réponse', en: 'billing → draft reply' },
-      'tasks.wiz.r.2': { kybernos: '« Impossible de me connecter » · Karim T.', en: '“Cannot log in” · Karim T.' },
-      'tasks.wiz.r.2d': { kybernos: 'urgent → ticket', en: 'urgent → ticket' },
-      'tasks.wiz.r.3': { kybernos: '« Question sur ma facture » · Rym H.', en: '“Question about my bill” · Rym H.' },
-      'tasks.wiz.r.3d.ask': { kybernos: 'incertain → te demande', en: 'unsure → asks you' },
-      'tasks.wiz.r.3d.other': { kybernos: 'incertain → classé other', en: 'unsure → filed as other' },
-      'tasks.wiz.r.4': { kybernos: '« Newsletter septembre » · Mailchimp', en: '“September newsletter” · Mailchimp' },
-      'tasks.wiz.r.4d': { kybernos: 'pas une demande', en: 'not a request' },
-      'tasks.wiz.r.demo': { kybernos: 'Jeu de démonstration — le vrai test se joue sur tes données à la première exécution.', en: 'Demo dataset — the real test runs on your data at first execution.' },
-      'tasks.wiz.tpl.head': { kybernos: 'Déclencheurs', en: 'Triggers' },
-      'tasks.wiz.tpl.trig': { kybernos: 'Le planning choisi à l\u2019activation (cron)', en: 'The schedule picked at activation (cron)' },
-      'tasks.wiz.tpl.steps': { kybernos: 'Étapes', en: 'Steps' },
-      'tasks.wiz.tpl.s1': { kybernos: 'Normaliser la demande : expéditeur, sujet, contenu, canal.', en: 'Normalize the request: sender, subject, content, channel.' },
-      'tasks.wiz.tpl.s2': { kybernos: 'Classer la demande en urgent, billing ou other. Le CHECKER valide.', en: 'Classify the request as urgent, billing or other. The CHECKER validates.' },
-      'tasks.wiz.tpl.s3.ask': { kybernos: 'Si la confiance est sous 70 %, me demander la catégorie sur Slack (sinon « other » après 2 h).', en: 'If confidence is below 70%, ask me for the category on Slack (else “other” after 2h).' },
-      'tasks.wiz.tpl.s3.other': { kybernos: 'Si la confiance est sous 70 %, classer en « other ».', en: 'If confidence is below 70%, file as “other”.' },
-      'tasks.wiz.tpl.s4': { kybernos: 'Rédiger une réponse dans la langue de l\u2019expéditeur et me la faire valider avant tout envoi.', en: 'Draft a reply in the sender\u2019s language and have me approve it before anything is sent.' },
-      'tasks.wiz.tpl.s5': { kybernos: 'Journaliser la session.', en: 'Log the session.' },
       'tasks.dismiss': { kybernos: 'Fermer', en: 'Dismiss' },
       'tasks.tab.sessions': { kybernos: 'Sessions · {n}', en: 'Sessions · {n}' },
       'tasks.tab.workflow': { kybernos: 'Workflow', en: 'Workflow' },
@@ -22587,10 +22525,6 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       const draftPair = React.useState({})
       const draft = draftPair[0]
       const setDraft = draftPair[1]
-      // ── assistant de création « par chat » (port maquette v3) ──
-      const wizPair = React.useState(null)
-      const wiz = wizPair[0]
-      const setWiz = wizPair[1]
       // Aide ( ? ) de l'en-tête : rouvre l'accueil « première automation »
       // (l'onboarding maquette) même quand la liste n'est plus vide.
       const guidePair = React.useState(false)
@@ -23004,101 +22938,13 @@ function renderScene(ctx, W, H, bricks, cam, opts){
           (modal !== null ? h(KbTaskModal, { task: modal, onClose: () => setModal(null), onSaved: (m) => { setModal(null); toast(m); refresh() } }) : null))
       }
 
-      // ── écran assistant « par chat » (port maquette v3) ──────────────────
-      // Le brouillon et le rejeu 30 jours sont des gabarits honnêtes (étiquetés
-      // démo) ; l'activation passe par le VRAI modal de planification, prérempli
-      // — le seul déclencheur réel du moteur est cron/une-fois.
-      if (wiz !== null) {
-        const triageText = (ask) => {
-          const lignes = [
-            kbt('tasks.wiz.tpl.head'),
-            '- ' + kbt('tasks.wiz.tpl.trig'),
-            '',
-            kbt('tasks.wiz.tpl.steps'),
-            '1. ' + kbt('tasks.wiz.tpl.s1'),
-            '2. ' + kbt('tasks.wiz.tpl.s2'),
-            '3. ' + (ask === false ? kbt('tasks.wiz.tpl.s3.other') : kbt('tasks.wiz.tpl.s3.ask')),
-            '4. ' + kbt('tasks.wiz.tpl.s4'),
-            '5. ' + kbt('tasks.wiz.tpl.s5'),
-          ]
-          return lignes.join('\n')
-        }
-        return h('div', { className: 'kba-chatwrap' },
-          h('div', { className: 'kba-subhead' },
-            h('button', { type: 'button', className: 'kba-crumb', onClick: () => setWiz(null) }, 'Automations'),
-            h('span', { style: { color: 'var(--dsw-alias-label-tertiary)' } }, '/'),
-            h('span', { style: { fontSize: 14, fontWeight: 600 } }, kbt('tasks.wiz.title'))),
-          h('div', { className: 'kba-chatscroll' },
-            h('div', { className: 'kba-thread' },
-              h('div', { className: 'kba-aim' }, kbt('tasks.wiz.intro')),
-              (wiz.cstep === 0 ? h('div', { style: { display: 'flex', flexDirection: 'column', gap: 8 } },
-                [kbt('tasks.wiz.sug1'), kbt('tasks.wiz.sug2'), kbt('tasks.wiz.sug3')].map((t, i) =>
-                  h('button', { key: i, type: 'button', className: 'kba-sug', onClick: () => setWiz({ cstep: 1, userMsg: t, ans: null, test: false }) }, t)))
-                : null),
-              (wiz.cstep >= 1 ? h('div', { className: 'kba-bub' }, wiz.userMsg) : null),
-              (wiz.cstep >= 1 ? h('div', { className: 'kba-aim' }, kbt('tasks.wiz.draft.intro')) : null),
-              (wiz.cstep >= 1 ? h('div', { className: 'kba-card' },
-                h('div', { className: 'kba-drafthead' },
-                  h('span', { className: 'kba-trigger-icon', style: { width: 32, height: 32 } }, Icon('zap', 15)),
-                  h('div', { style: { flexGrow: 1, minWidth: 0 } },
-                    h('div', { className: 'kba-tabver mono' }, kbt('tasks.wiz.draft.tag')),
-                    h('div', { style: { fontSize: 15, fontWeight: 600, marginTop: 2 } }, kbt('tasks.wiz.draft.name'))),
-                  h('span', { style: { fontSize: 12, color: 'var(--dsw-alias-label-tertiary)' } }, kbt('tasks.wiz.draft.fields'))),
-                h('div', { style: { padding: '2px 16px 12px' },
-                  'data-kb': 'wiz-draft' },
-                  [[kbt('tasks.wiz.f.when'), kbt('tasks.wiz.v.when'), kbt('tasks.wiz.q.when')],
-                   [kbt('tasks.wiz.f.do'), kbt('tasks.wiz.v.do'), kbt('tasks.wiz.q.do')],
-                   [kbt('tasks.wiz.f.then'), kbt('tasks.wiz.v.then'), kbt('tasks.wiz.q.then')],
-                   [kbt('tasks.wiz.f.approval'), kbt('tasks.wiz.v.approval'), kbt('tasks.wiz.q.approval')],
-                   [kbt('tasks.wiz.f.team'), kbt('tasks.wiz.v.team'), kbt('tasks.wiz.q.assumed')]].map((r2, i) =>
-                    h('div', { key: i, className: 'kba-dr' },
-                      h('span', { className: 'kba-tabver mono' }, r2[0]),
-                      h('span', null, r2[1]),
-                      h('span', { className: 'kba-wizq' }, r2[2]))),
-                  h('div', { className: 'kba-question', 'data-kb': 'wiz-question' },
-                    h('div', { style: { fontSize: 13.5 } },
-                      h('span', { className: 'kba-tabver mono', style: { color: 'var(--dsw-alias-state-warn-primary)', marginRight: 8 } }, kbt('tasks.wiz.q.tag')),
-                      kbt('tasks.wiz.q.text')),
-                    h('div', { style: { display: 'flex', gap: 8, flexWrap: 'wrap' } },
-                      h('button', { type: 'button', className: 'kba-chip' + (wiz.ans === 'ask' ? ' on' : ''), onClick: () => setWiz(Object.assign({}, wiz, { ans: 'ask' })) }, kbt('tasks.wiz.q.ask')),
-                      h('button', { type: 'button', className: 'kba-chip' + (wiz.ans === 'other' ? ' on' : ''), onClick: () => setWiz(Object.assign({}, wiz, { ans: 'other' })) }, kbt('tasks.wiz.q.other'))))),
-                h('div', { className: 'kba-draftfoot' },
-                  h('button', { type: 'button', className: 'kba-btn pri', disabled: wiz.ans === null, onClick: () => setWiz(Object.assign({}, wiz, { test: true })) }, kbt('tasks.wiz.test')),
-                  h('span', { style: { flex: 1 } }),
-                  h('span', { style: { fontSize: 12, color: 'var(--dsw-alias-label-tertiary)' } }, wiz.ans === null ? kbt('tasks.wiz.hint.answer') : (wiz.test !== true ? kbt('tasks.wiz.hint.test') : kbt('tasks.wiz.hint.ready'))),
-                  h('button', { type: 'button', className: 'kba-btn', disabled: wiz.test !== true, onClick: () => { setWiz(null); setModal({ name: kbt('tasks.wiz.draft.name'), prompt: triageText(wiz.ans !== 'other') }) } }, kbt('tasks.wiz.activate')))) : null),
-              (wiz.test === true ? [
-                h('div', { className: 'kba-bub', key: 'b' }, kbt('tasks.wiz.test')),
-                h('div', { className: 'kba-aim', key: 'a' }, kbt('tasks.wiz.test.intro')),
-                h('div', { className: 'kba-card', style: { padding: '10px 16px' }, key: 't', 'data-kb': 'wiz-replay' },
-                  h('div', { className: 'kba-tr', style: { borderTop: 0 } },
-                    h('span', { className: 'kba-tabver mono' }, kbt('tasks.wiz.r.res')),
-                    h('span', { className: 'kba-tabver mono' }, kbt('tasks.wiz.r.mail')),
-                    h('span', { className: 'kba-tabver mono' }, kbt('tasks.wiz.r.team'))),
-                  [[kbt('tasks.wiz.r.ok'), kbt('tasks.wiz.r.1'), kbt('tasks.wiz.r.1d')],
-                   [kbt('tasks.wiz.r.ok'), kbt('tasks.wiz.r.2'), kbt('tasks.wiz.r.2d')],
-                   [kbt('tasks.wiz.r.wait'), kbt('tasks.wiz.r.3'), wiz.ans === 'other' ? kbt('tasks.wiz.r.3d.other') : kbt('tasks.wiz.r.3d.ask')],
-                   [kbt('tasks.wiz.r.skip'), kbt('tasks.wiz.r.4'), kbt('tasks.wiz.r.4d')]].map((r2, i) =>
-                    h('div', { key: i, className: 'kba-tr' },
-                      h('span', { className: 'kba-wtag' + (i === 2 ? ' wait' : '') + (i === 3 ? ' off' : '') }, r2[0]),
-                      h('span', null, r2[1]),
-                      h('span', { style: { color: 'var(--dsw-alias-label-secondary)' } }, r2[2]))),
-                  h('div', { style: { fontSize: 11.5, color: 'var(--dsw-alias-label-tertiary)', padding: '8px 2px 2px' } }, kbt('tasks.wiz.r.demo'))),
-              ] : null))),
-          h('div', { className: 'kba-composer' },
-            h('span', { className: 'kbm-in-wrap' },
-              h('input', { className: 'kbm-in-input', 'aria-label': 'Message', placeholder: kbt('tasks.wiz.placeholder'), value: '', readOnly: true })),
-            h('button', { type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-primary kba-send', 'aria-label': 'Send', title: 'Send', onClick: () => setWiz({ cstep: 1, userMsg: kbt('tasks.wiz.sug1'), ans: null, test: false }) }, kbt('tasks.wiz.go'))),
-          (msg !== null ? h('div', { className: 'kba-toast', role: 'status' }, h('span', { className: 'kba-kdot ok' }), h('span', { style: { flex: 1 } }, msg), h('button', { type: 'button', 'aria-label': kbt('tasks.dismiss'), onClick: () => setMsg(null) }, '\u2715')) : null))
-      }
-
       // ── accueil « première automation » (port maquette d'onboarding) ─────
       // Trois portes (planification, déclencheur, avancé) qui mènent toutes à
       // l'entretien automation-creator dans un chat : l'accueil remplace la
       // liste quand elle est VIDE, et le bouton Aide ( ? ) de l'en-tête le
       // rouvre au-dessus de la liste.
       const debuterAutomation = () => {
-        try { kbStartChatText(kbt('tasks.wiz.chat.launch')) } catch (e) { setWiz({ cstep: 0, userMsg: '', ans: null, test: false }) }
+        try { kbStartChatText(kbt('tasks.wiz.chat.launch')) } catch (e) { /* chat unavailable: nothing else to open */ }
       }
       const kbaOnboard = (avecFermeture) => h('section', { className: 'kba-onboard', 'data-kb': 'automations-onboarding', 'aria-label': kbe('Create your first automation') },
         (avecFermeture === true ? h('button', { type: 'button', className: 'kba-ob-close', 'data-kb': 'automation-help-close', 'aria-label': kbt('tasks.help.close'), title: kbt('tasks.help.close'), onClick: () => setGuide(false) }, '\u2715') : null),
@@ -23135,9 +22981,8 @@ function renderScene(ctx, W, H, bricks, cam, opts){
           openTask: (id) => { setDetail(id); setTab('sessions'); setNodeSel(null) },
         }))
       const autoActions = [
-        h('button', { type: 'button', key: 'new', className: 'kb8-primary kba-new-btn', 'data-kb': 'new-automation', onClick: () => { try { kbStartChatText(kbt('tasks.wiz.chat.launch')) } catch (e) { /* chat indisponible : repli assistant */ setWiz({ cstep: 0, userMsg: '', ans: null, test: false }) } } },
+        h('button', { type: 'button', key: 'new', className: 'kb8-primary kba-new-btn', 'data-kb': 'new-automation', onClick: () => { try { kbStartChatText(kbt('tasks.wiz.chat.launch')) } catch (e) { /* chat unavailable: nothing else to open */ } } },
           Icon('plus', 14), ' ', kbt('kbui.create')),
-        h('button', { type: 'button', key: 'guided', className: 'kba-crumb', 'data-kb': 'new-automation-guided', hidden: true, style: { display: 'none' }, onClick: () => setWiz({ cstep: 0, userMsg: '', ans: null, test: false }) }, kbt('tasks.wiz.guided')),
       ]
       return h('div', { className: 'kba-root', 'data-kb': 'page-automations' },
         h('div', { className: 'kb6-headrow' },
@@ -31192,9 +31037,6 @@ body[data-ds-dark-theme] .kb8-iconbtn.on.col{border-color:var(--kb8-pgd);color:v
    alias de .kb8-primary — une seule implémentation. */
 .kb8-primary,.kba-new-btn{display:inline-flex;align-items:center;gap:9px;background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-foreground);border-radius:12px;padding:13px 20px;font-size:14px;font-weight:600;cursor:pointer;border:none;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
 .kb8-primary:hover,.kba-new-btn:hover{filter:brightness(.96)}
-.kba-chip{display:inline-flex;align-items:center;height:30px;padding:0 14px;border-radius:999px;border:1px solid var(--dsw-alias-border-l1);background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12px;cursor:pointer;white-space:nowrap}
-.kba-chip:hover{border-color:var(--dsw-alias-border-l2);color:var(--dsw-alias-label-primary)}
-.kba-chip.on{background:var(--dsw-alias-bg-layer-2);border-color:var(--dsw-alias-border-l2);color:var(--dsw-alias-label-primary);font-weight:600}
 .kba-toast{display:flex;align-items:center;gap:12px;align-self:center;padding:10px 14px;border-radius:12px;background:var(--dsw-alias-bg-layer-2);border:1px solid var(--dsw-alias-border-l2);font-size:13px;color:var(--dsw-alias-label-primary);max-width:min(92%,560px)}
 .kba-toast button{border:0;background:transparent;color:var(--dsw-alias-label-secondary);font-size:15px;cursor:pointer}
 .kba-card{border-radius:16px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1);overflow:hidden}
@@ -31235,27 +31077,8 @@ body[data-ds-dark-theme] .kb8-iconbtn.on.col{border-color:var(--kb8-pgd);color:v
   .kba-rowline>.kba-lacts{grid-area:acts;justify-content:flex-start}
   .kba-lacts .kb-favbtn{width:34px;height:34px}
 }
-/* assistant « par chat » (port maquette v3) */
-.kba-chatwrap{display:flex;flex-direction:column;height:100%}
+/* sub-header of an automation's page (breadcrumb row) */
 .kba-subhead{flex:none;display:flex;align-items:center;gap:12px;padding:0 26px;height:54px;border-bottom:1px solid var(--dsw-alias-border-l1);flex-wrap:wrap}
-.kba-chatscroll{flex:1;min-height:0;overflow-y:auto}
-.kba-thread{width:min(760px,100%);margin:0 auto;padding:22px 20px;display:flex;flex-direction:column;gap:14px}
-.kba-aim{font-size:15px;line-height:1.55;color:var(--dsw-alias-label-primary)}
-.kba-bub{align-self:flex-end;max-width:560px;padding:12px 16px;border-radius:16px;background:var(--dsw-alias-interactive-bg-active);font-size:15px;line-height:1.5}
-.kba-sug{display:block;width:100%;text-align:start;padding:12px 14px;border-radius:12px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);font:inherit;font-size:14px;color:var(--dsw-alias-label-primary);cursor:pointer}
-.kba-sug:hover{border-color:var(--dsw-alias-label-secondary)}
-.kba-wizq{font-size:12px;color:var(--dsw-alias-label-tertiary);font-style:italic}
-.kba-wtag{font-family:var(--ds-font-family-code,var(--dsw-font-markdown-code-font-family));font-size:11px;padding:2px 7px;border-radius:5px;border:1px solid var(--dsw-alias-border-l2);white-space:nowrap;justify-self:start;background:color-mix(in srgb,var(--dsw-alias-state-success-primary) 12%,transparent);color:var(--dsw-alias-state-success-primary)}
-.kba-wtag.wait{background:color-mix(in srgb,var(--dsw-alias-state-warn-primary) 12%,transparent);color:var(--dsw-alias-state-warn-primary)}
-.kba-wtag.off{background:transparent;color:var(--dsw-alias-label-tertiary)}
-.kba-dr{display:grid;grid-template-columns:80px minmax(0,1fr) auto;gap:12px;align-items:baseline;padding:9px 0;border-top:1px solid var(--dsw-alias-border-l1);font-size:14px}
-.kba-dr>*{min-width:0}
-.kba-dr .kba-wizq{padding-inline-start:10px;border-inline-start:2px solid var(--dsw-alias-border-l1)}
-.kba-drafthead{display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--dsw-alias-interactive-bg-hover);flex-wrap:wrap}
-.kba-draftfoot{display:flex;gap:10px;padding:14px 16px;border-top:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);align-items:center;flex-wrap:wrap;row-gap:6px}
-.kba-draftfoot>span{order:3;flex-basis:100%;text-align:end}
-.kba-tr{display:grid;grid-template-columns:70px minmax(0,1fr) 220px;gap:12px;align-items:center;padding:9px 0;border-top:1px solid var(--dsw-alias-border-l1);font-size:14px}
-.kba-tr>*{min-width:0}
 .kb-task-f textarea{min-height:150px}
 .kba-rowbtn{padding:12px 0;border:0;background:transparent;text-align:left;font:inherit;font-size:13.5px;color:var(--dsw-alias-label-primary);cursor:pointer}
 .kba-name{display:block;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
