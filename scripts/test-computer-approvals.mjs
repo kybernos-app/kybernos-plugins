@@ -90,7 +90,8 @@ const services = {
   },
 }
 const hooks = []
-const ctxOf = () => ({ get: (n) => services[n], inject: () => {}, effect: (fn) => { try { return fn() } catch (e) { return undefined } }, on: (name, fn) => { if (name === 'tools/pre-execute') hooks.push(fn); return () => {} }, scope: {} })
+const statusHooks = []
+const ctxOf = () => ({ get: (n) => services[n], inject: () => {}, effect: (fn) => { try { return fn() } catch (e) { return undefined } }, on: (name, fn) => { if (name === 'tools/pre-execute') hooks.push(fn); if (name === 'agent/status') statusHooks.push(fn); return () => {} }, scope: {} })
 const realErr = console.error; const realLog = console.log
 console.error = () => {}; console.log = () => {}
 core.apply(ctxOf())
@@ -162,6 +163,11 @@ eq('another change in the same run is refused without a second question', JSON.s
 parents['sub-1'] = S1
 eq('a sub-agent of the run is held by the same question', JSON.stringify([(await gate(tool('bash', { command: 'rm -rf x' }, 'sub-1'))).kind, platform.asked.length]), JSON.stringify(['deny', 1]))
 
+// The engine says the first turn ran, then ended (the model stopped when it was refused): the run is no longer counted as going.
+for (const st of ['running', 'idle']) for (const h of statusHooks) h({ agent: { id: S1 }, status: st })
+const idleLoad = await call('/kybernos/automation-load', 'GET', undefined, { origin: 'http://127.0.0.1:3081' })
+eq('once its first turn ended, the waiting run is not counted as going (the computer may rest)', idleLoad !== null && idleLoad.inFlight === 0 && !(idleLoad.runs || []).some((r) => r.taskId === stored.id), true)
+
 // ── 5. the reporter does not call a waiting run over ──────────────────────────────────────────────────────────────────────────
 const reporter = await import(root + 'services/computer-image/reporter.mjs')
 const tasksNow = onDisk()
@@ -175,6 +181,8 @@ eq('the answer is taken off the platform\'s list', await until(() => platform.ac
 eq('the SAME session is continued, once, with what was allowed', JSON.stringify(prompts.filter((p) => p.sessionId === S1 && /The person allowed this action/.test(p.text)).length), '1')
 eq('...naming the action', prompts.some((p) => p.sessionId === S1 && p.text.indexOf('curl -s https://example.com/prices | head') >= 0), true)
 eq('the run is no longer marked as waiting', onDisk().find((t) => t.id === stored.id).history.find((h) => h.sessionId === S1).status, 'fired')
+const load = await call('/kybernos/automation-load', 'GET', undefined, { origin: 'http://127.0.0.1:3081' })
+eq('the run that goes on counts as a run going in the load the reporter sends (so the beat says busy and the computer is not put to sleep under it)', load !== null && load.inFlight >= 1 && Array.isArray(load.runs) && load.runs.some((r) => r.taskId === stored.id), true)
 eq('the question is answered on the volume', JSON.stringify(records().map((r) => [r.state, r.continued === true])), JSON.stringify([['allowed', true]]))
 eq('that very action now passes', await gate(tool('bash', { command: 'curl -s   https://example.com/prices | head' }, S1)), PASS)
 eq('...once: the record is used', records()[0].used, true)
