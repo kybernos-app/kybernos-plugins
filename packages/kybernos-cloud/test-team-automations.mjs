@@ -46,7 +46,9 @@ const ZERO_WIDTH = String.fromCodePoint(0x200b, 0x200c, 0x200d, 0x200e, 0x200f, 
   // What the version does and does not depend on.
   const shuffled = { needs: ['gmail', 'slack'], prompt: PROMPT_1, version: 'x', id: 4, runsOn: 'cloud', schedule: { cron: '  0   9 * * 1 ', mode: 'cron', tz: 'Europe/Paris' }, description: VECTOR_1.description, name: VECTOR_1.name, key: VECTOR_1.key }
   assert.equal(versionOf(shuffled), VERSION_1, 'the order of the keys, extra fields, a time zone and the spaces of the cron change nothing')
-  assert.equal(versionOf({ ...VECTOR_1, prompt: PROMPT_1 + ' ' }) === VERSION_1, false)
+  // The contract trims name, description and prompt before they are validated, sent and hashed: white space around them changes nothing, a changed word does.
+  assert.equal(versionOf({ ...VECTOR_1, prompt: '  ' + PROMPT_1 + ' \n', name: ' ' + VECTOR_1.name + ' ', description: VECTOR_1.description + '  ' }), VERSION_1)
+  assert.equal(versionOf({ ...VECTOR_1, prompt: PROMPT_1 + ' now' }) === VERSION_1, false)
   assert.equal(versionOf({ ...VECTOR_1, name: 'Invoice reminder.' }) === VERSION_1, false)
   assert.equal(versionOf({ ...VECTOR_1, schedule: { mode: 'cron', cron: '0 9 * * 2' } }) === VERSION_1, false)
   assert.equal(versionOf({ ...VECTOR_1, needs: ['gmail'] }) === VERSION_1, false)

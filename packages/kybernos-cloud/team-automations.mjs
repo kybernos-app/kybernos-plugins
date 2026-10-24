@@ -70,7 +70,8 @@ export const definitionOf = (d) => {
   if (!isRow(d)) return null
   const schedule = scheduleOf(d.schedule)
   if (schedule === null || !Array.isArray(d.needs) || !d.needs.every(isString) || ![d.key, d.name, d.description, d.prompt].every(isString)) return null
-  return { key: d.key, name: d.name, description: d.description, prompt: d.prompt, schedule, needs: d.needs.slice().sort() }
+  // name, description and prompt are trimmed before they are validated, sent and hashed (contract, « Trimming and the note »).
+  return { key: d.key.trim(), name: d.name.trim(), description: d.description.trim(), prompt: d.prompt.trim(), schedule, needs: d.needs.slice().sort() }
 }
 
 /** The canonical form of the contract: `JSON.stringify` of `{ key, name, description, prompt, schedule, needs }` in that order, or null. */
