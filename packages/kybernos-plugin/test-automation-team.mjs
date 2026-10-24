@@ -26,13 +26,19 @@ assert.ok(canonicalOf(VECTOR_1).includes('“To chase”') && canonicalOf(VECTOR
 const reordered = { needs: ['gmail', 'slack'], schedule: { cron: '0   9 *  * 1', mode: 'cron' }, prompt: PROMPT_1, description: VECTOR_1.description, name: VECTOR_1.name, key: VECTOR_1.key }
 assert.equal(versionOf(reordered), versionOf(VECTOR_1), 'the order of the keys, the order of needs and the spaces of the cron do not change the version')
 assert.equal(versionOf(Object.assign({}, VECTOR_1, { schedule: { mode: 'cron', cron: '0 9 * * 1', tz: 'Europe/Paris' } })), versionOf(VECTOR_1), 'a zone is not part of the canonical form')
-for (const [field, value] of [['key', 'invoice-chaser'], ['name', 'Invoice reminder '], ['description', 'x'], ['prompt', PROMPT_1 + ' '], ['schedule', { mode: 'cron', cron: '0 9 * * 2' }], ['needs', ['gmail']]]) {
+for (const [field, value] of [['key', 'invoice-chaser'], ['name', 'Invoice reminder 2'], ['description', 'x'], ['prompt', PROMPT_1 + '.'], ['schedule', { mode: 'cron', cron: '0 9 * * 2' }], ['needs', ['gmail']]]) {
   assert.notEqual(versionOf(Object.assign({}, VECTOR_1, { [field]: value })), versionOf(VECTOR_1), field + ' changes the version')
 }
 assert.equal(versionOf(null), null)
 assert.equal(versionOf(Object.assign({}, VECTOR_1, { needs: 'gmail' })), null)
 assert.equal(versionOf(Object.assign({}, VECTOR_1, { schedule: { mode: 'once', at: '2030-01-01T08:00' } })), null, 'a one-time schedule has no canonical form')
 ok('the version follows the content only: one changed field changes it; key order, needs order, cron spacing and a zone do not')
+// Trimming (the contract's « Trimming and the note »): name, description and prompt are hashed trimmed.
+const padded = Object.assign({}, VECTOR_1, { name: '  Invoice reminder\n', description: ' ' + VECTOR_1.description + '\t', prompt: '\n\n' + PROMPT_1 + '  \n' })
+assert.equal(versionOf(padded), versionOf(VECTOR_1), 'white space around name, description and prompt is not part of the version')
+assert.equal(canonicalOf(padded), canonicalOf(VECTOR_1), '...the canonical form is the trimmed one')
+assert.equal(versionOf(Object.assign({}, VECTOR_1, { prompt: PROMPT_1.replace('Never', ' Never') })) === versionOf(VECTOR_1), false, 'white space inside the text still counts')
+ok('name, description and prompt are hashed trimmed: the first vector gives the same hash with white space around them')
 
 // ── the key and the description ──────────────────────────────────────────────────────────────────────────────────────────
 assert.equal(slugKey('Invoice reminder'), 'invoice-reminder')
@@ -100,7 +106,14 @@ assert.deepEqual(packOf(Object.assign({}, STORED, { prompt: undefined })), { ok:
 assert.deepEqual(packOf(Object.assign({}, STORED, { schedule: { mode: 'cron', cron: 'every day' } })), { ok: false, error: 'invalid_schedule' })
 assert.deepEqual(packOf(null), { ok: false, error: 'not_found' })
 assert.equal(packOf(Object.assign({}, STORED, { prompt: 'p'.repeat(9000) })).proposal.prompt.length, LIMITS.prompt, 'a prompt past the cap is cut as the sanitizer cuts it')
-assert.equal(packOf(Object.assign({}, STORED, { name: '​​' })).proposal.name, 'Automation', 'a name with nothing in it gets a plain one')
+const spaced = packOf(Object.assign({}, STORED, { name: '  Invoice reminder \n', prompt: '\n  ' + PROMPT_1 + '  ' })).proposal
+assert.deepEqual([spaced.name, spaced.prompt, spaced.description], ['Invoice reminder', PROMPT_1, packed.proposal.description], 'a proposal is trimmed')
+assert.equal(spaced.version, packed.proposal.version, '...so its version is the one of the trimmed text')
+const cutName = packOf(Object.assign({}, STORED, { name: 'a'.repeat(119) + ' b'.repeat(5) })).proposal.name
+assert.ok(cutName === 'a'.repeat(119) && cutName.length === 119, 'a name cut at 120 on a space does not end with it')
+const cutPrompt = packOf(Object.assign({}, STORED, { prompt: 'p'.repeat(7999) + ' tail' })).proposal
+assert.ok(cutPrompt.prompt === 'p'.repeat(7999) && cutPrompt.version === versionOf(cutPrompt), 'a prompt cut at 8000 on a space does not end with it')
+assert.equal(packOf(Object.assign({}, STORED, { name: '\u200b\u200b' })).proposal.name, 'Automation', 'a name with nothing in it gets a plain one')
 const withMark = packOf(Object.assign({}, STORED, { name: 'My own title', team: markOf({ workspaceId: 'w1', id: 4, key: 'invoice-reminder', version: 'a'.repeat(64), installedAt: 'x' }, STORED) }))
 assert.equal(withMark.proposal.key, 'invoice-reminder', 'a copy of a team automation proposes under its own key, whatever its name became: that is what makes it an update')
 ok('a one-time schedule, an empty prompt and a task that is not one are refused; a webhook travels as a kind; a copy proposes under its team key')
@@ -165,13 +178,14 @@ refuse('a key that is not text', { key: 3 }, 'key')
 refuse('a bad id', { id: 0 }, 'id')
 refuse('an id that is not a number', { id: 'abc' }, 'id')
 refuse('a name that is empty once trimmed', { name: '   ' }, 'name')
-refuse('a name of zero-width characters', { name: '​‍﻿' }, 'name')
+refuse('a name of zero-width characters', { name: '\u200b\u200d\ufeff' }, 'name')
 refuse('a name of 121 characters', { name: 'n'.repeat(121) }, 'name')
 refuse('a name that is not text', { name: null }, 'name')
 refuse('an empty description', { description: ' ' }, 'description')
 refuse('a description of 501 characters', { description: 'd'.repeat(501) }, 'description')
 refuse('an empty prompt', { prompt: ' \n' }, 'prompt')
 refuse('a prompt of 8001 characters', { prompt: 'p'.repeat(8001) }, 'prompt')
+refuse('8001 characters once trimmed', { prompt: ' ' + 'p'.repeat(8001) + ' ' }, 'prompt')
 refuse('a NUL in the prompt', { prompt: 'a\u0000b' }, 'binary', 'prompt')
 refuse('half of a surrogate pair in the prompt', { prompt: 'a\ud83d' }, 'binary', 'prompt')
 refuse('the other half', { prompt: '\ude00 a' }, 'binary', 'prompt')
@@ -197,7 +211,13 @@ assert.equal(validateDefinition(null).ok, false)
 assert.equal(validateDefinition([]).ok, false)
 assert.equal(validateDefinition(Object.assign({}, GOOD, { schedule: { mode: 'cron', cron: '0 9 * * MON' } })).ok, true, 'the server\'s shape lets names through; the host parses the expression for real')
 assert.equal(validateDefinition(Object.assign({}, GOOD, { key: 'a'.repeat(64), name: 'n'.repeat(120), description: 'd'.repeat(500), prompt: 'p'.repeat(8000), needs: ['aa', 'bb', 'cc', 'dd', 'ee', 'ff'] })).ok, true, 'the limits themselves are allowed')
-ok('the definition rules: key, name, description, prompt, binary, schedule (no once, no zone), needs and id, each at its limit and one past it')
+const trimmedOnly = validateDefinition(Object.assign({}, GOOD, { name: ' ' + 'n'.repeat(120) + ' ', description: ' ' + 'd'.repeat(500) + ' ', prompt: ' ' + 'p'.repeat(8000) + '\n' }))
+assert.equal(trimmedOnly.ok, true, 'the limits are those of the trimmed text')
+assert.deepEqual([trimmedOnly.definition.name.length, trimmedOnly.definition.description.length, trimmedOnly.definition.prompt.length], [120, 500, 8000], '...and what comes back is trimmed')
+const untrimmed = validateDefinition(Object.assign({}, GOOD, { name: '  Invoice reminder ', description: ' ' + GOOD.description + ' ', prompt: '\n' + PROMPT_1 + '\n' })).definition
+assert.deepEqual([untrimmed.name, untrimmed.description, untrimmed.prompt], [GOOD.name, GOOD.description, PROMPT_1])
+assert.equal(versionOf(untrimmed), GOOD.version, 'an untrimmed definition, once trimmed, has the version the server computed')
+ok('the definition rules: key, name, description, prompt, binary, schedule (no once, no zone), needs and id, each at its limit and one past it; text is trimmed first')
 
 // ── the update logic ─────────────────────────────────────────────────────────────────────────────────────────────────────
 const NEXT = { id: 13, key: 'invoice-reminder', name: 'Invoice reminder v2', description: 'd', prompt: 'New prompt.', schedule: { mode: 'cron', cron: '30 8 * * 1' }, needs: ['gmail'], version: 'b'.repeat(64) }
@@ -243,6 +263,8 @@ assert.deepEqual(kept.schedule, { mode: 'cron', cron: '0 10 * * 1', tz: 'Europe/
 assert.deepEqual([kept.name, kept.prompt, kept.needs], [NEXT.name, NEXT.prompt, ['gmail']], '...while name, prompt and needs are the team\'s')
 assert.deepEqual(kept.team.base.schedule, { mode: 'cron', cron: '30 8 * * 1' }, 'base is the team\'s definition, so the person\'s rhythm keeps reading as their change')
 assert.equal(isEdited(kept), true)
+const elsewhere = replaceTask(copy(), NEXT, Object.assign({}, clean, { schedule: { mode: 'cron', cron: '1 1 * * 1', tz: 'UTC' } }), false, NOW)
+assert.deepEqual(elsewhere.team.base.schedule, { mode: 'cron', cron: '30 8 * * 1' }, 'base is the definition as the team sent it, whatever the sanitizer made of the schedule')
 assert.equal(scheduleFollows(kept), false, '...and the next team update does not take it either')
 const onceKept = replaceTask(Object.assign(copy(), { schedule: { mode: 'once', at: '2030-01-01T08:00', tz: 'UTC' } }), NEXT, clean, false, NOW)
 assert.deepEqual(onceKept.schedule, { mode: 'once', at: '2030-01-01T08:00', tz: 'UTC' })

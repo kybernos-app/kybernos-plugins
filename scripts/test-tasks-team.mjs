@@ -146,6 +146,16 @@ same('install: active with a next run, approvals as asked', [t2.active, typeof t
 const i2b = await install(def({ id: 22, key: 'weekly-wrap', name: 'Weekly wrap', prompt: 'Wrap up the week.', needs: [] }), { approvals: 'sure', turnOn: 'yes' })
 same('install: an approval mode that is neither ask nor auto is ask; turnOn must be true, not just truthy', [i2b.active, storedOf(i2b.taskId).approvals], [false, 'ask'])
 
+// Trimming (the contract's « Trimming and the note »): the text is trimmed, then the version is recomputed from it and compared.
+const tidy = def({ id: 15, key: 'padded-one', name: 'Padded one', description: 'Handles it.', prompt: 'Handle the thing.', needs: [] })
+const padded = Object.assign({}, tidy, { name: '  Padded one\n', description: ' Handles it.\t', prompt: '\n\nHandle the thing.  ' })
+const pi = await install(padded)
+same('install: an untrimmed definition is trimmed first, then its version matches the one of the trimmed text', [pi.ok, storedOf(pi.taskId).name, storedOf(pi.taskId).prompt, storedOf(pi.taskId).team.base.name, storedOf(pi.taskId).team.base.prompt, storedOf(pi.taskId).team.version], [true, 'Padded one', 'Handle the thing.', 'Padded one', 'Handle the thing.', tidy.version])
+const rawHash = createHash('sha256').update(JSON.stringify({ key: padded.key, name: padded.name, description: padded.description, prompt: padded.prompt, schedule: padded.schedule, needs: padded.needs }), 'utf8').digest('hex')
+same('install: a version computed over the UNtrimmed text is not the version of this definition', await install(Object.assign({}, padded, { key: 'padded-two', version: rawHash })), { ok: false, error: 'version_mismatch' })
+same('copies: a copy installed from untrimmed text is not edited', (await team('team-copies', {})).copies.find((c) => c.taskId === pi.taskId).edited, false)
+await api({ action: 'delete', id: pi.taskId })
+
 const before = readFileSync(tasksFile, 'utf8')
 same('install: the same key in the same workspace is already installed', await install(d1), { ok: false, error: 'already_installed', taskId: i1.taskId })
 const wrongVersion = Object.assign({}, def({ id: 30, key: 'tampered' }), { prompt: 'Something else was approved.' })

@@ -16,7 +16,6 @@ import { createHash } from 'node:crypto'
 export const KEY_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 export const NEED_RE = /^[a-z0-9_-]{2,40}$/
 export const WORKSPACE_ID_RE = /^[A-Za-z0-9_.:@-]{1,160}$/
-const HASH_RE = /^[0-9a-f]{64}$/
 // Five whitespace-separated fields made of digits, `*`, `/`, `,`, `-` and letters, at most 100 characters: the server's shape check. The host parses the expression for real.
 const CRON_FIELD_RE = /^[0-9*/,A-Za-z-]+$/
 export const LIMITS = { key: 64, name: 120, description: 500, prompt: 8000, cron: 100, needs: 6, describe: 200 }
@@ -25,7 +24,7 @@ const MINE = ' (mine)'
 const isObj = (v) => v !== null && typeof v === 'object' && Array.isArray(v) !== true
 // A half of a surrogate pair or a NUL is not text.
 const BINARY_RE = /\u0000|[\ud800-\udbff](?![\udc00-\udfff])|(?:^|[^\ud800-\udbff])[\udc00-\udfff]/
-const ZERO_WIDTH_RE = /[​-‏⁠﻿]/g
+const ZERO_WIDTH_RE = /[\u200b-\u200f\u2060\ufeff]/g
 // A string cut at `max` code units never ends on half of a surrogate pair (the sanitizer's own rule).
 const clip = (value, max) => {
   const out = value.slice(0, max)
@@ -53,7 +52,8 @@ export const scheduleOf = (schedule) => {
 }
 
 /**
- * The canonical form of a definition: the UTF-8 bytes of `JSON.stringify({ key, name, description, prompt, schedule, needs })`, keys in that order, the schedule
+ * The canonical form of a definition: the UTF-8 bytes of `JSON.stringify({ key, name, description, prompt, schedule, needs })`, keys in that order, `name`,
+ * `description` and `prompt` trimmed (the contract's « Trimming and the note »: what is validated, stored and hashed is the trimmed text), the schedule
  * as `{ mode, cron? }` with the fields joined by one space, `needs` sorted. null when the definition is not made of the right types.
  */
 export const canonicalOf = (def) => {
@@ -62,7 +62,7 @@ export const canonicalOf = (def) => {
   if (isObj(def.schedule) !== true || (def.schedule.mode !== 'cron' && def.schedule.mode !== 'webhook')) return null
   if (def.schedule.mode === 'cron' && typeof def.schedule.cron !== 'string') return null
   if (Array.isArray(def.needs) !== true || def.needs.some((x) => typeof x !== 'string')) return null
-  return JSON.stringify({ key: def.key, name: def.name, description: def.description, prompt: def.prompt, schedule: scheduleOf(def.schedule), needs: def.needs.slice().sort() })
+  return JSON.stringify({ key: def.key, name: def.name.trim(), description: def.description.trim(), prompt: def.prompt.trim(), schedule: scheduleOf(def.schedule), needs: def.needs.slice().sort() })
 }
 
 /** SHA-256 (hex) of the canonical form, or null when the definition has no canonical form. */
@@ -74,7 +74,7 @@ export const versionOf = (def) => {
 /** The key a name gets: accents removed, lower case, every other run of characters one `-`, at most 64 characters. A name with nothing left (only symbols or another script) gets `automation-` and six hex digits of its hash. */
 export const slugKey = (name) => {
   const text = String(name === undefined || name === null ? '' : name)
-  const slug = clip(text.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''), LIMITS.key).replace(/-+$/, '')
+  const slug = clip(text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''), LIMITS.key).replace(/-+$/, '')
   return slug !== '' ? slug : 'automation-' + sha256(text).slice(0, 6)
 }
 
@@ -84,14 +84,14 @@ export const describeFrom = (prompt) => {
   if (lines.length === 0) return ''
   const bare = lines[0].replace(/^(?:#{1,6}|[-*>]+|\d+[.)])\s+/, '').replace(/\s+/g, ' ').trim()
   let line = bare !== '' ? bare : lines[0].replace(/\s+/g, ' ')
-  const end = /[.!?…](?=\s|$)|[。！？]/.exec(line)
+  const end = /[.!?\u2026](?=\s|$)|[\u3002\uff01\uff1f]/.exec(line)
   if (end !== null) line = line.slice(0, end.index + 1)
   if (line.length <= LIMITS.describe) return line
   // Over the cap: room for the ellipsis, then back to the last space (a word is never cut) unless there is none (a script without spaces).
   let cut = clip(line, LIMITS.describe - 1)
   const space = cut.lastIndexOf(' ')
   if (line.charAt(cut.length) !== ' ' && space > 0) cut = cut.slice(0, space)
-  return cut.replace(/[\s,;:\-–—]+$/, '') + '…'
+  return cut.replace(/[\s,;:\-\u2013\u2014]+$/, '') + '\u2026'
 }
 
 /** The four fields a copy is judged on, as they are now: `{ name, prompt, schedule: { mode, cron? }, needs }`. */
@@ -106,7 +106,7 @@ export const contentHashOf = (like) => sha256(JSON.stringify(baseOf(like)))
 const isMark = (m) => isObj(m) && typeof m.workspaceId === 'string' && typeof m.key === 'string' && typeof m.version === 'string' && isObj(m.base)
 
 /** True when the task is a copy of a team automation and its four fields are no longer the ones it was installed with (a mark with no usable hash counts as edited: nothing is overwritten on a guess). */
-export const isEdited = (task) => isObj(task) && isMark(task.team) && (typeof task.team.contentHash !== 'string' || HASH_RE.test(task.team.contentHash) !== true || contentHashOf(task) !== task.team.contentHash)
+export const isEdited = (task) => isObj(task) && isMark(task.team) && contentHashOf(task) !== task.team.contentHash
 
 /** What the page needs to know about a copy's origin: `{ workspaceId, id, key, version, edited }`, or null when the task is not a team copy. */
 export const teamInfoOf = (task) => (isObj(task) && isMark(task.team)
@@ -131,11 +131,12 @@ export const packOf = (task) => {
   if (!isObj(task)) return { ok: false, error: 'not_found' }
   const sc = isObj(task.schedule) ? task.schedule : {}
   if (sc.mode !== 'cron' && sc.mode !== 'webhook') return { ok: false, error: 'once_not_shareable' }
-  const prompt = clip((typeof task.prompt === 'string' ? task.prompt : '').trim(), LIMITS.prompt)
+  // Trimmed again after the cut: a cut that lands on a space must not leave one at the end.
+  const prompt = clip((typeof task.prompt === 'string' ? task.prompt : '').trim(), LIMITS.prompt).trim()
   if (prompt === '') return { ok: false, error: 'empty_prompt' }
   const schedule = scheduleOf(sc)
   if (schedule.mode === 'cron' && (schedule.cron.length > LIMITS.cron || validCron(schedule.cron) !== true)) return { ok: false, error: 'invalid_schedule' }
-  const named = clip((typeof task.name === 'string' ? task.name : '').trim(), LIMITS.name)
+  const named = clip((typeof task.name === 'string' ? task.name : '').trim(), LIMITS.name).trim()
   const name = named.replace(ZERO_WIDTH_RE, '') === '' ? 'Automation' : named
   const proposal = {
     key: isMark(task.team) && KEY_RE.test(task.team.key) === true ? task.team.key : slugKey(name),
@@ -149,10 +150,10 @@ export const packOf = (task) => {
   return { ok: true, proposal }
 }
 
-const bad =(reason, field) => ({ ok: false, reason, field })
+const bad = (reason, field) => ({ ok: false, reason, field })
 
 /**
- * The contract's rules on a definition, at the level of shape: `{ ok: true, definition }` (`needs` sorted, `id` a number) or `{ ok: false, reason, field }` with `reason`
+ * The contract's rules on a definition, at the level of shape: `{ ok: true, definition }` (`name`, `description` and `prompt` trimmed, `needs` sorted, `id` a number) or `{ ok: false, reason, field }` with `reason`
  * one of id, key, name, description, prompt, schedule, needs, binary. The cron is parsed for real by the host; the `version` is checked by `versionOf`.
  */
 export const validateDefinition = (def) => {
@@ -169,7 +170,7 @@ export const validateDefinition = (def) => {
   const description = def.description.trim()
   if (description.length === 0 || description.length > LIMITS.description) return bad('description', 'description')
   const prompt = def.prompt.trim()
-  if (prompt.length === 0 || def.prompt.length > LIMITS.prompt) return bad('prompt', 'prompt')
+  if (prompt.length === 0 || prompt.length > LIMITS.prompt) return bad('prompt', 'prompt')
   const sc = def.schedule
   if (isObj(sc) !== true) return bad('schedule', 'schedule')
   const keys = Object.keys(sc)
@@ -182,7 +183,7 @@ export const validateDefinition = (def) => {
   if (Array.isArray(def.needs) !== true || def.needs.length > LIMITS.needs || def.needs.some((x) => typeof x !== 'string' || NEED_RE.test(x) !== true) || new Set(def.needs).size !== def.needs.length) return bad('needs', 'needs')
   return {
     ok: true,
-    definition: { id, key: def.key, name: def.name, description: def.description, prompt: def.prompt, schedule: scheduleOf(sc), needs: def.needs.slice().sort(), version: def.version },
+    definition: { id, key: def.key, name, description, prompt, schedule: scheduleOf(sc), needs: def.needs.slice().sort(), version: def.version },
   }
 }
 
