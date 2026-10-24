@@ -180,7 +180,9 @@ platform.decided.push({ id: q1.id, state: 'allowed', task_ref: 'task-ask', run_k
 eq('the answer is taken off the platform\'s list', await until(() => platform.acks.includes(q1.id)), true)
 eq('the SAME session is continued, once, with what was allowed', JSON.stringify(prompts.filter((p) => p.sessionId === S1 && /The person allowed this action/.test(p.text)).length), '1')
 eq('...naming the action', prompts.some((p) => p.sessionId === S1 && p.text.indexOf('curl -s https://example.com/prices | head') >= 0), true)
-eq('the run is no longer marked as waiting', onDisk().find((t) => t.id === stored.id).history.find((h) => h.sessionId === S1).status, 'fired')
+const afterAnswer = onDisk().find((t) => t.id === stored.id).history.find((h) => h.sessionId === S1)
+eq('the run is no longer marked as waiting', afterAnswer.status, 'fired')
+eq('...and dated: the moment it was told to go on (the reporter does not call it ended before its session was written to after that)', typeof afterAnswer.continuedAt === 'string' && Date.now() - Date.parse(afterAnswer.continuedAt) < 60000, true)
 const load = await call('/kybernos/automation-load', 'GET', undefined, { origin: 'http://127.0.0.1:3081' })
 eq('the run that goes on counts as a run going in the load the reporter sends (so the beat says busy and the computer is not put to sleep under it)', load !== null && load.inFlight >= 1 && Array.isArray(load.runs) && load.runs.some((r) => r.taskId === stored.id), true)
 eq('the question is answered on the volume', JSON.stringify(records().map((r) => [r.state, r.continued === true])), JSON.stringify([['allowed', true]]))
@@ -188,6 +190,7 @@ eq('that very action now passes', await gate(tool('bash', { command: 'curl -s   
 eq('...once: the record is used', records()[0].used, true)
 const again = await gate(tool('bash', { command: 'curl -s https://example.com/prices | head' }, S1))
 eq('...the same action again is asked again', JSON.stringify([again.kind, platform.asked.length]), JSON.stringify(['deny', 2]))
+eq('...and the run waits again: the date of the last time it went on is gone', onDisk().find((t) => t.id === stored.id).history.find((h) => h.sessionId === S1).continuedAt, undefined)
 
 // ── 7. the answer comes twice (the first ack was lost): the run is continued once ────────────────────────────────────────────
 const q2 = platform.asked[1]

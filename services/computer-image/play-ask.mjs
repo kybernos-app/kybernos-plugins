@@ -6,6 +6,8 @@
 //   DECISION=denied node services/computer-image/play-ask.mjs <image>      the person refuses (the action must NOT run)
 //   DECISION=allowed_turn ...                                              the person allows the rest of the run
 //   KEEP=1 ...                                                             leaves the container (name kbc-play) for a look at its log
+//   FREEZE_MS=20000 MODEL_DELAY_MS=4000 ...                                 the container is frozen (docker pause, like Fly's suspend) right after it takes the answer, while the model is still thinking,
+//                                                                          and woken after FREEZE_MS: the run must still be reported ONCE, after the answer
 //   PLAY_SLOW=3 ...                                                        every wait and the due time are three times longer (an amd64 image run on an arm64 Mac is emulated)
 //
 // The image is built as in docs/dev/computers.md (`--build-arg KB_LOCAL=1 --build-context kbsrc=<git archive folder>` builds it from the checkout, publishing nothing).
@@ -25,7 +27,9 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 const COMPUTER = randomUUID()
 const decision = process.env.DECISION || 'allowed'
 const K = Math.max(1, Number(process.env.PLAY_SLOW || 1))
-const P = { ready: [], schedules: [], runs: [], asks: [], decided: [], approvalAcks: [], chats: [], opAcked: false, decideAfterMs: Number(process.env.DECIDE_AFTER_MS || 12000) }
+const FREEZE_MS = Number(process.env.FREEZE_MS || 0)
+const MODEL_DELAY_MS = Number(process.env.MODEL_DELAY_MS || 0)
+const P = { answeredAt: 0, ready: [], schedules: [], runs: [], asks: [], decided: [], approvalAcks: [], chats: [], opAcked: false, decideAfterMs: Number(process.env.DECIDE_AFTER_MS || 12000) }
 const COMMAND = 'echo kb-approval-proof > /data/work/proof.txt'
 const at = new Date(Date.now() + 75_000 * K).toISOString().slice(0, 16)
 const op = { op_id: randomUUID(), op: 'put', task_ref: 'task-ask', body: { name: 'Proof of asking', prompt: 'Run this exact command with the bash tool and then say done: ' + COMMAND, schedule: { mode: 'once', at, tz: 'UTC' }, active: true, approvals: 'ask' } }
@@ -42,6 +46,8 @@ const callBash = (res, command) => sse(res, [
   { index: 0, delta: { role: 'assistant', content: null, tool_calls: [{ index: 0, id: 'call_' + Math.random().toString(36).slice(2, 8), type: 'function', function: { name: 'bash', arguments: '' } }] }, finish_reason: null },
   { index: 0, delta: { tool_calls: [{ index: 0, function: { arguments: JSON.stringify({ command, description: 'proof' }) } }] }, finish_reason: null },
   { index: 0, delta: {}, finish_reason: 'tool_calls' }])
+// A slow model: the continuation message gets its answer after MODEL_DELAY_MS, so that a freeze can land while the model is thinking.
+const later = (fn) => { if (MODEL_DELAY_MS > 0) setTimeout(fn, MODEL_DELAY_MS); else fn() }
 const text = (m) => (typeof m.content === 'string' ? m.content : Array.isArray(m.content) ? m.content.map((c) => c.text || '').join('') : '')
 
 const server = createServer((req, res) => {
@@ -64,7 +70,7 @@ const server = createServer((req, res) => {
       const id = randomUUID()
       P.asks.push({ id, ...body })
       log('QUESTION', JSON.stringify(body))
-      setTimeout(() => { P.decided.push({ id, state: decision, task_ref: body.task_ref, run_key: body.run_key, kind: body.kind, taken: false }); log('(the person answers: ' + decision + ')') }, P.decideAfterMs)
+      setTimeout(() => { P.answeredAt = Date.now(); P.decided.push({ id, state: decision, task_ref: body.task_ref, run_key: body.run_key, kind: body.kind, taken: false }); log('(the person answers: ' + decision + ')') }, P.decideAfterMs)
       return json(200, { id, state: 'pending', expires_at: new Date(Date.now() + 86_400_000).toISOString() })
     }
     if (req.method === 'GET' && p === '/v1/computer/approvals/decided') return json(200, { approvals: P.decided.filter((d) => !d.taken).map(({ taken, ...d }) => d) })
@@ -85,8 +91,8 @@ const server = createServer((req, res) => {
         const t = text(m)
         if (m.role === 'tool') return say(res, /must allow this first|did not allow|could not be asked/u.test(t) ? 'I asked the person and I stop here until they answer.' : 'Done.')
         if (m.role !== 'user') continue
-        if (/The person allowed/u.test(t)) return callBash(res, COMMAND)
-        if (/The person refused|did not answer in time/u.test(t)) return say(res, 'Understood, I will not do it.')
+        if (/The person allowed/u.test(t)) return later(() => callBash(res, COMMAND))
+        if (/The person refused|did not answer in time/u.test(t)) return later(() => say(res, 'Understood, I will not do it.'))
         if (/Run this exact command/u.test(t)) return callBash(res, COMMAND)
       }
       return say(res, 'OK')
@@ -127,9 +133,17 @@ log('schedule status while waiting:', lastStatusOf('task-ask'))
 check('the schedule row said it waits', lastStatusOf('task-ask') === 'waiting_approval')
 await until('the answer is taken', () => P.approvalAcks.length > 0, 60_000)
 check('the answer was taken off the platform\'s list', P.approvalAcks.length > 0)
+if (FREEZE_MS > 0) {
+  const f = sh('docker', 'pause', NAME)
+  log('FROZEN (docker pause) for', FREEZE_MS / 1000, 's:', f.status === 0 ? 'ok' : f.stderr.trim())
+  await sleep(FREEZE_MS)
+  sh('docker', 'unpause', NAME)
+  log('WOKEN (docker unpause)')
+}
 await until('the run is reported', () => P.runs.some((r) => (r.body.runs || []).some((x) => x.task_id === 'task-ask')), 90_000)
 const ended = P.runs.flatMap((r) => r.body.runs || []).filter((x) => x.task_id === 'task-ask')
 check('the run was reported once, at its end', ended.length === 1)
+check('...and its end is AFTER the answer (not the end of the first turn, before the question was answered)', ended.length === 1 && Date.parse(ended[0].ended_at) >= P.answeredAt - 1000)
 const proof = sh('docker', 'exec', NAME, 'sh', '-c', 'cat /data/work/proof.txt 2>/dev/null || echo NOFILE')
 const refused = decision === 'denied'
 check(refused ? 'the refused action did NOT run' : 'the allowed action ran (the file is there)', refused ? /NOFILE/u.test(proof.stdout) : /kb-approval-proof/u.test(proof.stdout))
