@@ -3,6 +3,7 @@
 //
 //   node services/computer-image/real-ask-test.mjs publish [computer name]     creates the automation and publishes it (default computer: ask-test; ASK_NAME / ASK_FILE for a second one)
 //   node services/computer-image/real-ask-test.mjs watch <computer id> <ref>   exits when a question of that automation is waiting for an answer
+//   node services/computer-image/real-ask-test.mjs answer <computer id> <ref> [allowed|denied]   decides the waiting question like the app's buttons (default: allowed)
 //   node services/computer-image/real-ask-test.mjs clean <ref> <computer id>   takes it away from the computer and deletes it here
 //
 // It signs in to the DSH on :3080 with the signed session cookie of scripts/live-page.mjs (docs/dev/live-testing.md), which needs Chrome. Never run it against a DSH you do not own.
@@ -50,7 +51,8 @@ if (mode === 'publish') {
     if (target === undefined) throw new Error('no computer named ' + wantName + ' (found: ' + list.map((c) => c.name).join(', ') + ')')
     if (!Array.isArray(target.capabilities) || target.capabilities.indexOf('ask_approvals') < 0) throw new Error(wantName + ' cannot ask yet (capabilities: ' + JSON.stringify(target.capabilities) + ')')
     console.log('computer:', target.name, target.id, target.state, JSON.stringify(target.capabilities))
-    const at = localAt(7, 'Europe/Paris')
+    // ASK_IN_MINUTES: a sleeping computer takes about 40 s to wake and fetch what is published, so a one-shot must be due well after that (default 7).
+    const at = localAt(Number(process.env.ASK_IN_MINUTES) || 7, 'Europe/Paris')
     const task = { name: NAME, prompt: 'Use the bash tool to run exactly this command: ' + COMMAND + ' . Then reply with the single word: done.', schedule: { mode: 'once', at, tz: 'Europe/Paris' }, active: true, approvals: 'ask' }
     const made = JSON.parse(await v(`fetch('/kybernos/tasks', { method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action: 'create', task: ${JSON.stringify(task)} }) }).then((r) => r.text())`))
     if (made.ok !== true) throw new Error('could not create: ' + JSON.stringify(made).slice(0, 300))
@@ -66,8 +68,15 @@ if (mode === 'publish') {
     if (!(await click('[data-kb="tab-where"]'))) throw new Error('no « Where it runs » tab')
     await sleep(700)
     await click('[data-kb="where-cloud"]'); await sleep(900)
-    const picked = await v(`JSON.stringify(Array.from(document.querySelectorAll('[data-kb="where-opt"]')).map((x) => ({ id: x.getAttribute('data-kb-id'), text: x.innerText.replace(/\\s+/g, ' ').slice(0, 60), on: x.getAttribute('aria-checked') === 'true', disabled: x.disabled })))`)
+    // Right after the DSH starts, the page can take a few seconds to know the computers: wait for the picker instead of reading it once.
+    let picked = '[]'
+    for (let i = 0; i < 15; i += 1) {
+      picked = await v(`JSON.stringify(Array.from(document.querySelectorAll('[data-kb="where-opt"]')).map((x) => ({ id: x.getAttribute('data-kb-id'), text: x.innerText.replace(/\\s+/g, ' ').slice(0, 60), on: x.getAttribute('aria-checked') === 'true', disabled: x.disabled })))`)
+      if (JSON.parse(picked).length > 0) break
+      await sleep(1000)
+    }
     console.log('picker:', picked)
+    if (picked === '[]') console.log('page says:', await v(`(document.querySelector('[data-kb="tab-where-panel"], [data-kb="where"]') || document.body).innerText.replace(/\\s+/g, ' ').slice(0, 400)`))
     const opt = JSON.parse(picked).find((o) => o.id === target.id)
     if (opt === undefined || opt.disabled) throw new Error('the page does not offer ' + wantName + ' for an automation that asks')
     if (!opt.on) { await v(`(() => { const b = document.querySelector('[data-kb="where-opt"][data-kb-id="${target.id}"]'); if (b) b.click(); return !!b })()`); await sleep(500) }
@@ -85,6 +94,22 @@ if (mode === 'publish') {
     }
     console.log('REF', id)
     console.log('COMPUTER', target.id)
+  })
+  process.exit(0)
+}
+
+if (mode === 'answer') {
+  // Decides the waiting question of an automation the way the app does (the signed session, same route as the Allow / Deny buttons).
+  const [computerId, ref] = [a1, a2]
+  const decision = process.argv[5] || 'allowed'
+  await withPage(async (page) => {
+    const v = val(page)
+    const j = JSON.parse(await v(`fetch('/kybernos-cloud/computers/approvals?computerId=${computerId}', { credentials: 'same-origin' }).then((r) => r.json()).then((j) => JSON.stringify(j))`))
+    const pending = j.ok === true ? j.approvals.filter((x) => x.ref === ref && x.state === 'pending') : []
+    if (pending.length === 0) throw new Error('no question waiting for ' + ref + ': ' + JSON.stringify(j).slice(0, 200))
+    console.log('answering', decision, 'at', new Date().toISOString(), '| question:', pending[0].id, pending[0].summary)
+    const res = await v(`fetch('/kybernos-cloud/computers/approvals/decide', { method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ computerId: ${JSON.stringify(computerId)}, id: ${JSON.stringify(pending[0].id)}, decision: ${JSON.stringify(decision)} }) }).then((r) => r.text())`)
+    console.log('answered at', new Date().toISOString(), '|', res.slice(0, 200))
   })
   process.exit(0)
 }
