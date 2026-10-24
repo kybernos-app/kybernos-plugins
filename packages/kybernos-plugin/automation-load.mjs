@@ -83,6 +83,14 @@ export const parseMeminfo = (text) => {
 }
 
 /**
+ * True where no memory reading beats the one the platform gives. On iOS `os.freemem()` counts only the pages nobody uses (about 1 %
+ * on a healthy phone): that read as `high` and held every automation for good (seen in an embedded Node on the iOS simulator). The
+ * app host knows the real figure (`os_proc_available_memory`) but does not pass it on yet, so the memory is unknown, and unknown
+ * never raises the level.
+ */
+export const memoryUnreadable = (platform) => platform === 'ios'
+
+/**
  * The raw facts about the machine → a level and the reasons for it.
  *   sample: { memAvailablePct, memAvailableMb, loadPerCpu }, each a number or null (null = unknown, never a reason).
  * Unknown facts never raise the level: a machine that cannot be measured is treated as free (fail-open).
