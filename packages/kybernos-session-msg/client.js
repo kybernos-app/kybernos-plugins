@@ -689,7 +689,9 @@ window.__ModuleLoader__.load({
         try {
           const registerRule = (c) => {
             try {
-              const ui = c !== null && c !== undefined && c.uiConversation !== undefined ? c.uiConversation : (c !== null && c !== undefined && typeof c.get === 'function' ? c.get('uiConversation') : null)
+              // `get`, not `c.uiConversation`: called with the plugin's own context when the service is already there, where a property read throws
+              // (and the catch below would then silently skip the rule).
+              const ui = c !== null && c !== undefined && typeof c.get === 'function' ? c.get('uiConversation') : null
               if (ui !== null && ui !== undefined && ui.userText !== null && ui.userText !== undefined && typeof ui.userText.register === 'function') {
                 ctx.effect(() => ui.userText.register(markerRule), 'kybernos-session-msg: user-text rule kb-msg')
               }

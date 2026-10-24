@@ -294,7 +294,8 @@ export async function enregistrer (ctx) {
     dire('defineTool not found — literal definition (equivalent compiled form)')
     outil = definitionLiteral(definition)
   }
-  ctx.tools.register(outil)
+  // `get`, not `ctx.tools`: called with the plugin's own context when the service is already there, where a property read of a service it did not inject throws.
+  ctx.get('tools').register(outil)
   dire(`tool “${OUTIL}” registered`)
 }
 

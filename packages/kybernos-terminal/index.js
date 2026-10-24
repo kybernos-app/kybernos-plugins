@@ -288,7 +288,8 @@ export function apply (ctx) {
   if (ctx !== null && ctx !== undefined && typeof ctx.effect === 'function') ctx.effect(() => kbRetirerRoutes, 'kybernos-terminal: routes')
   try {
     const demarrer = (hostCtx) => {
-      monterRoutes(kbSuivi(hostCtx.webServer))
+      // `get`, not `hostCtx.webServer`: with the plugin's own context a property read of a service it did not inject throws.
+      monterRoutes(kbSuivi(hostCtx.get('webServer')))
       console.log('[kybernos-terminal] route /kybernos-terminal/run registered')
     }
     if (ctx.get('webServer') !== undefined) demarrer(ctx)
