@@ -95,8 +95,10 @@ repaired file works again), an unreadable file, copies capped at five and dedupl
 millisecond), the atomic write (no temp file, failure cleanup, replaced rather than rewritten in place), permissions,
 and a symlinked store. The read-only-folder and `chmod 000` cases are skipped when run as root.
 
-Nothing else covers this bundle (the lifecycle and packaging tests only use its name), and no test covers `client.js`
-or `model.js`. The comments in `client.js` cite `scripts/test-kybernos-slash-parity.mjs` and
+`model.js` (normalize, validate, render) runs through the routes of that test and through `test-tool.mjs`. The client has its own tests:
+`test-client.mjs` (every `L({fr, en})` call has both sides, `kbslLang`), `test-lang.mjs`, `test-narrow-row.mjs`, `test-prompt-draft.mjs`
+(the pre-filled prompt) and `test-write-guard.mjs` (the signed session on the POST routes); no test renders the page in a browser.
+The comments in `client.js` cite `scripts/test-kybernos-slash-parity.mjs` and
 `docs/handoff/slash-actions/REFERENCE.md`; neither exists in this repository. Syntax check only for the client:
 `node --check packages/kybernos-slash/client.js`.
 

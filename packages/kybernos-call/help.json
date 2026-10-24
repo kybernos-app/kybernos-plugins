@@ -5,8 +5,8 @@
   },
   "steps": [
     {
-      "fr": "Clique le téléphone (voix) ou la caméra (vidéo) dans l’en-tête du chat (replié : « Afficher les outils du chat »). Membre : Call ou Video.",
-      "en": "Click the phone (voice) or camera (video) in the chat header (folded: “Show chat tools”). For a member: Call or Video on its card."
+      "fr": "Clique le téléphone dans l’en-tête du chat (sa flèche : vidéo, réglages ; replié : « Afficher les outils du chat »). Membre : Call ou Video.",
+      "en": "Click the phone in the chat header (its arrow: video, settings; folded: “Show chat tools”). For a member: Call or Video on its card."
     },
     {
       "fr": "Autorise le micro dans le navigateur. Le panneau d'appel s'ouvre en bas à droite : parle, il répond à voix haute.",

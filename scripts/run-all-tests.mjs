@@ -3,7 +3,7 @@
 //
 //   node scripts/run-all-tests.mjs [--jobs 4] [--timeout 240] [--only <text>] [--list] [--verbose]
 //
-// CI runs the same files (scripts/test-*.mjs from the root, packages/*/test*.mjs from their folder, the two `node --test` folders), but only on a
+// CI runs the same files (scripts/test-*.mjs from the root, packages/*/test*.mjs from their folder, the two `node --test` folders, the services' `*.test.mjs`), but only on a
 // push to main or a pull request. `dev` is merged on this machine, so until this runner existed the full suite never ran before a merge and a red
 // file stayed red for days (four of them on 2026-10-23). This runner is named « run-all », not « test-all », so that the CI loop over
 // scripts/test-*.mjs does not start it inside itself.
@@ -33,6 +33,13 @@ export function discover (root) {
     const dir = join(root, 'packages', d)
     const files = ls(join(dir, 'test')).filter((f) => /\.test\.mjs$/.test(f))
     if (files.length > 0) out.push({ rel: 'packages/' + d + '/test/*.test.mjs', cwd: dir, args: ['--test'].concat(files.map((f) => join('test', f))) })
+  }
+  // The services (the cloud computer's image, the skills relay) keep `*.test.mjs` files beside their code, written for the node test runner: one job per service folder. They ran in
+  // no gate until 2026-10-24 (the reporter was changed with its test outside the loop, so it could go red while the suite stayed green).
+  for (const d of ls(join(root, 'services'))) {
+    const dir = join(root, 'services', d)
+    const files = ls(dir).filter((f) => /\.test\.mjs$/.test(f))
+    if (files.length > 0) out.push({ rel: 'services/' + d + '/*.test.mjs', cwd: dir, args: ['--test'].concat(files) })
   }
   return out
 }

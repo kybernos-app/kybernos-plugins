@@ -72,7 +72,7 @@ window.__ModuleLoader__.load({
         todayCap: ["Aujourd'hui : le téléphone", 'Today: the phone'],
         todayFlag: ['Existe déjà', 'Exists today'],
         todayTitle: ["Accès direct à l'ordinateur", 'Direct access to the computer'],
-        todayBody: ["Le lien téléphone (plans payants) n'est pas une copie : il ouvre la page de ton ordinateur en direct, chiffrée de bout en bout.", 'The phone link (paid plans) is not a copy: it opens your computer’s own page live, end-to-end encrypted.'],
+        todayBody: ["Le lien téléphone n'est pas une copie : il ouvre la page de ton ordinateur en direct, chiffrée de bout en bout.", 'The phone link is not a copy: it opens your computer’s own page live, end-to-end encrypted.'],
         todayNote: ["Il voit tous les workspaces de l'ordinateur, pas un seul. L'ordinateur doit être allumé : il n'y a pas de file d'attente. Certaines actions lui sont refusées : clés, réglages, plugins, terminal.", 'It sees every workspace of the computer, not just one. The computer must be on: there is no queue. Some actions are refused to it: keys, settings, plugins, terminal.'],
         soon: ['Bientôt · aperçu', 'Soon · preview'],
         execCap: ['Exécution', 'Execution'],

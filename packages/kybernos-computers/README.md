@@ -31,7 +31,7 @@ silent), patch of the default model in the `- id:` format.
 `computer_write`, `computer_read`, `computer_stop`, `computer_pause` / `computer_resume` (E2B betaPause freeze: CPU not billed, disk kept), `computer_list`, exposed
 to the model (same `tools.register` contract as the memory tools of
 kybernos-cloud, render in `output.render`): the agent creates and drives
-its own microVMs without touching the machine. Left: the composer selector.
+its own microVMs without touching the machine. The composer selector exists (`EnvSelector`, slot `conversation.input.left`: This machine, E2B, and the Cloud Computer, disabled for now).
 
 ## Security
 

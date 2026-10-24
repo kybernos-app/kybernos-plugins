@@ -2,7 +2,7 @@
 
 The new-chat page shows the Cloud Computer and can wake it, put it to sleep and open it (`/kybernos-cloud/computer/{resume,suspend,open}`).
 The composer's environment popover lists it as **« Cloud Computer », disabled**, with its reason. This page is why it is disabled, and the
-smallest change that would enable it. Checked on 2026-10-15 in the server's code (`kybernos-server`, ADR 0052 and 0053).
+smallest change that would enable it. Checked on 2026-10-15 in the server's code (`kybernos-server`, ADR 0052 and 0053); re-checked on 2026-10-24 against its `origin/dev`: what moved is marked below.
 
 ## What exists
 
@@ -10,23 +10,26 @@ smallest change that would enable it. Checked on 2026-10-15 in the server's code
 |---|---|---|
 | Telegram | a **turn** addressed to the person's Home computer: the channels module calls `hosted.dispatch(userId, kyberId, { threadId, message, clientTurnId, computerId, source: 'telegram' })`; the computer's runner takes the job (`services/computer-image/runner.mjs`), its own DSH answers, the answer goes back to the chat | the person, in the bot's chat; **behind the owner's switch `channel_computer_turns_enabled`** (0 by default) |
 | Schedule | an automation already on the computer (`tasks.json`), at its time | nobody; the platform wakes the computer (`next_wake_at`) |
-| Webhook | `POST /v1/hooks/{hook_id}?secret=…` → the platform wakes the computer if needed and forwards to its `/kybernos/hooks`, which runs **an existing automation** with the event appended to its prompt | whoever holds the secret |
+| Webhook | designed (ADR 0052), **not served yet**: the console mints the URL `POST /v1/hooks/{hook_id}?secret=…`, but no server route answers it (2026-10-24). The receiver on the computer, `/kybernos/hooks`, exists: it runs **an existing automation** with the event appended to its prompt | whoever holds the secret, once the ingress is served |
 | Page | the computer's own DSH, opened by a single-use ticket (`POST …/computers/{id}/ticket`) | who may open it (its owner; owners and admins when its access allows) |
+
+Since 2026-10-15 the public dispatch route takes a computer: `POST /v1/kybers/{id}/threads/dispatch` (`hosted/routes.ts`) accepts an optional
+`computer_id` besides `thread_id`, `message`, `client_turn_id`, `model`, passes it to the service as `computerId` (which checks
+`computerServes(userId, workspaceId, computerId)` and runs the turn on that computer instead of a platform runner), and answers
+`computer_unavailable` for one that is not the person's or cannot take a turn.
 
 ## What does not exist
 
-- **The public dispatch route takes no computer.** `POST /v1/kybers/{id}/threads/dispatch` (`hosted/routes.ts`) takes `thread_id`, `message`,
-  `client_turn_id`, `model`. The service behind it already knows `computerId` (it checks `computerServes(userId, workspaceId, computerId)`
-  and runs the turn on that computer instead of a platform runner), but only the channels module passes it.
-- **No route writes to a computer's `tasks.json`.** An automation exists on a computer because the person made it in its page.
+- **No route on `origin/dev` writes to a computer's `tasks.json`.** The outbox (`PUT/GET /v1/workspaces/{id}/computers/{id}/tasks`) is on
+  the pushed branch `feature/computers-page-and-outbox`, not merged. An automation exists on a computer because the person made it in its page.
 - **DSH has no server-side conversation.** The route works on a *thread* (« one of your conversations with this kyber »); a DSH chat is a local
   session.
 
 So a DSH chat cannot be sent to the Cloud Computer today, and the composer says so instead of hiding the computer.
 
-## The smallest change (not built)
+## The smallest change (step 1 done, steps 2 to 4 not built)
 
-1. **Server**: an optional `computer_id` in the body of `POST /v1/kybers/{id}/threads/dispatch`, passed to `service.dispatch` as `computerId`.
+1. **Server** (done 2026-10-15): an optional `computer_id` in the body of `POST /v1/kybers/{id}/threads/dispatch`, passed to `service.dispatch` as `computerId`.
    Everything else is the path Telegram already uses: the same job, the same tool gate, the same approvals, the same owner switch.
 2. **DSH host** (`kybernos-cloud`): `POST /kybernos-cloud/computer/turn` — strict same origin, the body is the prompt only; the host finds
    the Home computer (as for wake, sleep and open), keeps one thread with the person's kyber for this, dispatches, and relays the answer

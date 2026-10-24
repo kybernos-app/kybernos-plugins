@@ -254,7 +254,6 @@ window.__ModuleLoader__.load({
                 : (typeof c.error === 'string' && c.error !== '' ? c.error : kt('le service de clonage a refusé', 'the clone service refused'))
         return kt(' · voix enregistrée non utilisée : ', ' · recorded voice not used: ') + why + kt(' — voix par défaut', ' — default voice')
       }
-      const AGENT_STATES = { listening: ['à l’écoute', 'listening'], thinking: ['réfléchit', 'thinking'], speaking: ['parle', 'speaking'], initializing: ['démarre', 'starting'] }
 
       let lastOpen = null // what the last call was asked with: « Try again » opens it again
       const open = async (opts) => {

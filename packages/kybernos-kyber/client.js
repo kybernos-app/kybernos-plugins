@@ -450,7 +450,6 @@ window.__ModuleLoader__.load({
         monitor: ['M4 3h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z', 'M8 21h8', 'M12 17v4'],
         phone: ['M5 4a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2z', 'M12 18h.01'],
         shield: ['M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z', 'm9 12 2 2 4-4'],
-        chev: ['m6 9 6 6 6-6'],
         link: ['M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71', 'M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71'],
         ext: ['M15 3h6v6', 'M10 14 21 3', 'M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6'],
         star: ['M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z'],
@@ -537,11 +536,6 @@ window.__ModuleLoader__.load({
         return { sub: L('tgNone'), key: 'idle' }
       }
 
-      /** Telegram as a state: its mark, its name and where it stands. The strip shows this; the « Phone and channels » screen adds the switch to it (`telegramChanRow`). */
-      const telegramStateRow = (v) => {
-        const row = telegramRow(v)
-        return h(ChanRow, { kb: 'kybernos-kyber-tg-row', stateKey: row.key, mark: BRAND.telegram(20), name: L('telegram'), sub: row.sub, warn: row.warn === true })
-      }
       /** Telegram's row on the « Phone and channels » screen: the state, the one switch, the way out of a server that has no bot, the link to the bot. */
       const telegramChanRow = (v) => {
         const tg = v.telegram

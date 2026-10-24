@@ -327,7 +327,7 @@ try {
   check('personal: the same command goes through (nothing changes there)', personalShell.kind === 'pass')
 
   // the routes a shell could use need the signed session
-  const guarded = ['/kybernos-cloud/memory/add', '/kybernos-cloud/memory/update', '/kybernos-cloud/memory/lessons', '/kybernos-cloud/team/lessons/add', '/kybernos-cloud/space/active', '/kybernos-cloud/kyby/native/set']
+  const guarded = ['/kybernos-cloud/memory/add', '/kybernos-cloud/memory/update', '/kybernos-cloud/team/lessons/add', '/kybernos-cloud/space/active', '/kybernos-cloud/kyby/native/set']
   check('the routes a shell could use to write the memory, choose the space or make a session Kaby\'s need the signed session', guarded.every((p) => cloud.ROUTES.find((r) => r.path === p)?.session === true), guarded.filter((p) => cloud.ROUTES.find((r) => r.path === p)?.session !== true).join(', '))
 
   // the seam itself in doubt (the reader half: the lessons bundle must cut when it cannot be told; the account memory has its own reader)

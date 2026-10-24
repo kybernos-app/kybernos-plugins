@@ -20,7 +20,6 @@ const ALLOWED = new Set(['\u{1F44E}', '\u{1F44D}'])
 // package|emoji → why it stays. Burn this list down: a LUCIDE icon of that client, or the product's own, replaces the glyph.
 const KNOWN = {
   'kybernos-plugin|📌': 'the pin button of an Agent Team card (three places): the LUCIDE table has no pin icon yet',
-  'kybernos-plugin|🔎': 'the placeholder of the team icon field, an example of what a person may type there (an emoji is a valid team icon)',
   'kybernos-plugin|🎓': 'same example, in the field of the skill icon',
   'kybernos-composio|⚡': 'the fallback icon of a catalogue item that brings none (this bundle has no icon table)',
   'kybernos-composio|🤖': 'same fallback, for a kyber item',

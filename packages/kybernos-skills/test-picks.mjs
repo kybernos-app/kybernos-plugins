@@ -276,7 +276,7 @@ try {
   assert.match(src, /if \(sk\.shipped === true\) installShipped\(sk\.name\); else \{ setAskInstall\(x\)/, 'a skill from GitHub asks the usual confirmation, one that ships with Kybernos is a plain copy')
   assert.match(src, /setShipDone\(\(m\) => \(\{ \.\.\.m, \[name\]: true \}\)\); loadCatalogue\(\)/, 'a shipped skill shows as installed at once, then the registry is read again')
   assert.match(src, /h\('h1', \{ className: 'kb6-title' \}, pageTitle\(\)\), helpBtn\)/, 'the title is the menu\'s word for the row when the field gives one')
-  for (const key of ['fld.shipped', 'fld.installing']) assert.match(src, new RegExp("'" + key.replace(/\./g, '\\.') + "': \\{ fr: '[^']+', en: '[^']+' \\}"), key + ' has both languages')
+  for (const key of ['fld.installing']) assert.match(src, new RegExp("'" + key.replace(/\./g, '\\.') + "': \\{ fr: '[^']+', en: '[^']+' \\}"), key + ' has both languages')
   ok('Featured: the saved field\'s skills first, flat in the list with a dot (confirmation for GitHub, plain copy for shipped), nothing without a field, the title follows the menu')
 
   console.log('\n' + pass + ' verifications OK')

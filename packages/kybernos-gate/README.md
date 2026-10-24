@@ -18,6 +18,7 @@ like [`messaging`](../messaging). Node 22.19 or later.
 browser ──https──▶ your TLS proxy ──http──▶ kybernos-gate :3080 ──http──▶ dsh web 127.0.0.1:3081
                                               │ /__gate/login   sign-in page + login
                                               │ /__gate/health  200 "ok", no session needed
+                                              │ /__gate/ticket  one-time link from the platform (cloud computers; both TICKET variables)
                                               └ everything else needs the session cookie, then is proxied (HTTP, SSE, WebSocket)
 ```
 
@@ -93,7 +94,7 @@ docker compose up -d --build        # the image clones the plugins repository at
 
 The container listens on `127.0.0.1:3080` only: put your TLS proxy in front of it (Caddy, Traefik, nginx, or Coolify's own).
 `~/.dsh` is a volume: it holds the profile, the settings and the sessions; an empty volume is seeded from the image.
-The container refuses to start without `KYBERNOS_GATE_PASSWORD` or `KYBERNOS_GATE_PASSWORD_HASH`.
+The container refuses to start without `KYBERNOS_GATE_PASSWORD` or `KYBERNOS_GATE_PASSWORD_HASH` (unless both ticket variables are set).
 
 The plugins are installed in `/opt/kybernos-plugins`, out of the home folder, so they do not show up in DSH's folder picker.
 The agent works in `~/workspace` (`KYBERNOS_WORKSPACE` changes it): it is created at start and offered as the first workspace, so
@@ -121,9 +122,11 @@ and let Coolify's proxy carry the domain and the TLS certificate. Do **not** als
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `KYBERNOS_GATE_PASSWORD` | none | The password (8 characters at least). One of the two password variables is required. |
+| `KYBERNOS_GATE_PASSWORD` | none | The password (8 characters at least). One of the two password variables is required, unless the two ticket variables below are set. |
 | `KYBERNOS_GATE_PASSWORD_HASH` | none | A scrypt verifier (`kybernos-gate hash`). Wins over the plain password. |
 | `KYBERNOS_GATE_USER` | `kybernos` | The username. |
+| `KYBERNOS_GATE_TICKET_URL` | none | The way into a cloud computer: the platform address the gate asks, once, whether a one-time link `/__gate/ticket?t=…` is good, before it signs the browser in. https (http for a loopback address). Set it with the token below, or set neither. |
+| `KYBERNOS_GATE_TICKET_TOKEN` | none | The computer's own token, sent to the platform with that question. |
 | `KYBERNOS_GATE_HOST` / `_PORT` | `127.0.0.1` / `3080` | Where the gate listens. The Docker image sets `0.0.0.0`. |
 | `KYBERNOS_GATE_UPSTREAM` | `http://127.0.0.1:3081` | Where `dsh web` listens (http only). |
 | `KYBERNOS_GATE_TRUST_PROXY` | off | `1` when a proxy you control is in front: the client address is then the **last** `X-Forwarded-For` entry, `X-Forwarded-Proto: https` sets the `Secure` flag, `X-Forwarded-Host` is the public host. Never set it when the gate is reachable without that proxy: a client could then forge its address and dodge the attempt limit. |
