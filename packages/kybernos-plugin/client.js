@@ -144,6 +144,8 @@ let kbLocaleRead = () => 'en'
       'deliv.customize.visibleN': { kybernos: '{n} types affichés sur {m}', en: '{n} of {m} types shown' },
       'deliv.customize.reset': { kybernos: 'Réinitialiser', en: 'Reset to default' },
       'deliv.customize.done': { kybernos: 'Terminé', en: 'Done' },
+      // Delete takes the file for good (no trash): the card menu asks first, with the file's name.
+      'deliv.delete.confirm': { kybernos: 'Supprimer « {name} » ? Cette action est irréversible.', en: 'Delete “{name}”? This cannot be undone.' },
       // Data creations (json, yaml, csv…): shown as data — a table or a list of fields — never as the code of the file.
       'deliv.data.rows': { kybernos: '{n} lignes', en: '{n} rows' },
       'deliv.data.row1': { kybernos: '1 ligne', en: '1 row' },
@@ -2976,15 +2978,15 @@ const kbI18nDict = (lang) => {
   return dict
 }
 
-// ── Favoris partagés (Projets, Kybers, Automations) ──────────────────────────
-// Une seule clé localStorage pour les trois panneaux : chaque scope porte ses
-// ids marqués à true. Lecture défensive (clé absente, JSON corrompu ou
-// stockage indisponible = objet vide neuf), écriture silencieuse (mode privé),
-// bascule lire-modifier-écrire qui rend la map à jour pour l’état React.
+// ── Shared favourites (Projects, Kybers, Automations, Creations) ──────────────
+// One localStorage key for the four panels: each scope holds its ids marked true
+// (Creations: the file path). Defensive read (missing key, corrupt JSON or no
+// storage = a fresh empty object), silent write (private mode), and a
+// read-modify-write toggle that returns the updated map for the React state.
 const KB_FAV_KEY = 'kybernos.favorites.v1'
-const KB_FAV_SCOPES = ['workspaces', 'kybers', 'automations']
+const KB_FAV_SCOPES = ['workspaces', 'kybers', 'automations', 'creations']
 const kbFavRead = () => {
-  const out = { workspaces: {}, kybers: {}, automations: {} }
+  const out = { workspaces: {}, kybers: {}, automations: {}, creations: {} }
   try {
     const raw = window.localStorage.getItem(KB_FAV_KEY)
     if (raw === null || raw === '') return out
@@ -20340,6 +20342,25 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       if (info.shape === 'text') return [info.lines.slice(0, 3).map((l, i) => h('div', { className: 'kb6-line2', key: 'tl' + i }, l.slice(0, 90)))]
       return [h('div', { className: 'kb6-line2', key: 'nd' }, kbt('deliv.data.nodata'))]
     }
+    // <kb-art-rules:begin>
+    // Small rules of the Creations page, kept pure so test-creations-honesty.mjs can run them as they are.
+    // One line of a text creation as plain words: tags, the heading hashes, a quote or list bullet at the start, backticks and emphasis stars are markup, not text.
+    const kbArtPlain = (line) => String(line === null || line === undefined ? '' : line).replace(/<[^>]*>/g, '').replace(/^#+\s*/, '').replace(/^[>+-]\s+/, '').replace(/`+/g, '').replace(/\*{1,2}/g, '').trim()
+    // The « Modified » period of the toolbar: '7' or '30' keeps what changed in the last N days, anything else keeps all. A file with no usable date is kept
+    // (nothing says it is old). The clock is passed in (`nowMs`), so the rule gives the same answer in a test.
+    const kbArtInPeriod = (mtimeMs, period, nowMs) => {
+      const days = period === '7' ? 7 : (period === '30' ? 30 : 0)
+      if (days === 0 || Number.isFinite(nowMs) !== true || typeof mtimeMs !== 'number' || Number.isFinite(mtimeMs) !== true) return true
+      return (nowMs - mtimeMs) <= days * 86400000
+    }
+    // A count of Creations as the page says it: the host lists at most ARTIFACT_LIMIT files and flags a cut list (`artifactsCut`), so that list reads « 500+ », never a bare 500.
+    const kbArtCountLabel = (n, cut) => String(n) + (cut === true ? '+' : '')
+    // Delete takes the file for good (no trash): it goes ahead only when the person says yes, and with no way to ask nothing is deleted. `ask` is window.confirm.
+    const kbArtDeleteOk = (name, ask) => {
+      if (typeof ask !== 'function') return false
+      try { return ask(kbt('deliv.delete.confirm').split('{name}').join(String(name === null || name === undefined ? '' : name))) === true } catch (e) { return false }
+    }
+    // <kb-art-rules:end>
     const previewLine = (i, w) => h('div', { className: 'kb6-line', key: 'pl' + i, style: { width: w + '%' } })
     const previewContent = (t, name, preview, path, size) => {
       const kind = (preview !== null && preview !== undefined && typeof preview === 'object' && typeof preview.kind === 'string') ? preview.kind : 'text'
@@ -20397,9 +20418,11 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         return lines !== null ? kbCodeBlock(text, kbCodeLang(name) || 'js', 4) : [previewLine(1, 78), previewLine(2, 60)]
       }
       if (t.id === 'doc') {
-        if (lines !== null) return [
-          h('div', { className: 'kb6-prevtitle', key: 'tt' }, (lines[0] || name || 'doc').replace(/^#+\s*/, '').slice(0, 60)),
-          lines.slice(1, 3).map((l, i) => h('div', { className: 'kb6-line2', key: 'rl' + i }, l.slice(0, 90))),
+        // The lines are shown as plain words (the card subtitle's own strip), not as markdown: no **, backticks or bullets.
+        const plain = lines === null ? [] : lines.map(kbArtPlain).filter((l) => l.length > 0)
+        if (plain.length > 0) return [
+          h('div', { className: 'kb6-prevtitle', key: 'tt' }, plain[0].slice(0, 60)),
+          plain.slice(1, 3).map((l, i) => h('div', { className: 'kb6-line2', key: 'rl' + i }, l.slice(0, 90))),
         ]
         return [h('div', { className: 'kb6-prevtitle', key: 'tt' }, name || 'doc'), previewLine(1, 84), previewLine(2, 66), previewLine(3, 48)]
       }
@@ -20505,7 +20528,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         .filter((l) => l.length > 0 && /^[-_=*]{3,}$/.test(l) === false)
       if (lines.length === 0) return ''
       // Markup marks are not shown as text: backticks, emphasis stars, a quote or list bullet at the start.
-      return lines[0].replace(/<[^>]*>/g, '').replace(/^#+\s*/, '').replace(/^[>+-]\s+/, '').replace(/`+/g, '').replace(/\*{1,2}/g, '').slice(0, 96)
+      return kbArtPlain(lines[0]).slice(0, 96)
     }
     const KbArtCard = ({ a, onOpen, preview, onAction, pinned, onPin, read, appear }) => {
       const t = kbArtType(a.name)
@@ -22556,6 +22579,8 @@ function renderFit(canvas, model, cam, opts){
       // Before the first payload there is nothing to list: the page draws bones (or the error), never invented files.
       // It used to fall back on seven fake creations until the host answered.
       const arts = hasPayload === true ? real : []
+      // The host lists at most 500 files and says when it cut the list: the counts then read « 500+ » (kbArtCountLabel).
+      const artsCut = hasPayload === true && s.data.artifactsCut === true
       // Barre unifiee Deliverables : recherche, filtre type, tri persistes.
       const tbArts = useToolbarState('deliverables', { sort: 'modified', viewMode: 'cards' })
       // Sélection MULTI-types (maquette « sélection multi-types », 29/09) : chaque
@@ -22614,16 +22639,13 @@ function renderFit(canvas, model, cam, opts){
       const setQ = (v) => tbArts[1]({ query: v })
       const sort = tbArts[0].sort === 'modified' ? 'date' : tbArts[0].sort
       const setSort = (v) => tbArts[1]({ sort: v === 'date' ? 'modified' : v, dir: v === 'name' ? 'asc' : 'desc' })
-      // Épingles propres aux livrables : clé = chemin du fichier. Distinct de
-      // `ppins` (raccourcis de projets/kybers), sinon les deux se mélangeraient.
-      const pins = (s.apins !== null && s.apins !== undefined && typeof s.apins === 'object') ? s.apins : {}
-      const togglePin = (path) => {
-        const nx = Object.assign({}, pins)
-        if (nx[path] === true) delete nx[path]
-        else nx[path] = true
-        set({ apins: nx })
-      }
-      const nPins = Object.keys(pins).length
+      // Pins of the Creations (key = the file path). They live in the shared favourites store (scope 'creations', localStorage), as the
+      // stars of Projects, Kybers and Automations do: the in-memory store they used to sit in lost them at every reload.
+      const artFavPair = React.useState(() => kbFavRead())
+      const artFavs = artFavPair[0]
+      const setArtFavs = artFavPair[1]
+      const pins = artFavs.creations
+      const togglePin = (path) => { setArtFavs(kbFavToggle('creations', path)) }
       const notePair = React.useState(null)
       const note = notePair[0]
       const setNote = notePair[1]
@@ -22703,6 +22725,8 @@ function renderFit(canvas, model, cam, opts){
           : { vis: nx, visMode: 'hidden' })
       }
       const resetTiles = () => tbArts[1]({ vis: undefined })
+      // The clock is read once per render and handed to the period rule (kbArtInPeriod), which does not read it itself.
+      const nowMs = Date.now()
       const filtered = typed
         .filter((a) => selTypes.length === 0 || selTypes.some((sid) => (sid === 'miniapp')
           ? (a.type.id === 'miniapp' && isRenderedMiniApp(a) === true)
@@ -22711,6 +22735,8 @@ function renderFit(canvas, model, cam, opts){
         // Favoris (constat 28/09) : le bouton ☆ posait st.fav sans que cette
         // chaîne le lise — le filtre restait inopérant (0 épingle → 6 cartes).
         .filter((a) => tbArts[0].fav !== true || pins[a.path] === true)
+        // « Modified » (7 / 30 days): the toolbar draws it and counts it as an active filter, so the list has to follow it.
+        .filter((a) => kbArtInPeriod(a.mtimeMs, tbArts[0].period, nowMs))
       const sorted = filtered.slice().sort((a, b) => {
         // Les épinglés passent devant, quel que soit le tri demandé.
         const pa = pins[a.path] === true ? 1 : 0
@@ -22727,7 +22753,7 @@ function renderFit(canvas, model, cam, opts){
       const revealPair = React.useState(KB_ART_REVEAL)
       const reveal = revealPair[0]
       const setReveal = revealPair[1]
-      React.useEffect(() => { setReveal(KB_ART_REVEAL) }, [typesKey, sort, q])
+      React.useEffect(() => { setReveal(KB_ART_REVEAL) }, [typesKey, sort, q, tbArts[0].period])
       const shown = sorted.slice(0, reveal)
       const reste = sorted.length - shown.length
       const refresh = () => { try { load() } catch (e) { /* rechargement */ } }
@@ -22838,6 +22864,8 @@ function renderFit(canvas, model, cam, opts){
           try { timerSvc.timeout(() => setNote(null), 2000) } catch (e) { setNote(null) }
           return
         }
+        // Delete is for good (no trash): ask first, as DSH does before it archives a running session.
+        if (action === 'delete' && kbArtDeleteOk(a.name, typeof window.confirm === 'function' ? (m) => window.confirm(m) : null) !== true) return
         const payload = { action: action, path: a.path }
         if (extra !== undefined && extra !== null) Object.assign(payload, extra)
         setNote(action + '…')
@@ -22866,7 +22894,7 @@ function renderFit(canvas, model, cam, opts){
           }
         }).catch((e2) => { /* previews indisponibles */ })
         return () => { dead = true }
-      }, [typesKey, sort, q, reveal, s.data])
+      }, [typesKey, sort, q, tbArts[0].period, reveal, s.data])
       const openName = (openPath !== null && openPath !== undefined) ? (arts.find((a) => a.path === openPath) || {}).name : null
       if (openPath !== null && openPath !== undefined && real.length > 0) return withPopup(h(ArtView, { path: openPath, name: openName || openPath, onBack: () => setOpenPath(null), onPopup: openPopup }))
       // The line under the tiles (what the selected type is) and the three quick actions: static text, the same on the real page
@@ -22967,7 +22995,7 @@ function renderFit(canvas, model, cam, opts){
                   h('span', { className: 'kb-type-check' + (allOn === true ? ' on' : ''), 'aria-hidden': 'true' }, allOn === true ? Icon('check', 10) : null),
                   h('span', { className: 'kb-type-line' },
                     h('span', { className: 'kb-type-lab' }, kbt('deliverables.all')),
-                    h('span', { className: 'kb-type-cnt' }, String(typed.length)))),
+                    h('span', { className: 'kb-type-cnt' }, kbArtCountLabel(typed.length, artsCut)))),
                 // Familles d'abord (26/09), puis types fins — l'ordre du KB.
                 // Famille toujours visible à compteur 0 ; types fins masqués
                 // quand aucun fichier ne les porte, sauf s'ils sont réactivés
@@ -28083,6 +28111,8 @@ function renderFit(canvas, model, cam, opts){
       React.useEffect(() => { if (state.data === null && state.loading === false) load() }, [])
       const c = navCounts(s.data)
       const arts = (s.data !== null && s.data !== undefined && Array.isArray(s.data.artifacts) === true) ? s.data.artifacts : []
+      // The host lists at most 500 files and flags a cut list: the badge then reads « 500+ » (kbArtCountLabel).
+      const artsCut = s.data !== null && s.data !== undefined && s.data.artifactsCut === true
       const uw = (p0 !== null && p0 !== undefined) ? p0.useWorkspaces : null
       const snapW = (typeof uw === 'function') ? uw((st) => st) : null
       const wsCount = (snapW !== null && snapW !== undefined && Array.isArray(snapW.items) === true) ? snapW.items.length : null
@@ -28168,7 +28198,7 @@ function renderFit(canvas, model, cam, opts){
         const iconNode = kabyOwn && kabyMe.portrait !== null ? h('img', { className: 'kb4-kabyav', src: kabyMe.portrait.url, alt: '', 'data-kb': 'kb-kaby-row-portrait' }) : kbMenuIcon(id, ico, active === true)
         return h('button', { type: 'button', key: id, className: 'kb4-item' + (active === true ? ' on' : ''), 'aria-label': label, title: label, onClick },
         h('span', { className: 'kb4-ico' }, iconNode), h('span', { className: 'kb4-lab' }, label),
-        (badge !== null && badge !== undefined && badge > 0) ? h('span', { className: 'kb4-badge' }, String(badge)) : null,
+        (badge !== null && badge !== undefined && (typeof badge === 'string' ? badge !== '' : badge > 0)) ? h('span', { className: 'kb4-badge' }, String(badge)) : null,
         (extra === undefined ? null : extra)) }
       const ncCloud = useNcCloud()
       useKbTasksWatch(uss)
@@ -28236,7 +28266,7 @@ function renderFit(canvas, model, cam, opts){
         // Runs n'est plus ici : c'est un onglet de conversation, à côté de
         // « Kybernos Crew » (cf. slot `conversation.view` id `runs`).
         row('projects', Icon('folderOpen', 15), kbt('menu.projects'), wsCount, shown === 'projects' || shown === 'project', () => openPage({ view: 'projects' })),
-        row('deliverables', Icon('shapes', 15), kbt('menu.deliverables'), arts.length, shown === 'artifacts' || shown === 'artview', () => openPage({ view: 'artifacts' })),
+        row('deliverables', Icon('shapes', 15), kbt('menu.deliverables'), arts.length > 0 ? kbArtCountLabel(arts.length, artsCut) : 0, shown === 'artifacts' || shown === 'artview', () => openPage({ view: 'artifacts' })),
         // « Mon espace » retiré du menu (demande du 26/09/2026) : la page et sa
         // section Réglages restent en place, seule l'entrée de la barre disparaît.
         row('tasks', Icon('zap', 15), kbt('menu.tasks'), (KB_TASKS_COUNT !== null && KB_TASKS_COUNT !== undefined) ? KB_TASKS_COUNT : 0, shown === 'tasks', () => openPage({ view: 'tasks' }), h(KbRowState, { k: 'tasks' })),
