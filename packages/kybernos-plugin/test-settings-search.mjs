@@ -85,11 +85,62 @@ check('the normaliser drops accents, case and symbols', kbSsNorm('  Clé  API !'
 check('every page\'s related words are plain: lower case, no accent', Object.values(KB_SS_PAGE_KW).every((w) => w === kbSsNorm(w)))
 check('every row\'s related words are plain: lower case, no accent', KB_SS_INDEX.every((r) => r[5] === kbSsNorm(r[5])), KB_SS_INDEX.filter((r) => r[5] !== kbSsNorm(r[5])).map((r) => r[2]))
 
+console.log('the index only promises what the pages draw')
+{
+  // The core plugin's bundle patch removes DSH's switch « Upload Session Log when using the official model API » (privacy default): a row for it opened a General page with nothing to blink (T1-7, 2026-10-24).
+  const patch = readFileSync(new URL('./cordis.patch.yml', import.meta.url), 'utf8')
+  const removed = /- id: session-log-deepseek\s*\n\s*disabled: true/.test(patch)
+  check('the bundle patch still removes the Session Log switch (so the premise of the next check holds)', removed)
+  check('and then no row of the index offers it', !KB_SS_INDEX.some((r) => /session log/i.test(r[2])), KB_SS_INDEX.filter((r) => /session log/i.test(r[2])).map((r) => r[2]))
+}
+
+console.log('the Replay copy names the steps the wizard has')
+{
+  // « Replay the welcome pages to redo your profession, display mode, … »: display mode stopped being a step (it follows the field) and « profession » is the field-of-work step (T1-10, 2026-10-24).
+  const plan = /const kbObPlan = \(withField\) => \(withField === false \? \[[^\]]*\] : \[([^\]]*)\]\)/.exec(SRC)
+  const steps = plan === null ? [] : plan[1].split(',').map((s) => s.trim().replace(/'/g, ''))
+  check('the wizard plan has no display-mode step', steps.length >= 5 && steps.indexOf('display') < 0 && steps.indexOf('mode') < 0, steps)
+  const row = KB_SS_INDEX.find((r) => r[0] === 'general' && r[2] === 'Onboarding')
+  check('the search row exists and does not offer to redo a display mode', row !== undefined && !/display mode/i.test(row[3]), row && row[3])
+  check('it names the field of work, the goals, the models and the starter kit (steps job, goals, model, kit)', ['job', 'goals', 'model', 'kit'].every((s) => steps.indexOf(s) >= 0) && /field of work, goals, models and starter kit/.test(row[3]), row && row[3])
+  const fr = KB_SS_FR['general|Onboarding']
+  check('and so does its French twin', Array.isArray(fr) && !/mode d’affichage/.test(fr[1]) && /ton domaine, tes objectifs, tes modèles et ton kit de départ/.test(fr[1]), fr)
+  const sessions = readFileSync(new URL('../kybernos-sessions/client.js', import.meta.url), 'utf8')
+  check('the page says the same thing as the search row, in both languages', sessions.includes(row[3]) && sessions.includes(fr[1]), null)
+}
+
+console.log('a Theme result opens the folded editor before it looks for its row')
+{
+  // 17 of the 19 Theme results name a tab of the classic editor, which sits in a closed <details>: nothing inside a closed one has a box, so the reveal gave up and blinked nothing (T1-6, 2026-10-24).
+  const at = SRC.indexOf('const kbSsOpenFolded = ')
+  const end = SRC.indexOf('/** Open the page of a result', at)
+  check('the helper exists', at > 0 && end > at)
+  const kbSsOpenFolded = new Function(SRC.slice(at, end) + '\nreturn kbSsOpenFolded')()
+  const fakePane = (details) => ({ querySelector: (sel) => (sel === 'details[data-kb="theme-classic"]' ? details : null) })
+  const closed = { open: false }
+  check('a closed editor is opened, and the helper says it did', kbSsOpenFolded(fakePane(closed)) === true && closed.open === true)
+  const open = { open: true }
+  check('an open one is left alone', kbSsOpenFolded(fakePane(open)) === false && open.open === true)
+  check('a page without the editor is not an error', kbSsOpenFolded(fakePane(null)) === false)
+  const reveal = SRC.slice(SRC.indexOf('const kbSsReveal = '), SRC.indexOf('const KbSettingsSearchInline'))
+  check('the reveal opens it for a tab row of the Theme page BEFORE it looks for the tab (the tabs are inside it)', reveal.indexOf('kbSsOpenFolded(pane)') > 0 && reveal.indexOf('kbSsOpenFolded(pane)') < reveal.indexOf('const tab = '))
+  check('and only for a row that names a tab, so a search that lands on the look studio does not unfold the editor', /e\.page === 'theme' && e\.sec !== '' && clickedTab === false\) \{\s*if \(kbSsOpenFolded/.test(reveal))
+}
+
+console.log('the Kaby row goes to text the page draws')
+{
+  // « Name, portrait and voice » is not drawn by the Kaby page (its blocks are Identity / Voice / Face on video calls): the row blinked nothing (T1-13, 2026-10-24).
+  const kabySrc = readFileSync(new URL('../kybernos-kaby-customisation/client.js', import.meta.url), 'utf8')
+  const row = KB_SS_INDEX.find((r) => r[0] === 'kaby' && r[2] === 'Name, portrait and voice')
+  check('the row names the text to go to', row !== undefined && row[7] === 'Identity', row && row[7])
+  check('the Kaby page draws that text, in both languages', kabySrc.includes("kt('Identité', 'Identity')") && KB_SS_FR['kaby|Name, portrait and voice'][2] === 'Identité')
+}
+
 console.log('French: the results read as the French pages do')
 {
   const key = (r) => r[0] + '|' + r[2]
   // The rows the French pages draw in English (DSH's own rows): they keep their English text, which is what the page shows.
-  const NATIVE = ['general|Permission', 'general|Appearance', 'general|Font size', 'general|Work details', 'general|When to Collapse Work Details', 'general|Show coding view', 'general|Keyboard shortcuts', 'general|Send behavior while busy', 'general|Performance & usage', 'general|Upload Session Log when using the official model API', 'agent presets|Standard mode', 'built-in plugins|Session plugins']
+  const NATIVE = ['general|Permission', 'general|Appearance', 'general|Font size', 'general|Work details', 'general|When to Collapse Work Details', 'general|Show coding view', 'general|Keyboard shortcuts', 'general|Send behavior while busy', 'general|Performance & usage', 'agent presets|Standard mode', 'built-in plugins|Session plugins']
   check('every French twin is a row of the index (no orphan: a renamed label would drop its French silently)', Object.keys(KB_SS_FR).every((k) => KB_SS_INDEX.some((r) => key(r) === k)), Object.keys(KB_SS_FR).filter((k) => !KB_SS_INDEX.some((r) => key(r) === k)))
   const bare = KB_SS_INDEX.filter((r) => KB_SS_FR[key(r)] === undefined && NATIVE.indexOf(key(r)) < 0).map(key)
   check('every row has its French, except the ones the French pages draw in English: a new row needs its French line', bare.length === 0, bare)

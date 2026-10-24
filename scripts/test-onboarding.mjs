@@ -352,5 +352,11 @@ eq('the wizard hands over to pages that exist in the Settings nav', [...handedTo
 eq('and to the three it needs', [...handedTo].sort(), ['kybernos-models', 'kybernos-ollama', 'models'])
 eq('the two seams it reads are the ones the bundles publish', [/__KB_MODELS__/.test(ui[1]), /__KB_LOCAL__/.test(ui[1])], [true, true])
 
+/* ── The autonomy step does not promise a Settings control that does not exist (T1-9, 2026-10-24) ── */
+// No Settings page changes the autonomy: the only way to answer again is to replay the welcome pages, which the sub-line must say, in every language (the old one said « you can change it any time in Settings »).
+const ag = mod.KB_OB_T['ag.s']
+eq('the autonomy sub-line says how to change it: replay the welcome pages, in four languages', [/replay the welcome pages/.test(ag[0]), /rejoue les pages d’accueil/.test(ag[1]), /vuelve a ver las páginas de bienvenida/.test(ag[2]), ag[3].includes('أعد تشغيل صفحات الترحيب')], [true, true, true, true])
+eq('and does not claim a control « any time in Settings »', ag.some((s) => /any time|à tout moment|en cualquier momento|في أي وقت/.test(s)), false)
+
 console.log(fails === 0 ? '\nall checks passed' : '\n' + fails + ' check(s) FAILED')
 process.exit(fails === 0 ? 0 : 1)

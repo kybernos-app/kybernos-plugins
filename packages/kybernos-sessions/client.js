@@ -2764,8 +2764,8 @@ window.__ModuleLoader__.load({
         h('div', { className: natif ? natif.row : 'kbr-row', 'data-kbr': 'onboarding-replay' },
           h('div', { className: natif ? natif.rowText : 'kbr-txt' },
             h('div', { className: natif ? natif.title : undefined }, kt('Premiers pas', 'Onboarding')),
-            h('div', { className: natif ? natif.desc : undefined }, kt('Les pages d’accueil sont passées à l’installation du plugin. Rejoue-les pour refaire ta profession, ton mode d’affichage, tes modèles et ton kit de départ.',
-              'The welcome pages ran when the plugin was installed. Replay them to redo your profession, display mode, models and starter kit.'))),
+            h('div', { className: natif ? natif.desc : undefined }, kt('Les pages d’accueil sont passées à l’installation du plugin. Rejoue-les pour refaire ton domaine, tes objectifs, tes modèles et ton kit de départ.',
+              'The welcome pages ran when the plugin was installed. Replay them to redo your field of work, goals, models and starter kit.'))),
           h('button', {
             type: 'button', className: 'kbr-choix on', 'data-kbr': 'onboarding-replay-btn',
             onClick: () => { try { window.dispatchEvent(new CustomEvent('kybernos:onboarding', { detail: { action: 'replay' } })) } catch (e) { /* context without a window */ } }
