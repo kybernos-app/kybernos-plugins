@@ -77,6 +77,7 @@ const DELETES = [
   ['/kybernos-cloud/members/remove', { workspace_id: WS, user_id: USER }],
   ['/kybernos-cloud/team/lessons/delete', { id: 4 }],
   ['/kybernos-cloud/team/skills/delete', { id: '44444444-4444-4444-8444-444444444444' }],
+  ['/kybernos-cloud/team/automations/delete', { id: 12 }],
   ['/kybernos-cloud/connections/delete', { id: '55555555-5555-4555-8555-555555555555' }],
 ]
 
@@ -85,6 +86,11 @@ const WRITES = [
   ['/kybernos-cloud/memory/add', { content: 'A memory a shell tried to add.', kind: 'fact' }],
   ['/kybernos-cloud/memory/update', { id: '77', content: 'An edit a shell tried.' }],
   ['/kybernos-cloud/team/lessons/add', { text: 'A lesson a shell tried to propose to the team.' }],
+  // The Team's automations: a bare request could propose one, decide on one, or take one off the catalogue (the delete is in the list above).
+  ['/kybernos-cloud/team/automations/add', { key: 'shell-proposal', name: 'A proposal', description: 'A shell tried to propose it.', prompt: 'Say hi.', schedule: { mode: 'webhook' }, needs: [] }],
+  ['/kybernos-cloud/team/automations/check', { key: 'shell-proposal', name: 'A proposal', description: 'A shell tried to check it.', prompt: 'Say hi.', schedule: { mode: 'webhook' }, needs: [] }],
+  ['/kybernos-cloud/team/automations/review', { id: 12, decision: 'approve' }],
+  ['/kybernos-cloud/team/automations/retire', { id: 12 }],
   ['/kybernos-cloud/space/active', { workspace_id: WS }],
   ['/kybernos-cloud/kyby/native/set', { sessionId: null }],
   // A team's working folder is made on the person's disk (test-team-folder-host.mjs holds its rules).
