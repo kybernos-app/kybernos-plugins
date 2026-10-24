@@ -680,7 +680,6 @@ try {
     '/kybernos-cloud/models/sync', '/kybernos-cloud/artifacts', '/kybernos-cloud/artifacts/push',
     '/kybernos-cloud/artifacts/detail',
     '/kybernos-cloud/memory', '/kybernos-cloud/memory/add', '/kybernos-cloud/memory/update', '/kybernos-cloud/memory/delete',
-    '/kybernos-cloud/memory/search', '/kybernos-cloud/memory/map', '/kybernos-cloud/memory/lessons',
     // Page Memory & Lessons learned : liste paginee/filtree et reglages.
     '/kybernos-cloud/memory/list', '/kybernos-cloud/memory/settings', '/kybernos-cloud/memory/settings/set',
     '/kybernos-cloud/memory/index', '/kybernos-cloud/memory/index/run', '/kybernos-cloud/memory/meaning-map',
@@ -1950,44 +1949,14 @@ try {
   assert.equal(memories.length, 1)
   ok('memoire : epinglage puis oubli (PATCH + DELETE)')
 
-  // 10g. Recherche.
-  const found = await hit('/kybernos-cloud/memory/search?q=francais', 'GET')
-  assert.equal(found.body.ok, true)
-  assert.equal(found.body.items.length, 1)
-  const mNone = await hit('/kybernos-cloud/memory/search?q=introuvable', 'GET')
-  assert.equal(mNone.body.items.length, 0)
-  const empty = await hit('/kybernos-cloud/memory/search', 'GET')
-  assert.equal(empty.body.error, 'requete_vide')
-  ok('memoire : recherche servie, requete vide refusee')
-
-  // 10h. Correspondance kybers : sans lien explicite, RIEN ne monte.
-  const preview = await hit('/kybernos-cloud/memory/lessons', 'POST', undefined, { dryRun: true })
-  assert.equal(preview.body.ok, true)
-  assert.deepEqual(preview.body.report, [], 'aucun kyber relie → aucun envoi, et pas de devinette')
-  assert.equal(memories.length, 1)
-  ok('lecons : sans correspondance explicite, rien n est pousse')
-
-  // 10i. Avec la correspondance, la vérification annonce puis l'envoi écrit —
-  //      et la seconde poussée déduplique au lieu de dupliquer.
-  const linked = await hit('/kybernos-cloud/memory/map', 'POST', undefined, { map: { default: 'kg52d53f4ce522' } })
-  assert.equal(linked.body.ok, true)
-  assert.equal(readState().kyberMap.default, 'kg52d53f4ce522')
-  const dry = await hit('/kybernos-cloud/memory/lessons', 'POST', undefined, { dryRun: true })
-  assert.equal(dry.body.report.length, 1)
-  assert.equal(dry.body.report[0].added, 2, 'la vérification annonce les 2 leçons')
-  assert.equal(dry.body.dryRun, true)
-  assert.equal(memories.length, 1, 'une vérification n ecrit rien')
-  const real = await hit('/kybernos-cloud/memory/lessons', 'POST', undefined, { dryRun: false })
-  assert.equal(real.body.report[0].added, 2)
-  assert.equal(memories.length, 3, 'les 2 leçons sont montées en scope kyber')
-  assert.equal(memories.filter((m) => m.scope === 'kyber').every((m) => m.kyber_id === 'kg52d53f4ce522'), true)
-  const again = await hit('/kybernos-cloud/memory/lessons', 'POST', undefined, { dryRun: false })
-  assert.equal(again.body.report[0].added, 0)
-  assert.equal(again.body.report[0].skipped, 2, 'la seconde poussee deduplique')
+  // 10j. The memory of a linked Agent Team enters the chunk too. The link (`kyberMap`) is a line of the state file and the lessons were
+  //       pushed by a route that is gone: the state and the account's fake store are seeded directly.
+  writeFileSync(statePath, JSON.stringify({ ...readState(), kyberMap: { default: 'kg52d53f4ce522' } }), { mode: 0o600 })
+  for (const lessonText of ['patchReload live ne recharge pas le code du module', 'un test qui prouve la selection ne prouve pas la visibilite']) {
+    memories.push({ id: nextMemoryId, user_id: 'u-1', scope: 'kyber', kyber_id: 'kg52d53f4ce522', kind: 'policy', content: lessonText, source: 'conversation', pinned: false, retention_days: 180, expires_at: '2027-01-01 00:00:00+00:00', created_at: '2026-09-22 12:00:0' + (nextMemoryId % 10) + '+00:00' })
+    nextMemoryId += 1
+  }
   assert.equal(memories.length, 3)
-  ok('lecons : verification a blanc, poussee reelle, puis deduplication')
-
-  // 10j. La mémoire du kyber relié entre dans le chunk, elle aussi.
   const fresh = await hit('/kybernos-cloud/memory', 'GET')
   assert.equal(fresh.body.kyber.default.length, 2)
   const both = mod.renderMemoryChunk(readState())

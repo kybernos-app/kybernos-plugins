@@ -285,9 +285,6 @@ Local routes (same-origin guards and strict method, like the others):
 | `/kybernos-cloud/memory/add` | POST | adds a memory (`{content, kind, source?, pinned?}`) |
 | `/kybernos-cloud/memory/update` | POST | pins / unpins / changes the retention (`{id, …}`) |
 | `/kybernos-cloud/memory/delete` | POST | forgets a memory (`{id}`) |
-| `/kybernos-cloud/memory/search` | GET | searches (`?q=`) |
-| `/kybernos-cloud/memory/map` | POST | writes the local Agent Team → cloud Agent Team mapping |
-| `/kybernos-cloud/memory/lessons` | POST | pushes the local lessons (`dryRun` by default) |
 | `/kybernos-cloud/memory/list` | GET | **paginated and filtered** list of the account (`limit`, `offset`, `show`, `src`, `added`, `q`) |
 | `/kybernos-cloud/memory/settings` | GET | the `memories`, `context`, `capture` switches, and `capture`: where the last capture stands (in memory only) |
 | `/kybernos-cloud/memory/settings/set` | POST | sets one or more switches (booleans; refused as a whole otherwise) |
@@ -362,7 +359,7 @@ door from personal to team is the explicit « Propose to team » action (below, 
   account's own pages. The human's last message is still noted in memory (`noteUserTurn`): it writes nothing, and the team lessons block ranks
   its lessons with it.
 - **The routes a shell could use** (the model has one, and plugin routes are served before DSH's login): `memory/add`, `memory/update`,
-  `memory/lessons`, `team/lessons/add`, `space/active` and `kyby/native/set` need DSH's signed browser-session cookie besides the Origin
+  `team/lessons/add`, `space/active` and `kyby/native/set` need DSH's signed browser-session cookie besides the Origin
   (`session: true`, as the deletes do). A shell that reads the machine secret can still forge that cookie: this raises the bar from a bare `curl`,
   it is not a sandbox (`docs/dev/route-origin-rule.md`).
 - **The seam**: `globalThis[Symbol.for('kybernos.space')]`, a frozen `{ version: 1, isTeam() }` published at `apply`. `isTeam()` reads the state

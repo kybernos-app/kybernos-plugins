@@ -2400,7 +2400,6 @@ const MEMORY_MAX_CONTENT = 2000
 const MEMORY_CACHE_MS = 60000
 const MEMORY_MAX_INJECT_CHARS = 6000
 const MEMORY_INJECT_ORDER = 130
-const MEMORY_PUSH_MAX = 40
 const CAPTURE_MAX_TOKENS = 300
 const CAPTURE_MIN_CHARS = 60
 // Share of the injection budget reserved for pinned memories, and share left
@@ -2707,40 +2706,6 @@ const listCloudKybers = async (state) => {
     }
   }
   return out
-}
-
-/**
- * Pushes the lessons of a local kyber to its cloud kyber (scope=kyber).
- * Deduplication before writing (the server spec lists it as a follow-up, we do it
- * here): a memory with identical content is never rewritten.
- */
-const pushLessons = async (state, options = {}) => {
-  const map = stateKyberMap(state)
-  const dry = options.dryRun === true
-  const report = []
-  for (const local of Object.keys(map)) {
-    const cloud = map[local]
-    if (typeof cloud !== 'string' || cloud === '') continue
-    const lessons = localLessons(local)
-    const row = { local, cloud, lessons: lessons.length, added: 0, skipped: 0, error: null }
-    if (lessons.length === 0) { report.push(row); continue }
-    const existing = await listMemories(state, 'kyber', cloud)
-    if (existing.ok !== true) { row.error = existing.error; report.push(row); continue }
-    const known = new Set(existing.items.map((m) => String(m.content).trim()))
-    // Most recent first: if the cap cuts, it cuts the old ones.
-    const ordered = lessons.slice().reverse().slice(0, MEMORY_PUSH_MAX)
-    for (const lesson of ordered) {
-      const text = typeof lesson.text === 'string' ? lesson.text.trim() : ''
-      if (text === '') continue
-      if (known.has(text) === true) { row.skipped = row.skipped + 1; continue }
-      if (dry === true) { row.added = row.added + 1; continue }
-      const made = await createMemory(state, { scope: 'kyber', kyberId: cloud, kind: 'policy', content: text, source: 'conversation' }, 'sync')
-      if (made.ok === true) row.added = row.added + 1
-      else { row.error = made.error; break }
-    }
-    report.push(row)
-  }
-  return { ok: true, dryRun: dry, report }
 }
 
 // ── Injection into the prompt ───────────────────────────────────────────────
@@ -3100,30 +3065,6 @@ const memoryDeleteRoute = async (req, body) => {
   const state = readState()
   if (isConnected(state) !== true) return { ok: false, connected: false, error: 'non connecte' }
   return await deleteMemory(state, body === null ? {} : body)
-}
-
-const memorySearchRoute = async (req) => {
-  const state = readState()
-  if (isConnected(state) !== true) return { ok: false, connected: false, error: 'non connecte', items: [] }
-  let q = ''
-  try { q = new URL(req.url, 'http://localhost').searchParams.get('q') || '' } catch (e) { q = '' }
-  return await searchMemories(state, q)
-}
-
-const memoryMapRoute = async (req, body) => {
-  const state = readState()
-  if (isConnected(state) !== true) return { ok: false, connected: false, error: 'non connecte' }
-  const incoming = body !== null && typeof body.map === 'object' && body.map !== null ? body.map : null
-  if (incoming === null) return { ok: false, error: 'map_manquante' }
-  const clean = {}
-  for (const local of Object.keys(incoming)) {
-    const cloud = incoming[local]
-    if (typeof cloud === 'string' && cloud !== '') clean[local] = cloud
-  }
-  writeState({ ...state, kyberMap: clean })
-  bumpMemoryCache()
-  void refreshMemoryCache(readState(), true).catch(() => {})
-  return { ok: true, map: clean }
 }
 
 // ── Settings + paginated list (« Memory & Lessons learned » page) ────────────
@@ -4174,13 +4115,6 @@ const memoryTidyUndoRoute = async (req, body) => {
   const state = readState()
   if (isConnected(state) !== true) return { ok: false, connected: false, error: 'non connecte' }
   return await tidyUndo(state, body)
-}
-
-const memoryLessonsRoute = async (req, body) => {
-  const state = readState()
-  if (isConnected(state) !== true) return { ok: false, connected: false, error: 'non connecte' }
-  const dry = body === null ? true : body.dryRun !== false
-  return await pushLessons(state, { dryRun: dry })
 }
 
 // ── Tools exposed to the model ──────────────────────────────────────────────
@@ -5524,19 +5458,13 @@ const ROUTES = [
   { path: '/kybernos-cloud/instructions/save', method: 'POST', guarded: true, strict: true, body: true, cap: 16384, run: instructionsSave },
   { path: '/kybernos-cloud/members/invite', method: 'POST', guarded: true, session: true, body: true, cap: 8192, run: membersInvite },
   { path: '/kybernos-cloud/members/remove', method: 'POST', guarded: true, session: true, body: true, cap: 8192, run: membersRemove },
-  // Account memory (cloud feature no. 2): read, write, search,
-  // matching of local ↔ cloud kybers, and pushing of lessons.
+  // Account memory (cloud feature no. 2): read, write, list and settings.
   // Each path is DISTINCT (the router indexes by path: two routes on
   // `/memory` would mask each other — observed by the host test).
   { path: '/kybernos-cloud/memory', method: 'GET', guarded: true, run: memoryRoute },
   { path: '/kybernos-cloud/memory/add', method: 'POST', guarded: true, session: true, body: true, run: memoryCreateRoute },
   { path: '/kybernos-cloud/memory/update', method: 'POST', guarded: true, session: true, body: true, run: memoryUpdateRoute },
   { path: '/kybernos-cloud/memory/delete', method: 'POST', guarded: true, session: true, body: true, run: memoryDeleteRoute },
-  { path: '/kybernos-cloud/memory/search', method: 'GET', guarded: true, run: memorySearchRoute },
-  { path: '/kybernos-cloud/memory/map', method: 'POST', guarded: true, session: true, body: true, run: memoryMapRoute },
-  // `dryRun` by default: pushing the lessons writes into the account, it
-  // never goes out without a body that explicitly says `{"dryRun":false}`.
-  { path: '/kybernos-cloud/memory/lessons', method: 'POST', guarded: true, session: true, body: true, run: memoryLessonsRoute },
   // « Memory & Lessons learned » page: paginated/filtered list and settings.
   // Distinct paths (GET and POST cannot share a path).
   { path: '/kybernos-cloud/memory/list', method: 'GET', guarded: true, run: memoryListRoute },
@@ -5688,7 +5616,7 @@ export {
   teamCache, teamPickStore, refreshTeamCache, emptyTeamCache, teamSelection, renderTeamPrompt, activeKyberOf, lessonsSwitches, TEAM_RELEVANCE,
   tidyScan, tidyRun, tidyApply, tidyUndo, tidyDismiss, tidySettings, tidyTick, tidyView, tidyFlags, TIDY_TUNING, TIDY_MAX_REMOVALS, studyModel,
   refreshMemoryCache, memoryCache,
-  emptyMemoryCache, bumpMemoryCache, pushLessons, localLessons, localKybers, stateKyberMap,
+  emptyMemoryCache, bumpMemoryCache, localLessons, localKybers, stateKyberMap,
   listMemories, lastTurnText, isLasting, keepCaptured, nearKnown, CAPTURE_PROMPT, memoryWriteTool, memorySearchTool, MEMORY_KINDS, MEMORY_SOURCES,
   captureTurn, lastCapture, extractFacts, stripMemoryBlock, normalizeMemory,
   MEMORY_MAX_CONTENT, MEMORY_MAX_INJECT_CHARS, MEMORY_TUNING,
