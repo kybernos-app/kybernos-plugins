@@ -36,6 +36,10 @@ A **definition**, never a running thing and never a person's data. It carries on
   - `key` `hook-demo`, `name` `Hook demo`, `description` `Runs when called.`, `prompt` `Say hi.`, `schedule` `{ mode: "webhook" }`, `needs` `[]` give
     `e68467deacc2f458f0b1c5a0655c743e5b8ff1c81e20b9104c191a820f8fa5dd`.
 
+**Trimming and the note.** `name`, `description` and `prompt` are trimmed (leading and trailing white space) before they are validated, stored and hashed; the plugin sends them already trimmed, and a server that
+receives them untrimmed trims them before it computes `version`. `note` (the proposer's remark to the reviewers, optional) is at most 2 000 characters (`invalid_automation` / `too_large`) and is scanned like the rest. The
+body of `POST` and `POST /check` is at most 128 KiB.
+
 **What never travels** (the plugin leaves it out when it builds the proposal; the server has no field for it): the keys, tokens and passwords of the person; webhook addresses and
 secrets; run history and results; the files of the person's work folder; the connected accounts (only the app names in `needs`); where it runs (`runsOn`); its on/off state; the
 notification choices; the session or workspace it was made in; the approval mode (each member chooses theirs at install).
