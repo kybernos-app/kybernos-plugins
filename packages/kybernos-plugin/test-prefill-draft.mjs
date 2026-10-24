@@ -43,7 +43,7 @@ const src = readFileSync(join(here, 'client.js'), 'utf8')
     const s = { actions: { setDraft: (x) => calls.push(['set', x]) }, calls }
     if (draft !== undefined) s.draftSnapshot = draft === 'throws' ? undefined : { text: draft, references: [] }
     if (draft === 'throws') Object.defineProperty(s, 'draftSnapshot', { get () { throw new Error('no snapshot on this engine') } })
-    if (withInit === true) s.requestDraftInitialization = (o) => { calls.push(['init', o]); return 'applied' }
+    if (withInit !== undefined && withInit !== false) s.requestDraftInitialization = (o) => { calls.push(['init', o]); if (withInit === 'throws') throw new Error('refused'); return withInit === true ? 'applied' : withInit }
     return s
   }
   const run = (s, reused) => { kbDraftPut(s, TEXT, reused); return s.calls }
@@ -54,6 +54,9 @@ const src = readFileSync(join(here, 'client.js'), 'utf8')
   assert.deepEqual(run(shell('  \n ', true), true), [['set', TEXT]], 'only blanks typed: set')
   assert.deepEqual(run(shell('my own words', true), true), [['init', { prompt: TEXT, whenDraftExists: 'append' }]], 'a reused blank with a draft: DSH appends ours after it, setDraft is not called')
   assert.deepEqual(run(shell('my own words', false), true), [['set', 'my own words\n\n' + TEXT]], 'an engine without that request: ours goes after theirs, nothing of theirs is lost')
+  assert.deepEqual(run(shell('my own words', 'preserved'), true), [['init', { prompt: TEXT, whenDraftExists: 'append' }], ['set', 'my own words\n\n' + TEXT]], 'rc.2 has the request but keeps the draft and adds nothing (« preserved »): the two are joined, ours is not lost')
+  assert.deepEqual(run(shell('my own words', 'throws'), true), [['init', { prompt: TEXT, whenDraftExists: 'append' }], ['set', 'my own words\n\n' + TEXT]], 'a request that throws: the two are joined')
+  assert.deepEqual(run(shell('my own words', 'blocked'), true), [['init', { prompt: TEXT, whenDraftExists: 'append' }]], 'a message is going out (« blocked »): nothing is written over it')
   assert.deepEqual(run(shell('  ' + TEXT + ' ', true), true), [['set', TEXT]], 'the draft already is our text (a second click): set again, not doubled')
   assert.deepEqual(run(shell('throws', true), true), [['set', TEXT]], 'an engine that cannot say what the draft is (rc.2 always made a new Session): as before')
   assert.deepEqual(run(shell(undefined, true), true), [['set', TEXT]], 'no snapshot at all: as before')

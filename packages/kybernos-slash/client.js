@@ -397,6 +397,21 @@ window.__ModuleLoader__.load({
         return el === null || el === undefined ? '' : String(el.textContent || '')
       }
 
+      // Puts the « Create with AI » prompt in a composer WITHOUT overwriting what the person typed there. `setDraft` replaces, and DSH 0.2.1-rc.3 reuses the first blank
+      // Session again (rc.2 made a new one every time), which may hold an unsent draft. The prompt then goes after it, by DSH's own append (`whenDraftExists: 'append'`, rc.3;
+      // rc.2 has the request too but answers « preserved » and adds nothing; « blocked » means a message is going out), else the two joined. A draft that already holds the
+      // prompt is left alone, so the retries of `kbStartWithAI` never stack it.
+      const kbPutPrompt = (shell, prompt) => {
+        let held = ''
+        try { const d = shell.draftSnapshot; held = (d !== null && d !== undefined && typeof d.text === 'string') ? d.text : '' } catch (e) { held = '' }
+        if (held.indexOf(prompt) >= 0) return
+        if (held.trim() === '') { shell.setDraft(prompt); return }
+        let answer = ''
+        if (typeof shell.requestDraftInitialization === 'function') { try { answer = shell.requestDraftInitialization({ prompt: prompt, whenDraftExists: 'append' }) } catch (e) { answer = '' } }
+        if (answer === 'applied' || answer === 'blocked') return
+        shell.setDraft(held + '\n\n' + prompt)
+      }
+
       const kbStartWithAI = (phrase) => {
         const clean = String(phrase === undefined || phrase === null ? '' : phrase).trim()
         const prompt = AI_REF + (clean === '' ? '' : ' ' + clean)
@@ -423,7 +438,7 @@ window.__ModuleLoader__.load({
           diag.ai.apres = sid
           const shell = sid === '' ? null : kbShell(sid)
           if (shell !== null) {
-            try { shell.setDraft(prompt); shell.focus() } catch (e) { diag.ai.why = 'setDraft: ' + String(e !== null && e.message ? e.message : e) }
+            try { kbPutPrompt(shell, prompt); shell.focus() } catch (e) { diag.ai.why = 'setDraft: ' + String(e !== null && e.message ? e.message : e) }
           } else {
             diag.ai.why = 'shell indisponible'
           }
@@ -438,7 +453,7 @@ window.__ModuleLoader__.load({
               } catch (e) { /* nothing else to try */ }
             }
           }
-          if (kbReadComposer() === prompt) { diag.ai.wrote = true; return }
+          if (kbReadComposer().indexOf(prompt) >= 0) { diag.ai.wrote = true; return }
           if (n < 24 && timer !== null && timer !== undefined && typeof timer.timeout === 'function') {
             try { timer.timeout(() => attempt(n + 1), 250) } catch (e) { /* timer */ }
           }
