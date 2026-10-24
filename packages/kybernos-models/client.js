@@ -2563,8 +2563,10 @@ window.__ModuleLoader__.load({
       /** « Add your API key » next to Kybernos Cloud: offered while the account is not connected, and on a Free account. A connected
        *  paid account has nothing to paste (V-28). Pure. */
       const kbHeroShowKey = (connected, plan) => connected !== true || plan === 'free'
+      /** The string key of the line under the name once connected: the count of models really imported, and only « Connected » while there are none
+       *  (a server with no models, or the first seconds before the import: never a number that was not counted). Null while not connected. Pure. */
+      const kbHeroSubKey = (connected, count) => connected !== true ? null : !(count > 0) ? 'kb.hero.connected' : count === 1 ? 'kb.hero.title.in.one' : 'kb.hero.title.in'
       // KB-HERO-PURE-END
-      const HERO_MODELS_FALLBACK = 19 // the mock-up: « 19 curated models » (the free plan's catalogue)
       const kbmHeroModels = () => KBM.models.filter((mo) => mo.route === 'kybernos')
       const KybernosHero = () => {
         kbmUse()
@@ -2581,7 +2583,7 @@ window.__ModuleLoader__.load({
           return () => { mort = true }
         }, [])
         const connecte = cloud === true
-        const n = mine.length > 0 ? mine.length : HERO_MODELS_FALLBACK
+        const n = mine.length
         const ouvrirCloud = () => {
           try { window.dispatchEvent(new CustomEvent('kybernos-cloud:open')) } catch (e) { /* cloud card not mounted */ }
         }
@@ -2608,7 +2610,9 @@ window.__ModuleLoader__.load({
               connecte === true ? h('i', { className: 'kbmh-hero-dot', 'data-kbmh': 'badge-on', title: m('kb.hero.connected') }) : null),
             h('span', { className: 'kbmh-hero-sub', 'data-kbmh': 'title' },
               connecte === true
-                ? [h('span', { key: 'sr', className: 'kbmh-hero-sr' }, m('kb.hero.connected') + '. '), m(n === 1 ? 'kb.hero.title.in.one' : 'kb.hero.title.in', { n })]
+                ? (n > 0
+                  ? [h('span', { key: 'sr', className: 'kbmh-hero-sr' }, m('kb.hero.connected') + '. '), m(kbHeroSubKey(connecte, n), { n })]
+                  : m(kbHeroSubKey(connecte, n)))
                 : [h('span', { key: 'tag', className: 'kbmh-hero-tag', 'data-kbmh': 'badge' }, m('kb.hero.badge')), ' ', m('kb.hero.title.free')])),
           // (The load error is told once, by the panel's banner right under the tab bar, which also has the Retry.)
           h('div', { className: 'kbmh-hero-side' },

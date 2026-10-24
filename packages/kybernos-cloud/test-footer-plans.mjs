@@ -114,4 +114,25 @@ console.log('V-41 — a server that does not answer')
   ok('wiring: the notice has « Switch server », the helper is shared, the phone link\'s event is heard')
 }
 
+console.log('T1-16 — the Upgrade dialog never prints a raw feature code')
+{
+  const m = source.match(/\/\/ <up-feat:begin>[\s\S]*?\/\/ <up-feat:end>/)
+  assert.ok(m !== null, 'the feature labels are a marked block')
+  const dict = { upFeatRemote: 'Phone link', upFeatByok: 'Your own keys' }
+  const { UP_FEATURES, upFeatureText } = new Function('t', m[0] + '\nreturn { UP_FEATURES, upFeatureText }')((k) => dict[k] !== undefined ? dict[k] : k)
+  // Every label key a feature points to exists in French AND in English (the server catalogue: byok, connections, hosted_runs, computers, computers.always_on, team.*, and `remote` from server PR #246).
+  for (const [feature, labelKey] of Object.entries(UP_FEATURES)) assert.ok(frKeys.has(labelKey) && enKeys.has(labelKey), 'no French or English label « ' + labelKey + ' » for the feature « ' + feature + ' »')
+  for (const feature of ['byok', 'connections', 'hosted_runs', 'computers', 'computers.always_on', 'team.members', 'team.lessons', 'team.skills', 'remote'])
+    assert.ok(UP_FEATURES[feature] !== undefined, 'the catalogue feature « ' + feature + ' » has a label')
+  assert.equal(upFeatureText('remote'), 'Phone link', 'the phone link is named, not printed as « remote »')
+  assert.equal(upFeatureText('byok'), 'Your own keys')
+  // A key this client does not know yet reads like words, not like a code.
+  assert.equal(upFeatureText('sso_saml'), 'Sso saml')
+  assert.equal(upFeatureText('audit.log'), 'Audit log')
+  assert.equal(upFeatureText('priority'), 'Priority')
+  assert.equal(upFeatureText(''), '', 'an empty key stays empty (nothing thrown)')
+  assert.ok(/h\('li', \{ key: k \}, '✓ ', upFeatureText\(k\)\)/.test(source) && !/k\.replace\(\/\[\._\]\/g/.test(source.replace(m[0], '')), 'the list prints through upFeatureText only')
+  ok('T1-16: `remote` is labelled « Phone link » / « Lien téléphone »; any other unknown feature key reads as capitalised words')
+}
+
 console.log('\n' + passed + ' checks OK')

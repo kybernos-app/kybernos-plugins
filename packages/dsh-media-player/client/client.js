@@ -57,7 +57,8 @@ window.__ModuleLoader__.load({
           'wma'
         ]
 
-        /** Video containers handed to the browser's decoder. */
+        /** Video containers handed to the browser's decoder. `ts` and `mts` are left out on purpose: with the `extension` priority they would take
+         *  every TypeScript file (`index.ts`, `types.mts`) away from the code view, and most browsers cannot play MPEG-TS anyway. */
         const VIDEO_EXTENSIONS = [
           'mp4',
           'm4v',
@@ -69,9 +70,7 @@ window.__ModuleLoader__.load({
           'wmv',
           '3gp',
           'mpeg',
-          'mpg',
-          'mts',
-          'ts'
+          'mpg'
         ]
 
         const EXTENSIONS = [...AUDIO_EXTENSIONS, ...VIDEO_EXTENSIONS]
@@ -105,9 +104,7 @@ window.__ModuleLoader__.load({
           wmv: 'video/x-ms-wmv',
           '3gp': 'video/3gpp',
           mpeg: 'video/mpeg',
-          mpg: 'video/mpeg',
-          mts: 'video/mp2t',
-          ts: 'video/mp2t'
+          mpg: 'video/mpeg'
         }
 
         // The dictionaries are DSH locale dictionaries of the namespace above. English is the base; DSH's own second language is

@@ -463,12 +463,14 @@ ok('webUrl: a non-string is refused', webUrl(undefined) === null && webUrl(null)
   ok('the line of a failed connection comes from the stable code, and an odd one is "unknown"', failedText('refused', 'Gmail').indexOf('Gmail') >= 0 && failedText('upstream', 'Gmail').indexOf('Gmail') >= 0 && failedText('Composio said: boom', 'Gmail') === t('kb.cp.kc.failed.unknown') && failedText(null, 'Gmail') === t('kb.cp.kc.failed.unknown'))
 
   // words → sentences
-  const WORDS = ['reconnect_required', 'network', 'connection_limit', 'pending_exists', 'needs_api_key', 'upstream_unavailable', 'connections_disabled', 'not_found', 'too_many_requests', 'bad_request', 'forbidden', 'signin_failed', 'connection_failed', 'app_not_found']
+  const WORDS = ['reconnect_required', 'network', 'connection_limit', 'pending_exists', 'needs_api_key', 'upstream_unavailable', 'connections_disabled', 'not_found', 'too_many_requests', 'bad_request', 'forbidden', 'signin_failed', 'connection_failed', 'app_not_found', 'too_large', 'not_on_this_server', 'conflict', 'invalid_response']
   ok('every word the cloud half sends has its own sentence', WORDS.every((w) => cloudErr(w, {}) !== cloudErr('something_else', {}) && cloudErr(w, {}).indexOf('kb.cp') < 0))
   ok('an add that may have gone through does not say "try again": it says it may exist', cloudErr('upstream_unavailable', { checkFirst: true }) !== cloudErr('upstream_unavailable', {}) && cloudErr('upstream_unavailable', { checkFirst: false }) === cloudErr('upstream_unavailable', {}))
   ok('the limit and the count are filled in, not left as braces', cloudErr('connection_limit', { limit: 3, count: 3 }).indexOf('3') >= 0 && !/[{}]/.test(cloudErr('connection_limit', { limit: 3, count: 3 })) && !/[{}]/.test(cloudErr('connection_limit', {})))
   ok('a limit refused because of the plan says so, in words other than the plain limit', cloudErr('connection_limit', { limit: 0, count: 0, entitled: false }) !== cloudErr('connection_limit', { limit: 0, count: 0 }) && cloudErr('connection_limit', { limit: 0, count: 0, entitled: false }).indexOf('kb.cp') < 0 && cloudErr('connection_limit', { limit: 2, count: 2, entitled: true }) === cloudErr('connection_limit', { limit: 2, count: 2 }))
   ok('the app of the request that is already waiting is named', cloudErr('pending_exists', { existing: { id: C1, toolkit: 'gmail', status: 'pending' } }).toLowerCase().indexOf('gmail') >= 0)
+  // T2-28: the four words connections.mjs sends for a 413, a 404 on a server with no connections, a 409 with no code of its own and an unreadable answer
+  ok('T2-28: too_large, not_on_this_server, conflict and invalid_response read as sentences, not as "Unexpected answer from the server (word)"', ['too_large', 'not_on_this_server', 'conflict', 'invalid_response'].every((w) => !/Unexpected answer|unexpected/i.test(cloudErr(w, {})) && cloudErr(w, {}).indexOf(w) < 0 && cloudErr(w, {}).indexOf('kb.cp') < 0))
   ok('an unknown word or a refused_500 is "unexpected answer" with its code, never a raw object', cloudErr('refused_500', {}).indexOf('refused_500') >= 0 && cloudErr(undefined).indexOf('?') >= 0)
   ok('what the server said in its own words never reaches the sentence', cloudErr('forbidden', { message: 'SECRET server wording', error: 'SECRET' }).indexOf('SECRET') < 0)
 
@@ -516,7 +518,7 @@ ok('webUrl: a non-string is refused', webUrl(undefined) === null && webUrl(null)
   const used = new Set([...src.matchAll(/kbt\('(kb\.cp\.kc\.[a-z_.]+)'\)/g)].map((m) => m[1]))
   const defined = new Set(rows.map((r) => r[1]))
   ok('every new string the page asks for is defined', [...used].every((k) => defined.has(k)), [...used].filter((k) => !defined.has(k)).join())
-  ok('every refusal word has its sentence', ['reconnect_required', 'network', 'connection_limit', 'pending_exists', 'needs_api_key', 'upstream_unavailable', 'connections_disabled', 'not_found', 'too_many_requests', 'bad_request', 'forbidden', 'signin_failed', 'connection_failed', 'app_not_found', 'other'].every((w) => defined.has('kb.cp.kc.err.' + w)))
+  ok('every refusal word has its sentence', ['reconnect_required', 'network', 'connection_limit', 'pending_exists', 'needs_api_key', 'upstream_unavailable', 'connections_disabled', 'not_found', 'too_many_requests', 'bad_request', 'forbidden', 'signin_failed', 'connection_failed', 'app_not_found', 'too_large', 'not_on_this_server', 'conflict', 'invalid_response', 'other'].every((w) => defined.has('kb.cp.kc.err.' + w)))
 
   // what the page never does with the key
   const kcSrc = src.slice(src.indexOf('const KcAddModal'), src.indexOf('// ── page Connections'))
