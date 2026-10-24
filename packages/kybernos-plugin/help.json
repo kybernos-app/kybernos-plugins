@@ -5,16 +5,16 @@
   },
   "steps": [
     {
-      "fr": "Dans la barre latérale, « New chat » ouvre une conversation ; la flèche à côté choisit l’Agent Team.",
-      "en": "In the sidebar, “New chat” opens a conversation; the arrow next to it picks the Agent Team."
-    },
-    {
-      "fr": "« Agent Teams » : parcours, crée et modifie tes Agent Teams. « Workspaces » rassemble tes projets et leurs conversations.",
-      "en": "“Agent Teams”: browse, create and edit your Agent Teams. “Workspaces” gathers your projects and their chats."
+      "fr": "« New chat » ouvre une conversation (la flèche choisit l’Agent Team) ; « Agent Teams » et « Workspaces » gardent équipes et projets.",
+      "en": "“New chat” opens a conversation (the arrow picks the Agent Team); “Agent Teams” and “Workspaces” hold your teams and projects."
     },
     {
       "fr": "« Créations » garde les fichiers produits ; « Automations » lance une Agent Team seule, à l’heure choisie ou quand un message arrive.",
       "en": "“Creations” keeps the files produced; “Automations” starts an Agent Team on its own, at a chosen time or when a message arrives."
+    },
+    {
+      "fr": "Dans Automations, « Équipe » liste ce que ton équipe a approuvé : installe une copie, ou envoie la tienne avec « Proposer à l’équipe… ».",
+      "en": "In Automations, “Team” lists what your team approved: install a copy, or send yours with “Propose to team…”."
     },
     {
       "fr": "Dans un chat, l’onglet « Journal » retrace ce que l’Agent Team a exécuté. Les pages « Outils » et « Voix » sont dans les Réglages.",

@@ -14,7 +14,8 @@ const CASES = [
   { help: 'packages/kybernos-cloud/help.json', client: 'packages/kybernos-cloud/client.js',
     names: { en: ['Re-import', 'Send DSH chats'], fr: ['Réimporter', 'Envoyer les chats DSH'] }, gone: ['Re-import models', '“Send chats”', 'Réimporter les modèles', '« Envoyer les chats »'] },
   { help: 'packages/kybernos-plugin/help.json', client: 'packages/kybernos-plugin/client.js',
-    names: { en: ['Suggest skills from stable automations'], fr: ['Suggérer des skills depuis les automatisations stables'] }, gone: ['“Create skills”', '« Créer des skills »'] },
+    // The Team step (2026-10-24): the segment next to « Yours » and the row action. Both are drawn by the page (the French « Équipe » and « Proposer à l’équipe… » too).
+    names: { en: ['Suggest skills from stable automations', 'Team', 'Propose to team…'], fr: ['Suggérer des skills depuis les automatisations stables', 'Équipe', 'Proposer à l’équipe…'] }, gone: ['“Create skills”', '« Créer des skills »'] },
 ]
 let pass = 0
 for (const c of CASES) {
@@ -34,5 +35,6 @@ for (const c of CASES) {
 // the Suite catalogue mirrors the cards
 const catalog = read('packages/kybernos-hub/catalog.json')
 for (const old of ['Re-import models', 'Réimporter les modèles', '“Create skills”', '« Créer des skills »']) assert.ok(!catalog.includes(old), 'the Suite catalogue no longer carries ' + old)
+for (const w of ['Propose to team…', 'Proposer à l’équipe…']) assert.ok(catalog.includes(w), 'the Suite catalogue carries the Team step (' + w + ')')
 console.log('  ✓ and the Suite catalogue carries the same words')
 console.log('\n' + (pass + 1) + ' checks passed')
