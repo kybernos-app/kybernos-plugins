@@ -532,7 +532,6 @@ window.__ModuleLoader__.load({
       { get title () { return tr('Skills & apps') }, get groups () { return [['skill', tr('Skills')], ['app', tr('Apps')]] } },
       { get title () { return tr('Memory & lessons') }, get groups () { return [['memory', tr('Memory')], ['lesson', tr('Lessons')]] } }
     ]
-    const COL_OF = { area: 0, kyber: 1, routine: 1, skill: 2, app: 2, memory: 3, lesson: 3 }
     const KIND_NAME = lazyTable(() => ({ area: tr('Project'), kyber: tr('Agent Team'), routine: tr('Automation'), skill: tr('Skill'), app: tr('App'), memory: tr('Memory'), lesson: tr('Lesson') }))
     const KIND_ORDER = ['area', 'kyber', 'routine', 'skill', 'app', 'memory', 'lesson']
     const byKindThenLabel = (a, b) => KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind) || a.label.localeCompare(b.label)
