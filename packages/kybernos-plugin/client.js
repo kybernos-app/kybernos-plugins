@@ -10514,9 +10514,25 @@ return {
       ctx.effect(() => slots.inject('sidebar.workspaces.session.menu.item', () => slots.register(
         { name: 'sidebar.workspaces.session.menu.item', id: 'kybernos-pin', order: 50 }, KbPinsMenuPin)), 'kybers: session menu pin entry')
     } catch (e) { /* slot absent : la section reste, seule l'entrée de menu manque */ }
+    // Puts `text` in a composer through `shell.actions.setDraft`, which REPLACES the draft. A Session that DSH handed back as « blank » (`reused`) may hold the person's
+    // unsent text: DSH 0.2.1-rc.3 reuses the first blank again, where rc.2 made a new Session every time. Ours then goes AFTER theirs, as DSH's own new-task request does
+    // (`whenDraftExists: 'append'`), never over it. A draft that already is our text is set again as it was (a second click changes nothing).
+    const kbDraftPut = (shell, text, reused) => {
+      if (reused === true) {
+        let current = ''
+        try { const d = shell.draftSnapshot; current = (d !== null && d !== undefined && typeof d.text === 'string') ? d.text : '' } catch (e) { current = '' }
+        if (current.trim() !== '' && current.trim() !== String(text).trim()) {
+          if (typeof shell.requestDraftInitialization === 'function') { shell.requestDraftInitialization({ prompt: text, whenDraftExists: 'append' }); return }
+          shell.actions.setDraft(current + '\n\n' + text)
+          return
+        }
+      }
+      shell.actions.setDraft(text)
+    }
     // Préremplit le composer du chat courant via l'API officielle
     // `conversation.input.shell(id).actions.setDraft(text)` ; repli DOM si absente.
-    const kbPrefillDraft = (text, attempt, sidArg) => {
+    // `reused`: the Session is a blank chat DSH handed back instead of making a new one (see kbDraftPut); the person's draft is not overwritten.
+    const kbPrefillDraft = (text, attempt, sidArg, reused) => {
       const n = typeof attempt === 'number' ? attempt : 0
       let sid = (typeof sidArg === 'string' && sidArg.length > 0) ? sidArg : null
       if (sid === null) {
@@ -10530,7 +10546,7 @@ return {
         try {
           const shell = conv.input.shell(sid)
           if (shell !== null && shell !== undefined && shell.actions !== null && shell.actions !== undefined && typeof shell.actions.setDraft === 'function') {
-            shell.actions.setDraft(text)
+            kbDraftPut(shell, text, reused)
             return true
           }
         } catch (e) { /* on tente le repli DOM */ }
@@ -10545,7 +10561,7 @@ return {
           if (conv2 !== null && conv2 !== undefined && conv2.input !== null && conv2.input !== undefined && typeof conv2.input.shell === 'function') {
             const shell2 = conv2.input.shell(sid)
             if (shell2 !== null && shell2 !== undefined && shell2.actions !== null && shell2.actions !== undefined && typeof shell2.actions.setDraft === 'function') {
-              shell2.actions.setDraft(text)
+              kbDraftPut(shell2, text, reused)
               return true
             }
           }
@@ -10560,7 +10576,7 @@ return {
           return true
         } catch (e) { /* repli impossible */ }
       }
-      if (n < 20) { try { timerSvc.timeout(() => kbPrefillDraft(text, n + 1, sid), 250) } catch (e) { /* timer */ } }
+      if (n < 20) { try { timerSvc.timeout(() => kbPrefillDraft(text, n + 1, sid, reused), 250) } catch (e) { /* timer */ } }
       return false
     }
     const kbStartChatText = (text) => {
@@ -10575,7 +10591,7 @@ return {
         if (kbShellStartSession() !== true) throw new Error('shell start unavailable')
       } catch (e) { /* session indisponible */ }
       kbAwaitNewSession(before, (sid, isNew) => {
-        kbPrefillDraft(text, 0, sid)
+        kbPrefillDraft(text, 0, sid, isNew === false)
         // Session vierge RÉUTILISÉE (isNew === false) : le shell n'a rien
         // révélé — révéler la conversation ici aussi, sinon le texte part
         // dans un chat jamais affiché (constaté : la page restait à l'écran).
@@ -24429,7 +24445,7 @@ function renderFit(canvas, model, cam, opts){
               try { const snap = sessionsSvc.list.getSnapshot(); if (snap !== null && snap !== undefined && Array.isArray(snap.ids) === true) before.push.apply(before, snap.ids) } catch (e) {}
               try { kbShellStartSession() } catch (e) {}
               const text = typeof t.prompt === 'string' ? t.prompt : ''
-              kbAwaitNewSession(before, (sid) => { try { kbPrefillDraft(text, 0, sid) } catch (e) {} }, () => { try { kbPrefillDraft(text, 0) } catch (e) {} })
+              kbAwaitNewSession(before, (sid, isNew) => { try { kbPrefillDraft(text, 0, sid, isNew === false) } catch (e) {} }, () => { try { kbPrefillDraft(text, 0) } catch (e) {} })
               await host.call('kybers/tasks', { action: 'consume-fire', id: t.id })
               if (deadRef.current === false) toast(kbt('tasks.ran'))
             } catch (e) { /* prochaine boucle */ }
@@ -27826,11 +27842,11 @@ function renderFit(canvas, model, cam, opts){
       } catch (e) { before = [] }
       set({ newChatOpen: false, newChatBusy: true, teamId: team.id, error: null })
       kbRememberTeam(team.id)
-      kbAwaitNewSession(before, (sid) => {
+      kbAwaitNewSession(before, (sid, isNew) => {
         // Le brouillon d'abord : `setDraft` fait persister le store de la
         // conversation, qui réécrit alors la préférence de vue — écrire `crew`
         // avant serait perdu (constaté dans la vraie GUI : `view` restait null).
-        kbPrefillDraft(kbTeamKickoff(team), 0, sid)
+        kbPrefillDraft(kbTeamKickoff(team), 0, sid, isNew === false)
         kbBindTeam(sid, team)
         set({ newChatBusy: false })
       }, () => {
@@ -30742,6 +30758,12 @@ body:not([data-ds-dark-theme]) .kbs-search input::placeholder{color:var(--dsw-al
       for (const fn of [...kbFold.listeners]) { try { fn() } catch (e) { /* one failing subscriber does not stop the others */ } }
     }
     const kbFoldBare = (id) => String(id).replace(/^session-/, '')
+    // Back to the Chat tab (the first of the header's tablist) before the tab row is hidden. Read from DSH's own roles, never from a hashed class: on 0.2.1-rc.2 the
+    // tablist IS the `tabs` row, on rc.3 it sits inside that row beside the « More » button, and its tabs are `role="tab"` with `aria-selected` on both.
+    const kbLeaveToChatTab = (head) => {
+      const tabs = head !== null && head !== undefined ? head.querySelectorAll('[role="tablist"] > [role="tab"]') : []
+      if (tabs.length > 0 && tabs[0].getAttribute('aria-selected') !== 'true') tabs[0].click()
+    }
     const KbChatFold = (props) => {
       const sessionId = (props !== undefined && props !== null && typeof props.sessionId === 'string') ? props.sessionId : ''
       const tickPair = React.useState(0)
@@ -30810,9 +30832,7 @@ body:not([data-ds-dark-theme]) .kbs-search input::placeholder{color:var(--dsw-al
       // be stuck on a view with no tab to leave it by.
       const fold = () => {
         try {
-          const head = racine.current !== null ? racine.current.closest('[data-slot="conversation.session.header"]') : null
-          const tabs = head !== null ? head.querySelectorAll('[class*="tabs"] > button') : []
-          if (tabs.length > 0 && /tabActive/.test(String(tabs[0].className)) !== true) tabs[0].click()
+          kbLeaveToChatTab(racine.current !== null ? racine.current.closest('[data-slot="conversation.session.header"]') : null)
         } catch (e) { /* the tabs are DSH's: best effort */ }
         kbFoldSet(false)
       }
