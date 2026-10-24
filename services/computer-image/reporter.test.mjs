@@ -9,7 +9,7 @@ const home = mkdtempSync(join(tmpdir(), 'kb-reporter-'))
 process.env.DSH_HOME = home
 process.env.KYBERNOS_API = 'https://api.example.test'
 process.env.KYBERNOS_COMPUTER_TOKEN = 'kyd_test'
-const { scheduleOf, endedRuns, cleanLabel, sessionState, memoryOf, loadOf, runningTasksOf, beatOf, externalIdOf, CAPABILITIES } = await import('./reporter.mjs')
+const { scheduleOf, endedRuns, cleanLabel, sessionState, memoryOf, loadOf, runningTasksOf, beatOf, externalIdOf, CAPABILITIES, stillContinuing, CONTINUE_GRACE_MS } = await import('./reporter.mjs')
 
 const projection = (sid, { closed, at }) => {
   const dir = join(home, 'storages', 'session_projcache', 'sessions')
@@ -76,6 +76,24 @@ test('a run that stopped to ask its person is not over: not reported as ended, a
   tasks[0].history[0].status = 'fired'
   assert.deepEqual(endedRuns(tasks, new Set()).map((r) => [r.run_id, r.outcome]), [['session-dddddddd-4', 'completed']], 'once it went on and ended, it is reported, once')
   assert.equal(scheduleOf(tasks)[0].last_status, 'completed')
+})
+
+test('a run told to go on is not over while its session shows nothing since: the closed picture is the first turn\'s', () => {
+  const sid = 'session-eeeeeeee-5'
+  projection(sid, { closed: true, at: '2026-10-14T16:00:30Z' })
+  const mk = (extra) => [{ id: 'st-8', schedule: { mode: 'cron' }, history: [{ at: '2026-10-14T16:00:00Z', sessionId: sid, status: 'fired', ...extra }] }]
+  const now = new Date().toISOString()
+  assert.deepEqual(endedRuns(mk({ continuedAt: now }), new Set()), [], 'answered and told to go on, the session untouched since: not over (a machine that slept right after taking the answer wakes with this picture)')
+  assert.notEqual(scheduleOf(mk({ continuedAt: now }))[0].last_status, 'completed', 'and the schedule row does not say it completed either')
+  projection(sid, { closed: true, at: new Date(Date.now() + 2000).toISOString() })
+  assert.deepEqual(endedRuns(mk({ continuedAt: now }), new Set()).map((r) => [r.run_id, r.outcome]), [[sid, 'completed']], 'once the session was written to after that, it is over: reported once')
+  assert.equal(scheduleOf(mk({ continuedAt: now }))[0].last_status, 'completed')
+  projection(sid, { closed: true, at: '2026-10-14T16:00:30Z' })
+  const old = new Date(Date.now() - CONTINUE_GRACE_MS - 60_000).toISOString()
+  assert.equal(endedRuns(mk({ continuedAt: old }), new Set()).length, 1, 'a run that showed no sign for longer than the grace is reported rather than lost')
+  assert.equal(endedRuns(mk({}), new Set()).length, 1, 'a run never told to go on is over when its session is closed, as before')
+  for (const odd of [undefined, null, 'x', {}, { continuedAt: 'never' }]) assert.equal(stillContinuing(odd, { at: now }), false, String(odd))
+  assert.equal(stillContinuing({ continuedAt: now }, null), false)
 })
 
 test('the computer says at ready that it can ask its person, and the call carries it', async () => {
