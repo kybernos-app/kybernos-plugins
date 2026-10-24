@@ -12,7 +12,7 @@ import { kyberTarget } from './kyber-root.mjs'
 import { createWorkspaceInstructions } from './workspace-instructions.mjs'
 import { selectAfterConnect } from './default-model.mjs'
 import { normalize as autoSettingsNormalize, publicView as autoSettingsView, apply as autoSettingsApply, isPaused as autoSettingsPaused } from './automation-settings.mjs'
-import { levelOf as autoLoadLevel, allowedAt as autoLoadAllowed, admit as autoLoadAdmit, createInflight as autoLoadInflight, maxParallelFrom as autoLoadMaxParallel, parseMeminfo as autoLoadMeminfo, guardOff as autoLoadGuardOff, forcedLevel as autoLoadForced, isSubagentTool as autoLoadIsSubagent, createSubagentGate as autoLoadSubagentGate, noteAt as autoLoadNote, refusalReason as autoLoadRefusal, freshLevel as autoLoadFresh, pressureOf as autoLoadPressure, pressureParts as autoLoadPressureParts, createHistory as autoLoadHistory, createActivity as autoLoadActivity, publicView as autoLoadView } from './automation-load.mjs'
+import { levelOf as autoLoadLevel, allowedAt as autoLoadAllowed, admit as autoLoadAdmit, createInflight as autoLoadInflight, maxParallelFrom as autoLoadMaxParallel, parseMeminfo as autoLoadMeminfo, memoryUnreadable as autoLoadMemoryUnreadable,guardOff as autoLoadGuardOff, forcedLevel as autoLoadForced, isSubagentTool as autoLoadIsSubagent, createSubagentGate as autoLoadSubagentGate, noteAt as autoLoadNote, refusalReason as autoLoadRefusal, freshLevel as autoLoadFresh, pressureOf as autoLoadPressure, pressureParts as autoLoadPressureParts, createHistory as autoLoadHistory, createActivity as autoLoadActivity, publicView as autoLoadView } from './automation-load.mjs'
 import { applyOp as autoApplyPublished } from './automation-published.mjs'
 import { validateDefinition as teamValidate, versionOf as teamVersionOf, packOf as teamPackOf, teamInfoOf, copyRowOf as teamCopyRow, missingAppsOf as teamMissingApps, markOf as teamMarkOf, planUpdate as teamPlanUpdate, replaceTask as teamReplaceTask, mineOf as teamMineOf, WORKSPACE_ID_RE as TEAM_WORKSPACE_ID_RE } from './automation-team.mjs'
 import { stableStreak as autoSkillStreak, skillSlug as autoSkillSlug, skillParts as autoSkillParts, normalizeRecords as autoSkillsNormalize, dueTasks as autoSkillsDue, lessonOf as autoSkillLesson } from './automation-skills.mjs'
@@ -2729,7 +2729,7 @@ function boot(ctx) {
     // The tick asks how loaded the machine is and how many automation runs are going; only that many due runs start. The runs going
     // are the sessions this host created for a task (a webhook and "Run now" are counted, not capped), followed through the engine's
     // own `agent/status`. Memory is "still available to programs", never `os.freemem()` on macOS (it reads ~10 % on a healthy Mac
-    // because it leaves out inactive pages; `kern.memorystatus_level` is the system's own figure).
+    // because it leaves out inactive pages; `kern.memorystatus_level` is the system's own figure), and unknown on iOS (see memoryUnreadable).
     const kbLoadInflight = autoLoadInflight()
     const kbLoadMaxParallel = (() => {
       let mb = null
@@ -2820,6 +2820,7 @@ function boot(ctx) {
       try { total = osTotalmem() } catch (e) { total = 0 }
       const share = (mb) => (total > 0 && Number.isFinite(mb) === true ? { pct: Math.min(100, (mb * 1048576 * 100) / total), mb } : { pct: null, mb: null })
       const plat = osPlatform()
+      if (autoLoadMemoryUnreadable(plat) === true) return resolve({ pct: null, mb: null })
       if (plat === 'darwin') {
         execFile('/usr/sbin/sysctl', ['-n', 'kern.memorystatus_level'], { timeout: 2000 }, (err, out) => {
           const pct = Number(String(out === undefined ? '' : out).trim())
