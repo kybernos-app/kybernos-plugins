@@ -206,13 +206,13 @@ export function optionsOutil (magasin) {
       + "{op:'archetype',cle:'castle'}. The ops are laid in the order of the array. "
       + 'A call with neither `ops` nor `prompt` only opens the panel on the last model.',
     parameters: {
-      prompt: { type: 'string', description: 'What the user wants to build, or the change asked for. Used to pick the archetype and the title.' },
+      prompt: { type: 'string', description: 'What the user wants to build. Used to pick the archetype and the title. With mode “modifier” a prompt alone changes nothing: send `ops`.' },
       ops: {
         type: 'array',
         description: 'Explicit geometry, laid in order. Each element is a batch (see the description of the tool). Takes precedence over `prompt`.',
         items: { type: 'object', additionalProperties: true },
       },
-      mode: { type: 'string', description: '“nouveau” (replaces the model) or “modifier” (adds to the current model). Default: nouveau.' },
+      mode: { type: 'string', description: '“nouveau” (replaces the model) or “modifier” (adds the `ops` to the current model; it needs `ops`). Default: nouveau.' },
       titre: { type: 'string', description: 'Title shown in the panel. Default: taken from the prompt, or “Bricks”.' },
       duree_ms: { type: 'number', description: `Duration of the laying, in milliseconds (default ${DUREE_DEFAUT_MS}, between ${DUREE_MIN_MS} and ${DUREE_MAX_MS}).` },
     },
@@ -241,6 +241,8 @@ export function optionsOutil (magasin) {
         duree_ms: enregistrement.dureeMs,
         message: enregistrement.rouvert === true
           ? 'Panel reopened on the last model: nothing was rebuilt or erased (give `prompt` or `ops` to build).'
+          : enregistrement.mode === 'modifier' && !Array.isArray(enregistrement.ops)
+          ? 'Nothing was added: mode “modifier” takes `ops`, and a prompt alone does not change the current model (it only builds when the panel has no model yet). Give `ops`, or use mode “nouveau” to rebuild from the prompt.'
           : Array.isArray(enregistrement.ops)
           ? `${enregistrement.ops.length} ${enregistrement.ops.length === 1 ? 'batch' : 'batches'} of bricks handed over: the “Bricks” panel (right sidebar) lays them in ${(enregistrement.dureeMs / 1000).toFixed(1)} s.`
           : 'Model handed over: the “Bricks” panel (right sidebar) is building it now.',

@@ -135,6 +135,22 @@ ok('une origine étrangère est refusée',
   }
 }
 
+// ── 2 ter. T2-24: the answer of the tool says what is true for mode « modifier » ──
+// The panel only adds the `ops` of a « modifier » call to the model it already has: a prompt alone changes nothing, and the tool used to answer
+// « Model handed over ... is building it now » all the same.
+{
+  const SES = 'session-modifier'
+  await definition.execute({ prompt: 'un phare sur des rochers' }, { agent: { id: SES } })
+  const seul = await definition.execute({ prompt: 'ajoute une tour', mode: 'modifier' }, { agent: { id: SES } })
+  ok('modifier with a prompt and no ops: the answer says nothing was added, and not that a model is being built',
+    seul.ok === true && seul.mode === 'modifier' && seul.lots === 0 && /^Nothing was added/.test(seul.message) && !/handed over|building it now/.test(seul.message), seul.message)
+  const avecO = await definition.execute({ prompt: 'ajoute une tour', mode: 'modifier', ops: [{ op: 'rect', x: 0, y: 0, z: 0, w: 2, d: 2, h: 5, color: '#C4291C' }] }, { agent: { id: SES } })
+  ok('modifier with ops: the answer counts the batches handed over', avecO.lots === 1 && /^1 batch of bricks handed over/.test(avecO.message), avecO.message)
+  const neuf = await definition.execute({ prompt: 'ajoute une tour', mode: 'nouveau' }, { agent: { id: SES } })
+  ok('nouveau with a prompt keeps its answer: the model is handed over', /^Model handed over/.test(neuf.message), neuf.message)
+  ok('the description of the parameters tells an agent that « modifier » needs ops', /needs `ops`/.test(definition.parameters.mode.description) && /alone changes nothing/.test(definition.parameters.prompt.description))
+}
+
 // ── 3. le montage cordis ────────────────────────────────────────────────────
 let outilVu = null
 const ctx = {

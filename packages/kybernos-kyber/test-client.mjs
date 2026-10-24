@@ -654,6 +654,19 @@ const server = { ok: true, server: { api: 'https://server-dev-7831.up.railway.ap
     reset(); setK(NOBOT, { pairing: 'supported', server: SRV }); T.state.stripPref = false
     ok('the person\'s fold wins over all of it', byKb(ui(T.views.Strip), 'kybernos-kyber-tile-channels').length === 0)
     ok('the chip says Telegram is unavailable in both states (no bot, a server too old)', textOf(one(ui(T.views.Strip), 'kybernos-kyber-status')) === 'Telegram · indisponible' && (setK(null, { pairing: 'unsupported', server: SRV }), textOf(one(ui(T.views.Strip), 'kybernos-kyber-status'))) === 'Telegram · indisponible')
+    // T2-16: a person already on Kybernos Cloud is not told to switch to Kybernos Cloud
+    {
+      const CLOUD = { name: 'Kybernos Cloud', host: 'server.kybernos.app', can_switch: true }
+      reset(); setK(NOBOT, { pairing: 'supported', server: CLOUD })
+      const r = rowOf()
+      ok('T2-16: no Telegram bot on Kybernos Cloud itself: the row says it is not switched on yet, and does not send the person to Kybernos Cloud', textOf(r.row).includes('Telegram n’est pas encore activé sur ce serveur.') && !/comme Kybernos Cloud/.test(textOf(r.row)) && r.row.props['data-state'] === 'off' && r.sw.props.disabled === true)
+      reset(); setK(BOT, { pairing: 'unknown', server: CLOUD }); T.state.pairing = { error: 'not_found' }
+      const p = rowOf()
+      ok('T2-16: the same when the pairing answers « not found » (the second place the sentence was drawn)', textOf(p.row).includes('pas encore activé') && !/comme Kybernos Cloud/.test(textOf(p.row)) && p.row.props['data-state'] === 'off')
+      reset(); setK(BOT, { pairing: 'unknown', server: SRV }); T.state.pairing = { error: 'not_found' }
+      ok('T2-16: on any other server both places still say to switch to a server that has a bot', /comme Kybernos Cloud/.test(textOf(rowOf().row)) && (reset(), setK(NOBOT, { pairing: 'supported', server: SRV }), /comme Kybernos Cloud/.test(textOf(rowOf().row))))
+      ok('T2-16: the new sentence has its English pair', T.S.offWhyHere[1] === 'Telegram is not switched on yet on this server.' && !/Kybernos Cloud/.test(T.S.offWhyHere[0] + T.S.offWhyHere[1]))
+    }
     // the words, in both languages
     ok('the sentences are the coordinator\'s, in English', T.S.offWhy[1] === 'This server has no Telegram bot. Switch to a server that has one, such as Kybernos Cloud.' && T.S.oldWhy[1] === 'This server does not support linking Telegram yet.' && T.S.switchServer[1] === 'Switch server')
     // a pairing that the server answers « unsupported » to (a stale « supported ») is its own panel, never a silent failure
