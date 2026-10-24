@@ -16,7 +16,7 @@ export const TEAM_AUTOMATION_VIEWS = Object.freeze(['approved', 'proposed', 'min
 const STATUSES = ['proposed', 'approved', 'rejected', 'retired']
 /** The `reason` of an `invalid_automation`. */
 const REASONS = ['key', 'name', 'description', 'prompt', 'schedule', 'needs', 'binary', 'too_large']
-const SCAN_FIELDS = ['name', 'description', 'prompt']
+const SCAN_FIELDS = ['name', 'description', 'note', 'prompt']
 const KEY = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 const SLUG = /^[a-z0-9_-]{2,40}$/
 const CRON_FIELD = /^[0-9*/,A-Za-z-]+$/
@@ -139,7 +139,8 @@ export const teamAutomationsFailure = (status, body) => {
     return { error: 'conflict' }
   }
   if (status === 413) return { error: 'too_large' }
-  if (status === 429) return defined({ error: 'too_many_proposals', max: isRow(body) && Number.isFinite(body.max) ? body.max : undefined })
+  // Two different 429s: the cap of pending proposals (its own word) and the server's general rate limiter (`rate_limited`, or no word at all).
+  if (status === 429) return c === 'too_many_proposals' ? defined({ error: 'too_many_proposals', max: isRow(body) && Number.isFinite(body.max) ? body.max : undefined }) : { error: 'rate_limited' }
   if (status === 400) {
     if (c === 'invalid_automation') return defined({ error: 'invalid_automation', reason: REASONS.includes(body.reason) ? body.reason : undefined, field: word(body.field) })
     // Where the secret is, never what it is: the field, and for the prompt the 1-based line.
