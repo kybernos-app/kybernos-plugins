@@ -732,7 +732,8 @@ export function apply (ctx) {
           return svc === null || svc === undefined || typeof svc.stream !== 'function' ? undefined : svc.stream.bind(svc)
         }
       }
-      monterRoutes(hostCtx.webServer, { llm: llmParesseux, failover, univers })
+      // `get`, not `hostCtx.webServer`: with the plugin's own context a property read of a service it did not inject throws.
+      monterRoutes(hostCtx.get('webServer'), { llm: llmParesseux, failover, univers })
       console.log('[kybernos-auto] routes /kybernos-auto/* enregistrees (state, session, settings, router, report, probe)')
     }
     if (ctx.get('webServer') !== undefined) monter(ctx)

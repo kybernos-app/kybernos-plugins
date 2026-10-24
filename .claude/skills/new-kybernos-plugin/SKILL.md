@@ -100,6 +100,11 @@ export function apply (ctx) {
 }
 ```
 
+A service is readable as a property (`h.webServer`) only on a context that injected it. If one named function is both
+the `ctx.inject` callback **and** called directly with the plugin's own `ctx` (`if (ctx.get('webServer') !== undefined) demarrer(ctx)`),
+read the service with `hostCtx.get('webServer')` inside it: a property read throws there and the routes are never mounted
+(it depends on the order DSH starts the plugins in). `scripts/test-inject-reads.mjs` fails the build on that shape.
+
 `packages/<dir>/client.js` — browser half. The factory **must return a plugin object**
 (`apply`, optionally `inject`); returning nothing breaks the whole entry ("invalid plugin,
 received undefined"). On any error return a disabled plugin:
