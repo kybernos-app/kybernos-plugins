@@ -17,6 +17,7 @@
 //   node kybernos-plugin/test-dsh-home.mjs
 import assert from 'node:assert/strict'
 import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { installSession, sessionCookie } from './lib-session-test.mjs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
@@ -153,6 +154,9 @@ try {
   iso.seedDshHome('kybernos-cloud.json', cloudState('tok-real'))
   iso.seedDshHome('kybers/real-kyber/kyber.yml', YML)
   iso.seedDshHome('kybers/existing-kyber/kyber.yml', 'topology: pool\nmission: before\n')
+  // The write routes need DSH's signed session (the machine secret in `.credentials.yaml` of the home in use, here $DSH_HOME, then <HOME>/.dsh).
+  installSession(iso.dshHome)
+  installSession(iso.decoy)
   iso.freezeDecoy()
 
   // 1. The module-level helpers.
@@ -193,7 +197,7 @@ try {
     assert.ok(handler !== undefined, 'missing route: ' + path)
     const res = { code: 0, raw: null, writeHead(c) { this.code = c }, end(p) { this.raw = p === undefined ? null : String(p) } }
     await handler({
-      method, url: path, headers: { origin: 'http://127.0.0.1:' + PORT, host: '127.0.0.1:' + PORT }, socket: { localPort: PORT },
+      method, url: path, headers: { origin: 'http://127.0.0.1:' + PORT, host: '127.0.0.1:' + PORT, cookie: sessionCookie('127.0.0.1:' + PORT) }, socket: { localPort: PORT },
       async *[Symbol.asyncIterator]() { if (body !== undefined) yield Buffer.from(JSON.stringify(body)) },
     }, res)
     let json = null

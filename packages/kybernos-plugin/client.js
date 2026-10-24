@@ -10522,7 +10522,10 @@ return {
         let current = ''
         try { const d = shell.draftSnapshot; current = (d !== null && d !== undefined && typeof d.text === 'string') ? d.text : '' } catch (e) { current = '' }
         if (current.trim() !== '' && current.trim() !== String(text).trim()) {
-          if (typeof shell.requestDraftInitialization === 'function') { shell.requestDraftInitialization({ prompt: text, whenDraftExists: 'append' }); return }
+          // DSH's append is rc.3's; rc.2 has the request too but answers « preserved » (it keeps the draft and adds nothing) and rc.3 answers « blocked » while a message is going out.
+          let answer = ''
+          if (typeof shell.requestDraftInitialization === 'function') { try { answer = shell.requestDraftInitialization({ prompt: text, whenDraftExists: 'append' }) } catch (e) { answer = '' } }
+          if (answer === 'applied' || answer === 'blocked') return
           shell.actions.setDraft(current + '\n\n' + text)
           return
         }

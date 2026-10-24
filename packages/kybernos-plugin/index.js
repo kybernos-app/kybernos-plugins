@@ -9549,6 +9549,9 @@ function boot(ctx) {
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/ui-save', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        // Audit 2026-10-24: a write needs DSH's signed session too (the page sends it), not only a strict Origin that any local program can forge.
+        const refused = writeGuard(req)
+        if (refused !== null) return sendJson(res, refused.status, { ok: false, error: refused.error })
         // 1 Mo : la fiche porte jusqu'à 10 suggestions, chacune pouvant avoir sa
         // vignette en data URL (bornée à 64 Ko par saveUi). Le défaut de 64 Ko
         // faisait échouer l'enregistrement dès la première image. Un corps trop
@@ -10488,6 +10491,9 @@ function boot(ctx) {
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/menu-save', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        // Audit 2026-10-24: a write needs DSH's signed session too (the page sends it), not only a strict Origin that any local program can forge.
+        const refused = writeGuard(req)
+        if (refused !== null) return sendJson(res, refused.status, { ok: false, error: refused.error })
         sendJson(res, 200, await saveMenuState(await readJsonBody(req)))
       } }), 'kybernos: route menu-save')
       // ── onboarding: the state of the first-run wizard ──
@@ -10707,6 +10713,9 @@ function boot(ctx) {
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/team-portraits', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        // Audit 2026-10-24: a write needs DSH's signed session too (the page sends it), not only a strict Origin that any local program can forge.
+        const refused = writeGuard(req)
+        if (refused !== null) return sendJson(res, refused.status, { ok: false, error: refused.error })
         sendJson(res, 200, await teamPortraits(await readJsonBody(req, 6291456)))
       } }), 'kybernos: route team-portraits')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/member-avatar', handler: async (req, res) => {
@@ -10722,6 +10731,9 @@ function boot(ctx) {
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/member-portrait', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
         if (sameOriginStrict(req) !== true) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        // Audit 2026-10-24: a write needs DSH's signed session too (the page sends it), not only a strict Origin that any local program can forge.
+        const refused = writeGuard(req)
+        if (refused !== null) return sendJson(res, refused.status, { ok: false, error: refused.error })
         const body = await readJsonBody(req, 262144)
         if (body === null || typeof body !== 'object') return sendJson(res, 400, { ok: false, error: 'JSON body required' })
         sendJson(res, 200, await memberPortrait(body))
@@ -10730,6 +10742,9 @@ function boot(ctx) {
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/voice-sample', handler: async (req, res) => {
         if (req.method === 'GET') return sendJson(res, 200, await kbSampleList(queryOf(req)))
         if (sameOriginStrict(req) !== true) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        // Audit 2026-10-24: a write needs DSH's signed session too (the page sends it), not only a strict Origin that any local program can forge.
+        const refused = writeGuard(req)
+        if (refused !== null) return sendJson(res, refused.status, { ok: false, error: refused.error })
         if (req.method === 'DELETE') return sendJson(res, 200, await kbSampleDelete(queryOf(req)))
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'GET, POST or DELETE expected' })
         let body = null
@@ -10818,6 +10833,9 @@ function boot(ctx) {
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/insight-save', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        // Audit 2026-10-24: a write needs DSH's signed session too (the page sends it), not only a strict Origin that any local program can forge.
+        const refused = writeGuard(req)
+        if (refused !== null) return sendJson(res, refused.status, { ok: false, error: refused.error })
         let body = null
         try { body = await readJsonBody(req, 65536) } catch (e) { return sendJson(res, 413, { ok: false, error: 'request body too large' }) }
         sendJson(res, 200, await saveInsightSettings(body))
@@ -11074,6 +11092,9 @@ function boot(ctx) {
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/yml-appliquer', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        // Audit 2026-10-24: a write needs DSH's signed session too (the page sends it), not only a strict Origin that any local program can forge.
+        const refused = writeGuard(req)
+        if (refused !== null) return sendJson(res, refused.status, { ok: false, error: refused.error })
         let body = {}
         try { body = await readJsonBody(req, 131072) } catch (e) { return sendJson(res, 413, { ok: false, error: errText(e) }) }
         sendJson(res, 200, await kbYmlAppliquer(body))
