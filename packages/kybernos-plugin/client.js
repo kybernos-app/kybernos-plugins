@@ -144,6 +144,8 @@ let kbLocaleRead = () => 'en'
       'deliv.customize.visibleN': { kybernos: '{n} types affichés sur {m}', en: '{n} of {m} types shown' },
       'deliv.customize.reset': { kybernos: 'Réinitialiser', en: 'Reset to default' },
       'deliv.customize.done': { kybernos: 'Terminé', en: 'Done' },
+      // Delete takes the file for good (no trash): the card menu asks first, with the file's name.
+      'deliv.delete.confirm': { kybernos: 'Supprimer « {name} » ? Cette action est irréversible.', en: 'Delete “{name}”? This cannot be undone.' },
       // Data creations (json, yaml, csv…): shown as data — a table or a list of fields — never as the code of the file.
       'deliv.data.rows': { kybernos: '{n} lignes', en: '{n} rows' },
       'deliv.data.row1': { kybernos: '1 ligne', en: '1 row' },
@@ -200,7 +202,7 @@ let kbLocaleRead = () => 'en'
       'tasks.runson': { kybernos: 'Exécutée sur', en: 'Runs on' },
       'tasks.local': { kybernos: 'Cet ordinateur', en: 'This computer' },
       'tasks.cloud': { kybernos: 'Cloud', en: 'Cloud' },
-      'tasks.cloud.soon': { kybernos: 'Bientôt disponible — seul le mode local fonctionne aujourd’hui.', en: 'Coming soon — only local mode works today.' },
+      'tasks.cloud.soon': { kybernos: 'Pour la faire tourner sur un ordinateur cloud, utilise l’onglet « Où ça tourne ».', en: 'To run it on a cloud computer, use the “Where it runs” tab.' },
       'tasks.active': { kybernos: 'Active', en: 'Active' },
       'tasks.yes': { kybernos: 'Oui', en: 'Yes' },
       'tasks.no': { kybernos: 'Non', en: 'No' },
@@ -1783,6 +1785,9 @@ let kbLocaleRead = () => 'en'
       'kbwr.err.too_frequent': { kybernos: 'Elle se déclenche plus souvent que toutes les 5 minutes.', en: 'It starts more often than every 5 minutes.' },
       'kbwr.err.never_runs': { kybernos: 'Son planning ne se déclenchera jamais.', en: 'Its schedule will never fire.' },
       'kbwr.err.expired': { kybernos: 'L’ordinateur ne l’a pas récupérée à temps.', en: 'The computer did not pick it up in time.' },
+      'kbwr.err.refused': { kybernos: 'Le serveur a refusé cet envoi.', en: 'The server refused this send.' },
+      'kbwr.err.invalid_tasks': { kybernos: 'Le serveur n’a pas accepté cette automatisation telle qu’elle est écrite.', en: 'The server did not accept this automation as written.' },
+      'kbwr.err.invalid_request': { kybernos: 'La demande d’envoi est incomplète.', en: 'The send request is incomplete.' },
       'tasks.err.cloud': { kybernos: 'Elle tourne dans le cloud : ramène-la sur cet ordinateur avant de la rallumer ici.', en: 'It runs in the cloud: bring it back here before switching it on.' },
       'kbwr.row.cloud': { kybernos: 'Dans le cloud · {name}', en: 'In the cloud · {name}' },
       'kbwr.row.sub': { kybernos: 'Cloud · {name}', en: 'Cloud · {name}' },
@@ -2973,15 +2978,15 @@ const kbI18nDict = (lang) => {
   return dict
 }
 
-// ── Favoris partagés (Projets, Kybers, Automations) ──────────────────────────
-// Une seule clé localStorage pour les trois panneaux : chaque scope porte ses
-// ids marqués à true. Lecture défensive (clé absente, JSON corrompu ou
-// stockage indisponible = objet vide neuf), écriture silencieuse (mode privé),
-// bascule lire-modifier-écrire qui rend la map à jour pour l’état React.
+// ── Shared favourites (Projects, Kybers, Automations, Creations) ──────────────
+// One localStorage key for the four panels: each scope holds its ids marked true
+// (Creations: the file path). Defensive read (missing key, corrupt JSON or no
+// storage = a fresh empty object), silent write (private mode), and a
+// read-modify-write toggle that returns the updated map for the React state.
 const KB_FAV_KEY = 'kybernos.favorites.v1'
-const KB_FAV_SCOPES = ['workspaces', 'kybers', 'automations']
+const KB_FAV_SCOPES = ['workspaces', 'kybers', 'automations', 'creations']
 const kbFavRead = () => {
-  const out = { workspaces: {}, kybers: {}, automations: {} }
+  const out = { workspaces: {}, kybers: {}, automations: {}, creations: {} }
   try {
     const raw = window.localStorage.getItem(KB_FAV_KEY)
     if (raw === null || raw === '') return out
@@ -3182,7 +3187,7 @@ const kbGroupNext = (state) => {
 // check-settings-search-live.mjs, opens every page and looks for them); a description we are not sure of is left empty, never paraphrased.
 const KB_SS_MODE = 'light dark system'
 const KB_SS_INDEX = [
-  ['general', 'Behaviour', 'Onboarding', 'The welcome pages ran when the plugin was installed. Replay them to redo your profession, display mode, models and starter kit.', 'replay', 'bienvenue tutoriel premiers pas demarrage profession bienvenida'],
+  ['general', 'Behaviour', 'Onboarding', 'The welcome pages ran when the plugin was installed. Replay them to redo your field of work, goals, models and starter kit.', 'replay', 'bienvenue tutoriel premiers pas demarrage profession bienvenida'],
   ['general', 'Behaviour', 'Name each chat when it ends', 'On: when a work session ends, the chat gets a short title that says what was done, and an icon that fits.', 'yes no', 'titre automatique renommer nommer conversation chat icone rename titulo'],
   ['general', 'Behaviour', 'Study model', 'Your pick. It checks that your models still answer, helps tidy your memory, and decides which agent team and which chat icon fit.', '', 'modele etude memoire titre ranger'],
   ['general', '', 'Permission', 'Choose the default permission mode for new sessions', 'full access', 'autorisation droits acces complet securite confirmer sandbox permisos'],
@@ -3195,7 +3200,6 @@ const KB_SS_INDEX = [
   ['general', '', 'Keyboard shortcuts', 'View and edit available shortcuts and input actions', 'edit shortcuts', 'raccourcis clavier touches hotkeys atajos'],
   ['general', '', 'Send behavior while busy', 'What Enter and the Send button do while the agent is running; Cmd/Ctrl+Enter uses the other behavior', 'queue', 'entree envoyer file attente pendant execution enter'],
   ['general', '', 'Performance & usage', 'Choose how much performance and usage information to show', 'compact', 'performance utilisation tokens compteur affichage rendimiento'],
-  ['general', '', 'Upload Session Log when using the official model API', 'Help improve DeepSeek models and products.', '', 'telemetrie donnees confidentialite journal logs privacy envoyer partager'],
 
 
   ['theme', 'Essentials', 'Appearance', 'Pick the light or dark mode, then a ready-made theme.', KB_SS_MODE, 'mode sombre mode clair nuit jour systeme apparence modo oscuro', 'mode'],
@@ -3238,7 +3242,7 @@ const KB_SS_INDEX = [
   ['usage', '', 'Your keys and local models', '', '', 'cout depenses tokens cles consommation'],
 
   ['agent presets', '', 'Standard mode', 'Work with code, files, and information.', 'ptc creator minimal', 'mode agent persona preajuste'],
-  ['kaby', '', 'Name, portrait and voice', 'Give your assistant a name, a portrait and a voice.', 'avatar face image picture', 'nom portrait voix visage image assistant avatar'],
+  ['kaby', '', 'Name, portrait and voice', 'Give your assistant a name, a portrait and a voice.', 'avatar face image picture', 'nom portrait voix visage image assistant avatar', '', 'Identity'],
   ['workers', '', 'Check all', 'Workers are the coding assistants installed on your computer.', '', 'claude code codex gemini cli assistants code delegation'],
   ['automations', '', 'Pause all automations', 'Nothing fires while this is on.', '', 'pause automatisations taches planifiees cron planificador'],
   ['automations', '', 'Show DSH’s own “Automation tasks” list', '', '', 'liste taches automatisation'],
@@ -3296,7 +3300,7 @@ const KB_SS_PAGE_KW = {
 // English (DSH's own rows of General, Agent presets, Built-in plugins) is not listed: it keeps its English text, which is what the page shows. A
 // description left empty is one we have not seen drawn in French: never paraphrased. The related words stay French/English/Spanish for every language.
 const KB_SS_FR = {
-  'general|Onboarding': ['Premiers pas', 'Les pages d’accueil sont passées à l’installation du plugin. Rejoue-les pour refaire ta profession, ton mode d’affichage, tes modèles et ton kit de départ.'],
+  'general|Onboarding': ['Premiers pas', 'Les pages d’accueil sont passées à l’installation du plugin. Rejoue-les pour refaire ton domaine, tes objectifs, tes modèles et ton kit de départ.'],
   'general|Name each chat when it ends': ['Nommer chaque conversation à sa fin', 'Activé : quand une session de travail se termine, la conversation reçoit un titre court qui dit ce qui a été fait, et une icône qui lui va.'],
   'general|Study model': ['Modèle d’étude', ''],
   'general|Language': ['Language', 'Gérer les langues et les traductions ici'],
@@ -3335,7 +3339,7 @@ const KB_SS_FR = {
   'ollama local models|Local engine': ['Moteur local', ''],
   'usage|Your Kybernos plan': ['Ton plan Kybernos', ''],
   'usage|Your keys and local models': ['Tes clés et modèles locaux', ''],
-  'kaby|Name, portrait and voice': ['Nom, portrait et voix', 'Donne à ton assistant un nom, un portrait et une voix.'],
+  'kaby|Name, portrait and voice': ['Nom, portrait et voix', 'Donne à ton assistant un nom, un portrait et une voix.', 'Identité'],
   'workers|Check all': ['Tout vérifier', 'Les workers sont les assistants de code installés sur ton ordinateur.'],
   'automations|Pause all automations': ['Mettre toutes les automatisations en pause', 'Rien ne se déclenche tant que c’est activé.'],
   'automations|Show DSH’s own “Automation tasks” list': ['Afficher la liste « Automation tasks » de DSH', ''],
@@ -3696,7 +3700,6 @@ const KB_FR_EN = {
   'Déjà monté dans ce profil — rien à faire.': 'Already mounted in this profile — nothing to do.',
   'Demande : ': 'Requires: ',
   'Enregistrement de l’écran + Accessibilité (Réglages système > Confidentialité).': 'Screen Recording + Accessibility (System Settings > Privacy).',
-  'Harness ne publie pas de fournisseur de sous-agent pour Hermes.': 'Harness ships no subagent provider for Hermes.',
   'Installé, non monté': 'Installed, not mounted',
   'Installer & configurer': 'Install & configure',
   'Le paquet est absent de ce profil : écrire le patch sans le paquet casserait le démarrage.': 'The package is missing from this profile: writing the patch without it would break startup.',
@@ -3996,6 +3999,7 @@ const KB_FR_EN = {
   'lien copié — ': 'link copied — ',
   'réseau indisponible': 'network unavailable',
   'Reste sur ce Mac. Rien n’en sort.': 'Stays on this Mac. Nothing leaves it.',
+  'Reste sur cet ordinateur. Rien n’en sort.': 'Stays on this computer. Nothing leaves it.',
   'Le texte de la réponse est envoyé à Microsoft pour être synthétisé.': 'The reply text is sent to Microsoft to be synthesized.',
   'Système': 'System',
   'Modèle': 'Model',
@@ -7829,12 +7833,15 @@ const kbRunUses = (history, sums, limit) => {
   const agents = new Map()
   let read = 0
   let chosen = false
+  let latest = ''
   const add = (map, name, extra) => { if (typeof name !== 'string' || name === '') return; const e = map.get(name); if (e === undefined) map.set(name, Object.assign({ name, count: 1 }, extra)); else e.count += 1 }
   for (const r of runs) {
     const sum = r.sessionId !== null && sums !== null && typeof sums === 'object' ? sums[r.sessionId] : undefined
     if (sum === undefined || sum === null) continue
     read += 1
     if (sum.selected === true) chosen = true
+    // The runs come newest first: the first one that says a model is the latest run's model (`models` below is the most USED over the window, which can be an older one).
+    if (latest === '' && Array.isArray(sum.models) === true && sum.models.length > 0 && sum.models[0] !== null && typeof sum.models[0] === 'object' && typeof sum.models[0].model === 'string') latest = sum.models[0].model
     for (const m of (Array.isArray(sum.models) === true ? sum.models : [])) add(models, m.model, { provider: typeof m.provider === 'string' ? m.provider : '' })
     const u = sum.uses !== null && typeof sum.uses === 'object' ? sum.uses : null
     if (u === null) continue
@@ -7844,7 +7851,7 @@ const kbRunUses = (history, sums, limit) => {
     for (const x of (Array.isArray(u.agents) === true ? u.agents : [])) { const e = agents.get(x.name); if (e === undefined) agents.set(x.name, { name: x.name, model: typeof x.model === 'string' ? x.model : '' }); else if (e.model === '' && typeof x.model === 'string') e.model = x.model }
   }
   const top = (map) => [...map.values()].sort((a, b) => b.count - a.count || (a.name < b.name ? -1 : 1)).slice(0, 8)
-  return { runs: runs.length, read, models: top(models), skills: top(skills), apps: top(apps), tools: top(tools), agents: [...agents.values()].slice(0, 8), chosen }
+  return { runs: runs.length, read, models: top(models), latest, skills: top(skills), apps: top(apps), tools: top(tools), agents: [...agents.values()].slice(0, 8), chosen }
 }
 // KB-AUTORUNS-END
 
@@ -15408,12 +15415,6 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       const visagesCastPair = React.useState({})
       const visagesCast = visagesCastPair[0]
       const setVisagesCast = visagesCastPair[1]
-      // Où les détails d'un modèle s'affichent dans l'onglet Team : la bascule
-      // « MOCKUP · MODEL INFO AS » de la maquette — Tooltip, ou panneau latéral.
-      // L'état vit ici comme les visages : l'onglet, lui, est conditionnel.
-      const kbuiVariantPair = React.useState(null)
-      const kbuiVariant = kbuiVariantPair[0]
-      const setKbuiVariant = kbuiVariantPair[1]
       const visagesMsgPair = React.useState('')
       const visagesMsg = visagesMsgPair[0]
       const setVisagesMsg = visagesMsgPair[1]
@@ -15712,8 +15713,6 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
             membresUi: membresUi,
             rev: visagesRev,
             lookDe: lookDe,
-            variant: kbuiVariant,
-            setVariant: setKbuiVariant,
           })
         }
         if (tab === kbt('kbui.skills')) {
@@ -15869,24 +15868,6 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
             h('button', { type: 'button', className: 'kb8-chip', onClick: () => saveNow() }, kbt('kbui.save.now')))),
         h('div', { style: { display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' } }, [
           h('div', { className: 'kb8-tabs' }, TABS.map((t) => h('button', { type: 'button', key: t, className: 'kb8-tab' + (tab === t ? ' on' : ''), onClick: () => setTab(t) }, t))),
-          // La bascule de la maquette, reprise telle quelle : elle ne vaut que
-          // pour l'onglet Team et choisit OÙ les détails d'un modèle s'affichent.
-          (tab === 'Roles')
-            ? h('div', { style: { display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 4px 4px 12px', border: '1px dashed #D6D6D8', borderRadius: '10px' } }, [
-              h('span', { style: { fontFamily: 'ui-monospace,SFMono-Regular,Menlo,Consolas,monospace', fontSize: '10.5px', letterSpacing: '0.08em', color: '#9A9A9E' } }, 'Mockup · model info as'),
-              h('div', { role: 'group', 'aria-label': 'Model info display', style: { display: 'flex', gap: '2px', padding: '2px', background: '#F3F3F4', borderRadius: '7px' } },
-                [['tooltip', 'Tooltip'], ['panel', 'Side panel']].map(([k, label]) => h('button', {
-                  type: 'button',
-                  key: k,
-                  'aria-pressed': String((kbuiVariant !== null ? kbuiVariant : 'panel') === k),
-                  onClick: () => setKbuiVariant(k),
-                  style: Object.assign({ height: '26px', padding: '0 10px', border: 'none', borderRadius: '5px', cursor: 'pointer', fontSize: '12px', fontWeight: 500 },
-                    ((kbuiVariant !== null ? kbuiVariant : 'panel') === k)
-                      ? { background: '#FFFFFF', color: '#16161A', boxShadow: '0 1px 2px rgba(0,0,0,0.08)' }
-                      : { background: 'transparent', color: '#77777B' })
-                }, label)))
-            ])
-            : null
         ]),
         pane)
     }
@@ -20361,6 +20342,25 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       if (info.shape === 'text') return [info.lines.slice(0, 3).map((l, i) => h('div', { className: 'kb6-line2', key: 'tl' + i }, l.slice(0, 90)))]
       return [h('div', { className: 'kb6-line2', key: 'nd' }, kbt('deliv.data.nodata'))]
     }
+    // <kb-art-rules:begin>
+    // Small rules of the Creations page, kept pure so test-creations-honesty.mjs can run them as they are.
+    // One line of a text creation as plain words: tags, the heading hashes, a quote or list bullet at the start, backticks and emphasis stars are markup, not text.
+    const kbArtPlain = (line) => String(line === null || line === undefined ? '' : line).replace(/<[^>]*>/g, '').replace(/^#+\s*/, '').replace(/^[>+-]\s+/, '').replace(/`+/g, '').replace(/\*{1,2}/g, '').trim()
+    // The « Modified » period of the toolbar: '7' or '30' keeps what changed in the last N days, anything else keeps all. A file with no usable date is kept
+    // (nothing says it is old). The clock is passed in (`nowMs`), so the rule gives the same answer in a test.
+    const kbArtInPeriod = (mtimeMs, period, nowMs) => {
+      const days = period === '7' ? 7 : (period === '30' ? 30 : 0)
+      if (days === 0 || Number.isFinite(nowMs) !== true || typeof mtimeMs !== 'number' || Number.isFinite(mtimeMs) !== true) return true
+      return (nowMs - mtimeMs) <= days * 86400000
+    }
+    // A count of Creations as the page says it: the host lists at most ARTIFACT_LIMIT files and flags a cut list (`artifactsCut`), so that list reads « 500+ », never a bare 500.
+    const kbArtCountLabel = (n, cut) => String(n) + (cut === true ? '+' : '')
+    // Delete takes the file for good (no trash): it goes ahead only when the person says yes, and with no way to ask nothing is deleted. `ask` is window.confirm.
+    const kbArtDeleteOk = (name, ask) => {
+      if (typeof ask !== 'function') return false
+      try { return ask(kbt('deliv.delete.confirm').split('{name}').join(String(name === null || name === undefined ? '' : name))) === true } catch (e) { return false }
+    }
+    // <kb-art-rules:end>
     const previewLine = (i, w) => h('div', { className: 'kb6-line', key: 'pl' + i, style: { width: w + '%' } })
     const previewContent = (t, name, preview, path, size) => {
       const kind = (preview !== null && preview !== undefined && typeof preview === 'object' && typeof preview.kind === 'string') ? preview.kind : 'text'
@@ -20418,9 +20418,11 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         return lines !== null ? kbCodeBlock(text, kbCodeLang(name) || 'js', 4) : [previewLine(1, 78), previewLine(2, 60)]
       }
       if (t.id === 'doc') {
-        if (lines !== null) return [
-          h('div', { className: 'kb6-prevtitle', key: 'tt' }, (lines[0] || name || 'doc').replace(/^#+\s*/, '').slice(0, 60)),
-          lines.slice(1, 3).map((l, i) => h('div', { className: 'kb6-line2', key: 'rl' + i }, l.slice(0, 90))),
+        // The lines are shown as plain words (the card subtitle's own strip), not as markdown: no **, backticks or bullets.
+        const plain = lines === null ? [] : lines.map(kbArtPlain).filter((l) => l.length > 0)
+        if (plain.length > 0) return [
+          h('div', { className: 'kb6-prevtitle', key: 'tt' }, plain[0].slice(0, 60)),
+          plain.slice(1, 3).map((l, i) => h('div', { className: 'kb6-line2', key: 'rl' + i }, l.slice(0, 90))),
         ]
         return [h('div', { className: 'kb6-prevtitle', key: 'tt' }, name || 'doc'), previewLine(1, 84), previewLine(2, 66), previewLine(3, 48)]
       }
@@ -20526,7 +20528,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         .filter((l) => l.length > 0 && /^[-_=*]{3,}$/.test(l) === false)
       if (lines.length === 0) return ''
       // Markup marks are not shown as text: backticks, emphasis stars, a quote or list bullet at the start.
-      return lines[0].replace(/<[^>]*>/g, '').replace(/^#+\s*/, '').replace(/^[>+-]\s+/, '').replace(/`+/g, '').replace(/\*{1,2}/g, '').slice(0, 96)
+      return kbArtPlain(lines[0]).slice(0, 96)
     }
     const KbArtCard = ({ a, onOpen, preview, onAction, pinned, onPin, read, appear }) => {
       const t = kbArtType(a.name)
@@ -22577,6 +22579,8 @@ function renderFit(canvas, model, cam, opts){
       // Before the first payload there is nothing to list: the page draws bones (or the error), never invented files.
       // It used to fall back on seven fake creations until the host answered.
       const arts = hasPayload === true ? real : []
+      // The host lists at most 500 files and says when it cut the list: the counts then read « 500+ » (kbArtCountLabel).
+      const artsCut = hasPayload === true && s.data.artifactsCut === true
       // Barre unifiee Deliverables : recherche, filtre type, tri persistes.
       const tbArts = useToolbarState('deliverables', { sort: 'modified', viewMode: 'cards' })
       // Sélection MULTI-types (maquette « sélection multi-types », 29/09) : chaque
@@ -22635,16 +22639,13 @@ function renderFit(canvas, model, cam, opts){
       const setQ = (v) => tbArts[1]({ query: v })
       const sort = tbArts[0].sort === 'modified' ? 'date' : tbArts[0].sort
       const setSort = (v) => tbArts[1]({ sort: v === 'date' ? 'modified' : v, dir: v === 'name' ? 'asc' : 'desc' })
-      // Épingles propres aux livrables : clé = chemin du fichier. Distinct de
-      // `ppins` (raccourcis de projets/kybers), sinon les deux se mélangeraient.
-      const pins = (s.apins !== null && s.apins !== undefined && typeof s.apins === 'object') ? s.apins : {}
-      const togglePin = (path) => {
-        const nx = Object.assign({}, pins)
-        if (nx[path] === true) delete nx[path]
-        else nx[path] = true
-        set({ apins: nx })
-      }
-      const nPins = Object.keys(pins).length
+      // Pins of the Creations (key = the file path). They live in the shared favourites store (scope 'creations', localStorage), as the
+      // stars of Projects, Kybers and Automations do: the in-memory store they used to sit in lost them at every reload.
+      const artFavPair = React.useState(() => kbFavRead())
+      const artFavs = artFavPair[0]
+      const setArtFavs = artFavPair[1]
+      const pins = artFavs.creations
+      const togglePin = (path) => { setArtFavs(kbFavToggle('creations', path)) }
       const notePair = React.useState(null)
       const note = notePair[0]
       const setNote = notePair[1]
@@ -22724,6 +22725,8 @@ function renderFit(canvas, model, cam, opts){
           : { vis: nx, visMode: 'hidden' })
       }
       const resetTiles = () => tbArts[1]({ vis: undefined })
+      // The clock is read once per render and handed to the period rule (kbArtInPeriod), which does not read it itself.
+      const nowMs = Date.now()
       const filtered = typed
         .filter((a) => selTypes.length === 0 || selTypes.some((sid) => (sid === 'miniapp')
           ? (a.type.id === 'miniapp' && isRenderedMiniApp(a) === true)
@@ -22732,6 +22735,8 @@ function renderFit(canvas, model, cam, opts){
         // Favoris (constat 28/09) : le bouton ☆ posait st.fav sans que cette
         // chaîne le lise — le filtre restait inopérant (0 épingle → 6 cartes).
         .filter((a) => tbArts[0].fav !== true || pins[a.path] === true)
+        // « Modified » (7 / 30 days): the toolbar draws it and counts it as an active filter, so the list has to follow it.
+        .filter((a) => kbArtInPeriod(a.mtimeMs, tbArts[0].period, nowMs))
       const sorted = filtered.slice().sort((a, b) => {
         // Les épinglés passent devant, quel que soit le tri demandé.
         const pa = pins[a.path] === true ? 1 : 0
@@ -22748,7 +22753,7 @@ function renderFit(canvas, model, cam, opts){
       const revealPair = React.useState(KB_ART_REVEAL)
       const reveal = revealPair[0]
       const setReveal = revealPair[1]
-      React.useEffect(() => { setReveal(KB_ART_REVEAL) }, [typesKey, sort, q])
+      React.useEffect(() => { setReveal(KB_ART_REVEAL) }, [typesKey, sort, q, tbArts[0].period])
       const shown = sorted.slice(0, reveal)
       const reste = sorted.length - shown.length
       const refresh = () => { try { load() } catch (e) { /* rechargement */ } }
@@ -22859,6 +22864,8 @@ function renderFit(canvas, model, cam, opts){
           try { timerSvc.timeout(() => setNote(null), 2000) } catch (e) { setNote(null) }
           return
         }
+        // Delete is for good (no trash): ask first, as DSH does before it archives a running session.
+        if (action === 'delete' && kbArtDeleteOk(a.name, typeof window.confirm === 'function' ? (m) => window.confirm(m) : null) !== true) return
         const payload = { action: action, path: a.path }
         if (extra !== undefined && extra !== null) Object.assign(payload, extra)
         setNote(action + '…')
@@ -22887,7 +22894,7 @@ function renderFit(canvas, model, cam, opts){
           }
         }).catch((e2) => { /* previews indisponibles */ })
         return () => { dead = true }
-      }, [typesKey, sort, q, reveal, s.data])
+      }, [typesKey, sort, q, tbArts[0].period, reveal, s.data])
       const openName = (openPath !== null && openPath !== undefined) ? (arts.find((a) => a.path === openPath) || {}).name : null
       if (openPath !== null && openPath !== undefined && real.length > 0) return withPopup(h(ArtView, { path: openPath, name: openName || openPath, onBack: () => setOpenPath(null), onPopup: openPopup }))
       // The line under the tiles (what the selected type is) and the three quick actions: static text, the same on the real page
@@ -22988,7 +22995,7 @@ function renderFit(canvas, model, cam, opts){
                   h('span', { className: 'kb-type-check' + (allOn === true ? ' on' : ''), 'aria-hidden': 'true' }, allOn === true ? Icon('check', 10) : null),
                   h('span', { className: 'kb-type-line' },
                     h('span', { className: 'kb-type-lab' }, kbt('deliverables.all')),
-                    h('span', { className: 'kb-type-cnt' }, String(typed.length)))),
+                    h('span', { className: 'kb-type-cnt' }, kbArtCountLabel(typed.length, artsCut)))),
                 // Familles d'abord (26/09), puis types fins — l'ordre du KB.
                 // Famille toujours visible à compteur 0 ; types fins masqués
                 // quand aucun fichier ne les porte, sauf s'ils sont réactivés
@@ -23279,7 +23286,8 @@ function renderFit(canvas, model, cam, opts){
     const kbTaskCards = (nodes, uses) => nodes.map((n) => {
       const kind = kbt('tasks.flow.kind.' + n.c)
       const isStep = n.c === 'ai' || n.c === 'act'
-      const model = isStep && uses.models.length > 0 ? uses.models[0].name : ''
+      // The model of the LATEST run, as the Sessions tab says it; the most used one over the last runs was shown before and went on naming a model the last run no longer used.
+      const model = isStep ? (typeof uses.latest === 'string' && uses.latest !== '' ? uses.latest : (uses.models.length > 0 ? uses.models[0].name : '')) : ''
       const men = isStep ? kbStepMentions(n.full, uses) : { skills: [], apps: [], agents: [] }
       const named = men.skills.map((x) => x.name).concat(men.apps.map((x) => x.name), men.agents.map((x) => x.name))
       const chips = [n.s].concat(model !== '' ? [model] : [], named.slice(0, 1))
@@ -26005,8 +26013,6 @@ function renderFit(canvas, model, cam, opts){
       const catalog = (p.catalog !== null && p.catalog !== undefined && typeof p.catalog === 'object') ? p.catalog : null
       const loadFn = (typeof p.load === 'function') ? p.load : null
       const lookDeFn = (typeof p.lookDe === 'function') ? p.lookDe : null
-      const setVariantFn = (typeof p.setVariant === 'function') ? p.setVariant : null
-      const variant = (typeof p.variant === 'string') ? p.variant : null
       const revIn = (typeof p.rev === 'number') ? p.rev : 0
       const onRevFn = (typeof p.onRev === 'function') ? p.onRev : null
       const membresMap = kbMembersOf(p.membresUi)
@@ -26459,11 +26465,8 @@ function renderFit(canvas, model, cam, opts){
       const prefsMode = (prefs !== null && prefs !== undefined && prefs.mode === 'auto') ? 'auto' : ((prefs !== null && prefs !== undefined && prefs.mode === 'per-role') ? 'per-role' : 'manual')
       const prefsPriority = (prefs !== null && prefs !== undefined && (prefs.priority === 'cost' || prefs.priority === 'quality')) ? prefs.priority : 'balanced'
       const prefsFaceMode = (prefs !== null && prefs !== undefined && prefs.faceMode === 'each') ? 'each' : 'group'
-      const panelVariant = ((variant !== null ? variant : ((prefs !== null && prefs !== undefined && typeof prefs.variant === 'string') ? prefs.variant : 'panel')) === 'panel')
-      const pickVariant = (v) => {
-        if (setVariantFn !== null) { try { setVariantFn(v) } catch (e) { /* variant */ } return }
-        setPrefs({ variant: v })
-      }
+      // Where a model's details show: the side panel (the page used to carry a designer's Tooltip / Side panel toggle for this, since removed).
+      const panelVariant = (((prefs !== null && prefs !== undefined && typeof prefs.variant === 'string') ? prefs.variant : 'panel') === 'panel')
       const voiceList = (() => {
         const out = []
         const eng = (Array.isArray(tts.engines) === true) ? tts.engines : []
@@ -26841,9 +26844,9 @@ function renderFit(canvas, model, cam, opts){
         pick: () => setPrefs({ mode: k })
       }))
       const modeSummary = (prefsMode === 'auto')
-        ? 'Kybernos picks a primary and fallback for every role, re-evaluated each run.'
+        ? 'Declared: Kybernos would pick a primary and fallback for every role, re-evaluated each run, once automatic routing is switched on. Today the model written for each role is the one that runs.'
         : ((prefsMode === 'per-role')
-          ? 'Each role chooses: manual, or handed over to Kybernos with the toggle on the role.'
+          ? 'Declared: each role chooses manual, or handed over to Kybernos with the toggle on the role, once automatic routing is switched on. Today the model written for each role is the one that runs.'
           : 'You choose the primary and fallback model for each role.')
       const priorities = [['cost', 'Cost'], ['balanced', 'Balanced'], ['quality', 'Quality']].map(([k, label]) => ({
         label: label,
@@ -27186,7 +27189,8 @@ function renderFit(canvas, model, cam, opts){
               ? h('span', { className: 'kb8-sub', style: { color: 'var(--dsw-alias-state-error-primary)' } }, kbt('kbui.crew.savefailed') + crewState.slice(3))
               : null))
           : null),
-        mmBar,
+        // The model-management bar is a mockup of pills that do nothing: not shown in the read-only preview of the marketplace.
+        (editable === true ? mmBar : null),
         crewRows)
       const section = (key, label, body, extra) => h('div', { style: card },
         h('div', { style: { display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' } },
@@ -27203,7 +27207,8 @@ function renderFit(canvas, model, cam, opts){
         section('crew', kbt('kbui.crew.members'), crewBody,
           h('div', { style: { display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' } },
             h('span', { className: 'kb8-sub', style: { fontSize: '10.5px' } }, kbt('kbui.crew.members.sub')),
-            h('span', { title: kbt('kbui.crew.addrole.soon'), style: { display: 'inline-flex', alignItems: 'center', gap: '6px', border: '1px solid var(--dsw-alias-border-l1)', borderRadius: '999px', padding: '4px 12px', fontSize: '12px', color: 'var(--dsw-alias-label-primary)', cursor: 'default', whiteSpace: 'nowrap' } }, '+ ' + kbt('kbui.crew.addrole')))),
+            // Inert while the sheet is read-only (the marketplace preview): shown only where the roles can be edited.
+            (editable === true ? h('span', { title: kbt('kbui.crew.addrole.soon'), style: { display: 'inline-flex', alignItems: 'center', gap: '6px', border: '1px solid var(--dsw-alias-border-l1)', borderRadius: '999px', padding: '4px 12px', fontSize: '12px', color: 'var(--dsw-alias-label-primary)', cursor: 'default', whiteSpace: 'nowrap' } }, '+ ' + kbt('kbui.crew.addrole')) : null))),
         section('skills', kbt('kbui.frag.skills') + skills.length, (skills.length === 0
           ? h('span', { className: 'kb8-sub' }, 'No skill declared — works on the repository the plugin already has.')
           : h('div', { className: 'kb8-pills' }, skills.map((s) => h('span', { className: 'kb8-pill', key: s }, s))))),
@@ -28106,6 +28111,8 @@ function renderFit(canvas, model, cam, opts){
       React.useEffect(() => { if (state.data === null && state.loading === false) load() }, [])
       const c = navCounts(s.data)
       const arts = (s.data !== null && s.data !== undefined && Array.isArray(s.data.artifacts) === true) ? s.data.artifacts : []
+      // The host lists at most 500 files and flags a cut list: the badge then reads « 500+ » (kbArtCountLabel).
+      const artsCut = s.data !== null && s.data !== undefined && s.data.artifactsCut === true
       const uw = (p0 !== null && p0 !== undefined) ? p0.useWorkspaces : null
       const snapW = (typeof uw === 'function') ? uw((st) => st) : null
       const wsCount = (snapW !== null && snapW !== undefined && Array.isArray(snapW.items) === true) ? snapW.items.length : null
@@ -28191,7 +28198,7 @@ function renderFit(canvas, model, cam, opts){
         const iconNode = kabyOwn && kabyMe.portrait !== null ? h('img', { className: 'kb4-kabyav', src: kabyMe.portrait.url, alt: '', 'data-kb': 'kb-kaby-row-portrait' }) : kbMenuIcon(id, ico, active === true)
         return h('button', { type: 'button', key: id, className: 'kb4-item' + (active === true ? ' on' : ''), 'aria-label': label, title: label, onClick },
         h('span', { className: 'kb4-ico' }, iconNode), h('span', { className: 'kb4-lab' }, label),
-        (badge !== null && badge !== undefined && badge > 0) ? h('span', { className: 'kb4-badge' }, String(badge)) : null,
+        (badge !== null && badge !== undefined && (typeof badge === 'string' ? badge !== '' : badge > 0)) ? h('span', { className: 'kb4-badge' }, String(badge)) : null,
         (extra === undefined ? null : extra)) }
       const ncCloud = useNcCloud()
       useKbTasksWatch(uss)
@@ -28259,7 +28266,7 @@ function renderFit(canvas, model, cam, opts){
         // Runs n'est plus ici : c'est un onglet de conversation, à côté de
         // « Kybernos Crew » (cf. slot `conversation.view` id `runs`).
         row('projects', Icon('folderOpen', 15), kbt('menu.projects'), wsCount, shown === 'projects' || shown === 'project', () => openPage({ view: 'projects' })),
-        row('deliverables', Icon('shapes', 15), kbt('menu.deliverables'), arts.length, shown === 'artifacts' || shown === 'artview', () => openPage({ view: 'artifacts' })),
+        row('deliverables', Icon('shapes', 15), kbt('menu.deliverables'), arts.length > 0 ? kbArtCountLabel(arts.length, artsCut) : 0, shown === 'artifacts' || shown === 'artview', () => openPage({ view: 'artifacts' })),
         // « Mon espace » retiré du menu (demande du 26/09/2026) : la page et sa
         // section Réglages restent en place, seule l'entrée de la barre disparaît.
         row('tasks', Icon('zap', 15), kbt('menu.tasks'), (KB_TASKS_COUNT !== null && KB_TASKS_COUNT !== undefined) ? KB_TASKS_COUNT : 0, shown === 'tasks', () => openPage({ view: 'tasks' }), h(KbRowState, { k: 'tasks' })),
@@ -29053,6 +29060,18 @@ body[data-ds-dark-theme] [data-phase="hero"]:has([data-kb="newchat"]){background
       if (name === 'NotReadableError') return kbe('Microphone already used by another application')
       return (e !== null && e !== undefined && e.message) ? String(e.message) : kbe('recording failed')
     }
+    /** Closes a popover on Escape and on a press outside its wrapper. The listeners exist only while it is open (the effects below add and remove them). `wrap()` gives the wrapper
+     *  element; returns the function that removes the listeners. A press on the wrapper itself (the caret that toggles it) is not "outside". */
+    const kbvOnDismiss = (doc, wrap, close) => {
+      const onKey = (ev) => { if (ev.key === 'Escape') close() }
+      const onDown = (ev) => {
+        const w = wrap()
+        if (w !== null && w !== undefined && ev.target !== null && ev.target !== undefined && w.contains(ev.target) !== true) close()
+      }
+      doc.addEventListener('keydown', onKey)
+      doc.addEventListener('pointerdown', onDown, true)
+      return () => { doc.removeEventListener('keydown', onKey); doc.removeEventListener('pointerdown', onDown, true) }
+    }
     const kbvStorage = {
       get: (k) => { try { if (typeof window === 'undefined' || window.localStorage === undefined) return null; return window.localStorage.getItem(k) } catch (e) { return null } },
       set: (k, v) => { try { if (typeof window === 'undefined' || window.localStorage === undefined) return; if (v === null || v === undefined) window.localStorage.removeItem(k); else window.localStorage.setItem(k, v) } catch (e) { /* stockage indisponible */ } },
@@ -29323,17 +29342,20 @@ body[data-ds-dark-theme] [data-phase="hero"]:has([data-kb="newchat"]){background
     const KbVoiceSourceChip = () => {
       const [open, setOpen] = React.useState(false)
       const [, setTick] = React.useState(0)
+      const wrapRef = React.useRef(null)
       React.useEffect(() => {
         const f = () => setTick((n) => n + 1)
         kbvSrc.subs.add(f)
         return () => { kbvSrc.subs.delete(f) }
       }, [])
+      // Escape and a press outside close the popover (before the early return below: hooks keep their order).
+      React.useEffect(() => (open === true ? kbvOnDismiss(document, () => wrapRef.current, () => setOpen(false)) : undefined), [open])
       // Repli : si le réglage cesse de dire « native », c'est la barre qui
       // reprend la main — la pastille disparaît d'elle-même.
       if (kbvSrc.known !== true || kbvSrc.value !== 'native') return null
       const titre = kbe('Composer microphone') + kbfSep() + kbe('DSH native')
       const basculer = () => setOpen((o) => o === false)
-      return h('div', { className: 'kbv-chip', 'data-kbr': 'voice-source-chip' },
+      return h('div', { className: 'kbv-chip', 'data-kbr': 'voice-source-chip', ref: wrapRef },
         h('div', { className: 'kbv-group' },
           h('button', {
             type: 'button', className: 'kbv-btn kbv-chip-btn', title: titre, 'aria-label': titre,
@@ -29356,6 +29378,8 @@ body[data-ds-dark-theme] [data-phase="hero"]:has([data-kb="newchat"]){background
       const [note, setNote] = React.useState(null)
       const [saved, setSaved] = React.useState(null)
       const [open, setOpen] = React.useState(false)
+      const wrapRef = React.useRef(null)
+      React.useEffect(() => (open === true ? kbvOnDismiss(document, () => wrapRef.current, () => setOpen(false)) : undefined), [open])
       const [devices, setDevices] = React.useState([])
       const [devId, setDevId] = React.useState(() => kbvStorage.get(KBV_DEV_KEY))
       const [level, setLevel] = React.useState(0)
@@ -29532,7 +29556,7 @@ body[data-ds-dark-theme] [data-phase="hero"]:has([data-kb="newchat"]){background
         if (hasDefault === true) checkedId = 'default'
         else if (devices.length > 0) checkedId = devices[0].id
       }
-      return h('div', { className: 'kbv-wrap' },
+      return h('div', { className: 'kbv-wrap', ref: wrapRef },
         h('div', { className: 'kbv-group' },
           h('button', {
             type: 'button', className: 'kbv-btn' + (state === 'recording' ? ' rec' : ''), disabled: busy || (cap !== null && ready === false), title, 'aria-label': title,
@@ -30255,6 +30279,14 @@ body[data-ds-dark-theme] [data-phase="hero"]:has([data-kb="newchat"]){background
       for (const k of Object.keys(vars)) t = t.split('{' + k + '}').join(String(vars[k]))
       return t
     }
+    /** The classic editor of the Theme page sits in a folded <details>: the text inside a closed one has no box, so the walker below could never find a row there and the result blinked nothing.
+     *  Open it first (its own onToggle keeps the page's state in step). True when it was closed. */
+    const kbSsOpenFolded = (pane) => {
+      const det = pane.querySelector('details[data-kb="theme-classic"]')
+      if (det === null || det.open === true) return false
+      det.open = true
+      return true
+    }
     /** Open the page of a result, then go to its row: the tab first when the page has tabs, then the row by its label, then a blink. */
     const kbSsReveal = (dlg, e) => {
       let tries = 0
@@ -30264,6 +30296,7 @@ body[data-ds-dark-theme] [data-phase="hero"]:has([data-kb="newchat"]){background
         const pane = dlg.querySelector('[data-slot="settings.section"]')
         if (pane !== null) {
           if (e.page === 'theme' && e.sec !== '' && clickedTab === false) {
+            if (kbSsOpenFolded(pane) === true) { setTimeout(walk, 150); return }
             const tab = Array.from(pane.querySelectorAll('button')).find((b) => kbSsNorm(b.textContent) === kbSsNorm(e.sec))
             if (tab !== undefined) { clickedTab = true; try { tab.click() } catch (er) { /* gone */ } setTimeout(walk, 150); return }
           }
@@ -31707,7 +31740,7 @@ body:not([data-ds-dark-theme]) .kbt2-pill.warn{color:color-mix(in srgb,var(--dsw
     }
     const kbttsTexte = (lg) => (typeof KBTTS_ESSAI[lg] === 'string' ? KBTTS_ESSAI[lg] : KBTTS_ESSAI.en)
     const kbttsDir = (lg) => (KBTTS_RTL.indexOf(lg) >= 0 ? 'rtl' : 'ltr')
-    const kbttsConfidentialite = (txt) => txt.indexOf('Stays on this Mac') >= 0 ? kbe('Stays on this Mac. Nothing leaves it.') : (txt.indexOf('sent to Microsoft') >= 0 ? kbe('The reply text is sent to Microsoft to be synthesized.') : (txt.indexOf('sent to the provider of the model') >= 0 ? kbe('The reply text is sent to the provider of the model you choose, with the key already set up in AI provider and models.') : txt))
+    const kbttsConfidentialite = (txt) => txt.indexOf('Stays on this Mac') >= 0 ? kbe('Stays on this Mac. Nothing leaves it.') : (txt.indexOf('Stays on this computer') >= 0 ? kbe('Stays on this computer. Nothing leaves it.') : (txt.indexOf('sent to Microsoft') >= 0 ? kbe('The reply text is sent to Microsoft to be synthesized.') : (txt.indexOf('sent to the provider of the model') >= 0 ? kbe('The reply text is sent to the provider of the model you choose, with the key already set up in AI provider and models.') : txt)))
     const kbttsOctets = (n) => {
       const v = typeof n === 'number' && n > 0 ? n : 0
       if (v < 1024) return v + ' B'
@@ -37471,7 +37504,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       'about.guess.go': ['Switch to it', 'Passer à ce domaine', 'Cambiar a este ámbito', 'التبديل إلى هذا المجال'],
       // the « agents » step: how much they may do alone, three presets, the pack's reason under the choice
       'ag.t': ['How much can agents do alone?', 'Que peuvent faire les agents seuls ?', '¿Cuánto pueden hacer solos los agentes?', 'ما الذي يمكن للوكلاء فعله بمفردهم؟'],
-      'ag.s': ['For your automations. You can change it any time in Settings.', 'Pour tes automatisations. Tu pourras le changer dans les Réglages.', 'Para tus automatizaciones. Podrás cambiarlo en Ajustes.', 'لأتمتتك. يمكنك تغييره في الإعدادات.'],
+      'ag.s': ['For your automations. To change it later, replay the welcome pages in Settings.', 'Pour tes automatisations. Pour le changer plus tard, rejoue les pages d’accueil dans les Réglages.', 'Para tus automatizaciones. Para cambiarlo más tarde, vuelve a ver las páginas de bienvenida en Ajustes.', 'لأتمتتك. لتغييره لاحقًا، أعد تشغيل صفحات الترحيب من الإعدادات.'],
       'ag.prudent.t': ['Careful', 'Prudent', 'Prudente', 'حذر'],
       'ag.prudent.d': ['The agent prepares, you approve everything.', 'L’agent prépare, tu valides tout.', 'El agente prepara, tú apruebas todo.', 'يُحضّر الوكيل وتوافق أنت على كل شيء.'],
       'ag.balanced.t': ['Balanced', 'Équilibré', 'Equilibrado', 'متوازن'],

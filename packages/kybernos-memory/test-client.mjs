@@ -460,6 +460,13 @@ console.log('suggested memories')
   check('Edit opens the usual sheet with the text, and the ledger is told only once the memory is saved', SOURCE.includes("onSaved: done }) }), teamMode") && SOURCE.includes("typeof sheet.onSaved === 'function'"))
 }
 
+// T2-30: Customize used to say « The map is not built yet » next to a Map tab that exists
+console.log('Customize')
+{
+  check('the plan note of Customize no longer claims the map is not built (the Map is a tab of the page), in either language', !/map is not built|carte n’est pas encore construite/i.test(SOURCE) && SOURCE.includes("kt('Ton offre : ', 'Your plan: '), h('b', null, PLAN_NAME[plan]), '.'"))
+  check('and the Map the note used to deny is really there: the MapPane and its View switch', SOURCE.includes('const MapPane = (') && SOURCE.includes("{ v: 'map', l: [Ico('map')"))
+}
+
 console.error = realError
 console.log('\n' + String(pass) + ' verifications, ' + String(fail) + ' failure(s)')
 process.exit(fail === 0 ? 0 : 1)

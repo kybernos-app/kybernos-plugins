@@ -14,7 +14,7 @@ This plugin replaces that message with a **real player**: the native `<audio>` /
 | Type  | Extensions                                                                      |
 | ----- | ------------------------------------------------------------------------------- |
 | Audio | `mp3` `wav` `m4a` `aac` `ogg` `oga` `opus` `flac` `aif` `aiff` `weba` `wma`       |
-| Video | `mp4` `m4v` `webm` `ogv` `mov` `mkv` `avi` `wmv` `3gp` `mpeg` `mpg` `mts` `ts`    |
+| Video | `mp4` `m4v` `webm` `ogv` `mov` `mkv` `avi` `wmv` `3gp` `mpeg` `mpg`                |
 
 The plugin declares itself with the `extension` priority (the strip of external
 extensions), which makes it win over the `UNVIEWABLE_BINARY_EXTENSIONS` list of the
