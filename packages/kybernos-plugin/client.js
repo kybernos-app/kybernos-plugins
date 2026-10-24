@@ -12187,9 +12187,11 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       }
       // Cloner un kyber (28/09, gabarit) : `kybers/create` accepte name,
       // mission, topology, roles[{id, role, provider, model, prompt}],
-      // skills[], stages[] et ui. Deux limites HÔTE, dites dans le toast :
-      // la copie atterrit toujours dans la racine workspace, et le canal de
-      // création tronque chaque prompt de rôle à 600 caractères.
+      // skills[], stages[] et ui. `cloneOf` (le chemin du kyber.yml d'origine)
+      // fait la copie depuis le fichier brut : le modèle de lecture que la page
+      // détient coupe chaque prompt à 600 caractères et n'a pas tous les champs.
+      // Limite HÔTE, dite dans le toast : la copie atterrit toujours dans la
+      // racine workspace.
       const cloneKyber = async (entry) => {
         if (marketBusy !== null) return
         const k = entry.k
@@ -12201,6 +12203,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         try {
           const res = await host.call('kybers/create', {
             name: nom,
+            cloneOf: typeof k.file === 'string' && k.file !== '' ? k.file : undefined,
             mission: typeof k.mission === 'string' ? k.mission : '',
             topology: typeof k.topology === 'string' ? k.topology : null,
             roles: (Array.isArray(k.roles) === true ? k.roles : []).map((r) => ({
