@@ -13,6 +13,7 @@
 import { readFileSync, statSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { writeGuard } from './session-guard.mjs'
 
 export const name = 'kybernos-mobile'
 export const SHEET_ID = 'kbmob-sheet'
@@ -93,7 +94,8 @@ export const TUNNEL_HEADER = 'x-kybernos-tunnel'
  *  never manages phones, so these routes refuse it. */
 export const tunnelled = (req) => { try { return req.headers !== null && req.headers !== undefined && req.headers[TUNNEL_HEADER] !== undefined } catch (e) { return true } }
 
-// Every route here shows or changes who can reach this computer: an Origin or a Referer is required and must be this page's.
+// Every route here shows or changes who can reach this computer: an Origin or a Referer is required and must be this page's. The routes that CHANGE it (the POSTs: enable, pair,
+// approve, deny, cancel, revoke) also need DSH's signed session (`writeGuard`): an Origin is forgeable by any local program, and `pair` then `pair/approve` would link a stranger's phone.
 export const sameOriginStrict = (req) => {
   try {
     const h = req.headers !== null && req.headers !== undefined ? req.headers : {}
@@ -118,6 +120,10 @@ export function serveRemote (name, req, res) {
     if (want === undefined) return refuse(res, 404, 'not-found')
     if (req.method !== want) return refuse(res, 405, 'method-not-allowed')
     if (sameOriginStrict(req) !== true) return refuse(res, 403, 'origin-refused')
+    if (want !== 'GET') {
+      const refused = writeGuard(req)
+      if (refused !== null) return refuse(res, refused.status, refused.error)
+    }
     loadRemote().then((m) => m.route(name, req, res)).catch((e) => { logError('remote half unavailable', e); refuse(res, 503, 'remote-unavailable') })
   } catch (e) { refuse(res, 500, 'internal') }
 }

@@ -60,6 +60,21 @@ console.log('this chat has unsaved work')
   check('chats sharing the folder are counted (the others, not this one)', h.sharedWith === 2, h.sharedWith)
 }
 
+// T1-2 (2026-10-24): git lists an untracked folder as ONE line with a trailing slash. The chip counted this chat's files inside it ("3 files to save") while the list called
+// the folder « other chat », so the dialog contradicted the chip.
+console.log('an untracked folder')
+{
+  const dirty = sess({ modifications: 1, sale: ['newdir/'], fichiers: [{ code: '??', chemin: 'newdir/' }] })
+  const mine = faitsChangements(dirty, 'sid', travail(['/work/proj/newdir/a.txt', '/work/proj/newdir/b.txt', '/work/proj/newdir/c.txt']))
+  check('the folder holding three of this chat’s files is this chat’s, as the count says', mine.unsaved === 3 && mine.files.length === 1 && mine.files[0].path === 'newdir/' && mine.files[0].mine === true, mine)
+  const others = faitsChangements(dirty, 'sid', travail(['/work/proj/elsewhere/x.txt']))
+  check('a folder holding none of this chat’s files stays another chat’s', others.files[0].mine === false, others.files)
+  const prefix = faitsChangements(sess({ modifications: 1, sale: ['new/'], fichiers: [{ code: '??', chemin: 'new/' }] }), 'sid', travail(['/work/proj/newer/a.txt']))
+  check('a folder whose name only starts the same is not mistaken for it (new/ is not newer/)', prefix.files[0].mine === false, prefix.files)
+  const unknown = faitsChangements(dirty, 'sid', null)
+  check('with no readable journal nothing is attributed, folder or not', unknown.files[0].mine === null, unknown.files)
+}
+
 console.log('kinds of change from `git status --porcelain`')
 {
   const kinds = { '??': 'new', M: 'modified', MM: 'modified', A: 'new', D: 'deleted', R: 'renamed', UU: 'conflict', AA: 'conflict', DD: 'conflict', AU: 'conflict', '': 'modified' }

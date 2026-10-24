@@ -49,7 +49,7 @@ DSH is not restarted by the update itself.
 
 ## One click, and what "one click" means where
 
-*Update now* does the whole job: download, verify, install, then **restart DSH** (the hub's `POST /kybernos-hub/relaunch`, which starts `~/.dsh/tools/dsh-relance.mjs` detached; sessions that were running are woken up again afterwards). The dialog says so before the click. If the machine has no relaunch tool the dialog ends on "Restart DSH to finish", as before. Three kinds of install are told apart (`modeMiseAJour` in the maintenance client):
+*Update now* does the whole job: download, verify, install, then **restart DSH** (the hub's `POST /kybernos-hub/relaunch`, which starts `~/.dsh/tools/dsh-relance.mjs` detached, or the suite's own `scripts/dsh-relance.mjs` when the person has no such copy; sessions that were running are woken up again afterwards). The dialog says so before the click. If the machine has no relaunch tool the dialog ends on "Restart DSH to finish", as before. Three kinds of install are told apart (`modeMiseAJour` in the maintenance client):
 
 | Install | What the dialog offers |
 |---|---|

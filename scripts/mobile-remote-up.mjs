@@ -11,6 +11,7 @@
 // the isolated DSH's files back.
 import { createInterface } from 'node:readline'
 import { startBackend } from './lib-mobile-remote-backend.mjs'
+import { cookieDeSession } from './cdp-lib.mjs'
 
 const HOST = process.env.KB_HOST || ''
 if (HOST === '' || HOST === '127.0.0.1:3080' || !(process.env.DSH_HOME || '').includes('.kybernos-sandbox')) {
@@ -21,9 +22,12 @@ const BASE = 'http://' + HOST
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
 async function host (method, path) {
+  // The routes that change who can reach the computer need DSH's signed browser session as well as the Origin (the page sends it by itself): sign in as the isolated DSH's own browser.
+  const session = method === 'POST' ? cookieDeSession(HOST) : null
+  if (method === 'POST' && session === null) throw new Error('the isolated DSH\'s session secret cannot be read (DSH_HOME ' + (process.env.DSH_HOME || '') + ')')
   const res = await fetch(BASE + '/kybernos-mobile/remote/' + path, {
     method,
-    headers: { origin: BASE, ...(method === 'POST' ? { 'content-type': 'application/json' } : {}) },
+    headers: { origin: BASE, ...(session !== null ? { cookie: session.nom + '=' + session.valeur } : {}), ...(method === 'POST' ? { 'content-type': 'application/json' } : {}) },
     body: method === 'POST' ? '{}' : undefined,
   })
   return res.json()

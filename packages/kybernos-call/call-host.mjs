@@ -14,6 +14,18 @@ import { dshHomeSync } from './dsh-home.mjs'
 import { configOf } from './providers.mjs'
 
 export const AGENT_NAME = 'kybernos-appel'
+
+/**
+ * The `pgrep -f` pattern for "is this worker running?". `pgrep -f <path>` also matches the `pgrep -f <path>` of ANOTHER check that runs at the same moment (its own command line
+ * holds the path), so two overlapping checks each saw the other, answered "already running", and no worker was started. The first character in brackets (`[/]Users/…`) still
+ * matches the worker's command line `python /Users/…/agent.py` but not the `pgrep` that carries the pattern itself; the other characters are escaped, so a path with a `(` or a `+` matches too.
+ */
+export const agentPattern = (script) => {
+  const s = String(script)
+  if (s === '') return s
+  const escape = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  return /^[A-Za-z0-9/_~-]/.test(s) ? '[' + s[0] + ']' + escape(s.slice(1)) : escape(s)
+}
 export const ENV_REL = 'kybernos/livekit.env'
 export const ROOM_RE = /^[A-Za-z0-9_-]{3,64}$/
 export const SESSION_RE = /^session-[A-Za-z0-9-]{6,80}$/
@@ -196,7 +208,7 @@ export function createCall (deps = {}) {
   }
   const agentScript = () => join(pluginDir, 'agent', 'agent.py')
   const agentPid = async () => {
-    const r = await run('pgrep', ['-f', agentScript()])
+    const r = await run('pgrep', ['-f', agentPattern(agentScript())])
     const pid = Number(String(r.stdout).trim().split(/\s+/)[0])
     return (Number.isInteger(pid) === true && pid > 0) ? pid : null
   }

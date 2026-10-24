@@ -311,6 +311,20 @@ try {
   }
   ok('link: toolkit, key and label only, never a redirect_uri or a user id; the key is sent once and never echoed; every refusal is its word; an unsafe redirect is dropped')
 
+  // A server that says « no connections here » (Composio not configured: 503 connections_disabled; an older server: 404 on a route that names nothing) is NOT offered, so the page does not make the
+  // Kybernos mode the default of a person with no key of their own (T2-07, 2026-10-24). A plain upstream failure is not that: it stays an error of an offered server.
+  for (const [status, body] of [[503, { error: 'connections_disabled' }], [404, { error: 'not_found', message: 'No such route.' }], [404, null]]) {
+    answer = () => ({ status, body })
+    assert.deepEqual(await call(BASE), { ok: true, offered: false, connected: true }, 'list ' + status)
+    assert.deepEqual(await call(BASE + '/apps'), { ok: true, offered: false, connected: true }, 'apps ' + status)
+  }
+  for (const [status, body, error] of [[503, { error: 'upstream_unavailable' }, 'upstream_unavailable'], [502, null, 'upstream_unavailable'], [401, { error: 'unauthorized' }, 'reconnect_required'], [429, null, 'too_many_requests']]) {
+    answer = () => ({ status, body })
+    const r = await call(BASE)
+    assert.deepEqual([r.ok, r.offered, r.error], [false, true, error], 'list ' + status)
+  }
+  ok('list and apps: 503 connections_disabled or a 404 route means « this server offers no connections »; an upstream failure, an expired session and a rate limit stay errors of an offered server')
+
   // an add is never retried by this side
   seen.length = 0
   answer = () => ({ status: 502, body: { error: 'upstream_unavailable', retry: 'check_first' } })

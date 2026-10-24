@@ -1,4 +1,5 @@
-// ── The motion's writes need the signed session, not only an Origin ──────────────────────────────────────────────────────
+// ── The motion's writes need the signed session, not only an Origin ────────────────────────────────
+// (2026-10-24: save, open and restore join frame and export.)──────────────────────
 //
 // A-16 (audit 2026-10-20): `/kybernos-motion/frame` (the panel POSTs the rendered PNG back for the waiting agent) and
 // `/kybernos-motion/export` (it writes a video file next to the scene) were behind `sameOrigin` alone, which accepts a request with
@@ -63,6 +64,24 @@ try {
     assert.notEqual(real.status, 401, path + ': the real pair is not refused as unsigned')
     assert.notEqual(real.status, 403, path + ': the real pair is not refused as foreign')
     ok(path + ': no header 403 · foreign Origin 403 · no cookie 401 · forged cookie 401 · the real pair answers (' + real.status + ')')
+  }
+  // 2026-10-24 (interfaces triage T2-23): save, open and restore passed with NO Origin at all. The stub host refuses every scene (`scene-refused`, HTTP 403), so a request that gets
+  // past the guard is told apart from a refused one by its BODY, not its status.
+  for (const route of ['save', 'open', 'restore']) {
+    const path = '/kybernos-motion/' + route
+    const body = JSON.stringify({ path: 'artifacts/x.motion.json', session: 's', scene: { a: 1 }, rev: 1 })
+    const asText = async (headers) => { const r = await send(path, headers, body, 'application/json'); return { status: r.status, text: r.text } }
+    const none = await asText({})
+    assert.ok(none.status === 403 && /origin refused/.test(none.text), path + ': no Origin and no cookie -> ' + none.status + ' ' + none.text.slice(0, 80))
+    const foreign = await asText({ origin: 'http://evil.example', cookie: cookie() })
+    assert.ok(foreign.status === 403 && /origin refused/.test(foreign.text), path + ': a foreign Origin -> ' + foreign.status)
+    const noCookie = await asText({ origin })
+    assert.ok(noCookie.status === 401 && /sign-in required/.test(noCookie.text), path + ': the right Origin and no cookie -> ' + noCookie.status + ' ' + noCookie.text.slice(0, 80))
+    const forgedCookie = await asText({ origin, cookie: cookie({ secret: OTHER_SECRET }) })
+    assert.ok(forgedCookie.status === 401, path + ': a forged cookie -> ' + forgedCookie.status)
+    const real = await asText({ origin, cookie: cookie() })
+    assert.ok(real.status === 403 && /scene-refused/.test(real.text), path + ': the real pair reaches the handler (the stub refuses the scene) -> ' + real.status + ' ' + real.text.slice(0, 80))
+    ok(path + ': no header 403 · foreign Origin 403 · no cookie 401 · forged cookie 401 · the real pair reaches the handler')
   }
   const state = await fetch(base + '/kybernos-motion/state').then((r) => r.status)
   assert.equal(state, 200, 'the read still answers with no header (a GET carries no Origin): ' + state)

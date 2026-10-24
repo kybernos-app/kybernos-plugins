@@ -3,7 +3,7 @@
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { apply as appliquer } from './index.js'
+import { apply as appliquer, outilRelance } from './index.js'
 
 let total = 0; let echecs = 0
 const ok = (nom, cond, detail = '') => { total++; if (cond) console.log('  ✓ ' + nom); else { echecs++; console.log('  ✗ ' + nom + (detail ? ' — ' + detail : '')) } }
@@ -44,6 +44,22 @@ console.log('── the relaunch tool is told which instance to restart ──')
   ok('it gets --port with the port of the page that asked (not the 3080 default)', a.argv !== null && a.argv.join(' ').includes('--port 3141'), JSON.stringify(a.argv))
   const b = await demande(3080)
   ok('on 3080 it says 3080 (explicit, same as before)', b.argv !== null && b.argv.join(' ').includes('--port 3080'), JSON.stringify(b.argv))
+}
+
+// Where the tool is (T1-1, 2026-10-24): `POST /kybernos-hub/relaunch` answered 500 `relaunch-tool-missing` on any machine without `~/.dsh/tools/dsh-relance.mjs`, although the suite
+// carries `scripts/dsh-relance.mjs`. Only the pure resolver is exercised here: running the real script would restart a DSH.
+console.log('── where the relaunch tool is ──')
+{
+  const h = '/dsh-home'
+  const racine = '/suite'
+  const chez = h + '/tools/dsh-relance.mjs'
+  const livre = racine + '/scripts/dsh-relance.mjs'
+  const avec = (...presents) => (p) => presents.includes(p)
+  ok('the person\'s own copy wins (an older hand-made copy keeps working)', outilRelance(h, racine, avec(chez, livre)) === chez)
+  ok('without it, the suite\'s own script is used', outilRelance(h, racine, avec(livre)) === livre)
+  ok('with only the person\'s copy it is that one', outilRelance(h, racine, avec(chez)) === chez)
+  ok('with neither, null: the route then answers relaunch-tool-missing', outilRelance(h, racine, avec()) === null)
+  ok('the suite really ships the script this resolver falls back to', existsSync(join(new URL('../..', import.meta.url).pathname, 'scripts', 'dsh-relance.mjs')))
 }
 
 rmSync(home, { recursive: true, force: true })

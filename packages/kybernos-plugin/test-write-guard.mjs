@@ -9,7 +9,7 @@
 //
 // 2026-10-24 (interfaces audit): seven Agent Team writes were still on `sameOriginStrict` alone — /kybernos/yml-appliquer (rewrites the
 // file the Lead obeys), /ui-save, /menu-save, /insight-save, /team-portraits and /member-portrait (spend image credits) and
-// /voice-sample (stores a voice sample). They carry the pair too; the GET of /voice-sample (the list) stays a plain read.
+// /voice-sample (stores a voice sample); then /art-action (delete, rename and duplicate of a Creations file). They carry the pair too; the GET of /voice-sample (the list) stays a plain read.
 //
 //   node packages/kybernos-plugin/test-write-guard.mjs
 import assert from 'node:assert/strict'
@@ -86,6 +86,8 @@ const WRITES = [
   ['/kybernos/team-portraits', { rootId: 'no-such-root', kyberId: 'write-guard-test' }],
   ['/kybernos/member-portrait', { rootId: 'no-such-root', kyberId: 'write-guard-test', memberId: 'lead' }],
   ['/kybernos/voice-sample', { rootId: 'no-such-root', kyberId: 'write-guard-test', name: 'My voice', consent: true, sample: 'data:audio/webm;base64,AAAA' }],
+  // Creations file actions (delete = rm -f, rename = mv, duplicate = cp): the path is outside every known workspace, so the real pair reaches the handler and it refuses at once.
+  ['/kybernos/art-action', { action: 'delete', path: '/no/such/workspace/file.md' }],
 ]
 
 let pass = 0
