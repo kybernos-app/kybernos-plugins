@@ -11,6 +11,8 @@
 // file the Lead obeys), /ui-save, /menu-save, /insight-save, /team-portraits and /member-portrait (spend image credits) and
 // /voice-sample (stores a voice sample); then /art-action (delete, rename and duplicate of a Creations file). They carry the pair too; the GET of /voice-sample (the list) stays a plain read.
 //
+// 2026-10-24 (Team automations, piece 2): the four routes of the local half carry the pair from the start — /kybernos/automation/team-pack and team-copies read prompts, team-install and
+// team-update write tasks.json (scripts/test-tasks-team.mjs proves what they do).
 //   node packages/kybernos-plugin/test-write-guard.mjs
 import assert from 'node:assert/strict'
 import http from 'node:http'
@@ -88,6 +90,11 @@ const WRITES = [
   ['/kybernos/voice-sample', { rootId: 'no-such-root', kyberId: 'write-guard-test', name: 'My voice', consent: true, sample: 'data:audio/webm;base64,AAAA' }],
   // Creations file actions (delete = rm -f, rename = mv, duplicate = cp): the path is outside every known workspace, so the real pair reaches the handler and it refuses at once.
   ['/kybernos/art-action', { action: 'delete', path: '/no/such/workspace/file.md' }],
+  // Team automations, the local half. The ids name no task and the definition is empty, so the real pair reaches the handler and it refuses at once: no automation is made or changed.
+  ['/kybernos/automation/team-pack', { id: 'st-write-guard' }],
+  ['/kybernos/automation/team-copies', {}],
+  ['/kybernos/automation/team-install', { definition: {}, workspaceId: 'w-write-guard', approvals: 'ask', turnOn: true }],
+  ['/kybernos/automation/team-update', { taskId: 'st-write-guard', definition: {}, mode: 'replace' }],
 ]
 
 let pass = 0

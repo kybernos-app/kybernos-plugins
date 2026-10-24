@@ -145,6 +145,20 @@ token, for the ACTIVE workspace, only in a team space (`teamWorkspace`), and tur
 version is no longer served to members, so the « Changes since v3 » view is computed from `base` against the newly approved one). `contentHash` is the SHA-256 of the canonical JSON of `{ name, prompt, schedule, needs }` as installed
 (schedule as `{ mode, cron? }`); a copy is **edited** when the hash of those four fields as they are now is different. The mark survives every ordinary edit of the automation.
 
+**As built (piece 2).** The rules and the update logic are `packages/kybernos-plugin/automation-team.mjs` (pure; `test-automation-team.mjs`); the four routes are `kbTeamHandle` in `index.js` (`scripts/test-tasks-team.mjs`; each carries the strict
+Origin and DSH's signed session, `test-write-guard.mjs`). What the table above leaves open:
+
+- **Errors, beyond the ones named.** A definition that breaks a rule: `{ ok: false, error: "invalid_automation", reason, field }` with the server's own `reason` words (`key`, `name`, `description`, `prompt`, `schedule`, `needs`, `binary`) plus `id`; a cron
+  the host cannot parse or that never fires is `reason: "schedule"`. Also `invalid_workspace`, `store_unreadable` (a `tasks.json` that cannot be trusted; nothing is written), and on `team-update` `not_found`, `not_a_team_copy`, `key_mismatch`,
+  `invalid_mode` and `not_edited` (`keep` and `both` on a copy nobody edited). `already_installed` also carries the `taskId` of the copy. `team-pack` answers `invalid_schedule` for a stored cron outside the server's shape and `not_found` for a suggestion that was
+  not added yet.
+- **An every-minute rhythm** (under 5 minutes between runs) is refused as it is when an automation is created, `{ ok: false, error: "frequent schedule", everyMinutes }`, on `team-install` and on a `team-update` whose schedule would follow; the request
+  goes through when it carries `confirmFrequent: true`.
+- **`missingApps` is always `[]`**: which apps are connected is the page's knowledge (the Connectors row), not the host's. `active` is therefore true whenever `turnOn` is.
+- **A copy proposes under its own `team.key`**, whatever its name became: that is what makes the proposal an update of the same automation.
+- **`installedAt`** is the moment the installed version was written (install, or the last `replace`).
+- **After a `replace` where the schedule did not follow**, `base` is still the team's definition, so the copy reads as edited and the next update does not take the schedule either. `both` saves the person's copy with a webhook of its own when it had one.
+
 **3. The page (`kybernos-plugin` client): the Automations page.** A « Team » segment next to « Yours » and « Discover », the row menu entry « Propose to team… », and four sheets (Propose, Review, Install, Update) as in
 the mockup. The segment is locked, with the reason in words, when the person is signed out, in a personal space, on a plan without the feature (`plan_required`), on a server without the routes, or offline. The page asks
 `/kybernos-cloud/team/automations*` for the shared catalogue and `/kybernos/automation/team-*` for the local half.
