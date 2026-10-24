@@ -186,7 +186,7 @@ eq('a paused webhook test is explained', mod.kbTaskError('automation paused', en
   for (const k of ['tasks.weekdays8', 'tasks.everyday8', 'tasks.every.minute', 'tasks.every.minutes', 'tasks.every.hour', 'tasks.every.hour.at', 'tasks.every.hours', 'tasks.every.hours.at', 'tasks.every.dow', 'tasks.every.month', 'tasks.edit.chat', 'tasks.edit.chat.ask', 'tasks.edit.chat.act', 'tasks.edit.chat.aria', 'tasks.err.frequent', 'tasks.time', 'tasks.prompt.max', 'tasks.cron', 'tasks.onetime', 'tasks.trigger.webhook', 'tasks.ask', 'tasks.auto', 'tasks.name.placeholder', 'tasks.timezone', 'tasks.row.toggle', 'tasks.row.fav', 'tasks.row.unfav', 'tasks.row.clone', 'tasks.row.export', 'tasks.row.delete']) keys.add(k)
   const missing = [...keys].filter((k) => table[k] === undefined || typeof table[k].en !== 'string' || table[k].en === '' || typeof table[k].kybernos !== 'string' || table[k].kybernos === '')
   eq('every translation key of the new code exists in both languages', missing.join(',') || 'none', 'none')
-  const unreferenced = Object.keys(table).filter((k) => /^tasks\.(filter\.fromchat|origin\.(chat|template)|waiting|newautomation|desc|new|approvals|pausednodate|none|fire\.now|monday8|friday16)$/.test(k))
+  const unreferenced = Object.keys(table).filter((k) => /^tasks\.(filter\.fromchat|origin\.(chat|template)|waiting|newautomation|desc|new|approvals|pausednodate|none|fire\.now|monday8|friday16|status\.(awaiting|ok|failed|paused)|runs\.(title|count|logs|model|steps)|journal\.(who|approvals\.none))$/.test(k))
   eq('keys proved dead are gone', unreferenced.join(',') || 'none', 'none')
   const dups = {}; for (const line of src.split('\n')) { const t = /^\s*'(tasks\.[A-Za-z0-9_.]+)':\s*\{/.exec(line); if (t !== null) dups[t[1]] = (dups[t[1]] || 0) + 1 }
   eq('no tasks.* key is defined twice (the second silently won)', Object.keys(dups).filter((k) => dups[k] > 1).join(',') || 'none', 'none')
@@ -202,7 +202,8 @@ eq('a paused webhook test is explained', mod.kbTaskError('automation paused', en
   eq('the French placeholder is gone from the page', page.indexOf("placeholder: 'Rapport hebdo") < 0, true)
   eq('the list is filtered through kbTasksList', page.indexOf('const list = kbTasksList(tasks)') >= 0, true)
   eq('an automation can be deleted, from the row and from its page, always after a confirmation', (page.match(/askDelete\(/g) || []).length === 2 && page.indexOf('KbConfirm, {') >= 0 && page.indexOf('await act(\'delete\', id)') >= 0, true)
-  eq('the confirmation is rendered by the list view AND by the page of an automation', (page.match(/h\(KbConfirm, \{/g) || []).length === 2, true)
+  // (the Team tab has its own confirmation, for retiring: it is in its own block, tested by test-team-automations-client.mjs)
+  eq('the confirmation is rendered by the list view AND by the page of an automation', (page.replace(/\n    \/\/ <kbta-block>[\s\S]*?\n    \/\/ <\/kbta-block>\n/, '').match(/h\(KbConfirm, \{/g) || []).length === 2, true)
   eq('regenerating and revoking a webhook ask first', page.indexOf('tasks.hook.regen.title') >= 0 && page.indexOf('tasks.hook.revoke.title') >= 0 && page.indexOf('onClick: genHook }, kbt(\'tasks.hook.regen\')') < 0 && page.indexOf('onClick: revokeHook }') < 0, true)
   eq('the list has a loading state and an error state with a retry', page.indexOf('kbaSkeleton()') >= 0 && page.indexOf('kbaLoadError()') >= 0 && page.indexOf('tasks-retry') >= 0, true)
   eq('the form offers a webhook-only choice and opens the webhook tab after saving it', page.indexOf('pr.id === \'webhook\'') >= 0 && page.indexOf('openWebhookOf') >= 0, true)
