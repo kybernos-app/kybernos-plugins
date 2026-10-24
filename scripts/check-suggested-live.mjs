@@ -27,6 +27,12 @@ const made = []
 const task = (name, extra) => Object.assign({ name, prompt: '1. List the deadlines.', schedule: { mode: 'cron', cron: '0 8 * * 1', tz: 'Europe/Paris' }, active: false }, extra || {})
 try {
   await sleep(3000)
+  // The sandbox may already hold automations of other checks or of the onboarding (« Learn my business »): they are part of the list and of the menu count, never the
+  // check's business. What is asserted is that the SUGGESTIONS are in neither. A suggestion left over from an earlier run would make the cards below wrong: that is not measured.
+  const present = await post({ action: 'list' })
+  if (!present || !Array.isArray(present.tasks)) { console.error('○ inconclusive: the host did not list the automations'); await live.close(); process.exit(3) }
+  if (present.tasks.some((t) => t.suggested === true)) { console.error('○ inconclusive: the sandbox already holds suggestions; start from a clean state (they would join the two this check makes)'); await live.close(); process.exit(3) }
+  const others = present.tasks.map((t) => t.name)
   const real = await post({ action: 'create', task: task('Check real automation') })
   made.push(real.task.id)
   const s1 = await post({ action: 'suggest', task: task('Check enquiry summary'), proof: { n: 14, span: '60 days', where: 'Gmail › Contact form', note: '11 of the 14 got the same request' } })
@@ -36,10 +42,12 @@ try {
   await clickText(page, 'Automations'); await sleep(2500)
   check('the suggestions sit in a dashed card, two rows', (await q(`document.querySelectorAll('[data-kb="suggested-block"] [data-kb="suggested-row"]').length`)) === 2)
   check('the card is dashed', (await q(`getComputedStyle(document.querySelector('[data-kb="suggested-block"]')).borderTopStyle`)) === 'dashed')
-  check('the list holds only the real automation', (await q(`[...document.querySelectorAll('.kba-rowline .kba-name')].map((e) => e.textContent).join('|')`)) === 'Check real automation', await q(`[...document.querySelectorAll('.kba-rowline .kba-name')].map((e) => e.textContent).join('|')`))
+  const listed = () => q(`[...document.querySelectorAll('.kba-rowline .kba-name')].map((e) => e.textContent)`)
+  const sameNames = (a, b) => Array.isArray(a) && a.length === b.length && [...a].sort().join('|') === [...b].sort().join('|')
+  check('the list holds the real automations only (the ones already there and the one made here), no suggestion', sameNames(await listed(), others.concat(['Check real automation'])), { listed: await listed(), others })
   check('a row says where the suggestion comes from and its proof', /Suggested by Kaby.*14×.*60 days.*Gmail/.test(String(await q(`document.querySelector('[data-kb="suggested-row"] .kba-sugmeta').textContent`))))
   check('each row has Add, Edit and Discard', (await q(`['suggested-add','suggested-edit','suggested-discard'].every((k) => document.querySelectorAll('[data-kb="' + k + '"]').length === 2)`)) === true)
-  check('the menu count does not include the suggestions', /^\s*1\s*$/.test(String(await q(`(() => { const r = [...document.querySelectorAll('.kb4-item')].find((e) => /Automations|Deadlines|Automations/i.test(e.textContent) && e.querySelector('.kb4-badge')); return r ? r.querySelector('.kb4-badge').textContent : 'none' })()`))))
+  check('the menu count does not include the suggestions', String(await q(`(() => { const r = [...document.querySelectorAll('.kb4-item')].find((e) => /Automations|Deadlines|Automations/i.test(e.textContent) && e.querySelector('.kb4-badge')); return r ? r.querySelector('.kb4-badge').textContent : 'none' })()`)).trim() === String(others.length + 1), await q(`(() => { const r = [...document.querySelectorAll('.kb4-item')].find((e) => /Automations/i.test(e.textContent)); return r ? r.textContent : 'none' })()`))
   check('the menu row pulses while suggestions wait', (await q(`(() => { const r = [...document.querySelectorAll('.kb4-item')].find((e) => e.querySelector('.kb4-badge') && /Automation|Deadline/i.test(e.textContent)); return !!r && !!r.querySelector('.kb-ping') })()`)) === true)
   check('the ping animates (or is static under reduced motion)', (await q(`getComputedStyle(document.querySelector('.kba-sugname .kb-ping'), '::after').animationName`)) !== undefined)
   await page.shot(join(shotDir, 'suggested-block.png')).catch(() => null)
@@ -50,7 +58,7 @@ try {
   const after = await post({ action: 'list' })
   const added = after.tasks.find((t) => t.id === s1.task.id)
   check('Add clears the flag and keeps it switched off', added !== undefined && added.suggested === undefined && added.active === false)
-  check('...it is now in the list and one suggestion is left', (await q(`document.querySelectorAll('[data-kb="suggested-row"]').length`)) === 1 && (await q(`[...document.querySelectorAll('.kba-rowline .kba-name')].map((e) => e.textContent).includes('Check enquiry summary')`)) === true)
+  check('...it is now in the list and one suggestion is left', (await q(`document.querySelectorAll('[data-kb="suggested-row"]').length`)) === 1 && (await listed()).includes('Check enquiry summary'))
   // Discard the second
   await q(`document.querySelector('[data-kb="suggested-discard"]').click()`); await sleep(1500)
   const left = await post({ action: 'list' })
