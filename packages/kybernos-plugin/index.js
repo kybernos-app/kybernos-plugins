@@ -8764,8 +8764,8 @@ function boot(ctx) {
     const KB_TTS_TIMEOUT = { say: 8000, piper: 20000, supertonic: 30000, edge: 15000 }
     const KB_TTS_CATALOG = [
       { id: 'say', name: 'Apple say', kind: 'local', price: 'free', privacy: 'Stays on this Mac. Nothing leaves it.' },
-      { id: 'piper', name: 'Piper', kind: 'local', price: 'free', privacy: 'Stays on this Mac. Nothing leaves it.' },
-      { id: 'supertonic', name: 'Supertonic-3', kind: 'local', price: 'free', privacy: 'Stays on this Mac. Nothing leaves it.' },
+      { id: 'piper', name: 'Piper', kind: 'local', price: 'free', privacy: 'Stays on this computer. Nothing leaves it.' },
+      { id: 'supertonic', name: 'Supertonic-3', kind: 'local', price: 'free', privacy: 'Stays on this computer. Nothing leaves it.' },
       { id: 'edge', name: 'edge-tts', kind: 'cloud', price: 'free', privacy: 'The reply text is sent to Microsoft to be synthesised.' },
       { id: 'models', name: 'Your models', kind: 'cloud', price: 'plan', privacy: 'The reply text is sent to the provider of the model you choose, with the key already set up in AI Provider & Models.' },
     ]
@@ -10247,6 +10247,8 @@ function boot(ctx) {
         if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
         try {
           const q = queryOf(req)
+          // The page's one probe at the mount of a project sheet (« is this route mounted? », it only tests for a 404): answered 204 here, not by the id check below, whose 400 showed as a red error in the console of every workspace page.
+          if (q.get('probe') === '1') { res.writeHead(204); res.end(''); return }
           // Plafond local a la route : une piece plus lourde est refusee (413)
           // plutot que chargee en memoire dans le processus hote.
           const KB_DOC_RAW_MAX = 48 * 1024 * 1024
@@ -11570,9 +11572,7 @@ function boot(ctx) {
           needs: 'The ZCode app installed and signed in to a Z.ai account — the connector reads its own credential store, no key is copied into the patch.',
           why: 'Custom connector (MCP): drives the Z.ai code agent — the plan\'s GLM-5.3 / GLM-5.3-Flash — through its app-server, the “-p” path failing in 0.16.9.' },
         { id: 'workbuddy', group: 'ext', label: 'WorkBuddy', known: false,
-          why: 'Community plugin: no package verified on our side, so no installation is offered here.' },
-        { id: 'hermes', group: 'ext', label: 'Hermes', supported: false,
-          why: 'Harness ships no subagent provider for Hermes.' }
+          why: 'Community plugin: no package verified on our side, so no installation is offered here.' }
       ]
       const kbToolsPatchPath = (profile) => {
         const dir = kbToolsProfilesDir()

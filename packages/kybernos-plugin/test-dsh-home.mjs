@@ -225,6 +225,8 @@ try {
   assert.equal(existsSync(join(iso.dshHome, 'kybers', 'brand-new', 'kyber.yml')), true)
   ok('a kyber.yml (and its .bak) is written under $DSH_HOME/kybers')
 
+  // Hermes is run by the Workers page (the maison provider `dsh-subagent-hermes`): the Tools page used to list it as « Not supported - Harness ships no subagent provider for Hermes » (T2-20, 2026-10-24).
+  assert.equal((await call('GET', '/kybernos/tools/state')).json.entries.some((e) => e.id === 'hermes'), false, 'the Tools page does not call Hermes unsupported while Workers runs it')
   const zcode = (await call('GET', '/kybernos/tools/state')).json.entries.find((e) => e.id === 'zcode')
   assert.equal(zcode.installed, false, 'the ZCode MCP server of <HOME>/.dsh is not the one of $DSH_HOME')
   iso.seedDshHome('mcp/zcode-mcp-server.mjs', '// real\n')

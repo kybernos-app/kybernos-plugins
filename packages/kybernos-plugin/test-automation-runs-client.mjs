@@ -146,6 +146,13 @@ eq('a run whose journal was not read is its start alone', [m.kbRunGraph(null, fa
   eq('apps and tools too', [u.apps.map((x) => [x.name, x.count]), u.tools.map((x) => [x.name, x.count])], [[['gmail', 1]], [['bash', 6]]])
   eq('a teammate keeps the model any of the runs named', u.agents, [{ name: 'checker', model: 'beta-2' }])
   eq('a model picked on purpose in one of the runs says so', u.chosen, true)
+  // E9 shots 183/186: four runs on glm-5.3 and the newest on claude-haiku: the step cards said glm-5.3 while the Sessions tab said haiku (T2-12, 2026-10-24).
+  const older = [1, 2, 3, 4].map((d) => ({ at: Z(d, 8, 0), sessionId: 'r' + d, status: 'fired' }))
+  const mixed = m.kbRunUses(older, { r4: { models: [{ provider: 'p', model: 'haiku-new' }] }, r3: { models: [{ provider: 'p', model: 'glm-old' }] }, r2: { models: [{ provider: 'p', model: 'glm-old' }] }, r1: { models: [{ provider: 'p', model: 'glm-old' }] } }, 5)
+  eq('the most used model is the old one, the latest run used another', [mixed.models[0].name, mixed.latest], ['glm-old', 'haiku-new'])
+  eq('the latest model is the newest run that says one (a newest run that was not read is skipped)', m.kbRunUses(older, { r3: { models: [{ provider: 'p', model: 'glm-old' }] } }, 5).latest, 'glm-old')
+  eq('no run read: no latest model', [m.kbRunUses(older, {}, 5).latest, m.kbRunUses(null, null, 5).latest], ['', ''])
+  eq('the step cards of the canvas name the latest run\'s model', /const model = isStep \? \(typeof uses\.latest === 'string' && uses\.latest !== '' \? uses\.latest/.test(src), true)
   eq('the limit is on runs, newest first', [m.kbRunUses(hist, sums, 1).read, m.kbRunUses(hist, sums, 1).models.map((x) => x.name)], [1, ['alpha-1']])
   eq('a host that does not say what was used still tells the model', m.kbRunUses(hist, { s4: { selected: false, models: [{ provider: 'acme', model: 'alpha-1' }] } }, 5).models.map((x) => x.name), ['alpha-1'])
   eq('no run read, nothing claimed', (() => { const e = m.kbRunUses(hist, {}, 5); return [e.read, e.models, e.skills, e.apps, e.tools, e.agents, e.chosen] })(), [0, [], [], [], [], [], false])

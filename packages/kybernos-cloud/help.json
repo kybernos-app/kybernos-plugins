@@ -47,12 +47,12 @@
           "en": "Write your instructions in the box, then “Save”: they are kept in a local file the agent reads at the start of every conversation."
         },
         {
-          "fr": "Ouvre « Avancé » : « Réimporter les modèles » remet à jour la liste de ta formule sans changer de compte.",
-          "en": "Open “Advanced”: “Re-import models” refreshes your plan’s list without changing account."
+          "fr": "Ouvre « Avancé » : « Réimporter » remet à jour la liste de ta formule sans changer de compte.",
+          "en": "Open “Advanced”: “Re-import” refreshes your plan’s list without changing account."
         },
         {
-          "fr": "« Envoyer les chats » demande d’abord confirmation : la page annonce ce qui part, et un refus ne touche à rien.",
-          "en": "“Send chats” asks for confirmation first: the page says what goes, and refusing changes nothing."
+          "fr": "« Envoyer les chats DSH » demande d’abord confirmation : la page annonce ce qui part, et un refus ne touche à rien.",
+          "en": "“Send DSH chats” asks for confirmation first: the page says what goes, and refusing changes nothing."
         }
       ],
       "where": {
