@@ -11,7 +11,8 @@ import { touchesEdge, COVER_EXAMPLES, COVER_LIMITS, COVER_MODELS, COVER_STYLE, C
 let pass = 0
 const ok = (label) => { pass += 1; console.log('  ✓ ' + label) }
 const dsh = mkdtempSync(join(tmpdir(), 'kb-cover-'))
-const NOW = Date.parse('2026-10-23T10:00:00Z')
+// The background job writes the day of the REAL clock (cover-maker.mjs, `dayOf(Date.now())`) while the calls below take this `now`: a fixed date made the daily count differ from the day after 2026-10-23 (UTC) on, so the test fails on any other day. The clock of the run it is.
+const NOW = Date.now()
 
 // ── the style is the shipped one ─────────────────────────────────────────────────────────────────
 {
