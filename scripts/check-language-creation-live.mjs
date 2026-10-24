@@ -46,6 +46,9 @@ const press = async (x, y) => {
 }
 const centre = async (js) => { const p = await val(`(() => { const e = (${js}); if (!e) return null; e.scrollIntoView({ block: 'center' }); const r = e.getBoundingClientRect(); return JSON.stringify({ x: r.left + r.width / 2, y: r.top + r.height / 2 }) })()`); return p === null ? null : JSON.parse(p) }
 const click = async (js) => { const c = await centre(js); if (c === null) return false; await press(c.x, c.y); await sleep(700); return true }
+// The right sidebar's own toggles are pressed by the page (a click event on the button), not with the mouse: the toggle of a closed sidebar sits at the very right of the title bar and a
+// window of this width can lay it out beyond its edge, where a mouse press lands on nothing. What is checked here is the language of what opens, not the hit test of the button.
+const domClick = async (sel) => { const ok = await val(`(() => { const b = document.querySelector(${JSON.stringify(sel)}); if (!b) return false; b.click(); return true })()`); await sleep(700); return ok === true }
 // The start list is in the right pane (x > 830): the hero of the chat has tiles with the same names (« Slides »).
 // (In a right-to-left language the « right » pane is drawn on the left of the window.)
 const IN_PANE = `((r) => (document.documentElement.dir === 'rtl' ? r.right <= 700 : r.left >= 830))`
@@ -60,9 +63,29 @@ const setLang = async (lang) => {
   await sleep(5500)
   await val(`(() => { const b = Array.from(document.querySelectorAll('button[aria-label="Close"]'))[0]; if (b) b.click() })()`)
   await sleep(500)
-  // The sandbox keeps the last view from one run to the next: start every language on a new chat (the composer, the start list).
-  await click(`document.querySelector('button[aria-label="New session"]')`)
+  // The panels Slides and Dashboard open for a chat that exists: on an EMPTY new chat the same row only shows the tiles of the hero. Every language therefore starts on the chat
+  // this run made (the composer, the start list, the right sidebar).
   await waitFor(page, `document.querySelector('[data-kb="computer-env-button"]') !== null`, 8000)
+  if (!(await mountChat())) { console.error('○ inconclusive: no chat session could be mounted in this instance (the first message made none), so the panels cannot be opened.'); await live.close(); process.exit(3) }
+}
+// A chat is mounted when its own message is in the main column (the sidebar row of the same title is not): a chat of an earlier language is opened from the sidebar, else the first
+// message makes one (no model here, the turn fails, that is fine).
+const CHAT = 'Language creation check'
+const mounted = () => val(`Array.from(document.querySelectorAll('body *')).some((e) => e.children.length === 0 && (e.innerText || '').trim() === ${JSON.stringify(CHAT)} && e.getBoundingClientRect().left > 300)`)
+const mountChat = async () => {
+  if (await mounted()) return true
+  if ((await val(`document.body.innerText.includes(${JSON.stringify(CHAT)})`)) === true && (await clickText(page, CHAT))) {
+    if ((await waitFor(page, `Array.from(document.querySelectorAll('body *')).some((e) => e.children.length === 0 && (e.innerText || '').trim() === ${JSON.stringify(CHAT)} && e.getBoundingClientRect().left > 300)`, 8000)) !== null) return true
+  }
+  const c = await centre(`document.querySelector('[contenteditable="true"], textarea')`)
+  if (c === null) return false
+  await press(c.x + 40, c.y)
+  await sleep(300)
+  await page.send('Input.insertText', { text: CHAT })
+  await sleep(300)
+  await page.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13, text: '\r' })
+  await page.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+  return (await waitFor(page, `Array.from(document.querySelectorAll('body *')).some((e) => e.children.length === 0 && (e.innerText || '').trim() === ${JSON.stringify(CHAT)} && e.getBoundingClientRect().left > 300)`, 15000)) !== null
 }
 const startList = () => val(`Array.from(document.querySelectorAll('button')).map((b) => (b.innerText || '').trim().split('\\n')[0]).filter((t) => t && t.length < 40)`)
 
@@ -88,9 +111,9 @@ try {
     // closed, then ask for a fresh start list.
     let start = []
     for (let attempt = 0; attempt < 4 && !start.includes(french ? 'Résumé' : 'Summary'); attempt += 1) {
-      await click(`document.querySelector('button[aria-label="Open right sidebar"]')`)
+      await domClick('button[aria-label="Open right sidebar"]')
       await sleep(800)
-      await click(`document.querySelector('button[aria-label="New tab"]')`)
+      await domClick('button[aria-label="New tab"]')
       await sleep(1000)
       start = await startList()
     }
@@ -117,7 +140,7 @@ try {
         check('the ' + p.en + ' panel has no word of another language', wrongFor(body, p.en) === null && (p.not === undefined || !p.not.test(body)), wrongFor(body, p.en) || body.slice(0, 200))
         await shot(p.en.replace(/\W+/g, '-') + '-' + lang)
       }
-      await click(`document.querySelector('button[aria-label="New tab"]')`)
+      await domClick('button[aria-label="New tab"]')
       await sleep(700)
     }
 
