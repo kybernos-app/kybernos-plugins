@@ -3942,10 +3942,7 @@ const KB_FR_EN = {
   'Impossible de lire les chiffres de qualité. Relance DSH une fois, puis rouvre cette page.': 'The quality figures cannot be read. Restart DSH once, then open this page again.',
   'réponse invalide du host': 'invalid host response',
   'réponse vide du modèle': 'empty model response',
-  'Création illisible : ': 'Unreadable creation: ',
   'raison inconnue': 'unknown reason',
-  'Hébergement refusé : ': 'Hosting refused: ',
-  'Partage refusé : ': 'Sharing refused: ',
   'Partager ce projet': 'Share this project',
   'Privé': 'Private',
   'Lien public': 'Public link',
@@ -3965,7 +3962,6 @@ const KB_FR_EN = {
   'Lien copié — ': 'Link copied — ',
   'Enregistrement refusé : ': 'Save refused: ',
   'Lien public créé': 'Public link created',
-  'Lien de partage copié — ': 'Share link copied — ',
   'Téléchargement impossible': 'Download failed',
   'hébergement refusé : ': 'hosting refused: ',
   'partage refusé : ': 'sharing refused: ',
@@ -4469,7 +4465,6 @@ const KB_FR_EN = {
   'Relire': 'Replay',
   'Fin': 'End',
   'Erreur de rendu Kybernos : ': 'Kybernos render error: ',
-  'Partage impossible': 'Cannot share',
   'Copie indisponible': 'Copy unavailable',
   'Widget : Agent Team introuvable': 'Widget: Agent Team not found',
   'liaison indisponible': 'link unavailable',
@@ -22691,71 +22686,6 @@ function renderScene(ctx, W, H, bricks, cam, opts){
           // Projets et Kybers) — niveau d'accès choisi, puis, si « Lien public »,
           // le push artefact + audience 'link' que la fiche porte elle-même.
           setArtShare({ kind: 'deliverable', id: a.path, titre: a.name, path: a.path, anchor: (extra !== undefined && extra !== null && extra.anchor !== undefined) ? extra.anchor : null })
-          return
-        }
-        if (action === 'share-legacy') {
-          // Ancien chemin, conservé sous un second identifiant : publie DIRECTEMENT
-          // un lien public. Le kind est annoncé EXPLICITEMENT : laissé au serveur,
-          // un `.html` tombe en `note` (EXT_KIND) et un `.json` était refusé
-          // (« kind required » — le partage d'un `miniapp.json` a buté dessus le
-          // 24/09). Une page HTML est une page.
-          const kindDe = (nom) => {
-            const n = String(nom === undefined || nom === null ? '' : nom).toLowerCase()
-            const d = n.lastIndexOf('.')
-            const e = d > 0 ? n.slice(d) : ''
-            if (e === '.html' || e === '.htm') return 'page'
-            if (e === '.pdf') return 'pdf'
-            if (e === '.pptx' || e === '.ppt') return 'deck'
-            return 'note'
-          }
-          const b64Utf8 = (txt) => {
-            const octets = new TextEncoder().encode(txt)
-            let sortie = ''
-            for (let i = 0; i < octets.length; i += 32768) {
-              sortie += String.fromCharCode.apply(null, octets.subarray(i, i + 32768))
-            }
-            return btoa(sortie)
-          }
-          const partager = async () => {
-            setNote('Partage…')
-            const lu = await host.call('kybers/art-read', { path: a.path })
-            if (lu === null || lu === undefined || lu.ok !== true) {
-              setNote(kbe('Unreadable creation: ') + ((lu !== null && lu !== undefined && lu.error) ? lu.error : kbe('unknown reason')))
-              return
-            }
-            // A server with no public links (paused on the new server) is told BEFORE anything is uploaded: the file would sit in the account for nothing.
-            const sonde = await fetch('/kybernos-cloud/shares?resource_type=artifact&resource_id=probe').then((r) => r.json().catch(() => null))
-            if (sonde !== null && sonde !== undefined && sonde.ok !== true && sonde.error === 'not_on_this_server') {
-              setNote(kbt('kbsd.public.sub.unavail'))
-              try { timerSvc.timeout(() => setNote(null), 6000) } catch (e) { /* pas de timer */ }
-              return
-            }
-            const pousse = await fetch('/kybernos-cloud/artifacts/push', {
-              method: 'POST', headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ title: a.name, filename: a.name, kind: kindDe(a.name), content_b64: b64Utf8(lu.text) }),
-            }).then((r) => r.json().catch(() => null))
-            const cle = pousse !== null && pousse.artifact !== undefined && pousse.artifact !== null ? pousse.artifact.id : null
-            if (pousse === null || pousse.ok !== true || cle === null || cle === undefined) {
-              setNote(kbe('Hosting refused: ') + ((pousse !== null && pousse.error) ? pousse.error : kbe('unknown reason')))
-              return
-            }
-            const pose = await fetch('/kybernos-cloud/shares/set', {
-              method: 'POST', headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ resource_type: 'artifact', resource_id: cle, audience: 'link' }),
-            }).then((r) => r.json().catch(() => null))
-            const slug = pose !== null && pose.share !== undefined && pose.share !== null ? pose.share.slug : null
-            if (slug === null || slug === undefined) {
-              setNote(kbe('Sharing refused: ') + ((pose !== null && pose.error) ? pose.error : kbe('unknown reason')))
-              return
-            }
-            const lien = kbServer.web.replace(/\/+$/, '') + '/s/' + slug
-            try {
-              await navigator.clipboard.writeText(lien)
-              setNote(kbe('Share link copied — ') + lien)
-            } catch (e) { setNote(lien) }
-            try { timerSvc.timeout(() => setNote(null), 6000) } catch (e) { /* pas de timer */ }
-          }
-          partager().catch(() => setNote(kbe('Cannot share')))
           return
         }
         if (action === 'download') {
