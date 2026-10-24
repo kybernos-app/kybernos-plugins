@@ -9,7 +9,7 @@
 //   - the right Origin and no cookie                      -> 401
 // and then, from INSIDE the signed-in page (what the plugin's own pages do: a same-origin fetch, so the browser adds the Origin and the
 // session cookie) the same route with a body that changes nothing -> anything but 401/403. A page that stopped working shows here.
-// The routes left open on purpose (the Auto CLI's /router and /report, the slash entries the skill writes) must still answer with no header,
+// The routes left open on purpose (the Auto CLI's /router and /report) must still answer with no header,
 // and the free-models gateway must refuse what a browser marks as another site (a foreign Origin, Sec-Fetch-Site cross-site) with nothing sent
 // upstream (the allowed side is proved offline by packages/kybernos-free-llms/test-gateway-origin.mjs: it would call opencode.ai).
 //
@@ -79,6 +79,9 @@ const GUARDED = [
   ['POST', '/kybernos-cloud/memory/delete', { id: 'zz' }], ['POST', '/kybernos-cloud/members/remove', {}], ['POST', '/kybernos-cloud/team/lessons/delete', { id: 1 }],
   ['POST', '/kybernos-cloud/team/skills/delete', { id: 'zz' }], ['POST', '/kybernos-cloud/team/automations/delete', { id: 'zz' }], ['POST', '/kybernos-cloud/connections/delete', { id: 'zz' }],
   ['POST', '/kybernos-miniapps/install', { id: 'zz-guard-live', html: '<b>x</b>' }], ['POST', '/kybernos-miniapps/uninstall', { id: 'zz-guard-live' }],
+  // A-16 (21/10): the slash entries take the cookie like the rest. Their callers are two pages (same-origin fetch); the agent writes through the host tool `enregistrer_entree`, not through this route.
+  // An empty body is answered 400 « no entry given » (nothing stored).
+  ['POST', '/kybernos/slash/entries', {}],
 ]
 
 /** A read from this script, as JSON (the reads need no session; the cookie is sent anyway). */
@@ -161,8 +164,6 @@ try {
   const report = await ask('POST', '/kybernos-auto/report', {}, { modele: 'zz/guard-live', erreur: false, latenceMs: 5 })
   check('/kybernos-auto/report: the Auto CLI sends no header and is answered (' + report + ')', report === 200, report)
   check('/kybernos-auto/router: a foreign Origin is still refused', await ask('POST', '/kybernos-auto/router', { origin: 'http://evil.example' }, { demande: 'x' }) === 403)
-  const slash = await ask('POST', '/kybernos/slash/entries', {}, {})
-  check('/kybernos/slash/entries: the skill sends no header and is not refused by the guard (' + slash + ')', slash !== 401 && slash !== 403 && slash > 0, slash)
 
   console.log('the free-models gateway refuses a browser page of another site, nothing sent upstream')
   for (const [method, path, body] of [['POST', '/free-llms/v1/chat/completions', { model: 'x-free', messages: [] }], ['GET', '/free-llms/v1/models'], ['GET', '/free-llms/status'], ['GET', '/free-llms/health']]) {
