@@ -118,7 +118,7 @@ section('boot safety')
   let applied = 'threw'
   try { degraded.apply({}); applied = 'ok' } catch (e) { /* keep */ }
   check('...its apply() does nothing and does not throw', applied === 'ok')
-  check('the module declares the services it needs (slots, theme, remote)', ['slots', 'theme', 'remote'].every((s) => modele.inject.includes(s)))
+  check('the module declares the services it needs (slots, theme, locale) and not `remote`, which it never uses (AGENTS.md rule 2)', ['slots', 'theme', 'locale'].every((s) => modele.inject.includes(s)) && !modele.inject.includes('remote'))
 }
 
 // ═══ 2. Catalogues ═════════════════════════════════════════════════════════

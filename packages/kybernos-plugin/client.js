@@ -21191,7 +21191,6 @@ function ringDiscMask(cx,cy,r,t){ const a=discMask(cx,cy,r); const b=discMask(cx
 function ringRectMask(w,d,t){ const a=rectMask(w,d); const b=rectMask(w-2*t,d-2*t,t,t); for(const k of b) a.delete(k); return a; }
 function minus(mask,x,y,w,d){ const s=new Set(mask); for(let j=y;j<y+d;j++) for(let i=x;i<x+w;i++) s.delete(K(i,j)); return s; }
 function offs(mask,dx,dy){ const s=new Set(); for(const k of mask){ const [x,y]=k.split(',').map(Number); s.add(K(x+dx,y+dy)); } return s; }
-function union(){ const s=new Set(); for(const m of arguments) for(const k of m) s.add(k); return s; }
 
 const SIZES = [[2,4],[4,2],[2,3],[3,2],[2,2],[1,4],[4,1],[1,3],[3,1],[1,2],[2,1],[1,1]];
 function tileMask(mask, rng){
@@ -21216,12 +21215,6 @@ function tileMask(mask, rng){
 function varc(rng, cols){ return () => cols[Math.floor(rng()*cols.length)]; }
 
 /* ============================ structures ============================ */
-function stacked(b, mask, z0, courses, hp, color, stagger){
-  for(let l=0;l<courses;l++){
-    const m = (stagger && l%2) ? (stagger===1 ? mask : mask) : mask;
-    b.fill(m, z0 + l*hp, hp, color);
-  }
-}
 function cone(b, cx, cy, z, r, levels, color, hp=3){
   for(let l=0;l<levels;l++){
     const r1 = r*(1 - l/levels);
@@ -21244,9 +21237,6 @@ function tree(b, x, y, z, h){
     if(r < 0.7) break;
     b.fill(discMask(x+0.5,y+0.5,r), z+3+l*2, 2, l%2 ? C.pine : C.pine2);
   }
-}
-function studDotGrid(b,x,y,w,d,z,color,step){
-  for(let j=0;j<d;j+=step) for(let i=0;i<w;i+=step) b.put(x+i,y+j,z,1,1,1,color,'tile');
 }
 
 /* ============================ archétypes ============================ */
@@ -21492,10 +21482,6 @@ const SHOWCASE = [
   ['camper','Vintage Camper Van','A chunky 1960s camper van parked on the beach, with a surfboard on the roof.'],
   ['castle','Stone Castle','A stone castle with four round towers with red-cone roofs, a gatehouse, a tall keep and a wide moat.']
 ];
-const SHARED = [
-  ['castle','Stone Castle','From Claudie \u00b7 15min ago'],
-  ['hummingbird','Ruby-Throated Hummingbird','From Damien \u00b7 2h ago']
-];
 const KEYWORDS = [
   [/ch[aâ]teau|castle|forteresse|donjon|fortress/i, 'castle'],
   [/chalet|alpin|cabine|cabin|montagne|mountain|ski/i, 'chalet'],
@@ -21652,26 +21638,6 @@ function renderScene(ctx, W, H, bricks, cam, opts){
   }
 }
 
-function renderFit(canvas, model, cam, opts){
-  const ctx = canvas.getContext('2d');
-  const dpr = Math.min(2, window.devicePixelRatio||1);
-  const W = canvas.clientWidth||canvas.width, H = canvas.clientHeight||canvas.height;
-  canvas.width = Math.round(W*dpr); canvas.height = Math.round(H*dpr);
-  ctx.setTransform(1,0,0,1,0,0); ctx.clearRect(0,0,canvas.width,canvas.height);
-  ctx.setTransform(dpr,0,0,dpr,0,0);
-  const sc = opts && opts.shadowCanvas;
-  if(sc){
-    sc.width = canvas.width; sc.height = canvas.height;
-    const sctx = sc.getContext('2d'); sctx.setTransform(dpr,0,0,dpr,0,0);
-  }
-  const bd = model.bounds();
-  cam._z0 = bd.z0;
-  fitCamera(cam, W, H, bd, opts && opts.pad);
-  const bricks = (opts && opts.count != null) ? model.bricks.slice(0, opts.count) : model.bricks;
-  renderScene(ctx, W, H, bricks, cam, Object.assign({
-    bg:null, shadowCanvas: sc, occ: model.occ, studs: opts && opts.studs
-  }, opts));
-}
     /* ══════════════════════ exécuteur d'ops ══════════════════════
      * La géométrie que l'agent envoie (`ops`) devient un modèle. Chaque lot est
      * posé dans l'ordre du tableau : c'est ce qui rend la pose « en direct »
@@ -35943,7 +35909,6 @@ html:not([data-kb-all-pages]) [class*="navList"][data-kb-settings] [data-kb-fold
           loopIdle: { cls: 'e-queued', dash: '3 5', w: 1.5, lc: 'e-queued' },
           loopHit: { cls: 'e-err', dash: '6 4', w: 2 },
         }
-        const AN = 'Anthropic · via LiteLLM'
 
         const WV2_CSS = `
 .wv2-root{
