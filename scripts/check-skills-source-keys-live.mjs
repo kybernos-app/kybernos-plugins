@@ -29,12 +29,16 @@ try {
     await sleep(120)
     return await ev(`(() => { const m = document.querySelector('[data-kb=index-source-modal]'); const a = document.activeElement; if (!m || !a || !m.contains(a)) return 'OUT'; return a.getAttribute('data-kb') || (a.getAttribute('aria-label') ? 'close' : (a.innerText || '').trim()) })()`)
   }
+  // When KYBERNOS_SKILLS_INDEX_URL is set the variable decides the address: the window only says so, with no field and no Save, and its Tab cycle is Cancel and the close cross.
+  const locked = (await ev(`!document.querySelector('[data-kb=index-source-input]')`)) === true
+  if (locked) console.log('  · the address is fixed by KYBERNOS_SKILLS_INDEX_URL in this instance: the window has no field and no Save, so only Cancel and the close cross are walked')
+  const stops = locked ? ['Cancel', 'close'] : ['index-source-input', 'Cancel', 'index-source-save', 'close']
   const forward = []
   for (let i = 0; i < 8; i += 1) forward.push(await press(false))
-  check('Tab stays inside the window and reaches the field, Cancel, Save and the close cross', !forward.includes('OUT') && ['index-source-input', 'Cancel', 'index-source-save', 'close'].every((x) => forward.includes(x)), forward)
+  check('Tab stays inside the window and reaches ' + (locked ? 'Cancel and the close cross' : 'the field, Cancel, Save and the close cross'), !forward.includes('OUT') && stops.every((x) => forward.includes(x)), forward)
   const backward = []
   for (let i = 0; i < 6; i += 1) backward.push(await press(true))
-  check('Shift+Tab walks the other way and stays inside', !backward.includes('OUT') && new Set(backward).size >= 4, backward)
+  check('Shift+Tab walks the other way and stays inside', !backward.includes('OUT') && new Set(backward).size >= stops.length, backward)
   for (const type of ['keyDown', 'keyUp']) await page.send('Input.dispatchKeyEvent', { type, key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 })
   await sleep(500)
   check('Escape closes the window and leaves Settings open', (await ev(`!document.querySelector('[data-kb=index-source-modal]') && document.querySelectorAll('button[class*="navCell"]').length > 0`)) === true)

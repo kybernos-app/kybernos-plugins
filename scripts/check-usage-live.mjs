@@ -90,9 +90,12 @@ try {
   // The ledger is read from the host once the page is up: wait for the three seeded rows, then for the plan block to have its sentence.
   const rowsSel = `document.querySelectorAll('[data-kb="kybernos-usage-list"] .kbus-row').length`
   await poll(async () => (await val(rowsSel)) >= 3, 15000)
-  await poll(() => val(`/Connectez un compte|Sign in to a Kybernos account/.test((document.querySelector('[data-kb="kybernos-usage-page"]') || { innerText: '' }).innerText)`), 10000)
+  // The plan block depends on the instance: signed out it asks to sign in; signed in to an account it is the plan card (its name, its limits). Either one must be there and must not break.
+  await poll(() => val(`/Connectez un compte|Sign in to a Kybernos account/.test((document.querySelector('[data-kb="kybernos-usage-page"]') || { innerText: '' }).innerText) || !!document.querySelector('[data-kb="kybernos-usage-plan"]')`), 10000)
   const text = await val(`(document.querySelector('[data-kb="kybernos-usage-page"]') || { innerText: '' }).innerText`)
-  check('the plan block says so when no account is signed in (and does not break)', /Connectez un compte|Sign in to a Kybernos account/.test(text), text.slice(0, 300))
+  const planCardText = await val(`(document.querySelector('[data-kb="kybernos-usage-plan"]') || { innerText: null }).innerText`)
+  if (planCardText === null) check('the plan block says so when no account is signed in (and does not break)', /Connectez un compte|Sign in to a Kybernos account/.test(text), text.slice(0, 300))
+  else check('the plan block is the plan card when an account is signed in: a title, no request to sign in', /\S/.test(planCardText) && !/Connectez un compte|Sign in to a Kybernos account/.test(planCardText), planCardText.slice(0, 300))
   const rows = await val(rowsSel)
   check('the by-model list has the three seeded models', rows >= 3, rows)
   const listOf = () => val(`(document.querySelector('[data-kb="kybernos-usage-list"]') || { innerText: '' }).innerText`)
