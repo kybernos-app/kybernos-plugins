@@ -1007,6 +1007,7 @@ window.__ModuleLoader__.load({
 .kbpc-swrow{display:flex;align-items:center;gap:12px}
 .kbpc-swrow .kbmr-sub{flex:1;margin:0}
 .kbpc-sw{position:relative;flex:none;width:36px;height:20px;padding:0;border:0;border-radius:10px;background:var(--dsw-alias-border-l3, rgba(127,127,127,.45));cursor:pointer}
+.kbpc-sw::before{content:"";position:absolute;inset:-2px 0}
 .kbpc-sw::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:var(--dsw-alias-label-primary-foreground, rgb(255,255,255));box-shadow:0 1px 2px rgba(0,0,0,.3);transition:left .12s ease}
 .kbpc-sw[aria-checked="true"]{background:var(--dsw-alias-state-success-primary, rgb(31,157,85))}
 .kbpc-sw[aria-checked="true"]::after{left:18px}
