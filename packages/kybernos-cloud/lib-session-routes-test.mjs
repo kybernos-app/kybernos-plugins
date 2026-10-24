@@ -24,6 +24,7 @@ export const SESSION_WRITE_PATHS = new Set([
   '/kybernos-cloud/space/for-folder', '/kybernos-cloud/start', '/kybernos-cloud/team/lessons/add', '/kybernos-cloud/team/lessons/delete',
   '/kybernos-cloud/team/lessons/retire', '/kybernos-cloud/team/lessons/review', '/kybernos-cloud/team/skills/add', '/kybernos-cloud/team/skills/delete',
   '/kybernos-cloud/team/skills/retire', '/kybernos-cloud/team/skills/review',
+  '/kybernos-cloud/team/automations/add', '/kybernos-cloud/team/automations/check', '/kybernos-cloud/team/automations/delete', '/kybernos-cloud/team/automations/retire', '/kybernos-cloud/team/automations/review',
 ])
 
 /** The write routes that need a strict same-origin request but not the cookie, because a caller that is not a browser reaches them too. */
