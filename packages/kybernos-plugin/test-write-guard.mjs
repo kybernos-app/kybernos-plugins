@@ -7,6 +7,10 @@
 // signed browser-session cookie. Their caller is the person's page (client.js `fetch`/`host.call`, same origin, so the browser sends
 // the cookie itself); the GET routes keep `sameOriginStrict` alone.
 //
+// 2026-10-24 (interfaces audit): seven Agent Team writes were still on `sameOriginStrict` alone — /kybernos/yml-appliquer (rewrites the
+// file the Lead obeys), /ui-save, /menu-save, /insight-save, /team-portraits and /member-portrait (spend image credits) and
+// /voice-sample (stores a voice sample). They carry the pair too; the GET of /voice-sample (the list) stays a plain read.
+//
 //   node packages/kybernos-plugin/test-write-guard.mjs
 import assert from 'node:assert/strict'
 import http from 'node:http'
@@ -51,9 +55,9 @@ const own = '127.0.0.1:' + port
 const origin = 'http://' + own
 const cookie = (opts) => sessionCookie(own, opts)
 
-const send = (path, headers, body) => new Promise((resolve) => {
+const send = (path, headers, body, method = 'POST') => new Promise((resolve) => {
   const payload = JSON.stringify(body)
-  const req = http.request({ host: '127.0.0.1', port, path, method: 'POST', headers: { host: own, ...headers, 'content-type': 'application/json', 'content-length': Buffer.byteLength(payload) } }, (res) => {
+  const req = http.request({ host: '127.0.0.1', port, path, method, headers: { host: own, ...headers, 'content-type': 'application/json', 'content-length': Buffer.byteLength(payload) } }, (res) => {
     let text = ''
     res.on('data', (c) => { text += c })
     res.on('end', () => resolve({ status: res.statusCode, text }))
@@ -73,6 +77,15 @@ const WRITES = [
   ['/kybernos/share', { kind: 'artifact', id: 'a-write-guard', access: 'link', role: 'view' }],
   ['/kybernos/active-set', { kyberId: 'write-guard-test' }],
   ['/kybernos/avatar-save', { rootId: 'root', kyberId: 'write-guard-test', dataUrl: 'data:image/png;base64,' }],
+  // Agent Team writes (audit 2026-10-24). Every body names a root that does not exist or an id the route refuses, so the real pair reaches the handler and
+  // the handler stops at once: nothing is written, no model is asked, no image credit is spent.
+  ['/kybernos/yml-appliquer', { kyberId: 'x', yml: 'topology: pool\n' }],
+  ['/kybernos/ui-save', { rootId: 'no-such-root', kyberId: 'write-guard-test', name: 'Write guard' }],
+  ['/kybernos/menu-save', { lastTeamId: 'write-guard-test' }],
+  ['/kybernos/insight-save', { rootId: 'no-such-root', kyberId: 'write-guard-test', insight: {} }],
+  ['/kybernos/team-portraits', { rootId: 'no-such-root', kyberId: 'write-guard-test' }],
+  ['/kybernos/member-portrait', { rootId: 'no-such-root', kyberId: 'write-guard-test', memberId: 'lead' }],
+  ['/kybernos/voice-sample', { rootId: 'no-such-root', kyberId: 'write-guard-test', name: 'My voice', consent: true, sample: 'data:audio/webm;base64,AAAA' }],
 ]
 
 let pass = 0
@@ -98,6 +111,21 @@ try {
     assert.notEqual(real.status, 403, path + ': the real pair is not refused as foreign')
     ok(path + ': no header 403 · foreign Origin 403 · no cookie 401 · forged cookie 401 · the real pair answers')
   }
+  // /voice-sample also answers GET (the list: a plain read) and DELETE (a write: it needs the pair too).
+  for (const [headers, want, label] of [
+    [{}, 403, 'no Origin and no cookie'],
+    [{ origin: 'http://evil.example', cookie: cookie() }, 403, 'a foreign Origin, even with the real cookie'],
+    [{ origin }, 401, 'the right Origin and no cookie'],
+    [{ origin, cookie: forged }, 401, 'the right Origin and a forged cookie'],
+  ]) {
+    const r = await send('/kybernos/voice-sample?rootId=no-such-root&kyberId=write-guard-test&id=x', headers, {}, 'DELETE')
+    assert.equal(r.status, want, 'DELETE /kybernos/voice-sample: ' + label + ' -> ' + r.status)
+  }
+  const del = await send('/kybernos/voice-sample?rootId=no-such-root&kyberId=write-guard-test&id=x', { origin, cookie: cookie() }, {}, 'DELETE')
+  assert.ok(del.status !== 401 && del.status !== 403, 'DELETE with the real pair is not refused as unsigned or foreign: ' + del.status)
+  const list = await send('/kybernos/voice-sample?rootId=no-such-root&kyberId=write-guard-test', {}, {}, 'GET')
+  assert.ok(list.status !== 401 && list.status !== 403, 'GET (the list) stays a plain read: ' + list.status)
+  ok('/kybernos/voice-sample DELETE: the same four refusals, the real pair answers; GET stays open')
   console.log('\nPLUGIN WRITE GUARD — ' + pass + ' route(s), 0 échec')
 } catch (e) {
   console.error('  ✗ ' + String(e && e.message ? e.message : e))
