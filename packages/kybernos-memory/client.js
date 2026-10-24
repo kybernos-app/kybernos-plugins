@@ -1942,7 +1942,7 @@ window.__ModuleLoader__.load({
         const setLes = async (patch) => { const r = await api('/kybernos-memory/settings/set', patch); if (r.ok !== true) notify(friendlyError(r.error)); refresh() }
         const note = !cloud
           ? h('div', { className: 'kbmem-note warn' }, Ico('cloud'), h('div', null, h('b', null, kt('Non connecté. ', 'Not connected. ')), kt('Les souvenirs vivent dans ton compte Kybernos Cloud, ils ne peuvent donc pas être modifiés ici. Les leçons sont stockées sur cet ordinateur et continuent de fonctionner.', 'Memories live in your Kybernos Cloud account, so they cannot be changed here. Lessons are stored on this machine and keep working.')))
-          : h('div', { className: 'kbmem-note' }, Ico('shield'), h('div', null, kt('Ton offre : ', 'Your plan: '), h('b', null, PLAN_NAME[plan]), kt('. La carte n’est pas encore construite.', '. The map is not built yet.')))
+          : h('div', { className: 'kbmem-note' }, Ico('shield'), h('div', null, kt('Ton offre : ', 'Your plan: '), h('b', null, PLAN_NAME[plan]), '.'))
         const memUnavailable = mem === null
         const lesUnavailable = les === null
         const lastCapture = settings.capture === null ? null : h('div', { className: 'kbmem-tiny', style: { marginTop: 6 } }, kt('Dernière capture : ' + captureWords(settings.capture), 'Last capture: ' + captureWords(settings.capture)))

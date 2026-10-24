@@ -80,4 +80,17 @@ assert.equal(calls, 2)
 assert.deepEqual(Object.keys(kept).sort(), ['en', 'zh'])
 ok('if DSH does not know the French locale yet, English and Chinese are still registered')
 
+// T2-26: TypeScript is not video. With the `extension` priority the player would have taken index.ts and types.mts away from the code view.
+const claimed = exported.__test.EXTENSIONS
+assert.ok(!claimed.includes('ts') && !claimed.includes('mts'), 'the player must not claim .ts / .mts (TypeScript)')
+assert.ok(['mp4', 'webm', 'mov', 'mp3', 'flac'].every((e) => claimed.includes(e)), 'and the real media extensions are still claimed')
+assert.equal(exported.__test.mediaFor('src/index.ts'), undefined, 'a TypeScript file has no media type')
+assert.equal(exported.__test.mediaFor('lib/types.MTS'), undefined, 'nor does a .mts one, whatever its case')
+assert.equal(exported.__test.mediaFor('clip.mp4').kind, 'video', 'while a real video keeps its player')
+assert.ok(!/\b(?:ts|mts)\b'?\s*[:,\]]/.test(source.slice(source.indexOf('const VIDEO_EXTENSIONS'), source.indexOf('const EXTENSIONS'))), 'no ts / mts left in the generated bundle\'s video list')
+assert.ok(!/video\/mp2t/.test(source), 'and no video/mp2t type left for them')
+const readme = readFileSync(join(here, 'README.md'), 'utf8')
+assert.ok(!/\| Video \|[^\n]*`m?ts`/.test(readme), 'the README table does not list them either')
+ok('T2-26: .ts and .mts (TypeScript) are not claimed as video, in the bundle, in the source types and in the README table')
+
 console.log('\n' + pass + ' checks passed')

@@ -279,6 +279,7 @@ window.__ModuleLoader__.load({
         upFeatTeamMembers: 'Membres de l\'équipe',
         upFeatTeamLessons: 'Leçons partagées',
         upFeatTeamSkills: 'Compétences partagées',
+        upFeatRemote: 'Lien téléphone',
         kyNav: 'Kybernos',
         kyTitle: 'Kybernos',
         kySub: 'Ce que Kybernos garde sur cet ordinateur.',
@@ -561,6 +562,7 @@ window.__ModuleLoader__.load({
         upFeatTeamMembers: 'Team members',
         upFeatTeamLessons: 'Shared lessons',
         upFeatTeamSkills: 'Shared skills',
+        upFeatRemote: 'Phone link',
         kyNav: 'Kybernos',
         kyTitle: 'Kybernos',
         kySub: 'What Kybernos keeps on this computer.',
@@ -2524,10 +2526,15 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
         // host for the payment page of the ACTIVE workspace (`/billing/checkout`) and the host opens it in the system browser: the device
         // token never reaches this page. The server decides who may buy (owner or admin) and what is possible; its answer comes back as a
         // status and a code, and every state below says what happened and what the person can do about it.
+        // <up-feat:begin>
         const UP_FEATURES = {
           byok: 'upFeatByok', connections: 'upFeatConnections', hosted_runs: 'upFeatHostedRuns', computers: 'upFeatComputers',
           'computers.always_on': 'upFeatAlwaysOn', 'team.members': 'upFeatTeamMembers', 'team.lessons': 'upFeatTeamLessons', 'team.skills': 'upFeatTeamSkills',
+          remote: 'upFeatRemote',
         }
+        /** A plan feature in words: its label, else its key read as words with a capital (« sso_saml » reads « Sso saml »), never the raw code. */
+        const upFeatureText = (k) => { if (UP_FEATURES[k] !== undefined) return t(UP_FEATURES[k]); const w = String(k).replace(/[._]/g, ' '); return w.charAt(0).toUpperCase() + w.slice(1) }
+        // <up-feat:end>
         const UP_EURO_REGIONS = ['AT', 'BE', 'CY', 'DE', 'EE', 'ES', 'FI', 'FR', 'GR', 'HR', 'IE', 'IT', 'LT', 'LU', 'LV', 'MT', 'NL', 'PT', 'SI', 'SK']
         const upLocale = () => { const l = lang(); return l === 'en' ? 'en-US' : l === 'fr' ? 'fr-FR' : l }
         const upMoney = (amount, currency) => {
@@ -2669,7 +2676,7 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
             type: 'button', className: 'kbup-go', 'data-kb': 'upgrade-subscribe-' + key, disabled: busy === true || noPayments === true || disabled === true || cur === null || (interval === null && key !== 'topup'),
             onClick: () => buy(body, key),
           }, busy === true && action.key === key ? t('loading') : label)
-          const featureList = (c) => h('ul', { className: 'kbup-feats' }, feats(c).map((k) => h('li', { key: k }, '✓ ', UP_FEATURES[k] !== undefined ? t(UP_FEATURES[k]) : k.replace(/[._]/g, ' '))))
+          const featureList = (c) => h('ul', { className: 'kbup-feats' }, feats(c).map((k) => h('li', { key: k }, '✓ ', upFeatureText(k))))
 
           const levelCard = (c) => {
             const p = perMonth(c)
