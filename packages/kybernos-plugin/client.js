@@ -2238,6 +2238,7 @@ let kbLocaleRead = () => 'en'
       'kbta.e.not_pending': { kybernos: 'Quelqu’un a décidé avant toi. La liste a été rafraîchie.', en: 'Someone decided before you. The list has been refreshed.' },
       'kbta.e.not_approved': { kybernos: 'Cette automatisation n’est plus approuvée.', en: 'It is not approved any more.' },
       'kbta.e.team_full': { kybernos: 'L’équipe a déjà le nombre maximal d’automatisations (100).', en: 'The team already has the maximum number of automations (100).' },
+      'kbta.e.rate_limited': { kybernos: 'Trop de demandes d’affilée : attends un instant puis réessaie.', en: 'Too many requests in a row: wait a moment and try again.' },
       'kbta.e.too_many_proposals': { kybernos: 'Tu as déjà le nombre maximal de propositions en attente (5).', en: 'You already have the maximum number of proposals waiting (5).' },
       'kbta.e.too_large': { kybernos: 'L’automatisation est trop volumineuse.', en: 'The automation is too large.' },
       'kbta.e.not_found': { kybernos: 'Cette automatisation n’existe plus.', en: 'This automation no longer exists.' },

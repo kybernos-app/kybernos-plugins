@@ -130,7 +130,7 @@ Three pieces, which do not import each other (the page moves the data between th
 **1. `kybernos-cloud`: the relay to the server.** `/kybernos-cloud/team/automations` (GET list, `?view=&limit=&offset=`), `/kybernos-cloud/team/automations/item?id=` (GET), `…/check`, `…/add`, `…/review`, `…/retire`,
 `…/delete` (POST, strict same origin + the signed session), and `team-automations.mjs`, its pure half (limits, the canonical form and `version`, the words of the server's answers). They call the server above with the account
 token, for the ACTIVE workspace, only in a team space (`teamWorkspace`), and turn every refusal into one word: `admin_required`, `plan_required`, `scan_rejected`, `invalid_automation`, `duplicate`, `not_pending`,
-`not_approved`, `team_full`, `too_many_proposals`, `too_large`, `not_found`, `not_on_this_server`. They write an access journal that never holds content.
+`not_approved`, `team_full`, `too_many_proposals`, `rate_limited` (the server's general limiter: a 429 that does not say `too_many_proposals`), `too_large`, `not_found`, `not_on_this_server`. They write an access journal that never holds content.
 
 **2. `kybernos-plugin` host: the local half** (it owns `tasks.json`). All POST, strict same origin + the signed session (they carry prompts):
 
