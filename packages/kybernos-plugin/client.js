@@ -95,10 +95,6 @@ let kbLocaleRead = () => 'en'
       'tasks.col.state': { kybernos: 'État', en: 'State' },
       'tasks.col.sessions': { kybernos: 'Sessions', en: 'Sessions' },
       'tasks.col.on': { kybernos: 'Actif', en: 'On' },
-      'tasks.status.awaiting': { kybernos: 'En attente d\'approbation', en: 'Awaiting approval' },
-      'tasks.status.ok': { kybernos: 'ok', en: 'ok' },
-      'tasks.status.failed': { kybernos: 'Échoué', en: 'Failed' },
-      'tasks.status.paused': { kybernos: 'En pause', en: 'Paused' },
       'tasks.sort.mostsessions': { kybernos: 'Plus de sessions', en: 'Most sessions' },
       'tasks.sort.recent': { kybernos: 'Activité la plus récente', en: 'Most recent activity' },
       // ── Deliverables : tuiles de type, bandeau, actions rapides, Create with AI ──
@@ -375,8 +371,6 @@ let kbLocaleRead = () => 'en'
       'tasks.cards.toreview': { kybernos: 'À revoir', en: 'To review' },
       'tasks.cards.paused': { kybernos: 'En pause', en: 'Paused' },
       'tasks.cards.hint': { kybernos: 'Réussite : part des 20 dernières exécutions qui ne sont pas notées en échec. Durée et outils viennent du journal de la dernière exécution ; il n’y a ni jetons ni budget ici.', en: 'Success: the share of the last 20 runs that are not recorded as failed. Duration and tools come from the journal of the last run; there are no tokens or budget here.' },
-      'tasks.runs.title': { kybernos: 'Exécutions', en: 'Executions' },
-      'tasks.runs.count': { kybernos: '{n} exécutions', en: '{n} runs' },
       'tasks.runs.stat.runs': { kybernos: 'Exécutions', en: 'Runs' },
       'tasks.runs.stat.failed': { kybernos: 'En échec', en: 'Failed' },
       'tasks.runs.stat.median': { kybernos: 'Durée médiane', en: 'Median duration' },
@@ -391,25 +385,20 @@ let kbLocaleRead = () => 'en'
       'tasks.runs.final': { kybernos: 'Réponse finale', en: 'Final answer' },
       'tasks.runs.more': { kybernos: '+{n} autres étapes', en: '+{n} more steps' },
       'tasks.runs.moresub': { kybernos: 'dans la session', en: 'in the session' },
-      'tasks.runs.logs': { kybernos: 'Détails', en: 'Logs' },
       'tasks.runs.input': { kybernos: 'Reçoit', en: 'Gets' },
       'tasks.runs.output': { kybernos: 'Produit', en: 'Gives' },
       'tasks.runs.think': { kybernos: 'réflexion', en: 'think' },
       'tasks.runs.run': { kybernos: 'exécution', en: 'run' },
       'tasks.runs.reading': { kybernos: 'Lecture de l’étape…', en: 'Reading the step…' },
       'tasks.runs.noio': { kybernos: 'L’entrée et la sortie de cette étape ne sont pas disponibles. « Ouvrir le chat » les montre.', en: 'The input and output of this step are not available. “Open chat” shows them.' },
-      'tasks.runs.model': { kybernos: 'Modèle', en: 'Model' },
       'tasks.runs.duration': { kybernos: 'Durée', en: 'Duration' },
-      'tasks.runs.steps': { kybernos: '{n} étapes', en: '{n} steps' },
       'tasks.runs.tools': { kybernos: '{n} appels d’outil', en: '{n} tool calls' },
       'tasks.runs.hint': { kybernos: 'Chaque exécution est un vrai chat avec l’Agent Team. La ligne « échec » qu’une exécution a écrite sur elle-même est rattachée à cette exécution. Les liens montrent ce que chaque étape a transmis à la suivante.', en: 'Each run is a real chat with the Agent Team. The “failed” line a run wrote about itself sits on that run. The links show how much each step handed on to the next.' },
-      'tasks.journal.who': { kybernos: 'Qui a tourné', en: 'Who ran' },
       'tasks.journal.why': { kybernos: 'Pourquoi ce modèle', en: 'Why this model' },
       'tasks.journal.why.default': { kybernos: 'Modèle par défaut du profil : aucun modèle n’a été choisi pour cette exécution.', en: 'Profile default: no model was chosen for this run.' },
       'tasks.journal.why.set': { kybernos: 'Choisi pour cette exécution.', en: 'Chosen for this run.' },
       'tasks.journal.approvals': { kybernos: 'Approbations', en: 'Approvals' },
       'tasks.journal.approval': { kybernos: 'approbation', en: 'approval' },
-      'tasks.journal.approvals.none': { kybernos: 'Aucune demande pendant cette exécution · mode :', en: 'No request during this run · mode:' },
       'tasks.everyday8': { kybernos: 'Chaque jour, 8:00', en: 'Every day, 8:00' },
       'tasks.weekdays8': { kybernos: 'Jours ouvrés, 8:00', en: 'Weekdays, 8:00' },
       // The readable schedules (kbCronHuman): a sentence per common shape, `{day}` a weekday name, `{time}` HH:MM.
@@ -1990,6 +1979,307 @@ let kbLocaleRead = () => 'en'
       'kbui.ins.empty': { kybernos: 'Agent Team introuvable', en: 'Agent Team not found' },
       'kbui.ins.err': { kybernos: 'Lecture impossible', en: 'Could not read' },
       'kbui.quality.loading': { kybernos: 'Lecture des journaux…', en: 'Reading the journals…' },
+      // ── Team automations: the « Team » segment of the Automations page (docs/dev/team-automations-contract.md) ──
+      'kbta.team': { kybernos: 'Équipe', en: 'Team' },
+      'kbta.tab.aria': { kybernos: 'Automatisations d’équipe', en: 'Team automations' },
+      'kbta.tab.pending': { kybernos: '{n} à valider', en: '{n} to review' },
+      'kbta.tab.locked': { kybernos: 'Indisponible', en: 'Unavailable' },
+      'kbta.hint.member': { kybernos: 'Partagé par les membres de {team}.', en: 'Shared by the members of {team}.' },
+      'kbta.hint.admin': { kybernos: 'Tu es admin : tu valides ce que les membres proposent.', en: 'You are an admin: you review what members propose.' },
+      'kbta.head.sub': { kybernos: 'Les automatisations que ton équipe a approuvées. En installer une crée une copie en pause qui t’appartient.', en: 'Automations your team has approved. Installing one makes a paused copy that belongs to you.' },
+      'kbta.propose.cta': { kybernos: 'Proposer l’une des tiennes', en: 'Propose one of yours' },
+      'kbta.add.cta': { kybernos: 'Ajouter l’une des tiennes', en: 'Add one of yours' },
+      'kbta.propose.menu': { kybernos: 'Proposer à l’équipe…', en: 'Propose to team…' },
+      'kbta.propose.row': { kybernos: 'Proposer « {name} » à l’équipe', en: 'Propose “{name}” to the team' },
+      'kbta.mark.copy': { kybernos: 'Copie d’équipe', en: 'Team copy' },
+      'kbta.mark.shared': { kybernos: 'Partagée avec {team} · {v}', en: 'Shared with {team} · {v}' },
+      'kbta.mark.proposed': { kybernos: 'Proposée à {team}', en: 'Proposed to {team}' },
+      'kbta.f.group': { kybernos: 'Filtre des automatisations d’équipe', en: 'Team automations filter' },
+      'kbta.f.approved': { kybernos: 'Approuvées', en: 'Approved' },
+      'kbta.f.mine': { kybernos: 'Les miennes', en: 'Mine' },
+      'kbta.f.review': { kybernos: 'À valider', en: 'To review' },
+      'kbta.search': { kybernos: 'Chercher dans les automatisations de l’équipe…', en: 'Search the team’s automations…' },
+      'kbta.search.aria': { kybernos: 'Chercher dans les automatisations de l’équipe', en: 'Search the team’s automations' },
+      'kbta.th.name': { kybernos: 'Nom', en: 'Name' },
+      'kbta.th.when': { kybernos: 'Quand', en: 'When' },
+      'kbta.th.needs': { kybernos: 'Besoins', en: 'Needs' },
+      'kbta.th.version': { kybernos: 'Version', en: 'Version' },
+      'kbta.th.status': { kybernos: 'Statut', en: 'Status' },
+      'kbta.th.detail': { kybernos: 'Détail', en: 'Detail' },
+      'kbta.th.proposal': { kybernos: 'Proposition', en: 'Proposal' },
+      'kbta.th.from': { kybernos: 'De', en: 'From' },
+      'kbta.th.sent': { kybernos: 'Envoyée', en: 'Sent' },
+      'kbta.by': { kybernos: 'par {name}', en: 'by {name}' },
+      'kbta.ver.have': { kybernos: '{v} · tu as {old}', en: '{v} · you have {old}' },
+      'kbta.install': { kybernos: 'Installer', en: 'Install' },
+      'kbta.update': { kybernos: 'Mettre à jour vers {v}', en: 'Update to {v}' },
+      'kbta.installed': { kybernos: 'Installée', en: 'Installed' },
+      'kbta.install.aria': { kybernos: 'Installer {name}', en: 'Install {name}' },
+      'kbta.update.aria': { kybernos: 'Mettre à jour {name}', en: 'Update {name}' },
+      'kbta.installed.aria': { kybernos: 'Installée : {name}', en: 'Installed: {name}' },
+      'kbta.notconn': { kybernos: '{app} · pas connecté', en: '{app} · not connected' },
+      'kbta.st.proposed': { kybernos: 'En attente de validation', en: 'Waiting for review' },
+      'kbta.st.rejected': { kybernos: 'Refusée', en: 'Refused' },
+      'kbta.st.approved': { kybernos: 'Approuvée', en: 'Approved' },
+      'kbta.st.approved.v': { kybernos: 'Approuvée · {v}', en: 'Approved · {v}' },
+      'kbta.st.retired': { kybernos: 'Retirée', en: 'Retired' },
+      'kbta.d.proposed': { kybernos: 'Envoyée {when} aux propriétaires et aux admins.', en: 'Sent {when} to the owners and admins.' },
+      'kbta.d.rejected': { kybernos: '{by} : « {note} »', en: '{by}: “{note}”' },
+      'kbta.d.rejected.nonote': { kybernos: 'Refusée par {by}, sans note.', en: 'Refused by {by}, without a note.' },
+      'kbta.d.approved': { kybernos: 'Approuvée {when}. Les membres peuvent l’installer.', en: 'Approved {when}. Members can install it.' },
+      'kbta.d.retired': { kybernos: 'Retirée par {by}. Les copies déjà installées continuent de fonctionner.', en: 'Retired by {by}. Copies already installed keep working.' },
+      'kbta.act.withdraw': { kybernos: 'Retirer ma proposition', en: 'Withdraw' },
+      'kbta.act.again': { kybernos: 'Proposer à nouveau', en: 'Propose again' },
+      'kbta.act.update': { kybernos: 'Proposer une mise à jour', en: 'Propose an update' },
+      'kbta.act.delete': { kybernos: 'Supprimer', en: 'Delete' },
+      'kbta.k.new': { kybernos: 'Nouvelle automatisation', en: 'New automation' },
+      'kbta.k.upd': { kybernos: 'Mise à jour · {old} → {new}', en: 'Update · {old} → {new}' },
+      'kbta.k.upd.plain': { kybernos: 'Mise à jour', en: 'Update' },
+      'kbta.review': { kybernos: 'Examiner', en: 'Review' },
+      'kbta.retire': { kybernos: 'Retirer de l’équipe', en: 'Retire' },
+      'kbta.retire.title': { kybernos: 'Retirer « {name} » de l’équipe ?', en: 'Retire “{name}” from the team?' },
+      'kbta.retire.body': { kybernos: 'Ceux qui l’ont installée gardent leur copie, personne d’autre ne pourra l’installer.', en: 'Members who installed it keep their copy, nobody else can install it.' },
+      'kbta.retire.yes': { kybernos: 'Retirer', en: 'Retire' },
+      'kbta.empty.approved.t': { kybernos: 'Rien de partagé pour l’instant', en: 'Nothing shared yet' },
+      'kbta.empty.approved.b': { kybernos: 'Propose l’une de tes automatisations. Dès qu’un propriétaire ou un admin l’approuve, tout le monde dans {team} peut l’installer.', en: 'Propose one of your automations. Once an owner or admin approves it, everyone in {team} can install it.' },
+      'kbta.empty.mine.t': { kybernos: 'Tu n’as rien proposé', en: 'You have not proposed anything' },
+      'kbta.empty.mine.b': { kybernos: 'Choisis l’une de tes automatisations et propose-la à l’équipe.', en: 'Pick one of your automations and propose it to the team.' },
+      'kbta.empty.review.t': { kybernos: 'Rien à valider', en: 'Nothing waiting for review' },
+      'kbta.empty.review.b': { kybernos: 'Quand un membre propose une automatisation, elle apparaît ici.', en: 'When a member proposes an automation, it will appear here.' },
+      'kbta.empty.search.t': { kybernos: 'Aucune automatisation ne correspond', en: 'No automation matches' },
+      'kbta.empty.search.b': { kybernos: 'Essaie un autre mot.', en: 'Try another word.' },
+      'kbta.loading': { kybernos: 'Chargement des automatisations de l’équipe…', en: 'Loading the team’s automations…' },
+      'kbta.loading.one': { kybernos: 'Chargement de l’automatisation…', en: 'Loading the automation…' },
+      'kbta.list.err': { kybernos: 'La liste n’a pas pu être chargée', en: 'The list could not be loaded' },
+      'kbta.retry': { kybernos: 'Réessayer', en: 'Try again' },
+      'kbta.host.old': { kybernos: 'Ce DSH n’a pas encore chargé la mise à jour. Redémarre-le pour proposer ou installer.', en: 'This DSH has not loaded the update yet. Restart it to propose or install.' },
+      'kbta.lock.plan.t': { kybernos: 'Les automatisations d’équipe font partie du plan Team', en: 'Team automations come with the Team plan' },
+      'kbta.lock.plan.b': { kybernos: 'Sur le plan Team, les membres partagent les automatisations que les propriétaires approuvent.', en: 'On the Team plan, members share the automations the owners approve.' },
+      'kbta.lock.plan.yours': { kybernos: 'Ton plan est {plan}. ', en: 'Your plan is {plan}. ' },
+      'kbta.lock.signin.t': { kybernos: 'Connecte-toi pour voir les automatisations de ton équipe', en: 'Sign in to see your team’s automations' },
+      'kbta.lock.signin.b': { kybernos: 'Les automatisations d’équipe sont liées à ton compte.', en: 'Team automations are tied to your account.' },
+      'kbta.lock.personal.t': { kybernos: 'Les automatisations d’équipe sont pour les espaces d’équipe', en: 'Team automations are for team spaces' },
+      'kbta.lock.personal.b': { kybernos: 'Ton espace n’a qu’un membre. Crée une équipe ou rejoins-en une avec un lien d’invitation.', en: 'Your space has one member. Create a team or join one with an invitation link.' },
+      'kbta.lock.server.t': { kybernos: 'Indisponible sur ce serveur', en: 'Not available on this server' },
+      'kbta.lock.server.b': { kybernos: 'Le serveur que tu utilises ne propose pas encore les automatisations d’équipe. Tes propres automatisations ne sont pas touchées.', en: 'The server you use does not offer team automations yet. Your own automations are not affected.' },
+      'kbta.lock.net.t': { kybernos: 'Le serveur est injoignable', en: 'The server could not be reached' },
+      'kbta.lock.net.b': { kybernos: 'Rien n’est perdu. Vérifie ta connexion, puis réessaie.', en: 'Nothing was lost. Check your connection and try again.' },
+      'kbta.lock.reconnect.t': { kybernos: 'Ta session Kybernos a expiré', en: 'Your Kybernos session has expired' },
+      'kbta.lock.reconnect.b': { kybernos: 'Reconnecte ton compte, puis rouvre cet onglet.', en: 'Reconnect your account, then reopen this tab.' },
+      'kbta.lock.other.t': { kybernos: 'Les automatisations d’équipe ne répondent pas', en: 'Team automations are not answering' },
+      'kbta.lock.other.b': { kybernos: 'Réponse inattendue ({code}). Tes propres automatisations ne sont pas touchées.', en: 'Unexpected answer ({code}). Your own automations are not affected.' },
+      'kbta.cta.plans': { kybernos: 'Voir les plans', en: 'See plans' },
+      'kbta.cta.signin': { kybernos: 'Se connecter', en: 'Sign in' },
+      'kbta.cta.create': { kybernos: 'Créer une équipe', en: 'Create a team' },
+      'kbta.cta.join': { kybernos: 'Rejoindre avec un lien', en: 'Join with a link' },
+      'kbta.cta.servers': { kybernos: 'Ouvrir la page Serveurs', en: 'Open the Servers page' },
+      'kbta.sheet.close': { kybernos: 'Fermer', en: 'Close' },
+      'kbta.cancel': { kybernos: 'Annuler', en: 'Cancel' },
+      'kbta.p.title': { kybernos: 'Proposer à {team}', en: 'Propose to {team}' },
+      'kbta.p.title.admin': { kybernos: 'Ajouter à {team}', en: 'Add to {team}' },
+      'kbta.p.sub': { kybernos: 'Les propriétaires et les admins la relisent avant que quiconque puisse l’installer.', en: 'Owners and admins review it before anyone can install it.' },
+      'kbta.p.sub.admin': { kybernos: 'En tant que propriétaire ou admin, elle est disponible tout de suite pour tous les membres.', en: 'As an owner or admin, it is available to every member right away.' },
+      'kbta.p.s1': { kybernos: '1 · Choisis l’une de tes automatisations', en: '1 · Choose one of your automations' },
+      'kbta.p.s2': { kybernos: '2 · Ce que {team} verra', en: '2 · What {team} will see' },
+      'kbta.p.shared': { kybernos: 'Partagée · {v} — envoyer une mise à jour', en: 'Shared · {v} — send an update' },
+      'kbta.p.none': { kybernos: 'Tu n’as encore aucune automatisation à partager. Crée-en une d’abord.', en: 'You have no automation to share yet. Create one first.' },
+      'kbta.p.once': { kybernos: 'Une automatisation à date unique ne se partage pas.', en: 'A one-time automation cannot be shared.' },
+      'kbta.p.gone': { kybernos: 'L’automatisation « {name} » n’est plus dans tes automatisations. Choisis-en une autre.', en: 'The automation “{name}” is no longer in Yours. Pick another one.' },
+      'kbta.p.reading': { kybernos: 'Lecture de l’automatisation…', en: 'Reading the automation…' },
+      'kbta.kv.name': { kybernos: 'Nom', en: 'Name' },
+      'kbta.kv.when': { kybernos: 'Quand', en: 'When' },
+      'kbta.kv.needs': { kybernos: 'Besoins', en: 'Needs' },
+      'kbta.kv.prompt': { kybernos: 'Consigne', en: 'Prompt' },
+      'kbta.p.zone': { kybernos: '· selon le fuseau horaire de chaque membre', en: '· each member’s own time zone' },
+      'kbta.p.appnames': { kybernos: 'noms d’applications seulement', en: 'app names only' },
+      'kbta.p.desc': { kybernos: 'Description courte', en: 'Short description' },
+      'kbta.p.desc.hint': { kybernos: 'Affichée dans la liste, pour tous les membres.', en: 'Shown in the list to every member.' },
+      'kbta.p.desc.count': { kybernos: '{n} / {max}', en: '{n} / {max}' },
+      'kbta.p.never': { kybernos: 'Ce qui ne part jamais', en: 'What never travels' },
+      'kbta.never.1': { kybernos: 'Tes clés, jetons et mots de passe', en: 'Your keys, tokens and passwords' },
+      'kbta.never.2': { kybernos: 'Les adresses de webhook et leurs secrets', en: 'Webhook addresses and their secrets' },
+      'kbta.never.3': { kybernos: 'L’historique des exécutions et leurs résultats', en: 'Run history and results' },
+      'kbta.never.4': { kybernos: 'Les fichiers de ton dossier de travail', en: 'Files in your work folder' },
+      'kbta.never.5': { kybernos: 'Tes comptes connectés — seuls les noms d’applications partent', en: 'Your connected accounts — only the app names travel' },
+      'kbta.p.check': { kybernos: 'Contrôle avant l’envoi', en: 'Check before sending' },
+      'kbta.ck.running': { kybernos: 'Contrôle en cours…', en: 'Checking…' },
+      'kbta.ck.ok': { kybernos: 'Contrôlé', en: 'Checked' },
+      'kbta.ck.ok.t': { kybernos: 'Aucune clé, aucun jeton ni mot de passe trouvé dans la consigne.', en: 'No key, token or password found in the prompt.' },
+      'kbta.ck.found': { kybernos: 'Secret trouvé', en: 'Secret found' },
+      'kbta.ck.line': { kybernos: 'La ligne {n} de la consigne ressemble à une clé d’API, un jeton ou un mot de passe.', en: 'Line {n} of the prompt looks like an API key, a token or a password.' },
+      'kbta.ck.name': { kybernos: 'Le nom ressemble à une clé d’API, un jeton ou un mot de passe.', en: 'The name looks like an API key, a token or a password.' },
+      'kbta.ck.desc': { kybernos: 'La description courte ressemble à une clé d’API, un jeton ou un mot de passe.', en: 'The short description looks like an API key, a token or a password.' },
+      'kbta.ck.note': { kybernos: 'La note ressemble à une clé d’API, un jeton ou un mot de passe.', en: 'The note looks like an API key, a token or a password.' },
+      'kbta.ck.fix': { kybernos: 'Retire-le de la consigne et connecte plutôt l’application, puis renvoie. Rien n’a été envoyé.', en: 'Remove it from the prompt and connect the app instead, then send again. Nothing was sent.' },
+      'kbta.ck.fix.field': { kybernos: 'Change-le ci-dessus, puis renvoie. Rien n’a été envoyé.', en: 'Change it above, then send again. Nothing was sent.' },
+      'kbta.ck.again': { kybernos: 'Contrôler à nouveau', en: 'Check again' },
+      'kbta.ck.needdesc': { kybernos: 'Écris une description courte pour continuer.', en: 'Write a short description to continue.' },
+      'kbta.ck.toolong': { kybernos: 'La description courte dépasse {max} caractères.', en: 'The short description is over {max} characters.' },
+      'kbta.ck.failed': { kybernos: 'Le contrôle n’a pas pu avoir lieu : {why}', en: 'The check could not run: {why}' },
+      'kbta.p.note': { kybernos: 'Note pour les relecteurs (facultatif)', en: 'Note for the reviewers (optional)' },
+      'kbta.p.note.admin': { kybernos: 'Note (facultatif)', en: 'Note (optional)' },
+      'kbta.p.note.ph': { kybernos: 'Pourquoi l’équipe devrait-elle avoir celle-ci ?', en: 'Why should the team have this one?' },
+      'kbta.p.note.count': { kybernos: '{n} / {max}', en: '{n} / {max}' },
+      'kbta.p.note.toolong': { kybernos: 'La note dépasse {max} caractères : raccourcis-la pour envoyer.', en: 'The note is over {max} characters: shorten it to send.' },
+      'kbta.p.send': { kybernos: 'Envoyer pour validation', en: 'Send for review' },
+      'kbta.p.send.admin': { kybernos: 'Ajouter à l’équipe', en: 'Add to the team' },
+      'kbta.p.sending': { kybernos: 'Envoi…', en: 'Sending…' },
+      'kbta.sent.t': { kybernos: 'Envoyée pour validation', en: 'Sent for review' },
+      'kbta.sent.b': { kybernos: 'Les propriétaires et les admins de {team} ont été prévenus. Tu la retrouveras dans « Les miennes », comme « En attente de validation ». Personne ne peut l’installer avant son approbation.', en: 'The owners and admins of {team} were told. You will find it under Mine, as “Waiting for review”. Nothing can be installed by anyone until it is approved.' },
+      'kbta.sent.btn': { kybernos: 'Voir dans « Les miennes »', en: 'See it under Mine' },
+      'kbta.added.t': { kybernos: 'Ajoutée à l’équipe', en: 'Added to the team' },
+      'kbta.added.b': { kybernos: 'Tous les membres de {team} peuvent l’installer maintenant. Tu la retrouveras dans « Approuvées ».', en: 'Every member of {team} can install it now. You will find it under Approved.' },
+      'kbta.added.btn': { kybernos: 'Voir dans « Approuvées »', en: 'See it under Approved' },
+      'kbta.r.title': { kybernos: 'Examen : {name}', en: 'Review: {name}' },
+      'kbta.r.sub': { kybernos: 'Proposée par {by} · {when} · {kind}', en: 'Proposed by {by} · {when} · {kind}' },
+      'kbta.r.details': { kybernos: 'Détails', en: 'Details' },
+      'kbta.r.changes': { kybernos: 'Changements depuis {v}', en: 'Changes since {v}' },
+      'kbta.r.proposed': { kybernos: 'Ce qui est proposé', en: 'What is proposed' },
+      'kbta.r.check': { kybernos: 'Contrôle', en: 'Check' },
+      'kbta.r.checked.t': { kybernos: 'Aucune clé, aucun jeton ni mot de passe trouvé.', en: 'No key, token or password found.' },
+      'kbta.r.note': { kybernos: 'Note de l’auteur', en: 'Note from the author' },
+      'kbta.r.diff': { kybernos: 'Changements dans la consigne', en: 'Changes in the prompt' },
+      'kbta.r.toolong': { kybernos: 'Trop long pour une comparaison ligne à ligne.', en: 'Too long to compare line by line.' },
+      'kbta.r.nopromptchange': { kybernos: 'La consigne est la même que {v}.', en: 'The prompt is the same as {v}.' },
+      'kbta.r.nobase': { kybernos: 'La version approuvée n’a pas pu être lue : les changements ne sont pas affichés.', en: 'The approved version could not be read, so the changes are not shown.' },
+      'kbta.same.both': { kybernos: 'Le moment, les besoins et les contrôles sont les mêmes que {v}.', en: 'When, needs and checks are the same as {v}.' },
+      'kbta.same.when': { kybernos: 'Le moment et les contrôles sont les mêmes que {v}.', en: 'When and checks are the same as {v}.' },
+      'kbta.same.needs': { kybernos: 'Les besoins et les contrôles sont les mêmes que {v}.', en: 'Needs and checks are the same as {v}.' },
+      'kbta.chg.name': { kybernos: 'Nom : {a} → {b}', en: 'Name: {a} → {b}' },
+      'kbta.chg.when': { kybernos: 'Quand : {a} → {b}', en: 'When: {a} → {b}' },
+      'kbta.chg.add': { kybernos: 'Besoins ajoutés : {apps}', en: 'Needs added: {apps}' },
+      'kbta.chg.del': { kybernos: 'Besoins retirés : {apps}', en: 'Needs removed: {apps}' },
+      'kbta.r.get': { kybernos: 'Ce que les membres reçoivent', en: 'What members get' },
+      'kbta.r.get.b': { kybernos: 'Une copie en pause qui leur appartient. Rien ne tourne tant qu’ils ne l’activent pas, et ils choisissent où elle tourne. Les membres qui ont modifié leur copie sont consultés avant qu’une mise à jour la remplace.', en: 'A paused copy that belongs to them. Nothing runs until they turn it on, and they choose where it runs. Members who edited their copy are asked before an update replaces it.' },
+      'kbta.r.decision': { kybernos: 'Ta décision', en: 'Your decision' },
+      'kbta.r.approve': { kybernos: 'Approuver', en: 'Approve' },
+      'kbta.r.approve.new': { kybernos: 'Les membres pourront l’installer.', en: 'Members can install it.' },
+      'kbta.r.approve.new.v': { kybernos: 'Les membres pourront l’installer en {v}.', en: 'Members can install it as {v}.' },
+      'kbta.r.approve.upd': { kybernos: 'Les membres qui ont installé {old} se verront proposer la mise à jour.', en: 'Members who installed {old} are offered the update.' },
+      'kbta.r.approve.upd.plain': { kybernos: 'Les membres qui l’ont installée se verront proposer la mise à jour.', en: 'Members who installed it are offered the update.' },
+      'kbta.r.refuse': { kybernos: 'Refuser', en: 'Refuse' },
+      'kbta.r.refuse.hint': { kybernos: 'L’auteur voit ta raison et peut proposer à nouveau.', en: 'The author sees your reason and can propose again.' },
+      'kbta.r.reason': { kybernos: 'Raison (obligatoire)', en: 'Reason (required)' },
+      'kbta.r.reason.ph': { kybernos: 'Dis à l’auteur ce qu’il faut changer.', en: 'Tell the author what to change.' },
+      'kbta.r.reason.need': { kybernos: 'Écris la raison pour pouvoir refuser.', en: 'Write the reason to be able to refuse.' },
+      'kbta.r.reason.toolong': { kybernos: 'La raison dépasse {max} caractères : raccourcis-la.', en: 'The reason is over {max} characters: shorten it.' },
+      'kbta.r.go.approve': { kybernos: 'Approuver', en: 'Approve' },
+      'kbta.r.go.refuse': { kybernos: 'Refuser et envoyer la raison', en: 'Refuse and send the reason' },
+      'kbta.i.title': { kybernos: 'Installer « {name} »', en: 'Install “{name}”' },
+      'kbta.i.sub': { kybernos: '{v} · proposée par {by} · approuvée par {rev}', en: '{v} · proposed by {by} · approved by {rev}' },
+      'kbta.i.sub.norev': { kybernos: '{v} · proposée par {by}', en: '{v} · proposed by {by}' },
+      'kbta.i.what': { kybernos: 'Ce qu’elle fait', en: 'What it does' },
+      'kbta.i.copy': { kybernos: 'Ta copie', en: 'Your copy' },
+      'kbta.i.zone': { kybernos: '· dans ton fuseau horaire ({tz})', en: '· in your time zone ({tz})' },
+      'kbta.i.missing.one': { kybernos: 'Tu peux l’installer maintenant. Elle reste en pause tant que {apps} n’est pas connecté.', en: 'You can install it now. It stays paused until {apps} is connected.' },
+      'kbta.i.missing.many': { kybernos: 'Tu peux l’installer maintenant. Elle reste en pause tant que {apps} ne sont pas connectés.', en: 'You can install it now. It stays paused until {apps} are connected.' },
+      'kbta.i.connect': { kybernos: 'Connecter {app}', en: 'Connect {app}' },
+      'kbta.i.and': { kybernos: ' et ', en: ' and ' },
+      'kbta.i.where': { kybernos: 'Où elle tourne', en: 'Where it runs' },
+      'kbta.i.local': { kybernos: 'Cet ordinateur', en: 'This computer' },
+      'kbta.i.cloud': { kybernos: 'Ordinateur cloud · {name}', en: 'Cloud computer · {name}' },
+      'kbta.i.hint.local': { kybernos: 'Elle ne tourne que tant que DSH est ouvert sur cet ordinateur.', en: 'It runs only while DSH is open on this computer.' },
+      'kbta.i.hint.asleep': { kybernos: '{name} est en veille. Il se réveille à chaque exécution : cela marche ordinateur portable fermé.', en: '{name} is asleep. It wakes for each run, so it works with your laptop closed.' },
+      'kbta.i.hint.awake': { kybernos: '{name} est réveillé. Elle y tourne même ordinateur portable fermé.', en: '{name} is awake. It runs there even with your laptop closed.' },
+      'kbta.i.asks': { kybernos: 'Quand elle demande à agir', en: 'When it asks to act' },
+      'kbta.i.ask': { kybernos: 'Me demander d’abord', en: 'Ask me first' },
+      'kbta.i.recommended': { kybernos: 'recommandé', en: 'recommended' },
+      'kbta.i.ask.b': { kybernos: 'Chaque action qu’elle veut faire attend ta réponse.', en: 'Each action it wants to take waits for your answer.' },
+      'kbta.i.allow': { kybernos: 'Toujours autoriser', en: 'Always allow' },
+      'kbta.i.allow.b': { kybernos: 'Elle agit seule. Choisis ceci quand tu as vu une exécution.', en: 'It acts by itself. Choose this once you have watched a run.' },
+      'kbta.i.turnon': { kybernos: 'L’activer après l’installation', en: 'Turn it on after installing' },
+      'kbta.i.turnon.hint': { kybernos: 'Désactivé par défaut, pour que tu puisses lire la consigne d’abord.', en: 'Off by default, so you can read the prompt first.' },
+      'kbta.i.turnon.missing': { kybernos: 'Pas encore possible : connecte d’abord {apps}.', en: 'Not possible yet: connect {apps} first.' },
+      'kbta.i.go': { kybernos: 'Installer la copie en pause', en: 'Install paused copy' },
+      'kbta.i.go.on': { kybernos: 'Installer et activer', en: 'Install and turn on' },
+      'kbta.i.going': { kybernos: 'Installation…', en: 'Installing…' },
+      'kbta.i.done.on.t': { kybernos: 'Installée et activée', en: 'Installed and turned on' },
+      'kbta.i.done.on.b': { kybernos: 'Elle tournera {when} sur {where}. Elle est dans Tes automatisations, marquée comme copie d’équipe.', en: 'It will run {when} on {where}. It is in Yours, marked as a team copy.' },
+      'kbta.i.done.off.t': { kybernos: 'Installée, en pause', en: 'Installed, paused' },
+      'kbta.i.done.off.b': { kybernos: 'Elle est dans Tes automatisations, marquée comme copie d’équipe. Active-la quand tu es prêt{after}.', en: 'It is in Yours, marked as a team copy. Turn it on when you are ready{after}.' },
+      'kbta.i.done.after': { kybernos: ' (après avoir connecté {apps})', en: ' (after connecting {apps})' },
+      'kbta.i.where.local': { kybernos: 'cet ordinateur', en: 'this computer' },
+      'kbta.i.where.cloud': { kybernos: 'ton ordinateur cloud', en: 'your cloud computer' },
+      'kbta.i.done.cloud.err': { kybernos: 'Elle est installée ici, en pause, mais n’a pas pu être envoyée à l’ordinateur cloud : {why}', en: 'It is installed here, paused, but could not be sent to the cloud computer: {why}' },
+      'kbta.i.done.btn': { kybernos: 'Ouvrir dans Tes automatisations', en: 'Open in Yours' },
+      'kbta.u.title': { kybernos: 'Mettre à jour « {name} »', en: 'Update “{name}”' },
+      'kbta.u.sub': { kybernos: 'Tu as {old} · {new} approuvée {when} par {by}', en: 'You have {old} · {new} approved {when} by {by}' },
+      'kbta.u.sub.noby': { kybernos: 'Tu as {old} · {new} approuvée {when}', en: 'You have {old} · {new} approved {when}' },
+      'kbta.u.edited': { kybernos: 'Modifiée', en: 'Edited' },
+      'kbta.u.edited.b': { kybernos: 'Tu as modifié ta copie de cette automatisation. La mise à jour peut remplacer tes changements : choisis ce qu’ils deviennent.', en: 'You changed your copy of this automation. Updating can replace your changes — choose what happens to them.' },
+      'kbta.u.changes': { kybernos: 'Changements depuis {old}', en: 'Changes since {old}' },
+      'kbta.u.copy': { kybernos: 'Ta copie', en: 'Your copy' },
+      'kbta.u.keep': { kybernos: 'Garder ma copie', en: 'Keep my copy' },
+      'kbta.u.keep.b': { kybernos: 'Rester sur {old} avec tes changements. Tu pourras mettre à jour plus tard.', en: 'Stay on {old} with your changes. You can update later.' },
+      'kbta.u.both': { kybernos: 'Garder la mienne comme automatisation séparée, puis mettre à jour', en: 'Save mine as a separate automation, then update' },
+      'kbta.u.both.b': { kybernos: 'Ta version reste sous « {name} (mine) », en pause. La copie d’équipe passe à {new}.', en: 'Your version stays as “{name} (mine)”, paused. The team copy moves to {new}.' },
+      'kbta.u.replace': { kybernos: 'Remplacer par {new}', en: 'Replace with {new}' },
+      'kbta.u.replace.b': { kybernos: 'Tes changements sont perdus. Son horaire, son emplacement et ses permissions restent comme tu les as réglés.', en: 'Your changes are lost. Its schedule, place and permissions stay as you set them.' },
+      'kbta.u.clean': { kybernos: 'Tu n’as pas modifié ta copie : la mise à jour la remplace. Son horaire, son emplacement et ses permissions restent comme tu les as réglés.', en: 'You have not changed your copy, so the update replaces it. Its schedule, place and permissions stay as you set them.' },
+      'kbta.u.go.keep': { kybernos: 'Garder ma copie', en: 'Keep my copy' },
+      'kbta.u.go.both': { kybernos: 'Garder la mienne et mettre à jour', en: 'Save mine and update' },
+      'kbta.u.go.replace': { kybernos: 'Remplacer par {new}', en: 'Replace with {new}' },
+      'kbta.u.go.clean': { kybernos: 'Mettre à jour vers {new}', en: 'Update to {new}' },
+      'kbta.u.going': { kybernos: 'Mise à jour…', en: 'Updating…' },
+      'kbta.u.nobase': { kybernos: 'Impossible de montrer ce qui a changé : l’original de ta copie n’est plus disponible.', en: 'We cannot show what changed: the original of your copy is not available.' },
+      'kbta.n.updated': { kybernos: '« {name} » est passée à {v}.', en: '“{name}” is now on {v}.' },
+      'kbta.n.updated.both': { kybernos: '« {name} » est à jour. Ta version est gardée sous « {name} (mine) », en pause.', en: '“{name}” is updated. Your version is saved as “{name} (mine)”, paused.' },
+      'kbta.n.kept': { kybernos: 'Ta copie de « {name} » est gardée telle quelle.', en: 'Your copy of “{name}” was kept as it is.' },
+      'kbta.n.approved': { kybernos: '« {name} » est approuvée.', en: '“{name}” approved.' },
+      'kbta.n.refused': { kybernos: '« {name} » est refusée.', en: '“{name}” refused.' },
+      'kbta.n.withdrawn': { kybernos: 'Proposition retirée.', en: 'Proposal withdrawn.' },
+      'kbta.n.deleted': { kybernos: 'Supprimée de la liste.', en: 'Removed from the list.' },
+      'kbta.n.retired': { kybernos: '« {name} » est retirée de l’équipe.', en: '“{name}” retired from the team.' },
+      'kbta.e.admin_required': { kybernos: 'Seul un propriétaire ou un admin peut faire cela.', en: 'Only an owner or admin can do that.' },
+      'kbta.e.plan_required': { kybernos: 'Cette équipe n’a pas le plan Team : les automatisations d’équipe sont indisponibles.', en: 'This team does not have the Team plan, so team automations are not available.' },
+      'kbta.e.offre_requise': { kybernos: 'Cette équipe n’a pas le plan Team : les automatisations d’équipe sont indisponibles.', en: 'This team does not have the Team plan, so team automations are not available.' },
+      'kbta.e.scan_rejected': { kybernos: 'Le serveur a trouvé un secret dans l’automatisation. Rien n’a été envoyé.', en: 'The server found a secret in the automation. Nothing was sent.' },
+      'kbta.e.duplicate': { kybernos: 'Cette automatisation est déjà proposée ou approuvée telle quelle.', en: 'This automation is already proposed or approved as it is.' },
+      'kbta.e.not_pending': { kybernos: 'Quelqu’un a décidé avant toi. La liste a été rafraîchie.', en: 'Someone decided before you. The list has been refreshed.' },
+      'kbta.e.not_approved': { kybernos: 'Cette automatisation n’est plus approuvée.', en: 'It is not approved any more.' },
+      'kbta.e.team_full': { kybernos: 'L’équipe a déjà le nombre maximal d’automatisations (100).', en: 'The team already has the maximum number of automations (100).' },
+      'kbta.e.too_many_proposals': { kybernos: 'Tu as déjà le nombre maximal de propositions en attente (5).', en: 'You already have the maximum number of proposals waiting (5).' },
+      'kbta.e.too_large': { kybernos: 'L’automatisation est trop volumineuse.', en: 'The automation is too large.' },
+      'kbta.e.not_found': { kybernos: 'Cette automatisation n’existe plus.', en: 'This automation no longer exists.' },
+      'kbta.e.not_on_this_server': { kybernos: 'Ce serveur ne propose pas les automatisations d’équipe.', en: 'This server does not offer team automations.' },
+      'kbta.e.reconnect_required': { kybernos: 'Ta session Kybernos a expiré : reconnecte ton compte.', en: 'Your Kybernos session has expired: reconnect your account.' },
+      'kbta.e.network': { kybernos: 'Le serveur est injoignable. Rien n’a été modifié.', en: 'The server cannot be reached. Nothing was changed.' },
+      'kbta.e.non_connecte': { kybernos: 'Connecte-toi d’abord à ton compte Kybernos.', en: 'Sign in to your Kybernos account first.' },
+      'kbta.e.aucun_espace': { kybernos: 'Passe sur un espace d’équipe.', en: 'Switch to a team space.' },
+      'kbta.e.workspace_not_found': { kybernos: 'Cet espace d’équipe n’est plus accessible.', en: 'This team space is no longer available.' },
+      'kbta.e.forbidden': { kybernos: 'Le serveur a refusé.', en: 'The server refused.' },
+      'kbta.e.conflict': { kybernos: 'Le serveur ne peut pas faire cela maintenant.', en: 'The server cannot do that right now.' },
+      'kbta.e.bad_request': { kybernos: 'Le serveur n’a pas compris la demande.', en: 'The server did not understand the request.' },
+      'kbta.e.invalid_response': { kybernos: 'Réponse inattendue du serveur.', en: 'Unexpected answer from the server.' },
+      'kbta.e.absent': { kybernos: 'Ce DSH n’a pas encore chargé cette fonction. Redémarre-le.', en: 'This DSH has not loaded this feature yet. Restart it.' },
+      'kbta.e.invalid_automation': { kybernos: 'Le serveur refuse cette automatisation ({reason}).', en: 'The server refuses this automation ({reason}).' },
+      'kbta.e.invalid.key': { kybernos: 'Le nom ne donne pas un identifiant valide.', en: 'The name does not make a valid identifier.' },
+      'kbta.e.invalid.name': { kybernos: 'Le nom doit faire de 1 à 120 caractères.', en: 'The name must be 1 to 120 characters.' },
+      'kbta.e.invalid.description': { kybernos: 'La description doit faire de 1 à 500 caractères.', en: 'The description must be 1 to 500 characters.' },
+      'kbta.e.invalid.prompt': { kybernos: 'La consigne doit faire de 1 à 8 000 caractères.', en: 'The prompt must be 1 to 8,000 characters.' },
+      'kbta.e.invalid.schedule': { kybernos: 'Seule une automatisation récurrente ou par webhook peut être partagée.', en: 'Only a recurring or webhook automation can be shared.' },
+      'kbta.e.invalid.needs': { kybernos: 'La liste des applications n’est pas valide (6 au plus).', en: 'The list of apps is not valid (6 at most).' },
+      'kbta.e.invalid.binary': { kybernos: 'Le texte contient un caractère qui ne peut pas être enregistré.', en: 'The text holds a character that cannot be stored.' },
+      'kbta.e.invalid.too_large': { kybernos: 'L’automatisation est trop volumineuse.', en: 'The automation is too large.' },
+      'kbta.e.once_not_shareable': { kybernos: 'Une automatisation à date unique ne peut pas être partagée.', en: 'A one-time automation cannot be shared.' },
+      'kbta.e.empty_prompt': { kybernos: 'Cette automatisation n’a pas de consigne à partager.', en: 'This automation has no prompt to share.' },
+      'kbta.e.version_mismatch': { kybernos: 'Ce qui a été téléchargé ne correspond pas à la version approuvée. Rien n’a été installé.', en: 'What was downloaded does not match the approved version. Nothing was installed.' },
+      'kbta.e.already_installed': { kybernos: 'Tu as déjà cette automatisation. Utilise la mise à jour.', en: 'You already have this automation. Use the update.' },
+      'kbta.e.invalid_workspace': { kybernos: 'L’espace d’équipe n’est pas valide. Rien n’a été modifié.', en: 'The team space is not valid. Nothing was changed.' },
+      'kbta.e.store_unreadable': { kybernos: 'Ton fichier d’automatisations est illisible : rien n’a été écrit.', en: 'Your automations file cannot be read, so nothing was written.' },
+      'kbta.e.not_edited': { kybernos: 'Tu n’as pas modifié cette copie : il n’y a rien à garder, mets-la simplement à jour.', en: 'You have not edited this copy, so there is nothing to keep: just update it.' },
+      'kbta.e.key_mismatch': { kybernos: 'Cette copie ne correspond pas à cette automatisation d’équipe. Rien n’a été modifié.', en: 'This copy does not belong to this team automation. Nothing was changed.' },
+      'kbta.e.not_a_team_copy': { kybernos: 'Cette automatisation n’est plus une copie d’équipe. Rien n’a été modifié.', en: 'This automation is no longer a team copy. Nothing was changed.' },
+      'kbta.e.invalid_mode': { kybernos: 'Ce choix de mise à jour n’est pas valide.', en: 'This update choice is not valid.' },
+      'kbta.e.invalid_schedule': { kybernos: 'Son horaire n’a pas la forme que le serveur accepte : elle ne peut pas être partagée.', en: 'Its schedule does not have the shape the server accepts, so it cannot be shared.' },
+      'kbta.e.frequent_schedule': { kybernos: 'Son horaire se déclenche plus souvent que toutes les 5 minutes.', en: 'Its schedule runs more often than every 5 minutes.' },
+      'kbta.freq.t': { kybernos: 'Elle se déclenche très souvent', en: 'It runs very often' },
+      'kbta.freq.every': { kybernos: 'Elle tournerait toutes les {n} minutes.', en: 'It would run every {n} minutes.' },
+      'kbta.freq.every1': { kybernos: 'Elle tournerait toutes les minutes.', en: 'It would run every minute.' },
+      'kbta.freq.install': { kybernos: 'Installer quand même', en: 'Install anyway' },
+      'kbta.freq.update': { kybernos: 'Mettre à jour quand même', en: 'Update anyway' },
+      'kbta.i.turnon.unknown': { kybernos: 'Pas possible tant qu’on ne sait pas quelles applications sont connectées : elle est installée en pause.', en: 'Not possible while we cannot tell which apps are connected: it is installed paused.' },
+      'kbta.e.other': { kybernos: 'Échec ({code}).', en: 'Failed ({code}).' },
     }
 // ── Pont de langue (chantier RTL/arabe, 2026-09-25) ─────────────────────────
 // La page Réglages ▸ Thème ▸ Langue traduit à la demande (moteur LLM du plugin
@@ -21170,6 +21460,1057 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         detail,
         (C.paused > 0 ? h('p', { className: 'kbbd-foot' }, kbt(C.paused === 1 ? 'tasks.board.paused.one' : 'tasks.board.paused.many').replace('{n}', String(C.paused))) : null))
     }
+    // <kbta-block>
+    // ═══════════════════════════════════════════════════════════════════════════════════════════════
+    // ── Team automations ───────────────────────────────────────────────────────────────────────────
+    // The « Team » segment of the Automations page (docs/dev/team-automations-contract.md): a Team keeps a private catalogue of automations, a
+    // member proposes one of theirs, an owner or admin approves it, and every member installs it as a PAUSED copy that belongs to them.
+    // Three halves that never import each other (this page moves the data between them, and the server never sees a local id):
+    //   - kybernos-cloud:  /kybernos-cloud/team/automations*   the relay to the server (the account token, the active workspace);
+    //   - this plugin's host: /kybernos/automation/team-*       pack a local automation, list the copies, install, update;
+    //   - this page: the segment, the tab, and the four sheets (Propose, Review, Install, Update).
+    // The pure rules come first (<kbta-core>, tested alone by test-team-automations-client.mjs); the screens follow.
+
+    // <kbta-core>
+    // The note to the reviewers is at most 2 000 characters (the contract's « Trimming and the note »); the reason of a refusal is the same kind of text.
+    const KBTA_LIMITS = Object.freeze({ description: 500, note: 2000, reason: 2000, list: 200, needs: 6 })
+    const KBTA_ROUTE = '/kybernos-cloud/team/automations'
+    const KBTA_LOCAL = '/kybernos/automation/'
+    const KBTA_MARKS = new RegExp('[' + String.fromCharCode(0x300) + '-' + String.fromCharCode(0x36f) + ']', 'g')
+    const kbtaStr = (v) => (typeof v === 'string' ? v : '')
+    const kbtaOwn = (o, k) => o !== null && typeof o === 'object' && Object.prototype.hasOwnProperty.call(o, k)
+    /** Lower case, accents removed: what the search compares. */
+    const kbtaNorm = (s) => kbtaStr(s).normalize('NFD').replace(KBTA_MARKS, '').toLowerCase()
+    /** The `key` of a Team automation, derived from its name as the contract says: accents removed, lower case, other runs of characters become one « - », at most 64 characters. */
+    const kbtaKeyOf = (name) => kbtaNorm(name).replace(/[^a-z0-9]+/g, '-').replace(/^-+/, '').slice(0, 64).replace(/-+$/, '')
+    const kbtaLowerFirst = (s) => (s === '' ? '' : s.charAt(0).toLowerCase() + s.slice(1))
+    /** « Léa Martin » → « Léa M. »: not needed, the server already sends the display name. A name that is only blanks is « — ». */
+    const kbtaWho = (s) => (kbtaStr(s).trim() === '' ? '—' : kbtaStr(s).trim())
+
+    /** The schedule of a definition as the contract writes it: `{ mode: 'cron', cron }` or `{ mode: 'webhook' }`, never a zone. */
+    const kbtaSchedule = (s) => {
+      if (s !== null && typeof s === 'object' && s.mode === 'webhook') return { mode: 'webhook' }
+      return { mode: 'cron', cron: kbtaStr(s !== null && typeof s === 'object' ? s.cron : '').trim().split(/\s+/).join(' ') }
+    }
+    const kbtaSameSchedule = (a, b) => {
+      const x = kbtaSchedule(a)
+      const y = kbtaSchedule(b)
+      return x.mode === y.mode && (x.mode === 'webhook' || x.cron === y.cron)
+    }
+    /** The apps a definition needs: names only, unique, sorted, at most six. */
+    const kbtaNeeds = (v) => Array.from(new Set((Array.isArray(v) ? v : []).filter((x) => typeof x === 'string' && /^[a-z0-9_-]{2,40}$/.test(x)))).sort().slice(0, KBTA_LIMITS.needs)
+
+    /** A row of the relay (or of a stand-in): the fields the page uses, under one spelling. Both spellings of a name are read, the server's (`proposed_by_name`) and the relay's (`proposedName`). */
+    const kbtaRow = (r) => {
+      const o = r !== null && typeof r === 'object' && Array.isArray(r) !== true ? r : {}
+      const first = (a, b) => (o[a] !== undefined && o[a] !== null ? o[a] : (o[b] !== undefined && o[b] !== null ? o[b] : null))
+      const text = (v) => (typeof v === 'string' ? v : null)
+      return {
+        id: o.id === undefined ? null : o.id,
+        key: kbtaStr(o.key),
+        name: kbtaStr(o.name),
+        description: kbtaStr(o.description),
+        version: kbtaStr(o.version),
+        revision: Number.isInteger(o.revision) && o.revision > 0 ? o.revision : null,
+        status: kbtaStr(o.status),
+        schedule: kbtaSchedule(o.schedule),
+        needs: kbtaNeeds(o.needs),
+        prompt: typeof o.prompt === 'string' ? o.prompt : null,
+        proposedBy: text(first('proposedName', 'proposed_by_name')),
+        proposedAt: text(first('proposedAt', 'proposed_at')),
+        reviewedBy: text(first('reviewedName', 'reviewed_by_name')),
+        reviewedAt: text(first('reviewedAt', 'reviewed_at')),
+        note: text(o.note),
+        reviewNote: text(first('reviewNote', 'review_note')),
+        replaces: first('replaces', 'replaces'),
+        supersededBy: first('supersededBy', 'superseded_by'),
+        mine: o.mine === true,
+      }
+    }
+    /** The version of a definition as the page names it: « v4 » when the row carries its number, else the first characters of its hash (the contract has no number). */
+    const kbtaVer = (row) => {
+      if (row === null || typeof row !== 'object') return ''
+      if (Number.isInteger(row.revision) && row.revision > 0) return 'v' + String(row.revision)
+      const v = kbtaStr(row.version)
+      return v === '' ? '' : '#' + v.slice(0, 7)
+    }
+
+    /** What a local automation (a team copy) is to the approved item with its key: install, update (another version), or installed (the same one). */
+    const kbtaRelation = (item, copies, workspaceId) => {
+      const mine = (Array.isArray(copies) ? copies : []).filter((c) => c !== null && typeof c === 'object' && c.key === item.key && (workspaceId === '' || c.workspaceId === workspaceId))
+      if (mine.length === 0) return { kind: 'install', copy: null, edited: false }
+      const same = mine.find((c) => c.version === item.version)
+      if (same !== undefined) return { kind: 'installed', copy: same, edited: same.edited === true }
+      return { kind: 'update', copy: mine[0], edited: mine[0].edited === true }
+    }
+    /** The button of a row of the approved table: `{ kind, primary, disabled }`; the words are the screen's. `ready` is false while the host half has not answered (nothing can be installed then). */
+    const kbtaRowButton = (rel, ready) => ({
+      kind: rel.kind,
+      primary: rel.kind === 'install',
+      disabled: rel.kind === 'installed' || ready !== true,
+    })
+
+    /** Why the Team tab shows what it shows. `answer` is the relay's list answer (null when it was not JSON: kybernos-cloud is not loaded). `space` is `{ personal }` from the account state, when it was read.
+     *  null = no lock; 'absent' = the tab does not exist here; else plan | signin | personal | server | reconnect | net | other. */
+    const KBTA_LOCK_WORDS = Object.freeze({
+      non_connecte: 'signin', 'non connecte': 'signin', not_signed_in: 'signin', signed_out: 'signin', unauthorized: 'reconnect',
+      plan_required: 'plan', offre_requise: 'plan', aucun_espace: 'space', workspace_not_found: 'space',
+      not_on_this_server: 'server', reconnect_required: 'reconnect', network: 'net',
+    })
+    const kbtaLockKind = (answer, space) => {
+      if (answer === null || typeof answer !== 'object' || Array.isArray(answer) === true) return 'absent'
+      if (answer.ok === true) return null
+      if (answer.error === 'absent') return 'absent'
+      if (answer.connected === false) return 'signin'
+      const word = typeof answer.error === 'string' ? answer.error : ''
+      const kind = kbtaOwn(KBTA_LOCK_WORDS, word) ? KBTA_LOCK_WORDS[word] : 'other'
+      const personal = space !== null && typeof space === 'object' && space.personal === true
+      if (kind === 'space') return 'personal'
+      // A personal space has no plan with the feature either: the server (and the relay) answer « plan » for both, the account state tells them apart.
+      if (kind === 'plan' && personal) return 'personal'
+      return kind
+    }
+    /** The active space as the account state tells it: `{ id, name, personal, plan }` (empty strings when unknown). */
+    const kbtaSpaceOf = (status) => {
+      const st = status !== null && typeof status === 'object' && status.state !== null && typeof status.state === 'object' ? status.state : null
+      if (st === null) return { id: '', name: '', personal: false, plan: '' }
+      const spaces = Array.isArray(st.workspaces) ? st.workspaces.filter((w) => w !== null && typeof w === 'object') : []
+      const id = kbtaStr(st.active_workspace_id)
+      const active = spaces.find((w) => w.id === id)
+      const sp = st.space_plan !== null && typeof st.space_plan === 'object' && st.space_plan.workspace_id === id ? st.space_plan : null
+      const plan = sp !== null ? kbtaStr(sp.name) || kbtaStr(sp.key) : ''
+      return {
+        id,
+        name: active === undefined ? '' : kbtaStr(active.name),
+        personal: active !== undefined && active.personal === true,
+        plan: plan === '' ? '' : plan.charAt(0).toUpperCase() + plan.slice(1),
+      }
+    }
+    /** The initial in the segment: the first letter of the team's name, upper case. */
+    const kbtaInitial = (name) => { const s = kbtaStr(name).trim(); return s === '' ? '' : Array.from(s)[0].toUpperCase() }
+
+    /** A role that reviews: an owner or an admin. */
+    const kbtaIsAdmin = (role) => role === 'owner' || role === 'admin'
+    /** The filter the person asked for, among the ones this role has (a member has no « To review »). */
+    const kbtaView = (view, role) => (view === 'review' && kbtaIsAdmin(role) !== true ? 'approved' : (view === 'mine' || view === 'review' ? view : 'approved'))
+    /** Does an item match the search box? Every word, in the name, the description, the author or the apps it needs, accents and case ignored. */
+    const kbtaMatch = (row, query) => {
+      const words = kbtaNorm(query).split(/\s+/).filter((w) => w !== '')
+      if (words.length === 0) return true
+      const hay = kbtaNorm([row.name, row.description, row.proposedBy, row.key, Array.isArray(row.needs) ? row.needs.join(' ') : ''].join(' '))
+      return words.every((w) => hay.indexOf(w) >= 0)
+    }
+
+    /** A line diff for the reviewer and the updater: `{ k: 'ctx' | 'add' | 'del' | 'gap', t }` lines, two lines of context around a change. null when a side is too long to compare. */
+    const kbtaLineDiff = (before, after) => {
+      const a = kbtaStr(before).split('\n')
+      const b = kbtaStr(after).split('\n')
+      if (a.length > 400 || b.length > 400) return null
+      const n = a.length
+      const m = b.length
+      const dp = []
+      for (let i = 0; i <= n; i++) dp.push(new Array(m + 1).fill(0))
+      for (let i = n - 1; i >= 0; i--) for (let j = m - 1; j >= 0; j--) dp[i][j] = a[i] === b[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1])
+      const out = []
+      let i = 0
+      let j = 0
+      while (i < n && j < m) {
+        if (a[i] === b[j]) { out.push({ k: 'ctx', t: a[i] }); i++; j++ } else if (dp[i + 1][j] >= dp[i][j + 1]) { out.push({ k: 'del', t: a[i] }); i++ } else { out.push({ k: 'add', t: b[j] }); j++ }
+      }
+      while (i < n) out.push({ k: 'del', t: a[i++] })
+      while (j < m) out.push({ k: 'add', t: b[j++] })
+      const keep = out.map(() => false)
+      out.forEach((l, at) => { if (l.k !== 'ctx') for (let d = -2; d <= 2; d++) if (at + d >= 0 && at + d < out.length) keep[at + d] = true })
+      const lines = []
+      let gap = false
+      out.forEach((l, at) => {
+        if (keep[at]) { if (gap) lines.push({ k: 'gap', t: '…' }); lines.push(l); gap = false } else gap = true
+      })
+      if (gap) lines.push({ k: 'gap', t: '…' })
+      return lines
+    }
+    /** What changed between the definition as it was (`base`: the copy's own record of it, or the previously approved item) and the one on offer. */
+    const kbtaChanges = (base, next) => {
+      const was = base !== null && typeof base === 'object' ? base : {}
+      const now = next !== null && typeof next === 'object' ? next : {}
+      const nameChanged = kbtaStr(was.name) !== kbtaStr(now.name)
+      const whenChanged = kbtaSameSchedule(was.schedule, now.schedule) !== true
+      const wasNeeds = kbtaNeeds(was.needs)
+      const nowNeeds = kbtaNeeds(now.needs)
+      const needsChanged = wasNeeds.join(',') !== nowNeeds.join(',')
+      const promptChanged = kbtaStr(was.prompt) !== kbtaStr(now.prompt)
+      const diff = promptChanged ? kbtaLineDiff(was.prompt, now.prompt) : []
+      return {
+        name: nameChanged, when: whenChanged, needs: needsChanged, prompt: promptChanged,
+        same: nameChanged !== true && whenChanged !== true && needsChanged !== true && promptChanged !== true,
+        diff, tooLong: diff === null,
+        added: nowNeeds.filter((x) => wasNeeds.indexOf(x) < 0), removed: wasNeeds.filter((x) => nowNeeds.indexOf(x) < 0),
+      }
+    }
+    /** The mode an update starts on: a copy the person edited keeps their work (nothing is lost until they choose it); an untouched one is simply replaced. */
+    const kbtaUpdateStart = (edited) => (edited === true ? 'both' : 'replace')
+    const KBTA_UPDATE_MODES = Object.freeze(['keep', 'both', 'replace'])
+
+    /** A line of the prompt the scanner flagged, with whatever looks like a secret hidden: a word with a digit in it (6 characters or more), or a very long one, keeps its first letters only. */
+    const kbtaMask = (line) => {
+      const text = kbtaStr(line).replace(/\s+$/, '')
+      const clip = text.length > 160 ? text.slice(0, 160) + '…' : text
+      return clip.split(/(\s+)/).map((tok) => {
+        if (tok === '' || /^\s+$/.test(tok)) return tok
+        const core = tok.replace(/^[^A-Za-z0-9]+|[^A-Za-z0-9]+$/g, '')
+        if (core.length < 6 || (/[0-9]/.test(core) !== true && core.length < 20)) return tok
+        const lead = /^[A-Za-z]{0,6}[-_]/.exec(core)
+        return tok.slice(0, tok.indexOf(core)) + (lead === null ? core.slice(0, 2) : lead[0]) + '•'.repeat(8) + tok.slice(tok.indexOf(core) + core.length)
+      }).join('')
+    }
+    /** The line N (1-based) of a prompt, or ''. */
+    const kbtaLineOf = (prompt, n) => { const lines = kbtaStr(prompt).split('\n'); return Number.isInteger(n) && n >= 1 && n <= lines.length ? lines[n - 1] : '' }
+    /** Where the server's scan hit: `{ field: 'name' | 'description' | 'note' | 'prompt', line }`, or null when the answer is not a scan refusal. */
+    const kbtaScanHit = (answer) => {
+      if (answer === null || typeof answer !== 'object' || answer.error !== 'scan_rejected') return null
+      const field = answer.field === 'name' || answer.field === 'description' || answer.field === 'note' ? answer.field : 'prompt'
+      return { field, line: field === 'prompt' && Number.isInteger(answer.line) && answer.line >= 1 ? answer.line : null }
+    }
+
+    /** The body of a proposal (and of its dry run): the definition the host packed, with the description the person left in the field. Name, description and prompt go TRIMMED (the contract hashes them trimmed). */
+    const kbtaProposalBody = (proposal, description, note) => {
+      const p = proposal !== null && typeof proposal === 'object' ? proposal : {}
+      const body = {
+        key: kbtaStr(p.key), name: kbtaStr(p.name).trim(), description: kbtaStr(description).trim(),
+        prompt: kbtaStr(p.prompt).trim(), schedule: kbtaSchedule(p.schedule), needs: kbtaNeeds(p.needs),
+      }
+      const n = kbtaStr(note).trim()
+      if (n !== '') body.note = n
+      return body
+    }
+    /** Is this description fit to send? 1 to 500 characters once trimmed (the length the field counts). */
+    const kbtaDescriptionLen = (d) => kbtaStr(d).trim().length
+    const kbtaDescriptionOk = (d) => { const n = kbtaDescriptionLen(d); return n >= 1 && n <= KBTA_LIMITS.description }
+    /** The note to the reviewers: optional, at most 2 000 characters once trimmed. Beyond that Send stays off and the sheet says why (the text is never cut for the person). */
+    const kbtaNoteLen = (n) => kbtaStr(n).trim().length
+    const kbtaNoteOk = (n) => kbtaNoteLen(n) <= KBTA_LIMITS.note
+    const kbtaDefinition = (item) => ({ id: item.id, key: item.key, name: item.name, description: item.description, prompt: kbtaStr(item.prompt), schedule: kbtaSchedule(item.schedule), needs: kbtaNeeds(item.needs), version: item.version })
+    /** The body the host's `team-install` takes: the approved definition (with the server id), the workspace, the approval mode and the switch. `confirmFrequent` is sent only after the person said yes to an every-minute rhythm. */
+    const kbtaInstallBody = (item, workspaceId, approvals, turnOn, confirmFrequent) => {
+      const body = { definition: kbtaDefinition(item), workspaceId, approvals: approvals === 'auto' ? 'auto' : 'ask', turnOn: turnOn === true }
+      if (confirmFrequent === true) body.confirmFrequent = true
+      return body
+    }
+    /** The body of `team-update`. */
+    const kbtaUpdateBody = (taskId, item, mode, confirmFrequent) => {
+      const body = { taskId, mode: KBTA_UPDATE_MODES.indexOf(mode) >= 0 ? mode : 'replace', definition: kbtaDefinition(item) }
+      if (confirmFrequent === true) body.confirmFrequent = true
+      return body
+    }
+    /** The host refuses a rhythm under 5 minutes unless the request carries `confirmFrequent`: that answer is a question for the person, not an error. */
+    const kbtaIsFrequent = (answer) => answer !== null && typeof answer === 'object' && answer.ok === false && answer.error === 'frequent schedule'
+    /** The switch « Turn it on after installing »: off while an app the automation needs is not connected, and while it cannot be told (nothing is turned on by guess). Returns `{ allowed, missing, known }`. */
+    const kbtaTurnOn = (needs, conn) => {
+      const list = Array.isArray(needs) ? needs : []
+      const states = list.map((s) => kbtaConnected(conn, s))
+      const missing = list.filter((s, i) => states[i] === false)
+      const known = states.every((x) => x !== null)
+      return { allowed: missing.length === 0 && known, missing, known }
+    }
+    /** The apps a list of rows asks for, once each (the connections are read for all of them in one go). */
+    const kbtaSlugsOf = (rows) => Array.from(new Set([].concat(...(Array.isArray(rows) ? rows : []).map((r) => (r !== null && typeof r === 'object' && Array.isArray(r.needs) ? r.needs : []))))).sort().slice(0, 40)
+    /** Is an app connected, according to the connections the connectors plugin reported (`null` = not known yet)? */
+    const kbtaConnected = (conn, slug) => {
+      if (conn === null || conn === undefined || typeof conn !== 'object' || conn.ok !== true || Array.isArray(conn.connections) !== true) return null
+      return conn.connections.some((c) => c !== null && typeof c === 'object' && c.toolkit === slug && Array.isArray(c.accounts) && c.accounts.length > 0)
+    }
+    /** The local automation a team item comes from or goes back to: the copy's own mark first, else the same key. */
+    const kbtaTaskForKey = (tasks, key) => (Array.isArray(tasks) ? tasks : []).find((t) => t !== null && typeof t === 'object' && t.suggested !== true && (kbtaOwn(t, 'team') && t.team !== null && typeof t.team === 'object' ? t.team.key === key : kbtaKeyOf(t.name) === key)) || null
+    /** The words of a relay answer that are not locks: the code to show a sentence for. */
+    const kbtaCode = (answer) => (answer !== null && typeof answer === 'object' && typeof answer.error === 'string' && answer.error !== '' ? answer.error : 'other')
+    // </kbta-core>
+
+    // ── The screens of the Team tab ───────────────────────────────────────────────────────────────
+    /** A sentence of the table with its `{name}` holes filled (split and join: a value holding « $& » stays as written). */
+    const kbtaT = (key, vars) => {
+      let s = kbt(key)
+      if (vars !== undefined && vars !== null) for (const n of Object.keys(vars)) s = s.split('{' + n + '}').join(String(vars[n]))
+      return s
+    }
+    /** One word of the relay or of the host → a sentence, in the page's language. A word nobody planned is still shown, with its code. */
+    const kbtaSay = (answer) => {
+      const code = kbtaCode(answer)
+      if (code === 'invalid_automation') {
+        const reason = answer !== null && typeof answer === 'object' && typeof answer.reason === 'string' ? answer.reason : ''
+        const rk = 'kbta.e.invalid.' + reason.replace(/[^a-z_]+/g, '')
+        if (reason !== '' && kbt(rk) !== rk) return kbt(rk)
+        return kbtaT('kbta.e.invalid_automation', { reason: reason === '' ? '?' : reason })
+      }
+      const key = 'kbta.e.' + code.replace(/[^A-Za-z0-9_]+/g, '_')
+      const text = kbt(key)
+      return text === key ? kbtaT('kbta.e.other', { code }) : text
+    }
+    /** A call to the relay or to the host half. Never throws: a page that is not JSON means the route is not there (`absent`), a dropped request is `network`. */
+    const kbtaCall = async (method, path, body) => {
+      try {
+        const res = await fetch(path, method === 'GET'
+          ? { method: 'GET', cache: 'no-store', credentials: 'same-origin', headers: { accept: 'application/json' } }
+          : { method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/json', accept: 'application/json' }, body: JSON.stringify(body === undefined ? {} : body) })
+        let json = null
+        try { json = await res.json() } catch (e) { json = null }
+        if (json !== null && typeof json === 'object' && Array.isArray(json) !== true) return json
+        return { ok: false, error: res.status >= 500 ? 'invalid_response' : 'absent', status: res.status }
+      } catch (e) { return { ok: false, error: 'network' } }
+    }
+    /** The item of an `…/item?id=` answer, as a normal row (with its prompt), or null. */
+    const kbtaItemOf = (j) => {
+      if (j === null || typeof j !== 'object' || j.ok !== true) return null
+      const raw = j.automation !== undefined && j.automation !== null ? j.automation : (j.item !== undefined && j.item !== null ? j.item : (typeof j.prompt === 'string' ? j : null))
+      if (raw === null || typeof raw !== 'object' || typeof raw.prompt !== 'string') return null
+      return kbtaRow(raw)
+    }
+    /** How long ago, in the page's words (« 2 hours ago », « yesterday »), else the date. */
+    const kbtaAgo = (iso) => {
+      const ms = Date.parse(iso)
+      if (Number.isFinite(ms) !== true) return ''
+      const ago = kbRunAgo(ms, Date.now(), kbBoardLocale())
+      return ago !== '' ? ago : kbWhenOf(iso)
+    }
+    /** When it runs, in words: the page's own label of a schedule (a Team definition has no zone: every member reads it in theirs). */
+    const kbtaWhenLabel = (schedule) => kbTriggerParts({ schedule: kbtaSchedule(schedule) }, kbt, kbBoardLocale(), '').label
+    const kbtaChip = (kind, text, extra) => h('span', Object.assign({ className: 'kbta-chip' + (kind === '' ? '' : ' ' + kind) }, extra === undefined ? null : extra), text)
+    const kbtaAppName = (slug) => kbAppName(slug)
+    /** The chips of the apps a definition needs; an app that is known not to be connected says so (and is drawn as a warning). */
+    const kbtaNeedChips = (needs, conn) => (needs.length === 0
+      ? [h('span', { key: 'none', className: 'kba-team' }, '—')]
+      : needs.map((slug) => {
+        const on = kbtaConnected(conn, slug)
+        return h('span', { key: slug, className: 'kbta-chip' + (on === false ? ' warn' : ''), 'data-app': slug, title: on === false ? kbtaT('kbta.notconn', { app: kbtaAppName(slug) }) : undefined }, on === false ? kbtaT('kbta.notconn', { app: kbtaAppName(slug) }) : kbtaAppName(slug))
+      }))
+    /** « New automation » or « Update · v3 → v4 » (the old one is the approved row this proposal replaces). */
+    const kbtaKindOf = (row, approvedRows) => {
+      if (row.replaces === null || row.replaces === undefined) return kbt('kbta.k.new')
+      const old = (Array.isArray(approvedRows) ? approvedRows : []).find((x) => x.id === row.replaces)
+      return old !== undefined ? kbtaT('kbta.k.upd', { old: kbtaVer(old), new: kbtaVer(row) }) : kbt('kbta.k.upd.plain')
+    }
+    const kbtaIcon = (name, size) => Icon(name, size === undefined ? 14 : size)
+    const kbtaBlank = () => ({ phase: 'loading', rows: [], counts: null, error: null })
+
+    // Why the tab says nothing to do: signed out, a personal space, no plan, a server without the routes, offline. One screen, one sentence, one door out.
+    const KbTeamLocked = (props) => {
+      const kind = props.kind
+      const known = ['plan', 'signin', 'personal', 'server', 'net', 'reconnect'].indexOf(kind) >= 0
+      const planPair = React.useState('')
+      React.useEffect(() => {
+        if (kind !== 'plan') return undefined
+        let alive = true
+        fetch('/kybernos-cloud/server', { headers: { accept: 'application/json' } }).then((r) => r.json().catch(() => null))
+          .then((j) => { if (alive === true && j !== null && j.ok === true && j.server !== null && typeof j.server === 'object' && typeof j.server.console === 'string') planPair[1](j.server.console) })
+          .catch(() => { /* no link: the plain button below asks the account menu */ })
+        return () => { alive = false }
+      }, [kind])
+      const fire = (name, detail) => { try { window.dispatchEvent(new CustomEvent(name, detail === undefined ? undefined : { detail })) } catch (e) { /* no window events here */ } }
+      const spaceId = props.space !== null && props.space !== undefined && typeof props.space.id === 'string' ? props.space.id : ''
+      const btn = (id, label, onClick, primary) => h('button', { key: id, type: 'button', className: 'kba-btn' + (primary === true ? ' pri' : ''), 'data-kb': 'team-lock-' + id, onClick }, label)
+      const acts = []
+      if (kind === 'plan') acts.push(planPair[0] !== '' ? h('a', { key: 'plans', className: 'kba-btn pri', 'data-kb': 'team-lock-plans', href: planPair[0], target: '_blank', rel: 'noopener noreferrer', style: { textDecoration: 'none' } }, kbt('kbta.cta.plans')) : btn('plans', kbt('kbta.cta.plans'), () => fire('kybernos-cloud:plan', spaceId === '' ? undefined : { workspace_id: spaceId }), true))
+      else if (kind === 'signin' || kind === 'reconnect') acts.push(btn('signin', kbt('kbta.cta.signin'), () => fire('kybernos-cloud:open'), true))
+      else if (kind === 'personal') { acts.push(btn('create', kbt('kbta.cta.create'), () => fire('kybernos-cloud:open'), true)); acts.push(btn('join', kbt('kbta.cta.join'), () => fire('kybernos-cloud:open'))) }
+      else if (kind === 'server') acts.push(btn('servers', kbt('kbta.cta.servers'), () => kbOpenSettingsPage(['kybernos-servers']), true))
+      else acts.push(btn('retry', kbt('kbta.retry'), () => { if (typeof props.onRetry === 'function') props.onRetry() }, true))
+      if ((kind === 'reconnect' || kind === 'other') && typeof props.onRetry === 'function') acts.push(btn('retry', kbt('kbta.retry'), () => props.onRetry()))
+      const plan = kind === 'plan' && typeof props.plan === 'string' && props.plan !== '' ? kbtaT('kbta.lock.plan.yours', { plan: props.plan }) : ''
+      return h('div', { className: 'kba-card kbta-lock', 'data-kb': 'team-locked', 'data-lock': kind, role: 'status' },
+        kbtaIcon(kind === 'net' || kind === 'other' || kind === 'server' ? 'triangleAlert' : 'lock', 28),
+        h('div', { className: 'kbta-lock-t' }, known ? kbt('kbta.lock.' + kind + '.t') : kbt('kbta.lock.other.t')),
+        h('div', { className: 'kbta-lock-b' }, known ? plan + kbt('kbta.lock.' + kind + '.b') : kbtaT('kbta.lock.other.b', { code: props.detail === undefined || props.detail === '' ? '?' : props.detail })),
+        h('div', { className: 'kbta-lock-acts' }, acts))
+    }
+
+    // The drawer every sheet of the tab sits in: a title, a body that scrolls, a foot with the way out and the way on. Escape and a press outside close it (not while it is sending).
+    const KbTaSheet = (props) => {
+      const boxRef = React.useRef(null)
+      const latest = React.useRef(props)
+      latest.current = props
+      React.useEffect(() => {
+        let opener = null
+        try { opener = document.activeElement } catch (e) { opener = null }
+        try { if (boxRef.current !== null && typeof boxRef.current.focus === 'function') boxRef.current.focus() } catch (e) { /* focus */ }
+        const onKey = (e) => {
+          if (e === null || e === undefined) return
+          if (e.key === 'Escape') { e.stopPropagation(); if (latest.current.busy !== true) latest.current.onClose(); return }
+          if (e.key !== 'Tab' || boxRef.current === null) return
+          const list = Array.from(boxRef.current.querySelectorAll('button,input,select,textarea,a[href]')).filter((x) => x.disabled !== true)
+          if (list.length === 0) return
+          const at = list.indexOf(document.activeElement)
+          const to = at < 0 ? (e.shiftKey === true ? list.length - 1 : 0) : (at + (e.shiftKey === true ? -1 : 1) + list.length) % list.length
+          if (at < 0 || (e.shiftKey !== true && at === list.length - 1) || (e.shiftKey === true && at === 0)) { e.preventDefault(); e.stopPropagation(); list[to].focus() }
+        }
+        document.addEventListener('keydown', onKey, true)
+        return () => { document.removeEventListener('keydown', onKey, true); try { if (opener !== null && opener !== undefined && typeof opener.focus === 'function') opener.focus() } catch (e) { /* focus */ } }
+      }, [])
+      const f = props.footer
+      const busy = props.busy === true
+      return kbPortalDe(h('div', { className: 'kbta-scrim', 'data-kb': 'team-scrim', onMouseDown: (e) => { if (e !== null && e.target === e.currentTarget && busy !== true) props.onClose() } },
+        h('div', { className: 'kbta-sheet', role: 'dialog', 'aria-modal': 'true', 'aria-label': props.title, 'data-kb': 'team-sheet', 'data-sheet': props.kind, tabIndex: -1, ref: boxRef },
+          h('div', { className: 'kbta-shead' },
+            h('div', { className: 'kbta-sheadtxt' }, h('div', { className: 'kbta-stitle' }, props.title), props.sub !== undefined && props.sub !== '' ? h('div', { className: 'kbta-ssub' }, props.sub) : null),
+            h('button', { type: 'button', className: 'kba-btn kbta-x', 'aria-label': kbt('kbta.sheet.close'), title: kbt('kbta.sheet.close'), 'data-kb': 'team-sheet-close', disabled: busy, onClick: props.onClose }, '✕')),
+          h('div', { className: 'kbta-sbody' }, props.children),
+          h('div', { className: 'kbta-sfoot' },
+            f.note !== undefined && f.note !== '' ? h('span', { className: 'kbta-fnote', 'data-kb': 'team-sheet-note' }, f.note) : null,
+            f.cancel !== false ? h('button', { type: 'button', className: 'kba-btn', 'data-kb': 'team-sheet-cancel', disabled: busy, onClick: props.onClose }, kbt('kbta.cancel')) : null,
+            h('button', { type: 'button', className: 'kba-btn pri', 'data-kb': 'team-sheet-go', disabled: f.disabled === true || busy, onClick: f.go }, f.label)))))
+    }
+    const kbtaLab = (text, extra) => h('div', Object.assign({ className: 'kbta-lab' }, extra === undefined ? null : extra), text)
+    const kbtaKv = (rows) => h('div', { className: 'kbta-card' }, rows.map((r) => h('div', { key: r[0], className: 'kbta-kv' }, h('span', { className: 'kbta-k' }, r[0]), h('span', { className: 'kbta-v' }, r[1]))))
+    const kbtaOpt = (props, on, content) => h('button', Object.assign({ type: 'button', role: 'radio', 'aria-checked': on ? 'true' : 'false', className: 'kbwr-opt' + (on ? ' on' : '') }, props), h('i', { className: 'kbwr-radio' + (on ? ' on' : '') }), content)
+    const kbtaDiffBox = (diff) => (diff === null
+      ? h('div', { className: 'kbta-card kbta-dim' }, kbt('kbta.r.toolong'))
+      : h('div', { className: 'kbta-card kbta-diff', 'data-kb': 'team-diff' }, diff.map((l, i) => h('div', { key: i, className: 'kbta-dl ' + l.k, 'data-k': l.k }, (l.k === 'del' ? '− ' : (l.k === 'add' ? '+ ' : (l.k === 'gap' ? '' : '  '))) + l.t))))
+    /** The lines that say what else changed than the prompt: the name, the time, the apps; then what stayed the same. */
+    const kbtaChangeLines = (ch, v) => {
+      const out = []
+      if (ch.name) out.push(h('div', { key: 'n', className: 'kbta-chg' }, kbtaT('kbta.chg.name', { a: ch.was.name, b: ch.now.name })))
+      if (ch.when) out.push(h('div', { key: 'w', className: 'kbta-chg' }, kbtaT('kbta.chg.when', { a: kbtaWhenLabel(ch.was.schedule), b: kbtaWhenLabel(ch.now.schedule) })))
+      if (ch.added.length > 0) out.push(h('div', { key: 'a', className: 'kbta-chg' }, kbtaT('kbta.chg.add', { apps: ch.added.map(kbtaAppName).join(', ') })))
+      if (ch.removed.length > 0) out.push(h('div', { key: 'r', className: 'kbta-chg' }, kbtaT('kbta.chg.del', { apps: ch.removed.map(kbtaAppName).join(', ') })))
+      const same = ch.when !== true && ch.needs !== true ? 'both' : (ch.when !== true ? 'when' : (ch.needs !== true ? 'needs' : ''))
+      if (same !== '') out.push(h('div', { key: 's', className: 'kbta-dimline' }, kbtaT('kbta.same.' + same, { v })))
+      return out
+    }
+
+    // ── Propose: choose one of yours, see what the team will see, the dry run, a note, send ───────────
+    const KbTaPropose = (props) => {
+      const admin = props.admin === true
+      const tasks = kbTasksList(props.tasks)
+      const start = typeof props.taskId === 'string' && tasks.some((t) => t.id === props.taskId) ? props.taskId : ''
+      const [pick, setPick] = React.useState(start)
+      const [pack, setPack] = React.useState({ phase: 'idle' })
+      const [desc, setDesc] = React.useState('')
+      const [note, setNote] = React.useState('')
+      const [check, setCheck] = React.useState({ phase: 'idle' })
+      const [repack, setRepack] = React.useState(0)
+      const [recheck, setRecheck] = React.useState(0)
+      const [sending, setSending] = React.useState(false)
+      const [err, setErr] = React.useState('')
+      const [sent, setSent] = React.useState(false)
+      const alive = React.useRef(true)
+      // The description is the host's sentence until the person writes their own; reading the automation again keeps what they wrote.
+      const touched = React.useRef(false)
+      React.useEffect(() => { alive.current = true; return () => { alive.current = false } }, [])
+      // The host reads the automation and says what would travel; nothing leaves the computer here.
+      React.useEffect(() => {
+        if (pick === '') { setPack({ phase: 'idle' }); setCheck({ phase: 'idle' }); return undefined }
+        let stop = false
+        setPack({ phase: 'loading' }); setCheck({ phase: 'idle' }); setErr('')
+        kbtaCall('POST', KBTA_LOCAL + 'team-pack', { id: pick }).then((j) => {
+          if (stop || alive.current !== true) return
+          if (j.ok === true && j.proposal !== null && typeof j.proposal === 'object') {
+            setPack({ phase: 'ready', proposal: j.proposal, team: j.team !== undefined ? j.team : null })
+            if (touched.current !== true) setDesc(kbtaStr(j.proposal.description).trim().slice(0, KBTA_LIMITS.description))
+          } else setPack({ phase: 'bad', text: kbtaSay(j) })
+        })
+        return () => { stop = true }
+      }, [pick, repack])
+      // The dry run on the server: it validates and scans, and stores nothing. It runs again when the description or the note changes (both are scanned).
+      React.useEffect(() => {
+        if (pack.phase !== 'ready') return undefined
+        if (kbtaDescriptionLen(desc) === 0) { setCheck({ phase: 'needdesc' }); return undefined }
+        if (kbtaDescriptionOk(desc) !== true) { setCheck({ phase: 'toolong' }); return undefined }
+        if (kbtaNoteOk(note) !== true) { setCheck({ phase: 'notetoolong' }); return undefined }
+        let stop = false
+        setCheck({ phase: 'running' })
+        const timer = setTimeout(() => {
+          kbtaCall('POST', KBTA_ROUTE + '/check', kbtaProposalBody(pack.proposal, desc, note)).then((j) => {
+            if (stop || alive.current !== true) return
+            if (j.ok === true) { setCheck({ phase: 'ok' }); return }
+            const hit = kbtaScanHit(j)
+            setCheck(hit !== null ? { phase: 'found', hit } : { phase: 'bad', text: kbtaSay(j) })
+          })
+        }, 350)
+        return () => { stop = true; clearTimeout(timer) }
+      }, [pack, desc, note, recheck])
+      const send = async () => {
+        if (sending === true || check.phase !== 'ok' || pack.phase !== 'ready') return
+        setSending(true); setErr('')
+        try {
+          const j = await kbtaCall('POST', KBTA_ROUTE + '/add', kbtaProposalBody(pack.proposal, desc, note))
+          if (alive.current !== true) return
+          if (j.ok === true) { setSent(true); props.onSent() } else {
+            const hit = kbtaScanHit(j)
+            if (hit !== null) setCheck({ phase: 'found', hit })
+            else setErr(kbtaSay(j))
+            if (j.error === 'duplicate' || j.error === 'team_full' || j.error === 'too_many_proposals') props.onSent()
+          }
+        } finally { if (alive.current === true) setSending(false) }
+      }
+      const team = props.team
+      const title = admin ? kbtaT('kbta.p.title.admin', { team }) : kbtaT('kbta.p.title', { team })
+      if (sent === true) {
+        return h(KbTaSheet, { kind: 'propose', title, sub: pack.phase === 'ready' ? kbtaStr(pack.proposal.name) : '', onClose: props.onClose, busy: false,
+          footer: { cancel: false, label: kbt(admin ? 'kbta.added.btn' : 'kbta.sent.btn'), go: props.onSeen } },
+        h('div', { className: 'kbta-done', 'data-kb': 'team-sent' }, kbtaIcon('check', 30), h('div', { className: 'kbta-done-t' }, kbt(admin ? 'kbta.added.t' : 'kbta.sent.t')), h('div', { className: 'kbta-done-b' }, kbtaT(admin ? 'kbta.added.b' : 'kbta.sent.b', { team }))))
+      }
+      const mine = Array.isArray(props.mine) ? props.mine : []
+      const options = tasks.map((t) => {
+        const once = t.schedule !== null && typeof t.schedule === 'object' && t.schedule.mode === 'once'
+        const key = t.team !== null && t.team !== undefined && typeof t.team === 'object' && typeof t.team.key === 'string' ? t.team.key : kbtaKeyOf(t.name)
+        const rows = mine.filter((r) => r.key === key)
+        const live = rows.find((r) => r.status === 'approved')
+        const waiting = rows.find((r) => r.status === 'proposed')
+        const chip = live !== undefined ? kbtaChip('ok', kbtaT('kbta.p.shared', { v: kbtaVer(live) })) : (waiting !== undefined ? kbtaChip('warn', kbt('kbta.st.proposed')) : null)
+        return kbtaOpt({ key: t.id, disabled: once, 'data-kb': 'tp-pick', 'data-id': t.id, onClick: () => { if (once !== true && t.id !== pick) { touched.current = false; setPick(t.id) } } }, pick === t.id,
+          [h('span', { key: 'tx', className: 'kbwr-optt' }, h('span', { className: 'kbwr-optn' }, t.name || t.id), h('span', { className: 'kbwr-d' }, once ? kbt('kbta.p.once') : kbScheduleLabel(t, true))), chip === null ? null : h('span', { key: 'ch' }, chip)])
+      })
+      const d = pack.phase === 'ready' ? pack.proposal : null
+      const descLen = kbtaDescriptionLen(desc)
+      const noteLen = kbtaNoteLen(note)
+      let ckBody = null
+      if (check.phase === 'running') ckBody = h('div', { className: 'kbwr-card', 'data-kb': 'tp-check', 'data-state': 'running' }, h('i', { className: 'kbwr-dot spin' }), h('span', null, kbt('kbta.ck.running')))
+      else if (check.phase === 'ok') ckBody = h('div', { className: 'kbwr-card', 'data-kb': 'tp-check', 'data-state': 'ok' }, kbtaChip('ok', kbt('kbta.ck.ok')), h('span', null, kbt('kbta.ck.ok.t')))
+      else if (check.phase === 'needdesc') ckBody = h('div', { className: 'kbwr-card', 'data-kb': 'tp-check', 'data-state': 'needdesc' }, h('span', null, kbt('kbta.ck.needdesc')))
+      else if (check.phase === 'toolong') ckBody = h('div', { className: 'kbwr-card kbwr-err', role: 'alert', 'data-kb': 'tp-check', 'data-state': 'toolong' }, h('span', null, kbtaT('kbta.ck.toolong', { max: KBTA_LIMITS.description })))
+      else if (check.phase === 'notetoolong') ckBody = h('div', { className: 'kbwr-card kbwr-err', role: 'alert', 'data-kb': 'tp-check', 'data-state': 'notetoolong' }, h('span', null, kbtaT('kbta.p.note.toolong', { max: KBTA_LIMITS.note })))
+      else if (check.phase === 'bad') ckBody = h('div', { className: 'kbwr-card kbwr-err', role: 'alert', 'data-kb': 'tp-check', 'data-state': 'bad' }, h('div', { className: 'kbta-grow' }, kbtaT('kbta.ck.failed', { why: check.text })), h('button', { type: 'button', className: 'kba-btn', 'data-kb': 'tp-recheck', onClick: () => setRecheck((n) => n + 1) }, kbt('kbta.retry')))
+      else if (check.phase === 'found') {
+        const hit = check.hit
+        const field = hit.field
+        ckBody = h('div', { className: 'kbwr-card kbwr-err kbta-found', role: 'alert', 'data-kb': 'tp-check', 'data-state': 'found', 'data-field': field },
+          h('div', { className: 'kbta-grow' },
+            h('div', { className: 'kbta-foundhead' }, kbtaChip('err', kbt('kbta.ck.found')), h('b', null, field === 'prompt' ? kbtaT('kbta.ck.line', { n: hit.line === null ? '?' : hit.line }) : kbt('kbta.ck.' + (field === 'description' ? 'desc' : field)))),
+            field === 'prompt' && hit.line !== null && d !== null ? h('div', { className: 'kbta-mono kbta-excerpt', 'data-kb': 'tp-excerpt' }, kbtaMask(kbtaLineOf(d.prompt, hit.line))) : null,
+            h('div', { className: 'kbwr-d' }, kbt(field === 'prompt' ? 'kbta.ck.fix' : 'kbta.ck.fix.field'))),
+          h('button', { type: 'button', className: 'kba-btn', 'data-kb': 'tp-recheck', onClick: () => setRepack((n) => n + 1) }, kbt('kbta.ck.again')))
+      }
+      const canSend = pack.phase === 'ready' && check.phase === 'ok' && sending !== true
+      return h(KbTaSheet, { kind: 'propose', title, sub: kbt(admin ? 'kbta.p.sub.admin' : 'kbta.p.sub'), onClose: props.onClose, busy: sending,
+        footer: { cancel: true, label: sending ? kbt('kbta.p.sending') : kbt(admin ? 'kbta.p.send.admin' : 'kbta.p.send'), disabled: canSend !== true, go: send } },
+      kbtaLab(kbt('kbta.p.s1')),
+      tasks.length === 0
+        ? h('div', { className: 'kbwr-card', 'data-kb': 'tp-none' }, kbt('kbta.p.none'))
+        : h('div', { className: 'kbwr-opts kbta-picks', role: 'radiogroup', 'aria-label': kbt('kbta.p.s1') }, options),
+      pick === '' && typeof props.goneName === 'string' && props.goneName !== '' ? h('div', { className: 'kbwr-card kbwr-warn', 'data-kb': 'tp-gone' }, kbtaT('kbta.p.gone', { name: props.goneName })) : null,
+      pack.phase === 'loading' ? h('div', { className: 'kbta-dimline', 'data-kb': 'tp-reading' }, kbt('kbta.p.reading')) : null,
+      pack.phase === 'bad' ? h('div', { className: 'kbwr-card kbwr-err', role: 'alert', 'data-kb': 'tp-bad' }, pack.text) : null,
+      d === null ? null : [
+        kbtaLab(kbtaT('kbta.p.s2', { team }), { key: 'l2' }),
+        h('div', { key: 'c2' }, kbtaKv([
+          [kbt('kbta.kv.name'), h('b', { key: 'n' }, kbtaStr(d.name))],
+          [kbt('kbta.kv.when'), [kbtaWhenLabel(d.schedule) + ' ', h('span', { key: 'z', className: 'kbta-dim' }, kbt('kbta.p.zone'))]],
+          [kbt('kbta.kv.needs'), h('span', { key: 'nd', className: 'kbta-chips' }, kbtaNeedChips(kbtaNeeds(d.needs), null), h('span', { className: 'kbta-dim kbta-small' }, kbt('kbta.p.appnames')))],
+          [kbt('kbta.kv.prompt'), h('div', { key: 'p', className: 'kbta-mono kbta-promptbox', 'data-kb': 'tp-prompt' }, kbtaStr(d.prompt).trim())]])),
+        h('div', { key: 'dd', className: 'kbta-field' },
+          h('label', { htmlFor: 'kbta-desc', className: 'kbta-lab2' }, kbt('kbta.p.desc')),
+          h('textarea', { id: 'kbta-desc', className: 'kbta-input', rows: 2, value: desc, 'data-kb': 'tp-desc', 'aria-describedby': 'kbta-desc-hint', onChange: (e) => { touched.current = true; setDesc(e.target.value) } }),
+          h('div', { className: 'kbta-fieldfoot' }, h('span', { id: 'kbta-desc-hint', className: 'kbwr-d' }, kbt('kbta.p.desc.hint')), h('span', { className: 'kbta-count' + (descLen > KBTA_LIMITS.description ? ' over' : ''), 'data-kb': 'tp-desc-count' }, kbtaT('kbta.p.desc.count', { n: descLen, max: KBTA_LIMITS.description })))),
+        kbtaLab(kbt('kbta.p.never'), { key: 'l3' }),
+        h('div', { key: 'nv', className: 'kbta-never' }, [1, 2, 3, 4, 5].map((i) => h('div', { key: i, className: 'kbta-neverrow' }, kbtaIcon('lock', 13), kbt('kbta.never.' + i)))),
+        kbtaLab(kbt('kbta.p.check'), { key: 'l4' }),
+        h('div', { key: 'ck' }, ckBody),
+        h('div', { key: 'nt', className: 'kbta-field' },
+          h('label', { htmlFor: 'kbta-note', className: 'kbta-lab2' }, kbt(admin ? 'kbta.p.note.admin' : 'kbta.p.note')),
+          h('textarea', { id: 'kbta-note', className: 'kbta-input', rows: 3, value: note, placeholder: kbt('kbta.p.note.ph'), 'data-kb': 'tp-note', onChange: (e) => setNote(e.target.value) }),
+          noteLen > 0 ? h('div', { className: 'kbta-fieldfoot' }, h('span', null), h('span', { className: 'kbta-count' + (noteLen > KBTA_LIMITS.note ? ' over' : ''), 'data-kb': 'tp-note-count' }, kbtaT('kbta.p.note.count', { n: noteLen, max: KBTA_LIMITS.note }))) : null)],
+      err !== '' ? h('div', { className: 'kbwr-card kbwr-err', role: 'alert', 'data-kb': 'tp-error' }, err) : null)
+    }
+
+    // ── Review (owners and admins): what is proposed, what changed, approve or refuse with a reason ──
+    const KbTaReview = (props) => {
+      const row = props.item
+      const [st, setSt] = React.useState({ phase: 'loading' })
+      const [tab, setTab] = React.useState('details')
+      const [decision, setDecision] = React.useState('approve')
+      const [reason, setReason] = React.useState('')
+      const [busy, setBusy] = React.useState(false)
+      const [err, setErr] = React.useState('')
+      const alive = React.useRef(true)
+      React.useEffect(() => { alive.current = true; return () => { alive.current = false } }, [])
+      React.useEffect(() => {
+        let stop = false
+        setSt({ phase: 'loading' })
+        const base = row.replaces !== null && row.replaces !== undefined ? kbtaCall('GET', KBTA_ROUTE + '/item?id=' + encodeURIComponent(row.replaces)) : Promise.resolve(null)
+        Promise.all([kbtaCall('GET', KBTA_ROUTE + '/item?id=' + encodeURIComponent(row.id)), base]).then(([a, b]) => {
+          if (stop || alive.current !== true) return
+          const cur = kbtaItemOf(a)
+          if (cur === null) { setSt({ phase: 'error', text: kbtaSay(a) }); return }
+          setSt({ phase: 'ready', cur, prev: b === null ? null : kbtaItemOf(b), isUpdate: row.replaces !== null && row.replaces !== undefined })
+        })
+        return () => { stop = true }
+      }, [row.id])
+      const refuse = decision === 'refuse'
+      const reasonLen = reason.trim().length
+      const reasonOk = refuse !== true || (reasonLen >= 1 && reasonLen <= KBTA_LIMITS.reason)
+      const go = async () => {
+        if (busy === true || st.phase !== 'ready' || reasonOk !== true) return
+        setBusy(true); setErr('')
+        try {
+          const body = { id: row.id, decision: refuse ? 'reject' : 'approve' }
+          if (refuse) body.note = reason.trim()
+          const j = await kbtaCall('POST', KBTA_ROUTE + '/review', body)
+          if (alive.current !== true) return
+          if (j.ok === true) props.onDone(kbtaT(refuse ? 'kbta.n.refused' : 'kbta.n.approved', { name: row.name }))
+          else if (j.error === 'not_pending' || j.error === 'not_found') props.onDone(kbtaSay(j))
+          else setErr(kbtaSay(j))
+        } finally { if (alive.current === true) setBusy(false) }
+      }
+      const sub = kbtaT('kbta.r.sub', { by: kbtaWho(row.proposedBy), when: kbtaAgo(row.proposedAt), kind: kbtaKindOf(row, props.approved) })
+      const footer = { cancel: true, label: refuse ? kbt('kbta.r.go.refuse') : kbt('kbta.r.go.approve'), disabled: st.phase !== 'ready' || reasonOk !== true, go, note: refuse && reasonLen === 0 ? kbt('kbta.r.reason.need') : (refuse && reasonOk !== true ? kbtaT('kbta.r.reason.toolong', { max: KBTA_LIMITS.reason }) : '') }
+      const shell = (kids) => h(KbTaSheet, { kind: 'review', title: kbtaT('kbta.r.title', { name: row.name }), sub, onClose: props.onClose, busy, footer }, kids)
+      if (st.phase === 'loading') return shell(h('div', { className: 'kbta-dimline', 'data-kb': 'tr-loading' }, kbt('kbta.loading.one')))
+      if (st.phase === 'error') return shell(h('div', { className: 'kbwr-card kbwr-err', role: 'alert', 'data-kb': 'tr-error' }, st.text))
+      const cur = st.cur
+      const changes = st.prev !== null ? kbtaChanges(st.prev, cur) : null
+      if (changes !== null) { changes.was = st.prev; changes.now = cur }
+      const showChanges = changes !== null && tab === 'changes'
+      const prevV = st.prev !== null ? kbtaVer(st.prev) : ''
+      const tabBtn = (id, label) => h('button', { key: id, type: 'button', role: 'tab', 'aria-selected': (tab === id || (id === 'details' && showChanges !== true && tab === 'changes')) ? 'true' : 'false', className: tab === id ? 'on' : '', 'data-kb': 'tr-tab-' + id, onClick: () => setTab(id) }, label)
+      const approveHint = st.isUpdate === true
+        ? (prevV !== '' ? kbtaT('kbta.r.approve.upd', { old: prevV }) : kbt('kbta.r.approve.upd.plain'))
+        : (cur.revision !== null ? kbtaT('kbta.r.approve.new.v', { v: kbtaVer(cur) }) : kbt('kbta.r.approve.new'))
+      return shell([
+        changes !== null ? h('div', { key: 'tabs', className: 'kba-sub kbta-tabs', role: 'tablist' }, tabBtn('details', kbt('kbta.r.details')), tabBtn('changes', kbtaT('kbta.r.changes', { v: prevV }))) : null,
+        st.isUpdate === true && st.prev === null ? h('div', { key: 'nb', className: 'kbwr-card kbwr-warn', 'data-kb': 'tr-nobase' }, kbt('kbta.r.nobase')) : null,
+        showChanges !== true ? [
+          kbtaLab(kbt('kbta.r.proposed'), { key: 'l1' }),
+          h('div', { key: 'c1' }, kbtaKv([
+            [kbt('kbta.kv.when'), kbtaWhenLabel(cur.schedule)],
+            [kbt('kbta.kv.needs'), h('span', { key: 'n', className: 'kbta-chips' }, kbtaNeedChips(cur.needs, props.conn))],
+            [kbt('kbta.kv.prompt'), h('div', { key: 'p', className: 'kbta-mono kbta-promptbox', 'data-kb': 'tr-prompt' }, cur.prompt === null ? '' : cur.prompt)]])),
+          row.note !== null && row.note !== '' ? [kbtaLab(kbt('kbta.r.note'), { key: 'ln' }), h('div', { key: 'cn', className: 'kbta-card', 'data-kb': 'tr-note' }, row.note)] : null,
+          kbtaLab(kbt('kbta.r.check'), { key: 'l2' }),
+          h('div', { key: 'c2', className: 'kbwr-card' }, kbtaChip('ok', kbt('kbta.ck.ok')), h('span', null, kbt('kbta.r.checked.t')))
+        ] : [
+          kbtaLab(kbt('kbta.r.diff'), { key: 'l1' }),
+          cur.prompt !== null && changes.prompt ? h('div', { key: 'd' }, kbtaDiffBox(changes.diff)) : h('div', { key: 'd', className: 'kbta-dimline' }, kbtaT('kbta.r.nopromptchange', { v: prevV })),
+          h('div', { key: 'cl', className: 'kbta-chglist' }, kbtaChangeLines(changes, prevV))
+        ],
+        kbtaLab(kbt('kbta.r.get'), { key: 'lg' }),
+        h('div', { key: 'cg', className: 'kbta-card kbta-dim' }, kbt('kbta.r.get.b')),
+        kbtaLab(kbt('kbta.r.decision'), { key: 'ld' }),
+        h('div', { key: 'dec', className: 'kbwr-opts', role: 'radiogroup', 'aria-label': kbt('kbta.r.decision') },
+          kbtaOpt({ 'data-kb': 'tr-approve', onClick: () => setDecision('approve') }, refuse !== true, h('span', { className: 'kbwr-optt' }, h('span', { className: 'kbwr-optn' }, kbt('kbta.r.approve')), h('span', { className: 'kbwr-d' }, approveHint))),
+          kbtaOpt({ 'data-kb': 'tr-refuse', onClick: () => setDecision('refuse') }, refuse, h('span', { className: 'kbwr-optt' }, h('span', { className: 'kbwr-optn' }, kbt('kbta.r.refuse')), h('span', { className: 'kbwr-d' }, kbt('kbta.r.refuse.hint'))))),
+        refuse ? h('div', { key: 'rs', className: 'kbta-field' },
+          h('label', { htmlFor: 'kbta-reason', className: 'kbta-lab2' }, kbt('kbta.r.reason')),
+          h('textarea', { id: 'kbta-reason', className: 'kbta-input', rows: 3, value: reason, placeholder: kbt('kbta.r.reason.ph'), 'data-kb': 'tr-reason', onChange: (e) => setReason(e.target.value) })) : null,
+        err !== '' ? h('div', { key: 'er', className: 'kbwr-card kbwr-err', role: 'alert', 'data-kb': 'tr-fail' }, err) : null
+      ])
+    }
+
+    // ── Install: where it runs, how it asks, the switch; the copy is paused and belongs to the person ──
+    const KbTaInstall = (props) => {
+      const row = props.item
+      const [st, setSt] = React.useState({ phase: 'loading' })
+      const [where, setWhere] = React.useState('local')
+      const [pickId, setPickId] = React.useState('')
+      const [approvals, setApprovals] = React.useState('ask')
+      const [turnOn, setTurnOn] = React.useState(false)
+      const [busy, setBusy] = React.useState(false)
+      const [err, setErr] = React.useState('')
+      const [done, setDone] = React.useState(null)
+      const [freq, setFreq] = React.useState(null)
+      const [again, setAgain] = React.useState(0)
+      const alive = React.useRef(true)
+      React.useEffect(() => { alive.current = true; return () => { alive.current = false } }, [])
+      React.useEffect(() => {
+        let stop = false
+        setSt({ phase: 'loading' })
+        kbtaCall('GET', KBTA_ROUTE + '/item?id=' + encodeURIComponent(row.id)).then((j) => {
+          if (stop || alive.current !== true) return
+          const def = kbtaItemOf(j)
+          setSt(def === null ? { phase: 'error', text: kbtaSay(j) } : { phase: 'ready', def })
+        })
+        return () => { stop = true }
+      }, [row.id, again])
+      const def = st.phase === 'ready' ? st.def : null
+      const needs = def !== null ? def.needs : row.needs
+      // Which apps are connected is this page's knowledge (the Connectors state), not the host's: the host turns it on whenever it is asked to.
+      const tu = kbtaTurnOn(needs, props.conn)
+      const missing = tu.missing
+      const hasMissing = missing.length > 0
+      const names = (list) => list.map(kbtaAppName).join(kbt('kbta.i.and'))
+      // The cloud computer: only what the page's own « Where it runs » tab allows. Otherwise the choice is off and says why.
+      const computers = Array.isArray(props.computers) ? props.computers : []
+      const needAsk = approvals !== 'auto'
+      const block = def === null ? 'none' : kbwBlock({ schedule: kbtaSchedule(def.schedule), approvals }, computers, props.connected)
+      const candidates = computers.filter((c) => needAsk !== true || kbwCanAsk(c) === true)
+      const chosenId = pickId !== '' && candidates.some((c) => c.id === pickId) ? pickId : kbwDefaultPick(computers, needAsk)
+      const target = computers.find((c) => c.id === chosenId)
+      const cloudOk = block === null && target !== undefined
+      const place = where === 'cloud' && cloudOk ? 'cloud' : 'local'
+      const wantOn = turnOn === true && tu.allowed
+      const run = async (confirmFrequent) => {
+        if (busy === true || def === null) return
+        setBusy(true); setErr(''); setFreq(null)
+        try {
+          const j = await kbtaCall('POST', KBTA_LOCAL + 'team-install', kbtaInstallBody(def, props.sum.workspaceId, approvals, place === 'cloud' ? false : wantOn, confirmFrequent))
+          if (alive.current !== true) return
+          if (kbtaIsFrequent(j)) { setFreq({ every: Number.isFinite(j.everyMinutes) ? j.everyMinutes : null }); return }
+          if (j.ok !== true) { setErr(kbtaSay(j)); if (j.error === 'already_installed') props.onInstalled(); return }
+          let cloudErr = ''
+          if (place === 'cloud') {
+            const like = { id: j.taskId, name: def.name, prompt: def.prompt, schedule: Object.assign({}, kbtaSchedule(def.schedule), { tz: kbMachineTz() }), approvals, needs: def.needs }
+            const linked = await props.link(j.taskId, { computerId: target.id, name: target.name })
+            if (linked !== true) cloudErr = kbwErrText('refused')
+            else {
+              const r = await kbwPost(target.id, [{ op: 'put', ref: j.taskId, task: kbwDefinition(like, wantOn) }])
+              if (r.ok !== true) { await props.link(j.taskId, null); cloudErr = kbwErrText(r.error) }
+            }
+          }
+          if (alive.current !== true) return
+          setDone({ active: place === 'cloud' ? (cloudErr === '' && wantOn) : j.active === true, missing: Array.isArray(j.missingApps) ? j.missingApps.filter((x) => typeof x === 'string') : [], place: place === 'cloud' && cloudErr === '' ? 'cloud' : 'local', cloudErr })
+          props.onInstalled()
+        } finally { if (alive.current === true) setBusy(false) }
+      }
+      const title = kbtaT('kbta.i.title', { name: row.name })
+      const sub = row.reviewedBy !== null && row.reviewedBy !== '' ? kbtaT('kbta.i.sub', { v: kbtaVer(row), by: kbtaWho(row.proposedBy), rev: row.reviewedBy }) : kbtaT('kbta.i.sub.norev', { v: kbtaVer(row), by: kbtaWho(row.proposedBy) })
+      if (done !== null) {
+        const gaps = done.missing.length > 0 ? done.missing : (done.active === true ? [] : missing)
+        const when = def === null ? '' : kbtaLowerFirst(kbtaWhenLabel(def.schedule))
+        return h(KbTaSheet, { kind: 'install', title, sub: kbtaVer(row), onClose: props.onClose, busy: false, footer: { cancel: false, label: kbt('kbta.i.done.btn'), go: props.onOpenYours } },
+          h('div', { className: 'kbta-done', 'data-kb': 'team-installed', 'data-active': done.active ? 'true' : 'false' },
+            kbtaIcon('check', 30),
+            h('div', { className: 'kbta-done-t' }, kbt(done.active ? 'kbta.i.done.on.t' : 'kbta.i.done.off.t')),
+            h('div', { className: 'kbta-done-b' }, done.active
+              ? kbtaT('kbta.i.done.on.b', { when, where: kbt(done.place === 'cloud' ? 'kbta.i.where.cloud' : 'kbta.i.where.local') })
+              : kbtaT('kbta.i.done.off.b', { after: gaps.length > 0 ? kbtaT('kbta.i.done.after', { apps: names(gaps) }) : '' })),
+            done.cloudErr !== '' ? h('div', { className: 'kbwr-card kbwr-warn', role: 'alert', 'data-kb': 'ti-cloud-error' }, kbtaT('kbta.i.done.cloud.err', { why: done.cloudErr })) : null))
+      }
+      const footer = { cancel: true, label: busy ? kbt('kbta.i.going') : kbt(wantOn ? 'kbta.i.go.on' : 'kbta.i.go'), disabled: def === null || props.hostReady !== true, go: () => run(false) }
+      const shell = (kids) => h(KbTaSheet, { kind: 'install', title, sub, onClose: props.onClose, busy, footer }, kids)
+      if (st.phase === 'loading') return shell(h('div', { className: 'kbta-dimline', 'data-kb': 'ti-loading' }, kbt('kbta.loading.one')))
+      if (st.phase === 'error') return shell([h('div', { key: 'e', className: 'kbwr-card kbwr-err', role: 'alert', 'data-kb': 'ti-error' }, st.text), h('div', { key: 'r' }, h('button', { type: 'button', className: 'kba-btn', 'data-kb': 'ti-retry', onClick: () => setAgain((n) => n + 1) }, kbt('kbta.retry')))])
+      const askOpt = (id, label, hint, rec) => kbtaOpt({ key: id, 'data-kb': id === 'ask' ? 'ti-ask' : 'ti-allow', onClick: () => setApprovals(id) }, approvals === id,
+        h('span', { className: 'kbwr-optt' }, h('span', { className: 'kbwr-optn' }, label, rec === true ? kbtaChip('', kbt('kbta.i.recommended')) : null), h('span', { className: 'kbwr-d' }, hint)))
+      const whereHint = place === 'cloud' ? kbtaT(target.state === 'awake' ? 'kbta.i.hint.awake' : 'kbta.i.hint.asleep', { name: target.name }) : kbt('kbta.i.hint.local')
+      return shell([
+        kbtaLab(kbt('kbta.i.what'), { key: 'l1' }),
+        h('div', { key: 'c1', className: 'kbta-card', 'data-kb': 'ti-what' }, def.description),
+        kbtaLab(kbt('kbta.i.copy'), { key: 'l2' }),
+        h('div', { key: 'c2' }, kbtaKv([
+          [kbt('kbta.kv.when'), [kbtaWhenLabel(def.schedule) + ' ', h('span', { key: 'z', className: 'kbta-dim' }, kbtaT('kbta.i.zone', { tz: kbMachineTz() }))]],
+          [kbt('kbta.kv.needs'), h('span', { key: 'n', className: 'kbta-chips' }, kbtaNeedChips(needs, props.conn))],
+          hasMissing ? [' ', h('span', { key: 'm', className: 'kbta-dim', 'data-kb': 'ti-missing' }, kbtaT(missing.length === 1 ? 'kbta.i.missing.one' : 'kbta.i.missing.many', { apps: names(missing) }) + ' ',
+            h('button', { key: 'cb', type: 'button', className: 'kba-btn kbta-sm', 'data-kb': 'ti-connect', onClick: () => { props.onClose(); kbOpenSettingsPage(['kybernos-composio', 'connectors']) } }, kbtaT('kbta.i.connect', { app: kbtaAppName(missing[0]) })))] : null].filter((r) => r !== null))),
+        kbtaLab(kbt('kbta.i.where'), { key: 'l3' }),
+        h('div', { key: 'sg', className: 'kbwr-seg', role: 'group', 'aria-label': kbt('kbta.i.where') },
+          h('button', { type: 'button', 'data-kb': 'ti-where-local', 'aria-pressed': place === 'local' ? 'true' : 'false', onClick: () => setWhere('local') }, kbtaIcon('monitor'), kbt('kbta.i.local')),
+          h('button', { type: 'button', 'data-kb': 'ti-where-cloud', 'aria-pressed': place === 'cloud' ? 'true' : 'false', disabled: cloudOk !== true, title: cloudOk !== true && block !== null ? kbt('kbwr.block.' + block) : undefined, onClick: () => setWhere('cloud') }, kbtaIcon('cloud'), target === undefined ? kbt('kbwr.cloud') : kbtaT('kbta.i.cloud', { name: target.name }))),
+        candidates.length > 1 && cloudOk && place === 'cloud'
+          ? h('select', { key: 'sel', className: 'kbta-input kbta-select', 'aria-label': kbt('kbwr.cloud'), 'data-kb': 'ti-computer', value: chosenId === null ? '' : chosenId, onChange: (e) => setPickId(e.target.value) }, candidates.map((c) => h('option', { key: c.id, value: c.id }, c.name)))
+          : null,
+        h('div', { key: 'wh', className: 'kbwr-d kbta-whyline', 'data-kb': 'ti-where-hint' }, cloudOk !== true && block !== null ? kbt('kbwr.block.' + block) : whereHint),
+        kbtaLab(kbt('kbta.i.asks'), { key: 'l4' }),
+        h('div', { key: 'ak', className: 'kbwr-opts', role: 'radiogroup', 'aria-label': kbt('kbta.i.asks') },
+          askOpt('ask', kbt('kbta.i.ask'), kbt('kbta.i.ask.b'), true),
+          askOpt('auto', kbt('kbta.i.allow'), kbt('kbta.i.allow.b'), false)),
+        h('div', { key: 'sw', className: 'kbta-switchrow' },
+          h('span', { className: 'kbta-grow' }, h('span', { className: 'kbta-swt' }, kbt('kbta.i.turnon')), h('span', { className: 'kbwr-d', 'data-kb': 'ti-turnon-hint' }, hasMissing ? kbtaT('kbta.i.turnon.missing', { apps: names(missing) }) : (tu.known ? kbt('kbta.i.turnon.hint') : kbt('kbta.i.turnon.unknown')))),
+          h('button', { type: 'button', role: 'switch', 'aria-checked': wantOn ? 'true' : 'false', 'aria-label': kbt('kbta.i.turnon'), 'data-kb': 'ti-turnon', className: 'kba-toggle kbta-toggle' + (wantOn ? ' on' : ''), disabled: tu.allowed !== true, onClick: () => setTurnOn(!turnOn) }, h('span', { className: 'kba-toggle-knob' }))),
+        freq !== null ? h('div', { key: 'fq', className: 'kbwr-card kbwr-warn kbta-freq', role: 'alert', 'data-kb': 'ti-frequent' },
+          h('div', { className: 'kbta-grow' }, h('b', null, kbt('kbta.freq.t')), h('div', { className: 'kbwr-d' }, kbt('tasks.err.frequent') + (freq.every === null ? '' : ' ' + (freq.every === 1 ? kbt('kbta.freq.every1') : kbtaT('kbta.freq.every', { n: freq.every }))))),
+          h('button', { type: 'button', className: 'kba-btn', 'data-kb': 'ti-frequent-yes', disabled: busy, onClick: () => run(true) }, kbt('kbta.freq.install'))) : null,
+        props.hostReady !== true ? h('div', { key: 'ho', className: 'kbwr-card kbwr-warn', role: 'alert', 'data-kb': 'ti-host' }, kbt('kbta.host.old')) : null,
+        err !== '' ? h('div', { key: 'er', className: 'kbwr-card kbwr-err', role: 'alert', 'data-kb': 'ti-fail' }, err) : null
+      ])
+    }
+
+    // ── Update: what changed since the version installed, and what happens to a copy the person edited ──
+    const KbTaUpdate = (props) => {
+      const row = props.item
+      const copy = props.copy
+      const task = kbTasksList(props.tasks).find((t) => t.id === copy.taskId) || null
+      const edited = copy.edited === true
+      const [st, setSt] = React.useState({ phase: 'loading' })
+      const [mode, setMode] = React.useState(kbtaUpdateStart(edited))
+      const [busy, setBusy] = React.useState(false)
+      const [err, setErr] = React.useState('')
+      const [freq, setFreq] = React.useState(null)
+      const [again, setAgain] = React.useState(0)
+      const alive = React.useRef(true)
+      React.useEffect(() => { alive.current = true; return () => { alive.current = false } }, [])
+      React.useEffect(() => {
+        let stop = false
+        setSt({ phase: 'loading' })
+        kbtaCall('GET', KBTA_ROUTE + '/item?id=' + encodeURIComponent(row.id)).then((j) => {
+          if (stop || alive.current !== true) return
+          const def = kbtaItemOf(j)
+          setSt(def === null ? { phase: 'error', text: kbtaSay(j) } : { phase: 'ready', def })
+        })
+        return () => { stop = true }
+      }, [row.id, again])
+      const oldV = kbtaVer(copy) !== '' ? kbtaVer(copy) : '#' + kbtaStr(copy.version).slice(0, 7)
+      const newV = kbtaVer(row)
+      const baseOf = copy.base !== null && typeof copy.base === 'object' ? copy.base : (task !== null && task.team !== null && typeof task.team === 'object' && task.team.base !== null && typeof task.team.base === 'object' ? task.team.base : null)
+      const effective = edited ? mode : 'replace'
+      const go = async (confirmFrequent) => {
+        if (busy === true || st.phase !== 'ready') return
+        // Keeping the copy changes nothing: there is nothing to ask the host.
+        if (effective === 'keep') { props.onDone(kbtaT('kbta.n.kept', { name: row.name })); return }
+        setBusy(true); setErr(''); setFreq(null)
+        try {
+          const j = await kbtaCall('POST', KBTA_LOCAL + 'team-update', kbtaUpdateBody(copy.taskId, st.def, effective, confirmFrequent))
+          if (alive.current !== true) return
+          if (kbtaIsFrequent(j)) { setFreq({ every: Number.isFinite(j.everyMinutes) ? j.everyMinutes : null }); return }
+          if (j.ok === true) props.onDone(kbtaT(effective === 'both' ? 'kbta.n.updated.both' : 'kbta.n.updated', { name: row.name, v: newV }))
+          else {
+            setErr(kbtaSay(j))
+            // The host knows better than the page whether the copy was edited: the list is read again.
+            if (j.error === 'not_edited' || j.error === 'not_a_team_copy' || j.error === 'key_mismatch') props.onStale()
+          }
+        } finally { if (alive.current === true) setBusy(false) }
+      }
+      const label = busy ? kbt('kbta.u.going') : (edited ? (mode === 'keep' ? kbt('kbta.u.go.keep') : (mode === 'both' ? kbt('kbta.u.go.both') : kbtaT('kbta.u.go.replace', { new: newV }))) : kbtaT('kbta.u.go.clean', { new: newV }))
+      const sub = row.reviewedBy !== null && row.reviewedBy !== '' ? kbtaT('kbta.u.sub', { old: oldV, new: newV, when: kbtaAgo(row.reviewedAt), by: row.reviewedBy }) : kbtaT('kbta.u.sub.noby', { old: oldV, new: newV, when: kbtaAgo(row.reviewedAt) })
+      const shell = (kids) => h(KbTaSheet, { kind: 'update', title: kbtaT('kbta.u.title', { name: row.name }), sub, onClose: props.onClose, busy, footer: { cancel: true, label, disabled: st.phase !== 'ready' || (props.hostReady !== true && effective !== 'keep'), go: () => go(false) } }, kids)
+      if (st.phase === 'loading') return shell(h('div', { className: 'kbta-dimline', 'data-kb': 'tu-loading' }, kbt('kbta.loading.one')))
+      if (st.phase === 'error') return shell([h('div', { key: 'e', className: 'kbwr-card kbwr-err', role: 'alert', 'data-kb': 'tu-error' }, st.text), h('div', { key: 'r' }, h('button', { type: 'button', className: 'kba-btn', 'data-kb': 'tu-retry', onClick: () => setAgain((n) => n + 1) }, kbt('kbta.retry')))])
+      const changes = baseOf !== null ? Object.assign(kbtaChanges(baseOf, st.def), { was: baseOf, now: st.def }) : null
+      const opt = (id, label2, hint) => kbtaOpt({ key: id, 'data-kb': 'tu-' + id, onClick: () => setMode(id) }, mode === id, h('span', { className: 'kbwr-optt' }, h('span', { className: 'kbwr-optn' }, label2), h('span', { className: 'kbwr-d' }, hint)))
+      return shell([
+        edited ? h('div', { key: 'ed', className: 'kbwr-card kbwr-warn', role: 'alert', 'data-kb': 'tu-edited' }, kbtaChip('warn', kbt('kbta.u.edited')), h('span', null, kbt('kbta.u.edited.b'))) : null,
+        kbtaLab(kbtaT('kbta.u.changes', { old: oldV }), { key: 'l1' }),
+        changes === null ? h('div', { key: 'nb', className: 'kbta-card kbta-dim', 'data-kb': 'tu-nobase' }, kbt('kbta.u.nobase'))
+          : [changes.prompt ? h('div', { key: 'd' }, kbtaDiffBox(changes.diff)) : h('div', { key: 'd', className: 'kbta-dimline' }, kbtaT('kbta.r.nopromptchange', { v: oldV })), h('div', { key: 'cl', className: 'kbta-chglist' }, kbtaChangeLines(changes, oldV))],
+        edited ? [
+          kbtaLab(kbt('kbta.u.copy'), { key: 'l2' }),
+          h('div', { key: 'op', className: 'kbwr-opts', role: 'radiogroup', 'aria-label': kbt('kbta.u.copy') },
+            opt('keep', kbt('kbta.u.keep'), kbtaT('kbta.u.keep.b', { old: oldV })),
+            opt('both', kbt('kbta.u.both'), kbtaT('kbta.u.both.b', { name: row.name, new: newV })),
+            opt('replace', kbtaT('kbta.u.replace', { new: newV }), kbt('kbta.u.replace.b')))
+        ] : h('div', { key: 'cl2', className: 'kbta-card kbta-dim', 'data-kb': 'tu-clean' }, kbt('kbta.u.clean')),
+        freq !== null ? h('div', { key: 'fq', className: 'kbwr-card kbwr-warn kbta-freq', role: 'alert', 'data-kb': 'tu-frequent' },
+          h('div', { className: 'kbta-grow' }, h('b', null, kbt('kbta.freq.t')), h('div', { className: 'kbwr-d' }, kbt('tasks.err.frequent') + (freq.every === null ? '' : ' ' + (freq.every === 1 ? kbt('kbta.freq.every1') : kbtaT('kbta.freq.every', { n: freq.every }))))),
+          h('button', { type: 'button', className: 'kba-btn', 'data-kb': 'tu-frequent-yes', disabled: busy, onClick: () => go(true) }, kbt('kbta.freq.update'))) : null,
+        props.hostReady !== true ? h('div', { key: 'ho', className: 'kbwr-card kbwr-warn', role: 'alert', 'data-kb': 'tu-host' }, kbt('kbta.host.old')) : null,
+        err !== '' ? h('div', { key: 'er', className: 'kbwr-card kbwr-err', role: 'alert', 'data-kb': 'tu-fail' }, err) : null
+      ])
+    }
+
+    // ── The tab itself: the approved table, the person's own proposals, the admins' queue ──────────────
+    const KbTeamReady = (props) => {
+      const sum = props.sum
+      const admin = kbtaIsAdmin(sum.role)
+      const team = sum.workspaceName !== '' ? sum.workspaceName : kbt('kbui.team')
+      const [view, setView] = React.useState('approved')
+      const [query, setQuery] = React.useState('')
+      const [lists, setLists] = React.useState({ approved: kbtaBlank(), mine: kbtaBlank(), review: kbtaBlank() })
+      const [copies, setCopies] = React.useState({ phase: 'loading', list: [], code: '' })
+      const [sheet, setSheet] = React.useState(null)
+      const [tick, setTick] = React.useState(0)
+      const [busy, setBusy] = React.useState({})
+      const [retire, setRetire] = React.useState(null)
+      const alive = React.useRef(true)
+      const lastReq = React.useRef(0)
+      React.useEffect(() => { alive.current = true; return () => { alive.current = false } }, [])
+      const reload = () => { setTick((n) => n + 1); if (typeof sum.reload === 'function') sum.reload() }
+      // The shared catalogue (metadata only, no prompt) and the local half's list of copies.
+      React.useEffect(() => {
+        let stop = false
+        const one = async (name, relayView) => {
+          const j = await kbtaCall('GET', KBTA_ROUTE + '?view=' + relayView + '&limit=' + String(KBTA_LIMITS.list))
+          if (stop || alive.current !== true) return
+          setLists((m) => Object.assign({}, m, { [name]: j.ok === true && Array.isArray(j.automations) ? { phase: 'ready', rows: j.automations.map(kbtaRow), counts: j.counts !== undefined ? j.counts : null, error: null } : { phase: 'error', rows: m[name].rows, counts: null, error: j } }))
+        }
+        one('approved', 'approved')
+        one('mine', 'mine')
+        if (admin) one('review', 'proposed')
+        kbtaCall('POST', KBTA_LOCAL + 'team-copies', {}).then((j) => {
+          if (stop || alive.current !== true) return
+          if (j.ok === true && Array.isArray(j.copies)) setCopies({ phase: 'ready', list: j.copies.filter((c) => c !== null && typeof c === 'object'), code: '' })
+          else setCopies({ phase: 'old', list: [], code: kbtaCode(j) })
+        })
+        return () => { stop = true }
+      }, [tick, sum.workspaceId, admin])
+      // « Propose to team… » on a row of Yours opens this tab with the sheet.
+      React.useEffect(() => {
+        const r = props.req
+        if (r !== null && r !== undefined && r.n !== lastReq.current) {
+          lastReq.current = r.n
+          setSheet({ type: 'propose', taskId: r.taskId, goneName: '' })
+          if (typeof props.onReq === 'function') props.onReq()
+        }
+      }, [props.req])
+      kbUseConnRev()
+      const slugs = kbtaSlugsOf(lists.approved.rows.concat(lists.review.rows, lists.mine.rows))
+      const conn = slugs.length > 0 ? kbComposioConnections(slugs) : null
+      const v = kbtaView(view, sum.role)
+      const hostReady = copies.phase === 'ready'
+      const cur = lists[v]
+      const rows = cur.rows.filter((r) => kbtaMatch(r, query))
+      const count = (name) => (lists[name].phase === 'ready' ? String(lists[name].rows.length) : (name === 'approved' && sum.counts ? String(sum.counts.approved) : (name === 'review' && sum.counts ? String(sum.counts.pending) : '…')))
+      const callAct = async (path, body, okText) => {
+        const key = path + ':' + String(body.id)
+        if (busy[key] === true) return
+        setBusy((m) => Object.assign({}, m, { [key]: true }))
+        try {
+          const j = await kbtaCall('POST', KBTA_ROUTE + path, body)
+          if (alive.current !== true) return
+          props.notify(j.ok === true ? okText : kbtaSay(j))
+        } finally {
+          if (alive.current === true) { setBusy((m) => { const n = Object.assign({}, m); delete n[key]; return n }); reload() }
+        }
+      }
+      const proposeAgain = (row) => {
+        const task = kbtaTaskForKey(kbTasksList(props.tasks), row.key)
+        setSheet({ type: 'propose', taskId: task === null ? null : task.id, goneName: task === null ? row.name : '' })
+      }
+      const close = () => setSheet(null)
+
+      // ── the tables ──
+      const whenOf = (r) => kbtaWhenLabel(r.schedule)
+      const approvedRow = (r, i) => {
+        const rel = kbtaRelation(r, copies.list, sum.workspaceId)
+        const btn = kbtaRowButton(rel, hostReady)
+        const verText = rel.kind === 'update' ? kbtaT('kbta.ver.have', { v: kbtaVer(r), old: kbtaVer(rel.copy) !== '' ? kbtaVer(rel.copy) : '#' + kbtaStr(rel.copy.version).slice(0, 7) }) : kbtaVer(r)
+        const label = rel.kind === 'installed' ? kbt('kbta.installed') : (rel.kind === 'update' ? kbtaT('kbta.update', { v: kbtaVer(r) }) : kbt('kbta.install'))
+        const aria = kbtaT(rel.kind === 'installed' ? 'kbta.installed.aria' : (rel.kind === 'update' ? 'kbta.update.aria' : 'kbta.install.aria'), { name: r.name })
+        return h('div', { key: r.id, className: 'kba-rowline kbta-row' + kbIn(i), 'data-kb': 'team-row', 'data-key': r.key, 'data-state': rel.kind },
+          h('div', { className: 'kbta-cols kbta-cols-approved' },
+            h('span', { className: 'kbta-c kbta-c-name' }, h('span', { className: 'kba-name', title: r.name }, r.name), h('span', { className: 'kba-team', title: r.description }, r.description)),
+            h('span', { className: 'kbta-c' }, h('span', { className: 'kba-ell', title: r.schedule.mode === 'cron' ? r.schedule.cron : '' }, whenOf(r))),
+            h('span', { className: 'kbta-c' }, h('span', { className: 'kbta-chips' }, kbtaNeedChips(r.needs, conn))),
+            h('span', { className: 'kbta-c' }, h('span', { className: 'kba-ell', title: verText }, verText), h('span', { className: 'kba-team' }, kbtaT('kbta.by', { name: kbtaWho(r.proposedBy) }))),
+            h('span', { className: 'kbta-c kbta-c-act' },
+              admin ? h('button', { type: 'button', className: 'kba-btn kbta-sm kbta-quiet', 'data-kb': 'team-retire', onClick: () => setRetire(r) }, kbt('kbta.retire')) : null,
+              h('button', { type: 'button', className: 'kba-btn kbta-sm' + (btn.primary ? ' pri' : ''), 'data-kb': 'team-' + rel.kind, 'aria-label': aria, title: hostReady !== true && rel.kind !== 'installed' && copies.phase !== 'loading' ? kbt('kbta.host.old') : undefined, disabled: btn.disabled,
+                onClick: () => setSheet(rel.kind === 'update' ? { type: 'update', item: r, copy: rel.copy } : { type: 'install', item: r }) }, label))))
+      }
+      const mineRow = (r, i) => {
+        const kind = r.status === 'proposed' ? 'warn' : (r.status === 'rejected' ? 'err' : (r.status === 'approved' ? 'ok' : ''))
+        const status = r.status === 'approved' ? kbtaT('kbta.st.approved.v', { v: kbtaVer(r) }) : kbt('kbta.st.' + (['proposed', 'rejected', 'retired'].indexOf(r.status) >= 0 ? r.status : 'approved'))
+        const detail = r.status === 'proposed' ? kbtaT('kbta.d.proposed', { when: kbtaAgo(r.proposedAt) })
+          : (r.status === 'rejected' ? (r.reviewNote !== null && r.reviewNote !== '' ? kbtaT('kbta.d.rejected', { by: kbtaWho(r.reviewedBy), note: r.reviewNote }) : kbtaT('kbta.d.rejected.nonote', { by: kbtaWho(r.reviewedBy) }))
+            : (r.status === 'approved' ? kbtaT('kbta.d.approved', { when: kbtaAgo(r.reviewedAt) }) : kbtaT('kbta.d.retired', { by: kbtaWho(r.reviewedBy) })))
+        const key = '/delete:' + String(r.id)
+        let act = null
+        if (r.status === 'proposed') act = h('button', { type: 'button', className: 'kba-btn kbta-sm', 'data-kb': 'team-withdraw', disabled: busy[key] === true, onClick: () => callAct('/delete', { id: r.id }, kbt('kbta.n.withdrawn')) }, kbt('kbta.act.withdraw'))
+        else if (r.status === 'rejected') act = h('button', { type: 'button', className: 'kba-btn kbta-sm', 'data-kb': 'team-again', onClick: () => proposeAgain(r) }, kbt('kbta.act.again'))
+        else if (r.status === 'approved') act = h('button', { type: 'button', className: 'kba-btn kbta-sm', 'data-kb': 'team-update-mine', onClick: () => proposeAgain(r) }, kbt('kbta.act.update'))
+        else if (admin) act = h('button', { type: 'button', className: 'kba-btn kbta-sm', 'data-kb': 'team-delete', disabled: busy[key] === true, onClick: () => callAct('/delete', { id: r.id }, kbt('kbta.n.deleted')) }, kbt('kbta.act.delete'))
+        return h('div', { key: r.id, className: 'kba-rowline kbta-row' + kbIn(i), 'data-kb': 'team-row', 'data-key': r.key, 'data-status': r.status },
+          h('div', { className: 'kbta-cols kbta-cols-mine' },
+            h('span', { className: 'kbta-c kbta-c-name' }, h('span', { className: 'kba-name', title: r.name }, r.name)),
+            h('span', { className: 'kbta-c' }, kbtaChip(kind, status)),
+            h('span', { className: 'kbta-c' }, h('span', { className: 'kba-team kbta-wrap' }, detail)),
+            h('span', { className: 'kbta-c kbta-c-act' }, act)))
+      }
+      const reviewRow = (r, i) => h('div', { key: r.id, className: 'kba-rowline kbta-row' + kbIn(i), 'data-kb': 'team-row', 'data-key': r.key, 'data-status': r.status },
+        h('div', { className: 'kbta-cols kbta-cols-review' },
+          h('span', { className: 'kbta-c kbta-c-name' }, h('span', { className: 'kba-name', title: r.name }, r.name), h('span', { className: 'kba-team' }, kbtaKindOf(r, lists.approved.rows))),
+          h('span', { className: 'kbta-c' }, h('span', { className: 'kba-ell' }, kbtaWho(r.proposedBy))),
+          h('span', { className: 'kbta-c' }, h('span', { className: 'kbta-chips' }, kbtaNeedChips(r.needs, conn))),
+          h('span', { className: 'kbta-c' }, h('span', { className: 'kba-team' }, kbtaAgo(r.proposedAt))),
+          h('span', { className: 'kbta-c kbta-c-act' }, h('button', { type: 'button', className: 'kba-btn pri kbta-sm', 'data-kb': 'team-review', onClick: () => setSheet({ type: 'review', item: r }) }, kbt('kbta.review')))))
+      const head = (cols) => h('div', { className: 'kba-rowline kba-rowline-head kbta-row' }, h('div', { className: 'kbta-cols kbta-cols-' + cols[0] }, cols[1].map((c, i) => h('span', { key: i, className: 'kba-tabver' }, c))))
+      const skeleton = () => kbSkelWrap(kbt('kbta.loading'), 'kba-card kba-lcard', [0, 1, 2].map((i) => h('div', { key: i, className: 'kba-rowline kbta-row kb-sk-row' },
+        h('div', { className: 'kbta-cols kbta-cols-approved' }, h('span', { className: 'kbta-c' }, kbBone(i % 2 === 0 ? '62%' : '48%', 13)), h('span', { className: 'kbta-c' }, kbBone('60%', 12)), h('span', { className: 'kbta-c' }, kbBone('55%', 12)), h('span', { className: 'kbta-c' }, kbBone('40%', 12)), h('span', { className: 'kbta-c' }, kbBone(70, 26, 'pill'))))))
+      let body
+      if (cur.phase === 'loading' && cur.rows.length === 0) body = skeleton()
+      else if (cur.phase === 'error' && cur.rows.length === 0) {
+        const kind = kbtaLockKind(cur.error, sum.space)
+        body = kind !== null && kind !== 'absent' && kind !== 'other'
+          ? h(KbTeamLocked, { kind, detail: kbtaCode(cur.error), space: sum.space, plan: sum.space ? sum.space.plan : '', onRetry: reload })
+          : h('div', { className: 'kba-card kbta-empty', role: 'alert', 'data-kb': 'team-list-error' }, h('div', { className: 'kbta-empty-t' }, kbt('kbta.list.err')), h('div', { className: 'kbta-empty-b' }, kbtaSay(cur.error)), h('button', { type: 'button', className: 'kba-btn pri', 'data-kb': 'team-retry', onClick: reload }, kbt('kbta.retry')))
+      } else if (rows.length === 0) {
+        const searching = query.trim() !== '' && cur.rows.length > 0
+        const e = v === 'review' ? 'review' : (v === 'mine' ? 'mine' : 'approved')
+        body = h('div', { className: 'kba-card kbta-empty', 'data-kb': 'team-empty', 'data-view': v },
+          h('div', { className: 'kbta-empty-t' }, kbt(searching ? 'kbta.empty.search.t' : 'kbta.empty.' + e + '.t')),
+          h('div', { className: 'kbta-empty-b' }, searching ? kbt('kbta.empty.search.b') : kbtaT('kbta.empty.' + e + '.b', { team })),
+          searching ? null : h('button', { type: 'button', className: 'kba-btn pri', 'data-kb': 'team-empty-propose', onClick: () => setSheet({ type: 'propose', taskId: null, goneName: '' }) }, kbt(admin ? 'kbta.add.cta' : 'kbta.propose.cta')))
+      } else if (v === 'approved') body = h('div', { className: 'kba-card kba-lcard kbta-table', 'data-kb': 'team-table', 'data-view': v }, head(['approved', [kbt('kbta.th.name'), kbt('kbta.th.when'), kbt('kbta.th.needs'), kbt('kbta.th.version'), '']]), rows.map(approvedRow))
+      else if (v === 'mine') body = h('div', { className: 'kba-card kba-lcard kbta-table', 'data-kb': 'team-table', 'data-view': v }, head(['mine', [kbt('kbta.th.name'), kbt('kbta.th.status'), kbt('kbta.th.detail'), '']]), rows.map(mineRow))
+      else body = h('div', { className: 'kba-card kba-lcard kbta-table', 'data-kb': 'team-table', 'data-view': v }, head(['review', [kbt('kbta.th.proposal'), kbt('kbta.th.from'), kbt('kbta.th.needs'), kbt('kbta.th.sent'), '']]), rows.map(reviewRow))
+
+      // ── the sheets ──
+      let sheetEl = null
+      if (sheet !== null && sheet.type === 'propose') {
+        sheetEl = h(KbTaPropose, { key: 'propose', team, admin, tasks: props.tasks, mine: lists.mine.rows, taskId: sheet.taskId, goneName: sheet.goneName, onClose: close, onSent: reload,
+          onSeen: () => { close(); setView(admin ? 'approved' : 'mine') } })
+      } else if (sheet !== null && sheet.type === 'install') {
+        sheetEl = h(KbTaInstall, { key: 'install:' + String(sheet.item.id), item: sheet.item, sum, conn, computers: props.computers, connected: props.connected, hostReady, link: props.link, onClose: close,
+          onInstalled: () => { reload(); props.refreshTasks() }, onOpenYours: () => { close(); props.onOpenYours() } })
+      } else if (sheet !== null && sheet.type === 'update') {
+        sheetEl = h(KbTaUpdate, { key: 'update:' + String(sheet.item.id), item: sheet.item, copy: sheet.copy, tasks: props.tasks, hostReady, onClose: close, onStale: reload,
+          onDone: (text) => { close(); props.notify(text); reload(); props.refreshTasks() } })
+      } else if (sheet !== null && sheet.type === 'review') {
+        sheetEl = h(KbTaReview, { key: 'review:' + String(sheet.item.id), item: sheet.item, conn, approved: lists.approved.rows, onClose: close, onDone: (text) => { close(); props.notify(text); reload() } })
+      }
+      const pill = (id, label) => h('button', { key: id, type: 'button', className: 'kb-task-chip' + (v === id ? ' on' : ''), 'aria-pressed': v === id ? 'true' : 'false', 'data-kb': 'team-filter-' + id, onClick: () => setView(id) }, label + ' ', h('span', { className: 'kbta-n' }, count(id)))
+      return h('div', { className: 'kbta', 'data-kb': 'team-automations', 'data-role': admin ? 'admin' : 'member' },
+        h('div', { className: 'kbta-head' },
+          h('div', { className: 'kbta-headtxt' },
+            h('div', { className: 'kbta-team' }, team),
+            h('div', { className: 'kbta-sub' }, kbt('kbta.head.sub')),
+            h('div', { className: 'kbta-hint', 'data-kb': 'team-hint' }, kbtaT(admin ? 'kbta.hint.admin' : 'kbta.hint.member', { team }))),
+          h('button', { type: 'button', className: 'kba-btn pri', 'data-kb': 'team-propose', onClick: () => setSheet({ type: 'propose', taskId: null, goneName: '' }) }, kbt(admin ? 'kbta.add.cta' : 'kbta.propose.cta'))),
+        copies.phase !== 'ready' && copies.phase !== 'loading' ? h('div', { className: 'kbwr-card kbwr-warn', role: 'status', 'data-kb': 'team-host-old' }, kbt(copies.code === 'absent' ? 'kbta.host.old' : 'kbta.e.other').replace('{code}', copies.code)) : null,
+        h('div', { className: 'kbta-bar' },
+          h('div', { className: 'kb-task-chips', role: 'group', 'aria-label': kbt('kbta.f.group') }, pill('approved', kbt('kbta.f.approved')), pill('mine', kbt('kbta.f.mine')), admin ? pill('review', kbt('kbta.f.review')) : null),
+          h('input', { type: 'text', className: 'kbta-search', 'data-kb': 'team-search', placeholder: kbt('kbta.search'), 'aria-label': kbt('kbta.search.aria'), value: query, onChange: (e) => setQuery(e.target.value) })),
+        body,
+        sheetEl,
+        retire !== null ? h(KbConfirm, { title: kbtaT('kbta.retire.title', { name: retire.name }), body: kbt('kbta.retire.body'), confirmLabel: kbt('kbta.retire.yes'), onConfirm: async () => { await callAct('/retire', { id: retire.id }, kbtaT('kbta.n.retired', { name: retire.name })) }, onClose: () => setRetire(null) }) : null)
+    }
+    /** The tab for whatever the summary says: waiting, locked with the reason, or ready. */
+    const KbTeamAutomations = (props) => {
+      const sum = props.sum
+      if (sum.phase === 'loading') return kbSkelWrap(kbt('kbta.loading'), 'kba-card kba-lcard', [0, 1, 2].map((i) => h('div', { key: i, className: 'kba-rowline kbta-row kb-sk-row' }, h('div', { className: 'kbta-cols kbta-cols-approved' }, h('span', { className: 'kbta-c' }, kbBone('55%', 13)), h('span', { className: 'kbta-c' }, kbBone('60%', 12)), h('span', { className: 'kbta-c' }, kbBone('50%', 12)), h('span', { className: 'kbta-c' }, kbBone('40%', 12)), h('span', { className: 'kbta-c' }, kbBone(70, 26, 'pill'))))))
+      if (sum.phase === 'locked') return h(KbTeamLocked, { kind: sum.kind, detail: sum.detail, space: sum.space, plan: sum.space ? sum.space.plan : '', onRetry: sum.reload })
+      if (sum.phase !== 'ready') return null
+      return h(KbTeamReady, props)
+    }
+    // What the page knows of the Team before the tab is opened: the segment's initial and count, and the person's own proposals (the « Shared » chip of Yours). One cheap call, again whenever the tab is opened.
+    const kbtaUseSummary = (section) => {
+      const pair = React.useState({ phase: 'loading', mine: [] })
+      const alive = React.useRef(true)
+      React.useEffect(() => { alive.current = true; return () => { alive.current = false } }, [])
+      const run = React.useCallback(async () => {
+        const j = await kbtaCall('GET', KBTA_ROUTE + '?view=approved&limit=1')
+        if (alive.current !== true) return
+        let kind = kbtaLockKind(j, null)
+        if (kind === 'absent') { pair[1]({ phase: 'absent', mine: [] }); return }
+        const wid0 = kbtaStr(j.workspaceId) !== '' ? kbtaStr(j.workspaceId) : kbtaStr(j.workspace_id)
+        let space = { id: '', name: '', personal: false, plan: '' }
+        // The account state tells a personal space from a plan without the feature, gives the workspace when the list did not, and names the team in the segment.
+        if (kind !== null || wid0 === '') {
+          space = kbtaSpaceOf(await kbtaCall('GET', '/kybernos-cloud/status'))
+          if (alive.current !== true) return
+          kind = kbtaLockKind(j, space)
+        }
+        if (kind !== null) { pair[1]({ phase: 'locked', kind, detail: kbtaCode(j), space, workspaceName: space.name, mine: [] }); return }
+        const counts = j.counts !== null && typeof j.counts === 'object' ? { approved: Number(j.counts.approved) || 0, pending: Number(j.counts.pending) || 0 } : { approved: 0, pending: 0 }
+        pair[1]((prev) => ({ phase: 'ready', role: typeof j.role === 'string' ? j.role : 'member', counts, workspaceName: kbtaStr(j.workspaceName) !== '' ? kbtaStr(j.workspaceName) : space.name, workspaceId: wid0 !== '' ? wid0 : space.id, space, mine: Array.isArray(prev.mine) ? prev.mine : [] }))
+        const m = await kbtaCall('GET', KBTA_ROUTE + '?view=mine&limit=' + String(KBTA_LIMITS.list))
+        if (alive.current === true && m.ok === true && Array.isArray(m.automations)) pair[1]((prev) => (prev.phase === 'ready' ? Object.assign({}, prev, { mine: m.automations.map(kbtaRow) }) : prev))
+      }, [])
+      React.useEffect(() => { run() }, [section === 'team'])
+      return Object.assign({}, pair[0], { reload: run })
+    }
+    /** What Yours says of an automation that came from the team: « Team copy », at the end of the line under its name (the name is cut to its column, a chip after it would not show). */
+    const kbtaRowMark = (t) => (t !== null && typeof t === 'object' && t.team !== null && t.team !== undefined && typeof t.team === 'object' ? kbt('kbta.mark.copy') : '')
+    /** What Yours says of an automation the person proposed (a copy from the team is not theirs to share): a chip in the State column. */
+    const kbtaRowShared = (t, team) => {
+      if (t === null || typeof t !== 'object' || (t.team !== null && t.team !== undefined && typeof t.team === 'object')) return null
+      if (team.phase !== 'ready' || Array.isArray(team.mine) !== true) return null
+      const key = kbtaKeyOf(t.name)
+      const rows = team.mine.filter((r) => r.key === key)
+      const live = rows.find((r) => r.status === 'approved')
+      if (live !== undefined) return kbtaChip('ok', kbtaT('kbta.mark.shared', { team: team.workspaceName, v: kbtaVer(live) }), { 'data-kb': 'row-shared' })
+      if (rows.some((r) => r.status === 'proposed')) return kbtaChip('warn', kbtaT('kbta.mark.proposed', { team: team.workspaceName }), { 'data-kb': 'row-shared' })
+      return null
+    }
+    /** The segment button: the team's initial, « Team », and the count of proposals waiting for an admin (or a lock when the tab says why it cannot be used). */
+    const kbtaSegment = (team, section, onPick) => {
+      if (team.phase === 'absent') return null
+      const admin = team.phase === 'ready' && kbtaIsAdmin(team.role)
+      const pending = admin && team.counts ? team.counts.pending : 0
+      const ini = kbtaInitial(team.phase === 'ready' || team.phase === 'locked' ? team.workspaceName : '')
+      return h('button', { key: 'team', type: 'button', role: 'tab', 'aria-selected': section === 'team' ? 'true' : 'false', className: section === 'team' ? 'on' : '', 'data-kb': 'section-team', 'aria-label': pending > 0 ? kbt('kbta.tab.aria') + ' · ' + kbtaT('kbta.tab.pending', { n: pending }) : kbt('kbta.tab.aria'), onClick: onPick },
+        ini === '' ? null : h('span', { className: 'kbta-ini', 'aria-hidden': 'true' }, ini),
+        kbt('kbta.team'),
+        team.phase === 'locked' ? h('span', { className: 'kbta-lockico', title: kbt('kbta.tab.locked') }, kbtaIcon('lock', 12)) : null,
+        pending > 0 ? kbtaChip('warn', String(pending), { 'data-kb': 'team-pending' }) : null)
+    }
+    // </kbta-block>
+
     const ScheduledTasksPage = () => {
       const tasksPair = React.useState(null)
       const tasks = tasksPair[0]
@@ -21285,6 +22626,14 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       const sectionPair = React.useState('yours')
       const section = sectionPair[0]
       const setSection = sectionPair[1]
+      // Team: what the page knows of the team before its tab is opened (the segment's initial and count), and the request of a row of Yours
+      // (« Propose to team… ») to open the tab with the Propose sheet. A server or a build without the Team routes hides the segment altogether.
+      const team = kbtaUseSummary(section)
+      const proposeReqPair = React.useState(null)
+      const proposeReq = proposeReqPair[0]
+      const setProposeReq = proposeReqPair[1]
+      React.useEffect(() => { if (section !== 'team') setProposeReq(null) }, [section])
+      React.useEffect(() => { if (section === 'team' && team.phase === 'absent') setSection('yours') }, [section, team.phase])
       // The address of the webhook is hidden until the person asks for it.
       const hookShownPair = React.useState(false)
       const hookShown = hookShownPair[0]
@@ -21406,6 +22755,14 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       const useTemplate = (tpl) => {
         try { kbStartChatText(kbTplChatText(tpl, kbt, kbTplPick, kbTplLangName(kbLangResolve()))) } catch (e) { toast(kbt('tasks.tpl.nochat')) }
       }
+      // Team: « Propose to team… » (a row, or the menu of the page of an automation) opens the Team tab with the Propose sheet on that automation.
+      const proposeTask = (id) => { setDetail(null); setNodeSel(null); setSection('team'); setProposeReq({ taskId: id, n: Date.now() }) }
+      // Team: the cloud computer an installed copy is sent to follows the page's own « Where it runs » order (linked and paused here first).
+      const cloudLink = async (id, cloud) => {
+        let r = null
+        try { r = await host.call('kybers/tasks', { action: 'cloud-link', id, cloud }) } catch (e) { r = null }
+        return r !== null && r !== undefined && r.ok === true
+      }
 
       const list = kbTasksList(tasks)
       const sug = kbSuggestedList(tasks)
@@ -21456,7 +22813,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         else if (t.lastRun !== null && t.lastRun !== undefined) { lastLabel = kbWhenOf(t.lastRun) + ' \u00b7 ok'; lastCls = 'ok' }
         const parts = kbTriggerParts(t, kbt, kbBoardLocale(), kbMachineTz())
         return {
-          id: t.id, name: t.name || t.id, team: kbTaskWho(t, kbt) + (t.cloud !== null && t.cloud !== undefined && typeof t.cloud === 'object' ? ' \u00b7 ' + kbt('kbwr.row.sub').replace('{name}', () => String(t.cloud.name)) : ''), trigger: parts.label, tip: parts.tip, hooked: parts.hooked, active: t.active !== false,
+          id: t.id, name: t.name || t.id, team: kbTaskWho(t, kbt) + (t.cloud !== null && t.cloud !== undefined && typeof t.cloud === 'object' ? ' \u00b7 ' + kbt('kbwr.row.sub').replace('{name}', () => String(t.cloud.name)) : '') + (kbtaRowMark(t) !== '' ? ' · ' + kbtaRowMark(t) : ''), trigger: parts.label, tip: parts.tip, hooked: parts.hooked, active: t.active !== false,
           sessions: cloudHist !== null ? cloudHist.length : hist.length, succ: kbRunBars(cloudHist !== null ? cloudHist : t.history), lastLabel: lastLabel, lastCls: lastCls, failed: failed === true || t.pendingFire === true, _t: t,
           weight: kbLdRowWeight(machineLoadPair[0], t, runIds.indexOf(t.id) >= 0, Date.now()),
         }
@@ -21693,6 +23050,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
             h(KbMoreMenu, { label: kbt('tasks.more'), items: [
               { kb: 'detail-edit-chat', icon: Icon('messageSquare', 14), label: kbt('tasks.edit.chat.act'), run: () => editInChat(t) },
               { kb: 'detail-schedule', icon: Icon('clock', 14), label: kbt('tasks.editsched'), run: () => setModal(t) },
+              ...(team.phase !== 'absent' ? [{ kb: 'detail-propose', icon: Icon('users', 14), label: kbt('kbta.propose.menu'), run: () => proposeTask(t.id) }] : []),
               null,
               { kb: 'detail-delete', icon: Icon('trash', 14), label: kbt('tasks.delete'), danger: true, run: () => askDelete(t.id, t.name || t.id) }] })),
           h('div', { className: 'kba-sub', role: 'tablist', 'data-kb': 'detail-tabs' },
@@ -21782,7 +23140,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         (guide === true && list.length > 0 && section === 'yours' ? kbaOnboard(true) : null),
         h('div', { className: 'kbld-row' },
           h('div', { className: 'kba-sub', role: 'tablist', 'data-kb': 'automations-sections' },
-            ['yours', 'discover'].map((id) => h('button', { key: id, type: 'button', role: 'tab', 'aria-selected': section === id ? 'true' : 'false', className: section === id ? 'on' : '', 'data-kb': 'section-' + id, onClick: () => setSection(id) }, kbt('tasks.tab.' + id)))),
+            ['yours', 'discover'].map((id) => h('button', { key: id, type: 'button', role: 'tab', 'aria-selected': section === id ? 'true' : 'false', className: section === id ? 'on' : '', 'data-kb': 'section-' + id, onClick: () => setSection(id) }, kbt('tasks.tab.' + id))).concat([kbtaSegment(team, section, () => setSection('team'))])),
           h(KbLoadStrip, { load: machineLoadPair[0], computers: computersPair[0].list, computersAt: computersPair[0].at })),
         // Barre unifiée (comme Projets et Kybers) : les anciens chips
         // Toutes / Actives / Attention requise deviennent la facette `type`
@@ -21790,7 +23148,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         // barre. Trois vues (Colonnes, Calendrier, Liste) : la Liste est l'écran d'origine, inchangé ; les deux autres
         // sont le tableau (KbAutoBoard) et partagent la recherche, les facettes et les favoris de la barre.
         sugEl,
-        (section === 'discover' ? h(KbDiscover, { onUse: useTemplate }) : kbListState(tasks, loadErr) === 'loading' ? (boardView === 'list' ? kbaSkeleton() : kbBoardSkeleton(boardView)) : kbListState(tasks, loadErr) === 'error' ? kbaLoadError() : (list.length === 0 || filtered.length === 0)
+        (section === 'team' ? h(KbTeamAutomations, { sum: team, tasks, computers: computersPair[0].list, connected: computersPair[0].connected === true, req: proposeReq, onReq: () => setProposeReq(null), notify: toast, refreshTasks: refresh, link: cloudLink, onOpenYours: () => { setSection('yours') } }) : section === 'discover' ? h(KbDiscover, { onUse: useTemplate }) : kbListState(tasks, loadErr) === 'loading' ? (boardView === 'list' ? kbaSkeleton() : kbBoardSkeleton(boardView)) : kbListState(tasks, loadErr) === 'error' ? kbaLoadError() : (list.length === 0 || filtered.length === 0)
           ? (list.length === 0
             ? kbaOnboard(false)
             : h('div', { className: 'kba-card' }, h('div', { className: 'kba-empty' }, kbt('tb.empty.title'))))
@@ -21800,7 +23158,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
               h('button', { type: 'button', className: 'kba-rowbtn', onClick: () => { setDetail(a.id); setTab('flow'); setNodeSel(null) } },
                 h('span', { className: 'kba-namecell' }, h('span', { className: 'kba-name', title: a.name }, a.name, a._t.cloud !== null && a._t.cloud !== undefined && typeof a._t.cloud === 'object' ? h('span', { className: 'kbwr-mark', 'data-kb': 'row-cloud', title: kbt('kbwr.row.mark'), role: 'img', 'aria-label': kbt('kbwr.row.mark') }, Icon('cloud', 13)) : null), h('span', { className: 'kba-team', title: a.team }, a.team)),
                 h('span', { className: 'kba-trgcell' }, h('span', { className: 'kba-trigger-icon' }, Icon('zap', 12)), h('span', { className: 'kba-trg-stack' }, h('span', { className: 'kba-ell', title: a.tip !== '' ? a.trigger + ' · ' + a.tip : a.trigger }, a.trigger), a.hooked === true ? h('span', { className: 'kba-team' }, kbt('tasks.trigger.plushook')) : null)),
-                a.weight !== null ? kbLdStateCell(a) : h('span', { className: 'kba-last' + (a.lastCls !== '' ? ' ' + a.lastCls : '') }, a.lastCls === 'run' ? h('span', { className: 'kb-spin', role: 'status', 'aria-label': a.lastLabel }) : h('span', { className: 'kba-kdot ' + a.lastCls }), h('span', { className: 'kba-ell', title: a.lastLabel }, a.lastLabel)),
+                a.weight !== null ? kbLdStateCell(a) : h('span', { className: 'kba-last' + (a.lastCls !== '' ? ' ' + a.lastCls : '') + (kbtaRowShared(a._t, team) !== null ? ' kbta-wraprow' : '') }, a.lastCls === 'run' ? h('span', { className: 'kb-spin', role: 'status', 'aria-label': a.lastLabel }) : h('span', { className: 'kba-kdot ' + a.lastCls }), h('span', { className: 'kba-ell', title: a.lastLabel }, a.lastLabel), kbtaRowShared(a._t, team)),
                 h('span', { className: 'kba-succ', 'data-kb': 'row-success' },
                   (a.succ.pct === null ? h('span', { className: 'kba-ell' }, '\u2014') : h('span', { className: 'kba-pct ' + (a.succ.pct >= 95 ? 'g' : (a.succ.pct >= 85 ? 'a' : 'r')) }, String(a.succ.pct) + '%')),
                   h('span', { className: 'kba-bars', 'aria-hidden': 'true' }, a.succ.bars.map((b, i) => h('i', { key: i, className: b === 'bad' ? 'x' : '' })))),
@@ -21812,6 +23170,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
                 h('button', { type: 'button', className: 'kb-favbtn' + (auFavOf(a) === true ? ' on' : ''), 'data-kb': 'favorite-star', 'data-scope': 'automations', 'data-id': a.id, title: kbt(auFavOf(a) === true ? 'kbui.unfav' : 'kbui.fav'), 'aria-label': kbt(auFavOf(a) === true ? 'tasks.row.unfav' : 'tasks.row.fav').replace('{name}', () => a.name), onClick: (e2) => { e2.stopPropagation(); auFavToggle(a.id) } }, Icon('star', 13)),
                 h('button', { type: 'button', className: 'kb-favbtn', 'data-kb': 'action-clone', title: kbt('kbui.action.clone'), 'aria-label': kbt('tasks.row.clone').replace('{name}', () => a.name), onClick: (e2) => { e2.stopPropagation(); cloneTask(a) } }, Icon('copy', 13)),
                 h('button', { type: 'button', className: 'kb-favbtn', 'data-kb': 'action-export', title: kbt('kbui.action.export'), 'aria-label': kbt('tasks.row.export').replace('{name}', () => a.name), onClick: (e2) => { e2.stopPropagation(); exportTask(a) } }, Icon('download', 13)),
+                (team.phase !== 'absent' ? h('button', { type: 'button', className: 'kb-favbtn', 'data-kb': 'action-propose', title: kbt('kbta.propose.menu'), 'aria-label': kbt('kbta.propose.row').replace('{name}', () => a.name), onClick: (e2) => { e2.stopPropagation(); proposeTask(a.id) } }, Icon('users', 13)) : null),
                 h('button', { type: 'button', className: 'kb-favbtn kba-trash', 'data-kb': 'action-delete', title: kbt('tasks.delete'), 'aria-label': kbt('tasks.row.delete').replace('{name}', () => a.name), onClick: (e2) => { e2.stopPropagation(); askDelete(a.id, a.name) } }, Icon('trash', 13))),
               h('span', { role: 'switch', 'aria-checked': a.active === true ? 'true' : 'false', 'aria-label': kbt('tasks.row.toggle').replace('{name}', () => a.name), className: 'kba-toggle' + (a.active === true ? ' on' : ''), tabIndex: 0, onKeyDown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); act('toggle', a._t.id, { active: a._t.active === false }) } }, onClick: () => act('toggle', a._t.id, { active: a._t.active === false }) },
                 h('span', { className: 'kba-toggle-knob' }))))))),
@@ -29801,7 +31160,7 @@ body[data-ds-dark-theme] .kb8-iconbtn.on.col{border-color:var(--kb8-pgd);color:v
    query: the sidebar takes a different share on every screen): five columns, then four (no origin), then one stacked block per
    row. The second .kba-card rule further down (a padded flex card) is for other pages: the list card cancels it. */
 .kba-card.kba-lcard{display:block;padding:0;gap:0;border-radius:16px;animation:none;container-type:inline-size}
-.kba-rowline{display:grid;grid-template-columns:minmax(0,1fr) 146px 40px;column-gap:10px;align-items:center;border-top:1px solid var(--dsw-alias-border-l1);padding:0 16px}
+.kba-rowline{display:grid;grid-template-columns:minmax(0,1fr) 176px 40px;column-gap:10px;align-items:center;border-top:1px solid var(--dsw-alias-border-l1);padding:0 16px}
 .kba-rowline:hover,.kba-rowline:focus-within{background:var(--dsw-alias-interactive-bg-hover)}
 .kba-rowline-head{cursor:default;border-top:0;padding-top:11px;padding-bottom:11px}
 .kba-rowline-head:hover{background:transparent}
@@ -32106,6 +33465,112 @@ body:not([data-ds-dark-theme]) [data-kbld-level]{--kbld-t:color-mix(in srgb,var(
 .kbac-segb.on{background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);box-shadow:0 1px 3px rgba(20,20,19,.14)}
 @media (max-width:560px){.kbac-row{align-items:flex-start;flex-wrap:wrap}}
 `), 'kybers: account section styles')
+
+    // ── Team automations: styles (prefix kbta-). The page's own tokens and classes (kba-*, kbwr-*, kb-task-chip, --dsw-alias-*); nothing here names a colour. ──
+    ctx.effect(() => styles.insert(`
+.kbta{display:flex;flex-direction:column;gap:14px;min-width:0}
+.kbta-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px 16px;flex-wrap:wrap}
+.kbta-headtxt{min-width:0;max-width:640px}
+.kbta-team{font-size:14px;font-weight:700;color:var(--dsw-alias-label-primary)}
+.kbta-sub{font-size:12.5px;line-height:1.45;color:var(--dsw-alias-label-secondary);margin-top:2px}
+.kbta-hint{font-size:12px;color:var(--dsw-alias-label-secondary);margin-top:2px}
+.kbta-table .kba-tabver{color:var(--dsw-alias-label-secondary)}
+.kbta-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.kbta-search{box-sizing:border-box;width:320px;max-width:100%;height:34px;border-radius:12px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);padding:0 12px;font:inherit;font-size:12.5px}
+.kbta-search:focus{outline:none;border-color:var(--dsw-alias-brand-primary)}
+.kbta-n{opacity:.7;font-variant-numeric:tabular-nums}
+.kba-sub button .kbta-ini{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:6px;background:var(--dsw-alias-label-primary);color:var(--dsw-alias-bg-layer-1);font-size:10px;font-weight:700;flex:none}
+.kbta-lockico{display:inline-flex;color:var(--dsw-alias-label-tertiary)}
+.kbta-chip{display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 9px;border-radius:11px;border:1px solid var(--dsw-alias-border-l2);font-size:11px;font-weight:500;color:var(--dsw-alias-label-secondary);white-space:nowrap;max-width:100%;min-width:0;overflow:hidden;text-overflow:ellipsis;box-sizing:border-box;flex:none}
+.kbta-chip.ok{border-color:var(--dsw-alias-state-success-primary);color:color-mix(in srgb,var(--dsw-alias-state-success-primary) 60%,var(--dsw-alias-label-primary))}
+.kbta-chip.warn{border-color:var(--dsw-alias-state-warn-primary);color:color-mix(in srgb,var(--dsw-alias-state-warn-primary) 60%,var(--dsw-alias-label-primary))}
+.kbta-chip.err{border-color:var(--dsw-alias-state-error-primary);color:color-mix(in srgb,var(--dsw-alias-state-error-primary) 60%,var(--dsw-alias-label-primary))}
+.kba-sub button .kbta-chip{height:18px;padding:0 6px}
+.kba-last.kbta-wraprow{flex-wrap:wrap;row-gap:4px}
+.kba-last .kbta-chip{flex:0 1 auto}
+.kbta-c>.kbta-chip{align-self:flex-start}
+.kbta-chips{display:flex;gap:4px;flex-wrap:wrap;align-items:center;min-width:0}
+.kba-rowline.kbta-row{grid-template-columns:minmax(0,1fr);padding-top:12px;padding-bottom:12px}
+.kbta-cols{display:grid;column-gap:14px;align-items:center;min-width:0}
+.kbta-cols-approved{grid-template-columns:minmax(0,2.8fr) minmax(0,1.5fr) minmax(0,1.7fr) minmax(0,1.5fr) 160px}
+.kbta-cols-mine{grid-template-columns:minmax(0,2.4fr) minmax(0,1.6fr) minmax(0,3fr) 170px}
+.kbta-cols-review{grid-template-columns:minmax(0,2.6fr) minmax(0,1.6fr) minmax(0,1.8fr) minmax(0,1.2fr) 110px}
+.kbta[data-role="admin"] .kbta-cols-approved{grid-template-columns:minmax(0,2.8fr) minmax(0,1.5fr) minmax(0,1.7fr) minmax(0,1.5fr) 250px}
+.kbta-c{display:flex;flex-direction:column;min-width:0;gap:2px;font-size:12.5px}
+.kbta-c-act{flex-direction:row;justify-content:flex-end;align-items:center;gap:6px}
+.kbta-wrap{white-space:normal;overflow:visible;text-overflow:clip}
+@container (max-width:759px){
+  .kbta-table .kba-rowline-head{display:none}
+  .kbta-cols,.kbta[data-role="admin"] .kbta-cols-approved{grid-template-columns:minmax(0,1fr) auto;row-gap:6px}
+  .kbta-cols>.kbta-c:not(.kbta-c-name):not(.kbta-c-act){grid-column:1 / -1}
+  .kbta-cols>.kbta-c-name{grid-column:1;grid-row:1}
+  .kbta-cols>.kbta-c-act{grid-column:2;grid-row:1}
+}
+.kbta-lock,.kbta-empty{display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;padding:56px 24px;color:var(--dsw-alias-label-secondary)}
+.kbta-lock-t,.kbta-empty-t{font-size:16px;font-weight:700;color:var(--dsw-alias-label-primary)}
+.kbta-lock-b,.kbta-empty-b{font-size:12.5px;max-width:440px;line-height:1.5}
+.kbta-lock-acts{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;justify-content:center}
+.kbta-scrim{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.38);display:flex;justify-content:flex-end}
+.kbta-sheet{display:flex;flex-direction:column;box-sizing:border-box;width:620px;max-width:100%;height:100%;background:var(--dsw-alias-bg-layer-1);border-inline-start:1px solid var(--dsw-alias-border-l1);box-shadow:-18px 0 40px rgba(0,0,0,.3);color:var(--dsw-alias-label-primary);font-size:13px;outline:none}
+.kbta-shead{display:flex;align-items:flex-start;gap:12px;padding:20px 22px 14px;border-bottom:1px solid var(--dsw-alias-border-l1)}
+.kbta-sheadtxt{min-width:0;flex:1}
+.kbta-stitle{font-size:17px;font-weight:700;letter-spacing:-.01em;overflow-wrap:anywhere}
+.kbta-ssub{font-size:12px;color:var(--dsw-alias-label-secondary);margin-top:2px;overflow-wrap:anywhere}
+.kbta-x{width:30px;height:30px;padding:0;justify-content:center;flex:none}
+.kbta-sbody{flex:1;min-height:0;overflow-y:auto;padding:4px 22px 20px;display:flex;flex-direction:column}
+.kbta-sbody>*{flex:none}
+.kbta-sbody>.kbwr-card,.kbta-sbody>.kbta-card,.kbta-sbody>.kbwr-opts{margin-top:10px}
+.kbta-sfoot{display:flex;align-items:center;justify-content:flex-end;gap:8px;padding:14px 22px;border-top:1px solid var(--dsw-alias-border-l1)}
+.kbta-fnote{margin-inline-end:auto;font-size:12px;color:var(--dsw-alias-label-secondary)}
+.kbta-lab{font-size:12px;font-weight:600;color:var(--dsw-alias-label-secondary);margin:18px 0 8px}
+.kbta-card{box-sizing:border-box;border-radius:14px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-2);padding:12px 14px;font-size:13px;overflow-wrap:anywhere}
+.kbta-dim{color:var(--dsw-alias-label-secondary)}
+.kbta-small{font-size:11px}
+.kbta-kv{display:grid;grid-template-columns:110px minmax(0,1fr);gap:10px;padding:7px 0;border-top:1px solid var(--dsw-alias-border-l1)}
+.kbta-kv:first-child{border-top:0}
+.kbta-k{color:var(--dsw-alias-label-secondary);font-size:12px}
+.kbta-v{min-width:0}
+.kbta-mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.kbta-promptbox{white-space:pre-wrap;font-size:12px;line-height:1.5;max-height:220px;overflow:auto;overflow-wrap:anywhere}
+.kbta-diff{padding:8px 0;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;line-height:1.6}
+.kbta-dl{padding:1px 14px;white-space:pre-wrap;overflow-wrap:anywhere;color:var(--dsw-alias-label-secondary)}
+.kbta-dl.add{background:color-mix(in srgb,var(--dsw-alias-state-success-primary) 16%,transparent);color:var(--dsw-alias-label-primary)}
+.kbta-dl.del{background:color-mix(in srgb,var(--dsw-alias-state-error-primary) 16%,transparent);color:var(--dsw-alias-label-primary)}
+.kbta-dl.gap{color:var(--dsw-alias-label-tertiary);text-align:center}
+.kbta-dimline,.kbta-chg{font-size:12px;color:var(--dsw-alias-label-secondary)}
+.kbta-chglist{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.kbta-never{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--dsw-alias-label-secondary)}
+.kbta-neverrow{display:flex;align-items:center;gap:8px}
+.kbta-neverrow>svg{flex:none}
+.kbta-field{display:flex;flex-direction:column;gap:6px;margin-top:18px}
+.kbta-lab2{font-size:12px;font-weight:600;color:var(--dsw-alias-label-secondary)}
+.kbta-input{box-sizing:border-box;width:100%;border-radius:12px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);font:inherit;font-size:13px;padding:10px 12px;resize:vertical}
+.kbta-input:focus{outline:none;border-color:var(--dsw-alias-brand-primary)}
+.kbta-select{margin-top:8px;resize:none}
+.kbta-fieldfoot{display:flex;justify-content:space-between;gap:8px}
+.kbta-count{font-size:11px;font-variant-numeric:tabular-nums;color:var(--dsw-alias-label-secondary);flex:none}
+.kbta-count.over{color:var(--dsw-alias-state-error-primary);font-weight:600}
+.kbta-picks{max-height:260px;overflow:auto}
+.kbta-found{align-items:flex-start}
+.kbta-foundhead{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.kbta-excerpt{margin-top:8px;margin-bottom:6px;font-size:12px;color:var(--dsw-alias-label-secondary);word-break:break-all}
+.kbta-grow{flex:1;min-width:0}
+.kbta-freq{align-items:center}
+.kbta-whyline{margin-top:8px}
+.kbta-done{display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;padding:64px 12px;color:var(--dsw-alias-state-success-primary)}
+.kbta-done-t{font-size:16px;font-weight:700;color:var(--dsw-alias-label-primary)}
+.kbta-done-b{font-size:12.5px;color:var(--dsw-alias-label-secondary);max-width:380px;line-height:1.5}
+.kbta-switchrow{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:18px;padding:12px 14px;border-radius:12px;background:var(--dsw-alias-bg-layer-2)}
+.kbta-swt{display:block;font-size:13px;font-weight:600}
+.kba-toggle.kbta-toggle{padding:0;flex:none}
+.kba-toggle.kbta-toggle:disabled{opacity:.45;cursor:not-allowed}
+.kbta-tabs{margin:12px 0 0}
+.kba-btn.kbta-sm{height:28px;padding:0 10px;font-size:12px;border-radius:9px}
+.kba-btn.kbta-quiet{border-color:transparent;background:transparent;color:var(--dsw-alias-label-secondary)}
+.kba-btn.kbta-quiet:hover{color:var(--dsw-alias-label-primary);border-color:var(--dsw-alias-border-l2)}
+.kba-btn:focus-visible,.kbta-search:focus-visible,.kbta-sheet button:focus-visible,.kbwr-opt:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px}
+@media (max-width:700px){.kbta-sheet{width:100%}.kbta-sbody,.kbta-shead,.kbta-sfoot{padding-inline:16px}}
+`), 'kybers: team automations styles')
 
     // ── Settings menu: sections, order, icons and the Advanced fold ──
     // The shell's nav is a flex column: no node is MOVED (the shell's reconciler stays in charge of the DOM). Each cell gets a style.order
