@@ -3091,7 +3091,8 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
         // with a Details button and the same Use / Install. Not a curated pick, it has no cover, no audit and no install count: its tag is the goal it serves.
         const fieldAsPick = (sk) => {
           const curated = picks.items.find((it) => it.source === sk.source && it.id === sk.name)
-          if (curated !== undefined) return curated
+          // A curated pick keeps its page, cover and audits, but wears the goal as its tag (without it the card read the pick's category: « Productivity » for « Time »).
+          if (curated !== undefined) return { ...curated, tag: sk.goal }
           const name = humanName(sk.name)
           return { id: sk.name, source: sk.source, category: undefined, tag: sk.goal, title: { fr: name, en: name }, outcome: { fr: sk.d, en: sk.d }, prompt: { fr: '', en: '' }, installs: null, audits: [], cover: null, needs: null }
         }

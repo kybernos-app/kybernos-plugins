@@ -29,6 +29,27 @@ assert.ok(field.includes("views.featured === 'list'"))
 assert.ok(!src.includes('const fieldRow ') && !src.includes('kbsf-frow') && !src.includes('kbsf-fgrid'), 'the old field rows are gone (dead code)')
 ok('the field skills are the same cards and rows as the picks, in the view the page is on; the old rows are gone')
 
+// A skill of the field carries its goal as its tag, curated pick or not (domain-packs.md: « each with its goal as a tag »). Run the real function: a skill that
+// is also a curated pick (xlsx, docx in Law) used to come back as the pick itself, whose tag is its category, so the card read « Time » nowhere and a category instead.
+{
+  const fn = between('const fieldAsPick = ', 'const fieldOpts = ').replace(/^const fieldAsPick = /, 'return ').trimEnd()
+  const curated = { id: 'xlsx', source: 'anthropics/skills', category: 'productivity', title: { fr: 'Tableur', en: 'Spreadsheet' }, outcome: { fr: 'x', en: 'x' }, prompt: { fr: 'a', en: 'a' }, installs: 12, audits: [['A', 'pass']], cover: 'c.png', needs: null }
+  const before = JSON.stringify(curated)
+  const picks = { items: [curated] }
+  const fieldAsPick = new Function('picks', 'humanName', fn)(picks, (n) => 'Name of ' + n)
+  const own = fieldAsPick({ source: 'anthropics/skills', name: 'xlsx', goal: 'Time', d: 'Spreadsheets' })
+  assert.equal(own.tag, 'Time', 'a curated pick shows the goal of the skill as its tag, not its category')
+  assert.equal(own.id, 'xlsx')
+  assert.equal(own.category, 'productivity', 'the pick keeps the rest of itself (its Details page, cover and audits)')
+  assert.equal(own.cover, 'c.png')
+  assert.equal(JSON.stringify(curated), before, 'the curated list itself is not touched (the same pick in a category below stays tagged by its category)')
+  const plain = fieldAsPick({ source: 'someone/skills', name: 'review-contract', goal: 'Contracts', d: 'Reads a contract' })
+  assert.equal(plain.tag, 'Contracts')
+  assert.equal(plain.category, undefined)
+  assert.equal(plain.title.en, 'Name of review-contract')
+  ok('a skill of the field has its goal as its tag, whether it is also a curated pick (xlsx, docx) or not; the curated list is left as it was')
+}
+
 assert.ok(field.includes('noDetails') && !field.includes("setMode('yours')") && !field.includes("setMode('discover')"), 'Details stays on the tab it was clicked on')
 assert.ok(/const noDetails = curated !== true && own === undefined && sk\.shipped === true/.test(field))
 ok('Details opens a curated pick, an installed skill or the install panel, in a window over the tab (no switch of tab); a shipped skill that is not installed has none')
