@@ -1,7 +1,7 @@
 // The REAL test of an automation that asks first, on the owner's own DSH and a test computer on Fly dev: it makes ONE automation (set to ask, due in a few minutes), then publishes it
 // to the computer through the page, the way a person would (Where it runs, Cloud computer, Publish), and says what the platform answers. Nothing else of the owner's data is touched.
 //
-//   node services/computer-image/real-ask-test.mjs publish [computer name]     creates the automation and publishes it (default computer: ask-test)
+//   node services/computer-image/real-ask-test.mjs publish [computer name]     creates the automation and publishes it (default computer: ask-test; ASK_NAME / ASK_FILE for a second one)
 //   node services/computer-image/real-ask-test.mjs watch <computer id> <ref>   exits when a question of that automation is waiting for an answer
 //   node services/computer-image/real-ask-test.mjs clean <ref> <computer id>   takes it away from the computer and deletes it here
 //
@@ -10,8 +10,9 @@ import { openLivePage, clickText } from '../../scripts/live-page.mjs'
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 const [mode, a1, a2] = process.argv.slice(2)
-const NAME = 'Preuve de demande (test, à supprimer)'
-const COMMAND = 'echo kb-ask-proof > /data/work/proof.txt'
+// ASK_NAME and ASK_FILE make a second automation (a run where the person refuses writes `proof-refuse.txt`: if that file is ever there, the refusal failed).
+const NAME = process.env.ASK_NAME || 'Preuve de demande (test, à supprimer)'
+const COMMAND = 'echo kb-ask-proof > ' + (process.env.ASK_FILE || '/data/work/proof.txt')
 
 const localAt = (minutes, tz) => {
   const parts = new Intl.DateTimeFormat('sv-SE', { timeZone: tz, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).format(new Date(Date.now() + minutes * 60000))
