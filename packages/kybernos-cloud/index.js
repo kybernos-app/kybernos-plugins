@@ -37,7 +37,7 @@
 // applied by the proxy on every request — this plugin filters nothing.
 import { execFileSync, spawn } from 'node:child_process'
 import { timingSafeEqual } from 'node:crypto'
-import { chmodSync, mkdirSync, readFileSync, readdirSync, realpathSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { appendFileSync, chmodSync, mkdirSync, readFileSync, readdirSync, realpathSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { homedir, hostname, platform } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { lireCatalogue, resoudreItem, slugSur, ymlDuKyber, verdictInstallation } from './marketplace-kyber.mjs'
@@ -46,6 +46,7 @@ import { findDuplicateGroups, unclearPairs, likeness, negates, numbersOf } from 
 import { MAP_TUNING, textHash, packVector, unpackVector, buildMap } from './mapproj.mjs'
 import { TEAM_CHUNK_NAME, TEAM_CHUNK_ORDER, TEAM_TUNING, teamWorkspace, displayName, asTeamLesson, teamFailure, teamPlan, renderTeamChunk, applicable } from './team-lessons.mjs'
 import { teamSkillsBase, isSkillId, teamSkillsFailure, asTeamSkill } from './team-skills.mjs'
+import { teamAutomationsBase, isAutomationId, teamAutomationsFailure, asTeamAutomation, asTeamAutomationsPage, teamAutomationShape, definitionOf, versionOf, accessEntry, TEAM_AUTOMATION_LIMITS, TEAM_AUTOMATION_VIEWS } from './team-automations.mjs'
 import { createConnections } from './connections-host.mjs'
 import { normalizeTidySettings, patchTidySettings, tidyDue, tidyNext, pickAuto, removalChunks, readStudyChoice, brainGroups } from './tidy.mjs'
 import { zstdDecompressSync } from 'node:zlib'
@@ -3983,6 +3984,137 @@ const teamSkillsDeleteRoute = async (req, body) => {
   return { ok: true }
 }
 
+// ── Team automations ─────────────────────────────────────────────────────────────────────
+// A Team's private catalogue of automations (docs/dev/team-automations-contract.md): any member proposes one of theirs, an owner or admin approves it, every member can install it
+// as a paused copy. Same rule as the skills (`teamWorkspace`) and the same shape: this side only talks to the server with the account token. Reading a local automation into a
+// proposal and installing one is kybernos-plugin's business (the page carries the definitions between the two), so nothing of an automation is kept here, journal included.
+const TEAM_AUTOMATIONS_JOURNAL_MAX = 512 * 1024
+
+/** One line per call that reached the server: who, when, what, how the server answered. Beside the state file; never a word of an automation, never a reason to fail the call. */
+const noteTeamAutomationsAccess = (state, ws, fields) => {
+  try {
+    const entry = accessEntry({ at: new Date().toISOString(), user: state.user !== null && typeof state.user === 'object' ? state.user.id : undefined, workspace: ws.workspaceId, ...fields })
+    if (entry === null) return
+    const file = join(dirname(stateFile()), 'team-automations-access.jsonl')
+    mkdirSync(dirname(file), { recursive: true, mode: 0o700 })
+    // Two generations at most: a trace of recent use, not an archive.
+    try { if (statSync(file).size > TEAM_AUTOMATIONS_JOURNAL_MAX) renameSync(file, file + '.1') } catch (e) { /* no journal yet */ }
+    appendFileSync(file, JSON.stringify(entry) + '\n', { mode: 0o600 })
+    try { chmodSync(file, 0o600) } catch (e) { /* exotic FS (Windows) */ }
+  } catch (e) { /* a journal that cannot be written never fails the call */ }
+}
+
+const teamAutomationsCall = async (state, action, method, suffix, body, detail = {}) => {
+  const ws = teamNow(state)
+  if (ws.available !== true) return { ok: false, error: ws.reason }
+  const res = await apiCall(teamAutomationsBase(ws.workspaceId) + suffix, { method, token: state.token, ...(body === undefined ? {} : { body }) })
+  const failure = teamAutomationsFailure(res.status, res.body)
+  const answered = res.body !== null && typeof res.body === 'object' ? res.body : {}
+  // A proposal has no id until the server numbers it (or names the one it already has).
+  noteTeamAutomationsAccess(state, ws, { action, id: detail.id !== undefined ? detail.id : (action === 'add' ? answered.id : undefined), view: detail.view, decision: detail.decision, result: failure === null ? 'ok' : failure.error })
+  if (failure !== null) return { ok: false, ...failure }
+  return { ok: true, body: res.body, ws }
+}
+
+/** The note of a proposal or a review: sent when it says something. */
+const teamAutomationsNote = (b) => (typeof b.note === 'string' && b.note.trim() !== '' ? b.note : undefined)
+
+/** What a proposal (add) and its dry run (check) send: the definition looked at here first, so the page hears the word before the server's, then rebuilt from its six fields and the note. */
+const teamAutomationsProposal = (body) => {
+  const b = body !== null && typeof body === 'object' ? body : {}
+  const shape = teamAutomationShape(b)
+  if (shape !== null) return { refusal: shape }
+  const payload = definitionOf(b)
+  const note = teamAutomationsNote(b)
+  if (note !== undefined && note.length > TEAM_AUTOMATION_LIMITS.noteMax) return { refusal: { error: 'too_large' } }
+  if (note !== undefined) payload.note = note
+  return { payload }
+}
+
+const teamAutomationsListRoute = async (req) => {
+  const state = readState()
+  if (isConnected(state) !== true) return { ok: false, connected: false, error: 'non connecte' }
+  const params = paramsOf(req)
+  const view = TEAM_AUTOMATION_VIEWS.indexOf(params.get('view')) >= 0 ? params.get('view') : 'approved'
+  const query = 'view=' + view + '&limit=' + String(intParam(params.get('limit'), 100, 1, 200)) + '&offset=' + String(intParam(params.get('offset'), 0, 0, 100000))
+  const made = await teamAutomationsCall(state, 'list', 'GET', '?' + query, undefined, { view })
+  if (made.ok !== true) return made
+  const page = asTeamAutomationsPage(made.body)
+  if (page === null) return { ok: false, error: 'invalid_response' }
+  return { ok: true, connected: true, ...page, workspaceName: made.ws.workspaceName }
+}
+
+const teamAutomationsItemRoute = async (req) => {
+  const state = readState()
+  if (isConnected(state) !== true) return { ok: false, connected: false, error: 'non connecte' }
+  const id = paramsOf(req).get('id')
+  if (!isAutomationId(id)) return { ok: false, error: 'not_found' }
+  const made = await teamAutomationsCall(state, 'item', 'GET', '/' + String(id), undefined, { id })
+  if (made.ok !== true) return made
+  const automation = asTeamAutomation(made.body)
+  if (typeof automation.prompt !== 'string') return { ok: false, error: 'invalid_response' }
+  // What an admin approved is exactly what a member installs: the page gets the definition only if it hashes to the version the server states for it.
+  if (versionOf(automation) !== automation.version) return { ok: false, error: 'version_mismatch' }
+  return { ok: true, automation }
+}
+
+const teamAutomationsCheckRoute = async (req, body) => {
+  const state = readState()
+  if (isConnected(state) !== true) return { ok: false, connected: false, error: 'non connecte' }
+  const proposal = teamAutomationsProposal(body)
+  if (proposal.refusal !== undefined) return { ok: false, ...proposal.refusal }
+  const made = await teamAutomationsCall(state, 'check', 'POST', '/check', proposal.payload)
+  if (made.ok !== true) return made
+  const version = made.body !== null && typeof made.body === 'object' ? made.body.version : undefined
+  if (typeof version !== 'string' || !/^[0-9a-f]{64}$/.test(version)) return { ok: false, error: 'invalid_response' }
+  return { ok: true, version }
+}
+
+const teamAutomationsAddRoute = async (req, body) => {
+  const state = readState()
+  if (isConnected(state) !== true) return { ok: false, connected: false, error: 'non connecte' }
+  const proposal = teamAutomationsProposal(body)
+  if (proposal.refusal !== undefined) return { ok: false, ...proposal.refusal }
+  const made = await teamAutomationsCall(state, 'add', 'POST', '', proposal.payload)
+  if (made.ok !== true) return made
+  return { ok: true, automation: asTeamAutomation(made.body) }
+}
+
+const teamAutomationsReviewRoute = async (req, body) => {
+  const state = readState()
+  if (isConnected(state) !== true) return { ok: false, connected: false, error: 'non connecte' }
+  const b = body !== null && typeof body === 'object' ? body : {}
+  if (!isAutomationId(b.id)) return { ok: false, error: 'not_found' }
+  if (b.decision !== 'approve' && b.decision !== 'reject') return { ok: false, error: 'bad_request' }
+  const payload = { decision: b.decision }
+  const note = teamAutomationsNote(b)
+  if (note !== undefined && note.length > TEAM_AUTOMATION_LIMITS.noteMax) return { ok: false, error: 'too_large' }
+  if (note !== undefined) payload.note = note
+  const made = await teamAutomationsCall(state, 'review', 'POST', '/' + String(b.id) + '/review', payload, { id: b.id, decision: b.decision })
+  if (made.ok !== true) return made
+  return { ok: true, automation: asTeamAutomation(made.body) }
+}
+
+const teamAutomationsRetireRoute = async (req, body) => {
+  const state = readState()
+  if (isConnected(state) !== true) return { ok: false, connected: false, error: 'non connecte' }
+  const b = body !== null && typeof body === 'object' ? body : {}
+  if (!isAutomationId(b.id)) return { ok: false, error: 'not_found' }
+  const made = await teamAutomationsCall(state, 'retire', 'POST', '/' + String(b.id) + '/retire', {}, { id: b.id })
+  if (made.ok !== true) return made
+  return { ok: true, automation: asTeamAutomation(made.body) }
+}
+
+const teamAutomationsDeleteRoute = async (req, body) => {
+  const state = readState()
+  if (isConnected(state) !== true) return { ok: false, connected: false, error: 'non connecte' }
+  const b = body !== null && typeof body === 'object' ? body : {}
+  if (!isAutomationId(b.id)) return { ok: false, error: 'not_found' }
+  const made = await teamAutomationsCall(state, 'delete', 'DELETE', '/' + String(b.id), undefined, { id: b.id })
+  if (made.ok !== true) return made
+  return { ok: true }
+}
+
 /**
  * Paginated, filtered list of the ACCOUNT's memories. Everything is computed here, on the
  * cache: the server does not paginate yet (`GET /v1/memories` returns everything), so
@@ -5488,6 +5620,14 @@ const ROUTES = [
   { path: '/kybernos-cloud/team/skills/review', method: 'POST', guarded: true, session: true, body: true, cap: 4096, run: teamSkillsReviewRoute },
   { path: '/kybernos-cloud/team/skills/retire', method: 'POST', guarded: true, session: true, body: true, cap: 4096, run: teamSkillsRetireRoute },
   { path: '/kybernos-cloud/team/skills/delete', method: 'POST', guarded: true, session: true, body: true, cap: 4096, run: teamSkillsDeleteRoute },
+  // Team automations: the server half only (the local automations are read and written by kybernos-plugin). A proposal is one definition, 8000 characters of prompt at most.
+  { path: '/kybernos-cloud/team/automations', method: 'GET', guarded: true, run: teamAutomationsListRoute },
+  { path: '/kybernos-cloud/team/automations/item', method: 'GET', guarded: true, run: teamAutomationsItemRoute },
+  { path: '/kybernos-cloud/team/automations/check', method: 'POST', guarded: true, session: true, body: true, cap: 256 * 1024, run: teamAutomationsCheckRoute },
+  { path: '/kybernos-cloud/team/automations/add', method: 'POST', guarded: true, session: true, body: true, cap: 256 * 1024, run: teamAutomationsAddRoute },
+  { path: '/kybernos-cloud/team/automations/review', method: 'POST', guarded: true, session: true, body: true, cap: 4096, run: teamAutomationsReviewRoute },
+  { path: '/kybernos-cloud/team/automations/retire', method: 'POST', guarded: true, session: true, body: true, cap: 4096, run: teamAutomationsRetireRoute },
+  { path: '/kybernos-cloud/team/automations/delete', method: 'POST', guarded: true, session: true, body: true, cap: 4096, run: teamAutomationsDeleteRoute },
   // Kybernos connections: the account's connected apps. The routes sit here (the token does) and the connectors page calls them. A
   // link may carry the API key of a toolkit that has no OAuth, so its body is small and its handler never logs or echoes it.
   { path: '/kybernos-cloud/connections', method: 'GET', guarded: true, run: connections.listRoute },

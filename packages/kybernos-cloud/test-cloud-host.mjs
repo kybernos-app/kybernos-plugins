@@ -686,6 +686,8 @@ try {
     '/kybernos-cloud/team/status', '/kybernos-cloud/team/lessons', '/kybernos-cloud/team/lessons/add', '/kybernos-cloud/team/lessons/review', '/kybernos-cloud/team/lessons/retire', '/kybernos-cloud/team/lessons/delete',
     // Team skills (test-team-skills.mjs): the server half of a Team's private catalogue.
     '/kybernos-cloud/team/skills', '/kybernos-cloud/team/skills/item', '/kybernos-cloud/team/skills/add', '/kybernos-cloud/team/skills/review', '/kybernos-cloud/team/skills/retire', '/kybernos-cloud/team/skills/delete',
+    // Team automations (test-team-automations.mjs): the same, for the automations of a Team's catalogue.
+    '/kybernos-cloud/team/automations', '/kybernos-cloud/team/automations/item', '/kybernos-cloud/team/automations/check', '/kybernos-cloud/team/automations/add', '/kybernos-cloud/team/automations/review', '/kybernos-cloud/team/automations/retire', '/kybernos-cloud/team/automations/delete',
     // Kybernos connections (test-connections.mjs): the account's connected apps, through the server's own Composio project.
     '/kybernos-cloud/connections', '/kybernos-cloud/connections/apps', '/kybernos-cloud/connections/item', '/kybernos-cloud/connections/link', '/kybernos-cloud/connections/delete',
     '/kybernos-cloud/memory/tidy', '/kybernos-cloud/memory/tidy/scan', '/kybernos-cloud/memory/tidy/apply', '/kybernos-cloud/memory/tidy/dismiss', '/kybernos-cloud/memory/tidy/undo', '/kybernos-cloud/memory/tidy/settings',

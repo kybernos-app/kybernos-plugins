@@ -393,6 +393,35 @@ Every refusal of the server is returned as one word (`team-skills.mjs`: `admin_r
 `reason`, `duplicate`, `not_on_this_server` for a server without the routes, …). The server's own text never reaches the page.
 `node packages/kybernos-cloud/test-team-skills.mjs` (13 checks, stand-in server).
 
+## Team automations (server half)
+
+A Team's private catalogue of automations: a member proposes one of theirs, an owner or admin approves it, every member can install it as a paused copy of their own. Same
+shape as Team skills: this package only calls the server's routes under `/v1/workspaces/{id}/automations` (contract: `docs/dev/team-automations-contract.md`) with the account
+token, for the **active** workspace, and only in a team space (`teamWorkspace`; a personal space or another plan answers `offre_requise`, as skills do).
+The package never reads or writes a local automation: `kybernos-plugin` does (`/kybernos/automation/team-*`), and the page carries the definitions between the two.
+
+| Route | Does |
+| --- | --- |
+| `GET /kybernos-cloud/team/automations?view=approved\|proposed\|mine\|all&limit=&offset=` | a page of automations (metadata, no prompt), with the caller's role and the counts |
+| `GET /kybernos-cloud/team/automations/item?id=` | one automation with its prompt, refused (`version_mismatch`) unless it hashes to the version the server states |
+| `POST …/check` `{key, name, description, prompt, schedule, needs, note?}` | the dry run of a proposal: `{ok, version}` or the word the proposal would get; nothing stored |
+| `POST …/add` (same body) · `…/review` `{id, decision, note?}` · `…/retire` `{id}` · `…/delete` `{id}` | propose (an admin's is approved at once), approve or reject, retire, withdraw |
+
+All the POST routes are strict same origin **and** the signed session (they carry prompts); `add` and `check` take 256 KiB, the others 4 KiB.
+
+- **The words** (`team-automations.mjs`): `admin_required`, `plan_required` (the server's `403 plan_required`, never guessed from a plan's name), `scan_rejected` with the
+  `field` (and the `line` of the prompt), `invalid_automation` with its `reason`, `duplicate`, `not_pending`, `not_approved`, `team_full`, `too_many_proposals`, `too_large`,
+  `not_found` and `not_on_this_server` (the two exact 404 texts of the contract tell them apart), plus `reconnect_required`, `network`, `forbidden`, `conflict`, `bad_request`,
+  `refused_<status>`, `invalid_response`. The server's own text never reaches the page, and neither does a field the contract does not name.
+- **Before the call**: `add` and `check` look at the definition first (`teamAutomationShape`: key, name, description, prompt, a cron or webhook schedule and nothing else, needs),
+  so the page hears `invalid_automation` + `reason` without a round trip, and send only the six fields, the cron on single spaces and the needs sorted.
+- **The version** is the SHA-256 of the canonical form (`canonicalOf`, `versionOf`); the contract's two test vectors are in the test.
+- **The access journal**: `team-automations-access.jsonl`, beside the state file, one line per call that reached the server (`at`, `user`, `workspace`, `action`, `id`, `view`,
+  `decision`, `result`). A closed list of fields, so never a name, a prompt, a description or a note; 0600, two generations of 512 KiB at most, and a journal that cannot be written
+  never fails a call.
+
+`node packages/kybernos-cloud/test-team-automations.mjs` (stand-in server; the routes are also in the lists of `test-cloud-host.mjs`, `test-write-guard.mjs` and `lib-session-routes-test.mjs`).
+
 ## Kybernos connections (the account's connected apps)
 
 The person connects Gmail or GitHub once, in the web app or in DSH, through the **server's own Composio Platform project** (not a key typed
