@@ -134,4 +134,17 @@ const media = (query, needle) => {
   ok('an installed template shows an « Installed » figure (its word always shown) that does not wait for a hover')
 }
 
+// 8. a list row at phone width: the button box takes the whole line, so its 48 px of padding must be inside it (recette 2026-10-24: at 400 px the box was 48 px wider than the row)
+{
+  const phone = /@media \(max-width:480px\)\{[^\n]*\.kb8-rf-btns\{([^}]*)\}/.exec(src)
+  assert.ok(phone !== null, 'a phone-width rule for the button box of a row')
+  assert.match(phone[1], /flex:1 0 100%/, 'it takes the whole line under the name')
+  assert.match(phone[1], /padding-inline-start:48px/, 'and starts under the name, past the tile')
+  const base = rule('.kb8-rf-btns')
+  assert.ok(base !== null, 'the button box has a base rule')
+  assert.match(base, /box-sizing:border-box/, 'border-box: a 100 % line plus 48 px of padding would be 48 px wider than the row (clipped by the list)')
+  assert.doesNotMatch(base, /(?:^|;)(?:padding|border|margin)[^:]*:/, 'and the base rule has no padding, border or margin of its own, so nothing moves above 480 px')
+  ok('the button box of a list row fits the row at phone width (border-box), and is unchanged above 480 px')
+}
+
 console.log('\n' + pass + ' checks passed')
