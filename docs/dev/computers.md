@@ -161,7 +161,7 @@ allow this » (a standing rule per automation, to be kept on the computer, shown
 **Played on the real image** (2026-10-24, arm64 container, DSH 0.2.1-rc.2, a stand-in platform on the Mac and a stand-in model; the image built from the checkout with `KB_LOCAL`, nothing published):
 `node services/computer-image/play-ask.mjs <image>` (and `DECISION=denied`) does the whole path in about two minutes and checks ten things: ready with `ask_approvals`, the definition applied, the
 gate's question (the command, kind shell) put once, the run refused at once and not reported as ended, the schedule row `waiting_approval`, the answer taken, the SAME session continued with what was
-decided, the action run once (or not at all when refused: no file), the run reported once. 10/10 for allowed and for denied. Not played: the real platform, Fly (amd64), a real model, a real tap.
+decided, the action run once (or not at all when refused: no file), the run reported once. 10/10 for allowed and for denied. Played since on Fly dev with the owner's real tap (a refusal, 2026-10-24: see « Traps met »). Not played: production.
 To build the image from the checkout without a release: `git archive <commit> | tar -x -C <folder>`, then `docker buildx build --build-context kbsrc=<folder> --build-arg KB_LOCAL=1 --build-arg DSH_VER=0.2.1-rc.2 -t kybernos-computer-base:<tag> packages/kybernos-gate/docker`
 and the computer image as above (`-f services/computer-image/Dockerfile --build-arg BASE=...`, context the repository root).
 Tests: `scripts/test-computer-approvals.mjs` (the two real plugins and a stand-in platform), `packages/kybernos-cloud/test-automation-approvals.mjs` (the rules),

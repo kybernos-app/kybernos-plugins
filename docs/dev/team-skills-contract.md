@@ -1,8 +1,8 @@
 # Team skills: the server contract
 
 A Team can keep a **private catalogue of skills**. Any member proposes a skill, an owner or admin approves it, and every member
-can then install it into their own DSH. This file is the contract between the plugins (this repo) and the server. **No server
-implements it yet**: the plugin is built and tested against a fake one, and the new server implements the routes below.
+can then install it into their own DSH. This file is the contract between the plugins (this repo) and the server. **The new server
+implements it** (module `src/modules/skills` of `kybernos-server`, `origin/dev`; production, the frozen `main`, was not checked): the plugin is built and was tested against a stand-in one.
 
 It mirrors Team lessons (`/v1/workspaces/{id}/lessons`: propose, review, retire) on purpose: same roles, same status flow, same
 error vocabulary, same guards. A server that already has the lessons module has almost nothing new to invent.
@@ -117,7 +117,7 @@ carry the rules: one approved row per `(workspace_id, name)`, and no second `pro
 
 ## The plugin side (for information, not part of the contract)
 
-Built (host halves, tested against a stand-in server; the screen is not built yet):
+Built (host halves, tested against a stand-in server; the screen is described after this list):
 
 - `kybernos-cloud`: `/kybernos-cloud/team/skills` (list), `…/item?id=` (one skill with its files), `…/add`, `…/review`,
   `…/retire`, `…/delete`. They call the server above with the account token, for the ACTIVE workspace, only on the Team plan

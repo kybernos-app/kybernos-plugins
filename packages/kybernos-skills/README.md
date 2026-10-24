@@ -125,8 +125,6 @@ All under `/kybernos-skills/`, JSON; refusals come back as HTTP 200 `{ok:false, 
   credential is sent whatever the relay, and what one relay answered is never served for another. It also runs `tar`. If the
   relay is down, *Yours* and GitHub import still work and *Discover* says so, with **Try again** (one automatic second attempt
   first, for a 5xx or a network blink) and **Change** (the source).
-- `generer-pochettes.mjs` (manual, optional) draws Featured covers through an Alibaba image endpoint, with a `qwen-token-plan`
-  key read from `~/.dsh/kybernos-models/providers.json`.
 
 ## Tests
 
@@ -139,13 +137,12 @@ the preview against a stub of the two GitHub hosts). `test-ui.mjs` renders the s
 the panel next to the list, the actions only when the host lists them, a delete and an install that ask first, every Discover card
 with its own detail, the publisher by repository. `test-index.mjs` covers the Discover routes against a local stand-in for the relay (what is asked,
 that no credential is sent, failures not cached, the address override and the saved setting: same validation, the variable wins, a damaged file is refused, a change drops the cache). `test-dsh-home.mjs` covers `DSH_HOME`. `test-client-strings.mjs` checks the client's words (every key in French and English, every answer word has a sentence). `test-team-skills.mjs` covers the Team skills rules (version, validation, secret scan), the disk half of `team/pack` and `team/install`, the team mark and the replace-only-if-untouched swap, on a throw-away HOME (`docs/dev/team-skills-contract.md`). The install, create
-and toggle logic is not tested; CI also syntax-checks the bundle (`node --check packages/kybernos-skills/*.js`).
+and toggle logic is covered by `test-dsh-home.mjs` and `test-host-codes.mjs`; CI also syntax-checks the bundle (`node --check packages/kybernos-skills/*.js`).
 The host exports its functions "for the harness" (`catalogueOf`, `toggleSkill`, `createSkill`, `installSkill`, …) but no other
 harness is in this repo.
 
 ## Known limits
 
-- The `index.js` header says "ten routes"; 12 are mounted (Featured and covers came later).
 - DSH serves plugin routes before its own auth, so the POST guard (`sameOrigin`, same rule as `sameOriginStrict` in the core) requires
   an `Origin` (or a `Referer`) from this machine, compared with the socket's real listening address and not with the `Host` header.
   It cannot stop a local process that forges an `Origin`: only authentication would. The GET routes have no guard.
@@ -157,4 +154,3 @@ harness is in this repo.
   cannot show (folder, description, text) is not shown; Install still searches the whole archive.
 - Install copies with `dereference: true`: a symlink inside a downloaded repo would be followed (not tested). Skill content is
   third party; DSH does not audit it, the skills.sh verdicts are shown.
-- `generer-pochettes.mjs` reads `providers.json`, which no bundle here writes.

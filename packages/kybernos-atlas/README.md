@@ -133,7 +133,7 @@ Opt-in: it is not active by default. Enable it from the Suite panel
   never stops DSH from starting.
 - The page makes no write: the only POSTs are `project-data` and the task *list*,
   and `test-client.mjs` checks that.
-- No storage of its own (`localStorage`, cookies, files).
+- One `localStorage` key of its own, `kybernos-atlas:last-reading` (the last reading, at most 1.5 M characters, written only by an Update); no cookies, no files.
 
 ## Tests
 

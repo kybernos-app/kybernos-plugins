@@ -36,6 +36,13 @@ jobs:
         run: cd packages/messaging && node --test test/*.test.mjs
       - name: gate tests (standalone sign-in gate)
         run: cd packages/kybernos-gate && node --test test/*.test.mjs
+      - name: service tests (the cloud computer image, the skills relay)
+        run: |
+          for d in services/*/; do
+            ls "$d"*.test.mjs >/dev/null 2>&1 || continue
+            echo "== $d"
+            (cd "$d" && node --test *.test.mjs)
+          done
       - name: What this run did NOT cover
         if: always()
         run: |

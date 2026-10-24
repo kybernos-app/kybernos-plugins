@@ -43,8 +43,8 @@
       },
       "steps": [
         {
-          "fr": "La carte « Source » dit d’où vient l’index : un dossier local ou un dépôt GitHub. Change-la, puis recharge.",
-          "en": "The “Source” card says where the index comes from: a local folder or a GitHub repository. Change it, then reload."
+          "fr": "La carte « Source » dit quel relais fournit l’index public (celui de Kybernos par défaut). Change-la, puis recharge.",
+          "en": "The “Source” card says which relay the public index is read from (Kybernos’s by default). Change it, then reload."
         },
         {
           "fr": "« Dossiers d’installation » montre où chaque skill est écrite ; la liste des skills elle-même reste dans la barre latérale › Compétences.",
@@ -61,8 +61,8 @@
         "page": true
       },
       "good": {
-        "fr": "Ce que compte ce profil ne quitte pas cet ordinateur : la source de l’index et les dossiers sont locaux.",
-        "en": "What this profile counts never leaves this computer: the index source and the folders are local."
+        "fr": "Ce que compte ce profil reste sur cet ordinateur ; seul l’index public est lu depuis le relais, sans identifiant.",
+        "en": "What this profile counts stays on this computer; only the public index is read from the relay, with no credential."
       }
     },
     "learned": {

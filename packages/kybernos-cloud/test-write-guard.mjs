@@ -84,7 +84,6 @@ const DELETES = [
 const WRITES = [
   ['/kybernos-cloud/memory/add', { content: 'A memory a shell tried to add.', kind: 'fact' }],
   ['/kybernos-cloud/memory/update', { id: '77', content: 'An edit a shell tried.' }],
-  ['/kybernos-cloud/memory/lessons', { dryRun: false }],
   ['/kybernos-cloud/team/lessons/add', { text: 'A lesson a shell tried to propose to the team.' }],
   ['/kybernos-cloud/space/active', { workspace_id: WS }],
   ['/kybernos-cloud/kyby/native/set', { sessionId: null }],

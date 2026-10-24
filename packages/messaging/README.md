@@ -64,7 +64,35 @@ The token is **never copied**: it stays in the existing `.env` (or
 
 A plain `&` or a DSH background job is **not enough**: the process dies
 with the session that started it, and a message received at that moment is lost
-(seen on 21/09/2026). On macOS, the robust way is a **LaunchAgent**:
+(seen on 21/09/2026). On macOS, the robust way is a **LaunchAgent**. No plist is
+shipped; write `~/Library/LaunchAgents/app.kybernos.telegram-bridge.plist` from this template
+(replace every `/ABSOLUTE/PATH/TO` with an absolute path on your machine):
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>app.kybernos.telegram-bridge</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/ABSOLUTE/PATH/TO/node</string>
+    <string>/ABSOLUTE/PATH/TO/packages/messaging/bin/telegram-daemon.mjs</string>
+  </array>
+  <key>WorkingDirectory</key><string>/ABSOLUTE/PATH/TO/packages/messaging</string>
+  <key>EnvironmentVariables</key>
+  <dict><key>PATH</key><string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string></dict>
+  <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key><dict><key>SuccessfulExit</key><false/></dict>
+  <key>ThrottleInterval</key><integer>10</integer>
+  <key>ProcessType</key><string>Background</string>
+  <key>StandardOutPath</key><string>/ABSOLUTE/PATH/TO/HOME/.dsh/telegram-bridge/daemon.log</string>
+  <key>StandardErrorPath</key><string>/ABSOLUTE/PATH/TO/HOME/.dsh/telegram-bridge/daemon.err.log</string>
+</dict>
+</plist>
+```
+
+Then load it:
 
 ```bash
 launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/app.kybernos.telegram-bridge.plist
@@ -72,7 +100,7 @@ launchctl print gui/$(id -u)/app.kybernos.telegram-bridge | grep -E 'state|pid'
 tail -f ~/.dsh/telegram-bridge/daemon.log
 ```
 
-The provided plist starts at login (`RunAtLoad`), restarts after a crash
+The plist above starts at login (`RunAtLoad`), restarts after a crash
 (`KeepAlive.SuccessfulExit = false`, so **not** after a clean `SIGTERM`), and
 sets `PATH` — launchd does not inherit the shell, hence `dshBin` as an absolute path in
 `config.json`. Logs: `~/.dsh/telegram-bridge/daemon.log` and `daemon.err.log`.

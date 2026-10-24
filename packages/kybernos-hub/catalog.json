@@ -687,8 +687,8 @@
             },
             "steps": [
               {
-                "fr": "La carte « Source » dit d’où vient l’index : un dossier local ou un dépôt GitHub. Change-la, puis recharge.",
-                "en": "The “Source” card says where the index comes from: a local folder or a GitHub repository. Change it, then reload."
+                "fr": "La carte « Source » dit quel relais fournit l’index public (celui de Kybernos par défaut). Change-la, puis recharge.",
+                "en": "The “Source” card says which relay the public index is read from (Kybernos’s by default). Change it, then reload."
               },
               {
                 "fr": "« Dossiers d’installation » montre où chaque skill est écrite ; la liste des skills elle-même reste dans la barre latérale › Compétences.",
@@ -705,8 +705,8 @@
               "page": true
             },
             "good": {
-              "fr": "Ce que compte ce profil ne quitte pas cet ordinateur : la source de l’index et les dossiers sont locaux.",
-              "en": "What this profile counts never leaves this computer: the index source and the folders are local."
+              "fr": "Ce que compte ce profil reste sur cet ordinateur ; seul l’index public est lu depuis le relais, sans identifiant.",
+              "en": "What this profile counts stays on this computer; only the public index is read from the relay, with no credential."
             }
           },
           "learned": {
@@ -1412,8 +1412,8 @@
             "en": "Ask the chat for a deck: the “Slides” tab opens by itself on the right and the text is typed out slide after slide."
           },
           {
-            "fr": "Revois-le avec ▶ (rejouer l’écriture), ×0.5 / ×1 / ×2 (vitesse) et les vignettes pour changer de slide.",
-            "en": "Look back with ▶ (replay the writing), ×0.5 / ×1 / ×2 (speed) and the thumbnails to jump between slides."
+            "fr": "Revois-le avec ▶ (rejouer l’écriture), ×0.5 / ×1 / ×2 / ×4 (vitesse) et les vignettes pour changer de slide.",
+            "en": "Look back with ▶ (replay the writing), ×0.5 / ×1 / ×2 / ×4 (speed) and the thumbnails to jump between slides."
           },
           {
             "fr": "Double-clique sur un texte pour le retaper : barre G / I / S et couleurs, Entrée valide, Échap annule.",
@@ -1566,8 +1566,8 @@
             "en": "Play it with ▶ and drag the cursor on the timeline. Change texts, colours or numbers under “Settings”: the chat sees your edits."
           },
           {
-            "fr": "« Exporter » donne une vidéo MP4, une page autonome ou un fichier de scène, rangé avec ton projet.",
-            "en": "“Export” gives an MP4 video, a standalone page or a scene file, saved with your project."
+            "fr": "« Exporter » donne une vidéo MP4 (rangée avec ton projet), une page autonome ou un fichier de scène (téléchargés).",
+            "en": "“Export” gives an MP4 video (saved with your project), a standalone page or a scene file (downloaded)."
           },
           {
             "fr": "Retrouve tes animations dans la page Créations, ou avec « Animations » en haut du panneau.",
@@ -2165,8 +2165,8 @@
         },
         "steps": [
           {
-            "fr": "Clique le téléphone (voix) ou la caméra (vidéo) dans l’en-tête du chat (replié : « Afficher les outils du chat »). Membre : Call ou Video.",
-            "en": "Click the phone (voice) or camera (video) in the chat header (folded: “Show chat tools”). For a member: Call or Video on its card."
+            "fr": "Clique le téléphone dans l’en-tête du chat (sa flèche : vidéo, réglages ; replié : « Afficher les outils du chat »). Membre : Call ou Video.",
+            "en": "Click the phone in the chat header (its arrow: video, settings; folded: “Show chat tools”). For a member: Call or Video on its card."
           },
           {
             "fr": "Autorise le micro dans le navigateur. Le panneau d'appel s'ouvre en bas à droite : parle, il répond à voix haute.",

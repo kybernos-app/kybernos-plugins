@@ -106,7 +106,7 @@ assert.ok(stopCodes.length >= 10 && signalIds.length === 6, 'the stops and the s
 for (const c of stopCodes) assert.ok(dict.has('ln.stop.' + c), 'no sentence for the hard stop ' + c)
 for (const id of signalIds) assert.ok(dict.has('ln.sig.' + id), 'no sentence for the score part ' + id)
 for (const m of ['ask', 'improve', 'auto']) assert.ok(dict.has('ln.mode.' + m) && dict.has('ls.level.' + m), 'no sentence for the level ' + m)
-for (const k of ['ln.j.mode.manual', 'ln.j.mode.legacy', 'ln.j.mode.auto', 'ln.j.by.you', 'ln.j.by.kaby', 'ln.kind.lessons', 'ln.kind.lesson', 'ln.kind.auto']) assert.ok(dict.has(k), 'no sentence for ' + k)
+for (const k of ['ln.j.mode.manual', 'ln.j.mode.legacy', 'ln.j.mode.auto', 'ln.j.by.you', 'ln.j.by.kaby']) assert.ok(dict.has(k), 'no sentence for ' + k)
 const actsInHost = [...learnedHost.matchAll(/act: '([a-z]+)'/g)].map((m) => m[1])
 assert.deepEqual(actsInHost.filter((a) => !dict.has('ln.j.act.' + a)), [], 'a journal act the host writes has no sentence')
 // V2: the answers of what Kaby notices (learned-repeat.mjs) are worded, and so are the states a pattern can be in
