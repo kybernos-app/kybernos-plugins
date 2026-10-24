@@ -60,7 +60,7 @@ Same-origin only: a POST needs an `Origin` or `Referer` of the local server; a G
 | `GET /kybernos-hub/suite` | catalogue, which modules are switched on, hub state |
 | `POST /kybernos-hub/catalogue/refresh` · `POST /kybernos-hub/update` · `GET /kybernos-hub/update/status` | the signed online catalogue and the whole-suite update: see `docs/dev/suite-updates.md` |
 | `POST /kybernos-hub/module` | `{id, action: activer \| desactiver \| installer}`, one at a time (409 if busy) |
-| `POST /kybernos-hub/relaunch` | `{confirm: true}` only: starts `~/.dsh/tools/dsh-relance.mjs` detached |
+| `POST /kybernos-hub/relaunch` | `{confirm: true}` only: starts `~/.dsh/tools/dsh-relance.mjs` detached, or the suite's `scripts/dsh-relance.mjs` when there is no such copy (`outilRelance`) |
 
 ## Files and install
 

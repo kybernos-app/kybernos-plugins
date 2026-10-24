@@ -92,7 +92,7 @@ file-reading tool.
   `window.__KB_MINIAPP__.register('motion', ...)`.
 - `kybernos-miniapps`: `window.__KB_MINIAPP_EXPORTERS__.motion` gives the installed Mac app a live page instead of a still
   picture; `window.__KB_MINIAPPS__.install` is used by the Export dialog.
-- Routes (all origin-guarded, same rule as the other bundles): `state`, `scene`, `save`, `open`, `list`, `revisions`,
+- Routes (all origin-guarded, same rule as the other bundles; the writes `save`, `open`, `restore`, `frame` and `export` also need DSH's signed session): `state`, `scene`, `save`, `open`, `list`, `revisions`,
   `restore`, `asset`, `frame`, `export`, and the two fixed library files `vendor/three.js`, `vendor/lottie.js`.
 - Which scene a chat's panel shows: its own (the one the agent wrote or the user opened in it). The one the Creations page pointed the
   panel at (no session) is lent only to a chat whose own folder holds it, even though the core would let any session read any

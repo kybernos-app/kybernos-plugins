@@ -2286,7 +2286,7 @@ const membersGet = async (req) => {
   const out = res.body !== null && typeof res.body === 'object' ? res.body : {}
   const members = (Array.isArray(out.members) ? out.members : [])
     .filter((m) => m !== null && typeof m === 'object' && typeof m.user_id === 'string')
-    .map((m) => ({ user_id: m.user_id, role: MEMBER_ROLES.indexOf(m.role) !== -1 ? m.role : 'member', status: typeof m.status === 'string' ? m.status : 'active', created_at: typeof m.created_at === 'string' ? m.created_at : null }))
+    .map((m) => ({ user_id: m.user_id, role: MEMBER_ROLES.indexOf(m.role) !== -1 ? m.role : 'member', status: typeof m.status === 'string' ? m.status : 'active', created_at: typeof m.created_at === 'string' ? m.created_at : null, ...(typeof m.name === 'string' && m.name.trim() !== '' ? { name: m.name.trim().slice(0, 120) } : {}), ...(typeof m.email === 'string' && m.email.trim() !== '' ? { email: m.email.trim().slice(0, 254) } : {}) }))
   return { ok: true, workspace_id: wid, members, status: 200 }
 }
 
@@ -3196,10 +3196,13 @@ const meaningPaused = () => {
 const embedFailure = (res) => {
   if (res.status === 402) return { error: 'credits_epuises' }
   if (res.status === 403) {
-    const f = res.body !== null && res.body.error !== null && typeof res.body.error === 'object' ? res.body.error.provider_specific_fields : null
+    const e = res.body !== null && res.body !== undefined && res.body.error !== null && typeof res.body.error === 'object' ? res.body.error : null
+    const f = e !== null ? e.provider_specific_fields : null
     if (f !== null && typeof f === 'object' && f.error === 'model-not-available-plan') {
       return { error: 'offre_requise', requiredTier: typeof f.required_tier === 'string' ? f.required_tier : null, plan: typeof f.plan === 'string' ? f.plan : null }
     }
+    // The server without LiteLLM (origin/dev) answers the plain OpenAI envelope `{ error: { code: 'model_not_in_plan' } }`: same refusal, and it names no tier.
+    if (e !== null && e.code === 'model_not_in_plan') return { error: 'offre_requise', requiredTier: null, plan: null }
     return { error: 'refus_403' }
   }
   const generic = memoryFailure(res)

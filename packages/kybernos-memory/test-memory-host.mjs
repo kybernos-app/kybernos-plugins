@@ -929,6 +929,24 @@ try {
     mod.sessionQuery.clear(); mod.sessionPick.clear()
   }
 
+  // A fresh install has no `default` folder and nobody creates it: the agent's lesson_write (no kyber argument = default) answered kyber_inconnu, so a new
+  // person's lessons were never recorded (T2-04, 2026-10-24). `default` alone is made on first use; a typo still invents nothing.
+  {
+    rmSync(join(kybers, 'default'), { recursive: true, force: true })
+    assert.equal(existsSync(join(kybers, 'default')), false, 'the scene: a fresh install has no default folder')
+    const first = store.addLesson('default', { text: 'Always check the date format before parsing.' })
+    assert.equal(first.ok, true, JSON.stringify(first))
+    assert.equal(existsSync(join(dirOf('default'), 'lessons.jsonl')), true, 'and the lesson is on disk')
+    assert.equal(store.readLessons('default').length, 1)
+    assert.equal(store.addLesson('ghost', { text: 'x' }).error, 'kyber_inconnu', 'a typo still invents nothing')
+    assert.equal(existsSync(join(kybers, 'ghost')), false)
+    rmSync(join(kybers, 'default'), { recursive: true, force: true })
+    const back = store.restoreLessons('default', [{ ts: '2026-10-01T00:00:00.000Z', text: 'Restored on a fresh install.', tags: [], uses: 0, lastUsed: null }])
+    assert.equal(back.ok, true, JSON.stringify(back))
+    assert.equal(store.restoreLessons('ghost', [L('x')]).error, 'kyber_inconnu')
+    ok('a fresh install: the first lesson (and an Undo) creates the default team, a typo still invents nothing')
+  }
+
   console.log('\n' + String(pass) + ' verifications OK')
 } finally {
   rmSync(root, { recursive: true, force: true })

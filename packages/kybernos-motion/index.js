@@ -176,6 +176,9 @@ export function mountRoutes (webServer, host) {
   })
 
   route('save', ['POST'], async (req, res) => {
+    // Audit 2026-10-24: this writes (or changes what the panel edits), so it needs DSH's signed session on top of the Origin, as `frame` and `export` do; the panel is same-origin, its cookie rides along.
+    const refus = writeGuard(req)
+    if (refus !== null) { send(res, refus.status, { ok: false, error: refus.error }); return }
     const b = await readJson(req)
     const c = await host.confineExisting(str(b.path), str(b.session))
     if (!c.ok) { send(res, 403, c); return }
@@ -187,6 +190,9 @@ export function mountRoutes (webServer, host) {
   })
 
   route('open', ['POST'], async (req, res) => {
+    // Audit 2026-10-24: this writes (or changes what the panel edits), so it needs DSH's signed session on top of the Origin, as `frame` and `export` do; the panel is same-origin, its cookie rides along.
+    const refus = writeGuard(req)
+    if (refus !== null) { send(res, refus.status, { ok: false, error: refus.error }); return }
     const b = await readJson(req, 20_000)
     const c = await host.confineExisting(str(b.path), str(b.session))
     if (!c.ok) { send(res, 403, c); return }
@@ -207,6 +213,9 @@ export function mountRoutes (webServer, host) {
   })
 
   route('restore', ['POST'], async (req, res) => {
+    // Audit 2026-10-24: this writes (or changes what the panel edits), so it needs DSH's signed session on top of the Origin, as `frame` and `export` do; the panel is same-origin, its cookie rides along.
+    const refus = writeGuard(req)
+    if (refus !== null) { send(res, refus.status, { ok: false, error: refus.error }); return }
     const b = await readJson(req, 20_000)
     const c = await host.confineExisting(str(b.path), str(b.session))
     if (!c.ok) { send(res, 403, c); return }

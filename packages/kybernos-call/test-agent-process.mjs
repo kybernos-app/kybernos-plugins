@@ -11,7 +11,8 @@ import assert from 'node:assert/strict'
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { createCall } from './call-host.mjs'
+import { execFile, spawn } from 'node:child_process'
+import { agentPattern, createCall } from './call-host.mjs'
 
 if (process.platform === 'win32') { console.log('SKIPPED: the kybernos-call worker process tests — Windows has no pgrep / kill / shell script'); process.exit(0) }
 
@@ -78,6 +79,22 @@ try {
   await sleep(300)
   assert.equal((await call.agentState()).running, false)
   ok('stop ends it')
+
+  // T2-15 (2026-10-24): `pgrep -f <path>` also matched the `pgrep -f <path>` of an overlapping check, so two checks at once each saw the other, answered « already running » and no
+  // worker started. With the pattern of `agentPattern` the checks see the worker and only the worker. Real pgrep, a real process whose command line holds a unique path.
+  {
+    const script = join(home, 'kyb (x)+y', 'agent', 'agent.py')
+    const sleeper = spawn(process.execPath, ['-e', 'setTimeout(() => {}, 30000)', script], { stdio: 'ignore' })
+    await sleep(300)
+    const pgrep = (args) => new Promise((resolve) => execFile('pgrep', args, (error, stdout) => resolve(String(stdout || '').trim().split(/\s+/).filter((x) => x !== '').map(Number))))
+    try {
+      const alone = await Promise.all(Array.from({ length: 8 }, () => pgrep(['-f', agentPattern(script)])))
+      assert.deepEqual(alone.map((pids) => pids.join(',')), Array.from({ length: 8 }, () => String(sleeper.pid)), 'eight overlapping checks each see the worker and nothing else')
+      assert.deepEqual(await pgrep(['-f', agentPattern(join(home, 'no', 'such', 'agent.py'))]), [], 'and a worker that is not there is not found')
+      const raw = await Promise.all(Array.from({ length: 8 }, () => pgrep(['-f', script])))
+      ok('eight overlapping `pgrep` checks on a path with ( ) + each find exactly the worker (the raw path ' + (raw.some((pids) => pids.length > 1) ? 'also matched its siblings' : 'happened not to overlap this time') + ')')
+    } finally { sleeper.kill() }
+  }
 } finally {
   if (pid !== null) { try { process.kill(pid) } catch (e) { /* already gone */ } }
   try { (await import('node:child_process')).execFileSync('pkill', ['-f', join(home, 'kybernos')]) } catch (e) { /* none left */ }
