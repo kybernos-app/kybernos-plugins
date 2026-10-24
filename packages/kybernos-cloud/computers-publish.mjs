@@ -70,13 +70,18 @@ export const opsOf = (raw) => {
   return { ok: true, ops }
 }
 
-/** What a refused call is called: the platform's own code when it is on the list, else one from the status. */
+/** True when the SERVER says it has no such route (its answer to an unknown path: 404 `{ error: 'not_found', message: 'No such route.' }`), as against a 404 about a computer or an approval. */
+export const routeAbsent = (status, body) => status === 404 && body !== null && typeof body === 'object' && body.error === 'not_found' && /no such route/iu.test(String(body.message === undefined ? '' : body.message))
+
+/** What a refused call is called: the platform's own code when it is on the list, else one from the status. A server that has no outbox yet (the routes are not on every server)
+ *  is `tasks_unavailable`, not `no_computer`: the person is told the server cannot keep automations, not that their computer is gone. */
 export const codeOf = (status, body) => {
   const given = body !== null && typeof body === 'object' && typeof body.error === 'string' ? body.error : ''
   if (given !== '' && CODES.indexOf(given) >= 0 && given !== 'refused') return given
   if (status === 0) return 'unreachable'
   if (status === 400) return 'invalid_tasks'
   if (status === 403) return 'not_allowed'
+  if (routeAbsent(status, body)) return 'tasks_unavailable'
   if (status === 404) return 'no_computer'
   if (status === 422) return 'approval_path_missing'
   if (status === 429) return 'rate_limited'
@@ -252,7 +257,7 @@ export function createPublish ({ readState, isConnected, apiCall }) {
     if (ws === null) return { ok: false, error: 'no_computer' }
     const res = await apiCall(pathOf(ws, body.computerId, 'approvals/' + encodeURIComponent(body.id) + '/decide'), { method: 'POST', token: state.token, body: { decision: body.decision }, timeoutMs: 15000 })
     if (res.status === 409) return { ok: false, error: 'late', status: 409 }
-    if (res.status === 404) return { ok: false, error: 'unknown', status: 404 }
+    if (res.status === 404 && routeAbsent(res.status, res.body) !== true) return { ok: false, error: 'unknown', status: 404 }
     if (res.status !== 200) return { ok: false, error: codeOf(res.status, res.body), status: res.status }
     const said = res.body !== null && typeof res.body === 'object' && APPROVAL_STATES.indexOf(res.body.state) >= 0 ? res.body.state : body.decision
     return { ok: true, state: said }

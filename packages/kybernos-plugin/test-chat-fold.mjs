@@ -45,9 +45,13 @@ const css = block.slice(cssStart + 'styles.insert(`'.length, block.lastIndexOf('
 
 // 3. folding leaves Journal / Trajectory first, so the chat is never stuck on a view with no tab
 {
-  assert.match(block, /const fold = \(\) => \{[\s\S]*tabs\[0\]\.click\(\)[\s\S]*kbFoldSet\(false\)/, 'fold goes back to the first tab, then folds')
-  assert.match(block, /\/tabActive\/\.test\(String\(tabs\[0\]\.className\)\) !== true/, 'only when the first tab is not already active')
-  ok('folding returns to the Chat tab first')
+  assert.match(block, /const fold = \(\) => \{[\s\S]*kbLeaveToChatTab\([\s\S]*kbFoldSet\(false\)/, 'fold goes back to the first tab, then folds')
+  const leave = /const kbLeaveToChatTab = \(head\) => \{[\s\S]*?\n    \}\n/.exec(block)
+  assert.ok(leave !== null, 'the helper exists')
+  assert.match(leave[0], /querySelectorAll\('\[role="tablist"\] > \[role="tab"\]'\)/, 'the tabs are found by DSH\u2019s roles')
+  assert.match(leave[0], /getAttribute\('aria-selected'\) !== 'true'\) tabs\[0\]\.click\(\)/, 'only when the first tab is not already the selected one')
+  assert.ok(!/className|\[class\*=/.test(leave[0]), 'no class name of DSH is read (the hashed names changed between rc.2 and rc.3)')
+  ok('folding returns to the Chat tab first, found by role and aria-selected')
 }
 
 // 4. strings: both languages, French and English
@@ -118,6 +122,26 @@ if (JSDOM === undefined) {
   try { hasOk = show(' data-kb-chat-fold="1"', false).call === true } catch (e) { hasOk = false }
   if (hasOk) ok('folded with a call in progress: the hang-up button stays')
   else console.log('  · call-in-progress case not played: this jsdom does not evaluate :has()')
+
+  // The way back to the Chat tab, run on the two shapes of DSH's tab row: 0.2.1-rc.2 (the row IS the tablist) and rc.3 (the tablist sits in the row beside a « More » button).
+  const leave = /const kbLeaveToChatTab = \(head\) => \{[\s\S]*?\n    \}\n/.exec(block)[0]
+  const kbLeaveToChatTab = new Function(leave + '\nreturn kbLeaveToChatTab')()
+  const rows = {
+    rc2: (sel) => `<div class="wSkVaW_tabs" role="tablist" data-conversation-tabs><button role="tab" aria-selected="${sel === 0}" class="wSkVaW_tab${sel === 0 ? ' wSkVaW_tabActive' : ''}">Chat</button><button role="tab" aria-selected="${sel === 1}" class="wSkVaW_tab${sel === 1 ? ' wSkVaW_tabActive' : ''}">Journal</button></div>`,
+    rc3: (sel) => `<div class="wSkVaW_tabs"><div class="wSkVaW_viewTabs" role="tablist" data-conversation-tabs><button role="tab" aria-selected="${sel === 0}" class="wSkVaW_tab${sel === 0 ? ' wSkVaW_tabActive' : ''}"><span>Chat</span></button><button role="tab" aria-selected="${sel === 1}" class="wSkVaW_tab${sel === 1 ? ' wSkVaW_tabActive' : ''}"><span>Journal</span></button></div><button class="wSkVaW_moreBtn" aria-label="More conversation views">…</button></div>`,
+  }
+  for (const [shape, row] of Object.entries(rows)) {
+    for (const [sel, clicks] of [[1, ['Chat']], [0, []]]) {
+      const w = new JSDOM(`<!doctype html><body><div data-slot="conversation.session.header">${row(sel)}</div></body>`).window
+      const clicked = []
+      for (const b of w.document.querySelectorAll('button')) b.addEventListener('click', () => clicked.push(b.textContent))
+      kbLeaveToChatTab(w.document.querySelector('[data-slot="conversation.session.header"]'))
+      assert.deepEqual(clicked, clicks, shape + ' with ' + (sel === 0 ? 'Chat' : 'Journal') + ' open')
+    }
+  }
+  kbLeaveToChatTab(null)
+  kbLeaveToChatTab(new JSDOM('<!doctype html><body><div data-slot="conversation.session.header"></div></body>').window.document.querySelector('div'))
+  ok('folding: from Journal it clicks Chat, from Chat it clicks nothing, on the rc.2 row and the rc.3 row (the « More » button is never taken for a tab); no header, no tabs: nothing happens')
 }
 
 console.log('\n' + pass + ' checks passed')
