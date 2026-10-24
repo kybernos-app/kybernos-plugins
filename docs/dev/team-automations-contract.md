@@ -119,14 +119,28 @@ The vocabulary of the skills module, plus the automation-specific ones.
 One table, `team_automations`: workspace, key, name, description, prompt, schedule (mode, cron), needs, version, status, proposer, reviewer, notes, counts, `superseded_by`. Two unique indexes carry the
 rules: one approved row per `(workspace_id, key)`, and no second `proposed` or `approved` row with the same `(workspace_id, key, version)`. The account data export and the account deletion cover it, as they cover skills.
 
-## The plugin side (for information, not part of the contract)
+## The plugin side (for information, not part of the contract with the server)
 
-- `kybernos-cloud`: `/kybernos-cloud/team/automations` (list), `…/item?id=`, `…/check`, `…/add`, `…/review`, `…/retire`, `…/delete`, and `team-automations.mjs`, its pure half (limits, the canonical form and `version`, the words of the
-  server's answers). They call the server above with the account token, for the ACTIVE workspace, and turn every refusal into one word. Writes need the signed session.
-- `kybernos-plugin` (the owner of `tasks.json`): `POST /kybernos/automation/pack {id}` reads one of the person's automations and returns the proposal (the definition above, nothing else); `POST /kybernos/automation/install {…}`
-  writes the copy. The page moves the definition between the two; the server never sees a local id and the plugins never import each other.
-- **The installed copy** is a normal automation, **paused** (`active: false`), owned by the person, with a mark `team: { workspaceId, id, key, version, contentHash, installedAt }`. `contentHash` is the SHA-256 of
-  its own `{ name, prompt, schedule, needs }` at install; the copy counts as **edited** when the hash of what it holds now is different. It never replaces an automation that exists: an update on an edited copy asks (keep mine / save mine
-  as a separate automation then update / replace). The person chooses where it runs and the approval mode (« Ask me first » by default), and cannot turn it on while an app it needs is not connected.
-- A webhook copy mints its own secret at install and shows its address only to its owner.
-- The segment is locked, with the reason in words, when the person is signed out, in a personal space, on a plan without the feature (`plan_required`), on a server without the routes, or offline.
+Three pieces, which do not import each other (the page moves the data between them, the server never sees a local id):
+
+**1. `kybernos-cloud`: the relay to the server.** `/kybernos-cloud/team/automations` (GET list, `?view=&limit=&offset=`), `/kybernos-cloud/team/automations/item?id=` (GET), `…/check`, `…/add`, `…/review`, `…/retire`,
+`…/delete` (POST, strict same origin + the signed session), and `team-automations.mjs`, its pure half (limits, the canonical form and `version`, the words of the server's answers). They call the server above with the account
+token, for the ACTIVE workspace, only in a team space (`teamWorkspace`), and turn every refusal into one word: `admin_required`, `plan_required`, `scan_rejected`, `invalid_automation`, `duplicate`, `not_pending`,
+`not_approved`, `team_full`, `too_many_proposals`, `too_large`, `not_found`, `not_on_this_server`. They write an access journal that never holds content.
+
+**2. `kybernos-plugin` host: the local half** (it owns `tasks.json`). All POST, strict same origin + the signed session (they carry prompts):
+
+| Route | Body | Answer |
+| --- | --- | --- |
+| `/kybernos/automation/team-pack` | `{ id }` (a task id) | `{ ok: true, proposal: { key, name, description, prompt, schedule, needs, version }, team: null \| { workspaceId, id, key, version, edited } }` or `{ ok: false, error }` with `error` = `not_found`, `once_not_shareable`, `empty_prompt`. The description is pre-filled from the first sentence of the prompt (at most 200 characters, cut on a word). `schedule` is `{ mode: "cron", cron }` or `{ mode: "webhook" }` with no zone. `needs` are the task's slugs. Nothing else of the task is returned. |
+| `/kybernos/automation/team-copies` | `{}` | `{ ok: true, copies: [{ taskId, workspaceId, id, key, version, edited, missingApps: [slug] }] }`: the local copies that came from a team (those with a `team` mark), `edited` as defined below. |
+| `/kybernos/automation/team-install` | `{ definition: { id, key, name, description, prompt, schedule, needs, version }, workspaceId, approvals: "ask" \| "auto", turnOn: boolean }` | `{ ok: true, taskId, active, missingApps: [slug] }` or `{ ok: false, error }`. The host re-validates the definition with the rules above, **recomputes `version` and refuses a mismatch** (`version_mismatch`), refuses a `key` that already has a copy for that workspace (`already_installed`: use `team-update`), writes a **paused** automation through the same sanitizer and store as a created one (cron parsed and checked to be able to fire; the installer's own zone), `runsOn: "local"`, with the `team` mark. `active` is true only if `turnOn` and no app is missing. A webhook definition mints its own secret. |
+| `/kybernos/automation/team-update` | `{ taskId, definition, mode: "keep" \| "both" \| "replace" }` | `{ ok: true, taskId, newTaskId? }` or `{ ok: false, error }`. `replace` rewrites name, prompt and needs from `definition`, and the schedule only if the person did not change it since install; active state, place, approval mode and notifications stay as they are; the mark moves to the new version. `both` first saves the current copy as a separate paused automation named « <name> (mine) » with no mark (`newTaskId`), then does `replace`. `keep` changes nothing (answers `ok`). An unedited copy accepts `replace` only. |
+
+**The mark** on a copy: `team: { workspaceId, id, key, version, installedAt, base: { name, prompt, schedule, needs }, contentHash }`. `base` is the definition as installed (the member's own record of it: a retired
+version is no longer served to members, so the « Changes since v3 » view is computed from `base` against the newly approved one). `contentHash` is the SHA-256 of the canonical JSON of `{ name, prompt, schedule, needs }` as installed
+(schedule as `{ mode, cron? }`); a copy is **edited** when the hash of those four fields as they are now is different. The mark survives every ordinary edit of the automation.
+
+**3. The page (`kybernos-plugin` client): the Automations page.** A « Team » segment next to « Yours » and « Discover », the row menu entry « Propose to team… », and four sheets (Propose, Review, Install, Update) as in
+the mockup. The segment is locked, with the reason in words, when the person is signed out, in a personal space, on a plan without the feature (`plan_required`), on a server without the routes, or offline. The page asks
+`/kybernos-cloud/team/automations*` for the shared catalogue and `/kybernos/automation/team-*` for the local half.
