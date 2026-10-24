@@ -2,7 +2,7 @@
 import { existsSync, readFileSync, readdirSync, statSync, writeFileSync, mkdirSync, rmSync, unlinkSync, copyFileSync, renameSync, chmodSync, realpathSync } from 'node:fs'
 import { execFile } from 'node:child_process'
 import { realpath } from 'node:fs/promises'
-import { createHash, createHmac, randomUUID, timingSafeEqual } from 'node:crypto'
+import { createHash, createHmac, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto'
 import { tmpdir, homedir, platform as osPlatform, release as osRelease, totalmem as osTotalmem, freemem as osFreemem, loadavg as osLoadavg, cpus as osCpus } from 'node:os'
 import { zstdDecompressSync } from 'node:zlib'
 import { fileURLToPath } from 'node:url'
@@ -14,6 +14,7 @@ import { selectAfterConnect } from './default-model.mjs'
 import { normalize as autoSettingsNormalize, publicView as autoSettingsView, apply as autoSettingsApply, isPaused as autoSettingsPaused } from './automation-settings.mjs'
 import { levelOf as autoLoadLevel, allowedAt as autoLoadAllowed, admit as autoLoadAdmit, createInflight as autoLoadInflight, maxParallelFrom as autoLoadMaxParallel, parseMeminfo as autoLoadMeminfo, guardOff as autoLoadGuardOff, forcedLevel as autoLoadForced, isSubagentTool as autoLoadIsSubagent, createSubagentGate as autoLoadSubagentGate, noteAt as autoLoadNote, refusalReason as autoLoadRefusal, freshLevel as autoLoadFresh, pressureOf as autoLoadPressure, pressureParts as autoLoadPressureParts, createHistory as autoLoadHistory, createActivity as autoLoadActivity, publicView as autoLoadView } from './automation-load.mjs'
 import { applyOp as autoApplyPublished } from './automation-published.mjs'
+import { validateDefinition as teamValidate, versionOf as teamVersionOf, packOf as teamPackOf, teamInfoOf, copyRowOf as teamCopyRow, missingAppsOf as teamMissingApps, markOf as teamMarkOf, planUpdate as teamPlanUpdate, replaceTask as teamReplaceTask, mineOf as teamMineOf, WORKSPACE_ID_RE as TEAM_WORKSPACE_ID_RE } from './automation-team.mjs'
 import { stableStreak as autoSkillStreak, skillSlug as autoSkillSlug, skillParts as autoSkillParts, normalizeRecords as autoSkillsNormalize, dueTasks as autoSkillsDue, lessonOf as autoSkillLesson } from './automation-skills.mjs'
 import { chooseWorkspace as autoWsChoose, idOf as autoWsIdOf, DEDICATED_TITLE as AUTO_WS_TITLE, DEDICATED_DIR as AUTO_WS_DIR } from './automation-workspace.mjs'
 import { recordFeedback, exportFeedback, relayReportOf } from './feedback-box.mjs'
@@ -1580,7 +1581,6 @@ export function deriveCalls(events, kyberIds) {
     if (str(task.status) === 'deleted') continue
     const createSeq = box.first.seq
     const createAt = box.first.time
-    const doneSnap = box.last.status === undefined ? null : task
     const completed = str(task.status) === 'completed'
     const closeSnap = completed === true ? box.snapshots.find((s) => str(s.task.status) === 'completed') || box.last : null
     const closeSeq = closeSnap !== null ? closeSnap.seq : null
@@ -1588,7 +1588,6 @@ export function deriveCalls(events, kyberIds) {
     // Outils dans la fenêtre : appariement par seq de l'appel (les tool/call
     // et leurs tool/result partagent le callId ; la fenêtre filtre par seq).
     const winTools = toolCalls.filter((tc) => inWindow(tc.seq) === true)
-    const winSpawns = winTools.filter((tc) => tc.name === 'spawn_teammate')
     const winSends = winTools.filter((tc) => tc.name === 'send_message')
     const winAsks = winTools.filter((tc) => tc.name === 'ask_user_question')
     const winUpdates = winTools.filter((tc) => tc.name === 'team_task_update')
@@ -3407,14 +3406,13 @@ function boot(ctx) {
         const id = str(body.id)
         if (id === null) return { ok: false, error: 'id required' }
         if (autoIsSuggested((await kbTasksRead()).find((x) => x !== null && typeof x === 'object' && x.id === id)) === true) return { ok: false, error: 'suggested: add it first' }
-        const crypto2 = await import('node:crypto')
-        const hookId = 'hk_' + crypto2.randomBytes(6).toString('hex')
-        const secret = crypto2.randomBytes(16).toString('hex')
+        const minted = kbMintHook()
+        const { hookId, secret } = minted
         let updated = null
         await kbTasksMutate(async (tasks) => {
           for (const t of tasks) {
             if (t !== null && typeof t === 'object' && t.id === id) {
-              t.trigger = { type: 'webhook', hookId, secret }
+              t.trigger = minted
               t.updatedAt = new Date().toISOString()
               updated = t
               break
@@ -3460,6 +3458,99 @@ function boot(ctx) {
         return out === null ? { ok: false, error: 'nothing to consume' } : { ok: true, task: out }
       }
       return { ok: false, error: 'unknown action: ' + String(action) }
+    }
+    // A webhook for an automation: a short id and a secret of 32 hex digits. One automation, one hook; making another invalidates the old address (Make does the same).
+    const kbMintHook = () => ({ type: 'webhook', hookId: 'hk_' + randomBytes(6).toString('hex'), secret: randomBytes(16).toString('hex') })
+    // ── Team automations, the local half (docs/dev/team-automations-contract.md, piece 2; the rules and the update logic are automation-team.mjs's) ──────────────
+    // Four POST routes, one per `kind`. A definition comes from the team's catalogue (the page carries it from the cloud plugin's relay to here), so each one is
+    // validated again and its `version` recomputed before anything is stored. A copy goes through the same sanitizer and the same store as an automation made in the
+    // page, in the installer's own time zone and paused unless the person asked to turn it on; a webhook automation mints its own secret, as `hook-generate` does.
+    // The host cannot know which apps are connected (that is the Connectors row's knowledge, and it lives in the page), so no app is reported missing: `missingApps` is [].
+    const kbTeamFail = (error, extra) => Object.assign({ ok: false, error }, extra)
+    const kbTeamReasonOf = (message) => (/cron|never fires/u.test(String(message)) ? 'schedule' : (/^name/u.test(String(message)) ? 'name' : (/^prompt/u.test(String(message)) ? 'prompt' : 'schedule')))
+    const kbTeamInvalid = (reason, field) => kbTeamFail('invalid_automation', { reason, field: field === undefined ? reason : field })
+    // What the sanitizer makes of a definition; `extra` adds what the definition does not carry (the approval mode, the zone a copy already has).
+    const kbTeamClean = (def, extra) => kbSanitizeTaskInput({ name: def.name, prompt: def.prompt, schedule: Object.assign({}, def.schedule, extra.tz === undefined ? {} : { tz: extra.tz }), needs: def.needs, active: false, approvals: extra.approvals })
+    const kbTeamHandle = async (kind, body) => {
+      if (kind === 'team-pack') {
+        const id = str(body.id)
+        const task = id === null ? undefined : (await kbTasksRead()).find((x) => x !== null && typeof x === 'object' && x.id === id)
+        if (task === undefined || autoIsSuggested(task) === true) return kbTeamFail('not_found')
+        const packed = teamPackOf(task)
+        return packed.ok === true ? { ok: true, proposal: packed.proposal, team: teamInfoOf(task) } : kbTeamFail(packed.error)
+      }
+      if (kind === 'team-copies') {
+        const copies = []
+        for (const t of await kbTasksRead()) {
+          const row = teamCopyRow(t, teamMissingApps(t !== null && typeof t === 'object' ? t.needs : [], null))
+          if (row !== null) copies.push(row)
+        }
+        return { ok: true, copies }
+      }
+      const checked = teamValidate(body.definition)
+      if (checked.ok !== true) return kbTeamInvalid(checked.reason, checked.field)
+      const def = checked.definition
+      if (teamVersionOf(def) !== def.version) return kbTeamFail('version_mismatch')
+      if (kind === 'team-install') {
+        const workspaceId = str(body.workspaceId)
+        if (workspaceId === null || TEAM_WORKSPACE_ID_RE.test(workspaceId) !== true) return kbTeamFail('invalid_workspace')
+        const clean = kbTeamClean(def, { approvals: body.approvals === 'auto' ? 'auto' : 'ask' })
+        if (clean.ok !== true) return kbTeamInvalid(kbTeamReasonOf(clean.error))
+        // An every-minute rhythm needs the person's yes here as anywhere (A5-24): `confirmFrequent: true` in the request.
+        const frequent = kbFrequentRefusal(clean.task, body, null)
+        if (frequent !== null) return frequent
+        const missingApps = teamMissingApps(clean.task.needs, null)
+        const on = body.turnOn === true && missingApps.length === 0
+        const now = new Date().toISOString()
+        const task = Object.assign({ id: kbTaskId(), createdAt: now, updatedAt: now, history: [], lastRun: null }, clean.task, { active: on })
+        if (task.schedule.mode === 'webhook') task.trigger = kbMintHook()
+        const nx = kbComputeNextRun(task, Date.now())
+        if (kbNeverRuns(task, nx) === true) return kbTeamInvalid('schedule')
+        task.nextRun = nx === null ? null : new Date(nx).toISOString()
+        task.team = teamMarkOf({ workspaceId, id: def.id, key: def.key, version: def.version, installedAt: now }, task)
+        let existing = null
+        await kbTasksMutate(async (tasks) => {
+          existing = tasks.find((x) => x !== null && typeof x === 'object' && x.team !== null && typeof x.team === 'object' && x.team.workspaceId === workspaceId && x.team.key === def.key) || null
+          if (existing === null) tasks.push(task)
+        })
+        return existing !== null ? kbTeamFail('already_installed', { taskId: existing.id }) : { ok: true, taskId: task.id, active: on, missingApps }
+      }
+      // team-update: keep / both / replace on a copy that came from a team
+      const taskId = str(body.taskId)
+      let answer = kbTeamFail('not_found')
+      await kbTasksMutate(async (tasks) => {
+        const at = taskId === null ? -1 : tasks.findIndex((x) => x !== null && typeof x === 'object' && x.id === taskId)
+        if (at < 0) return
+        const task = tasks[at]
+        const plan = teamPlanUpdate(task, def, body.mode)
+        if (plan.ok !== true) { answer = kbTeamFail(plan.error); return }
+        if (plan.keep === true) { answer = { ok: true, taskId }; return }
+        const zone = task.schedule !== null && typeof task.schedule === 'object' && kbIsValidTimeZone(task.schedule.tz) === true ? task.schedule.tz : undefined
+        const clean = kbTeamClean(def, { approvals: task.approvals === 'auto' ? 'auto' : 'ask', tz: zone })
+        if (clean.ok !== true) { answer = kbTeamInvalid(kbTeamReasonOf(clean.error)); return }
+        if (plan.followsSchedule === true) {
+          const frequent = kbFrequentRefusal(clean.task, body, task)
+          if (frequent !== null) { answer = frequent; return }
+        }
+        const now = new Date().toISOString()
+        const merged = teamReplaceTask(task, def, clean.task, plan.followsSchedule, now)
+        // Only a schedule that followed the team is worked out again: the person's own rhythm (and its next run) stays as it was.
+        if (plan.followsSchedule === true) {
+          if (merged.schedule.mode === 'webhook' && (merged.trigger === null || typeof merged.trigger !== 'object')) merged.trigger = kbMintHook()
+          const nx = kbComputeNextRun(merged, Date.now())
+          if (kbNeverRuns(merged, nx) === true) { answer = kbTeamInvalid('schedule'); return }
+          merged.nextRun = nx === null ? null : new Date(nx).toISOString()
+        }
+        answer = { ok: true, taskId }
+        if (plan.both === true) {
+          const mine = teamMineOf(task, kbTaskId(), now)
+          if ((task.trigger !== null && typeof task.trigger === 'object') || mine.schedule.mode === 'webhook') mine.trigger = kbMintHook()
+          tasks.push(mine)
+          answer = { ok: true, taskId, newTaskId: mine.id }
+        }
+        tasks[at] = merged
+      })
+      return answer
     }
     // Minuterie du tick : 30 s. setTimeout suffit (le host tourne en continu
     // tant que DSH vit) ; rattrapage naturel au redémarrage : nextRun échu est
@@ -11281,6 +11372,29 @@ function boot(ctx) {
         }
         sendJson(res, 200, result)
       } }), 'kybernos: route tasks apply')
+      // ── Team automations, the local half: POST /kybernos/automation/team-pack | team-copies | team-install | team-update ──────────────────────────────────
+      // What the Automations page's « Team » segment calls (docs/dev/team-automations-contract.md, piece 2). The bodies carry prompts and an install writes tasks.json, so each
+      // route needs the pair the rule asks of a write (docs/dev/route-origin-rule.md): a strict same-origin request AND DSH's signed browser session. The page sends both.
+      for (const teamKind of ['team-pack', 'team-copies', 'team-install', 'team-update']) {
+        ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/automation/' + teamKind, handler: async (req, res) => {
+          if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
+          if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+          const refused = writeGuard(req)
+          if (refused !== null) return sendJson(res, refused.status, { ok: false, error: refused.error })
+          let body = null
+          try { body = await readJsonBody(req, 131072) } catch (e) { return sendJson(res, 413, { ok: false, error: 'request body too large' }) }
+          if (body === null || typeof body !== 'object' || Array.isArray(body) === true) return sendJson(res, 400, { ok: false, error: 'a JSON object is expected' })
+          try {
+            sendJson(res, 200, await kbTeamHandle(teamKind, body))
+          } catch (e) {
+            // A store that cannot be trusted is an answer the page can show; anything else is an internal error whose text stays in the log.
+            const code = e !== null && typeof e === 'object' ? e.code : undefined
+            if (code === 'tasks-corrupt' || code === 'tasks-unreadable') return sendJson(res, 200, { ok: false, error: 'store_unreadable' })
+            try { console.error('[kybers] automation/' + teamKind + ' route:', errText(e)) } catch (e2) { /* console unavailable */ }
+            sendJson(res, 500, { ok: false, error: 'internal error' })
+          }
+        } }), 'kybernos: route automation/' + teamKind)
+      }
       // ── The suggestions that wait for a click on a page (memory, instructions): GET ?kind= lists, POST { action: 'resolve', id } removes one once the page has dealt with it ──
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/suggestions', handler: async (req, res) => {
         if (req.method !== 'GET' && req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'GET or POST expected' })
