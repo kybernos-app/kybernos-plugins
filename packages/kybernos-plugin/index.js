@@ -1016,6 +1016,28 @@ const parseKyber = (text) => {
   return doc
 }
 // KB-KYBER-YAML-END
+/**
+ * A copy of an Agent Team made from the RAW `kyber.yml` of the original, under a new `id`. The read model of the Teams page
+ * (`parseKyber`) holds the mission and every role prompt cut to 600 characters and folded to one line, and `createKyber` writes
+ * only the fields it knows (no role `tools`, `fallback` or `needs`, no budget): a copy built from either loses text. This one
+ * keeps every other line as it is.
+ * @param {string} source the original file.
+ * @param {string} newId an already slugified id.
+ * @returns {{ ok: true, text: string } | { ok: false, error: string }}
+ */
+export const cloneKyberText = (source, newId) => {
+  if (typeof source !== 'string' || source.trim().length === 0) return { ok: false, error: 'the original kyber.yml is empty' }
+  const lines = source.split('\n')
+  let at = -1
+  for (let i = 0; i < lines.length; i += 1) {
+    if (/^id:(\s|$)/.test(lines[i]) === false) continue
+    if (at >= 0) return { ok: false, error: 'the original kyber.yml has two id lines' }
+    at = i
+  }
+  if (at < 0) return { ok: false, error: 'the original kyber.yml has no id line' }
+  lines[at] = 'id: ' + newId + (lines[at].charAt(lines[at].length - 1) === '\r' ? '\r' : '')
+  return { ok: true, text: lines.join('\n') }
+}
 // ── workflow runs: pure derivation from durable session events ───────────────
 // Every derived fact carries its own 'source'; nothing is invented and no
 // dependency edge is ever produced. 'snapshotsById' maps childId ->
@@ -7820,6 +7842,16 @@ function boot(ctx) {
         return { ok: true, path, backup: bakPath, savedAt: nowIso(), notes: roleNotes }
       } catch (e) { return { ok: false, error: errText(e) } }
     };
+    // The raw kyber.yml a copy is made from: the same fence as the editor's save (a known kybers root) and the resolved path must stay inside the allowed folders.
+    const readCloneSource = async (path) => {
+      if (/\/kyber\.ya?ml$/.test(path) === false || path.indexOf('/../') >= 0) return { ok: false, error: 'kyber.yml path expected' }
+      const rootsAll = await rootsFor()
+      if (rootsAll.some((r) => path.indexOf(r.path + '/') === 0) === false) return { ok: false, error: 'reading is only allowed under a known kybers root' }
+      if ((await cheminAutorise(path)) === false) return { ok: false, error: 'the original is outside the allowed folders' }
+      try { return { ok: true, text: await fs.readText(await fs.resolve(path)) } } catch (e) { return { ok: false, error: 'cannot read the original: ' + errText(e) } }
+    }
+    // A role prompt is kept whole; the request body cap (64 KB) bounds the total.
+    const KB_CREATE_PROMPT_MAX = 20000
     const createKyber = async (args) => {
       try {
         const req = args !== null && args !== undefined && typeof args === 'object' ? args : {}
@@ -7841,7 +7873,7 @@ function boot(ctx) {
             kind: typeof r.role === 'string' && r.role.trim().length > 0 ? r.role.trim().slice(0, 40) : undefined,
             provider: typeof r.provider === 'string' && r.provider.trim().length > 0 ? r.provider.trim() : 'ollama-cloud',
             model: typeof r.model === 'string' && r.model.trim().length > 0 ? r.model.trim() : 'glm-5.3',
-            prompt: typeof r.prompt === 'string' ? r.prompt.trim().slice(0, 600) : undefined,
+            prompt: typeof r.prompt === 'string' ? r.prompt.trim().slice(0, KB_CREATE_PROMPT_MAX) : undefined,
           })
         }
         if (roles.length === 0) roles.push({ id: 'lead', kind: 'lead', provider: 'ollama-cloud', model: 'glm-5.3' })
@@ -7881,7 +7913,17 @@ function boot(ctx) {
           path = joinPath(joinPath(targetRoot, id), 'kyber.yml')
           n += 1
         }
-        const text = serializeKyber({ id, topology, mission: typeof req.mission === 'string' ? req.mission : '', roles, skills, stages })
+        // `cloneOf` (the path of an existing kyber.yml) makes a copy from the raw file, not from the request's roles, which come from the read model (prompts cut to 600).
+        let text = null
+        if (typeof req.cloneOf === 'string' && req.cloneOf !== '') {
+          const source = await readCloneSource(req.cloneOf)
+          if (source.ok !== true) return source
+          const made = cloneKyberText(source.text, id)
+          if (made.ok !== true) return made
+          text = made.text
+        } else {
+          text = serializeKyber({ id, topology, mission: typeof req.mission === 'string' ? req.mission : '', roles, skills, stages })
+        }
         const parsed = parseKyber(text)
         if (parsed.id !== id) return { ok: false, error: 'validation: the generated document is invalid' }
         await writeTextScoped(targetRoot, path, text)
