@@ -184,7 +184,7 @@ window.__ModuleLoader__.load({
 
     // ── styles (DSH's own tokens, one prefix) ───────────────────────────────────────────────────────────────────────────
     const CSS = [
-      '.kbkc{box-sizing:border-box;padding:6px 2px 24px;color:var(--dsw-alias-label-primary,#222);font-size:var(--dsh-content-font-size-secondary,13.5px);line-height:1.45}',
+      '.kbkc{box-sizing:border-box;padding:0 0 24px;color:var(--dsw-alias-label-primary,#222);font-size:var(--dsh-content-font-size-secondary,13.5px);line-height:1.45}',
       '.kbkc *{box-sizing:border-box}',
       '.kbkc-page{display:flex;flex-direction:column;gap:16px;max-width:880px}',
       '.kbkc-titlerow{display:flex;align-items:center;gap:12px}',
