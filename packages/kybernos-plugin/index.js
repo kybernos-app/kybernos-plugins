@@ -2777,7 +2777,13 @@ function boot(ctx) {
           await kbTasksMutate(async (tasks) => {
             for (const t of tasks) {
               if (t === null || typeof t !== 'object' || Array.isArray(t.history) !== true) continue
-              for (const h of t.history) if (h !== null && typeof h === 'object' && h.sessionId === sessionId) h.status = on === true ? 'waiting_approval' : 'fired'
+              for (const h of t.history) {
+                if (h === null || typeof h !== 'object' || h.sessionId !== sessionId) continue
+                h.status = on === true ? 'waiting_approval' : 'fired'
+                // The moment the run was told to go on: until its session has been written to since, a closed session is the first turn's, not the end of the run (the reporter reads it).
+                if (on === true) delete h.continuedAt
+                else h.continuedAt = new Date().toISOString()
+              }
             }
           })
           // Going on after an answer is a run going again: the load tracker counts it from now (its first turn ended and left it), so that the next beat says the computer is busy and

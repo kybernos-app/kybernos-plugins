@@ -89,6 +89,19 @@ export function sessionState (sessionId) {
   } catch (e) { return null }
 }
 
+/** How long a run that was told to go on, and whose session was not written to since, is still taken for going on rather than for ended (its machine may have been frozen under it). */
+export const CONTINUE_GRACE_MS = 30 * 60_000
+/**
+ * True while a run that was answered and told to go on has not shown any sign of it: its session still reads as closed, but that is the end of its FIRST turn, which came before the
+ * question was answered (a machine put to sleep right after taking the answer wakes with exactly that picture, measured on Fly dev 2026-10-24: the run was reported « completed » at
+ * the end of its first turn, three seconds after it started). `continuedAt` is when the plugin told it to go on; a write to the session after that means it did.
+ */
+export const stillContinuing = (entry, state, nowMs = Date.now()) => {
+  const at = entry !== null && typeof entry === 'object' ? Date.parse(String(entry.continuedAt)) : NaN
+  if (!Number.isFinite(at) || state === null || state === undefined) return false
+  return Date.parse(state.at) <= at && nowMs - at < CONTINUE_GRACE_MS
+}
+
 const lastOutcome = (task) => {
   const h = Array.isArray(task.history) ? task.history : []
   const last = h[h.length - 1]
@@ -98,7 +111,7 @@ const lastOutcome = (task) => {
   if (last.status === 'error') return { status: 'error', reason: 'run_failed' }
   if (typeof last.sessionId === 'string') {
     const s = sessionState(last.sessionId)
-    if (s !== null && s.closed) return { status: 'completed', reason: null }
+    if (s !== null && s.closed && !stillContinuing(last, s)) return { status: 'completed', reason: null }
   }
   return { status: null, reason: null }
 }
@@ -159,7 +172,7 @@ export function endedRuns (tasks, reported) {
         continue
       }
       const s = sessionState(h.sessionId)
-      if (s === null || !s.closed) continue
+      if (s === null || !s.closed || stillContinuing(h, s)) continue
       const ended = Date.parse(s.at) >= Date.parse(started) ? s.at : started
       runs.push({ run_id: h.sessionId, task_id: externalIdOf(t), via, outcome: 'completed', reason: null, started_at: started, ended_at: ended })
     }
