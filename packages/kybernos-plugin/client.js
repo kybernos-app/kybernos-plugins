@@ -560,7 +560,6 @@ let kbLocaleRead = () => 'en'
       'menu.aiteams': { kybernos: 'Agent Teams', en: 'Agent Teams' },
       'menu.crew': { kybernos: 'Équipe Kybernos', en: 'Kybernos Crew' },
       'menu.crewmodel': { kybernos: 'Exécution modèle', en: 'Model Execution' },
-      'menu.runs': { kybernos: 'Runs', en: 'Runs' },
       'menu.projects': { kybernos: 'Workspaces', en: 'Workspaces' },
       'menu.deliverables': { kybernos: 'Créations', en: 'Creations' },
       'menu.hosted': { kybernos: 'Kybernos Hosted', en: 'Kybernos Hosted' },
@@ -697,8 +696,6 @@ let kbLocaleRead = () => 'en'
       'ui.probedok': { kybernos: ' sondés OK', en: ' probed OK' },
       'ui.unpin': { kybernos: 'Désépingler', en: 'Unpin' },
       'ui.pin': { kybernos: 'Épingler (raccourci)', en: 'Pin (shortcut)' },
-      'ui.failed': { kybernos: 'Échec : ', en: 'Failed: ' },
-      'ui.identityfailed': { kybernos: 'Échec identité : ', en: 'Identity failed: ' },
       'ui.noid': { kybernos: '(sans id)', en: '(no id)' },
       'ui.differentfolder': { kybernos: '" different du dossier', en: '" different from the folder' },
       'ui.loading': { kybernos: 'Lecture du budget, de l\\u2019équipe et des artefacts…', en: 'Reading budget, team and artifacts…' },
@@ -774,41 +771,13 @@ let kbLocaleRead = () => 'en'
       'ui.showroles': { kybernos: 'Voir les rôles', en: 'Show roles' },
       'ui.panel.sub': { kybernos: 'Chaque Agent Team a ses outils, son budget et ses objectifs. Épingle celles où tu vis.', en: 'Every Agent Team has its tools, budget and goals. Pin the ones you live in.' },
       'ui.readonly': { kybernos: 'Plugin en lecture seule — la création passe par le skill kyber-authoring.', en: 'Plugin is read-only — creation goes through the kyber-authoring skill.' },
-      'ui.saved': { kybernos: 'Enregistré. Backup : ', en: 'Saved. Backup: ' },
-      'ui.identitysaved': { kybernos: 'Identité enregistrée.', en: 'Identity saved.' },
-      'ui.liveteam': { kybernos: 'Équipe live', en: 'Live team' },
-      'ui.noliveteam': { kybernos: 'Aucune équipe sur cette session — demande à l\'agent de créer un teammate (Agent Teams).', en: 'No team in this session — ask the agent to create a teammate (Agent Teams).' },
-      'ui.nogoal': { kybernos: 'Aucun objectif persistant sur cette session — ceux créés par l\'agent apparaîtront ici.', en: 'No persistent goal in this session — the ones the agent creates will show up here.' },
-      'ui.recent': { kybernos: 'récent', en: 'recent' },
-      'ui.input': { kybernos: 'entrée', en: 'input' },
-      'ui.notools': { kybernos: 'Aucun outil déclaré dans les rôles (section outils du fichier de l’équipe).', en: 'No tool declared in the roles (tools section of the team file).' },
-      'ui.unset': { kybernos: 'non fixé', en: 'not set' },
-      'ui.emptyunchanged': { kybernos: 'vide = inchangé', en: 'empty = unchanged' },
-      'ui.due': { kybernos: 'Échéance', en: 'Due date' },
-      'ui.access': { kybernos: 'Accès', en: 'Access' },
-      'ui.models.mid': { kybernos: ' modèles · ', en: ' models · ' },
-      'ui.manage': { kybernos: 'Gérer', en: 'Manage' },
-      'ui.manage.meta': { kybernos: 'mission · identité · équipe · yaml', en: 'mission · identity · team · yaml' },
-      'ui.identity': { kybernos: 'Identité affichée', en: 'Display identity' },
-      'ui.icon': { kybernos: 'Icône (emoji)', en: 'Icon (emoji)' },
-      'ui.displayname': { kybernos: 'Nom affiché', en: 'Display name' },
-      'ui.saveidentity': { kybernos: 'Enregistrer l\'identité', en: 'Save identity' },
-      'ui.teamproviders': { kybernos: 'Rôles — provider / modèle par rôle', en: 'Roles — provider / model per role' },
       'ui.teamnotfound': { kybernos: 'Agent Team introuvable.', en: 'Agent Team not found.' },
       'kbui.team.backall': { kybernos: 'Toutes les Agent Teams', en: 'All Agent Teams' },
-      'kbui.team.reading': { kybernos: 'lecture…', en: 'reading…' },
-      'kbui.team.folderonly': { kybernos: 'Le dossier de l’Agent Team ne contient que le fichier de l’équipe.', en: 'The Agent Team folder only contains the team file.' },
       'kbui.team.due': { kybernos: 'échéance ', en: 'due ' },
       'kbui.team.budget.none': { kybernos: 'aucun — pas de section budget dans le fichier de l’équipe', en: 'none — no budget section in the team file' },
       'kbui.team.budget.undeclared': { kybernos: 'montant non déclaré', en: 'amount not declared' },
       'kbui.team.budget.declared': { kybernos: 'déclaré dans le fichier de l’équipe', en: 'declared in the team file' },
       'ui.liveteam.head': { kybernos: 'Équipe live (Agent Teams)', en: 'Live team (Agent Teams)' },
-      'ui.rosterunavailable': { kybernos: 'Roster indisponible ici — utilise le bouton Agent Teams dans le header de la conversation.', en: 'Roster unavailable here — use the Agent Teams button in the conversation header.' },
-      'ui.nosession': { kybernos: 'aucune session connue pour cette Agent Team', en: 'no known session for this agent team' },
-      'ui.opensession': { kybernos: 'ouvrir la session', en: 'open the session' },
-      'ui.noartifact': { kybernos: 'Aucun artefact produit dans ce workspace.', en: 'No artifact produced in this workspace.' },
-      'ui.noskills': { kybernos: 'Aucun dossier skills/ dans cette Agent Team.', en: 'No skills/ folder in this agent team.' },
-      'ui.budgettotal': { kybernos: 'Budget total (€)', en: 'Total budget (€)' },
       'ui.absentmid': { kybernos: ' — absent', en: ' — absent' },
       'ui.nomatch': { kybernos: 'aucun agent ne correspond au filtre', en: 'no agent matches the filter' },
       'ui.taskbudget': { kybernos: 'Budget de la tâche', en: 'Task budget' },
@@ -817,72 +786,9 @@ let kbLocaleRead = () => 'en'
       'ui.addkyber': { kybernos: 'Ajouter une Agent Team', en: 'Add an Agent Team' },
       'ui.start': { kybernos: 'début', en: 'start' },
       'ui.noworkspace': { kybernos: 'Aucun workspace pour l\'instant.', en: 'No workspace yet.' },
-      'runs.noroute': { kybernos: 'La liste des exécutions ne répond pas — redémarre DSH.', en: 'The list of runs is not answering — restart DSH.' },
-      'runs.withruns': { kybernos: ' avec runs', en: ' with runs' },
-      'runs.localstore': { kybernos: ' (store local)', en: ' (local store)' },
-      'runs.sub': { kybernos: 'Chaque lane est une phase. Le déclaré vient de meta.phases, l’observé des événements du run, le réel de la session enfant.', en: 'Each lane is a phase. “Declared” comes from meta.phases, “observed” from the run events, “actual” from the child session.' },
-      'runs.legend.declared': { kybernos: '◆ déclaré (meta.phases)', en: '◆ declared (meta.phases)' },
-      'runs.legend.observed': { kybernos: '◇ observé (événements)', en: '◇ observed (events)' },
-      'runs.legend.actual': { kybernos: '● réel (session enfant)', en: '● actual (child session)' },
-      'runs.note': { kybernos: 'Chaque fait affiche sa source — aucune arête de dépendance n’est déduite.', en: 'Every fact shows its source — no dependency edge is inferred.' },
-      'runs.orphan': { kybernos: '(phase non déclarée)', en: '(undeclared phase)' },
-      'runs.start': { kybernos: 'début', en: 'start' },
-      'runs.duration.mid': { kybernos: 'durée ', en: 'duration ' },
-      'runs.neverobserved': { kybernos: ' · non observée', en: ' · never observed' },
-      'runs.declared.prefix': { kybernos: 'déclaré: ', en: 'declared: ' },
-      'runs.nodeviation': { kybernos: 'Aucune déviation dérivée pour ce run.', en: 'No deviation derived for this run.' },
-      'runs.deviations': { kybernos: 'Déviations (', en: 'Deviations (' },
-      'runs.empty': { kybernos: 'Un run apparaît ici dès qu’un workflow est lancé (tool workflow + run-start dans les événements).', en: 'A run shows up here as soon as a workflow starts (the workflow tool + run-start in the events).' },
-      'runs.norun': { kybernos: 'Aucun run workflow sur cette session', en: 'No workflow run in this session' },
-      'runs.parallelism': { kybernos: 'Parallélisme observé', en: 'Observed parallelism' },
-      'crew.declared.mid': { kybernos: 'déclaré ', en: 'declared ' },
-      'crew.gap.one': { kybernos: 'écart de modèle', en: 'model gap' },
-      'crew.gap.many': { kybernos: 'écarts de modèle', en: 'model gaps' },
-      'crew.norole.pill.bare': { kybernos: ' sans rôle', en: ' no role' },
-      'crew.roster.note.flat': { kybernos: 'Le roster Agent Teams est par session, plat et immuable ; il ne connaît pas les runs. C\'est le plugin qui porte l\'attribution.', en: 'The Agent Teams roster is per session, flat and immutable; it knows nothing about runs. The plugin carries the attribution.' },
-      'crew.nogapnote': { kybernos: 'Aucun écart : ce qui est déclaré a tourné, avec le modèle déclaré.', en: 'No gap: what was declared ran, with the declared model.' },
-      'crew.kind.exact': { kybernos: 'exact', en: 'exact' },
-      'crew.kind.suffix': { kybernos: 'suffixe', en: 'suffix' },
-      'crew.kind.include': { kybernos: 'inclusion', en: 'included' },
-      'crew.kind.prefix': { kybernos: 'préfixe', en: 'prefix' },
-      'crew.model.notdeclared': { kybernos: 'modèle non déclaré', en: 'model not declared' },
-      'crew.origin.inferred': { kybernos: 'déduit des noms', en: 'inferred from names' },
-      'crew.notexecuted': { kybernos: 'non exécuté', en: 'not executed' },
-      'crew.noroledeclared': { kybernos: 'sans rôle déclaré', en: 'no declared role' },
-      'crew.nodefinition': { kybernos: 'définition introuvable', en: 'definition not found' },
-      'crew.stages.pill': { kybernos: 'étages ', en: 'stages ' },
-      'crew.roles.pill': { kybernos: 'rôles déclarés ', en: 'declared roles ' },
-      'crew.norole.pill': { kybernos: 'sans rôle ', en: 'no role ' },
-      'crew.gaps.pill': { kybernos: 'écarts ', en: 'gaps ' },
-      'crew.declared.head': { kybernos: 'Déclaré — ', en: 'Declared — ' },
-      'crew.nodef': { kybernos: 'Définition absente de ce poste : rôles inconnus.', en: 'Definition missing on this machine: unknown roles.' },
-      'crew.noroles': { kybernos: 'Cette Agent Team ne déclare aucun rôle.', en: 'This agent team declares no role.' },
-      'crew.stages.colon': { kybernos: 'étages :', en: 'stages:' },
-      'crew.executed.head': { kybernos: 'EXÉCUTÉ — coéquipiers du crew', en: 'EXECUTED — crew teammates' },
-      'crew.noprefixed': { kybernos: 'Aucun coéquipier préfixé « ', en: 'No teammate prefixed “' },
-      'crew.noprefixed2': { kybernos: '- » dans le roster.', en: '-” on the roster.' },
-      'crew.gap.head': { kybernos: 'Écart', en: 'GAP' },
-      'crew.origin.declared': { kybernos: 'déclaré', en: 'declared' },
-      'crew.executed.mid': { kybernos: 'exécuté ', en: 'executed ' },
       'canvas.noreactflow': { kybernos: 'module UMD sans export ReactFlow', en: 'UMD module with no ReactFlow export' },
-      'crew.activecrews': { kybernos: 'crews actifs ', en: 'active crews ' },
-      'crew.allincrew': { kybernos: 'Tous les membres du roster appartiennent à un crew actif.', en: 'Every roster member belongs to an active crew.' },
       'crew.attempts.sub': { kybernos: '  pour ce rôle dans ce run', en: ' for this role in this run' },
       'crew.cachewrite.mid': { kybernos: ' · cache écrit ', en: ' · cache write ' },
-      'crew.cap': { kybernos: 'plafond ', en: 'cap ' },
-      'crew.crew': { kybernos: 'crew', en: 'crew' },
-      'crew.crews': { kybernos: 'crews', en: 'crews' },
-      'crew.declared.meta': { kybernos: 'ce que chaque Agent Team déclare, ce qui a tourné, où est l’écart', en: 'what each agent team declares, what ran, where the gap is' },
-      'crew.declared.title': { kybernos: 'Crews déclarés', en: 'Declared crews' },
-      'crew.member': { kybernos: 'membre', en: 'member' },
-      'crew.members': { kybernos: 'membres', en: 'members' },
-      'crew.model.sub': { kybernos: 'Un crew par Agent Team active de la session : ce qu\'elle déclare, ce qui a tourné, où est l\'écart.', en: 'One crew per agent team active in this session: what it declares, what actually ran, where the gap is.' },
-      'crew.noactive': { kybernos: ' sans crew actif', en: ' with no active crew' },
-      'crew.noactivekyber': { kybernos: 'Aucune Agent Team active pour cette session : .active/<sessionId> est vide ou absent (formats v2 et legacy acceptés).', en: 'No agent team active in this session: .active/<sessionId> is empty or missing (v2 and legacy formats accepted).' },
-      'crew.noagentteams': { kybernos: 'Agent Teams indisponible sur ce client.', en: 'Agent Teams unavailable on this client.' },
-      'crew.nocrew': { kybernos: 'aucun crew actif pour cette session', en: 'no active crew in this session' },
-      'crew.loading': { kybernos: 'Chargement des Agent Teams…', en: 'Loading agent teams…' },
-      'runs.loading': { kybernos: 'Chargement des runs…', en: 'Loading runs…' },
       'voice.cap.checking': { kybernos: 'Voix : vérification des capacités…', en: 'Voice: checking capabilities…' },
       'voice.dictate.stop': { kybernos: 'Arrêter et dicter', en: 'Stop and dictate' },
       'voice.dictate.start': { kybernos: 'Dicter (le texte arrive dans le brouillon)', en: 'Dictate (text lands in the draft)' },
@@ -905,24 +811,7 @@ let kbLocaleRead = () => 'en'
       'kbui.feedback.draft': { kybernos: '/skill-report-feedback Je veux signaler un problème ou proposer une amélioration. Commence l\'entretien par ta première question.', en: '/skill-report-feedback I want to report a problem or suggest an improvement. Start the interview with your first question.' },
       'kbui.help.flash': { kybernos: 'Aide · raccourcis · journal des versions.', en: 'Help · shortcuts · release notes.' },
       'kbui.runs.locally': { kybernos: 'Tourne en local sur ta machine', en: 'Runs locally on your machine' },
-      'crew.nomember': { kybernos: 'Aucun membre Agent Teams sur cette session.', en: 'No Agent Teams member in this session.' },
-      'crew.noroster': { kybernos: 'Roster indisponible pour cette session.', en: 'Roster unavailable for this session.' },
-      'crew.nosession': { kybernos: 'Aucune session courante.', en: 'No current session.' },
-      'crew.offcrew': { kybernos: 'hors crew ', en: 'off crew ' },
-      'crew.offcrew.badge': { kybernos: 'hors crew', en: 'off crew' },
-      'crew.offcrew.meta': { kybernos: 'membres du roster Agent Teams rattachés à aucune Agent Team de cette session', en: 'Agent Teams roster members attached to no agent team in this session' },
       'crew.pricing.mid2': { kybernos: ' ·  tarifs ', en: ' ·  pricing ' },
-      'crew.reading': { kybernos: 'Lecture du roster…', en: 'Reading roster…' },
-      'crew.refresh': { kybernos: 'Rafraîchir', en: 'Refresh' },
-      'crew.roster': { kybernos: 'roster ', en: 'roster ' },
-      'crew.roster.foot': { kybernos: ' au roster — tous listés en « hors crew » ci-dessous.', en: ' on the roster — all listed under “off crew” below.' },
-      'crew.roster.note': { kybernos: 'Le roster Agent Teams est par session, plat et immuable, plafonné à ', en: 'The Agent Teams roster is per session, flat and immutable, capped at ' },
-      'crew.roster.note2': { kybernos: ' coéquipiers ; il ne connaît pas les runs. C\'est le plugin qui porte l\'attribution.', en: ' teammates; it knows nothing about runs. The plugin carries the attribution.' },
-      'crew.session': { kybernos: 'session ', en: 'session ' },
-      'crew.teammates': { kybernos: 'coéquipiers ', en: 'teammates ' },
-      'crew.title.model': { kybernos: 'Crew — déclaré vs exécuté', en: 'Crew — declared vs executed' },
-      'crew.unknownmodel': { kybernos: 'modèle inconnu', en: 'unknown model' },
-      'crew.unreadable': { kybernos: 'non lisible', en: 'unreadable' },
       'reactflow.down': { kybernos: 'React Flow indisponible : ni la copie locale (/kybernos/vendor/xyflow.js) ni le CDN ne répondent.', en: 'React Flow unavailable: neither the local copy (/kybernos/vendor/xyflow.js) nor the CDN responds.' },
 
       // ── Chaînes UI du plugin (fr/en) ────────────────────────────────────
@@ -933,12 +822,10 @@ let kbLocaleRead = () => 'en'
       'kbui.guidedchat': { kybernos: 'Un chat guidé — il demande ce que l’Agent Team doit faire', en: 'A guided chat — it asks what the agent team should do' },
       'kbui.project.holds': { kybernos: 'Un projet a ses propres chats, documents, objectifs et créations. Ouvre-le pour voir ce que les Agent Teams y ont produit.', en: 'A project holds its own chats, documents, goals and creations. Open one to see what the Agent Teams produced there.' },
       'kbui.sort.az': { kybernos: 'A → z', en: 'A → z' },
-      'kbui.apps.askfor': { kybernos: 'Applications demandées', en: 'Apps it will ask for' },
       'kbui.actions': { kybernos: 'Actions', en: 'Actions' },
       'kbui.add.document': { kybernos: 'Ajouter un document', en: 'Add a document' },
       'kbui.add.skill': { kybernos: 'Ajouter une compétence', en: 'Add a skill' },
       'kbui.add.tag': { kybernos: 'Ajouter une étiquette…', en: 'Add a tag…' },
-      'kbui.agentteams': { kybernos: 'Agent Teams', en: 'Agent Teams' },
       'kbat.col.def': { kybernos: 'Définition (kyber.yml)', en: 'Definition (kyber.yml)' },
       'kbat.col.runtime': { kybernos: 'Exécution (Agent Teams)', en: 'Runtime (Agent Teams)' },
       'kbat.col.what': { kybernos: 'Ce que c’est', en: 'What it is' },
@@ -984,16 +871,12 @@ let kbLocaleRead = () => 'en'
       'kbui.allfolders': { kybernos: 'Tous les dossiers', en: 'All folders' },
       'kbui.hosted.alsoexists': { kybernos: 'Existe aussi dans Kybernos Hosted', en: 'Also exists in Kybernos Hosted' },
       'kbui.apercu.unavailable': { kybernos: 'Aperçu indisponible — ', en: 'Preview unavailable — ' },
-      'kbui.artefacts': { kybernos: 'Artefacts', en: 'Artifacts' },
       'kbui.artefacts.produced': { kybernos: 'Artefacts produits', en: 'Artifacts produced' },
-      'kbui.back': { kybernos: 'Retour', en: 'Back' },
       'kbui.best.quality': { kybernos: 'Meilleure qualité', en: 'Best quality' },
       'kbui.best.value': { kybernos: 'Meilleur rapport', en: 'Best value' },
       'kbui.budget': { kybernos: 'Budget', en: 'Budget' },
       'kbui.devices': { kybernos: 'Appareils', en: 'Devices' },
-      'kbui.buildteam': { kybernos: 'Construire l’Agent Team', en: 'Build the Agent Team' },
       'kbui.composio.absent': { kybernos: 'Paquet @local/kybernos-composio absent.', en: 'Bundle @local/kybernos-composio absent.' },
-      'kbui.crew.tag': { kybernos: 'Équipe ', en: 'Crew ' },
       'kbui.cache': { kybernos: 'Cache : ', en: 'Cache: ' },
       'kbui.cancel': { kybernos: 'Annuler', en: 'Cancel' },
       'kbui.category': { kybernos: 'Catégorie', en: 'Category' },
@@ -1019,12 +902,10 @@ let kbLocaleRead = () => 'en'
       'kbui.conn.nokey': { kybernos: 'Aucune clé Composio sur cette machine.', en: 'No Composio key on this machine.' },
       'kbui.conn.global': { kybernos: ' La connexion est globale, pas seulement ce projet.', en: ' The connection is global, not just this project.' },
       'kbui.conn.openlink': { kybernos: 'Ouvrir le lien d’autorisation', en: 'Open the authorization link' },
-      'kbui.couleur': { kybernos: 'Couleur', en: 'Colour' },
       'kbui.create.kyber': { kybernos: 'Créer une Agent Team avec Kybernos', en: 'Create an Agent Team with Kybernos' },
       'kbui.custom': { kybernos: 'Personnalisé', en: 'Custom' },
       'kbui.dangerzone': { kybernos: 'Zone sensible', en: 'Danger zone' },
       'kbui.delete.kyber': { kybernos: 'Supprimer cette Agent Team', en: 'Delete this Agent Team' },
-      'kbui.devise': { kybernos: 'Devise', en: 'Currency' },
       'kbui.discuter': { kybernos: 'Discuter', en: 'Chat' },
       'kbui.doc.library': { kybernos: 'Bibliothèque de documents', en: 'Document library' },
       'kbui.documents': { kybernos: 'Documents', en: 'Documents' },
@@ -1054,7 +935,6 @@ let kbLocaleRead = () => 'en'
       'kbui.from.repourl': { kybernos: 'Depuis une URL de dépôt', en: 'From a repository URL' },
       'kbui.keep.audio': { kybernos: 'Garder l’audio (message vocal)', en: 'Keep audio (voice message)' },
       'kbui.grille': { kybernos: 'Grille', en: 'Grid' },
-      'kbui.outcrew': { kybernos: 'Hors équipe', en: 'Out of crew' },
       'kbui.tts.headsup': { kybernos: 'Attention : ce moteur envoie le texte de la réponse à ', en: 'Heads-up: this engine sends the reply text to ' },
       'kbui.healthcheck.all': { kybernos: 'Tout vérifier', en: 'Healthcheck all' },
       'kbui.helpdocs': { kybernos: 'Aide et documentation', en: 'Help & docs' },
@@ -1078,7 +958,6 @@ let kbLocaleRead = () => 'en'
       'kbui.liste': { kybernos: 'Liste', en: 'List' },
       'kbui.localiser': { kybernos: 'Localiser — ', en: 'Locate — ' },
       'kbui.reveal': { kybernos: 'Localiser', en: 'Reveal' },
-      'kbui.members.prompts': { kybernos: 'Membres et leurs prompts', en: 'Members and their prompts' },
       'kbui.masquer': { kybernos: 'Masquer', en: 'Hide' },
       'kbui.mission': { kybernos: 'Mission', en: 'Mission' },
       'kbui.sort.mostagents': { kybernos: 'Plus d’agents', en: 'Most agents' },
@@ -1156,7 +1035,6 @@ let kbLocaleRead = () => 'en'
       // marque nue dans la barre d'onglets.
       'kbui.run': { kybernos: 'Exécuter', en: 'Run' },
       'kbui.run.dot': { kybernos: 'Run · ', en: 'Run · ' },
-      'kbui.runs.unavailable': { kybernos: 'Runs indisponibles', en: 'Runs unavailable' },
       'kbui.hosted.same': { kybernos: 'Mêmes Agent Teams, mêmes chats, mêmes créations — déplacés hors de ta machine.', en: 'Same Agent Teams, same chats, same creations — moved off your hardware.' },
       'kbui.save.now': { kybernos: 'Enregistrer maintenant', en: 'Save now' },
       'kbui.search': { kybernos: 'Rechercher ', en: 'Search ' },
@@ -1249,7 +1127,6 @@ let kbLocaleRead = () => 'en'
       'kbui.rating.issue.verbose': { kybernos: 'Trop verbeux', en: 'Too verbose' },
       'kbui.rating.issue.format': { kybernos: 'Mauvais format', en: 'Wrong format' },
       'kbui.rating.issue.unsafe': { kybernos: 'Trop prudent', en: 'Unsafe / over-cautious' },
-      'kbui.session.dot': { kybernos: 'Session · ', en: 'Session · ' },
       'kbui.shown.kyber': { kybernos: 'Affiché dans la barre latérale, l’en-tête et partout où cette Agent Team apparaît.', en: 'Shown in the sidebar, the header and everywhere this Agent Team appears.' },
       'kbui.shown.project': { kybernos: 'Affiché dans la barre latérale, la grille des projets et partout où ce projet apparaît.', en: 'Shown in the sidebar, the project grid and everywhere this project appears.' },
       'kbui.skill.repo': { kybernos: 'Dépôt de compétences', en: 'Skill repository' },
@@ -1605,7 +1482,6 @@ let kbLocaleRead = () => 'en'
       'kbui.dashboards.off': { kybernos: 'Le module Dashboards n’est pas actif. Active-le dans la Suite.', en: 'The Dashboards module is not active. Switch it on in the Suite.' },
       'kbui.sort': { kybernos: 'Trier', en: 'Sort' },
       'kbui.speed': { kybernos: 'Vitesse · ', en: 'Speed · ' },
-      'kbui.start.objective': { kybernos: 'Pars de l’objectif. J’écris les membres, leurs prompts et les applications nécessaires.', en: 'Start from the objective. I write the members, their prompts and the apps they need.' },
       'kbui.starters': { kybernos: 'Suggestions', en: 'Starters' },
       // ── Suggestions de conversation (fiche AI Team ▸ Settings) ──────────────
       // Modèle repris de Platon : une carte par suggestion (icône, titre,
@@ -1661,7 +1537,6 @@ let kbLocaleRead = () => 'en'
       'kbui.storage': { kybernos: 'Stockage · 60 Mo / 2 Go', en: 'Storage · 60 MB / 2 GB' },
       'kbui.tts.unavailable': { kybernos: 'Hôte TTS indisponible : ', en: 'TTS host unavailable: ' },
       'kbui.tag': { kybernos: 'Étiquette', en: 'Tag' },
-      'kbui.rate.usdeur': { kybernos: 'Taux USD→EUR', en: 'USD→EUR rate' },
       'kbui.test.text': { kybernos: 'Texte de test', en: 'Test text' },
       'kbui.skills.sub': { kybernos: 'Les capacités que tes Agent Teams peuvent appeler. Importes-en une depuis une URL de dépôt — les dépôts privés passent par Composio.', en: 'The capabilities your Agent Teams can call. Import one from a repository URL — private repos go through Composio.' },
       'kbui.skills.hint': { kybernos: 'Coche les compétences rattachées à ce projet — la sélection est enregistrée automatiquement.', en: 'Check the skills attached to this project — the selection saves automatically.' },
@@ -1711,10 +1586,8 @@ let kbLocaleRead = () => 'en'
       'kbui.tts.sub': { kybernos: 'Lit les réponses à voix haute et dicte dans le champ de saisie, sur cette machine ou via un service cloud — à toi de choisir, moteur par moteur. Pour parler en direct avec l\'assistant, voir Appels.', en: 'Reads replies aloud and dictates into the message box, on this machine or through a cloud service — your choice, engine by engine. To talk live with the assistant, see Calls.' },
       'kbui.hosted.only': { kybernos: 'Ce que tu n’obtiens qu’en hosted', en: 'What you get only when it is hosted' },
       'kbui.workspaces.unavailable': { kybernos: 'Workspaces indisponibles', en: 'Workspaces unavailable' },
-      'kbui.yaml.raw': { kybernos: 'YAML brut', en: 'Raw YAML' },
       'kbui.hosted.keepworking': { kybernos: 'Tes Agent Teams continuent de travailler après avoir fermé le capot.', en: 'Your Agent Teams keep working after you close the lid.' },
       'kbui.workspace.export': { kybernos: 'Ton espace de travail de plugin s’exporte en fichier. Hosted l’importe intégralement — équipes, documents, objectifs et fils gardent leur historique.', en: 'Your plugin workspace exports as a file. Hosted imports it whole — teams, documents, goals and threads keep their history.' },
-      'kbui.mission.example': { kybernos: 'ex. Répondre à chaque prospect entrant dans l’heure, le qualifier et réserver l’appel.', en: 'e.g. Answer every inbound lead within the hour, qualify it, and book the call.' },
       'kbui.fallback.from': { kybernos: 'repli depuis ', en: 'fallback from ' },
       'kbui.in.this.chat': { kybernos: 'dans ce chat', en: 'in this chat' },
       // ── Documents / Resources ──────────────────────────────────────────
@@ -1745,8 +1618,6 @@ let kbLocaleRead = () => 'en'
       'kbui.project.sub': { kybernos: 'Un projet est un espace de travail à part entière — les chats, documents, objectifs et créations qui appartiennent à un même travail.', en: 'A project is a workspace of its own — the chats, documents, goals and creations that belong to one piece of work.' },
       'kbui.copylink': { kybernos: 'Copier le lien', en: 'Copy link' },
       'kbui.copylink.hosted': { kybernos: 'Copier le lien (Hosted uniquement)', en: 'Copy link (Hosted only)' },
-      'kbui.createteam.chat': { kybernos: 'Créer l’Agent Team et ouvrir le chat', en: 'Create the Agent Team and open the chat' },
-      'kbui.creating': { kybernos: 'Création…', en: 'Creating…' },
       'kbui.theme.dark': { kybernos: 'Thème sombre', en: 'Dark theme' },
       'kbui.theme.light': { kybernos: 'Thème clair', en: 'Light theme' },
       'kbui.voice.default': { kybernos: 'Voix par défaut', en: 'Default voice' },
@@ -1832,7 +1703,6 @@ let kbLocaleRead = () => 'en'
       'kbui.showall': { kybernos: 'Tout afficher', en: 'Show all' },
       'kbui.toggle.favorites': { kybernos: 'Basculer les favoris', en: 'Toggle favorites' },
       'kbui.gpus.own': { kybernos: 'Des GPU qu’il faut posséder', en: 'GPUs you have to own' },
-      'kbui.kyber.wouldbuild': { kybernos: 'Voici l’Agent Team que je construirais', en: 'Here is the agent team I would build' },
       'kbui.highrisk': { kybernos: 'Risque élevé', en: 'High risk' },
       'kbui.install': { kybernos: 'Installer', en: 'Install' },
       'kbui.install.kyber': { kybernos: 'Installer cette Agent Team', en: 'Install this Agent Team' },
@@ -1855,7 +1725,6 @@ let kbLocaleRead = () => 'en'
       'kbui.market.cloud.install': { kybernos: 'Installer depuis kybernos.app', en: 'Install from kybernos.app' },
       'kbui.market.cloud.local': { kybernos: 'Livrés avec le plugin', en: 'Shipped with the plugin' },
       'kbui.market.cloud.done': { kybernos: ' installé depuis kybernos.app — à compléter : ', en: ' installed from kybernos.app — to complete: ' },
-      'kbui.retry.create': { kybernos: 'Réessayer la création', en: 'Retry create' },
       'kbui.search.kyber': { kybernos: 'Rechercher une Agent Team, une catégorie, un objectif…', en: 'Search an Agent Team, a category, a goal…' },
       'kbui.search.template': { kybernos: 'Rechercher un modèle, une catégorie, une mission…', en: 'Search a template, a category, a mission…' },
       'kbui.search.project': { kybernos: 'Rechercher un projet par nom ou description…', en: 'Search a project by name or description…' },
@@ -5611,19 +5480,6 @@ const KB_CATALOG = {
     'ollama': [{ id: 'glm-5.3' }],
   },
 }
-const KB_TEAM_PROFILES = [
-  { keys: ['sale', 'lead', 'pipeline', 'prospect', 'deal'], cat: 'Sales', roles: [['Qualifier', 'Score every inbound on fit, budget and timing within the hour.'], ['Closer', 'Write the follow-ups and handle objections in the prospect\'s own words.'], ['Analyst', 'Flag what has not moved in seven days and propose the one action that unblocks it.']], apps: ['HubSpot', 'Gmail', 'Calendar'] },
-  { keys: ['support', 'ticket', 'customer', 'help'], cat: 'Support', roles: [['Triage', 'Classify every incoming ticket and answer what the docs already cover.'], ['Resolver', 'Solve the ticket end to end in plain language.'], ['Doc keeper', 'Turn every repeated question into a documented answer.']], apps: ['Zendesk', 'Gmail', 'Slack'] },
-  { keys: ['recruit', 'hiring', 'candidate', 'talent'], cat: 'People', roles: [['Sourcer', 'Find candidates who match the brief, not the keywords.'], ['Screener', 'Run the first conversation and score against the scorecard.'], ['Coordinator', 'Own the calendar and the candidate experience.']], apps: ['Greenhouse', 'Gmail', 'Calendar'] },
-  { keys: ['market', 'content', 'campaign', 'brand', 'seo'], cat: 'Marketing', roles: [['Strategist', 'Decide what is worth saying this month and to whom.'], ['Writer', 'Draft in the brand voice, concrete, no fillers.'], ['Analyst', 'Measure what landed and say what to stop doing.']], apps: ['Google Drive', 'Slack', 'Notion'] },
-  { keys: ['finance', 'invoice', 'budget', 'account'], cat: 'Finance', roles: [['Bookkeeper', 'Reconcile daily and flag any line you cannot explain in one sentence.'], ['Controller', 'Warn before an overrun, not after.'], ['Reporter', 'Numbers first, commentary second.']], apps: ['Stripe', 'Gmail', 'Google Drive'] },
-  { keys: ['research', 'study', 'learn', 'course'], cat: 'Research', roles: [['Researcher', 'Gather primary sources and cite them.'], ['Synthesist', 'Turn findings into a five-minute read.'], ['Tutor', 'Check understanding with short exercises.']], apps: ['Google Drive', 'Notion', 'Slack'] },
-]
-const kbProfileFor = (text) => {
-  const q = String(text || '').toLowerCase()
-  for (const p of KB_TEAM_PROFILES) for (const k of p.keys) if (q.indexOf(k) >= 0) return p
-  return KB_TEAM_PROFILES[0]
-}
 
 const joinPath = (a, b) => (String(a).replace(/\/+$/, '') + '/' + String(b).replace(/^\/+/, ''))
 const errText = (e) => {
@@ -8421,38 +8277,16 @@ body{--kb-u:var(--dsh-content-font-size,13px)}
 .kbg-collapse{border:1px solid var(--dsw-alias-border-l1);background:transparent;color:var(--dsw-alias-label-secondary);border-radius:8px;width:30px;height:30px;font:inherit;font-size:14px;cursor:pointer;flex:none}
 .kbg-collapse:hover{color:var(--dsw-alias-label-primary);background:var(--dsw-alias-bg-layer-1)}
 .kbg-drawer .kbg-root{padding:16px 18px 30px;max-width:none}
-.kbg-drawer .kbg-cols .kbg-list{width:300px}
-.kbg-drawer .kbg-cols .kbg-detail2{max-width:460px}
-.kbg-detailhead{display:flex;flex-direction:column;align-items:stretch;gap:2px;margin-bottom:6px;min-width:0}
-.kbg-avwrap{position:relative;flex:none}
-.kbg-avwrap .kbg-dot{position:absolute;right:-3px;bottom:-3px;width:11px;height:11px;border:2px solid var(--dsw-alias-border-l1)}.kbg-detailtitle{display:flex;flex-direction:column;gap:2px;min-width:0}.kbg-form{display:flex;flex-direction:column;gap:12px;max-width:780px}.kbg-field{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--dsw-alias-label-secondary);flex:1;min-width:0}.kbg-input{background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l1);border-radius:8px;padding:8px 10px;color:var(--dsw-alias-label-primary);font:inherit;font-size:13px;outline:none;min-width:0;width:100%}.kbg-input:focus{border-color:var(--dsw-alias-brand-primary)}.kbg-input:disabled{opacity:0.5;cursor:not-allowed}.kbg-fieldrow{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr));gap:10px;align-items:end}.kbg-idrow{grid-template-columns:minmax(90px,120px) 1fr minmax(60px,80px)}.kbg-rolesedit{display:flex;flex-direction:column;gap:8px}.kbg-roleedit{display:grid;grid-template-columns:130px 1fr 1fr;gap:8px;align-items:center}.kbg-roleedit .kbg-input{flex:1}.kbg-roleedit .kbg-roleid{flex:none;width:auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.kbg-color{padding:2px;height:36px;cursor:pointer}
-.kbg-cols{display:flex;gap:28px;align-items:flex-start}
-.kbg-cols .kbg-list{width:320px;flex:none;display:flex;flex-direction:column;gap:8px;min-width:0}
-.kbg-cols .kbg-detail2{flex:1;min-width:0;max-width:470px}
+.kbg-detailtitle{display:flex;flex-direction:column;gap:2px;min-width:0}.kbg-form{display:flex;flex-direction:column;gap:12px;max-width:780px}.kbg-field{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--dsw-alias-label-secondary);flex:1;min-width:0}.kbg-input{background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l1);border-radius:8px;padding:8px 10px;color:var(--dsw-alias-label-primary);font:inherit;font-size:13px;outline:none;min-width:0;width:100%}.kbg-input:focus{border-color:var(--dsw-alias-brand-primary)}.kbg-input:disabled{opacity:0.5;cursor:not-allowed}.kbg-fieldrow{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr));gap:10px;align-items:end}.kbg-idrow{grid-template-columns:minmax(90px,120px) 1fr minmax(60px,80px)}.kbg-rolesedit{display:flex;flex-direction:column;gap:8px}.kbg-roleedit{display:grid;grid-template-columns:130px 1fr 1fr;gap:8px;align-items:center}.kbg-roleedit .kbg-input{flex:1}.kbg-roleedit .kbg-roleid{flex:none;width:auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.kbg-color{padding:2px;height:36px;cursor:pointer}
 .kbg-grid{display:flex;flex-direction:column;gap:8px}
 .kbg-card{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:12px}
 .kbg-card .kbg-desc,.kbg-card .kbg-cta{display:none}
 .kbg-card .kbg-cardhead{flex:1;min-width:0}
 .kbg-card .kbg-stats{margin-left:auto;gap:8px;flex:none}
 .kbg-card .kbg-roles{flex-basis:100%}
-.kbg-avatar-sm{width:42px;height:42px;border-radius:12px;font-size:14px}
-.kbg-dot{width:8px;height:8px;border-radius:50%;background:var(--dsw-alias-state-success-primary, #3f9142);flex:none}
-.kbg-idline{display:flex;align-items:center;gap:10px;min-width:0}
-.kbg-idline .kbg-kname{font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .kbg-back{background:none;border:none;color:var(--dsw-alias-label-secondary);cursor:pointer;font:inherit;padding:2px 0;margin-bottom:8px;text-align:left}
 .kbg-back:hover{color:var(--dsw-alias-label-primary)}
-.kbg-talkbtn{display:flex;align-items:center;gap:12px;width:100%;padding:14px 16px;border-radius:12px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1);font:inherit;font-weight:600;cursor:pointer;margin:14px 0 8px;color:var(--dsw-alias-label-primary)}
-.kbg-talkbtn:disabled{opacity:0.45;cursor:not-allowed}
-.kbg-menu{background:transparent;border:none;display:flex;flex-direction:column;gap:2px}
-.kbg-menurow{display:flex;align-items:center;gap:14px;width:100%;padding:15px 10px;background:none;border:none;font:inherit;cursor:pointer;text-align:left;color:var(--dsw-alias-label-primary);border-radius:10px;font-size:16px}
-.kbg-menurow:hover{background:var(--dsw-alias-bg-layer-1)}
-.kbg-mico{width:24px;text-align:center;flex:none;font-size:17px}
-.kbg-mlab{font-weight:500}
-.kbg-mval{display:none}
-.kbg-msec{padding:2px 10px 16px 48px;display:flex;flex-direction:column;gap:10px}
-.kbg-msec .kbg-fieldrow{grid-template-columns:1fr 1fr}
-.kbg-msec .kbg-fieldrow.kbg-idrow{grid-template-columns:minmax(80px,110px) 1fr minmax(56px,76px)}
-.kbg-savebar{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.kbg-talk:disabled,.kbg-open:disabled{opacity:0.45;cursor:not-allowed}.kbg-yaml{background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l1);border-radius:10px;padding:12px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;color:var(--dsw-alias-label-secondary);overflow:auto;max-height:420px;white-space:pre;margin:0}
+.kbg-talk:disabled,.kbg-open:disabled{opacity:0.45;cursor:not-allowed}.kbg-yaml{background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l1);border-radius:10px;padding:12px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;color:var(--dsw-alias-label-secondary);overflow:auto;max-height:420px;white-space:pre;margin:0}
 /* (28/09, audit) Gabarit commun : mêmes padding et même centrage 1084px que
    .kb8-page — le titre de Livrables/Ressources s'aligne sur les autres pages. */
 .kbg-root{padding:30px 28px 36px;padding-left:max(28px,calc((100% - 1084px) / 2));padding-right:max(28px,calc((100% - 1084px) / 2));box-sizing:border-box;width:100%;max-width:none;font:inherit}
@@ -8479,9 +8313,6 @@ body{--kb-u:var(--dsh-content-font-size,13px)}
 .kbg-fav.on{color:var(--dsw-alias-state-warn-primary)}
 .kbg-pin{border:none;background:transparent;color:var(--dsw-alias-label-secondary);font-size:13px;cursor:pointer;padding:2px 5px;border-radius:6px;opacity:.5}
 .kbg-pin.on{opacity:1;color:var(--dsw-alias-brand-primary)}
-.kbg-tags{display:flex;flex-wrap:wrap;gap:6px;padding:2px 0}
-.kbg-tag{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--dsw-alias-border-l1);border-radius:8px;padding:4px 9px;font-size:11.5px;color:var(--dsw-alias-label-secondary);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.kbg-goalobj{font-size:12.5px;line-height:1.5;color:var(--dsw-alias-label-primary);margin:0}
 .kbg-docrow{display:grid;grid-template-columns:20px minmax(0,1fr) auto;gap:9px;align-items:center;padding:5px 0;border-top:1px solid var(--dsw-alias-border-l1)}
 .kbg-docrow:first-of-type{border-top:none}
 .kbg-docico{width:20px;text-align:center;flex:none;font-size:12px}
@@ -11425,262 +11256,6 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         (s.error !== null ? h('div', { className: 'kbg-err' }, kbt('kbui.error') + s.error) : null),
         (data !== null && data !== undefined && data.pricing !== null && data.pricing !== undefined && typeof data.pricing.fetchedAt === 'string' ? h('div', { className: 'kbg-note' }, kbt('ui.ratesrefreshed') + data.pricing.fetchedAt) : null));
     };
-    const KybersDetail = (props) => {
-      const s = useStore()
-      React.useEffect(() => { if (state.data === null && state.loading === false) load() }, [])
-      const data = s.data
-      let kyber = null
-      let rootId = null
-      if (data !== null && data !== undefined && typeof s.detailPath === 'string') {
-        for (const root of data.roots || []) {
-          for (const k of root.kybers || []) { if (k.file === s.detailPath) { kyber = k; rootId = root.id; break } }
-          if (kyber !== null) break
-        }
-      }
-      const b0 = (kyber !== null && kyber.budget !== null && kyber.budget !== undefined) ? kyber.budget : { total: null, currency: 'EUR', usdEur: 0.92, deadline: null }
-      const [mission, setMission] = React.useState(kyber !== null ? (kyber.mission || '') : '')
-      const [total, setTotal] = React.useState(typeof b0.total === 'number' ? String(b0.total) : '')
-      const [currency, setCurrency] = React.useState(typeof b0.currency === 'string' && b0.currency.length > 0 ? b0.currency : 'EUR')
-      const [usdEur, setUsdEur] = React.useState(typeof b0.usdEur === 'number' ? String(b0.usdEur) : '0.92')
-      const [deadline, setDeadline] = React.useState(typeof b0.deadline === 'string' ? b0.deadline : '')
-      const [formRoles, setFormRoles] = React.useState(() => (kyber !== null ? (kyber.roles || []).map((r) => ({ id: r.id, provider: r.provider || '', model: r.model || '' })) : []))
-      const [yamlText, setYamlText] = React.useState(null)
-      const [showYaml, setShowYaml] = React.useState(false)
-      const [saving, setSaving] = React.useState(false)
-      const [note, setNote] = React.useState(null)
-      const ui0 = (kyber !== null && kyber.ui !== null && kyber.ui !== undefined) ? kyber.ui : {}
-      const [uiName, setUiName] = React.useState(typeof ui0.name === 'string' ? ui0.name : '')
-      const [uiIcon, setUiIcon] = React.useState(typeof ui0.icon === 'string' ? ui0.icon : '')
-      const [uiColor, setUiColor] = React.useState(typeof ui0.color === 'string' ? ui0.color : '#6b7280')
-      React.useEffect(() => { setUiName(kyber !== null && kyber.ui !== null && kyber.ui !== undefined && typeof kyber.ui.name === 'string' ? kyber.ui.name : '') }, [s.detailPath])
-      React.useEffect(() => { setUiIcon(kyber !== null && kyber.ui !== null && kyber.ui !== undefined && typeof kyber.ui.icon === 'string' ? kyber.ui.icon : '') }, [s.detailPath])
-      React.useEffect(() => { setUiColor(kyber !== null && kyber.ui !== null && kyber.ui !== undefined && typeof kyber.ui.color === 'string' ? kyber.ui.color : '#6b7280') }, [s.detailPath])
-      React.useEffect(() => { setMission(kyber !== null ? (kyber.mission || '') : '') }, [s.detailPath])
-      React.useEffect(() => { setFormRoles(kyber !== null ? (kyber.roles || []).map((r) => ({ id: r.id, provider: r.provider || '', model: r.model || '' })) : []) }, [s.detailPath])
-      React.useEffect(() => {
-        if (typeof s.detailPath !== 'string') return undefined
-        let alive = true
-        host.call('kybers/yaml', { path: s.detailPath }).then((res) => {
-          if (alive === false) return undefined
-          if (res !== null && res !== undefined && res.ok === true) setYamlText(res.text)
-          else setYamlText(kbe('(cannot read)'))
-          return undefined
-        }).catch(() => { if (alive === true) setYamlText(kbe('(cannot read)')) })
-        return () => { alive = false }
-      }, [s.detailPath])
-      const save = async () => {
-        setSaving(true)
-        setNote(null)
-        try {
-          const roles = {}
-          for (const r of formRoles) roles[r.id] = { provider: r.provider, model: r.model }
-          const res = await host.call('kybers/save', { path: s.detailPath, mission: mission, budget: { total: Number(total), currency: currency, usdEur: Number(usdEur), deadline: deadline }, roles: roles })
-          if (res !== null && res !== undefined && res.ok === true) {
-            setNote(kbt('ui.saved') + String(res.backup === null || res.backup === undefined ? '' : res.backup))
-            load()
-          } else {
-            setNote(kbt('ui.failed') + ((res !== null && res !== undefined && typeof res.error === 'string') ? res.error : kbe('unknown error')))
-          }
-        } catch (e) {
-          setNote(kbt('ui.failed') + ((e !== null && e !== undefined && typeof e.message === 'string') ? e.message : String(e)))
-        }
-        setSaving(false)
-      }
-      const saveUi = async () => {
-        if (kyber === null || rootId === null) return
-        setNote(null)
-        try {
-          const res = await host.call('kybers/ui-save', { rootId: rootId, kyberId: kyber.id, name: uiName, icon: uiIcon, color: uiColor })
-          if (res !== null && res !== undefined && res.ok === true) { setNote(kbt('ui.identitysaved')); load() }
-          else setNote(kbt('ui.identityfailed') + ((res !== null && res !== undefined && typeof res.error === 'string') ? res.error : kbe('unknown error')))
-        } catch (e) {
-          setNote(kbt('ui.identityfailed') + ((e !== null && e !== undefined && typeof e.message === 'string') ? e.message : String(e)))
-        }
-      }
-      const ui2 = (kyber !== null && kyber.ui !== null && kyber.ui !== undefined) ? kyber.ui : {}
-      let hue2 = 0
-      for (const ch of String(kyber.id)) hue2 = (hue2 * 31 + ch.charCodeAt(0)) % 360
-      const avBg2 = (typeof ui2.color === 'string' && ui2.color.length > 0) ? ui2.color : 'hsl(' + hue2 + ',42%,40%)'
-      const avTxt2 = (typeof ui2.icon === 'string' && ui2.icon.length > 0) ? ui2.icon : String(kyber.id).slice(0, 2).toUpperCase()
-      const dname2 = (typeof ui2.name === 'string' && ui2.name.length > 0) ? ui2.name : kyber.id
-      const [sec, setSec] = React.useState({ goals: false, artifacts: false, skills: false, docs: false, connectors: false, budget: false, access: false, manage: false })
-      const secT = (k2) => { const n2 = Object.assign({}, sec); n2[k2] = n2[k2] !== true; setSec(n2) }
-      const pins2 = (s.ppins !== null && s.ppins !== undefined && typeof s.ppins === 'object') ? s.ppins : {}
-      const goal = (s.data !== null && s.data !== undefined && s.data.goal !== null && s.data.goal !== undefined) ? s.data.goal : null
-      const arts = (s.data !== null && s.data !== undefined && Array.isArray(s.data.artifacts) === true) ? s.data.artifacts : []
-      const skills = (kyber !== null && Array.isArray(kyber.skills) === true) ? kyber.skills : []
-      const docs = (kyber !== null && Array.isArray(kyber.docs) === true) ? kyber.docs : []
-      const conns = []
-      const connSeen = {}
-      for (const r of (kyber !== null ? (kyber.roles || []) : [])) {
-        const tl = Array.isArray(r.tools) === true ? r.tools : []
-        for (const t of tl) { if (connSeen[t] !== true) { connSeen[t] = true; conns.push(t) } }
-      }
-      conns.sort()
-      const favKey2 = (rootId !== null ? rootId : 'x') + '/' + (kyber !== null ? kyber.id : 'x')
-      const favs2 = (s.pfavs !== null && s.pfavs !== undefined && typeof s.pfavs === 'object') ? s.pfavs : {}
-      const sid2 = sessionForKyber(rootId, kyber)
-      if (kyber === null) {
-        return h('div', { className: 'kbg-root' },
-          h('button', { type: 'button', className: 'kbg-open', onClick: () => set({ view: 'gallery' }) }, '← ' + kbe('Gallery')),
-          h('div', { className: 'kbg-note' }, kbe('Agent Team not found.')))
-      }
-      const writable = true
-      const roles = kyber.roles || []
-      // Équipe live : roster Agent Teams de la session (si la couche expérimentale est active)
-      const [liveTeam, setLiveTeam] = React.useState(null)
-      const [liveOpen, setLiveOpen] = React.useState(false)
-      React.useEffect(() => {
-        if (liveOpen !== true || liveTeam !== null) return undefined
-        let dead = false
-        let cancelled = false
-        const run = async () => {
-          try {
-            const remote = (typeof ctx !== 'undefined' && ctx !== null && ctx.remote !== null && ctx.remote !== undefined) ? ctx.remote : null
-            if (remote === null || remote.agentTeams === null || remote.agentTeams === undefined) { if (dead === false) setLiveTeam({ state: 'absent' }); return }
-            const sessionsSvc2 = ctx.get('sessions')
-            let sid = null
-            if (sessionsSvc2 !== null && sessionsSvc2 !== undefined) {
-              try { sid = sessionsSvc2.list.getSnapshot().current } catch (e2) { sid = null }
-            }
-            if (sid === null || sid === undefined) { if (dead === false) setLiveTeam({ state: 'none' }); return }
-            const view = await remote.agentTeams.view(String(sid))
-            if (dead === false && cancelled === false) setLiveTeam({ state: 'ok', view: view })
-          } catch (e) {
-            if (dead === false) setLiveTeam({ state: 'error', message: String(e && e.message ? e.message : e) })
-          }
-        }
-        run()
-        return () => { dead = true }
-      }, [liveOpen])
-      const teamLiveSection = h('div', null,
-        h('button', { type: 'button', className: 'kbg-menurow', onClick: () => setLiveOpen(liveOpen !== true) },
-          h('span', { className: 'kbg-mico' }, Icon('users', 14)), h('span', { className: 'kbg-mlab' }, kbt('ui.liveteam')),
-          h('span', { className: 'kbg-mval' }, (liveTeam !== null && liveTeam.state === 'ok' && kbRosterOf(liveTeam.view).length > 0) ? kbPlural(kbRosterOf(liveTeam.view).length, kbt('crew.member'), kbt('crew.members')) : kbt('kbui.agentteams'))),
-        (liveOpen === true ? h('div', { className: 'kbg-msec' }, (() => {
-          if (liveTeam === null) return h('div', { className: 'kbg-empty' }, kbt('kbui.loading'))
-          if (liveTeam.state === 'ok') {
-            const members = kbRosterOf(liveTeam.view)
-            if (members.length === 0) return h('div', { className: 'kbg-empty' }, kbt('ui.noliveteam'))
-            return members.map((m, i) => h('div', { className: 'kbg-docrow', key: 'tm' + i },
-              h('span', { className: 'kbg-docico' }, m.role === 'lead' ? Icon('star', 13) : Icon('bot', 13)),
-              h('div', { style: { minWidth: 0 } },
-                h('div', { className: 'kbg-docname' }, m.name || '—'),
-                h('div', { className: 'kbg-dockey' }, (m.model || '') + (m.description ? ' · ' + m.description : ''))),
-              h('span', { className: 'kbg-pill' }, m.status || '?')))
-          }
-          return h('div', { className: 'kbg-empty' }, kbt('ui.rosterunavailable'))
-        })()) : null))
-      let okCount = 0
-      for (const r of roles) { if (r.probeOk === true) okCount += 1 }
-      return h('div', { className: 'kbg-root kbg-detail2' },
-        h('div', { className: 'kbg-detailhead' },
-          h('button', { type: 'button', className: 'kbg-back', onClick: () => { set({ view: 'gallery' }); try { if (layoutSvc !== undefined && layoutSvc !== null && typeof layoutSvc.selectPanel === 'function') layoutSvc.selectPanel(null) } catch (e) { } } }, '‹ ' + kbt('kbui.team.backall')),
-          h('div', { className: 'kbg-idline' },
-            h('div', { className: 'kbg-avwrap' },
-              h('div', { className: 'kbg-avatar kbg-avatar-sm', style: { background: avBg2 } }, avTxt2),
-              h('span', { className: 'kbg-dot', title: okCount + '/' + roles.length + kbt('ui.probedok') })),
-            h('div', { className: 'kbg-kname' }, dname2),
-            h('button', { type: 'button', className: 'kbg-fav' + (favs2[favKey2] === true ? ' on' : ''), title: kbt('kbui.favori'), onClick: () => { const n2 = Object.assign({}, favs2); if (n2[favKey2] === true) delete n2[favKey2]; else n2[favKey2] = true; set({ pfavs: n2 }) } }, favs2[favKey2] === true ? '★' : '☆'),
-            h('button', { type: 'button', className: 'kbg-pin' + (pins2[favKey2] === true ? ' on' : ''), title: pins2[favKey2] === true ? kbt('ui.unpin') : kbt('ui.pin'), onClick: () => { const n2 = Object.assign({}, pins2); if (n2[favKey2] === true) delete n2[favKey2]; else n2[favKey2] = true; set({ ppins: n2 }) } }, '📌')),
-          h('div', { className: 'kbg-kmeta' }, String(kyber.topology || kbe('team')).toUpperCase() + ' · ' + roles.length + kbt('kbui.frag.agents') + kyber.id)),
-        h('button', { type: 'button', className: 'kbg-talkbtn', disabled: sid2 === null, title: sid2 === null ? kbt('ui.nosession') : kbt('ui.opensession'), onClick: () => { try { if (sid2 !== null && sessionsSvc !== undefined && sessionsSvc !== null && typeof sessionsSvc.open === 'function') sessionsSvc.open(sid2) } catch (e) { /* session inconnue */ } } }, Icon('messageCircle', 13), ' ' + kbe('Chat')),
-        h('div', { className: 'kbg-menu' },
-          h('button', { type: 'button', className: 'kbg-menurow', onClick: () => secT('goals') },
-            h('span', { className: 'kbg-mico' }, Icon('target', 14)), h('span', { className: 'kbg-mlab' }, kbe('Goals')),
-            h('span', { className: 'kbg-mval' }, goal !== null ? kbe('goal') + ' ' + (goal.phase || kbe('active')) : kbe('none', 'aucun'))),
-          (sec.goals === true ? h('div', { className: 'kbg-msec' },
-            goal !== null
-              ? h('div', null,
-                  h('p', { className: 'kbg-goalobj' }, goal.objective || '—'),
-                  h('div', { className: 'kbg-note' }, 'phase' + kbfSep() + (goal.phase || '?') + (typeof goal.roundsStarted === 'number' ? ' · ' + kbPlural(goal.roundsStarted, 'round') + (typeof goal.maxGoalRounds === 'number' ? ' / ' + goal.maxGoalRounds : '') : '')))
-              : h('div', { className: 'kbg-empty' }, kbt('ui.nogoal'))) : null),
-          h('button', { type: 'button', className: 'kbg-menurow', onClick: () => secT('artifacts') },
-            h('span', { className: 'kbg-mico' }, Icon('package', 14)), h('span', { className: 'kbg-mlab' }, kbt('kbui.artefacts')),
-            h('span', { className: 'kbg-mval' }, arts.length > 0 ? kbPlural(arts.length, kbt('ui.recent')) : kbe('none', 'aucun'))),
-          (sec.artifacts === true ? h('div', { className: 'kbg-msec' },
-            arts.length > 0
-              ? arts.map((a) => h('div', { className: 'kb2-art', key: a.path, title: a.path },
-                  h('span', { className: 'kb2-ficon' }, h(FileIcon, null)),
-                  h('span', { className: 'kb2-fname' }, a.name),
-                  h('span', { className: 'kb2-fage' }, fmtAge(a.mtimeMs, Date.now()))))
-              : h('div', { className: 'kbg-empty' }, kbt('ui.noartifact'))) : null),
-          h('button', { type: 'button', className: 'kbg-menurow', onClick: () => secT('skills') },
-            h('span', { className: 'kbg-mico' }, Icon('zap', 14)), h('span', { className: 'kbg-mlab' }, kbt('kbui.skills')),
-            h('span', { className: 'kbg-mval' }, skills.length > 0 ? String(skills.length) : kbe('none', 'aucune'))),
-          (sec.skills === true ? h('div', { className: 'kbg-msec' },
-            skills.length > 0
-              ? h('div', { className: 'kbg-tags' }, skills.map((sk) => h('span', { className: 'kbg-tag', key: sk }, sk)))
-              : h('div', { className: 'kbg-empty' }, kbt('ui.noskills'))) : null),
-          (KB_SHOW_DOCS === true ? h('button', { type: 'button', className: 'kbg-menurow', onClick: () => secT('docs') },
-            h('span', { className: 'kbg-mico' }, Icon('fileText', 14)), h('span', { className: 'kbg-mlab' }, kbt('kbui.documents')),
-            h('span', { className: 'kbg-mval' }, docs.length > 0 ? kbPlural(docs.length, kbt('ui.input')) : kbe('empty'))) : null),
-          (KB_SHOW_DOCS === true && sec.docs === true ? h('div', { className: 'kbg-msec' },
-            docs.length > 0
-              ? docs.map((d) => h('div', { className: 'kbg-docrow', key: d.name },
-                  h('span', { className: 'kbg-docico' }, d.type === 'dir' ? Icon('folder', 13) : Icon('file', 13)),
-                  h('span', { className: 'kbg-docname', title: d.name }, d.name),
-                  h('span', { className: 'kbg-dockey' }, d.type === 'dir' ? kbe('folder') : kbe('file'))))
-              : h('div', { className: 'kbg-empty' }, kbt('kbui.team.folderonly'))) : null),
-          teamLiveSection,
-          h('button', { type: 'button', className: 'kbg-menurow', onClick: () => secT('connectors') },
-            h('span', { className: 'kbg-mico' }, Icon('plug', 14)), h('span', { className: 'kbg-mlab' }, kbe('Connectors')),
-            h('span', { className: 'kbg-mval' }, conns.length > 0 ? kbPlural(conns.length, kbe('tool')) : kbe('none', 'aucun'))),
-          (sec.connectors === true ? h('div', { className: 'kbg-msec' },
-            conns.length > 0
-              ? h('div', { className: 'kbg-tags' }, conns.map((c) => h('span', { className: 'kbg-tag', key: c }, c)))
-              : h('div', { className: 'kbg-empty' }, kbt('ui.notools'))) : null),
-          h('button', { type: 'button', className: 'kbg-menurow', onClick: () => secT('budget') },
-            h('span', { className: 'kbg-mico' }, Icon('chart', 14)), h('span', { className: 'kbg-mlab' }, kbt('kbui.budget')),
-            h('span', { className: 'kbg-mval' }, (kyber.budget !== null && kyber.budget !== undefined && typeof kyber.budget.total === 'number') ? fmtEur(kyber.budget.total, kyber.budget.currency) : kbt('ui.unset'))),
-          (sec.budget === true ? h('div', { className: 'kbg-msec' },
-            h('div', { className: 'kbg-fieldrow' },
-              h('label', { className: 'kbg-field' }, kbt('ui.budgettotal'),
-                h('input', { className: 'kbg-input', type: 'number', step: '0.01', value: total, onChange: (e) => setTotal(e.target.value), disabled: !writable, placeholder: kbt('ui.emptyunchanged') })),
-              h('label', { className: 'kbg-field' }, kbt('kbui.devise'),
-                h('input', { className: 'kbg-input', type: 'text', value: currency, onChange: (e) => setCurrency(e.target.value), disabled: !writable })),
-              h('label', { className: 'kbg-field' }, kbt('kbui.rate.usdeur'),
-                h('input', { className: 'kbg-input', type: 'number', step: '0.01', value: usdEur, onChange: (e) => setUsdEur(e.target.value), disabled: !writable })),
-              h('label', { className: 'kbg-field' }, kbt('ui.due'),
-                h('input', { className: 'kbg-input', type: 'date', value: deadline, onChange: (e) => setDeadline(e.target.value), disabled: !writable })))) : null),
-          h('button', { type: 'button', className: 'kbg-menurow', onClick: () => secT('access') },
-            h('span', { className: 'kbg-mico' }, Icon('key', 14)), h('span', { className: 'kbg-mlab' }, kbt('ui.access')),
-            h('span', { className: 'kbg-mval' }, roles.length + kbt('ui.models.mid') + okCount + ' OK')),
-          (sec.access === true ? h('div', { className: 'kbg-msec' },
-            roles.map((r) => h('div', { className: 'kbg-docrow', key: 'acc' + r.id },
-              h('span', { className: 'kbg-docico' }, h('span', { className: 'kb2-dot kb2-' + r.status, title: kbStatusLabel(r.status) || r.status, style: { display: 'inline-block', verticalAlign: 'middle' } })),
-              h('div', { style: { minWidth: 0 } },
-                h('div', { className: 'kbg-docname' }, r.id),
-                h('div', { className: 'kbg-dockey' }, (r.provider || '?') + ' / ' + (r.model || '?') + (r.image === true ? ' · image' : ''))),
-              h('span', { className: 'kbg-pill' }, kbStatusLabel(r.status) || r.status)))) : null),
-          h('button', { type: 'button', className: 'kbg-menurow', onClick: () => secT('manage') },
-            h('span', { className: 'kbg-mico' }, Icon('settings', 14)), h('span', { className: 'kbg-mlab' }, kbt('ui.manage')),
-            h('span', { className: 'kbg-mval' }, kbt('ui.manage.meta'))),
-          (sec.manage === true ? h('div', { className: 'kbg-msec' },
-            h('div', { className: 'kbg-note' }, kbt('kbui.mission')),
-            h('textarea', { className: 'kbg-input', rows: 4, value: mission, onChange: (e) => setMission(e.target.value), disabled: !writable }),
-            h('div', { className: 'kbg-note' }, kbt('ui.identity')),
-            h('div', { className: 'kbg-fieldrow kbg-idrow' },
-              h('label', { className: 'kbg-field' }, kbt('ui.icon'),
-                h('input', { className: 'kbg-input', type: 'text', value: uiIcon, onChange: (e) => setUiIcon(e.target.value), placeholder: '🔎' })),
-              h('label', { className: 'kbg-field' }, kbt('ui.displayname'),
-                h('input', { className: 'kbg-input', type: 'text', value: uiName, onChange: (e) => setUiName(e.target.value), placeholder: kyber.id })),
-              h('label', { className: 'kbg-field' }, kbt('kbui.couleur'),
-                h('input', { className: 'kbg-input kbg-color', type: 'color', value: uiColor, onChange: (e) => setUiColor(e.target.value) }))),
-            h('button', { type: 'button', className: 'kbg-open', onClick: () => { saveUi() } }, kbt('ui.saveidentity')),
-            h('div', { className: 'kbg-note' }, kbt('ui.teamproviders')),
-            h('div', { className: 'kbg-rolesedit' },
-              formRoles.map((r, i) => h('div', { className: 'kbg-roleedit', key: 'rf' + r.id },
-                h('span', { className: 'kbg-roleid' }, r.id),
-                h('input', { className: 'kbg-input', type: 'text', value: r.provider, placeholder: 'provider', onChange: (e) => { const next = formRoles.slice(); next[i] = Object.assign({}, r, { provider: e.target.value }); setFormRoles(next) }, disabled: !writable }),
-                h('input', { className: 'kbg-input', type: 'text', value: r.model, placeholder: kbe('model'), onChange: (e) => { const next = formRoles.slice(); next[i] = Object.assign({}, r, { model: e.target.value }); setFormRoles(next) }, disabled: !writable })))),
-            h('div', { className: 'kbg-note' }, kbt('kbui.yaml.raw')),
-            h('pre', { className: 'kbg-yaml' }, yamlText === null ? kbt('kbui.team.reading') : yamlText)) : null),
-          h('div', { className: 'kbg-savebar' },
-            h('button', { type: 'button', className: 'kbg-talk', onClick: () => { save() }, disabled: saving === true || writable === false }, saving === true ? kbe('Saving…') : kbe('Save')),
-            (note !== null ? h('span', { className: 'kbg-note' }, note) : null))),
-        ((kyber.stages || []).length > 0 ? h('div', { className: 'kbg-note' }, kbt('ui.steps.colon') + (kyber.stages || []).map((st) => st.id).join(', ')) : null))
-    }
     const KybersTeamInfo = (props) => {
       const s = useStore()
       React.useEffect(() => { if (state.data === null && state.loading === false) load() }, [])
@@ -12879,62 +12454,6 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
             h('div', { style: { display: 'flex', justifyContent: 'flex-end' } },
               h('button', { type: 'button', className: 'kb8-primary', disabled: marketBusy === preview.id, onClick: () => installTemplate(preview) }, marketBusy === preview.id ? kbt('kbui.installing') : kbt('kbui.install.kyber'))))) : null),
         (shareItem !== null ? h(KbShareDialog, { item: shareItem, onClose: () => setShareItem(null) }) : null))
-    }
-    const TeamsWizard = () => {
-      const s = useStore()
-      const stepPair = React.useState(0)
-      const step = stepPair[0]
-      const setStep = stepPair[1]
-      const objPair = React.useState('')
-      const obj = objPair[0]
-      const setObj = objPair[1]
-      const draftPair = React.useState(null)
-      const draft = draftPair[0]
-      const setDraft = draftPair[1]
-      const EX = ['Answer every inbound lead within the hour.', 'Clear the support inbox daily.', 'Plan and measure our monthly content.']
-      const build = () => {
-        const prof = kbProfileFor(obj)
-        const word = obj.trim().split(/\s+/).filter((w) => w.length > 4)[0] || prof.cat
-        setDraft({ name: prof.cat + ' Agent Team', cat: prof.cat, mission: obj.trim(), members: prof.roles.map((r) => ({ role: r[0], prompt: r[1] })), apps: prof.apps.map((a) => ({ name: a, on: true })) })
-        setStep(1)
-      }
-      const savingPair = React.useState(null)
-      const saving = savingPair[0]
-      const setSaving = savingPair[1]
-      const create = async () => {
-        if (draft === null) return
-        setSaving('saving')
-        const res = await host.call('kybers/create', {
-          name: draft.name,
-          mission: draft.mission,
-          roles: draft.members.map((m) => ({ id: m.role, role: m.role, prompt: m.prompt })),
-        })
-        const ok = res !== null && res !== undefined && res.ok === true
-        setSaving(ok ? 'ok' : 'err')
-        if (ok === true) {
-          try { load() } catch (e) { /* rechargement */ }
-          set({ view: 'gallery' })
-          try { kbShellStartSession() } catch (e) { /* session indisponible */ }
-        }
-      }
-      const field = { height: '44px', border: '1px solid var(--dsw-alias-border-l1)', borderRadius: '12px', background: 'var(--dsw-alias-bg-layer-1)', padding: '0 14px', fontSize: '14px', color: 'var(--dsw-alias-label-primary)', outline: 'none', width: '100%', boxSizing: 'border-box' }
-      return h('div', { className: 'kb8-page' },
-        h('button', { type: 'button', className: 'kb8-primary', style: { alignSelf: 'flex-start', background: 'transparent', border: '1px solid var(--dsw-alias-border-l1)', color: 'var(--dsw-alias-label-primary)' }, onClick: () => set({ view: 'gallery' }) }, '‹ Back to Agent Teams'),
-        h('h1', { className: 'kb8-h1' }, step === 0 ? kbt('kbui.new.kyber') : kbt('kbui.kyber.wouldbuild')),
-        (step === 0 ? h('div', { style: { display: 'flex', flexDirection: 'column', gap: '13px' } },
-          h('span', { className: 'kb8-sub' }, kbt('kbui.start.objective')),
-          h('textarea', { value: obj, onChange: (e) => setObj(e.target.value), placeholder: kbt('kbui.mission.example'), style: Object.assign({}, field, { height: '104px', padding: '14px', lineHeight: '1.55', resize: 'vertical' }) }),
-          h('div', { className: 'kb8-chips' }, EX.map((x) => h('button', { type: 'button', key: x, className: 'kb8-chip', onClick: () => setObj(x) }, x))),
-          h('button', { type: 'button', className: 'kb8-primary', style: { alignSelf: 'flex-start' }, onClick: build }, kbt('kbui.buildteam'))) : null),
-        (step === 1 && draft !== null ? h('div', { style: { display: 'flex', flexDirection: 'column', gap: '16px' } },
-          h('label', { style: { display: 'flex', flexDirection: 'column', gap: '7px' } }, h('span', { className: 'kb8-parent' }, kbt('kbui.col.name')), h('input', { value: draft.name, onChange: (e) => setDraft(Object.assign({}, draft, { name: e.target.value })), style: field })),
-          h('div', { style: { display: 'flex', flexDirection: 'column', gap: '9px' } }, h('span', { className: 'kb8-parent' }, kbt('kbui.members.prompts')), draft.members.map((m, i) => h('div', { key: m.role, style: { display: 'flex', flexDirection: 'column', gap: '6px', border: '1px solid var(--dsw-alias-border-l1)', borderRadius: '14px', padding: '13px 14px' } },
-            h('span', { style: { fontSize: '14px', fontWeight: 600, color: 'var(--dsw-alias-label-primary)' } }, m.role),
-            h('textarea', { value: m.prompt, onChange: (e) => setDraft(Object.assign({}, draft, { members: draft.members.map((x, j) => j === i ? Object.assign({}, x, { prompt: e.target.value }) : x) })), style: Object.assign({}, field, { height: '66px', padding: '10px 11px', fontSize: '12.5px', resize: 'vertical' }) })))),
-          h('div', { style: { display: 'flex', flexDirection: 'column', gap: '9px' } }, h('span', { className: 'kb8-parent' }, kbt('kbui.apps.askfor')), h('div', { className: 'kb8-chips' }, draft.apps.map((a, i) => h('button', { type: 'button', key: a.name, className: 'kb8-chip' + (a.on ? ' on' : ''), onClick: () => setDraft(Object.assign({}, draft, { apps: draft.apps.map((x, j) => j === i ? Object.assign({}, x, { on: !x.on }) : x) })) }, a.name)))),
-          h('div', { style: { display: 'flex', gap: '10px' } },
-            h('button', { type: 'button', className: 'kb8-primary', style: { background: 'transparent', border: '1px solid var(--dsw-alias-border-l1)', color: 'var(--dsw-alias-label-primary)' }, onClick: () => setStep(0) }, kbt('kbui.back')),
-            h('button', { type: 'button', className: 'kb8-primary', onClick: create, disabled: saving === 'saving' }, saving === 'saving' ? kbt('kbui.creating') : (saving === 'err' ? kbt('kbui.retry.create') : kbt('kbui.createteam.chat'))))) : null))
     }
     // ── Suggestions de conversation (fiche AI Team ▸ onglet Settings) ────────
     // Repris de Platon : chaque suggestion est une CARTE — icône, titre,
@@ -15477,722 +14996,6 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
             h('span', { className: 'kb8-parent' }, k.ghost === true ? kbt('kbui.skills.ghostteam') : (k.kyber + ' · ' + k.where))),
           (k.attached === true ? h('span', { style: pillTOn, 'data-kb': 'team-skill-pill' }, 'Attached') : null)))))
     }
-    // ── vue Runs : lanes SVG (déclaré / observé / réel) ───────────────────
-    const KB_RUN_COLORS = { completed: '#22c55e', failed: '#ef4444', cancelled: '#f59e0b' }
-    const kbRunColor = (o) => (o === 'completed' || o === 'failed' || o === 'cancelled') ? KB_RUN_COLORS[o] : '#8b8f98'
-    const kbNum = (v) => (typeof v === 'number' && isFinite(v) === true) ? v : null
-    const kbFmtMs = (ms) => {
-      const n = kbNum(ms)
-      if (n === null || n < 0) return '—'
-      if (n < 1000) return Math.round(n) + ' ms'
-      if (n < 60000) return (n / 1000).toFixed(n < 10000 ? 2 : 1) + ' s'
-      return (n / 60000).toFixed(1) + ' min'
-    }
-    const kbFmtTok = (n) => {
-      const v = kbNum(n)
-      if (v === null) return '—'
-      return kbFmtNum(Math.round(v))
-    }
-    const kbPhaseKey = (t) => String(t === null || t === undefined ? '' : t).trim().toLowerCase()
-    const KbRuns = (props) => {
-      const us = (props !== null && props !== undefined) ? props.useSessions : null
-      // Le sélecteur du store doit rendre une valeur STABLE (chaîne) : un tableau neuf
-      // à chaque appel ferait boucler useSyncExternalStore.
-      const sidList = (typeof us === 'function') ? us((st) => Array.isArray(st.ids) ? st.ids.join(',') : '') : ''
-      const sessionIds = (typeof sidList === 'string' && sidList.length > 0) ? sidList.split(',') : []
-      const currentSid = sessionIds.length > 0 ? sessionIds[0] : null
-      const [pickedSid, setPickedSid] = React.useState(null)
-      const [sessionQuery, setSessionQuery] = React.useState('')
-      const [sessionOpen, setSessionOpen] = React.useState(false)
-      const [indexEntries, setIndexEntries] = React.useState(null)
-      const sid = (typeof pickedSid === 'string' && pickedSid.length > 0) ? pickedSid : (currentSid !== null ? currentSid : kbSid)
-      const [phase, setPhase] = React.useState('loading')
-      const [body, setBody] = React.useState(null)
-      const [error, setError] = React.useState(null)
-      const [rev, setRev] = React.useState(0)
-      const [runIdx, setRunIdx] = React.useState(0)
-      React.useEffect(() => {
-        let dead = false
-        setPhase('loading'); setError(null); setRunIdx(0)
-        const go = async () => {
-          if (typeof sid !== 'string' || sid.length === 0) {
-            if (dead === false) { setPhase('error'); setError(kbe('No current session — open a conversation and come back here.')) }
-            return
-          }
-          const route = kbApiBase() + '/runs?sessionId=' + encodeURIComponent(sid) + '&limit=20'
-          try {
-            const res = await fetch(route, { method: 'GET' })
-            let parsed = null
-            if (res.ok === true && String(res.headers.get('content-type') || '').indexOf('application/json') >= 0) parsed = await res.json()
-            if (parsed !== null && parsed !== undefined && Array.isArray(parsed.runs) === true) {
-              if (dead === false) { setBody(parsed); setPhase('ok') }
-              return
-            }
-            if (dead === false) { setPhase('error'); setError(kbt('runs.noroute')) }
-          } catch (e) {
-            if (dead === false) { setPhase('error'); setError(kbt('runs.noroute')) }
-          }
-        }
-        go()
-        return () => { dead = true }
-      }, [sid, rev])
-      // Index des sessions à runs : route host d'abord, repli sur le store client sinon.
-      React.useEffect(() => {
-        let dead = false
-        const go = async () => {
-          let entries = null
-          try {
-            const res = await fetch(kbApiBase() + '/runs-index?limit=200', { method: 'GET' })
-            let parsed = null
-            if (res.ok === true && String(res.headers.get('content-type') || '').indexOf('application/json') >= 0) parsed = await res.json()
-            if (parsed !== null && parsed !== undefined && Array.isArray(parsed.entries) === true) entries = parsed.entries
-          } catch (e) { entries = null }
-          if (dead === false) setIndexEntries(entries)
-        }
-        go()
-        return () => { dead = true }
-      }, [rev])
-      const runs = (body !== null && body !== undefined && Array.isArray(body.runs) === true) ? body.runs : []
-      const run = runs.length > 0 ? runs[Math.min(runIdx, runs.length - 1)] : null
-      const sessionsSvc = ctx.get('sessions')
-      const openChild = (childId) => {
-        try {
-          if (typeof childId !== 'string' || childId.length === 0) return
-          if (sessionsSvc !== null && sessionsSvc !== undefined && typeof sessionsSvc.open === 'function') sessionsSvc.open(childId)
-        } catch (e) { /* session enfant inconnue */ }
-      }
-      const cardBox = { background: 'var(--dsw-alias-bg-layer-1)', border: '1px solid var(--dsw-alias-border-l1)', borderRadius: '16px', padding: '14px 14px' }
-      const sidShort = (v) => { const t = String(v); return t.length > 22 ? (t.slice(0, 12) + '…' + t.slice(-6)) : t }
-      // Source : index host (tous workspaces) sinon repli sur les ids du store courant.
-      const fallbackEntries = sessionIds.map((id) => ({ sessionId: String(id), title: null, workspace: null, runCount: null }))
-      const allEntries = (indexEntries !== null && Array.isArray(indexEntries) === true) ? indexEntries : fallbackEntries
-      const entryLabel = (e) => (e !== null && e !== undefined && typeof e.title === 'string' && e.title.length > 0) ? e.title : sidShort(e === null || e === undefined ? '' : e.sessionId)
-      const currentEntry = allEntries.filter((e) => e !== null && e !== undefined && String(e.sessionId) === String(sid))[0]
-      const currentLabel = (currentEntry !== undefined) ? entryLabel(currentEntry) : (sid === null || sid === undefined ? kbe('No session') : sidShort(sid))
-      const qNorm = sessionQuery.trim().toLowerCase()
-      const filteredEntries = (qNorm === '' ? allEntries : allEntries.filter((e) => {
-        if (e === null || e === undefined) return false
-        const id = String(e.sessionId === null || e.sessionId === undefined ? '' : e.sessionId).toLowerCase()
-        const ti = (typeof e.title === 'string') ? e.title.toLowerCase() : ''
-        return id.indexOf(qNorm) >= 0 || ti.indexOf(qNorm) >= 0
-      })).slice(0, 8)
-      const pickSession = (id) => {
-        setPickedSid(String(id))
-        setSessionOpen(false)
-        setSessionQuery('')
-        setRunIdx(0)
-      }
-      const sessionSearch = h('div', { style: { position: 'relative', display: 'inline-flex', flexDirection: 'column', gap: '4px', minWidth: '280px' } },
-        h('span', { style: { fontSize: '11px', color: 'var(--dsw-alias-label-secondary)' } }, kbt('kbui.session.dot') + String(allEntries.length) + kbt('runs.withruns') + (indexEntries === null ? kbt('runs.localstore') : '')),
-        h('input', {
-          type: 'text',
-          value: sessionOpen === true ? sessionQuery : currentLabel,
-          placeholder: kbe('Search a session…'),
-          title: sid === null ? kbe('No session') : String(sid),
-          onFocus: () => { setSessionOpen(true); setSessionQuery('') },
-          onChange: (e) => { setSessionQuery(e.target.value); setSessionOpen(true) },
-          onBlur: () => { setTimeout(() => { setSessionOpen(false) }, 150) },
-          onKeyDown: (e) => {
-            if (e.key === 'Enter') { if (filteredEntries.length > 0) pickSession(filteredEntries[0].sessionId); else setSessionOpen(false) }
-            else if (e.key === 'Escape') { setSessionOpen(false); setSessionQuery('') }
-          },
-          style: { width: '100%', height: '34px', borderRadius: '10px', border: '1px solid var(--dsw-alias-border-l1)', background: 'var(--dsw-alias-bg-layer-1)', color: 'var(--dsw-alias-label-primary)', fontSize: '12px', padding: '0 10px', boxSizing: 'border-box' },
-        }),
-        (sessionOpen === true ? h('div', { className: 'kb8-sessmenu kb-scroll', style: Object.assign({}, cardBox, { position: 'absolute', top: '54px', left: 0, right: 0, zIndex: 30, padding: '6px', maxHeight: '280px', overflowY: 'auto', gap: '2px' }) },
-          (filteredEntries.length === 0
-            ? h('div', { style: { padding: '8px 10px', fontSize: '12px', color: 'var(--dsw-alias-label-secondary)' } }, kbe('No session matches.'))
-            : filteredEntries.map((e) => h('button', {
-              type: 'button', key: String(e.sessionId),
-              onMouseDown: (ev) => { try { ev.preventDefault() } catch (e2) { /* garder le focus */ } },
-              onClick: () => pickSession(e.sessionId),
-              style: { display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '2px', width: '100%', textAlign: 'left', padding: '7px 9px', borderRadius: '10px', border: 'none', background: String(e.sessionId) === String(sid) ? 'var(--dsw-alias-bg-layer-2)' : 'transparent', color: 'var(--dsw-alias-label-primary)', cursor: 'pointer' },
-            },
-              h('span', { style: { fontSize: '12.5px', fontWeight: 600 } }, entryLabel(e)),
-              h('span', { style: { fontSize: '10.5px', color: 'var(--dsw-alias-label-secondary)' } }, sidShort(e.sessionId) + (typeof e.workspace === 'string' && e.workspace.length > 0 ? ' · ' + e.workspace : '') + (typeof e.runCount === 'number' ? ' · ' + kbPlural(e.runCount, 'run') : '')))))) : null))
-      const head = h('div', { style: { display: 'flex', alignItems: 'flex-end', gap: '16px', flexWrap: 'wrap' } },
-        h('div', { style: { display: 'flex', flexDirection: 'column', gap: '8px', flex: 1, minWidth: 0 } },
-          h('h1', { className: 'kb8-h1' }, kbt('menu.runs')),
-          h('p', { className: 'kb8-sub' }, kbt('runs.sub'))),
-        sessionSearch,
-        h('button', { type: 'button', className: 'kb8-chip', title: kbe('Reload the runs'), onClick: () => setRev((n) => n + 1) }, Icon('refresh', 14), ' ⟳'))
-      const legend = h('div', { style: { display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' } },
-        h('span', { className: 'kb8-pill' }, kbt('runs.legend.declared')),
-        h('span', { className: 'kb8-pill' }, kbt('runs.legend.observed')),
-        h('span', { className: 'kb8-pill' }, kbt('runs.legend.actual')),
-        h('span', { style: { fontSize: '12px', color: 'var(--dsw-alias-label-secondary)' } }, kbt('runs.note')))
-      const picker = (runs.length > 1 ? h('div', { style: { display: 'flex', gap: '8px', flexWrap: 'wrap' } }, runs.map((r, i) => h('button', { key: String(r.runId || i), type: 'button', className: 'kb8-chip' + (i === runIdx ? ' on' : ''), onClick: () => setRunIdx(i) }, String(r.name || r.runId || ('run ' + String(i + 1)))))) : null)
-      const W = 1000
-      const GUT = 186
-      const TOP = 30
-      const renderRun = (r) => {
-        const members = Array.isArray(r.members) ? r.members : []
-        const declared = Array.isArray(r.declaredPhases) ? r.declaredPhases : []
-        const observed = Array.isArray(r.observedPhases) ? r.observedPhases : []
-        const lanes = []
-        const seen = {}
-        const addLane = (title, kind) => {
-          const k = kbPhaseKey(title)
-          if (k === '' || seen[k] === true) return
-          seen[k] = true
-          lanes.push({ key: k, title: String(title), kind: kind })
-        }
-        declared.slice().sort((a, b) => (kbNum(a.order) === null ? 0 : a.order) - (kbNum(b.order) === null ? 0 : b.order)).forEach((p) => addLane(p.title, 'declared'))
-        observed.slice().sort((a, b) => (kbNum(a.order) === null ? 0 : a.order) - (kbNum(b.order) === null ? 0 : b.order)).forEach((p) => addLane(p.title, 'observed'))
-        const hasOrphan = members.some((m) => kbPhaseKey(m.phase) !== '' && seen[kbPhaseKey(m.phase)] !== true)
-        if (hasOrphan === true) lanes.push({ key: '__orphan', title: kbt('runs.orphan'), kind: 'orphan' })
-        const laneOf = (ph) => {
-          const k = kbPhaseKey(ph)
-          if (k !== '' && seen[k] === true) { for (let i = 0; i < lanes.length; i++) { if (lanes[i].key === k) return i } }
-          for (let i = 0; i < lanes.length; i++) { if (lanes[i].key === '__orphan') return i }
-          return 0
-        }
-        const observedSet = {}
-        observed.forEach((p) => { observedSet[kbPhaseKey(p.title)] = true })
-        let t0 = null
-        let t1 = null
-        const pushT = (v) => {
-          const n = kbNum(v)
-          if (n === null) return
-          if (t0 === null || n < t0) t0 = n
-          if (t1 === null || n > t1) t1 = n
-        }
-        pushT(r.startedAt); pushT(r.endedAt)
-        members.forEach((m) => { pushT(m.startedAt); pushT(m.endedAt); const st = kbNum(m.startedAt); const du = kbNum(m.durationMs); if (st !== null && du !== null) pushT(st + du) })
-        if (t0 === null) t0 = 0
-        if (t1 === null || t1 <= t0) t1 = t0 + 1
-        const span = t1 - t0
-        const xOf = (t) => GUT + ((t - t0) / span) * (W - GUT - 18)
-        const boundsOf = (m) => {
-          const st = kbNum(m.startedAt)
-          const du = kbNum(m.durationMs)
-          const en = kbNum(m.endedAt)
-          const start = st === null ? t0 : st
-          let end = en === null ? ((st !== null && du !== null) ? st + du : start + span * 0.02) : en
-          if (end <= start) end = start + Math.max(span * 0.01, 1)
-          return { start: start, end: end }
-        }
-        // empilement glouton : 1re sous-ligne dont la dernière fin <= start, sinon nouvelle
-        const order = members.map((m, i) => i).sort((a, b) => {
-          const ba = boundsOf(members[a])
-          const bb = boundsOf(members[b])
-          if (ba.start !== bb.start) return ba.start - bb.start
-          if (ba.end !== bb.end) return ba.end - bb.end
-          return a - b
-        })
-        const subLast = []
-        const placed = {}
-        order.forEach((mi) => {
-          const m = members[mi]
-          const li = laneOf(m.phase)
-          const b = boundsOf(m)
-          if (subLast[li] === undefined) subLast[li] = []
-          let sub = -1
-          for (let s = 0; s < subLast[li].length; s++) { if (subLast[li][s] <= b.start) { sub = s; break } }
-          if (sub < 0) { sub = subLast[li].length; subLast[li].push(b.end) } else { subLast[li][sub] = b.end }
-          placed[mi] = { li: li, sub: sub, start: b.start, end: b.end }
-        })
-        const SUBH = 20
-        const laneSubs = lanes.map((ln, li) => (subLast[li] === undefined || subLast[li].length === 0) ? 1 : subLast[li].length)
-        const laneTop = []
-        let cursorY = TOP
-        lanes.forEach((ln, li) => { laneTop[li] = cursorY; cursorY = cursorY + laneSubs[li] * SUBH + 6 })
-        const H = lanes.length === 0 ? TOP + 24 : cursorY + 4
-        const bySub = {}
-        Object.keys(placed).forEach((k) => {
-          const p = placed[k]
-          const key = String(p.li) + ':' + String(p.sub)
-          if (bySub[key] === undefined) bySub[key] = []
-          bySub[key].push(p)
-        })
-        Object.keys(bySub).forEach((k) => { bySub[k].sort((a, b) => (a.start - b.start) || (a.end - b.end)) })
-        const nextStartOf = (p) => {
-          const arr = bySub[String(p.li) + ':' + String(p.sub)] || []
-          for (let i = 0; i < arr.length; i++) { if ((arr[i].start > p.start) || (arr[i].start === p.start && arr[i].end > p.end)) return arr[i].start }
-          return null
-        }
-        const estW = (s, cw) => String(s).length * cw
-        const kids = []
-        for (let g = 0; g <= 4; g++) {
-          const gx = GUT + (g / 4) * (W - GUT - 18)
-          kids.push(h('line', { key: 'g' + String(g), x1: gx, y1: TOP - 12, x2: gx, y2: H - 10, stroke: 'var(--dsw-alias-border-l1)', strokeWidth: 1 }))
-        }
-        kids.push(h('text', { key: 'tb0', x: GUT, y: TOP - 16, fill: 'var(--dsw-alias-label-secondary)', fontSize: 10 }, kbt('runs.start')))
-        kids.push(h('text', { key: 'tb1', x: W - 18, y: TOP - 16, textAnchor: 'end', fill: 'var(--dsw-alias-label-secondary)', fontSize: 10 }, kbt('runs.duration.mid') + kbFmtMs(span)))
-        lanes.forEach((ln, li) => {
-          const y = laneTop[li]
-          const neverObserved = (ln.kind === 'declared' && observedSet[ln.key] !== true)
-          kids.push(h('text', { key: 'ln' + String(li), x: 8, y: y + 14, fill: 'var(--dsw-alias-label-secondary)', fontSize: 11, fontWeight: 600 },
-            (ln.kind === 'declared' ? '◆ ' : '◇ ') + ln.title + (neverObserved === true ? kbt('runs.neverobserved') : '')))
-          kids.push(h('line', { key: 'll' + String(li), x1: GUT - 6, y1: y + laneSubs[li] * SUBH - 2, x2: W - 18, y2: y + laneSubs[li] * SUBH - 2, stroke: 'var(--dsw-alias-border-l1)', strokeWidth: 1, strokeDasharray: neverObserved === true ? '4 4' : undefined }))
-        })
-        Object.keys(placed).forEach((k) => {
-          const mi = Number(k)
-          const p = placed[mi]
-          const m = members[mi]
-          const yb = laneTop[p.li] + p.sub * SUBH + 2
-          const bx = xOf(p.start)
-          const bw = Math.max(4, xOf(p.end) - bx)
-          const labelText = String(m.label || ('agent #' + String(m.seq === undefined ? mi + 1 : m.seq)))
-          const actual = (m.actual !== null && m.actual !== undefined && typeof m.actual.model === 'string' && m.actual.model.length > 0) ? m.actual : null
-          const decl = (m.declared !== null && m.declared !== undefined && typeof m.declared.model === 'string' && m.declared.model.length > 0) ? m.declared : null
-          const modelText = actual !== null ? (String(actual.model) + (typeof actual.provider === 'string' && actual.provider.length > 0 ? ' · ' + actual.provider : '')) : (decl !== null ? kbt('runs.declared.prefix') + String(decl.model) : kbt('crew.unknownmodel'))
-          const wLabel = estW(labelText, 6.1)
-          const wModel = estW(modelText, 5.6)
-          const need = wLabel + wModel + 22
-          const childId = (typeof m.childId === 'string' && m.childId.length > 0) ? m.childId : null
-          const tip = labelText + ' · ' + String(m.phase === null || m.phase === undefined ? kbe('(no phase)') : m.phase) + ' · ' + String(m.outcome) + ' · ' + modelText + ' · ' + kbFmtMs(kbNum(m.durationMs))
-          const inner = [h('title', { key: 't' }, tip), h('rect', { key: 'r', x: bx, y: yb, width: bw, height: 16, rx: 4, fill: kbRunColor(m.outcome), fillOpacity: 0.92 })]
-          if (bw >= need) {
-            inner.push(h('text', { key: 'l', x: bx + 7, y: yb + 11.5, fill: '#ffffff', fontSize: 10.5, pointerEvents: 'none' }, labelText))
-            inner.push(h('text', { key: 'mo', x: bx + 7 + wLabel + 6, y: yb + 11.5, fill: '#ffffff', fontSize: 9.5, opacity: 0.85, pointerEvents: 'none' }, modelText))
-          } else {
-            const nxt = nextStartOf(p)
-            const rightRoom = (nxt === null ? W - 12 : xOf(nxt) - 6) - (bx + bw)
-            if (rightRoom >= need) {
-              inner.push(h('text', { key: 'l', x: bx + bw + 7, y: yb + 11.5, fill: 'var(--dsw-alias-label-secondary)', fontSize: 10.5, pointerEvents: 'none' }, labelText))
-              inner.push(h('text', { key: 'mo', x: bx + bw + 7 + wLabel + 6, y: yb + 11.5, fill: 'var(--dsw-alias-label-secondary)', fontSize: 9.5, opacity: 0.85, pointerEvents: 'none' }, modelText))
-            } else {
-              const full = labelText + ' · ' + modelText
-              const maxChars = Math.floor((bw - 14) / 5.6)
-              if (maxChars >= 4) {
-                const shortText = full.length <= maxChars ? full : (full.slice(0, Math.max(1, maxChars - 1)) + '…')
-                inner.push(h('text', { key: 'l', x: bx + 6, y: yb + 11.5, fill: '#ffffff', fontSize: 9.5, pointerEvents: 'none' }, shortText))
-              }
-            }
-          }
-          kids.push(h('g', { key: 'm' + String(mi), style: { cursor: childId !== null ? 'pointer' : 'default' }, onClick: childId !== null ? () => openChild(childId) : undefined }, inner))
-        })
-        return h('svg', { viewBox: '0 0 ' + String(W) + ' ' + String(H), width: '100%', height: H, preserveAspectRatio: 'xMidYMid meet', style: { display: 'block', maxWidth: '100%' } }, kids)
-      }
-      const totalsOf = (r) => {
-        const t = (r.totals !== null && r.totals !== undefined && typeof r.totals === 'object') ? r.totals : {}
-        const members = Array.isArray(r.members) ? r.members : []
-        const count = (o) => members.filter((m) => m.outcome === o).length
-        const sumTok = () => members.reduce((a, m) => a + ((m.actual !== null && m.actual !== undefined && kbNum(m.actual.tokens) !== null) ? m.actual.tokens : 0), 0)
-        const startN = kbNum(r.startedAt)
-        const endN = kbNum(r.endedAt)
-        return {
-          members: kbNum(t.members) === null ? members.length : t.members,
-          completed: kbNum(t.completed) === null ? count('completed') : t.completed,
-          failed: kbNum(t.failed) === null ? count('failed') : t.failed,
-          cancelled: kbNum(t.cancelled) === null ? count('cancelled') : t.cancelled,
-          durationMs: kbNum(t.durationMs) === null ? ((startN !== null && endN !== null && endN >= startN) ? endN - startN : null) : t.durationMs,
-          tokens: kbNum(t.tokens) === null ? sumTok() : t.tokens,
-        }
-      }
-      const totalsView = (r) => {
-        const t = totalsOf(r)
-        return h('div', { className: 'kb8-pills' },
-          h('span', { className: 'kb8-pill' }, kbe('members') + ' ' + String(t.members)),
-          h('span', { className: 'kb8-pill' }, 'completed ' + String(t.completed)),
-          h('span', { className: 'kb8-pill' }, 'failed ' + String(t.failed)),
-          h('span', { className: 'kb8-pill' }, 'cancelled ' + String(t.cancelled)),
-          h('span', { className: 'kb8-pill' }, kbt('runs.duration.mid') + kbFmtMs(t.durationMs)),
-          h('span', { className: 'kb8-pill' }, 'tokens ' + kbFmtTok(t.tokens)),
-          (r.stopReason !== null && r.stopReason !== undefined && String(r.stopReason).length > 0 ? h('span', { className: 'kb8-pill' }, 'stop: ' + String(r.stopReason)) : null))
-      }
-      const deviationsView = (r) => {
-        const devs = Array.isArray(r.deviations) ? r.deviations : []
-        if (devs.length === 0) return h('div', { style: Object.assign({}, cardBox, { padding: '12px 14px' }) }, h('span', { className: 'kb8-parent' }, kbt('runs.nodeviation')))
-        const sevColor = (s) => s === 'high' ? '#ef4444' : (s === 'low' ? '#8b8f98' : '#f59e0b')
-        return h('div', { style: Object.assign({}, cardBox, { display: 'flex', flexDirection: 'column', gap: '9px' }) },
-          h('span', { className: 'kb8-parent' }, kbt('runs.deviations') + String(devs.length) + ')'),
-          h('div', { style: { display: 'flex', flexDirection: 'column', gap: '7px' } }, devs.map((d, i) => h('div', { key: 'd' + String(i), style: { display: 'flex', gap: '9px', alignItems: 'baseline', flexWrap: 'wrap' } },
-            h('span', { className: 'kb8-pill', style: { color: sevColor(d.severity), border: '1px solid ' + sevColor(d.severity) } }, String(d.kind)),
-            h('span', { style: { fontSize: '12.5px', color: 'var(--dsw-alias-label-primary)', maxWidth: '100%' } }, String(d.detail === undefined || d.detail === null ? '' : d.detail)),
-            h('span', { className: 'kb8-pill' }, 'source: ' + String(d.source === undefined || d.source === null ? 'derived' : d.source))))))
-      }
-      let content = null
-      if (phase === 'loading') content = h('div', { style: cardBox }, kbt('runs.loading'))
-      else if (phase === 'error') content = h('div', { style: Object.assign({}, cardBox, { borderColor: 'var(--dsw-alias-state-error-primary)' }) },
-        h('span', { className: 'kb8-name' }, kbt('kbui.runs.unavailable')),
-        h('span', { style: { fontSize: '13px', color: 'var(--dsw-alias-label-secondary)' } }, String(error || kbe('unavailable: restart DSH once'))))
-      else if (runs.length === 0) content = h('div', { className: 'kb9-empty' },
-        Icon('gitBranch', 22),
-        h('span', { className: 'kb8-name' }, kbt('runs.norun')),
-        h('span', { style: { fontSize: '13px', color: 'var(--dsw-alias-label-secondary)', textAlign: 'center' } }, kbt('runs.empty')))
-      else content = h('div', { style: { display: 'flex', flexDirection: 'column', gap: '14px' } },
-        picker,
-        h('div', { style: { display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' } },
-          h('span', { className: 'kb8-name' }, String(run.name || run.runId)),
-          totalsView(run)),
-        h('div', { style: { fontSize: '11px', fontWeight: 600, color: 'var(--dsw-alias-label-secondary)' } }, kbt('runs.parallelism')),
-        h('div', { style: Object.assign({}, cardBox, { padding: '14px 10px 8px', overflowX: 'auto' }) }, renderRun(run)),
-        legend,
-        deviationsView(run))
-      return h('div', { className: 'kb8-page' }, head, content)
-    }
-    // ── vue Crew : déclaré (kyber) vs exécuté (Agent Teams) ───────────────
-    const kbCrewNorm = (v) => String(v === null || v === undefined ? '' : v)
-      .normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
-    const kbCrewKind = (k) => kbt('crew.kind.' + String(k))
-    // Rapprochement rôle déclaré <-> membre Agent Teams : ordre STRICT, jamais silencieux,
-    // le motif retenu est toujours affiché à côté du rôle.
-    //   0 exact     « auditeur » == « auditeur »
-    //   1 suffixe   « audit-cartographe » finit par « -cartographe »
-    //   2 inclusion le membre contient le rôle (ou l'inverse si le membre fait >= 3 car.)
-    //   3 préfixe   un segment du membre est un préfixe du rôle (>= 3 car.) :
-    //               « audit-aud-rename-bascule » -> segment « aud » -> rôle « auditeur »
-    const kbCrewMatch = (roleId, memberName) => {
-      const r = kbCrewNorm(roleId)
-      const m = kbCrewNorm(memberName)
-      if (r === '' || m === '') return null
-      if (r === m) return { kind: 'exact', rank: 0 }
-      if (m.length > r.length && m.slice(-(r.length + 1)) === '-' + r) return { kind: 'suffix', rank: 1 }
-      if (m.indexOf(r) >= 0) return { kind: 'include', rank: 2 }
-      if (m.length >= 3 && r.indexOf(m) >= 0) return { kind: 'include', rank: 2 }
-      for (const tok of m.split('-')) {
-        if (tok.length >= 3 && (r.indexOf(tok) === 0 || tok.indexOf(r) === 0)) return { kind: 'prefix', rank: 3 }
-      }
-      return null
-    }
-    // Appariement glouton : meilleur rang d'abord, puis ordre déclaré des rôles, puis ordre du roster.
-    // Un membre ne peut remplir qu'un seul rôle ; un rôle ne reçoit qu'un seul membre.
-    const kbCrewJoin = (roles, members) => {
-      const cand = []
-      for (let ri = 0; ri < roles.length; ri++) {
-        for (let mi = 0; mi < members.length; mi++) {
-          const hit = kbCrewMatch(roles[ri].id, members[mi].name)
-          if (hit !== null) cand.push({ ri: ri, mi: mi, kind: hit.kind, rank: hit.rank })
-        }
-      }
-      // Tri total et INDÉPENDANT de l'ordre d'arrivée du roster : rang, puis rang du rôle, puis
-      // NOM du membre (unique dans une équipe). Sans le nom, « cartographe » s'apparierait avec
-      // audit-cartographe ou dev-team-cartographe selon l'ordre du roster (appariement ambigu
-      // relevé par la vérification). Le préfixe de crew, lui, est appliqué en amont par kbBuildCrews.
-      const nameOf = (i) => kbCrewNorm((members[i] !== null && members[i] !== undefined) ? members[i].name : '')
-      cand.sort((a, b) => (a.rank - b.rank) || (a.ri - b.ri) || nameOf(a.mi).localeCompare(nameOf(b.mi)) || (a.mi - b.mi))
-      const byRole = {}
-      const taken = {}
-      for (const c of cand) {
-        if (byRole[c.ri] !== undefined || taken[c.mi] === true) continue
-        byRole[c.ri] = { mi: c.mi, kind: c.kind }
-        taken[c.mi] = true
-      }
-      return { byRole: byRole, taken: taken }
-    }
-    const kbCrewModelTxt = (r) => {
-      const p = (typeof r.provider === 'string' && r.provider.length > 0) ? r.provider : null
-      const m = (typeof r.model === 'string' && r.model.length > 0) ? r.model : null
-      if (p === null && m === null) return kbt('crew.model.notdeclared')
-      return (p === null ? '?' : p) + ' / ' + (m === null ? '?' : m)
-    }
-    const kbCrewSameModel = (declared, actual) => {
-      if (typeof declared !== 'string' || declared.length === 0) return true
-      if (typeof actual !== 'string' || actual.length === 0) return false
-      const a = declared.toLowerCase()
-      const b = actual.toLowerCase()
-      const tail = a.split('/').pop()
-      return b === a || b.indexOf(a) >= 0 || (tail.length > 0 && b.indexOf(tail) >= 0)
-    }
-    // ── segmentation multi-crew : un crew par kyber actif de la session ───
-    // Un coéquipier appartient au crew K si son nom commence par "<id de K>-"
-    // (le runtime impose le kebab strict : /^[a-z0-9]+(?:-[a-z0-9]+)*$/).
-    // 2e run du MÊME kyber dans la session : "<kyber>-<role>-2" -> run 2 (contrat figé).
-    // Limite connue : un rôle dont l'id finirait lui-même par "-<n>" serait lu comme un run.
-    const kbCrewSplitName = (id, name) => {
-      if (typeof id !== 'string' || id.length === 0) return null
-      const p = kbCrewNorm(id) + '-'
-      const m = kbCrewNorm(name)
-      if (p.length < 2 || m.length <= p.length || m.slice(0, p.length) !== p) return null
-      let rest = m.slice(p.length)
-      let run = 1
-      const hit = /-([0-9]+)$/.exec(rest)
-      if (hit !== null) {
-        const n = parseInt(hit[1], 10)
-        if (isFinite(n) === true && n >= 2) { run = n; rest = rest.slice(0, rest.length - hit[1].length - 1) }
-      }
-      return { role: rest, run: run }
-    }
-    // Crews actifs : `active` (v2) du collect, sinon team.active, sinon déduction par
-    // préfixe des noms de coéquipiers (marquée « déduit des noms »). Liste vide assumée :
-    // active=[] veut dire « aucun crew » et NON « champ absent » (pas de repli alors).
-    const kbCrewActives = (data, teams, members) => {
-      let src = null
-      if (data !== null && data !== undefined) {
-        if (Array.isArray(data.active) === true) src = data.active
-        else if (data.team !== null && data.team !== undefined && Array.isArray(data.team.active) === true) src = data.team.active
-      }
-      const out = []
-      if (src !== null) {
-        for (const a of src) {
-          const id = (typeof a === 'string') ? a : ((a !== null && a !== undefined) ? a.id : null)
-          if (typeof id !== 'string' || id.trim() === '') continue
-          out.push({
-            id: id.trim().toLowerCase(),
-            scope: (a !== null && a !== undefined && typeof a.scope === 'string' && a.scope.trim() !== '') ? a.scope.trim() : null,
-            since: (a !== null && a !== undefined && typeof a.since === 'string' && a.since.trim() !== '') ? a.since.trim() : null,
-            origin: kbt('crew.origin.declared'),
-          })
-        }
-        return out
-      }
-      for (const k of teams) {
-        const id = String(k.id)
-        if (members.some((m) => kbCrewSplitName(id, m.name) !== null) === true) out.push({ id: id, scope: null, since: null, origin: kbt('crew.origin.inferred') })
-      }
-      return out
-    }
-    // Une entrée `active` = un crew (2 entrées du même id = 2 runs). Les membres du crew
-    // sont les seuls candidats du rapprochement rôle<->membre : on ne mélange jamais deux crews.
-    const kbBuildCrews = (actives, teams, members) => {
-      const byId = {}
-      for (const k of teams) byId[String(k.id).toLowerCase()] = k
-      const seen = {}
-      const used = {}
-      const crews = []
-      for (const a of actives) {
-        const n = (seen[a.id] === undefined) ? 0 : seen[a.id]
-        seen[a.id] = n + 1
-        const run = n + 1
-        const mine = []
-        members.forEach((m, i) => {
-          const sp = kbCrewSplitName(a.id, m.name)
-          if (sp !== null && sp.run === run) { mine.push({ m: m, i: i, role: sp.role }); used[i] = true }
-        })
-        const k = (byId[a.id] !== undefined) ? byId[a.id] : null
-        const roles = (k !== null && Array.isArray(k.roles) === true) ? k.roles : []
-        const j = kbCrewJoin(roles, mine.map((x) => x.m))
-        const gaps = []
-        const unmatched = []
-        roles.forEach((r, ri) => {
-          const hit = j.byRole[ri]
-          if (hit === undefined) { unmatched.push(r); return }
-          const actual = mine[hit.mi].m.model
-          if (kbCrewSameModel(typeof r.model === 'string' ? r.model : '', actual) === false) gaps.push({ role: r, member: mine[hit.mi].m })
-        })
-        const free = mine.filter((x, mi) => j.taken[mi] !== true)
-        crews.push({
-          key: a.id + '#' + String(run), id: a.id, run: run, scope: a.scope, since: a.since, origin: a.origin,
-          k: k, roles: roles, stages: (k !== null && Array.isArray(k.stages) === true) ? k.stages : [],
-          mine: mine, join: j, gaps: gaps, unmatched: unmatched, free: free,
-        })
-      }
-      const offCrew = []
-      members.forEach((m, i) => { if (used[i] !== true) offCrew.push({ m: m, i: i }) })
-      return { crews: crews, offCrew: offCrew }
-    }
-    const kbCrewRoleRow = (key, r, hit, member, dev) => {
-      const kids = []
-      kids.push(h('span', { className: 'kb8-name', style: { fontSize: '13.5px', minWidth: '104px' } }, String(r.id)))
-      kids.push(h('span', { className: 'kb8-crew-badge' }, kbCrewModelTxt(r)))
-      if (hit === undefined || hit === null) kids.push(h('span', { className: 'kb8-crew-badge warn' }, kbt('crew.notexecuted')))
-      else {
-        kids.push(h('span', { className: 'kb8-crew-badge ok' }, '← ' + String((member && (member.name || member.id)) || '—')))
-        kids.push(h('span', { className: 'kb8-crew-badge' }, 'match ' + kbCrewKind(hit.kind)))
-        kids.push(h('span', { className: 'kb8-crew-badge' + (dev === true ? ' ko' : '') }, kbt('crew.executed.mid') + ((member !== null && member !== undefined && typeof member.model === 'string' && member.model.length > 0) ? member.model : kbt('crew.unknownmodel'))))
-        if (dev === true) kids.push(h('span', { className: 'kb8-crew-badge ko' }, kbe('model mismatch')))
-      }
-      return h('div', { key: key, className: 'kb8-crew-role' + (dev === true ? ' gap' : '') }, ...kids)
-    }
-    const kbCrewMemberRow = (key, x, hit) => {
-      const m = x.m
-      const kids = []
-      kids.push(h('span', { className: 'kb8-crew-badge' + (m.status === 'running' ? ' ok' : '') }, String(m.status || '?')))
-      kids.push(h('span', { className: 'kb8-name', style: { fontSize: '13.5px' } }, String(m.name || m.id || '—')))
-      if (hit === undefined || hit === null) kids.push(h('span', { className: 'kb8-crew-badge warn' }, kbt('crew.noroledeclared')))
-      else kids.push(h('span', { className: 'kb8-crew-badge' }, 'match ' + kbCrewKind(hit.kind)))
-      kids.push(h('span', { className: 'kb8-crew-badge' }, (typeof m.model === 'string' && m.model.length > 0) ? m.model : kbt('crew.unknownmodel')))
-      return h('div', { key: key, className: 'kb8-crew-role' }, ...kids)
-    }
-    const kbCrewCard = (x, n) => {
-      const kids = []
-      const head = []
-      head.push(h('span', { className: 'kb8-pill' }, kbt('kbui.crew.tag') + String(n)))
-      head.push(h('span', { className: 'kb8-name' }, String(x.id) + (x.run > 1 ? ' #' + String(x.run) : '')))
-      if (x.run > 1) head.push(h('span', { className: 'kb8-crew-badge warn' }, 'run ' + String(x.run)))
-      if (x.k === null) head.push(h('span', { className: 'kb8-crew-badge ko' }, kbt('crew.nodefinition')))
-      if (x.scope !== null) head.push(h('span', { className: 'kb8-parent' }, 'scope : ' + x.scope))
-      if (x.since !== null) head.push(h('span', { className: 'kb8-crew-badge' }, kbe('since ') + x.since.slice(0, 16).replace('T', ' ')))
-      head.push(h('span', { className: 'kb8-crew-badge' }, x.origin))
-      kids.push(h('div', { className: 'kb8-crew-h' }, ...head))
-      const mission = (x.k !== null && typeof x.k.mission === 'string') ? x.k.mission : ''
-      if (mission !== '') kids.push(h('span', { className: 'kb8-sub' }, mission.slice(0, 180)))
-      kids.push(h('div', { className: 'kb8-pills' },
-        h('span', { className: 'kb8-pill' }, 'topology ' + String((x.k !== null && x.k.topology !== null && x.k.topology !== undefined) ? x.k.topology : '—')),
-        h('span', { className: 'kb8-pill' }, kbt('crew.stages.pill') + String(x.stages.length)),
-        h('span', { className: 'kb8-pill' }, kbt('crew.roles.pill') + String(x.roles.length)),
-        h('span', { className: 'kb8-pill' }, kbt('crew.teammates') + String(x.mine.length)),
-        h('span', { className: 'kb8-pill' }, kbt('crew.norole.pill') + String(x.free.length)),
-        h('span', { className: 'kb8-pill' }, kbt('crew.gaps.pill') + String(x.gaps.length + x.unmatched.length))))
-      // DÉCLARÉ
-      kids.push(h('span', { className: 'kb8-crew-sect' }, kbt('crew.declared.head') + String(x.id)))
-      if (x.roles.length === 0) kids.push(h('span', { className: 'kb8-sub' }, x.k === null ? kbt('crew.nodef') : kbt('crew.noroles')))
-      for (let ri = 0; ri < x.roles.length; ri++) {
-        const hit = x.join.byRole[ri]
-        const member = (hit !== undefined) ? x.mine[hit.mi].m : null
-        const declared = (typeof x.roles[ri].model === 'string' && x.roles[ri].model.length > 0) ? x.roles[ri].model : null
-        const dev = (hit !== undefined && declared !== null && kbCrewSameModel(declared, (member !== null) ? member.model : null) === false)
-        kids.push(kbCrewRoleRow('r' + String(ri), x.roles[ri], hit, member, dev))
-      }
-      if (x.stages.length > 0) {
-        const st = x.stages.map((s2, i) => h('span', { key: 'st' + String(i), className: 'kb8-crew-badge' + (s2.adversarial === true ? ' warn' : '') }, String(s2.id) + ' (' + String(s2.mode || 'once') + ')'))
-        kids.push(h('div', { className: 'kb8-crew-h' }, h('span', { className: 'kb8-parent' }, kbt('crew.stages.colon')), ...st))
-      }
-      // EXÉCUTÉ (coéquipiers du crew)
-      kids.push(h('span', { className: 'kb8-crew-sect' }, kbt('crew.executed.head')))
-      if (x.mine.length === 0) kids.push(h('span', { className: 'kb8-sub' }, kbt('crew.noprefixed') + String(x.id) + kbt('crew.noprefixed2')))
-      for (let mi = 0; mi < x.mine.length; mi++) {
-        let hit = null
-        for (const ri of Object.keys(x.join.byRole)) { if (x.join.byRole[ri].mi === mi) hit = x.join.byRole[ri] }
-        kids.push(kbCrewMemberRow('m' + String(mi), x.mine[mi], hit))
-      }
-      // ÉCART
-      const total = x.gaps.length + x.unmatched.length + x.free.length
-      kids.push(h('div', { className: 'kb8-crew-h' },
-        h('span', { className: 'kb8-crew-sect' }, kbt('crew.gap.head')),
-        h('span', { className: 'kb8-crew-badge' + (x.unmatched.length > 0 ? ' warn' : '') }, kbPlural(x.unmatched.length, kbt('crew.notexecuted'))),
-        h('span', { className: 'kb8-crew-badge' + (x.gaps.length > 0 ? ' ko' : '') }, kbPlural(x.gaps.length, kbt('crew.gap.one'), kbt('crew.gap.many'))),
-        h('span', { className: 'kb8-crew-badge' + (x.free.length > 0 ? ' warn' : '') }, String(x.free.length) + kbt('crew.norole.pill.bare'))))
-      for (const g of x.gaps) kids.push(h('div', { className: 'kb8-crew-role gap' },
-        h('span', { className: 'kb8-name', style: { fontSize: '13.5px', minWidth: '104px' } }, String(g.role.id)),
-        h('span', { className: 'kb8-parent' }, kbt('crew.declared.mid') + kbCrewModelTxt(g.role)),
-        h('span', { className: 'kb8-crew-badge ko' }, kbt('crew.executed.mid') + ((typeof g.member.model === 'string' && g.member.model.length > 0) ? g.member.model : kbt('crew.unknownmodel'))),
-        h('span', { className: 'kb8-crew-badge ko' }, kbe('model mismatch'))))
-      for (const r of x.unmatched) kids.push(h('div', { className: 'kb8-crew-role' },
-        h('span', { className: 'kb8-name', style: { fontSize: '13.5px', minWidth: '104px' } }, String(r.id)),
-        h('span', { className: 'kb8-crew-badge warn' }, kbt('crew.notexecuted'))))
-      for (const f of x.free) kids.push(h('div', { className: 'kb8-crew-role' },
-        h('span', { className: 'kb8-crew-badge warn' }, kbt('crew.noroledeclared')),
-        h('span', { className: 'kb8-name', style: { fontSize: '13.5px' } }, String(f.m.name || f.m.id || '—')),
-        h('span', { className: 'kb8-crew-badge' }, (typeof f.m.model === 'string' && f.m.model.length > 0) ? f.m.model : kbt('crew.unknownmodel'))))
-      if (total === 0) kids.push(h('span', { className: 'kb8-crew-note' }, kbt('crew.nogapnote')))
-      return h('div', { key: x.key, className: 'kb8-card kb8-crew-card', 'data-kb': 'crew-card', 'data-crew': x.key, style: { cursor: 'default', borderColor: total > 0 ? 'var(--dsw-alias-brand-primary)' : 'var(--dsw-alias-border-l1)' } }, ...kids)
-    }
-    // Section repliable reutilisable par les deux vues Crew. L'etat est local au
-    // composant : replier n'affecte pas la vue hote, et le corps masque n'est pas
-    // demonte — les canvas gardent donc la disposition relue des noeuds.
-    const KbSec = (props) => {
-      const [open, setOpen] = React.useState(props.open !== false)
-      const raw = props.children
-      const kids = Array.isArray(raw) === true ? raw : ((raw === undefined || raw === null) ? [] : [raw])
-      return h('div', { className: 'kb8-card kb8-sec', 'data-kb': 'sec-' + String(props.id) },
-        h('button', {
-          type: 'button', className: 'kb8-sec-h', 'data-kb': 'sec-toggle-' + String(props.id),
-          'aria-expanded': open === true ? 'true' : 'false',
-          onClick: () => setOpen(open !== true),
-        },
-          h('span', { className: 'kb8-sec-chev' }, open === true ? '\u25be' : '\u25b8'),
-          h('span', { className: 'kb8-pill' }, String(props.title)),
-          (props.count !== undefined && props.count !== null) ? h('span', { className: 'kb8-sec-n' }, String(props.count)) : null,
-          (props.meta !== undefined && props.meta !== null) ? h('span', { className: 'kb8-sub' }, String(props.meta)) : null),
-        open === true ? h('div', { className: 'kb8-sec-b' }, ...kids) : null)
-    }
-    const KbCrew = (props) => {
-      const s = useStore()
-      const us = (props !== null && props !== undefined) ? props.useSessions : null
-      // Sélecteur STABLE (chaîne) : un tableau neuf ferait boucler useSyncExternalStore.
-      const sidList = (typeof us === 'function') ? us((st) => Array.isArray(st.ids) ? st.ids.join(',') : '') : ''
-      const sessionIds = (typeof sidList === 'string' && sidList.length > 0) ? sidList.split(',') : []
-      // Vue d'onglet (`conversation.view`) : le slot fournit `sessionId`, prioritaire.
-      const hostSid = (props !== null && props !== undefined && typeof props.sessionId === 'string' && props.sessionId.length > 0) ? props.sessionId : null
-      const pickedSid = (typeof s.crewSid === 'string' && s.crewSid.length > 0) ? s.crewSid : null
-      const sid = hostSid !== null ? hostSid : (pickedSid !== null ? pickedSid : (sessionIds.length > 0 ? sessionIds[0] : ((typeof kbSid === 'string' && kbSid.length > 0) ? kbSid : null)))
-      const [live, setLive] = React.useState({ state: 'init', members: null })
-      const [cap, setCap] = React.useState({ known: false, cap: null })
-      const [rev, setRev] = React.useState(0)
-      // Même règle que l'onglet Crew : le compositeur de chat est masqué sur les
-      // vues Crew, il reste visible partout ailleurs (y compris Trajectory).
-      React.useEffect(() => {
-        kbComposerHidden(true)
-        return () => { kbComposerHidden(false) }
-      }, [])
-      React.useEffect(() => { if (s.data === null && s.loading === false) load(sid) }, [])
-      React.useEffect(() => {
-        let dead = false
-        const go = async () => {
-          setLive({ state: 'loading', members: null })
-          const remote = (ctx !== null && ctx !== undefined && ctx.remote !== null && ctx.remote !== undefined && ctx.remote.agentTeams !== null && ctx.remote.agentTeams !== undefined) ? ctx.remote : null
-          if (remote === null) { if (dead === false) setLive({ state: 'absent', members: null }); return }
-          if (typeof sid !== 'string' || sid.length === 0) { if (dead === false) setLive({ state: 'none', members: null }); return }
-          try {
-            const view = await remote.agentTeams.view(kbLeadSessionId(sid))
-            if (dead === false) setLive({ state: 'ok', members: kbRosterOf(view) })
-          } catch (e) { if (dead === false) setLive({ state: 'error', members: null }) }
-        }
-        go()
-        return () => { dead = true }
-      }, [sid, rev])
-      // Plafond : GET /kybernos/team-cap -> {ok, cap}. cap null (route absente, 404, valeur
-      // illisible) : l'UI affiche le nombre de coéquipiers SANS dénominateur.
-      React.useEffect(() => {
-        let dead = false
-        const go = async () => {
-          if (typeof fetch !== 'function') { if (dead === false) setCap({ known: true, cap: null }); return }
-          try {
-            const res = await fetch(kbApiBase() + '/team-cap', { method: 'GET' })
-            let v = null
-            if (res !== null && res !== undefined && res.ok === true) {
-              const body = await res.json()
-              if (body !== null && body !== undefined && typeof body.cap === 'number' && isFinite(body.cap) === true && body.cap > 0) v = Math.floor(body.cap)
-            }
-            if (dead === false) setCap({ known: true, cap: v })
-          } catch (e) { if (dead === false) setCap({ known: true, cap: null }) }
-        }
-        go()
-        return () => { dead = true }
-      }, [rev])
-      const members = (live.state === 'ok' && Array.isArray(live.members) === true) ? live.members : []
-      // Le plafond porte sur les COEQUIPIERS : le roster renvoyé inclut le lead, hors siège.
-      const seats = members.filter((m) => m.role !== 'lead').length
-      const teams = []
-      if (s.data !== null && s.data !== undefined) {
-        for (const root of s.data.roots || []) { for (const k of root.kybers || []) teams.push(k) }
-      }
-      const actives = kbCrewActives(s.data, teams, members)
-      const built = kbBuildCrews(actives, teams, members)
-      const crews = built.crews
-      const offCrew = built.offCrew
-      const capN = (cap.cap !== null && typeof cap.cap === 'number' && cap.cap > 0) ? Math.floor(cap.cap) : null
-      // cap null (route absente, 404, valeur illisible) : AUCUN dénominateur, on ne montre que le nombre.
-      const seatsTxt = String(seats) + (capN !== null ? ' / ' + String(capN) : '')
-      const statusMsg = live.state === 'loading' ? kbt('crew.reading')
-        : live.state === 'absent' ? kbt('crew.noagentteams')
-          : live.state === 'none' ? kbt('crew.nosession')
-            : live.state === 'error' ? kbt('crew.noroster')
-              : (members.length === 0 ? kbt('crew.nomember') : null)
-      const headKids = []
-      headKids.push(h('div', { style: { display: 'flex', alignItems: 'flex-end', gap: '14px', flexWrap: 'wrap' } },
-        h('div', { style: { display: 'flex', flexDirection: 'column', gap: '6px', flex: 1, minWidth: 0 } },
-          h('h1', { className: 'kb8-h1' }, kbt('crew.title.model')),
-          h('p', { className: 'kb8-sub' }, kbt('crew.model.sub'))),
-        h('button', { type: 'button', className: 'kb8-chip', 'data-kb': 'crew-refresh', onClick: () => { setRev(rev + 1); load(sid) } }, kbt('crew.refresh'))))
-      headKids.push(h('div', { className: 'kb8-pills' },
-        h('span', { className: 'kb8-pill' }, kbt('crew.session') + (sid === null ? '—' : String(sid).slice(0, 18))),
-        h('span', { className: 'kb8-pill' }, kbt('crew.activecrews') + String(crews.length)),
-        h('span', { className: 'kb8-pill' }, kbt('crew.roster') + kbPlural(members.length, kbt('crew.member'), kbt('crew.members'))),
-        h('span', { className: 'kb8-pill' }, kbt('crew.teammates') + seatsTxt),
-        h('span', { className: 'kb8-pill' }, kbt('crew.offcrew') + String(offCrew.length)),
-        h('span', { className: 'kb8-pill' }, kbt('crew.cap') + (capN !== null ? String(capN) : kbt('crew.unreadable')))))
-      if (statusMsg !== null) headKids.push(h('span', { className: 'kb8-sub' }, statusMsg))
-      const head = h('div', { style: { display: 'flex', flexDirection: 'column', gap: '10px' } }, ...headKids)
-      const emptyBlock = (crews.length > 0) ? null : h('div', { className: 'kb8-card', 'data-kb': 'crew-empty', style: { cursor: 'default' } },
-        h('span', { className: 'kb8-pill' }, kbt('crew.nocrew')),
-        h('span', { className: 'kb8-sub' }, s.data === null
-          ? kbt('crew.loading')
-          : kbt('crew.noactivekyber')),
-        h('span', { className: 'kb8-parent' }, kbPlural(members.length, kbt('crew.member'), kbt('crew.members')) + kbt('crew.roster.foot')))
-      const grid = (crews.length === 0) ? null : h(KbSec, {
-        id: 'crews', title: kbt('crew.declared.title'), count: kbPlural(crews.length, kbt('crew.crew'), kbt('crew.crews')),
-        meta: kbt('crew.declared.meta'),
-      }, h('div', { className: 'kb8-crew-grid' }, ...crews.map((x, i) => kbCrewCard(x, i + 1))))
-      const offKids = []
-      offKids.push(h('span', { className: 'kb8-name' }, kbPlural(offCrew.length, kbt('crew.member'), kbt('crew.members')) + kbt('crew.noactive')))
-      for (const x of offCrew) offKids.push(h('div', { className: 'kb8-crew-role' },
-        h('span', { className: 'kb8-crew-badge warn' }, kbt('crew.offcrew.badge')),
-        h('span', { className: 'kb8-name', style: { fontSize: '13.5px' } }, String(x.m.name || x.m.id || '—')),
-        h('span', { className: 'kb8-parent' }, String(x.m.role || '—')),
-        h('span', { className: 'kb8-crew-badge' }, (typeof x.m.model === 'string' && x.m.model.length > 0) ? x.m.model : kbt('crew.unknownmodel'))))
-      if (offCrew.length === 0) offKids.push(h('span', { className: 'kb8-sub' }, kbt('crew.allincrew')))
-      offKids.push(h('span', { className: 'kb8-crew-note' }, capN === null
-        ? kbt('crew.roster.note.flat')
-        : kbt('crew.roster.note') + String(capN) + kbt('crew.roster.note2')))
-      const offBlock = (offCrew.length === 0) ? null : h(KbSec, {
-        id: 'off', title: kbt('kbui.outcrew'), count: kbPlural(offCrew.length, kbt('crew.member'), kbt('crew.members')),
-        meta: kbt('crew.offcrew.meta'),
-      }, ...offKids)
-      return h('div', { className: 'kb8-page', 'data-kb': 'crew-view' }, head, grid, emptyBlock, offBlock)
-    }
     // ── React Flow (@xyflow/react) : chargement paresseux ────────────────────
     // Ce dépôt n'a ni bundler ni node_modules. Le host sert le build UMD sous
     // /kybernos/vendor/xyflow.js (route ajoutée dans index.js). Tant que le host
@@ -16288,45 +15091,13 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
     // qu'à ce label de header, pas au nom du produit. CSS ciblé, pas de patch moteur.
     const KB_HIDE_HEADER_BRAND_CSS = '[class*="wSkVaW_headerActions"] [class*="SVAs4q_label"]{display:none!important}'
     try { kbStyleOnce('kb-hide-header-brand', KB_HIDE_HEADER_BRAND_CSS) } catch (e) { /* DOM pas prêt */ }
-    const KB_COMPOSER_CSS = '[data-kb-crew-active] [class*="composerStack"],[data-kb-crew-active] [class*="composerSeat"],[data-kb-crew-active] [class*="composerHint"]{display:none!important}' +
-      '[class*="composerStack"] [class*="_root"]>[class*="_card"]{gap:7px;padding-top:5px}'
-    const KB_FLOW_CSS = '.kbflow-wrap{height:520px;border:1px solid var(--dsw-alias-border-l1);border-radius:12px;overflow:hidden;background:var(--dsw-alias-bg-base)}' +
-      // Bandes d'étage : fond discret, libellé en haut de colonne.
-      '.kbflow-band{height:100%;border:1px dashed var(--dsw-alias-border-l1);border-radius:12px;background:color-mix(in srgb, var(--dsw-alias-label-primary) 3%, transparent);pointer-events:none}' +
-      '.kbflow-band-label{position:absolute;top:6px;left:12px;font-size:10.5px;color:var(--dsw-alias-label-secondary);font-weight:600}' +
-      '.react-flow__node-kbStage{cursor:default!important}' +
-      '.kbflow-node{display:flex;align-items:center;gap:8px;min-width:180px;padding:9px 11px;border-radius:9px;border:1.5px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);font-size:12.5px;color:var(--dsw-alias-label-primary)}' +
-      '.kbflow-node .kbflow-glyph{width:16px;text-align:center;opacity:.8}' +
-      '.kbflow-body{display:flex;flex-direction:column;gap:2px;min-width:0}' +
-      '.kbflow-role{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
-      '.kbflow-model{font-size:11px;opacity:.65;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
-      '.kbflow-conforme{border-color:var(--dsw-alias-state-success-primary)}.kbflow-ecart{border-color:var(--dsw-alias-state-warn-primary)}.kbflow-non-tenu{border-color:var(--dsw-alias-border-l3);border-style:dashed}.kbflow-echec{border-color:var(--dsw-alias-state-error-primary)}' +
-      '.kbflow-wrap .react-flow__attribution{display:none}' +
-      '.kbflow-wrap .react-flow__edge-path{stroke:var(--dsw-alias-border-l3);stroke-width:1.6}' +
-      '.kbflow-wrap .react-flow__handle{width:7px;height:7px;background:var(--dsw-alias-label-tertiary);border:1px solid var(--dsw-alias-bg-base)}' +
-      '.kbflow-wrap .react-flow__node.selected .kbflow-node{border-color:var(--dsw-alias-brand-primary)}' +
-      '.kbflow-wrap .react-flow__controls{box-shadow:none;border-radius:8px;overflow:hidden}' +
-      '.kbflow-wrap .react-flow__controls button{background:var(--dsw-alias-bg-layer-2);border-bottom:1px solid var(--dsw-alias-border-l1);color:var(--dsw-alias-label-primary)}' +
-      '.kbflow-wrap .react-flow__controls button:hover{background:var(--dsw-alias-interactive-bg-hover)}' +
-      '.kbflow-wrap .react-flow__controls button svg{fill:var(--dsw-alias-label-primary)}' +
-      '.kbflow-wrap .react-flow__minimap{background:var(--dsw-alias-bg-layer-2)}' +
-      '.kbflow-wrap .react-flow__minimap-mask{fill:rgba(255,255,255,.07)}' +
-      '.kbflow-wrap .react-flow__minimap-node{fill:var(--dsw-alias-border-l3);stroke:none}'
-    const kbComposerHidden = (on) => {
-      try {
-        if (typeof document === 'undefined' || document === null || document.body === null) return
-        kbStyleOnce('kb-composer-css', KB_COMPOSER_CSS)
-        kbStyleOnce('kb-flow-css', KB_FLOW_CSS)
-        if (on === true) document.body.setAttribute('data-kb-crew-active', '1')
-        else document.body.removeAttribute('data-kb-crew-active')
-      } catch (e) { /* pas de document */ }
-    }
-    // Injecter le CSS compact du composer dès le démarrage (pas seulement en crew).
+    const KB_COMPOSER_CSS = '[class*="composerStack"] [class*="_root"]>[class*="_card"]{gap:7px;padding-top:5px}'
+    // Compact composer CSS, injected at startup.
     // kbStyleOnce est idempotent — un second appel avec la même clé ne fait rien.
     try { kbStyleOnce('kb-composer-css', KB_COMPOSER_CSS) } catch (e) { /* DOM pas prêt */ }
 
-    // ── Onglet « Kybernos Crew v2 » (conversation.view, order 5) ─────────────
-    // Palette maquette : littéraux (contrat capture 07) avec repli tokens DSH.
+    // ── Crew v2 styles: the tab is gone, the nodes of the Workflow graph (.kb2-node, .kb2-nicon) still use them ──
+    // Mock-up palette: literals (capture contract 07) with a fallback to the DSH tokens.
     const KB2_CSS =
       '.kb2-root{flex-grow:1;display:flex;min-height:0;background:var(--dsw-alias-bg-base,#1A1918);color:var(--dsw-alias-label-primary,#DCD6CB);font-size:13px}' +
       '.kb2-root.kb2-emptyview{align-items:center;justify-content:center}' +
@@ -16734,15 +15505,8 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         if (s.view === 'projects') return h(ProjectsHub, props)
         if (s.view === 'project') return h(ProjectDetail, props)
         if (s.view === 'hosted') return h(HostedPage, props)
-        if (s.view === 'runs') return h(KbRuns, props)
-        if (s.view === 'crew') return h(KbCrew, props)
-        if (s.view === 'teamnew') return h(TeamsWizard, props)
         if (s.view === 'teamedit' && typeof s.detailPath === 'string') return h(TeamEdit, props)
         if ((s.view === 'teaminfo' || s.view === 'detail') && typeof s.detailPath === 'string') return h(KybersTeamInfo, props)
-        const hasDetail = s.view === 'detail' && typeof s.detailPath === 'string'
-        if (hasDetail === true) return h('div', { className: 'kbg-cols' },
-          h('div', { className: 'kbg-list' }, h(KybersPanel, props)),
-          h(KybersDetail, props))
         return h(KybersPanel, props)
       })()
       return h(KbBoundary, null, inner)
@@ -26265,7 +25029,7 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         }) : null),
         (KB_DB === true ? row('dashboards', Icon('layoutDashboard', 15), kbt('kbui.dashboards'), null, shown === 'dashboards', () => openPage({ view: 'dashboards' }), h(KbRowState, { k: 'dashboards' })) : null),
         // Search everywhere (kybernos-search) is no longer a menu row: its icon sits at the top of the sidebar, next to « Collapse », and ⌘K opens it.
-        row('aiteams', Icon(KB_DEFAULT_ICON, 15), kbt('menu.aiteams'), c.kybers, shown === 'kybers' || shown === 'gallery' || shown === 'teamnew' || shown === 'teamedit' || shown === 'teaminfo' || shown === 'detail' || shown === 'marketplace' || shown === undefined || shown === null, () => openPage({ nav: 'kybers', view: 'gallery', detailPath: null, detailRoot: null })),
+        row('aiteams', Icon(KB_DEFAULT_ICON, 15), kbt('menu.aiteams'), c.kybers, shown === 'kybers' || shown === 'gallery' || shown === 'teamedit' || shown === 'teaminfo' || shown === 'detail' || shown === 'marketplace' || shown === undefined || shown === null, () => openPage({ nav: 'kybers', view: 'gallery', detailPath: null, detailRoot: null })),
         // Runs n'est plus ici : c'est un onglet de conversation, à côté de
         // « Kybernos Crew » (cf. slot `conversation.view` id `runs`).
         row('projects', Icon('folderOpen', 15), kbt('menu.projects'), wsCount, shown === 'projects' || shown === 'project', () => openPage({ view: 'projects' })),
@@ -26328,20 +25092,11 @@ function renderScene(ctx, W, H, bricks, cam, opts){
     // Idem pour la rangée de suggestions qui vit dans le chat (dock du composer).
     KybersMain.__testChatStarters = KbChatStarters
     ctx.effect(() => slots.register({ name: 'main', key: 'kybers', children: { 'main.kybernos-skills': { kind: 'single', scope: 'root' }, 'main.kybernos-dashboards': { kind: 'single', scope: 'root' }, 'main.kybernos-kyber': { kind: 'single', scope: 'root' } } }, KybersMain), 'kybers: gallery main panel');
-    // ── Onglets absorbés par Crew v2 (décision du 26/09) ─────────────────────
-    // Les vues « Kybernos Crew » (order 11), « Crew Model Execution » (order 12)
-    // et « Runs » (order 13) ne sont plus enregistrées : leurs infos utiles
-    // (modèle exécuté, tokens, durées, issues, déviations, stopReason) vivent
-    // dans l'en-tête, le journal et l'inspecteur de Crew v2. Les composants
-    // (KbCrewLive, KbCrew, KbRuns, KbRunsTab) restent définis pour les harnais
-    // de test qui les montent seuls.
-    // Fusion du 29/09 : crew2 (« Workflows ») absorbé par workflows-v2 (« Journal »).
-    // L'enregistrement crew2 est RETIRÉ — le composant KbCrew2Tab, KB2_CSS et
-    // Kb2Node restent définis pour les harnais (check-kybernos-crew2.mjs,
-    // wp6-contrat.mjs) qui les montent seuls. Si personne ne le regrette dans
-    // 15 jours, on supprime pour de bon.
-    // ctx.effect(() => slots.inject('conversation.view', () => slots.register(
-    //   { name: 'conversation.view', id: 'crew2', order: 5, label: kbt('kb2v.tab') }, KbCrew2Tab)), 'kybers: onglet crew v2 (masqué 29/09)');
+    // ── Conversation tabs absorbed by Crew v2 (26/09) and then by the Journal tab (29/09) ──────────
+    // The « Kybernos Crew », « Crew Model Execution », « Runs » and crew2 (« Workflows ») views are no longer registered and their
+    // components are gone: what they showed (executed model, tokens, durations, outcomes, deviations, stopReason) lives in the
+    // header, the journal and the inspector of the Journal tab. KB2_CSS stays: the nodes of the Workflow graph (.kb2-node,
+    // .kb2-nicon) are drawn with it.
     ctx.effect(() => styles.insert(KB2_CSS), 'kybers: styles crew v2');
     // Team Insight (fiche AI Team) : styles propres au préfixe `kbi-`, posés à
     // part du reste (une révision cassée ici ne peut pas emporter les styles
@@ -30817,9 +29572,6 @@ body[data-ds-dark-theme] .kb8-iconbtn.on.col{border-color:var(--kb8-pgd);color:v
    garde sa largeur. Ils passent l'un sous l'autre quand la fenetre est etroite. */
 .kb8-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .kb8-toolbar .kb8-search{flex:1 1 260px;min-width:0}
-.kb8-order{display:inline-flex;align-items:center;gap:8px;height:50px;flex:0 0 auto;border:1px solid var(--dsw-alias-border-l1);border-radius:14px;background:var(--dsw-alias-bg-layer-1);padding:0 14px}
-.kb8-order-label{font-family:ui-monospace,monospace;font-size:10px;color:var(--dsw-alias-label-secondary)}
-.kb8-order select{border:0;background:none;color:var(--dsw-alias-label-primary);font-size:14px;outline:none;cursor:pointer}
 /* ── KbToolbar : barre unifiee search-filter-order ─────────────────────── */
 .kb6-toolbar{display:flex;flex-direction:column;gap:6px;margin:0 0 14px}
 /* Une seule hauteur pour tous les contrôles de la rangée : le jeton est posé
@@ -31595,17 +30347,6 @@ button.kb8-docdl{background:transparent;font-family:inherit;cursor:pointer}
 .kb8-crewbtn{flex:0 0 auto;height:28px;padding:0 11px;border-radius:999px;border:1px solid var(--dsw-alias-border-l1);background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center}
 .kb8-crewbtn:hover{border-color:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary)}
 .kb8-crewbtn.on{border-color:var(--dsw-alias-brand-primary);color:var(--dsw-alias-brand-primary)}
-.kb8-crew-role{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:8px 10px;border:1px solid var(--dsw-alias-border-l1);border-radius:11px;background:var(--dsw-alias-bg-layer-2)}
-.kb8-crew-role.gap{border-color:var(--dsw-alias-state-error-primary, rgba(239,68,68,.55))}
-.kb8-crew-badge{font-family:ui-monospace,monospace;font-size:10px;letter-spacing:.04em;border-radius:999px;padding:3px 8px;border:1px solid var(--dsw-alias-border-l1);color:var(--dsw-alias-label-secondary);white-space:nowrap}
-.kb8-crew-badge.ok{color:var(--dsw-alias-state-success-primary);border-color:var(--dsw-alias-state-success-primary)}
-.kb8-crew-badge.ko{color:var(--dsw-alias-state-error-primary);border-color:var(--dsw-alias-state-error-primary)}
-.kb8-crew-badge.warn{color:var(--dsw-alias-state-warn-label, var(--dsw-alias-state-warn-primary, #f59e0b));border-color:var(--dsw-alias-state-warn-primary, #f59e0b)}
-.kb8-crew-note{font-size:12.5px;line-height:1.5;color:var(--dsw-alias-label-secondary);border-top:1px solid var(--dsw-alias-border-l1);padding-top:10px}
-.kb8-crew-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(430px,1fr));gap:14px;align-items:start}
-.kb8-crew-card{gap:10px}
-.kb8-crew-h{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
-.kb8-crew-sect{font-size:11px;color:var(--dsw-alias-label-secondary);margin-top:2px}
 /* Sections repliables : même carte que .kb8-card, mais le rembourrage passe sur
    l'en-tête cliquable et le corps, pour que toute la largeur soit cliquable. */
 .kb6-pinbtn.on{color:var(--dsw-alias-state-warn-label, var(--dsw-alias-state-warn-primary, #f5b301));border-color:var(--dsw-alias-state-warn-primary, #f5b301)}
@@ -31731,19 +30472,6 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
 .kbp-fill{height:100%;border-radius:2px;background:var(--dsw-alias-brand-primary);transition:width .4s ease}
 .kbp-detail{font-size:10.5px;color:var(--dsw-alias-label-secondary);font-variant-numeric:tabular-nums}
 /* ── Résumé et fiche : lecture, plus un mode révision (rappel actif) ─────── */
-.kbr-wrap,.kbfi-wrap{display:flex;flex-direction:column;gap:14px}
-.kbr-list,.kbfi-list{display:flex;flex-direction:column;gap:12px}
-.kbr-sec{border:1px solid var(--dsw-alias-border-l1);border-radius:12px;background:var(--dsw-alias-bg-layer-1);padding:14px 16px}
-.kbr-head,.kbfi-head{display:flex;align-items:center;gap:9px}
-.kbr-num{flex:none;min-width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;border-radius:6px;background:var(--dsw-alias-state-business-tertiary, rgba(139,92,246,.16));color:var(--dsw-alias-state-business-primary, #c4b5fd);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;font-weight:700}
-.kbr-title{margin:0;font-size:14px;font-weight:600;color:var(--dsw-alias-label-primary)}
-.kbr-points{margin:10px 0 0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
-.kbr-point{font-size:13px;line-height:1.55;color:var(--dsw-alias-label-secondary)}
-.kbr-masked{margin-top:10px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;letter-spacing:.04em;color:var(--dsw-alias-label-secondary);opacity:.6}
-.kbfi-row{border:1px solid var(--dsw-alias-border-l1);border-radius:12px;background:var(--dsw-alias-bg-layer-1);padding:12px 14px;display:flex;flex-direction:column;gap:7px}
-.kbfi-notion{font-size:13.5px;font-weight:600;color:var(--dsw-alias-label-primary)}
-.kbfi-valeur{font-size:13px;color:var(--dsw-alias-state-warn-label, var(--dsw-alias-state-warn-primary, #d29922));line-height:1.5}
-.kbfi-detail{font-size:12.5px;color:var(--dsw-alias-label-secondary);line-height:1.55;border-top:1px solid var(--dsw-alias-border-l1);padding-top:8px}
 .kb6-pop-host{display:contents}
 .kb6-popwrap{position:fixed;inset:0;z-index:80;display:flex;justify-content:flex-end}
 /* Voile translucide FORCÉ (28/09) : le jeton --dsw-alias-bg-overlay résout
@@ -31770,25 +30498,7 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
 .kb6-origin-excerpt{margin-top:4px;font-size:11.5px;line-height:1.45;color:var(--dsw-alias-label-secondary);word-break:break-word}
 .kb6-popbody{padding:16px 18px 30px;overflow-y:auto;min-height:0;flex:1}
 .kb6-popbody .kb6-frame{height:min(78vh,760px)}
-.kb8-sec{gap:0;padding:0;overflow:hidden;cursor:default}
-.kb8-sec-h{display:flex;align-items:center;gap:10px;flex-wrap:wrap;width:100%;padding:15px 18px;background:transparent;border:0;cursor:pointer;text-align:left;color:inherit;font:inherit}
-.kb8-sec-h:hover{background:var(--dsw-alias-bg-layer-2)}
-.kb8-sec-chev{font-size:11px;color:var(--dsw-alias-label-secondary);width:11px;flex:0 0 auto}
-.kb8-sec-b{display:flex;flex-direction:column;gap:14px;padding:0 18px 18px}
 /* Matrice déclaré/exécuté : une ligne = un rôle, colonnes alignées. */
-.kb8-mx{display:flex;flex-direction:column;gap:6px}
-.kb8-mx-r{display:grid;grid-template-columns:140px 118px 150px 104px minmax(110px,1fr) 88px 76px 80px;gap:8px;align-items:center;padding:7px 10px;border-radius:10px;border:1px solid transparent;font-size:12.5px}
-.kb8-mx-r.h{font-family:ui-monospace,monospace;font-size:10px;color:var(--dsw-alias-label-secondary);border-bottom:1px solid var(--dsw-alias-border-l1);border-radius:0;padding-bottom:8px}
-.kb8-mx-r.b{background:var(--dsw-alias-bg-layer-2)}
-.kb8-mx-r.b:hover{border-color:var(--dsw-alias-border-l1)}
-.kb8-mx-r.gap{border-left:2px solid var(--dsw-alias-state-error-primary, rgba(239,68,68,.6))}
-.kb8-mx-r.abs{opacity:.55}
-.kb8-mx-t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.kb8-mx-crew{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:10px 0 2px}
-.kb8-pager{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px}
-.kb8-pager button{font-size:12px;padding:6px 13px;border-radius:999px;border:1px solid var(--dsw-alias-border-l1);background:transparent;color:var(--dsw-alias-label-secondary);cursor:pointer}
-.kb8-pager button:hover:enabled{border-color:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary)}
-.kb8-pager button:disabled{opacity:.35;cursor:default}
 .kb9-split{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:start;gap:18px;width:100%;max-width:none;box-sizing:border-box;padding:30px 28px 36px;padding-left:max(28px,calc((100% - 1184px) / 2));padding-right:max(28px,calc((100% - 1184px) / 2));max-height:100%;overflow-y:auto;min-height:0}
 .kb9-tree{width:240px;flex:0 0 auto;background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l1);border-radius:18px;display:flex;flex-direction:column;padding:14px 10px 18px;gap:12px;max-height:calc(100vh - 150px)}
 .kb9-col{flex:1 1 0;min-width:0;display:flex;flex-direction:column;gap:18px}
@@ -33388,8 +32098,6 @@ body:not([data-ds-dark-theme]) [data-kbld-level]{--kbld-t:color-mix(in srgb,var(
 .kbld-note{display:flex;align-items:center;gap:12px;margin-top:12px;padding:12px 14px;border-radius:12px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-2);font-size:12px;color:var(--dsw-alias-label-secondary)}
 @media (max-width:560px){.kbld{width:100%}.kbld-btn{width:100%}.kbld-ticks{flex:1 1 auto;justify-content:space-between}.kbld-ticks i{width:3px}.kbld-pop{position:static;width:auto;max-width:none;margin-top:8px}.kbld-cards{grid-template-columns:1fr}}
 @media (max-width:400px){.kbld-mini{display:none}}
-.kbac-btn{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:32px;padding:0 12px;border-radius:10px;border:1px solid var(--dsw-alias-border-l2);background:transparent;color:var(--dsw-alias-label-primary);font:inherit;font-size:13px;text-decoration:none;cursor:pointer;white-space:nowrap}
-.kbac-btn:hover{background:var(--dsw-alias-interactive-bg-hover)}
 .kbac-seg{display:inline-flex;gap:2px;padding:3px;border-radius:999px;background:var(--dsw-alias-bg-layer-2);border:1px solid var(--dsw-alias-border-l1);flex:none}
 .kbac-segb{border:0;background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:13px;font-weight:600;min-width:34px;height:28px;border-radius:999px;cursor:pointer}
 .kbac-segb.on{background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);box-shadow:0 1px 3px rgba(20,20,19,.14)}
