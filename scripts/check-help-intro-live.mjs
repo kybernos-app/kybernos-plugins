@@ -195,9 +195,10 @@ try {
   await sleep(300)
   check('closed once, remembered', (await hasIntro('kybernos-plugin-presets')) === false && (await store('kybernos-plugin-presets')) === 'closed')
   await goTo('Models')
-  check('the other DSH pages are left alone (no host, no animation)', (await val(`!document.querySelector('[data-kb="native-intro-host"]') && !document.querySelector('[data-kb="help-intro"]')`)) === true)
+  // Models and Built-in plugins carry a help card only (a host for the pill, no animated introduction); the other pages of DSH have neither.
+  check('Models has the help pill and no animation (a host for the pill only)', (await poll(() => val(`!!document.querySelector('[data-kb="native-intro-host"]') && !!document.querySelector('[data-kb="help-button"][data-id="kybernos-plugin"][data-page="models"]')`), 8000)) === true && (await val(`!document.querySelector('[data-kb="help-intro"]')`)) === true)
   await goTo('General')
-  check('…also General', (await val(`!document.querySelector('[data-kb="native-intro-host"]')`)) === true)
+  check('the other DSH pages are left alone (General: no host, no animation)', (await val(`!document.querySelector('[data-kb="native-intro-host"]') && !document.querySelector('[data-kb="help-intro"]')`)) === true)
   await goTo('Agent presets')
   await sleep(800)
   check('back on Agent presets: still closed, and the page is back as it was', (await hasIntro('kybernos-plugin-presets')) === false && (await val(`!!document.querySelector('[data-kb="native-intro-host"]')`)) === true)

@@ -66,7 +66,8 @@ try {
   await press('Interface', true)
   m = await see()
   const iface = m.rows.findIndex((r) => r.head && r.t === 'Interface')
-  check('pressing a header opens its group: Appearance, Theme and Language are under it', m.rows[iface].open === true && m.rows.slice(iface + 1, iface + 4).map((r) => r.t).join('|') === 'Appearance|Theme|Language', m.rows.map((r) => r.t))
+  // There is no Appearance page any more: the light / dark / system mode is on the Theme page.
+  check('pressing a header opens its group: Theme and Language are under it, and the next row is a header again', m.rows[iface].open === true && m.rows.slice(iface + 1, iface + 3).map((r) => r.t).join('|') === 'Theme|Language' && m.rows[iface + 3].head === true, m.rows.map((r) => r.t))
   check('the group is remembered as the open one', m.open === 'look', m.open)
   await press('System', true)
   m = await see()

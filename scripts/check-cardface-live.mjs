@@ -204,7 +204,8 @@ try {
     await clickDom('[data-kb="project-tab-details"]')
     await sleep(700)
     const dt = await ev(`document.querySelectorAll('.kb8-page .kb8-cf-ic.s56').length`)
-    check('Workspace page, Details: the preview tile is the same tile at 56 px', dt >= 2, dt)
+    // The Details tab has no preview tile of its own any more (the icon and colour are picked there, the header's tile shows the result): one 56 px tile on the page.
+    check('Workspace page, Details: the tile at 56 px is the header\'s alone, the tab draws no second one', dt === 1, dt)
     await shot('detail-project')
     await ev(`(() => { const b = [...document.querySelectorAll('button')].find((x) => /Back to projects/.test(x.innerText)); if (b) b.click() })()`)
     await sleep(700)
