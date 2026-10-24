@@ -150,10 +150,11 @@ try {
   const acts = await val(`(() => { const row = ${rowOf('wp18-2h')}; const a = row.querySelector('.kba-lacts'); const trg = row.querySelector('.kba-trgcell'); const sw = row.querySelector('.kba-toggle'); const b = a.getBoundingClientRect(); return { right: b.left > trg.getBoundingClientRect().right, beforeSwitch: b.right <= sw.getBoundingClientRect().left + 1, ops: Array.from(a.querySelectorAll('button')).map((x) => getComputedStyle(x).opacity), n: a.querySelectorAll('button').length, order: Array.from(row.children).map((c) => c.className.split(' ')[0]) } })()`)
   check('the row\'s actions are at the right, after the columns and before the switch, and AFTER the name in the tab order', acts.right === true && acts.beforeSwitch === true && acts.order.join() === 'kba-rowbtn,kba-lacts,kba-toggle', acts)
   check('...hidden at rest', acts.ops.every((o) => o === '0'), acts.ops)
-  check('...five of them: Edit in chat, favorite, clone, export, delete', acts.n === 5 && JSON.stringify(await val(`Array.from((${rowOf('wp18-2h')}).querySelectorAll('.kba-lacts button')).map((b) => b.dataset.kb)`)) === JSON.stringify(['action-edit-chat', 'favorite-star', 'action-clone', 'action-export', 'action-delete']))
+  // « Propose to the team » sits between export and delete for as long as the Team tab exists (the host answers its route); the sandbox serves this checkout, so it does.
+  check('...six of them: Edit in chat, favorite, clone, export, propose to the team, delete', acts.n === 6 && JSON.stringify(await val(`Array.from((${rowOf('wp18-2h')}).querySelectorAll('.kba-lacts button')).map((b) => b.dataset.kb)`)) === JSON.stringify(['action-edit-chat', 'favorite-star', 'action-clone', 'action-export', 'action-propose', 'action-delete']))
   await page.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: 5, y: 5 })
   check('the page leaves the pointer out of the list at rest', (await val(`getComputedStyle(document.querySelector('.kba-lacts .kb-favbtn')).opacity`)) === '0')
-  check('hovering a row shows them', (await hoverRow(2)) === true && JSON.stringify(await val(`Array.from(document.querySelectorAll('.kba-rowline:not(.kba-rowline-head)')[2].querySelectorAll('.kba-lacts button')).map((b) => getComputedStyle(b).opacity)`)) === JSON.stringify(['1', '1', '1', '1', '1']))
+  check('hovering a row shows them', (await hoverRow(2)) === true && JSON.stringify(await val(`Array.from(document.querySelectorAll('.kba-rowline:not(.kba-rowline-head)')[2].querySelectorAll('.kba-lacts button')).map((b) => getComputedStyle(b).opacity)`)) === JSON.stringify(['1', '1', '1', '1', '1', '1']))
   const band = JSON.parse(await val(`(() => { const r = document.querySelectorAll('.kba-rowline:not(.kba-rowline-head)')[2]; const c = document.querySelector('.kba-lcard'); const s = getComputedStyle(r); const sw = r.querySelector('.kba-toggle').getBoundingClientRect(); const b = r.getBoundingClientRect(); return JSON.stringify({ bg: s.backgroundColor, covers: sw.right <= b.right, w: Math.round(b.width), cw: Math.round(c.getBoundingClientRect().width) }) })()`))
   check('...and one hover band covers the whole row, the switch included (it stopped before the ON column)', band.bg !== 'rgba(0, 0, 0, 0)' && band.covers === true && band.w >= band.cw - 2, band)
   await shot('automations-list-hover')
@@ -161,7 +162,7 @@ try {
   await sleep(300)
   await val(`(() => { const b = document.querySelectorAll('.kba-rowline:not(.kba-rowline-head)')[4].querySelector('.kba-rowbtn'); b.focus() })()`)
   await sleep(300)
-  check('keyboard focus on a row shows its actions too', JSON.stringify(await val(`Array.from(document.querySelectorAll('.kba-rowline:not(.kba-rowline-head)')[4].querySelectorAll('.kba-lacts button')).map((b) => getComputedStyle(b).opacity)`)) === JSON.stringify(['1', '1', '1', '1', '1']))
+  check('keyboard focus on a row shows its actions too', JSON.stringify(await val(`Array.from(document.querySelectorAll('.kba-rowline:not(.kba-rowline-head)')[4].querySelectorAll('.kba-lacts button')).map((b) => getComputedStyle(b).opacity)`)) === JSON.stringify(['1', '1', '1', '1', '1', '1']))
   await val(`document.activeElement && document.activeElement.blur()`)
   await val(`(() => { const s = document.querySelector('.kba-lacts [data-kb="favorite-star"]'); s.click() })()`)
   await sleep(500)
@@ -191,7 +192,7 @@ try {
   const seededLast = (id) => { const t = SEED.find((x) => x.id === id); return Date.parse(t.history[t.history.length - 1].at) }
   const lastWords = (id, hm) => dayWord(seededLast(id), listNow) + ' · ' + hm + ' · ok'
   check('the last session reads « Yesterday · 08:00 · ok », the board\'s own words (the day word worked out from the page\'s clock)', lasts.includes(lastWords('wp18-month', '08:00')) && lasts.includes(lastWords('wp18-weekdays', '09:15')), { want: [lastWords('wp18-month', '08:00'), lastWords('wp18-weekdays', '09:15')], lasts })
-  check('one automation has no session yet and one is paused, in words', lasts.includes('No session yet') && lasts.includes('Paused'), lasts)
+  check('one automation has no session and one is paused, in words', lasts.includes('No session') && lasts.includes('Paused'), lasts)
 
   console.log('\n── Columns: the chip and the date line of a card agree ──')
   const SCHEDULED = ['wp18-2h', 'wp18-month', 'wp18-31', 'wp18-zone', 'wp18-weekdays', 'wp18-once']

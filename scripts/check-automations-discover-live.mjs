@@ -12,7 +12,7 @@
 // so the journals are « not read » (that state is part of what is checked); the graph of a real journal is proved by the unit tests.
 //
 // What it proves:
-//   - Discover: ten cards in three families, the filter, the logos of the apps (the connectors catalogue's own), the page of a template (cover
+//   - Discover: eleven cards in four families, the filter, the logos of the apps (the connectors catalogue's own), the page of a template (cover
 //     drawn in code, an Integrations list with the logos, four sections), no image file anywhere, and « Use this template » opening a NEW chat
 //     whose draft starts with « Follow this conversation in my language: <the page's language> », then names the skill, carries the questions
 //     and asks for an automation left OFF;
@@ -112,19 +112,20 @@ try {
   check('...a stable automation reads 100 % with six ok bars, the one that failed reads 50 % with a bad bar, from the history alone', (await succOf('Check stable report')) === '100%|6|0' && (await succOf('Check failed report')) === '50%|2|1', { stable: await succOf('Check stable report'), failed: await succOf('Check failed report') })
 
   console.log('\n── Discover ──')
-  check('the page has two sections, Yours and Discover, and Yours is the one open', (await val(`Array.from(document.querySelectorAll('[data-kb^="section-"]')).map((b) => b.dataset.kb.slice(8) + (b.getAttribute('aria-selected') === 'true' ? '*' : '')).join()`)) === 'yours*,discover')
+  // The Team tab comes third (shown locked while the sandbox is signed out); it is absent only when the person has no team feature at all.
+  check('the page has the sections Yours and Discover, then Team, and Yours is the one open', /^yours\*,discover(,team)?$/.test(await val(`Array.from(document.querySelectorAll('[data-kb^="section-"]')).map((b) => b.dataset.kb.slice(8) + (b.getAttribute('aria-selected') === 'true' ? '*' : '')).join()`)))
   await click('[data-kb="section-discover"]')
   check('Discover lists eleven templates', (await poll(() => q('[data-kb="tpl-card"]'), 5000)) === 11)
-  check('...in three families (3 + 3 + 4) that the chips filter', await (async () => {
+  check('...in four families (3 + 3 + 4 + 1) that the chips filter', await (async () => {
     const out = []
-    for (const c of ['social', 'prospecting', 'support', 'all']) { await click('[data-kb="tpl-cat-' + c + '"]'); await sleep(200); out.push(await q('[data-kb="tpl-card"]')) }
-    return out.join() === '3,3,4,10'
+    for (const c of ['social', 'prospecting', 'support', 'skills', 'all']) { await click('[data-kb="tpl-cat-' + c + '"]'); await sleep(200); out.push(await q('[data-kb="tpl-card"]')) }
+    return out.join() === '3,3,4,1,11'
   })())
   await val(`(() => { const i = document.querySelector('.kbtd-search'); const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set; set.call(i, 'whatsapp'); i.dispatchEvent(new Event('input', { bubbles: true })) })()`)
   check('...and the search finds a word in the title, the text, the tags or the apps', (await poll(async () => (await q('[data-kb="tpl-card"]')) === 2, 4000)) === true)
   await val(`(() => { const i = document.querySelector('.kbtd-search'); const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set; set.call(i, ''); i.dispatchEvent(new Event('input', { bubbles: true })) })()`)
   await poll(async () => (await q('[data-kb="tpl-card"]')) === 11, 3000)
-  check('a card is compact: no image, no cover, an « Import » button', (await q('[data-kb="tpl-card"] img, [data-kb="tpl-card"] svg.kbtd-cover-svg')) === 0 && (await q('[data-kb="tpl-card"] [data-kb="tpl-import"]')) === 10)
+  check('a card is compact: no image, no cover, an « Import » button', (await q('[data-kb="tpl-card"] img, [data-kb="tpl-card"] svg.kbtd-cover-svg')) === 0 && (await q('[data-kb="tpl-card"] [data-kb="tpl-import"]')) === 11)
   check('the apps of a card show the real logos of the connectors catalogue, and the initial of the one it does not know', (await poll(async () => (await q('[data-tpl="prosp-calls"] .kbtd-app.logo svg')) === 2, 8000)) === true && (await q('[data-tpl="prosp-calls"] .kbtd-app:not(.logo)')) === 1)
   check('...on a white tile, whatever the theme', (await val(`getComputedStyle(document.querySelector('[data-tpl="prosp-calls"] .kbtd-app.logo')).backgroundColor`)) === 'rgb(255, 255, 255)')
   await shot('discover')
@@ -160,7 +161,7 @@ try {
   await shot('cards')
 
   console.log('\n── Workflow ──')
-  check('the detail has two tabs, Workflow and Sessions: no Webhook tab, no Journal tab', (await val(`Array.from(document.querySelectorAll('[data-kb="detail-tabs"] [role="tab"]')).map((b) => b.textContent.replace(/\\s+/g, ' ').trim()).join('|')`)) === 'Workflow|Sessions · 6')
+  check('the detail has three tabs, Workflow, Sessions and Where it runs: no Webhook tab, no Journal tab', (await val(`Array.from(document.querySelectorAll('[data-kb="detail-tabs"] [role="tab"]')).map((b) => b.textContent.replace(/\\s+/g, ' ').trim()).join('|')`)) === 'Workflow|Sessions · 6|Where it runs')
   check('the Workflow opens on the cards: the trigger, the three steps and the record of the run', (await poll(async () => (await q('[data-kb="flow-card"]')) === 5, 5000)) === true)
   check('Flow, Text and Code are three quiet icons in the toolbar of the canvas, Flow first and chosen', (await val(`Array.from(document.querySelectorAll('[data-kb="flow-canvas"] [data-kb^="view-"]')).map((b) => b.dataset.kb + (b.getAttribute('aria-pressed') === 'true' ? '*' : '')).join()`)) === 'view-flow*,view-text,view-code')
   check('the title of every card stays inside it (two lines at most, nothing spills)', await val(`Array.from(document.querySelectorAll('[data-kb="flow-card"]')).every((n) => { const r = n.getBoundingClientRect(); return Array.from(n.querySelectorAll('.kbfc-tt b, .kbfc-ft')).every((c) => c.getBoundingClientRect().bottom <= r.bottom + 1 && c.getBoundingClientRect().right <= r.right + 1) })`))
