@@ -7,7 +7,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
   DEFAULT_MAX_PARALLEL, MAX_PARALLEL_CEILING, HOLD_LIMIT_MS, START_GRACE_MS, RUN_MAX_MS, LEVELS,
-  maxParallelFrom, defaultMaxParallel, SIZE_TIERS, guardOff, forcedLevel, parseMeminfo, levelOf, pressureOf,
+  maxParallelFrom, defaultMaxParallel, SIZE_TIERS, guardOff, forcedLevel, parseMeminfo, memoryUnreadable, levelOf, pressureOf,
   pressureParts, createHistory, createActivity, HISTORY_POINTS, ACTIVITY_BUCKET_MS, ACTIVITY_BUCKETS,
   LEVEL_FRESH_MS, SUBAGENT_LEASE_MS, isSubagentTool, subagentLimitAt, noteAt, refusalReason, freshLevel, createSubagentGate, allowedAt, admit, createInflight, publicView,
 } from './automation-load.mjs'
@@ -104,6 +104,17 @@ assert.equal(parseMeminfo('MemTotal:       16384000 kB\nMemFree:          123456
 assert.equal(parseMeminfo('MemTotal: 1 kB\nMemFree: 2 kB\n'), null, 'no MemAvailable line (a very old kernel): unknown, not MemFree')
 for (const bad of [null, undefined, 7, '']) assert.equal(parseMeminfo(bad), null)
 ok('meminfo: MemAvailable in MB, never MemFree')
+
+// 4b. iOS: os.freemem() reads ~1 % on a healthy phone, so the memory there is unknown (never a reason to hold a run)
+assert.equal(memoryUnreadable('ios'), true)
+for (const plat of ['darwin', 'linux', 'android', 'win32', 'freebsd', '', null, undefined, 7]) assert.equal(memoryUnreadable(plat), false, String(plat) + ' keeps its own reading')
+{
+  const phone = levelOf({ memAvailablePct: null, memAvailableMb: null, loadPerCpu: 0.4 })
+  assert.deepEqual(phone, { level: 'ok', reasons: [] }, 'an unknown memory on a quiet phone is ok')
+  assert.ok(allowedAt(phone.level, DEFAULT_MAX_PARALLEL) > 0, 'and a run may start')
+  assert.equal(levelOf({ memAvailablePct: 1, memAvailableMb: 164, loadPerCpu: 0.4 }).level, 'high', 'the reading iOS used to give (1 %) held every run')
+}
+ok('ios: memory is unknown, so the cap lets a run start')
 
 // 5. admit: oldest first, as many as there is room for
 {
@@ -308,6 +319,7 @@ ok('meminfo: MemAvailable in MB, never MemFree')
   assert.ok(/autoSettingsPaused\(await kbAutoSettingsRead\(\)\) === true\) \{ kbLoadCapacity\(\)/.test(idx), 'a paused scheduler still refreshes the reading')
   assert.ok(/forced !== null \? \{ level: forced/.test(idx), 'the forced level wins over the reading')
   assert.ok(/kern\.memorystatus_level/.test(idx), 'macOS memory is the system\'s pressure figure')
+  assert.ok(/const plat = osPlatform\(\)\s+if \(autoLoadMemoryUnreadable\(plat\) === true\) return resolve\(\{ pct: null, mb: null \}\)\s+if \(plat === 'darwin'\)/.test(idx), 'iOS never reads os.freemem (about 1 % on a healthy phone): the memory is unknown there')
   assert.ok(/plat === 'darwin'[\s\S]{0,700}resolve\(\{ pct: null, mb: null \}\)/.test(idx), 'macOS never falls back to os.freemem (it reads ~10 % on a healthy Mac)')
   const route = /path: '\/kybernos\/automation-load'[\s\S]{0,1600}/.exec(idx)
   assert.ok(route !== null, 'the route exists')
