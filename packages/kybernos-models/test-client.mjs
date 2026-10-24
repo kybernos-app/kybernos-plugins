@@ -959,5 +959,20 @@ console.log('\n── provider logos never ask a third party (A6-13) ──')
   ok('no third-party image host is left in the page', !/cdn\.simpleicons\.org/.test(src.replace(/\/\/[^\n]*/g, '')), (src.match(/cdn\.simpleicons\.org[^\n]{0,40}/) || [])[0])
 }
 
+// ── « or add a key » on the Kybernos Cloud card (T1-3, 2026-10-24) ───────────────────────────────────────────
+// The card clicks the Providers tab's « Add provider » button. It used to find it by its English label, so in French (« Ajouter un fournisseur ») or any
+// translated UI the click opened nothing. The button carries `data-kbm="prov-add"` in every language.
+console.log('\n── "or add a key" does not depend on the language ──')
+{
+  const from = src.indexOf('const ajouterCle = () => {')
+  const to = src.indexOf('}\n', src.indexOf('btn.click()', from))
+  ok('the handler exists', from > 0 && to > from)
+  const body = src.slice(from, to)
+  ok('it finds the button by its attribute', /document\.querySelector\('\[data-kbm="prov-add"\]'\)/.test(body), body)
+  ok('and no longer by an English label', !/add provider/i.test(body.replace(/\/\/[^\n]*/g, '')), body)
+  const drawn = (src.match(/'data-kbm': 'prov-add'/g) || []).length
+  ok('the attribute is on the button in both draws of the Providers tab', drawn >= 2, drawn)
+}
+
 console.log('\n' + pass + ' passed, ' + fail + ' failed')
 process.exit(fail === 0 ? 0 : 1)

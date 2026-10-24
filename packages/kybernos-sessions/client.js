@@ -1921,7 +1921,9 @@ window.__ModuleLoader__.load({
       if (Array.isArray(g.fichiers)) for (const f of g.fichiers) if (f !== null && typeof f === 'object') genres.set(String(f.chemin).replace(/\/+$/, ''), genreDeCode(f.code))
       const fichiers = (Array.isArray(g.sale) ? g.sale : []).slice(0, 200).map((p) => {
         const chemin = String(p).replace(/\/+$/, '')
-        return { path: String(p), kind: genres.get(chemin) || null, mine: miens === null ? null : miens.has(chemin) }
+        // git lists an untracked folder as one line with a trailing slash (`newdir/`) while this chat's paths are the files inside it: the folder is this chat's when any of its files is.
+        const dossier = String(p).slice(-1) === '/'
+        return { path: String(p), kind: genres.get(chemin) || null, mine: miens === null ? null : (miens.has(chemin) || (dossier === true && Array.from(miens).some((m) => m.indexOf(chemin + '/') === 0))) }
       })
       const conflits = fichiers.filter((f) => f.kind === 'conflict').length
       // The gestures, by role: the one `vueLocal`, `vueSync` and `vuePr` would offer, plus the recap's local gesture.
