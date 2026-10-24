@@ -424,7 +424,8 @@ const origineOK = (req) => {
 export function apply (ctx) {
   if (ctx !== null && ctx !== undefined && typeof ctx.effect === 'function') ctx.effect(() => kbRetirerRoutes, 'kybernos-maintenance: routes')
   const demarrer = (hostCtx) => {
-    const webServer = kbFenced(hostCtx.webServer)
+    // `get`, not `hostCtx.webServer`: with the plugin's own context a property read of a service it did not inject throws.
+    const webServer = kbFenced(hostCtx.get('webServer'))
     webServer.register({ kind: 'exact', path: '/kybernos-maintenance/state', handler: async (req, res) => {
       if (req.method !== 'GET') { res.writeHead(405); res.end(); return }
       if (!origineOK(req)) { res.writeHead(403); res.end(); return }

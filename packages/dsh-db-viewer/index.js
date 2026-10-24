@@ -272,7 +272,8 @@ export function apply (ctx) {
   const kybersHome = join(process.env.DSH_HOME || join(homedir(), '.dsh'), 'kybers')
   const demarrer = (hostCtx) => {
     try {
-      monterRoutes(hostCtx.webServer, { ctx: hostCtx, kybersHome })
+      // `get`, not `hostCtx.webServer`: called with the plugin's own context when the service is already there, where a property read throws.
+      monterRoutes(hostCtx.get('webServer'), { ctx: hostCtx, kybersHome })
     } catch (e) {
       console.error('[dsh-db-viewer] cannot mount the routes', e)
     }
