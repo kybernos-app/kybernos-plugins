@@ -8,7 +8,7 @@
 //     the bundle's own Settings page now writes them)
 //   • health per model    → <DSH home>/kybernos/auto-health.json (local counters
 //     written at each routing: calls, errors, last latency)
-//   • the router itself (rules → local tev1 classifier → whitelist)
+//   • the router itself (rules → optional local classifier, empty by default → whitelist)
 //
 // The router is a faithful COPY of the CLI `~/.dsh/tools/auto-router.mjs`
 // (same contract, same classes chat|code|vision|media|agent-task). The CLI

@@ -531,7 +531,7 @@ window.__ModuleLoader__.load({
           h('div', { className: 'kaa-ligne' },
             h('div', { className: 'kaa-ligne-txt' },
               h('b', null, kt('Classifieur', 'Classifier')),
-              h('span', null, kt('Le modèle local qui choisit la classe avant routage — il ne voit que le message courant, jamais l\'historique. Défaut : tev1 en local.', 'The local model that picks the class before routing — it only sees the current message, never the history. Default: local tev1.'))),
+              h('span', null, kt('Le modèle local qui choisit la classe avant routage — il ne voit que le message courant, jamais l\'historique. Vide par défaut : les règles décident, et un message qu\'elles ne reconnaissent pas est traité comme du chat.', 'The local model that picks the class before routing — it only sees the current message, never the history. Empty by default: the rules decide, and a message they do not recognise is routed as chat.'))),
             h('input', {
               className: 'kaa-classifier', 'data-kb': 'auto-classifier-input', type: 'text',
               placeholder: 'ollama-local/tev1:0.8b', value: etat.classifier,

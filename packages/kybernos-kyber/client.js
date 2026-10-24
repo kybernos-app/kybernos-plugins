@@ -92,6 +92,8 @@ window.__ModuleLoader__.load({
         bmP: ['Rattacher ce Telegram à ton compte n’est pas encore possible. En attendant, continue à utiliser le bot tel quel.', 'Attaching this Telegram to your account is not possible yet. Meanwhile, keep using the bot as it is.'],
         // The Telegram row says WHY it cannot be turned on, and what to do about it (a bot there, no bot on this server, a server too old for the pairing routes).
         offWhy: ['Ce serveur n’a pas de bot Telegram. Passe sur un serveur qui en a un, comme Kybernos Cloud.', 'This server has no Telegram bot. Switch to a server that has one, such as Kybernos Cloud.'],
+        // On Kybernos Cloud itself « switch to Kybernos Cloud » would be nonsense: there the bot exists and its owner has not switched it on.
+        offWhyHere: ['Telegram n’est pas encore activé sur ce serveur.', 'Telegram is not switched on yet on this server.'],
         oldWhy: ['Ce serveur ne sait pas encore relier Telegram.', 'This server does not support linking Telegram yet.'],
         oldH: ['Ce serveur ne relie pas encore Telegram', 'This server cannot link Telegram yet'],
         switchServer: ['Changer de serveur', 'Switch server'],
@@ -517,10 +519,12 @@ window.__ModuleLoader__.load({
       const ChanRow = (props) => h('div', { className: 'kbky-crow', 'data-kb': props.kb, 'data-state': props.stateKey },
         h(Mark, null, props.mark), h('div', { className: 'kbky-ta' }, h('b', null, props.name, props.badge === undefined ? null : h('span', { className: 'kbky-chip kbky-badge' + (props.badgeWarn === true ? ' warn' : '') }, props.badge)), h('span', { className: props.warn ? 'warn' : '' }, props.sub), props.extra === undefined ? null : props.extra), h('div', { className: 'kbky-ra' }, props.right))
 
+      /** Why Telegram is off on this server: « switch to a server that has a bot » everywhere but on Kybernos Cloud (the built-in server's name, kybernos-cloud/server-profile.mjs), where it only is not switched on yet. */
+      const offWhyOf = (v) => L(v.server.name === 'Kybernos Cloud' ? 'offWhyHere' : 'offWhy')
       /** What Telegram's row says of itself: the connection, or the pairing in flight. */
       const telegramRow = (v) => {
         const tg = v.telegram
-        if (tg.state === 'off') return { sub: L('offWhy'), key: 'off' }
+        if (tg.state === 'off') return { sub: offWhyOf(v), key: 'off' }
         if (tg.state === 'old') return { sub: L('oldWhy'), key: 'old' }
         if (tg.state === 'linked') return { sub: tg.paused ? L('paused') : tg.blocked ? L('blocked') : L('linked', { name: tg.name }), warn: tg.paused || tg.blocked, key: 'linked' }
         if (state.starting) return { sub: L('preparing'), key: 'starting' }
@@ -529,7 +533,7 @@ window.__ModuleLoader__.load({
         if (face.kind === 'scanned') return { sub: L('tgWait2'), key: 'scanned' }
         if (face.kind === 'expired') return { sub: L('tgExp'), key: 'expired' }
         if (face.kind === 'declined') return { sub: L(face.reason === 'taken' ? 'tgTak' : face.reason === 'botmade' ? 'tgBot' : 'tgDec'), key: 'declined' }
-        if (face.kind === 'error') return face.code === 'not_found' ? { sub: L('offWhy'), key: 'off' } : (face.code === 'unsupported' ? { sub: L('oldWhy'), key: 'old' } : { sub: L('pe'), key: 'error' })
+        if (face.kind === 'error') return face.code === 'not_found' ? { sub: offWhyOf(v), key: 'off' } : (face.code === 'unsupported' ? { sub: L('oldWhy'), key: 'old' } : { sub: L('pe'), key: 'error' })
         return { sub: L('tgNone'), key: 'idle' }
       }
 

@@ -42,7 +42,8 @@ Known ops: `rect`/`wall`/`bloc`, `plate`/`dalle`, `disc`/`cylindre`,
 
 Chaining `animer_briques` with `mode: "modifier"` **adds** batches to the
 current mockup: that is the "the chat keeps drawing" path, and only the new
-batches are animated.
+batches are animated. The mode takes `ops`: a `prompt` alone adds nothing to an
+existing model (the tool's answer says so).
 
 ## Installation
 

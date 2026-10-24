@@ -5,7 +5,7 @@
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { classerParRegles } from './index.js'
+import { classerParRegles, router } from './index.js'
 
 let failed = 0
 const check = (name, ok, detail) => {
@@ -49,10 +49,24 @@ check('null, undefined and a number do not throw and fall to chat', [null, undef
 check('an empty request falls to chat', classe('') === 'chat' && classe('   ') === 'chat')
 check('upper case and accents are one word', classe('CRÉE UNE ILLUSTRATION') === 'media' && classe('cree une illustration') === 'media')
 
+console.log('no classifier set (the default of the settings)')
+{
+  // T1-15: the page used to say « Default: local tev1 ». The setting is empty by default and then the classifier is never called: the rules decide
+  // and a request they do not recognise is routed as chat. (An unreachable Ollama address proves it: a call would make `via` say the classifier failed.)
+  const reglages = { whitelist: ['deepseek-official/deepseek-chat'], classifier: '', global: true }
+  const r = await router('quelle heure est-il à Tokyo ?', { reglages, ollama: 'http://127.0.0.1:1' })
+  check('a request no rule recognises is routed as chat, by the rules, with no classifier call', r.classe === 'chat' && r.via === 'regle', r)
+  const c = await router('corrige le bug', { reglages, ollama: 'http://127.0.0.1:1' })
+  check('a request a rule recognises keeps its class', c.classe === 'code' && c.via === 'regle', c)
+}
+
 console.log('the source')
 const source = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'index.js'), 'utf8')
 check('the accent-stripping range is written as an escape, not as invisible combining characters (some tools turn it into raw ones)',
   /\[\\u0300-\\u036f\]/.test(source) && !source.includes('\u0300'))
+const clientSource = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'client.js'), 'utf8')
+check('T1-15: the Classifier row of the page names no default model (the setting is empty by default), in both languages',
+  !/Défaut : tev1|Default: local tev1/.test(clientSource) && clientSource.includes('Vide par défaut : les règles décident') && clientSource.includes('Empty by default: the rules decide'))
 
 console.log(failed === 0 ? '\nOK' : `\n${failed} failure(s)`)
 process.exit(failed === 0 ? 0 : 1)
