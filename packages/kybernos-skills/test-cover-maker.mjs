@@ -11,7 +11,9 @@ import { touchesEdge, COVER_EXAMPLES, COVER_LIMITS, COVER_MODELS, COVER_STYLE, C
 let pass = 0
 const ok = (label) => { pass += 1; console.log('  ✓ ' + label) }
 const dsh = mkdtempSync(join(tmpdir(), 'kb-cover-'))
-const NOW = Date.parse('2026-10-23T10:00:00Z')
+// The real clock, read once: the background job of `requestCovers` keys the day's count on `Date.now()`, so a fixed date here made `coverState` read another day's
+// count (the test went red when the UTC date moved past the one it had hard-coded).
+const NOW = Date.now()
 
 // ── the style is the shipped one ─────────────────────────────────────────────────────────────────
 {
