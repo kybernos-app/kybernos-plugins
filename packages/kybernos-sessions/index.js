@@ -1557,7 +1557,8 @@ export function apply (ctx) {
   try {
     const home = dshHome()
     const demarrer = (hostCtx) => {
-      const monter = () => monterRoutes(hostCtx.webServer, {
+      // `get`, not `hostCtx.webServer`: with the plugin's own context a property read of a service it did not inject throws.
+      const monter = () => monterRoutes(hostCtx.get('webServer'), {
         ctx: hostCtx,
         sessionsHome: join(home, 'sessions'),
         kybersHome: join(home, 'kybers'),

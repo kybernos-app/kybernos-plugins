@@ -700,12 +700,14 @@ export function definitionLiteral (options) {
 }
 
 async function enregistrerOutil (c) {
-  if (c === null || c === undefined || c.tools === null || c.tools === undefined || typeof c.tools.register !== 'function') return
+  // `get`, not `c.tools`: called with the plugin's own context when the service is already there, where a property read of a service it did not inject throws.
+  const tools = c !== null && c !== undefined && typeof c.get === 'function' ? c.get('tools') : null
+  if (tools === null || tools === undefined || typeof tools.register !== 'function') return
   const definition = toolDefinition(c)
   const defineTool = await chargerDefineTool()
   let outil
   try { outil = typeof defineTool === 'function' ? defineTool(definition) : definitionLiteral(definition) } catch (e) { outil = definitionLiteral(definition) }
-  c.tools.register(outil)
+  tools.register(outil)
   dir(`tool “${OUTIL}” registered`)
 }
 
@@ -723,7 +725,8 @@ export function apply (ctx) {
   if (ctx !== null && ctx !== undefined && typeof ctx.effect === 'function') ctx.effect(() => kbRetirerRoutes, 'kybernos-session-msg: routes')
   try {
     const demarrerRoutes = (hostCtx) => {
-      try { monterRoutes(kbSuivi(hostCtx !== null && hostCtx !== undefined ? hostCtx.webServer : undefined), { ctx, hostCtx }) } catch (e) { dir('routes not mounted: ' + errText(e)) }
+      // `get`, not `hostCtx.webServer`: with the plugin's own context a property read of a service it did not inject throws.
+      try { monterRoutes(kbSuivi(hostCtx !== null && hostCtx !== undefined && typeof hostCtx.get === 'function' ? hostCtx.get('webServer') : undefined), { ctx, hostCtx }) } catch (e) { dir('routes not mounted: ' + errText(e)) }
     }
     // The routes are mounted on the injected `webServer` context but hold the PLUGIN's own context: at request time they read
     // `sessionController` from it (the pattern of the Cloud routes, measured: `ctx.get('sessionController')` works there).
