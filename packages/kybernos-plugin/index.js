@@ -2780,6 +2780,9 @@ function boot(ctx) {
               for (const h of t.history) if (h !== null && typeof h === 'object' && h.sessionId === sessionId) h.status = on === true ? 'waiting_approval' : 'fired'
             }
           })
+          // Going on after an answer is a run going again: the load tracker counts it from now (its first turn ended and left it), so that the next beat says the computer is busy and
+          // it is not put to sleep in the middle of the continuation (measured on Fly dev, 2026-10-24: asleep 12 s after the answer, the run frozen in it).
+          if (on !== true) { kbLoadInflight.start(sessionId); const hit = kbComputerRuns.get(sessionId); kbRememberRunSession(sessionId, hit !== undefined ? hit.taskId : null) }
         },
       })
     } catch (e) { try { console.error('[kybers] automations: the runs seam could not be published (' + errText(e) + ')') } catch (e2) { /* console unavailable */ } }

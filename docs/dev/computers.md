@@ -146,7 +146,7 @@ DSH's own question card has nobody in front of it on a computer, so these runs a
    hours and a machine kept awake for it costs their run hours. The run is marked `waiting_approval` in the task list (so the reporter does not report it as ended; the schedule row says
    `waiting_approval`, reason `approval_pending`), and the question is written on the volume (`<DSH home>/kybernos/approvals.json`, 0600, three days).
 2. While a question of the run is open nothing else is asked (two calls of one step, a sub-agent). A refused action is not asked again. A run asks at most three times.
-3. The answer is fetched later: the plugin looks at `GET /v1/computer/approvals/decided` every 15 s while a question is open (every two minutes otherwise; the platform wakes a sleeping
+3. The answer is fetched later: the plugin looks at `GET /v1/computer/approvals/decided` every 5 s while a question is open (every two minutes otherwise; the platform wakes a sleeping
    computer for a decision). Under the same lock as a question being put, each answer is matched to its record, the record is marked continued **before** anything is sent (a crash cannot
    make an action run twice), the run goes back to `fired`, and the SAME session is continued with one message: what was allowed (« allow once » passes that very action, kind and text with
    the spaces collapsed, once; « allow for this run » passes the rest of the run) or that it was refused or ran out. The answer is then acknowledged (`POST …/approvals/{id}/ack`); one that
@@ -227,6 +227,8 @@ The server repository's `scripts/computers-play.ts` serves a platform behind a t
 machine's DNS survives), and a machine running longer than 5 minutes (see the trial trap below).
 
 ## Traps met
+
+- **An answer that arrives just as the idle delay runs out can freeze the run** (real test on Fly dev, 2026-10-24, the owner refusing): the computer woke for its due run at 23:57:03, asked at 23:58:10, was answered at 23:59:03 and was suspended by the idle sweep at 23:59:15 (2 min 12 s after the wake), 12 s after the answer; nothing woke it afterwards (checked for 10 minutes), the task row stayed `waiting_approval` and no run was reported. When the answer comes while the computer sleeps (the first real test: 15 min asleep) `wakeForDecisions` wakes it in under 4 s, so that path is fine. What was done: the plugin now looks every 5 s (was 15 s) and a run that goes on after an answer is counted as running in the load the reporter sends (it was not: its first turn had ended and removed it from the tracker), so the next beat says busy; the platform side was proposed to Recette Serveur (restart the idle delay at the decision, and keep the no-sleep guard for any answer decided in the last ten minutes, taken or not).
 
 - **DSH 0.2.1-rc.2 writes `[]` as the first line of an empty profile's `cordis.patch.yml`.** The block the image appends (permission presets, the model route) made the file invalid YAML ("end of the stream or a document separator is expected") and DSH stopped at every boot ("dsh stopped, restarting in 2 s", for ever, `ready` never sent). The Dockerfile and `render-profile.sh` now drop a lone `[]` line first (found 2026-10-24 by playing the image: no image had been built on rc.2 before).
 - **The gate refuses a platform address that is not https unless it is loopback** (`KYBERNOS_GATE_TICKET_URL must be https`): a local run against an http stand-in platform passes a loopback ticket address of its own, or the container exits at once.

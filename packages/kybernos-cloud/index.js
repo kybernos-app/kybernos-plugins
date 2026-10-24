@@ -5035,11 +5035,13 @@ const automationGate = () => async (exec, next) => {
   }
   return { kind: 'deny', reason: askDeny(decision.why) }
 }
-// What was answered since: asked of the platform while a question of this computer is open (every 15 s), else now and then (every two minutes: a decision whose record is gone is still
+// What was answered since: asked of the platform while a question of this computer is open (every 5 s), else now and then (every two minutes: a decision whose record is gone is still
 // taken off the platform's list). Each answer continues its session once, at most: the record is marked before the message goes, so a crash cannot make an action run twice.
 let approvalPollTimer = null
-/** How often an open question is looked at, in ms (the test shortens it); an idle computer looks eight times less often. */
-const approvalPollMs = () => { const v = Number(process.env.KYBERNOS_APPROVAL_POLL_MS); return Number.isFinite(v) && v >= 10 ? v : 15_000 }
+/** How often an open question is looked at, in ms (the test shortens it). Short, because an answer that arrives just as the idle delay runs out must be taken before the computer is put to sleep. */
+const approvalPollMs = () => { const v = Number(process.env.KYBERNOS_APPROVAL_POLL_MS); return Number.isFinite(v) && v >= 10 ? v : 5_000 }
+/** A computer with no question open looks eight times less often, never more often than every two minutes by default. */
+const approvalIdleMs = () => (Number.isFinite(Number(process.env.KYBERNOS_APPROVAL_POLL_MS)) && Number(process.env.KYBERNOS_APPROVAL_POLL_MS) >= 10 ? approvalPollMs() * 8 : 120_000)
 const approvalPollSoon = () => {
   if (approvalPollTimer !== null) clearTimeout(approvalPollTimer)
   approvalPollTimer = setTimeout(() => { approvalPollTick().catch(() => null) }, Math.min(2000, approvalPollMs()))
@@ -5049,7 +5051,7 @@ let approvalPollRunning = false
 const approvalPollTick = async () => {
   if (approvalPollRunning === true) return
   approvalPollRunning = true
-  let again = approvalPollMs() * 8
+  let again = approvalIdleMs()
   try {
     if (computerSelf().id !== '') {
       if (askRead(approvalsFile()).some((r) => r.continued !== true)) again = approvalPollMs()
