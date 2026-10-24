@@ -13,7 +13,7 @@ panel ──(POST /kybernos-slides/push)──▶ host ──▶ the agent reads
 
 | Half | File | Role |
 |---|---|---|
-| Host | `index.js` | The `creer_slides` tool + two routes. Holds the **deck** (one command per session) AND the **annotations** (text edits + strokes): a correction keeps the annotations, `effacer_annotations` empties them. Draws nothing. |
+| Host | `index.js` | The `creer_slides` tool + two routes. Holds the **deck** (one command per session) AND the **annotations** (text edits + strokes): a correction keeps the annotations, `effacer_annotations` clears the strokes (the text edits stay). Draws nothing. |
 | Client | `client.js` | Panel: typing engine (weight per slide, ordered segments, caret), layouts (`titre`, `statement`, `puces`, `chiffre`, `citation`, `fin`), themes (`sombre`, `clair`, `corail`, `papier`), editing through an overlaid textarea, brush/eraser on a 1600×900 canvas, underlined correction diff, thumbnails, replay. |
 
 The tool's field names and values (`titre`, `sous`, `sombre`, `corriger`…) are
@@ -41,7 +41,7 @@ halo for 5 s, and an `AI · n corrections` badge appears in the header.
    current deck plus `annotations.edits` (who changed what, field by field) and the strokes.
 4. **The agent corrects**: `creer_slides { mode: "corriger", slides }` with the
    integrated deck; the panel underlines every corrected passage and keeps the
-   annotations (`effacer_annotations: true` to erase them).
+   annotations (`effacer_annotations: true` clears the strokes; the text edits stay).
 
 ## Installation
 

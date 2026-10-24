@@ -208,7 +208,7 @@ node test-connecteurs.mjs  # 63 (40): reading, editing, renaming, state, test ro
 node test-key.mjs          # the key and the accounts, against a stand-in for Composio (it can answer 502s)
 node test-probe.mjs        # 29: the connector test against fake HTTP and stdio servers
 node test-block-read.mjs   # 31 (15): reading a block back, and refusing what cannot be written back
-node test-client.mjs       # 233: the pure parts of the page, no browser
+node test-client.mjs       # 266: the pure parts of the page, no browser
 ```
 
 `test-host.mjs` covers the first routes (hostile origin, content type, command rules, YAML injection, the files they

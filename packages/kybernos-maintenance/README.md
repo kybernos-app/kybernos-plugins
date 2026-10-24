@@ -6,15 +6,15 @@ stored state and tests keep working; only the visible label and title changed.
 
 ## What the page shows
 
-- **Identity**: the Kybernos wordmark, `Version 1.0.0-beta.1` (the exact shipped version), and a **Check now** button.
+- **Identity**: the Kybernos wordmark, `Version <VERSION>` (the shipped `VERSION` file), and a **Check now** button.
   The wordmark comes from `window.__KB_BRAND__.Wordmark` (shared brand component); when it is absent or
   throws, the page falls back to the plain text "Kybernos".
 - **Status**: one block, green or orange (blue for "engine ahead", red for out of range), with a one-line
   verdict and, when an update is advised, **Copy the command** (`node scripts/dsh-lifecycle.mjs upgrade`).
 - **Three numbers**: DSH engine (installed), Kybernos (the shipped `VERSION`, else the git hash), Tested zone
   (`dsh.min → dsh.max` of `dsh-compat.json`).
-- **Links row**: licence, trademark policy, modules. Plain text on purpose: `LICENSE` and `TRADEMARK.md` are
-  not in the archive, no host route serves them, and nothing in this repo jumps to another Settings section
+- **Links row**: licence, trademark policy, modules. Plain text on purpose: the archive ships `LICENSE` and `TRADEMARK.md`
+  (`FICHIERS_DE_LICENCE` in `scripts/paquet.mjs`), but no host route serves them, and nothing in this repo jumps to another Settings section
   (`layout.selectPanel` opens panels, not Settings sections).
 - **Technical details**: one collapsed disclosure (open or closed is kept in `localStorage`
   key `kybernos.maintenance.details`, closed by default) holding the four stat cards, the last operation,

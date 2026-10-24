@@ -5,8 +5,7 @@ models actually configured in `settings.yaml`, prefills them from models.dev, an
 user override their characteristics — really writing the fields the harness accepts, and
 **always saying which ones**.
 
-The usage guide and the proofs are in
-[`docs/handoff/model-catalog/README.md`](../docs/handoff/model-catalog/README.md).
+The usage guide and the proofs lived in `docs/handoff/model-catalog/`, which is no longer in this repository.
 
 ## « Kybernos Models » header block
 
@@ -16,8 +15,8 @@ auto-routing — one subscription ») and the chips of the `kybernos/*` models a
 imported — or the invitation to connect Kybernos Cloud when there are none. It only reads
 the state already loaded (`KBM`), writes nothing and invents nothing.
 
-The installed harness did not declare this seat: it is added by
-`scripts/patch-dsh-models-header.mjs` (`--check` / `--revert`), **to be replayed after every
+No engine from 0.2.1-alpha.2 on declares this seat (checked on alpha.2, alpha.4 and rc.2), so on those the block is not painted.
+On an older harness it is added by `scripts/patch-dsh-models-header.mjs` (`--check` / `--revert`), **to be replayed after every
 DSH update** — the native page then exposes `settings.models.header`, a list-type seat
 rendered just before the rows.
 
@@ -186,12 +185,7 @@ Two underlying fixes, invisible but blocking, came with it:
   `…state-warning-primary`: the non-existent token made `var()` invalid, so **no** amber
   affordance (overrides, edited values, armed `Restore defaults`) could be seen.
 
-Review screenshots (both tabs, both widths):
-`node scripts/shot-model-catalog-refonte.mjs` →
-[`9-refonte-liste-556.png`](../docs/handoff/model-catalog/9-refonte-liste-556.png),
-[`9-refonte-liste-720.png`](../docs/handoff/model-catalog/9-refonte-liste-720.png),
-[`9-refonte-providers-556.png`](../docs/handoff/model-catalog/9-refonte-providers-556.png),
-[`9-refonte-providers-720.png`](../docs/handoff/model-catalog/9-refonte-providers-720.png).
+The review screenshots of this redesign (both tabs, both widths) and the script that took them are not in this repository (no media in git).
 
 The styling is **DSH's own CSS**: the controls' rules extracted from
 `@deepseek-ai/dsh-client-ui-primitives` sit in `client.js`, between the `DSH-CONTROLS:BEGIN` /
@@ -233,32 +227,12 @@ an external edit, like the native Models page: DSH has to be restarted.
 ## Checks
 
 ```bash
-node scripts/check-model-catalog-host.mjs                                   # 34 — host only
-node scripts/check-model-catalog-refresh.mjs                                # 34 — refresh wiring
-node scripts/check-model-catalog-ui.mjs     --url "http://127.0.0.1:3080/" # 45 — frozen screen
-node scripts/check-model-catalog-browser.mjs --url "http://127.0.0.1:3080/" # 42 — real writes
-node scripts/build-model-catalog-css.mjs --check                           # DSH CSS up to date
-node scripts/shot-model-catalog-refonte.mjs                                # review screenshots
-node scripts/check-models-live.mjs                                         # the page as a person meets it (sandbox only)
+node scripts/check-models-live.mjs   # the page as a person meets it (sandbox only)
 ```
 
-`check-model-catalog-refresh.mjs` only reads the bundle: it pins the four signals, the
-subscription in the effect, the burst guard and the state carry-over — **it does not prove**
-the live re-read (that needs a browser, see the measures of § Refresh).
-
-**State of the screen suites on 23/09/2026** (DSH 0.1.7): they still aim at
-`~/.dsh/settings.yaml`, which 0.1.7 no longer writes — `check-model-catalog-browser.mjs` exits
-**64** without measuring anything, and `check-model-catalog-ui.mjs` carries **3 pre-existing
-failures** (verified identical on the git baseline: 7 sections expected against 8 real since
-EXTERNAL SCORES, and the « panel / native add » order).
-
-Both screen suites accept `--no-shot` (no screenshots) and the « browser » suite accepts
-`--read-only` (no write, one more check skipped). The frozen mode is asked for with
-`?kybernos-models=sample` on the served URL, not with a script option.
-
-`check-model-catalog-host.mjs` carries **2 known failures, older than this redesign** (the
-disk cache must be written in the `{ at, data }` form it then re-reads): they concern
-`index.js`, which this redesign did not touch.
+The older host, refresh and screen scripts (`check-model-catalog-host`, `-refresh`, `-ui`, `-browser`, `build-model-catalog-css`,
+`shot-model-catalog-refonte`) are no longer in this repository. The host and the client are covered by the `test-*.mjs` files of this folder.
+The frozen mode of the screen is asked for with `?kybernos-models=sample` on the served URL.
 
 ## « Add provider » provider catalogue (02/10/2026)
 
@@ -272,12 +246,8 @@ providers of [models.dev](https://github.com/anomalyco/models.dev)
 | `GET /kybernos-models/providers` | `provider-catalog.json`: `{version, source, providers:[{id, nom, env, url, doc, logo, modele?}]}` |
 | `GET /kybernos-models/logo?id=<id>` | cleaned SVG (`logos/<id>.svg`), 404 otherwise; strict CSP, 24 h cache |
 
-Both are read from disk, no network call. To regenerate (after a models.dev update):
-
-```bash
-git clone --depth 1 https://github.com/anomalyco/models.dev /tmp/mdv
-node scripts/build-provider-catalog.mjs --md /tmp/mdv
-```
+Both are read from disk, no network call. The generator that built `provider-catalog.json` from a clone of models.dev
+(`build-provider-catalog.mjs`) is not in this repository any more: until it is restored, the JSON file is the source.
 
 - Many big providers (OpenAI, Groq, Mistral…) have no `api` field in models.dev: the script
   completes them with their OpenAI-compatible endpoint (`FALLBACK_URL`). Providers with a

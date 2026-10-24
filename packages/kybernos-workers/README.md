@@ -97,8 +97,8 @@ backup); the four home-made connections are turned on here, because the Tools sc
 ## Tests
 
 ```bash
-node packages/kybernos-workers/test-host.mjs     # 180 checks: patch parsing, policy, activation, check scenarios per CLI, routes, install job, real I/O
-node packages/kybernos-workers/test-client.mjs   # 51 checks: row status, dots, sentences, language rule, every worker has its logo, every French text has its English
+node packages/kybernos-workers/test-host.mjs     # 194 checks: patch parsing, policy, activation, check scenarios per CLI, routes, install job, real I/O
+node packages/kybernos-workers/test-client.mjs   # 61 checks: row status, dots, sentences, language rule, every worker has its logo, every French text has its English
 node scripts/test-workers-gui.mjs                # the real client in Chromium against the real routes; exits 0 "SKIPPED" without playwright + react@18
 source scripts/sandbox/env.sh && node scripts/check-workers-live.mjs   # the real DSH GUI of a sandbox instance: the page, the checks, the guide (never installs, never saves)
 ```

@@ -428,7 +428,7 @@ const kbSanitizeTaskInput = (raw) => {
   }
   const out = {
     name, prompt, schedule,
-    runsOn: 'local', // the only mode available: « cloud » stays greyed out in the UI
+    runsOn: 'local', // this form only makes local automations: its cloud chip is greyed, the « Where it runs » tab publishes to a cloud computer
     active: r.active !== false,
     approvals: r.approvals === 'auto' ? 'auto' : 'ask',
   }

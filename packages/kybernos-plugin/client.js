@@ -34782,7 +34782,7 @@ html[data-kb-theme="dark"] .kbfc-th-mx{--cv-bg:#141A1E;--cv-dot:#27323A;--nd-bg:
     // ── The feedback form (V-10) ─────────────────────────────────────────────────────────────────────
     // « Send feedback » of the footer menu opens a small form: a type, a message, and an optional technical context (off by
     // default). It POSTs to /kybernos/feedback, which appends one line to <DSH home>/kybernos/feedback.jsonl and sends NOTHING
-    // anywhere: the person reads « Saved on this computer — it is sent only when you export it ». « Export feedback » copies the
+    // anywhere (the « Send » button posts to /kybernos/feedback/send, below): the person reads « Saved on this computer — it is sent only when you export it ». « Export feedback » copies the
     // file to the clipboard. The interview with the assistant (the skill report-feedback, which can reach the Kybernos team) stays one
     // click away. A screenshot is not offered: the page cannot be captured without the screen-capture permission prompt.
     const KB_FB_TYPES = ['bug', 'idea', 'question']
