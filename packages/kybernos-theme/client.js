@@ -540,7 +540,6 @@ window.__ModuleLoader__.load({
         const dn = (p) => [p[0], p[1] + h]
         return t.hi(iPoly([P0, P1, P2, P3])) + t.md(iPoly([P3, P2, dn(P2), dn(P3)])) + t.lo(iPoly([P2, P1, dn(P1), dn(P2)]))
       }
-      const iFade = (x) => '<g opacity=".55">' + x + '</g>'
 
       // ── The five sober sets: solid silhouettes, a mass (p) and a detail (s) ──
       const ICON_FILL = {
@@ -4788,7 +4787,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-err{--kbth-ink:#B84A0
       // declared here (same contract as kybernos and dream-skin). Without it,
       // the entry stays “loading” and never activates.
       return {
-        inject: ['slots', 'theme', 'remote', 'locale'],
+        inject: ['slots', 'theme', 'locale'],
         // Read-only handles for test-client.mjs (same convention as kybernos-language).
         __test: {
           makeTheme, ratio, HEX, toHex, mix, SKINS, WPS, WPCATS, FONTS, ACCS, TOKMAP, DEF, STORE_KEY,

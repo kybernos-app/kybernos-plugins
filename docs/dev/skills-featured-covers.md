@@ -68,8 +68,6 @@ pictures are not in the repository (no media in git): they live in `<DSH home>/k
   `github/awesome-copilot` archive is too large too).
 - Licence terms of FLUX.2 pro through DeepInfra and of Bria RMBG 2.0 for the shipped images are **to be confirmed** before the covers are
   distributed.
-- `packages/kybernos-skills/generer-pochettes.mjs` is the previous, manual generator (its provider's keys were rejected with HTTP 401 on
-  2026-10-15). It is kept until this pipeline is a committed script; it is not used for the picks.
 ## Distribution
 
 The covers reach other machines through the relay (`services/skills-index`, route `GET /v1/covers/<id>.webp`).

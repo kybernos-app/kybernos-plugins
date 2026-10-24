@@ -59,7 +59,6 @@ console.log('no old-stack hostname in shipped code')
   const ALLOWED = [
     { file: 'packages/kybernos-cloud/client.js', text: 'https://kybernos.app', count: 1, why: 'the vendor\'s website (the « Website » entry of the footer menu, signed in or not): a web page the person opens in a tab, not a server DSH talks to' },
     { file: 'packages/kybernos-plugin/client.js', text: 'https://kybernos.app', count: 1, why: 'the vendor\'s website (the help button of the footer\'s icon row): a web page the person opens, not a server DSH talks to' },
-    { file: 'packages/kybernos-plugin/client.js', text: 'https://kybernos.app/embed/', count: 1, why: 'sample text in a read-only field of the website-widget panel: that feature has no equivalent on the new server, listed for the owner' },
     { file: 'packages/kybernos-plugin/client.js', text: 'app.kybernos.ai', count: 2, why: 'the public widget runtime a customer pastes in their website (not the Kybernos server): who runs it is an open question for the owner' },
     { file: 'packages/kybernos-plugin/widget/widget.js', text: 'app.kybernos.ai', count: 2, why: 'the same widget runtime, served from the same address (its own script and visitor sign-in)' },
   ]
