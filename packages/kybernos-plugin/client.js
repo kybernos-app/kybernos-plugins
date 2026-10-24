@@ -634,22 +634,6 @@ let kbLocaleRead = () => 'en'
       'ui.description.hint': { kybernos: 'Une phrase, affichée sur la carte du projet. Le détail complet vit dans les conversations.', en: 'One sentence, shown on the project card. The full detail lives in the threads.' },
       'deliverables.notfound': { kybernos: 'Aperçu indisponible', en: 'Preview unavailable' },
       'deliverables.folder': { kybernos: 'Dossier', en: 'Reveal' },
-      'kb.cp.title': { kybernos: 'Connections', en: 'Connections' },
-      'kb.cp.sub': { kybernos: 'Les comptes par lesquels tes Agent Teams agissent, via Composio. Plusieurs connexions par app, une par compte.', en: 'The accounts your Agent Teams act through, via Composio — several connections per app, one per account.' },
-      'kb.cp.search': { kybernos: 'Chercher dans le catalogue — WhatsApp, Slack, GitHub, facturation…', en: 'Search the catalog — WhatsApp, Slack, GitHub, billing…' },
-      'kb.cp.nokey': { kybernos: 'Clé Composio requise — règle-la dans Réglages › Connecteurs.', en: 'Composio key required — set it in Settings › Connectors.' },
-      'kb.cp.chipall': { kybernos: 'Tous', en: 'All' },
-      'kb.cp.chipconn': { kybernos: 'Connectées', en: 'Connected' },
-      'kb.cp.connected': { kybernos: 'Connecté', en: 'Connected' },
-      'kb.cp.pend': { kybernos: 'En attente', en: 'Pending' },
-      'kb.cp.openlink': { kybernos: 'Ouvrir la page d’autorisation', en: 'Open the authorization page' },
-      'kb.cp.connect': { kybernos: 'Connecter', en: 'Connect' },
-      'kb.cp.empty': { kybernos: 'Aucune app ne correspond.', en: 'No matching app.' },
-      'connectors.search': { kybernos: 'Rechercher dans le catalogue — WhatsApp, Slack, GitHub…', en: 'Search the catalog — WhatsApp, Slack, GitHub…' },
-      'connectors.connected': { kybernos: 'Connectés', en: 'Connected' },
-      'connectors.all': { kybernos: 'Toutes', en: 'All' },
-      'connectors.connect': { kybernos: 'Connecter', en: 'Connect' },
-      'connectors.disconnect': { kybernos: 'Déconnecter', en: 'Disconnect' },
       'menu.aiteams': { kybernos: 'Agent Teams', en: 'Agent Teams' },
       'menu.crew': { kybernos: 'Équipe Kybernos', en: 'Kybernos Crew' },
       'menu.crewmodel': { kybernos: 'Exécution modèle', en: 'Model Execution' },
@@ -1267,7 +1251,6 @@ let kbLocaleRead = () => 'en'
       'kbui.cache': { kybernos: 'Cache : ', en: 'Cache: ' },
       'kbui.cancel': { kybernos: 'Annuler', en: 'Cancel' },
       'kbui.category': { kybernos: 'Catégorie', en: 'Category' },
-      'kbui.channels': { kybernos: 'Canaux', en: 'Channels' },
       'kbui.loading': { kybernos: 'Chargement…', en: 'Loading…' },
       'kbui.close': { kybernos: 'Fermer', en: 'Close' },
       'kbui.done': { kybernos: 'Terminé', en: 'Done' },
@@ -1317,16 +1300,13 @@ let kbLocaleRead = () => 'en'
       'kbui.deliv.path': { kybernos: 'Chemin', en: 'Path' },
       'kbui.deliv.open': { kybernos: 'Ouvrir le fichier', en: 'Open file' },
       'kbui.drag.reorder': { kybernos: 'Glisser-déposer pour réordonner', en: 'Drag and drop to reorder' },
-      'kbui.embed.snippet': { kybernos: 'Extrait à intégrer', en: 'Embed snippet' },
       'kbui.envoyer': { kybernos: 'Envoyer', en: 'Send' },
       'kbui.error': { kybernos: 'Erreur : ', en: 'Error: ' },
       'kbui.resources.sub': { kybernos: 'Tout ce que tes Agent Teams lisent et où ils réécrivent. Les fichiers vivent ici une fois et alimentent n’importe quel projet.', en: 'Everything your Agent Teams read from and write back into. Files live here once and feed any project.' },
       'kbui.fallback.engine': { kybernos: 'Moteur de repli', en: 'Fallback engine' },
       'kbui.favori': { kybernos: 'Favori', en: 'Favorite' },
-      'kbui.format': { kybernos: 'Format', en: 'Format' },
       'kbui.from.repourl': { kybernos: 'Depuis une URL de dépôt', en: 'From a repository URL' },
       'kbui.keep.audio': { kybernos: 'Garder l’audio (message vocal)', en: 'Keep audio (voice message)' },
-      'kbui.greeting': { kybernos: 'Message d’accueil', en: 'Greeting' },
       'kbui.grille': { kybernos: 'Grille', en: 'Grid' },
       'kbui.outcrew': { kybernos: 'Hors équipe', en: 'Out of crew' },
       'kbui.tts.headsup': { kybernos: 'Attention : ce moteur envoie le texte de la réponse à ', en: 'Heads-up: this engine sends the reply text to ' },
@@ -1349,7 +1329,6 @@ let kbLocaleRead = () => 'en'
       'kbui.kybers.built': { kybernos: 'Des Agent Teams déjà construites par d’autres', en: 'Agent Teams other people already built' },
       'kbui.language': { kybernos: 'Langue', en: 'Language' },
       'kbui.last.healthcheck': { kybernos: 'Dernière vérification globale : ', en: 'Last global healthcheck: ' },
-      'kbui.legal': { kybernos: 'Mentions légales et conformité', en: 'Legal & compliance' },
       'kbui.liste': { kybernos: 'Liste', en: 'List' },
       'kbui.localiser': { kybernos: 'Localiser — ', en: 'Locate — ' },
       'kbui.reveal': { kybernos: 'Localiser', en: 'Reveal' },
@@ -1385,7 +1364,6 @@ let kbLocaleRead = () => 'en'
       'kbui.open': { kybernos: 'Ouvrir', en: 'Open' },
       'kbui.overview.tabs': { kybernos: 'Vue d’ensemble · Santé · Agent Teams · Édition', en: 'Overview · Health · Agent Teams · Edit' },
       'kbui.page': { kybernos: 'Page ', en: 'Page ' },
-      'kbui.password': { kybernos: 'Protection par mot de passe', en: 'Password protection' },
       'kbui.plugins': { kybernos: 'Plugins', en: 'Plugins' },
       'kbui.plugins.search': { kybernos: 'Rechercher un plugin…', en: 'Search plugins…' },
       'kbui.plugins.active': { kybernos: 'actifs', en: 'active' },
@@ -1410,11 +1388,9 @@ let kbLocaleRead = () => 'en'
       'kbui.plug.phase.active': { kybernos: 'actif', en: 'active' },
       'kbui.plug.phase.inactive': { kybernos: 'inactif', en: 'inactive' },
       'kbui.plug.phase.unknown': { kybernos: 'état inconnu', en: 'unknown state' },
-      'kbui.position': { kybernos: 'Position', en: 'Position' },
       'kbui.preview': { kybernos: 'Aperçu', en: 'Preview' },
       'kbui.projects': { kybernos: 'Workspaces', en: 'Workspaces' },
       'kbui.project.notfound': { kybernos: 'Projet introuvable.', en: 'Project not found.' },
-      'kbui.public.link': { kybernos: 'Lien public', en: 'Public link' },
       'kbui.read.aloud': { kybernos: 'Lire les réponses à voix haute à leur arrivée', en: 'Read replies aloud as they arrive' },
       'kbui.read.repo': { kybernos: 'Lire le dépôt', en: 'Read the repository' },
       'kbui.reading.engine': { kybernos: 'Lecture de l’inventaire des moteurs…', en: 'Reading the engine inventory…' },
@@ -1973,7 +1949,6 @@ let kbLocaleRead = () => 'en'
       'kbui.plugin.free': { kybernos: 'Le plugin reste libre et ouvert. Lance-le, forke-le, livre-le — hosted existe pour le travail qui ne peut pas attendre que ta machine se réveille.', en: 'The plugin stays free and open. Run it, fork it, ship it — hosted exists for the work that cannot wait for your laptop to wake up.' },
       'kbui.chat.bound': { kybernos: 'Ce chat est lié à cette Agent Team', en: 'This chat is bound to this Agent Team' },
       'kbui.three.gestures': { kybernos: 'Trois gestes pour tout organiser', en: 'Three gestures to organise everything' },
-      'kbui.title': { kybernos: 'Titre', en: 'Title' },
       'kbui.tokens': { kybernos: 'Jetons', en: 'Tokens' },
       'kbui.total': { kybernos: 'Total ', en: 'Total ' },
       'kbui.tags.hint': { kybernos: 'Jusqu’à 10 étiquettes, 1 à 30 caractères chacune. Les suggestions viennent de tes catégories et des étiquettes déjà utilisées dans cet espace de travail.', en: 'Up to 10 tags, 1–30 characters each. Suggestions come from your categories and the tags already used in this workspace.' },
@@ -1990,9 +1965,7 @@ let kbLocaleRead = () => 'en'
       'kbui.engine.installed': { kybernos: ' · moteurs installés ', en: ' · installed engines ' },
       'kbui.tts.leaves': { kybernos: '. Les réponses lues avec lui quittent ta machine.', en: '. Replies read aloud with it leave your machine.' },
       'kbui.tts.sub': { kybernos: 'Lit les réponses à voix haute et dicte dans le champ de saisie, sur cette machine ou via un service cloud — à toi de choisir, moteur par moteur. Pour parler en direct avec l\'assistant, voir Appels.', en: 'Reads replies aloud and dictates into the message box, on this machine or through a cloud service — your choice, engine by engine. To talk live with the assistant, see Calls.' },
-      'kbui.website.widget': { kybernos: 'Widget de site web', en: 'Website widget' },
       'kbui.hosted.only': { kybernos: 'Ce que tu n’obtiens qu’en hosted', en: 'What you get only when it is hosted' },
-      'kbui.widget.colour': { kybernos: 'Couleur du widget', en: 'Widget colour' },
       'kbui.workspaces.unavailable': { kybernos: 'Workspaces indisponibles', en: 'Workspaces unavailable' },
       'kbui.yaml.raw': { kybernos: 'YAML brut', en: 'Raw YAML' },
       'kbui.hosted.keepworking': { kybernos: 'Tes Agent Teams continuent de travailler après avoir fermé le capot.', en: 'Your Agent Teams keep working after you close the lid.' },
@@ -15344,7 +15317,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       React.useEffect(() => {
         if (kyber === null) return undefined
         setTagsText('')
-        setDraft({ name: (kyber.ui && kyber.ui.name) ? kyber.ui.name : kyber.id, icon: (kyber.ui && kyber.ui.icon) ? kyber.ui.icon : KB_DEFAULT_ICON, color: (kyber.ui && kyber.ui.color) ? kyber.ui.color : '', slug: kyber.id, cat: (kyber.ui && kyber.ui.category) ? kyber.ui.category : 'Sales', hosted: (kyber.ui && kyber.ui.hosted === true), tags: (kyber.ui && Array.isArray(kyber.ui.tags)) ? kyber.ui.tags.slice() : [], starters: kbStartersFromUi(kyber.ui), password: false, widget: true, widgetColor: '', widgetFormat: 'bubble', widgetChannels: [], widgetPosition: 'bottom-right', widgetTitle: '', widgetGreeting: '', legal: false })
+        setDraft({ name: (kyber.ui && kyber.ui.name) ? kyber.ui.name : kyber.id, icon: (kyber.ui && kyber.ui.icon) ? kyber.ui.icon : KB_DEFAULT_ICON, color: (kyber.ui && kyber.ui.color) ? kyber.ui.color : '', cat: (kyber.ui && kyber.ui.category) ? kyber.ui.category : 'Sales', hosted: (kyber.ui && kyber.ui.hosted === true), tags: (kyber.ui && Array.isArray(kyber.ui.tags)) ? kyber.ui.tags.slice() : [], starters: kbStartersFromUi(kyber.ui) })
         return undefined
       }, [s.detailPath])
       React.useEffect(() => {
@@ -15458,8 +15431,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       }, [])
       if (kyber === null) return h('div', { className: 'kb9-empty' }, kbt('kbui.kyber.notfound'))
       if (draft === null) return null
-      // 'Access' est volontairement absent de la barre (demande utilisateur du
-      // 23/09/2026) : son code reste en place, mais l'onglet n'est plus offert.
+      // There is no 'Access' tab: it was taken off the bar on a user request (23/09/2026) and its code is gone.
       const TABS = ['Identity', 'Roles', 'Workflow', kbt('kbui.skills'), kbt('kbui.insight'), kbt('kbui.quality'), kbt('kbui.connecteurs'), KBW_PUBLIC_RUNTIME === true ? kbt('kbw.tab') : null, 'Settings', 'Danger Zone'].filter((t) => t !== null)
       const protectedTeam = kyber.id === 'digital-clone'
       const field = { height: '44px', border: '1px solid var(--dsw-alias-border-l1)', borderRadius: '12px', background: 'var(--dsw-alias-bg-layer-1)', padding: '0 14px', fontSize: '14px', color: 'var(--dsw-alias-label-primary)', outline: 'none', width: '100%', boxSizing: 'border-box' }
@@ -15796,26 +15768,6 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
                     : h('a', { className: 'kb8-docdl', 'data-kb': 'team-conn-link', href: connTeamAction.lien, target: '_blank', rel: 'noopener' }, Icon('link', 14), kbt('kbui.conn.openlink')))
                 : null)))))
         }
-        if (tab === 'Access') return h('div', { style: card },
-          h('span', { className: 'kb8-name' }, kbt('kbui.public.link')),
-          h('input', { value: draft.slug, onChange: (e) => setDraft(Object.assign({}, draft, { slug: e.target.value })), style: field }),
-          h('button', { type: 'button', className: 'kb8-chip' + (draft.password ? ' on' : ''), onClick: () => setDraft(Object.assign({}, draft, { password: !draft.password })) }, kbt('kbui.password')),
-          h('button', { type: 'button', className: 'kb8-chip' + (draft.widget ? ' on' : ''), onClick: () => setDraft(Object.assign({}, draft, { widget: !draft.widget })) }, kbt('kbui.website.widget')),
-          h('span', { className: 'kb8-name' }, kbt('kbui.widget.colour')),
-          h('input', { type: 'color', value: draft.widgetColor !== '' ? draft.widgetColor : '#6b7280', onChange: (e) => setDraft(Object.assign({}, draft, { widgetColor: e.target.value })), style: field }),
-          h('span', { className: 'kb8-name' }, kbt('kbui.format')),
-          h('select', { value: draft.widgetFormat, onChange: (e) => setDraft(Object.assign({}, draft, { widgetFormat: e.target.value })), style: field }, ['bubble', 'bar', 'card'].map((f) => h('option', { key: f, value: f }, f))),
-          h('span', { className: 'kb8-name' }, kbt('kbui.channels')),
-          h('div', { className: 'kb8-chips' }, ['Web', 'Email', 'WhatsApp'].map((c) => h('button', { type: 'button', key: c, className: 'kb8-chip' + (draft.widgetChannels.indexOf(c) >= 0 ? ' on' : ''), onClick: () => setDraft(Object.assign({}, draft, { widgetChannels: draft.widgetChannels.indexOf(c) >= 0 ? draft.widgetChannels.filter((x) => x !== c) : draft.widgetChannels.concat([c]) })) }, c))),
-          h('span', { className: 'kb8-name' }, kbt('kbui.position')),
-          h('select', { value: draft.widgetPosition, onChange: (e) => setDraft(Object.assign({}, draft, { widgetPosition: e.target.value })), style: field }, ['bottom-right', 'bottom-left', 'top-right', 'top-left'].map((p) => h('option', { key: p, value: p }, p))),
-          h('span', { className: 'kb8-name' }, kbt('kbui.title')),
-          h('input', { value: draft.widgetTitle, onChange: (e) => setDraft(Object.assign({}, draft, { widgetTitle: e.target.value })), style: field }),
-          h('span', { className: 'kb8-name' }, kbt('kbui.greeting')),
-          h('input', { value: draft.widgetGreeting, onChange: (e) => setDraft(Object.assign({}, draft, { widgetGreeting: e.target.value })), style: field }),
-          h('span', { className: 'kb8-name' }, kbt('kbui.embed.snippet')),
-          h('input', { readOnly: true, value: '<script src="https://kybernos.app/embed/' + draft.slug + '"></script>', style: field }),
-          h('button', { type: 'button', className: 'kb8-chip' + (draft.legal ? ' on' : ''), onClick: () => setDraft(Object.assign({}, draft, { legal: !draft.legal })) }, kbt('kbui.legal')))
         if (tab === kbt('kbw.tab')) {
           // Onglet Widget : plusieurs widgets par kyber, CGU portées par le
           // créateur, magasin localStorage racine+kyber (même parti pris que

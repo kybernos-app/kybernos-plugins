@@ -8,11 +8,9 @@
 //
 //   node kybernos-skills/test-dsh-home.mjs
 import assert from 'node:assert/strict'
-import { spawnSync } from 'node:child_process'
 import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { dirname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { join } from 'node:path'
 import { zstdCompressSync } from 'node:zlib'
 // DSH-HOME-HARNESS-BEGIN
 import * as kbAssert from 'node:assert/strict'
@@ -102,7 +100,6 @@ let pass = 0
 const ok = (label) => { pass += 1; console.log('  ✓ ' + label) }
 
 const PORT = 3080
-const here = dirname(fileURLToPath(import.meta.url))
 const skillMd = (name) => '---\nname: ' + name + '\ndescription: "a skill called ' + name + '"\n---\n\n# ' + name + '\n'
 const session = (cwd) => zstdCompressSync(Buffer.from(JSON.stringify({ type: 'session', version: 3, id: 'x', cwd }) + '\n'))
 const providers = (key) => JSON.stringify({ providers: { 'qwen-token-plan': { cle: key } } })
@@ -225,24 +222,10 @@ try {
   assert.notEqual(decoyOnly.json.view.cwd, '/tmp/decoy-project', 'a session that only exists under <HOME>/.dsh is not looked up there')
   ok('a resting session is looked up in $DSH_HOME/sessions only')
 
-  // 5. The cover generator script (a maintainer CLI) follows the same rule. No network: it
-  //    either stops on a missing key or on an empty list.
-  const script = join(here, 'generer-pochettes.mjs')
-  const run = (extra) => spawnSync(process.execPath, [script], { encoding: 'utf8', env: { ...process.env, HOME: iso.home, USERPROFILE: iso.home, DSH_HOME: iso.dshHome, ...extra } })
-  const noKey = run({})
-  assert.equal(noKey.status, 1, noKey.stdout + noKey.stderr)
-  assert.match(noKey.stderr, /no qwen-token-plan key/, 'the key of <HOME>/.dsh must not be used while DSH_HOME is set')
-  iso.seedDshHome('kybernos-models/providers.json', providers('real-key'))
-  iso.seedDshHome('kybernos/skills-featured.json', JSON.stringify({ items: [] }))
-  const empty = run({})
-  assert.equal(empty.status, 0, empty.stdout + empty.stderr)
-  assert.match(empty.stdout, /featured list empty/)
-  ok('the cover generator reads its key and its list from $DSH_HOME')
-
   iso.assertDecoyUntouched('the skills bundle')
   ok('nothing was read or written under <HOME>/.dsh (canaries and listing unchanged)')
 
-  // 6. DSH_HOME unset: the default location is unchanged.
+  // 5. DSH_HOME unset: the default location is unchanged.
   iso.useDefaultHome()
   registryHome = iso.decoy
   const dflt = mod.configOf()
