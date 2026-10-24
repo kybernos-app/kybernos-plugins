@@ -19,6 +19,7 @@ import { chooseWorkspace as autoWsChoose, idOf as autoWsIdOf, DEDICATED_TITLE as
 import { recordFeedback, exportFeedback, relayReportOf } from './feedback-box.mjs'
 import { writeGuard } from './session-guard.mjs'
 import { kbArtKeepExt, kbArtNameOk } from './art-names.mjs'
+import { kbArtifactsCut } from './art-limit.mjs'
 import { defaultState as onboardingDefault, publicView as onboardingView, complete as onboardingComplete, replay as onboardingReplay, chooseDomain as onboardingChooseDomain, aboutView as onboardingAbout, ownGoalsView as onboardingOwnGoals } from './onboarding-state.mjs'
 import { isSuggested as autoIsSuggested, suggestedTask as autoSuggestedTask, acceptedTask as autoAcceptedTask, refusalFor as autoSuggestRefusal, HOME_ID_RE as AUTO_HOME_ID_RE, runFrame as autoRunFrame } from './automation-suggest.mjs'
 import { learnTask as autoLearnTask, isLearnName as autoIsLearnName, LEARN_ID as AUTO_LEARN_ID } from './learn-business.mjs'
@@ -5947,6 +5948,7 @@ function boot(ctx) {
         budget: null,
         goal: null,
         artifacts: [],
+        artifactsCut: false,
         pricing: null,
         summary: null,
         workspaceUi: {},
@@ -6152,6 +6154,8 @@ function boot(ctx) {
         }
         const ownArtsFull = await readArtifacts(scanRoot, ARTIFACT_COUNT_CAP)
         out.artifacts = ownArtsFull.slice(0, ARTIFACT_LIMIT)
+        // Says so when the list is cut at ARTIFACT_LIMIT, so the pages write « 500+ » and not a count that looks exact.
+        out.artifactsCut = kbArtifactsCut(ownArtsFull.length, ownArtsFull.length, ARTIFACT_LIMIT)
         // artefacts des autres workspaces (workspaceRegistry) — fusion chronologique
         const artTrace = { workspaceRoot: workspaceRoot, sessionRoot: sessionRoot, scanRoot: scanRoot, rootCount: Array.isArray(out.artifacts) === true ? out.artifacts.length : -1, wsCount: -1, mergedCount: -1, wsPaths: [] }
         out.artifactTrace = artTrace
@@ -6214,6 +6218,7 @@ function boot(ctx) {
               for (const a of arts) merged.push(Object.assign({}, a, { workspaceId: wid, workspace: wtitle }))
             }
             merged.sort((a, b) => ((b.mtimeMs || 0) - (a.mtimeMs || 0)))
+            out.artifactsCut = kbArtifactsCut(ownArtsFull.length, merged.length, ARTIFACT_LIMIT)
             out.artifacts = merged.slice(0, ARTIFACT_LIMIT)
             artTrace.mergedCount = out.artifacts.length
           }
