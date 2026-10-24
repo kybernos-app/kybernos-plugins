@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Auto mode: routes delegations by class (rules + local tev1 classifier), bounded whitelist, state PER SESSION, health per model (latency, errors). A chip in the composer + a dedicated Settings page.",
+  "description": "Auto mode: routes delegations by class (rules + an optional local classifier), bounded whitelist, state PER SESSION, health per model (latency, errors). A chip in the composer + a dedicated Settings page.",
   "license": "Apache-2.0",
   "main": "index.js",
   "exports": {

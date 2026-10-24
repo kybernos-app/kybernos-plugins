@@ -134,7 +134,7 @@ window.__ModuleLoader__.load({
   html,body{height:100%;margin:0;background:#0d1118;overflow:hidden;
     display:flex;align-items:center;justify-content:center}
   html,body *{box-sizing:border-box}
-  ${conf.racine}{width:100%;height:100%;padding:8px;overflow:hidden}
+  ${conf.racine || '.kbma-root'}{width:100%;height:100%;padding:8px;overflow:hidden}
   ${styles}
   </style></head><body>${corps}</body></html>`
     }

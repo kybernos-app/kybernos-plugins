@@ -19,6 +19,7 @@ import { chooseWorkspace as autoWsChoose, idOf as autoWsIdOf, DEDICATED_TITLE as
 import { recordFeedback, exportFeedback, relayReportOf } from './feedback-box.mjs'
 import { writeGuard } from './session-guard.mjs'
 import { kbArtKeepExt, kbArtNameOk } from './art-names.mjs'
+import { kbArtifactsCut } from './art-limit.mjs'
 import { defaultState as onboardingDefault, publicView as onboardingView, complete as onboardingComplete, replay as onboardingReplay, chooseDomain as onboardingChooseDomain, aboutView as onboardingAbout, ownGoalsView as onboardingOwnGoals } from './onboarding-state.mjs'
 import { isSuggested as autoIsSuggested, suggestedTask as autoSuggestedTask, acceptedTask as autoAcceptedTask, refusalFor as autoSuggestRefusal, HOME_ID_RE as AUTO_HOME_ID_RE, runFrame as autoRunFrame } from './automation-suggest.mjs'
 import { learnTask as autoLearnTask, isLearnName as autoIsLearnName, LEARN_ID as AUTO_LEARN_ID } from './learn-business.mjs'
@@ -5947,6 +5948,7 @@ function boot(ctx) {
         budget: null,
         goal: null,
         artifacts: [],
+        artifactsCut: false,
         pricing: null,
         summary: null,
         workspaceUi: {},
@@ -6152,6 +6154,8 @@ function boot(ctx) {
         }
         const ownArtsFull = await readArtifacts(scanRoot, ARTIFACT_COUNT_CAP)
         out.artifacts = ownArtsFull.slice(0, ARTIFACT_LIMIT)
+        // Says so when the list is cut at ARTIFACT_LIMIT, so the pages write « 500+ » and not a count that looks exact.
+        out.artifactsCut = kbArtifactsCut(ownArtsFull.length, ownArtsFull.length, ARTIFACT_LIMIT)
         // artefacts des autres workspaces (workspaceRegistry) — fusion chronologique
         const artTrace = { workspaceRoot: workspaceRoot, sessionRoot: sessionRoot, scanRoot: scanRoot, rootCount: Array.isArray(out.artifacts) === true ? out.artifacts.length : -1, wsCount: -1, mergedCount: -1, wsPaths: [] }
         out.artifactTrace = artTrace
@@ -6214,6 +6218,7 @@ function boot(ctx) {
               for (const a of arts) merged.push(Object.assign({}, a, { workspaceId: wid, workspace: wtitle }))
             }
             merged.sort((a, b) => ((b.mtimeMs || 0) - (a.mtimeMs || 0)))
+            out.artifactsCut = kbArtifactsCut(ownArtsFull.length, merged.length, ARTIFACT_LIMIT)
             out.artifacts = merged.slice(0, ARTIFACT_LIMIT)
             artTrace.mergedCount = out.artifacts.length
           }
@@ -8764,8 +8769,8 @@ function boot(ctx) {
     const KB_TTS_TIMEOUT = { say: 8000, piper: 20000, supertonic: 30000, edge: 15000 }
     const KB_TTS_CATALOG = [
       { id: 'say', name: 'Apple say', kind: 'local', price: 'free', privacy: 'Stays on this Mac. Nothing leaves it.' },
-      { id: 'piper', name: 'Piper', kind: 'local', price: 'free', privacy: 'Stays on this Mac. Nothing leaves it.' },
-      { id: 'supertonic', name: 'Supertonic-3', kind: 'local', price: 'free', privacy: 'Stays on this Mac. Nothing leaves it.' },
+      { id: 'piper', name: 'Piper', kind: 'local', price: 'free', privacy: 'Stays on this computer. Nothing leaves it.' },
+      { id: 'supertonic', name: 'Supertonic-3', kind: 'local', price: 'free', privacy: 'Stays on this computer. Nothing leaves it.' },
       { id: 'edge', name: 'edge-tts', kind: 'cloud', price: 'free', privacy: 'The reply text is sent to Microsoft to be synthesised.' },
       { id: 'models', name: 'Your models', kind: 'cloud', price: 'plan', privacy: 'The reply text is sent to the provider of the model you choose, with the key already set up in AI Provider & Models.' },
     ]
@@ -10247,6 +10252,8 @@ function boot(ctx) {
         if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
         try {
           const q = queryOf(req)
+          // The page's one probe at the mount of a project sheet (« is this route mounted? », it only tests for a 404): answered 204 here, not by the id check below, whose 400 showed as a red error in the console of every workspace page.
+          if (q.get('probe') === '1') { res.writeHead(204); res.end(''); return }
           // Plafond local a la route : une piece plus lourde est refusee (413)
           // plutot que chargee en memoire dans le processus hote.
           const KB_DOC_RAW_MAX = 48 * 1024 * 1024
@@ -11570,9 +11577,7 @@ function boot(ctx) {
           needs: 'The ZCode app installed and signed in to a Z.ai account — the connector reads its own credential store, no key is copied into the patch.',
           why: 'Custom connector (MCP): drives the Z.ai code agent — the plan\'s GLM-5.3 / GLM-5.3-Flash — through its app-server, the “-p” path failing in 0.16.9.' },
         { id: 'workbuddy', group: 'ext', label: 'WorkBuddy', known: false,
-          why: 'Community plugin: no package verified on our side, so no installation is offered here.' },
-        { id: 'hermes', group: 'ext', label: 'Hermes', supported: false,
-          why: 'Harness ships no subagent provider for Hermes.' }
+          why: 'Community plugin: no package verified on our side, so no installation is offered here.' }
       ]
       const kbToolsPatchPath = (profile) => {
         const dir = kbToolsProfilesDir()

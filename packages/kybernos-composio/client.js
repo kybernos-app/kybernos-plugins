@@ -466,6 +466,10 @@ window.__ModuleLoader__.load({
       'kb.cp.kc.err.too_many_requests': { fr: 'Trop de demandes d’un coup. Patiente un instant.', en: 'Too many requests at once. Wait a moment.' },
       'kb.cp.kc.err.bad_request': { fr: 'Demande refusée : vérifie l’app et la clé.', en: 'Request refused: check the app and the key.' },
       'kb.cp.kc.err.forbidden': { fr: 'Ce compte ne peut pas utiliser les connexions.', en: 'This account cannot use connections.' },
+      'kb.cp.kc.err.too_large': { fr: 'Cette demande est trop volumineuse pour le serveur.', en: 'That request is too large for the server.' },
+      'kb.cp.kc.err.not_on_this_server': { fr: 'Ce serveur ne propose pas les connexions.', en: 'This server does not offer connections.' },
+      'kb.cp.kc.err.conflict': { fr: 'La connexion a changé entre-temps. Regarde la liste, puis réessaie.', en: 'The connection changed in the meantime. Look at the list, then try again.' },
+      'kb.cp.kc.err.invalid_response': { fr: 'Le serveur a envoyé une réponse illisible. Réessaie dans un instant.', en: 'The server sent an answer that could not be read. Try again in a moment.' },
       'kb.cp.kc.err.other': { fr: 'Réponse inattendue du serveur ({code}).', en: 'Unexpected answer from the server ({code}).' },
       // Discover: the known apps get their own section, same cards.
       'kb.cp.needBy': { fr: 'Demandé par {who}', en: 'Needed by {who}' },

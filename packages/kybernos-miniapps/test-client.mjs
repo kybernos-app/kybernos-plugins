@@ -82,6 +82,16 @@ ok('bundle client charge et expose __test', T !== null && typeof T.escTitre === 
   ok('M-04 : serialiser échappe le titre piégé', html.includes('<title>&lt;/title&gt;') === true && html.includes('</title><script>') === false, html.slice(0, 90))
 }
 
+// ── T2-25 : a panel found in the page (`.kbma-root`) has `racineDynamique` and no `racine`: its sizing rule must name that class, not « undefined » ──
+{
+  const racine = { innerHTML: '<div>x</div>', querySelectorAll: () => [], matches: () => false, querySelector: () => null, cloneNode: () => ({ innerHTML: '<div>x</div>', querySelectorAll: () => [], remove: () => {} }) }
+  const dynamique = T.serialiser(racine, { racineDynamique: racine, defaut: 'Quiz' })
+  ok('T2-25 : a dynamic panel is exported with no `undefined{` rule', !dynamique.includes('undefined'), dynamique.slice(dynamique.indexOf('<style>'), dynamique.indexOf('<style>') + 160))
+  ok('T2-25 : ...and its sizing rule names the `.kbma-root` class', dynamique.includes('.kbma-root{width:100%;height:100%;padding:8px;overflow:hidden}'))
+  const statique = T.serialiser(racine, { racine: '.kbb-root', defaut: 'Bricks' })
+  ok('T2-25 : a built-in panel keeps its own root selector', statique.includes('.kbb-root{width:100%;height:100%;padding:8px;overflow:hidden}') && !statique.includes('.kbma-root'))
+}
+
 // ── another bundle's live page (Motion): exporters and the install door ─────
 {
   const racine = { getAttribute: (k) => (k === 'data-renderer' ? 'motion' : null) }

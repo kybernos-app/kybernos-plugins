@@ -96,6 +96,16 @@ assert.ok(mine.length >= 55, 'my keys: ' + mine.length)
 const used = new Set(Array.from(cli.matchAll(/'(kbwr\.[A-Za-z0-9_.]+)'/g)).map((m) => m[1]).filter((k) => !k.endsWith('.')))
 for (const k of used) assert.ok(seen.has(k), 'used but not defined: ' + k)
 for (const code of ['approval_path_missing', 'run_hours_exhausted', 'owner_left', 'budget', 'failed_runs', 'owner_locked', 'computer_deleting', 'too_many_pending', 'rate_limited', 'tasks_unavailable', 'not_allowed', 'no_computer', 'unreachable', 'not_connected', 'invalid_definition', 'too_frequent', 'never_runs', 'expired', 'late', 'unknown']) assert.ok(seen.has('kbwr.err.' + code), 'a refusal with no words: ' + code)
+// The greyed « Cloud » chip of the Schedule form used to say « Coming soon — only local mode works today » while this very tab publishes to the cloud (T2-29, 2026-10-24): it now points at the tab.
+{
+  const chip = /'tasks\.cloud\.soon': \{ kybernos: '([^']*)', en: '([^']*)' \}/.exec(cli)
+  const tab = /'tasks\.tab\.where': \{ kybernos: '([^']*)', en: '([^']*)' \}/.exec(cli)
+  assert.ok(chip !== null && tab !== null, 'both strings exist')
+  assert.ok(chip[1].includes(tab[1]) && chip[2].includes(tab[2]), 'the chip\'s hover names the tab by its own label, in both languages: ' + chip[2])
+  assert.ok(!/coming soon|bientôt|only local mode|seul le mode local/i.test(chip[1] + chip[2]), 'and no longer says that cloud is not there yet')
+}
+const { CODES } = await import('../kybernos-cloud/computers-publish.mjs')
+for (const code of CODES) assert.ok(seen.has('kbwr.err.' + code), 'a code the host can answer reads « Refused (' + code + ') » for want of its own words: kbwr.err.' + code)
 for (const reason of ['old', 'none', 'off', 'webhook']) assert.ok(seen.has('kbwr.block.' + reason), reason)
 assert.equal(seen.has('kbwr.block.ask'), false, 'no automation is refused for asking any more: only for a computer that cannot')
 for (const k of ['shell', 'write', 'edit', 'connector', 'other']) assert.ok(seen.has('kbwr.ap.kind.' + k), 'kind ' + k)
