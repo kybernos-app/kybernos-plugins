@@ -239,8 +239,12 @@ try {
   check('turning it off asks first', (await poll(() => has('[data-kb="kybernos-kyber-unlink-yes"]'), 4000)) === true)
   await click('[data-kb="kybernos-kyber-unlink-no"]')
   await setMock(`m.kyber.telegram = { configured: false, enabled: false, bot: null, linked: null }`)
-  check('a server with no Telegram bot says why, on the row, and the switch is greyed', (await poll(async () => { await val('window.__KB_KYBER__.refresh()'); return /no Telegram bot/.test((await text('[data-kb="kybernos-kyber-tg-row"]')) || '') }, 8000)) === true && (await val(`document.querySelector('[data-kb="kybernos-kyber-tg-switch"]').disabled`)) === true)
+  // On Kybernos Cloud (the built-in server's name) a missing bot only means « not switched on yet »; on any other server the row sends the person to one that has a bot.
+  check('Kybernos Cloud without a Telegram bot says it is not switched on yet, on the row, and the switch is greyed', (await poll(async () => { await val('window.__KB_KYBER__.refresh()'); return /not switched on yet/.test((await text('[data-kb="kybernos-kyber-tg-row"]')) || '') }, 8000)) === true && (await val(`document.querySelector('[data-kb="kybernos-kyber-tg-switch"]').disabled`)) === true)
   await shot('4d-telegram-no-bot-light')
+  await setMock(`m.kyber.server = { name: 'Dev server', host: 'server-dev.example.test', can_switch: true }`)
+  check('another server without a Telegram bot says it has none, and where to find one', (await poll(async () => { await val('window.__KB_KYBER__.refresh()'); const t = (await text('[data-kb="kybernos-kyber-tg-row"]')) || ''; return /no Telegram bot/.test(t) && /Kybernos Cloud/.test(t) }, 8000)) === true && (await val(`document.querySelector('[data-kb="kybernos-kyber-tg-switch"]').disabled`)) === true)
+  await setMock(`m.kyber.server = ${JSON.stringify(KYBER.server)}`)
   await setMock(`m.kyber.telegram = { configured: true, enabled: true, bot: 'kybernos_bot', linked: null }`)
   await val('window.__KB_KYBER__.refresh()')
 

@@ -15,7 +15,7 @@
 import { mkdirSync, readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
-import { openLivePage, waitFor, openSettings } from './live-page.mjs'
+import { openLivePage, waitFor, openSettings, openThemeAdvanced } from './live-page.mjs'
 import { swapBundles } from './lib-bundle-swap.mjs'
 
 const args = process.argv.slice(2)
@@ -76,11 +76,11 @@ try {
   console.log('what people type')
   await type('dark')
   let names = await resultNames()
-  check('« dark » finds the mode first, and says it matched a value', names[0] === 'Mode' && /matches a value/.test(await panelText()), names)
+  check('« dark » finds the mode first (« Appearance »), and says it matched a value', names[0] === 'Appearance' && /matches a value/.test(await panelText()), names)
   {
-    // V1-24: the Mode lives on Appearance only (Theme › Essentials shows it as text and links there), so the only other place to name is General.
+    // The Appearance page is gone (2026-10-22): the light / dark / system mode is set on Theme › Essentials, and General repeats it, so the only other place to name is General.
     const where = await panelText()
-    check('the panel says where else the same setting is shown (Appearance, also in General; no longer Theme › Essentials)', /Mode\s*\n\s*Appearance · also in General\s*\n/.test(where), where.slice(0, 300))
+    check('the panel says where the setting is shown (Theme › Essentials, also in General; no Appearance page any more)', /Appearance\s*\n\s*Theme › Essentials · also in General\s*\n/.test(where), where.slice(0, 300))
   }
   let m = await menu()
   check('the menu shows where the matches are: Interface is open with a count, the other groups are shut and quiet', m.find((r) => r.head && r.t === 'Interface').open === true && m.find((r) => r.head && r.t === 'Interface').hits === '3' && m.find((r) => r.head && r.t === 'Agents').open === false && m.find((r) => r.head && r.t === 'Agents').dim === true, m.filter((r) => r.head))
@@ -168,12 +168,14 @@ try {
       const pressed = await ev(`(() => { const c = [...document.querySelectorAll('[class*="navList"] [data-kb-t]')].find((x) => x.dataset.kbT === ${JSON.stringify(k)}); if (!c) return false; c.click(); return true })()`)
       if (pressed !== true) { missing.push(k + ': no such page in the menu'); continue }
       await sleep(1400)
+      // The Theme page opens on its simple view (the look studio); the editor with the tabs is folded under it, and the studio has chips of its own that share some of the tabs' names.
+      if (k === 'theme') await openThemeAdvanced(page)
       let texts = await readPage()
       const tabs = [...new Set(rows.map((r) => r[1]).filter((s) => s !== ''))]
       for (const r of rows) {
         const want = kbSsNorm(LOC(r).at)
         if (k === 'theme' && r[1] !== '') {
-          await ev(`(() => { const pane = document.querySelector('[data-slot="settings.section"]'); const t = [...pane.querySelectorAll('button')].find((b) => ${JSON.stringify(kbSsNorm(LOC(r).sec))} === (b.textContent || '').toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim()); if (t) t.click() })()`)
+          await ev(`(() => { const pane = document.querySelector('[data-slot="settings.section"]'); const t = [...pane.querySelectorAll('[data-kb="theme-classic"] .kbth-adv-tab')].find((b) => ${JSON.stringify(kbSsNorm(LOC(r).sec))} === (b.textContent || '').toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim()); if (t) t.click() })()`)
           await sleep(500)
           texts = await readPage()
         }
