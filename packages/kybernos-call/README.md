@@ -10,7 +10,7 @@ reach this bundle through one seam.
 ## Where to find it
 
 - **The call button in the chat header** of every session (next to the app's own controls; when the chat header is folded, open « Show chat tools » first): ONE button, a phone with a small arrow. The click is the voice call; the arrow opens a menu: voice call, video call (off, with « key missing » and the reason, while no face provider is set), call settings. The call belongs to the session, not to a team. On a phone the arrow is parked and the « … » sheet lists the video and settings buttons (hidden on a wide screen, `.kbcl-flat`).
-  The phone starts a voice call, the camera a video call (off, with the reason, until a LiveAvatar key is set). During a call they become one red "Hang up".
+  During a call the button becomes a red "Hang up". The video call stays off, with the reason, until a LiveAvatar key is set.
   It calls the session's assistant, with the voice, language and mode of Settings › Calls.
 - **Call / Video on a team member's card** (the crew view of `@local/kybernos`): that member, with its own voice. These two buttons
   call `window.__KB_CALL__.open({ sessionId, kyberId, roleId, name, mode, voice })`; without this bundle the seam does not exist and
@@ -27,7 +27,7 @@ reach this bundle through one seam.
     account, the LiveKit line and the call engine, each with a sentence that says what to do. A missing call engine can be **installed in
     one click**.
 - **One place to set things up: Settings › Calls.** There is no pop-up wizard. When a call cannot start for want of a key or a setting,
-  the panel says so and has an "Open Settings › Calls" button; a gear next to the phone and camera at the top right of a chat goes to
+  the panel says so and has an "Open Settings › Calls" button; the arrow beside the phone at the top right of a chat (« Call settings… ») goes to
   the same page. The Overview opens with a status line: "Ready to call" (with a "Check everything" button), or "Not ready yet" and
   what is missing, each with a "Set up" button that leads to that provider's page. The face is optional: without one a video call is
   a voice call, and the line says so.
@@ -171,9 +171,11 @@ button is clicked.
 
 ## Known limits
 
-- **Proved, not run with a real model and a microphone.** Everything is covered by tests and by checks on a real DSH (a sandbox): the
-  routes, the settings page, the header buttons, the member cards, the voice engine and the session events. A full call with real
-  speech, a real model's answer and the voice playing in a browser needs your keys and a microphone: that is the one thing not done.
+- **Run once with real speech, not replayed since.** A first real call (2026-10-08: speech-to-text, a model's answer, the voice) found and
+  fixed two defects: the voice did not follow the language of the words, and a busy machine made the worker refuse the call. Not proved:
+  a video call with a LiveAvatar face, a real ElevenLabs clone, Windows and Linux, and a replay on DSH 0.2.1-rc.2 (`dsh-compat.json`: the
+  calls were not replayed there). The rest is covered by tests and by checks on a real DSH (a sandbox): the routes, the settings page, the
+  header buttons, the member cards, the voice engine and the session events.
 - ElevenLabs cloning is written from the provider's published API (create `POST /v1/voices/add`, speak `POST /v1/text-to-speech/{id}`,
   delete `DELETE /v1/voices/{id}`) and tested against fake servers only. The Test button checks the key; the first real clone is the
   proof. It needs a plan that allows instant voice cloning.

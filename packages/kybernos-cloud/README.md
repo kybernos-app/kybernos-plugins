@@ -529,12 +529,12 @@ there is nothing to configure on the client side.
 ## Tests
 
 ```bash
-node scripts/test-cloud.mjs                 # both suites at once
-node kybernos-cloud/test-cloud-host.mjs     # 46 checks, fake local Kybernos
-NODE_PATH=<node_modules with react> node kybernos-cloud/test-cloud-client.mjs   # 3 static + render
+node scripts/run-all-tests.mjs --only kybernos-cloud   # every test-*.mjs of this folder (CI runs the same files)
+node packages/kybernos-cloud/test-cloud-host.mjs       # the host half, against a fake local Kybernos
+NODE_PATH=<node_modules with react> node packages/kybernos-cloud/test-cloud-client.mjs   # 3 static + render
 # react/react-dom are not dependencies of the repository: without them, the
 # client suite skips cleanly. Otherwise:
-KYBERNOS_CLOUD_REACT_DIR=<node_modules with react> node scripts/test-cloud.mjs
+KYBERNOS_CLOUD_REACT_DIR=<node_modules with react> node packages/kybernos-cloud/test-cloud-client.mjs
 ```
 
 Since the memory work, the **client** suite starts with a **static** stage that
@@ -542,13 +542,8 @@ runs even without react (wiring of the memory section + completeness of the two
 dictionaries: 61 literal keys present in fr **and** en). Without it,
 the absence of react turned the suite into a silent “all green”.
 
-The **visual proof** of the memory is a separate script:
-
-```bash
-node scripts/check-cloud-memory-ui.mjs   # opens the card and MEASURES the rendering
-```
-
-It reads the URL with a token (the bare URL answers “dsh web authentication required”),
+The **visual proof** of the memory was a separate script (`check-cloud-memory-ui.mjs`, no longer in this repository; the live page check is
+`scripts/check-memory-live.mjs`). What it did: it read the URL with a token (the bare URL answers “dsh web authentication required”),
 opens the card, checks that the section is actually rendered, that what the
 card shows matches what the account contains, that the controls are
 in the card, and that the label of the primary button reaches a 4.5:1 contrast

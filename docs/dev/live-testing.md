@@ -617,7 +617,7 @@ reload applies theme, accent, wallpaper, font and DSH's text size **before Setti
 accent dots (a near-invisible accent is lightened to 3:1), hex field (invalid input marks `.bad`
 and changes nothing), picker and reset; wallpaper categories, the « None » tile, tiles, visibility
 / blur / tint, and whether it can actually be *seen*; the font selector (search without accents,
-arrows, Enter, Escape, click outside) and the text size; the eight tabs; Colors (what the page
+arrows, Enter, Escape, click outside) and the text size; the nine tabs; Colors (what the page
 shows equals the applied tokens, token editor, footer count, reset); Accessibility (contrast
 levels measured as WCAG ratios); « Reset all » (it *replaces* the state); Sharing (export of the current look, copy; a `.json` is
 imported as a THEME in My themes and applies nothing, anything else is refused with a visible note);

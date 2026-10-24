@@ -1,19 +1,18 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// kybernos-flow — moitié hôte : le flux de conversation, SANS patch moteur.
+// kybernos-flow — host half: the conversation flow, WITHOUT an engine patch.
 //
-// Deux fonctions qui vivaient dans les paquets DSH installés (réécrits sans
-// bruit à chaque mise à jour) vivent ici, en plugin :
-//   1. auto-continue (`auto-continue.mjs`) — reprise des tours coupés par la
-//      limite de tokens de sortie (remplace patch-dsh-auto-continue.mjs) ;
-//   2. queue-move (`queue-move.mjs`) — route `/kybernos/queue-move` pour
-//      réordonner la file d'attente (remplace patch-dsh-queue-move.mjs) ; la
-//      poignée de glisser est dans `client.js`.
+// Two functions that used to live in the installed DSH packages (rewritten
+// silently at every update) live here, as a plugin:
+//   1. auto-continue (`auto-continue.mjs`) — resumes the turns cut short by the
+//      output-token limit (replaces patch-dsh-auto-continue.mjs);
+//   2. queue-move (`queue-move.mjs`) — the `/kybernos/queue-move` route that
+//      reorders the waiting queue (replaces patch-dsh-queue-move.mjs); the
+//      drag handle is in `client.js`.
 //
-// La troisième retouche, les droits d'écriture du sous-agent Claude Code
-// (`permissionMode`), n'a besoin d'aucun code : c'est un réglage du profil —
-// voir docs/handoff/zero-patch-moteur.md.
+// The third tweak, the write rights of the Claude Code sub-agent
+// (`permissionMode`), needs no code: it is a profile setting.
 //
-// Aucun import `@deepseek-ai/*` : un plugin lié en `@local/…` ne les résout pas.
+// No `@deepseek-ai/*` import: a plugin linked as `@local/…` cannot resolve them.
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { installerAutoContinue } from './auto-continue.mjs'

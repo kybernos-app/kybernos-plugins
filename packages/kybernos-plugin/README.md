@@ -1,7 +1,7 @@
 # `@local/kybernos` (`packages/kybernos-plugin`)
 
 The core Kybernos bundle: agent teams (each one defined by a `kyber.yml`) with their crew views, a run journal, automations, a tools catalog, voice, a
-language runtime and ~85 host routes. `client.js` (~31k lines) and `index.js` (~11k) are too big to read linearly: this page comes
+language runtime and ~85 host routes. `client.js` (~40k lines) and `index.js` (~12k) are too big to read linearly: this page comes
 from slot registrations, route tables, section banners and the tests.
 
 It is the **socle**: `socle: true` in `packages/kybernos-hub/catalog.json`, always on, its switch locked in the Suite panel.

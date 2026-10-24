@@ -72,6 +72,8 @@ ok('apply survives a context whose effect throws', (() => { try { plugin.apply({
   const used = new Set([...src.matchAll(/\bL\(\s*'([A-Za-z0-9]+)'/g)].map((m) => m[1]))
   ok('no string is used without being defined', [...used].every((k) => keys.includes(k)), [...used].filter((k) => !keys.includes(k)).join(','))
   ok('no string is defined without being used', keys.every((k) => used.has(k)), keys.filter((k) => !used.has(k)).join(','))
+  // docs/dev/mobile-remote.md: the plugins' texts never say the phone link is reserved to a paid plan (the owner opened it to Free, 2026-10-15).
+  ok('the Devices tab never says the phone link is for paid plans', !/payant|paid/i.test(T.S.todayBody.join(' ')), T.S.todayBody)
   ok('French by default', T.L('create') === 'Créer le workspace')
   window.__KB_LANG_RESOLVE__ = () => 'en'
   ok('English when the language is English', T.L('create') === 'Create workspace')

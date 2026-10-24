@@ -4,7 +4,7 @@
 // A read-only map of how the things you set up fit together: projects, kybers,
 // skills, memory, lessons, automations and apps. It reads routes the other
 // Kybernos plugins already serve (same origin, GET, plus two read-only POSTs)
-// and the DSH workspace store. It never writes, and keeps nothing between visits.
+// and the DSH workspace store. It never writes, and keeps only its last reading in this browser between visits.
 //
 // Two views of the same graph:
 //   · Map  : pick a project or a kyber ("Start from"); four columns show who works
@@ -1575,8 +1575,8 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
       orbit: [tr('Orbit. '), tr('The rings as a stack that turns on its own. Drag to turn it yourself.')]
     }))
 
-    // The last reading, kept in memory only (gone when the page reloads) so that moving between Settings pages
-    // does not make the user read again. Nothing is ever read until they ask: see `load` below.
+    // The last reading, kept so that moving between Settings pages does not make the user read again.
+    // Nothing is ever read until they ask: see `load` below.
     // The last reading is kept in this browser (V-22), so the page opens on it instead of empty. Written only by an Update, read
     // only by opening the page: opening still reads none of the sources. The graph is not stored, it is rebuilt from `src`.
     const READING_KEY = 'kybernos-atlas:last-reading'

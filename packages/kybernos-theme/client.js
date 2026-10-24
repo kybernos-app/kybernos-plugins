@@ -1,11 +1,10 @@
 // kybernos-theme — browser half.
 //
-// Wiring of the “Simple” mockup (docs/handoff + supplied mockup) onto the
-// vraies API de DSH :
+// Wiring of the “Simple” mockup onto the real DSH APIs:
 //
 //   mode (System/Light/Dark) ....... ctx.theme.setTheme()      — native preference
-//   9 ready-made themes + accent ... ctx.theme.overrideTokens() — 17 tokens {light,dark}
-//   wallpaper (24 backgrounds) ..... fixed <div> under the app — dream-skin pattern
+//   18 ready-made themes + accent .. ctx.theme.overrideTokens() — 17 tokens {light,dark}
+//   wallpaper (32 backgrounds) ..... fixed <div> under the app — dream-skin pattern
 //   police + taille ................ --dsw-font-family + ctx.theme.setFontSize() (px; 'text', px since 0.2.1-alpha.2)
 //   tokens (Advanced) .............. the same overrideTokens, per scheme pair
 //
