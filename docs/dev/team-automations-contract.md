@@ -93,13 +93,13 @@ A list answer, same shape as skills:
   "counts": { "approved": 3, "pending": 1 },
   "automations": [{
     "id": 12, "key": "invoice-reminder", "name": "Invoice reminder", "description": "…", "version": "<sha256>",
-    "status": "approved", "schedule": { "mode": "cron", "cron": "0 9 * * 1" }, "needs": ["gmail", "slack"], "prompt_chars": 212,
+    "status": "approved", "revision": 3, "schedule": { "mode": "cron", "cron": "0 9 * * 1" }, "needs": ["gmail", "slack"], "prompt_chars": 212,
     "proposed_by_name": "Camille", "proposed_at": "…", "reviewed_by_name": "Julien", "reviewed_at": "…",
     "note": "…", "review_note": "…", "replaces": null, "superseded_by": null, "mine": false
   }] }
 ```
 
-`id` is an integer (DSH matches it as digits). `note` and `review_note` are shown to the proposer and to admins only. `replaces` (on a `proposed` row) is the id of the currently approved automation with the same
+`id` is an integer (DSH matches it as digits). `revision` is the 1-based number of this version among the rows of the same `key` that were ever approved (`approved` or `retired`), ordered by approval time, so the page can say « v3 » and « v3 → v4 »; it is `null` on a `proposed` or `rejected` row. `note` and `review_note` are shown to the proposer and to admins only. `replaces` (on a `proposed` row) is the id of the currently approved automation with the same
 `key`, so the admin sees an update and not a new automation, and fetches both with `GET /{id}` to show the changes. A single automation (`GET /{id}`) is the same object plus `"prompt": "…"`.
 
 ## Errors

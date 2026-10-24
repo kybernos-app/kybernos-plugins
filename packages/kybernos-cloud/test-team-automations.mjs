@@ -41,6 +41,11 @@ const ZERO_WIDTH = String.fromCodePoint(0x200b, 0x200c, 0x200d, 0x200e, 0x200f, 
   assert.ok(canonical1.endsWith('"schedule":{"mode":"cron","cron":"0 9 * * 1"},"needs":["gmail","slack"]}'), 'the needs are sorted')
   assert.equal(versionOf(VECTOR_1), VERSION_1)
   assert.equal(versionOf(VECTOR_2), VERSION_2)
+  // `revision` passes only as a positive integer (the page shows « v3 »), and a proposal that is not approved has none.
+  assert.equal(asTeamAutomation({ id: 1, revision: 3 }).revision, 3)
+  assert.equal(asTeamAutomation({ id: 1, revision: 0 }).revision, null)
+  assert.equal(asTeamAutomation({ id: 1, revision: '3' }).revision, null)
+  assert.equal(asTeamAutomation({ id: 1 }).revision, null)
   ok('both test vectors of the contract: the canonical form byte for byte (477 characters) and the SHA-256 of it')
 
   // What the version does and does not depend on.
@@ -127,8 +132,8 @@ const ZERO_WIDTH = String.fromCodePoint(0x200b, 0x200c, 0x200d, 0x200e, 0x200f, 
   ok('every refusal of the contract becomes one word; plan_required comes from the server only; the two 404 texts are exact; the server\'s own text never passes')
 
   // A server row → the page.
-  const list = asTeamAutomation({ id: 12, key: 'invoice-reminder', name: 'Invoice reminder', description: 'd', version: VERSION_1, status: 'approved', schedule: { mode: 'cron', cron: '0 9 * * 1' }, needs: ['gmail', 'slack'], prompt_chars: 212, proposed_by_name: 'Camille', proposed_at: 't1', reviewed_by_name: 'Julien', reviewed_at: 't2', note: 'n', review_note: null, replaces: null, superseded_by: null, mine: true })
-  assert.deepEqual(list, { id: 12, key: 'invoice-reminder', name: 'Invoice reminder', description: 'd', version: VERSION_1, status: 'approved', schedule: { mode: 'cron', cron: '0 9 * * 1' }, needs: ['gmail', 'slack'], promptChars: 212, prompt: undefined, proposedName: 'Camille', proposedAt: 't1', reviewedName: 'Julien', reviewedAt: 't2', note: 'n', reviewNote: null, replaces: null, supersededBy: null, mine: true })
+  const list = asTeamAutomation({ id: 12, key: 'invoice-reminder', name: 'Invoice reminder', description: 'd', version: VERSION_1, status: 'approved', schedule: { mode: 'cron', cron: '0 9 * * 1' }, needs: ['gmail', 'slack'], prompt_chars: 212, revision: 2, proposed_by_name: 'Camille', proposed_at: 't1', reviewed_by_name: 'Julien', reviewed_at: 't2', note: 'n', review_note: null, replaces: null, superseded_by: null, mine: true })
+  assert.deepEqual(list, { id: 12, key: 'invoice-reminder', name: 'Invoice reminder', description: 'd', version: VERSION_1, status: 'approved', schedule: { mode: 'cron', cron: '0 9 * * 1' }, needs: ['gmail', 'slack'], promptChars: 212, revision: 2, prompt: undefined, proposedName: 'Camille', proposedAt: 't1', reviewedName: 'Julien', reviewedAt: 't2', note: 'n', reviewNote: null, replaces: null, supersededBy: null, mine: true })
   const one = asTeamAutomation({ ...VECTOR_1, id: 12, version: VERSION_1, status: 'approved' })
   assert.deepEqual([one.prompt, one.promptChars, one.needs], [PROMPT_1, PROMPT_1.length, ['slack', 'gmail']], 'a single automation carries its prompt; without the server\'s count, what was read')
   const hook = asTeamAutomation({ id: '3', schedule: { mode: 'webhook', cron: '0 9 * * 1', tz: 'UTC' }, replaces: 9, superseded_by: '10' })

@@ -163,6 +163,8 @@ export const asTeamAutomation = (r) => {
     name: isString(row.name) ? row.name : '',
     description: isString(row.description) ? row.description : '',
     version: isString(row.version) && VERSION.test(row.version) ? row.version : '',
+    // The 1-based number of this version among the approved ones of the same key (contract: `revision`), for « v3 → v4 »; null on a proposal that is not approved yet.
+    revision: Number.isInteger(row.revision) && row.revision > 0 ? row.revision : null,
     status: STATUSES.includes(row.status) ? row.status : null,
     schedule: scheduleOf(row.schedule),
     needs: Array.isArray(row.needs) ? row.needs.filter((n) => isString(n) && SLUG.test(n)) : [],
