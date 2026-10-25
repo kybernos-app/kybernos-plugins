@@ -19,6 +19,7 @@ import { existsSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { cookieDeSession } from './cdp-lib.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const agentDir = join(here, '..', 'packages', 'kybernos-call', 'agent')
@@ -47,9 +48,12 @@ const wanted = engine.voices.find((v) => v.lang === 'fr') || engine.voices[0]
 const other = engine.voices.find((v) => v.lang && v.lang !== wanted.lang && v.lang === 'es') || engine.voices.find((v) => v.lang && v.lang !== wanted.lang)
 console.log('    using ' + engine.id + ', voice "' + wanted.id + '" (' + wanted.lang + ')' + (other ? ', then a ' + other.lang + ' voice exists' : ''))
 
-// The worker's own code does the asking, in the worker's Python.
+// The worker's own code does the asking, in the worker's Python. In a call the host gives the worker a one-run secret (KYBER_CALL_TOKEN); here no worker was started by
+// a host, so the probe presents the sandbox's signed session instead (the route takes either), read from the sandbox's own secret and never printed.
+const session = cookieDeSession(host)
+if (session === null) { console.error('○ inconclusive: the sandbox\'s session secret cannot be read (set DSH_HOME)'); process.exit(3) }
 const probe = `
-import json, sys
+import json, os, sys, urllib.request
 sys.path.insert(0, ${JSON.stringify(agentDir)})
 from call_meta import CallMeta, VoiceChoice
 from call_voice import audio_bytes, decode_pcm, speak_request, voice_request
@@ -57,14 +61,17 @@ import numpy as np
 host, engine, voice, lang, text, language = sys.argv[1:7]
 meta = CallMeta(language="auto", voice=VoiceChoice(engine, voice, lang))
 fields = voice_request(meta, language)
-answer = speak_request(host, text, fields)
+def with_session(request, timeout=0):
+    request.add_header("Cookie", os.environ["KB_SESSION_COOKIE"])
+    return urllib.request.urlopen(request, timeout=timeout)
+answer = speak_request(host, text, fields, with_session)
 pcm = decode_pcm(audio_bytes(answer))
 samples = np.frombuffer(pcm, dtype=np.int16)
 print(json.dumps({"fields": fields, "engine": answer.get("engine"), "voice": answer.get("voice"), "lang": answer.get("lang"),
                   "seconds": round(len(samples) / 24000, 2), "peak": int(np.abs(samples).max()), "cached": answer.get("cached")}))
 `
 const ask = (text, language) => {
-  const r = spawnSync(python, ['-B', '-c', probe, 'http://' + host, engine.id, wanted.id, wanted.lang || '', text, language], { encoding: 'utf8', env: Object.assign({}, process.env, { PYTHONDONTWRITEBYTECODE: '1' }), timeout: 120000 })
+  const r = spawnSync(python, ['-B', '-c', probe, 'http://' + host, engine.id, wanted.id, wanted.lang || '', text, language], { encoding: 'utf8', env: Object.assign({}, process.env, { PYTHONDONTWRITEBYTECODE: '1', KB_SESSION_COOKIE: session.nom + '=' + session.valeur }), timeout: 120000 })
   if (r.status !== 0) return { error: String(r.stderr).split('\n').filter(Boolean).slice(-2).join(' | ') }
   try { return JSON.parse(String(r.stdout).trim().split('\n').pop()) } catch (e) { return { error: 'unreadable: ' + String(r.stdout).slice(0, 120) } }
 }
