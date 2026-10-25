@@ -959,6 +959,7 @@ const catalogChanged = async (state, known) => {
   const key = (ids) => ids.slice().sort().join('\n')
   return key(known.ids) !== key(cat.models.map((e) => e.id)) || (known.embed === undefined || known.embed === null ? null : known.embed) !== (cat.embed === undefined || cat.embed === null ? null : cat.embed)
     || creationKey(known.creation).join('\n') !== creationKey(cat.creation).join('\n')
+    || key(Array.isArray(known.vision) ? known.vision : []) !== key(visionIds(cat.models))
 }
 
 /** The server's own error envelope (`{ error: 'unauthorized', message, request_id }`), as opposed to JSON some intermediary wrote. */
@@ -1174,9 +1175,14 @@ const modelEntry = (id, info) => {
     const output = intOf(info.max_output_tokens, info.max_tokens)
     if (context !== null) entry.contextWindow = context
     if (output !== null) entry.maxTokens = output
+    // The server lists what a model can do (`capabilities`: chat, vision, tools…). The engine takes a model for text-only unless its entry says `input` and refuses any image sent
+    // to it (session/attachment-invalid), so a model the server declares as seeing pictures says so here; every other model is left as it was (L1-58).
+    if (Array.isArray(info.capabilities) && info.capabilities.includes('vision')) entry.input = ['text', 'image']
   }
   return entry
 }
+/** The sorted ids of the entries that read pictures: part of what tells a new catalogue from the one already imported (a model that learns to see must rewrite the route). */
+const visionIds = (entries) => entries.filter((e) => Array.isArray(e.input) && e.input.includes('image')).map((e) => e.id).sort()
 
 /** The catalogue of a Kybernos server built on vanilla provider models (`GET /v1/models` answers entries with a `kind`): every chat model is
  *  offered, named as the server names it; the embeddings model is remembered apart (it is not a chat route). The old role routes
@@ -1276,13 +1282,14 @@ const providerValue = (state, entries) => {
 }
 
 /** Already imported identically? (comparison of sorted ids + plan + base) */
-const catalogFingerprint = (state, entries, plan, embed, space, creation) => JSON.stringify([
+const catalogFingerprint = (state, entries, plan, embed, space, creation, vision) => JSON.stringify([
   baseUrl(state),
   plan,
   entries.map((e) => e.id).slice().sort(),
   embed === undefined || embed === null ? null : embed,
   typeof space === 'string' ? space : null,
   creationKey(creation),
+  Array.isArray(vision) ? vision : [],
 ])
 
 /** Import (or refresh): catalogue → settings → credential → state.
@@ -1310,7 +1317,7 @@ const importCatalog = async (cause, options = {}) => {
     && known.settings === true && known.credential === true
     && known.plan === plan && known.base_url === baseUrl(state)
     && Array.isArray(known.ids) === true
-    && catalogFingerprint(state, known.ids.map((id) => ({ id })), plan, known.embed, known.workspace, known.creation) === catalogFingerprint(state, cat.models, plan, cat.embed, espaceActif(state), cat.creation)) {
+    && catalogFingerprint(state, known.ids.map((id) => ({ id })), plan, known.embed, known.workspace, known.creation, known.vision) === catalogFingerprint(state, cat.models, plan, cat.embed, espaceActif(state), cat.creation, visionIds(cat.models))) {
     if (appliedServerId() === null) markApplied()   // an install from before servers existed: this route is the active server's
     return { ok: true, connected: true, current: true, summary: publicModels(known) }
   }
@@ -1325,6 +1332,8 @@ const importCatalog = async (cause, options = {}) => {
     ids: cat.models.map((e) => e.id),
     embed: cat.embed,
     creation: cat.creation,
+    // The models that read pictures (`input: [text, image]` in the route): an import from before this field has none, and is rewritten once if the server lists some.
+    vision: visionIds(cat.models),
     // The space this route names on every call (and whose catalogue it lists): a later refresh compares it with the active one.
     workspace: espaceActif(state),
     provider: PROVIDER_ID,
