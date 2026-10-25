@@ -4,7 +4,8 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { suiteDeps } from './index.js'
+import { execFile } from 'node:child_process'
+import { signalDe, suiteDeps } from './index.js'
 import { activesResolues, avecLesModulesDeCetteCopie, basculer, charge, desactivesAEcrire, installer, lireActivation } from './suite-host.mjs'
 import { monterSuite } from './hub-host.mjs'
 import { sessionSource } from './session-guard.mjs'
@@ -148,6 +149,14 @@ console.log('── the real activation writer (a throw-away DSH home) ──')
   d.ecrireActivation(null)
   ok('…and removing it twice is harmless', existsSync(fichier) === false)
   rmSync(home, { recursive: true, force: true })
+}
+
+console.log('── what ended the installer: it exited, or it was killed (L3-88) ──')
+{
+  const fin = (args, options) => new Promise((resoudre) => execFile(process.execPath, args, options, (erreur) => resoudre(erreur)))
+  ok('a child that exits with a code by itself: no signal', signalDe(await fin(['-e', 'process.exit(3)'], {})) === null && signalDe(null) === null && signalDe(undefined) === null)
+  ok('a child that is killed by the time limit (execFile timeout) is a signal, even if it were to answer with an exit code', signalDe(await fin(['-e', 'setInterval(() => {}, 1000)'], { timeout: 150 })) === 'SIGTERM' && signalDe({ killed: true, code: 128, signal: null }) === 'SIGTERM')
+  ok('a child killed with another signal says which', signalDe({ signal: 'SIGKILL' }) === 'SIGKILL')
 }
 
 console.log('── routes ──')

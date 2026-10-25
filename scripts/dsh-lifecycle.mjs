@@ -857,7 +857,9 @@ if (['install', 'upgrade', 'bootstrap', 'rollback', 'uninstall'].includes(ordre)
   if (pris.sansVerrou === true) console.log('  ⚠ the installation lock could not be written (' + pris.detail + '): going on without it')
   else {
     process.on('exit', () => libererVerrou({ fichier: VERROU_INSTALLATION }))
-    for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => process.exit(128))
+    // A signal gives the lock back and is then re-sent to ourselves with its default action, so the parent still sees « killed by SIGTERM » (its time limit, a kill) and not a
+    // plain exit code: the Suite panel words a killed installer differently from one that refused (L3-88). SIGKILL cannot be caught: its lock is found stale by the next reader.
+    for (const signal of ['SIGINT', 'SIGTERM']) process.once(signal, () => { libererVerrou({ fichier: VERROU_INSTALLATION }); process.kill(process.pid, signal) })
   }
 }
 
