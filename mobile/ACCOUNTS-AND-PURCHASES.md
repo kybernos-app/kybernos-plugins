@@ -37,7 +37,28 @@ https://claude.ai/artifact/9uPRqPWsM186QwUwXgBKjg).
 - **Long-lead owner steps start now** because they take days or weeks and cost nothing (see C): the store developer accounts as an organisation (probably a D-U-N-S number: to check), the paid-apps agreements, bank and tax forms. Products can be created in the consoles as drafts, never published.
 - **Decisions to take while waiting**: native or RevenueCat, one price or a higher one in the apps, multi-seat teams (D).
 
-### B1. In-app purchase for Team (the large part) — built and switched on later
+### Payment routes: Stripe does not replace StoreKit and Play Billing, it is a different route
+
+StoreKit 2 and Play Billing are the stores' own payment systems; nothing in them goes through Stripe. Stripe stays our web rail (checkout, invoices, the `source = 'stripe'` subscriptions), and the
+server keeps ONE `subscriptions` table whichever rail wrote the row. What each store lets an app do with Stripe, as reported by secondary sources on 2026-10-26 (RevenueCat's app-to-web guide,
+Adapty; **rules and commissions are moving with the Apple and Google court cases: re-read Apple's guidelines and Google's payments policy before every submission**):
+
+| | iPhone | Android |
+|---|---|---|
+| Web checkout opened from the app (the existing Stripe checkout) | **US**: allowed, 0 % commission for now, the court is to set a rate (Apple asked for up to 15 %). **EU** (from 2026-10-01): 15 % (10 % reduced), in-app purchase must be at least as prominent. **Japan, Brazil**: 15 %, in-app purchase offered alongside. **Elsewhere**: generally restricted | **US** (external content links): subscriptions 10 %, fees and reporting from 2026-10-01. **EEA, UK, Japan**: allowed under the matching programs, same fee scale |
+| Stripe payment sheet inside the app | Generally not permitted (EU and Japan/Brazil have it at 20 % to 21 %, with conditions) | Allowed in several regions through alternative billing |
+| Store billing | Required everywhere the above does not apply | Required elsewhere; user-choice billing in a few countries |
+
+What this means: **in-app purchase cannot be avoided if Team is sold to iPhones worldwide**, but Stripe can cover some regions and is a much smaller build (the existing checkout opens in the browser; the commission is
+reported to the store, which is new). So the single gate of B0 becomes a three-valued capability per platform and storefront country (StoreKit gives the storefront; Play gives the country): `none` (today, everywhere),
+`web` (open the Stripe checkout, only where the store allows it) and `store` (in-app purchase). Switching a region on is a flag, not a redesign.
+
+### B1. Switching payments on — two builds, in this order
+
+**B1a, Stripe link-out where allowed (small)**: a « Subscribe » button in the phone app that opens the existing checkout in the system browser, only for the regions whose capability is `web`; the app asks the server
+to confirm entitlements on return; the commission reports to Apple and Google are an owner and accounting step. No new server provider.
+
+**B1b, in-app purchase (large)**
 
 **Server** (`kybernos-server`, `src/modules/billing`): two new providers next to `stripe/`, `apple` and `google`.
 - Verify the store's signed transaction (Apple: App Store Server API and signed transactions; Google: Play Developer API with the purchase token), keep a subscription row with
@@ -66,8 +87,9 @@ the web payment page; the hidden controls come back one by one, only when the pr
 ### D. Open decisions
 
 1. **Native StoreKit and Play Billing with our own validation** (my pick, awaiting the owner) or a purchase service such as RevenueCat. For a handful of products (Team solo, monthly and yearly) the native build is a few weeks and keeps the server the only authority over entitlements, with no new vendor in the payment path, no extra SDK in the app (privacy manifest, data-collection disclosure) and no revenue share. RevenueCat saves roughly one to two weeks and handles the stores' edge cases (grace period, billing retry, refunds, restore, cross-platform), at the price of a new subprocessor to declare (the server has a register), a fee after the free tier (about 1 % of tracked revenue, to check), a vendor between the stores and our entitlements, and our server still has to take its webhooks. The seam in B0 makes the choice reversible.
-2. One price everywhere or a higher price in the apps to absorb the commission.
-3. Whether the desktop wizard also puts the account first (the mockup only decides the phone app).
+2. **Where Team is sold from the app, and by which route**: Stripe link-out only in the regions that allow it (no in-app purchase at all at first, Team simply not shown elsewhere), or Stripe link-out plus in-app purchase everywhere. The first is much less to build; the second is the only way to sell to iPhones worldwide.
+3. One price everywhere or a higher price in the apps to absorb the commission.
+4. Whether the desktop wizard also puts the account first (the mockup only decides the phone app).
 
 ## Order and sizes (rough estimates, not commitments)
 
@@ -75,7 +97,8 @@ the web payment page; the hidden controls come back one by one, only when the pr
 |---|---|---|---|
 | A | Account first, free plan, deletion link, own keys, Team without a button | about a week with tests | nothing; consent text legal read |
 | B0 | The contract, one gate for paid controls, owner steps started | days of the owner's time, no code that sells | enrolment, agreements, bank and tax forms (C), in parallel with A |
-| B1 | Server providers, native purchase module, bridge, restore; switch on | two to four weeks (estimate) | the consoles ready, products, a decision on D |
+| B1a | Stripe checkout opened from the app where the store allows it, capability per region | days (estimate) | the commission and reporting set up in the store consoles; a read of the current rules |
+| B1b | Server providers, native purchase module, bridge, restore; switch on | two to four weeks (estimate) | the consoles ready, products, a decision on D |
 | Review | TestFlight external review, Play internal testing | days of waiting | the submissions |
 
 Test plan for B1: StoreKit configuration file and sandbox testers on iOS, license testers on Android, signed-transaction fixtures on the server (unit), a stubbed store in the app's emulator tests,
