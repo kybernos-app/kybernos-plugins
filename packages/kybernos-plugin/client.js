@@ -11571,26 +11571,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
     const KybersTeamInfo = (props) => {
       const s = useStore()
       React.useEffect(() => { if (state.data === null && state.loading === false) load() }, [])
-      const data = s.data
-      let kyber = null
-      if (data !== null && data !== undefined && typeof s.detailPath === 'string') {
-        for (const root of data.roots || []) {
-          for (const k of root.kybers || []) { if (k.file === s.detailPath) { kyber = k; break } }
-          if (kyber !== null) break
-        }
-      }
-      if (kyber === null) return h('div', { className: 'kbg-root' },
-        h('button', { type: 'button', className: 'kbg-back', onClick: () => set({ view: 'gallery' }) }, '← ' + kbt('kbui.team.backall')),
-        h('div', { className: 'kbg-empty' }, kbt('ui.teamnotfound')))
-      const ui = (kyber.ui !== null && kyber.ui !== undefined) ? kyber.ui : {}
-      const dname = (typeof ui.name === 'string' && ui.name.length > 0) ? ui.name : kyber.id
-      const roles = kyber.roles || []
-      let okCount = 0
-      for (const r of roles) { if (r.probeOk === true) okCount += 1 }
-      const b = (kyber.budget !== null && kyber.budget !== undefined) ? kyber.budget : {}
-      const budgetTxt = (typeof b.total === 'number') ? fmtEur(b.total, b.currency) : null
-      const stages = (kyber.stages || []).map((st) => st.id).join(', ')
-      const sid = sessionForKyber(null, kyber)
+      // The hooks come before the early return below: when the team is not found, or found again, the component keeps the same hooks (React error #300 / #310).
       const livePair = React.useState({ state: 'init', members: null })
       const live = livePair[0]
       const setLive = livePair[1]
@@ -11611,6 +11592,26 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         run()
         return () => { dead = true }
       }, [])
+      const data = s.data
+      let kyber = null
+      if (data !== null && data !== undefined && typeof s.detailPath === 'string') {
+        for (const root of data.roots || []) {
+          for (const k of root.kybers || []) { if (k.file === s.detailPath) { kyber = k; break } }
+          if (kyber !== null) break
+        }
+      }
+      if (kyber === null) return h('div', { className: 'kbg-root' },
+        h('button', { type: 'button', className: 'kbg-back', onClick: () => set({ view: 'gallery' }) }, '← ' + kbt('kbui.team.backall')),
+        h('div', { className: 'kbg-empty' }, kbt('ui.teamnotfound')))
+      const ui = (kyber.ui !== null && kyber.ui !== undefined) ? kyber.ui : {}
+      const dname = (typeof ui.name === 'string' && ui.name.length > 0) ? ui.name : kyber.id
+      const roles = kyber.roles || []
+      let okCount = 0
+      for (const r of roles) { if (r.probeOk === true) okCount += 1 }
+      const b = (kyber.budget !== null && kyber.budget !== undefined) ? kyber.budget : {}
+      const budgetTxt = (typeof b.total === 'number') ? fmtEur(b.total, b.currency) : null
+      const stages = (kyber.stages || []).map((st) => st.id).join(', ')
+      const sid = sessionForKyber(null, kyber)
       return h('div', { className: 'kbg-root' },
         h('button', { type: 'button', className: 'kbg-back', onClick: () => set({ view: 'gallery' }) }, '← ' + kbt('kbui.team.backall')),
         h('div', { className: 'kb6-tinfo' },
@@ -13142,7 +13143,8 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       // porte en direct — mesuré le 23/09 : `session.blank` = true sur un chat
       // tout juste ouvert), le store des sessions sinon.
       const useSessions = (typeof p.useSessions === 'function') ? p.useSessions : null
-      const duStore = (useSessions !== null && sid !== '') ? useSessions((st) => {
+      // Called on every render, whatever the id (a hook that waits for the id changes the hook count when it arrives: React error #300 / #310).
+      const duStore = (useSessions !== null) ? useSessions((st) => {
         const s = (st !== null && st !== undefined && st.byId !== null && st.byId !== undefined) ? st.byId[sid] : null
         return (s !== null && s !== undefined && s.blank === true) ? '1' : '0'
       }) : '0'
@@ -25099,6 +25101,17 @@ function renderScene(ctx, W, H, bricks, cam, opts){
     }
     const ManifestView = (props) => {
       const team = (props !== null && props !== undefined) ? props.team : null
+      // The hooks come before the early return: a team that appears after the first render keeps the same hooks (React error #310).
+      const openPair = React.useState({ mission: true, crew: true, skills: true, workflow: true, provenance: false })
+      const open = openPair[0]
+      const setOpen = openPair[1]
+      const openRolesPair = React.useState({})
+      const openRoles = openRolesPair[0]
+      const setOpenRoles = openRolesPair[1]
+      const queryPair = React.useState({})
+      const draftQuery = queryPair[0]
+      const setDraftQuery = queryPair[1]
+      React.useEffect(() => { try { if (typeof kbPricesLoad === 'function') kbPricesLoad() } catch (e) { /* tarifs optionnels */ } try { if (typeof document !== 'undefined' && typeof kbAaLoad === 'function') kbAaLoad() } catch (e2) { /* AA optionnel */ } return undefined }, [])
       if (team === null) return null
       const editable = props.editable === true
       const rolesDraft = editable === true && props.rolesDraft !== null && props.rolesDraft !== undefined && typeof props.rolesDraft === 'object' ? props.rolesDraft : null
@@ -25117,16 +25130,10 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       const onLook = (typeof props.onLook === 'function') ? props.onLook : null
       const lookDeMv = (typeof props.lookDe === 'function') ? props.lookDe : ((id, rang) => kbLookDeRole(id, rang))
       const imgModelMv = (typeof props.imgModel === 'string' && props.imgModel.length > 0) ? props.imgModel : null
-      const openPair = React.useState({ mission: true, crew: true, skills: true, workflow: true, provenance: false })
-      const open = openPair[0]
-      const setOpen = openPair[1]
       const roles = Array.isArray(team.roles) ? team.roles : []
       const stages = Array.isArray(team.stages) ? team.stages : []
       const skills = Array.isArray(team.skillsDeclared) ? team.skillsDeclared : (Array.isArray(team.skills) ? team.skills : [])
-      const openRolesPair = React.useState({})
-      const openRoles = openRolesPair[0]
-      const setOpenRoles = openRolesPair[1]
-      const card = { background: 'var(--dsw-alias-bg-layer-1)', border: '1px solid var(--dsw-alias-border-l1)', borderRadius: '16px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }
+      const card ={ background: 'var(--dsw-alias-bg-layer-1)', border: '1px solid var(--dsw-alias-border-l1)', borderRadius: '16px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }
       const selStyle = { height: '38px', border: '1px solid var(--dsw-alias-border-l1)', borderRadius: '10px', background: 'var(--dsw-alias-bg-layer-1)', padding: '0 10px', fontSize: '13px', color: 'var(--dsw-alias-label-primary)', outline: 'none', minWidth: 0, flex: 1, fontFamily: 'inherit' }
       const labStyle = { display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: '140px' }
       const labTxt = { fontSize: '11px', color: 'var(--dsw-alias-label-secondary)' }
@@ -25138,10 +25145,6 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         setRolesDraft(Object.assign({}, rolesDraft, { [r.id]: Object.assign({}, base, patch) }))
       }
       const providerNames = catalog !== null ? Object.keys(catalog).sort() : []
-      const queryPair = React.useState({})
-      const draftQuery = queryPair[0]
-      const setDraftQuery = queryPair[1]
-      React.useEffect(() => { try { if (typeof kbPricesLoad === 'function') kbPricesLoad() } catch (e) { /* tarifs optionnels */ } try { if (typeof document !== 'undefined' && typeof kbAaLoad === 'function') kbAaLoad() } catch (e2) { /* AA optionnel */ } return undefined }, [])
       const crewRows = roles.map((r, roleIdx) => {
         const d = rolesDraft !== null && rolesDraft[r.id] !== undefined ? rolesDraft[r.id] : null
         const prov = d !== null ? d.provider : (r.provider || '')
@@ -26838,7 +26841,8 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       const p = (props !== null && props !== undefined) ? props : {}
       const sid = (typeof p.sessionId === 'string') ? p.sessionId : ''
       const useSessions = (typeof p.useSessions === 'function') ? p.useSessions : null
-      const duStore = (useSessions !== null && sid !== '') ? useSessions((st) => {
+      // Hooks are called on every render, whatever the id: a hook called only once the id is known changes the count when it arrives (React error #300 / #310).
+      const duStore = (useSessions !== null) ? useSessions((st) => {
         const x = (st !== null && st !== undefined && st.byId !== null && st.byId !== undefined) ? st.byId[sid] : null
         return (x !== null && x !== undefined && x.blank === true) ? '1' : '0'
       }) : '0'
@@ -26862,15 +26866,8 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         try { window.addEventListener('kb-kyby-session', again); window.addEventListener('kb-domain-change', again) } catch (e) { return undefined }
         return () => { try { window.removeEventListener('kb-kyby-session', again); window.removeEventListener('kb-domain-change', again) } catch (e) { /* gone */ } }
       }, [])
-      if (blank !== '1') return null
-      // Kaby's own chat is not a place to start building: its strip is all that sits above the composer.
-      try { if (window.__KB_KYBER__ && typeof window.__KB_KYBER__.isKybySession === 'function' && window.__KB_KYBER__.isKybySession(sid) === true) return null } catch (e) { /* the cards stay */ }
-      const groups = kbNcSlider(kbNcBootIds(), kbDomainHome())
-      const offered = []
-      groups.forEach((g) => g.templates.forEach((t) => offered.push(t.id)))
       // The text in the composer, as the dock entry receives it: the template it sounds like is lit (never sent, never changed).
       const draft = (p.input !== null && p.input !== undefined && typeof p.input.draft === 'string') ? p.input.draft : ''
-      const match = kbNcDetect(draft, offered)
       // The chip goes when the box, once filled, is emptied (the text is the thing the chip stands for).
       React.useEffect(() => {
         if (draft.trim() !== '') choArmed.current = true
@@ -26878,6 +26875,14 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       }, [draft])
       // A new blank chat starts clean: no chip, nothing the page wrote.
       React.useEffect(() => { setChosen(null); ownRef.current = ''; choArmed.current = false }, [sid])
+      // Every hook is above this line: once the first message is sent the component is still mounted and must call the same hooks as before (React error #300).
+      if (blank !== '1') return null
+      // Kaby's own chat is not a place to start building: its strip is all that sits above the composer.
+      try { if (window.__KB_KYBER__ && typeof window.__KB_KYBER__.isKybySession === 'function' && window.__KB_KYBER__.isKybySession(sid) === true) return null } catch (e) { /* the cards stay */ }
+      const groups = kbNcSlider(kbNcBootIds(), kbDomainHome())
+      const offered = []
+      groups.forEach((g) => g.templates.forEach((t) => offered.push(t.id)))
+      const match = kbNcDetect(draft, offered)
       const knownTpl = KB_NC_TEMPLATES.map((t) => kbt('kbnc.p.' + t.id))
       // A template fills the composer and never sends. The person's own words stay (see kbNcFill).
       const prefill = (id) => {
