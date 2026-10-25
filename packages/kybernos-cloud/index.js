@@ -1038,8 +1038,19 @@ const readProfile = async (cause) => {
   }
   return { ok: true, connected: true, state: publicState(readState()), models, ...(import_error !== undefined ? { import_error } : {}) }
 }
-/** Route: read the profile, the workspaces and the active space's plan again. */
-const refreshProfile = () => readProfile('refresh')
+/** Route: read the profile, the workspaces and the active space's plan again. The page that asks on a timer or a focus (the footer: a role changed, a removal, a team joined elsewhere) says
+ *  `max_age_ms`: a read younger than that is not repeated, so several windows, or a focus event after a timer, cost the server one read, not one each. A page that wants the truth
+ *  now (the open Cloud window, after a payment) says nothing and always reads. */
+const REFRESH_MAX_AGE_CEILING_MS = 10 * 60 * 1000
+const refreshProfile = (req, body) => {
+  const asked = body !== null && typeof body === 'object' ? Number(body.max_age_ms) : 0
+  if (Number.isFinite(asked) && asked > 0) {
+    const state = readState()
+    const at = isConnected(state) && typeof state.refreshed_at === 'string' ? Date.parse(state.refreshed_at) : NaN
+    if (Number.isFinite(at) && Date.now() - at >= 0 && Date.now() - at < Math.min(asked, REFRESH_MAX_AGE_CEILING_MS)) return Promise.resolve({ ok: true, connected: true, state: publicState(state), skipped: true })
+  }
+  return readProfile('refresh')
+}
 
 // ── Keeping the account's picture current ─────────────────────────────────────────────────────────────────────────────
 // The list of workspaces, the active one, its plan and the model route's `x-kybernos-workspace` are read at the claim and whenever a page asks
@@ -5571,7 +5582,7 @@ const ROUTES = [
   // invitation at the server for the token it is given, but a page is its only caller, so it follows the same rule (L3-04).
   { path: '/kybernos-cloud/invitation/preview', method: 'POST', guarded: true, strict: true, session: true, body: true, cap: 1024, run: invitationPreview },
   { path: '/kybernos-cloud/invitation/accept', method: 'POST', guarded: true, strict: true, session: true, body: true, cap: 1024, run: invitationAccept },
-  { path: '/kybernos-cloud/refresh', method: 'POST', guarded: true, session: true, run: refreshProfile },
+  { path: '/kybernos-cloud/refresh', method: 'POST', guarded: true, session: true, body: true, cap: 1024, run: refreshProfile },
   // `disconnect` revokes the session on the server side: irreversible. A bare POST
   // (campaign finding: `curl -X POST /kybernos-cloud/disconnect`) was enough to
   // trigger it. It now needs an EXPLICIT body `{confirm:true}`.

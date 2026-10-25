@@ -834,6 +834,87 @@ ok('selecteur d equipe : route du choix, evenement d ouverture, message d equipe
     }
     ok('footer: a pairing that ends refused or expired is said in a notice and in the row, without the card being open')
   }
+
+  // 4. L2-05 — a role changed, a removal, a team joined or left on the web used to reach DSH up to five minutes late: the host reads the SERVER every five minutes by itself and this
+  // window only read the host's local /status. The window now asks the host to read the account (POST /refresh): every 30 s while it is visible, when it comes back into view,
+  // after the team actions it makes; never two within the gap, never two at once, never while signed out.
+  {
+    const connected = { ok: true, connected: true, state: { user: { email: 'dev@example.test', plan: 'team' }, workspaces: [{ id: 'ws-1', name: 'My workspace', personal: true }, { id: 'ws-2', name: 'Acme', personal: false, role: 'member' }], active_workspace_id: 'ws-2', space_plan: { workspace_id: 'ws-2', key: 'team', label: 'Team' } } }
+    const docListeners = []
+    const winListeners = []
+    const realDocAdd = doc.addEventListener
+    const realWinAdd = globalThis.window.addEventListener
+    doc.addEventListener = (type, fn) => { docListeners.push({ type, fn }) }
+    globalThis.window.addEventListener = (type, fn) => { winListeners.push({ type, fn }) }
+    doc.visibilityState = 'visible'
+    const realNow = Date.now
+    let clock = realNow()
+    Date.now = () => clock
+    const asked = []
+    status = connected
+    globalThis.fetch = async (url, init) => {
+      const path = new URL(String(url), 'http://localhost').pathname.replace(/^.*\/kybernos-cloud/, '')
+      asked.push((init && init.method ? init.method : 'GET') + ' ' + path + (init && init.body ? ' ' + init.body : ''))
+      if (path === '/refresh') return { ok: true, status: 200, json: async () => ({ ok: true, connected: true, state: connected.state }) }
+      if (path === '/status') return { ok: true, status: 200, json: async () => connected }
+      return { ok: true, status: 200, json: async () => ({ ok: false }) }
+    }
+    const refreshes = () => asked.filter((c) => c.startsWith('POST /refresh'))
+    intervals.length = 0
+    const { root } = await draw(30)
+    assert.deepEqual(refreshes(), [], 'drawing the footer reads the host\'s local state only: no read of the server')
+    const timer = intervals.filter((i) => i.ms === 30000)
+    assert.equal(timer.length, 1, 'one 30-second timer')
+    // The 30-second timer: the host is asked to read the account, saying how old a read it may skip.
+    await act(async () => { await timer[0].fn(); await new Promise((r) => setTimeout(r, 20)) })
+    assert.equal(refreshes().length, 1, 'the timer asks the host to read the account: ' + JSON.stringify(refreshes()))
+    assert.equal(JSON.parse(refreshes()[0].replace('POST /refresh ', '')).max_age_ms, 25000, 'with the age of a read it may skip (several windows cost the server one read)')
+    assert.ok(asked.lastIndexOf('GET /status') > asked.indexOf(refreshes()[0]), 'and the local state is read again after it: the row follows')
+    // A focus right after the timer: nothing more (bounded).
+    const focus = winListeners.filter((l) => l.type === 'focus')
+    assert.ok(focus.length >= 1 && docListeners.some((l) => l.type === 'visibilitychange'), 'the window listens to focus and visibilitychange')
+    clock += 5000
+    await act(async () => { for (const l of focus) await l.fn(); await new Promise((r) => setTimeout(r, 20)) })
+    assert.equal(refreshes().length, 1, 'a focus 5 s after the last read asks nothing more')
+    // Past the gap: a focus asks again, and three at once make one.
+    clock += 30000
+    await act(async () => { await Promise.all([...focus.map((l) => l.fn()), ...focus.map((l) => l.fn()), timer[0].fn()]); await new Promise((r) => setTimeout(r, 30)) })
+    assert.equal(refreshes().length, 2, 'past the gap a focus asks again, and simultaneous events make one read: ' + refreshes().length)
+    // A window that is hidden asks nothing.
+    clock += 60000
+    doc.visibilityState = 'hidden'
+    await act(async () => { await timer[0].fn(); for (const l of focus) await l.fn(); await new Promise((r) => setTimeout(r, 20)) })
+    assert.equal(refreshes().length, 2, 'a hidden window asks nothing')
+    doc.visibilityState = 'visible'
+    // A failed turn that shows DSH's teams are out of date (the row of a turn) tells the footer: it asks at once, within the short gap of an action.
+    const changed = winListeners.filter((l) => l.type === 'kybernos-cloud:profile-changed')
+    assert.equal(changed.length, 1, 'the footer listens for a profile that changed under it')
+    await act(async () => { await changed[0].fn(); await new Promise((r) => setTimeout(r, 20)) })
+    assert.equal(refreshes().length, 3, 'and reads the account again at once')
+    assert.equal(JSON.parse(refreshes()[2].replace('POST /refresh ', '')).max_age_ms, 3000)
+    root.unmount()
+    // Signed out: nothing to read.
+    status = { ok: true, connected: false, status: 'none' }
+    globalThis.fetch = async (url, init) => {
+      const path = new URL(String(url), 'http://localhost').pathname.replace(/^.*\/kybernos-cloud/, '')
+      asked.push((init && init.method ? init.method : 'GET') + ' ' + path)
+      return { ok: true, status: 200, json: async () => (path === '/status' ? status : { ok: false }) }
+    }
+    asked.length = 0
+    clock += 120000
+    intervals.length = 0
+    const out = await draw(30)
+    const t2 = intervals.filter((i) => i.ms === 30000)
+    await act(async () => { for (const i of t2) await i.fn(); await new Promise((r) => setTimeout(r, 20)) })
+    assert.deepEqual(refreshes(), [], 'signed out: the host is not asked to read an account that is not there')
+    out.root.unmount()
+    Date.now = realNow
+    doc.addEventListener = realDocAdd
+    globalThis.window.addEventListener = realWinAdd
+    delete doc.visibilityState
+    ok('footer: the window asks the host to read the account every 30 s while visible and on focus (bounded, de-duplicated, never hidden or signed out), and after a failed turn says the teams are out of date')
+  }
+
   globalThis.window.setInterval = realSetInterval
 }
 
@@ -868,9 +949,9 @@ ok('selecteur d equipe : route du choix, evenement d ouverture, message d equipe
   const events = []
   const realDispatch = globalThis.window.dispatchEvent
   globalThis.window.dispatchEvent = (ev) => { events.push(ev.type + (ev.detail ? ':' + JSON.stringify(ev.detail) : '')); return true }
-  const draw = async (props, quota) => {
+  const draw = async (props, quota, fetchFn) => {
     seen.length = 0
-    globalThis.fetch = async (url) => ({ ok: true, status: 200, json: async () => (String(url).includes('/quota') ? quota : { ok: false }) })
+    globalThis.fetch = fetchFn !== undefined ? fetchFn : async (url) => ({ ok: true, status: 200, json: async () => (String(url).includes('/quota') ? quota : { ok: false }) })
     const el = element(doc)
     const root = ReactClient.createRoot(el)
     await act(async () => { root.render(createElement(Row, props)); await new Promise((r) => setTimeout(r, 20)) })
@@ -922,6 +1003,34 @@ ok('selecteur d equipe : route du choix, evenement d ouverture, message d equipe
       assert.ok(!d.html.includes('turn-error-action'))
       d.root.unmount()
     }
+  }
+  // 4b. L2-05 — a person removed from a team (or who left it) sends a message before DSH has read the account: the server answers 404 `workspace_not_found` and the engine wrote its raw body.
+  // The row says what happened in a sentence, asks the host to read the account at once (it then falls back to a space the person is in) and tells the footer; an old row of a chat's history is
+  // worded and never acted on.
+  {
+    const raw = '404: {"message":"No such workspace in `x-kybernos-workspace`.","type":"invalid_request_error","param":null,"code":"workspace_not_found"}'
+    const asked = []
+    const fetchFn = async (url, init) => {
+      const path = new URL(String(url), 'http://localhost').pathname.replace(/^.*\/kybernos-cloud/, '')
+      asked.push((init && init.method ? init.method : 'GET') + ' ' + path)
+      return { ok: true, status: 200, json: async () => (path === '/refresh' ? { ok: true, connected: true, state: { workspaces: [{ id: 'p', name: 'My workspace', personal: true }], active_workspace_id: 'p' } } : { ok: false }) }
+    }
+    events.length = 0
+    const fresh = await draw({ node: node({ code: 'INVALID_REQUEST', message: raw, time: Date.now() }), t: T }, { ok: false }, fetchFn)
+    const shown = seen[seen.length - 1].node.data
+    assert.equal(shown.message, 'You are no longer in the team this chat was billed to, so the message was not sent. DSH is now in Personal: send it again.', 'a sentence, naming where DSH is now')
+    assert.equal(shown.code, undefined, 'no INVALID_REQUEST badge next to it')
+    assert.equal(fresh.html.includes('workspace_not_found') || fresh.html.includes('{"message"'), false, 'no raw JSON on screen')
+    assert.ok(asked.includes('POST /refresh'), 'the host is asked to read the account at once')
+    assert.ok(events.includes('kybernos-cloud:profile-changed'), 'and the footer is told')
+    // Before the host has answered, the sentence is the one that names nobody.
+    assert.ok(seen.some((p) => p.node.data.message === 'You are no longer in the team this chat was billed to, so the message was not sent. DSH is updating your teams: send it again in a moment.'), 'the first draw has a sentence too')
+    fresh.root.unmount()
+    asked.length = 0
+    const older = await draw({ node: node({ code: 'INVALID_REQUEST', message: raw, time: Date.now() - 3 * 60 * 60 * 1000 }), t: T }, { ok: false }, fetchFn)
+    assert.deepEqual(asked, [], 'an old row only words what happened: it does not read the account again')
+    assert.ok(seen[seen.length - 1].node.data.message.startsWith('You are no longer in the team'))
+    older.root.unmount()
   }
   // 5. The slot's owner goes away (or the plugin is unloaded): the wrapper is withdrawn, the shipped row alone is left.
   assert.ok(typeof disposeInject === 'function', 'the registration is disposable')
