@@ -958,6 +958,7 @@ const catalogChanged = async (state, known) => {
   if (cat.ok !== true) return false
   const key = (ids) => ids.slice().sort().join('\n')
   return key(known.ids) !== key(cat.models.map((e) => e.id)) || (known.embed === undefined || known.embed === null ? null : known.embed) !== (cat.embed === undefined || cat.embed === null ? null : cat.embed)
+    || creationKey(known.creation).join('\n') !== creationKey(cat.creation).join('\n')
 }
 
 /** The server's own error envelope (`{ error: 'unauthorized', message, request_id }`), as opposed to JSON some intermediary wrote. */
@@ -1182,14 +1183,38 @@ const modelEntry = (id, info) => {
  *  (`kybernos/*` twins, `_rg` pools, raw backend ids) are told apart by having no `kind`: they keep the filter below. */
 const isServerCatalog = (entries) => entries.length > 0 && entries.every((e) => typeof e.kind === 'string')
 
+/** The server's creation models (kind `image`, `video` or `speech`) are kept APART from the chat route, like the embeddings model: DSH's chat
+ *  picker lists every model of a route and a picture or a video model is not a chat model, so they never go in `providers.kybernos.models`.
+ *  The Models page reads them from `GET /kybernos-cloud/models` (read-only: nothing to configure and no key to paste). `unit_pricing` is
+ *  `{ unit, usd }`, the price of ONE unit as the server writes it; a price that does not read is left out, never guessed. */
+const CREATION_KINDS = ['image', 'video', 'speech']
+const CREATION_UNITS = ['image', 'second', 'thousand_characters']
+const MAX_CREATION = 200
+const creationEntry = (e) => {
+  if (CREATION_KINDS.indexOf(e.kind) < 0) return null
+  const id = typeof e.id === 'string' ? e.id.trim() : ''
+  if (id === '' || id.length > 120) return null
+  const up = e.unit_pricing !== null && typeof e.unit_pricing === 'object' && Array.isArray(e.unit_pricing) === false ? e.unit_pricing : null
+  const priced = up !== null && CREATION_UNITS.indexOf(up.unit) >= 0 && typeof up.usd === 'string' && /^\d{1,6}(?:\.\d{1,6})?$/.test(up.usd)
+  const shown = typeof e.display_name === 'string' && e.display_name.trim() !== '' ? e.display_name.trim().slice(0, 80) : id
+  return { id, name: shown, kind: e.kind, unit: priced ? up.unit : null, usd: priced ? up.usd : null }
+}
+/** Sorted `id|kind|unit|usd` lines: what the comparison of two catalogues looks at. */
+const creationKey = (list) => (Array.isArray(list) ? list : []).map((c) => [c.id, c.kind, c.unit, c.usd].join('|')).sort()
+
 const serverCatalog = (entries) => {
   const chat = []
+  const creation = []
   let embed = null
   for (const entry of entries) {
     if (entry.kind === 'chat') chat.push(entry)
     else if (entry.kind === 'embeddings' && embed === null) embed = entry.id
+    else if (creation.length < MAX_CREATION) {
+      const c = creationEntry(entry)
+      if (c !== null) creation.push(c)
+    }
   }
-  return { models: chat.map((e) => modelEntry(e.id, e)), embed }
+  return { models: chat.map((e) => modelEntry(e.id, e)), embed, creation }
 }
 
 /** Accepted shapes: `{data: [{id, …}]}` (native LiteLLM, or Kybernos server with `kind`) or `{models: {id: …}}`
@@ -1206,10 +1231,10 @@ const parseCatalogIds = (body) => {
       infos.set(entry.id, entry)
     }
     const kept = keepChatModels(ids)
-    return { models: kept.map((id) => modelEntry(id, infos.get(id))), embed: null }
+    return { models: kept.map((id) => modelEntry(id, infos.get(id))), embed: null, creation: [] }
   }
   if (body.models !== null && typeof body.models === 'object' && Array.isArray(body.models) === false) {
-    return { models: keepChatModels(Object.keys(body.models)).map((id) => modelEntry(id, body.models[id])), embed: null }
+    return { models: keepChatModels(Object.keys(body.models)).map((id) => modelEntry(id, body.models[id])), embed: null, creation: [] }
   }
   return null
 }
@@ -1224,7 +1249,7 @@ const fetchCatalog = async (state) => {
   }
   const parsed = parseCatalogIds(res.body)
   if (parsed === null) return { ok: false, error: 'catalogue_illisible', status: res.status }
-  return { ok: true, models: parsed.models, embed: parsed.embed }
+  return { ok: true, models: parsed.models, embed: parsed.embed, creation: parsed.creation }
 }
 
 /** The workspace a model call is billed to is named by the CALLER (`x-kybernos-workspace`); without it the server bills the person's PERSONAL
@@ -1251,12 +1276,13 @@ const providerValue = (state, entries) => {
 }
 
 /** Already imported identically? (comparison of sorted ids + plan + base) */
-const catalogFingerprint = (state, entries, plan, embed, space) => JSON.stringify([
+const catalogFingerprint = (state, entries, plan, embed, space, creation) => JSON.stringify([
   baseUrl(state),
   plan,
   entries.map((e) => e.id).slice().sort(),
   embed === undefined || embed === null ? null : embed,
   typeof space === 'string' ? space : null,
+  creationKey(creation),
 ])
 
 /** Import (or refresh): catalogue → settings → credential → state.
@@ -1284,7 +1310,7 @@ const importCatalog = async (cause, options = {}) => {
     && known.settings === true && known.credential === true
     && known.plan === plan && known.base_url === baseUrl(state)
     && Array.isArray(known.ids) === true
-    && catalogFingerprint(state, known.ids.map((id) => ({ id })), plan, known.embed, known.workspace) === catalogFingerprint(state, cat.models, plan, cat.embed, espaceActif(state))) {
+    && catalogFingerprint(state, known.ids.map((id) => ({ id })), plan, known.embed, known.workspace, known.creation) === catalogFingerprint(state, cat.models, plan, cat.embed, espaceActif(state), cat.creation)) {
     if (appliedServerId() === null) markApplied()   // an install from before servers existed: this route is the active server's
     return { ok: true, connected: true, current: true, summary: publicModels(known) }
   }
@@ -1298,6 +1324,7 @@ const importCatalog = async (cause, options = {}) => {
     count: cat.models.length,
     ids: cat.models.map((e) => e.id),
     embed: cat.embed,
+    creation: cat.creation,
     // The space this route names on every call (and whose catalogue it lists): a later refresh compares it with the active one.
     workspace: espaceActif(state),
     provider: PROVIDER_ID,
@@ -1377,6 +1404,8 @@ const publicModels = (models) => {
     count: typeof models.count === 'number' ? models.count : 0,
     ids: Array.isArray(models.ids) ? models.ids.slice() : [],
     embed: typeof models.embed === 'string' ? models.embed : null,
+    // Pictures, videos and voices (see `creationEntry`): listed on the Models page, never in the chat route.
+    creation: Array.isArray(models.creation) ? models.creation.slice() : [],
     settings: models.settings === true,
     credential: models.credential === true,
     cause: models.cause !== undefined ? models.cause : null,
