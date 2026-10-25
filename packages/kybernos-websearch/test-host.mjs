@@ -6,6 +6,11 @@ import { tmpdir } from 'node:os'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { Readable } from 'node:stream'
+import { sessionSource } from './session-guard.mjs'
+import { SESSION_SECRET, sessionCookie } from './lib-session-test.mjs'
+
+// The four POST routes need the signed session as well as the Origin (L3-20): the Settings page's own request carries both.
+sessionSource.secret = () => SESSION_SECRET
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const home = mkdtempSync(join(tmpdir(), 'kb-websearch-'))
@@ -90,7 +95,7 @@ const fakeRes = () => {
   return res
 }
 const call = async (path, req) => { const res = fakeRes(); await route(path).handler(req, res); return { status: res.status, json: res.body ? JSON.parse(res.body) : null } }
-const SAME = { host: '127.0.0.1:3080', origin: 'http://127.0.0.1:3080' }
+const SAME = { host: '127.0.0.1:3080', origin: 'http://127.0.0.1:3080', cookie: sessionCookie('127.0.0.1:3080') }
 
 let out = await call(ROUTES.state, fakeReq('GET', { host: '127.0.0.1:3080' }))
 ok('GET state answers the state', out.status === 200 && out.json.ok === true && out.json.engines.length === 15)
