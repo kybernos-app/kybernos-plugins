@@ -51,7 +51,9 @@ in 7 families. Installed state and switches come from DSH's native plugin manage
 
 ## Host routes
 
-Same-origin only: a POST needs an `Origin` or `Referer` of the local server; a GET may carry none.
+Same-origin only: a POST needs an `Origin` or `Referer` of the local server; a GET may carry none. Every POST except the boot beacon also needs DSH's signed session cookie
+(`session-guard.mjs`, `test-write-guard.mjs`, `docs/dev/route-origin-rule.md`): 401 without it, and 403 `refused_on_phone` through the phone link. The Suite panel and Maintenance send it by themselves.
+The beacon stays at the Origin alone: it is the crash detector and must not depend on the session it exists to survive.
 
 | Route | Purpose |
 |---|---|
@@ -84,7 +86,7 @@ browser (needs Playwright and React 18; skipped otherwise).
 ## Engine fix route
 
 `POST /kybernos-hub/engine { confirm: true, version }` puts the DSH engine on a version this plugin was TESTED with, in one click (the
-*Fix automatically* button of the update dialog). Strict same-origin JSON POST, explicit confirmation, 202 then the shared
+*Fix automatically* button of the update dialog). Strict same-origin JSON POST with the session cookie, explicit confirmation, 202 then the shared
 `GET /kybernos-hub/update/status` (`etat: installation | termine | echec`, `moteur: true`). The version is accepted only when it lies inside
 the `min`..`max` zone of the shipped `dsh-compat.json` (`409 outside-tested-zone` otherwise, nothing runs; `400 bad-version` for anything that is
 not a plain version; `409 hosted-instance` on a server or container; `409 busy`). The work is `deps.executer(['upgrade', version])`: the lifecycle
