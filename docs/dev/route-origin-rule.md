@@ -144,3 +144,22 @@ Proposal: the session cookie on the chat-content group first (`search-content`, 
 `quality-*`), then on the paths group. Two things to settle before: `kybernos-dashboards` fetches `/kybernos/load`, `/runs-index` and `/kybernos-skills/skills` from its page
 (fine: the browser sends the cookie), but `kybernos-call` reads `/kybernos/voice/config` and `/voice-sample-audio` from its **host** over loopback with no cookie, so those two
 stay as they are or the call host learns to send the cookie; and `/kybernos/onboarding` is read by `scripts/sandbox/setup.sh`.
+
+## Files a page reads, files a page is served (recette 2026-10-25, L3-07 and L3-08)
+
+Two rules that the Origin and the cookie do not give, because the answer is a person's **file** and the browser or a local program asks for it.
+
+**Reading a file of a project.** `/kybernos/art-read`, `/art-previews` and `/art-raw` check the path with `cheminAutorise(path, { strict: true })`, like `/art-load`:
+the readable roots are the session's `kybers` folder, the plugin's repository and the **registered projects** (`ctx.workspaceRegistry`: every folder a session ran in).
+`sandbox.workspaceRoot`, the folder `dsh web` was started from (often the home), is **not** a root: it made the session secret, a `.env` and an SSH key readable with no
+header and no cookie. The three routes take the extension allow-list of `/art-raw` (an image or a deliverable of `ARTIFACT_EXTS`), and `cheminAutorise` refuses, in any
+mode, a path that goes through `.credentials*`, `.env*` or `.ssh` below the root that let it in. A session whose project was removed from the sidebar is no longer a
+registered project, so its files are not readable by these routes. How `dsh web` is launched is not changed (zero engine patches).
+
+**Serving a file of a project.** `/kybernos/avatar`, `/member-avatar`, `/voice-sample-audio` and Kaby's `/portrait` answer through `sendUserFile` of
+`serve-user-file.mjs` (a copy in each of the two bundles; `scripts/test-serve-user-file.mjs` keeps them identical). A script that runs from such an answer runs in DSH's
+origin with the person's cookie, so: the type is read from the first bytes and only from a fixed list (png, jpeg, webp, gif; wav, mpeg, mp4, webm, ogg, flac), never from the
+project's index; those are inline; everything else (an HTML page, bytes nobody recognises) is `application/octet-stream` and a download (`content-disposition: attachment`); an SVG
+keeps `image/svg+xml` and is a download too, so the avatar picker still takes an SVG and an `<img>` still draws it (a browser never runs the script of an SVG used as an image,
+and `attachment` does not stop an `<img>`). Every answer says `x-content-type-options: nosniff` and `content-security-policy: default-src 'none'; sandbox`. The same test lists every
+route of the repository that computes a content type at run time, with the reason it is safe: a new one fails until it uses the helper or is classified.
