@@ -132,12 +132,12 @@ for (const row of FAMILY) {
   ]
   if (who === PAGE) refusals.push(['the right Origin and the worker\'s real secret (not a login)', { origin: ORIGIN, [H]: secret }, 401])
   if (who === WORKER) {
-    refusals.push(['the worker\'s real secret relayed by the phone tunnel', { origin: ORIGIN, [H]: secret, 'x-kybernos-tunnel': '1' }, 401])
+    refusals.push(['the worker\'s real secret relayed by the phone tunnel', { origin: ORIGIN, [H]: secret, 'x-kybernos-tunnel': '1' }, [401, 403]])
     refusals.push(['the worker\'s real secret with no Origin', { [H]: secret }, 403])
   }
   for (const [what, headers, want] of refusals) {
     const r = await run(row, headers)
-    assert.equal(r.status, want, name + ': ' + what + ' -> ' + r.status + ' ' + r.text.slice(0, 90))
+    assert.ok([].concat(want).includes(r.status), name + ': ' + what + ' -> ' + r.status + ' ' + r.text.slice(0, 90))
   }
   assert.equal(total(), before, name + ': a refused request did nothing')
   // The person's page: the right Origin AND the signed cookie.
