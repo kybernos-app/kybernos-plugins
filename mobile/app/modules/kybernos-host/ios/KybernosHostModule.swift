@@ -17,7 +17,7 @@ public class KybernosHostModule: Module {
             ]
         }
 
-        Function("start") { (port: Int) -> Bool in NodeHost.shared.start(port: port) }
+        Function("start") { (port: Int, env: [String: String]) -> Bool in NodeHost.shared.start(port: port, extraEnv: env) }
         Function("status") { () -> [String: Any] in NodeHost.shared.unpackStatus() }
         Function("exitCode") { () -> Int? in NodeHost.shared.currentExitCode().map { Int($0) } }
         Function("logTail") { (maxBytes: Int) -> String in NodeHost.shared.logTail(maxBytes: maxBytes) }

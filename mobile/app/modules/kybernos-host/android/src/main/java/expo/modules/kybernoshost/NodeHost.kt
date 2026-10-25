@@ -14,27 +14,28 @@ internal class NodeHost(private val context: Context, private val config: Launch
   private val home = File(support, "data")
   private val workspace = context.getExternalFilesDir("Kybernos") ?: File(support, "workspace")
   private val log = File(support, "node.log")
-  private val files = listOf("payload.kbpack", "payload.json", "bootstrap.mjs", "kbpack.mjs")
+  private val files = listOf("payload.kbpack", "payload.json", "bootstrap.mjs", "kbpack.mjs", "provider-seed.mjs")
   @Volatile private var started = false
   @Volatile private var failure: Int? = null
 
-  /** True when this call began the start. False when Node already runs or the build has no payload. The copy and the start happen on a thread of their own. */
+  /** True when this call began the start. False when Node already runs or the build has no payload. The copy and the start happen on a thread of their own.
+   *  `extraEnv` is what the app hands to the engine (the model key from the Keystore): plain upper-case names, never the app's own KB_* ones. */
   @Synchronized
-  fun start(port: Int): Boolean {
+  fun start(port: Int, extraEnv: Map<String, String>): Boolean {
     if (started) return false
     if (context.assets.list("")?.contains("payload.kbpack") != true) return false
     started = true
+    val allowed = extraEnv.filter { (k, v) -> Regex("^[A-Z][A-Z0-9_]{1,63}$").matches(k) && !k.startsWith("KB_") && v.isNotEmpty() }
     Thread({
-      try { launch(port) } catch (e: Throwable) { log.appendText("kybernos: start failed: $e\n"); failure = 1002 }
+      try { launch(port, allowed) } catch (e: Throwable) { log.appendText("kybernos: start failed: $e\n"); failure = 1002 }
     }, "node-launch").start()
     return true
   }
 
-  private fun launch(port: Int) {
+  private fun launch(port: Int, extraEnv: Map<String, String>) {
     for (d in listOf(support, boot, runtime, home, workspace)) d.mkdirs()
     log.writeText("")
     copyAssets()
-    SelfTestSupport.prepareProvider(config, home)
     val env = mutableListOf(
       "KB_PAYLOAD=${File(boot, "payload.kbpack")}", "KB_MANIFEST=${File(boot, "payload.json")}", "KB_ROOT=$runtime", "KB_HOME=$home",
       "KB_WORKSPACE=$workspace", "KB_PORT=$port", "TMPDIR=${context.cacheDir}", "HOME=$home",
@@ -42,6 +43,7 @@ internal class NodeHost(private val context: Context, private val config: Launch
     // a device that lets processes run can rehearse a phone that does not
     if (config.denySpawn) env.add("KYBERNOS_DENY_SPAWN=1")
     if (config.selfTestDelay != null && config.modelKey.isNotEmpty()) env.add("ANTHROPIC_API_KEY=${config.modelKey}")
+    for ((k, v) in extraEnv) env.add("$k=$v") // the Keystore's key comes last, so it wins over a test build's
     NodeNative.start(log.path, workspace.path, env.toTypedArray(), arrayOf("node", "--expose-internals", File(boot, "bootstrap.mjs").path))
   }
 

@@ -33,15 +33,19 @@ final class NodeHost {
         Bundle.main.path(forResource: name, ofType: ext) ?? Bundle(for: NodeHost.self).path(forResource: name, ofType: ext)
     }
 
+    /// Environment variables the app may hand to the engine (the model key from the Keychain): plain upper-case names, never the app's own KB_* ones.
+    static func allowedEnvironment(_ env: [String: String]) -> [String: String] {
+        env.filter { $0.key.range(of: #"^[A-Z][A-Z0-9_]{1,63}$"#, options: .regularExpression) != nil && !$0.key.hasPrefix("KB_") && !$0.value.isEmpty }
+    }
+
     /// Starts Node on a thread with a large stack. Returns false when the bundle lacks its files or Node already runs.
     @discardableResult
-    func start(port: Int) -> Bool {
+    func start(port: Int, extraEnv: [String: String]) -> Bool {
         lock.lock(); defer { lock.unlock() }
         guard !started else { return false }
         let fm = FileManager.default
         guard let payload = resource("payload", "kbpack"), let manifest = resource("payload", "json"), let bootstrap = resource("bootstrap", "mjs") else { return false }
         for dir in [paths.support, paths.runtime, paths.home, paths.workspace] { try? fm.createDirectory(at: dir, withIntermediateDirectories: true) }
-        SelfTestSupport.prepareProvider(home: paths.home)
         var runtimeURL = paths.runtime
         var values = URLResourceValues(); values.isExcludedFromBackup = true
         try? runtimeURL.setResourceValues(values)
@@ -54,6 +58,8 @@ final class NodeHost {
             "KB_PAYLOAD": payload, "KB_MANIFEST": manifest, "KB_ROOT": paths.runtime.path, "KB_HOME": paths.home.path,
             "KB_WORKSPACE": paths.workspace.path, "KB_PORT": String(port), "TMPDIR": NSTemporaryDirectory(),
         ]
+        for (k, v) in NodeHost.allowedEnvironment(SelfTestSupport.environment()) { setenv(k, v, 1) }
+        for (k, v) in NodeHost.allowedEnvironment(extraEnv) { setenv(k, v, 1) } // the Keychain's key wins over a test build's
         for (k, v) in env { setenv(k, v, 1) }
         // a simulator, unlike a phone, lets processes run: this switch refuses them to rehearse the phone
         if let deny = ProcessInfo.processInfo.environment["KYBERNOS_DENY_SPAWN"] { setenv("KYBERNOS_DENY_SPAWN", deny, 1) }

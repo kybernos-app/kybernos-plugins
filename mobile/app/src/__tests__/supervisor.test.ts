@@ -1,11 +1,11 @@
 import { baseOf, createSupervisor, findSignInUrl, HostPort } from '../supervisor'
 
 const SIGN_IN = 'http://127.0.0.1:51234/?token=abc123'
-type Fake = HostPort & { log: string; code: number | null; st: { phase: string; done: number; total: number }; started: number }
+type Fake = HostPort & { log: string; code: number | null; st: { phase: string; done: number; total: number }; started: number; startedWith: Array<Record<string, string>> }
 const fakeHost = (over: { start?: () => boolean; log?: string; code?: number | null; status?: { phase: string; done: number; total: number } } = {}): Fake => {
   const h: Fake = {
-    log: over.log ?? '', code: over.code ?? null, st: over.status ?? { phase: 'none', done: 0, total: 0 }, started: 0,
-    start: () => { h.started += 1; return over.start ? over.start() : true },
+    log: over.log ?? '', code: over.code ?? null, st: over.status ?? { phase: 'none', done: 0, total: 0 }, started: 0, startedWith: [],
+    start: (_port, env) => { h.started += 1; h.startedWith.push(env); return over.start ? over.start() : true },
     status: () => h.st,
     exitCode: () => h.code,
     logTail: () => h.log,
@@ -25,6 +25,19 @@ describe('findSignInUrl', () => {
     expect(findSignInUrl('dsh web: http://evil.example:80/?token=x')).toBeNull()
     expect(baseOf('http://127.0.0.1:51234/?token=abc')).toBe('http://127.0.0.1:51234/')
     expect(baseOf('http://example.com/')).toBeNull()
+  })
+})
+
+describe('supervisor environment', () => {
+  beforeEach(() => jest.useFakeTimers())
+  afterEach(() => jest.useRealTimers())
+  it('hands the environment to the engine it starts, and an empty one by default', () => {
+    const host = fakeHost()
+    const sup = createSupervisor({ host, fetch: answering(200) })
+    sup.begin({ ANTHROPIC_API_KEY: 'sk-ant-x' }); sup.stop()
+    expect(host.startedWith).toEqual([{ ANTHROPIC_API_KEY: 'sk-ant-x' }])
+    const host2 = fakeHost(); const sup2 = createSupervisor({ host: host2, fetch: answering(200) }); sup2.begin(); sup2.stop()
+    expect(host2.startedWith).toEqual([{}])
   })
 })
 

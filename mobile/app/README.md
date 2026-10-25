@@ -28,6 +28,7 @@ node scripts/stage-native.mjs --payload <payload dir> --platform android
 export JAVA_HOME=/Library/Java/JavaVirtualMachines/temurin-17.jdk/Contents/Home ANDROID_HOME=/opt/homebrew/share/android-commandlinetools
 npx expo prebuild --platform android --no-install && echo "sdk.dir=$ANDROID_HOME" > android/local.properties
 (cd android && ./gradlew assembleRelease)
+AVD=<emulator name> bash ../tests/key-android.sh   # M3: key typed in the settings screen, stored in the Keystore, Claude answers, key in no file (spends one small model call)
 AVD=<emulator name> bash ../tests/emu-android.sh   # L4: first launch, self-test automation, warm relaunch, and behind a proxy that answers 503 (S6)
 ANDROID_SERIAL=<serial> SKIP_INSTALL=1 bash ../tests/emu-android.sh   # the same on a plugged-in phone whose owner confirms each install
 ```
@@ -50,3 +51,7 @@ node mobile/devicecloud/app.mjs devices android               # real devices the
 ```
 
 `mobile/.env` holds the keys (see `mobile/env.example`). `--model` needs a throwaway key with a spend limit, revoked afterwards.
+
+## Model key (M3)
+
+The Anthropic key is entered in the app's settings (first-run screen, gear button, or a `kybernos://settings` link from the web interface), stored in the iOS Keychain / Android Keystore, and handed to the engine as `ANTHROPIC_API_KEY` when it starts: never written to a file. A changed key needs the app closed and reopened. On iOS the Paste button reads the clipboard from code and iOS asks permission for that; press and hold the field and choose Paste always works.
