@@ -30,6 +30,13 @@ So the individual levels are the natural first thing to sell with in-app purchas
 and collect the tax, which differs from Stripe (price points are chosen per storefront, invoices are the store's). **To check**: the catalogue says Team has two seats at least, while the web wizard's plan screen
 says « Team · solo », one seat; one of the two is out of date.
 
+## The offers are iterated: the app never hardcodes them (owner, 2026-10-26)
+
+The offers are being reworked by another session, so the phone app, DSH on the desktop and the web pages read **one JSON built by the server** (names, copy in each language, prices, formulas, where each plan can be bought per
+platform and region, store product ids). A change of offer is then one catalogue file and a publish, with no client release. The mockup's cards (Free, Plus, Pro, Team) are only an illustration of the catalogue of 2026-10-26.
+The contract draft is in the session notes folder (`offers-json-contract-draft.md`: new `GET /v1/offers`, built from the catalogue, `channels` per platform and region, test vectors); it has to be adopted by the server session before
+anything here depends on it. Until then the app shows no paid plan at all, so nothing is hardcoded.
+
 ## What to build
 
 ### A. Accounts, free plan, own keys (small, no store account needed) — first build
@@ -46,7 +53,7 @@ says « Team · solo », one seat; one of the two is out of date.
 ### B0. Prepared now, nothing switched on (no store account, no code that sells)
 
 - **Contract written down first**: the messages between the web view and the app (`products`, `purchase`, `restore`, `manage`), the product-map shape (store product id → plan version, component, interval) and the product id naming, so the later build does not redesign anything. This section is the start of it.
-- **One gate for every paid control**: today a fixed list hides them (`STORE_HIDDEN`). Activation replaces it by a capability the app announces (« this phone can buy »), false until B1, so switching on is a flag and the Team card, the plan buttons and the wizard's plan screen appear by themselves. Nothing else changes on screen.
+- **One gate for every paid control**: today a fixed list hides them (`STORE_HIDDEN`). Activation replaces it by the `channels` of the offers JSON for this platform and storefront country (`none`, `web` or `store`), `none` until B1, so switching on is a flag and the Team card, the plan buttons and the wizard's plan screen appear by themselves. Nothing else changes on screen.
 - **The server needs nothing for A**: entitlements do not depend on the payment provider and `subscriptions` already carries `source` and `provider_ref`. No server code is written ahead of B1 (it would be dead code).
 - **Long-lead owner steps start now** because they take days or weeks and cost nothing (see C): the store developer accounts as an organisation (probably a D-U-N-S number: to check), the paid-apps agreements, bank and tax forms. Products can be created in the consoles as drafts, never published.
 - **Decisions to take while waiting**: native or RevenueCat, one price or a higher one in the apps, multi-seat teams (D).
