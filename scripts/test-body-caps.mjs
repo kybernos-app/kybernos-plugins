@@ -60,6 +60,16 @@ const BUNDLES = [
     bodies: Object.fromEntries(['isolate', 'commit', 'close-check', 'brain/health', 'decision', 'settings', 'categories', 'close', 'reclaim', 'push', 'fetch', 'sync', 'pr'].map((r) => ['/kybernos-sessions/' + r, 256 * KIB])),
     none: ['/kybernos-sessions/state'],
   },
+  {
+    bundle: 'kybernos-bricks',
+    mount: async (web) => {
+      const { creerMagasin, monterRoutes } = await load('kybernos-bricks', 'index.js')
+      monterRoutes(web, creerMagasin())
+    },
+    // 2 MiB: `ops` is cut to 4000 batches of about 110 bytes by the store, so an honest push is about 0.5 MiB.
+    bodies: { '/kybernos-bricks/push': 2 * MIB },
+    none: ['/kybernos-bricks/state'],
+  },
 ]
 
 // ── What a client and a handler see ─────────────────────────────────────────────────────────────────────────────────────────
@@ -149,10 +159,10 @@ for (const spec of BUNDLES) {
     const refusal = jsonOf(over.text ?? '')
     check(name + ': ' + cap + ' bytes + 1 KiB -> 413, a JSON refusal, the connection closed', over.status === 413 && refusal !== null && refusal.ok === false && String(over.headers['connection']).toLowerCase() === 'close', JSON.stringify({ status: over.status, error: over.error, text: String(over.text).slice(0, 80) }))
 
-    const exact = await post(port, path, headers, cap, Buffer.from('{}'))
+    const exact = await post(port, path, headers, cap, Buffer.from((spec.exact ?? {})[path] ?? '{}'))
     check(name + ': exactly the cap is read (not refused)', exact.status !== undefined && exact.status !== 413, JSON.stringify({ status: exact.status, error: exact.error, text: String(exact.text).slice(0, 80) }))
 
-    const route = { method: 'POST', url: path, headers, socket: { localPort: port } }
+    const route = { method: 'POST', url: path, headers: { 'content-type': 'application/json', ...headers }, socket: { localPort: port } }
     const { req, stats } = endlessRequest(route, cap + 2 * MIB)
     const res = standInResponse()
     // The stand-in response ends the stream the way a real socket would once the answer is out (its 'finish' reaches the handler's `once`).
