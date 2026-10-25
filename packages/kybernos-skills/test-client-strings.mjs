@@ -73,10 +73,15 @@ assert.ok(words.size > 15, 'the answer words were read (' + words.size + ')')
 ok('every answer of the Team routes and of pack/install has a sentence (' + words.size + ' words, ' + generic.size + ' deliberately generic)')
 
 // 5. the ways a skill can fail to be packed each have a sentence
-for (const reason of ['binary', 'file_too_large', 'too_many_files', 'too_large', 'bad_path', 'frontmatter', 'name', 'description', 'no_skill_md']) {
+for (const reason of ['binary', 'hidden', 'file_too_large', 'too_many_files', 'too_large', 'bad_path', 'frontmatter', 'name', 'no_skill_md']) {
   assert.ok(src.includes(reason + ": 'tm.p.bad."), 'no sentence for the pack reason ' + reason)
 }
-ok('each reason a skill cannot be shared (picture, size, count, name, path, frontmatter, missing SKILL.md) has a sentence')
+// Every reason the packer (`validateTeamSkill`) can give has one: read from its source, so that a new one cannot be forgotten.
+const rules = readFileSync(join(here, 'team-skills.mjs'), 'utf8')
+const packReasons = new Set([...rules.slice(rules.indexOf('export const validateTeamSkill')).matchAll(/reason: '([a-z_]+)'/g)].map((m) => m[1]))
+const unworded = [...packReasons].filter((r) => r !== 'scan_rejected' && !src.includes(r + ": 'tm.p.bad."))
+assert.deepEqual(unworded, [], 'pack reasons with no sentence: ' + unworded.join(', '))
+ok('each reason a skill cannot be shared (picture, invisible character, size, count, name, path, frontmatter, missing SKILL.md) has a sentence, read from the packer itself')
 
 // 6. the older routes (list, toggle, install, create, discover, audit) answer in CODES, and the screen words each one in both languages
 //    (`he.<code>`). Before, the host wrote French sentences, which an English user read as they were.
