@@ -13,6 +13,11 @@
  *
  *  Usage: node packages/kybernos-skills/test-origin.mjs   (exit 0 = all pass) */
 import { sameOrigin, apply } from './index.js'
+import { sessionSource } from './session-guard.mjs'
+import { SESSION_SECRET, sessionCookie } from './lib-session-test.mjs'
+
+// A POST that passes the Origin guard still needs the signed session (L3-17, test-write-guard.mjs): the Skills page's own request carries both.
+sessionSource.secret = () => SESSION_SECRET
 
 let ok0 = 0
 let ko = 0
@@ -74,7 +79,7 @@ for (const chemin of POSTS) {
 }
 {
   const r = reponse()
-  await routes['/kybernos-skills/toggle'].handler(requete('POST', { origin: 'http://127.0.0.1:' + PORT }, {}), r)
+  await routes['/kybernos-skills/toggle'].handler(requete('POST', { origin: 'http://127.0.0.1:' + PORT, cookie: sessionCookie('127.0.0.1:' + PORT) }, {}), r)
   ok('POST /toggle from the GUI origin passes the guard (and is refused by its own validation, no disk touched)', r.code === 200 && r.corps.ok === false && r.corps.error === 'root_missing', { code: r.code, corps: r.corps })
   const g = reponse()
   await routes['/kybernos-skills/toggle'].handler(requete('GET', { origin: 'http://127.0.0.1:' + PORT }), g)

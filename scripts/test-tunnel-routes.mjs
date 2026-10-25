@@ -46,6 +46,13 @@ const PHONE_READS = [
     writes: [],
     siblings: ['/kybernos-models/models/probe', '/kybernos-models/key/check', '/kybernos-models/providers/park', '/kybernos-models/providers/take', '/kybernos-models/providers/forget', '/kybernos-models/annotations/save'],
   },
+  {
+    bundle: 'kybernos-skills', path: '/kybernos-skills/skill/read', whole: true,
+    why: 'the SKILL.md of a skill the catalogue lists and what the screen may offer for it (readSkill in index.js: it reads a file and counts a folder, nothing is written or run); it is a POST only so that the content is not served to a GET before DSH\'s login, and the Skills page of a paired phone opens a skill with it.',
+    read: { root: 'audit-probe-root', name: 'audit-probe' },
+    writes: [],
+    siblings: ['/kybernos-skills/skill/reveal', '/kybernos-skills/skill/duplicate', '/kybernos-skills/skill/delete', '/kybernos-skills/install', '/kybernos-skills/toggle', '/kybernos-skills/create', '/kybernos-skills/covers/make', '/kybernos-skills/index-source/set'],
+  },
 ]
 
 const run = spawnSync(process.execPath, [join(root, 'scripts', 'audit-routes.mjs'), '--json', '--tunnel-probes', JSON.stringify(PHONE_READS)], { encoding: 'utf8', maxBuffer: 256 * 1024 * 1024, timeout: 5 * 60 * 1000 })
