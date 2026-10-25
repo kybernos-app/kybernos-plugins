@@ -2,11 +2,11 @@
 
 A thin React Native shell: the native module `modules/kybernos-host` (Swift on iOS, Kotlin and a small JNI shim on Android) starts the embedded Node (fogtape build) once per process, the payload (`mobile/payload`) holds the engine and our plugins, and the DSH web interface is shown in a WebView on `127.0.0.1`. Plan and test strategy: `mobile/PLAN.md`.
 
-The repository carries no binaries: the Node framework, the payload and the placeholder icons are build inputs, all git-ignored.
+The repository carries no binaries: the Node framework, the payload and the icon pictures are build inputs, all git-ignored.
 
 ```bash
 cd mobile/app
-npm install                                   # also draws assets/*.png (scripts/make-assets.mjs)
+npm install                                   # also draws assets/*.png: the Kybernos K (scripts/make-assets.mjs)
 npm test && npx tsc --noEmit                  # L1: Jest + typecheck
 
 # build inputs: a payload (mobile/payload/build-payload.mjs) and the Node framework (mobile/ios/fetch-node.sh)
@@ -19,6 +19,8 @@ cd ios && xcodebuild -workspace Kybernos.xcworkspace -scheme Kybernos -configura
 
 bash ../../tests/sim-ios.sh                   # L4: first launch, self-test automation, warm relaunch
 ```
+
+**Icon and splash.** `scripts/make-assets.mjs` draws the app icon, the Android adaptive layers (background, foreground, one-colour) and the splash picture from the K's own code: it reads the block `KB-BRAND-CORE` of `packages/kybernos-plugin/client.js` (`scripts/brand-art.mjs`), so the icon cannot drift from the logo. Background `#121217`, the colour of every screen of the app. `app.json` names the same colour for the splash (plugin `expo-splash-screen`). `expo prebuild` copies the pictures into `ios/` and `android/`: after changing them, run `npx expo prebuild --no-install` and rebuild. Test: `node scripts/test-mobile-brand-assets.mjs`.
 
 Android (arm64 only, see `plugins/with-arm64-only.js`):
 
