@@ -220,18 +220,28 @@ export function basculer ({ catalogue, brut, id, actif }) {
 /**
  * Install = activate + run the robot. `executer(argv)` resolves { code, sortie }.
  * The robot never restarts DSH here (no --restart): the panel shows "relaunch to apply".
+ *
+ * The activation is written BEFORE the robot runs (the robot links the bundles the file names), so when the robot cannot start or refuses, it is written back to what
+ * it was: `brut`, the file as it was read, or `null` for « there was no file » (`ecrire(null)` removes it; with no file everything is on). Before this, a module whose
+ * install failed stayed « wanted » and the file appeared with the full list (L3-95). `activationRestauree` says whether the previous state is back.
  */
 export async function installer ({ catalogue, brut, id, ecrire, executer }) {
   const m = idConnu(catalogue, id)
   if (m === null) return { ok: false, error: 'unknown-module' }
+  let ecritIci = false
   if (!m.socle) {
     const b = basculer({ catalogue, brut, id, actif: true })
     if (!b.ok) return b
     try { ecrire(b.ecrit) } catch (e) { return { ok: false, error: 'activation-write-failed', detail: String(e?.message ?? e) } }
+    ecritIci = true
+  }
+  const defaire = () => {
+    if (ecritIci !== true) return {}
+    try { ecrire(brut ?? null); return { activationRestauree: true } } catch (e) { return { activationRestauree: false } }
   }
   let r
-  try { r = await executer(['install']) } catch (e) { return { ok: false, error: 'robot-failed', detail: String(e?.message ?? e) } }
-  if (r.code !== 0) return { ok: false, error: 'robot-refused', detail: String(r.sortie ?? '').split('\n').slice(-6).join('\n') }
+  try { r = await executer(['install']) } catch (e) { return { ok: false, error: 'robot-failed', detail: String(e?.message ?? e), ...defaire() } }
+  if (r.code !== 0) return { ok: false, error: 'robot-refused', detail: String(r.sortie ?? '').split('\n').slice(-6).join('\n'), ...defaire() }
   return { ok: true, relanceRequise: true }
 }
 
