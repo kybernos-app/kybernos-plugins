@@ -13,6 +13,15 @@
  * template is an inline style.
  */
 @media (max-width: 700px), (max-height: 500px) and (pointer: coarse) {
+  /* The safe areas (notch, status bar, home indicator). In a browser or a home-screen app the page pads itself with env(); inside the Kybernos phone app the app's own frame already keeps
+   * the status bar and the navigation bar out of the web view, and Android's WebView reports them again (44 px at the top and 48 px at the bottom on a punch-hole phone): padded twice, the
+   * menu button sat 44 px too low on top of the page titles and a white band wasted the top of every page. There the page pads with nothing. */
+  html.kb-native-insets,
+  html.kb-app {
+    --kb-sat: 0px;
+    --kb-sab: 0px;
+  }
+
   /* 0. Text: the browser's own text scaling, 118 %. DSH draws a lot of its text at 10 to 12 px (tags, counts, hints), in
    *    px, which no rem trick reaches; this is what Android's and iOS's "font size" settings use. Boxes keep their
    *    size, text grows. A phone's own font setting is multiplied by it. */
@@ -74,7 +83,7 @@
     background: var(--dsw-alias-bg-layer-1, #1b1b1d);
     box-shadow: 0 0 32px rgba(0, 0, 0, .35);
     overflow: hidden;
-    padding-top: env(safe-area-inset-top, 0px);
+    padding-top: var(--kb-sat, env(safe-area-inset-top, 0px));
   }
   [data-slot="root"] > div:has(> [data-shell-overlay]):not([data-sidebar-collapsed]) > div:has(> [data-slot="sidebar"]) {
     transform: none;
@@ -133,7 +142,7 @@
   /* DSH gives the header 76 px for its two rows (actions, tabs): one row is 56 px, in line with the menu button. */
   [data-slot="conversation.header"] > header {
     padding-left: 52px !important;
-    padding-top: calc(6px + env(safe-area-inset-top, 0px)) !important;
+    padding-top: calc(6px + var(--kb-sat, env(safe-area-inset-top, 0px))) !important;
     padding-bottom: 6px !important;
     min-height: 56px !important;
     align-items: center;
@@ -182,6 +191,15 @@
   [data-composer-input],
   [data-composer-placeholder] {
     font-size: 16px !important;
+  }
+  /* DSH sizes the field for two lines of its text at 100 %: 52 px. The hint ("Describe what you want to build, / commands, @ files or
+   * sessions") takes two lines on a phone, and with the text enlarged (the system's font size, the 118 % above) two lines are taller
+   * than that: the second one was cut in half and the field scrolled inside itself. The height follows the line height instead, two
+   * lines and 4 px (the same 52 px at 100 %). `em` does not follow Android's text enlargement here, `lh` does; a WebView too old for `lh`
+   * keeps DSH's 52 px. Measured at a 145 % font size: 59 px, the card 123 px instead of 116. Only the new-chat screen (the one that has the
+   * hero slots): the field of a conversation shows its hint on one line, cut by an ellipsis, and keeps its height. */
+  [data-slot="conversation.composer"]:has([data-slot^="conversation.hero."]) :is([data-composer-input], [data-input-scroll]) {
+    min-height: calc(2lh + 4px) !important;
   }
   [data-composer-card] [data-model-compact] {
     display: flex !important;
@@ -293,7 +311,7 @@
     display: none !important;
   }
   [data-slot="conversation.composer"] {
-    padding-bottom: env(safe-area-inset-bottom, 0px);
+    padding-bottom: var(--kb-sab, env(safe-area-inset-bottom, 0px));
   }
 
   /* 5. The rating card under an answer is one star; a tap opens the five (client.js marks the card open). */
@@ -552,7 +570,7 @@
 @media (max-width: 700px), (max-height: 500px) and (pointer: coarse) {
   .kbmob-menu {
     position: fixed;
-    top: calc(6px + env(safe-area-inset-top, 0px));
+    top: calc(6px + var(--kb-sat, env(safe-area-inset-top, 0px)));
     left: 6px;
     z-index: 45;
     display: inline-flex;
@@ -602,7 +620,7 @@
     display: block;
     max-height: 80dvh;
     overflow-y: auto;
-    padding: 8px 12px calc(16px + env(safe-area-inset-bottom, 0px));
+    padding: 8px 12px calc(16px + var(--kb-sab, env(safe-area-inset-bottom, 0px)));
     border-radius: 20px 20px 0 0;
     background: var(--dsw-alias-bg-layer-1, #1b1b1d);
     color: var(--dsw-alias-label-primary, currentColor);

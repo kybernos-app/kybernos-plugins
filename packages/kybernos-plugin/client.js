@@ -30975,7 +30975,7 @@ body[data-ds-dark-theme] .kb8-iconbtn.on.col{border-color:var(--kb8-pgd);color:v
    la barre KbToolbar porte l'action primaire en trailing. Quand la page n'a
    pas de barre (liste vide, onglet sans outils), .kb6-headacts occupe
    exactement sa place : le bouton ne saute jamais d'un côté à l'autre. */
-.kb6-titlerow{display:flex;align-items:center;gap:10px;min-width:0}
+.kb6-titlerow{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;min-width:0}
 /* The « ? How it works » pill: the same look as the Suite's pill (kybernos-hub), so every page has one form of the button. */
 .kb6-helpbtn{flex:0 0 auto;appearance:none;display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 12px 0 6px;border-radius:16px;border:1px solid var(--dsw-alias-border-l3);background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12.5px;cursor:pointer;white-space:nowrap}
 .kb6-helpbtn:hover,.kb6-helpbtn.on{border-color:var(--dsw-alias-label-tertiary);color:var(--dsw-alias-label-primary)}
