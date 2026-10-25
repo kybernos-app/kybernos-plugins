@@ -46,6 +46,16 @@ const hostHasPicks = hostPicks !== null && hostPicks.ok === true && Array.isArra
 const shownPicks = hostHasPicks === true ? hostPicks : picksAnswer
 console.log(hostHasPicks ? '(the running host serves the picks route: nothing is faked)' : '(the running host has no picks route yet: it is answered here)')
 
+// Two things below come from the skills relay through the host, and no stub here can stand in for them: the Discover table (the index: 20 rows by default) and the pictures of the
+// cards (the cover route fetches each one from the relay, and checks it against the hash the pick ships). An instance whose relay cannot be reached (offline, or KYBERNOS_SKILLS_INDEX_URL
+// naming nothing) would fail those lines, which says nothing about the page: that is « not measured » (exit 3), not nine red lines.
+const relayIndex = await fetch('http://' + authority + '/kybernos-skills/index?view=all-time&page=0&perPage=20').then((r) => r.json()).catch(() => null)
+const relayCover = await fetch('http://' + authority + '/kybernos-skills/cover/' + encodeURIComponent(shownPicks.items[0].id)).then((r) => r.status === 200 && /^image\//.test(r.headers.get('content-type') || '')).catch(() => false)
+if (relayIndex === null || relayIndex.ok !== true || !Array.isArray(relayIndex.skills) || relayIndex.skills.length < 20 || relayCover !== true) {
+  console.error('○ not run: the skills relay is not reachable from this instance (the index answered ' + (relayIndex !== null && relayIndex.ok === true && Array.isArray(relayIndex.skills) ? relayIndex.skills.length + ' rows' : 'nothing') + ', the first cover ' + (relayCover === true ? 'was served' : 'was not served') + '). Discover and the pictures of the cards cannot be measured; start the instance without a KYBERNOS_SKILLS_INDEX_URL that points nowhere.')
+  process.exit(3)
+}
+
 const live = await openLivePage({ width: 1500, height: 950 }).catch((e) => { console.error('○ not run: ' + e.message); process.exit(3) })
 const { page } = live
 const errors = []
