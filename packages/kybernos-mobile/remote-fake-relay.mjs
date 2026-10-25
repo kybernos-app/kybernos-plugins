@@ -205,6 +205,7 @@ export async function startFakeRelay (options = {}) {
     if (u.pathname.startsWith('/v1/remote/')) {
       // HTTP face of the same routes, for a real kybernos-cloud pointed at this stand-in (live checks)
       const chunks = []
+      // body-cap: a test double on loopback, started by a test or a live check; no product route reads through it
       req.on('data', (c) => chunks.push(c))
       req.on('end', async () => {
         let body = null

@@ -22,15 +22,17 @@ import { basename, join, dirname, resolve, relative, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { auditerSurfaces } from '../packages/kybernos-maintenance/surfaces.mjs'
 import { FICHIER_ETAT, normaliser as normaliserEtatBoot, entrerSafe, sortirSafe, recommandation as recommandationBoot } from '../packages/kybernos-hub/boot-guard.mjs'
+// One installer at a time: the lock file the Suite panel reads to know that an installer runs, even after DSH was killed (see install-lock.mjs).
+import { fichierVerrou, libererVerrou, lireVerrou, prendreVerrou } from '../packages/kybernos-hub/install-lock.mjs'
 import { pidSurPort, demarrageProcessus, famille, nomSuperviseur, planRelance, instructionsRedemarrage } from './plateforme.mjs'
 import {
   etatDoctor, testerCompatibilite, lireCompat, comparerVersions, versionDuGlobal, versionDuPlugin,
   photographier, restaurerPhoto, journaliser, lireJournal, alignerPins, alignerLiens, activesResolues, desactivesAEcrire,
-  planUpgrade, ecrireLisezMoi, inspecterFraicheur, motifDeRetrait
+  planUpgrade, inspecterFraicheur, motifDeRetrait
 } from './lifecycle-engine.mjs'
 // Checking a received archive: the package manifest is the only
 // authority on what was delivered (see scripts/paquet.mjs).
-import { verifierManifest, cheminer, LIRE_SATELLITES, TOUS_LES_SATELLITES, verifierSatellite, lireManifestDuDossier, verifierDossier, nomInstallation } from './paquet.mjs'
+import { verifierManifest, cheminer, LIRE_SATELLITES, TOUS_LES_SATELLITES, lireManifestDuDossier, verifierDossier, nomInstallation } from './paquet.mjs'
 // The rule for an installation's bases (profile, global engine, pinned project)
 // lives in ONE module, proven by test-racine-dsh.mjs.
 import { basesPossibles } from './racine-dsh.mjs'
@@ -110,8 +112,15 @@ const horodatage = () => new Date().toISOString().replace(/[-:T]/g, '').slice(0,
 // `package.json.lock` on disk and EVERY following install dies on the
 // atomic-write timeout. Nobody holds it → we remove it. (Measured when this was
 // written: the lock was lying around and the robot's pnpm failed silently.)
+// « Nobody holds it » has to be true: while ANOTHER installer holds the installation lock (see install-lock.mjs) its `dsh plugin install` may be the one that wrote
+// package.json.lock, and removing it under it made two installers pull the lock from each other (L3-85). Every order that gets here took the installation lock
+// first, so this only ever stands down when that lock is somebody else's.
+const VERROU_INSTALLATION = fichierVerrou(DSH_HOME)
+const installateurAutre = () => { const v = lireVerrou({ fichier: VERROU_INSTALLATION }); return v.etat === 'tenu' && v.verrou.pid !== process.pid ? v.verrou : null }
 const nettoyerVerrousOrphelins = () => {
   const verrou = join(PROFIL_DIR, 'package.json.lock')
+  const autre = installateurAutre()
+  if (autre !== null) { console.log('  ⏳ package.json.lock left alone: another installer (pid ' + autre.pid + ') holds the installation lock'); return }
   try { if (existsSync(verrou)) { rmSync(verrou); console.log('  🧹 orphaned lock removed (' + verrou + ')') } } catch (e) { /* nothing */ }
 }
 
@@ -831,6 +840,27 @@ async function installerMoteur (cible, opts = {}) {
       '     ' + (famille() === 'windows' ? 'kybernos-install' : './kybernos-install'))
   }
   console.log('  ✓ engine ' + vu + ' in place and reachable' + (vu === cible ? '' : ' (⚠ expected ' + cible + ')'))
+}
+
+// ── One installer at a time ──────────────────────────────────────────────────
+// The orders that change the profile take the installation lock before touching anything (the source is verified and copied by `preparerSource` right after) and give it
+// back when the process ends, however it ends: `quitter`, an error, SIGINT or SIGTERM. A lock held by a live process refuses the order with a sentence, since two robots
+// writing the same profile is what the lock exists to prevent; a lock whose process is gone is stale and is taken over. The Suite panel reads this file to know that an
+// installer runs, even when the DSH that started it was killed and the robot went on as an orphan. `--dry` writes nothing and takes nothing.
+if (['install', 'upgrade', 'bootstrap', 'rollback', 'uninstall'].includes(ordre) && opts.dry !== true) {
+  const genre = ordre === 'upgrade' ? (opts.source !== null ? 'suite' : 'engine') : ordre
+  const pris = prendreVerrou({ fichier: VERROU_INSTALLATION, genre, source: opts.source === null ? null : resolve(opts.source) })
+  if (pris.ok !== true) {
+    const qui = pris.verrou === null || pris.verrou === undefined ? '' : ' (pid ' + pris.verrou.pid + ', started ' + new Date(pris.verrou.debut).toISOString() + ', ' + pris.verrou.genre + ')'
+    quitter(1, '🟠 another installation is already running' + qui + '. Wait for it to end, then run this again. Nothing was changed.\n   (If you are sure it is gone, delete ' + VERROU_INSTALLATION + '.)')
+  }
+  if (pris.sansVerrou === true) console.log('  ⚠ the installation lock could not be written (' + pris.detail + '): going on without it')
+  else {
+    process.on('exit', () => libererVerrou({ fichier: VERROU_INSTALLATION }))
+    // A signal gives the lock back and is then re-sent to ourselves with its default action, so the parent still sees « killed by SIGTERM » (its time limit, a kill) and not a
+    // plain exit code: the Suite panel words a killed installer differently from one that refused (L3-88). SIGKILL cannot be caught: its lock is found stale by the next reader.
+    for (const signal of ['SIGINT', 'SIGTERM']) process.once(signal, () => { libererVerrou({ fichier: VERROU_INSTALLATION }); process.kill(process.pid, signal) })
+  }
 }
 
 const source = await preparerSource()

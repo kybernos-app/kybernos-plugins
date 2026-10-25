@@ -6,7 +6,9 @@
 // owns a chat's folder (the team folder, a subfolder, a sibling with the same prefix, any other folder, Kaby's, a path that is no path) and says whether that is the active one;
 // the first claim of a turn of a chat the page reported switches the active space BEFORE the step is assembled (the personal-memory cut reads it there) and the first request is
 // held until the switch is through; a chat the page never reported (an automation, Kaby's, a Telegram turn, a subagent) changes nothing; the check runs once per turn; two switches
-// at once end in one place; a payload that is not what the engine sends breaks nothing.
+// at once end in one place; a payload that is not what the engine sends breaks nothing. A switch made while the server does not answer leaves the model route on the previous team: the
+// next turn of the chat on screen re-aligns it (the second press on the team, done for the person) and, if it cannot, is REFUSED with a sentence naming the team it would be billed to;
+// the host also tries again by itself at 10 s, 30 s and 2 min (recette L3-76, decision DL-20).
 import assert from 'node:assert/strict'
 import http from 'node:http'
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
@@ -25,6 +27,8 @@ const api = { calls: [], planDelayMs: 0, listDelayMs: 0, modelsDelayMs: 0 }
 const apiServer = http.createServer((req, res) => {
   const path = new URL(req.url, 'http://x').pathname
   api.calls.push(req.method + ' ' + path)
+  // The server does not answer (the connection is cut), for the scenario of a switch made while it is down.
+  if (api.down === true) { req.socket.destroy(); return }
   const reply = (status, body) => { res.writeHead(status, { 'content-type': 'application/json' }); res.end(JSON.stringify(body)) }
   if (req.method === 'GET' && path === '/v1/workspaces') return api.listDelayMs > 0 ? setTimeout(() => reply(200, { workspaces: SPACES }), api.listDelayMs) : reply(200, { workspaces: SPACES })
   if (req.method === 'GET' && /^\/v1\/workspaces\/[^/]+\/plan$/.test(path)) {
@@ -61,8 +65,25 @@ sessionSource.secret = () => SESSION_SECRET
 const routes = new Map()
 const listeners = new Map()
 const webServer = { register: (r) => { routes.set(r.path, r.handler); return () => routes.delete(r.path) } }
+// DSH's `settings` service, for the section on a stale model route: `mutate` writes the provider route and, like DSH after its reload, the running route follows (`describe`).
+let settingsOn = false
+const settingsStore = {}
+const fakeSettings = {
+  async mutate(ns, ops) {
+    for (const op of ops) {
+      settingsStore[ns] = settingsStore[ns] || {}
+      let node = settingsStore[ns]
+      for (let i = 0; i < op.path.length - 1; i += 1) node = node[op.path[i]] = node[op.path[i]] || {}
+      if (op.op === 'unset') delete node[op.path.at(-1)]
+      else node[op.path.at(-1)] = JSON.parse(JSON.stringify(op.value))
+    }
+    return { ok: true }
+  },
+  describe: () => [{ ns: 'llm-pi-ai', value: { providers: JSON.parse(JSON.stringify((settingsStore['llm-pi-ai'] || {}).providers || {})) } }],
+}
+const liveRouteHeader = () => { const p = fakeSettings.describe()[0].value.providers.kybernos; return p === undefined ? undefined : (p.headers || {})['x-kybernos-workspace'] }
 const ctx = {
-  get: (name) => (name === 'webServer' ? webServer : undefined),
+  get: (name) => (name === 'webServer' ? webServer : (name === 'settings' && settingsOn === true ? fakeSettings : undefined)),
   inject: (_l, cb) => cb(ctx),
   effect: (fn) => fn(),
   on: (event, handler) => { if (!listeners.has(event)) listeners.set(event, []); listeners.get(event).push(handler); return () => {} },
@@ -304,6 +325,87 @@ try {
   SPACES.pop()
   writeState({ active_workspace_id: PERSONAL.id })
   ok('a catalogue import in flight does not put back the list of teams a refresh wrote while it waited')
+
+  // 7d. A switch made while the server does not answer (recette L3-76, decision DL-20). The choice is written, the model route could not be: it still names the previous team, and every
+  // message would be billed to it. The turn of the chat on screen puts the route right first (the second press on the team, done for the person, bounded) and, if it cannot, is refused.
+  settingsOn = true
+  assert.equal((await post('space/active', { workspace_id: PERSONAL.id })).json.ok, true)
+  assert.equal(liveRouteHeader(), PERSONAL.id, 'the running route names Personal')
+  api.down = true
+  const broken = await post('space/active', { workspace_id: ACME.id })
+  assert.deepEqual({ ok: broken.json.ok, route: broken.json.route }, { ok: true, route: 'failed' })
+  assert.equal(active(), ACME.id, 'the choice is kept')
+  assert.equal(liveRouteHeader(), PERSONAL.id, 'but the route could not be rewritten: it names the previous team')
+  const SB = 'session-acme-broken'
+  await post('space/for-folder', { path: acme, session_id: SB })
+  fire('agent/inbox/claimed', { agent: agentIn(SB, acme), turn: 1, message: {} })
+  const refusedTrace = []
+  await assert.rejects(preStep(agentIn(SB, acme), 1, 1, refusedTrace), (e) => e.message === 'Your messages would be billed to Personal. Try again.', 'the turn is refused, with the sentence that names the team it would be billed to')
+  assert.deepEqual(refusedTrace, [], 'no request went out')
+  ok('the route still names the previous team and the server does not answer: the first request is refused with « Your messages would be billed to Personal. Try again. », nothing is sent')
+
+  // The server is back: the next turn puts the route right BEFORE its request (no wait for the five-minute profile read) and goes ahead.
+  api.down = false
+  fire('agent/inbox/claimed', { agent: agentIn(SB, acme), turn: 2, message: {} })
+  const mendedTrace = []
+  await preStep(agentIn(SB, acme), 2, 1, mendedTrace)
+  assert.deepEqual(mendedTrace, ['next'])
+  assert.equal(liveRouteHeader(), ACME.id, 'the route was re-aligned at send: it names the team on screen')
+  ok('the server is back: the next turn re-aligns the model route before its request and goes ahead (billed to the team on screen)')
+
+  // A reply of another chat is running: the route is not rewritten under it (that reply would be billed to two teams) and this turn is not refused (the exposure the claim-time switch has too).
+  api.down = false
+  assert.equal((await post('space/active', { workspace_id: ACME.id })).json.ok, true)
+  api.down = true
+  assert.equal((await post('space/active', { workspace_id: STUDIO.id })).json.route, 'failed')
+  assert.equal(liveRouteHeader(), ACME.id)
+  fire('agent/status', { agent: agentIn('session-bg-1', join(dir, 'work')), status: 'running' })
+  const SC = 'session-studio-broken'
+  await post('space/for-folder', { path: studio, session_id: SC })
+  fire('agent/inbox/claimed', { agent: agentIn(SC, studio), turn: 1, message: {} })
+  const callsBusy = api.calls.length
+  const busyTrace = []
+  await preStep(agentIn(SC, studio), 1, 1, busyTrace)
+  assert.deepEqual(busyTrace, ['next'], 'not refused')
+  assert.equal(api.calls.length, callsBusy, 'and the server was not asked anything: the route is not rewritten under the running reply')
+  assert.equal(liveRouteHeader(), ACME.id)
+  fire('agent/status', { agent: agentIn('session-bg-1', join(dir, 'work')), status: 'idle' })
+  ok('with another reply running the route is left alone and the turn goes ahead (rewriting it would bill that reply to two teams)')
+
+  // The host tries again by itself, at 10 s, 30 s and 2 min after the failure (here scaled down), and stops once the route is right.
+  const modelReads = () => api.calls.filter((c) => c === 'GET /v1/models').length
+  const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+  mod.ROUTE_REPAIR_TUNING.delaysMs = [80, 200, 400]
+  api.down = false
+  assert.equal((await post('space/active', { workspace_id: PERSONAL.id })).json.route, 'written')
+  api.down = true
+  assert.equal((await post('space/active', { workspace_id: ACME.id })).json.route, 'failed')
+  assert.equal(liveRouteHeader(), PERSONAL.id)
+  await wait(120)
+  assert.equal(liveRouteHeader(), PERSONAL.id, 'the first try (the server is still down) mends nothing')
+  api.down = false
+  await wait(260)
+  assert.equal(liveRouteHeader(), ACME.id, 'the second try, the server being back, re-aligned the route with nobody sending anything')
+  const readsMended = modelReads()
+  await wait(400)
+  assert.equal(modelReads(), readsMended, 'and the tries stopped once the route was right')
+  ok('after a failed switch the host tries again by itself (10 s, 30 s, 2 min, scaled down here) and stops as soon as the route names the active team')
+
+  // A server that stays down: three tries after the failure, then nothing more (bounded), and the choice is still kept.
+  api.down = false
+  assert.equal((await post('space/active', { workspace_id: PERSONAL.id })).json.route, 'written')
+  api.down = true
+  const readsBefore = modelReads()
+  assert.equal((await post('space/active', { workspace_id: ACME.id })).json.route, 'failed')
+  await wait(700)
+  assert.equal(modelReads() - readsBefore, 4, 'the failed switch itself, then three tries')
+  await wait(300)
+  assert.equal(modelReads() - readsBefore, 4, 'and no fifth: the tries are bounded')
+  assert.equal(active(), ACME.id)
+  api.down = false
+  mod.ROUTE_REPAIR_TUNING.delaysMs = [10000, 30000, 120000]
+  ok('a server that stays down gets three tries after the failure and no more')
+  settingsOn = false
 
   // 8. What is not what the engine sends breaks nothing.
   for (const junk of [{}, { agent: null }, { agent: {} }, { agent: { session: null } }, { agent: { session: { id: 'session-x-123' } }, turn: 1 }]) {

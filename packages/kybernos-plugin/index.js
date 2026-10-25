@@ -141,6 +141,20 @@ const errText = (e) => (e && e.message ? String(e.message) : String(e))
 const isDir = (info) => info !== undefined && info !== null && info.type === 'directory'
 const isFile = (info) => info !== undefined && info !== null && info.type === 'file'
 const str = (v) => (typeof v === 'string' ? v : null)
+// Runs one command through the engine's shell service and gives back what the command reported (`{ exitCode, … }`), or null when no handle came. The service answers
+// `execute(spec)` with a handle whose `result` is a METHOD in the engine (dsh-bash-local, every version we ship against) and a promise in the older engines that
+// dsh-compat.json still admits: awaiting the method as a value hands the function back, with no exit code, and every file action of Creations then answered « refused » although the
+// command had run (recette 2026-10-25, L1-44). A service with only `run(request)` is still served. A rejection travels to the caller, who owns the wording.
+const shellRun = async (shellSvc, request) => {
+  if (typeof shellSvc.resolve === 'function' && typeof shellSvc.execute === 'function') {
+    const handle = await shellSvc.execute(shellSvc.resolve(request))
+    if (handle === null || handle === undefined) return null
+    const pending = handle.result
+    return await (typeof pending === 'function' ? pending.call(handle) : pending)
+  }
+  if (typeof shellSvc.run === 'function') return await shellSvc.run(request)
+  throw new Error('shell service has neither execute nor run')
+}
 // A text in both languages for the host's approval prompts: `displayReason` carries { en, fr } and the shell picks the one of its language.
 const kbPair = (fr, en) => ({ en: en, fr: fr })
 
@@ -7554,21 +7568,6 @@ function boot(ctx) {
         if (!isFile(info)) return { ok: false, error: 'file not found' }
         const shellSvc = ctx.get('shell')
         if (shellSvc === undefined || shellSvc === null) return { ok: false, error: 'shell service unavailable' }
-        // Recette 2026-10 : le service shell réel (dsh-bash-local, ShellExecutor)
-        // expose execute() — jamais run(). L'ancien appel shellSvc.run(spec)
-        // levait « shellSvc.run is not a function » et cassait reveal/delete/
-        // duplicate/rename.
-        const shellRun = async (request) => {
-          // Protocole du ShellExecutor : resolve(request) → spec, puis
-          // execute(spec) → handle dont .result porte { exitCode, ... }.
-          if (typeof shellSvc.resolve === 'function' && typeof shellSvc.execute === 'function') {
-            const spec = shellSvc.resolve(request)
-            const handle = await shellSvc.execute(spec)
-            return await (handle !== null && handle !== undefined ? handle.result : null)
-          }
-          if (typeof shellSvc.run === 'function') return await shellSvc.run(request)
-          throw new Error('shell service has neither execute nor run')
-        }
         let writeRoot = null
         {
           const wsSvc = workspacesAt()
@@ -7588,7 +7587,7 @@ function boot(ctx) {
         const run = async (command) => {
           const request = { command: command, timeoutMs: 10000, stdoutMaxBytes: 4096 }
           if (writeRoot !== null) request.sandboxPolicy = { mode: 'workspace-write', workspaceRoot: writeRoot }
-          const res = await shellRun(request)
+          const res = await shellRun(shellSvc, request)
           const code = res !== null && res !== undefined && typeof res.exitCode === 'number' ? res.exitCode : (res !== null && res !== undefined && typeof res.code === 'number' ? res.code : null)
           // Un résultat sans exitCode (infra/timeout) n'est PAS un succès.
           return code === 0
@@ -7645,26 +7644,11 @@ function boot(ctx) {
         if (!isFile(info)) return { ok: false, error: 'file not found' }
         const shellSvc = ctx.get('shell')
         if (shellSvc === undefined || shellSvc === null) return { ok: false, error: 'shell service unavailable' }
-        // Recette 2026-10 : le service shell réel (dsh-bash-local, ShellExecutor)
-        // expose execute() — jamais run(). L'ancien appel shellSvc.run(spec)
-        // levait « shellSvc.run is not a function » et cassait reveal/delete/
-        // duplicate/rename.
-        const shellRun = async (request) => {
-          // Protocole du ShellExecutor : resolve(request) → spec, puis
-          // execute(spec) → handle dont .result porte { exitCode, ... }.
-          if (typeof shellSvc.resolve === 'function' && typeof shellSvc.execute === 'function') {
-            const spec = shellSvc.resolve(request)
-            const handle = await shellSvc.execute(spec)
-            return await (handle !== null && handle !== undefined ? handle.result : null)
-          }
-          if (typeof shellSvc.run === 'function') return await shellSvc.run(request)
-          throw new Error('shell service has neither execute nor run')
-        }
         // H-03 (recette 03/10) : entre doubles quotes, $(…) et `…` S'exécutent —
         // l'échappement de " seul ne protège rien. Quote POSIX à la q() du bloc
         // actions (l.6459), qui neutralise aussi la substitution de commande.
         const q2 = (p) => "'" + String(p).replace(/'/g, "'\\''") + "'"
-        const resReveal = await shellRun({ command: 'open -R ' + q2(path), timeoutMs: 8000, stdoutMaxBytes: 4096 })
+        const resReveal = await shellRun(shellSvc, { command: 'open -R ' + q2(path), timeoutMs: 8000, stdoutMaxBytes: 4096 })
         const codeReveal = (resReveal !== null && resReveal !== undefined && typeof resReveal.exitCode === 'number') ? resReveal.exitCode : null
         if (codeReveal !== null && codeReveal !== 0) return { ok: false, error: 'Finder unavailable (exit ' + codeReveal + ')' }
         return { ok: true }

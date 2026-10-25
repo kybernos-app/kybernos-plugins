@@ -2,7 +2,7 @@
 // Everything here takes its I/O as arguments (state reader/writer, clock, id
 // generator) so test-host.mjs can play it without DSH, a disk or a browser.
 import { noterCasse, noterChargement, noterDemarrage, noterSante, normaliser, nomsValides, recommandation } from './boot-guard.mjs'
-import { basculer, charge, etatDistant, evaluerCache, installer, mettreAJour, plateformeDe, rafraichir, versionDansZone } from './suite-host.mjs'
+import { basculer, charge, etatDistant, evaluerCache, installer, mettreAJour, rafraichir, versionDansZone } from './suite-host.mjs'
 import { catalogueEffectif } from './catalogue-distant.mjs'
 import { writeGuard } from './session-guard.mjs'
 // Hosted instance: also accept the authorities declared to DSH with --trusted-host. The core bundle publishes the predicate
@@ -161,13 +161,37 @@ export function monterRoutes (webServer, hub, liens = {}) {
  *   GET  /kybernos-hub/update/status → { etat: idle | telechargement | extraction | installation | termine | echec, … }
  *   POST /kybernos-hub/engine     → { confirm: true, version } — put the DSH engine on a version this plugin was TESTED with (the
  *                                   lifecycle robot, snapshot first, rollback on failure); 202, polled on the same status route
- * deps: { catalogue, lireActivation(), ecrireActivation(obj), executer(argv), relancer({ port }), hub, hebergement() (optional), zoneMoteur() → { min, max } | null,
+ * deps: { catalogue, lireActivation(), ecrireActivation(obj | null), executer(argv), relancer({ port }), hub, hebergement() (optional), zoneMoteur() → { min, max } | null,
  *         cles(), versionSuite(), urlCatalogue(), lireCache(), ecrireCache({octets,signature}), telecharger(url,{max}),
- *         telechargerVers(url,{max}), extraire(fichier), executerArchive(racine), nettoyer(), racineDev(), plateforme }
+ *         telechargerVers(url,{max}), extraire(fichier), executerArchive(racine), nettoyer(), racineDev(), plateforme,
+ *         lireVerrou() → { etat: 'libre' } | { etat: 'tenu', verrou } (optional: the installation lock on disk, install-lock.mjs), balayer() (optional: removes the temp folders a killed update left) }
+ *
+ * « Busy » is the in-memory flag of this process OR a live installer holding the lock on disk: the robot is a child that survives the death of DSH, so after a `kill -9`
+ * the restarted DSH must still say « installing » and refuse a second install and a relaunch (L3-85).
  */
 export function monterSuite (webServer, deps, liens = {}) {
   webServer = kbFenced(webServer)
   let occupe = false
+  // The installation lock on disk (install-lock.mjs): an installer the hub did not start in THIS process (it outlived a DSH that was killed, or a person started it from a
+  // terminal) is still an installer. Reading it also removes a stale lock (dead pid). A deps object with no `lireVerrou` (the tests of the activation logic) has none.
+  let dejaTenu = false
+  const verrou = () => {
+    let v = { etat: 'libre' }
+    try { if (typeof deps.lireVerrou === 'function') v = deps.lireVerrou() ?? v } catch { v = { etat: 'libre' } }
+    // The installer has ended since it was last seen held: the temp folder of an update that nobody cleaned (its DSH was killed) can go now.
+    if (v.etat === 'tenu') dejaTenu = true
+    else if (dejaTenu) { dejaTenu = false; try { deps.balayer?.() } catch { /* a temp folder left behind is not worth a failure */ } }
+    return v
+  }
+  const estOccupe = () => occupe || verrou().etat === 'tenu'
+  // The task of an installer this process did not start, rebuilt from the lock: the page then shows the same « installing » step as for its own.
+  const tacheDuVerrou = () => {
+    const v = verrou()
+    if (v.etat !== 'tenu') return null
+    return { etat: 'installation', ...(v.verrou.genre === 'engine' ? { moteur: true } : {}), orpheline: true }
+  }
+  // The temp folders of an update that was cut short are removed when the suite routes are mounted, after DSH has finished starting.
+  if (typeof deps.balayer === 'function') setImmediate(() => { try { deps.balayer() } catch { /* best effort */ } })
   const lire = () => { try { return deps.lireActivation() } catch { return null } }
   // The online catalogue is optional: a deps object without it (the tests of the activation logic) serves the shipped one.
   const enLigne = typeof deps.lireCache === 'function'
@@ -199,7 +223,7 @@ export function monterSuite (webServer, deps, liens = {}) {
     const corps = await corpsJson(req, res)
     if (corps === undefined) return undefined
     const { id, action } = corps
-    if (occupe) return envoyer(res, 409, { ok: false, error: 'busy' })
+    if (estOccupe()) return envoyer(res, 409, { ok: false, error: 'busy' })
     occupe = true
     try {
       if (action === 'installer') {
@@ -219,6 +243,8 @@ export function monterSuite (webServer, deps, liens = {}) {
     const corps = await corpsJson(req, res)
     if (corps === undefined) return undefined
     if (corps.confirm !== true) return envoyer(res, 400, { ok: false, error: 'confirmation-required' })
+    // Restarting DSH while an installer writes the profile would cut it in the middle (the robot survives, but the boot check it runs would meet a DSH that is going down).
+    if (estOccupe()) return envoyer(res, 409, { ok: false, error: 'busy', detail: 'An installation is running: wait until it ends, then restart DSH.' })
     let r
     try { r = await deps.relancer({ port: req?.socket?.localPort }) } catch (e) { return envoyer(res, 500, { ok: false, error: 'relaunch-failed', detail: String(e?.message ?? e) }) }
     return envoyer(res, r?.ok === true ? 200 : 500, r?.ok === true ? { ok: true } : { ok: false, error: r?.error ?? 'relaunch-failed' })
@@ -227,7 +253,7 @@ export function monterSuite (webServer, deps, liens = {}) {
     const corps = await corpsJson(req, res)
     if (corps === undefined) return undefined
     if (!enLigne) return envoyer(res, 404, { ok: false, error: 'not-available' })
-    if (occupe) return envoyer(res, 409, { ok: false, error: 'busy' })
+    if (estOccupe()) return envoyer(res, 409, { ok: false, error: 'busy' })
     occupe = true
     try {
       const r = await rafraichir({ url: deps.urlCatalogue(), cles: deps.cles(), versionSuite: deps.versionSuite(), telecharger: deps.telecharger, ecrireCache: deps.ecrireCache })
@@ -240,7 +266,7 @@ export function monterSuite (webServer, deps, liens = {}) {
     if (corps === undefined) return undefined
     if (!enLigne) return envoyer(res, 404, { ok: false, error: 'not-available' })
     if (corps.confirm !== true) return envoyer(res, 400, { ok: false, error: 'confirmation-required' })
-    if (occupe) return envoyer(res, 409, { ok: false, error: 'busy' })
+    if (estOccupe()) return envoyer(res, 409, { ok: false, error: 'busy' })
     const ev = evaluation()
     const d = distant(ev)
     if (!d.miseAJour.possible) return envoyer(res, 409, { ok: false, error: d.miseAJour.raison })
@@ -269,7 +295,7 @@ export function monterSuite (webServer, deps, liens = {}) {
     let zone = null
     try { zone = deps.zoneMoteur() } catch { zone = null }
     if (versionDansZone(version, zone) !== true) return envoyer(res, 409, { ok: false, error: 'outside-tested-zone' })
-    if (occupe) return envoyer(res, 409, { ok: false, error: 'busy' })
+    if (estOccupe()) return envoyer(res, 409, { ok: false, error: 'busy' })
     occupe = true
     tache = { etat: 'installation', version, moteur: true }
     // 202: the robot takes minutes; the dialog polls /update/status. `occupe` stays set until it ends.
@@ -283,7 +309,8 @@ export function monterSuite (webServer, deps, liens = {}) {
   const etatMiseAJour = (req, res) => {
     if (req.method !== 'GET') return envoyer(res, 405, { ok: false, error: 'method-not-allowed' })
     if (sameOriginLax(req) === false) return envoyer(res, 403, { ok: false, error: 'origin-refused' })
-    return envoyer(res, 200, { ok: true, ...tache })
+    // This process's own task first; with none, the installer that outlived a DSH (or was started by hand) is the task.
+    return envoyer(res, 200, { ok: true, ...(tache.etat === 'idle' ? (tacheDuVerrou() ?? tache) : tache) })
   }
   const enregistrer = () => {
     const retraits = [

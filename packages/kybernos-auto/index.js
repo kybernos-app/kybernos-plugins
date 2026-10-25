@@ -15,7 +15,7 @@
 // stays standalone for the agent; the host serves the page and the composer's chip.
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync, statSync, realpathSync, renameSync, chmodSync, rmSync } from 'node:fs'
+import { readFileSync, writeFileSync, mkdirSync, readdirSync, statSync, realpathSync, renameSync, chmodSync, rmSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { basename, dirname, join, resolve } from 'node:path'
 import { DELAI_DEFAUT, normaliserListe, sonderUn } from './sonde.mjs'
@@ -429,10 +429,41 @@ const origineOK = (req) => {
     return (['127.0.0.1' + port, 'localhost' + port, '[::1]' + port].indexOf(u.host) >= 0 || kbTrusted(u.host))
   } catch { return false }
 }
-const lireCorps = (req) => new Promise((res) => {
-  let corps = ''
-  req.on('data', (d) => { corps += d })
-  req.on('end', () => { try { res(JSON.parse(corps || '{}')) } catch { res({}) } })
+// The body of a POST, counted as it arrives: the rule of `readBody(req, cap)` in kybernos-search/guard.mjs (bundles read on their own, so the small
+// function is copied, not imported), over events because the tests of this bundle drive the routes with a request stand-in that has `on()` only.
+// Past `cap` bytes nothing more is kept, the caller gets 413 with `Connection: close` and the request is destroyed once the answer is out; the
+// promise then resolves `null` and the route stops (the answer is already sent). Before, the body was added to a string without any limit: one POST
+// of more than 512 MB threw `RangeError: Invalid string length` inside the 'data' listener, which nobody catches, and DSH ended with all its sessions
+// (recette L3-43). A request that ends badly (aborted, reset) resolves `null` too: nobody is left to answer.
+// 64 KiB: the largest legitimate body is `settings` with 64 model ids of 200 characters (about 14 KiB); `report` and `router` carry a model id, a code
+// and one sentence or one delegation request (the router reads the first 400 characters of it).
+const CORPS_MAX = 64 * 1024
+const lireCorps = (req, res, cap = CORPS_MAX) => new Promise((resoudre) => {
+  const morceaux = []
+  let taille = 0
+  let fini = false
+  const finir = (valeur) => { if (fini) return; fini = true; morceaux.length = 0; resoudre(valeur) }
+  req.on('data', (d) => {
+    if (fini) return
+    const octets = typeof d === 'string' ? Buffer.from(d) : d
+    taille += octets.length
+    if (taille > cap) {
+      try { res.setHeader?.('Connection', 'close') } catch { /* a stand-in */ }
+      try { res.once?.('finish', () => req.destroy?.()) } catch { /* a stand-in */ }
+      envoyer(res, 413, { ok: false, code: 'corps-trop-gros', erreur: 'request body too large (' + Math.round(cap / 1024) + ' KiB at most)' })
+      finir(null)
+      return
+    }
+    morceaux.push(octets)
+  })
+  req.on('end', () => {
+    if (fini) return
+    const brut = morceaux.length === 0 ? '' : Buffer.concat(morceaux).toString('utf8')
+    // `null` is the "already answered" signal of this function, so a body that is the JSON text `null` reads as an empty one.
+    try { finir(JSON.parse(brut || '{}') ?? {}) } catch { finir({}) }
+  })
+  req.on('error', () => finir(null))
+  req.on('close', () => finir(null))
 })
 
 /** The main-session failover (failover.mjs) wired to the files of this DSH home: the switch is `autoFailover` in
@@ -535,7 +566,8 @@ export function monterRoutes (webServerSvc, opts = {}) {
     if (!origineOK(req)) { res.writeHead(403); res.end('origin refused'); return }
     if (req.method !== 'POST') { res.writeHead(405); res.end('POST expected'); return }
     if (!ecritureAutorisee(req, res)) return
-    const corps = await lireCorps(req)
+    const corps = await lireCorps(req, res)
+    if (corps === null) return
     const r = ecrireSession(sessionsFichier, corps.sessionId, corps.on === true)
     envoyer(res, r.ok === true ? 200 : 400, r.ok === true
       ? { ...(await etatComplet(corps.sessionId)), on: r.on }
@@ -546,7 +578,8 @@ export function monterRoutes (webServerSvc, opts = {}) {
     if (!origineOK(req)) { res.writeHead(403); res.end('origin refused'); return }
     if (req.method !== 'POST') { res.writeHead(405); res.end('POST expected'); return }
     if (!ecritureAutorisee(req, res)) return
-    const corps = await lireCorps(req)
+    const corps = await lireCorps(req, res)
+    if (corps === null) return
     // Whitelist and classifier: the same global keys as settings.json — the
     // dedicated page is their main writer. Validate first, touch the disk after.
     const maj = {}
@@ -612,7 +645,8 @@ export function monterRoutes (webServerSvc, opts = {}) {
   webServerSvc.register({ kind: 'exact', path: '/kybernos-auto/report', handler: async (req, res) => {
     if (!origineOK(req)) { res.writeHead(403); res.end('origin refused'); return }
     if (req.method !== 'POST') { res.writeHead(405); res.end('POST expected'); return }
-    const c = await lireCorps(req)
+    const c = await lireCorps(req, res)
+    if (c === null) return
     if (typeof c.modele !== 'string' || c.modele === '' || c.modele.length > 200) { envoyer(res, 400, { ok: false, erreur: 'model expected' }); return }
     if (c.latenceMs !== undefined && !(Number.isFinite(c.latenceMs) && c.latenceMs >= 0)) { envoyer(res, 400, { ok: false, erreur: 'latenceMs: a number >= 0 was expected' }); return }
     if (c.code !== undefined && (typeof c.code !== 'string' || c.code.length > 100)) { envoyer(res, 400, { ok: false, erreur: 'code: a string of 100 characters at most was expected' }); return }
@@ -629,7 +663,8 @@ export function monterRoutes (webServerSvc, opts = {}) {
     if (!origineOK(req)) { res.writeHead(403); res.end('origin refused'); return }
     if (req.method !== 'POST') { res.writeHead(405); res.end('POST expected'); return }
     if (!ecritureAutorisee(req, res)) return
-    const corps = await lireCorps(req)
+    const corps = await lireCorps(req, res)
+    if (corps === null) return
     if (!llmDispo()) { envoyer(res, 503, { ok: false, code: 'llm-indisponible', erreur: 'llm service unavailable: nothing can be probed' }); return }
     const reg = await reglagesEffectifs()
     // Only whitelist models are ever probed: these routes need no login (DSH serves plugin routes before its own
@@ -661,7 +696,8 @@ export function monterRoutes (webServerSvc, opts = {}) {
   webServerSvc.register({ kind: 'exact', path: '/kybernos-auto/router', handler: async (req, res) => {
     if (!origineOK(req)) { res.writeHead(403); res.end('origin refused'); return }
     if (req.method !== 'POST') { res.writeHead(405); res.end('POST expected'); return }
-    const corps = await lireCorps(req)
+    const corps = await lireCorps(req, res)
+    if (corps === null) return
     const demande = String(corps.demande || '').trim()
     if (demande === '') { envoyer(res, 400, { ok: false, erreur: 'request expected' }); return }
     const sessionId = String(corps.sessionId || '')
