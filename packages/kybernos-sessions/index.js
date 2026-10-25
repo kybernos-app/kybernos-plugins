@@ -164,8 +164,11 @@ export function dossierDeSession (sessionsHome, sessionId, ls = readdirSync) {
 
 // ── git (execution; the reads never write) ──────────────────────────────────
 
+// GIT_LITERAL_PATHSPECS: the only pathspecs this bundle hands to git are file names (`git add -- <the chat's files>`), and a name is literal. Without it a name that begins with `:`
+// is read as pathspec magic: `chemins: ['mine.txt', ':/']` made `git add` take the whole repository, including the work of the other chats that `/commit` promises to leave out
+// (recette 2026-10-25, L3-18). With it that entry is a file called `:/`, which does not exist, and the add is refused as a whole.
 const gitRun = (args, cwd) => new Promise((res) => {
-  execFile('git', args, { cwd, timeout: 15000 }, (err, stdout, stderr) =>
+  execFile('git', args, { cwd, timeout: 15000, env: { ...process.env, GIT_LITERAL_PATHSPECS: '1' } }, (err, stdout, stderr) =>
     res({ ok: !err, out: String(stdout || ''), err: String(stderr || '') }))
 })
 
