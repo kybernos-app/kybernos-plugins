@@ -10,9 +10,11 @@ export const PLATFORMS = {
     // XCUITest: app states 1 not running, 2 background suspended, 3 background, 4 foreground
     states: { 1: 'not running', 2: 'background, suspended', 3: 'background', 4: 'foreground' },
     capabilities: ({ device, osVersion, appUrl }) => ({ platformName: 'ios', 'appium:deviceName': device, 'appium:platformVersion': osVersion, 'appium:automationName': 'XCUITest', 'appium:app': appUrl, 'appium:autoAcceptAlerts': true }),
-    queryState: (id) => ['mobile: queryAppState', [{ bundleId: id }]],
-    goHome: () => ['mobile: pressButton', [{ name: 'home' }]],
-    comeBack: (id) => ['mobile: activateApp', [{ bundleId: id }]],
+    // each control is a list of alternatives, tried in order until one does not answer with an error: { script, args } is Appium's `mobile:` execute, { path, body } a session endpoint
+    queryState: (id) => [{ script: 'mobile: queryAppState', args: [{ bundleId: id }] }],
+    goHome: () => [{ script: 'mobile: pressButton', args: [{ name: 'home' }] }],
+    comeBack: (id) => [{ script: 'mobile: activateApp', args: [{ bundleId: id }] }],
+    labelMeansReady: false,
     // the page source lists each native view with a `label`
     bootText: (xml) => { const m = /label="([^"]*(?:First launch|Starting|engine stopped)[^"]*)"/.exec(xml); return m ? unescapeXml(m[1]) : null },
     selfTestText: (xml) => { const m = /label="(selftest:[^"]*)"/.exec(xml); return m ? unescapeXml(m[1]) : null },
@@ -28,9 +30,12 @@ export const PLATFORMS = {
     // UiAutomator2: 0 not installed, 1 not running, 3 running in the background, 4 running in the foreground
     states: { 0: 'not installed', 1: 'not running', 3: 'background', 4: 'foreground' },
     capabilities: ({ device, osVersion, appUrl }) => ({ platformName: 'android', 'appium:deviceName': device, 'appium:platformVersion': osVersion, 'appium:automationName': 'UiAutomator2', 'appium:app': appUrl, 'appium:autoGrantPermissions': true }),
-    queryState: (id) => ['mobile: queryAppState', [{ appId: id }]],
-    goHome: () => ['mobile: pressKey', [{ keycode: 3 }]],
-    comeBack: (id) => ['mobile: activateApp', [{ appId: id }]],
+    // BrowserStack's Appium 1.22 knows none of `mobile: queryAppState`, `pressKey`, `activateApp`: the older session endpoints do the same (found on a Pixel 9 run)
+    queryState: (id) => [{ path: '/appium/device/app_state', body: { appId: id, bundleId: id } }],
+    goHome: () => [{ path: '/appium/device/press_keycode', body: { keycode: 3 } }, { script: 'mobile: shell', args: [{ command: 'input', args: ['keyevent', '3'] }] }],
+    comeBack: (id) => [{ path: '/appium/device/activate_app', body: { appId: id, bundleId: id } }, { script: 'mobile: startActivity', args: [{ component: id + '/.MainActivity' }] }],
+    // the web page's own text is not in UiAutomator2's page source: the self-test label under it is what shows the page, and the engine behind it, came up
+    labelMeansReady: true,
     // the page source lists each native view with `text` and `content-desc`
     bootText: (xml) => { const m = /(?:text|content-desc)="([^"]*(?:First launch|Starting|engine stopped)[^"]*)"/.exec(xml); return m ? unescapeXml(m[1]) : null },
     selfTestText: (xml) => { const m = /(?:text|content-desc)="(selftest:[^"]*)"/.exec(xml); return m ? unescapeXml(m[1]) : null },
