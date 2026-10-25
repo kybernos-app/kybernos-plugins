@@ -16,6 +16,20 @@ https://claude.ai/artifact/9uPRqPWsM186QwUwXgBKjg).
   request time from the subscription (ADR 0004). **Stripe is the only payment provider; there is no in-app-purchase code.**
 - **First launch today** opens the settings screen « Add your model key / Paste your Anthropic key » and the consent text says « by default Anthropic ». Both go.
 
+## What is sold (the server's catalogue, `catalogue/*.json`)
+
+| Plan | What | Price (USD, the EUR numbers are the same) | Fits in-app purchase? |
+|---|---|---|---|
+| Free | 1,000 credits a month, the free models or your own key | 0 | n/a |
+| **Individual, level Plus** (key `solo`) | access tier 1, always-on computer | 24 a month, or 19 a month billed yearly | **Yes**: an auto-renewing subscription |
+| **Individual, level Pro** (key `studio`) | access tier 2, usage ×2.5, always-on computer | 49 a month, or 39 a month billed yearly | **Yes**, same subscription group as Plus (the stores handle the move up and down) |
+| Team | per seat, shared workspace, team lessons, skills and automations, tier 2 | 49 a seat a month, or 39 billed yearly; `min_seats` 2 in the catalogue | **Not as it is**: a store subscription has no seat quantity |
+| Top-up | a pack of credits, 15 once, valid 12 months, 1 to 10 packs | 15 | Yes, as a consumable (a later step) |
+
+So the individual levels are the natural first thing to sell with in-app purchase: four products (Plus and Pro, monthly and yearly) in one subscription group. Apple and Google are then the seller of record
+and collect the tax, which differs from Stripe (price points are chosen per storefront, invoices are the store's). **To check**: the catalogue says Team has two seats at least, while the web wizard's plan screen
+says « Team · solo », one seat; one of the two is out of date.
+
 ## What to build
 
 ### A. Accounts, free plan, own keys (small, no store account needed) — first build
@@ -49,7 +63,7 @@ Adapty; **rules and commissions are moving with the Apple and Google court cases
 | Stripe payment sheet inside the app | Generally not permitted (EU and Japan/Brazil have it at 20 % to 21 %, with conditions) | Allowed in several regions through alternative billing |
 | Store billing | Required everywhere the above does not apply | Required elsewhere; user-choice billing in a few countries |
 
-What this means: **in-app purchase cannot be avoided if Team is sold to iPhones worldwide**, but Stripe can cover some regions and is a much smaller build (the existing checkout opens in the browser; the commission is
+What this means: **in-app purchase cannot be avoided if Plus, Pro or Team are sold to iPhones worldwide**, but Stripe can cover some regions and is a much smaller build (the existing checkout opens in the browser; the commission is
 reported to the store, which is new). So the single gate of B0 becomes a three-valued capability per platform and storefront country (StoreKit gives the storefront; Play gives the country): `none` (today, everywhere),
 `web` (open the Stripe checkout, only where the store allows it) and `store` (in-app purchase). Switching a region on is a flag, not a redesign.
 
@@ -81,13 +95,13 @@ the web payment page; the hidden controls come back one by one, only when the pr
 - **Apple**: Apple Developer Program, Paid Applications Agreement, bank and tax forms, a subscription group and the Team product(s) in App Store Connect, the Server Notifications URL, sandbox testers.
   Apple's commission is 30 % (15 % under the Small Business Program, which has to be applied for): decide whether the app's price is higher than the web's.
 - **Google**: Play Console merchant account, subscription products and base plans, a Pub/Sub topic and a service account with access to the Play Developer API, license testers.
-- A written answer on **multi-seat teams**: Apple has no per-seat quantity on a subscription, so « Team solo » (one seat) can be a fixed product; teams of several people may fall under
-  Apple 3.1.3(c) (sold to organisations) and stay on the web. To confirm with App Review, not assumed.
+- A written answer on **Team**: Apple and Google have no per-seat quantity on a subscription, so Team does not fit as it is; sold to organisations it may fall under Apple 3.1.3(c) and stay on the web (or on the
+  Stripe link-out where the store allows it). To confirm with App Review, not assumed. Plus and Pro have no such problem.
 
 ### D. Open decisions
 
 1. **Native StoreKit and Play Billing with our own validation** (my pick, awaiting the owner) or a purchase service such as RevenueCat. For a handful of products (Team solo, monthly and yearly) the native build is a few weeks and keeps the server the only authority over entitlements, with no new vendor in the payment path, no extra SDK in the app (privacy manifest, data-collection disclosure) and no revenue share. RevenueCat saves roughly one to two weeks and handles the stores' edge cases (grace period, billing retry, refunds, restore, cross-platform), at the price of a new subprocessor to declare (the server has a register), a fee after the free tier (about 1 % of tracked revenue, to check), a vendor between the stores and our entitlements, and our server still has to take its webhooks. The seam in B0 makes the choice reversible.
-2. **Where Team is sold from the app, and by which route**: Stripe link-out only in the regions that allow it (no in-app purchase at all at first, Team simply not shown elsewhere), or Stripe link-out plus in-app purchase everywhere. The first is much less to build; the second is the only way to sell to iPhones worldwide.
+2. **Which plans are sold from the app, and by which route**: Plus and Pro with in-app purchase (and the Stripe link-out where the store allows it); Team on the Stripe link-out or the web only; top-ups later. Or the lean start: Stripe link-out only, where the stores allow it, and no in-app purchase at all at first. The first is the only way to sell to iPhones worldwide; the second is much less to build.
 3. One price everywhere or a higher price in the apps to absorb the commission.
 4. Whether the desktop wizard also puts the account first (the mockup only decides the phone app).
 
