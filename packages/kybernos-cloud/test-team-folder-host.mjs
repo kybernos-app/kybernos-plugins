@@ -148,7 +148,7 @@ try {
   assert.deepEqual(readdirSync(DOCS), ['Kybernos'], 'nothing outside the root')
   ok('a team called « ../../etc/passwd » gets ONE folder under the root, « etc passwd »; nothing is made outside it')
   r = await post('space/active', { workspace_id: TWIN.id })
-  assert.equal(r.json.state.space_folder, join(ROOT, 'Acme (abcdef12)'))
+  assert.equal(r.json.state.space_folder, join(ROOT, 'Acme (33333333)'))
   assert.notEqual(r.json.state.space_folder, join(ROOT, 'Acme'))
   ok('a second team called « Acme » is not given the first one\'s folder: its name carries the team\'s id')
 
@@ -236,7 +236,7 @@ try {
   api.spaces = api.spaces.concat([taken])
   writeFileSync(statePath, JSON.stringify({ ...readState(), workspaces: [...readState().workspaces, taken] }), { mode: 0o600 })
   r = await post('space/active', { workspace_id: taken.id })
-  assert.equal(r.json.state.space_folder, join(ROOT, 'Taken (99999999)'), 'a folder that is already there with no record is not taken over')
+  assert.equal(r.json.state.space_folder, join(ROOT, 'Taken (aaaaaaaa)'), 'a folder that is already there with no record is not taken over')
   ok('a folder of that name on the disk with no record (the person\'s own, or another account\'s team) is not taken over: the team gets one that carries its id')
 
   console.log('Guards')
