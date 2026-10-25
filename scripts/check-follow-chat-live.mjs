@@ -40,6 +40,8 @@ const note = (text) => console.log('  · ' + text)
 const MODEL = 'Kybernos Glm'
 // A chat's row in the sidebar carries the title DSH made from the model's REPLY, so each chat gets a reply of its own (and this run's, since the sandbox keeps the chats of earlier runs).
 const RUN = Date.now().toString(36).slice(-4)
+// The folder of the personal chats in the sidebar: the sandbox's default workspace, named after the checkout it serves.
+const PERSONAL_GROUP = String(process.env.KB_WORKTREE || '').split('/').filter(Boolean).pop() || ''
 const TAG = { personal: 'FOLLOW' + RUN + 'P', acme: 'FOLLOW' + RUN + 'A', studio: 'FOLLOW' + RUN + 'S' }
 
 const fake = await startFakeKybernos({ spaces: [P, ACME, STUDIO] })
@@ -133,10 +135,18 @@ try {
     await g.closeMenu()
   }
   const key = (rowText) => sidebarChats().then((rows) => rows.find((r) => r.text.includes(rowText)))
-  const openChat = async (rowText) => {
-    const row = await key(rowText)
-    if (row === undefined) return false
-    return g.press('[data-row-key="' + row.key + '"]')
+  // The sidebar keeps the ACTIVE team's folder open and folds the others (j9 of the teams journeys says the same): a chat of another team's folder has no row on the page until its folder is opened.
+  // `group` is that folder's name; it is pressed only when the row is not there. Says so when the row is still missing (the rows it did see are listed).
+  const openChat = async (rowText, group) => {
+    let row = await key(rowText)
+    if (row === undefined && group !== undefined && group !== '') { note('the row « ' + rowText + ' » is not on the page: opening the folder « ' + group + ' » first'); await g.pressText(group); await sleep(800); row = await key(rowText) }
+    if (row === undefined) { note('the sidebar has no row « ' + rowText + ' »' + (group ? ' even after opening « ' + group + ' »' : '') + ' (rows on the page: ' + (await sidebarChats()).map((r) => r.text.slice(0, 22)).join(' | ') + ')'); return false }
+    // A row below the visible part of the list sits under the footer card: a real click at its coordinates opens the account menu instead (seen on the screenshot of 2026-10-25: the sandbox keeps
+    // the chats of earlier runs, so the personal folder is pushed down). Scroll it into view first, as pressText does.
+    const sel = '[data-row-key="' + row.key + '"]'
+    await g.val('(() => { const e = document.querySelector(' + JSON.stringify(sel) + '); if (e) e.scrollIntoView({ block: "center" }); return !!e })()')
+    await sleep(300)
+    return g.press(sel)
   }
 
   await waitReady()
@@ -170,7 +180,7 @@ try {
   const asked0 = await asks()
   note('Personal is active; the page shows a blank chat of the personal workspace')
   let t0 = Date.now()
-  check('(the Acme chat\'s row is pressed)', await openChat(TAG.acme) === true)
+  check('(the Acme chat\'s row is pressed)', await openChat(TAG.acme, 'Acme') === true)
   check('the footer says « Switching… » while the model route changes', (await until(() => switching(), 3000, 20)) === true)
   await until(async () => !(await switching()), 15000, 40)
   const tDone = Date.now() - t0
@@ -182,25 +192,25 @@ try {
   await shot('a1-acme-followed')
 
   t0 = Date.now()
-  await openChat(TAG.studio)
+  await openChat(TAG.studio, 'Studio B')
   await until(() => switching(), 3000, 20)
   await until(async () => !(await switching()), 15000, 40)
   check('Studio B\'s chat opened: Studio B is active (a team to another team, no stop at Personal)', (await cardName()) === 'Studio B' && (await hostStatus()).active_workspace_id === STUDIO.id, await cardName())
 
-  await openChat(TAG.personal)
+  await openChat(TAG.personal, PERSONAL_GROUP)
   await until(() => switching(), 3000, 20)
   await until(async () => !(await switching()), 15000, 40)
   check('the personal chat opened: back to Personal, no folder named', (await cardName()) === 'Personal' && (await hostStatus()).active_workspace_id === P.id && (await hostStatus()).space_folder === undefined, await cardName())
   check('and still no chat was created by any of the three switches', await noNewChat(), (await sidebarChats()).length)
 
   const askedBefore = await asks()
-  await openChat(TAG.personal)
+  await openChat(TAG.personal, PERSONAL_GROUP)
   await sleep(1500)
   check('opening the chat that is already on screen asks the host nothing', (await asks()) === askedBefore, { asked: await asks(), before: askedBefore })
 
   // ── 2. the page loaded on a team chat ───────────────────────────────────────────────────────────────────────────────────────────────────
   console.log('\n2. the page loaded on a team chat while another team is active')
-  await openChat(TAG.acme)
+  await openChat(TAG.acme, 'Acme')
   await until(() => switching(), 3000, 20)
   await until(async () => !(await switching()), 15000, 40)
   const r1 = await hostSwitch(STUDIO.id)
@@ -242,7 +252,7 @@ try {
   await shot('a3-claim-time')
 
   // 3b. a personal chat on screen, Acme active, page blind: Personal.
-  await openChat(TAG.personal)
+  await openChat(TAG.personal, PERSONAL_GROUP)
   await sleep(2000)
   check('(Acme stays active on the personal chat: the page was told nothing to do)', (await hostStatus()).active_workspace_id === ACME.id, await cardName())
   mark = fake.chats.length
@@ -251,7 +261,7 @@ try {
   check('the model requests of that turn are billed to Personal (the host went back to Personal at claim time)', after.length >= 1 && after.every((c) => c.ws === P.id), after.map((c) => (c.ws || '-').slice(0, 8)))
 
   // 3c. a NEW chat: the first message of a blank chat in a team's folder, claimed while Personal is active.
-  await openChat(TAG.acme)
+  await openChat(TAG.acme, 'Acme')
   await sleep(1500)
   blind.on = true
   await hostSwitch(P.id)
@@ -268,7 +278,7 @@ try {
 
   // ── 4. a reply is running: no switch under it ───────────────────────────────────────────────────────────────────────────────────────────
   console.log('\n4. a reply is running (the fake model holds the agent\'s request): the host refuses to switch under it')
-  await openChat(TAG.personal)
+  await openChat(TAG.personal, PERSONAL_GROUP)
   await until(async () => (await cardName()) === 'Personal' && !(await switching()), 15000, 100)
   fake.model.delayMs = 9000
   fake.model.reply = 'FOLLOW' + RUN + 'H1'
@@ -288,7 +298,9 @@ try {
   await g.closeMenu()
   const directRefusal = await hostSwitch(ACME.id)
   check('the same refusal for any caller of the route (a script with the page\'s cookie): turn_running, with who is running', directRefusal.ok === false && directRefusal.error === 'turn_running' && directRefusal.running.space_id === P.id, directRefusal)
-  await until(() => held.t1 !== null, 20000, 100)
+  // No agent request reached the model (held is undefined): the checks above already say so; do not crash on the property read, name the cause once.
+  if (held === undefined) note('no agent request reached the fake model for this turn: the profile\'s default model did not answer (pin it: node scripts/pin-model.mjs --home <sandbox home> kybernos kybernos/glm)')
+  else await until(() => held.t1 !== null, 20000, 100)
   await sleep(1500)
   const turn1 = fake.chats.slice(mark)
   check('nothing of that reply was billed to another team: every request of the turn carries Personal\'s header', turn1.length >= 1 && turn1.every((c) => c.ws === P.id), turn1.map((c) => (c.ws || '-').slice(0, 8)))
@@ -299,20 +311,22 @@ try {
 
   // ── 5. a chat opened while a reply runs: announced, and the switch happens by itself ─────────────────────────────────────────────────────
   console.log('\n5. a chat of another team opened while a reply runs: the notice, then the switch by itself')
-  await openChat(TAG.personal)
-  await until(async () => (await cardName()) === 'Personal' && !(await switching()), 15000, 100)
+  const pressedP5 = await openChat(TAG.personal, PERSONAL_GROUP)
+  const onPersonal5 = await until(async () => (await cardName()) === 'Personal' && !(await switching()), 15000, 100)
+  check('(the personal chat is opened from the sidebar and the card follows to Personal: the starting point of this section)', pressedP5 === true && onPersonal5 === true, { pressed: pressedP5, card: await cardName(), switching: await switching(), personalChatOnScreen: (await g.body()).includes('PERSONALTHREE') })
+  await shot('a5-personal-opened')
   fake.model.delayMs = 9000
   fake.model.reply = 'FOLLOW' + RUN + 'H2'
   mark = fake.chats.length
   await g.selectModel(MODEL)
   await g.send('PERSONALFOUR another reply that stays running')
   const held2 = await until(() => fake.chats.slice(mark).find((c) => c.tools), 15000, 50)
-  check('(a reply is running in the personal chat)', held2 !== undefined && held2.ws === P.id)
-  await openChat(TAG.acme)
+  check('(a reply is running in the personal chat)', held2 !== undefined && held2.ws === P.id, held2 === undefined ? 'no agent request reached the fake model within 15 s' : { billed_to: held2.ws === ACME.id ? 'Acme' : held2.ws === P.id ? 'Personal' : held2.ws, card: await cardName() })
+  await openChat(TAG.acme, 'Acme')
   const notice = await until(() => g.text('[data-kb="cue-mismatch"]'), 5000, 50)
   check('the Acme chat is on screen and the page says what is going on, where the person types', typeof notice === 'string' && notice === 'This chat belongs to Acme; Personal stays active until the reply ends.', notice)
   await shot('a5-notice')
-  check('Personal is still active (the switch waits)', (await hostStatus()).active_workspace_id === P.id && (await cardName()) === 'Personal')
+  check('Personal is still active (the switch waits)', (await hostStatus()).active_workspace_id === P.id && (await cardName()) === 'Personal', { card: await cardName() })
   check('the Acme chat stays on screen', (await g.body()).includes('ACMEONE first message in the Acme folder'))
   // The exposure that remains, shown: a message typed in the Acme chat now is billed to the team still active.
   fake.model.delayMs = 0
@@ -323,7 +337,7 @@ try {
   const typed = await until(() => fake.chats.slice(mark2).find((c) => c.tools), 15000, 50)
   note('EXPOSURE (measured): a message typed in the Acme chat during the deferral was billed to ' + (typed === undefined ? '?' : (typed.ws === P.id ? 'Personal, the team still active' : (typed.ws === ACME.id ? 'Acme' : typed.ws))))
   check('(that message was billed to the team that is still active, as the report says)', typed !== undefined && typed.ws === P.id, typed && typed.ws)
-  await until(() => held2.t1 !== null, 20000, 100)
+  if (held2 !== undefined) await until(() => held2.t1 !== null, 20000, 100)
   const tEnd = Date.now()
   const switched = await until(async () => (await cardName()) === 'Acme' && (await hostStatus()).active_workspace_id === ACME.id, 15000, 50)
   note('the last reply ended; the card showed Acme ' + (switched ? 'after ' + (Date.now() - tEnd) + ' ms' : 'NEVER (waited 15 s)'))
