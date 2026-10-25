@@ -492,7 +492,7 @@ injected through `systemPrompt.context` (name `kybernos:workspace-instructions`,
 broken so it cannot fail the prompt assembly). The session's workspace comes from DSH's own table (`~/.dsh/storages/workspace.json`,
 `tables.workspaces[id] = { path, title, sessionIds }`), never from the request. The option « also write it to AGENTS.md » keeps a marked
 section in `<workspace folder>/AGENTS.md` (the folder is that table's too; off or empty removes the section and nothing else). Routes:
-`GET|POST /kybernos/workspace-instructions` (strict same-origin on both). Limit 4,000 characters. Host code: loads at the next DSH start.
+`GET|POST /kybernos/workspace-instructions` (strict same-origin on both; the POST also needs DSH's signed session cookie, `docs/dev/route-origin-rule.md`). Limit 4,000 characters. Host code: loads at the next DSH start.
 `node packages/kybernos-plugin/test-workspace-instructions.mjs`.
 
 ## Chat header toggle
