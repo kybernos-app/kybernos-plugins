@@ -11,6 +11,11 @@ import {
   nomsDeConnexion, paquetAChercher
 } from './workers-host.mjs'
 import { apply, envSansSecrets, trouverBinaire, worktreeJetable, workersDeps, lancerInstallation } from './index.js'
+import { sessionSource } from './session-guard.mjs'
+import { SESSION_SECRET, sessionCookie } from './lib-session-test.mjs'
+
+// The POST routes need the signed session as well as the Origin (L3-15): the Workers page's own request carries both.
+sessionSource.secret = () => SESSION_SECRET
 
 let failures = 0
 let total = 0
@@ -281,7 +286,7 @@ console.log('── routes ──')
   const requete = ({ methode = 'GET', url = '/', corps, origine = 'http://127.0.0.1:3080', type = 'application/json' }) => {
     const r = Readable.from(corps === undefined ? [] : [Buffer.from(typeof corps === 'string' ? corps : JSON.stringify(corps))])
     r.method = methode; r.url = url; r.socket = { localPort: 3080 }
-    r.headers = { ...(origine ? { origin: origine } : {}), ...(type && methode === 'POST' ? { 'content-type': type } : {}) }
+    r.headers = { ...(origine ? { origin: origine } : {}), cookie: sessionCookie('127.0.0.1:3080'), ...(type && methode === 'POST' ? { 'content-type': type } : {}) }
     return r
   }
   const appeler = async (routes, chemin, opts) => {
