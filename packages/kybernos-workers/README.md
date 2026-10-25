@@ -48,8 +48,8 @@ can never be confirmed here), Restart DSH, Cannot write, Server not found.
 | `POST /kybernos-workers/install` `{worker, command}` | 202 `{ok, started}`; the job runs off the request |
 | `GET /kybernos-workers/install?worker=` | `{ok, job: {phase: running\|done\|error, journal[], code, surLePath, raison}}` |
 
-POSTs need `application/json` and an `Origin`/`Referer` on `127.0.0.1`, `localhost` or `[::1]` with the server's own port;
-a GET without either header is accepted. Policy refusals: `ligne-existante`, `ligne-modifiee-a-la-main`, `connexion-absente`,
+POSTs need `application/json`, an `Origin`/`Referer` on `127.0.0.1`, `localhost` or `[::1]` with the server's own port, **and DSH's signed session cookie** (401 without it,
+403 `refused_on_phone` through the phone link; `session-guard.mjs`, `test-write-guard.mjs`); a GET without either header is accepted. Policy refusals: `ligne-existante`, `ligne-modifiee-a-la-main`, `connexion-absente`,
 `auto-controle`, `non-supporte`, `patch-missing`, `write-failed`. Install refusals: `command-changed` (the command shown is
 not the one the host would run), `busy`, `already-installed`, `missing-tool` (`npm`, `curl` or `bash` is not on the `PATH`),
 `unsupported-platform` (only macOS and Linux for now), `not-installable` (ZCode), `install-unavailable`.
@@ -113,8 +113,8 @@ nothing runs before the confirmation, that the key never appears on the page, an
 - The install button exists on macOS and Linux only; on Windows the page shows the command and the vendor's guide. Three of
   the six installs go through npm and need Node.js.
 - Plugin routes are served before DSH's own sign-in, so the install route is guarded like the other write routes of this
-  bundle: same-origin only (`Origin`/`Referer` on the server's own address), JSON only, a command that must match a constant.
-  It does not check DSH's session cookie. What it can run is limited to the six official commands.
+  bundle: same-origin (`Origin`/`Referer` on the server's own address) **and DSH's signed session cookie** (L3-15: a forged Origin alone used to start the install), JSON only, a command that
+  must match a constant. What it can run is limited to the six official commands.
 - The per-agent presentation (logo, "vendor · account" line, sign-in wording, why Gemini and Qwen take a key) lives in
   `client.js`. An agent added to the host's `WORKERS` shows up on its own with the terminal glyph and without those words
   until the page gets its entries (`LOGO_OF`, `IDENTITY`, the sign-in sentences) and the logo symbol of its own.
