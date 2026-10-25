@@ -4,6 +4,7 @@ import { chmodSync, mkdirSync, readFileSync, readdirSync, renameSync, statSync, 
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { fenced, readBody, sameOriginLax, sameOriginStrict, send } from './guard.mjs'
+import { writeGuard } from './session-guard.mjs'
 import { createIndex } from './store.mjs'
 import { allSources } from './sources.mjs'
 
@@ -58,9 +59,16 @@ export function realIo (home) {
 /** Mounts the routes. `index` is injected so the tests drive them with a fake. */
 export function mountRoutes (webServer, index) {
   const ws = fenced(webServer)
-  const post = (handler) => async (req, res) => {
+  // Every route here is a POST, and every POST needs DSH's signed browser session as well as the right Origin (session-guard.mjs, kybernos-terminal's rule, L3-09). `query` hands back
+  // the text of the person's chats, their automations' prompts, their lessons and their agents: DSH serves plugin routes before its own login and an Origin header is forgeable by any local
+  // program or any other account on the machine, so before this `curl -X POST -H 'Origin: http://127.0.0.1:<port>' .../kybernos-search/query -d '{"q":"password"}'` read them all, and `start` /
+  // `reindex` made this computer read every journal on demand. The caller is the Search everywhere dialog, which sends the cookie by itself. A paired phone is refused (`refused_on_phone`)
+  // except for `query` (`options.phoneMayRead`): it only reads, from the index the desktop kept on disk, and the phone's chat list is the same text.
+  const post = (handler, options) => async (req, res) => {
     if (req.method !== 'POST') return send(res, 405, { ok: false, error: 'method-not-allowed' })
     if (sameOriginStrict(req) !== true) return send(res, 403, { ok: false, error: 'origin-refused' })
+    const refused = writeGuard(req, options)
+    if (refused !== null) return send(res, refused.status, { ok: false, error: refused.error })
     if (!String(req.headers?.['content-type'] ?? '').toLowerCase().startsWith('application/json')) return send(res, 415, { ok: false, error: 'json-required' })
     let body = null
     try { body = (await readBody(req)) ?? {} } catch (e) { return send(res, 400, { ok: false, error: 'bad-body' }) }
@@ -94,7 +102,7 @@ export function mountRoutes (webServer, index) {
       if (q.trim() === '') return send(res, 400, { ok: false, error: 'empty-query' })
       const scopes = Array.isArray(body.scopes) ? body.scopes.filter((s) => SCOPES.includes(s)) : SCOPES
       return send(res, 200, index.query({ q, scopes, limit: Number.isInteger(body.limit) ? body.limit : undefined, perScope: Number.isInteger(body.perScope) ? body.perScope : undefined }))
-    })
+    }, { phoneMayRead: true })
   })
 }
 

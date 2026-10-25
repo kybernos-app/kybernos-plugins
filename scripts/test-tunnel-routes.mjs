@@ -34,6 +34,13 @@ const check = (label, ok, detail) => {
  */
 const PHONE_READS = [
   {
+    bundle: 'kybernos-search', path: '/kybernos-search/query', whole: true,
+    why: 'a search of the index the desktop kept on disk (store.mjs `query`: nothing is read from a journal, nothing is written); it is a POST only so that the text of the chats is not served to a GET before DSH\'s login, and the phone shows the same chats. Its siblings `start` and `reindex` read every journal again and stay refused.',
+    read: { q: 'audit-probe' },
+    writes: [],
+    siblings: ['/kybernos-search/start', '/kybernos-search/reindex'],
+  },
+  {
     bundle: 'kybernos-plugin', path: '/kybernos/tasks', whole: false,
     why: 'action `list` returns the stored automations (kbTasksHandle: kbTasksRead, nothing written); the answer to a phone carries no webhook secret. Any other action creates, edits, deletes or runs one.',
     read: { action: 'list' },
@@ -45,6 +52,13 @@ const PHONE_READS = [
     read: { route: 'audit-probe-route' },
     writes: [],
     siblings: ['/kybernos-models/models/probe', '/kybernos-models/key/check', '/kybernos-models/providers/park', '/kybernos-models/providers/take', '/kybernos-models/providers/forget', '/kybernos-models/annotations/save'],
+  },
+  {
+    bundle: 'kybernos-skills', path: '/kybernos-skills/skill/read', whole: true,
+    why: 'the SKILL.md of a skill the catalogue lists and what the screen may offer for it (readSkill in index.js: it reads a file and counts a folder, nothing is written or run); it is a POST only so that the content is not served to a GET before DSH\'s login, and the Skills page of a paired phone opens a skill with it.',
+    read: { root: 'audit-probe-root', name: 'audit-probe' },
+    writes: [],
+    siblings: ['/kybernos-skills/skill/reveal', '/kybernos-skills/skill/duplicate', '/kybernos-skills/skill/delete', '/kybernos-skills/install', '/kybernos-skills/toggle', '/kybernos-skills/create', '/kybernos-skills/covers/make', '/kybernos-skills/index-source/set'],
   },
 ]
 

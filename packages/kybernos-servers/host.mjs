@@ -12,11 +12,13 @@
 //   POST /kybernos-servers/remove    { id }                           forgets that server's sign-in on this device; nothing is touched on the server
 //
 // A server is an address and the person's account on it: nothing here asks for anything else. Every POST is same-origin strict (plugin
-// routes are served before DSH's own auth): a request that names no origin of this server is refused.
+// routes are served before DSH's own auth): a request that names no origin of this server is refused. Every POST also needs DSH's signed session
+// (`session: true` on its row of ROUTES, session-guard.mjs): an Origin header alone is forgeable by any local program (L3-16).
 import { chmodSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { discover, slugFor } from './discovery.mjs'
+import { writeGuard } from './session-guard.mjs'
 import { BUILTIN_ID, ID, cleanName, findByApi, suggestName, uniqueId, uniqueName, withName, withProfile, without } from './registry.mjs'
 
 export const dshHome = (env = process.env) => {
@@ -231,13 +233,17 @@ export const remove = async (req, body) => {
   return { ok: true, id, apply }
 }
 
+// Every POST needs DSH's signed browser session as well as the right Origin (session-guard.mjs, kybernos-terminal's rule, L3-16): plugin routes are served before DSH's own login and
+// an Origin header is forgeable by any local program, and these routes decide where the account's token and the model traffic go (a server's address is where the person's messages are
+// sent), or make this computer call any address it is given (`check`). Their only caller is the Servers page, which carries the cookie by itself; a paired phone is refused.
+// `check` writes nothing but it is a request this computer makes to an address a stranger chose, so it is under the same rule. `test-write-guard.mjs` fails on a POST row without `session: true`.
 export const ROUTES = [
   { path: '/kybernos-servers/status', method: 'GET', run: status },
-  { path: '/kybernos-servers/check', method: 'POST', strict: true, body: true, run: check },
-  { path: '/kybernos-servers/add', method: 'POST', strict: true, body: true, run: add },
-  { path: '/kybernos-servers/switch', method: 'POST', strict: true, body: true, run: switchTo },
-  { path: '/kybernos-servers/rename', method: 'POST', strict: true, body: true, run: rename },
-  { path: '/kybernos-servers/remove', method: 'POST', strict: true, body: true, run: remove },
+  { path: '/kybernos-servers/check', method: 'POST', strict: true, session: true, body: true, run: check },
+  { path: '/kybernos-servers/add', method: 'POST', strict: true, session: true, body: true, run: add },
+  { path: '/kybernos-servers/switch', method: 'POST', strict: true, session: true, body: true, run: switchTo },
+  { path: '/kybernos-servers/rename', method: 'POST', strict: true, session: true, body: true, run: rename },
+  { path: '/kybernos-servers/remove', method: 'POST', strict: true, session: true, body: true, run: remove },
 ]
 
 const sendJson = (res, code, payload) => { res.writeHead(code, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' }); res.end(JSON.stringify(payload)) }
@@ -255,6 +261,10 @@ export const mount = (ctx, rawWebServer) => {
     const handler = async (req, res) => {
       if (req.method !== route.method) return sendJson(res, 405, { ok: false, error: route.method + ' expected' })
       if (route.strict === true && sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+      if (route.session === true) {
+        const refused = writeGuard(req)
+        if (refused !== null) return sendJson(res, refused.status, { ok: false, error: refused.error })
+      }
       try {
         const body = route.body === true ? await readBody(req, route.cap) : null
         if (route.body === true && body === null) return sendJson(res, 400, { ok: false, error: 'a JSON body was expected' })
