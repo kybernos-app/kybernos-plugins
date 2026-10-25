@@ -129,6 +129,8 @@ console.log('── a failed install leaves the activation as it was ──')
   ok('a success keeps the activation: one write, nothing restored', t.r.ok === true && t.ecrits.length === 1 && t.r.activationRestauree === undefined)
   t = await essai(avant, async () => ({ code: 1, sortie: 'no' }), 'kybernos-hub')
   ok('the socle writes no activation, so a failure has nothing to put back', t.r.ok === false && t.ecrits.length === 0 && t.r.activationRestauree === undefined)
+  t = await essai(avant, async () => ({ code: 1, signal: 'SIGKILL', sortie: '' }))
+  ok('L3-88: an installer killed by a signal is « robot-stopped » (nothing is promised about the profile), and the activation is still put back', t.r.error === 'robot-stopped' && t.ecrits.length === 2 && t.ecrits[1] === avant && t.r.activationRestauree === true)
   let appels = 0
   const r1 = await installer({ catalogue, brut: avant, id: 'dsh-mermaid', ecrire: () => { appels += 1; if (appels === 2) throw new Error('EACCES') }, executer: async () => ({ code: 1, sortie: 'x' }) })
   ok('a restore that itself fails is reported next to the robot’s own error, which is kept', r1.error === 'robot-refused' && r1.activationRestauree === false)

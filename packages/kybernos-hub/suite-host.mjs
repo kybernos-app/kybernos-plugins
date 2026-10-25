@@ -190,7 +190,9 @@ export async function mettreAJour ({ evaluation, plateforme, racineDev, hebergem
     const racine = await extraire(recu.fichier)
     progres('installation')
     const r = await executer(racine)
-    if (r.code !== 0) return { ok: false, error: 'robot-refused', detail: String(r.sortie ?? '').split('\n').slice(-6).join('\n') }
+    // A robot that exits non-zero has said it put everything back (« back to how it was »). One that was KILLED (a signal: its time limit, `kill`, the machine going down) said
+    // nothing: the page must not promise that the current install is intact (L3-88).
+    if (r.code !== 0) return { ok: false, error: r.signal ? 'robot-stopped' : 'robot-refused', detail: String(r.sortie ?? '').split('\n').slice(-6).join('\n') }
     return { ok: true, relanceRequise: true, version: evaluation.doc.suite.version }
   } catch (e) {
     return { ok: false, error: String(e?.code ?? 'update-failed'), detail: String(e?.message ?? e) }
@@ -241,7 +243,7 @@ export async function installer ({ catalogue, brut, id, ecrire, executer }) {
   }
   let r
   try { r = await executer(['install']) } catch (e) { return { ok: false, error: 'robot-failed', detail: String(e?.message ?? e), ...defaire() } }
-  if (r.code !== 0) return { ok: false, error: 'robot-refused', detail: String(r.sortie ?? '').split('\n').slice(-6).join('\n'), ...defaire() }
+  if (r.code !== 0) return { ok: false, error: r.signal ? 'robot-stopped' : 'robot-refused', detail: String(r.sortie ?? '').split('\n').slice(-6).join('\n'), ...defaire() }
   return { ok: true, relanceRequise: true }
 }
 

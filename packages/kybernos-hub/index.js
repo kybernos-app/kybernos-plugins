@@ -89,7 +89,7 @@ export function suiteDeps (dshHome, hub) {
     // The robot that ships INSIDE the verified archive installs it (the same contract as running ./kybernos-update by hand).
     executerArchive: (racine) => new Promise((resolve) => {
       execFile(process.execPath, [join(racine, 'scripts', 'dsh-lifecycle.mjs'), 'upgrade', '--source', racine], { env: { ...process.env, DSH_HOME: dshHome }, timeout: 20 * 60 * 1000, maxBuffer: 8 * 1024 * 1024 },
-        (erreur, sortie, err) => resolve({ code: erreur ? (typeof erreur.code === 'number' ? erreur.code : 1) : 0, sortie: String(sortie ?? '') + String(err ?? '') }))
+        (erreur, sortie, err) => resolve({ code: erreur ? (typeof erreur.code === 'number' ? erreur.code : 1) : 0, signal: erreur && typeof erreur.signal === 'string' ? erreur.signal : null, sortie: String(sortie ?? '') + String(err ?? '') }))
     }),
     // The engine zone this plugin was tested with (dsh-compat.json next to the bundle): the only versions the engine route accepts.
     zoneMoteur: () => {
@@ -114,7 +114,7 @@ export function suiteDeps (dshHome, hub) {
     executer: (argv) => new Promise((resolve, reject) => {
       if (!existsSync(robot)) { reject(new Error('lifecycle robot not found next to this bundle (' + robot + ')')); return }
       execFile(process.execPath, [robot, ...argv], { env: { ...process.env, DSH_HOME: dshHome }, timeout: 10 * 60 * 1000, maxBuffer: 4 * 1024 * 1024 },
-        (erreur, sortie, err) => resolve({ code: erreur ? (typeof erreur.code === 'number' ? erreur.code : 1) : 0, sortie: String(sortie ?? '') + String(err ?? '') }))
+        (erreur, sortie, err) => resolve({ code: erreur ? (typeof erreur.code === 'number' ? erreur.code : 1) : 0, signal: erreur && typeof erreur.signal === 'string' ? erreur.signal : null, sortie: String(sortie ?? '') + String(err ?? '') }))
     }),
     // Detached, like the relaunch tool: DSH stops itself, the child survives and brings it back.
     // The tool restarts the instance on the port it is given (3080 when none): the page's own port is passed, so a DSH that listens elsewhere

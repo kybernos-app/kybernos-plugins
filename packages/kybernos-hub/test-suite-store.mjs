@@ -52,6 +52,17 @@ console.log('the words of the online catalogue and of the update')
   ok('an update that can be applied has no reason; one that cannot says why', rm({ miseAJour: { possible: true } }) === null && rm(null) === null && rm({}) === null && /git/.test(rm({ miseAJour: { possible: false, raison: 'development-checkout' } })[1]) && /archive/.test(rm({ miseAJour: { possible: false, raison: 'no-archive-for-platform' } })[1]) && rm({ miseAJour: { possible: false, raison: 'odd' } })[0] === 'odd')
   const mm = T.messageMiseAJour
   ok('each step of the update has a line; the end says to restart; a failure says nothing was installed or that it was rolled back', ['telechargement', 'extraction', 'installation'].every((e) => mm({ etat: e }).length === 2) && /Relance DSH/.test(mm({ etat: 'termine', version: '1.1.0' })[0]) && /Restart/.test(mm({ etat: 'termine', version: '1.1.0' })[1]) && /rien n’a été installé/.test(mm({ etat: 'echec', erreur: 'digest-mismatch' })[0]) && /rolled back/.test(mm({ etat: 'echec', erreur: 'robot-refused' })[1]) && mm({ etat: 'idle' }) === null && mm(null) === null)
+  // L3-88: « refused and rolled back, your current install is intact » is the robot's word, said only when it exited by itself; a killed installer gets another sentence.
+  const arret = mm({ etat: 'echec', erreur: 'robot-stopped' })
+  ok('a killed installer has its own sentence, in both languages, with no promise that the install is intact', Array.isArray(arret) && arret.length === 2 && /inattendue/.test(arret[0]) && /stopped unexpectedly/.test(arret[1]) && !/intact|rolled back|annulée/.test(arret.join(' ')) && /safe mode/.test(arret[1]), arret)
+  ok('…while a refusal still says it was rolled back', /rolled back/.test(mm({ etat: 'echec', erreur: 'robot-refused' })[1]))
+  // L3-85: the panel opened after a DSH restart picks up an installer that outlived it, follows it, and says what it can when it ends.
+  const sv = T.suiviInstallation
+  const lu = (etat) => ({ ok: true, etat })
+  ok('an installer running when the panel opens is followed, whatever step it is on', ['telechargement', 'extraction', 'installation'].every((e) => sv(lu(e), true) === 'suivre' && sv(lu(e), false) === 'suivre'))
+  ok('idle or a finished update at the first reading is nothing to show (the panel opens as it always did)', ['idle', 'termine', 'echec'].every((e) => sv(lu(e), true) === 'rien') && sv(null, true) === 'rien')
+  ok('once followed: this DSH’s own update ends as termine or echec, an installer from before the restart ends as idle (or unreadable) and is reported as ended', sv(lu('termine'), false) === 'termine' && sv(lu('echec'), false) === 'echec' && sv(lu('idle'), false) === 'fini' && sv(null, false) === 'fini' && sv({ ok: false }, false) === 'fini')
+  ok('the line for the busy relaunch is in both languages', /installation est en cours/.test(source) && /An installation is running/.test(source))
   // A code in a sentence is a developer's line on a person's page (audit 2026-10-16: « Suite 1.0.0-beta.10 is available. hosted-instance »,
   // « Update failed (robot-failed) »). The codes are read from the host sources, so a code added there without a sentence fails here.
   const hostSrc = readFileSync(new URL('./suite-host.mjs', import.meta.url), 'utf8')
