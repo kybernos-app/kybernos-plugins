@@ -1,0 +1,33 @@
+# Store review: where the Kybernos app stands (2026-10-25)
+
+Not a guarantee: only a submission settles it (TestFlight external review is the first real signal, then Play internal testing). This is what the current rules say, read on 2026-10-25, against what the app does today. Re-read the rules before each submission: both stores change them often.
+
+Sources: [Apple App Store Review Guidelines](https://developer.apple.com/app-store/review/guidelines/) (the page was read up to 5.2.5), [Google Play Device and Network Abuse](https://support.google.com/googleplay/android-developer/answer/9888379), [Google Play AI-Generated Content](https://support.google.com/googleplay/android-developer/answer/13985936).
+
+## What is on our side
+
+- **No downloaded native code.** The engine, the plugins and the Node library are all inside the app (the payload is a file of the binary). Google Play bans downloading executable code (dex, JAR, .so) from outside Play, with an explicit exception for code run by an interpreter such as JavaScript. Apple 2.5.2 bans downloading or executing code that introduces or changes the app's features: ours ships in the bundle.
+- **No processes launched.** Commands run in an in-process shell (`kybernos-no-process`), inside the app's own sandbox.
+- **16 KB page alignment** of the native libraries (Play requires it for recent target levels), arm64 only, `INTERNET` the only permission.
+- **Apple allows an interpreter without a JIT.** The embedded V8 runs jitless.
+
+## What can fail, and what to decide (each is a real risk, not a certainty)
+
+| # | Risk | Rule | Proposed answer |
+|---|---|---|---|
+| 1 | **Plugins the user installs** (Suite › Plugins: from GitHub, npm, a file, or drafted by the AI) are downloaded code that adds features. | Apple 2.5.2 and 4.7 (non-embedded plug-ins must be HTML5/JavaScript, expose no native API, share no data without consent, be indexed with links, respect age rating and in-app purchase). Play: interpreters are exempt, but untrusted loaded code must not violate policy. | **On the store build, install only plugins carried by the app** (or a signed catalogue reviewed by us). No AI-written plugins on iOS. Keep the full registry on desktop. |
+| 2 | **An agent that writes and runs code or commands.** | 2.5.2 (code that changes features) | It runs inside the app sandbox, in a virtual shell, and never replaces the app's own code. Say so in the review notes. Medium risk, mostly a question of explanation. |
+| 3 | **Prompts and files go to a third-party AI** (Anthropic, with the user's own key). | Apple 5.1.2(i): disclose where personal data is shared with third parties, including AI, and obtain explicit permission. Play: data safety form. | A **consent screen before the first message** naming the provider; privacy policy; privacy labels and data safety form filled accordingly. |
+| 4 | **AI content.** | Apple 1.2 (AI content creation apps: filtering, report, block, contact); Play AI-Generated Content (in-app way to report or flag offensive output, for chatbots; summarising and productivity apps are described as outside it, which an agent app may or may not be). | A **report button on AI answers**, in the app, sending the report to us; terms and a contact address. |
+| 5 | **Selling plans inside the app** (« See plans », « Create an account » are in the account menu). | Apple 3.1.1: subscriptions and unlocks must use in-app purchase (3.1.3 lists the few exceptions; outside the US storefront the app may not push users to another payment method). | Decision for the owner: **no purchase flow in the iOS app** (bring your own key, free), or in-app purchase. Do not ship the plans link on iOS by accident. |
+| 6 | **Accounts.** If the app lets a person create an account. | Apple 5.1.1(v): deletion from inside the app. | Add account deletion before offering sign-up in the app. |
+| 7 | **Foreground service** for background automations on Android (M5). | Play: each service needs a declared type and a Play Console declaration; a service that WorkManager could do is refused; `dataSync` is only exempt with Play Asset Delivery. | Choose the type with care (`specialUse` needs a justification), declare it, keep it user-visible (a notification) and stoppable. Expect scrutiny. |
+| 8 | **Wording and identity.** The first-run dialog still says « DeepSeek Harness 0.2 Preview Notice » (the engine's own text) and the interface says « BETA ». | Apple 4.1 (impersonation) and 2.1 (finished apps) are the nearest rules | Replace or hide the engine's notice in the store build; our own name everywhere; third-party licence notices screen. |
+| 9 | **Privacy manifest** (iOS) for « required reason » system APIs that Node and V8 call (file timestamps, disk space, boot time). | Apple privacy manifest requirement | Generate it from a scan of the binary; declare the reasons. |
+
+## Order of work (M6)
+
+1. Decisions 1, 5 and 6 above (they change the product, not the paperwork).
+2. Consent screen (3), report button (4), notice replacement (8).
+3. Privacy manifest (9), data safety form, privacy policy, review notes explaining the engine, the sandbox and where the code lives.
+4. TestFlight external review and Play internal testing, in parallel.

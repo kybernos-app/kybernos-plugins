@@ -411,7 +411,7 @@
       "version": "0.1.0",
       "socle": true,
       "defaut": null,
-      "poids_ko": 60,
+      "poids_ko": 80,
       "promesse": {
         "fr": "Lit les plugins faits par d’autres, vérifie que ce sont des données simples et laisse les pages utiliser ce qu’ils ajoutent.",
         "en": "Reads the plugins other people made, checks that they are plain data, and lets the pages use what they add."
@@ -1881,10 +1881,10 @@
       "glyphe": "mobile",
       "famille": "base",
       "palier": "core",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "socle": false,
       "defaut": "actif",
-      "poids_ko": 60,
+      "poids_ko": 80,
       "promesse": {
         "fr": "DSH sur ton téléphone : l’écran s’adapte, et un code QR relie le téléphone à cet ordinateur, chiffré de bout en bout.",
         "en": "DSH on your phone: the screen adapts, and a QR code links the phone to this computer, end-to-end encrypted."
@@ -1930,7 +1930,7 @@
       "version": "0.1.0",
       "socle": false,
       "defaut": "actif",
-      "poids_ko": 60,
+      "poids_ko": 80,
       "promesse": {
         "fr": "Les agents cherchent sur le web, avec ou sans clé : des moteurs gratuits tout de suite, des moteurs à clé quand tu en ajoutes une, et le suivant prend le relais si l’un échoue.",
         "en": "Lets the agents search the web, with or without a key: free engines right away, keyed engines when you add one, and the next one takes over when one fails."
@@ -2249,7 +2249,7 @@
       "version": "0.1.0",
       "socle": false,
       "defaut": null,
-      "poids_ko": 6042,
+      "poids_ko": 8042,
       "promesse": {
         "fr": "Diagrammes Mermaid rendus en SVG dans le chat.",
         "en": "Mermaid diagrams rendered as SVG in the chat."
@@ -2505,6 +2505,47 @@
       }
     },
     {
+      "id": "kybernos-no-process",
+      "nom": "@local/kybernos-no-process",
+      "titre": "Phone runtime",
+      "glyphe": "phonecpu",
+      "famille": "base",
+      "palier": "core",
+      "version": "0.1.0",
+      "socle": false,
+      "defaut": null,
+      "poids_ko": 80,
+      "promesse": {
+        "fr": "Pour l’app Kybernos du téléphone seulement : exécute les commandes, la recherche et les outils dans l’app, là où un téléphone ne peut pas lancer de programmes. Laisse-le éteint sur un ordinateur.",
+        "en": "For the Kybernos phone app only: runs shell commands, search and tools inside the app, where a phone cannot launch programs. Leave it off on a computer."
+      },
+      "aide": {
+        "what": {
+          "fr": "Un téléphone ne peut pas lancer de programmes. Ce module fait tourner dans l’app les commandes, la recherche et les outils, pour que l’agent travaille sur le téléphone.",
+          "en": "A phone cannot launch programs. This module runs commands, search and tools inside the app, so the agent can work on the phone."
+        },
+        "steps": [
+          {
+            "fr": "Il est déjà actif dans l’app Kybernos du téléphone : rien à faire.",
+            "en": "It is already on in the Kybernos phone app: nothing to do."
+          },
+          {
+            "fr": "Sur un ordinateur, laisse-le éteint : il remplace le vrai lancement de programmes par une version plus limitée.",
+            "en": "On a computer, leave it off: it replaces real program launching with a more limited version."
+          }
+        ],
+        "where": {
+          "fr": "Suite › Plugins (éteint par défaut sur un ordinateur)",
+          "en": "Suite › Plugins (off by default on a computer)",
+          "page": false
+        },
+        "good": {
+          "fr": "Ce qui demande un vrai programme extérieur (un navigateur piloté, un outil local) reste indisponible sur le téléphone : utilise un serveur distant.",
+          "en": "Anything that needs a real outside program (a driven browser, a local tool) stays unavailable on the phone: use a remote server."
+        }
+      }
+    },
+    {
       "id": "kybernos-dashboards",
       "nom": "@local/kybernos-dashboards",
       "titre": "Dashboards",
@@ -2656,7 +2697,7 @@
       "version": "0.1.0",
       "socle": false,
       "defaut": "actif",
-      "poids_ko": 60,
+      "poids_ko": 80,
       "promesse": {
         "fr": "Donne à Kaby un nom, un portrait et une voix, et choisis le visage qu'il montre en appel vidéo, avec ses propres clés.",
         "en": "Give Kaby a name, a portrait and a voice, and choose the face it shows on video calls, with its own keys."
@@ -2746,7 +2787,7 @@
       "version": "1.0.0",
       "socle": false,
       "defaut": null,
-      "poids_ko": 60,
+      "poids_ko": 80,
       "promesse": {
         "fr": "Ajoute le serveur de ton entreprise avec son adresse, et passe de l’un à l’autre.",
         "en": "Add your company’s server with its address, and switch between servers."

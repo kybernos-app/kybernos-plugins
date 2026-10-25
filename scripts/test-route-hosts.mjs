@@ -33,7 +33,10 @@ process.env.KYBERNOS_CLOUD_API = 'http://127.0.0.1:9' // nothing listens: a bund
 mkdirSync(process.env.DSH_HOME, { recursive: true })
 
 // Bundles whose routes are not mounted by this test, and where they are proven instead (none today: the master bundle is mounted with a bare `fs`).
-const NOT_MOUNTED = {}
+const NOT_MOUNTED = {
+  // extends engine classes (SubprocessRuntime, SandboxProvider): it only loads inside an engine profile, and it registers no web route; mobile/payload/test-boot.mjs boots it for real
+  'kybernos-no-process': 'mobile/payload/test-boot.mjs',
+}
 
 // Routes that are PUBLIC BY DESIGN: a website's widget and its API (loaded from another site) and the webhook receiver (called by another service, secret
 // in the request). They are reached under any host name through a tunnel, so the Host fence leaves them out and their own secret or scope is their fence.

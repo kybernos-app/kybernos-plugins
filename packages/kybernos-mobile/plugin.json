@@ -2,7 +2,7 @@
   "contract": 1,
   "id": "kybernos/mobile",
   "kind": "code",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "name": {
     "en": "Phone and channels",
     "fr": "Téléphone et canaux"

@@ -128,7 +128,12 @@ export function serveRemote (name, req, res) {
   } catch (e) { refuse(res, 500, 'internal') }
 }
 
-export function apply (ctx) {
+/** True where this engine runs inside the Kybernos phone app (the embedded Node reports `ios` or `android`): the phone IS the device, so there is no computer to link a phone to. */
+export const onPhoneHost = (platform = process.platform) => platform === 'ios' || platform === 'android'
+
+export function apply (ctx, options = {}) {
+  // Inside the phone app only the layout is wanted: no link routes, no relay (the browser half shows the app's own settings page instead).
+  const phone = onPhoneHost(options.platform)
   // A failure here must never stop DSH from starting: log it and let the rest go on.
   try {
     ctx.effect(() => ctx.on('webserver/index-inject', (table) => {
@@ -139,6 +144,7 @@ export function apply (ctx) {
     const mount = (svc) => {
       try { ctx.effect(() => svc.register({ kind: 'exact', path: ROUTE, handler: (req, res) => serveSheet(req, res) }), 'kybernos-mobile: route stylesheet') } catch (e) { logError('route not mounted', e) }
       // The remote half's routes: separate from the stylesheet's, so one cannot take the other down.
+      if (phone) return
       for (const name of Object.keys(REMOTE_ROUTES)) {
         try { ctx.effect(() => svc.register({ kind: 'exact', path: REMOTE_PREFIX + name, handler: (req, res) => serveRemote(name, req, res) }), 'kybernos-mobile: route remote ' + name) } catch (e) { logError('remote route not mounted', e) }
       }
@@ -148,7 +154,7 @@ export function apply (ctx) {
     else ctx.inject(['webServer'], (host) => { try { mount(host.webServer) } catch (e) { logError('route not mounted', e) } })
   } catch (e) { logError('start failed: route not mounted', e) }
   // The link itself: reconnects the phones paired earlier. With none paired this reads one file and does nothing else.
-  if (process.env.KYBERNOS_MOBILE_REMOTE === '0') return
+  if (process.env.KYBERNOS_MOBILE_REMOTE === '0' || phone) return
   try {
     ctx.effect(() => {
       let live = true

@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict'
+// `just-bash` is carried by the phone payload, not by this repository: without it there is nothing to test here (mobile/payload/test-boot.mjs covers the shell end to end).
+if ((await import('just-bash').catch(() => null)) === null) { console.log('SKIPPED: just-bash is not installed here (only the phone payload carries it)'); process.exit(0) }
 import { mkdtempSync, readFileSync, existsSync, mkdirSync, writeFileSync, realpathSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { runShell } from './just-shell.mjs'
+const { runShell } = await import('./just-shell.mjs')
 const root = realpathSync(mkdtempSync(join(tmpdir(), 'js-')))
 const ws = join(root, 'ws'); mkdirSync(ws)
 writeFileSync(join(ws, 'a.txt'), 'one\ntwo\nthree\nthree\n')

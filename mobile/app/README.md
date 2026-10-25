@@ -55,3 +55,7 @@ node mobile/devicecloud/app.mjs devices android               # real devices the
 ## Model key (M3)
 
 The Anthropic key is entered in the app's settings (first-run screen, gear button, or a `kybernos://settings` link from the web interface), stored in the iOS Keychain / Android Keystore, and handed to the engine as `ANTHROPIC_API_KEY` when it starts: never written to a file. A changed key needs the app closed and reopened. On iOS the Paste button reads the clipboard from code and iOS asks permission for that; press and hold the field and choose Paste always works.
+
+## Links from the web interface
+
+The WebView shows every link to `src/links.ts` (`originWhitelist={['*']}`: react-native-webview otherwise keeps only http(s) and hands the rest to the operating system). The engine's own pages stay in the view, `kybernos://settings` and `kybernos://log` open the app's screens, anything else opens outside the app. The interface tells the app it has its own entry to the settings (`ReactNativeWebView.postMessage`, see `src/webMessage.ts`), and the app then hides its fallback gear button.
