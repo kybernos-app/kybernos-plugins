@@ -1571,6 +1571,8 @@ try {
         const gate = agentHooks.get('tools/pre-execute')
         assert.equal(typeof gate, 'function', 'la garde est montee')
         const seen = []
+        // A QUESTION is a POST: the background poll for answers (a GET every KYBERNOS_TURN_GATE_POLL_MS = 5 ms here) may fire at any moment on a loaded machine and is not one.
+        const questions = () => seen.filter((c) => c.method === 'POST').length
         let answers = ['pending', 'allowed']
         let unreachable = false
         const realFetch = globalThis.fetch
@@ -1591,18 +1593,18 @@ try {
           assert.deepEqual(await run('memory_search', { q: 'garage' }), { kind: 'allow' })
           for (const listing of ['job_list', 'schedule_list', 'connections_list']) assert.deepEqual(await run(listing, {}), { kind: 'allow' }, listing)
           assert.deepEqual(await run('bash', { command: 'ls' }, 'someone-elses-session'), { kind: 'allow' })
-          assert.equal(seen.length, 0, 'aucune question pour une lecture ni pour une autre session')
+          assert.equal(questions(), 0, 'aucune question pour une lecture ni pour une autre session')
           // Audit of the tools that only read (2026-10-20): the sandboxes this machine tracks, a sandbox's file, the connected apps' actions, the plan the model keeps for itself, the account.
           for (const reading of ['computer_list', 'computer_read', 'connections_search_tools', 'todo_write', 'kaby_account']) assert.deepEqual(await run(reading, {}), { kind: 'allow' }, reading)
           for (const reading of mod.TURN_GATE_SAFE_TOOLS) assert.deepEqual(await run(reading, {}), { kind: 'allow' }, reading)
           // What changes something, or acts for someone, is still asked about.
           for (const acting of ['computer_start', 'computer_exec', 'computer_write', 'connections_execute', 'memory_write', 'lesson_write', 'relancer_dsh', 'kybernos_report_feedback']) assert.equal(mod.TURN_GATE_SAFE_TOOLS.has(acting), false, acting + ' is asked about')
-          assert.equal(seen.length, 0, 'aucune question pour les outils de lecture')
+          assert.equal(questions(), 0, 'aucune question pour les outils de lecture')
           // Nobody is at DSH's own question card on a cloud computer: it is refused at once, with the way out (ask in the answer), instead of waiting for ever.
           const dshAsk = await run('ask_user_question', { questions: [{ question: 'Which one?' }] })
           assert.equal(dshAsk.kind, 'deny')
           assert.match(dshAsk.reason, /Nobody can answer here: ask the question in your reply/)
-          assert.equal(seen.length, 0, 'la carte de DSH n\'est pas posee a quelqu\'un')
+          assert.equal(questions(), 0, 'la carte de DSH n\'est pas posee a quelqu\'un')
           // A command waits for the answer, and goes when it is yes. The question carries the real command line, the turn and the computer's own token.
           assert.deepEqual(await run('bash', { command: 'curl -X POST https://hooks.example.test/x', description: 'harmless' }), { kind: 'allow' })
           const post = seen.find((c) => c.method === 'POST')
@@ -1628,9 +1630,9 @@ try {
           const rest = await turnOf('s-rest')
           answers = ['allowed_turn']
           assert.deepEqual(await run('bash', { command: 'ls' }, rest), { kind: 'allow' })
-          const before = seen.length
+          const before = questions()
           assert.deepEqual(await run('bash', { command: 'ls -la' }, rest), { kind: 'allow' })
-          assert.equal(seen.length, before, 'plus de question pour la suite de cette tache')
+          assert.equal(questions(), before, 'plus de question pour la suite de cette tache')
 
           // Too many questions: a turn asks the person at most three times, and says which one it is from the second (measured on WhatsApp, 2026-10-20: four in a row for « my workspaces »).
           const capped = await turnOf('s-cap')
@@ -1674,7 +1676,7 @@ try {
           const none = await run('bash', { command: 'ls' }, spent)
           assert.equal(none.kind, 'deny')
           assert.match(none.reason, /there was no time left to ask/)
-          assert.equal(seen.length, 0, 'no question is put when there is no time to wait for it')
+          assert.equal(questions(), 0, 'no question is put when there is no time to wait for it')
           delete process.env.KYBERNOS_TURN_GATE_GRACE_MS
           // A session with no turn behind it (a restart lost it) cannot be asked about: a refusal.
           nextSession = 's-nojob'
