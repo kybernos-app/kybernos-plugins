@@ -84,9 +84,9 @@ const handlerFor = (options) => {
   return handler
 }
 // A fake request: the body is emitted right after the handler is called (it registers its listeners synchronously).
-const call = async (handler, { method = 'POST', origin = 'http://127.0.0.1:3080', cookie, body = '{"commande":"echo hi","session":"s1"}' } = {}) => {
-  // origin: null sends no Origin header (undefined would fall back to the default)
-  const req = Object.assign(new EventEmitter(), { method, headers: { ...(origin === null ? {} : { origin }), ...(cookie === undefined ? {} : { cookie }) }, socket: { localPort: 3080 } })
+const call = async (handler, { method = 'POST', origin = 'http://127.0.0.1:3080', cookie, tunnel, body = '{"commande":"echo hi","session":"s1"}' } = {}) => {
+  // origin: null sends no Origin header (undefined would fall back to the default); tunnel: the marker kybernos-mobile sets on a request replayed from a paired phone
+  const req = Object.assign(new EventEmitter(), { method, headers: { ...(origin === null ? {} : { origin }), ...(cookie === undefined ? {} : { cookie }), ...(tunnel === undefined ? {} : { 'x-kybernos-tunnel': tunnel }) }, socket: { localPort: 3080 } })
   const out = { status: null, body: null }
   const res = { writeHead: (s) => { out.status = s }, end: (b) => { out.body = b } }
   const done = handler(req, res)
@@ -118,6 +118,13 @@ const call = async (handler, { method = 'POST', origin = 'http://127.0.0.1:3080'
   ran.length = 0
   o = await call(h, { origin: null, cookie: good })
   check('no Origin at all → 403, nothing ran', o.status === 403 && ran.length === 0)
+  ran.length = 0
+  o = await call(h, { cookie: good, tunnel: '1' })
+  check('a request replayed from a paired phone (the tunnel marker), with the right Origin and a valid cookie → 403 refused_on_phone, nothing ran', o.status === 403 && JSON.parse(o.body).error === 'refused_on_phone' && ran.length === 0, JSON.stringify([o.status, o.body, ran.length]))
+  o = await call(h, { cookie: good, tunnel: '' })
+  check('…whatever the marker\'s value', o.status === 403 && ran.length === 0)
+  o = await call(h, { cookie: good })
+  check('…and the same request without the marker still runs', o.status === 200 && ran.length === 1)
   ran.length = 0
   o = await call(h, { method: 'GET', cookie: good })
   check('GET → 405, nothing ran', o.status === 405 && ran.length === 0)

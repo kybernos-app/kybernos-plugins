@@ -21,6 +21,12 @@ A write route needs **both**:
 2. DSH's signed browser-session cookie (`dsh-auth-<hash of the authority>`, signed with the machine secret in `.credentials.yaml`): missing, forged or
    expired is a **401**. The secret that cannot be read closes the write (**503**), as the terminal's run route does.
 
+A write that came **through the phone link** never passes either: `kybernos-mobile` marks every request it replays from a paired phone with `x-kybernos-tunnel` (and drops any
+marker a phone sends), and `writeGuard` answers **403 `refused_on_phone`** to a non-read request that carries it, whatever its Origin and cookie (both are then the person's own, so the marker is
+the only thing that tells a stolen phone from the browser). A read of a cookie-guarded route stays open to the phone. `kybernos-terminal`'s run route and the task routes of `kybernos-plugin`
+(`kbTasksRefused`, which keep their own cookie check) refuse the marker the same way. `node scripts/test-tunnel-routes.mjs` enumerates every cookie-level write route (through
+`scripts/audit-routes.mjs`, probe E) and fails on one that lets the marker through.
+
 `kybernos-terminal`'s run route was the first to ask for it; `kybernos-plugin`'s `/kybernos/tasks` is the second. `packages/<bundle>/session-guard.mjs`
 is the terminal's own code, word for word (`autorites`, `origineOK`, `dshHome`, `lireSecretSession`, `cookieSessionValide`) plus one function that joins
 them, `writeGuard(req)`, which answers `null` or `{ status, error }`. On a hosted instance the cookie is also looked up under the public authority when
@@ -58,7 +64,10 @@ request left the files and the outside world as they were.
 
 Every one of them is called by a page, so the browser sends the Origin and the cookie itself (`scripts/check-write-guard-live.mjs` clicks the Auto
 Routing, Memory options and Cloud computers pages in a real GUI and reads what the browser got back). The phone link (`kybernos-mobile`) replays a phone's
-requests with `Origin` and the machine's cookie, so it passes too.
+requests with `Origin` and the machine's cookie, so a **read** passes; a **write** carries the `x-kybernos-tunnel` marker and is refused (above). What a phone's page asks of these
+routes is therefore refused (403 `refused_on_phone`): pinning a chat, changing the layout or the team space, the Run button of a code block, a message to another session, and the reads a page
+sends as a POST (the Automations list, `{ action: 'list' }` on `/kybernos/tasks`; the live model list). The engine's own `/api` calls (the chat itself) are not concerned.
+Turning that refusal into a short list of writes the phone may make (a whitelist, decision DL-11 of the 2026-10-25 recette) is not done: it needs the phone page's calls measured on a real phone first.
 
 ## What stays open, and why
 
