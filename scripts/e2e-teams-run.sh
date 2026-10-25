@@ -1,11 +1,15 @@
 #!/usr/bin/env bash
 # Plays step 10 of the teams plan: two made-up accounts on a LOCAL server replica, driven through two sandbox DSH instances, with a recording proxy in between.
 #   KB_E2E_DIR=<private folder, outside git>  KB_SERVER_DIR=<kybernos-server checkout>  bash scripts/e2e-teams-run.sh up
-#   bash scripts/e2e-teams-run.sh run [j1 j2 ... ]     (default: every journey)
+#   bash scripts/e2e-teams-run.sh run [j1 j2 ... ]     (default: every journey; it first runs the preflight below and refuses to start without it)
+#   bash scripts/e2e-teams-run.sh preflight            proves that an agent request (with tools) reaches the replica and gets a 200, for BOTH accounts
 #   bash scripts/e2e-teams-run.sh down                  stops everything it started and deletes the sandbox homes and the replica state
 # What it starts: the replica (REPLICA_SEED=catalogue, its own ports, its own state file, a database that is recreated at each launch), the recording proxy (the address the
 # server advertises and DSH uses), two sandbox DSH instances (scripts/sandbox/*: own HOME, own port; the second one has its own state folder), then the setup
 # (scripts/e2e-teams-setup.mjs) and the two device-flow connections (scripts/e2e-connect.mjs). Credentials are generated into $KB_E2E_DIR/accounts.json (0600).
+# The default model of both sandboxes is PINNED here (scripts/pin-model.mjs: provider kybernos, model glm; override with KB_E2E_MODEL_PROVIDER / KB_E2E_MODEL). The sandbox clones the owner's profile
+# and no key, so the owner's own default model has nothing to answer with in a sandbox: every turn dies inside DSH, nothing reaches the replica, and the journeys' billing, memory and folder
+# checks compare empty lists (the 2026-10-24 run was void for that reason). KB_E2E_SKIP_PREFLIGHT=1 skips the proof in `run`, for a second run on a replica that passed it a minute ago.
 # It never touches ports 8791/8792/3080 (the owner's own replica and DSH): it refuses them. Needs ~1 GB of APFS clone per sandbox: check `df` first.
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -28,6 +32,9 @@ SB_B="$HOME/.kybernos-sandbox/$SB_NAME-b"
 # caller's pipe open for as long as the process lives, and `up` would never return to a caller that reads its output).
 start_bg() { local pidf="$1" logf="$2" cwd="$3"; shift 3; ( cd "$cwd" && exec perl -MPOSIX -e 'POSIX::setsid(); exec @ARGV' -- "$@" ) >> "$logf" 2>&1 < /dev/null & echo $! > "$pidf"; }
 alive() { [ -f "$1" ] && kill -0 "$(cat "$1")" 2>/dev/null; }
+
+# Pins the default model of one sandbox profile (scripts/pin-model.mjs refuses any file outside a .kybernos-sandbox folder).
+pin_model() { node "$ROOT/scripts/pin-model.mjs" --home "$1" "${KB_E2E_MODEL_PROVIDER:-kybernos}" "${KB_E2E_MODEL:-glm}"; }
 
 write_env() {
   cat > "$ENVF" <<EOF
@@ -63,18 +70,34 @@ up() {
   node "$ROOT/scripts/e2e-teams-setup.mjs"
   # 4. two sandbox DSH instances pointed at the proxy
   export KYBERNOS_CLOUD_API="http://localhost:$WEB_PORT"
-  ( export KB_SANDBOX_PORT="$PORT_A"; bash "$ROOT/scripts/sandbox/setup.sh" >/dev/null && bash "$ROOT/scripts/sandbox/start.sh" )
-  ( export KB_SANDBOX_ROOT="$SB_B" KB_SANDBOX_PORT="$PORT_B"; bash "$ROOT/scripts/sandbox/setup.sh" >/dev/null && bash "$ROOT/scripts/sandbox/start.sh" )
+  ( export KB_SANDBOX_PORT="$PORT_A"; bash "$ROOT/scripts/sandbox/setup.sh" >/dev/null && pin_model "$SB_A/home" && bash "$ROOT/scripts/sandbox/start.sh" )
+  ( export KB_SANDBOX_ROOT="$SB_B" KB_SANDBOX_PORT="$PORT_B"; bash "$ROOT/scripts/sandbox/setup.sh" >/dev/null && pin_model "$SB_B/home" && bash "$ROOT/scripts/sandbox/start.sh" )
   # 5. the device flow, once for each
   DSH_HOME="$SB_A/home/.dsh" node "$ROOT/scripts/e2e-connect.mjs" --dsh "127.0.0.1:$PORT_A" --account a
   DSH_HOME="$SB_B/home/.dsh" node "$ROOT/scripts/e2e-connect.mjs" --dsh "127.0.0.1:$PORT_B" --account b
+  # 6. connecting an account lets the plugin choose a default model of its own when the current one cannot work: pin once more, after it has had its moment, and let the profile reload
+  sleep 3
+  pin_model "$SB_A/home"; pin_model "$SB_B/home"
+  sleep 5
   echo "up: replica :$API_PORT (control :$CTRL_PORT), proxy :$WEB_PORT, sandboxes :$PORT_A and :$PORT_B; env in $ENVF"
+}
+
+preflight() {
+  [ -f "$ENVF" ] || { echo "run 'up' first" >&2; exit 1; }
+  set +u; source "$ENVF"; set -u
+  node "$ROOT/scripts/preflight-model.mjs"
 }
 
 run() {
   [ -f "$ENVF" ] || { echo "run 'up' first" >&2; exit 1; }
   set +u; source "$ENVF"; set -u
   export KB_E2E_SHOTS="${KB_E2E_SHOTS:-$KB_E2E_DIR/shots}"
+  # A journey whose turns never reach the model compares empty lists and reads green or red for no reason: prove first that they do, for both accounts.
+  if [ "${KB_E2E_SKIP_PREFLIGHT:-0}" = "1" ]; then
+    echo "WARNING: preflight skipped (KB_E2E_SKIP_PREFLIGHT=1): the journeys are only valid if an agent request got a 200 for A and B on this replica" >&2
+  else
+    node "$ROOT/scripts/preflight-model.mjs" || { echo "refusing to start the journeys: no agent request got a 200 for both accounts (read the lines above; pin the model with scripts/pin-model.mjs, see the header of this script)" >&2; exit 1; }
+  fi
   node "$ROOT/scripts/check-teams-e2e.mjs" "$@"
 }
 
@@ -91,6 +114,7 @@ down() {
 case "${1:-}" in
   up) up ;;
   run) shift; run "$@" ;;
+  preflight) preflight ;;
   down) down ;;
-  *) echo "usage: e2e-teams-run.sh up | run [j1 ...] | down" >&2; exit 2 ;;
+  *) echo "usage: e2e-teams-run.sh up | preflight | run [j1 ...] | down" >&2; exit 2 ;;
 esac
