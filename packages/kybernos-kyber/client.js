@@ -53,8 +53,11 @@ window.__ModuleLoader__.load({
         remote: ['Contrôle à distance', 'Remote control'],
         rmChipReady: ['Contrôle à distance · prêt', 'Remote control · ready'], rmChip1: ['Contrôle à distance · 1 téléphone', 'Remote control · 1 phone'], rmChipN: ['Contrôle à distance · {n} téléphones', 'Remote control · {n} phones'],
         rmChipOff: ['Contrôle à distance · désactivé', 'Remote control · off'], rmChipNone: ['Contrôle à distance · pas encore proposé', 'Remote control · not offered yet'],
+        rmChipLocked: ['Contrôle à distance · hors de ton offre', 'Remote control · not in your plan'],
         rmSubReady: ['Actif, prêt à relier un téléphone · aucun téléphone relié', 'On, ready to pair · no phone linked'], rmSub1: ['Actif · 1 téléphone relié', 'On · 1 phone linked'], rmSubN: ['Actif · {n} téléphones reliés', 'On · {n} phones linked'],
         rmSubOff: ['Désactivé', 'Off'], rmSubNone: ['Pas encore proposé par ce serveur', 'Not offered by this server yet'],
+        // The words of the « Phone and channels » window (kybernos-mobile's paywall): the same plan, the same sentence, wherever it is said.
+        rmSubLocked: ['Non inclus dans ton offre', 'Not included in your plan'],
         connect: ['Connecter', 'Connect'], manageRow: ['Gérer', 'Manage'],
         // Telegram's chip on the strip: short, like the other two (the page's own chip keeps the long words, `st*`)
         tgcOn: ['Telegram · actif', 'Telegram · on'], tgcOff: ['Telegram · inactif', 'Telegram · off'], tgcWait: ['Telegram · en attente', 'Telegram · waiting'], tgcNone: ['Telegram · indisponible', 'Telegram · unavailable'],
@@ -716,6 +719,9 @@ window.__ModuleLoader__.load({
         const n = Array.isArray(r.devices) ? r.devices.length : 0
         if (r.enabled === false) return { key: 'off', cls: '', chip: L('rmChipOff'), sub: L('rmSubOff') }
         if (r.configured === false) return { key: 'none', cls: '', chip: L('rmChipNone'), sub: L('rmSubNone') }
+        // The plan does not include the phone link (the host's `entitled` is false; null is « not known yet » and says nothing): neither « ready » nor a phone count is true, and the window
+        // that « Set up… » opens already says so (recette L1-104). Signed out, the window says « Sign in needed » first: so does nothing here claim a plan.
+        if (r.entitled === false && r.connected !== false) return { key: 'locked', cls: '', chip: L('rmChipLocked'), sub: L('rmSubLocked') }
         if (n > 0) return { key: 'linked', cls: 'ok', chip: L(n === 1 ? 'rmChip1' : 'rmChipN', { n }), sub: L(n === 1 ? 'rmSub1' : 'rmSubN', { n }) }
         return { key: 'ready', cls: 'ok', chip: L('rmChipReady'), sub: L('rmSubReady') }
       }
