@@ -19,6 +19,7 @@ import { stableStreak as autoSkillStreak, skillSlug as autoSkillSlug, skillParts
 import { chooseWorkspace as autoWsChoose, idOf as autoWsIdOf, DEDICATED_TITLE as AUTO_WS_TITLE, DEDICATED_DIR as AUTO_WS_DIR } from './automation-workspace.mjs'
 import { recordFeedback, exportFeedback, relayReportOf } from './feedback-box.mjs'
 import { writeGuard } from './session-guard.mjs'
+import { sendUserFile } from './serve-user-file.mjs'
 import { kbArtKeepExt, kbArtNameOk } from './art-names.mjs'
 import { kbArtifactsCut } from './art-limit.mjs'
 import { defaultState as onboardingDefault, publicView as onboardingView, complete as onboardingComplete, replay as onboardingReplay, chooseDomain as onboardingChooseDomain, aboutView as onboardingAbout, ownGoalsView as onboardingOwnGoals } from './onboarding-state.mjs'
@@ -6774,6 +6775,9 @@ function boot(ctx) {
       kbRealRootCache.set(p, out)
       return out
     }
+    // DL-05: whatever the mode, a path that goes through a folder or a file named like a secret (`.credentials*`, `.env*`, `.ssh`, below the
+    // root that let it in) is refused: a project folder is not where DSH keeps its keys, and a file that holds one must not be read by a page.
+    const kbSecretName = (rest) => rest.split('/').some((seg) => /^\.(credentials|env|ssh)/i.test(seg))
     const kbSousRealRoots = async (real, options) => {
       const strict = options !== null && options !== undefined && options.strict === true
       const rootsAll = await rootsFor(options === null || options === undefined ? undefined : options.sessionId)
@@ -6783,7 +6787,7 @@ function boot(ctx) {
       }
       for (const r of rootsAll) {
         const rr = await kbRealRoot(r.path)
-        if (real === rr || real.indexOf(rr + '/') === 0) return true
+        if (real === rr || (real.indexOf(rr + '/') === 0 && kbSecretName(real.slice(rr.length + 1)) === false)) return true
       }
       const wsSvc = workspacesAt()
       if (wsSvc !== undefined && typeof wsSvc.list === 'function') {
@@ -6793,7 +6797,7 @@ function boot(ctx) {
               const wp = str(w && w[key])
               if (wp !== null) {
                 const rr = await kbRealRoot(wp)
-                if (real === rr || real.indexOf(rr + '/') === 0) return true
+                if (real === rr || (real.indexOf(rr + '/') === 0 && kbSecretName(real.slice(rr.length + 1)) === false)) return true
               }
             }
           }
@@ -7515,8 +7519,9 @@ function boot(ctx) {
         const req = args !== null && args !== undefined && typeof args === 'object' ? args : {}
         const path = str(req.path)
         if (path === null || path.length < 4) return { ok: false, error: 'path expected' }
-        // garde-fou : le fichier doit vivre sous le workspace courant ou un workspace connu
-        if ((await cheminAutorise(path)) === false) return { ok: false, error: 'file outside the known workspaces' }
+        // garde-fou : le fichier doit vivre sous un workspace connu, jamais sous le dossier de lancement de DSH (DL-05: c'est souvent le home), et rester un livrable (comme art-raw)
+        if ((await cheminAutorise(path, { strict: true })) === false) return { ok: false, error: 'file outside the known workspaces' }
+        if (kbReadableExt(path) === false) return { ok: false, error: 'file type not readable here' }
         const target = await fs.resolve(path)
         const info = await fs.stat(target).catch(() => null)
         if (!isFile(info)) return { ok: false, error: 'file not found' }
@@ -7677,7 +7682,8 @@ function boot(ctx) {
           const path = str(p)
           if (path === null) continue
           try {
-            if ((await cheminAutorise(path)) === false) continue
+            if ((await cheminAutorise(path, { strict: true })) === false) continue
+            if (kbReadableExt(path) === false) continue
             const target = await fs.resolve(path)
             const info = await fs.stat(target).catch(() => null)
             if (!isFile(info)) continue
@@ -8074,6 +8080,8 @@ function boot(ctx) {
       const dot = n.lastIndexOf('.')
       return dot >= 0 ? n.slice(dot + 1) : ''
     }
+    // The files the Creations routes (art-read, art-previews, art-raw) agree to read or send: an image or a deliverable of the whitelist, nothing else.
+    const kbReadableExt = (name) => { const e = kbExtOf(name); return KB_RAW_EXTS.indexOf(e) >= 0 || ARTIFACT_EXTS.has(e) === true }
     const avatarRelFor = (ext, kyberId) => '.kyber-avatars/' + kyberId + '.' + ext + '.b64'
     const saveAvatar = async (args) => {
       try {
@@ -8140,11 +8148,7 @@ function boot(ctx) {
         const info = await fs.stat(target).catch(() => null)
         if (!isFile(info)) return null
         const text = await fs.readText(target)
-        const bytes = Buffer.from(text.replace(/\s+/g, ''), 'base64')
-        const avatarName = entry.avatar.slice(entry.avatar.lastIndexOf('/') + 1)
-        const parts = avatarName.split('.')
-        const ext = parts.length >= 3 ? parts[parts.length - 2] : ''
-        return { bytes: bytes, mime: mimeForExt(ext) }
+        return { bytes: Buffer.from(text.replace(/\s+/g, ''), 'base64') }
       } catch (e) { return null }
     }
 
@@ -8278,7 +8282,7 @@ function boot(ctx) {
         if (!isFile(info)) return null
         const bytes = Buffer.from((await fs.readText(target)).replace(/\s+/g, ''), 'base64')
         if (bytes.length === 0) return null
-        return { bytes: bytes, mime: (str(entry.mime) !== null ? String(entry.mime) : 'audio/wav') }
+        return { bytes: bytes }
       } catch (e) { return null }
     }
     /** Retire l'entrée de l'index ; le fichier reste (cette surface fs n'a pas d'unlink). */
@@ -8531,7 +8535,7 @@ function boot(ctx) {
         const info = await fs.stat(target).catch(() => null)
         if (isFile(info) !== true) return null
         const text = await fs.readText(target)
-        return { bytes: Buffer.from(text.replace(/\s+/g, ''), 'base64'), mime: 'image/png' }
+        return { bytes: Buffer.from(text.replace(/\s+/g, ''), 'base64') }
       } catch (e) { return null }
     }
 
@@ -10349,12 +10353,12 @@ function boot(ctx) {
         try {
           const p = str(queryOf(req).get('path'))
           if (p === null || p.length < 4) { res.writeHead(400); res.end(''); return }
-          if ((await cheminAutorise(p)) === false) { res.writeHead(403); res.end(''); return }
+          if ((await cheminAutorise(p, { strict: true })) === false) { res.writeHead(403); res.end(''); return }
           const ext = kbExtOf(p)
           // Images : servies directement (kind image côté aperçu). Les autres
           // livrables de la liste blanche passent aussi — le menu « Télécharger
           // » des cartes (26/09) repose sur cette route.
-          if (KB_RAW_EXTS.indexOf(ext) < 0 && ARTIFACT_EXTS.has(ext) === false) { res.writeHead(415); res.end(''); return }
+          if (kbReadableExt(p) === false) { res.writeHead(415); res.end(''); return }
           const target = await fs.resolve(p)
           const info = await fs.stat(target).catch(() => null)
           if (!isFile(info)) { res.writeHead(404); res.end(''); return }
@@ -10881,10 +10885,8 @@ function boot(ctx) {
         if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
         const out = await readAvatar(queryOf(req))
         if (out === null || out.bytes.length === 0) { res.writeHead(404); res.end(''); return }
-        try {
-          res.writeHead(200, { 'content-type': out.mime, 'cache-control': 'no-store', 'content-length': String(out.bytes.length) })
-          res.end(out.bytes)
-        } catch (e) { try { res.writeHead(500); res.end('') } catch (e2) { /* socket */ } }
+        // DL-04: the type is read from the bytes and from a fixed list, never from the project; anything else is a download (serve-user-file.mjs).
+        try { sendUserFile(res, out.bytes) } catch (e) { try { res.writeHead(500); res.end('') } catch (e2) { /* socket */ } }
       } }), 'kybernos: route avatar')
       // Visages d'équipe : UN appel image (planche deux sections) puis découpe
       // locale — la route écrit l'avatar d'équipe et un avatar par rôle.
@@ -10900,10 +10902,8 @@ function boot(ctx) {
         if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
         const out = await readMemberAvatar(queryOf(req))
         if (out === null || out.bytes.length === 0) { res.writeHead(404); res.end(''); return }
-        try {
-          res.writeHead(200, { 'content-type': out.mime, 'cache-control': 'no-store', 'content-length': String(out.bytes.length) })
-          res.end(out.bytes)
-        } catch (e) { try { res.writeHead(500); res.end('') } catch (e2) { /* socket */ } }
+        // DL-04: the type is read from the bytes and from a fixed list, never from the project; anything else is a download (serve-user-file.mjs).
+        try { sendUserFile(res, out.bytes) } catch (e) { try { res.writeHead(500); res.end('') } catch (e2) { /* socket */ } }
       } }), 'kybernos: route member-avatar')
       // Un portrait seul : un appel image (~65 s), la scène d'équipe n'est pas relue.
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/member-portrait', handler: async (req, res) => {
@@ -10933,10 +10933,8 @@ function boot(ctx) {
         if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
         const out = await kbSampleAudio(queryOf(req))
         if (out === null || out.bytes.length === 0) { res.writeHead(404); res.end(''); return }
-        try {
-          res.writeHead(200, { 'content-type': out.mime, 'cache-control': 'no-store', 'content-length': String(out.bytes.length) })
-          res.end(out.bytes)
-        } catch (e) { try { res.writeHead(500); res.end('') } catch (e2) { /* socket */ } }
+        // DL-04: the type is read from the bytes and from a fixed list, never from the project; anything else is a download (serve-user-file.mjs).
+        try { sendUserFile(res, out.bytes) } catch (e) { try { res.writeHead(500); res.end('') } catch (e2) { /* socket */ } }
       } }), 'kybernos: route voice-sample-audio')
       // Les modèles image réellement configurés (+ leur prix connu, leur sonde).
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/image-models', handler: async (req, res) => {
