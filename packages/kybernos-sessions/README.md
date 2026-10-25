@@ -72,7 +72,7 @@ every code (its test reads `GIT_TEXTS` and fails when the two lists drift). A ne
 The settings route refuses with `invalid-brain`, `invalid-voice-input`, `invalid-auto-whitelist` (400), `settings-corrupt`,
 `settings-unreadable` or `settings-not-written` (500); the Kybernos Settings block words them itself. `POST categories` refuses with
 `empty-session` or `unknown-category`. The plain-text bodies of a wrong method or origin are `POST only`, `GET only`,
-`GET or POST only` and `origin refused`.
+`GET or POST only` and `origin refused`; a missing or wrong session answers JSON `{ ok: false, error }` (401 `sign-in required`, 403 `refused_on_phone`).
 
 ## Files, settings, env
 
@@ -141,8 +141,9 @@ and that its LaunchAgent path is right; `node packages/kybernos-sessions/garde.m
 
 - DSH serves plugin routes before its own auth (core comment; measured on 0.2.0-rc.2). `origineOK` therefore requires an `Origin`
   (or a `Referer`) from this machine on every request that changes state, compared with the socket's real listening address, and
-  refuses a foreign origin on reads too; a read without one still passes. It cannot stop a local process that forges an `Origin`:
-  only authentication would.
+  refuses a foreign origin on reads too; a read without one still passes. An `Origin` alone is forgeable by any local process, so every POST also needs
+  **DSH's signed session cookie** (`session-guard.mjs`, `test-write-guard.mjs`, L3-18): 401 without it, 403 `refused_on_phone` through the phone link. The callers are pages and
+  `scripts/dsh-relance.mjs` (which signs its own cookie for `POST categories`). `GET state` is still a read behind the Host fence.
 - The health alert is drawn by `kybernos-models` (see `docs/dev/model-health.md`): with that satellite off it never shows.
   Settings reordering assumes 13 native nav buttons.
 - The client factory has no top-level try/catch (theme, skills and core do), against `AGENTS.md` rule 2.

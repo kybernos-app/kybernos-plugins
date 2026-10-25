@@ -5,7 +5,8 @@
 //      read the same, word for word, as the terminal's;
 //   3. a copy that no host file of its bundle imports is dead code and fails;
 //   4. what the guard decides: no Origin and no cookie, a foreign Origin, the right Origin and no cookie, a forged or expired cookie, the
-//      right Origin and the real cookie, a hosted instance's public authority, and a machine secret that cannot be read.
+//      right Origin and the real cookie, a hosted instance's public authority, and a machine secret that cannot be read;
+//   5. a write that came through the phone link (the marker kybernos-mobile sets on every request it replays) never passes (audit L3-11).
 //
 //   node scripts/test-session-guard.mjs
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
@@ -91,6 +92,29 @@ check('a neighbouring port is not this listener -> 403', verdict(writeGuard(requ
 check('127.0.0.1.evil.example is not 127.0.0.1 -> 403', verdict(writeGuard(request('POST', { origin: 'http://127.0.0.1.evil.example:3080', cookie: cookie() }))) === 403)
 check('localhost is this listener too', verdict(writeGuard(request('POST', { origin: 'http://localhost:' + PORT, cookie: cookie('localhost:' + PORT) }))) === 'allowed')
 check('the answer names a reason', writeGuard(request('POST', {})).error === 'origin refused' && writeGuard(request('POST', { origin: 'http://' + HOST })).error === 'sign-in required')
+
+// ── 5. the phone link ─────────────────────────────────────────────────────────────────────────────────────────
+// kybernos-mobile replays a paired phone's requests with the person's own Origin and cookie, plus `x-kybernos-tunnel` (and drops any a phone sends). Origin and
+// cookie are then both right, so the marker is the only thing that tells a stolen phone from the person's browser.
+const tunnelled = { origin: 'http://' + HOST, cookie: cookie(), 'x-kybernos-tunnel': '1' }
+for (const method of ['POST', 'PUT', 'PATCH', 'DELETE']) {
+  const refusal = writeGuard(request(method, tunnelled))
+  check(method + ': the right Origin, the real cookie and the phone-link marker -> 403 refused_on_phone', refusal !== null && refusal.status === 403 && refusal.error === 'refused_on_phone', JSON.stringify(refusal))
+}
+check('...whatever the marker\'s value (an empty one counts)', verdict(writeGuard(request('POST', { ...tunnelled, 'x-kybernos-tunnel': '' }))) === 403)
+check('...and the same request without the marker is allowed (the marker is the only difference)', verdict(writeGuard(request('POST', { origin: tunnelled.origin, cookie: tunnelled.cookie }))) === 'allowed')
+check('a foreign Origin with the marker is still « origin refused » first', writeGuard(request('POST', { ...tunnelled, origin: 'http://evil.example' })).error === 'origin refused')
+check('the marker without a cookie is refused 403, not told to sign in', verdict(writeGuard(request('POST', { origin: tunnelled.origin, 'x-kybernos-tunnel': '1' }))) === 403)
+// A POST that only reads (the live model list) says so with `{ phoneMayRead: true }`, having checked it in its own source; scripts/test-tunnel-routes.mjs owns the table of those.
+check('a POST that only reads may be made by a phone when its caller says so ({ phoneMayRead: true })', verdict(writeGuard(request('POST', tunnelled), { phoneMayRead: true })) === 'allowed')
+check('...and the option excuses the marker only: a foreign Origin, no cookie, a forged cookie are still refused', [
+  writeGuard(request('POST', { ...tunnelled, origin: 'http://evil.example' }), { phoneMayRead: true }),
+  writeGuard(request('POST', { origin: tunnelled.origin, 'x-kybernos-tunnel': '1' }), { phoneMayRead: true }),
+  writeGuard(request('POST', { ...tunnelled, cookie: cookie(HOST, { secret: OTHER_SECRET }) }), { phoneMayRead: true }),
+].map(verdict).join() === '403,401,401')
+check('...and nothing but `true` counts (no option, an empty one, a string, a truthy number)', [undefined, null, {}, { phoneMayRead: 'yes' }, { phoneMayRead: 1 }, { other: true }].every((o) => verdict(writeGuard(request('POST', tunnelled), o)) === 403))
+for (const method of ['GET', 'HEAD']) check(method + ': a read is not a write, so the phone link still reads the routes that ask for the cookie', verdict(writeGuard(request(method, tunnelled))) === 'allowed')
+check('the code is the one the phone page recognises (phone/phone.mjs shows « this cannot be done from the phone »)', /error === 'refused_on_phone'/.test(readFileSync(join(packages, 'kybernos-mobile', 'phone', 'phone.mjs'), 'utf8')))
 
 sessionSource.secret = () => null
 check('a machine secret that cannot be read closes the write (503), whatever the headers', verdict(writeGuard(request('POST', { origin: 'http://' + HOST, cookie: cookie() }))) === 503)

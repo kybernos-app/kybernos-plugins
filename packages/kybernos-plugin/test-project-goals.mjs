@@ -139,12 +139,16 @@ try {
   mod.apply({ get: (n) => services[n], inject: () => {}, effect: (fn) => { const d = fn(); if (typeof d === 'function') disposers.push(d); return d }, on: () => {} })
 
   const PORT = 3080
+  // L3-06: the route is a page's, so it takes the signed session besides the Origin. The copy of the bundle has its own session-guard.mjs: the machine secret is given to that one.
+  const guard = await import(pathToFileURL(join(copy, 'session-guard.mjs')).href)
+  const session = await import(pathToFileURL(join(copy, 'lib-session-test.mjs')).href)
+  guard.sessionSource.secret = () => session.SESSION_SECRET
   const post = async (sessionIds) => {
     const handler = registered['/kybernos/project-data']
     assert.ok(handler !== undefined, 'the route is registered')
     const res = { code: 0, raw: null, writeHead (c) { this.code = c }, end (p) { this.raw = p === undefined ? null : String(p) } }
     const body = JSON.stringify({ sessionIds: sessionIds })
-    await handler({ method: 'POST', url: '/kybernos/project-data', headers: { origin: 'http://127.0.0.1:' + PORT, host: '127.0.0.1:' + PORT, 'content-type': 'application/json' }, socket: { localPort: PORT }, async *[Symbol.asyncIterator] () { yield Buffer.from(body) } }, res)
+    await handler({ method: 'POST', url: '/kybernos/project-data', headers: { origin: 'http://127.0.0.1:' + PORT, host: '127.0.0.1:' + PORT, cookie: session.sessionCookie('127.0.0.1:' + PORT), 'content-type': 'application/json' }, socket: { localPort: PORT }, async *[Symbol.asyncIterator] () { yield Buffer.from(body) } }, res)
     return JSON.parse(res.raw)
   }
 

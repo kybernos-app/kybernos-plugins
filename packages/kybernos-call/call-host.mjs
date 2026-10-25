@@ -12,6 +12,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { dshHomeSync } from './dsh-home.mjs'
 import { configOf } from './providers.mjs'
+import { TOKEN_ENV, createWorkerToken } from './worker-token.mjs'
 
 export const AGENT_NAME = 'kybernos-appel'
 
@@ -83,6 +84,7 @@ export function callMetadata (asked, { sessionBrain = false } = {}) {
  *   fetch      → global fetch                    env        → process.env
  *   pluginDir  → this bundle's folder           feed       → speech-feed.mjs (the session's replies)
  *   store      → call-store.mjs (the settings, the clones); without it a call uses the built-in defaults
+ *   workerToken → worker-token.mjs (the one-run secret the worker presents to the host); without it the host makes its own
  */
 export function createCall (deps = {}) {
   const env = deps.env ?? process.env
@@ -93,6 +95,13 @@ export function createCall (deps = {}) {
   const pluginDir = deps.pluginDir ?? dirname(fileURLToPath(import.meta.url))
   const feed = deps.feed ?? null
   const store = deps.store ?? null
+  // The worker's one-run secret (worker-token.mjs): given to a worker at its start, valid until that run ends. `workerPid` is the run it belongs to.
+  const workerToken = deps.workerToken ?? createWorkerToken()
+  let workerPid = null
+  let workerRun = 0
+  // The worker's start and stop never overlap: a restart is « stop, wait, start », and a second start must see its result.
+  let queue = Promise.resolve()
+  const serial = (fn) => { const next = queue.then(fn); queue = next.catch(() => undefined); return next }
 
   // ── The secrets, and the LiveKit room token ────────────────────────────────
   // Secrets do NOT go in `settings.json` (readable by the client and the settings screen): a
@@ -207,11 +216,11 @@ export function createCall (deps = {}) {
     try { return existsSync(p) === true ? p : null } catch (e) { return null }
   }
   const agentScript = () => join(pluginDir, 'agent', 'agent.py')
-  const agentPid = async () => {
+  const agentPids = async () => {
     const r = await run('pgrep', ['-f', agentPattern(agentScript())])
-    const pid = Number(String(r.stdout).trim().split(/\s+/)[0])
-    return (Number.isInteger(pid) === true && pid > 0) ? pid : null
+    return String(r.stdout).trim().split(/\s+/).map(Number).filter((pid) => Number.isInteger(pid) === true && pid > 0)
   }
+  const agentPid = async () => (await agentPids())[0] ?? null
   const agentState = async () => {
     const pid = await agentPid()
     const python = await venvPython()
@@ -239,13 +248,28 @@ export function createCall (deps = {}) {
     }
     return false
   }
-  const agentStart = async () => {
-    const already = await agentPid()
-    if (already !== null) return { ok: true, running: true, pid: already, already: true, depart: 0 }
+  /**
+   * Ends the worker processes `pids` and waits for them to be gone, so the next one does not register beside a dying one.
+   * Their secret is dropped first: from that instant nothing is accepted from them.
+   */
+  const endWorkers = async (pids) => {
+    workerToken.revoke()
+    workerPid = null
+    await run('kill', pids.map(String))
+    for (let i = 0; i < 25 && (await agentPids()).length > 0; i += 1) await new Promise((resolve) => setTimeout(resolve, 200))
+    const left = await agentPids()
+    if (left.length > 0) await run('kill', ['-9'].concat(left.map(String)))
+  }
+  const agentStart = () => serial(async () => {
+    const running = await agentPids()
+    if (workerPid !== null && running.indexOf(workerPid) >= 0) return { ok: true, running: true, pid: workerPid, already: true, depart: 0 }
     const python = await venvPython()
     if (python === null) return { ok: false, running: false, error: 'call venv missing (<DSH_HOME>/kybernos/appel-venv)' }
     const home = await dshHome()
     if (typeof home !== 'string' || home.length === 0) return { ok: false, running: false, error: 'DSH home not found' }
+    // A worker this host did not start (it outlived a DSH restart or a reload of this plugin) holds a secret nobody here knows any more: every request it made would
+    // be refused. It is replaced, which is also what a call started after a restart needs.
+    if (running.length > 0) await endWorkers(running)
     const log = await logPath()
     // The worker's output goes to this file; the host reads it to know the worker REGISTERED.
     try { mkdirSync(dirname(log), { recursive: true }) } catch (e) { /* the open below says so */ }
@@ -253,13 +277,16 @@ export function createCall (deps = {}) {
     try { from = statSync(log).size } catch (e) { from = 0 }
     let fd = null
     try { fd = openSync(log, 'a') } catch (e) { fd = null }
-    // Nothing about a call in the environment: the worker outlives the call that started it.
-    const childEnv = Object.assign({}, env, { DSH_HOME: home })
+    // Nothing about a call in the environment: the worker outlives the call that started it. Its own secret is the one thing that is there.
+    const thisRun = workerRun + 1
+    workerRun = thisRun
+    const childEnv = Object.assign({}, env, { DSH_HOME: home, [TOKEN_ENV]: workerToken.issue() })
     return await new Promise((resolve) => {
       const done = (answer) => {
         if (fd !== null) { try { closeSync(fd) } catch (e) { /* already closed */ } fd = null }
         resolve(answer)
       }
+      const drop = () => { if (workerRun === thisRun) { workerToken.revoke(); workerPid = null } }
       try {
         // `start`: the production worker. Without a subcommand LiveKit Agents' CLI prints its
         // help and exits (measured). Detached with its output in the log: the worker outlives its
@@ -271,20 +298,24 @@ export function createCall (deps = {}) {
           env: childEnv,
           stdio: (fd === null) ? 'ignore' : ['ignore', fd, fd]
         })
-        child.once('error', (e) => done({ ok: false, running: false, error: errText(e) }))
+        child.once('error', (e) => { drop(); done({ ok: false, running: false, error: errText(e) }) })
+        child.once('exit', drop)
         child.once('spawn', () => {
+          if (workerRun === thisRun) workerPid = child.pid ?? null
           try { child.unref() } catch (e) { /* nothing to detach from */ }
           done({ ok: true, running: true, pid: child.pid ?? null, started: true, depart: from })
         })
-      } catch (e) { done({ ok: false, running: false, error: errText(e) }) }
+      } catch (e) { drop(); done({ ok: false, running: false, error: errText(e) }) }
     })
-  }
-  const agentStop = async () => {
+  })
+  const agentStop = () => serial(async () => {
+    workerToken.revoke()
+    workerPid = null
     const pid = await agentPid()
     if (pid === null) return { ok: true, running: false, stopped: null }
     await run('kill', [String(pid)])
     return { ok: true, running: false, stopped: pid }
-  }
+  })
 
   /** A room token for the browser: the client gets it, the agent forges the same. */
   const mint = async (body) => {
@@ -433,5 +464,8 @@ export function createCall (deps = {}) {
     return { ok: true, code: state.running === true ? 'running' : 'installed' }
   }
 
-  return { readSecrets, accessToken, status, mint, agentStart, agentStop, agentState, utterance, sessionCookie, agentScript, testLiveKit, engineCheck }
+  // `workerAccepts(req)`: is this request the worker of the current run? `dropWorker()`: forget its secret (the plugin stops; the worker, which outlives it, is replaced at the next call).
+  const workerAccepts = (req) => workerToken.accepts(req)
+  const dropWorker = () => { workerToken.revoke(); workerPid = null }
+  return { readSecrets, accessToken, status, mint, agentStart, agentStop, agentState, utterance, sessionCookie, agentScript, testLiveKit, engineCheck, workerAccepts, dropWorker }
 }

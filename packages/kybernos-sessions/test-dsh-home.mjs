@@ -12,6 +12,11 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { sessionSource } from './session-guard.mjs'
+import { SESSION_SECRET, sessionCookie } from './lib-session-test.mjs'
+
+// The POST routes need the signed session as well as the Origin (L3-18): the page's own request carries both.
+sessionSource.secret = () => SESSION_SECRET
 // DSH-HOME-HARNESS-BEGIN
 import * as kbAssert from 'node:assert/strict'
 import * as kbFs from 'node:fs'
@@ -105,7 +110,7 @@ const asked = []
 const llm = { stream: (p) => { asked.push(p.provider + '/' + p.model); return (async function * () { yield { type: 'text-delta', text: 'ui' }; yield { type: 'finish', reason: { kind: 'stop' } } })() } }
 const ctxLlm = { get: (name) => (name === 'llm' ? llm : undefined) }
 const requete = (method, path, corps) => ({
-  method, url: path, headers: { origin: 'http://127.0.0.1:' + PORT }, socket: { localPort: PORT },
+  method, url: path, headers: { origin: 'http://127.0.0.1:' + PORT, cookie: sessionCookie('127.0.0.1:3080') }, socket: { localPort: PORT },
   on (ev, cb) { if (ev === 'data' && corps !== undefined) cb(JSON.stringify(corps)); if (ev === 'end') cb() },
 })
 const reponse = () => { const r = { code: null, corps: null, writeHead (c) { r.code = c }, end (s) { try { r.corps = JSON.parse(s) } catch (e) { r.corps = s } } }; return r }

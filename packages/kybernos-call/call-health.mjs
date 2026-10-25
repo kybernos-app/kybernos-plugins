@@ -20,12 +20,15 @@ export function createHealth ({ store, services, call, fetch: doFetch = (...a) =
     } catch (e) { return { id, ms: Date.now() - t0, status: 'bad', code: 'failed', detail: text(e).slice(0, 200) } } finally { if (timer !== null) clearTimeout(timer) }
   }
 
-  const listen = async (settings, keys, base) => {
+  // The core's voice routes want DSH's signed session (or the call worker's secret): the health check is the page's, so it hands on the cookie the page sent.
+  const asPage = (base, cookie) => Object.assign({ 'content-type': 'application/json', origin: base }, typeof cookie === 'string' && cookie !== '' ? { cookie: cookie } : {})
+
+  const listen = async (settings, keys, base, cookie) => {
     if (settings.use.listen === 'models-asr') {
       const chosen = configOf('models-asr', settings.providers['models-asr']).model
       if (chosen === '') return { status: 'bad', code: 'no-model', provider: 'models-asr' }
       const sep = chosen.indexOf(':')
-      const res = await doFetch(base + '/kybernos/models/audio/probe', { method: 'POST', headers: { 'content-type': 'application/json', origin: base }, body: JSON.stringify({ provider: chosen.slice(0, sep), model: chosen.slice(sep + 1) }), signal: AbortSignal.timeout(28000) })
+      const res = await doFetch(base + '/kybernos/models/audio/probe', { method: 'POST', headers: asPage(base, cookie), body: JSON.stringify({ provider: chosen.slice(0, sep), model: chosen.slice(sep + 1) }), signal: AbortSignal.timeout(28000) })
       let out = null
       try { out = await res.json() } catch (e) { out = null }
       if (out !== null && out.ok === true) return { status: 'ok', code: 'ok', provider: 'models-asr', detail: chosen }
@@ -45,11 +48,11 @@ export function createHealth ({ store, services, call, fetch: doFetch = (...a) =
     return r.ok === true ? { status: 'ok', code: 'ok', provider: 'groq' } : { status: 'bad', code: refusal(r.error) ? 'refused' : 'failed', provider: 'groq', detail: r.error }
   }
 
-  const speak = async (settings, base) => {
+  const speak = async (settings, base, cookie) => {
     const voice = settings.defaultVoice
     const body = { text: 'Test.', lang: voice !== null && voice.lang !== '' ? voice.lang : 'en' }
     if (voice !== null) { body.engine = voice.engine; body.voice = voice.voice }
-    const res = await doFetch(base + '/kybernos/tts/speak', { method: 'POST', headers: { 'content-type': 'application/json', origin: base }, body: JSON.stringify(body), signal: AbortSignal.timeout(25000) })
+    const res = await doFetch(base + '/kybernos/tts/speak', { method: 'POST', headers: asPage(base, cookie), body: JSON.stringify(body), signal: AbortSignal.timeout(25000) })
     let out = null
     try { out = await res.json() } catch (e) { out = null }
     if (out === null || out.ok !== true) return { status: 'bad', code: 'failed', provider: voice === null ? 'app' : voice.engine, detail: out !== null && out.error ? String(out.error).slice(0, 200) : 'HTTP ' + String(res.status) }
@@ -79,12 +82,12 @@ export function createHealth ({ store, services, call, fetch: doFetch = (...a) =
     return { status: 'bad', code: r.code, detail: r.detail }
   }
 
-  /** `base` is this DSH's own address (http://127.0.0.1:<port>): the voice engine is asked through it, as a call does. */
-  const run = async ({ base }) => {
+  /** `base` is this DSH's own address (http://127.0.0.1:<port>): the voice engine is asked through it, as a call does. `cookie` is the page's own session cookie. */
+  const run = async ({ base, cookie = '' }) => {
     const [settings, keys] = await Promise.all([store.readSettings(), store.readKeys()])
     const checks = await Promise.all([
-      guarded('listen', () => listen(settings, keys, base)),
-      guarded('speak', () => speak(settings, base)),
+      guarded('listen', () => listen(settings, keys, base, cookie)),
+      guarded('speak', () => speak(settings, base, cookie)),
       guarded('face', () => face(settings, keys)),
       guarded('line', () => line()),
       guarded('engine', () => engine())

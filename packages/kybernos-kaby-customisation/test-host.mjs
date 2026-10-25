@@ -163,6 +163,13 @@ ok('public profile: no file name, an address that changes with the portrait', ((
   ok('POST portrait keeps it', r.status === 200 && r.json().profile.portrait.source === 'generated' && r.json().profile.look === 'calm')
   r = await t.call('/portrait')
   ok('GET portrait serves the bytes with their type, not cached', r.status === 200 && r.headers['content-type'] === 'image/png' && r.headers['cache-control'] === 'no-store' && r.body.equals(img))
+  ok('GET portrait never opens as a page in the origin of DSH: nosniff, a closed CSP, no download flag for a picture (DL-04)', r.headers['x-content-type-options'] === 'nosniff' && r.headers['content-security-policy'] === "default-src 'none'; sandbox" && r.headers['content-disposition'] === undefined)
+  // A profile edited by hand (or a file swapped on disk) that says « PNG » over bytes that are a page: the type comes from the bytes, and a page is only ever a download.
+  const page = Buffer.from('<html><script>alert(1)</script></html>')
+  t.io.files.set('portrait.bin', page)
+  r = await t.call('/portrait')
+  ok('a portrait whose bytes are a page is a download, never text/html and never image/png (DL-04)', r.status === 200 && r.headers['content-type'] === 'application/octet-stream' && r.headers['content-disposition'] === 'attachment' && r.headers['x-content-type-options'] === 'nosniff' && r.headers['content-security-policy'] === "default-src 'none'; sandbox")
+  t.io.files.set('portrait.bin', img)
   r = await t.call('/portrait', { method: 'POST', body: { image: 'data:image/svg+xml;base64,PHN2Zy8+' } })
   ok('an SVG is refused', r.status === 400 && r.json().error === 'format')
   r = await t.call('/portrait', { method: 'POST', body: { image: url('image/png', img), look: 'x'.repeat(999) } })
