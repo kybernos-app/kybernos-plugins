@@ -10,6 +10,7 @@ import os
 import threading
 import unittest
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from unittest import mock
 
 os.environ.setdefault("GROQ_API_KEY", "test-key-not-used")
 
@@ -39,6 +40,40 @@ class CallAgent(unittest.TestCase):
     def test_the_brief_is_the_calls(self):
         agent = worker.CallAgent(instructions="You are Alice.", session_brain=False)
         self.assertEqual(agent.instructions, "You are Alice.")
+
+
+@unittest.skipUnless(HAVE_LIVEKIT, "livekit-agents is not installed: run this with the worker's venv")
+class InjectTurn(unittest.TestCase):
+    def test_the_turn_goes_with_the_origin_and_this_runs_secret(self):
+        # L3-03: an Origin alone is something any local program can send, so the host gives the worker a secret per run and refuses the rest.
+        seen = []
+
+        class Reply:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *a):
+                return False
+
+            def read(self):
+                return b'{"ok": true, "accepted": true}'
+
+        def fake_urlopen(request, timeout=0):
+            seen.append(request)
+            return Reply()
+
+        original = worker.urllib.request.urlopen
+        worker.urllib.request.urlopen = fake_urlopen
+        try:
+            with mock.patch.dict(os.environ, {"KYBER_CALL_TOKEN": "run-secret-4", "KYBER_INJECT": "1"}):
+                worker._inject(CallMeta("session-aaaaaaaa", None, None, None, "voice", "auto"), "hello there")
+        finally:
+            worker.urllib.request.urlopen = original
+        self.assertEqual(len(seen), 1)
+        headers = {k.lower(): v for k, v in seen[0].header_items()}
+        self.assertEqual(headers["x-kybernos-call-token"], "run-secret-4")
+        self.assertEqual(headers["origin"], worker.HOST)
+        self.assertTrue(seen[0].full_url.endswith("/kybernos-call/utterance"))
 
 
 @unittest.skipUnless(HAVE_LIVEKIT, "livekit-agents is not installed: run this with the worker's venv")
