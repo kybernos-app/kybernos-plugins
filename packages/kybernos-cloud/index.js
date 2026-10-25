@@ -1186,7 +1186,7 @@ const isServerCatalog = (entries) => entries.length > 0 && entries.every((e) => 
 /** The server's creation models (kind `image`, `video` or `speech`) are kept APART from the chat route, like the embeddings model: DSH's chat
  *  picker lists every model of a route and a picture or a video model is not a chat model, so they never go in `providers.kybernos.models`.
  *  The Models page reads them from `GET /kybernos-cloud/models` (read-only: nothing to configure and no key to paste). `unit_pricing` is
- *  `{ unit, usd }`, the price of ONE unit as the server writes it; a price that does not read is left out, never guessed. */
+ *  `{ unit, usd }`, the price of ONE unit as the server writes it (at most nine decimals); a price that does not read is left out, never guessed. */
 const CREATION_KINDS = ['image', 'video', 'speech']
 const CREATION_UNITS = ['image', 'second', 'thousand_characters']
 const MAX_CREATION = 200
@@ -1195,7 +1195,7 @@ const creationEntry = (e) => {
   const id = typeof e.id === 'string' ? e.id.trim() : ''
   if (id === '' || id.length > 120) return null
   const up = e.unit_pricing !== null && typeof e.unit_pricing === 'object' && Array.isArray(e.unit_pricing) === false ? e.unit_pricing : null
-  const priced = up !== null && CREATION_UNITS.indexOf(up.unit) >= 0 && typeof up.usd === 'string' && /^\d{1,6}(?:\.\d{1,6})?$/.test(up.usd)
+  const priced = up !== null && CREATION_UNITS.indexOf(up.unit) >= 0 && typeof up.usd === 'string' && /^\d{1,6}(?:\.\d{1,9})?$/.test(up.usd)
   const shown = typeof e.display_name === 'string' && e.display_name.trim() !== '' ? e.display_name.trim().slice(0, 80) : id
   return { id, name: shown, kind: e.kind, unit: priced ? up.unit : null, usd: priced ? up.usd : null }
 }
