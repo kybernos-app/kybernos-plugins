@@ -8,7 +8,7 @@
 // team (never a path); the public state names the active team's folder and the teams' folders and nothing else of the map; the guard of the new route.
 import assert from 'node:assert/strict'
 import http from 'node:http'
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, truncateSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { sessionSource } from './session-guard.mjs'
@@ -238,6 +238,31 @@ try {
   r = await post('space/active', { workspace_id: taken.id })
   assert.equal(r.json.state.space_folder, join(ROOT, 'Taken (aaaaaaaa)'), 'a folder that is already there with no record is not taken over')
   ok('a folder of that name on the disk with no record (the person\'s own, or another account\'s team) is not taken over: the team gets one that carries its id')
+
+  // L3-57 — the record of the folders is written the way the connection file is (a temporary file renamed over it, the last good version kept as .bak and read when the file cannot be).
+  // A record cut half way used to read as « no folders »: every team then looked for a folder again, found its name taken, and got a second one.
+  console.log('The record of the folders survives a cut')
+  {
+    const bak = foldersPath + '.bak'
+    assert.ok(existsSync(bak), 'the previous good version of the record is kept as .bak')
+    assert.equal(statSync(foldersPath).mode & 0o777, 0o600)
+    assert.equal(statSync(bak).mode & 0o777, 0o600)
+    assert.deepEqual(readdirSync(dir).filter((f) => /\.tmp$/.test(f)), [], 'no temporary file left behind')
+    const whole = readFileSync(foldersPath, 'utf8')
+    writeFileSync(bak, whole, { mode: 0o600 })
+    truncateSync(foldersPath, Math.floor(whole.length / 2))
+    assert.throws(() => JSON.parse(readFileSync(foldersPath, 'utf8')))
+    const before = readdirSync(ROOT).sort()
+    r = await post('space/folder', { workspace_id: ACME.id })
+    assert.deepEqual(r.json.folder, { path: join(ROOT, 'Acme'), created: false }, 'the team\'s folder is found through the copy: ' + JSON.stringify(r.json.folder))
+    assert.deepEqual(readdirSync(ROOT).sort(), before, 'and no second folder was made for it')
+    r = await post('space/create', { name: 'After the cut' })
+    assert.equal(r.json.ok, true)
+    const mended = readFolders()
+    assert.equal(mended[ACME.id], join(ROOT, 'Acme'), 'the next write mends the record, with the old entries')
+    assert.ok(Object.keys(mended).length >= 3)
+    ok('the record of the folders: kept as .bak, read from it when cut half way (no second folder), mended by the next write, mode 0600, no stray file')
+  }
 
   console.log('Guards')
   const calls = api.calls.length

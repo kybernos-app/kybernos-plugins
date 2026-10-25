@@ -507,6 +507,12 @@ the device appears as `DSH <machine name>`, and `DSH <machine name> (port N)` wh
 
 1. **No secret in the repository.** The state lives in `~/.dsh/kybernos-cloud.json`,
    created with **0600** (the folder 0700). It is *outside* the repository, never committed.
+   **It survives a cut** (recette L3-83 / L3-57): it is written through a temporary file in the same folder (0600, flushed to disk) renamed over it, so a power cut, a full disk or a kill leaves the
+   old file or the new one, never half of either, and the last good version is kept as `kybernos-cloud.json.bak` (0600, same folder; a damaged file never replaces a good copy). When the file
+   is there but cannot be read (empty, cut, not JSON, not an object, refused by the disk) the `.bak` is read and the next write mends the file; a file that is simply absent is a sign-out and
+   is NOT replaced by its copy (`clearState`, the sign-out and a revoked session remove both). When neither can be read, `GET /status` answers `{ connected: false, status: 'unreadable' }` and the
+   footer says « Session could not be read » under « Sign in again » (the long sentence, « Your session could not be read: ... », is its tooltip and the notice shown when the row flips while the person looks elsewhere; not the first-time words, not « session ended »). The record of the teams' folders (`kybernos-cloud-folders.json`) is written
+   and read the same way. If the system refuses the rename for good (Windows, a process holding the file) the text is written in place, as before.
 2. **The token does not leave the host half.** The `/kybernos-cloud/*` routes
    return only `{ user, workspaces, device_label, expires_at }` — never the
    token, never the device secret. The client half only calls them.

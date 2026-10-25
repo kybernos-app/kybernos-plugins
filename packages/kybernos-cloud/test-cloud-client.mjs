@@ -915,6 +915,25 @@ ok('selecteur d equipe : route du choix, evenement d ouverture, message d equipe
     ok('footer: the window asks the host to read the account every 30 s while visible and on focus (bounded, de-duplicated, never hidden or signed out), and after a failed turn says the teams are out of date')
   }
 
+  // 5. L3-83/L3-57 — the connection file is there but cannot be read and no copy helps: the row says so (a sentence), not the first-time words « Sign in / Sign up — Sync your sessions ».
+  {
+    status = { ok: true, connected: false, status: 'unreadable' }
+    globalThis.fetch = async (url) => {
+      const path = new URL(String(url), 'http://localhost').pathname.replace(/^.*\/kybernos-cloud/, '')
+      return { ok: true, status: 200, json: async () => (path === '/status' ? status : { ok: false }) }
+    }
+    const { el, root } = await draw()
+    const html = htmlDe(el)
+    assert.ok(html.includes('data-kb="foot-unreadable"') && html.includes('>Session could not be read<'), 'the row says the session could not be read: ' + html.slice(0, 400))
+    assert.ok(html.includes('>Sign in again<'), 'and offers to sign in again')
+    assert.equal(html.includes('Sync your sessions') || html.includes('Sign in / Sign up'), false, 'not the first-time words')
+    root.unmount()
+    status = { ok: true, connected: false, status: 'none' }
+    const plain = await draw()
+    assert.ok(htmlDe(plain.el).includes('Sign in / Sign up') && !htmlDe(plain.el).includes('could not be read'), 'nobody ever connected: the first-time words, as before')
+    plain.root.unmount()
+    ok('footer: a connection file that cannot be read says « Session could not be read » under « Sign in again » (the long sentence is its tooltip and the notice) (the first-time words only when nobody was ever connected)')
+  }
   globalThis.window.setInterval = realSetInterval
 }
 

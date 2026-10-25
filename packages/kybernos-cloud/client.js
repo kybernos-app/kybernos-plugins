@@ -131,6 +131,8 @@ window.__ModuleLoader__.load({
         footSignInAgain: 'Se reconnecter',
         footEnded: 'Ta session est terminée',
         sessionEnded: 'Ta session est terminée : le serveur ne reconnaît plus cet appareil. Reconnecte-toi pour continuer.',
+        footUnreadable: 'Session impossible à lire',
+        sessionUnreadable: 'Le fichier de connexion de ce DSH n\'a pas pu être lu (il est abîmé ou illisible), donc DSH te croit déconnecté. Reconnecte-toi pour continuer.',
         // ── Footer rework (30/09, « Open menu » mockup) ──
         notifTitle: 'Notifications',
         notifEmpty: 'Rien de neuf pour l’instant.',
@@ -420,6 +422,8 @@ window.__ModuleLoader__.load({
         footSignInAgain: 'Sign in again',
         footEnded: 'Your session ended',
         sessionEnded: 'Your session ended: the server no longer recognises this device. Sign in again to carry on.',
+        footUnreadable: 'Session could not be read',
+        sessionUnreadable: 'This DSH\'s connection file could not be read (it is damaged or unreadable), so DSH takes you for signed out. Sign in again to carry on.',
         notifTitle: 'Notifications',
         notifEmpty: 'Nothing new so far.',
         notifClear: 'Clear all',
@@ -3209,6 +3213,8 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
           const followerRef = React.useRef(null)
           // The server ended this connection (a device revoked from the account page, a new database): the signed-out row then says « Sign in again » and why, not the plain words.
           const [ended, setEnded] = React.useState(false)
+          // The connection file of this DSH is there but cannot be read (damaged, half written, wrong rights) and no copy helps: the row says so instead of the first-time words.
+          const [unreadable, setUnreadable] = React.useState(false)
           // How the last pairing ended when it was not a success (`denied`, `expired`): said in the row, which stays until the person tries again.
           const [pairNote, setPairNote] = React.useState(null)
           const wasConnectedRef = React.useRef(false)
@@ -3223,16 +3229,20 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
             if (status !== null && status.connected === true) {
               wasConnectedRef.current = true
               setEnded(false)
+              setUnreadable(false)
               setPairNote(null)
               setState(status.state !== undefined && status.state !== null ? status.state : {})
               setPhase('connected')
               return
             }
-            if (status !== null && status.status === 'pending') { setPairNote(null); setPhase('pairing'); return }
+            if (status !== null && status.status === 'pending') { setPairNote(null); setUnreadable(false); setPhase('pairing'); return }
             const gone = status !== null && status.status === 'revoked'
+            const damaged = status !== null && status.status === 'unreadable'
             setEnded(gone)
+            setUnreadable(damaged)
             // The row flipped from the account to « Sign in again » while the person was looking elsewhere: tell them why, once.
             if (gone === true && wasConnectedRef.current === true) { setFlashSwitch(false); setFlash(t('sessionEnded')) }
+            if (damaged === true && wasConnectedRef.current === true) { setFlashSwitch(false); setFlash(t('sessionUnreadable')) }
             wasConnectedRef.current = false
             setPhase('disconnected')
           }, [])
@@ -3723,20 +3733,20 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
                 h('div', { className: 'kbfp-card' },
                   h('button', {
                     type: 'button', className: 'kbfp-cardmain', ref: gearRef, 'data-kb': 'foot-signin',
-                    title: pairing ? t('footPairing') : (pairNote !== null ? t(pairNote === 'denied' ? 'pairingDenied' : 'pairingExpired') : (ended === true ? t('sessionEnded') : t('footHint'))), 'aria-label': pairing ? t('pairingTitle') : (ended === true ? t('footSignInAgain') : t('footSignInUp')),
+                    title: pairing ? t('footPairing') : (pairNote !== null ? t(pairNote === 'denied' ? 'pairingDenied' : 'pairingExpired') : (ended === true ? t('sessionEnded') : (unreadable === true ? t('sessionUnreadable') : t('footHint')))), 'aria-label': pairing ? t('pairingTitle') : (ended === true || unreadable === true ? t('footSignInAgain') : t('footSignInUp')),
                     'aria-haspopup': 'menu', 'aria-expanded': menuOpen === true ? 'true' : 'false',
                     onClick: () => setMenuOpen(menuOpen !== true),
                   },
                   h('span', { className: 'kbfp-tile', 'aria-hidden': 'true' }, h(UserIcon, { size: 18 })),
                   h('span', { className: 'kbfp-cardtxt' },
-                    h('span', { className: 'kbfp-cardname' }, pairing ? t('pairingTitle') : (ended === true ? t('footSignInAgain') : t('footSignInUp'))),
-                    h('span', { className: 'kbfp-cardsub', 'data-kb': pairNote !== null && pairing !== true ? 'foot-pair-note' : (ended === true && pairing !== true ? 'foot-ended' : undefined) },
-                      pairing ? t('footPairingAction') : (pairNote !== null ? t(pairNote === 'denied' ? 'footPairDenied' : 'footPairExpired') : (ended === true ? t('footEnded') : (phase === 'loading' ? t('loading') : t('footSyncSub')))))),
+                    h('span', { className: 'kbfp-cardname' }, pairing ? t('pairingTitle') : (ended === true || unreadable === true ? t('footSignInAgain') : t('footSignInUp'))),
+                    h('span', { className: 'kbfp-cardsub', 'data-kb': pairNote !== null && pairing !== true ? 'foot-pair-note' : (ended === true && pairing !== true ? 'foot-ended' : (unreadable === true && pairing !== true ? 'foot-unreadable' : undefined)) },
+                      pairing ? t('footPairingAction') : (pairNote !== null ? t(pairNote === 'denied' ? 'footPairDenied' : 'footPairExpired') : (ended === true ? t('footEnded') : (unreadable === true ? t('footUnreadable') : (phase === 'loading' ? t('loading') : t('footSyncSub'))))))),
                   h('span', { className: 'kbfp-chev', 'aria-hidden': 'true' }, h(SwapIcon, { size: 14 }))))),
               menuOpen === true
                 ? h(OffMenu, {
                   pairing: pairing,
-                  ended: ended === true,
+                  ended: ended === true || unreadable === true,
                   anchorRef: offRowRef,
                   toggleRef: gearRef,
                   signupUrl: (serverInfo !== null && typeof serverInfo.web === 'string' && serverInfo.web !== '' ? serverInfo.web : (serverInfo !== null && typeof serverInfo.api === 'string' ? serverInfo.api : '')),
