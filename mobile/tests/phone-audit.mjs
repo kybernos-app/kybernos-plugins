@@ -46,7 +46,9 @@ const MEASURE = (SETTINGS_ROOT) => `(() => {
   const text = (e) => (e.getAttribute('aria-label') || e.title || e.textContent || '').trim().replace(/\\s+/g, ' ').slice(0, 40)
   const all = [...main.querySelectorAll('*')].filter(vis)
   // sideways overflow: the page scrolls sideways, or something sticks out of the viewport on the right
-  const sticks = all.filter((e) => { const r = e.getBoundingClientRect(); return r.right > vw + 2 && !e.closest('[aria-hidden="true"]') && getComputedStyle(e).position !== 'fixed' }).slice(0, 6).map((e) => label(e) + ' right=' + Math.round(e.getBoundingClientRect().right) + ' "' + text(e) + '"')
+  // inside a strip that scrolls sideways on purpose (a carousel of cards), sticking out is the design
+  const inStrip = (e) => { for (let p = e.parentElement; p && p !== document.body; p = p.parentElement) if (/(auto|scroll)/.test(getComputedStyle(p).overflowX) && p.scrollWidth > p.clientWidth + 2) return true; return false }
+  const sticks = all.filter((e) => { const r = e.getBoundingClientRect(); return r.right > vw + 2 && !e.closest('[aria-hidden="true"]') && getComputedStyle(e).position !== 'fixed' && !inStrip(e) }).slice(0, 6).map((e) => label(e) + ' right=' + Math.round(e.getBoundingClientRect().right) + ' "' + text(e) + '"')
   const sideways = document.scrollingElement.scrollWidth - vw
   // text cut by its own box
   const cut = all.filter((e) => e.children.length === 0 && e.scrollWidth > e.clientWidth + 2 && /(hidden|clip)/.test(getComputedStyle(e).overflowX) && e.textContent.trim().length > 2).slice(0, 8).map((e) => '"' + text(e) + '"')
@@ -65,8 +67,10 @@ const MEASURE = (SETTINGS_ROOT) => `(() => {
   // how much of the first screen is chrome before the first card or row of the page: first element that looks like content (img, svg card, list item, table)
   const first = all.find((e) => e.matches('li, tr, article, [role="listitem"], [role="row"], img, canvas, video') && e.getBoundingClientRect().top > 0)
   heights.firstContentTop = first ? Math.round(first.getBoundingClientRect().top) : null
+  // content that starts above the top edge of its scroll area while the area is not scrolled: unreachable, cut (a centred flex column taller than its box does this)
+  const clippedTop = [...document.querySelectorAll('*')].filter((c) => /(auto|scroll)/.test(getComputedStyle(c).overflowY) && c.scrollTop === 0 && c.clientHeight > 100 && c.children.length > 0 && (c.scrollHeight > c.clientHeight || getComputedStyle(c).display === 'flex')).flatMap((c) => { const top = c.getBoundingClientRect().top; return [...c.children].filter((k) => { const r = k.getBoundingClientRect(); return r.height > 20 && r.top < top - 4 && r.bottom > top }).map((k) => label(k) + ' starts ' + Math.round(top - k.getBoundingClientRect().top) + ' px above its area') }).slice(0, 4)
   const imgs = [...document.images].filter((i) => vis(i) && i.complete && i.naturalWidth === 0).length
-  return { vw, vh, title: h1 ? text(h1) : null, sideways, sticks, cut, smallCount: small.length, small: small.slice(0, 6).map((e) => label(e) + ' ' + Math.round(e.getBoundingClientRect().width) + 'x' + Math.round(e.getBoundingClientRect().height) + ' "' + text(e) + '"'), overlap, heights, brokenImages: imgs, docHeight: document.scrollingElement.scrollHeight }
+  return { vw, vh, title: h1 ? text(h1) : null, sideways, sticks, cut, smallCount: small.length, small: small.slice(0, 6).map((e) => label(e) + ' ' + Math.round(e.getBoundingClientRect().width) + 'x' + Math.round(e.getBoundingClientRect().height) + ' "' + text(e) + '"'), overlap, clippedTop, heights, brokenImages: imgs, docHeight: document.scrollingElement.scrollHeight }
 })()`
 
 const OPEN_SETTINGS = `(() => { if (document.querySelector('[data-shortcut-modal="settings"]')) return 'already'; const c = document.querySelector('[data-kb="foot-signin"]'); if (!c) return 'no account card'; c.click(); return 'card' })()`
@@ -100,6 +104,7 @@ async function visit (label, pageText) {
   if (m && m.cut && m.cut.length) flags.push('text cut: ' + m.cut.length + ' ' + m.cut.slice(0, 3).join(' '))
   if (m && m.smallCount) flags.push('small targets: ' + m.smallCount)
   if (m && m.overlap && m.overlap.length) flags.push('under the menu button: ' + m.overlap.join(' '))
+  if (m && m.clippedTop && m.clippedTop.length) flags.push('CUT AT THE TOP: ' + m.clippedTop.join(' | '))
   console.log(name.slice(0, 30).padEnd(30), (m && m.title ? '[' + m.title + '] ' : '') + (flags.length ? flags.join(' | ') : 'clean'))
 }
 for (const label of PAGES) {

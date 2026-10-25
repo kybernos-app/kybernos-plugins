@@ -58,5 +58,8 @@ ok('a page title and its "How it works" pill wrap instead of squeezing the title
 ok('the hint of the field in a conversation is small enough to show whole on one line (it was cut at "@ fi…"), the new-chat screen keeps its own size', () => {
   assert.match(css, /\[data-slot="conversation\.composer"\]:not\(:has\(\[data-slot\^="conversation\.hero\."\]\)\) \[data-composer-placeholder\] \{\s*font-size: 12px !important;/)
 })
+ok('the new-chat screen starts at the top when its content is taller than the area (`safe center`): the headline is never cut above the scroll start', () => {
+  assert.match(css, /\[data-content-phase="hero"\] > \[data-conversation-scroll\] \{\s*justify-content: safe center !important;/)
+})
 
 console.log(`\n${count} tests passed`)

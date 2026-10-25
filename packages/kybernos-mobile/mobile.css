@@ -201,6 +201,12 @@
   [data-slot="conversation.composer"]:has([data-slot^="conversation.hero."]) :is([data-composer-input], [data-input-scroll]) {
     min-height: calc(2lh + 4px) !important;
   }
+  /* The new-chat screen centres its content vertically in the area under the top bar. With the text enlarged the content is taller than the area, and a centred
+   * box that overflows overflows on BOTH sides: the half above the top edge can never be scrolled to, so the first line of the headline (and the logo) was cut
+   * (measured on the phone at a 145 % font size: headline top at -16 px, scroll position 0). `safe` centres while it fits and starts at the top when it does not. */
+  [data-content-phase="hero"] > [data-conversation-scroll] {
+    justify-content: safe center !important;
+  }
   /* In a conversation the hint is one line, cut by an ellipsis at "@ fi…" (456 px of text in 347). A few points smaller it fits whole (13.8 px with the
    * text enlarged). The new-chat screen has two lines for it (above). */
   [data-slot="conversation.composer"]:not(:has([data-slot^="conversation.hero."])) [data-composer-placeholder] {

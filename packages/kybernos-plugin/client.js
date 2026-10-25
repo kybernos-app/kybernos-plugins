@@ -31036,7 +31036,7 @@ body[data-ds-dark-theme] .kb8-iconbtn.on.col{border-color:var(--kb8-pgd);color:v
 @media (max-width:480px){
 .kb-typerow{display:flex;overflow-x:auto;scroll-snap-type:x proximity;scrollbar-width:none}
 .kb-typerow::-webkit-scrollbar{display:none}
-.kb-typerow>.kb-type{flex:0 0 108px;scroll-snap-align:start}
+.kb-typerow>.kb-type{flex:0 0 140px;scroll-snap-align:start}
 .kb-type-line{flex-wrap:nowrap}
 }
 /* Jetons de texte de la maquette (--dsw-alias-fg / --dsw-alias-fg-muted) : ils
