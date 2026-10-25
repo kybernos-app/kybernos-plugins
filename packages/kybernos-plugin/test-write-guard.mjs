@@ -130,6 +130,16 @@ const FAMILY = [
   ['/kybernos/yml-proposer', { texte: 'abc' }],
   ['/kybernos/salary-detect', {}],
   ['/kybernos/models/audio/speak', { text: '' }],
+  // Second batch (2026-10-25, same day): the other POSTs a page drives and no non-browser calls. A refused request must not say yes to an agent's request for approval (a task's
+  // `decision`), write a recording, a language, a feedback or a rating, trim the voice cache, install a language pack or open a Finder window.
+  ['/kybernos/gateway/approvals/decision', { taskId: 'zz-write-guard', decision: 'approuver' }],
+  ['/kybernos/voice/save', { audio: 'data:audio/webm;base64,AAAA' }],
+  ['/kybernos/i18n-store', { remove: true, id: 'zz' }],
+  ['/kybernos/i18n-packs', { op: 'zz' }],
+  ['/kybernos/tts/cache-trim', {}],
+  ['/kybernos/quality-feedback', {}],
+  ['/kybernos/quality-rating', {}],
+  ['/kybernos/art-reveal', { path: '/no/such/workspace/file.md' }],
 ]
 
 // The four that spend the owner's key and stay at the strict Origin on purpose, with the caller that has no session (see the comment above /kybernos/models/audio/probe in index.js).
@@ -192,11 +202,11 @@ try {
     ok(path + ': no header 403 · foreign Origin 403 · no cookie 401 · forged cookie 401 · nothing written · the real pair answers')
   }
   // The routes that read keep their rule: i18n-job and workspace-skills / -connectors / -instructions answer a GET with the strict or lax Origin check alone.
-  for (const path of ['/kybernos/i18n-job', '/kybernos/workspace-skills', '/kybernos/workspace-connectors']) {
-    const r = await send(path + (path.endsWith('job') ? '' : '?workspaceId=w-write-guard'), {}, {}, 'GET')
+  for (const path of ['/kybernos/i18n-job', '/kybernos/i18n-store', '/kybernos/i18n-packs', '/kybernos/quality-feedback', '/kybernos/quality-rating', '/kybernos/workspace-skills?workspaceId=w-write-guard', '/kybernos/workspace-connectors?workspaceId=w-write-guard']) {
+    const r = await send(path, {}, {}, 'GET')
     assert.ok(r.status !== 401, path + ': a GET is not asked for the cookie: ' + r.status)
   }
-  ok('the GET of i18n-job, workspace-skills and workspace-connectors stays a plain read (no cookie asked)')
+  ok('the GET of i18n-job, i18n-store, i18n-packs, quality-feedback, quality-rating, workspace-skills and workspace-connectors stays a plain read (no cookie asked)')
   // The four spending routes the call side still reaches without a session: the strict Origin is all they ask for today. This is the documented exception, not an oversight:
   // converting one of them breaks the call's ears or voice until kybernos-call hands its worker a credential, so the test names the caller and fails the day one is guarded.
   for (const [path, body, caller] of STRICT_ONLY) {

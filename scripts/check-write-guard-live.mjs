@@ -98,6 +98,11 @@ const GUARDED = [
   ['POST', '/kybernos/project-data', { sessionIds: [] }], ['POST', '/kybernos/image/generate', {}], ['POST', '/kybernos/i18n-translate', {}],
   ['POST', '/kybernos/i18n-job', { op: 'zz-guard-live' }], ['POST', '/kybernos/starters-suggest', {}], ['POST', '/kybernos/yml-proposer', { texte: 'a' }],
   ['POST', '/kybernos/models/audio/speak', {}],
+  // The other POSTs that only pages drive (second batch of the day): an agent's request for approval (an unknown task is answered 400), a recording, a language of the interface (an id that is not
+  // a language), a language pack (an op that does not exist), the voice cache, a feedback and a rating (no vote, no note), and a Finder window on a file outside every workspace.
+  ['POST', '/kybernos/gateway/approvals/decision', { taskId: 'zz-guard-live', decision: 'approuver' }], ['POST', '/kybernos/voice/save', {}],
+  ['POST', '/kybernos/i18n-store', { remove: true, id: 'Not A Language' }], ['POST', '/kybernos/i18n-packs', { op: 'zz-guard-live' }], ['POST', '/kybernos/tts/cache-trim', {}],
+  ['POST', '/kybernos/quality-feedback', {}], ['POST', '/kybernos/quality-rating', {}], ['POST', '/kybernos/art-reveal', { path: '/no/such/workspace/file.md' }],
 ]
 
 // The writes of the same family whose handler would DO something on a real account or machine (a pairing link, an unlink, Kaby's computer, the Home computer, a call to the model): the
