@@ -55,5 +55,8 @@ ok('a page title and its "How it works" pill wrap instead of squeezing the title
   assert.match(core, /\.kb6-titlerow\{display:flex;flex-wrap:wrap;/)
   assert.doesNotMatch(css, /\.kb6-titlerow/)
 })
+ok('the hint of the field in a conversation is small enough to show whole on one line (it was cut at "@ fi…"), the new-chat screen keeps its own size', () => {
+  assert.match(css, /\[data-slot="conversation\.composer"\]:not\(:has\(\[data-slot\^="conversation\.hero\."\]\)\) \[data-composer-placeholder\] \{\s*font-size: 12px !important;/)
+})
 
 console.log(`\n${count} tests passed`)
