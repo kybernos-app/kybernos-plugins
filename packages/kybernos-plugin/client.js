@@ -36670,7 +36670,8 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         if (S.memoryId !== null) r = await call('/kybernos-cloud/memory/update', 'POST', { id: S.memoryId, content: text })
         if (r === null || r.ok !== true) r = await call('/kybernos-cloud/memory/add', 'POST', { kind: 'fact', source: 'taught', pinned: true, content: text })
         const m = r !== null && r.ok === true && r.memory !== null && typeof r.memory === 'object' ? r.memory : null
-        if (m !== null && typeof m.id === 'string') S.memoryId = m.id
+        // The server's memory id is an integer; the onboarding file and the next replay hold it as text. Kept either way: a replay updates this memory.
+        if (m !== null && (typeof m.id === 'string' || Number.isInteger(m.id))) S.memoryId = String(m.id)
         S.memState = m !== null ? 'saved' : 'failed'
         if (root !== null && S.screen === 'done') render(false)
       }
@@ -37826,7 +37827,9 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       '.kb-ob-tint .kb-ob-row.on .kb-ob-dot,.kb-ob-tint .kb-ob-chip.on{background:var(--ob-a);border-color:var(--ob-a);color:var(--ob-on)}',
       '.kb-ob-tint .kb-ob-kit.on .kb-ob-cb{background:var(--ob-a);border-color:var(--ob-a);color:var(--ob-on)}',
       // the fields of work: a tile with the field's icon and its colour
-      '.kb-ob-tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:22px}',
+      // `1fr` is minmax(auto, 1fr): a column never gets narrower than its longest word, so two of them ran out of a phone-width window. minmax(0, 1fr) lets them shrink.
+      '.kb-ob-tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:22px}',
+      '@media (max-width:430px){.kb-ob-tiles{grid-template-columns:minmax(0,1fr)}}',
       '.kb-ob-tile{display:flex;align-items:center;gap:12px;padding:12px 14px;text-align:start;color:var(--ink);background:var(--bg2);border:1px solid var(--line);border-radius:16px;cursor:pointer;transition:border-color .15s,transform .15s}',
       '.kb-ob-tile:hover,.kb-ob-tile:focus-visible{border-color:var(--ta);transform:translateY(-1px);outline:none}',
       '.kb-ob-tile.on{border-color:var(--ta);box-shadow:inset 0 0 0 1px var(--ta)}',
