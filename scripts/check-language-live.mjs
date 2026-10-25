@@ -68,7 +68,8 @@ try {
   check('two original languages: Français and English, no other one invented', (await hasRow('kybernos')) && (await hasRow('en')) && (await val(`document.querySelectorAll('[data-lang]').length`)) === 2, await val(`Array.from(document.querySelectorAll('[data-lang]')).map(e=>e.dataset.lang).join()`))
   check('the active language is marked "In use"', /In use/.test(String(await rowText('en'))), await rowText('en'))
   const pageText = String(await val('document.querySelector(".kbln-page").innerText'))
-  check('no flag, no French text mixed with English in the page', !/[\u{1F1E6}-\u{1F1FF}]/u.test(pageText) && !/Traduction IA|Langue source|à traduire|Ajouter/.test(pageText), pageText.slice(0, 200))
+  // Each language wears a round badge (c5408dc7): the flag of the country that stands for it where there is one, else its two letters. A flag is no longer a defect; French text in the English page still is.
+  check('every row has its round badge, and no French text is mixed with English in the page', (await val(`document.querySelectorAll('.kbln-page [data-lang] .kbln-badge').length`)) === 2 && !/Traduction IA|Langue source|à traduire|Ajouter/.test(pageText), pageText.slice(0, 200))
 
   // ═══ 1b. the help and its animation ══════════════════════════════════════
   console.log('\n── help and animation ──')
@@ -213,6 +214,9 @@ try {
   await clickSel('[data-lang="it"] [data-act="start"]')
   await waitFor(page, `!!document.querySelector('[data-lang="it"] [role="alert"]')`, 40000)
   await shot('07b-error-midway')
+  // A warning is a dot and a summary on the row (« Stopped at N% »); its cause and what is kept are in the detail the row's toggle opens.
+  await val(`(() => { const t = document.querySelector('[data-lang="it"] [data-act="toggle"]'); if (t && t.getAttribute('aria-expanded') !== 'true') t.click() })()`)
+  await sleep(500)
   const mid2 = String(await rowText('it'))
   const pct2 = Number(await val(`Number((document.querySelector('[data-lang="it"] [role="progressbar"]')||{getAttribute(){return -1}}).getAttribute('aria-valuenow'))`))
   check('the bar shows the progress gained before the failure', pct2 > 0 && pct2 < 100, pct2)

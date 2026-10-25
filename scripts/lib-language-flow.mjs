@@ -13,7 +13,7 @@
 // must `restoreEnglish()` in a `finally`, and `assertEnglishStored()` first: a
 // run refuses to start if DSH's stored language is not « en », so it can never
 // overwrite a choice of yours. See docs/dev/live-testing.md.
-import { clickText, waitFor } from './live-page.mjs'
+import { clickText, waitFor, showAllSettingsPages } from './live-page.mjs'
 import { profilePatch } from './dsh-home.mjs'
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
@@ -139,6 +139,9 @@ export async function createFlow(page) {
       if (/back to workspace|retour au workspace/i.test(await val('document.body.innerText'))) break
       await reload()
     }
+    // The menu is grouped (one group open at a time): « Language » sits in the shut « Interface » group, so every page is drawn first, or the press lands on the row of the General page.
+    await showAllSettingsPages(page)
+    await sleep(300)
     if (label) {
       for (const l of Array.isArray(label) ? label : [label]) if (await click(l)) break
       await sleep(1200)
