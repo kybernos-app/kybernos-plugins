@@ -58,3 +58,15 @@ export const injectPlistString = (xml, name, value) => {
   if (xml.includes('<key>' + name + '</key>')) throw new Error(name + ' is already in the plist')
   return xml.slice(0, i) + '<key>' + xmlEscape(name) + '</key><string>' + xmlEscape(value) + '</string>\n' + xml.slice(i)
 }
+
+/** Adds `<key>name</key><integer>value</integer>` to the top-level dict of an XML Info.plist. */
+export const injectPlistInteger = (xml, name, value) => {
+  if (!Number.isInteger(value)) throw new Error(name + ' must be an integer')
+  const i = xml.lastIndexOf('</dict>')
+  if (i < 0) throw new Error('not an XML plist')
+  if (xml.includes('<key>' + name + '</key>')) throw new Error(name + ' is already in the plist')
+  return xml.slice(0, i) + '<key>' + xmlEscape(name) + '</key><integer>' + value + '</integer>\n' + xml.slice(i)
+}
+
+/** The content of assets/kb-selftest.json that an Android test build carries: the delay, and the model key when the run is allowed to use one. */
+export const selfTestAsset = (delay, key) => JSON.stringify(key ? { delay, key } : { delay })

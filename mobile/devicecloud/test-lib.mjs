@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { mkdtempSync, writeFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { cleanEnv, injectPlistString, loadEnv, redact, requireEnv } from './lib.mjs'
+import { cleanEnv, injectPlistInteger, injectPlistString, loadEnv, redact, requireEnv, selfTestAsset } from './lib.mjs'
 
 const dir = mkdtempSync(join(tmpdir(), 'dc-'))
 const file = join(dir, '.env')
@@ -22,5 +22,10 @@ const out = injectPlistString(xml, 'KBSelfTestAnthropicKey', 'sk-ant-a&b<c>')
 assert.match(out, /<key>KBSelfTestAnthropicKey<\/key><string>sk-ant-a&amp;b&lt;c&gt;<\/string>\n<\/dict><\/plist>$/)
 assert.throws(() => injectPlistString(out, 'KBSelfTestAnthropicKey', 'x'), /already/)
 assert.throws(() => injectPlistString('nothing', 'K', 'v'), /plist/)
+assert.match(injectPlistInteger(xml, 'KBSelfTestTaskDelay', 90), /<key>KBSelfTestTaskDelay<\/key><integer>90<\/integer>\n<\/dict><\/plist>$/)
+assert.throws(() => injectPlistInteger(xml, 'K', 1.5), /integer/)
+assert.throws(() => injectPlistInteger(injectPlistInteger(xml, 'K', 1), 'K', 2), /already/)
+assert.deepEqual(JSON.parse(selfTestAsset(90)), { delay: 90 }, 'without a key the asset carries the delay only')
+assert.deepEqual(JSON.parse(selfTestAsset(90, 'sk-ant-x')), { delay: 90, key: 'sk-ant-x' })
 rmSync(dir, { recursive: true, force: true })
-console.log('devicecloud lib: .env parsing, redaction, clean child environment, plist injection: all checks pass')
+console.log('devicecloud lib: .env parsing, redaction, clean child environment, plist and asset injection: all checks pass')

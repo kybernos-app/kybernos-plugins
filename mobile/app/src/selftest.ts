@@ -50,6 +50,7 @@ export const runSelfTest = (signIn: string, delaySeconds: number, deps: SelfTest
       if (stopped) return
       let list: any
       try { list = await post({ action: 'list' }) } catch { return }
+      result.taskCount = (list?.tasks ?? []).length
       const t = (list?.tasks ?? []).find((x: any) => x.id === id)
       if (!t) return
       const h = (t.history ?? [])[(t.history ?? []).length - 1]

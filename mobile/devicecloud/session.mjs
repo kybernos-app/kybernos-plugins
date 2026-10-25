@@ -1,20 +1,22 @@
-// One real-device session on BrowserStack App Automate through plain W3C WebDriver calls (no library): first launch, the self-test automation across a background period, and the return.
-// Reads what the app's self-test hook shows in its native label ("selftest: ..."), see mobile/ios/Sources/SelfTest.swift. Returns the measurements; writes log.txt, screenshots and result.json into outDir.
+// One real-device session on BrowserStack App Automate through plain W3C WebDriver calls (no library), iPhone or Android: first launch, the self-test automation across a background period,
+// and the return. Reads what the app's self-test hook shows in its on-screen label ("selftest: ...", see mobile/app/src/selftest.ts); platform differences live in platforms.mjs.
+// Returns the measurements; writes log.txt, screenshots and result.json into outDir.
 import { appendFileSync, mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { HUB, authHeader, redact } from './lib.mjs'
+import { PLATFORMS, parseSelfTestTimes } from './platforms.mjs'
 
-const STATE = { 1: 'not running', 2: 'background, suspended', 3: 'background', 4: 'foreground' }
-const labelOf = (xml) => { const m = /label="([^"]*(?:First launch|Starting|engine stopped)[^"]*)"/.exec(xml); return m ? m[1] : null }
-const selftestOf = (xml) => { const m = /label="(selftest:[^"]*)"/.exec(xml); return m ? m[1].replace(/&amp;/g, '&').replace(/&quot;/g, '"') : null }
-const pageUp = (xml) => /Welcome to Kybernos|Get started|One sentence is enough|Preview Notice/.test(xml)
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
-export const runSession = async ({ appUrl, device = 'iPhone 18 Pro', osVersion = '27', outDir, bundleId = 'app.kybernos.host', expectAnswer = false, maxMinutes = 9.5 }) => {
+export const runSession = async ({ platform = 'ios', appUrl, device, osVersion, outDir, expectAnswer = false, maxMinutes = 9.5 }) => {
+  const P = PLATFORMS[platform]
+  if (P === undefined) throw new Error('unknown platform ' + platform)
+  device = device ?? P.defaultDevice; osVersion = osVersion ?? P.defaultOs
+  const STATE = P.states; const labelOf = P.bootText; const selftestOf = P.selfTestText; const pageUp = P.pageUp
   mkdirSync(outDir, { recursive: true })
   const T0 = Date.now(); const DEADLINE = T0 + Math.min(maxMinutes, 9.5) * 60 * 1000
   const log = (m) => { const l = '[' + ((Date.now() - T0) / 1000).toFixed(1).padStart(6) + 's] ' + redact(m); console.log(l); appendFileSync(join(outDir, 'log.txt'), l + '\n') }
-  const result = { device, osVersion, appUrl, startedAt: new Date(T0).toISOString() }
+  const result = { platform, device, osVersion, appUrl, startedAt: new Date(T0).toISOString() }
   const wd = async (method, path, body, timeoutMs = 60000) => {
     const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), timeoutMs)
     try {
@@ -29,11 +31,11 @@ export const runSession = async ({ appUrl, device = 'iPhone 18 Pro', osVersion =
   const shot = async (name) => { const r = await wd('GET', '/session/' + sid + '/screenshot'); if (r.json?.value) { writeFileSync(join(outDir, name + '.png'), Buffer.from(r.json.value, 'base64')); log('screenshot ' + name + '.png') } }
   const source = async () => (await wd('GET', '/session/' + sid + '/source')).json?.value ?? ''
   const exec = async (script, args = []) => (await wd('POST', '/session/' + sid + '/execute/sync', { script, args })).json?.value
-  const appState = async () => { try { return await exec('mobile: queryAppState', [{ bundleId }]) } catch { return '?' } }
+  const appState = async () => { try { return await exec(...P.queryState(P.appId)) } catch { return '?' } }
 
   try {
-    const caps = { capabilities: { alwaysMatch: { platformName: 'ios', 'appium:deviceName': device, 'appium:platformVersion': osVersion, 'appium:automationName': 'XCUITest', 'appium:app': appUrl, 'appium:autoAcceptAlerts': true, 'bstack:options': { projectName: 'Kybernos', buildName: 'mobile-host', sessionName: 'self-test', deviceLogs: true, video: true, networkLogs: false, idleTimeout: 150 } } } }
-    log('requesting a session on ' + device + ' iOS ' + osVersion)
+    const caps = { capabilities: { alwaysMatch: { ...P.capabilities({ device, osVersion, appUrl }), 'bstack:options': { projectName: 'Kybernos', buildName: 'mobile-host', sessionName: 'self-test', deviceLogs: true, video: true, networkLogs: false, idleTimeout: 150 } } } }
+    log('requesting a session on ' + device + ' ' + P.label + ' ' + osVersion)
     const c = await wd('POST', '/session', caps, 5 * 60 * 1000)
     if (c.status >= 400 || !c.json?.value?.sessionId) { result.error = 'session creation failed: HTTP ' + c.status + ' ' + redact(c.text).slice(0, 400); log(result.error); return result }
     sid = c.json.value.sessionId
@@ -63,7 +65,7 @@ export const runSession = async ({ appUrl, device = 'iPhone 18 Pro', osVersion =
     if (dueMs < Date.now() - 12 * 3600 * 1000) dueMs += 86400000
     log('automation due ' + m[1] + ':' + m[2] + ' UTC, in ' + ((dueMs - Date.now()) / 1000).toFixed(0) + ' s')
     const homeAt = Date.now()
-    await exec('mobile: pressButton', [{ name: 'home' }])
+    await exec(...P.goHome())
     const states = []
     for (const wait of [3, 10, 20, 30, 45, 60, 80, 100, 120]) {
       if (Date.now() > dueMs + 45000 && wait > 45) break
@@ -75,7 +77,7 @@ export const runSession = async ({ appUrl, device = 'iPhone 18 Pro', osVersion =
     result.backgroundStates = states
     result.suspendedAtS = (states.find(([, s]) => /suspended/.test(s)) ?? [null])[0]
     const backAt = Date.now()
-    await exec('mobile: activateApp', [{ bundleId }])
+    await exec(...P.comeBack(P.appId))
     result.returnedAfterDueS = (backAt - dueMs) / 1000
     log('back in the foreground ' + result.returnedAfterDueS.toFixed(0) + ' s after the due time')
 
@@ -89,6 +91,8 @@ export const runSession = async ({ appUrl, device = 'iPhone 18 Pro', osVersion =
     }
     await shot('03-after-return')
     result.finalLabel = final ?? lastSelf
+    const times = parseSelfTestTimes(result.finalLabel)
+    if (times.firedS !== null && times.dueS !== null) { result.firedAfterDueS = times.firedS - times.dueS; result.firedBeforeReturn = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()) + times.firedS * 1000 < backAt }
     result.fired = /fired at/.test(result.finalLabel ?? '')
     result.answerFound = /found [1-9]/.test(result.finalLabel ?? '')
     log('RESULT: ' + result.finalLabel)
@@ -101,7 +105,7 @@ export const runSession = async ({ appUrl, device = 'iPhone 18 Pro', osVersion =
     result.totalS = (Date.now() - T0) / 1000
     result.verdict = {
       pageWithin30s: result.pageOnScreenS !== null && result.pageOnScreenS !== undefined && result.pageOnScreenS <= 30,
-      suspendedInBackground: result.suspendedAtS !== null && result.suspendedAtS !== undefined,
+      suspendedInBackground: P.expectsSuspension ? (result.suspendedAtS !== null && result.suspendedAtS !== undefined) : null,
       overdueAutomationFiredOnReturn: result.fired === true,
       modelAnswered: expectAnswer ? result.answerFound === true : null,
     }
