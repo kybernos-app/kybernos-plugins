@@ -37,6 +37,10 @@ GET <api>/v1/models        (Authorization: Bearer <device token>)   ← <api> = 
   not the fallback twins (`-fb1`, `-fb2`…), not the infra routing pools
   (`*_rg`), not the embeddings route (`kybernos/embed`). `max_tokens` /
   `context_length` from the catalogue are carried over when LiteLLM provides them.
+- **Creation models are kept apart**: a server catalogue entry of kind `image`, `video` or `speech` (with `unit_pricing: { unit, usd }`, the price
+  of ONE unit: an image, a second, a thousand characters) is never written to `providers.kybernos.models`, because DSH's chat picker lists every
+  model of a route. It goes to `models.creation` of `GET /kybernos-cloud/models`, where the Models page reads it. A price that does not read is
+  left out, an unknown kind is dropped, and the contract the server follows is in `docs/dev/creation-models-contract.md`.
 - **Triggers**: at claim (sign-in), at DSH start-up if already
   connected, at refresh if nothing has been imported yet, and on demand
   (POST `/kybernos-cloud/models/sync`, no button calls it any more). An identical
@@ -59,7 +63,7 @@ New local routes:
 
 | Route | Response |
 |---|---|
-| `GET /kybernos-cloud/models` | `{ok, connected, plan, models:{provider, base_url, imported_at, plan, count, ids, settings, credential, cause}}` |
+| `GET /kybernos-cloud/models` | `{ok, connected, plan, models:{provider, base_url, imported_at, plan, count, ids, creation:[{id, name, kind, unit, usd}], settings, credential, cause}}` |
 | `POST /kybernos-cloud/models/sync` | same contract + `wrote`/`reason` — resynchronises now (forced) |
 
 The summary (`count`, `plan`, `imported_at`, `settings`, `credential`) also

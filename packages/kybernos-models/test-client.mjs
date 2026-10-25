@@ -976,5 +976,44 @@ console.log('\n── "or add a key" does not depend on the language ──')
   ok('the attribute is on the button in both draws of the Providers tab', drawn >= 2, drawn)
 }
 
+console.log('\n── the server\'s creation models (pictures, videos, voices) ──')
+{
+  const from = src.indexOf('// KB-CREATION-PURE-BEGIN')
+  const to = src.indexOf('// KB-CREATION-PURE-END')
+  ok('the pure block is delimited', from > 0 && to > from)
+  const { kbMCreationRows, kbMCreationType } = new Function(src.slice(from, to) + '\nreturn { kbMCreationRows, kbMCreationType }')()
+  const body = (creation) => ({ ok: true, connected: true, models: { ids: [], creation } })
+  const rows = kbMCreationRows(body([
+    { id: 'seedream-5.0', name: 'Seedream 5.0', kind: 'image', unit: 'image', usd: '0.14' },
+    { id: 'wan-3.0', name: 'Wan 3.0', kind: 'video', unit: 'second', usd: '0.40' },
+    { id: 'fish-s2.1-pro', name: 'Fish S2.1 Pro', kind: 'speech', unit: 'thousand_characters', usd: '0.06' },
+    { id: 'no-price', name: '', kind: 'video', unit: null, usd: null },
+  ]))
+  ok('one row per model, in the server order', rows.map((r) => r.id).join() === 'seedream-5.0,wan-3.0,fish-s2.1-pro,no-price', rows.map((r) => r.id))
+  ok('every row is a read-only creation row of the Kybernos route, not a settings model', rows.every((r) => r.kind === 'creation' && r.route === 'kybernos' && r.index === -1))
+  ok('the page\'s type follows the kind: image, video, audio', rows.map((r) => r.baseCtl.type).join() === 'image,video,audio,video')
+  ok('the matching output capability is lit and nothing else', rows[0].baseCtl.imageGen === true && rows[0].baseCtl.videoGen === false && rows[0].baseCtl.tts === false
+    && rows[1].baseCtl.videoGen === true && rows[1].baseCtl.imageGen === false && rows[2].baseCtl.tts === true)
+  ok('a picture, video or voice model does not read text', rows.every((r) => r.baseCtl.textIn === false && r.baseCtl.vision === false && r.baseCtl.textOut === false))
+  ok('the price of one unit and its unit are kept as the server wrote them', rows[0].baseCtl.unitPrice === '0.14' && rows[0].baseCtl.unit === 'image' && rows[1].baseCtl.unit === 'second' && rows[2].baseCtl.unit === 'thousand_characters')
+  ok('a model with no readable price keeps an empty price, never an invented one', rows[3].baseCtl.unitPrice === '' && rows[3].baseCtl.unit === '')
+  ok('an empty name falls back to the id', rows[3].name === 'no-price')
+  ok('a signed-out account, a missing list or a bad body gives no rows', kbMCreationRows({ ok: true, connected: false }).length === 0 && kbMCreationRows({ connected: true, models: {} }).length === 0
+    && kbMCreationRows(null).length === 0 && kbMCreationRows('x').length === 0 && kbMCreationRows({ connected: true, models: { creation: 'x' } }).length === 0)
+  ok('an unknown kind, a prototype key, an empty id and a non-object are skipped', kbMCreationRows(body([
+    { id: 'a', kind: 'rerank' }, { id: 'b', kind: 'constructor' }, { id: 'c', kind: '__proto__' }, { id: '', kind: 'image' }, null, 'x', { kind: 'image' },
+  ])).length === 0)
+  ok('the kinds the page knows', kbMCreationType('image') === 'image' && kbMCreationType('video') === 'video' && kbMCreationType('speech') === 'audio' && kbMCreationType('chat') === null && kbMCreationType('toString') === null)
+
+  const persist = src.slice(src.indexOf('const kbMPersist = async'), src.indexOf('const kbMPersist = async') + 400)
+  ok('a creation row is never written: the server owns it', /if \(mo\.kind === 'creation'\) \{ mo\.error = m\('kb\.models\.error\.managed'\)[^}]*return false \}/.test(persist), persist)
+  const sync = src.slice(src.indexOf('const kbmSync = (key) =>'), src.indexOf('const kbmSync = (key) =>') + 300)
+  ok('a creation row is not synchronised with models.dev', /mo\.kind === 'creation'\) return/.test(sync), sync)
+  ok('a creation row has no trash button', /mo\.kind === 'creation' \? null : h\('button', \{\s*type: 'button', className: 'kbm-btn kbm-btn-icon kbm-btn-ghost kbmp-danger'/.test(src))
+  ok('the rows come from the cloud models route, after the annotations overlay and before the route list', /await kbMCreation\(\)[\s\S]{0,120}KBM\.routes = routes/.test(src) && /fetch\('\/kybernos-cloud\/models'/.test(src))
+  ok('a creation model is priced per unit, not per million tokens', /if \(mo\.kind === 'creation'\) \{\s*const p = String\(mo\.baseCtl\.unitPrice/.test(src))
+  ok('the page says it is managed, in both languages', /'kb\.models\.creation': \{ kybernos: [^}]+en: /.test(src) && /'kb\.models\.error\.managed': \{ kybernos: [^}]+en: /.test(src))
+}
+
 console.log('\n' + pass + ' passed, ' + fail + ' failed')
 process.exit(fail === 0 ? 0 : 1)
