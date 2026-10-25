@@ -72,5 +72,67 @@ console.log('SRV-02 every way it stops names the step')
   check('when this DSH version is not known, the minimum is not enforced (the server is not refused for a guess)', unknownDsh.ok === true)
 }
 
+// ── L3-25: the document is read within bounds ─────────────────────────────────────────────────────────────────────────────────
+// A server that answers 200 and then sends without end was read in full by `res.text()` (+2 GB of memory in 3 s) before the size was looked at, and the timer
+// stopped at the headers. Nothing below is sent for real over the network except the last case, which stops by itself at 64 MiB: the streams are stand-ins that count
+// what is pulled from them.
+console.log('SRV-05 a response is read within bounds')
+{
+  const BLOCK = 16 * 1024
+  const within = (promise, ms) => Promise.race([promise, new Promise((resolve) => setTimeout(() => resolve('TIMED OUT'), ms))])
+  const counted = (total, extra = {}) => {
+    const seen = { pulled: 0, cancelled: false }
+    const block = new TextEncoder().encode(' '.repeat(BLOCK))
+    const body = new ReadableStream({
+      pull (controller) { if (seen.pulled >= total) { controller.close(); return } seen.pulled += BLOCK; controller.enqueue(block) },
+      cancel () { seen.cancelled = true },
+    }, { highWaterMark: 0 })
+    return { seen, fetch: async () => new Response(body, { status: 200, headers: extra }) }
+  }
+  {
+    const { seen, fetch } = counted(64 * 1024 * 1024)
+    const r = await within(run(fetch), 5000)
+    check('a body that goes on for 64 MiB is refused after about 64 KB, as an unreadable profile', r !== 'TIMED OUT' && r.ok === false && r.error === 'no_profile' && r.steps.some((x) => x.id === 'wellknown' && x.note === 'unreadable'), r)
+    check('…at most 3 blocks past the limit were pulled (' + Math.round(seen.pulled / 1024) + ' KiB), and the stream was cancelled', seen.pulled <= MAX_BYTES + 3 * BLOCK && seen.cancelled === true, seen)
+  }
+  {
+    const { seen, fetch } = counted(64 * 1024 * 1024, { 'content-length': String(64 * 1024 * 1024) })
+    const r = await within(run(fetch), 5000)
+    check('a body that announces more than the limit is refused before a byte is pulled', r !== 'TIMED OUT' && r.ok === false && r.error === 'no_profile' && seen.pulled === 0 && seen.cancelled === true, { r, seen })
+  }
+  {
+    // The headers and one block arrive, then nothing: the timer must still be running. Like a real connection, the stream fails when the request is aborted.
+    const stalled = async (url, init) => new Response(new ReadableStream({
+      start (controller) { controller.enqueue(new TextEncoder().encode('{"schema":1,')) },
+      pull () { return new Promise((resolve, reject) => init.signal.addEventListener('abort', () => reject(new Error('aborted')))) },
+    }), { status: 200 })
+    const started = Date.now()
+    const r = await within(discover('kb.acme.corp', { fetch: stalled, timeoutMs: 80 }), 4000)
+    check('a body that stalls after the headers is given up on at the time limit, not waited for', r !== 'TIMED OUT' && r.ok === false && r.error === 'no_profile' && Date.now() - started < 3000, r)
+  }
+  {
+    // The only real network of this file: a loopback server that answers 200 and writes 16 KiB blocks (honouring back-pressure) until it has written 64 MiB or the client is gone.
+    const http = await import('node:http')
+    let written = 0
+    let clientGone = false
+    const server = http.createServer((req, res) => {
+      res.writeHead(200, { 'content-type': 'application/json' })
+      const block = Buffer.alloc(BLOCK, 0x20)
+      res.on('close', () => { clientGone = true })
+      const pump = () => {
+        while (written < 64 * 1024 * 1024 && !clientGone) { written += BLOCK; if (res.write(block) === false) { res.once('drain', pump); return } }
+        if (!clientGone) res.end()
+      }
+      pump()
+    })
+    await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve))
+    const r = await within(discover('127.0.0.1:' + server.address().port, { timeoutMs: 4000 }), 6000)
+    await new Promise((resolve) => setTimeout(resolve, 100))
+    check('a real server that keeps sending is cut: no profile, and nowhere near 64 MiB left the server (' + Math.round(written / 1024) + ' KiB)', r !== 'TIMED OUT' && r.ok === false && r.error === 'no_profile' && clientGone === true && written < 16 * 1024 * 1024, { r, written, clientGone })
+    server.closeAllConnections?.()
+    await new Promise((resolve) => server.close(resolve))
+  }
+}
+
 console.log(failed === 0 ? '\nall good' : '\n' + failed + ' failed')
 process.exit(failed === 0 ? 0 : 1)

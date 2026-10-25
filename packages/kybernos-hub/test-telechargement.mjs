@@ -6,7 +6,7 @@ import { createHash } from 'node:crypto'
 import http from 'node:http'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { basename, join } from 'node:path'
 import { cheminsSurs, creerTelechargeurs } from './telechargement.mjs'
 
 let echecs = 0
@@ -62,6 +62,7 @@ console.log('an archive')
   const racine = await t.extraire(r.fichier)
   ok('it is extracted and the folder with the robot and the manifest is found', existsSync(join(racine, 'scripts', 'dsh-lifecycle.mjs')) && existsSync(join(racine, 'manifest.json')))
   const dossier = t.dossierTemporaire()
+  ok('the folder says who made it (this process), for the sweep of the folders a killed update leaves (L3-85)', JSON.parse(readFileSync(join(dossier, '.proprietaire'), 'utf8')).pid === process.pid && basename(dossier).startsWith('kybernos-update-'))
   t.nettoyer()
   ok('clean-up removes the whole temp folder, and is safe to repeat', !existsSync(dossier) && t.dossierTemporaire() === null && (t.nettoyer(), true))
 

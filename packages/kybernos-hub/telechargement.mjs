@@ -3,14 +3,52 @@
 // test-telechargement.mjs plays it against a local server and a temp folder.
 import { createHash } from 'node:crypto'
 import { execFile } from 'node:child_process'
-import { createWriteStream, existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, statSync } from 'node:fs'
+import { createWriteStream, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { join, sep } from 'node:path'
+import { pidVivant } from './install-lock.mjs'
 
 const erreur = (code, message) => Object.assign(new Error(message ?? code), { code })
 
 /** Pure. Does every path of a tar listing stay inside the folder it is extracted to? (no absolute path, no `..`) */
 export const cheminsSurs = (liste) => String(liste).split('\n').map((l) => l.replace(/\r$/, '')).filter((l) => l !== '').every((l) => !/^([A-Za-z]:)?[\\/]/.test(l) && !l.split(/[\\/]/).includes('..'))
+
+export const PREFIXE_TEMP = 'kybernos-update-'
+const MARQUEUR = '.proprietaire'
+
+/**
+ * Removes the `kybernos-update-*` folders (an archive of up to 300 MB and its extraction) that a DSH killed in the middle of an update left in the temp folder: the
+ * clean-up runs in the `finally` of the update, which a `kill -9` never reaches (recette L3-85). A folder is KEPT when
+ *   · a live installer still runs from it (`verrou.source` is inside it: the installer's own lock, see install-lock.mjs), or
+ *   · the process that made it is alive (the marker `.proprietaire` written at creation holds its pid: another DSH of this machine may be downloading right now), or
+ *   · it has no readable marker and is younger than `ageSansMarqueurMs` (a folder from before the marker existed, or one being created this very moment).
+ * Everything else goes. `verrou` is the live lock record or null. Never throws. @returns {{ retires: string[], gardes: string[] }} the folder names.
+ */
+export function balayerOrphelins ({ tmp = tmpdir(), verrou = null, vivant = pidVivant, maintenant = Date.now, ageSansMarqueurMs = 3600 * 1000, lister = readdirSync, etat = statSync, lire = readFileSync, retirer = rmSync, reel = realpathSync } = {}) {
+  const retires = []
+  const gardes = []
+  let noms = []
+  try { noms = lister(tmp) } catch (e) { return { retires, gardes } }
+  const source = verrou !== null && verrou !== undefined && typeof verrou.source === 'string' ? verrou.source : null
+  const sources = source === null ? [] : [source, (() => { try { return reel(source) } catch (e) { return source } })()]
+  for (const nom of noms) {
+    if (typeof nom !== 'string' || nom.startsWith(PREFIXE_TEMP) === false) continue
+    const dossier = join(tmp, nom)
+    try {
+      if (etat(dossier).isDirectory() !== true) continue
+      const dedans = [dossier, (() => { try { return reel(dossier) } catch (e) { return dossier } })()]
+      if (sources.some((src) => dedans.some((d) => src === d || src.startsWith(d + sep)))) { gardes.push(nom); continue }
+      let proprietaire = null
+      try { proprietaire = JSON.parse(lire(join(dossier, MARQUEUR), 'utf8')) } catch (e) { proprietaire = null }
+      if (proprietaire !== null && typeof proprietaire === 'object' && Number.isInteger(proprietaire.pid)) {
+        if (vivant(proprietaire.pid) === true) { gardes.push(nom); continue }
+      } else if (maintenant() - etat(dossier).mtimeMs < ageSansMarqueurMs) { gardes.push(nom); continue }
+      retirer(dossier, { recursive: true, force: true })
+      retires.push(nom)
+    } catch (e) { gardes.push(nom) /* not removable now: the next start tries again */ }
+  }
+  return { retires, gardes }
+}
 
 export function creerTelechargeurs ({ fetchImpl = (...a) => fetch(...a), tmp = tmpdir(), autoriserHttp = false, delaiMs = 30000, delaiArchiveMs = 600000, lancer = execFile } = {}) {
   let dossier = null
@@ -48,7 +86,9 @@ export function creerTelechargeurs ({ fetchImpl = (...a) => fetch(...a), tmp = t
     /** An archive, streamed to a fresh temp folder while it is hashed. Resolves { fichier, sha256, taille }. */
     async telechargerVers (url, { max }) {
       const rep = await ouvrir(url, delaiArchiveMs)
-      dossier = mkdtempSync(join(tmp, 'kybernos-update-'))
+      dossier = mkdtempSync(join(tmp, PREFIXE_TEMP))
+      // Who made this folder, for the clean-up of balayerOrphelins: a DSH that is killed never reaches `nettoyer`.
+      try { writeFileSync(join(dossier, MARQUEUR), JSON.stringify({ pid: process.pid, debut: Date.now() }) + '\n') } catch (e) { /* no marker: the age rule applies */ }
       const fichier = join(dossier, 'archive.tar.gz')
       const hash = createHash('sha256')
       const sortie = createWriteStream(fichier)

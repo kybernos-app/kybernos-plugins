@@ -14,7 +14,7 @@
 // ═══════════════════════════════════════════════════════
 
 import { randomUUID } from 'node:crypto'
-import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { FICHIER_ETAT } from './boot-guard.mjs'
@@ -24,8 +24,9 @@ import { fileURLToPath } from 'node:url'
 import { creerHub, monterRoutes, monterSuite } from './hub-host.mjs'
 import { URL_PAR_DEFAUT } from './catalogue-distant.mjs'
 import { detecterHebergement, plateformeDe } from './suite-host.mjs'
-import { creerTelechargeurs } from './telechargement.mjs'
+import { balayerOrphelins, creerTelechargeurs } from './telechargement.mjs'
 import { ecrirePaire, lirePaire } from './cache-paire.mjs'
+import { fichierVerrou, lireVerrou } from './install-lock.mjs'
 
 export const name = 'kybernos-hub'
 
@@ -46,7 +47,10 @@ export const outilRelance = (dshHome, racine, existe = existsSync) => {
 }
 
 
-function suiteDeps (dshHome, hub) {
+/** The signal that ended a child (its time limit sends SIGTERM and sets `killed`, a `kill` sets `signal`), or null when it exited by itself: a robot that exits says it put everything back, one that was killed said nothing (L3-88). */
+export const signalDe = (erreur) => (erreur !== null && erreur !== undefined && typeof erreur.signal === 'string' ? erreur.signal : (erreur !== null && erreur !== undefined && erreur.killed === true ? 'SIGTERM' : null))
+
+export function suiteDeps (dshHome, hub) {
   const ici = dirname(fileURLToPath(import.meta.url))
   const racineDepot = join(ici, '..', '..')
   const dossierKb = join(dshHome, 'kybernos')
@@ -80,10 +84,15 @@ function suiteDeps (dshHome, hub) {
     telechargerVers: telechargeurs.telechargerVers,
     extraire: telechargeurs.extraire,
     nettoyer: telechargeurs.nettoyer,
+    // The installation lock the robot writes (install-lock.mjs): the hub only reads it, which also removes a stale one (dead pid).
+    lireVerrou: () => lireVerrou({ fichier: fichierVerrou(dshHome) }),
+    // The temp folders (up to 300 MB) of an update whose DSH was killed before its clean-up: removed at start and when an installer that outlived its DSH ends.
+    // A folder an installer still runs from, or whose maker is alive, is kept.
+    balayer: () => { const v = lireVerrou({ fichier: fichierVerrou(dshHome) }); return balayerOrphelins({ verrou: v.etat === 'tenu' ? v.verrou : null }) },
     // The robot that ships INSIDE the verified archive installs it (the same contract as running ./kybernos-update by hand).
     executerArchive: (racine) => new Promise((resolve) => {
       execFile(process.execPath, [join(racine, 'scripts', 'dsh-lifecycle.mjs'), 'upgrade', '--source', racine], { env: { ...process.env, DSH_HOME: dshHome }, timeout: 20 * 60 * 1000, maxBuffer: 8 * 1024 * 1024 },
-        (erreur, sortie, err) => resolve({ code: erreur ? (typeof erreur.code === 'number' ? erreur.code : 1) : 0, sortie: String(sortie ?? '') + String(err ?? '') }))
+        (erreur, sortie, err) => resolve({ code: erreur ? (typeof erreur.code === 'number' ? erreur.code : 1) : 0, signal: signalDe(erreur), sortie: String(sortie ?? '') + String(err ?? '') }))
     }),
     // The engine zone this plugin was tested with (dsh-compat.json next to the bundle): the only versions the engine route accepts.
     zoneMoteur: () => {
@@ -98,6 +107,8 @@ function suiteDeps (dshHome, hub) {
     hebergement: () => detecterHebergement({ env: process.env, existe: existsSync }),
     plateforme: plateformeDe(process.platform),
     ecrireActivation: (obj) => {
+      // `null` puts the file back to « there is none » (= everything on): what a failed install does when the person had no activation file before it.
+      if (obj === null) { rmSync(fichier, { force: true }); return }
       mkdirSync(dirname(fichier), { recursive: true })
       const tmp = fichier + '.tmp-' + process.pid
       writeFileSync(tmp, JSON.stringify(obj, null, 2) + '\n')
@@ -106,7 +117,7 @@ function suiteDeps (dshHome, hub) {
     executer: (argv) => new Promise((resolve, reject) => {
       if (!existsSync(robot)) { reject(new Error('lifecycle robot not found next to this bundle (' + robot + ')')); return }
       execFile(process.execPath, [robot, ...argv], { env: { ...process.env, DSH_HOME: dshHome }, timeout: 10 * 60 * 1000, maxBuffer: 4 * 1024 * 1024 },
-        (erreur, sortie, err) => resolve({ code: erreur ? (typeof erreur.code === 'number' ? erreur.code : 1) : 0, sortie: String(sortie ?? '') + String(err ?? '') }))
+        (erreur, sortie, err) => resolve({ code: erreur ? (typeof erreur.code === 'number' ? erreur.code : 1) : 0, signal: signalDe(erreur), sortie: String(sortie ?? '') + String(err ?? '') }))
     }),
     // Detached, like the relaunch tool: DSH stops itself, the child survives and brings it back.
     // The tool restarts the instance on the port it is given (3080 when none): the page's own port is passed, so a DSH that listens elsewhere
