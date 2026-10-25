@@ -26,6 +26,10 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false
-    }
+    },
+    "plugins": [
+      "./plugins/with-loopback-cleartext.js",
+      "./plugins/with-arm64-only.js"
+    ]
   }
 }

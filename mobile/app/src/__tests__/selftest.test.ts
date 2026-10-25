@@ -45,7 +45,7 @@ describe('runSelfTest', () => {
     const t = runSelfTest(SIGN_IN, 90, s.deps)
     await flush(); jest.advanceTimersByTime(1000); await flush()
     expect(s.lines[s.lines.length - 1]).toBe('selftest: due 03:22 UTC | fired at 03:22:05 UTC')
-    expect(JSON.parse(s.results[s.results.length - 1])).toMatchObject({ status: 'fired', due: '03:22' })
+    expect(JSON.parse(s.results[s.results.length - 1])).toMatchObject({ status: 'fired', due: '03:22', taskCount: 1 })
     t.stop()
   })
 
