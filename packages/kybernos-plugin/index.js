@@ -9568,6 +9568,15 @@ function boot(ctx) {
         res.end(body)
       } catch (e) { try { res.writeHead(500); res.end('{}') } catch (e2) { /* socket ferme */ } }
     }
+    // The session half of a write route's guard (session-guard.mjs, docs/dev/route-origin-rule.md), for the routes that call `writeRefused(req, res)` after their strict Origin check:
+    // `true` once it has answered the refusal (403 for an Origin that is not this listener's, 401 when DSH's signed session cookie is missing or forged, 503 when the machine secret
+    // cannot be read), and the route stops there. An Origin header alone is forgeable by any local program, and plugin routes are served before DSH's own sign-in.
+    const writeRefused = (req, res) => {
+      const refused = writeGuard(req)
+      if (refused === null) return false
+      sendJson(res, refused.status, { ok: false, error: refused.error })
+      return true
+    }
     // Contrôle d'origine STRICT, pour les routes qui écrivent. DSH sert les
     // routes des plugins AVANT son authentification (constat de campagne : `/`
     // répond 401 sans cookie, `/kybernos/*` répond 200), donc chaque plugin doit
@@ -10480,6 +10489,8 @@ function boot(ctx) {
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/art-progress', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        // L3-06 (recette 2026-10-25): a write needs DSH's signed session too (the page sends it), not only a strict Origin that any local program can forge.
+        if (writeRefused(req, res)) return
         const body = await readJsonBody(req)
         const action = str(body.action)
         // The registry belongs to the person, in the DSH home (DSH_HOME honoured): next to the plugin it was replaced by every update,
@@ -10568,6 +10579,8 @@ function boot(ctx) {
         }
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'GET or POST expected' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        // L3-06: which skills a project follows is read by its agents, so the write needs the signed session too.
+        if (writeRefused(req, res)) return
         sendJson(res, 200, await saveWorkspaceSkills(await readJsonBody(req)))
       } }), 'kybernos: route workspace-skills')
       // ── Connectors used by a project: GET reads, POST writes the selection ──
@@ -10578,6 +10591,8 @@ function boot(ctx) {
         }
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'GET or POST expected' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        // L3-06: which apps a project may use is what its agents can reach, so the write needs the signed session too.
+        if (writeRefused(req, res)) return
         sendJson(res, 200, await saveWorkspaceConnectors(await readJsonBody(req)))
       } }), 'kybernos: route workspace-connectors')
       // ── Instructions of a workspace: a text sent with the prompt of its sessions (private store, optional AGENTS.md section) ──
@@ -10589,6 +10604,9 @@ function boot(ctx) {
         }
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'GET or POST expected' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        // L3-06: the text lands in the system prompt of every chat of the project and, when asked, in the project's AGENTS.md (committed, shared), and the agent has a shell:
+        // the write needs the signed session too, not only an Origin that any local program can send.
+        if (writeRefused(req, res)) return
         const body = await readJsonBody(req)
         sendJson(res, 200, wsInstructions.set({ workspaceId: body !== null && typeof body === 'object' ? str(body.workspaceId) : null, text: body !== null && typeof body === 'object' ? body.text : undefined, alsoAgents: body !== null && typeof body === 'object' && body.alsoAgents === true }))
       } }), 'kybernos: route workspace-instructions')
@@ -10633,6 +10651,8 @@ function boot(ctx) {
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/project-data', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        // L3-06: it answers which agent team worked in which chat, from the sessions on disk: a read, but a POST that only the pages (this one and Atlas) send, so it follows the rule.
+        if (writeRefused(req, res)) return
         sendJson(res, 200, await projectData(await readJsonBody(req)))
       } }), 'kybernos: route project-data')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/menu-save', handler: async (req, res) => {
@@ -10707,6 +10727,8 @@ function boot(ctx) {
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/domain/skill', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        // L3-06: it writes a skill the agents will load, so the signed session is needed too.
+        if (writeRefused(req, res)) return
         let body = null
         try { body = await readJsonBody(req, 2000) } catch (e) { return sendJson(res, 413, { ok: false, error: 'request body too large' }) }
         const name = body !== null && typeof body === 'object' ? str(body.name) : null
@@ -10730,6 +10752,8 @@ function boot(ctx) {
         }
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'GET or POST expected' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        // L3-06: the wizard's answers (domain, goals, how the agents are powered) are written to disk, so the signed session is needed too. The wizard is a page of DSH: it has the cookie.
+        if (writeRefused(req, res)) return
         const body = await readJsonBody(req)
         const action = str(body.action)
         const state = (await onboardingRead()) || onboardingDefault()
@@ -10760,6 +10784,8 @@ function boot(ctx) {
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/model/auto', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        // L3-06: it changes the model the next message uses (the person's settings), so the signed session is needed too.
+        if (writeRefused(req, res)) return
         const body = await readJsonBody(req)
         const deps = {
           llm: ctx.get('llm'),
@@ -10922,6 +10948,9 @@ function boot(ctx) {
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/image/generate', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        // L3-19 (recette 2026-10-25): a picture is paid for with the owner's image credits, and a route that spends money cannot rest on an Origin that any local program can send:
+        // the signed session is needed too. Its only caller is a page (Settings › Kaby).
+        if (writeRefused(req, res)) return
         let body = {}
         try { body = await readJsonBody(req, 16384) } catch (e) { return sendJson(res, 413, { ok: false, error: errText(e) }) }
         const prompt = str(body !== null && body !== undefined ? body.prompt : null)
@@ -11031,6 +11060,8 @@ function boot(ctx) {
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/salary-detect', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        // L3-19: it makes a real call to the person's model (their credits): the signed session is needed too.
+        if (writeRefused(req, res)) return
         let body = null
         try { body = await readJsonBody(req, 65536) } catch (e) { return sendJson(res, 413, { ok: false, error: 'request body too large' }) }
         sendJson(res, 200, await detectSalary(body))
@@ -11040,6 +11071,8 @@ function boot(ctx) {
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/starters-suggest', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        // L3-19: a real call to the person's model (their credits): the signed session is needed too.
+        if (writeRefused(req, res)) return
         let body = null
         try { body = await readJsonBody(req, 65536) } catch (e) { return sendJson(res, 413, { ok: false, error: 'request body too large' }) }
         sendJson(res, 200, await startersSuggest(body))
@@ -11048,6 +11081,8 @@ function boot(ctx) {
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/i18n-translate', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        // L3-19: a batch of translations is a call to the person's model (their credits): the signed session is needed too. Its only caller is the Language page.
+        if (writeRefused(req, res)) return
         let body = null
         try { body = await readJsonBody(req, 262144) } catch (e) { return sendJson(res, 413, { ok: false, error: 'request body too large' }) }
         sendJson(res, 200, await i18nTranslate(body))
@@ -11069,9 +11104,14 @@ function boot(ctx) {
         sameOriginStrict, sameOriginLax, readJson: readJsonBody, send: sendJson,
       }) }), 'kybernos: route i18n-packs')
       // The run itself: start / pause / resume / cancel / acknowledge, and its state. See i18n-job.mjs.
-      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/i18n-job', handler: (req, res) => serveJobs(req, res, {
-        runner: i18nJobRunner, sameOriginStrict, sameOriginLax, readJson: readJsonBody, query: queryOf, send: sendJson,
-      }) }), 'kybernos: route i18n-job')
+      // L3-19: `start` translates the missing texts with the person's model (their credits) and the other ops steer that run, so a POST needs the signed session too, not only the
+      // strict Origin serveJobs checks. The GET (the state of the runs) keeps its lax rule.
+      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/i18n-job', handler: (req, res) => {
+        if (req.method === 'POST' && writeRefused(req, res)) return undefined
+        return serveJobs(req, res, {
+          runner: i18nJobRunner, sameOriginStrict, sameOriginLax, readJson: readJsonBody, query: queryOf, send: sendJson,
+        })
+      } }), 'kybernos: route i18n-job')
       try { resumeI18nJobs() } catch (e) { /* the boot does not depend on it */ }
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/team-cap', handler: async (req, res) => {
         if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
@@ -11104,6 +11144,10 @@ function boot(ctx) {
       } }), 'kybernos: route models/audio')
       // Which way of asking one of those models works (a few words of text, or a second of silence, sent to the provider with the key the
       // app already holds for it; the key never leaves this process and is not in the answer). On a click only: it is a call to the provider.
+      // L3-19, NOT under the session rule yet, on purpose: this route and `models/audio/listen`, `voice/transcribe` and `tts/speak` below are also called by something that is not a browser
+      // and has no DSH session — kybernos-call's health check (call-health.mjs) and its Python worker (agent/call_stt.py, agent/call_voice.py), which post here over loopback with
+      // an Origin and no cookie. Guarding them now would break every call's ears and voice. They stay at the strict Origin until the call host hands its worker a credential
+      // (S-E, kybernos-call); test-write-guard.mjs lists them as the exceptions, with this reason, and fails if one is converted without the call side.
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/models/audio/probe', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
@@ -11115,6 +11159,9 @@ function boot(ctx) {
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/models/audio/speak', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        // L3-19: it asks the provider for speech with the person's key (their credits): the signed session is needed too. Nothing in this repository calls it (the call worker speaks
+        // through `tts/speak`), so no caller is left without the cookie.
+        if (writeRefused(req, res)) return
         let body = {}
         try { body = await readJsonBody(req, 8192) } catch (e) { return sendJson(res, 413, { ok: false, error: errText(e) }) }
         const said = str(body.text)
@@ -11232,6 +11279,8 @@ function boot(ctx) {
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/yml-proposer', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        // L3-19: a real call to the person's model with their key (their credits): the signed session is needed too.
+        if (writeRefused(req, res)) return
         let body = {}
         try { body = await readJsonBody(req, 65536) } catch (e) { return sendJson(res, 413, { ok: false, error: errText(e) }) }
         sendJson(res, 200, await kbYmlProposer(body))
@@ -11253,6 +11302,8 @@ function boot(ctx) {
         if (req.method === 'GET') return sendJson(res, 200, { ok: true, config: await kbTtsGetConfig(kbTtsUiLangOf(req)) })
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'GET or POST expected' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        // L3-06: it chooses the voice engine, and a cloud engine sends the text of a reply out of the machine, so the write needs the signed session too.
+        if (writeRefused(req, res)) return
         let body = {}
         try { body = await readJsonBody(req, 65536) } catch (e) { return sendJson(res, 413, { ok: false, error: errText(e) }) }
         const patch = (body !== null && body !== undefined && typeof body === 'object') ? body.patch : null
@@ -11921,6 +11972,9 @@ function boot(ctx) {
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/tools/apply', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        // L3-06: it adds or removes a driver (Computer Use, Browser Use, a coding agent) in the profile's cordis.patch.yml, which DSH reloads at once, and the agent has a shell: the
+        // write needs the signed session too. Its callers are the Tools tab and the Workers page, both pages.
+        if (writeRefused(req, res)) return
         sendJson(res, 200, await kbToolsApply(await readJsonBody(req, 200000)))
       } }), 'kybernos: route tools/apply')
 
