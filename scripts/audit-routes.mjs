@@ -9,15 +9,17 @@
 //   node scripts/audit-routes.mjs --json           the raw rows
 //   node scripts/audit-routes.mjs --bundle NAME    only the routes of one bundle
 //   node scripts/audit-routes.mjs --root DIR       judge another checkout (a `git archive` of an earlier commit gives the "before" column)
+//   node scripts/audit-routes.mjs --tunnel-probes JSON   for the routes it names, also send bodies with the phone-link marker (see scripts/test-tunnel-routes.mjs, which owns the table)
 //
 // Needs Node 22.13 or later (`--permission`). It is read-only and offline by construction, not by promise: the worker runs under Node's permission model (`--permission`), which
 // denies spawning a process, every network call, and every write outside a throw-away folder, and it can read only the checkout and that
 // folder. The home folder it hands the bundles is that folder (a fake DSH home with a fake session secret), never the person's.
 // Handlers are called in-process with fake request and response objects: there is no socket and no listening port.
 //
-// Per route and method it sends four requests (Host = the listener's own, so the Host fence is never what answers):
+// Per route and method it sends five requests (Host = the listener's own, so the Host fence is never what answers):
 //   A  a foreign Origin, no cookie        B  no Origin, no cookie
 //   C  the right Origin, no cookie        D  the right Origin and DSH's signed session cookie
+//   E  D plus the phone-link marker (`x-kybernos-tunnel`): what a paired phone's request looks like once the computer has replayed it
 // A 401 or 403 is a refusal; a 405 (on D) means the route does not answer that method. From the four answers, a method is:
 //   open          A passes: a page of any site can drive it
 //   origin        A refused, B passes: a foreign page is refused, any local program (no header) is not
@@ -45,6 +47,7 @@ const WRITES = new Set(['POST', 'PUT', 'PATCH', 'DELETE'])
 const REFUSED = new Set([401, 403])
 const NOT_SERVED = new Set([405]) // a 404 is the route's own answer to an empty body ("no such worker"), not the path missing: it is mounted
 const LEVELS = ['open', 'origin', 'strict', 'cookie', 'closed']
+const TUNNEL_HEADER = 'x-kybernos-tunnel'
 const b64url = (buf) => Buffer.from(buf).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
 
 // ── Parent: build the throw-away home, then run the worker under the permission model ─────────────────────────────
@@ -154,12 +157,12 @@ class FakeResponse extends Writable {
 }
 
 /** What a handler answers to one request: its status (0: nothing was written before the time ran out), and the start of the body. */
-const ask = (route, method, origin, withCookie) => new Promise((resolve) => {
-  const headers = { host: HOST }
+const ask = (route, method, origin, withCookie, extraHeaders = {}, bodyText = '{}') => new Promise((resolve) => {
+  const headers = { host: HOST, ...extraHeaders }
   if (origin !== null) headers.origin = origin
   if (withCookie) headers.cookie = sessionCookie()
-  const body = method === 'GET' ? null : '{}'
-  if (body !== null) { headers['content-type'] = 'application/json'; headers['content-length'] = '2' }
+  const body = method === 'GET' ? null : bodyText
+  if (body !== null) { headers['content-type'] = 'application/json'; headers['content-length'] = String(Buffer.byteLength(body)) }
   const path = route.kind === 'prefix' ? route.path + (route.path.endsWith('/') ? '' : '/') + 'audit-probe' : route.path
   const req = fakeRequest(method, path, headers, body)
   const res = new FakeResponse()
@@ -190,8 +193,8 @@ const probeRoute = async (route) => {
   const all = await Promise.all(METHODS.map((m) => ask(route, m, 'http://' + HOST, true)))
   await Promise.all(METHODS.map(async (m, i) => {
     if (NOT_SERVED.has(all[i].status)) return
-    const [a, b, c] = await Promise.all([ask(route, m, FOREIGN, false), ask(route, m, null, false), ask(route, m, 'http://' + HOST, false)])
-    methods[m] = { level: levelOf(a, b, c, all[i]), A: a.status, B: b.status, C: c.status, D: all[i].status, ...(m === 'GET' ? { sample: a.body } : {}) }
+    const [a, b, c, e] = await Promise.all([ask(route, m, FOREIGN, false), ask(route, m, null, false), ask(route, m, 'http://' + HOST, false), ask(route, m, 'http://' + HOST, true, { [TUNNEL_HEADER]: '1' })])
+    methods[m] = { level: levelOf(a, b, c, all[i]), A: a.status, B: b.status, C: c.status, D: all[i].status, E: e.status, ...(m === 'GET' ? { sample: a.body } : {}) }
   }))
   return methods
 }
@@ -250,6 +253,8 @@ const callers = (bundle, path, definedIn) => {
 
 // ── Run ───────────────────────────────────────────────────────────────────────────────────────────────────────
 const only = option('--bundle')
+// Routes whose phone-link behaviour depends on the body: `[{ bundle, path, read: {...}, writes: [{...}] }]`. Each body is sent as a POST with the right Origin, the cookie and the marker.
+const tunnelProbes = JSON.parse(option('--tunnel-probes') ?? '[]')
 const rows = []
 const problems = []
 const bundles = readdirSync(join(root, 'packages')).filter((p) => existsSync(join(root, 'packages', p, 'index.js')) && (only === null || only === p)).sort()
@@ -262,7 +267,10 @@ for (const bundle of bundles) {
     await Promise.all(unique.slice(i, i + 6).map(async (route) => {
       const methods = await probeRoute(route)
       const def = definition(bundle, route.path)
-      rows.push({ bundle, path: route.path, kind: route.kind, methods, ...def, callers: callers(bundle, route.path, def.where.replace(/:\d+$/, '')) })
+      const wanted = tunnelProbes.find((p) => p.path === route.path && (p.bundle === undefined || p.bundle === bundle))
+      const marker = { [TUNNEL_HEADER]: '1' }
+      const tunnel = wanted === undefined ? undefined : { read: await ask(route, 'POST', 'http://' + HOST, true, marker, JSON.stringify(wanted.read)), writes: await Promise.all(wanted.writes.map((w) => ask(route, 'POST', 'http://' + HOST, true, marker, JSON.stringify(w)))) }
+      rows.push({ bundle, path: route.path, kind: route.kind, methods, ...(tunnel === undefined ? {} : { tunnel }), ...def, callers: callers(bundle, route.path, def.where.replace(/:\d+$/, '')) })
     }))
   }
 }
@@ -290,6 +298,9 @@ out('write routes by guard level (the weakest of their write methods): ' + JSON.
 out('every-method routes by guard level (judged on POST):            ' + JSON.stringify(count(rows.filter(anyMethod), (r) => r.methods.POST.level)))
 out('GET routes by guard level:                                       ' + JSON.stringify(count(getRows, (r) => r.methods.GET.level)))
 for (const p of problems) out('! ' + p)
+// The phone link: a write that reaches a cookie-guarded route through the tunnel (the right Origin, the real cookie, the marker) must be refused (403).
+const tunnelPasses = writeRows.flatMap((r) => writeLevels(r).filter(([m, l]) => l === 'cookie' && r.methods[m].E !== 403).map(([m]) => r.bundle + ' ' + m + ' ' + r.path + ' -> ' + r.methods[m].E))
+out('cookie-guarded writes a tunnelled request still passes: ' + tunnelPasses.length + (tunnelPasses.length === 0 ? '' : '\n  ' + tunnelPasses.join('\n  ')))
 
 const line = (r) => r.bundle.padEnd(24) + r.path.padEnd(52) + Object.entries(r.methods).map(([m, v]) => m + ':' + v.level).join(' ').padEnd(40) + ' ' + r.callers.join(',')
 if (flag('--table')) {

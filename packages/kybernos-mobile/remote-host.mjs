@@ -33,7 +33,7 @@ export const REMOTE_TUNING = Object.freeze({
 // The phone has the power of the keyboard (it can talk to the agent, which can run commands under DSH's own approvals).
 // What it must NOT reach is the machinery that changes who can reach this computer or what it trusts: a stolen phone
 // must not be able to add another phone, change the server, install a plugin or rewrite a credential.
-const DENY_API = new Set([
+export const DENY_API = new Set([
   'credentials/set', 'credentials/unset',
   'settings/mutate', 'settings/replace', 'settings/update', 'settings/openSettingsDocument',
   'pluginManager/installBundle', 'pluginManager/removeBundle', 'pluginManager/setBundleEnabled', 'pluginManager/setPluginEnabled', 'pluginManager/setVersionExemption',
@@ -42,16 +42,57 @@ const DENY_API = new Set([
   'account/startSignIn', 'account/signOut',
   'schedule/schedule', 'schedule/update',
 ])
-const DENY_PREFIX = ['/kybernos-mobile/remote/', '/kybernos-cloud/disconnect', '/kybernos-cloud/server/apply', '/kybernos-cloud/start']
+export const DENY_PREFIX = ['/kybernos-mobile/remote/', '/kybernos-cloud/disconnect', '/kybernos-cloud/server/apply', '/kybernos-cloud/start']
+// The lists are judged in one folded form (see `judgedForm`), so they are compared folded too.
+const DENY_API_FOLDED = new Set([...DENY_API].map((name) => name.toLowerCase()))
+const DENY_PREFIX_FOLDED = DENY_PREFIX.map((prefix) => prefix.toLowerCase())
 
-/** `null` when the request may go through, else the reason. */
+/**
+ * The one form a path is judged in: percent-escapes decoded (as often as they nest), case folded, dot segments resolved, slashes merged,
+ * no trailing slash. It over-approximates whatever DSH's router makes of a path, so a variant the router would read as a listed route
+ * is judged as that route. `null` when the path cannot be reduced safely (an escape that does not decode, a control character or a
+ * backslash once decoded, escapes nested more than three deep).
+ */
+function judgedForm (pathname) {
+  let p = pathname
+  for (let round = 0; round < 3 && /%[0-9a-f]{2}/iu.test(p); round += 1) {
+    try { p = decodeURIComponent(p) } catch (e) { return null }
+  }
+  if (/%[0-9a-f]{2}/iu.test(p) || /[\u0000-\u001f\u007f\\]/u.test(p)) return null
+  const kept = []
+  for (const segment of p.toLowerCase().split('/')) {
+    if (segment === '' || segment === '.') continue
+    if (segment === '..') kept.pop()
+    else kept.push(segment)
+  }
+  return '/' + kept.join('/')
+}
+
+/**
+ * The path as it will be sent: what a URL parser makes of it (dot segments and escaped dots resolved, a tab or a fragment dropped), with the query kept.
+ * `fetch` and the WebSocket client do this to `base + path` anyway, AFTER the lists have looked at the raw text, so the judgement and the request
+ * must both use this form (L3-10: `/./api/credentials/set` was judged as written and sent as `/api/credentials/set`). `null` when it does not parse.
+ */
+export function sentPath (path) {
+  try { const u = new URL(path, 'http://phone.invalid'); return u.pathname + u.search } catch (e) { return null }
+}
+
+/**
+ * `null` when the request may go through, else the reason.
+ *
+ * What is judged is what is sent: the lists look at `sentPath(path)`, in the folded form of `judgedForm`, and `serveRequest` and `openLocalSocket`
+ * send `sentPath(path)`, not the raw text.
+ */
 export function refusedOnPhone (method, path) {
   if (typeof path !== 'string' || path[0] !== '/' || path.startsWith('//') || /[\r\n\0\\]/u.test(path)) return 'bad_path'
   if (['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE'].indexOf(method) < 0) return 'bad_method'
-  const p = path.split('?')[0]
-  for (const prefix of DENY_PREFIX) { if (p.startsWith(prefix)) return 'refused_on_phone' }
-  const m = /^\/api\/([A-Za-z]+)\/([A-Za-z]+)$/u.exec(p)
-  if (m !== null && DENY_API.has(m[1] + '/' + m[2])) return 'refused_on_phone'
+  const sent = sentPath(path)
+  if (sent === null) return 'bad_path'
+  const folded = judgedForm(sent.split('?')[0])
+  if (folded === null) return 'bad_path'
+  for (const prefix of DENY_PREFIX_FOLDED) { if ((folded + '/').startsWith(prefix)) return 'refused_on_phone' }
+  const [root, service, name] = folded.split('/').slice(1)
+  if (root === 'api' && DENY_API_FOLDED.has(service + '/' + name)) return 'refused_on_phone'
   return null
 }
 
@@ -229,8 +270,8 @@ export function createRemote (deps) {
       headers.cookie = lo.cookie
       headers.origin = lo.base
       headers.host = new URL(lo.base).host
-      headers['x-kybernos-tunnel'] = '1'
-      const res = await deps.fetch(lo.base + h.path, { method, headers, body: method === 'GET' || method === 'HEAD' || body.length === 0 ? undefined : body, redirect: 'manual', signal: ctrl.signal })
+      headers['x-kybernos-tunnel'] = '1' // every guarded write refuses this marker (session-guard.mjs): a phone has the keyboard, not the machinery
+      const res = await deps.fetch(lo.base + sentPath(h.path), { method, headers, body: method === 'GET' || method === 'HEAD' || body.length === 0 ? undefined : body, redirect: 'manual', signal: ctrl.signal })
       const outHeaders = pickResponseHeaders(res.headers)
       if (typeof outHeaders.location === 'string' && outHeaders.location.startsWith(lo.base)) outHeaders.location = outHeaders.location.slice(lo.base.length) || '/'
       const noBody = res.status === 204 || res.status === 304 || method === 'HEAD' || res.body === null
@@ -262,15 +303,16 @@ export function createRemote (deps) {
   function openLocalSocket (link, h) {
     const id = String(h.id)
     const why = refusedOnPhone('GET', h.path)
+    const target = why === null ? sentPath(h.path) : null
     const lo = (() => { try { return deps.local() } catch (e) { return null } })()
-    if (why !== null || lo === null || lo === undefined || link.sockets.size >= T.maxInflight || typeof deps.WebSocket !== 'function' || !/^\/api\//u.test(String(h.path))) {
+    if (why !== null || lo === null || lo === undefined || link.sockets.size >= T.maxInflight || typeof deps.WebSocket !== 'function' || !/^\/api\//u.test(String(target))) {
       void sendFrame(link, { t: 'ws-close', id, code: 1008 })
       return
     }
     let local = null
     try {
       const protocols = Array.isArray(h.protocols) ? h.protocols.filter((p) => typeof p === 'string' && /^[\w.+-]{1,64}$/u.test(p)).slice(0, 4) : []
-      local = new deps.WebSocket(lo.base.replace(/^http/u, 'ws') + h.path, { protocols: protocols.length > 0 ? protocols : undefined, headers: { cookie: lo.cookie, origin: lo.base, 'x-kybernos-tunnel': '1' } })
+      local = new deps.WebSocket(lo.base.replace(/^http/u, 'ws') + target, { protocols: protocols.length > 0 ? protocols : undefined, headers: { cookie: lo.cookie, origin: lo.base, 'x-kybernos-tunnel': '1' } })
       local.binaryType = 'arraybuffer'
     } catch (e) { void sendFrame(link, { t: 'ws-close', id, code: 1011 }); return }
     link.sockets.set(id, local)

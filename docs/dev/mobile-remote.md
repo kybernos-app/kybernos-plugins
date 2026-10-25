@@ -96,7 +96,16 @@ the QR code, a replayed, reordered, truncated or tampered frame, an unknown or r
 
 The computer replays a phone's HTTP requests and its `/api` WebSocket against its own DSH, with DSH's own session
 cookie, `Origin` and `Host` of the computer's page, and the marker header `x-kybernos-tunnel: 1`. The plugin's own
-routes refuse any request that carries the marker, so **a phone can never add, approve or remove a phone**.
+routes refuse any request that carries the marker, so **a phone can never add, approve or remove a phone**. So does every write
+guarded by DSH's session cookie (`writeGuard` in each bundle's `session-guard.mjs`, the terminal's run route, the task routes of
+`kybernos-plugin`): the replayed request has the person's Origin and cookie, so the marker is what tells a stolen phone from the browser
+(`403 refused_on_phone`; reads are served, and so are the two POSTs that only read, the Automations list and the live model list: a table in `test-tunnel-routes.mjs`, which enumerates those routes).
+
+A path is judged as it will be sent. `fetch` rewrites `base + path` with a URL parser (`/./api/x` and `/%2e/api/x` become `/api/x`, a tab
+inside a name disappears) after any check on the raw text, so `sentPath` makes that rewrite first, `refusedOnPhone` judges its result, and
+`serveRequest` and the socket send it. The lists are compared on a folded form (escapes decoded, case folded, dot segments resolved,
+slashes merged), so `/API//credentials/set/` is the listed route; a path that cannot be reduced (a bad escape, a control character once
+decoded) is `400 bad_path`.
 
 Refused for a phone (`refusedOnPhone` in `remote-host.mjs`, answered `403 refused_on_phone`): credential writes, DSH
 settings writes, plugin install/remove/enable, the dynamic runner's invoke, terminal create/write, DeepSeek account
