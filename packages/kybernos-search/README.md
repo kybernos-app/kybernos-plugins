@@ -39,7 +39,9 @@ result shows (it is almost always a key); the chat itself still holds it.
 ## Host routes
 
 All under `/kybernos-search/`, all behind the host fence (a Host that is not this listener's is refused) and, because the content of the
-chats is what a drive-by page would want, `POST` with an Origin from this machine and `application/json`:
+chats is what a drive-by page would want, `POST` with an Origin from this machine and `application/json`, **and DSH's signed session cookie** (`session-guard.mjs`,
+`test-write-guard.mjs`, L3-09: an Origin alone is forgeable by any local program, and `query` returns the text of the chats, the automations' prompts, the lessons and the agents; 401 without the
+cookie). A paired phone may `query` (it only reads) and gets 403 `refused_on_phone` on `start` and `reindex`:
 
 `GET status` (counts only) · `POST start` (build or refresh, idempotent, 202) · `POST reindex` (read everything again, 202) ·
 `POST query { q, scopes }` (q capped at 200 characters, only known scopes pass).
