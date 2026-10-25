@@ -17,6 +17,8 @@ export const PLATFORMS = {
     bootText: (xml) => { const m = /label="([^"]*(?:First launch|Starting|engine stopped)[^"]*)"/.exec(xml); return m ? unescapeXml(m[1]) : null },
     selfTestText: (xml) => { const m = /label="(selftest:[^"]*)"/.exec(xml); return m ? unescapeXml(m[1]) : null },
     pageUp: (xml) => WEB_PAGE.test(xml),
+    // the boot screen's diagnostics block, which starts with a fixed marker
+    engineLog: (xml) => { const m = /label="(engine log:[^"]*)"/.exec(xml); return m ? unescapeXml(m[1]) : null },
     // iOS suspends a backgrounded app within a minute: that is part of what the run shows
     expectsSuspension: true,
   },
@@ -33,6 +35,7 @@ export const PLATFORMS = {
     bootText: (xml) => { const m = /(?:text|content-desc)="([^"]*(?:First launch|Starting|engine stopped)[^"]*)"/.exec(xml); return m ? unescapeXml(m[1]) : null },
     selfTestText: (xml) => { const m = /(?:text|content-desc)="(selftest:[^"]*)"/.exec(xml); return m ? unescapeXml(m[1]) : null },
     pageUp: (xml) => WEB_PAGE.test(xml),
+    engineLog: (xml) => { const m = /(?:text|content-desc)="(engine log:[^"]*)"/.exec(xml); return m ? unescapeXml(m[1]) : null },
     expectsSuspension: false,
   },
 }

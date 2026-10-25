@@ -28,6 +28,31 @@ describe('findSignInUrl', () => {
   })
 })
 
+describe('supervisor diagnostics', () => {
+  beforeEach(() => jest.useFakeTimers())
+  afterEach(() => jest.useRealTimers())
+
+  it('names the copy phase of the Android host apart from the engine start', () => {
+    const host = fakeHost({ status: { phase: 'copying', done: 2, total: 4 } })
+    const sup = createSupervisor({ host, fetch: answering(200) })
+    sup.begin()
+    expect(sup.state).toEqual({ phase: 'copying', done: 2, total: 4 })
+    sup.stop()
+  })
+
+  it('says where a hung start is: status, sign-in line, last probe, exit code', async () => {
+    const host = fakeHost({ status: { phase: 'starting', done: 0, total: 0 } })
+    const f = jest.fn().mockRejectedValue(new Error('Network request failed'))
+    const sup = createSupervisor({ host, fetch: f })
+    sup.begin()
+    expect(sup.diagnostics()).toEqual({ status: 'starting', signInInLog: false, probe: null, exitCode: null })
+    host.log = `dsh web: ${SIGN_IN}\n`
+    jest.advanceTimersByTime(500); await flush()
+    expect(sup.diagnostics()).toMatchObject({ signInInLog: true, probe: expect.stringContaining('Network request failed') })
+    sup.stop()
+  })
+})
+
 describe('supervisor', () => {
   beforeEach(() => jest.useFakeTimers())
   afterEach(() => jest.useRealTimers())

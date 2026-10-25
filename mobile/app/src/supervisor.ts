@@ -1,6 +1,7 @@
 /** Watches the engine from the app: first-launch progress, the sign-in address the server prints, readiness, and a health check when the app comes back. */
 export type BootState =
   | { phase: 'starting' }
+  | { phase: 'copying'; done: number; total: number }
   | { phase: 'unpacking'; done: number; total: number }
   | { phase: 'booting' }
   | { phase: 'ready'; url: string }
@@ -40,6 +41,7 @@ export const createSupervisor = ({ host, fetch, port = 0, intervalMs = 500 }: Su
   const listeners = new Set<(s: BootState) => void>()
   let timer: ReturnType<typeof setInterval> | null = null
   let probing = false
+  let lastProbe: string | null = null
 
   const set = (next: BootState) => {
     if (JSON.stringify(next) === JSON.stringify(state)) return
@@ -51,7 +53,7 @@ export const createSupervisor = ({ host, fetch, port = 0, intervalMs = 500 }: Su
   const get = async (url: string, timeoutMs: number): Promise<number | null> => {
     const ctl = new AbortController()
     const t = setTimeout(() => ctl.abort(), timeoutMs)
-    try { return (await fetch(url, { signal: ctl.signal })).status } catch { return null } finally { clearTimeout(t) }
+    try { const status = (await fetch(url, { signal: ctl.signal })).status; lastProbe = 'HTTP ' + status; return status } catch (e) { lastProbe = 'no answer (' + String(e).slice(0, 80) + ')'; return null } finally { clearTimeout(t) }
   }
 
   const probe = async (signIn: string) => {
@@ -71,7 +73,8 @@ export const createSupervisor = ({ host, fetch, port = 0, intervalMs = 500 }: Su
     const url = findSignInUrl(host.logTail(65536))
     if (url !== null) { void probe(url); return }
     const s = host.status()
-    if (s.phase === 'unpacking') set({ phase: 'unpacking', done: s.done, total: s.total })
+    if (s.phase === 'copying') set({ phase: 'copying', done: s.done, total: s.total })
+    else if (s.phase === 'unpacking') set({ phase: 'unpacking', done: s.done, total: s.total })
     else if (s.phase !== 'none') set({ phase: 'booting' })
   }
 
@@ -90,6 +93,11 @@ export const createSupervisor = ({ host, fetch, port = 0, intervalMs = 500 }: Su
       tick()
     },
     stop,
+    /** What the boot screen shows under the status while the engine is not ready, so a start that hangs says where: the engine's own status file, whether its sign-in line is in the log, and the last probe. */
+    diagnostics() {
+      const s = host.status()
+      return { status: s.phase + (s.total > 0 ? ' ' + s.done + '/' + s.total : ''), signInInLog: findSignInUrl(host.logTail(65536)) !== null, probe: lastProbe, exitCode: host.exitCode() }
+    },
     /** When the app returns to the foreground: is the server still answering? */
     async healthCheck(): Promise<boolean> {
       if (state.phase !== 'ready') return false
