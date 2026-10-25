@@ -18,6 +18,9 @@ import { SettingsScreen } from './src/SettingsScreen'
 import { BootState, baseOf, createSupervisor } from './src/supervisor'
 
 const UA = `KybernosHost/0.1.0 (${Platform.OS})`
+// The app's own frame keeps the status bar and the navigation bar out of the web view, while Android's WebView reports them again as safe areas: the page would pad for them a second time.
+// This marks the page, before it paints, as one whose host already handles the safe areas (packages/kybernos-mobile/mobile.css reads it).
+const NATIVE_INSETS_JS = "try { document.documentElement.classList.add('kb-native-insets') } catch (e) {} true;"
 
 export default function App() {
   const supervisor = useMemo(() => (host ? createSupervisor({ host, fetch: fetch as any, port: 0 }) : null), [])
@@ -158,6 +161,7 @@ export default function App() {
             source={{ uri: state.url }}
             style={styles.fill}
             applicationNameForUserAgent={UA}
+            injectedJavaScriptBeforeContentLoaded={NATIVE_INSETS_JS}
             textZoom={Platform.OS === 'android' ? webTextZoom(PixelRatio.getFontScale()) : undefined}
             onMessage={(e) => { if (isAppEntryMessage(e.nativeEvent.data)) setWebEntry(true) }}
             allowsInlineMediaPlayback
