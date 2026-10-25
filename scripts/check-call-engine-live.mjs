@@ -9,6 +9,7 @@
 // pointing at the real ones). Nothing outside the sandbox's folder is written.
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
+import { cookieDeSession } from './cdp-lib.mjs'
 
 const host = process.env.KB_HOST || '127.0.0.1:3080'
 const dshHome = process.env.DSH_HOME
@@ -18,7 +19,10 @@ let pass = 0
 let fail = 0
 const check = (name, ok, detail) => { if (ok === true) { pass += 1; console.log('  ✓ ' + name) } else { fail += 1; console.log('  ✗ ' + name + (detail === undefined ? '' : ' — ' + JSON.stringify(detail))) } }
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
-const post = async (path, body) => { const r = await fetch(base + path, { method: 'POST', headers: { 'content-type': 'application/json', origin: base }, body: JSON.stringify(body ?? {}) }); return { status: r.status, body: await r.json() } }
+// The writes of the call routes want the strict Origin AND the signed session (the sandbox's own secret, never printed).
+const session = cookieDeSession(host)
+if (session === null) { console.error('○ inconclusive: the sandbox\'s session secret cannot be read (set DSH_HOME)'); process.exit(3) }
+const post = async (path, body) => { const r = await fetch(base + path, { method: 'POST', headers: { 'content-type': 'application/json', origin: base, cookie: session.nom + '=' + session.valeur }, body: JSON.stringify(body ?? {}) }); return { status: r.status, body: await r.json() } }
 
 console.log('the call engine, installed from the host')
 const venv = join(dshHome, 'kybernos', 'appel-venv', 'bin', 'python')
