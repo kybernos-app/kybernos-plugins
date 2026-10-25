@@ -1,14 +1,18 @@
 // kybernos-call: the HTTP routes of a call, testable with a fake web server.
 //
-// DSH serves plugin routes BEFORE its own authentication, so every route that acts (a token, the
-// agent, a turn in a session) checks that the request comes from the page's own origin. The routes
-// that WRITE (keys, engine, clone, test, preset — and the avatars list, which costs a provider call)
-// need both halves of the repo's rule: the strict same-origin request AND DSH's signed session
-// cookie (`writeGuard`, session-guard.mjs). An Origin header alone is forgeable by any local
-// program, so it is not a login: L1-01 of the audit measured exactly that.
+// DSH serves plugin routes BEFORE its own authentication, so every route that acts checks the request itself.
+// An Origin header alone is forgeable by any local program, so it is not a login (L1-01 and L3-03 of the audit
+// measured exactly that). Two kinds of caller, two rules:
+//   - a PAGE (the room token, the worker's start and stop, keys, engine, clone, test, preset, the avatars list,
+//     the health check): the strict same-origin request AND DSH's signed session cookie (`writeGuard`,
+//     session-guard.mjs);
+//   - the WORKER (agent/agent.py, a program with no cookie), on `utterance` and `speech` only: the strict
+//     same-origin request AND either the one-run secret the host gave it at its start (worker-token.mjs) or the
+//     signed session cookie. A forged Origin alone is refused on all of them.
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { writeGuard } from './session-guard.mjs'
+import { workerOrSession } from './worker-token.mjs'
 
 const errText = (e) => (e && e.message ? String(e.message) : String(e))
 const str = (v) => (typeof v === 'string' ? v : null)
@@ -88,6 +92,11 @@ export const sameOriginStrict = (req) => {
   } catch (e) { return false }
 }
 
+/** The page's routes that act: the strict Origin and the signed session. `null` lets the request go on, otherwise `{ status, error }` is the refusal. */
+const pageRefusal = (req) => (sameOriginStrict(req) === false ? { status: 403, error: 'origin refused' } : writeGuard(req))
+/** The routes the worker calls: the strict Origin, then the worker's one-run secret or the signed session. */
+const workerRefusal = (call, req) => (sameOriginStrict(req) === false ? { status: 403, error: 'origin refused' } : workerOrSession(req, call !== null && call !== undefined && typeof call.workerAccepts === 'function' ? call.workerAccepts : null))
+
 export const readJsonBody = async (req, maxBytes) => {
   const cap = typeof maxBytes === 'number' ? maxBytes : 65536
   let size = 0
@@ -129,20 +138,22 @@ export function mountCallRoutes (webServer, call, pluginDir, effect, feed = null
     try { return sendJson(res, 200, await call.status()) } catch (e) { return sendJson(res, 500, { ok: false, error: errText(e) }) }
   }, 'status')
 
-  // …then the room token, which is only handed to the same origin.
+  // …then the room token, which is only handed to the person's own page (it also wakes the worker and dispatches it: LiveKit's, not free).
   reg(ROUTES.token, async (req, res) => {
     if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
-    if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+    const refused = pageRefusal(req)
+    if (refused !== null) return sendJson(res, refused.status, { ok: false, error: refused.error })
     let body = null
     try { body = await readJsonBody(req) } catch (e) { return sendJson(res, 400, { ok: false, error: errText(e) }) }
     const out = await call.mint(body)
     return sendJson(res, (out.ok === true ? 200 : 503), out)
   }, 'token')
 
-  // The call agent: started by the host, never by the client blindly.
+  // The call agent: started by the host, never by the client blindly. It starts and stops a process, so it is the page's alone (the worker never calls it).
   reg(ROUTES.agent, async (req, res) => {
     if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
-    if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+    const refused = pageRefusal(req)
+    if (refused !== null) return sendJson(res, refused.status, { ok: false, error: refused.error })
     let body = null
     try { body = await readJsonBody(req) } catch (e) { return sendJson(res, 400, { ok: false, error: errText(e) }) }
     const action = (body !== null && typeof body === 'object' && typeof body.action === 'string') ? body.action : 'status'
@@ -154,10 +165,12 @@ export function mountCallRoutes (webServer, call, pluginDir, effect, feed = null
     } catch (e) { return sendJson(res, 500, { ok: false, error: errText(e) }) }
   }, 'agent')
 
-  // What is heard on the call enters the session: a real DSH turn.
+  // What is heard on the call enters the session: a real DSH turn, run with the machine's own signed session (call.utterance builds the cookie),
+  // so the caller has to prove who it is: the worker with its one-run secret, a page with the session cookie. An Origin alone proves nothing (L3-03).
   reg(ROUTES.utterance, async (req, res) => {
     if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
-    if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+    const refused = workerRefusal(call, req)
+    if (refused !== null) return sendJson(res, refused.status, { ok: false, error: refused.error })
     let body = null
     try { body = await readJsonBody(req) } catch (e) { return sendJson(res, 400, { ok: false, error: errText(e) }) }
     const out = await call.utterance(body)
@@ -168,8 +181,7 @@ export function mountCallRoutes (webServer, call, pluginDir, effect, feed = null
   if (admin !== null) {
     const post = (path, label, run) => reg(path, async (req, res) => {
       if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
-      if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
-      const refused = writeGuard(req)
+      const refused = pageRefusal(req)
       if (refused !== null) return sendJson(res, refused.status, { ok: false, error: refused.error })
       let body = null
       try { body = await readJsonBody(req, 32768) } catch (e) { return sendJson(res, 400, { ok: false, error: errText(e) }) }
@@ -178,7 +190,9 @@ export function mountCallRoutes (webServer, call, pluginDir, effect, feed = null
     reg(ROUTES.settings, async (req, res) => {
       if (req.method === 'GET') { try { return sendJson(res, 200, await admin.everything()) } catch (e) { return sendJson(res, 500, { ok: false, error: errText(e) }) } }
       if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'GET or POST expected' })
-      if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+      // The settings write is a page's too (its tab sends the cookie): it chooses the providers a call sends the voice to, and whether a recording may be cloned at one.
+      const refused = pageRefusal(req)
+      if (refused !== null) return sendJson(res, refused.status, { ok: false, error: refused.error })
       let body = null
       try { body = await readJsonBody(req, 32768) } catch (e) { return sendJson(res, 400, { ok: false, error: errText(e) }) }
       try { const out = await admin.patchSettings(body !== null && typeof body === 'object' ? body.patch : null); return sendJson(res, out.ok === true ? 200 : 400, out) } catch (e) { return sendJson(res, 500, { ok: false, error: errText(e) }) }
@@ -189,22 +203,25 @@ export function mountCallRoutes (webServer, call, pluginDir, effect, feed = null
     post(ROUTES.avatars, 'avatars', () => admin.avatars())
     post(ROUTES.engine, 'engine', (b) => admin.engine(b.action))
     // The health check asks this DSH's own voice engine, so it needs the address the request came in on (the socket's, never a header).
+    // It makes the voice engine speak and probes the listening model (the owner's keys), through core routes that want the signed session: the page's own cookie, checked here, is handed on.
     reg(ROUTES.health, async (req, res) => {
       if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
-      if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+      const refused = pageRefusal(req)
+      if (refused !== null) return sendJson(res, refused.status, { ok: false, error: refused.error })
       const port = req.socket && typeof req.socket.localPort === 'number' ? req.socket.localPort : null
       if (port === null) return sendJson(res, 500, { ok: false, error: 'no local port' })
-      try { return sendJson(res, 200, await admin.runHealth('http://127.0.0.1:' + String(port))) } catch (e) { return sendJson(res, 500, { ok: false, error: errText(e) }) }
+      try { return sendJson(res, 200, await admin.runHealth('http://127.0.0.1:' + String(port), { cookie: typeof req.headers.cookie === 'string' ? req.headers.cookie : '' })) } catch (e) { return sendJson(res, 500, { ok: false, error: errText(e) }) }
     }, 'health')
     post(ROUTES.clone, 'clone', (b) => (b.action === 'delete' ? admin.deleteClone(b.voiceId) : admin.cloneSample({ rootId: b.rootId, voiceId: b.voiceId, name: b.name })))
   }
 
   // What the session's assistant wrote for this call, for the worker to speak: a long poll. It is the
-  // session's own text, so it is only given to the same origin (the worker declares it, like for utterance).
+  // session's own text, so it is only given to the worker (its one-run secret, like for utterance) or to a page with the signed session.
   if (feed !== null) {
     reg(ROUTES.speech, async (req, res) => {
       if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
-      if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+      const refused = workerRefusal(call, req)
+      if (refused !== null) return sendJson(res, refused.status, { ok: false, error: refused.error })
       let q = null
       try { q = new URL(req.url ?? '/', 'http://127.0.0.1').searchParams } catch (e) { return sendJson(res, 400, { ok: false, error: 'bad url' }) }
       const room = q.get('room') ?? ''
