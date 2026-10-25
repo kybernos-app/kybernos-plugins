@@ -8,6 +8,7 @@
 // handed to this file's route as a picture to keep.
 
 import { FACE_PROVIDERS, availableFaceIds, providerById } from './providers.mjs'
+import { sendUserFile } from './serve-user-file.mjs'
 
 export const DEFAULT_NAME = 'Kaby'
 export const NAME_MAX = 24
@@ -193,7 +194,7 @@ export function createStore (io) {
     readPortrait () {
       const p = readProfile()
       const b = p.portrait === null ? null : io.read(PORTRAIT_FILE)
-      return p.portrait === null || b === null ? null : { mime: p.portrait.mime, bytes: b }
+      return p.portrait === null || b === null ? null : { bytes: b }
     },
     removePortrait () {
       const p = readProfile()
@@ -307,10 +308,8 @@ export function monterKaby (webServer, io, onChange = () => {}) {
       run: (req, res) => {
         const got = store.readPortrait()
         if (got === null) { try { res.writeHead(404); res.end('') } catch (e) { /* closed */ } return undefined }
-        try {
-          res.writeHead(200, { 'content-type': got.mime, 'cache-control': 'no-store', 'content-length': String(got.bytes.length) })
-          res.end(got.bytes)
-        } catch (e) { /* closed */ }
+        // The same exit as every file that was not made by the code (DL-04): the type is read from the bytes, never from the profile.
+        try { sendUserFile(res, got.bytes) } catch (e) { /* closed */ }
         return undefined
       }
     },
