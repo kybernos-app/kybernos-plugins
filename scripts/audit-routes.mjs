@@ -7,6 +7,8 @@
 //   node scripts/audit-routes.mjs                  the summary: routes by guard level, by bundle, and the write routes left open
 //   node scripts/audit-routes.mjs --table          every route, one line each (bundle, path, per-method level, callers)
 //   node scripts/audit-routes.mjs --json           the raw rows
+//   node scripts/audit-routes.mjs --check          the origin rule, enforced: exit 1 when a write route that an Origin alone lets through is not written down, with its reason, in
+//                                                  scripts/route-guard-exceptions.mjs (or when an entry there matches no such route any more); CI runs it through scripts/test-route-guards.mjs
 //   node scripts/audit-routes.mjs --bundle NAME    only the routes of one bundle
 //   node scripts/audit-routes.mjs --root DIR       judge another checkout (a `git archive` of an earlier commit gives the "before" column)
 //   node scripts/audit-routes.mjs --tunnel-probes JSON   for the routes it names, also send bodies with the phone-link marker (see scripts/test-tunnel-routes.mjs, which owns the table)
@@ -302,8 +304,24 @@ for (const p of problems) out('! ' + p)
 const tunnelPasses = writeRows.flatMap((r) => writeLevels(r).filter(([m, l]) => l === 'cookie' && r.methods[m].E !== 403).map(([m]) => r.bundle + ' ' + m + ' ' + r.path + ' -> ' + r.methods[m].E))
 out('cookie-guarded writes a tunnelled request still passes: ' + tunnelPasses.length + (tunnelPasses.length === 0 ? '' : '\n  ' + tunnelPasses.join('\n  ')))
 
+// The origin rule, enforced (--check): a write route that an Origin alone lets through must be written down with its reason in scripts/route-guard-exceptions.mjs (lib-route-guards.mjs is
+// the judge); a route that is not, an entry that matches no such route any more, an entry with no reason, and a bundle that could not be mounted (its routes would vanish from the table)
+// all fail the run with exit status 1. scripts/test-route-guards.mjs runs this in CI.
+let exitCode = 0
+if (flag('--check')) {
+  const { judge, report } = await import(pathToFileURL(join(dirname(HERE), 'lib-route-guards.mjs')).href)
+  let lists = null
+  try { lists = await import(pathToFileURL(join(root, 'scripts', 'route-guard-exceptions.mjs')).href) } catch (e) { lists = null; out('! --check: scripts/route-guard-exceptions.mjs cannot be read in ' + root + ' (' + String(e && e.message).slice(0, 100) + ')') }
+  const verdict = lists === null ? null : judge(rows, lists.EXCEPTIONS, lists.QUEUED)
+  if (verdict !== null) out('\n' + report(verdict))
+  exitCode = verdict !== null && verdict.ok === true && problems.length === 0 ? 0 : 1
+  out(exitCode === 0 ? 'route guard check: OK' : 'route guard check: FAILED')
+}
+
 const line = (r) => r.bundle.padEnd(24) + r.path.padEnd(52) + Object.entries(r.methods).map(([m, v]) => m + ':' + v.level).join(' ').padEnd(40) + ' ' + r.callers.join(',')
-if (flag('--table')) {
+if (flag('--check')) {
+  // nothing more: the report above is the output
+} else if (flag('--table')) {
   out('\n' + rows.map(line).join('\n'))
 } else {
   out('\nwrite routes at "open" or "origin" (a program with no header, or any site, can drive them):')
@@ -312,4 +330,4 @@ if (flag('--table')) {
   out(writeRows.filter((r) => rowLevel(r) === 'strict').map(line).join('\n'))
 }
 // Bundles leave timers and watchers behind: end explicitly, once the output is flushed.
-process.stdout.write('', () => process.exit(0))
+process.stdout.write('', () => process.exit(exitCode))
