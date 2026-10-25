@@ -37,7 +37,7 @@
 // applied by the proxy on every request — this plugin filters nothing.
 import { execFileSync, spawn } from 'node:child_process'
 import { timingSafeEqual } from 'node:crypto'
-import { appendFileSync, chmodSync, mkdirSync, readFileSync, readdirSync, realpathSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { appendFileSync, chmodSync, closeSync, fsyncSync, mkdirSync, openSync, readFileSync, readdirSync, realpathSync, renameSync, rmSync, statSync, writeFileSync, writeSync } from 'node:fs'
 import { homedir, hostname, platform } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { lireCatalogue, resoudreItem, slugSur, ymlDuKyber, verdictInstallation } from './marketplace-kyber.mjs'
@@ -136,33 +136,108 @@ const deviceLabel = (port = listenPort) => {
   return name + suffix
 }
 
-const readState = () => {
-  try {
-    const parsed = JSON.parse(readFileSync(stateFile(), 'utf8'))
-    return parsed !== null && typeof parsed === 'object' ? parsed : null
-  } catch (e) {
-    return null
-  }
-}
-
-/** `readState` for a decision about the SPACE: no connection file is `null` (not connected), but a file that is there and cannot be read now (a write
- *  caught half way, bad rights, damaged JSON) is UNREADABLE — connected, space unknown — which `spaceOf` reads as a team space. */
-const readStateForSpace = () => {
-  let raw
-  try { raw = readFileSync(stateFile(), 'utf8') } catch (e) { return e !== null && typeof e === 'object' && (e.code === 'ENOENT' || e.code === 'ENOTDIR') ? null : UNREADABLE }
+// ── Files that must survive a cut (recette L3-83 and L3-57) ────────────────────────────────────────────────────────────────────────────────
+// The connection file holds the device token: when it is damaged DSH takes the person for signed out (no message, the token lost, the device left alive at the server). It used to be written in
+// place (opened and emptied, then filled), so a power cut, a full disk or a kill in between left a truncated file. Now it is written the way computer-identity.mjs writes the identity: a
+// temporary file beside it, flushed to disk, then renamed over it, so a reader sees the old file or the new one, never half of either; and the last good version is kept as `<file>.bak`, which
+// is read when the file itself cannot be (a file that is simply absent is NOT replaced by its copy: that is a sign-out, and `clearState` removes both).
+const parseObject = (raw) => {
   try {
     const parsed = JSON.parse(raw)
-    return parsed !== null && typeof parsed === 'object' && Array.isArray(parsed) !== true ? parsed : UNREADABLE
-  } catch (e) { return UNREADABLE }
+    return parsed !== null && typeof parsed === 'object' && Array.isArray(parsed) !== true ? parsed : null
+  } catch (e) { return null }
 }
+/** One JSON file that holds an object: `{ kind: 'absent' }`, `{ kind: 'unreadable' }` (there, but empty, cut, damaged, not an object, or refused by the disk) or `{ kind: 'ok', value }`. */
+const loadObjectFile = (file) => {
+  let raw
+  try { raw = readFileSync(file, 'utf8') } catch (e) { return e !== null && typeof e === 'object' && (e.code === 'ENOENT' || e.code === 'ENOTDIR') ? { kind: 'absent' } : { kind: 'unreadable' } }
+  const value = parseObject(raw)
+  return value === null ? { kind: 'unreadable' } : { kind: 'ok', value }
+}
+/** `loadObjectFile`, and when the file is there but unreadable, its `.bak` (`fromBackup: true`). Absent stays absent. */
+const loadWithBackup = (file) => {
+  const main = loadObjectFile(file)
+  if (main.kind !== 'unreadable') return main
+  const copy = loadObjectFile(file + '.bak')
+  if (copy.kind !== 'ok') return main
+  // Said once in a while, not at every read (the footer reads the state every few seconds).
+  const said = backupNotes.get(file)
+  if (said === undefined || Date.now() - said > 10 * 60 * 1000) {
+    backupNotes.set(file, Date.now())
+    console.error('[kybernos-cloud] ' + file + ' could not be read: its last good copy (.bak) is used until the next write mends it')
+  }
+  return { kind: 'ok', value: copy.value, fromBackup: true }
+}
+const backupNotes = new Map()
+/** The object a JSON file holds (or its `.bak`), else null. */
+const readObjectFile = (file) => { const r = loadWithBackup(file); return r.kind === 'ok' ? r.value : null }
+/** A rename that waits a moment and tries again when Windows says another process holds the target for an instant. */
+const renameOver = (from, to) => {
+  for (let attempt = 0; ; attempt += 1) {
+    try { renameSync(from, to); return } catch (e) {
+      const code = e !== null && typeof e === 'object' ? e.code : undefined
+      if (attempt >= 3 || (code !== 'EPERM' && code !== 'EBUSY' && code !== 'EACCES')) throw e
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 25 * (attempt + 1))
+    }
+  }
+}
+/** Before a file is replaced: its current content becomes `<file>.bak`, but only when it IS a good file (a damaged one never takes the place of a good copy). Never throws. */
+const keepLastGood = (file) => {
+  try {
+    const raw = readFileSync(file, 'utf8')
+    if (parseObject(raw) === null) return
+    const tmp = file + '.bak.' + process.pid + '.tmp'
+    try {
+      writeFileSync(tmp, raw, { mode: 0o600 })
+      try { chmodSync(tmp, 0o600) } catch (e) { /* exotic FS (Windows) */ }
+      renameOver(tmp, file + '.bak')
+    } catch (e) { try { rmSync(tmp, { force: true }) } catch (e2) { /* gone */ } }
+  } catch (e) { /* no file yet, or not readable: nothing to keep */ }
+}
+/** Replaces `file` by `text`, whole or not at all: a temporary file in the same folder (mode 0600), written, flushed to disk, then renamed over it (and the folder flushed when the system lets it).
+ *  `keepBackup`: the previous good version stays as `<file>.bak`. If the system refuses the rename for good (Windows, a process that holds the target), the text is written in place as it used to
+ *  be: never worse than before. Throws when even that fails, like the plain write it replaces. */
+const writeAtomic = (file, text, keepBackup) => {
+  if (keepBackup === true) keepLastGood(file)
+  const tmp = file + '.' + process.pid + '.tmp'
+  try {
+    const fd = openSync(tmp, 'w', 0o600)
+    try { writeSync(fd, text); fsyncSync(fd) } finally { closeSync(fd) }
+    try { chmodSync(tmp, 0o600) } catch (e) { /* exotic FS (Windows) */ }
+    try { renameOver(tmp, file) } catch (e) {
+      const code = e !== null && typeof e === 'object' ? e.code : undefined
+      if (code !== 'EPERM' && code !== 'EBUSY' && code !== 'EACCES') throw e
+      writeFileSync(file, text, { mode: 0o600 })
+      try { rmSync(tmp, { force: true }) } catch (e2) { /* gone */ }
+    }
+  } catch (e) {
+    try { rmSync(tmp, { force: true }) } catch (e2) { /* gone */ }
+    throw e
+  }
+  // writeFileSync does not tighten the mode of an existing file, and a rename keeps the temporary file's: 0600 is forced all the same.
+  try { chmodSync(file, 0o600) } catch (e) { /* exotic FS (Windows) */ }
+  try {
+    const dir = openSync(dirname(file), 'r')
+    try { fsyncSync(dir) } finally { closeSync(dir) }
+  } catch (e) { /* a file system that cannot sync a folder: the rename is still atomic */ }
+}
+
+const readState = () => readObjectFile(stateFile())
+
+/** `readState` for a decision about the SPACE: no connection file is `null` (not connected), but a file that is there and cannot be read now (a write
+ *  caught half way, bad rights, damaged JSON, and no good copy) is UNREADABLE — connected, space unknown — which `spaceOf` reads as a team space. */
+const readStateForSpace = () => {
+  const r = loadWithBackup(stateFile())
+  return r.kind === 'ok' ? r.value : (r.kind === 'absent' ? null : UNREADABLE)
+}
+/** True when the connection file is there and neither it nor its copy can be read: the person is NOT signed out, the file is damaged (the footer says so instead of the first-time words). */
+const stateUnreadable = () => loadWithBackup(stateFile()).kind === 'unreadable'
 
 const writeState = (state) => {
   const file = stateFile()
   // The folder of the file actually written: with KYBERNOS_CLOUD_STATE set, creating the default folder would touch ~/.dsh for nothing.
   try { mkdirSync(dirname(file), { recursive: true, mode: 0o700 }) } catch (e) { /* already there */ }
-  writeFileSync(file, JSON.stringify(state, null, 2) + '\n', { mode: 0o600 })
-  // writeFileSync does not tighten the mode of an existing file: 0600 is forced.
-  try { chmodSync(file, 0o600) } catch (e) { /* exotic FS (Windows) */ }
+  writeAtomic(file, JSON.stringify(state, null, 2) + '\n', true)
 }
 
 /** For a writer that read the state, then WAITED (the server, DSH's settings) and writes it back: it must not undo a switch of the active space made meanwhile (a click, the page following a
@@ -196,6 +271,8 @@ const readEnded = () => {
 /** Forgets the connection, and the « ended » marker with it: a sign-out on purpose, a pairing that was refused or expired and a new pairing all start from « signed out ». */
 const clearState = () => {
   try { rmSync(stateFile(), { force: true }) } catch (e) { /* already absent */ }
+  // The copy goes with it: a file removed on purpose (a sign-out) must not come back from its `.bak`.
+  try { rmSync(stateFile() + '.bak', { force: true }) } catch (e) { /* already absent */ }
   try { rmSync(endedFile(), { force: true }) } catch (e) { /* already absent */ }
 }
 
@@ -281,9 +358,8 @@ const folderRoot = () => {
 const foldersFile = () => join(dirname(stateFile()), 'kybernos-cloud-folders.json')
 /** The recorded folders, `{ <workspace id>: <path> }`: only entries that are a DIRECT child of the root (a record edited by hand to point elsewhere is not followed or listed). */
 const readFolders = () => {
-  let parsed = null
-  try { parsed = JSON.parse(readFileSync(foldersFile(), 'utf8')) } catch (e) { return {} }
-  if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) return {}
+  const parsed = readObjectFile(foldersFile())
+  if (parsed === null) return {}
   const root = folderRoot()
   const out = {}
   for (const id of Object.keys(parsed)) if (typeof parsed[id] === 'string' && isChildOf(root, parsed[id])) out[id] = parsed[id]
@@ -292,8 +368,7 @@ const readFolders = () => {
 const writeFolders = (map) => {
   const file = foldersFile()
   mkdirSync(dirname(file), { recursive: true, mode: 0o700 })
-  writeFileSync(file, JSON.stringify(map, null, 2) + '\n', { mode: 0o600 })
-  try { chmodSync(file, 0o600) } catch (e) { /* exotic FS (Windows) */ }
+  writeAtomic(file, JSON.stringify(map, null, 2) + '\n', true)
 }
 /** The folder recorded for one space, or null. */
 const spaceFolderOf = (id) => {
@@ -1032,6 +1107,8 @@ const statusRoute = () => {
   // A connection the server ended (a revoked device, a new database) is « revoked », with when: the footer says « Sign in again », not the plain signed-out words.
   const ended = readEnded()
   if (ended !== null) return { ok: true, connected: false, status: 'revoked', ended }
+  // The connection file is there but neither it nor its copy can be read (damaged, cut): not « never connected » and not « ended by the server », and the footer says so (L3-83).
+  if (stateUnreadable()) return { ok: true, connected: false, status: 'unreadable' }
   return { ok: true, connected: false, status: 'none' }
 }
 
@@ -1542,6 +1619,8 @@ const setAsideForeignConnection = () => {
     const aside = join(dirname(file), 'kybernos-cloud-' + host + '.json')
     renameSync(file, aside)
     try { chmodSync(aside, 0o600) } catch (e) { /* exotic FS */ }
+    // Its last good copy belongs to the same connection: it goes along, and never stays here to be read for this server.
+    try { renameSync(file + '.bak', aside + '.bak') } catch (e) { /* no copy */ }
     console.error('[kybernos-cloud] a connection recorded for another server (' + host + ') was set aside, not used for this one: pair again to connect to this server')
     return { raw }
   } catch (e) {
@@ -1608,7 +1687,7 @@ const serverRoute = async () => {
   // The active server's own file is whatever stateFile() says (KYBERNOS_CLOUD_STATE included); the others have the usual name.
   const connectedTo = (id) => {
     if (id === active.profile.id) return isConnected(readState())
-    try { return isConnected(JSON.parse(readFileSync(join(dshHome(), stateFileName({ id })), 'utf8'))) } catch (e) { return false }
+    try { return isConnected(readObjectFile(join(dshHome(), stateFileName({ id })))) } catch (e) { return false }
   }
   return { ok: true, server: publicProfile(active.profile), source: active.source, error: active.error, servers: active.servers.map((x) => Object.assign({ active: x.id === active.profile.id, connected: connectedTo(x.id) }, x)), rejected: active.rejected,
     // A cloud computer (the platform names it in the machine's environment). The page of this checkout no longer reads it: only the page bundle of a release that still frames
@@ -1625,7 +1704,8 @@ const serverApply = async () => {
   let cleaned = false
   if (previousId !== null && previousId !== active.profile.id) {
     try {
-      const before = JSON.parse(readFileSync(join(dshHome(), stateFileName({ id: previousId })), 'utf8'))
+      const before = readObjectFile(join(dshHome(), stateFileName({ id: previousId })))
+      if (before === null) throw new Error('no connection file')
       cleaned = (await removeImportedCatalog(before)).removed === true
     } catch (e) { /* no connection file for it: nothing was imported */ }
   }
