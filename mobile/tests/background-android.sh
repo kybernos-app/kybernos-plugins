@@ -45,8 +45,19 @@ adj() { adb shell "cat /proc/\$(pidof $PKG | cut -d' ' -f1)/oom_score_adj" 2>/de
 restore() { adb shell dumpsys deviceidle unforce >/dev/null 2>&1; adb shell dumpsys battery reset >/dev/null 2>&1; adb shell input keyevent KEYCODE_WAKEUP >/dev/null 2>&1; }
 trap restore EXIT
 
+# a phone with a lock screen drops back to it when its screen goes off: the person unlocks it before each pass (up to 10 minutes), or the home screen is never reached and the readings mean nothing
+waitunlock() {
+  local i=0; adb shell input keyevent KEYCODE_WAKEUP
+  until adb shell dumpsys window 2>/dev/null | grep -q "isKeyguardShowing=false"; do
+    [ $i = 0 ] && say "waiting for the phone to be unlocked (screen on, no lock screen)…"
+    i=$((i+1)); [ $i -ge 150 ] && { say "the phone stayed locked"; return 1; }; sleep 4
+  done
+  adb shell input keyevent KEYCODE_HOME; sleep 1
+}
+
 one() { # $1 = 0 or 1 (the service)
   local k=$1 extra=""
+  [ -n "${PHONE:-}" ] && { waitunlock || { echo "-1 -1 -1 -1 -1"; return; }; }
   [ "$k" = 1 ] && extra="--es kb_keepalive 1"
   adb shell am force-stop $PKG; sleep 2; [ -z "$(adb shell pidof $PKG | tr -d '\r')" ] || say "note: the app is still running after force-stop"; [ -n "${PHONE:-}" ] || adb shell pm clear $PKG >/dev/null; adb shell rm -f $R
   adb shell am start -n $PKG/.MainActivity --ei kb_selftest_delay $DELAY --es kb_deny_spawn 1 $extra >/dev/null
@@ -79,11 +90,18 @@ PY
 }
 
 say "device: $(adb shell getprop ro.product.model | tr -d '\r'), automation due $DELAY s after the app is ready, screen off and deep Doze forced"
-c=$(one 0 | tee /dev/stderr | tail -1); k=$(one 1 | tee /dev/stderr | tail -1)
+# PHASES="0" or "1" runs one pass only (a phone: unlock it, run a pass, unlock it again for the next)
+c=""; k=""
+for ph in ${PHASES:-0 1}; do
+  if [ "$ph" = 0 ]; then c=$(one 0 | tee /dev/stderr | tail -1); else k=$(one 1 | tee /dev/stderr | tail -1); fi
+done
 read -r f0 h0 i0 s0 l0 <<<"$c"; read -r f1 h1 i1 s1 l1 <<<"$k"
-[ "${s1:-0}" -ge 1 ] || bad "the service is not a foreground service in the system's records"
-[ "${i1:-999}" -le 250 ] 2>/dev/null || bad "with the service the process is not held at foreground-service priority (adj $i1)"
-[ "${l1:--1}" -ge 0 ] && [ "${l1:-999}" -le 90 ] 2>/dev/null || bad "with the service the automation did not fire within 90 s of its due time (${l1:-?} s)"
-[ "${s0:-1}" = 0 ] || bad "without the service a foreground service is recorded"
+if [ "${i0:-0}" = -1 ] || [ "${i1:-0}" = -1 ]; then say "background-android: ABORTED (the phone was not unlocked in time; nothing was measured)"; exit 2; fi
+if [ -n "$k" ]; then
+  [ "${s1:-0}" -ge 1 ] || bad "the service is not a foreground service in the system's records"
+  [ "${i1:-999}" -le 250 ] 2>/dev/null || bad "with the service the process is not held at foreground-service priority (adj $i1)"
+  [ "${l1:--1}" -ge 0 ] && [ "${l1:-999}" -le 90 ] 2>/dev/null || bad "with the service the automation did not fire within 90 s of its due time (${l1:-?} s)"
+fi
+if [ -n "$c" ]; then [ "${s0:-1}" = 0 ] || bad "without the service a foreground service is recorded"; fi
 [ $fail = 0 ] && say "background-android: PASS" || say "background-android: FAIL"
 exit $fail
