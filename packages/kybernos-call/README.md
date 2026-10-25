@@ -126,22 +126,34 @@ needs nothing: it is the one chosen on its card. A voice made from a recording n
 | Route | Method | Notes |
 |---|---|---|
 | `status` | GET | what is true of the chain (secrets set or not, face provider); never a secret |
-| `token` | POST | same origin only; `{ sessionId, kyberId, roleId, name, mode?, language?, voice? }` |
-| `agent` | POST | same origin only; `{ action: 'start' \| 'stop' \| 'status' }` |
-| `utterance` | POST | same origin only; `{ sessionId, text, mode: 'queue' \| 'steer' }` |
-| `speech` | GET | same origin only (it is the session's own text); `?room=&after=&wait=` a long poll; `known: false` once the room is released |
-| `settings` | GET, POST | GET: the settings, which secrets are set, the clones, the five slots, the provider catalogue with each provider's state and settings, the presets. POST (same origin): `{ patch }`, all or nothing |
+| `token` | POST | same origin **and the signed session cookie** (it wakes the worker and spends LiveKit; L3-03); `{ sessionId, kyberId, roleId, name, mode?, language?, voice? }` |
+| `agent` | POST | same origin **and the signed session cookie** (it starts and stops a process); `{ action: 'start' \| 'stop' \| 'status' }` |
+| `utterance` | POST | same origin **and either the worker's one-run secret or the signed session cookie** (the host runs a real turn with the machine's own cookie, so the caller must prove who it is: L3-03); `{ sessionId, text, mode: 'queue' \| 'steer' }` |
+| `speech` | GET | same origin **and either the worker's one-run secret or the signed session cookie** (it is the session's own text); `?room=&after=&wait=` a long poll; `known: false` once the room is released |
+| `settings` | GET, POST | GET: the settings, which secrets are set, the clones, the five slots, the provider catalogue with each provider's state and settings, the presets. POST (same origin **and the signed session cookie**): `{ patch }`, all or nothing |
 | `keys` | POST | same origin **and the signed session cookie** (an Origin alone is forgeable: L1-01); `{ patch: { NAME: value } }` (`''` removes); all or nothing; the answer never repeats a value |
 | `test` | POST | same origin **and the signed session cookie**; `{ service: 'livekit' \| 'groq' \| 'elevenlabs' \| 'liveavatar' }`: one read-only call, on this click only |
 | `clone` | POST | same origin **and the signed session cookie**; `{ rootId, voiceId, name }` creates, `{ action: 'delete', voiceId }` deletes |
 | `preset` | POST | same origin **and the signed session cookie**; `{ id }` fills the slots at once (a preset that is not available is 400) |
 | `avatars` | POST | same origin **and the signed session cookie** (it asks the face provider); the faces it offers (names and ids; the account's own first) |
-| `health` | POST | same origin only; checks every slot and answers `{ checks: [{ id, status, code, detail?, ms }] }`; the voice is asked through this DSH's own engine, at the socket's address |
+| `health` | POST | same origin **and the signed session cookie** (it makes the voice speak and probes the listening model with the owner's keys, through core routes that want the session: the page's own cookie is handed on); checks every slot and answers `{ checks: [{ id, status, code, detail?, ms }] }`; the voice is asked through this DSH's own engine, at the socket's address |
 | `engine` | POST | same origin **and the signed session cookie** (it installs software); `{ action: 'status' \| 'install' }`: the one-click install of the call engine, read back from its own log |
 | `vendor/livekit-client.js` | GET, HEAD | the SDK, served as is |
 
-DSH serves plugin routes before its own sign-in, so every POST, and the GET that returns session text, refuse any request that does not
-come from the page's own origin (checked against the socket's real port, never the `Host` header).
+DSH serves plugin routes before its own sign-in, and an Origin header is something any local program can send, so no route of this bundle rests
+on it alone. A request must come from the page's own origin (checked against the socket's real port, never the `Host` header) **and** carry proof
+of who it is: DSH's signed session cookie (a page), or, on `utterance` and `speech` only, the **worker's one-run secret** (the worker is a
+program and has no cookie). Anything else is refused: a forged Origin alone, a wrong or old secret, a secret relayed by the phone tunnel.
+
+**The worker's secret** (`worker-token.mjs`). The host makes 32 random bytes each time it starts a worker, puts them in the worker's
+environment (`KYBER_CALL_TOKEN`) and keeps only a SHA-256 digest in memory: it is never logged, never written to a file, never in an answer.
+The worker sends it in the `x-kybernos-call-token` header (`host_headers` in `agent/call_meta.py`) on `utterance`, `speech` and on the core's
+four voice routes (`/kybernos/voice/transcribe`, `/models/audio/listen`, `/models/audio/probe`, `/tts/speak`); the host compares digests in
+constant time. The secret lives as long as that worker run: it is dropped when the worker is stopped, exits, is replaced, or when the plugin
+stops. A worker that outlived a DSH restart holds a secret nobody knows any more, so the first call after the restart ends it and starts a
+new one (a hand-started worker has no secret and is refused). The core reaches the check through a process-global slot
+(`Symbol.for('kybernos.callWorkerToken')`, a function that answers whether a request is the worker; the same way as `kybernos.trustedAuthority`):
+with this bundle absent the slot is empty and those core routes accept the signed cookie only.
 
 ## What it stores, and where (all under `$DSH_HOME`, else `~/.dsh`)
 

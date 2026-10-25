@@ -9,9 +9,11 @@ livekit-agents): those tests are skipped without it.
 import base64
 import io
 import json
+import os
 import threading
 import unittest
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from unittest import mock
 
 from call_meta import CallMeta, VoiceChoice, parse_job_metadata
 from lang_guess import guess_language
@@ -150,7 +152,7 @@ class _Engine(BaseHTTPRequestHandler):
 
     def do_POST(self):
         length = int(self.headers.get("content-length", "0"))
-        _Engine.seen.append({"path": self.path, "origin": self.headers.get("origin"),
+        _Engine.seen.append({"path": self.path, "origin": self.headers.get("origin"), "token": self.headers.get("x-kybernos-call-token"),
                              "body": json.loads(self.rfile.read(length).decode())})
         body = json.dumps(_Engine.reply).encode()
         self.send_response(200)
@@ -179,6 +181,14 @@ class SpeakRequest(unittest.TestCase):
         self.assertEqual(seen["path"], "/kybernos/tts/speak")
         self.assertEqual(seen["origin"], host)
         self.assertEqual(seen["body"], {"text": "Bonjour.", "engine": "edge", "voice": "fr-FR-DeniseNeural", "lang": "fr"})
+
+    def test_it_presents_this_runs_secret(self):
+        # The worker has no cookie: the host's one-run secret is what tells it from any local program that sends an Origin.
+        host = self.serve()
+        _Engine.reply = {"ok": True, "audio": "data:audio/mp4;base64," + base64.b64encode(b"hello").decode()}
+        with mock.patch.dict(os.environ, {"KYBER_CALL_TOKEN": "run-secret-3"}):
+            speak_request(host, "Bonjour.", {})
+        self.assertEqual(_Engine.seen[-1]["token"], "run-secret-3")
 
     def test_a_refusal_raises_with_the_engines_reason(self):
         host = self.serve()

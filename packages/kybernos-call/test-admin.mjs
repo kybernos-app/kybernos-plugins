@@ -130,6 +130,15 @@ try {
   assert.match((await lkNo.testLiveKit()).error, /refused the key or the secret/)
   ok('an unreachable or refusing LiveKit says so')
 
+  // The health check asks core routes that want the signed session: the page's own cookie is handed on, untouched, and only that.
+  const healthRuns = []
+  const withHealth = createAdmin({ store, services: providerServices, call, health: { run: async (args) => { healthRuns.push(args); return { ok: true, checks: [] } } }, env: {} })
+  await withHealth.runHealth('http://127.0.0.1:3080', { cookie: 'dsh-auth-x=v1.page-cookie' })
+  await withHealth.runHealth('http://127.0.0.1:3080')
+  await withHealth.runHealth('http://127.0.0.1:3080', { cookie: 42 })
+  assert.deepEqual(healthRuns, [{ base: 'http://127.0.0.1:3080', cookie: 'dsh-auth-x=v1.page-cookie' }, { base: 'http://127.0.0.1:3080', cookie: '' }, { base: 'http://127.0.0.1:3080', cookie: '' }])
+  ok('the health check receives the address and the page\'s cookie, and never a cookie it was not given')
+
   console.log('kybernos-call admin: cloning a recording')
   assert.equal((await admin.cloneSample({ rootId: 'root-1', voiceId: '../x' })).code, 'no-sample')
   let c = await admin.cloneSample({ rootId: 'root-1', voiceId: 'v-1abc' })

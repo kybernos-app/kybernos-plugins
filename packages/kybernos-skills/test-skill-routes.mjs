@@ -10,6 +10,11 @@ import assert from 'node:assert/strict'
 import { existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { sessionSource } from './session-guard.mjs'
+import { SESSION_SECRET, sessionCookie } from './lib-session-test.mjs'
+
+// The POST routes need the signed session as well as the Origin (L3-17): the Skills page's own request carries both.
+sessionSource.secret = () => SESSION_SECRET
 
 const base = mkdtempSync(join(tmpdir(), 'kb-skill-routes-'))
 const home = join(base, 'home')
@@ -264,7 +269,7 @@ try {
     assert.equal(refused.code, 403, p + ' without an Origin')
   }
   assert.equal(existsSync(join(userRoot, 'alpha-copy', 'SKILL.md')), true, 'a refused delete deleted nothing')
-  const viaRoute = await call('/kybernos-skills/skill/read', { root: userRoot, name: 'alpha-copy' }, { origin: 'http://127.0.0.1:3080', host: '127.0.0.1:3080' })
+  const viaRoute = await call('/kybernos-skills/skill/read', { root: userRoot, name: 'alpha-copy' }, { origin: 'http://127.0.0.1:3080', host: '127.0.0.1:3080', cookie: sessionCookie('127.0.0.1:3080') })
   assert.equal(viaRoute.json.ok, true, JSON.stringify(viaRoute))
   assert.equal(viaRoute.json.actions.delete, true)
   ok('routes: the four POSTs need an Origin from this machine, and read answers through the route with its actions')

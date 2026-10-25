@@ -194,7 +194,7 @@ console.log('kybernos-call: the health check')
   const freshHome = mkdtempSync(join(tmpdir(), 'kybernos-call-health-'))
   const fresh = createStore({ dshHome: async () => freshHome, env: {} })
   const asked = []
-  const speakFetch = (answer) => async (url, init) => { asked.push({ url: String(url), body: JSON.parse(init.body), origin: init.headers.origin }); return { status: 200, json: async () => answer } }
+  const speakFetch = (answer) => async (url, init) => { asked.push({ url: String(url), body: JSON.parse(init.body), origin: init.headers.origin, cookie: init.headers.cookie }); return { status: 200, json: async () => answer } }
   const health = (over = {}) => createHealth(Object.assign({ store: fresh, services, call: fakeCall, fetch: speakFetch({ ok: true, engine: 'say', ms: 500 }), budgetMs: 2000 }, over))
 
   let r = await health().run({ base: 'http://127.0.0.1:3080' })
@@ -209,6 +209,12 @@ console.log('kybernos-call: the health check')
   assert.equal(asked[0].origin, 'http://127.0.0.1:3080')
   assert.equal(asked[0].body.engine, undefined)
   ok('with nothing set up the keyed providers say which key is missing, and the voice is asked through this DSH\'s own engine')
+  // The core's voice routes want the signed session: the health check is the page's, so the page's own cookie goes on to them; without one, none is invented.
+  assert.equal(asked[0].cookie, undefined)
+  await health().run({ base: 'http://127.0.0.1:3080', cookie: 'dsh-auth-x=v1.page-cookie' })
+  assert.equal(asked[asked.length - 1].url, 'http://127.0.0.1:3080/kybernos/tts/speak')
+  assert.equal(asked[asked.length - 1].cookie, 'dsh-auth-x=v1.page-cookie')
+  ok('the health check hands the page\'s own cookie on to the voice engine route (and sends none when it has none)')
 
   await fresh.writeKeys({ GROQ_API_KEY: 'gsk_testkey1', LIVEAVATAR_API_KEY: 'la_key_12345', LIVEAVATAR_AVATAR_ID: 'wayne' })
   await fresh.writeSettings({ defaultVoice: { engine: 'edge', voice: 'fr-FR-DeniseNeural', lang: 'fr' } })
@@ -241,10 +247,14 @@ console.log('kybernos-call: the health check')
   assert.equal(by(noModel).listen.code, 'no-model')
   await fresh.writeSettings({ providers: { 'models-asr': { model: 'xiaomi-token-plan-ams:mimo-v2.5-asr' } } })
   const probed = []
-  const probeFetch = (answer) => async (url, init) => { if (String(url).includes('/models/audio/probe')) { probed.push(JSON.parse(init.body)); return { status: 200, json: async () => answer } } return { status: 200, json: async () => ({ ok: true, engine: 'edge', ms: 5 }) } }
+  const probeCookies = []
+  const probeFetch = (answer) => async (url, init) => { if (String(url).includes('/models/audio/probe')) { probed.push(JSON.parse(init.body)); probeCookies.push(init.headers.cookie); return { status: 200, json: async () => answer } } return { status: 200, json: async () => ({ ok: true, engine: 'edge', ms: 5 }) } }
   const good = await health({ fetch: probeFetch({ ok: true, family: 'chat-input-audio-base64' }) }).run({ base: 'http://127.0.0.1:3080' })
   assert.equal(by(good).listen.status, 'ok')
   assert.deepEqual(probed[0], { provider: 'xiaomi-token-plan-ams', model: 'mimo-v2.5-asr' })
+  assert.equal(probeCookies[0], undefined)
+  await health({ fetch: probeFetch({ ok: true, family: 'chat-input-audio-base64' }) }).run({ base: 'http://127.0.0.1:3080', cookie: 'dsh-auth-x=v1.page-cookie' })
+  assert.equal(probeCookies[probeCookies.length - 1], 'dsh-auth-x=v1.page-cookie')
   const bad2 = await health({ fetch: probeFetch({ ok: false, code: 'no-key', error: 'no key is set for this provider' }) }).run({ base: 'http://127.0.0.1:3080' })
   assert.equal(by(bad2).listen.status, 'bad')
   assert.equal(by(bad2).listen.code, 'no-key')

@@ -11,6 +11,11 @@
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { sessionSource } from './session-guard.mjs'
+import { SESSION_SECRET, sessionCookie } from './lib-session-test.mjs'
+
+// The POST routes need the signed session as well as the Origin (L3-18): the page's own request carries both.
+sessionSource.secret = () => SESSION_SECRET
 import {
   GIT_TEXTS, commiter, cloturer, ecrireCategorie, ecrireReglages, encoderSlugChemin, isoler, monterRoutes, prCreer, prFusionner,
   pousser, ramasser, rapatrier, sondeCloture, sondeIsolation, synchroniser
@@ -205,7 +210,7 @@ console.log('\n── through the routes: the code travels, the plain-text bodie
   monterRoutes({ register: (r) => { routes[r.path] = r.handler } }, { reglagesPath: join(base, 'settings.json'), categoriesPath: join(base, 'categories.json'), sessionsHome: join(base, 'sessions'), kybersHome: join(base, 'kybers') })
   const requete = (method, path, headers, corps) => ({ method, url: path, headers: headers || {}, socket: { localPort: PORT }, on (ev, cb) { if (ev === 'data' && corps !== undefined) cb(JSON.stringify(corps)); if (ev === 'end') cb() } })
   const reponse = () => { const r = { code: null, corps: null, writeHead (c) { r.code = c }, end (s) { try { r.corps = JSON.parse(s) } catch (e) { r.corps = s } } }; return r }
-  const bon = { origin: 'http://127.0.0.1:' + PORT }
+  const bon = { origin: 'http://127.0.0.1:' + PORT, cookie: sessionCookie('127.0.0.1:3080') }
   const a = reponse()
   await routes['/kybernos-sessions/settings'](requete('POST', '/kybernos-sessions/settings', bon, { brain: 7 }), a)
   ok('POST /settings with a bad Study model answers 400 with its code', a.code === 400 && a.corps.ok === false && a.corps.code === 'invalid-brain' && a.corps.erreur.startsWith('brain:'), a)

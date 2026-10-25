@@ -45,7 +45,7 @@ import { rank as rankByRelevance, tokens as relevanceTokens } from './relevance.
 import { findDuplicateGroups, unclearPairs, likeness, negates, numbersOf } from './dedupe.mjs'
 import { MAP_TUNING, textHash, packVector, unpackVector, buildMap } from './mapproj.mjs'
 import { TEAM_CHUNK_NAME, TEAM_CHUNK_ORDER, TEAM_TUNING, teamWorkspace, displayName, asTeamLesson, teamFailure, teamPlan, renderTeamChunk, applicable } from './team-lessons.mjs'
-import { teamSkillsBase, isSkillId, teamSkillsFailure, asTeamSkill } from './team-skills.mjs'
+import { teamSkillsBase, isSkillId, teamSkillsFailure, asTeamSkill, hiddenPlaceOf } from './team-skills.mjs'
 import { teamAutomationsBase, isAutomationId, teamAutomationsFailure, asTeamAutomation, asTeamAutomationsPage, teamAutomationShape, definitionOf, versionOf, accessEntry, TEAM_AUTOMATION_LIMITS, TEAM_AUTOMATION_VIEWS } from './team-automations.mjs'
 import { createConnections } from './connections-host.mjs'
 import { normalizeTidySettings, patchTidySettings, tidyDue, tidyNext, pickAuto, removalChunks, readStudyChoice, brainGroups } from './tidy.mjs'
@@ -3973,6 +3973,9 @@ const teamSkillsAddRoute = async (req, body) => {
   if (isConnected(state) !== true) return { ok: false, connected: false, error: 'non connecte' }
   const b = body !== null && typeof body === 'object' ? body : {}
   if (typeof b.name !== 'string' || b.name === '' || typeof b.description !== 'string' || !Array.isArray(b.files) || b.files.length === 0) return { ok: false, error: 'bad_request' }
+  // Before anything is sent: what a person cannot see in a skill (DL-09) is refused here, with the file, as the server would (nothing is removed: the version is the hash of the exact text).
+  const hiddenAt = hiddenPlaceOf({ description: b.description, note: b.note, files: b.files })
+  if (hiddenAt !== null) return { ok: false, error: 'invalid_skill', reason: 'hidden', file: hiddenAt }
   const payload = { name: b.name, description: b.description, files: b.files, display_name: displayName(state) }
   if (typeof b.note === 'string' && b.note.trim() !== '') payload.note = b.note
   const made = await teamSkillsCall(state, 'POST', '', payload)
@@ -5513,27 +5516,30 @@ const mountKybyNative = (ctx) => {
 // (session-guard.mjs, the terminal's rule). Plugin routes are served before DSH's own login and an Origin header is forgeable by any local
 // program, so a `curl -X POST ...` with no header at all used to reach them. A-16 (audit 2026-10-20) counted 31 of them here: they are all
 // under the rule now, because their caller is a page (Memory, Skills, Connectors, Team console, Share card, the servers page, the phone link
-// — the phone's tunnel replays the machine's Origin and cookie). Two POST families keep less, and only for a caller that is not a browser:
-// `server/apply` is strict (kybernos-servers' host calls it over loopback with an Origin and no cookie) and `turn*` is strict (the computer's
-// own runner). docs/dev/route-origin-rule.md carries the table and the exceptions.
+// — the phone's tunnel replays the machine's Origin and cookie). L3-04 and L3-05 (recette 2026-10-25) found fifteen more that had stayed at the
+// Origin alone and that a page drives too: the Account page's instructions (the file every agent reads), the Telegram and WhatsApp pairing
+// and unlinking, Kaby's computer, the Home computer's actions, the console link and the two payment pages.
+// A POST row is either `session: true`, or it says in `noSession` which caller that is not a browser keeps it at the strict Origin alone
+// (test-write-guard.mjs reads the table and fails on a row that is neither). Those are the only ones, five: `server/apply`, `turn`,
+// `turn/answer`, `turn/continue` and `computer/claimed`. docs/dev/route-origin-rule.md carries the table and the exceptions.
 const ROUTES = [
   { path: '/kybernos-cloud/kyber', method: 'GET', guarded: true, run: kyberRoute },
-  // A pairing creates a link that, once opened in Telegram and confirmed there, connects the chat: same origin, strictly.
-  { path: '/kybernos-cloud/telegram/pairing', method: 'POST', guarded: true, strict: true, run: () => kyby.pairingStart() },
+  // A pairing creates a link that, once opened in Telegram and confirmed there, connects the chat to the account's Kaby: same origin, strictly, and the signed session (L3-05).
+  { path: '/kybernos-cloud/telegram/pairing', method: 'POST', guarded: true, strict: true, session: true, run: () => kyby.pairingStart() },
   { path: '/kybernos-cloud/telegram/pairing/state', method: 'GET', guarded: true, run: (req) => kyby.pairingState(req) },
-  { path: '/kybernos-cloud/telegram/pairing/cancel', method: 'POST', guarded: true, strict: true, body: true, cap: 1024, run: (req, body) => kyby.pairingCancel(req, body) },
-  { path: '/kybernos-cloud/kyby/computer', method: 'POST', guarded: true, strict: true, body: true, cap: 1024, run: async (req, body) => { kybyChosen.at = 0; return kyby.computer(req, body) } },
-  { path: '/kybernos-cloud/telegram/unlink', method: 'POST', guarded: true, strict: true, body: true, cap: 1024, run: () => kyby.unlink() },
+  { path: '/kybernos-cloud/telegram/pairing/cancel', method: 'POST', guarded: true, strict: true, session: true, body: true, cap: 1024, run: (req, body) => kyby.pairingCancel(req, body) },
+  { path: '/kybernos-cloud/kyby/computer', method: 'POST', guarded: true, strict: true, session: true, body: true, cap: 1024, run: async (req, body) => { kybyChosen.at = 0; return kyby.computer(req, body) } },
+  { path: '/kybernos-cloud/telegram/unlink', method: 'POST', guarded: true, strict: true, session: true, body: true, cap: 1024, run: () => kyby.unlink() },
   // WhatsApp, the beta bridge (ADR 0053 § 13.8): the same four calls on the other channel.
-  { path: '/kybernos-cloud/whatsapp/pairing', method: 'POST', guarded: true, strict: true, run: () => kyby.pairingStart('whatsapp') },
+  { path: '/kybernos-cloud/whatsapp/pairing', method: 'POST', guarded: true, strict: true, session: true, run: () => kyby.pairingStart('whatsapp') },
   { path: '/kybernos-cloud/whatsapp/pairing/state', method: 'GET', guarded: true, run: (req) => kyby.pairingState(req, 'whatsapp') },
-  { path: '/kybernos-cloud/whatsapp/pairing/cancel', method: 'POST', guarded: true, strict: true, body: true, cap: 1024, run: (req, body) => kyby.pairingCancel(req, body, 'whatsapp') },
-  { path: '/kybernos-cloud/whatsapp/unlink', method: 'POST', guarded: true, strict: true, body: true, cap: 1024, run: () => kyby.unlink('whatsapp') },
+  { path: '/kybernos-cloud/whatsapp/pairing/cancel', method: 'POST', guarded: true, strict: true, session: true, body: true, cap: 1024, run: (req, body) => kyby.pairingCancel(req, body, 'whatsapp') },
+  { path: '/kybernos-cloud/whatsapp/unlink', method: 'POST', guarded: true, strict: true, session: true, body: true, cap: 1024, run: () => kyby.unlink('whatsapp') },
   { path: '/kybernos-cloud/kyby/native', method: 'GET', guarded: true, run: kybySessionRoute },
   { path: '/kybernos-cloud/kyby/native/set', method: 'POST', guarded: true, strict: true, session: true, body: true, cap: 1024, run: kybySessionSet },
-  { path: '/kybernos-cloud/computer/resume', method: 'POST', guarded: true, strict: true, run: () => computerAction('resume') },
-  { path: '/kybernos-cloud/computer/suspend', method: 'POST', guarded: true, strict: true, run: () => computerAction('suspend') },
-  { path: '/kybernos-cloud/computer/open', method: 'POST', guarded: true, strict: true, run: () => computerAction('open') },
+  { path: '/kybernos-cloud/computer/resume', method: 'POST', guarded: true, strict: true, session: true, run: () => computerAction('resume') },
+  { path: '/kybernos-cloud/computer/suspend', method: 'POST', guarded: true, strict: true, session: true, run: () => computerAction('suspend') },
+  { path: '/kybernos-cloud/computer/open', method: 'POST', guarded: true, strict: true, session: true, run: () => computerAction('open') },
   { path: '/kybernos-cloud/computers', method: 'GET', guarded: true, run: computersRoute },
   // Sends (or takes away) automations on a computer: it writes on the person's behalf, so same origin strictly AND DSH's signed browser session.
   { path: '/kybernos-cloud/computers/publish', method: 'POST', guarded: true, strict: true, session: true, body: true, cap: 100000, run: (req, body) => computersPublish.publish(body) },
@@ -5552,8 +5558,9 @@ const ROUTES = [
   { path: '/kybernos-cloud/space/folder', method: 'POST', guarded: true, strict: true, session: true, body: true, cap: 1024, run: spaceFolder },
   { path: '/kybernos-cloud/spaces/summary', method: 'GET', guarded: true, run: spacesSummary },
   { path: '/kybernos-cloud/space/create', method: 'POST', guarded: true, session: true, body: true, run: createSpace },
-  // Joining with an invitation link: the token is the credential. Both are strict same-origin; `accept` also needs the signed session (it makes the person a member of a team).
-  { path: '/kybernos-cloud/invitation/preview', method: 'POST', guarded: true, strict: true, body: true, cap: 1024, run: invitationPreview },
+  // Joining with an invitation link: the token is the credential. Both are strict same-origin and need the signed session: `accept` makes the person a member of a team, `preview` only reads one
+  // invitation at the server for the token it is given, but a page is its only caller, so it follows the same rule (L3-04).
+  { path: '/kybernos-cloud/invitation/preview', method: 'POST', guarded: true, strict: true, session: true, body: true, cap: 1024, run: invitationPreview },
   { path: '/kybernos-cloud/invitation/accept', method: 'POST', guarded: true, strict: true, session: true, body: true, cap: 1024, run: invitationAccept },
   { path: '/kybernos-cloud/refresh', method: 'POST', guarded: true, session: true, run: refreshProfile },
   // `disconnect` revokes the session on the server side: irreversible. A bare POST
@@ -5568,14 +5575,19 @@ const ROUTES = [
   { path: '/kybernos-cloud/server', method: 'GET', guarded: false, run: serverRoute },
   // A turn the platform addressed to this computer (ADR 0053 § 13.4): started, then read, by the computer's own runner (token and same origin).
   // A pooled computer has just been handed its identity (see computerClaimed): loopback, same origin, nothing in the request.
-  { path: '/kybernos-cloud/computer/claimed', method: 'POST', strict: true, run: computerClaimed },
+  // Strict only: its caller is the claim step of the cloud computer's image (services/computer-image/claimer.mjs), a process with an Origin and no browser session. The request carries nothing
+  // and the identity comes from the volume (computer-identity.mjs), so a program that sends it can only ask DSH to read what the platform wrote there.
+  { path: '/kybernos-cloud/computer/claimed', method: 'POST', strict: true, noSession: 'the claim step of the cloud computer image (services/computer-image/claimer.mjs) posts here over loopback with an Origin and no browser session', run: computerClaimed },
   { path: '/kybernos-cloud/computer/route', method: 'GET', guarded: true, run: computerRoute },
-  { path: '/kybernos-cloud/turn', method: 'POST', strict: true, body: true, cap: 200000, run: turnStart },
-  { path: '/kybernos-cloud/turn/answer', method: 'POST', strict: true, body: true, cap: 4096, run: turnAnswer },
-  { path: '/kybernos-cloud/turn/continue', method: 'POST', strict: true, body: true, cap: 8192, run: turnContinue },
+  // Strict only: the computer's own runner is the caller, a process with no browser session. The handlers add the runner's own check (`turnAuthorized`), so the Origin is not their only fence.
+  { path: '/kybernos-cloud/turn', method: 'POST', strict: true, noSession: "the cloud computer's own runner starts a turn here with no browser session (turnAuthorized is the handler's own check)", body: true, cap: 200000, run: turnStart },
+  { path: '/kybernos-cloud/turn/answer', method: 'POST', strict: true, noSession: "the cloud computer's own runner answers a turn here with no browser session (turnAuthorized is the handler's own check)", body: true, cap: 4096, run: turnAnswer },
+  { path: '/kybernos-cloud/turn/continue', method: 'POST', strict: true, noSession: "the cloud computer's own runner continues a turn here with no browser session (turnAuthorized is the handler's own check)", body: true, cap: 8192, run: turnContinue },
   // The terms and privacy addresses of the active server (public document, no token).
   { path: '/kybernos-cloud/legal', method: 'GET', guarded: true, run: legalRoute },
-  { path: '/kybernos-cloud/server/apply', method: 'POST', guarded: true, strict: true, run: serverApply },
+  // Strict only: the servers page drives it too, but kybernos-servers' host (packages/kybernos-servers/host.mjs) calls it over loopback with this listener's Origin and no cookie when it
+  // applies the active server. The loopback call must learn to send the session cookie before this row can join the rule.
+  { path: '/kybernos-cloud/server/apply', method: 'POST', guarded: true, strict: true, noSession: "kybernos-servers' host applies the active server over loopback with an Origin and no browser session", run: serverApply },
   { path: '/kybernos-cloud/models', method: 'GET', guarded: false, run: modelsRoute },
   { path: '/kybernos-cloud/models/sync', method: 'POST', guarded: true, session: true, run: modelsSyncRoute },
   // Referral code of the linked account (sidebar footer invitation card):
@@ -5605,18 +5617,18 @@ const ROUTES = [
   // {ok:false,error:'indisponible'} as long as the server reserves them to the master key.
   { path: '/kybernos-cloud/members', method: 'GET', guarded: true, run: membersGet },
   // The Team console in the browser: a single-use link (60 s) requested from the server with the device token, never the token itself.
-  { path: '/kybernos-cloud/console/link', method: 'POST', guarded: true, strict: true, body: true, cap: 2048, run: consoleLink },
+  { path: '/kybernos-cloud/console/link', method: 'POST', guarded: true, strict: true, session: true, body: true, cap: 2048, run: consoleLink },
   // The upgrade popup: the plans and their quotes (public data of the server, no token sent), and the two payment calls (owner or admin of the workspace: the server decides).
   { path: '/kybernos-cloud/plans', method: 'GET', guarded: true, strict: true, run: plansRoute },
   { path: '/kybernos-cloud/plans/quote', method: 'GET', guarded: true, strict: true, run: planQuote },
-  { path: '/kybernos-cloud/billing/checkout', method: 'POST', guarded: true, strict: true, body: true, cap: 2048, run: billingCheckout },
-  { path: '/kybernos-cloud/billing/portal', method: 'POST', guarded: true, strict: true, body: true, cap: 1024, run: billingPortal },
+  { path: '/kybernos-cloud/billing/checkout', method: 'POST', guarded: true, strict: true, session: true, body: true, cap: 2048, run: billingCheckout },
+  { path: '/kybernos-cloud/billing/portal', method: 'POST', guarded: true, strict: true, session: true, body: true, cap: 1024, run: billingPortal },
   // The facts behind a refused model call (the quota notice): the active space's plan, its payment, and the windows of the person that are used up.
   { path: '/kybernos-cloud/quota', method: 'GET', guarded: true, run: quotaFacts },
   // Distinct paths: the router indexes by path, so a GET and a POST on one path would mask each other. The write is strict (a request that
-  // names no origin is refused): it changes a file the agents read.
+  // names no origin is refused) and needs the signed session: it changes a file every agent reads, and an agent has a shell (L3-04).
   { path: '/kybernos-cloud/instructions', method: 'GET', guarded: true, run: instructionsRead },
-  { path: '/kybernos-cloud/instructions/save', method: 'POST', guarded: true, strict: true, body: true, cap: 16384, run: instructionsSave },
+  { path: '/kybernos-cloud/instructions/save', method: 'POST', guarded: true, strict: true, session: true, body: true, cap: 16384, run: instructionsSave },
   { path: '/kybernos-cloud/members/invite', method: 'POST', guarded: true, session: true, body: true, cap: 8192, run: membersInvite },
   { path: '/kybernos-cloud/members/remove', method: 'POST', guarded: true, session: true, body: true, cap: 8192, run: membersRemove },
   // Account memory (cloud feature no. 2): read, write, list and settings.

@@ -24,6 +24,25 @@ A DSH skill is a folder: a `SKILL.md` plus optional text files next to it. A Tea
   - A secret scan on every file **and on the description** (it is shown to every member) refuses the skill (`scan_rejected`; the
     file of a description hit is `<description>`); the patterns of `_skillrepos.py` are the reference.
   - Text means no NUL and no half of a surrogate pair (not UTF-8: it would not come back as it went): otherwise `binary`.
+  - **Nothing a person cannot see (decision DL-09 of the 2026-10 recette, findings L2-18 and L2-20).** An admin approves what the sheet shows and a model reads every character, so a `SKILL.md` whose
+    visible words are harmless and whose end is a run of Unicode tag characters installs an instruction nobody read. Every file, the description and the remark (`note`) are looked at **as sent,
+    before any trim** (a BOM is refused wherever it is), and **refused, never removed**: the version is the SHA-256 of the exact text and every client computes it too, so taking characters out would
+    change the version the client expects. The answer is `400 invalid_skill` with `reason: "hidden"`, the `file` (a path, `<description>` or `<note>`), `first` (the first character, as `U+E0041`) and
+    `count`. It comes after the older checks of the same text (a NUL stays `binary`, a bad description stays `description`).
+    - **Refused** (457 code points): the Unicode tags block U+E0000-U+E007F; the direction controls U+202A-U+202E and U+2066-U+2069; the zero-width space U+200B; the word joiner U+2060; the invisible
+      operators U+2061-U+2064; the deprecated formatting characters U+206A-U+206F; the byte-order mark U+FEFF **anywhere** (a BOM is not text); the soft hyphen U+00AD; the Mongolian vowel separator
+      U+180E; the interlinear marks U+FFF9-U+FFFB; the variation selectors U+E0100-U+E01EF; and the C0 and C1 controls except tab, line feed and carriage return (NUL included).
+    - **Kept**: U+200C and U+200D (the zero-width non-joiner and joiner: emoji sequences, Persian), U+200E and U+200F (the left-to-right and right-to-left marks: Arabic and Hebrew), U+FE0E and U+FE0F
+      (text and emoji presentation), ordinary spaces and every other character. A skill that was fine keeps its version.
+    - **The same set everywhere.** The server (`src/lib/hidden-text.ts`) and the plugin clients (`kybernos-skills/team-skills.mjs`, with `kybernos-plugin/automation-team.mjs` and
+      `kybernos-cloud/team-automations.mjs` for automations) carry it and are all tested against one list of texts, [`hidden-text-vectors.json`](hidden-text-vectors.json) (the same file, byte for byte, as
+      `test/fixtures/hidden-text-vectors.json` in the server; sha256 `e64586d672b86c3c9607c4420da4819e2810baeafdc4686d1605105d31d4e6b8`), and against the decision's table code point by code point
+      (`scripts/test-hidden-text-clients.mjs`). It includes the 49 and 59 hidden characters the recette saw in a `SKILL.md`.
+    - **The secret scan reads the text without what draws nothing** (the refused set, and the joiners, marks and selectors that are kept, and the other default-ignorable characters), line breaks untouched:
+      a key cut by a zero-width character, or by a joiner that text may hold, is still a key, on the same line number.
+    - **Data already stored is not migrated.** The read path (list, `GET /{id}`) is unchanged: a skill stored before the rule is listed and served as it was, with its version. Only new writes are refused.
+      A copy already installed on a member's disk is not touched (the server never sees it): it keeps its files. A stored skill that holds one cannot be **installed or updated** any more: the plugin
+      refuses it (`invalid_skill` / `hidden`, nothing written), and the review sheet says so instead of « Checked by the server: no secret » (an admin should reject it; there is no counter of the characters yet).
   - **Every check on a skill's text must be linear in its size.** A skill is text a stranger wrote and the plugin runs these checks in the
     same process as the GUI. Two expressions of the reference are quadratic and must not be used as they are: the JWT pattern
     (`\beyJ…\.…\.…\b`, 6.7 s on 160 000 characters of `-eyJ-eyJ…`) and a frontmatter line pattern `^key:[ \t]*(.*)$` (6 s on
@@ -97,7 +116,7 @@ The vocabulary of the lessons module, plus the skill-specific ones.
 
 | Status | Body | When |
 | --- | --- | --- |
-| 400 | `{error: "invalid_skill", reason, file?}` | `reason` is one of `name`, `description` (the description field is empty, too long or not storable text), `no_skill_md`, `frontmatter` (SKILL.md must carry the same `name` and a non-empty `description`), `bad_path`, `binary`, `too_many_files`, `file_too_large`, `too_large` (the total); `file` names the offender when there is one |
+| 400 | `{error: "invalid_skill", reason, file?}` | `reason` is one of `name`, `description` (the description field is empty, too long or not storable text), `no_skill_md`, `frontmatter` (SKILL.md must carry the same `name` and a non-empty `description`), `bad_path`, `binary`, `hidden` (an invisible or direction-changing character; `file` is a path, `<description>` or `<note>`, and the body carries `first` and `count`), `too_many_files`, `file_too_large`, `too_large` (the total); `file` names the offender when there is one |
 | 400 | `{error: "scan_rejected", file}` | a secret was found (the match itself is never returned) |
 | 401 / 403 | as lessons | no identity / `admin_required` |
 | 404 | `{error: "Workspace not found"}` or `{error: "Team skill not found"}` | not a member of the workspace (same answer as an unknown one) / no such skill, or someone else's proposal. These two texts are what the plugin tells apart from a server that has no Team skills at all (any other 404): keep them exact |

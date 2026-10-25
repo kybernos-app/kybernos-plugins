@@ -10,6 +10,11 @@ import { createServer, request as httpRequest } from 'node:http'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { sessionSource } from './session-guard.mjs'
+import { SESSION_SECRET, sessionCookie } from './lib-session-test.mjs'
+
+// The POST routes need the signed session as well as the Origin (L3-16): the Servers page's own request carries both.
+sessionSource.secret = () => SESSION_SECRET
 
 let failed = 0
 const check = (name, ok, detail) => { console.log((ok ? '  ✓ ' : '  ✗ ') + name + (ok || detail === undefined ? '' : '  — ' + JSON.stringify(detail))); if (!ok) failed += 1 }
@@ -88,8 +93,9 @@ const dsh = createServer(async (req, res) => {
 })
 await new Promise((r) => dsh.listen(0, '127.0.0.1', r))
 const DSH = 'http://127.0.0.1:' + dsh.address().port
+const COOKIE = sessionCookie('127.0.0.1:' + dsh.address().port)
 const call = async (method, path, body, headers) => {
-  const r = await fetch(DSH + path, { method, headers: Object.assign({ origin: DSH, 'content-type': 'application/json' }, headers || {}), body: body === undefined ? undefined : JSON.stringify(body) })
+  const r = await fetch(DSH + path, { method, headers: Object.assign({ origin: DSH, cookie: COOKIE, 'content-type': 'application/json' }, headers || {}), body: body === undefined ? undefined : JSON.stringify(body) })
   return { status: r.status, body: await r.json() }
 }
 const post = (path, body, headers) => call('POST', path, body, headers)
@@ -244,7 +250,7 @@ console.log('SRV-11 guards')
   const get = await call('GET', '/kybernos-servers/add')
   const postStatus = await post('/kybernos-servers/status', {})
   check('GET only on status, POST only on the rest', get.status === 405 && postStatus.status === 405, [get.status, postStatus.status])
-  const badBody = await fetch(DSH + '/kybernos-servers/check', { method: 'POST', headers: { origin: DSH, 'content-type': 'application/json' }, body: 'not json' })
+  const badBody = await fetch(DSH + '/kybernos-servers/check', { method: 'POST', headers: { origin: DSH, cookie: COOKIE, 'content-type': 'application/json' }, body: 'not json' })
   check('a body that is not JSON is a 400', badBody.status === 400)
   const bad = await Promise.all(['', 'A', 'a/b', '../x', 'x'.repeat(41), 5, null].map((id) => post('/kybernos-servers/switch', { id })))
   check('ids with a slash, upper case, a traversal, too long, not a string: bad_id, nothing switched', bad.every((r) => r.body.error === 'bad_id') && readRegistry().active === 'kybernos-cloud', bad.map((r) => r.body.error))

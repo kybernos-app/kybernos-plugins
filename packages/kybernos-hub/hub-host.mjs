@@ -4,6 +4,7 @@
 import { noterCasse, noterChargement, noterDemarrage, noterSante, normaliser, nomsValides, recommandation } from './boot-guard.mjs'
 import { basculer, charge, etatDistant, evaluerCache, installer, mettreAJour, plateformeDe, rafraichir, versionDansZone } from './suite-host.mjs'
 import { catalogueEffectif } from './catalogue-distant.mjs'
+import { writeGuard } from './session-guard.mjs'
 // Hosted instance: also accept the authorities declared to DSH with --trusted-host. The core bundle publishes the predicate
 // (kybernos-plugin/trusted-authority.mjs); absent or failing, it answers false and the guard stays loopback-only.
 const kbTrusted = (host) => { try { const f = globalThis[Symbol.for('kybernos.trustedAuthority')]; return typeof f === 'function' && f(host) === true } catch (e) { return false } }
@@ -126,6 +127,9 @@ export function monterRoutes (webServer, hub, liens = {}) {
     if (sameOriginLax(req) === false) return envoyer(res, 403, { ok: false, error: 'origin-refused' })
     return envoyer(res, 200, hub.etat())
   }
+  // The one POST of this bundle that stays at the Origin alone, on purpose (scripts/route-guard-exceptions.mjs): it is the crash detector, and a detector
+  // that needs the session it exists to survive would go blind exactly when it matters. It writes a verdict about the current boot and nothing else, and the
+  // worst a forged one does is show the « safe mode is recommended » banner: safe mode itself is only ever turned on by the person, with the lifecycle robot.
   const balise = async (req, res) => {
     if (req.method !== 'POST') return envoyer(res, 405, { ok: false, error: 'method-not-allowed' })
     if (sameOriginStrict(req) === false) return envoyer(res, 403, { ok: false, error: 'origin-refused' })
@@ -179,9 +183,15 @@ export function monterSuite (webServer, deps, liens = {}) {
     const ev = evaluation()
     return envoyer(res, 200, charge({ catalogue: deps.catalogue, brut: lire(), etatHub: deps.hub.etat(), effectif: catalogueEffectif({ embarque: deps.catalogue, evaluation: ev }), distant: distant(ev) }))
   }
+  // Every POST of the Suite panel changes the machine (a module installed, the engine replaced, DSH restarted, the signed catalogue fetched), so
+  // it needs DSH's signed browser session as well as the right Origin (session-guard.mjs, kybernos-terminal's rule, L3-14): plugin routes are served
+  // before DSH's own login and an Origin header is forgeable by any local program. The callers are pages (the Suite panel and Maintenance), which
+  // carry the cookie by themselves; a paired phone is refused (`refused_on_phone`). The boot beacon is the one POST that stays at the Origin alone.
   const corpsJson = async (req, res) => {
     if (req.method !== 'POST') { envoyer(res, 405, { ok: false, error: 'method-not-allowed' }); return undefined }
     if (sameOriginStrict(req) === false) { envoyer(res, 403, { ok: false, error: 'origin-refused' }); return undefined }
+    const refuse = writeGuard(req)
+    if (refuse !== null) { envoyer(res, refuse.status, { ok: false, error: refuse.error }); return undefined }
     if (!String(req.headers?.['content-type'] ?? '').toLowerCase().startsWith('application/json')) { envoyer(res, 415, { ok: false, error: 'json-required' }); return undefined }
     try { return (await lireCorps(req)) ?? {} } catch { envoyer(res, 400, { ok: false, error: 'bad-body' }); return undefined }
   }
