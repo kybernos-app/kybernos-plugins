@@ -1372,19 +1372,23 @@ try {
     { id: 'wan-3.0', object: 'model', owned_by: 'kybernos', kind: 'video', display_name: 'Wan 3.0', unit_pricing: { unit: 'second', usd: '0.40' } },
     { id: 'fish-s2.1-pro', object: 'model', owned_by: 'kybernos', kind: 'speech', unit_pricing: { unit: 'thousand_characters', usd: '0.06' } },
     { id: 'odd-price', object: 'model', owned_by: 'kybernos', kind: 'video', unit_pricing: { unit: 'second', usd: 'free' } },
+    { id: 'fine-price', object: 'model', owned_by: 'kybernos', kind: 'speech', unit_pricing: { unit: 'thousand_characters', usd: '0.015000000' } },
+    { id: 'too-fine', object: 'model', owned_by: 'kybernos', kind: 'image', unit_pricing: { unit: 'image', usd: '0.1400000001' } },
     { id: 'rerank-1', object: 'model', owned_by: 'kybernos', kind: 'rerank' },
   ] }
   const creative = await hit('/kybernos-cloud/models/sync', 'POST')
   assert.equal(creative.body.ok, true)
   assert.deepEqual(creative.body.models.ids, ['glm-5.3'], 'the chat route holds chat models only')
   assert.deepEqual(settingsCalls.at(-1).value.models.map((m) => m.id), ['glm-5.3'], 'a picture, video or voice model never enters the chat route')
-  assert.deepEqual(creative.body.models.creation.map((c) => c.id), ['seedream-5.0', 'wan-3.0', 'fish-s2.1-pro', 'odd-price'], 'in the server order; an unknown kind is dropped')
+  assert.deepEqual(creative.body.models.creation.map((c) => c.id), ['seedream-5.0', 'wan-3.0', 'fish-s2.1-pro', 'odd-price', 'fine-price', 'too-fine'], 'in the server order; an unknown kind is dropped')
   assert.deepEqual(creative.body.models.creation[0], { id: 'seedream-5.0', name: 'Seedream 5.0', kind: 'image', unit: 'image', usd: '0.14' })
   assert.deepEqual(creative.body.models.creation[1], { id: 'wan-3.0', name: 'Wan 3.0', kind: 'video', unit: 'second', usd: '0.40' })
   assert.deepEqual(creative.body.models.creation[2], { id: 'fish-s2.1-pro', name: 'fish-s2.1-pro', kind: 'speech', unit: 'thousand_characters', usd: '0.06' }, 'no display name: the id, never an invented one')
   assert.deepEqual(creative.body.models.creation[3], { id: 'odd-price', name: 'odd-price', kind: 'video', unit: null, usd: null }, 'a price that does not read is left out')
+  assert.deepEqual(creative.body.models.creation[4], { id: 'fine-price', name: 'fine-price', kind: 'speech', unit: 'thousand_characters', usd: '0.015000000' }, 'the server writes up to nine decimals: kept as written')
+  assert.deepEqual(creative.body.models.creation[5], { id: 'too-fine', name: 'too-fine', kind: 'image', unit: null, usd: null }, 'ten decimals is not a price the server writes: left out')
   const creationList = await hit('/kybernos-cloud/models', 'GET')
-  assert.deepEqual(creationList.body.models.creation.map((c) => c.id), ['seedream-5.0', 'wan-3.0', 'fish-s2.1-pro', 'odd-price'], 'the Models page reads them from the models route')
+  assert.deepEqual(creationList.body.models.creation.map((c) => c.id), ['seedream-5.0', 'wan-3.0', 'fish-s2.1-pro', 'odd-price', 'fine-price', 'too-fine'], 'the Models page reads them from the models route')
   assert.equal(leaks(creationList.body), false, 'never the token')
   // A catalogue without any creation model (an older server) leaves an empty list, and the plugin\'s next import writes it back.
   catalog = beforeCreation

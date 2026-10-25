@@ -28,8 +28,16 @@ const UNIT_LABEL = { image: 'image', second: 's', thousand_characters: '1,000 ch
 export const MAX_SHOTS = 40
 const plain = (v) => v !== null && typeof v === 'object' && !Array.isArray(v)
 
-/** A decimal price string ("0.14") -> millionths of a dollar, or null when it is not a plain decimal. Money is added in integers. */
-export const toMicro = (usd) => (typeof usd === 'string' && /^\d{1,6}(?:\.\d{1,6})?$/.test(usd) ? Math.round(Number(usd) * 1e6) : null)
+/**
+ * A decimal price string ("0.14", at most nine decimals as the server writes them) -> millionths of a dollar, or null when it is not a plain
+ * decimal. Money is added in integers, parsed from the digits (never through a float) and rounded UP to the millionth: never less than the price.
+ */
+export const toMicro = (usd) => {
+  if (typeof usd !== 'string' || !/^\d{1,6}(?:\.\d{1,9})?$/.test(usd)) return null
+  const [whole, frac = ''] = usd.split('.')
+  const nano = BigInt(whole) * 1000000000n + BigInt(frac.padEnd(9, '0'))
+  return Number((nano + 999n) / 1000n)
+}
 /** Millionths -> dollars rounded UP to the cent: a quote never says less than it will cost. */
 export const dollars = (micro) => (Math.ceil(micro / 1e4) / 100).toFixed(2)
 const price = (m) => (m.usd === null ? 'no price' : '$' + m.usd + ' / ' + UNIT_LABEL[m.unit])
