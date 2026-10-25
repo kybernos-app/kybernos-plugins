@@ -4,7 +4,11 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { apply as appliquer, outilRelance } from './index.js'
+import { sessionSource } from './session-guard.mjs'
+import { SESSION_SECRET, sessionCookie } from './lib-session-test.mjs'
 
+// The route needs the signed session as well as the Origin (L3-14): the Suite panel's own request carries both.
+sessionSource.secret = () => SESSION_SECRET
 let total = 0; let echecs = 0
 const ok = (nom, cond, detail = '') => { total++; if (cond) console.log('  ✓ ' + nom); else { echecs++; console.log('  ✗ ' + nom + (detail ? ' — ' + detail : '')) } }
 
@@ -26,7 +30,7 @@ const demande = async (port) => {
   const authority = '127.0.0.1:' + port
   const req = Object.assign((async function * () { yield Buffer.from(JSON.stringify({ confirm: true })) })(), {
     method: 'POST',
-    headers: { host: authority, origin: 'http://' + authority, 'content-type': 'application/json' },
+    headers: { host: authority, origin: 'http://' + authority, cookie: sessionCookie(authority), 'content-type': 'application/json' },
     socket: { localPort: port },
   })
   const res = { code: null, body: null, writeHead (c) { this.code = c }, end (b) { this.body = b === undefined ? null : JSON.parse(b) } }

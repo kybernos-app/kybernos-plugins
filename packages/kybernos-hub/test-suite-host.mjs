@@ -5,6 +5,8 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { activesResolues, avecLesModulesDeCetteCopie, basculer, charge, desactivesAEcrire, installer, lireActivation } from './suite-host.mjs'
 import { monterSuite } from './hub-host.mjs'
+import { sessionSource } from './session-guard.mjs'
+import { SESSION_SECRET, sessionCookie } from './lib-session-test.mjs'
 import * as moteur from '../../scripts/lifecycle-engine.mjs'
 
 const ICI = dirname(fileURLToPath(import.meta.url))
@@ -12,6 +14,8 @@ const catalogue = JSON.parse(readFileSync(join(ICI, 'catalog.json'), 'utf8'))
 // How many modules there are is decided by the lifecycle's package list, not by this file:
 // a hard-coded count broke the suite for every bundle added (it said 25 until the 26th).
 const NB_MODULES = JSON.parse(readFileSync(join(ICI, '..', '..', 'scripts', 'lifecycle-packages.json'), 'utf8')).packages.length
+// The Suite panel's POSTs need the signed session as well as the Origin (L3-14): the panel's own request carries both.
+sessionSource.secret = () => SESSION_SECRET
 let echecs = 0
 let total = 0
 const ok = (nom, cond, detail) => { total++; if (cond) console.log('  ✓ ' + nom); else { echecs++; console.log('  ✗ ' + nom + (detail !== undefined ? ' — ' + detail : '')) } }
@@ -121,7 +125,7 @@ monterSuite({ register: (r) => { routes[r.path] = r.handler } }, deps)
 const faux = (methode, corps, entetes = {}) => {
   const req = Object.assign((async function * () { if (corps !== undefined) yield Buffer.from(JSON.stringify(corps)) })(), {
     method: methode,
-    headers: { origin: 'http://127.0.0.1:3080', 'content-type': 'application/json', ...entetes },
+    headers: { origin: 'http://127.0.0.1:3080', cookie: sessionCookie('127.0.0.1:3080'), 'content-type': 'application/json', ...entetes },
     socket: { localPort: 3080 }
   })
   const res = { code: null, body: null, writeHead (c) { this.code = c }, end (b) { this.body = b === undefined ? null : JSON.parse(b) } }

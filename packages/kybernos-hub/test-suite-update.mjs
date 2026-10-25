@@ -5,12 +5,16 @@ import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { monterSuite } from './hub-host.mjs'
+import { sessionSource } from './session-guard.mjs'
+import { SESSION_SECRET, sessionCookie } from './lib-session-test.mjs'
 import { detecterHebergement, etatDistant, evaluerCache, mettreAJour, plateformeDe, rafraichir } from './suite-host.mjs'
 import { evaluer } from './catalogue-distant.mjs'
 import { assemblerRelease, genererCles, octetsDe, signer } from './catalogue-publication.mjs'
 
 const ICI = dirname(fileURLToPath(import.meta.url))
 const embarque = JSON.parse(readFileSync(join(ICI, 'catalog.json'), 'utf8'))
+// The route needs the signed session as well as the Origin (L3-14): the Suite panel's own request carries both.
+sessionSource.secret = () => SESSION_SECRET
 let echecs = 0
 let total = 0
 const ok = (nom, cond, detail) => { total += 1; if (cond) console.log('  ✓ ' + nom); else { echecs += 1; console.log('  ✗ ' + nom + (detail !== undefined ? ' — ' + JSON.stringify(detail).slice(0, 240) : '')) } }
@@ -156,7 +160,7 @@ console.log('the routes')
   })
   const monter = (d) => { const r = {}; monterSuite({ register: (x) => { r[x.path] = x.handler } }, d); return r }
   const faux = (methode, corps, entetes = {}) => {
-    const req = Object.assign((async function * () { if (corps !== undefined) yield Buffer.from(JSON.stringify(corps)) })(), { method: methode, headers: { origin: 'http://127.0.0.1:3080', 'content-type': 'application/json', ...entetes }, socket: { localPort: 3080 } })
+    const req = Object.assign((async function * () { if (corps !== undefined) yield Buffer.from(JSON.stringify(corps)) })(), { method: methode, headers: { origin: 'http://127.0.0.1:3080', cookie: sessionCookie('127.0.0.1:3080'), 'content-type': 'application/json', ...entetes }, socket: { localPort: 3080 } })
     return { req, res: { code: null, body: null, writeHead (c) { this.code = c }, end (b) { this.body = b === undefined ? null : JSON.parse(b) } } }
   }
   const appeler = async (r, chemin, methode, corps, entetes) => { const { req, res } = faux(methode, corps, entetes); await r[chemin](req, res); return res }
