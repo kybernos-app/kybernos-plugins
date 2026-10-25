@@ -1032,6 +1032,17 @@ ok('selecteur d equipe : route du choix, evenement d ouverture, message d equipe
     assert.ok(seen[seen.length - 1].node.data.message.startsWith('You are no longer in the team'))
     older.root.unmount()
   }
+  // 4c. L3-76 / DL-20 — the host refused a turn whose model route still names the previous team: its sentence, in the shipped row, with no engine code.
+  {
+    const stale = await draw({ node: node({ code: 'UNKNOWN', message: 'Your messages would be billed to Acme. Try again.' }), t: T }, { ok: false })
+    assert.equal(seen[seen.length - 1].node.data.message, 'Your messages would be billed to Acme. Try again.')
+    assert.equal(seen[seen.length - 1].node.data.code, undefined, 'the engine\'s UNKNOWN badge is not shown beside it')
+    assert.ok(!stale.html.includes('turn-error-action'), 'no button: the person sends the message again')
+    stale.root.unmount()
+    const near = await draw({ node: node({ code: 'UNKNOWN', message: 'Your messages would be billed to Acme. Try again. Please.' }), t: T }, { ok: false })
+    assert.equal(seen[seen.length - 1].node.data.code, 'UNKNOWN', 'anything else that merely starts alike is the shipped row untouched')
+    near.root.unmount()
+  }
   // 5. The slot's owner goes away (or the plugin is unloaded): the wrapper is withdrawn, the shipped row alone is left.
   assert.ok(typeof disposeInject === 'function', 'the registration is disposable')
   disposeInject()

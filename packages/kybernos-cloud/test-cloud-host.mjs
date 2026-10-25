@@ -627,6 +627,9 @@ sessionSource.secret = () => SESSION_SECRET
 // rechargement non demande fausserait les compteurs de requetes des tests.
 mod.MEMORY_TUNING.writeRefreshMs = -1
 mod.MEMORY_TUNING.tickMs = 3600000
+// A route the test breaks on purpose is mended by itself 10 s, 30 s and 2 min later (L3-76): this file runs longer than that and counts the server's calls, so the tries are off here
+// (test-chat-space-host.mjs plays them).
+mod.ROUTE_REPAIR_TUNING.delaysMs = []
 mod.apply(ctx)
 
 const fakeRes = () => ({
