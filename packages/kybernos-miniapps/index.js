@@ -233,10 +233,45 @@ async function lister () {
 // that only carries `get` (same pattern as kybernos-slides).
 // The request body is read by hand (no body parser on these routes —
 // same event-based reading as kybernos-slides).
-const lireCorps = (req) => new Promise((res) => {
-  let corps = ''
-  req.on('data', (d) => { corps += d })
-  req.on('end', () => { try { res(JSON.parse(corps || '{}')) } catch { res({}) } })
+// The body of a POST, counted as it arrives: the rule of `readBody(req, cap)` in kybernos-search/guard.mjs (bundles read on their own, so the small
+// function is copied, not imported), over events because the tests of this bundle drive the routes with a request stand-in that has `on()` only.
+// Past `cap` bytes nothing more is kept, the caller gets 413 with `Connection: close` and the request is destroyed once the answer is out; the
+// promise then resolves `null` and the route stops (the answer is already sent). Before, the body was added to a string without any limit (the
+// 4 MB rule of `installer` only judged the html field after the whole body had been read), and past 512 MB that throws `RangeError: Invalid string
+// length` inside the 'data' listener, where nobody catches it, and DSH ends with all its sessions (recette L3-51, L3-43). A request that ends badly
+// (aborted, reset) resolves `null` too: nobody is left to answer. `code` is what the page words (`html-long`: « the page is too large »).
+// Caps, by what each route really receives: `install` carries the serialised panel, at most 4,000,000 characters of html that `installer` enforces
+// (a JSON string escapes quotes and line breaks and a non-ASCII character takes up to 4 bytes, so 16 MiB leaves room for every page `installer` would
+// accept); `uninstall` carries `{ id }`.
+const CORPS_INSTALL_MAX = 16 * 1024 * 1024
+const CORPS_RETRAIT_MAX = 8 * 1024
+const lireCorps = (req, res, cap, code = 'corps-trop-gros') => new Promise((resoudre) => {
+  const morceaux = []
+  let taille = 0
+  let fini = false
+  const finir = (valeur) => { if (fini) return; fini = true; morceaux.length = 0; resoudre(valeur) }
+  req.on('data', (d) => {
+    if (fini) return
+    const octets = typeof d === 'string' ? Buffer.from(d) : d
+    taille += octets.length
+    if (taille > cap) {
+      try { res.setHeader?.('Connection', 'close') } catch { /* a stand-in */ }
+      try { res.once?.('finish', () => req.destroy?.()) } catch { /* a stand-in */ }
+      res.writeHead(413, { 'Content-Type': 'application/json' })
+      res.end(JSON.stringify({ ok: false, code, erreur: 'request body too large (' + (cap >= 1024 * 1024 ? Math.round(cap / (1024 * 1024)) + ' MiB' : Math.round(cap / 1024) + ' KiB') + ' at most)' }))
+      finir(null)
+      return
+    }
+    morceaux.push(octets)
+  })
+  req.on('end', () => {
+    if (fini) return
+    const brut = morceaux.length === 0 ? '' : Buffer.concat(morceaux).toString('utf8')
+    // `null` is the "already answered" signal of this function, so a body that is the JSON text `null` reads as an empty one.
+    try { finir(JSON.parse(brut || '{}') ?? {}) } catch { finir({}) }
+  })
+  req.on('error', () => finir(null))
+  req.on('close', () => finir(null))
 })
 
 /** Answers a handler's JSON result. A disk or codesign failure used to reject the async handler: the engine answers with a
@@ -266,13 +301,17 @@ export function apply (ctx) {
         const refus = writeGuard(req)
         if (refus !== null) { res.writeHead(refus.status, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ ok: false, error: refus.error })); return }
         if (!jsonSeulement(req)) { res.writeHead(415); res.end('application/json content-type expected'); return }
-        await repondreJson(res, async () => installer(await lireCorps(req)))
+        const corps = await lireCorps(req, res, CORPS_INSTALL_MAX, 'html-long')
+        if (corps === null) return
+        await repondreJson(res, async () => installer(corps))
       } })
       webServerSvc.register({ kind: 'exact', path: '/kybernos-miniapps/uninstall', handler: async (req, res) => {
         const refus = writeGuard(req)
         if (refus !== null) { res.writeHead(refus.status, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ ok: false, error: refus.error })); return }
         if (!jsonSeulement(req)) { res.writeHead(415); res.end('application/json content-type expected'); return }
-        await repondreJson(res, async () => desinstaller(await lireCorps(req)))
+        const corps = await lireCorps(req, res, CORPS_RETRAIT_MAX)
+        if (corps === null) return
+        await repondreJson(res, async () => desinstaller(corps))
       } })
       webServerSvc.register({ kind: 'exact', path: '/kybernos-miniapps/list', handler: async (_req, res) => {
         await repondreJson(res, lister)

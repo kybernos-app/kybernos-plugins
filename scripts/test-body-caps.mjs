@@ -80,6 +80,22 @@ const BUNDLES = [
     bodies: { '/kybernos-modeleur/push': 2 * MIB, '/kybernos-modeleur/annote': 2 * MIB },
     none: ['/kybernos-modeleur/state'],
   },
+  {
+    bundle: 'kybernos-miniapps',
+    // `~/Applications/Kybernos` and `~/Library/LaunchAgents` are read when the module is loaded: the run happens in a throw-away HOME, and uninstall gets an id nothing has.
+    mount: async (web, home) => {
+      const keep = process.env.HOME
+      process.env.HOME = home
+      try {
+        const { apply } = await load('kybernos-miniapps', 'index.js')
+        apply({ get: (n) => (n === 'webServer' ? web : undefined), effect: (fn) => fn(), inject: (_n, fn) => fn() })
+      } finally { process.env.HOME = keep }
+    },
+    // install: 16 MiB, 4 times the 4,000,000 characters of html that `installer` accepts (JSON escapes, UTF-8 takes up to 4 bytes); uninstall: `{ id }`, 8 KiB.
+    bodies: { '/kybernos-miniapps/install': 16 * MIB, '/kybernos-miniapps/uninstall': 8 * KIB },
+    exact: { '/kybernos-miniapps/uninstall': '{"id":"zz-body-cap-probe"}' },
+    none: ['/kybernos-miniapps/list'],
+  },
 ]
 
 // ── What a client and a handler see ─────────────────────────────────────────────────────────────────────────────────────────
