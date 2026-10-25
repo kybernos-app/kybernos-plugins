@@ -82,12 +82,24 @@ const SCENE = {
 }
 
 try {
+  // A run killed at its timeout leaves its scene (and its revision number) behind: start from nothing, or the first save reads « rev 3 ».
+  cleanup()
   // ═══ 1. host, file, tab ═══════════════════════════════════════════════════════════════
   console.log('\n── 1. the host, a scene file, the tab ──')
   const st0 = await val(`fetch('/kybernos-motion/state').then((r) => r.json()).then((j) => JSON.stringify(j)).catch(() => null)`)
   check('the host answers on /kybernos-motion/state', typeof st0 === 'string' && JSON.parse(st0).ok === true, st0)
   // a session must be mounted for the right sidebar: write a first message from the empty composer (no model here, the turn fails, that is fine)
+  // A new chat opens in the workspace used last (Kaby's, an automation's…), and the Motion tab opens for a scene written in the folder of the chat on screen: the chat is made in the
+  // workspace of this checkout (the sidebar's « New session in <folder name> »), whose artifacts/ folder the scene goes to.
+  const workspaceName = worktree.split('/').filter((x) => x !== '').pop() || ''
+  await poll(() => val(`document.querySelector('[contenteditable="true"], textarea') !== null`), 20000)
+  if (workspaceName !== '') {
+    const pressed = await val(`(() => { const b = document.querySelector('button[aria-label="New session in ' + ${JSON.stringify(workspaceName)} + '"]'); if (!b) return false; b.click(); return true })()`)
+    if (pressed !== true) console.log('  · no « New session in ' + workspaceName + ' » in the sidebar: the chat is made in the workspace the page opened on')
+    await sleep(1200)
+  }
   const composer = await poll(() => val(`(() => { const e = document.querySelector('[contenteditable="true"], textarea'); if (!e) return null; const r = e.getBoundingClientRect(); return JSON.stringify({ x: r.x + 40, y: r.y + r.height / 2 }) })()`), 20000)
+  let chatMounted = false
   if (typeof composer === 'string') {
     const { x, y } = JSON.parse(composer)
     await page.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x, y })
@@ -99,6 +111,8 @@ try {
     await page.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13, text: '\r' })
     await page.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
     await sleep(1500)
+    // A chat is mounted when the right sidebar can be opened (its toggle, or the « New tab » of its tab bar, is on the page): the typed text alone is on screen in an empty draft too.
+    chatMounted = (await poll(() => val(`document.querySelector('button[aria-label="Open right sidebar"], button[aria-label="New tab"]') !== null`), 12000)) === true
   }
   mkdirSync(dir, { recursive: true })
   const saved = await val(`fetch('/kybernos-motion/save', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ path: ${JSON.stringify(scenePath)}, scene: ${JSON.stringify(SCENE)}, what: 'live check', title: 'Live check' }) }).then((r) => r.json()).then((j) => JSON.stringify(j)).catch((e) => String(e))`)
@@ -106,6 +120,14 @@ try {
   check('a scene is saved through the real route, inside the allowed folder', savedJson !== null && savedJson.ok === true && savedJson.rev === 1, saved)
   check('the file on disk is a motion doc with its first revision', readScene() !== null && readScene().kind === 'motion' && readScene().meta.rev === 1)
   const tab = await poll(() => val(`!!document.querySelector('[data-kb="motion-panel"]')`), 20000)
+  // Without the panel nothing below can be read, and each wait would add its 15 s up to the runner's limit. With no chat mounted the right sidebar cannot exist: that is « not measured »
+  // (exit 3). With a chat on screen and no tab, the promise is broken: one red line, and the rest (which needs the panel) is not run.
+  if (tab !== true) {
+    if (chatMounted !== true) { console.error('○ inconclusive: no chat session is mounted in this instance (the first message made none: this instance has no model to answer it), so there is no right sidebar for the Motion tab. Nothing below was measured.'); cleanup(); await live.close(); process.exit(3) }
+    check('the Motion tab opens by itself when a scene arrives', false, 'a chat is on screen and the scene is saved, but there is no [data-kb="motion-panel"]')
+    console.log('  · every other step needs the panel: not run')
+    cleanup(); await live.close(); console.log(`\n${pass} passed, ${fail} failed`); process.exit(1)
+  }
   check('the Motion tab opens by itself when a scene arrives', tab === true)
   await shot('1-panel')
 
@@ -140,12 +162,14 @@ try {
   check('the timeline has one row per layer', (await val(`document.querySelectorAll('[data-kb="motion-timeline"] .kbmt-tl-row').length`)) === SCENE.layers.length)
   check('the settings form is built from the scene\'s controls', (await val(`document.querySelectorAll('.kbmt-params .kbmt-fld').length`)) === 3)
   // edit the title: focus the field, replace the text, wait for the debounce, read the file
+  // The status « Sent to the agent » is on screen for 1.8 s after the save: it is watched from before the edit, or a busy machine reads the panel after it went.
+  await val(`(() => { window.__kbSent = false; const look = () => { const s = document.querySelector('.kbmt-status'); if (s && /(Envoyé à l’agent|Sent to the agent)/.test(s.innerText)) window.__kbSent = true }; new MutationObserver(look).observe(document.body, { subtree: true, childList: true, characterData: true }) })()`)
   await val(`(() => { const i = document.querySelector('#kbmt-f-titre'); i.focus(); i.select() })()`)
   await page.send('Input.insertText', { text: 'Titre modifié' })
   const edited = await poll(() => { const s = readScene(); return s && s.meta.rev >= 2 ? s : null }, 8000)
   check('an edit reaches the file as a new revision made by the user', edited !== null && edited.data[0].params.titre === 'Titre modifié' && edited.meta.history[edited.meta.history.length - 1].by === 'user', edited && edited.meta)
   check('the file stays lean (defaults are not written back)', edited !== null && JSON.stringify(edited.data[0]).length < 1500, edited && JSON.stringify(edited.data[0]).length)
-  check('the status says it was sent to the agent', await poll(() => val(`/(Envoyé à l’agent|Sent to the agent)/.test((document.querySelector('.kbmt-status') || { innerText: '' }).innerText)`), 3000) === true)
+  check('the status says it was sent to the agent', await poll(() => val(`window.__kbSent === true`), 6000) === true)
   await shot('2-edited')
   const revs = await val(`(() => { document.querySelector('[data-act="revisions"]').click(); return true })()`)
   const revRows = await poll(() => val(`document.querySelectorAll('.kbmt-pop .kbmt-rv').length`), 4000)

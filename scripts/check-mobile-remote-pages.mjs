@@ -188,6 +188,9 @@ try {
   check('nothing is served to the phone before approval', (await ev(P, `document.getElementById('app').hidden`)) === true)
 
   await click(D, '[data-kb="mobile-approve"]')
+  // Since the two installable apps (19/10) the phone offers the install first, DSH runs behind that screen only after « Later » (what the install itself does is check-phone-apps-live's).
+  check('after approval the phone offers to install the apps first', await until(P, `window.__kb.state === 'install'`, 20000), await ev(P, `JSON.stringify(window.__kb || null)`))
+  await click(P, '#actions button')
   const running = await until(P, `window.__kb.state === 'running'`, 20000)
   check('after approval the phone runs the computer\'s page', running === true, await ev(P, `JSON.stringify(window.__kb)`))
   // while the page is still being downloaded (megabytes of bundles share the one connection with the small answers), a

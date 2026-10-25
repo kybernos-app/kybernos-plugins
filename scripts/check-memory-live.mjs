@@ -269,6 +269,9 @@ try {
   await page.send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 2, mobile: true })
   // DSH's mobile layer decides at load (it is told by the device), so the page is loaded again, in the phone, and the section reopened.
   await page.send('Page.reload', { ignoreCache: true }); await sleep(3500)
+  // In a phone the sidebar is a drawer, shut until the menu button opens it: signed in, the account card that leads to Settings is in it, off screen while it is shut, and openSettings clicks where the card is.
+  await ev(`(() => { const b = document.querySelector('[data-kb="mobile-menu"]'); if (b) b.click() })()`)
+  await sleep(900)
   const phoneOpen = await openSettings(page, { minCells: 0 })
   await waitFor(page, navCellJs, 12000)
   await ev(`(() => { const c = [...document.querySelectorAll('[class*="navCell"]')].find(e => e.textContent.trim() === 'Memory & Lessons'); if (c) { c.scrollIntoView({ block: 'center' }); (c.querySelector('button,[role=button]') || c).click() } })()`)

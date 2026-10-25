@@ -88,7 +88,8 @@ try {
   const hero = await val(`(document.querySelector('[data-kbmh="block"]') || {innerText: ''}).innerText`)
   check('one line says it: connected, N models included', /Connected/.test(hero) && /\d+ models? included/.test(hero), hero)
   check('no key button, no « or », no « Recommended » pill once connected', (await val(`!document.querySelector('[data-kbmh="addkey"]') && !document.querySelector('[data-kbmh="badge"]') && !document.querySelector('.kbmh-hero-or')`)) === true)
-  check('« Manage » stays (its full name is the tooltip and the accessible name)', (await val(`(document.querySelector('[data-kbmh="connect"]') || { getAttribute: () => '' }).getAttribute('aria-label')`)) === 'Manage Kybernos Cloud')
+  // Connected there is nothing to press on the card: the account (e-mail, plan, teams, disconnect) is in the account menu, which is where « Manage » used to lead.
+  check('no « Connect » or « Manage » button once connected (the account menu is where the account is managed)', (await val(`!document.querySelector('[data-kbmh="connect"]')`)) === true)
   check('the Cloud card is the first cell of the provider grid, and the plain « kybernos » card is not drawn beside it', (await val(`document.querySelector('[data-kbm="prov-cards"]').firstElementChild.getAttribute('data-kbmh') === 'block' && !document.querySelector('[data-kbm="prov-card"][data-prov="kybernos"]')`)) === true)
   await shot('models-2-connected')
   await page.send('Page.addScriptToEvaluateOnNewDocument', { source: `window.__KB_FAKE_CLOUD__ = { plan: 'free' }` })
@@ -103,15 +104,19 @@ try {
   await waitFor(page, `document.querySelectorAll('[data-kbm="item"]').length > 0`, 15000)
   await sleep(500)
   const keys = await val(`Array.from(document.querySelectorAll('[data-kbm="item"]')).map((r) => r.getAttribute('data-kbm-key'))`)
+  // The catalogue grows with the profile, so no figure is written down: the page's own « shown of all » is read before the faked failures.
+  const all0 = Number((/ of (\d+)/.exec(await val(`(document.querySelector('[data-kbm="count"]') || { innerText: '' }).innerText`)) || [])[1])
   await val(`(() => {
     const keys = ${JSON.stringify(keys)}
     const rows = keys.slice(0, 5).map((k, i) => ({ cle: k, route: k.slice(0, k.indexOf('/')), cause: i === 3 ? 'gone' : 'key', code: i === 3 ? 'UNKNOWN_MODEL' : 'AUTH' }))
-    window.__kybernosHealth = { version: 1, get: () => ({ alertes: rows, total: 126, tousEnEchec: false, checking: false }), recheck () {}, hide () {} }
+    window.__kybernosHealth = { version: 1, get: () => ({ alertes: rows, total: ${all0}, tousEnEchec: false, checking: false }), recheck () {}, hide () {} }
     window.dispatchEvent(new CustomEvent('kybernos-health'))
   })()`)
   await sleep(700)
   const total = await val(`document.querySelectorAll('[data-kbm="count"]').length > 0 ? document.querySelector('[data-kbm="count"]').innerText : ''`)
-  check('the failing models are folded away from the list', /^121 of 126/.test(total), total)
+  // Five rows are faked as failing: the page now shows five fewer than it did.
+  const counted = /^(\d+) of (\d+)/.exec(total)
+  check('the failing models are folded away from the list (shown = all - 5)', counted !== null && Number.isInteger(all0) && all0 > 5 && Number(counted[2]) === all0 && all0 - Number(counted[1]) === 5, { total, all0 })
   const toggle = await val(`(document.querySelector('[data-kbm="toggle-down"]') || {innerText: null}).innerText`)
   check('« Show unavailable (5) » brings them back', toggle === 'Show unavailable (5)', toggle)
   await click('[data-kbm="toggle-down"]')
@@ -170,24 +175,36 @@ try {
   for (let i = 0; i < 10; i += 1) { await key('Tab', 'Tab', 9, false); await sleep(50); if ((await val(`!!document.querySelector('.kbpv-drawer') && document.querySelector('.kbpv-drawer').contains(document.activeElement)`)) !== true) leaks += 1 }
   for (let i = 0; i < 10; i += 1) { await key('Tab', 'Tab', 9, true); await sleep(50); if ((await val(`!!document.querySelector('.kbpv-drawer') && document.querySelector('.kbpv-drawer').contains(document.activeElement)`)) !== true) leaks += 1 }
   check('A3-40: Tab and Shift+Tab stay inside the Add provider panel', leaks === 0, leaks)
-  await typeInto('.kbpv-cb-q input', 'mistral')
-  await sleep(400)
-  await click('[data-kbm="prov-preset"][data-preset="mistral"]')
-  await sleep(400)
-  await click('[data-kbm="prov-ok"]')
-  await sleep(2500)
-  const card = await val(`(() => { const c = document.querySelector('[data-kbm="prov-card"][data-prov="mistral"]'); return c ? { dot: !!c.querySelector('.kbpv-kd-missing'), hint: (c.querySelector('[data-kbm="prov-next"]') || {}).innerText || null } : null })()`)
-  check('A3-32: the card shows « key missing » and says what to do next', card !== null && card.dot === true && /No key yet/.test(card.hint || ''), card)
-  if (card !== null) {
-    await click('[data-kbm="prov-card"][data-prov="mistral"] [data-kbm="prov-more"]')
-    await sleep(300)
-    await click('[data-kbm="prov-delete"]')
+  // The profile of the instance is a copy of a real one, which may already hold the provider this step would add (the catalogue answers « Already added » and adds nothing):
+  // the first of these that the profile does not have is the one added and deleted again.
+  let prov = null
+  for (const candidate of ['mistral', 'groq', 'cerebras', 'perplexity', 'fireworks', 'deepinfra', 'xai']) {
+    await typeInto('.kbpv-cb-q input', candidate)
     await sleep(400)
-    await typeInto('[data-kbm="prov-del-type"]', 'mistral')
-    await sleep(300)
-    await click('[data-kbm="prov-del-ok"]')
-    await sleep(1500)
-    check('(the provider it added is deleted again)', (await val(`!document.querySelector('[data-kbm="prov-card"][data-prov="mistral"]')`)) === true)
+    if ((await val(`(() => { const e = document.querySelector('[data-kbm="prov-preset"][data-preset="${candidate}"]'); return !!e && !e.disabled && !/Already added/i.test(e.innerText) })()`)) === true) { prov = candidate; break }
+  }
+  if (prov === null) console.log('  ○ every provider this step could add is already in the profile of this instance: the add-without-key step is not played')
+  else {
+    await click('[data-kbm="prov-preset"][data-preset="' + prov + '"]')
+    await sleep(400)
+    await click('[data-kbm="prov-ok"]')
+    await sleep(2500)
+    // A provider with no key is folded under the « no key » line: open that fold if it is shut.
+    await val(`(() => { if (!document.querySelector('[data-kbm="prov-card"][data-prov="${prov}"]')) { const t = document.querySelector('[data-kbm="prov-wait-toggle"]'); if (t) t.click() } })()`)
+    await sleep(500)
+    const card = await val(`(() => { const c = document.querySelector('[data-kbm="prov-card"][data-prov="${prov}"]'); return c ? { dot: !!c.querySelector('.kbpv-kd-missing'), hint: (c.querySelector('[data-kbm="prov-next"]') || {}).innerText || null } : null })()`)
+    check('A3-32: the card shows « key missing » and says what to do next', card !== null && card.dot === true && /No key yet/.test(card.hint || ''), card)
+    if (card !== null) {
+      await click('[data-kbm="prov-card"][data-prov="' + prov + '"] [data-kbm="prov-more"]')
+      await sleep(300)
+      await click('[data-kbm="prov-delete"]')
+      await sleep(400)
+      await typeInto('[data-kbm="prov-del-type"]', prov)
+      await sleep(300)
+      await click('[data-kbm="prov-del-ok"]')
+      await sleep(1500)
+      check('(the provider it added is deleted again)', (await val(`!document.querySelector('[data-kbm="prov-card"][data-prov="${prov}"]')`)) === true)
+    }
   }
 } catch (e) {
   fail += 1
