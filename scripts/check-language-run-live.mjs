@@ -142,6 +142,7 @@ try {
   await sleep(2500)
   await shot('B-marks-detected')
   const rowB = await rowText('es')
+  note('the stored record of es (what the row trusts for its count): ' + JSON.stringify(await val(`(() => { const m = JSON.parse(localStorage.getItem('kybernos.i18n.meta.es') || '{}'); return { done: m.done, total: m.total, complete: m.complete } })()`)))
   const closedSummary = await val(`(() => { const d = document.querySelector('[data-lang="es"] .kbln-dot[data-alert="warn"]'); return d && !document.querySelector(${JSON.stringify(PSEUDO)}) ? JSON.stringify({ open: false, text: (d.getAttribute('aria-label') || '').replace(/\\s+/g, ' ') }) : null })()`)
   const folded = closedSummary === null ? null : JSON.parse(closedSummary)
   check('a warning dot on the row says how many texts are to check, and that they are test marks', folded !== null && folded.open === false && /\d[\d,.\s]*\s+texts to check · test marks/.test(folded.text), folded)
@@ -213,6 +214,7 @@ try {
     await val(`(() => { const k = 'kybernos.i18n.es'; const o = JSON.parse(localStorage.getItem(k)); const ks = Object.keys(o); ks.forEach((x, i) => { if (i % 5 !== 0) delete o[x] }); localStorage.setItem(k, JSON.stringify(o)); const m = JSON.parse(localStorage.getItem('kybernos.i18n.meta.es') || '{}'); m.complete = false; localStorage.setItem('kybernos.i18n.meta.es', JSON.stringify(m)) })()`)
   }
   await cut()
+  note('after the cut, the stored record of es: ' + JSON.stringify(await val(`(() => { const m = JSON.parse(localStorage.getItem('kybernos.i18n.meta.es') || '{}'); return { done: m.done, total: m.total, complete: m.complete } })()`)))
   await val(`window.__KB_REAL__.delay = 2500`)
   await openSettings(LANGUAGE)
   await sleep(2000)
