@@ -2137,6 +2137,8 @@ let kbLocaleRead = () => 'en'
       'kbta.r.proposed': { kybernos: 'Ce qui est proposé', en: 'What is proposed' },
       'kbta.r.check': { kybernos: 'Contrôle', en: 'Check' },
       'kbta.r.checked.t': { kybernos: 'Aucune clé, aucun jeton ni mot de passe trouvé.', en: 'No key, token or password found.' },
+      'kbta.r.hidden': { kybernos: 'À risque', en: 'Unsafe' },
+      'kbta.r.hidden.t': { kybernos: 'Ce texte contient des caractères invisibles ou qui changent le sens de lecture : ce que tu lis ici n’est pas tout ce que l’agent lira. Refuse-le : il ne pourra pas être installé.', en: 'This text holds invisible or direction-changing characters: what you read here is not all the agent will read. Refuse it: it cannot be installed.' },
       'kbta.r.note': { kybernos: 'Note de l’auteur', en: 'Note from the author' },
       'kbta.r.diff': { kybernos: 'Changements dans la consigne', en: 'Changes in the prompt' },
       'kbta.r.toolong': { kybernos: 'Trop long pour une comparaison ligne à ligne.', en: 'Too long to compare line by line.' },
@@ -2261,6 +2263,7 @@ let kbLocaleRead = () => 'en'
       'kbta.e.invalid.schedule': { kybernos: 'Seule une automatisation récurrente ou par webhook peut être partagée.', en: 'Only a recurring or webhook automation can be shared.' },
       'kbta.e.invalid.needs': { kybernos: 'La liste des applications n’est pas valide (6 au plus).', en: 'The list of apps is not valid (6 at most).' },
       'kbta.e.invalid.binary': { kybernos: 'Le texte contient un caractère qui ne peut pas être enregistré.', en: 'The text holds a character that cannot be stored.' },
+      'kbta.e.invalid.hidden': { kybernos: 'Le texte contient des caractères invisibles ou qui changent le sens de lecture, qu’une équipe n’accepte pas. Retape ce passage à la main. Rien n’a été envoyé ni installé.', en: 'The text holds invisible or direction-changing characters, which a team does not accept. Retype that part by hand. Nothing was sent or installed.' },
       'kbta.e.invalid.too_large': { kybernos: 'L’automatisation est trop volumineuse.', en: 'The automation is too large.' },
       'kbta.e.once_not_shareable': { kybernos: 'Une automatisation à date unique ne peut pas être partagée.', en: 'A one-time automation cannot be shared.' },
       'kbta.e.empty_prompt': { kybernos: 'Cette automatisation n’a pas de consigne à partager.', en: 'This automation has no prompt to share.' },
@@ -21544,6 +21547,8 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         replaces: first('replaces', 'replaces'),
         supersededBy: first('supersededBy', 'superseded_by'),
         mine: o.mine === true,
+        // The relay's verdict on the text: it holds a character a person cannot see (the server refuses these now; a text approved before may still have them).
+        hidden: o.hidden === true,
       }
     }
     /** The version of a definition as the page names it: « v4 » when the row carries its number, else the first characters of its hash (the contract has no number). */
@@ -22093,7 +22098,10 @@ function renderScene(ctx, W, H, bricks, cam, opts){
             [kbt('kbta.kv.prompt'), h('div', { key: 'p', className: 'kbta-mono kbta-promptbox', 'data-kb': 'tr-prompt' }, cur.prompt === null ? '' : cur.prompt)]])),
           row.note !== null && row.note !== '' ? [kbtaLab(kbt('kbta.r.note'), { key: 'ln' }), h('div', { key: 'cn', className: 'kbta-card', 'data-kb': 'tr-note' }, row.note)] : null,
           kbtaLab(kbt('kbta.r.check'), { key: 'l2' }),
-          h('div', { key: 'c2', className: 'kbwr-card' }, kbtaChip('ok', kbt('kbta.ck.ok')), h('span', null, kbt('kbta.r.checked.t')))
+          // « Checked » only over text that can be read in full: with an invisible or direction-changing character in it the sheet says so instead (same card as a secret found).
+          cur.hidden === true || row.hidden === true
+            ? h('div', { key: 'c2', className: 'kbwr-card kbwr-err', role: 'alert', 'data-kb': 'tr-hidden' }, kbtaChip('err', kbt('kbta.r.hidden')), h('span', null, kbt('kbta.r.hidden.t')))
+            : h('div', { key: 'c2', className: 'kbwr-card' }, kbtaChip('ok', kbt('kbta.ck.ok')), h('span', null, kbt('kbta.r.checked.t')))
         ] : [
           kbtaLab(kbt('kbta.r.diff'), { key: 'l1' }),
           cur.prompt !== null && changes.prompt ? h('div', { key: 'd' }, kbtaDiffBox(changes.diff)) : h('div', { key: 'd', className: 'kbta-dimline' }, kbtaT('kbta.r.nopromptchange', { v: prevV })),

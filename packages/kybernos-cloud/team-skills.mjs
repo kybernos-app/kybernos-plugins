@@ -2,6 +2,22 @@
 // index.js makes the calls with the account token. The contract is docs/dev/team-skills-contract.md; the files themselves (packing a
 // local skill, checking and installing one) are kybernos-skills' business, this side only carries them to and from the server.
 
+import { hiddenIn } from './team-automations.mjs'
+
+/**
+ * The first place a skill holds a character a person cannot see (`hiddenIn`: the tags block, the direction controls, zero-width spaces, a BOM, control characters; DL-09): `'<description>'`,
+ * `'<note>'` or the path of a file, in that order; null when there is none. `s` is `{ description, note, files: [{ path, content }] }`; anything that is not text is not looked at.
+ */
+export const hiddenPlaceOf = (s) => {
+  const o = s !== null && typeof s === 'object' ? s : {}
+  if (hiddenIn(o.description) !== null) return '<description>'
+  if (hiddenIn(o.note) !== null) return '<note>'
+  for (const f of Array.isArray(o.files) ? o.files : []) {
+    if (f !== null && typeof f === 'object' && hiddenIn(f.content) !== null) return typeof f.path === 'string' ? f.path.slice(0, 200) : '?'
+  }
+  return null
+}
+
 /** The Team skills routes of a workspace: `/v1/workspaces/{id}/skills`. */
 export const teamSkillsBase = (workspaceId) => '/v1/workspaces/' + encodeURIComponent(workspaceId) + '/skills'
 
@@ -36,7 +52,8 @@ export const teamSkillsFailure = (status, body) => {
   if (status === 413) return { error: 'too_large' }
   if (status === 429) return { error: 'too_many_proposals', max: body !== null && typeof body === 'object' && Number.isFinite(body.max) ? body.max : undefined }
   if (status === 400) {
-    if (c === 'invalid_skill') return { error: 'invalid_skill', reason: typeof body.reason === 'string' ? body.reason : undefined }
+    // A refusal for an invisible character names the file (`<description>`, `<note>` or a path): the person needs to know where.
+    if (c === 'invalid_skill') return { error: 'invalid_skill', reason: typeof body.reason === 'string' ? body.reason : undefined, ...(body.reason === 'hidden' && typeof body.file === 'string' ? { file: body.file.slice(0, 200) } : {}) }
     if (c === 'scan_rejected') return { error: 'scan_rejected', file: typeof body.file === 'string' ? body.file : undefined }
     return { error: 'bad_request' }
   }
@@ -60,6 +77,8 @@ export const asTeamSkill = (r) => {
     fileCount: Number.isFinite(r.files_count) ? r.files_count : (withFiles ? files.length : num(r.files)),
     bytes: num(r.bytes),
     files,
+    // True when the description, the remark or a file holds a character a person cannot see: a skill approved before the server refused them. The review sheet must not call it « Checked ».
+    hidden: hiddenPlaceOf({ description: r.description, note: r.note, files }) !== null,
     proposedName: str(r.proposed_by_name),
     proposedAt: r.proposed_at === undefined ? null : r.proposed_at,
     reviewedName: str(r.reviewed_by_name),
