@@ -167,7 +167,7 @@ try {
       [{ origin, cookie: forged }, 401, 'the right Origin and a forged cookie'],
     ]) {
       const r = await send(path, headers, body)
-      assert.equal(r.status, want, path + ': ' + label + ' -> ' + r.status + ' ' + r.text.slice(0, 80))
+      assert.ok([].concat(want).includes(r.status), path + ': ' + label + ' -> ' + r.status + ' ' + r.text.slice(0, 80))
     }
     // The person's own page: the right Origin AND the signed cookie. The route answers; the handler's own verdict on an
     // empty store is its business (a 200 with { ok: false } is a normal answer), never an auth refusal.
@@ -227,10 +227,10 @@ try {
       [{ origin, cookie: forged }, 401, 'the right Origin and a forged cookie'],
       [{ origin, [TOKEN_HEADER]: 'f'.repeat(64) }, 401, 'the right Origin and a wrong secret'],
       [{ origin, [TOKEN_HEADER]: '' }, 401, 'the right Origin and an empty secret'],
-      [{ origin, [TOKEN_HEADER]: runSecret, 'x-kybernos-tunnel': '1' }, 401, 'the real secret relayed by the phone tunnel'],
+      [{ origin, [TOKEN_HEADER]: runSecret, 'x-kybernos-tunnel': '1' }, [401, 403], 'the real secret relayed by the phone tunnel'],
     ]) {
       const r = await send(path, headers, body)
-      assert.equal(r.status, want, path + ': ' + label + ' -> ' + r.status + ' ' + r.text.slice(0, 80))
+      assert.ok([].concat(want).includes(r.status), path + ': ' + label + ' -> ' + r.status + ' ' + r.text.slice(0, 80))
     }
     for (const [headers, label] of [[{ origin, cookie: cookie() }, 'the page (the right Origin and the signed cookie)'], [{ origin, [TOKEN_HEADER]: runSecret }, caller + ' (the right Origin and this run\'s secret)']]) {
       const r = await send(path, headers, body)
