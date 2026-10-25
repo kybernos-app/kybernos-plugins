@@ -11318,10 +11318,14 @@ function boot(ctx) {
         } catch (e) { /* unparsable Host: loopback authorities only */ }
         return kbVerifySessionCookie(req.headers.cookie, authorities, secret, Date.now(), { createHash, createHmac, timingSafeEqual })
       }
+      // A write replayed from a paired phone (kybernos-mobile marks every request it replays) is refused, as session-guard.mjs's writeGuard refuses it on the other routes:
+      // a phone has the power of the keyboard, and this route schedules runs of the agent. Reads stay open to it.
+      const kbTunnelledWrite = (req) => ['GET', 'HEAD', 'OPTIONS'].indexOf(String(req.method || 'GET').toUpperCase()) === -1 && req.headers != null && req.headers['x-kybernos-tunnel'] !== undefined
+      const kbTasksRefused = async (req) => (kbTunnelledWrite(req) ? { status: 403, error: 'refused_on_phone' } : (await kbTasksAuthorized(req) === true ? null : { status: 401, error: 'sign-in required' }))
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/tasks', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
-        if (await kbTasksAuthorized(req) !== true) return sendJson(res, 401, { ok: false, error: 'sign-in required' })
+        { const refused = await kbTasksRefused(req); if (refused !== null) return sendJson(res, refused.status, { ok: false, error: refused.error }) }
         let body = null
         try { body = await readJsonBody(req, 200000) } catch (e) { return sendJson(res, 413, { ok: false, error: 'request body too large' }) }
         if (body === null || typeof body !== 'object' || Array.isArray(body) === true) return sendJson(res, 400, { ok: false, error: 'a JSON object is expected' })
@@ -11400,7 +11404,7 @@ function boot(ctx) {
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/suggestions', handler: async (req, res) => {
         if (req.method !== 'GET' && req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'GET or POST expected' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
-        if (await kbTasksAuthorized(req) !== true) return sendJson(res, 401, { ok: false, error: 'sign-in required' })
+        { const refused = await kbTasksRefused(req); if (refused !== null) return sendJson(res, refused.status, { ok: false, error: refused.error }) }
         try {
           if (req.method === 'GET') {
             const kind = queryOf(req).get('kind')
@@ -11420,7 +11424,7 @@ function boot(ctx) {
         if (req.method !== 'GET' && req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'GET or POST expected' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
         if (req.method === 'GET') return sendJson(res, 200, Object.assign({ ok: true }, autoSettingsView(await kbAutoSettingsRead())))
-        if (await kbTasksAuthorized(req) !== true) return sendJson(res, 401, { ok: false, error: 'sign-in required' })
+        { const refused = await kbTasksRefused(req); if (refused !== null) return sendJson(res, refused.status, { ok: false, error: refused.error }) }
         let body = null
         try { body = await readJsonBody(req, 2000) } catch (e) { return sendJson(res, 413, { ok: false, error: 'request body too large' }) }
         const next = autoSettingsApply(await kbAutoSettingsRead(), body)
@@ -11447,7 +11451,7 @@ function boot(ctx) {
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/automation-skills', handler: async (req, res) => {
         if (req.method !== 'GET' && req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'GET or POST expected' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
-        if (req.method === 'POST' && await kbTasksAuthorized(req) !== true) return sendJson(res, 401, { ok: false, error: 'sign-in required' })
+        if (req.method === 'POST') { const refused = await kbTasksRefused(req); if (refused !== null) return sendJson(res, refused.status, { ok: false, error: refused.error }) }
         try {
           let id = ''
           if (req.method === 'GET') id = String(queryOf(req).get('id') || '')

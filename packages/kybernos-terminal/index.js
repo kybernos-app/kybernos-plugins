@@ -238,6 +238,9 @@ export function monterRoutes (webServerSvc, options = {}) {
     path: '/kybernos-terminal/run',
     handler: async (req, res) => {
       if (!origineOK(req)) { repondre(res, 403, { ok: false, erreur: 'origin refused' }); return }
+      // A request replayed from a paired phone (kybernos-mobile marks it) never gets a shell: the phone has the keyboard, not the machine.
+      // `error` is the code the phone page recognises (it shows « this cannot be done from the phone »); `erreur` is this route's usual field.
+      if (req.headers != null && req.headers['x-kybernos-tunnel'] !== undefined) { repondre(res, 403, { ok: false, error: 'refused_on_phone', erreur: 'this cannot be done from the phone' }); return }
       if (String(req.method || '').toUpperCase() !== 'POST') { repondre(res, 405, { ok: false, erreur: 'POST expected' }); return }
       // Closed unless DSH's own session cookie proves a signed-in browser. No secret = no shell.
       const secret = lireSecret()
