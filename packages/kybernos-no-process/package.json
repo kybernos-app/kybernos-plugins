@@ -1,5 +1,5 @@
 {
-  "name": "@local/kybernos-inproc-exec",
+  "name": "@local/kybernos-no-process",
   "version": "0.0.1",
   "private": true,
   "type": "module",

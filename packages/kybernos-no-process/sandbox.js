@@ -1,4 +1,4 @@
-// kybernos-inproc-exec/sandbox: the engine's SandboxProvider for a host that runs commands inside the process. `confine` cannot wrap argv in an OS
+// kybernos-no-process/sandbox: the engine's SandboxProvider for a host that runs commands inside the process. `confine` cannot wrap argv in an OS
 // runner there; it wraps it for the in-process runner, which enforces the file policy itself (the in-process shell checks every write against it).
 import { SandboxProvider } from '@deepseek-ai/dsh-sandbox'
 

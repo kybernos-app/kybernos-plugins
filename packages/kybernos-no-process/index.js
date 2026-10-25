@@ -1,4 +1,4 @@
-// kybernos-inproc-exec: a subprocess provider for a host that cannot create processes (iOS). It implements the engine's own seam,
+// kybernos-no-process: a subprocess provider for a host that cannot create processes (iOS). It implements the engine's own seam,
 // `SubprocessRuntime` (ctx.subprocess), and answers the few programs the model-facing tools launch by running them inside the process:
 // `rg` (glob and grep, rg.mjs) and, when a shell is wired, `bash -c`. Anything else is refused the way the OS would refuse it.
 import { Readable } from 'node:stream'
@@ -13,9 +13,9 @@ const pickShell = async () => {
   try { return ['just-bash', (await import('./just-shell.mjs')).runShell] } catch (e) { return ['mini-shell (just-bash unavailable: ' + (e && e.code ? e.code : String(e && e.message)).slice(0, 80) + ')', miniShell] }
 }
 const [SHELL_NAME, SHELL] = await pickShell()
-try { console.log('[kybernos-inproc-exec] shell: ' + SHELL_NAME) } catch { /* no console */ }
+try { console.log('[kybernos-no-process] shell: ' + SHELL_NAME) } catch { /* no console */ }
 
-const eperm = (what) => Object.assign(new Error(`spawn ${what} EPERM: this device cannot create processes (kybernos-inproc-exec)`), { code: 'EPERM', errno: -1, syscall: 'spawn' })
+const eperm = (what) => Object.assign(new Error(`spawn ${what} EPERM: this device cannot create processes (kybernos-no-process)`), { code: 'EPERM', errno: -1, syscall: 'spawn' })
 const VIRTUAL = '/__inproc__/'
 const SHELLS = new Set(['bash', 'sh', 'zsh'])
 
@@ -41,14 +41,14 @@ export default class InProcessSubprocess extends SubprocessRuntime {
   async resolveExecutable(command) {
     const name = basename(command)
     if (SHELLS.has(name) || name === 'rg') return VIRTUAL + name
-    throw new SubprocessExecutableNotFoundError(`kybernos-inproc-exec: ${JSON.stringify(command)} is not available in this process`)
+    throw new SubprocessExecutableNotFoundError(`kybernos-no-process: ${JSON.stringify(command)} is not available in this process`)
   }
 
   async terminalEnvironment() { return { platform: 'posix', defaultShell: VIRTUAL + 'bash' } }
 
   spawn(spec) {
     if (spec.signal?.aborted) throw spec.signal.reason ?? new Error('aborted')
-    if (!Array.isArray(spec.argv) || spec.argv.length === 0) throw new Error('kybernos-inproc-exec: argv must be non-empty')
+    if (!Array.isArray(spec.argv) || spec.argv.length === 0) throw new Error('kybernos-no-process: argv must be non-empty')
     // The sandbox provider of this host wraps argv as [confine, mode, root, ...argv]: unwrap it and carry the policy to the shell.
     let argv = spec.argv
     let policy = { mode: 'danger-full-access', root: spec.cwd }
