@@ -972,7 +972,8 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
 .kbsl-ask{flex:1;font-size:13.5px}
 .kbsl-empty{display:flex;flex-direction:column;align-items:center;gap:12px;padding:44px 24px;text-align:center;color:var(--kb-ink2);font-size:13.5px;line-height:1.5}
 .kbsl-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:12.5px;color:var(--kb-muted)}
-.kbsl-jsonbtn{display:inline-flex;align-items:center;gap:6px;font-weight:500;font-size:12.5px}
+.kbsl-jsonbtn{position:relative;display:inline-flex;align-items:center;gap:6px;font-weight:500;font-size:12.5px}
+.kbsl-jsonbtn::before{content:"";position:absolute;inset:-5px 0}
 /* A phone (A3-22): the row's name kept about 50 px between the tile and the chip and three icon buttons (« / w… »), and the
    search field, 220 px wide at the end of the tab line, was cut by the page. The chip and the actions go on a line under the name,
    the tabs wrap, and the search takes its own line. */
