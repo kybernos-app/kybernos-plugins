@@ -395,7 +395,7 @@ reads or writes a skill on disk: `kybernos-skills` does (`team/pack`, `team/inst
 
 Every refusal of the server is returned as one word (`team-skills.mjs`: `admin_required`, `scan_rejected`, `invalid_skill` with its
 `reason`, `duplicate`, `not_on_this_server` for a server without the routes, …). The server's own text never reaches the page.
-`node packages/kybernos-cloud/test-team-skills.mjs` (13 checks, stand-in server).
+`node packages/kybernos-cloud/test-team-skills.mjs` (14 checks, stand-in server).
 
 ## Team automations (server half)
 
@@ -418,7 +418,10 @@ All the POST routes are strict same origin **and** the signed session (they carr
   `not_found` and `not_on_this_server` (the two exact 404 texts of the contract tell them apart), plus `reconnect_required`, `network`, `forbidden`, `conflict`, `bad_request`,
   `refused_<status>`, `invalid_response`. The server's own text never reaches the page, and neither does a field the contract does not name.
 - **Before the call**: `add` and `check` look at the definition first (`teamAutomationShape`: key, name, description, prompt, a cron or webhook schedule and nothing else, needs),
-  so the page hears `invalid_automation` + `reason` without a round trip, and send only the six fields, the cron on single spaces and the needs sorted.
+  so the page hears `invalid_automation` + `reason` without a round trip, and send only the six fields, the cron on single spaces and the needs sorted. A text with a character no person can
+  see (the tags block, the direction controls, zero-width spaces, a BOM, control characters: `hiddenIn`, decision DL-09, set and list of texts in `docs/dev/team-automations-contract.md`) is
+  `invalid_automation` + `reason: "hidden"` + the `field`, in the name, description, prompt, note, cron and app names. A row says `hidden: true` when its text holds one, so the review sheet
+  never calls it « Checked » (skills: `hiddenPlaceOf` names the place, and `add` refuses before the call).
 - **The version** is the SHA-256 of the canonical form (`canonicalOf`, `versionOf`); the contract's two test vectors are in the test.
 - **The access journal**: `team-automations-access.jsonl`, beside the state file, one line per call that reached the server (`at`, `user`, `workspace`, `action`, `id`, `view`,
   `decision`, `result`). A closed list of fields, so never a name, a prompt, a description or a note; 0600, two generations of 512 KiB at most, and a journal that cannot be written
