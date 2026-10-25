@@ -1,6 +1,6 @@
 # Accounts and purchases in the phone app (plan, 2026-10-26)
 
-Status: **planned, nothing built.** Decision (owner, 2026-10-26): the app creates and signs in Kybernos accounts, shows the Free and Team plans, sells Team with
+Status: **planned, nothing built. Payments are NOT activated at this stage (owner, same day): the next steps are prepared, not switched on.** Decision (owner, 2026-10-26): the app creates and signs in Kybernos accounts, shows the Free and Team plans, sells Team with
 in-app purchase on both stores, and lets a person delete their account from the app. A person can skip all of it and use their own model keys. This reverses
 rows 5 and 6 of `STORES.md` (2026-10-25: no purchase flow, no sign-up). The screens are in the private mockup (first launch, screen 6 « Modèles »,
 https://claude.ai/artifact/9uPRqPWsM186QwUwXgBKjg).
@@ -27,9 +27,17 @@ https://claude.ai/artifact/9uPRqPWsM186QwUwXgBKjg).
 3. **Deletion from the app**: a « Delete my account » row in the app's Settings that opens the account page's deletion section in an in-app browser tab (Apple accepts a link to the
    web page when it is easy to find and needs no e-mail or phone call; confirm on submission day). After it, the app clears its local sign-in state. The server's `active_subscription`
    answer must say, for a store subscription, that the person cancels it in the App Store or Google Play first (deleting an account does not cancel a store subscription).
-4. Team stays **without any call to action** in this build (no « See plans », no payment page): a Team card with a web payment page is exactly what review refuses (Apple 3.1.1).
+4. Team stays **hidden, with no call to action** in this build and in every build until purchases are activated (no Team card, no « See plans », no payment page): a plan that cannot be bought in the app, or whose payment page is on the web, is what review refuses (Apple 3.1.1). The mockup's switch « Gratuit seulement (stores) » is this build.
 
-### B. In-app purchase for Team (the large part) — second build
+### B0. Prepared now, nothing switched on (no store account, no code that sells)
+
+- **Contract written down first**: the messages between the web view and the app (`products`, `purchase`, `restore`, `manage`), the product-map shape (store product id → plan version, component, interval) and the product id naming, so the later build does not redesign anything. This section is the start of it.
+- **One gate for every paid control**: today a fixed list hides them (`STORE_HIDDEN`). Activation replaces it by a capability the app announces (« this phone can buy »), false until B1, so switching on is a flag and the Team card, the plan buttons and the wizard's plan screen appear by themselves. Nothing else changes on screen.
+- **The server needs nothing for A**: entitlements do not depend on the payment provider and `subscriptions` already carries `source` and `provider_ref`. No server code is written ahead of B1 (it would be dead code).
+- **Long-lead owner steps start now** because they take days or weeks and cost nothing (see C): the store developer accounts as an organisation (probably a D-U-N-S number: to check), the paid-apps agreements, bank and tax forms. Products can be created in the consoles as drafts, never published.
+- **Decisions to take while waiting**: native or RevenueCat, one price or a higher one in the apps, multi-seat teams (D).
+
+### B1. In-app purchase for Team (the large part) — built and switched on later
 
 **Server** (`kybernos-server`, `src/modules/billing`): two new providers next to `stripe/`, `apple` and `google`.
 - Verify the store's signed transaction (Apple: App Store Server API and signed transactions; Google: Play Developer API with the purchase token), keep a subscription row with
@@ -57,7 +65,7 @@ the web payment page; the hidden controls come back one by one, only when the pr
 
 ### D. Open decisions
 
-1. Native StoreKit and Play Billing with our own validation (my pick: the server already owns entitlements, no new vendor in the payment path, a bigger build) or a purchase service such as RevenueCat (faster, but a new subprocessor and a fee).
+1. **Native StoreKit and Play Billing with our own validation** (my pick, awaiting the owner) or a purchase service such as RevenueCat. For a handful of products (Team solo, monthly and yearly) the native build is a few weeks and keeps the server the only authority over entitlements, with no new vendor in the payment path, no extra SDK in the app (privacy manifest, data-collection disclosure) and no revenue share. RevenueCat saves roughly one to two weeks and handles the stores' edge cases (grace period, billing retry, refunds, restore, cross-platform), at the price of a new subprocessor to declare (the server has a register), a fee after the free tier (about 1 % of tracked revenue, to check), a vendor between the stores and our entitlements, and our server still has to take its webhooks. The seam in B0 makes the choice reversible.
 2. One price everywhere or a higher price in the apps to absorb the commission.
 3. Whether the desktop wizard also puts the account first (the mockup only decides the phone app).
 
@@ -66,8 +74,9 @@ the web payment page; the hidden controls come back one by one, only when the pr
 | Step | What | Rough size | Needs from the owner |
 |---|---|---|---|
 | A | Account first, free plan, deletion link, own keys, Team without a button | about a week with tests | nothing; consent text legal read |
-| B | Server providers, native purchase module, bridge, restore | two to four weeks | store accounts, products, tax and bank forms (C) |
+| B0 | The contract, one gate for paid controls, owner steps started | days of the owner's time, no code that sells | enrolment, agreements, bank and tax forms (C), in parallel with A |
+| B1 | Server providers, native purchase module, bridge, restore; switch on | two to four weeks (estimate) | the consoles ready, products, a decision on D |
 | Review | TestFlight external review, Play internal testing | days of waiting | the submissions |
 
-Test plan for B: StoreKit configuration file and sandbox testers on iOS, license testers on Android, signed-transaction fixtures on the server (unit), a stubbed store in the app's emulator tests,
+Test plan for B1: StoreKit configuration file and sandbox testers on iOS, license testers on Android, signed-transaction fixtures on the server (unit), a stubbed store in the app's emulator tests,
 then one real sandbox purchase on each platform before any submission.
