@@ -118,7 +118,7 @@ full ids stay in the detail route.
   joined, or found active with none (`POST /space/folder { workspace_id }`, asked once per team and page: a team joined before this existed). **The name is hostile input** (a team lead
   or a colleague wrote it): it is cut down to ONE segment (no separator, drive colon, wildcard, control or invisible character, `..`, leading or trailing dot; 60 characters; a name that
   leaves nothing or that Windows reserves becomes « Team <id> »), the folder is made as a direct child of the root with a `mkdir` that is NOT recursive, and a name already on the disk
-  (another team's, the person's own, a file) is never taken over: the team gets « <Name> (<first 8 of its id>) ». **Where it is recorded:** `kybernos-cloud-folders.json` beside the
+  (another team's, the person's own, a file) is never taken over: the team gets « <Name> (<last 8 letters and digits of its id>) » (the TAIL: the server's ids are UUIDv7, whose head is the clock, so two teams made in the same minute share their first 8). **Where it is recorded:** `kybernos-cloud-folders.json` beside the
   state file (`{ <workspace id>: <path> }`), not in it: a sign-out wipes the state, and the team's folder must still be the team's at the next sign-in. Only a direct child of the root
   is followed or listed. The public state names the ACTIVE team's folder (`space_folder`: the composer's folder pill reads it) and every team's (`team_folders`), never the file. The page names a team,
   never a path. A disk that refuses (`not_allowed`, `mkdir_failed`) leaves the team without a folder, never without a switch. **The page** (DSH's own services, read with `ctx.get`):
