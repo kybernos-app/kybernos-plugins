@@ -1,0 +1,25 @@
+{
+  "what": {
+    "fr": "Un téléphone ne peut pas lancer de programmes. Ce module fait tourner dans l’app les commandes, la recherche et les outils, pour que l’agent travaille sur le téléphone.",
+    "en": "A phone cannot launch programs. This module runs commands, search and tools inside the app, so the agent can work on the phone."
+  },
+  "steps": [
+    {
+      "fr": "Il est déjà actif dans l’app Kybernos du téléphone : rien à faire.",
+      "en": "It is already on in the Kybernos phone app: nothing to do."
+    },
+    {
+      "fr": "Sur un ordinateur, laisse-le éteint : il remplace le vrai lancement de programmes par une version plus limitée.",
+      "en": "On a computer, leave it off: it replaces real program launching with a more limited version."
+    }
+  ],
+  "where": {
+    "fr": "Suite › Plugins (éteint par défaut sur un ordinateur)",
+    "en": "Suite › Plugins (off by default on a computer)",
+    "page": false
+  },
+  "good": {
+    "fr": "Ce qui demande un vrai programme extérieur (un navigateur piloté, un outil local) reste indisponible sur le téléphone : utilise un serveur distant.",
+    "en": "Anything that needs a real outside program (a driven browser, a local tool) stays unavailable on the phone: use a remote server."
+  }
+}

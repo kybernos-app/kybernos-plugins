@@ -9,13 +9,12 @@ import { redact } from './src/redact'
 import { runSelfTest } from './src/selftest'
 import { deviceStorage } from './src/secureStorage'
 import { createSettings } from './src/settings'
+import { decideLink, WEBVIEW_ORIGINS } from './src/links'
+import { isAppEntryMessage } from './src/webMessage'
 import { SettingsScreen } from './src/SettingsScreen'
 import { BootState, createSupervisor } from './src/supervisor'
 
 const UA = `KybernosHost/0.1.0 (${Platform.OS})`
-const LOCAL = /^(https?:\/\/127\.0\.0\.1[:/]|about:|blob:|data:)/
-// links the web interface can use to reach the app's own screens (the gear button does the same)
-const APP_LINKS: Record<string, 'settings' | 'log'> = { 'kybernos://settings': 'settings', 'kybernos://log': 'log' }
 
 export default function App() {
   const supervisor = useMemo(() => (host ? createSupervisor({ host, fetch: fetch as any, port: 0 }) : null), [])
@@ -28,6 +27,7 @@ export default function App() {
   const [showSettings, setShowSettings] = useState(false)
   const [firstRun, setFirstRun] = useState(false)
   const [keyStored, setKeyStored] = useState(false)
+  const [webEntry, setWebEntry] = useState(false) // the interface says it has its own entry to the settings: the fallback gear goes
   const keyStoredRef = useRef(false)
   const started = useRef(false)
   const noteKey = (stored: boolean) => { keyStoredRef.current = stored; setKeyStored(stored) }
@@ -77,19 +77,20 @@ export default function App() {
             source={{ uri: state.url }}
             style={styles.fill}
             applicationNameForUserAgent={UA}
+            onMessage={(e) => { if (isAppEntryMessage(e.nativeEvent.data)) setWebEntry(true) }}
             allowsInlineMediaPlayback
             mediaPlaybackRequiresUserAction={false}
             webviewDebuggingEnabled
+            originWhitelist={WEBVIEW_ORIGINS}
             onShouldStartLoadWithRequest={(r) => {
-              if (LOCAL.test(r.url)) return true
-              const link = APP_LINKS[r.url.replace(/[?#].*$/, '')]
-              if (link === 'settings') setShowSettings(true)
-              else if (link === 'log') openLog()
-              else void Linking.openURL(r.url)
+              const action = decideLink(r.url)
+              if (action.kind === 'allow') return true
+              console.log('kybernos: web view asked to open a ' + (r.url.split(':')[0] || '?') + ' link' + (action.kind === 'app' ? ' (' + action.screen + ')' : ''))
+              if (action.kind === 'app') { if (action.screen === 'settings') setShowSettings(true); else openLog() } else void Linking.openURL(action.url)
               return false
             }}
           />
-          <Gear onPress={() => setShowSettings(true)} />
+          {!webEntry && <Gear onPress={() => setShowSettings(true)} />}
           {selfTest !== null && <Text testID="selftest" accessibilityLabel={selfTest} style={styles.selfTest}>{selfTest}</Text>}
         </SafeAreaView>
       ) : (

@@ -60,6 +60,7 @@
     "kybernos-models": [],
     "kybernos-motion": [],
     "kybernos-multi-device": [],
+    "kybernos-no-process": [],
     "kybernos-plugin": [
       "Hola. Soy la voz de Kybernos, tu asistente.",
       "fermé",

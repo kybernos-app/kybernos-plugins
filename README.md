@@ -80,6 +80,7 @@ Each folder under [`packages/`](packages) is an independent DSH bundle (`package
 | [`kybernos-kaby-customisation`](packages/kybernos-kaby-customisation/README.md) | The Kaby page in Settings: the assistant's name, portrait and voice, and the face of its video calls with its own keys (face providers listed as soon) |
 | [`kybernos-kyber`](packages/kybernos-kyber/README.md) | Kaby: your assistant as a real DSH chat with your account's memory, Telegram connected by QR code or link, and the cloud computer it works on |
 | [`kybernos-multi-device`](packages/kybernos-multi-device/README.md) | Workspaces with or without a folder: Create offers a private folder in Documents/Kybernos, and Details shows where a workspace works, with a greyed preview of execution and devices |
+| [`kybernos-no-process`](packages/kybernos-no-process/README.md) | For the Kybernos phone app only: commands, search, a shell and MCP servers run inside the app, where a phone cannot launch programs. Off by default on a computer. |
 | [`kybernos-changes`](packages/kybernos-changes/README.md) | One chip under the composer: where this chat's work stands (changed, saved, on GitHub, in the project) and what to do next; Simple / Developer view |
 | [`kybernos-call`](packages/kybernos-call/README.md) | Voice calls from any chat session: a LiveKit room, a listening worker, the Call / Video buttons of team members |
 | [`kybernos-composio`](packages/kybernos-composio/README.md) | Composio integration: MCP connection and app catalog |

@@ -158,6 +158,10 @@
       "nom": "@local/kybernos-multi-device"
     },
     {
+      "dir": "kybernos-no-process",
+      "nom": "@local/kybernos-no-process"
+    },
+    {
       "dir": "kybernos-dashboards",
       "nom": "@local/kybernos-dashboards"
     },

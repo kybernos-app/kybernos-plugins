@@ -52,6 +52,14 @@ window.__ModuleLoader__.load({
         return en
       }
 
+      // ── the Kybernos app: its WebView puts `KybernosHost/<version> (ios|android)` in the user agent (mobile/app/App.tsx). Inside it the engine runs ON the phone, so the phone link (a
+      // QR code that links a phone to a computer) has no meaning and the app's own page takes its place. Anywhere else this is null and nothing below changes. ──
+      const APP_UA = /KybernosHost\/([0-9][0-9A-Za-z.+-]*) \((ios|android)\)/
+      const parseAppHost = (ua) => {
+        try { const m = APP_UA.exec(String(ua === undefined || ua === null ? '' : ua)); return m === null ? null : { version: m[1], platform: m[2] } } catch (e) { return null }
+      }
+      const appHost = () => { try { return parseAppHost(window.navigator.userAgent) } catch (e) { return null } }
+
       const narrow = () => { try { return window.matchMedia(MEDIA).matches === true } catch (e) { return false } }
       const frame = () => { try { return document.querySelector('[data-slot="root"] > div') } catch (e) { return null } }
       /** Open = the frame exists and DSH does not mark its sidebar collapsed. Always false when the screen is not narrow. */
@@ -1069,6 +1077,37 @@ window.__ModuleLoader__.load({
         return { Dialog, Page, CSS, open: openWindow }
       }
 
+      // ── « The Kybernos app » page: what only the app can do (its secure model key, its engine log) and what a phone changes for automations ──
+      // The app's WebView catches `kybernos://settings` and `kybernos://log` and opens its own screens; this page is the way in from the interface. It keeps the section id of the phone link
+      // (`kybernos-mobile`): the Settings organiser files that id under « Devices & cloud », and the page it replaces never exists in the same place.
+      const buildAppUi = (React, host) => {
+        const h = React.createElement
+        const open = (what) => { try { window.location.assign('kybernos://' + what) } catch (e) { /* the app handles the link; nothing to do without it */ } }
+        const where = host.platform === 'ios' ? kt('iPhone ou iPad', 'iPhone or iPad') : kt('Android', 'Android')
+        const Card = (props) => h('section', { className: 'kbapp-card', 'data-kb': props.kb },
+          h('h3', { className: 'kbapp-h' }, props.title),
+          h('p', { className: 'kbapp-sub' }, props.text),
+          props.act === undefined ? null : h('div', { className: 'kbapp-row' }, h('button', { type: 'button', className: 'kbapp-btn', 'data-act': props.act, onClick: props.onClick }, props.button)))
+        const Page = () => h('div', { className: 'kbapp-page', 'data-kb': 'mobile-app-page' },
+          h('h2', { className: 'kbapp-title' }, kt('L’app Kybernos', 'The Kybernos app')),
+          h('p', { className: 'kbapp-sub' }, kt('Le moteur de Kybernos tourne sur ce téléphone, dans l’app. Version ' + host.version + ' · ' + where + '.', 'The Kybernos engine runs on this phone, inside the app. Version ' + host.version + ' · ' + where + '.')),
+          h(Card, { kb: 'mobile-app-key', title: kt('Clé du modèle', 'Model key'), text: kt('Ta clé Anthropic est gardée dans le coffre sécurisé du téléphone (Trousseau sur iPhone, Keystore sur Android), jamais dans un fichier. Un changement de clé demande de fermer puis rouvrir l’app.', 'Your Anthropic key is kept in the phone’s secure storage (Keychain on iPhone, Keystore on Android), never in a file. A changed key needs the app closed and opened again.'), act: 'open-key', button: kt('Ouvrir', 'Open'), onClick: () => open('settings') }),
+          h(Card, { kb: 'mobile-app-log', title: kt('Journal du moteur', 'Engine log'), text: kt('Ce que dit le moteur, avec les clés masquées : utile pour comprendre un souci ou le partager.', 'What the engine says, with keys hidden: useful to understand a problem or to share it.'), act: 'open-log', button: kt('Afficher', 'Show'), onClick: () => open('log') }),
+          h(Card, { kb: 'mobile-app-auto', title: kt('Automatisations sur le téléphone', 'Automations on this phone'), text: kt('Elles tournent pendant que l’app est ouverte ou vient d’être utilisée. Si le téléphone a suspendu l’app, une tâche arrivée à échéance attend et s’exécute dès que tu reviens. Pour une tâche à heure fixe, téléphone verrouillé, utilise un ordinateur cloud.', 'They run while the app is open or was just used. If the phone has suspended the app, a task that came due waits and runs as soon as you come back. For a task at a fixed time with the phone locked, use a cloud computer.') }))
+        const CSS = `
+.kbapp-page{display:flex;flex-direction:column;gap:14px;max-width:640px}
+.kbapp-title{margin:0;font-size:20px;font-weight:650;line-height:1.25;color:var(--dsw-alias-label-primary, rgb(243,243,245))}
+.kbapp-sub{margin:0;font-size:13px;line-height:1.45;color:var(--dsw-alias-label-secondary, rgb(161,161,171))}
+.kbapp-card{display:flex;flex-direction:column;gap:8px;min-width:0;padding:16px;border-radius:14px;border:1px solid var(--dsw-alias-border-l1, rgb(46,46,52));background:var(--dsw-alias-bg-layer-2, rgb(27,27,31))}
+.kbapp-h{margin:0;font-size:15px;font-weight:650;line-height:1.3;color:var(--dsw-alias-label-primary, rgb(243,243,245))}
+.kbapp-row{display:flex;gap:8px;flex-wrap:wrap}
+.kbapp-btn{min-height:44px;padding:8px 18px;border-radius:10px;border:1px solid var(--dsw-alias-border-l2, rgb(46,46,52));background:var(--dsw-alias-bg-layer-2, rgb(35,35,40));color:var(--dsw-alias-label-primary, rgb(243,243,245));font:inherit;font-size:14px;cursor:pointer}
+.kbapp-btn:focus-visible{outline:2px solid var(--dsw-alias-brand-primary, rgb(76,110,245));outline-offset:2px}
+[data-slot="settings.section"]:has(.kbapp-page){width:100%;max-width:none}
+`
+        return { Page, CSS, open }
+      }
+
       return {
         name: 'kybernos-mobile',
         apply (ctx) {
@@ -1088,6 +1127,41 @@ window.__ModuleLoader__.load({
               let roots = null
               for (const name of ['react-dom/client', 'react-dom']) {
                 try { const m = require(name); if (roots === null && m !== undefined && m !== null && typeof m.createRoot === 'function') roots = m } catch (e) { /* not offered */ }
+              }
+              const app = appHost()
+              if (app !== null) {
+                // Inside the Kybernos app: its own page instead of the phone link, a few hooks for the other bundles, and a word to the app so it can drop its fallback gear button.
+                const appUi = buildAppUi(React, app)
+                ctx.inject(['slots'], (scope) => {
+                  try {
+                    const slots = scope !== undefined && scope !== null ? scope.slots : null
+                    ctx.effect(() => {
+                      const mine = { version: 1, platform: app.platform, appVersion: app.version, openSettings: () => appUi.open('settings'), openLog: () => appUi.open('log') }
+                      try { window.__KB_APP__ = mine } catch (e) { /* frozen window */ }
+                      let root = null
+                      try { root = document.documentElement; root.classList.add('kb-app', 'kb-app-' + app.platform) } catch (e) { root = null }
+                      return () => {
+                        try { if (window.__KB_APP__ === mine) delete window.__KB_APP__ } catch (e) { /* gone */ }
+                        try { if (root !== null) root.classList.remove('kb-app', 'kb-app-' + app.platform) } catch (e) { /* gone */ }
+                      }
+                    }, 'kybernos-mobile: app host hooks')
+                    ctx.effect(() => {
+                      const style = document.createElement('style')
+                      style.dataset.plugin = '@local/kybernos-mobile'
+                      style.textContent = appUi.CSS
+                      document.head.appendChild(style)
+                      return () => style.remove()
+                    }, 'kybernos-mobile: app page styles')
+                    if (slots !== null && slots !== undefined && typeof slots.inject === 'function') {
+                      ctx.effect(() => slots.inject('settings.section', () => slots.register(
+                        { name: 'settings.section', id: 'kybernos-mobile', order: 45, label: kt('L’app Kybernos', 'The Kybernos app') },
+                        () => React.createElement(appUi.Page))), 'kybernos-mobile: app settings section')
+                    }
+                    // The app shows a small gear button until the interface says it has the entry (kybernos://settings is caught by its WebView).
+                    try { if (window.ReactNativeWebView !== undefined && typeof window.ReactNativeWebView.postMessage === 'function') window.ReactNativeWebView.postMessage(JSON.stringify({ kybernos: 'app-entry', entry: 'settings', version: 1 })) } catch (e) { /* the app keeps its gear */ }
+                  } catch (e) { try { console.warn('[kybernos-mobile] app page not mounted:', e) } catch (e2) { /* no console */ } }
+                })
+                return
               }
               const ui = buildRemoteUi(React, roots)
               ctx.inject(['slots'], (scope) => {
@@ -1116,7 +1190,7 @@ window.__ModuleLoader__.load({
             }
           } catch (e) { try { console.warn('[kybernos-mobile] phone link disabled:', e) } catch (e2) { /* no console */ } }
         },
-        __test: { decide, drawerOpen, narrow, toggle, PICKS, TOGGLE, FIRST_IN_SIDEBAR, MEDIA, SHEET_ID, MENU_CLASS, isParked, parkedActions, ACTION_BUTTONS, MORE_BUTTON, swipeCloses, fitKinds, FIT_ATTR, collapseButton, leadTarget, LEAD_ATTR }
+        __test: { parseAppHost, decide, drawerOpen, narrow, toggle, PICKS, TOGGLE, FIRST_IN_SIDEBAR, MEDIA, SHEET_ID, MENU_CLASS, isParked, parkedActions, ACTION_BUTTONS, MORE_BUTTON, swipeCloses, fitKinds, FIT_ATTR, collapseButton, leadTarget, LEAD_ATTR }
       }
     } catch (e) {
       try { console.warn('[kybernos-mobile] disabled:', e) } catch (e2) { /* no console */ }

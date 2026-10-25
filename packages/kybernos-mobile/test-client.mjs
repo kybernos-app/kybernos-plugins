@@ -221,6 +221,76 @@ console.log('the phone link, mounted apart from the layout')
   check('a DSH that refuses inject cannot break the layout', noInject.threw === null && noInject.dom.body.children.some((c) => c.className === 'kbmob-menu'))
 }
 
+console.log('inside the Kybernos app')
+{
+  const fakeReact = { createElement: (...a) => ({ a }) }
+  const IOS_UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 27_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 KybernosHost/0.1.0 (ios)'
+  const runApp = ({ ua = IOS_UA, rn = true, lang = 'en' } = {}) => {
+    const dom = makeDom({ collapsed: true })
+    const def = load(dom, { lang })
+    const win = globalThis.window
+    win.navigator = { userAgent: ua }
+    const posted = []; const assigned = []
+    win.location = { assign: (u) => assigned.push(u) }
+    if (rn) win.ReactNativeWebView = { postMessage: (m) => posted.push(m) }
+    const classes = new Set()
+    dom.doc.documentElement = { classList: { add: (...c) => c.forEach((x) => classes.add(x)), remove: (...c) => c.forEach((x) => classes.delete(x)) } }
+    const plugin = def.factory((name) => (name === 'react' ? fakeReact : undefined))
+    const disposers = []; const registered = []; const components = []; const styles = []
+    dom.head.appendChild = (c) => { styles.push(c); return c }
+    const origCreate = dom.doc.createElement
+    dom.doc.createElement = (t) => { const e = origCreate(t); e.dataset = {}; return e }
+    const slots = { inject: (name, fn) => fn(), register: (spec, comp) => { registered.push(spec); components.push(comp); return () => {} } }
+    const ctx = { effect: (fn) => { const d = fn(); disposers.push(d); return d }, inject: (names, cb) => cb({ slots }) }
+    let threw = null
+    try { plugin.apply(ctx) } catch (e) { threw = e }
+    return { win, plugin, posted, assigned, classes, disposers, registered, components, styles, threw, test: plugin.__test }
+  }
+  // the page, drawn on a fake React that only builds a tree: expand the function components, then look for what has a data-act
+  const expand = (n) => {
+    if (n === null || n === undefined || typeof n !== 'object' || !Array.isArray(n.a)) return n
+    const [type, props, ...kids] = n.a
+    if (typeof type === 'function') return expand(type(props))
+    return { type, props: props || {}, kids: kids.map(expand) }
+  }
+  const walk = (n, out = []) => { if (n && typeof n === 'object') { if (n.props) out.push(n); (n.kids || []).forEach((k) => walk(k, out)) } return out }
+  const textOf = (n) => (typeof n === 'string' ? n : n && n.kids ? n.kids.map(textOf).join(' ') : '')
+
+  const t = runApp().test
+  check('the user agent of the app is recognised, with its version and platform', JSON.stringify(t.parseAppHost(IOS_UA)) === JSON.stringify({ version: '0.1.0', platform: 'ios' }))
+  check('on Android too, with a pre-release version', JSON.stringify(t.parseAppHost('Mozilla/5.0 (Linux; Android 16) KybernosHost/1.2.3-beta.4 (android)')) === JSON.stringify({ version: '1.2.3-beta.4', platform: 'android' }))
+  check('a browser, an empty agent or a made-up platform is not the app', [null, undefined, '', 'Mozilla/5.0 (Macintosh) Safari/605', 'KybernosHost/ (ios)', 'KybernosHost/0.1.0 (windows)', 'KybernosHost/0.1.0'].every((ua) => t.parseAppHost(ua) === null))
+
+  const desk = runApp({ ua: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 Safari/605.1.15' })
+  check('in a browser nothing of the app is mounted: the phone link stays, no app seam, no class', desk.registered.length === 1 && desk.registered[0].id === 'kybernos-mobile' && desk.win.__KB_APP__ === undefined && desk.classes.size === 0 && desk.posted.length === 0)
+
+  const app = runApp()
+  check('inside the app the Settings section is « The Kybernos app » (same id as the phone link: the same place in the list), not the phone link', app.registered.length === 1 && app.registered[0].id === 'kybernos-mobile' && app.registered[0].name === 'settings.section' && app.registered[0].label === 'The Kybernos app', app.registered)
+  check('the phone link window is not offered (the account menu and Kaby\'s strip hide their entry without it)', app.win.__KB_MOBILE__ === undefined)
+  check('the other bundles get a seam: platform, version, and a way to open the app screens', app.win.__KB_APP__ !== undefined && app.win.__KB_APP__.platform === 'ios' && app.win.__KB_APP__.appVersion === '0.1.0' && typeof app.win.__KB_APP__.openSettings === 'function' && typeof app.win.__KB_APP__.openLog === 'function')
+  check('the page is marked with classes a stylesheet can use', app.classes.has('kb-app') && app.classes.has('kb-app-ios'), [...app.classes])
+  check('the app is told once that the interface has its entry (it then drops its fallback gear)', app.posted.length === 1 && JSON.parse(app.posted[0]).kybernos === 'app-entry' && JSON.parse(app.posted[0]).entry === 'settings', app.posted)
+  check('its styles are its own, under a prefix nobody else uses', app.styles.length === 1 && /\.kbapp-/.test(app.styles[0].textContent) && !/\.kbmr-|\.kbmob-/.test(app.styles[0].textContent))
+  const page = expand(app.components[0]())
+  const acts = walk(page).filter((n) => n.props['data-act'] !== undefined)
+  check('the page has two buttons: the model key and the engine log', acts.map((n) => n.props['data-act']).join() === 'open-key,open-log', acts.map((n) => n.props['data-act']))
+  acts.forEach((n) => n.props.onClick())
+  check('they open the app\'s own screens through its links', app.assigned.join() === 'kybernos://settings,kybernos://log', app.assigned)
+  check('every card has a stable hook for live checks', ['mobile-app-page', 'mobile-app-key', 'mobile-app-log', 'mobile-app-auto'].every((k) => walk(page).some((n) => n.props['data-kb'] === k)))
+  const said = textOf(page)
+  check('it says where the key lives, that the engine runs on the phone, and what happens to automations', /secure storage/.test(said) && /runs on this phone/.test(said) && /cloud computer/.test(said))
+  check('it does not talk about linking a phone to a computer', !/QR|link a phone|relay/i.test(said))
+  app.disposers.forEach((d) => { if (typeof d === 'function') d() })
+  check('the cleanups take the seam, the classes and the styles away', app.win.__KB_APP__ === undefined && app.classes.size === 0 && app.styles[0].removed === true)
+
+  const fr = runApp({ lang: 'fr' })
+  check('in French the section is « L’app Kybernos » (every label goes through kt)', fr.registered[0].label === 'L’app Kybernos')
+  const noBridge = runApp({ rn: false })
+  check('without the app\'s message bridge nothing throws and the page is still there', noBridge.threw === null && noBridge.registered.length === 1)
+  const android = runApp({ ua: 'Mozilla/5.0 (Linux; Android 16) KybernosHost/0.1.0 (android)' })
+  check('on Android the classes say so', android.classes.has('kb-app-android') && !android.classes.has('kb-app-ios'))
+}
+
 console.log('the file')
 {
   check('the phone link uses its own class prefix, not the layout\'s', /className: 'kbmr-/.test(SOURCE) && !/className: 'kbmob-[a-z]/.test(SOURCE.slice(SOURCE.indexOf('buildRemoteUi'))))

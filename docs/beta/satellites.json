@@ -26,7 +26,7 @@
         "tier": 1,
         "obligatoire": false,
         "role": "registry of plugins: reads the data plugins installed on this computer, checks them, publishes window.__KB__ and the host seam",
-        "poids_ko": 60
+        "poids_ko": 80
       },
       {
         "dir": "kybernos-theme",
@@ -266,7 +266,7 @@
         "obligatoire": false,
         "defaut": "actif",
         "role": "the phone: DSH usable on a narrow screen (sidebar as a drawer, Settings stacked, below 700 px only) and, on a paid plan, a QR code that links a phone to this computer through the Kybernos relay, end to end encrypted",
-        "poids_ko": 60,
+        "poids_ko": 80,
         "lib_vendor": null
       },
       {
@@ -276,7 +276,7 @@
         "obligatoire": false,
         "defaut": "actif",
         "role": "web search for the agents with or without an API key: free engines out of the box, keyed engines when you add one, one fallback chain",
-        "poids_ko": 60,
+        "poids_ko": 80,
         "lib_vendor": null
       },
       {
@@ -329,6 +329,15 @@
         "lib_vendor": null
       },
       {
+        "dir": "kybernos-no-process",
+        "nom": "@local/kybernos-no-process",
+        "tier": 2,
+        "obligatoire": false,
+        "role": "phone app only: runs commands, search (rg), a shell and MCP servers inside the app, where a phone cannot launch programs; leave it off on a computer",
+        "poids_ko": 80,
+        "lib_vendor": null
+      },
+      {
         "dir": "kybernos-call",
         "nom": "@local/kybernos-call",
         "tier": 2,
@@ -346,7 +355,7 @@
         "tier": 3,
         "obligatoire": false,
         "role": "rendering of ```mermaid fences as SVG",
-        "poids_ko": 6042,
+        "poids_ko": 8042,
         "lib_vendor": "mermaid 11.14 + katex",
         "lib_poids_ko": 3072,
         "chargement": "paresseux"
@@ -419,7 +428,7 @@
         "obligatoire": false,
         "defaut": "actif",
         "role": "the Kaby page in Settings: the assistant's name, portrait and voice, and the face of its video calls with its own keys",
-        "poids_ko": 60,
+        "poids_ko": 80,
         "lib_vendor": null
       },
       {
@@ -438,7 +447,7 @@
         "tier": 2,
         "obligatoire": false,
         "role": "the Servers page: add a Kybernos server from its address, switch between servers, rename and remove them",
-        "poids_ko": 60,
+        "poids_ko": 80,
         "lib_vendor": null
       }
     ]
@@ -485,6 +494,7 @@
       "@local/kybernos-terminal",
       "@local/kybernos-usage",
       "@local/kybernos-multi-device",
+      "@local/kybernos-no-process",
       "@local/kybernos-dashboards",
       "@local/kybernos-summary",
       "@local/kybernos-kyber",
