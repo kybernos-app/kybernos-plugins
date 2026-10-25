@@ -265,12 +265,56 @@ console.log('inside the Kybernos app')
   check('in a browser nothing of the app is mounted: the phone link stays, no app seam, no class', desk.registered.length === 1 && desk.registered[0].id === 'kybernos-mobile' && desk.win.__KB_APP__ === undefined && desk.classes.size === 0 && desk.posted.length === 0)
 
   const app = runApp()
-  check('inside the app the Settings section is « The Kybernos app » (same id as the phone link: the same place in the list), not the phone link', app.registered.length === 1 && app.registered[0].id === 'kybernos-mobile' && app.registered[0].name === 'settings.section' && app.registered[0].label === 'The Kybernos app', app.registered)
+  check('inside the app the Settings section is « The Kybernos app » (same id as the phone link: the same place in the list), not the phone link', app.registered.filter((r) => r.name === 'settings.section').length === 1 && app.registered[0].id === 'kybernos-mobile' && app.registered[0].name === 'settings.section' && app.registered[0].label === 'The Kybernos app', app.registered)
   check('the phone link window is not offered (the account menu and Kaby\'s strip hide their entry without it)', app.win.__KB_MOBILE__ === undefined)
   check('the other bundles get a seam: platform, version, and a way to open the app screens', app.win.__KB_APP__ !== undefined && app.win.__KB_APP__.platform === 'ios' && app.win.__KB_APP__.appVersion === '0.1.0' && typeof app.win.__KB_APP__.openSettings === 'function' && typeof app.win.__KB_APP__.openLog === 'function')
   check('the page is marked with classes a stylesheet can use', app.classes.has('kb-app') && app.classes.has('kb-app-ios'), [...app.classes])
   check('the app is told once that the interface has its entry (it then drops its fallback gear)', app.posted.length === 1 && JSON.parse(app.posted[0]).kybernos === 'app-entry' && JSON.parse(app.posted[0]).entry === 'settings', app.posted)
   check('its styles are its own, under a prefix nobody else uses', app.styles.length === 1 && /\.kbapp-/.test(app.styles[0].textContent) && !/\.kbmr-|\.kbmob-/.test(app.styles[0].textContent))
+  // report an AI answer (store rules, mobile/STORES.md item 4): a control under each finished answer, in the app only, saved then sent, never silent
+  const R = app.test !== undefined ? app.test : null
+  const turnTail = app.registered.filter((r) => r.name === 'conversation.chat.turnTail')
+  check('inside the app one entry is added under each finished answer, with an id of its own', turnTail.length === 1 && turnTail[0].id === 'kybernos-mobile-report' && typeof turnTail[0].order === 'number', turnTail)
+  check('in a browser nothing is added under the answers', desk.registered.every((r) => r.name !== 'conversation.chat.turnTail'))
+  const reportCss = app.styles[0].textContent.slice(app.styles[0].textContent.indexOf('.kbrp{'), app.styles[0].textContent.indexOf('.kbapp-page{'))
+  check('the report control is styled with the page tokens only (no hard-coded hex colour)', /\.kbrp-open\{/.test(reportCss) && !/#[0-9a-f]{3,6}\b/i.test(reportCss), reportCss.slice(0, 80))
+  if (R !== null) {
+    const msg = R.reportMessage({ reason: 'dangerous', comment: '  too risky  ', excerpt: 'the answer', ref: 'session s1, turn 4' })
+    check('the report says the reason in English, the reference, the comment and, only when given, the excerpt', msg.startsWith('[AI answer report] Reason: Dangerous or harmful') && msg.includes('Reference: session s1, turn 4') && msg.includes('Comment: too risky') && msg.includes('Answer excerpt (added by the sender):\nthe answer'), msg)
+    const bare = R.reportMessage({ reason: 'wrong', comment: '', excerpt: '', ref: '' })
+    check('without a comment or an excerpt neither is mentioned (nothing is attached by default)', bare === '[AI answer report] Reason: Wrong or misleading', bare)
+    check('a made-up reason still gives a report, and the texts are bounded', R.reportMessage({ reason: 'zzz' }).includes('Something else') && R.reportMessage({ reason: 'other', excerpt: 'x'.repeat(5000), comment: 'y'.repeat(5000) }).length < 2700)
+    check('the four reasons are offered, each in both languages', R.REPORT_REASONS.length === 4 && R.REPORT_REASONS.every((x) => x.en !== '' && x.fr !== ''))
+    // the excerpt guess: the nearest block of text before the control, found a few levels up when it is not a sibling
+    const sib = (text, prev) => ({ innerText: text, previousElementSibling: prev || null })
+    const node = { previousElementSibling: sib('', sib('the answer', sib('the user message', null))), parentElement: null }
+    check('the excerpt guess is the nearest block of text before the control (not the earlier messages)', R.textBefore(node) === 'the answer', R.textBefore(node))
+    const deep = { previousElementSibling: null, parentElement: { previousElementSibling: null, parentElement: { previousElementSibling: sib('from three levels up', null), parentElement: null } } }
+    check('with nothing before it the guess looks up through the parents', R.textBefore(deep) === 'from three levels up')
+    let chain = { previousElementSibling: sib('found at level 7', null), parentElement: null }
+    for (let i = 0; i < 7; i++) chain = { previousElementSibling: null, parentElement: chain }
+    check('it looks as far as eight levels up (the interface draws the answer five levels above the control)', R.textBefore(chain) === 'found at level 7')
+    check('a long answer keeps its first 1500 characters, and no text is not an error', R.textBefore({ previousElementSibling: sib('a'.repeat(4000), null), parentElement: null }).length === 1500 && R.textBefore({ previousElementSibling: null, parentElement: null }) === '' && R.textBefore(null) === '')
+    // save, then send
+    const calls = []
+    const post = (script) => async (path, body) => { calls.push(path + ' ' + body.type); return script[path] }
+    const ok = { status: 200, out: { ok: true } }
+    calls.length = 0
+    const sent = await R.submitReport('m', post({ '/kybernos/feedback': ok, '/kybernos/feedback/send': ok }))
+    check('saved first, then sent: the team has it', sent.state === 'sent' && calls.join() === '/kybernos/feedback bug,/kybernos/feedback/send bug', [sent, calls])
+    const signedOut = await R.submitReport('m', post({ '/kybernos/feedback': ok, '/kybernos/feedback/send': { status: 200, out: { ok: false, error: 'non_connecte' } } }))
+    check('signed out: kept on the phone, and it says why (the e-mail route is offered)', signedOut.state === 'saved' && signedOut.why === 'signedout', signedOut)
+    const guard = await R.submitReport('m', post({ '/kybernos/feedback': ok, '/kybernos/feedback/send': { status: 401, out: null } }))
+    check('refused by the guard counts as signed out', guard.state === 'saved' && guard.why === 'signedout')
+    const net = await R.submitReport('m', post({ '/kybernos/feedback': ok, '/kybernos/feedback/send': { status: 0, out: null } }))
+    check('no answer from the relay: kept, with the network as the reason', net.state === 'saved' && net.why === 'net', net)
+    calls.length = 0
+    const lost = await R.submitReport('m', post({ '/kybernos/feedback': { status: 507, out: { ok: false, error: 'full' } }, '/kybernos/feedback/send': ok }))
+    check('when it cannot even be kept it is not sent and it says so, with the code the page got', lost.state === 'failed' && calls.length === 1 && lost.code === '507 full', [lost, calls])
+    const mailto = R.reportMailto('[AI answer report] Reason: x & y')
+    check('the e-mail route goes to the one address of the product, with the report in the body', mailto.startsWith('mailto:contact@kybernos.app?subject=') && mailto.includes(encodeURIComponent('x & y')) && R.REPORT_CONTACT === 'contact@kybernos.app', mailto)
+  }
+
   // store rules: no purchase flow and no sign-up inside the app (mobile/STORES.md items 5 and 6), hidden under the app class only
   const css = app.styles[0].textContent
   const HIDDEN = ['menu-signup', 'menu-plans', 'menu-plan-cta', 'menu-plan-credits', 'upgrade-dialog', 'team-lock-plans', 'provider-plans', 'kc-pro-plans', 'kybernos-kyber-upgrade', 'plugins-add', 'plugins-add-empty', 'plugins-drafts']
@@ -293,7 +337,7 @@ console.log('inside the Kybernos app')
   const fr = runApp({ lang: 'fr' })
   check('in French the section is « L’app Kybernos » (every label goes through kt)', fr.registered[0].label === 'L’app Kybernos')
   const noBridge = runApp({ rn: false })
-  check('without the app\'s message bridge nothing throws and the page is still there', noBridge.threw === null && noBridge.registered.length === 1)
+  check('without the app\'s message bridge nothing throws and the page is still there', noBridge.threw === null && noBridge.registered.filter((r) => r.name === 'settings.section').length === 1)
   const android = runApp({ ua: 'Mozilla/5.0 (Linux; Android 16) KybernosHost/0.1.0 (android)' })
   check('on Android the classes say so', android.classes.has('kb-app-android') && !android.classes.has('kb-app-ios'))
 }

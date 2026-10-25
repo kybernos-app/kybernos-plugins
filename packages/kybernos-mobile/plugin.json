@@ -40,6 +40,7 @@
     "kybernos": ">=0.1.0"
   },
   "permissions": [
+    "ui.slot:conversation.chat.turnTail",
     "ui.slot:settings.section",
     "ui.dom",
     "host.routes:/kybernos-mobile:write",

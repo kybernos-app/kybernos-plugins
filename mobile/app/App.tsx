@@ -46,7 +46,12 @@ export default function App() {
     started.current = true
     const off = supervisor.subscribe(setState)
     // the model key comes out of the Keychain / Keystore here and goes to the engine's environment: it is never written to a file
-    void settings.engineEnv().then((env) => { noteKey(Object.keys(env).length > 0); supervisor.begin(env) })
+    // old web sessions are cleared first, then the engine starts: the cookie is named after the engine's (random) port, so one more piles up at every launch
+    void settings.engineEnv().then(async (env) => {
+      noteKey(Object.keys(env).length > 0)
+      try { await host?.clearWebSession?.() } catch { /* a stale cookie is a nuisance, never a reason not to start */ }
+      supervisor.begin(env)
+    })
     const sub = AppState.addEventListener('change', (s) => { if (s === 'active') void supervisor.healthCheck().then((ok) => console.log('kybernos: server answers after foreground: ' + ok)) })
     return () => { off(); sub.remove(); supervisor.stop() }
   }, [supervisor, consent === 'given'])

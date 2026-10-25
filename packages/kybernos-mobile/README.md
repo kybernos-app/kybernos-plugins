@@ -18,6 +18,7 @@ The Kybernos phone app (`mobile/app`) runs the engine ON the phone and shows thi
 - `window.__KB_APP__ = { version, platform, appVersion, openSettings, openLog }` is there for the other bundles, `<html>` gets the classes `kb-app` and `kb-app-ios` / `kb-app-android`, and the app is told once (`ReactNativeWebView.postMessage`, `{ kybernos: 'app-entry' }`) that the interface has its entry, so it drops the small gear button it shows until then;
 - the phone link window (`window.__KB_MOBILE__`) is not published, so the account menu and Kaby's strip do not offer it.
 - store rules (`mobile/STORES.md` items 1, 5, 6): under `html.kb-app` the controls that buy a plan, create an account or add a plugin are hidden by their `data-kb` hooks (`STORE_HIDDEN` in `client.js`; the test checks every hook still exists in the bundle that draws it). The desktop and the browser keep them.
+- a « Report » link under each finished answer (slot `conversation.chat.turnTail`, id `kybernos-mobile-report`): reason, optional comment, optional answer text (ticked by the person, editable). It saves the report in the core feedback box, then sends it with the signed-in account; signed out or offline, it offers an e-mail to the product's address. Nothing is added in a browser.
 
 In a browser none of this exists: the user agent is not the app's, and nothing above runs.
 
