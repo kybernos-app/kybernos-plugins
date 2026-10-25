@@ -105,6 +105,14 @@ check('...whatever the marker\'s value (an empty one counts)', verdict(writeGuar
 check('...and the same request without the marker is allowed (the marker is the only difference)', verdict(writeGuard(request('POST', { origin: tunnelled.origin, cookie: tunnelled.cookie }))) === 'allowed')
 check('a foreign Origin with the marker is still « origin refused » first', writeGuard(request('POST', { ...tunnelled, origin: 'http://evil.example' })).error === 'origin refused')
 check('the marker without a cookie is refused 403, not told to sign in', verdict(writeGuard(request('POST', { origin: tunnelled.origin, 'x-kybernos-tunnel': '1' }))) === 403)
+// A POST that only reads (the live model list) says so with `{ phoneMayRead: true }`, having checked it in its own source; scripts/test-tunnel-routes.mjs owns the table of those.
+check('a POST that only reads may be made by a phone when its caller says so ({ phoneMayRead: true })', verdict(writeGuard(request('POST', tunnelled), { phoneMayRead: true })) === 'allowed')
+check('...and the option excuses the marker only: a foreign Origin, no cookie, a forged cookie are still refused', [
+  writeGuard(request('POST', { ...tunnelled, origin: 'http://evil.example' }), { phoneMayRead: true }),
+  writeGuard(request('POST', { origin: tunnelled.origin, 'x-kybernos-tunnel': '1' }), { phoneMayRead: true }),
+  writeGuard(request('POST', { ...tunnelled, cookie: cookie(HOST, { secret: OTHER_SECRET }) }), { phoneMayRead: true }),
+].map(verdict).join() === '403,401,401')
+check('...and nothing but `true` counts (no option, an empty one, a string, a truthy number)', [undefined, null, {}, { phoneMayRead: 'yes' }, { phoneMayRead: 1 }, { other: true }].every((o) => verdict(writeGuard(request('POST', tunnelled), o)) === 403))
 for (const method of ['GET', 'HEAD']) check(method + ': a read is not a write, so the phone link still reads the routes that ask for the cookie', verdict(writeGuard(request(method, tunnelled))) === 'allowed')
 check('the code is the one the phone page recognises (phone/phone.mjs shows « this cannot be done from the phone »)', /error === 'refused_on_phone'/.test(readFileSync(join(packages, 'kybernos-mobile', 'phone', 'phone.mjs'), 'utf8')))
 

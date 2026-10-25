@@ -104,15 +104,15 @@ const tunnelled = (req) => { try { return req.headers[TUNNEL_HEADER] !== undefin
 
 /**
  * Whether a request may write. `null` lets it go on; otherwise `{ status, error }` is the refusal to send:
- * 403 when the request names no Origin or Referer, or one that is not this listener's; 403 `refused_on_phone` when a write came through the phone link;
- * 503 when the machine secret cannot be read
+ * 403 when the request names no Origin or Referer, or one that is not this listener's; 403 `refused_on_phone` when a write came through the phone link
+ * (unless the caller passes `{ phoneMayRead: true }`, having checked in its own source that this POST only reads: a list); 503 when the machine secret cannot be read
  * (a guard that cannot judge refuses, like the terminal's); 401 when DSH's signed session cookie is missing, forged or expired.
  * The cookie is looked up under the loopback authorities, and under the public one when DSH was told about it (--trusted-host):
  * a forged Host can only choose which cookie name is looked up, the value still has to carry a valid signature.
  */
-export function writeGuard (req) {
+export function writeGuard (req, options) {
   if (!origineOK(req)) return { status: 403, error: 'origin refused' }
-  if (METHODES_LECTURE.indexOf(String((req && req.method) || 'GET').toUpperCase()) === -1 && tunnelled(req)) return { status: 403, error: 'refused_on_phone' }
+  if (METHODES_LECTURE.indexOf(String((req && req.method) || 'GET').toUpperCase()) === -1 && tunnelled(req) && !(options && options.phoneMayRead === true)) return { status: 403, error: 'refused_on_phone' }
   const secret = sessionSource.secret()
   if (secret === null || secret === undefined) return { status: 503, error: 'the DSH session secret cannot be read, so this write stays closed' }
   const authorities = autorites(req)
