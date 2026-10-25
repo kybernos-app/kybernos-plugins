@@ -34,6 +34,13 @@ const check = (label, ok, detail) => {
  */
 const PHONE_READS = [
   {
+    bundle: 'kybernos-search', path: '/kybernos-search/query', whole: true,
+    why: 'a search of the index the desktop kept on disk (store.mjs `query`: nothing is read from a journal, nothing is written); it is a POST only so that the text of the chats is not served to a GET before DSH\'s login, and the phone shows the same chats. Its siblings `start` and `reindex` read every journal again and stay refused.',
+    read: { q: 'audit-probe' },
+    writes: [],
+    siblings: ['/kybernos-search/start', '/kybernos-search/reindex'],
+  },
+  {
     bundle: 'kybernos-plugin', path: '/kybernos/tasks', whole: false,
     why: 'action `list` returns the stored automations (kbTasksHandle: kbTasksRead, nothing written); the answer to a phone carries no webhook secret. Any other action creates, edits, deletes or runs one.',
     read: { action: 'list' },
