@@ -16,43 +16,75 @@ let pass = 0
 let fail = 0
 const check = (name, ok, detail) => { if (ok) { pass += 1; console.log('  ✓ ' + name) } else { fail += 1; console.log('  ✗ ' + name + (detail === undefined ? '' : ' — ' + JSON.stringify(detail))) } }
 
-/** A page whose composer shows `shown` on its model button and whose list holds `lines`. Presses are recorded. */
-const fakePage = ({ button, lines }) => {
+/** An OLDER engine's page: the model button reads « Select model » until a model is chosen, then the model's name (as text a lookup can find); the list opens straight from the button. */
+const legacyPage = ({ button, lines }) => {
   const st = { button, listOpen: false, pressed: [] }
-  const g = {
+  return {
     st,
     until: async (fn) => fn(),   // no waiting: the fake page answers at once
+    modelButton: async () => null,
     leaf: async (text) => {
       if (text === 'Select model') return st.button === 'Select model' ? { x: 1, y: 1 } : null
-      if (st.button === text) return { x: 2, y: 2, shown: 'button' }
-      if (st.listOpen && lines.includes(text)) return { x: 3, y: 3, shown: 'list' }
+      if (st.button === text) return { x: 2, y: 2 }
+      if (st.listOpen && lines.includes(text)) return { x: 3, y: lines.indexOf(text) }
+      return null
+    },
+    mouse: async (x, y) => { st.pressed.push([x, y]); if (x === 1) st.listOpen = true; if (x === 3) { st.button = lines[y]; st.listOpen = false } },
+  }
+}
+/** DSH 0.2.1-rc.2's page: `<button aria-label="Select model, current X">`, the name sits in a zero-width span (no text lookup finds it), the menu has a « Model » row that opens the list. */
+const rc2Page = ({ current, models, modelRow = true, clickLands = true }) => {
+  const st = { current, menu: false, sub: false, pressed: [] }
+  return {
+    st,
+    until: async (fn) => fn(),
+    modelButton: async () => ({ current: st.current, shown: st.current, x: 1, y: 1, visible: true }),
+    leaf: async (text) => {
+      if (text === 'Model') return st.menu && modelRow && !st.sub ? { x: 4, y: 0 } : null
+      if ((st.sub || (st.menu && !modelRow)) && models.includes(text)) return { x: 3, y: models.indexOf(text) }
       return null
     },
     mouse: async (x, y) => {
       st.pressed.push([x, y])
-      if (x === 1) st.listOpen = true
-      if (x === 3) { st.button = lines[0]; st.listOpen = false }
+      if (x === 1) st.menu = true
+      if (x === 4) st.sub = true
+      if (x === 3 && clickLands) { st.current = models[y]; st.menu = false; st.sub = false }
     },
   }
-  return g
 }
 const caught = async (fn) => { try { await fn(); return null } catch (e) { return String(e && e.message || e) } }
 
-// selectModel
+// selectModel on the engine of this machine (rc.2)
 {
-  const chosen = fakePage({ button: 'GLM', lines: ['GLM'] })
-  check('selectModel: already chosen, it presses nothing and says yes', (await selectModelOn(chosen, 'GLM')) === true && chosen.st.pressed.length === 0)
-  const open = fakePage({ button: 'Select model', lines: ['GLM', 'Other'] })
-  check('selectModel: it opens the list and presses the line', (await selectModelOn(open, 'GLM')) === true && open.st.pressed.length === 2 && open.st.button === 'GLM', open.st)
-  const noLine = fakePage({ button: 'Select model', lines: ['Other'] })
+  const chosen = rc2Page({ current: 'GLM', models: ['GLM'] })
+  check('selectModel (rc.2): the button already says GLM: nothing is pressed, true', (await selectModelOn(chosen, 'GLM')) === true && chosen.st.pressed.length === 0)
+  check('selectModel (rc.2): the comparison ignores the case', (await selectModelOn(rc2Page({ current: 'Kybernos Glm', models: [] }), 'kybernos glm')) === true)
+  const other = rc2Page({ current: 'Other', models: ['Other', 'GLM'] })
+  check('selectModel (rc.2): another model is chosen: it opens the menu, the « Model » row, presses the line and reads the button back', (await selectModelOn(other, 'GLM')) === true && other.st.current === 'GLM' && other.st.pressed.length === 3, other.st)
+  const direct = rc2Page({ current: 'Other', models: ['Other', 'GLM'], modelRow: false })
+  check('selectModel (rc.2): a menu that lists the models straight away is fine too', (await selectModelOn(direct, 'GLM')) === true && direct.st.current === 'GLM', direct.st)
+  const noLine = rc2Page({ current: 'Other', models: ['Other'] })
   const m1 = await caught(() => selectModelOn(noLine, 'GLM'))
-  check('selectModel: no line of that name in the list: it THROWS and names the line', m1 !== null && /no line « GLM »/.test(m1), m1)
+  check('selectModel (rc.2): no line of that name: it THROWS and names the line', m1 !== null && /no line « GLM »/.test(m1), m1)
   check('and tells where to look', /GET \/kybernos-cloud\/models/.test(m1 || ''), m1)
-  const none = fakePage({ button: 'Some other model', lines: ['GLM'] })
+  const missed = rc2Page({ current: 'Other', models: ['Other', 'GLM'], clickLands: false })
+  const m2 = await caught(() => selectModelOn(missed, 'GLM'))
+  check('selectModel (rc.2): a press that does not change the button THROWS (it is read back)', m2 !== null && /still says « Other »/.test(m2), m2)
+}
+
+// selectModel on an older engine
+{
+  const chosen = legacyPage({ button: 'GLM', lines: ['GLM'] })
+  check('selectModel (older engine): already chosen, it presses nothing and says yes', (await selectModelOn(chosen, 'GLM')) === true && chosen.st.pressed.length === 0)
+  const open = legacyPage({ button: 'Select model', lines: ['GLM', 'Other'] })
+  check('selectModel (older engine): it opens the list and presses the line', (await selectModelOn(open, 'GLM')) === true && open.st.pressed.length === 2 && open.st.button === 'GLM', open.st)
+  const noLine = legacyPage({ button: 'Select model', lines: ['Other'] })
+  const m1 = await caught(() => selectModelOn(noLine, 'GLM'))
+  check('selectModel (older engine): no line of that name in the list: it THROWS and names the line', m1 !== null && /no line « GLM »/.test(m1), m1)
+  const none = legacyPage({ button: 'Some other model', lines: ['GLM'] })
   const m2 = await caught(() => selectModelOn(none, 'GLM'))
-  check('selectModel: neither « Select model » nor the name on the page: it THROWS (it used to return true and let the turn run on the profile\'s own model)', m2 !== null && /neither « Select model » nor « GLM »/.test(m2) && none.st.pressed.length === 0, m2)
-  const defaulted = fakePage({ button: 'GLM', lines: [] })
-  check('selectModel: the name defaults to GLM', (await selectModelOn(defaulted)) === true)
+  check('selectModel: no model button at all on the page: it THROWS (it used to return true and let the turn run on the profile\'s own model)', m2 !== null && /no model button/.test(m2) && none.st.pressed.length === 0, m2)
+  check('selectModel: the name defaults to GLM', (await selectModelOn(legacyPage({ button: 'GLM', lines: [] }))) === true)
 }
 
 // flatten / cwdOf
