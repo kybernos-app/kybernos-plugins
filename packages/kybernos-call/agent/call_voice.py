@@ -20,7 +20,7 @@ import urllib.error
 import urllib.request
 from typing import Callable
 
-from call_meta import CallMeta, VoiceChoice
+from call_meta import CallMeta, VoiceChoice, host_headers
 from lang_guess import guess_language
 
 SAMPLE_RATE = 24_000
@@ -72,7 +72,7 @@ def speak_request(host: str, text: str, fields: dict, opener: Callable = urllib.
     body = json.dumps({"text": text, **fields}).encode("utf-8")
     request = urllib.request.Request(
         host.rstrip("/") + "/kybernos/tts/speak", data=body, method="POST",
-        headers={"content-type": "application/json", "origin": host.rstrip("/")},
+        headers=host_headers(host, {"content-type": "application/json"}),
     )
     with opener(request, timeout=timeout) as reply:
         answer = json.loads(reply.read().decode("utf-8"))

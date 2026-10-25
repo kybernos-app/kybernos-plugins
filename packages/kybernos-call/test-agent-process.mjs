@@ -24,14 +24,15 @@ const home = mkdtempSync(join(tmpdir(), 'kybernos-call-proc-'))
 const secrets = 'LIVEKIT_URL=wss://lk.example.test\nLIVEKIT_API_KEY=APIkey\nLIVEKIT_API_SECRET=' + 'k'.repeat(40) + '\n'
 mkdirSync(join(home, 'kybernos', 'appel-venv', 'bin'), { recursive: true })
 writeFileSync(join(home, 'kybernos', 'livekit.env'), secrets)
-// The fake worker: it announces itself, shows what it was given, then stays alive.
+// The fake worker: it announces itself, shows what it was given, then stays alive. Its one-run secret goes to a file the test reads (never to the log, as the real worker never prints it).
 const fakePython = join(home, 'kybernos', 'appel-venv', 'bin', 'python')
-writeFileSync(fakePython, '#!/bin/sh\necho "args: $@"\necho "session: [$KYBER_SESSION_ID]"\necho "registered worker"\nsleep 60\n')
+const seenSecret = join(home, 'kybernos', 'secret-seen')
+writeFileSync(fakePython, '#!/bin/sh\necho "args: $@"\necho "session: [$KYBER_SESSION_ID]"\necho "secret length: ${#KYBER_CALL_TOKEN}"\nprintf %s "$KYBER_CALL_TOKEN" > "$DSH_HOME/kybernos/secret-seen"\necho "registered worker"\nsleep 60\n')
 chmodSync(fakePython, 0o755)
 const log = join(home, 'kybernos', 'logs', 'appel-agent.log')
 
 const dispatches = []
-const call = createCall({
+let call = createCall({
   env: Object.assign({}, process.env, { DSH_HOME: home }),
   dshHome: async () => home,
   fetch: async (url, init) => { dispatches.push(JSON.parse(init.body)); return { status: 200, text: async () => '{}' } }
@@ -73,12 +74,41 @@ try {
   assert.equal(second.already, true)
   ok('a second start while it runs does nothing (one worker)')
 
+  // L3-03: the worker is started with a one-run secret in its environment; the host accepts it from a request header, for as long as that process runs.
+  const secret = readFileSync(seenSecret, 'utf8')
+  assert.match(secret, /^[0-9a-f]{64}$/)
+  assert.match(readFileSync(log, 'utf8'), /secret length: 64/)
+  assert.equal(readFileSync(log, 'utf8').includes(secret), false)
+  assert.equal(call.workerAccepts({ headers: { 'x-kybernos-call-token': secret } }), true)
+  assert.equal(call.workerAccepts({ headers: { 'x-kybernos-call-token': secret.replace(/.$/, (c) => (c === '0' ? '1' : '0')) } }), false)
+  assert.equal(call.workerAccepts({ headers: {} }), false)
+  ok('the real worker process receives a 64-character secret in its environment (not in its log), and the host accepts exactly that one')
+
+  // A worker that outlived the host (a DSH restart) is a worker whose secret nobody here knows: the next host replaces it.
+  const restartedHost = createCall({ env: Object.assign({}, process.env, { DSH_HOME: home }), dshHome: async () => home, fetch: async () => ({ status: 200, text: async () => '{}' }) })
+  assert.equal(restartedHost.workerAccepts({ headers: { 'x-kybernos-call-token': secret } }), false)
+  const replaced = await restartedHost.agentStart()
+  assert.equal(replaced.started, true)
+  await sleep(300)
+  const secret2 = readFileSync(seenSecret, 'utf8')
+  assert.match(secret2, /^[0-9a-f]{64}$/)
+  assert.notEqual(secret2, secret)
+  assert.equal(restartedHost.workerAccepts({ headers: { 'x-kybernos-call-token': secret2 } }), true)
+  assert.equal(restartedHost.workerAccepts({ headers: { 'x-kybernos-call-token': secret } }), false)
+  let oldAlive = true
+  try { process.kill(pid, 0) } catch (e) { oldAlive = false }
+  assert.equal(oldAlive, false, 'the worker of the previous host is gone')
+  pid = replaced.pid
+  ok('a worker this host did not start is replaced by a new process with a new secret (the old process is gone, its secret is refused)')
+  call = restartedHost
+
   const stopped = await call.agentStop()
   assert.equal(stopped.ok, true)
   assert.equal(typeof stopped.stopped, 'number')
   await sleep(300)
   assert.equal((await call.agentState()).running, false)
-  ok('stop ends it')
+  assert.equal(call.workerAccepts({ headers: { 'x-kybernos-call-token': readFileSync(seenSecret, 'utf8') } }), false)
+  ok('stop ends it, and its secret is refused from then on')
 
   // T2-15 (2026-10-24): `pgrep -f <path>` also matched the `pgrep -f <path>` of an overlapping check, so two checks at once each saw the other, answered « already running » and no
   // worker started. With the pattern of `agentPattern` the checks see the worker and only the worker. Real pgrep, a real process whose command line holds a unique path.

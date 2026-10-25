@@ -2,9 +2,11 @@
 
 import base64
 import json
+import os
 import unittest
+from unittest import mock
 
-from call_meta import CallMeta
+from call_meta import CALL_TOKEN_ENV, CALL_TOKEN_HEADER, CallMeta
 from call_stt import language_hint, listen_request
 
 WAV = b"RIFF" + b"\x00" * 60
@@ -42,6 +44,16 @@ class ListenRequest(unittest.TestCase):
         self.assertEqual(base64.b64decode(seen[0]["body"]["audio"]), WAV)
         self.assertEqual(seen[0]["body"]["language"], "fr")
         self.assertEqual(seen[0]["headers"]["Origin"], "http://127.0.0.1:3080")
+
+    def test_it_presents_this_runs_secret_on_both_routes(self):
+        # L3-03 / the core's voice routes: the worker has no cookie, so the host's one-run secret is what tells it from any local program that sends an Origin.
+        with mock.patch.dict(os.environ, {CALL_TOKEN_ENV: "run-secret-2"}):
+            for provider, model in (("models", "p:m"), ("app", "")):
+                seen = []
+                listen_request("http://127.0.0.1:3080", provider, model, WAV, "", opener_for({"ok": True, "text": "x"}, seen))
+                headers = {k.lower(): v for k, v in seen[0]["headers"].items()}
+                self.assertEqual(headers[CALL_TOKEN_HEADER], "run-secret-2", provider)
+                self.assertEqual(headers["origin"], "http://127.0.0.1:3080")
 
     def test_the_apps_dictation_takes_a_wav_data_url(self):
         seen = []

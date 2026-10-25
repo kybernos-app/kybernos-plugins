@@ -18,6 +18,7 @@ import { mountCallRoutes } from './call-routes.mjs'
 import { createServices } from './call-services.mjs'
 import { createSpeechFeed } from './speech-feed.mjs'
 import { createStore } from './call-store.mjs'
+import { publishWorkerCheck } from './worker-token.mjs'
 
 export const name = 'kybernos-call'
 
@@ -50,6 +51,13 @@ export function apply (ctx) {
     const services = createServices()
     const admin = createAdmin({ store, services, call, health: createHealth({ store, services, call }), installer: createInstaller({ pluginDir }) })
     const effect = (fn, label) => ctx.effect(fn, label)
+    // The core's voice routes (transcribe, listen, probe, speak) also accept this worker's one-run secret: the check is published for them, and withdrawn with the plugin.
+    try {
+      effect(() => {
+        const withdraw = publishWorkerCheck(call.workerAccepts)
+        return () => { withdraw(); call.dropWorker() }
+      }, 'kybernos-call: worker credential')
+    } catch (e) { say('worker credential not published: ' + String(e && e.message ? e.message : e)) }
     const mount = (webServer) => {
       try { mountCallRoutes(webServer, call, pluginDir, effect, feed, admin); say('routes mounted' + (feed === null ? ' (the worker answers with its own voice model)' : '')) } catch (e) { say('routes not mounted: ' + String(e && e.message ? e.message : e)) }
     }
