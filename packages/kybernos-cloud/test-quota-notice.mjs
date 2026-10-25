@@ -52,7 +52,7 @@ console.log('a window that is used up')
     r !== null && r.text.startsWith('100% of your 5 hours allowance is used \u2014 it comes back in about 3 h.'), r && r.text)
   const joined = quotaNoticeText(facts(personal, [out(18000, { resets_at: inH(3) })]), t, NOW)
   check('the number and the unit of the time of return never part on a line break (a non-breaking space)', joined !== null && joined.text.includes('in about 3\u00a0h.'), joined && joined.text)
-  check('a person who can buy gets how (upgrade or credits) and the action that opens Plan & Credits', r !== null && /Upgrade or add credits/.test(r.text) && r.action === true, r && JSON.stringify(r))
+  check('a person who can buy gets how (upgrade, or wait: a 5-hour window is not lifted by credits) and the action that opens Plan & Credits', r !== null && r.text.endsWith(' Upgrade to go on now, or wait.') && r.action === true, r && JSON.stringify(r))
   check('a window in minutes, in hours, in days', /in about 25 min\./.test((notice(facts(personal, [out(18000, { resets_at: new Date(NOW + 25 * 60000).toISOString() })])) || { text: '' }).text)
     && /in about 47 h\./.test((notice(facts(personal, [out(18000, { resets_at: inH(47) })])) || { text: '' }).text)
     && /in about 3 days\./.test((notice(facts(personal, [out(2592000, { resets_at: inH(72) })])) || { text: '' }).text))
@@ -82,6 +82,34 @@ console.log('a window that is used up')
   check('the same length: the one that opens later, here the team\'s pool', later !== null && /^100% of the 5 hours allowance of Acme Crew/.test(later.text) && /in about 2 h\./.test(later.text), later && later.text)
   const tie = notice(facts(team('owner'), [out(18000, { kind: 'pool', resets_at: inH(2) }), out(18000, { resets_at: inH(2) })]))
   check('the same length and the same time: the person\'s own window before the team\'s pool', tie !== null && /^100% of your 5 hours/.test(tie.text), tie && tie.text)
+}
+
+console.log('how to go on: credits only for the window they lift (recette L2-38, decision DL-02)')
+{
+  // A balance of credits lifts the 30-day window and no other (terms 7.2): a 5-hour, 24-hour or 7-day window used up must never promise credits, whoever reads it
+  // (the name of the page, « Plan & Credits », is not a promise: it is taken out before the words are looked for).
+  const SHORT = [[18000, '5 hours'], [86400, '24 hours'], [604800, '7 days']]
+  const who = [['a person on their own', personal], ['a team admin', team('admin')], ['a team owner', team('owner')], ['a team member', team('member')]]
+  for (const [seconds, name] of SHORT) {
+    for (const [label, ws] of who) {
+      const en = notice(facts(ws, [out(seconds, { resets_at: inH(3) })]))
+      const fr2 = plain(quotaNoticeText(facts(ws, [out(seconds, { resets_at: inH(3) })]), fr, NOW))
+      check(name + ' used up, ' + label + ': no credits promised, in English and in French, and the way out is said (a plan, or wait)',
+        en !== null && fr2 !== null && !/credit/i.test(en.text.replace('Plan & Credits', '')) && !/cr\u00e9dit/i.test(fr2.text.replace('Formule et cr\u00e9dits', '')) && /, or wait\.$/.test(en.text) && /, ou attends\.$/.test(fr2.text), en && fr2 && (en.text + ' | ' + fr2.text))
+    }
+  }
+  check('the sentences, word for word: alone', (notice(facts(personal, [out(18000, { resets_at: inH(3) })])) || { text: '' }).text.endsWith('it comes back in about 3 h. Upgrade to go on now, or wait.'))
+  check('the sentences, word for word: a team admin', (notice(facts(team('admin'), [out(18000, { kind: 'pool', resets_at: inH(3) })])) || { text: '' }).text.endsWith(' Upgrade the plan or raise the cap in Plan & Credits, or wait.'))
+  check('the sentences, word for word: a team member', (notice(facts(team('member'), [out(18000, { kind: 'pool', resets_at: inH(3) })])) || { text: '' }).text.endsWith(' Ask an owner or admin of Acme Crew to upgrade the plan or raise the cap, or wait.'))
+  check('the sentences, word for word: in French', (plain(quotaNoticeText(facts(personal, [out(18000, { resets_at: inH(3) })]), fr, NOW)) || { text: '' }).text.endsWith(' Passe \u00e0 une formule sup\u00e9rieure pour continuer maintenant, ou attends.'))
+  // The 30-day window is the one a balance lifts: a person who used it up and has no balance is told credits are the way.
+  const month = notice(facts(personal, [out(2592000, { resets_at: inH(100) })]))
+  check('a 30-day window used up: credits are still the way (the top-up lifts it)', month !== null && /Upgrade or add credits to go on now\.$/.test(month.text), month && month.text)
+  const monthAdmin = notice(facts(team('admin'), [out(2592000, { kind: 'pool', resets_at: inH(100) })]))
+  check('and for a team admin: add credits or raise the cap', monthAdmin !== null && /Add credits or raise the cap in Plan & Credits\.$/.test(monthAdmin.text), monthAdmin && monthAdmin.text)
+  const monthMember = notice(facts(team('member'), [out(2592000, { kind: 'pool', resets_at: inH(100) })]))
+  check('and for a team member: ask for more credits', monthMember !== null && /Ask an owner or admin of Acme Crew for more credits\.$/.test(monthMember.text), monthMember && monthMember.text)
+  check('every one of the six sentences exists in both languages', ['quotaMoreSolo', 'quotaMoreSoloWait', 'quotaMoreAdmin', 'quotaMoreAdminWait', 'quotaMoreMember', 'quotaMoreMemberWait'].every((k) => (source.match(new RegExp('\\b' + k + ':', 'g')) || []).length === 2))
 }
 
 console.log('a window that is close to being used up')
