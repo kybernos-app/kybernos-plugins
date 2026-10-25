@@ -62,7 +62,7 @@ The beacon stays at the Origin alone: it is the crash detector and must not depe
 | `GET /kybernos-hub/suite` | catalogue, which modules are switched on, hub state |
 | `POST /kybernos-hub/catalogue/refresh` · `POST /kybernos-hub/update` · `GET /kybernos-hub/update/status` | the signed online catalogue and the whole-suite update: see `docs/dev/suite-updates.md` |
 | `POST /kybernos-hub/module` | `{id, action: activer \| desactiver \| installer}`, one at a time (409 if busy) |
-| `POST /kybernos-hub/relaunch` | `{confirm: true}` only: starts `~/.dsh/tools/dsh-relance.mjs` detached, or the suite's `scripts/dsh-relance.mjs` when there is no such copy (`outilRelance`) |
+| `POST /kybernos-hub/relaunch` | `{confirm: true}` only: starts `~/.dsh/tools/dsh-relance.mjs` detached, or the suite's `scripts/dsh-relance.mjs` when there is no such copy (`outilRelance`); 409 `busy` while an installer runs |
 
 ## Files and install
 
@@ -74,13 +74,16 @@ lifecycle robot reads too (atomic write; no file = everything on).
 from the repo (10 min timeout; refused if the robot is missing). The robot takes a safety snapshot,
 links the bundles, installs the profile, re-applies the engine patches, checks the boot and restores
 the snapshot on failure. The hub never passes `--restart`: the card reads "Active after restart"
-and a banner offers a confirmed "Restart DSH".
+and a banner offers a confirmed "Restart DSH". When the robot cannot start or refuses, the activation file is written back to what it was.
+
+The robot writes `<DSH home>/lifecycle/install.lock` (pid, start time, kind; `install-lock.mjs`) while it runs, and the hub reads it: an installer that outlived a killed DSH still
+counts as running after the restart (status `installation`, 409 `busy` for a second install, a refresh or the relaunch). See `docs/dev/suite-updates.md`, « One installer at a time ».
 
 ## Tests
 
 Run `for t in test*.mjs; do node "$t"; done` in this folder: `test-boot-guard.mjs` (verdicts, safe mode),
 `test-host.mjs` (routes, client beacons), `test-suite-host.mjs` (activation, install, routes),
-`test-suite-order.mjs` (order and view helpers), `test-suite-store.mjs` (catalogue sheets, Featured, family filters, the update words and wiring), `test-suite-plugins.mjs` (the Plugins tab: helpers, every component drawn in both languages, the page's calls against the registry's routes), `test-catalogue-distant.mjs`, `test-telechargement.mjs`, `test-suite-update.mjs` (the signed catalogue and the update). `scripts/test-suite-gui.mjs` renders the real panel in a
+`test-suite-order.mjs` (order and view helpers), `test-suite-store.mjs` (catalogue sheets, Featured, family filters, the update words and wiring), `test-suite-plugins.mjs` (the Plugins tab: helpers, every component drawn in both languages, the page's calls against the registry's routes), `test-catalogue-distant.mjs`, `test-telechargement.mjs`, `test-suite-update.mjs` (the signed catalogue and the update), `test-install-lock.mjs` (the installation lock and the temp-folder sweep). `scripts/test-suite-gui.mjs` renders the real panel in a
 browser (needs Playwright and React 18; skipped otherwise).
 
 ## Engine fix route

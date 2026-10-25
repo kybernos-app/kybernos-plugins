@@ -24,8 +24,9 @@ import { fileURLToPath } from 'node:url'
 import { creerHub, monterRoutes, monterSuite } from './hub-host.mjs'
 import { URL_PAR_DEFAUT } from './catalogue-distant.mjs'
 import { detecterHebergement, plateformeDe } from './suite-host.mjs'
-import { creerTelechargeurs } from './telechargement.mjs'
+import { balayerOrphelins, creerTelechargeurs } from './telechargement.mjs'
 import { ecrirePaire, lirePaire } from './cache-paire.mjs'
+import { fichierVerrou, lireVerrou } from './install-lock.mjs'
 
 export const name = 'kybernos-hub'
 
@@ -80,6 +81,11 @@ export function suiteDeps (dshHome, hub) {
     telechargerVers: telechargeurs.telechargerVers,
     extraire: telechargeurs.extraire,
     nettoyer: telechargeurs.nettoyer,
+    // The installation lock the robot writes (install-lock.mjs): the hub only reads it, which also removes a stale one (dead pid).
+    lireVerrou: () => lireVerrou({ fichier: fichierVerrou(dshHome) }),
+    // The temp folders (up to 300 MB) of an update whose DSH was killed before its clean-up: removed at start and when an installer that outlived its DSH ends.
+    // A folder an installer still runs from, or whose maker is alive, is kept.
+    balayer: () => { const v = lireVerrou({ fichier: fichierVerrou(dshHome) }); return balayerOrphelins({ verrou: v.etat === 'tenu' ? v.verrou : null }) },
     // The robot that ships INSIDE the verified archive installs it (the same contract as running ./kybernos-update by hand).
     executerArchive: (racine) => new Promise((resolve) => {
       execFile(process.execPath, [join(racine, 'scripts', 'dsh-lifecycle.mjs'), 'upgrade', '--source', racine], { env: { ...process.env, DSH_HOME: dshHome }, timeout: 20 * 60 * 1000, maxBuffer: 8 * 1024 * 1024 },
