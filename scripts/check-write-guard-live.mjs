@@ -115,7 +115,7 @@ const REFUSAL_ONLY = [
   ['POST', '/kybernos/salary-detect', {}], ['POST', '/kybernos/model/auto', {}],
 ]
 
-// The four spending routes the call side (kybernos-call's worker and health check, which have no browser session) still reaches with the Origin alone.
+// The four spending routes the call worker (kybernos-call, a program with no cookie) also uses: they take the signed session or the worker's one-run secret, never an Origin alone.
 const CALL_SIDE = [['POST', '/kybernos/voice/transcribe'], ['POST', '/kybernos/models/audio/listen'], ['POST', '/kybernos/models/audio/probe'], ['POST', '/kybernos/tts/speak']]
 
 /** A read from this script, as JSON (the reads need no session; the cookie is sent anyway). */
@@ -204,12 +204,15 @@ try {
   const report = await ask('POST', '/kybernos-auto/report', {}, { modele: 'zz/guard-live', erreur: false, latenceMs: 5 })
   check('/kybernos-auto/report: the Auto CLI sends no header and is answered (' + report + ')', report === 200, report)
   check('/kybernos-auto/router: a foreign Origin is still refused', await ask('POST', '/kybernos-auto/router', { origin: 'http://evil.example' }, { demande: 'x' }) === 403)
-  // The call side: kybernos-call's worker and health check post to these four with the Origin and no cookie (docs/dev/route-origin-rule.md). An empty body is answered by the handler's own rule (nothing is spent).
+  // The call side (recette L3-03): kybernos-call's worker posts to these four with a one-run secret the host gave it, a page with the cookie; an Origin alone is what a local program sends, and is refused
+  // (docs/dev/route-origin-rule.md). The secret itself is played by the unit tests and the call bundle's own checks: here nothing started a worker. An empty body is answered by the handler's own rule (nothing is spent).
   for (const [method, path] of CALL_SIDE) {
     const open = await ask(method, path, { origin }, {})
     const bare = await ask(method, path, {}, {})
     const foreign = await ask(method, path, { origin: 'http://evil.example' }, {})
-    check(method + ' ' + path + ': the call side is still answered with the Origin alone (' + open + '), and refused with no header or a foreign one', open !== 401 && open !== 403 && open > 0 && open < 500 && bare === 403 && foreign === 403, [open, bare, foreign])
+    const wrong = await ask(method, path, { origin, 'x-kybernos-call-token': 'f'.repeat(64) }, {})
+    const signed = await ask(method, path, { origin, cookie: session.nom + '=' + session.valeur }, {})
+    check(method + ' ' + path + ': the Origin alone (' + open + ') and a wrong worker secret (' + wrong + ') are refused 401, no header or a foreign Origin 403, the signed session is answered (' + signed + ')', open === 401 && wrong === 401 && bare === 403 && foreign === 403 && signed !== 401 && signed !== 403 && signed > 0 && signed < 500, [open, wrong, bare, foreign, signed])
   }
   check('/kybernos-cloud/computer/claimed: the cloud computer image\'s claimer is still answered with the Origin alone, and refused with none', await ask('POST', '/kybernos-cloud/computer/claimed', { origin }, {}) === 200 && await ask('POST', '/kybernos-cloud/computer/claimed', {}, {}) === 403)
 

@@ -48,8 +48,8 @@ export function createAdmin ({ store, services, call, health = null, installer =
     return services.listAvatars(keys.LIVEAVATAR_API_KEY ?? null)
   }
 
-  /** The health check. `base` is this DSH's own address, taken from the request's socket by the route. */
-  const runHealth = async (base) => (health === null ? { ok: false, error: 'the health check is not available' } : health.run({ base }))
+  /** The health check. `base` is this DSH's own address, taken from the request's socket by the route; `auth.cookie` is the page's own session cookie, handed on to the core routes the check asks. */
+  const runHealth = async (base, auth = {}) => (health === null ? { ok: false, error: 'the health check is not available' } : health.run({ base, cookie: typeof auth.cookie === 'string' ? auth.cookie : '' }))
 
   const patchSettings = async (patch) => {
     const out = await store.writeSettings(patch)

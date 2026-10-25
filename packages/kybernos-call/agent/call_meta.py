@@ -11,6 +11,7 @@ Pure Python (standard library only) so it can be tested without LiveKit.
 from __future__ import annotations
 
 import json
+import os
 import re
 import urllib.parse
 import urllib.request
@@ -255,6 +256,22 @@ def speakable(text: str, limit: int = 450) -> str:
     return cut[: cut.rfind(" ")].strip() + "." if " " in cut else cut
 
 
+# The host gives each worker run a secret, in this variable (worker-token.mjs on the host side). The routes the worker calls over loopback ask for it in this
+# header: an Origin alone is something any local program can send, so it proves nothing.
+CALL_TOKEN_ENV = "KYBER_CALL_TOKEN"
+CALL_TOKEN_HEADER = "x-kybernos-call-token"
+
+
+def host_headers(host: str, extra: Mapping[str, str] | None = None, environ: Mapping[str, str] | None = None) -> dict:
+    """The headers of a request to the host: its own origin (anti-CSRF) and this run's secret (who the worker is). `extra` adds the request's own (content-type...)."""
+    headers = {"origin": host.rstrip("/")}
+    token = (os.environ if environ is None else environ).get(CALL_TOKEN_ENV, "")
+    if token:
+        headers[CALL_TOKEN_HEADER] = token
+    headers.update(extra or {})
+    return headers
+
+
 def speech_url(host: str, room: str, after: int, wait_ms: int) -> str:
     query = urllib.parse.urlencode({"room": room, "after": int(after), "wait": int(wait_ms)})
     return host.rstrip("/") + "/kybernos-call/speech?" + query
@@ -264,10 +281,10 @@ def fetch_speech(host: str, room: str, after: int = 0, wait_ms: int = 0,
                  opener: Callable = urllib.request.urlopen) -> dict:
     """Asks the host for what the session's assistant wrote since `after` (a long poll).
 
-    The host only answers its own origin: a local worker declares it, like for `utterance`.
+    The host only answers its own worker: the origin and this run's secret (`host_headers`), like for `utterance`.
     Returns {"ok", "known", "items": [{"seq", "kind", ...}], "next"}; raises on a network error.
     """
-    request = urllib.request.Request(speech_url(host, room, after, wait_ms), headers={"origin": host.rstrip("/")})
+    request = urllib.request.Request(speech_url(host, room, after, wait_ms), headers=host_headers(host))
     with opener(request, timeout=wait_ms / 1000 + 10) as reply:
         data = json.loads(reply.read().decode("utf-8"))
     return data if isinstance(data, dict) else {"ok": False, "known": False, "items": [], "next": after}

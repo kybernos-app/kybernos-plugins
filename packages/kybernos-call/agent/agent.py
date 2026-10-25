@@ -32,7 +32,7 @@ from livekit.agents import Agent, AgentServer, AgentSession, JobContext, StopRes
 from livekit.agents.voice.turn import InterruptionOptions, TurnHandlingOptions
 from livekit.plugins import groq, silero
 
-from call_meta import (CallMeta, CallState, fetch_speech, filler, instructions as build_instructions, parse_job_metadata,
+from call_meta import (CallMeta, CallState, fetch_speech, filler, host_headers, instructions as build_instructions, parse_job_metadata,
                        speakable, stt_options, utterance_payload)
 from call_voice import two_letters
 from clone_tts import CloneTTS
@@ -91,8 +91,8 @@ def _inject(meta: CallMeta, text: str, mode: str = "queue") -> None:
         HOST + "/kybernos-call/utterance",
         data=body,
         method="POST",
-        # The host requires the same origin (anti-CSRF): a local worker declares it.
-        headers={"content-type": "application/json", "origin": HOST},
+        # The host requires the same origin (anti-CSRF) and this run's secret (who the worker is): an Origin alone is something any local program can send.
+        headers=host_headers(HOST, {"content-type": "application/json"}),
     )
     try:
         with urllib.request.urlopen(req, timeout=8) as reply:
