@@ -1,6 +1,6 @@
 // J2 — memory. A personal memory holding a canary word is made through the real memory route. In a team chat no recorded request body may contain it and the
 // memory and lesson tools must refuse; in a personal chat it is there. The switch in the middle of a session is played in both directions.
-import { openGui, recorder, sleep, mainCalls, chatCalls, flatten, bodyOf, cwdOf } from './common.mjs'
+import { openGui, recorder, sleep, mainCalls, chatCalls, flatten, bodyOf, cwdOrWhy } from './common.mjs'
 import { cookieDeSession } from '../cdp-lib.mjs'
 
 const CANARY = 'ZEBRA-7731'
@@ -118,7 +118,7 @@ export const run = async (ctx) => {
     const n2 = await turn('J2 born in the team, continued while Personal was active: my lucky code word?')
     check('team chat, continued while Personal was active: every request is billed to T1', n2.chats.length > 0 && n2.chats.every((c) => c.workspace === t1), n2.chats.map((c) => c.workspace))
     check('team chat: the canary does not reach the model', has(n2.chats, CANARY) === 0, { calls: n2.chats.length })
-    note('the continued team chat\'s folder is ' + (cwdOf(n2.mains[0]) || '?'))
+    note('the continued team chat\'s folder is ' + (cwdOrWhy(n2.mains[0]) || '?'))
     // the invariant of the whole section: nothing billed to a team carries the personal memory
     const teamRows = ctx.rows(sectionStart).filter((r) => r.method === 'POST' && r.path === '/v1/chat/completions' && r.workspace !== P)
     check('across this whole section, no request billed to a team carries the canary (' + teamRows.length + ' requests)', teamRows.length > 0 && has(teamRows, CANARY) === 0, { teamRows: teamRows.length, withCanary: has(teamRows, CANARY) })

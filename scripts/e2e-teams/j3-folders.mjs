@@ -2,7 +2,7 @@
 // Personal opens one in the previous workspace; a chat already started keeps its folder after a switch. (Joining a team is played in J4.)
 import { existsSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
-import { openGui, recorder, sleep, mainCalls, chatCalls, cwdOf, bodyOf } from './common.mjs'
+import { openGui, recorder, sleep, mainCalls, chatCalls, cwdOf, cwdOrWhy, bodyOf } from './common.mjs'
 
 export const run = async (ctx) => {
   const tag = Math.random().toString(36).slice(2, 6).toUpperCase()
@@ -60,12 +60,12 @@ export const run = async (ctx) => {
     const folderPill = await g.text('[data-kb="cue-folder"]')
     check('the composer shows a folder pill for the team', typeof folderPill === 'string' && /Alpha/.test(folderPill), folderPill)
     const a1 = await turn('J3 alpha one')
-    check('the new chat\'s session folder is the team\'s (Documents/Kybernos/E2E Alpha)', isTeamFolder(cwdOf(a1.mains[0]), 'E2E Alpha'), cwdOf(a1.mains[0]))
+    check('the new chat\'s session folder is the team\'s (Documents/Kybernos/E2E Alpha)', isTeamFolder(cwdOf(a1.mains[0]), 'E2E Alpha'), cwdOrWhy(a1.mains[0]))
     await goTo(P, /Personal/)
     check('no folder pill in Personal', !(await g.exists('[data-kb="cue-folder"]')))
     const p1 = await turn('J3 personal one')
     const pc = cwdOf(p1.mains[0])
-    check('back in Personal the chat opens in the previously used (non-team) workspace', pc !== null && !/\/Kybernos\//.test(pc) && (personalRepo === null || pc === personalRepo), pc)
+    check('back in Personal the chat opens in the previously used (non-team) workspace', pc !== null && !/\/Kybernos\//.test(pc) && (personalRepo === null || pc === personalRepo), cwdOrWhy(p1.mains[0]))
     check('the Personal chat is billed to Personal', p1.chats.every((c) => c.workspace === P))
 
     // 3. a chat already started keeps its folder after a switch
@@ -83,7 +83,7 @@ export const run = async (ctx) => {
     await sleep(1500)
     const s2 = await turn('J3 continued after the switch')
     const folder2 = folderName(cwdOf(s2.mains[0]))
-    check('the chat keeps its folder (E2E Alpha), whatever team is active now', isTeamFolder(cwdOf(s2.mains[0]), 'E2E Alpha'), folder2)
+    check('the chat keeps its folder (E2E Alpha), whatever team is active now', isTeamFolder(cwdOf(s2.mains[0]), 'E2E Alpha'), cwdOrWhy(s2.mains[0]))
     const hdr = s2.chats[0] && s2.chats[0].workspace
     note(`that chat's requests carry the ACTIVE team (${hdr === t2 ? 'T2' : hdr === t1 ? 'T1' : hdr}), while its folder is T1's`)
     check('the continued T1 chat is billed to T1 (the team of its folder), not to the team that happens to be active', hdr === t1, { header: hdr === t2 ? 'T2' : hdr === t1 ? 'T1' : hdr, folder: folder2 })
