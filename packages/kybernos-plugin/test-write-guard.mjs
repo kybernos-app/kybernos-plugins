@@ -13,10 +13,16 @@
 //
 // 2026-10-24 (Team automations, piece 2): the four routes of the local half carry the pair from the start — /kybernos/automation/team-pack and team-copies read prompts, team-install and
 // team-update write tasks.json (scripts/test-tasks-team.mjs proves what they do).
+// 2026-10-25 (recette L3-06 and L3-19): seventeen more writes had stayed at the strict Origin alone. Ten change what the agent follows or can do: the instructions of a project (the
+// system prompt of its chats and its AGENTS.md), the drivers of the profile (/tools/apply mounts Computer Use or Browser Use in cordis.patch.yml, hot-reloaded), the skills and the
+// apps of a project, a skill a domain pack ships, the model the next message uses, the voice engine, the first-run wizard's answers, the progress registry, the project data; and seven
+// make a call with the owner's key or credits (a picture, a batch or a run of translations, a Brain suggestion, a salary estimate, a team workflow, speech). They carry the pair now. Four others that spend the owner's key
+// (/voice/transcribe, /models/audio/listen, /models/audio/probe, /tts/speak) are also called by kybernos-call's worker and health check, which have no session: they are the documented
+// exceptions at the end of this file, with the caller that keeps them there, and the file fails if one of them is converted without the call side.
 //   node packages/kybernos-plugin/test-write-guard.mjs
 import assert from 'node:assert/strict'
 import http from 'node:http'
-import { mkdirSync, mkdtempSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
@@ -97,6 +103,38 @@ const WRITES = [
   ['/kybernos/automation/team-update', { taskId: 'st-write-guard', definition: {}, mode: 'replace' }],
 ]
 
+// L3-06 and L3-19 (recette 2026-10-25): the writes that had stayed at the strict Origin alone. Every body is harmless in this throw-away home (no workspace, no profile, no key, no model
+// service): the real pair reaches the handler, which stops at once with its own verdict; a refused request must not even get that far.
+const FAMILY = [
+  // What the agent follows or can do.
+  ['/kybernos/workspace-instructions', { workspaceId: 'w-write-guard', text: 'A line a shell tried to put in the prompt of every chat of a project.', alsoAgents: true }],
+  ['/kybernos/tools/apply', { family: 'computer-use', action: 'install', profile: 'web', dry: true }],
+  ['/kybernos/workspace-skills', { workspaceId: 'w-write-guard', skills: [] }],
+  ['/kybernos/workspace-connectors', { workspaceId: 'w-write-guard', connectors: [] }],
+  ['/kybernos/domain/skill', { name: 'no-such-skill' }],
+  ['/kybernos/model/auto', { provider: '' }],
+  ['/kybernos/tts/config', { patch: {} }],
+  ['/kybernos/onboarding', { action: 'nope' }],
+  ['/kybernos/art-progress', { action: 'read' }],
+  ['/kybernos/project-data', { sessionIds: [] }],
+  // What spends the owner's key or credits.
+  ['/kybernos/image/generate', { prompt: 'A picture a shell tried to pay for.' }],
+  ['/kybernos/i18n-translate', { lang: 'xx', items: [] }],
+  ['/kybernos/i18n-job', { op: 'cancel', lang: 'xx' }],
+  ['/kybernos/starters-suggest', {}],
+  ['/kybernos/yml-proposer', { texte: 'abc' }],
+  ['/kybernos/salary-detect', {}],
+  ['/kybernos/models/audio/speak', { text: '' }],
+]
+
+// The four that spend the owner's key and stay at the strict Origin on purpose, with the caller that has no session (see the comment above /kybernos/models/audio/probe in index.js).
+const STRICT_ONLY = [
+  ['/kybernos/voice/transcribe', {}, 'the call worker (agent/call_stt.py, the « app » listening provider)'],
+  ['/kybernos/models/audio/listen', {}, 'the call worker (agent/call_stt.py, a listening model of Models)'],
+  ['/kybernos/models/audio/probe', {}, 'the call health check (call-health.mjs)'],
+  ['/kybernos/tts/speak', {}, 'the call worker (agent/call_voice.py) and the call health check (call-health.mjs)'],
+]
+
 let pass = 0
 const ok = (label) => { pass += 1; console.log('  ✓ ' + label) }
 
@@ -119,6 +157,47 @@ try {
     assert.notEqual(real.status, 401, path + ': the real pair is not refused as unsigned')
     assert.notEqual(real.status, 403, path + ': the real pair is not refused as foreign')
     ok(path + ': no header 403 · foreign Origin 403 · no cookie 401 · forged cookie 401 · the real pair answers')
+  }
+  // L3-06 / L3-19. Four refusals for each, nothing written by a refused request (the files a write of the family leaves in the throw-away home), then the real pair.
+  const homeFiles = () => ['.kyber-workspaces.json', 'AGENTS.md', 'workspace-instructions.json', 'kybernos/workspace-instructions.json', 'kybernos/progress.json', 'kybernos/onboarding.json'].filter((f) => existsSync(join(process.env.DSH_HOME, f)))
+  for (const [path, body] of FAMILY) {
+    assert.ok(routeOf(path) !== undefined, path + ' is mounted — the table above is stale')
+    const filesBefore = homeFiles()
+    for (const [headers, want, label] of [
+      [{}, 403, 'no Origin and no cookie'],
+      [{ origin: 'http://evil.example', cookie: cookie() }, 403, 'a foreign Origin, even with the real cookie'],
+      [{ origin }, 401, 'the right Origin and no cookie'],
+      [{ origin, cookie: forged }, 401, 'the right Origin and a forged cookie'],
+    ]) {
+      const r = await send(path, headers, body)
+      assert.equal(r.status, want, path + ': ' + label + ' -> ' + r.status + ' ' + r.text.slice(0, 80))
+      assert.equal(JSON.parse(r.text).ok, false, path + ': a refusal says ok: false')
+    }
+    assert.deepEqual(homeFiles(), filesBefore, path + ': a refused request left the files of the home as they were')
+    const real = await send(path, { origin, cookie: cookie() }, body)
+    assert.notEqual(real.status, 401, path + ': the real pair is not refused as unsigned: ' + real.text.slice(0, 80))
+    assert.notEqual(real.status, 403, path + ': the real pair is not refused as foreign: ' + real.text.slice(0, 80))
+    assert.ok(real.status > 0, path + ': the route answers the real pair')
+    ok(path + ': no header 403 · foreign Origin 403 · no cookie 401 · forged cookie 401 · nothing written · the real pair answers')
+  }
+  // The routes that read keep their rule: i18n-job and workspace-skills / -connectors / -instructions answer a GET with the strict or lax Origin check alone.
+  for (const path of ['/kybernos/i18n-job', '/kybernos/workspace-skills', '/kybernos/workspace-connectors']) {
+    const r = await send(path + (path.endsWith('job') ? '' : '?workspaceId=w-write-guard'), {}, {}, 'GET')
+    assert.ok(r.status !== 401, path + ': a GET is not asked for the cookie: ' + r.status)
+  }
+  ok('the GET of i18n-job, workspace-skills and workspace-connectors stays a plain read (no cookie asked)')
+  // The four spending routes the call side still reaches without a session: the strict Origin is all they ask for today. This is the documented exception, not an oversight:
+  // converting one of them breaks the call's ears or voice until kybernos-call hands its worker a credential, so the test names the caller and fails the day one is guarded.
+  for (const [path, body, caller] of STRICT_ONLY) {
+    assert.ok(routeOf(path) !== undefined, path + ' is mounted — the table above is stale')
+    for (const [headers, label] of [[{}, 'no Origin'], [{ origin: 'http://evil.example', cookie: cookie() }, 'a foreign Origin, even with the real cookie']]) {
+      const r = await send(path, headers, body)
+      assert.equal(r.status, 403, path + ': ' + label + ' -> ' + r.status)
+    }
+    const callSide = await send(path, { origin }, body)
+    assert.notEqual(callSide.status, 401, path + ': ' + caller + ' posts here with the Origin and no cookie, and must still be answered: ' + callSide.status + ' ' + callSide.text.slice(0, 80))
+    assert.notEqual(callSide.status, 403, path + ': the right Origin is accepted: ' + callSide.status)
+    ok(path + ': kept at the strict Origin for ' + caller + ' (no header 403, foreign Origin 403, the right Origin answers)')
   }
   // /voice-sample also answers GET (the list: a plain read) and DELETE (a write: it needs the pair too).
   for (const [headers, want, label] of [
