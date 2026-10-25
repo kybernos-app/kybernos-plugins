@@ -28,7 +28,8 @@ node scripts/stage-native.mjs --payload <payload dir> --platform android
 export JAVA_HOME=/Library/Java/JavaVirtualMachines/temurin-17.jdk/Contents/Home ANDROID_HOME=/opt/homebrew/share/android-commandlinetools
 npx expo prebuild --platform android --no-install && echo "sdk.dir=$ANDROID_HOME" > android/local.properties
 (cd android && ./gradlew assembleRelease)
-AVD=<emulator name> bash ../tests/emu-android.sh   # L4: first launch, self-test automation, warm relaunch
+AVD=<emulator name> bash ../tests/emu-android.sh   # L4: first launch, self-test automation, warm relaunch, and behind a proxy that answers 503 (S6)
+ANDROID_SERIAL=<serial> SKIP_INSTALL=1 bash ../tests/emu-android.sh   # the same on a plugged-in phone whose owner confirms each install
 ```
 
 A release APK is not debuggable, so `adb run-as` cannot read its files: the self-test writes `selftest-result.json` to the app's external files folder (`/sdcard/Android/data/app.kybernos.host/files/`), and the test switches travel as launch-intent extras (`--ei kb_selftest_delay 75 --es kb_deny_spawn 1`). Cleartext HTTP is allowed for 127.0.0.1 only (`plugins/with-loopback-cleartext.js`).

@@ -2,9 +2,10 @@
 # L4: the React Native app on an Android emulator or device reached by adb. A fresh install with the self-test hook on (launch-intent extras; a release build is not debuggable, so the
 # result file lives in the app's external files folder, which `adb shell` reads):
 #   S1 first launch: the web page is up within READY_MAX seconds and the self-test automation fires,
-#   S4 kill and warm relaunch: the page is up again within WARM_MAX seconds and the first automation is still there (taskCount >= 2).
+#   S4 kill and warm relaunch: the page is up again within WARM_MAX seconds and the first automation is still there (taskCount >= 2),
+#   S6 (emulator only) a system proxy that answers 503 to everything, like a device cloud's: the page must still come up, because the app never sends its loopback requests through a proxy.
 # Gates (plan section 4, L6): APK at most 200 MB, payload at most 70 MB. Name the emulator with AVD=... (see the device rule below).
-#   mobile/tests/emu-android.sh
+#   mobile/tests/emu-android.sh        (SKIP_INSTALL=1: keep the installed app and only clear its data, for a phone that confirms every install)
 set -uo pipefail
 cd "$(dirname "$0")/../app"
 SDK=${ANDROID_HOME:-/opt/homebrew/share/android-commandlinetools}
@@ -41,8 +42,13 @@ launch() { adb shell am start -n $PKG/.MainActivity --ei kb_selftest_delay "$DEL
 wait_for() { local t0; t0=$(now); while :; do adb shell cat $R 2>/dev/null | grep -q "$1" && break; local el; el=$(python3 -c "print(round($(now)-$t0,1))"); [ "$(python3 -c "print(1 if $el > $2 else 0)")" = 1 ] && { echo -1; return; }; sleep 1; done; python3 -c "print(round($(now)-$t0,1))"; }
 over() { [ "$(python3 -c "print(1 if $1 > $2 else 0)")" = 1 ]; }
 
-adb uninstall $PKG >/dev/null 2>&1
-adb install -r "$APK" >/dev/null || { say "install failed"; exit 2; }
+if [ "${SKIP_INSTALL:-}" = 1 ]; then
+  # a phone that asks its owner to confirm each install: the app is already there, start from a clean state without reinstalling
+  adb shell pm clear $PKG >/dev/null || { say "$PKG is not installed on the device"; exit 2; }
+else
+  adb uninstall $PKG >/dev/null 2>&1
+  adb install -r "$APK" >/dev/null || { say "install failed"; exit 2; }
+fi
 launch
 t=$(wait_for '"startedAt"' $((READY_MAX + 20)))
 say "S1 first launch: page up and self-test started after ${t} s (max ${READY_MAX})"
@@ -58,6 +64,18 @@ if [ "$t" = -1 ]; then bad "S4 the page never came back"; elif over "$t" "$WARM_
 t=$(wait_for '"taskCount":[2-9]' 30)
 say "S4 data kept: $([ "$t" = -1 ] && echo 'the first automation is gone' || echo 'the first automation is still listed')"
 [ "$t" = -1 ] && bad "S4 the automation was lost across the relaunch"
+if [ -n "${AVD:-}" ]; then
+  say "S6 system proxy answering 503 (restored afterwards)"
+  node mobile/tests/stub-proxy.mjs >/dev/null 2>&1 & PROXY_PID=$!
+  restore_proxy() { adb shell settings put global http_proxy :0 >/dev/null 2>&1; [ -n "${PROXY_PID:-}" ] && kill "$PROXY_PID" 2>/dev/null; }
+  trap restore_proxy EXIT
+  sleep 1; adb shell settings put global http_proxy 10.0.2.2:8899
+  adb shell am force-stop $PKG; sleep 2; adb shell rm -f $R; launch
+  t=$(wait_for '"startedAt"' $((WARM_MAX + 20)))
+  say "S6 behind the 503 proxy: page up after ${t} s (max ${WARM_MAX})"
+  if [ "$t" = -1 ]; then bad "S6 the page never came up behind a proxy"; elif over "$t" "$WARM_MAX"; then bad "S6 page took ${t} s (max ${WARM_MAX})"; fi
+  restore_proxy; trap - EXIT
+fi
 adb shell am force-stop $PKG
 [ $fail = 0 ] && say "emu-android: PASS" || say "emu-android: FAIL"
 exit $fail
