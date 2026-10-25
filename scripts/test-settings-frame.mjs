@@ -47,5 +47,9 @@ console.log('the page boxes')
     check(b + ': the page is not a card inside the page (no border, background or padding on ' + cls + ')', rule.length > 0 && !/border|background|padding/.test(rule), rule)
   }
   check('Phone and channels has no padding of its own (the icon starts at the frame\'s edge)', /\.kbmr-page\{[^}]*padding:0;/.test(read('kybernos-mobile')))
+  // Settings › Kaby had `padding:6px 2px 24px`: its title sat at x 274, y 60 instead of 272, 54 (recette of 2026-10-24). Only the foot keeps room, for the scroll end.
+  const kaby = /\.kbkc\{([^}]*)\}/.exec(read('kybernos-kaby-customisation'))
+  const kabyPad = kaby === null ? null : /(?:^|;)padding:([^;]*)/.exec(kaby[1])
+  check('Kaby has no padding at the top or at the sides (only the foot keeps room), so its title starts where the others do', kabyPad !== null && /^0 0 \d+px$/.test(kabyPad[1].trim()), kabyPad === null ? null : kabyPad[1])
 }
 process.exit(fail === 0 ? 0 : 1)

@@ -30896,7 +30896,7 @@ body[data-ds-dark-theme] .kb8-cf-wm{color:color-mix(in srgb,var(--kb8-pc,var(--d
 .kb8-rf-figs .kb8-cf-st.kb8-rf-c4{min-width:84px}
 .kb8-rf-ph{visibility:hidden}
 .kb8-rf-acts{display:flex;align-items:center;gap:1px;flex:0 0 auto}
-.kb8-rf-btns{display:flex;align-items:center;justify-content:flex-end;gap:6px;flex:0 0 auto;min-width:176px}
+.kb8-rf-btns{box-sizing:border-box;display:flex;align-items:center;justify-content:flex-end;gap:6px;flex:0 0 auto;min-width:176px}
 .kb8-rf-btns .kb8-primary{padding:5px 12px;border-radius:9px;font-size:12.5px;gap:6px}
 .kb8-rf-btns .kb8-chip{padding:5px 12px;font-size:12.5px}
 @media (hover:hover){
