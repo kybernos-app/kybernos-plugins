@@ -9,6 +9,8 @@
 //   - the right Origin and no cookie                      -> 401
 // and then, from INSIDE the signed-in page (what the plugin's own pages do: a same-origin fetch, so the browser adds the Origin and the
 // session cookie) the same route with a body that changes nothing -> anything but 401/403. A page that stopped working shows here.
+// 2026-10-25 (L3-04, L3-05, L3-06, L3-19): the cloud and plugin writes that had stayed at the Origin alone are in the list (the ones that would act on a real account or machine: the
+// local-program half only), the Account page's custom instructions are typed and saved with real clicks, and the routes the call side still reaches with the Origin alone are checked as such.
 // The routes left open on purpose (the Auto CLI's /router and /report) must still answer with no header,
 // and the free-models gateway must refuse what a browser marks as another site (a foreign Origin, Sec-Fetch-Site cross-site) with nothing sent
 // upstream (the allowed side is proved offline by packages/kybernos-free-llms/test-gateway-origin.mjs: it would call opencode.ai).
@@ -18,7 +20,7 @@
 //
 // Exit code: 0 all green, 1 a check failed, 3 inconclusive (GUI down). Named check-*, not test-*: CI has no DSH.
 import http from 'node:http'
-import { mkdirSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { openLivePage, openSettings, waitFor } from './live-page.mjs'
 import { cookieDeSession } from './cdp-lib.mjs'
@@ -82,7 +84,34 @@ const GUARDED = [
   // A-16 (21/10): the slash entries take the cookie like the rest. Their callers are two pages (same-origin fetch); the agent writes through the host tool `enregistrer_entree`, not through this route.
   // An empty body is answered 400 « no entry given » (nothing stored).
   ['POST', '/kybernos/slash/entries', {}],
+  // L3-04 / L3-05 (recette 2026-10-25): the cloud writes that had stayed at the Origin alone. Each body is one the host answers on its own rule, before it asks the account's server for anything
+  // (an empty text removes a section that is not there, an id or a token of the wrong shape, a team that is not the account's).
+  ['POST', '/kybernos-cloud/instructions/save', { text: '' }],
+  ['POST', '/kybernos-cloud/telegram/pairing/cancel', { id: 'zz-guard-live' }], ['POST', '/kybernos-cloud/whatsapp/pairing/cancel', { id: 'zz-guard-live' }],
+  ['POST', '/kybernos-cloud/invitation/preview', { token: 'short' }],
+  ['POST', '/kybernos-cloud/console/link', { workspace_id: '00000000-0000-4000-8000-000000000000' }],
+  ['POST', '/kybernos-cloud/billing/checkout', {}], ['POST', '/kybernos-cloud/billing/portal', { workspace_id: '00000000-0000-4000-8000-000000000000' }],
+  // L3-06 / L3-19: the plugin's writes that change what the agent follows or can do, and the ones that spend the owner's model or key. Bodies the handler refuses at once.
+  ['POST', '/kybernos/workspace-instructions', { workspaceId: 'zz-guard-live', text: '' }], ['POST', '/kybernos/tools/apply', { family: 'zz-guard-live' }],
+  ['POST', '/kybernos/workspace-skills', {}], ['POST', '/kybernos/workspace-connectors', {}], ['POST', '/kybernos/domain/skill', {}],
+  ['POST', '/kybernos/tts/config', { patch: {} }], ['POST', '/kybernos/onboarding', { action: 'zz-guard-live' }], ['POST', '/kybernos/art-progress', { action: 'read' }],
+  ['POST', '/kybernos/project-data', { sessionIds: [] }], ['POST', '/kybernos/image/generate', {}], ['POST', '/kybernos/i18n-translate', {}],
+  ['POST', '/kybernos/i18n-job', { op: 'zz-guard-live' }], ['POST', '/kybernos/starters-suggest', {}], ['POST', '/kybernos/yml-proposer', { texte: 'a' }],
+  ['POST', '/kybernos/models/audio/speak', {}],
 ]
+
+// The writes of the same family whose handler would DO something on a real account or machine (a pairing link, an unlink, Kaby's computer, the Home computer, a call to the model): the
+// local-program half only. The signed-in page's half of each is played by the unit tests (the throw-away server of packages/kybernos-cloud/test-write-guard.mjs) and, for the pairing, by the click below.
+const REFUSAL_ONLY = [
+  ['POST', '/kybernos-cloud/telegram/pairing', {}], ['POST', '/kybernos-cloud/whatsapp/pairing', {}],
+  ['POST', '/kybernos-cloud/telegram/unlink', {}], ['POST', '/kybernos-cloud/whatsapp/unlink', {}],
+  ['POST', '/kybernos-cloud/kyby/computer', { computer_id: null }],
+  ['POST', '/kybernos-cloud/computer/open', {}], ['POST', '/kybernos-cloud/computer/resume', {}], ['POST', '/kybernos-cloud/computer/suspend', {}],
+  ['POST', '/kybernos/salary-detect', {}], ['POST', '/kybernos/model/auto', {}],
+]
+
+// The four spending routes the call side (kybernos-call's worker and health check, which have no browser session) still reaches with the Origin alone.
+const CALL_SIDE = [['POST', '/kybernos/voice/transcribe'], ['POST', '/kybernos/models/audio/listen'], ['POST', '/kybernos/models/audio/probe'], ['POST', '/kybernos/tts/speak']]
 
 /** A read from this script, as JSON (the reads need no session; the cookie is sent anyway). */
 const readJson = (path) => new Promise((resolve) => {
@@ -107,7 +136,7 @@ const ev = async (js) => { const r = await page.evalJs(js, 10000); return r.err 
 // What the browser got back for the page's own requests: the guard must not have refused one (a 401 or 403 here is a page that stopped working).
 const answered = []
 await page.send('Network.enable', {})
-page.on('Network.responseReceived', (p) => { if (p.response && /\/(kybernos-auto|kybernos-memory|kybernos-computers)\//.test(p.response.url)) answered.push({ url: new URL(p.response.url).pathname, status: p.response.status }) })
+page.on('Network.responseReceived', (p) => { if (p.response && /\/(kybernos-auto|kybernos-memory|kybernos-computers|kybernos-cloud)\//.test(p.response.url)) answered.push({ url: new URL(p.response.url).pathname, status: p.response.status }) })
 // The headers Chrome really puts on the wire for the page's own requests (CDP's ExtraInfo carries them, cookies included).
 const wire = new Map()
 const urlOf = new Map()
@@ -148,6 +177,12 @@ try {
     const p = await fromPage(method, path, body)
     check(method + ' ' + path + ': the signed-in page is answered (' + p + ')', p !== 401 && p !== 403 && p > 0 && p < 500, p)
   }
+  for (const [method, path, body] of REFUSAL_ONLY) {
+    const a = await ask(method, path, {}, body)
+    const b = await ask(method, path, { origin: 'http://evil.example', cookie }, body)
+    const c = await ask(method, path, { origin }, body)
+    check(method + ' ' + path + ': no header 403, foreign Origin 403, no cookie 401 (nothing is sent for the page: it would act)', a === 403 && b === 403 && c === 401, [a, b, c])
+  }
 
   console.log('what the browser itself puts on the wire (the free-models gateway keys on it)')
   await fromPage('GET', '/kybernos-auto/state')
@@ -164,6 +199,14 @@ try {
   const report = await ask('POST', '/kybernos-auto/report', {}, { modele: 'zz/guard-live', erreur: false, latenceMs: 5 })
   check('/kybernos-auto/report: the Auto CLI sends no header and is answered (' + report + ')', report === 200, report)
   check('/kybernos-auto/router: a foreign Origin is still refused', await ask('POST', '/kybernos-auto/router', { origin: 'http://evil.example' }, { demande: 'x' }) === 403)
+  // The call side: kybernos-call's worker and health check post to these four with the Origin and no cookie (docs/dev/route-origin-rule.md). An empty body is answered by the handler's own rule (nothing is spent).
+  for (const [method, path] of CALL_SIDE) {
+    const open = await ask(method, path, { origin }, {})
+    const bare = await ask(method, path, {}, {})
+    const foreign = await ask(method, path, { origin: 'http://evil.example' }, {})
+    check(method + ' ' + path + ': the call side is still answered with the Origin alone (' + open + '), and refused with no header or a foreign one', open !== 401 && open !== 403 && open > 0 && open < 500 && bare === 403 && foreign === 403, [open, bare, foreign])
+  }
+  check('/kybernos-cloud/computer/claimed: the cloud computer image\'s claimer is still answered with the Origin alone, and refused with none', await ask('POST', '/kybernos-cloud/computer/claimed', { origin }, {}) === 200 && await ask('POST', '/kybernos-cloud/computer/claimed', {}, {}) === 403)
 
   console.log('the free-models gateway refuses a browser page of another site, nothing sent upstream')
   for (const [method, path, body] of [['POST', '/free-llms/v1/chat/completions', { model: 'x-free', messages: [] }], ['GET', '/free-llms/v1/models'], ['GET', '/free-llms/status'], ['GET', '/free-llms/health']]) {
@@ -219,6 +262,29 @@ try {
     const status = await readJson('/kybernos-computers/status')
     check('Code sandbox (E2B): the host refused the key on its own rule (keyPresent stays false), not the guard\'s', status !== null && status.keyPresent === false, status)
     await shot('write-guard-cloud-computers')
+
+    // L3-04: the Account page's custom instructions (the « Kybernos » section of Settings), typed and saved with real clicks. The page's POST to /kybernos-cloud/instructions/save carries the
+    // Origin and DSH's session cookie by itself, and the host writes the marked section of THIS instance's AGENTS.md (what every agent reads); the same text sent by a bare program was refused above.
+    const openKey = (key) => ev(`(() => { const c = [...document.querySelectorAll('[class*="navCell"]')].find((e) => { const n = Object.keys(e).find((k) => k.indexOf('__reactFiber$') === 0); return n !== undefined && e[n].key === ${q(key)} }); if (!c) return false; c.scrollIntoView({ block: 'center' }); c.click(); return true })()`)
+    const setInstructions = (value) => ev(`(() => { const t = document.querySelector('[data-kb="ky-instr-field"]'); if (!t) return false; Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set.call(t, ${q(value)}); t.dispatchEvent(new Event('input', { bubbles: true })); return true })()`)
+    const saveInstructions = async () => {
+      await waitFor(page, `(() => { const b = document.querySelector('[data-kb="ky-instr-save"]'); return !!b && !b.disabled })()`, 6000)
+      return ev(`(() => { const b = document.querySelector('[data-kb="ky-instr-save"]'); if (!b || b.disabled) return false; b.click(); return true })()`)
+    }
+    check('Account: the Kybernos section of Settings opens', await openKey('kybernos-local') === true)
+    await waitFor(page, `(() => { const n = document.querySelector('[data-kb="ky-instr-note"]'); return !!document.querySelector('[data-kb="ky-instr-field"]') && !!n && !/Loading/.test(n.innerText) })()`, 12000)
+    const agentsFile = join(process.env.DSH_HOME || '', 'AGENTS.md')
+    const LINE = 'Answer in short sentences (write-guard live check).'
+    check('Account: the instructions field takes the text and offers Save', await setInstructions(LINE) === true && await ev(`document.querySelector('[data-kb="ky-instr-save"]').disabled`) === false)
+    check('Account: Save is clicked', await saveInstructions() === true)
+    await waitFor(page, `document.querySelector('[data-kb="ky-instr-saved"]') !== null`, 8000)
+    check('Account: the page says Saved', await ev(`document.querySelector('[data-kb="ky-instr-saved"]') !== null`) === true)
+    check('Account: the browser\'s own POST to /kybernos-cloud/instructions/save was answered 200', lastStatus('/kybernos-cloud/instructions/save') === 200, lastStatus('/kybernos-cloud/instructions/save'))
+    check('Account: the host wrote the marked section of AGENTS.md', existsSync(agentsFile) && readFileSync(agentsFile, 'utf8').includes(LINE))
+    await shot('write-guard-account-instructions')
+    check('Account: the text is emptied and saved again (the sandbox\'s AGENTS.md is put back)', await setInstructions('') === true && await saveInstructions() === true)
+    await sleep(1500)
+    check('Account: the section is gone from AGENTS.md', !existsSync(agentsFile) || !readFileSync(agentsFile, 'utf8').includes(LINE))
   }
 } finally {
   await live.close()
