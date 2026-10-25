@@ -10157,6 +10157,9 @@ function boot(ctx) {
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/gateway/approvals/decision', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        // Recette 2026-10-25: this answers an agent's request for approval (it lets a task run), so a program that only sends the Origin must not be able to say yes: the signed session is needed
+        // too. Nothing in this repository calls it (no page, no worker): the bridge it belongs to is inert without a hand-set pairing token.
+        if (writeRefused(req, res)) return
         let body = null
         try { body = await readJsonBody(req) } catch (e) { return sendJson(res, 400, { ok: false, error: 'invalid JSON body' }) }
         const rep = await gatewayWatcher.decider(
@@ -10310,6 +10313,8 @@ function boot(ctx) {
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/art-reveal', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        // Recette 2026-10-25: it opens a Finder window on a file of the person's disk, so the signed session is needed too (its only caller is a page; the phone replays the cookie).
+        if (writeRefused(req, res)) return
         sendJson(res, 200, await revealArtifact(await readJsonBody(req)))
       } }), 'kybernos: route art-reveal')
       // ── vendor « technique » : three.js + le renderer 3D ──────────────────
@@ -11030,6 +11035,8 @@ function boot(ctx) {
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/quality-feedback', handler: async (req, res) => {
         if (req.method === 'POST') {
           if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+          // Recette 2026-10-25: a write to the person's feedback log: the signed session is needed too (the page sends it).
+          if (writeRefused(req, res)) return
           let body = null
           try { body = await readJsonBody(req, 65536) } catch (e) { return sendJson(res, 413, { ok: false, error: 'request body too large' }) }
           return sendJson(res, 200, await saveQualityFeedback(body))
@@ -11045,6 +11052,8 @@ function boot(ctx) {
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/quality-rating', handler: async (req, res) => {
         if (req.method === 'POST') {
           if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+          // Recette 2026-10-25: a write to the person's rating log: the signed session is needed too (the page sends it).
+          if (writeRefused(req, res)) return
           let body = null
           try { body = await readJsonBody(req, 65536) } catch (e) { return sendJson(res, 413, { ok: false, error: 'request body too large' }) }
           return sendJson(res, 200, await saveQualityRating(body))
@@ -11095,14 +11104,23 @@ function boot(ctx) {
       } }), 'kybernos: route i18n-models')
       // Translations saved on the user's disk (~/.dsh/kybernos/i18n/<lang>.json), shared by
       // every browser: see i18n-store.mjs. The browser keeps a copy for first paint.
-      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/i18n-store', handler: (req, res) => serveI18nStore(req, res, {
-        home: dshHomeOrNull, sameOriginStrict, sameOriginLax, readJson: readJsonBody, query: queryOf, send: sendJson,
-      }) }), 'kybernos: route i18n-store')
+      // Recette 2026-10-25: a POST writes (or removes) a language of the person's interface on disk, and the strings it holds are drawn in every page: it needs the signed session too, not only the strict
+      // Origin serveI18nStore checks. The callers are the pages (Language, and the runtime that reconciles the disk copy); the GET (list, read) keeps its lax rule.
+      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/i18n-store', handler: (req, res) => {
+        if (req.method === 'POST' && writeRefused(req, res)) return undefined
+        return serveI18nStore(req, res, {
+          home: dshHomeOrNull, sameOriginStrict, sameOriginLax, readJson: readJsonBody, query: queryOf, send: sendJson,
+        })
+      } }), 'kybernos: route i18n-store')
       // Ready-made translations (signed language packs): which exist, refresh, install one into the on-disk store. i18n-packs.mjs.
-      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/i18n-packs', handler: (req, res) => servePacks(req, res, {
-        home: dshHomeOrNull, store: (kybernosDir) => createI18nStore({ dir: joinPath(kybernosDir, 'i18n') }), keys: () => loadLanguagePackKeys(joinPath(pluginDir, 'languages-pubkey.json')),
-        sameOriginStrict, sameOriginLax, readJson: readJsonBody, send: sendJson,
-      }) }), 'kybernos: route i18n-packs')
+      // Recette 2026-10-25: a POST asks the network for the signed index (`refresh`) and installs a pack into the on-disk store (`install`): the signed session is needed too. Its only caller is the Language page.
+      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/i18n-packs', handler: (req, res) => {
+        if (req.method === 'POST' && writeRefused(req, res)) return undefined
+        return servePacks(req, res, {
+          home: dshHomeOrNull, store: (kybernosDir) => createI18nStore({ dir: joinPath(kybernosDir, 'i18n') }), keys: () => loadLanguagePackKeys(joinPath(pluginDir, 'languages-pubkey.json')),
+          sameOriginStrict, sameOriginLax, readJson: readJsonBody, send: sendJson,
+        })
+      } }), 'kybernos: route i18n-packs')
       // The run itself: start / pause / resume / cancel / acknowledge, and its state. See i18n-job.mjs.
       // L3-19: `start` translates the missing texts with the person's model (their credits) and the other ops steer that run, so a POST needs the signed session too, not only the
       // strict Origin serveJobs checks. The GET (the state of the runs) keeps its lax rule.
@@ -11190,6 +11208,8 @@ function boot(ctx) {
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/voice/save', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        // Recette 2026-10-25: it writes a recording (up to 16 MB) into the person's workspace: the signed session is needed too. Its only caller is the dictation of the page.
+        if (writeRefused(req, res)) return
         let body = {}
         try { body = await readJsonBody(req, 16777216) } catch (e) { return sendJson(res, 413, { ok: false, error: errText(e) }) }
         sendJson(res, 200, await kbVoiceSave(body))
@@ -11330,6 +11350,8 @@ function boot(ctx) {
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/tts/cache-trim', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        // Recette 2026-10-25: it deletes cached voice files: the signed session is needed too. Nothing in this repository calls it.
+        if (writeRefused(req, res)) return
         sendJson(res, 200, { ok: true, trim: await kbTtsCacheTrim() })
       } }), 'kybernos: route tts/cache-trim')
       // ── Tâches planifiées (store ~/.dsh/kybernos/tasks.json) ─────────────
