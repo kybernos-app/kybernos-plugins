@@ -16,6 +16,11 @@ import { fileURLToPath } from 'node:url'
 import { classerLocalement, SEUIL_LOCAL, ECART_LOCAL } from './classement-local.mjs'
 import { CATEGORIES } from './decision.mjs'
 import { monterRoutes } from './index.js'
+import { sessionSource } from './session-guard.mjs'
+import { SESSION_SECRET, sessionCookie } from './lib-session-test.mjs'
+
+// The POST routes need the signed session as well as the Origin (L3-18): the page's own request carries both.
+sessionSource.secret = () => SESSION_SECRET
 
 let ok0 = 0
 let ko = 0
@@ -103,7 +108,7 @@ console.log('\n── through the route: the local words first, the Study model 
   const routes = {}
   monterRoutes({ register: (r) => { routes[r.path] = r.handler } }, { reglagesPath: reglages, categoriesPath: join(racine, 'kybernos', 'categories.json'), sessionsHome: join(racine, 'sessions'), ctx: { get: (nom) => services[nom] }, maintenant: () => horloge })
   const PORT = 3080
-  const requete = (corps) => ({ method: 'POST', url: '/kybernos-sessions/decision', headers: { origin: 'http://127.0.0.1:' + PORT }, socket: { localPort: PORT }, on (ev, cb) { if (ev === 'data') cb(JSON.stringify(corps)); if (ev === 'end') cb() } })
+  const requete = (corps) => ({ method: 'POST', url: '/kybernos-sessions/decision', headers: { origin: 'http://127.0.0.1:' + PORT, cookie: sessionCookie('127.0.0.1:3080') }, socket: { localPort: PORT }, on (ev, cb) { if (ev === 'data') cb(JSON.stringify(corps)); if (ev === 'end') cb() } })
   const reponse = () => { const r = { code: null, corps: null, writeHead (c) { r.code = c }, end (s) { try { r.corps = JSON.parse(s) } catch (e) { r.corps = s } } }; return r }
   const poser = async (corps) => { const r = reponse(); await routes['/kybernos-sessions/decision'](requete(corps), r); return r }
 

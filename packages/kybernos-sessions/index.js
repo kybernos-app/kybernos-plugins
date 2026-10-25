@@ -43,6 +43,7 @@ import { dshHome, CATEGORIES } from './decision.mjs'
 import { selectionnerKyber, selectionnerCategorie } from './decision-llm.mjs'
 import { classerLocalement, estTitreAttente } from './classement-local.mjs'
 import { choisirEtudeAuto, modelesConnectes, ecartesDe, garderConnectes } from './etude-auto.mjs'
+import { writeGuard } from './session-guard.mjs'
 // Hosted instance: also accept the authorities declared to DSH with --trusted-host. The core bundle publishes the predicate
 // (kybernos-plugin/trusted-authority.mjs); absent or failing, it answers false and the guard stays loopback-only.
 const kbTrusted = (host) => { try { const f = globalThis[Symbol.for('kybernos.trustedAuthority')]; return typeof f === 'function' && f(host) === true } catch (e) { return false } }
@@ -1240,6 +1241,18 @@ export const origineOK = (req) => {
   } catch { return false }
 }
 
+// A POST of this bundle runs git or gh in the person's folders (isolate, commit, close, reclaim, push, fetch, sync, pr), writes the files the agents read (settings, the category registry) or
+// spends the Study model (brain/health, decision), so on top of the Origin above it needs DSH's signed browser session (session-guard.mjs, kybernos-terminal's rule, L3-18): an Origin
+// header is forgeable by any local program, and before this `curl -X POST -H 'Origin: http://127.0.0.1:<port>' .../kybernos-sessions/push -d '{"exec":true}'` published the commits that
+// had not been reviewed and `pr` with `action: 'merge'` merged the pull request. The callers are pages (the Changes panel, the sessions list, Settings) and scripts/dsh-relance.mjs, which
+// signs its own cookie; a paired phone is refused (`refused_on_phone`). Answers the refusal and returns true when the request must stop there.
+const refuserSansSession = (req, res) => {
+  const refus = writeGuard(req)
+  if (refus === null) return false
+  envoyer(res, refus.status, { ok: false, error: refus.error })
+  return true
+}
+
 const lireCorps = (req) => new Promise((res) => {
   let corps = ''
   req.on('data', (d) => { corps += d })
@@ -1365,6 +1378,7 @@ export function monterRoutes (webServerSvc, opts) {
   webServerSvc.register({ kind: 'exact', path: '/kybernos-sessions/isolate', handler: async (req, res) => {
     if (req.method !== 'POST') { res.writeHead(405); res.end('POST only'); return }
     if (!origineOK(req)) { res.writeHead(403); res.end('origin refused'); return }
+    if (refuserSansSession(req, res)) return
     const corps = await lireCorps(req)
     const slug = dossierDeSession(sessionsHome, corps.session || '')
     const chemin = slug !== null ? decodeSlugPath(slug) : null
@@ -1373,6 +1387,7 @@ export function monterRoutes (webServerSvc, opts) {
   webServerSvc.register({ kind: 'exact', path: '/kybernos-sessions/commit', handler: async (req, res) => {
     if (req.method !== 'POST') { res.writeHead(405); res.end('POST only'); return }
     if (!origineOK(req)) { res.writeHead(403); res.end('origin refused'); return }
+    if (refuserSansSession(req, res)) return
     const corps = await lireCorps(req)
     const slug = dossierDeSession(sessionsHome, corps.session || '')
     const chemin = cheminConfine(sessionsHome, corps, slug)
@@ -1385,6 +1400,7 @@ export function monterRoutes (webServerSvc, opts) {
   webServerSvc.register({ kind: 'exact', path: '/kybernos-sessions/close-check', handler: async (req, res) => {
     if (req.method !== 'POST') { res.writeHead(405); res.end('POST only'); return }
     if (!origineOK(req)) { res.writeHead(403); res.end('origin refused'); return }
+    if (refuserSansSession(req, res)) return
     const corps = await lireCorps(req)
     const slug = dossierDeSession(sessionsHome, corps.session || '')
     const chemin = cheminConfine(sessionsHome, corps, slug)
@@ -1404,6 +1420,7 @@ export function monterRoutes (webServerSvc, opts) {
     // reads at load, so as not to probe again every time a chat opens.
     if (req.method === 'GET') { envoyer(res, 200, { ok: true, dernier: sondeSante.dernier() }); return }
     if (req.method !== 'POST') { res.writeHead(405); res.end('GET or POST only'); return }
+    if (refuserSansSession(req, res)) return
     const corps = await lireCorps(req)
     try {
       const etude = await etudeEnVigueur()
@@ -1468,6 +1485,7 @@ export function monterRoutes (webServerSvc, opts) {
   webServerSvc.register({ kind: 'exact', path: '/kybernos-sessions/decision', handler: async (req, res) => {
     if (!origineOK(req)) { res.writeHead(403); res.end('origin refused'); return }
     if (req.method !== 'POST') { res.writeHead(405); res.end('POST only'); return }
+    if (refuserSansSession(req, res)) return
     const corps = await lireCorps(req)
     try {
       let reponse
@@ -1494,6 +1512,7 @@ export function monterRoutes (webServerSvc, opts) {
       return
     }
     if (req.method !== 'POST') { res.writeHead(405); res.end('GET or POST only'); return }
+    if (refuserSansSession(req, res)) return
     try {
       const corps = await lireCorps(req)
       const r = ecrireReglages(reglagesFichier, corps)
@@ -1514,6 +1533,7 @@ export function monterRoutes (webServerSvc, opts) {
       return
     }
     if (req.method !== 'POST') { res.writeHead(405); res.end('GET or POST only'); return }
+    if (refuserSansSession(req, res)) return
     // The ONLY writer of the registry: the naming CLI AND the client's automatic
     // classification come through here — one format, one validator. `auto:true`
     // marks the category set without an agent naming (replaceable, re-classifiable).
@@ -1524,6 +1544,7 @@ export function monterRoutes (webServerSvc, opts) {
   webServerSvc.register({ kind: 'exact', path: '/kybernos-sessions/close', handler: async (req, res) => {
     if (req.method !== 'POST') { res.writeHead(405); res.end('POST only'); return }
     if (!origineOK(req)) { res.writeHead(403); res.end('origin refused'); return }
+    if (refuserSansSession(req, res)) return
     const corps = await lireCorps(req)
     const slugC = dossierDeSession(sessionsHome, corps.session || '')
     envoyer(res, 200, await cloturer({ chemin: cheminConfine(sessionsHome, corps, slugC), exec: corps.exec === true, forceIgnores: corps.forceIgnores === true }))
@@ -1531,6 +1552,7 @@ export function monterRoutes (webServerSvc, opts) {
   webServerSvc.register({ kind: 'exact', path: '/kybernos-sessions/reclaim', handler: async (req, res) => {
     if (req.method !== 'POST') { res.writeHead(405); res.end('POST only'); return }
     if (!origineOK(req)) { res.writeHead(403); res.end('origin refused'); return }
+    if (refuserSansSession(req, res)) return
     const corps = await lireCorps(req)
     const slug = dossierDeSession(sessionsHome, corps.session || '')
     const chemin = cheminConfine(sessionsHome, corps, slug)
@@ -1540,6 +1562,7 @@ export function monterRoutes (webServerSvc, opts) {
   const routeAction = (path, faire, extra = () => ({})) => webServerSvc.register({ kind: 'exact', path, handler: async (req, res) => {
     if (req.method !== 'POST') { res.writeHead(405); res.end('POST only'); return }
     if (!origineOK(req)) { res.writeHead(403); res.end('origin refused'); return }
+    if (refuserSansSession(req, res)) return
     const corps = await lireCorps(req)
     const slug = dossierDeSession(sessionsHome, corps.session || '')
     const chemin = cheminConfine(sessionsHome, corps, slug)
