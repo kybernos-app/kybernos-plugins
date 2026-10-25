@@ -157,6 +157,7 @@ window.__ModuleLoader__.load({
         quotaBackDays: 'dans environ {n}\u00a0jours',
         quotaBackUnknown: 'à mesure que l\'usage ancien sort de cette fenêtre, et il est entier {window} après ton dernier appel',
         quotaMoreSolo: ' Passe à une formule supérieure ou ajoute des crédits pour continuer maintenant.',
+        quotaMoreSoloWait: ' Passe à une formule supérieure pour continuer maintenant, ou attends.',
         rowNoAdapter: 'Ce modèle vient de ton compte Kybernos, et ce DSH n\'y est plus connecté. Reconnecte-toi pour l\'utiliser.',
         rowRetryDown: 'Le serveur Kybernos « {name} » ({host}) ne répond pas : DSH continue d\'essayer',
         quotaNoPlan: '{name} n\'a pas encore de formule : personne ne peut y utiliser les modèles.',
@@ -164,6 +165,8 @@ window.__ModuleLoader__.load({
         quotaNoPlanMember: ' Demande à un propriétaire ou à un admin de {name} d\'en choisir une.',
         quotaMoreAdmin: ' Ajoute des crédits ou releve le plafond dans Formule et crédits.',
         quotaMoreMember: ' Demande plus de crédits à un propriétaire ou à un admin de {name}.',
+        quotaMoreAdminWait: ' Passe à une formule supérieure ou relève le plafond dans Formule et crédits, ou attends.',
+        quotaMoreMemberWait: ' Demande à un propriétaire ou à un admin de {name} de changer de formule ou de relever le plafond, ou attends.',
         quotaOpenConsole: 'Ouvrir Formule et crédits',
         quotaClose: 'Fermer',
         quotaWorkspace: 'cette équipe',
@@ -442,6 +445,7 @@ window.__ModuleLoader__.load({
         quotaBackDays: 'in about {n}\u00a0days',
         quotaBackUnknown: 'as older use leaves that window, and is whole again {window} after your last call',
         quotaMoreSolo: ' Upgrade or add credits to go on now.',
+        quotaMoreSoloWait: ' Upgrade to go on now, or wait.',
         rowNoAdapter: 'This model comes from your Kybernos account, and this DSH is not signed in to it any more. Sign in again to use it.',
         rowRetryDown: 'The Kybernos server “{name}” ({host}) is not answering: DSH keeps retrying',
         quotaNoPlan: '{name} has no plan yet, so nobody in it can use the models.',
@@ -449,6 +453,8 @@ window.__ModuleLoader__.load({
         quotaNoPlanMember: ' Ask an owner or admin of {name} to choose one.',
         quotaMoreAdmin: ' Add credits or raise the cap in Plan & Credits.',
         quotaMoreMember: ' Ask an owner or admin of {name} for more credits.',
+        quotaMoreAdminWait: ' Upgrade the plan or raise the cap in Plan & Credits, or wait.',
+        quotaMoreMemberWait: ' Ask an owner or admin of {name} to upgrade the plan or raise the cap, or wait.',
         quotaOpenConsole: 'Open Plan & Credits',
         quotaClose: 'Close',
         quotaWorkspace: 'this team',
@@ -1197,6 +1203,8 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
     }
     // From this share of a window on, the notice says so even when nothing is used up yet.
     const QUOTA_NEAR_PERCENT = 75
+    // The shortest window a balance of credits lifts (a month, as the server counts it).
+    const QUOTA_BALANCE_LIFTS_SECONDS = 30 * 86400
     // « in about 3 h »: when a window that is used up has room again, from the server's time. Null when the server gave none (or one already past).
     const quotaWhen = (iso, now, t) => {
       const ms = typeof iso === 'string' ? Date.parse(iso) - now : NaN
@@ -1250,7 +1258,13 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
       // Nothing used up: a gentle word when one window is close to it, nothing at all otherwise (the failing provider is another one).
       const w = out !== null ? out : quotaMostUsed(windows.filter((x) => x.used_percent >= QUOTA_NEAR_PERCENT))
       if (w === null) return null
-      const more = out === null ? '' : (shared ? (admin ? t('quotaMoreAdmin') : quotaFill(t('quotaMoreMember'), { name })) : t('quotaMoreSolo'))
+      // How to go on. A balance of credits lifts the 30-day window only: the short ones (5 hours, 24 hours, 7 days) always apply (the terms, 7.2; budget-figures.ts on the server), so
+      // a short window never promises credits (recette L2-38, decision DL-02) and says the two things that are true: change the plan (or the cap), or wait.
+      const short = w.window_seconds < QUOTA_BALANCE_LIFTS_SECONDS
+      const moreKey = shared
+        ? (admin ? (short ? 'quotaMoreAdminWait' : 'quotaMoreAdmin') : (short ? 'quotaMoreMemberWait' : 'quotaMoreMember'))
+        : (short ? 'quotaMoreSoloWait' : 'quotaMoreSolo')
+      const more = out === null ? '' : quotaFill(t(moreKey), { name })
       return { text: quotaWindowSentence(w, name, t, now) + more, action: !shared || admin }
     }
     // The small meter on the card of the active team: the percent of the window that counts, and the sentence behind it (its title). An owner or admin of a team sees the
