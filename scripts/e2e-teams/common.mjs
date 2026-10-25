@@ -4,9 +4,9 @@
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { makeServer, env, readAccounts } from '../lib-e2e-server.mjs'
-import { openGui, readProxy, mainCalls, chatCalls, flatten, cwdOf, bodyOf, sleep } from '../lib-e2e-gui.mjs'
+import { openGui, readProxy, mainCalls, chatCalls, flatten, cwdOf, cwdOrWhy, bodyOf, sleep } from '../lib-e2e-gui.mjs'
 
-export { sleep, openGui, readProxy, mainCalls, chatCalls, flatten, cwdOf, bodyOf }
+export { sleep, openGui, readProxy, mainCalls, chatCalls, flatten, cwdOf, cwdOrWhy, bodyOf }
 
 export const makeContext = async () => {
   const e = env()

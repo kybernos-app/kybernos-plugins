@@ -7,6 +7,24 @@ import { cookieDeSession } from './cdp-lib.mjs'
 
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
+/** The model button of the composer: pressed until the line `name` is chosen. Takes the page helpers (`until`, `leaf`, `mouse`) so that a test can play it without a browser. */
+export const selectModelOn = async (g, name = 'GLM') => {
+  const chosen = async () => (await g.leaf(name)) !== null && (await g.leaf('Select model')) === null
+  // Already chosen? the composer's model button then reads the name.
+  if (await g.until(chosen, 400)) return true
+  // Neither « Select model » nor the name yet: a page that is still drawing its composer, or a composer on another model. Give it a moment, then say so.
+  const opener = await g.until(async () => (await g.leaf('Select model')) || ((await g.leaf(name)) !== null ? { chosen: true } : null), 3000)
+  if (!opener) throw new Error(`selectModel(${JSON.stringify(name)}): the composer shows neither « Select model » nor « ${name} »: there is no model button to press (no composer on this page, or another model is chosen)`)
+  if (opener.chosen === true) return true
+  await g.mouse(opener.x, opener.y)
+  await g.until(async () => (await g.leaf(name)) !== null, 3000)
+  const item = await g.leaf(name)
+  if (!item) throw new Error(`selectModel(${JSON.stringify(name)}): the model list is open but has no line « ${name} » (the profile has no such model on its routes: read GET /kybernos-cloud/models)`)
+  await g.mouse(item.x, item.y)
+  await sleep(500)
+  return true
+}
+
 export const openGui = async (host, opts = {}) => {
   if (/:3080$/.test(host)) throw new Error('refusing to drive the real DSH on :3080')
   const live = await openLivePage({ authority: host, width: opts.width || 1400, height: opts.height || 900 })
@@ -109,19 +127,9 @@ export const openGui = async (host, opts = {}) => {
 
   // ── the composer ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
   g.composerPos = () => g.val(`(() => { const e = Array.from(document.querySelectorAll('[contenteditable="true"], textarea')).filter((e) => { const r = e.getBoundingClientRect(); return r.width > 100 && r.height > 10 }).pop(); if (!e) return null; const r = e.getBoundingClientRect(); return { x: r.x + 40, y: r.y + r.height / 2 } })()`)
-  g.selectModel = async (name = 'GLM') => {
-    // Already chosen? the composer's model button then reads the name.
-    if (await g.until(async () => (await g.leaf(name)) !== null && (await g.leaf('Select model')) === null, 400)) return true
-    const opener = (await g.leaf('Select model')) || null
-    if (!opener) return true
-    await g.mouse(opener.x, opener.y)
-    await g.until(async () => (await g.leaf(name)) !== null, 3000)
-    const item = await g.leaf(name)
-    if (!item) return false
-    await g.mouse(item.x, item.y)
-    await sleep(500)
-    return true
-  }
+  /** Picks `name` in the composer's model button (already chosen: nothing to do). Resolves true, or THROWS saying what it could not find: a turn run on whatever model the profile holds sends
+   *  nothing to the replica, and a journey that goes on after a silent miss only compares empty lists (the 2026-10-24 run of the two-account journeys was void for that). */
+  g.selectModel = (name = 'GLM') => selectModelOn(g, name)
   /** Types into the composer and presses Enter. Resolves the time the Enter key was sent (ms epoch). */
   g.send = async (message, { enter = true } = {}) => {
     const c = await g.until(() => g.composerPos(), 6000)
@@ -153,6 +161,12 @@ export const mainCalls = (rows) => rows.filter((r) => r.method === 'POST' && r.p
 export const chatCalls = (rows) => rows.filter((r) => r.method === 'POST' && r.path === '/v1/chat/completions')
 export const bodyOf = (r) => { try { return JSON.parse(r.body) } catch { return null } }
 /** All the text a request sends to the model, flattened (system, user, tool messages). */
-export const flatten = (r) => { const b = bodyOf(r); return b ? b.messages.map((m) => (typeof m.content === 'string' ? m.content : JSON.stringify(m.content))).join('\n') : (r.body || '') }
+export const flatten = (r) => { if (!r) return ''; const b = bodyOf(r); return b && Array.isArray(b.messages) ? b.messages.map((m) => (typeof m.content === 'string' ? m.content : JSON.stringify(m.content))).join('\n') : (r.body || '') }
+/** The folder a request says its chat works in; null when there is no request (`mains[0]` of a turn that sent nothing) or it names none. Never throws. */
 export const cwdOf = (r) => { const m = flatten(r).match(/Current working directory:\s*"([^"]+)"/); return m ? m[1] : null }
+export const NO_AGENT_REQUEST = 'no agent request reached the replica'
+/** `cwdOf` for the detail of a check: when there is no request at all it says so, instead of printing a bare null. Not for comparing (the message is not a folder). */
+export const cwdOrWhy = (r) => (r ? cwdOf(r) : NO_AGENT_REQUEST)
+/** The agent's model calls the replica ANSWERED with 200 (what a journey needs before any of its billing, memory or folder checks mean anything). */
+export const agentOk = (rows) => mainCalls(rows).filter((r) => r.status === 200)
 export { cookieDeSession, waitFor }
