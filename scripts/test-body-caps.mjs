@@ -12,12 +12,17 @@
 //      stream is destroyed after at most a few blocks past the cap, so what a hostile sender can make DSH read is bounded by the cap, not by what it sends.
 // And nothing in the whole run may end the process (no uncaught exception, no unhandled rejection).
 //
+// The discovery document of kybernos-servers (L3-25) has its own test (packages/kybernos-servers/test-discovery.mjs, SRV-05): a response, not a request.
+//
+// Last, the text check of scripts/lib-body-reads.mjs (also run by `node scripts/audit-routes.mjs --check`): fixtures that must be caught and accepted, then the real tree. It
+// is a net for the old mistake (`req.on('data', (d) => { corps += d })`, a loop that grows with what is sent), not a proof; its blind spots are listed in that file.
+//
 //   node scripts/test-body-caps.mjs
 import http from 'node:http'
 import { Readable } from 'node:stream'
-import { mkdtempSync, rmSync } from 'node:fs'
+import { mkdtempSync, readdirSync, readFileSync, rmSync, statSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { dirname, join } from 'node:path'
+import { dirname, join, relative } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
@@ -203,6 +208,46 @@ for (const spec of BUNDLES) {
   server.closeAllConnections?.()
   await new Promise((r) => server.close(r))
   rmSync(home, { recursive: true, force: true })
+}
+
+// ── The text check that keeps the old mistake out (scripts/lib-body-reads.mjs, run by `audit-routes.mjs --check`) ───────────────────────────────────
+console.log('\nthe text check on small sources')
+{
+  const { unboundedReads } = await import(pathToFileURL(join(ROOT, 'scripts', 'lib-body-reads.mjs')).href)
+  const flagged = (file, text) => unboundedReads([{ file, text }]).length
+  const OLD = [
+    ['the event form of the bug (auto, sessions, bricks, miniapps, modeleur)', "const lireCorps = (req) => new Promise((res) => {\n  let corps = ''\n  req.on('data', (d) => { corps += d })\n  req.on('end', () => { res(JSON.parse(corps || '{}')) })\n})"],
+    ['the iterator form', "async function lire (req) {\n  let raw = ''\n  for await (const c of req) raw += c\n  return JSON.parse(raw)\n}"],
+    ['chunks pushed with no look at their size', "req.on('data', (c) => chunks.push(c))\nreq.on('end', () => go(Buffer.concat(chunks)))"],
+    ['the whole body handed to Response', 'const texte = await new Response(req).text()'],
+    ['stream/consumers', "import { json } from 'node:stream/consumers'\nconst corps = await json(req)"],
+  ]
+  for (const [what, code] of OLD) check('caught: ' + what, flagged('packages/kybernos-x/index.js', code) === 1, code.slice(0, 60))
+  const FINE = [
+    ['a counter compared with a cap, then a throw (kybernos-search/guard.mjs)', "const readBody = async (req, limit = 4096) => {\n  let size = 0\n  const chunks = []\n  for await (const c of req) { size += c.length; if (size > limit) throw new Error('too-large'); chunks.push(c) }\n}"],
+    ['the event form with a cap', "req.on('data', (d) => {\n  taille += d.length\n  if (taille > cap) { envoyer(res, 413, {}); return }\n  morceaux.push(d)\n})"],
+    ['a string cut at a limit', "req.on('data', (chunk) => { raw += chunk; if (raw.length > 200_000) raw = raw.slice(0, 200_000) })"],
+    ['a read said to be bounded some other way', "// body-cap: the stand-in server of a replay script\nreq.on('data', (d) => { raw += d })"],
+    ['a child process output (not a request)', "child.stdout.on('data', (d) => { out += d })"],
+    ['a comment that quotes the pattern', "// before: req.on('data', (d) => { corps += d })"],
+  ]
+  for (const [what, code] of FINE) check('accepted: ' + what, flagged('packages/kybernos-x/index.js', code) === 0, code.slice(0, 60))
+  check('a test file, a page (client.js), a vendor folder, a proof of concept and a script are not host sources', ['packages/kybernos-x/test-host.mjs', 'packages/kybernos-x/client.js', 'packages/kybernos-x/vendor/a.js', 'packages/kybernos-x/poc/b.mjs', 'scripts/run.mjs'].every((f) => flagged(f, OLD[0][1]) === 0))
+  check('a comparison far from the read does not count (the window is 10 lines)', flagged('packages/kybernos-x/index.js', "req.on('data', (d) => { corps += d })\n" + '\n'.repeat(12) + 'if (taille > cap) {}') === 1)
+
+  // The real tree, the way `audit-routes.mjs --check` reads it: a new route that goes back to `corps += d` fails here, in the suite, not only in a command nobody runs.
+  const sources = []
+  const walk = (dir) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      if (entry.name === 'node_modules' || entry.name === '.git' || entry.name === '.claude') continue
+      const full = join(dir, entry.name)
+      if (entry.isDirectory()) walk(full)
+      else if (/\.(m?js|cjs)$/.test(entry.name) && statSync(full).size < 3 * MIB) sources.push({ file: relative(ROOT, full), text: readFileSync(full, 'utf8') })
+    }
+  }
+  for (const top of ['packages', 'services']) walk(join(ROOT, top))
+  const unbounded = unboundedReads(sources)
+  check('no host source of this checkout reads a request with no cap (' + sources.length + ' files)', unbounded.length === 0, unbounded.map((u) => u.file + ':' + u.line).join(', '))
 }
 
 check('nothing ended the process (no uncaught exception, no unhandled rejection)', crashes.length === 0, crashes.join(' | '))
