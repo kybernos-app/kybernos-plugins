@@ -15,7 +15,7 @@
 //   node packages/kybernos-plugin/test-file-serving.mjs
 import assert from 'node:assert/strict'
 import http from 'node:http'
-import { mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, statSync, symlinkSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, statSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
@@ -216,6 +216,59 @@ try {
     })
   }
 
+  // ── 2. SERVED FILES: every avatar, member face and voice sample goes out through the one exit ─────────────────────────────────────────
+  const INLINE = ['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'audio/wav', 'audio/mpeg', 'audio/mp4', 'audio/webm', 'audio/ogg', 'audio/flac']
+  const KNOWN = INLINE.concat(['image/svg+xml', 'application/octet-stream'])
+  const CSP = "default-src 'none'; sandbox"
+  const SERVED = [
+    // [label, url, expected type, inline]
+    ...[['png', 'a-png', 'image/png'], ['jpeg', 'a-jpg', 'image/jpeg'], ['webp', 'a-webp', 'image/webp'], ['gif', 'a-gif', 'image/gif']]
+      .map(([n, id, type]) => ['avatar: a ' + n + ' stays a picture', '/kybernos/avatar?' + q({ rootId: 'workspace', kyberId: id }), type, true]),
+    ['avatar: an SVG with a script is a download that still draws as an image', '/kybernos/avatar?' + q({ rootId: 'workspace', kyberId: 'a-svg' }), 'image/svg+xml', false],
+    ['avatar: a page saved under a PNG name is a download, not a PNG', '/kybernos/avatar?' + q({ rootId: 'workspace', kyberId: 'a-html' }), 'application/octet-stream', false],
+    ['avatar: a page saved under an SVG name is a download, not an SVG', '/kybernos/avatar?' + q({ rootId: 'workspace', kyberId: 'a-htmlsvg' }), 'application/octet-stream', false],
+    ['avatar: bytes nobody recognises are a download', '/kybernos/avatar?' + q({ rootId: 'workspace', kyberId: 'a-junk' }), 'application/octet-stream', false],
+    ['member-avatar: a picture stays a picture', '/kybernos/member-avatar?' + q({ rootId: 'workspace', kyberId: 't-members', memberId: 'face' }), 'image/png', true],
+    ['member-avatar: an SVG with a script under a PNG name is a download', '/kybernos/member-avatar?' + q({ rootId: 'workspace', kyberId: 't-members', memberId: 'evil' }), 'image/svg+xml', false],
+    ...[['wav', 'v-wav', 'audio/wav'], ['mp3', 'v-mp3', 'audio/mpeg'], ['ogg', 'v-ogg', 'audio/ogg'], ['flac', 'v-flac', 'audio/flac'], ['webm', 'v-webm', 'audio/webm'], ['m4a', 'v-m4a', 'audio/mp4']]
+      .map(([n, id, type]) => ['voice sample: a ' + n + ' stays a sound', '/kybernos/voice-sample-audio?' + q({ rootId: 'workspace', voiceId: id }), type, true]),
+    ['voice sample: the index says text/html over a real WAV: the type comes from the bytes', '/kybernos/voice-sample-audio?' + q({ rootId: 'workspace', voiceId: 'v-lie-wav' }), 'audio/wav', true],
+    ['voice sample: the index says text/html over a page: a download', '/kybernos/voice-sample-audio?' + q({ rootId: 'workspace', voiceId: 'v-lie-html' }), 'application/octet-stream', false],
+    ['voice sample: the index says audio/wav over a page: a download', '/kybernos/voice-sample-audio?' + q({ rootId: 'workspace', voiceId: 'v-lie-audio' }), 'application/octet-stream', false],
+    ['voice sample: the index says audio/wav over an SVG with a script: a download', '/kybernos/voice-sample-audio?' + q({ rootId: 'workspace', voiceId: 'v-svg' }), 'image/svg+xml', false],
+  ]
+  for (const [label, url, type, inline] of SERVED) {
+    await row(label, async () => {
+      const r = await request('GET', url, undefined)
+      assert.equal(r.status, 200, label + ' -> ' + r.status)
+      const h = r.headers
+      assert.ok(KNOWN.includes(h['content-type']), label + ': the type is one of the fixed list (' + h['content-type'] + ')')
+      assert.equal(h['content-type'], type, label + ': the type')
+      assert.equal(h['x-content-type-options'], 'nosniff', label + ': nosniff')
+      assert.equal(h['content-security-policy'], CSP, label + ': the closed CSP')
+      assert.equal(h['content-disposition'], inline ? undefined : 'attachment', label + ': ' + (inline ? 'inline' : 'a download'))
+      assert.equal(h['cache-control'], 'no-store', label + ': not cached')
+      assert.equal(Number(h['content-length']), r.body.length, label + ': the length is the body\'s')
+      assert.ok(!/html/i.test(String(h['content-type'])), label + ': never an HTML document')
+    })
+  }
+  // A member face whose record points out of the avatar store never reaches the disk (kbUiMembersRead drops it).
+  const trav = await request('GET', '/kybernos/member-avatar?' + q({ rootId: 'workspace', kyberId: 't-members', memberId: 'trav' }), undefined)
+  assert.equal(trav.status, 404, 'member-avatar: a record that points out of .kyber-avatars/ is a 404')
+  assert.ok(!trav.body.toString('utf8').includes('SECRET-OUTSIDE'), 'member-avatar: nothing of the outside file')
+  ok('member-avatar: a record that points out of .kyber-avatars/ is a 404 and reads nothing')
+  // A sample whose record points out of .kyber-voices/ never reaches the disk either.
+  const idx = JSON.parse(readFileSync(join(kybers, '.kyber-voices', 'index.json'), 'utf8'))
+  idx.voices.push({ id: 'v-trav', name: 'trav', kyberId: 'k', file: '.kyber-voices/../../secret.txt', mime: 'audio/wav' })
+  writeFileSync(join(kybers, '.kyber-voices', 'index.json'), JSON.stringify(idx))
+  const strav = await request('GET', '/kybernos/voice-sample-audio?' + q({ rootId: 'workspace', voiceId: 'v-trav' }), undefined)
+  assert.equal(strav.status, 404, 'voice sample: a record that points out of .kyber-voices/ is a 404')
+  ok('voice sample: a record that points out of .kyber-voices/ is a 404')
+  // And the unknown ones stay 404.
+  assert.equal((await request('GET', '/kybernos/avatar?' + q({ rootId: 'workspace', kyberId: 'nobody' }), undefined)).status, 404)
+  assert.equal((await request('GET', '/kybernos/voice-sample-audio?' + q({ rootId: 'workspace', voiceId: 'nobody' }), undefined)).status, 404)
+  ok('an avatar or a sample that does not exist is still a 404')
+
   assert.equal(failures.length, 0, failures.length + ' row(s) failed')
   console.log('\nPLUGIN FILE SERVING — ' + pass + ' check(s), 0 échec')
 } catch (e) {
@@ -223,6 +276,7 @@ try {
   process.exitCode = 1
 } finally {
   server.close()
+  try { rmSync(base, { recursive: true, force: true }) } catch (e) { /* the temp folder is the system's to clean */ }
   // The bundle boots timers and watchers of its own (the host keeps them alive): this test ends when its checks do.
   process.exit(process.exitCode === undefined ? 0 : process.exitCode)
 }

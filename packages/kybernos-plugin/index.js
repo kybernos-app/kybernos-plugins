@@ -19,6 +19,7 @@ import { stableStreak as autoSkillStreak, skillSlug as autoSkillSlug, skillParts
 import { chooseWorkspace as autoWsChoose, idOf as autoWsIdOf, DEDICATED_TITLE as AUTO_WS_TITLE, DEDICATED_DIR as AUTO_WS_DIR } from './automation-workspace.mjs'
 import { recordFeedback, exportFeedback, relayReportOf } from './feedback-box.mjs'
 import { writeGuard } from './session-guard.mjs'
+import { sendUserFile } from './serve-user-file.mjs'
 import { kbArtKeepExt, kbArtNameOk } from './art-names.mjs'
 import { kbArtifactsCut } from './art-limit.mjs'
 import { defaultState as onboardingDefault, publicView as onboardingView, complete as onboardingComplete, replay as onboardingReplay, chooseDomain as onboardingChooseDomain, aboutView as onboardingAbout, ownGoalsView as onboardingOwnGoals } from './onboarding-state.mjs'
@@ -8147,10 +8148,7 @@ function boot(ctx) {
         const info = await fs.stat(target).catch(() => null)
         if (!isFile(info)) return null
         const text = await fs.readText(target)
-        const avatarName = entry.avatar.slice(entry.avatar.lastIndexOf('/') + 1)
-        const parts = avatarName.split('.')
-        const ext = parts.length >= 3 ? parts[parts.length - 2] : ''
-        return { bytes: Buffer.from(text.replace(/\s+/g, ''), 'base64'), mime: mimeForExt(ext) }
+        return { bytes: Buffer.from(text.replace(/\s+/g, ''), 'base64') }
       } catch (e) { return null }
     }
 
@@ -8284,7 +8282,7 @@ function boot(ctx) {
         if (!isFile(info)) return null
         const bytes = Buffer.from((await fs.readText(target)).replace(/\s+/g, ''), 'base64')
         if (bytes.length === 0) return null
-        return { bytes: bytes, mime: (str(entry.mime) !== null ? String(entry.mime) : 'audio/wav') }
+        return { bytes: bytes }
       } catch (e) { return null }
     }
     /** Retire l'entrée de l'index ; le fichier reste (cette surface fs n'a pas d'unlink). */
@@ -8537,7 +8535,7 @@ function boot(ctx) {
         const info = await fs.stat(target).catch(() => null)
         if (isFile(info) !== true) return null
         const text = await fs.readText(target)
-        return { bytes: Buffer.from(text.replace(/\s+/g, ''), 'base64'), mime: 'image/png' }
+        return { bytes: Buffer.from(text.replace(/\s+/g, ''), 'base64') }
       } catch (e) { return null }
     }
 
@@ -10856,10 +10854,8 @@ function boot(ctx) {
         if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
         const out = await readAvatar(queryOf(req))
         if (out === null || out.bytes.length === 0) { res.writeHead(404); res.end(''); return }
-        try {
-          res.writeHead(200, { 'content-type': out.mime, 'cache-control': 'no-store', 'content-length': String(out.bytes.length) })
-          res.end(out.bytes)
-        } catch (e) { try { res.writeHead(500); res.end('') } catch (e2) { /* socket */ } }
+        // DL-04: the type is read from the bytes and from a fixed list, never from the project; anything else is a download (serve-user-file.mjs).
+        try { sendUserFile(res, out.bytes) } catch (e) { try { res.writeHead(500); res.end('') } catch (e2) { /* socket */ } }
       } }), 'kybernos: route avatar')
       // Visages d'équipe : UN appel image (planche deux sections) puis découpe
       // locale — la route écrit l'avatar d'équipe et un avatar par rôle.
@@ -10875,10 +10871,8 @@ function boot(ctx) {
         if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
         const out = await readMemberAvatar(queryOf(req))
         if (out === null || out.bytes.length === 0) { res.writeHead(404); res.end(''); return }
-        try {
-          res.writeHead(200, { 'content-type': out.mime, 'cache-control': 'no-store', 'content-length': String(out.bytes.length) })
-          res.end(out.bytes)
-        } catch (e) { try { res.writeHead(500); res.end('') } catch (e2) { /* socket */ } }
+        // DL-04: the type is read from the bytes and from a fixed list, never from the project; anything else is a download (serve-user-file.mjs).
+        try { sendUserFile(res, out.bytes) } catch (e) { try { res.writeHead(500); res.end('') } catch (e2) { /* socket */ } }
       } }), 'kybernos: route member-avatar')
       // Un portrait seul : un appel image (~65 s), la scène d'équipe n'est pas relue.
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/member-portrait', handler: async (req, res) => {
@@ -10908,10 +10902,8 @@ function boot(ctx) {
         if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
         const out = await kbSampleAudio(queryOf(req))
         if (out === null || out.bytes.length === 0) { res.writeHead(404); res.end(''); return }
-        try {
-          res.writeHead(200, { 'content-type': out.mime, 'cache-control': 'no-store', 'content-length': String(out.bytes.length) })
-          res.end(out.bytes)
-        } catch (e) { try { res.writeHead(500); res.end('') } catch (e2) { /* socket */ } }
+        // DL-04: the type is read from the bytes and from a fixed list, never from the project; anything else is a download (serve-user-file.mjs).
+        try { sendUserFile(res, out.bytes) } catch (e) { try { res.writeHead(500); res.end('') } catch (e2) { /* socket */ } }
       } }), 'kybernos: route voice-sample-audio')
       // Les modèles image réellement configurés (+ leur prix connu, leur sonde).
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/image-models', handler: async (req, res) => {
