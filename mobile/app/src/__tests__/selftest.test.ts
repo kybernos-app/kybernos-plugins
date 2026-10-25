@@ -26,6 +26,30 @@ describe('dueAt', () => {
   })
 })
 
+describe('runSelfTest memory', () => {
+  beforeEach(() => jest.useFakeTimers())
+  afterEach(() => jest.useRealTimers())
+  it('adds the app memory to the label and keeps the peak in the result', async () => {
+    const s = setup([{ status: 'fired', at: '2026-10-25T03:22:05Z' }])
+    let n = 0
+    s.deps.memory = () => ({ footprintMb: 300 + 10 * n++, availableMb: 4000, totalMb: 8000 })
+    const t = runSelfTest(SIGN_IN, 90, s.deps)
+    await flush(); jest.advanceTimersByTime(1000); await flush(); jest.advanceTimersByTime(1000); await flush()
+    expect(s.lines[s.lines.length - 1]).toMatch(/\| mem 3\d0 MB \(free 4000 of 8000\)$/)
+    const r = JSON.parse(s.results[s.results.length - 1])
+    expect(r.memory.totalMb).toBe(8000); expect(r.memoryPeakMb).toBeGreaterThanOrEqual(300)
+    t.stop()
+  })
+  it('works without a memory reading', async () => {
+    const s = setup([{ status: 'fired', at: '2026-10-25T03:22:05Z' }])
+    s.deps.memory = () => { throw new Error('no reading') }
+    const t = runSelfTest(SIGN_IN, 90, s.deps)
+    await flush(); jest.advanceTimersByTime(1000); await flush()
+    expect(s.lines[s.lines.length - 1]).toBe('selftest: due 03:22 UTC | fired at 03:22:05 UTC')
+    t.stop()
+  })
+})
+
 describe('runSelfTest', () => {
   beforeEach(() => jest.useFakeTimers())
   afterEach(() => jest.useRealTimers())

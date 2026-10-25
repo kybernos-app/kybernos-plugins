@@ -76,6 +76,35 @@ describe('SettingsScreen', () => {
     await fireEvent.press(screen.getByText('Skip for now'))
     expect(first.props.onClose).toHaveBeenCalled()
   })
+  it('shows the background switch of the phone it runs on, and only that one', async () => {
+    await setup({ platform: 'android' })
+    expect(screen.getByTestId('switch-keep-running')).toBeTruthy(); expect(screen.queryByTestId('switch-reminders')).toBeNull()
+    expect(screen.getByText('Keep running in the background')).toBeTruthy()
+  })
+  it('on iOS it offers reminders, not a service, and says why', async () => {
+    await setup({ platform: 'ios' })
+    expect(screen.getByTestId('switch-reminders')).toBeTruthy(); expect(screen.queryByTestId('switch-keep-running')).toBeNull()
+    expect(screen.getByText(/cannot run an automation while the app is closed/)).toBeTruthy()
+  })
+  it('without a platform there is no Background section', async () => {
+    await setup()
+    expect(screen.queryByTestId('switch-keep-running')).toBeNull(); expect(screen.queryByTestId('switch-reminders')).toBeNull()
+  })
+  it('turning a switch asks the app to apply it, shows what it says, and puts the switch back when it is refused', async () => {
+    const onBackgroundChange = jest.fn(async () => ({ ok: false, message: 'Notifications are refused for this app.' }))
+    await setup({ platform: 'ios', onBackgroundChange })
+    await fireEvent(screen.getByTestId('switch-reminders'), 'valueChange', true)
+    expect(onBackgroundChange).toHaveBeenCalledWith('reminders', true)
+    expect(await screen.findByText('Notifications are refused for this app.')).toBeTruthy()
+    await waitFor(() => expect(screen.getByTestId('switch-reminders').props.value).toBe(false))
+  })
+  it('keeps a switch on when the app accepts it', async () => {
+    const onBackgroundChange = jest.fn(async () => ({ ok: true }))
+    await setup({ platform: 'android', onBackgroundChange })
+    await fireEvent(screen.getByTestId('switch-keep-running'), 'valueChange', true)
+    expect(onBackgroundChange).toHaveBeenCalledWith('keepRunning', true)
+    await waitFor(() => expect(screen.getByTestId('switch-keep-running').props.value).toBe(true))
+  })
   it('offers to share the engine log', async () => {
     const { props } = await setup()
     await fireEvent.press(screen.getByTestId('share-log'))

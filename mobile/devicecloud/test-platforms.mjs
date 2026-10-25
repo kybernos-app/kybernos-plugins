@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { PLATFORMS, parseSelfTestTimes } from './platforms.mjs'
+import { PLATFORMS, parseMemory, parseSelfTestTimes } from './platforms.mjs'
 
 const ios = PLATFORMS.ios; const android = PLATFORMS.android
 const iosXml = '<XCUIElementTypeStaticText label="Starting the engine…"/><XCUIElementTypeStaticText label="selftest: due 10:48 UTC | fired at 10:48:15 UTC | answer check: &quot;Canberra&quot; found 1x"/>'
@@ -33,4 +33,7 @@ assert.equal(ios.expectsSuspension, true); assert.equal(android.expectsSuspensio
 assert.deepEqual(parseSelfTestTimes('selftest: due 10:48 UTC | fired at 10:48:15 UTC'), { dueS: 10 * 3600 + 48 * 60, firedS: 10 * 3600 + 48 * 60 + 15 })
 assert.deepEqual(parseSelfTestTimes('selftest: created, due 10:48 UTC | waiting'), { dueS: 10 * 3600 + 48 * 60, firedS: null })
 assert.deepEqual(parseSelfTestTimes(null), { dueS: null, firedS: null })
+assert.deepEqual(parseMemory('selftest: due 10:48 UTC | fired at 10:48:15 UTC | mem 312 MB (free 4100 of 7900)'), { footprintMb: 312, availableMb: 4100, totalMb: 7900 })
+assert.equal(parseMemory('selftest: due 10:48 UTC | fired at 10:48:15 UTC'), null)
+assert.equal(parseMemory(null), null)
 console.log('devicecloud platforms: page-source parsing, Appium commands and capabilities for iOS and Android: all checks pass')

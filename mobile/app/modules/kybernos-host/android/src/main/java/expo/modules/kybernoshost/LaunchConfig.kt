@@ -18,4 +18,6 @@ internal class LaunchConfig(context: Context, activity: Activity?) {
   }
   val modelKey: String = asset?.optString("key") ?: ""
   val denySpawn: Boolean = extras?.getString("kb_deny_spawn") == "1"
+  /** A test switch like the two above: `--es kb_keepalive 1` starts the background service without going through the settings screen. */
+  val keepAlive: Boolean = extras?.getString("kb_keepalive") == "1"
 }

@@ -51,3 +51,9 @@ export const parseSelfTestTimes = (line) => {
   const fired = /fired at (\d\d):(\d\d):(\d\d) UTC/.exec(line ?? '')
   return { dueS: due ? +due[1] * 3600 + +due[2] * 60 : null, firedS: fired ? +fired[1] * 3600 + +fired[2] * 60 + +fired[3] : null }
 }
+
+/** `... | mem 312 MB (free 4100 of 7900)` at the end of the self-test label -> { footprintMb, availableMb, totalMb }, or null. */
+export const parseMemory = (line) => {
+  const m = /\| mem (-?\d+) MB \(free (-?\d+) of (\d+)\)/.exec(line ?? '')
+  return m ? { footprintMb: +m[1], availableMb: +m[2], totalMb: +m[3] } : null
+}

@@ -9,6 +9,8 @@ export interface SelfTestDeps {
   writeResult: (json: string) => void
   hasKey: boolean
   pollMs?: number
+  /** The app's memory (see the native module); a run reports it so every device-cloud session leaves a figure. */
+  memory?: () => { footprintMb: number; availableMb: number; totalMb: number }
 }
 
 const QUESTION = 'What is the capital of Australia? Reply with the single word.'
@@ -55,9 +57,12 @@ export const runSelfTest = (signIn: string, delaySeconds: number, deps: SelfTest
       if (!t) return
       const h = (t.history ?? [])[(t.history ?? []).length - 1]
       if (!h) { report(`selftest: created, due ${due} UTC | waiting`); return }
+      const mem = (() => { try { return deps.memory?.() } catch { return undefined } })()
+      if (mem !== undefined) { result.memory = mem; result.memoryPeakMb = Math.max(Number(result.memoryPeakMb ?? 0), mem.footprintMb) }
       const at8 = typeof h.at === 'string' ? h.at.slice(11, 19) : '?'
       const err = typeof h.error === 'string' ? ' | ' + h.error.slice(0, 60) : ''
       let line = `selftest: due ${due} UTC | ${h.status ?? '?'} at ${at8} UTC${err}`
+      if (mem !== undefined) line += ` | mem ${mem.footprintMb} MB (free ${mem.availableMb} of ${mem.totalMb})`
       result.status = h.status; result.firedAt = h.at
       if (deps.hasKey && h.status === 'fired' && typeof h.sessionId === 'string') {
         try {
