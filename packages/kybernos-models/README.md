@@ -224,10 +224,20 @@ Known limit, measured the same day: an edit of `cordis.patch.yml` made **outside
 that file (`patchReload` is read by no package). The panel therefore stays silent in front of
 an external edit, like the native Models page: DSH has to be restarted.
 
+## Creation models (pictures, videos, voices)
+
+The server's creation models are rows of the same list, typed image / video / audio, with the output capability lit and the price of one
+unit (`$0.14 / image`, `$0.40 / s`, `$0.06 / 1,000 chars`) on the row. They are read from `GET /kybernos-cloud/models` (`models.creation`),
+never from `settings.yaml`: DSH's chat picker lists every model of a route, and these are not chat models. A row is read-only (kind
+`creation`): no trash button, a locked name, a note in its sheet, and any write is refused with « managed by your Kybernos account » before
+anything is sent (`kbMPersist`). No key is asked for: the account is what pays. The page asks for them each time it reads the list, so a
+server that has none (or a signed-out account) adds no row. The pure part is the `KB-CREATION-PURE` block, tested in `test-client.mjs`.
+
 ## Checks
 
 ```bash
-node scripts/check-models-live.mjs   # the page as a person meets it (sandbox only)
+node scripts/check-models-live.mjs            # the page as a person meets it (sandbox only)
+node scripts/check-models-creation-live.mjs   # the creation models on that page, the server's answer faked in the page (sandbox only)
 ```
 
 The older host, refresh and screen scripts (`check-model-catalog-host`, `-refresh`, `-ui`, `-browser`, `build-model-catalog-css`,
