@@ -895,6 +895,7 @@ let kbLocaleRead = () => 'en'
       'kbui.custom': { kybernos: 'Personnalisé', en: 'Custom' },
       'kbui.dangerzone': { kybernos: 'Zone sensible', en: 'Danger zone' },
       'kbui.delete.kyber': { kybernos: 'Supprimer cette Agent Team', en: 'Delete this Agent Team' },
+      'kbui.delete.soon': { kybernos: 'Pas encore disponible', en: 'Not available yet' },
       'kbui.discuter': { kybernos: 'Discuter', en: 'Chat' },
       'kbui.doc.library': { kybernos: 'Bibliothèque de documents', en: 'Document library' },
       'kbui.documents': { kybernos: 'Documents', en: 'Documents' },
@@ -1749,7 +1750,6 @@ let kbLocaleRead = () => 'en'
       'kbui.frag.inproject': { kybernos: ' dans ce projet…', en: ' in this project…' },
       'kbui.frag.digitalclone': { kybernos: ' est ton Clone Numérique — il ne peut pas être supprimé.', en: ' is your Digital Clone — it cannot be deleted.' },
       'kbui.frag.of4': { kybernos: ' sur 4 · ', en: ' of 4 · ' },
-      'kbui.frag.removed': { kybernos: ' sera supprimé avec ses chats, sa mémoire et ses créations.', en: ' will be removed with its chats, memory and creations.' },
       'kbui.frag.crew': { kybernos: 'Équipe · ', en: 'Crew · ' },
       'kbui.frag.running': { kybernos: 'En cours · ', en: 'Running · ' },
       'kbui.frag.skills': { kybernos: 'Compétences · ', en: 'Skills · ' },
@@ -15194,8 +15194,10 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
           }))
         return h('div', { style: card },
           h('span', { className: 'kb8-name' }, kbt('kbui.dangerzone')),
-          h('span', { className: 'kb8-sub' }, protectedTeam ? draft.name + kbt('kbui.frag.digitalclone') : draft.name + kbt('kbui.frag.removed')),
-          h('button', { type: 'button', className: 'kb8-primary', disabled: protectedTeam, style: protectedTeam ? { opacity: .5 } : { background: 'var(--dsw-alias-state-error-primary)' }, onClick: () => set({ view: 'gallery' }) }, kbt('kbui.delete.kyber')))
+          // Deleting an Agent Team is not built (AGT-14): the button used to take the person back to the gallery as if it had worked, with the team still on disk.
+          // It stays visible, off, with the reason as its tooltip; the sentence that promised the removal is gone (the Digital Clone keeps its own, which is true).
+          (protectedTeam ? h('span', { className: 'kb8-sub' }, draft.name + kbt('kbui.frag.digitalclone')) : null),
+          h('button', { type: 'button', className: 'kb8-primary', disabled: true, title: kbt('kbui.delete.soon'), style: protectedTeam ? { opacity: .5 } : { background: 'var(--dsw-alias-state-error-primary)', opacity: .5 } }, kbt('kbui.delete.kyber')))
       })()
       const saveLabel = saving === 'saving' ? kbt('kbui.saving') : (saving === 'pending' ? kbt('kbui.unsaved') : (saving === 'ok' ? kbt('kbui.saved.check') : (saving === 'err' ? kbt('kbui.retry.save') : kbt('kbui.autosave'))))
       const saveColor = saving === 'err' ? 'var(--dsw-alias-state-error-primary)' : (saving === 'ok' ? 'var(--dsw-alias-state-success-primary)' : 'var(--dsw-alias-label-secondary)')
@@ -15560,7 +15562,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       '.kb2-canvas .react-flow__handle{width:8px;height:8px;border-radius:50%;background:#1A1918;border:1.5px solid #6E6A63}' +
       '.kb2-canvas .react-flow__node{cursor:pointer}' +
       '.kb2-canvas .react-flow__node.selected .kb2-node{border-color:#C9A45C}' +
-      '.kb2-node{position:relative;display:flex;align-items:center;gap:9px;min-width:118px;padding:9px 11px;border-radius:10px;border:1.5px solid #3A3835;background:var(--dsw-alias-bg-layer-2,#232220);font-size:12px;color:#DCD6CB}' +
+      '.kb2-node{position:relative;display:flex;align-items:center;gap:9px;min-width:118px;padding:9px 11px;border-radius:10px;border:1.5px solid #3A3835;background:#232220;font-size:12px;color:#DCD6CB}' +
       '.kb2-nicon{width:16px;text-align:center;font-size:14px;flex-shrink:0}' +
       '.kb2-nicon.big{width:22px;height:22px;border-radius:7px;background:#26251F;display:inline-flex;align-items:center;justify-content:center;font-size:15px}' +
       '.kb2-nbody{display:flex;flex-direction:column;gap:2px;min-width:0}' +
