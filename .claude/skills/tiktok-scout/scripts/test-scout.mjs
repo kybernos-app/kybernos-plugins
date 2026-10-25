@@ -14,7 +14,9 @@ const t = async (name, fn) => {
 }
 
 const tmp = mkdtempSync(join(tmpdir(), 'tiktok-scout-'))
-const NOW = Date.UTC(2026, 9, 23) / 1000
+// The command line reads the real clock (its ages are `now - upload date`), so the fixtures hang off the real clock too: a fixed date made the text
+// report test go red two days after it was written (3d became 5d).
+const NOW = Math.floor(Date.now() / 1000)
 const day = 86400
 const entry = (id, handle, views, ageDays, title = 'a video', extra = {}) => ({ id, url: `https://www.tiktok.com/@${handle}/video/${id}`, title, view_count: views, like_count: Math.round(views * 0.05), duration: 180, timestamp: NOW - ageDays * day, ...extra })
 
