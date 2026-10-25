@@ -500,6 +500,18 @@ window.__ModuleLoader__.load({
       return t[distant.miseAJour.raison] || [String(distant.miseAJour.raison), String(distant.miseAJour.raison)]
     }
 
+    /** Pure. What the panel does with one reading of /kybernos-hub/update/status when it opens (`premiere`) and then while it follows an installer that is running (L3-85):
+     *  'suivre' keep showing the step and read again · 'rien' nothing to show (first reading, idle) · 'termine' / 'echec' this DSH’s own update ended ·
+     *  'fini' an installer that was running has ended, and nobody here knows how it went. */
+    const suiviInstallation = (t, premiere) => {
+      const lu = t !== null && t !== undefined && t.ok === true
+      if (lu && (t.etat === 'telechargement' || t.etat === 'extraction' || t.etat === 'installation')) return 'suivre'
+      if (premiere === true) return 'rien'
+      if (lu && t.etat === 'termine') return 'termine'
+      if (lu && t.etat === 'echec') return 'echec'
+      return 'fini'
+    }
+
     /** Pure. The line shown while the update runs, and when it ends. [fr, en]. */
     const messageMiseAJour = (t) => {
       if (t === null || t === undefined) return null
@@ -507,7 +519,8 @@ window.__ModuleLoader__.load({
       if (etapes[t.etat] !== undefined) return etapes[t.etat]
       if (t.etat === 'termine') return pair('Suite ' + t.version + ' installée. Relance DSH pour l’activer.', 'Suite ' + t.version + ' installed. Restart DSH to turn it on.')
       if (t.etat === 'echec') {
-        const e = { 'digest-mismatch': ['L’archive téléchargée ne correspond pas à l’empreinte signée : rien n’a été installé.', 'The downloaded archive does not match the signed digest: nothing was installed.'], 'robot-refused': ['L’installation a été refusée et annulée : ton installation actuelle est intacte.', 'The install was refused and rolled back: your current install is intact.'], 'bad-archive': ['L’archive est invalide : rien n’a été installé.', 'The archive is invalid: nothing was installed.'],
+        const e = { 'digest-mismatch': ['L’archive téléchargée ne correspond pas à l’empreinte signée : rien n’a été installé.', 'The downloaded archive does not match the signed digest: nothing was installed.'], 'robot-refused': ['L’installation a été refusée et annulée : ton installation actuelle est intacte.', 'The install was refused and rolled back: your current install is intact.'],
+          'robot-stopped': ['L’installateur s’est arrêté de façon inattendue. Relance DSH ; si quelque chose ne va pas, démarre en mode sans échec.', 'The installer stopped unexpectedly. Restart DSH; if something looks wrong, start in safe mode.'], 'bad-archive': ['L’archive est invalide : rien n’a été installé.', 'The archive is invalid: nothing was installed.'],
           'hosted-instance': ['Cette instance est hébergée : elle se met à jour en la reconstruisant, pas depuis cette page.', 'This instance is hosted: it is updated by rebuilding it, not from this page.'],
           'development-checkout': ['Ce poste est une copie de développement (git) : mets-la à jour avec git, pas avec une archive.', 'This machine is a development checkout (git): update it with git, not with an archive.'],
           'nothing-to-update': ['Il n’y a rien à mettre à jour : la suite est à jour.', 'There is nothing to update: the suite is up to date.'],
@@ -1532,6 +1545,28 @@ window.__ModuleLoader__.load({
           return () => { if (typeof debrancher === 'function') debrancher() }
         }, [])
 
+        // An installer outlives the DSH that started it (a child process; a `kill -9` of DSH in the middle of an update leaves it running). The host knows it from the lock on
+        // disk and reports it as the update in progress, so the panel opened after a restart shows the same « installing » step and follows it to its end, then reads the suite
+        // again. When it ends, nobody here knows whether it succeeded, so the line says to restart if something changed. It also picks up this DSH’s own update when the panel is
+        // opened again in the middle of it (L3-85).
+        React.useEffect(() => {
+          let vivant = true
+          let minuteur = null
+          const suivre = async (premiere) => {
+            const t = await lireJson('/kybernos-hub/update/status')
+            if (!vivant) return
+            const suite = suiviInstallation(t, premiere)
+            if (suite === 'rien') return
+            if (suite === 'suivre') { setTacheMaj(t); minuteur = setTimeout(() => { suivre(false) }, 2500); return }
+            if (suite === 'termine') { setTacheMaj(t); setEnAttente((a) => ({ ...a, __suite: true })) }
+            else if (suite === 'echec') setTacheMaj(t)
+            else { setTacheMaj(null); setResume(kt('L’installation lancée avant le redémarrage est terminée. Relance DSH si quelque chose a changé.', 'The installation that was running before the restart has ended. Restart DSH if something changed.')) }
+            recharger()
+          }
+          suivre(true)
+          return () => { vivant = false; if (minuteur !== null) clearTimeout(minuteur) }
+        }, [])
+
         if (charge.etat === 'loading') {
           // The page's own head, then bones in the cards' own grid (one skeleton helper for every list, published by the core
           // plugin as window.__KB_SKEL__); without it, the line of text as before.
@@ -1622,7 +1657,8 @@ window.__ModuleLoader__.load({
         const relancer = async () => {
           setRelance('running')
           const r = await post('/kybernos-hub/relaunch', { confirm: true })
-          if (r.ok !== true) { setRelance('error'); return }
+          // 409 busy: an installer is running (this DSH’s own or one that outlived a restart); restarting now would cut it. The generic « cannot restart from here » would blame the setup.
+          if (r.ok !== true) { setRelance(r.error === 'busy' ? 'busy' : 'error'); return }
           // DSH goes down and comes back: wait for the server, then reload the page.
           const debut = Date.now()
           const attendre = async () => {
@@ -1880,6 +1916,7 @@ window.__ModuleLoader__.load({
                 h('button', { type: 'button', className: 'kbsu-btn sm accent', onClick: relancer }, kt('Relancer maintenant', 'Restart now')),
                 h('button', { type: 'button', className: 'kbsu-btn sm ghost', onClick: () => setConfirmerRelance(false) }, kt('Annuler', 'Cancel')))
                 : h('button', { type: 'button', className: 'kbsu-btn sm accent', onClick: () => setConfirmerRelance(true) }, kt('Relancer DSH', 'Restart DSH')),
+            relance === 'busy' ? h('span', { className: 'kbsu-st bad', role: 'alert', 'data-kb': 'suite-relance-occupee' }, kt('Une installation est en cours : attends qu’elle se termine avant de relancer DSH.', 'An installation is running: wait until it ends before restarting DSH.')) : null,
             relance === 'error' ? h('span', { className: 'kbsu-st bad' }, kt('Relance impossible depuis ici : arrête « dsh web » dans ton terminal, puis relance-le.', 'Cannot restart from here: stop “dsh web” in your terminal, then start it again.')) : null) : null,
           mgr === null ? h('div', { className: 'kbsu-banner', role: 'status' }, h('strong', null, ic('alert'), kt('Gestionnaire de plugins indisponible.', 'Plugin manager unavailable.')), h('span', null, kt('Le catalogue s’affiche, mais l’état installé et les interrupteurs ne sont pas disponibles sur cette version de DSH.', 'The catalogue shows, but installed state and switches are unavailable on this DSH version.'))) : null,
           detail !== null ? null : h('div', { className: 'kbsu-bar' },
@@ -2118,6 +2155,6 @@ window.__ModuleLoader__.load({
 
     const demarrer = (ctx) => { apply(ctx); try { appliquerSuite(ctx) } catch (e) { /* optional */ } }
 
-    return { name: NAME, inject: [], apply: demarrer, __test: { carteAmarree, colonneDeLaPage, lang, kt, pair, messageCatalogue, raisonMiseAJour, messageMiseAJour, ROUTE, ALIVE_AFTER_MS, TICK_MS, lireEchec, comparerVersions, deballer, etatCarte, filtrer, titreDe, libelleInterrupteur, verdictCompat, GLYPHES, ORDER_KEY, VIEW_KEY, parseOrder, effectiveOrder, applyOrder, isCustomOrder, storableOrder, moveTo, moveBy, browserStore, readOrder, writeOrder, readView, writeView, POINTS_PLUGIN, genrePlugin, niveauPlugin, niveauAide, etatPlugin, genresPlugins, filtrerPlugins, compterPlugins, permissionsPlugin, ajoutePlugin, texteLu, lecturePlugin, specInstall, refusInspection, issueGestionnaire, promptCreation, promptBrouillon, construirePlugins, construireAide, construireNatifs, NATIVE_SEL, nativeKeyOf, findNativeHost, nativeContent, coteDeLaCarte, adresseAide, langueDuSite, introKey, introOuverte, INTRO_SEEN_MS } }
+    return { name: NAME, inject: [], apply: demarrer, __test: { carteAmarree, colonneDeLaPage, lang, kt, pair, messageCatalogue, raisonMiseAJour, suiviInstallation, messageMiseAJour, ROUTE, ALIVE_AFTER_MS, TICK_MS, lireEchec, comparerVersions, deballer, etatCarte, filtrer, titreDe, libelleInterrupteur, verdictCompat, GLYPHES, ORDER_KEY, VIEW_KEY, parseOrder, effectiveOrder, applyOrder, isCustomOrder, storableOrder, moveTo, moveBy, browserStore, readOrder, writeOrder, readView, writeView, POINTS_PLUGIN, genrePlugin, niveauPlugin, niveauAide, etatPlugin, genresPlugins, filtrerPlugins, compterPlugins, permissionsPlugin, ajoutePlugin, texteLu, lecturePlugin, specInstall, refusInspection, issueGestionnaire, promptCreation, promptBrouillon, construirePlugins, construireAide, construireNatifs, NATIVE_SEL, nativeKeyOf, findNativeHost, nativeContent, coteDeLaCarte, adresseAide, langueDuSite, introKey, introOuverte, INTRO_SEEN_MS } }
   }
 })
