@@ -7,21 +7,48 @@ import { cookieDeSession } from './cdp-lib.mjs'
 
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
-/** The model button of the composer: pressed until the line `name` is chosen. Takes the page helpers (`until`, `leaf`, `mouse`) so that a test can play it without a browser. */
+const sameModel = (a, b) => typeof a === 'string' && a.trim().toLowerCase() === String(b).trim().toLowerCase()
+
+/** The model button of the composer, as DSH 0.2.1-rc.2 draws it: `<button aria-label="Select model, current GLM">` with the model's name as its label (the name is in a zero-width span, so no
+ *  « leaf with this text » lookup can find it: that is what made selectModel return without choosing anything on rc.2). `current` is null when the label has no « current … ». */
+export const MODEL_BUTTON_JS = `(() => { const b = document.querySelector('button[aria-label^="Select model"]'); if (!b) return null; const r = b.getBoundingClientRect(); const m = /current\\s+(.+)$/i.exec(b.getAttribute('aria-label') || ''); return { current: m ? m[1].trim() : null, shown: (b.innerText || '').replace(/\\s+/g, ' ').trim(), x: r.x + r.width / 2, y: r.y + r.height / 2, visible: r.width > 2 && r.height > 2 } })()`
+
+/** Makes sure the composer's model is `name`: reads the model button first (nothing is pressed when it already says so), else opens the menu, opens its « Model » row when the engine has one (rc.2), presses the
+ *  line, and reads the button back. Resolves true, or THROWS saying what it could not find: a turn run on whatever model the profile holds sends nothing to the replica, and a journey that goes on after a
+ *  silent miss only compares empty lists (the 2026-10-24 run of the two-account journeys was void for that). Takes the page helpers (`until`, `leaf`, `mouse`, `modelButton`) so that a test can play it
+ *  without a browser. */
 export const selectModelOn = async (g, name = 'GLM') => {
-  const chosen = async () => (await g.leaf(name)) !== null && (await g.leaf('Select model')) === null
-  // Already chosen? the composer's model button then reads the name.
-  if (await g.until(chosen, 400)) return true
-  // Neither « Select model » nor the name yet: a page that is still drawing its composer, or a composer on another model. Give it a moment, then say so.
-  const opener = await g.until(async () => (await g.leaf('Select model')) || ((await g.leaf(name)) !== null ? { chosen: true } : null), 3000)
-  if (!opener) throw new Error(`selectModel(${JSON.stringify(name)}): the composer shows neither « Select model » nor « ${name} »: there is no model button to press (no composer on this page, or another model is chosen)`)
-  if (opener.chosen === true) return true
-  await g.mouse(opener.x, opener.y)
-  await g.until(async () => (await g.leaf(name)) !== null, 3000)
-  const item = await g.leaf(name)
-  if (!item) throw new Error(`selectModel(${JSON.stringify(name)}): the model list is open but has no line « ${name} » (the profile has no such model on its routes: read GET /kybernos-cloud/models)`)
+  const fail = (why) => { throw new Error(`selectModel(${JSON.stringify(name)}): ${why}`) }
+  const button = async () => { const b = await g.modelButton(); return b && b.err === undefined && b.visible === true ? b : null }
+  // 1. what the composer says. A page still drawing its composer gets a moment.
+  const seen = await g.until(async () => {
+    const b = await button()
+    if (b !== null) return { b }
+    if ((await g.leaf('Select model')) !== null) return { legacyOpener: true }   // older engines: the button reads « Select model » until a model is chosen
+    if ((await g.leaf(name)) !== null) return { legacyChosen: true }              // ... and the model's name afterwards
+    return null
+  }, 3500)
+  if (!seen) fail('the composer has no model button (no « Select model, current … » button, no « Select model », no « ' + name + ' »): no composer on this page?')
+  if (seen.legacyChosen === true) return true
+  const b = seen.b
+  if (b !== undefined && (sameModel(b.current, name) || (b.current === null && sameModel(b.shown, name)))) return true
+  // 2. another model is chosen (or none): open the menu.
+  const at = b !== undefined ? b : await g.leaf('Select model')
+  await g.mouse(at.x, at.y)
+  await sleep(450)
+  let item = await g.until(() => g.leaf(name), 1200)
+  if (!item) {
+    const row = await g.leaf('Model')   // rc.2: the menu has a « Model » row that opens the list of models
+    if (row) { await g.mouse(row.x, row.y); await sleep(500); item = await g.until(() => g.leaf(name), 2500) }
+  }
+  if (!item) fail('the model menu is open but has no line « ' + name + ' » (the profile has no such model on its routes: read GET /kybernos-cloud/models)')
   await g.mouse(item.x, item.y)
   await sleep(500)
+  // 3. read it back: a click that landed elsewhere must not pass for a choice.
+  if (b !== undefined) {
+    const now = await g.until(async () => { const x = await button(); return x !== null && sameModel(x.current, name) ? x : null }, 2500)
+    if (!now) fail('pressed the line, but the model button still says « ' + ((await button()) || {}).current + ' »')
+  }
   return true
 }
 
@@ -129,6 +156,7 @@ export const openGui = async (host, opts = {}) => {
   g.composerPos = () => g.val(`(() => { const e = Array.from(document.querySelectorAll('[contenteditable="true"], textarea')).filter((e) => { const r = e.getBoundingClientRect(); return r.width > 100 && r.height > 10 }).pop(); if (!e) return null; const r = e.getBoundingClientRect(); return { x: r.x + 40, y: r.y + r.height / 2 } })()`)
   /** Picks `name` in the composer's model button (already chosen: nothing to do). Resolves true, or THROWS saying what it could not find: a turn run on whatever model the profile holds sends
    *  nothing to the replica, and a journey that goes on after a silent miss only compares empty lists (the 2026-10-24 run of the two-account journeys was void for that). */
+  g.modelButton = () => g.val(MODEL_BUTTON_JS)
   g.selectModel = (name = 'GLM') => selectModelOn(g, name)
   /** Types into the composer and presses Enter. Resolves the time the Enter key was sent (ms epoch). */
   g.send = async (message, { enter = true } = {}) => {
