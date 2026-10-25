@@ -23,7 +23,7 @@ const check = (name, ok, detail) => {
   if (ok === true) console.log('  ✓ ' + name)
   else { fail += 1; console.log('  ✗ ' + name + (detail === undefined ? '' : ' — ' + JSON.stringify(detail).slice(0, 700))) }
 }
-const BUNDLES = ['kybernos-models', 'kybernos-hub', 'kybernos-websearch', 'kybernos-auto', 'kybernos-plugin', 'kybernos-maintenance', 'kybernos-theme', 'kybernos-composio', 'kybernos-modeles-locaux', 'kybernos-skills']
+const BUNDLES = ['kybernos-models', 'kybernos-hub', 'kybernos-websearch', 'kybernos-auto', 'kybernos-plugin', 'kybernos-maintenance', 'kybernos-theme', 'kybernos-composio', 'kybernos-modeles-locaux', 'kybernos-skills', 'kybernos-mobile', 'kybernos-slash']
 const ENGINE = /(?:^|\.)[A-Za-z0-9]{5,7}_[A-Za-z0-9]+|_[a-z0-9]{4,6}_\d|\.locked|\.on\b/   // a DSH class: hash + name
 const ACCEPTED = /kwse-move/
 

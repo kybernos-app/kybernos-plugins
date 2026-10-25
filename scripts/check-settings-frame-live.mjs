@@ -24,7 +24,7 @@ const WIDE = new Set(['Atlas', 'AI provider and models', 'Kybernos Suite'])
 const AFTER_ICON = new Set(['Phone and channels'])
 // DSH's own page (its title is the engine's, not ours) and a page whose title is not a heading.
 const SKIP = new Set(['IM bots', 'Connectors'])
-const BUNDLES = ['kybernos-hub', 'kybernos-usage', 'kybernos-modeles-locaux', 'kybernos-free-llms', 'kybernos-mobile', 'kybernos-plugin', 'kybernos-sessions', 'kybernos-skills', 'kybernos-slash', 'kybernos-theme']
+const BUNDLES = ['kybernos-hub', 'kybernos-usage', 'kybernos-modeles-locaux', 'kybernos-free-llms', 'kybernos-mobile', 'kybernos-plugin', 'kybernos-sessions', 'kybernos-skills', 'kybernos-slash', 'kybernos-theme', 'kybernos-kaby-customisation']
 
 const live = await openLivePage({ width: WIDTH, height: 900 }).catch((e) => { console.error('○ inconclusive: ' + e.message); process.exit(3) })
 const { page } = live
