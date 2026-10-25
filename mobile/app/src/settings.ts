@@ -10,6 +10,10 @@ export const KEY_SLOT = 'kybernos.anthropic-key'
 /** Set once the first-run key screen has been shown (or skipped), so it does not come back at every launch. */
 export const PROMPT_SLOT = 'kybernos.key-prompt-done'
 
+/** The person's agreement to send what they write to their AI provider (Apple 5.1.2(i)). The stored value is the version of the text they agreed to: a materially changed text asks again. */
+export const CONSENT_SLOT = 'kybernos.ai-consent'
+export const CONSENT_VERSION = '1'
+
 /** Switches of the Background section (both off until the person turns them on). */
 export const KEEP_RUNNING_SLOT = 'kybernos.keep-running'
 export const REMINDERS_SLOT = 'kybernos.reminders'
@@ -49,6 +53,10 @@ export const createSettings = (store: SecureStorage) => ({
   async setKeepRunning(on: boolean): Promise<void> { try { if (on) await store.set(KEEP_RUNNING_SLOT, '1'); else await store.remove(KEEP_RUNNING_SLOT) } catch { /* the switch then shows its old state */ } },
   async reminders(): Promise<boolean> { try { return (await store.get(REMINDERS_SLOT)) === '1' } catch { return false } },
   async setReminders(on: boolean): Promise<void> { try { if (on) await store.set(REMINDERS_SLOT, '1'); else await store.remove(REMINDERS_SLOT) } catch { /* the switch then shows its old state */ } },
+  /** True only when the stored agreement is for the current text. An unreadable storage asks again: it never lets the engine start without it. */
+  async consented(): Promise<boolean> { try { return (await store.get(CONSENT_SLOT)) === CONSENT_VERSION } catch { return false } },
+  async giveConsent(): Promise<void> { try { await store.set(CONSENT_SLOT, CONSENT_VERSION) } catch { /* it asks again at the next launch */ } },
+  async withdrawConsent(): Promise<void> { try { await store.remove(CONSENT_SLOT) } catch { /* nothing more can be done here */ } },
   async promptDone(): Promise<boolean> {
     try { return (await store.get(PROMPT_SLOT)) === '1' } catch { return true }
   },

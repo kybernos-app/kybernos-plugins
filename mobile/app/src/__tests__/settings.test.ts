@@ -1,4 +1,4 @@
-import { checkAnthropicKey, createSettings, keyHint, KEEP_RUNNING_SLOT, KEY_SLOT, PROMPT_SLOT, REMINDERS_SLOT, SecureStorage } from '../settings'
+import { checkAnthropicKey, createSettings, keyHint, CONSENT_SLOT, CONSENT_VERSION, KEEP_RUNNING_SLOT, KEY_SLOT, PROMPT_SLOT, REMINDERS_SLOT, SecureStorage } from '../settings'
 
 const GOOD = 'sk-ant-api03-AbCdEfGhIjKlMnOpQrStUv_-0123'
 const memory = (): SecureStorage & { data: Map<string, string> } => {
@@ -70,5 +70,27 @@ describe('settings', () => {
     expect(await s.promptDone()).toBe(false)
     await s.markPromptDone()
     expect(store.data.get(PROMPT_SLOT)).toBe('1'); expect(await s.promptDone()).toBe(true)
+  })
+})
+
+describe('consent to send what is written to the AI provider', () => {
+  it('is absent until given, stored with the version of the text, and gone once withdrawn', async () => {
+    const store = memory(); const s = createSettings(store)
+    expect(await s.consented()).toBe(false)
+    await s.giveConsent()
+    expect(store.data.get(CONSENT_SLOT)).toBe(CONSENT_VERSION); expect(await s.consented()).toBe(true)
+    await s.withdrawConsent()
+    expect(await s.consented()).toBe(false); expect(store.data.has(CONSENT_SLOT)).toBe(false)
+  })
+  it('asks again when the text it was given for is an older version', async () => {
+    const store = memory(); const s = createSettings(store)
+    store.data.set(CONSENT_SLOT, CONSENT_VERSION + '-old')
+    expect(await s.consented()).toBe(false)
+  })
+  it('never lets an unreadable storage count as an agreement, and never throws on a write that fails', async () => {
+    const broken: SecureStorage = { get: async () => { throw new Error('keychain locked') }, set: async () => { throw new Error('x') }, remove: async () => { throw new Error('x') } }
+    const s = createSettings(broken)
+    expect(await s.consented()).toBe(false)
+    await expect(s.giveConsent()).resolves.toBeUndefined(); await expect(s.withdrawConsent()).resolves.toBeUndefined()
   })
 })

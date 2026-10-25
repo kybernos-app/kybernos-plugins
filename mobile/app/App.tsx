@@ -12,6 +12,7 @@ import { createSettings } from './src/settings'
 import { decideLink, WEBVIEW_ORIGINS } from './src/links'
 import { fetchTasks, planReminders } from './src/reminders'
 import { isAppEntryMessage } from './src/webMessage'
+import { ConsentScreen } from './src/ConsentScreen'
 import { SettingsScreen } from './src/SettingsScreen'
 import { BootState, baseOf, createSupervisor } from './src/supervisor'
 
@@ -29,29 +30,36 @@ export default function App() {
   const [firstRun, setFirstRun] = useState(false)
   const [keyStored, setKeyStored] = useState(false)
   const [webEntry, setWebEntry] = useState(false) // the interface says it has its own entry to the settings: the fallback gear goes
+  // the engine starts only after the person has agreed to send what they write to their AI provider; a device-cloud self-test build has nobody to ask
+  const [consent, setConsent] = useState<'checking' | 'needed' | 'given'>(host && host.selfTestDelay !== null ? 'given' : 'checking')
+  useEffect(() => {
+    if (consent !== 'checking') return
+    void settings.consented().then((ok) => setConsent(ok ? 'given' : 'needed'))
+  }, [])
+  const agree = () => { setConsent('given'); void settings.giveConsent() }
   const keyStoredRef = useRef(false)
   const started = useRef(false)
   const noteKey = (stored: boolean) => { keyStoredRef.current = stored; setKeyStored(stored) }
 
   useEffect(() => {
-    if (!supervisor || started.current) return
+    if (!supervisor || started.current || consent !== 'given') return
     started.current = true
     const off = supervisor.subscribe(setState)
     // the model key comes out of the Keychain / Keystore here and goes to the engine's environment: it is never written to a file
     void settings.engineEnv().then((env) => { noteKey(Object.keys(env).length > 0); supervisor.begin(env) })
     const sub = AppState.addEventListener('change', (s) => { if (s === 'active') void supervisor.healthCheck().then((ok) => console.log('kybernos: server answers after foreground: ' + ok)) })
     return () => { off(); sub.remove(); supervisor.stop() }
-  }, [supervisor])
+  }, [supervisor, consent === 'given'])
 
   // while the engine is not ready the screen says what it is doing: a start that hangs must show where
   useEffect(() => {
-    if (!supervisor || !host || state.phase === 'ready') return
+    if (!supervisor || !host || state.phase === 'ready' || consent !== 'given') return
     const t0 = Date.now()
     const tick = () => setDiagnostics(bootDiagnosticsText(supervisor.diagnostics(), host!.logTail(4096), Math.round((Date.now() - t0) / 1000)))
     tick()
     const id = setInterval(tick, 2000)
     return () => clearInterval(id)
-  }, [supervisor, state.phase === 'ready'])
+  }, [supervisor, state.phase === 'ready', consent === 'given'])
 
   useEffect(() => {
     if (state.phase !== 'ready' || !host || host.selfTestDelay === null) return
@@ -125,6 +133,15 @@ export default function App() {
   const openLog = () => { setLog(redact(host?.logTail(20000) ?? '')); setShowLog(true) }
   const shareLog = () => { void Share.share({ title: 'Kybernos engine log', message: redact(host?.logTail(60000) ?? '') }) }
   const closeSettings = () => { setShowSettings(false); if (firstRun) { setFirstRun(false); void settings.markPromptDone() } }
+
+  if (consent !== 'given') {
+    return (
+      <SafeAreaProvider>
+        <StatusBar style="light" />
+        <SafeAreaView style={styles.fill}>{consent === 'needed' && <ConsentScreen onAgree={agree} />}</SafeAreaView>
+      </SafeAreaProvider>
+    )
+  }
 
   return (
     <SafeAreaProvider>
