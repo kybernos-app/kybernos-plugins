@@ -77,7 +77,9 @@ request left the files and the outside world as they were.
 | `kybernos-free-llms` | (L3-21) `/enable`, `/disable` and `/auto-enable`: they write the `opencode-free` provider into DSH's settings, so what the person types leaves for opencode.ai. The engine's gateway routes keep the « not from another page » rule (below) |
 | `kybernos-sessions` | (L3-18) the thirteen POSTs: the git and gh actions `isolate`, `commit`, `close-check`, `close`, `reclaim`, `push`, `fetch`, `sync`, `pr` (a push publishes, `pr` with `merge` merges as the person), `settings` and `categories` (files the agents read) and the Study-model calls `brain/health` and `decision`. `scripts/dsh-relance.mjs` signs its own cookie for `categories`. `/commit` also runs git with `GIT_LITERAL_PATHSPECS=1`, so a path that begins with `:` is a file name and not pathspec magic |
 
-Every one of them is called by a page, so the browser sends the Origin and the cookie itself (`scripts/check-write-guard-live.mjs` clicks the Auto
+Every one of them is called by a page, so the browser sends the Origin and the cookie itself (`scripts/check-bundle-guards-live.mjs` plays the 65 routes of the eight bundles of fix 7 from a local program and
+from the signed-in page, and clicks the Suite, Workers, Servers, Web search, Learned skills, Skills install and Search everywhere pages, reading the status the browser got for each request and the
+Origin and cookie it put on the wire; `scripts/check-write-guard-live.mjs` clicks the Auto
 Routing, Memory options and Cloud computers pages in a real GUI and reads what the browser got back). The phone link (`kybernos-mobile`) replays a phone's
 requests with `Origin` and the machine's cookie, so a **read** passes; a **write** carries the `x-kybernos-tunnel` marker and is refused (above). What a phone's page asks of these
 routes is therefore refused (403 `refused_on_phone`): pinning a chat, changing the layout or the team space, the Run button of a code block, a message to another session. The reads a page sends
