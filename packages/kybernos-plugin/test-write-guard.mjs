@@ -22,7 +22,7 @@
 //   node packages/kybernos-plugin/test-write-guard.mjs
 import assert from 'node:assert/strict'
 import http from 'node:http'
-import { existsSync, mkdirSync, mkdtempSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
@@ -105,17 +105,22 @@ const WRITES = [
 
 // L3-06 and L3-19 (recette 2026-10-25): the writes that had stayed at the strict Origin alone. Every body is harmless in this throw-away home (no workspace, no profile, no key, no model
 // service): the real pair reaches the handler, which stops at once with its own verdict; a refused request must not even get that far.
+// A third entry lists the files (relative to the DSH home) that the real pair leaves behind in this throw-away home: they must be absent after the four refusals and present after
+// the real pair, so « nothing written » is measured on a write that does happen. The routes without one stop at the handler's own refusal in this harness (no model, no key).
 const FAMILY = [
   // What the agent follows or can do.
-  ['/kybernos/workspace-instructions', { workspaceId: 'w-write-guard', text: 'A line a shell tried to put in the prompt of every chat of a project.', alsoAgents: true }],
-  ['/kybernos/tools/apply', { family: 'computer-use', action: 'install', profile: 'web', dry: true }],
-  ['/kybernos/workspace-skills', { workspaceId: 'w-write-guard', skills: [] }],
-  ['/kybernos/workspace-connectors', { workspaceId: 'w-write-guard', connectors: [] }],
-  ['/kybernos/domain/skill', { name: 'no-such-skill' }],
+  // A project with a folder, as DSH's workspace table lists it (set up below): the text lands in the store and, asked to, in the folder's AGENTS.md.
+  ['/kybernos/workspace-instructions', { workspaceId: 'w-write-guard', text: 'A line a shell tried to put in the prompt of every chat of a project.', alsoAgents: true }, ['kybernos/workspace-instructions.json', 'proj-write-guard/AGENTS.md']],
+  // A profile folder to patch: the install adds Computer Use to its cordis.patch.yml (and keeps a backup beside it).
+  ['/kybernos/tools/apply', { family: 'computer-use', action: 'install', profile: 'web' }, ['profiles/web/cordis.patch.yml']],
+  ['/kybernos/workspace-skills', { workspaceId: 'w-write-guard', skills: ['write-guard-skill'] }],
+  ['/kybernos/workspace-connectors', { workspaceId: 'w-write-guard', connectors: ['gmail'] }],
+  ['/kybernos/domain/skill', { name: 'case-law-watch' }, ['skills/case-law-watch/SKILL.md']],
   ['/kybernos/model/auto', { provider: '' }],
   ['/kybernos/tts/config', { patch: {} }],
-  ['/kybernos/onboarding', { action: 'nope' }],
-  ['/kybernos/art-progress', { action: 'read' }],
+  // (The wizard's file is written through the engine's home service, which this harness does not have: the real pair answers « write failed », and the refusals are the measure.)
+  ['/kybernos/onboarding', { action: 'replay' }],
+  ['/kybernos/art-progress', { action: 'record', entry: { artifact: 'write-guard.md', score: 1, max: 1 } }, ['kybernos/progress.json']],
   ['/kybernos/project-data', { sessionIds: [] }],
   // What spends the owner's key or credits.
   ['/kybernos/image/generate', { prompt: 'A picture a shell tried to pay for.' }],
@@ -159,10 +164,15 @@ try {
     ok(path + ': no header 403 · foreign Origin 403 · no cookie 401 · forged cookie 401 · the real pair answers')
   }
   // L3-06 / L3-19. Four refusals for each, nothing written by a refused request (the files a write of the family leaves in the throw-away home), then the real pair.
-  const homeFiles = () => ['.kyber-workspaces.json', 'AGENTS.md', 'workspace-instructions.json', 'kybernos/workspace-instructions.json', 'kybernos/progress.json', 'kybernos/onboarding.json'].filter((f) => existsSync(join(process.env.DSH_HOME, f)))
-  for (const [path, body] of FAMILY) {
+  // The fixtures: DSH's workspace table with one project and its folder, and an empty profile folder.
+  mkdirSync(join(process.env.DSH_HOME, 'storages'), { recursive: true })
+  mkdirSync(join(process.env.DSH_HOME, 'proj-write-guard'), { recursive: true })
+  mkdirSync(join(process.env.DSH_HOME, 'profiles', 'web'), { recursive: true })
+  writeFileSync(join(process.env.DSH_HOME, 'storages', 'workspace.json'), JSON.stringify({ tables: { workspaces: { 'w-write-guard': { title: 'Write guard', path: join(process.env.DSH_HOME, 'proj-write-guard'), sessionIds: [] } } } }))
+  const there = (files) => files.filter((f) => existsSync(join(process.env.DSH_HOME, f)))
+  for (const [path, body, files = []] of FAMILY) {
     assert.ok(routeOf(path) !== undefined, path + ' is mounted — the table above is stale')
-    const filesBefore = homeFiles()
+    assert.deepEqual(there(files), [], path + ': nothing of its own is there before the first request')
     for (const [headers, want, label] of [
       [{}, 403, 'no Origin and no cookie'],
       [{ origin: 'http://evil.example', cookie: cookie() }, 403, 'a foreign Origin, even with the real cookie'],
@@ -173,11 +183,12 @@ try {
       assert.equal(r.status, want, path + ': ' + label + ' -> ' + r.status + ' ' + r.text.slice(0, 80))
       assert.equal(JSON.parse(r.text).ok, false, path + ': a refusal says ok: false')
     }
-    assert.deepEqual(homeFiles(), filesBefore, path + ': a refused request left the files of the home as they were')
+    assert.deepEqual(there(files), [], path + ': a refused request wrote nothing')
     const real = await send(path, { origin, cookie: cookie() }, body)
     assert.notEqual(real.status, 401, path + ': the real pair is not refused as unsigned: ' + real.text.slice(0, 80))
     assert.notEqual(real.status, 403, path + ': the real pair is not refused as foreign: ' + real.text.slice(0, 80))
     assert.ok(real.status > 0, path + ': the route answers the real pair')
+    assert.deepEqual(there(files), files, path + ': the real pair does write ' + files.join(', ') + ' (the answer was ' + real.text.slice(0, 120) + ')')
     ok(path + ': no header 403 · foreign Origin 403 · no cookie 401 · forged cookie 401 · nothing written · the real pair answers')
   }
   // The routes that read keep their rule: i18n-job and workspace-skills / -connectors / -instructions answer a GET with the strict or lax Origin check alone.
@@ -220,6 +231,7 @@ try {
   process.exitCode = 1
 } finally {
   server.close()
+  try { rmSync(home, { recursive: true, force: true }) } catch (e) { /* the system clears its temp folder */ }
   // The bundle boots timers and watchers of its own (the host keeps them alive): this test ends when its checks do.
   process.exit(process.exitCode === undefined ? 0 : process.exitCode)
 }
