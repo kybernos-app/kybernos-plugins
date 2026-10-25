@@ -19,16 +19,17 @@ export const MODEL_BUTTON_JS = `(() => { const b = document.querySelector('butto
  *  without a browser. */
 export const selectModelOn = async (g, name = 'GLM') => {
   const fail = (why) => { throw new Error(`selectModel(${JSON.stringify(name)}): ${why}`) }
-  const button = async () => { const b = await g.modelButton(); return b && b.err === undefined && b.visible === true ? b : null }
-  // 1. what the composer says. A page still drawing its composer gets a moment.
+  let last = null
+  const button = async () => { const b = await g.modelButton(); last = b; return b && b.err === undefined && b.visible === true ? b : null }
+  // 1. what the composer says. A page still loading (a first load after a restart, a switch of space) gets 20 s to draw its composer: a journey opens the page and goes on.
   const seen = await g.until(async () => {
     const b = await button()
     if (b !== null) return { b }
     if ((await g.leaf('Select model')) !== null) return { legacyOpener: true }   // older engines: the button reads « Select model » until a model is chosen
     if ((await g.leaf(name)) !== null) return { legacyChosen: true }              // ... and the model's name afterwards
     return null
-  }, 3500)
-  if (!seen) fail('the composer has no model button (no « Select model, current … » button, no « Select model », no « ' + name + ' »): no composer on this page?')
+  }, 20000)
+  if (!seen) fail('the composer has no model button after 20 s (no « Select model, current … » button, no « Select model », no « ' + name + ' »): no composer on this page? last read of the button: ' + JSON.stringify(last))
   if (seen.legacyChosen === true) return true
   const b = seen.b
   if (b !== undefined && (sameModel(b.current, name) || (b.current === null && sameModel(b.shown, name)))) return true
