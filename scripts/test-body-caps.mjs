@@ -70,6 +70,16 @@ const BUNDLES = [
     bodies: { '/kybernos-bricks/push': 2 * MIB },
     none: ['/kybernos-bricks/state'],
   },
+  {
+    bundle: 'kybernos-modeleur',
+    mount: async (web) => {
+      const { creerMagasin, monterRoutes } = await load('kybernos-modeleur', 'index.js')
+      monterRoutes(web, creerMagasin())
+    },
+    // 2 MiB: a push is at most 4000 batches (about 110 bytes each); an annotation at most 60 strokes of 800 points (1.8 MB at the very most, a few KB for a real brush).
+    bodies: { '/kybernos-modeleur/push': 2 * MIB, '/kybernos-modeleur/annote': 2 * MIB },
+    none: ['/kybernos-modeleur/state'],
+  },
 ]
 
 // ── What a client and a handler see ─────────────────────────────────────────────────────────────────────────────────────────
