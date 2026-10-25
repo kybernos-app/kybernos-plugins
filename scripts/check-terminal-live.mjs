@@ -14,7 +14,7 @@
 //
 // SAFETY: the only commands sent are `pwd`, `echo` and a `sleep` (killed by the route; killed here by its own pid if the route failed to).
 // No install, no update, no network, no message. Exit code 0 / 1 / 3 (3 = inconclusive: no sandbox).
-import { existsSync, readdirSync, realpathSync } from 'node:fs'
+import { existsSync, readdirSync, realpathSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { openLivePage } from './live-page.mjs'
 
@@ -30,19 +30,22 @@ if (home.indexOf('.kybernos-sandbox') < 0) { console.error('○ inconclusive: DS
 const worktree = process.env.KB_WORKTREE
 if (!worktree || !existsSync(join(worktree, 'packages', 'kybernos-terminal'))) { console.error('○ inconclusive: KB_WORKTREE does not point at a checkout with packages/kybernos-terminal (source scripts/sandbox/env.sh).'); process.exit(3) }
 
-// A session of this sandbox: the folders of its session store (`<home>/sessions/--<slug>--/session-<id>`), newest first.
+// A session of this sandbox IN THE WORKTREE: the folders of its session store (`<home>/sessions/--<slug>--/session-<id>`, the slug being the working folder with its
+// separators turned into dashes), newest first. The store lists other sessions too (the automations' own, in `<home>/kybernos/automations`): the route runs in the folder of
+// the session it is given, so a session of another folder cannot be compared with the worktree.
+const slugOfWorktree = '--' + (process.env.KB_WORKTREE || '').replace(/^[/\\]/, '').replace(/[/\\:]/g, '-') + '--'
 const sessions = () => {
   const out = []
   const store = join(home, 'sessions')
   if (!existsSync(store)) return out
   for (const slug of readdirSync(store)) {
-    if (!slug.startsWith('--')) continue
-    for (const id of readdirSync(join(store, slug))) if (id.startsWith('session-')) out.push(id)
+    if (slug !== slugOfWorktree) continue
+    for (const id of readdirSync(join(store, slug))) if (id.startsWith('session-')) out.push({ id, at: statSync(join(store, slug, id)).mtimeMs })
   }
-  return out
+  return out.sort((a, b) => b.at - a.at).map((s) => s.id)
 }
 const sessionId = sessions()[0]
-if (sessionId === undefined) { console.error('○ inconclusive: the sandbox holds no chat session yet (open the app and send a first message, or run check-motion-live.mjs once).'); process.exit(3) }
+if (sessionId === undefined) { console.error('○ inconclusive: the sandbox holds no chat session in the worktree\'s folder yet (open the app and send a first message from its own chat, or run check-motion-live.mjs once).'); process.exit(3) }
 
 const live = await openLivePage({ width: 1200, height: 800 }).catch((e) => { console.error('○ inconclusive: ' + e.message); process.exit(3) })
 const { page } = live

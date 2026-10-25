@@ -19,6 +19,7 @@
 // SAFETY: every POST to /kybernos-sessions/* is intercepted and answered here (fail-closed): no git command, no
 // commit, no push ever runs, whatever the page asks. Reads go through. Nothing presses a real action.
 // Exit code 0 / 1 / 3.
+import { readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { openLivePage } from './live-page.mjs'
 
@@ -49,7 +50,8 @@ page.on('Fetch.requestPaused', async (p) => {
     if (p.request.method === 'POST' && /\/kybernos-sessions\//.test(url)) {
       let body = {}
       try { body = JSON.parse(p.request.postData || '{}') } catch (e) { /* not JSON */ }
-      posts.push({ path: new URL(url).pathname, body })
+      // Recorded: the chip's actions. Not recorded (still answered here, nothing runs): what the sessions client posts on its own, the category of a chat (/decision) and the models it probes (/brain/health).
+      if (!/\/(decision|brain\/health)$/.test(new URL(url).pathname)) posts.push({ path: new URL(url).pathname, body })
       let out
       if (fake.refuse !== null) out = { ok: false, code: fake.refuse, erreur: 'nothing to save — the folder is clean' }
       else if (body.exec === true) out = { ok: true, code: 'saved-sent', message: 'fake: done' }
@@ -91,19 +93,35 @@ const createSession = async () => {
   return poll(() => val(`/Changes check/.test(document.body.innerText)`), 15000)
 }
 const hasComposer = () => val(`/Message or run a task/.test(document.body.innerText)`)
+// A new chat opens in the workspace that was used last (an automation's, Kaby's…), whose folder is not a git repository: the chip would then rightly say nothing. The chat is made
+// in the workspace of this checkout (the sidebar's « New session in <folder name> »), a git repository, and a chat of an earlier run is not reused (it may sit in another folder).
+const workspaceName = (process.env.KB_WORKTREE || '').split('/').filter((x) => x !== '').pop() || ''
 const openSession = async () => {
-  // A fresh sandbox asks for an API key on the first load: dismiss it, then open the session once the sidebar is there.
-  let found = false
-  for (let i = 0; i < 24 && !found; i += 1) {
+  // A fresh sandbox asks for an API key on the first load: dismiss it, then wait for the sidebar.
+  let ready = false
+  for (let i = 0; i < 24 && !ready; i += 1) {
     await sleep(500)
     if ((await val(`/Add an API key to get started/.test(document.body.innerText)`)) === true) { await clickText(page, 'Configure later'); await sleep(700); continue }
-    found = (await val(`/Changes check/.test(document.body.innerText)`)) === true
+    ready = (await val(`!!document.querySelector('[contenteditable="true"], textarea')`)) === true
   }
-  if (!found && !(await createSession())) return false
-  if (await hasComposer()) return true // creating it opened it
-  const ok = await clickText(page, 'Changes check')
-  for (let i = 0; i < 20 && ok; i += 1) { await sleep(500); if (await hasComposer()) return true }
-  return false
+  if (workspaceName !== '') {
+    const pressed = await val(`(() => { const b = document.querySelector('button[aria-label="New session in ' + ${JSON.stringify(workspaceName)} + '"]'); if (!b) return false; b.click(); return true })()`)
+    if (pressed !== true) console.log('  · no « New session in ' + workspaceName + ' » in the sidebar: the chat is made in the workspace the page opened on')
+    await sleep(1200)
+  }
+  return createSession()
+}
+/** What the host says about the folder of the newest chat of this instance: `{ git, chemin, why }`, or null when there is no chat on disk. */
+const newestChatFolder = async () => {
+  try {
+    const store = join(process.env.DSH_HOME || '', 'sessions')
+    const all = []
+    for (const slug of readdirSync(store)) for (const id of readdirSync(join(store, slug))) if (id.startsWith('session-')) all.push({ id, at: statSync(join(store, slug, id)).mtimeMs })
+    if (all.length === 0) return null
+    all.sort((a, b) => b.at - a.at)
+    const state = await val(`fetch('/kybernos-sessions/state?session=' + encodeURIComponent(${JSON.stringify(all[0].id)}) + '&window=1').then((r) => r.json()).then((j) => JSON.stringify({ chemin: j.session && j.session.chemin, git: !!(j.session && j.session.git && j.session.git.git) })).catch(() => null)`)
+    return typeof state === 'string' ? Object.assign({ why: 'not a git repository' }, JSON.parse(state)) : null
+  } catch (e) { return null }
 }
 const chipText = () => val(`(document.querySelector('[data-kb="changes-chip"]') || { innerText: null }).innerText`)
 const wrapState = () => val(`(() => { const w = document.querySelector('[data-kb="changes"]'); return w ? JSON.stringify({ state: w.getAttribute('data-state'), cls: w.className }) : null })()`).then((x) => (typeof x === 'string' ? JSON.parse(x) : null))
@@ -124,6 +142,11 @@ try {
   // ═══ 1. the real data path ══════════════════════════════════════════════════════════════════════════════════════════
   console.log('\n── 1. the real state of this chat’s folder ──')
   const chip = await poll(chipText, 20000)
+  if (typeof chip !== 'string') {
+    // No chip: is that the chip's doing, or is the chat's folder not a git repository (the chip then says nothing, by design)? Ask the host about the newest chat of this instance.
+    const folder = await newestChatFolder()
+    if (folder !== null && folder.git !== true) { console.error('○ inconclusive: the chat was made in ' + (folder.chemin || 'a folder') + ', which the host does not read as a git repository (' + (folder.why || 'no git') + '): the chip shows nothing there, by design. Run it from a checkout.'); await live.close(); process.exit(3) }
+  }
   await shot('1-real-chip')
   check('the chip shows, with words (not an icon)', typeof chip === 'string' && chip.trim().length > 4, chip)
   const real = await wrapState()
@@ -147,7 +170,7 @@ try {
   await val(`document.querySelector('[data-act="mode-simple"]').click()`)
   await closeCard()
   // (DSH's own classifier may post a session's category to /decision: that is not an action of the chip.)
-  check('no action was posted by just looking', posts.filter((x) => !/\/decision$/.test(x.path)).length === 0, posts)
+  check('no action was posted by just looking', posts.length === 0, posts.map((x) => x.path))
 
   // ═══ 2. every state ═══════════════════════════════════════════════════════════════════════════════════════════════
   console.log('\n── 2. every state, through the seam ──')

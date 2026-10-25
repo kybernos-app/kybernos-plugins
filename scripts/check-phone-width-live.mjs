@@ -12,9 +12,9 @@
 //                    Suite and Usage; the radios of Connectors are round dots; the segmented options of Auto Routing keep 40 px;
 //   - A3-19 / Tools  Workers and Tools (and Web Search, AI Provider, Commands) do not scroll sideways; the Workers chevron is on screen;
 //   - A3-18          the « Kybernos Cloud » banner of AI provider and models is about 190 px, not 390;
-//   - A3-22          a command's name keeps 100 px or more; the search field takes the page's width; the tabs fit;
+//   - A3-22          a command's name keeps 100 px or more; the search field (one bar with the tabs, 150 px at least) is not cut by the page; the tabs fit;
 //   - A5-05          the four tabs of the Skills page are all on screen, no strip to slide;
-//   - A4-10 / A4-31  the Creations tiles are one strip (92 px high) that slides sideways and the first card starts above 700 px;
+//   - A4-10 / A4-31  the Creations tiles are one strip (about 104 px high: the 64 px drawing, its label, the margins) that slides sideways and the first card starts above 700 px;
 //   - A1-20          the drawer's session search opens with a field of 80 px or more (it was 4);
 //   - A4-32          the transport row of Briques stays on screen (when the panel can be opened).
 // At 1400 x 900:
@@ -126,9 +126,10 @@ try {
   try {
     if (!seeded) console.log('  ○ the sandbox refused the test command: the Commands row is not measured')
     else if (await settingsPage('Commands')) {
-      const m = await ev(`(() => { const m = document.querySelector('[data-shortcut-modal="settings"]'); const row = Array.from(m.querySelectorAll('.kbsl-lrow')).find((r) => /wp17-widget/.test(r.innerText)); const name = row ? row.querySelector('.kbsl-mono') : null; const s = m.querySelector('.kbsl-search'); const page = m.querySelector('.kbsl-page'); const tabs = Array.from(m.querySelectorAll('.kbsl-tab')).map((t) => Math.round(t.getBoundingClientRect().top)); return { name: name ? Math.round(name.getBoundingClientRect().width) : null, search: s ? Math.round(s.getBoundingClientRect().width) : null, page: page ? Math.round(page.getBoundingClientRect().width) : null, tabsOneLine: new Set(tabs).size === 1 } })()`)
+      const m = await ev(`(() => { const m = document.querySelector('[data-shortcut-modal="settings"]'); const row = Array.from(m.querySelectorAll('.kbsl-lrow')).find((r) => /wp17-widget/.test(r.innerText)); const name = row ? row.querySelector('.kbsl-slug') : null; const s = m.querySelector('.kbsl-search'); const page = m.querySelector('.kbsl-page'); const tabs = Array.from(m.querySelectorAll('.kbsl-tab')).map((t) => Math.round(t.getBoundingClientRect().top)); return { name: name ? Math.round(name.getBoundingClientRect().width) : null, search: s ? Math.round(s.getBoundingClientRect().width) : null, searchRight: s ? Math.round(s.getBoundingClientRect().right) : null, page: page ? Math.round(page.getBoundingClientRect().width) : null, pageRight: page ? Math.round(page.getBoundingClientRect().right) : null, tabsOneLine: new Set(tabs).size === 1 } })()`)
       check('Commands: the command\'s name keeps 100 px or more (it kept ~25)', m.name !== null && m.name >= 100, m)
-      check('Commands: the search field takes the width of the page (it was cut at 220 px)', m.search !== null && m.page !== null && m.search >= m.page - 4, m)
+      // The search shares its bar with the tabs (flex 1 1 150px, 260 at most): it is not stretched to the page any more, it must not be cut by it.
+      check('Commands: the search field is at least 150 px wide and inside the page (it was cut at 220 px)', m.search !== null && m.page !== null && m.search >= 150 && m.searchRight <= m.pageRight + 1, m)
       check('Commands: the two tabs share one line', m.tabsOneLine === true, m)
       await shot('phone-commands')
     }
@@ -147,7 +148,7 @@ try {
     const c = await ev(`(() => { const row = document.querySelector('[data-kb=type-tiles]'); const first = document.querySelector('.kb6-card, [data-kb=art-row]'); if (!row) return null; return { strip: row.scrollWidth > row.clientWidth, rowH: Math.round(row.getBoundingClientRect().height), tiles: row.children.length, firstTop: first ? Math.round(first.getBoundingClientRect().top) : null, sideways: document.documentElement.scrollWidth > innerWidth } })()`)
     if (c === null) console.log('  ○ the type tiles are not there')
     else {
-      check('Creations: the type tiles are one strip, 100 px high at most (they took 368-460 px)', c.rowH <= 100, c)
+      check('Creations: the type tiles are one strip, 110 px high at most (they took 368-460 px)', c.rowH <= 110, c)
       check('Creations: the first card starts above 700 px (it started at 976)', c.firstTop === null || c.firstTop <= 700, c)
       check('Creations: the page does not scroll sideways', c.sideways === false, c)
     }

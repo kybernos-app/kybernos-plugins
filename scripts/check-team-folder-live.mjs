@@ -137,7 +137,8 @@ try {
     await settle()
   }
   const cues = () => val(`Array.from(document.querySelectorAll('.kbcue [data-kb^="cue-"]')).map((e) => ({ kind: e.getAttribute('data-kb'), text: e.innerText, title: e.getAttribute('title') }))`)
-  const refreshHost = () => fetch('http://' + host + '/kybernos-cloud/refresh', { method: 'POST', headers: { origin: 'http://' + host, 'content-type': 'application/json' }, body: '{}' }).then((r) => r.json())
+  // The route takes DSH's session cookie (since 21/10), which a program with only an Origin does not have: it is called from the signed-in page, as the page itself does.
+  const refreshHost = async () => { const r = await page.evalJs(`fetch('/kybernos-cloud/refresh', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' }).then((r) => r.json(), () => ({ ok: false, error: 'fetch failed' }))`, 30000); return r.err !== undefined ? { ok: false, error: r.err } : r.val }
 
   await reload()
   // DSH says « Choose workspace » until its list of workspaces has loaded: wait for the real title.

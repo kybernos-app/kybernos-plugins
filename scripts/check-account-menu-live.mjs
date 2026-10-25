@@ -8,7 +8,11 @@
 // checkout instead of the shared tree. Nothing is written or sent: the menu is opened and read, no entry is pressed (the Appearance segment would change the
 // theme, so the check stays in the scheme the page has). Client only: no restart needed.
 //
-// Exit 0 all good, 1 a check failed, 3 not run (no GUI, no signed-in footer card, or the shared tree has uncommitted edits of the cloud client).
+// It measures the CONNECTED menu. Signed out, the card opens the « off » menu (connect, plans, settings, links: no space, no plan), which is another menu:
+// the check says so and exits 3. Signed in, a person with at most three spaces has them at the top of the menu; from four, the top row is « Switch team » and
+// the list is in the panel that opens beside the menu, which the check opens and measures too.
+//
+// Exit 0 all good, 1 a check failed, 3 not run (no GUI, signed out, or the shared tree has uncommitted edits of the cloud client).
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { openLivePage, waitFor } from './live-page.mjs'
@@ -41,14 +45,16 @@ try {
   await sleep(3500)
   await waitFor(page, `document.readyState === 'complete'`, 30000)
   if (!swap.report().every((r) => r.replaced === true)) { console.error('○ not run: the served cloud client differs from the shared tree (uncommitted edits there?): ' + JSON.stringify(swap.report())); await live.close(); process.exit(3) }
-  const opened = await waitFor(page, `!!document.querySelector('.kbfp-cardmain')`, 20000).then(() => true).catch(() => false)
-  if (!opened) { console.error('○ not run: no signed-in footer card on this page'); await live.close(); process.exit(3) }
+  const opened = (await waitFor(page, `!!document.querySelector('.kbfp-cardmain')`, 20000)) !== null
+  if (!opened) { console.error('○ not run: no footer card on this page'); await live.close(); process.exit(3) }
   await ev(`document.querySelector('.kbfp-cardmain').click()`)
   await waitFor(page, `!!document.querySelector('.kbfp-menu')`, 10000)
   await sleep(700)
+  if ((await ev(`!!document.querySelector('.kbfp-menu[data-kb="off-menu"]')`)) === true) { console.error('○ not run: signed out, the card opens the « off » menu (connect, plans, settings, links), not the connected menu this check measures'); await live.close(); process.exit(3) }
 
-  const m = await ev(`(() => {
-    const menu = document.querySelector('.kbfp-menu')
+  // One list of rows per container: the account menu, and (from four spaces) the « Switch team » panel it opens beside itself.
+  const measure = (root) => ev(`((rootSel) => {
+    const menu = document.querySelector(rootSel)
     const cs = (e) => getComputedStyle(e)
     const left = (e) => { const r = document.createRange(); r.selectNodeContents(e); return Math.round(r.getBoundingClientRect().left) }
     const row = (el, label, kind) => { const c = cs(label); const r = el.getBoundingClientRect(); return { kind, txt: (label.textContent || '').trim().slice(0, 30), fs: c.fontSize, fw: c.fontWeight, ff: c.fontFamily, h: Math.round(r.height), x: left(label), cut: label.scrollWidth > label.clientWidth + 1 } }
@@ -60,18 +66,28 @@ try {
     const seps = [...menu.querySelectorAll('.kbfp-msep')].map((e) => { const c = cs(e); return parseFloat(c.marginTop) + parseFloat(c.marginBottom) })
     const r = menu.getBoundingClientRect()
     return { rows, sub, plan: plan ? { fs: cs(plan).fontSize, fw: cs(plan).fontWeight } : null, icons, seps, menuH: Math.round(r.height), menuW: Math.round(r.width), clip: { x: Math.round(r.left), y: Math.round(r.top), width: Math.round(r.width), height: Math.round(r.height) } }
-  })()`)
+  })(${JSON.stringify(root)})`)
+  const m = await measure('.kbfp-menu')
+  let panel = null
+  if ((await ev(`!!document.querySelector('.kbfp-menu [data-kb="menu-switch"]') && !document.querySelector('.kbfp-menu .kbfp-wsitem')`)) === true) {
+    await ev(`document.querySelector('.kbfp-menu [data-kb="menu-switch"]').click()`)
+    if ((await waitFor(page, `!!document.querySelector('.kbfp-sub .kbfp-wsitem')`, 8000)) !== null) { await sleep(500); panel = await measure('.kbfp-sub') }
+  }
+  const all = m.rows.concat(panel === null ? [] : panel.rows)
 
-  check('the menu has its rows (spaces, actions, items)', m.rows.length >= 9 && m.rows.some((r) => r.kind === 'space') && m.rows.some((r) => r.kind === 'action') && m.rows.some((r) => r.kind === 'item'), m.rows.length)
-  check('every label is 13 px, in the same font', m.rows.every((r) => r.fs === '13px') && new Set(m.rows.map((r) => r.ff)).size === 1, m.rows.map((r) => r.txt + ' ' + r.fs))
-  check('an action or an item is regular-medium (500), only the name of a space is bold (600)', m.rows.filter((r) => r.kind !== 'space').every((r) => r.fw === '500') && m.rows.filter((r) => r.kind === 'space').every((r) => r.fw === '600'), m.rows.map((r) => r.kind + ' ' + r.fw))
-  check('every small line (the plan of a space, the note under a bar) is 11.5 px', m.sub.length > 0 && m.sub.every((s) => s === '11.5px'), m.sub)
+  check('the menu has its rows (spaces, actions, items: the spaces in the menu, or in the « Switch team » panel from four)', all.length >= 9 && all.some((r) => r.kind === 'space') && all.some((r) => r.kind === 'action') && all.some((r) => r.kind === 'item'), { menu: m.rows.length, panel: panel === null ? null : panel.rows.length })
+  check('every label is 13 px, in the same font', all.every((r) => r.fs === '13px') && new Set(all.map((r) => r.ff)).size === 1, all.map((r) => r.txt + ' ' + r.fs))
+  check('an action or an item is regular-medium (500), only the name of a space is bold (600)', all.filter((r) => r.kind !== 'space').every((r) => r.fw === '500') && all.filter((r) => r.kind === 'space').every((r) => r.fw === '600'), all.map((r) => r.kind + ' ' + r.fw))
+  const subs = m.sub.concat(panel === null ? [] : panel.sub)
+  check('every small line (the plan of a space, the note under a bar) is 11.5 px', subs.length > 0 && subs.every((s) => s === '11.5px'), subs)
   check('the name of the plan is 14 px', m.plan !== null && m.plan.fs === '14px', m.plan)
-  const xs = m.rows.map((r) => r.x)
-  check('the text of every row starts at the same x (the icon column is shared)', Math.max(...xs) - Math.min(...xs) <= 1, m.rows.map((r) => r.txt + ' ' + r.x))
-  check('an action or an item is 36 px high or less; a space row 46 px or less', m.rows.filter((r) => r.kind !== 'space').every((r) => r.h <= 36) && m.rows.filter((r) => r.kind === 'space').every((r) => r.h <= 46), m.rows.map((r) => r.kind + ' ' + r.h))
-  check('no label is cut by an ellipsis (« Join with an invitation link » used to be)', m.rows.every((r) => r.cut === false), m.rows.filter((r) => r.cut).map((r) => r.txt))
-  check('the separators take 10 px, not 17', m.seps.length > 0 && m.seps.every((s) => s <= 10), m.seps)
+  // The icon column is shared by the rows of one list; the panel is a list of its own.
+  const sameX = (rows) => { const xs = rows.map((r) => r.x); return xs.length === 0 || Math.max(...xs) - Math.min(...xs) <= 1 }
+  check('the text of every row starts at the same x (the icon column is shared)', sameX(m.rows) && (panel === null || sameX(panel.rows)), all.map((r) => r.txt + ' ' + r.x))
+  check('an action or an item is 36 px high or less; a space row 46 px or less', all.filter((r) => r.kind !== 'space').every((r) => r.h <= 36) && all.filter((r) => r.kind === 'space').every((r) => r.h <= 46), all.map((r) => r.kind + ' ' + r.h))
+  check('no label is cut by an ellipsis (« Join with an invitation link » used to be)', all.every((r) => r.cut === false), all.filter((r) => r.cut).map((r) => r.txt))
+  const seps = m.seps.concat(panel === null ? [] : panel.seps)
+  check('the separators take 10 px, not 17', seps.length > 0 && seps.every((s) => s <= 10), seps)
   check('the whole menu is 600 px or less (it was 704)', m.menuH <= 600, m.menuH)
   await shot('account-menu', m.clip)
   await shot('account-menu-page')

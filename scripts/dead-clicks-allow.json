@@ -10,6 +10,11 @@
       "page": "Settings › Connectors",
       "match": "Kybernos Cloud Included in your plan",
       "why": "the header of the provider card that is already the selected one: choosing it again changes nothing"
+    },
+    {
+      "page": "*",
+      "dk": "market-agents",
+      "why": "the « Agents this Agent Team declares » figure of a Marketplace card is information (it takes focus so that the tooltip can be read), not a command; the cards of the Marketplace are not clickable, unlike the Workspaces cards whose figures pass the press on to the card"
     }
   ]
 }
