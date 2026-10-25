@@ -59,3 +59,9 @@ The Anthropic key is entered in the app's settings (first-run screen, gear butto
 ## Links from the web interface
 
 The WebView shows every link to `src/links.ts` (`originWhitelist={['*']}`: react-native-webview otherwise keeps only http(s) and hands the rest to the operating system). The engine's own pages stay in the view, `kybernos://settings` and `kybernos://log` open the app's screens, anything else opens outside the app. The interface tells the app it has its own entry to the settings (`ReactNativeWebView.postMessage`, see `src/webMessage.ts`), and the app then hides its fallback gear button.
+
+## Background (M5)
+
+- **Android**: the settings switch « Keep running in the background » starts a foreground service (`KeepAliveService`, type `specialUse`, with a notification) so the system keeps the engine's process alive; it is off by default and the app restarts it at launch when it is on. `AVD=<emulator> bash mobile/tests/background-android.sh` runs the same automation without and with the service, screen off, deep Doze forced, and reads the process priority (`oom_score_adj`) and when the automation really fired.
+- **iOS**: nothing runs while the app is suspended; the switch « Remind me when an automation is due » plans local notifications from the engine's task list (`src/reminders.ts`) when the app leaves the screen and clears them when it returns. The text is generic on purpose.
+- **Memory**: the app reports its footprint (`host.memory()`, iOS `phys_footprint`, Android PSS) in the self-test result and label; the device-cloud runner puts it in `result.json`.

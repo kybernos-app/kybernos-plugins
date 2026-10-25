@@ -4,7 +4,7 @@
 import { appendFileSync, mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { HUB, authHeader, redact } from './lib.mjs'
-import { PLATFORMS, parseSelfTestTimes } from './platforms.mjs'
+import { PLATFORMS, parseMemory, parseSelfTestTimes } from './platforms.mjs'
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
@@ -115,6 +115,8 @@ export const runSession = async ({ platform = 'ios', appUrl, device, osVersion, 
     await shot('03-after-return')
     result.finalLabel = final ?? lastSelf
     result.controlErrors = controlErrors
+    result.memory = parseMemory(result.finalLabel)
+    if (result.memory !== null) log('memory of the app: ' + result.memory.footprintMb + ' MB (the device has ' + result.memory.availableMb + ' of ' + result.memory.totalMb + ' MB free)')
     const times = parseSelfTestTimes(result.finalLabel)
     if (times.firedS !== null && times.dueS !== null) { result.firedAfterDueS = times.firedS - times.dueS; result.firedBeforeReturn = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()) + times.firedS * 1000 < backAt }
     result.fired = /fired at/.test(result.finalLabel ?? '')

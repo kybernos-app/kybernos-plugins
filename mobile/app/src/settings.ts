@@ -10,6 +10,10 @@ export const KEY_SLOT = 'kybernos.anthropic-key'
 /** Set once the first-run key screen has been shown (or skipped), so it does not come back at every launch. */
 export const PROMPT_SLOT = 'kybernos.key-prompt-done'
 
+/** Switches of the Background section (both off until the person turns them on). */
+export const KEEP_RUNNING_SLOT = 'kybernos.keep-running'
+export const REMINDERS_SLOT = 'kybernos.reminders'
+
 const ANTHROPIC_KEY = /^sk-ant-[A-Za-z0-9_-]{20,}$/
 
 export type KeyCheck = { ok: true; key: string } | { ok: false; reason: string }
@@ -41,6 +45,10 @@ export const createSettings = (store: SecureStorage) => ({
   async engineEnv(): Promise<Record<string, string>> {
     try { const k = await store.get(KEY_SLOT); return k ? { ANTHROPIC_API_KEY: k } : {} } catch { return {} }
   },
+  async keepRunning(): Promise<boolean> { try { return (await store.get(KEEP_RUNNING_SLOT)) === '1' } catch { return false } },
+  async setKeepRunning(on: boolean): Promise<void> { try { if (on) await store.set(KEEP_RUNNING_SLOT, '1'); else await store.remove(KEEP_RUNNING_SLOT) } catch { /* the switch then shows its old state */ } },
+  async reminders(): Promise<boolean> { try { return (await store.get(REMINDERS_SLOT)) === '1' } catch { return false } },
+  async setReminders(on: boolean): Promise<void> { try { if (on) await store.set(REMINDERS_SLOT, '1'); else await store.remove(REMINDERS_SLOT) } catch { /* the switch then shows its old state */ } },
   async promptDone(): Promise<boolean> {
     try { return (await store.get(PROMPT_SLOT)) === '1' } catch { return true }
   },

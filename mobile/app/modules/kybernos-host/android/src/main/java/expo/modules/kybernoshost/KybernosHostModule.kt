@@ -1,5 +1,8 @@
 package expo.modules.kybernoshost
 
+import android.app.ActivityManager
+import android.content.Context
+import android.os.Debug
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 
@@ -13,13 +16,21 @@ class KybernosHostModule : Module() {
     Name("KybernosHost")
 
     Constants {
-      mapOf<String, Any?>("selfTestDelay" to config.selfTestDelay, "selfTestHasKey" to config.modelKey.isNotEmpty(), "platform" to "android")
+      mapOf<String, Any?>("selfTestDelay" to config.selfTestDelay, "selfTestHasKey" to config.modelKey.isNotEmpty(), "platform" to "android", "keepAliveRequested" to config.keepAlive)
     }
 
     Function("start") { port: Int, env: Map<String, String> -> host.start(port, env) }
     Function("status") { host.status() }
     Function("exitCode") { host.exitCode() }
     Function("logTail") { maxBytes: Int -> host.logTail(maxBytes) }
+    Function("startKeepAlive") { KeepAliveService.start(context) }
+    Function("stopKeepAlive") { KeepAliveService.stop(context) }
+    Function("keepAliveRunning") { KeepAliveService.running }
+    Function("memory") {
+      val info = ActivityManager.MemoryInfo()
+      (context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager).getMemoryInfo(info)
+      mapOf("footprintMb" to (Debug.getPss() / 1024).toInt(), "availableMb" to (info.availMem / 1048576).toInt(), "totalMb" to (info.totalMem / 1048576).toInt())
+    }
     Function("writeSelfTestResult") { text: String -> host.writeSelfTestResult(text) }
   }
 }

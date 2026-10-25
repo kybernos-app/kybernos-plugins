@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { AppState, Linking, Modal, Platform, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native'
+import { AppState, Linking, Modal, PermissionsAndroid, Platform, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native'
 import { StatusBar } from 'expo-status-bar'
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { WebView } from 'react-native-webview'
@@ -10,9 +10,10 @@ import { runSelfTest } from './src/selftest'
 import { deviceStorage } from './src/secureStorage'
 import { createSettings } from './src/settings'
 import { decideLink, WEBVIEW_ORIGINS } from './src/links'
+import { fetchTasks, planReminders } from './src/reminders'
 import { isAppEntryMessage } from './src/webMessage'
 import { SettingsScreen } from './src/SettingsScreen'
-import { BootState, createSupervisor } from './src/supervisor'
+import { BootState, baseOf, createSupervisor } from './src/supervisor'
 
 const UA = `KybernosHost/0.1.0 (${Platform.OS})`
 
@@ -54,7 +55,7 @@ export default function App() {
 
   useEffect(() => {
     if (state.phase !== 'ready' || !host || host.selfTestDelay === null) return
-    const t = runSelfTest(state.url, host.selfTestDelay, { fetch: fetch as any, now: () => new Date(), show: setSelfTest, writeResult: (j) => host!.writeSelfTestResult(j), hasKey: host.selfTestHasKey || keyStoredRef.current })
+    const t = runSelfTest(state.url, host.selfTestDelay, { fetch: fetch as any, now: () => new Date(), show: setSelfTest, writeResult: (j) => host!.writeSelfTestResult(j), hasKey: host.selfTestHasKey || keyStoredRef.current, memory: () => host!.memory() })
     return t.stop
   }, [state.phase === 'ready' ? state.url : null])
 
@@ -63,6 +64,63 @@ export default function App() {
     if (state.phase !== 'ready' || !host || host.selfTestDelay !== null) return
     void settings.promptDone().then((done) => { if (!done && !keyStoredRef.current) { setFirstRun(true); setShowSettings(true) } })
   }, [state.phase === 'ready'])
+
+  // Background section of the settings. Android: a foreground service keeps the engine's process alive (the person is told by a notification). iOS: nothing can run while the app is suspended,
+  // so a reminder says when an automation is due.
+  const refreshReminders = async (url: string) => {
+    if (!host?.setReminders) return
+    const base = baseOf(url)
+    const tasks = base === null ? null : await fetchTasks(base, fetch as any)
+    if (tasks !== null) await host.setReminders(planReminders(tasks, Date.now()))
+  }
+  const changeBackground = async (kind: 'keepRunning' | 'reminders', on: boolean): Promise<{ ok: boolean; message?: string }> => {
+    if (!host) return { ok: false }
+    if (kind === 'keepRunning') {
+      let message: string | undefined
+      if (on && Platform.OS === 'android' && Number(Platform.Version) >= 33) {
+        const asked = await PermissionsAndroid.request('android.permission.POST_NOTIFICATIONS')
+        if (asked !== PermissionsAndroid.RESULTS.GRANTED) message = 'Notifications are refused for this app, so the notice is hidden; the engine still keeps running.'
+      }
+      if (on) host.startKeepAlive?.(); else host.stopKeepAlive?.()
+      await settings.setKeepRunning(on)
+      return { ok: true, message }
+    }
+    if (on && !(await host.requestReminderPermission?.())) return { ok: false, message: 'Notifications are refused for this app: allow them in the iPhone settings, then try again.' }
+    await settings.setReminders(on)
+    if (!on) await host.setReminders?.([])
+    else if (state.phase === 'ready') await refreshReminders(state.url)
+    return { ok: true }
+  }
+
+  // Links from the system (kybernos://settings from a notification, a shortcut, a test): the same two screens the web interface can open
+  useEffect(() => {
+    const open = (url: string | null | undefined) => {
+      if (url === null || url === undefined) return
+      const a = decideLink(url)
+      if (a.kind === 'app') { if (a.screen === 'settings') setShowSettings(true); else openLog() }
+    }
+    void Linking.getInitialURL().then(open).catch(() => undefined)
+    const sub = Linking.addEventListener('url', (e) => open(e.url))
+    return () => sub.remove()
+  }, [])
+
+  // Android: start the background service at launch when the person switched it on (it can only be started while the app is in front, which it is here)
+  useEffect(() => {
+    if (Platform.OS !== 'android' || !host?.startKeepAlive) return
+    void settings.keepRunning().then((on) => { if (on || host!.keepAliveRequested === true) host!.startKeepAlive!() })
+  }, [settings])
+
+  // iOS: sign in once (so the task list can be read), plan the reminders when the app leaves the screen, drop them when it comes back (the engine catches up and runs what is due)
+  useEffect(() => {
+    if (Platform.OS !== 'ios' || state.phase !== 'ready' || !host?.setReminders) return
+    const url = state.url
+    void fetch(url).catch(() => undefined)
+    const sub = AppState.addEventListener('change', (s) => {
+      if (s === 'background') void settings.reminders().then((on) => { if (on) void refreshReminders(url) })
+      else if (s === 'active') void host!.setReminders!([])
+    })
+    return () => sub.remove()
+  }, [state.phase === 'ready' ? state.url : null])
 
   const openLog = () => { setLog(redact(host?.logTail(20000) ?? '')); setShowLog(true) }
   const shareLog = () => { void Share.share({ title: 'Kybernos engine log', message: redact(host?.logTail(60000) ?? '') }) }
@@ -106,7 +164,7 @@ export default function App() {
       <Modal visible={showSettings} animationType="slide" onRequestClose={closeSettings}>
         <SafeAreaProvider>
           <SafeAreaView style={styles.fill}>
-            <SettingsScreen settings={settings} engineRunning={state.phase !== 'failed'} firstRun={firstRun} onClose={closeSettings} onShareLog={shareLog} onKeyChanged={noteKey} />
+            <SettingsScreen settings={settings} engineRunning={state.phase !== 'failed'} firstRun={firstRun} onClose={closeSettings} onShareLog={shareLog} onKeyChanged={noteKey} platform={Platform.OS === 'android' ? 'android' : 'ios'} onBackgroundChange={changeBackground} />
           </SafeAreaView>
         </SafeAreaProvider>
       </Modal>

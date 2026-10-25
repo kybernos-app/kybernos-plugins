@@ -1,4 +1,4 @@
-import { checkAnthropicKey, createSettings, keyHint, KEY_SLOT, PROMPT_SLOT, SecureStorage } from '../settings'
+import { checkAnthropicKey, createSettings, keyHint, KEEP_RUNNING_SLOT, KEY_SLOT, PROMPT_SLOT, REMINDERS_SLOT, SecureStorage } from '../settings'
 
 const GOOD = 'sk-ant-api03-AbCdEfGhIjKlMnOpQrStUv_-0123'
 const memory = (): SecureStorage & { data: Map<string, string> } => {
@@ -49,6 +49,21 @@ describe('settings', () => {
     expect(await s.engineEnv()).toEqual({}); expect(await s.keyHint()).toBeNull()
     expect(await s.promptDone()).toBe(true) // an unreadable flag must not trap the user in the first-run screen
     await expect(s.markPromptDone()).resolves.toBeUndefined()
+  })
+  it('keeps the two Background switches, off until turned on, and off again when turned off', async () => {
+    const store = memory(); const s = createSettings(store)
+    expect(await s.keepRunning()).toBe(false); expect(await s.reminders()).toBe(false)
+    await s.setKeepRunning(true); await s.setReminders(true)
+    expect(store.data.get(KEEP_RUNNING_SLOT)).toBe('1'); expect(store.data.get(REMINDERS_SLOT)).toBe('1')
+    expect(await s.keepRunning()).toBe(true); expect(await s.reminders()).toBe(true)
+    await s.setKeepRunning(false); await s.setReminders(false)
+    expect(store.data.has(KEEP_RUNNING_SLOT)).toBe(false); expect(await s.reminders()).toBe(false)
+  })
+  it('reads the switches as off when the storage cannot be read', async () => {
+    const broken: SecureStorage = { get: async () => { throw new Error('locked') }, set: async () => { throw new Error('locked') }, remove: async () => { throw new Error('locked') } }
+    const s = createSettings(broken)
+    expect(await s.keepRunning()).toBe(false); expect(await s.reminders()).toBe(false)
+    await expect(s.setKeepRunning(true)).resolves.toBeUndefined()
   })
   it('remembers that the first-run screen was shown', async () => {
     const store = memory(); const s = createSettings(store)

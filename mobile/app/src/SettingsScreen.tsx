@@ -1,6 +1,6 @@
 import * as Clipboard from 'expo-clipboard'
 import { useEffect, useState } from 'react'
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
+import { Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native'
 import type { Settings } from './settings'
 
 export interface SettingsScreenProps {
@@ -13,13 +13,27 @@ export interface SettingsScreenProps {
   onShareLog: () => void
   /** Told when the stored key changes (true: a key is stored now). */
   onKeyChanged?: (stored: boolean) => void
+  /** Which phone this is: the Background section is different (Android keeps the engine running, iOS can only remind). */
+  platform?: 'ios' | 'android'
+  /** Applies a Background switch (permission, native start or stop, saving it). `ok: false` puts the switch back; `message` is shown either way. */
+  onBackgroundChange?: (kind: 'keepRunning' | 'reminders', on: boolean) => Promise<{ ok: boolean; message?: string }>
 }
 
-export function SettingsScreen({ settings, engineRunning, firstRun = false, onClose, onShareLog, onKeyChanged }: SettingsScreenProps) {
+export function SettingsScreen({ settings, engineRunning, firstRun = false, onClose, onShareLog, onKeyChanged, platform, onBackgroundChange }: SettingsScreenProps) {
   const [hint, setHint] = useState<string | null>(null)
   const [text, setText] = useState('')
   const [message, setMessage] = useState<string | null>(null)
   useEffect(() => { void settings.keyHint().then(setHint) }, [settings])
+  const [keepRunning, setKeepRunning] = useState(false)
+  const [reminders, setReminders] = useState(false)
+  useEffect(() => { void settings.keepRunning().then(setKeepRunning); void settings.reminders().then(setReminders) }, [settings])
+  const flip = async (kind: 'keepRunning' | 'reminders', on: boolean) => {
+    const set = kind === 'keepRunning' ? setKeepRunning : setReminders
+    set(on)
+    const r = onBackgroundChange === undefined ? { ok: true } : await onBackgroundChange(kind, on)
+    if (!r.ok) set(!on)
+    if (r.message !== undefined) setMessage(r.message)
+  }
 
   // reading the clipboard from code makes iOS ask for permission; if it answers with nothing, the field's own Paste menu (press and hold) always works
   const paste = async () => {
@@ -67,6 +81,24 @@ export function SettingsScreen({ settings, engineRunning, firstRun = false, onCl
           {hint !== null && <Pressable testID="key-remove" style={styles.button} onPress={remove}><Text style={styles.buttonText}>Remove</Text></Pressable>}
         </View>
         {message !== null && <Text testID="settings-message" style={styles.message}>{message}</Text>}
+        {platform === 'android' && (
+          <View style={styles.switchRow}>
+            <View style={styles.switchText}>
+              <Text style={styles.label}>Keep running in the background</Text>
+              <Text style={styles.note}>Lets your automations run while the app is closed to the home screen. A notification stays visible while this is on, and the battery is used a little more.</Text>
+            </View>
+            <Switch testID="switch-keep-running" value={keepRunning} onValueChange={(v) => void flip('keepRunning', v)} />
+          </View>
+        )}
+        {platform === 'ios' && (
+          <View style={styles.switchRow}>
+            <View style={styles.switchText}>
+              <Text style={styles.label}>Remind me when an automation is due</Text>
+              <Text style={styles.note}>The iPhone cannot run an automation while the app is closed. A notification tells you when one is due: open the app and it runs.</Text>
+            </View>
+            <Switch testID="switch-reminders" value={reminders} onValueChange={(v) => void flip('reminders', v)} />
+          </View>
+        )}
         <Text style={styles.note}>The key is kept in the iOS Keychain or the Android Keystore, never in a file, and is given to the engine only when it starts.</Text>
         <Pressable testID="share-log" style={styles.link} onPress={onShareLog}><Text style={styles.linkText}>Share the engine log</Text></Pressable>
         <Pressable testID="settings-close" style={styles.link} onPress={onClose}><Text style={styles.linkText}>{firstRun ? 'Skip for now' : 'Done'}</Text></Pressable>
@@ -89,6 +121,8 @@ const styles = StyleSheet.create({
   primaryText: { color: '#121217', fontWeight: '600' },
   message: { color: '#8ab4ff', fontSize: 14 },
   note: { color: '#9aa0aa', fontSize: 13 },
+  switchRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 8 },
+  switchText: { flex: 1, gap: 4 },
   link: { paddingVertical: 8 },
   linkText: { color: '#8ab4ff', fontSize: 16 },
 })
