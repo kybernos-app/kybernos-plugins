@@ -32178,6 +32178,10 @@ html[data-kb-theme="dark"] .kbfc-th-mx{--cv-bg:#141A1E;--cv-dot:#27323A;--nd-bg:
       const parts = h.split('.')
       return parts.length === 4 && parts[0] === '127' && parts.every((part) => /^\d{1,3}$/.test(part) && Number(part) <= 255)
     }
+    // The Kybernos phone app (the iOS / Android shell shows this same page in a web view and names itself in the user agent:
+    // `KybernosHost/<version> (ios|android)`) never shows the notice either: the app has its own first-run screens, and a
+    // store build must not open with another product's pre-release text.
+    const kbIsAppHost = (userAgent) => typeof userAgent === 'string' && /\bKybernosHost\/\S+ \((ios|android)\)/.test(userAgent)
     // KB-HOSTED-CORE-END
 
     let kbBrandOverride = null
@@ -32260,10 +32264,12 @@ html[data-kb-theme="dark"] .kbfc-th-mx{--cv-bg:#141A1E;--cv-dot:#27323A;--nd-bg:
     ctx.effect(() => slots.inject('sidebar.brand.name', () => slots.register(
       { name: 'sidebar.brand.name', priority: -1 }, KybernosSidebarName)), 'kybers: kybernos name')
     // Hosted instance (a browser that is not on loopback): DSH cannot remember its preview notice there, so do not show it
-    // at every load. On loopback DSH remembers the acknowledgement itself and the notice stays as it is.
-    if (!kbIsLoopbackHost(globalThis.location !== undefined ? globalThis.location.hostname : '')) {
+    // at every load. On loopback DSH remembers the acknowledgement itself and the notice stays as it is, except in the phone app.
+    const kbHideDshNotice = !kbIsLoopbackHost(globalThis.location !== undefined ? globalThis.location.hostname : '') ||
+      kbIsAppHost(globalThis.navigator !== undefined ? globalThis.navigator.userAgent : '')
+    if (kbHideDshNotice) {
       ctx.effect(() => slots.inject('settings.onboarding', () => slots.register(
-        { name: 'settings.onboarding', id: 'welcome-notice', order: -100, priority: -1 }, () => null)), 'kybers: DSH pre-release notice (remote browser)')
+        { name: 'settings.onboarding', id: 'welcome-notice', order: -100, priority: -1 }, () => null)), 'kybers: DSH pre-release notice (remote browser or phone app)')
     }
     ctx.effect(() => slots.inject('conversation.hero.brand.mark', () => slots.register(
       { name: 'conversation.hero.brand.mark' }, (p) => h(KybernosMark, { height: (p !== null && p !== undefined && typeof p.size === 'number' ? p.size : 34) + 10 }))), 'kybers: logo hero')

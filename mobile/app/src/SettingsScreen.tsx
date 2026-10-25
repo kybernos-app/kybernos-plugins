@@ -17,9 +17,11 @@ export interface SettingsScreenProps {
   platform?: 'ios' | 'android'
   /** Applies a Background switch (permission, native start or stop, saving it). `ok: false` puts the switch back; `message` is shown either way. */
   onBackgroundChange?: (kind: 'keepRunning' | 'reminders', on: boolean) => Promise<{ ok: boolean; message?: string }>
+  /** Told when the person withdraws their agreement to send what they write to the AI provider. */
+  onConsentWithdrawn?: () => void
 }
 
-export function SettingsScreen({ settings, engineRunning, firstRun = false, onClose, onShareLog, onKeyChanged, platform, onBackgroundChange }: SettingsScreenProps) {
+export function SettingsScreen({ settings, engineRunning, firstRun = false, onClose, onShareLog, onKeyChanged, platform, onBackgroundChange, onConsentWithdrawn }: SettingsScreenProps) {
   const [hint, setHint] = useState<string | null>(null)
   const [text, setText] = useState('')
   const [message, setMessage] = useState<string | null>(null)
@@ -33,6 +35,13 @@ export function SettingsScreen({ settings, engineRunning, firstRun = false, onCl
     const r = onBackgroundChange === undefined ? { ok: true } : await onBackgroundChange(kind, on)
     if (!r.ok) set(!on)
     if (r.message !== undefined) setMessage(r.message)
+  }
+
+  const [agreed, setAgreed] = useState(false)
+  useEffect(() => { void settings.consented().then(setAgreed) }, [settings])
+  const withdraw = async () => {
+    await settings.withdrawConsent(); setAgreed(false); onConsentWithdrawn?.()
+    setMessage(engineRunning ? 'Withdrawn. Close the app completely: Kybernos asks again the next time you open it, and sends nothing until you agree.' : 'Withdrawn. Kybernos asks again the next time you open it.')
   }
 
   // reading the clipboard from code makes iOS ask for permission; if it answers with nothing, the field's own Paste menu (press and hold) always works
@@ -97,6 +106,15 @@ export function SettingsScreen({ settings, engineRunning, firstRun = false, onCl
               <Text style={styles.note}>The iPhone cannot run an automation while the app is closed. A notification tells you when one is due: open the app and it runs.</Text>
             </View>
             <Switch testID="switch-reminders" value={reminders} onValueChange={(v) => void flip('reminders', v)} />
+          </View>
+        )}
+        {agreed && (
+          <View style={styles.switchRow}>
+            <View style={styles.switchText}>
+              <Text style={styles.label}>Sending to your AI provider</Text>
+              <Text style={styles.note}>You agreed that what you write goes to the provider you set up. You can withdraw that here.</Text>
+            </View>
+            <Pressable testID="consent-withdraw" style={styles.button} onPress={withdraw}><Text style={styles.buttonText}>Withdraw</Text></Pressable>
           </View>
         )}
         <Text style={styles.note}>The key is kept in the iOS Keychain or the Android Keystore, never in a file, and is given to the engine only when it starts.</Text>

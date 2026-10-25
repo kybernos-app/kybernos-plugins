@@ -112,3 +112,24 @@ describe('SettingsScreen', () => {
     expect(screen.getByText('Settings')).toBeTruthy(); expect(screen.getByText('Done')).toBeTruthy()
   })
 })
+
+describe('SettingsScreen consent row', () => {
+  const props = (settings: ReturnType<typeof createSettings>, over = {}) => ({ settings, engineRunning: true, onClose: jest.fn(), onShareLog: jest.fn(), ...over })
+  it('offers nothing to withdraw before there is an agreement', async () => {
+    const { store } = memory()
+    await render(<SettingsScreen {...props(createSettings(store))} />)
+    expect(await screen.findByText('No key stored')).toBeTruthy()
+    expect(screen.queryByTestId('consent-withdraw')).toBeNull()
+  })
+  it('withdrawing clears the agreement, tells the engine owner, and says to restart', async () => {
+    const { data, store } = memory()
+    const settings = createSettings(store)
+    await settings.giveConsent()
+    const onConsentWithdrawn = jest.fn()
+    await render(<SettingsScreen {...props(settings, { onConsentWithdrawn })} />)
+    await fireEvent.press(await screen.findByTestId('consent-withdraw'))
+    expect(await screen.findByText(/Close the app completely: Kybernos asks again/)).toBeTruthy()
+    expect(onConsentWithdrawn).toHaveBeenCalled(); expect(await settings.consented()).toBe(false); expect(data.size).toBe(0)
+    expect(screen.queryByTestId('consent-withdraw')).toBeNull()
+  })
+})

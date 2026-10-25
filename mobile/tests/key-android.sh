@@ -1,6 +1,6 @@
 #!/bin/bash
 # M3 on an Android emulator: the model key goes in through the settings screen, lives in the Keystore, and reaches the engine without being written anywhere.
-#   S7 fresh install: the first-run key screen shows, the key from mobile/.env is typed into it (adb input; never printed) and saved,
+#   S7 fresh install: the consent screen shows first and nothing is started before « I agree »; then the first-run key screen shows, the key from mobile/.env is typed into it (adb input; never printed) and saved,
 #   S8 relaunch with the self-test and NO key in the launch intent: the automation fires and Claude answers (the key came out of the Keystore),
 #   S9 the key is in none of the app's files (needs `adb root`, an emulator image that allows it) and not in logcat.
 # Spends one small model call. Use a throwaway key. Needs the APK built (see mobile/app/README.md).
@@ -32,13 +32,22 @@ x=sys.stdin.read()
 m=re.search(r'resource-id=\"$1\"[^>]*bounds=\"\[(\d+),(\d+)\]\[(\d+),(\d+)\]\"', x) or re.search(r'bounds=\"\[(\d+),(\d+)\]\[(\d+),(\d+)\]\"[^>]*resource-id=\"$1\"', x)
 print('%d %d' % ((int(m[1])+int(m[3]))//2, (int(m[2])+int(m[4]))//2) if m else 'none')"
 }
+# how many servers listen on this phone's loopback (the engine is one; the emulator's own services listen elsewhere)
+listening() { adb shell "netstat -tln 2>/dev/null" | grep -c "127\.0\.0\.1:[0-9]* .*LISTEN"; }
 waitfor() { local i=0; local c; while :; do c=$(center "$1"); [ "$c" != none ] && { echo "$c"; return; }; i=$((i+1)); [ $i -ge $2 ] && { echo none; return; }; sleep 2; done; }
 
 adb uninstall $PKG >/dev/null 2>&1
 adb install -r "$APK" >/dev/null || { say "install failed"; exit 2; }
 adb shell am start -n $PKG/.MainActivity >/dev/null
+g=$(waitfor consent-agree 40)
+if [ "$g" = none ]; then bad "S7 the consent screen never showed"; else
+  sleep 25   # an engine started behind the screen would be listening on loopback by now
+  n=$(listening); [ "$n" = 0 ] && say "S7 consent screen shown, nothing listening on loopback before « I agree »" || bad "S7 the engine started before the person agreed ($n listeners)"
+  adb shell input tap $g; sleep 1
+fi
 c=$(waitfor key-input 40)
 if [ "$c" = none ]; then bad "S7 the first-run key screen never showed"; else
+  [ "$(listening)" -ge 1 ] && say "S7 control: the engine listens on loopback once the person has agreed" || bad "S7 control failed: no loopback listener after agreeing, so the check before it proved nothing"
   adb shell input tap $c; sleep 1
   adb shell input text "$KEY"; sleep 1
   adb shell input keyevent KEYCODE_BACK >/dev/null 2>&1; sleep 1   # hides the keyboard so Save is reachable
