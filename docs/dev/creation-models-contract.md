@@ -22,7 +22,9 @@ meaning:
 
 - `kind`: `image`, `video` or `speech`.
 - `unit_pricing.unit`: `image` (one picture), `second` (one second of video), `thousand_characters` (a thousand characters of text to speak).
-- `unit_pricing.usd`: the price of ONE unit, a decimal string, the price the person is billed (not the provider's cost).
+- `unit_pricing.usd`: the price of ONE unit, a decimal string with at most nine decimal places (as the server's ADR 0003 § 11 writes it: `"0.14"`,
+  `"0.015"`), the price the person is billed (not the provider's cost). The plugins keep it as written; the skill adds money in integers
+  and rounds up to the millionth of a dollar.
 - `display_name` is optional (the id is shown without it); `unit_pricing` is optional (the row then shows no price, it never shows a guess).
 - An older server sends none of these entries: the list simply has no creation row.
 
