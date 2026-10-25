@@ -271,6 +271,13 @@ console.log('inside the Kybernos app')
   check('the page is marked with classes a stylesheet can use', app.classes.has('kb-app') && app.classes.has('kb-app-ios'), [...app.classes])
   check('the app is told once that the interface has its entry (it then drops its fallback gear)', app.posted.length === 1 && JSON.parse(app.posted[0]).kybernos === 'app-entry' && JSON.parse(app.posted[0]).entry === 'settings', app.posted)
   check('its styles are its own, under a prefix nobody else uses', app.styles.length === 1 && /\.kbapp-/.test(app.styles[0].textContent) && !/\.kbmr-|\.kbmob-/.test(app.styles[0].textContent))
+  // store rules: no purchase flow and no sign-up inside the app (mobile/STORES.md items 5 and 6), hidden under the app class only
+  const css = app.styles[0].textContent
+  const HIDDEN = ['menu-signup', 'menu-plans', 'menu-plan-cta', 'menu-plan-credits', 'upgrade-dialog', 'team-lock-plans', 'provider-plans', 'kc-pro-plans', 'kybernos-kyber-upgrade', 'plugins-add', 'plugins-add-empty', 'plugins-drafts']
+  check('inside the app the purchase, sign-up and plugin-install controls are hidden, under the app class only', /html\.kb-app :is\(/.test(css) && HIDDEN.every((k) => css.includes('[data-kb="' + k + '"]')) && /display:none !important/.test(css), css.slice(0, 200))
+  check('in a browser the stylesheet is not mounted, so the desktop keeps them', desk.styles.every((x) => !x.textContent.includes('kb-app :is(')))
+  const bundles = ['kybernos-cloud', 'kybernos-plugin', 'kybernos-composio', 'kybernos-kyber', 'kybernos-hub'].map((d) => readFileSync(join(fileURLToPath(new URL('../' + d + '/', import.meta.url)), 'client.js'), 'utf8')).join('\n')
+  check('every hidden hook is still drawn by the bundle that owns it (a rename would silently show the control again)', HIDDEN.every((k) => (k.startsWith('menu-') && !k.startsWith('menu-plan-') ? bundles.includes("entree('" + k.slice(5) + "'") : bundles.includes("'" + k + "'"))), HIDDEN.filter((k) => !(k.startsWith('menu-') && !k.startsWith('menu-plan-') ? bundles.includes("entree('" + k.slice(5) + "'") : bundles.includes("'" + k + "'"))))
   const page = expand(app.components[0]())
   const acts = walk(page).filter((n) => n.props['data-act'] !== undefined)
   check('the page has two buttons: the model key and the engine log', acts.map((n) => n.props['data-act']).join() === 'open-key,open-log', acts.map((n) => n.props['data-act']))

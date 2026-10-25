@@ -17,6 +17,7 @@ The Kybernos phone app (`mobile/app`) runs the engine ON the phone and shows thi
 - the browser half registers a Settings page called « The Kybernos app » (in the same place of the list, under Devices & cloud) instead of « Phone and channels »: the model key (opens the app's secure key screen through `kybernos://settings`), the engine log (`kybernos://log`), and what a phone changes for automations (they run while the app is open or was just used; a suspended app runs what came due as soon as you come back; for a fixed time with the phone locked, use a cloud computer);
 - `window.__KB_APP__ = { version, platform, appVersion, openSettings, openLog }` is there for the other bundles, `<html>` gets the classes `kb-app` and `kb-app-ios` / `kb-app-android`, and the app is told once (`ReactNativeWebView.postMessage`, `{ kybernos: 'app-entry' }`) that the interface has its entry, so it drops the small gear button it shows until then;
 - the phone link window (`window.__KB_MOBILE__`) is not published, so the account menu and Kaby's strip do not offer it.
+- store rules (`mobile/STORES.md` items 1, 5, 6): under `html.kb-app` the controls that buy a plan, create an account or add a plugin are hidden by their `data-kb` hooks (`STORE_HIDDEN` in `client.js`; the test checks every hook still exists in the bundle that draws it). The desktop and the browser keep them.
 
 In a browser none of this exists: the user agent is not the app's, and nothing above runs.
 
