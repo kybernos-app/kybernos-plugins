@@ -2,6 +2,7 @@
 # Builds KybernosHost.app without an Xcode project: swiftc + a hand-assembled bundle, ad-hoc signed.
 #   mobile/ios/build.sh <payload dir (output of mobile/payload/build-payload.mjs)> [path to NodeMobile.xcframework]
 #   TARGET=device mobile/ios/build.sh ...   builds for a real iPhone (ios-arm64 slice) and also writes build/KybernosHost.ipa
+#   SELFTEST_DELAY=90 ...                   adds the self-test hook (see Sources/SelfTest.swift); the IPA is then build/KybernosHost-selftest.ipa
 # The ad-hoc signature is enough for a device cloud that re-signs the app with its own profile (LambdaTest says it does); installing on your own iPhone needs
 # `codesign --sign "<Apple Development identity>"` and a provisioning profile embedded as embedded.mobileprovision.
 set -euo pipefail
@@ -21,12 +22,14 @@ xcrun --sdk $SDK swiftc -swift-version 5 -parse-as-library -O \
 cp -R "$SLICE/NodeMobile.framework" "$APP/Frameworks/"
 sed 's/\$(PRODUCT_MODULE_NAME)/KybernosHost/' Info.plist > "$APP/Info.plist"
 if [ "$TARGET" = device ]; then /usr/libexec/PlistBuddy -c "Add :CFBundleSupportedPlatforms array" -c "Add :CFBundleSupportedPlatforms:0 string iPhoneOS" "$APP/Info.plist" 2>/dev/null || true; fi
+if [ -n "${SELFTEST_DELAY:-}" ]; then /usr/libexec/PlistBuddy -c "Add :KBSelfTestTaskDelay integer $SELFTEST_DELAY" "$APP/Info.plist"; fi
 cp "$PAYLOAD"/{payload.kbpack,payload.json,bootstrap.mjs,kbpack.mjs} "$APP/"
 codesign --force --sign - --timestamp=none "$APP/Frameworks/NodeMobile.framework"
 codesign --force --sign - --timestamp=none "$APP"
 echo "built $APP ($(du -sm "$APP" | cut -f1) MB)"
 if [ "$TARGET" = device ]; then
-  rm -rf build/ipa build/KybernosHost.ipa; mkdir -p build/ipa/Payload; cp -R "$APP" build/ipa/Payload/
-  (cd build/ipa && zip -qry ../KybernosHost.ipa Payload)
-  echo "wrote build/KybernosHost.ipa ($(du -sm build/KybernosHost.ipa | cut -f1) MB)"
+  IPA=build/KybernosHost.ipa; [ -n "${SELFTEST_DELAY:-}" ] && IPA=build/KybernosHost-selftest.ipa
+  rm -rf build/ipa "$IPA"; mkdir -p build/ipa/Payload; cp -R "$APP" build/ipa/Payload/
+  (cd build/ipa && zip -qry "../$(basename "$IPA")" Payload)
+  echo "wrote $IPA ($(du -sm "$IPA" | cut -f1) MB)"
 fi

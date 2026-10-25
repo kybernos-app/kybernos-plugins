@@ -36,6 +36,7 @@ final class NodeHost {
               let manifest = Bundle.main.path(forResource: "payload", ofType: "json"),
               let bootstrap = Bundle.main.path(forResource: "bootstrap", ofType: "mjs") else { return false }
         for dir in [paths.support, paths.runtime, paths.home, paths.workspace] { try? fm.createDirectory(at: dir, withIntermediateDirectories: true) }
+        SelfTest.prepareProvider(home: paths.home)
         var runtimeURL = paths.runtime
         var values = URLResourceValues(); values.isExcludedFromBackup = true
         try? runtimeURL.setResourceValues(values)

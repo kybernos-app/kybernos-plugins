@@ -10,6 +10,7 @@ final class RootViewController: UIViewController, WKNavigationDelegate, WKUIDele
     private let logButton = UIButton(type: .system)
     private var backgroundTask: UIBackgroundTaskIdentifier = .invalid
     private var loadedURL: URL?
+    private var selfTest: SelfTest?
 
     init() {
         let config = WKWebViewConfiguration()
@@ -80,6 +81,7 @@ final class RootViewController: UIViewController, WKNavigationDelegate, WKUIDele
             webView.isHidden = false
             webView.load(URLRequest(url: url))
             NSLog("kybernos: interface loaded")
+            if let delay = SelfTest.delaySeconds { let st = SelfTest(signIn: url); st.attach(to: view); st.start(delay: delay); selfTest = st }
         case .failed(let message):
             statusLabel.text = message; progress.isHidden = true; webView.isHidden = true
         }
