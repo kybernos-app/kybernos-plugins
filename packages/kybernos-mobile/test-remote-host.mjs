@@ -8,7 +8,9 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import * as e2e from './remote-e2e.mjs'
 import { acceptWebSocket, startFakeRelay } from './remote-fake-relay.mjs'
-import { createRemote, pickRequestHeaders, pickResponseHeaders, refusedOnPhone, shouldCompress } from './remote-host.mjs'
+import { DENY_API, DENY_PREFIX, createRemote, pickRequestHeaders, pickResponseHeaders, refusedOnPhone, sentPath, shouldCompress } from './remote-host.mjs'
+import { sessionSource, writeGuard } from './session-guard.mjs'
+import { SESSION_SECRET, sessionCookie } from './lib-session-test.mjs'
 
 let fail = 0
 const ok = (name, cond, detail) => { console.log((cond ? 'ok   ' : 'FAIL ') + name + (detail ? ' - ' + detail : '')); if (!cond) fail++ }
@@ -26,6 +28,41 @@ ok('changing the server is refused', refusedOnPhone('POST', '/kybernos-cloud/ser
 ok('a session call is allowed', refusedOnPhone('POST', '/api/session/prompt') === null && refusedOnPhone('GET', '/assets/app-abc123.js') === null)
 ok('protocol-relative and CRLF paths are refused', refusedOnPhone('GET', '//evil.test/x') === 'bad_path' && refusedOnPhone('GET', '/a\r\nHost: x') === 'bad_path')
 ok('an odd method is refused', refusedOnPhone('TRACE', '/') === 'bad_method')
+
+// The deny lists are judged on the path as DSH will read it (audit L3-10). Every listed route, every spelling: none may be served. The table is built from the lists
+// themselves, so a route added to DENY_API or DENY_PREFIX is covered without touching this file.
+const listed = [...[...DENY_API].map((name) => '/api/' + name), ...DENY_PREFIX.map((prefix) => (prefix.endsWith('/') ? prefix + 'x' : prefix))]
+const spellings = (path) => [
+  ['a dot segment first', '/.' + path], ['a dot segment inside', path.replace(/^(\/[^/]+)/u, '$1/.')], ['a dot segment last', path + '/.'],
+  ['a parent segment', '/x/..' + path], ['an escaped dot', '/%2e' + path], ['an escaped dot, upper case', '/%2E' + path],
+  ['an escaped parent', '/a/%2e%2e' + path], ['a half-escaped parent', '/a/.%2E' + path], ['a doubly escaped dot', '/%252e' + path],
+  ['a doubled slash', path.replace(/^(\/[^/]+)/u, '$1/')], ['upper case', path.toUpperCase()], ['the first segment in upper case', path.replace(/^\/[^/]+/u, (m) => m.toUpperCase())],
+  ['a trailing slash', path + '/'], ['an escaped letter', path.replace(/^\/(.)/u, (m, c) => '/%' + c.charCodeAt(0).toString(16))],
+  ['escaped slashes', '/' + path.slice(1).replaceAll('/', '%2F')], ['a tab inside the name', path.slice(0, 8) + '\t' + path.slice(8)],
+  ['a fragment', path + '#x'], ['an escaped backslash', path.replace(/^(\/[^/]+)/u, '$1%5c')],
+]
+let hole = null
+for (const path of listed) {
+  if (refusedOnPhone('POST', path) !== 'refused_on_phone') hole = hole || ['listed route not refused', path]
+  for (const [label, variant] of spellings(path)) {
+    for (const method of ['GET', 'POST', 'DELETE']) { if (refusedOnPhone(method, variant) === null && hole === null) hole = [label, method, variant] }
+  }
+}
+ok('every listed route stays refused in every spelling (' + listed.length + ' routes x ' + spellings('/api/a/b').length + ' spellings x 3 methods)', hole === null, JSON.stringify(hole))
+ok('the verifier\'s own bypasses are refused', ['/./api/credentials/set', '/x/../api/credentials/set', '/%2e/api/pluginManager/installBundle', '/a/%2E%2E/api/terminal/create', '/./kybernos-cloud/disconnect', '/api//credentials/set', '/API/credentials/set', '/api/credentials/set/'].every((p) => refusedOnPhone('POST', p) !== null))
+// What is judged is what is sent: the lists look at the path a URL parser makes of the phone's path, and that same path is what goes out (fetch would do it after the check).
+ok('sentPath is what a URL parser makes of the path, query kept', [['/./x', '/x'], ['/a/../x?y=1#f', '/x?y=1'], ['/%2e/x', '/x'], ['/a/%2E%2E/x', '/x'], ['/a\tb', '/ab'], ['/a b', '/a%20b'], ['/A//b/', '/A//b/']].every(([raw, sent]) => sentPath(raw) === sent))
+ok('a path that becomes an innocent one is allowed, and is sent as what it became', refusedOnPhone('GET', '/./assets/app-abc123.js') === null && refusedOnPhone('GET', '/x/../assets/app-abc123.js') === null && sentPath('/./assets/app-abc123.js') === '/assets/app-abc123.js')
+ok('a path that does not reduce is refused (bad escape, control character once decoded, too deeply escaped)', ['/%zz/%e9', '/a%00b', '/a%0ab', '/%2525252e/x'].every((p) => refusedOnPhone('GET', p) === 'bad_path'))
+// What the phone page really asks for (phone.mjs and sw.js hand over `pathname + search`, so these are the forms a browser produces): none of it may change.
+const pageCalls = [
+  ['GET', '/'], ['GET', '/assets/app-abcdef12.js'], ['GET', '/assets/Index-Dq3_xK9aZ-1.js'], ['GET', '/assets/chunk-AbC123.css?rev=0a1b2c3d4e'],
+  ['GET', '/kybernos-mobile/mobile.css'], ['GET', '/kybernos-mobile/remote-control.png'], ['GET', '/api/auth/get-session'],
+  ['POST', '/api/session/list'], ['POST', '/api/session/page'], ['POST', '/api/session/create'], ['POST', '/api/session/prompt'], ['POST', '/api/session/rename'],
+  ['POST', '/api/credentials/describe'], ['GET', '/kybernos-cloud/status'], ['GET', '/kybernos-cloud/chats/detail?id=a%20b'],
+  ['GET', '/kybernos-skills/skills?q=a%20b&x=%2e%2e'], ['GET', '/files/My%20Doc%20%28final%29.png'], ['GET', '/a/b/'],
+]
+ok('the page\'s own calls are served, and sent exactly as written', pageCalls.every(([m, p]) => refusedOnPhone(m, p) === null && sentPath(p) === p), JSON.stringify(pageCalls.filter(([m, p]) => refusedOnPhone(m, p) !== null || sentPath(p) !== p)))
 const ph = pickRequestHeaders({ Cookie: 'a=b', Host: 'x', Origin: 'y', 'X-Kybernos-Tunnel': '0', 'Sec-Fetch-Mode': 'cors', accept: 'text/html', 'Content-Type': 'application/json', authorization: 'Bearer z' })
 ok('request headers: identity headers are dropped, content ones kept', ph.cookie === undefined && ph.host === undefined && ph.origin === undefined && ph['x-kybernos-tunnel'] === undefined && ph.authorization === undefined && ph.accept === 'text/html' && ph['content-type'] === 'application/json')
 const rh = pickResponseHeaders(new Headers({ 'set-cookie': 'a=b', 'content-type': 'text/css', 'x-frame-options': 'DENY', location: '/x', 'x-dsh-thing': '1' }))
@@ -46,6 +83,11 @@ const dshServer = http.createServer((req, res) => {
     if (req.url === '/big') { res.writeHead(200, { 'content-type': 'application/octet-stream' }); return res.end(randomBytes(300 * 1024)) }
     if (req.url === '/small') { res.writeHead(200, { 'content-type': 'application/json' }); return res.end('{"ok":true,"small":true}') }
     if (req.url === '/bin') { res.writeHead(200, { 'content-type': 'application/octet-stream' }); return res.end(Buffer.from([0, 1, 2, 3, 250, 251, 252])) }
+    if (req.url === '/guarded/write') { // a plugin route behind the real write guard (session-guard.mjs), as the bundles mount them
+      const denied = writeGuard(req)
+      res.writeHead(denied === null ? 200 : denied.status, { 'content-type': 'application/json' })
+      return res.end(JSON.stringify(denied === null ? { ok: true, wrote: true } : { ok: false, error: denied.error }))
+    }
     if (req.url === '/redirect') { res.writeHead(302, { location: 'http://127.0.0.1:' + dshServer.address().port + '/final' }); return res.end() }
     if (req.url === '/slow') { setTimeout(() => { try { res.writeHead(200); res.end('late') } catch (e) { /* gone */ } }, 3000); return }
     res.writeHead(200, { 'content-type': 'application/json' })
@@ -62,6 +104,9 @@ dshServer.on('upgrade', (req, socket) => {
 })
 await new Promise((r) => dshServer.listen(0, '127.0.0.1', r))
 const dshBase = 'http://127.0.0.1:' + dshServer.address().port
+// DSH's own session cookie as the stand-in knows it: signed for its authority, so the real write guard accepts it from the browser and from the tunnel alike.
+sessionSource.secret = () => SESSION_SECRET
+const SESSION = sessionCookie('127.0.0.1:' + dshServer.address().port)
 
 // ── the stand-in phone ──────────────────────────────────────────────────────────────────────────────────────────
 class Phone {
@@ -117,7 +162,7 @@ const makeRemote = () => createRemote({
   cloud: () => relay.api,
   WebSocket: LaggyWebSocket,
   fetch: globalThis.fetch,
-  local: () => ({ base: dshBase, cookie: 'dsh-auth-test=SESSION' }),
+  local: () => ({ base: dshBase, cookie: SESSION }),
   label: () => 'Test computer',
   tuning: { retryMinMs: 100, retryMaxMs: 400 },
 })
@@ -185,7 +230,7 @@ try {
   const page = await phone.request({ t: 'req', id: 'p1', method: 'GET', path: '/', headers: { cookie: 'evil=1', origin: 'https://evil.test', host: 'evil.test', accept: 'text/html' } }, undefined)
   const hit = dshHits.find((h) => h.url === '/')
   ok('the page comes back', page.head !== null && page.head.status === 200 && /dsh page/u.test(td.decode(await bodyOf(page))))
-  ok('the local call carries DSH\'s own cookie, not the phone\'s', hit !== undefined && hit.headers.cookie === 'dsh-auth-test=SESSION')
+  ok('the local call carries DSH\'s own cookie, not the phone\'s', hit !== undefined && hit.headers.cookie === SESSION)
   ok('the local call looks like the page itself', hit !== undefined && hit.headers.origin === dshBase && hit.headers.host === dshBase.replace('http://', ''))
   ok('the local call is marked as tunnelled', hit !== undefined && hit.headers['x-kybernos-tunnel'] === '1')
   ok('the page\'s set-cookie never reaches the phone', page.head !== null && page.head.headers['set-cookie'] === undefined)
@@ -207,6 +252,51 @@ try {
   const pairRoute = await phone.request({ t: 'req', id: 'p7', method: 'POST', path: '/kybernos-mobile/remote/pair', headers: {} }, te.encode('{}'))
   ok('a phone cannot manage phones', pairRoute.head.status === 403 && dshHits.length === hitsBefore)
   ok('refusals are counted', (await remote.status()).refused === 2)
+
+  // The bypasses of the deny list, through the tunnel (audit L3-10): DSH's router reads « /./api/credentials/set » as « /api/credentials/set », so nothing that reads
+  // as a listed route may reach it, in whatever spelling. The stand-in DSH records every request it receives, after fetch has normalised the address.
+  const bypasses = [
+    ['POST', '/./api/credentials/set'], ['POST', '/x/../api/credentials/set'], ['POST', '/%2e/api/pluginManager/installBundle'], ['POST', '/a/%2E%2E/api/terminal/create'],
+    ['POST', '/./kybernos-cloud/disconnect'], ['POST', '/./kybernos-mobile/remote/pair/approve'], ['POST', '/api//credentials/set'], ['POST', '/API/credentials/set'],
+    ['POST', '/api/credentials/set/'], ['POST', '/api/credentials/s\tet'],
+  ]
+  const stopped = []
+  for (const [i, [method, path]] of bypasses.entries()) {
+    const r = await phone.request({ t: 'req', id: 'by' + i, method, path, headers: {} }, te.encode('{}'))
+    if (r.head === null || r.head.status !== 403) stopped.push(path)
+  }
+  ok('no spelling of a listed route reaches DSH: each is answered 403', stopped.length === 0 && dshHits.length === hitsBefore, JSON.stringify([stopped, dshHits.slice(hitsBefore).map((h) => h.url)]))
+  await phone.sendEnc({ t: 'ws-open', id: 'wb', path: '/api/./terminal/create', protocols: [] })
+  const wsBypass = await phone.nextEnc()
+  ok('a socket whose path is a listed route once a URL parser has read it is refused (1008) before it is opened', wsBypass !== null && wsBypass.header.t === 'ws-close' && wsBypass.header.id === 'wb' && wsBypass.header.code === 1008 && wsSeen.length === 0, JSON.stringify(wsBypass && wsBypass.header))
+  // ...and what is judged is what is sent: an innocent path with a dot segment reaches DSH as the path it became.
+  const rewritten = await phone.request({ t: 'req', id: 'rw', method: 'GET', path: '/x/../assets/app-abcdef12.js?v=1#frag', headers: {} })
+  ok('an innocent path a parser rewrites is sent rewritten, the very path the lists judged', rewritten.head.status === 200 && dshHits[dshHits.length - 1].url === '/assets/app-abcdef12.js?v=1', dshHits[dshHits.length - 1].url)
+  dshHits.pop()
+
+  // What the phone page really asks for is served exactly as asked: same method, same bytes of the address (case and escapes kept), and DSH's own cookie.
+  const wanted = [
+    ['GET', '/'], ['GET', '/assets/app-abcdef12.js'], ['GET', '/assets/Index-Dq3_xK9aZ-1.js?rev=0a1b2c3d4e'], ['GET', '/kybernos-mobile/mobile.css'], ['GET', '/api/auth/get-session'],
+    ['POST', '/api/session/list'], ['POST', '/api/session/create'], ['POST', '/api/session/prompt'], ['POST', '/api/session/rename'], ['POST', '/api/credentials/describe'],
+    ['GET', '/kybernos-cloud/status'], ['GET', '/kybernos-skills/skills?q=a%20b'], ['GET', '/files/My%20Doc%20%28final%29.png'],
+  ]
+  const served = []
+  for (const [i, [method, path]] of wanted.entries()) {
+    const before = dshHits.length
+    const r = await phone.request({ t: 'req', id: 'pg' + i, method, path, headers: method === 'POST' ? { 'content-type': 'application/json' } : {} }, method === 'POST' ? te.encode('{}') : undefined)
+    const hit2 = dshHits[dshHits.length - 1]
+    if (r.head === null || r.head.status !== 200 || dshHits.length !== before + 1 || hit2.url !== path || hit2.method !== method || hit2.headers.cookie !== SESSION) served.push([method, path, r.head && r.head.status])
+  }
+  ok('the page\'s own calls reach DSH unchanged (' + wanted.length + ' calls)', served.length === 0, JSON.stringify(served))
+
+  // A write that came through the phone link meets the real write guard on the plugin routes (the L3-11 family): the cookie is valid, the Origin is right, the marker is there.
+  const tunnelledWrite = await phone.request({ t: 'req', id: 'gw', method: 'POST', path: '/guarded/write', headers: { 'content-type': 'application/json' } }, te.encode('{}'))
+  const tw = JSON.parse(td.decode(await bodyOf(tunnelledWrite)))
+  ok('a guarded write from the phone is refused 403 refused_on_phone, with a valid cookie and the right Origin', tunnelledWrite.head.status === 403 && tw.error === 'refused_on_phone' && tw.wrote === undefined, JSON.stringify([tunnelledWrite.head.status, tw]))
+  const tunnelledRead = await phone.request({ t: 'req', id: 'gr', method: 'GET', path: '/guarded/write', headers: {} })
+  ok('...while a read of the same route is still served', tunnelledRead.head.status === 200)
+  ok('...and the desktop browser (the right Origin and the cookie, no marker) still writes', (() => { const r = writeGuard({ method: 'POST', headers: { host: dshBase.replace('http://', ''), origin: dshBase, cookie: SESSION }, socket: { localPort: dshServer.address().port } }); return r === null })())
+  ok('a phone that sends the marker header itself is no different: the host drops it and sets its own', (() => { const h = pickRequestHeaders({ 'x-kybernos-tunnel': '0' }); return h['x-kybernos-tunnel'] === undefined })())
 
   // several answers leave at once while the computer's socket is backed up (a slow uplink): the frames must still leave in
   // order, since the phone requires the counter to be exactly the next one (measured 2026-10-13: a desynchronised channel
@@ -244,7 +334,7 @@ try {
   await phone.sendEnc({ t: 'ws-open', id: 'w1', path: '/api/remote.mux', protocols: [] })
   const opened = await phone.nextEnc()
   ok('the socket opens through the tunnel', opened !== null && opened.header.t === 'ws-open' && opened.header.id === 'w1')
-  ok('the local socket carries the cookie and the marker', wsSeen.length === 1 && wsSeen[0].cookie === 'dsh-auth-test=SESSION' && wsSeen[0].origin === dshBase && wsSeen[0].tunnel === '1')
+  ok('the local socket carries the cookie and the marker', wsSeen.length === 1 && wsSeen[0].cookie === SESSION && wsSeen[0].origin === dshBase && wsSeen[0].tunnel === '1')
   await phone.sendEnc({ t: 'ws-msg', id: 'w1', text: true }, te.encode('hello'))
   const echoText = await phone.nextEnc()
   ok('a text message is echoed', echoText !== null && echoText.header.t === 'ws-msg' && echoText.header.text === true && td.decode(echoText.body) === 'echo:hello')
@@ -261,7 +351,7 @@ try {
   // 5. what the relay saw
   const seen = relay.state.samples
   const sealed = seen.filter((s) => !s.startsWith('{'))
-  ok('the relay carried many frames and could read none of the sealed ones', relay.state.framesBinary > 20 && sealed.length > 20 && sealed.every((s) => !/"t"\s*:|"method"|<html|dsh page|SESSION/u.test(s)))
+  ok('the relay carried many frames and could read none of the sealed ones', relay.state.framesBinary > 20 && sealed.length > 20 && sealed.every((s) => !/"t"\s*:|"method"|<html|dsh page|dsh-auth-/u.test(s)))
   ok('the relay saw only the handshake as JSON', seen.filter((s) => s.startsWith('{')).length <= 8)
 
   // 6. a restart: the paired phone resumes
@@ -362,7 +452,7 @@ try {
     let seam = { status: 0, body: null, error: 'fetch failed', server: named }
     const gone = createRemote({
       dir: downDir, cloud: () => ({ call: async () => seam }), WebSocket: LaggyWebSocket, fetch: globalThis.fetch,
-      local: () => ({ base: dshBase, cookie: 'dsh-auth-test=SESSION' }), label: () => 'Test computer', tuning: { retryMinMs: 100, retryMaxMs: 400 },
+      local: () => ({ base: dshBase, cookie: SESSION }), label: () => 'Test computer', tuning: { retryMinMs: 100, retryMaxMs: 400 },
     })
     await gone.start()
     const down = await gone.pair()
