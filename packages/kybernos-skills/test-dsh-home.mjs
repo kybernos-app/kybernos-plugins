@@ -12,6 +12,10 @@ import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync } from 'node
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { zstdCompressSync } from 'node:zlib'
+import { sessionSource } from './session-guard.mjs'
+import { SESSION_SECRET, sessionCookie } from './lib-session-test.mjs'
+// The POST routes need the signed session as well as the Origin (L3-17): the Skills page's own request carries both.
+sessionSource.secret = () => SESSION_SECRET
 // DSH-HOME-HARNESS-BEGIN
 import * as kbAssert from 'node:assert/strict'
 import * as kbFs from 'node:fs'
@@ -163,7 +167,7 @@ try {
     const handler = route.handler
     const res = { code: 0, raw: null, writeHead(c) { this.code = c }, end(p) { this.raw = p === undefined ? null : String(p) } }
     await handler({
-      method, url: path, headers: { origin: 'http://127.0.0.1:' + PORT }, socket: { localPort: PORT },
+      method, url: path, headers: { origin: 'http://127.0.0.1:' + PORT, cookie: sessionCookie('127.0.0.1:' + PORT) }, socket: { localPort: PORT },
       async *[Symbol.asyncIterator]() { if (body !== undefined) yield Buffer.from(JSON.stringify(body)) },
     }, res)
     let json = null
