@@ -1,0 +1,3 @@
+# staged by scripts/stage-native.mjs: the Node framework (180 MB) and the runtime payload (55 MB) are build inputs, never committed
+/ios/vendor/
+/ios/payload/
