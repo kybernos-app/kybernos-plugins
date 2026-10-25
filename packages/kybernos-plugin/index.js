@@ -11321,16 +11321,24 @@ function boot(ctx) {
       // A write replayed from a paired phone (kybernos-mobile marks every request it replays) is refused, as session-guard.mjs's writeGuard refuses it on the other routes:
       // a phone has the power of the keyboard, and this route schedules runs of the agent. Reads stay open to it.
       const kbTunnelledWrite = (req) => ['GET', 'HEAD', 'OPTIONS'].indexOf(String(req.method || 'GET').toUpperCase()) === -1 && req.headers != null && req.headers['x-kybernos-tunnel'] !== undefined
-      const kbTasksRefused = async (req) => (kbTunnelledWrite(req) ? { status: 403, error: 'refused_on_phone' } : (await kbTasksAuthorized(req) === true ? null : { status: 401, error: 'sign-in required' }))
+      // `markerJudgedLater`: the caller reads the body first and judges the marker itself (the tasks route, whose `list` action only reads).
+      const kbTasksRefused = async (req, markerJudgedLater) => (kbTunnelledWrite(req) && markerJudgedLater !== true ? { status: 403, error: 'refused_on_phone' } : (await kbTasksAuthorized(req) === true ? null : { status: 401, error: 'sign-in required' }))
+      // What a phone is told of an automation: the same, without the secret of its webhook (the secret lets anyone who holds it start the automation).
+      const kbWithoutHookSecret = (task) => (task !== null && typeof task === 'object' && task.trigger !== null && typeof task.trigger === 'object' ? Object.assign({}, task, { trigger: Object.fromEntries(Object.entries(task.trigger).filter(([key]) => key !== 'secret')) }) : task)
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/tasks', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
-        { const refused = await kbTasksRefused(req); if (refused !== null) return sendJson(res, refused.status, { ok: false, error: refused.error }) }
+        { const refused = await kbTasksRefused(req, true); if (refused !== null) return sendJson(res, refused.status, { ok: false, error: refused.error }) }
         let body = null
         try { body = await readJsonBody(req, 200000) } catch (e) { return sendJson(res, 413, { ok: false, error: 'request body too large' }) }
         if (body === null || typeof body !== 'object' || Array.isArray(body) === true) return sendJson(res, 400, { ok: false, error: 'a JSON object is expected' })
+        // A paired phone's request (kybernos-mobile marks it) is judged here, once the action is known: `list` is the Automations page reading its list (a POST that only
+        // reads, and it is told no webhook secret); every other action creates, changes, deletes or runs an automation, which a phone never does.
+        const phone = kbTunnelledWrite(req)
+        if (phone && body.action !== 'list') return sendJson(res, 403, { ok: false, error: 'refused_on_phone' })
         try {
-          sendJson(res, 200, await kbTasksHandle(body))
+          const answer = await kbTasksHandle(body)
+          sendJson(res, 200, phone && answer !== null && typeof answer === 'object' && Array.isArray(answer.tasks) ? Object.assign({}, answer, { tasks: answer.tasks.map(kbWithoutHookSecret) }) : answer)
         } catch (e) {
           // A store that cannot be trusted is a normal answer the page can show (the client only
           // reads JSON on a 200); anything else is an internal error whose text stays in the log.

@@ -9,6 +9,7 @@
 //   node scripts/audit-routes.mjs --json           the raw rows
 //   node scripts/audit-routes.mjs --bundle NAME    only the routes of one bundle
 //   node scripts/audit-routes.mjs --root DIR       judge another checkout (a `git archive` of an earlier commit gives the "before" column)
+//   node scripts/audit-routes.mjs --tunnel-probes JSON   for the routes it names, also send bodies with the phone-link marker (see scripts/test-tunnel-routes.mjs, which owns the table)
 //
 // Needs Node 22.13 or later (`--permission`). It is read-only and offline by construction, not by promise: the worker runs under Node's permission model (`--permission`), which
 // denies spawning a process, every network call, and every write outside a throw-away folder, and it can read only the checkout and that
@@ -156,12 +157,12 @@ class FakeResponse extends Writable {
 }
 
 /** What a handler answers to one request: its status (0: nothing was written before the time ran out), and the start of the body. */
-const ask = (route, method, origin, withCookie, extraHeaders = {}) => new Promise((resolve) => {
+const ask = (route, method, origin, withCookie, extraHeaders = {}, bodyText = '{}') => new Promise((resolve) => {
   const headers = { host: HOST, ...extraHeaders }
   if (origin !== null) headers.origin = origin
   if (withCookie) headers.cookie = sessionCookie()
-  const body = method === 'GET' ? null : '{}'
-  if (body !== null) { headers['content-type'] = 'application/json'; headers['content-length'] = '2' }
+  const body = method === 'GET' ? null : bodyText
+  if (body !== null) { headers['content-type'] = 'application/json'; headers['content-length'] = String(Buffer.byteLength(body)) }
   const path = route.kind === 'prefix' ? route.path + (route.path.endsWith('/') ? '' : '/') + 'audit-probe' : route.path
   const req = fakeRequest(method, path, headers, body)
   const res = new FakeResponse()
@@ -252,6 +253,8 @@ const callers = (bundle, path, definedIn) => {
 
 // ── Run ───────────────────────────────────────────────────────────────────────────────────────────────────────
 const only = option('--bundle')
+// Routes whose phone-link behaviour depends on the body: `[{ bundle, path, read: {...}, writes: [{...}] }]`. Each body is sent as a POST with the right Origin, the cookie and the marker.
+const tunnelProbes = JSON.parse(option('--tunnel-probes') ?? '[]')
 const rows = []
 const problems = []
 const bundles = readdirSync(join(root, 'packages')).filter((p) => existsSync(join(root, 'packages', p, 'index.js')) && (only === null || only === p)).sort()
@@ -264,7 +267,10 @@ for (const bundle of bundles) {
     await Promise.all(unique.slice(i, i + 6).map(async (route) => {
       const methods = await probeRoute(route)
       const def = definition(bundle, route.path)
-      rows.push({ bundle, path: route.path, kind: route.kind, methods, ...def, callers: callers(bundle, route.path, def.where.replace(/:\d+$/, '')) })
+      const wanted = tunnelProbes.find((p) => p.path === route.path && (p.bundle === undefined || p.bundle === bundle))
+      const marker = { [TUNNEL_HEADER]: '1' }
+      const tunnel = wanted === undefined ? undefined : { read: await ask(route, 'POST', 'http://' + HOST, true, marker, JSON.stringify(wanted.read)), writes: await Promise.all(wanted.writes.map((w) => ask(route, 'POST', 'http://' + HOST, true, marker, JSON.stringify(w)))) }
+      rows.push({ bundle, path: route.path, kind: route.kind, methods, ...(tunnel === undefined ? {} : { tunnel }), ...def, callers: callers(bundle, route.path, def.where.replace(/:\d+$/, '')) })
     }))
   }
 }
