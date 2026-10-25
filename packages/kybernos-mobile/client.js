@@ -1094,7 +1094,11 @@ window.__ModuleLoader__.load({
           h(Card, { kb: 'mobile-app-key', title: kt('Clé du modèle', 'Model key'), text: kt('Ta clé Anthropic est gardée dans le coffre sécurisé du téléphone (Trousseau sur iPhone, Keystore sur Android), jamais dans un fichier. Un changement de clé demande de fermer puis rouvrir l’app.', 'Your Anthropic key is kept in the phone’s secure storage (Keychain on iPhone, Keystore on Android), never in a file. A changed key needs the app closed and opened again.'), act: 'open-key', button: kt('Ouvrir', 'Open'), onClick: () => open('settings') }),
           h(Card, { kb: 'mobile-app-log', title: kt('Journal du moteur', 'Engine log'), text: kt('Ce que dit le moteur, avec les clés masquées : utile pour comprendre un souci ou le partager.', 'What the engine says, with keys hidden: useful to understand a problem or to share it.'), act: 'open-log', button: kt('Afficher', 'Show'), onClick: () => open('log') }),
           h(Card, { kb: 'mobile-app-auto', title: kt('Automatisations sur le téléphone', 'Automations on this phone'), text: kt('Elles tournent pendant que l’app est ouverte ou vient d’être utilisée. Si le téléphone a suspendu l’app, une tâche arrivée à échéance attend et s’exécute dès que tu reviens. Pour une tâche à heure fixe, téléphone verrouillé, utilise un ordinateur cloud.', 'They run while the app is open or was just used. If the phone has suspended the app, a task that came due waits and runs as soon as you come back. For a task at a fixed time with the phone locked, use a cloud computer.') }))
+        // Purchase, sign-up and plugin-install controls the app never shows (store rules: no purchase flow inside the app, no sign-up in the first version, only the plugins the app carries; mobile/STORES.md items 1, 5 and 6). They are hidden by their
+        // data-kb hooks, not removed: the desktop and the browser keep them. test-client.mjs checks every hook still exists in the bundle that draws it.
+        const STORE_HIDDEN = ['menu-signup', 'menu-plans', 'menu-plan-cta', 'menu-plan-credits', 'upgrade-dialog', 'team-lock-plans', 'provider-plans', 'kc-pro-plans', 'kybernos-kyber-upgrade', 'plugins-add', 'plugins-add-empty', 'plugins-drafts']
         const CSS = `
+html.kb-app :is(${STORE_HIDDEN.map((k) => '[data-kb="' + k + '"]').join(',')}){display:none !important}
 .kbapp-page{display:flex;flex-direction:column;gap:14px;max-width:640px}
 .kbapp-title{margin:0;font-size:20px;font-weight:650;line-height:1.25;color:var(--dsw-alias-label-primary, rgb(243,243,245))}
 .kbapp-sub{margin:0;font-size:13px;line-height:1.45;color:var(--dsw-alias-label-secondary, rgb(161,161,171))}
@@ -1105,7 +1109,7 @@ window.__ModuleLoader__.load({
 .kbapp-btn:focus-visible{outline:2px solid var(--dsw-alias-brand-primary, rgb(76,110,245));outline-offset:2px}
 [data-slot="settings.section"]:has(.kbapp-page){width:100%;max-width:none}
 `
-        return { Page, CSS, open }
+        return { Page, CSS, open, STORE_HIDDEN }
       }
 
       return {
