@@ -3,7 +3,7 @@
   "bundles": [
     "@deepseek-ai/dsh-base",
     "@deepseek-ai/dsh-web-app",
-    "@local/kybernos-inproc-exec",
+    "@local/kybernos-no-process",
     "@deepseek-ai/dsh-experimental-agent-team-profile",
     "@deepseek-ai/dsh-experimental-auto-review",
     "@local/kybernos-theme",

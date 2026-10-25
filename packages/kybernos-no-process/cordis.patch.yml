@@ -5,8 +5,8 @@
   disabled: true
 - insert:
     - id: subprocess-inproc
-      name: '@local/kybernos-inproc-exec'
+      name: '@local/kybernos-no-process'
     - id: sandbox-inproc
-      name: '@local/kybernos-inproc-exec/sandbox'
+      name: '@local/kybernos-no-process/sandbox'
     - id: inproc-mcp-door
-      name: '@local/kybernos-inproc-exec/mcp-door'
+      name: '@local/kybernos-no-process/mcp-door'

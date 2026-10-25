@@ -68,6 +68,7 @@ try {
   assert.equal(fired.status, 'fired', 'the automation fired: ' + JSON.stringify(fired).slice(0, 200)); stamp('fired')
   const hits = await until('the answer to reach the chat', async () => { const j = await get('/kybernos/search-content?q=' + ANSWER + '&sessionId=' + encodeURIComponent(fired.sessionId)); return JSON.stringify(j).toLowerCase().includes(ANSWER.toLowerCase()) ? j : null }, 60000, 2000)
   assert.ok(hits, 'the model answer is in the session'); stamp('the answer is in the chat')
+  assert.ok(out.includes('[kybernos-no-process] shell:'), 'the no-process plugin took over (its start-up line is in the log)')
   assert.ok(!/spawn \S+ EPERM[^\n]*\n[^\n]*unhandled/i.test(out), 'no unhandled process-creation error')
   ok = true
   console.log('payload boot test: PASS (engine up, automation created and fired, answer in the chat, processes refused)')

@@ -10,13 +10,13 @@ Status: plan, written 2026-10-25. Nothing in section 3 beyond M0 is started. Mea
 - Not measured yet: memory on a device, any Android embedded run, background wakes (BGTask, foreground service), App Store review.
 - Everything lives on the local branch `feature/mobile-host` (not pushed). The device-cloud runners are in `mobile/devicecloud`.
 
-## 1. Decisions needed from the owner (my recommendation first)
+## 1. Decisions (D1 to D3 settled 2026-10-25, the rest open; recommendation first)
 
 | # | Decision | Recommendation |
 |---|---|---|
-| D1 | Flavor | **Expo prebuild + development client + Expo Modules API** for the native module. Bare React Native CLI works too; both need CocoaPods on iOS. Expo gives autolinking, Swift and Kotlin module scaffolding and EAS Build later. |
-| D2 | Where the app lives | **This public repo, folder `mobile/`** (the host and the shell are open core; paid modules stay in the private repo and join the payload at build time). |
-| D3 | Name of the compatibility plugin (`packages/kybernos-inproc-exec`, in-process replacements for subprocess, sandbox and MCP) | `kybernos-no-process` (says what it is for). Not renamed yet. |
+| D1 | Flavor | **Expo prebuild + development client + Expo Modules API** for the native module. Bare React Native CLI works too; both need CocoaPods on iOS. Expo gives autolinking, Swift and Kotlin module scaffolding and EAS Build later. **Decided 2026-10-25 (owner: "ok pour tes reco").** |
+| D2 | Where the app lives | **This public repo, folder `mobile/`** (the host and the shell are open core; paid modules stay in the private repo and join the payload at build time). **Decided 2026-10-25 (owner: "ok pour tes reco").** |
+| D3 | Name of the compatibility plugin (`packages/kybernos-no-process`, in-process replacements for subprocess, sandbox and MCP) | `kybernos-no-process` (says what it is for). Renamed to `packages/kybernos-no-process` on 2026-10-25. **Decided 2026-10-25 (owner: "ok pour tes reco").** |
 | D4 | Apple Developer Program (99 USD a year) | Not needed until TestFlight. Until then simulator plus BrowserStack (which re-signs). |
 | D5 | Google Play developer account (25 USD once) | Not needed until internal testing; sideloaded APK before. |
 | D6 | Minimum OS | iOS 16 (current build). Android: to confirm from the fogtape Android build (its minimum API and its 16 KB page-size status). |
@@ -34,7 +34,7 @@ React Native (TypeScript)                 native module KybernosHost (Swift / Ko
                                             Lifecycle (background task, foreground service on Android)
                                                     |
                                        embedded Node 24 (jitless) -> DSH engine -> our plugins
-                                       kybernos-inproc-exec: subprocess, sandbox, rg, just-bash, MCP door
+                                       kybernos-no-process: subprocess, sandbox, rg, just-bash, MCP door
 ```
 
 - The native module is a port of `mobile/ios/Sources/{NodeHost,Supervisor}.swift`; its JS surface is typed: `start(options)`, `onStatus(listener)` with `{ phase: 'unpacking' | 'booting' | 'ready' | 'failed', done, total, url }`, `logTail(bytes)`, `healthCheck()`, `restartHint()`.
