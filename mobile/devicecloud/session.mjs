@@ -46,7 +46,7 @@ export const runSession = async ({ platform = 'ios', appUrl, device, osVersion, 
   const appState = async () => { const r = await act(P.queryState(P.appId)); if (r.ok) return r.value; if (!controlErrors.includes(r.error)) controlErrors.push(r.error); return '?' }
 
   try {
-    const caps = { capabilities: { alwaysMatch: { ...P.capabilities({ device, osVersion, appUrl }), 'bstack:options': { projectName: 'Kybernos', buildName: 'mobile-host', sessionName: 'self-test', deviceLogs: true, video: true, networkLogs: false, idleTimeout: 150 } } } }
+    const caps = { capabilities: { alwaysMatch: { ...P.capabilities({ device, osVersion, appUrl }), 'bstack:options': { projectName: 'Kybernos', buildName: 'mobile-host', sessionName: 'self-test', deviceOrientation: 'portrait', deviceLogs: true, video: true, networkLogs: false, idleTimeout: 150 } } } }
     log('requesting a session on ' + device + ' ' + P.label + ' ' + osVersion)
     const c = await wd('POST', '/session', caps, 5 * 60 * 1000)
     if (c.status >= 400 || !c.json?.value?.sessionId) { result.error = 'session creation failed: HTTP ' + c.status + ' ' + redact(c.text).slice(0, 400); log(result.error); return result }
@@ -101,10 +101,14 @@ export const runSession = async ({ platform = 'ios', appUrl, device, osVersion, 
     log('back in the foreground ' + result.returnedAfterDueS.toFixed(0) + ' s after the due time')
 
     // 3. catch-up: the overdue automation fires, and with a model key it answers
-    let final = null
+    let final = null; let missing = 0
+    // a device that turned to landscape while the app was away hides the label from the page source (seen on a Pixel 9): turn it back before reading
+    const turned = await act([{ path: '/orientation', body: { orientation: 'PORTRAIT' } }])
+    log(turned.ok ? 'orientation set to portrait' : 'orientation not set: ' + turned.error)
     for (let i = 0; i < 50 && Date.now() < DEADLINE - 30000; i++) {
       await sleep(2000)
-      const st = selftestOf(await source())
+      const xml = await source(); const st = selftestOf(xml)
+      if (st === null && ++missing === 3) { writeFileSync(join(outDir, 'source-after-return.xml'), redact(xml)); log('the self-test label is not in the page source after the return: source saved'); await shot('03b-label-missing') }
       if (st !== lastSelf) { log('selftest label (+' + ((Date.now() - backAt) / 1000).toFixed(0) + ' s after the return): ' + st); lastSelf = st }
       if (st && (expectAnswer ? /answer check/.test(st) : /(fired|error) at/.test(st))) { final = st; result.catchUpS = (Date.now() - backAt) / 1000; break }
     }
