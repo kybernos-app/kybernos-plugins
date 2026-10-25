@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { AppState, Linking, Modal, PermissionsAndroid, Platform, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native'
+import { AppState, Linking, Modal, PermissionsAndroid, PixelRatio, Platform, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native'
 import { StatusBar } from 'expo-status-bar'
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { WebView } from 'react-native-webview'
@@ -12,6 +12,7 @@ import { createSettings } from './src/settings'
 import { decideLink, WEBVIEW_ORIGINS } from './src/links'
 import { fetchTasks, planReminders } from './src/reminders'
 import { isAppEntryMessage } from './src/webMessage'
+import { webTextZoom } from './src/textZoom'
 import { ConsentScreen } from './src/ConsentScreen'
 import { SettingsScreen } from './src/SettingsScreen'
 import { BootState, baseOf, createSupervisor } from './src/supervisor'
@@ -157,6 +158,7 @@ export default function App() {
             source={{ uri: state.url }}
             style={styles.fill}
             applicationNameForUserAgent={UA}
+            textZoom={Platform.OS === 'android' ? webTextZoom(PixelRatio.getFontScale()) : undefined}
             onMessage={(e) => { if (isAppEntryMessage(e.nativeEvent.data)) setWebEntry(true) }}
             allowsInlineMediaPlayback
             mediaPlaybackRequiresUserAction={false}
