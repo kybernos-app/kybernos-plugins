@@ -1256,10 +1256,42 @@ const refuserSansSession = (req, res) => {
   return true
 }
 
-const lireCorps = (req) => new Promise((res) => {
-  let corps = ''
-  req.on('data', (d) => { corps += d })
-  req.on('end', () => { try { res(JSON.parse(corps || '{}')) } catch (e) { res({}) } })
+// The body of a POST, counted as it arrives: the rule of `readBody(req, cap)` in kybernos-search/guard.mjs (bundles read on their own, so the small
+// function is copied, not imported), over events because the tests of this bundle drive the routes with a request stand-in that has `on()` only.
+// Past `cap` bytes nothing more is kept, the caller gets 413 with `Connection: close` and the request is destroyed once the answer is out; the
+// promise then resolves `null` and the route stops (the answer is already sent). Before, the body was added to a string without any limit: 150 MB
+// from a program that only forged an Origin cost +390 MB of memory and a 400 after the whole body was read, and a body past 512 MB would have thrown
+// `RangeError: Invalid string length` inside the 'data' listener and ended DSH (recette L3-43). A request that ends badly (aborted, reset) resolves
+// `null` too: nobody is left to answer.
+// 256 KiB for every POST of this bundle: the honest bodies are a few lines (a session id, a folder, a commit message, at most 50 file paths, a list of
+// configured models for the health probe, the `kybers` of a decision).
+const CORPS_MAX = 256 * 1024
+const lireCorps = (req, res, cap = CORPS_MAX) => new Promise((resoudre) => {
+  const morceaux = []
+  let taille = 0
+  let fini = false
+  const finir = (valeur) => { if (fini) return; fini = true; morceaux.length = 0; resoudre(valeur) }
+  req.on('data', (d) => {
+    if (fini) return
+    const octets = typeof d === 'string' ? Buffer.from(d) : d
+    taille += octets.length
+    if (taille > cap) {
+      try { res.setHeader?.('Connection', 'close') } catch (e) { /* a stand-in */ }
+      try { res.once?.('finish', () => req.destroy?.()) } catch (e) { /* a stand-in */ }
+      envoyer(res, 413, { ok: false, code: 'corps-trop-gros', erreur: 'request body too large (' + Math.round(cap / 1024) + ' KiB at most)' })
+      finir(null)
+      return
+    }
+    morceaux.push(octets)
+  })
+  req.on('end', () => {
+    if (fini) return
+    const brut = morceaux.length === 0 ? '' : Buffer.concat(morceaux).toString('utf8')
+    // `null` is the "already answered" signal of this function, so a body that is the JSON text `null` reads as an empty one.
+    try { finir(JSON.parse(brut || '{}') ?? {}) } catch (e) { finir({}) }
+  })
+  req.on('error', () => finir(null))
+  req.on('close', () => finir(null))
 })
 
 // ── S-01: confinement of free paths ─────────────────────────────────────────
@@ -1382,7 +1414,8 @@ export function monterRoutes (webServerSvc, opts) {
     if (req.method !== 'POST') { res.writeHead(405); res.end('POST only'); return }
     if (!origineOK(req)) { res.writeHead(403); res.end('origin refused'); return }
     if (refuserSansSession(req, res)) return
-    const corps = await lireCorps(req)
+    const corps = await lireCorps(req, res)
+    if (corps === null) return
     const slug = dossierDeSession(sessionsHome, corps.session || '')
     const chemin = slug !== null ? decodeSlugPath(slug) : null
     envoyer(res, 200, await isoler({ chemin, nom: corps.nom, but: corps.but, exec: corps.exec === true, sessionsHome }))
@@ -1391,7 +1424,8 @@ export function monterRoutes (webServerSvc, opts) {
     if (req.method !== 'POST') { res.writeHead(405); res.end('POST only'); return }
     if (!origineOK(req)) { res.writeHead(403); res.end('origin refused'); return }
     if (refuserSansSession(req, res)) return
-    const corps = await lireCorps(req)
+    const corps = await lireCorps(req, res)
+    if (corps === null) return
     const slug = dossierDeSession(sessionsHome, corps.session || '')
     const chemin = cheminConfine(sessionsHome, corps, slug)
     envoyer(res, 200, await commiter({ chemin, message: corps.message, exec: corps.exec === true, chemins: Array.isArray(corps.chemins) ? corps.chemins : null, pousser: veutPousser(corps) }))
@@ -1404,7 +1438,8 @@ export function monterRoutes (webServerSvc, opts) {
     if (req.method !== 'POST') { res.writeHead(405); res.end('POST only'); return }
     if (!origineOK(req)) { res.writeHead(403); res.end('origin refused'); return }
     if (refuserSansSession(req, res)) return
-    const corps = await lireCorps(req)
+    const corps = await lireCorps(req, res)
+    if (corps === null) return
     const slug = dossierDeSession(sessionsHome, corps.session || '')
     const chemin = cheminConfine(sessionsHome, corps, slug)
     try {
@@ -1424,7 +1459,8 @@ export function monterRoutes (webServerSvc, opts) {
     if (req.method === 'GET') { envoyer(res, 200, { ok: true, dernier: sondeSante.dernier() }); return }
     if (req.method !== 'POST') { res.writeHead(405); res.end('GET or POST only'); return }
     if (refuserSansSession(req, res)) return
-    const corps = await lireCorps(req)
+    const corps = await lireCorps(req, res)
+    if (corps === null) return
     try {
       const etude = await etudeEnVigueur()
       // Automatic watches what the person connected; a model they picked as Study model watches every model they listed.
@@ -1489,7 +1525,8 @@ export function monterRoutes (webServerSvc, opts) {
     if (!origineOK(req)) { res.writeHead(403); res.end('origin refused'); return }
     if (req.method !== 'POST') { res.writeHead(405); res.end('POST only'); return }
     if (refuserSansSession(req, res)) return
-    const corps = await lireCorps(req)
+    const corps = await lireCorps(req, res)
+    if (corps === null) return
     try {
       let reponse
       if (corps.questions !== null && corps.questions !== undefined && typeof corps.questions === 'object' && Array.isArray(corps.questions) === false) {
@@ -1517,7 +1554,8 @@ export function monterRoutes (webServerSvc, opts) {
     if (req.method !== 'POST') { res.writeHead(405); res.end('GET or POST only'); return }
     if (refuserSansSession(req, res)) return
     try {
-      const corps = await lireCorps(req)
+      const corps = await lireCorps(req, res)
+      if (corps === null) return
       const r = ecrireReglages(reglagesFichier, corps)
       envoyer(res, r.ok === false ? (r.invalide === true ? 400 : 500) : 200, r.ok === false ? { ok: false, code: r.code, erreur: r.erreur } : { ok: true, reglages: r.reglages })
     } catch (e) {
@@ -1540,7 +1578,8 @@ export function monterRoutes (webServerSvc, opts) {
     // The ONLY writer of the registry: the naming CLI AND the client's automatic
     // classification come through here — one format, one validator. `auto:true`
     // marks the category set without an agent naming (replaceable, re-classifiable).
-    const corps = await lireCorps(req)
+    const corps = await lireCorps(req, res)
+    if (corps === null) return
     const r = ecrireCategorie(categoriesFichier, String(corps.session || ''), String(corps.cat || ''), String(corps.titre || ''), corps.auto === true)
     envoyer(res, r.ok === true ? 200 : 400, r)
   } })
@@ -1548,7 +1587,8 @@ export function monterRoutes (webServerSvc, opts) {
     if (req.method !== 'POST') { res.writeHead(405); res.end('POST only'); return }
     if (!origineOK(req)) { res.writeHead(403); res.end('origin refused'); return }
     if (refuserSansSession(req, res)) return
-    const corps = await lireCorps(req)
+    const corps = await lireCorps(req, res)
+    if (corps === null) return
     const slugC = dossierDeSession(sessionsHome, corps.session || '')
     envoyer(res, 200, await cloturer({ chemin: cheminConfine(sessionsHome, corps, slugC), exec: corps.exec === true, forceIgnores: corps.forceIgnores === true }))
   } })
@@ -1556,7 +1596,8 @@ export function monterRoutes (webServerSvc, opts) {
     if (req.method !== 'POST') { res.writeHead(405); res.end('POST only'); return }
     if (!origineOK(req)) { res.writeHead(403); res.end('origin refused'); return }
     if (refuserSansSession(req, res)) return
-    const corps = await lireCorps(req)
+    const corps = await lireCorps(req, res)
+    if (corps === null) return
     const slug = dossierDeSession(sessionsHome, corps.session || '')
     const chemin = cheminConfine(sessionsHome, corps, slug)
     envoyer(res, 200, await ramasser({ chemin, exec: corps.exec === true, sessionsHome, forceIgnores: corps.forceIgnores === true }))
@@ -1566,7 +1607,8 @@ export function monterRoutes (webServerSvc, opts) {
     if (req.method !== 'POST') { res.writeHead(405); res.end('POST only'); return }
     if (!origineOK(req)) { res.writeHead(403); res.end('origin refused'); return }
     if (refuserSansSession(req, res)) return
-    const corps = await lireCorps(req)
+    const corps = await lireCorps(req, res)
+    if (corps === null) return
     const slug = dossierDeSession(sessionsHome, corps.session || '')
     const chemin = cheminConfine(sessionsHome, corps, slug)
     envoyer(res, 200, await faire({ chemin, ...extra(corps), exec: corps.exec === true }))

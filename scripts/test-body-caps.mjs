@@ -50,6 +50,16 @@ const BUNDLES = [
     bodies: Object.fromEntries(['session', 'settings', 'report', 'probe', 'router'].map((r) => ['/kybernos-auto/' + r, 64 * KIB])),
     none: ['/kybernos-auto/state', '/kybernos-auto/models'],
   },
+  {
+    bundle: 'kybernos-sessions',
+    mount: async (web, home) => {
+      const { monterRoutes } = await load('kybernos-sessions', 'index.js')
+      monterRoutes(web, { reglagesPath: join(home, 'settings.json'), categoriesPath: join(home, 'categories.json'), sessionsHome: join(home, 'sessions'), kybersHome: join(home, 'kybers') })
+    },
+    // 256 KiB: every honest body is a few lines (a session id, a folder, a commit message, at most 50 file paths, the configured models, the `kybers` of a decision).
+    bodies: Object.fromEntries(['isolate', 'commit', 'close-check', 'brain/health', 'decision', 'settings', 'categories', 'close', 'reclaim', 'push', 'fetch', 'sync', 'pr'].map((r) => ['/kybernos-sessions/' + r, 256 * KIB])),
+    none: ['/kybernos-sessions/state'],
+  },
 ]
 
 // ── What a client and a handler see ─────────────────────────────────────────────────────────────────────────────────────────
