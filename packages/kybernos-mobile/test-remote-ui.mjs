@@ -296,6 +296,22 @@ console.log('the screen: the switch of the remote control (on by default = ready
   kb(none, 'phone-remote-switch').props.onClick()
   await none.settle()
   check('and pressing it asks the host to switch off, as anywhere else', enableBodies.length === 1 && enableBodies[0].on === false)
+  // L1-104 (recette 2026-10-25): on a plan without the link the card drew the paywall AND a green, active switch for « Open this computer on your phone ».
+  const wallSw = await mountDialog({ ...GOOD, entitled: false })
+  const lockedSwitch = kb(wallSw, 'phone-remote-switch')
+  check('a plan without the phone link: the switch is OFF and greyed, with the paywall\'s words as its title (nothing to switch on)', lockedSwitch !== null && lockedSwitch.props['aria-checked'] === 'false' && lockedSwitch.props.disabled === true && lockedSwitch.props.title === 'Not included in your plan' && kb(wallSw, 'mobile-paywall') !== null)
+  for (const known of [true, null]) {
+    const inPlan = await mountDialog({ ...GOOD, entitled: known })
+    const live = kb(inPlan, 'phone-remote-switch')
+    check('entitled ' + known + ' (in the plan, or not known yet): the switch is as before, ON and live', live.props['aria-checked'] === 'true' && live.props.disabled === false && live.props.title === undefined)
+  }
+  // The card shows the paywall only when nothing before it in the window applies (a DSH that cannot, a server that does not offer the link, a signed-out account): the switch follows.
+  for (const [label, extra] of [['a server that does not offer the link', { configured: false }], ['a signed-out account', { connected: false }], ['a DSH that cannot do the phone link', { available: false }]]) {
+    const other = await mountDialog({ ...GOOD, entitled: false, ...extra })
+    check(label + ' AND a plan without the link: the card says the first, the switch is not greyed for the plan', kb(other, 'mobile-paywall') === null && kb(other, 'phone-remote-switch').props.title === undefined && kb(other, 'phone-remote-switch').props['aria-checked'] === 'true')
+  }
+  const frWall = await mountDialog({ ...GOOD, entitled: false }, { lang: 'kybernos' })
+  check('in French the greyed switch says « Non inclus dans ton offre »', kb(frWall, 'phone-remote-switch').props.title === 'Non inclus dans ton offre')
   const unavailable = await mountDialog({ ...GOOD, available: false })
   check('a DSH that cannot do the phone link: the switch is greyed (nothing to switch), and the card says so in the same box', kb(unavailable, 'phone-remote-switch').props.disabled === true && kb(unavailable, 'mobile-unavailable') !== null && chipOf(unavailable).face === 'unavailable')
   const signedOut = await mountDialog({ ...GOOD, connected: false })
