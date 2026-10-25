@@ -7,6 +7,11 @@ import { createIndex } from './store.mjs'
 import { zstdFrames } from './zstd-frames.mjs'
 import { skills, lessons, automations, teams, frontMatter, allSources } from './sources.mjs'
 import { listSessions, mountRoutes, apply } from './index.js'
+import { sessionSource } from './session-guard.mjs'
+import { SESSION_SECRET, sessionCookie } from './lib-session-test.mjs'
+
+// The POST routes need the signed session as well as the Origin (L3-09): the Search everywhere dialog's own request carries both.
+sessionSource.secret = () => SESSION_SECRET
 
 let total = 0
 let failed = 0
@@ -184,7 +189,7 @@ console.log('the routes')
     return { req, res: { code: null, body: null, writeHead (c) { this.code = c }, end (b) { this.body = b === undefined ? null : JSON.parse(b) } } }
   }
   const call = async (path, method, headers, body) => { const { req, res } = mk(method, headers, body); await routes[path](req, res); return res }
-  const GOOD = { origin: 'http://127.0.0.1:3080', 'content-type': 'application/json' }
+  const GOOD = { origin: 'http://127.0.0.1:3080', cookie: sessionCookie('127.0.0.1:3080'), 'content-type': 'application/json' }
   ok('the four routes exist', ['/kybernos-search/status', '/kybernos-search/start', '/kybernos-search/reindex', '/kybernos-search/query'].every((p) => typeof routes[p] === 'function'))
   let r = await call('/kybernos-search/query', 'POST', GOOD, { q: 'theme' })
   ok('a query from the page answers with results', r.code === 200 && r.body.ok === true && fake.calls.length === 1)

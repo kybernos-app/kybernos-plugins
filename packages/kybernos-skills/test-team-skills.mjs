@@ -11,6 +11,11 @@ import assert from 'node:assert/strict'
 import { chmodSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { sessionSource } from './session-guard.mjs'
+import { SESSION_SECRET, sessionCookie } from './lib-session-test.mjs'
+
+// The POST routes need the signed session as well as the Origin (L3-17): the Skills page's own request carries both.
+sessionSource.secret = () => SESSION_SECRET
 import { skillVersion, validateTeamSkill, frontmatterOfText, scriptFiles, findSecret, TEAM_SKILL_LIMITS } from './team-skills.mjs'
 
 let pass = 0
@@ -331,7 +336,7 @@ try {
   const request = (method, headers, body) => ({ method, headers: headers || {}, socket: { localPort: 3080 }, async * [Symbol.asyncIterator] () { if (body !== undefined) yield Buffer.from(typeof body === 'string' ? body : JSON.stringify(body)) } })
   const response = () => { const r = { code: null, body: null, writeHead (c) { r.code = c }, end (s) { try { r.body = JSON.parse(s) } catch (e) { r.body = s } } }; return r }
   const call = async (path, method, headers, body) => { const res = response(); await routes[path](request(method, headers, body), res); return res }
-  const here = { origin: 'http://127.0.0.1:3080' }
+  const here = { origin: 'http://127.0.0.1:3080', cookie: sessionCookie('127.0.0.1:3080') }
 
   for (const path of [PACK, INSTALL]) {
     assert.equal((await call(path, 'GET', here)).code, 405, path + ' GET')

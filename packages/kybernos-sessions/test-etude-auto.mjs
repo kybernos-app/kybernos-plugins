@@ -12,6 +12,11 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { choisirEtudeAuto, modelesConnectes, ecartesDe, garderConnectes } from './etude-auto.mjs'
 import { monterRoutes } from './index.js'
+import { sessionSource } from './session-guard.mjs'
+import { SESSION_SECRET, sessionCookie } from './lib-session-test.mjs'
+
+// The POST routes need the signed session as well as the Origin (L3-18): the page's own request carries both.
+sessionSource.secret = () => SESSION_SECRET
 
 let ok0 = 0
 let ko = 0
@@ -159,7 +164,7 @@ console.log('\n── through the host: the settings answer, the health switch, 
   const GLOBAL = Symbol.for('kybernos.studyModel')
   delete globalThis[GLOBAL]
   monterRoutes({ register: (r) => { routes[r.path] = r.handler } }, { reglagesPath: reglages, categoriesPath: join(racine, 'kybernos', 'categories.json'), sessionsHome: join(racine, 'sessions'), ctx: { get: (n) => services[n] }, maintenant: () => horloge })
-  const requete = (method, path, corps) => ({ method, url: path, headers: { origin: 'http://127.0.0.1:' + PORT }, socket: { localPort: PORT }, on (ev, cb) { if (ev === 'data' && corps !== undefined) cb(JSON.stringify(corps)); if (ev === 'end') cb() } })
+  const requete = (method, path, corps) => ({ method, url: path, headers: { origin: 'http://127.0.0.1:' + PORT, cookie: sessionCookie('127.0.0.1:3080') }, socket: { localPort: PORT }, on (ev, cb) { if (ev === 'data' && corps !== undefined) cb(JSON.stringify(corps)); if (ev === 'end') cb() } })
   const reponse = () => { const r = { code: null, corps: null, writeHead (c) { r.code = c }, end (t) { try { r.corps = JSON.parse(t) } catch (e) { r.corps = t } } }; return r }
   const appeler = async (method, path, corps) => { const r = reponse(); await routes[path](requete(method, path, corps), r); return r.corps }
   const etude = async () => (await appeler('GET', '/kybernos-sessions/settings')).etude

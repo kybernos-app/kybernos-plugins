@@ -54,6 +54,7 @@ import { SCOUT_LIMITS, dismissFound, goalsOf, runScout, scanning, viewScout } fr
 import { answerNotice, forgetNotice, listNotices, noticeFor } from './learned-repeat.mjs'
 import { hideWeek, weekView } from './learned-week.mjs'
 import { readPicks } from './featured-picks.mjs'
+import { writeGuard } from './session-guard.mjs'
 // Hosted instance: also accept the authorities declared to DSH with --trusted-host. The core bundle publishes the predicate
 // (kybernos-plugin/trusted-authority.mjs); absent or failing, it answers false and the guard stays loopback-only.
 const kbTrusted = (host) => { try { const f = globalThis[Symbol.for('kybernos.trustedAuthority')]; return typeof f === 'function' && f(host) === true } catch (e) { return false } }
@@ -167,16 +168,6 @@ const dshHome = (env = process.env, osHome = homedir) => {
   if (raw === '') return join(osHome(), '.dsh')
   if (raw === '~') return osHome()
   return resolvePath(raw.startsWith('~/') || raw.startsWith('~\\') ? join(osHome(), raw.slice(2)) : raw)
-}
-
-const findProjectRoot = (cwd) => { // mirror of dsh-skill-filesystem/lib/index.js:807-815
-  let dir = cwd
-  for (;;) {
-    if (existsSync(join(dir, '.git'))) return dir
-    const parent = dirname(dir)
-    if (parent === dir) return cwd
-    dir = parent
-  }
 }
 
 // `home` is the OS home (it holds `.agents`); `dsh` is the DSH home (skills, journal, featured list,
@@ -1700,12 +1691,17 @@ const mountWebRoutes = (ctx, webServerSvc) => {
     try { sendJson(res, 200, await fn(req)) } catch (e) { sendJson(res, 200, { ok: false, error: 'request_failed' }) }
   } }), label)
 
-  // Guards verbatim and in this order: method first, origin second. No POST route
-  // touches the disk before both.
+  // Guards verbatim and in this order: method first, origin second, the signed session third. No POST route touches the disk (or the network) before all three.
+  // The third is DSH's signed browser session (session-guard.mjs, kybernos-terminal's rule, L3-17): plugin routes are served before DSH's own login and an Origin header is
+  // forgeable by any local program, so before it `curl -X POST -H 'Origin: …' .../covers/make` spent the person's DeepInfra key, `/install` downloaded and wrote a skill from any
+  // GitHub repository, and `/index-source/set` pointed the Discover index at another relay. Every caller is a page (Skills, Memory, the project skill sheet), which sends the cookie
+  // by itself; a paired phone is refused (`refused_on_phone`), except for `options.phoneMayRead`, which only a POST that reads says (skill/read: the screen of a skill).
   // `cap` is the body limit in bytes (default 64 KiB): Team skill routes carry up to a megabyte of files.
-  const POST = (path, label, fn, cap) => ctx.effect(() => webServerSvc.register({ kind: 'exact', path, handler: async (req, res) => {
+  const POST = (path, label, fn, cap, options) => ctx.effect(() => webServerSvc.register({ kind: 'exact', path, handler: async (req, res) => {
     if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'post_required' })
     if (sameOrigin(req) === false) return sendJson(res, 403, { ok: false, error: 'origin_refused' })
+    const refused = writeGuard(req, options)
+    if (refused !== null) return sendJson(res, refused.status, { ok: false, error: refused.error })
     try { sendJson(res, 200, await fn(await readJsonBody(req, cap), req)) } catch (e) { sendJson(res, 200, { ok: false, error: e !== null && e !== undefined && e.message === 'body_too_large' ? 'body_too_large' : 'request_failed' }) }
   } }), label)
 
@@ -1726,7 +1722,7 @@ const mountWebRoutes = (ctx, webServerSvc) => {
   // host will accept for this skill, so the screen offers nothing it would refuse.
   POST('/kybernos-skills/skill/read', 'kybernos-skills: route skill read', async (body, req) => readSkill({
     ctx, root: body.root, name: body.name, config: configOf(), sessionId: body.sessionId, req
-  }))
+  }), undefined, { phoneMayRead: true }) // it only reads (readSkill writes nothing): the Skills page of a paired phone opens a skill with it
   POST('/kybernos-skills/skill/reveal', 'kybernos-skills: route skill reveal', async (body, req) => revealSkill({
     ctx, root: body.root, name: body.name, target: body.target, config: configOf(), sessionId: body.sessionId, req
   }))

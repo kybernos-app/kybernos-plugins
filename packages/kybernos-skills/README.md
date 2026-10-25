@@ -131,6 +131,7 @@ All under `/kybernos-skills/`, JSON; refusals come back as HTTP 200 `{ok:false, 
 `node packages/kybernos-skills/test-picks.mjs` covers the Featured picks: the reader (what it keeps and drops), the shipped file (24 valid picks,
 both languages, no audit in failure), the `picks` route with its cover URLs, and the card on the screen (source level).
 
+`node packages/kybernos-skills/test-write-guard.mjs` covers the signed-session rule on every POST route (table-driven, on a throw-away home with the network replaced by a counter).
 `node packages/kybernos-skills/test-origin.mjs` covers the POST same-origin guard, unit by unit and through the eleven POST routes
 mounted on a fake context. `test-skill-routes.mjs` covers the panel's host half on a throw-away home (read, open, duplicate, delete,
 the preview against a stub of the two GitHub hosts). `test-ui.mjs` renders the screen with a few lines of React and a fake host:
@@ -143,9 +144,10 @@ harness is in this repo.
 
 ## Known limits
 
-- DSH serves plugin routes before its own auth, so the POST guard (`sameOrigin`, same rule as `sameOriginStrict` in the core) requires
-  an `Origin` (or a `Referer`) from this machine, compared with the socket's real listening address and not with the `Host` header.
-  It cannot stop a local process that forges an `Origin`: only authentication would. The GET routes have no guard.
+- DSH serves plugin routes before its own auth, so the POST guard requires an `Origin` (or a `Referer`) from this machine (`sameOrigin`, same rule as `sameOriginStrict` in the core),
+  compared with the socket's real listening address and not with the `Host` header, **and DSH's signed session cookie** (`session-guard.mjs`, L3-17): an Origin alone is forgeable by any local
+  program, and these routes spend the DeepInfra key, install from GitHub and write skills. 401 without the cookie, 403 `refused_on_phone` through the phone link, except `skill/read`, a POST that only reads.
+  `test-write-guard.mjs` enumerates the routes and fails on a POST route that is not guarded. The GET routes have no guard.
 - *Delete* is permanent (no trash) and only reaches a skill folder inside `~/.dsh/skills` or `~/.agents/skills`; *Open folder* and
   *Edit* open a window on the machine DSH runs on, so a DSH reached from another address is not offered them. *Edit* hands
   `SKILL.md` to the machine's text editor: there is no in-app editor (a save route would have to keep the frontmatter valid, or the

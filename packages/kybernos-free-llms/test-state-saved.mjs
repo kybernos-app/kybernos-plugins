@@ -23,6 +23,10 @@ globalThis.fetch = async (url) => {
 }
 
 const { apply } = await import('./index.js')
+const { sessionSource } = await import('./session-guard.mjs')
+const { SESSION_SECRET, sessionCookie } = await import('./lib-session-test.mjs')
+// enable, disable and auto-enable need the signed session as well as the Origin (L3-21): the panel's own request carries both.
+sessionSource.secret = () => SESSION_SECRET
 
 const routes = new Map()
 const mutations = []
@@ -37,7 +41,7 @@ const ok = (label) => { pass += 1; console.log('  ✓ ' + label) }
 const post = async (path, body) => {
   const raw = JSON.stringify(body)
   const req = {
-    method: 'POST', url: path, headers: { host: '127.0.0.1:3080', origin: 'http://127.0.0.1:3080' }, socket: { localPort: 3080 },
+    method: 'POST', url: path, headers: { host: '127.0.0.1:3080', origin: 'http://127.0.0.1:3080', cookie: sessionCookie('127.0.0.1:3080') }, socket: { localPort: 3080 },
     on (ev, cb) { if (ev === 'data') cb(raw); if (ev === 'end') cb() },
   }
   const out = { status: 0, body: null }

@@ -15,6 +15,11 @@ import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync, existsSync
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { origineOK, monterRoutes } from './index.js'
+import { sessionSource } from './session-guard.mjs'
+import { SESSION_SECRET, sessionCookie } from './lib-session-test.mjs'
+
+// The POST routes need the signed session as well as the Origin (L3-18): the page's own request carries both.
+sessionSource.secret = () => SESSION_SECRET
 
 let ok0 = 0
 let ko = 0
@@ -101,7 +106,7 @@ ok('every route also refuses a foreign origin', true)
 
 console.log('\n── the GUI keeps working ──')
 {
-  const bon = { origin: 'http://127.0.0.1:' + PORT }
+  const bon = { origin: 'http://127.0.0.1:' + PORT, cookie: sessionCookie('127.0.0.1:' + PORT) }
   const get = reponse()
   await routes['/kybernos-sessions/settings'](requete('GET', '/kybernos-sessions/settings', {}), get)
   ok('GET /settings without an origin still answers (a plain read)', get.code === 200 && get.corps.ok === true, { code: get.code })
@@ -110,7 +115,7 @@ console.log('\n── the GUI keeps working ──')
   ok('POST /settings from the GUI origin is accepted', post.code === 200 && post.corps.ok === true, { code: post.code, corps: post.corps })
   ok('and it did its job (secret kept, value written)', JSON.parse(readFileSync(reglages, 'utf8')).brain === 'c/d' && JSON.parse(readFileSync(reglages, 'utf8')).pairingToken === 'pt-secret-123')
   const referer = reponse()
-  await routes['/kybernos-sessions/settings'](requete('POST', '/kybernos-sessions/settings', { referer: 'http://localhost:' + PORT + '/' }, { brain: 'e/f' }), referer)
+  await routes['/kybernos-sessions/settings'](requete('POST', '/kybernos-sessions/settings', { referer: 'http://localhost:' + PORT + '/', cookie: sessionCookie('127.0.0.1:' + PORT) }, { brain: 'e/f' }), referer)
   ok('POST /settings with only a same-machine Referer is accepted', referer.code === 200 && referer.corps.ok === true, { code: referer.code })
   // A value the page sent that is not acceptable is the caller's mistake (400), not a failure of the host (500).
   for (const [nom, corps] of [['brain', { brain: 'x'.repeat(201) }], ['brain', { brain: 'None' }], ['voiceInput', { voiceInput: 'telepathy' }], ['autoWhitelist', { autoWhitelist: ['a/b', 'a/b'] }]]) {
@@ -128,8 +133,8 @@ console.log('\n── the GUI keeps working ──')
   await routes['/kybernos-sessions/settings'](requete('POST', '/kybernos-sessions/settings', bon, { brain: 'none' }), aucun)
   ok('POST /settings brain « none » (no Study model) is accepted', aucun.code === 200 && JSON.parse(readFileSync(reglages, 'utf8')).brain === 'none', { code: aucun.code })
   const script = reponse()
-  await routes['/kybernos-sessions/categories'](requete('POST', '/kybernos-sessions/categories', { origin: 'http://127.0.0.1:' + PORT, 'sec-fetch-site': 'same-origin', cookie: 'x=1' }, { session: 's1', cat: 'inexistante', titre: 't' }), script)
-  ok('the naming script (Node fetch with an explicit origin, as dsh-relance.mjs sends) passes the guard', script.code !== 403, { code: script.code })
+  await routes['/kybernos-sessions/categories'](requete('POST', '/kybernos-sessions/categories', { origin: 'http://127.0.0.1:' + PORT, 'sec-fetch-site': 'same-origin', cookie: sessionCookie('127.0.0.1:' + PORT) }, { session: 's1', cat: 'inexistante', titre: 't' }), script)
+  ok('the naming script (Node fetch with an explicit origin, as dsh-relance.mjs sends) passes the guard, Origin and signed cookie (L3-18)', script.code !== 403 && script.code !== 401, { code: script.code })
 }
 
 rmSync(racine, { recursive: true, force: true })

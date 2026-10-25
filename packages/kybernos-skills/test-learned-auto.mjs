@@ -9,6 +9,11 @@ import assert from 'node:assert/strict'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { sessionSource } from './session-guard.mjs'
+import { SESSION_SECRET, sessionCookie } from './lib-session-test.mjs'
+
+// The POST routes need the signed session as well as the Origin (L3-17): the Skills page's own request carries both.
+sessionSource.secret = () => SESSION_SECRET
 
 const base = mkdtempSync(join(tmpdir(), 'kb-learned-auto-'))
 const dsh = join(base, '.dsh')
@@ -396,7 +401,7 @@ try {
   const registry = { async snapshot () { return { complete: true, skills: [] } }, invalidateCache () { registry.invalidated = (registry.invalidated || 0) + 1 } }
   apply({ inject (_deps, fn) { fn({ get: (n) => (n === 'webServer' ? webServer : n === 'skills' ? registry : undefined), effect: (f) => f() }) } })
   const PORT = 3080
-  const request = (method, body, origin, url) => ({ method, headers: origin === null ? {} : { origin }, socket: { localPort: PORT }, url: url || '/', async * [Symbol.asyncIterator] () { if (body !== undefined) yield Buffer.from(JSON.stringify(body)) } })
+  const request = (method, body, origin, url) => ({ method, headers: origin === null ? {} : { origin, cookie: sessionCookie('127.0.0.1:' + PORT) }, socket: { localPort: PORT }, url: url || '/', async * [Symbol.asyncIterator] () { if (body !== undefined) yield Buffer.from(JSON.stringify(body)) } })
   const call = async (method, path, body, origin = 'http://127.0.0.1:' + PORT, url) => { const res = { code: null, body: null, writeHead (c) { res.code = c }, end (t) { try { res.body = JSON.parse(t) } catch (e2) { res.body = t } } }; await routes['/kybernos-skills/' + path](request(method, body, origin, url), res); return res }
   for (const pth of ['learned/settings/set', 'learned/keep', 'learned/stop']) {
     assert.equal((await call('POST', pth, {}, null)).code, 403, pth + ' refuses a call with no origin')

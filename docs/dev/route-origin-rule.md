@@ -27,10 +27,12 @@ the only thing that tells a stolen phone from the browser). A read of a cookie-g
 (`kbTasksRefused`, which keep their own cookie check) refuse the marker the same way. `node scripts/test-tunnel-routes.mjs` enumerates every cookie-level write route (through
 `scripts/audit-routes.mjs`, probe E) and fails on one that lets the marker through.
 
-Two POSTs only read, and a phone's pages ask for lists with a POST, so a phone may make them. They are the whole exception, a table in `scripts/test-tunnel-routes.mjs` (what makes each a read,
+Four POSTs only read, and a phone's pages ask for lists and for the text of something with a POST, so a phone may make them. They are the whole exception, a table in `scripts/test-tunnel-routes.mjs` (what makes each a read,
 the body that must pass, the bodies of the same route that must still be refused): `/kybernos/tasks` with `{ action: 'list' }` (any other action creates, changes, deletes or runs an automation;
-the list sent to a phone carries no webhook secret) and `/kybernos-models/models/live` (one GET of the provider's model list, nothing stored; its siblings `models/probe`, `key/check` and the
-provider routes stay refused). `writeGuard(req, { phoneMayRead: true })` is how a route that has checked, in its own source, that its POST only reads says so; nothing else excuses the marker.
+the list sent to a phone carries no webhook secret), `/kybernos-models/models/live` (one GET of the provider's model list, nothing stored; its siblings `models/probe`, `key/check` and the
+provider routes stay refused), `/kybernos-skills/skill/read` (the SKILL.md of a listed skill, which the Skills page of a phone opens; its siblings reveal, duplicate, delete, install, toggle, create,
+covers/make and index-source/set stay refused) and `/kybernos-search/query` (a search of the index the desktop kept on disk; `start` and `reindex` stay refused, so a phone searches what the
+desktop has indexed). `writeGuard(req, { phoneMayRead: true })` is how a route that has checked, in its own source, that its POST only reads says so; nothing else excuses the marker.
 
 `kybernos-terminal`'s run route was the first to ask for it; `kybernos-plugin`'s `/kybernos/tasks` is the second. `packages/<bundle>/session-guard.mjs`
 is the terminal's own code, word for word (`autorites`, `origineOK`, `dshHome`, `lireSecretSession`, `cookieSessionValide`) plus one function that joins
@@ -66,8 +68,18 @@ request left the files and the outside world as they were.
 | `kybernos-miniapps` | `/install` (writes a native app and launches it), `/uninstall` |
 | `kybernos-plugin` | L6-02: the socle writes that were behind `sameOriginStrict` alone — `/kybernos/save` (rewrites `kyber.yml`), `/kybernos/create`, `/kybernos/workspace-ui-save`, `/kybernos/workspace-delete` (removes a workspace and purges its UI store), `/kybernos/pins`, `/kybernos/share`, `/kybernos/active-set`, `/kybernos/avatar-save` — plus the three they already had (`/kybernos/feedback`, `/feedback/export`, `/feedback/send`). 2026-10-24 (interfaces audit): the Agent Team writes `/kybernos/yml-appliquer`, `/ui-save`, `/menu-save`, `/insight-save`, `/team-portraits`, `/member-portrait` and `/voice-sample` (POST and DELETE; its GET list stays a read), and `/kybernos/art-action` (delete, rename and duplicate of a Creations file). Team automations, the local half (born with the pair): `/kybernos/automation/team-pack`, `team-copies`, `team-install` and `team-update` (POST: they carry prompts and an install or update writes `tasks.json`). The GET routes of the bundle keep their strict same-origin rule |
 | `kybernos-call` | L1-01: `/keys` (writes the LiveKit / Groq / ElevenLabs / LiveAvatar keys), `/engine` (it installs the call engine: venv and `pip install`), `/clone`, `/test` (one provider call), `/preset`, `/avatars` (it asks the face provider). The page of the settings tab sends both halves |
+| `kybernos-hub` | (2026-10-25, L3-14) the five POSTs of the Suite panel and Maintenance: `/module` (activate, deactivate, **install** a module), `/relaunch` (restarts DSH), `/engine` (replaces the DSH engine), `/update` (replaces the whole suite) and `/catalogue/refresh`. All five go through `corpsJson`. The boot beacon stays at the Origin alone (see the exceptions) |
+| `kybernos-workers` | (L3-15) `/install` (starts « curl … \| bash » or `npm install -g` for up to fifteen minutes), `/activate` (mounts a package in `cordis.patch.yml`), `/policy` (rewrites that patch) and `/check` (runs the agents' binaries). All four go through `corpsJson`. The README no longer says « it does not check DSH's session cookie » |
+| `kybernos-servers` | (L3-16) `/add`, `/switch`, `/rename`, `/remove` and `/check`: a server is an address, and the addresses in its profile are where the account token and the model traffic go; `check` makes this computer call any address. `session: true` on the five rows of `ROUTES`. The host's own loopback call to `/kybernos-cloud/server/apply` is a caller of the cloud bundle's row (see the exceptions) |
+| `kybernos-skills` | (L3-17) the 28 POSTs of the Skills page, from the one `POST` wrapper of `index.js`: `covers/make` and `covers/auto` (they spend the DeepInfra key), `install` and `team/install` (they download and write a skill), `index-source/set` (it points Discover at another relay), `create`, `toggle`, `featured/toggle`, `skill/duplicate`, `skill/delete`, `skill/reveal`, `team/pack`, the `learned/*` family and `scout/*`. `skill/read` asks for the cookie too and is a phone read (below) |
+| `kybernos-search` | (L3-09) `query` (it returns the text of the chats, the automations' prompts, the lessons and the agents: a **read**, behind the cookie as « The reads » below asks), `start` and `reindex` (they read every journal). The three go through the one `post` wrapper. `query` is a phone read |
+| `kybernos-websearch` | (L3-20) `/key` (stores or clears a search key), `/settings` (the address every search is sent to), `/test` (this computer calls the engine's address) and `/seam`. The state (a GET) stays open behind the Host fence |
+| `kybernos-free-llms` | (L3-21) `/enable`, `/disable` and `/auto-enable`: they write the `opencode-free` provider into DSH's settings, so what the person types leaves for opencode.ai. The engine's gateway routes keep the « not from another page » rule (below) |
+| `kybernos-sessions` | (L3-18) the thirteen POSTs: the git and gh actions `isolate`, `commit`, `close-check`, `close`, `reclaim`, `push`, `fetch`, `sync`, `pr` (a push publishes, `pr` with `merge` merges as the person), `settings` and `categories` (files the agents read) and the Study-model calls `brain/health` and `decision`. `scripts/dsh-relance.mjs` signs its own cookie for `categories`. `/commit` also runs git with `GIT_LITERAL_PATHSPECS=1`, so a path that begins with `:` is a file name and not pathspec magic |
 
-Every one of them is called by a page, so the browser sends the Origin and the cookie itself (`scripts/check-write-guard-live.mjs` clicks the Auto
+Every one of them is called by a page, so the browser sends the Origin and the cookie itself (`scripts/check-bundle-guards-live.mjs` plays the 65 routes of the eight bundles of fix 7 from a local program and
+from the signed-in page, and clicks the Suite, Workers, Servers, Web search, Learned skills, Skills install and Search everywhere pages, reading the status the browser got for each request and the
+Origin and cookie it put on the wire; `scripts/check-write-guard-live.mjs` clicks the Auto
 Routing, Memory options and Cloud computers pages in a real GUI and reads what the browser got back). The phone link (`kybernos-mobile`) replays a phone's
 requests with `Origin` and the machine's cookie, so a **read** passes; a **write** carries the `x-kybernos-tunnel` marker and is refused (above). What a phone's page asks of these
 routes is therefore refused (403 `refused_on_phone`): pinning a chat, changing the layout or the team space, the Run button of a code block, a message to another session. The reads a page sends
@@ -101,6 +113,15 @@ Turning that refusal into a list of writes the phone may make (decision DL-11 of
   token when it creates the conversation, hands it back **once** in the answer to `/message`, stores it in the conversation's own record (never in the GET
   listing) and refuses a delete without it (**403**, nothing on disk moves). The token is the visitor's fence, not a session: the widget stays reachable
   from any site (`packages/kybernos-plugin/test-widget-history-delete.mjs`).
+- **The boot beacon `POST /kybernos-hub/beacon` (2026-10-25).** It is the crash detector of the hub: the page tells the host that a GUI loaded, stayed up, or showed DSH's « Failed to load
+  plugins » screen. A detector that needs the session it exists to survive goes blind exactly when it matters (a session that cannot be judged would count every boot as failed), and the
+  worst a forged verdict does is show the « safe mode is recommended » banner: safe mode itself is only turned on by the person, with the lifecycle robot. It keeps the strict Origin.
+  The five other POSTs of the hub ask for the cookie.
+- **Where the decided exceptions live (2026-10-25).** The list is in `scripts/route-guard-exceptions.mjs`, in two parts. `EXCEPTIONS` are decisions, each with the caller that cannot
+  send the cookie or the reason the route is public: this section is their prose. `QUEUED` are debts, not decisions: routes that should take the cookie and have not, each with who
+  converts it. `node scripts/audit-routes.mjs --check` exits 1 on a write route that an Origin alone lets through and that is in neither list, and on an entry that matches no such route
+  any more (a stale entry would hide the day the route is weakened again); `scripts/test-route-guards.mjs` runs it in CI and, on the real table, weakens each of the 65 routes of
+  the eight bundles converted in fix 7 in turn and checks that the verdict names exactly that route.
 
 ## The counts, measured
 
@@ -129,7 +150,11 @@ non-browser callers above — and each of them genuinely has no session to offer
 
 `kybernos-slash` `/entries` (POST) has left this table: it is `POST:cookie` now, and the agent's path is the `enregistrer_entree` tool (above).
 
-Every other write route is under the rule. No route that used to answer a write fails for its real caller: the bundle harnesses (`test-cloud-host.mjs`,
+That sentence stood here: « every other write route is under the rule ». It was not true. Measured on 2026-10-25 (recette), 151 write routes of 19 bundles were still at the Origin alone
+(145 at `strict`, 3 at `origin`, 3 at `open`), and nothing failed. After fix 7 (the eight bundles above) the table says 80 write routes at `strict`, 3 at `origin`, 3 at `open` and 207 under the cookie, and
+`node scripts/audit-routes.mjs --check` writes down every one of the 146 route-methods an Origin alone still lets through (an every-method read counts once per write method): 76 decided
+(`EXCEPTIONS`) and 70 queued (`QUEUED`: the cloud and core bundles of fix/cookie-guards, `kybernos-call` of fix 6, Kaby customisation, usage and multi-device of L3-29, and the dashboards, theme,
+maintenance and flow routes that no finding names). The queued list must only shrink. No route that used to answer a write fails for its real caller: the bundle harnesses (`test-cloud-host.mjs`,
 `test-account-state.mjs`, `test-unplug-host.mjs`, `test-write-guard.mjs` of each bundle) call the converted routes the way the page does — the right Origin
 **and** the signed cookie — and the live checks that stay green drive the real pages. The six bundles converted last (modeles-locaux, modeleur, motion, bricks,
 slides, slash) each carry their own copy of `session-guard.mjs` and a `test-write-guard.mjs` that proves the four refusals and the real pair; motion and slides also
@@ -153,6 +178,10 @@ alone** (the gate's copy of DSH's cookie is `SameSite=Strict`, so a foreign page
   `/kybernos/composio/connections` the connected apps and their account ids.
 - **Paths and machine:** `/kybernos-skills/skills`, `/status` and `/featured` (the skills folders), `/kybernos-models/journal`, `/kybernos/tools/state`, `/kybernos/tts/cache`,
   `/kybernos/slash/entries` and `/status`, `/kybernos-miniapps/list`, `/modeles-locaux/machine` (chip, memory, models installed), `/kybernos/workspace-usage`.
+
+Done since (2026-10-25, L3-09): `POST /kybernos-search/query` (Search everywhere: the text of every chat, 8,000 characters of a message with its title and folder, the prompts of the
+automations, the lessons and the agents) is behind the cookie, with `start` and `reindex`. It is a read that took a POST; a phone may make it (above). A shell cannot reach it any more:
+`scripts/test-team-memory-cut.mjs` already refuses `curl … /kybernos-search/query` in a team space, and the route now refuses it without the session as well.
 
 Proposal: the session cookie on the chat-content group first (`search-content`, `load`, `runs`, `runs-index`, `calls`, `calls-index`, `insight`, `doc-raw`,
 `quality-*`), then on the paths group. Two things to settle before: `kybernos-dashboards` fetches `/kybernos/load`, `/runs-index` and `/kybernos-skills/skills` from its page
