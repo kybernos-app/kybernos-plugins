@@ -31,9 +31,9 @@ export const PLATFORMS = {
     states: { 0: 'not installed', 1: 'not running', 3: 'background', 4: 'foreground' },
     capabilities: ({ device, osVersion, appUrl }) => ({ platformName: 'android', 'appium:deviceName': device, 'appium:platformVersion': osVersion, 'appium:automationName': 'UiAutomator2', 'appium:app': appUrl, 'appium:autoGrantPermissions': true }),
     // BrowserStack's Appium 1.22 knows none of `mobile: queryAppState`, `pressKey`, `activateApp`: the older session endpoints do the same (found on a Pixel 9 run)
-    queryState: (id) => [{ path: '/appium/device/app_state', body: { appId: id, bundleId: id } }],
+    queryState: (id) => [{ path: '/appium/device/app_state', body: { appId: id } }], // exactly one of appId / bundleId: both is refused (found on the fourth Pixel 9 run)
     goHome: () => [{ path: '/appium/device/press_keycode', body: { keycode: 3 } }, { script: 'mobile: shell', args: [{ command: 'input', args: ['keyevent', '3'] }] }],
-    comeBack: (id) => [{ path: '/appium/device/activate_app', body: { appId: id, bundleId: id } }, { script: 'mobile: startActivity', args: [{ component: id + '/.MainActivity' }] }],
+    comeBack: (id) => [{ path: '/appium/device/activate_app', body: { appId: id } }, { script: 'mobile: startActivity', args: [{ component: id + '/.MainActivity' }] }],
     // the web page's own text is not in UiAutomator2's page source: the self-test label under it is what shows the page, and the engine behind it, came up
     labelMeansReady: true,
     // the page source lists each native view with `text` and `content-desc`
