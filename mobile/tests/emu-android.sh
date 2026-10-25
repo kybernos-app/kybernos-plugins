@@ -3,7 +3,7 @@
 # result file lives in the app's external files folder, which `adb shell` reads):
 #   S1 first launch: the web page is up within READY_MAX seconds and the self-test automation fires,
 #   S4 kill and warm relaunch: the page is up again within WARM_MAX seconds and the first automation is still there (taskCount >= 2).
-# Gates (plan section 4, L6): APK at most 200 MB, payload at most 70 MB. Pass the emulator's name with AVD=... to have it started headless when no device is attached.
+# Gates (plan section 4, L6): APK at most 200 MB, payload at most 70 MB. Name the emulator with AVD=... (see the device rule below).
 #   mobile/tests/emu-android.sh
 set -uo pipefail
 cd "$(dirname "$0")/../app"
@@ -15,12 +15,20 @@ R=/sdcard/Android/data/$PKG/files/selftest-result.json
 DELAY=${SELFTEST_DELAY:-75}; READY_MAX=${READY_MAX:-30}; WARM_MAX=${WARM_MAX:-30}
 fail=0; say() { printf '%s\n' "$*"; }; bad() { say "FAIL: $*"; fail=1; }
 [ -f "$APK" ] || { say "no APK at $APK (build it first: cd android && ./gradlew assembleRelease)"; exit 2; }
-if [ -z "$(adb devices | sed 1d | grep -w device)" ]; then
-  [ -n "${AVD:-}" ] || { say "no device attached (set AVD=<name> to start an emulator)"; exit 2; }
-  (nohup emulator -avd "$AVD" -no-window -no-audio -no-snapshot -gpu swiftshader_indirect >/dev/null 2>&1 &)
-  i=0; until [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = 1 ] || [ $i -ge 60 ]; do sleep 5; i=$((i+1)); done
-  [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = 1 ] || { say "the emulator did not boot"; exit 2; }
+# Which device: AVD=<name> always uses that emulator (started headless when it is not up) and never a phone that happens to be plugged in; ANDROID_SERIAL=<serial> picks a device on purpose;
+# otherwise exactly one attached device is used and several are refused.
+if [ -n "${AVD:-}" ]; then
+  export ANDROID_SERIAL=emulator-5554
+  if ! adb devices | grep -q "^emulator-5554[[:space:]]*device"; then
+    (nohup emulator -avd "$AVD" -no-window -no-audio -no-snapshot -gpu swiftshader_indirect >/dev/null 2>&1 &)
+    i=0; until [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = 1 ] || [ $i -ge 60 ]; do sleep 5; i=$((i+1)); done
+    [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = 1 ] || { say "the emulator did not boot"; exit 2; }
+  fi
+elif [ -z "${ANDROID_SERIAL:-}" ]; then
+  n=$(adb devices | sed 1d | grep -cw device)
+  [ "$n" = 1 ] || { say "$n devices attached: set AVD=<emulator name> or ANDROID_SERIAL=<serial>"; exit 2; }
 fi
+say "device: $(adb shell getprop ro.product.model | tr -d '\r') (${ANDROID_SERIAL:-the only one attached})"
 
 mb=$(python3 -c "import os;print(round(os.path.getsize('$APK')/1048576))")
 pk=$(unzip -l "$APK" | awk '/assets\/payload.kbpack/ {print int($1/1048576)}')

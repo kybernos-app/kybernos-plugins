@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar'
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context'
 import { WebView } from 'react-native-webview'
 import { host } from './modules/kybernos-host/src'
+import { bootDiagnosticsText } from './src/bootlog'
 import { redact } from './src/redact'
 import { runSelfTest } from './src/selftest'
 import { BootState, createSupervisor } from './src/supervisor'
@@ -17,6 +18,7 @@ export default function App() {
   const [showLog, setShowLog] = useState(false)
   const [log, setLog] = useState('')
   const [selfTest, setSelfTest] = useState<string | null>(null)
+  const [diagnostics, setDiagnostics] = useState('')
   const started = useRef(false)
 
   useEffect(() => {
@@ -27,6 +29,16 @@ export default function App() {
     const sub = AppState.addEventListener('change', (s) => { if (s === 'active') void supervisor.healthCheck().then((ok) => console.log('kybernos: server answers after foreground: ' + ok)) })
     return () => { off(); sub.remove(); supervisor.stop() }
   }, [supervisor])
+
+  // while the engine is not ready the screen says what it is doing: a start that hangs must show where
+  useEffect(() => {
+    if (!supervisor || !host || state.phase === 'ready') return
+    const t0 = Date.now()
+    const tick = () => setDiagnostics(bootDiagnosticsText(supervisor.diagnostics(), host!.logTail(4096), Math.round((Date.now() - t0) / 1000)))
+    tick()
+    const id = setInterval(tick, 2000)
+    return () => clearInterval(id)
+  }, [supervisor, state.phase === 'ready'])
 
   useEffect(() => {
     if (state.phase !== 'ready' || !host || host.selfTestDelay === null) return
@@ -55,7 +67,8 @@ export default function App() {
       ) : (
         <View style={styles.boot}>
           <Text testID="boot-status" style={styles.status}>{describe(state)}</Text>
-          {state.phase === 'unpacking' && <View style={styles.track}><View style={[styles.bar, { width: `${state.total > 0 ? Math.round((state.done / state.total) * 100) : 0}%` }]} /></View>}
+          {(state.phase === 'unpacking' || state.phase === 'copying') && <View style={styles.track}><View style={[styles.bar, { width: `${state.total > 0 ? Math.round((state.done / state.total) * 100) : 0}%` }]} /></View>}
+          {diagnostics !== '' && <Text testID="boot-log" accessibilityLabel={diagnostics} style={styles.diagnostics}>{diagnostics}</Text>}
           <Pressable testID="show-log" onPress={openLog}><Text style={styles.link}>Show log</Text></Pressable>
         </View>
       )}
@@ -72,6 +85,7 @@ export default function App() {
 const describe = (s: BootState): string => {
   switch (s.phase) {
     case 'starting': return 'Starting Kybernos…'
+    case 'copying': return `First launch: copying the runtime out of the app (${s.done} of ${s.total} files)`
     case 'unpacking': return `First launch: preparing the runtime (${s.done} of ${s.total} files)`
     case 'booting': return 'Starting the engine…'
     case 'ready': return 'Ready'
@@ -85,6 +99,7 @@ const styles = StyleSheet.create({
   status: { color: '#fff', fontSize: 17, textAlign: 'center' },
   track: { height: 4, backgroundColor: '#333', borderRadius: 2, overflow: 'hidden' },
   bar: { height: 4, backgroundColor: '#fff' },
+  diagnostics: { color: '#8a8a95', fontSize: 10, fontFamily: Platform.select({ ios: 'Menlo', default: 'monospace' }) },
   link: { color: '#8ab4ff', fontSize: 16, textAlign: 'center', padding: 8 },
   logPage: { flex: 1, backgroundColor: '#fff', padding: 12 },
   logText: { fontFamily: Platform.select({ ios: 'Menlo', default: 'monospace' }), fontSize: 11 },

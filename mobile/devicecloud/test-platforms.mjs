@@ -14,6 +14,9 @@ assert.equal(android.selfTestText(androidXml), 'selftest: created, due 10:48 UTC
 assert.equal(android.selfTestText('<android.widget.TextView text="hello"/>'), null)
 assert.equal(android.pageUp('<android.view.View text="Get started"/>'), true)
 
+assert.equal(ios.engineLog('<x label="engine log: 40 s, status starting, probe none yet&#10;booting"/>'), 'engine log: 40 s, status starting, probe none yet\nbooting')
+assert.equal(android.engineLog('<x text="engine log: 7 s, status copying 2/4"/>'), 'engine log: 7 s, status copying 2/4')
+assert.equal(android.engineLog('<x text="hello"/>'), null)
 assert.deepEqual(ios.queryState('app.x'), ['mobile: queryAppState', [{ bundleId: 'app.x' }]])
 assert.deepEqual(android.queryState('app.x'), ['mobile: queryAppState', [{ appId: 'app.x' }]])
 assert.deepEqual(android.goHome(), ['mobile: pressKey', [{ keycode: 3 }]])

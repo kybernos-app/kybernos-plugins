@@ -45,11 +45,14 @@ export const runSession = async ({ platform = 'ios', appUrl, device, osVersion, 
     await shot('01-just-launched')
 
     // 1. first launch: follow the native start-up text, wait for the web page and for the self-test automation to be created
-    let lastLabel = null; let lastSelf = null; let pageAt = null; const samples = []
+    let lastLabel = null; let lastSelf = null; let pageAt = null; let lastDiagAt = 0; const samples = []
     while (Date.now() < DEADLINE - 6 * 60 * 1000) {
       const xml = await source(); const label = labelOf(xml); const st = selftestOf(xml)
       if (label !== lastLabel) { samples.push([(Date.now() - launchedAt) / 1000, label]); log('start-up text: ' + (label ?? '(none)')); lastLabel = label }
       if (st !== lastSelf) { log('selftest label: ' + st); lastSelf = st }
+      // a start that hangs says where, every 30 s: the boot screen shows the engine's status, its log tail and the last probe
+      const diag = P.engineLog(xml)
+      if (diag !== null && Date.now() - lastDiagAt > 30000) { lastDiagAt = Date.now(); log('boot screen: ' + diag.replace(/\n/g, ' | ')); result.bootScreen = diag }
       if (pageUp(xml) && pageAt === null) { pageAt = (Date.now() - launchedAt) / 1000; log('the Kybernos page is on screen ' + pageAt.toFixed(1) + ' s after the first look') }
       if (st && /created, due/.test(st)) break
       if (label && /engine stopped/.test(label)) break
