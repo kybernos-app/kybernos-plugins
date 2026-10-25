@@ -37,7 +37,7 @@
 // applied by the proxy on every request — this plugin filters nothing.
 import { execFileSync, spawn } from 'node:child_process'
 import { timingSafeEqual } from 'node:crypto'
-import { appendFileSync, chmodSync, mkdirSync, readFileSync, readdirSync, realpathSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { appendFileSync, chmodSync, closeSync, fsyncSync, mkdirSync, openSync, readFileSync, readdirSync, realpathSync, renameSync, rmSync, statSync, writeFileSync, writeSync } from 'node:fs'
 import { homedir, hostname, platform } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { lireCatalogue, resoudreItem, slugSur, ymlDuKyber, verdictInstallation } from './marketplace-kyber.mjs'
@@ -136,33 +136,108 @@ const deviceLabel = (port = listenPort) => {
   return name + suffix
 }
 
-const readState = () => {
-  try {
-    const parsed = JSON.parse(readFileSync(stateFile(), 'utf8'))
-    return parsed !== null && typeof parsed === 'object' ? parsed : null
-  } catch (e) {
-    return null
-  }
-}
-
-/** `readState` for a decision about the SPACE: no connection file is `null` (not connected), but a file that is there and cannot be read now (a write
- *  caught half way, bad rights, damaged JSON) is UNREADABLE — connected, space unknown — which `spaceOf` reads as a team space. */
-const readStateForSpace = () => {
-  let raw
-  try { raw = readFileSync(stateFile(), 'utf8') } catch (e) { return e !== null && typeof e === 'object' && (e.code === 'ENOENT' || e.code === 'ENOTDIR') ? null : UNREADABLE }
+// ── Files that must survive a cut (recette L3-83 and L3-57) ────────────────────────────────────────────────────────────────────────────────
+// The connection file holds the device token: when it is damaged DSH takes the person for signed out (no message, the token lost, the device left alive at the server). It used to be written in
+// place (opened and emptied, then filled), so a power cut, a full disk or a kill in between left a truncated file. Now it is written the way computer-identity.mjs writes the identity: a
+// temporary file beside it, flushed to disk, then renamed over it, so a reader sees the old file or the new one, never half of either; and the last good version is kept as `<file>.bak`, which
+// is read when the file itself cannot be (a file that is simply absent is NOT replaced by its copy: that is a sign-out, and `clearState` removes both).
+const parseObject = (raw) => {
   try {
     const parsed = JSON.parse(raw)
-    return parsed !== null && typeof parsed === 'object' && Array.isArray(parsed) !== true ? parsed : UNREADABLE
-  } catch (e) { return UNREADABLE }
+    return parsed !== null && typeof parsed === 'object' && Array.isArray(parsed) !== true ? parsed : null
+  } catch (e) { return null }
 }
+/** One JSON file that holds an object: `{ kind: 'absent' }`, `{ kind: 'unreadable' }` (there, but empty, cut, damaged, not an object, or refused by the disk) or `{ kind: 'ok', value }`. */
+const loadObjectFile = (file) => {
+  let raw
+  try { raw = readFileSync(file, 'utf8') } catch (e) { return e !== null && typeof e === 'object' && (e.code === 'ENOENT' || e.code === 'ENOTDIR') ? { kind: 'absent' } : { kind: 'unreadable' } }
+  const value = parseObject(raw)
+  return value === null ? { kind: 'unreadable' } : { kind: 'ok', value }
+}
+/** `loadObjectFile`, and when the file is there but unreadable, its `.bak` (`fromBackup: true`). Absent stays absent. */
+const loadWithBackup = (file) => {
+  const main = loadObjectFile(file)
+  if (main.kind !== 'unreadable') return main
+  const copy = loadObjectFile(file + '.bak')
+  if (copy.kind !== 'ok') return main
+  // Said once in a while, not at every read (the footer reads the state every few seconds).
+  const said = backupNotes.get(file)
+  if (said === undefined || Date.now() - said > 10 * 60 * 1000) {
+    backupNotes.set(file, Date.now())
+    console.error('[kybernos-cloud] ' + file + ' could not be read: its last good copy (.bak) is used until the next write mends it')
+  }
+  return { kind: 'ok', value: copy.value, fromBackup: true }
+}
+const backupNotes = new Map()
+/** The object a JSON file holds (or its `.bak`), else null. */
+const readObjectFile = (file) => { const r = loadWithBackup(file); return r.kind === 'ok' ? r.value : null }
+/** A rename that waits a moment and tries again when Windows says another process holds the target for an instant. */
+const renameOver = (from, to) => {
+  for (let attempt = 0; ; attempt += 1) {
+    try { renameSync(from, to); return } catch (e) {
+      const code = e !== null && typeof e === 'object' ? e.code : undefined
+      if (attempt >= 3 || (code !== 'EPERM' && code !== 'EBUSY' && code !== 'EACCES')) throw e
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 25 * (attempt + 1))
+    }
+  }
+}
+/** Before a file is replaced: its current content becomes `<file>.bak`, but only when it IS a good file (a damaged one never takes the place of a good copy). Never throws. */
+const keepLastGood = (file) => {
+  try {
+    const raw = readFileSync(file, 'utf8')
+    if (parseObject(raw) === null) return
+    const tmp = file + '.bak.' + process.pid + '.tmp'
+    try {
+      writeFileSync(tmp, raw, { mode: 0o600 })
+      try { chmodSync(tmp, 0o600) } catch (e) { /* exotic FS (Windows) */ }
+      renameOver(tmp, file + '.bak')
+    } catch (e) { try { rmSync(tmp, { force: true }) } catch (e2) { /* gone */ } }
+  } catch (e) { /* no file yet, or not readable: nothing to keep */ }
+}
+/** Replaces `file` by `text`, whole or not at all: a temporary file in the same folder (mode 0600), written, flushed to disk, then renamed over it (and the folder flushed when the system lets it).
+ *  `keepBackup`: the previous good version stays as `<file>.bak`. If the system refuses the rename for good (Windows, a process that holds the target), the text is written in place as it used to
+ *  be: never worse than before. Throws when even that fails, like the plain write it replaces. */
+const writeAtomic = (file, text, keepBackup) => {
+  if (keepBackup === true) keepLastGood(file)
+  const tmp = file + '.' + process.pid + '.tmp'
+  try {
+    const fd = openSync(tmp, 'w', 0o600)
+    try { writeSync(fd, text); fsyncSync(fd) } finally { closeSync(fd) }
+    try { chmodSync(tmp, 0o600) } catch (e) { /* exotic FS (Windows) */ }
+    try { renameOver(tmp, file) } catch (e) {
+      const code = e !== null && typeof e === 'object' ? e.code : undefined
+      if (code !== 'EPERM' && code !== 'EBUSY' && code !== 'EACCES') throw e
+      writeFileSync(file, text, { mode: 0o600 })
+      try { rmSync(tmp, { force: true }) } catch (e2) { /* gone */ }
+    }
+  } catch (e) {
+    try { rmSync(tmp, { force: true }) } catch (e2) { /* gone */ }
+    throw e
+  }
+  // writeFileSync does not tighten the mode of an existing file, and a rename keeps the temporary file's: 0600 is forced all the same.
+  try { chmodSync(file, 0o600) } catch (e) { /* exotic FS (Windows) */ }
+  try {
+    const dir = openSync(dirname(file), 'r')
+    try { fsyncSync(dir) } finally { closeSync(dir) }
+  } catch (e) { /* a file system that cannot sync a folder: the rename is still atomic */ }
+}
+
+const readState = () => readObjectFile(stateFile())
+
+/** `readState` for a decision about the SPACE: no connection file is `null` (not connected), but a file that is there and cannot be read now (a write
+ *  caught half way, bad rights, damaged JSON, and no good copy) is UNREADABLE — connected, space unknown — which `spaceOf` reads as a team space. */
+const readStateForSpace = () => {
+  const r = loadWithBackup(stateFile())
+  return r.kind === 'ok' ? r.value : (r.kind === 'absent' ? null : UNREADABLE)
+}
+/** True when the connection file is there and neither it nor its copy can be read: the person is NOT signed out, the file is damaged (the footer says so instead of the first-time words). */
+const stateUnreadable = () => loadWithBackup(stateFile()).kind === 'unreadable'
 
 const writeState = (state) => {
   const file = stateFile()
   // The folder of the file actually written: with KYBERNOS_CLOUD_STATE set, creating the default folder would touch ~/.dsh for nothing.
   try { mkdirSync(dirname(file), { recursive: true, mode: 0o700 }) } catch (e) { /* already there */ }
-  writeFileSync(file, JSON.stringify(state, null, 2) + '\n', { mode: 0o600 })
-  // writeFileSync does not tighten the mode of an existing file: 0600 is forced.
-  try { chmodSync(file, 0o600) } catch (e) { /* exotic FS (Windows) */ }
+  writeAtomic(file, JSON.stringify(state, null, 2) + '\n', true)
 }
 
 /** For a writer that read the state, then WAITED (the server, DSH's settings) and writes it back: it must not undo a switch of the active space made meanwhile (a click, the page following a
@@ -196,6 +271,8 @@ const readEnded = () => {
 /** Forgets the connection, and the « ended » marker with it: a sign-out on purpose, a pairing that was refused or expired and a new pairing all start from « signed out ». */
 const clearState = () => {
   try { rmSync(stateFile(), { force: true }) } catch (e) { /* already absent */ }
+  // The copy goes with it: a file removed on purpose (a sign-out) must not come back from its `.bak`.
+  try { rmSync(stateFile() + '.bak', { force: true }) } catch (e) { /* already absent */ }
   try { rmSync(endedFile(), { force: true }) } catch (e) { /* already absent */ }
 }
 
@@ -281,9 +358,8 @@ const folderRoot = () => {
 const foldersFile = () => join(dirname(stateFile()), 'kybernos-cloud-folders.json')
 /** The recorded folders, `{ <workspace id>: <path> }`: only entries that are a DIRECT child of the root (a record edited by hand to point elsewhere is not followed or listed). */
 const readFolders = () => {
-  let parsed = null
-  try { parsed = JSON.parse(readFileSync(foldersFile(), 'utf8')) } catch (e) { return {} }
-  if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) return {}
+  const parsed = readObjectFile(foldersFile())
+  if (parsed === null) return {}
   const root = folderRoot()
   const out = {}
   for (const id of Object.keys(parsed)) if (typeof parsed[id] === 'string' && isChildOf(root, parsed[id])) out[id] = parsed[id]
@@ -292,8 +368,7 @@ const readFolders = () => {
 const writeFolders = (map) => {
   const file = foldersFile()
   mkdirSync(dirname(file), { recursive: true, mode: 0o700 })
-  writeFileSync(file, JSON.stringify(map, null, 2) + '\n', { mode: 0o600 })
-  try { chmodSync(file, 0o600) } catch (e) { /* exotic FS (Windows) */ }
+  writeAtomic(file, JSON.stringify(map, null, 2) + '\n', true)
 }
 /** The folder recorded for one space, or null. */
 const spaceFolderOf = (id) => {
@@ -362,12 +437,12 @@ const spacePlanView = (state) => {
  *  REFUSED while a reply is running (`turn_running`, see « Never under a running reply » below): the model route is one per instance, so the reply's next request would carry the new
  *  team's header and one answer would be billed to two teams. `turnOf` is the chat whose own first request is waiting on this very switch (the claim-time one): its turn does not count. */
 let switchChain = Promise.resolve()
-const switchSpace = (voulu, turnOf) => {
-  const run = switchChain.then(() => switchSpaceNow(voulu, turnOf), () => switchSpaceNow(voulu, turnOf))
+const switchSpace = (voulu, turnOf, options) => {
+  const run = switchChain.then(() => switchSpaceNow(voulu, turnOf, options), () => switchSpaceNow(voulu, turnOf, options))
   switchChain = run.then(() => undefined, () => undefined)
   return run
 }
-const switchSpaceNow = async (voulu, turnOf) => {
+const switchSpaceNow = async (voulu, turnOf, options) => {
   const state = readState()
   if (!isConnected(state)) return { ok: false, error: 'non_connecte' }
   if (typeof voulu !== 'string' || voulu === '') return { ok: false, error: 'espace_absent' }
@@ -377,14 +452,18 @@ const switchSpaceNow = async (voulu, turnOf) => {
     const busy = turnWatch.running({ except: turnOf })
     if (busy.length > 0) return { ok: false, error: 'turn_running', running: busyView(busy, state) }
   }
-  const plan = await readSpacePlan(state, voulu)
+  const read = await readSpacePlan(state, voulu)
+  // A read that failed keeps the plan already known for the SAME space (choosing the active space again, to mend the model route, must not blank its card); another space's plan is never kept.
+  const plan = read !== null ? read : (voulu === espaceActif(state) && state.space_plan !== undefined && state.space_plan !== null && state.space_plan.workspace_id === voulu ? state.space_plan : null)
   // On the state as it is NOW: a profile refresh may have written the list of teams while the plan was being read.
   const now = readState()
   const next = Object.assign({}, now !== null && isConnected(now) ? now : state, { active_workspace_id: voulu, space_plan: plan })
   ensureFolderFor(next, voulu)
   writeState(next)
-  // The model route names the active space and lists its catalogue: it follows the choice (nothing is written when it already matches).
-  const route = routeOutcome(await importCatalog('space'))
+  // The model route names the active space and lists its catalogue: it follows the choice (nothing is written when it already matches; `force` rewrites it whatever the state remembers).
+  const route = routeOutcome(await importCatalog('space', options !== null && typeof options === 'object' && options.force === true ? { force: true } : {}))
+  // A route that still names another space than the active one (the server did not answer): tried again by itself, and a turn is held to it (« A route that stays stale », below).
+  noteRouteAfterSwitch(options)
   return { ok: true, state: publicState(readState()), route }
 }
 
@@ -416,6 +495,65 @@ const liveRouteSpace = () => {
     const headers = provider.headers !== null && typeof provider.headers === 'object' ? provider.headers : {}
     return typeof headers[SPACE_HEADER] === 'string' ? headers[SPACE_HEADER] : null
   } catch (e) { return undefined }
+}
+
+// ── A route that stays stale (recette L3-76, decision DL-20) ───────────────────────────────────────────────────────────────────────────
+// A switch writes the choice, THEN rewrites the model route. When the server does not answer in between the choice stands and the route still names the previous space: every model call
+// is billed to it (the page says so for three seconds). Measured on the real GUI: the route mends itself at the next profile read, up to five minutes later; a second press on the
+// team mends it at once. Now the host does the second press for the person: it tries again at 10 s, 30 s and 2 min after the failure, and a turn of a chat the person is looking at is held
+// to the route (below): it re-aligns the route first, bounded, and is REFUSED with a sentence if the route is still stale, rather than billed to the wrong team.
+const ROUTE_REPAIR_TUNING = { delaysMs: [10000, 30000, 120000] }
+/** `{ live, wanted }` when DSH's RUNNING model route names another space than the active one (`wanted`: what the state says it should name, null for none), else null. Null as well when
+ *  DSH cannot say (no settings service: nothing to compare), when the person is not connected and when the server has no model service. Never throws. */
+const staleRoute = (state) => {
+  try {
+    if (isConnected(state) !== true || server().profile.services.llm === false) return null
+    const live = liveRouteSpace()
+    if (live === undefined) return null
+    const headers = spaceHeaders(state)
+    const wanted = headers !== undefined ? headers[SPACE_HEADER] : null
+    return live === wanted ? null : { live, wanted }
+  } catch (e) { return null }
+}
+let routeRepairTimers = []
+const cancelRouteRepair = () => { for (const timer of routeRepairTimers) clearTimeout(timer); routeRepairTimers = [] }
+/** One try, from a timer: nothing when the route is right, the person has gone, or a reply is running (rewriting the route under it would bill it to two teams: the next try, or the next turn, goes on). */
+const repairRouteOnce = async () => {
+  try {
+    const state = readState()
+    if (staleRoute(state) === null) { cancelRouteRepair(); return }
+    if (turnWatch.running().length > 0) return
+    const out = await switchSpace(espaceActif(state), undefined, { force: true, repair: true })
+    if (out !== null && typeof out === 'object' && out.ok === true && staleRoute(readState()) === null) cancelRouteRepair()
+  } catch (e) { /* the next try, or the profile read, mends it */ }
+}
+/** Tries at 10 s, 30 s and 2 min after a failure; a new failure starts the count again, so there is never more than one chain. The timers do not hold DSH up. */
+const planRouteRepair = () => {
+  cancelRouteRepair()
+  routeRepairTimers = ROUTE_REPAIR_TUNING.delaysMs.map((ms) => {
+    const timer = setTimeout(() => { void repairRouteOnce() }, ms)
+    if (typeof timer.unref === 'function') timer.unref()
+    return timer
+  })
+}
+const noteRouteAfterSwitch = (options) => {
+  if (staleRoute(readState()) === null) cancelRouteRepair()
+  // A try from the timers does not start a new count: three tries after a failure, not three after every try.
+  else if (options === undefined || options === null || options.repair !== true) planRouteRepair()
+}
+/** What a space is called in a sentence: « Personal » for the personal one (or for a route that names none: the server then bills the personal space), else the name the server holds. */
+const spaceLabel = (state, id) => {
+  if (typeof id !== 'string') return 'Personal'
+  const spaces = state !== null && state !== undefined && Array.isArray(state.workspaces) ? state.workspaces : []
+  const space = spaces.filter((w) => w !== null && typeof w === 'object' && w.id === id)[0]
+  if (space === undefined) return 'your previous team'
+  if (space.personal === true || space.name === 'My workspace') return 'Personal'
+  const name = inviteText(space.name, 60)
+  return name !== '' ? name : 'your previous team'
+}
+/** The refusal of a turn whose model route still names another space: the engine writes `message` in the chat's failure row, and the page words it in the person's language. */
+class StaleRouteRefusal extends Error {
+  constructor (label) { super('Your messages would be billed to ' + label + '. Try again.'); this.name = 'StaleRouteRefusal' }
 }
 
 /** Route: has DSH applied the model route of the space that was just chosen? `applied: true` once the running route names it, `false` while it still names another (or
@@ -565,12 +703,33 @@ const holdForClaimSwitch = async (payload) => {
   if (intent === undefined || intent.turn !== payload.turn || intent.done === true) return
   intent.done = true
   const target = intent.target !== null ? intent.target : claimTarget(payload.agent)
-  if (target === null) return
-  if (intent.target === null) turnWatch.setSpace(id, target)
+  if (target !== null) {
+    if (intent.target === null) turnWatch.setSpace(id, target)
+    let timer = null
+    try {
+      await Promise.race([switchSpace(target, id), new Promise((resolve) => { timer = setTimeout(resolve, CLAIM_SWITCH_WAIT_MS) })])
+    } finally { if (timer !== null) clearTimeout(timer) }
+  }
+  // The right team is active now (the chat's own, or the one the person switched to by hand): is the model route the one that names it? (L3-76, DL-20)
+  await holdForStaleRoute(id)
+}
+/** Before the first request of a turn the person is looking at: when the running model route names another space than the active one, the route is rewritten (the second press on
+ *  the team, bounded by CLAIM_SWITCH_WAIT_MS), and if it still names another one the turn is REFUSED with a sentence naming the team it would be billed to, and the retries (10 s, 30 s, 2 min) go
+ *  on. Not while ANOTHER reply is running (rewriting the route under it would bill it to two teams: this turn goes ahead, the exposure the claim-time switch already has). Throws only
+ *  the refusal. */
+const holdForStaleRoute = async (id) => {
+  let stale = staleRoute(readState())
+  if (stale === null) return
+  if (turnWatch.running({ except: id }).length > 0) return
   let timer = null
   try {
-    await Promise.race([switchSpace(target, id), new Promise((resolve) => { timer = setTimeout(resolve, CLAIM_SWITCH_WAIT_MS) })])
-  } finally { if (timer !== null) clearTimeout(timer) }
+    await Promise.race([switchSpace(espaceActif(readState()), id, { force: true }), new Promise((resolve) => { timer = setTimeout(resolve, CLAIM_SWITCH_WAIT_MS) })])
+  } catch (e) { /* the route is looked at again below */ } finally { if (timer !== null) clearTimeout(timer) }
+  const state = readState()
+  stale = staleRoute(state)
+  if (stale === null) return
+  planRouteRepair()
+  throw new StaleRouteRefusal(spaceLabel(state, stale.live))
 }
 const mountChatSpace = (ctx) => {
   ctx.on('agent/status', ({ agent, status }) => {
@@ -582,7 +741,8 @@ const mountChatSpace = (ctx) => {
     try { noteClaimSpace(agent, turn) } catch (e) { /* never break a turn */ }
   })
   ctx.effect(() => ctx.on('agent/pre-step', async (payload, next) => {
-    try { await holdForClaimSwitch(payload) } catch (e) { /* the turn goes ahead, billed to the active team */ }
+    // Anything that goes wrong in here lets the turn go ahead, billed to the active team; the one thing that does not is the refusal of a turn whose model route is stale (DL-20).
+    try { await holdForClaimSwitch(payload) } catch (e) { if (e instanceof StaleRouteRefusal) throw e }
     return next()
   }), 'kybernos-cloud: the active team follows the chat')
   ctx.on('agent/disposed', ({ agent }) => { try { claimIntents.delete(agent.session.id); turnWatch.end(agent.session.id) } catch (e) { /* gone */ } })
@@ -947,6 +1107,8 @@ const statusRoute = () => {
   // A connection the server ended (a revoked device, a new database) is « revoked », with when: the footer says « Sign in again », not the plain signed-out words.
   const ended = readEnded()
   if (ended !== null) return { ok: true, connected: false, status: 'revoked', ended }
+  // The connection file is there but neither it nor its copy can be read (damaged, cut): not « never connected » and not « ended by the server », and the footer says so (L3-83).
+  if (stateUnreadable()) return { ok: true, connected: false, status: 'unreadable' }
   return { ok: true, connected: false, status: 'none' }
 }
 
@@ -959,6 +1121,7 @@ const catalogChanged = async (state, known) => {
   const key = (ids) => ids.slice().sort().join('\n')
   return key(known.ids) !== key(cat.models.map((e) => e.id)) || (known.embed === undefined || known.embed === null ? null : known.embed) !== (cat.embed === undefined || cat.embed === null ? null : cat.embed)
     || creationKey(known.creation).join('\n') !== creationKey(cat.creation).join('\n')
+    || key(Array.isArray(known.vision) ? known.vision : []) !== key(visionIds(cat.models))
 }
 
 /** The server's own error envelope (`{ error: 'unauthorized', message, request_id }`), as opposed to JSON some intermediary wrote. */
@@ -1037,8 +1200,19 @@ const readProfile = async (cause) => {
   }
   return { ok: true, connected: true, state: publicState(readState()), models, ...(import_error !== undefined ? { import_error } : {}) }
 }
-/** Route: read the profile, the workspaces and the active space's plan again. */
-const refreshProfile = () => readProfile('refresh')
+/** Route: read the profile, the workspaces and the active space's plan again. The page that asks on a timer or a focus (the footer: a role changed, a removal, a team joined elsewhere) says
+ *  `max_age_ms`: a read younger than that is not repeated, so several windows, or a focus event after a timer, cost the server one read, not one each. A page that wants the truth
+ *  now (the open Cloud window, after a payment) says nothing and always reads. */
+const REFRESH_MAX_AGE_CEILING_MS = 10 * 60 * 1000
+const refreshProfile = (req, body) => {
+  const asked = body !== null && typeof body === 'object' ? Number(body.max_age_ms) : 0
+  if (Number.isFinite(asked) && asked > 0) {
+    const state = readState()
+    const at = isConnected(state) && typeof state.refreshed_at === 'string' ? Date.parse(state.refreshed_at) : NaN
+    if (Number.isFinite(at) && Date.now() - at >= 0 && Date.now() - at < Math.min(asked, REFRESH_MAX_AGE_CEILING_MS)) return Promise.resolve({ ok: true, connected: true, state: publicState(state), skipped: true })
+  }
+  return readProfile('refresh')
+}
 
 // ── Keeping the account's picture current ─────────────────────────────────────────────────────────────────────────────
 // The list of workspaces, the active one, its plan and the model route's `x-kybernos-workspace` are read at the claim and whenever a page asks
@@ -1174,9 +1348,14 @@ const modelEntry = (id, info) => {
     const output = intOf(info.max_output_tokens, info.max_tokens)
     if (context !== null) entry.contextWindow = context
     if (output !== null) entry.maxTokens = output
+    // The server lists what a model can do (`capabilities`: chat, vision, tools…). The engine takes a model for text-only unless its entry says `input` and refuses any image sent
+    // to it (session/attachment-invalid), so a model the server declares as seeing pictures says so here; every other model is left as it was (L1-58).
+    if (Array.isArray(info.capabilities) && info.capabilities.includes('vision')) entry.input = ['text', 'image']
   }
   return entry
 }
+/** The sorted ids of the entries that read pictures: part of what tells a new catalogue from the one already imported (a model that learns to see must rewrite the route). */
+const visionIds = (entries) => entries.filter((e) => Array.isArray(e.input) && e.input.includes('image')).map((e) => e.id).sort()
 
 /** The catalogue of a Kybernos server built on vanilla provider models (`GET /v1/models` answers entries with a `kind`): every chat model is
  *  offered, named as the server names it; the embeddings model is remembered apart (it is not a chat route). The old role routes
@@ -1276,13 +1455,14 @@ const providerValue = (state, entries) => {
 }
 
 /** Already imported identically? (comparison of sorted ids + plan + base) */
-const catalogFingerprint = (state, entries, plan, embed, space, creation) => JSON.stringify([
+const catalogFingerprint = (state, entries, plan, embed, space, creation, vision) => JSON.stringify([
   baseUrl(state),
   plan,
   entries.map((e) => e.id).slice().sort(),
   embed === undefined || embed === null ? null : embed,
   typeof space === 'string' ? space : null,
   creationKey(creation),
+  Array.isArray(vision) ? vision : [],
 ])
 
 /** Import (or refresh): catalogue → settings → credential → state.
@@ -1310,7 +1490,7 @@ const importCatalog = async (cause, options = {}) => {
     && known.settings === true && known.credential === true
     && known.plan === plan && known.base_url === baseUrl(state)
     && Array.isArray(known.ids) === true
-    && catalogFingerprint(state, known.ids.map((id) => ({ id })), plan, known.embed, known.workspace, known.creation) === catalogFingerprint(state, cat.models, plan, cat.embed, espaceActif(state), cat.creation)) {
+    && catalogFingerprint(state, known.ids.map((id) => ({ id })), plan, known.embed, known.workspace, known.creation, known.vision) === catalogFingerprint(state, cat.models, plan, cat.embed, espaceActif(state), cat.creation, visionIds(cat.models))) {
     if (appliedServerId() === null) markApplied()   // an install from before servers existed: this route is the active server's
     return { ok: true, connected: true, current: true, summary: publicModels(known) }
   }
@@ -1325,6 +1505,8 @@ const importCatalog = async (cause, options = {}) => {
     ids: cat.models.map((e) => e.id),
     embed: cat.embed,
     creation: cat.creation,
+    // The models that read pictures (`input: [text, image]` in the route): an import from before this field has none, and is rewritten once if the server lists some.
+    vision: visionIds(cat.models),
     // The space this route names on every call (and whose catalogue it lists): a later refresh compares it with the active one.
     workspace: espaceActif(state),
     provider: PROVIDER_ID,
@@ -1437,6 +1619,8 @@ const setAsideForeignConnection = () => {
     const aside = join(dirname(file), 'kybernos-cloud-' + host + '.json')
     renameSync(file, aside)
     try { chmodSync(aside, 0o600) } catch (e) { /* exotic FS */ }
+    // Its last good copy belongs to the same connection: it goes along, and never stays here to be read for this server.
+    try { renameSync(file + '.bak', aside + '.bak') } catch (e) { /* no copy */ }
     console.error('[kybernos-cloud] a connection recorded for another server (' + host + ') was set aside, not used for this one: pair again to connect to this server')
     return { raw }
   } catch (e) {
@@ -1503,7 +1687,7 @@ const serverRoute = async () => {
   // The active server's own file is whatever stateFile() says (KYBERNOS_CLOUD_STATE included); the others have the usual name.
   const connectedTo = (id) => {
     if (id === active.profile.id) return isConnected(readState())
-    try { return isConnected(JSON.parse(readFileSync(join(dshHome(), stateFileName({ id })), 'utf8'))) } catch (e) { return false }
+    try { return isConnected(readObjectFile(join(dshHome(), stateFileName({ id })))) } catch (e) { return false }
   }
   return { ok: true, server: publicProfile(active.profile), source: active.source, error: active.error, servers: active.servers.map((x) => Object.assign({ active: x.id === active.profile.id, connected: connectedTo(x.id) }, x)), rejected: active.rejected,
     // A cloud computer (the platform names it in the machine's environment). The page of this checkout no longer reads it: only the page bundle of a release that still frames
@@ -1520,7 +1704,8 @@ const serverApply = async () => {
   let cleaned = false
   if (previousId !== null && previousId !== active.profile.id) {
     try {
-      const before = JSON.parse(readFileSync(join(dshHome(), stateFileName({ id: previousId })), 'utf8'))
+      const before = readObjectFile(join(dshHome(), stateFileName({ id: previousId })))
+      if (before === null) throw new Error('no connection file')
       cleaned = (await removeImportedCatalog(before)).removed === true
     } catch (e) { /* no connection file for it: nothing was imported */ }
   }
@@ -5562,7 +5747,7 @@ const ROUTES = [
   // invitation at the server for the token it is given, but a page is its only caller, so it follows the same rule (L3-04).
   { path: '/kybernos-cloud/invitation/preview', method: 'POST', guarded: true, strict: true, session: true, body: true, cap: 1024, run: invitationPreview },
   { path: '/kybernos-cloud/invitation/accept', method: 'POST', guarded: true, strict: true, session: true, body: true, cap: 1024, run: invitationAccept },
-  { path: '/kybernos-cloud/refresh', method: 'POST', guarded: true, session: true, run: refreshProfile },
+  { path: '/kybernos-cloud/refresh', method: 'POST', guarded: true, session: true, body: true, cap: 1024, run: refreshProfile },
   // `disconnect` revokes the session on the server side: irreversible. A bare POST
   // (campaign finding: `curl -X POST /kybernos-cloud/disconnect`) was enough to
   // trigger it. It now needs an EXPLICIT body `{confirm:true}`.
@@ -5786,7 +5971,7 @@ export {
   cloudSeamCall, publishCloudSeam, SEAM_PREFIXES,
   dshHome, resolveApi, stateFile, server, serverApply, serverRoute, deviceLabel, publicState, ROUTES, importCatalog, CRED_REF, PROVIDER_ID, connections,
   // Keeping the picture of the account current (test: kybernos-cloud/test-profile-refresh.mjs).
-  profileRefreshTick, PROFILE_REFRESH_TUNING, sameOrigin, hostAllowed,
+  profileRefreshTick, PROFILE_REFRESH_TUNING, ROUTE_REPAIR_TUNING, sameOrigin, hostAllowed,
   // The strict origin guard (test: kybernos-cloud/test-console-link.mjs).
   sameOriginStrict,
   // Memory — exported for the host suite (fake server, no real API).

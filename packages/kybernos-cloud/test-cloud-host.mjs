@@ -627,6 +627,9 @@ sessionSource.secret = () => SESSION_SECRET
 // rechargement non demande fausserait les compteurs de requetes des tests.
 mod.MEMORY_TUNING.writeRefreshMs = -1
 mod.MEMORY_TUNING.tickMs = 3600000
+// A route the test breaks on purpose is mended by itself 10 s, 30 s and 2 min later (L3-76): this file runs longer than that and counts the server's calls, so the tries are off here
+// (test-chat-space-host.mjs plays them).
+mod.ROUTE_REPAIR_TUNING.delaysMs = []
 mod.apply(ctx)
 
 const fakeRes = () => ({
@@ -1373,6 +1376,42 @@ try {
   await mod.embedTexts(readState(), ['hello'])
   assert.equal(seen.embedCalls.at(-1).model, 'kybernos/embed', 'an older server keeps its role route for embeddings')
   ok('vanilla catalogue: chat models imported under the server names, embeddings model kept apart and used; older catalogue unchanged')
+
+  {
+  // 6d-bis. A model the server declares as seeing pictures (`capabilities` holds `vision`) is written `input: ['text', 'image']`, because the engine takes every model for text-only
+  //         unless its entry says otherwise and refuses an image sent to it (session/attachment-invalid, recette L1-58). A model without that capability is left as it was.
+  const noVision = catalog
+  catalog = { object: 'list', data: [
+    { id: 'vision-lite', object: 'model', owned_by: 'kybernos', kind: 'chat', display_name: 'Vision Lite', capabilities: ['chat', 'vision'] },
+    { id: 'glm-5.3', object: 'model', owned_by: 'kybernos', kind: 'chat', display_name: 'GLM 5.3', capabilities: ['chat', 'tools'] },
+    { id: 'bare', object: 'model', owned_by: 'kybernos', kind: 'chat', display_name: 'Bare' },
+    { id: 'odd', object: 'model', owned_by: 'kybernos', kind: 'chat', display_name: 'Odd', capabilities: 'vision' },
+  ] }
+  const seeing = await hit('/kybernos-cloud/models/sync', 'POST')
+  assert.equal(seeing.body.ok, true)
+  const seeingRoute = settingsCalls.at(-1).value
+  assert.deepEqual(seeingRoute.models.find((m) => m.id === 'vision-lite').input, ['text', 'image'], 'a model that lists « vision » is declared to read pictures')
+  for (const id of ['glm-5.3', 'bare', 'odd']) assert.equal(Object.prototype.hasOwnProperty.call(seeingRoute.models.find((m) => m.id === id), 'input'), false, id + ': no capability « vision » (or not a list): left text-only, nothing invented')
+  assert.deepEqual(readState().models.vision, ['vision-lite'], 'the import remembers which models read pictures')
+  // An import made before this existed holds no such list and a route without `input`: the next READ of the profile (no manual sync) sees that the server lists a model that sees and
+  // rewrites the route once, so an installation that already had its models gets the fix without anyone pressing « Re-import ». A second read changes nothing.
+  const olderImport = readState()
+  delete olderImport.models.vision
+  writeFileSync(statePath, JSON.stringify(olderImport), { mode: 0o600 })
+  const writesBefore = settingsCalls.length
+  const refreshed = await hit('/kybernos-cloud/refresh', 'POST')
+  assert.equal(refreshed.body.ok, true)
+  assert.ok(settingsCalls.length > writesBefore, 'the route was rewritten by the profile read')
+  assert.deepEqual(settingsCalls.at(-1).value.models.find((m) => m.id === 'vision-lite').input, ['text', 'image'])
+  assert.deepEqual(readState().models.vision, ['vision-lite'])
+  const writesAfter = settingsCalls.length
+  await hit('/kybernos-cloud/refresh', 'POST')
+  assert.equal(settingsCalls.length, writesAfter, 'and only once')
+  catalog = noVision
+  await hit('/kybernos-cloud/models/sync', 'POST')
+  assert.deepEqual(readState().models.vision, [], 'a catalogue with no such model leaves an empty list')
+  ok('vision: a model that lists « vision » is written input [text, image] (the engine refuses images otherwise); the others are untouched; an older import is rewritten once at the next profile read')
+  }
 
   // 6e. Creation models (kind image / video / speech): listed for the Models page, NEVER written to the chat route (DSH's chat picker lists every
   //     model of a route). The price of one unit is kept as the server writes it; a price that does not read is left out, not guessed; a kind the
