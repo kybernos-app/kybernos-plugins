@@ -15,6 +15,7 @@
 // hidden.
 // ═══════════════════════════════════════════════════════════════════════════
 import { randomBytes } from 'node:crypto'
+import { writeGuard } from './session-guard.mjs'
 import {
   OPENCODE_USER_AGENT, applyContract, contractHeaders, classifyError,
 } from './gateway-contract.mjs'
@@ -108,6 +109,20 @@ const notFromAnotherPage = (req) => {
 const refuseAnotherPage = (req, res) => {
   if (notFromAnotherPage(req) === true) return false
   sendJson(res, 403, { ok: false, error: 'origin' })
+  return true
+}
+
+/**
+ * The three routes of the Settings page and the first-run wizard (enable, disable, auto-enable) change where the person's model traffic goes: they write the `opencode-free` provider into
+ * DSH's settings and store its marker key, and what the person types then leaves for opencode.ai. They need DSH's signed browser session as well as the right Origin (session-guard.mjs,
+ * kybernos-terminal's rule, L3-21): plugin routes are served before DSH's own login, an Origin header is forgeable by any local program, and the body's `acknowledged` flag attests nothing.
+ * Their callers are pages (this bundle's panel and the wizard of the core bundle), which carry the cookie by themselves; a paired phone is refused (`refused_on_phone`). The gateway routes
+ * above are the engine's and keep the « not from another page » rule. Answers the refusal and returns true when the request must stop there.
+ */
+const refuseUnsigned = (req, res) => {
+  const refused = writeGuard(req)
+  if (refused === null) return false
+  sendJson(res, refused.status, { ok: false, error: refused.error })
   return true
 }
 
@@ -452,6 +467,7 @@ export function apply(ctx) {
       scope.effect(() => webServer.register({ kind: 'exact', path: '/free-llms/enable', handler: async (req, res) => {
         if (req.method !== 'POST') { sendJson(res, 405, { ok: false, error: 'method' }); return }
         if (sameOriginStrict(req) !== true) { sendJson(res, 403, { ok: false, error: 'origin' }); return }
+        if (refuseUnsigned(req, res)) return
         const body = await readBody(req) || {}
         const acknowledged = body.acknowledged === true
         const auto = body.auto === true
@@ -470,6 +486,7 @@ export function apply(ctx) {
       scope.effect(() => webServer.register({ kind: 'exact', path: '/free-llms/disable', handler: async (req, res) => {
         if (req.method !== 'POST') { sendJson(res, 405, { ok: false, error: 'method' }); return }
         if (sameOriginStrict(req) !== true) { sendJson(res, 403, { ok: false, error: 'origin' }); return }
+        if (refuseUnsigned(req, res)) return
         const route = await writeRoute([])
         const state = recordDisable(await readState())
         if (await writeState(state) !== true) { sendJson(res, 500, { ok: false, error: 'state-not-saved', routeWritten: route.wrote === true, state: publicView(state) }); return }
@@ -482,6 +499,7 @@ export function apply(ctx) {
       scope.effect(() => webServer.register({ kind: 'exact', path: '/free-llms/auto-enable', handler: async (req, res) => {
         if (req.method !== 'POST') { sendJson(res, 405, { ok: false, error: 'method' }); return }
         if (sameOriginStrict(req) !== true) { sendJson(res, 403, { ok: false, error: 'origin' }); return }
+        if (refuseUnsigned(req, res)) return
         const body = await readBody(req) || {}
         const state = await readState()
         const decision = shouldAutoEnable(state, {
