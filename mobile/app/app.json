@@ -29,7 +29,8 @@
     },
     "plugins": [
       "./plugins/with-loopback-cleartext.js",
-      "./plugins/with-arm64-only.js"
+      "./plugins/with-arm64-only.js",
+      "./plugins/with-no-proxy-client.js"
     ]
   }
 }
