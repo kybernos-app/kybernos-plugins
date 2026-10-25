@@ -17,8 +17,8 @@
 // system prompt of its chats and its AGENTS.md), the drivers of the profile (/tools/apply mounts Computer Use or Browser Use in cordis.patch.yml, hot-reloaded), the skills and the
 // apps of a project, a skill a domain pack ships, the model the next message uses, the voice engine, the first-run wizard's answers, the progress registry, the project data; and seven
 // make a call with the owner's key or credits (a picture, a batch or a run of translations, a Brain suggestion, a salary estimate, a team workflow, speech). They carry the pair now. Four others that spend the owner's key
-// (/voice/transcribe, /models/audio/listen, /models/audio/probe, /tts/speak) are also called by kybernos-call's worker and health check, which have no session: they are the documented
-// exceptions at the end of this file, with the caller that keeps them there, and the file fails if one of them is converted without the call side.
+// (/voice/transcribe, /models/audio/listen, /models/audio/probe, /tts/speak) are also called by kybernos-call's Python worker, which has no cookie: beside the signed session they accept the worker's one-run secret
+// (recette L3-03: kybernos-call/worker-token.mjs publishes the check, `callWorkerOK` in index.js asks it), never an Origin alone. The end of this file plays it with the call bundle's real credential, and with the bundle absent.
 //   node packages/kybernos-plugin/test-write-guard.mjs
 import assert from 'node:assert/strict'
 import http from 'node:http'
@@ -28,6 +28,8 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { sessionSource } from './session-guard.mjs'
 import { OTHER_SECRET, SESSION_SECRET, sessionCookie } from './lib-session-test.mjs'
+// The real credential of the call worker (this is a test: bundles import nothing from one another at run time, they meet through the process-global slot it publishes).
+import { TOKEN_HEADER, createWorkerToken, publishWorkerCheck } from '../kybernos-call/worker-token.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const home = mkdtempSync(join(tmpdir(), 'kb-plugin-write-guard-'))
@@ -142,11 +144,12 @@ const FAMILY = [
   ['/kybernos/art-reveal', { path: '/no/such/workspace/file.md' }],
 ]
 
-// The four that spend the owner's key and stay at the strict Origin on purpose, with the caller that has no session (see the comment above /kybernos/models/audio/probe in index.js).
-const STRICT_ONLY = [
+// The four that spend the owner's key and are also called by something that has no cookie: the call worker. They take the signed session OR the worker's one-run secret (see the comment above
+// /kybernos/models/audio/probe in index.js). The call health check, which also posts to two of them, is a page's: it hands the page's own cookie on.
+const WORKER_ROUTES = [
   ['/kybernos/voice/transcribe', {}, 'the call worker (agent/call_stt.py, the « app » listening provider)'],
   ['/kybernos/models/audio/listen', {}, 'the call worker (agent/call_stt.py, a listening model of Models)'],
-  ['/kybernos/models/audio/probe', {}, 'the call health check (call-health.mjs)'],
+  ['/kybernos/models/audio/probe', {}, 'the call health check (call-health.mjs), with the page\'s cookie'],
   ['/kybernos/tts/speak', {}, 'the call worker (agent/call_voice.py) and the call health check (call-health.mjs)'],
 ]
 
@@ -207,19 +210,47 @@ try {
     assert.ok(r.status !== 401, path + ': a GET is not asked for the cookie: ' + r.status)
   }
   ok('the GET of i18n-job, i18n-store, i18n-packs, quality-feedback, quality-rating, workspace-skills and workspace-connectors stays a plain read (no cookie asked)')
-  // The four spending routes the call side still reaches without a session: the strict Origin is all they ask for today. This is the documented exception, not an oversight:
-  // converting one of them breaks the call's ears or voice until kybernos-call hands its worker a credential, so the test names the caller and fails the day one is guarded.
-  for (const [path, body, caller] of STRICT_ONLY) {
+  // The four spending routes the call worker reaches without a cookie (recette L3-03). The worker's credential is the call bundle's real one, published where the core looks for it. Each route
+  // takes the signed session or this run's secret and nothing else: an Origin alone, a wrong or old secret and a secret relayed by the phone tunnel are refused, and with the bundle absent
+  // (nothing published) the secret means nothing. The caller is named so the day one of them is guarded without the call side, this file says which caller broke.
+  const workerToken = createWorkerToken()
+  let runSecret = workerToken.issue()
+  let withdraw = publishWorkerCheck((req) => workerToken.accepts(req))
+  for (const [path, body, caller] of WORKER_ROUTES) {
     assert.ok(routeOf(path) !== undefined, path + ' is mounted — the table above is stale')
-    for (const [headers, label] of [[{}, 'no Origin'], [{ origin: 'http://evil.example', cookie: cookie() }, 'a foreign Origin, even with the real cookie']]) {
+    for (const [headers, want, label] of [
+      [{}, 403, 'no Origin and nothing else'],
+      [{ origin: 'http://evil.example', cookie: cookie() }, 403, 'a foreign Origin, even with the real cookie'],
+      [{ origin: 'http://evil.example', [TOKEN_HEADER]: runSecret }, 403, 'a foreign Origin, even with the real secret'],
+      [{ [TOKEN_HEADER]: runSecret }, 403, 'the real secret with no Origin'],
+      [{ origin }, 401, 'the right Origin alone (what a local program sends)'],
+      [{ origin, cookie: forged }, 401, 'the right Origin and a forged cookie'],
+      [{ origin, [TOKEN_HEADER]: 'f'.repeat(64) }, 401, 'the right Origin and a wrong secret'],
+      [{ origin, [TOKEN_HEADER]: '' }, 401, 'the right Origin and an empty secret'],
+      [{ origin, [TOKEN_HEADER]: runSecret, 'x-kybernos-tunnel': '1' }, 401, 'the real secret relayed by the phone tunnel'],
+    ]) {
       const r = await send(path, headers, body)
-      assert.equal(r.status, 403, path + ': ' + label + ' -> ' + r.status)
+      assert.equal(r.status, want, path + ': ' + label + ' -> ' + r.status + ' ' + r.text.slice(0, 80))
     }
-    const callSide = await send(path, { origin }, body)
-    assert.notEqual(callSide.status, 401, path + ': ' + caller + ' posts here with the Origin and no cookie, and must still be answered: ' + callSide.status + ' ' + callSide.text.slice(0, 80))
-    assert.notEqual(callSide.status, 403, path + ': the right Origin is accepted: ' + callSide.status)
-    ok(path + ': kept at the strict Origin for ' + caller + ' (no header 403, foreign Origin 403, the right Origin answers)')
+    for (const [headers, label] of [[{ origin, cookie: cookie() }, 'the page (the right Origin and the signed cookie)'], [{ origin, [TOKEN_HEADER]: runSecret }, caller + ' (the right Origin and this run\'s secret)']]) {
+      const r = await send(path, headers, body)
+      assert.notEqual(r.status, 401, path + ': ' + label + ' is not refused as unsigned: ' + r.text.slice(0, 80))
+      assert.notEqual(r.status, 403, path + ': ' + label + ' is not refused as foreign: ' + r.text.slice(0, 80))
+    }
+    // The worker run ends (stopped, exited, restarted): its secret is refused; the new run's secret is not.
+    const oldSecret = runSecret
+    workerToken.revoke()
+    runSecret = workerToken.issue()
+    assert.equal((await send(path, { origin, [TOKEN_HEADER]: oldSecret }, body)).status, 401, path + ': the secret of a previous worker run is refused')
+    assert.notEqual((await send(path, { origin, [TOKEN_HEADER]: runSecret }, body)).status, 401, path + ': the new run\'s secret is accepted')
+    // Without the call bundle (nothing published) only the cookie works.
+    withdraw()
+    assert.equal((await send(path, { origin, [TOKEN_HEADER]: runSecret }, body)).status, 401, path + ': with no call bundle the secret means nothing')
+    assert.notEqual((await send(path, { origin, cookie: cookie() }, body)).status, 401, path + ': and the cookie still works')
+    withdraw = publishWorkerCheck((req) => workerToken.accepts(req))
+    ok(path + ': session or this run\'s secret, nothing else · foreign/absent Origin 403 · Origin alone 401 · wrong, old and tunnel-relayed secret 401 · no call bundle: cookie only')
   }
+  withdraw()
   // /voice-sample also answers GET (the list: a plain read) and DELETE (a write: it needs the pair too).
   for (const [headers, want, label] of [
     [{}, 403, 'no Origin and no cookie'],

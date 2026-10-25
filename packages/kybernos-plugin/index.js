@@ -9577,6 +9577,11 @@ function boot(ctx) {
       sendJson(res, refused.status, { ok: false, error: refused.error })
       return true
     }
+    // For the four voice routes the call worker also uses (/voice/transcribe, /models/audio/listen, /models/audio/probe, /tts/speak): the worker is a program with no cookie, so beside the
+    // signed session they accept the one-run secret the call host gave it, never an Origin alone. The call bundle (kybernos-call, worker-token.mjs) publishes a check for it in a
+    // process-global slot, as the trusted-authority hook does; without that bundle the slot is empty and only the cookie works. The check answers true only for the current worker run.
+    const callWorkerOK = (req) => { try { const check = globalThis[Symbol.for('kybernos.callWorkerToken')]; return typeof check === 'function' && check(req) === true } catch (e) { return false } }
+    const workerOrSessionRefused = (req, res) => (callWorkerOK(req) ? false : writeRefused(req, res))
     // Contrôle d'origine STRICT, pour les routes qui écrivent. DSH sert les
     // routes des plugins AVANT son authentification (constat de campagne : `/`
     // répond 401 sans cookie, `/kybernos/*` répond 200), donc chaque plugin doit
@@ -11162,13 +11167,13 @@ function boot(ctx) {
       } }), 'kybernos: route models/audio')
       // Which way of asking one of those models works (a few words of text, or a second of silence, sent to the provider with the key the
       // app already holds for it; the key never leaves this process and is not in the answer). On a click only: it is a call to the provider.
-      // L3-19, NOT under the session rule yet, on purpose: this route and `models/audio/listen`, `voice/transcribe` and `tts/speak` below are also called by something that is not a browser
-      // and has no DSH session — kybernos-call's health check (call-health.mjs) and its Python worker (agent/call_stt.py, agent/call_voice.py), which post here over loopback with
-      // an Origin and no cookie. Guarding them now would break every call's ears and voice. They stay at the strict Origin until the call host hands its worker a credential
-      // (S-E, kybernos-call); test-write-guard.mjs lists them as the exceptions, with this reason, and fails if one is converted without the call side.
+      // L3-19 / L3-03: this route and `models/audio/listen`, `voice/transcribe` and `tts/speak` below spend the owner's key and are called by pages (which have the cookie) AND by something that is not a
+      // browser — kybernos-call's Python worker (agent/call_stt.py, agent/call_voice.py), which has no DSH session. They take the signed session OR the worker's one-run secret (callWorkerOK), never an Origin alone.
+      // (kybernos-call's health check is a page's: it hands the page's own cookie on.) test-write-guard.mjs lists them with who may call.
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/models/audio/probe', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        if (workerOrSessionRefused(req, res)) return
         let body = {}
         try { body = await readJsonBody(req, 4096) } catch (e) { return sendJson(res, 413, { ok: false, error: errText(e) }) }
         sendJson(res, 200, await kbModelsAudio.check({ provider: str(body.provider) ?? '', model: str(body.model) ?? '' }))
@@ -11190,6 +11195,7 @@ function boot(ctx) {
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/models/audio/listen', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        if (workerOrSessionRefused(req, res)) return
         let body = {}
         try { body = await readJsonBody(req, 16777216) } catch (e) { return sendJson(res, 413, { ok: false, error: errText(e) }) }
         const b64 = str(body.audio)
@@ -11201,6 +11207,7 @@ function boot(ctx) {
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/voice/transcribe', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        if (workerOrSessionRefused(req, res)) return
         let body = {}
         try { body = await readJsonBody(req, 16777216) } catch (e) { return sendJson(res, 413, { ok: false, error: errText(e) }) }
         sendJson(res, 200, await kbVoiceTranscribe(body))
@@ -11339,6 +11346,7 @@ function boot(ctx) {
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/tts/speak', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        if (workerOrSessionRefused(req, res)) return
         let body = {}
         try { body = await readJsonBody(req, 262144) } catch (e) { return sendJson(res, 413, { ok: false, error: errText(e) }) }
         sendJson(res, 200, await kbTtsSpeak(body, kbTtsUiLangOf(req)))
