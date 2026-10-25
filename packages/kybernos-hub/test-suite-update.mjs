@@ -1,10 +1,13 @@
 // The Suite's online catalogue and its whole-suite update: refresh, cached verdict, status, the update itself and its routes.
 // Every side effect is injected (network, disk, robot): nothing here downloads, writes outside memory or installs anything.
 //   node packages/kybernos-hub/test-suite-update.mjs
-import { readFileSync } from 'node:fs'
+import { spawn } from 'node:child_process'
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { monterSuite } from './hub-host.mjs'
+import { fichierVerrou, lireVerrou, prendreVerrou } from './install-lock.mjs'
 import { sessionSource } from './session-guard.mjs'
 import { SESSION_SECRET, sessionCookie } from './lib-session-test.mjs'
 import { detecterHebergement, etatDistant, evaluerCache, mettreAJour, plateformeDe, rafraichir } from './suite-host.mjs'
@@ -136,6 +139,10 @@ console.log('the update itself')
   ok('a wrong size stops everything too', r.error === 'digest-mismatch' && m.log.every((l) => !/robot/.test(l)))
   m = monde({ executer: async () => ({ code: 1, sortie: 'a\nb\nboot check failed' }) }); r = await mettreAJour(m.args)
   ok('a refusing robot (it rolled back by itself) is reported with its last lines, and no restart is asked', r.ok === false && r.error === 'robot-refused' && r.detail.includes('boot check failed') && r.relanceRequise === undefined && m.log.includes('cleanup'))
+  m = monde({ executer: async () => ({ code: 1, signal: 'SIGTERM', sortie: '' }) }); r = await mettreAJour(m.args)
+  ok('L3-88: a robot that was KILLED (its time limit, a kill) is « robot-stopped », not « refused and rolled back, intact »: it said nothing, so nothing is promised', r.ok === false && r.error === 'robot-stopped' && m.log.includes('cleanup'), r)
+  m = monde({ executer: async () => ({ code: 1, signal: null, sortie: 'back to how it was' }) }); r = await mettreAJour(m.args)
+  ok('…and one that exited by itself with a non-zero code still is « robot-refused »', r.error === 'robot-refused')
   m = monde({ extraire: async () => { throw Object.assign(new Error('no manifest'), { code: 'bad-archive' }) } }); r = await mettreAJour(m.args)
   ok('a bad archive is reported with its code, and the robot never runs', r.error === 'bad-archive' && m.log.every((l) => !/robot/.test(l)))
   m = monde({ telechargerVers: async () => { throw Object.assign(new Error('too big'), { code: 'trop-gros' }) } }); r = await mettreAJour(m.args)
@@ -224,6 +231,82 @@ console.log('the routes')
   st = await appeler(r, '/kybernos-hub/update/status', 'GET')
   ok('a refused install ends as "echec" with the robot’s last lines', st.body.etat === 'echec' && st.body.erreur === 'robot-refused' && /rolled back/.test(st.body.detail), st.body)
   ok('status before any update is idle', (await appeler(monter(deps()), '/kybernos-hub/update/status', 'GET')).body.etat === 'idle' && (await appeler(r, '/kybernos-hub/update/status', 'POST', {})).code === 405)
+}
+
+// ── L3-85: DSH killed in the middle of an update; the installer goes on as an orphan ───────────────────────────────────────────────────────────
+// The robot is a child process that outlives its parent. The installation lock it writes (install-lock.mjs) is what a restarted DSH reads: the « installer » below is a
+// stand-in (a node process that waits), the robot’s own write of its lock is played with the same call it makes, and « DSH restarted » is a new monterSuite with a new memory.
+console.log('an installer that outlived its DSH')
+{
+  const bon = publier('1.1.0')
+  const home = mkdtempSync(join(tmpdir(), 'kb-hub-orphan-'))
+  const fichier = fichierVerrou(home)
+  const orphelin = spawn(process.execPath, ['-e', 'setInterval(() => {}, 1000)'], { stdio: 'ignore' })
+  await new Promise((x) => orphelin.once('spawn', x))
+  prendreVerrou({ fichier, genre: 'suite', source: '/tmp/kybernos-update-x/contenu', pid: orphelin.pid })
+
+  const appels = { robots: 0, relances: 0, balayages: 0, ecritures: [] }
+  const deps2 = () => ({
+    catalogue: embarque, hub: { etat: () => ({ ok: true }) },
+    lireActivation: () => null, ecrireActivation: (o) => { appels.ecritures.push(o) }, executer: async () => { appels.robots += 1; return { code: 0, sortie: '' } }, relancer: async () => { appels.relances += 1; return { ok: true } },
+    cles: () => cles, versionSuite: () => '1.0.0-beta.1', urlCatalogue: () => URL,
+    lireCache: () => bon, ecrireCache: () => {}, telecharger: async (u) => (u.endsWith('.sig') ? Buffer.from(bon.signature) : bon.octets),
+    telechargerVers: async () => ({ fichier: '/tmp/a', sha256: 'b'.repeat(64), taille: 5000 }), extraire: async () => '/tmp/x', executerArchive: async () => { appels.robots += 1; return { code: 0, sortie: '' } }, nettoyer: async () => {},
+    racineDev: () => false, plateforme: 'mac',
+    lireVerrou: () => lireVerrou({ fichier }), balayer: () => { appels.balayages += 1 }
+  })
+  const monter2 = (d) => { const r = {}; monterSuite({ register: (x) => { r[x.path] = x.handler } }, d); return r }
+  const faux2 = (methode, corps) => {
+    const req = Object.assign((async function * () { if (corps !== undefined) yield Buffer.from(JSON.stringify(corps)) })(), { method: methode, headers: { origin: 'http://127.0.0.1:3080', cookie: sessionCookie('127.0.0.1:3080'), 'content-type': 'application/json' }, socket: { localPort: 3080 } })
+    return { req, res: { code: null, body: null, writeHead (c) { this.code = c }, end (b) { this.body = b === undefined ? null : JSON.parse(b) } } }
+  }
+  const appeler2 = async (r, chemin, methode, corps) => { const { req, res } = faux2(methode, corps); await r[chemin](req, res); return res }
+
+  // DSH is restarted: a new process, a new memory, the same disk.
+  const r = monter2(deps2())
+  await new Promise((x) => setTimeout(x, 20))
+  ok('when the suite routes are mounted the temp folders of a killed update are swept (once, after DSH has started)', appels.balayages === 1, appels)
+  let st = await appeler2(r, '/kybernos-hub/update/status', 'GET')
+  ok('the restarted DSH says an installation is running (it used to say « idle »), and that it did not start it', st.code === 200 && st.body.etat === 'installation' && st.body.orpheline === true, st.body)
+  let u = await appeler2(r, '/kybernos-hub/update', 'POST', { confirm: true })
+  ok('a second update is refused with 409 busy and no robot starts', u.code === 409 && u.body.error === 'busy' && appels.robots === 0, u.body)
+  ok('an install and an on/off switch of a module, and a refresh of the catalogue, are refused the same way (no robot, no activation written)', (await appeler2(r, '/kybernos-hub/module', 'POST', { id: 'dsh-mermaid', action: 'installer' })).code === 409 && (await appeler2(r, '/kybernos-hub/module', 'POST', { id: 'dsh-mermaid', action: 'activer' })).code === 409 && (await appeler2(r, '/kybernos-hub/catalogue/refresh', 'POST', {})).code === 409 && appels.robots === 0 && appels.ecritures.length === 0)
+  const rel = await appeler2(r, '/kybernos-hub/relaunch', 'POST', { confirm: true })
+  ok('the relaunch is refused while an installer runs, with a plain sentence, and DSH is not restarted', rel.code === 409 && rel.body.error === 'busy' && /installation is running/.test(rel.body.detail) && appels.relances === 0, rel.body)
+  ok('the relaunch still asks for its confirmation first', (await appeler2(r, '/kybernos-hub/relaunch', 'POST', {})).code === 400)
+
+  // the installer is killed too (the machine went down, or the person killed it): the lock is stale
+  await new Promise((x) => { orphelin.once('exit', x); orphelin.kill('SIGKILL') })
+  st = await appeler2(r, '/kybernos-hub/update/status', 'GET')
+  ok('once the installer is gone the status is idle again and the stale lock is removed', st.body.etat === 'idle' && existsSync(fichier) === false, st.body)
+  ok('…and the temp folders are swept again, since an installer that was running has ended', appels.balayages === 2, appels)
+  u = await appeler2(r, '/kybernos-hub/update', 'POST', { confirm: true })
+  ok('…so an update is accepted', u.code === 202)
+  await new Promise((x) => setTimeout(x, 30))
+  ok('…and so is a relaunch', (await appeler2(r, '/kybernos-hub/relaunch', 'POST', { confirm: true })).code === 200 && appels.relances === 1)
+
+  // an engine change started by hand in a terminal shows as an engine change
+  const moteur = spawn(process.execPath, ['-e', 'setInterval(() => {}, 1000)'], { stdio: 'ignore' })
+  await new Promise((x) => moteur.once('spawn', x))
+  prendreVerrou({ fichier, genre: 'engine', pid: moteur.pid })
+  st = await appeler2(monter2(deps2()), '/kybernos-hub/update/status', 'GET')
+  ok('an engine upgrade the person started in a terminal is reported as one (moteur: true)', st.body.etat === 'installation' && st.body.moteur === true, st.body)
+  await new Promise((x) => { moteur.once('exit', x); moteur.kill('SIGKILL') })
+
+  // this process’s own update holds the flag even when the lock cannot be read (no lock folder, a robot that does not write one)
+  let liberer
+  const bloque = new Promise((x) => { liberer = x })
+  const r3 = monter2({ ...deps2(), lireVerrou: () => ({ etat: 'libre' }), executerArchive: async () => { await bloque; return { code: 0, sortie: '' } } })
+  await appeler2(r3, '/kybernos-hub/update', 'POST', { confirm: true })
+  await new Promise((x) => setTimeout(x, 20))
+  const rel2 = await appeler2(r3, '/kybernos-hub/relaunch', 'POST', { confirm: true })
+  ok('the relaunch is refused while THIS DSH’s own update runs, whatever the lock file says', rel2.code === 409 && rel2.body.error === 'busy', rel2.body)
+  liberer()
+  await new Promise((x) => setTimeout(x, 30))
+  ok('…and is accepted once it has ended', (await appeler2(r3, '/kybernos-hub/relaunch', 'POST', { confirm: true })).code === 200)
+  const r4 = monter2({ ...deps2(), lireVerrou: () => { throw new Error('EACCES') } })
+  ok('a lock that cannot be read never blocks the panel', (await appeler2(r4, '/kybernos-hub/update/status', 'GET')).body.etat === 'idle' && (await appeler2(r4, '/kybernos-hub/relaunch', 'POST', { confirm: true })).code === 200)
+  rmSync(home, { recursive: true, force: true })
 }
 
 console.log('\n' + (total - echecs) + '/' + total + ' passed')
