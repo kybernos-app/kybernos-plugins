@@ -15,7 +15,7 @@
 // stays standalone for the agent; the host serves the page and the composer's chip.
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync, statSync, realpathSync, renameSync, chmodSync, rmSync } from 'node:fs'
+import { readFileSync, writeFileSync, mkdirSync, readdirSync, statSync, realpathSync, renameSync, chmodSync, rmSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { basename, dirname, join, resolve } from 'node:path'
 import { DELAI_DEFAUT, normaliserListe, sonderUn } from './sonde.mjs'
