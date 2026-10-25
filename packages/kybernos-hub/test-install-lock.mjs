@@ -106,7 +106,7 @@ console.log('the lock on disk, with a stand-in installer')
     const rs = prendreVerrou({ fichier: fichierVerrou(ferme), genre: 'install' })
     chmodSync(join(ferme, 'lifecycle'), 0o700)
     ok('a folder that cannot be written does not stop an install: it goes on without the lock and says so', rs.ok === true && rs.sansVerrou === true && typeof rs.detail === 'string', rs)
-  } else console.log('  - read-only folder case skipped (running as root, or Windows)')
+  } else console.log('SKIPPED: the read-only folder case of the installation lock (running as root, or Windows)')
 }
 
 console.log('the temp folders a killed update leaves')
