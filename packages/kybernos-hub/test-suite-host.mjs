@@ -1,8 +1,10 @@
 // Suite panel — host logic and routes, played without DSH, a disk or a network.
 //   node packages/kybernos-hub/test-suite-host.mjs
-import { readFileSync } from 'node:fs'
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { suiteDeps } from './index.js'
 import { activesResolues, avecLesModulesDeCetteCopie, basculer, charge, desactivesAEcrire, installer, lireActivation } from './suite-host.mjs'
 import { monterSuite } from './hub-host.mjs'
 import { sessionSource } from './session-guard.mjs'
@@ -108,6 +110,44 @@ console.log('── install ──')
   ok('a failed activation write stops before the robot', ecritureKO.error === 'activation-write-failed')
 }
 
+// L3-95: the activation is written BEFORE the robot runs (the robot links what the file names); when the robot cannot start or refuses, the previous state is written back.
+console.log('── a failed install leaves the activation as it was ──')
+{
+  const avant = { actives: [nomDe('kybernos-slides')], desactives: [] }
+  const essai = async (brut, executer, id = 'dsh-mermaid') => {
+    const ecrits = []
+    const r = await installer({ catalogue, brut, id, ecrire: (o) => { ecrits.push(o) }, executer })
+    return { r, ecrits }
+  }
+  let t = await essai(avant, async () => ({ code: 1, sortie: 'a\nboot check failed' }))
+  ok('a robot that refuses: the activation written for the install is written back as it was (the same object)', t.r.ok === false && t.r.error === 'robot-refused' && t.ecrits.length === 2 && t.ecrits[0].actives.includes(nomDe('dsh-mermaid')) && t.ecrits[1] === avant && t.r.activationRestauree === true, t)
+  t = await essai(avant, async () => { throw new Error('robot introuvable') })
+  ok('a robot that cannot start: the same', t.r.error === 'robot-failed' && t.ecrits.length === 2 && t.ecrits[1] === avant && t.r.activationRestauree === true)
+  t = await essai(null, async () => ({ code: 2, sortie: 'ENOSPC' }))
+  ok('with no activation file before (everything on), the file is put back to « none »: ecrire(null), not a full list', t.ecrits.length === 2 && t.ecrits[1] === null && t.r.activationRestauree === true, t.ecrits)
+  t = await essai(avant, async () => ({ code: 0, sortie: 'ok' }))
+  ok('a success keeps the activation: one write, nothing restored', t.r.ok === true && t.ecrits.length === 1 && t.r.activationRestauree === undefined)
+  t = await essai(avant, async () => ({ code: 1, sortie: 'no' }), 'kybernos-hub')
+  ok('the socle writes no activation, so a failure has nothing to put back', t.r.ok === false && t.ecrits.length === 0 && t.r.activationRestauree === undefined)
+  let appels = 0
+  const r1 = await installer({ catalogue, brut: avant, id: 'dsh-mermaid', ecrire: () => { appels += 1; if (appels === 2) throw new Error('EACCES') }, executer: async () => ({ code: 1, sortie: 'x' }) })
+  ok('a restore that itself fails is reported next to the robot’s own error, which is kept', r1.error === 'robot-refused' && r1.activationRestauree === false)
+}
+
+console.log('── the real activation writer (a throw-away DSH home) ──')
+{
+  const home = mkdtempSync(join(tmpdir(), 'kb-hub-activation-'))
+  const d = suiteDeps(home, { etat: () => ({}) })
+  const fichier = join(home, 'kybernos', 'satellites-actives.json')
+  d.ecrireActivation({ actives: ['@local/x'], desactives: [] })
+  ok('an object is written (atomically) as the activation file', existsSync(fichier) && JSON.parse(readFileSync(fichier, 'utf8')).actives[0] === '@local/x' && d.lireActivation().actives[0] === '@local/x')
+  d.ecrireActivation(null)
+  ok('null puts it back to « no file » (= everything on), which is what a failed install of a module needs when there was none', existsSync(fichier) === false && d.lireActivation() === null)
+  d.ecrireActivation(null)
+  ok('…and removing it twice is harmless', existsSync(fichier) === false)
+  rmSync(home, { recursive: true, force: true })
+}
+
 console.log('── routes ──')
 const routes = {}
 const hub = { etat: () => ({ ok: true }) }
@@ -146,6 +186,13 @@ const appeler = async (chemin, methode, corps, entetes) => { const { req, res } 
   ok('an unknown action answers 400', (await appeler('/kybernos-hub/module', 'POST', { id: 'kybernos-slides', action: 'rm' })).code === 400)
   const inst = await appeler('/kybernos-hub/module', 'POST', { id: 'dsh-mermaid', action: 'installer' })
   ok('installer runs the robot once and asks for a relaunch', inst.code === 200 && inst.body.relanceRequise === true && robots.length === 1)
+  // L3-95 through the route: the robot refuses, the page gets the refusal, and the activation file is written back (here: to « no file », since lireActivation reads none)
+  const avantEchec = ecritures.length
+  const executerAvant = deps.executer
+  deps.executer = async () => ({ code: 1, sortie: 'rolled back' })
+  const raté = await appeler('/kybernos-hub/module', 'POST', { id: 'dsh-media-player', action: 'installer' })
+  deps.executer = executerAvant
+  ok('the route: a refused install answers 500 robot-refused and the activation file is put back', raté.code === 500 && raté.body.error === 'robot-refused' && raté.body.activationRestauree === true && ecritures.length === avantEchec + 2 && ecritures[ecritures.length - 1] === null, JSON.stringify(ecritures.slice(avantEchec)).slice(0, 200))
   ok('relaunch without confirmation does nothing', (await appeler('/kybernos-hub/relaunch', 'POST', {})).code === 400 && relances === 0)
   ok('relaunch with confirmation runs once', (await appeler('/kybernos-hub/relaunch', 'POST', { confirm: true })).code === 200 && relances === 1)
   ok('a foreign origin cannot relaunch DSH', (await appeler('/kybernos-hub/relaunch', 'POST', { confirm: true }, { origin: 'http://evil.example' })).code === 403 && relances === 1)

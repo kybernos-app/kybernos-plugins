@@ -14,7 +14,7 @@
 // ═══════════════════════════════════════════════════════
 
 import { randomUUID } from 'node:crypto'
-import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { FICHIER_ETAT } from './boot-guard.mjs'
@@ -46,7 +46,7 @@ export const outilRelance = (dshHome, racine, existe = existsSync) => {
 }
 
 
-function suiteDeps (dshHome, hub) {
+export function suiteDeps (dshHome, hub) {
   const ici = dirname(fileURLToPath(import.meta.url))
   const racineDepot = join(ici, '..', '..')
   const dossierKb = join(dshHome, 'kybernos')
@@ -98,6 +98,8 @@ function suiteDeps (dshHome, hub) {
     hebergement: () => detecterHebergement({ env: process.env, existe: existsSync }),
     plateforme: plateformeDe(process.platform),
     ecrireActivation: (obj) => {
+      // `null` puts the file back to « there is none » (= everything on): what a failed install does when the person had no activation file before it.
+      if (obj === null) { rmSync(fichier, { force: true }); return }
       mkdirSync(dirname(fichier), { recursive: true })
       const tmp = fichier + '.tmp-' + process.pid
       writeFileSync(tmp, JSON.stringify(obj, null, 2) + '\n')
