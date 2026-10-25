@@ -31,7 +31,8 @@
       "./plugins/with-loopback-cleartext.js",
       "./plugins/with-arm64-only.js",
       "./plugins/with-no-proxy-client.js",
-      "expo-secure-store"
+      "expo-secure-store",
+      ["expo-splash-screen", { "backgroundColor": "#121217", "image": "./assets/splash-icon.png", "imageWidth": 200 }]
     ]
   }
 }
