@@ -160,6 +160,7 @@ window.__ModuleLoader__.load({
         rowNoAdapter: 'Ce modèle vient de ton compte Kybernos, et ce DSH n\'y est plus connecté. Reconnecte-toi pour l\'utiliser.',
         rowTeamGone: 'Tu n\'es plus dans l\'équipe à laquelle ce chat était facturé, donc le message n\'est pas parti. DSH met tes équipes à jour : renvoie-le dans un instant.',
         rowTeamGoneNow: 'Tu n\'es plus dans l\'équipe à laquelle ce chat était facturé, donc le message n\'est pas parti. DSH est maintenant dans {name} : renvoie-le.',
+        rowRouteStale: 'Tes messages seraient facturés à {name}. Réessaie.',
         rowRetryDown: 'Le serveur Kybernos « {name} » ({host}) ne répond pas : DSH continue d\'essayer',
         quotaNoPlan: '{name} n\'a pas encore de formule : personne ne peut y utiliser les modèles.',
         quotaNoPlanAdmin: ' Choisis-en une pour les activer.',
@@ -447,6 +448,7 @@ window.__ModuleLoader__.load({
         rowNoAdapter: 'This model comes from your Kybernos account, and this DSH is not signed in to it any more. Sign in again to use it.',
         rowTeamGone: 'You are no longer in the team this chat was billed to, so the message was not sent. DSH is updating your teams: send it again in a moment.',
         rowTeamGoneNow: 'You are no longer in the team this chat was billed to, so the message was not sent. DSH is now in {name}: send it again.',
+        rowRouteStale: 'Your messages would be billed to {name}. Try again.',
         rowRetryDown: 'The Kybernos server “{name}” ({host}) is not answering: DSH keeps retrying',
         quotaNoPlan: '{name} has no plan yet, so nobody in it can use the models.',
         quotaNoPlanAdmin: ' Choose a plan to turn them on.',
@@ -3846,6 +3848,9 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
         // A person removed from a team (or who left it) keeps the team's id in the model route until DSH reads the account again; the server answers every model call 404 `workspace_not_found`
         // and the engine writes the raw body (recette L2-05). The sentence says what happened; the host is asked to read the account at once (it then falls back to a space the person is in).
         const KB_TEAM_GONE = /workspace_not_found|No such workspace in `?x-kybernos-workspace/
+        // The host refused a turn whose model route still names the previous team (a switch made while the server did not answer, recette L3-76): its sentence is « Your messages would be
+        // billed to <team>. Try again. », word for word, so the row can say it in the person's language.
+        const KB_ROUTE_STALE = /^Your messages would be billed to (.+)\. Try again\.$/
         // The failure is recent enough to be worth a read of the account (an old row in a chat's history is only worded, never acted on).
         const failureIsRecent = (data) => { const at = typeof data.time === 'number' ? data.time : Date.parse(String(data.time)); return Number.isFinite(at) ? Date.now() - at < 10 * 60 * 1000 : true }
         const turnErrorRow = (Shipped) => {
@@ -3853,6 +3858,7 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
             const data = props !== null && props !== undefined && props.node !== null && props.node !== undefined && props.node.data !== null && typeof props.node.data === 'object' ? props.node.data : {}
             const noAdapter = typeof data.message === 'string' && KB_NO_ADAPTER.test(data.message)
             const teamGone = typeof data.message === 'string' && KB_TEAM_GONE.test(data.message)
+            const staleRoute = typeof data.message === 'string' ? KB_ROUTE_STALE.exec(data.message) : null
             const quotaRefused = data.code === 'QUOTA'
             const factsPair = React.useState(null)
             const facts = factsPair[0]
@@ -3882,6 +3888,8 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
             let say = null
             if (teamGone === true) {
               say = { text: nowIn !== null && nowIn !== '' ? quotaFill(t('rowTeamGoneNow'), { name: nowIn }) : t('rowTeamGone'), label: null, run: null }
+            } else if (staleRoute !== null) {
+              say = { text: quotaFill(t('rowRouteStale'), { name: staleRoute[1] }), label: null, run: null }
             } else if (noAdapter === true) {
               say = { text: t('rowNoAdapter'), label: t('footSignInAgain'), run: () => { try { window.dispatchEvent(new Event('kybernos-cloud:open')) } catch (e) { /* Event absent */ } } }
             } else if (quotaRefused === true && facts !== null && facts !== undefined && facts.ok === true && facts.no_plan === true) {
