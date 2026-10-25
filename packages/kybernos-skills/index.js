@@ -170,16 +170,6 @@ const dshHome = (env = process.env, osHome = homedir) => {
   return resolvePath(raw.startsWith('~/') || raw.startsWith('~\\') ? join(osHome(), raw.slice(2)) : raw)
 }
 
-const findProjectRoot = (cwd) => { // mirror of dsh-skill-filesystem/lib/index.js:807-815
-  let dir = cwd
-  for (;;) {
-    if (existsSync(join(dir, '.git'))) return dir
-    const parent = dirname(dir)
-    if (parent === dir) return cwd
-    dir = parent
-  }
-}
-
 // `home` is the OS home (it holds `.agents`); `dsh` is the DSH home (skills, journal, featured list,
 // token cache, sessions). A harness that passes a `home` gets its own `<home>/.dsh`; with neither,
 // `dsh` follows DSH_HOME, so an isolated instance never reaches into the user's real ~/.dsh.
