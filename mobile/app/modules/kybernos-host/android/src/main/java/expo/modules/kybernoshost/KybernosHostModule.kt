@@ -3,6 +3,7 @@ package expo.modules.kybernoshost
 import android.app.ActivityManager
 import android.content.Context
 import android.os.Debug
+import android.webkit.CookieManager
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 
@@ -23,6 +24,10 @@ class KybernosHostModule : Module() {
     Function("status") { host.status() }
     Function("exitCode") { host.exitCode() }
     Function("logTail") { maxBytes: Int -> host.logTail(maxBytes) }
+    // The engine's session cookie is named after its port, which is new at every launch: clear the old ones before the engine starts so they do not pile up until the header is too long (see the iOS module).
+    AsyncFunction("clearWebSession") { promise: expo.modules.kotlin.Promise ->
+      try { CookieManager.getInstance().removeAllCookies { promise.resolve(null) } } catch (e: Exception) { promise.resolve(null) }
+    }.runOnQueue(expo.modules.kotlin.functions.Queues.MAIN)
     Function("startKeepAlive") { KeepAliveService.start(context) }
     Function("stopKeepAlive") { KeepAliveService.stop(context) }
     Function("keepAliveRunning") { KeepAliveService.running }

@@ -51,6 +51,29 @@ describe('App: the engine starts only after the person agrees', () => {
     r.unmount()
   })
 
+  it('clears the old web sessions before the engine starts', async () => {
+    mockStore.set(CONSENT_SLOT, CONSENT_VERSION)
+    const order: string[] = []
+    ;(host as any).clearWebSession = jest.fn(async () => { await new Promise((r) => setTimeout(r, 5)); order.push('cleared') })
+    start.mockImplementation(() => { order.push('start'); return true })
+    const r = await render(<App />)
+    await flush()
+    expect(order).toEqual(['cleared', 'start'])
+    r.unmount()
+    delete (host as any).clearWebSession
+    start.mockImplementation(() => true)
+  })
+
+  it('starts the engine anyway when clearing the web sessions fails', async () => {
+    mockStore.set(CONSENT_SLOT, CONSENT_VERSION)
+    ;(host as any).clearWebSession = jest.fn(() => Promise.reject(new Error('no web view')))
+    const r = await render(<App />)
+    await flush()
+    expect(start).toHaveBeenCalledTimes(1)
+    r.unmount()
+    delete (host as any).clearWebSession
+  })
+
   it('has nobody to ask in a device-cloud self-test build: it starts at once', async () => {
     ;(host as any).selfTestDelay = 60
     const r = await render(<App />)

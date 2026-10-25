@@ -1077,6 +1077,59 @@ window.__ModuleLoader__.load({
         return { Dialog, Page, CSS, open: openWindow }
       }
 
+      // ── Report an AI answer (store rules: mobile/STORES.md item 4) ──
+      // A small « Report » control under each finished answer, inside the app only. It reuses the feedback box of the core plugin: the report is SAVED on the phone first (POST /kybernos/feedback),
+      // then SENT to the Kybernos team through the signed-in account's relay (POST /kybernos/feedback/send). When it cannot be sent (signed out, no network) the person is told so and offered the
+      // e-mail route: the report never silently stays on the phone. The answer's text is added ONLY when the person ticks the box, and what goes is what the box shows (editable).
+      const REPORT_REASONS = [
+        { id: 'offensive', en: 'Offensive or inappropriate', fr: 'Choquante ou inappropriée' },
+        { id: 'dangerous', en: 'Dangerous or harmful', fr: 'Dangereuse ou nuisible' },
+        { id: 'wrong', en: 'Wrong or misleading', fr: 'Fausse ou trompeuse' },
+        { id: 'other', en: 'Something else', fr: 'Autre chose' },
+      ]
+      const REPORT_EXCERPT_MAX = 1500
+      const REPORT_COMMENT_MAX = 1000
+      // The one address the owner gave for the product (packages/kybernos-plugin/test-feedback-form.mjs: none is invented).
+      const REPORT_CONTACT = 'contact@kybernos.app'
+      /** The report's text, in English whatever the screen's language (the team reads it): reason, optional reference, optional comment, optional excerpt. */
+      const reportMessage = (r) => {
+        const reason = REPORT_REASONS.find((x) => x.id === r.reason)
+        const lines = ['[AI answer report] Reason: ' + (reason !== undefined ? reason.en : 'Something else')]
+        if (typeof r.ref === 'string' && r.ref !== '') lines.push('Reference: ' + r.ref)
+        const comment = typeof r.comment === 'string' ? r.comment.trim().slice(0, REPORT_COMMENT_MAX) : ''
+        if (comment !== '') lines.push('', 'Comment: ' + comment)
+        const excerpt = typeof r.excerpt === 'string' ? r.excerpt.trim().slice(0, REPORT_EXCERPT_MAX) : ''
+        if (excerpt !== '') lines.push('', 'Answer excerpt (added by the sender):', excerpt)
+        return lines.join('\n')
+      }
+      /** A first guess of the answer a node follows: the nearest block of text before it, looking at its previous siblings and then up through its parents (the interface draws the answer as an earlier
+       *  sibling of the turn's tail, a few levels up; measured on the simulator: 5). The first REPORT_EXCERPT_MAX characters of that block. The person reads and edits it before anything is sent. */
+      const textBefore = (node) => {
+        let el = node
+        for (let up = 0; up < 8 && el !== null && el !== undefined; up++) {
+          let sib = el.previousElementSibling
+          while (sib !== null && sib !== undefined) {
+            const t = String(sib.innerText !== undefined ? sib.innerText : (sib.textContent || '')).trim()
+            if (t !== '') return t.slice(0, REPORT_EXCERPT_MAX)
+            sib = sib.previousElementSibling
+          }
+          el = el.parentElement
+        }
+        return ''
+      }
+      /** Save, then send. `post(path, body)` answers `{ status, out }` (status 0 when there was no answer). `sent`: the team has it. `saved`: kept on the phone, `why` says why it did not go. `failed`: not even kept. */
+      const submitReport = async (message, post) => {
+        const body = { type: 'bug', message }
+        const saved = await post('/kybernos/feedback', body)
+        if (!(saved.status === 200 && saved.out !== null && typeof saved.out === 'object' && saved.out.ok === true)) return { state: 'failed', code: saved.status + (saved.out !== null && typeof saved.out === 'object' && typeof saved.out.error === 'string' ? ' ' + saved.out.error.slice(0, 60) : '') }
+        const sent = await post('/kybernos/feedback/send', body)
+        if (sent.status === 200 && sent.out !== null && typeof sent.out === 'object' && sent.out.ok === true) return { state: 'sent' }
+        const code = sent.out !== null && typeof sent.out === 'object' && typeof sent.out.error === 'string' ? sent.out.error : ''
+        const signedOut = code === 'non_connecte' || code === 'reconnexion_requise' || sent.status === 401 || sent.status === 403 || sent.status === 503
+        return { state: 'saved', why: signedOut ? 'signedout' : 'net' }
+      }
+      const reportMailto = (message) => 'mailto:' + REPORT_CONTACT + '?subject=' + encodeURIComponent('AI answer report') + '&body=' + encodeURIComponent(String(message).slice(0, 1800))
+
       // ── « The Kybernos app » page: what only the app can do (its secure model key, its engine log) and what a phone changes for automations ──
       // The app's WebView catches `kybernos://settings` and `kybernos://log` and opens its own screens; this page is the way in from the interface. It keeps the section id of the phone link
       // (`kybernos-mobile`): the Settings organiser files that id under « Devices & cloud », and the page it replaces never exists in the same place.
@@ -1097,8 +1150,97 @@ window.__ModuleLoader__.load({
         // Purchase, sign-up and plugin-install controls the app never shows (store rules: no purchase flow inside the app, no sign-up in the first version, only the plugins the app carries; mobile/STORES.md items 1, 5 and 6). They are hidden by their
         // data-kb hooks, not removed: the desktop and the browser keep them. test-client.mjs checks every hook still exists in the bundle that draws it.
         const STORE_HIDDEN = ['menu-signup', 'menu-plans', 'menu-plan-cta', 'menu-plan-credits', 'upgrade-dialog', 'team-lock-plans', 'provider-plans', 'kc-pro-plans', 'kybernos-kyber-upgrade', 'plugins-add', 'plugins-add-empty', 'plugins-drafts']
+        // The control under each finished answer. State is local; nothing leaves the phone until « Send ».
+        const ReportTail = (props) => {
+          const rootRef = React.useRef(null)
+          const [open, setOpen] = React.useState(false)
+          const [reason, setReason] = React.useState('')
+          const [comment, setComment] = React.useState('')
+          const [withText, setWithText] = React.useState(false)
+          const [excerpt, setExcerpt] = React.useState('')
+          const [phase, setPhase] = React.useState('form')
+          const [why, setWhy] = React.useState('')
+          const [message, setMessage] = React.useState('')
+          const sid = props !== null && props !== undefined && typeof props.sessionId === 'string' ? props.sessionId : ''
+          const seq = props !== null && props !== undefined && typeof props.seq === 'number' ? props.seq : null
+          const ref = sid === '' ? '' : 'session ' + sid + (seq !== null ? ', turn ' + seq : '')
+          const toggleText = (on) => {
+            setWithText(on)
+            if (on && excerpt === '') { try { setExcerpt(textBefore(rootRef.current)) } catch (e) { setExcerpt('') } }
+          }
+          const post = async (path, body) => {
+            try {
+              const r = await fetch(path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
+              let out = null
+              try { out = await r.json() } catch (e) { out = null }
+              return { status: r.status, out }
+            } catch (e) { return { status: 0, out: null } }
+          }
+          const send = async () => {
+            const text = reportMessage({ reason, comment, excerpt: withText ? excerpt : '', ref })
+            setMessage(text); setPhase('sending')
+            const r = await submitReport(text, post)
+            setWhy(r.why !== undefined ? r.why : (r.code !== undefined ? r.code : '')); setPhase(r.state)
+          }
+          const reset = () => { setOpen(false); setPhase('form'); setReason(''); setComment(''); setWithText(false); setExcerpt(''); setWhy('') }
+          const mail = () => { try { window.location.assign(reportMailto(message)) } catch (e) { /* the app opens the mail composer */ } }
+          const field = (kb, node) => h('div', { className: 'kbrp-field', 'data-kb': kb }, node)
+          let body = null
+          if (open && phase === 'form') {
+            body = h('div', { className: 'kbrp-card', 'data-kb': 'report-form', role: 'group', 'aria-label': kt('Signaler cette réponse', 'Report this answer') },
+              h('p', { className: 'kbrp-h' }, kt('Signaler cette réponse', 'Report this answer')),
+              h('div', { className: 'kbrp-reasons', role: 'radiogroup' }, REPORT_REASONS.map((x) => h('label', { key: x.id, className: 'kbrp-radio' },
+                h('input', { type: 'radio', name: 'kbrp-reason', value: x.id, checked: reason === x.id, 'data-act': 'report-reason-' + x.id, onChange: () => setReason(x.id) }), h('span', null, kt(x.fr, x.en))))),
+              field('report-comment', h('textarea', { className: 'kbrp-text', rows: 2, maxLength: REPORT_COMMENT_MAX, value: comment, placeholder: kt('Un mot de plus (facultatif)', 'Anything to add (optional)'), onChange: (e) => setComment(e.target.value) })),
+              h('label', { className: 'kbrp-radio' },
+                h('input', { type: 'checkbox', checked: withText, 'data-act': 'report-include', onChange: (e) => toggleText(e.target.checked === true) }), h('span', null, kt('Joindre le texte de la réponse', 'Include the answer’s text'))),
+              withText ? field('report-excerpt', h('textarea', { className: 'kbrp-text', rows: 5, maxLength: REPORT_EXCERPT_MAX, value: excerpt, onChange: (e) => setExcerpt(e.target.value), 'aria-label': kt('Texte joint, modifiable', 'Text that will be sent, editable') })) : null,
+              h('p', { className: 'kbrp-note' }, kt('Le signalement est gardé sur ce téléphone, puis envoyé à l’équipe Kybernos si tu es connecté. Rien d’autre n’est joint.', 'The report is kept on this phone, then sent to the Kybernos team if you are signed in. Nothing else is attached.')),
+              h('div', { className: 'kbrp-row' },
+                h('button', { type: 'button', className: 'kbrp-btn kbrp-primary', 'data-act': 'report-send', disabled: reason === '', onClick: send }, kt('Envoyer', 'Send')),
+                h('button', { type: 'button', className: 'kbrp-btn', 'data-act': 'report-cancel', onClick: reset }, kt('Annuler', 'Cancel'))))
+          } else if (open && phase === 'sending') {
+            body = h('div', { className: 'kbrp-card', 'data-kb': 'report-sending', role: 'status' }, h('p', { className: 'kbrp-note' }, kt('Envoi…', 'Sending…')))
+          } else if (open && phase === 'sent') {
+            body = h('div', { className: 'kbrp-card', 'data-kb': 'report-sent', role: 'status' }, h('p', { className: 'kbrp-h' }, kt('Merci, c’est envoyé à l’équipe Kybernos.', 'Thank you, it was sent to the Kybernos team.')),
+              h('div', { className: 'kbrp-row' }, h('button', { type: 'button', className: 'kbrp-btn', 'data-act': 'report-done', onClick: reset }, kt('Fermer', 'Close'))))
+          } else if (open && phase === 'saved') {
+            body = h('div', { className: 'kbrp-card', 'data-kb': 'report-saved', role: 'status' },
+              h('p', { className: 'kbrp-h' }, kt('Gardé sur ce téléphone, pas encore envoyé.', 'Kept on this phone, not sent yet.')),
+              h('p', { className: 'kbrp-note' }, why === 'signedout'
+                ? kt('Tu n’es pas connecté à Kybernos : tu peux l’envoyer par e-mail à ' + REPORT_CONTACT + '.', 'You are not signed in to Kybernos: you can send it by e-mail to ' + REPORT_CONTACT + '.')
+                : kt('Le réseau n’a pas répondu : tu peux l’envoyer par e-mail à ' + REPORT_CONTACT + '.', 'The network did not answer: you can send it by e-mail to ' + REPORT_CONTACT + '.')),
+              h('div', { className: 'kbrp-row' },
+                h('button', { type: 'button', className: 'kbrp-btn kbrp-primary', 'data-act': 'report-mail', onClick: mail }, kt('Envoyer par e-mail', 'Send by e-mail')),
+                h('button', { type: 'button', className: 'kbrp-btn', 'data-act': 'report-done', onClick: reset }, kt('Fermer', 'Close'))))
+          } else if (open && phase === 'failed') {
+            body = h('div', { className: 'kbrp-card', 'data-kb': 'report-failed', role: 'alert' },
+              h('p', { className: 'kbrp-h' }, kt('Le signalement n’a pas pu être gardé.', 'The report could not be kept.')),
+              h('p', { className: 'kbrp-note' }, kt('Tu peux l’envoyer par e-mail à ' + REPORT_CONTACT + '.', 'You can send it by e-mail to ' + REPORT_CONTACT + '.') + (why !== '' ? ' (' + why + ')' : '')),
+              h('div', { className: 'kbrp-row' },
+                h('button', { type: 'button', className: 'kbrp-btn kbrp-primary', 'data-act': 'report-mail', onClick: mail }, kt('Envoyer par e-mail', 'Send by e-mail')),
+                h('button', { type: 'button', className: 'kbrp-btn', 'data-act': 'report-done', onClick: reset }, kt('Fermer', 'Close'))))
+          }
+          return h('div', { className: 'kbrp', 'data-kb': 'report-tail', ref: rootRef },
+            open ? null : h('button', { type: 'button', className: 'kbrp-open', 'data-act': 'report-open', onClick: () => setOpen(true) }, kt('Signaler', 'Report')),
+            body)
+        }
         const CSS = `
 html.kb-app :is(${STORE_HIDDEN.map((k) => '[data-kb="' + k + '"]').join(',')}){display:none !important}
+.kbrp{display:flex;flex-direction:column;align-items:flex-start;gap:8px;margin:2px 0 6px}
+.kbrp-open,.kbrp-radio,.kbrp-btn,.kbrp-h{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.kbrp-open{min-height:32px;padding:4px 10px;border:0;background:transparent;font:inherit;font-size:12px;color:var(--dsw-alias-label-tertiary, rgb(130,130,140));text-decoration:underline;text-underline-offset:3px}
+.kbrp-card{display:flex;flex-direction:column;gap:10px;width:100%;box-sizing:border-box;padding:14px;border-radius:12px;border:1px solid var(--dsw-alias-border-l2, rgb(46,46,52));background:var(--dsw-alias-bg-layer-2, rgb(27,27,31))}
+.kbrp-h{margin:0;font-size:14px;font-weight:650;color:var(--dsw-alias-label-primary, rgb(243,243,245))}
+.kbrp-note{margin:0;font-size:12px;line-height:1.45;color:var(--dsw-alias-label-secondary, rgb(161,161,171))}
+.kbrp-reasons{display:flex;flex-direction:column}
+.kbrp-radio{display:flex;gap:10px;align-items:center;min-height:44px;font-size:14px;color:var(--dsw-alias-label-primary, rgb(243,243,245))}
+.kbrp-radio input{width:20px;height:20px;flex:none;margin:0}
+.kbrp-text{width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid var(--dsw-alias-border-l2, rgb(46,46,52));background:var(--dsw-alias-bg-layer-1, rgb(18,18,23));color:var(--dsw-alias-label-primary, rgb(243,243,245));font:inherit;font-size:16px;resize:vertical}
+.kbrp-row{display:flex;gap:8px;flex-wrap:wrap}
+.kbrp-btn{min-height:44px;padding:8px 18px;border-radius:10px;border:1px solid var(--dsw-alias-border-l2, rgb(46,46,52));background:var(--dsw-alias-bg-layer-2, rgb(35,35,40));color:var(--dsw-alias-label-primary, rgb(243,243,245));font:inherit;font-size:14px}
+.kbrp-primary{background:var(--dsw-alias-label-primary, rgb(243,243,245));color:var(--dsw-alias-bg-layer-1, rgb(18,18,23));font-weight:600}
+.kbrp-btn:disabled{opacity:.4}
 .kbapp-page{display:flex;flex-direction:column;gap:14px;max-width:640px}
 .kbapp-title{margin:0;font-size:20px;font-weight:650;line-height:1.25;color:var(--dsw-alias-label-primary, rgb(243,243,245))}
 .kbapp-sub{margin:0;font-size:13px;line-height:1.45;color:var(--dsw-alias-label-secondary, rgb(161,161,171))}
@@ -1109,7 +1251,7 @@ html.kb-app :is(${STORE_HIDDEN.map((k) => '[data-kb="' + k + '"]').join(',')}){d
 .kbapp-btn:focus-visible{outline:2px solid var(--dsw-alias-brand-primary, rgb(76,110,245));outline-offset:2px}
 [data-slot="settings.section"]:has(.kbapp-page){width:100%;max-width:none}
 `
-        return { Page, CSS, open, STORE_HIDDEN }
+        return { Page, CSS, open, STORE_HIDDEN, ReportTail }
       }
 
       return {
@@ -1161,6 +1303,12 @@ html.kb-app :is(${STORE_HIDDEN.map((k) => '[data-kb="' + k + '"]').join(',')}){d
                         { name: 'settings.section', id: 'kybernos-mobile', order: 45, label: kt('L’app Kybernos', 'The Kybernos app') },
                         () => React.createElement(appUi.Page))), 'kybernos-mobile: app settings section')
                     }
+                    // The report control under each finished answer (store rules: a way to flag an AI answer from inside the app). `turnTail` runs for completed turns only.
+                    if (slots !== null && slots !== undefined && typeof slots.inject === 'function') {
+                      ctx.effect(() => slots.inject('conversation.chat.turnTail', () => slots.register(
+                        { name: 'conversation.chat.turnTail', id: 'kybernos-mobile-report', order: 90 },
+                        (p) => React.createElement(appUi.ReportTail, p))), 'kybernos-mobile: report an AI answer')
+                    }
                     // The app shows a small gear button until the interface says it has the entry (kybernos://settings is caught by its WebView).
                     try { if (window.ReactNativeWebView !== undefined && typeof window.ReactNativeWebView.postMessage === 'function') window.ReactNativeWebView.postMessage(JSON.stringify({ kybernos: 'app-entry', entry: 'settings', version: 1 })) } catch (e) { /* the app keeps its gear */ }
                   } catch (e) { try { console.warn('[kybernos-mobile] app page not mounted:', e) } catch (e2) { /* no console */ } }
@@ -1194,7 +1342,7 @@ html.kb-app :is(${STORE_HIDDEN.map((k) => '[data-kb="' + k + '"]').join(',')}){d
             }
           } catch (e) { try { console.warn('[kybernos-mobile] phone link disabled:', e) } catch (e2) { /* no console */ } }
         },
-        __test: { parseAppHost, decide, drawerOpen, narrow, toggle, PICKS, TOGGLE, FIRST_IN_SIDEBAR, MEDIA, SHEET_ID, MENU_CLASS, isParked, parkedActions, ACTION_BUTTONS, MORE_BUTTON, swipeCloses, fitKinds, FIT_ATTR, collapseButton, leadTarget, LEAD_ATTR }
+        __test: { REPORT_REASONS, REPORT_CONTACT, reportMessage, textBefore, submitReport, reportMailto, parseAppHost, decide, drawerOpen, narrow, toggle, PICKS, TOGGLE, FIRST_IN_SIDEBAR, MEDIA, SHEET_ID, MENU_CLASS, isParked, parkedActions, ACTION_BUTTONS, MORE_BUTTON, swipeCloses, fitKinds, FIT_ATTR, collapseButton, leadTarget, LEAD_ATTR }
       }
     } catch (e) {
       try { console.warn('[kybernos-mobile] disabled:', e) } catch (e2) { /* no console */ }

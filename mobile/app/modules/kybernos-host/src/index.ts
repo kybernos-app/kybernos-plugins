@@ -17,6 +17,8 @@ export interface KybernosHostNative {
   exitCode(): number | null
   logTail(maxBytes: number): string
   /** The process's memory in MB: its footprint (iOS: phys_footprint, what jetsam counts; Android: PSS), what the system says is still available to it, and the device total. */
+  /** Clears the web view's stored cookies (the engine's session cookie is named after its port, new at each launch, so old ones would pile up). Called before the engine starts. */
+  clearWebSession?(): Promise<void>
   /** Android only: the optional foreground service that keeps the engine's process alive in the background. */
   startKeepAlive?(): void
   stopKeepAlive?(): void

@@ -3,6 +3,7 @@ import MachO
 import UIKit
 import os
 import UserNotifications
+import WebKit
 
 /// JavaScript sees a thin surface: start the engine, read its progress, its log tail and its exit code. Everything that needs the app lifecycle lives here, not in JavaScript,
 /// because iOS suspends the app soon after it leaves the screen and the JavaScript thread may already be stopped by then.
@@ -24,6 +25,14 @@ public class KybernosHostModule: Module {
         Function("status") { () -> [String: Any] in NodeHost.shared.unpackStatus() }
         Function("exitCode") { () -> Int? in NodeHost.shared.currentExitCode().map { Int($0) } }
         Function("logTail") { (maxBytes: Int) -> String in NodeHost.shared.logTail(maxBytes: maxBytes) }
+        // The engine's session cookie is named after its port, and the port is new at every launch: left alone, one more `dsh-auth-*` cookie piles up for 127.0.0.1 at each start until the
+        // header passes the engine's and the guards' size limits (about 35 launches in 24 h) and every signed write is refused. Called before the engine starts (the web view does not exist yet).
+        AsyncFunction("clearWebSession") { (promise: Promise) in
+            DispatchQueue.main.async {
+                HTTPCookieStorage.shared.cookies?.forEach { HTTPCookieStorage.shared.deleteCookie($0) }
+                WKWebsiteDataStore.default().removeData(ofTypes: [WKWebsiteDataTypeCookies], modifiedSince: Date(timeIntervalSince1970: 0)) { promise.resolve(nil) }
+            }
+        }
         // iOS cannot run an automation while the app is suspended: it can tell the person that one is due, so they open the app and it runs (the engine catches up on return)
         AsyncFunction("requestReminderPermission") { (promise: Promise) in
             UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { granted, _ in promise.resolve(granted) }
