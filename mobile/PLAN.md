@@ -1,6 +1,6 @@
 # Kybernos mobile app (React Native, iOS and Android): plan and test strategy
 
-Status: plan, written 2026-10-25. Nothing in section 3 beyond M0 is started. Measured facts are marked as such; everything else is an estimate or a recommendation.
+Status: written 2026-10-25. M0 and M1 (iOS) are done and measured (section 3); M1 Android, M2 onwards are not started. Measured facts are marked as such; everything else is an estimate or a recommendation.
 
 ## 0. Where we are (measured)
 
@@ -46,9 +46,9 @@ React Native (TypeScript)                 native module KybernosHost (Swift / Ko
 
 ## 3. Milestones, each with acceptance tests
 
-**M0, prerequisites (about half a day).** Needs the owner's approval for the downloads in section 6. Install CocoaPods (Homebrew), create the React Native project under `mobile/app`, check that Gradle can resolve its dependencies again (the Gradle cache was cleaned on 2026-10-25). Accept: `npx expo prebuild` succeeds, an empty app runs in the iOS simulator and in the Android emulator (`android-36` image already installed).
+**M0, prerequisites (DONE 2026-10-25, about two hours of wall clock).** Needs the owner's approval for the downloads in section 6. Install CocoaPods (Homebrew), create the React Native project under `mobile/app`, check that Gradle can resolve its dependencies again (the Gradle cache was cleaned on 2026-10-25). Accept: `npx expo prebuild` succeeds, an empty app runs in the iOS simulator and in the Android emulator (`android-36` image already installed). Result: CocoaPods 1.17.0 (Homebrew, with its own Ruby 4.0), Expo SDK 58 / React Native 0.88 under `mobile/app`, iOS Release build 1.5 min, Android Release build 6 min 53 s with the Gradle dependencies downloaded again, the empty app runs on the iPhone 18 Pro simulator and on the `socrate_emu` Android 16 (API 36) emulator.
 
-**M1, iOS shell (2 to 3 days).** Port NodeHost and Supervisor into an Expo module, Boot screen, WebView, self-test hook behind a build flag. Accept: on the simulator the numbers of section 0 are reproduced (unpack at most 15 s, page at most 30 s), `mobile/tests/sim-ios.sh` is green, Jest suites are green.
+**M1, iOS shell (DONE 2026-10-25 on the simulator; the BrowserStack run through the React Native build is the open part).** Port NodeHost and Supervisor into an Expo module, Boot screen, WebView, self-test hook behind a build flag. Accept: on the simulator the numbers of section 0 are reproduced (unpack at most 15 s, page at most 30 s), `mobile/tests/sim-ios.sh` is green, Jest suites are green. Result: first launch 11.4 s from launch to the page, warm relaunch 9.1 s, the self-test automation fires, data kept across a kill, app 173 MB with the 55 MB payload, 17 Jest tests and the typecheck green. Traps found: the Node framework has no x86_64 simulator slice, so the build needs `ARCHS=arm64 ONLY_ACTIVE_ARCH=YES` (otherwise CocoaPods silently skips copying it and Swift cannot find `NodeMobile`); the minimum iOS is now 16.4 (React Native 0.88), not 16.0; the same bundle id `app.kybernos.host` as the Swift host, so installing one replaces the other.
 
 **M2, Android shell (3 to 5 days).** Kotlin module, fogtape Android library in `jniLibs/arm64-v8a`, thread with a large stack, same bootstrap and payload. Accept: page up on the emulator and on a BrowserStack real Android device, self-test passes, no crash in `logcat`.
 
@@ -108,5 +108,5 @@ Disk need for the first full build of both platforms: about 10 GB; free: 18 GB.
 
 ## 8. Next actions
 
-1. Owner: answer D1 to D3 and approve the M0 downloads; fill `mobile/.env`.
-2. Then M0 and M1 in that order; each ends with its acceptance tests and a short result note.
+1. Owner: fill `mobile/.env`, then say go for the device-cloud run of the React Native build (`mobile/devicecloud/run-ios.mjs` still builds the old Swift host; it needs a device build of `mobile/app` and an ad-hoc IPA).
+2. M2 (Android shell: Kotlin module, fogtape Android library, 113 MB download to authorise), then M3 to M6.
