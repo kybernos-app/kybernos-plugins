@@ -895,6 +895,7 @@ let kbLocaleRead = () => 'en'
       'kbui.custom': { kybernos: 'Personnalisé', en: 'Custom' },
       'kbui.dangerzone': { kybernos: 'Zone sensible', en: 'Danger zone' },
       'kbui.delete.kyber': { kybernos: 'Supprimer cette Agent Team', en: 'Delete this Agent Team' },
+      'kbui.delete.soon': { kybernos: 'Pas encore disponible', en: 'Not available yet' },
       'kbui.discuter': { kybernos: 'Discuter', en: 'Chat' },
       'kbui.doc.library': { kybernos: 'Bibliothèque de documents', en: 'Document library' },
       'kbui.documents': { kybernos: 'Documents', en: 'Documents' },
@@ -1649,8 +1650,14 @@ let kbLocaleRead = () => 'en'
       'kbsd.personal.b': { kybernos: 'Identifiants des connecteurs, tâches planifiées et consommation de crédits.', en: 'Connector credentials, scheduled tasks and credit usage.' },
       'kbsd.email.ph': { kybernos: 'Adresses e-mail', en: 'Enter email addresses' },
       'kbsd.email.invalid': { kybernos: 'Adresse invalide : {e}', en: 'Invalid address: {e}' },
+      // `edit` / `view`: what the team may do with THIS project on this device (the « Team » access, saved locally). The ROLE of a person in the team is
+      // the server's, and the server has two: member and admin. The role selectors say exactly that (recette L2-17: « Can edit » made an administrator).
       'kbsd.role.edit': { kybernos: 'Peut modifier', en: 'Can edit' },
       'kbsd.role.view': { kybernos: 'Peut voir', en: 'Can view' },
+      'kbsd.role.member': { kybernos: 'Membre', en: 'Member' },
+      'kbsd.role.admin': { kybernos: 'Administrateur', en: 'Administrator' },
+      'kbsd.admin.confirm': { kybernos: 'Les administrateurs approuvent ce qui s’installe dans l’équipe, gèrent les membres et lisent l’audit.', en: 'Administrators approve what the team installs, manage members and read the audit.' },
+      'kbsd.confirm': { kybernos: 'Confirmer', en: 'Confirm' },
       'kbsd.invite': { kybernos: 'Inviter', en: 'Invite' },
       'kbsd.invite.unavail': { kybernos: 'Invitations pas encore disponibles sur ce serveur', en: 'Invitations are not yet available on this server' },
       'kbsd.invite.adminonly': { kybernos: 'Seuls les propriétaires et administrateurs peuvent inviter.', en: 'Only owners and admins can invite.' },
@@ -1743,7 +1750,6 @@ let kbLocaleRead = () => 'en'
       'kbui.frag.inproject': { kybernos: ' dans ce projet…', en: ' in this project…' },
       'kbui.frag.digitalclone': { kybernos: ' est ton Clone Numérique — il ne peut pas être supprimé.', en: ' is your Digital Clone — it cannot be deleted.' },
       'kbui.frag.of4': { kybernos: ' sur 4 · ', en: ' of 4 · ' },
-      'kbui.frag.removed': { kybernos: ' sera supprimé avec ses chats, sa mémoire et ses créations.', en: ' will be removed with its chats, memory and creations.' },
       'kbui.frag.crew': { kybernos: 'Équipe · ', en: 'Crew · ' },
       'kbui.frag.running': { kybernos: 'En cours · ', en: 'Running · ' },
       'kbui.frag.skills': { kybernos: 'Compétences · ', en: 'Skills · ' },
@@ -11571,26 +11577,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
     const KybersTeamInfo = (props) => {
       const s = useStore()
       React.useEffect(() => { if (state.data === null && state.loading === false) load() }, [])
-      const data = s.data
-      let kyber = null
-      if (data !== null && data !== undefined && typeof s.detailPath === 'string') {
-        for (const root of data.roots || []) {
-          for (const k of root.kybers || []) { if (k.file === s.detailPath) { kyber = k; break } }
-          if (kyber !== null) break
-        }
-      }
-      if (kyber === null) return h('div', { className: 'kbg-root' },
-        h('button', { type: 'button', className: 'kbg-back', onClick: () => set({ view: 'gallery' }) }, '← ' + kbt('kbui.team.backall')),
-        h('div', { className: 'kbg-empty' }, kbt('ui.teamnotfound')))
-      const ui = (kyber.ui !== null && kyber.ui !== undefined) ? kyber.ui : {}
-      const dname = (typeof ui.name === 'string' && ui.name.length > 0) ? ui.name : kyber.id
-      const roles = kyber.roles || []
-      let okCount = 0
-      for (const r of roles) { if (r.probeOk === true) okCount += 1 }
-      const b = (kyber.budget !== null && kyber.budget !== undefined) ? kyber.budget : {}
-      const budgetTxt = (typeof b.total === 'number') ? fmtEur(b.total, b.currency) : null
-      const stages = (kyber.stages || []).map((st) => st.id).join(', ')
-      const sid = sessionForKyber(null, kyber)
+      // The hooks come before the early return below: when the team is not found, or found again, the component keeps the same hooks (React error #300 / #310).
       const livePair = React.useState({ state: 'init', members: null })
       const live = livePair[0]
       const setLive = livePair[1]
@@ -11611,6 +11598,26 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         run()
         return () => { dead = true }
       }, [])
+      const data = s.data
+      let kyber = null
+      if (data !== null && data !== undefined && typeof s.detailPath === 'string') {
+        for (const root of data.roots || []) {
+          for (const k of root.kybers || []) { if (k.file === s.detailPath) { kyber = k; break } }
+          if (kyber !== null) break
+        }
+      }
+      if (kyber === null) return h('div', { className: 'kbg-root' },
+        h('button', { type: 'button', className: 'kbg-back', onClick: () => set({ view: 'gallery' }) }, '← ' + kbt('kbui.team.backall')),
+        h('div', { className: 'kbg-empty' }, kbt('ui.teamnotfound')))
+      const ui = (kyber.ui !== null && kyber.ui !== undefined) ? kyber.ui : {}
+      const dname = (typeof ui.name === 'string' && ui.name.length > 0) ? ui.name : kyber.id
+      const roles = kyber.roles || []
+      let okCount = 0
+      for (const r of roles) { if (r.probeOk === true) okCount += 1 }
+      const b = (kyber.budget !== null && kyber.budget !== undefined) ? kyber.budget : {}
+      const budgetTxt = (typeof b.total === 'number') ? fmtEur(b.total, b.currency) : null
+      const stages = (kyber.stages || []).map((st) => st.id).join(', ')
+      const sid = sessionForKyber(null, kyber)
       return h('div', { className: 'kbg-root' },
         h('button', { type: 'button', className: 'kbg-back', onClick: () => set({ view: 'gallery' }) }, '← ' + kbt('kbui.team.backall')),
         h('div', { className: 'kb6-tinfo' },
@@ -11714,12 +11721,17 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       const mailPair = React.useState('')
       const mailTxt = mailPair[0]
       const setMailTxt = mailPair[1]
-      const invRolePair = React.useState('view')
+      // The role an invitation gives: `member` unless the person picks `admin` (which asks to be confirmed, see admConfirm).
+      const invRolePair = React.useState('member')
       const invRole = invRolePair[0]
       const setInvRole = invRolePair[1]
       const rmPair = React.useState(null)
       const rmConfirm = rmPair[0]
       const setRmConfirm = rmPair[1]
+      // Waiting for the « Administrator » confirmation: '#invite' (the invitation in the box) or the user_id of a member being promoted.
+      const admPair = React.useState(null)
+      const admConfirm = admPair[0]
+      const setAdmConfirm = admPair[1]
       const tickPair = React.useState(0)
       const setTick = tickPair[1]
       const cardRef = React.useRef(null)
@@ -11986,8 +11998,8 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         const monLigne = liste.find((m) => m !== null && m.user_id === moi.id)
         const monRole = monLigne !== undefined ? monLigne.role : null
         const admin = monRole === 'owner' || monRole === 'admin'
-        const roleUi = (r) => (r === 'owner' ? 'owner' : (r === 'admin' ? 'edit' : 'view'))
-        const roleSrv = (r) => (r === 'edit' ? 'admin' : 'member')
+        // The server's two roles for a person who is not the owner. Anything else reads as the lesser one: a value that is not `admin` never makes an administrator.
+        const roleOf = (r) => (r === 'admin' ? 'admin' : 'member')
         const bruts = mailTxt.split(/[\s,;]+/).filter((x) => x !== '')
         const invalides = bruts.filter((x) => KB_EMAIL_RE.test(x) !== true)
         const valide = bruts.length > 0 && invalides.length === 0
@@ -12005,12 +12017,15 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         const motInvitation = (w) => (['already_member', 'seat_limit', 'forbidden', 'rate_limited'].indexOf(w) !== -1 ? T('kbsd.err.invite.' + w) : w)
         const inviter = async () => {
           if (valide !== true || busy === true) return
+          // An administrator approves what the team installs, manages members and reads the audit: the first press shows that in one sentence, the second invites.
+          if (invRole === 'admin' && admConfirm !== '#invite') { setAdmConfirm('#invite'); return }
+          setAdmConfirm(null)
           setBusy(true)
           setNote(null)
           let ok = 0
           try {
             for (const e of bruts) {
-              const res = await appelMembres('/kybernos-cloud/members/invite', { email: e, role: roleSrv(invRole) })
+              const res = await appelMembres('/kybernos-cloud/members/invite', { email: e, role: roleOf(invRole) })
               if (res.unavail === true) { dire('err', T('kbsd.invite.unavail')); break }
               if (res.err !== undefined) { dire('err', T('kbsd.err.invite', { e: e, m: motInvitation(res.err) })); break }
               ok += 1
@@ -12018,15 +12033,23 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
             if (ok > 0) { setMailTxt(''); dire('ok', ok + (ok > 1 ? kbe(' invitations sent') : kbe(' invitation sent'))); await chargerMembres() }
           } catch (e2) { dire('err', T('kbsd.err.invite', { e: '', m: String((e2 && e2.message) || e2) })) } finally { setBusy(false) }
         }
-        const changerRole = async (m, r) => {
+        const poserRole = async (m, r) => {
+          setAdmConfirm(null)
           setBusy(true)
           setNote(null)
           try {
-            const res = await appelMembres('/kybernos-cloud/members/invite', { user_id: m.user_id, role: roleSrv(r) })
+            const res = await appelMembres('/kybernos-cloud/members/invite', { user_id: m.user_id, role: roleOf(r) })
             if (res.unavail === true) dire('err', T('kbsd.invite.unavail'))
             else if (res.err !== undefined) dire('err', T('kbsd.err.role', { m: res.err }))
             else { dire('ok', T('kbsd.ok.role')); await chargerMembres() }
           } catch (e2) { dire('err', T('kbsd.err.role', { m: String((e2 && e2.message) || e2) })) } finally { setBusy(false) }
+        }
+        // The selector of a member's row: back to the role the member has asks nothing and sends nothing; a lesser role goes at once; the
+        // administrator role waits for the button « Confirm » of the row.
+        const changerRole = (m, r) => {
+          if (roleOf(r) === roleOf(m.role)) { setAdmConfirm(null); return undefined }
+          if (roleOf(r) === 'admin') { setAdmConfirm(m.user_id); return undefined }
+          return poserRole(m, r)
         }
         const retirer = async (m) => {
           if (rmConfirm !== m.user_id) { setRmConfirm(m.user_id); return }
@@ -12041,8 +12064,8 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
           } catch (e2) { dire('err', T('kbsd.err.remove', { m: String((e2 && e2.message) || e2) })) } finally { setBusy(false) }
         }
         const roleSelect = (valeur, onChange, disabled, mark) => h('select', { className: 'kbsp-sel', value: valeur, disabled: disabled === true || busy === true, 'data-kb': mark, onChange: (e) => onChange(e.target.value) },
-          h('option', { value: 'edit' }, T('kbsd.role.edit')),
-          h('option', { value: 'view' }, T('kbsd.role.view')))
+          h('option', { value: 'member' }, T('kbsd.role.member')),
+          h('option', { value: 'admin' }, T('kbsd.role.admin')))
         // The server names its members (`name`, `email`); the id is only the last resort, for one it names no further.
         const nomMembre = (m) => (m.user_id === moi.id ? (moi.name || moi.email || T('kbsd.you')) : (m.name || m.email || T('kbsd.member') + ' ' + String(m.user_id).slice(0, 8)))
         const tri = liste.slice().sort((x, y) => (x.role === 'owner' ? 0 : 1) - (y.role === 'owner' ? 0 : 1))
@@ -12059,9 +12082,10 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
           blocNonConnecte,
           blocPerso,
           h('div', { className: 'kbsp-inv' + (invitationsOk !== true ? ' off' : ''), 'data-kb': 'share-invite' },
-            h('input', { className: 'kbsp-in', type: 'text', value: mailTxt, placeholder: T('kbsd.email.ph'), 'aria-label': T('kbsd.email.ph'), disabled: invitationsOk !== true || busy === true, 'data-kb': 'share-email', onChange: (e) => setMailTxt(e.target.value), onKeyDown: (e) => { if (e.key === 'Enter') inviter() } }),
-            roleSelect(invRole, setInvRole, invitationsOk !== true, 'share-invite-role'),
-            h('button', { type: 'button', className: 'kb6-btn kb6-btn-primary kbsp-invbtn', 'data-kb': 'share-invite-btn', disabled: invitationsOk !== true || valide !== true || busy === true, onClick: inviter }, T('kbsd.invite'))),
+            h('input', { className: 'kbsp-in', type: 'text', value: mailTxt, placeholder: T('kbsd.email.ph'), 'aria-label': T('kbsd.email.ph'), disabled: invitationsOk !== true || busy === true, 'data-kb': 'share-email', onChange: (e) => { setAdmConfirm(null); setMailTxt(e.target.value) }, onKeyDown: (e) => { if (e.key === 'Enter') inviter() } }),
+            roleSelect(invRole, (r) => { setAdmConfirm(null); setInvRole(roleOf(r)) }, invitationsOk !== true, 'share-invite-role'),
+            h('button', { type: 'button', className: 'kb6-btn kb6-btn-primary kbsp-invbtn', 'data-kb': 'share-invite-btn', disabled: invitationsOk !== true || valide !== true || busy === true, onClick: inviter }, admConfirm === '#invite' && invRole === 'admin' ? T('kbsd.confirm') : T('kbsd.invite'))),
+          (admConfirm === '#invite' && invRole === 'admin' ? h('div', { className: 'kbsp-hint', role: 'status', 'data-kb': 'share-admin-confirm' }, T('kbsd.admin.confirm')) : null),
           (invalides.length > 0 && invitationsOk === true ? h('div', { className: 'kbsp-msg kbsp-msg-err', 'data-kb': 'share-email-invalid' }, T('kbsd.email.invalid', { e: invalides.join(', ') })) : null),
           (raisonInv !== null && perso !== true ? h('div', { className: 'kbsp-hint', 'data-kb': 'share-invite-reason' }, raisonInv) : null),
           (equipeOk === true && mem.state === 'loading' ? h('div', { className: 'kbsp-hint', 'data-kb': 'share-loading' }, T('kbsd.loading')) : null),
@@ -12074,9 +12098,11 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
               h('span', { className: 'kbsp-mname', title: m.user_id }, nomMembre(m), estMoi && (moi.name || moi.email) ? h('span', { className: 'kbsp-you' }, ' · ' + T('kbsd.you')) : null),
               proprio === true ? h('span', { className: 'kbsp-owner' }, T('kbsd.owner'))
                 : h('span', { className: 'kbsp-mctl' },
-                  roleSelect(roleUi(m.role), (r) => changerRole(m, r), admin !== true, 'share-member-role'),
+                  roleSelect(admConfirm === m.user_id ? 'admin' : roleOf(m.role), (r) => changerRole(m, r), admin !== true, 'share-member-role'),
+                  (admConfirm === m.user_id ? h('button', { type: 'button', className: 'kbsp-ibtn confirm', 'data-kb': 'share-member-admin-confirm', disabled: busy === true, onClick: () => poserRole(m, 'admin') }, T('kbsd.confirm')) : null),
                   (estMoi !== true ? h('button', { type: 'button', className: 'kbsp-ibtn kbsp-rm' + (rmConfirm === m.user_id ? ' confirm' : ''), 'data-kb': 'share-member-remove', disabled: admin !== true || busy === true, title: T('kbsd.remove'), 'aria-label': T('kbsd.remove'), onClick: () => retirer(m) }, rmConfirm === m.user_id ? T('kbsd.remove.confirm') : Icon('trash', 14)) : null)))
           })) : null),
+          (equipeOk === true && mem.state === 'ok' && admConfirm !== null && admConfirm !== '#invite' ? h('div', { className: 'kbsp-hint', role: 'status', 'data-kb': 'share-admin-confirm' }, T('kbsd.admin.confirm')) : null),
           h('div', { className: 'kbsp-teamrow' + (equipeOk !== true ? ' off' : ''), 'data-kb': 'share-team-access' },
             h('span', { className: 'kbsp-tile' }, Icon('users', 18)),
             h('span', { className: 'kbsp-txt' },
@@ -13142,7 +13168,8 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       // porte en direct — mesuré le 23/09 : `session.blank` = true sur un chat
       // tout juste ouvert), le store des sessions sinon.
       const useSessions = (typeof p.useSessions === 'function') ? p.useSessions : null
-      const duStore = (useSessions !== null && sid !== '') ? useSessions((st) => {
+      // Called on every render, whatever the id (a hook that waits for the id changes the hook count when it arrives: React error #300 / #310).
+      const duStore = (useSessions !== null) ? useSessions((st) => {
         const s = (st !== null && st !== undefined && st.byId !== null && st.byId !== undefined) ? st.byId[sid] : null
         return (s !== null && s !== undefined && s.blank === true) ? '1' : '0'
       }) : '0'
@@ -15167,8 +15194,10 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
           }))
         return h('div', { style: card },
           h('span', { className: 'kb8-name' }, kbt('kbui.dangerzone')),
-          h('span', { className: 'kb8-sub' }, protectedTeam ? draft.name + kbt('kbui.frag.digitalclone') : draft.name + kbt('kbui.frag.removed')),
-          h('button', { type: 'button', className: 'kb8-primary', disabled: protectedTeam, style: protectedTeam ? { opacity: .5 } : { background: 'var(--dsw-alias-state-error-primary)' }, onClick: () => set({ view: 'gallery' }) }, kbt('kbui.delete.kyber')))
+          // Deleting an Agent Team is not built (AGT-14): the button used to take the person back to the gallery as if it had worked, with the team still on disk.
+          // It stays visible, off, with the reason as its tooltip; the sentence that promised the removal is gone (the Digital Clone keeps its own, which is true).
+          (protectedTeam ? h('span', { className: 'kb8-sub' }, draft.name + kbt('kbui.frag.digitalclone')) : null),
+          h('button', { type: 'button', className: 'kb8-primary', disabled: true, title: kbt('kbui.delete.soon'), style: protectedTeam ? { opacity: .5 } : { background: 'var(--dsw-alias-state-error-primary)', opacity: .5 } }, kbt('kbui.delete.kyber')))
       })()
       const saveLabel = saving === 'saving' ? kbt('kbui.saving') : (saving === 'pending' ? kbt('kbui.unsaved') : (saving === 'ok' ? kbt('kbui.saved.check') : (saving === 'err' ? kbt('kbui.retry.save') : kbt('kbui.autosave'))))
       const saveColor = saving === 'err' ? 'var(--dsw-alias-state-error-primary)' : (saving === 'ok' ? 'var(--dsw-alias-state-success-primary)' : 'var(--dsw-alias-label-secondary)')
@@ -15533,7 +15562,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       '.kb2-canvas .react-flow__handle{width:8px;height:8px;border-radius:50%;background:#1A1918;border:1.5px solid #6E6A63}' +
       '.kb2-canvas .react-flow__node{cursor:pointer}' +
       '.kb2-canvas .react-flow__node.selected .kb2-node{border-color:#C9A45C}' +
-      '.kb2-node{position:relative;display:flex;align-items:center;gap:9px;min-width:118px;padding:9px 11px;border-radius:10px;border:1.5px solid #3A3835;background:var(--dsw-alias-bg-layer-2,#232220);font-size:12px;color:#DCD6CB}' +
+      '.kb2-node{position:relative;display:flex;align-items:center;gap:9px;min-width:118px;padding:9px 11px;border-radius:10px;border:1.5px solid #3A3835;background:#232220;font-size:12px;color:#DCD6CB}' +
       '.kb2-nicon{width:16px;text-align:center;font-size:14px;flex-shrink:0}' +
       '.kb2-nicon.big{width:22px;height:22px;border-radius:7px;background:#26251F;display:inline-flex;align-items:center;justify-content:center;font-size:15px}' +
       '.kb2-nbody{display:flex;flex-direction:column;gap:2px;min-width:0}' +
@@ -25099,6 +25128,17 @@ function renderScene(ctx, W, H, bricks, cam, opts){
     }
     const ManifestView = (props) => {
       const team = (props !== null && props !== undefined) ? props.team : null
+      // The hooks come before the early return: a team that appears after the first render keeps the same hooks (React error #310).
+      const openPair = React.useState({ mission: true, crew: true, skills: true, workflow: true, provenance: false })
+      const open = openPair[0]
+      const setOpen = openPair[1]
+      const openRolesPair = React.useState({})
+      const openRoles = openRolesPair[0]
+      const setOpenRoles = openRolesPair[1]
+      const queryPair = React.useState({})
+      const draftQuery = queryPair[0]
+      const setDraftQuery = queryPair[1]
+      React.useEffect(() => { try { if (typeof kbPricesLoad === 'function') kbPricesLoad() } catch (e) { /* tarifs optionnels */ } try { if (typeof document !== 'undefined' && typeof kbAaLoad === 'function') kbAaLoad() } catch (e2) { /* AA optionnel */ } return undefined }, [])
       if (team === null) return null
       const editable = props.editable === true
       const rolesDraft = editable === true && props.rolesDraft !== null && props.rolesDraft !== undefined && typeof props.rolesDraft === 'object' ? props.rolesDraft : null
@@ -25117,16 +25157,10 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       const onLook = (typeof props.onLook === 'function') ? props.onLook : null
       const lookDeMv = (typeof props.lookDe === 'function') ? props.lookDe : ((id, rang) => kbLookDeRole(id, rang))
       const imgModelMv = (typeof props.imgModel === 'string' && props.imgModel.length > 0) ? props.imgModel : null
-      const openPair = React.useState({ mission: true, crew: true, skills: true, workflow: true, provenance: false })
-      const open = openPair[0]
-      const setOpen = openPair[1]
       const roles = Array.isArray(team.roles) ? team.roles : []
       const stages = Array.isArray(team.stages) ? team.stages : []
       const skills = Array.isArray(team.skillsDeclared) ? team.skillsDeclared : (Array.isArray(team.skills) ? team.skills : [])
-      const openRolesPair = React.useState({})
-      const openRoles = openRolesPair[0]
-      const setOpenRoles = openRolesPair[1]
-      const card = { background: 'var(--dsw-alias-bg-layer-1)', border: '1px solid var(--dsw-alias-border-l1)', borderRadius: '16px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }
+      const card ={ background: 'var(--dsw-alias-bg-layer-1)', border: '1px solid var(--dsw-alias-border-l1)', borderRadius: '16px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }
       const selStyle = { height: '38px', border: '1px solid var(--dsw-alias-border-l1)', borderRadius: '10px', background: 'var(--dsw-alias-bg-layer-1)', padding: '0 10px', fontSize: '13px', color: 'var(--dsw-alias-label-primary)', outline: 'none', minWidth: 0, flex: 1, fontFamily: 'inherit' }
       const labStyle = { display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: '140px' }
       const labTxt = { fontSize: '11px', color: 'var(--dsw-alias-label-secondary)' }
@@ -25138,10 +25172,6 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         setRolesDraft(Object.assign({}, rolesDraft, { [r.id]: Object.assign({}, base, patch) }))
       }
       const providerNames = catalog !== null ? Object.keys(catalog).sort() : []
-      const queryPair = React.useState({})
-      const draftQuery = queryPair[0]
-      const setDraftQuery = queryPair[1]
-      React.useEffect(() => { try { if (typeof kbPricesLoad === 'function') kbPricesLoad() } catch (e) { /* tarifs optionnels */ } try { if (typeof document !== 'undefined' && typeof kbAaLoad === 'function') kbAaLoad() } catch (e2) { /* AA optionnel */ } return undefined }, [])
       const crewRows = roles.map((r, roleIdx) => {
         const d = rolesDraft !== null && rolesDraft[r.id] !== undefined ? rolesDraft[r.id] : null
         const prov = d !== null ? d.provider : (r.provider || '')
@@ -26838,7 +26868,8 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       const p = (props !== null && props !== undefined) ? props : {}
       const sid = (typeof p.sessionId === 'string') ? p.sessionId : ''
       const useSessions = (typeof p.useSessions === 'function') ? p.useSessions : null
-      const duStore = (useSessions !== null && sid !== '') ? useSessions((st) => {
+      // Hooks are called on every render, whatever the id: a hook called only once the id is known changes the count when it arrives (React error #300 / #310).
+      const duStore = (useSessions !== null) ? useSessions((st) => {
         const x = (st !== null && st !== undefined && st.byId !== null && st.byId !== undefined) ? st.byId[sid] : null
         return (x !== null && x !== undefined && x.blank === true) ? '1' : '0'
       }) : '0'
@@ -26862,15 +26893,8 @@ function renderScene(ctx, W, H, bricks, cam, opts){
         try { window.addEventListener('kb-kyby-session', again); window.addEventListener('kb-domain-change', again) } catch (e) { return undefined }
         return () => { try { window.removeEventListener('kb-kyby-session', again); window.removeEventListener('kb-domain-change', again) } catch (e) { /* gone */ } }
       }, [])
-      if (blank !== '1') return null
-      // Kaby's own chat is not a place to start building: its strip is all that sits above the composer.
-      try { if (window.__KB_KYBER__ && typeof window.__KB_KYBER__.isKybySession === 'function' && window.__KB_KYBER__.isKybySession(sid) === true) return null } catch (e) { /* the cards stay */ }
-      const groups = kbNcSlider(kbNcBootIds(), kbDomainHome())
-      const offered = []
-      groups.forEach((g) => g.templates.forEach((t) => offered.push(t.id)))
       // The text in the composer, as the dock entry receives it: the template it sounds like is lit (never sent, never changed).
       const draft = (p.input !== null && p.input !== undefined && typeof p.input.draft === 'string') ? p.input.draft : ''
-      const match = kbNcDetect(draft, offered)
       // The chip goes when the box, once filled, is emptied (the text is the thing the chip stands for).
       React.useEffect(() => {
         if (draft.trim() !== '') choArmed.current = true
@@ -26878,6 +26902,14 @@ function renderScene(ctx, W, H, bricks, cam, opts){
       }, [draft])
       // A new blank chat starts clean: no chip, nothing the page wrote.
       React.useEffect(() => { setChosen(null); ownRef.current = ''; choArmed.current = false }, [sid])
+      // Every hook is above this line: once the first message is sent the component is still mounted and must call the same hooks as before (React error #300).
+      if (blank !== '1') return null
+      // Kaby's own chat is not a place to start building: its strip is all that sits above the composer.
+      try { if (window.__KB_KYBER__ && typeof window.__KB_KYBER__.isKybySession === 'function' && window.__KB_KYBER__.isKybySession(sid) === true) return null } catch (e) { /* the cards stay */ }
+      const groups = kbNcSlider(kbNcBootIds(), kbDomainHome())
+      const offered = []
+      groups.forEach((g) => g.templates.forEach((t) => offered.push(t.id)))
+      const match = kbNcDetect(draft, offered)
       const knownTpl = KB_NC_TEMPLATES.map((t) => kbt('kbnc.p.' + t.id))
       // A template fills the composer and never sends. The person's own words stay (see kbNcFill).
       const prefill = (id) => {
@@ -36640,7 +36672,8 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         if (S.memoryId !== null) r = await call('/kybernos-cloud/memory/update', 'POST', { id: S.memoryId, content: text })
         if (r === null || r.ok !== true) r = await call('/kybernos-cloud/memory/add', 'POST', { kind: 'fact', source: 'taught', pinned: true, content: text })
         const m = r !== null && r.ok === true && r.memory !== null && typeof r.memory === 'object' ? r.memory : null
-        if (m !== null && typeof m.id === 'string') S.memoryId = m.id
+        // The server's memory id is an integer; the onboarding file and the next replay hold it as text. Kept either way: a replay updates this memory.
+        if (m !== null && (typeof m.id === 'string' || Number.isInteger(m.id))) S.memoryId = String(m.id)
         S.memState = m !== null ? 'saved' : 'failed'
         if (root !== null && S.screen === 'done') render(false)
       }
@@ -37796,7 +37829,9 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       '.kb-ob-tint .kb-ob-row.on .kb-ob-dot,.kb-ob-tint .kb-ob-chip.on{background:var(--ob-a);border-color:var(--ob-a);color:var(--ob-on)}',
       '.kb-ob-tint .kb-ob-kit.on .kb-ob-cb{background:var(--ob-a);border-color:var(--ob-a);color:var(--ob-on)}',
       // the fields of work: a tile with the field's icon and its colour
-      '.kb-ob-tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:22px}',
+      // `1fr` is minmax(auto, 1fr): a column never gets narrower than its longest word, so two of them ran out of a phone-width window. minmax(0, 1fr) lets them shrink.
+      '.kb-ob-tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:22px}',
+      '@media (max-width:430px){.kb-ob-tiles{grid-template-columns:minmax(0,1fr)}}',
       '.kb-ob-tile{display:flex;align-items:center;gap:12px;padding:12px 14px;text-align:start;color:var(--ink);background:var(--bg2);border:1px solid var(--line);border-radius:16px;cursor:pointer;transition:border-color .15s,transform .15s}',
       '.kb-ob-tile:hover,.kb-ob-tile:focus-visible{border-color:var(--ta);transform:translateY(-1px);outline:none}',
       '.kb-ob-tile.on{border-color:var(--ta);box-shadow:inset 0 0 0 1px var(--ta)}',
