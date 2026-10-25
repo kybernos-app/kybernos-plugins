@@ -1,9 +1,27 @@
 # Accounts and purchases in the phone app (plan, 2026-10-26)
 
-Status: **planned, nothing built. Payments are NOT activated at this stage (owner, same day): the next steps are prepared, not switched on.** Decision (owner, 2026-10-26): the app creates and signs in Kybernos accounts, shows the Free and Team plans, sells Team with
+Status: **in progress.** Owner, 2026-10-26 (latest word, replaces « payments are not activated at this stage »): **social sign-in and payments are launched now, with the target system for every country**, built on the offers contract
+(`offers-json-contract-draft.md`, session notes), and the experience is harmonised between the phone app and DSH on the desktop. Built in separate sessions, each on a local branch, nothing deployed, nothing sold until the owner's store
+accounts and the regional `channels` say so. Earlier line, kept for the history: payments NOT activated at this stage. Decision (owner, 2026-10-26): the app creates and signs in Kybernos accounts, shows the Free and Team plans, sells Team with
 in-app purchase on both stores, and lets a person delete their account from the app. A person can skip all of it and use their own model keys. This reverses
 rows 5 and 6 of `STORES.md` (2026-10-25: no purchase flow, no sign-up). The screens are in the private mockup (first launch, screen 6 « Modèles »,
 https://claude.ai/artifact/9uPRqPWsM186QwUwXgBKjg).
+
+## Decision of 2026-10-26 (later): what is launched and how
+
+- **The target system, for every country**: the offers JSON (`GET /v1/offers`, session « Serveur : endpoint unique des offres ») says, per platform and storefront country, how a plan may be bought: `store` (StoreKit 2 / Play Billing),
+  `web` (the Stripe checkout opened in the system browser, only where the store allows it) or `none`. Server providers `apple` and `google` write the same `subscriptions` rows as Stripe. The app shows names, copy, prices and availability
+  only from that JSON.
+- **Social sign-in**: Sign in with **Apple and Google** next to address and password (my default, to confirm). Apple 4.8 requires Sign in with Apple as soon as any other third-party login exists in an iOS app. The flows run on the server's
+  own pages in the system browser (the device-code activation page DSH and the app already use; Google refuses embedded web views). Deletion for an account with no password needs another way to prove who is asking, and Apple's
+  token has to be revoked on deletion.
+- **Same experience on the phone and on the desktop, by contract**: one wizard, one wording (outcome-first copy of the mockup), the **account first** step with « Skip, I'll use my own key », the same plan cards read from the offers JSON, the
+  same deletion path. **Allowed differences** (the few adjustments): the phone's native splash, welcome and consent pages before the engine starts (it must not start before consent), its loading screen, the text-size fit rule (cap 115 %,
+  no scrollbar), and the purchase route (a store sheet on the phone, the Stripe page on the desktop).
+- **Sessions** (each on its own branch, results come back here): offers endpoint `local_bd2303a0`; social sign-in on the server; store billing providers on the server; native purchase module in the app. Onboarding, the harmonised
+  wizard and the offers client stay in this session.
+- **Owner-only, now blocking real tests**: Apple Developer account and App Store Connect products, Paid Applications Agreement, bank and tax forms; Play Console merchant account and products; Apple « Sign in with Apple » Services ID and key,
+  Google OAuth client; privacy-policy and terms URLs. Until they exist, everything is built against fixtures, StoreKit test configuration and a mock identity provider.
 
 ## What exists today
 
