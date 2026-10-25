@@ -15,7 +15,7 @@ export const TEAM_AUTOMATION_LIMITS = Object.freeze({ keyMax: 64, nameMax: 120, 
 export const TEAM_AUTOMATION_VIEWS = Object.freeze(['approved', 'proposed', 'mine', 'all'])
 const STATUSES = ['proposed', 'approved', 'rejected', 'retired']
 /** The `reason` of an `invalid_automation`. */
-const REASONS = ['key', 'name', 'description', 'prompt', 'schedule', 'needs', 'binary', 'too_large']
+const REASONS = ['key', 'name', 'description', 'prompt', 'schedule', 'needs', 'binary', 'hidden', 'too_large']
 const SCAN_FIELDS = ['name', 'description', 'note', 'prompt']
 const KEY = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 const SLUG = /^[a-z0-9_-]{2,40}$/
@@ -37,6 +37,20 @@ const isText = (s) => {
     } else if (c >= 0xdc00 && c <= 0xdfff) return false
   }
   return true
+}
+
+// What no person can see in a text, or what changes how it reads (decision DL-09 of the 2026-10 recette, finding L2-18): the tags block U+E0000-U+E007F, the direction controls
+// U+202A-U+202E and U+2066-U+2069, U+200B, U+2060, the invisible operators U+2061-U+2064, U+206A-U+206F, U+FEFF anywhere (a BOM is not text), U+00AD, U+180E, U+FFF9-U+FFFB, the variation
+// selectors U+E0100-U+E01EF, and the C0 and C1 controls except tab, line feed and carriage return (457 code points). REFUSED, never removed: the version is the SHA-256 of the exact text.
+// Kept: U+200C and U+200D (emoji sequences, Persian), U+200E and U+200F (Arabic and Hebrew), U+FE0E and U+FE0F. The SAME set as the server (`src/lib/hidden-text.ts`) and the two other clients
+// (`kybernos-plugin/automation-team.mjs`, `kybernos-skills/team-skills.mjs`); docs/dev/hidden-text-vectors.json is the list of texts all of them are tested against.
+const HIDDEN_RE = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f\u00ad\u180e\u200b\u202a-\u202e\u2060-\u2064\u2066-\u206f\ufeff\ufff9-\ufffb\u{e0000}-\u{e007f}\u{e0100}-\u{e01ef}]/u
+const HIDDEN_ALL_RE = new RegExp(HIDDEN_RE.source, 'gu')
+/** The refused characters of a text: `{ first: 'U+E0041', count }`, or null when it has none (or when `s` is not text). Linear. */
+export const hiddenIn = (s) => {
+  if (typeof s !== 'string' || !HIDDEN_RE.test(s)) return null
+  const all = s.match(HIDDEN_ALL_RE)
+  return { first: 'U+' + all[0].codePointAt(0).toString(16).toUpperCase().padStart(4, '0'), count: all.length }
 }
 
 /** True when nothing of `s` can be seen: only zero-width characters (the plugin's own rule for the name of an automation). */
@@ -93,7 +107,7 @@ export const versionOf = (d) => {
 export const teamAutomationShape = (d) => {
   const o = isRow(d) ? d : {}
   const L = TEAM_AUTOMATION_LIMITS
-  const bad = (reason) => ({ error: 'invalid_automation', reason })
+  const bad = (reason, field) => (field === undefined ? { error: 'invalid_automation', reason } : { error: 'invalid_automation', reason, field })
   if (!isString(o.key) || o.key.length > L.keyMax || !KEY.test(o.key)) return bad('key')
   const name = isString(o.name) ? o.name.trim() : ''
   if (name === '' || name.length > L.nameMax || !isText(name) || onlyZeroWidth(name)) return bad('name')
@@ -101,6 +115,11 @@ export const teamAutomationShape = (d) => {
   if (description === '' || description.length > L.descriptionMax || !isText(description)) return bad('description')
   if (!isString(o.prompt) || o.prompt.trim() === '' || o.prompt.length > L.promptMax) return bad('prompt')
   if (!isText(o.prompt)) return bad('binary')
+  // What no person can see (DL-09), in everything the members read or the copy runs, on the text as given (before the trim): refused here, so the page says so before the server does.
+  const texts = [['name', o.name], ['description', o.description], ['prompt', o.prompt], ['note', o.note], ['schedule', isRow(o.schedule) ? o.schedule.cron : undefined]].concat(Array.isArray(o.needs) ? o.needs.map((n) => ['needs', n]) : [])
+  for (const [field, text] of texts) {
+    if (hiddenIn(text) !== null) return bad('hidden', field)
+  }
   const s = o.schedule
   const keys = isRow(s) ? Object.keys(s).sort().join() : ''
   // A time zone, a date or any other field is a different kind of schedule: refused, not dropped.
@@ -172,6 +191,8 @@ export const asTeamAutomation = (r) => {
     // The server's own count wins; without it, what was actually read.
     promptChars: Number.isFinite(row.prompt_chars) ? row.prompt_chars : (prompt === undefined ? 0 : prompt.length),
     prompt,
+    // True when the name, the description, the prompt or the remark holds a character a person cannot see (`hiddenIn`): a text approved before the server refused them. The review sheet must not call it « Checked ».
+    hidden: [row.name, row.description, prompt, row.note].some((v) => hiddenIn(v) !== null),
     proposedName: str(row.proposed_by_name),
     proposedAt: str(row.proposed_at),
     reviewedName: str(row.reviewed_by_name),
