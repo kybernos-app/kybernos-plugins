@@ -201,6 +201,11 @@
   [data-slot="conversation.composer"]:has([data-slot^="conversation.hero."]) :is([data-composer-input], [data-input-scroll]) {
     min-height: calc(2lh + 4px) !important;
   }
+  /* In a conversation the hint is one line, cut by an ellipsis at "@ fi…" (456 px of text in 347). A few points smaller it fits whole (13.8 px with the
+   * text enlarged). The new-chat screen has two lines for it (above). */
+  [data-slot="conversation.composer"]:not(:has([data-slot^="conversation.hero."])) [data-composer-placeholder] {
+    font-size: 12px !important;
+  }
   [data-composer-card] [data-model-compact] {
     display: flex !important;
     flex-wrap: nowrap;
