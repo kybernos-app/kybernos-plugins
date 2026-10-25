@@ -9,6 +9,7 @@
 import { ENGINES } from './engines.mjs'
 import { createRouter } from './router.mjs'
 import { applyPatch, normalizeSettings } from './settings.mjs'
+import { writeGuard } from './session-guard.mjs'
 
 export const PROVIDER_ID = 'kybernos-search'
 
@@ -244,9 +245,16 @@ export const readJsonBody = async (req, maxBytes = 16384) => {
 export function mountRoutes (webServer, svc, effect = (fn) => fn()) {
   const server = kbFenced(webServer)
   const reg = (path, handler, label) => effect(() => server.register({ kind: 'exact', path, handler }), 'kybernos-websearch: route ' + label)
+  // Every POST here stores or clears a search key, redirects the searches to an address the caller names, or makes this computer call one, so it needs DSH's signed browser session as
+  // well as the right Origin (session-guard.mjs, kybernos-terminal's rule, L3-20): plugin routes are served before DSH's own login and an Origin header is forgeable by any local
+  // program. The only caller is the Settings page, which carries the cookie by itself; a paired phone is refused (`refused_on_phone`). The state (a GET) stays open behind the Host fence.
   const guarded = (method, fn) => async (req, res) => {
     if (req.method !== method) return sendJson(res, 405, { ok: false, error: method + ' expected' })
     if (method === 'POST' && sameOriginStrict(req) !== true) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+    if (method === 'POST') {
+      const refused = writeGuard(req)
+      if (refused !== null) return sendJson(res, refused.status, { ok: false, error: refused.error })
+    }
     try { return await fn(req, res) } catch (e) { return sendJson(res, 500, { ok: false, error: errText(e).slice(0, 200) }) }
   }
 
