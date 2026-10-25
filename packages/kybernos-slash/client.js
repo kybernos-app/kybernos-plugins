@@ -638,7 +638,7 @@ window.__ModuleLoader__.load({
   --kb-primary-ink:var(--dsw-alias-label-primary-inverted,#fff);--kb-accent:var(--dsw-alias-link,#3b6fe0);
   --kb-ok:var(--dsw-alias-state-success-primary,#1c9c62);--kb-ok-bg:var(--dsw-alias-state-success-tertiary,#e7f5ee);
   --kb-warn:var(--dsw-alias-state-warn-primary,#f59e0b);--kb-warn-ink:var(--dsw-alias-state-warn-label,#8a4b00);--kb-warn-bg:var(--dsw-alias-state-warn-tertiary,#fdf1e3);
-  --kb-danger:var(--dsw-alias-state-error-primary,#b42318);--kb-toast:var(--dsw-alias-toast-bg,#2b3445);--kb-toast-ink:var(--dsw-alias-label-primary,#fff);
+  --kb-danger:var(--dsw-alias-state-error-primary,#b42318);--kb-toast:var(--dsw-alias-toast-bg,#2b3445);--kb-toast-ink:var(--dsw-alias-toast-label,#fff);
   --kb-mask:var(--dsw-alias-bg-mask-1,rgba(17,24,39,.42));--kb-skeleton:var(--dsw-alias-bg-skeleton,#eef1f6);
   /* Typographie : l echelle et les familles de l application, pas les notres. */
   --kb-mono:var(--dsw-font-markdown-code-font-family,ui-monospace,SFMono-Regular,Menlo,monospace);
@@ -1047,7 +1047,7 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
         ['--kb-primary-ink', '--dsw-alias-label-primary-inverted'], ['--kb-accent', '--dsw-alias-link'],
         ['--kb-ok', '--dsw-alias-state-success-primary'], ['--kb-ok-bg', '--dsw-alias-state-success-tertiary'],
         ['--kb-warn', '--dsw-alias-state-warn-primary'], ['--kb-warn-ink', '--dsw-alias-state-warn-label'], ['--kb-warn-bg', '--dsw-alias-state-warn-tertiary'],
-        ['--kb-danger', '--dsw-alias-state-error-primary'], ['--kb-toast', '--dsw-alias-toast-bg'], ['--kb-toast-ink', '--dsw-alias-label-primary'],
+        ['--kb-danger', '--dsw-alias-state-error-primary'], ['--kb-toast', '--dsw-alias-toast-bg'], ['--kb-toast-ink', '--dsw-alias-toast-label'],
         ['--kb-mask', '--dsw-alias-bg-mask-1'], ['--kb-skeleton', '--dsw-alias-bg-skeleton'],
         // Typography: the application's scale and families. Essential
         // for the editor and the notification, mounted in the document body:

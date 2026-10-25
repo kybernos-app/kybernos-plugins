@@ -9,6 +9,8 @@
 //   node scripts/audit-routes.mjs --json           the raw rows
 //   node scripts/audit-routes.mjs --check          the origin rule, enforced: exit 1 when a write route that an Origin alone lets through is not written down, with its reason, in
 //                                                  scripts/route-guard-exceptions.mjs (or when an entry there matches no such route any more); CI runs it through scripts/test-route-guards.mjs
+//                                                  It also fails on a host source that reads a request with no cap (scripts/lib-body-reads.mjs: `req.on('data', …)` or
+//                                                  `for await (… of req)` with no length compared with a limit), so a route cannot go back to `corps += d` (recette L3-43)
 //   node scripts/audit-routes.mjs --bundle NAME    only the routes of one bundle
 //   node scripts/audit-routes.mjs --root DIR       judge another checkout (a `git archive` of an earlier commit gives the "before" column)
 //   node scripts/audit-routes.mjs --tunnel-probes JSON   for the routes it names, also send bodies with the phone-link marker (see scripts/test-tunnel-routes.mjs, which owns the table)
@@ -316,6 +318,12 @@ if (flag('--check')) {
   if (verdict !== null) out('\n' + report(verdict))
   exitCode = verdict !== null && verdict.ok === true && problems.length === 0 ? 0 : 1
   out(exitCode === 0 ? 'route guard check: OK' : 'route guard check: FAILED')
+  // The body rule, enforced by text (lib-body-reads.mjs says what it catches and what it cannot): no host source reads a request with a loop that grows with what is sent.
+  const { unboundedReads, reportBodyReads } = await import(pathToFileURL(join(dirname(HERE), 'lib-body-reads.mjs')).href)
+  const unbounded = unboundedReads(sources)
+  out('\n' + reportBodyReads(unbounded))
+  if (unbounded.length > 0) exitCode = 1
+  out(unbounded.length === 0 ? 'request body check: OK' : 'request body check: FAILED')
 }
 
 const line = (r) => r.bundle.padEnd(24) + r.path.padEnd(52) + Object.entries(r.methods).map(([m, v]) => m + ':' + v.level).join(' ').padEnd(40) + ' ' + r.callers.join(',')

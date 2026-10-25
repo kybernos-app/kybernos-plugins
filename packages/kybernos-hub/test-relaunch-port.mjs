@@ -50,6 +50,22 @@ console.log('── the relaunch tool is told which instance to restart ──')
   ok('on 3080 it says 3080 (explicit, same as before)', b.argv !== null && b.argv.join(' ').includes('--port 3080'), JSON.stringify(b.argv))
 }
 
+// L3-85, with the REAL wiring of the hub (the lock file in the DSH home, not a stand-in function): the relaunch is refused while an installer holds the installation lock, and the
+// relaunch tool is not started. The « installer » is a harmless node process that waits; the lock is written the way the robot writes its own.
+console.log('── the relaunch waits for an installer that runs ──')
+{
+  const { spawn } = await import('node:child_process')
+  const { fichierVerrou, prendreVerrou } = await import('./install-lock.mjs')
+  const installateur = spawn(process.execPath, ['-e', 'setInterval(() => {}, 1000)'], { stdio: 'ignore' })
+  await new Promise((r) => installateur.once('spawn', r))
+  prendreVerrou({ fichier: fichierVerrou(home), genre: 'suite', pid: installateur.pid })
+  const occupe = await demande(3141)
+  ok('while the installer lives: 409 busy with a sentence, and the relaunch tool is not started', occupe.res.code === 409 && occupe.res.body.error === 'busy' && /installation is running/.test(occupe.res.body.detail) && occupe.argv === null, JSON.stringify(occupe))
+  await new Promise((r) => { installateur.once('exit', r); installateur.kill('SIGKILL') })
+  const libre = await demande(3141)
+  ok('once it is killed the lock is stale: the relaunch runs again', libre.res.code === 200 && libre.argv !== null && libre.argv.join(' ').includes('--port 3141'), JSON.stringify(libre))
+}
+
 // Where the tool is (T1-1, 2026-10-24): `POST /kybernos-hub/relaunch` answered 500 `relaunch-tool-missing` on any machine without `~/.dsh/tools/dsh-relance.mjs`, although the suite
 // carries `scripts/dsh-relance.mjs`. Only the pure resolver is exercised here: running the real script would restart a DSH.
 console.log('── where the relaunch tool is ──')

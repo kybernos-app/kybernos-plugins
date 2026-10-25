@@ -712,6 +712,8 @@ node packages/kybernos-plugin/test-learned-dot.mjs         # the dot on the Skil
 node packages/kybernos-plugin/test-automation-workspace.mjs  # where a run lands: the rule, the real host with a fake registry (chosen, none, deleted, no create), the route, the form and the detail line
 node packages/kybernos-plugin/test-automation-templates.mjs  # Discover: the twelve templates in both languages, what they never promise, the filter, the chat text
 node packages/kybernos-plugin/test-newchat.mjs         # the cards, the Cloud Computer state, the hidden native entry, the starters pinned
+node packages/kybernos-plugin/test-share-roles.mjs     # « Share this project »: the role selectors say Member / Administrator, the administrator role is confirmed in the dialog, the project's local Team access is left alone (the dialog rendered on a small React)
+node packages/kybernos-plugin/test-hook-order.mjs      # no hook after an early return in any bundle client (a scanner), and the new-chat dock + starters rendered blank → first message → new chat on a fake React that enforces the hook order
 node scripts/test-tasks-route.mjs                      # the tasks route, the tick, webhooks, and tasks/occurrences (guards, bounds, corrupt store)
 node scripts/check-automations-board-live.mjs [--stub-model]  # live GUI, on a sandbox only: the four views, Run now, banner, French, 375 px; with a stub model: running, waiting, Approve / Refuse
 node scripts/check-automations-discover-live.mjs [--shots <dir>]  # live GUI, on a sandbox only (restart it first: host routes): Discover with its logos and the chat it opens (language line first), Cards, the Flow panel, the Journal lessons and the skill file, the workspace of the runs (a real Run now), the settings, 390 px
