@@ -977,12 +977,12 @@ window.__ModuleLoader__.load({
         'tm.p.foot': { fr: 'Les mêmes contrôles sont refaits sur le serveur : un skill qui passe ici ne sera pas refusé plus tard pour ces raisons.', en: 'The same checks run again on the server, so a skill that passes here cannot be refused later for these reasons.' },
         'tm.p.bad.secret': { fr: '{file}, ligne {line} : cela ressemble à une clé ou un jeton secret. Retire-le du fichier, puis propose à nouveau. La clé elle-même n’est jamais affichée ni envoyée.', en: '{file}, line {line}: this looks like a secret key or token. Remove it from the file, then propose again. The key itself is never shown or sent.' },
         'tm.p.bad.binary': { fr: '{file} : seuls les fichiers texte peuvent être partagés. Retire-le, ou mentionne-le dans SKILL.md.', en: '{file}: only text files can be shared. Remove it, or mention it in SKILL.md instead.' },
+        'tm.p.bad.hidden': { fr: '{file} : ce texte contient des caractères invisibles ou qui changent le sens de lecture, qu’une équipe n’accepte pas. Retape ce passage à la main, puis propose à nouveau. Rien n’a été envoyé.', en: '{file}: this text holds invisible or direction-changing characters, which a team does not accept. Retype that part by hand, then propose again. Nothing was sent.' },
         'tm.p.bad.big': { fr: '{file} dépasse 256 Ko.', en: '{file} is over 256 KB.' },
         'tm.p.bad.many': { fr: 'Plus de 50 fichiers.', en: 'More than 50 files.' },
         'tm.p.bad.total': { fr: 'Plus de 1 Mo au total.', en: 'Over 1 MB in total.' },
         'tm.p.bad.path': { fr: '{file} : ce nom de fichier ne peut pas être partagé (lettres, chiffres, - _ . et / seulement ; pas de nom que Windows ne sait pas écrire, pas deux noms qui ne diffèrent que par la casse, pas un fichier qui est aussi un dossier).', en: '{file}: this file name cannot be shared (letters, digits, - _ . and / only; no name Windows cannot write, no two names that differ only by case, no file that is also a folder).' },
         'tm.p.bad.frontmatter': { fr: 'SKILL.md doit porter le même nom que le dossier et une description.', en: 'SKILL.md needs a name that matches the folder and a description.' },
-        'tm.p.bad.description': { fr: 'La description de SKILL.md contient un caractère qui ne peut pas être enregistré.', en: 'The description in SKILL.md holds a character that cannot be stored.' },
         'tm.p.bad.name': { fr: 'Le nom du skill n’est pas valide.', en: 'The skill name is not valid.' },
         'tm.p.bad.nofile': { fr: 'Il manque un fichier SKILL.md.', en: 'There is no SKILL.md.' },
         'tm.p.bad.disabled': { fr: 'Active d’abord le skill.', en: 'Turn the skill on first.' },
@@ -1011,6 +1011,7 @@ window.__ModuleLoader__.load({
         'tm.e.forbidden': { fr: 'Le serveur a refusé.', en: 'The server refused.' },
         'tm.e.invalid_response': { fr: 'Réponse inattendue du serveur.', en: 'Unexpected answer from the server.' },
         'tm.e.invalid_skill': { fr: 'Le serveur refuse ce skill ({reason}).', en: 'The server refuses this skill ({reason}).' },
+        'tm.e.invalid_skill.hidden': { fr: '{file} contient des caractères invisibles ou qui changent le sens de lecture, qu’une équipe n’accepte pas. Rien n’a été envoyé ni installé.', en: '{file} holds invisible or direction-changing characters, which a team does not accept. Nothing was sent or installed.' },
         'tm.e.scan_rejected': { fr: 'Le serveur a trouvé un secret dans {file}.', en: 'The server found a secret in {file}.' },
         'tm.e.exists': { fr: 'Un skill de ce nom est déjà dans ce dossier. Rien n’a été modifié.', en: 'A skill with this name is already in this folder. Nothing was changed.' },
         'tm.e.version_mismatch': { fr: 'Les fichiers ne correspondent pas à la version approuvée. Rien n’a été écrit.', en: 'The files do not match the approved version. Nothing was written.' },
@@ -1035,6 +1036,7 @@ window.__ModuleLoader__.load({
         'tm.r.removed': { fr: 'supprimé', en: 'removed' },
         'tm.r.scan': { fr: 'Contrôlé par le serveur : aucun secret · {n} fichiers · {kb} Ko', en: 'Checked by the server: no secret · {n} files · {kb} KB' },
         'tm.r.scan.1': { fr: 'Contrôlé par le serveur : aucun secret · 1 fichier · {kb} Ko', en: 'Checked by the server: no secret · 1 file · {kb} KB' },
+        'tm.r.hidden': { fr: 'Non contrôlé : ces fichiers contiennent des caractères invisibles ou qui changent le sens de lecture, que tu ne peux pas lire ici. Refuse ce skill : il ne pourra pas être installé.', en: 'Not checked: these files hold invisible or direction-changing characters that you cannot read here. Reject this skill: it cannot be installed.' },
         'tm.r.tooBig': { fr: 'Trop long pour une comparaison ligne à ligne.', en: 'Too long to compare line by line.' },
         'tm.r.rejectedWith': { fr: 'Refusé : {note}', en: 'Rejected: {note}' },
         'tm.r.noNote': { fr: 'Refusé, sans note.', en: 'Rejected, no note.' },
@@ -4539,7 +4541,8 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
       // One word of the server or of the disk half → a sentence. A word nobody planned is still shown, with its code.
       const teamWord = (j) => {
         const code = j !== null && j !== undefined && typeof j === 'object' && typeof j.error === 'string' ? j.error : 'other'
-        const key = 'tm.e.' + code
+        // An invisible character is named by where it is (`<description>`, `<note>` or a file), not by the bare word of the reason.
+        const key = code === 'invalid_skill' && j.reason === 'hidden' ? 'tm.e.invalid_skill.hidden' : 'tm.e.' + code
         if (STR[key] !== undefined) return t(key, { reason: j.reason || '?', file: j.file || '?', code })
         return t('tm.e.other', { code })
       }
@@ -4547,7 +4550,7 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
         const f = j.file || ''
         if (j.error === 'scan_rejected' || j.reason === 'scan_rejected') return t('tm.p.bad.secret', { file: f, line: j.line || '?' })
         if (j.error === 'skill_disabled') return t('tm.p.bad.disabled')
-        const by = { binary: 'tm.p.bad.binary', file_too_large: 'tm.p.bad.big', too_many_files: 'tm.p.bad.many', too_large: 'tm.p.bad.total', bad_path: 'tm.p.bad.path', frontmatter: 'tm.p.bad.frontmatter', name: 'tm.p.bad.name', description: 'tm.p.bad.description', no_skill_md: 'tm.p.bad.nofile' }
+        const by = { binary: 'tm.p.bad.binary', hidden: 'tm.p.bad.hidden', file_too_large: 'tm.p.bad.big', too_many_files: 'tm.p.bad.many', too_large: 'tm.p.bad.total', bad_path: 'tm.p.bad.path', frontmatter: 'tm.p.bad.frontmatter', name: 'tm.p.bad.name', no_skill_md: 'tm.p.bad.nofile' }
         if (by[j.reason] !== undefined) return t(by[j.reason], { file: f })
         if (j.error === 'skill_not_found' || j.error === 'root_not_allowed') return teamWord(j)
         return t('tm.p.bad.other', { code: j.reason || j.error || '?' })
@@ -4708,7 +4711,7 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
             if (a === null || a.ok !== true || !Array.isArray(a.skill.files)) { setSt({ phase: 'error', files: [], base: null, error: teamWord(a) }); return }
             const files = a.skill.files
             const base = b !== null && b.ok === true && Array.isArray(b.skill.files) ? b.skill.files : null
-            setSt({ phase: 'ready', files, base })
+            setSt({ phase: 'ready', files, base, hidden: a.skill.hidden === true })
             const changed = base === null ? null : files.filter((f) => { const o = base.filter((x) => x.path === f.path)[0]; return o === undefined || o.content !== f.content })[0]
             setSel(changed !== undefined && changed !== null ? changed.path : (files.some((f) => f.path === 'SKILL.md') ? 'SKILL.md' : (files[0] !== undefined ? files[0].path : '')))
           }).catch(() => { if (!stop && alive.current === true) setSt({ phase: 'error', files: [], base: null, error: t('tm.e.network') }) })
@@ -4761,7 +4764,10 @@ body:not([data-ds-dark-theme]) .kbss-page .kbl-pill.ok{color:var(--kybernos-ok-i
           st.phase === 'ready' ? h('div', { className: 'kbt-stack' },
             filesList(shown, sel, setSel, st.base !== null ? statuses : null),
             cur === undefined ? null : codeBox(cur.content, statuses[cur.path] === 'changed' && baseOf !== undefined ? baseOf.content : null),
-            h('span', { className: 'kbt-cap' }, t('tm.r.scan', { n: files.length, kb: kbOf(s.bytes || files.reduce((a, f) => a + byteLen(f.content), 0)) }))) : null)
+            // « Checked by the server: no secret » only over files that can be read in full: with an invisible or direction-changing character in one of them the sheet says so instead.
+            st.hidden === true || s.hidden === true
+              ? h('div', { className: 'kbs-err', role: 'alert', 'data-kb': 'tm-hidden' }, t('tm.r.hidden'))
+              : h('span', { className: 'kbt-cap' }, t('tm.r.scan', { n: files.length, kb: kbOf(s.bytes || files.reduce((a, f) => a + byteLen(f.content), 0)) }))) : null)
       }
 
       // One skill, opened: its files first (what will be copied), then the install panel.

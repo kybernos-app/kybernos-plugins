@@ -45,7 +45,7 @@ import { rank as rankByRelevance, tokens as relevanceTokens } from './relevance.
 import { findDuplicateGroups, unclearPairs, likeness, negates, numbersOf } from './dedupe.mjs'
 import { MAP_TUNING, textHash, packVector, unpackVector, buildMap } from './mapproj.mjs'
 import { TEAM_CHUNK_NAME, TEAM_CHUNK_ORDER, TEAM_TUNING, teamWorkspace, displayName, asTeamLesson, teamFailure, teamPlan, renderTeamChunk, applicable } from './team-lessons.mjs'
-import { teamSkillsBase, isSkillId, teamSkillsFailure, asTeamSkill } from './team-skills.mjs'
+import { teamSkillsBase, isSkillId, teamSkillsFailure, asTeamSkill, hiddenPlaceOf } from './team-skills.mjs'
 import { teamAutomationsBase, isAutomationId, teamAutomationsFailure, asTeamAutomation, asTeamAutomationsPage, teamAutomationShape, definitionOf, versionOf, accessEntry, TEAM_AUTOMATION_LIMITS, TEAM_AUTOMATION_VIEWS } from './team-automations.mjs'
 import { createConnections } from './connections-host.mjs'
 import { normalizeTidySettings, patchTidySettings, tidyDue, tidyNext, pickAuto, removalChunks, readStudyChoice, brainGroups } from './tidy.mjs'
@@ -3973,6 +3973,9 @@ const teamSkillsAddRoute = async (req, body) => {
   if (isConnected(state) !== true) return { ok: false, connected: false, error: 'non connecte' }
   const b = body !== null && typeof body === 'object' ? body : {}
   if (typeof b.name !== 'string' || b.name === '' || typeof b.description !== 'string' || !Array.isArray(b.files) || b.files.length === 0) return { ok: false, error: 'bad_request' }
+  // Before anything is sent: what a person cannot see in a skill (DL-09) is refused here, with the file, as the server would (nothing is removed: the version is the hash of the exact text).
+  const hiddenAt = hiddenPlaceOf({ description: b.description, note: b.note, files: b.files })
+  if (hiddenAt !== null) return { ok: false, error: 'invalid_skill', reason: 'hidden', file: hiddenAt }
   const payload = { name: b.name, description: b.description, files: b.files, display_name: displayName(state) }
   if (typeof b.note === 'string' && b.note.trim() !== '') payload.note = b.note
   const made = await teamSkillsCall(state, 'POST', '', payload)
