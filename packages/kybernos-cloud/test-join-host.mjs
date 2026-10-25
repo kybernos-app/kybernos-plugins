@@ -253,16 +253,20 @@ try {
   }
   assert.equal(api.calls.length, 0, 'a refused request sent nothing to the server')
   ok('preview and accept: no Origin 403, foreign Origin 403 (even with the cookie), nothing sent')
-  r = await send('/kybernos-cloud/invitation/accept', { origin }, bodyOf)
-  assert.equal(r.status, 401)
-  r = await send('/kybernos-cloud/invitation/accept', { origin, cookie: sessionCookie(own, { secret: OTHER_SECRET }) }, bodyOf)
-  assert.equal(r.status, 401)
+  // L3-04 (recette 2026-10-25): preview joins nobody, but its only caller is the join dialog of the page, which sends the cookie, so it follows the rule of every other
+  // write of the bundle (the right Origin AND DSH's signed session) instead of being the one POST a bare local program can still drive.
+  for (const path of ['accept', 'preview']) {
+    r = await send('/kybernos-cloud/invitation/' + path, { origin }, bodyOf)
+    assert.equal(r.status, 401, path + ': the right Origin and no cookie')
+    r = await send('/kybernos-cloud/invitation/' + path, { origin, cookie: sessionCookie(own, { secret: OTHER_SECRET }) }, bodyOf)
+    assert.equal(r.status, 401, path + ': the right Origin and a forged cookie')
+  }
   assert.equal(api.calls.length, 0)
-  ok('accept: the right Origin without the signed session, or with a forged one, is 401 and sends nothing')
-  r = await send('/kybernos-cloud/invitation/preview', { origin }, bodyOf)
+  ok('accept and preview: the right Origin without the signed session, or with a forged one, is 401 and sends nothing')
+  r = await send('/kybernos-cloud/invitation/preview', browser(), bodyOf)
   assert.equal(r.status, 200)
   assert.equal(r.json.ok, true)
-  ok('preview needs only the right Origin (it joins nobody)')
+  ok('preview with the real pair (the page\'s Origin and the signed session) answers; it joins nobody')
   const get = (path, headers) => new Promise((resolve) => http.get({ host: '127.0.0.1', port, path, headers: { host: own, ...headers } }, (res) => { res.resume(); res.on('end', () => resolve(res.statusCode)) }).on('error', () => resolve(0)))
   assert.equal(await get('/kybernos-cloud/invitation/preview', browser()), 405, 'a GET is not the method')
   ok('the routes answer to POST only')

@@ -621,7 +621,7 @@ const mod = await import('./index.js')
 // (test-write-guard.mjs reads it from the file; here the seam gives it).
 const { sessionSource } = await import('./session-guard.mjs')
 const { SESSION_SECRET, browserHeaders } = await import('./lib-session-test.mjs')
-const { SESSION_WRITE_PATHS, STRICT_WRITE_PATHS } = await import('./lib-session-routes-test.mjs')
+const { SESSION_WRITE_PATHS, STRICT_WRITE_PATHS, STRICT_ONLY_EXCEPTIONS } = await import('./lib-session-routes-test.mjs')
 sessionSource.secret = () => SESSION_SECRET
 // Aucun minuteur ne doit tirer sur le faux serveur en arriere-plan : un
 // rechargement non demande fausserait les compteurs de requetes des tests.
@@ -742,6 +742,11 @@ try {
   // The read-only relay went with the account frame (docs/dev/frame-removal.md): nothing answers there, so DSH's web server answers 404.
   assert.equal(routes.has('/kybernos-cloud/relay'), false, 'the Team console relay must stay gone')
   ok(String(expectedPaths.length) + ' routes /kybernos-cloud/* montees (catalogue + artefacts + memoire)')
+  // L3-04 / L3-05: every write of the table is under the cookie rule, except the routes whose caller is not a browser, which say so in `noSession`
+  // (test-write-guard.mjs plays the requests; here the table itself is read, so that a new row cannot slip through at the Origin alone).
+  const originOnly = mod.ROUTES.filter((r) => r.method !== 'GET' && r.session !== true).map((r) => r.path).sort()
+  assert.deepEqual(originOnly, [...STRICT_ONLY_EXCEPTIONS.keys()].sort(), 'POST routes at the Origin alone are the documented exceptions: ' + originOnly.join(', '))
+  ok('les ecritures de la table sont toutes sous le cookie de session, sauf ' + originOnly.length + ' exceptions documentees')
 
   // Custom instructions → <DSH home>/AGENTS.md. The write is strict: a request that names no origin of this server is refused.
   // These calls carry a socket (as on a real connection), because the strict guard compares the Origin with the listener's real port.
@@ -750,9 +755,11 @@ try {
     mkdirSync(ci_home, { recursive: true })
     const ci_saved = process.env.DSH_HOME
     process.env.DSH_HOME = ci_home
-    const ci_call = async (path, method, origin, body) => {
+    // `cookie: false` is a local program that sends the right Origin and nothing else; the default is the person's page (Origin and DSH's signed session).
+    const ci_call = async (path, method, origin, body, cookie = true) => {
       const req = fakeReq(method, origin, body, path)
       req.socket = { localPort: 3080 }
+      if (cookie === true) req.headers = { ...req.headers, cookie: browserHeaders().cookie }
       const res = fakeRes()
       await routes.get(path)(req, res)
       return res
@@ -769,7 +776,12 @@ try {
       assert.equal(foreign.status, 403)
       assert.equal(existsSync(file), false)
       ok('instructions : l\'ecriture sans origine ou d\'une autre origine est refusee, rien n\'est ecrit')
-      const wrote = await ci_call('/kybernos-cloud/instructions/save', 'POST', ci_self, { text: 'Be direct.' })
+      // L3-04: the right Origin is not enough. The agents read this file and have a shell, so a bare program must not write it: DSH's signed session is needed too.
+      const noCookie = await ci_call('/kybernos-cloud/instructions/save', 'POST', ci_self, { text: 'x' }, false)
+      assert.equal(noCookie.status, 401)
+      assert.equal(existsSync(file), false)
+      ok('instructions : la bonne origine sans le cookie de session signe est refusee (401), rien n\'est ecrit')
+      const wrote =await ci_call('/kybernos-cloud/instructions/save', 'POST', ci_self, { text: 'Be direct.' })
       assert.equal(wrote.body.ok, true)
       assert.ok(readFileSync(file, 'utf8').includes('Be direct.'))
       const back = await ci_call('/kybernos-cloud/instructions', 'GET')
@@ -1462,6 +1474,12 @@ try {
     const waPath = '/kybernos-cloud/whatsapp/pairing'
     const waReq = fakeReq('POST', 'http://127.0.0.1:3080', {}, waPath)
     waReq.socket = { localPort: 3080, remoteAddress: '127.0.0.1' }
+    // L3-05: the pairing link is the page's, so it carries the signed session besides the Origin (a program with the Origin alone gets a 401 and no link).
+    const waBare = fakeRes()
+    await routes.get(waPath)(waReq, waBare)
+    assert.equal(waBare.status, 401)
+    assert.equal(waBare.body.link, undefined, 'no pairing link for a request without the session')
+    waReq.headers = { ...waReq.headers, cookie: browserHeaders().cookie }
     const started = fakeRes()
     await routes.get(waPath)(waReq, started)
     assert.equal(started.body.ok, true)
@@ -1474,10 +1492,12 @@ try {
 
   // 6g. The Home computer's actions: wake, put to sleep, open. The page never names a computer; the server's refusals come back as codes.
   {
-    const act = async (verb, origin = 'http://127.0.0.1:3080') => {
+    // The person's page sends the signed session besides its Origin (L3-05: a program that sends the Origin alone must not wake, sleep or open the Home computer).
+    const act = async (verb, origin = 'http://127.0.0.1:3080', cookie = true) => {
       const path = '/kybernos-cloud/computer/' + verb
       const req = fakeReq('POST', origin, {}, path)
       req.socket = { localPort: 3080, remoteAddress: '127.0.0.1' }
+      if (cookie === true) req.headers = { ...req.headers, cookie: browserHeaders().cookie }
       const res = fakeRes()
       await routes.get(path)(req, res)
       return res
@@ -1522,6 +1542,9 @@ try {
     kyberHome = { id: 'cmp-home', origin_host: 'cmp-home.computers.test', name: 'Home', state: 'running' }
     assert.equal((await act('resume', 'https://evil.example')).status, 403, 'a foreign origin is refused before anything')
     assert.equal((await act('resume', 'null')).status, 403)
+    // The right Origin without the signed session is a local program, not the person's page: refused, and nothing is asked of the server.
+    for (const verb of ['resume', 'suspend', 'open']) assert.equal((await act(verb, 'http://127.0.0.1:3080', false)).status, 401, verb + ': the right Origin and no cookie')
+    assert.deepEqual(computerActionSeen, [], 'a refused request called nothing')
     assert.deepEqual(computerActionSeen, [], 'no call reached the server')
     assert.equal(routes.get('/kybernos-cloud/computer/resume') !== undefined && routes.get('/kybernos-cloud/computer/unknown'), undefined)
     ok('actions du Home : pas de Home, origine etrangere : rien n\'est appele')
