@@ -283,10 +283,41 @@ const origineOK = (req) => {
   } catch { return false }
 }
 
-const lireCorps = (req) => new Promise((res) => {
-  let corps = ''
-  req.on('data', (d) => { corps += d })
-  req.on('end', () => { try { res(JSON.parse(corps || '{}')) } catch { res({}) } })
+// The body of a POST, counted as it arrives: the rule of `readBody(req, cap)` in kybernos-search/guard.mjs (bundles read on their own, so the small
+// function is copied, not imported), over events because the tests of this bundle drive the routes with a request stand-in that has `on()` only.
+// Past `cap` bytes nothing more is kept, the caller gets 413 with `Connection: close` and the request is destroyed once the answer is out; the
+// promise then resolves `null` and the route stops (the answer is already sent). Before, the body was added to a string without any limit: past
+// 512 MB that throws `RangeError: Invalid string length` inside the 'data' listener, where nobody catches it, and DSH ends with all its sessions
+// (recette L3-43). A request that ends badly (aborted, reset) resolves `null` too: nobody is left to answer.
+// 2 MiB: the only POST is the push of a model, `ops` is cut to 4000 batches by the store and a batch is about 110 bytes ({op:'rect',x,y,z,w,d,h,color,group}),
+// so the largest honest body is about 0.5 MiB.
+const CORPS_MAX = 2 * 1024 * 1024
+const lireCorps = (req, res, cap = CORPS_MAX) => new Promise((resoudre) => {
+  const morceaux = []
+  let taille = 0
+  let fini = false
+  const finir = (valeur) => { if (fini) return; fini = true; morceaux.length = 0; resoudre(valeur) }
+  req.on('data', (d) => {
+    if (fini) return
+    const octets = typeof d === 'string' ? Buffer.from(d) : d
+    taille += octets.length
+    if (taille > cap) {
+      try { res.setHeader?.('Connection', 'close') } catch { /* a stand-in */ }
+      try { res.once?.('finish', () => req.destroy?.()) } catch { /* a stand-in */ }
+      envoyer(res, 413, { ok: false, raison: 'corps_trop_gros', message: 'The body is too large (' + Math.round(cap / (1024 * 1024)) + ' MiB at most).' })
+      finir(null)
+      return
+    }
+    morceaux.push(octets)
+  })
+  req.on('end', () => {
+    if (fini) return
+    const brut = morceaux.length === 0 ? '' : Buffer.concat(morceaux).toString('utf8')
+    // `null` is the "already answered" signal of this function, so a body that is the JSON text `null` reads as an empty one.
+    try { finir(JSON.parse(brut || '{}') ?? {}) } catch { finir({}) }
+  })
+  req.on('error', () => finir(null))
+  req.on('close', () => finir(null))
 })
 
 export function monterRoutes (webServerSvc, magasin) {
@@ -325,7 +356,8 @@ export function monterRoutes (webServerSvc, magasin) {
     // text/plain multipart etc. sont refusés.
     const ct = String(req.headers['content-type'] || '')
     if (ct !== '' && /^application\/json/i.test(ct) === false) { res.writeHead(415); res.end('JSON content-type expected'); return }
-    const corps = await lireCorps(req)
+    const corps = await lireCorps(req, res)
+    if (corps === null) return
     // An unreadable body must not leave an empty model behind: it would become "the last model" for a panel that
     // does not name its session.
     if (!corps || typeof corps !== 'object' || (!Array.isArray(corps.ops) && texte(corps.prompt, 2000) === '' && texte(corps.cle, 60) === '')) {
