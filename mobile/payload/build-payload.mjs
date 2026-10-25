@@ -122,9 +122,10 @@ cpSync(join(here, 'shims'), join(stage, 'shims'), { recursive: true })
 
 // 5. pack
 const engineVersion = JSON.parse(readFileSync(join(engineNm, '@deepseek-ai', 'dsh', 'package.json'), 'utf8')).version
-// the bootstrap and the pack reader ship NEXT TO the pack, not inside it: the host needs them to open it
+// the bootstrap, the pack reader and the provider seed ship NEXT TO the pack, not inside it: the host needs them to open it
 cpSync(join(here, 'bootstrap.mjs'), join(out, 'bootstrap.mjs'))
 cpSync(join(here, 'kbpack.mjs'), join(out, 'kbpack.mjs'))
+cpSync(join(here, 'provider-seed.mjs'), join(out, 'provider-seed.mjs'))
 const packFile = join(out, 'payload.kbpack')
 const r = await pack(stage, packFile)
 const manifest = { format: 'kbpack1', engine: engineVersion, bundles: bundles.length, files: r.files, bytes: r.bytes, packed: r.packed, sha256: r.sha256, built: new Date().toISOString() }
