@@ -37,6 +37,19 @@ eq('the red is the one the web client names', brand.red, '#f2372a')
 eq('the K box is the web client\'s 32.5 x 36', [brand.width, brand.height], [32.5, 36])
 eq('the icon dots are the favicon\'s bigger ones, the splash\'s the logo\'s', [ASSETS['icon.png'].dot, ASSETS['splash-icon.png'].dot], [3.3, 2.8])
 
+/* 1b. the K drawn inside the app (src/BrandMark.tsx, react-native-svg) is the same K */
+const mark = readFileSync(join(app, 'src', 'BrandMark.tsx'), 'utf8')
+const num = (re) => Number(mark.match(re)?.[1])
+const str = (re) => mark.match(re)?.[1]
+const logo = brand.shapesOf(2.8)
+const [stem, arm, leg, ...dots] = logo
+eq('BrandMark: the red is the web client\'s', str(/K_RED = '(#[0-9a-f]{6})'/i), brand.red)
+eq('BrandMark: the box is the K\'s own 32.5 x 36', [num(/K_BOX = \{ width: ([\d.]+)/), num(/K_BOX = \{[^}]*height: ([\d.]+)/)], [brand.width, brand.height])
+eq('BrandMark: the stem', [num(/K_STEM = \{ x: ([\d.]+)/), num(/K_STEM = \{[^}]*y: ([\d.]+)/), num(/K_STEM = \{[^}]*width: ([\d.]+)/), num(/K_STEM = \{[^}]*height: ([\d.]+)/)], [stem.x, stem.y, stem.w, stem.h])
+eq('BrandMark: the arm', str(/K_ARM = '([^']+)'/), arm.pts.map((q) => q.join(',')).join(' '))
+eq('BrandMark: the leg', str(/K_LEG = '([^']+)'/), leg.pts.map((q) => q.join(',')).join(' '))
+eq('BrandMark: the three dots', [num(/K_DOTS = \{ cx: ([\d.]+)/), str(/K_DOTS = \{[^}]*cy: \[([^\]]+)\]/).split(',').map((v) => Number(v.trim())), num(/K_DOTS = \{[^}]*r: ([\d.]+)/)], [dots[0].cx, dots.map((d) => d.cy), dots[0].r])
+
 /* 2. icon: opaque, centred, on the app background */
 const icon = await renderAsset('icon.png', { size: N, brand })
 const p = place(ASSETS['icon.png'].height * N)

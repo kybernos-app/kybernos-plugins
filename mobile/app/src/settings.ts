@@ -7,12 +7,12 @@ export interface SecureStorage {
 }
 
 export const KEY_SLOT = 'kybernos.anthropic-key'
-/** Set once the first-run key screen has been shown (or skipped), so it does not come back at every launch. */
-export const PROMPT_SLOT = 'kybernos.key-prompt-done'
+/** Set once the welcome page has been seen: a first launch shows it, later ones do not. */
+export const WELCOME_SLOT = 'kybernos.welcome-seen'
 
 /** The person's agreement to send what they write to their AI provider (Apple 5.1.2(i)). The stored value is the version of the text they agreed to: a materially changed text asks again. */
 export const CONSENT_SLOT = 'kybernos.ai-consent'
-export const CONSENT_VERSION = '1'
+export const CONSENT_VERSION = '2' // 2: the text no longer names one provider by default (it names Kybernos and the provider of the person's own key)
 
 /** Switches of the Background section (both off until the person turns them on). */
 export const KEEP_RUNNING_SLOT = 'kybernos.keep-running'
@@ -57,11 +57,8 @@ export const createSettings = (store: SecureStorage) => ({
   async consented(): Promise<boolean> { try { return (await store.get(CONSENT_SLOT)) === CONSENT_VERSION } catch { return false } },
   async giveConsent(): Promise<void> { try { await store.set(CONSENT_SLOT, CONSENT_VERSION) } catch { /* it asks again at the next launch */ } },
   async withdrawConsent(): Promise<void> { try { await store.remove(CONSENT_SLOT) } catch { /* nothing more can be done here */ } },
-  async promptDone(): Promise<boolean> {
-    try { return (await store.get(PROMPT_SLOT)) === '1' } catch { return true }
-  },
-  async markPromptDone(): Promise<void> {
-    try { await store.set(PROMPT_SLOT, '1') } catch { /* it shows again next time */ }
-  },
+  /** True once the welcome page was seen. An unreadable storage shows it again rather than hiding it for good. */
+  async welcomeSeen(): Promise<boolean> { try { return (await store.get(WELCOME_SLOT)) === '1' } catch { return false } },
+  async markWelcomeSeen(): Promise<void> { try { await store.set(WELCOME_SLOT, '1') } catch { /* it shows again next time */ } },
 })
 export type Settings = ReturnType<typeof createSettings>

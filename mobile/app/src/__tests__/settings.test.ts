@@ -1,4 +1,4 @@
-import { checkAnthropicKey, createSettings, keyHint, CONSENT_SLOT, CONSENT_VERSION, KEEP_RUNNING_SLOT, KEY_SLOT, PROMPT_SLOT, REMINDERS_SLOT, SecureStorage } from '../settings'
+import { checkAnthropicKey, createSettings, keyHint, CONSENT_SLOT, CONSENT_VERSION, KEEP_RUNNING_SLOT, KEY_SLOT, WELCOME_SLOT, REMINDERS_SLOT, SecureStorage } from '../settings'
 
 const GOOD = 'sk-ant-api03-AbCdEfGhIjKlMnOpQrStUv_-0123'
 const memory = (): SecureStorage & { data: Map<string, string> } => {
@@ -47,8 +47,8 @@ describe('settings', () => {
     const broken: SecureStorage = { get: async () => { throw new Error('keychain locked') }, set: async () => { throw new Error('keychain locked') }, remove: async () => { throw new Error('x') } }
     const s = createSettings(broken)
     expect(await s.engineEnv()).toEqual({}); expect(await s.keyHint()).toBeNull()
-    expect(await s.promptDone()).toBe(true) // an unreadable flag must not trap the user in the first-run screen
-    await expect(s.markPromptDone()).resolves.toBeUndefined()
+    expect(await s.welcomeSeen()).toBe(false) // an unreadable flag shows the welcome page again rather than hiding it for good
+    await expect(s.markWelcomeSeen()).resolves.toBeUndefined()
   })
   it('keeps the two Background switches, off until turned on, and off again when turned off', async () => {
     const store = memory(); const s = createSettings(store)
@@ -65,11 +65,17 @@ describe('settings', () => {
     expect(await s.keepRunning()).toBe(false); expect(await s.reminders()).toBe(false)
     await expect(s.setKeepRunning(true)).resolves.toBeUndefined()
   })
-  it('remembers that the first-run screen was shown', async () => {
+  it('remembers that the welcome page was seen', async () => {
     const store = memory(); const s = createSettings(store)
-    expect(await s.promptDone()).toBe(false)
-    await s.markPromptDone()
-    expect(store.data.get(PROMPT_SLOT)).toBe('1'); expect(await s.promptDone()).toBe(true)
+    expect(await s.welcomeSeen()).toBe(false)
+    await s.markWelcomeSeen()
+    expect(store.data.get(WELCOME_SLOT)).toBe('1'); expect(await s.welcomeSeen()).toBe(true)
+  })
+  it('asks the agreement again for an older text (version 1 was the text that named Anthropic by default)', async () => {
+    const store = memory(); store.data.set('kybernos.ai-consent', '1'); const s = createSettings(store)
+    expect(await s.consented()).toBe(false)
+    await s.giveConsent()
+    expect(await s.consented()).toBe(true)
   })
 })
 
