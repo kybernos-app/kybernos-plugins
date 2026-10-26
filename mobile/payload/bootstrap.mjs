@@ -8,7 +8,7 @@ import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, renameSync, r
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { unpack } from './kbpack.mjs'
-import { seedClaudeProvider } from './provider-seed.mjs'
+import { seedClaudeProvider, seedFirstWorkspace } from './seed.mjs'
 
 const env = process.env
 for (const k of ['KB_PAYLOAD', 'KB_MANIFEST', 'KB_ROOT', 'KB_HOME']) if (!env[k]) { console.error('kybernos bootstrap: ' + k + ' is not set'); process.exit(2) }
@@ -55,6 +55,8 @@ if (!installed) {
 }
 // 2b. the app holds a model key (device secure storage, handed over as ANTHROPIC_API_KEY): make sure an empty user layer names the Claude provider
 seedClaudeProvider({ patchFile: join(profile, 'cordis.patch.yml'), env })
+// 2c. the first workspace, so that the first screen is a chat that can be written to (the interface asks for a workspace otherwise)
+seedFirstWorkspace({ file: join(dshHome, 'storages', 'workspace.json'), folder: env.KB_WORKSPACE })
 if (env.KB_WORKSPACE) { mkdirSync(env.KB_WORKSPACE, { recursive: true }); process.chdir(env.KB_WORKSPACE) }
 
 // 3. shims, then the engine's launcher: its arguments are the process arguments after the first two

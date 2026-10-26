@@ -151,7 +151,7 @@ const engineVersion = JSON.parse(readFileSync(join(engineNm, '@deepseek-ai', 'ds
 // the bootstrap, the pack reader and the provider seed ship NEXT TO the pack, not inside it: the host needs them to open it
 cpSync(join(here, 'bootstrap.mjs'), join(out, 'bootstrap.mjs'))
 cpSync(join(here, 'kbpack.mjs'), join(out, 'kbpack.mjs'))
-cpSync(join(here, 'provider-seed.mjs'), join(out, 'provider-seed.mjs'))
+cpSync(join(here, 'seed.mjs'), join(out, 'seed.mjs'))
 const packFile = join(out, 'payload.kbpack')
 const r = await pack(stage, packFile)
 const manifest = { format: 'kbpack1', engine: engineVersion, bundles: bundles.length, files: r.files, bytes: r.bytes, packed: r.packed, sha256: r.sha256, built: new Date().toISOString() }
