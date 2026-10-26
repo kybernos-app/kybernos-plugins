@@ -2,7 +2,7 @@
 //   node scripts/test-service-demarrage.mjs   (0 = all green)
 import {
   LABEL, etiquette, cheminDuService, contexteService, trouverDsh, decisionDemarrageAuto,
-  etat, installer, retirer, commandeRedemarrage, FAMILLES_INSTALLABLES,
+  etat, installer, retirer, commandeRedemarrage, FAMILLES_INSTALLABLES, trouverNode,
 } from './service-demarrage.mjs'
 
 let total = 0
@@ -51,6 +51,8 @@ const existe = (set) => (c) => set.includes(c)
 ok('dsh is found on the PATH as written (the link, not its target)', trouverDsh({ dirs: ['/a', '/b'], home: '/h', existe: existe(['/b/dsh']) }) === '/b/dsh')
 ok('a thin launcher PATH still finds the Homebrew dsh', trouverDsh({ dirs: ['/usr/bin'], home: '/h', existe: existe(['/opt/homebrew/bin/dsh']) }) === '/opt/homebrew/bin/dsh')
 ok('no dsh anywhere → null', trouverDsh({ dirs: ['/a'], home: '/h', existe: () => false }) === null)
+ok('node is the stable link on the PATH, not the versioned Cellar file', trouverNode({ dirs: ['/opt/homebrew/bin'], home: '/h', existe: existe(['/opt/homebrew/bin/node']), execPath: '/opt/homebrew/Cellar/node/26.7.0/bin/node' }) === '/opt/homebrew/bin/node')
+ok('no node on the PATH falls back to the one that runs the robot', trouverNode({ dirs: ['/a'], home: '/h', existe: () => false, execPath: '/x/node' }) === '/x/node')
 ok('installable families are macOS and Linux', FAMILLES_INSTALLABLES.join() === 'mac,linux')
 
 // ── who decides ──
