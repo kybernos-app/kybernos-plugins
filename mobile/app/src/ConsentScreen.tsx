@@ -84,8 +84,8 @@ const s = StyleSheet.create({
   link: { color: C.link, fontSize: 16 },
   inline: { alignSelf: 'flex-start', paddingVertical: 4 },
   foot: { paddingHorizontal: 24, paddingTop: 12, paddingBottom: 16, gap: 6 },
-  primary: { backgroundColor: C.fg, borderRadius: 8, paddingVertical: 12, paddingHorizontal: 20, alignItems: 'center' },
-  primaryText: { color: C.onPrimary, fontSize: 16, fontWeight: '600' },
-  quiet: { paddingVertical: 8, alignItems: 'center' },
-  quietText: { color: C.note, fontSize: 15 },
+  primary: { backgroundColor: C.fg, borderRadius: 8, paddingVertical: 12, paddingHorizontal: 20 },
+  primaryText: { color: C.onPrimary, fontSize: 16, fontWeight: '600', textAlign: 'center' },
+  quiet: { paddingVertical: 8 },
+  quietText: { color: C.note, fontSize: 15, textAlign: 'center' },
 })

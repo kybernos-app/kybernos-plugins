@@ -54,7 +54,7 @@ const s = StyleSheet.create({
   subTight: { fontSize: 15, lineHeight: 21 },
   foot: { paddingHorizontal: 24, paddingTop: 12, paddingBottom: 16 },
   footTight: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 12 },
-  primary: { backgroundColor: C.fg, borderRadius: 8, paddingVertical: 12, paddingHorizontal: 20, alignItems: 'center' },
+  primary: { backgroundColor: C.fg, borderRadius: 8, paddingVertical: 12, paddingHorizontal: 20 },
   primaryTight: { paddingVertical: 10, paddingHorizontal: 16 },
-  primaryText: { color: C.onPrimary, fontSize: 16, fontWeight: '600' },
+  primaryText: { color: C.onPrimary, fontSize: 16, fontWeight: '600', textAlign: 'center' },
 })
