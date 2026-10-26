@@ -95,8 +95,15 @@ window.__ModuleLoader__.load({
         return n > 0 ? '(' + (n > 99 ? '99+' : n) + ') ' + base : base
       }
 
+      /** The Mac menu-bar app is reading the state right now. */
+      const helperSeen = (snap) => snap !== null && snap !== undefined && snap.helper !== null && typeof snap.helper === 'object' && snap.helper.seen === true
+      /** ... and its notifications are allowed: it puts the banners up itself, so the browser keeps quiet (no event shown twice, and none taken from it). */
+      const helperBanners = (snap) => helperSeen(snap) && snap.helper.banners === true
+
       /** The banners to show now: due ones, fresh enough, and only when the person allowed them. `skipped` are marked as shown without a word. */
       const bannersToShow = (snap, now, canShow) => {
+        // The helper puts them up and remembers which: marking them shown from here would take them away from it before its next read.
+        if (helperBanners(snap)) return { show: [], skipped: [] }
         const byId = new Map(snap.inbox.map((x) => [x.id, x]))
         const show = []
         const skipped = []
@@ -451,7 +458,14 @@ window.__ModuleLoader__.load({
                 h('div', null, h('b', null, kt('Fenêtre flottante', 'Floating window')), h('small', null, supported ? kt('Toujours au-dessus des autres fenêtres. Kybernos doit rester ouvert dans un onglet.', 'Always on top of the other windows. Kybernos must stay open in a tab.') : kt('Ce navigateur ne sait pas l’ouvrir (Chrome, Edge ou Brave le savent). Les bannières et le badge marchent quand même.', 'This browser cannot open it (Chrome, Edge or Brave can). Banners and the badge still work.'))),
                 h('span', { className: 'kbpu-ctl' }, h('button', { type: 'button', className: 'kbpu-btn pri', 'data-kb': 'pulse-floating', disabled: !supported || busy[0], onClick: toggleFloating }, live[0] ? kt('La fermer', 'Close it') : kt('L’afficher', 'Show it')))),
               note[0] !== '' ? h('p', { className: 'kbpu-note', style: { padding: '0 16px 10px' } }, note[0]) : null,
-              h('p', { className: 'kbpu-note', style: { padding: '0 16px 12px' } }, kt('L’orbe, la pastille et l’icône de la barre de menus demanderaient une petite appli de bureau : pas dans cette version.', 'The orb, the pill and the menu-bar icon would need a small desktop app: not in this version.'))),
+              h('div', { className: 'kbpu-line', 'data-kb': 'pulse-menubar' },
+                h('div', null, h('b', null, kt('Icône de la barre de menus (Mac)', 'Menu-bar icon (Mac)')),
+                  h('small', null, helperSeen(snap)
+                    ? kt('Elle tourne : le K est à côté du Wi-Fi, avec le nombre de choses qui t’attendent. Un clic liste tes automations.', 'It is running: the K sits next to Wi-Fi, with the number of things waiting for you. One click lists your automations.')
+                    : kt('Une petite appli Mac met le K à côté du Wi-Fi, avec un nombre et la liste de tes automations, même quand le navigateur est fermé. Pour la fabriquer : bash packages/kybernos-pulse/helper/build.sh --run (macOS 13 ou plus).', 'A small Mac app puts the K next to Wi-Fi, with a count and the list of your automations, even when the browser is closed. To build it: bash packages/kybernos-pulse/helper/build.sh --run (macOS 13 or later).'))),
+                h('span', { className: 'kbpu-ctl' }, helperSeen(snap)
+                  ? h('span', { className: 'kbpu-chip st ok', 'data-kb': 'pulse-menubar-on' }, kt('En marche', 'Running'))
+                  : h('span', { className: 'kbpu-chip st', 'data-kb': 'pulse-menubar-off' }, kt('Pas lancée', 'Not running'))))),
             h('div', { className: 'kbpu-block', 'data-kb': 'pulse-level' },
               h('h3', null, kt('Prévenir', 'Tell me when')),
               LEVELS.map(([id, label, desc]) => h('button', { key: id, type: 'button', role: 'radio', className: 'kbpu-opt', 'aria-checked': s !== null && s.level === id ? 'true' : 'false', 'data-kb': 'pulse-level-' + id, disabled: s === null, onClick: () => set({ level: id }) },
