@@ -571,6 +571,21 @@ console.log('vet-skills — the second opinion')
   ok('a stored verdict made by the first model alone against a skill, from before the rule, is put to the second model once')
 }
 
+console.log('vet-skills — the shipped picks')
+{
+  // The rule of the owner (2026-10-26): a pick the tool rejects is not shipped. The ledger is the record of the last pass; a pick added to
+  // featured-picks.json without running `node scripts/vet-skills.mjs` has no entry, and fails here on purpose.
+  const { readPicks } = await import('../packages/kybernos-skills/featured-picks.mjs')
+  const shipped = readPicks(join(here, '..', 'packages', 'kybernos-skills', 'featured-picks.json')).items
+  const ledger = JSON.parse(readFileSync(join(here, 'vet-skills', 'ledger.json'), 'utf8'))
+  const unvetted = shipped.filter((p) => ledger.skills[p.id] === undefined).map((p) => p.id)
+  assert.deepEqual(unvetted, [], 'a shipped pick has no entry in scripts/vet-skills/ledger.json: run `node scripts/vet-skills.mjs`')
+  const rejected = shipped.filter((p) => ledger.skills[p.id].verdict === 'reject').map((p) => `${p.id}: ${ledger.skills[p.id].findings.filter((f) => f.level === 'reject' && f.waived === undefined).map((f) => f.rule).join(', ')}`)
+  assert.deepEqual(rejected, [], 'a shipped pick is rejected by the vetting tool: take it out of featured-picks.json, or waive the finding in the ledger with a reason')
+  assert.ok(shipped.every((p) => ledger.skills[p.id].rulesVersion === RULES_VERSION), 'the ledger was written by older rules: run `node scripts/vet-skills.mjs --all`')
+  ok(`the ${shipped.length} shipped picks are all in the ledger, analysed by the current rules, and none is rejected`)
+}
+
 console.log('vet-skills — settings and command line')
 {
   assert.equal(checkConfig(JSON.parse(readFileSync(join(here, 'vet-skills', 'config.json'), 'utf8')), {}).judge.baseUrl, 'https://ai-gateway.vercel.sh/v1')

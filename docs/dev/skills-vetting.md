@@ -54,7 +54,7 @@ The verdict is the worst level that is not waived.
 
 The thresholds are in `scripts/vet-skills/config.json`. **A rule change bumps `RULES_VERSION`**, so every skill is analysed once more.
 
-**Waivers.** A person accepts a known defect by writing it in the ledger: `"waivers": { "gws-gmail-triage": { "needs_binary": { "reason": "the card says it needs gws" } } }`.
+**Waivers.** A person accepts a known defect by writing it in the ledger: `"waivers": { "some-skill": { "needs_binary": { "reason": "the card says it needs the tool" } } }`.
 The finding stays in the report (marked waived) and stops counting. `info` findings cannot be waived (there is nothing to accept).
 
 ## The judge
@@ -138,7 +138,7 @@ It is a plain text file and is committed: its diff is the history of what change
   verified at, which is what makes pinning possible; until then a skill verified today can change tomorrow (the weekly pass notices, the user does not wait for it).
 - **No discovery of candidates.** `--candidate` vets one named skill. Feeding the weekly scout's finds through it, and putting a "not vetted" label on the Discover tab, are separate changes.
 - **Four verdicts were checked by hand, not all 21.** The 17 `ok` are unverified except `task-management`, `systematic-debugging` and `cold-email`.
-- The picks themselves were not edited: what to do with `grill-me`, the two `gws-*` skills and the others is the maintainer's decision, recorded as waivers or as changes to `featured-picks.json`.
+- **Rule (owner, 2026-10-26): a pick the tool rejects is not shipped.** `grill-me`, `gws-gmail-triage` and `gws-workflow-meeting-prep` were taken out of `featured-picks.json` (24 → 21 picks); `scripts/test-vet-skills.mjs` fails if a shipped pick has no ledger entry or a `reject` verdict. A rejected skill can come back with a waiver written in the ledger. The 4 flagged picks stay; reading them is the maintainer's job.
 
 ## Tests
 
