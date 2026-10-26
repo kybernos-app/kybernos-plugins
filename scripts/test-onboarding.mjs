@@ -14,7 +14,7 @@ const brand = src.match(/\/\/ KB-BRAND-CORE-BEGIN([\s\S]*?)\/\/ KB-BRAND-CORE-EN
 const core = src.match(/\/\/ KB-OB-CORE-BEGIN([\s\S]*?)\/\/ KB-OB-CORE-END/)
 const ui = src.match(/\/\/ KB-OB-UI-BEGIN([\s\S]*?)\/\/ KB-OB-UI-END/)
 if (core === null || ui === null) { console.error('BLOCKS KB-OB-CORE / KB-OB-UI NOT FOUND in packages/kybernos-plugin/client.js'); process.exit(1) }
-const names = 'KB_OB_LANGS, KB_OB_MODES, KB_OB_PROVIDERS, KB_OB_T, kbObPickLang, kbObText, kbObPlan, kbObStepOf, kbObBack, kbObBackOf, kbObEscape, kbObIsDark, kbObKeyShape, kbObProviderFromKey, kbObNeedModel, kbObNoModel, kbObPackText, kbObPackOf, kbObGoalsOf, kbObKitOf, kbObMenuOverlay, kbObFold, kbObDomainFromText, kbObMix, kbObCronLabel, KB_OB_ROWS, kbObPreviewOf, kbObAutoMade, kbObKitDefaults, kbObMemoryText, kbObSkillText, kbObSetupRows, KB_OB_PRESETS, kbObModeOf, kbObAgentsOf, KB_OB_HOME_TILE, kbObTileOrder, kbObTileSort, kbObFieldSkills, kbObFieldConnectors'
+const names = 'KB_OB_LANGS, KB_OB_MODES, KB_OB_PROVIDERS, KB_OB_T, kbObPickLang, kbObText, kbObPlan, kbObStepOf, kbObBack, kbObBackOf, kbObEscape, kbObIsDark, kbObKeyShape, kbObProviderFromKey, kbObNeedModel, kbObNoModel, kbObPackText, kbObPackOf, kbObGoalsOf, kbObKitOf, kbObMenuOverlay, kbObFold, kbObDomainFromText, kbObMix, kbObCronLabel, KB_OB_ROWS, kbObPreviewOf, kbObAutoMade, kbObKitDefaults, kbObMemoryText, kbObSkillText, kbObSetupRows, KB_OB_PRESETS, kbObModeOf, kbObAgentsOf, KB_OB_HOME_TILE, kbObTileOrder, kbObTileSort, kbObFieldSkills, kbObFieldConnectors, kbObSections'
 const mod = await import('data:text/javascript,' + encodeURIComponent(core[1] + '\nexport { ' + names + ' }'))
 
 let fails = 0
@@ -79,7 +79,7 @@ eq('…in every count line that can be 1: cloud models, kit added, kit failed, a
 /* ── 5. The steps ────────────────────────────────────────────────────────── */
 eq('six numbered steps, one question each (field, goals, model, about you, agents, kit), the model step among them whatever already works', mod.kbObPlan(), ['job', 'goals', 'model', 'about', 'agents', 'kit'])
 eq('with no domain pack to choose from there is no field and no goals to ask: four steps, the model step still there', [mod.kbObPlan(false), mod.kbObPlan(true)], [['model', 'about', 'agents', 'kit'], ['job', 'goals', 'model', 'about', 'agents', 'kit']])
-eq('screens of the model step share one number', ['model', 'key', 'key-done', 'local', 'local-install', 'local-done', 'local-err', 'free', 'cloud-wait', 'cloud-ok', 'cloud-err'].map((s) => mod.kbObStepOf(s)), Array(11).fill('model'))
+eq('screens of the model step share one number', ['model', 'key', 'key-done', 'local', 'local-install', 'local-done', 'local-err', 'free', 'cloud-wait', 'cloud-ok', 'cloud-err', 'providers', 'nomodel'].map((s) => mod.kbObStepOf(s)), Array(13).fill('model'))
 eq('the kit, the goals, « about you » and the agents are their own steps', ['kit', 'goals', 'about', 'agents'].map((x) => mod.kbObStepOf(x)), ['kit', 'goals', 'about', 'agents'])
 eq('welcome, the plan (the last thing asked) and the end screen have no number', ['welcome', 'plan', 'done'].map((x) => mod.kbObStepOf(x)), [null, null, null])
 eq('the display mode is no longer a screen', [mod.kbObStepOf('mode'), mod.kbObBack('mode'), mod.kbObPlan().indexOf('mode')], [null, null, -1])
@@ -100,6 +100,11 @@ eq('opened on its own, the menu still goes first', mod.kbObEscape(alone('model',
 eq('without a field the goals step is skipped, so « Back » from the model goes to the field (or to the welcome when there is nothing to choose)',
   [mod.kbObBackOf(first('model', { domain: null, packs: [{}] })), mod.kbObBackOf(first('model', { domain: null, packs: [] })), mod.kbObBackOf(first('model', { domain: 'edu', packs: [{}] }))], ['job', 'welcome', 'goals'])
 eq('the Back button and Escape share one rule: no back from the model or kit step when opened alone', ['model', 'kit'].map((s) => mod.kbObBackOf(alone(s))), [null, null])
+// The phone app starts on the model question: nothing before it, so no « Back » there; the screens after it go back as on the desktop.
+eq('phone: the model question is the first screen, nothing to go back to', mod.kbObBackOf(first('model', { phone: true, domain: null, packs: [{}] })), null)
+eq('phone: the other screens of the step still go back (key to model, the provider list to the key, the « no model » page to the model)', [mod.kbObBackOf(first('key', { phone: true })), mod.kbObBackOf(first('providers', { phone: true })), mod.kbObBackOf(first('nomodel', { phone: true }))], ['model', 'key', 'model'])
+eq('desktop: the same model screen still goes back as before', mod.kbObBackOf(first('model', { phone: false, domain: 'edu', packs: [{}] })), 'goals')
+eq('first run, phone: Escape on the model question does nothing (a first run is never abandoned by a stray key)', mod.kbObEscape(first('model', { phone: true })), 'none')
 eq('every string of the model question exists in the four languages', ['m.t', 'm.s', 'm.k', 'm.rec', 'm.kd', 'm.o', 'm.od', 'm.other', 'm.local', 'm.free', 'm.conn', 'm.later', 'm.keep'].map((k) => (Array.isArray(mod.KB_OB_T[k]) && mod.KB_OB_T[k].length === 4 && mod.KB_OB_T[k].every((v) => typeof v === 'string' && v.length > 0))), Array(13).fill(true))
 eq('the removed texts are gone from the dictionary', Object.keys(mod.KB_OB_T).filter((k) => /^(offer\.|v\.(cloud|key|free)|brain\.)/.test(k)), [])
 
@@ -233,6 +238,21 @@ eq('what the person typed goes to the host only in the complete answer, with the
 eq('a key is one printable string of 8 to 400 characters', [mod.kbObKeyShape('sk-ant-api03-abcdefghij'), mod.kbObKeyShape('  sk-0123456789 \n')], ['sk-ant-api03-abcdefghij', 'sk-0123456789'])
 eq('what is not a key is refused', ['', 'short', 'with space 123456789', 'tab\tkey-0123456789', 'é-0123456789ab', 'x'.repeat(401), 42, null, undefined].map((v) => mod.kbObKeyShape(v)), Array(9).fill(null))
 eq('the provider is named by the prefixes that are unambiguous', [mod.kbObProviderFromKey('sk-ant-api03-x'), mod.kbObProviderFromKey('AIzaSyabc'), mod.kbObProviderFromKey('sk-proj-abc'), mod.kbObProviderFromKey(''), mod.kbObProviderFromKey(7)], ['anthropic', 'google', null, null, null])
+
+/* ── 5c. « Other providers » ─────────────────────────────────────────────── */
+const cat = [
+  { id: 'openrouter', nom: 'OpenRouter', libre: true }, { id: 'nvidia', nom: 'NVIDIA NIM', libre: true },
+  { id: 'openai', nom: 'OpenAI' }, { id: 'groq', nom: 'Groq' }, { id: 'zzz-small', nom: 'Zzz Small Lab' }, { id: 'abc-cloud', nom: 'ABC Cloud' },
+]
+const sec = (q) => mod.kbObSections(cat, ['openai', 'openrouter', 'groq', 'missing'], q).map((x) => [x.id, x.items.map((p) => p.id)])
+eq('no search: the free-quota ones, the popular ones in the given order, then all the others', sec(''), [['free', ['openrouter', 'nvidia']], ['pop', ['openai', 'groq']], ['all', ['zzz-small', 'abc-cloud']]])
+eq('a free provider is shown once, in « free », even when it is popular; an unknown popular id is ignored', sec('').flat(1).filter((x) => Array.isArray(x)).flat().filter((id) => id === 'openrouter').length, 1)
+eq('a search is one flat list that matches the name or the id, whatever the case', [sec(' ROU'), sec('nim'), sec('small')], [[['res', ['openrouter']]], [['res', ['nvidia']]], [['res', ['zzz-small']]]])
+eq('a search with no match keeps its (empty) list so the screen can say so', sec('nothing-like-it'), [['res', []]])
+eq('nothing breaks on a missing or malformed catalogue', [mod.kbObSections(null, null, ''), mod.kbObSections([null, 3, { id: 'x' }], [], ''), mod.kbObSections(undefined, undefined, 'a')].map((r) => r.map((x) => [x.id, x.items.length])), [[], [], [['res', 0]]])
+eq('the four providers of the wizard each have a logo of the models page, and « other » none', mod.KB_OB_PROVIDERS.map((p) => p.logo), ['anthropic', 'openai', 'deepseek', 'google', null])
+eq('the texts of the new screens exist in every language', ['prov.more', 'prov.search', 'prov.free', 'prov.pop', 'prov.all', 'prov.res1', 'prov.resN', 'prov.none', 'prov.custom', 'key.g.any', 'key.g.doc', 'key.note.phone', 'm.od.phone', 'nomodel.t', 'nomodel.s', 'nomodel.acct', 'nomodel.key'].filter((k) => mod.KB_OB_T[k] === undefined || mod.KB_OB_T[k].length !== 4), [])
+eq('the phone note never claims the key is encrypted (DSH keeps it in a file, readable by the app only)', Object.keys(mod.KB_OB_T).filter((k) => /^(key\.note|m\.od)/.test(k) && mod.KB_OB_T[k].some((t) => /encrypt|chiffr|cifr|مشفّر|مشفر/i.test(t))), [])
 
 /* ── 6. Light or dark ────────────────────────────────────────────────────── */
 const dark = mod.kbObIsDark

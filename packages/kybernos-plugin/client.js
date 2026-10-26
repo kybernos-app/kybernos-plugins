@@ -35284,11 +35284,11 @@ html.wv2-actif [data-composer-seat]{display:none !important}
     const KB_OB_MODES = ['code', 'bureau']
     // Where each provider hands out keys. The wizard only shows the address: it opens nothing by itself.
     const KB_OB_PROVIDERS = [
-      { id: 'anthropic', name: 'Anthropic', host: 'console.anthropic.com', path: '/settings/keys' },
-      { id: 'openai', name: 'OpenAI', host: 'platform.openai.com', path: '/api-keys' },
-      { id: 'deepseek', name: 'DeepSeek', host: 'platform.deepseek.com', path: '/api_keys' },
-      { id: 'google', name: 'Google Gemini', host: 'aistudio.google.com', path: '/apikey' },
-      { id: 'other', name: null, host: null, path: '' },
+      { id: 'anthropic', name: 'Anthropic', logo: 'anthropic', host: 'console.anthropic.com', path: '/settings/keys' },
+      { id: 'openai', name: 'OpenAI', logo: 'openai', host: 'platform.openai.com', path: '/api-keys' },
+      { id: 'deepseek', name: 'DeepSeek', logo: 'deepseek', host: 'platform.deepseek.com', path: '/api_keys' },
+      { id: 'google', name: 'Google Gemini', logo: 'google', host: 'aistudio.google.com', path: '/apikey' },
+      { id: 'other', name: null, logo: null, host: null, path: '' },
     ]
     // [en, fr, es, ar]. English is the fallback of every other language.
     const KB_OB_T = {
@@ -35417,6 +35417,23 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       'key.err.fail': ['The key could not be saved. You can add it in Settings → AI provider and models.', 'La clé n’a pas pu être enregistrée. Tu peux l’ajouter dans Réglages → Fournisseur IA et modèles.', 'No se pudo guardar la clave. Puedes añadirla en Ajustes → AI provider and models.', 'تعذّر حفظ المفتاح. يمكنك إضافته من الإعدادات ← AI provider and models.'],
       'key.again': ['Check again', 'Vérifier à nouveau', 'Comprobar de nuevo', 'تحقق مجددًا'],
       'key.anyway': ['Save anyway', 'Enregistrer quand même', 'Guardar igualmente', 'احفظ على أي حال'],
+      'prov.more': ['Other providers', 'Autres fournisseurs', 'Otros proveedores', 'مزوّدون آخرون'],
+      'prov.search': ['Search a provider…', 'Rechercher un fournisseur…', 'Buscar un proveedor…', 'ابحث عن مزوّد…'],
+      'prov.free': ['Free models (quota)', 'Modèles gratuits (quota)', 'Modelos gratuitos (cuota)', 'نماذج مجانية (حصة)'],
+      'prov.pop': ['Popular', 'Populaires', 'Populares', 'الأكثر شيوعًا'],
+      'prov.all': ['All providers · {n}', 'Tous les fournisseurs · {n}', 'Todos los proveedores · {n}', 'جميع المزوّدين · {n}'],
+      'prov.res1': ['1 result', '1 résultat', '1 resultado', 'نتيجة واحدة'],
+      'prov.resN': ['{n} results', '{n} résultats', '{n} resultados', '{n} نتائج'],
+      'prov.none': ['No provider with this name. Try “Custom API”.', 'Aucun fournisseur de ce nom. Essaie « API personnalisée ».', 'Ningún proveedor con ese nombre. Prueba «API personalizada».', 'لا يوجد مزوّد بهذا الاسم. جرّب «API مخصّصة».'],
+      'prov.custom': ['Custom API', 'API personnalisée', 'API personalizada', 'API مخصّصة'],
+      'key.g.any': ['Open your {name} account and create an API key.', 'Ouvre ton compte {name} et crée une clé API.', 'Abre tu cuenta de {name} y crea una clave API.', 'افتح حسابك في {name} وأنشئ مفتاح API.'],
+      'key.g.doc': ['{name} documentation', 'Documentation de {name}', 'Documentación de {name}', 'وثائق {name}'],
+      'key.note.phone': ['Your key stays on this phone and is only sent to your provider. Kybernos never receives it.', 'La clé reste sur ce téléphone et n’est envoyée qu’à ton fournisseur. Kybernos ne la reçoit jamais.', 'La clave se queda en este teléfono y solo se envía a tu proveedor. Kybernos nunca la recibe.', 'يبقى المفتاح على هذا الهاتف ولا يُرسل إلا إلى مزوّدك. لا يتلقاه Kybernos أبدًا.'],
+      'm.od.phone': ['Anthropic, OpenAI, DeepSeek, Google or another provider. The key stays on this phone.', 'Anthropic, OpenAI, DeepSeek, Google ou un autre fournisseur. La clé reste sur ce téléphone.', 'Anthropic, OpenAI, DeepSeek, Google u otro proveedor. La clave se queda en este teléfono.', 'Anthropic وOpenAI وDeepSeek وGoogle أو مزوّد آخر. يبقى المفتاح على هذا الهاتف.'],
+      'nomodel.t': ['Without a model, Kybernos cannot answer', 'Sans modèle, Kybernos ne peut pas répondre', 'Sin un modelo, Kybernos no puede responder', 'بدون نموذج لا يستطيع Kybernos الإجابة'],
+      'nomodel.s': ['It needs a Kybernos account or your own key.', 'Il lui faut un compte Kybernos ou ta propre clé.', 'Necesita una cuenta de Kybernos o tu propia clave.', 'يحتاج إلى حساب Kybernos أو مفتاحك الخاص.'],
+      'nomodel.acct': ['Create my account', 'Créer mon compte', 'Crear mi cuenta', 'إنشاء حسابي'],
+      'nomodel.key': ['Use my own key', 'Utiliser ma propre clé', 'Usar mi propia clave', 'استخدام مفتاحي الخاص'],
       'key.done.t': ['Key saved', 'Clé enregistrée', 'Clave guardada', 'تم حفظ المفتاح'],
       'key.done.ok': ['{name} accepted your key. It’s ready in the model picker.', '{name} a accepté ta clé. Elle est prête dans le sélecteur de modèles.', '{name} aceptó tu clave. Ya está en el selector de modelos.', 'قبل {name} مفتاحك. أصبح جاهزًا في قائمة النماذج.'],
       'key.done.unk': ['Saved for {name}. We couldn’t check it just now: you’ll see at your first message.', 'Enregistrée pour {name}. On n’a pas pu la vérifier maintenant : tu le verras au premier message.', 'Guardada para {name}. No pudimos comprobarla ahora: lo verás en tu primer mensaje.', 'تم الحفظ لدى {name}. تعذّر التحقق الآن: سترى عند أول رسالة.'],
@@ -35605,14 +35622,14 @@ html.wv2-actif [data-composer-seat]{display:none !important}
     const kbObStepOf = (screen) => {
       if (screen === 'job' || screen === 'goals' || screen === 'about' || screen === 'agents' || screen === 'kit') return screen
       if (screen === 'model' || screen === 'key' || screen === 'key-done' || screen === 'local' || screen === 'local-install' || screen === 'local-done' || screen === 'local-err' || screen === 'free' ||
-        screen === 'cloud-wait' || screen === 'cloud-ok' || screen === 'cloud-err') return 'model'
+        screen === 'cloud-wait' || screen === 'cloud-ok' || screen === 'cloud-err' || screen === 'providers' || screen === 'nomodel') return 'model'
       return null
     }
     /** Where « Back » goes from a screen (null = nowhere). */
-    const kbObBack = (screen) => ({ job: 'welcome', goals: 'job', model: 'goals', about: 'model', agents: 'about', kit: 'agents', plan: 'kit', key: 'model', local: 'model', free: 'model', 'local-err': 'local', 'cloud-wait': 'model', 'cloud-err': 'model' }[screen] || null)
+    const kbObBack = (screen) => ({ job: 'welcome', goals: 'job', model: 'goals', about: 'model', agents: 'about', kit: 'agents', plan: 'kit', key: 'model', providers: 'key', nomodel: 'model', local: 'model', free: 'model', 'local-err': 'local', 'cloud-wait': 'model', 'cloud-err': 'model' }[screen] || null)
     /** Where « Back » goes in the wizard as it stands (null = nowhere). The button and Escape share it. `S` is the wizard's state. */
     const kbObBackOf = (S) => {
-      if ((S.standalone && (S.screen === 'model' || S.screen === 'kit')) || (S.screen === 'free' && S.fromAccount)) return null
+      if ((S.standalone && (S.screen === 'model' || S.screen === 'kit')) || (S.phone === true && S.screen === 'model') || (S.screen === 'free' && S.fromAccount)) return null
       // No field chosen (or no pack to choose from): the goals step was skipped, so « Back » from the model goes where we came from.
       if (S.screen === 'model' && (S.domain === null || S.domain === undefined)) return Array.isArray(S.packs) && S.packs.length === 0 ? 'welcome' : 'job'
       return kbObBack(S.screen)
@@ -35853,6 +35870,20 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       if (v.indexOf('AIza') === 0) return 'google'
       return null
     }
+    /**
+     * The providers the « Other providers » screen shows. Without a search: the free-quota ones, the popular ones (in the order of `popular`), then all
+     * the others; with one, a single flat list of what matches by name or id. `list` is the catalogue of the models page (`{ id, nom, libre… }`).
+     * @returns {Array<{id:'free'|'pop'|'all'|'res', items:object[]}>}
+     */
+    const kbObSections = (list, popular, query) => {
+      const all = Array.isArray(list) ? list.filter((p) => p !== null && typeof p === 'object' && typeof p.id === 'string' && typeof p.nom === 'string') : []
+      const q = typeof query === 'string' ? query.trim().toLowerCase() : ''
+      if (q !== '') return [{ id: 'res', items: all.filter((p) => p.nom.toLowerCase().indexOf(q) >= 0 || p.id.indexOf(q) >= 0) }]
+      const free = all.filter((p) => p.libre === true)
+      const pop = (Array.isArray(popular) ? popular : []).map((id) => all.find((p) => p.id === id)).filter((p) => p !== undefined && p.libre !== true)
+      const seen = new Set(free.concat(pop).map((p) => p.id))
+      return [{ id: 'free', items: free }, { id: 'pop', items: pop }, { id: 'all', items: all.filter((p) => !seen.has(p.id)) }].filter((sec) => sec.items.length > 0)
+    }
     /** Dark when the page behind the wizard is: the luminance of its background colour, `rgb(…)` or `rgba(…)`. */
     const kbObIsDark = (cssColor) => {
       const m = /rgba?\(\s*(\d+)[\s,]+(\d+)[\s,]+(\d+)(?:[\s,/]+([\d.]+))?/.exec(String(cssColor))
@@ -35914,6 +35945,8 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         provider: 'anthropic', menu: false, pairing: null, account: null, models: null, error: null, copied: false,
         keyDraft: '', keyMsg: null, keyVerdict: null, localId: null, job: null, localError: null, refs: null,
         standalone: false, picked: null, freeAck: false,
+        // the phone app (html.kb-app): one question per screen, no « done » screens, the first run ends on the chat; and a provider picked among the catalogue's
+        phone: false, provList: null, provQuery: '', provName: null, provLogo: null, provDoc: '',
         // the model step: which answer is ticked, whether the free step came right after an account, and whether the free models are wired after it
         pick: 'k', fromAccount: false, freeWire: false,
         // what the account probe saw (an email, a count of models), for the connected line of the model step
@@ -36127,15 +36160,27 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         if (screen === 'done') { memoryWrite(); setupLoad() }
       }
       // After a way is connected: the first run goes on to the starter kit; from the chat's card the wizard just closes.
-      const afterConnect = () => { if (S.standalone) finish(); else go('about') }
+      const afterConnect = () => { if (S.standalone || S.phone) finish(); else go('about') }
       // « Decide later »: nothing is connected, the kit does not need a model.
-      const decideLater = () => { if (S.model === null && S.ready === null) S.model = 'later'; afterConnect() }
+      const decideLater = () => {
+        // On the phone « Skip » is not « later »: with no model the chat has nothing to say, so the way to one is said again (a model that already works still counts).
+        if (S.phone && S.model === null && S.ready === null) {
+          // an abandoned pairing would sit on the host until it expires
+          if (S.screen === 'cloud-wait') call('/kybernos-cloud/disconnect', 'POST', { confirm: true })
+          go('nomodel')
+          return
+        }
+        if (S.model === null && S.ready === null) S.model = 'later'
+        afterConnect()
+      }
       // After an account: one whose plan brings no model leaves the person with nothing to talk to (unless a model already
       // works), so the free community models are offered, with their acknowledgement; an account that brings models goes on.
       const afterAccount = () => {
         if (!S.standalone && S.ready === null && !(S.models !== null && S.models > 0)) { S.fromAccount = true; go('free'); return }
         afterConnect()
       }
+      // The « connected » screen only confirms what was just done: the phone goes on to the chat instead.
+      const goCloudOk = () => { if (S.phone) afterAccount(); else go('cloud-ok') }
       const pollOnce = async () => {
         pollTimer = null
         if (root === null || S.screen !== 'cloud-wait') return
@@ -36147,7 +36192,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
           S.model = 'cloud'
           await autoSelect('kybernos')
           if (root === null) return
-          go('cloud-ok')
+          goCloudOk()
           return
         }
         if (r !== null && r.ok === true && (r.status === 'expired' || r.status === 'denied')) { S.error = r.status; go('cloud-err'); return }
@@ -36166,7 +36211,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
           S.model = 'cloud'
           await autoSelect('kybernos')
           if (root === null) return
-          go('cloud-ok')
+          goCloudOk()
           return
         }
         const p = r.pairing
@@ -36198,7 +36243,9 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       // function on window for this wizard, and when it is not there (the bundle is off) the wizard hands over to Settings.
       const modelsSeam = () => { try { const x = win.__KB_MODELS__; return x !== undefined && x !== null && typeof x.saveKey === 'function' ? x : null } catch (e) { return null } }
       const localSeam = () => { try { const x = win.__KB_LOCAL__; return x !== undefined && x !== null && typeof x.recommend === 'function' && typeof x.connect === 'function' ? x : null } catch (e) { return null } }
-      const provName = (id) => { const p = KB_OB_PROVIDERS.find((x) => x.id === id); return p !== undefined && p.name !== null ? p.name : T('prov.other') }
+      const provName = (id) => { const p = KB_OB_PROVIDERS.find((x) => x.id === id); return p !== undefined && p.name !== null ? p.name : (id === S.provider && S.provName !== null ? S.provName : T('prov.other')) }
+      // The phone app: kybernos-mobile marks the page with html.kb-app (packages/kybernos-mobile/client.js).
+      const phoneApp = () => { try { return win.document.documentElement.classList.contains('kb-app') } catch (e) { return false } }
       const gbOf = (reco) => (typeof reco.tailleGo === 'number' ? String(reco.tailleGo) : '?')
       const refocusKey = () => {
         const el = root !== null ? root.querySelector('#kb-ob-key') : null
@@ -36219,7 +36266,8 @@ html.wv2-actif [data-composer-seat]{display:none !important}
           S.model = 'key'
           await autoSelect(S.provider)
           if (root === null) return
-          go('key-done')
+          if (S.phone) afterConnect()
+          else go('key-done')
         } else { S.keyMsg = 'fail'; render(false) }
       }
       const submitKey = async () => {
@@ -36742,7 +36790,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         return b
       }
       const eyebrow = (screen) => {
-        if (S.standalone) return h('span')
+        if (S.standalone || S.phone) return h('span')
         const plan = kbObPlan(S.packs.length > 0)
         const n = plan.indexOf(kbObStepOf(screen)) + 1
         return h('p', 'kb-ob-eyebrow', T('step', { n: n, total: plan.length }))
@@ -36772,6 +36820,59 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       }
 
       // ── screens ──
+      // A provider's logo: the models page's own SVG, served by the host and painted as a mask (it takes the text colour), or the initial.
+      const logoTile = (logoId, name) => {
+        const t = h('span', 'kb-ob-lgt')
+        t.setAttribute('aria-hidden', 'true')
+        if (typeof logoId === 'string' && logoId !== '') {
+          const u = 'url(/kybernos-models/logo?id=' + encodeURIComponent(logoId) + ')'
+          const l = h('span', 'kb-ob-lg')
+          l.style.webkitMaskImage = u
+          l.style.maskImage = u
+          t.appendChild(l)
+        } else t.appendChild(h('span', 'kb-ob-ini', String(name || '?').charAt(0).toUpperCase()))
+        return t
+      }
+      const provChip = (label, logoId, on, onClick) => {
+        const b = chip('', on, onClick)
+        b.classList.add('kb-ob-chip-lg')
+        if (logoId !== null && logoId !== undefined) b.appendChild(logoTile(logoId, label))
+        b.appendChild(h('span', null, label))
+        return b
+      }
+      const provRow = (p) => {
+        const b = h('button', 'kb-ob-prow')
+        b.type = 'button'
+        b.appendChild(logoTile(p.logoId, p.nom))
+        b.appendChild(h('span', 'kb-ob-prn', p.nom))
+        b.addEventListener('click', () => chooseProvider(p))
+        return b
+      }
+      // « Other providers »: the catalogue of the models page. A host whose models page has no `catalogue()` keeps the old way (Settings does the rest).
+      const openProviders = async () => {
+        const seam = modelsSeam()
+        if (seam === null || typeof seam.catalogue !== 'function') { S.provider = 'other'; S.keyMsg = null; render(false); return }
+        if (S.provList === null) {
+          let r = null
+          try { r = await seam.catalogue() } catch (e) { r = null }
+          if (root === null || S.screen !== 'key') return
+          S.provList = r !== null && r !== undefined && r.ok === true && Array.isArray(r.providers) && r.providers.length > 0 ? r : null
+        }
+        if (S.provList === null) { S.provider = 'other'; S.keyMsg = null; render(false); return }
+        S.provQuery = ''
+        go('providers')
+      }
+      const chooseProvider = (p) => {
+        S.keyMsg = null
+        S.keyDraft = ''
+        // An address that depends on the account cannot be saved from here: Settings asks for it.
+        if (p.usable !== true) { S.provider = 'other'; go('key'); return }
+        S.provider = p.id
+        S.provName = p.nom
+        S.provLogo = p.logoId
+        S.provDoc = typeof p.doc === 'string' ? p.doc : ''
+        go('key')
+      }
       const screens = {
         welcome: () => {
           const s = step()
@@ -37016,7 +37117,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
             g.appendChild(radioRow(T('m.k'), T('m.kd'), kybernos, () => { S.pick = 'k'; render(false) },
               { ico: 'account', tag: T('m.rec'), status: S.ready === 'cloud' ? connectedLine() : undefined }))
           }
-          g.appendChild(radioRow(T('m.o'), T('m.od'), !kybernos, () => { S.pick = 'o'; render(false) }, { ico: 'key' }))
+          g.appendChild(radioRow(T('m.o'), T(S.phone ? 'm.od.phone' : 'm.od'), !kybernos, () => { S.pick = 'o'; render(false) }, { ico: 'key' }))
           s.appendChild(g)
           // The two other ways stay one quiet line away: nothing that worked before is taken out.
           const others = h('p', 'kb-ob-others')
@@ -37030,7 +37131,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
           const a = h('div', 'kb-ob-actions kb-ob-actions-row')
           const settled = S.ready !== null || S.model !== null
           if (S.standalone) a.appendChild(button('kb-ob-ghost', T('close'), () => finish()))
-          else a.appendChild(button('kb-ob-ghost', settled ? T('m.keep') : T('m.later'), () => decideLater()))
+          else a.appendChild(button('kb-ob-ghost', settled ? T('m.keep') : T(S.phone ? 'skip' : 'm.later'), () => decideLater()))
           a.appendChild(primary(T('cont'), () => continueModel()))
           s.appendChild(a)
           return s
@@ -37214,11 +37315,29 @@ html.wv2-actif [data-composer-seat]{display:none !important}
           s.appendChild(h('p', 'kb-ob-sub', T('key.s')))
           const g = h('div', 'kb-ob-chips kb-ob-chips-tight')
           g.setAttribute('role', 'radiogroup')
-          for (const p of KB_OB_PROVIDERS) g.appendChild(chip(p.name !== null ? p.name : T('prov.other'), S.provider === p.id, () => { S.provider = p.id; S.keyMsg = null; render(false) }))
+          const listed = KB_OB_PROVIDERS.filter((p) => p.id !== 'other')
+          // a provider picked among « Other providers » stays on screen as a chip of its own
+          const extra = S.provider !== 'other' && !listed.some((p) => p.id === S.provider) ? [{ id: S.provider, name: provName(S.provider), logo: S.provLogo }] : []
+          for (const p of listed.concat(extra)) g.appendChild(provChip(p.name, p.logo, S.provider === p.id, () => { S.provider = p.id; S.keyMsg = null; render(false) }))
+          g.appendChild(provChip(T('prov.more'), null, S.provider === 'other', () => { openProviders() }))
           s.appendChild(g)
-          const prov = KB_OB_PROVIDERS.find((p) => p.id === S.provider) || KB_OB_PROVIDERS[0]
+          const prov = KB_OB_PROVIDERS.find((p) => p.id === S.provider) || null
           const list = h('ol', 'kb-ob-guide')
-          if (prov.host !== null) {
+          if (prov === null) {
+            // a provider of the catalogue: its console is not known here, its documentation page is
+            list.appendChild(h('li', null, T('key.g.any', { name: provName(S.provider) })))
+            const docUrl = webUrl(S.provDoc)
+            if (docUrl !== null) {
+              const li = h('li')
+              const da = h('a', 'kb-ob-link', T('key.g.doc', { name: provName(S.provider) }))
+              da.href = docUrl
+              da.target = '_blank'
+              da.rel = 'noopener noreferrer'
+              li.appendChild(da)
+              list.appendChild(li)
+            }
+            list.appendChild(h('li', null, T('key.g3')))
+          } else if (prov.host !== null) {
             const li = h('li')
             const a = h('a', 'kb-ob-link', prov.host + prov.path)
             a.href = 'https://' + prov.host + prov.path
@@ -37274,7 +37393,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
               st.appendChild(h('span', null, T('key.err.' + S.keyMsg, { name: name })))
               s.appendChild(st)
             }
-            s.appendChild(note(T('key.note')))
+            s.appendChild(note(T(S.phone ? 'key.note.phone' : 'key.note')))
             const save = primary(S.keyMsg === 'unreach' ? T('key.again') : T('key.save'), () => { submitKey() })
             save.disabled = S.keyMsg === 'checking' || kbObKeyShape(S.keyDraft) === null
             a.appendChild(save)
@@ -37284,6 +37403,51 @@ html.wv2-actif [data-composer-seat]{display:none !important}
             a.appendChild(primary(T('key.open'), () => { S.model = 'key'; finish(['kybernos-models', 'models']) }))
           }
           if (S.hasCloud && S.keyMsg !== 'checking') a.appendChild(button('kb-ob-ghost', T('key.nokey'), () => { S.keyDraft = ''; startCloud() }))
+          s.appendChild(a)
+          return s
+        },
+        providers: () => {
+          const s = step()
+          s.appendChild(eyebrow('providers'))
+          s.appendChild(h('h1', null, T('prov.more')))
+          const input = h('input', 'kb-ob-field kb-ob-psearch')
+          input.id = 'kb-ob-psearch'
+          input.type = 'search'
+          input.value = S.provQuery
+          input.placeholder = T('prov.search')
+          input.setAttribute('aria-label', T('prov.search'))
+          input.setAttribute('autocomplete', 'off')
+          input.setAttribute('autocapitalize', 'off')
+          input.setAttribute('spellcheck', 'false')
+          const box = h('div', 'kb-ob-plist')
+          // Only the list is rebuilt while typing, so the field keeps its focus (and the phone its keyboard).
+          const fill = () => {
+            box.textContent = ''
+            const list = S.provList !== null ? S.provList.providers : []
+            const secs = kbObSections(list, S.provList !== null ? S.provList.popular : [], S.provQuery)
+            const titleOf = (sec) => (sec.id === 'free' ? T('prov.free') : (sec.id === 'pop' ? T('prov.pop') : (sec.id === 'all' ? T('prov.all', { n: sec.items.length }) : (sec.items.length === 1 ? T('prov.res1') : T('prov.resN', { n: sec.items.length })))))
+            for (const sec of secs) {
+              if (sec.id === 'res' && sec.items.length === 0) { box.appendChild(h('p', 'kb-ob-sub', T('prov.none'))); continue }
+              box.appendChild(h('h3', 'kb-ob-sec', titleOf(sec)))
+              for (const p of sec.items) box.appendChild(provRow(p))
+            }
+          }
+          input.addEventListener('input', () => { S.provQuery = input.value; fill() })
+          s.appendChild(input)
+          s.appendChild(box)
+          fill()
+          const a = actions()
+          a.appendChild(button('kb-ob-ghost', T('prov.custom'), () => { S.provider = 'other'; S.keyMsg = null; go('key') }))
+          s.appendChild(a)
+          return s
+        },
+        nomodel: () => {
+          const s = step()
+          s.appendChild(h('h1', null, T('nomodel.t')))
+          s.appendChild(h('p', 'kb-ob-sub', T('nomodel.s')))
+          const a = actions()
+          a.appendChild(primary(T('nomodel.acct'), () => { S.pick = S.hasCloud ? 'k' : 'o'; continueModel() }))
+          a.appendChild(button('kb-ob-ghost', T('nomodel.key'), () => go('key')))
           s.appendChild(a)
           return s
         },
@@ -37479,7 +37643,8 @@ html.wv2-actif [data-composer-seat]{display:none !important}
           lw.appendChild(menu)
         }
         right.appendChild(lw)
-        if (S.screen !== 'done') right.appendChild(button('kb-ob-skip', S.standalone ? T('close') : T('skip'), () => finish()))
+        // On the phone « Skip » never opens a chat that has no model: it says what a model is for (and is not offered on that page itself).
+        if (S.screen !== 'done' && !(S.phone && S.screen === 'nomodel')) right.appendChild(button('kb-ob-skip', S.standalone ? T('close') : T('skip'), () => { if (S.phone) decideLater(); else finish() }))
         top.appendChild(right)
         root.appendChild(top)
 
@@ -37532,7 +37697,8 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         S.accountModels = typeof init.accountModels === 'number' ? init.accountModels : null
         S.memoryId = typeof init.memoryId === 'string' ? init.memoryId : null
         S.pick = init.hasCloud === true ? 'k' : 'o'
-        S.screen = S.kitOnly ? 'kit' : (S.standalone ? 'model' : 'welcome')
+        S.phone = !S.standalone && phoneApp()
+        S.screen = S.kitOnly ? 'kit' : (S.standalone || S.phone ? 'model' : 'welcome')
         root = h('div', 'kb-ob' + (init.dark === true ? ' kb-ob-dark' : ''))
         root.setAttribute('role', 'dialog')
         root.setAttribute('aria-modal', 'true')
@@ -37875,6 +38041,18 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       '.kb-ob-chip{padding:9px 15px;border-radius:99px;border:1px solid var(--line);background:var(--bg2);color:var(--ink);font-size:14px;cursor:pointer;transition:border-color .15s}',
       '.kb-ob-chip:hover{border-color:var(--ink3)}',
       '.kb-ob-chip.on{background:var(--ink);border-color:var(--ink);color:var(--bg)}',
+      '.kb-ob-chip-lg{display:inline-flex;align-items:center;gap:8px;padding:6px 14px 6px 7px}',
+      '.kb-ob-lgt{display:inline-grid;place-items:center;flex:none;width:26px;height:26px;border-radius:50%;background:rgba(127,127,127,.18)}',
+      '.kb-ob-lg{display:block;width:15px;height:15px;background:currentColor;-webkit-mask:center/contain no-repeat;mask:center/contain no-repeat}',
+      '.kb-ob-ini{font-size:12px;font-weight:700;line-height:1}',
+      '.kb-ob-psearch{margin-top:18px}',
+      '.kb-ob-plist{display:flex;flex-direction:column;gap:6px;margin-top:12px}',
+      '.kb-ob-sec{margin:12px 0 2px;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3)}',
+      '.kb-ob-prow{display:flex;align-items:center;gap:12px;width:100%;padding:8px 12px 8px 8px;border-radius:12px;border:1px solid var(--line);background:var(--bg2);color:var(--ink);font-size:15px;font-weight:600;text-align:left;cursor:pointer}',
+      '.kb-ob-prow:hover{border-color:var(--ink3)}',
+      '.kb-ob-prow .kb-ob-lgt{width:34px;height:34px;border-radius:10px}',
+      '.kb-ob-prow .kb-ob-lg{width:20px;height:20px}',
+      '.kb-ob-prn{flex:1;min-width:0;overflow-wrap:anywhere}',
       '.kb-ob-actions{display:flex;flex-direction:column;gap:10px;margin-top:30px}',
       '.kb-ob-ghost{align-self:center;padding:8px 10px}',
       '.kb-ob-btn{height:52px;border-radius:999px;border:1px solid transparent;font-size:15.5px;font-weight:500;cursor:pointer;padding:0 26px}',

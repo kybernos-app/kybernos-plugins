@@ -261,9 +261,12 @@ Both are read from disk, no network call. The generator that built `provider-cat
 
 ## Seam for the first-run wizard
 
-`window.__KB_MODELS__ = { saveKey(provider, key), providers }` (published by `apply`, withdrawn at `dispose`). `saveKey` does
+`window.__KB_MODELS__ = { saveKey(provider, key), saveCredential(ref, key), providers, catalogue() }` (published by `apply`, withdrawn at `dispose`).
+`providers` is the four the wizard shows first; `catalogue()` answers `{ ok, popular: [id…], providers: [{ id, nom, doc, logoId, libre, usable }] }`,
+the catalogue of this page in its order (the wizard's « Other providers » list: `logoId` is the id of `/kybernos-models/logo`, `libre` a free-quota
+provider, `usable` whether a key can be saved here, i.e. the catalogue knows its address and that address is not the account's own). `saveKey` does
 the « Add provider » flow's write (`kbPvCreate`) or, when the route is already declared, only its key (`apiKeyEnv` reference
-set if absent, then `credentials.set`). It answers `{ok:true, slug, existed}` or `{ok:false, reason}`; the reason
+set if absent, then `credentials.set`), for any provider of the catalogue. It answers `{ok:true, slug, existed}` or `{ok:false, reason}`; the reason
 is a code (`unknown_provider`, `empty`, `unavailable`, `readonly`, `write_refused`, `key_not_stored`, `refused`), never a
 provider's text.
 
