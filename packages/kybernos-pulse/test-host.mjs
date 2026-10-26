@@ -4,7 +4,7 @@ import assert from 'node:assert/strict'
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { createPulse, createWatcher, hostOk, mountRoutes, originOk } from './pulse-host.mjs'
+import { createPulse, createWatcher, hostOk, HELPER_FRESH_MS, mountRoutes, originOk } from './pulse-host.mjs'
 import { apply, PASS_MS, readRunFrom, readTasksFile, storeIo } from './index.js'
 
 let pass = 0
@@ -120,6 +120,40 @@ assert.equal((await hit('/kybernos-pulse/state', { headers: { host: 'evil.exampl
 assert.equal((await hit('/kybernos-pulse/state', { headers: { origin: 'http://evil.example' } })).status, 403)
 assert.equal((await hit('/kybernos-pulse/state', { method: 'POST' })).status, 405)
 ok('a foreign Host or Origin is refused on a read, and so is another method')
+
+// ── the Mac menu-bar app says who it is on its reads ─────────────────────────
+console.log('the helper')
+{
+  const map = new Map()
+  let t = 1000000
+  mountRoutes({ register: ({ path, handler }) => { map.set(path, handler); return () => map.delete(path) } }, mem(), () => null, { now: () => t })
+  const read = async (headers = {}) => {
+    const out = { status: 0, body: null }
+    const res = { writeHead (s) { out.status = s }, end (x) { out.body = x ? JSON.parse(x) : null } }
+    await map.get('/kybernos-pulse/state')({ method: 'GET', url: '/kybernos-pulse/state', headers: { host: '127.0.0.1:3080', ...headers }, socket: { localPort: 3080 } }, res)
+    return out
+  }
+  assert.deepEqual((await read()).body.helper, { seen: false, banners: false })
+  ok('with no word from the helper, it is not there')
+  assert.deepEqual((await read({ 'x-kybernos-helper': 'v1; banners=ok' })).body.helper, { seen: true, banners: true })
+  t += HELPER_FRESH_MS - 1
+  assert.deepEqual((await read()).body.helper, { seen: true, banners: true })
+  ok('it is heard, and still counted on a read that does not say it (a browser tab) until HELPER_FRESH_MS has passed')
+  t += 2
+  assert.deepEqual((await read()).body.helper, { seen: false, banners: false })
+  ok('it is not there any more once it stops reading')
+  assert.deepEqual((await read({ 'x-kybernos-helper': 'v1; banners=off' })).body.helper, { seen: true, banners: false })
+  ok('a helper whose notifications are not allowed is there, without banners')
+  t += HELPER_FRESH_MS + 1
+  for (const bad of ['v2; banners=ok', 'v1; banners=yes', ' v1; banners=ok', 'v1; banners=ok; x=1', 'banners=ok', 'x'.repeat(5000)]) {
+    assert.deepEqual((await read({ 'x-kybernos-helper': bad })).body.helper, { seen: false, banners: false }, bad.slice(0, 30))
+  }
+  ok('a header of another shape is ignored')
+  const foreign = await read({ host: 'evil.example:3080', 'x-kybernos-helper': 'v1; banners=ok' })
+  assert.equal(foreign.status, 403)
+  assert.deepEqual((await read()).body.helper, { seen: false, banners: false })
+  ok('a refused read does not count as the helper')
+}
 r = await hit('/kybernos-pulse/settings', { method: 'POST', headers: json, body: { level: 'never' } })
 assert.equal(r.status, 200); assert.equal(r.body.settings.level, 'never')
 assert.equal(pulse.view().settings.level, 'never')
