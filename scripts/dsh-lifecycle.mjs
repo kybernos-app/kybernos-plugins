@@ -16,7 +16,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { execFile, spawn } from 'node:child_process'
-import { existsSync, mkdirSync, readFileSync, writeFileSync, cpSync, readdirSync, rmSync, statSync, symlinkSync, realpathSync, renameSync } from 'node:fs'
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync, cpSync, readdirSync, rmSync, statSync, symlinkSync, realpathSync, renameSync } from 'node:fs'
 import { homedir, tmpdir } from 'node:os'
 import { basename, delimiter, join, dirname, resolve, relative, sep } from 'node:path'
 import { createInterface } from 'node:readline/promises'
@@ -27,6 +27,8 @@ import { FICHIER_ETAT, normaliser as normaliserEtatBoot, entrerSafe, sortirSafe,
 import { fichierVerrou, libererVerrou, lireVerrou, prendreVerrou } from '../packages/kybernos-hub/install-lock.mjs'
 import { pidSurPort, demarrageProcessus, famille, nomSuperviseur, planRelance, instructionsRedemarrage, executer as executerCommande } from './plateforme.mjs'
 import { FAMILLES_INSTALLABLES, contexteService, decisionDemarrageAuto, etat as etatService, installer as installerService, retirer as retirerService, trouverDsh, trouverNode, commandeRedemarrage } from './service-demarrage.mjs'
+import { installerLanceur, installerOutils, planLanceur, retirerLanceur } from './lanceur-bureau.mjs'
+import { depsReelles as depsOuverture, ouvrir as ouvrirKybernos } from './kybernos-open.mjs'
 import {
   etatDoctor, testerCompatibilite, lireCompat, comparerVersions, versionDuGlobal, versionDuPlugin,
   photographier, restaurerPhoto, journaliser, lireJournal, alignerPins, alignerLiens, activesResolues, desactivesAEcrire,
@@ -1055,8 +1057,10 @@ const serveurRepond = async (port, ms) => {
 const ioService = {
   existe: existsSync,
   lire: (c) => readFileSync(c, 'utf8'),
-  ecrire: (c, contenu) => { mkdirSync(dirname(c), { recursive: true }); writeFileSync(c, contenu) },
-  supprimer: (c) => rmSync(c, { force: true }),
+  ecrire: (c, contenu, mode) => { mkdirSync(dirname(c), { recursive: true }); writeFileSync(c, contenu); if (mode !== undefined) chmodSync(c, mode) },
+  dossier: (c) => mkdirSync(c, { recursive: true }),
+  dossierTemporaire: () => mkdtempSync(join(tmpdir(), 'kb-icone-')),
+  supprimer: (c) => rmSync(c, { recursive: true, force: true }),
   // The unit that was there (often a hand-made one) is kept, never overwritten silently.
   sauvegarder: (c, contenu) => { const dest = join(DSH_HOME, 'kybernos', 'service-sauvegardes', basename(c) + '.avant-' + horodatage().replace(/\D/g, '')); mkdirSync(dirname(dest), { recursive: true }); writeFileSync(dest, contenu); return dest },
   executer: (cmd) => executerCommande(cmd),
@@ -1073,6 +1077,18 @@ const demanderOuiNon = async (texte) => {
   const rl = createInterface({ input: process.stdin, output: process.stdout })
   try { return ['', 'y', 'yes', 'o', 'oui'].includes((await rl.question(texte)).trim().toLowerCase()) } finally { rl.close() }
 }
+
+/** The icon people click: the small programs it runs are copied to a stable folder first (the archive folder changes with every update). */
+const contexteDuLanceur = (ctx) => ({ home: homedir(), node: ctx.node, ouvrir: join(DSH_HOME, 'kybernos', 'bin', 'kybernos-open.mjs'), port: portGui, path: ctx.path })
+async function poserLanceur (ctx, { dry = false } = {}) {
+  const fam = famille()
+  const cl = contexteDuLanceur(ctx)
+  if (!dry) installerOutils({ source: ICI, destination: join(DSH_HOME, 'kybernos', 'bin'), io: ioService })
+  const r = await installerLanceur({ fam, ctx: cl, io: ioService, dry })
+  if (r.ok) { console.log('      · the Kybernos icon: ' + r.chemin); for (const l of r.etapes.slice(1)) console.log('      · ' + l) } else console.log('      · no icon added: ' + (r.message ?? r.raison))
+  return r
+}
+const lanceurPresent = (ctx) => { const plan = planLanceur(famille(), contexteDuLanceur(ctx)); return plan !== null && existsSync(plan.marque) }
 
 /** Installs (or refreshes) the unit when the person said yes, says what it did. Never fails the installation it is part of. */
 async function proposerDemarrageAuto () {
@@ -1092,7 +1108,7 @@ async function proposerDemarrageAuto () {
   if (ctx.dsh === '') { console.log('\n  ⚠ start at login: `dsh` is not on the PATH, nothing was set up.'); return { actif: e.charge } }
   if (dshHomePersonnalise()) { console.log('\n  ⚠ start at login is not set up: DSH_HOME is customised and the unit would not carry it.'); return { actif: e.charge } }
   if (decision === 'demander') {
-    const oui = await demanderOuiNon('\n  Start Kybernos by itself when you log in, and bring it back if it stops? [Y/n] ')
+    const oui = await demanderOuiNon('\n  Start Kybernos by itself when you log in, bring it back if it stops, and put a Kybernos icon in ' + (fam === 'mac' ? 'your Applications folder' : 'your applications menu') + '? [Y/n] ')
     if (!oui) { console.log('  OK, not set up. You can turn it on later: node scripts/dsh-lifecycle.mjs service install'); return { actif: false } }
   }
   const pid = (await pidSurPort(portGui)).valeur
@@ -1101,7 +1117,9 @@ async function proposerDemarrageAuto () {
   console.log('\n  ✓ Kybernos starts by itself at login and comes back if it stops (' + nomSuperviseur(fam) + ').')
   for (const l of r.etapes) console.log('      · ' + l)
   if (r.sauvegarde) console.log('      · the unit that was there is kept in ' + r.sauvegarde)
-  return { actif: true, demarre: r.demarre === true }
+  // The icon: added when the person said yes; an existing one is only refreshed (a person who had the unit before this version never gets an icon behind their back).
+  const lanceur = decision === 'deja' && !lanceurPresent(ctx) ? null : await poserLanceur(ctx)
+  return { actif: true, demarre: r.demarre === true, lanceur: lanceur !== null && lanceur.ok ? lanceur.chemin : null }
 }
 
 // ── SERVICE: start at login, by hand (what the installer offers, as a command) ──
@@ -1112,7 +1130,7 @@ if (ordre === 'service') {
   if (!FAMILLES_INSTALLABLES.includes(fam)) quitter(1, '🔴 starting at login is written for macOS and Linux only (this system: ' + fam + '): the Windows task was never run, so nothing is written.')
   if (sous === 'status') {
     const e = await etatService({ fam, ctx, io: ioService })
-    quitter(0, '  Start at login (' + nomSuperviseur(fam) + '): ' + (e.charge ? '✓ on, DSH runs under it' : (e.present ? (e.desactive ? '✗ the unit is there but launchd has it switched off, so it never starts (`service install` switches it on)' : '○ the unit is there but not running') : '○ off')) + '\n  Unit: ' + e.chemin + (e.present && !e.identique ? '\n  ⚠ the file differs from the one this version writes (hand-made, or an older version): `service install` replaces it and keeps a copy.' : ''))
+    quitter(0, '  Start at login (' + nomSuperviseur(fam) + '): ' + (e.charge ? '✓ on, DSH runs under it' : (e.present ? (e.desactive ? '✗ the unit is there but launchd has it switched off, so it never starts (`service install` switches it on)' : '○ the unit is there but not running') : '○ off')) + '\n  Unit: ' + e.chemin + '\n  Kybernos icon: ' + (lanceurPresent(ctx) ? planLanceur(fam, contexteDuLanceur(ctx)).chemin : 'none') + (e.present && !e.identique ? '\n  ⚠ the file differs from the one this version writes (hand-made, or an older version): `service install` replaces it and keeps a copy.' : ''))
   }
   if (sous === 'install') {
     if (ctx.dsh === '') quitter(1, '🔴 `dsh` is not on the PATH: run ./kybernos-install first.')
@@ -1123,11 +1141,13 @@ if (ordre === 'service') {
     for (const l of r.etapes ?? []) console.log('  · ' + l)
     if (!r.ok) quitter(1, '🔴 ' + (r.message ?? r.raison))
     if (r.sauvegarde) console.log('  · the unit that was there is kept in ' + r.sauvegarde)
+    await poserLanceur(ctx, { dry: opts.dry })
     quitter(0, opts.dry ? '\n  (dry-run: nothing was changed)' : '\n🟢 Kybernos starts by itself at login' + (r.demarre ? ' and is running now.' : '.'))
   }
   if (sous === 'uninstall') {
     const r = await retirerService({ fam, ctx, io: ioService })
     for (const l of r.etapes) console.log('  · ' + l)
+    for (const l of retirerLanceur({ fam, ctx: contexteDuLanceur(ctx), io: ioService }).etapes) console.log('  · ' + l)
     quitter(0, '\n🟢 start at login removed.' + (r.arrete ? ' The DSH it ran was stopped: start it again with `dsh web --port ' + portGui + '`.' : ''))
   }
   quitter(64, 'Usage: dsh-lifecycle.mjs service status|install|uninstall [--dry] [--port N]')
@@ -1307,6 +1327,7 @@ async function faireInstall () {
     quitter(1, '\n🔴 the installation failed — your machine is back to how it was. Nothing changed.')
   }
   await journalOp({ date, quoi: 'plugin', de: '—', vers: versions.plugin, resultat: 'reussi', raison: 'installation', photo: photo.dossier })
+  const dejaUnServeur = (await pidSurPort(portGui)).valeur !== null
   const auto = await proposerDemarrageAuto()
   if (opts.relancer) {
     if (!opts.force) quitter(1, '\n  --restart shuts down the DSH that is running. Add --force if that is what you want.')
@@ -1319,8 +1340,19 @@ async function faireInstall () {
     quitter(0, '\n🟢 installation succeeded, DSH restarted (pid ' + suite.pid + '). Reload the DSH page to see Kybernos.\n' +
       '   (page closed? `dsh web --port ' + portGui + '` opens your browser already signed in.)')
   }
+  // A person at a terminal on a fresh install: no command left for them to type. Kybernos is started (if the unit did not) and opened in their browser.
+  // Not when a server already ran (its version is unknown: the usual restart advice below applies), nor from a development checkout, a script or an agent.
+  if (!dejaUnServeur && FAMILLES_INSTALLABLES.includes(famille()) && process.stdin.isTTY && process.stdout.isTTY && !existsSync(join(REPO, '.git'))) {
+    let ouvert = { ok: false }
+    try { ouvert = await ouvrirKybernos(depsOuverture({ port: portGui, delaiS: 90 })) } catch (e) { ouvert = { ok: false } }
+    if (ouvert.ok) {
+      quitter(0, '\n🟢 Kybernos is installed and open in your browser.' +
+        (auto.lanceur ? '\n  Next time, click the Kybernos icon (' + auto.lanceur + ').' : '') +
+        (auto.actif ? '' : '\n  It will not start by itself after a restart of your computer. To turn that on: node scripts/dsh-lifecycle.mjs service install'))
+    }
+  }
   if (auto.demarre) {
-    quitter(0, '\n🟢 installation succeeded, Kybernos is running with it.\n  Open it: node ' + join(REPO, 'scripts', 'kybernos-open.mjs'))
+    quitter(0, '\n🟢 installation succeeded, Kybernos is running with it.\n  Open it: ' + (auto.lanceur ? 'click the Kybernos icon (' + auto.lanceur + ')' : 'node ' + join(DSH_HOME, 'kybernos', 'bin', 'kybernos-open.mjs')))
   }
   if (auto.actif) {
     quitter(0, '\n🟢 installation succeeded.\n  DSH runs under ' + nomSuperviseur(famille()) + ' and still serves the old version: restart it with `./kybernos-install --restart --force`, then open it: node ' + join(REPO, 'scripts', 'kybernos-open.mjs'))
