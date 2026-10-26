@@ -53,6 +53,12 @@ export const trouverDsh = ({ dirs, home, existe, nom = 'dsh' }) => {
 }
 
 /**
+ * The `node` to run DSH with, AS FOUND on the PATH (Homebrew's stable `/opt/homebrew/bin/node` link), not `process.execPath`, which is the versioned
+ * file (`.../Cellar/node/26.7.0/bin/node`): after `brew upgrade node` that folder is gone and the unit would never start again.
+ */
+export const trouverNode = ({ dirs, home, existe, execPath }) => trouverDsh({ dirs, home, existe, nom: 'node' }) ?? execPath
+
+/**
  * Who decides whether the question is asked. Pure.
  *   `oui`/`non`  : the person's flag wins.
  *   `deja`       : a unit is already there (they said yes earlier): refresh it, ask nothing.

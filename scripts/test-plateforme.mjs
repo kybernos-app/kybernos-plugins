@@ -7,8 +7,7 @@
 // disent leur provenance ; le test ne les fait pas passer pour des mesures.
 //
 // Usage : node scripts/test-plateforme.mjs   (0 = tout vert)
-import { existsSync as existSync, readFileSync as readFichier } from 'node:fs'
-import { homedir } from 'node:os'
+import { readFileSync as readFichier } from 'node:fs'
 import {
   famille, PROVENANCE,
   parsePidLsof, parsePidSs, parsePidNetstat,
@@ -249,28 +248,15 @@ verifie('D7 : aucun contenu d\'unité ne contient sudo',
 verifie('D7 : Windows ne demande pas SYSTEM (qui exigerait des droits)',
   win.contenu.indexOf('SYSTEM') < 0)
 
-// Le cas MESURÉ : reproduire le plist réellement chargé sur cette machine.
-// The plist that is really loaded, when this machine has one (the home folder of whoever runs the test).
-const MAISON = homedir()
-const plistReel = MAISON + '/Library/LaunchAgents/com.kybernos.dsh-web.plist'
-if (existSync(plistReel)) {
-  const planReel = planSupervision('mac', {
-    home: MAISON, node: '/opt/homebrew/bin/node', dsh: '/opt/homebrew/bin/dsh',
-    port: 3080, travail: MAISON + '/dyad-apps/dsh-kybernos', journaux: MAISON + '/.dsh/logs', uid: 501,
-  })
-  const reel = readFichier(plistReel, 'utf8')
-  if (planReel.contenu !== reel) {
-    const a = planReel.contenu.split('\n'); const b = reel.split('\n')
-    for (let i = 0; i < Math.max(a.length, b.length); i += 1) {
-      if (a[i] !== b[i]) { console.log('    DIFF ligne ' + (i + 1) + ': ' + JSON.stringify(a[i]) + ' ≠ ' + JSON.stringify(b[i])); break }
-    }
-    console.log('    longueurs : ' + planReel.contenu.length + ' vs ' + reel.length)
-  }
-  verifie('MESURÉ : le plist engendré est le plist chargé, octet pour octet',
-    planReel.contenu === reel)
-} else {
-  console.log('  · plist réel absent de cette machine : la comparaison octet pour octet est SAUTÉE (pas verte)')
-}
+// Le cas MESURÉ : le plist qui était réellement chargé le 2026-09-23 (celui que l'on écrivait à la main), gardé en fixture avec des chemins
+// génériques. Avant, ce test lisait le plist de la machine qui le lançait : il passait chez une seule personne et cessait de passer
+// le jour où l'installateur écrivait le sien (2026-10-26). La fixture le rend le même partout.
+const fixture = readFichier(new URL('./fixtures/plist-loaded-2026-09-23.xml', import.meta.url), 'utf8')
+const planFixture = planSupervision('mac', {
+  home: '/Users/me', node: '/opt/homebrew/bin/node', dsh: '/opt/homebrew/bin/dsh',
+  port: 3080, travail: '/Users/me/dyad-apps/dsh-kybernos', journaux: '/Users/me/.dsh/logs', uid: 501,
+})
+verifie('MESURÉ : le plist engendré est le plist chargé le 2026-09-23, octet pour octet', planFixture.contenu === fixture)
 
 // ── verdict ─────────────────────────────────────────────────────────────────
 console.log('COUCHE PORTABLE — ' + ok + ' assertions, ' + echecs.length + ' échec(s)')
