@@ -21,6 +21,7 @@ import { swapBundles } from './lib-bundle-swap.mjs'
 import { dshHome } from './dsh-home.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
+const PICK_COUNT = JSON.parse(readFileSync(join(here, '..', 'packages', 'kybernos-skills', 'featured-picks.json'), 'utf8')).items.length
 const repo = resolve(here, '..')
 const shotsDir = process.argv.includes('--shots') ? process.argv[process.argv.indexOf('--shots') + 1] : null
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
@@ -121,7 +122,7 @@ try {
 
   check('Featured is the first segment and the selected one', await js("(() => { const b = document.querySelector('[data-kb=seg-featured]'); return !!b && b.getAttribute('aria-selected') === 'true' && b === document.querySelector('.kbsub-group [role=tab]') })()"))
   const n = await js("document.querySelectorAll('[data-kb=pick-card]').length")
-  check('the 24 picks are drawn as cards', n === 24, n)
+  check('every pick of the file is drawn as a card', n === PICK_COUNT, n)
   check('the shared header is there (title, bar, primary action)', await js("!!document.querySelector('.kbs-root .kb6-headrow .kb6-title') && !!document.querySelector('.kbs-root .kb6-toolbar') && !!document.querySelector('.kbs-root .kb8-primary')"))
   await shot('featured-rest')
 
@@ -277,7 +278,7 @@ try {
   check('a category chip keeps its three picks', (await js("document.querySelectorAll('[data-kb=pick-card]').length")) === 3)
   await js("(() => { document.querySelectorAll('.kbsf-chips .kb8-chip')[0].click(); return true })()")
   await sleep(200)
-  check('« All » brings the 24 back', (await js("document.querySelectorAll('[data-kb=pick-card]').length")) === 24)
+  check('« All » brings every pick back', (await js("document.querySelectorAll('[data-kb=pick-card]').length")) === PICK_COUNT)
 
   // tint / plain
   const tintBg = await js("getComputedStyle(document.querySelector('.kbsf-pic')).backgroundImage")
