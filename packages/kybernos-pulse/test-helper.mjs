@@ -6,13 +6,17 @@
 // When the app was built on this machine (helper/build.sh), the real binary is also run on a sample state.
 import assert from 'node:assert/strict'
 import { existsSync, readFileSync } from 'node:fs'
-import { execFileSync } from 'node:child_process'
+import { execFile, execFileSync } from 'node:child_process'
+import http from 'node:http'
+import { promisify } from 'node:util'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { tmpdir } from 'node:os'
 import { writeFileSync } from 'node:fs'
 import { cleanItem, defaults, inboxPut, publicView } from './pulse-core.mjs'
 import { HELPER_HEADER_RE } from './pulse-host.mjs'
+import { readPanelPage } from './index.js'
+import { PANEL_CSP } from './panel-page.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const swift = (f) => readFileSync(join(here, 'helper', 'Sources', 'KybernosPulse', f), 'utf8')
@@ -70,7 +74,10 @@ ok('the item kinds the app words are the ones the plugin emits', ['done', 'faile
 console.log('the header and the verbs')
 const main = swift('main.swift')
 ok('it announces itself with the header the route listens for', HELPER_HEADER_RE.test('v1; banners=ok') && HELPER_HEADER_RE.test('v1; banners=off') && main.includes('"X-Kybernos-Helper"') && main.includes('v1; banners=\\(bannersAllowed ? "ok" : "off")'))
-ok('it only reads: no write verb, no body, no cookie', !/httpMethod|httpBody|uploadTask|"POST"|"PUT"|"DELETE"|Cookie|cookie/.test(main + swift('State.swift')))
+ok('the app itself only reads: no write verb, no body, no cookie (the writes are done by the page, below)', !/httpMethod|httpBody|uploadTask|"POST"|"PUT"|"DELETE"|Cookie|cookie/.test(main + swift('State.swift')))
+ok('the web view only ever shows this app\'s own address, so the token never meets another page', main.includes('decidePolicyFor') && main.includes('url.host == base.host') && main.includes('url.port == base.port') && main.includes('createWebViewWith') && main.includes('.nonPersistent()'))
+ok('the page can ask the app for two things only: open Kybernos, close the panel', /case "open", "settings":/.test(main) && /case "close":/.test(main) && /default: break/.test(main) && main.includes('message.frameInfo.isMainFrame'))
+ok('the token is read from the file the host writes, with the shape the host checks', main.includes('/kybernos/pulse/helper.token') && main.includes('^[0-9a-f]{64}$'))
 ok('it talks to the local machine only', /127\.0\.0\.1/.test(main) && !/https?:\/\/(?!127\.0\.0\.1)/.test(main))
 
 // ── the K ────────────────────────────────────────────────────────────────────
@@ -106,6 +113,20 @@ if (process.platform === 'darwin' && existsSync(exe)) {
   ok('on a real answer it counts, words and lists as the sentences say', out.headline === '1 thing needs you' && out.badge === '2' && out.tone === 'bad' && out.rows.length === 3 && out.rows[0].tone === 'run', JSON.stringify(out).slice(0, 200))
   ok('it says what it cannot reach', out.offline === 'Kybernos is not running')
   ok('and a banner for what is due', out.banners.length === 1 && out.banners[0].title === '“U” failed', JSON.stringify(out.banners))
+  // the panel, in the app's real web view, against a stand-in of the host that serves the real page
+  const page = readPanelPage()
+  const server = http.createServer((req, res) => {
+    if (req.url.startsWith('/kybernos-pulse/panel')) { res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'content-security-policy': PANEL_CSP }); res.end(page); return }
+    if (req.url === '/kybernos-pulse/state') { res.writeHead(200, { 'content-type': 'application/json' }); res.end(JSON.stringify({ ...answer, now: Date.now() })); return }
+    res.writeHead(404).end()
+  })
+  await new Promise((r) => server.listen(0, '127.0.0.1', r))
+  try {
+    const stdout = (await promisify(execFile)(exe, ['--panelcheck', '--port', String(server.address().port), '--lang', 'en'], { encoding: 'utf8', timeout: 30000 })).stdout
+    const seen = JSON.parse(stdout)
+    ok('the web view draws the panel from the page of the plugin: the big sentence, two tabs, the cards', seen.page.hero === '1 thing needs you' && seen.page.tabs === 2 && seen.page.cards >= 1, JSON.stringify(seen.page).slice(0, 200))
+    ok('and an arrow of the page reaches the app as « open »', seen.clicked === true && seen.acts.join() === 'open', JSON.stringify(seen.acts))
+  } catch (e) { ok('the panel check ran in the real web view', false, String(e && e.message ? e.message : e).slice(0, 200)) } finally { server.close() }
 } else console.log('  (not built on this machine: bash packages/kybernos-pulse/helper/build.sh)')
 
 console.log(fail === 0 ? '\nall passed' : '\n' + fail + ' failed')
