@@ -46,9 +46,12 @@ The key is the one DSH holds for DeepInfra (`DEEPINFRA_API_KEY` in its credentia
 | `seo-audit` | tiny inspectors with magnifying glasses and ladders examining a giant web page as if it were a landmark, one climbing a tall ladder to fix a signpost at the top, a golden star placed at the very top of a ranked list of results |
 | `copywriting` | a writer workshop: a giant typewriter with paper rolling out, tiny people editing lines with huge pencils and erasers, a megaphone, a headline being carved like a signboard |
 | `cold-email` | a postal sorting room where paper planes made from letters take off from a big mailbox, a conveyor belt of envelopes, a few recipients catching planes and sending reply arrows back |
+| `gws-gmail-triage` | an overflowing inbox of envelopes being sorted by tiny people into three coloured trays, a calm person at the centre holding a checklist, the pile getting smaller |
 | `task-management` | a big checklist board with tiny people ticking items, moving sticky notes between columns, a calendar with a pin, a clock |
 | `systematic-debugging` | a team tracing a bug: a large insect under a giant microscope, a tangle of cables being untangled, a board of clues linked with red string, a light bulb above |
 | `mcp-builder` | tiny engineers building a connector between two machines, plugging a big cable plug into a socket, toolboxes, blueprints on a table, a bridge of pipes |
+
+`gws-gmail-triage` is no longer a pick (taken out on 2026-10-26 after vetting), but its scene stays in this table: `cover-maker.mjs` uses it as one of its four few-shot examples, and `test-cover-maker.mjs` checks that the table carries it word for word.
 
 ## Rules and open points
 
