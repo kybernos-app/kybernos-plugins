@@ -138,7 +138,7 @@ It is a plain text file and is committed: its diff is the history of what change
   verified at, which is what makes pinning possible; until then a skill verified today can change tomorrow (the weekly pass notices, the user does not wait for it).
 - **No discovery of candidates.** `--candidate` vets one named skill. Feeding the weekly scout's finds through it, and putting a "not vetted" label on the Discover tab, are separate changes.
 - **Four verdicts were checked by hand, not all 21.** The 17 `ok` are unverified except `task-management`, `systematic-debugging` and `cold-email`.
-- **Rule (owner, 2026-10-26): a pick the tool rejects is not shipped.** `grill-me`, `gws-gmail-triage` and `gws-workflow-meeting-prep` were taken out of `featured-picks.json` (24 → 21 picks); `scripts/test-vet-skills.mjs` fails if a shipped pick has no ledger entry or a `reject` verdict. A rejected skill can come back with a waiver written in the ledger. The 4 flagged picks stay; reading them is the maintainer's job.
+- **Rule (owner, 2026-10-26): a pick the tool rejects is not shipped.** `grill-me`, `gws-gmail-triage` and `gws-workflow-meeting-prep` were taken out of `featured-picks.json` (24 → 21 picks); `scripts/test-vet-skills.mjs` fails if a shipped pick has no ledger entry or a `reject` verdict. A rejected skill can come back with a waiver written in the ledger. The 4 picks the code rules flagged (`canvas-design`, `design-taste-frontend`, `firecrawl-deep-research`, `tavily-research`) were read against their texts and stay, each with a waiver and its reason in the ledger. The `xlsx` card no longer promises charts (the text never teaches them).
 
 ## Tests
 
