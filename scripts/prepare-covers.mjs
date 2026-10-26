@@ -28,10 +28,15 @@ const dest = join(repo, 'services', 'skills-index', 'covers')
 if (!checkOnly) mkdirSync(dest, { recursive: true })
 
 let bad = 0
+let pending = 0
 const rows = []
 for (const it of picks.items) {
   const file = join(from, it.id + '.webp')
-  if (!existsSync(file)) { console.log('✗ ' + it.id + '  no file in ' + from); bad += 1; continue }
+  if (!existsSync(file)) {
+    // A pick that does not ship a cover yet (no hash): its card draws a tile, and the host makes a picture on the fly when the person has a key. Not an error.
+    if (typeof it.coverSha256 !== 'string') { console.log('○ ' + it.id.padEnd(30) + '  no cover yet (a tile is drawn)'); pending += 1; continue }
+    console.log('✗ ' + it.id + '  no file in ' + from); bad += 1; continue
+  }
   const buf = readFileSync(file)
   if (buf.length < 12 || buf.toString('latin1', 0, 4) !== 'RIFF' || buf.toString('latin1', 8, 12) !== 'WEBP') { console.log('✗ ' + it.id + '  not a WebP'); bad += 1; continue }
   if (buf.length > MAX) { console.log('✗ ' + it.id + '  ' + buf.length + ' bytes, above the ' + MAX + ' cap'); bad += 1; continue }
@@ -43,4 +48,5 @@ for (const it of picks.items) {
 }
 if (bad > 0) { console.error('\n' + bad + ' cover(s) missing or invalid: nothing was written to the picks file'); process.exit(1) }
 if (writePicks) { writeFileSync(picksPath, JSON.stringify(picks, null, 2) + '\n'); console.log('\nhashes written to ' + picksPath.replace(repo + '/', '')) }
+if (pending > 0) console.log('\n' + pending + ' pick(s) without a cover yet: they are not part of the relay\'s pictures')
 console.log('\n' + rows.length + ' covers, ' + Math.round(rows.reduce((a, r) => a + r[1], 0) / 1024) + ' KB' + (checkOnly ? ' (checked, not copied)' : ' copied to services/skills-index/covers/'))
