@@ -3009,7 +3009,7 @@ const KB_NAV_KEYS = {
   'agent-presets': 'agent presets', voice: 'voice', 'kybernos-slash': 'commands', 'kybernos-ollama': 'ollama local models',
   'kybernos-suite': 'kybernos suite', 'kybernos-tools': 'tools', 'kybernos-workers': 'workers', 'kybernos-call': 'calls', 'kybernos-kaby-customisation': 'kaby',
   // The pages the Suite's bundles add (their section id is the cell's key in every language).
-  'kybernos-usage': 'usage', 'kybernos-automations': 'automations', 'kybernos-skills': 'skills', 'kybernos-skills-learned': 'learned skills', 'kybernos-composio': 'connectors', 'kybernos-free-llms': 'free llms', 'kybernos-mobile': 'phone and channels',
+  'kybernos-usage': 'usage', 'kybernos-pulse': 'widget', 'kybernos-automations': 'automations', 'kybernos-skills': 'skills', 'kybernos-skills-learned': 'learned skills', 'kybernos-composio': 'connectors', 'kybernos-free-llms': 'free llms', 'kybernos-mobile': 'phone and channels',
   'kybernos-computers': 'code sandbox (e2b)',
   // What stays on this computer (custom instructions, models re-import, DSH chats): kybernos-cloud's section.
   'kybernos-local': 'kybernos',
@@ -3105,6 +3105,10 @@ const KB_SS_INDEX = [
   ['ollama local models', '', 'Local engine', '', '', 'moteur ollama local hors ligne offline'],
   ['usage', '', 'Your Kybernos plan', '', '', 'quota limite consommation forfait abonnement jetons facture cuota'],
   ['usage', '', 'Your keys and local models', '', '', 'cout depenses tokens cles consommation'],
+  ['widget', '', 'Floating window', 'Always on top of the other windows. Kybernos must stay open in a tab.', '', 'fenetre flottante toujours au dessus widget lanceur picture in picture'],
+  ['widget', '', 'Tell me when', 'Something needs me, every run, or never.', '', 'prevenir notification quand echec accord automation terminee alerte'],
+  ['widget', '', 'Banners and badge', 'One banner per event. A count on the tab and on the Dock.', '', 'banniere notification badge compteur dock onglet autorisation navigateur'],
+  ['widget', '', 'Quiet automations', 'No banner when they finish.', '', 'silencieuse muette automation ne plus prevenir'],
 
   ['agent presets', '', 'Standard mode', 'Work with code, files, and information.', 'ptc creator minimal', 'mode agent persona preajuste'],
   ['kaby', '', 'Name, portrait and voice', 'Give your assistant a name, a portrait and a voice.', 'avatar face image picture', 'nom portrait voix visage image assistant avatar', '', 'Identity'],
@@ -3204,6 +3208,10 @@ const KB_SS_FR = {
   'ollama local models|Local engine': ['Moteur local', ''],
   'usage|Your Kybernos plan': ['Ton plan Kybernos', ''],
   'usage|Your keys and local models': ['Tes clés et modèles locaux', ''],
+  'widget|Floating window': ['Fenêtre flottante', 'Toujours au-dessus des autres fenêtres. Kybernos doit rester ouvert dans un onglet.'],
+  'widget|Tell me when': ['Prévenir', 'Quand quelque chose m’attend, à chaque run, ou jamais.'],
+  'widget|Banners and badge': ['Bannières et badge', 'Une bannière par événement. Un nombre sur l’onglet et sur le Dock.'],
+  'widget|Quiet automations': ['Automations silencieuses', 'Sans bannière quand elles finissent.'],
   'kaby|Name, portrait and voice': ['Nom, portrait et voix', 'Donne à ton assistant un nom, un portrait et une voix.', 'Identité'],
   'workers|Check all': ['Tout vérifier', 'Les workers sont les assistants de code installés sur ton ordinateur.'],
   'automations|Pause all automations': ['Mettre toutes les automatisations en pause', 'Rien ne se déclenche tant que c’est activé.'],
@@ -33659,7 +33667,7 @@ body:not([data-ds-dark-theme]) [data-kbld-level]{--kbld-t:color-mix(in srgb,var(
         { id: 'memory', titre: kbt('settings.group.memory'), pliable: true, icone: 'memory & lessons', mots: ['memory & lessons', 'learned skills', 'kybernos', 'atlas'] },
         { id: 'voice', titre: kbt('settings.group.voice'), pliable: true, icone: 'voice', mots: ['voix', 'voice', 'calls', 'appels'] },
         { id: 'look', titre: kbt('settings.group.look'), pliable: true, icone: 'appearance', mots: ['theme', 'langue', 'language'] },
-        { id: 'devices', titre: kbt('settings.group.devices'), pliable: true, icone: 'servers', mots: ['serveurs', 'servers', 'code sandbox (e2b)', 'phone and channels'] },
+        { id: 'devices', titre: kbt('settings.group.devices'), pliable: true, icone: 'servers', mots: ['serveurs', 'servers', 'code sandbox (e2b)', 'phone and channels', 'widget'] },
         { id: 'system', titre: kbt('settings.group.system'), pliable: true, icone: 'kybernos suite', mots: ['kybernos suite', 'plugins', 'listing', 'built-in plugins', 'models', 'plugins kybernos', 'kybernos plugins', 'about', 'a propos'] }
       ]
       // The open group is remembered under one key of its own (the shared fold store keeps booleans, an accordion needs a name).
@@ -33726,6 +33734,7 @@ body:not([data-ds-dark-theme]) [data-kbld-level]{--kbld-t:color-mix(in srgb,var(
         'skills': '<path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" ' + trait + '/><path d="M20 3v4M22 5h-4M4 17v2M5 18H3" ' + trait + '/>',
         'connectors': '<path d="M12 22v-5M9 8V2M15 8V2" ' + trait + '/><path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8z" ' + trait + '/>',
         'code sandbox (e2b)': '<path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z" ' + trait + '/>',
+        'widget': '<path d="M6 16v-5a6 6 0 1 1 12 0v5l1.5 2h-15z" ' + trait + '/><path d="M10 20.5a2 2 0 0 0 4 0" ' + trait + '/>',
         'free llms': '<path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2z" ' + trait + '/><path d="M13 5v2M13 11v2M13 17v2" ' + trait + '/>',
         'phone and channels': '<rect x="5" y="2" width="14" height="20" rx="2" ry="2" ' + trait + '/><path d="M12 18h.01" ' + trait + '/>',
         'calls': '<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z" ' + trait + '/>',
