@@ -9,7 +9,7 @@ It is part of the **socle** (`socle: true` in `packages/kybernos-hub/catalog.jso
 
 - The **Skills** tab of the Kybernos *Resources* page. The bundle fills the slot `main.kybernos-skills`, which
   `@local/kybernos` (core) declares and mounts; with this bundle off, the core falls back to its own skills page.
-- **Featured** (the landing tab): the 21 picks Kybernos proposes, as cards with a cover, the title, a one-line outcome, the creator and the
+- **Featured** (the landing tab): the 24 picks Kybernos proposes, as cards with a cover, the title, a one-line outcome, the creator and the
   install count on the right of the title, the security verdict of the five skills.sh providers, and what the skill needs (a key, a
   sign-in). *Install* and *Details* appear on hover and on focus (always on touch); *Install* opens the usual confirmation and the page
   stays on Featured; *Use* copies `/name`. Categories, search and order come from the shared bar, which also switches **cards or list** (the list is one
@@ -100,7 +100,7 @@ All under `/kybernos-skills/`, JSON; refusals come back as HTTP 200 `{ok:false, 
   a pick without its file draws a tile unless the host can fetch it: a pick ships the SHA-256 of its cover, and the cover route asks the relay
   for `<relay>/covers/<id>.webp` once (never more often than every ten minutes after a failure), keeps the file only if its bytes are a
   WebP of the shipped hash, and otherwise leaves the tile. `node scripts/prepare-covers.mjs --write-picks` records the hashes.
-- `featured-picks.json` (shipped with the package): the 21 picks — id, source repository, category, title / outcome / example in English
+- `featured-picks.json` (shipped with the package): the 24 picks — id, source repository, category, title / outcome / example in English
   and French, `needs`, install count and audit verdicts read from skills.sh on `asOf`. A pick is only listed if no provider's audit is in
   failure and if the host's own install route installs it (`test-picks.mjs` guards the first; the second was checked by installing every one of them).
   Whether a pick is *worth* installing (a real body, no hand-over to a skill the install does not bring) is checked by a maintainer tool outside the
@@ -132,7 +132,7 @@ All under `/kybernos-skills/`, JSON; refusals come back as HTTP 200 `{ok:false, 
 
 `node packages/kybernos-skills/test-skill-check.mjs` covers the check Discover shows before an install (`skill-rules.mjs`, the rules it shares with `scripts/vet-skills.mjs`).
 
-`node packages/kybernos-skills/test-picks.mjs` covers the Featured picks: the reader (what it keeps and drops), the shipped file (21 valid picks,
+`node packages/kybernos-skills/test-picks.mjs` covers the Featured picks: the reader (what it keeps and drops), the shipped file (24 valid picks,
 both languages, no audit in failure), the `picks` route with its cover URLs, and the card on the screen (source level).
 
 `node packages/kybernos-skills/test-write-guard.mjs` covers the signed-session rule on every POST route (table-driven, on a throw-away home with the network replaced by a counter).
