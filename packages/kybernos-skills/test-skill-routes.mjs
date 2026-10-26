@@ -186,12 +186,19 @@ try {
     { path: 'skills/engineering/tdd/SKILL.md', type: 'blob' },
     { path: 'skills/engineering/tdd', type: 'tree' },
     { path: 'skills/../evil/grill-me/SKILL.md', type: 'blob' },
-    { path: 'skills/we ird?/grill-me/SKILL.md', type: 'blob' }
+    { path: 'skills/we ird?/grill-me/SKILL.md', type: 'blob' },
+    { path: 'skills/productivity/hollow-one/SKILL.md', type: 'blob' },
+    { path: 'skills/productivity/grilling/SKILL.md', type: 'blob' },
+    { path: 'skills/productivity/reads-next-door/SKILL.md', type: 'blob' }
   ] }
   const files = {
     'skills/productivity/grill-me/SKILL.md': '---\nname: grill-me\ndescription: Interview me relentlessly about a plan.\n---\n\n# Grill me\n' + 'x'.repeat(7000),
     '.claude/skills/grill-me/SKILL.md': '---\nname: grill-me\ndescription: the hidden copy\n---\n',
-    'skills/engineering/tdd/SKILL.md': '---\nname: some-other-name\ndescription: x\n---\n'
+    'skills/engineering/tdd/SKILL.md': '---\nname: some-other-name\ndescription: x\n---\n',
+    // The real grill-me of 2026-10-26: a body that only calls another skill, which sits next door and is not installed with it.
+    'skills/productivity/hollow-one/SKILL.md': '---\nname: hollow-one\ndescription: A relentless interview.\ndisable-model-invocation: true\n---\n\nCall the Skill tool with "grilling".\n',
+    'skills/productivity/grilling/SKILL.md': '---\nname: grilling\ndescription: The interview.\n---\n\n' + 'Ask one question at a time. '.repeat(40),
+    'skills/productivity/reads-next-door/SKILL.md': '---\nname: reads-next-door\ndescription: Works from a neighbour.\n---\n\n> **PREREQUISITE:** read ../grilling/SKILL.md first.\n\n' + 'Then do the whole job step by step. '.repeat(30)
   }
   const asked = []
   let mode = 'ok'
@@ -223,6 +230,19 @@ try {
     ])
     assert.ok(asked.every((a) => a.headers.authorization === undefined && a.headers.cookie === undefined), 'no credential of any kind')
     ok('preview: the folder is found in the repository\'s own listing, the description and the start of SKILL.md come with it, anonymously')
+
+    assert.deepEqual(p.check, { level: 'ok', findings: [] }, 'a skill with a real body and nothing missing carries no warning')
+    const hollow = await mod.previewSkill('mattpocock/skills', 'hollow-one')
+    assert.equal(hollow.ok, true, JSON.stringify(hollow))
+    assert.equal(hollow.check.level, 'bad')
+    assert.deepEqual(hollow.check.findings.map((f) => [f.rule, f.level]).sort(), [['delegates', 'reject'], ['empty_body', 'reject']])
+    assert.deepEqual(hollow.check.findings.find((f) => f.rule === 'delegates').names, ['grilling'])
+    assert.ok(Number.isInteger(hollow.check.findings.find((f) => f.rule === 'empty_body').chars) && hollow.check.findings.find((f) => f.rule === 'empty_body').chars < 100)
+    assert.equal(JSON.stringify(hollow.check).includes('message'), false, 'the host sends rule codes and facts, never a sentence: the screen words them')
+    const next = await mod.previewSkill('mattpocock/skills', 'reads-next-door')
+    assert.equal(next.check.level, 'bad')
+    assert.deepEqual(next.check.findings.map((f) => [f.rule, f.names]), [['needs_sibling', ['grilling']]])
+    ok('preview: the check says what a person must know before installing: a body that only calls another skill, a required read of a folder the install does not bring')
 
     const n = asked.length
     await mod.previewSkill('mattpocock/skills', 'grill-me')

@@ -32,7 +32,7 @@ It is part of the **socle** (`socle: true` in `packages/kybernos-hub/catalog.jso
   roots only). A copy of the invocation to paste in the composer is on the card.
 - **Discover**: the skills.sh ranking (all-time / trending / hot), search, the first-party "curated" set, security audits of a
   skill, one-click install of GitHub-hosted skills. A click on a row opens its **own panel**: its repository, the folder it sits
-  in, its description and the start of its `SKILL.md` (read from the repository itself), who publishes it, its audits. *Install*
+  in, its description and the start of its `SKILL.md` (read from the repository itself), who publishes it, its audits. When the text would bring nothing usable (a body of a few lines that only calls another skill, a required read of a folder the install does not copy) or deserves a look (a program to install, steering phrases), a **warning** is drawn at the top of the panel and again in the install confirmation, in plain words: never a block, and nothing at all for a skill with nothing to say. *Install*
   asks first: a dialog says, for that skill, which archive is downloaded, where the skill is found, and the exact folder it is
   copied to (a copy, never a link). It reads the index through Kybernos's own relay (`services/skills-index`), so it works for
   every user with no token. The table shows 20 rows a page by default (20 / 50 / 100 / 250 in the bar), with the pager under it only; the
@@ -62,7 +62,7 @@ All under `/kybernos-skills/`, JSON; refusals come back as HTTP 200 `{ok:false, 
 | `POST toggle {root,name,active}` | renames `SKILL.md` ⇄ `SKILL.md.disabled` |
 | `POST create {root?,name,description,whenToUse?,body?,modelInvocable?}` | writes a valid `SKILL.md` |
 | `POST install {source,name,root?}` | downloads a GitHub archive, copies the skill folder (answers with the `folder` it sat in) |
-| `GET preview?source=&name=` | a Discover card's `folder`, `description` and the start of its `SKILL.md`, read from the repository (listing of its files, then the one file); `found: false` when the repository has no such folder |
+| `GET preview?source=&name=` | a Discover card's `folder`, `description` and the start of its `SKILL.md`, read from the repository (listing of its files, then the one file), plus a `check` of that text: `{ level: ok\|warn\|bad, findings: [{ rule, level, names?, chars? }] }` from the rules in `skill-rules.mjs` (empty body, hands over to another skill, reads a folder the install does not bring, needs a program, secret-like text, steering phrases); the host sends codes and facts, the screen words them; `found: false` when the repository has no such folder |
 | `POST skill/read {root,name}` | the real `SKILL.md` (frontmatter included, 128 KiB cap), the folder, a file count and `actions {reveal, edit, duplicate, delete}`: what the host will accept, so the screen offers nothing it would refuse |
 | `POST skill/reveal {root,name,target}` | `target` `folder` or `file`: opens it on this machine (`open`, `open -t`, `xdg-open`, `explorer`; one argument, no shell); refused from another address |
 | `POST skill/duplicate {root,name}` | copies a listed skill (a read-only one too) into `<DSH home>/skills/<name>-copy[-n]`, renames `name:` in the frontmatter, leaves links, `.git`, `node_modules` and the Team mark behind |
@@ -129,6 +129,8 @@ All under `/kybernos-skills/`, JSON; refusals come back as HTTP 200 `{ok:false, 
   first, for a 5xx or a network blink) and **Change** (the source).
 
 ## Tests
+
+`node packages/kybernos-skills/test-skill-check.mjs` covers the check Discover shows before an install (`skill-rules.mjs`, the rules it shares with `scripts/vet-skills.mjs`).
 
 `node packages/kybernos-skills/test-picks.mjs` covers the Featured picks: the reader (what it keeps and drops), the shipped file (21 valid picks,
 both languages, no audit in failure), the `picks` route with its cover URLs, and the card on the screen (source level).

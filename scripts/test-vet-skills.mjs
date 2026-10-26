@@ -17,6 +17,7 @@ import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { checkBaseUrl, checkConfig, loadConfig } from './vet-skills/config.mjs'
+import { DEFAULT_RULES, RULES_VERSION as PACKAGE_RULES_VERSION } from '../packages/kybernos-skills/skill-rules.mjs'
 import { RULES_VERSION, analyseContent, applyWaivers, keyOf, parseSkill, signalFindings, statusOf, verdictOf, formatReport } from './vet-skills/core.mjs'
 import { ANSWER_SCHEMA, PROMPT_VERSION, SYSTEM_PROMPT, buildMessages, calibrationKey, createJudge, loadGolden, parseAnswer } from './vet-skills/judge.mjs'
 import { emptyLedger, runPass } from './vet-skills/pass.mjs'
@@ -87,6 +88,13 @@ console.log('vet-skills — the rules')
   const huge = analyseContent({ text: skillText('huge', 'x '.repeat(14000)), files: Array.from({ length: 210 }, (_, i) => ({ path: 'f' + i, size: 30000 })), siblingDirs: [] }, cfg)
   assert.deepEqual(huge.findings.map((f) => f.rule).sort(), ['folder_big', 'folder_many_files', 'skill_md_big'])
   ok('a reserved licence is a fact for the copy-or-point decision; a heavy SKILL.md or folder is flagged')
+}
+
+{
+  // The rules live in the skills package (Discover shows them before an install); the tool's thresholds must be the ones Discover uses.
+  for (const k of Object.keys(DEFAULT_RULES)) assert.equal(cfg[k], DEFAULT_RULES[k], 'config.json ' + k + ' differs from the thresholds of skill-rules.mjs')
+  assert.equal(RULES_VERSION, PACKAGE_RULES_VERSION)
+  ok('the thresholds of config.json are the ones the Discover check uses, and the rules version is the package\'s')
 }
 
 console.log('vet-skills — signals, verdict, waivers, change key')
