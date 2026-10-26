@@ -3,7 +3,7 @@
  *
  *  Three layers, none of them on the network or on the user's home:
  *   1. featured-picks.mjs, the pure reader: what it keeps, what it drops, that nothing the file carries beyond its fields travels on;
- *   2. the shipped file featured-picks.json (the 24 picks): every entry valid, both languages written, no security audit in failure;
+ *   2. the shipped file featured-picks.json (the 21 picks): every entry valid, both languages written, no security audit in failure;
  *   3. GET /kybernos-skills/picks through apply() on a fake web server and a throw-away DSH home: a cover URL only when its file exists;
  *   4. the client (a browser half), pinned at source level like test-bar.mjs: the card, the hover actions, the install confirmation.
  *
@@ -73,15 +73,16 @@ try {
   // 2. the shipped file ----------------------------------------------------------------------------
   const raw = JSON.parse(readFileSync(join(here, 'featured-picks.json'), 'utf8'))
   const picks = readPicks(join(here, 'featured-picks.json'))
-  assert.equal(raw.items.length, 24)
+  assert.equal(raw.items.length, 21) // 24 until 2026-10-26: three picks were taken out after vetting (docs/dev/skills-vetting.md)
   assert.equal(picks.items.length, raw.items.length, 'no entry of the shipped file is dropped by the reader')
   assert.match(picks.asOf, /^\d{4}-\d{2}-\d{2}$/)
-  ok('the shipped file holds 24 picks and the reader keeps every one of them')
+  ok('the shipped file holds 21 picks and the reader keeps every one of them')
 
   const ids = picks.items.map((p) => p.id)
   assert.equal(new Set(ids).size, ids.length, 'unique ids')
-  for (const c of PICK_CATEGORIES) assert.equal(picks.items.filter((p) => p.category === c).length, 3, c + ' has three picks')
-  ok('the ids are unique and each of the 8 categories has three picks')
+  // Three per category until 2026-10-26; the picks the vetting tool rejected were taken out, so Automation and Build are thinner (docs/dev/skills-vetting.md).
+  for (const c of PICK_CATEGORIES) { const n = picks.items.filter((p) => p.category === c).length; assert.ok(n >= 1 && n <= 3, c + ' has ' + n + ' picks: between one and three') }
+  ok('the ids are unique and each of the 8 categories has between one and three picks')
 
   for (const p of picks.items) {
     assert.ok(p.title.en !== p.title.fr || p.title.en.length > 0)
@@ -93,7 +94,7 @@ try {
   ok('every pick has its title, outcome and example in both languages, its install count and its audit verdicts')
 
   assert.ok(picks.items.every((p) => typeof p.coverSha256 === 'string'), 'every pick ships the hash of its cover')
-  assert.equal(new Set(picks.items.map((p) => p.coverSha256)).size, 24, 'no two picks share a picture')
+  assert.equal(new Set(picks.items.map((p) => p.coverSha256)).size, picks.items.length, 'no two picks share a picture')
   ok('every pick ships the SHA-256 of its cover, and no two covers are the same file')
 
   const failing = picks.items.filter((p) => p.audits.some((a) => a[1] === 'fail')).map((p) => p.id)
@@ -115,9 +116,9 @@ try {
   const first = await call()
   assert.equal(first.code, 200)
   assert.equal(first.body.ok, true)
-  assert.equal(first.body.items.length, 24)
+  assert.equal(first.body.items.length, 21)
   assert.ok(first.body.items.every((p) => p.cover === '/kybernos-skills/cover/' + p.id), 'every pick ships its cover hash, so every pick has a cover URL (fetched on first use)')
-  ok('GET /kybernos-skills/picks serves the 24 picks, each with its cover URL')
+  ok('GET /kybernos-skills/picks serves the 21 picks, each with its cover URL')
 
   // 3b. a cover that is not in the folder is fetched from the relay ONCE, and only the picture that was shipped is kept ---------------
   const { createHash } = await import('node:crypto')
@@ -149,7 +150,7 @@ try {
     assert.equal(calls.length, 1, 'a cover that is in the folder costs no request')
     ok('a missing cover is fetched from the relay, checked against its hash, kept, and never asked for again')
 
-    // 24 cards ask at once: one request
+    // every card asks at once: one request
     const p2 = webp(9)
     serve({ [RELAY + '/covers/xlsx.webp']: p2 })
     calls.length = 0
