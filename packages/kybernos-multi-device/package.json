@@ -1,6 +1,7 @@
 {
   "name": "@local/kybernos-multi-device",
   "version": "0.1.0",
+  "license": "Apache-2.0",
   "description": "Workspaces with or without a folder: Create offers a private folder, and Details shows where a workspace works and what the next versions will let you choose.",
   "private": true,
   "type": "module",

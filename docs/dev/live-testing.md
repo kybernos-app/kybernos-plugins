@@ -209,7 +209,7 @@ in the script (the real folders, then GitHub anonymously). Every other non-GET r
 the check and recorded, so nothing the page does can write, install, delete or open anything. It checks that a Yours card opens a
 panel beside the list with the SKILL.md exactly as it is on disk, the actions the skill allows, that Delete and Install open their
 confirmations (and only ever get Cancel), that two Discover cards have their own repository, folder and text, the publisher by
-repository, and the layout at 900 px.
+repository, and the layout at 900 px. On the real ranking it also checks that the real `grill-me` (a 36-character body that only calls another skill) carries the warning of the preview's `check` at the top of its panel and again in the install confirmation (2026-10-26). Run it on a sandbox (`source scripts/sandbox/env.sh && KB_SHARED_TREE=$PWD node scripts/check-skills-detail-live.mjs`) when the host half changed: the running `:3080` serves the old host and, if the shared tree differs from what it serves, the swap reports `replaced: false`.
 
 ## The Featured tab: `scripts/check-skills-featured-live.mjs`
 

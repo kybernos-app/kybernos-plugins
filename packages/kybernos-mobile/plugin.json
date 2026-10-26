@@ -2,7 +2,7 @@
   "contract": 1,
   "id": "kybernos/mobile",
   "kind": "code",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "name": {
     "en": "Phone and channels",
     "fr": "Téléphone et canaux"
@@ -40,6 +40,7 @@
     "kybernos": ">=0.1.0"
   },
   "permissions": [
+    "ui.slot:conversation.chat.turnTail",
     "ui.slot:settings.section",
     "ui.dom",
     "host.routes:/kybernos-mobile:write",

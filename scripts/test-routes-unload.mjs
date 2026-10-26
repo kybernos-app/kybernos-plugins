@@ -67,7 +67,10 @@ const applyOn = async (apply, host) => {
 }
 
 const packages = readdirSync(join(root, 'packages')).filter((p) => existsSync(join(root, 'packages', p, 'index.js'))).sort()
+// Engine-only bundles: they extend engine classes, so they cannot be imported outside an engine profile, and they register no route (kybernos-no-process: mobile/payload/test-boot.mjs boots it for real).
+const ENGINE_ONLY = new Set(['kybernos-no-process'])
 for (const pkg of packages) {
+  if (ENGINE_ONLY.has(pkg)) continue
   let mod
   try { mod = await import(pathToFileURL(join(root, 'packages', pkg, 'index.js')).href) } catch (e) { check(pkg + ': can be imported here', false, String(e.message).slice(0, 100)); continue }
   const apply = typeof mod.apply === 'function' ? mod.apply : (mod.default !== undefined && typeof mod.default.apply === 'function' ? mod.default.apply : null)

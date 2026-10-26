@@ -1,6 +1,7 @@
 {
   "name": "@local/kybernos-atlas",
   "version": "0.1.0",
+  "license": "Apache-2.0",
   "private": true,
   "type": "module",
   "description": "Atlas: a read-only map of how projects, agent teams, skills, memories, lessons, automations and apps fit together, with a list of what is broken or unused.",

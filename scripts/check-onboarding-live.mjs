@@ -306,7 +306,10 @@ try {
   await press('My own API key')
   await press('Continue')
   check('the paste form is there for a known provider', (await q(`!!document.querySelector('#kb-ob-key')`)) === true)
-  await press('Other provider')
+  // « Other providers » opens the catalogue of the models page (checked in full by check-onboarding-phone-live.mjs); a custom API is what Settings still does alone.
+  await press('Other providers')
+  check('« Other providers » opens the list of the catalogue', (await h1()) === 'Other providers', String(await h1()))
+  await press('Custom API')
   check('another provider has no paste field', (await q(`!!document.querySelector('#kb-ob-key')`)) === false)
   await press('Open Settings → AI provider and models')
   await waitFor(page, `document.querySelector('.kb-ob') === null`, 8000)

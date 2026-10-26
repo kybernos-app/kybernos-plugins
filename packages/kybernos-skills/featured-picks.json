@@ -876,6 +876,98 @@
       "coverSha256": "ca55ffb1476c1e7276b7f534541dcb45e3c0d3af30af1016441814c252e66ad9"
     },
     {
+      "id": "internal-comms",
+      "source": "anthropics/skills",
+      "category": "Automation",
+      "title": {
+        "en": "Internal updates",
+        "fr": "Communication interne"
+      },
+      "outcome": {
+        "en": "Writes the team’s regular updates: progress and problems, newsletters, FAQs, status and leadership notes.",
+        "fr": "Rédige les communications régulières de l’équipe : points d’avancement, lettres internes, FAQ, notes à la direction."
+      },
+      "prompt": {
+        "en": "Write this week’s team update from these notes: what we shipped, what is next, what is blocked.",
+        "fr": "Rédige le point d’équipe de la semaine à partir de ces notes : ce qu’on a livré, la suite, ce qui bloque."
+      },
+      "needs": null,
+      "installs": 80350,
+      "audits": [
+        [
+          "Gen Agent Trust Hub",
+          "pass",
+          "SAFE"
+        ],
+        [
+          "Socket",
+          "pass",
+          ""
+        ],
+        [
+          "Snyk",
+          "warn",
+          "MEDIUM"
+        ],
+        [
+          "Runlayer",
+          "pass",
+          "NONE"
+        ],
+        [
+          "ZeroLeaks",
+          "pass",
+          "NONE"
+        ]
+      ]
+    },
+    {
+      "id": "summarize-meeting",
+      "source": "phuryn/pm-skills",
+      "category": "Automation",
+      "title": {
+        "en": "Meeting summary",
+        "fr": "Compte rendu de réunion"
+      },
+      "outcome": {
+        "en": "Turns a meeting transcript into date, participants, decisions, key points and action items with owners.",
+        "fr": "Transforme la transcription d’une réunion en date, participants, décisions, points clés et actions avec responsables."
+      },
+      "prompt": {
+        "en": "Summarize this meeting transcript and list who does what, by when.",
+        "fr": "Résume la transcription de cette réunion et liste qui fait quoi, pour quand."
+      },
+      "needs": null,
+      "installs": 3088,
+      "audits": [
+        [
+          "Gen Agent Trust Hub",
+          "pass",
+          "SAFE"
+        ],
+        [
+          "Socket",
+          "pass",
+          ""
+        ],
+        [
+          "Snyk",
+          "warn",
+          "MEDIUM"
+        ],
+        [
+          "Runlayer",
+          "pass",
+          "NONE"
+        ],
+        [
+          "ZeroLeaks",
+          "pass",
+          "NONE"
+        ]
+      ]
+    },
+    {
       "id": "systematic-debugging",
       "source": "obra/superpowers",
       "category": "Build",
@@ -968,6 +1060,42 @@
         ]
       ],
       "coverSha256": "0712514519e548e9b188b27f0aa3021374fc180177fd8890346caa8562b83172"
+    },
+    {
+      "id": "grilling",
+      "source": "mattpocock/skills",
+      "category": "Build",
+      "title": {
+        "en": "Stress-test my plan",
+        "fr": "Teste mon plan"
+      },
+      "outcome": {
+        "en": "Asks you questions, round after round, until every branch of a plan or decision is settled.",
+        "fr": "Te pose des questions, tour après tour, jusqu’à ce que chaque branche d’un plan ou d’une décision soit tranchée."
+      },
+      "prompt": {
+        "en": "Grill me on my plan to move the team to a new tool until nothing is left vague.",
+        "fr": "Interroge-moi sur mon plan de changement d’outil pour l’équipe jusqu’à ce que plus rien ne soit flou."
+      },
+      "needs": null,
+      "installs": 987442,
+      "audits": [
+        [
+          "Gen Agent Trust Hub",
+          "pass",
+          "SAFE"
+        ],
+        [
+          "Socket",
+          "pass",
+          ""
+        ],
+        [
+          "Snyk",
+          "pass",
+          "LOW"
+        ]
+      ]
     }
   ]
 }

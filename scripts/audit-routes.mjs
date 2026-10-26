@@ -261,7 +261,9 @@ const only = option('--bundle')
 const tunnelProbes = JSON.parse(option('--tunnel-probes') ?? '[]')
 const rows = []
 const problems = []
-const bundles = readdirSync(join(root, 'packages')).filter((p) => existsSync(join(root, 'packages', p, 'index.js')) && (only === null || only === p)).sort()
+// Engine-only bundles extend engine classes, so they cannot be imported outside an engine profile, and they register no web route (test-routes-unload.mjs says the same).
+const ENGINE_ONLY = new Set(['kybernos-no-process'])
+const bundles = readdirSync(join(root, 'packages')).filter((p) => existsSync(join(root, 'packages', p, 'index.js')) && ENGINE_ONLY.has(p) === false && (only === null || only === p)).sort()
 for (const bundle of bundles) {
   const { routes, error } = await mount(bundle)
   if (error !== undefined) problems.push(bundle + ': ' + error)

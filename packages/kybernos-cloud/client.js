@@ -18,6 +18,8 @@ window.__ModuleLoader__.load({
     const React = require('react')
     const ReactDOM = require('react-dom')
     const h = React.createElement
+    // Inside the Kybernos phone app (user agent `KybernosHost/<v> (ios|android)`) the app offers no sign-up (store rules, mobile/STORES.md item 6): the footer says "Sign in" only.
+    const inPhoneApp = typeof navigator !== 'undefined' && /\bKybernosHost\/\S+ \((ios|android)\)/.test(String(navigator.userAgent))
 
     // Same local contract as kybernos-plugin: insert(css) → dispose.
     const styles = (() => {
@@ -3747,13 +3749,13 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
                 h('div', { className: 'kbfp-card' },
                   h('button', {
                     type: 'button', className: 'kbfp-cardmain', ref: gearRef, 'data-kb': 'foot-signin',
-                    title: pairing ? t('footPairing') : (pairNote !== null ? t(pairNote === 'denied' ? 'pairingDenied' : 'pairingExpired') : (ended === true ? t('sessionEnded') : (unreadable === true ? t('sessionUnreadable') : t('footHint')))), 'aria-label': pairing ? t('pairingTitle') : (ended === true || unreadable === true ? t('footSignInAgain') : t('footSignInUp')),
+                    title: pairing ? t('footPairing') : (pairNote !== null ? t(pairNote === 'denied' ? 'pairingDenied' : 'pairingExpired') : (ended === true ? t('sessionEnded') : (unreadable === true ? t('sessionUnreadable') : t('footHint')))), 'aria-label': pairing ? t('pairingTitle') : (ended === true || unreadable === true ? t('footSignInAgain') : t(inPhoneApp ? 'footConnect' : 'footSignInUp')),
                     'aria-haspopup': 'menu', 'aria-expanded': menuOpen === true ? 'true' : 'false',
                     onClick: () => setMenuOpen(menuOpen !== true),
                   },
                   h('span', { className: 'kbfp-tile', 'aria-hidden': 'true' }, h(UserIcon, { size: 18 })),
                   h('span', { className: 'kbfp-cardtxt' },
-                    h('span', { className: 'kbfp-cardname' }, pairing ? t('pairingTitle') : (ended === true || unreadable === true ? t('footSignInAgain') : t('footSignInUp'))),
+                    h('span', { className: 'kbfp-cardname' }, pairing ? t('pairingTitle') : (ended === true || unreadable === true ? t('footSignInAgain') : t(inPhoneApp ? 'footConnect' : 'footSignInUp'))),
                     h('span', { className: 'kbfp-cardsub', 'data-kb': pairNote !== null && pairing !== true ? 'foot-pair-note' : (ended === true && pairing !== true ? 'foot-ended' : (unreadable === true && pairing !== true ? 'foot-unreadable' : undefined)) },
                       pairing ? t('footPairingAction') : (pairNote !== null ? t(pairNote === 'denied' ? 'footPairDenied' : 'footPairExpired') : (ended === true ? t('footEnded') : (unreadable === true ? t('footUnreadable') : (phase === 'loading' ? t('loading') : t('footSyncSub'))))))),
                   h('span', { className: 'kbfp-chev', 'aria-hidden': 'true' }, h(SwapIcon, { size: 14 }))))),

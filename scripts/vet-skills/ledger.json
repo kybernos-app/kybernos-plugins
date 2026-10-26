@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "rulesVersion": 1,
-  "lastPassAt": "2026-10-26T02:48:23.198Z",
+  "rulesVersion": 2,
+  "lastPassAt": "2026-10-26T11:27:31.856Z",
   "skills": {
     "algorithmic-art": {
       "source": "anthropics/skills",
@@ -10,8 +10,8 @@
       "treeSha": "4aef6bcad51d058ec32b1acb9da436851863e56e",
       "deps": [],
       "key": "c42e1ee4a92ea47affcd",
-      "rulesVersion": 1,
-      "checkedAt": "2026-10-26T01:22:03.443Z",
+      "rulesVersion": 2,
+      "checkedAt": "2026-10-26T03:37:10.843Z",
       "bins": [],
       "contentFindings": [],
       "signals": {
@@ -57,8 +57,8 @@
       "treeSha": "7c6c263e274d463c06cedc0e060a8b7c9b0fa403",
       "deps": [],
       "key": "59771ad4160d584da950",
-      "rulesVersion": 1,
-      "checkedAt": "2026-10-26T01:22:09.971Z",
+      "rulesVersion": 2,
+      "checkedAt": "2026-10-26T03:37:11.367Z",
       "bins": [],
       "contentFindings": [],
       "signals": {
@@ -101,8 +101,8 @@
       "treeSha": "95095faaee2ea943e85a5d1d562fde06841e835e",
       "deps": [],
       "key": "78c812a1d69f27dd4a8e",
-      "rulesVersion": 1,
-      "checkedAt": "2026-10-26T02:48:14.848Z",
+      "rulesVersion": 2,
+      "checkedAt": "2026-10-26T03:37:09.933Z",
       "bins": [],
       "contentFindings": [
         {
@@ -163,8 +163,8 @@
       "treeSha": "f666727ac38b48b291898a182cafdee9ffc0e80e",
       "deps": [],
       "key": "cbef34bde5b14f3172f7",
-      "rulesVersion": 1,
-      "checkedAt": "2026-10-26T01:23:42.253Z",
+      "rulesVersion": 2,
+      "checkedAt": "2026-10-26T03:37:13.655Z",
       "bins": [],
       "contentFindings": [],
       "signals": {
@@ -212,8 +212,8 @@
       "treeSha": "5de411655b1692373f8950f56d50991bd5294a8e",
       "deps": [],
       "key": "ad26eed5e11f50dc5ee0",
-      "rulesVersion": 1,
-      "checkedAt": "2026-10-26T01:23:30.119Z",
+      "rulesVersion": 2,
+      "checkedAt": "2026-10-26T03:37:13.384Z",
       "bins": [],
       "contentFindings": [],
       "signals": {
@@ -255,8 +255,8 @@
       "treeSha": "cc2b5235344f14558b0da842510e87952cc9063b",
       "deps": [],
       "key": "8eb2787cf30a7d1d7d2b",
-      "rulesVersion": 1,
-      "checkedAt": "2026-10-26T01:20:51.030Z",
+      "rulesVersion": 2,
+      "checkedAt": "2026-10-26T03:37:08.470Z",
       "bins": [],
       "contentFindings": [],
       "signals": {
@@ -299,8 +299,8 @@
       "treeSha": "844f3cf223d25a29e75f7965d095a093938282df",
       "deps": [],
       "key": "322c459ae17577d372bf",
-      "rulesVersion": 1,
-      "checkedAt": "2026-10-26T02:48:14.848Z",
+      "rulesVersion": 2,
+      "checkedAt": "2026-10-26T03:37:10.260Z",
       "bins": [],
       "contentFindings": [
         {
@@ -361,8 +361,8 @@
       "treeSha": "6e6f5b95c1de6e803cc07b214f5059b074d64e0c",
       "deps": [],
       "key": "32abbcd07d5bff150078",
-      "rulesVersion": 1,
-      "checkedAt": "2026-10-26T01:20:13.956Z",
+      "rulesVersion": 2,
+      "checkedAt": "2026-10-26T03:37:07.033Z",
       "bins": [],
       "contentFindings": [
         {
@@ -427,8 +427,8 @@
       "treeSha": "402dd605f56697b05277e4937dfac44ae7a36c07",
       "deps": [],
       "key": "182855a5f809159c4d3a",
-      "rulesVersion": 1,
-      "checkedAt": "2026-10-26T01:49:21.378Z",
+      "rulesVersion": 2,
+      "checkedAt": "2026-10-26T03:37:12.769Z",
       "bins": [],
       "contentFindings": [],
       "signals": {
@@ -509,14 +509,19 @@
         }
       ],
       "key": "428b9c4dd3b35ce71ebb",
-      "rulesVersion": 1,
-      "checkedAt": "2026-10-26T02:48:14.849Z",
+      "rulesVersion": 2,
+      "checkedAt": "2026-10-26T03:37:12.257Z",
       "bins": [],
       "contentFindings": [
         {
           "rule": "sibling_reference",
           "level": "flag",
-          "message": "points to the folder of other skill(s) that are not installed with it: firecrawl-research-papers"
+          "message": "points to the folder of other skill(s) that are not installed with it: firecrawl-research-papers",
+          "facts": {
+            "names": [
+              "firecrawl-research-papers"
+            ]
+          }
         }
       ],
       "signals": {
@@ -554,6 +559,11 @@
           "rule": "sibling_reference",
           "level": "flag",
           "message": "points to the folder of other skill(s) that are not installed with it: firecrawl-research-papers",
+          "facts": {
+            "names": [
+              "firecrawl-research-papers"
+            ]
+          },
           "waived": "The ../firecrawl-research-papers/ link is an optional hand-over for literature reviews (line 42 and 78 of SKILL.md); the core research job does not need it. Read 2026-10-26."
         },
         {
@@ -571,8 +581,8 @@
       "treeSha": "d79e2a5bb4df4a386c2adcdd9ab8709bba28c3f6",
       "deps": [],
       "key": "4e046aac1e25bc3851d7",
-      "rulesVersion": 1,
-      "checkedAt": "2026-10-26T01:21:05.160Z",
+      "rulesVersion": 2,
+      "checkedAt": "2026-10-26T03:37:09.347Z",
       "bins": [],
       "contentFindings": [],
       "signals": {
@@ -614,6 +624,73 @@
       ],
       "description": "Guidance for distinctive, intentional visual design when building new UI or reshaping an existing one. Helps with aesthetic direction, typography, and making choices that don't read as templated defaults."
     },
+    "grilling": {
+      "source": "mattpocock/skills",
+      "path": "skills/productivity/grilling",
+      "commit": "5beb35b040e3de97e54fa9e386d7e42d15c295c2",
+      "treeSha": "28aceb4c9567b985cb47f7db88cf23c9f33af8b8",
+      "deps": [],
+      "key": "766632abad401eb4c0a0",
+      "rulesVersion": 2,
+      "checkedAt": "2026-10-26T11:27:31.856Z",
+      "bins": [],
+      "contentFindings": [],
+      "signals": {
+        "gone": false,
+        "archived": false,
+        "license": "MIT",
+        "audits": {
+          "pass": 3,
+          "warn": 0,
+          "fail": 0,
+          "failed": [],
+          "latest": "2026-10-07"
+        }
+      },
+      "judge": null,
+      "verdict": "pass",
+      "findings": [],
+      "description": "Grill the user relentlessly about a plan, decision, or idea. Use when the user wants to stress-test their thinking, or uses any 'grill' trigger phrases."
+    },
+    "internal-comms": {
+      "source": "anthropics/skills",
+      "path": "skills/internal-comms",
+      "commit": "dbd4588f9e1033efb41dad4bef2f7947c8993d44",
+      "treeSha": "9869687dcf6deb6802ca88ac11e67b6f7278017a",
+      "deps": [],
+      "key": "fe4b476a07cb95659040",
+      "rulesVersion": 2,
+      "checkedAt": "2026-10-26T11:27:21.860Z",
+      "bins": [],
+      "contentFindings": [],
+      "signals": {
+        "gone": false,
+        "archived": false,
+        "license": null,
+        "audits": {
+          "pass": 4,
+          "warn": 1,
+          "fail": 0,
+          "failed": [],
+          "latest": "2026-09-15"
+        }
+      },
+      "judge": null,
+      "verdict": "pass",
+      "findings": [
+        {
+          "rule": "licence_unspecified",
+          "level": "info",
+          "message": "the repository declares no standard licence"
+        },
+        {
+          "rule": "audit_warn",
+          "level": "info",
+          "message": "1 security audit(s) warn"
+        }
+      ],
+      "description": "A set of resources to help me write all kinds of internal communications, using the formats that my company likes to use. Claude should use this skill whenever asked to write some sort of internal communications (status reports, leadership updates, 3P updates, company newsletters, FAQs, incident reports, project updates, etc.)."
+    },
     "mcp-builder": {
       "source": "anthropics/skills",
       "path": "skills/mcp-builder",
@@ -621,8 +698,8 @@
       "treeSha": "b866bcfb57b780c10b587c7b543e871a91661ce0",
       "deps": [],
       "key": "e3775b84ac58d42e8769",
-      "rulesVersion": 1,
-      "checkedAt": "2026-10-26T01:24:56.890Z",
+      "rulesVersion": 2,
+      "checkedAt": "2026-10-26T03:37:14.850Z",
       "bins": [],
       "contentFindings": [],
       "signals": {
@@ -676,8 +753,8 @@
       "treeSha": "6369f4649de69bd6857c9bc3b058a77206009238",
       "deps": [],
       "key": "9c48a30ef982fd5c5759",
-      "rulesVersion": 1,
-      "checkedAt": "2026-10-26T01:48:28.064Z",
+      "rulesVersion": 2,
+      "checkedAt": "2026-10-26T03:37:06.350Z",
       "bins": [],
       "contentFindings": [
         {
@@ -754,8 +831,8 @@
       "treeSha": "64529c8b3f35fe632b7256bd2f6d46e4b40160ce",
       "deps": [],
       "key": "897cba76c463cd2996f1",
-      "rulesVersion": 1,
-      "checkedAt": "2026-10-26T01:20:25.108Z",
+      "rulesVersion": 2,
+      "checkedAt": "2026-10-26T03:37:07.541Z",
       "bins": [],
       "contentFindings": [
         {
@@ -820,8 +897,8 @@
       "treeSha": "dedc690c587c376951526c087a567f207c070595",
       "deps": [],
       "key": "a5d090cf0a78e22c2502",
-      "rulesVersion": 1,
-      "checkedAt": "2026-10-26T01:22:59.884Z",
+      "rulesVersion": 2,
+      "checkedAt": "2026-10-26T03:37:13.047Z",
       "bins": [],
       "contentFindings": [],
       "signals": {
@@ -869,8 +946,8 @@
       "treeSha": "c61d2f7bb6334b68a6936ad3f41ebfc7cb76fe2a",
       "deps": [],
       "key": "be0fd008d1f920fb7c3b",
-      "rulesVersion": 1,
-      "checkedAt": "2026-10-26T01:22:21.169Z",
+      "rulesVersion": 2,
+      "checkedAt": "2026-10-26T03:37:11.919Z",
       "bins": [],
       "contentFindings": [],
       "signals": {
@@ -919,8 +996,8 @@
       "treeSha": "508444de634ec4ba9178750b6cbc897fe9f9c169",
       "deps": [],
       "key": "f823ebdc95dc636bdf79",
-      "rulesVersion": 1,
-      "checkedAt": "2026-10-26T01:20:55.633Z",
+      "rulesVersion": 2,
+      "checkedAt": "2026-10-26T03:37:08.773Z",
       "bins": [],
       "contentFindings": [],
       "signals": {
@@ -956,6 +1033,40 @@
       "findings": [],
       "description": "Write correct, performant SQL across all major data warehouse dialects (Snowflake, BigQuery, Databricks, PostgreSQL, etc.). Use when writing queries, optimizing slow SQL, translating between dialects, or building complex analytical queries with CTEs, window functions, or aggregations."
     },
+    "summarize-meeting": {
+      "source": "phuryn/pm-skills",
+      "path": "pm-execution/skills/summarize-meeting",
+      "commit": "07b34f64ee828df08953f505b7f747aef85ae7c6",
+      "treeSha": "0cee0b6ffb5c8db81061a0e30fb172d220c2bd4d",
+      "deps": [],
+      "key": "bf556e30dc3f2359c057",
+      "rulesVersion": 2,
+      "checkedAt": "2026-10-26T11:27:24.362Z",
+      "bins": [],
+      "contentFindings": [],
+      "signals": {
+        "gone": false,
+        "archived": false,
+        "license": "MIT",
+        "audits": {
+          "pass": 4,
+          "warn": 1,
+          "fail": 0,
+          "failed": [],
+          "latest": "2026-09-15"
+        }
+      },
+      "judge": null,
+      "verdict": "pass",
+      "findings": [
+        {
+          "rule": "audit_warn",
+          "level": "info",
+          "message": "1 security audit(s) warn"
+        }
+      ],
+      "description": "Summarize a meeting transcript into structured notes with date, participants, topic, key decisions, summary points, and action items. Use when processing meeting recordings, creating meeting notes, writing meeting minutes, or recapping discussions."
+    },
     "systematic-debugging": {
       "source": "obra/superpowers",
       "path": "skills/systematic-debugging",
@@ -963,8 +1074,8 @@
       "treeSha": "108961c080a6837ad8a188a553e593cc5e6df62d",
       "deps": [],
       "key": "31a70ec4faf3dc7d366f",
-      "rulesVersion": 1,
-      "checkedAt": "2026-10-26T01:24:45.843Z",
+      "rulesVersion": 2,
+      "checkedAt": "2026-10-26T03:37:14.304Z",
       "bins": [],
       "contentFindings": [],
       "signals": {
@@ -1004,8 +1115,8 @@
       "treeSha": "0bfe4b127621e04e35d38b1b95d2c12f5955180a",
       "deps": [],
       "key": "55010e4c667e5800a44b",
-      "rulesVersion": 1,
-      "checkedAt": "2026-10-26T01:24:00.080Z",
+      "rulesVersion": 2,
+      "checkedAt": "2026-10-26T03:37:13.997Z",
       "bins": [],
       "contentFindings": [],
       "signals": {
@@ -1061,14 +1172,21 @@
         }
       ],
       "key": "d476edeadb675581ad97",
-      "rulesVersion": 1,
-      "checkedAt": "2026-10-26T02:48:14.849Z",
+      "rulesVersion": 2,
+      "checkedAt": "2026-10-26T03:37:12.565Z",
       "bins": [],
       "contentFindings": [
         {
           "rule": "sibling_reference",
           "level": "flag",
-          "message": "points to the folder of other skill(s) that are not installed with it: tavily-cli, tavily-search, tavily-crawl"
+          "message": "points to the folder of other skill(s) that are not installed with it: tavily-cli, tavily-search, tavily-crawl",
+          "facts": {
+            "names": [
+              "tavily-cli",
+              "tavily-search",
+              "tavily-crawl"
+            ]
+          }
         }
       ],
       "signals": {
@@ -1126,6 +1244,13 @@
           "rule": "sibling_reference",
           "level": "flag",
           "message": "points to the folder of other skill(s) that are not installed with it: tavily-cli, tavily-search, tavily-crawl",
+          "facts": {
+            "names": [
+              "tavily-cli",
+              "tavily-search",
+              "tavily-crawl"
+            ]
+          },
           "waived": "The ../tavily-cli/, ../tavily-search/ and ../tavily-crawl/ links are a setup pointer and a see-also list; the declared Tavily account and key cover the core job, and a second model cleared the skill. Read 2026-10-26."
         },
         {
@@ -1148,8 +1273,8 @@
       "treeSha": "fe6471cc9b5b97aae0b576ccb92ffd9b0207589d",
       "deps": [],
       "key": "5b683dc149829df6096e",
-      "rulesVersion": 1,
-      "checkedAt": "2026-10-26T01:48:50.592Z",
+      "rulesVersion": 2,
+      "checkedAt": "2026-10-26T03:37:08.180Z",
       "bins": [],
       "contentFindings": [
         {
