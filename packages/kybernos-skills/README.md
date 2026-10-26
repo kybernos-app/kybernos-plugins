@@ -82,6 +82,8 @@ All under `/kybernos-skills/`, JSON; refusals come back as HTTP 200 `{ok:false, 
 - `featured-picks.json` (shipped with the package): the 24 picks — id, source repository, category, title / outcome / example in English
   and French, `needs`, install count and audit verdicts read from skills.sh on `asOf`. A pick is only listed if no provider's audit is in
   failure and if the host's own install route installs it (`test-picks.mjs` guards the first; the second was checked by installing all 24).
+  Whether a pick is *worth* installing (a real body, no hand-over to a skill the install does not bring) is checked by a maintainer tool outside the
+  package: `node scripts/vet-skills.mjs`, see `docs/dev/skills-vetting.md`.
 - Reads the first event of `<DSH_HOME or ~/.dsh>/sessions/<project>/<session>/session.v3.jsonl.zstd` to learn an idle session's
   folder (so its project skills show). Temp dir `kybernos-skill-*` during install. Env: `DSH_HOME`, and optionally `KYBERNOS_SKILLS_INDEX_URL` (below).
 
