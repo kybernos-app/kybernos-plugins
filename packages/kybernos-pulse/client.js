@@ -20,6 +20,15 @@ window.__ModuleLoader__.load({
     try {
       const NAME = 'kybernos-pulse'
 
+      // ── pure helpers (tested without a browser) ──────────────────────────────────────────────────────────
+      const POLL_MS = 10000
+      const POLL_HIDDEN_MS = 30000
+      /** A banner is shown only for what just happened; older events are marked as shown without a word (nobody wants a flood on opening a tab). */
+      const FRESH_MS = 10 * 60 * 1000
+      const TOKENS = ['--dsw-alias-label-primary', '--dsw-alias-label-secondary', '--dsw-alias-label-tertiary', '--dsw-alias-label-primary-foreground', '--dsw-alias-bg-base', '--dsw-alias-bg-layer-1', '--dsw-alias-bg-layer-2', '--dsw-alias-bg-layer-3', '--dsw-alias-border-l1', '--dsw-alias-border-l2', '--dsw-alias-interactive-bg-hover', '--dsw-alias-button-primary-fill', '--dsw-alias-state-success-primary', '--dsw-alias-state-error-primary', '--dsw-alias-state-warn-primary']
+
+      // PANEL-CORE-BEGIN — everything between this line and PANEL-CORE-END is pure (no DOM, no ctx, no fetch): the host serves it as it stands in the
+      // page of the Mac menu-bar app (GET /kybernos-pulse/panel), so the floating window and the app draw the same panel from the same code.
       const lang = () => {
         try {
           const l = window.__KB_LANG_RESOLVE__ && window.__KB_LANG_RESOLVE__()
@@ -38,13 +47,6 @@ window.__ModuleLoader__.load({
       const PACK_STRINGS = (() => { kt.pack = kt.pack || {}; return kt.pack })()
       // A sentence with holes: the pair stays one fixed key of the pack ('{task} a échoué'), the values are poured in afterwards.
       const kn = (fr, en, vars) => String(kt(fr, en)).replace(/\{(\w+)\}/g, (m, k) => (vars !== undefined && vars[k] !== undefined ? String(vars[k]) : m))
-
-      // ── pure helpers (tested without a browser) ──────────────────────────────────────────────────────────
-      const POLL_MS = 10000
-      const POLL_HIDDEN_MS = 30000
-      /** A banner is shown only for what just happened; older events are marked as shown without a word (nobody wants a flood on opening a tab). */
-      const FRESH_MS = 10 * 60 * 1000
-      const TOKENS = ['--dsw-alias-label-primary', '--dsw-alias-label-secondary', '--dsw-alias-label-tertiary', '--dsw-alias-label-primary-foreground', '--dsw-alias-bg-base', '--dsw-alias-bg-layer-1', '--dsw-alias-bg-layer-2', '--dsw-alias-bg-layer-3', '--dsw-alias-border-l1', '--dsw-alias-border-l2', '--dsw-alias-interactive-bg-hover', '--dsw-alias-button-primary-fill', '--dsw-alias-state-success-primary', '--dsw-alias-state-error-primary', '--dsw-alias-state-warn-primary']
 
       const esc = (s) => String(s === undefined || s === null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
 
@@ -89,33 +91,6 @@ window.__ModuleLoader__.load({
         return { tone: 'idle', title: kt('Tout est calme', 'All quiet'), sub: kt('Rien ne t’attend.', 'Nothing waits for you.') }
       }
 
-      /** The tab title with the count in front; the count is taken off first, so it never stacks. */
-      const badgeTitle = (title, n) => {
-        const base = String(title).replace(/^\(\d+\+?\)\s+/, '')
-        return n > 0 ? '(' + (n > 99 ? '99+' : n) + ') ' + base : base
-      }
-
-      /** The Mac menu-bar app is reading the state right now. */
-      const helperSeen = (snap) => snap !== null && snap !== undefined && snap.helper !== null && typeof snap.helper === 'object' && snap.helper.seen === true
-      /** ... and its notifications are allowed: it puts the banners up itself, so the browser keeps quiet (no event shown twice, and none taken from it). */
-      const helperBanners = (snap) => helperSeen(snap) && snap.helper.banners === true
-
-      /** The banners to show now: due ones, fresh enough, and only when the person allowed them. `skipped` are marked as shown without a word. */
-      const bannersToShow = (snap, now, canShow) => {
-        // The helper puts them up and remembers which: marking them shown from here would take them away from it before its next read.
-        if (helperBanners(snap)) return { show: [], skipped: [] }
-        const byId = new Map(snap.inbox.map((x) => [x.id, x]))
-        const show = []
-        const skipped = []
-        for (const id of snap.banners) {
-          const it = byId.get(id)
-          if (it === undefined) continue
-          if (canShow === true && now - it.at <= FRESH_MS) show.push(it)
-          else skipped.push(it.id)
-        }
-        return { show: show.slice(0, 3), skipped: skipped.concat(show.slice(3).map((x) => x.id)) }
-      }
-
       const ICON = {
         done: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
         failed: '<path d="M7 7l10 10M17 7L7 17"/>',
@@ -158,7 +133,7 @@ window.__ModuleLoader__.load({
           : '<div class="kbpu-empty"><b>' + esc(kt('Aucun run en cours', 'No run going')) + '</b></div>'
         const tab = (id, label, n) => '<button type="button" role="tab" class="kbpu-tab" data-act="tab" data-v="' + id + '" aria-selected="' + (m.tab === id) + '">' + esc(label) + (n > 0 ? '<span class="kbpu-n' + (id === 'now' ? ' q' : '') + '">' + n + '</span>' : '') + '</button>'
         return '<div class="kbpu-win" data-kb="pulse-window">' +
-          '<header class="kbpu-head">' + (m.mark !== '' ? '<img class="kbpu-mark" src="' + esc(m.mark) + '" alt="">' : '') + '<b>Kybernos</b>' +
+          '<header class="kbpu-head"><b aria-label="Kybernos">' + (m.mark !== '' ? '<img class="kbpu-mark" src="' + esc(m.mark) + '" alt=""><span aria-hidden="true">ybernos</span>' : 'Kybernos') + '</b>' +
             '<button type="button" class="kbpu-xs lg" data-act="gear" title="' + esc(kt('Réglages du widget dans Kybernos', 'Widget settings in Kybernos')) + '" aria-label="' + esc(kt('Réglages du widget dans Kybernos', 'Widget settings in Kybernos')) + '">' + svg('gear') + svg('up', 'lk') + '</button></header>' +
           '<div class="kbpu-hero"><span class="kbpu-hi ' + h.tone + '">' + svg(h.tone === 'bad' ? 'failed' : h.tone === 'ask' ? 'waiting' : h.tone === 'run' ? 'run' : 'done') + '</span><div><h2>' + esc(h.title) + '</h2><p>' + esc(h.sub) + '</p></div></div>' +
           '<div class="kbpu-tabs" role="tablist">' + tab('inbox', kt('Boîte', 'Inbox'), todo.length > 0 ? todo.length : results.filter((x) => x.unread).length) + tab('now', kt('En cours', 'Now'), snap.running.length) + '</div>' +
@@ -166,45 +141,20 @@ window.__ModuleLoader__.load({
           '<button type="button" class="kbpu-cta" data-act="kyb">' + esc(kt('Ouvrir Kybernos', 'Open Kybernos')) + svg('up') + '</button></div>'
       }
 
-      // ── styles: one sheet, for the Settings page and for the floating window ─────────────────────────────
-      const CSS = [
-        '.kbpu-page{display:flex;flex-direction:column;gap:16px;max-width:720px;padding:4px 2px 24px;color:var(--dsw-alias-label-primary,#e8eaec)}',
-        '.kbpu-page h2{margin:0;font-size:16px;font-weight:600}',
-        '.kbpu-lead{margin:2px 0 0;color:var(--dsw-alias-label-secondary,#cfd3d6);font-size:13px;line-height:1.5}',
-        '.kbpu-block{border:1px solid var(--dsw-alias-border-l2,rgba(255,255,255,.1));border-radius:14px;background:var(--dsw-alias-bg-layer-2,transparent);overflow:hidden}',
-        '.kbpu-block>h3{margin:0;padding:12px 16px 6px;font-size:13px;font-weight:600}',
-        '.kbpu-line{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 16px;border-top:1px solid var(--dsw-alias-border-l1,rgba(255,255,255,.06))}',
-        '.kbpu-line:first-of-type{border-top:0}',
-        '.kbpu-line b{display:block;font-size:13px;font-weight:600}',
-        '.kbpu-line small{display:block;font-size:12px;color:var(--dsw-alias-label-tertiary,#8a9096);margin-top:1px;line-height:1.4}',
-        '.kbpu-ctl{display:flex;align-items:center;gap:8px;flex:none}',
-        '.kbpu-btn{border:1px solid var(--dsw-alias-border-l3,rgba(255,255,255,.16));background:var(--dsw-alias-bg-layer-3,transparent);color:var(--dsw-alias-label-primary,#e8eaec);border-radius:9px;padding:6px 12px;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer}',
-        '.kbpu-btn.pri{background:var(--dsw-alias-button-primary-fill,#f9fafb);color:var(--dsw-alias-label-primary-foreground,#0f1115);border-color:transparent}',
-        '.kbpu-btn:disabled{opacity:.5;cursor:default}',
-        '.kbpu-opt{display:grid;grid-template-columns:20px minmax(0,1fr);gap:12px;align-items:center;padding:11px 16px;border-top:1px solid var(--dsw-alias-border-l1,rgba(255,255,255,.06));cursor:pointer;background:none;border-left:0;border-right:0;border-bottom:0;width:100%;text-align:start;color:inherit;font:inherit}',
-        '.kbpu-opt:first-of-type{border-top:0}',
-        '.kbpu-rad{width:18px;height:18px;border-radius:50%;border:1.5px solid var(--dsw-alias-border-l3,rgba(255,255,255,.16));display:grid;place-items:center}',
-        '.kbpu-opt[aria-checked="true"] .kbpu-rad{border-color:var(--dsw-alias-label-primary,#e8eaec)}',
-        '.kbpu-opt[aria-checked="true"] .kbpu-rad::after{content:"";width:8px;height:8px;border-radius:50%;background:var(--dsw-alias-label-primary,#e8eaec)}',
-        '.kbpu-opt b{font-size:13px;font-weight:600}',
-        '.kbpu-opt small{display:block;font-size:12px;color:var(--dsw-alias-label-tertiary,#8a9096);margin-top:1px}',
-        '.kbpu-sw{position:relative;width:38px;height:22px;border-radius:999px;border:0;background:var(--dsw-alias-border-l3,rgba(255,255,255,.2));padding:0;cursor:pointer;flex:none}',
-        '.kbpu-sw::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:var(--dsw-alias-bg-base,#151517);transition:transform .15s}',
-        '.kbpu-sw[aria-checked="true"]{background:var(--dsw-alias-state-success-primary,#22c55e)}',
-        '.kbpu-sw[aria-checked="true"]::after{transform:translateX(16px)}',
-        '.kbpu-chip{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--dsw-alias-border-l2,rgba(255,255,255,.1));background:var(--dsw-alias-bg-layer-3,transparent);color:var(--dsw-alias-label-secondary,#cfd3d6);border-radius:999px;padding:3px 9px;font:inherit;font-size:12px;cursor:pointer}',
-        '.kbpu-chip.st{cursor:default;font-weight:600}',
-        '.kbpu-chip.ok{color:var(--dsw-alias-state-success-primary,#22c55e)}',
-        '.kbpu-chip.bad{color:var(--dsw-alias-state-error-primary,#f87171)}',
-        '.kbpu-note{margin:0;font-size:12px;line-height:1.5;color:var(--dsw-alias-label-tertiary,#8a9096)}',
+      /** What the panel says when DSH does not answer (the Mac app shows the page even then); `down` false is the moment before the first answer. */
+      const offlineHTML = (down) => '<div class="kbpu-win" data-kb="pulse-window"><div class="kbpu-empty"><b>' + esc(down ? kt('Kybernos n’est pas lancé', 'Kybernos is not running') : '…') + '</b>' +
+        (down ? '<span>' + esc(kt('Lance DSH pour voir tes automations ici.', 'Start DSH to see your automations here.')) + '</span>' : '') + '</div></div>'
+
+      const PANEL_CSS = [
         '.kbpu-i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;flex:none}',
         // the floating window
         '.kbpu-pip{margin:0;background:var(--dsw-alias-bg-base,#151517);color:var(--dsw-alias-label-primary,#e8eaec);font-family:var(--kbpu-font,system-ui,-apple-system,"Segoe UI",sans-serif);font-size:13px;-webkit-font-smoothing:antialiased}',
         '.kbpu-pip *{box-sizing:border-box}',
         '.kbpu-win{display:flex;flex-direction:column;height:100vh;padding:12px}',
         '.kbpu-head{display:flex;align-items:center;gap:8px}',
-        '.kbpu-head b{flex:1;font-size:15px;font-weight:700;letter-spacing:-.01em}',
-        '.kbpu-mark{width:20px;height:20px}',
+        '.kbpu-head b{flex:1;display:flex;align-items:baseline;font-size:17px;font-weight:700;letter-spacing:-.02em}',
+        // the K is the first letter of the wordmark: it stands on the baseline and is a little taller than the lower-case letters
+        '.kbpu-mark{width:22px;height:22px;margin:0 0 -3px -2px}',
         '.kbpu-xs{width:26px;height:26px;border:0;border-radius:8px;background:none;color:var(--dsw-alias-label-tertiary,#8a9096);display:grid;place-items:center;cursor:pointer;position:relative;padding:0}',
         '.kbpu-xs:hover{background:var(--dsw-alias-interactive-bg-hover,rgba(255,255,255,.06));color:var(--dsw-alias-label-primary,#e8eaec)}',
         '.kbpu-xs.lg{width:30px;height:30px}',
@@ -252,7 +202,71 @@ window.__ModuleLoader__.load({
         '.kbpu-empty b{display:block;font-size:13.5px;color:var(--dsw-alias-label-primary,#e8eaec);font-weight:600}',
         '.kbpu-cta{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-top:8px;border:0;border-radius:14px;background:var(--dsw-alias-button-primary-fill,#f9fafb);color:var(--dsw-alias-label-primary-foreground,#0f1115);padding:11px 14px;font:inherit;font-size:14px;font-weight:600;cursor:pointer}',
         '@media (prefers-reduced-motion:reduce){.kbpu-hi.run .kbpu-i,.kbpu-ri.run .kbpu-i{animation:none}}'
-      ].join('\n')
+      ]
+
+      // PANEL-CORE-END
+
+      /** The tab title with the count in front; the count is taken off first, so it never stacks. */
+      const badgeTitle = (title, n) => {
+        const base = String(title).replace(/^\(\d+\+?\)\s+/, '')
+        return n > 0 ? '(' + (n > 99 ? '99+' : n) + ') ' + base : base
+      }
+
+      /** The Mac menu-bar app is reading the state right now. */
+      const helperSeen = (snap) => snap !== null && snap !== undefined && snap.helper !== null && typeof snap.helper === 'object' && snap.helper.seen === true
+      /** ... and its notifications are allowed: it puts the banners up itself, so the browser keeps quiet (no event shown twice, and none taken from it). */
+      const helperBanners = (snap) => helperSeen(snap) && snap.helper.banners === true
+
+      /** The banners to show now: due ones, fresh enough, and only when the person allowed them. `skipped` are marked as shown without a word. */
+      const bannersToShow = (snap, now, canShow) => {
+        // The helper puts them up and remembers which: marking them shown from here would take them away from it before its next read.
+        if (helperBanners(snap)) return { show: [], skipped: [] }
+        const byId = new Map(snap.inbox.map((x) => [x.id, x]))
+        const show = []
+        const skipped = []
+        for (const id of snap.banners) {
+          const it = byId.get(id)
+          if (it === undefined) continue
+          if (canShow === true && now - it.at <= FRESH_MS) show.push(it)
+          else skipped.push(it.id)
+        }
+        return { show: show.slice(0, 3), skipped: skipped.concat(show.slice(3).map((x) => x.id)) }
+      }
+
+      // ── styles: the Settings page, and the panel (shared with the Mac menu-bar app: see the PANEL-CORE block)
+      const PAGE_CSS = [
+        '.kbpu-page{display:flex;flex-direction:column;gap:16px;max-width:720px;padding:4px 2px 24px;color:var(--dsw-alias-label-primary,#e8eaec)}',
+        '.kbpu-page h2{margin:0;font-size:16px;font-weight:600}',
+        '.kbpu-lead{margin:2px 0 0;color:var(--dsw-alias-label-secondary,#cfd3d6);font-size:13px;line-height:1.5}',
+        '.kbpu-block{border:1px solid var(--dsw-alias-border-l2,rgba(255,255,255,.1));border-radius:14px;background:var(--dsw-alias-bg-layer-2,transparent);overflow:hidden}',
+        '.kbpu-block>h3{margin:0;padding:12px 16px 6px;font-size:13px;font-weight:600}',
+        '.kbpu-line{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 16px;border-top:1px solid var(--dsw-alias-border-l1,rgba(255,255,255,.06))}',
+        '.kbpu-line:first-of-type{border-top:0}',
+        '.kbpu-line b{display:block;font-size:13px;font-weight:600}',
+        '.kbpu-line small{display:block;font-size:12px;color:var(--dsw-alias-label-tertiary,#8a9096);margin-top:1px;line-height:1.4}',
+        '.kbpu-ctl{display:flex;align-items:center;gap:8px;flex:none}',
+        '.kbpu-btn{border:1px solid var(--dsw-alias-border-l3,rgba(255,255,255,.16));background:var(--dsw-alias-bg-layer-3,transparent);color:var(--dsw-alias-label-primary,#e8eaec);border-radius:9px;padding:6px 12px;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer}',
+        '.kbpu-btn.pri{background:var(--dsw-alias-button-primary-fill,#f9fafb);color:var(--dsw-alias-label-primary-foreground,#0f1115);border-color:transparent}',
+        '.kbpu-btn:disabled{opacity:.5;cursor:default}',
+        '.kbpu-opt{display:grid;grid-template-columns:20px minmax(0,1fr);gap:12px;align-items:center;padding:11px 16px;border-top:1px solid var(--dsw-alias-border-l1,rgba(255,255,255,.06));cursor:pointer;background:none;border-left:0;border-right:0;border-bottom:0;width:100%;text-align:start;color:inherit;font:inherit}',
+        '.kbpu-opt:first-of-type{border-top:0}',
+        '.kbpu-rad{width:18px;height:18px;border-radius:50%;border:1.5px solid var(--dsw-alias-border-l3,rgba(255,255,255,.16));display:grid;place-items:center}',
+        '.kbpu-opt[aria-checked="true"] .kbpu-rad{border-color:var(--dsw-alias-label-primary,#e8eaec)}',
+        '.kbpu-opt[aria-checked="true"] .kbpu-rad::after{content:"";width:8px;height:8px;border-radius:50%;background:var(--dsw-alias-label-primary,#e8eaec)}',
+        '.kbpu-opt b{font-size:13px;font-weight:600}',
+        '.kbpu-opt small{display:block;font-size:12px;color:var(--dsw-alias-label-tertiary,#8a9096);margin-top:1px}',
+        '.kbpu-sw{position:relative;width:38px;height:22px;border-radius:999px;border:0;background:var(--dsw-alias-border-l3,rgba(255,255,255,.2));padding:0;cursor:pointer;flex:none}',
+        '.kbpu-sw::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:var(--dsw-alias-bg-base,#151517);transition:transform .15s}',
+        '.kbpu-sw[aria-checked="true"]{background:var(--dsw-alias-state-success-primary,#22c55e)}',
+        '.kbpu-sw[aria-checked="true"]::after{transform:translateX(16px)}',
+        '.kbpu-chip{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--dsw-alias-border-l2,rgba(255,255,255,.1));background:var(--dsw-alias-bg-layer-3,transparent);color:var(--dsw-alias-label-secondary,#cfd3d6);border-radius:999px;padding:3px 9px;font:inherit;font-size:12px;cursor:pointer}',
+        '.kbpu-chip.st{cursor:default;font-weight:600}',
+        '.kbpu-chip.ok{color:var(--dsw-alias-state-success-primary,#22c55e)}',
+        '.kbpu-chip.bad{color:var(--dsw-alias-state-error-primary,#f87171)}',
+        '.kbpu-note{margin:0;font-size:12px;line-height:1.5;color:var(--dsw-alias-label-tertiary,#8a9096)}'
+      ]
+
+      const CSS = PAGE_CSS.concat(PANEL_CSS).join('\n')
 
       // ── the live state: one poll, shared by the page, the badge, the banners and the floating window ───
       const store = {

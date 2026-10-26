@@ -4,8 +4,11 @@
 //   GET  state      the settings, the inbox, the runs being followed, the unread count and which items deserve a banner
 //   POST settings   a patch of the settings (level, banners, badge, muted, mute, unmute)         — write: strict origin AND the session cookie
 //   POST inbox      { action: read | read-all | dismiss | banner-shown, id?, ids? }               — write: strict origin AND the session cookie
+//   GET  panel      the page of the Mac menu-bar app (the floating window's panel, drawn by the same code): see panel-page.mjs
+//                   — its two writes above also take the app's own token (helper.token, 0600) in place of the session cookie
 //
 // `createPulse` holds the file's content and takes its I/O as arguments, so the whole thing runs in a test without DSH or a disk.
+import { timingSafeEqual } from 'node:crypto'
 import { applySettings, emptyState, inboxAction, normalizeSettings, normalizeState, publicView, SETTINGS_VERSION, watchStep } from './pulse-core.mjs'
 
 const normalizeData = (raw) => {
@@ -109,6 +112,26 @@ export const originOk = (req) => {
   } catch (e) { return false }
 }
 
+/** The header the Mac menu-bar app puts its own token in, for the two writes (it has no browser session to show). */
+export const HELPER_TOKEN_HEADER = 'x-kybernos-helper-token'
+const TOKEN_RE = /^[0-9a-f]{64}$/
+/** Does this write carry the app's token? Constant time; the Host and the Origin are fenced as for any other write; no token, or a malformed one, never passes. */
+export const helperTokenOk = (req, token) => {
+  try {
+    if (typeof token !== 'string' || !TOKEN_RE.test(token)) return false
+    const sent = str(req && req.headers && req.headers[HELPER_TOKEN_HEADER])
+    if (sent === null || !TOKEN_RE.test(sent)) return false
+    if (hostOk(req) === false || originOk(req) === false) return false
+    return timingSafeEqual(Buffer.from(sent, 'utf8'), Buffer.from(token, 'utf8'))
+  } catch (e) { return false }
+}
+
+const sendHtml = (res, html, csp) => {
+  try {
+    res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store', 'content-security-policy': csp, 'x-content-type-options': 'nosniff', 'referrer-policy': 'no-referrer' })
+    res.end(html)
+  } catch (e) { /* socket closed */ }
+}
 const send = (res, status, body) => {
   try {
     res.writeHead(status, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' })
@@ -131,6 +154,15 @@ export const HELPER_FRESH_MS = 45000
 /** `guard(req)` answers null when the write may go on, or `{ status, error }` (session-guard.mjs's writeGuard). `opts.now` is the clock. */
 export function mountRoutes (webServer, pulse, guard, opts = {}) {
   const clock = typeof opts.now === 'function' ? opts.now : Date.now
+  // The page of the Mac menu-bar app: a string built once (panel-page.mjs), with the policy it is served under. No page, no route.
+  if (typeof opts.panelPage === 'string' && opts.panelPage !== '') {
+    webServer.register({ kind: 'exact', path: '/kybernos-pulse/panel', handler: (req, res) => {
+      if (hostOk(req) === false) return send(res, 403, { ok: false, error: 'origin-refused' })
+      if (req.method !== 'GET') return send(res, 405, { ok: false, error: 'method-not-allowed' })
+      if (originOk(req) === false) return send(res, 403, { ok: false, error: 'origin-refused' })
+      return sendHtml(res, opts.panelPage, typeof opts.panelCsp === 'string' ? opts.panelCsp : "default-src 'none'")
+    } })
+  }
   let helper = { at: 0, banners: false }
   webServer.register({ kind: 'exact', path: '/kybernos-pulse/state', handler: (req, res) => {
     if (hostOk(req) === false) return send(res, 403, { ok: false, error: 'origin-refused' })

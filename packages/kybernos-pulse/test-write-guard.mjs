@@ -38,8 +38,8 @@ const hit = async (path, method, headers, body) => {
 }
 
 const WRITES = { '/kybernos-pulse/settings': { level: 'every' }, '/kybernos-pulse/inbox': { action: 'read-all' } }
-assert.deepEqual([...registered.keys()].filter((p) => p !== '/kybernos-pulse/state').sort(), Object.keys(WRITES).sort(), 'every route but the read is a write covered here')
-ok('the routes: one read and two writes, all covered by this test')
+assert.deepEqual([...registered.keys()].filter((p) => p !== '/kybernos-pulse/state' && p !== '/kybernos-pulse/panel').sort(), Object.keys(WRITES).sort(), 'every route but the two reads is a write covered here')
+ok('the routes: two reads (the state, the page of the Mac app) and two writes, all covered by this test')
 
 for (const [path, body] of Object.entries(WRITES)) {
   // a first good write creates the file, so the refused ones below have something to leave untouched
@@ -54,6 +54,24 @@ for (const [path, body] of Object.entries(WRITES)) {
   assert.equal(await send(browserHeaders()), 200, path + ': the right Origin and the real cookie')
   ok(path + ': no header 403 · foreign Origin 403 · no cookie 401 · forged cookie 401 · nothing written · the real pair 200')
 }
+
+// The Mac app has no browser session: its two writes may carry its own token (a file only the owner reads) in place of the cookie. Nothing else changes.
+const token = readFileSync(join(root, 'kybernos', 'pulse', 'helper.token'), 'utf8').trim()
+assert.match(token, /^[0-9a-f]{64}$/)
+for (const [path, body] of Object.entries(WRITES)) {
+  const before = snapshot()
+  const send = (headers) => hit(path, 'POST', headers, body)
+  assert.equal(await send({ 'x-kybernos-helper-token': 'ab'.repeat(32) }), 403, path + ': a wrong token, no Origin')
+  assert.equal(await send({ 'x-kybernos-helper-token': 'ab'.repeat(32), origin: 'http://127.0.0.1:3080' }), 401, path + ': a wrong token from the right Origin')
+  assert.equal(await send({ 'x-kybernos-helper-token': token.toUpperCase() }), 403, path + ': the token in another case')
+  assert.equal(await send({ 'x-kybernos-helper-token': token, origin: 'http://evil.example' }), 403, path + ': the right token from a foreign page')
+  assert.equal(await send({ 'x-kybernos-helper-token': token, host: 'evil.example:3080' }), 403, path + ': the right token on a rebound host')
+  assert.equal(snapshot(), before, path + ': nothing was written by the refused requests')
+  assert.equal(await send({ 'x-kybernos-helper-token': token }), 200, path + ': the right token, from the app (no Origin)')
+  assert.equal(await send({ 'x-kybernos-helper-token': token, origin: 'http://127.0.0.1:3080' }), 200, path + ': the right token, from the app\'s own page')
+  ok(path + ': wrong token 403/401 · other case 403 · foreign page 403 · rebound host 403 · nothing written · the right token 200')
+}
+assert.equal(await hit('/kybernos-pulse/state', 'POST', { 'x-kybernos-helper-token': token, origin: 'http://127.0.0.1:3080' }), 405, 'the token opens no other verb')
 
 assert.equal(await hit('/kybernos-pulse/state', 'GET', {}), 200, 'a read needs no header')
 assert.equal(await hit('/kybernos-pulse/state', 'GET', { origin: 'http://evil.example' }), 403, 'a read from a foreign Origin is still refused')
