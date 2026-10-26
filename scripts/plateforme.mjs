@@ -45,9 +45,6 @@ export const famille = (plateforme = process.platform) => {
   if (plateforme === 'linux') return 'linux'
   return 'other'
 }
-export const estWindows = (p = process.platform) => p === 'win32'
-export const estMac = (p = process.platform) => p === 'darwin'
-export const estLinux = (p = process.platform) => p === 'linux'
 
 // ── 2. The pure parsers ─────────────────────────────────────────────────────
 // A pid, first non-empty numeric line. `lsof -t` gives one pid per line.
@@ -328,7 +325,7 @@ export const planSupervision = (fam, opts = {}) => {
     const chemin = join(home, '.config', 'systemd', 'user', label + '.service')
     const contenu = `[Unit]
 Description=DSH (DeepSeek Harness) — Kybernos web server
-Documentation=https://github.com/platonai-net/dsh-kybernos
+Documentation=https://github.com/kybernos-app/kybernos-plugins
 
 [Service]
 Type=simple

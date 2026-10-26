@@ -65,6 +65,32 @@ it looks like `http://127.0.0.1:3080/?token=…` and carries your sign-in. Typin
 `dsh web` (Ctrl-C) and start it again: it prints a fresh one. If DSH was already running, restart it first: a restart interrupts
 running sessions.
 
+## Start at login
+
+DSH does not come back by itself after a restart of the computer or a crash: the page you had open then shows the engine's
+« Failed to load plugins » card, which only means « DSH is not running ». At the end of an interactive install the robot asks
+whether to start Kybernos by itself when you log in and bring it back if it stops (macOS: a LaunchAgent, Linux: a `systemd --user`
+unit; Windows: not available yet, the task was never run). It is off for a development checkout, for a script and for an AI agent,
+unless you pass `--autostart` (or `--no-autostart` to never be asked).
+
+```sh
+node scripts/dsh-lifecycle.mjs service status        # is it on, is the file the one this version writes
+node scripts/dsh-lifecycle.mjs service install --dry # what it would write and run
+node scripts/dsh-lifecycle.mjs service install       # write it; starts DSH now only if port 3080 is free
+node scripts/dsh-lifecycle.mjs service uninstall     # stop and remove it (the DSH it ran stops too)
+node scripts/kybernos-open.mjs                       # open Kybernos signed in; starts it first if it is not running
+```
+
+- A DSH you started yourself in a terminal is never cut: the unit is written and takes over at your next login.
+- A unit that was already there (often hand-made) is kept in `~/.dsh/kybernos/service-sauvegardes/` before it is replaced.
+- macOS keeps a list of units switched off (`launchctl disable`); a switched-off unit never starts at login. `service install`
+  switches it on again, `service status` and `doctor` tell you when it is off.
+- No key goes into the unit. DSH reads `~/.dsh/.env` itself, and keys typed in Kybernos live in DSH's own store; a key that only
+  exists in your shell's startup file (`.zshrc`) is not seen by a service: move it to `~/.dsh/.env`.
+- The unit carries the PATH of the terminal that installed it. A tool that only an interactive startup file puts on the PATH is not on it.
+- `kybernos-open` reads the sign-in address from DSH's own log and never prints it. It waits for the plugins to be mounted
+  (about 20 s after a start) before opening the browser, so it never opens a page that would show the error card.
+
 ## The welcome pages
 
 The first time, Kybernos asks four short questions. Every one can be skipped, and nothing is asked twice.
