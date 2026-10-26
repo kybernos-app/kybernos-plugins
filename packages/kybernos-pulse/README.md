@@ -12,8 +12,9 @@ with one click. A module of the Kybernos Suite: **off by default**, switched on 
   flood you); at most three at once; one tag per event so that two open tabs cannot show it twice. Clicking one brings Kybernos forward.
 - **A count** on the tab title and, when Kybernos is installed as an app (Chrome, Edge), on its Dock icon.
 - **The Kybernos icon in the Mac menu bar** (next to Wi-Fi), from a small Mac app, `helper/` (see below): the K with the number of things that wait for
-  you, a dot (orange: an approval waits, red: a failure, blue: a run is going), and a click lists the automations, newest need first. It works with the
-  browser closed and puts up the system banners itself.
+  you and a dot (orange: an approval waits, red: a failure, blue: a run is going). A click opens **the same panel as the floating window**, under the icon
+  (title, big sentence, Inbox / Now tabs, one card per automation with its arrow, « Open Kybernos »). It works with the browser closed and puts up the
+  system banners itself. A right click, or a click while DSH is not running, gives a small menu.
 - **Settings › Widget**: show or close the window, when to be told (*something needs me*, the default: a failure or an approval waiting;
   *every run*; *never*), the banner and badge switches, the browser permission, the quiet automations.
 
@@ -45,16 +46,23 @@ A single small Swift program (no dependency, macOS 13 or later), built on the Ma
 bash packages/kybernos-pulse/helper/build.sh --run     # builds "Kybernos Pulse.app" under helper/build/ (signed ad hoc) and opens it
 ```
 
-- It **only reads** `GET /kybernos-pulse/state` of the local DSH every ten seconds (and when the menu opens), with the header
-  `X-Kybernos-Helper: v1; banners=ok|off`. It sends no cookie and writes nothing to DSH: reading an item as read, dismissing it or changing a setting stays
-  in the floating window.
+- The app itself **only reads** `GET /kybernos-pulse/state` of the local DSH every ten seconds, with the header `X-Kybernos-Helper: v1; banners=ok|off`:
+  that gives the count, the dot and the banners. It sends no cookie and no write of its own.
+- The panel is a **web page of the plugin**, `GET /kybernos-pulse/panel` (`panel-page.mjs`): the pure block of `client.js` between `PANEL-CORE-BEGIN` and
+  `PANEL-CORE-END` (the panel's code and its sheet) copied into one self-contained page, so the floating window and the app draw the same panel from the
+  same code (`test-panel.mjs` runs that block on its own). The app shows it in a web view held to its own address (`http://127.0.0.1:<port>`); the page
+  polls the state every four seconds. Its arrows, the gear and « Open Kybernos » ask the app to open Kybernos in the browser.
+- The page's three writes (mark read, dismiss, make an automation quiet) go to the plugin's own routes with the **app's token**: a random file
+  `<DSH home>/kybernos/pulse/helper.token` (0600, made by the host the first time), which the app reads and puts in the page. The host takes it in place of the
+  browser session for those two write routes only (same Host and Origin fences, constant-time comparison); without it the page only reads.
 - The host answers `helper: { seen, banners }` for 45 seconds after its last read. **Settings › Widget** shows « Running » from it, and while the app
   has the right to post notifications the browser puts no banner up and marks none as shown (the app does, and remembers which, so a restart repeats nothing).
 - A banner: once per event, not for what is older than ten minutes, three at most at once; a click opens Kybernos in the browser.
 - Options: `--port 3080` (or `KYBERNOS_PORT`), `--lang fr|en` (the Mac's language otherwise), `--selftest state.json` (prints the menu a state would give, no window).
-- A click on a row opens `http://127.0.0.1:<port>/` in the default browser. It does not bring an already open Kybernos tab forward, and there is no deep link
-  to the Automations page yet.
-- Not done: signing with a Developer ID (another Mac needs it), starting at login, a menu that is a panel with the tabs of the floating window.
+- An arrow or « Open Kybernos » opens `http://127.0.0.1:<port>/` in the default browser. It does not bring an already open Kybernos tab forward, and there is
+  no deep link to the Automations page yet.
+- Not done: signing with a Developer ID (another Mac needs it), starting at login, the Today and Kaby tabs and the rings of the mockup (the floating window
+  does not have them either), the next run next to the icon.
 
 `test-helper.mjs` keeps the Swift side honest without building it: the fields it decodes exist in a real answer, the header is the one the route reads, it never
 writes, and its K is the K of `kbBrandArt`.
@@ -66,6 +74,7 @@ Under `/kybernos-pulse/`, served before DSH's own authentication, so each one fe
 | Route | Does |
 |---|---|
 | `GET state` | `{ settings, inbox, running, unread, banners, helper }`: the inbox, the runs being followed, which items deserve a banner, whether the Mac menu-bar app is reading |
+| `GET panel` | the page of the Mac menu-bar app (HTML, with its own content-security policy: its scripts and its host only) |
 | `POST settings` | a patch: `level` (`need` \| `every` \| `never`), `banners`, `badge`, `muted` (list), `mute` / `unmute` (one name) |
 | `POST inbox` | `{ action: read \| read-all \| dismiss \| banner-shown, id?, ids? }` |
 
@@ -75,7 +84,7 @@ terminal's code, word for word.
 ## Files
 
 `<DSH home>/kybernos/pulse/pulse.json` (`0600`): the settings, the inbox (100 items at most) and what the watcher has already seen. Names and
-counts of runs only, never the text of an answer. It reads `<DSH home>/kybernos/tasks.json` and the engine's session journals; it writes nothing else.
+counts of runs only, never the text of an answer. `helper.token` sits next to it. It reads `<DSH home>/kybernos/tasks.json` and the engine's session journals; it writes nothing else.
 
 ## Code
 
@@ -86,6 +95,7 @@ counts of runs only, never the text of an answer. It reads `<DSH home>/kybernos/
 | `index.js` | the real I/O, the timer (a pass every 15 s), the route cleanup |
 | `client.js` | the Settings section, the floating window, the banners, the badge |
 | `session-guard.mjs`, `lib-session-test.mjs` | copies of the shared write guard and its test helper |
+| `panel-page.mjs` | builds the page of the Mac app from the pure block of `client.js` (pure: strings in, string out) |
 | `helper/` | the Mac menu-bar app (Swift package, `build.sh`); reads the state route only |
 
 No engine patch. Slot used: `settings.section`.
@@ -96,7 +106,8 @@ No engine patch. Slot used: `settings.section`.
 cd packages/kybernos-pulse && for t in test*.mjs; do node "$t" || exit 1; done
 ```
 
-`test-core.mjs` (rules and the watcher's pass), `test-host.mjs` (store, watcher on a real folder, routes, `apply` with a missing service),
+`test-core.mjs` (rules and the watcher's pass), `test-host.mjs` (store, watcher on a real folder, routes, `apply` with a missing service), `test-panel.mjs` (the shared block run on its own, the page on a
+stand-in browser, its route, the app's token), `test-helper.mjs` (the Swift side without building it),
 `test-write-guard.mjs` (each write with no header, a foreign origin, no cookie, a forged cookie, the real pair), `test-client.mjs` (the sentences,
 the panel, the page on a stand-in, the window on a fake Picture-in-Picture, the banners and the badge on a fake page).
 
