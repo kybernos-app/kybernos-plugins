@@ -1,54 +1,24 @@
-/** The app's settings that are secrets: the model key lives in the device's secure storage (iOS Keychain, Android Keystore through expo-secure-store), never in a file, and reaches the engine
- *  only as the environment variable ANTHROPIC_API_KEY when it starts. Everything here works against a small storage interface so it is tested without a device. */
+/** The app's own settings, kept in the device's secure storage (iOS Keychain, Android Keystore through expo-secure-store): the agreement to send what is written to the AI provider, the welcome page
+ *  seen, and the two Background switches. The model key is NOT here: it is pasted in the first-run wizard of DSH and kept by DSH (packages/kybernos-plugin, packages/kybernos-models).
+ *  Everything here works against a small storage interface so it is tested without a device. */
 export interface SecureStorage {
   get(name: string): Promise<string | null>
   set(name: string, value: string): Promise<void>
   remove(name: string): Promise<void>
 }
 
-export const KEY_SLOT = 'kybernos.anthropic-key'
 /** Set once the welcome page has been seen: a first launch shows it, later ones do not. */
 export const WELCOME_SLOT = 'kybernos.welcome-seen'
 
 /** The person's agreement to send what they write to their AI provider (Apple 5.1.2(i)). The stored value is the version of the text they agreed to: a materially changed text asks again. */
 export const CONSENT_SLOT = 'kybernos.ai-consent'
-export const CONSENT_VERSION = '2' // 2: the text no longer names one provider by default (it names Kybernos and the provider of the person's own key)
+export const CONSENT_VERSION = '3' // 2: the text no longer names one provider by default (it names Kybernos and the provider of the person's own key). 3: the same meaning in two short sentences, the detail one tap away
 
 /** Switches of the Background section (both off until the person turns them on). */
 export const KEEP_RUNNING_SLOT = 'kybernos.keep-running'
 export const REMINDERS_SLOT = 'kybernos.reminders'
 
-const ANTHROPIC_KEY = /^sk-ant-[A-Za-z0-9_-]{20,}$/
-
-export type KeyCheck = { ok: true; key: string } | { ok: false; reason: string }
-
-/** A pasted key often carries a trailing newline or quotes: trim them, then check the shape (not that the key works: only a request tells). */
-export const checkAnthropicKey = (raw: string): KeyCheck => {
-  const key = raw.trim().replace(/^(["'`])(.*)\1$/, '$2').trim()
-  if (key === '') return { ok: false, reason: 'Paste your Anthropic key first.' }
-  if (/\s/.test(key)) return { ok: false, reason: 'A key has no spaces or line breaks: paste only the key.' }
-  if (!ANTHROPIC_KEY.test(key)) return { ok: false, reason: 'This does not look like an Anthropic key (it starts with sk-ant- and is longer).' }
-  return { ok: true, key }
-}
-
-/** What the screen shows of a stored key: the last four characters, nothing more. */
-export const keyHint = (key: string): string => '…' + key.slice(-4)
-
 export const createSettings = (store: SecureStorage) => ({
-  /** The hint of the stored key, or null when there is none (or the storage cannot be read). */
-  async keyHint(): Promise<string | null> {
-    try { const k = await store.get(KEY_SLOT); return k ? keyHint(k) : null } catch { return null }
-  },
-  async save(raw: string): Promise<KeyCheck> {
-    const check = checkAnthropicKey(raw)
-    if (check.ok) await store.set(KEY_SLOT, check.key)
-    return check
-  },
-  async remove(): Promise<void> { await store.remove(KEY_SLOT) },
-  /** The environment handed to the engine when it starts. An unreadable storage is an engine without a key, never a failed start. */
-  async engineEnv(): Promise<Record<string, string>> {
-    try { const k = await store.get(KEY_SLOT); return k ? { ANTHROPIC_API_KEY: k } : {} } catch { return {} }
-  },
   async keepRunning(): Promise<boolean> { try { return (await store.get(KEEP_RUNNING_SLOT)) === '1' } catch { return false } },
   async setKeepRunning(on: boolean): Promise<void> { try { if (on) await store.set(KEEP_RUNNING_SLOT, '1'); else await store.remove(KEEP_RUNNING_SLOT) } catch { /* the switch then shows its old state */ } },
   async reminders(): Promise<boolean> { try { return (await store.get(REMINDERS_SLOT)) === '1' } catch { return false } },

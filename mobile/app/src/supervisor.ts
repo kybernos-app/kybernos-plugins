@@ -8,7 +8,7 @@ export type BootState =
   | { phase: 'failed'; message: string }
 
 export interface HostPort {
-  start(port: number, env: Record<string, string>): boolean
+  start(port: number): boolean
   status(): { phase: string; done: number; total: number }
   exitCode(): number | null
   logTail(maxBytes: number): string
@@ -81,9 +81,9 @@ export const createSupervisor = ({ host, fetch, port = 0, intervalMs = 500 }: Su
   return {
     get state() { return state },
     subscribe(fn: (s: BootState) => void) { listeners.add(fn); return () => { listeners.delete(fn) } },
-    /** Starts the engine and the watch. `env` is what the app hands to the engine (the model key). `node_start` runs once per process: a stopped engine is reported, never restarted. */
-    begin(env: Record<string, string> = {}) {
-      if (!host.start(port, env)) {
+    /** Starts the engine and the watch. `node_start` runs once per process: a stopped engine is reported, never restarted. */
+    begin() {
+      if (!host.start(port)) {
         // already running (a reload of the JavaScript side) is fine; no payload in the app is not
         if (host.status().phase === 'none' && host.exitCode() === null && findSignInUrl(host.logTail(65536)) === null) {
           set({ phase: 'failed', message: 'This build of the app does not contain the Kybernos runtime.' }); return

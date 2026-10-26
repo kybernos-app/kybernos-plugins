@@ -20,7 +20,7 @@ class KybernosHostModule : Module() {
       mapOf<String, Any?>("selfTestDelay" to config.selfTestDelay, "selfTestHasKey" to config.modelKey.isNotEmpty(), "platform" to "android", "keepAliveRequested" to config.keepAlive)
     }
 
-    Function("start") { port: Int, env: Map<String, String> -> host.start(port, env) }
+    Function("start") { port: Int -> host.start(port) }
     Function("status") { host.status() }
     Function("exitCode") { host.exitCode() }
     Function("logTail") { maxBytes: Int -> host.logTail(maxBytes) }

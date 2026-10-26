@@ -1,5 +1,5 @@
-// Seeds the Claude provider into the phone profile's user patch layer when the app has a model key (it comes from the device's Keychain / Keystore, handed to the engine as ANTHROPIC_API_KEY)
-// and the layer is still empty. The key itself is never written: the provider names the environment variable (`apiKeyEnv`). A layer that already has entries is the user's own (the web
+// Seeds the Claude provider into the phone profile's user patch layer when the engine has a model key in its environment (a device-cloud test build with `--model` hands it over as ANTHROPIC_API_KEY;
+// a person's own key goes through the first-run wizard instead) and the layer is still empty. The key itself is never written: the provider names the environment variable (`apiKeyEnv`). A layer that already has entries is the user's own (the web
 // Models page writes there) and is left alone.
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 

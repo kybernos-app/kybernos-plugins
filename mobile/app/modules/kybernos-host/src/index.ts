@@ -9,8 +9,8 @@ export interface KybernosHostNative {
   keepAliveRequested?: boolean
   /** The self-test build carries a model key, so the automation can finish with a real answer. */
   selfTestHasKey: boolean
-  /** Starts the engine (once per process) with extra environment variables (the model key from the device's secure storage). False when it already runs or the app lacks its payload. */
-  start(port: number, env: Record<string, string>): boolean
+  /** Starts the engine (once per process). False when it already runs or the app lacks its payload. */
+  start(port: number): boolean
   /** Progress the bootstrap writes: phase is 'none' until it has started. */
   status(): { phase: string; done: number; total: number }
   /** The exit code of Node, or null while it runs. A stopped Node stays stopped until the app is relaunched. */

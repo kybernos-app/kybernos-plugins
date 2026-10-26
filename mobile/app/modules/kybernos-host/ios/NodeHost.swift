@@ -33,14 +33,30 @@ final class NodeHost {
         Bundle.main.path(forResource: name, ofType: ext) ?? Bundle(for: NodeHost.self).path(forResource: name, ofType: ext)
     }
 
-    /// Environment variables the app may hand to the engine (the model key from the Keychain): plain upper-case names, never the app's own KB_* ones.
+    /// Environment variables a test build may hand to the engine: plain upper-case names, never the app's own KB_* ones.
     static func allowedEnvironment(_ env: [String: String]) -> [String: String] {
         env.filter { $0.key.range(of: #"^[A-Z][A-Z0-9_]{1,63}$"#, options: .regularExpression) != nil && !$0.key.hasPrefix("KB_") && !$0.value.isEmpty }
     }
 
+    /// DSH keeps the person's provider keys as text in `.dsh/.credentials.yaml` (readable by the app alone, not encrypted): they must not travel in a device backup (Android already leaves the whole
+    /// data folder out of its backups). The mark is a property of the file, and DSH rewrites the file by writing a new one and renaming it, which drops the mark: it is put back whenever the app
+    /// leaves or comes back to the screen (a backup runs while the app sleeps) and at every start. Returns whether a file was marked.
+    @discardableResult
+    func excludeVaultFromBackup() -> Bool {
+        let dir = paths.home.appendingPathComponent(".dsh", isDirectory: true)
+        guard let names = try? FileManager.default.contentsOfDirectory(atPath: dir.path) else { return false }
+        var marked = false
+        for name in names where name.hasPrefix(".credentials.yaml") {
+            var url = dir.appendingPathComponent(name)
+            var values = URLResourceValues(); values.isExcludedFromBackup = true
+            if (try? url.setResourceValues(values)) != nil { marked = true }
+        }
+        return marked
+    }
+
     /// Starts Node on a thread with a large stack. Returns false when the bundle lacks its files or Node already runs.
     @discardableResult
-    func start(port: Int, extraEnv: [String: String]) -> Bool {
+    func start(port: Int) -> Bool {
         lock.lock(); defer { lock.unlock() }
         guard !started else { return false }
         let fm = FileManager.default
@@ -49,6 +65,7 @@ final class NodeHost {
         var runtimeURL = paths.runtime
         var values = URLResourceValues(); values.isExcludedFromBackup = true
         try? runtimeURL.setResourceValues(values)
+        excludeVaultFromBackup()
 
         // the engine's console becomes the log file: the app reads the sign-in address from it
         let fd = open(paths.log.path, O_WRONLY | O_CREAT | O_TRUNC, 0o644)
@@ -59,7 +76,6 @@ final class NodeHost {
             "KB_WORKSPACE": paths.workspace.path, "KB_PORT": String(port), "TMPDIR": NSTemporaryDirectory(),
         ]
         for (k, v) in NodeHost.allowedEnvironment(SelfTestSupport.environment()) { setenv(k, v, 1) }
-        for (k, v) in NodeHost.allowedEnvironment(extraEnv) { setenv(k, v, 1) } // the Keychain's key wins over a test build's
         for (k, v) in env { setenv(k, v, 1) }
         // a simulator, unlike a phone, lets processes run: this switch refuses them to rehearse the phone
         if let deny = ProcessInfo.processInfo.environment["KYBERNOS_DENY_SPAWN"] { setenv("KYBERNOS_DENY_SPAWN", deny, 1) }

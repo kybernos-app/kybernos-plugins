@@ -34,7 +34,6 @@ export default function App() {
   const [elapsed, setElapsed] = useState(0)
   const settings = useMemo(() => createSettings(deviceStorage), [])
   const [showSettings, setShowSettings] = useState(false)
-  const [keyStored, setKeyStored] = useState(false)
   const [webEntry, setWebEntry] = useState(false) // the interface says it has its own entry to the settings: the fallback gear goes
   // the engine starts only after the person has agreed to send what they write to their AI provider; a device-cloud self-test build has nobody to ask
   const selfTestBuild = host !== null && host.selfTestDelay !== null
@@ -46,27 +45,23 @@ export default function App() {
   const agree = () => { setConsent('given'); void settings.giveConsent() }
   // the welcome page comes first on a first launch only (before the agreement it leads to); a person who agreed already, or a self-test build, never sees it
   const [welcome, setWelcome] = useState<'checking' | 'needed' | 'seen'>(selfTestBuild ? 'seen' : 'checking')
-  const [welcomeShown, setWelcomeShown] = useState(false)
   useEffect(() => {
     if (welcome !== 'checking') return
     void settings.welcomeSeen().then((seen) => setWelcome(seen ? 'seen' : 'needed'))
   }, [])
-  const goOn = () => { setWelcome('seen'); setWelcomeShown(true); void settings.markWelcomeSeen() }
-  const keyStoredRef = useRef(false)
+  const goOn = () => { setWelcome('seen'); void settings.markWelcomeSeen() }
   const started = useRef(false)
-  const noteKey = (stored: boolean) => { keyStoredRef.current = stored; setKeyStored(stored) }
 
   useEffect(() => {
     if (!supervisor || started.current || consent !== 'given') return
     started.current = true
     const off = supervisor.subscribe(setState)
-    // the model key comes out of the Keychain / Keystore here and goes to the engine's environment: it is never written to a file
-    // old web sessions are cleared first, then the engine starts: the cookie is named after the engine's (random) port, so one more piles up at every launch
-    void settings.engineEnv().then(async (env) => {
-      noteKey(Object.keys(env).length > 0)
+    // old web sessions are cleared first, then the engine starts: the cookie is named after the engine's (random) port, so one more piles up at every launch.
+    // The model key is not handed over here: it is asked in the first-run wizard of the web interface and kept by DSH.
+    void (async () => {
       try { await host?.clearWebSession?.() } catch { /* a stale cookie is a nuisance, never a reason not to start */ }
-      supervisor.begin(env)
-    })
+      supervisor.begin()
+    })()
     const sub = AppState.addEventListener('change', (s) => { if (s === 'active') void supervisor.healthCheck().then((ok) => console.log('kybernos: server answers after foreground: ' + ok)) })
     return () => { off(); sub.remove(); supervisor.stop() }
   }, [supervisor, consent === 'given'])
@@ -83,7 +78,7 @@ export default function App() {
 
   useEffect(() => {
     if (state.phase !== 'ready' || !host || host.selfTestDelay === null) return
-    const t = runSelfTest(state.url, host.selfTestDelay, { fetch: fetch as any, now: () => new Date(), show: setSelfTest, writeResult: (j) => host!.writeSelfTestResult(j), hasKey: host.selfTestHasKey || keyStoredRef.current, memory: () => host!.memory() })
+    const t = runSelfTest(state.url, host.selfTestDelay, { fetch: fetch as any, now: () => new Date(), show: setSelfTest, writeResult: (j) => host!.writeSelfTestResult(j), hasKey: host.selfTestHasKey, memory: () => host!.memory() })
     return t.stop
   }, [state.phase === 'ready' ? state.url : null])
 
@@ -154,7 +149,7 @@ export default function App() {
         <StatusBar style="light" />
         <SafeAreaView style={styles.fill}>
           {consent === 'needed' && welcome === 'needed' && <WelcomeScreen onContinue={goOn} />}
-          {consent === 'needed' && welcome === 'seen' && <ConsentScreen onAgree={agree} dots={welcomeShown} />}
+          {consent === 'needed' && welcome === 'seen' && <ConsentScreen onAgree={agree} />}
         </SafeAreaView>
       </SafeAreaProvider>
     )
@@ -196,7 +191,7 @@ export default function App() {
       <Modal visible={showSettings} animationType="slide" onRequestClose={closeSettings}>
         <SafeAreaProvider>
           <SafeAreaView style={styles.fill}>
-            <SettingsScreen settings={settings} engineRunning={state.phase !== 'failed'} onClose={closeSettings} onShareLog={shareLog} onKeyChanged={noteKey} platform={Platform.OS === 'android' ? 'android' : 'ios'} onBackgroundChange={changeBackground} />
+            <SettingsScreen settings={settings} engineRunning={state.phase !== 'failed'} onClose={closeSettings} onShareLog={shareLog} platform={Platform.OS === 'android' ? 'android' : 'ios'} onBackgroundChange={changeBackground} />
           </SafeAreaView>
         </SafeAreaProvider>
       </Modal>
