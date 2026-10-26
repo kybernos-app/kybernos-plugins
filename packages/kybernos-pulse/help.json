@@ -1,0 +1,29 @@
+{
+  "what": {
+    "fr": "Te dit quand une automation est terminée, a échoué ou attend ton accord, sans garder Kybernos au premier plan : une fenêtre flottante, une bannière et un nombre sur l'onglet.",
+    "en": "Tells you when an automation finished, failed or waits for your approval, without keeping Kybernos in front: a floating window, a banner and a count on the tab."
+  },
+  "steps": [
+    {
+      "fr": "Ouvre Réglages › Widget et clique « L'afficher » : la fenêtre flottante s'ouvre, Kybernos doit rester ouvert dans un onglet.",
+      "en": "Open Settings › Widget and click “Show it”: the floating window opens, Kybernos must stay open in a tab."
+    },
+    {
+      "fr": "Clique « Autoriser » pour les bannières : le navigateur te le demande une seule fois.",
+      "en": "Click “Allow” for the banners: the browser asks once."
+    },
+    {
+      "fr": "Choisis quand être prévenu. Chaque carte a une flèche qui te ramène dans Kybernos, sur la page des automations.",
+      "en": "Choose when to be told. Each card has an arrow that brings you back to Kybernos, on the Automations page."
+    }
+  ],
+  "where": {
+    "fr": "Réglages › Widget",
+    "en": "Settings › Widget",
+    "page": true
+  },
+  "good": {
+    "fr": "La fenêtre flottante n'existe que dans Chrome, Edge, Brave et leurs cousins, et s'ouvre toujours par un clic ; les bannières et le nombre sur l'onglet marchent partout.",
+    "en": "The floating window only exists in Chrome, Edge, Brave and their cousins, and always opens from a click; the banners and the count on the tab work everywhere."
+  }
+}

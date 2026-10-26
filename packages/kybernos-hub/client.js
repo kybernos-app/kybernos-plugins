@@ -911,6 +911,8 @@ window.__ModuleLoader__.load({
     // The artwork of a module: a 32px glyph in three tones (a / b translucent fills, l strokes, w solid, d shade), drawn on a
     // tile coloured by the module's family. The catalogue names the glyph (`glyphe`); an unknown name falls back to the cube.
     const GLYPHES = {
+      // A bell: something finished or needs you (kybernos-pulse).
+      bell:'<path class="a" d="M16 3.5a8 8 0 0 0-8 8v5.5l-3 5.5h22l-3-5.5v-5.5a8 8 0 0 0-8-8z"/><path class="b" d="M16 3.5a8 8 0 0 1 8 8v5.5l3 5.5H16z"/><path class="l" d="M16 3.5a8 8 0 0 0-8 8v5.5l-3 5.5h22l-3-5.5v-5.5a8 8 0 0 0-8-8zM12.5 26.5a3.5 3.5 0 0 0 7 0"/><circle class="w" cx="16" cy="3.2" r="1.4"/>',
       // A paper plane: a message or an instruction handed to another chat (kybernos-session-msg).
       send:'<path class="a" d="M3.5 15L28.5 4.5l-9 23.5-3.8-9.2z"/><path class="b" d="M28.5 4.5L15.7 18.8l3.8 9.2z"/><path class="l" d="M3.5 15L28.5 4.5l-9 23.5-3.8-9.2zM15.7 18.8L28.5 4.5"/><circle class="w" cx="18.5" cy="13.5" r="1.5"/>',
       cube:'<path class="a" d="M16 3.5l11.5 6.5v12L16 28.5 4.5 22V10z"/><path class="b" d="M16 16l11.5-6v12L16 28.5z"/><path class="l" d="M16 3.5l11.5 6.5v12L16 28.5 4.5 22V10zM4.5 10L16 16l11.5-6M16 16v12.5"/><circle class="w" cx="16" cy="16" r="1.8"/>',
@@ -998,7 +1000,7 @@ window.__ModuleLoader__.load({
       'kybernos-slash': 'kybernos-slash', 'kybernos-atlas': 'kybernos-atlas', 'kybernos-workers': 'kybernos-workers', 'kybernos-maintenance': 'kybernos-maintenance',
       'kybernos-call': 'kybernos-call',
       'kybernos-websearch': 'kybernos-websearch-page', 'kybernos-free-llms': 'kybernos-free-llms',
-      'kybernos-usage': 'kybernos-usage', 'kybernos-mobile': 'kybernos-mobile'
+      'kybernos-usage': 'kybernos-usage', 'kybernos-mobile': 'kybernos-mobile', 'kybernos-pulse': 'kybernos-pulse'
     }
 
     const ICONES = {

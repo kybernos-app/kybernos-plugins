@@ -145,6 +145,7 @@ export const FICHIERS_CHAUDS = [
   'packages/kybernos-dashboards/client.js',
   'packages/kybernos-summary/client.js',
   'packages/kybernos-kyber/client.js',
+  'packages/kybernos-pulse/client.js',
 ]
 export const TTL_CLAIM_MS = 180 * 1000
 

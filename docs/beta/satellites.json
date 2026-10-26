@@ -121,6 +121,15 @@
         "lib_vendor": null
       },
       {
+        "dir": "kybernos-pulse",
+        "nom": "@local/kybernos-pulse",
+        "tier": 2,
+        "obligatoire": false,
+        "role": "tells you when an automation finished, failed or waits for you: a floating window, a system banner and a badge, each with a link back to the right page of Kybernos; its own Settings page \"Widget\"",
+        "poids_ko": 81,
+        "lib_vendor": null
+      },
+      {
         "dir": "kybernos-maintenance",
         "nom": "@local/kybernos-maintenance",
         "tier": 2,
@@ -491,7 +500,8 @@
       "@local/kybernos-kaby-customisation",
       "@local/kybernos-search",
       "@local/kybernos-servers",
-      "@local/kybernos-session-msg"
+      "@local/kybernos-session-msg",
+      "@local/kybernos-pulse"
     ]
   }
 }
