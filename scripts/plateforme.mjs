@@ -263,6 +263,8 @@ export const planSupervision = (fam, opts = {}) => {
   const travail = opts.travail || ''
   const journaux = opts.journaux || ''
   const home = opts.home || ''
+  // Logs are named by port, like dsh-relance does (`dsh-web-<port>.out.log` off 3080): a unit on another port never writes into the log of the real one.
+  const journal = (flux) => join(journaux, port === 3080 ? 'dsh-web.' + flux + '.log' : 'dsh-web-' + port + '.' + flux + '.log')
   if (fam === 'mac') {
     const chemin = join(home, 'Library', 'LaunchAgents', label + '.plist')
     const contenu = `<?xml version="1.0" encoding="UTF-8"?>
@@ -303,9 +305,9 @@ export const planSupervision = (fam, opts = {}) => {
   </dict>
 
   <key>StandardOutPath</key>
-  <string>${join(journaux, 'dsh-web.out.log')}</string>
+  <string>${journal('out')}</string>
   <key>StandardErrorPath</key>
-  <string>${join(journaux, 'dsh-web.err.log')}</string>
+  <string>${journal('err')}</string>
 
   <key>ProcessType</key>
   <string>Interactive</string>
@@ -333,8 +335,8 @@ WorkingDirectory=${travail}
 ExecStart=${node} ${dsh} web --no-open --port ${port}
 Restart=always
 RestartSec=10
-StandardOutput=append:${join(journaux, 'dsh-web.out.log')}
-StandardError=append:${join(journaux, 'dsh-web.err.log')}
+StandardOutput=append:${journal('out')}
+StandardError=append:${journal('err')}
 Environment=PATH=${opts.path || '/usr/local/bin:/usr/bin:/bin'}
 
 [Install]

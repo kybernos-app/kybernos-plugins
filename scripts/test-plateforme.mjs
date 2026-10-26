@@ -209,6 +209,8 @@ verifie('plist : KeepAlive est vrai (DSH redémarre seul)', mac.contenu.includes
 verifie('plist : RunAtLoad est vrai', mac.contenu.includes('<key>RunAtLoad</key>\n  <true/>'))
 verifie('plist : la sortie et l\'erreur vont dans deux journaux distincts',
   mac.contenu.includes('dsh-web.out.log') && mac.contenu.includes('dsh-web.err.log'))
+verifie('plist : un autre port a ses propres journaux (jamais ceux du vrai DSH)',
+  planSupervision('mac', Object.assign({}, os, { port: 4444 })).contenu.includes('/Users/me/.dsh/logs/dsh-web-4444.out.log') && !planSupervision('mac', Object.assign({}, os, { port: 4444 })).contenu.includes('dsh-web.out.log') && planSupervision('linux', Object.assign({}, os, { port: 4444 })).contenu.includes('dsh-web-4444.err.log'))
 verifie('plist : le dossier de travail est celui du dépôt', mac.contenu.includes('<string>/Users/me/dsh-kybernos</string>'))
 verifie('plist : l\'unité se termine par une nouvelle ligne',
   mac.contenu.endsWith('</plist>\n'))
